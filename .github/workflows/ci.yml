@@ -1,0 +1,41 @@
+# CI шага 1 (STEP-1 §1.6): схемы, трассировка ТЗ, эталон хранилища,
+# тесты ядра на PostgreSQL. Всё запускается одним ci/checks.sh — тем же,
+# что и локально перед коммитом.
+name: ci
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: orbita
+          POSTGRES_PASSWORD: orbita
+          POSTGRES_DB: orbita_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U orbita"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      ORBITA_TEST_DB_URL: jdbc:postgresql://127.0.0.1:5432/orbita_test
+      ORBITA_TEST_DB_USER: orbita
+      ORBITA_TEST_DB_PASSWORD: orbita
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install jsonschema referencing
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+      - run: bash ci/checks.sh
