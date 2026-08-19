@@ -25,8 +25,8 @@
           "description": "Угол места, при котором запас линии равен требуемому. Всегда ≥ min_elevation_deg"
         },
         "limiting_factor": {
-          "enum": ["link_margin", "antenna_pattern", "capacity", "doppler"],
-          "description": "Что ограничивает зону: сужение footprint должно иметь причину"
+          "enum": ["geometry", "link_margin", "antenna_pattern", "capacity", "doppler"],
+          "description": "Что ограничивает зону: сужение footprint должно иметь причину. geometry — зона не сужена, границей служит минимальный угол места (случай сильной линии, напр. приём A'); прочие значения означают сужение по названной причине"
         },
         "radius_km": { "type": "number", "exclusiveMinimum": 0 },
         "area_km2": { "type": "number", "exclusiveMinimum": 0 }
