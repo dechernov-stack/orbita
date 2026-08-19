@@ -19,10 +19,15 @@ class SpacecraftSemanticsTest {
     private val adapter = LoRaWanAdapter()
     private val ebn0Sf12 = adapter.mode("SF12").requiredEbn0Db
 
-    /** Восходящая линия IoT: терминал 14 дБм (−16 дБВт) → КА. */
+    /**
+     * Восходящая линия IoT: терминал 14 дБм (−16 дБВт) → КА.
+     * Eb/N0 = +6,3 дБ при 250 бит/с — физичное значение для CSS-демодулятора
+     * (порог SNR −20 дБ в полосе 125 кГц); прежнее условное −6 дБ лежало ниже
+     * предела Шеннона. Число приходит из адаптера, здесь лишь воспроизведено.
+     */
     private val up = LinkLeg(
         id = "L-UP", eirpDbw = -16.0, altKm = 550.0, freqHz = 868e6,
-        gOverTDbk = -15.0, bitrateBps = 300.0, requiredEbn0Db = -6.0,
+        gOverTDbk = -15.0, bitrateBps = 250.0, requiredEbn0Db = 6.3,
     )
 
     @Nested
@@ -97,7 +102,7 @@ class SpacecraftSemanticsTest {
 
         // A': односторонний приём сильной линии — ограничена геометрия.
         // C': двусторонний контур, слабая нисходящая до малого терминала — ограничивает бюджет.
-        private val weak = up.copy(eirpDbw = -38.0)
+        private val weak = up.copy(eirpDbw = -24.0)
         private val seA = serviceElevationDeg(up, 3.0, minElevDeg = 5.0)
         private val seC = serviceElevationDeg(weak, 3.0, minElevDeg = 5.0)
 
@@ -126,7 +131,7 @@ class SpacecraftSemanticsTest {
 
         @Test
         fun `незамыкающаяся линия не даёт зоны`() =
-            assertNull(serviceElevationDeg(up.copy(eirpDbw = -60.0), 3.0, 5.0))
+            assertNull(serviceElevationDeg(up.copy(eirpDbw = -45.0), 3.0, 5.0))
 
         @Test
         fun `при избыточном запасе ограничивает геометрия`() =

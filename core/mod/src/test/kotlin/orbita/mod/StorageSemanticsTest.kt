@@ -192,6 +192,17 @@ class StorageSemanticsTest {
             assertEquals(50.0, params.get("CM-0001", "mass")!!.value)
         }
 
+        // STEP-4 §0.2: третий случай NULL-семантики CHECK — предложение ИИ
+        // с источником ai_proposed, но БЕЗ блока ai проходило ограничение V001
+        // (оператор ? при NULL слева даёт NULL, а FALSE OR NULL считается
+        // пройденным) и попадало в расчётные выборки. Исправлено миграцией V006.
+        @Test
+        fun `предложение ИИ без блока ai отклоняется`() {
+            assertThrows<ModelViolationException> {
+                params.putRaw("CM-0001", "mass_ai_no_block", 50.0, "kg", prov("""{"source":"ai_proposed"}"""))
+            }
+        }
+
         @Test
         fun `неакцептованные предложения выявляются отчётом`() {
             params.putRaw(
