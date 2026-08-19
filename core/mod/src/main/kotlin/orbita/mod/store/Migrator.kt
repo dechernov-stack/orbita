@@ -88,6 +88,16 @@ object SchemaCheck {
         val missing = requiredTables.filterNot { it in existing }
         check(missing.isEmpty()) { "schema check failed: missing tables $missing" }
 
+        // V002: класс потребителя на связи (TZ-REQ-003)
+        val hasConsumerClass = conn.createStatement().use { st ->
+            st.executeQuery(
+                """SELECT count(*) FROM information_schema.columns
+                    WHERE table_schema = current_schema() AND table_name = 'links'
+                      AND column_name = 'consumer_class'"""
+            ).use { rs -> rs.next(); rs.getLong(1) > 0 }
+        }
+        check(hasConsumerClass) { "schema check failed: links.consumer_class is missing (V002)" }
+
         val hasGuard = conn.createStatement().use { st ->
             st.executeQuery(
                 "SELECT count(*) FROM pg_trigger WHERE tgname = 'objects_baseline_guard'"

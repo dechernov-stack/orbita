@@ -21,7 +21,7 @@ data class DbConfig(
 }
 
 /** Транзакция: commit при успехе, rollback при любом исключении. */
-internal fun <T> Connection.tx(block: () -> T): T {
+fun <T> Connection.tx(block: () -> T): T {
     val prev = autoCommit
     autoCommit = false
     try {

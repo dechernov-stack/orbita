@@ -7,16 +7,54 @@ import java.sql.Connection
 /** Узел обхода трассировки: идентификатор и минимальная глубина от исходного объекта. */
 data class TraceHop(val id: String, val depth: Int)
 
+/** Связь трассировки. Класс потребителя обязателен для «сервис → требование» (Р9, TZ-REQ-003). */
+data class Link(val fromId: String, val toId: String, val kind: String, val consumerClass: String?)
+
 class LinkStore(private val conn: Connection) {
 
-    fun add(fromId: String, toId: String, kind: String = "trace"): Unit = mappingConstraints {
-        conn.prepareStatement("INSERT INTO links(from_id, to_id, kind) VALUES (?, ?, ?::link_kind)").use { ps ->
-            ps.setString(1, fromId)
-            ps.setString(2, toId)
-            ps.setString(3, kind)
-            ps.executeUpdate()
+    fun add(fromId: String, toId: String, kind: String = "trace", consumerClass: String? = null): Unit =
+        mappingConstraints {
+            conn.prepareStatement(
+                "INSERT INTO links(from_id, to_id, kind, consumer_class) VALUES (?, ?, ?::link_kind, ?)"
+            ).use { ps ->
+                ps.setString(1, fromId)
+                ps.setString(2, toId)
+                ps.setString(3, kind)
+                ps.setString(4, consumerClass)
+                ps.executeUpdate()
+            }
         }
-    }
+
+    fun linksFrom(id: String, kind: String? = null): List<Link> = select("from_id", id, kind)
+
+    fun linksTo(id: String, kind: String? = null): List<Link> = select("to_id", id, kind)
+
+    fun list(kind: String? = null): List<Link> =
+        conn.prepareStatement(
+            "SELECT from_id, to_id, kind::text, consumer_class FROM links" +
+                (if (kind != null) " WHERE kind = ?::link_kind" else "") + " ORDER BY from_id, to_id"
+        ).use { ps ->
+            if (kind != null) ps.setString(1, kind)
+            ps.executeQuery().use { rs ->
+                buildList {
+                    while (rs.next()) add(Link(rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4)))
+                }
+            }
+        }
+
+    private fun select(column: String, id: String, kind: String?): List<Link> =
+        conn.prepareStatement(
+            "SELECT from_id, to_id, kind::text, consumer_class FROM links WHERE $column = ?" +
+                (if (kind != null) " AND kind = ?::link_kind" else "") + " ORDER BY from_id, to_id"
+        ).use { ps ->
+            ps.setString(1, id)
+            if (kind != null) ps.setString(2, kind)
+            ps.executeQuery().use { rs ->
+                buildList {
+                    while (rs.next()) add(Link(rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4)))
+                }
+            }
+        }
 
     fun count(): Long = conn.createStatement().use { st ->
         st.executeQuery("SELECT count(*) FROM links").use { rs -> rs.next(); rs.getLong(1) }
