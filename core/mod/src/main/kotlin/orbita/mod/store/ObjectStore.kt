@@ -69,6 +69,12 @@ class ObjectStore(private val conn: Connection, private val mapper: ObjectMapper
             ps.executeQuery().use { rs -> rs.collect() }
         }
 
+    /** Текущие версии всех объектов. */
+    fun listCurrent(): List<StoredObject> =
+        conn.prepareStatement("SELECT $COLUMNS FROM objects WHERE valid_to IS NULL ORDER BY id").use { ps ->
+            ps.executeQuery().use { rs -> rs.collect() }
+        }
+
     /** Срез модели на дату (db/queries.sql, запрос 5; TZ-OUT-003). */
     fun sliceAt(at: OffsetDateTime): List<StoredObject> =
         conn.prepareStatement(
@@ -120,6 +126,53 @@ class ObjectStore(private val conn: Connection, private val mapper: ObjectMapper
                     ps.setObject(5, at)
                     ps.setLong(6, cur.pk)
                     ps.setString(7, changeRef)
+                    ps.setString(8, createdBy)
+                    ps.executeQuery().use { rs -> rs.next(); rs.toStoredObject() }
+                }
+            }
+        }
+    }
+
+    /**
+     * Переход статуса (TZ-COM-003): интервал текущей версии закрывается, создаётся
+     * строка с тем же содержанием и новым статусом — история переходов сохраняется
+     * с автором и датой, срез на дату отдаёт статус на момент. Объект в Baseline
+     * этим путём не меняется — только процедурой [change].
+     */
+    fun transition(
+        id: String,
+        target: Lifecycle,
+        createdBy: String = "system",
+        at: OffsetDateTime = OffsetDateTime.now(ZoneOffset.UTC),
+    ): StoredObject {
+        val cur = current(id) ?: throw NoSuchElementException("object '$id' has no current version")
+        if (cur.status == Lifecycle.Baseline) {
+            throw BaselineChangeException(
+                "TZ-COM-003: object '$id' is baselined; changes go through the change procedure"
+            )
+        }
+        val newDoc = cur.doc.deepCopy<JsonNode>()
+        (newDoc as? com.fasterxml.jackson.databind.node.ObjectNode)
+            ?.withObject("/lifecycle")?.put("status", target.name)
+        return mappingConstraints {
+            conn.tx {
+                conn.prepareStatement("UPDATE objects SET valid_to = ? WHERE pk = ?").use { ps ->
+                    ps.setObject(1, at)
+                    ps.setLong(2, cur.pk)
+                    ps.executeUpdate()
+                }
+                conn.prepareStatement(
+                    """INSERT INTO objects(id, type, version, status, doc, valid_from, supersedes, created_by)
+                       VALUES (?, ?::object_type, ?, ?::lifecycle, ?::jsonb, ?, ?, ?)
+                       RETURNING $COLUMNS"""
+                ).use { ps ->
+                    ps.setString(1, cur.id)
+                    ps.setString(2, cur.type)
+                    ps.setString(3, cur.version)
+                    ps.setString(4, target.name)
+                    ps.setString(5, mapper.writeValueAsString(newDoc))
+                    ps.setObject(6, at)
+                    ps.setLong(7, cur.pk)
                     ps.setString(8, createdBy)
                     ps.executeQuery().use { rs -> rs.next(); rs.toStoredObject() }
                 }
