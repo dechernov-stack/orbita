@@ -12,9 +12,11 @@ import com.fasterxml.jackson.databind.node.ObjectNode
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpServer
 import orbita.mod.model.CoreType
+import orbita.mod.model.Lifecycle
 import orbita.mod.schema.SchemaValidationException
 import orbita.mod.schema.ValidationError
 import orbita.mod.store.BaselineChangeException
+import orbita.req.BaselineBlockedException
 import orbita.mod.store.CycleException
 import orbita.mod.store.IdReuseException
 import orbita.mod.store.ModelViolationException
@@ -41,6 +43,11 @@ class HttpApi(private val boundary: Boundary) {
             respond(ex, 422, errorsJson(e.errors))
         } catch (e: ModelViolationException) {
             respond(ex, 422, errJson(e))
+        } catch (e: BaselineBlockedException) {
+            val body = errJson(e)
+            val reasons = body.putArray("reasons")
+            e.reasons.forEach(reasons::add)
+            respond(ex, 409, body)
         } catch (e: BaselineChangeException) {
             respond(ex, 409, errJson(e))
         } catch (e: IdReuseException) {
@@ -70,6 +77,12 @@ class HttpApi(private val boundary: Boundary) {
                 val type = CoreType.byDbType(path.substringAfterLast('/'))
                 val stored = boundary.ingest(type, body(ex))
                 respond(ex, 201, summary(stored))
+            }
+
+            // Перевод статуса (TZ-REQ-006): в Baseline — только зрелое требование
+            method == "POST" && objectMatch?.groupValues?.get(2) == "/promote" -> {
+                val target = Lifecycle.valueOf(mapper.readTree(body(ex)).path("status").asText())
+                respond(ex, 200, summary(boundary.req.promote(objectMatch.groupValues[1], target)))
             }
 
             method == "POST" && objectMatch?.groupValues?.get(2) == "/change" -> {
@@ -152,6 +165,68 @@ class HttpApi(private val boundary: Boundary) {
                 respond(ex, 200, arr)
             }
 
+            // Отчёты шага 2 (TZ-OUT-003/004, TZ-REQ-001/005/006)
+            method == "GET" && path == "/reports/maturity" -> {
+                val q = query(ex)
+                val gate = q["gate"] ?: throw IllegalArgumentException("query parameter 'gate' is required")
+                val report = boundary.maturity.build(gate, q["at"]?.let(OffsetDateTime::parse))
+                val n = mapper.createObjectNode()
+                n.put("gate", report.gate)
+                report.at?.let { n.put("at", it.toString()) }
+                n.put("ready", report.ready())
+                val blocking = n.putArray("blocking")
+                report.blockingReasons().forEach(blocking::add)
+                val byType = n.putObject("gaps_by_type")
+                report.gapsByType.forEach { (type, gaps) ->
+                    val arr = byType.putArray(type)
+                    gaps.forEach { g ->
+                        arr.addObject().put("id", g.id).put("actual", g.actual)
+                            .put("required", g.required).put("owner", g.owner)
+                    }
+                }
+                val tbd = n.putArray("open_tbd")
+                report.openTbd.forEach { tbd.addObject().put("id", it.id).put("owner", it.owner) }
+                n.set<ObjectNode>("trace_breaks", mapper.valueToTree(report.traceBreaks))
+                n.set<ObjectNode>("unverified", mapper.valueToTree(report.unverified))
+                respond(ex, 200, n)
+            }
+
+            method == "GET" && path == "/reports/trace-matrix" -> {
+                val m = boundary.matrices.traceMatrix()
+                val n = mapper.createObjectNode()
+                val rows = n.putArray("rows")
+                m.rows.forEach { r ->
+                    val row = rows.addObject().put("requirement", r.requirementId)
+                    r.needs.let { needs -> row.putArray("needs").also { a -> needs.forEach(a::add) } }
+                    val svc = row.putArray("services")
+                    r.services.forEach { svc.addObject().put("id", it.id).put("consumer_class", it.consumerClass) }
+                    row.putArray("elements").also { a -> r.elements.forEach(a::add) }
+                    row.put("method", r.method)
+                }
+                val gaps = n.putArray("gaps")
+                m.gaps.forEach { gaps.addObject().put("requirement", it.requirementId).put("missing", it.missing) }
+                respond(ex, 200, n)
+            }
+
+            method == "GET" && path == "/reports/verification-matrix" -> {
+                val arr = mapper.createArrayNode()
+                boundary.matrices.verificationMatrix().forEach { r ->
+                    arr.addObject().put("requirement", r.requirementId).put("method", r.method)
+                        .put("phase", r.phase).put("evidence_ref", r.evidenceRef)
+                        .put("status", r.status).put("stale_evidence", r.staleEvidence)
+                }
+                respond(ex, 200, arr)
+            }
+
+            method == "GET" && path == "/reports/needs-without-services" ->
+                respond(ex, 200, mapper.valueToTree(boundary.req.needsWithoutServices()))
+
+            method == "GET" && path == "/reports/elements-without-requirements" ->
+                respond(ex, 200, mapper.valueToTree(boundary.req.elementsWithoutRequirements()))
+
+            method == "GET" && path == "/reports/review-candidates" ->
+                respond(ex, 200, mapper.valueToTree(boundary.req.reviewCandidates()))
+
             method == "POST" && path.startsWith("/validate/") -> {
                 val schema = path.removePrefix("/validate/")
                 val errors = boundary.validateContract(schema, body(ex))
@@ -168,6 +243,11 @@ class HttpApi(private val boundary: Boundary) {
     }
 
     private fun body(ex: HttpExchange): String = ex.requestBody.readAllBytes().decodeToString()
+
+    private fun query(ex: HttpExchange): Map<String, String> =
+        ex.requestURI.query?.split('&')?.mapNotNull { p ->
+            p.substringBefore('=').takeIf { it.isNotBlank() }?.let { it to p.substringAfter('=', "") }
+        }?.toMap() ?: emptyMap()
 
     private fun summary(o: StoredObject): ObjectNode = mapper.createObjectNode()
         .put("id", o.id).put("type", o.type).put("version", o.version).put("status", o.status.name)

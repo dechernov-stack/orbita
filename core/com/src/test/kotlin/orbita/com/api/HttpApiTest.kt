@@ -118,4 +118,48 @@ class HttpApiTest {
         val down = mapper.readTree(get("/objects/ND-0301/descendants").body())
         assertEquals(listOf("RQ-0301", "SV-0301"), down.map { it["id"].asText() }.sorted())
     }
+
+    @Test
+    fun `promote незрелого требования блокируется с причинами`() {
+        boundary.req.ingestNeed(
+            """{"id":"ND-0401","statement":"Наблюдение за инфраструктурой в арктической зоне.",
+                "stakeholder":{"name":"Оператор","role":"operator"},"lifecycle":{"status":"Draft","version":"1"}}"""
+        )
+        boundary.req.ingestService(
+            """{"id":"SV-0401","name":"Мониторинг объектов","traces_up":["ND-0401"],
+                "qos_profiles":[{"consumer_class":"A_prime","moe":[{"id":"MOE-0401","name":"delivery_probability_daily",
+                  "target":{"value":0.9,"unit":"1","provenance":{"source":"manual"}}}]}],
+                "lifecycle":{"status":"Draft","version":"1"}}"""
+        )
+        val created = post(
+            "/objects/requirement",
+            """{"id":"RQ-0401","level":"system","statement":"Обеспечивается доставка данных при необходимости.",
+                "category":"functional","traces_up":[{"ref":"SV-0401","consumer_class":"A_prime"}],
+                "verification":{"method":"analysis"},"lifecycle":{"status":"Draft","version":"1"},
+                "owner":"ведущий системный инженер"}""",
+        )
+        assertEquals(201, created.statusCode()) { created.body() }
+
+        val refused = post("/objects/RQ-0401/promote", """{"status":"Baseline"}""")
+        assertEquals(409, refused.statusCode())
+        val reasons = mapper.readTree(refused.body())["reasons"]
+        assertTrue(reasons.size() > 0) { refused.body() }
+
+        val accepted = post("/objects/RQ-0401/promote", """{"status":"Preliminary"}""")
+        assertEquals(200, accepted.statusCode())
+        assertEquals("Preliminary", mapper.readTree(accepted.body())["status"].asText())
+    }
+
+    @Test
+    fun `отчёт зрелости и матрицы доступны по HTTP`() {
+        val maturity = get("/reports/maturity?gate=SRR")
+        assertEquals(200, maturity.statusCode())
+        val m = mapper.readTree(maturity.body())
+        assertEquals("SRR", m["gate"].asText())
+        assertTrue(m.has("gaps_by_type") && m.has("open_tbd") && m.has("trace_breaks"))
+
+        val matrix = get("/reports/trace-matrix")
+        assertEquals(200, matrix.statusCode())
+        assertTrue(mapper.readTree(matrix.body()).has("rows"))
+    }
 }

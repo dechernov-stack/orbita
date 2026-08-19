@@ -1,6 +1,7 @@
 // Граница модуля (TZ-MOD-002, TZ-COM-007): каждый вход валидируется по схеме
 // целевого типа; невалидные данные отклоняются с путём до поля, правилом и,
-// для нарушений Р1–Р9, идентификатором ADR (TZ-MOD-003).
+// для нарушений Р1–Р9, идентификатором ADR (TZ-MOD-003). Объекты ядра шага 2
+// принимаются через контур требований: связи выводятся из документов.
 package orbita.com.api
 
 import com.fasterxml.jackson.databind.JsonNode
@@ -13,6 +14,10 @@ import orbita.mod.store.ObjectStore
 import orbita.mod.store.ParamStore
 import orbita.mod.store.ResultStore
 import orbita.mod.store.StoredObject
+import orbita.out.Matrices
+import orbita.out.MaturityReports
+import orbita.req.ReqService
+import orbita.usr.TerminalRules
 import java.sql.Connection
 
 class Boundary(private val registry: SchemaRegistry, conn: Connection) {
@@ -21,29 +26,43 @@ class Boundary(private val registry: SchemaRegistry, conn: Connection) {
     val links = LinkStore(conn)
     val params = ParamStore(conn)
     val results = ResultStore(conn)
+    val req = ReqService(conn, registry)
+    val matrices = Matrices(req)
+    val maturity = MaturityReports(req)
+    private val terminalRules = TerminalRules(registry)
 
     /**
-     * Приём объекта ядра: валидация по схеме типа, затем сохранение текущей версией.
-     * Статус и версия берутся из блока lifecycle документа (для scenario его нет —
-     * применяются Draft/«1»).
+     * Приём объекта ядра. Типы контура требований идут через ReqService —
+     * прикладные правила (Р9, flow down) и связи из документа; сценарий
+     * сохраняется напрямую после валидации по схеме.
      */
-    fun ingest(type: CoreType, json: String, createdBy: String = "api"): StoredObject {
-        val doc = parse(json)
-        registry.require(type.schemaName, doc)
-        val lifecycle = doc.path("lifecycle")
-        return objects.create(
-            id = doc["id"].asText(),
-            type = type.dbType,
-            doc = doc,
-            status = Lifecycle.valueOf(lifecycle.path("status").asText(Lifecycle.Draft.name)),
-            version = lifecycle.path("version").asText("1"),
-            createdBy = createdBy,
-        )
+    fun ingest(type: CoreType, json: String, createdBy: String = "api"): StoredObject = when (type) {
+        CoreType.Need -> req.ingestNeed(json, createdBy)
+        CoreType.Service -> req.ingestService(json, createdBy)
+        CoreType.Requirement -> req.ingestRequirement(json, createdBy)
+        CoreType.Component -> req.ingestComponent(json, createdBy)
+        CoreType.Scenario -> {
+            val doc = parse(json)
+            registry.require(type.schemaName, doc)
+            val lifecycle = doc.path("lifecycle")
+            objects.create(
+                id = doc["id"].asText(),
+                type = type.dbType,
+                doc = doc,
+                status = Lifecycle.valueOf(lifecycle.path("status").asText(Lifecycle.Draft.name)),
+                version = lifecycle.path("version").asText("1"),
+                createdBy = createdBy,
+            )
+        }
     }
 
-    /** Валидация контракта между модулями без сохранения (TZ-COM-007). */
+    /**
+     * Валидация контракта между модулями без сохранения (TZ-COM-007).
+     * Профиль терминала дополнительно проходит правила классов (TZ-USR-001).
+     */
     fun validateContract(schemaName: String, json: String): List<ValidationError> =
-        registry.validate(schemaName, parse(json))
+        if (schemaName == "contracts/terminal-profile") terminalRules.validate(parse(json))
+        else registry.validate(schemaName, parse(json))
 
     fun schemaNames(): List<String> = registry.names
 
