@@ -233,6 +233,16 @@ class MonteCarloTest {
     // ---------- TZ-FLW-006 ----------
 
     @Test
+    @DisplayName("TZ-FLW-006: перечень режимов доставки совпадает со схемой сценария")
+    fun `перечень режимов доставки совпадает со схемой`() {
+        val schema = mapper.readTree(
+            RepoPaths.schemasDir().resolve("core/scenario.schema.json").toFile(),
+        )
+        val fromSchema = schema["properties"]["delivery_mode"]["enum"].map { it.asText() }.toSet()
+        assertEquals(fromSchema, DeliveryMode.entries.map { it.wireId }.toSet())
+    }
+
+    @Test
     @DisplayName("TZ-FLW-006: при редких пролётах контур C' не закрывается ни в одном режиме")
     fun `при редких пролётах контур C не закрывается`() {
         // Базовый сценарий: 11 пролётов в сутки над ячейкой C-002 — одно
