@@ -11,7 +11,6 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ObjectNode
 import orbita.ka.PRIORITY
 import java.util.concurrent.ForkJoinPool
-import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.ln
 
@@ -105,12 +104,8 @@ data class ClassResult(
     val reactionSamples: List<Double> = emptyList(),
     val budgetMeans: Map<String, Double> = emptyMap(),
 ) {
-    fun latencyPercentile(p: Double): Double? {
-        if (latencyS.isEmpty()) return null
-        val sorted = latencyS.sorted()
-        val idx = ceil(p * sorted.size).toInt().coerceIn(1, sorted.size) - 1
-        return sorted[idx]
-    }
+    fun latencyPercentile(p: Double): Double? =
+        if (latencyS.isEmpty()) null else percentile(latencyS, p)
 }
 
 /** Результат прогона; сериализуется в нормативный contracts/flow-result. */
