@@ -1,4 +1,9 @@
 // core/mod — модель данных (TZ-MOD): типы из схем, реестр схем, хранилище PostgreSQL.
+plugins {
+    // Тестовая обвязка БД (TestDb) переиспользуется тестами других модулей ядра
+    `java-test-fixtures`
+}
+
 dependencies {
     // Валидация JSON Schema 2020-12 (TZ-MOD-001, TZ-MOD-002)
     implementation("com.networknt:json-schema-validator:1.5.6")
