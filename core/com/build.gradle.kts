@@ -5,6 +5,9 @@ dependencies {
     implementation(project(":core:req"))
     implementation(project(":core:usr"))
     implementation(project(":core:out"))
+    implementation(project(":core:bal"))
+    implementation(project(":core:ka"))
+    implementation(project(":core:net"))
     implementation("com.fasterxml.jackson.core:jackson-databind:2.18.2")
 
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")

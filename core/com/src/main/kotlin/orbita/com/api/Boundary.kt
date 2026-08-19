@@ -14,6 +14,9 @@ import orbita.mod.store.ObjectStore
 import orbita.mod.store.ParamStore
 import orbita.mod.store.ResultStore
 import orbita.mod.store.StoredObject
+import orbita.bal.VisibilityPrecompute
+import orbita.net.LoRaWanAdapter
+import orbita.net.validateAdapterContract
 import orbita.out.Matrices
 import orbita.out.MaturityReports
 import orbita.req.ReqService
@@ -29,6 +32,11 @@ class Boundary(private val registry: SchemaRegistry, conn: Connection) {
     val req = ReqService(conn, registry)
     val matrices = Matrices(req)
     val maturity = MaturityReports(req)
+
+    /** Расчётный контур шага 3: адаптер протокола и предрасчёт геометрии. */
+    val protocolAdapter = LoRaWanAdapter()
+    val visibility = VisibilityPrecompute()
+
     private val terminalRules = TerminalRules(registry)
 
     /**
@@ -60,9 +68,15 @@ class Boundary(private val registry: SchemaRegistry, conn: Connection) {
      * Валидация контракта между модулями без сохранения (TZ-COM-007).
      * Профиль терминала дополнительно проходит правила классов (TZ-USR-001).
      */
-    fun validateContract(schemaName: String, json: String): List<ValidationError> =
-        if (schemaName == "contracts/terminal-profile") terminalRules.validate(parse(json))
-        else registry.validate(schemaName, parse(json))
+    fun validateContract(schemaName: String, json: String): List<ValidationError> = when (schemaName) {
+        "contracts/terminal-profile" -> terminalRules.validate(parse(json))
+        // адаптер без нисходящего канала несовместим с Р5/Р6 — правило вне схемы (TZ-NET-002)
+        "contracts/protocol-adapter" -> registry.validate(schemaName, parse(json)) +
+            validateAdapterContract(parse(json)).map {
+                ValidationError("/mac/downlink_supported", "compatibility", it, adr = "ADR-005 (Р5)")
+            }
+        else -> registry.validate(schemaName, parse(json))
+    }
 
     fun schemaNames(): List<String> = registry.names
 
