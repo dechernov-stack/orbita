@@ -44,6 +44,18 @@ fun reactionTimeS(parts: Map<String, Double>): Double {
 fun pWithin(samples: List<Double>, requiredS: Double): Double =
     samples.count { it <= requiredS }.toDouble() / samples.size
 
+/**
+ * То же по выборке ПРЕДСТАВИТЕЛЕЙ: вклад реализации взвешен численностью
+ * популяции, которую представитель замещает. Без веса крупная и мелкая ячейки
+ * входят в распределение одинаково, и показатель класса смещается в пользу
+ * мелких популяций (ловушка 4) — как и оценка среднего.
+ */
+fun pWithinWeighted(samples: List<Representative>, requiredS: Double): Double {
+    val total = samples.sumOf { it.weight }
+    if (total <= 0) return 0.0
+    return samples.filter { it.value <= requiredS }.sumOf { it.weight } / total
+}
+
 // ---------- TZ-FLW-001: выборка по представителям ----------
 
 data class Representative(val weight: Double, val value: Double)
@@ -72,6 +84,19 @@ fun percentile(values: List<Double>, p: Double): Double {
     val sorted = values.sorted()
     val idx = Math.ceil(p * sorted.size).toInt().coerceIn(1, sorted.size) - 1
     return sorted[idx]
+}
+
+/** Квантиль по выборке представителей, взвешенный численностью популяции. */
+fun weightedPercentile(samples: List<Representative>, p: Double): Double {
+    require(samples.isNotEmpty()) { "empty sample" }
+    val sorted = samples.sortedBy { it.value }
+    val target = p * sorted.sumOf { it.weight }
+    var acc = 0.0
+    sorted.forEach { s ->
+        acc += s.weight
+        if (acc >= target) return s.value
+    }
+    return sorted.last().value
 }
 
 /**

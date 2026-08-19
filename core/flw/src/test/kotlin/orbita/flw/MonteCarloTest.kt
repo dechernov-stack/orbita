@@ -353,6 +353,55 @@ class MonteCarloTest {
         }
     }
 
+    @Test
+    @DisplayName("TZ-FLW-001: выборка представителей сверена с полным перебором (ADR-014)")
+    fun `оценка по представителям совпадает с полным перебором`() {
+        // ADR-014 требует не только контроля сходимости, но и сверки с полным
+        // перебором на малом сценарии: выборка представителей смещает хвосты.
+        // Малый сценарий: 60 ячеек, по три на каждую частоту пролётов. Выборка
+        // стратифицирована — по одному представителю на страту с утроенным
+        // весом. Систематическая выборка «каждая четвёртая» здесь была бы
+        // смещена: она пропускает целые страты.
+        val all = (0 until 60).map { i ->
+            val passCount = 4 + i / 3
+            PopulationSlice(
+                "C-%03d".format(i), "B_prime", terminals = 500.0, msgsPerTerminalDay = 4.0,
+                weight = 500.0, attemptsPerPass = 4, maxPasses = 3,
+            ) to passes("C-%03d".format(i), passCount)
+        }
+        val sample = all.filterIndexed { i, _ -> i % 3 == 0 }
+            .map { (slice, p) -> slice.copy(weight = slice.weight * 3) to p }
+
+        fun estimate(cells: List<Pair<PopulationSlice, List<CellPass>>>): Triple<Double, Double, Double> {
+            val r = MonteCarloEngine(mapper).run(
+                scenarioRef = "SC-0004", populations = cells.map { it.first },
+                userPasses = cells.flatMap { it.second }, relayContacts = passes("GS-01", 8),
+                channel = channel, horizonS = horizonS, runs = 400, rngSeed = 42,
+            ).byClass.single()
+            return Triple(
+                r.deliveryProbability,
+                weightedEstimate(r.latency),
+                r.latencyPercentile(0.99)!!,
+            )
+        }
+
+        val (deliveryFull, latencyFull, tailFull) = estimate(all)
+        val (deliverySample, latencySample, tailSample) = estimate(sample)
+
+        // доставка — оценка среднего: расхождение в пределах процента
+        assertTrue(abs(deliverySample - deliveryFull) < 0.01, "$deliveryFull vs $deliverySample")
+        // средняя задержка — в пределах 2 %
+        assertTrue(
+            abs(latencySample - latencyFull) < 0.02 * latencyFull,
+            "средняя задержка: $latencyFull vs $latencySample",
+        )
+        // хвост сходится хуже среднего (ADR-014, ловушка 2) — допуск шире, но конечный
+        assertTrue(
+            abs(tailSample - tailFull) < 0.10 * tailFull,
+            "P99: $tailFull vs $tailSample",
+        )
+    }
+
     // ---------- TZ-FLW-007 ----------
 
     @Test
