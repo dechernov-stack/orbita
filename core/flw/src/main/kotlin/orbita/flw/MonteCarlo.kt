@@ -98,14 +98,22 @@ data class ClassResult(
     val blindLossMsgs: Double,
     /** Доля потерь переполнения, пришедшаяся на класс по политике TZ-KA-008. */
     val bufferOverflowMsgs: Double = 0.0,
-    val latencyS: List<Double>,
+    /**
+     * Розыгрыши задержки с весом популяции представителя. Вес обязателен:
+     * без него крупная и мелкая ячейки входят в распределение класса
+     * одинаково и показатель смещается в пользу мелких (ловушка 4).
+     */
+    val latency: List<Representative>,
     /** Только C': P(T ≤ T_треб) и средние по участкам бюджета. */
     val reactionWithinRequired: Double? = null,
-    val reactionSamples: List<Double> = emptyList(),
+    val reaction: List<Representative> = emptyList(),
     val budgetMeans: Map<String, Double> = emptyMap(),
 ) {
+    val latencyS: List<Double> get() = latency.map { it.value }
+    val reactionSamples: List<Double> get() = reaction.map { it.value }
+
     fun latencyPercentile(p: Double): Double? =
-        if (latencyS.isEmpty()) null else percentile(latencyS, p)
+        if (latency.isEmpty()) null else weightedPercentile(latency, p)
 }
 
 /** Результат прогона; сериализуется в нормативный contracts/flow-result. */
@@ -297,10 +305,10 @@ class MonteCarloEngine(private val mapper: ObjectMapper = ObjectMapper()) {
         val degraded: Double,
         val weight: Double,
         val blindLoss: Double,
-        val latencyS: List<Double>,
-        val reactionS: List<Double>,
+        val latencyS: List<Representative>,
+        val reactionS: List<Representative>,
         val budgetSum: Map<String, Double>,
-        val budgetCount: Int,
+        val budgetWeight: Double,
     )
 
     private fun aggregateClass(
@@ -334,10 +342,10 @@ class MonteCarloEngine(private val mapper: ObjectMapper = ObjectMapper()) {
         var degradedWeighted = 0.0
         var weightSum = 0.0
         var blindLoss = 0.0
-        val latency = mutableListOf<Double>()
-        val reaction = mutableListOf<Double>()
+        val latency = mutableListOf<Representative>()
+        val reaction = mutableListOf<Representative>()
         val budgetSum = BUDGET_PARTS.associateWith { 0.0 }.toMutableMap()
-        var budgetCount = 0
+        var budgetWeight = 0.0
 
         outcomes.forEach { o ->
             o!!
@@ -351,7 +359,7 @@ class MonteCarloEngine(private val mapper: ObjectMapper = ObjectMapper()) {
             latency += o.latencyS
             reaction += o.reactionS
             o.budgetSum.forEach { (k, v) -> budgetSum[k] = budgetSum.getValue(k) + v }
-            budgetCount += o.budgetCount
+            budgetWeight += o.budgetWeight
         }
 
         val required = slices.firstNotNullOfOrNull { it.controlLoop?.requiredReactionS }
@@ -364,10 +372,11 @@ class MonteCarloEngine(private val mapper: ObjectMapper = ObjectMapper()) {
             meanAttempts = if (baseTotal > 0) attemptsWeighted / baseTotal else 1.0,
             degradedShare = if (weightSum > 0) degradedWeighted / weightSum else 0.0,
             blindLossMsgs = blindLoss,
-            latencyS = latency,
-            reactionWithinRequired = if (required != null && reaction.isNotEmpty()) pWithin(reaction, required) else null,
-            reactionSamples = reaction,
-            budgetMeans = if (budgetCount > 0) budgetSum.mapValues { it.value / budgetCount } else emptyMap(),
+            latency = latency,
+            reactionWithinRequired =
+                if (required != null && reaction.isNotEmpty()) pWithinWeighted(reaction, required) else null,
+            reaction = reaction,
+            budgetMeans = if (budgetWeight > 0) budgetSum.mapValues { it.value / budgetWeight } else emptyMap(),
         )
     }
 
@@ -411,10 +420,10 @@ class MonteCarloEngine(private val mapper: ObjectMapper = ObjectMapper()) {
         // в окно видимости с вероятностью visibleFraction (TZ-FLW-008)
         val blindLost = baseMsgs * degraded * (1.0 - visibleFraction)
 
-        val latency = ArrayList<Double>(runs)
-        val reaction = ArrayList<Double>(if (slice.controlLoop != null) runs else 0)
+        val latency = ArrayList<Representative>(runs)
+        val reaction = ArrayList<Representative>(if (slice.controlLoop != null) runs else 0)
         val budgetSum = BUDGET_PARTS.associateWith { 0.0 }.toMutableMap()
-        var budgetCount = 0
+        var budgetWeight = 0.0
 
         repeat(runs) { run ->
             // ожидание пролёта: момент готовности сообщения равномерен в цикле
@@ -423,7 +432,7 @@ class MonteCarloEngine(private val mapper: ObjectMapper = ObjectMapper()) {
             // распределения с вероятностью успеха pPass на пролёт (Р6/ADR-006)
             val passesUsed = geometricDraw(pPass, slice.maxPasses, rngSeed, run, entityIndex)
             val uplinkWaitS = waitFirstS + latencyTailS(passIntervalS, passesUsed)
-            latency += uplinkWaitS + channel.timeOnAirS
+            latency += Representative(slice.weight, uplinkWaitS + channel.timeOnAirS)
 
             slice.controlLoop?.let { loop ->
                 // Ожидание нисходящего канала — до ближайшего контакта релейного
@@ -442,9 +451,10 @@ class MonteCarloEngine(private val mapper: ObjectMapper = ObjectMapper()) {
                     "downlink_transit" to channel.timeOnAirS,
                     "execution" to loop.executionS,
                 )
-                reaction += reactionTimeS(parts)
-                parts.forEach { (k, v) -> budgetSum[k] = budgetSum.getValue(k) + v }
-                budgetCount++
+                reaction += Representative(slice.weight, reactionTimeS(parts))
+                // средние по участкам — тоже с весом популяции представителя
+                parts.forEach { (k, v) -> budgetSum[k] = budgetSum.getValue(k) + v * slice.weight }
+                budgetWeight += slice.weight
             }
         }
 
@@ -460,7 +470,7 @@ class MonteCarloEngine(private val mapper: ObjectMapper = ObjectMapper()) {
             latencyS = latency,
             reactionS = reaction,
             budgetSum = budgetSum,
-            budgetCount = budgetCount,
+            budgetWeight = budgetWeight,
         )
     }
 
