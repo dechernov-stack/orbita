@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/common/status.schema.json",
+  "title": "LifecycleStatus",
+  "description": "Статусная модель управляемого объекта (TZ-COM-003, БП-PA п.6.1).",
+  "type": "object",
+  "required": ["status", "version"],
+  "additionalProperties": false,
+  "properties": {
+    "status": { "enum": ["Draft", "Preliminary", "Approved", "Baseline", "Cancelled"] },
+    "version": { "type": "string" },
+    "baselined_at": { "type": "string", "format": "date-time" },
+    "baselined_by": { "type": "string" },
+    "supersedes": { "type": "string", "description": "ID предыдущей версии" },
+    "change_request": { "type": "string", "description": "Основание изменения Baseline-объекта" }
+  }
+}

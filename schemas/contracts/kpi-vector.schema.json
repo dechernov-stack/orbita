@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/contracts/kpi-vector.schema.json",
+  "title": "KpiVector",
+  "description": "Вектор KPI варианта построения — вход розы ветров и Парето-фронта «экономика × качество». Структура соответствует разд. 5.2 Концепции.",
+  "type": "object",
+  "required": ["scenario_ref", "quality", "economics", "reliability", "energy"],
+  "additionalProperties": false,
+  "properties": {
+    "scenario_ref": { "type": "string" },
+    "constellation_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "satellites": { "type": "integer", "minimum": 1 },
+        "planes": { "type": "integer", "minimum": 1 },
+        "sats_per_plane": { "type": "integer", "minimum": 1 },
+        "inclination_deg": { "type": "number" },
+        "altitude_km": { "type": "number" },
+        "sso": { "type": "boolean" },
+        "ltan_h": { "type": "number", "description": "Для ССО: влияет на теневые участки" }
+      }
+    },
+    "quality": {
+      "type": "object",
+      "description": "Спрос-взвешенное качество (Р8): интеграл по ячейкам карты спроса",
+      "required": ["demand_weighted_score", "by_class"],
+      "additionalProperties": false,
+      "properties": {
+        "demand_weighted_score": { "type": "number", "minimum": 0, "maximum": 1, "description": "Доля спроса, обслуженного с требуемым качеством" },
+        "by_class": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["consumer_class", "metric", "value"],
+            "additionalProperties": false,
+            "properties": {
+              "consumer_class": { "enum": ["A_prime", "B_prime", "C_prime"] },
+              "metric": { "enum": ["delivery_probability_daily", "delivery_probability_n_attempts", "reaction_time_probability"] },
+              "value": { "type": "number", "minimum": 0, "maximum": 1 }
+            }
+          }
+        },
+        "latitude_profile": {
+          "type": "array",
+          "description": "Широтный профиль качества с весом спроса — диагностика эффекта ССО",
+          "items": {
+            "type": "object",
+            "required": ["lat_band_deg", "score", "demand_weight"],
+            "additionalProperties": false,
+            "properties": {
+              "lat_band_deg": { "type": "number" },
+              "score": { "type": "number", "minimum": 0, "maximum": 1 },
+              "demand_weight": { "type": "number", "minimum": 0 }
+            }
+          }
+        },
+        "coverage": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "mean_gap_s": { "type": "number" },
+            "max_gap_s": { "type": "number" },
+            "revisit_s": { "type": "number" },
+            "multiplicity_mean": { "type": "number" }
+          }
+        }
+      }
+    },
+    "economics": {
+      "type": "object",
+      "required": ["launch_campaigns", "deployment_time_days"],
+      "additionalProperties": false,
+      "properties": {
+        "launch_campaigns": { "type": "integer", "minimum": 1, "description": "Число уникальных пар (наклонение × высота)" },
+        "deployment_time_days": { "type": "number", "minimum": 0, "description": "Срок развёртывания до целевого качества (RAAN-прецессия дёшево, но медленно)" },
+        "total_mass_kg": { "type": "number" },
+        "deployment_cost_proxy": { "type": "number" },
+        "replenishment_cost_proxy": { "type": "number" }
+      }
+    },
+    "reliability": {
+      "type": "object",
+      "required": ["degradation_curve"],
+      "additionalProperties": false,
+      "properties": {
+        "degradation_curve": {
+          "type": "array",
+          "description": "Деградация качества при отказе N аппаратов",
+          "items": {
+            "type": "object",
+            "required": ["failed_satellites", "quality_score"],
+            "additionalProperties": false,
+            "properties": {
+              "failed_satellites": { "type": "integer", "minimum": 0 },
+              "quality_score": { "type": "number", "minimum": 0, "maximum": 1 }
+            }
+          }
+        },
+        "restore_strategy": { "enum": ["orbital_spare", "ground_spare", "none"] },
+        "restore_time_days": { "type": "number", "minimum": 0 }
+      }
+    },
+    "energy": {
+      "type": "object",
+      "description": "Энергетика витка: худший и лучший сезон, северное полушарие",
+      "required": ["worst_season_wh_per_orbit", "best_season_wh_per_orbit"],
+      "additionalProperties": false,
+      "properties": {
+        "worst_season_wh_per_orbit": { "type": "number" },
+        "best_season_wh_per_orbit": { "type": "number" },
+        "eclipse_fraction_worst": { "type": "number", "minimum": 0, "maximum": 1 },
+        "allowed_payload_duty_cycle": { "type": "number", "minimum": 0, "maximum": 1, "description": "Производная величина, не входной параметр" },
+        "battery_dod_worst": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "orbital_lifetime_years": { "type": "number" },
+        "deorbit_compliant": { "type": "boolean", "description": "NASA-STD-8719.14 / национальные нормы" },
+        "radiation_dose_proxy": { "type": "number" }
+      }
+    },
+    "pareto": {
+      "type": "object",
+      "description": "Позиция варианта в фронте «экономика × качество»",
+      "additionalProperties": false,
+      "properties": {
+        "dominated": { "type": "boolean" },
+        "dominated_by": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}

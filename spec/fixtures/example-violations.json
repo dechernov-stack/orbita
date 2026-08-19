@@ -1,0 +1,12 @@
+{
+  "_comment": "Негативные примеры: каждый объект нарушает одно решение Р1-Р9 и обязан быть отклонён валидацией",
+  "violations": [
+    {"rule": "Р1", "why": "bent-pipe запрещён", "payload": {"architecture": "bent_pipe"}},
+    {"rule": "Р2", "why": "масса вне 12-100 кг", "platform": {"dry_mass_kg": 250}},
+    {"rule": "Р3", "why": "оптический ISL", "link": {"role": "isl", "medium": "optical"}},
+    {"rule": "Р5", "why": "терминал без эфемерид", "ephemeris": {"knows_ephemeris": false}},
+    {"rule": "Р7", "why": "роуминг регуляторных зон", "mobility": {"model": "roaming"}},
+    {"rule": "TZ-COM-005", "why": "величина без происхождения", "quantity": {"value": 5, "unit": "kg"}},
+    {"rule": "TZ-COM-006", "why": "сценарий без зерна ГПСЧ", "scenario": {"id": "SC-0001", "name": "x"}}
+  ]
+}

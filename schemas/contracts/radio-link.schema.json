@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/contracts/radio-link.schema.json",
+  "title": "RadioLink",
+  "description": "Радиолиния КА с бюджетом. ISL только РЧ (Р3/ADR-003).",
+  "type": "object",
+  "required": ["id", "role", "band_hz", "tx_power_w", "antenna"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string" },
+    "role": { "enum": ["user_uplink", "user_downlink", "feeder_uplink", "feeder_downlink", "isl", "ttc"] },
+    "medium": {
+      "const": "rf",
+      "description": "Р3: оптические линии вне рамок"
+    },
+    "band_hz": { "type": "number", "exclusiveMinimum": 0 },
+    "bandwidth_hz": { "type": "number", "exclusiveMinimum": 0 },
+    "tx_power_w": { "type": "number", "minimum": 0 },
+    "g_over_t_db_k": { "type": "number" },
+    "polarization": { "enum": ["lhcp", "rhcp", "linear"] },
+    "required_margin_db": { "type": "number", "default": 3 },
+    "antenna": {
+      "type": "object",
+      "required": ["type", "gain_dbi"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "enum": ["patch", "array", "phased_array", "horn", "dipole"] },
+        "gain_dbi": { "type": "number" },
+        "beamwidth_deg": { "type": "number", "exclusiveMinimum": 0 },
+        "pattern_model": { "enum": ["isoflux", "gaussian", "tabulated"] },
+        "pointing": { "enum": ["nadir_fixed", "electronic_scan", "mechanical"] },
+        "beams": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "capacity": {
+      "type": "object",
+      "description": "Ёмкость приёмного тракта — вход модуля потоков",
+      "additionalProperties": false,
+      "properties": {
+        "concurrent_demodulations": { "type": "integer", "minimum": 1 },
+        "channels": { "type": "integer", "minimum": 1 },
+        "protocol_adapter_ref": { "type": "string", "description": "Модуляция, кодирование, Eb/N0, матрица SF — из адаптера" }
+      }
+    },
+    "isl": {
+      "type": "object",
+      "description": "Только для role=isl",
+      "additionalProperties": false,
+      "properties": {
+        "topology": { "enum": ["in_plane", "cross_plane"] },
+        "max_range_km": { "type": "number", "exclusiveMinimum": 0 },
+        "data_rate_bps": { "type": "number", "exclusiveMinimum": 0 },
+        "setup_time_s": { "type": "number", "minimum": 0 }
+      }
+    }
+  }
+}

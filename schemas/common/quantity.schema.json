@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/common/quantity.schema.json",
+  "title": "Quantity",
+  "description": "Числовая величина с обязательной единицей и происхождением (TZ-COM-005). Значение без единицы недопустимо.",
+  "type": "object",
+  "required": ["value", "unit", "provenance"],
+  "additionalProperties": false,
+  "properties": {
+    "value": { "type": "number" },
+    "unit": {
+      "type": "string",
+      "description": "Единица СИ или производная. Углы хранятся в rad.",
+      "examples": ["m", "kg", "s", "W", "J", "Hz", "rad", "dB", "dBW", "bit/s", "1"]
+    },
+    "tolerance": { "type": "number", "description": "Допуск ± в тех же единицах" },
+    "margin_pct": { "type": "number", "description": "Резерв, % (для TPM и бюджетов)" },
+    "provenance": { "$ref": "https://kis.local/schemas/common/provenance.schema.json" }
+  }
+}

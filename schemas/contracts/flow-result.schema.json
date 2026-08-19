@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/contracts/flow-result.schema.json",
+  "title": "FlowResult",
+  "description": "Результат Монте-Карло модуля потоков. Кодирует offered vs carried load и бюджет времени реакции C'.",
+  "type": "object",
+  "required": ["scenario_ref", "runs", "load", "by_class"],
+  "additionalProperties": false,
+  "properties": {
+    "scenario_ref": { "type": "string" },
+    "runs": { "type": "integer", "minimum": 1 },
+    "wall_time_s": { "type": "number", "description": "Контролируется бюджетом TZ-COM-004" },
+    "load": {
+      "type": "object",
+      "required": ["offered_msgs", "carried_msgs"],
+      "additionalProperties": false,
+      "properties": {
+        "offered_msgs": { "type": "number", "description": "Включая повторы: обратная связь нагрузки" },
+        "carried_msgs": { "type": "number" },
+        "retransmission_ratio": { "type": "number", "minimum": 0 },
+        "buffer_overflow_losses": { "type": "number", "minimum": 0 },
+        "blind_transmission_losses": { "type": "number", "minimum": 0, "description": "Потери в деградированном режиме (устаревший альманах)" }
+      }
+    },
+    "by_class": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["consumer_class", "delivery_probability"],
+        "additionalProperties": false,
+        "properties": {
+          "consumer_class": { "enum": ["A_prime", "B_prime", "C_prime"] },
+          "delivery_probability": { "type": "number", "minimum": 0, "maximum": 1 },
+          "latency_percentiles_s": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "p50": { "type": "number" }, "p90": { "type": "number" },
+              "p95": { "type": "number" }, "p99": { "type": "number" }
+            }
+          },
+          "mean_attempts": { "type": "number", "minimum": 1 },
+          "reaction_time_budget": {
+            "type": "object",
+            "description": "Только C': декомпозиция T по компонентам",
+            "additionalProperties": false,
+            "properties": {
+              "p_within_required": { "type": "number", "minimum": 0, "maximum": 1 },
+              "detection_s": { "type": "number" },
+              "uplink_wait_s": { "type": "number" },
+              "uplink_transit_s": { "type": "number" },
+              "external_decision_s": { "type": "number", "description": "Параметр внешней системы" },
+              "downlink_wait_s": { "type": "number" },
+              "downlink_transit_s": { "type": "number" },
+              "execution_s": { "type": "number" }
+            }
+          }
+        }
+      }
+    },
+    "bottlenecks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["location", "utilization"],
+        "additionalProperties": false,
+        "properties": {
+          "location": { "enum": ["user_uplink", "onboard_buffer", "isl", "feeder_downlink", "ground_station"] },
+          "ref": { "type": "string" },
+          "utilization": { "type": "number", "minimum": 0 }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/common/provenance.schema.json",
+  "title": "Provenance",
+  "description": "Происхождение значения. Обязательно для каждого значения модели (TZ-COM-005).",
+  "type": "object",
+  "required": ["source"],
+  "additionalProperties": false,
+  "properties": {
+    "source": { "enum": ["manual", "computed", "ai_proposed", "imported"] },
+    "author": { "type": "string" },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "module": {
+      "description": "Для source=computed: модуль-вычислитель",
+      "enum": ["ballistics", "spacecraft", "consumers", "protocol", "flows", "cost"]
+    },
+    "module_version": { "type": "string" },
+    "input_version": { "type": "string", "description": "Версия входных данных расчёта (TZ-COM-006)" },
+    "ai": {
+      "type": "object",
+      "description": "Для source=ai_proposed",
+      "required": ["prompt_package_id", "accepted"],
+      "additionalProperties": false,
+      "properties": {
+        "prompt_package_id": { "type": "string" },
+        "llm": { "type": "string" },
+        "accepted": { "type": "boolean", "description": "false — предложение не влияет на расчёты и отчёты" },
+        "accepted_by": { "type": "string" },
+        "edited": { "type": "boolean" }
+      }
+    }
+  }
+}

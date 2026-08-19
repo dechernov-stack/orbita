@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/contracts/protocol-adapter.schema.json",
+  "title": "ProtocolAdapter",
+  "description": "Сменный протокольный адаптер. Первая реализация — LoRaWAN/LR-FHSS. Замена = новая реализация адаптера и пересборка (лёгкая модульность).",
+  "type": "object",
+  "required": ["id", "name", "phy", "mac", "calibration"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string" },
+    "name": { "enum": ["lorawan", "lr_fhss", "custom"] },
+    "phy": {
+      "type": "object",
+      "required": ["modulation", "modes"],
+      "additionalProperties": false,
+      "properties": {
+        "modulation": { "enum": ["css", "fhss", "gmsk", "other"] },
+        "modes": {
+          "type": "array", "minItems": 1,
+          "description": "Режимы (для LoRa — SF): скорость, требуемое Eb/N0, время эфира",
+          "items": {
+            "type": "object",
+            "required": ["mode_id", "bitrate_bps", "required_ebn0_db"],
+            "additionalProperties": false,
+            "properties": {
+              "mode_id": { "type": "string" },
+              "bitrate_bps": { "type": "number", "exclusiveMinimum": 0 },
+              "required_ebn0_db": { "type": "number" },
+              "time_on_air_ms_per_byte": { "type": "number" },
+              "doppler_tolerance_hz": { "type": "number" }
+            }
+          }
+        },
+        "capture_effect": { "type": "boolean", "description": "Захват сильного сигнала при коллизии" }
+      }
+    },
+    "mac": {
+      "type": "object",
+      "required": ["access", "overhead_bytes"],
+      "additionalProperties": false,
+      "properties": {
+        "access": { "enum": ["aloha", "slotted_aloha", "scheduled"] },
+        "overhead_bytes": { "type": "integer", "minimum": 0 },
+        "ack_supported": { "type": "boolean" },
+        "downlink_supported": { "type": "boolean", "description": "Требуется для маяка эфемерид (Р5) и ACK (Р6)" },
+        "duty_cycle_enforced": { "type": "boolean" }
+      }
+    },
+    "collision_model": {
+      "type": "object",
+      "description": "Быстрая аналитическая модель; калибруется по референсным симуляторам",
+      "additionalProperties": false,
+      "properties": {
+        "type": { "enum": ["analytic_aloha", "analytic_capture", "tabulated"] },
+        "orthogonal_modes": { "type": "boolean", "description": "Разные SF считаются квазиортогональными" }
+      }
+    },
+    "calibration": {
+      "type": "object",
+      "description": "GPL-код не заимствуется: референсные симуляторы дают только эталонные числа",
+      "required": ["reference", "dataset_ref"],
+      "additionalProperties": false,
+      "properties": {
+        "reference": { "enum": ["ns3_lorawan", "flora", "elora", "measurement", "none"] },
+        "dataset_ref": { "type": "string" },
+        "max_deviation_pct": { "type": "number", "description": "Допустимое расхождение с эталоном" }
+      }
+    }
+  }
+}
