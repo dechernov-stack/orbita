@@ -5,7 +5,10 @@ package orbita.out
 
 import orbita.mod.model.Lifecycle
 import orbita.req.ReqService
+import orbita.req.UnitLabels
 import orbita.req.VerificationStatus
+import orbita.req.successCriterion
+import orbita.req.verificationIssues
 import orbita.req.verificationStatus
 
 data class ServiceRef(val id: String, val consumerClass: String?)
@@ -23,6 +26,8 @@ data class TraceGapEntry(val requirementId: String, val missing: String)
 
 data class TraceMatrix(val rows: List<TraceMatrixRow>, val gaps: List<TraceGapEntry>)
 
+/** Строка матрицы верификации. Подход и критерий — CR-002/ADR-018: матрица
+ *  становится пригодной для планирования работ, а не только для отметки о методе. */
 data class VerificationMatrixRow(
     val requirementId: String,
     val method: String?,
@@ -30,9 +35,18 @@ data class VerificationMatrixRow(
     val evidenceRef: String?,
     val status: String,
     val staleEvidence: Boolean,
+    val approach: String? = null,
+    val means: String? = null,
+    val successCriterion: String? = null,
+    /** Замечания к полноте описания верификации; пустой список — требование проверяемо. */
+    val issues: List<String> = emptyList(),
 )
 
-class Matrices(private val req: ReqService) {
+class Matrices(
+    private val req: ReqService,
+    /** Подписи единиц для критерия успеха: коды СИ остаются в модели (CR-001 п.6). */
+    private val unitLabels: UnitLabels = UnitLabels(),
+) {
 
     /** Матрица «цель ↔ требование ↔ элемент ↔ метод» из связей хранилища. */
     fun traceMatrix(): TraceMatrix {
@@ -67,6 +81,10 @@ class Matrices(private val req: ReqService) {
             evidenceRef = ref,
             status = verificationStatus(r.doc, evidence).label,
             staleEvidence = stale,
+            approach = ver.path("approach").asText("").ifBlank { null },
+            means = ver.path("means").asText("").ifBlank { null },
+            successCriterion = successCriterion(r.doc, unitLabels.asFunction()),
+            issues = verificationIssues(r.doc),
         )
     }.sortedBy { it.requirementId }
 
