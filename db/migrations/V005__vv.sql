@@ -30,25 +30,35 @@ ALTER TABLE links ADD CONSTRAINT derive_has_kind CHECK (
 );
 
 -- Интерфейсное требование распределяется на интерфейс, а не на элемент.
+--
+-- ВАЖНО о подзапросах. PostgreSQL не допускает подзапрос в CHECK: вариант
+-- с EXISTS (SELECT ... FROM jsonb_array_elements(...)) роняет применение
+-- миграции целиком («cannot use subquery in check constraint»), поэтому
+-- обход массива выражен jsonb_path_exists — она IMMUTABLE и в CHECK допустима.
 ALTER TABLE objects ADD CONSTRAINT interface_req_allocation CHECK (
     type <> 'requirement'
     OR COALESCE(doc->>'category', '') <> 'interface'
     OR doc->'allocated_to' IS NULL
-    OR EXISTS (SELECT 1 FROM jsonb_array_elements(doc->'allocated_to') a
-               WHERE a ? 'interface')
+    OR jsonb_path_exists(doc->'allocated_to', '$[*].interface')
 );
 
 -- Предварительное событие верификации не может быть закрывающим.
+-- Тот же запрет на подзапросы: условие выражено jsonb-путём с фильтром.
 ALTER TABLE objects ADD CONSTRAINT preliminary_not_closing CHECK (
     type <> 'requirement'
     OR doc->'verification_events' IS NULL
-    OR NOT EXISTS (SELECT 1 FROM jsonb_array_elements(doc->'verification_events') e
-                   WHERE e->>'kind' = 'preliminary' AND (e->>'closes')::boolean IS TRUE)
+    OR NOT jsonb_path_exists(
+           doc->'verification_events',
+           '$[*] ? (@.kind == "preliminary" && @.closes == true)')
 );
 
 -- Валидация привязывается к ожиданию стейкхолдера, не к требованию.
 -- COALESCE обязателен: без него объект валидации БЕЗ поля target проходит проверку.
+-- ВАЖНО о новых значениях enum. PostgreSQL запрещает использовать значение,
+-- добавленное ALTER TYPE ... ADD VALUE, в той же транзакции («unsafe use of
+-- new value»). Миграции применяются транзакцией, поэтому сравнение идёт
+-- с ТЕКСТОВЫМ представлением типа: смысл ограничения тот же.
 ALTER TABLE objects ADD CONSTRAINT validation_target CHECK (
-    type <> 'validation'
+    type::text <> 'validation'
     OR COALESCE(doc->>'target', '') ~ '^(ND|SV)-[0-9]{4}$'
 );

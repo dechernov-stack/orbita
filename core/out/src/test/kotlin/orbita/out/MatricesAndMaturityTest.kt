@@ -51,8 +51,7 @@ class MatricesAndMaturityTest {
                 "traces_up":[{"ref":"SV-0001","consumer_class":"A_prime"}],
                 "allocated_to":[{"component":"CM-0001","kind":"full"}],
                 "mop":{"name":"delivery_probability_daily","operator":"ge","value":{"value":0.9,"unit":"1","provenance":{"source":"manual"}}},
-                "verification":{"method":"analysis","phase":"PhaseA","means":"Прогон эталонного сценария Монте-Карло",
-                  "approach":"Прогон эталонного сценария с фиксированным зерном ГПСЧ и сверка доли доставленных сообщений с целевым значением."},
+                "verification_events":[{"id":"VE-0001","method":"analysis","phase":"PhaseA","level":"system","kind":"preliminary","approach":"Прогон эталонного сценария с фиксированным зерном ГПСЧ и сверка доли доставленных сообщений.","means":"Модель Монте-Карло","status":"passed","closes":false},{"id":"VE-0002","method":"test","phase":"PhaseD","level":"system","kind":"qualification","approach":"Натурные испытания канала на полигоне с фиксацией доли доставленных сообщений в протоколе.","means":"Полигонный стенд","status":"passed","closes":true,"design_version":"v1"}],
                 "lifecycle":{"status":"Draft","version":"1"},"owner":"ведущий системный инженер"}"""
         )
         // требование с разрывами: без распределения и без метода нет — метод обязателен схемой,
@@ -63,7 +62,7 @@ class MatricesAndMaturityTest {
                 "category":"functional",
                 "traces_up":[{"ref":"SV-0001","consumer_class":"B_prime"}],
                 "mop":{"name":"ack_probability","operator":"ge","tbd":true,"value":{"value":0.95,"unit":"1","provenance":{"source":"manual"}}},
-                "verification":{"method":"analysis"},
+                "verification_events":[{"id":"VE-0001","method":"analysis","phase":"PhaseA","level":"system","kind":"qualification","status":"planned","closes":true,"design_version":"v1"}],
                 "lifecycle":{"status":"Draft","version":"1"},"owner":"аналитик сервисов"}"""
         )
         val res = req.results.insert(
@@ -84,7 +83,8 @@ class MatricesAndMaturityTest {
         assertEquals(listOf("ND-0001"), row.needs)
         assertEquals("SV-0001" to "A_prime", row.services.single().let { it.id to it.consumerClass })
         assertEquals(listOf("CM-0001"), row.elements)
-        assertEquals("analysis", row.method)
+        // CR-003: метод берётся из закрывающего события — им является испытание
+        assertEquals("test", row.method)
     }
 
     @Test
@@ -95,16 +95,55 @@ class MatricesAndMaturityTest {
     }
 
     @Test
-    fun `устаревшее свидетельство помечается в матрице верификации`() {
-        var row = matrices.verificationMatrix().single { it.requirementId == "RQ-0010" }
-        assertEquals("выполнено", row.status)
-        assertEquals(false, row.staleEvidence)
+    fun `матрица верификации даёт строку на каждое событие и состояние требования`() {
+        val row = matrices.verificationMatrix().single { it.requirementId == "RQ-0010" }
+        // «сначала расчёт по модели, потом испытание» — два события, не одна ячейка
+        assertEquals(2, row.events.size)
+        assertEquals(listOf("preliminary", "qualification"), row.events.map { it.kind })
+        assertEquals(listOf(false, true), row.events.map { it.closes })
+        assertEquals("верифицировано", row.state)
+        assertEquals(emptyList<String>(), row.planIssues)
 
-        TestDb.conn.createStatement().use { it.execute("UPDATE results SET stale = true WHERE pk = $evidencePk") }
-        row = matrices.verificationMatrix().single { it.requirementId == "RQ-0010" }
-        assertEquals("не проверено", row.status)
-        assertEquals(true, row.staleEvidence)
-        TestDb.conn.createStatement().use { it.execute("UPDATE results SET stale = false WHERE pk = $evidencePk") }
+        // требование с одним лишь методом: план неполон по содержанию событий
+        val bare = matrices.verificationMatrix().single { it.requirementId == "RQ-0011" }
+        assertEquals("запланирована", bare.state)
+        assertTrue(bare.planIssues.any { "как выполняется" in it }) { bare.planIssues.toString() }
+    }
+
+    @Test
+    fun `предварительный расчёт не закрывает требование`() {
+        // событие испытания переводится в «запланировано»: остаётся только предварительный успех
+        val cur = req.objects.current("RQ-0010")!!
+        val doc = cur.doc.deepCopy<ObjectNode>()
+        (doc.path("verification_events").get(1) as ObjectNode).put("status", "planned")
+        req.objects.change("RQ-0010", doc, at = cur.validFrom.plusDays(1))
+        assertEquals("предварительно подтверждено", matrices.verificationMatrix()
+            .single { it.requirementId == "RQ-0010" }.state)
+        assertTrue("RQ-0010" in matrices.unverifiedRequirements())
+
+        // возврат к успешному закрывающему событию
+        val mid = req.objects.current("RQ-0010")!!
+        val back = mid.doc.deepCopy<ObjectNode>()
+        (back.path("verification_events").get(1) as ObjectNode).put("status", "passed")
+        req.objects.change("RQ-0010", back, at = mid.validFrom.plusDays(1))
+        assertEquals("верифицировано", matrices.verificationMatrix()
+            .single { it.requirementId == "RQ-0010" }.state)
+    }
+
+    @Test
+    fun `матрица валидации формируется отдельно от матрицы верификации`() {
+        req.ingestValidation(
+            """{"id":"VA-0001","target":"ND-0001","conops_ref":"CO-0003","product_kind":"model",
+                "method":"demonstration","phase":"PhaseA","status":"planned",
+                "approach":"Прогон сценария ConOps на модели фазы с участием представителя оператора."}"""
+        )
+        val validation = matrices.validationMatrix()
+        assertEquals(listOf("VA-0001"), validation.map { it.validationId })
+        assertEquals("ND-0001", validation.single().target)
+        assertEquals("model", validation.single().productKind)
+        assertEquals(emptyList<String>(), validation.single().issues)
+        // валидация не смешивается с верификацией: наборы объектов разные
+        assertTrue(matrices.verificationMatrix().none { it.requirementId == "VA-0001" })
     }
 
     @Test
@@ -136,17 +175,12 @@ class MatricesAndMaturityTest {
 
     @Test
     fun `матрица верификации содержит подход и критерий`() {
-        val rows = matrices.verificationMatrix()
-        val complete = rows.single { it.requirementId == "RQ-0010" }
-        assertTrue(!complete.approach.isNullOrBlank()) { "подход обязан быть в матрице" }
-        assertEquals("Прогон эталонного сценария Монте-Карло", complete.means)
+        val row = matrices.verificationMatrix().single { it.requirementId == "RQ-0010" }
+        val closing = row.events.single { it.closes }
+        assertTrue(!closing.approach.isNullOrBlank()) { "подход обязан быть в матрице" }
+        assertEquals("Полигонный стенд", closing.means)
         // критерий выводится из условия требования с подписью единицы (CR-001 п.6)
-        assertEquals("delivery_probability_daily: не менее 0.9 ", complete.successCriterion)
-        assertEquals(emptyList<String>(), complete.issues)
-
-        // требование с одним лишь методом попадает в матрицу с перечнем замечаний
-        val bare = rows.single { it.requirementId == "RQ-0011" }
-        assertEquals(null, bare.approach)
-        assertTrue(bare.issues.any { "как именно" in it }) { bare.issues.toString() }
+        assertEquals("delivery_probability_daily: не менее 0.9 ", closing.successCriterion)
+        assertEquals(emptyList<String>(), closing.issues)
     }
 }

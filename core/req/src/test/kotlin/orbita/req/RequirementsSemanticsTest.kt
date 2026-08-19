@@ -163,8 +163,10 @@ class RequirementsSemanticsTest {
         private val ready = j(
             """{"id":"RQ-0001","statement":"Система должна обеспечивать вероятность доставки не менее 0,9 за сутки.",
                 "category":"performance","mop":{"name":"Вероятность доставки","operator":"ge","value":{"value":0.9,"unit":"1"}},
-                "verification":{"method":"analysis","evidence_ref":"RES-1","means":"Прогон сценария Монте-Карло",
-                  "approach":"Прогон эталонного сценария с фиксированным зерном ГПСЧ и сверка доли доставленных сообщений с целевым значением показателя."}}"""
+                "verification_events":[{"id":"VE-0001","method":"analysis","phase":"PhaseA","level":"system",
+                   "kind":"qualification","status":"passed","closes":true,"design_version":"v1",
+                   "means":"Прогон сценария Монте-Карло","evidence_ref":"EV-0001",
+                   "approach":"Прогон эталонного сценария с фиксированным зерном ГПСЧ и сверка доли доставленных сообщений с целевым значением показателя."}]}"""
         )
 
         @Test

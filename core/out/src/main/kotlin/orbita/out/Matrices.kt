@@ -6,10 +6,13 @@ package orbita.out
 import orbita.mod.model.Lifecycle
 import orbita.req.ReqService
 import orbita.req.UnitLabels
-import orbita.req.VerificationStatus
+import orbita.req.VerificationState
+import orbita.req.eventIssues
+import orbita.req.evidenceState
 import orbita.req.successCriterion
-import orbita.req.verificationIssues
-import orbita.req.verificationStatus
+import orbita.req.validationIssues
+import orbita.req.verificationPlanIssues
+import orbita.req.verificationState
 
 data class ServiceRef(val id: String, val consumerClass: String?)
 
@@ -26,19 +29,46 @@ data class TraceGapEntry(val requirementId: String, val missing: String)
 
 data class TraceMatrix(val rows: List<TraceMatrixRow>, val gaps: List<TraceGapEntry>)
 
-/** Строка матрицы верификации. Подход и критерий — CR-002/ADR-018: матрица
- *  становится пригодной для планирования работ, а не только для отметки о методе. */
-data class VerificationMatrixRow(
+/**
+ * Строка матрицы верификации — ОДНО СОБЫТИЕ требования (CR-003/ADR-019):
+ * «сначала расчёт по модели, потом испытание» больше не сворачивается в одну
+ * ячейку. Подход и критерий — CR-002.
+ */
+data class VerificationEventRow(
     val requirementId: String,
+    val eventId: String,
+    val method: String?,
+    val kind: String?,
+    val phase: String?,
+    val level: String?,
+    val closes: Boolean,
+    val status: String?,
+    val approach: String?,
+    val means: String?,
+    val successCriterion: String?,
+    val evidenceRef: String?,
+    val evidenceState: String?,
+    val issues: List<String> = emptyList(),
+)
+
+/** Итог по требованию: состояние верификации и замечания к плану. */
+data class VerificationSummaryRow(
+    val requirementId: String,
+    val state: String,
+    val events: List<VerificationEventRow>,
+    val planIssues: List<String>,
+)
+
+/** Строка матрицы ВАЛИДАЦИИ — отдельной от верификации (CR-003, ловушка 1). */
+data class ValidationMatrixRow(
+    val validationId: String,
+    val target: String,
+    val conopsRef: String?,
+    val productKind: String?,
     val method: String?,
     val phase: String?,
+    val status: String?,
     val evidenceRef: String?,
-    val status: String,
-    val staleEvidence: Boolean,
-    val approach: String? = null,
-    val means: String? = null,
-    val successCriterion: String? = null,
-    /** Замечания к полноте описания верификации; пустой список — требование проверяемо. */
     val issues: List<String> = emptyList(),
 )
 
@@ -59,7 +89,10 @@ class Matrices(
                 .map { ServiceRef(it.fromId, it.consumerClass) }
                 .sortedBy { it.id }
             val elements = req.links.linksFrom(r.id, "allocation").map { it.toId }.sorted()
-            val method = r.doc.path("verification").path("method").asText(null)
+            // CR-003: метод берётся из событий верификации — закрывающего, иначе первого
+            val events = r.doc.path("verification_events")
+            val method = (events.firstOrNull { it.path("closes").asBoolean(false) } ?: events.firstOrNull())
+                ?.path("method")?.asText("")?.ifBlank { null }
             rows += TraceMatrixRow(r.id, needs, services, elements, method)
             if (up.isEmpty()) gaps += TraceGapEntry(r.id, "source")
             if (elements.isEmpty()) gaps += TraceGapEntry(r.id, "element")
@@ -68,29 +101,66 @@ class Matrices(
         return TraceMatrix(rows.sortedBy { it.requirementId }, gaps.sortedBy { it.requirementId })
     }
 
-    /** Матрица верификации: метод, этап, свидетельство, статус; stale помечается. */
-    fun verificationMatrix(): List<VerificationMatrixRow> = currentRequirements().map { r ->
-        val ver = r.doc.path("verification")
-        val ref = ver.path("evidence_ref").asText("").ifBlank { null }
-        val evidence = req.evidenceFor(r.doc)
-        val stale = ref?.let { evidence(it)?.stale } ?: false
-        VerificationMatrixRow(
-            requirementId = r.id,
-            method = ver.path("method").asText("").ifBlank { null },
-            phase = ver.path("phase").asText("").ifBlank { null },
-            evidenceRef = ref,
-            status = verificationStatus(r.doc, evidence).label,
-            staleEvidence = stale,
-            approach = ver.path("approach").asText("").ifBlank { null },
-            means = ver.path("means").asText("").ifBlank { null },
-            successCriterion = successCriterion(r.doc, unitLabels.asFunction()),
-            issues = verificationIssues(r.doc),
-        )
-    }.sortedBy { it.requirementId }
+    /**
+     * Матрица верификации: по строке на КАЖДОЕ событие требования (CR-003).
+     * Свидетельство разрешается в объект EV-NNNN и проверяется на применимость
+     * к текущей конфигурации.
+     */
+    fun verificationMatrix(currentConfiguration: String? = null): List<VerificationSummaryRow> =
+        currentRequirements().map { r ->
+            val events = r.doc.path("verification_events").map { e ->
+                val ref = e.path("evidence_ref").asText("").ifBlank { null }
+                val evidence = ref?.let { req.objects.current(it) }
+                VerificationEventRow(
+                    requirementId = r.id,
+                    eventId = e.path("id").asText(""),
+                    method = e.path("method").asText("").ifBlank { null },
+                    kind = e.path("kind").asText("").ifBlank { null },
+                    phase = e.path("phase").asText("").ifBlank { null },
+                    level = e.path("level").asText("").ifBlank { null },
+                    closes = e.path("closes").asBoolean(false),
+                    status = e.path("status").asText("").ifBlank { null },
+                    approach = e.path("approach").asText("").ifBlank { null },
+                    means = e.path("means").asText("").ifBlank { null },
+                    successCriterion = successCriterion(r.doc, unitLabels.asFunction()),
+                    evidenceRef = ref,
+                    evidenceState = evidence?.let { ev ->
+                        currentConfiguration?.let { evidenceState(ev.doc, it).label }
+                    },
+                    issues = eventIssues(e),
+                )
+            }
+            VerificationSummaryRow(
+                requirementId = r.id,
+                state = verificationState(r.doc).label,
+                events = events,
+                planIssues = verificationPlanIssues(r.doc),
+            )
+        }.sortedBy { it.requirementId }
+
+    /**
+     * Матрица ВАЛИДАЦИИ — отдельная от матрицы верификации (CR-003 п. 5):
+     * «то ли мы построили» против «построили ли мы правильно».
+     */
+    fun validationMatrix(): List<ValidationMatrixRow> = req.objects.listCurrent()
+        .filter { it.type == "validation" && it.status != Lifecycle.Cancelled }
+        .map { v ->
+            ValidationMatrixRow(
+                validationId = v.id,
+                target = v.doc.path("target").asText(""),
+                conopsRef = v.doc.path("conops_ref").asText("").ifBlank { null },
+                productKind = v.doc.path("product_kind").asText("").ifBlank { null },
+                method = v.doc.path("method").asText("").ifBlank { null },
+                phase = v.doc.path("phase").asText("").ifBlank { null },
+                status = v.doc.path("status").asText("").ifBlank { null },
+                evidenceRef = v.doc.path("evidence_ref").asText("").ifBlank { null },
+                issues = validationIssues(v.doc),
+            )
+        }.sortedBy { it.validationId }
 
     /** Непокрытые требования: статус верификации «не проверено» (TZ-REQ-008). */
     fun unverifiedRequirements(): List<String> = currentRequirements()
-        .filter { verificationStatus(it.doc, req.evidenceFor(it.doc)) == VerificationStatus.NotVerified }
+        .filter { verificationState(it.doc) != VerificationState.Verified }
         .map { it.id }.sorted()
 
     private fun currentRequirements() =

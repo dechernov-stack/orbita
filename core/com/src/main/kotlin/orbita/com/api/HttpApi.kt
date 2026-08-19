@@ -208,14 +208,50 @@ class HttpApi(private val boundary: Boundary) {
                 respond(ex, 200, n)
             }
 
+            // CR-003: строка на каждое событие плюс состояние требования
             method == "GET" && path == "/reports/verification-matrix" -> {
                 val arr = mapper.createArrayNode()
-                boundary.matrices.verificationMatrix().forEach { r ->
-                    arr.addObject().put("requirement", r.requirementId).put("method", r.method)
-                        .put("phase", r.phase).put("evidence_ref", r.evidenceRef)
-                        .put("status", r.status).put("stale_evidence", r.staleEvidence)
+                boundary.matrices.verificationMatrix(query(ex)["configuration"]).forEach { r ->
+                    val n = arr.addObject()
+                    n.put("requirement", r.requirementId).put("state", r.state)
+                    n.set<ArrayNode>("plan_issues", mapper.valueToTree(r.planIssues))
+                    val events = n.putArray("events")
+                    r.events.forEach { e ->
+                        events.addObject()
+                            .put("event", e.eventId).put("method", e.method).put("kind", e.kind)
+                            .put("phase", e.phase).put("level", e.level).put("closes", e.closes)
+                            .put("status", e.status).put("approach", e.approach).put("means", e.means)
+                            .put("success_criterion", e.successCriterion)
+                            .put("evidence_ref", e.evidenceRef).put("evidence_state", e.evidenceState)
+                    }
                 }
                 respond(ex, 200, arr)
+            }
+
+            // CR-003: валидация — отдельная матрица, отдельный вопрос «то ли построили»
+            method == "GET" && path == "/reports/validation-matrix" -> {
+                val arr = mapper.createArrayNode()
+                boundary.matrices.validationMatrix().forEach { v ->
+                    arr.addObject()
+                        .put("validation", v.validationId).put("target", v.target)
+                        .put("conops_ref", v.conopsRef).put("product_kind", v.productKind)
+                        .put("method", v.method).put("phase", v.phase).put("status", v.status)
+                        .put("evidence_ref", v.evidenceRef)
+                }
+                respond(ex, 200, arr)
+            }
+
+            method == "GET" && path == "/reports/inconsistent-allocations" -> {
+                val arr = mapper.createArrayNode()
+                boundary.req.inconsistentAllocations().forEach { (parent, child, why) ->
+                    arr.addObject().put("parent", parent).put("child", child).put("reason", why)
+                }
+                respond(ex, 200, arr)
+            }
+
+            method == "GET" && Regex("^/components/(CM-[0-9]{4})/specification$").matches(path) -> {
+                val cm = path.removePrefix("/components/").removeSuffix("/specification")
+                respond(ex, 200, mapper.valueToTree(boundary.req.specificationOf(cm)))
             }
 
             method == "GET" && path == "/reports/needs-without-services" ->

@@ -18,11 +18,16 @@ class Baselining(private val quality: QualityControl = QualityControl()) {
         val reasons = mutableListOf<String>()
         reasons += quality.check(req)
         if (hasOpenTbd(req)) reasons += "незакрытые TBD/TBR"
-        if (req.path("verification").path("method").asText("").isBlank()) {
+        // CR-003: верификация описывается событиями; требование должно иметь план
+        val events = req.path("verification_events")
+        if (!events.isArray || events.isEmpty) {
             reasons += "не назначен метод верификации"
         } else {
-            // метод назначен — проверяется содержательность описания (CR-002)
-            reasons += verificationIssues(req)
+            // CR-002/CR-003: содержательность каждого события и корректность плана
+            reasons += verificationPlanIssues(req)
+            if (verificationState(req) == VerificationState.PlanIncomplete) {
+                reasons += VerificationState.PlanIncomplete.label
+            }
         }
         return reasons.isEmpty() to reasons
     }

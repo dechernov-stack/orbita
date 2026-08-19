@@ -18,6 +18,8 @@ data class Link(
     val consumerClass: String?,
     val allocationKind: String? = null,
     val rationale: String? = null,
+    /** Вид декомпозиции для derive: allocated участвует в свёртке бюджета, derived — нет (ADR-019). */
+    val derivationKind: String? = null,
 )
 
 class LinkStore(private val conn: Connection) {
@@ -29,10 +31,11 @@ class LinkStore(private val conn: Connection) {
         consumerClass: String? = null,
         allocationKind: String? = null,
         rationale: String? = null,
+        derivationKind: String? = null,
     ): Unit = mappingConstraints {
         conn.prepareStatement(
-            """INSERT INTO links(from_id, to_id, kind, consumer_class, allocation_kind, rationale)
-               VALUES (?, ?, ?::link_kind, ?, ?, ?)"""
+            """INSERT INTO links(from_id, to_id, kind, consumer_class, allocation_kind, rationale, derivation_kind)
+               VALUES (?, ?, ?::link_kind, ?, ?, ?, ?)"""
         ).use { ps ->
             ps.setString(1, fromId)
             ps.setString(2, toId)
@@ -40,6 +43,7 @@ class LinkStore(private val conn: Connection) {
             ps.setString(4, consumerClass)
             ps.setString(5, if (kind == "allocation") allocationKind else null)
             ps.setString(6, rationale)
+            ps.setString(7, if (kind == "derive") derivationKind else null)
             ps.executeUpdate()
         }
     }
@@ -50,7 +54,7 @@ class LinkStore(private val conn: Connection) {
 
     fun list(kind: String? = null): List<Link> =
         conn.prepareStatement(
-            "SELECT from_id, to_id, kind::text, consumer_class, allocation_kind, rationale FROM links" +
+            "SELECT from_id, to_id, kind::text, consumer_class, allocation_kind, rationale, derivation_kind FROM links" +
                 (if (kind != null) " WHERE kind = ?::link_kind" else "") + " ORDER BY from_id, to_id"
         ).use { ps ->
             if (kind != null) ps.setString(1, kind)
@@ -59,13 +63,13 @@ class LinkStore(private val conn: Connection) {
 
     private fun java.sql.ResultSet.collectLinks(): List<Link> = buildList {
         while (next()) {
-            add(Link(getString(1), getString(2), getString(3), getString(4), getString(5), getString(6)))
+            add(Link(getString(1), getString(2), getString(3), getString(4), getString(5), getString(6), getString(7)))
         }
     }
 
     private fun select(column: String, id: String, kind: String?): List<Link> =
         conn.prepareStatement(
-            "SELECT from_id, to_id, kind::text, consumer_class, allocation_kind, rationale FROM links WHERE $column = ?" +
+            "SELECT from_id, to_id, kind::text, consumer_class, allocation_kind, rationale, derivation_kind FROM links WHERE $column = ?" +
                 (if (kind != null) " AND kind = ?::link_kind" else "") + " ORDER BY from_id, to_id"
         ).use { ps ->
             ps.setString(1, id)
