@@ -1,0 +1,146 @@
+{
+  "_comment": "Библиотека референсных сценариев потребления (TZ-USR-006; docs/model/10-potrebiteli.md §3.3). Редактируется без изменения кода; версия библиотеки — свёртка содержимого. Числа — типовые параметры первой очереди. Смысл подбора: спрос сосредоточен в средних широтах и на маршрутах, а трубопроводы и морские сценарии удерживают честный вес северных широт.",
+  "scenarios": [
+    {
+      "id": "agro_monitoring",
+      "name": "Агромониторинг",
+      "consumer_class": "A_prime",
+      "geography": "сельхозрайоны 30–55° с.ш.",
+      "msgs_per_terminal_day": 2,
+      "payload_bytes": 30,
+      "mobility_model": "static",
+      "seeds": [
+        { "cell_id": "agro-30", "lat": 30, "lon": 40, "terminals": 20000 },
+        { "cell_id": "agro-45", "lat": 45, "lon": 45, "terminals": 30000 },
+        { "cell_id": "agro-55", "lat": 55, "lon": 50, "terminals": 10000 }
+      ],
+      "terminal_profile": {
+        "id": "T-AGRO",
+        "consumer_class": "A_prime",
+        "radio": { "eirp_dbm": 14, "rx_sensitivity_dbm": -137 },
+        "environment": "open_sky",
+        "generation": { "model": "periodic", "rate_per_day": 2, "payload_bytes": 30 },
+        "ephemeris": { "knows_ephemeris": true, "max_almanac_age_s": 172800, "degraded_rate_factor": 0.2 },
+        "mobility": { "model": "static" }
+      }
+    },
+    {
+      "id": "metering",
+      "name": "Учёт ресурсов (метеринг)",
+      "consumer_class": "B_prime",
+      "geography": "населённые районы, indoor-затухание",
+      "msgs_per_terminal_day": 12,
+      "payload_bytes": 40,
+      "mobility_model": "static",
+      "seeds": [
+        { "cell_id": "meter-50", "lat": 50, "lon": 37, "terminals": 50000 },
+        { "cell_id": "meter-55", "lat": 55, "lon": 38, "terminals": 60000 }
+      ],
+      "terminal_profile": {
+        "id": "T-METER",
+        "consumer_class": "B_prime",
+        "radio": { "eirp_dbm": 14, "rx_sensitivity_dbm": -134 },
+        "environment": "indoor",
+        "generation": { "model": "periodic", "rate_per_day": 12, "payload_bytes": 40 },
+        "ephemeris": { "knows_ephemeris": true, "max_almanac_age_s": 86400, "degraded_rate_factor": 0.1 },
+        "reliability_policy": { "ack_required": true, "max_attempts_per_pass": 3, "backoff": "ephemeris_wait", "ephemeris_backoff_enabled": true, "buffer_depth_msgs": 16 },
+        "mobility": { "model": "static" }
+      }
+    },
+    {
+      "id": "pipeline_monitoring",
+      "name": "Мониторинг трубопроводов",
+      "consumer_class": "B_prime",
+      "geography": "линейные объекты, в т.ч. севернее 55° с.ш.",
+      "msgs_per_terminal_day": 1,
+      "payload_bytes": 24,
+      "mobility_model": "static",
+      "seeds": [
+        { "cell_id": "pipe-58", "lat": 58, "lon": 70, "terminals": 3000 },
+        { "cell_id": "pipe-64", "lat": 64, "lon": 75, "terminals": 2500 },
+        { "cell_id": "pipe-68", "lat": 68, "lon": 78, "terminals": 1500 }
+      ],
+      "terminal_profile": {
+        "id": "T-PIPE",
+        "consumer_class": "B_prime",
+        "radio": { "eirp_dbm": 16, "rx_sensitivity_dbm": -137 },
+        "environment": "open_sky",
+        "generation": { "model": "event_mmpp", "rate_per_day": 1, "payload_bytes": 24,
+          "event_correlation": { "burst_multiplier": 20, "burst_duration_s": 600, "spatial_scope": "region" } },
+        "ephemeris": { "knows_ephemeris": true, "max_almanac_age_s": 86400, "degraded_rate_factor": 0.1 },
+        "reliability_policy": { "ack_required": true, "max_attempts_per_pass": 4, "backoff": "ephemeris_wait", "ephemeris_backoff_enabled": true, "buffer_depth_msgs": 32 },
+        "mobility": { "model": "static" }
+      }
+    },
+    {
+      "id": "transport_tracking",
+      "name": "Трекинг транспорта и контейнеров",
+      "consumer_class": "B_prime",
+      "geography": "маршруты (авто, ж/д, море); регион один на трек (Р7)",
+      "msgs_per_terminal_day": 24,
+      "payload_bytes": 32,
+      "mobility_model": "route",
+      "seeds": [
+        { "cell_id": "route-52", "lat": 52, "lon": 60, "terminals": 8000 },
+        { "cell_id": "route-56", "lat": 56, "lon": 85, "terminals": 6000 }
+      ],
+      "terminal_profile": {
+        "id": "T-TRACK",
+        "consumer_class": "B_prime",
+        "radio": { "eirp_dbm": 14, "rx_sensitivity_dbm": -136 },
+        "environment": "shadowed",
+        "generation": { "model": "periodic", "rate_per_day": 24, "payload_bytes": 32 },
+        "ephemeris": { "knows_ephemeris": true, "max_almanac_age_s": 43200, "degraded_rate_factor": 0.25 },
+        "reliability_policy": { "ack_required": true, "max_attempts_per_pass": 2, "backoff": "ephemeris_wait", "ephemeris_backoff_enabled": true, "buffer_depth_msgs": 64 },
+        "mobility": { "model": "route", "route_ref": "route-transsib", "speed_mps": 20 }
+      }
+    },
+    {
+      "id": "maritime_vessels",
+      "name": "Морские суда и рыболовство",
+      "consumer_class": "C_prime",
+      "geography": "акватории, включая Северный морской путь",
+      "msgs_per_terminal_day": 48,
+      "payload_bytes": 48,
+      "mobility_model": "route",
+      "seeds": [
+        { "cell_id": "sea-72", "lat": 72, "lon": 60, "terminals": 400 },
+        { "cell_id": "sea-75", "lat": 75, "lon": 100, "terminals": 250 },
+        { "cell_id": "sea-42", "lat": 42, "lon": 132, "terminals": 900 }
+      ],
+      "terminal_profile": {
+        "id": "T-SEA",
+        "consumer_class": "C_prime",
+        "radio": { "eirp_dbm": 20, "rx_sensitivity_dbm": -137 },
+        "environment": "open_sky",
+        "generation": { "model": "poisson", "rate_per_day": 48, "payload_bytes": 48 },
+        "ephemeris": { "knows_ephemeris": true, "max_almanac_age_s": 43200, "degraded_rate_factor": 0.3 },
+        "reliability_policy": { "ack_required": true, "max_attempts_per_pass": 4, "backoff": "ephemeris_wait", "ephemeris_backoff_enabled": true, "buffer_depth_msgs": 64 },
+        "control_loop": { "required_reaction_time_s": 300, "external_decision_time_s": 60, "command_bytes": 24, "execution_confirm": true },
+        "mobility": { "model": "route", "route_ref": "route-nsr", "speed_mps": 8 }
+      }
+    },
+    {
+      "id": "eco_monitoring",
+      "name": "Экомониторинг и дикая природа",
+      "consumer_class": "A_prime",
+      "geography": "малонаселённые области; энергодефицит, harvesting",
+      "msgs_per_terminal_day": 1,
+      "payload_bytes": 20,
+      "mobility_model": "static",
+      "seeds": [
+        { "cell_id": "eco-62", "lat": 62, "lon": 110, "terminals": 2000 },
+        { "cell_id": "eco-68", "lat": 68, "lon": 125, "terminals": 1200 }
+      ],
+      "terminal_profile": {
+        "id": "T-ECO",
+        "consumer_class": "A_prime",
+        "radio": { "eirp_dbm": 10, "rx_sensitivity_dbm": -139 },
+        "environment": "open_sky",
+        "generation": { "model": "periodic", "rate_per_day": 1, "payload_bytes": 20 },
+        "ephemeris": { "knows_ephemeris": true, "max_almanac_age_s": 259200, "degraded_rate_factor": 0.1 },
+        "mobility": { "model": "static" }
+      }
+    }
+  ]
+}
