@@ -4,6 +4,8 @@ node_modules/
 dist/
 *.class
 *.jar
+!gradle/wrapper/gradle-wrapper.jar
+.kotlin/
 .env
 __pycache__/
 .venv/
