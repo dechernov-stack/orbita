@@ -104,7 +104,7 @@ class MonteCarloTest {
     fun `спрос-взвешенная доставка лежит между классовыми`() {
         val engine = MonteCarloEngine(mapper)
         val result = run(engine = engine)
-        val weighted = engine.demandWeightedDelivery(result, populations())
+        val weighted = demandWeightedDelivery(result, populations())
         val byClass = result.byClass.map { it.deliveryProbability }
         assertTrue(weighted >= byClass.min() && weighted <= byClass.max(), "$weighted vs $byClass")
     }
@@ -306,6 +306,43 @@ class MonteCarloTest {
         assertTrue(nTail == null || nTail >= nMean!!, "хвост сошёлся раньше среднего: $nTail vs $nMean")
     }
 
+    @Test
+    @DisplayName("TZ-FLW-001: сходимость по числу представителей — отдельно для среднего и хвоста")
+    fun `сходимость по числу представителей контролируется раздельно`() {
+        // Разнородная популяция: 200 ячеек с разной численностью и разной
+        // частотой пролётов. Оценка по K представителям сходится к оценке
+        // по всей популяции — но у хвоста это происходит позже (ловушка 2).
+        // Замер на этой выборке: среднее стабильно с 30 представителей,
+        // P99 — только с 90.
+        val cells = (0 until 200).map { i ->
+            val passCount = 4 + (CounterRng.uniform(11, 0, i, 0) * 20).toInt()
+            val terminals = 200.0 + CounterRng.uniform(11, 0, i, 1) * 3_000.0
+            PopulationSlice(
+                "C-%03d".format(i), "C_prime", terminals, 6.0, weight = terminals,
+                attemptsPerPass = 4, maxPasses = 2,
+                controlLoop = controlLoop.copy(requiredReactionS = 7_200.0),
+            ) to passes("C-%03d".format(i), passCount)
+        }
+
+        val counts = (10..200 step 10).toList()
+        val estimates = counts.map { k ->
+            val head = cells.take(k)
+            val result = MonteCarloEngine(mapper).run(
+                scenarioRef = "SC-0003", populations = head.map { it.first },
+                userPasses = head.flatMap { it.second }, relayContacts = passes("GS-01", 8),
+                channel = channel, horizonS = horizonS, runs = 100, rngSeed = 42,
+            ).byClass.single()
+            result.reactionSamples.average() to percentile(result.reactionSamples, 0.99)
+        }
+
+        val nMean = firstStableIndex(estimates.map { it.first }, tol = 0.02)
+        val nTail = firstStableIndex(estimates.map { it.second }, tol = 0.02)
+        assertTrue(nMean != null, "среднее не сошлось на 200 представителях")
+        assertTrue(nTail == null || nTail >= nMean!!) {
+            "хвост сошёлся раньше среднего: ${nTail?.let { counts[it] }} vs ${counts[nMean!!]}"
+        }
+    }
+
     // ---------- TZ-FLW-007 ----------
 
     @Test
@@ -322,6 +359,21 @@ class MonteCarloTest {
         assertTrue(result.bufferOverflowMsgs > 0.0)
         // потери переполнения не смешаны с канальными
         assertTrue(result.carriedMsgs > 0.0 && result.bufferOverflowMsgs != result.blindLossMsgs)
+    }
+
+    @Test
+    @DisplayName("TZ-FLW-007: потери переполнения распределяются по приоритетам буфера")
+    fun `потери переполнения следуют политике приоритетов`() {
+        val result = run(
+            segments = SegmentCapacity(onboardBufferMsgs = 200, feederMsgsPerContact = 9_000.0),
+        )
+        val lost = result.byClass.associate { it.consumerClass to it.bufferOverflowMsgs }
+        // вытесняется худший приоритет: A' теряет первым, C' — последним (TZ-KA-008)
+        assertTrue(lost.getValue("A_prime") > 0.0, "A' не потерял ничего при переполнении")
+        assertTrue(lost.getValue("C_prime") <= lost.getValue("B_prime"), "$lost")
+        assertTrue(lost.getValue("B_prime") <= lost.getValue("A_prime"), "$lost")
+        // сумма долей равна общей потере: ничего не потерялось и не удвоилось
+        assertEquals(result.bufferOverflowMsgs, lost.values.sum(), 1e-6)
     }
 
     @Test

@@ -75,12 +75,30 @@ fun percentile(values: List<Double>, p: Double): Double {
 }
 
 /**
- * Число выборок, при котором оценка перестаёт меняться больше чем на [tol]
- * (относительно) два шага подряд; null — сходимость не достигнута.
+ * Индекс в ряду оценок, начиная с которого ряд стабилен: относительное
+ * изменение не превышает [tol] два шага подряд. null — не сошлось.
  *
  * Средняя оценка сходится быстро, хвостовая — нет (ловушка 2). Поэтому
- * сходимость по числу представителей контролируется РАЗДЕЛЬНО для каждого
- * показателя, а не одним числом реализаций на весь прогон.
+ * сходимость контролируется РАЗДЕЛЬНО для каждого показателя, а не одним
+ * числом реализаций или представителей на весь прогон.
+ */
+fun firstStableIndex(estimates: List<Double>, tol: Double): Int? {
+    var stable = 0
+    for (i in 1 until estimates.size) {
+        val prev = estimates[i - 1]
+        val cur = estimates[i]
+        if (cur != 0.0 && Math.abs(cur - prev) / Math.abs(cur) <= tol) {
+            if (++stable == 2) return i
+        } else {
+            stable = 0
+        }
+    }
+    return null
+}
+
+/**
+ * Число выборок, при котором оценка перестаёт меняться больше чем на [tol]
+ * два шага подряд; null — сходимость не достигнута.
  */
 fun convergenceN(
     samples: List<Double>,
@@ -88,20 +106,9 @@ fun convergenceN(
     step: Int = 50,
     estimator: (List<Double>) -> Double,
 ): Int? {
-    var stable = 0
-    var prev: Double? = null
-    var n = step
-    while (n <= samples.size) {
-        val est = estimator(samples.take(n))
-        if (prev != null && est != 0.0 && Math.abs(est - prev) / Math.abs(est) <= tol) {
-            if (++stable == 2) return n
-        } else {
-            stable = 0
-        }
-        prev = est
-        n += step
-    }
-    return null
+    val counts = generateSequence(step) { it + step }.takeWhile { it <= samples.size }.toList()
+    val estimates = counts.map { estimator(samples.take(it)) }
+    return firstStableIndex(estimates, tol)?.let { counts[it] }
 }
 
 // ---------- TZ-FLW-007 / 008 ----------

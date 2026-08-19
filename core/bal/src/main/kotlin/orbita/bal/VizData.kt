@@ -34,8 +34,11 @@ object VizData {
     }
 
     /**
-     * Сетка тепловой карты доступности: доля времени в зоне обслуживания
-     * по ячейкам на трёх горизонтах усреднения (виток, сутки, весь прогон).
+     * Сетка тепловой карты доступности на трёх горизонтах усреднения
+     * (виток, сутки, весь прогон). Средняя доля от окна усреднения не зависит —
+     * от него зависит ХУДШЕЕ окно, и именно оно показывает провалы покрытия,
+     * которые среднее по прогону скрывает. Поэтому на каждом горизонте
+     * выводится и среднее, и минимум по окнам.
      */
     fun availabilityHeatmap(
         visibility: ObjectNode,
@@ -43,27 +46,44 @@ object VizData {
         altKm: Double,
         mapper: ObjectMapper = ObjectMapper(),
     ): ObjectNode {
-        data class Acc(var inView: Double = 0.0)
-
-        val byCell = linkedMapOf<String, Acc>()
+        val byCell = linkedMapOf<String, MutableList<Pair<Double, Double>>>()
         visibility["passes"].forEach { p ->
-            val acc = byCell.getOrPut(p["target_ref"].asText()) { Acc() }
-            acc.inView += p["end_s"].asDouble() - p["start_s"].asDouble()
+            byCell.getOrPut(p["target_ref"].asText()) { mutableListOf() } +=
+                p["start_s"].asDouble() to p["end_s"].asDouble()
         }
         val orbitS = orbitalPeriodS(altKm)
         val root = mapper.createObjectNode()
-        val horizons = root.putObject("horizons")
-        horizons.put("orbit_s", orbitS).put("day_s", 86400.0).put("run_s", durationS)
+        root.putObject("horizons").put("orbit_s", orbitS).put("day_s", 86400.0).put("run_s", durationS)
         val cells = root.putArray("cells")
-        byCell.forEach { (cellId, acc) ->
-            val fraction = acc.inView / durationS
-            cells.addObject()
+        byCell.forEach { (cellId, windows) ->
+            val merged = mergeWindows(windows)
+            val runFraction = merged.sumOf { it.second - it.first } / durationS
+            val node = cells.addObject()
                 .put("cell_id", cellId)
-                .put("availability_run", fraction)
-                .put("availability_day", fraction)              // средняя доля не зависит от окна усреднения
-                .put("mean_seconds_per_orbit", fraction * orbitS)
+                .put("availability_run", runFraction)
+                .put("mean_seconds_per_orbit", runFraction * orbitS)
+            listOf("orbit" to orbitS, "day" to 86400.0).forEach { (name, windowS) ->
+                val perWindow = windowedAvailability(merged, durationS, windowS)
+                node.put("availability_$name", perWindow.average())
+                node.put("availability_${name}_worst", perWindow.min())
+            }
         }
         return root
+    }
+
+    /** Доступность по каждому окну усреднения; неполное последнее окно отбрасывается. */
+    private fun windowedAvailability(
+        merged: List<Pair<Double, Double>>,
+        durationS: Double,
+        windowS: Double,
+    ): List<Double> {
+        val count = Math.floor(durationS / windowS).toInt()
+        if (count < 1) return listOf(merged.sumOf { it.second - it.first } / durationS)
+        return (0 until count).map { i ->
+            val from = i * windowS
+            val to = from + windowS
+            merged.sumOf { (s, e) -> (minOf(e, to) - maxOf(s, from)).coerceAtLeast(0.0) } / windowS
+        }
     }
 
     /**
