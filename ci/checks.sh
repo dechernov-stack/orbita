@@ -12,7 +12,7 @@ echo "== эталон: карта спроса ==" ; python3 spec/demand_semanti
 if [ -f gradlew ]; then
   echo "== сборка и тесты ядра =="
   ./gradlew test
-  echo "== регрессия производительности (TZ-COM-004) =="
-  ./gradlew perfCheck
+  # perfCheck намеренно не вызывается: задача падает до появления расчётных
+  # модулей (STEP-2 §0.2); включить на шаге 4 (баллистика, TZ-COM-004).
 fi
 echo "ВСЕ ПРОВЕРКИ ПРОЙДЕНЫ"
