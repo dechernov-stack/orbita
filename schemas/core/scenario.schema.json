@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/core/scenario.schema.json",
+  "title": "Scenario",
+  "description": "Расчётный случай. Обеспечивает воспроизводимость (TZ-COM-006): фиксирует версии входов, зерно ГПСЧ, версии модулей.",
+  "type": "object",
+  "required": ["id", "name", "constellation_ref", "spacecraft_ref", "demand_map_ref", "delivery_mode", "epoch", "duration_s", "rng_seed"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "pattern": "^SC-[0-9]{4}$" },
+    "name": { "type": "string" },
+    "constellation_ref": { "type": "string" },
+    "spacecraft_ref": { "type": "string" },
+    "demand_map_ref": { "type": "string" },
+    "ground_stations_ref": { "type": "string" },
+    "protocol_adapter_ref": { "type": "string" },
+    "delivery_mode": {
+      "enum": ["store_and_forward", "isl_in_plane", "isl_full_mesh"],
+      "description": "Три режима доставки; ISL только РЧ (Р3/ADR-003)"
+    },
+    "epoch": { "type": "string", "format": "date-time" },
+    "duration_s": { "type": "number", "exclusiveMinimum": 0 },
+    "season_cases": {
+      "type": "array",
+      "description": "Опорные сезоны для энергетики: худший и лучший (северное полушарие)",
+      "items": { "enum": ["summer_solstice", "winter_solstice", "equinox"] }
+    },
+    "monte_carlo_runs": { "type": "integer", "minimum": 1 },
+    "rng_seed": { "type": "integer", "description": "Обязателен: без зерна результат невоспроизводим" },
+    "input_versions": {
+      "type": "object",
+      "description": "Версии всех входных наборов на момент прогона",
+      "additionalProperties": { "type": "string" }
+    },
+    "module_versions": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "stale": { "type": "boolean", "default": false, "description": "true — входные данные изменились после прогона" }
+  }
+}

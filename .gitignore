@@ -1,0 +1,9 @@
+build/
+.gradle/
+node_modules/
+dist/
+*.class
+*.jar
+.env
+__pycache__/
+.venv/

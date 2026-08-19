@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/contracts/visibility.schema.json",
+  "title": "VisibilitySchedule",
+  "description": "Предрасчитанные события видимости — контракт «баллистика → потоки». Требование TZ-COM-004: в цикле Монте-Карло не пересчитываются.",
+  "type": "object",
+  "required": ["scenario_ref", "epoch", "duration_s", "passes"],
+  "additionalProperties": false,
+  "properties": {
+    "scenario_ref": { "type": "string" },
+    "epoch": { "type": "string", "format": "date-time" },
+    "duration_s": { "type": "number", "exclusiveMinimum": 0 },
+    "passes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["spacecraft_ref", "target_type", "target_ref", "start_s", "end_s"],
+        "additionalProperties": false,
+        "properties": {
+          "spacecraft_ref": { "type": "string" },
+          "target_type": { "enum": ["cell", "ground_station", "spacecraft"] },
+          "target_ref": { "type": "string" },
+          "start_s": { "type": "number", "minimum": 0 },
+          "end_s": { "type": "number", "minimum": 0 },
+          "max_elevation_deg": { "type": "number" },
+          "in_service_zone": { "type": "boolean", "description": "Пролёт в зоне обслуживания, а не только видимости" },
+          "service_link_ref": { "type": "string" }
+        }
+      }
+    },
+    "eclipse": {
+      "type": "array",
+      "description": "Теневые участки для энергобаланса витка",
+      "items": {
+        "type": "object",
+        "required": ["spacecraft_ref", "start_s", "end_s"],
+        "additionalProperties": false,
+        "properties": {
+          "spacecraft_ref": { "type": "string" },
+          "start_s": { "type": "number" },
+          "end_s": { "type": "number" }
+        }
+      }
+    },
+    "isl_windows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["sat_a", "sat_b", "start_s", "end_s"],
+        "additionalProperties": false,
+        "properties": {
+          "sat_a": { "type": "string" },
+          "sat_b": { "type": "string" },
+          "start_s": { "type": "number" },
+          "end_s": { "type": "number" },
+          "topology": { "enum": ["in_plane", "cross_plane"] }
+        }
+      }
+    }
+  }
+}

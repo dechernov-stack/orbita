@@ -1,0 +1,142 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/contracts/spacecraft.schema.json",
+  "title": "Spacecraft",
+  "description": "Модель КА. Кодирует Р1 (regenerative), Р2 (12U–100 кг), Р3 (РЧ ISL), Р4 (статические маски), Р5 (маяк эфемерид).",
+  "type": "object",
+  "required": ["id", "platform", "payload"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string" },
+    "preset": { "enum": ["cubesat_12u", "cubesat_16u", "micro_25_50kg", "micro_50_100kg"] },
+    "platform": {
+      "type": "object",
+      "required": ["dry_mass_kg", "power", "attitude"],
+      "additionalProperties": false,
+      "properties": {
+        "dry_mass_kg": {
+          "type": "number", "minimum": 12, "maximum": 100,
+          "description": "Р2/ADR-002: диапазон 12U–100 кг. Вне диапазона конфигурация недопустима"
+        },
+        "wet_mass_kg": { "type": "number", "minimum": 12, "maximum": 120 },
+        "mel_margin_policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "new_pct": { "type": "number", "default": 25 },
+            "modified_pct": { "type": "number", "default": 15 },
+            "existing_pct": { "type": "number", "default": 5 },
+            "system_margin_pct": { "type": "number", "default": 10 }
+          }
+        },
+        "power": {
+          "type": "object",
+          "required": ["sa_area_m2", "sa_efficiency", "battery_wh"],
+          "additionalProperties": false,
+          "properties": {
+            "sa_area_m2": { "type": "number", "exclusiveMinimum": 0 },
+            "sa_efficiency": { "type": "number", "minimum": 0, "maximum": 1 },
+            "sa_degradation_pct_per_year": { "type": "number", "minimum": 0 },
+            "sa_mounting": { "enum": ["body_fixed", "deployable_fixed", "steerable"] },
+            "battery_wh": { "type": "number", "exclusiveMinimum": 0 },
+            "battery_max_dod": { "type": "number", "minimum": 0, "maximum": 1 }
+          }
+        },
+        "attitude": {
+          "type": "object",
+          "required": ["pointing_accuracy_deg"],
+          "additionalProperties": false,
+          "properties": {
+            "pointing_accuracy_deg": { "type": "number", "exclusiveMinimum": 0 },
+            "modes": { "type": "array", "items": { "enum": ["nadir", "sun", "inertial", "safe"] } },
+            "slew_rate_deg_s": { "type": "number" }
+          }
+        },
+        "propulsion": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "present": { "type": "boolean" },
+            "type": { "enum": ["cold_gas", "electric", "chemical"] },
+            "delta_v_budget_ms": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "phasing": { "type": "number" },
+                "maintenance": { "type": "number" },
+                "collision_avoidance": { "type": "number" },
+                "deorbit": { "type": "number", "description": "Увод по NASA-STD-8719.14" }
+              }
+            }
+          }
+        },
+        "design_life_years": { "type": "number", "exclusiveMinimum": 0 },
+        "reliability_at_eol": { "type": "number", "minimum": 0, "maximum": 1, "description": "Вход кривой деградации группировки" }
+      }
+    },
+    "payload": {
+      "type": "object",
+      "required": ["architecture", "links", "onboard"],
+      "additionalProperties": false,
+      "properties": {
+        "architecture": {
+          "const": "regenerative",
+          "description": "Р1/ADR-001: bent-pipe не реализуется и не моделируется"
+        },
+        "links": {
+          "type": "array", "minItems": 1,
+          "items": { "$ref": "https://kis.local/schemas/contracts/radio-link.schema.json" }
+        },
+        "onboard": {
+          "type": "object",
+          "required": ["buffer_mb", "priority_policy"],
+          "additionalProperties": false,
+          "properties": {
+            "buffer_mb": { "type": "number", "exclusiveMinimum": 0 },
+            "priority_policy": {
+              "type": "array",
+              "description": "Порядок приоритетов в буфере",
+              "items": { "enum": ["C_prime", "B_prime", "A_prime"] },
+              "default": ["C_prime", "B_prime", "A_prime"]
+            },
+            "overflow_policy": { "enum": ["drop_oldest", "drop_lowest_priority", "reject_new"] },
+            "downlink_policy": { "enum": ["dump_all", "selective_by_priority"] }
+          }
+        },
+        "ephemeris_beacon": {
+          "type": "object",
+          "description": "Р5/ADR-005: обязателен, передаётся по абонентской нисходящей линии",
+          "required": ["enabled", "period_s", "format"],
+          "additionalProperties": false,
+          "properties": {
+            "enabled": { "const": true },
+            "period_s": { "type": "number", "exclusiveMinimum": 0 },
+            "format": {
+              "enum": ["pass_schedule", "full_almanac", "orbit_model"],
+              "description": "orbit_model — компактная динамическая модель, терминал сам считает пролёты (снижает частоту маяка)"
+            },
+            "payload_bytes": { "type": "integer", "minimum": 1 }
+          }
+        }
+      }
+    },
+    "modes": {
+      "type": "array",
+      "description": "Р4/ADR-004: расписание задаётся статическими географическими масками",
+      "items": {
+        "type": "object",
+        "required": ["name", "power_w"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "enum": ["standby", "rx", "rx_tx", "isl", "downlink", "maneuver", "safe"] },
+          "power_w": { "type": "number", "minimum": 0 },
+          "geo_mask_ref": { "type": "string", "description": "Полигон включения режима, генерируется из карты спроса" },
+          "scheduler_hook": {
+            "type": "boolean", "default": false,
+            "description": "Заглушка динамического планировщика; в первой очереди не реализуется"
+          }
+        }
+      }
+    }
+  }
+}

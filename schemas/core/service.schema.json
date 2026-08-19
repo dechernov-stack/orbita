@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/core/service.schema.json",
+  "title": "Service",
+  "description": "Сервис КС с QoS-профилем по видам потребителей (Р9/ADR-009, Ш2).",
+  "type": "object",
+  "required": ["id", "name", "qos_profiles", "traces_up", "lifecycle"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "pattern": "^SV-[0-9]{4}$" },
+    "name": { "type": "string" },
+    "description": { "type": "string" },
+    "traces_up": {
+      "type": "array", "minItems": 1,
+      "description": "Нужды, из которых следует сервис",
+      "items": { "type": "string", "pattern": "^ND-[0-9]{4}$" }
+    },
+    "qos_profiles": {
+      "type": "array", "minItems": 1,
+      "description": "Профиль качества отдельно по каждому виду потребителей (Р9). Единый показатель на сервис недопустим.",
+      "items": {
+        "type": "object",
+        "required": ["consumer_class", "moe"],
+        "additionalProperties": false,
+        "properties": {
+          "consumer_class": {
+            "enum": ["A_prime", "B_prime", "C_prime"],
+            "description": "A' односторонний / B' с подтверждением / C' оперативного управления"
+          },
+          "moe": {
+            "type": "array", "minItems": 1,
+            "description": "Measures of Effectiveness данного вида потребителей",
+            "items": {
+              "type": "object",
+              "required": ["id", "name", "target"],
+              "additionalProperties": false,
+              "properties": {
+                "id": { "type": "string", "pattern": "^MOE-[0-9]{4}$" },
+                "name": {
+                  "enum": [
+                    "delivery_probability_daily",
+                    "delivery_probability_n_attempts",
+                    "reaction_time_probability",
+                    "age_of_information",
+                    "service_availability"
+                  ]
+                },
+                "target": { "$ref": "https://kis.local/schemas/common/quantity.schema.json" },
+                "threshold": { "$ref": "https://kis.local/schemas/common/quantity.schema.json" },
+                "condition": { "type": "string", "description": "Условия применимости: регион, сезон, время суток" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "lifecycle": { "$ref": "https://kis.local/schemas/common/status.schema.json" }
+  }
+}

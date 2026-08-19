@@ -1,0 +1,15 @@
+{
+  "_comment": "Позитивный пример: минимальный корректный набор объектов",
+  "service": {
+    "id": "SV-0001",
+    "name": "Сбор телеметрии датчиков",
+    "traces_up": ["ND-0001"],
+    "qos_profiles": [
+      {"consumer_class": "A_prime", "moe": [{"id": "MOE-0001", "name": "delivery_probability_daily",
+        "target": {"value": 0.9, "unit": "1", "provenance": {"source": "manual"}}}]},
+      {"consumer_class": "C_prime", "moe": [{"id": "MOE-0002", "name": "reaction_time_probability",
+        "target": {"value": 0.95, "unit": "1", "provenance": {"source": "manual"}}}]}
+    ],
+    "lifecycle": {"status": "Draft", "version": "0.1"}
+  }
+}
