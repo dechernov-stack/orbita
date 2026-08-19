@@ -8,6 +8,9 @@ dependencies {
     implementation("com.fasterxml.jackson.core:jackson-databind:2.18.2")
 
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
+    // только для теста: профили активности считает usr, применяет их вызывающий,
+    // и связка «профиль → интенсивность прогона» должна быть предъявлена (TZ-FLW-003)
+    testImplementation(project(":core:usr"))
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 

@@ -6,6 +6,9 @@ package orbita.flw
 import com.fasterxml.jackson.databind.ObjectMapper
 import orbita.mod.RepoPaths
 import orbita.mod.schema.SchemaRegistry
+import orbita.usr.DemandCell
+import orbita.usr.intensityAt
+import orbita.usr.worstCaseHourMonth
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DisplayName
@@ -161,6 +164,32 @@ class MonteCarloTest {
         val calmA = calm.byClass.first { it.consumerClass == "A_prime" }.deliveryProbability
         val burstA = burst.byClass.first { it.consumerClass == "A_prime" }.deliveryProbability
         assertTrue(burstA < calmA, "$burstA vs $calmA")
+    }
+
+    @Test
+    @DisplayName("TZ-FLW-003: суточный и сезонный профили применяются к интенсивности прогона")
+    fun `профили активности применяются к интенсивности`() {
+        // Профили считает usr (TZ-USR-005), применяет вызывающий: множитель
+        // приходит в срез популяции. Связку нужно предъявить целиком, иначе
+        // профили посчитаны и никуда не применены.
+        val diurnal = List(24) { if (it in 8..18) 1.6 else 0.5 }
+        val seasonal = List(12) { if (it in 5..7) 1.4 else 0.9 }
+        val cell = DemandCell(
+            id = "C-001", lat = 30.0,
+            terminals = mapOf("A_prime" to 4_000.0), msgsPerDay = mapOf("A_prime" to 8_000.0),
+            areaKm2 = 1.0e4, weight = 4_000.0,
+        )
+        val flat = intensityAt(cell, hour = 3, month = 0)
+        val (worstHour, worstMonth) = worstCaseHourMonth(cell, diurnal, seasonal)
+        val peak = intensityAt(cell, worstHour, worstMonth, diurnal, seasonal)
+        assertTrue(peak > flat, "профиль не поднял интенсивность: $flat → $peak")
+
+        val peaked = run(
+            pops = populations().map {
+                if (it.cellId == "C-001") it.copy(intensityFactor = peak / flat) else it
+            },
+        )
+        assertTrue(peaked.offeredMsgs > run().offeredMsgs, "пиковый профиль не изменил нагрузку")
     }
 
     // ---------- TZ-FLW-004 ----------
