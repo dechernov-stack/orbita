@@ -124,7 +124,8 @@ data class FlowRunResult(
     val deliveryMode: DeliveryMode,
     val byClass: List<ClassResult>,
     val loads: Map<String, Double>,
-    val bufferOverflowMsgs: Double,
+    /** null — объём буфера не задан: потери переполнения неизвестны, а не нулевые. */
+    val bufferOverflowMsgs: Double?,
     val wallTimeS: Double? = null,
 ) {
     val offeredMsgs: Double get() = byClass.sumOf { it.offeredMsgs }
@@ -146,7 +147,7 @@ data class FlowRunResult(
         load.put("offered_msgs", offeredMsgs)
         load.put("carried_msgs", carriedMsgs)
         if (carriedMsgs > 0) load.put("retransmission_ratio", retransmissionRatio)
-        load.put("buffer_overflow_losses", bufferOverflowMsgs)
+        bufferOverflowMsgs?.let { load.put("buffer_overflow_losses", it) }
         load.put("blind_transmission_losses", blindLossMsgs)
 
         val arr = root.putArray("by_class")
@@ -274,8 +275,8 @@ class MonteCarloEngine(private val mapper: ObjectMapper = ObjectMapper()) {
         val overflow = segments.onboardBufferMsgs?.let { buf ->
             val perContact = if (relayCount > 0) carried / relayCount else carried
             (perContact - buf).coerceAtLeast(0.0) * maxOf(relayCount, 1)
-        } ?: 0.0
-        val overflowShare = overflowByClass(overflow, classResults)
+        }
+        val overflowShare = overflow?.let { overflowByClass(it, classResults) }
 
         return FlowRunResult(
             scenarioRef = scenarioRef,
@@ -283,7 +284,7 @@ class MonteCarloEngine(private val mapper: ObjectMapper = ObjectMapper()) {
             rngSeed = rngSeed,
             deliveryMode = mode,
             byClass = classResults.map { c ->
-                val lost = overflowShare.getValue(c.consumerClass)
+                val lost = overflowShare?.getValue(c.consumerClass) ?: 0.0
                 c.copy(
                     bufferOverflowMsgs = lost,
                     deliveryProbability = if (c.baseMsgs > 0) {
