@@ -25,6 +25,15 @@ class NetTest {
     }
 
     @Test
+    fun `требуемое Eb-N0 SF12 физично и совпадает с эталоном аппарата`() {
+        // порог SNR −20 дБ в полосе 125 кГц при 250-293 бит/с даёт ≈ +6 дБ;
+        // значение ниже предела Шеннона (−1,59 дБ) было бы нефизичным
+        val ebn0 = adapter.mode("SF12").requiredEbn0Db
+        assertTrue(ebn0 > -1.59) { "Eb/N0 $ebn0 дБ ниже предела Шеннона" }
+        assertTrue(abs(ebn0 - 6.3) < 0.5) { "Eb/N0 $ebn0 дБ расходится с эталоном (+6,3)" }
+    }
+
+    @Test
     fun `набор режимов SF и LR-FHSS согласован`() {
         val sf7 = adapter.mode("SF7")
         val sf12 = adapter.mode("SF12")
