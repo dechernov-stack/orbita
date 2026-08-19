@@ -1,0 +1,16 @@
+{
+  "_source": "Аналитические свойства чистой ALOHA (Abramson, 1970). ВРЕМЕННЫЙ источник калибровки (TZ-NET-004): эталонные наборы измерений ns-3/FLoRa/ELoRa недоступны в этой среде; при их появлении файл заменяется числами симуляторов с указанием источника. Код GPL-симуляторов не заимствуется.",
+  "max_deviation_pct": 1.0,
+  "properties": {
+    "pure_aloha_max_throughput": { "at_load": 0.5, "value": 0.18393972058572117 },
+    "delivery_at_zero_load": 1.0,
+    "delivery_monotonic_decreasing": true,
+    "delivery_at_high_load_below": { "load": 5.0, "value": 0.001 }
+  },
+  "cases": [
+    { "load": 0.1, "pure_aloha_throughput": 0.08187307530779819 },
+    { "load": 0.5, "pure_aloha_throughput": 0.18393972058572117 },
+    { "load": 1.0, "pure_aloha_throughput": 0.1353352832366127 },
+    { "load": 2.0, "pure_aloha_throughput": 0.03663127777746836 }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "_source": "Сформировано из замкнутых формул spec/ballistics_semantics.py (эталонные наборы TAT-C недоступны в этой среде; при их появлении файл заменяется с указанием источника, TZ-BAL-008).",
+  "thresholds": {
+    "coverage_pct": 2.0,
+    "revisit_pct": 5.0
+  },
+  "cases": [
+    {
+      "alt_km": 550,
+      "min_elev_deg": 10,
+      "period_min": 95.6499,
+      "footprint_km": 1664.97,
+      "max_pass_s": 476.87
+    },
+    {
+      "alt_km": 550,
+      "min_elev_deg": 25,
+      "period_min": 95.6499,
+      "footprint_km": 940.74,
+      "max_pass_s": 269.44
+    },
+    {
+      "alt_km": 400,
+      "min_elev_deg": 10,
+      "period_min": 92.5604,
+      "footprint_km": 1344.21,
+      "max_pass_s": 372.56
+    },
+    {
+      "alt_km": 700,
+      "min_elev_deg": 10,
+      "period_min": 98.773,
+      "footprint_km": 1942.52,
+      "max_pass_s": 574.53
+    },
+    {
+      "alt_km": 1200,
+      "min_elev_deg": 10,
+      "period_min": 109.4217,
+      "footprint_km": 2673.66,
+      "max_pass_s": 876.03
+    }
+  ]
+}
