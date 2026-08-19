@@ -1,0 +1,5 @@
+{
+  "_comment": "Требуемая зрелость по типам объектов к контрольным точкам (TZ-REQ-008, TZ-OUT-003). Конфигурация редактируется без изменения кода; значения — эталон spec/requirements_semantics.py (GATES).",
+  "SRR": { "requirement": "Baseline", "service": "Approved", "component": "Preliminary" },
+  "SDR": { "requirement": "Baseline", "service": "Baseline", "component": "Approved" }
+}
