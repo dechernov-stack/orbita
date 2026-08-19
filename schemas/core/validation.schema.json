@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/core/validation.schema.json",
+  "title": "ValidationActivity",
+  "description": "Действие валидации: подтверждение, что продукт решает задачу пользователя в предполагаемой среде. Привязывается к ожиданию стейкхолдера (нужде или сервису) и сценарию ConOps, а не к требованию. Выполняется на продуктах фазы (моделях, макетах), а не только на конечном изделии.",
+  "type": "object",
+  "required": [
+    "id",
+    "target",
+    "conops_ref",
+    "product_kind",
+    "method",
+    "status"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^VA-[0-9]{4}$"
+    },
+    "target": {
+      "type": "string",
+      "pattern": "^(ND|SV)-[0-9]{4}$",
+      "description": "Нужда или сервис. Ссылка на требование недопустима: это верификация, не валидация."
+    },
+    "conops_ref": {
+      "type": "string",
+      "description": "Сценарий ConOps, против которого выполняется валидация"
+    },
+    "product_kind": {
+      "enum": [
+        "model",
+        "mockup",
+        "prototype",
+        "engineering_unit",
+        "flight_unit"
+      ],
+      "description": "На чём выполняется: модель фазы, макет, прототип, изделие"
+    },
+    "method": {
+      "enum": [
+        "test",
+        "analysis",
+        "demonstration",
+        "inspection"
+      ]
+    },
+    "phase": {
+      "enum": [
+        "PhaseA",
+        "PhaseB",
+        "PhaseC",
+        "PhaseD",
+        "PhaseE"
+      ]
+    },
+    "approach": {
+      "type": "string",
+      "minLength": 20
+    },
+    "environment": {
+      "type": "string",
+      "description": "Предполагаемая среда применения либо её имитация"
+    },
+    "status": {
+      "enum": [
+        "planned",
+        "in_progress",
+        "passed",
+        "failed"
+      ]
+    },
+    "evidence_ref": {
+      "type": "string",
+      "pattern": "^EV-[0-9]{4}$"
+    }
+  }
+}

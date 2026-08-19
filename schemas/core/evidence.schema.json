@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/core/evidence.schema.json",
+  "title": "Evidence",
+  "description": "Свидетельство верификации или валидации. Самостоятельный объект: одно требование проходит цепочку свидетельств — предварительный расчёт по модели, затем протокол физического испытания.",
+  "type": "object",
+  "required": [
+    "id",
+    "kind",
+    "maturity",
+    "source",
+    "configuration",
+    "date"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^EV-[0-9]{4}$"
+    },
+    "kind": {
+      "enum": [
+        "analysis_report",
+        "test_report",
+        "model_run",
+        "inspection_record",
+        "certificate",
+        "demonstration_record"
+      ]
+    },
+    "maturity": {
+      "enum": [
+        "preliminary",
+        "final"
+      ],
+      "description": "preliminary — расчётное или модельное; final — по результатам испытания или приёмки"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "oneOf": [
+        {
+          "required": [
+            "scenario_ref"
+          ]
+        },
+        {
+          "required": [
+            "document"
+          ]
+        }
+      ],
+      "properties": {
+        "scenario_ref": {
+          "type": "string",
+          "pattern": "^SC-[0-9]{4}$",
+          "description": "Внутренний результат моделирования"
+        },
+        "document": {
+          "type": "string",
+          "description": "Внешний документ: протокол, отчёт, сертификат"
+        }
+      }
+    },
+    "configuration": {
+      "type": "string",
+      "description": "Конфигурация изделия, к которой относится свидетельство"
+    },
+    "date": {
+      "type": "string",
+      "format": "date"
+    },
+    "author": {
+      "type": "string"
+    },
+    "superseded_by": {
+      "type": "string",
+      "pattern": "^EV-[0-9]{4}$",
+      "description": "Более позднее свидетельство, замещающее данное (испытание замещает расчёт)"
+    },
+    "stale": {
+      "type": "boolean",
+      "default": false
+    }
+  }
+}

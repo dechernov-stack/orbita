@@ -141,6 +141,27 @@ unaccepted = c.execute("""SELECT count(*) FROM params WHERE json_extract(provena
                           AND json_extract(provenance,'$.ai.accepted')=0""").fetchone()[0]
 check("неакцептованные предложения выявляются отчётом", unaccepted==1)
 
+print("\nСемантика ограничений БД: NULL проходит CHECK")
+# Ограничение считается выполненным при результате TRUE ИЛИ NULL. Сравнение
+# с отсутствующим полем JSON даёт NULL — и запись проходит. Дефект найден
+# на исполнении в V003 (оператор условия) и повторно в V005 (цель валидации).
+c = sqlite3.connect(':memory:')
+c.executescript("""
+CREATE TABLE naive(id TEXT, typ TEXT, doc TEXT,
+  CHECK (typ <> 'requirement' OR json_extract(doc,'$.operator') IN ('le','ge')));
+CREATE TABLE fixed(id TEXT, typ TEXT, doc TEXT,
+  CHECK (typ <> 'requirement' OR COALESCE(json_extract(doc,'$.operator'),'') IN ('le','ge')));
+""")
+def ins(tbl, doc):
+    try:
+        c.execute(f"INSERT INTO {tbl} VALUES('x','requirement',?)", (doc,)); return True
+    except sqlite3.IntegrityError:
+        return False
+check("наивное ограничение пропускает запись без поля", ins('naive', '{}'))
+check("наивное ограничение ловит недопустимое значение", not ins('naive', '{"operator":"xx"}'))  # negative
+check("COALESCE закрывает дыру: запись без поля отклонена", not ins('fixed', '{}'))
+check("COALESCE не мешает допустимому значению", ins('fixed', '{"operator":"le"}'))
+
 print("\nTZ-MOD-005: зависимости, циклы, каскад stale")
 c = db()
 for n,f in [('a',None),('b','a*2'),('cc','b+1')]:
