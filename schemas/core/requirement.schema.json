@@ -10,7 +10,7 @@
     "statement",
     "category",
     "traces_up",
-    "verification",
+    "verification_events",
     "lifecycle",
     "owner"
   ],
@@ -75,25 +75,37 @@
     },
     "allocated_to": {
       "type": "array",
-      "description": "Элементы архитектуры, на которые распределено требование (flow down, Ш4)",
+      "description": "Куда распределено требование. Интерфейсное требование распределяется на интерфейс (две стороны), а не на один элемент.",
       "items": {
         "type": "object",
-        "required": [
-          "component"
-        ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "required": [
+              "component"
+            ]
+          },
+          {
+            "required": [
+              "interface"
+            ]
+          }
+        ],
         "properties": {
           "component": {
             "type": "string",
             "pattern": "^CM-[0-9]{4}$"
+          },
+          "interface": {
+            "type": "string",
+            "pattern": "^IF-[0-9]{4}$"
           },
           "kind": {
             "enum": [
               "full",
               "partial"
             ],
-            "default": "full",
-            "description": "partial — требование покрывается элементом частично, остальное на других элементах"
+            "default": "full"
           },
           "rationale": {
             "type": "string"
@@ -203,53 +215,6 @@
         }
       ]
     },
-    "verification": {
-      "type": "object",
-      "description": "Как именно требование будет проверено. Метод без описания подхода не делает требование верифицируемым.",
-      "required": [
-        "method"
-      ],
-      "additionalProperties": false,
-      "properties": {
-        "method": {
-          "enum": [
-            "test",
-            "analysis",
-            "demonstration",
-            "inspection"
-          ]
-        },
-        "phase": {
-          "enum": [
-            "PhaseA",
-            "PhaseB",
-            "PhaseC",
-            "PhaseD"
-          ]
-        },
-        "approach": {
-          "type": "string",
-          "minLength": 20,
-          "description": "Что именно делается для проверки. Не пересказ требования, а порядок действий: что измеряется, как получается результат."
-        },
-        "means": {
-          "type": "string",
-          "description": "Чем проверяется: стенд, методика расчёта, модель, документ. Обязательно для test и analysis."
-        },
-        "conditions": {
-          "type": "string",
-          "description": "При каких условиях: конфигурация, худший случай, среда, этап сборки."
-        },
-        "success_criterion": {
-          "type": "string",
-          "description": "Что считается успехом, если это не выводится напрямую из условия требования (mop)."
-        },
-        "evidence_ref": {
-          "type": "string",
-          "description": "Свидетельство: результат сценария или протокол"
-        }
-      }
-    },
     "lifecycle": {
       "$ref": "https://kis.local/schemas/common/status.schema.json"
     },
@@ -262,6 +227,104 @@
       "items": {
         "type": "string",
         "pattern": "^RQ-[0-9]{4}$"
+      }
+    },
+    "verification_events": {
+      "type": "array",
+      "description": "События верификации. Требование обычно проверяется несколькими событиями на разных фазах и уровнях: предварительный расчёт по модели на ранней фазе, затем испытание изделия. Верификацию закрывает только событие с closes=true.",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "method",
+          "kind",
+          "level",
+          "status",
+          "closes"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^VE-[0-9]{4}$"
+          },
+          "method": {
+            "enum": [
+              "test",
+              "analysis",
+              "demonstration",
+              "inspection"
+            ]
+          },
+          "kind": {
+            "enum": [
+              "preliminary",
+              "qualification",
+              "acceptance",
+              "certification"
+            ],
+            "description": "preliminary — промежуточное подтверждение (расчёт, модель); qualification — подтверждение конструкции, проводится один раз на версию конструкции; acceptance — приёмка экземпляра; certification — формальное подтверждение"
+          },
+          "phase": {
+            "enum": [
+              "PhaseA",
+              "PhaseB",
+              "PhaseC",
+              "PhaseD",
+              "PhaseE"
+            ]
+          },
+          "level": {
+            "enum": [
+              "component",
+              "subsystem",
+              "system",
+              "end_to_end"
+            ],
+            "description": "Уровень структуры изделия, на котором выполняется проверка"
+          },
+          "approach": {
+            "type": "string",
+            "minLength": 20,
+            "description": "Что именно делается: порядок действий, что измеряется. Не пересказ требования."
+          },
+          "means": {
+            "type": "string",
+            "description": "Стенд, методика, модель, документ. Обязательно для test и analysis."
+          },
+          "conditions": {
+            "type": "string"
+          },
+          "success_criterion": {
+            "type": "string"
+          },
+          "closes": {
+            "type": "boolean",
+            "default": false,
+            "description": "Закрывает ли событие верификацию требования. Предварительное событие закрывать не может."
+          },
+          "design_version": {
+            "type": "string",
+            "description": "Для quali­fication: версия конструкции"
+          },
+          "unit": {
+            "type": "string",
+            "description": "Для acceptance: экземпляр изделия"
+          },
+          "status": {
+            "enum": [
+              "planned",
+              "in_progress",
+              "passed",
+              "failed",
+              "waived"
+            ]
+          },
+          "evidence_ref": {
+            "type": "string",
+            "pattern": "^EV-[0-9]{4}$"
+          }
+        }
       }
     }
   }
