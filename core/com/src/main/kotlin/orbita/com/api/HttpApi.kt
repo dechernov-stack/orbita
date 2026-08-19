@@ -227,6 +227,10 @@ class HttpApi(private val boundary: Boundary) {
             method == "GET" && path == "/reports/review-candidates" ->
                 respond(ex, 200, mapper.valueToTree(boundary.req.reviewCandidates()))
 
+            // Параметры канала отдаются только адаптером (TZ-NET-001, TZ-NET-006)
+            method == "GET" && path == "/protocol-adapter" ->
+                respond(ex, 200, boundary.protocolAdapter.toContractJson(mapper))
+
             method == "POST" && path.startsWith("/validate/") -> {
                 val schema = path.removePrefix("/validate/")
                 val errors = boundary.validateContract(schema, body(ex))
