@@ -2,6 +2,7 @@
 // TZ-REQ-006, TZ-REQ-007): правила границы, базирование, отчёты целостности.
 package orbita.req
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import orbita.mod.RepoPaths
 import orbita.mod.TestDb
 import orbita.mod.model.Lifecycle
@@ -24,20 +25,28 @@ import java.time.OffsetDateTime
 @TestMethodOrder(MethodOrderer.OrderAnnotation::class)
 class ReqStoreTest {
 
+    private val mapper = ObjectMapper()
     private val req = ReqService(TestDb.conn, SchemaRegistry(RepoPaths.schemasDir()))
 
     private fun requirementJson(
         id: String,
         statement: String = "Система должна обеспечивать вероятность доставки не менее 0,9 за сутки.",
         tracesUp: String = """[{"ref":"SV-0001","consumer_class":"A_prime"}]""",
-        allocated: String = """["CM-0001"]""",
-        mop: String = """{"name":"delivery_probability_daily","target":{"value":0.9,"unit":"1","provenance":{"source":"manual"}}}""",
+        allocated: String = """[{"component":"CM-0001","kind":"full"}]""",
+        mop: String = """{"name":"delivery_probability_daily","operator":"ge","value":{"value":0.9,"unit":"1","provenance":{"source":"manual"}}}""",
+        verification: String = VERIFICATION,
     ) = """
         {"id":"$id","level":"system","statement":"$statement","category":"performance",
          "traces_up":$tracesUp,"allocated_to":$allocated,"mop":$mop,
-         "verification":{"method":"analysis","phase":"PhaseA"},
+         "verification":$verification,
          "lifecycle":{"status":"Draft","version":"1"},"owner":"ведущий системный инженер"}
     """
+
+    /** Содержательное описание проверки (CR-002): метод сам по себе не делает требование проверяемым. */
+    private val VERIFICATION = """
+        {"method":"analysis","phase":"PhaseA","means":"Прогон эталонного сценария Монте-Карло",
+         "approach":"Прогон эталонного сценария с фиксированным зерном ГПСЧ и сверка доли доставленных сообщений с целевым значением показателя."}
+    """.trimIndent()
 
     @BeforeAll
     fun setup() {
@@ -80,7 +89,7 @@ class ReqStoreTest {
     @Test
     fun `распределение на несуществующий элемент отклоняется`() {
         val e = assertThrows<ModelViolationException> {
-            req.ingestRequirement(requirementJson("RQ-0012", allocated = """["CM-0999"]"""))
+            req.ingestRequirement(requirementJson("RQ-0012", allocated = """[{"component":"CM-0999"}]"""))
         }
         assertTrue("TZ-REQ-005" in e.message!!)
     }
@@ -110,8 +119,8 @@ class ReqStoreTest {
         req.ingestRequirement(
             requirementJson(
                 "RQ-0014",
-                mop = """{"name":"delivery_probability_daily","tbd":true,
-                          "target":{"value":0.9,"unit":"1","provenance":{"source":"manual"}}}""",
+                mop = """{"name":"delivery_probability_daily","operator":"ge","tbd":true,
+                          "value":{"value":0.9,"unit":"1","provenance":{"source":"manual"}}}""",
             )
         )
         val e = assertThrows<BaselineBlockedException> { req.promote("RQ-0014", Lifecycle.Baseline) }
@@ -178,5 +187,117 @@ class ReqStoreTest {
 
         TestDb.conn.createStatement().use { it.execute("UPDATE results SET stale = true WHERE pk = ${res.pk}") }
         assertEquals(VerificationStatus.NotVerified, req.verificationStatusOf("RQ-0015"))
+    }
+
+    // ---------- CR-001 / CR-002 на хранилище ----------
+
+    @Test
+    fun `требование с показателем без оператора отклоняется схемой и БД`() {
+        // схема: mop.operator обязателен
+        val e = assertThrows<orbita.mod.schema.SchemaValidationException> {
+            req.ingestRequirement(
+                requirementJson(
+                    "RQ-0020",
+                    mop = """{"name":"delivery_probability_daily","value":{"value":0.9,"unit":"1","provenance":{"source":"manual"}}}""",
+                )
+            )
+        }
+        assertTrue(e.errors.any { "operator" in it.message }) { e.errors.toString() }
+
+        // БД: страховка от обхода валидации схемы (V003, ограничение mop_has_operator)
+        val raw = mapper.readTree(
+            requirementJson(
+                "RQ-0021",
+                mop = """{"name":"delivery_probability_daily","value":{"value":0.9,"unit":"1","provenance":{"source":"manual"}}}""",
+            )
+        )
+        val dbError = assertThrows<java.sql.SQLException> {
+            req.objects.create("RQ-0021", "requirement", raw)
+        }
+        assertTrue("mop_has_operator" in (dbError.message ?: "")) { dbError.message ?: "" }
+    }
+
+    @Test
+    fun `свёртка бюджетов по связям derive выявляет превышение с остатком`() {
+        req.ingestRequirement(
+            requirementJson(
+                "RQ-0030",
+                statement = "Сухая масса аппарата не должна превышать 100 кг.",
+                mop = """{"name":"Сухая масса","operator":"le","rollup":"sum",
+                          "value":{"value":100,"unit":"kg","provenance":{"source":"manual"}}}""",
+            )
+        )
+        // декомпозиция: связь derive, не trace (ADR-017)
+        listOf("RQ-0031" to 60, "RQ-0032" to 30).forEach { (id, kg) ->
+            req.ingestRequirement(
+                requirementJson(
+                    id,
+                    statement = "Масса составной части не должна превышать $kg кг.",
+                    mop = """{"name":"Масса части","operator":"le",
+                              "value":{"value":$kg,"unit":"kg","provenance":{"source":"manual"}}}""",
+                ).let { it.dropLast(it.length - it.lastIndexOf("}")) + ""","derives_from":["RQ-0030"]}""" }
+            )
+        }
+        val ok = req.rollupFor("RQ-0030")
+        assertTrue(ok.applicable && ok.consistent == true) { "$ok" }
+        assertEquals(10.0, ok.remaining!!, 1e-9)
+        assertTrue(req.inconsistentDecompositions().none { it.first == "RQ-0030" })
+
+        // добавление третьей части выводит сумму за родительский бюджет
+        req.ingestRequirement(
+            requirementJson(
+                "RQ-0033",
+                statement = "Масса служебной аппаратуры не должна превышать 20 кг.",
+                mop = """{"name":"Масса части","operator":"le",
+                          "value":{"value":20,"unit":"kg","provenance":{"source":"manual"}}}""",
+            ).let { it.dropLast(it.length - it.lastIndexOf("}")) + ""","derives_from":["RQ-0030"]}""" }
+        )
+        val bad = req.rollupFor("RQ-0030")
+        assertEquals(false, bad.consistent)
+        assertTrue(bad.remaining!! < 0) { "остаток ${bad.remaining}" }
+        assertTrue(req.inconsistentDecompositions().any { it.first == "RQ-0030" })
+    }
+
+    @Test
+    fun `частичное распределение несёт вид и обоснование`() {
+        req.ingestComponent(
+            """{"id":"CM-0003","name":"Терминал потребителя","kind":"subsystem",
+                "lifecycle":{"status":"Draft","version":"1"}}"""
+        )
+        req.ingestRequirement(
+            requirementJson(
+                "RQ-0040",
+                allocated = """[{"component":"CM-0001","kind":"partial","rationale":"бортовая часть контура"},
+                                {"component":"CM-0003","kind":"partial","rationale":"абонентская часть контура"}]""",
+            )
+        )
+        val links = req.links.linksFrom("RQ-0040", "allocation")
+        assertEquals(2, links.size)
+        assertTrue(links.all { it.allocationKind == "partial" && !it.rationale.isNullOrBlank() }) { links.toString() }
+    }
+
+    @Test
+    fun `требование без описания подхода к проверке не переводится в Baseline`() {
+        req.ingestRequirement(
+            requirementJson("RQ-0050", verification = """{"method":"analysis","phase":"PhaseA"}""")
+        )
+        val e = assertThrows<BaselineBlockedException> { req.promote("RQ-0050", Lifecycle.Baseline) }
+        assertTrue(e.reasons.any { "как именно" in it }) { e.reasons.toString() }
+        // черновик при этом сохраняется: полнота — условие базирования, не сохранения
+        assertEquals(Lifecycle.Draft, req.objects.current("RQ-0050")!!.status)
+
+        // пересказ формулировки тоже не проходит (порог доли общих значимых слов)
+        req.ingestRequirement(
+            requirementJson(
+                "RQ-0051",
+                statement = "Сухая масса космического аппарата не должна превышать 100 кг.",
+                mop = """{"name":"Сухая масса","operator":"le",
+                          "value":{"value":100,"unit":"kg","provenance":{"source":"manual"}}}""",
+                verification = """{"method":"analysis","means":"MEL",
+                  "approach":"Проверить, что сухая масса космического аппарата не превышает 100 кг."}""",
+            )
+        )
+        val e2 = assertThrows<BaselineBlockedException> { req.promote("RQ-0051", Lifecycle.Baseline) }
+        assertTrue(e2.reasons.any { "пересказывает" in it }) { e2.reasons.toString() }
     }
 }

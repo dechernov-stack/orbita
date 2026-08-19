@@ -23,7 +23,7 @@ class RequirementsSemanticsTest {
 
     private val good = j(
         """{"id":"RQ-0001","statement":"Система должна обеспечивать вероятность доставки не менее 0,9 за сутки.",
-            "category":"performance","mop":{"target":{"value":0.9}}}"""
+            "category":"performance","mop":{"name":"Вероятность доставки","operator":"ge","value":{"value":0.9,"unit":"1"}}}"""
     )
 
     // ---- свидетельства эталона (TZ-REQ-007) ----
@@ -133,8 +133,9 @@ class RequirementsSemanticsTest {
     inner class Verification {
 
         private fun withVerification(evidenceRef: String?): JsonNode = j(
-            """{"mop":{"target":{"value":0.9},"comparison":"ge"},
-                "verification":{"method":"analysis"${if (evidenceRef != null) ""","evidence_ref":"$evidenceRef"""" else ""}}}"""
+            """{"mop":{"name":"Доставка","operator":"ge","value":{"value":0.9,"unit":"1"}},
+                "verification":{"method":"analysis","means":"Прогон сценария Монте-Карло",
+                  "approach":"Прогон эталонного сценария с фиксированным зерном ГПСЧ и сверка доли доставленных сообщений с целевым значением показателя."${if (evidenceRef != null) ""","evidence_ref":"$evidenceRef"""" else ""}}}"""
         )
 
         @Test
@@ -152,7 +153,7 @@ class RequirementsSemanticsTest {
         @Test
         fun `без метода — не проверено`() =
             assertEquals(VerificationStatus.NotVerified,
-                verificationStatus(j("""{"mop":{"target":{"value":0.9}},"verification":{}}"""), evidence))
+                verificationStatus(j("""{"mop":{"name":"Доставка","operator":"ge","value":{"value":0.9,"unit":"1"}},"verification":{}}"""), evidence))
     }
 
     @Nested
@@ -161,8 +162,9 @@ class RequirementsSemanticsTest {
 
         private val ready = j(
             """{"id":"RQ-0001","statement":"Система должна обеспечивать вероятность доставки не менее 0,9 за сутки.",
-                "category":"performance","mop":{"target":{"value":0.9}},
-                "verification":{"method":"analysis","evidence_ref":"RES-1"}}"""
+                "category":"performance","mop":{"name":"Вероятность доставки","operator":"ge","value":{"value":0.9,"unit":"1"}},
+                "verification":{"method":"analysis","evidence_ref":"RES-1","means":"Прогон сценария Монте-Карло",
+                  "approach":"Прогон эталонного сценария с фиксированным зерном ГПСЧ и сверка доли доставленных сообщений с целевым значением показателя."}}"""
         )
 
         @Test
@@ -174,7 +176,8 @@ class RequirementsSemanticsTest {
         @Test
         fun `незакрытый TBD блокирует базирование`() {
             val withTbd = (ready.deepCopy<com.fasterxml.jackson.databind.node.ObjectNode>()).apply {
-                putObject("mop").put("tbd", true).putObject("target").put("value", 0.9)
+                putObject("mop").put("name", "Вероятность доставки").put("operator", "ge").put("tbd", true)
+                    .putObject("value").put("value", 0.9).put("unit", "1")
             }
             val (ok, why) = baselining.canBaseline(withTbd)
             assertFalse(ok)
