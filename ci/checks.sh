@@ -5,7 +5,9 @@ cd "$(dirname "$0")/.."
 
 echo "== схемы =="            ; python3 tools/validate_schemas.py
 echo "== трассировка ТЗ =="   ; python3 tools/validate_trace.py
-echo "== эталон хранилища ==" ; python3 spec/storage_semantics.py > /dev/null && echo "19 проверок пройдено"
+echo "== эталон: хранилище =="    ; python3 spec/storage_semantics.py      > /dev/null && echo "19 проверок пройдено"
+echo "== эталон: требования ==" ; python3 spec/requirements_semantics.py > /dev/null && echo "23 проверки пройдено"
+echo "== эталон: карта спроса ==" ; python3 spec/demand_semantics.py     > /dev/null && echo "16 проверок пройдено"
 
 if [ -f gradlew ]; then
   echo "== сборка и тесты ядра =="

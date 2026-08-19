@@ -21,8 +21,10 @@ for f in sorted(glob.glob('docs/tz/*.md')):
             if mm: store[rid] |= set(re.findall(r'TZ-[A-Z]+-\d{3}', mm.group(1)))
 
 adrs = {os.path.basename(p)[:7] for p in glob.glob('docs/adr/ADR-*.md')}
+# ADR-ссылки проверяются только в файлах требований: рабочие задания STEP-*.md
+# законно ссылаются на решения, которые предстоит оформить.
 adr_refs = set()
-for f in glob.glob('docs/tz/*.md'):
+for f in glob.glob('docs/tz/TZ-*.md'):
     adr_refs |= set(re.findall(r'ADR-\d{3}', open(f, encoding='utf-8').read()))
 
 errs = []
