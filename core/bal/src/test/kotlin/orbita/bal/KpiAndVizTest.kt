@@ -59,15 +59,65 @@ class KpiAndVizTest {
     }
 
     @Test
-    fun `поля, зависящие от шага 4, остаются незаполненными`() {
+    fun `без результата моделирования поля класса и покрытия остаются пустыми`() {
         val doc = kpi().toContractJson(mapper)
-        // метрики классов появятся только с ядром Монте-Карло: пустой массив, не выдуманные числа
+        // метрики классов приходят из ядра Монте-Карло: без прогона — пустой
+        // массив, а не выдуманные числа (ловушка 7)
         assertTrue(doc["quality"]["by_class"].isEmpty)
-        // покрытие (revisit, gaps) на этом шаге не считается — блок отсутствует целиком
+        // покрытие без расписания пролётов не считается — блок отсутствует целиком
         assertFalse(doc["quality"].has("coverage"))
         // а реально посчитанные величины присутствуют
         assertTrue(doc["energy"].has("allowed_payload_duty_cycle"))
         assertTrue(doc["quality"]["latitude_profile"].size() == 2)
+    }
+
+    @Test
+    fun `с результатом моделирования вектор заполняется полностью`() {
+        val base = kpi()
+        val coverage = coverageMetrics(
+            listOf(0.0 to 400.0, 3_600.0 to 4_100.0, 9_000.0 to 9_500.0), durationS = 86_400.0,
+        )
+        val full = base.copy(
+            quality = base.quality.withCoverage(coverage).copy(
+                byClass = listOf(
+                    ClassMetric("A_prime", "delivery_probability_daily", 0.97),
+                    ClassMetric("B_prime", "delivery_probability_n_attempts", 0.91),
+                    ClassMetric("C_prime", "reaction_time_probability", 0.42),
+                ),
+            ),
+        )
+        val doc = full.toContractJson(mapper)
+        assertEquals(emptyList<ValidationError>(), registry.validate("contracts/kpi-vector", doc)) {
+            registry.validate("contracts/kpi-vector", doc).toString()
+        }
+        assertEquals(3, doc["quality"]["by_class"].size())
+        val cov = doc["quality"]["coverage"]
+        listOf("mean_gap_s", "max_gap_s", "revisit_s", "multiplicity_mean").forEach {
+            assertTrue(cov.has(it)) { "нет поля покрытия $it" }
+        }
+        // ни одно поле схемы не осталось пустым
+        listOf("quality", "economics", "reliability", "energy", "environment").forEach {
+            assertTrue(doc.has(it)) { "нет блока $it" }
+        }
+    }
+
+    @Test
+    fun `разрывы покрытия и период обзора считаются по расписанию пролётов`() {
+        // три окна доступа: разрывы 3200 и 4900 с, интервалы начал 3600 и 5400 с
+        val m = coverageMetrics(
+            listOf(0.0 to 400.0, 3_600.0 to 4_100.0, 9_000.0 to 9_500.0), durationS = 86_400.0,
+        )
+        assertEquals(3, m.accessWindows)
+        assertEquals(4_050.0, m.meanGapS!!, 1e-9)
+        assertEquals(4_900.0, m.maxGapS!!, 1e-9)
+        assertEquals(4_500.0, m.revisitS!!, 1e-9)
+        // разрыв и период обзора — разные величины: пролёт не мгновенен
+        assertTrue(m.revisitS!! > m.meanGapS!!)
+        // перекрывающиеся окна двух аппаратов: доступность одна, кратность две
+        val two = coverageMetrics(listOf(0.0 to 400.0, 100.0 to 500.0), durationS = 1_000.0)
+        assertEquals(0.5, two.availability, 1e-9)
+        assertEquals(0.8, two.multiplicityMean, 1e-9)
+        assertEquals(1, two.accessWindows)
     }
 
     @Test
@@ -128,6 +178,12 @@ class KpiAndVizTest {
         heat["cells"].forEach { c ->
             val a = c["availability_run"].asDouble()
             assertTrue(a > 0 && a < 1) { "доступность вне (0,1): $a" }
+            // три горизонта усреднения: среднее совпадает, худшее окно — нет
+            assertEquals(a, c["availability_day"].asDouble(), 1e-9)
+            assertEquals(a, c["availability_orbit"].asDouble(), 0.02)
+            assertTrue(c["availability_orbit_worst"].asDouble() < a) {
+                "провалы покрытия скрыты средним по прогону"
+            }
         }
 
         val czml = VizData.czml(

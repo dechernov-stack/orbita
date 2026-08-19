@@ -1,0 +1,25 @@
+{
+  "_source": "Эталонный прогон шага 4 (TZ-FLW-001 MOP, TZ-COM-004): предрасчёт геометрии плюс ядро Монте-Карло на всей грубой сетке. Бюджет 300 с — норматив ТЗ, а не подгонка под раннер; замер геометрии отдельно остаётся в perf_geometry.json.",
+  "constellation": { "inc_deg": 53.0, "total": 40, "planes": 5, "phasing": 1, "alt_km": 550.0 },
+  "epoch": "2026-03-20T00:00:00Z",
+  "duration_s": 86400,
+  "min_elevation_deg": 10.0,
+  "service_elevation_deg": 25.0,
+  "coarse_cell_km": 800.0,
+  "monte_carlo_runs": 500,
+  "rng_seed": 42,
+  "population": {
+    "terminals_per_cell": 2000.0,
+    "msgs_per_terminal_day": 3.0,
+    "control_loop_share": 0.02,
+    "required_reaction_time_s": 3600.0,
+    "external_decision_time_s": 20.0
+  },
+  "channel": {
+    "capacity_msgs_per_pass": 900.0,
+    "time_on_air_s": 1.5,
+    "beacon_period_s": 600.0,
+    "max_almanac_age_s": 86400.0
+  },
+  "budget_seconds": 300.0
+}

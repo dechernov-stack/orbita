@@ -1,22 +1,35 @@
 // Вектор KPI варианта и фронт Парето (TZ-BAL-006).
 //
-// Показатели, зависящие от ядра Монте-Карло (задержки и вероятности доставки
-// по классам, TZ-FLW), на этом шаге НЕ заполняются: пустое поле честнее
-// правдоподобного (CLAUDE.md §5, ловушка 7). Свёртка в единый индекс требует
-// явных весов и не заменяет фронт.
+// Показатели, зависящие от ядра Монте-Карло (вероятности доставки по классам
+// и P(T ≤ T_треб), TZ-FLW), приходят снаружи: без результата моделирования
+// поля остаются пустыми — пустое поле честнее правдоподобного (CLAUDE.md §5,
+// ловушка 7). Свёртка в единый индекс требует явных весов и не заменяет фронт.
 package orbita.bal
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ObjectNode
 
+/**
+ * Метрика класса потребителей (Р9: классы не усредняются между собой).
+ * Допустимые значения [metric] — перечисление схемы contracts/kpi-vector.
+ */
+data class ClassMetric(val consumerClass: String, val metric: String, val value: Double)
+
 data class QualityKpi(
     val demandWeightedScore: Double,
     val latitudeProfile: List<Triple<Double, Double, Double>> = emptyList(), // (пояс, качество, вес)
+    val byClass: List<ClassMetric> = emptyList(),
     val meanGapS: Double? = null,
     val maxGapS: Double? = null,
     val revisitS: Double? = null,
     val multiplicityMean: Double? = null,
-)
+) {
+    /** Метрики покрытия целиком из постобработки геометрии (TZ-BAL-005). */
+    fun withCoverage(c: CoverageMetrics): QualityKpi = copy(
+        meanGapS = c.meanGapS, maxGapS = c.maxGapS,
+        revisitS = c.revisitS, multiplicityMean = c.multiplicityMean,
+    )
+}
 
 data class EconomicsKpi(
     val launchCampaigns: Int,
@@ -58,9 +71,15 @@ data class KpiVector(
 
         val q = root.putObject("quality")
         q.put("demand_weighted_score", quality.demandWeightedScore)
-        // by_class обязателен схемой; на шаге 3 метрик классов ещё нет —
-        // пустой массив честно показывает отсутствие данных (ловушка 7)
-        q.putArray("by_class")
+        // by_class обязателен схемой; без результата моделирования пустой
+        // массив честно показывает отсутствие данных (ловушка 7)
+        val byClass = q.putArray("by_class")
+        quality.byClass.forEach { m ->
+            byClass.addObject()
+                .put("consumer_class", m.consumerClass)
+                .put("metric", m.metric)
+                .put("value", m.value)
+        }
         if (quality.latitudeProfile.isNotEmpty()) {
             val lp = q.putArray("latitude_profile")
             quality.latitudeProfile.forEach { (band, score, weight) ->

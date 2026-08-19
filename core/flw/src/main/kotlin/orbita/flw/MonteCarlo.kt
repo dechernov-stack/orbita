@@ -9,6 +9,7 @@ package orbita.flw
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ObjectNode
+import orbita.ka.PRIORITY
 import java.util.concurrent.ForkJoinPool
 import kotlin.math.ceil
 import kotlin.math.floor
@@ -88,12 +89,16 @@ data class SegmentCapacity(
 /** Итог по классу потребителей: метрики считаются раздельно, без усреднения (Р9). */
 data class ClassResult(
     val consumerClass: String,
+    /** Исходная интенсивность популяции, без повторов (TZ-FLW-004). */
+    val baseMsgs: Double,
     val offeredMsgs: Double,
     val carriedMsgs: Double,
     val deliveryProbability: Double,
     val meanAttempts: Double,
     val degradedShare: Double,
     val blindLossMsgs: Double,
+    /** Доля потерь переполнения, пришедшаяся на класс по политике TZ-KA-008. */
+    val bufferOverflowMsgs: Double = 0.0,
     val latencyS: List<Double>,
     /** Только C': P(T ≤ T_треб) и средние по участкам бюджета. */
     val reactionWithinRequired: Double? = null,
@@ -267,25 +272,25 @@ class MonteCarloEngine(private val mapper: ObjectMapper = ObjectMapper()) {
             val perContact = if (relayCount > 0) carried / relayCount else carried
             (perContact - buf).coerceAtLeast(0.0) * maxOf(relayCount, 1)
         } ?: 0.0
+        val overflowShare = overflowByClass(overflow, classResults)
 
         return FlowRunResult(
             scenarioRef = scenarioRef,
             runs = runs,
             rngSeed = rngSeed,
             deliveryMode = mode,
-            byClass = classResults,
+            byClass = classResults.map { c ->
+                val lost = overflowShare.getValue(c.consumerClass)
+                c.copy(
+                    bufferOverflowMsgs = lost,
+                    deliveryProbability = if (c.baseMsgs > 0) {
+                        ((c.carriedMsgs - lost) / c.baseMsgs).coerceIn(0.0, 1.0)
+                    } else 0.0,
+                )
+            },
             loads = loads,
             bufferOverflowMsgs = overflow,
         )
-    }
-
-    /** Спрос-взвешенная доставка по ячейкам — вход вектора KPI (TZ-BAL-005). */
-    fun demandWeightedDelivery(result: FlowRunResult, populations: List<PopulationSlice>): Double {
-        val byClass = result.byClass.associateBy { it.consumerClass }
-        val reps = populations.mapNotNull { s ->
-            byClass[s.consumerClass]?.let { Representative(s.weight, it.deliveryProbability) }
-        }
-        return weightedEstimate(reps)
     }
 
     /** Аналитика и розыгрыши одного среза — чистая функция от входа и ключа ГПСЧ. */
@@ -357,6 +362,7 @@ class MonteCarloEngine(private val mapper: ObjectMapper = ObjectMapper()) {
         val required = slices.firstNotNullOfOrNull { it.controlLoop?.requiredReactionS }
         return ClassResult(
             consumerClass = klass,
+            baseMsgs = baseTotal,
             offeredMsgs = offered,
             carriedMsgs = carried,
             deliveryProbability = if (baseTotal > 0) (carried / baseTotal).coerceIn(0.0, 1.0) else 0.0,
@@ -475,6 +481,35 @@ class MonteCarloEngine(private val mapper: ObjectMapper = ObjectMapper()) {
             return (1 + floor(ln(1 - u) / ln(1 - pPass)).toInt()).coerceIn(1, maxPasses)
         }
     }
+}
+
+/**
+ * Распределение потерь переполнения по классам согласно политике вытеснения
+ * буфера (TZ-KA-008): вытесняется худший приоритет — сначала A', затем B',
+ * последним C'. Одно агрегатное число молча утверждало бы, что потери
+ * класс-нейтральны, а это противоречит политике приоритетов и Р9.
+ */
+fun overflowByClass(total: Double, byClass: List<ClassResult>): Map<String, Double> {
+    var left = total
+    val share = mutableMapOf<String, Double>()
+    byClass.sortedByDescending { PRIORITY[it.consumerClass] ?: Int.MAX_VALUE }.forEach { c ->
+        val lost = minOf(left, c.carriedMsgs)
+        share[c.consumerClass] = lost
+        left -= lost
+    }
+    return share
+}
+
+/**
+ * Спрос-взвешенная доставка по ячейкам — вход вектора KPI (TZ-BAL-005).
+ * Вес — численность популяции ячейки, а не число представителей (ловушка 4).
+ */
+fun demandWeightedDelivery(result: FlowRunResult, populations: List<PopulationSlice>): Double {
+    val byClass = result.byClass.associateBy { it.consumerClass }
+    val reps = populations.mapNotNull { s ->
+        byClass[s.consumerClass]?.let { Representative(s.weight, it.deliveryProbability) }
+    }
+    return weightedEstimate(reps)
 }
 
 /**
