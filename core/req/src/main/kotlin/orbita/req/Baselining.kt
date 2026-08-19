@@ -1,6 +1,8 @@
-// Условия перевода требования в Baseline (TZ-REQ-006). Поведение — эталон
-// spec/requirements_semantics.py::can_baseline: контроль качества пройден,
-// нет незакрытых TBD/TBR, назначен метод верификации.
+// Условия перевода требования в Baseline (TZ-REQ-006, CR-002/ADR-018).
+// Эталоны: spec/requirements_semantics.py::can_baseline и
+// spec/verification_semantics.py. Полнота верификации — условие БАЗИРОВАНИЯ,
+// а не сохранения: черновик допускается неполным, иначе работа встанет
+// (CR-002, ловушка 5).
 package orbita.req
 
 import com.fasterxml.jackson.databind.JsonNode
@@ -18,6 +20,9 @@ class Baselining(private val quality: QualityControl = QualityControl()) {
         if (hasOpenTbd(req)) reasons += "незакрытые TBD/TBR"
         if (req.path("verification").path("method").asText("").isBlank()) {
             reasons += "не назначен метод верификации"
+        } else {
+            // метод назначен — проверяется содержательность описания (CR-002)
+            reasons += verificationIssues(req)
         }
         return reasons.isEmpty() to reasons
     }

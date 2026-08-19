@@ -49,9 +49,10 @@ class MatricesAndMaturityTest {
                 "statement":"Система должна обеспечивать вероятность доставки не менее 0,9 за сутки.",
                 "category":"performance",
                 "traces_up":[{"ref":"SV-0001","consumer_class":"A_prime"}],
-                "allocated_to":["CM-0001"],
-                "mop":{"name":"delivery_probability_daily","target":{"value":0.9,"unit":"1","provenance":{"source":"manual"}}},
-                "verification":{"method":"analysis","phase":"PhaseA"},
+                "allocated_to":[{"component":"CM-0001","kind":"full"}],
+                "mop":{"name":"delivery_probability_daily","operator":"ge","value":{"value":0.9,"unit":"1","provenance":{"source":"manual"}}},
+                "verification":{"method":"analysis","phase":"PhaseA","means":"Прогон эталонного сценария Монте-Карло",
+                  "approach":"Прогон эталонного сценария с фиксированным зерном ГПСЧ и сверка доли доставленных сообщений с целевым значением."},
                 "lifecycle":{"status":"Draft","version":"1"},"owner":"ведущий системный инженер"}"""
         )
         // требование с разрывами: без распределения и без метода нет — метод обязателен схемой,
@@ -61,7 +62,7 @@ class MatricesAndMaturityTest {
                 "statement":"Система должна передавать подтверждение доставки в пределах суток.",
                 "category":"functional",
                 "traces_up":[{"ref":"SV-0001","consumer_class":"B_prime"}],
-                "mop":{"name":"ack_probability","tbd":true,"target":{"value":0.95,"unit":"1","provenance":{"source":"manual"}}},
+                "mop":{"name":"ack_probability","operator":"ge","tbd":true,"value":{"value":0.95,"unit":"1","provenance":{"source":"manual"}}},
                 "verification":{"method":"analysis"},
                 "lifecycle":{"status":"Draft","version":"1"},"owner":"аналитик сервисов"}"""
         )
@@ -131,5 +132,21 @@ class MatricesAndMaturityTest {
             "Approved",
             later.gapsByType.getValue("requirement").single { it.id == "RQ-0010" }.actual,
         )
+    }
+
+    @Test
+    fun `матрица верификации содержит подход и критерий`() {
+        val rows = matrices.verificationMatrix()
+        val complete = rows.single { it.requirementId == "RQ-0010" }
+        assertTrue(!complete.approach.isNullOrBlank()) { "подход обязан быть в матрице" }
+        assertEquals("Прогон эталонного сценария Монте-Карло", complete.means)
+        // критерий выводится из условия требования с подписью единицы (CR-001 п.6)
+        assertEquals("delivery_probability_daily: не менее 0.9 ", complete.successCriterion)
+        assertEquals(emptyList<String>(), complete.issues)
+
+        // требование с одним лишь методом попадает в матрицу с перечнем замечаний
+        val bare = rows.single { it.requirementId == "RQ-0011" }
+        assertEquals(null, bare.approach)
+        assertTrue(bare.issues.any { "как именно" in it }) { bare.issues.toString() }
     }
 }
