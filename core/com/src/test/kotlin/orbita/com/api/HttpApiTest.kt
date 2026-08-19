@@ -136,7 +136,7 @@ class HttpApiTest {
             """{"id":"RQ-0401","level":"system","statement":"Обеспечивается доставка данных при необходимости.",
                 "category":"functional","traces_up":[{"ref":"SV-0401","consumer_class":"A_prime"}],
                 "verification":{"method":"analysis"},"lifecycle":{"status":"Draft","version":"1"},
-                "owner":"ведущий системный инженер"}""",
+                "owner":"ведущий системный инженер"}""".trimIndent(),
         )
         assertEquals(201, created.statusCode()) { created.body() }
 
