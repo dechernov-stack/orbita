@@ -98,6 +98,27 @@ object SchemaCheck {
         }
         check(hasConsumerClass) { "schema check failed: links.consumer_class is missing (V002)" }
 
+        // V003: декомпозиция требований и частичное распределение (CR-001/ADR-017)
+        val hasDerive = conn.createStatement().use { st ->
+            st.executeQuery(
+                "SELECT count(*) FROM pg_enum e JOIN pg_type t ON t.oid = e.enumtypid " +
+                    "WHERE t.typname = 'link_kind' AND e.enumlabel = 'derive'"
+            ).use { rs -> rs.next(); rs.getLong(1) > 0 }
+        }
+        check(hasDerive) { "schema check failed: link_kind 'derive' is missing (V003)" }
+
+        val allocationColumns = buildSet {
+            conn.createStatement().use { st ->
+                st.executeQuery(
+                    """SELECT column_name FROM information_schema.columns
+                        WHERE table_schema = current_schema() AND table_name = 'links'"""
+                ).use { rs -> while (rs.next()) add(rs.getString(1)) }
+            }
+        }
+        check("allocation_kind" in allocationColumns && "rationale" in allocationColumns) {
+            "schema check failed: links.allocation_kind/rationale are missing (V003)"
+        }
+
         val hasGuard = conn.createStatement().use { st ->
             st.executeQuery(
                 "SELECT count(*) FROM pg_trigger WHERE tgname = 'objects_baseline_guard'"

@@ -63,6 +63,11 @@ class QualityControl(private val rules: QualityRules = QualityRules.default()) {
         if (text.isBlank()) {
             violations += "пустая формулировка"
         }
+        // CR-001: формулировка и оператор условия не должны противоречить
+        if (hasMop(req)) {
+            violations += validateMop(req.path("mop")).map { "условие: $it" }
+            statementMatchesOperator(text, req.path("mop"))?.let { violations += it }
+        }
         return violations
     }
 

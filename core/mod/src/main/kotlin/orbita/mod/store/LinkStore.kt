@@ -7,23 +7,42 @@ import java.sql.Connection
 /** Узел обхода трассировки: идентификатор и минимальная глубина от исходного объекта. */
 data class TraceHop(val id: String, val depth: Int)
 
-/** Связь трассировки. Класс потребителя обязателен для «сервис → требование» (Р9, TZ-REQ-003). */
-data class Link(val fromId: String, val toId: String, val kind: String, val consumerClass: String?)
+/**
+ * Связь цифровой нити. Класс потребителя обязателен для «сервис → требование»
+ * (Р9, TZ-REQ-003); вид распределения и обоснование — для allocation (CR-001/ADR-017).
+ */
+data class Link(
+    val fromId: String,
+    val toId: String,
+    val kind: String,
+    val consumerClass: String?,
+    val allocationKind: String? = null,
+    val rationale: String? = null,
+)
 
 class LinkStore(private val conn: Connection) {
 
-    fun add(fromId: String, toId: String, kind: String = "trace", consumerClass: String? = null): Unit =
-        mappingConstraints {
-            conn.prepareStatement(
-                "INSERT INTO links(from_id, to_id, kind, consumer_class) VALUES (?, ?, ?::link_kind, ?)"
-            ).use { ps ->
-                ps.setString(1, fromId)
-                ps.setString(2, toId)
-                ps.setString(3, kind)
-                ps.setString(4, consumerClass)
-                ps.executeUpdate()
-            }
+    fun add(
+        fromId: String,
+        toId: String,
+        kind: String = "trace",
+        consumerClass: String? = null,
+        allocationKind: String? = null,
+        rationale: String? = null,
+    ): Unit = mappingConstraints {
+        conn.prepareStatement(
+            """INSERT INTO links(from_id, to_id, kind, consumer_class, allocation_kind, rationale)
+               VALUES (?, ?, ?::link_kind, ?, ?, ?)"""
+        ).use { ps ->
+            ps.setString(1, fromId)
+            ps.setString(2, toId)
+            ps.setString(3, kind)
+            ps.setString(4, consumerClass)
+            ps.setString(5, if (kind == "allocation") allocationKind else null)
+            ps.setString(6, rationale)
+            ps.executeUpdate()
         }
+    }
 
     fun linksFrom(id: String, kind: String? = null): List<Link> = select("from_id", id, kind)
 
@@ -31,29 +50,27 @@ class LinkStore(private val conn: Connection) {
 
     fun list(kind: String? = null): List<Link> =
         conn.prepareStatement(
-            "SELECT from_id, to_id, kind::text, consumer_class FROM links" +
+            "SELECT from_id, to_id, kind::text, consumer_class, allocation_kind, rationale FROM links" +
                 (if (kind != null) " WHERE kind = ?::link_kind" else "") + " ORDER BY from_id, to_id"
         ).use { ps ->
             if (kind != null) ps.setString(1, kind)
-            ps.executeQuery().use { rs ->
-                buildList {
-                    while (rs.next()) add(Link(rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4)))
-                }
-            }
+            ps.executeQuery().use { rs -> rs.collectLinks() }
         }
+
+    private fun java.sql.ResultSet.collectLinks(): List<Link> = buildList {
+        while (next()) {
+            add(Link(getString(1), getString(2), getString(3), getString(4), getString(5), getString(6)))
+        }
+    }
 
     private fun select(column: String, id: String, kind: String?): List<Link> =
         conn.prepareStatement(
-            "SELECT from_id, to_id, kind::text, consumer_class FROM links WHERE $column = ?" +
+            "SELECT from_id, to_id, kind::text, consumer_class, allocation_kind, rationale FROM links WHERE $column = ?" +
                 (if (kind != null) " AND kind = ?::link_kind" else "") + " ORDER BY from_id, to_id"
         ).use { ps ->
             ps.setString(1, id)
             if (kind != null) ps.setString(2, kind)
-            ps.executeQuery().use { rs ->
-                buildList {
-                    while (rs.next()) add(Link(rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4)))
-                }
-            }
+            ps.executeQuery().use { rs -> rs.collectLinks() }
         }
 
     fun count(): Long = conn.createStatement().use { st ->

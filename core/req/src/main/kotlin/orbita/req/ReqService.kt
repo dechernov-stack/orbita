@@ -68,10 +68,17 @@ class ReqService(
                 )
             }
         }
-        doc.path("allocated_to").forEach { cm ->
-            objects.current(cm.asText())
+        // CR-001: распределение описывается объектом {component, kind, rationale}
+        doc.path("allocated_to").forEach { a ->
+            val cm = a.path("component").asText()
+            objects.current(cm)
+                ?: throw ModelViolationException("TZ-REQ-005: allocation to missing element $cm")
+        }
+        // CR-001: декомпозиция — отдельная связь derive, не trace
+        doc.path("derives_from").forEach { parent ->
+            objects.current(parent.asText())
                 ?: throw ModelViolationException(
-                    "TZ-REQ-005: allocation to missing element ${cm.asText()}"
+                    "TZ-REQ-005 (ADR-017): derive from missing requirement ${parent.asText()}"
                 )
         }
         return conn.tx {
@@ -80,10 +87,43 @@ class ReqService(
                 links.add(t.path("ref").asText(), stored.id, "trace",
                     t.path("consumer_class").asText(null))
             }
-            doc.path("allocated_to").forEach { cm -> links.add(stored.id, cm.asText(), "allocation") }
+            doc.path("allocated_to").forEach { a ->
+                links.add(
+                    stored.id, a.path("component").asText(), "allocation",
+                    allocationKind = a.path("kind").asText("full"),
+                    rationale = a.path("rationale").asText(null),
+                )
+            }
+            doc.path("derives_from").forEach { parent ->
+                links.add(parent.asText(), stored.id, "derive")
+            }
             stored
         }
     }
+
+    /**
+     * Состоятельность декомпозиции требования (CR-001/ADR-017): свёртка условий
+     * дочерних требований по связям derive против родительского бюджета.
+     */
+    fun rollupFor(requirementId: String): RollupResult {
+        val parent = objects.current(requirementId)
+            ?: throw NoSuchElementException("object '$requirementId' not found")
+        val children = links.linksFrom(requirementId, "derive")
+            .mapNotNull { objects.current(it.toId) }
+            .map { it.doc.path("mop") }
+        return rollupCheck(parent.doc.path("mop"), children)
+    }
+
+    /** Требования, декомпозиция которых превышает родительский бюджет. */
+    fun inconsistentDecompositions(): List<Pair<String, RollupResult>> =
+        objects.listCurrent()
+            .filter { it.type == "requirement" && it.status != Lifecycle.Cancelled }
+            .mapNotNull { r ->
+                val result = rollupFor(r.id)
+                if (result.applicable && (result.error != null || result.consistent == false)) {
+                    r.id to result
+                } else null
+            }
 
     /** Элемент архитектуры (TZ-REQ-005). */
     fun ingestComponent(json: String, createdBy: String = "api"): StoredObject {
