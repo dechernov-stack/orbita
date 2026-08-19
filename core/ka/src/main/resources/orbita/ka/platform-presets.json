@@ -1,0 +1,57 @@
+{
+  "_comment": "Библиотека пресетов платформ (TZ-KA-001): редактируемая конфигурация, не код. Все массы внутри диапазона Р2 (12–100 кг, ADR-002); значения — типовые проектные для Phase A, уточняются с поставщиками.",
+  "presets": [
+    {
+      "id": "cubesat_12u",
+      "name": "CubeSat 12U",
+      "dry_mass_kg": 16.0,
+      "sa_area_m2": 0.18,
+      "sa_efficiency": 0.30,
+      "battery_wh": 90.0,
+      "battery_max_dod": 0.25,
+      "bus_power_w": 8.0,
+      "payload_power_w": 25.0,
+      "pointing_accuracy_deg": 1.5,
+      "design_life_years": 3.0
+    },
+    {
+      "id": "cubesat_16u",
+      "name": "CubeSat 16U",
+      "dry_mass_kg": 22.0,
+      "sa_area_m2": 0.24,
+      "sa_efficiency": 0.30,
+      "battery_wh": 130.0,
+      "battery_max_dod": 0.25,
+      "bus_power_w": 10.0,
+      "payload_power_w": 35.0,
+      "pointing_accuracy_deg": 1.0,
+      "design_life_years": 4.0
+    },
+    {
+      "id": "micro_25_50kg",
+      "name": "Микроспутник 25–50 кг",
+      "dry_mass_kg": 45.0,
+      "sa_area_m2": 0.60,
+      "sa_efficiency": 0.30,
+      "battery_wh": 300.0,
+      "battery_max_dod": 0.30,
+      "bus_power_w": 18.0,
+      "payload_power_w": 70.0,
+      "pointing_accuracy_deg": 0.5,
+      "design_life_years": 5.0
+    },
+    {
+      "id": "micro_50_100kg",
+      "name": "Микроспутник 50–100 кг",
+      "dry_mass_kg": 85.0,
+      "sa_area_m2": 1.20,
+      "sa_efficiency": 0.30,
+      "battery_wh": 600.0,
+      "battery_max_dod": 0.30,
+      "bus_power_w": 28.0,
+      "payload_power_w": 120.0,
+      "pointing_accuracy_deg": 0.3,
+      "design_life_years": 7.0
+    }
+  ]
+}
