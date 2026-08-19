@@ -444,7 +444,7 @@ class MonteCarloTest {
         val (segment, load) = result.bottleneckSegment()!!
         assertEquals("onboard_buffer", segment, "загрузки: ${result.loads}")
         assertTrue(load > 1.0, "$load")
-        assertTrue(result.bufferOverflowMsgs > 0.0)
+        assertTrue(result.bufferOverflowMsgs!! > 0.0)
         // потери переполнения не смешаны с канальными
         assertTrue(result.carriedMsgs > 0.0 && result.bufferOverflowMsgs != result.blindLossMsgs)
     }
@@ -461,7 +461,7 @@ class MonteCarloTest {
         assertTrue(lost.getValue("C_prime") <= lost.getValue("B_prime"), "$lost")
         assertTrue(lost.getValue("B_prime") <= lost.getValue("A_prime"), "$lost")
         // сумма долей равна общей потере: ничего не потерялось и не удвоилось
-        assertEquals(result.bufferOverflowMsgs, lost.values.sum(), 1e-6)
+        assertEquals(result.bufferOverflowMsgs!!, lost.values.sum(), 1e-6)
     }
 
     @Test
@@ -475,8 +475,13 @@ class MonteCarloTest {
     @Test
     @DisplayName("TZ-FLW-007: неизвестная ёмкость участка не даёт выдуманной загрузки")
     fun `неизвестная ёмкость участка не попадает в карту`() {
-        val loads = run().loads
-        assertEquals(setOf("user_uplink"), loads.keys, "появились участки без заданной ёмкости")
+        val result = run()
+        assertEquals(setOf("user_uplink"), result.loads.keys, "появились участки без заданной ёмкости")
+        // объём буфера не задан — потери переполнения НЕИЗВЕСТНЫ, а не равны нулю
+        assertEquals(null, result.bufferOverflowMsgs)
+        val load = result.toContractJson(mapper)["load"]
+        assertTrue(!load.has("buffer_overflow_losses"), "нуль вместо отсутствующих данных")
+        assertTrue(load.has("blind_transmission_losses"), "потери слепой передачи считаются всегда")
     }
 
     // ---------- TZ-FLW-008 ----------
