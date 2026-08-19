@@ -2,6 +2,9 @@
 // HTTP — jdk.httpserver из состава JDK: на шаге 1 внешний веб-фреймворк не нужен.
 dependencies {
     implementation(project(":core:mod"))
+    implementation(project(":core:req"))
+    implementation(project(":core:usr"))
+    implementation(project(":core:out"))
     implementation("com.fasterxml.jackson.core:jackson-databind:2.18.2")
 
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
