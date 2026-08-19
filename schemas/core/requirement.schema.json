@@ -4,56 +4,265 @@
   "title": "Requirement",
   "description": "Требование с атрибутами по Прил. 2 БП-PA. MOP порождается парой «сервис × вид потребителя» (Р9).",
   "type": "object",
-  "required": ["id", "level", "statement", "category", "traces_up", "verification", "lifecycle", "owner"],
+  "required": [
+    "id",
+    "level",
+    "statement",
+    "category",
+    "traces_up",
+    "verification",
+    "lifecycle",
+    "owner"
+  ],
   "additionalProperties": false,
   "properties": {
-    "id": { "type": "string", "pattern": "^RQ-[0-9]{4}$" },
-    "level": { "enum": ["project", "system", "element"] },
-    "statement": { "type": "string", "minLength": 10, "description": "Форма «система должна…»" },
-    "category": { "enum": ["functional", "performance", "interface", "operational", "reliability", "safety", "environmental", "constraint"] },
-    "rationale": { "type": "string" },
+    "id": {
+      "type": "string",
+      "pattern": "^RQ-[0-9]{4}$"
+    },
+    "level": {
+      "enum": [
+        "project",
+        "system",
+        "element"
+      ]
+    },
+    "statement": {
+      "type": "string",
+      "minLength": 10,
+      "description": "Форма «система должна…»"
+    },
+    "category": {
+      "enum": [
+        "functional",
+        "performance",
+        "interface",
+        "operational",
+        "reliability",
+        "safety",
+        "environmental",
+        "constraint"
+      ]
+    },
+    "rationale": {
+      "type": "string"
+    },
     "traces_up": {
-      "type": "array", "minItems": 1,
+      "type": "array",
+      "minItems": 1,
       "description": "Источник: нужда, сервис (пара с классом потребителя), родительское требование",
       "items": {
         "type": "object",
-        "required": ["ref"],
+        "required": [
+          "ref"
+        ],
         "additionalProperties": false,
         "properties": {
-          "ref": { "type": "string", "pattern": "^(ND|SV|RQ)-[0-9]{4}$" },
-          "consumer_class": { "enum": ["A_prime", "B_prime", "C_prime"], "description": "Обязателен при ссылке на сервис (Р9)" }
+          "ref": {
+            "type": "string",
+            "pattern": "^(ND|SV|RQ)-[0-9]{4}$"
+          },
+          "consumer_class": {
+            "enum": [
+              "A_prime",
+              "B_prime",
+              "C_prime"
+            ],
+            "description": "Обязателен при ссылке на сервис (Р9)"
+          }
         }
       }
     },
     "allocated_to": {
       "type": "array",
-      "description": "Элементы архитектуры (flow down, Ш4)",
-      "items": { "type": "string", "pattern": "^CM-[0-9]{4}$" }
+      "description": "Элементы архитектуры, на которые распределено требование (flow down, Ш4)",
+      "items": {
+        "type": "object",
+        "required": [
+          "component"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "component": {
+            "type": "string",
+            "pattern": "^CM-[0-9]{4}$"
+          },
+          "kind": {
+            "enum": [
+              "full",
+              "partial"
+            ],
+            "default": "full",
+            "description": "partial — требование покрывается элементом частично, остальное на других элементах"
+          },
+          "rationale": {
+            "type": "string"
+          }
+        }
+      }
     },
     "mop": {
       "type": "object",
-      "description": "Measure of Performance — измеримый показатель требования",
-      "required": ["name", "target"],
+      "description": "Measure of Performance — измеримое условие требования. Оператор обязателен: «не более 500 г» и «не менее 500 г» — разные требования.",
+      "required": [
+        "name",
+        "operator",
+        "value"
+      ],
       "additionalProperties": false,
       "properties": {
-        "name": { "type": "string" },
-        "target": { "$ref": "https://kis.local/schemas/common/quantity.schema.json" },
-        "threshold": { "$ref": "https://kis.local/schemas/common/quantity.schema.json" },
-        "tbd": { "type": "boolean", "default": false },
-        "tbr": { "type": "boolean", "default": false }
-      }
+        "name": {
+          "type": "string",
+          "description": "Что измеряется, напр. «Сухая масса»"
+        },
+        "operator": {
+          "enum": [
+            "eq",
+            "le",
+            "ge",
+            "lt",
+            "gt",
+            "range",
+            "tolerance"
+          ],
+          "description": "eq — ровно; le/ge — не более/не менее; lt/gt — строго; range — в пределах [value, upper]; tolerance — value ± tolerance"
+        },
+        "value": {
+          "$ref": "https://kis.local/schemas/common/quantity.schema.json",
+          "description": "Основное значение условия"
+        },
+        "upper": {
+          "$ref": "https://kis.local/schemas/common/quantity.schema.json",
+          "description": "Верхняя граница; обязательна при operator=range"
+        },
+        "tolerance": {
+          "$ref": "https://kis.local/schemas/common/quantity.schema.json",
+          "description": "Допуск; обязателен при operator=tolerance"
+        },
+        "threshold": {
+          "$ref": "https://kis.local/schemas/common/quantity.schema.json",
+          "description": "Минимально приемлемое значение (NASA threshold)"
+        },
+        "objective": {
+          "$ref": "https://kis.local/schemas/common/quantity.schema.json",
+          "description": "Желаемое значение (NASA objective)"
+        },
+        "rollup": {
+          "enum": [
+            "sum",
+            "max",
+            "min",
+            "none"
+          ],
+          "default": "none",
+          "description": "Правило свёртки по дочерним требованиям (derive): sum — бюджет массы/мощности; max — предельные величины; none — не сворачивается"
+        },
+        "tbd": {
+          "type": "boolean",
+          "default": false
+        },
+        "tbr": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "operator": {
+                "const": "range"
+              }
+            },
+            "required": [
+              "operator"
+            ]
+          },
+          "then": {
+            "required": [
+              "upper"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "operator": {
+                "const": "tolerance"
+              }
+            },
+            "required": [
+              "operator"
+            ]
+          },
+          "then": {
+            "required": [
+              "tolerance"
+            ]
+          }
+        }
+      ]
     },
     "verification": {
       "type": "object",
-      "required": ["method"],
+      "description": "Как именно требование будет проверено. Метод без описания подхода не делает требование верифицируемым.",
+      "required": [
+        "method"
+      ],
       "additionalProperties": false,
       "properties": {
-        "method": { "enum": ["test", "analysis", "demonstration", "inspection"] },
-        "phase": { "enum": ["PhaseA", "PhaseB", "PhaseC", "PhaseD"] },
-        "evidence_ref": { "type": "string", "description": "ID результата моделирования или испытания" }
+        "method": {
+          "enum": [
+            "test",
+            "analysis",
+            "demonstration",
+            "inspection"
+          ]
+        },
+        "phase": {
+          "enum": [
+            "PhaseA",
+            "PhaseB",
+            "PhaseC",
+            "PhaseD"
+          ]
+        },
+        "approach": {
+          "type": "string",
+          "minLength": 20,
+          "description": "Что именно делается для проверки. Не пересказ требования, а порядок действий: что измеряется, как получается результат."
+        },
+        "means": {
+          "type": "string",
+          "description": "Чем проверяется: стенд, методика расчёта, модель, документ. Обязательно для test и analysis."
+        },
+        "conditions": {
+          "type": "string",
+          "description": "При каких условиях: конфигурация, худший случай, среда, этап сборки."
+        },
+        "success_criterion": {
+          "type": "string",
+          "description": "Что считается успехом, если это не выводится напрямую из условия требования (mop)."
+        },
+        "evidence_ref": {
+          "type": "string",
+          "description": "Свидетельство: результат сценария или протокол"
+        }
       }
     },
-    "lifecycle": { "$ref": "https://kis.local/schemas/common/status.schema.json" },
-    "owner": { "type": "string" }
+    "lifecycle": {
+      "$ref": "https://kis.local/schemas/common/status.schema.json"
+    },
+    "owner": {
+      "type": "string"
+    },
+    "derives_from": {
+      "type": "array",
+      "description": "Родительские требования, из которых данное получено декомпозицией (связь derive). Отличается от traces_up: traces_up — уточнение нужды или сервиса, derives_from — разбиение требования на составляющие.",
+      "items": {
+        "type": "string",
+        "pattern": "^RQ-[0-9]{4}$"
+      }
+    }
   }
 }

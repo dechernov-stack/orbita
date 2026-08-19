@@ -10,7 +10,8 @@
   TZ-REQ-007  матрица верификации; stale-свидетельство не засчитывается
   TZ-REQ-008  готовность к контрольной точке
 """
-import re, sys
+import re, sys, os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # ---------- TZ-REQ-004: правила качества формулировок ----------
 VAGUE = ['достаточн', 'оптимальн', 'максимально возможн', 'при необходимости',
@@ -73,7 +74,8 @@ def uncovered_consumer_classes(service, demand_classes):
 
 # ---------- TZ-REQ-007: верификация ----------
 def verification_status(req, results):
-    """не проверено | выполнено | не выполнено. Устаревшее свидетельство не засчитывается."""
+    """не проверено | выполнено | не выполнено. Устаревшее свидетельство не засчитывается.
+    Сравнение выполняется ПО ОПЕРАТОРУ условия (ADR-017), а не по умолчанию."""
     ver = req.get('verification') or {}
     if not ver.get('method'):
         return 'не проверено'
@@ -84,13 +86,10 @@ def verification_status(req, results):
     if res is None or res.get('stale'):
         return 'не проверено'
     mop = req.get('mop') or {}
-    target = (mop.get('target') or {}).get('value')
-    if target is None:
+    if 'operator' not in mop or 'value' not in mop:
         return 'не проверено'
-    actual = res.get('value')
-    cmp_ = mop.get('comparison', 'ge')
-    ok = actual >= target if cmp_ == 'ge' else actual <= target
-    return 'выполнено' if ok else 'не выполнено'
+    from constraint_semantics import satisfies
+    return 'выполнено' if satisfies(mop, res.get('value')) else 'не выполнено'
 
 # ---------- TZ-REQ-006 / 008: базирование и зрелость ----------
 def can_baseline(req, results):
@@ -127,7 +126,8 @@ def check(name, cond, detail=''):
 
 print("TZ-REQ-004: качество формулировок")
 good = {'id':'RQ-0001','statement':'Система должна обеспечивать вероятность доставки не менее 0,9 за сутки.',
-        'category':'performance','mop':{'target':{'value':0.9}}}
+        'category':'performance','mop':{'name':'Вероятность доставки','operator':'ge',
+                                        'value':{'value':0.9,'unit':'1'}}}
 check("корректное требование без замечаний", check_quality(good) == [], check_quality(good))
 check("нет модального «должна»",
       'нет модального «должна»' in check_quality({'id':'x','statement':'Обеспечивается доставка данных.','category':'functional'}))
@@ -170,7 +170,7 @@ check("полное покрытие не даёт замечаний",
 print("\nTZ-REQ-007: верификация и свидетельства")
 results = {'RES-1':{'value':0.94,'stale':False}, 'RES-2':{'value':0.94,'stale':True},
            'RES-3':{'value':0.80,'stale':False}}
-base = {'mop':{'target':{'value':0.9},'comparison':'ge'}}
+base = {'mop':{'name':'Доставка','operator':'ge','value':{'value':0.9,'unit':'1'}}}
 check("свидетельство подтверждает выполнение",
       verification_status({**base,'verification':{'method':'analysis','evidence_ref':'RES-1'}}, results) == 'выполнено')
 check("устаревшее свидетельство не засчитано",
@@ -184,7 +184,7 @@ print("\nTZ-REQ-006: условия базирования")
 ready = {**good, 'verification':{'method':'analysis','evidence_ref':'RES-1'}}
 okb, why = can_baseline(ready, results)
 check("пригодное требование базируется", okb, why)
-okb2, why2 = can_baseline({**ready, 'mop':{'target':{'value':0.9},'tbd':True}}, results)
+okb2, why2 = can_baseline({**ready, 'mop':{'name':'Доставка','operator':'ge','value':{'value':0.9,'unit':'1'},'tbd':True}}, results)
 check("незакрытый TBD блокирует базирование", not okb2 and any('TBD' in w for w in why2), why2)
 okb3, why3 = can_baseline({**good}, results)
 check("отсутствие метода верификации блокирует", not okb3 and any('верификации' in w for w in why3), why3)
