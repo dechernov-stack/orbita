@@ -68,11 +68,15 @@ class ReqService(
                 )
             }
         }
-        // CR-001: распределение описывается объектом {component, kind, rationale}
+        // CR-001/CR-003: распределение — объект {component|interface, kind, rationale}
         doc.path("allocated_to").forEach { a ->
-            val cm = a.path("component").asText()
-            objects.current(cm)
-                ?: throw ModelViolationException("TZ-REQ-005: allocation to missing element $cm")
+            val target = a.path("component").asText("").ifBlank { a.path("interface").asText("") }
+            objects.current(target)
+                ?: throw ModelViolationException("TZ-REQ-005: allocation to missing element $target")
+        }
+        // CR-003: интерфейсное требование распределяется на интерфейс с двумя сторонами
+        interfaceAllocationValid(doc, productTree()).let { (ok, why) ->
+            if (!ok) throw ModelViolationException("CR-003 (ADR-019): $why")
         }
         // CR-001: декомпозиция — отдельная связь derive, не trace
         doc.path("derives_from").forEach { parent ->
@@ -88,16 +92,41 @@ class ReqService(
                     t.path("consumer_class").asText(null))
             }
             doc.path("allocated_to").forEach { a ->
+                val target = a.path("component").asText("").ifBlank { a.path("interface").asText("") }
                 links.add(
-                    stored.id, a.path("component").asText(), "allocation",
+                    stored.id, target, "allocation",
                     allocationKind = a.path("kind").asText("full"),
                     rationale = a.path("rationale").asText(null),
                 )
             }
+            // CR-003: вид декомпозиции — свойство СВЯЗИ, а не документа (ADR-017/019).
+            // Документ объявляет родителей; по умолчанию это распределение бюджета,
+            // производное требование помечается операцией deriveAs.
             doc.path("derives_from").forEach { parent ->
-                links.add(parent.asText(), stored.id, "derive")
+                links.add(parent.asText(), stored.id, "derive", derivationKind = "allocated")
             }
             stored
+        }
+    }
+
+    /**
+     * Вид декомпозиции задаётся явно (CR-003/ADR-019): allocated участвует
+     * в свёртке бюджета, derived — нет (производное требование рождается из
+     * проектного решения и долей родительской величины не является).
+     */
+    fun deriveAs(parentId: String, childId: String, derivationKind: String) {
+        require(derivationKind in setOf("allocated", "derived")) {
+            "ADR-019: derivation kind must be 'allocated' or 'derived', got '$derivationKind'"
+        }
+        conn.prepareStatement(
+            "UPDATE links SET derivation_kind = ? WHERE from_id = ? AND to_id = ? AND kind = 'derive'"
+        ).use { ps ->
+            ps.setString(1, derivationKind)
+            ps.setString(2, parentId)
+            ps.setString(3, childId)
+            if (ps.executeUpdate() == 0) {
+                throw NoSuchElementException("derive link $parentId -> $childId not found")
+            }
         }
     }
 
@@ -108,9 +137,9 @@ class ReqService(
     fun rollupFor(requirementId: String): RollupResult {
         val parent = objects.current(requirementId)
             ?: throw NoSuchElementException("object '$requirementId' not found")
-        val children = links.linksFrom(requirementId, "derive")
-            .mapNotNull { objects.current(it.toId) }
-            .map { it.doc.path("mop") }
+        // CR-003: в бюджет входят только распределённые потомки, производные — нет
+        val childIds = rollupChildIds(requirementId, links.linksFrom(requirementId, "derive"))
+        val children = childIds.mapNotNull { objects.current(it) }.map { it.doc.path("mop") }
         return rollupCheck(parent.doc.path("mop"), children)
     }
 
@@ -130,6 +159,39 @@ class ReqService(
         val doc = registry.parse(json)
         registry.require("core/component", doc)
         return create(doc, "component", createdBy)
+    }
+
+    /** Интерфейс IF-NNNN: две стороны ответственности (CR-003/ADR-019). */
+    fun ingestInterface(json: String, createdBy: String = "api"): StoredObject {
+        val doc = registry.parse(json)
+        val owners = doc.path("owners")
+        if (!owners.isArray || owners.size() != 2) {
+            throw ModelViolationException(
+                "CR-003 (ADR-019): interface ${doc.path("id").asText()} requires exactly two sides (owners)"
+            )
+        }
+        return create(doc, "interface", createdBy)
+    }
+
+    /** Свидетельство EV-NNNN (CR-003/ADR-019). */
+    fun ingestEvidence(json: String, createdBy: String = "api"): StoredObject {
+        val doc = registry.parse(json)
+        registry.require("core/evidence", doc)
+        return create(doc, "evidence", createdBy)
+    }
+
+    /**
+     * Валидация VA-NNNN: привязка к ожиданию стейкхолдера, не к требованию
+     * (CR-003/ADR-019). Прикладные правила дополняют схему.
+     */
+    fun ingestValidation(json: String, createdBy: String = "api"): StoredObject {
+        val doc = registry.parse(json)
+        registry.require("core/validation", doc)
+        val issues = validationIssues(doc)
+        if (issues.isNotEmpty()) {
+            throw ModelViolationException("CR-003 (ADR-019): " + issues.joinToString("; "))
+        }
+        return create(doc, "validation", createdBy)
     }
 
     private fun create(doc: JsonNode, type: String, createdBy: String): StoredObject {
@@ -225,6 +287,45 @@ class ReqService(
     )
 
     // ---------- зрелость (TZ-REQ-008) ----------
+
+    /** Дерево изделия: элементы с родителями и интерфейсы с двумя сторонами (CR-003). */
+    fun productTree(): Map<String, ProductNode> = objects.listCurrent()
+        .filter { it.type == "component" || it.type == "interface" }
+        .associate { o ->
+            o.id to ProductNode(
+                id = o.id,
+                kind = if (o.type == "interface") "interface" else o.doc.path("kind").asText("component"),
+                parent = o.doc.path("parent").asText("").ifBlank { null },
+                owners = o.doc.path("owners").map { it.asText() },
+            )
+        }
+
+    /**
+     * Требования-потомки, распределённые вне области родителя (CR-003 п. 6).
+     * Возвращает (родитель, потомок, причина).
+     */
+    fun inconsistentAllocations(): List<Triple<String, String, String>> {
+        val tree = productTree()
+        val byId = objects.listCurrent().filter { it.type == "requirement" }.associateBy { it.id }
+        return links.list("derive").mapNotNull { link ->
+            val parent = byId[link.fromId] ?: return@mapNotNull null
+            val child = byId[link.toId] ?: return@mapNotNull null
+            val (ok, why) = allocationConsistent(parent.doc, child.doc, tree)
+            if (!ok) Triple(parent.id, child.id, why!!) else null
+        }
+    }
+
+    /** Спецификация элемента: требования, распределённые на него (представление). */
+    fun specificationOf(componentId: String): List<String> =
+        componentSpecification(
+            objects.listCurrent().filter { it.type == "requirement" }.map { it.doc }, componentId,
+        )
+
+    /** Состояние верификации требования по его событиям (CR-003). */
+    fun verificationStateOf(id: String): VerificationState {
+        val cur = objects.current(id) ?: throw NoSuchElementException("object '$id' not found")
+        return verificationState(cur.doc)
+    }
 
     /** Снимки объектов на дату (по истории версий шага 1) либо текущие. */
     fun snapshotsAt(at: java.time.OffsetDateTime?): List<ObjectSnapshot> =

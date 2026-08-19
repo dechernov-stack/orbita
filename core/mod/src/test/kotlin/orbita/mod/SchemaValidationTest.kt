@@ -23,9 +23,10 @@ class SchemaValidationTest {
     // --- TZ-MOD-001: схемы — нормативный источник, все загружаются, $ref разрешаются ---
 
     @Test
-    fun `все 17 схем загружаются и ссылки разрешаются`() {
+    fun `все нормативные схемы загружаются и ссылки разрешаются`() {
         // разрешение $ref происходит в init реестра (fail fast) — сюда доходим, только если оно удалось
-        assertEquals(17, registry.names.size, "нормативных схем должно быть 17: ${registry.names}")
+        // CR-003 добавил core/evidence и core/validation
+        assertEquals(19, registry.names.size, "нормативных схем должно быть 19: ${registry.names}")
     }
 
     @Test

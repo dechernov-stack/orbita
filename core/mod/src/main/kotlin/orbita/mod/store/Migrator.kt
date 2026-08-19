@@ -118,6 +118,21 @@ object SchemaCheck {
         check("allocation_kind" in allocationColumns && "rationale" in allocationColumns) {
             "schema check failed: links.allocation_kind/rationale are missing (V003)"
         }
+        check("derivation_kind" in allocationColumns) {
+            "schema check failed: links.derivation_kind is missing (V005)"
+        }
+
+        // V005: свидетельства, валидации и интерфейсы — самостоятельные типы объектов
+        val objectTypes = buildSet {
+            conn.createStatement().use { st ->
+                st.executeQuery(
+                    "SELECT e.enumlabel FROM pg_enum e JOIN pg_type t ON t.oid = e.enumtypid " +
+                        "WHERE t.typname = 'object_type'"
+                ).use { rs -> while (rs.next()) add(rs.getString(1)) }
+            }
+        }
+        val missingTypes = listOf("evidence", "validation", "interface").filterNot { it in objectTypes }
+        check(missingTypes.isEmpty()) { "schema check failed: object_type lacks $missingTypes (V005)" }
 
         val hasGuard = conn.createStatement().use { st ->
             st.executeQuery(

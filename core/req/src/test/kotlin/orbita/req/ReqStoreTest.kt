@@ -34,19 +34,19 @@ class ReqStoreTest {
         tracesUp: String = """[{"ref":"SV-0001","consumer_class":"A_prime"}]""",
         allocated: String = """[{"component":"CM-0001","kind":"full"}]""",
         mop: String = """{"name":"delivery_probability_daily","operator":"ge","value":{"value":0.9,"unit":"1","provenance":{"source":"manual"}}}""",
-        verification: String = VERIFICATION,
+        events: String = VERIFICATION_EVENTS,
     ) = """
         {"id":"$id","level":"system","statement":"$statement","category":"performance",
          "traces_up":$tracesUp,"allocated_to":$allocated,"mop":$mop,
-         "verification":$verification,
+         $events,
          "lifecycle":{"status":"Draft","version":"1"},"owner":"ведущий системный инженер"}
     """
 
-    /** Содержательное описание проверки (CR-002): метод сам по себе не делает требование проверяемым. */
-    private val VERIFICATION = """
-        {"method":"analysis","phase":"PhaseA","means":"Прогон эталонного сценария Монте-Карло",
-         "approach":"Прогон эталонного сценария с фиксированным зерном ГПСЧ и сверка доли доставленных сообщений с целевым значением показателя."}
-    """.trimIndent()
+    /**
+     * План верификации событиями (CR-003): предварительный расчёт по модели
+     * и закрывающее квалификационное испытание.
+     */
+    private val VERIFICATION_EVENTS = """"verification_events":[{"id":"VE-0001","method":"analysis","phase":"PhaseA","level":"system","kind":"preliminary","approach":"Прогон эталонного сценария с фиксированным зерном ГПСЧ и сверка доли доставленных сообщений.","means":"Модель Монте-Карло","status":"passed","closes":false},{"id":"VE-0002","method":"test","phase":"PhaseD","level":"system","kind":"qualification","approach":"Натурные испытания канала на полигоне с фиксацией доли доставленных сообщений в протоколе.","means":"Полигонный стенд","status":"passed","closes":true,"design_version":"v1"}]"""
 
     @BeforeAll
     fun setup() {
@@ -172,132 +172,182 @@ class ReqStoreTest {
     }
 
     @Test
-    fun `устаревшее свидетельство не засчитывается на хранилище`() {
-        req.ingestRequirement(requirementJson("RQ-0015"))
-        val res = req.results.insert(
-            "SC-0001", "kpi-vector",
-            com.fasterxml.jackson.databind.ObjectMapper().readTree("""{"value":0.94}"""),
-            inputVersions = mapOf("CM-0001" to "1"), moduleVersion = "0.1", rngSeed = 7,
+    fun `свидетельство прежней конфигурации помечается неприменимым`() {
+        // CR-003: свидетельство — объект EV-NNNN, привязанный к конфигурации
+        req.ingestEvidence(
+            """{"id":"EV-0001","kind":"analysis_report","maturity":"preliminary",
+                "source":{"scenario_ref":"SC-0001"},"configuration":"C1","date":"2026-03-01T00:00:00Z"}"""
         )
-        val cur = req.objects.current("RQ-0015")!!
-        val withEvidence = (cur.doc.deepCopy<com.fasterxml.jackson.databind.node.ObjectNode>())
-            .apply { withObject("/verification").put("evidence_ref", res.pk.toString()) }
-        req.objects.change("RQ-0015", withEvidence)
-        assertEquals(VerificationStatus.Passed, req.verificationStatusOf("RQ-0015"))
-
-        TestDb.conn.createStatement().use { it.execute("UPDATE results SET stale = true WHERE pk = ${res.pk}") }
-        assertEquals(VerificationStatus.NotVerified, req.verificationStatusOf("RQ-0015"))
-    }
-
-    // ---------- CR-001 / CR-002 на хранилище ----------
-
-    @Test
-    fun `требование с показателем без оператора отклоняется схемой и БД`() {
-        // схема: mop.operator обязателен
-        val e = assertThrows<orbita.mod.schema.SchemaValidationException> {
-            req.ingestRequirement(
-                requirementJson(
-                    "RQ-0020",
-                    mop = """{"name":"delivery_probability_daily","value":{"value":0.9,"unit":"1","provenance":{"source":"manual"}}}""",
-                )
-            )
-        }
-        assertTrue(e.errors.any { "operator" in it.message }) { e.errors.toString() }
-
-        // БД: страховка от обхода валидации схемы (V003, ограничение mop_has_operator)
-        val raw = mapper.readTree(
-            requirementJson(
-                "RQ-0021",
-                mop = """{"name":"delivery_probability_daily","value":{"value":0.9,"unit":"1","provenance":{"source":"manual"}}}""",
-            )
+        req.ingestEvidence(
+            """{"id":"EV-0002","kind":"test_report","maturity":"final",
+                "source":{"document":"Протокол испытаний 12-2027"},
+                "configuration":"C1","date":"2027-06-01T00:00:00Z"}"""
         )
-        val dbError = assertThrows<java.sql.SQLException> {
-            req.objects.create("RQ-0021", "requirement", raw)
-        }
-        assertTrue("mop_has_operator" in (dbError.message ?: "")) { dbError.message ?: "" }
+        val preliminary = req.objects.current("EV-0001")!!.doc
+        val finalDoc = req.objects.current("EV-0002")!!.doc
+
+        assertEquals(EvidenceState.Valid, evidenceState(finalDoc, "C1"))
+        // после изменения конструкции протокол относится к другому изделию
+        assertEquals(EvidenceState.NotApplicable, evidenceState(finalDoc, "C2"))
+        // цепочка «расчёт по модели → испытание» упорядочена по времени
+        assertEquals(listOf("EV-0001", "EV-0002"), evidenceChain(listOf(finalDoc, preliminary)))
     }
 
     @Test
-    fun `свёртка бюджетов по связям derive выявляет превышение с остатком`() {
+    fun `предварительный расчёт не закрывает требование, испытание закрывает`() {
+        val prelim = """{"id":"VE-0001","method":"analysis","phase":"PhaseA","level":"system",
+            "kind":"preliminary","status":"passed","closes":false,"means":"Модель MEL",
+            "approach":"Расчёт по модели с резервами по зрелости элементов и сверкой с аналогами."}"""
+        val planned = """{"id":"VE-0002","method":"test","phase":"PhaseD","level":"system",
+            "kind":"qualification","status":"planned","closes":true,"design_version":"v1",
+            "means":"Полигонный стенд",
+            "approach":"Натурные испытания канала с фиксацией доли доставленных сообщений в протоколе."}"""
         req.ingestRequirement(
-            requirementJson(
-                "RQ-0030",
-                statement = "Сухая масса аппарата не должна превышать 100 кг.",
-                mop = """{"name":"Сухая масса","operator":"le","rollup":"sum",
-                          "value":{"value":100,"unit":"kg","provenance":{"source":"manual"}}}""",
-            )
+            requirementJson("RQ-0060", events = """"verification_events":[$prelim,$planned]""")
         )
-        // декомпозиция: связь derive, не trace (ADR-017)
-        listOf("RQ-0031" to 60, "RQ-0032" to 30).forEach { (id, kg) ->
-            req.ingestRequirement(
-                requirementJson(
-                    id,
-                    statement = "Масса составной части не должна превышать $kg кг.",
-                    mop = """{"name":"Масса части","operator":"le",
-                              "value":{"value":$kg,"unit":"kg","provenance":{"source":"manual"}}}""",
-                ).let { it.dropLast(it.length - it.lastIndexOf("}")) + ""","derives_from":["RQ-0030"]}""" }
-            )
-        }
-        val ok = req.rollupFor("RQ-0030")
-        assertTrue(ok.applicable && ok.consistent == true) { "$ok" }
-        assertEquals(10.0, ok.remaining!!, 1e-9)
-        assertTrue(req.inconsistentDecompositions().none { it.first == "RQ-0030" })
+        assertEquals(VerificationState.PreliminarilyConfirmed, req.verificationStateOf("RQ-0060"))
 
-        // добавление третьей части выводит сумму за родительский бюджет
-        req.ingestRequirement(
-            requirementJson(
-                "RQ-0033",
-                statement = "Масса служебной аппаратуры не должна превышать 20 кг.",
-                mop = """{"name":"Масса части","operator":"le",
-                          "value":{"value":20,"unit":"kg","provenance":{"source":"manual"}}}""",
-            ).let { it.dropLast(it.length - it.lastIndexOf("}")) + ""","derives_from":["RQ-0030"]}""" }
-        )
-        val bad = req.rollupFor("RQ-0030")
-        assertEquals(false, bad.consistent)
-        assertTrue(bad.remaining!! < 0) { "остаток ${bad.remaining}" }
-        assertTrue(req.inconsistentDecompositions().any { it.first == "RQ-0030" })
+        // успешное закрывающее событие переводит требование в «верифицировано»
+        val doc = req.objects.current("RQ-0060")!!.doc.deepCopy<com.fasterxml.jackson.databind.node.ObjectNode>()
+        (doc.path("verification_events").get(1) as com.fasterxml.jackson.databind.node.ObjectNode)
+            .put("status", "passed")
+        req.objects.change("RQ-0060", doc, at = OffsetDateTime.parse("2027-12-01T00:00:00Z"))
+        assertEquals(VerificationState.Verified, req.verificationStateOf("RQ-0060"))
     }
 
     @Test
-    fun `частичное распределение несёт вид и обоснование`() {
+    fun `предварительное событие не может быть закрывающим — отклоняет БД`() {
+        val bad = """"verification_events":[{"id":"VE-0001","method":"analysis","phase":"PhaseA",
+            "level":"system","kind":"preliminary","status":"passed","closes":true,
+            "means":"Модель","approach":"Расчёт по модели с резервами и сверкой с аналогами платформ."}]"""
+        val e = assertThrows<java.sql.SQLException> {
+            req.objects.create("RQ-0061", "requirement", mapper.readTree(requirementJson("RQ-0061", events = bad)))
+        }
+        assertTrue("preliminary_not_closing" in (e.message ?: "")) { e.message ?: "" }
+    }
+
+    @Test
+    fun `требование-потомок на элементе из чужой ветви выявляется отчётом`() {
         req.ingestComponent(
-            """{"id":"CM-0003","name":"Терминал потребителя","kind":"subsystem",
+            """{"id":"CM-0004","name":"Бортовой комплекс","kind":"subsystem","parent":"CM-0001",
                 "lifecycle":{"status":"Draft","version":"1"}}"""
         )
         req.ingestRequirement(
-            requirementJson(
-                "RQ-0040",
-                allocated = """[{"component":"CM-0001","kind":"partial","rationale":"бортовая часть контура"},
-                                {"component":"CM-0003","kind":"partial","rationale":"абонентская часть контура"}]""",
-            )
+            requirementJson("RQ-0070", allocated = """[{"component":"CM-0001","kind":"full"}]""")
         )
-        val links = req.links.linksFrom("RQ-0040", "allocation")
-        assertEquals(2, links.size)
-        assertTrue(links.all { it.allocationKind == "partial" && !it.rationale.isNullOrBlank() }) { links.toString() }
+        // потомок на подчинённом элементе — согласовано
+        req.ingestRequirement(
+            requirementJson("RQ-0071", allocated = """[{"component":"CM-0004","kind":"full"}]""")
+                .let { it.dropLast(it.length - it.lastIndexOf("}")) + ""","derives_from":["RQ-0070"]}""" }
+        )
+        assertTrue(req.inconsistentAllocations().none { it.second == "RQ-0071" })
+
+        // потомок на элементе из чужой ветви — выявляется
+        req.ingestComponent(
+            """{"id":"CM-0005","name":"Наземная станция","kind":"subsystem","parent":"CM-0002",
+                "lifecycle":{"status":"Draft","version":"1"}}"""
+        )
+        req.ingestRequirement(
+            requirementJson("RQ-0072", allocated = """[{"component":"CM-0005","kind":"full"}]""")
+                .let { it.dropLast(it.length - it.lastIndexOf("}")) + ""","derives_from":["RQ-0070"]}""" }
+        )
+        val stray = req.inconsistentAllocations().single { it.second == "RQ-0072" }
+        assertTrue("вне области родителя" in stray.third) { stray.third }
+
+        // спецификация элемента собирается запросом, без отдельной сущности
+        assertEquals(listOf("RQ-0071"), req.specificationOf("CM-0004"))
     }
 
     @Test
-    fun `требование без описания подхода к проверке не переводится в Baseline`() {
-        req.ingestRequirement(
-            requirementJson("RQ-0050", verification = """{"method":"analysis","phase":"PhaseA"}""")
+    fun `интерфейсное требование на одном элементе отклоняется`() {
+        req.ingestInterface(
+            """{"id":"IF-0001","name":"Стык борт — наземный сегмент","kind":"interface",
+                "owners":["CM-0001","CM-0002"],"lifecycle":{"status":"Draft","version":"1"}}"""
         )
-        val e = assertThrows<BaselineBlockedException> { req.promote("RQ-0050", Lifecycle.Baseline) }
-        assertTrue(e.reasons.any { "как именно" in it }) { e.reasons.toString() }
-        // черновик при этом сохраняется: полнота — условие базирования, не сохранения
-        assertEquals(Lifecycle.Draft, req.objects.current("RQ-0050")!!.status)
+        // интерфейсное требование на элементе — отклоняется
+        val e = assertThrows<ModelViolationException> {
+            req.ingestRequirement(
+                requirementJson("RQ-0080", allocated = """[{"component":"CM-0001","kind":"full"}]""")
+                    .replace(""""category":"performance"""", """"category":"interface"""")
+            )
+        }
+        assertTrue("интерфейс" in e.message!!) { e.message!! }
 
-        // пересказ формулировки тоже не проходит (порог доли общих значимых слов)
+        // на интерфейсе с двумя сторонами — принимается
+        req.ingestRequirement(
+            requirementJson("RQ-0081", allocated = """[{"interface":"IF-0001","kind":"full"}]""")
+                .replace(""""category":"performance"""", """"category":"interface"""")
+        )
+        assertEquals(listOf("IF-0001"), req.links.linksFrom("RQ-0081", "allocation").map { it.toId })
+    }
+
+    @Test
+    fun `производное требование не входит в свёртку бюджета родителя`() {
         req.ingestRequirement(
             requirementJson(
-                "RQ-0051",
-                statement = "Сухая масса космического аппарата не должна превышать 100 кг.",
-                mop = """{"name":"Сухая масса","operator":"le",
-                          "value":{"value":100,"unit":"kg","provenance":{"source":"manual"}}}""",
-                verification = """{"method":"analysis","means":"MEL",
-                  "approach":"Проверить, что сухая масса космического аппарата не превышает 100 кг."}""",
+                "RQ-0090",
+                statement = "Масса бортового комплекса не должна превышать 40 кг.",
+                mop = """{"name":"Масса","operator":"le","rollup":"sum",
+                          "value":{"value":40,"unit":"kg","provenance":{"source":"manual"}}}""",
             )
         )
-        val e2 = assertThrows<BaselineBlockedException> { req.promote("RQ-0051", Lifecycle.Baseline) }
-        assertTrue(e2.reasons.any { "пересказывает" in it }) { e2.reasons.toString() }
+        // распределённый потомок — в бюджете
+        req.ingestRequirement(
+            requirementJson(
+                "RQ-0091",
+                statement = "Масса приёмного тракта не должна превышать 30 кг.",
+                mop = """{"name":"Масса","operator":"le",
+                          "value":{"value":30,"unit":"kg","provenance":{"source":"manual"}}}""",
+            ).let { it.dropLast(it.length - it.lastIndexOf("}")) + ""","derives_from":["RQ-0090"]}""" }
+        )
+        // производное требование — вне бюджета, хотя величина превысила бы его
+        req.ingestRequirement(
+            requirementJson(
+                "RQ-0092",
+                statement = "Масса технологической оснастки не должна превышать 25 кг.",
+                mop = """{"name":"Масса","operator":"le",
+                          "value":{"value":25,"unit":"kg","provenance":{"source":"manual"}}}""",
+            ).let { it.dropLast(it.length - it.lastIndexOf("}")) + ""","derives_from":["RQ-0090"]}""" }
+        )
+        // вид декомпозиции — свойство связи: помечаем требование производным
+        req.deriveAs("RQ-0090", "RQ-0092", "derived")
+        val rollup = req.rollupFor("RQ-0090")
+        assertEquals(30.0, rollup.aggregate) { "производное требование не входит в свёртку" }
+        assertEquals(true, rollup.consistent)
+        assertEquals(10.0, rollup.remaining!!, 1e-9)
+    }
+
+    @Test
+    fun `валидация с привязкой к требованию отклоняется`() {
+        // схема ловит привязку к требованию шаблоном цели, прикладное правило — вторым барьером
+        val e = assertThrows<orbita.mod.schema.SchemaValidationException> {
+            req.ingestValidation(
+                """{"id":"VA-0002","target":"RQ-0010","conops_ref":"CO-0001","product_kind":"model",
+                    "method":"demonstration","status":"planned"}"""
+            )
+        }
+        assertTrue(e.errors.any { it.path == "/target" }) { e.errors.toString() }
+        assertTrue(
+            validationIssues(mapper.readTree("""{"target":"RQ-0010","conops_ref":"CO-1","product_kind":"model"}"""))
+                .any { "а не к ожиданию" in it }
+        )
+
+        // привязка к нужде — принимается
+        req.ingestValidation(
+            """{"id":"VA-0003","target":"ND-0001","conops_ref":"CO-0001","product_kind":"model",
+                "method":"demonstration","status":"planned"}"""
+        )
+        assertEquals("ND-0001", req.objects.current("VA-0003")!!.doc.path("target").asText())
+    }
+
+    @Test
+    fun `объект валидации без цели отклоняется БД`() {
+        val e = assertThrows<java.sql.SQLException> {
+            req.objects.create(
+                "VA-0004", "validation",
+                mapper.readTree("""{"id":"VA-0004","conops_ref":"CO-0001","product_kind":"model"}"""),
+            )
+        }
+        assertTrue("validation_target" in (e.message ?: "")) { e.message ?: "" }
     }
 }

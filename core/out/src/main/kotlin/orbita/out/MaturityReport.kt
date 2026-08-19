@@ -9,10 +9,10 @@ import orbita.mod.model.Lifecycle
 import orbita.req.GateGap
 import orbita.req.ObjectSnapshot
 import orbita.req.ReqService
-import orbita.req.VerificationStatus
+import orbita.req.VerificationState
 import orbita.req.hasOpenTbd
 import orbita.req.traceGaps
-import orbita.req.verificationStatus
+import orbita.req.verificationState
 import java.time.OffsetDateTime
 
 data class TbdItem(val id: String, val owner: String?)
@@ -49,8 +49,9 @@ class MaturityReports(private val req: ReqService) {
             .map { TbdItem(it.id, it.doc.path("owner").asText(null)) }
             .sortedBy { it.id }
         val breaks = traceGaps(objects.map { ObjectSnapshot.of(it) }, req.links.list("trace"))
+        // CR-003: требование покрыто, только когда закрывающие события успешны
         val unverified = requirements
-            .filter { verificationStatus(it.doc, req.evidenceFor(it.doc)) == VerificationStatus.NotVerified }
+            .filter { verificationState(it.doc) != VerificationState.Verified }
             .map { it.id }.sorted()
         return MaturityReport(gate, at, gaps, openTbd, breaks, unverified)
     }
