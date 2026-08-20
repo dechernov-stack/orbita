@@ -124,4 +124,45 @@ class TerminalAndLibraryTest {
         val v2 = DemandMapBuilder.version(cells, library.version + "x")
         assertTrue(v1 != v2)
     }
+
+    // ---------- Полнота библиотеки (шаг 10.3) ----------
+
+    @Test
+    fun `каждый сценарий несёт основание оценки`() {
+        library.scenarios.forEach { s ->
+            assertTrue(s.source.length > 40) { "${s.id}: основание оценки пустое или формальное" }
+        }
+    }
+
+    /**
+     * Неполная запись ВЫЯВЛЯЕТСЯ, а не подставляет умолчание. Проверяется на
+     * настоящем ресурсе с вырезанным полем: библиотека отказывается собраться
+     * целиком, а не отдаёт пять сценариев из шести.
+     */
+    @Test
+    fun `сценарий без основания оценки отвергается`() {
+        val e = assertThrows<IllegalArgumentException> { ScenarioLibrary(broken(0) { it.put("source", "") }) }
+        assertTrue("agro_monitoring" in e.message!! && "source" in e.message!!) { e.message!! }
+    }
+
+    @Test
+    fun `сценарий с нулевым темпом сообщений отвергается`() {
+        val e = assertThrows<IllegalArgumentException> {
+            ScenarioLibrary(broken(0) { it.put("msgs_per_terminal_day", 0) })
+        }
+        assertTrue("msgs_per_terminal_day" in e.message!!) { e.message!! }
+    }
+
+    @Test
+    fun `сценарий без опорных ячеек отвергается`() {
+        val e = assertThrows<IllegalArgumentException> { ScenarioLibrary(broken(5) { it.putArray("seeds") }) }
+        assertTrue("eco_monitoring" in e.message!! && "seeds" in e.message!!) { e.message!! }
+    }
+
+    /** Настоящий ресурс библиотеки с испорченной записью под номером [index]. */
+    private fun broken(index: Int, mutate: (ObjectNode) -> Unit): String {
+        val root = mapper.readTree(ScenarioLibrary.defaultJson())
+        mutate(root.path("scenarios")[index] as ObjectNode)
+        return root.toString()
+    }
 }

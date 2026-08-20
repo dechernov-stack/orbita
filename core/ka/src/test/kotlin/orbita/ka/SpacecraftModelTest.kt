@@ -4,6 +4,7 @@
 package orbita.ka
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.node.ObjectNode
 import orbita.bal.decayYears
 import orbita.bal.deorbitDeltaVMs
 import orbita.bal.eclipseFraction
@@ -45,6 +46,53 @@ class SpacecraftModelTest {
         presets.presets.forEach { p ->
             assertTrue(withinPlatformRange(p.dryMassKg)) { "${p.id}: ${p.dryMassKg} кг вне Р2" }
         }
+    }
+
+    // ---------- Полнота библиотеки пресетов (шаг 10.3) ----------
+
+    @Test
+    fun `каждый пресет несёт состав линий и основание оценки`() {
+        presets.presets.forEach { p ->
+            assertTrue(p.links.isNotEmpty()) { "${p.id}: состав линий не указан" }
+            assertTrue("ttc" in p.links) { "${p.id}: платформа без линии ТМИ" }
+            assertTrue(p.source.length > 40) { "${p.id}: основание оценки пустое или формальное" }
+        }
+    }
+
+    /**
+     * Неполный пресет ВЫЯВЛЯЕТСЯ, а не подставляет умолчание: пропущенная масса,
+     * взятая как ноль, дала бы правдоподобный массовый бюджет с запасом
+     * на пустом месте. Проверяется на настоящем ресурсе с вырезанным полем.
+     */
+    @Test
+    fun `пресет без сухой массы отвергается`() {
+        val e = assertThrows<IllegalArgumentException> {
+            PlatformPresets(brokenPreset(0) { it.put("dry_mass_kg", 0) })
+        }
+        assertTrue("cubesat_12u" in e.message!! && "dry_mass_kg" in e.message!!) { e.message!! }
+    }
+
+    @Test
+    fun `пресет без основания оценки отвергается`() {
+        val e = assertThrows<IllegalArgumentException> {
+            PlatformPresets(brokenPreset(3) { it.put("source", "  ") })
+        }
+        assertTrue("micro_50_100kg" in e.message!! && "source" in e.message!!) { e.message!! }
+    }
+
+    @Test
+    fun `пресет без состава линий отвергается`() {
+        val e = assertThrows<IllegalArgumentException> {
+            PlatformPresets(brokenPreset(1) { it.putArray("links") })
+        }
+        assertTrue("cubesat_16u" in e.message!! && "links" in e.message!!) { e.message!! }
+    }
+
+    /** Настоящий ресурс библиотеки с испорченным пресетом под номером [index]. */
+    private fun brokenPreset(index: Int, mutate: (ObjectNode) -> Unit): String {
+        val root = mapper.readTree(PlatformPresets.defaultJson())
+        mutate(root.path("presets")[index] as ObjectNode)
+        return root.toString()
     }
 
     @Test
