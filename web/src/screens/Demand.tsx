@@ -69,9 +69,7 @@ export function Demand() {
       <div className="pane">
         <div style={{ padding: '8px 8px 0' }}>
           <span className="secondary">Слои: </span>
-          <span className="chip" aria-selected={populations.length > 0}>
-            население {populations.length}
-          </span>
+          <span className="chip">население {populations.length}</span>
           {library.map((s) => (
             <button
               key={s.id}
