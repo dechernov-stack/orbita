@@ -1,32 +1,19 @@
 // Экран 5 — модель космического аппарата (Ш4 мастера).
 //
-// Экран задаёт модель, бюджеты считает сервер: масса с резервами по зрелости,
-// энергобаланс худшего витка, запасы радиолиний, маяк, TPM. Клиент не
-// складывает массы и не сравнивает запас с нулём — это правила (TZ-KA-002,
-// TZ-KA-004, TZ-KA-005, TZ-KA-010), а не отрисовка.
+// Модель ХРАНИТСЯ (ADR-021): экран читает её по ссылке, а не собирает
+// в состоянии сеанса. До CR-005 уход с экрана терял построенное, и ссылка
+// сценария вела на объект, которого модель хранить не умела.
 //
-// Скорость и требуемое Eb/N0 линий на экране не задаются: они приходят из
-// адаптера протокола (TZ-NET-001). Иначе бюджет считался бы по произвольным
-// цифрам, и «запас 6 дБ» ничего не значил бы.
+// Ведомость масс и циклограмма — часть модели (CR-006, CR-007), а не поля
+// экрана. Экран задаёт только УСЛОВИЯ ОЦЕНКИ: высоту, заявленную скважность
+// полезной нагрузки. Раньше ведомость вводилась здесь и никуда не сохранялась,
+// а виток делился поровну — правдоподобное число, которое ни о чём не говорит.
+//
+// Все бюджеты считает сервер вызовами core/ka: клиент не складывает массы
+// и не сравнивает запас с нулём — это правила, а не отрисовка.
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
-import type { PresetRow, SpacecraftView } from '../api/types'
-
-interface LinkDraft {
-  id: string
-  role: string
-  band_hz: number
-  tx_power_w: number
-  g_over_t_db_k: number
-  gain_dbi: number
-  required_margin_db: number
-}
-
-interface MassDraft {
-  name: string
-  mass_kg: number
-  maturity: string
-}
+import type { SpacecraftView } from '../api/types'
 
 const ROLE_LABEL: Record<string, string> = {
   user_uplink: 'Абонентская вверх',
@@ -43,116 +30,28 @@ const MATURITY_LABEL: Record<string, string> = {
   existing: 'существующий',
 }
 
-const INITIAL_LINKS: LinkDraft[] = [
-  {
-    id: 'RL-UP',
-    role: 'user_uplink',
-    band_hz: 868e6,
-    tx_power_w: 0.1,
-    g_over_t_db_k: -18,
-    gain_dbi: 6,
-    required_margin_db: 3,
-  },
-  {
-    id: 'RL-DN',
-    role: 'user_downlink',
-    band_hz: 868e6,
-    tx_power_w: 2,
-    g_over_t_db_k: -22,
-    gain_dbi: 6,
-    required_margin_db: 3,
-  },
-]
-
-const INITIAL_MASS: MassDraft[] = [
-  { name: 'Конструкция', mass_kg: 8, maturity: 'existing' },
-  { name: 'СЭП', mass_kg: 6, maturity: 'modified' },
-  { name: 'СОС', mass_kg: 4, maturity: 'existing' },
-  { name: 'БКУ', mass_kg: 3, maturity: 'existing' },
-  { name: 'Полезная нагрузка', mass_kg: 9, maturity: 'new' },
-]
-
-export function Spacecraft() {
-  const [presets, setPresets] = useState<PresetRow[]>([])
-  const [presetId, setPresetId] = useState<string | null>(null)
-  const [links, setLinks] = useState<LinkDraft[]>(INITIAL_LINKS)
-  const [mass, setMass] = useState<MassDraft[]>(INITIAL_MASS)
-  const [beaconPeriodS, setBeaconPeriodS] = useState(60)
-  const [beaconFormat, setBeaconFormat] = useState('orbit_model')
+export function Spacecraft({ spacecraftId = 'SP-0001' }: { spacecraftId?: string }) {
   const [altKm, setAltKm] = useState(550)
   const [plannedDuty, setPlannedDuty] = useState(0.5)
   const [view, setView] = useState<SpacecraftView | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    api
-      .platformPresets()
-      .then((rows) => {
-        setPresets(rows)
-        setPresetId((current) => current ?? rows[0]?.id ?? null)
-      })
-      .catch((e) => setError(String(e)))
-  }, [])
-
-  useEffect(() => {
-    const preset = presets.find((p) => p.id === presetId)
-    if (!preset) return
     setError(null)
     api
-      .spacecraft({
-        spacecraft: {
-          id: 'SC-DEMO',
-          preset: preset.id,
-          platform: {
-            dry_mass_kg: preset.dryMassKg,
-            power: {
-              sa_area_m2: preset.saAreaM2,
-              sa_efficiency: 0.29,
-              battery_wh: preset.batteryWh,
-            },
-            attitude: { pointing_accuracy_deg: 1 },
-            design_life_years: preset.designLifeYears,
-          },
-          payload: {
-            architecture: 'regenerative',
-            links: links.map((l) => ({
-              id: l.id,
-              role: l.role,
-              band_hz: l.band_hz,
-              tx_power_w: l.tx_power_w,
-              g_over_t_db_k: l.g_over_t_db_k,
-              required_margin_db: l.required_margin_db,
-              antenna: { type: 'patch', gain_dbi: l.gain_dbi },
-            })),
-            onboard: { buffer_mb: 64, priority_policy: ['C_prime', 'B_prime', 'A_prime'] },
-            ephemeris_beacon: {
-              enabled: true,
-              period_s: beaconPeriodS,
-              format: beaconFormat,
-            },
-          },
-        },
-        mass_items: mass,
-        conditions: { alt_km: altKm, planned_payload_duty: plannedDuty },
-      })
+      .spacecraftStored(spacecraftId, { alt_km: altKm, planned_payload_duty: plannedDuty })
       .then(setView)
       .catch((e) => setError(String(e)))
-  }, [presets, presetId, links, mass, beaconPeriodS, beaconFormat, altKm, plannedDuty])
+  }, [spacecraftId, altKm, plannedDuty])
+
+  if (error) return <div className="empty">Ошибка обращения к API: {error}</div>
 
   return (
     <div className="split">
       <div className="pane" style={{ padding: 12 }}>
-        <div className="tabs" style={{ marginBottom: 8 }}>
-          {presets.map((p) => (
-            <button
-              key={p.id}
-              className="tab"
-              aria-selected={p.id === presetId}
-              onClick={() => setPresetId(p.id)}
-            >
-              {p.name}
-            </button>
-          ))}
+        <div className="tabs" style={{ marginBottom: 8, alignItems: 'center' }}>
+          <span className="id">{spacecraftId}</span>
+          {view?.preset && <span className="chip">{view.preset}</span>}
           <span className="secondary" style={{ marginLeft: 12 }}>
             высота, км
           </span>
@@ -162,15 +61,24 @@ export function Spacecraft() {
             onChange={(e) => setAltKm(Number(e.target.value))}
             style={{ width: 80 }}
           />
+          <span className="secondary" style={{ marginLeft: 12 }}>
+            заявленная скважность ПН
+          </span>
+          <input
+            type="number"
+            step="0.05"
+            value={plannedDuty}
+            onChange={(e) => setPlannedDuty(Number(e.target.value))}
+            style={{ width: 80 }}
+          />
         </div>
 
-        {error && <div className="warn">Ошибка: {error}</div>}
         {!view ? (
           <div className="secondary">Загрузка…</div>
         ) : (
           <>
             <div className="card">
-              <h3>Платформа · массовый бюджет</h3>
+              <h3>Платформа · ведомость масс</h3>
               <div>
                 <table>
                   <thead>
@@ -185,7 +93,9 @@ export function Spacecraft() {
                   <tbody>
                     {view.mass.items.map((item) => (
                       <tr key={item.name}>
-                        <td>{item.name}</td>
+                        <td>
+                          <span className="truncate">{item.name}</span>
+                        </td>
                         <td className="num">{item.massKg}</td>
                         <td className="secondary">
                           {MATURITY_LABEL[item.maturity.toLowerCase()] ?? item.maturity}
@@ -228,6 +138,10 @@ export function Spacecraft() {
                   <span className={`mono${view.power.balanceOk ? '' : ' warn'}`}>
                     {view.power.balanceWh}
                   </span>
+                  <div className="secondary">
+                    Считается при заявленной скважности: при допустимой он ноль по построению.
+                    Доли витка режимов заданы моделью, а не делятся поровну.
+                  </div>
                 </div>
                 <div className="field">
                   <label>Маяк, Вт·ч за виток</label>
@@ -238,19 +152,6 @@ export function Spacecraft() {
                   <span className={`mono${view.power.dutyOk ? '' : ' warn'}`}>
                     {view.power.plannedPayloadDuty} / {view.power.allowedPayloadDuty}
                   </span>
-                  <div className="secondary">
-                    Баланс считается при заявленной: при допустимой он ноль по построению.
-                  </div>
-                </div>
-                <div className="field">
-                  <label>Заявленная скважность ПН</label>
-                  <input
-                    type="number"
-                    step="0.05"
-                    value={plannedDuty}
-                    onChange={(e) => setPlannedDuty(Number(e.target.value))}
-                    style={{ width: 80 }}
-                  />
                 </div>
                 <div className="field">
                   <label>Глубина разряда АБ</label>
@@ -367,35 +268,16 @@ export function Spacecraft() {
               Р5/ADR-005: маяк обязателен. Его энергия входит в циклограмму слагаемым, а не
               опцией — иначе скважность ПН получилась бы завышенной.
             </p>
-            <div className="field">
-              <label>Период, с</label>
-              <input
-                type="number"
-                value={beaconPeriodS}
-                onChange={(e) => setBeaconPeriodS(Number(e.target.value))}
-              />
-            </div>
-            <div className="field">
-              <label>Формат</label>
-              <div className="tabs">
-                {['pass_schedule', 'full_almanac', 'orbit_model'].map((f) => (
-                  <button
-                    key={f}
-                    className="tab"
-                    aria-selected={beaconFormat === f}
-                    onClick={() => setBeaconFormat(f)}
-                  >
-                    {f === 'pass_schedule'
-                      ? 'расписание'
-                      : f === 'full_almanac'
-                        ? 'альманах'
-                        : 'модель орбиты'}
-                  </button>
-                ))}
-              </div>
-            </div>
-            {view?.beacon && (
+            {view?.beacon ? (
               <>
+                <div className="field">
+                  <label>Формат</label>
+                  {view.beacon.format}
+                </div>
+                <div className="field">
+                  <label>Период, с</label>
+                  <span className="mono">{view.beacon.periodS}</span>
+                </div>
                 <div className="field">
                   <label>Объём кадра, байт</label>
                   <span className="mono">{view.beacon.payloadBytes}</span>
@@ -405,80 +287,18 @@ export function Spacecraft() {
                   <span className="mono">{view.beacon.downlinkLoad}</span>
                 </div>
               </>
+            ) : (
+              <span className="warn">△ маяк в модели не задан</span>
             )}
           </div>
         </div>
 
         <div className="card">
-          <h3>Ведомость масс</h3>
-          <div>
-            {mass.map((item, i) => (
-              <div key={item.name} className="field">
-                <label>{item.name}</label>
-                <input
-                  type="number"
-                  value={item.mass_kg}
-                  onChange={(e) =>
-                    setMass((prev) =>
-                      prev.map((m, j) => (i === j ? { ...m, mass_kg: Number(e.target.value) } : m)),
-                    )
-                  }
-                  style={{ width: 70 }}
-                />
-                <div className="tabs">
-                  {['new', 'modified', 'existing'].map((m) => (
-                    <button
-                      key={m}
-                      className="tab"
-                      aria-selected={item.maturity === m}
-                      onClick={() =>
-                        setMass((prev) =>
-                          prev.map((x, j) => (i === j ? { ...x, maturity: m } : x)),
-                        )
-                      }
-                    >
-                      {MATURITY_LABEL[m]}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="card">
-          <h3>Радиолинии</h3>
-          <div>
-            {links.map((link, i) => (
-              <div key={link.id} className="field">
-                <label>{ROLE_LABEL[link.role] ?? link.role}</label>
-                <span className="secondary">мощность передатчика, Вт</span>
-                <input
-                  type="number"
-                  step="0.1"
-                  value={link.tx_power_w}
-                  onChange={(e) =>
-                    setLinks((prev) =>
-                      prev.map((l, j) =>
-                        i === j ? { ...l, tx_power_w: Number(e.target.value) } : l,
-                      ),
-                    )
-                  }
-                  style={{ width: 80 }}
-                />
-                <span className="secondary">усиление антенны, дБи</span>
-                <input
-                  type="number"
-                  value={link.gain_dbi}
-                  onChange={(e) =>
-                    setLinks((prev) =>
-                      prev.map((l, j) => (i === j ? { ...l, gain_dbi: Number(e.target.value) } : l)),
-                    )
-                  }
-                  style={{ width: 80 }}
-                />
-              </div>
-            ))}
+          <h3>Что задаёт модель, а что экран</h3>
+          <div className="secondary">
+            Ведомость масс, циклограмма режимов с долями витка, радиолинии и маяк — часть
+            хранимой модели аппарата: они переживают уход с экрана и попадают в пакет
+            передачи. Экран задаёт условия оценки — высоту и заявленную скважность.
           </div>
         </div>
       </aside>

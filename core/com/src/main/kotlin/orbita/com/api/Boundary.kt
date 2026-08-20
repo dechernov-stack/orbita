@@ -7,8 +7,12 @@ package orbita.com.api
 import com.fasterxml.jackson.databind.JsonNode
 import orbita.mod.model.CoreType
 import orbita.mod.model.Lifecycle
+import orbita.mod.model.inputVersionsComplete
+import orbita.mod.model.resolveScenario
 import orbita.mod.schema.SchemaRegistry
+import orbita.mod.schema.SchemaValidationException
 import orbita.mod.schema.ValidationError
+import orbita.mod.store.ModelViolationException
 import orbita.mod.store.LinkStore
 import orbita.mod.store.ObjectStore
 import orbita.mod.store.ParamStore
@@ -85,16 +89,41 @@ class Boundary(private val registry: SchemaRegistry, conn: Connection) {
         CoreType.Scenario -> {
             val doc = parse(json)
             registry.require(type.schemaName, doc)
-            val lifecycle = doc.path("lifecycle")
-            objects.create(
-                id = doc["id"].asText(),
-                type = type.dbType,
-                doc = doc,
-                status = Lifecycle.valueOf(lifecycle.path("status").asText(Lifecycle.Draft.name)),
-                version = lifecycle.path("version").asText("1"),
-                createdBy = createdBy,
-            )
+            // Ссылки разрешаются ДО сохранения: сценарий со ссылкой в никуда
+            // не расчётный случай, а обещание невоспроизводимого результата.
+            val problems = resolveScenario(doc) { ref -> objects.current(ref)?.let { CoreType.byDbType(it.type) } } +
+                inputVersionsComplete(doc)
+            if (problems.isNotEmpty()) {
+                throw ModelViolationException("сценарий ${doc.path("id").asText()}: " + problems.joinToString("; "))
+            }
+            store(type, doc, createdBy)
         }
+        // CR-005/ADR-021: входы моделирования. Прикладных правил связей у них
+        // нет — только схема и статусная модель, поэтому общий путь сохранения.
+        CoreType.Constellation, CoreType.Spacecraft, CoreType.DemandMap,
+        CoreType.TerminalProfile, CoreType.GroundStations, CoreType.ProtocolAdapter -> {
+            val doc = parse(json)
+            registry.require(type.schemaName, doc)
+            if (type == CoreType.TerminalProfile) {
+                // класс терминала подчиняется правилам TZ-USR-001 сверх схемы
+                terminalRules.validate(doc).takeIf { it.isNotEmpty() }
+                    ?.let { throw SchemaValidationException(type.schemaName, it) }
+            }
+            store(type, doc, createdBy)
+        }
+    }
+
+    /** Сохранение объекта, у которого прикладных правил связей нет: схема и статус. */
+    private fun store(type: CoreType, doc: JsonNode, createdBy: String): StoredObject {
+        val lifecycle = doc.path("lifecycle")
+        return objects.create(
+            id = doc["id"].asText(),
+            type = type.dbType,
+            doc = doc,
+            status = Lifecycle.valueOf(lifecycle.path("status").asText(Lifecycle.Draft.name)),
+            version = lifecycle.path("version").asText("1"),
+            createdBy = createdBy,
+        )
     }
 
     /**

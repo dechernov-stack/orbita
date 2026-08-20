@@ -15,6 +15,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 import orbita.mod.RepoPaths
+import orbita.mod.model.CoreType
 import java.util.concurrent.TimeUnit
 
 /** Пометка демо-объектов: по ней они отличимы от рабочих (STEP-7-9 §7.2). */
@@ -83,6 +84,11 @@ object DemoProject {
             )
         }
 
+        // Входы моделирования — хранимые объекты (CR-005/ADR-021). Сценарий
+        // ссылается на них, а не на компоненты: до CR-005 demand_map_ref вёл
+        // на DM-0001, которого модель хранить не умела.
+        seedModelingInputs(boundary, project)
+
         // Сценарий и результаты сравнения вариантов: экран 7 читает их из базы,
         // а не получает списком в коде — так он работает на данных модели.
         boundary.ingest(orbita.mod.model.CoreType.Scenario, scenarioJson(), DEMO_AUTHOR)
@@ -98,17 +104,150 @@ object DemoProject {
         }
     }
 
+    /** Идентификаторы входов моделирования демо-проекта. */
+    const val DEMO_CONSTELLATION = "CN-0001"
+    const val DEMO_SPACECRAFT = "SP-0001"
+    const val DEMO_DEMAND_MAP = "DM-0001"
+    const val DEMO_TERMINAL_PROFILE = "TP-0001"
+    const val DEMO_GROUND_STATIONS = "GS-0001"
+    const val DEMO_PROTOCOL_ADAPTER = "PA-0001"
+
+    /**
+     * Входы моделирования. Карта спроса и адаптер протокола НЕ пишутся здесь
+     * руками: карта собирается из тех же популяций эталона, что и в проверках,
+     * адаптер — сериализацией самого адаптера. Вторая копия этих данных
+     * разошлась бы с первой молча (ловушка 1).
+     */
+    private fun seedModelingInputs(boundary: Boundary, project: JsonNode) {
+        boundary.ingest(CoreType.Constellation, constellationJson(), DEMO_AUTHOR)
+        boundary.ingest(CoreType.Spacecraft, spacecraftJson(), DEMO_AUTHOR)
+        boundary.ingest(CoreType.DemandMap, demandMapJson(project), DEMO_AUTHOR)
+        boundary.ingest(CoreType.TerminalProfile, terminalProfileJson(), DEMO_AUTHOR)
+        boundary.ingest(CoreType.GroundStations, groundStationsJson(), DEMO_AUTHOR)
+        boundary.ingest(CoreType.ProtocolAdapter, protocolAdapterJson(), DEMO_AUTHOR)
+    }
+
+    /** Карта спроса из популяций эталона: источник данных тот же самый. */
+    private fun demandMapJson(project: JsonNode): String {
+        val populations = project.path("populations").map { p ->
+            orbita.usr.PopulationCell(
+                id = p.path("id").asText(),
+                lat = p.path("lat").asDouble(),
+                popDensityPerKm2 = p.path("pop_density_per_km2").asDouble(),
+                terminalsPerCapita = p.path("terminals_per_capita").asDouble(),
+                msgsPerTerminalDay = p.path("msgs_per_terminal_day").asDouble(),
+                klass = p.path("klass").asText(),
+            )
+        }
+        val cells = orbita.usr.DemandMapBuilder.build(populations)
+        val doc = orbita.usr.DemandMapBuilder.toContractJson(
+            mapId = DEMO_DEMAND_MAP,
+            cells = cells,
+            terminalsPerCapita = populations.firstOrNull()?.terminalsPerCapita ?: 0.02,
+            dataset = "программные популяции эталона (заглушка до шага 10.2)",
+            mapper = mapper,
+        )
+        doc.putObject("lifecycle").put("status", "Draft").put("version", "1")
+        return mapper.writeValueAsString(doc)
+    }
+
+    /** Конфигурация группировки: тот же Walker 40/5, что и в вариантах сравнения. */
+    private fun constellationJson(): String =
+        """{"id":"$DEMO_CONSTELLATION","name":"Walker 40/5 · 550 км","kind":"walker_delta",
+            "walker":{"inclination_deg":53.0,"total":40,"planes":5,"phasing":1,"altitude_km":550.0},
+            "lifecycle":{"status":"Draft","version":"1"}}"""
+
+    /**
+     * Модель аппарата. Ведомость масс задана позиционно (CR-006): без неё
+     * расчёт массы обязан падать, а не возвращать ноль. Доли витка заданы
+     * явно (CR-007): равномерное деление дало бы правдоподобное число,
+     * которое ни о чём не говорит.
+     */
+    private fun spacecraftJson(): String =
+        """{"id":"$DEMO_SPACECRAFT","preset":"cubesat_16u",
+            "platform":{
+              "dry_mass_kg":30,
+              "power":{"sa_area_m2":0.18,"sa_efficiency":0.29,"battery_wh":120},
+              "attitude":{"pointing_accuracy_deg":1},
+              "design_life_years":5,
+              "mel":[
+                {"name":"Корпус и механизмы","subsystem":"structure","mass_kg":8.0,"maturity":"existing"},
+                {"name":"СЭП с батареей","subsystem":"power","mass_kg":6.0,"maturity":"modified"},
+                {"name":"Маховики","subsystem":"adcs","mass_kg":1.2,"maturity":"existing","quantity":3},
+                {"name":"Бортовой компьютер","subsystem":"obc","mass_kg":1.4,"maturity":"existing"},
+                {"name":"Приёмопередатчик абонентской линии","subsystem":"comms","mass_kg":2.2,"maturity":"new"},
+                {"name":"Полезная нагрузка","subsystem":"payload","mass_kg":6.5,"maturity":"new"}
+              ]},
+            "payload":{
+              "architecture":"regenerative",
+              "links":[
+                {"id":"RL-UP","role":"user_uplink","band_hz":868000000,"tx_power_w":0.1,
+                 "g_over_t_db_k":-18,"required_margin_db":3,"antenna":{"type":"patch","gain_dbi":6}},
+                {"id":"RL-DN","role":"user_downlink","band_hz":868000000,"tx_power_w":2,
+                 "g_over_t_db_k":-22,"required_margin_db":3,"antenna":{"type":"patch","gain_dbi":6}}
+              ],
+              "onboard":{"buffer_mb":64,"priority_policy":["C_prime","B_prime","A_prime"]},
+              "ephemeris_beacon":{"enabled":true,"period_s":60,"format":"orbit_model"}},
+            "modes":[
+              {"name":"standby","power_w":6.0,"orbit_fraction":0.55},
+              {"name":"rx","power_w":9.0,"orbit_fraction":0.3},
+              {"name":"downlink","power_w":14.0,"orbit_fraction":0.15}
+            ],
+            "lifecycle":{"status":"Draft","version":"1"}}"""
+
+    /** Профиль терминала класса A′: односторонний, знает эфемериды (Р5/ADR-005). */
+    private fun terminalProfileJson(): String =
+        """{"id":"$DEMO_TERMINAL_PROFILE","consumer_class":"A_prime","regulatory_region":"RU864",
+            "radio":{"eirp_dbm":14,"antenna_gain_dbi":2,"rx_sensitivity_dbm":-137,"duty_cycle_limit":0.01},
+            "environment":"open_sky",
+            "generation":{"model":"periodic","rate_per_day":4,"payload_bytes":24},
+            "ephemeris":{"knows_ephemeris":true,"max_almanac_age_s":86400,
+                         "beacon_rx_period_s":60,"degraded_rate_factor":0.3},
+            "lifecycle":{"status":"Draft","version":"1"}}"""
+
+    /** Набор станций приёма: размещены вручную (шаг 12 добавит рекомендательный режим). */
+    private fun groundStationsJson(): String =
+        """{"id":"$DEMO_GROUND_STATIONS","name":"Станции приёма «Орбита-IoT»",
+            "stations":[
+              {"id":"GST-MSK","name":"Москва","lat_deg":55.75,"lon_deg":37.62,
+               "min_elevation_deg":10,"g_over_t_db_k":12,"placement":"manual"},
+              {"id":"GST-NSK","name":"Новосибирск","lat_deg":55.03,"lon_deg":82.92,
+               "min_elevation_deg":10,"g_over_t_db_k":12,"placement":"manual"},
+              {"id":"GST-KHV","name":"Хабаровск","lat_deg":48.48,"lon_deg":135.07,
+               "min_elevation_deg":10,"g_over_t_db_k":12,"placement":"manual"}
+            ],
+            "lifecycle":{"status":"Draft","version":"1"}}"""
+
+    /** Адаптер протокола: сериализация самого адаптера, а не переписанные числа. */
+    private fun protocolAdapterJson(): String {
+        val doc = orbita.net.LoRaWanAdapter().toContractJson(DEMO_PROTOCOL_ADAPTER, mapper)
+        doc.put("id", DEMO_PROTOCOL_ADAPTER)
+        doc.putObject("lifecycle").put("status", "Draft").put("version", "1")
+        return mapper.writeValueAsString(doc)
+    }
+
     private fun scenarioJson(): String = mapper.writeValueAsString(
         mapper.createObjectNode().apply {
             put("id", DEMO_SCENARIO)
             put("name", "Сравнение вариантов построения «Орбита-IoT»")
-            put("constellation_ref", "CM-0010")
-            put("spacecraft_ref", "CM-0011")
-            put("demand_map_ref", "DM-0001")
+            put("constellation_ref", DEMO_CONSTELLATION)
+            put("spacecraft_ref", DEMO_SPACECRAFT)
+            put("demand_map_ref", DEMO_DEMAND_MAP)
+            put("ground_stations_ref", DEMO_GROUND_STATIONS)
+            put("protocol_adapter_ref", DEMO_PROTOCOL_ADAPTER)
             put("delivery_mode", "store_and_forward")
             put("epoch", "2026-03-20T00:00:00Z")
             put("duration_s", 86400)
             put("rng_seed", 42)
+            // Версии всех входов: без них результат невоспроизводим, и БД
+            // такой сценарий не примет (V008, scenario_input_versions).
+            putObject("input_versions").apply {
+                put(DEMO_CONSTELLATION, "1")
+                put(DEMO_SPACECRAFT, "1")
+                put(DEMO_DEMAND_MAP, "1")
+                put(DEMO_GROUND_STATIONS, "1")
+                put(DEMO_PROTOCOL_ADAPTER, "1")
+            }
             // схема сценария поля lifecycle не содержит: сценарий — расчётный
             // случай, а не управляемый объект со статусом
         },

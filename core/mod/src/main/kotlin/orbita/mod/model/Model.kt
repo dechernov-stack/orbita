@@ -23,20 +23,35 @@ enum class CoreType(val idPrefix: String, val dbType: String, val schemaName: St
     Validation("VA", "validation", "core/validation"),
     Interface("IF", "interface", "core/component"),
     // Шаг 7: реестр рисков — входной материал MCR и KDP (NPR 8000.4)
-    Risk("RSK", "risk", "core/risk");
+    Risk("RSK", "risk", "core/risk"),
+
+    // CR-005/ADR-021: входы моделирования — хранимые объекты со статусной
+    // моделью и версионностью. Схемы остаются на прежних местах: они описывают
+    // и обмен между модулями, и хранение; дублировать их в core/ значило бы
+    // завести две структуры, которые разойдутся.
+    Constellation("CN", "constellation", "core/constellation"),
+    Spacecraft("SP", "spacecraft", "contracts/spacecraft"),
+    DemandMap("DM", "demand_map", "contracts/demand-map"),
+    TerminalProfile("TP", "terminal_profile", "contracts/terminal-profile"),
+    GroundStations("GS", "ground_stations", "core/ground-stations"),
+    ProtocolAdapter("PA", "protocol_adapter", "contracts/protocol-adapter");
 
     companion object {
         fun byDbType(t: String): CoreType = entries.firstOrNull { it.dbType == t }
             ?: throw IllegalArgumentException("unknown core object type: $t")
+
+        /** Тип по префиксу идентификатора; null — префикс неизвестен. */
+        fun byIdPrefix(prefix: String): CoreType? = entries.firstOrNull { it.idPrefix == prefix }
     }
 }
 
-/** Идентификатор объекта ядра: ND-/SV-/RQ-/CM-/SC-NNNN, стабилен, не переиспользуется (TZ-MOD-007). */
+/** Идентификатор объекта ядра: <ПРЕФИКС>-NNNN, стабилен, не переиспользуется (TZ-MOD-007). */
 @JvmInline
 value class ObjectId(val value: String) {
     init {
         require(PATTERN.matches(value)) {
-            "TZ-MOD-007: invalid object id '$value', expected (ND|SV|RQ|CM|SC|EV|VA|IF|RSK)-NNNN"
+            "TZ-MOD-007: invalid object id '$value', expected " +
+                "(${CoreType.entries.joinToString("|") { it.idPrefix }})-NNNN"
         }
     }
 
@@ -45,7 +60,9 @@ value class ObjectId(val value: String) {
     override fun toString(): String = value
 
     companion object {
-        val PATTERN = Regex("^(ND|SV|RQ|CM|SC|EV|VA|IF|RSK)-[0-9]{4}$")
+        // Шаблон выводится из состава типов: добавление вида объекта не должно
+        // требовать правки регулярного выражения во втором месте.
+        val PATTERN = Regex("^(${CoreType.entries.joinToString("|") { it.idPrefix }})-[0-9]{4}$")
     }
 }
 

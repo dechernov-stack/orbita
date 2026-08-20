@@ -83,13 +83,11 @@ def baseline_update(c, oid, new_doc, change_ref=None, t='2026-02-01'):
               (str(int(ver)+1), 'Draft', json.dumps(new_doc), t, pk, change_ref, pk))
 
 # ---------------- проверки ----------------
-# Проверки исполняются только при прямом запуске: модуль импортируется
-# другими эталонами, и sys.exit при импорте обрывал бы их на середине —
-# CI видел бы код 0 при невыполненных проверках.
-if __name__ == '__main__':
+def _run_checks():
+
     ok, fail = 0, 0
     def check(name, cond, detail=''):
-        global ok, fail
+        nonlocal ok, fail
         if cond: ok += 1; print(f"  ✓ {name}")
         else:    fail += 1; print(f"  ✗ {name} {detail}")
 
@@ -185,3 +183,7 @@ if __name__ == '__main__':
 
     print(f"\nИтог: пройдено {ok}, провалено {fail}")
     sys.exit(1 if fail else 0)
+
+
+if __name__ == '__main__':
+    _run_checks()

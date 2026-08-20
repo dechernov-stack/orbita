@@ -73,9 +73,20 @@ export const api = {
   demandLibrary: () => get<ReferenceScenarioRow[]>('/views/demand/library'),
   /** Ячейки, веса и пик карты считает сервер: клиент отдаёт только слои. */
   demand: (layers: DemandLayersRequest) => post<DemandMapView>('/views/demand', layers),
+  /** Хранимая карта спроса (ADR-021): ячейки и веса из сохранённого документа. */
+  demandStored: (id: string) => get<DemandMapView>(`/views/demand/${id}`),
   platformPresets: () => get<PresetRow[]>('/views/spacecraft/presets'),
-  /** Бюджеты аппарата: масса, энергетика, линии, маяк, TPM — всё с сервера. */
-  spacecraft: (request: unknown) => post<SpacecraftView>('/views/spacecraft', request),
+  /**
+   * Бюджеты ХРАНИМОЙ модели аппарата. Ведомость масс и циклограмма — часть
+   * модели (CR-006, CR-007), а не состояние экрана, поэтому телом запроса
+   * они не передаются: экран задаёт только условия оценки.
+   */
+  spacecraftStored: (id: string, conditions: Record<string, number> = {}) => {
+    const query = new URLSearchParams(
+      Object.entries(conditions).map(([k, v]) => [k, String(v)]),
+    ).toString()
+    return get<SpacecraftView>(`/views/spacecraft/${id}${query ? `?${query}` : ''}`)
+  },
   /** Пакет для копирования во внешний интерфейс LLM: генерации в системе нет. */
   buildPackage: (kind: string, context: unknown, task: string) =>
     post<PromptPackage>('/ai/packages', { kind, context, task }),

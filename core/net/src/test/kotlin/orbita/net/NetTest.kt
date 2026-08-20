@@ -20,7 +20,7 @@ class NetTest {
 
     @Test
     fun `документ адаптера валиден по нормативной схеме protocol-adapter`() {
-        val errors = registry.validate("contracts/protocol-adapter", adapter.toContractJson(mapper))
+        val errors = registry.validate("contracts/protocol-adapter", adapter.toContractJson("PA-0001", mapper))
         assertEquals(emptyList<ValidationError>(), errors)
     }
 
@@ -49,11 +49,11 @@ class NetTest {
 
     @Test
     fun `адаптер без нисходящего канала отклоняется как несовместимый с Р5-Р6`() {
-        val doc = adapter.toContractJson(mapper)
+        val doc = adapter.toContractJson("PA-0001", mapper)
         (doc.path("mac") as com.fasterxml.jackson.databind.node.ObjectNode).put("downlink_supported", false)
         val problems = validateAdapterContract(doc)
         assertTrue(problems.any { "ADR-005" in it && "ADR-006" in it }) { problems.toString() }
-        assertEquals(emptyList<String>(), validateAdapterContract(adapter.toContractJson(mapper)))
+        assertEquals(emptyList<String>(), validateAdapterContract(adapter.toContractJson("PA-0001", mapper)))
     }
 
     @Test

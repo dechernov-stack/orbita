@@ -23,7 +23,9 @@ data class PhyMode(
 
 class LoRaWanAdapter(private val includeLrFhss: Boolean = true) {
 
-    val id = "PA-LORA-01"
+    // Собственного идентификатора у адаптера больше нет: после CR-005/ADR-021
+    // адаптер — хранимый объект модели, и идентификатор ему выдаёт модель
+    // (PA-NNNN), а не код. Два идентификатора у одной сущности разошлись бы.
     val name = "lorawan"
     val version = "0.1"
 
@@ -61,10 +63,13 @@ class LoRaWanAdapter(private val includeLrFhss: Boolean = true) {
     fun timeOnAirS(modeId: String, payloadBytes: Int): Double =
         (payloadBytes + overheadBytes) * 8.0 / mode(modeId).bitrateBps
 
-    /** Документ contracts/protocol-adapter — единственная форма обмена наружу. */
-    fun toContractJson(mapper: ObjectMapper = ObjectMapper()): ObjectNode {
+    /**
+     * Документ contracts/protocol-adapter — форма обмена и хранения (ADR-021).
+     * [objectId] выдаёт модель: адаптер сам себе идентификатор не назначает.
+     */
+    fun toContractJson(objectId: String, mapper: ObjectMapper = ObjectMapper()): ObjectNode {
         val root = mapper.createObjectNode()
-        root.put("id", id).put("name", name)
+        root.put("id", objectId).put("name", name)
         val phy = root.putObject("phy")
         phy.put("modulation", "css")
         val arr = phy.putArray("modes")

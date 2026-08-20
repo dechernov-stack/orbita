@@ -27,7 +27,9 @@ class SchemaValidationTest {
         // разрешение $ref происходит в init реестра (fail fast) — сюда доходим, только если оно удалось
         // CR-003 добавил core/evidence и core/validation
         // 20-я — core/risk, добавлена на шаге 7 вместе с реестром рисков
-        assertEquals(20, registry.names.size, "нормативных схем должно быть 20: ${registry.names}")
+        // 21-я и 22-я — core/constellation и core/ground-stations (CR-005/ADR-021):
+        // входы моделирования стали хранимыми объектами и получили схемы в core/
+        assertEquals(22, registry.names.size, "нормативных схем должно быть 22: ${registry.names}")
     }
 
     @Test
@@ -120,7 +122,7 @@ class SchemaValidationTest {
 
     private fun minimalSpacecraft(): ObjectNode = parse(
         """
-        {"id": "KA-1",
+        {"id": "SP-0001",
          "platform": {
            "dry_mass_kg": 50,
            "power": {"sa_area_m2": 0.5, "sa_efficiency": 0.3, "battery_wh": 100},
@@ -142,7 +144,7 @@ class SchemaValidationTest {
 
     private fun minimalTerminalProfile(): ObjectNode = parse(
         """
-        {"id": "T-A1", "consumer_class": "A_prime",
+        {"id": "TP-0001", "consumer_class": "A_prime",
          "radio": {"eirp_dbm": 14, "rx_sensitivity_dbm": -137},
          "generation": {"model": "periodic", "rate_per_day": 24, "payload_bytes": 24},
          "ephemeris": {"knows_ephemeris": true, "max_almanac_age_s": 86400}}

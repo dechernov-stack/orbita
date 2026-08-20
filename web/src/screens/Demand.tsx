@@ -31,7 +31,7 @@ const EMPTY: Population = {
   consumer_class: 'A_prime',
 }
 
-export function Demand() {
+export function Demand({ demandMapId = 'DM-0001' }: { demandMapId?: string }) {
   const [library, setLibrary] = useState<ReferenceScenarioRow[]>([])
   const [populations, setPopulations] = useState<Population[]>([])
   const [scenarioIds, setScenarioIds] = useState<string[]>([])
@@ -39,6 +39,8 @@ export function Demand() {
   const [draft, setDraft] = useState<Population>(EMPTY)
   const [selected, setSelected] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  /** Показывается хранимая карта, пока инженер не начал собирать свою. */
+  const [editing, setEditing] = useState(false)
 
   useEffect(() => {
     api.demandLibrary().then(setLibrary).catch((e) => setError(String(e)))
@@ -46,21 +48,30 @@ export function Demand() {
 
   useEffect(() => {
     setError(null)
+    if (!editing) {
+      // Хранимая карта (ADR-021): ячейки и веса из сохранённого документа,
+      // на который ссылается сценарий, а не пересчитанные заново.
+      api.demandStored(demandMapId).then(setView).catch((e) => setError(String(e)))
+      return
+    }
     api
       .demand({ population: populations, point_objects: [], scenario_ids: scenarioIds })
       .then(setView)
       .catch((e) => setError(String(e)))
-  }, [populations, scenarioIds])
+  }, [demandMapId, editing, populations, scenarioIds])
 
   const addPopulation = () => {
     const id = draft.id.trim()
     if (!id) return
+    setEditing(true)
     setPopulations((prev) => [...prev.filter((p) => p.id !== id), { ...draft, id }])
     setDraft({ ...EMPTY, id: '' })
   }
 
-  const toggleScenario = (id: string) =>
+  const toggleScenario = (id: string) => {
+    setEditing(true)
     setScenarioIds((prev) => (prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]))
+  }
 
   const contribution = view?.contributions.find((c) => c.id === selected)
 
@@ -68,7 +79,16 @@ export function Demand() {
     <div className="split">
       <div className="pane">
         <div style={{ padding: '8px 8px 0' }}>
-          <span className="secondary">Слои: </span>
+          {editing ? (
+            <button className="tab" onClick={() => setEditing(false)}>
+              ← к хранимой карте
+            </button>
+          ) : (
+            <span className="chip" title="карта из модели, на неё ссылается сценарий">
+              {demandMapId}
+            </span>
+          )}
+          <span className="secondary"> Слои: </span>
           <span className="chip">население {populations.length}</span>
           {library.map((s) => (
             <button
@@ -350,9 +370,10 @@ export function Demand() {
                 </div>
               ))}
               <p className="secondary">
-                Карта живёт в сеансе: хранилища популяций в модели нет, ссылка
-                <span className="mono"> demand_map_ref </span>
-                сценария пока не на что указывать (CR-005).
+                Собранная здесь карта — черновик поверх хранимой. Сохранённая карта
+                <span className="mono"> {demandMapId} </span>
+                остаётся тем, на что ссылается сценарий: подменять её незаметно
+                для расчёта нельзя (ADR-021).
               </p>
             </div>
           </div>

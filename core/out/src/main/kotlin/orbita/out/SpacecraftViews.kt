@@ -30,8 +30,11 @@ import orbita.ka.linkMarginDb
 import orbita.ka.serviceElevationDeg
 import orbita.ka.wetMassKg
 import orbita.ka.withinPlatformRange
+import orbita.mod.model.MissingMelException
+import orbita.mod.model.MissingOrbitFractionException
 import orbita.bal.orbitalPeriodS
 import orbita.net.LoRaWanAdapter
+import kotlin.math.abs
 
 /** Строка массового бюджета: номинал, зрелость, резерв по зрелости. */
 data class MassRow(
@@ -164,14 +167,27 @@ class SpacecraftViews(
 
     /**
      * Сборка экрана по модели КА (схема `contracts/spacecraft`) и условиям.
-     * [massItems] — ведомость масс (MEL); её в схеме нет, она задаётся на
-     * экране и в контракт не входит.
+     *
+     * Ведомость масс берётся из документа (`platform.mel`, CR-006): она часть
+     * модели, а не состояние экрана. Её отсутствие — ошибка, а не ноль:
+     * молчаливый ноль выглядит как результат.
      */
     fun build(
         doc: com.fasterxml.jackson.databind.JsonNode,
-        massItems: List<MassItem>,
         conditions: SpacecraftConditions = SpacecraftConditions(),
     ): SpacecraftView {
+        val massItems = doc.path("platform").path("mel").map { item ->
+            MassItem(
+                name = item.path("name").asText(""),
+                massKg = item.path("mass_kg").asDouble() * item.path("quantity").asInt(1),
+                maturity = Maturity.of(item.path("maturity").asText("")),
+            )
+        }
+        if (massItems.isEmpty()) {
+            throw MissingMelException(
+                "ведомость масс не задана: политику резервов не к чему применить (CR-006)",
+            )
+        }
         val presetId = doc.path("preset").asText("").ifBlank { null }
         val preset = presetId?.let { presets.byId(it) }
         val platform = doc.path("platform")
@@ -272,12 +288,26 @@ class SpacecraftViews(
         modes: com.fasterxml.jackson.databind.JsonNode,
     ): PowerModel {
         val p = platform.path("power")
-        val slots = modes.mapNotNull { m ->
-            val name = m.path("name").asText("")
-            val watts = m.path("power_w").takeIf { it.isNumber }?.asDouble() ?: return@mapNotNull null
-            // Доля витка режима в схеме не задана: циклограмма распределяется
-            // поровну между заявленными режимами. Иное было бы догадкой.
-            ModeSlot(name, 1.0 / modes.size(), watts)
+        // Доля витка берётся из модели и обязана быть задана (CR-007). Раньше
+        // здесь виток делился поровну: это давало правдоподобное число, которое
+        // ни о чём не говорило, — та же болезнь, что баланс, равный нулю
+        // по построению. Отсутствие доли — ошибка расчёта, а не повод делить.
+        val missing = modes.filter { it.path("orbit_fraction").isMissingNode || it.path("orbit_fraction").isNull }
+            .map { it.path("name").asText("") }
+        if (missing.isNotEmpty()) {
+            throw MissingOrbitFractionException("доля витка не задана для режимов: $missing")
+        }
+        val slots = modes.map { m ->
+            ModeSlot(
+                name = m.path("name").asText(""),
+                fraction = m.path("orbit_fraction").asDouble(),
+                powerW = m.path("power_w").asDouble(),
+            )
+        }
+        if (slots.isNotEmpty() && abs(slots.sumOf { it.fraction } - 1.0) > 1e-6) {
+            throw IllegalArgumentException(
+                "доли витка в сумме дают ${slots.sumOf { it.fraction }}, а не 1",
+            )
         }
         return PowerModel(
             sa = SolarArray(
