@@ -74,3 +74,13 @@ tasks.register<Jar>("seedJar") {
     from({ configurations.testRuntimeClasspath.get().filter { it.isDirectory } })
     excludeSignatures()
 }
+
+// Разовый просмотр документов на заполненной базе (шаг 11.1).
+tasks.register<JavaExec>("dumpDocsOnDb") {
+    group = "verification"
+    description = "Печать разделов и разрывов трёх документов на демо-проекте в базе"
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass.set("orbita.com.api.DocsOnDbKt")
+    environment("ORBITA_REPO_ROOT", rootDir.absolutePath)
+    jvmArgs("-Dfile.encoding=UTF-8", "-Dstdout.encoding=UTF-8")
+}

@@ -12,6 +12,7 @@ import orbita.bal.VizData
 import orbita.bal.normalizeAxis
 import orbita.bal.paretoFrontByAxes
 import orbita.bal.radarSeries
+import orbita.mod.DemoModel
 import orbita.mod.store.Link
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -314,6 +315,120 @@ class PresentationSemanticsTest {
                 generator.render(model, DocumentTemplate.ConOps).digest !=
                     generator.render(model, DocumentTemplate.RequirementSpecification).digest,
             )
+        }
+
+        // ---------- Структура разделов по приложениям регламента (шаг 11.1) ----------
+
+        /** Демо-проект целиком: документ проверяется на настоящей модели, а не на образце. */
+        private val demo = DemoModel.load()
+
+        @Test
+        fun `состав разделов спецификации совпадает с приложением 2`() {
+            val doc = generator.render(demo, DocumentTemplate.RequirementSpecification)
+            assertEquals("БП-PA, Приложение 2", doc.body.path("source").asText())
+            assertEquals(
+                listOf(
+                    "Введение", "Требования уровня проекта", "Системные требования",
+                    "Матрица трассировки", "Матрица верификации",
+                ),
+                doc.body.path("sections").map { it.path("title").asText() },
+            )
+            assertEquals(listOf(1, 2, 3, 4, 5), doc.body.path("sections").map { it.path("number").asInt() })
+        }
+
+        @Test
+        fun `состав разделов ConOps совпадает с приложением 3`() {
+            val doc = generator.render(demo, DocumentTemplate.ConOps)
+            assertEquals("БП-PA, Приложение 3", doc.body.path("source").asText())
+            assertEquals(7, doc.body.path("sections").size())
+            assertEquals("Валидационные положения", doc.body.path("sections")[6].path("title").asText())
+        }
+
+        @Test
+        fun `состав разделов описания архитектуры совпадает с приложением 4`() {
+            val doc = generator.render(demo, DocumentTemplate.ArchitectureDescription)
+            assertEquals("БП-PA, Приложение 4", doc.body.path("source").asText())
+            assertEquals(7, doc.body.path("sections").size())
+            assertEquals("Бюджеты", doc.body.path("sections")[6].path("title").asText())
+        }
+
+        /**
+         * Раздел, который модель заполнить не может, ОСТАЁТСЯ в документе.
+         * Выброшенный раздел делает документ на вид полным: читатель не отличит
+         * «персонал не описан» от «персонал не нужен».
+         */
+        @Test
+        fun `пустой раздел остаётся на месте и назван разрывом`() {
+            val doc = generator.render(demo, DocumentTemplate.ConOps)
+            val staffing = doc.body.path("sections").first { it.path("number").asInt() == 6 }
+            assertEquals("Персонал и обеспечение", staffing.path("title").asText())
+            assertTrue(staffing.path("items").isEmpty)
+            val gap = doc.gaps.first { it.section == 6 }
+            assertEquals("раздел пуст", gap.what)
+            // разрыв несёт слова регламента, а не только номер раздела
+            assertTrue(gap.expected.contains("Состав смен")) { gap.expected }
+        }
+
+        @Test
+        fun `заполненный раздел разрывом не считается`() {
+            val doc = generator.render(demo, DocumentTemplate.ConOps)
+            assertTrue(doc.gaps.none { it.section == 7 && it.what == "раздел пуст" })
+            assertTrue(doc.body.path("sections")[6].path("items").size() > 0)
+        }
+
+        /** Приложение 2 перечисляет атрибуты записи; отсутствие любого — разрыв. */
+        @Test
+        fun `требование без обоснования попадает в разрывы спецификации`() {
+            val doc = generator.render(demo, DocumentTemplate.RequirementSpecification)
+            val missing = doc.gaps.filter { it.what.contains("обоснование") }
+            assertTrue(missing.isNotEmpty(), "разрыв по обоснованию не найден")
+            assertTrue(missing.all { it.what.startsWith("RQ-") }) { missing.toString() }
+        }
+
+        @Test
+        fun `запись требования несёт все атрибуты приложения 2`() {
+            val doc = generator.render(demo, DocumentTemplate.RequirementSpecification)
+            val record = doc.body.path("sections").first { it.path("number").asInt() == 3 }
+                .path("items").first { it.path("id").asText() == "RQ-0100" }
+            listOf(
+                "id", "statement", "category", "source", "rationale",
+                "mop", "verification_method", "status", "version", "owner",
+            ).forEach { assertTrue(record.has(it)) { "нет поля $it: $record" } }
+            assertEquals("RQ-0100", record.path("id").asText())
+            assertEquals("вед. системный инженер", record.path("owner").asText())
+            assertEquals("ND-0003", record.path("source").asText())
+        }
+
+        /** Строка матрицы верификации — на СОБЫТИЕ, а не на требование. */
+        @Test
+        fun `матрица верификации даёт строку на каждое событие`() {
+            val doc = generator.render(demo, DocumentTemplate.RequirementSpecification)
+            val rows = doc.body.path("sections").first { it.path("number").asInt() == 5 }.path("items")
+            val events = demo.path("requirements").sumOf { it.path("verification_events").size() }
+            assertEquals(events, rows.size())
+            assertTrue(rows.all { it.path("phase").asText().isNotBlank() }) { "этап не указан" }
+        }
+
+        @Test
+        fun `раздел обоснования архитектуры собран из сравнения вариантов`() {
+            val doc = generator.render(demo, DocumentTemplate.ArchitectureDescription)
+            val rationale = doc.body.path("sections").first { it.path("number").asInt() == 6 }
+            assertEquals(demo.path("options").size(), rationale.path("items").size())
+            assertTrue(rationale.path("items")[0].has("quality"))
+        }
+
+        @Test
+        fun `на настоящей модели генерация тоже воспроизводима и не меняет модель`() {
+            val snapshot = demo.toString()
+            val first = generator.render(demo, DocumentTemplate.ArchitectureDescription)
+            val second = generator.render(demo, DocumentTemplate.ArchitectureDescription)
+            assertEquals(first.digest, second.digest)
+            assertEquals(snapshot, demo.toString())
+        }
+
+        @Test
+        fun `неизвестный шаблон отклонён`() {
+            assertThrows<IllegalArgumentException> { DocumentTemplate.of("semp") }
         }
     }
 
