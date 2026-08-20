@@ -490,6 +490,52 @@ class HttpApi(private val boundary: Boundary) {
                 }
             }
 
+            // Циклограмма из географических масок (TZ-KA-009, Р4/ADR-004):
+            // маски генерируются из ХРАНИМЫХ карты спроса и станций, доли витка —
+            // по трассе аппарата. Ответ сравнивает их с ручными из модели;
+            // подстановка в модель — решение инженера, не автоматика.
+            method == "GET" && path == "/views/spacecraft/mask-schedule" -> {
+                val current = boundary.objects.listCurrent()
+                val demandMap = current.firstOrNull { it.type == "demand_map" }
+                    ?: throw NoSuchElementException("карта спроса не загружена: маску не из чего строить")
+                val stations = current.firstOrNull { it.type == "ground_stations" }
+                    ?: throw NoSuchElementException("станции не заданы: маску сброса не из чего строить")
+                val constellation = current.firstOrNull { it.type == "constellation" }
+                    ?: throw NoSuchElementException("группировка не задана: трассу не по чему считать")
+                val spacecraft = current.firstOrNull { it.type == "spacecraft" }
+
+                val w = constellation.doc.path("walker")
+                val config = orbita.bal.ConstellationConfig(
+                    incDeg = w.path("inclination_deg").asDouble(),
+                    total = w.path("total").asInt(),
+                    planes = w.path("planes").asInt(),
+                    phasing = w.path("phasing").asInt(),
+                    altKm = w.path("altitude_km").asDouble(),
+                )
+                val masks = orbita.ka.buildMasks(demandMap.doc, stations.doc, config.altKm)
+                val epoch = query(ex)["epoch"] ?: "2026-03-20T00:00:00.000Z"
+                val durationS = query(ex)["duration_s"]?.toDoubleOrNull() ?: 86400.0
+                // трасса одного аппарата: в симметричном Уокере статистика
+                // долей витка одна на всех
+                val track = boundary.visibility.groundTracks(config, epoch, durationS)
+                    .values.first().map { (_, lat, lon) -> orbita.ka.MaskPoint(lat, lon) }
+                val fractions = orbita.ka.modeFractions(track, masks)
+
+                val out = mapper.createObjectNode()
+                out.put("mask_version", masks.version)
+                out.put("rx_cells", masks.rxCells.size)
+                out.put("downlink_cells", masks.downlinkCells.size)
+                val generated = out.putObject("generated_orbit_fractions")
+                fractions.forEach { (mode, f) -> generated.put(mode, f) }
+                spacecraft?.doc?.path("modes")?.takeIf { it.isArray }?.let { modes ->
+                    val manual = out.putObject("model_orbit_fractions")
+                    modes.forEach { m ->
+                        manual.put(m.path("name").asText(), m.path("orbit_fraction").asDouble())
+                    }
+                }
+                respond(ex, 200, out)
+            }
+
             // Рекомендательное размещение станций (шаг 12.1, Концепция 5.4).
             // Ручные станции берутся из ХРАНИМОГО набора и не переписываются:
             // подбор строится поверх них, предложенное помечено происхождением.
