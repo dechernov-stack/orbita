@@ -490,6 +490,40 @@ class HttpApi(private val boundary: Boundary) {
                 }
             }
 
+            // Пакет передачи одной операцией (TZ-OUT-006, шаг 11.3). Вердикт
+            // полноты и предупреждения о небазированном — внутри пакета.
+            method == "GET" && path == "/export/package" -> {
+                val options = boundary.results.activeForScenario(
+                    query(ex)["scenario"] ?: "SC-0001", "kpi",
+                ).map { r ->
+                    (r.payload.deepCopy() as ObjectNode)
+                        .put("stale", r.stale)
+                        .put("rng_seed", r.rngSeed)
+                        .also { n ->
+                            val iv = n.putObject("input_versions")
+                            r.inputVersions.forEach { (k, v) -> iv.put(k, v) }
+                        }
+                }
+                val spacecraft = boundary.objects.listCurrent().firstOrNull { it.type == "spacecraft" }
+                val budgets = spacecraft?.let {
+                    orbita.out.ModelSnapshot.budgetsOf(
+                        boundary.spacecraft.build(it.doc, orbita.out.SpacecraftConditions()),
+                        mapper,
+                    )
+                } ?: emptyList()
+                val model = orbita.out.ModelSnapshot.of(
+                    boundary.objects, mapper, options = options, budgets = budgets,
+                )
+                val pkg = orbita.out.TransferPackages.assemble(
+                    model = model,
+                    verificationMatrix = boundary.matrices.verificationMatrix(),
+                    validationMatrix = boundary.matrices.validationMatrix(),
+                    maturity = boundary.maturity.build(query(ex)["gate"] ?: "SRR"),
+                    mapper = mapper,
+                )
+                respond(ex, 200, pkg)
+            }
+
             // Экран 7: сравнение вариантов — нормировка и Парето считаются здесь
             method == "GET" && path == "/views/comparison" -> {
                 val options = boundary.results.activeForScenario(
