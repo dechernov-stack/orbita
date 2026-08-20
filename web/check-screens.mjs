@@ -48,8 +48,45 @@ const shot = async (name) => {
   if (SHOTS) await page.screenshot({ path: `${SHOTS}/${name}.png`, fullPage: false })
 }
 
+// Состояний у шага ТРИ: ответ ещё не пришёл, ответ пришёл и данных нет,
+// ответ пришёл с данными. Ответ задерживается намеренно — иначе на прогретом
+// стенде он приходит мгновенно, и первое состояние проверить нечем. На холодном
+// стенде оно держалось секунды, и мастер всё это время говорил «нет данных».
+console.log('Мастер: состояние до прихода ответа')
+let wizardDelayed = false
+await page.route('**/api/views/wizard', async (route) => {
+  // задерживается только первый запрос: дальше мастер работает как обычно
+  if (!wizardDelayed) {
+    wizardDelayed = true
+    await new Promise((r) => setTimeout(r, 1500))
+  }
+  // переход на новую страницу отменяет запрос — тогда продолжать уже нечего
+  try {
+    await route.continue()
+  } catch {
+    /* маршрут уже обработан навигацией */
+  }
+})
+await page.goto(BASE, { waitUntil: 'commit' })
+await page.waitForSelector('.wizard__step small')
+const whileLoading = await page.$$eval('.wizard__step small', (ss) => ss.map((s) => s.innerText))
+expect(
+  whileLoading.every((s) => s.includes('загрузка')),
+  'до ответа шаг помечен загрузкой, а не «нет данных»',
+)
+expect(
+  (await page.$$('.wizard__step small.amber')).length === 0,
+  'до ответа шаги не покрашены: замечаний ещё никто не находил',
+)
 await page.goto(BASE, { waitUntil: 'networkidle' })
 await page.waitForSelector('.wizard__step')
+// Ждём именно ПРИХОДА состояния, а не «сколько-нибудь секунд»: на холодном
+// стенде ответ идёт заметно дольше, чем на прогретом, и проверка
+// с фиксированной паузой ловила мастер в состоянии загрузки.
+await page.waitForFunction(
+  () => ![...document.querySelectorAll('.wizard__step small')].some((s) => s.innerText.includes('загрузка')),
+  { timeout: 30000 },
+)
 
 console.log('Мастер: состояние шагов')
 const steps = await page.$$eval('.wizard__step', (bs) => bs.map((b) => b.innerText.replace('\n', ' · ')))
