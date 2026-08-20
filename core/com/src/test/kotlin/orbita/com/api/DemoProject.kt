@@ -87,7 +87,7 @@ object DemoProject {
         // Входы моделирования — хранимые объекты (CR-005/ADR-021). Сценарий
         // ссылается на них, а не на компоненты: до CR-005 demand_map_ref вёл
         // на DM-0001, которого модель хранить не умела.
-        seedModelingInputs(boundary, project)
+        seedModelingInputs(boundary)
 
         // Сценарий и результаты сравнения вариантов: экран 7 читает их из базы,
         // а не получает списком в коде — так он работает на данных модели.
@@ -114,42 +114,73 @@ object DemoProject {
 
     /**
      * Входы моделирования. Карта спроса и адаптер протокола НЕ пишутся здесь
-     * руками: карта собирается из тех же популяций эталона, что и в проверках,
+     * руками: карта строится из внешнего датасета населения (шаг 10.2),
      * адаптер — сериализацией самого адаптера. Вторая копия этих данных
      * разошлась бы с первой молча (ловушка 1).
      */
-    private fun seedModelingInputs(boundary: Boundary, project: JsonNode) {
+    private fun seedModelingInputs(boundary: Boundary) {
         boundary.ingest(CoreType.Constellation, constellationJson(), DEMO_AUTHOR)
         boundary.ingest(CoreType.Spacecraft, spacecraftJson(), DEMO_AUTHOR)
-        boundary.ingest(CoreType.DemandMap, demandMapJson(project), DEMO_AUTHOR)
+        boundary.ingest(CoreType.DemandMap, demandMapJson(), DEMO_AUTHOR)
         boundary.ingest(CoreType.TerminalProfile, terminalProfileJson(), DEMO_AUTHOR)
         boundary.ingest(CoreType.GroundStations, groundStationsJson(), DEMO_AUTHOR)
         boundary.ingest(CoreType.ProtocolAdapter, protocolAdapterJson(), DEMO_AUTHOR)
     }
 
-    /** Карта спроса из популяций эталона: источник данных тот же самый. */
-    private fun demandMapJson(project: JsonNode): String {
-        val populations = project.path("populations").map { p ->
-            orbita.usr.PopulationCell(
-                id = p.path("id").asText(),
-                lat = p.path("lat").asDouble(),
-                popDensityPerKm2 = p.path("pop_density_per_km2").asDouble(),
-                terminalsPerCapita = p.path("terminals_per_capita").asDouble(),
-                msgsPerTerminalDay = p.path("msgs_per_terminal_day").asDouble(),
-                klass = p.path("klass").asText(),
-            )
-        }
-        val cells = orbita.usr.DemandMapBuilder.build(populations)
+    /**
+     * Карта спроса из ВНЕШНЕГО ДАТАСЕТА (шаг 10.2). Программные популяции
+     * выглядели как данные и вели себя как данные, но не содержали ни одной
+     * реальной особенности: ни пустых океанов, ни сгущения к городам.
+     *
+     * Датасет проверяется по опорным точкам ДО сборки карты: перестановку
+     * широты и долготы проверкой диапазонов не поймать — города Европы
+     * укладываются в ±90 по обеим осям.
+     */
+    private fun demandMapJson(): String {
+        val dataset = orbita.usr.PopulationDatasets.fromGeoJson(
+            orbita.usr.PopulationDatasets.defaultPath(RepoPaths.repoRoot()),
+        )
+        val problems = orbita.usr.referenceCheck({ lat, lon -> dataset.lookup(lat, lon) })
+        check(problems.isEmpty()) { "датасет населения не сошёлся с опорными точками: $problems" }
+
+        // Слой 1 — население из датасета. Темп сообщений и класс берутся из
+        // сценария «метеринг» библиотеки, а не из числа, выбранного здесь:
+        // терминал, привязанный к населению, — это прибор учёта (шаг 10.3).
+        val library = orbita.usr.ScenarioLibrary()
+        val metering = library.byId(POPULATION_SCENARIO)
+        val layer = orbita.usr.PopulationDatasets.populationLayer(
+            dataset = dataset,
+            terminalsPerCapita = TERMINALS_PER_CAPITA,
+            msgsPerTerminalDay = metering.msgsPerTerminalDay,
+            consumerClass = metering.consumerClass,
+        )
+        // Слой 3 — сценарии, чьи терминалы с населением не коррелируют. Опорные
+        // ячейки самого «метеринга» не берутся: его вклад уже посчитан слоем 1,
+        // и добавление привело бы к двойному счёту.
+        val scenarioIds = library.scenarios.map { it.id }.filter { it != POPULATION_SCENARIO }
+        val seeds = scenarioIds.flatMap { library.expandSeeds(it) }
+
+        val cells = orbita.usr.DemandMapBuilder.build(layer, scenarios = seeds)
         val doc = orbita.usr.DemandMapBuilder.toContractJson(
             mapId = DEMO_DEMAND_MAP,
             cells = cells,
-            terminalsPerCapita = populations.firstOrNull()?.terminalsPerCapita ?: 0.02,
-            dataset = "программные популяции эталона (заглушка до шага 10.2)",
+            terminalsPerCapita = TERMINALS_PER_CAPITA,
+            dataset = "${dataset.id}@${dataset.version} — ${dataset.source}",
+            scenarioLibraryIds = scenarioIds,
+            // версии ОБОИХ входов входят в версию карты: подмена датасета или
+            // правка библиотеки обязаны обесценивать результат (TZ-COM-006)
+            libraryVersion = "${dataset.version}+${library.version}",
             mapper = mapper,
         )
         doc.putObject("lifecycle").put("status", "Draft").put("version", "1")
         return mapper.writeValueAsString(doc)
     }
+
+    /** Терминалов на жителя: оценка первой очереди, одна на демо-проект. */
+    private const val TERMINALS_PER_CAPITA = 0.02
+
+    /** Сценарий библиотеки, задающий параметры слоя населения. */
+    private const val POPULATION_SCENARIO = "metering"
 
     /** Конфигурация группировки: тот же Walker 40/5, что и в вариантах сравнения. */
     private fun constellationJson(): String =
