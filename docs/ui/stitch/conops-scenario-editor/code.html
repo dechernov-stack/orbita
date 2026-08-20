@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+
+<html lang="ru"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>SpaceSys - ConOps Scenario Editor</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "error-container": "#ffdad6",
+                        "on-background": "#191c1d",
+                        "error": "#ba1a1a",
+                        "on-tertiary-fixed": "#281804",
+                        "on-surface": "#191c1d",
+                        "surface-tint": "#525f71",
+                        "primary": "#000000",
+                        "on-secondary-fixed": "#001a40",
+                        "surface-container": "#edeeef",
+                        "surface-bright": "#f8f9fa",
+                        "surface-dim": "#d9dadb",
+                        "on-primary-container": "#778598",
+                        "surface-container-high": "#e7e8e9",
+                        "on-secondary-fixed-variant": "#004491",
+                        "inverse-primary": "#bac8dc",
+                        "inverse-surface": "#2e3132",
+                        "primary-fixed": "#d6e4f9",
+                        "on-primary-fixed-variant": "#3a4859",
+                        "secondary-fixed": "#d7e2ff",
+                        "on-surface-variant": "#44474c",
+                        "primary-fixed-dim": "#bac8dc",
+                        "background": "#f8f9fa",
+                        "surface-container-low": "#f3f4f5",
+                        "secondary-container": "#659dfe",
+                        "on-secondary": "#ffffff",
+                        "on-error-container": "#93000a",
+                        "secondary-fixed-dim": "#acc7ff",
+                        "tertiary-container": "#281804",
+                        "on-tertiary": "#ffffff",
+                        "surface-variant": "#e1e3e4",
+                        "primary-container": "#0f1c2c",
+                        "on-primary": "#ffffff",
+                        "on-primary-fixed": "#0f1c2c",
+                        "secondary": "#115cb9",
+                        "surface": "#f8f9fa",
+                        "on-error": "#ffffff",
+                        "outline-variant": "#c4c6cc",
+                        "tertiary": "#000000",
+                        "surface-container-highest": "#e1e3e4",
+                        "inverse-on-surface": "#f0f1f2",
+                        "tertiary-fixed": "#feddba",
+                        "on-tertiary-container": "#9a7f61",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary-container": "#003370",
+                        "outline": "#74777d",
+                        "tertiary-fixed-dim": "#e0c1a0",
+                        "on-tertiary-fixed-variant": "#584329"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "lifecycle-rail-width": "240px",
+                        "padding-dense": "4px",
+                        "padding-standard": "8px",
+                        "padding-md": "16px",
+                        "gutter": "1px",
+                        "context-panel-width": "320px",
+                        "global-nav-width": "64px"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Inter"],
+                        "code-sm": ["JetBrains Mono"],
+                        "label-caps": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "headline-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "code-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
+                        "label-caps": ["11px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700" }],
+                        "body-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
+                        "headline-lg": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "headline-md": ["18px", { "lineHeight": "24px", "letterSpacing": "-0.01em", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .swimlane-row { min-height: 120px; }
+        .grid-bg {
+            background-size: 20px 20px;
+            background-image:
+                linear-gradient(to right, rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md h-screen overflow-hidden flex">
+<!-- Global Nav (SideNavBar Rail) -->
+<nav class="bg-primary-container text-primary-fixed font-body-sm text-body-sm flex flex-col w-global-nav-width h-full fixed left-0 top-0 z-50 border-r border-outline-variant">
+<div class="h-12 flex items-center justify-center border-b border-outline-variant">
+<span class="font-headline-md text-headline-md font-bold text-on-primary" title="SpaceSys">Sp</span>
+</div>
+<div class="flex flex-col gap-2 mt-4 flex-grow">
+<!-- Inactive -->
+<a class="flex flex-col items-center py-2 text-on-primary-container/70 hover:bg-primary-fixed-variant/30 transition-colors duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+<span class="text-[10px] mt-1 hidden md:block">Главная</span>
+</a>
+<!-- Active (Проекты) -->
+<a class="flex flex-col items-center py-2 text-secondary-fixed bg-secondary-container/20 border-l-2 border-secondary transition-colors duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="account_tree">account_tree</span>
+<span class="text-[10px] mt-1 hidden md:block">Проекты</span>
+</a>
+<!-- Inactive -->
+<a class="flex flex-col items-center py-2 text-on-primary-container/70 hover:bg-primary-fixed-variant/30 transition-colors duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="library_books">library_books</span>
+<span class="text-[10px] mt-1 hidden md:block">Библиотеки</span>
+</a>
+<!-- Inactive -->
+<a class="flex flex-col items-center py-2 text-on-primary-container/70 hover:bg-primary-fixed-variant/30 transition-colors duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="category">category</span>
+<span class="text-[10px] mt-1 hidden md:block">Предметные...</span>
+</a>
+<!-- Inactive -->
+<a class="flex flex-col items-center py-2 text-on-primary-container/70 hover:bg-primary-fixed-variant/30 transition-colors duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="biotech">biotech</span>
+<span class="text-[10px] mt-1 hidden md:block">Исследования</span>
+</a>
+<a class="flex flex-col items-center py-2 text-on-primary-container/70 hover:bg-primary-fixed-variant/30 transition-colors duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="assignment_turned_in">assignment_turned_in</span>
+<span class="text-[10px] mt-1 hidden md:block">Доказательная...</span>
+</a>
+<a class="flex flex-col items-center py-2 text-on-primary-container/70 hover:bg-primary-fixed-variant/30 transition-colors duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="search">search</span>
+<span class="text-[10px] mt-1 hidden md:block">Поиск</span>
+</a>
+<a class="flex flex-col items-center py-2 text-on-primary-container/70 hover:bg-primary-fixed-variant/30 transition-colors duration-150 mt-auto mb-4" href="#">
+<span class="material-symbols-outlined" data-icon="admin_panel_settings">admin_panel_settings</span>
+<span class="text-[10px] mt-1 hidden md:block">Администрирование</span>
+</a>
+</div>
+</nav>
+<!-- TopAppBar -->
+<header class="bg-surface text-on-surface font-label-caps text-label-caps flex items-center justify-between w-full h-12 px-padding-md ml-global-nav-width fixed top-0 z-40 border-b border-outline-variant">
+<div class="flex items-center gap-4">
+<span class="font-headline-md text-headline-md text-on-surface font-bold">Проект: Альфа-Центавра</span>
+<nav class="flex gap-4 ml-6">
+<!-- Active -->
+<a class="text-secondary font-bold border-b-2 border-secondary pb-1 h-12 flex items-center" href="#">Концепция</a>
+<a class="text-on-surface-variant hover:bg-surface-container-high transition-opacity pb-1 h-12 flex items-center" href="#">Базис</a>
+<a class="text-on-surface-variant hover:bg-surface-container-high transition-opacity pb-1 h-12 flex items-center" href="#">Замечания</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex gap-2">
+<button class="px-3 py-1 bg-surface-container hover:bg-surface-container-high text-on-surface border border-outline-variant rounded transition-colors">Базовые линии</button>
+<button class="px-3 py-1 bg-secondary text-on-secondary rounded hover:bg-secondary/90 transition-colors">Следующий смотр</button>
+</div>
+<div class="flex gap-2 text-on-surface-variant border-l border-outline-variant pl-4">
+<button class="hover:bg-surface-container-high p-1 rounded transition-colors"><span class="material-symbols-outlined" data-icon="notifications">notifications</span></button>
+<button class="hover:bg-surface-container-high p-1 rounded transition-colors"><span class="material-symbols-outlined" data-icon="settings">settings</span></button>
+</div>
+<img class="w-8 h-8 rounded-full border border-outline-variant ml-2" data-alt="A professional headshot of an aerospace systems engineer, modern office environment, corporate attire, subtle high-tech lighting in the background, sharp focus, professional blue tint, conveying competence and stability." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD5WejmBGDLIOuijV2rQvTvDL_BrE3jBdWdtng5vJ0FZzQaEPWcHjZWf5jx5N76iJ8QsPblDfbhY9XzLu2GFynhbX0syWgkJpZbvssF3usVGyDD3YB4R3InOclsRSUDtUlpF34GwCD9q16Iypjkq4j9dQdmfzlA7FB9IFwaj5b7ubrCp7F_-BZ-IzHG555Xzhd6CLTKgSsNgqreA9fEUooZ9_QwtxNOoLfNO1j0BcJU4VAQlkrpy0BYKQ"/>
+</div>
+</header>
+<!-- Lifecycle Rail (Drawer) -->
+<aside class="bg-surface-container-low text-secondary font-body-md text-body-md flex flex-col w-lifecycle-rail-width h-full fixed top-12 left-global-nav-width z-30 border-r border-outline-variant transition-all duration-200 ease-in-out">
+<div class="p-4 border-b border-outline-variant">
+<h2 class="font-label-caps text-label-caps text-on-surface-variant uppercase tracking-wider">Жизненный цикл</h2>
+<p class="text-xs text-on-surface-variant mt-1">Текущая фаза: Phase A</p>
+</div>
+<nav class="flex flex-col flex-grow overflow-y-auto py-2">
+<a class="flex items-center px-4 py-2 text-on-surface-variant hover:bg-surface-container-high" href="#">
+<span class="material-symbols-outlined mr-3 text-lg" data-icon="radio_button_checked">radio_button_checked</span>
+<span>Pre-Phase A</span>
+</a>
+<!-- Active -->
+<a class="flex items-center px-4 py-2 bg-secondary/10 text-secondary font-semibold" href="#">
+<span class="material-symbols-outlined mr-3 text-lg" data-icon="radio_button_unchecked">radio_button_unchecked</span>
+<span>Phase A: Concept</span>
+</a>
+<a class="flex items-center px-4 py-2 text-on-surface-variant hover:bg-surface-container-high ml-6" href="#">
+<span class="material-symbols-outlined mr-3 text-lg" data-icon="play_arrow">play_arrow</span>
+<span>ConOps Editor</span>
+</a>
+<a class="flex items-center px-4 py-2 text-on-surface-variant hover:bg-surface-container-high" href="#">
+<span class="material-symbols-outlined mr-3 text-lg" data-icon="pending">pending</span>
+<span>Phase A: Feasibility</span>
+</a>
+<a class="flex items-center px-4 py-2 text-on-surface-variant hover:bg-surface-container-high" href="#">
+<span class="material-symbols-outlined mr-3 text-lg" data-icon="account_tree">account_tree</span>
+<span>Requirements</span>
+</a>
+<a class="flex items-center px-4 py-2 text-on-surface-variant hover:bg-surface-container-high" href="#">
+<span class="material-symbols-outlined mr-3 text-lg" data-icon="schema">schema</span>
+<span>Architecture</span>
+</a>
+</nav>
+</aside>
+<!-- Main Workspace (Scenario Editor) -->
+<main class="flex-grow pt-12 pl-[calc(64px+240px)] pr-context-panel-width h-screen bg-surface-bright flex flex-col">
+<!-- Editor Toolbar -->
+<div class="h-12 border-b border-outline-variant bg-surface flex items-center justify-between px-4 flex-shrink-0">
+<div class="flex items-center gap-2">
+<span class="font-headline-md text-headline-md font-semibold text-on-surface">Scenario: Lunar Orbital Insertion</span>
+<span class="px-2 py-0.5 bg-secondary-container/30 text-on-secondary-container text-[10px] font-bold rounded uppercase tracking-wide ml-2 border border-secondary/20">Draft</span>
+</div>
+<div class="flex items-center gap-3 text-sm">
+<button class="flex items-center gap-1 hover:bg-surface-container px-2 py-1 rounded transition-colors text-on-surface-variant">
+<span class="material-symbols-outlined text-base" data-icon="add">add</span> Trigger
+                </button>
+<button class="flex items-center gap-1 hover:bg-surface-container px-2 py-1 rounded transition-colors text-on-surface-variant">
+<span class="material-symbols-outlined text-base" data-icon="person_add">person_add</span> Actor
+                </button>
+<div class="w-px h-4 bg-outline-variant"></div>
+<button class="flex items-center gap-1 hover:bg-surface-container px-2 py-1 rounded transition-colors text-on-surface-variant">
+<span class="material-symbols-outlined text-base" data-icon="undo">undo</span>
+</button>
+<button class="flex items-center gap-1 hover:bg-surface-container px-2 py-1 rounded transition-colors text-on-surface-variant">
+<span class="material-symbols-outlined text-base" data-icon="redo">redo</span>
+</button>
+</div>
+</div>
+<!-- Canvas Area -->
+<div class="flex-grow overflow-auto relative grid-bg p-6">
+<!-- Swimlane: Ground Control -->
+<div class="mb-6 bg-surface border border-outline-variant rounded-DEFAULT shadow-sm relative">
+<div class="w-8 absolute left-0 top-0 bottom-0 bg-surface-container-low border-r border-outline-variant rounded-l-DEFAULT flex items-center justify-center writing-mode-vertical">
+<span class="transform -rotate-90 text-xs font-semibold text-on-surface-variant whitespace-nowrap">Ground Control</span>
+</div>
+<div class="pl-12 py-4 pr-4 swimlane-row relative">
+<!-- Event Node -->
+<div class="absolute left-16 top-6 bg-surface-container border border-outline-variant rounded px-3 py-2 w-40 cursor-pointer hover:border-secondary transition-colors z-10">
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-sm text-secondary" data-icon="settings_remote">settings_remote</span>
+<span class="font-label-caps text-label-caps text-on-surface">Initiate LOI Sequence</span>
+</div>
+<p class="text-[10px] text-on-surface-variant">Transmit burn parameters to spacecraft.</p>
+</div>
+<!-- Connection Line (SVG) -->
+<svg class="absolute top-0 left-0 w-full h-full pointer-events-none" style="z-index: 0;">
+<path d="M 224 40 L 300 40 L 300 160 L 350 160" fill="none" stroke="#c4c6cc" stroke-dasharray="4" stroke-width="2"></path>
+</svg>
+</div>
+</div>
+<!-- Swimlane: Spacecraft Systems -->
+<div class="mb-6 bg-surface border border-outline-variant rounded-DEFAULT shadow-sm relative">
+<div class="w-8 absolute left-0 top-0 bottom-0 bg-surface-container-low border-r border-outline-variant rounded-l-DEFAULT flex items-center justify-center writing-mode-vertical">
+<span class="transform -rotate-90 text-xs font-semibold text-on-surface-variant whitespace-nowrap">Spacecraft Sys</span>
+</div>
+<div class="pl-12 py-4 pr-4 swimlane-row relative h-[200px]">
+<!-- State Node -->
+<div class="absolute left-[350px] top-4 bg-primary-fixed border border-primary-fixed-dim rounded-full px-4 py-1 flex items-center gap-2 shadow-sm z-10 cursor-pointer hover:border-secondary">
+<span class="material-symbols-outlined text-sm text-on-primary-fixed-variant" data-icon="power">power</span>
+<span class="text-xs font-semibold text-on-primary-fixed-variant">Engine Spool Up</span>
+</div>
+<!-- Action Node (Burn) -->
+<div class="absolute left-[500px] top-12 bg-surface border-2 border-secondary rounded px-3 py-2 w-48 shadow-[0_2px_8px_rgba(0,0,0,0.1)] z-10 cursor-pointer">
+<div class="flex items-center justify-between mb-1">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-sm text-secondary" data-icon="rocket_launch">rocket_launch</span>
+<span class="font-label-caps text-label-caps text-secondary">Main Engine Burn</span>
+</div>
+<span class="text-[10px] bg-secondary-container text-on-secondary-container px-1 rounded">Active</span>
+</div>
+<p class="text-[10px] text-on-surface-variant">Duration: 4m 32s. Delta-V: 850 m/s.</p>
+<!-- Traceability Indicators -->
+<div class="mt-2 flex gap-1 border-t border-outline-variant pt-1">
+<span class="text-[9px] text-on-surface-variant bg-surface-container px-1 rounded" title="Linked to Requirement Req-042">Req-042</span>
+<span class="text-[9px] text-on-surface-variant bg-surface-container px-1 rounded" title="Linked to Need N-11">N-11</span>
+</div>
+</div>
+<!-- Decision Node -->
+<div class="absolute left-[750px] top-10 transform rotate-45 w-12 h-12 bg-tertiary-fixed border border-tertiary-fixed-dim z-10 flex items-center justify-center cursor-pointer hover:border-secondary">
+<span class="material-symbols-outlined transform -rotate-45 text-on-tertiary-fixed-variant" data-icon="question_mark">question_mark</span>
+</div>
+<span class="absolute left-[745px] top-24 text-[10px] font-semibold text-on-surface-variant">Orbit Achieved?</span>
+<!-- SVG Lines -->
+<svg class="absolute top-0 left-0 w-full h-full pointer-events-none" style="z-index: 0;">
+<path d="M 480 28 L 500 28 L 500 60" fill="none" marker-end="url(#arrow)" stroke="#c4c6cc" stroke-width="2"></path>
+<path d="M 692 70 L 750 70" fill="none" marker-end="url(#arrow)" stroke="#c4c6cc" stroke-width="2"></path>
+<!-- Success Path -->
+<path d="M 790 70 L 850 70" fill="none" marker-end="url(#arrow-success)" stroke="#115cb9" stroke-width="2"></path>
+<text fill="#115cb9" font-size="10" x="800" y="65">Yes</text>
+<!-- Fail Path -->
+<path d="M 774 85 L 774 140 L 850 140" fill="none" marker-end="url(#arrow-fail)" stroke="#ba1a1a" stroke-dasharray="2" stroke-width="2"></path>
+<text fill="#ba1a1a" font-size="10" x="780" y="135">No</text>
+</svg>
+<!-- End States -->
+<div class="absolute left-[850px] top-12 bg-surface-container border border-outline-variant rounded-full w-8 h-8 flex items-center justify-center z-10">
+<span class="material-symbols-outlined text-secondary text-sm" data-icon="check_circle">check_circle</span>
+</div>
+<div class="absolute left-[850px] top-[125px] bg-error-container border border-error rounded-full w-8 h-8 flex items-center justify-center z-10">
+<span class="material-symbols-outlined text-error text-sm" data-icon="cancel">cancel</span>
+</div>
+</div>
+</div>
+<!-- SVG Definitions for markers -->
+<svg style="width:0;height:0;position:absolute;">
+<defs>
+<marker id="arrow" markerheight="6" markerwidth="6" orient="auto-start-reverse" refx="5" refy="5" viewbox="0 0 10 10">
+<path d="M 0 0 L 10 5 L 0 10 z" fill="#c4c6cc"></path>
+</marker>
+<marker id="arrow-success" markerheight="6" markerwidth="6" orient="auto-start-reverse" refx="5" refy="5" viewbox="0 0 10 10">
+<path d="M 0 0 L 10 5 L 0 10 z" fill="#115cb9"></path>
+</marker>
+<marker id="arrow-fail" markerheight="6" markerwidth="6" orient="auto-start-reverse" refx="5" refy="5" viewbox="0 0 10 10">
+<path d="M 0 0 L 10 5 L 0 10 z" fill="#ba1a1a"></path>
+</marker>
+</defs>
+</svg>
+</div>
+</main>
+<!-- Context Inspector (Right Panel) -->
+<aside class="bg-surface-container text-primary font-label-caps text-label-caps flex flex-col w-context-panel-width h-full fixed top-12 right-0 z-30 border-l border-outline-variant transition-transform duration-300">
+<div class="p-4 border-b border-outline-variant flex justify-between items-center bg-surface">
+<span class="font-headline-md text-headline-md text-primary font-semibold">Инспектор</span>
+<button class="text-on-surface-variant hover:text-primary"><span class="material-symbols-outlined text-sm" data-icon="close">close</span></button>
+</div>
+<!-- Inspector Tabs -->
+<div class="flex border-b border-outline-variant bg-surface px-2">
+<button class="flex-1 py-2 text-on-surface-variant hover:text-primary transition-colors flex justify-center border-b-2 border-transparent">Детали</button>
+<button class="flex-1 py-2 border-b-2 border-secondary text-secondary font-bold flex justify-center" title="Трассируемость">Связи</button>
+<button class="flex-1 py-2 text-on-surface-variant hover:text-primary transition-colors flex justify-center border-b-2 border-transparent">Влияние</button>
+</div>
+<!-- Inspector Content: Traceability -->
+<div class="flex-grow overflow-y-auto font-body-sm text-body-sm bg-surface-bright">
+<div class="p-4 border-b border-outline-variant bg-surface">
+<p class="text-xs text-on-surface-variant mb-1">Selected Element</p>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-base" data-icon="rocket_launch">rocket_launch</span>
+<span class="font-semibold text-on-surface text-sm">Main Engine Burn</span>
+</div>
+</div>
+<!-- Section: Needs -->
+<div class="bg-surface-container-low border-y border-outline-variant px-4 py-2 mt-2 sticky top-0 z-10 flex justify-between items-center">
+<span class="font-label-caps text-on-surface-variant">Satisfies Needs (1)</span>
+<button><span class="material-symbols-outlined text-sm text-on-surface-variant" data-icon="add">add</span></button>
+</div>
+<div class="p-4">
+<div class="flex items-start gap-2 border border-outline-variant p-2 rounded bg-surface shadow-sm hover:border-secondary transition-colors cursor-pointer">
+<span class="material-symbols-outlined text-tertiary-fixed-dim text-base mt-0.5" data-icon="flag">flag</span>
+<div>
+<div class="flex justify-between w-full">
+<span class="font-code-sm text-xs font-semibold text-on-surface">N-11</span>
+<span class="text-[10px] bg-surface-container px-1 rounded text-on-surface-variant">Trace</span>
+</div>
+<p class="text-xs text-on-surface-variant mt-1">System shall enter stable lunar orbit within specified delta-v budget.</p>
+</div>
+</div>
+</div>
+<!-- Section: Requirements -->
+<div class="bg-surface-container-low border-y border-outline-variant px-4 py-2 mt-2 sticky top-0 z-10 flex justify-between items-center">
+<span class="font-label-caps text-on-surface-variant">Implements Requirements (2)</span>
+<button><span class="material-symbols-outlined text-sm text-on-surface-variant" data-icon="add">add</span></button>
+</div>
+<div class="p-4 flex flex-col gap-2">
+<div class="flex items-start gap-2 border border-outline-variant p-2 rounded bg-surface shadow-sm hover:border-secondary transition-colors cursor-pointer">
+<span class="material-symbols-outlined text-secondary text-base mt-0.5" data-icon="rule">rule</span>
+<div>
+<div class="flex justify-between w-full">
+<span class="font-code-sm text-xs font-semibold text-on-surface">Req-042</span>
+<span class="text-[10px] bg-error-container text-on-error-container px-1 rounded">Verify</span>
+</div>
+<p class="text-xs text-on-surface-variant mt-1">Main engine thrust duration shall not exceed 5 minutes continuous operation.</p>
+</div>
+</div>
+<div class="flex items-start gap-2 border border-outline-variant p-2 rounded bg-surface shadow-sm hover:border-secondary transition-colors cursor-pointer">
+<span class="material-symbols-outlined text-secondary text-base mt-0.5" data-icon="rule">rule</span>
+<div>
+<div class="flex justify-between w-full">
+<span class="font-code-sm text-xs font-semibold text-on-surface">Req-089</span>
+<span class="text-[10px] bg-surface-container px-1 rounded text-on-surface-variant">Trace</span>
+</div>
+<p class="text-xs text-on-surface-variant mt-1">Telemetry must report engine status every 100ms during active burn.</p>
+</div>
+</div>
+</div>
+</div>
+</aside>
+</body></html>

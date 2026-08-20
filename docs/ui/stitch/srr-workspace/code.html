@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+
+<html lang="ru"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>SRR Workspace - SpaceSys Engineering HQ</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-primary-container": "#778598",
+                        "on-primary": "#ffffff",
+                        "primary": "#000000",
+                        "surface-container": "#edeeef",
+                        "tertiary-fixed-dim": "#e0c1a0",
+                        "outline-variant": "#c4c6cc",
+                        "surface-container-low": "#f3f4f5",
+                        "secondary-container": "#659dfe",
+                        "on-primary-fixed": "#0f1c2c",
+                        "surface-bright": "#f8f9fa",
+                        "secondary-fixed-dim": "#acc7ff",
+                        "on-tertiary-fixed": "#281804",
+                        "surface-variant": "#e1e3e4",
+                        "primary-fixed-dim": "#bac8dc",
+                        "inverse-on-surface": "#f0f1f2",
+                        "surface-dim": "#d9dadb",
+                        "surface-container-lowest": "#ffffff",
+                        "on-tertiary": "#ffffff",
+                        "on-secondary-container": "#003370",
+                        "on-error-container": "#93000a",
+                        "on-background": "#191c1d",
+                        "on-secondary-fixed-variant": "#004491",
+                        "on-surface": "#191c1d",
+                        "tertiary-container": "#281804",
+                        "surface": "#f8f9fa",
+                        "surface-tint": "#525f71",
+                        "on-tertiary-fixed-variant": "#584329",
+                        "tertiary-fixed": "#feddba",
+                        "on-surface-variant": "#44474c",
+                        "on-tertiary-container": "#9a7f61",
+                        "primary-container": "#0f1c2c",
+                        "error-container": "#ffdad6",
+                        "error": "#ba1a1a",
+                        "tertiary": "#000000",
+                        "primary-fixed": "#d6e4f9",
+                        "on-secondary": "#ffffff",
+                        "on-error": "#ffffff",
+                        "on-secondary-fixed": "#001a40",
+                        "secondary-fixed": "#d7e2ff",
+                        "surface-container-highest": "#e1e3e4",
+                        "background": "#f8f9fa",
+                        "outline": "#74777d",
+                        "surface-container-high": "#e7e8e9",
+                        "on-primary-fixed-variant": "#3a4859",
+                        "secondary": "#115cb9",
+                        "inverse-primary": "#bac8dc",
+                        "inverse-surface": "#2e3132"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "gutter": "1px",
+                        "padding-standard": "8px",
+                        "padding-md": "16px",
+                        "lifecycle-rail-width": "240px",
+                        "padding-dense": "4px",
+                        "context-panel-width": "320px",
+                        "global-nav-width": "64px"
+                    },
+                    "fontFamily": {
+                        "code-sm": ["JetBrains Mono"],
+                        "body-md": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "label-caps": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "body-sm": ["Inter"]
+                    },
+                    "fontSize": {
+                        "code-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-lg": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "label-caps": ["11px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700" }],
+                        "headline-md": ["18px", { "lineHeight": "24px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "body-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        };
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8f9fa; color: #191c1d; margin: 0; padding: 0; display: flex; height: 100vh; overflow: hidden; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .material-symbols-outlined.fill { font-variation-settings: 'FILL' 1; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background-color: #c4c6cc; border-radius: 4px; }
+        .zebra-row:nth-child(even) { background-color: rgba(225, 227, 228, 0.3); }
+        .glass-card { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(10px); border: 1px solid #dee2e6; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
+    </style>
+</head>
+<body class="bg-background text-on-background">
+<!-- Global Nav (Rail) -->
+<nav class="bg-primary-container dark:bg-primary-container docked global-nav-width h-screen left-0 border-r border-outline-variant flat no shadows flex flex-col w-global-nav-width h-full fixed left-0 top-0 z-50">
+<div class="flex flex-col items-center py-4 space-y-6 flex-1">
+<div class="font-headline-md text-headline-md font-bold text-on-primary mb-4 w-10 h-10 rounded bg-secondary flex items-center justify-center" title="SpaceSys Engineering HQ">S</div>
+<a class="flex flex-col items-center justify-center p-2 rounded-lg text-on-primary-container/70 hover:bg-primary-fixed-variant/30 transition-colors duration-150 w-full group" href="#" title="Главная">
+<span class="material-symbols-outlined text-on-primary-container/70 group-hover:text-primary-fixed">home</span>
+</a>
+<a class="flex flex-col items-center justify-center p-2 rounded-lg text-secondary-fixed bg-secondary-container/20 border-l-2 border-secondary transition-colors duration-150 w-full group" href="#" title="Проекты">
+<span class="material-symbols-outlined text-secondary-fixed fill">account_tree</span>
+</a>
+<a class="flex flex-col items-center justify-center p-2 rounded-lg text-on-primary-container/70 hover:bg-primary-fixed-variant/30 transition-colors duration-150 w-full group" href="#" title="Библиотеки">
+<span class="material-symbols-outlined text-on-primary-container/70 group-hover:text-primary-fixed">library_books</span>
+</a>
+<a class="flex flex-col items-center justify-center p-2 rounded-lg text-on-primary-container/70 hover:bg-primary-fixed-variant/30 transition-colors duration-150 w-full group" href="#" title="Предметные области">
+<span class="material-symbols-outlined text-on-primary-container/70 group-hover:text-primary-fixed">category</span>
+</a>
+<a class="flex flex-col items-center justify-center p-2 rounded-lg text-on-primary-container/70 hover:bg-primary-fixed-variant/30 transition-colors duration-150 w-full group" href="#" title="Исследования">
+<span class="material-symbols-outlined text-on-primary-container/70 group-hover:text-primary-fixed">biotech</span>
+</a>
+<a class="flex flex-col items-center justify-center p-2 rounded-lg text-on-primary-container/70 hover:bg-primary-fixed-variant/30 transition-colors duration-150 w-full group" href="#" title="Доказательная база">
+<span class="material-symbols-outlined text-on-primary-container/70 group-hover:text-primary-fixed">assignment_turned_in</span>
+</a>
+</div>
+<div class="flex flex-col items-center py-4 space-y-4">
+<a class="flex flex-col items-center justify-center p-2 rounded-lg text-on-primary-container/70 hover:bg-primary-fixed-variant/30 transition-colors duration-150 w-full group" href="#" title="Поиск">
+<span class="material-symbols-outlined text-on-primary-container/70 group-hover:text-primary-fixed">search</span>
+</a>
+<a class="flex flex-col items-center justify-center p-2 rounded-lg text-on-primary-container/70 hover:bg-primary-fixed-variant/30 transition-colors duration-150 w-full group" href="#" title="Администрирование">
+<span class="material-symbols-outlined text-on-primary-container/70 group-hover:text-primary-fixed">admin_panel_settings</span>
+</a>
+<div class="w-8 h-8 rounded-full bg-surface-variant overflow-hidden mt-2">
+<img class="w-full h-full object-cover" data-alt="A professional headshot of an engineer in a brightly lit office, looking confident, corporate style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDHkbSkqt1AljtES4sfKiHZXSqZNyLjh7B8JcsxTEVM1jhec07H7RVkEMdXga6S7nA6Ssojl6m9oS3XCHcAiFt_3EZQsnElUL_R5LY3ixACyrmZkRjsffTWPa78yAblPcLPunpdQynNT19WtJJ2uze-IZkhm1kW_bJA5zei51agefyC49eXBHOa2_BCJ-dbOLuFe3mORSMJXdHmYw5mP652bMrjZqzE_G3Ac68-Z8mGjAmIR10PCnXrRw"/>
+</div>
+</div>
+</nav>
+<!-- Top App Bar -->
+<header class="bg-surface dark:bg-surface-dim docked full-width top-0 h-12 border-b border-outline-variant flat no shadows flex items-center justify-between w-full h-12 px-padding-md ml-global-nav-width fixed top-0 z-40">
+<div class="flex items-center gap-4">
+<span class="font-headline-md text-headline-md text-on-surface whitespace-nowrap">Проект: Альфа-Центавра</span>
+<span class="text-on-surface-variant px-2 font-label-caps text-label-caps">/</span>
+<span class="font-headline-md text-headline-md text-on-surface whitespace-nowrap">System Requirements Review (SRR)</span>
+</div>
+<div class="flex items-center space-x-6 h-full">
+<nav class="hidden md:flex h-full">
+<a class="flex items-center px-4 h-full text-on-surface-variant hover:bg-surface-container-high transition-opacity font-label-caps text-label-caps uppercase tracking-wider" href="#">Концепция</a>
+<a class="flex items-center px-4 h-full text-secondary font-bold border-b-2 border-secondary font-label-caps text-label-caps uppercase tracking-wider" href="#">Базис</a>
+<a class="flex items-center px-4 h-full text-on-surface-variant hover:bg-surface-container-high transition-opacity font-label-caps text-label-caps uppercase tracking-wider" href="#">Замечания</a>
+</nav>
+<div class="flex items-center space-x-2">
+<button class="text-on-surface-variant hover:bg-surface-container-high p-1.5 rounded transition-opacity cursor-pointer flex items-center">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="text-on-surface-variant hover:bg-surface-container-high p-1.5 rounded transition-opacity cursor-pointer flex items-center">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</div>
+<div class="flex items-center space-x-2">
+<button class="font-label-caps text-label-caps text-on-surface-variant px-3 py-1 border border-outline-variant rounded hover:bg-surface-container-high transition-colors uppercase">
+                    Базовые линии
+                </button>
+<button class="font-label-caps text-label-caps bg-secondary text-on-secondary px-3 py-1 rounded hover:bg-secondary/90 transition-colors uppercase">
+                    Следующий смотр
+                </button>
+</div>
+</div>
+</header>
+<!-- Main Workspace Container -->
+<div class="flex w-full h-full pt-12 pl-global-nav-width">
+<!-- Center Workspace -->
+<main class="flex-1 overflow-y-auto bg-background p-padding-md flex flex-col gap-4 relative">
+<div class="absolute top-0 right-0 p-4 z-10 flex gap-2">
+<span class="bg-primary text-on-primary font-label-caps text-label-caps px-2 py-1 rounded uppercase tracking-wider flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">lock</span> Frozen Baseline
+                </span>
+<span class="bg-secondary-container text-on-secondary-container font-label-caps text-label-caps px-2 py-1 rounded uppercase tracking-wider flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">pending</span> Under Review
+                </span>
+</div>
+<!-- Dashboard Bento Grid -->
+<div class="grid grid-cols-4 gap-4 mt-6">
+<!-- Completeness -->
+<div class="glass-card rounded-lg p-4 flex flex-col justify-between">
+<div class="flex justify-between items-start">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">Requirements Completeness</span>
+<span class="material-symbols-outlined text-secondary">donut_large</span>
+</div>
+<div class="mt-4">
+<div class="font-headline-lg text-headline-lg text-on-surface">98.5%</div>
+<div class="w-full bg-surface-variant h-1.5 rounded-full mt-2 overflow-hidden">
+<div class="bg-secondary h-full" style="width: 98.5%"></div>
+</div>
+</div>
+</div>
+<!-- Verification -->
+<div class="glass-card rounded-lg p-4 flex flex-col justify-between">
+<div class="flex justify-between items-start">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">Verification Methods</span>
+<span class="material-symbols-outlined text-secondary">fact_check</span>
+</div>
+<div class="mt-4">
+<div class="font-headline-lg text-headline-lg text-on-surface">92.0%</div>
+<div class="w-full bg-surface-variant h-1.5 rounded-full mt-2 overflow-hidden">
+<div class="bg-secondary h-full" style="width: 92%"></div>
+</div>
+</div>
+</div>
+<!-- Traceability -->
+<div class="glass-card rounded-lg p-4 flex flex-col justify-between">
+<div class="flex justify-between items-start">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">Traced to Needs</span>
+<span class="material-symbols-outlined text-secondary">account_tree</span>
+</div>
+<div class="mt-4">
+<div class="font-headline-lg text-headline-lg text-on-surface">100%</div>
+<div class="w-full bg-surface-variant h-1.5 rounded-full mt-2 overflow-hidden">
+<div class="bg-secondary h-full" style="width: 100%"></div>
+</div>
+</div>
+</div>
+<!-- AI Ambiguity -->
+<div class="glass-card rounded-lg p-4 flex flex-col justify-between border-l-4 border-error">
+<div class="flex justify-between items-start">
+<span class="font-label-caps text-label-caps text-error uppercase flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">psychology</span> AI Ambiguity Score
+                        </span>
+<span class="material-symbols-outlined text-error">warning</span>
+</div>
+<div class="mt-4">
+<div class="font-headline-lg text-headline-lg text-error">High (12)</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant mt-1">Flagged statements requiring rewrite.</div>
+</div>
+</div>
+</div>
+<!-- Actionable Table -->
+<div class="bg-surface-container-lowest rounded-lg border border-outline-variant shadow-sm flex-1 flex flex-col min-h-[300px]">
+<div class="p-3 border-b border-outline-variant flex justify-between items-center bg-surface">
+<h2 class="font-headline-md text-headline-md text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-error">assignment_late</span>
+                        Critical Findings (RFA/RID)
+                    </h2>
+<button class="text-secondary font-label-caps text-label-caps uppercase hover:underline">View All (34)</button>
+</div>
+<div class="overflow-auto flex-1">
+<table class="w-full text-left border-collapse">
+<thead class="sticky top-0 bg-surface-container z-10 shadow-sm border-b border-outline-variant">
+<tr>
+<th class="p-2 font-label-caps text-label-caps text-on-surface-variant uppercase font-bold w-12 text-center">ID</th>
+<th class="p-2 font-label-caps text-label-caps text-on-surface-variant uppercase font-bold w-32">Severity</th>
+<th class="p-2 font-label-caps text-label-caps text-on-surface-variant uppercase font-bold w-48">Component</th>
+<th class="p-2 font-label-caps text-label-caps text-on-surface-variant uppercase font-bold">Description</th>
+<th class="p-2 font-label-caps text-label-caps text-on-surface-variant uppercase font-bold w-24">Assignee</th>
+<th class="p-2 w-10"></th>
+</tr>
+</thead>
+<tbody class="font-body-sm text-body-sm text-on-surface">
+<tr class="h-8 border-b border-outline-variant/30 zebra-row hover:bg-surface-variant/50 transition-colors group">
+<td class="p-2 text-center font-code-sm text-code-sm text-on-surface-variant">R-012</td>
+<td class="p-2"><span class="bg-error-container text-on-error-container px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">Critical</span></td>
+<td class="p-2 font-code-sm">SYS-THERM-REQ-05</td>
+<td class="p-2 truncate max-w-md">Contradiction with power budget allocation for secondary heaters.</td>
+<td class="p-2 text-on-surface-variant">A. Smirnov</td>
+<td class="p-2 opacity-0 group-hover:opacity-100 transition-opacity text-right">
+<button class="text-secondary hover:text-secondary-container"><span class="material-symbols-outlined text-[16px]">edit</span></button>
+</td>
+</tr>
+<tr class="h-8 border-b border-outline-variant/30 zebra-row hover:bg-surface-variant/50 transition-colors group">
+<td class="p-2 text-center font-code-sm text-code-sm text-on-surface-variant">R-015</td>
+<td class="p-2"><span class="bg-error-container text-on-error-container px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">Critical</span></td>
+<td class="p-2 font-code-sm">SYS-COMM-REQ-12</td>
+<td class="p-2 truncate max-w-md">Missing verification method for latency threshold.</td>
+<td class="p-2 text-on-surface-variant">V. Chen</td>
+<td class="p-2 opacity-0 group-hover:opacity-100 transition-opacity text-right">
+<button class="text-secondary hover:text-secondary-container"><span class="material-symbols-outlined text-[16px]">edit</span></button>
+</td>
+</tr>
+<tr class="h-8 border-b border-outline-variant/30 zebra-row hover:bg-surface-variant/50 transition-colors group">
+<td class="p-2 text-center font-code-sm text-code-sm text-on-surface-variant">R-022</td>
+<td class="p-2"><span class="bg-tertiary-container text-on-tertiary-container px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">Major</span></td>
+<td class="p-2 font-code-sm">CONOPS-SCEN-03</td>
+<td class="p-2 truncate max-w-md">AI flagged ambiguity in phrase "sufficiently autonomous".</td>
+<td class="p-2 text-on-surface-variant">System AI</td>
+<td class="p-2 opacity-0 group-hover:opacity-100 transition-opacity text-right">
+<button class="text-secondary hover:text-secondary-container"><span class="material-symbols-outlined text-[16px]">edit</span></button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</main>
+<!-- Right Panel (Context Inspector) -->
+<aside class="bg-surface-container dark:bg-surface-container-high docked context-panel-width h-full right-0 border-l border-outline-variant flat no shadows flex flex-col w-context-panel-width z-30 flex-shrink-0 transition-transform duration-300">
+<div class="p-4 border-b border-outline-variant">
+<h2 class="font-headline-md text-headline-md text-primary">Инспектор контекста</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">SRR Checklist &amp; Evidence</p>
+</div>
+<div class="flex border-b border-outline-variant overflow-x-auto">
+<button class="flex-1 py-2 px-1 text-center font-label-caps text-label-caps text-secondary border-b-2 border-secondary whitespace-nowrap flex flex-col items-center justify-center group hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[18px] mb-1">info</span>
+<span class="px-1">Детали</span>
+</button>
+<button class="flex-1 py-2 px-1 text-center font-label-caps text-label-caps text-on-surface-variant whitespace-nowrap flex flex-col items-center justify-center group hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[18px] mb-1">link</span>
+<span class="px-1">Связи</span>
+</button>
+<button class="flex-1 py-2 px-1 text-center font-label-caps text-label-caps text-on-surface-variant whitespace-nowrap flex flex-col items-center justify-center group hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[18px] mb-1">psychology</span>
+<span class="px-1">AI Советы</span>
+</button>
+</div>
+<div class="p-4 overflow-y-auto flex-1 font-body-md text-body-md text-on-surface space-y-4">
+<!-- Section 1 -->
+<div>
+<div class="bg-[#E9ECEF] px-2 py-1 flex items-center justify-between cursor-pointer rounded-sm border border-outline-variant/50">
+<span class="font-label-caps text-label-caps uppercase text-on-surface-variant font-bold">1. System Spec (SyRS)</span>
+<span class="material-symbols-outlined text-[16px] text-on-surface-variant">expand_more</span>
+</div>
+<div class="p-2 space-y-2">
+<label class="flex items-start gap-2 cursor-pointer">
+<input checked="" class="rounded border-outline-variant text-secondary focus:ring-secondary mt-1" type="checkbox"/>
+<span class="font-body-sm text-body-sm">All stakeholders identified and needs mapped.</span>
+</label>
+<label class="flex items-start gap-2 cursor-pointer">
+<input checked="" class="rounded border-outline-variant text-secondary focus:ring-secondary mt-1" type="checkbox"/>
+<span class="font-body-sm text-body-sm">Requirements are unambiguous and verifiable.</span>
+</label>
+<label class="flex items-start gap-2 cursor-pointer">
+<input class="rounded border-outline-variant text-secondary focus:ring-secondary mt-1" type="checkbox"/>
+<span class="font-body-sm text-body-sm">TBD/TBC count is below acceptable threshold (&lt; 5%).</span>
+</label>
+</div>
+</div>
+<!-- Section 2 -->
+<div>
+<div class="bg-[#E9ECEF] px-2 py-1 flex items-center justify-between cursor-pointer rounded-sm border border-outline-variant/50">
+<span class="font-label-caps text-label-caps uppercase text-on-surface-variant font-bold">2. ConOps</span>
+<span class="material-symbols-outlined text-[16px] text-on-surface-variant">expand_less</span>
+</div>
+<div class="p-2 hidden">
+<!-- Content collapsed -->
+</div>
+</div>
+<!-- Action Button -->
+<div class="mt-8 pt-4 border-t border-outline-variant">
+<button class="w-full bg-primary text-on-primary font-label-caps text-label-caps py-2 rounded uppercase tracking-wider hover:bg-primary/90 transition-colors shadow-sm flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[16px]">how_to_reg</span> Approve for Review
+                    </button>
+</div>
+</div>
+</aside>
+</div>
+</body></html>

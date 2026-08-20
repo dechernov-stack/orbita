@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+
+<html lang="ru"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AI Copilot Review Panel - SpaceSys</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "error": "#ba1a1a",
+                        "on-tertiary": "#ffffff",
+                        "secondary-fixed": "#d7e2ff",
+                        "on-secondary-container": "#003370",
+                        "on-secondary-fixed-variant": "#004491",
+                        "on-primary": "#ffffff",
+                        "on-secondary-fixed": "#001a40",
+                        "secondary-fixed-dim": "#acc7ff",
+                        "surface-container-high": "#e7e8e9",
+                        "inverse-surface": "#2e3132",
+                        "outline-variant": "#c4c6cc",
+                        "on-surface": "#191c1d",
+                        "tertiary-fixed": "#feddba",
+                        "primary-fixed": "#d6e4f9",
+                        "on-primary-container": "#778598",
+                        "outline": "#74777d",
+                        "on-error-container": "#93000a",
+                        "surface-container-highest": "#e1e3e4",
+                        "surface-variant": "#e1e3e4",
+                        "tertiary": "#000000",
+                        "on-primary-fixed": "#0f1c2c",
+                        "surface-dim": "#d9dadb",
+                        "on-background": "#191c1d",
+                        "on-tertiary-fixed-variant": "#584329",
+                        "surface-container-low": "#f3f4f5",
+                        "inverse-on-surface": "#f0f1f2",
+                        "surface-tint": "#525f71",
+                        "inverse-primary": "#bac8dc",
+                        "on-surface-variant": "#44474c",
+                        "on-tertiary-container": "#9a7f61",
+                        "background": "#f8f9fa",
+                        "surface-container-lowest": "#ffffff",
+                        "primary": "#000000",
+                        "on-secondary": "#ffffff",
+                        "on-error": "#ffffff",
+                        "surface-bright": "#f8f9fa",
+                        "tertiary-container": "#281804",
+                        "primary-container": "#0f1c2c",
+                        "tertiary-fixed-dim": "#e0c1a0",
+                        "surface-container": "#edeeef",
+                        "error-container": "#ffdad6",
+                        "secondary-container": "#659dfe",
+                        "on-tertiary-fixed": "#281804",
+                        "primary-fixed-dim": "#bac8dc",
+                        "on-primary-fixed-variant": "#3a4859",
+                        "secondary": "#115cb9",
+                        "surface": "#f8f9fa"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "padding-standard": "8px",
+                        "padding-md": "16px",
+                        "global-nav-width": "64px",
+                        "padding-dense": "4px",
+                        "context-panel-width": "320px",
+                        "gutter": "1px",
+                        "lifecycle-rail-width": "240px"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "label-caps": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "code-sm": ["JetBrains Mono"]
+                    },
+                    "fontSize": {
+                        "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "body-sm": ["12px", {"lineHeight": "16px", "fontWeight": "400"}],
+                        "label-caps": ["11px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}],
+                        "headline-lg": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                        "headline-md": ["18px", {"lineHeight": "24px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "code-sm": ["12px", {"lineHeight": "16px", "fontWeight": "400"}]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-background text-on-background font-body-md antialiased overflow-hidden">
+<!-- TopAppBar -->
+<header class="flex items-center justify-between w-full h-12 px-padding-md ml-global-nav-width fixed top-0 z-40 bg-surface border-b border-outline-variant">
+<div class="flex items-center gap-4">
+<span class="font-headline-md text-headline-md text-on-surface">Проект: Альфа-Центавра</span>
+<nav class="hidden md:flex gap-6 ml-8">
+<a class="font-label-caps text-label-caps text-on-surface-variant hover:bg-surface-container-high transition-opacity px-2 py-1" href="#">Концепция</a>
+<a class="font-label-caps text-label-caps text-on-surface-variant hover:bg-surface-container-high transition-opacity px-2 py-1" href="#">Базис</a>
+<a class="font-label-caps text-label-caps text-secondary font-bold border-b-2 border-secondary px-2 py-1" href="#">Замечания</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<button class="font-label-caps text-label-caps text-on-surface-variant hover:bg-surface-container-high px-3 py-1.5 rounded transition-colors">Базовые линии</button>
+<button class="font-label-caps text-label-caps bg-secondary text-on-secondary px-3 py-1.5 rounded hover:bg-on-secondary-fixed-variant transition-colors">Следующий смотр</button>
+<div class="flex items-center gap-2 ml-2">
+<button class="w-8 h-8 flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high rounded-full transition-colors">
+<span class="material-symbols-outlined text-[20px]">notifications</span>
+</button>
+<button class="w-8 h-8 flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high rounded-full transition-colors">
+<span class="material-symbols-outlined text-[20px]">settings</span>
+</button>
+<img class="w-8 h-8 rounded-full border border-outline-variant object-cover ml-2" data-alt="A professional headshot of a systems engineer in a modern, brightly lit corporate office setting. Clean, light-mode aesthetic with soft, high-key lighting. The individual is wearing smart-casual attire. The background features subtle, blurred technical diagrams on glass whiteboards." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAZx_21mdojR-MUsfVZvb47zBKrzqBs0t_Ez3bDu5zmkF-5HIOxDfqSCxRS1ghkEIRpfyAythx4vJd92tSBarbTaCsAgXygzDI6sp7YKEgmIC78co3BkRVDC_QmfYPAE6RcDmTtLYU96cm_wpRxspOp4xPFJv5LYc3o8ewwrxrE2obBnPRKW1q4AeHToX4D9Bkf9vOb8bGce2oleT05he6LL9U9YpwdwXF6QfASqNIr5xegGU36pVKhVg"/>
+</div>
+</div>
+</header>
+<!-- Global SideNavBar (Rail) -->
+<nav class="flex flex-col w-global-nav-width h-full fixed left-0 top-0 z-50 bg-primary-container border-r border-outline-variant items-center py-4">
+<div class="mb-8 flex flex-col items-center">
+<span class="font-headline-md text-headline-md font-bold text-on-primary">S</span>
+</div>
+<div class="flex flex-col gap-4 w-full px-2">
+<a class="flex flex-col items-center p-2 rounded transition-colors duration-150 text-on-primary-container/70 hover:bg-primary-fixed-variant/30 group" href="#" title="Главная">
+<span class="material-symbols-outlined group-hover:text-primary-fixed">home</span>
+</a>
+<a class="flex flex-col items-center p-2 rounded transition-colors duration-150 text-on-primary-container/70 hover:bg-primary-fixed-variant/30 group" href="#" title="Проекты">
+<span class="material-symbols-outlined group-hover:text-primary-fixed">account_tree</span>
+</a>
+<a class="flex flex-col items-center p-2 rounded transition-colors duration-150 text-on-primary-container/70 hover:bg-primary-fixed-variant/30 group" href="#" title="Библиотеки">
+<span class="material-symbols-outlined group-hover:text-primary-fixed">library_books</span>
+</a>
+<a class="flex flex-col items-center p-2 rounded transition-colors duration-150 text-on-primary-container/70 hover:bg-primary-fixed-variant/30 group" href="#" title="Предметные области">
+<span class="material-symbols-outlined group-hover:text-primary-fixed">category</span>
+</a>
+<a class="flex flex-col items-center p-2 rounded transition-colors duration-150 text-on-primary-container/70 hover:bg-primary-fixed-variant/30 group" href="#" title="Исследования">
+<span class="material-symbols-outlined group-hover:text-primary-fixed">biotech</span>
+</a>
+<a class="flex flex-col items-center p-2 rounded transition-colors duration-150 text-secondary-fixed bg-secondary-container/20 border-l-2 border-secondary" href="#" title="Доказательная база">
+<span class="material-symbols-outlined text-secondary-fixed">assignment_turned_in</span>
+</a>
+<a class="flex flex-col items-center p-2 rounded transition-colors duration-150 text-on-primary-container/70 hover:bg-primary-fixed-variant/30 group" href="#" title="Поиск">
+<span class="material-symbols-outlined group-hover:text-primary-fixed">search</span>
+</a>
+<a class="flex flex-col items-center p-2 rounded transition-colors duration-150 text-on-primary-container/70 hover:bg-primary-fixed-variant/30 group" href="#" title="Администрирование">
+<span class="material-symbols-outlined group-hover:text-primary-fixed">admin_panel_settings</span>
+</a>
+</div>
+</nav>
+<!-- Lifecycle SideNavBar (Drawer) -->
+<aside class="flex flex-col w-lifecycle-rail-width h-full fixed top-12 left-global-nav-width z-30 bg-surface-container-low border-r border-outline-variant overflow-y-auto">
+<div class="p-padding-md border-b border-outline-variant">
+<h2 class="font-body-md text-body-md text-secondary mb-1">Жизненный цикл</h2>
+<p class="font-label-caps text-label-caps text-on-surface-variant">Текущая фаза: Phase A</p>
+</div>
+<nav class="flex flex-col py-2">
+<a class="flex items-center gap-3 px-padding-md py-2 text-on-surface-variant hover:bg-surface-container-high transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined text-[18px]">radio_button_checked</span>
+<span class="font-body-md text-body-md">Pre-Phase A</span>
+</a>
+<a class="flex items-center gap-3 px-padding-md py-2 text-on-surface-variant hover:bg-surface-container-high transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined text-[18px]">radio_button_unchecked</span>
+<span class="font-body-md text-body-md">Phase A: Concept</span>
+</a>
+<a class="flex items-center gap-3 px-padding-md py-2 bg-secondary/10 text-secondary font-semibold transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined text-[18px]">pending</span>
+<span class="font-body-md text-body-md">Phase A: Feasibility</span>
+</a>
+<a class="flex items-center gap-3 px-padding-md py-2 text-on-surface-variant hover:bg-surface-container-high transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined text-[18px]">account_tree</span>
+<span class="font-body-md text-body-md">Requirements</span>
+</a>
+<a class="flex items-center gap-3 px-padding-md py-2 text-on-surface-variant hover:bg-surface-container-high transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined text-[18px]">schema</span>
+<span class="font-body-md text-body-md">Architecture</span>
+</a>
+</nav>
+</aside>
+<!-- Main Workspace -->
+<main class="absolute top-12 left-[304px] right-context-panel-width bottom-0 bg-background overflow-y-auto p-padding-md flex flex-col gap-6">
+<header class="flex items-center justify-between pb-4 border-b border-outline-variant">
+<div>
+<h1 class="font-headline-lg text-headline-lg text-on-background">AI Copilot Review Panel</h1>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Анализ качества инженерных данных и выявление системных противоречий</p>
+</div>
+<div class="flex items-center gap-3">
+<span class="flex items-center gap-1 font-label-caps text-label-caps bg-surface-container px-2 py-1 rounded text-on-surface-variant">
+<span class="material-symbols-outlined text-[14px]">psychology</span>
+                    Модель: SYNC-7
+                </span>
+<button class="flex items-center gap-2 px-3 py-1.5 bg-surface text-on-surface border border-outline-variant rounded hover:bg-surface-container-low transition-colors font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-[16px]">refresh</span>
+                    Обновить аудит
+                </button>
+</div>
+</header>
+<div class="grid grid-cols-1 gap-6">
+<!-- Block 1: Формулировки -->
+<section class="bg-surface rounded border border-outline-variant overflow-hidden">
+<div class="bg-surface-container-low px-padding-md py-2 border-b border-outline-variant flex justify-between items-center">
+<h3 class="font-headline-md text-headline-md flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary">spellcheck</span>
+                        Анализ качества формулировок
+                    </h3>
+<span class="bg-error-container text-on-error-container font-label-caps text-label-caps px-2 py-0.5 rounded">3 Критичных</span>
+</div>
+<div class="p-padding-md flex flex-col gap-4">
+<!-- Item 1 -->
+<div class="border border-outline-variant rounded p-3 bg-surface-bright shadow-sm relative group hover:border-secondary transition-colors">
+<div class="absolute top-0 left-0 w-1 h-full bg-error rounded-l"></div>
+<div class="ml-2">
+<div class="flex justify-between items-start mb-2">
+<span class="font-code-sm text-code-sm text-on-surface-variant bg-surface-container px-1 rounded">REQ-THR-104</span>
+<div class="flex items-center gap-1 text-secondary font-label-caps text-label-caps">
+<span class="material-symbols-outlined text-[14px]">psychology</span>
+                                    Уверенность: 92%
+                                </div>
+</div>
+<p class="font-body-md text-body-md text-on-background mb-2 line-through opacity-70">Система охлаждения должна быть <span class="bg-error-container text-on-error-container px-1">достаточно мощной</span> для поддержания температуры.</p>
+<div class="bg-surface-container-low p-2 rounded mb-3 border border-outline-variant border-dashed">
+<p class="font-body-sm text-body-sm text-secondary font-semibold mb-1">Предложение AI:</p>
+<p class="font-body-md text-body-md text-on-background">Система охлаждения должна обеспечивать отвод 45 кВт тепловой мощности для поддержания температуры не выше 25°C.</p>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-4"><span class="font-semibold text-on-background">Обоснование:</span> Термин "достаточно мощной" не поддается проверке (верификации). Предложены конкретные параметры на основе базовой архитектуры.</p>
+<div class="flex gap-2 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="px-3 py-1 font-body-sm text-body-sm border border-outline-variant rounded text-error hover:bg-error-container transition-colors">Отклонить</button>
+<button class="px-3 py-1 font-body-sm text-body-sm border border-outline-variant rounded text-on-surface hover:bg-surface-container-low transition-colors">Правка</button>
+<button class="px-3 py-1 font-body-sm text-body-sm bg-secondary text-on-secondary rounded hover:bg-on-secondary-fixed-variant transition-colors">Принять</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Block 2: Трассировка -->
+<section class="bg-surface rounded border border-outline-variant overflow-hidden">
+<div class="bg-surface-container-low px-padding-md py-2 border-b border-outline-variant flex justify-between items-center">
+<h3 class="font-headline-md text-headline-md flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary">account_tree</span>
+                        Пробелы в трассировке
+                    </h3>
+<span class="bg-surface-variant text-on-surface-variant font-label-caps text-label-caps px-2 py-0.5 rounded">1 Замечание</span>
+</div>
+<div class="p-padding-md">
+<!-- Item 2 -->
+<div class="border border-outline-variant rounded p-3 bg-surface-bright shadow-sm relative group hover:border-secondary transition-colors">
+<div class="absolute top-0 left-0 w-1 h-full bg-tertiary-fixed-dim rounded-l"></div>
+<div class="ml-2">
+<div class="flex justify-between items-start mb-2">
+<span class="font-code-sm text-code-sm text-on-surface-variant bg-surface-container px-1 rounded">REQ-PWR-042</span>
+<div class="flex items-center gap-1 text-secondary font-label-caps text-label-caps">
+<span class="material-symbols-outlined text-[14px]">psychology</span>
+                                    Уверенность: 88%
+                                </div>
+</div>
+<p class="font-body-md text-body-md text-on-background font-semibold mb-2">Резервные батареи должны обеспечивать 12 часов автономной работы.</p>
+<div class="flex items-center gap-2 text-error mb-2">
+<span class="material-symbols-outlined text-[16px]">link_off</span>
+<span class="font-body-sm text-body-sm font-semibold">Сиротское требование: Нет покрытия в архитектуре</span>
+</div>
+<div class="bg-surface-container-low p-2 rounded mb-3 border border-outline-variant border-dashed">
+<p class="font-body-sm text-body-sm text-secondary font-semibold mb-1">Предлагаемая связь:</p>
+<div class="flex items-center gap-2 font-code-sm text-code-sm text-on-background">
+<span>[Block] Main Power Bus</span>
+<span class="material-symbols-outlined text-[14px] text-on-surface-variant">arrow_forward</span>
+<span class="bg-surface text-secondary px-1 border border-secondary rounded">[Block] Aux Battery Pack-B</span>
+</div>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-4"><span class="font-semibold text-on-background">Обоснование:</span> Блок "Aux Battery Pack-B" имеет подходящие характеристики емкости, но не связан с этим требованием через allocate/satisfy.</p>
+<div class="flex gap-2 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="px-3 py-1 font-body-sm text-body-sm border border-outline-variant rounded text-error hover:bg-error-container transition-colors">Отклонить</button>
+<button class="px-3 py-1 font-body-sm text-body-sm border border-outline-variant rounded text-on-surface hover:bg-surface-container-low transition-colors">Выбрать другой блок</button>
+<button class="px-3 py-1 font-body-sm text-body-sm bg-secondary text-on-secondary rounded hover:bg-on-secondary-fixed-variant transition-colors">Привязать</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- Context Inspector (Right Panel) -->
+<aside class="flex flex-col w-context-panel-width h-full fixed top-12 right-0 z-30 bg-surface-container border-l border-outline-variant">
+<div class="p-padding-md border-b border-outline-variant bg-surface">
+<h2 class="font-headline-md text-headline-md text-primary">Инспектор контекста</h2>
+</div>
+<nav class="flex flex-col flex-grow overflow-y-auto">
+<div class="flex border-b border-outline-variant bg-surface">
+<a class="flex-1 py-2 text-center text-on-surface-variant hover:bg-surface-container-low font-label-caps text-label-caps transition-colors" href="#">Детали</a>
+<a class="flex-1 py-2 text-center border-b-2 border-secondary text-secondary font-label-caps text-label-caps bg-surface-container-low transition-colors" href="#">AI Советы</a>
+<a class="flex-1 py-2 text-center text-on-surface-variant hover:bg-surface-container-low font-label-caps text-label-caps transition-colors" href="#">Связи</a>
+</div>
+<div class="p-padding-md flex flex-col gap-4">
+<div class="bg-surface p-3 border border-outline-variant rounded">
+<h4 class="font-body-sm text-body-sm font-semibold text-on-background flex items-center gap-1 mb-2">
+<span class="material-symbols-outlined text-[16px] text-secondary">history</span>
+                        Исторический контекст
+                    </h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Подобная ошибка формулировки в проекте "Бета-Ориона" привела к задержке тестирования на 3 недели. Рекомендуется строгая параметризация.</p>
+</div>
+</div>
+</nav>
+</aside>
+</body></html>

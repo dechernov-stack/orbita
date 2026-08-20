@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+
+<html lang="ru"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Stakeholder Map &amp; Need Portfolio</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "error-container": "#ffdad6",
+                        "on-tertiary-container": "#9a7f61",
+                        "on-primary-container": "#778598",
+                        "on-tertiary-fixed-variant": "#584329",
+                        "secondary-fixed": "#d7e2ff",
+                        "on-secondary-fixed-variant": "#004491",
+                        "tertiary-fixed": "#feddba",
+                        "surface-container-lowest": "#ffffff",
+                        "on-background": "#191c1d",
+                        "on-error-container": "#93000a",
+                        "primary-container": "#0f1c2c",
+                        "secondary": "#115cb9",
+                        "primary-fixed-dim": "#bac8dc",
+                        "inverse-surface": "#2e3132",
+                        "on-primary-fixed": "#0f1c2c",
+                        "secondary-fixed-dim": "#acc7ff",
+                        "on-tertiary": "#ffffff",
+                        "tertiary": "#000000",
+                        "error": "#ba1a1a",
+                        "on-secondary": "#ffffff",
+                        "surface-variant": "#e1e3e4",
+                        "tertiary-container": "#281804",
+                        "inverse-on-surface": "#f0f1f2",
+                        "on-primary": "#ffffff",
+                        "primary-fixed": "#d6e4f9",
+                        "on-surface-variant": "#44474c",
+                        "surface-container-high": "#e7e8e9",
+                        "on-primary-fixed-variant": "#3a4859",
+                        "surface-tint": "#525f71",
+                        "surface-bright": "#f8f9fa",
+                        "on-secondary-container": "#003370",
+                        "surface-container-low": "#f3f4f5",
+                        "on-tertiary-fixed": "#281804",
+                        "tertiary-fixed-dim": "#e0c1a0",
+                        "on-secondary-fixed": "#001a40",
+                        "outline-variant": "#c4c6cc",
+                        "background": "#f8f9fa",
+                        "surface-dim": "#d9dadb",
+                        "inverse-primary": "#bac8dc",
+                        "surface-container-highest": "#e1e3e4",
+                        "surface-container": "#edeeef",
+                        "outline": "#74777d",
+                        "secondary-container": "#659dfe",
+                        "on-error": "#ffffff",
+                        "on-surface": "#191c1d",
+                        "primary": "#000000",
+                        "surface": "#f8f9fa"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "padding-standard": "8px",
+                        "gutter": "1px",
+                        "context-panel-width": "320px",
+                        "padding-dense": "4px",
+                        "padding-md": "16px",
+                        "lifecycle-rail-width": "240px",
+                        "global-nav-width": "64px"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "label-caps": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "code-sm": ["JetBrains Mono"]
+                    },
+                    "fontSize": {
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-lg": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "body-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
+                        "label-caps": ["11px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700" }],
+                        "headline-md": ["18px", { "lineHeight": "24px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "code-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body-md overflow-hidden antialiased flex">
+<!-- Global SideNavBar -->
+<nav class="bg-primary-container dark:bg-primary-container text-primary-fixed dark:text-primary-fixed-dim font-body-sm text-body-sm docked global-nav-width h-screen left-0 border-r border-outline-variant flat no shadows transition-colors duration-150 flex flex-col w-global-nav-width h-full fixed left-0 top-0 z-50">
+<div class="h-12 flex items-center justify-center border-b border-outline-variant">
+<span class="material-symbols-outlined font-headline-md text-headline-md font-bold text-on-primary">rocket_launch</span>
+</div>
+<div class="flex-1 flex flex-col items-center pt-4 gap-2">
+<!-- Inactive -->
+<a class="w-12 h-12 flex flex-col items-center justify-center rounded-lg text-on-primary-container/70 hover:bg-primary-fixed-variant/30 transition-colors duration-150 group" href="#" title="Главная">
+<span class="material-symbols-outlined group-hover:text-primary-fixed">home</span>
+</a>
+<!-- Active -->
+<a class="w-12 h-12 flex flex-col items-center justify-center rounded-lg text-secondary-fixed bg-secondary-container/20 border-l-2 border-secondary transition-colors duration-150 group" href="#" title="Проекты">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">account_tree</span>
+</a>
+<a class="w-12 h-12 flex flex-col items-center justify-center rounded-lg text-on-primary-container/70 hover:bg-primary-fixed-variant/30 transition-colors duration-150 group" href="#" title="Библиотеки">
+<span class="material-symbols-outlined group-hover:text-primary-fixed">library_books</span>
+</a>
+<a class="w-12 h-12 flex flex-col items-center justify-center rounded-lg text-on-primary-container/70 hover:bg-primary-fixed-variant/30 transition-colors duration-150 group" href="#" title="Предметные области">
+<span class="material-symbols-outlined group-hover:text-primary-fixed">category</span>
+</a>
+<a class="w-12 h-12 flex flex-col items-center justify-center rounded-lg text-on-primary-container/70 hover:bg-primary-fixed-variant/30 transition-colors duration-150 group" href="#" title="Исследования">
+<span class="material-symbols-outlined group-hover:text-primary-fixed">biotech</span>
+</a>
+<a class="w-12 h-12 flex flex-col items-center justify-center rounded-lg text-on-primary-container/70 hover:bg-primary-fixed-variant/30 transition-colors duration-150 group" href="#" title="Доказательная база">
+<span class="material-symbols-outlined group-hover:text-primary-fixed">assignment_turned_in</span>
+</a>
+<a class="w-12 h-12 flex flex-col items-center justify-center rounded-lg text-on-primary-container/70 hover:bg-primary-fixed-variant/30 transition-colors duration-150 group" href="#" title="Поиск">
+<span class="material-symbols-outlined group-hover:text-primary-fixed">search</span>
+</a>
+</div>
+<div class="pb-4 flex flex-col items-center">
+<a class="w-12 h-12 flex flex-col items-center justify-center rounded-lg text-on-primary-container/70 hover:bg-primary-fixed-variant/30 transition-colors duration-150 group" href="#" title="Администрирование">
+<span class="material-symbols-outlined group-hover:text-primary-fixed">admin_panel_settings</span>
+</a>
+</div>
+</nav>
+<!-- TopAppBar -->
+<header class="bg-surface dark:bg-surface-dim text-on-surface dark:text-on-surface font-label-caps text-label-caps docked full-width top-0 h-12 border-b border-outline-variant flat no shadows cursor-pointer transition-opacity flex items-center justify-between w-full h-12 px-padding-md ml-global-nav-width fixed top-0 z-40">
+<div class="flex items-center gap-4">
+<span class="font-headline-md text-headline-md text-on-surface">Проект: Альфа-Центавра</span>
+</div>
+<nav class="flex items-center h-full gap-6">
+<a class="h-full flex items-center text-on-surface-variant hover:bg-surface-container-high px-2" href="#">Концепция</a>
+<a class="h-full flex items-center text-on-surface-variant hover:bg-surface-container-high px-2" href="#">Базис</a>
+<a class="h-full flex items-center text-secondary font-bold border-b-2 border-secondary px-2" href="#">Требования</a> <!-- Assuming Needs falls under Requirements conceptual grouping -->
+<a class="h-full flex items-center text-on-surface-variant hover:bg-surface-container-high px-2" href="#">Замечания</a>
+</nav>
+<div class="flex items-center gap-4">
+<button class="font-label-caps text-label-caps bg-surface-container-high hover:bg-surface-variant text-on-surface px-4 py-1.5 rounded transition-colors border border-outline-variant">Базовые линии</button>
+<button class="font-label-caps text-label-caps bg-secondary hover:bg-secondary-fixed text-on-secondary hover:text-on-secondary-container px-4 py-1.5 rounded transition-colors">Следующий смотр</button>
+<div class="flex items-center gap-2 border-l border-outline-variant pl-4 ml-2">
+<span class="material-symbols-outlined text-on-surface-variant hover:text-on-surface transition-colors">notifications</span>
+<span class="material-symbols-outlined text-on-surface-variant hover:text-on-surface transition-colors">settings</span>
+<div class="w-6 h-6 rounded-full bg-surface-variant border border-outline-variant ml-2 overflow-hidden flex items-center justify-center">
+<span class="material-symbols-outlined text-sm text-on-surface-variant">person</span>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Workspace Area -->
+<div class="flex-1 flex mt-12 ml-global-nav-width h-[calc(100vh-3rem)]">
+<!-- Lifecycle Rail / Stakeholder Tree (Left) -->
+<aside class="bg-surface-container-low dark:bg-surface-container-lowest text-secondary dark:text-secondary-fixed font-body-md text-body-md docked lifecycle-rail-width h-screen left-global-nav-width border-r border-outline-variant flat no shadows transition-all duration-200 ease-in-out flex flex-col w-lifecycle-rail-width h-full relative z-30">
+<div class="p-padding-md border-b border-outline-variant shrink-0">
+<h2 class="font-headline-md text-headline-md text-on-surface mb-1">Жизненный цикл</h2>
+<p class="font-label-caps text-label-caps text-on-surface-variant">Текущая фаза: Phase A</p>
+</div>
+<div class="overflow-y-auto flex-1 p-padding-standard">
+<div class="mb-4">
+<div class="flex items-center gap-2 p-2 rounded text-on-surface-variant hover:bg-surface-container-high cursor-pointer">
+<span class="material-symbols-outlined text-lg">radio_button_checked</span>
+<span>Pre-Phase A</span>
+</div>
+<div class="flex items-center gap-2 p-2 rounded bg-secondary/10 text-secondary font-semibold cursor-pointer">
+<span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">radio_button_unchecked</span>
+<span>Phase A: Concept</span>
+</div>
+<div class="flex items-center gap-2 p-2 rounded text-on-surface-variant hover:bg-surface-container-high cursor-pointer">
+<span class="material-symbols-outlined text-lg">pending</span>
+<span>Phase A: Feasibility</span>
+</div>
+</div>
+<div class="border-t border-outline-variant pt-4">
+<h3 class="font-label-caps text-label-caps text-on-surface-variant mb-2 px-2">Дерево стейкхолдеров</h3>
+<!-- Tree Structure -->
+<div class="pl-2">
+<!-- Level 1 -->
+<div class="flex items-center gap-1 py-1 cursor-pointer hover:bg-surface-container-high rounded group">
+<span class="material-symbols-outlined text-sm text-on-surface-variant group-hover:text-on-surface">expand_more</span>
+<span class="material-symbols-outlined text-sm text-on-surface-variant">business</span>
+<span class="text-on-surface">Заказчик (Гос)</span>
+</div>
+<!-- Level 2 -->
+<div class="pl-4 border-l border-outline-variant ml-2">
+<div class="flex items-center gap-1 py-1 cursor-pointer hover:bg-surface-container-high rounded group">
+<span class="material-symbols-outlined text-sm text-on-surface-variant">chevron_right</span>
+<span class="material-symbols-outlined text-sm text-on-surface-variant">person</span>
+<span class="text-on-surface-variant">Мин. Обороны</span>
+</div>
+<div class="flex items-center gap-1 py-1 cursor-pointer bg-surface-variant rounded">
+<span class="material-symbols-outlined text-sm text-on-surface-variant">expand_more</span>
+<span class="material-symbols-outlined text-sm text-secondary">group</span>
+<span class="text-on-surface font-semibold">Агентство развития</span>
+</div>
+<!-- Level 3 -->
+<div class="pl-4 border-l border-outline-variant ml-2 mb-2">
+<div class="flex items-center gap-2 py-1 cursor-pointer hover:bg-surface-container-high rounded text-sm text-on-surface-variant">
+<div class="w-1.5 h-1.5 rounded-full bg-outline-variant"></div>
+<span class="truncate">ND-001: Снижение массы</span>
+</div>
+<div class="flex items-center gap-2 py-1 cursor-pointer bg-secondary/10 rounded text-sm text-secondary font-medium border-l-2 border-secondary -ml-[1px]">
+<div class="w-1.5 h-1.5 rounded-full bg-secondary"></div>
+<span class="truncate">ND-002: Радиационная стойкость</span>
+</div>
+<div class="flex items-center gap-2 py-1 cursor-pointer hover:bg-surface-container-high rounded text-sm text-on-surface-variant">
+<div class="w-1.5 h-1.5 rounded-full bg-error"></div>
+<span class="truncate">ND-003: Стоимость запуска</span>
+</div>
+</div>
+</div>
+<!-- Level 1 -->
+<div class="flex items-center gap-1 py-1 mt-2 cursor-pointer hover:bg-surface-container-high rounded group">
+<span class="material-symbols-outlined text-sm text-on-surface-variant">chevron_right</span>
+<span class="material-symbols-outlined text-sm text-on-surface-variant">precision_manufacturing</span>
+<span class="text-on-surface">Интегратор</span>
+</div>
+</div>
+</div>
+</div>
+</aside>
+<!-- Center Workspace: Need Detailed View -->
+<main class="flex-1 bg-surface-bright flex flex-col h-full overflow-hidden relative">
+<div class="p-padding-md border-b border-outline-variant bg-surface flex justify-between items-center shrink-0">
+<div>
+<div class="flex items-center gap-2 mb-1">
+<span class="bg-primary-container text-on-primary-container font-code-sm text-code-sm px-2 py-0.5 rounded">ND-002</span>
+<span class="bg-error-container text-on-error-container font-label-caps text-label-caps px-2 py-0.5 rounded-full flex items-center gap-1">
+<span class="material-symbols-outlined text-[10px]">warning</span> High Priority
+                        </span>
+</div>
+<h1 class="font-headline-lg text-headline-lg text-on-surface">Обеспечение радиационной стойкости ЭКБ (Рад Хард)</h1>
+</div>
+<div class="flex gap-2">
+<button class="p-1.5 border border-outline-variant rounded text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" title="Сохранить">
+<span class="material-symbols-outlined">save</span>
+</button>
+<button class="p-1.5 border border-outline-variant rounded text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" title="Экспорт">
+<span class="material-symbols-outlined">download</span>
+</button>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto p-padding-md">
+<div class="max-w-4xl mx-auto space-y-6">
+<!-- Card 1: Definition -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-padding-md">
+<h3 class="font-headline-md text-headline-md text-on-surface mb-4 pb-2 border-b border-outline-variant flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary">description</span> Определение потребности
+                        </h3>
+<div class="space-y-4">
+<div>
+<label class="block font-label-caps text-label-caps text-on-surface-variant mb-1">Проблема / Суть</label>
+<textarea class="w-full bg-surface border border-outline-variant rounded p-2 text-on-surface font-body-md focus:border-secondary focus:ring-1 focus:ring-secondary focus:outline-none transition-colors min-h-[80px]" placeholder="Опишите проблему...">При длительном пребывании на орбите (более 5 лет) стандартная коммерческая компонентная база подвергается деградации из-за воздействия тяжелых заряженных частиц.</textarea>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div>
+<label class="block font-label-caps text-label-caps text-on-surface-variant mb-1">Ожидаемый результат</label>
+<textarea class="w-full bg-surface border border-outline-variant rounded p-2 text-on-surface font-body-md focus:border-secondary focus:ring-1 focus:ring-secondary focus:outline-none transition-colors min-h-[80px]" placeholder="...">Обеспечение бесперебойной работы вычислительного ядра на протяжении всего срока активного существования аппарата без фатальных сбоев.</textarea>
+</div>
+<div>
+<label class="block font-label-caps text-label-caps text-on-surface-variant mb-1">Обоснование (Rationale)</label>
+<textarea class="w-full bg-surface border border-outline-variant rounded p-2 text-on-surface font-body-md focus:border-secondary focus:ring-1 focus:ring-secondary focus:outline-none transition-colors min-h-[80px]" placeholder="...">Статистика отказов миссии "Омега-1" показывает 30% потерю аппаратов из-за радиационных сбоев в первый год.</textarea>
+</div>
+</div>
+</div>
+</div>
+<!-- Card 2: Parameters -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-padding-md">
+<h3 class="font-headline-md text-headline-md text-on-surface mb-4 pb-2 border-b border-outline-variant flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary">tune</span> Параметры и критерии
+                        </h3>
+<div class="grid grid-cols-2 gap-6">
+<div>
+<label class="block font-label-caps text-label-caps text-on-surface-variant mb-1">Критерии валидации</label>
+<div class="bg-surface border border-outline-variant rounded overflow-hidden">
+<div class="flex items-center gap-2 p-2 border-b border-outline-variant bg-surface-container-low">
+<span class="material-symbols-outlined text-sm text-on-surface-variant">check_box</span>
+<span class="text-sm">Тест на ускоренное старение (гамма-излучение)</span>
+</div>
+<div class="flex items-center gap-2 p-2 border-b border-outline-variant bg-surface-container-low">
+<span class="material-symbols-outlined text-sm text-on-surface-variant">check_box</span>
+<span class="text-sm">Моделирование сбоев (SEE, SEL) в ПО</span>
+</div>
+<div class="p-2 text-center border-t border-outline-variant hover:bg-surface-container cursor-pointer transition-colors text-secondary font-label-caps text-label-caps">
+                                        + Добавить критерий
+                                    </div>
+</div>
+</div>
+<div>
+<label class="block font-label-caps text-label-caps text-on-surface-variant mb-1">Ограничения (Constraints)</label>
+<div class="bg-surface border border-outline-variant rounded overflow-hidden">
+<div class="flex items-start gap-2 p-2 border-b border-outline-variant">
+<span class="material-symbols-outlined text-sm text-error mt-0.5">block</span>
+<div class="text-sm">
+<span class="font-semibold block text-on-surface">Бюджет на ЭКБ</span>
+<span class="text-on-surface-variant">Не более 15% от общей стоимости модуля.</span>
+</div>
+</div>
+<div class="flex items-start gap-2 p-2">
+<span class="material-symbols-outlined text-sm text-error mt-0.5">block</span>
+<div class="text-sm">
+<span class="font-semibold block text-on-surface">Импортозамещение</span>
+<span class="text-on-surface-variant">Использование компонентов только из реестра одобренных поставщиков.</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Metadata inline -->
+<div class="flex items-center gap-4 text-xs text-on-surface-variant border-t border-outline-variant pt-4">
+<span>Создано: И. Иванов (12.10.2023)</span>
+<span>Обновлено: А. Смирнова (Сегодня 10:45)</span>
+<span class="flex-1 text-right">Версия: 1.2</span>
+</div>
+</div>
+</div>
+</main>
+<!-- Inspector (Right) -->
+<aside class="bg-surface-container dark:bg-surface-container-high text-primary dark:text-inverse-primary font-label-caps text-label-caps docked context-panel-width h-screen right-0 border-l border-outline-variant flat no shadows transition-transform duration-300 flex flex-col w-context-panel-width h-full relative z-30 shrink-0">
+<div class="h-12 border-b border-outline-variant flex items-center justify-between px-3 bg-surface-container-high">
+<span class="font-headline-md text-headline-md text-primary">Инспектор</span>
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary">close</span>
+</div>
+<!-- Inspector Tabs -->
+<div class="flex border-b border-outline-variant">
+<div class="flex-1 py-2 text-center cursor-pointer text-on-surface-variant hover:text-primary transition-colors border-b-2 border-transparent" title="Детали">
+<span class="material-symbols-outlined text-lg">info</span>
+</div>
+<div class="flex-1 py-2 text-center cursor-pointer border-b-2 border-secondary text-secondary" title="Связи">
+<span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">link</span>
+</div>
+<div class="flex-1 py-2 text-center cursor-pointer text-on-surface-variant hover:text-primary transition-colors border-b-2 border-transparent" title="Влияние">
+<span class="material-symbols-outlined text-lg">rebase_edit</span>
+</div>
+<div class="flex-1 py-2 text-center cursor-pointer text-on-surface-variant hover:text-primary transition-colors border-b-2 border-transparent" title="AI Советы">
+<span class="material-symbols-outlined text-lg">psychology</span>
+</div>
+</div>
+<!-- Inspector Content -->
+<div class="flex-1 overflow-y-auto font-body-md normal-case text-on-surface">
+<!-- Traceability Section -->
+<div class="p-3 border-b border-outline-variant bg-[#E9ECEF] dark:bg-surface-container-highest flex items-center justify-between cursor-pointer">
+<span class="font-semibold text-sm text-on-surface">Трассировка (Traceability)</span>
+<span class="material-symbols-outlined text-sm">expand_less</span>
+</div>
+<div class="p-3 space-y-3">
+<div>
+<div class="text-xs font-label-caps text-on-surface-variant mb-1">Satisfies (Удовлетворяет)</div>
+<div class="flex items-center gap-2 p-1.5 border border-outline-variant rounded bg-surface text-sm hover:border-secondary cursor-pointer transition-colors">
+<span class="material-symbols-outlined text-sm text-secondary">arrow_upward</span>
+<span class="font-code-sm text-xs bg-surface-variant px-1 rounded">SYS-REQ-045</span>
+<span class="truncate text-xs">Долговечность на НОО</span>
+</div>
+</div>
+<div>
+<div class="text-xs font-label-caps text-on-surface-variant mb-1">Derived into (Порождает)</div>
+<div class="space-y-1">
+<div class="flex items-center gap-2 p-1.5 border border-outline-variant rounded bg-surface text-sm hover:border-secondary cursor-pointer transition-colors">
+<span class="material-symbols-outlined text-sm text-secondary">arrow_downward</span>
+<span class="font-code-sm text-xs bg-surface-variant px-1 rounded">HW-REQ-112</span>
+<span class="truncate text-xs">Толщина экрана БЦВМ</span>
+</div>
+<div class="flex items-center gap-2 p-1.5 border border-outline-variant rounded bg-surface text-sm hover:border-secondary cursor-pointer transition-colors">
+<span class="material-symbols-outlined text-sm text-secondary">arrow_downward</span>
+<span class="font-code-sm text-xs bg-surface-variant px-1 rounded">SW-REQ-089</span>
+<span class="truncate text-xs">Watchdog таймеры</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Conflicts Section -->
+<div class="p-3 border-b border-outline-variant border-t bg-[#E9ECEF] dark:bg-surface-container-highest flex items-center justify-between cursor-pointer mt-2">
+<span class="font-semibold text-sm text-on-surface flex items-center gap-1">
+                        Конфликты <span class="bg-error text-on-error rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold">1</span>
+</span>
+<span class="material-symbols-outlined text-sm">expand_less</span>
+</div>
+<div class="p-3">
+<div class="border border-error-container bg-error-container/20 rounded p-2">
+<div class="flex items-start gap-2">
+<span class="material-symbols-outlined text-error text-sm mt-0.5">warning</span>
+<div>
+<div class="text-sm font-semibold text-error">Конфликт масс</div>
+<div class="text-xs text-on-surface mt-1">Реализация РадХард экранирования (HW-REQ-112) превышает лимит массы для подсистемы по ограничению <span class="font-code-sm">ND-001</span>.</div>
+<button class="mt-2 text-xs font-label-caps text-secondary underline">Анализ компромисса</button>
+</div>
+</div>
+</div>
+</div>
+<!-- AI Suggestions Section -->
+<div class="p-3 border-b border-outline-variant border-t bg-[#E9ECEF] dark:bg-surface-container-highest flex items-center justify-between cursor-pointer mt-2">
+<span class="font-semibold text-sm text-on-surface flex items-center gap-1">
+<span class="material-symbols-outlined text-sm text-primary">psychology</span> AI Анализ
+                    </span>
+<span class="material-symbols-outlined text-sm">expand_less</span>
+</div>
+<div class="p-3">
+<div class="bg-primary-fixed/20 border border-primary-fixed rounded p-2 text-sm">
+<div class="font-semibold text-on-surface mb-1">Возможно, упущена потребность:</div>
+<p class="text-xs text-on-surface-variant mb-2">Для удовлетворения ND-002 часто требуется спецификация теплового режима, так как радиационные экраны нарушают теплоотвод.</p>
+<button class="bg-primary text-on-primary font-label-caps text-[10px] px-2 py-1 rounded w-full flex items-center justify-center gap-1 hover:bg-primary/80 transition-colors">
+<span class="material-symbols-outlined text-[12px]">add</span> Добавить черновик потребности
+                        </button>
+</div>
+</div>
+</div>
+</aside>
+</div>
+</body></html>

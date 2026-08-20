@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+
+<html lang="ru"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>SpaceSys - Requirement Derivation</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "error-container": "#ffdad6",
+                        "on-background": "#191c1d",
+                        "error": "#ba1a1a",
+                        "on-tertiary-fixed": "#281804",
+                        "on-surface": "#191c1d",
+                        "surface-tint": "#525f71",
+                        "primary": "#000000",
+                        "on-secondary-fixed": "#001a40",
+                        "surface-container": "#edeeef",
+                        "surface-bright": "#f8f9fa",
+                        "surface-dim": "#d9dadb",
+                        "on-primary-container": "#778598",
+                        "surface-container-high": "#e7e8e9",
+                        "on-secondary-fixed-variant": "#004491",
+                        "inverse-primary": "#bac8dc",
+                        "inverse-surface": "#2e3132",
+                        "primary-fixed": "#d6e4f9",
+                        "on-primary-fixed-variant": "#3a4859",
+                        "secondary-fixed": "#d7e2ff",
+                        "on-surface-variant": "#44474c",
+                        "primary-fixed-dim": "#bac8dc",
+                        "background": "#f8f9fa",
+                        "surface-container-low": "#f3f4f5",
+                        "secondary-container": "#659dfe",
+                        "on-secondary": "#ffffff",
+                        "on-error-container": "#93000a",
+                        "secondary-fixed-dim": "#acc7ff",
+                        "tertiary-container": "#281804",
+                        "on-tertiary": "#ffffff",
+                        "surface-variant": "#e1e3e4",
+                        "primary-container": "#0f1c2c",
+                        "on-primary": "#ffffff",
+                        "on-primary-fixed": "#0f1c2c",
+                        "secondary": "#115cb9",
+                        "surface": "#f8f9fa",
+                        "on-error": "#ffffff",
+                        "outline-variant": "#c4c6cc",
+                        "tertiary": "#000000",
+                        "surface-container-highest": "#e1e3e4",
+                        "inverse-on-surface": "#f0f1f2",
+                        "tertiary-fixed": "#feddba",
+                        "on-tertiary-container": "#9a7f61",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary-container": "#003370",
+                        "outline": "#74777d",
+                        "tertiary-fixed-dim": "#e0c1a0",
+                        "on-tertiary-fixed-variant": "#584329"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "lifecycle-rail-width": "240px",
+                        "padding-dense": "4px",
+                        "padding-standard": "8px",
+                        "padding-md": "16px",
+                        "gutter": "1px",
+                        "context-panel-width": "320px",
+                        "global-nav-width": "64px"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Inter"],
+                        "code-sm": ["JetBrains Mono"],
+                        "label-caps": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "headline-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "code-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
+                        "label-caps": ["11px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700" }],
+                        "body-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
+                        "headline-lg": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "headline-md": ["18px", { "lineHeight": "24px", "letterSpacing": "-0.01em", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .icon-fill {
+            font-variation-settings: 'FILL' 1;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background h-screen w-screen overflow-hidden flex font-body-md text-body-md">
+<!-- Global Nav (SideNavBar Rail) -->
+<nav class="flex flex-col w-global-nav-width h-full fixed left-0 top-0 z-50 bg-primary-container text-primary-fixed border-r border-outline-variant font-body-sm text-body-sm">
+<div class="flex flex-col items-center py-4">
+<div class="w-10 h-10 rounded-full bg-secondary text-on-secondary flex items-center justify-center font-headline-md text-headline-md font-bold mb-2">S</div>
+<div class="font-label-caps text-label-caps text-on-primary-container/70 mt-1">SpaceSys</div>
+</div>
+<div class="flex-1 flex flex-col items-center gap-4 mt-6">
+<button class="w-12 h-12 rounded-full flex flex-col items-center justify-center text-on-primary-container/70 hover:bg-primary-fixed-variant/30 transition-colors duration-150 group">
+<span class="material-symbols-outlined mb-1">home</span>
+</button>
+<button class="w-12 h-12 rounded-full flex flex-col items-center justify-center text-secondary-fixed bg-secondary-container/20 border-l-2 border-secondary transition-colors duration-150 group" title="Проекты">
+<span class="material-symbols-outlined mb-1">account_tree</span>
+</button>
+<button class="w-12 h-12 rounded-full flex flex-col items-center justify-center text-on-primary-container/70 hover:bg-primary-fixed-variant/30 transition-colors duration-150 group">
+<span class="material-symbols-outlined mb-1">library_books</span>
+</button>
+<button class="w-12 h-12 rounded-full flex flex-col items-center justify-center text-on-primary-container/70 hover:bg-primary-fixed-variant/30 transition-colors duration-150 group">
+<span class="material-symbols-outlined mb-1">category</span>
+</button>
+</div>
+</nav>
+<!-- Top App Bar -->
+<header class="flex items-center justify-between w-full h-12 px-padding-md ml-global-nav-width fixed top-0 z-40 bg-surface text-on-surface border-b border-outline-variant font-label-caps text-label-caps">
+<div class="flex items-center gap-6">
+<span class="font-headline-md text-headline-md text-on-surface">Проект: Альфа-Центавра</span>
+<nav class="flex gap-4 h-full items-end pb-[2px]">
+<button class="text-on-surface-variant hover:bg-surface-container-high px-2 py-1 rounded transition-opacity">Концепция</button>
+<button class="text-secondary font-bold border-b-2 border-secondary px-2 py-1">Базис</button>
+<button class="text-on-surface-variant hover:bg-surface-container-high px-2 py-1 rounded transition-opacity">Замечания</button>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-on-surface-variant hover:bg-surface-container-high px-3 py-1 rounded border border-outline-variant">Базовые линии</button>
+<button class="bg-secondary text-on-secondary hover:opacity-90 px-3 py-1 rounded">Следующий смотр</button>
+<div class="flex gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined cursor-pointer hover:text-primary">notifications</span>
+<span class="material-symbols-outlined cursor-pointer hover:text-primary">settings</span>
+</div>
+</div>
+</header>
+<!-- Lifecycle Rail (Drawer) -->
+<aside class="flex flex-col w-lifecycle-rail-width h-full fixed top-12 left-global-nav-width z-30 bg-surface-container-low text-secondary border-r border-outline-variant font-body-md text-body-md transition-all duration-200 ease-in-out">
+<div class="p-4 border-b border-outline-variant">
+<div class="font-label-caps text-label-caps text-on-surface-variant">Жизненный цикл</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant mt-1">Текущая фаза: Phase A</div>
+</div>
+<nav class="flex flex-col py-2">
+<button class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-outline">radio_button_checked</span>
+                Pre-Phase A
+            </button>
+<button class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-outline">radio_button_unchecked</span>
+                Phase A: Concept
+            </button>
+<button class="flex items-center gap-3 px-4 py-3 bg-secondary/10 text-secondary font-semibold border-l-2 border-secondary transition-colors">
+<span class="material-symbols-outlined text-secondary">account_tree</span>
+                Requirements
+            </button>
+<button class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-outline">schema</span>
+                Architecture
+            </button>
+</nav>
+</aside>
+<!-- Main Workspace (Three-Panel View) -->
+<main class="flex-1 flex mt-12 ml-[calc(64px+240px)] mr-context-panel-width h-[calc(100vh-48px)] overflow-hidden bg-background">
+<!-- Panel 1: Source (Needs/ConOps) -->
+<section class="flex-1 border-r border-outline-variant flex flex-col bg-surface overflow-hidden">
+<div class="h-10 bg-surface-container border-b border-outline-variant flex items-center px-4">
+<span class="font-label-caps text-label-caps text-on-surface-variant">Source Context</span>
+</div>
+<div class="p-4 overflow-y-auto">
+<div class="mb-6">
+<div class="font-headline-md text-headline-md mb-2">Цель миссии (L0)</div>
+<div class="bg-surface-container-low p-3 rounded border border-outline-variant text-body-sm text-on-surface">
+                        Обеспечить стабильную передачу данных с исследовательского зонда на орбите Юпитера в условиях повышенного радиационного фона.
+                    </div>
+</div>
+<div class="mb-6 relative pl-4 border-l-2 border-secondary">
+<div class="font-body-md text-on-surface font-semibold mb-2 flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-secondary">arrow_drop_down</span>
+                        Потребность (Need-01)
+                    </div>
+<div class="bg-surface-bright p-3 rounded border border-outline-variant text-body-sm text-on-surface-variant">
+                        Система связи должна функционировать без критических сбоев при суммарной дозе радиации 150 кРад.
+                    </div>
+</div>
+<div class="relative pl-8 border-l-2 border-outline-variant opacity-70">
+<div class="font-body-md text-on-surface font-semibold mb-2 flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px]">arrow_right</span>
+                        Service (Svc-01-A)
+                    </div>
+<div class="bg-surface-bright p-3 rounded border border-outline-variant text-body-sm text-on-surface-variant">
+                        Непрерывный телеметрический канал 10 кбит/с.
+                    </div>
+</div>
+</div>
+</section>
+<!-- Panel 2: Requirement Hierarchy -->
+<section class="flex-[1.5] border-r border-outline-variant flex flex-col bg-surface overflow-hidden">
+<div class="h-10 bg-surface-container border-b border-outline-variant flex items-center px-4 justify-between">
+<span class="font-label-caps text-label-caps text-on-surface-variant">Иерархия требований</span>
+<div class="flex gap-2">
+<span class="material-symbols-outlined text-[18px] text-on-surface-variant cursor-pointer hover:text-primary">filter_list</span>
+<span class="material-symbols-outlined text-[18px] text-on-surface-variant cursor-pointer hover:text-primary">add</span>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto p-4">
+<!-- Tree Node 1 -->
+<div class="flex flex-col gap-1 mb-2">
+<div class="flex items-center gap-2 p-2 hover:bg-surface-container-low rounded cursor-pointer group">
+<span class="material-symbols-outlined text-[18px] text-on-surface-variant">expand_more</span>
+<span class="font-code-sm text-code-sm text-on-surface-variant w-16">REQ-001</span>
+<span class="font-body-sm text-body-sm text-on-surface flex-1 truncate">Устойчивость к радиации (L1)</span>
+<span class="w-3 h-3 rounded-full bg-secondary-container"></span>
+</div>
+<!-- Sub-node -->
+<div class="ml-6 border-l border-outline-variant pl-4 flex flex-col gap-1">
+<div class="flex items-center gap-2 p-2 bg-secondary/5 border-l-2 border-secondary rounded cursor-pointer group">
+<span class="material-symbols-outlined text-[18px] text-secondary">arrow_right</span>
+<span class="font-code-sm text-code-sm text-secondary w-16">REQ-001.1</span>
+<span class="font-body-sm text-body-sm text-on-surface flex-1 truncate font-semibold">Радиационная защита трансивера</span>
+</div>
+<div class="flex items-center gap-2 p-2 hover:bg-surface-container-low rounded cursor-pointer group opacity-60">
+<span class="material-symbols-outlined text-[18px] text-on-surface-variant">arrow_right</span>
+<span class="font-code-sm text-code-sm text-on-surface-variant w-16">REQ-001.2</span>
+<span class="font-body-sm text-body-sm text-on-surface flex-1 truncate">Резервирование модулей памяти</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Context Inspector -->
+<aside class="flex flex-col w-context-panel-width h-full fixed top-12 right-0 z-30 bg-surface-container text-primary border-l border-outline-variant font-label-caps text-label-caps transition-transform duration-300">
+<div class="h-12 border-b border-outline-variant flex items-center px-4">
+<span class="font-headline-md text-headline-md text-primary">Инспектор: REQ-001.1</span>
+</div>
+<nav class="flex border-b border-outline-variant overflow-x-auto no-scrollbar">
+<button class="px-3 py-2 border-b-2 border-secondary text-secondary whitespace-nowrap">Детали</button>
+<button class="px-3 py-2 text-on-surface-variant hover:text-primary whitespace-nowrap">Связи</button>
+<button class="px-3 py-2 text-on-surface-variant hover:text-primary whitespace-nowrap">Верификация</button>
+</nav>
+<div class="flex-1 overflow-y-auto">
+<!-- Property Group 1 -->
+<div class="bg-surface-container-high px-4 py-2 text-[10px] text-on-surface-variant uppercase tracking-wider">Основное</div>
+<div class="p-4 flex flex-col gap-4 font-body-sm text-body-sm text-on-surface">
+<div class="flex flex-col gap-1">
+<label class="text-on-surface-variant font-semibold">Текст требования</label>
+<textarea class="w-full bg-surface-bright border border-outline-variant rounded p-2 text-body-sm focus:border-secondary focus:ring-1 focus:ring-secondary resize-none" rows="3">Трансивер должен обеспечивать экранирование компонентов, чувствительных к дозе 150 кРад.</textarea>
+</div>
+<div class="flex flex-col gap-1">
+<label class="text-on-surface-variant font-semibold">Обоснование (Rationale)</label>
+<textarea class="w-full bg-surface-bright border border-outline-variant rounded p-2 text-body-sm focus:border-secondary focus:ring-1 focus:ring-secondary resize-none" rows="2">Исходя из Need-01, защита критична для предотвращения bit-flips в регистрах.</textarea>
+</div>
+</div>
+<!-- Property Group 2 -->
+<div class="bg-surface-container-high px-4 py-2 text-[10px] text-on-surface-variant uppercase tracking-wider">Параметры</div>
+<div class="p-4 grid grid-cols-2 gap-4 font-body-sm text-body-sm text-on-surface">
+<div class="flex flex-col gap-1">
+<label class="text-on-surface-variant font-semibold">Мера</label>
+<input class="w-full bg-surface-bright border border-outline-variant rounded p-1.5 focus:border-secondary focus:ring-1 focus:ring-secondary" type="text" value="Толщина экрана"/>
+</div>
+<div class="flex flex-col gap-1">
+<label class="text-on-surface-variant font-semibold">Единицы</label>
+<input class="w-full bg-surface-bright border border-outline-variant rounded p-1.5 focus:border-secondary focus:ring-1 focus:ring-secondary" type="text" value="мм (Al)"/>
+</div>
+<div class="flex flex-col gap-1">
+<label class="text-on-surface-variant font-semibold">Порог</label>
+<input class="w-full bg-surface-bright border border-outline-variant rounded p-1.5 focus:border-secondary focus:ring-1 focus:ring-secondary" type="text" value="&gt;= 2.5"/>
+</div>
+<div class="flex flex-col gap-1">
+<label class="text-on-surface-variant font-semibold">Метод (V&amp;V)</label>
+<select class="w-full bg-surface-bright border border-outline-variant rounded p-1.5 focus:border-secondary focus:ring-1 focus:ring-secondary">
+<option>Анализ (Analysis)</option>
+<option>Тест (Test)</option>
+</select>
+</div>
+</div>
+</div>
+</aside>
+</body></html>

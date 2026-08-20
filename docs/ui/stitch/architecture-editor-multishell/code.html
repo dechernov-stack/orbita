@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Multi-shell Physical Architecture Editor</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "tertiary": "#000000",
+                    "on-error-container": "#93000a",
+                    "surface": "#f8f9fa",
+                    "surface-container-high": "#e7e8e9",
+                    "surface-container-lowest": "#ffffff",
+                    "primary-fixed": "#d6e4f9",
+                    "outline-variant": "#c4c6cc",
+                    "surface-bright": "#f8f9fa",
+                    "surface-variant": "#e1e3e4",
+                    "on-secondary-container": "#003370",
+                    "on-primary": "#ffffff",
+                    "on-primary-fixed": "#0f1c2c",
+                    "on-tertiary-fixed-variant": "#584329",
+                    "primary": "#000000",
+                    "on-secondary": "#ffffff",
+                    "surface-container-low": "#f3f4f5",
+                    "secondary-fixed": "#d7e2ff",
+                    "inverse-surface": "#2e3132",
+                    "on-primary-fixed-variant": "#3a4859",
+                    "surface-tint": "#525f71",
+                    "on-secondary-fixed": "#001a40",
+                    "on-tertiary-container": "#9a7f61",
+                    "secondary-container": "#659dfe",
+                    "on-surface": "#191c1d",
+                    "surface-dim": "#d9dadb",
+                    "background": "#f8f9fa",
+                    "on-primary-container": "#778598",
+                    "error": "#ba1a1a",
+                    "outline": "#74777d",
+                    "error-container": "#ffdad6",
+                    "on-secondary-fixed-variant": "#004491",
+                    "secondary-fixed-dim": "#acc7ff",
+                    "tertiary-fixed-dim": "#e0c1a0",
+                    "tertiary-container": "#281804",
+                    "on-error": "#ffffff",
+                    "on-background": "#191c1d",
+                    "on-surface-variant": "#44474c",
+                    "secondary": "#115cb9",
+                    "primary-fixed-dim": "#bac8dc",
+                    "on-tertiary-fixed": "#281804",
+                    "surface-container": "#edeeef",
+                    "primary-container": "#0f1c2c",
+                    "surface-container-highest": "#e1e3e4",
+                    "tertiary-fixed": "#feddba",
+                    "inverse-on-surface": "#f0f1f2",
+                    "inverse-primary": "#bac8dc",
+                    "on-tertiary": "#ffffff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "padding-dense": "4px",
+                    "global-nav-width": "64px",
+                    "context-panel-width": "320px",
+                    "gutter": "1px",
+                    "lifecycle-rail-width": "240px",
+                    "padding-standard": "8px",
+                    "padding-md": "16px"
+            },
+            "fontFamily": {
+                    "label-caps": [
+                            "Inter"
+                    ],
+                    "body-md": [
+                            "Inter"
+                    ],
+                    "body-sm": [
+                            "Inter"
+                    ],
+                    "headline-lg": [
+                            "Inter"
+                    ],
+                    "headline-md": [
+                            "Inter"
+                    ],
+                    "code-sm": [
+                            "JetBrains Mono"
+                    ]
+            },
+            "fontSize": {
+                    "label-caps": [
+                            "11px",
+                            {
+                                    "lineHeight": "16px",
+                                    "letterSpacing": "0.05em",
+                                    "fontWeight": "700"
+                            }
+                    ],
+                    "body-md": [
+                            "14px",
+                            {
+                                    "lineHeight": "20px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "body-sm": [
+                            "12px",
+                            {
+                                    "lineHeight": "16px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "headline-lg": [
+                            "24px",
+                            {
+                                    "lineHeight": "32px",
+                                    "letterSpacing": "-0.02em",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "headline-md": [
+                            "18px",
+                            {
+                                    "lineHeight": "24px",
+                                    "letterSpacing": "-0.01em",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "code-sm": [
+                            "12px",
+                            {
+                                    "lineHeight": "16px",
+                                    "fontWeight": "400"
+                            }
+                    ]
+            }
+        },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .filled {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body-md h-screen w-screen overflow-hidden flex">
+<!-- Global Nav (Rail) -->
+<nav class="flex flex-col w-global-nav-width h-full fixed left-0 top-0 z-50 bg-primary-container text-primary-fixed border-r border-outline-variant font-body-sm text-body-sm transition-colors duration-150">
+<div class="h-12 w-full flex items-center justify-center border-b border-outline-variant">
+<span class="font-headline-md text-headline-md font-bold text-on-primary" title="SpaceSys">Sp</span>
+</div>
+<div class="flex-1 flex flex-col items-center py-4 space-y-4">
+<a class="flex flex-col items-center p-2 rounded w-full hover:bg-primary-fixed-variant/30 text-on-primary-container/70 group" href="#" title="Главная">
+<span class="material-symbols-outlined mb-1 text-[20px]">home</span>
+</a>
+<a class="flex flex-col items-center p-2 rounded w-full hover:bg-primary-fixed-variant/30 text-secondary-fixed bg-secondary-container/20 border-l-2 border-secondary group" href="#" title="Проекты">
+<span class="material-symbols-outlined mb-1 text-[20px]">account_tree</span>
+</a>
+<a class="flex flex-col items-center p-2 rounded w-full hover:bg-primary-fixed-variant/30 text-on-primary-container/70 group" href="#" title="Библиотеки">
+<span class="material-symbols-outlined mb-1 text-[20px]">library_books</span>
+</a>
+<a class="flex flex-col items-center p-2 rounded w-full hover:bg-primary-fixed-variant/30 text-on-primary-container/70 group" href="#" title="Предметные области">
+<span class="material-symbols-outlined mb-1 text-[20px]">category</span>
+</a>
+<a class="flex flex-col items-center p-2 rounded w-full hover:bg-primary-fixed-variant/30 text-on-primary-container/70 group" href="#" title="Исследования">
+<span class="material-symbols-outlined mb-1 text-[20px]">biotech</span>
+</a>
+<a class="flex flex-col items-center p-2 rounded w-full hover:bg-primary-fixed-variant/30 text-on-primary-container/70 group" href="#" title="Доказательная база">
+<span class="material-symbols-outlined mb-1 text-[20px]">assignment_turned_in</span>
+</a>
+</div>
+<div class="mt-auto flex flex-col items-center py-4 space-y-4 border-t border-outline-variant">
+<a class="flex flex-col items-center p-2 rounded w-full hover:bg-primary-fixed-variant/30 text-on-primary-container/70 group" href="#" title="Поиск">
+<span class="material-symbols-outlined mb-1 text-[20px]">search</span>
+</a>
+<a class="flex flex-col items-center p-2 rounded w-full hover:bg-primary-fixed-variant/30 text-on-primary-container/70 group" href="#" title="Администрирование">
+<span class="material-symbols-outlined mb-1 text-[20px]">admin_panel_settings</span>
+</a>
+</div>
+</nav>
+<!-- Top App Bar -->
+<header class="flex items-center justify-between w-full h-12 px-padding-md ml-global-nav-width fixed top-0 z-40 bg-surface text-on-surface font-label-caps text-label-caps border-b border-outline-variant cursor-pointer transition-opacity">
+<div class="flex items-center space-x-6 h-full">
+<span class="font-headline-md text-headline-md text-on-surface">Проект: Альфа-Центавра</span>
+<nav class="hidden md:flex h-full items-center space-x-4 ml-6">
+<a class="h-full flex items-center px-2 text-on-surface-variant hover:bg-surface-container-high transition-colors" href="#">Концепция</a>
+<a class="h-full flex items-center px-2 text-on-surface-variant hover:bg-surface-container-high transition-colors" href="#">Базис</a>
+<a class="h-full flex items-center px-2 text-on-surface-variant hover:bg-surface-container-high transition-colors" href="#">Замечания</a>
+</nav>
+</div>
+<div class="flex items-center space-x-4">
+<button class="px-3 py-1 rounded bg-secondary/10 text-secondary hover:bg-secondary/20 transition-colors">Следующий смотр</button>
+<button class="px-3 py-1 rounded border border-outline-variant text-on-surface hover:bg-surface-container-high transition-colors">Базовые линии</button>
+<div class="flex items-center space-x-2 border-l border-outline-variant pl-4 ml-2">
+<button class="p-1 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded"><span class="material-symbols-outlined">notifications</span></button>
+<button class="p-1 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded"><span class="material-symbols-outlined">settings</span></button>
+<div class="w-6 h-6 rounded-full bg-primary-fixed flex items-center justify-center overflow-hidden border border-outline-variant cursor-pointer" title="Профиль инженера">
+<span class="material-symbols-outlined text-[16px] text-on-primary-fixed">person</span>
+</div>
+</div>
+</div>
+</header>
+<!-- Drawer Rail (Lifecycle) -->
+<aside class="flex flex-col w-lifecycle-rail-width h-full fixed top-12 left-global-nav-width z-30 bg-surface-container-low text-secondary font-body-md text-body-md border-r border-outline-variant transition-all duration-200 ease-in-out pb-12">
+<div class="p-padding-md border-b border-outline-variant">
+<h2 class="font-label-caps text-label-caps text-on-surface-variant mb-1">Жизненный цикл</h2>
+<div class="text-xs text-on-surface-variant opacity-80">Текущая фаза: Phase A</div>
+</div>
+<div class="flex-1 overflow-y-auto py-2">
+<a class="flex items-center space-x-3 px-padding-md py-2 text-on-surface-variant hover:bg-surface-container-high transition-colors w-full text-left" href="#">
+<span class="material-symbols-outlined text-[18px]">radio_button_checked</span>
+<span>Pre-Phase A</span>
+</a>
+<a class="flex items-center space-x-3 px-padding-md py-2 text-on-surface-variant hover:bg-surface-container-high transition-colors w-full text-left" href="#">
+<span class="material-symbols-outlined text-[18px]">radio_button_unchecked</span>
+<span>Phase A: Concept</span>
+</a>
+<a class="flex items-center space-x-3 px-padding-md py-2 text-on-surface-variant hover:bg-surface-container-high transition-colors w-full text-left" href="#">
+<span class="material-symbols-outlined text-[18px]">pending</span>
+<span>Phase A: Feasibility</span>
+</a>
+<a class="flex items-center space-x-3 px-padding-md py-2 text-on-surface-variant hover:bg-surface-container-high transition-colors w-full text-left" href="#">
+<span class="material-symbols-outlined text-[18px]">account_tree</span>
+<span>Requirements</span>
+</a>
+<a class="flex items-center space-x-3 px-padding-md py-2 bg-secondary/10 text-secondary font-semibold hover:bg-surface-container-high transition-colors w-full text-left border-r-2 border-secondary" href="#">
+<span class="material-symbols-outlined text-[18px]">schema</span>
+<span>Architecture</span>
+</a>
+</div>
+</aside>
+<!-- Main Workspace -->
+<main class="flex-1 ml-[calc(64px+240px)] mr-context-panel-width mt-12 h-[calc(100vh-3rem)] overflow-y-auto bg-surface p-padding-md pb-24">
+<div class="mb-6 flex justify-between items-center">
+<h1 class="font-headline-lg text-headline-lg text-on-surface">Physical Architecture</h1>
+<div class="flex space-x-2">
+<button class="px-3 py-1.5 bg-surface-container-lowest border border-outline-variant text-on-surface rounded hover:bg-surface-container-low transition-colors font-body-sm text-body-sm flex items-center">
+<span class="material-symbols-outlined text-[16px] mr-1">add</span> New Shell
+                </button>
+<button class="px-3 py-1.5 bg-surface-container-lowest border border-outline-variant text-on-surface rounded hover:bg-surface-container-low transition-colors font-body-sm text-body-sm flex items-center">
+<span class="material-symbols-outlined text-[16px] mr-1">filter_list</span> Filter
+                </button>
+</div>
+</div>
+<!-- Data Table (Orbit Shells) -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded mb-8 overflow-hidden">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="border-b border-outline-variant bg-surface-container-low font-label-caps text-label-caps text-on-surface-variant sticky top-0">
+<th class="py-2 px-3 font-semibold w-8"></th>
+<th class="py-2 px-3 font-semibold">Shell Name</th>
+<th class="py-2 px-3 font-semibold">Purpose</th>
+<th class="py-2 px-3 font-semibold text-right">Altitude (km)</th>
+<th class="py-2 px-3 font-semibold text-right">Inclination (deg)</th>
+<th class="py-2 px-3 font-semibold text-right">Planes</th>
+<th class="py-2 px-3 font-semibold text-right">Sats/Plane</th>
+<th class="py-2 px-3 font-semibold text-right">Total Sats</th>
+<th class="py-2 px-3 font-semibold text-center">Status</th>
+</tr>
+</thead>
+<tbody class="font-body-sm text-body-sm text-on-surface">
+<!-- Active Row -->
+<tr class="border-b border-outline-variant hover:bg-surface-container-high transition-colors bg-secondary-fixed/30 relative cursor-pointer group">
+<td class="py-1 px-3 w-8 relative">
+<div class="absolute left-0 top-0 bottom-0 w-[2px] bg-secondary"></div>
+<span class="material-symbols-outlined text-[16px] text-secondary">radio_button_checked</span>
+</td>
+<td class="py-1 px-3 font-code-sm text-code-sm font-semibold">LEO-1</td>
+<td class="py-1 px-3">Primary Broadband Comm</td>
+<td class="py-1 px-3 text-right font-code-sm text-code-sm">550.0</td>
+<td class="py-1 px-3 text-right font-code-sm text-code-sm">53.0</td>
+<td class="py-1 px-3 text-right font-code-sm text-code-sm">72</td>
+<td class="py-1 px-3 text-right font-code-sm text-code-sm">22</td>
+<td class="py-1 px-3 text-right font-code-sm text-code-sm">1584</td>
+<td class="py-1 px-3 text-center">
+<span class="inline-flex items-center px-1.5 py-0.5 rounded-full bg-secondary-container text-on-secondary-container text-[10px] font-bold uppercase tracking-wider">Baseline</span>
+</td>
+<!-- Row Actions Hover -->
+<td class="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-surface-container-lowest/80 backdrop-blur px-2 rounded shadow-sm flex space-x-1 border border-outline-variant">
+<button class="p-1 hover:text-secondary"><span class="material-symbols-outlined text-[16px]">edit</span></button>
+<button class="p-1 hover:text-error"><span class="material-symbols-outlined text-[16px]">delete</span></button>
+</td>
+</tr>
+<tr class="border-b border-outline-variant hover:bg-surface-container-high transition-colors cursor-pointer group relative">
+<td class="py-1 px-3 w-8">
+<span class="material-symbols-outlined text-[16px] text-outline opacity-50 group-hover:opacity-100">radio_button_unchecked</span>
+</td>
+<td class="py-1 px-3 font-code-sm text-code-sm">LEO-2</td>
+<td class="py-1 px-3">Secondary Comm / IoT</td>
+<td class="py-1 px-3 text-right font-code-sm text-code-sm">540.0</td>
+<td class="py-1 px-3 text-right font-code-sm text-code-sm">53.2</td>
+<td class="py-1 px-3 text-right font-code-sm text-code-sm">72</td>
+<td class="py-1 px-3 text-right font-code-sm text-code-sm">22</td>
+<td class="py-1 px-3 text-right font-code-sm text-code-sm">1584</td>
+<td class="py-1 px-3 text-center">
+<span class="inline-flex items-center px-1.5 py-0.5 rounded-full bg-surface-variant text-on-surface-variant text-[10px] font-bold uppercase tracking-wider border border-outline-variant">Draft</span>
+</td>
+<!-- Row Actions Hover -->
+<td class="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-surface-container-lowest/90 backdrop-blur px-2 rounded shadow-sm flex space-x-1 border border-outline-variant">
+<button class="p-1 hover:text-secondary"><span class="material-symbols-outlined text-[16px]">edit</span></button>
+<button class="p-1 hover:text-error"><span class="material-symbols-outlined text-[16px]">delete</span></button>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-high transition-colors cursor-pointer group relative bg-surface-container-lowest/50">
+<td class="py-1 px-3 w-8">
+<span class="material-symbols-outlined text-[16px] text-outline opacity-50 group-hover:opacity-100">radio_button_unchecked</span>
+</td>
+<td class="py-1 px-3 font-code-sm text-code-sm">MEO-1</td>
+<td class="py-1 px-3">Relay &amp; Backup</td>
+<td class="py-1 px-3 text-right font-code-sm text-code-sm">8062.0</td>
+<td class="py-1 px-3 text-right font-code-sm text-code-sm">45.0</td>
+<td class="py-1 px-3 text-right font-code-sm text-code-sm">4</td>
+<td class="py-1 px-3 text-right font-code-sm text-code-sm">8</td>
+<td class="py-1 px-3 text-right font-code-sm text-code-sm">32</td>
+<td class="py-1 px-3 text-center">
+<span class="inline-flex items-center px-1.5 py-0.5 rounded-full bg-surface-variant text-on-surface-variant text-[10px] font-bold uppercase tracking-wider border border-outline-variant">Draft</span>
+</td>
+<!-- Row Actions Hover -->
+<td class="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-surface-container-lowest/90 backdrop-blur px-2 rounded shadow-sm flex space-x-1 border border-outline-variant">
+<button class="p-1 hover:text-secondary"><span class="material-symbols-outlined text-[16px]">edit</span></button>
+<button class="p-1 hover:text-error"><span class="material-symbols-outlined text-[16px]">delete</span></button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Segment View -->
+<h2 class="font-headline-md text-headline-md text-on-surface mb-4">Architecture Segments (LEO-1 Context)</h2>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+<!-- Space Segment -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded p-4 flex flex-col h-full">
+<div class="flex items-center justify-between mb-3 pb-2 border-b border-outline-variant">
+<h3 class="font-label-caps text-label-caps text-secondary flex items-center">
+<span class="material-symbols-outlined text-[16px] mr-2">satellite_alt</span>
+                        Space Segment
+                    </h3>
+<span class="text-xs text-on-surface-variant font-code-sm">ID: SS-01</span>
+</div>
+<div class="space-y-2 flex-1">
+<div class="flex justify-between items-center bg-surface-container-low p-2 rounded border border-surface-variant">
+<span class="font-body-sm text-body-sm text-on-surface">Bus Type</span>
+<span class="font-code-sm text-code-sm">Platform-Alpha</span>
+</div>
+<div class="flex justify-between items-center bg-surface-container-low p-2 rounded border border-surface-variant">
+<span class="font-body-sm text-body-sm text-on-surface">Payload</span>
+<span class="font-code-sm text-code-sm">Ka-Band Transceiver</span>
+</div>
+<div class="flex justify-between items-center bg-surface-container-low p-2 rounded border border-surface-variant">
+<span class="font-body-sm text-body-sm text-on-surface">Propulsion</span>
+<span class="font-code-sm text-code-sm">Hall-Effect</span>
+</div>
+</div>
+</div>
+<!-- Ground Segment -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded p-4 flex flex-col h-full">
+<div class="flex items-center justify-between mb-3 pb-2 border-b border-outline-variant">
+<h3 class="font-label-caps text-label-caps text-secondary flex items-center">
+<span class="material-symbols-outlined text-[16px] mr-2">cell_tower</span>
+                        Ground Segment
+                    </h3>
+<span class="text-xs text-on-surface-variant font-code-sm">ID: GS-01</span>
+</div>
+<div class="space-y-2 flex-1">
+<div class="flex justify-between items-center bg-surface-container-low p-2 rounded border border-surface-variant">
+<span class="font-body-sm text-body-sm text-on-surface">Gateway Stations</span>
+<span class="font-code-sm text-code-sm">24 (Global)</span>
+</div>
+<div class="flex justify-between items-center bg-surface-container-low p-2 rounded border border-surface-variant">
+<span class="font-body-sm text-body-sm text-on-surface">TT&amp;C Centers</span>
+<span class="font-code-sm text-code-sm">3 (Redundant)</span>
+</div>
+<div class="flex justify-between items-center bg-surface-container-low p-2 rounded border border-surface-variant">
+<span class="font-body-sm text-body-sm text-on-surface">Network Topology</span>
+<span class="font-code-sm text-code-sm">Mesh / SD-WAN</span>
+</div>
+</div>
+</div>
+<!-- User Segment -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded p-4 flex flex-col h-full">
+<div class="flex items-center justify-between mb-3 pb-2 border-b border-outline-variant">
+<h3 class="font-label-caps text-label-caps text-secondary flex items-center">
+<span class="material-symbols-outlined text-[16px] mr-2">devices</span>
+                        User Segment
+                    </h3>
+<span class="text-xs text-on-surface-variant font-code-sm">ID: US-01</span>
+</div>
+<div class="space-y-2 flex-1">
+<div class="flex justify-between items-center bg-surface-container-low p-2 rounded border border-surface-variant">
+<span class="font-body-sm text-body-sm text-on-surface">Terminal Type A</span>
+<span class="font-code-sm text-code-sm">Fixed Phased Array</span>
+</div>
+<div class="flex justify-between items-center bg-surface-container-low p-2 rounded border border-surface-variant">
+<span class="font-body-sm text-body-sm text-on-surface">Terminal Type B</span>
+<span class="font-code-sm text-code-sm">Mobile (Aero/Mar)</span>
+</div>
+<div class="flex justify-between items-center bg-surface-container-low p-2 rounded border border-surface-variant">
+<span class="font-body-sm text-body-sm text-on-surface">Expected Capacity</span>
+<span class="font-code-sm text-code-sm">100 Mbps / user</span>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Context Inspector -->
+<aside class="flex flex-col w-context-panel-width h-full fixed top-12 right-0 z-30 bg-surface-container text-primary font-label-caps text-label-caps border-l border-outline-variant transition-transform duration-300 pb-12">
+<div class="p-padding-md border-b border-outline-variant flex items-center justify-between bg-surface-container-high">
+<h2 class="font-headline-md text-headline-md text-primary">Инспектор контекста</h2>
+<button class="p-1 hover:bg-surface-variant rounded text-on-surface-variant"><span class="material-symbols-outlined text-[18px]">close</span></button>
+</div>
+<!-- Inspector Tabs -->
+<div class="flex border-b border-outline-variant overflow-x-auto bg-surface-container-lowest">
+<button class="flex items-center px-3 py-2 border-b-2 border-secondary text-secondary whitespace-nowrap hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined text-[16px] mr-1.5">info</span>
+                Детали
+            </button>
+<button class="flex items-center px-3 py-2 text-on-surface-variant hover:text-primary whitespace-nowrap hover:bg-surface-container-low transition-colors border-b-2 border-transparent">
+<span class="material-symbols-outlined text-[16px] mr-1.5">link</span>
+                Связи
+            </button>
+<button class="flex items-center px-3 py-2 text-on-surface-variant hover:text-primary whitespace-nowrap hover:bg-surface-container-low transition-colors border-b-2 border-transparent">
+<span class="material-symbols-outlined text-[16px] mr-1.5">rebase_edit</span>
+                Влияние
+            </button>
+<button class="flex items-center px-3 py-2 text-on-surface-variant hover:text-primary whitespace-nowrap hover:bg-surface-container-low transition-colors border-b-2 border-transparent">
+<span class="material-symbols-outlined text-[16px] mr-1.5">psychology</span>
+                AI Советы
+            </button>
+<button class="flex items-center px-3 py-2 text-on-surface-variant hover:text-primary whitespace-nowrap hover:bg-surface-container-low transition-colors border-b-2 border-transparent">
+<span class="material-symbols-outlined text-[16px] mr-1.5">error_outline</span>
+                Замечания
+            </button>
+<button class="flex items-center px-3 py-2 text-on-surface-variant hover:text-primary whitespace-nowrap hover:bg-surface-container-low transition-colors border-b-2 border-transparent">
+<span class="material-symbols-outlined text-[16px] mr-1.5">data_object</span>
+                Метаданные
+            </button>
+</div>
+<div class="flex-1 overflow-y-auto font-body-sm text-body-sm text-on-surface">
+<!-- Selected Entity Header -->
+<div class="p-padding-md border-b border-outline-variant bg-surface-container-lowest">
+<div class="flex items-center justify-between mb-1">
+<span class="text-xs text-on-surface-variant uppercase tracking-wider">Selected Object</span>
+<span class="px-1.5 py-0.5 bg-secondary/10 text-secondary rounded text-[10px] font-bold">Orbit Shell</span>
+</div>
+<div class="font-code-sm font-bold text-[14px]">LEO-1</div>
+<div class="text-on-surface-variant mt-1">Primary Broadband Comm</div>
+</div>
+<!-- Property Section 1 -->
+<div class="bg-[#E9ECEF] px-padding-md py-1.5 border-b border-outline-variant font-label-caps text-label-caps text-on-surface-variant flex items-center justify-between cursor-pointer">
+<span>Technical Metadata</span>
+<span class="material-symbols-outlined text-[16px]">expand_less</span>
+</div>
+<div class="p-padding-md space-y-3 bg-surface-container-lowest border-b border-outline-variant">
+<div class="flex flex-col">
+<label class="text-xs text-on-surface-variant mb-1 font-semibold">Eccentricity (e)</label>
+<input class="w-full bg-surface-container border border-outline-variant rounded px-2 py-1 font-code-sm text-code-sm focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary/50 transition-shadow" type="text" value="0.00012"/>
+</div>
+<div class="flex flex-col">
+<label class="text-xs text-on-surface-variant mb-1 font-semibold">RAAN (deg)</label>
+<input class="w-full bg-surface-container border border-outline-variant rounded px-2 py-1 font-code-sm text-code-sm focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary/50 transition-shadow text-on-surface-variant" readonly="" type="text" value="Distributed (0-360)"/>
+</div>
+<div class="flex flex-col">
+<label class="text-xs text-on-surface-variant mb-1 font-semibold">Argument of Perigee (deg)</label>
+<input class="w-full bg-surface border border-outline-variant rounded px-2 py-1 font-code-sm text-code-sm focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary/50 transition-shadow" type="text" value="90.0"/>
+</div>
+<div class="flex flex-col">
+<label class="text-xs text-on-surface-variant mb-1 font-semibold">Orbital Period (min)</label>
+<div class="flex items-center bg-surface-container border border-outline-variant rounded px-2 py-1">
+<span class="font-code-sm text-code-sm flex-1 text-on-surface-variant">95.6</span>
+<span class="material-symbols-outlined text-[14px] text-outline ml-2 cursor-help" title="Calculated from Altitude">calculate</span>
+</div>
+</div>
+</div>
+<!-- Property Section 2 -->
+<div class="bg-[#E9ECEF] px-padding-md py-1.5 border-b border-outline-variant font-label-caps text-label-caps text-on-surface-variant flex items-center justify-between cursor-pointer">
+<span>System Dependencies</span>
+<span class="material-symbols-outlined text-[16px]">expand_more</span>
+</div>
+<div class="p-padding-md space-y-2 bg-surface-container-lowest hidden">
+<!-- Collapsed content -->
+</div>
+<!-- Actions -->
+<div class="p-padding-md mt-4">
+<button class="w-full py-2 bg-secondary text-on-secondary rounded font-body-sm text-body-sm font-semibold hover:bg-on-secondary-fixed-variant transition-colors mb-2">Save Changes</button>
+<button class="w-full py-2 bg-surface-container-lowest border border-outline-variant text-on-surface rounded font-body-sm text-body-sm hover:bg-surface-container-low transition-colors">Revert</button>
+</div>
+</div>
+</aside>
+</body></html>
