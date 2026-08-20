@@ -226,6 +226,10 @@
     },
     "lifecycle": {
       "$ref": "https://kis.local/schemas/common/status.schema.json"
+    },
+    "provenance": {
+      "$ref": "https://kis.local/schemas/common/provenance.schema.json",
+      "description": "Происхождение профиля (TZ-COM-005). Для импортированного из каталога устройств обязателен блок import: источник, версия, дата, условия использования (ADR-024)"
     }
   }
 }

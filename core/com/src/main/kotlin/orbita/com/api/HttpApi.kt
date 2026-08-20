@@ -490,6 +490,82 @@ class HttpApi(private val boundary: Boundary) {
                 }
             }
 
+            // Импорт записи каталога устройств (шаг 14, ADR-024). ПО ОДНОЙ ЗАПИСИ,
+            // по действию инженера: массовой синхронизации каталога нет как пути —
+            // правовой режим источника (sui generis) запрещает выгрузку целиком.
+            // Возвращается ЧЕРНОВИК с замечаниями фильтра, не хранимый объект:
+            // источник не знает наших параметров генерации, и выдумывать их
+            // импорту нельзя. Хранение — обычный канал после дополнения,
+            // теми же правилами, что рукописный ввод.
+            method == "POST" && path == "/import/terminal-profile" -> {
+                val req = mapper.readTree(body(ex))
+                val source = req.path("source").asText("lorawan-devices")
+                val verdict = boundary.importPolicy.importAllowed(source, "item")
+                if (!verdict.allowed) {
+                    respond(ex, 422, mapper.createObjectNode().put("error", verdict.reason))
+                } else {
+                    val provenance = boundary.importPolicy.provenanceFor(
+                        source = source,
+                        version = req.path("dataset_version").asText(""),
+                        retrievedAt = req.path("retrieved_at").asText(""),
+                        itemRef = req.path("item_ref").asText("").ifBlank { null },
+                        mapper = mapper,
+                    )
+                    val draft = orbita.usr.TerminalImport.mapTerminal(
+                        req.path("device"), req.path("profile"), provenance, mapper,
+                    )
+                    // повторный импорт той же записи источника — обновление
+                    // существующего профиля; ручная правка не затирается
+                    val itemRef = provenance.path("import").path("item_ref").asText("")
+                    val existing = boundary.objects.listCurrent()
+                        .filter { it.type == "terminal_profile" }
+                        .map { it.doc.deepCopy<ObjectNode>() }
+                        .filter {
+                            it.path("provenance").path("import").path("item_ref").asText("") == itemRef
+                        }
+                    val (merged, action) = orbita.mod.model.mergeImported(existing, draft)
+                    val out = mapper.createObjectNode()
+                    out.put("action", action.name.lowercase())
+                    out.set<ObjectNode>("draft", merged.last())
+                    val issues = out.putArray("issues")
+                    orbita.usr.TerminalImport.screen(merged.last()).forEach(issues::add)
+                    respond(ex, 200, out)
+                }
+            }
+
+            // Импорт требований из ReqIF (шаг 14, канал «требования»). Файл
+            // разбирает служба обмена; сюда возвращаются черновики — хранение
+            // идёт обычным каналом, тем же фильтром, что рукописный ввод.
+            method == "POST" && path == "/import/reqif" -> {
+                val exchangeUrl = System.getenv("ORBITA_EXCHANGE_URL")
+                if (exchangeUrl.isNullOrBlank()) {
+                    respond(
+                        ex, 503,
+                        mapper.createObjectNode()
+                            .put("error", "служба обмена не настроена: задайте ORBITA_EXCHANGE_URL")
+                            .put("adr", "ADR-023"),
+                    )
+                } else {
+                    val parsed = mapper.readTree(postToExchange("$exchangeUrl/reqif/parse", body(ex)))
+                    val out = mapper.createObjectNode()
+                    val drafts = out.putArray("drafts")
+                    parsed.path("objects")
+                        .filter { it.path("type").asText() == "ST-REQUIREMENT" }
+                        .forEach { so ->
+                            val spec = orbita.out.SpecObject(
+                                identifier = so.path("identifier").asText(),
+                                type = so.path("type").asText(),
+                                values = so.path("values").properties()
+                                    .associate { (k, v) -> k to v },
+                            )
+                            drafts.add(orbita.out.fromSpecObject(spec, mapper = mapper))
+                        }
+                    out.put("source_title", parsed.path("title").asText(""))
+                    out.put("relations", parsed.path("relations").size())
+                    respond(ex, 200, out)
+                }
+            }
+
             // Пакет передачи одной операцией (TZ-OUT-006, шаг 11.3). Вердикт
             // полноты и предупреждения о небазированном — внутри пакета.
             method == "GET" && path == "/export/package" -> {

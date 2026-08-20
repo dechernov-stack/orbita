@@ -69,6 +69,9 @@ class Boundary(private val registry: SchemaRegistry, conn: Connection) {
     val protocolAdapter = LoRaWanAdapter()
     val visibility = VisibilityPrecompute()
 
+    /** Импорт — третий канал в модель (шаг 14, ADR-024): правовой режим источников. */
+    val importPolicy = orbita.mod.model.ImportPolicy()
+
     private val terminalRules = TerminalRules(registry)
 
     /**
