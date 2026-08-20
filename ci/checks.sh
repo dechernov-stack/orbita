@@ -10,6 +10,14 @@ echo "== трассировка ТЗ =="     ; python3 tools/validate_trace.py
 echo "== эталоны против схем ==" ; python3 tools/validate_spec_schema.py
 echo "== обход кода клиента ==" ; python3 tools/validate_web_no_math.py
 
+# Круговой обмен ReqIF и сверка с XSD OMG (шаг 11.2, ADR-023). Требует пакета
+# reqif==0.0.47 — CI его ставит. Локально без пакета пропуск объявляется вслух.
+if python3 -c 'import reqif' 2>/dev/null; then
+  echo "== ReqIF: круговой обмен и XSD OMG =="; python3 tools/check_reqif_roundtrip.py
+else
+  echo "== ReqIF: круговой обмен == ПРОПУЩЕНО: нет пакета reqif (pip install reqif==0.0.47)"
+fi
+
 echo "== исполняемые эталоны =="
 total=0
 for f in spec/*.py; do

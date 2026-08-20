@@ -39,6 +39,13 @@ services:
         condition: service_healthy
     restart: "no"
 
+  # Служба обмена ReqIF (ADR-023): отдельный рантайм, наружу не публикуется.
+  exchange:
+    build:
+      context: .
+      dockerfile: ops/exchange.Dockerfile
+    restart: unless-stopped
+
   api:
     build:
       context: .
@@ -49,6 +56,7 @@ services:
       ORBITA_DB_USER: orbita
       ORBITA_DB_PASSWORD: ${ORBITA_DB_PASSWORD:-orbita}
       ORBITA_HTTP_PORT: 8090
+      ORBITA_EXCHANGE_URL: http://exchange:8091
     depends_on:
       db:
         condition: service_healthy
