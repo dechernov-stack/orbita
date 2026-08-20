@@ -33,13 +33,16 @@ export function Needs() {
         </div>
         <table>
           <thead>
+            {/* Ширина формулировки задана явно и с запасом: при table-layout: fixed
+                колонка без ширины получает лишь остаток, и главное содержимое
+                строки — сама формулировка — оказывается срезано первым. */}
             <tr>
-              <th style={{ width: 100 }}>ID</th>
-              <th>Формулировка</th>
-              <th style={{ width: 200 }}>Стейкхолдер</th>
-              <th style={{ width: 110 }}>Роль</th>
-              <th style={{ width: 90 }}>Приоритет</th>
-              <th style={{ width: 160 }}>Сервисы</th>
+              <th style={{ width: 90 }}>ID</th>
+              <th style={{ width: 320 }}>Формулировка</th>
+              <th style={{ width: 170 }}>Стейкхолдер</th>
+              <th style={{ width: 100 }}>Роль</th>
+              <th style={{ width: 80 }}>Приоритет</th>
+              <th style={{ width: 150 }}>Сервисы</th>
               <th style={{ width: 90 }}>Статус</th>
             </tr>
           </thead>
