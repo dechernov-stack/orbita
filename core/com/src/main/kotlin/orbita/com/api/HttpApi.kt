@@ -490,6 +490,59 @@ class HttpApi(private val boundary: Boundary) {
                 }
             }
 
+            // Рекомендательное размещение станций (шаг 12.1, Концепция 5.4).
+            // Ручные станции берутся из ХРАНИМОГО набора и не переписываются:
+            // подбор строится поверх них, предложенное помечено происхождением.
+            method == "POST" && path == "/ground/suggest" -> {
+                val req = mapper.readTree(body(ex))
+                val stored = boundary.objects.listCurrent()
+                    .firstOrNull { it.type == "ground_stations" }
+                val manual = stored?.doc?.path("stations")?.map { s ->
+                    orbita.bal.StationSite(
+                        id = s.path("id").asText(),
+                        name = s.path("name").asText(""),
+                        lat = s.path("lat_deg").asDouble(),
+                        lon = s.path("lon_deg").asDouble(),
+                        placement = s.path("placement").asText("manual"),
+                    )
+                } ?: emptyList()
+                val candidates = req.path("candidates").map { c ->
+                    orbita.bal.StationSite(
+                        id = c.path("id").asText(""),
+                        name = c.path("name").asText(""),
+                        lat = c.path("lat_deg").asDouble(),
+                        lon = c.path("lon_deg").asDouble(),
+                    )
+                }
+                val inclination = req.path("inclination_deg").asDouble(53.0)
+                val altKm = req.path("alt_km").asDouble(550.0)
+                val result = orbita.bal.suggestStations(
+                    candidates = candidates,
+                    inclinationDeg = inclination,
+                    altKm = altKm,
+                    k = req.path("k").asInt(1),
+                    existing = manual,
+                )
+                val out = mapper.createObjectNode()
+                val suggested = out.putArray("suggested")
+                result.suggested.forEach { s ->
+                    suggested.addObject()
+                        .put("id", s.id).put("name", s.name)
+                        .put("lat_deg", s.lat).put("lon_deg", s.lon)
+                        .put("placement", s.placement)
+                        .put(
+                            "gain",
+                            orbita.bal.stationGain(
+                                result.placed.takeWhile { it !== s }, s, inclination, altKm,
+                            ),
+                        )
+                }
+                out.put("coverage_before", orbita.bal.coverage(manual, inclination, altKm))
+                out.put("coverage_after", orbita.bal.coverage(result.placed, inclination, altKm))
+                out.put("manual_kept", result.placed.count { it.placement == "manual" })
+                respond(ex, 200, out)
+            }
+
             // Импорт записи каталога устройств (шаг 14, ADR-024). ПО ОДНОЙ ЗАПИСИ,
             // по действию инженера: массовой синхронизации каталога нет как пути —
             // правовой режим источника (sui generis) запрещает выгрузку целиком.
