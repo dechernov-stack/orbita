@@ -135,6 +135,14 @@ if (hasOverrun) {
   skip('превышение бюджета', 'в демо-проекте свёртки укладываются в бюджет')
 }
 
+// Та же проверка, что и на экране 1: появление мастера слева отняло ширину
+// у панели, и формулировка требования схлопнулась до полусотни пикселей.
+const reqStatementWidth = await page.$eval(
+  '.pane > table tbody tr:first-child td:nth-child(2)',
+  (td) => td.getBoundingClientRect().width,
+)
+expect(reqStatementWidth >= 180, `формулировка требования читаема (${Math.round(reqStatementWidth)} px)`)
+
 const indents = await page.$$eval('tbody tr td:first-child span', (spans) =>
   [...new Set(spans.map((s) => s.style.paddingLeft).filter(Boolean))],
 )

@@ -53,13 +53,17 @@ export function Requirements() {
         </div>
         <table>
           <thead>
+            {/* Ширины заданы всем колонкам, включая формулировку. При
+                table-layout: fixed колонка без ширины получает лишь остаток —
+                и когда слева появился мастер, остатка не осталось вовсе:
+                формулировка схлопнулась до полусотни пикселей. */}
             <tr>
-              <th style={{ width: 150 }}>ID</th>
-              <th>Требование</th>
-              <th style={{ width: 150 }}>Условие</th>
-              <th style={{ width: 300 }}>Свёртка</th>
-              <th style={{ width: 320 }}>Метод V&amp;V</th>
-              <th style={{ width: 90 }}>Статус</th>
+              <th style={{ width: 120 }}>ID</th>
+              <th style={{ width: 240 }}>Требование</th>
+              <th style={{ width: 130 }}>Условие</th>
+              <th style={{ width: 200 }}>Свёртка</th>
+              <th style={{ width: 190 }}>Метод V&amp;V</th>
+              <th style={{ width: 80 }}>Статус</th>
             </tr>
           </thead>
           <tbody>
