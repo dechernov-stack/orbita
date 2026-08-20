@@ -14,9 +14,9 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.ObjectNode
+import orbita.mod.DemoModel
 import orbita.mod.RepoPaths
 import orbita.mod.model.CoreType
-import java.util.concurrent.TimeUnit
 
 /** Пометка демо-объектов: по ней они отличимы от рабочих (STEP-7-9 §7.2). */
 const val DEMO_AUTHOR = "demo"
@@ -28,20 +28,8 @@ object DemoProject {
 
     private val mapper = ObjectMapper()
 
-    /** Выгрузка проекта из эталона. Второй копии данных в проекте нет. */
-    fun load(): JsonNode {
-        val script = RepoPaths.repoRoot().resolve("spec/demo_project.py")
-        val process = ProcessBuilder("python3", script.toString(), "--dump")
-            .directory(RepoPaths.repoRoot().toFile())
-            .redirectErrorStream(false)
-            .start()
-        val out = process.inputStream.readAllBytes().decodeToString()
-        val err = process.errorStream.readAllBytes().decodeToString()
-        if (!process.waitFor(60, TimeUnit.SECONDS) || process.exitValue() != 0) {
-            error("не удалось выгрузить демо-проект из эталона: $err")
-        }
-        return mapper.readTree(out)
-    }
+    /** Выгрузка проекта из эталона. Загрузчик один на весь проект — `DemoModel`. */
+    fun load(): JsonNode = DemoModel.load()
 
     /**
      * Заполнение базы демо-проектом одной операцией. Порядок продиктован

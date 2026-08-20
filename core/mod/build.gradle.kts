@@ -11,6 +11,10 @@ dependencies {
     // Хранилище (ADR-011)
     implementation("org.postgresql:postgresql:42.7.7")
 
+    // Обвязка тестов: выгрузка демо-проекта из эталона (DemoModel) отдаёт JsonNode,
+    // и тип виден потребителям — потому api, а не implementation
+    testFixturesApi("com.fasterxml.jackson.core:jackson-databind:2.18.2")
+
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
