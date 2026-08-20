@@ -139,30 +139,76 @@ class VisibilityPrecompute(private val mapper: ObjectMapper = ObjectMapper()) {
             Track(slot.satId, lat, lon)
         }
 
-        val passes = mutableListOf<Pass>()
-        for (track in tracks) {
-            for (t in targets) {
-                var start = -1
-                var bestPsi = Double.MAX_VALUE
+        // Горячий цикл: трассы × цели × шаги — на полном масштабе TZ-COM-004
+        // (60 КА × ~20 000 ячеек × 2881 шаг) это 3,4 млрд сравнений дуги.
+        // Наивный проход с haversine внутри не укладывался в бюджет: 396 с
+        // одной геометрии против 300 с на весь прогон (шаг 13.1). Две
+        // эквивалентные замены, обе БЕЗ смены геометрии:
+        //
+        // 1. Порог по ПАРАМЕТРУ haversine, а не по углу: ψ ≤ λ ⟺ a ≤ sin²(λ/2),
+        //    где a = (1−cosΔφ)/2 + cosφ₁cosφ₂(1−cosΔλ)/2, а косинусы разностей
+        //    раскрыты через предвычисленные sin/cos точек трассы и целей.
+        //    В цикле остаются умножения и сложения; asin — один на пролёт,
+        //    для максимального угла места. Формула та же, изменён порядок
+        //    вычисления; расхождение — единицы младших разрядов double.
+        //
+        // 2. Параллельность по трассам: пролёты каждой трассы независимы.
+        //    Список собирается В ПОРЯДКЕ ТРАСС — результат детерминирован
+        //    и совпадает с последовательным проходом.
+        val sinHalfLambdaSq = sin(Math.toRadians(lambdaDeg) / 2).let { it * it }
+        val aThreshold = sinHalfLambdaSq
+        val nTargets = targets.size
+        val tSinLat = DoubleArray(nTargets)
+        val tCosLat = DoubleArray(nTargets)
+        val tSinLon = DoubleArray(nTargets)
+        val tCosLon = DoubleArray(nTargets)
+        targets.forEachIndexed { i, t ->
+            val la = Math.toRadians(t.latDeg)
+            val lo = Math.toRadians(t.lonDeg)
+            tSinLat[i] = sin(la); tCosLat[i] = cos(la)
+            tSinLon[i] = sin(lo); tCosLon[i] = cos(lo)
+        }
+
+        val passes = tracks.map { track ->
+            java.util.concurrent.CompletableFuture.supplyAsync {
+                val out = mutableListOf<Pass>()
+                val sSinLat = DoubleArray(steps + 1)
+                val sCosLat = DoubleArray(steps + 1)
+                val sSinLon = DoubleArray(steps + 1)
+                val sCosLon = DoubleArray(steps + 1)
                 for (k in 0..steps) {
-                    val psi = centralAngleBetweenDeg(track.latDeg[k], track.lonDeg[k], t.latDeg, t.lonDeg)
-                    val inView = psi <= lambdaDeg
-                    if (inView) {
-                        if (start < 0) { start = k; bestPsi = psi } else if (psi < bestPsi) bestPsi = psi
-                    }
-                    if ((!inView || k == steps) && start >= 0) {
-                        val endK = if (inView) k else k - 1
-                        passes += Pass(
-                            track.satId, t.id,
-                            startS = start * stepS, endS = endK * stepS,
-                            maxElevDeg = elevationDegFromCentralAngle(config.altKm, bestPsi),
-                        )
-                        start = -1
-                        bestPsi = Double.MAX_VALUE
+                    val la = Math.toRadians(track.latDeg[k])
+                    val lo = Math.toRadians(track.lonDeg[k])
+                    sSinLat[k] = sin(la); sCosLat[k] = cos(la)
+                    sSinLon[k] = sin(lo); sCosLon[k] = cos(lo)
+                }
+                for (i in 0 until nTargets) {
+                    var start = -1
+                    var bestA = Double.MAX_VALUE
+                    for (k in 0..steps) {
+                        val cosDLat = sCosLat[k] * tCosLat[i] + sSinLat[k] * tSinLat[i]
+                        val cosDLon = sCosLon[k] * tCosLon[i] + sSinLon[k] * tSinLon[i]
+                        val a = (1 - cosDLat) / 2 + sCosLat[k] * tCosLat[i] * (1 - cosDLon) / 2
+                        val inView = a <= aThreshold
+                        if (inView) {
+                            if (start < 0) { start = k; bestA = a } else if (a < bestA) bestA = a
+                        }
+                        if ((!inView || k == steps) && start >= 0) {
+                            val endK = if (inView) k else k - 1
+                            val bestPsi = Math.toDegrees(2 * asin(sqrt(bestA.coerceIn(0.0, 1.0))))
+                            out += Pass(
+                                track.satId, targets[i].id,
+                                startS = start * stepS, endS = endK * stepS,
+                                maxElevDeg = elevationDegFromCentralAngle(config.altKm, bestPsi),
+                            )
+                            start = -1
+                            bestA = Double.MAX_VALUE
+                        }
                     }
                 }
+                out
             }
-        }
+        }.flatMap { it.join() }
         return toDocument(scenarioRef, epochIso, durationS, passes, serviceElevDeg)
     }
 
