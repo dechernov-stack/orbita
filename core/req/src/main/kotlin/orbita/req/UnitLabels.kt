@@ -18,6 +18,12 @@ class UnitLabels(json: String = defaultJson()) {
     /** Готовая функция подстановки для renderConstraint. */
     fun asFunction(): (String) -> String = ::label
 
+    /**
+     * Вся таблица подписей. Отдаётся клиенту, чтобы подстановка выполнялась
+     * на стороне представления, а в модели остались коды СИ (CR-001 п. 6).
+     */
+    fun all(): Map<String, String> = labels
+
     companion object {
         private val mapper = ObjectMapper()
 

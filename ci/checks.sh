@@ -8,6 +8,7 @@ cd "$(dirname "$0")/.."
 echo "== схемы =="              ; python3 tools/validate_schemas.py
 echo "== трассировка ТЗ =="     ; python3 tools/validate_trace.py
 echo "== эталоны против схем ==" ; python3 tools/validate_spec_schema.py
+echo "== обход кода клиента ==" ; python3 tools/validate_web_no_math.py
 
 echo "== исполняемые эталоны =="
 total=0
@@ -22,5 +23,13 @@ echo "   ВСЕГО ПРОВЕРОК: $total"
 if [ -f gradlew ]; then
   echo "== сборка и тесты ядра ==" ; ./gradlew test
   echo "== регрессия производительности (TZ-COM-004) ==" ; ./gradlew perfCheck
+fi
+
+# Клиент: типы обязаны сходиться с формами ответов API. Пропуск объявляется
+# явно — молчаливо пропущенная проверка однажды уже скрыла невыполнявшийся эталон.
+if [ -d web/node_modules ]; then
+  echo "== типы клиента ==" ; (cd web && npm run --silent typecheck)
+else
+  echo "== типы клиента == ПРОПУЩЕНО: нет web/node_modules (npm ci в web/)"
 fi
 echo "ВСЕ ПРОВЕРКИ ПРОЙДЕНЫ"
