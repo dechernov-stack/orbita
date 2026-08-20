@@ -44,15 +44,29 @@ class AiLoopTest {
     }
 
     @Test
+    @DisplayName("TZ-AI-001: реестр рисков собирается со схемой core/risk")
+    fun `реестр рисков собирается`() {
+        // На шаге 5 этот вид пакета не собирался: объекта «риск» в модели
+        // не было. Схема core/risk появилась на шаге 7 — вид заработал,
+        // и кода для этого менять не пришлось.
+        val pkg = builder.build("risk_register", json("""{"scenario":"SC-0001"}"""), "задание")
+        assertEquals(registry.raw("core/risk"), pkg.responseSchema)
+        assertEquals(emptyList<String>(), packageIssues(pkg))
+    }
+
+    @Test
     @DisplayName("TZ-AI-001: вид без описанного объекта модели пакет не собирает")
-    fun `реестр рисков не собирается пока нет схемы`() {
-        // Реестр рисков назван в задании как вид первой очереди, но объект «риск»
-        // в модели не описан. Схема ответа обязана соответствовать объекту модели,
-        // поэтому пакет не собирается — вместо выдуманной схемы явный отказ.
+    fun `вид без схемы целевого объекта пакет не собирает`() {
+        // Схема ответа обязана соответствовать объекту модели. Вид, у которого
+        // такого объекта нет, отказывает явно — вместо выдуманной схемы.
+        val kinds = PackageKinds.fromJson(
+            """{"kinds":[{"id":"lessons_learned","input":"отчёт","output":"уроки","target_schema":null}]}""",
+        )
+        val b = PromptPackageBuilder(kinds = kinds, registry = registry, mapper = mapper)
         val e = assertThrows<UnmodelledTargetException> {
-            builder.build("risk_register", json("""{"scenario":"SC-0001"}"""), "задание")
+            b.build("lessons_learned", json("""{"a":1}"""), "задание")
         }
-        assertTrue("risk_register" in e.message!!, e.message!!)
+        assertTrue("lessons_learned" in e.message!!, e.message!!)
     }
 
     @Test

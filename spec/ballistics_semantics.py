@@ -121,97 +121,101 @@ def demand_weighted_score(cells, in_service_fn):
     return sum(c['weight'] * in_service_fn(c) for c in cells)
 
 # ================= проверки =================
-ok = fail = 0
-def check(name, cond, detail=''):
-    global ok, fail
-    if cond: ok += 1; print(f"  + {name}")
-    else:    fail += 1; print(f"  - {name} {detail}")
+# Проверки исполняются только при прямом запуске: модуль импортируется
+# другими эталонами (в частности demo_project.py), и sys.exit при импорте
+# обрывал бы их на середине — CI видел бы код 0 при невыполненных проверках.
+if __name__ == '__main__':
+    ok = fail = 0
+    def check(name, cond, detail=''):
+        global ok, fail
+        if cond: ok += 1; print(f"  + {name}")
+        else:    fail += 1; print(f"  - {name} {detail}")
 
-print("TZ-BAL-001: механика")
-T550 = orbital_period_s(550)
-check("период на 550 км ≈ 95.6 мин", abs(T550/60 - 95.6) < 0.3, f"{T550/60:.2f} мин")
-check("период растёт с высотой", orbital_period_s(1200) > orbital_period_s(550))
-i700 = sso_inclination_deg(700)
-check("ССО на 700 км ≈ 98.2°", abs(i700 - 98.2) < 0.2, f"{i700:.3f}°")
-i550 = sso_inclination_deg(550)
-check("ССО на 550 км ≈ 97.6°", abs(i550 - 97.6) < 0.2, f"{i550:.3f}°")
-check("ССО-наклонение растёт с высотой", sso_inclination_deg(1000) > i550)
+    print("TZ-BAL-001: механика")
+    T550 = orbital_period_s(550)
+    check("период на 550 км ≈ 95.6 мин", abs(T550/60 - 95.6) < 0.3, f"{T550/60:.2f} мин")
+    check("период растёт с высотой", orbital_period_s(1200) > orbital_period_s(550))
+    i700 = sso_inclination_deg(700)
+    check("ССО на 700 км ≈ 98.2°", abs(i700 - 98.2) < 0.2, f"{i700:.3f}°")
+    i550 = sso_inclination_deg(550)
+    check("ССО на 550 км ≈ 97.6°", abs(i550 - 97.6) < 0.2, f"{i550:.3f}°")
+    check("ССО-наклонение растёт с высотой", sso_inclination_deg(1000) > i550)
 
-print("\nTZ-BAL-002: геометрия видимости")
-# сверка с реальностью: Starlink на 550 км при угле места 25° даёт радиус зоны ≈ 940 км
-check("сверка геометрии с известной группировкой (550 км / 25° ≈ 940 км)",
-      abs(footprint_radius_km(550, 25) - 940) < 25, f"{footprint_radius_km(550,25):.0f} км")
-lam10 = central_angle_deg(550, 10)
-check("центральный угол на 550 км / 10° ≈ 15.0°", abs(lam10 - 14.96) < 0.3, f"{lam10:.2f}°")
-check("зона сужается с ростом угла места", central_angle_deg(550, 25) < lam10)
-check("зона расширяется с высотой", central_angle_deg(1200, 10) > lam10)
-check("надирная дальность равна высоте", abs(slant_range_km(550, 90) - 550) < 0.5)
-check("дальность у горизонта много больше высоты", slant_range_km(550, 5) > 2 * 550)
-fp = footprint_radius_km(550, 10)
-check("радиус footprint ≈ 1665 км", 1600 < fp < 1750, f"{fp:.0f} км")
-dur = max_pass_duration_s(550, 10)
-check("максимальный пролёт 550 км / 10° ≈ 8 мин", 420 < dur < 540, f"{dur/60:.1f} мин")
+    print("\nTZ-BAL-002: геометрия видимости")
+    # сверка с реальностью: Starlink на 550 км при угле места 25° даёт радиус зоны ≈ 940 км
+    check("сверка геометрии с известной группировкой (550 км / 25° ≈ 940 км)",
+          abs(footprint_radius_km(550, 25) - 940) < 25, f"{footprint_radius_km(550,25):.0f} км")
+    lam10 = central_angle_deg(550, 10)
+    check("центральный угол на 550 км / 10° ≈ 15.0°", abs(lam10 - 14.96) < 0.3, f"{lam10:.2f}°")
+    check("зона сужается с ростом угла места", central_angle_deg(550, 25) < lam10)
+    check("зона расширяется с высотой", central_angle_deg(1200, 10) > lam10)
+    check("надирная дальность равна высоте", abs(slant_range_km(550, 90) - 550) < 0.5)
+    check("дальность у горизонта много больше высоты", slant_range_km(550, 5) > 2 * 550)
+    fp = footprint_radius_km(550, 10)
+    check("радиус footprint ≈ 1665 км", 1600 < fp < 1750, f"{fp:.0f} км")
+    dur = max_pass_duration_s(550, 10)
+    check("максимальный пролёт 550 км / 10° ≈ 8 мин", 420 < dur < 540, f"{dur/60:.1f} мин")
 
-print("\nADR-013: двухуровневая сетка не теряет пролёты")
-COARSE_KM = 800.0
-check("грубая ячейка меньше диаметра footprint",
-      COARSE_KM < 2 * footprint_radius_km(550, 10), f"{2*fp:.0f} км")
-check("условие держится и на минимальной высоте 400 км",
-      COARSE_KM < 2 * footprint_radius_km(400, 10), f"{2*footprint_radius_km(400,10):.0f} км")
-check("при угле места 45° на 400 км условие нарушается — сетка теряет пролёты",
-      COARSE_KM > 2 * footprint_radius_km(400, 45), f"{2*footprint_radius_km(400,45):.0f} км")
-check("граница применимости лежит между 40° и 45°",
-      2*footprint_radius_km(400,40) > COARSE_KM > 2*footprint_radius_km(400,45))
+    print("\nADR-013: двухуровневая сетка не теряет пролёты")
+    COARSE_KM = 800.0
+    check("грубая ячейка меньше диаметра footprint",
+          COARSE_KM < 2 * footprint_radius_km(550, 10), f"{2*fp:.0f} км")
+    check("условие держится и на минимальной высоте 400 км",
+          COARSE_KM < 2 * footprint_radius_km(400, 10), f"{2*footprint_radius_km(400,10):.0f} км")
+    check("при угле места 45° на 400 км условие нарушается — сетка теряет пролёты",
+          COARSE_KM > 2 * footprint_radius_km(400, 45), f"{2*footprint_radius_km(400,45):.0f} км")
+    check("граница применимости лежит между 40° и 45°",
+          2*footprint_radius_km(400,40) > COARSE_KM > 2*footprint_radius_km(400,45))
 
-print("\nTZ-BAL-004: энергетика витка")
-f_eq = eclipse_fraction(550, 0)
-check("доля тени при beta=0 ≈ 0.38", abs(f_eq - 0.38) < 0.03, f"{f_eq:.3f}")
-check("тень убывает с ростом beta", eclipse_fraction(550, 60) < f_eq)
-check("терминаторная ССО почти без тени", eclipse_fraction(550, 90) == 0.0)
-SA_M2 = 0.2            # реалистичная площадь СБ малого аппарата класса 12U–16U
-e_worst = orbit_energy_wh(550, 0, SA_M2, 0.30)
-e_best  = orbit_energy_wh(550, 75, SA_M2, 0.30)
-check("энергия лучшего сезона выше худшего", e_best > e_worst, f"{e_worst:.1f} / {e_best:.1f} Вт·ч")
-check("энергия худшего витка положительна", e_worst > 0)
-d = allowed_duty_cycle(e_worst, bus_w=15, payload_w=60, alt_km=550)
-check("допустимая скважность в (0,1]", 0 < d <= 1.0, f"{d:.3f}")
-check("рост потребления шины снижает скважность",
-      allowed_duty_cycle(e_worst, 25, 60, 550) < d,
-      f"{allowed_duty_cycle(e_worst,25,60,550):.3f} vs {d:.3f}")
-check("нехватка энергии даёт нулевую скважность",
-      allowed_duty_cycle(e_worst, 500, 60, 550) == 0.0)
+    print("\nTZ-BAL-004: энергетика витка")
+    f_eq = eclipse_fraction(550, 0)
+    check("доля тени при beta=0 ≈ 0.38", abs(f_eq - 0.38) < 0.03, f"{f_eq:.3f}")
+    check("тень убывает с ростом beta", eclipse_fraction(550, 60) < f_eq)
+    check("терминаторная ССО почти без тени", eclipse_fraction(550, 90) == 0.0)
+    SA_M2 = 0.2            # реалистичная площадь СБ малого аппарата класса 12U–16U
+    e_worst = orbit_energy_wh(550, 0, SA_M2, 0.30)
+    e_best  = orbit_energy_wh(550, 75, SA_M2, 0.30)
+    check("энергия лучшего сезона выше худшего", e_best > e_worst, f"{e_worst:.1f} / {e_best:.1f} Вт·ч")
+    check("энергия худшего витка положительна", e_worst > 0)
+    d = allowed_duty_cycle(e_worst, bus_w=15, payload_w=60, alt_km=550)
+    check("допустимая скважность в (0,1]", 0 < d <= 1.0, f"{d:.3f}")
+    check("рост потребления шины снижает скважность",
+          allowed_duty_cycle(e_worst, 25, 60, 550) < d,
+          f"{allowed_duty_cycle(e_worst,25,60,550):.3f} vs {d:.3f}")
+    check("нехватка энергии даёт нулевую скважность",
+          allowed_duty_cycle(e_worst, 500, 60, 550) == 0.0)
 
-print("\nTZ-BAL-003: конфигуратор Walker")
-sats = walker_delta(53.0, 40, 5, 1, 550)
-check("40/5 даёт 40 аппаратов", len(sats) == 40)
-check("5 плоскостей", len({s['plane'] for s in sats}) == 5)
-check("8 аппаратов в плоскости", sum(1 for s in sats if s['plane'] == 0) == 8)
-check("ВДУ равномерны по 72°", sorted({round(s['raan']) for s in sats}) == [0, 72, 144, 216, 288])
-check("фазовый сдвиг F смещает соседнюю плоскость",
-      abs(sats[8]['ma'] - sats[0]['ma']) > 1e-9)
-check("одна пара (наклонение, высота) = одна кампания", launch_campaigns(sats) == 1)
-mixed = walker_delta(53, 20, 4, 1, 550) + walker_delta(97.6, 12, 3, 1, 700)
-check("разнородная группировка требует двух кампаний", launch_campaigns(mixed) == 2)
-try:
-    walker_delta(53, 41, 5, 1, 550); check("T не делится на P — ошибка", False)
-except ValueError: check("T не делится на P — ошибка", True)
+    print("\nTZ-BAL-003: конфигуратор Walker")
+    sats = walker_delta(53.0, 40, 5, 1, 550)
+    check("40/5 даёт 40 аппаратов", len(sats) == 40)
+    check("5 плоскостей", len({s['plane'] for s in sats}) == 5)
+    check("8 аппаратов в плоскости", sum(1 for s in sats if s['plane'] == 0) == 8)
+    check("ВДУ равномерны по 72°", sorted({round(s['raan']) for s in sats}) == [0, 72, 144, 216, 288])
+    check("фазовый сдвиг F смещает соседнюю плоскость",
+          abs(sats[8]['ma'] - sats[0]['ma']) > 1e-9)
+    check("одна пара (наклонение, высота) = одна кампания", launch_campaigns(sats) == 1)
+    mixed = walker_delta(53, 20, 4, 1, 550) + walker_delta(97.6, 12, 3, 1, 700)
+    check("разнородная группировка требует двух кампаний", launch_campaigns(mixed) == 2)
+    try:
+        walker_delta(53, 41, 5, 1, 550); check("T не делится на P — ошибка", False)
+    except ValueError: check("T не делится на P — ошибка", True)
 
-print("\nTZ-BAL-009: время существования")
-low, high = decay_years(300, 50, 0.5), decay_years(700, 50, 0.5)
-check("на 300 км сходит быстро", low < 25, f"{low:.1f} лет")
-check("на 700 км держится дольше", high > low, f"{high:.0f} лет")
-check("большая площадь ускоряет сход", decay_years(500, 50, 2.0) < decay_years(500, 50, 0.5))
-check("норма 25 лет: 700 км без ДУ не проходит", high > 25)
+    print("\nTZ-BAL-009: время существования")
+    low, high = decay_years(300, 50, 0.5), decay_years(700, 50, 0.5)
+    check("на 300 км сходит быстро", low < 25, f"{low:.1f} лет")
+    check("на 700 км держится дольше", high > low, f"{high:.0f} лет")
+    check("большая площадь ускоряет сход", decay_years(500, 50, 2.0) < decay_years(500, 50, 0.5))
+    check("норма 25 лет: 700 км без ДУ не проходит", high > 25)
 
-print("\nTZ-BAL-005: качество по зонам обслуживания")
-cells = [{'lat': 45, 'weight': 0.6}, {'lat': 75, 'weight': 0.05}, {'lat': 15, 'weight': 0.35}]
-zone_wide   = lambda c: 1.0                       # зона A': покрывает всё
-zone_narrow = lambda c: 1.0 if abs(c['lat']) < 50 else 0.0   # зона C': уже
-check("качество по широкой зоне выше", demand_weighted_score(cells, zone_wide)
-      > demand_weighted_score(cells, zone_narrow))
-check("узкая зона теряет ровно вес непокрытых ячеек",
-      abs(demand_weighted_score(cells, zone_narrow) - 0.95) < 1e-9,
-      demand_weighted_score(cells, zone_narrow))
+    print("\nTZ-BAL-005: качество по зонам обслуживания")
+    cells = [{'lat': 45, 'weight': 0.6}, {'lat': 75, 'weight': 0.05}, {'lat': 15, 'weight': 0.35}]
+    zone_wide   = lambda c: 1.0                       # зона A': покрывает всё
+    zone_narrow = lambda c: 1.0 if abs(c['lat']) < 50 else 0.0   # зона C': уже
+    check("качество по широкой зоне выше", demand_weighted_score(cells, zone_wide)
+          > demand_weighted_score(cells, zone_narrow))
+    check("узкая зона теряет ровно вес непокрытых ячеек",
+          abs(demand_weighted_score(cells, zone_narrow) - 0.95) < 1e-9,
+          demand_weighted_score(cells, zone_narrow))
 
-print(f"\nИтог: пройдено {ok}, провалено {fail}")
-sys.exit(1 if fail else 0)
+    print(f"\nИтог: пройдено {ok}, провалено {fail}")
+    sys.exit(1 if fail else 0)

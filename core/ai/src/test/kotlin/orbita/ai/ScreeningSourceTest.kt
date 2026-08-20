@@ -27,6 +27,8 @@ class ScreeningSourceTest {
             setOf(
                 "ProductNode",              // тип контекста, не правило
                 "QualityControl",           // requirements_semantics + constraint_semantics
+                "residualOk",               // risk_semantics
+                "riskIssues",               // risk_semantics
                 "allocationConsistent",     // traceability_semantics
                 "interfaceAllocationValid", // traceability_semantics
                 "rollupCheck",              // constraint_semantics
@@ -63,6 +65,8 @@ class ScreeningSourceTest {
                 "reason",                   // allocationConsistent / interfaceAllocationValid
                 "roll.error",               // rollupCheck: текст замечания от правила
                 "roll.aggregate",           // rollupCheck: числа от правила
+                "riskIssues",               // risk_semantics: текст замечания от правила
+                "residualOk",               // risk_semantics
             ).any { it in line }
             assertTrue(callsRule, "замечание сформулировано в фильтре, а не правилом: $line")
         }

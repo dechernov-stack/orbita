@@ -70,10 +70,10 @@ class HttpApi(private val boundary: Boundary) {
     private fun route(ex: HttpExchange) {
         val path = ex.requestURI.path.removePrefix("/api").trimEnd('/')
         val method = ex.requestMethod
-        val objectMatch = Regex("^/objects/([A-Z]{2}-[0-9]{4})(/.*)?$").find(path)
+        val objectMatch = Regex("^/objects/([A-Z]{2,3}-[0-9]{4})(/.*)?$").find(path)
 
         when {
-            method == "POST" && Regex("^/objects/(need|service|requirement|component|scenario)$").matches(path) -> {
+            method == "POST" && Regex("^/objects/(need|service|requirement|component|scenario|risk)$").matches(path) -> {
                 val type = CoreType.byDbType(path.substringAfterLast('/'))
                 val stored = boundary.ingest(type, body(ex))
                 respond(ex, 201, summary(stored))
@@ -143,6 +143,12 @@ class HttpApi(private val boundary: Boundary) {
                     formula = req.path("formula").textValue(),
                 )
                 respond(ex, 204, null)
+            }
+
+            // Реестр рисков (шаг 7): сводка считается сервером, включая критичность
+            method == "GET" && path == "/reports/risk-register" -> {
+                val summary = orbita.req.registerSummary(boundary.req.risks())
+                respond(ex, 200, mapper.valueToTree(summary))
             }
 
             method == "GET" && path == "/reports/trace-breaks" ->
