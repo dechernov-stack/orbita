@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+
+<html lang="ru"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>SpaceSys - Engineering HQ | Отчетные документы</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "error": "#ba1a1a",
+                        "on-tertiary": "#ffffff",
+                        "secondary-fixed": "#d7e2ff",
+                        "on-secondary-container": "#003370",
+                        "on-secondary-fixed-variant": "#004491",
+                        "on-primary": "#ffffff",
+                        "on-secondary-fixed": "#001a40",
+                        "secondary-fixed-dim": "#acc7ff",
+                        "surface-container-high": "#e7e8e9",
+                        "inverse-surface": "#2e3132",
+                        "outline-variant": "#c4c6cc",
+                        "on-surface": "#191c1d",
+                        "tertiary-fixed": "#feddba",
+                        "primary-fixed": "#d6e4f9",
+                        "on-primary-container": "#778598",
+                        "outline": "#74777d",
+                        "on-error-container": "#93000a",
+                        "surface-container-highest": "#e1e3e4",
+                        "surface-variant": "#e1e3e4",
+                        "tertiary": "#000000",
+                        "on-primary-fixed": "#0f1c2c",
+                        "surface-dim": "#d9dadb",
+                        "on-background": "#191c1d",
+                        "on-tertiary-fixed-variant": "#584329",
+                        "surface-container-low": "#f3f4f5",
+                        "inverse-on-surface": "#f0f1f2",
+                        "surface-tint": "#525f71",
+                        "inverse-primary": "#bac8dc",
+                        "on-surface-variant": "#44474c",
+                        "on-tertiary-container": "#9a7f61",
+                        "background": "#f8f9fa",
+                        "surface-container-lowest": "#ffffff",
+                        "primary": "#000000",
+                        "on-secondary": "#ffffff",
+                        "on-error": "#ffffff",
+                        "surface-bright": "#f8f9fa",
+                        "tertiary-container": "#281804",
+                        "primary-container": "#0f1c2c",
+                        "tertiary-fixed-dim": "#e0c1a0",
+                        "surface-container": "#edeeef",
+                        "error-container": "#ffdad6",
+                        "secondary-container": "#659dfe",
+                        "on-tertiary-fixed": "#281804",
+                        "primary-fixed-dim": "#bac8dc",
+                        "on-primary-fixed-variant": "#3a4859",
+                        "secondary": "#115cb9",
+                        "surface": "#f8f9fa"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "padding-standard": "8px",
+                        "padding-md": "16px",
+                        "global-nav-width": "64px",
+                        "padding-dense": "4px",
+                        "context-panel-width": "320px",
+                        "gutter": "1px",
+                        "lifecycle-rail-width": "240px"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "label-caps": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "code-sm": ["JetBrains Mono"]
+                    },
+                    "fontSize": {
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "body-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
+                        "label-caps": ["11px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700" }],
+                        "headline-lg": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "headline-md": ["18px", { "lineHeight": "24px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "code-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .icon-fill-1 {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        /* Custom scrollbar for density */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f3f4f5; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #c4c6cc; 
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #74777d; 
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md overflow-hidden flex h-screen w-screen selection:bg-secondary-fixed selection:text-on-secondary-fixed">
+<!-- Global Nav (SideNavBar Rail) -->
+<nav class="bg-primary-container text-primary-fixed border-r border-outline-variant flex flex-col w-global-nav-width h-full fixed left-0 top-0 z-50">
+<div class="h-12 flex items-center justify-center border-b border-outline-variant/30 mb-2">
+<span class="material-symbols-outlined font-headline-md text-headline-md font-bold text-on-primary" title="Логотип системы">rocket_launch</span>
+</div>
+<div class="flex-1 overflow-y-auto py-2 flex flex-col gap-2">
+<a class="flex flex-col items-center justify-center p-2 mx-2 rounded hover:bg-primary-fixed-variant/30 transition-colors duration-150 text-on-primary-container/70 group" href="#" title="Главная">
+<span class="material-symbols-outlined text-[20px] mb-1">home</span>
+</a>
+<a class="flex flex-col items-center justify-center p-2 mx-2 rounded hover:bg-primary-fixed-variant/30 transition-colors duration-150 text-secondary-fixed bg-secondary-container/20 border-l-2 border-secondary group" href="#" title="Проекты">
+<span class="material-symbols-outlined icon-fill-1 text-[20px] mb-1">account_tree</span>
+</a>
+<a class="flex flex-col items-center justify-center p-2 mx-2 rounded hover:bg-primary-fixed-variant/30 transition-colors duration-150 text-on-primary-container/70 group" href="#" title="Библиотеки">
+<span class="material-symbols-outlined text-[20px] mb-1">library_books</span>
+</a>
+<a class="flex flex-col items-center justify-center p-2 mx-2 rounded hover:bg-primary-fixed-variant/30 transition-colors duration-150 text-on-primary-container/70 group" href="#" title="Предметные области">
+<span class="material-symbols-outlined text-[20px] mb-1">category</span>
+</a>
+<a class="flex flex-col items-center justify-center p-2 mx-2 rounded hover:bg-primary-fixed-variant/30 transition-colors duration-150 text-on-primary-container/70 group" href="#" title="Исследования">
+<span class="material-symbols-outlined text-[20px] mb-1">biotech</span>
+</a>
+<a class="flex flex-col items-center justify-center p-2 mx-2 rounded hover:bg-primary-fixed-variant/30 transition-colors duration-150 text-on-primary-container/70 group" href="#" title="Доказательная база">
+<span class="material-symbols-outlined text-[20px] mb-1">assignment_turned_in</span>
+</a>
+<a class="flex flex-col items-center justify-center p-2 mx-2 rounded hover:bg-primary-fixed-variant/30 transition-colors duration-150 text-on-primary-container/70 group" href="#" title="Поиск">
+<span class="material-symbols-outlined text-[20px] mb-1">search</span>
+</a>
+<a class="flex flex-col items-center justify-center p-2 mx-2 rounded hover:bg-primary-fixed-variant/30 transition-colors duration-150 text-on-primary-container/70 group mt-auto" href="#" title="Администрирование">
+<span class="material-symbols-outlined text-[20px] mb-1">admin_panel_settings</span>
+</a>
+</div>
+</nav>
+<!-- Top App Bar -->
+<header class="bg-surface text-on-surface border-b border-outline-variant flex items-center justify-between w-full h-12 px-padding-md ml-global-nav-width fixed top-0 z-40">
+<div class="flex items-center gap-4 h-full">
+<h1 class="font-headline-md text-headline-md text-on-surface truncate max-w-[300px]" title="Проект: Альфа-Центавра">Проект: Альфа-Центавра</h1>
+<nav class="hidden lg:flex items-center h-full ml-6">
+<a class="h-full flex items-center px-4 font-label-caps text-label-caps text-on-surface-variant hover:bg-surface-container-high transition-opacity cursor-pointer" href="#">Концепция</a>
+<a class="h-full flex items-center px-4 font-label-caps text-label-caps text-on-surface-variant hover:bg-surface-container-high transition-opacity cursor-pointer" href="#">Базис</a>
+<a class="h-full flex items-center px-4 font-label-caps text-label-caps text-on-surface-variant hover:bg-surface-container-high transition-opacity cursor-pointer" href="#">Замечания</a>
+<a class="h-full flex items-center px-4 font-label-caps text-label-caps text-secondary font-bold border-b-2 border-secondary bg-surface-container-low" href="#" title="Отчетные документы (Active)">Отчетные документы</a>
+</nav>
+</div>
+<div class="flex items-center gap-3">
+<div class="hidden md:flex relative mr-4">
+<span class="material-symbols-outlined absolute left-2 top-1/2 -translate-y-1/2 text-on-surface-variant text-[18px]">search</span>
+<input class="h-8 pl-8 pr-3 bg-surface-container-low border border-outline-variant rounded text-body-sm focus:border-secondary focus:ring-1 focus:ring-secondary w-64 outline-none placeholder:text-on-surface-variant/60" placeholder="Поиск по проекту..." type="text"/>
+</div>
+<button class="px-3 h-8 text-body-sm font-semibold text-secondary hover:bg-secondary/10 rounded transition-colors hidden sm:block">Базовые линии</button>
+<button class="px-3 h-8 text-body-sm font-semibold bg-secondary text-on-secondary rounded hover:bg-secondary/90 transition-colors hidden sm:block shadow-sm">Следующий смотр</button>
+<div class="flex items-center border-l border-outline-variant pl-3 ml-2 gap-1">
+<button class="w-8 h-8 flex items-center justify-center rounded hover:bg-surface-container-high text-on-surface-variant transition-colors" title="Уведомления">
+<span class="material-symbols-outlined text-[20px]">notifications</span>
+</button>
+<button class="w-8 h-8 flex items-center justify-center rounded hover:bg-surface-container-high text-on-surface-variant transition-colors" title="Настройки">
+<span class="material-symbols-outlined text-[20px]">settings</span>
+</button>
+<div class="w-8 h-8 rounded-full ml-2 overflow-hidden border border-outline-variant flex-shrink-0 bg-surface-container-highest">
+<img alt="Профиль инженера" class="w-full h-full object-cover" data-alt="Close up professional portrait of a lead systems engineer in a brightly lit modern office environment. High key lighting, sharp focus, wearing smart casual attire. Professional and determined expression." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC3VsU9ikhhYIetsJXAS6NzdHHfDAgOCXLtJMHqB5OL-FN6UCzO1kz8g_FRusZLExgzxy30-OrGayyRXZz2gEuzyvj-NvkkEjdjk93rt66pLN4qYR4RYXr3M5fCFJJv9z9c4WZ6_KxNYPnyQjyju9Z4dOdKxMr09aDBK5po4UxEJgSceCDLpHQnRlPni9dNxKAgOS83iH-uxfepQkHAVVvfmacLZzt9y7fWmFQr5UfAcK8FFgELMHNbzw"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Lifecycle Rail (SideNavBar Drawer) -->
+<aside class="bg-surface-container-low text-secondary border-r border-outline-variant flex flex-col w-lifecycle-rail-width h-full fixed top-12 left-global-nav-width z-30 transition-all duration-200 ease-in-out">
+<div class="p-padding-md border-b border-outline-variant/50">
+<h2 class="font-label-caps text-label-caps text-on-surface-variant uppercase tracking-wider mb-1">Жизненный цикл</h2>
+<div class="text-body-sm text-on-surface flex items-center gap-2">
+<div class="w-2 h-2 rounded-full bg-secondary"></div>
+                Текущая фаза: Phase A
+            </div>
+</div>
+<div class="flex-1 overflow-y-auto py-2">
+<div class="px-3 mb-1">
+<div class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest pl-2 mb-1 opacity-70">Review Milestones</div>
+</div>
+<ul class="flex flex-col gap-1 px-2">
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-on-surface-variant hover:bg-surface-container-high font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined text-[18px]">radio_button_checked</span>
+<span>Pre-Phase A</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded bg-secondary/10 text-secondary font-semibold font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined text-[18px] icon-fill-1">radio_button_unchecked</span>
+<span>Phase A: Concept</span>
+</a>
+<!-- Sub-items representing SRR -->
+<ul class="pl-9 pr-2 mt-1 mb-2 flex flex-col gap-[2px] border-l-2 border-secondary/20 ml-[21px]">
+<li><a class="block px-2 py-1 text-body-sm text-on-surface-variant hover:bg-surface-container-high rounded" href="#">SRR Milestones</a></li>
+<li><a class="block px-2 py-1 text-body-sm text-secondary font-semibold bg-surface-container-high rounded border-l border-secondary -ml-[2px] pl-[9px]" href="#">SRR Gate Products</a></li>
+<li><a class="block px-2 py-1 text-body-sm text-on-surface-variant hover:bg-surface-container-high rounded" href="#">Action Items</a></li>
+</ul>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-on-surface-variant hover:bg-surface-container-high font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined text-[18px]">pending</span>
+<span>Phase A: Feasibility</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-on-surface-variant hover:bg-surface-container-high font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined text-[18px]">account_tree</span>
+<span>Requirements</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-on-surface-variant hover:bg-surface-container-high font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined text-[18px]">schema</span>
+<span>Architecture</span>
+</a>
+</li>
+</ul>
+</div>
+</aside>
+<!-- Main Workspace -->
+<main class="flex-1 bg-background pt-[48px] pl-[304px] pr-[320px] h-full overflow-hidden flex flex-col relative z-20">
+<!-- Content Header -->
+<div class="px-padding-md py-4 border-b border-outline-variant/30 flex justify-between items-end bg-surface-container-lowest shrink-0">
+<div>
+<div class="flex items-center gap-2 text-body-sm text-on-surface-variant mb-1">
+<span class="hover:text-primary cursor-pointer transition-colors">Phase A: Concept</span>
+<span class="material-symbols-outlined text-[14px]">chevron_right</span>
+<span class="font-semibold text-on-surface">SRR Gate Products</span>
+</div>
+<h2 class="font-headline-lg text-headline-lg text-primary flex items-center gap-3">
+                    Генерация отчетных документов
+                    <span class="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant font-label-caps text-label-caps border border-outline-variant/50">SRR Milestone</span>
+</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1 max-w-2xl">
+                    Управление артефактами, необходимыми для прохождения System Requirements Review. Документы генерируются автоматически на основе текущей ревизии модели (SysML/ReqIF).
+                </p>
+</div>
+<div class="flex gap-2">
+<button class="h-8 px-3 border border-outline-variant rounded flex items-center gap-1 text-body-sm font-semibold text-on-surface hover:bg-surface-container-low transition-colors bg-surface-container-lowest">
+<span class="material-symbols-outlined text-[16px]">sync</span>
+                    Обновить данные
+                </button>
+<button class="h-8 px-3 rounded flex items-center gap-1 text-body-sm font-semibold text-on-secondary bg-secondary hover:bg-secondary/90 transition-colors shadow-sm">
+<span class="material-symbols-outlined text-[16px]">play_arrow</span>
+                    Сгенерировать все (Draft)
+                </button>
+</div>
+</div>
+<!-- Data Grid Area -->
+<div class="flex-1 p-padding-md overflow-y-auto bg-background">
+<!-- Global Status Bar -->
+<div class="mb-4 bg-surface-container-lowest border border-outline-variant rounded p-3 flex items-center justify-between shadow-sm">
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-[20px]">dataset_linked</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Model Baseline:</span>
+<span class="font-code-sm text-code-sm text-on-surface font-semibold bg-surface-container px-1.5 py-0.5 rounded border border-outline-variant/50">BL-0.4.2-ALPHA</span>
+</div>
+<div class="w-px h-4 bg-outline-variant/50"></div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-on-surface-variant text-[18px]">schedule</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Next Review:</span>
+<span class="font-body-sm text-body-sm text-on-surface font-semibold">14 Oct 2024</span>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<span class="font-body-sm text-body-sm text-on-surface-variant">Готовность пакета:</span>
+<div class="w-32 h-2 bg-surface-container rounded-full overflow-hidden border border-outline-variant/30">
+<div class="h-full bg-secondary w-[75%] rounded-r-full"></div>
+</div>
+<span class="font-label-caps text-label-caps text-secondary font-bold">75%</span>
+</div>
+</div>
+<!-- Documents Table -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded shadow-sm overflow-hidden flex flex-col">
+<!-- Table Header -->
+<div class="grid grid-cols-[3fr_1.5fr_2fr_1.5fr_1fr_120px] gap-2 p-2 border-b border-outline-variant bg-surface-container-low font-label-caps text-label-caps text-on-surface-variant sticky top-0 z-10">
+<div class="px-2">Документ (Gate Product)</div>
+<div class="px-2">Статус</div>
+<div class="px-2">Исходная ревизия (Model)</div>
+<div class="px-2">Владелец</div>
+<div class="px-2">Генерация</div>
+<div class="px-2 text-right">Действия</div>
+</div>
+<!-- Row 1: SRD (Stale Data Example) -->
+<div class="grid grid-cols-[3fr_1.5fr_2fr_1.5fr_1fr_120px] gap-2 p-2 border-b border-outline-variant/50 hover:bg-surface-container-low/50 transition-colors group items-center min-h-[48px]">
+<div class="px-2 flex items-start gap-2">
+<span class="material-symbols-outlined text-secondary text-[20px] mt-0.5">description</span>
+<div>
+<div class="font-body-md text-body-md font-semibold text-primary">System Requirements Document (SRD)</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">SPEC-SYS-001-A</div>
+</div>
+</div>
+<div class="px-2">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-error-container/30 text-on-error-container border border-error-container">
+<span class="w-1.5 h-1.5 rounded-full bg-error"></span>
+                            Stale Data
+                        </span>
+<div class="text-[10px] text-error mt-0.5 leading-tight">Модель изменена после генерации</div>
+</div>
+<div class="px-2 font-code-sm text-code-sm text-on-surface-variant flex flex-col gap-0.5">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">commit</span>
+                            BL-0.4.1-ALPHA
+                        </div>
+<div class="text-[10px] text-error flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]">warning</span>
+                            Current: BL-0.4.2-ALPHA
+                        </div>
+</div>
+<div class="px-2 flex items-center gap-2">
+<div class="w-5 h-5 rounded-full bg-surface-container-high border border-outline-variant flex items-center justify-center text-[10px] font-bold text-on-surface-variant">AT</div>
+<span class="font-body-sm text-body-sm text-on-surface">A. Turing</span>
+</div>
+<div class="px-2 font-body-sm text-body-sm text-on-surface-variant flex flex-col">
+<span>12.10.23</span>
+<span class="text-[10px]">14:32</span>
+</div>
+<div class="px-2 flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="w-7 h-7 flex items-center justify-center rounded hover:bg-secondary/10 text-secondary transition-colors" title="Сгенерировать из модели">
+<span class="material-symbols-outlined text-[18px]">model_training</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center rounded hover:bg-surface-container-high text-on-surface-variant transition-colors" title="Предпросмотр">
+<span class="material-symbols-outlined text-[18px]">visibility</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center rounded hover:bg-surface-container-high text-on-surface-variant transition-colors" title="Дополнительные действия">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</div>
+</div>
+<!-- Row 2: VCRM -->
+<div class="grid grid-cols-[3fr_1.5fr_2fr_1.5fr_1fr_120px] gap-2 p-2 border-b border-outline-variant/50 hover:bg-surface-container-low/50 transition-colors group items-center min-h-[48px]">
+<div class="px-2 flex items-start gap-2">
+<span class="material-symbols-outlined text-secondary text-[20px] mt-0.5">grid_on</span>
+<div>
+<div class="font-body-md text-body-md font-semibold text-primary">Verification Cross-Reference Matrix (VCRM)</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">MAT-VER-001-A</div>
+</div>
+</div>
+<div class="px-2">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-surface-container-high text-on-surface border border-outline-variant/50">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+                            Draft Ready
+                        </span>
+</div>
+<div class="px-2 font-code-sm text-code-sm text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">commit</span>
+                        BL-0.4.2-ALPHA
+                    </div>
+<div class="px-2 flex items-center gap-2">
+<div class="w-5 h-5 rounded-full bg-surface-container-high border border-outline-variant flex items-center justify-center text-[10px] font-bold text-on-surface-variant">GN</div>
+<span class="font-body-sm text-body-sm text-on-surface">G. Neumann</span>
+</div>
+<div class="px-2 font-body-sm text-body-sm text-on-surface-variant flex flex-col">
+<span>14.10.23</span>
+<span class="text-[10px]">09:15</span>
+</div>
+<div class="px-2 flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="w-7 h-7 flex items-center justify-center rounded hover:bg-secondary/10 text-secondary transition-colors" title="Сгенерировать из модели">
+<span class="material-symbols-outlined text-[18px]">model_training</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center rounded hover:bg-surface-container-high text-on-surface-variant transition-colors" title="Предпросмотр">
+<span class="material-symbols-outlined text-[18px]">visibility</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center rounded hover:bg-surface-container-high text-on-surface-variant transition-colors" title="Дополнительные действия">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</div>
+</div>
+<!-- Row 3: SEMP -->
+<div class="grid grid-cols-[3fr_1.5fr_2fr_1.5fr_1fr_120px] gap-2 p-2 border-b border-outline-variant/50 hover:bg-surface-container-low/50 transition-colors group items-center min-h-[48px]">
+<div class="px-2 flex items-start gap-2">
+<span class="material-symbols-outlined text-secondary text-[20px] mt-0.5">architecture</span>
+<div>
+<div class="font-body-md text-body-md font-semibold text-primary">Systems Engineering Management Plan (SEMP)</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">PLN-MGT-001-A</div>
+</div>
+</div>
+<div class="px-2">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-[#e6f4ea] text-[#137333] border border-[#ceead6]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#1e8e3e]"></span>
+                            Approved
+                        </span>
+</div>
+<div class="px-2 font-code-sm text-code-sm text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">commit</span>
+                        BL-0.4.0-ALPHA
+                    </div>
+<div class="px-2 flex items-center gap-2">
+<div class="w-5 h-5 rounded-full bg-surface-container-high border border-outline-variant flex items-center justify-center text-[10px] font-bold text-on-surface-variant">MV</div>
+<span class="font-body-sm text-body-sm text-on-surface">M. Von Braun</span>
+</div>
+<div class="px-2 font-body-sm text-body-sm text-on-surface-variant flex flex-col">
+<span>01.10.23</span>
+<span class="text-[10px]">11:00</span>
+</div>
+<div class="px-2 flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="w-7 h-7 flex items-center justify-center rounded hover:bg-secondary/10 text-secondary transition-colors" title="Сгенерировать из модели">
+<span class="material-symbols-outlined text-[18px]">model_training</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center rounded hover:bg-surface-container-high text-on-surface-variant transition-colors" title="Предпросмотр">
+<span class="material-symbols-outlined text-[18px]">visibility</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center rounded hover:bg-surface-container-high text-on-surface-variant transition-colors" title="Дополнительные действия">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</div>
+</div>
+<!-- Row 4: ConOps -->
+<div class="grid grid-cols-[3fr_1.5fr_2fr_1.5fr_1fr_120px] gap-2 p-2 border-b border-outline-variant/50 hover:bg-surface-container-low/50 transition-colors group items-center min-h-[48px] bg-secondary/5">
+<div class="px-2 flex items-start gap-2">
+<div class="w-[2px] h-full bg-secondary absolute left-0 top-0 hidden group-hover:block"></div>
+<span class="material-symbols-outlined text-secondary text-[20px] mt-0.5">flight_takeoff</span>
+<div>
+<div class="font-body-md text-body-md font-semibold text-primary">Concept of Operations (ConOps)</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">CON-OPS-001-A</div>
+</div>
+</div>
+<div class="px-2">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-secondary-fixed/50 text-on-secondary-container border border-secondary/20">
+<span class="material-symbols-outlined text-[12px] animate-spin">sync</span>
+                            Generating...
+                        </span>
+<div class="w-full h-1 bg-surface-container mt-1.5 rounded-full overflow-hidden">
+<div class="h-full bg-secondary w-[45%] rounded-r-full"></div>
+</div>
+</div>
+<div class="px-2 font-code-sm text-code-sm text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">commit</span>
+                        BL-0.4.2-ALPHA
+                    </div>
+<div class="px-2 flex items-center gap-2">
+<div class="w-5 h-5 rounded-full bg-surface-container-high border border-outline-variant flex items-center justify-center text-[10px] font-bold text-on-surface-variant">KL</div>
+<span class="font-body-sm text-body-sm text-on-surface">K. Lovelace</span>
+</div>
+<div class="px-2 font-body-sm text-body-sm text-on-surface-variant flex flex-col">
+<span>Just now</span>
+<span class="text-[10px]">--:--</span>
+</div>
+<div class="px-2 flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="w-7 h-7 flex items-center justify-center rounded text-on-surface-variant opacity-50 cursor-not-allowed" disabled="" title="Генерация в процессе">
+<span class="material-symbols-outlined text-[18px]">model_training</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center rounded text-on-surface-variant opacity-50 cursor-not-allowed" disabled="">
+<span class="material-symbols-outlined text-[18px]">visibility</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center rounded text-on-surface-variant opacity-50 cursor-not-allowed" disabled="">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Empty State / Action Area (Optional padding for scrolling) -->
+<div class="h-12 w-full"></div>
+</div>
+</main>
+<!-- Context Inspector (Right Panel) -->
+<aside class="bg-surface-container text-primary border-l border-outline-variant flex flex-col w-context-panel-width h-full fixed top-12 right-0 z-30 transition-transform duration-300">
+<div class="p-padding-md border-b border-outline-variant/50 shrink-0 flex justify-between items-center bg-surface-container-lowest">
+<h2 class="font-headline-md text-headline-md text-primary truncate">Инспектор контекста</h2>
+<button class="w-6 h-6 flex items-center justify-center rounded-full hover:bg-surface-container-high text-on-surface-variant transition-colors">
+<span class="material-symbols-outlined text-[18px]">close</span>
+</button>
+</div>
+<!-- Tabs -->
+<div class="flex border-b border-outline-variant/30 bg-surface-container-lowest shrink-0 overflow-x-auto no-scrollbar">
+<button class="px-3 py-2 flex flex-col items-center gap-1 border-b-2 border-secondary text-secondary min-w-[64px] bg-secondary/5">
+<span class="material-symbols-outlined text-[18px] icon-fill-1">info</span>
+<span class="font-label-caps text-label-caps text-[9px]">Детали</span>
+</button>
+<button class="px-3 py-2 flex flex-col items-center gap-1 border-b-2 border-transparent text-on-surface-variant hover:text-primary hover:bg-surface-container-low transition-colors min-w-[64px]">
+<span class="material-symbols-outlined text-[18px]">link</span>
+<span class="font-label-caps text-label-caps text-[9px]">Связи</span>
+</button>
+<button class="px-3 py-2 flex flex-col items-center gap-1 border-b-2 border-transparent text-on-surface-variant hover:text-primary hover:bg-surface-container-low transition-colors min-w-[64px]">
+<span class="material-symbols-outlined text-[18px]">rebase_edit</span>
+<span class="font-label-caps text-label-caps text-[9px]">Влияние</span>
+</button>
+<button class="px-3 py-2 flex flex-col items-center gap-1 border-b-2 border-transparent text-on-surface-variant hover:text-primary hover:bg-surface-container-low transition-colors min-w-[64px]">
+<span class="material-symbols-outlined text-[18px]">psychology</span>
+<span class="font-label-caps text-label-caps text-[9px]">AI Советы</span>
+</button>
+<button class="px-3 py-2 flex flex-col items-center gap-1 border-b-2 border-transparent text-on-surface-variant hover:text-primary hover:bg-surface-container-low transition-colors min-w-[64px]">
+<span class="material-symbols-outlined text-[18px]">error_outline</span>
+<span class="font-label-caps text-label-caps text-[9px]">Замечания</span>
+</button>
+<button class="px-3 py-2 flex flex-col items-center gap-1 border-b-2 border-transparent text-on-surface-variant hover:text-primary hover:bg-surface-container-low transition-colors min-w-[64px]">
+<span class="material-symbols-outlined text-[18px]">data_object</span>
+<span class="font-label-caps text-label-caps text-[9px]">Метаданные</span>
+</button>
+</div>
+<div class="flex-1 overflow-y-auto">
+<!-- Selected Item Header -->
+<div class="p-3 bg-surface-container-low border-b border-outline-variant/30 flex items-start gap-3">
+<div class="w-10 h-10 rounded bg-secondary/10 flex items-center justify-center shrink-0 border border-secondary/20">
+<span class="material-symbols-outlined text-secondary text-[24px]">description</span>
+</div>
+<div>
+<div class="font-label-caps text-label-caps text-on-surface-variant mb-0.5">Выбранный документ</div>
+<div class="font-body-md text-body-md font-semibold text-primary leading-tight">System Requirements Document (SRD)</div>
+<div class="font-code-sm text-code-sm text-on-surface-variant mt-1">SPEC-SYS-001-A</div>
+</div>
+</div>
+<!-- Property Group 1 -->
+<div class="bg-[#E9ECEF] px-3 py-1 border-y border-outline-variant/30 font-label-caps text-label-caps text-on-surface-variant sticky top-0">
+                Параметры генерации
+            </div>
+<div class="p-3 flex flex-col gap-3">
+<!-- Issue Warning Card (Stale Data Context) -->
+<div class="bg-error-container/20 border border-error-container rounded p-3 flex gap-2">
+<span class="material-symbols-outlined text-error text-[18px] shrink-0 mt-0.5">warning</span>
+<div>
+<div class="font-body-sm text-body-sm font-semibold text-error mb-1">Обнаружено расхождение (Stale Data)</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant text-[11px] leading-relaxed">
+                            Документ сгенерирован на основе <span class="font-code-sm text-on-surface">BL-0.4.1</span>, однако текущая активная линия модели — <span class="font-code-sm text-on-surface">BL-0.4.2</span>. 
+                            Изменения затрагивают 4 раздела требований к интерфейсам.
+                        </p>
+<button class="mt-2 h-7 px-3 bg-error text-on-error font-body-sm text-body-sm rounded hover:bg-error/90 transition-colors flex items-center gap-1 shadow-sm">
+<span class="material-symbols-outlined text-[14px]">model_training</span>
+                            Перегенерировать
+                        </button>
+</div>
+</div>
+<!-- Template Info -->
+<div>
+<label class="block font-label-caps text-label-caps text-on-surface-variant mb-1">Шаблон экспорта</label>
+<div class="flex items-center justify-between p-2 border border-outline-variant rounded bg-surface-container-lowest">
+<div class="flex items-center gap-2 font-body-sm text-body-sm text-on-surface">
+<span class="material-symbols-outlined text-[16px] text-on-surface-variant">description</span>
+                            TPL-MIL-STD-961E-v2
+                        </div>
+<button class="text-secondary hover:underline font-body-sm text-body-sm">Сменить</button>
+</div>
+</div>
+<!-- Target Baseline -->
+<div>
+<label class="block font-label-caps text-label-caps text-on-surface-variant mb-1">Целевая ревизия (Target Baseline)</label>
+<div class="relative">
+<select class="w-full h-8 pl-2 pr-8 bg-surface-container-lowest border border-outline-variant rounded font-code-sm text-code-sm text-on-surface appearance-none focus:border-secondary focus:ring-1 focus:ring-secondary outline-none">
+<option selected="" value="bl-0.4.2">BL-0.4.2-ALPHA (Current)</option>
+<option value="bl-0.4.1">BL-0.4.1-ALPHA</option>
+<option value="bl-0.4.0">BL-0.4.0-ALPHA</option>
+</select>
+<span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-[16px]">expand_more</span>
+</div>
+</div>
+</div>
+<!-- Property Group 2 -->
+<div class="bg-[#E9ECEF] px-3 py-1 border-y border-outline-variant/30 font-label-caps text-label-caps text-on-surface-variant sticky top-0 mt-2">
+                Действия с документом
+            </div>
+<div class="p-3 flex flex-col gap-2">
+<button class="w-full h-8 flex items-center justify-center gap-2 border border-outline-variant bg-surface-container-lowest hover:bg-surface-container-low rounded text-body-sm font-semibold transition-colors">
+<span class="material-symbols-outlined text-[16px]">difference</span>
+                    Сравнение версий
+                </button>
+<div class="flex gap-2">
+<button class="flex-1 h-8 flex items-center justify-center gap-1 border border-outline-variant bg-surface-container-lowest hover:bg-surface-container-low rounded text-body-sm font-semibold transition-colors">
+<span class="material-symbols-outlined text-[16px] text-[#db4437]">picture_as_pdf</span>
+                        PDF
+                    </button>
+<button class="flex-1 h-8 flex items-center justify-center gap-1 border border-outline-variant bg-surface-container-lowest hover:bg-surface-container-low rounded text-body-sm font-semibold transition-colors">
+<span class="material-symbols-outlined text-[16px] text-[#4285f4]">description</span>
+                        Docx
+                    </button>
+</div>
+</div>
+<div class="h-12"></div>
+</div>
+</aside>
+<style>
+        /* Utility to hide scrollbar but keep functionality for horizontal tabs */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+    </style>
+</body></html>

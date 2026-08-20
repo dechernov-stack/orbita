@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+
+<html lang="ru"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>SpaceSys - Interface Matrix / ICD</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-primary-container": "#778598",
+                    "on-primary": "#ffffff",
+                    "primary": "#000000",
+                    "surface-container": "#edeeef",
+                    "tertiary-fixed-dim": "#e0c1a0",
+                    "outline-variant": "#c4c6cc",
+                    "surface-container-low": "#f3f4f5",
+                    "secondary-container": "#659dfe",
+                    "on-primary-fixed": "#0f1c2c",
+                    "surface-bright": "#f8f9fa",
+                    "secondary-fixed-dim": "#acc7ff",
+                    "on-tertiary-fixed": "#281804",
+                    "surface-variant": "#e1e3e4",
+                    "primary-fixed-dim": "#bac8dc",
+                    "inverse-on-surface": "#f0f1f2",
+                    "surface-dim": "#d9dadb",
+                    "surface-container-lowest": "#ffffff",
+                    "on-tertiary": "#ffffff",
+                    "on-secondary-container": "#003370",
+                    "on-error-container": "#93000a",
+                    "on-background": "#191c1d",
+                    "on-secondary-fixed-variant": "#004491",
+                    "on-surface": "#191c1d",
+                    "tertiary-container": "#281804",
+                    "surface": "#f8f9fa",
+                    "surface-tint": "#525f71",
+                    "on-tertiary-fixed-variant": "#584329",
+                    "tertiary-fixed": "#feddba",
+                    "on-surface-variant": "#44474c",
+                    "on-tertiary-container": "#9a7f61",
+                    "primary-container": "#0f1c2c",
+                    "error-container": "#ffdad6",
+                    "error": "#ba1a1a",
+                    "tertiary": "#000000",
+                    "primary-fixed": "#d6e4f9",
+                    "on-secondary": "#ffffff",
+                    "on-error": "#ffffff",
+                    "on-secondary-fixed": "#001a40",
+                    "secondary-fixed": "#d7e2ff",
+                    "surface-container-highest": "#e1e3e4",
+                    "background": "#f8f9fa",
+                    "outline": "#74777d",
+                    "surface-container-high": "#e7e8e9",
+                    "on-primary-fixed-variant": "#3a4859",
+                    "secondary": "#115cb9",
+                    "inverse-primary": "#bac8dc",
+                    "inverse-surface": "#2e3132"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "gutter": "1px",
+                    "padding-standard": "8px",
+                    "padding-md": "16px",
+                    "lifecycle-rail-width": "240px",
+                    "padding-dense": "4px",
+                    "context-panel-width": "320px",
+                    "global-nav-width": "64px"
+            },
+            "fontFamily": {
+                    "code-sm": ["JetBrains Mono"],
+                    "body-md": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "label-caps": ["Inter"],
+                    "headline-md": ["Inter"],
+                    "body-sm": ["Inter"]
+            },
+            "fontSize": {
+                    "code-sm": ["12px", {"lineHeight": "16px", "fontWeight": "400"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "headline-lg": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                    "label-caps": ["11px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}],
+                    "headline-md": ["18px", {"lineHeight": "24px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "body-sm": ["12px", {"lineHeight": "16px", "fontWeight": "400"}]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+          font-variation-settings: 'FILL' 1;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md h-screen overflow-hidden flex">
+<!-- Global Nav (SideNavBar Rail) -->
+<nav class="bg-primary-container dark:bg-primary-container docked global-nav-width h-screen left-0 border-r border-outline-variant flat no shadows flex flex-col w-global-nav-width h-full fixed left-0 top-0 z-50 transition-colors duration-150">
+<div class="flex items-center justify-center h-16 w-full shrink-0">
+<span class="font-headline-md text-headline-md font-bold text-on-primary" title="Логотип системы">SS</span>
+</div>
+<div class="flex flex-col flex-1 py-4 gap-2 items-center w-full overflow-y-auto">
+<!-- Inactive -->
+<a class="w-12 h-12 flex items-center justify-center rounded hover:bg-primary-fixed-variant/30 text-on-primary-container/70 group" href="#" title="Главная">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+</a>
+<a class="w-12 h-12 flex items-center justify-center rounded hover:bg-primary-fixed-variant/30 text-secondary-fixed bg-secondary-container/20 border-l-2 border-secondary group" href="#" title="Проекты">
+<span class="material-symbols-outlined" data-icon="account_tree">account_tree</span>
+</a>
+<a class="w-12 h-12 flex items-center justify-center rounded hover:bg-primary-fixed-variant/30 text-on-primary-container/70 group" href="#" title="Библиотеки">
+<span class="material-symbols-outlined" data-icon="library_books">library_books</span>
+</a>
+<a class="w-12 h-12 flex items-center justify-center rounded hover:bg-primary-fixed-variant/30 text-on-primary-container/70 group" href="#" title="Предметные области">
+<span class="material-symbols-outlined" data-icon="category">category</span>
+</a>
+<a class="w-12 h-12 flex items-center justify-center rounded hover:bg-primary-fixed-variant/30 text-on-primary-container/70 group" href="#" title="Исследования">
+<span class="material-symbols-outlined" data-icon="biotech">biotech</span>
+</a>
+<a class="w-12 h-12 flex items-center justify-center rounded hover:bg-primary-fixed-variant/30 text-on-primary-container/70 group" href="#" title="Доказательная база">
+<span class="material-symbols-outlined" data-icon="assignment_turned_in">assignment_turned_in</span>
+</a>
+<a class="w-12 h-12 flex items-center justify-center rounded hover:bg-primary-fixed-variant/30 text-on-primary-container/70 group" href="#" title="Поиск">
+<span class="material-symbols-outlined" data-icon="search">search</span>
+</a>
+<a class="w-12 h-12 flex items-center justify-center rounded hover:bg-primary-fixed-variant/30 text-on-primary-container/70 group" href="#" title="Администрирование">
+<span class="material-symbols-outlined" data-icon="admin_panel_settings">admin_panel_settings</span>
+</a>
+</div>
+</nav>
+<!-- Top App Bar -->
+<header class="bg-surface dark:bg-surface-dim docked full-width top-0 h-12 border-b border-outline-variant flat no shadows cursor-pointer transition-opacity flex items-center justify-between w-full h-12 px-padding-md ml-global-nav-width fixed top-0 z-40">
+<div class="flex items-center gap-6">
+<h1 class="font-headline-md text-headline-md text-on-surface">Проект: Альфа-Центавра</h1>
+<nav class="hidden md:flex items-center gap-4 h-full">
+<a class="font-label-caps text-label-caps text-on-surface-variant hover:bg-surface-container-high h-full flex items-center px-2" href="#">Концепция</a>
+<a class="font-label-caps text-label-caps text-on-surface-variant hover:bg-surface-container-high h-full flex items-center px-2" href="#">Базис</a>
+<a class="font-label-caps text-label-caps text-on-surface-variant hover:bg-surface-container-high h-full flex items-center px-2" href="#">Замечания</a>
+<!-- Adding an explicit Interface tab to act as 'active' for this view based on context -->
+<a class="font-label-caps text-label-caps text-secondary font-bold border-b-2 border-secondary h-full flex items-center px-2" href="#">ICD</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<button class="font-label-caps text-label-caps text-on-surface-variant hover:bg-surface-container-high px-3 py-1 rounded">Базовые линии</button>
+<button class="font-label-caps text-label-caps bg-secondary text-on-secondary px-3 py-1 rounded hover:opacity-90">Следующий смотр</button>
+<div class="flex items-center gap-2 border-l border-outline-variant pl-4 ml-2">
+<button class="text-on-surface-variant hover:bg-surface-container-high p-1 rounded-full w-8 h-8 flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]" data-icon="notifications">notifications</span>
+</button>
+<button class="text-on-surface-variant hover:bg-surface-container-high p-1 rounded-full w-8 h-8 flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]" data-icon="settings">settings</span>
+</button>
+<img alt="Профиль инженера" class="w-8 h-8 rounded-full border border-outline-variant object-cover ml-2" data-alt="A professional headshot profile picture of an engineer, set against a clean, light-mode minimalist background. Soft, high-key lighting emphasizing a modern, corporate aesthetic suitable for a high-stakes engineering system." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDhOEyru986CGdWCmvxo75BN_iQYQg8WxWRFHJv0hn7y1iBHq0JwGSs5Bp9sgqvTIjYIV0WNeJbWrygxgjUqKLFaBFboAXDRyG5Wyw3AAAwhaEvhp2UGoWdb96c-ijbU3_LnwUrfXlV8UNuLyL_r-JHIYbGZqtW6iC5tmJ3f7LNmuP3gbMUN3kX8YFVrraFPGvwwdGmHsSQw9Je0-a9OT25eiq_OwDG3mS5u_BNW1cnzcThfGUK05nfRw"/>
+</div>
+</div>
+</header>
+<!-- Content Area (offset by nav and header) -->
+<div class="flex w-full pt-12 pl-global-nav-width h-screen relative">
+<!-- Lifecycle Rail (SideNavBar Drawer) -->
+<aside class="bg-surface-container-low dark:bg-surface-container-lowest docked lifecycle-rail-width h-full border-r border-outline-variant flat no shadows transition-all duration-200 ease-in-out flex flex-col w-lifecycle-rail-width z-30 shrink-0">
+<div class="p-padding-md border-b border-outline-variant">
+<h2 class="font-label-caps text-label-caps text-on-surface-variant mb-1">Жизненный цикл</h2>
+<div class="font-body-sm text-body-sm text-on-surface">Текущая фаза: Phase A</div>
+</div>
+<div class="flex flex-col flex-1 py-2 overflow-y-auto">
+<a class="flex items-center gap-3 px-padding-md py-2 font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high" href="#">
+<span class="material-symbols-outlined text-[18px]" data-icon="radio_button_checked">radio_button_checked</span>
+<span>Pre-Phase A</span>
+</a>
+<a class="flex items-center gap-3 px-padding-md py-2 font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high" href="#">
+<span class="material-symbols-outlined text-[18px]" data-icon="radio_button_unchecked">radio_button_unchecked</span>
+<span>Phase A: Concept</span>
+</a>
+<a class="flex items-center gap-3 px-padding-md py-2 font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high" href="#">
+<span class="material-symbols-outlined text-[18px]" data-icon="pending">pending</span>
+<span>Phase A: Feasibility</span>
+</a>
+<a class="flex items-center gap-3 px-padding-md py-2 font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high" href="#">
+<span class="material-symbols-outlined text-[18px]" data-icon="account_tree">account_tree</span>
+<span>Requirements</span>
+</a>
+<!-- Architecture is active context based on prompt -->
+<a class="flex items-center gap-3 px-padding-md py-2 font-body-md text-body-md bg-secondary/10 text-secondary font-semibold" href="#">
+<span class="material-symbols-outlined text-[18px]" data-icon="schema">schema</span>
+<span>Architecture</span>
+</a>
+</div>
+</aside>
+<!-- Main Workspace: Matrix & List -->
+<main class="flex-1 flex flex-col min-w-0 bg-surface-bright relative z-10 overflow-hidden pr-context-panel-width">
+<!-- Toolbar -->
+<div class="h-12 border-b border-outline-variant flex items-center justify-between px-padding-md bg-surface shrink-0">
+<div class="flex items-center gap-4">
+<div class="flex bg-surface-container-low rounded border border-outline-variant p-0.5">
+<button class="px-3 py-1 rounded bg-surface shadow-sm font-label-caps text-label-caps text-on-surface border border-outline-variant">Матрица</button>
+<button class="px-3 py-1 rounded font-label-caps text-label-caps text-on-surface-variant hover:text-on-surface">Список</button>
+</div>
+<div class="h-4 w-px bg-outline-variant"></div>
+<div class="flex items-center gap-2">
+<span class="flex items-center gap-1 font-body-sm text-body-sm"><span class="w-2 h-2 rounded-full bg-error"></span> Механический</span>
+<span class="flex items-center gap-1 font-body-sm text-body-sm"><span class="w-2 h-2 rounded-full bg-secondary"></span> Электрический</span>
+<span class="flex items-center gap-1 font-body-sm text-body-sm"><span class="w-2 h-2 rounded-full bg-tertiary-container"></span> Данные</span>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="text-on-surface-variant hover:text-on-surface"><span class="material-symbols-outlined text-[20px]" data-icon="filter_list">filter_list</span></button>
+<button class="text-on-surface-variant hover:text-on-surface"><span class="material-symbols-outlined text-[20px]" data-icon="download">download</span></button>
+</div>
+</div>
+<!-- Matrix View Content -->
+<div class="flex-1 overflow-auto p-padding-md bg-surface-bright">
+<div class="bg-surface border border-outline-variant rounded flex flex-col w-max min-w-full h-full max-h-[50vh] overflow-hidden mb-4 shadow-sm">
+<!-- Matrix Header (Target Components) -->
+<div class="flex border-b border-outline-variant bg-surface-container-lowest sticky top-0 z-20">
+<div class="w-64 shrink-0 border-r border-outline-variant p-padding-dense flex items-end justify-end pb-2 pr-2 font-label-caps text-label-caps text-on-surface-variant bg-surface-container-low z-30 sticky left-0">
+                            Источник \ Цель
+                        </div>
+<div class="flex">
+<!-- Columns -->
+<div class="w-12 shrink-0 border-r border-outline-variant flex items-end justify-center py-2 bg-surface-container-lowest">
+<div class="transform -rotate-90 origin-bottom-left translate-x-3 w-4 font-label-caps text-label-caps text-on-surface whitespace-nowrap">Power Sys</div>
+</div>
+<div class="w-12 shrink-0 border-r border-outline-variant flex items-end justify-center py-2 bg-surface-container-lowest">
+<div class="transform -rotate-90 origin-bottom-left translate-x-3 w-4 font-label-caps text-label-caps text-on-surface whitespace-nowrap">Therm Control</div>
+</div>
+<div class="w-12 shrink-0 border-r border-outline-variant flex items-end justify-center py-2 bg-surface-container-lowest">
+<div class="transform -rotate-90 origin-bottom-left translate-x-3 w-4 font-label-caps text-label-caps text-on-surface whitespace-nowrap">Comms</div>
+</div>
+<div class="w-12 shrink-0 border-r border-outline-variant flex items-end justify-center py-2 bg-surface-container-lowest">
+<div class="transform -rotate-90 origin-bottom-left translate-x-3 w-4 font-label-caps text-label-caps text-on-surface whitespace-nowrap bg-secondary/10 text-secondary">Nav Array</div>
+</div>
+<div class="w-12 shrink-0 border-r border-outline-variant flex items-end justify-center py-2 bg-surface-container-lowest">
+<div class="transform -rotate-90 origin-bottom-left translate-x-3 w-4 font-label-caps text-label-caps text-on-surface whitespace-nowrap">Propulsion</div>
+</div>
+<div class="w-12 shrink-0 border-r border-outline-variant flex items-end justify-center py-2 bg-surface-container-lowest">
+<div class="transform -rotate-90 origin-bottom-left translate-x-3 w-4 font-label-caps text-label-caps text-on-surface whitespace-nowrap">Payload A</div>
+</div>
+</div>
+</div>
+<!-- Matrix Body -->
+<div class="flex-1 overflow-auto bg-surface relative">
+<!-- Row 1 -->
+<div class="flex border-b border-outline-variant/50 hover:bg-surface-container-low group">
+<div class="w-64 shrink-0 border-r border-outline-variant p-padding-dense pl-4 flex items-center font-body-sm text-body-sm text-on-surface bg-surface-container-lowest group-hover:bg-surface-container-low sticky left-0 z-10">
+                                Power Sys
+                            </div>
+<div class="flex">
+<div class="w-12 h-8 shrink-0 border-r border-outline-variant/50 bg-outline-variant/20"></div>
+<div class="w-12 h-8 shrink-0 border-r border-outline-variant/50 flex items-center justify-center cursor-pointer hover:bg-secondary/10">
+<span class="w-3 h-3 rounded-full bg-secondary"></span>
+</div>
+<div class="w-12 h-8 shrink-0 border-r border-outline-variant/50 flex items-center justify-center cursor-pointer hover:bg-secondary/10">
+<span class="w-3 h-3 rounded-full bg-secondary"></span>
+</div>
+<div class="w-12 h-8 shrink-0 border-r border-outline-variant/50 flex items-center justify-center cursor-pointer hover:bg-secondary/10 bg-secondary/5">
+<span class="w-3 h-3 rounded-full bg-secondary"></span>
+</div>
+<div class="w-12 h-8 shrink-0 border-r border-outline-variant/50 flex items-center justify-center cursor-pointer hover:bg-secondary/10">
+<span class="w-3 h-3 rounded-full bg-secondary"></span>
+</div>
+<div class="w-12 h-8 shrink-0 border-r border-outline-variant/50 flex items-center justify-center cursor-pointer hover:bg-secondary/10">
+<span class="w-3 h-3 rounded-full bg-secondary"></span>
+</div>
+</div>
+</div>
+<!-- Row 2 (Selected Context) -->
+<div class="flex border-b border-outline-variant/50 bg-secondary/5 relative">
+<div class="absolute left-0 top-0 bottom-0 w-0.5 bg-secondary z-20"></div>
+<div class="w-64 shrink-0 border-r border-outline-variant p-padding-dense pl-4 flex items-center font-body-sm text-body-sm text-on-surface bg-surface-container-lowest font-medium sticky left-0 z-10">
+                                Main Computer
+                            </div>
+<div class="flex">
+<div class="w-12 h-8 shrink-0 border-r border-outline-variant/50 flex items-center justify-center cursor-pointer hover:bg-secondary/10"></div>
+<div class="w-12 h-8 shrink-0 border-r border-outline-variant/50 flex items-center justify-center cursor-pointer hover:bg-secondary/10">
+<span class="material-symbols-outlined text-[14px] text-tertiary-container" data-icon="compare_arrows">compare_arrows</span>
+</div>
+<div class="w-12 h-8 shrink-0 border-r border-outline-variant/50 flex items-center justify-center cursor-pointer hover:bg-secondary/10">
+<span class="material-symbols-outlined text-[14px] text-tertiary-container" data-icon="compare_arrows">compare_arrows</span>
+</div>
+<!-- Selected Cell -->
+<div class="w-12 h-8 shrink-0 border-r border-outline-variant/50 flex items-center justify-center cursor-pointer bg-secondary/20 border-secondary ring-1 ring-inset ring-secondary">
+<span class="material-symbols-outlined text-[14px] text-tertiary-container" data-icon="compare_arrows">compare_arrows</span>
+</div>
+<div class="w-12 h-8 shrink-0 border-r border-outline-variant/50 flex items-center justify-center cursor-pointer hover:bg-secondary/10">
+<span class="material-symbols-outlined text-[14px] text-tertiary-container" data-icon="compare_arrows">compare_arrows</span>
+</div>
+<div class="w-12 h-8 shrink-0 border-r border-outline-variant/50 flex items-center justify-center cursor-pointer hover:bg-secondary/10"></div>
+</div>
+</div>
+<!-- Row 3 -->
+<div class="flex border-b border-outline-variant/50 hover:bg-surface-container-low group">
+<div class="w-64 shrink-0 border-r border-outline-variant p-padding-dense pl-4 flex items-center font-body-sm text-body-sm text-on-surface bg-surface-container-lowest group-hover:bg-surface-container-low sticky left-0 z-10">
+                                Structural Frame
+                            </div>
+<div class="flex">
+<div class="w-12 h-8 shrink-0 border-r border-outline-variant/50 flex items-center justify-center cursor-pointer hover:bg-secondary/10">
+<span class="w-3 h-3 rounded-full bg-error"></span>
+</div>
+<div class="w-12 h-8 shrink-0 border-r border-outline-variant/50 flex items-center justify-center cursor-pointer hover:bg-secondary/10">
+<span class="w-3 h-3 rounded-full bg-error"></span>
+</div>
+<div class="w-12 h-8 shrink-0 border-r border-outline-variant/50 flex items-center justify-center cursor-pointer hover:bg-secondary/10">
+<span class="w-3 h-3 rounded-full bg-error"></span>
+</div>
+<div class="w-12 h-8 shrink-0 border-r border-outline-variant/50 flex items-center justify-center cursor-pointer hover:bg-secondary/10 bg-secondary/5">
+<span class="w-3 h-3 rounded-full bg-error"></span>
+</div>
+<div class="w-12 h-8 shrink-0 border-r border-outline-variant/50 flex items-center justify-center cursor-pointer hover:bg-secondary/10">
+<span class="w-3 h-3 rounded-full bg-error"></span>
+</div>
+<div class="w-12 h-8 shrink-0 border-r border-outline-variant/50 flex items-center justify-center cursor-pointer hover:bg-secondary/10">
+<span class="w-3 h-3 rounded-full bg-error"></span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Detailed List View (Below Matrix) -->
+<div class="bg-surface border border-outline-variant rounded shadow-sm flex flex-col mt-4">
+<div class="px-padding-md py-2 border-b border-outline-variant bg-surface-container-lowest flex items-center justify-between">
+<span class="font-label-caps text-label-caps text-on-surface-variant">Детализация интерфейсов</span>
+<div class="flex gap-2">
+<input class="h-6 text-code-sm border-outline-variant rounded px-2 w-32 bg-surface focus:ring-1 focus:ring-secondary focus:border-secondary outline-none" placeholder="Поиск ID..." type="text"/>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse min-w-[800px]">
+<thead>
+<tr class="bg-surface border-b border-outline-variant font-label-caps text-label-caps text-on-surface-variant h-8">
+<th class="px-3 font-normal w-24">ID</th>
+<th class="px-3 font-normal">Тип</th>
+<th class="px-3 font-normal w-16">Rev</th>
+<th class="px-3 font-normal">Источник</th>
+<th class="px-3 font-normal">Цель</th>
+<th class="px-3 font-normal">Владелец</th>
+<th class="px-3 font-normal">Требование</th>
+<th class="px-3 font-normal w-24">Статус</th>
+</tr>
+</thead>
+<tbody class="font-code-sm text-code-sm text-on-surface">
+<tr class="border-b border-outline-variant/30 h-8 hover:bg-surface-container-low group">
+<td class="px-3">IF-PWR-01</td>
+<td class="px-3"><span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-secondary"></span> Электрический</span></td>
+<td class="px-3">v1.2</td>
+<td class="px-3">Power Sys</td>
+<td class="px-3">Main Computer</td>
+<td class="px-3">A. Smith</td>
+<td class="px-3 text-secondary hover:underline cursor-pointer">REQ-SYS-104</td>
+<td class="px-3"><span class="px-1.5 py-0.5 rounded bg-surface-container-high border border-outline-variant text-[10px]">Agreed</span></td>
+</tr>
+<!-- Selected Row -->
+<tr class="border-b border-outline-variant/30 h-8 bg-secondary/5 relative group">
+<td class="absolute left-0 top-0 bottom-0 w-0.5 bg-secondary"></td>
+<td class="px-3 font-medium">IF-DAT-42</td>
+<td class="px-3"><span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-tertiary-container"></span> Данные</span></td>
+<td class="px-3">v2.0</td>
+<td class="px-3 font-medium">Main Computer</td>
+<td class="px-3 font-medium">Nav Array</td>
+<td class="px-3">E. Chen</td>
+<td class="px-3 text-secondary hover:underline cursor-pointer">REQ-NAV-022</td>
+<td class="px-3"><span class="px-1.5 py-0.5 rounded bg-surface-container-high border border-outline-variant text-[10px]">Open</span></td>
+</tr>
+<tr class="border-b border-outline-variant/30 h-8 hover:bg-surface-container-low group">
+<td class="px-3">IF-MCH-11</td>
+<td class="px-3"><span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-error"></span> Механический</span></td>
+<td class="px-3">v1.0</td>
+<td class="px-3">Structural Frame</td>
+<td class="px-3">Payload A</td>
+<td class="px-3">M. Rossi</td>
+<td class="px-3 text-secondary hover:underline cursor-pointer">REQ-STR-005</td>
+<td class="px-3"><span class="px-1.5 py-0.5 rounded bg-surface-container-highest border border-outline-variant text-[10px]">Verified</span></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</main>
+<!-- Right Context Inspector -->
+<aside class="bg-surface-container dark:bg-surface-container-high docked context-panel-width h-full border-l border-outline-variant flat no shadows transition-transform duration-300 flex flex-col w-context-panel-width fixed top-12 right-0 z-30">
+<div class="px-padding-md py-3 border-b border-outline-variant">
+<h2 class="font-headline-md text-headline-md text-primary">Инспектор контекста</h2>
+</div>
+<!-- Inspector Tabs -->
+<div class="flex border-b border-outline-variant bg-surface">
+<button class="flex-1 py-2 font-label-caps text-label-caps border-b-2 border-secondary text-secondary flex flex-col items-center gap-1 hover:bg-surface-container-low">
+<span class="material-symbols-outlined text-[18px]" data-icon="info">info</span>
+                    Детали
+                </button>
+<button class="flex-1 py-2 font-label-caps text-label-caps text-on-surface-variant hover:text-primary hover:bg-surface-container-low flex flex-col items-center gap-1">
+<span class="material-symbols-outlined text-[18px]" data-icon="link">link</span>
+                    Связи
+                </button>
+<button class="flex-1 py-2 font-label-caps text-label-caps text-on-surface-variant hover:text-primary hover:bg-surface-container-low flex flex-col items-center gap-1 relative">
+<span class="material-symbols-outlined text-[18px]" data-icon="rebase_edit">rebase_edit</span>
+                    Влияние
+                    <span class="absolute top-1 right-2 w-2 h-2 bg-secondary rounded-full"></span>
+</button>
+<button class="flex-1 py-2 font-label-caps text-label-caps text-on-surface-variant hover:text-primary hover:bg-surface-container-low flex flex-col items-center gap-1">
+<span class="material-symbols-outlined text-[18px]" data-icon="psychology">psychology</span>
+                    AI Советы
+                </button>
+<button class="flex-1 py-2 font-label-caps text-label-caps text-on-surface-variant hover:text-primary hover:bg-surface-container-low flex flex-col items-center gap-1">
+<span class="material-symbols-outlined text-[18px]" data-icon="error_outline">error_outline</span>
+                    Замечания
+                </button>
+<button class="flex-1 py-2 font-label-caps text-label-caps text-on-surface-variant hover:text-primary hover:bg-surface-container-low flex flex-col items-center gap-1">
+<span class="material-symbols-outlined text-[18px]" data-icon="data_object">data_object</span>
+                    Метаданные
+                </button>
+</div>
+<!-- Inspector Content -->
+<div class="flex-1 overflow-y-auto bg-surface">
+<!-- Header Card -->
+<div class="p-padding-md border-b border-outline-variant">
+<div class="flex justify-between items-start mb-2">
+<span class="font-code-sm text-code-sm text-on-surface-variant bg-surface-container px-1 rounded">IF-DAT-42</span>
+<span class="px-2 py-0.5 rounded-full bg-surface-container-high border border-outline-variant font-label-caps text-label-caps text-[10px]">Open</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-4">Main Computer to Nav Array Data Link</h3>
+<div class="grid grid-cols-2 gap-y-3 font-body-sm text-body-sm">
+<div class="text-on-surface-variant">Владелец:</div>
+<div class="text-on-surface text-right font-medium">E. Chen</div>
+<div class="text-on-surface-variant">Тип:</div>
+<div class="text-right flex items-center justify-end gap-1"><span class="w-2 h-2 rounded-full bg-tertiary-container"></span> Data</div>
+<div class="text-on-surface-variant">Протокол:</div>
+<div class="text-on-surface text-right font-code-sm">SpaceWire</div>
+</div>
+</div>
+<!-- Diff Section -->
+<div class="bg-surface-container-lowest">
+<div class="bg-surface-container-low px-padding-md py-2 border-y border-outline-variant flex items-center justify-between cursor-pointer group">
+<span class="font-label-caps text-label-caps text-on-surface-variant group-hover:text-on-surface">Изменения (v1.9 -&gt; v2.0)</span>
+<span class="material-symbols-outlined text-[18px] text-on-surface-variant" data-icon="expand_less">expand_less</span>
+</div>
+<div class="p-padding-md space-y-3 font-code-sm text-code-sm">
+<!-- Added Diff -->
+<div class="border border-outline-variant rounded overflow-hidden">
+<div class="bg-surface-container px-2 py-1 border-b border-outline-variant text-on-surface-variant text-[10px] font-label-caps">Bandwidth Req</div>
+<div class="flex bg-error-container/20 text-on-surface line-through px-2 py-1">
+<span class="text-error w-4 shrink-0">-</span>
+<span>100 Mbps (Min)</span>
+</div>
+<div class="flex bg-secondary-container/20 text-on-surface px-2 py-1">
+<span class="text-secondary w-4 shrink-0">+</span>
+<span>400 Mbps (Min)</span>
+</div>
+</div>
+<!-- Added Diff -->
+<div class="border border-outline-variant rounded overflow-hidden">
+<div class="bg-surface-container px-2 py-1 border-b border-outline-variant text-on-surface-variant text-[10px] font-label-caps">Redundancy</div>
+<div class="flex bg-secondary-container/20 text-on-surface px-2 py-1">
+<span class="text-secondary w-4 shrink-0">+</span>
+<span>Dual-lane active-active configuration required per REQ-NAV-022.</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Description Section -->
+<div class="bg-surface-container-lowest">
+<div class="bg-surface-container-low px-padding-md py-2 border-y border-outline-variant flex items-center justify-between cursor-pointer group">
+<span class="font-label-caps text-label-caps text-on-surface-variant group-hover:text-on-surface">Описание</span>
+<span class="material-symbols-outlined text-[18px] text-on-surface-variant" data-icon="expand_more">expand_more</span>
+</div>
+</div>
+</div>
+<!-- Fixed Actions Bottom -->
+<div class="p-padding-md border-t border-outline-variant bg-surface-container-lowest flex gap-2">
+<button class="flex-1 py-2 font-label-caps text-label-caps border border-outline-variant rounded hover:bg-surface-container-low text-on-surface">Редактировать</button>
+<button class="flex-1 py-2 font-label-caps text-label-caps bg-secondary text-on-secondary rounded hover:opacity-90">Согласовать</button>
+</div>
+</aside>
+</div>
+</body></html>

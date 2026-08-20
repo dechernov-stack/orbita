@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>SpaceSys - Requirements Baseline &amp; V&amp;V</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-primary-container": "#778598",
+                    "on-primary": "#ffffff",
+                    "primary": "#000000",
+                    "surface-container": "#edeeef",
+                    "tertiary-fixed-dim": "#e0c1a0",
+                    "outline-variant": "#c4c6cc",
+                    "surface-container-low": "#f3f4f5",
+                    "secondary-container": "#659dfe",
+                    "on-primary-fixed": "#0f1c2c",
+                    "surface-bright": "#f8f9fa",
+                    "secondary-fixed-dim": "#acc7ff",
+                    "on-tertiary-fixed": "#281804",
+                    "surface-variant": "#e1e3e4",
+                    "primary-fixed-dim": "#bac8dc",
+                    "inverse-on-surface": "#f0f1f2",
+                    "surface-dim": "#d9dadb",
+                    "surface-container-lowest": "#ffffff",
+                    "on-tertiary": "#ffffff",
+                    "on-secondary-container": "#003370",
+                    "on-error-container": "#93000a",
+                    "on-background": "#191c1d",
+                    "on-secondary-fixed-variant": "#004491",
+                    "on-surface": "#191c1d",
+                    "tertiary-container": "#281804",
+                    "surface": "#f8f9fa",
+                    "surface-tint": "#525f71",
+                    "on-tertiary-fixed-variant": "#584329",
+                    "tertiary-fixed": "#feddba",
+                    "on-surface-variant": "#44474c",
+                    "on-tertiary-container": "#9a7f61",
+                    "primary-container": "#0f1c2c",
+                    "error-container": "#ffdad6",
+                    "error": "#ba1a1a",
+                    "tertiary": "#000000",
+                    "primary-fixed": "#d6e4f9",
+                    "on-secondary": "#ffffff",
+                    "on-error": "#ffffff",
+                    "on-secondary-fixed": "#001a40",
+                    "secondary-fixed": "#d7e2ff",
+                    "surface-container-highest": "#e1e3e4",
+                    "background": "#f8f9fa",
+                    "outline": "#74777d",
+                    "surface-container-high": "#e7e8e9",
+                    "on-primary-fixed-variant": "#3a4859",
+                    "secondary": "#115cb9",
+                    "inverse-primary": "#bac8dc",
+                    "inverse-surface": "#2e3132"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "gutter": "1px",
+                    "padding-standard": "8px",
+                    "padding-md": "16px",
+                    "lifecycle-rail-width": "240px",
+                    "padding-dense": "4px",
+                    "context-panel-width": "320px",
+                    "global-nav-width": "64px"
+            },
+            "fontFamily": {
+                    "code-sm": [
+                            "JetBrains Mono"
+                    ],
+                    "body-md": [
+                            "Inter"
+                    ],
+                    "headline-lg": [
+                            "Inter"
+                    ],
+                    "label-caps": [
+                            "Inter"
+                    ],
+                    "headline-md": [
+                            "Inter"
+                    ],
+                    "body-sm": [
+                            "Inter"
+                    ]
+            },
+            "fontSize": {
+                    "code-sm": [
+                            "12px",
+                            {
+                                    "lineHeight": "16px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "body-md": [
+                            "14px",
+                            {
+                                    "lineHeight": "20px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "headline-lg": [
+                            "24px",
+                            {
+                                    "lineHeight": "32px",
+                                    "letterSpacing": "-0.02em",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "label-caps": [
+                            "11px",
+                            {
+                                    "lineHeight": "16px",
+                                    "letterSpacing": "0.05em",
+                                    "fontWeight": "700"
+                            }
+                    ],
+                    "headline-md": [
+                            "18px",
+                            {
+                                    "lineHeight": "24px",
+                                    "letterSpacing": "-0.01em",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "body-sm": [
+                            "12px",
+                            {
+                                    "lineHeight": "16px",
+                                    "fontWeight": "400"
+                            }
+                    ]
+            }
+          },
+        }
+      }
+    </script>
+<style>
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        .tree-line {
+            position: absolute;
+            left: 14px;
+            top: -24px;
+            bottom: 24px;
+            width: 1px;
+            background-color: var(--tw-colors-outline-variant);
+            z-index: 0;
+        }
+        
+        .tree-stub {
+            position: absolute;
+            left: 14px;
+            top: 24px;
+            width: 12px;
+            height: 1px;
+            background-color: var(--tw-colors-outline-variant);
+            z-index: 0;
+        }
+        
+        .tree-line-last {
+            bottom: auto;
+            height: 48px;
+        }
+        
+        .tree-indent-1 { padding-left: calc(8px + 28px); }
+        .tree-indent-2 { padding-left: calc(8px + 56px); }
+        .tree-indent-3 { padding-left: calc(8px + 84px); }
+        
+        .bg-selected-subtree { background-color: rgba(17, 92, 185, 0.04); }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md min-h-screen overflow-hidden flex">
+<!-- SideNavBar (Global) -->
+<nav class="bg-primary-container text-on-primary-container flex-col w-global-nav-width h-full fixed left-0 top-0 z-50 flex border-r border-outline-variant items-center py-4 gap-6">
+<div class="font-headline-md text-headline-md font-bold text-on-primary mb-4 flex flex-col items-center">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 1;">rocket_launch</span>
+</div>
+<div class="flex flex-col gap-4 w-full px-2">
+<!-- Inactive -->
+<button class="w-full aspect-square rounded flex flex-col items-center justify-center text-on-primary-container/70 hover:bg-primary-fixed-variant/30 transition-colors duration-150" title="Главная">
+<span class="material-symbols-outlined">home</span>
+</button>
+<!-- Active -->
+<button class="w-full aspect-square rounded flex flex-col items-center justify-center text-secondary-fixed bg-secondary-container/20 border-l-2 border-secondary transition-colors duration-150" title="Проекты">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">account_tree</span>
+</button>
+<!-- Inactive -->
+<button class="w-full aspect-square rounded flex flex-col items-center justify-center text-on-primary-container/70 hover:bg-primary-fixed-variant/30 transition-colors duration-150" title="Библиотеки">
+<span class="material-symbols-outlined">library_books</span>
+</button>
+<button class="w-full aspect-square rounded flex flex-col items-center justify-center text-on-primary-container/70 hover:bg-primary-fixed-variant/30 transition-colors duration-150" title="Предметные области">
+<span class="material-symbols-outlined">category</span>
+</button>
+<button class="w-full aspect-square rounded flex flex-col items-center justify-center text-on-primary-container/70 hover:bg-primary-fixed-variant/30 transition-colors duration-150" title="Исследования">
+<span class="material-symbols-outlined">biotech</span>
+</button>
+<button class="w-full aspect-square rounded flex flex-col items-center justify-center text-on-primary-container/70 hover:bg-primary-fixed-variant/30 transition-colors duration-150" title="Доказательная база">
+<span class="material-symbols-outlined">assignment_turned_in</span>
+</button>
+</div>
+<div class="mt-auto flex flex-col gap-4 w-full px-2">
+<button class="w-full aspect-square rounded flex flex-col items-center justify-center text-on-primary-container/70 hover:bg-primary-fixed-variant/30 transition-colors duration-150" title="Поиск">
+<span class="material-symbols-outlined">search</span>
+</button>
+<button class="w-full aspect-square rounded flex flex-col items-center justify-center text-on-primary-container/70 hover:bg-primary-fixed-variant/30 transition-colors duration-150" title="Администрирование">
+<span class="material-symbols-outlined">admin_panel_settings</span>
+</button>
+</div>
+</nav>
+<!-- TopAppBar -->
+<header class="bg-surface text-on-surface font-label-caps text-label-caps border-b border-outline-variant flex items-center justify-between w-full h-12 px-padding-md ml-global-nav-width fixed top-0 z-40">
+<div class="flex items-center gap-6 h-full">
+<span class="font-headline-md text-headline-md text-on-surface whitespace-nowrap">Проект: Альфа-Центавра</span>
+<nav class="flex h-full gap-4 hidden md:flex">
+<button class="h-full px-2 text-on-surface-variant hover:bg-surface-container-high transition-opacity cursor-pointer">Концепция</button>
+<button class="h-full px-2 text-secondary font-bold border-b-2 border-secondary hover:bg-surface-container-high transition-opacity cursor-pointer">Базис</button>
+<button class="h-full px-2 text-on-surface-variant hover:bg-surface-container-high transition-opacity cursor-pointer">Замечания</button>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-2 top-1/2 -translate-y-1/2 text-on-surface-variant text-[18px]">search</span>
+<input class="bg-surface-container-low border border-outline-variant rounded pl-8 pr-3 py-1 text-body-sm font-body-sm focus:border-secondary focus:ring-0 w-64 h-8 transition-colors" placeholder="Поиск..." type="text"/>
+</div>
+<button class="px-3 py-1 bg-secondary text-on-secondary rounded font-label-caps hover:bg-on-secondary-fixed-variant transition-colors flex items-center gap-1 h-8">
+                Следующий смотр
+            </button>
+<button class="px-3 py-1 border border-outline-variant text-on-surface rounded font-label-caps hover:bg-surface-container-high transition-colors h-8">
+                Базовые линии
+            </button>
+<button class="text-on-surface-variant hover:text-on-surface transition-colors flex items-center justify-center w-8 h-8 rounded hover:bg-surface-container-high">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="text-on-surface-variant hover:text-on-surface transition-colors flex items-center justify-center w-8 h-8 rounded hover:bg-surface-container-high">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<img class="w-8 h-8 rounded-full border border-outline-variant object-cover ml-2" data-alt="A small, professional headshot of an engineer in a clean, modern studio setting. The lighting is crisp and bright, highlighting a sharp, focused expression. The background is a soft, out-of-focus technical drawing in cool blue tones, reinforcing the high-tech, corporate environment." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCCIbm25EVrLkCW7l0EdvDKsgRKfB8Tu-EC31xpWcWwnMFO2npgZPWt7f6-HPYlujDj9VP3_cVMsj0RWK3G1n8ze_Qe_nREeh3VM1UVk0xHFba5Z4n6hf5I2gBjINftB2dBoH-rUqstpOyzsPW4DvUq14Sia6LUrqRW3SSPV3y5NCIETfTetbrR0JDT-ZoGrkikCXx_NNRJHaMuKenYVbU6-u376j1TLhS_XRrABTEr0_vprQaZAoY_XA"/>
+</div>
+</header>
+<!-- SideNavBar (Lifecycle Rail) -->
+<aside class="bg-surface-container-low text-secondary font-body-md text-body-md border-r border-outline-variant flex flex-col w-[240px] h-full fixed top-12 left-global-nav-width z-30 transition-all duration-200 ease-in-out">
+<div class="p-padding-md border-b border-outline-variant">
+<h2 class="font-headline-md text-headline-md text-on-surface font-semibold">Жизненный цикл</h2>
+<p class="font-label-caps text-label-caps text-on-surface-variant mt-1">Текущая фаза: Phase A</p>
+</div>
+<nav class="flex-1 overflow-y-auto py-2">
+<button class="w-full flex items-center gap-3 px-padding-md py-2 text-on-surface-variant hover:bg-surface-container-high text-left transition-colors">
+<span class="material-symbols-outlined text-[20px]">radio_button_checked</span>
+<span>Pre-Phase A</span>
+</button>
+<button class="w-full flex items-center gap-3 px-padding-md py-2 text-on-surface-variant hover:bg-surface-container-high text-left transition-colors">
+<span class="material-symbols-outlined text-[20px]">radio_button_unchecked</span>
+<span>Phase A: Concept</span>
+</button>
+<button class="w-full flex items-center gap-3 px-padding-md py-2 text-on-surface-variant hover:bg-surface-container-high text-left transition-colors">
+<span class="material-symbols-outlined text-[20px]">pending</span>
+<span>Phase A: Feasibility</span>
+</button>
+<button class="w-full flex items-center gap-3 px-padding-md py-2 bg-secondary/10 text-secondary font-semibold hover:bg-surface-container-high text-left transition-colors">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">account_tree</span>
+<span>Requirements</span>
+</button>
+<button class="w-full flex items-center gap-3 px-padding-md py-2 text-on-surface-variant hover:bg-surface-container-high text-left transition-colors">
+<span class="material-symbols-outlined text-[20px]">schema</span>
+<span>Architecture</span>
+</button>
+</nav>
+</aside>
+<!-- System Composition Rail -->
+<aside class="bg-surface-container-lowest font-body-md text-body-md border-r border-outline-variant flex flex-col w-[240px] h-full fixed top-12 left-[304px] z-30 transition-all duration-200 ease-in-out">
+<div class="h-12 border-b border-outline-variant flex items-center px-padding-md bg-surface-container-low">
+<h2 class="font-label-caps text-label-caps text-on-surface font-bold">СОСТАВ СИСТЕМЫ</h2>
+</div>
+<div class="flex-1 overflow-y-auto py-2">
+<div class="px-2">
+<!-- Root -->
+<button class="w-full flex items-center justify-between px-2 py-1.5 rounded hover:bg-surface-container-low text-left transition-colors group">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-on-surface-variant">expand_more</span>
+<span class="font-medium text-sm text-on-surface">КС 'Альфа-Центавра'</span>
+</div>
+<span class="text-xs text-on-surface-variant font-code-sm">18</span>
+</button>
+<!-- Segments -->
+<button class="w-full flex items-center justify-between px-2 py-1.5 pl-6 rounded hover:bg-surface-container-low text-left transition-colors group">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-on-surface-variant">chevron_right</span>
+<span class="text-sm text-on-surface">Наземный сегмент</span>
+</div>
+<span class="text-xs text-on-surface-variant font-code-sm">2</span>
+</button>
+<button class="w-full flex items-center justify-between px-2 py-1.5 pl-6 rounded hover:bg-surface-container-low text-left transition-colors group">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-on-surface-variant">chevron_right</span>
+<span class="text-sm text-on-surface">Абонентский сегмент</span>
+</div>
+<span class="text-xs text-on-surface-variant font-code-sm">4</span>
+</button>
+<button class="w-full flex items-center justify-between px-2 py-1.5 pl-6 rounded hover:bg-surface-container-low text-left transition-colors group">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-on-surface-variant">expand_more</span>
+<span class="text-sm text-on-surface">Космический сегмент</span>
+</div>
+<span class="text-xs text-on-surface-variant font-code-sm">12</span>
+</button>
+<!-- Space Segment Details -->
+<button class="w-full flex items-center justify-between px-2 py-1.5 pl-10 rounded bg-secondary/10 text-secondary font-medium text-left transition-colors group border-l-2 border-secondary ml-1">
+<div class="flex items-center gap-2">
+<span class="text-sm">Платформа</span>
+</div>
+<span class="text-xs font-code-sm font-bold">12</span>
+</button>
+<button class="w-full flex items-center justify-between px-2 py-1.5 pl-12 rounded hover:bg-surface-container-low text-left transition-colors group">
+<div class="flex items-center gap-2">
+<span class="text-sm text-on-surface">Полезная нагрузка</span>
+</div>
+<span class="text-xs text-on-surface-variant font-code-sm">0</span>
+</button>
+<button class="w-full flex items-center justify-between px-2 py-1.5 pl-12 rounded hover:bg-surface-container-low text-left transition-colors group">
+<div class="flex items-center gap-2">
+<span class="text-sm text-on-surface">Терминалы межспутниковой связи</span>
+</div>
+<span class="text-xs text-on-surface-variant font-code-sm">0</span>
+</button>
+</div>
+</div>
+</aside>
+<!-- Main Workspace -->
+<main class="flex-1 mt-12 mb-0 ml-[544px] mr-[320px] h-[calc(100vh-48px)] bg-background flex flex-col relative overflow-hidden">
+<!-- Toolbar / Filter Bar -->
+<div class="flex-none bg-surface h-12 border-b border-outline-variant flex items-center justify-between px-padding-md gap-4">
+<div class="flex items-center gap-2">
+<span class="font-headline-md text-[16px] text-on-surface font-semibold mr-2 flex items-center gap-2">
+    Спецификация: Платформа <span class="text-on-surface-variant font-normal text-sm">· 12 требований</span>
+</span>
+<button class="ml-2 px-2 py-1 bg-surface-container text-on-surface-variant rounded text-xs flex items-center gap-1 hover:bg-surface-container-high transition-colors">
+    Сбросить фильтр <span class="material-symbols-outlined text-[14px]">close</span>
+</button>
+<div class="h-6 w-px bg-outline-variant mx-2"></div>
+<span class="font-label-caps text-label-caps text-on-surface-variant">ФИЛЬТРЫ:</span><div class="flex items-center border border-outline-variant rounded bg-surface-container-low h-8 ml-2"><button class="px-3 h-full border-r border-outline-variant font-body-sm text-body-sm text-secondary bg-secondary/10 font-bold">Дерево</button><button class="px-3 h-full border-r border-outline-variant font-body-sm text-body-sm text-on-surface hover:bg-surface-container-high">Плоский список</button><button class="px-3 h-full font-body-sm text-body-sm text-on-surface hover:bg-surface-container-high">Матрица</button></div><button class="ml-2 px-2 py-1 bg-error-container text-on-error-container rounded text-[10px] font-bold flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">warning</span>БЮДЖЕТ НАРУШЕН</button>
+<div class="flex items-center border border-outline-variant rounded bg-surface-container-low h-8 ml-2">
+<button class="px-3 h-full border-r border-outline-variant font-body-sm text-body-sm text-on-surface hover:bg-surface-container-high flex items-center gap-1">
+                        TBD/TBR
+                        <span class="material-symbols-outlined text-[16px] text-on-surface-variant">arrow_drop_down</span>
+</button>
+<button class="px-3 h-full border-r border-outline-variant font-body-sm text-body-sm text-on-surface hover:bg-surface-container-high flex items-center gap-1">
+                        Метод V&amp;V
+                        <span class="material-symbols-outlined text-[16px] text-on-surface-variant">arrow_drop_down</span>
+</button>
+<button class="px-3 h-full font-body-sm text-body-sm text-on-surface hover:bg-surface-container-high flex items-center gap-1">
+                        Уровень риска
+                        <span class="material-symbols-outlined text-[16px] text-on-surface-variant">arrow_drop_down</span>
+</button>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="h-8 w-8 rounded border border-outline-variant flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" title="Export">
+<span class="material-symbols-outlined text-[18px]">download</span>
+</button>
+<button class="h-8 w-8 rounded border border-outline-variant flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" title="Settings">
+<span class="material-symbols-outlined text-[18px]">view_column</span>
+</button>
+</div>
+</div>
+<!-- Data Table Area -->
+<div class="flex-1 overflow-auto bg-surface-bright relative">
+<table class="w-full text-left border-collapse min-w-[800px]">
+<thead class="sticky top-0 bg-surface z-10 font-label-caps text-label-caps text-on-surface-variant border-b border-outline-variant shadow-[0_1px_0_#DEE2E6]"><tr><th class="px-padding-dense py-2 w-8 text-center"><input class="rounded border-outline-variant text-secondary focus:ring-0 w-3 h-3" type="checkbox"/></th><th class="px-padding-standard py-2 w-48">Req ID</th><th class="px-padding-standard py-2 min-w-[200px]">Текст требования</th><th class="px-padding-standard py-2 w-32">Условие</th><th class="px-padding-standard py-2 w-48">Свёртка</th><th class="px-padding-standard py-2 w-48">Метод V&amp;V</th><th class="px-padding-standard py-2 w-16 text-center">Статус</th></tr></thead>
+<tbody class="font-body-sm text-body-sm text-on-surface bg-surface-container-lowest divide-y divide-outline-variant/30">
+<!-- Group 1: Масса КА (Selected Subtree) -->
+<tr class="h-12 bg-selected-subtree hover:bg-secondary-fixed/30 group transition-colors cursor-pointer border-l-2 border-secondary relative z-10">
+<td class="px-padding-dense py-1 text-center"><input class="rounded border-outline-variant text-secondary focus:ring-0 w-3 h-3 opacity-0 group-hover:opacity-100" type="checkbox"/></td>
+<td class="px-padding-standard py-1 font-code-sm text-code-sm text-primary flex items-center font-semibold">
+<span class="material-symbols-outlined text-[18px] mr-1 text-on-surface-variant">expand_more</span>
+            RQ-0100
+        </td>
+<td class="px-padding-standard py-1 font-medium text-primary">Масса КА</td>
+<td class="px-padding-standard py-1 font-code-sm">≤ 100 кг</td>
+<td class="px-padding-standard py-1">
+<div class="w-full bg-surface-container-high h-1.5 rounded-full mb-1">
+<div class="bg-secondary h-full rounded-full" style="width: 90%"></div>
+</div>
+<div class="text-[10px] font-code-sm">90 / 100 кг · остаток 10</div>
+</td>
+<td class="px-padding-standard py-1">
+<div class="flex items-center gap-1 mb-0.5"><span class="px-1 bg-secondary/10 text-secondary rounded text-[10px] font-bold">АНАЛИЗ</span></div>
+<div class="text-[10px] text-on-surface-variant truncate">Суммирование масс подсистем по MEL...</div>
+</td>
+<td class="px-padding-standard py-1 text-center"><span class="inline-block w-2 h-2 rounded-full bg-[#28a745]"></span></td>
+</tr>
+<tr class="h-12 bg-selected-subtree hover:bg-secondary-fixed/30 group transition-colors cursor-pointer border-l-2 border-transparent relative">
+<td class="px-padding-dense py-1 text-center"><input class="rounded border-outline-variant text-secondary focus:ring-0 w-3 h-3 opacity-0 group-hover:opacity-100" type="checkbox"/></td>
+<td class="px-padding-standard py-1 font-code-sm text-code-sm text-on-surface-variant flex items-center tree-indent-1 relative">
+<div class="tree-line"></div>
+<div class="tree-stub"></div>
+            RQ-0101
+        </td>
+<td class="px-padding-standard py-1">Масса платформы</td>
+<td class="px-padding-standard py-1 font-code-sm">≤ 60 кг</td>
+<td class="px-padding-standard py-1"></td>
+<td class="px-padding-standard py-1">
+<div class="flex items-center gap-1 mb-0.5"><span class="px-1 bg-secondary/10 text-secondary rounded text-[10px] font-bold">ИСПЫТАНИЕ</span></div>
+<div class="text-[10px] text-on-surface-variant truncate">Взвешивание собранной платформы...</div>
+</td>
+<td class="px-padding-standard py-1 text-center"><span class="inline-block w-2 h-2 rounded-full bg-[#ffc107]"></span></td>
+</tr>
+<tr class="h-12 bg-selected-subtree hover:bg-secondary-fixed/30 group transition-colors cursor-pointer border-l-2 border-transparent relative">
+<td class="px-padding-dense py-1 text-center"><input class="rounded border-outline-variant text-secondary focus:ring-0 w-3 h-3 opacity-0 group-hover:opacity-100" type="checkbox"/></td>
+<td class="px-padding-standard py-1 font-code-sm text-code-sm text-on-surface-variant flex items-center tree-indent-1 relative">
+<div class="tree-line tree-line-last"></div>
+<div class="tree-stub"></div>
+<span class="material-symbols-outlined text-[16px] mr-1 text-on-surface-variant">expand_more</span>
+            RQ-0102
+        </td>
+<td class="px-padding-standard py-1">Масса полезной нагрузки</td>
+<td class="px-padding-standard py-1 font-code-sm">≤ 30 кг</td>
+<td class="px-padding-standard py-1"></td>
+<td class="px-padding-standard py-1">
+<div class="flex items-center gap-1 mb-0.5">
+<span class="material-symbols-outlined text-[#ffc107] text-[14px]">warning</span>
+<span class="px-1 bg-secondary/10 text-secondary rounded text-[10px] font-bold">АНАЛИЗ</span>
+</div>
+<div class="text-[10px] text-[#856404] truncate">не описано, как выполняется проверка</div>
+</td>
+<td class="px-padding-standard py-1 text-center"><span class="inline-block w-2 h-2 rounded-full bg-[#ffc107]"></span></td>
+</tr>
+<tr class="h-12 bg-selected-subtree hover:bg-secondary-fixed/30 group transition-colors cursor-pointer border-l-2 border-transparent relative">
+<td class="px-padding-dense py-1 text-center"><input class="rounded border-outline-variant text-secondary focus:ring-0 w-3 h-3 opacity-0 group-hover:opacity-100" type="checkbox"/></td>
+<td class="px-padding-standard py-1 font-code-sm text-code-sm text-on-surface-variant flex items-center tree-indent-2 relative">
+<div class="tree-line tree-line-last" style="left: 42px; top: -72px; height: 96px;"></div>
+<div class="tree-stub" style="left: 42px;"></div>
+            RQ-0102-1
+        </td>
+<td class="px-padding-standard py-1">Масса оптической системы</td>
+<td class="px-padding-standard py-1 font-code-sm">≤ 20 кг</td>
+<td class="px-padding-standard py-1"></td>
+<td class="px-padding-standard py-1">
+<div class="flex items-center gap-1 mb-0.5">
+<span class="px-1 bg-secondary/10 text-secondary rounded text-[10px] font-bold">АНАЛИЗ</span>
+</div>
+<div class="text-[10px] text-on-surface-variant truncate">Оценка 3D модели...</div>
+</td>
+<td class="px-padding-standard py-1 text-center"><span class="inline-block w-2 h-2 rounded-full bg-outline-variant"></span></td>
+</tr>
+<tr class="h-12 bg-selected-subtree hover:bg-secondary-fixed/30 group transition-colors cursor-pointer border-l-2 border-transparent relative">
+<td class="px-padding-dense py-1 text-center"><input class="rounded border-outline-variant text-secondary focus:ring-0 w-3 h-3 opacity-0 group-hover:opacity-100" type="checkbox"/></td>
+<td class="px-padding-standard py-1 font-code-sm text-code-sm text-on-surface-variant flex items-center tree-indent-2 relative">
+<div class="tree-line tree-line-last" style="left: 42px; top: -24px; height: 48px;"></div>
+<div class="tree-stub" style="left: 42px;"></div>
+<span class="material-symbols-outlined text-[16px] mr-1 text-on-surface-variant">chevron_right</span>
+            RQ-0102-2
+        </td>
+<td class="px-padding-standard py-1">Масса электроники ПН</td>
+<td class="px-padding-standard py-1 font-code-sm">≤ 10 кг</td>
+<td class="px-padding-standard py-1"></td>
+<td class="px-padding-standard py-1">
+<div class="flex items-center gap-1 mb-0.5">
+<span class="material-symbols-outlined text-[#ffc107] text-[14px]">warning</span>
+<span class="px-1 bg-secondary/10 text-secondary rounded text-[10px] font-bold">ОСМОТР</span>
+</div>
+<div class="text-[10px] text-[#856404] truncate">Требует уточнения процедуры</div>
+</td>
+<td class="px-padding-standard py-1 text-center"><span class="inline-block w-2 h-2 rounded-full bg-[#ffc107]"></span></td>
+</tr>
+<!-- Group 2: Энергобаланс (Budget Violation) -->
+<tr class="h-12 bg-error-container/10 hover:bg-error-container/20 group transition-colors cursor-pointer border-l-2 border-error relative z-10 mt-1">
+<td class="px-padding-dense py-1 text-center"><input class="rounded border-outline-variant text-secondary focus:ring-0 w-3 h-3 opacity-0 group-hover:opacity-100" type="checkbox"/></td>
+<td class="px-padding-standard py-1 font-code-sm text-code-sm text-primary flex items-center font-semibold">
+<span class="material-symbols-outlined text-[18px] mr-1 text-on-surface-variant">expand_more</span>
+            RQ-0200
+        </td>
+<td class="px-padding-standard py-1 font-medium text-error">Энергопотребление (тень)</td>
+<td class="px-padding-standard py-1 font-code-sm">≤ 400 Вт</td>
+<td class="px-padding-standard py-1">
+<div class="w-full bg-surface-container-high h-1.5 rounded-full mb-1">
+<div class="bg-error h-full rounded-full" style="width: 100%"></div>
+</div>
+<div class="text-[10px] font-code-sm text-error">425 / 400 Вт · превышение 25</div>
+</td>
+<td class="px-padding-standard py-1">
+<div class="flex items-center gap-1 mb-0.5"><span class="px-1 bg-secondary/10 text-secondary rounded text-[10px] font-bold">АНАЛИЗ</span></div>
+<div class="text-[10px] text-on-surface-variant truncate">Симуляция энергобаланса...</div>
+</td>
+<td class="px-padding-standard py-1 text-center"><span class="inline-block w-2 h-2 rounded-full bg-[#dc3545]"></span></td>
+</tr>
+<tr class="h-12 hover:bg-secondary-fixed/30 group transition-colors cursor-pointer border-l-2 border-transparent relative">
+<td class="px-padding-dense py-1 text-center"><input class="rounded border-outline-variant text-secondary focus:ring-0 w-3 h-3 opacity-0 group-hover:opacity-100" type="checkbox"/></td>
+<td class="px-padding-standard py-1 font-code-sm text-code-sm text-on-surface-variant flex items-center tree-indent-1 relative">
+<div class="tree-line"></div>
+<div class="tree-stub"></div>
+            RQ-0201
+        </td>
+<td class="px-padding-standard py-1">Потребление БКУ</td>
+<td class="px-padding-standard py-1 font-code-sm">≤ 50 Вт</td>
+<td class="px-padding-standard py-1"></td>
+<td class="px-padding-standard py-1">
+<div class="flex items-center gap-1 mb-0.5"><span class="px-1 bg-secondary/10 text-secondary rounded text-[10px] font-bold">ИСПЫТАНИЕ</span></div>
+<div class="text-[10px] text-on-surface-variant truncate">Замеры на инженерной модели...</div>
+</td>
+<td class="px-padding-standard py-1 text-center"><span class="inline-block w-2 h-2 rounded-full bg-[#28a745]"></span></td>
+</tr>
+<tr class="h-12 hover:bg-secondary-fixed/30 group transition-colors cursor-pointer border-l-2 border-transparent relative">
+<td class="px-padding-dense py-1 text-center"><input class="rounded border-outline-variant text-secondary focus:ring-0 w-3 h-3 opacity-0 group-hover:opacity-100" type="checkbox"/></td>
+<td class="px-padding-standard py-1 font-code-sm text-code-sm text-on-surface-variant flex items-center tree-indent-1 relative">
+<div class="tree-line"></div>
+<div class="tree-stub"></div>
+            RQ-0202
+        </td>
+<td class="px-padding-standard py-1 text-on-surface-variant">Потребление СОТР <span class="text-secondary ml-1 italic text-xs">— TBD</span></td>
+<td class="px-padding-standard py-1 font-code-sm">TBD</td>
+<td class="px-padding-standard py-1"></td>
+<td class="px-padding-standard py-1">
+<div class="text-[10px] text-on-surface-variant">Не определено</div>
+</td>
+<td class="px-padding-standard py-1 text-center"><span class="inline-block w-2 h-2 rounded-full bg-outline-variant"></span></td>
+</tr>
+<tr class="h-12 hover:bg-secondary-fixed/30 group transition-colors cursor-pointer border-l-2 border-transparent relative">
+<td class="px-padding-dense py-1 text-center"><input class="rounded border-outline-variant text-secondary focus:ring-0 w-3 h-3 opacity-0 group-hover:opacity-100" type="checkbox"/></td>
+<td class="px-padding-standard py-1 font-code-sm text-code-sm text-on-surface-variant flex items-center tree-indent-1 relative">
+<div class="tree-line tree-line-last"></div>
+<div class="tree-stub"></div>
+            RQ-0203
+        </td>
+<td class="px-padding-standard py-1">Потребление ПН (режим ожидания)</td>
+<td class="px-padding-standard py-1 font-code-sm">≤ 100 Вт</td>
+<td class="px-padding-standard py-1"></td>
+<td class="px-padding-standard py-1">
+<div class="flex items-center gap-1 mb-0.5"><span class="px-1 bg-secondary/10 text-secondary rounded text-[10px] font-bold">АНАЛИЗ</span></div>
+<div class="text-[10px] text-on-surface-variant truncate">Расчет по спецификации блоков...</div>
+</td>
+<td class="px-padding-standard py-1 text-center"><span class="inline-block w-2 h-2 rounded-full bg-[#28a745]"></span></td>
+</tr>
+<!-- Group 3: Время реакции -->
+<tr class="h-12 hover:bg-secondary-fixed/30 group transition-colors cursor-pointer border-l-2 border-transparent relative z-10 mt-1">
+<td class="px-padding-dense py-1 text-center"><input class="rounded border-outline-variant text-secondary focus:ring-0 w-3 h-3 opacity-0 group-hover:opacity-100" type="checkbox"/></td>
+<td class="px-padding-standard py-1 font-code-sm text-code-sm text-primary flex items-center font-semibold">
+<span class="material-symbols-outlined text-[18px] mr-1 text-on-surface-variant">expand_more</span>
+            RQ-0300
+        </td>
+<td class="px-padding-standard py-1 font-medium text-primary">Время реакции контура управления</td>
+<td class="px-padding-standard py-1 font-code-sm">≤ 120 с</td>
+<td class="px-padding-standard py-1">
+<div class="w-full bg-surface-container-high h-1.5 rounded-full mb-1">
+<div class="bg-secondary h-full rounded-full" style="width: 87%"></div>
+</div>
+<div class="text-[10px] font-code-sm">105 / 120 с · остаток 15</div>
+</td>
+<td class="px-padding-standard py-1">
+<div class="flex items-center gap-1 mb-0.5"><span class="px-1 bg-secondary/10 text-secondary rounded text-[10px] font-bold">АНАЛИЗ</span></div>
+<div class="text-[10px] text-on-surface-variant truncate">Монте-Карло по расписанию пролётов...</div>
+</td>
+<td class="px-padding-standard py-1 text-center"><span class="inline-block w-2 h-2 rounded-full bg-[#28a745]"></span></td>
+</tr>
+<tr class="h-12 hover:bg-secondary-fixed/30 group transition-colors cursor-pointer border-l-2 border-transparent relative">
+<td class="px-padding-dense py-1 text-center"><input class="rounded border-outline-variant text-secondary focus:ring-0 w-3 h-3 opacity-0 group-hover:opacity-100" type="checkbox"/></td>
+<td class="px-padding-standard py-1 font-code-sm text-code-sm text-on-surface-variant flex items-center tree-indent-1 relative">
+<div class="tree-line"></div>
+<div class="tree-stub"></div>
+            RQ-0301
+        </td>
+<td class="px-padding-standard py-1">Задержка передачи команды (Земля-КА)</td>
+<td class="px-padding-standard py-1 font-code-sm">≤ 10 с</td>
+<td class="px-padding-standard py-1"></td>
+<td class="px-padding-standard py-1">
+<div class="flex items-center gap-1 mb-0.5"><span class="px-1 bg-secondary/10 text-secondary rounded text-[10px] font-bold">ДЕМОНСТРАЦИЯ</span></div>
+<div class="text-[10px] text-on-surface-variant truncate">Тест канала связи...</div>
+</td>
+<td class="px-padding-standard py-1 text-center"><span class="inline-block w-2 h-2 rounded-full bg-[#28a745]"></span></td>
+</tr>
+<tr class="h-12 hover:bg-secondary-fixed/30 group transition-colors cursor-pointer border-l-2 border-transparent relative">
+<td class="px-padding-dense py-1 text-center"><input class="rounded border-outline-variant text-secondary focus:ring-0 w-3 h-3 opacity-0 group-hover:opacity-100" type="checkbox"/></td>
+<td class="px-padding-standard py-1 font-code-sm text-code-sm text-on-surface-variant flex items-center tree-indent-1 relative">
+<div class="tree-line tree-line-last"></div>
+<div class="tree-stub"></div>
+            RQ-0302
+        </td>
+<td class="px-padding-standard py-1">Время обработки в БКУ</td>
+<td class="px-padding-standard py-1 font-code-sm">≤ 2 с</td>
+<td class="px-padding-standard py-1"></td>
+<td class="px-padding-standard py-1">
+<div class="flex items-center gap-1 mb-0.5"><span class="px-1 bg-secondary/10 text-secondary rounded text-[10px] font-bold">ИСПЫТАНИЕ</span></div>
+<div class="text-[10px] text-on-surface-variant truncate">Стендовые испытания ПО...</div>
+</td>
+<td class="px-padding-standard py-1 text-center"><span class="inline-block w-2 h-2 rounded-full bg-[#28a745]"></span></td>
+</tr>
+</tbody>
+</table>
+</div>
+</main>
+<!-- Context Inspector (Right Rail) -->
+<aside class="bg-surface-container font-label-caps text-label-caps border-l border-outline-variant flex flex-col w-context-panel-width h-full fixed top-12 right-0 z-30 transition-transform duration-300">
+<!-- Header -->
+<div class="h-12 border-b border-outline-variant flex items-center px-padding-md bg-surface">
+<h2 class="font-headline-md text-headline-md text-primary font-semibold">Инспектор контекста</h2>
+</div>
+<!-- Tabs -->
+<div class="flex border-b border-outline-variant bg-surface overflow-x-auto hide-scrollbar">
+<button class="px-3 py-2 flex items-center gap-1 border-b-2 border-secondary text-secondary whitespace-nowrap bg-surface-container-low font-bold">
+<span class="material-symbols-outlined text-[16px]">info</span>
+                Детали
+            </button>
+<button class="px-3 py-2 flex items-center gap-1 text-on-surface-variant hover:text-primary whitespace-nowrap transition-colors">
+<span class="material-symbols-outlined text-[16px]">link</span>
+                Связи
+            </button>
+<button class="px-3 py-2 flex items-center gap-1 text-on-surface-variant hover:text-primary whitespace-nowrap transition-colors">
+<span class="material-symbols-outlined text-[16px]">rebase_edit</span>
+                Влияние
+            </button>
+<button class="px-3 py-2 flex items-center gap-1 text-on-surface-variant hover:text-primary whitespace-nowrap transition-colors">
+<span class="material-symbols-outlined text-[16px]">psychology</span>
+                AI Советы
+            </button>
+</div>
+<!-- Inspector Content -->
+<div class="flex-1 overflow-y-auto bg-surface-container font-body-sm text-body-sm text-on-surface">
+<!-- Selected Item Header -->
+<div class="p-padding-md border-b border-outline-variant bg-surface-container-lowest">
+<div class="flex justify-between items-start mb-2">
+<div class="flex items-center gap-2">
+<span class="font-code-sm text-code-sm text-primary font-bold">RQ-0100</span>
+<span class="text-[10px] text-on-surface-variant bg-surface-variant px-1 rounded font-code-sm">v3</span>
+</div>
+<span class="inline-block px-1.5 py-0.5 bg-[#28a745]/20 text-[#155724] rounded text-[10px] font-bold uppercase">Baseline</span>
+</div>
+<p class="font-medium text-on-surface leading-tight mb-2">Масса КА не должна превышать 100 кг (с учетом всех резервов).</p>
+<div class="flex gap-2">
+<span class="text-xs text-on-surface-variant bg-surface-variant px-1 rounded">V&amp;V: Analysis</span>
+<span class="text-xs text-on-surface-variant bg-surface-variant px-1 rounded">Alloc: Space Segment</span>
+</div>
+</div>
+<!-- Decomposition Section -->
+<div class="border-b border-outline-variant">
+<div class="bg-[#E9ECEF] px-padding-md py-1.5 font-label-caps text-label-caps text-on-surface-variant flex justify-between items-center cursor-pointer">
+                    Декомпозиция
+                    <span class="material-symbols-outlined text-[16px]">expand_less</span>
+</div>
+<div class="p-padding-md bg-surface-container-lowest flex flex-col gap-2">
+<div class="flex items-center justify-between p-2 border border-outline-variant rounded bg-surface">
+<div class="flex items-center gap-2">
+<span class="font-code-sm text-xs font-semibold">RQ-0101</span>
+<span class="text-xs truncate max-w-[150px]">Масса платформы</span>
+</div>
+<span class="text-xs font-code-sm text-secondary">≤ 60 кг</span>
+</div>
+<div class="flex items-center justify-between p-2 border border-outline-variant rounded bg-surface">
+<div class="flex items-center gap-2">
+<span class="font-code-sm text-xs font-semibold">RQ-0102</span>
+<span class="text-xs truncate max-w-[150px]">Масса полезной нагрузки</span>
+</div>
+<span class="text-xs font-code-sm text-secondary">≤ 30 кг</span>
+</div>
+<div class="flex items-center justify-between mt-2 pt-2 border-t border-outline-variant border-dashed">
+<span class="text-xs text-on-surface-variant font-medium">Сумма дочерних (без резерва):</span>
+<span class="text-xs font-code-sm font-bold">90 кг</span>
+</div>
+</div>
+</div>
+<!-- Verification Details Section -->
+<div class="border-b border-outline-variant">
+<div class="bg-[#E9ECEF] px-padding-md py-1.5 font-label-caps text-label-caps text-on-surface-variant flex justify-between items-center cursor-pointer">
+                    Verification Details
+                    <span class="material-symbols-outlined text-[16px]">expand_less</span>
+</div>
+<div class="p-padding-md bg-surface-container-lowest">
+<div class="mb-4">
+<label class="block text-[10px] font-bold text-on-surface-variant mb-2 uppercase">Статус верификации</label>
+<div class="relative pl-4 border-l-2 border-secondary flex flex-col gap-4">
+<div class="relative">
+<div class="absolute w-3 h-3 bg-secondary rounded-full -left-[23px] top-1 border-2 border-surface-container-lowest"></div>
+<div class="absolute w-2 h-2 text-on-secondary -left-[22px] top-1.5 flex items-center justify-center">
+<span class="material-symbols-outlined text-[10px]" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+<div class="text-xs font-semibold">Предварительный расчёт</div>
+<div class="text-[10px] text-on-surface-variant">Завершено (Phase A)</div>
+</div>
+<div class="relative">
+<div class="absolute w-3 h-3 bg-surface-container-lowest border-2 border-outline-variant rounded-full -left-[23px] top-1"></div>
+<div class="text-xs font-semibold text-on-surface-variant">Квалификация</div>
+<div class="text-[10px] text-outline">Ожидается (Phase D)</div>
+</div>
+</div>
+</div>
+<div class="mb-3"><label class="block text-[10px] font-bold text-on-surface-variant mb-1 uppercase">Метод</label><div class="flex items-center gap-1.5"><span class="px-1.5 py-0.5 bg-secondary/10 text-secondary rounded text-[10px] font-bold">АНАЛИЗ</span><span class="text-[11px] text-on-surface-variant">Phase A</span></div></div>
+<div class="mb-3"><label class="block text-[10px] font-bold text-on-surface-variant mb-1 uppercase">Как проверяется</label><div class="text-[11px] leading-relaxed">Суммирование масс всех компонентов системы на основе текущей ведомости материалов (MEL) с учетом коэффициентов зрелости конструкции.</div></div>
+</div>
+</div>
+</div>
+</aside>
+</body></html>

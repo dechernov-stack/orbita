@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+
+<html lang="ru"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Платформа - Спецификация</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-variant": "#e1e3e4",
+                    "on-tertiary-fixed": "#281804",
+                    "on-error-container": "#93000a",
+                    "secondary-container": "#659dfe",
+                    "primary-fixed-dim": "#bac8dc",
+                    "on-secondary-container": "#003370",
+                    "tertiary-container": "#281804",
+                    "on-error": "#ffffff",
+                    "surface-bright": "#f8f9fa",
+                    "on-tertiary-container": "#9a7f61",
+                    "outline-variant": "#c4c6cc",
+                    "inverse-primary": "#bac8dc",
+                    "on-primary-fixed-variant": "#3a4859",
+                    "outline": "#74777d",
+                    "tertiary-fixed-dim": "#e0c1a0",
+                    "primary": "#000000",
+                    "surface-container-low": "#f3f4f5",
+                    "on-secondary-fixed-variant": "#004491",
+                    "on-background": "#191c1d",
+                    "surface-container-high": "#e7e8e9",
+                    "surface-container-highest": "#e1e3e4",
+                    "on-primary-container": "#778598",
+                    "on-surface-variant": "#44474c",
+                    "surface-container-lowest": "#ffffff",
+                    "surface": "#f8f9fa",
+                    "background": "#f8f9fa",
+                    "inverse-on-surface": "#f0f1f2",
+                    "on-surface": "#191c1d",
+                    "error-container": "#ffdad6",
+                    "error": "#ba1a1a",
+                    "tertiary": "#000000",
+                    "secondary-fixed-dim": "#acc7ff",
+                    "secondary-fixed": "#d7e2ff",
+                    "surface-dim": "#d9dadb",
+                    "primary-container": "#0f1c2c",
+                    "on-primary": "#ffffff",
+                    "inverse-surface": "#2e3132",
+                    "surface-container": "#edeeef",
+                    "surface-tint": "#525f71",
+                    "on-secondary": "#ffffff",
+                    "secondary": "#115cb9",
+                    "on-primary-fixed": "#0f1c2c",
+                    "on-tertiary": "#ffffff",
+                    "tertiary-fixed": "#feddba",
+                    "primary-fixed": "#d6e4f9",
+                    "on-tertiary-fixed-variant": "#584329",
+                    "on-secondary-fixed": "#001a40"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "padding-md": "16px",
+                    "padding-standard": "8px",
+                    "lifecycle-rail-width": "240px",
+                    "padding-dense": "4px",
+                    "context-panel-width": "320px",
+                    "gutter": "1px",
+                    "global-nav-width": "64px"
+            },
+            "fontFamily": {
+                    "headline-md": [
+                            "Inter"
+                    ],
+                    "headline-lg": [
+                            "Inter"
+                    ],
+                    "label-caps": [
+                            "Inter"
+                    ],
+                    "code-sm": [
+                            "JetBrains Mono"
+                    ],
+                    "body-md": [
+                            "Inter"
+                    ],
+                    "body-sm": [
+                            "Inter"
+                    ]
+            },
+            "fontSize": {
+                    "headline-md": [
+                            "18px",
+                            {
+                                    "lineHeight": "24px",
+                                    "letterSpacing": "-0.01em",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "headline-lg": [
+                            "24px",
+                            {
+                                    "lineHeight": "32px",
+                                    "letterSpacing": "-0.02em",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "label-caps": [
+                            "11px",
+                            {
+                                    "lineHeight": "16px",
+                                    "letterSpacing": "0.05em",
+                                    "fontWeight": "700"
+                            }
+                    ],
+                    "code-sm": [
+                            "12px",
+                            {
+                                    "lineHeight": "16px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "body-md": [
+                            "14px",
+                            {
+                                    "lineHeight": "20px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "body-sm": [
+                            "12px",
+                            {
+                                    "lineHeight": "16px",
+                                    "fontWeight": "400"
+                            }
+                    ]
+            }
+        }
+      }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8f9fa; color: #191c1d; }
+        .data-table-row:hover { background-color: rgba(225, 227, 228, 0.3); }
+        .data-table-row:nth-child(even) { background-color: rgba(225, 227, 228, 0.1); }
+        .dashed-chip { border: 1px dashed #74777d; }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen flex">
+<!-- SideNavBar (Rail) -->
+<nav class="docked global-nav-width h-screen left-0 border-r border-outline-variant flat no shadows flex flex-col w-global-nav-width h-full fixed left-0 top-0 z-50 bg-primary-container dark:bg-primary-container text-primary-fixed dark:text-primary-fixed-dim font-body-sm text-body-sm transition-colors duration-150">
+<div class="h-12 flex items-center justify-center border-b border-outline-variant/30">
+<span class="font-headline-md text-headline-md font-bold text-on-primary">SS</span>
+</div>
+<div class="flex flex-col gap-2 p-2 mt-4 flex-1">
+<a class="flex flex-col items-center justify-center p-2 rounded hover:bg-primary-fixed-variant/30 text-on-primary-container/70" href="#" title="Главная">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">home</span>
+</a>
+<a class="flex flex-col items-center justify-center p-2 rounded text-secondary-fixed bg-secondary-container/20 border-l-2 border-secondary" href="#" title="Проекты">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">account_tree</span>
+</a>
+<a class="flex flex-col items-center justify-center p-2 rounded hover:bg-primary-fixed-variant/30 text-on-primary-container/70" href="#" title="Библиотеки">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">library_books</span>
+</a>
+<a class="flex flex-col items-center justify-center p-2 rounded hover:bg-primary-fixed-variant/30 text-on-primary-container/70" href="#" title="Предметные области">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">category</span>
+</a>
+<a class="flex flex-col items-center justify-center p-2 rounded hover:bg-primary-fixed-variant/30 text-on-primary-container/70" href="#" title="Исследования">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">biotech</span>
+</a>
+<a class="flex flex-col items-center justify-center p-2 rounded hover:bg-primary-fixed-variant/30 text-on-primary-container/70" href="#" title="Доказательная база">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">assignment_turned_in</span>
+</a>
+<a class="flex flex-col items-center justify-center p-2 rounded hover:bg-primary-fixed-variant/30 text-on-primary-container/70" href="#" title="Поиск">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">search</span>
+</a>
+</div>
+<div class="p-2 mb-4">
+<a class="flex flex-col items-center justify-center p-2 rounded hover:bg-primary-fixed-variant/30 text-on-primary-container/70" href="#" title="Администрирование">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">admin_panel_settings</span>
+</a>
+</div>
+</nav>
+<!-- SideNavBar (Drawer) - Requirements / Architecture -->
+<nav class="docked lifecycle-rail-width h-screen left-global-nav-width border-r border-outline-variant flat no shadows flex flex-col w-lifecycle-rail-width h-full fixed top-12 left-global-nav-width z-30 bg-surface-container-low text-secondary transition-all duration-200 ease-in-out">
+<div class="p-padding-md border-b border-outline-variant">
+<h2 class="font-body-md text-body-md font-bold text-on-surface">Жизненный цикл</h2>
+<p class="font-label-caps text-label-caps text-on-surface-variant mt-1">Текущая фаза: Phase A</p>
+</div>
+<div class="flex-1 overflow-y-auto py-2">
+<a class="flex items-center gap-3 px-padding-md py-2 text-on-surface-variant hover:bg-surface-container-high" href="#">
+<span class="material-symbols-outlined text-sm">radio_button_unchecked</span>
+<span class="font-body-sm text-body-sm">Pre-Phase A</span>
+</a>
+<a class="flex items-center gap-3 px-padding-md py-2 text-on-surface-variant hover:bg-surface-container-high" href="#">
+<span class="material-symbols-outlined text-sm">radio_button_unchecked</span>
+<span class="font-body-sm text-body-sm">Phase A: Concept</span>
+</a>
+<a class="flex items-center gap-3 px-padding-md py-2 bg-secondary/10 text-secondary font-semibold" href="#">
+<span class="material-symbols-outlined text-sm">radio_button_checked</span>
+<span class="font-body-sm text-body-sm">Phase A: Feasibility</span>
+</a>
+<div class="pl-8 py-1">
+<a class="flex items-center gap-2 py-1 text-on-surface-variant hover:text-on-surface" href="#">
+<span class="material-symbols-outlined text-xs">account_tree</span>
+<span class="font-body-sm text-body-sm">Requirements</span>
+</a>
+<a class="flex items-center gap-2 py-1 text-secondary font-medium" href="#">
+<span class="material-symbols-outlined text-xs">schema</span>
+<span class="font-body-sm text-body-sm">Architecture</span>
+</a>
+</div>
+<a class="flex items-center gap-3 px-padding-md py-2 text-on-surface-variant hover:bg-surface-container-high" href="#">
+<span class="material-symbols-outlined text-sm">pending</span>
+<span class="font-body-sm text-body-sm">Phase B</span>
+</a>
+</div>
+</nav>
+<!-- TopAppBar -->
+<header class="docked full-width top-0 h-12 border-b border-outline-variant flat no shadows flex items-center justify-between w-full h-12 px-padding-md ml-global-nav-width fixed top-0 z-40 bg-surface text-on-surface cursor-pointer transition-opacity" style="width: calc(100% - 64px);">
+<div class="flex items-center gap-4">
+<span class="font-headline-md text-headline-md text-on-surface font-bold">Проект: Альфа-Центавра</span>
+</div>
+<div class="flex items-center gap-6 font-label-caps text-label-caps">
+<a class="text-on-surface-variant hover:bg-surface-container-high px-2 py-1 rounded" href="#">Концепция</a>
+<a class="text-secondary font-bold border-b-2 border-secondary px-2 py-1" href="#">Базис</a>
+<a class="text-on-surface-variant hover:bg-surface-container-high px-2 py-1 rounded" href="#">Замечания</a>
+</div>
+<div class="flex items-center gap-4">
+<button class="font-label-caps text-label-caps text-on-surface-variant hover:bg-surface-container-high px-3 py-1.5 border border-outline-variant rounded">Базовые линии</button>
+<button class="font-label-caps text-label-caps bg-secondary text-on-secondary px-3 py-1.5 rounded hover:bg-on-secondary-container">Следующий смотр</button>
+<div class="flex gap-2">
+<button class="text-on-surface-variant hover:bg-surface-container-high p-1 rounded"><span class="material-symbols-outlined">notifications</span></button>
+<button class="text-on-surface-variant hover:bg-surface-container-high p-1 rounded"><span class="material-symbols-outlined">settings</span></button>
+</div>
+</div>
+</header>
+<!-- Main Workspace -->
+<main class="ml-[304px] mt-12 flex-1 p-padding-md h-[calc(100vh-48px)] overflow-y-auto">
+<!-- Breadcrumb & Header -->
+<div class="mb-6">
+<div class="flex items-center gap-2 font-body-sm text-body-sm text-on-surface-variant mb-2">
+<a class="hover:underline" href="#">КС</a>
+<span class="material-symbols-outlined text-xs">chevron_right</span>
+<a class="hover:underline" href="#">Космический сегмент</a>
+<span class="material-symbols-outlined text-xs">chevron_right</span>
+<span class="text-on-surface">Платформа</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-4">
+<h1 class="font-headline-lg text-headline-lg text-on-surface">Платформа</h1>
+<span class="bg-surface-container-high text-on-surface px-2 py-0.5 rounded text-xs font-medium border border-outline-variant">Draft V1.2</span>
+</div>
+<div class="flex gap-2 font-body-sm text-body-sm">
+<button class="px-3 py-1.5 border border-outline-variant text-on-surface rounded hover:bg-surface-container-low transition-colors">Спецификация</button>
+<button class="px-3 py-1.5 border border-outline-variant text-on-surface rounded hover:bg-surface-container-low transition-colors">Интерфейсы</button>
+<button class="px-3 py-1.5 border border-outline-variant text-on-surface rounded hover:bg-surface-container-low transition-colors">История</button>
+</div>
+</div>
+</div>
+<!-- 2 Column Layout -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+<!-- Left Column: Requirements Table (60%) -->
+<div class="lg:col-span-7 bg-surface-container-lowest border border-outline-variant rounded-DEFAULT overflow-hidden shadow-sm">
+<div class="p-3 border-b border-outline-variant bg-surface-bright flex justify-between items-center">
+<h3 class="font-headline-md text-headline-md text-on-surface text-sm">Allocated Requirements</h3>
+<span class="font-label-caps text-label-caps text-on-surface-variant">12 Total</span>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="border-b border-outline-variant bg-surface-container-low font-label-caps text-label-caps text-on-surface-variant">
+<th class="p-2 w-16 sticky top-0">ID</th>
+<th class="p-2 sticky top-0">Requirement</th>
+<th class="p-2 w-24 sticky top-0">Source</th>
+<th class="p-2 w-24 sticky top-0">V&amp;V</th>
+<th class="p-2 w-20 sticky top-0">Status</th>
+</tr>
+</thead>
+<tbody class="font-body-sm text-body-sm text-on-surface">
+<tr class="border-b border-surface-variant data-table-row h-8">
+<td class="p-2 font-code-sm text-code-sm text-secondary">REQ-PL-001</td>
+<td class="p-2 truncate max-w-xs">Платформа должна обеспечивать энергопитание ПН не менее 1200 Вт.</td>
+<td class="p-2"><span class="bg-surface-container px-1.5 py-0.5 rounded border border-outline-variant text-xs">SYS-045</span></td>
+<td class="p-2">
+<div class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> Partial (1/2)</div>
+</td>
+<td class="p-2"><span class="text-on-primary-fixed-variant">Approved</span></td>
+</tr>
+<tr class="border-b border-surface-variant data-table-row h-8">
+<td class="p-2 font-code-sm text-code-sm text-secondary">REQ-PL-002</td>
+<td class="p-2 truncate max-w-xs">Масса платформы не должна превышать 450 кг (сухая).</td>
+<td class="p-2"><span class="bg-surface-container px-1.5 py-0.5 rounded border border-outline-variant text-xs">SYS-012</span></td>
+<td class="p-2">
+<div class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-green-600"></span> Verified (2/2)</div>
+</td>
+<td class="p-2"><span class="text-on-primary-fixed-variant">Approved</span></td>
+</tr>
+<tr class="border-b border-surface-variant data-table-row h-8">
+<td class="p-2 font-code-sm text-code-sm text-secondary">REQ-PL-003</td>
+<td class="p-2 truncate max-w-xs">Тепловой режим ПН должен поддерживаться в диапазоне +5..+25°C.</td>
+<td class="p-2"><span class="px-1.5 py-0.5 rounded dashed-chip bg-surface-bright text-xs text-on-surface-variant" title="Производное">SYS-088</span></td>
+<td class="p-2">
+<div class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-outline"></span> Pending (0/2)</div>
+</td>
+<td class="p-2"><span class="text-on-surface-variant">Draft</span></td>
+</tr>
+<tr class="border-b border-surface-variant data-table-row h-8">
+<td class="p-2 font-code-sm text-code-sm text-secondary">REQ-PL-004</td>
+<td class="p-2 truncate max-w-xs">Точность ориентации не хуже 1 угловой минуты.</td>
+<td class="p-2"><span class="px-1.5 py-0.5 rounded dashed-chip bg-surface-bright text-xs text-on-surface-variant" title="Производное">SYS-091</span></td>
+<td class="p-2">
+<div class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> Partial (1/2)</div>
+</td>
+<td class="p-2"><span class="text-on-primary-fixed-variant">Approved</span></td>
+</tr>
+<tr class="border-b border-surface-variant data-table-row h-8">
+<td class="p-2 font-code-sm text-code-sm text-secondary">REQ-PL-005</td>
+<td class="p-2 truncate max-w-xs">Скорость передачи данных на Землю не менее 100 Мбит/с.</td>
+<td class="p-2"><span class="bg-surface-container px-1.5 py-0.5 rounded border border-outline-variant text-xs">SYS-105</span></td>
+<td class="p-2">
+<div class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-outline"></span> Pending (0/1)</div>
+</td>
+<td class="p-2"><span class="text-on-surface-variant">Review</span></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="p-2 bg-surface-bright border-t border-outline-variant text-center">
+<button class="font-body-sm text-body-sm text-secondary hover:underline">View All 12 Requirements</button>
+</div>
+</div>
+<!-- Right Column: Stacked Cards (40%) -->
+<div class="lg:col-span-5 flex flex-col gap-4">
+<!-- Бюджеты Card -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-DEFAULT p-padding-md shadow-sm">
+<div class="flex justify-between items-center mb-4">
+<h3 class="font-headline-md text-headline-md text-on-surface text-sm">Бюджеты</h3>
+<span class="material-symbols-outlined text-on-surface-variant text-sm cursor-pointer">open_in_new</span>
+</div>
+<div class="flex flex-col gap-3 font-body-sm text-body-sm">
+<!-- Mass -->
+<div>
+<div class="flex justify-between mb-1">
+<span class="text-on-surface-variant">Mass (kg)</span>
+<span class="text-on-surface font-medium">41.2 / 60</span>
+</div>
+<div class="w-full bg-surface-container-high h-2 rounded-full overflow-hidden flex">
+<div class="bg-secondary-container h-full" style="width: 30%" title="Structure: 18kg"></div>
+<div class="bg-on-secondary-container h-full" style="width: 20%" title="Power: 12kg"></div>
+<div class="bg-primary-fixed h-full" style="width: 18%" title="Avionics: 11.2kg"></div>
+</div>
+</div>
+<!-- Power -->
+<div>
+<div class="flex justify-between mb-1">
+<span class="text-on-surface-variant">Power (W)</span>
+<span class="text-on-surface font-medium">78 / 95</span>
+</div>
+<div class="w-full bg-surface-container-high h-2 rounded-full overflow-hidden flex">
+<div class="bg-amber-500 h-full" style="width: 45%" title="Peak: 42W"></div>
+<div class="bg-amber-300 h-full" style="width: 37%" title="Nominal: 36W"></div>
+</div>
+</div>
+<!-- Buffer -->
+<div>
+<div class="flex justify-between mb-1">
+<span class="text-on-surface-variant">Buffer (Tb)</span>
+<span class="text-on-surface font-medium">1.4 / 2.0</span>
+</div>
+<div class="w-full bg-surface-container-high h-2 rounded-full overflow-hidden flex">
+<div class="bg-emerald-600 h-full" style="width: 70%" title="Allocated: 1.4Tb"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Интерфейсы Card -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-DEFAULT p-padding-md shadow-sm">
+<h3 class="font-headline-md text-headline-md text-on-surface text-sm mb-3">Интерфейсы</h3>
+<div class="border border-outline-variant rounded p-2 bg-surface-bright flex flex-col gap-2">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2 font-body-sm text-body-sm text-on-surface font-medium">
+<span>Платформа</span>
+<span class="material-symbols-outlined text-secondary text-sm">link</span>
+<span>Полезная нагрузка</span>
+</div>
+<span class="bg-surface-container px-1.5 py-0.5 rounded font-code-sm text-xs border border-outline-variant">8 Req</span>
+</div>
+<div class="flex items-center gap-2 text-xs text-on-surface-variant bg-amber-50/50 p-1 rounded border border-amber-200/50">
+<span class="w-2 h-2 rounded-full bg-amber-500"></span>
+<span>Требования согласованы только одной стороной</span>
+</div>
+</div>
+</div>
+<!-- Верификация Card -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-DEFAULT p-padding-md shadow-sm">
+<h3 class="font-headline-md text-headline-md text-on-surface text-sm mb-3">Верификация</h3>
+<div class="mb-3">
+<div class="flex justify-between font-label-caps text-label-caps text-on-surface-variant mb-1">
+<span>Status Summary</span>
+<span>12 Total</span>
+</div>
+<div class="w-full h-3 rounded-sm overflow-hidden flex bg-surface-container-high">
+<div class="bg-green-600 h-full" style="width: 33.3%" title="Verified: 4"></div>
+<div class="bg-secondary h-full" style="width: 41.6%" title="Prelim: 5"></div>
+<div class="bg-amber-500 h-full" style="width: 16.6%" title="Planned: 2"></div>
+<div class="bg-outline-variant h-full" style="width: 8.3%" title="Unplanned: 1"></div>
+</div>
+<div class="flex gap-3 mt-2 font-body-sm text-xs text-on-surface-variant flex-wrap">
+<span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-green-600"></span> 4 Verified</span>
+<span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-secondary"></span> 5 Prelim</span>
+<span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-amber-500"></span> 2 Planned</span>
+<span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-outline-variant"></span> 1 Unplanned</span>
+</div>
+</div>
+<div class="border-t border-outline-variant pt-3 mt-3 flex justify-between items-center font-body-sm text-body-sm">
+<span class="text-on-surface-variant">Next V&amp;V Event:</span>
+<span class="font-medium text-on-surface px-2 py-0.5 bg-secondary-container/20 text-secondary border border-secondary/30 rounded">Phase D - PDR</span>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+
+<html lang="ru"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Концепция операций (ConOps): Обзор</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "error-container": "#ffdad6",
+                        "on-background": "#191c1d",
+                        "error": "#ba1a1a",
+                        "on-tertiary-fixed": "#281804",
+                        "on-surface": "#191c1d",
+                        "surface-tint": "#525f71",
+                        "primary": "#000000",
+                        "on-secondary-fixed": "#001a40",
+                        "surface-container": "#edeeef",
+                        "surface-bright": "#f8f9fa",
+                        "surface-dim": "#d9dadb",
+                        "on-primary-container": "#778598",
+                        "surface-container-high": "#e7e8e9",
+                        "on-secondary-fixed-variant": "#004491",
+                        "inverse-primary": "#bac8dc",
+                        "inverse-surface": "#2e3132",
+                        "primary-fixed": "#d6e4f9",
+                        "on-primary-fixed-variant": "#3a4859",
+                        "secondary-fixed": "#d7e2ff",
+                        "on-surface-variant": "#44474c",
+                        "primary-fixed-dim": "#bac8dc",
+                        "background": "#f8f9fa",
+                        "surface-container-low": "#f3f4f5",
+                        "secondary-container": "#659dfe",
+                        "on-secondary": "#ffffff",
+                        "on-error-container": "#93000a",
+                        "secondary-fixed-dim": "#acc7ff",
+                        "tertiary-container": "#281804",
+                        "on-tertiary": "#ffffff",
+                        "surface-variant": "#e1e3e4",
+                        "primary-container": "#0f1c2c",
+                        "on-primary": "#ffffff",
+                        "on-primary-fixed": "#0f1c2c",
+                        "secondary": "#115cb9",
+                        "surface": "#f8f9fa",
+                        "on-error": "#ffffff",
+                        "outline-variant": "#c4c6cc",
+                        "tertiary": "#000000",
+                        "surface-container-highest": "#e1e3e4",
+                        "inverse-on-surface": "#f0f1f2",
+                        "tertiary-fixed": "#feddba",
+                        "on-tertiary-container": "#9a7f61",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary-container": "#003370",
+                        "outline": "#74777d",
+                        "tertiary-fixed-dim": "#e0c1a0",
+                        "on-tertiary-fixed-variant": "#584329"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "lifecycle-rail-width": "240px",
+                        "padding-dense": "4px",
+                        "padding-standard": "8px",
+                        "padding-md": "16px",
+                        "gutter": "1px",
+                        "context-panel-width": "320px",
+                        "global-nav-width": "64px"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Inter"],
+                        "code-sm": ["JetBrains Mono"],
+                        "label-caps": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "headline-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "code-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
+                        "label-caps": ["11px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700" }],
+                        "body-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
+                        "headline-lg": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "headline-md": ["18px", { "lineHeight": "24px", "letterSpacing": "-0.01em", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-surface text-on-surface overflow-hidden flex h-screen">
+<!-- Global Nav (SideNavBar - Rail) -->
+<nav class="flex flex-col w-global-nav-width h-full fixed left-0 top-0 z-50 bg-primary-container border-r border-outline-variant flat no shadows">
+<div class="flex flex-col items-center justify-center h-12 border-b border-outline-variant w-full">
+<span class="font-headline-md text-headline-md font-bold text-on-primary">SS</span>
+</div>
+<div class="flex flex-col flex-grow pt-4">
+<!-- Active Tab: Проекты -->
+<button class="w-full flex flex-col items-center py-3 text-on-primary-container/70 hover:bg-primary-fixed-variant/30 transition-colors duration-150" title="Главная">
+<span class="material-symbols-outlined mb-1">home</span>
+<span class="font-label-caps text-label-caps text-[9px]">Главная</span>
+</button>
+<button class="w-full flex flex-col items-center py-3 text-secondary-fixed bg-secondary-container/20 border-l-2 border-secondary transition-colors duration-150" title="Проекты">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 1;">account_tree</span>
+<span class="font-label-caps text-label-caps text-[9px]">Проекты</span>
+</button>
+<button class="w-full flex flex-col items-center py-3 text-on-primary-container/70 hover:bg-primary-fixed-variant/30 transition-colors duration-150" title="Библиотеки">
+<span class="material-symbols-outlined mb-1">library_books</span>
+<span class="font-label-caps text-label-caps text-[9px]">Библиотеки</span>
+</button>
+<button class="w-full flex flex-col items-center py-3 text-on-primary-container/70 hover:bg-primary-fixed-variant/30 transition-colors duration-150" title="Предметные области">
+<span class="material-symbols-outlined mb-1">category</span>
+<span class="font-label-caps text-label-caps text-[9px]">Предметные области</span>
+</button>
+<button class="w-full flex flex-col items-center py-3 text-on-primary-container/70 hover:bg-primary-fixed-variant/30 transition-colors duration-150" title="Исследования">
+<span class="material-symbols-outlined mb-1">biotech</span>
+<span class="font-label-caps text-label-caps text-[9px]">Исследования</span>
+</button>
+<button class="w-full flex flex-col items-center py-3 text-on-primary-container/70 hover:bg-primary-fixed-variant/30 transition-colors duration-150" title="Доказательная база">
+<span class="material-symbols-outlined mb-1">assignment_turned_in</span>
+<span class="font-label-caps text-label-caps text-[9px]">Доказательная база</span>
+</button>
+<button class="w-full flex flex-col items-center py-3 text-on-primary-container/70 hover:bg-primary-fixed-variant/30 transition-colors duration-150" title="Поиск">
+<span class="material-symbols-outlined mb-1">search</span>
+<span class="font-label-caps text-label-caps text-[9px]">Поиск</span>
+</button>
+</div>
+<div class="flex flex-col items-center justify-end pb-4 w-full">
+<button class="w-full flex flex-col items-center py-3 text-on-primary-container/70 hover:bg-primary-fixed-variant/30 transition-colors duration-150" title="Администрирование">
+<span class="material-symbols-outlined mb-1">admin_panel_settings</span>
+<span class="font-label-caps text-label-caps text-[9px]">Администрирование</span>
+</button>
+</div>
+</nav>
+<!-- Top App Bar -->
+<header class="flex items-center justify-between w-full h-12 px-padding-md ml-global-nav-width fixed top-0 z-40 bg-surface border-b border-outline-variant flat no shadows">
+<div class="flex items-center space-x-6">
+<span class="font-headline-md text-headline-md text-on-surface">Проект: Альфа-Центавра</span>
+<nav class="hidden md:flex space-x-6 h-full items-center">
+<a class="font-label-caps text-label-caps text-secondary font-bold border-b-2 border-secondary h-full flex items-center px-2 cursor-pointer transition-opacity" href="#">Концепция</a>
+<a class="font-label-caps text-label-caps text-on-surface-variant hover:bg-surface-container-high h-full flex items-center px-2 cursor-pointer transition-opacity" href="#">Базис</a>
+<a class="font-label-caps text-label-caps text-on-surface-variant hover:bg-surface-container-high h-full flex items-center px-2 cursor-pointer transition-opacity" href="#">Замечания</a>
+</nav>
+</div>
+<div class="flex items-center space-x-4">
+<button class="font-label-caps text-label-caps text-on-surface hover:bg-surface-container-high px-3 py-1.5 rounded transition-colors">Следующий смотр</button>
+<button class="font-label-caps text-label-caps text-on-surface hover:bg-surface-container-high px-3 py-1.5 rounded transition-colors border border-outline-variant">Базовые линии</button>
+<div class="flex space-x-2">
+<button class="p-1 hover:bg-surface-container-high rounded text-on-surface-variant transition-colors"><span class="material-symbols-outlined">notifications</span></button>
+<button class="p-1 hover:bg-surface-container-high rounded text-on-surface-variant transition-colors"><span class="material-symbols-outlined">settings</span></button>
+</div>
+<img alt="Профиль инженера" class="w-8 h-8 rounded-full bg-surface-variant object-cover border border-outline-variant" data-alt="A small circular avatar placeholder image indicating a user profile. The image should be a simple, professional headshot or geometric pattern suitable for a corporate engineering application interface. Minimalist style, high contrast." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC1gQtbiH00QZyOCtU2gmwknhoepevryAgMBqtDIkyv85rYOCZKU8U7GgoTecqn948Yq9cgjxF46XJ5oYuTaXzNXFKd9PfqvyLTEZz6jtQsIb61Vd_8Nav_iUpEkvUkBqczKCQctdCFG9RhrVpaKqzXpEOSkQMCCeHDP9VM90pohwOFNOx9VDbah06VvPn3t_JozSU4kLwAZf1Hi4oLqVKB5_Dwz9b7oZ8IooK0_po3Zwq6wxp0BqZMSw"/>
+</div>
+</header>
+<!-- Lifecycle Rail (Drawer) -->
+<aside class="flex flex-col w-lifecycle-rail-width h-full fixed top-12 left-global-nav-width z-30 bg-surface-container-low border-r border-outline-variant flat no shadows transition-all duration-200 ease-in-out pt-4">
+<div class="px-padding-md mb-6">
+<h2 class="font-label-caps text-label-caps text-on-surface-variant mb-1 uppercase tracking-wider">Жизненный цикл</h2>
+<p class="font-body-md text-body-md text-secondary font-semibold">Текущая фаза: Phase A</p>
+</div>
+<nav class="flex flex-col">
+<!-- Active Tab: Phase A: Concept -->
+<button class="flex items-center px-padding-md py-3 text-on-surface-variant hover:bg-surface-container-high transition-colors w-full text-left">
+<span class="material-symbols-outlined mr-3 text-[18px]">radio_button_checked</span>
+<span class="font-body-md text-body-md">Pre-Phase A</span>
+</button>
+<button class="flex items-center px-padding-md py-3 bg-secondary/10 text-secondary font-semibold transition-colors w-full text-left border-l-2 border-secondary pl-[14px]">
+<span class="material-symbols-outlined mr-3 text-[18px]" style="font-variation-settings: 'FILL' 1;">radio_button_unchecked</span>
+<span class="font-body-md text-body-md">Phase A: Concept</span>
+</button>
+<button class="flex items-center px-padding-md py-3 text-on-surface-variant hover:bg-surface-container-high transition-colors w-full text-left">
+<span class="material-symbols-outlined mr-3 text-[18px]">pending</span>
+<span class="font-body-md text-body-md">Phase A: Feasibility</span>
+</button>
+<button class="flex items-center px-padding-md py-3 text-on-surface-variant hover:bg-surface-container-high transition-colors w-full text-left">
+<span class="material-symbols-outlined mr-3 text-[18px]">account_tree</span>
+<span class="font-body-md text-body-md">Requirements</span>
+</button>
+<button class="flex items-center px-padding-md py-3 text-on-surface-variant hover:bg-surface-container-high transition-colors w-full text-left">
+<span class="material-symbols-outlined mr-3 text-[18px]">schema</span>
+<span class="font-body-md text-body-md">Architecture</span>
+</button>
+</nav>
+</aside>
+<!-- Main Workspace -->
+<main class="flex-1 ml-[calc(64px+240px)] mr-context-panel-width mt-12 overflow-y-auto bg-surface p-padding-md pb-24">
+<header class="mb-6 pb-4 border-b border-outline-variant flex justify-between items-end">
+<div>
+<h1 class="font-headline-lg text-headline-lg text-on-surface">Концепция операций (ConOps): Обзор</h1>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1">Высокоуровневое описание функционирования системы.</p>
+</div>
+<div class="flex space-x-2">
+<button class="px-3 py-1.5 border border-outline-variant rounded font-label-caps text-label-caps hover:bg-surface-container-low transition-colors flex items-center">
+<span class="material-symbols-outlined mr-1 text-[16px]">download</span> Экспорт
+                </button>
+</div>
+</header>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-12 gap-4">
+<!-- Назначение и область применения -->
+<section class="col-span-12 lg:col-span-8 bg-surface-container-lowest border border-outline-variant rounded p-padding-md">
+<h2 class="font-headline-md text-headline-md text-on-surface mb-3 flex items-center">
+<span class="material-symbols-outlined mr-2 text-secondary text-[20px]">flag</span> Назначение и область применения
+                </h2>
+<div class="bg-surface-container-low p-3 rounded border border-surface-variant font-body-sm text-body-sm text-on-surface">
+<p class="mb-2"><strong class="text-on-surface-variant">Миссия:</strong> Развертывание орбитальной инфраструктуры для обеспечения сверхширокополосной связи в удаленных регионах.</p>
+<p><strong class="text-on-surface-variant">Область:</strong> Глобальное покрытие, интеграция с наземными станциями, автономное управление ресурсами созвездия.</p>
+</div>
+</section>
+<!-- Акторы -->
+<section class="col-span-12 lg:col-span-4 bg-surface-container-lowest border border-outline-variant rounded p-padding-md">
+<h2 class="font-headline-md text-headline-md text-on-surface mb-3 flex items-center">
+<span class="material-symbols-outlined mr-2 text-secondary text-[20px]">groups</span> Акторы
+                </h2>
+<ul class="space-y-2">
+<li class="flex items-center justify-between border-b border-outline-variant pb-2">
+<span class="font-body-sm text-body-sm text-on-surface flex items-center"><span class="material-symbols-outlined mr-2 text-[16px] text-on-surface-variant">dns</span> Система</span>
+<span class="font-code-sm text-code-sm text-on-surface-variant">SYS-1</span>
+</li>
+<li class="flex items-center justify-between border-b border-outline-variant pb-2">
+<span class="font-body-sm text-body-sm text-on-surface flex items-center"><span class="material-symbols-outlined mr-2 text-[16px] text-on-surface-variant">person</span> Пользователи</span>
+<span class="font-code-sm text-code-sm text-on-surface-variant">USR-3</span>
+</li>
+<li class="flex items-center justify-between">
+<span class="font-body-sm text-body-sm text-on-surface flex items-center"><span class="material-symbols-outlined mr-2 text-[16px] text-on-surface-variant">router</span> Внешние системы</span>
+<span class="font-code-sm text-code-sm text-on-surface-variant">EXT-2</span>
+</li>
+</ul>
+</section>
+<!-- Возможности (Capabilities) -->
+<section class="col-span-12 lg:col-span-6 bg-surface-container-lowest border border-outline-variant rounded p-padding-md">
+<h2 class="font-headline-md text-headline-md text-on-surface mb-3 flex items-center">
+<span class="material-symbols-outlined mr-2 text-secondary text-[20px]">bolt</span> Возможности (Capabilities)
+                </h2>
+<div class="border border-outline-variant rounded overflow-hidden">
+<table class="w-full text-left font-body-sm text-body-sm">
+<thead class="bg-surface-container-low font-label-caps text-label-caps text-on-surface-variant border-b border-outline-variant">
+<tr>
+<th class="p-2 w-1/4">ID</th>
+<th class="p-2 w-3/4">Описание</th>
+</tr>
+</thead>
+<tbody>
+<tr class="border-b border-outline-variant hover:bg-surface-container-low/50 transition-colors">
+<td class="p-2 font-code-sm">CAP-01</td>
+<td class="p-2">Автономная коррекция орбиты</td>
+</tr>
+<tr class="border-b border-outline-variant hover:bg-surface-container-low/50 transition-colors bg-surface-bright">
+<td class="p-2 font-code-sm">CAP-02</td>
+<td class="p-2">Маршрутизация трафика в реальном времени</td>
+</tr>
+<tr class="hover:bg-surface-container-low/50 transition-colors">
+<td class="p-2 font-code-sm">CAP-03</td>
+<td class="p-2">Самодиагностика подсистем питания</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<!-- Режимы и состояния -->
+<section class="col-span-12 lg:col-span-6 bg-surface-container-lowest border border-outline-variant rounded p-padding-md">
+<h2 class="font-headline-md text-headline-md text-on-surface mb-3 flex items-center">
+<span class="material-symbols-outlined mr-2 text-secondary text-[20px]">swap_calls</span> Режимы и состояния
+                </h2>
+<div class="grid grid-cols-2 gap-2">
+<div class="border border-outline-variant rounded p-3 flex flex-col justify-between">
+<span class="font-label-caps text-label-caps text-on-surface-variant">NOMINAL</span>
+<span class="font-body-md text-body-md text-on-surface mt-1">Орбитальное дежурство</span>
+<div class="mt-2 h-1 w-full bg-secondary/20 rounded-full overflow-hidden">
+<div class="h-full bg-secondary w-full"></div>
+</div>
+</div>
+<div class="border border-outline-variant rounded p-3 flex flex-col justify-between">
+<span class="font-label-caps text-label-caps text-on-surface-variant">SAFE_MODE</span>
+<span class="font-body-md text-body-md text-on-surface mt-1">Энергосбережение</span>
+<div class="mt-2 h-1 w-full bg-surface-variant rounded-full overflow-hidden">
+<div class="h-full bg-outline w-1/3"></div>
+</div>
+</div>
+<div class="border border-outline-variant rounded p-3 flex flex-col justify-between">
+<span class="font-label-caps text-label-caps text-on-surface-variant">MANEUVER</span>
+<span class="font-body-md text-body-md text-on-surface mt-1">Коррекция орбиты</span>
+<div class="mt-2 h-1 w-full bg-surface-variant rounded-full overflow-hidden">
+<div class="h-full bg-primary-fixed-variant w-1/2"></div>
+</div>
+</div>
+<div class="border border-outline-variant rounded p-3 flex flex-col justify-between">
+<span class="font-label-caps text-label-caps text-on-surface-variant text-error">CRITICAL</span>
+<span class="font-body-md text-body-md text-on-surface mt-1">Аварийный сброс</span>
+<div class="mt-2 h-1 w-full bg-error-container rounded-full overflow-hidden">
+<div class="h-full bg-error w-0"></div>
+</div>
+</div>
+</div>
+</section>
+<!-- Номинальные и критические сценарии -->
+<section class="col-span-12 bg-surface-container-lowest border border-outline-variant rounded p-padding-md">
+<h2 class="font-headline-md text-headline-md text-on-surface mb-3 flex items-center">
+<span class="material-symbols-outlined mr-2 text-secondary text-[20px]">rule_folder</span> Сценарии использования
+                </h2>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<div class="border border-outline-variant rounded p-3">
+<h3 class="font-body-md text-body-md text-on-surface font-semibold mb-2 border-l-2 border-secondary pl-2">Номинальные</h3>
+<ul class="space-y-1 font-body-sm text-body-sm text-on-surface-variant list-disc list-inside">
+<li>Передача телеметрии (1 Гц)</li>
+<li>Обновление маршрутизационных таблиц</li>
+<li>Сброс целевых данных на НС</li>
+</ul>
+</div>
+<div class="border border-outline-variant rounded p-3">
+<h3 class="font-body-md text-body-md text-on-surface font-semibold mb-2 border-l-2 border-error pl-2">Критические</h3>
+<ul class="space-y-1 font-body-sm text-body-sm text-on-surface-variant list-disc list-inside">
+<li>Потеря связи с НС (Loss of Signal)</li>
+<li>Падение напряжения шины ниже 24В</li>
+<li>Аномалия двигательной установки</li>
+</ul>
+</div>
+</div>
+</section>
+<!-- Потоки данных и управления -->
+<section class="col-span-12 bg-surface-container-lowest border border-outline-variant rounded p-padding-md relative overflow-hidden min-h-[200px] flex items-center justify-center">
+<h2 class="font-headline-md text-headline-md text-on-surface absolute top-4 left-4 z-10 flex items-center">
+<span class="material-symbols-outlined mr-2 text-secondary text-[20px]">account_tree</span> Потоки данных
+                </h2>
+<!-- Decorative representation of data flows -->
+<div class="w-full h-full opacity-30 mt-8" style="background-image: radial-gradient(#c4c6cc 1px, transparent 1px); background-size: 16px 16px;">
+<div class="flex justify-between items-center h-full px-12">
+<div class="w-16 h-16 border-2 border-secondary rounded-full flex items-center justify-center bg-surface">
+<span class="material-symbols-outlined text-secondary">satellite_alt</span>
+</div>
+<div class="flex-1 h-px bg-outline-variant relative mx-4">
+<div class="absolute left-1/4 -top-2 w-4 h-4 bg-secondary rounded-full animate-ping"></div>
+<div class="absolute right-1/4 -top-2 w-4 h-4 bg-secondary rounded-full animate-ping" style="animation-delay: 0.5s;"></div>
+</div>
+<div class="w-16 h-16 border-2 border-primary rounded-full flex items-center justify-center bg-surface">
+<span class="material-symbols-outlined text-primary">cell_tower</span>
+</div>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- Context Inspector -->
+<aside class="flex flex-col w-context-panel-width h-full fixed top-12 right-0 z-30 bg-surface-container border-l border-outline-variant flat no shadows transition-transform duration-300">
+<header class="h-12 border-b border-outline-variant flex items-center px-padding-md bg-surface-container-low">
+<span class="font-headline-md text-headline-md text-primary font-semibold">Инспектор контекста</span>
+</header>
+<!-- Inspector Navigation Tabs -->
+<nav class="flex border-b border-outline-variant bg-surface-container-low overflow-x-auto">
+<!-- Active Tab: Детали -->
+<button class="flex-1 flex flex-col items-center py-2 px-1 border-b-2 border-secondary text-secondary min-w-[60px]" title="Детали">
+<span class="material-symbols-outlined text-[18px] mb-1">info</span>
+<span class="font-label-caps text-label-caps text-[9px] truncate w-full text-center">Детали</span>
+</button>
+<button class="flex-1 flex flex-col items-center py-2 px-1 text-on-surface-variant hover:text-primary min-w-[60px] border-b-2 border-transparent transition-colors" title="Связи">
+<span class="material-symbols-outlined text-[18px] mb-1">link</span>
+<span class="font-label-caps text-label-caps text-[9px] truncate w-full text-center">Связи</span>
+</button>
+<button class="flex-1 flex flex-col items-center py-2 px-1 text-on-surface-variant hover:text-primary min-w-[60px] border-b-2 border-transparent transition-colors" title="Влияние">
+<span class="material-symbols-outlined text-[18px] mb-1">rebase_edit</span>
+<span class="font-label-caps text-label-caps text-[9px] truncate w-full text-center">Влияние</span>
+</button>
+<button class="flex-1 flex flex-col items-center py-2 px-1 text-on-surface-variant hover:text-primary min-w-[60px] border-b-2 border-transparent transition-colors" title="AI Советы">
+<span class="material-symbols-outlined text-[18px] mb-1">psychology</span>
+<span class="font-label-caps text-label-caps text-[9px] truncate w-full text-center">AI Советы</span>
+</button>
+<button class="flex-1 flex flex-col items-center py-2 px-1 text-on-surface-variant hover:text-primary min-w-[60px] border-b-2 border-transparent transition-colors" title="Замечания">
+<span class="material-symbols-outlined text-[18px] mb-1">error_outline</span>
+<span class="font-label-caps text-label-caps text-[9px] truncate w-full text-center">Замечания</span>
+</button>
+<button class="flex-1 flex flex-col items-center py-2 px-1 text-on-surface-variant hover:text-primary min-w-[60px] border-b-2 border-transparent transition-colors" title="Метаданные">
+<span class="material-symbols-outlined text-[18px] mb-1">data_object</span>
+<span class="font-label-caps text-label-caps text-[9px] truncate w-full text-center">Мета</span>
+</button>
+</nav>
+<!-- Inspector Content -->
+<div class="flex-1 overflow-y-auto p-padding-md">
+<!-- Section 1 -->
+<div class="mb-6">
+<div class="bg-[#E9ECEF] px-2 py-1 mb-3 rounded-sm border border-outline-variant">
+<span class="font-label-caps text-label-caps text-on-surface">Свойства узла</span>
+</div>
+<div class="space-y-3">
+<div>
+<label class="block font-label-caps text-label-caps text-on-surface-variant mb-1">ID Элемента</label>
+<div class="font-code-sm text-code-sm text-on-surface bg-surface-bright border border-outline-variant p-2 rounded">CONOPS-OVR-01</div>
+</div>
+<div>
+<label class="block font-label-caps text-label-caps text-on-surface-variant mb-1">Статус</label>
+<div class="flex items-center space-x-2">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span class="font-body-sm text-body-sm text-on-surface">В разработке (Draft)</span>
+</div>
+</div>
+<div>
+<label class="block font-label-caps text-label-caps text-on-surface-variant mb-1">Ответственный</label>
+<div class="font-body-sm text-body-sm text-on-surface">Иванов И.И. (Systems Eng.)</div>
+</div>
+</div>
+</div>
+<!-- Section 2 -->
+<div>
+<div class="bg-[#E9ECEF] px-2 py-1 mb-3 rounded-sm border border-outline-variant">
+<span class="font-label-caps text-label-caps text-on-surface">Связанные документы</span>
+</div>
+<ul class="space-y-2">
+<li class="flex items-start">
+<span class="material-symbols-outlined text-[16px] text-on-surface-variant mr-2 mt-0.5">description</span>
+<div>
+<span class="block font-body-sm text-body-sm text-secondary cursor-pointer hover:underline">SYS-REQ-SPEC-v2.pdf</span>
+<span class="block font-label-caps text-label-caps text-on-surface-variant mt-0.5">Обновлено: 12 Окт 2023</span>
+</div>
+</li>
+<li class="flex items-start">
+<span class="material-symbols-outlined text-[16px] text-on-surface-variant mr-2 mt-0.5">description</span>
+<div>
+<span class="block font-body-sm text-body-sm text-secondary cursor-pointer hover:underline">ICD-GROUND-SEGMENT.docx</span>
+<span class="block font-label-caps text-label-caps text-on-surface-variant mt-0.5">Обновлено: 05 Окт 2023</span>
+</div>
+</li>
+</ul>
+</div>
+</div>
+</aside>
+</body></html>

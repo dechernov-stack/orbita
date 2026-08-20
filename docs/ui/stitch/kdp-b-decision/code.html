@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+
+<html lang="ru"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>SpaceSys - KDP B Decision Panel</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "error": "#ba1a1a",
+                        "on-tertiary": "#ffffff",
+                        "secondary-fixed": "#d7e2ff",
+                        "on-secondary-container": "#003370",
+                        "on-secondary-fixed-variant": "#004491",
+                        "on-primary": "#ffffff",
+                        "on-secondary-fixed": "#001a40",
+                        "secondary-fixed-dim": "#acc7ff",
+                        "surface-container-high": "#e7e8e9",
+                        "inverse-surface": "#2e3132",
+                        "outline-variant": "#c4c6cc",
+                        "on-surface": "#191c1d",
+                        "tertiary-fixed": "#feddba",
+                        "primary-fixed": "#d6e4f9",
+                        "on-primary-container": "#778598",
+                        "outline": "#74777d",
+                        "on-error-container": "#93000a",
+                        "surface-container-highest": "#e1e3e4",
+                        "surface-variant": "#e1e3e4",
+                        "tertiary": "#000000",
+                        "on-primary-fixed": "#0f1c2c",
+                        "surface-dim": "#d9dadb",
+                        "on-background": "#191c1d",
+                        "on-tertiary-fixed-variant": "#584329",
+                        "surface-container-low": "#f3f4f5",
+                        "inverse-on-surface": "#f0f1f2",
+                        "surface-tint": "#525f71",
+                        "inverse-primary": "#bac8dc",
+                        "on-surface-variant": "#44474c",
+                        "on-tertiary-container": "#9a7f61",
+                        "background": "#f8f9fa",
+                        "surface-container-lowest": "#ffffff",
+                        "primary": "#000000",
+                        "on-secondary": "#ffffff",
+                        "on-error": "#ffffff",
+                        "surface-bright": "#f8f9fa",
+                        "tertiary-container": "#281804",
+                        "primary-container": "#0f1c2c",
+                        "tertiary-fixed-dim": "#e0c1a0",
+                        "surface-container": "#edeeef",
+                        "error-container": "#ffdad6",
+                        "secondary-container": "#659dfe",
+                        "on-tertiary-fixed": "#281804",
+                        "primary-fixed-dim": "#bac8dc",
+                        "on-primary-fixed-variant": "#3a4859",
+                        "secondary": "#115cb9",
+                        "surface": "#f8f9fa"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "padding-standard": "8px",
+                        "padding-md": "16px",
+                        "global-nav-width": "64px",
+                        "padding-dense": "4px",
+                        "context-panel-width": "320px",
+                        "gutter": "1px",
+                        "lifecycle-rail-width": "240px"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "label-caps": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "code-sm": ["JetBrains Mono"]
+                    },
+                    "fontSize": {
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "body-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
+                        "label-caps": ["11px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700" }],
+                        "headline-lg": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "headline-md": ["18px", { "lineHeight": "24px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "code-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-background text-on-background font-body-md antialiased overflow-hidden selection:bg-secondary-container selection:text-on-secondary-container">
+<!-- Global Nav (SideNavBar - rail) -->
+<nav class="flex flex-col w-global-nav-width h-full fixed left-0 top-0 z-50 bg-primary-container border-r border-outline-variant flat no shadows">
+<div class="flex items-center justify-center h-12 w-full border-b border-outline-variant/30">
+<span aria-label="Логотип системы" class="font-headline-md text-headline-md font-bold text-on-primary" title="SpaceSys Engineering HQ">SS</span>
+</div>
+<div class="flex flex-col w-full py-2 space-y-1 overflow-y-auto">
+<a aria-label="Главная" class="flex flex-col items-center justify-center py-3 w-full text-on-primary-container/70 hover:bg-primary-fixed-variant/30 transition-colors duration-150" href="#">
+<span class="material-symbols-outlined mb-1 text-[20px]">home</span>
+<span class="font-label-caps text-[9px] text-center w-full truncate px-1">Главная</span>
+</a>
+<a aria-label="Проекты" class="flex flex-col items-center justify-center py-3 w-full text-secondary-fixed bg-secondary-container/20 border-l-2 border-secondary transition-colors duration-150" href="#">
+<span class="material-symbols-outlined mb-1 text-[20px]" style="font-variation-settings: 'FILL' 1;">account_tree</span>
+<span class="font-label-caps text-[9px] text-center w-full truncate px-1">Проекты</span>
+</a>
+<a aria-label="Библиотеки" class="flex flex-col items-center justify-center py-3 w-full text-on-primary-container/70 hover:bg-primary-fixed-variant/30 transition-colors duration-150" href="#">
+<span class="material-symbols-outlined mb-1 text-[20px]">library_books</span>
+<span class="font-label-caps text-[9px] text-center w-full truncate px-1">Библ...</span>
+</a>
+<a aria-label="Предметные области" class="flex flex-col items-center justify-center py-3 w-full text-on-primary-container/70 hover:bg-primary-fixed-variant/30 transition-colors duration-150" href="#">
+<span class="material-symbols-outlined mb-1 text-[20px]">category</span>
+<span class="font-label-caps text-[9px] text-center w-full truncate px-1">Обла...</span>
+</a>
+</div>
+<div class="mt-auto flex flex-col w-full pb-2">
+<a aria-label="Поиск" class="flex flex-col items-center justify-center py-3 w-full text-on-primary-container/70 hover:bg-primary-fixed-variant/30 transition-colors duration-150" href="#">
+<span class="material-symbols-outlined mb-1 text-[20px]">search</span>
+</a>
+</div>
+</nav>
+<!-- TopAppBar -->
+<header class="flex items-center justify-between w-full h-12 px-padding-md ml-global-nav-width fixed top-0 z-40 bg-surface border-b border-outline-variant flat no shadows cursor-pointer transition-opacity">
+<div class="flex items-center space-x-4">
+<span class="font-headline-md text-headline-md text-on-surface">Проект: Альфа-Центавра</span>
+<nav class="hidden md:flex space-x-4 ml-6">
+<a class="font-label-caps text-label-caps text-on-surface-variant hover:bg-surface-container-high px-2 py-1 rounded transition-colors" href="#">Концепция</a>
+<a class="font-label-caps text-label-caps text-secondary font-bold border-b-2 border-secondary px-2 py-1" href="#">Базис</a>
+<a class="font-label-caps text-label-caps text-on-surface-variant hover:bg-surface-container-high px-2 py-1 rounded transition-colors" href="#">Замечания</a>
+</nav>
+</div>
+<div class="flex items-center space-x-3">
+<button class="font-label-caps text-label-caps text-on-surface-variant hover:bg-surface-container-high px-3 py-1.5 border border-outline-variant rounded transition-colors">Базовые линии</button>
+<button class="font-label-caps text-label-caps bg-primary text-on-primary hover:bg-primary/90 px-3 py-1.5 rounded transition-colors">Следующий смотр</button>
+<div class="flex items-center space-x-1 ml-2 border-l border-outline-variant pl-2">
+<button aria-label="notifications" class="p-1.5 text-on-surface-variant hover:bg-surface-container-high rounded transition-colors">
+<span class="material-symbols-outlined text-[20px]">notifications</span>
+</button>
+<button aria-label="settings" class="p-1.5 text-on-surface-variant hover:bg-surface-container-high rounded transition-colors">
+<span class="material-symbols-outlined text-[20px]">settings</span>
+</button>
+<div class="w-8 h-8 rounded-full bg-surface-container-high border border-outline-variant overflow-hidden ml-2 flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px] text-on-surface-variant">person</span>
+</div>
+</div>
+</div>
+</header>
+<!-- Lifecycle Rail (SideNavBar - drawer) -->
+<aside class="flex flex-col w-lifecycle-rail-width h-full fixed top-12 left-global-nav-width z-30 bg-surface-container-low border-r border-outline-variant flat no shadows transition-all duration-200 ease-in-out pt-4">
+<div class="px-4 pb-4 border-b border-outline-variant/50 mb-2">
+<h2 class="font-label-caps text-label-caps text-on-surface-variant uppercase tracking-wider mb-1">Жизненный цикл</h2>
+<p class="font-body-sm text-body-sm text-secondary font-medium">Текущая фаза: Phase A</p>
+</div>
+<div class="flex flex-col w-full py-1">
+<button aria-label="Pre-Phase A" class="flex items-center px-4 py-2 w-full text-left text-on-surface-variant hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined mr-3 text-[18px]">radio_button_checked</span>
+<span class="font-body-md text-body-md truncate">Pre-Phase A</span>
+</button>
+<button aria-label="Phase A: Concept" class="flex items-center px-4 py-2 w-full text-left bg-secondary/10 text-secondary font-semibold transition-colors">
+<span class="material-symbols-outlined mr-3 text-[18px]" style="font-variation-settings: 'FILL' 1;">radio_button_unchecked</span>
+<span class="font-body-md text-body-md truncate">Phase A: Concept</span>
+</button>
+<button aria-label="Phase A: Feasibility" class="flex items-center px-4 py-2 w-full text-left text-on-surface-variant hover:bg-surface-container-high transition-colors pl-8 border-l-[1px] border-outline-variant ml-6 my-1">
+<span class="material-symbols-outlined mr-2 text-[16px]">pending</span>
+<span class="font-body-sm text-body-sm truncate">KDP B Decision</span>
+</button>
+<button aria-label="Requirements" class="flex items-center px-4 py-2 w-full text-left text-on-surface-variant hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined mr-3 text-[18px]">account_tree</span>
+<span class="font-body-md text-body-md truncate">Requirements</span>
+</button>
+<button aria-label="Architecture" class="flex items-center px-4 py-2 w-full text-left text-on-surface-variant hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined mr-3 text-[18px]">schema</span>
+<span class="font-body-md text-body-md truncate">Architecture</span>
+</button>
+</div>
+</aside>
+<!-- Main Workspace -->
+<main class="fixed top-12 left-[304px] right-context-panel-width bottom-0 bg-background overflow-y-auto z-10 flex flex-col p-padding-md">
+<!-- Header Section -->
+<div class="mb-6 flex justify-between items-end border-b border-outline-variant pb-4">
+<div>
+<h1 class="font-headline-lg text-headline-lg text-on-background mb-1">Key Decision Point B (KDP B)</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">System Definition Review (SDR) &amp; System Requirements Review (SRR) Closure</p>
+</div>
+<div class="flex space-x-2">
+<div class="bg-surface-container-high px-3 py-1 rounded border border-outline-variant flex items-center">
+<span class="w-2 h-2 rounded-full bg-secondary mr-2"></span>
+<span class="font-label-caps text-label-caps text-on-surface">In Progress</span>
+</div>
+</div>
+</div>
+<!-- Layout Grid -->
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
+<!-- Left Column: Checklists & Status -->
+<div class="xl:col-span-2 space-y-6">
+<!-- D-Criteria Status Matrix -->
+<section class="bg-surface border border-outline-variant rounded flex flex-col">
+<div class="px-4 py-3 border-b border-outline-variant bg-surface-container-lowest">
+<h3 class="font-headline-md text-headline-md text-on-surface">Готовность критериев D1–D10</h3>
+</div>
+<div class="p-0 overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="border-b border-outline-variant bg-surface-container-low">
+<th class="py-2 px-4 font-label-caps text-label-caps text-on-surface-variant w-16">ID</th>
+<th class="py-2 px-4 font-label-caps text-label-caps text-on-surface-variant">Критерий</th>
+<th class="py-2 px-4 font-label-caps text-label-caps text-on-surface-variant w-32">Статус</th>
+<th class="py-2 px-4 font-label-caps text-label-caps text-on-surface-variant w-24">Ответственный</th>
+</tr>
+</thead>
+<tbody class="font-body-sm text-body-sm text-on-surface">
+<tr class="border-b border-outline-variant hover:bg-surface-container-low transition-colors group">
+<td class="py-2 px-4 font-code-sm text-code-sm text-secondary">D1</td>
+<td class="py-2 px-4">Science/Mission Objectives definition</td>
+<td class="py-2 px-4">
+<span class="inline-flex items-center text-secondary">
+<span class="material-symbols-outlined text-[16px] mr-1">check_circle</span> Approved
+                                        </span>
+</td>
+<td class="py-2 px-4 text-on-surface-variant">J. Smith</td>
+</tr>
+<tr class="border-b border-outline-variant hover:bg-surface-container-low transition-colors group">
+<td class="py-2 px-4 font-code-sm text-code-sm text-secondary">D2</td>
+<td class="py-2 px-4">System Architecture baseline</td>
+<td class="py-2 px-4">
+<span class="inline-flex items-center text-secondary">
+<span class="material-symbols-outlined text-[16px] mr-1">check_circle</span> Approved
+                                        </span>
+</td>
+<td class="py-2 px-4 text-on-surface-variant">A. Wong</td>
+</tr>
+<tr class="border-b border-outline-variant hover:bg-surface-container-low transition-colors group bg-error-container/20">
+<td class="py-2 px-4 font-code-sm text-code-sm text-error font-medium">D3</td>
+<td class="py-2 px-4 font-medium">Requirements flow-down completeness</td>
+<td class="py-2 px-4">
+<span class="inline-flex items-center text-error font-medium">
+<span class="material-symbols-outlined text-[16px] mr-1">warning</span> Action Req.
+                                        </span>
+</td>
+<td class="py-2 px-4 text-on-surface-variant">M. Doe</td>
+</tr>
+<tr class="border-b border-outline-variant hover:bg-surface-container-low transition-colors group">
+<td class="py-2 px-4 font-code-sm text-code-sm text-secondary">D4</td>
+<td class="py-2 px-4">Risk Management Plan update</td>
+<td class="py-2 px-4">
+<span class="inline-flex items-center text-secondary">
+<span class="material-symbols-outlined text-[16px] mr-1">check_circle</span> Approved
+                                        </span>
+</td>
+<td class="py-2 px-4 text-on-surface-variant">T. Bauer</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="py-2 px-4 font-code-sm text-code-sm text-on-surface-variant">D5-D10</td>
+<td class="py-2 px-4 text-on-surface-variant italic">All other criteria met and verified</td>
+<td class="py-2 px-4">
+<span class="inline-flex items-center text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px] mr-1">done_all</span> Verified
+                                        </span>
+</td>
+<td class="py-2 px-4 text-on-surface-variant">-</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<!-- Reviews Summary & Verification -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<!-- RFA/RID Summary -->
+<section class="bg-surface border border-outline-variant rounded flex flex-col p-4 relative overflow-hidden">
+<div class="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+<span class="material-symbols-outlined text-[100px]">forum</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-4 z-10">Итоги SRR / SDR</h3>
+<div class="flex items-end space-x-6 mb-4 z-10">
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant mb-1">Закрыто RFA</p>
+<div class="flex items-baseline">
+<span class="text-[32px] font-bold text-secondary leading-none">42</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant ml-1">/ 45</span>
+</div>
+</div>
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant mb-1">Закрыто RID</p>
+<div class="flex items-baseline">
+<span class="text-[32px] font-bold text-on-surface leading-none">18</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant ml-1">/ 18</span>
+</div>
+</div>
+</div>
+<div class="mt-auto z-10">
+<div class="bg-surface-container-low border border-outline-variant rounded p-3 text-body-sm text-on-surface flex items-start">
+<span class="material-symbols-outlined text-[16px] text-secondary mr-2 mt-0.5">info</span>
+<span>3 RFA remain open. Closure plans approved by review board. Not a constraint for KDP B.</span>
+</div>
+</div>
+</section>
+<!-- Verification Basis -->
+<section class="bg-surface border border-outline-variant rounded flex flex-col p-4">
+<h3 class="font-headline-md text-headline-md text-on-surface mb-4">Верификационный базис</h3>
+<div class="space-y-3">
+<div class="flex items-center justify-between">
+<span class="font-body-sm text-body-sm text-on-surface">V&amp;V Matrix Completeness</span>
+<span class="font-code-sm text-code-sm text-secondary bg-secondary/10 px-2 py-0.5 rounded">98%</span>
+</div>
+<div class="w-full bg-surface-container-high h-1.5 rounded-full overflow-hidden">
+<div class="bg-secondary h-full" style="width: 98%"></div>
+</div>
+<div class="flex items-center justify-between mt-4">
+<span class="font-body-sm text-body-sm text-on-surface">Traceability Links</span>
+<span class="font-code-sm text-code-sm text-on-surface bg-surface-container-high px-2 py-0.5 rounded">100%</span>
+</div>
+<div class="w-full bg-surface-container-high h-1.5 rounded-full overflow-hidden">
+<div class="bg-outline h-full" style="width: 100%"></div>
+</div>
+</div>
+<div class="mt-auto pt-4">
+<button class="w-full py-2 border border-outline-variant rounded text-on-surface font-label-caps text-label-caps hover:bg-surface-container-high transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined text-[16px] mr-2">visibility</span> View VCD Matrix
+                            </button>
+</div>
+</section>
+</div>
+</div>
+<!-- Right Column: Blockers & Decision -->
+<div class="xl:col-span-1 space-y-6 flex flex-col">
+<!-- Blockers & Conditions -->
+<section class="bg-error-container/10 border border-error/20 rounded flex flex-col p-4 flex-grow">
+<div class="flex items-center mb-4 pb-2 border-b border-error/20">
+<span class="material-symbols-outlined text-[20px] text-error mr-2">block</span>
+<h3 class="font-headline-md text-headline-md text-error">Блокирующие факторы</h3>
+</div>
+<ul class="space-y-3 mb-6 flex-grow">
+<li class="flex items-start">
+<span class="w-1.5 h-1.5 rounded-full bg-error mt-1.5 mr-2 flex-shrink-0"></span>
+<div>
+<span class="font-label-caps text-label-caps text-error block mb-0.5">Crit D3 Incomplete</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Subsystem thermal requirements not fully flowed down to component level.</span>
+</div>
+</li>
+</ul>
+<div class="flex items-center mb-4 pb-2 border-b border-outline-variant">
+<span class="material-symbols-outlined text-[20px] text-on-tertiary-container mr-2">rule</span>
+<h3 class="font-headline-md text-headline-md text-on-surface">Условия для Phase B</h3>
+</div>
+<ul class="space-y-3">
+<li class="flex items-start">
+<span class="material-symbols-outlined text-[16px] text-on-surface-variant mt-0.5 mr-2">check_box_outline_blank</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Resolve thermal flow-down by B+30 days.</span>
+</li>
+<li class="flex items-start">
+<span class="material-symbols-outlined text-[16px] text-on-surface-variant mt-0.5 mr-2">check_box_outline_blank</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Approve remaining 3 RFA closure plans.</span>
+</li>
+</ul>
+</section>
+<!-- Decision Panel -->
+<section class="bg-surface border border-outline-variant rounded p-4 border-l-4 border-l-secondary shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+<h3 class="font-label-caps text-label-caps text-on-surface-variant mb-4 uppercase">Решение комиссии</h3>
+<div class="space-y-3">
+<button class="w-full py-2.5 bg-secondary text-on-primary font-headline-md text-[14px] rounded hover:bg-secondary/90 transition-colors flex items-center justify-center opacity-50 cursor-not-allowed" disabled="">
+                            Утвердить переход (Clear)
+                        </button>
+<button class="w-full py-2.5 bg-surface-container-high border border-outline-variant text-on-surface font-headline-md text-[14px] rounded hover:bg-secondary/10 hover:border-secondary transition-colors flex items-center justify-center">
+                            Утвердить с условиями
+                        </button>
+<button class="w-full py-2.5 border border-error/50 text-error font-headline-md text-[14px] rounded hover:bg-error-container/20 transition-colors flex items-center justify-center">
+                            Вернуть на доработку
+                        </button>
+</div>
+</section>
+</div>
+</div>
+</main>
+<!-- Context Inspector (SideNavBar - inspector) -->
+<aside class="flex flex-col w-context-panel-width h-full fixed top-12 right-0 z-30 bg-surface-container border-l border-outline-variant flat no shadows transition-transform duration-300">
+<div class="flex items-center justify-between px-4 h-12 border-b border-outline-variant bg-surface-container-high">
+<span class="font-headline-md text-headline-md text-primary">Инспектор контекста</span>
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+</div>
+<!-- Tabs -->
+<div class="flex w-full border-b border-outline-variant bg-surface">
+<button class="flex-1 py-2 flex justify-center items-center border-b-2 border-secondary text-secondary transition-colors" title="Детали">
+<span class="material-symbols-outlined text-[18px]">info</span>
+</button>
+<button class="flex-1 py-2 flex justify-center items-center text-on-surface-variant hover:text-primary transition-colors" title="Связи">
+<span class="material-symbols-outlined text-[18px]">link</span>
+</button>
+<button class="flex-1 py-2 flex justify-center items-center text-on-surface-variant hover:text-primary transition-colors" title="Влияние">
+<span class="material-symbols-outlined text-[18px]">rebase_edit</span>
+</button>
+<button class="flex-1 py-2 flex justify-center items-center text-on-surface-variant hover:text-primary transition-colors" title="AI Советы">
+<span class="material-symbols-outlined text-[18px]">psychology</span>
+</button>
+<button class="flex-1 py-2 flex justify-center items-center text-on-surface-variant hover:text-primary transition-colors" title="Замечания">
+<span class="material-symbols-outlined text-[18px]">error_outline</span>
+</button>
+</div>
+<!-- Inspector Content -->
+<div class="flex-1 overflow-y-auto p-4 space-y-6">
+<div class="space-y-4">
+<div class="bg-[#E9ECEF] px-2 py-1 flex items-center justify-between rounded-sm cursor-pointer">
+<span class="font-label-caps text-label-caps text-on-surface uppercase">Selected Item: Crit D3</span>
+<span class="material-symbols-outlined text-[16px] text-on-surface-variant">expand_less</span>
+</div>
+<div class="px-2 space-y-3">
+<div>
+<span class="font-label-caps text-label-caps text-on-surface-variant block">Property</span>
+<span class="font-body-sm text-body-sm text-on-surface">Requirements Flow-Down</span>
+</div>
+<div>
+<span class="font-label-caps text-label-caps text-on-surface-variant block">Status</span>
+<span class="font-body-sm text-body-sm text-error bg-error-container/20 px-1 py-0.5 rounded inline-block mt-0.5">Action Required</span>
+</div>
+<div>
+<span class="font-label-caps text-label-caps text-on-surface-variant block">Description</span>
+<p class="font-body-sm text-body-sm text-on-surface mt-0.5 border border-outline-variant p-2 rounded bg-surface">
+                            Thermal requirements (TH-001 through TH-045) have not been fully decomposed to the structural component level. Interface definitions missing.
+                        </p>
+</div>
+</div>
+</div>
+<div class="space-y-4">
+<div class="bg-[#E9ECEF] px-2 py-1 flex items-center justify-between rounded-sm cursor-pointer">
+<span class="font-label-caps text-label-caps text-on-surface uppercase">Impact Analysis</span>
+<span class="material-symbols-outlined text-[16px] text-on-surface-variant">expand_less</span>
+</div>
+<div class="px-2 font-body-sm text-body-sm text-on-surface-variant">
+<p class="mb-2">Blocking transition to Phase B. High risk to thermal structural integrity if not resolved prior to PDR.</p>
+<a class="text-secondary hover:underline flex items-center" href="#">
+<span class="material-symbols-outlined text-[14px] mr-1">open_in_new</span> View Risk Matrix (R-012)
+                    </a>
+</div>
+</div>
+</div>
+</aside>
+</body></html>

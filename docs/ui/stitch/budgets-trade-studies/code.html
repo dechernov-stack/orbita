@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>SpaceSys - Budgets &amp; Trade Studies</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-primary-container": "#778598",
+                        "on-primary": "#ffffff",
+                        "primary": "#000000",
+                        "surface-container": "#edeeef",
+                        "tertiary-fixed-dim": "#e0c1a0",
+                        "outline-variant": "#c4c6cc",
+                        "surface-container-low": "#f3f4f5",
+                        "secondary-container": "#659dfe",
+                        "on-primary-fixed": "#0f1c2c",
+                        "surface-bright": "#f8f9fa",
+                        "secondary-fixed-dim": "#acc7ff",
+                        "on-tertiary-fixed": "#281804",
+                        "surface-variant": "#e1e3e4",
+                        "primary-fixed-dim": "#bac8dc",
+                        "inverse-on-surface": "#f0f1f2",
+                        "surface-dim": "#d9dadb",
+                        "surface-container-lowest": "#ffffff",
+                        "on-tertiary": "#ffffff",
+                        "on-secondary-container": "#003370",
+                        "on-error-container": "#93000a",
+                        "on-background": "#191c1d",
+                        "on-secondary-fixed-variant": "#004491",
+                        "on-surface": "#191c1d",
+                        "tertiary-container": "#281804",
+                        "surface": "#f8f9fa",
+                        "surface-tint": "#525f71",
+                        "on-tertiary-fixed-variant": "#584329",
+                        "tertiary-fixed": "#feddba",
+                        "on-surface-variant": "#44474c",
+                        "on-tertiary-container": "#9a7f61",
+                        "primary-container": "#0f1c2c",
+                        "error-container": "#ffdad6",
+                        "error": "#ba1a1a",
+                        "tertiary": "#000000",
+                        "primary-fixed": "#d6e4f9",
+                        "on-secondary": "#ffffff",
+                        "on-error": "#ffffff",
+                        "on-secondary-fixed": "#001a40",
+                        "secondary-fixed": "#d7e2ff",
+                        "surface-container-highest": "#e1e3e4",
+                        "background": "#f8f9fa",
+                        "outline": "#74777d",
+                        "surface-container-high": "#e7e8e9",
+                        "on-primary-fixed-variant": "#3a4859",
+                        "secondary": "#115cb9",
+                        "inverse-primary": "#bac8dc",
+                        "inverse-surface": "#2e3132"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "gutter": "1px",
+                        "padding-standard": "8px",
+                        "padding-md": "16px",
+                        "lifecycle-rail-width": "240px",
+                        "padding-dense": "4px",
+                        "context-panel-width": "320px",
+                        "global-nav-width": "64px"
+                    },
+                    "fontFamily": {
+                        "code-sm": ["JetBrains Mono"],
+                        "body-md": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "label-caps": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "body-sm": ["Inter"]
+                    },
+                    "fontSize": {
+                        "code-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-lg": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "label-caps": ["11px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700" }],
+                        "headline-md": ["18px", { "lineHeight": "24px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "body-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-background text-on-background font-body-md min-h-screen overflow-hidden flex">
+<!-- Global Nav (SideNavBar Rail) -->
+<nav class="bg-primary-container dark:bg-primary-container font-body-sm text-body-sm docked global-nav-width h-screen left-0 border-r border-outline-variant flat no shadows transition-colors duration-150 flex flex-col w-global-nav-width h-full fixed left-0 top-0 z-50">
+<div class="p-padding-standard flex flex-col items-center justify-center border-b border-outline-variant h-12">
+<span class="font-headline-md text-headline-md font-bold text-on-primary">SS</span>
+</div>
+<div class="flex flex-col gap-padding-standard py-padding-md h-full">
+<button class="flex flex-col items-center justify-center p-padding-standard rounded-DEFAULT text-on-primary-container/70 hover:bg-primary-fixed-variant/30" title="Главная">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+</button>
+<button class="flex flex-col items-center justify-center p-padding-standard rounded-DEFAULT text-secondary-fixed bg-secondary-container/20 border-l-2 border-secondary" title="Проекты">
+<span class="material-symbols-outlined" data-icon="account_tree">account_tree</span>
+</button>
+<button class="flex flex-col items-center justify-center p-padding-standard rounded-DEFAULT text-on-primary-container/70 hover:bg-primary-fixed-variant/30" title="Библиотеки">
+<span class="material-symbols-outlined" data-icon="library_books">library_books</span>
+</button>
+<button class="flex flex-col items-center justify-center p-padding-standard rounded-DEFAULT text-on-primary-container/70 hover:bg-primary-fixed-variant/30" title="Предметные области">
+<span class="material-symbols-outlined" data-icon="category">category</span>
+</button>
+<button class="flex flex-col items-center justify-center p-padding-standard rounded-DEFAULT text-on-primary-container/70 hover:bg-primary-fixed-variant/30" title="Исследования">
+<span class="material-symbols-outlined" data-icon="biotech">biotech</span>
+</button>
+<button class="flex flex-col items-center justify-center p-padding-standard rounded-DEFAULT text-on-primary-container/70 hover:bg-primary-fixed-variant/30" title="Доказательная база">
+<span class="material-symbols-outlined" data-icon="assignment_turned_in">assignment_turned_in</span>
+</button>
+<div class="mt-auto flex flex-col gap-padding-standard">
+<button class="flex flex-col items-center justify-center p-padding-standard rounded-DEFAULT text-on-primary-container/70 hover:bg-primary-fixed-variant/30" title="Поиск">
+<span class="material-symbols-outlined" data-icon="search">search</span>
+</button>
+<button class="flex flex-col items-center justify-center p-padding-standard rounded-DEFAULT text-on-primary-container/70 hover:bg-primary-fixed-variant/30" title="Администрирование">
+<span class="material-symbols-outlined" data-icon="admin_panel_settings">admin_panel_settings</span>
+</button>
+</div>
+</div>
+</nav>
+<!-- TopAppBar -->
+<header class="bg-surface dark:bg-surface-dim font-label-caps text-label-caps docked full-width top-0 h-12 border-b border-outline-variant flat no shadows cursor-pointer transition-opacity flex items-center justify-between w-full h-12 px-padding-md ml-global-nav-width fixed top-0 z-40">
+<div class="flex items-center gap-padding-md h-full">
+<span class="font-headline-md text-headline-md text-on-surface">Проект: Альфа-Центавра</span>
+<nav class="hidden md:flex items-center h-full ml-8 gap-6">
+<button class="text-on-surface-variant hover:bg-surface-container-high h-full px-2">Концепция</button>
+<button class="text-on-surface-variant hover:bg-surface-container-high h-full px-2">Базис</button>
+<button class="text-secondary font-bold border-b-2 border-secondary h-full px-2">Замечания</button>
+</nav>
+</div>
+<div class="flex items-center gap-padding-md h-full">
+<button class="text-on-surface-variant hover:bg-surface-container-high h-full px-4 rounded-DEFAULT">Базовые линии</button>
+<button class="bg-secondary text-on-secondary px-4 py-1.5 rounded-DEFAULT font-label-caps text-label-caps flex items-center gap-2">
+                Следующий смотр
+            </button>
+<div class="flex items-center gap-2 border-l border-outline-variant pl-4 h-8">
+<button class="text-on-surface-variant hover:bg-surface-container-high p-1 rounded-DEFAULT">
+<span class="material-symbols-outlined text-[20px]" data-icon="notifications">notifications</span>
+</button>
+<button class="text-on-surface-variant hover:bg-surface-container-high p-1 rounded-DEFAULT">
+<span class="material-symbols-outlined text-[20px]" data-icon="settings">settings</span>
+</button>
+<img alt="Профиль инженера" class="w-8 h-8 rounded-full ml-2 border border-outline-variant" data-alt="A small, professional headshot portrait of a systems engineer in a clean, brightly lit corporate office environment. The engineer is wearing modern, minimal business casual attire. The lighting is soft and neutral, emphasizing professional competence and technical expertise without any distracting background elements." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDZioSe2FsBOx_CVQTt1t6MzdCKWRIgLOTMXNsuHnTxbqDa1v5_cQR8yYiYXabn75kaIX7bnOl6RV67qxIDYSACTsNAkIa0s55QsBWE9-BW6mziqM6Rkw5G08I9EKSV9WVvKph_ZB9lSI1ofTLf58CL4_C1cxL6K9BnCQckkhs-W74QTRqkeN2WDsPECXFYs_8lNaM8n4BjIFwEk-QJR8Clno0vIOQP5PggphFwRwYbFfIRnaxLKpoQ9Q"/>
+</div>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="flex-1 ml-global-nav-width mt-12 mr-context-panel-width p-padding-md bg-surface-container-low overflow-y-auto h-[calc(100vh-48px)]">
+<div class="mb-6 flex justify-between items-end">
+<div>
+<h1 class="font-headline-lg text-headline-lg text-on-surface mb-1">Budgets &amp; Trade Studies</h1>
+<p class="font-body-sm text-body-sm text-on-surface-variant">System-level margin management and configuration analysis.</p>
+</div>
+<div class="flex gap-2">
+<button class="bg-surface text-on-surface border border-outline-variant px-3 py-1.5 rounded-DEFAULT font-label-caps text-label-caps flex items-center gap-1 hover:bg-surface-container-high">
+<span class="material-symbols-outlined text-[16px]">download</span> Export
+                </button>
+</div>
+</div>
+<!-- Summary Cards -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-padding-md mb-padding-md">
+<!-- Mass Budget -->
+<div class="bg-surface border border-outline-variant rounded-DEFAULT p-padding-md shadow-sm relative overflow-hidden">
+<div class="absolute top-0 left-0 w-1 h-full bg-secondary"></div>
+<div class="flex justify-between items-start mb-4">
+<h2 class="font-label-caps text-label-caps text-on-surface-variant">Mass Budget</h2>
+<span class="material-symbols-outlined text-secondary text-[20px]">weight</span>
+</div>
+<div class="flex items-baseline gap-2 mb-2">
+<span class="font-headline-lg text-headline-lg text-on-surface">1,450.5</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">kg Current</span>
+</div>
+<div class="flex justify-between text-body-sm font-body-sm text-on-surface-variant mb-1">
+<span>Limit: 1,600 kg</span>
+<span class="text-secondary font-medium">9.3% Margin</span>
+</div>
+<div class="w-full bg-surface-container-high h-2 rounded-full overflow-hidden">
+<div class="bg-secondary h-full rounded-full" style="width: 90.7%"></div>
+</div>
+</div>
+<!-- Power Budget -->
+<div class="bg-surface border border-outline-variant rounded-DEFAULT p-padding-md shadow-sm relative overflow-hidden">
+<div class="absolute top-0 left-0 w-1 h-full bg-[#E0A800]"></div>
+<div class="flex justify-between items-start mb-4">
+<h2 class="font-label-caps text-label-caps text-on-surface-variant">Power Budget (EOL)</h2>
+<span class="material-symbols-outlined text-[#E0A800] text-[20px]">bolt</span>
+</div>
+<div class="flex items-baseline gap-2 mb-2">
+<span class="font-headline-lg text-headline-lg text-on-surface">2,850</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">W Demand</span>
+</div>
+<div class="flex justify-between text-body-sm font-body-sm text-on-surface-variant mb-1">
+<span>Supply: 3,200 W</span>
+<span class="text-[#E0A800] font-medium">10.9% Margin</span>
+</div>
+<div class="w-full bg-surface-container-high h-2 rounded-full overflow-hidden flex">
+<div class="bg-[#E0A800] h-full" style="width: 70%"></div>
+<div class="bg-surface-variant h-full" style="width: 19.1%"></div>
+</div>
+</div>
+<!-- Data Link Budget -->
+<div class="bg-surface border border-outline-variant rounded-DEFAULT p-padding-md shadow-sm relative overflow-hidden">
+<div class="absolute top-0 left-0 w-1 h-full bg-[#28A745]"></div>
+<div class="flex justify-between items-start mb-4">
+<h2 class="font-label-caps text-label-caps text-on-surface-variant">Data Link Budget</h2>
+<span class="material-symbols-outlined text-[#28A745] text-[20px]">cell_tower</span>
+</div>
+<div class="flex items-baseline gap-2 mb-2">
+<span class="font-headline-lg text-headline-lg text-on-surface">12.5</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Mbps Required</span>
+</div>
+<div class="flex justify-between text-body-sm font-body-sm text-on-surface-variant mb-1">
+<span>Capacity: 25.0 Mbps</span>
+<span class="text-[#28A745] font-medium">3.0 dB Margin</span>
+</div>
+<div class="w-full bg-surface-container-high h-2 rounded-full overflow-hidden">
+<div class="bg-[#28A745] h-full rounded-full" style="width: 50%"></div>
+</div>
+</div>
+</div>
+<!-- PBS Tree-Table -->
+<div class="bg-surface border border-outline-variant rounded-DEFAULT mb-padding-md shadow-sm">
+<div class="p-padding-standard border-b border-outline-variant flex justify-between items-center bg-surface-container-lowest">
+<h2 class="font-headline-md text-headline-md text-on-surface">Product Breakdown Structure (PBS) Allocation</h2>
+<div class="flex gap-2">
+<input class="text-body-sm font-body-sm border border-outline-variant rounded-DEFAULT px-2 py-1 bg-surface w-48 focus:border-secondary focus:ring-0" placeholder="Filter PBS..." type="text"/>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low border-b border-outline-variant font-label-caps text-label-caps text-on-surface-variant">
+<th class="p-2 font-medium w-1/3">System Element</th>
+<th class="p-2 font-medium text-right w-1/6">Allocated Mass (kg)</th>
+<th class="p-2 font-medium text-right w-1/6">Current Mass (kg)</th>
+<th class="p-2 font-medium w-1/6">Mass Margin</th>
+<th class="p-2 font-medium text-right w-1/6">Power Alloc (W)</th>
+</tr>
+</thead>
+<tbody class="font-body-sm text-body-sm text-on-surface">
+<!-- L1 -->
+<tr class="border-b border-outline-variant hover:bg-surface-container-lowest bg-[#E7F1FF] group">
+<td class="p-2 flex items-center gap-1 border-l-2 border-secondary">
+<span class="material-symbols-outlined text-[16px] cursor-pointer">expand_more</span>
+<span class="font-medium text-secondary">SYS-1000 Spacecraft Bus</span>
+</td>
+<td class="p-2 text-right font-code-sm text-code-sm">1200.0</td>
+<td class="p-2 text-right font-code-sm text-code-sm">1150.5</td>
+<td class="p-2">
+<div class="flex items-center gap-2">
+<div class="w-16 bg-surface-container-high h-1.5 rounded-full overflow-hidden">
+<div class="bg-secondary h-full" style="width: 95%"></div>
+</div>
+<span class="text-[10px] text-on-surface-variant">4%</span>
+</div>
+</td>
+<td class="p-2 text-right font-code-sm text-code-sm">2500</td>
+</tr>
+<!-- L2 -->
+<tr class="border-b border-outline-variant hover:bg-surface-container-lowest group">
+<td class="p-2 flex items-center gap-1 pl-6">
+<span class="material-symbols-outlined text-[16px] text-on-surface-variant cursor-pointer">chevron_right</span>
+<span>SYS-1100 Structure</span>
+</td>
+<td class="p-2 text-right font-code-sm text-code-sm">300.0</td>
+<td class="p-2 text-right font-code-sm text-code-sm">290.0</td>
+<td class="p-2">
+<div class="flex items-center gap-2">
+<div class="w-16 bg-surface-container-high h-1.5 rounded-full overflow-hidden">
+<div class="bg-secondary h-full" style="width: 96%"></div>
+</div>
+</div>
+</td>
+<td class="p-2 text-right font-code-sm text-code-sm">0</td>
+</tr>
+<!-- L2 -->
+<tr class="border-b border-outline-variant hover:bg-surface-container-lowest group">
+<td class="p-2 flex items-center gap-1 pl-6">
+<span class="material-symbols-outlined text-[16px] cursor-pointer">expand_more</span>
+<span>SYS-1200 Power Subsystem</span>
+</td>
+<td class="p-2 text-right font-code-sm text-code-sm">250.0</td>
+<td class="p-2 text-right font-code-sm text-code-sm">265.0</td>
+<td class="p-2">
+<div class="flex items-center gap-2">
+<div class="w-16 bg-error-container h-1.5 rounded-full overflow-hidden">
+<div class="bg-error h-full" style="width: 100%"></div>
+</div>
+<span class="text-[10px] text-error font-medium">-6%</span>
+</div>
+</td>
+<td class="p-2 text-right font-code-sm text-code-sm">150</td>
+</tr>
+<!-- L3 -->
+<tr class="border-b border-outline-variant hover:bg-surface-container-lowest group opacity-80">
+<td class="p-2 flex items-center gap-1 pl-10 text-on-surface-variant relative">
+<div class="absolute left-7 top-0 bottom-4 w-px bg-outline-variant"></div>
+<div class="absolute left-7 top-4 w-2 h-px bg-outline-variant"></div>
+<span class="material-symbols-outlined text-[14px]">horizontal_rule</span>
+<span>SYS-1210 Solar Arrays</span>
+</td>
+<td class="p-2 text-right font-code-sm text-code-sm">120.0</td>
+<td class="p-2 text-right font-code-sm text-code-sm">135.0</td>
+<td class="p-2">
+<span class="text-error text-[10px]">Over alloc</span>
+</td>
+<td class="p-2 text-right font-code-sm text-code-sm">-</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Trade Study Section -->
+<div class="bg-surface border border-outline-variant rounded-DEFAULT shadow-sm">
+<div class="p-padding-standard border-b border-outline-variant bg-surface-container-lowest flex justify-between items-center">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-[20px]">compare_arrows</span>
+<h2 class="font-headline-md text-headline-md text-on-surface">Trade Study: Solar Array Configuration</h2>
+</div>
+<span class="bg-secondary-container/20 text-secondary-fixed font-label-caps text-label-caps px-2 py-0.5 rounded-sm">Active Study</span>
+</div>
+<div class="p-padding-md grid grid-cols-3 gap-gutter bg-outline-variant">
+<!-- Baseline -->
+<div class="bg-surface p-padding-md col-span-1 flex flex-col gap-4">
+<div class="border-b border-outline-variant pb-2 mb-2">
+<span class="font-label-caps text-label-caps text-on-surface-variant block mb-1">Baseline</span>
+<h3 class="font-headline-md text-headline-md">Rigid Panel Array (Type A)</h3>
+</div>
+<div class="grid grid-cols-2 gap-y-4">
+<div>
+<span class="font-label-caps text-label-caps text-on-surface-variant block">Mass Impact</span>
+<span class="font-code-sm text-code-sm text-on-surface">120.0 kg</span>
+</div>
+<div>
+<span class="font-label-caps text-label-caps text-on-surface-variant block">Power Gen (EOL)</span>
+<span class="font-code-sm text-code-sm text-on-surface">3200 W</span>
+</div>
+<div>
+<span class="font-label-caps text-label-caps text-on-surface-variant block">Stowed Vol</span>
+<span class="font-code-sm text-code-sm text-on-surface">2.4 m³</span>
+</div>
+<div>
+<span class="font-label-caps text-label-caps text-on-surface-variant block">TRL</span>
+<span class="font-code-sm text-code-sm text-on-surface">9 (Flight Proven)</span>
+</div>
+</div>
+<button class="mt-auto border border-outline-variant py-1.5 rounded-DEFAULT font-label-caps text-label-caps hover:bg-surface-container-low">Current Selection</button>
+</div>
+<!-- Option B -->
+<div class="bg-surface p-padding-md col-span-1 flex flex-col gap-4 relative">
+<div class="absolute inset-0 bg-secondary/5 pointer-events-none"></div>
+<div class="border-b border-outline-variant pb-2 mb-2">
+<span class="font-label-caps text-label-caps text-secondary block mb-1">Proposed Alternative</span>
+<h3 class="font-headline-md text-headline-md">Flexible Blanket (Type B)</h3>
+</div>
+<div class="grid grid-cols-2 gap-y-4">
+<div>
+<span class="font-label-caps text-label-caps text-on-surface-variant block">Mass Impact</span>
+<div class="flex items-center gap-1">
+<span class="font-code-sm text-code-sm text-[#28A745]">85.0 kg</span>
+<span class="text-[10px] text-[#28A745] font-medium">(-35 kg)</span>
+</div>
+</div>
+<div>
+<span class="font-label-caps text-label-caps text-on-surface-variant block">Power Gen (EOL)</span>
+<div class="flex items-center gap-1">
+<span class="font-code-sm text-code-sm text-[#E0A800]">3050 W</span>
+<span class="text-[10px] text-[#E0A800] font-medium">(-150 W)</span>
+</div>
+</div>
+<div>
+<span class="font-label-caps text-label-caps text-on-surface-variant block">Stowed Vol</span>
+<div class="flex items-center gap-1">
+<span class="font-code-sm text-code-sm text-[#28A745]">1.1 m³</span>
+</div>
+</div>
+<div>
+<span class="font-label-caps text-label-caps text-on-surface-variant block">TRL</span>
+<span class="font-code-sm text-code-sm text-[#E0A800]">7 (Protoflight)</span>
+</div>
+</div>
+<button class="mt-auto bg-secondary text-on-secondary py-1.5 rounded-DEFAULT font-label-caps text-label-caps hover:bg-secondary-fixed hover:text-on-secondary-fixed">Adopt Option B</button>
+</div>
+<!-- Option C -->
+<div class="bg-surface p-padding-md col-span-1 flex flex-col gap-4 opacity-70">
+<div class="border-b border-outline-variant pb-2 mb-2">
+<span class="font-label-caps text-label-caps text-on-surface-variant block mb-1">Option C</span>
+<h3 class="font-headline-md text-headline-md">Concentrator Array</h3>
+</div>
+<div class="grid grid-cols-2 gap-y-4">
+<div>
+<span class="font-label-caps text-label-caps text-on-surface-variant block">Mass Impact</span>
+<span class="font-code-sm text-code-sm text-on-surface">140.0 kg</span>
+</div>
+<div>
+<span class="font-label-caps text-label-caps text-on-surface-variant block">Power Gen (EOL)</span>
+<span class="font-code-sm text-code-sm text-on-surface">4500 W</span>
+</div>
+</div>
+<div class="mt-auto text-center font-label-caps text-label-caps text-on-surface-variant py-1.5">
+                        Dismissed: Cost Exceeded
+                     </div>
+</div>
+</div>
+</div>
+</main>
+<!-- Context Inspector -->
+<aside class="bg-surface-container dark:bg-surface-container-high font-label-caps text-label-caps docked context-panel-width h-screen right-0 border-l border-outline-variant flat no shadows transition-transform duration-300 flex flex-col w-context-panel-width h-full fixed top-12 right-0 z-30">
+<div class="p-padding-standard border-b border-outline-variant bg-surface-container-lowest h-12 flex items-center justify-between">
+<span class="font-headline-md text-headline-md text-primary">Инспектор контекста</span>
+<span class="material-symbols-outlined text-on-surface-variant text-[18px] cursor-pointer">close</span>
+</div>
+<div class="flex border-b border-outline-variant bg-surface overflow-x-auto no-scrollbar">
+<button class="flex-1 py-2 px-2 border-b-2 border-secondary text-secondary whitespace-nowrap flex items-center justify-center gap-1">
+<span class="material-symbols-outlined text-[16px]" data-icon="info">info</span>
+<span>Детали</span>
+</button>
+<button class="flex-1 py-2 px-2 text-on-surface-variant hover:text-primary whitespace-nowrap flex items-center justify-center gap-1">
+<span class="material-symbols-outlined text-[16px]" data-icon="link">link</span>
+</button>
+<button class="flex-1 py-2 px-2 text-on-surface-variant hover:text-primary whitespace-nowrap flex items-center justify-center gap-1">
+<span class="material-symbols-outlined text-[16px]" data-icon="rebase_edit">rebase_edit</span>
+</button>
+<button class="flex-1 py-2 px-2 text-on-surface-variant hover:text-primary whitespace-nowrap flex items-center justify-center gap-1">
+<span class="material-symbols-outlined text-[16px]" data-icon="psychology">psychology</span>
+</button>
+</div>
+<div class="p-padding-standard overflow-y-auto flex-1 bg-surface-container-lowest font-body-sm text-body-sm text-on-surface">
+<!-- Header section inside inspector -->
+<div class="mb-4">
+<div class="flex items-center gap-1 text-on-surface-variant mb-1">
+<span class="material-symbols-outlined text-[14px]">account_tree</span>
+<span class="font-code-sm text-code-sm">SYS-1000</span>
+</div>
+<h3 class="font-headline-md text-headline-md mb-2">Spacecraft Bus</h3>
+<p class="text-on-surface-variant leading-relaxed">The primary structural and functional core of the vehicle, providing power, thermal control, and avionics to payload instruments.</p>
+</div>
+<!-- Properties Group -->
+<div class="mb-4">
+<div class="bg-surface-container-high px-2 py-1 mb-2 text-on-surface-variant font-label-caps text-label-caps">Mass Properties</div>
+<div class="grid grid-cols-2 gap-y-2 px-2">
+<div class="text-on-surface-variant">Allocated (CBE)</div>
+<div class="font-code-sm text-code-sm text-right">1200.0 kg</div>
+<div class="text-on-surface-variant">Current Est.</div>
+<div class="font-code-sm text-code-sm text-right">1150.5 kg</div>
+<div class="text-on-surface-variant">Uncertainty</div>
+<div class="font-code-sm text-code-sm text-right">+5% / -2%</div>
+<div class="col-span-2 border-t border-outline-variant my-1"></div>
+<div class="text-on-surface-variant">Center of Mass X</div>
+<div class="font-code-sm text-code-sm text-right">1.204 m</div>
+<div class="text-on-surface-variant">Center of Mass Y</div>
+<div class="font-code-sm text-code-sm text-right">0.005 m</div>
+</div>
+</div>
+<div class="mb-4">
+<div class="bg-surface-container-high px-2 py-1 mb-2 text-on-surface-variant font-label-caps text-label-caps">Power Demand (W)</div>
+<div class="px-2">
+<div class="w-full h-24 relative mb-2">
+<!-- Simulated miniature bar chart area -->
+<div class="absolute bottom-0 left-2 w-4 h-12 bg-secondary/80 rounded-t-sm"></div>
+<div class="absolute bottom-0 left-8 w-4 h-16 bg-secondary/80 rounded-t-sm"></div>
+<div class="absolute bottom-0 left-14 w-4 h-20 bg-secondary/80 rounded-t-sm"></div>
+<div class="absolute bottom-0 left-20 w-4 h-8 bg-[#E0A800]/80 rounded-t-sm"></div>
+<div class="absolute bottom-0 left-0 w-full border-b border-outline-variant"></div>
+</div>
+<div class="flex justify-between font-code-sm text-code-sm text-on-surface-variant text-[10px]">
+<span>Tlm</span>
+<span>Avn</span>
+<span>TCS</span>
+<span>Pyr</span>
+</div>
+</div>
+</div>
+<!-- AI Insight stub -->
+<div class="bg-primary-fixed/20 border border-secondary/30 rounded-DEFAULT p-2 mt-4 flex items-start gap-2">
+<span class="material-symbols-outlined text-secondary text-[16px] mt-0.5">psychology</span>
+<div>
+<span class="font-label-caps text-label-caps text-secondary block mb-0.5">Risk Flag</span>
+<p class="text-[11px] text-on-surface leading-tight">Historical data suggests Structure mass (SYS-1100) often grows 12% post-CDR. Current margin is tight.</p>
+</div>
+</div>
+</div>
+</aside>
+</body></html>
