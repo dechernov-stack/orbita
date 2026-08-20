@@ -8,20 +8,83 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 
+/** Горизонт усреднения тепловой карты доступности (STEP-6 §1.2). */
+enum class Horizon(val code: String) {
+    Instant("instant"),   // мгновенный срез
+    Daily("daily"),       // среднесуточное со взвешиванием профилем активности
+    Period("period");     // среднее за период
+
+    companion object {
+        fun of(code: String): Horizon = entries.firstOrNull { it.code == code }
+            ?: throw IllegalArgumentException("неизвестный горизонт: $code")
+    }
+}
+
+/** Ячейка тепловой карты: ряд доступности по шагам времени. */
+data class HeatCell(val id: String, val series: List<Double>)
+
 object VizData {
 
-    /** Серии розы KPI: нормированные оси варианта. Значения без данных пропускаются. */
-    fun kpiRose(v: KpiVector, mapper: ObjectMapper = ObjectMapper()): ArrayNode {
-        val arr = mapper.createArrayNode()
-        fun axis(name: String, value: Double?) {
-            value?.takeIf { it.isFinite() }?.let { arr.addObject().put("axis", name).put("value", it) }
+    /** Показатели варианта в исходных единицах — вход нормировки розы KPI. */
+    fun radarOption(v: KpiVector): RadarOption = RadarOption(
+        name = v.scenarioRef,
+        values = buildMap {
+            put("quality", v.quality.demandWeightedScore)
+            put("launch_campaigns", v.economics.launchCampaigns.toDouble())
+            put("deployment_days", v.economics.deploymentTimeDays)
+            v.energy.allowedPayloadDutyCycle?.let { put("energy", it) }
+            v.degradationCurve.lastOrNull()?.let { put("reliability", it.second) }
+            v.economics.totalMassKg?.let { put("total_mass_kg", it) }
+        },
+    )
+
+    /**
+     * Роза KPI по СРАВНИВАЕМОМУ НАБОРУ: нормировка с учётом направления
+     * показателя, состав набора — в результате. Одного варианта для розы
+     * недостаточно: нормировать не по чему.
+     */
+    fun kpiRose(
+        vectors: List<KpiVector>,
+        axes: List<String> = listOf("quality", "launch_campaigns", "deployment_days"),
+        directions: KpiAxes = KpiAxes.default,
+    ): RadarChart = radarSeries(vectors.map { radarOption(it) }, axes, directions)
+
+    fun kpiRoseJson(chart: RadarChart, mapper: ObjectMapper = ObjectMapper()): ObjectNode {
+        val root = mapper.createObjectNode()
+        val axes = root.putArray("axes")
+        chart.axes.forEach { axes.add(it) }
+        val series = root.putArray("series")
+        chart.series.forEach { s ->
+            val n = series.addObject()
+            n.put("name", s.name)
+            val v = n.putArray("values")
+            s.values.forEach { v.add(it) }
         }
-        axis("quality", v.quality.demandWeightedScore)
-        axis("economics", 1.0 / v.economics.launchCampaigns)
-        axis("energy", v.energy.allowedPayloadDutyCycle)
-        axis("reliability", v.degradationCurve.lastOrNull()?.second)
-        axis("environment", v.environment?.deorbitCompliant?.let { if (it) 1.0 else 0.0 })
-        return arr
+        // состав набора обязателен: без него диаграмму сравнят с чужой (ловушка 2)
+        val over = root.putArray("normalized_over")
+        chart.normalizedOver.forEach { over.add(it) }
+        return root
+    }
+
+    /**
+     * Доступность по горизонтам усреднения. Среднесуточная ВЗВЕШИВАЕТСЯ
+     * профилем активности: если пик спроса приходится на провал покрытия,
+     * простое среднее по часам завышает качество сервиса (ловушка 3).
+     */
+    fun availability(
+        cells: List<HeatCell>,
+        horizon: Horizon,
+        diurnal: List<Double>? = null,
+    ): Map<String, Double> = when (horizon) {
+        Horizon.Instant -> cells.associate { it.id to it.series.first() }
+        Horizon.Period -> cells.associate { it.id to it.series.average() }
+        Horizon.Daily -> cells.associate { c ->
+            val w = diurnal ?: List(c.series.size) { 1.0 }
+            val total = w.take(c.series.size).sum()
+            c.id to if (total > 0) {
+                c.series.mapIndexed { i, v -> v * w[i] }.sum() / total
+            } else 0.0
+        }
     }
 
     /** Широтный профиль качества с весом спроса — диагностика эффекта ССО. */

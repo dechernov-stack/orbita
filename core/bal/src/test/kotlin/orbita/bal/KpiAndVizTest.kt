@@ -160,9 +160,15 @@ class KpiAndVizTest {
     @Test
     fun `данные визуализации выдаются без картинок`() {
         val v = kpi()
-        val rose = VizData.kpiRose(v, mapper)
-        assertTrue(rose.size() >= 4)
-        assertTrue(rose.all { it.has("axis") && it["value"].isNumber })
+        // роза строится по СРАВНИВАЕМОМУ НАБОРУ: одного варианта мало —
+        // нормировать не по чему (шаг 6 §1.1)
+        val chart = VizData.kpiRose(listOf(v, kpi("SC-0002", score = 0.6, campaigns = 2)))
+        val rose = VizData.kpiRoseJson(chart, mapper)
+        assertEquals(3, rose["axes"].size())
+        assertEquals(2, rose["series"].size())
+        assertTrue(rose["series"].all { s -> s["values"].all { it.isNumber } })
+        // и несёт состав набора, по которому нормирована
+        assertEquals(listOf("SC-0001", "SC-0002"), rose["normalized_over"].map { it.asText() })
 
         val profile = VizData.latitudeProfile(v, mapper)
         assertEquals(2, profile.size())

@@ -3,6 +3,7 @@
 dependencies {
     implementation(project(":core:mod"))
     implementation(project(":core:req"))
+    implementation(project(":core:bal"))   // нормировка розы KPI и горизонты тепловой карты
     implementation("com.fasterxml.jackson.core:jackson-databind:2.18.2")
 
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
