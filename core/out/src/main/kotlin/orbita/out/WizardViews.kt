@@ -144,7 +144,9 @@ class WizardViews(private val req: ReqService) {
             }),
             step(4, "Конфигурация", components, req.elementsWithoutRequirements()
                 .map { "$it: на элемент не распределено ни одного требования" }),
-            step(5, "Моделирование", req.results.staleReport().size.let { if (it == 0) 1 else it },
+            // Счётчик шага — действующие результаты расчётов, а не «есть ли
+            // устаревшие»: число в подписи шага обязано что-то означать.
+            step(5, "Моделирование", activeResults().size,
                 req.results.staleReport().map { "результат ${it.pk} устарел" }),
             step(6, "Верификация", tree.rows.count { it.verificationState != NOT_PLANNED },
                 tree.rows.filter { it.verificationState == NOT_PLANNED }
@@ -155,6 +157,11 @@ class WizardViews(private val req: ReqService) {
 
     private fun step(number: Int, title: String, objects: Int, issues: List<String>) =
         WizardStep(number, title, objects, issues, complete = objects > 0 && issues.isEmpty())
+
+    /** Действующие результаты по всем сценариям модели. */
+    private fun activeResults() = req.objects.listCurrent()
+        .filter { it.type == "scenario" && it.status != Lifecycle.Cancelled }
+        .flatMap { req.results.activeForScenario(it.id) }
 
     companion object {
         /** Классы потребителей карты спроса (Р9). */
