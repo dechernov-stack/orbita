@@ -456,6 +456,40 @@ class HttpApi(private val boundary: Boundary) {
             method == "GET" && path == "/views/system" ->
                 respond(ex, 200, mapper.valueToTree(boundary.screens.systemOverview()))
 
+            // Экспорт ReqIF (TZ-OUT-005, ADR-023): отображение здесь, XML — в службе
+            // обмена. Дата выгрузки фиксируется в файле; параметр exported_at
+            // позволяет получить воспроизводимый файл.
+            method == "GET" && path == "/export/reqif" -> {
+                val exchangeUrl = System.getenv("ORBITA_EXCHANGE_URL")
+                if (exchangeUrl.isNullOrBlank()) {
+                    // Отказ, а не заглушка: файл без службы не собрать, и молчаливый
+                    // пустой ответ выглядел бы работающим экспортом
+                    respond(
+                        ex, 503,
+                        mapper.createObjectNode()
+                            .put("error", "служба обмена не настроена: задайте ORBITA_EXCHANGE_URL")
+                            .put("adr", "ADR-023"),
+                    )
+                } else {
+                    val model = orbita.out.ModelSnapshot.of(boundary.objects, mapper)
+                    val links = (boundary.links.list("trace") + boundary.links.list("derive"))
+                        .map { orbita.out.ExchangeLink(it.fromId, it.toId, it.kind) }
+                    val exportedAt = query(ex)["exported_at"]
+                        ?: java.time.OffsetDateTime.now(java.time.ZoneOffset.UTC)
+                            .format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+                    val payload = orbita.out.ReqifExport.payload(model, links, exportedAt, mapper)
+                    val xml = postToExchange("$exchangeUrl/reqif/export", payload.toString())
+                    ex.responseHeaders.add("Content-Type", "application/xml; charset=utf-8")
+                    ex.responseHeaders.add(
+                        "Content-Disposition",
+                        "attachment; filename=\"orbita-requirements.reqif\"",
+                    )
+                    val bytes = xml.toByteArray()
+                    ex.sendResponseHeaders(200, bytes.size.toLong())
+                    ex.responseBody.use { it.write(bytes) }
+                }
+            }
+
             // Экран 7: сравнение вариантов — нормировка и Парето считаются здесь
             method == "GET" && path == "/views/comparison" -> {
                 val options = boundary.results.activeForScenario(
@@ -534,6 +568,24 @@ class HttpApi(private val boundary: Boundary) {
     }
 
     private fun body(ex: HttpExchange): String = ex.requestBody.readAllBytes().decodeToString()
+
+    /** Вызов службы обмена (ADR-023). Отказ службы — отказ запроса, не заглушка. */
+    private fun postToExchange(url: String, json: String): String {
+        val connection = java.net.URI(url).toURL().openConnection() as java.net.HttpURLConnection
+        connection.requestMethod = "POST"
+        connection.doOutput = true
+        connection.connectTimeout = 5_000
+        connection.readTimeout = 60_000
+        connection.setRequestProperty("Content-Type", "application/json; charset=utf-8")
+        connection.outputStream.use { it.write(json.toByteArray()) }
+        val status = connection.responseCode
+        val text = (if (status < 400) connection.inputStream else connection.errorStream)
+            ?.readAllBytes()?.decodeToString() ?: ""
+        if (status >= 400) {
+            throw IllegalStateException("служба обмена ответила $status: ${text.take(300)}")
+        }
+        return text
+    }
 
     private fun query(ex: HttpExchange): Map<String, String> =
         ex.requestURI.query?.split('&')?.mapNotNull { p ->

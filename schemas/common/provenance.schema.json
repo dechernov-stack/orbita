@@ -4,29 +4,111 @@
   "title": "Provenance",
   "description": "Происхождение значения. Обязательно для каждого значения модели (TZ-COM-005).",
   "type": "object",
-  "required": ["source"],
+  "required": [
+    "source"
+  ],
   "additionalProperties": false,
   "properties": {
-    "source": { "enum": ["manual", "computed", "ai_proposed", "imported"] },
-    "author": { "type": "string" },
-    "timestamp": { "type": "string", "format": "date-time" },
+    "source": {
+      "enum": [
+        "manual",
+        "computed",
+        "ai_proposed",
+        "imported"
+      ],
+      "description": "Происхождение значения. imported требует блока import с источником, версией и условиями использования."
+    },
+    "author": {
+      "type": "string"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
     "module": {
       "description": "Для source=computed: модуль-вычислитель",
-      "enum": ["ballistics", "spacecraft", "consumers", "protocol", "flows", "cost"]
+      "enum": [
+        "ballistics",
+        "spacecraft",
+        "consumers",
+        "protocol",
+        "flows",
+        "cost"
+      ]
     },
-    "module_version": { "type": "string" },
-    "input_version": { "type": "string", "description": "Версия входных данных расчёта (TZ-COM-006)" },
+    "module_version": {
+      "type": "string"
+    },
+    "input_version": {
+      "type": "string",
+      "description": "Версия входных данных расчёта (TZ-COM-006)"
+    },
     "ai": {
       "type": "object",
       "description": "Для source=ai_proposed",
-      "required": ["prompt_package_id", "accepted"],
+      "required": [
+        "prompt_package_id",
+        "accepted"
+      ],
       "additionalProperties": false,
       "properties": {
-        "prompt_package_id": { "type": "string" },
-        "llm": { "type": "string" },
-        "accepted": { "type": "boolean", "description": "false — предложение не влияет на расчёты и отчёты" },
-        "accepted_by": { "type": "string" },
-        "edited": { "type": "boolean" }
+        "prompt_package_id": {
+          "type": "string"
+        },
+        "llm": {
+          "type": "string"
+        },
+        "accepted": {
+          "type": "boolean",
+          "description": "false — предложение не влияет на расчёты и отчёты"
+        },
+        "accepted_by": {
+          "type": "string"
+        },
+        "edited": {
+          "type": "boolean"
+        }
+      }
+    },
+    "import": {
+      "type": "object",
+      "description": "Для source=imported. Без этих сведений через полгода нельзя сказать, откуда взято значение и можно ли его показывать заказчику.",
+      "required": [
+        "dataset",
+        "dataset_version",
+        "retrieved_at",
+        "terms"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "dataset": {
+          "type": "string",
+          "description": "Источник: наименование каталога, файла, инструмента"
+        },
+        "dataset_version": {
+          "type": "string"
+        },
+        "retrieved_at": {
+          "type": "string",
+          "format": "date"
+        },
+        "item_ref": {
+          "type": "string",
+          "description": "Идентификатор записи в источнике"
+        },
+        "terms": {
+          "type": "string",
+          "description": "Условия использования: лицензия либо ссылка на них. Обязательны: часть источников допускает извлечение отдельных записей и запрещает выгрузку каталога целиком"
+        },
+        "bulk_allowed": {
+          "type": "boolean",
+          "default": false,
+          "description": "Разрешена ли массовая выгрузка источника. По умолчанию нет"
+        },
+        "mapping_version": {
+          "type": "string",
+          "description": "Версия отображения полей источника в модель"
+        }
       }
     }
   }
