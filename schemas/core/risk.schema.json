@@ -1,0 +1,143 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/core/risk.schema.json",
+  "title": "Risk",
+  "description": "Запись реестра рисков (NPR 8000.4; Прил. 6 БП-PA, Прил. 7 БП-PPA). Входной материал MCR и KDP: без реестра пакет передачи неполон.",
+  "type": "object",
+  "required": [
+    "id",
+    "statement",
+    "category",
+    "probability",
+    "impact",
+    "owner",
+    "status"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^RSK-[0-9]{4}$"
+    },
+    "statement": {
+      "type": "string",
+      "minLength": 20,
+      "description": "Форма «условие — событие — последствие»: три части, разделённые тире"
+    },
+    "category": {
+      "enum": [
+        "technical",
+        "cost",
+        "schedule",
+        "safety"
+      ]
+    },
+    "probability": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 5
+    },
+    "impact": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 5
+    },
+    "strategy": {
+      "enum": [
+        "mitigate",
+        "accept",
+        "transfer",
+        "avoid"
+      ],
+      "description": "Обязательна для рисков высокой критичности"
+    },
+    "actions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Мероприятия реагирования; обязательны при любой стратегии, кроме accept"
+    },
+    "due": {
+      "type": "string",
+      "format": "date"
+    },
+    "owner": {
+      "type": "string"
+    },
+    "affects": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^(RQ|CM|IF|SV)-[0-9]{4}$"
+      },
+      "description": "Объекты, которых риск касается: требования, элементы, интерфейсы, сервисы"
+    },
+    "residual": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "probability",
+        "impact"
+      ],
+      "description": "Оценка после мероприятий. Ни вероятность, ни последствия не могут превышать исходные.",
+      "properties": {
+        "probability": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "impact": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        }
+      }
+    },
+    "status": {
+      "enum": [
+        "open",
+        "mitigating",
+        "closed",
+        "accepted"
+      ],
+      "description": "Закрытый риск сохраняется в реестре, из него не удаляется"
+    },
+    "escalated": {
+      "type": "boolean",
+      "default": false
+    },
+    "history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "at",
+          "probability",
+          "impact"
+        ],
+        "properties": {
+          "at": {
+            "type": "string",
+            "format": "date"
+          },
+          "probability": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5
+          },
+          "impact": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5
+          },
+          "note": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Тренд оценки: предъявляется на обзорах"
+    }
+  }
+}

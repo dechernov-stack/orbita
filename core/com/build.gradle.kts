@@ -25,3 +25,14 @@ tasks.register<JavaExec>("demoServer") {
     environment("ORBITA_REPO_ROOT", rootDir.absolutePath)
     jvmArgs("-Dfile.encoding=UTF-8", "-Dstdout.encoding=UTF-8")
 }
+
+// Заполнение базы демонстрационным проектом одной операцией (STEP-7-9 §7.2).
+// Данные берутся из эталона spec/demo_project.py — второй копии в проекте нет.
+tasks.register<JavaExec>("seedDemo") {
+    group = "application"
+    description = "STEP-7: загрузить демонстрационный проект «Орбита-IoT» в базу"
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass.set("orbita.com.api.SeedDemoKt")
+    environment("ORBITA_REPO_ROOT", rootDir.absolutePath)
+    jvmArgs("-Dfile.encoding=UTF-8", "-Dstdout.encoding=UTF-8")
+}

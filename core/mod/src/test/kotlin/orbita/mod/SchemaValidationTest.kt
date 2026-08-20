@@ -26,7 +26,8 @@ class SchemaValidationTest {
     fun `все нормативные схемы загружаются и ссылки разрешаются`() {
         // разрешение $ref происходит в init реестра (fail fast) — сюда доходим, только если оно удалось
         // CR-003 добавил core/evidence и core/validation
-        assertEquals(19, registry.names.size, "нормативных схем должно быть 19: ${registry.names}")
+        // 20-я — core/risk, добавлена на шаге 7 вместе с реестром рисков
+        assertEquals(20, registry.names.size, "нормативных схем должно быть 20: ${registry.names}")
     }
 
     @Test

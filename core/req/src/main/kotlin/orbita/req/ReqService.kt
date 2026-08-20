@@ -194,6 +194,36 @@ class ReqService(
         return create(doc, "validation", createdBy)
     }
 
+    /**
+     * Риск RSK-NNNN (шаг 7). Прикладные правила дополняют схему: полнота
+     * формулировки, стратегия и срок выше порога критичности, остаточная
+     * оценка не выше исходной. Те же правила применяются к предложениям ИИ —
+     * упрощённой версии для них нет.
+     */
+    fun ingestRisk(json: String, createdBy: String = "api"): StoredObject {
+        val doc = registry.parse(json)
+        registry.require("core/risk", doc)
+        val issues = riskIssues(doc).toMutableList()
+        if (!residualOk(doc)) {
+            issues += "остаточный риск выше исходного"
+        }
+        if (issues.isNotEmpty()) {
+            throw ModelViolationException("NPR 8000.4: " + issues.joinToString("; "))
+        }
+        val stored = create(doc, "risk", createdBy)
+        // связь риска с затронутыми объектами выводится из документа
+        doc.path("affects").forEach { a ->
+            val target = a.asText("")
+            if (target.isNotBlank()) links.add(stored.id, target, "trace")
+        }
+        return stored
+    }
+
+    /** Активные и закрытые риски: закрытый сохраняется в реестре. */
+    fun risks(): List<JsonNode> = objects.listCurrent()
+        .filter { it.type == "risk" && it.status != Lifecycle.Cancelled }
+        .map { it.doc }
+
     private fun create(doc: JsonNode, type: String, createdBy: String): StoredObject {
         val lifecycle = doc.path("lifecycle")
         return objects.create(

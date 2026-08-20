@@ -21,7 +21,9 @@ enum class CoreType(val idPrefix: String, val dbType: String, val schemaName: St
     // CR-003/ADR-019: свидетельство, валидация и интерфейс — самостоятельные объекты
     Evidence("EV", "evidence", "core/evidence"),
     Validation("VA", "validation", "core/validation"),
-    Interface("IF", "interface", "core/component");
+    Interface("IF", "interface", "core/component"),
+    // Шаг 7: реестр рисков — входной материал MCR и KDP (NPR 8000.4)
+    Risk("RSK", "risk", "core/risk");
 
     companion object {
         fun byDbType(t: String): CoreType = entries.firstOrNull { it.dbType == t }
@@ -34,7 +36,7 @@ enum class CoreType(val idPrefix: String, val dbType: String, val schemaName: St
 value class ObjectId(val value: String) {
     init {
         require(PATTERN.matches(value)) {
-            "TZ-MOD-007: invalid object id '$value', expected (ND|SV|RQ|CM|SC|EV|VA|IF)-NNNN"
+            "TZ-MOD-007: invalid object id '$value', expected (ND|SV|RQ|CM|SC|EV|VA|IF|RSK)-NNNN"
         }
     }
 
@@ -43,7 +45,7 @@ value class ObjectId(val value: String) {
     override fun toString(): String = value
 
     companion object {
-        val PATTERN = Regex("^(ND|SV|RQ|CM|SC|EV|VA|IF)-[0-9]{4}$")
+        val PATTERN = Regex("^(ND|SV|RQ|CM|SC|EV|VA|IF|RSK)-[0-9]{4}$")
     }
 }
 

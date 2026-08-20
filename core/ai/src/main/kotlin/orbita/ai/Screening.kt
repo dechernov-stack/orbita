@@ -17,6 +17,8 @@ import orbita.req.ProductNode
 import orbita.req.QualityControl
 import orbita.req.allocationConsistent
 import orbita.req.interfaceAllocationValid
+import orbita.req.residualOk
+import orbita.req.riskIssues
 import orbita.req.rollupCheck
 import orbita.req.verificationIssues
 import orbita.req.verificationPlanIssues
@@ -73,10 +75,25 @@ data class ScreenReport(
 class ProposalScreening(private val quality: QualityControl = QualityControl()) {
 
     /**
+     * Замечания к предложению риска (шаг 7). Вызывается тот же riskIssues,
+     * что применяется к рукописной записи реестра: своей упрощённой версии
+     * для предложений ИИ нет и здесь (STEP-7-9, ловушка 3).
+     */
+    fun riskProposalIssues(item: JsonNode): List<String> {
+        val issues = riskIssues(item).map { "риск: $it" }.toMutableList()
+        if (!residualOk(item)) issues += "риск: остаточный риск выше исходного"
+        return issues
+    }
+
+    /**
      * Замечания к одному предложению. Каждая ветка — вызов правила core/req;
      * названия источников соответствуют таблице STEP-5 §1.3.
      */
     fun issues(item: JsonNode, ctx: ScreeningContext = ScreeningContext()): List<String> {
+        // Запись реестра рисков — не требование: к ней применимы правила риска,
+        // а правила формулировки требования неприменимы.
+        if (item.path("id").asText("").startsWith("RSK-")) return riskProposalIssues(item)
+
         val issues = mutableListOf<String>()
 
         // requirements_semantics + constraint_semantics: качество формулировки,

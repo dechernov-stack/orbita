@@ -57,6 +57,7 @@ class Boundary(private val registry: SchemaRegistry, conn: Connection) {
         CoreType.Evidence -> req.ingestEvidence(json, createdBy)
         CoreType.Validation -> req.ingestValidation(json, createdBy)
         CoreType.Interface -> req.ingestInterface(json, createdBy)
+        CoreType.Risk -> req.ingestRisk(json, createdBy)
         CoreType.Scenario -> {
             val doc = parse(json)
             registry.require(type.schemaName, doc)
