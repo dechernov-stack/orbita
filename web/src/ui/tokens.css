@@ -36,7 +36,69 @@ body {
 .app {
   display: grid;
   grid-template-rows: auto 1fr;
+  grid-template-columns: 220px 1fr;
+  grid-template-areas: 'top top' 'nav main';
   height: 100vh;
+}
+
+.topbar { grid-area: top; }
+.wizard { grid-area: nav; }
+.app > .split,
+.app > .empty { grid-area: main; }
+
+/* Мастер Ш1–Ш7: шаги слева, состояние каждого приходит с сервера.
+   «Пусто» и «всё хорошо» — разные состояния, и метка у них разная. */
+.wizard {
+  border-right: 1px solid var(--border);
+  background: var(--surface);
+  overflow: auto;
+  padding: 8px 0;
+}
+
+.wizard__step {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 6px 12px;
+  border: none;
+  border-left: 2px solid transparent;
+  background: none;
+  color: var(--text-secondary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.wizard__step[aria-selected='true'] {
+  color: var(--text);
+  background: var(--bg);
+  border-left-color: var(--accent);
+}
+
+.wizard__step small {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.wizard__group {
+  padding: 10px 12px 2px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+input[type='text'],
+input[type='number'],
+input:not([type]),
+textarea {
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-family: var(--font-mono);
+  padding: 2px 6px;
 }
 
 .topbar {

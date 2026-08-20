@@ -270,6 +270,146 @@ class HttpApi(private val boundary: Boundary) {
                 respond(ex, 200, mapper.valueToTree(boundary.screens.card(id)))
             }
 
+            // ---- ИИ-контур (TZ-AI) ----
+            // Генерация происходит ВНЕ системы: пакет копируют во внешний
+            // интерфейс LLM, ответ вставляют обратно. Никакого вызова модели
+            // здесь нет и не предполагается (канал 1, TZ-AI-001).
+            method == "POST" && path == "/ai/packages" -> {
+                val request = mapper.readTree(body(ex))
+                val pkg = boundary.packages.build(
+                    kind = request.path("kind").asText(),
+                    context = request.path("context"),
+                    task = request.path("task").asText(),
+                )
+                respond(ex, 201, pkg.toJson(mapper))
+            }
+
+            // Разбор ответа модели и структурный фильтр: до инженера доходит
+            // только состоятельное, остальное — в очередь переделки.
+            method == "POST" && path == "/ai/answers" -> {
+                val request = mapper.readTree(body(ex))
+                val pkg = boundary.packages.build(
+                    kind = request.path("kind").asText(),
+                    context = request.path("context"),
+                    task = request.path("task").asText(),
+                )
+                val parsed = boundary.parser.parse(request.path("raw").asText(""), pkg)
+                val report = boundary.screening.screen(parsed.accepted)
+
+                val n = mapper.createObjectNode()
+                n.put("package_id", pkg.id)
+                n.put("proposed", parsed.accepted.size + parsed.rejected.size)
+                val malformed = n.putArray("malformed")
+                parsed.rejected.forEach { r ->
+                    val item = malformed.addObject()
+                    r.item?.let { item.set<ObjectNode>("item", it) }
+                    val errs = item.putArray("errors")
+                    r.errors.forEach(errs::add)
+                }
+                val shown = n.putArray("shown")
+                report.shown.forEach { proposal ->
+                    val entry = shown.addObject()
+                    entry.set<ObjectNode>("item", proposal)
+                    // diff к текущему состоянию: применять будет инженер по полям
+                    val targetId = proposal.path("id").asText("")
+                    val current = boundary.objects.current(targetId)?.doc
+                        ?: mapper.createObjectNode()
+                    entry.set<ObjectNode>(
+                        "diff",
+                        orbita.ai.diffToJson(orbita.ai.makeDiff(current, proposal), mapper),
+                    )
+                }
+                n.set<ObjectNode>("rework", report.reworkContext(mapper))
+                val byRule = n.putObject("by_rule")
+                report.byRule.forEach { (rule, count) -> byRule.put(rule, count) }
+                respond(ex, 200, n)
+            }
+
+            // Акцепт: применяются ТОЛЬКО выбранные поля; массового акцепта
+            // без просмотра интерфейсом не предусмотрено (TZ-AI-004, ловушка 2).
+            method == "POST" && path == "/ai/accept" -> {
+                val request = mapper.readTree(body(ex))
+                val targetId = request.path("target_id").asText()
+                val current = boundary.objects.current(targetId)?.doc ?: mapper.createObjectNode()
+                val proposal = request.path("proposal")
+                val selected = request.path("selected").map { it.asText() }.toSet()
+                val diff = orbita.ai.makeDiff(current, proposal)
+                val applied = orbita.ai.applyDiff(current, diff, selected, mapper)
+                val marked = orbita.ai.accept(
+                    orbita.ai.asProposal(
+                        applied, request.path("package_id").asText(""),
+                        request.path("llm").asText("unknown"), mapper,
+                    ),
+                    by = request.path("by").asText(""),
+                )
+                respond(ex, 200, marked)
+            }
+
+            // Экраны мастера: нужды, сервисы, готовность, состояние шагов
+            method == "GET" && path == "/views/needs" ->
+                respond(ex, 200, mapper.valueToTree(boundary.wizard.needs()))
+
+            method == "GET" && path == "/views/services" ->
+                respond(ex, 200, mapper.valueToTree(boundary.wizard.services()))
+
+            method == "GET" && path == "/views/readiness" ->
+                respond(ex, 200, mapper.valueToTree(boundary.wizard.readiness(query(ex)["gate"] ?: "SRR")))
+
+            method == "GET" && path == "/views/wizard" ->
+                respond(ex, 200, mapper.valueToTree(boundary.wizard.wizard(boundary.screens)))
+
+            // Реестр рисков: список и матрица одним ответом
+            method == "GET" && path == "/views/risks" -> {
+                val risks = boundary.req.risks()
+                val n = mapper.createObjectNode()
+                n.set<ObjectNode>("summary", mapper.valueToTree(orbita.req.registerSummary(risks)))
+                n.set<ArrayNode>("risks", mapper.valueToTree(risks))
+                n.set<ArrayNode>(
+                    "matrix",
+                    mapper.valueToTree(
+                        orbita.out.riskMatrix(
+                            risks.map {
+                                it.path("id").asText() to
+                                    (it.path("probability").asInt() to it.path("impact").asInt())
+                            },
+                        ),
+                    ),
+                )
+                respond(ex, 200, n)
+            }
+
+            // Экран 4: карта спроса. Библиотека референсных сценариев — слой 3
+            // (TZ-USR-006); её состав задаётся ресурсом, а не экраном.
+            method == "GET" && path == "/views/demand/library" ->
+                respond(ex, 200, mapper.valueToTree(boundary.demand.referenceScenarios()))
+
+            // Сборка карты по слоям. Ячейки, веса и пик считает сервер: вторая
+            // нормировка в клиенте разошлась бы с первой (STEP-7-9, ловушка 2).
+            method == "POST" && path == "/views/demand" -> {
+                val request = mapper.readTree(body(ex))
+                respond(ex, 200, mapper.valueToTree(boundary.demand.build(demandLayers(request))))
+            }
+
+            // Экран 5: пресеты платформ (TZ-KA-001) — редактируемая конфигурация
+            method == "GET" && path == "/views/spacecraft/presets" ->
+                respond(ex, 200, mapper.valueToTree(boundary.spacecraft.presetRows()))
+
+            // Бюджеты аппарата по модели КА. Модель проходит схему контракта
+            // до расчёта: считать по документу, не прошедшему схему, нельзя.
+            method == "POST" && path == "/views/spacecraft" -> {
+                val request = mapper.readTree(body(ex))
+                val doc = request.path("spacecraft")
+                boundary.validateContract("contracts/spacecraft", mapper.writeValueAsString(doc))
+                    .takeIf { it.isNotEmpty() }
+                    ?.let { return respond(ex, 422, errorsJson(it)) }
+                respond(
+                    ex, 200,
+                    mapper.valueToTree(
+                        boundary.spacecraft.build(doc, massItems(request), conditions(request)),
+                    ),
+                )
+            }
+
             // Экран 6: глобус — CZML-поток с траекториями. Собственной модели
             // движения в клиенте нет: трассы считает пропагатор на сервере.
             method == "GET" && path == "/views/globe" -> {
@@ -369,6 +509,53 @@ class HttpApi(private val boundary: Boundary) {
 
     private fun summary(o: StoredObject): ObjectNode = mapper.createObjectNode()
         .put("id", o.id).put("type", o.type).put("version", o.version).put("status", o.status.name)
+
+    /** Слои карты спроса из запроса экрана 4 (TZ-USR-004). */
+    private fun demandLayers(request: JsonNode) = orbita.out.DemandLayers(
+        population = request.path("population").map {
+            orbita.usr.PopulationCell(
+                id = it.path("id").asText(),
+                lat = it.path("lat").asDouble(),
+                lon = it.path("lon").asDouble(0.0),
+                popDensityPerKm2 = it.path("pop_density_per_km2").asDouble(),
+                terminalsPerCapita = it.path("terminals_per_capita").asDouble(),
+                msgsPerTerminalDay = it.path("msgs_per_terminal_day").asDouble(),
+                klass = it.path("consumer_class").asText(),
+            )
+        },
+        pointObjects = request.path("point_objects").map {
+            orbita.usr.SeedObject(
+                cellId = it.path("cell_id").asText(),
+                lat = it.path("lat").asDouble(),
+                lon = it.path("lon").asDouble(0.0),
+                terminals = it.path("terminals").asDouble(),
+                msgsPerTerminalDay = it.path("msgs_per_terminal_day").asDouble(),
+                klass = it.path("consumer_class").asText(),
+            )
+        },
+        scenarioIds = request.path("scenario_ids").map { it.asText() },
+        diurnal = request.path("diurnal").takeIf { it.isArray }?.map { it.asDouble() },
+        seasonal = request.path("seasonal").takeIf { it.isArray }?.map { it.asDouble() },
+    )
+
+    /** Ведомость масс экрана 5: зрелость обязательна — она задаёт резерв (TZ-KA-002). */
+    private fun massItems(request: JsonNode) = request.path("mass_items").map {
+        orbita.ka.MassItem(
+            name = it.path("name").asText(),
+            massKg = it.path("mass_kg").asDouble(),
+            maturity = orbita.ka.Maturity.of(it.path("maturity").asText()),
+        )
+    }
+
+    private fun conditions(request: JsonNode) = request.path("conditions").let { c ->
+        orbita.out.SpacecraftConditions(
+            altKm = c.path("alt_km").asDouble(550.0),
+            worstBetaDeg = c.path("worst_beta_deg").asDouble(0.0),
+            minElevDeg = c.path("min_elev_deg").asDouble(5.0),
+            yearsInOrbit = c.path("years_in_orbit").asDouble(0.0),
+            plannedPayloadDuty = c.path("planned_payload_duty").asDouble(0.5),
+        )
+    }
 
     private fun hops(hops: List<orbita.mod.store.TraceHop>): ArrayNode =
         mapper.createArrayNode().apply { hops.forEach { addObject().put("id", it.id).put("depth", it.depth) } }

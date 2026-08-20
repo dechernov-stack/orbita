@@ -17,9 +17,15 @@ import orbita.mod.store.StoredObject
 import orbita.bal.VisibilityPrecompute
 import orbita.net.LoRaWanAdapter
 import orbita.net.validateAdapterContract
+import orbita.out.DemandViews
 import orbita.out.Matrices
 import orbita.out.MaturityReports
 import orbita.out.ScreenViews
+import orbita.out.SpacecraftViews
+import orbita.ai.PromptPackageBuilder
+import orbita.ai.ProposalScreening
+import orbita.ai.ResponseParser
+import orbita.out.WizardViews
 import orbita.req.ReqService
 import orbita.usr.TerminalRules
 import java.sql.Connection
@@ -36,6 +42,24 @@ class Boundary(private val registry: SchemaRegistry, conn: Connection) {
 
     /** Готовые строки экранов: расчётов в клиенте нет (STEP-6 §3.2). */
     val screens = ScreenViews(req)
+
+    /** Экраны мастера Ш1–Ш7 (STEP-7-9 §9.1). */
+    val wizard = WizardViews(req)
+
+    /** Экран 4: карта спроса — слои и веса считаются здесь (TZ-USR-004). */
+    val demand = DemandViews()
+
+    /** Экран 5: бюджеты аппарата — масса, энергетика, линии, маяк (TZ-KA). */
+    val spacecraft = SpacecraftViews()
+
+    /**
+     * ИИ-контур (TZ-AI). Генерация происходит ВНЕ системы: инженер копирует
+     * пакет во внешний интерфейс LLM и вставляет ответ обратно. Здесь —
+     * сборка пакета, локальный разбор и структурный фильтр.
+     */
+    val packages = PromptPackageBuilder(registry = registry)
+    val parser = ResponseParser()
+    val screening = ProposalScreening()
 
     /** Расчётный контур шага 3: адаптер протокола и предрасчёт геометрии. */
     val protocolAdapter = LoRaWanAdapter()

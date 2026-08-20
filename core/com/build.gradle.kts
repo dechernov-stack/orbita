@@ -8,6 +8,7 @@ dependencies {
     implementation(project(":core:bal"))
     implementation(project(":core:ka"))
     implementation(project(":core:net"))
+    implementation(project(":core:ai"))   // ИИ-контур: пакеты, разбор, фильтр, diff
     implementation("com.fasterxml.jackson.core:jackson-databind:2.18.2")
 
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
