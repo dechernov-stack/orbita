@@ -1,0 +1,73 @@
+# Демонстрационный стенд «Орбиты»: база, заполнение демо-проектом, API, клиент.
+#
+#   docker compose up --build        поднять
+#   открыть http://localhost:8080
+#
+# Порт хоста меняется переменной ORBITA_PORT. Пароль базы — ORBITA_DB_PASSWORD;
+# значение по умолчанию годится только для локального стенда, для сервера его
+# задают через .env, которого в репозитории нет и быть не должно.
+
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: orbita
+      POSTGRES_PASSWORD: ${ORBITA_DB_PASSWORD:-orbita}
+      POSTGRES_DB: orbita
+    volumes:
+      - orbita-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U orbita -d orbita"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+
+  # Разовое заполнение демо-проектом «Орбита-IoT». Отдельный образ: фикстуры
+  # в образ изделия не попадают (STEP-7-9 §7.2).
+  seed:
+    build:
+      context: .
+      dockerfile: ops/api.Dockerfile
+      target: seed
+    environment:
+      ORBITA_DB_URL: jdbc:postgresql://db:5432/orbita
+      ORBITA_DB_USER: orbita
+      ORBITA_DB_PASSWORD: ${ORBITA_DB_PASSWORD:-orbita}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    build:
+      context: .
+      dockerfile: ops/api.Dockerfile
+      target: api
+    environment:
+      ORBITA_DB_URL: jdbc:postgresql://db:5432/orbita
+      ORBITA_DB_USER: orbita
+      ORBITA_DB_PASSWORD: ${ORBITA_DB_PASSWORD:-orbita}
+      ORBITA_HTTP_PORT: 8090
+    depends_on:
+      db:
+        condition: service_healthy
+      # Модель наполняется до старта API: иначе первый экран мастера покажет
+      # пустые таблицы и будет выглядеть поломкой, а не пустым проектом.
+      seed:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: ops/web.Dockerfile
+    ports:
+      - "${ORBITA_PORT:-8080}:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  orbita-db:
