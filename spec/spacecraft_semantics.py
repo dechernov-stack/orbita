@@ -9,7 +9,7 @@
   TZ-NET-001 параметры канала берутся только из адаптера протокола
   TZ-NET-005 регуляторные ограничения (duty cycle)
 """
-import math, sys
+import hashlib, math, sys
 
 C_LIGHT = 299_792_458.0
 K_BOLTZ_DBW = -228.6            # дБВт/К/Гц
@@ -122,6 +122,67 @@ def required_buffer_msgs(msgs_per_s, worst_gap_s):
 def population_duty_cycle(terminals, msgs_per_day, time_on_air_s):
     return terminals * msgs_per_day * time_on_air_s / 86400.0
 
+
+# ---------- TZ-KA-009: режимы и географические маски ----------
+# Расписание режимов формируется СТАТИЧЕСКИМИ масками из карты спроса и зон
+# наземных станций (Р4/ADR-004). Модель и Монте-Карло от способа формирования
+# не зависят: маски выдают те же доли витка, что лежат в modes[].orbit_fraction.
+
+def _arc_km(lat1, lon1, lat2, lon2):
+    p1, p2 = math.radians(lat1), math.radians(lat2)
+    dl = math.radians(lon2 - lon1)
+    c = math.sin(p1) * math.sin(p2) + math.cos(p1) * math.cos(p2) * math.cos(dl)
+    return RE * math.acos(max(-1.0, min(1.0, c)))
+
+def _footprint_radius_km(alt_km, elev_deg):
+    e = math.radians(elev_deg)
+    lam = math.acos(RE / (RE + alt_km) * math.cos(e)) - e
+    return RE * lam
+
+def build_masks(demand_cells, stations, alt_km,
+                service_elev_deg=25.0, station_min_elev_deg=10.0):
+    """Маски из карты спроса и зон станций.
+
+    В маску приёма входят только ячейки с НЕНУЛЕВЫМ весом: ячейка без спроса —
+    не повод включать приёмник. Версия маски — свёртка содержимого: изменение
+    карты спроса обязано перегенерировать маску, и это видно по версии.
+    """
+    rx = sorted((c['lat'], c['lon']) for c in demand_cells if c.get('weight', 0) > 0)
+    dl = sorted((s['lat'], s['lon']) for s in stations)
+    payload = repr((rx, dl, alt_km, service_elev_deg, station_min_elev_deg)).encode()
+    return {'rx_cells': rx, 'rx_radius_km': _footprint_radius_km(alt_km, service_elev_deg),
+            'downlink_cells': dl,
+            'downlink_radius_km': _footprint_radius_km(alt_km, station_min_elev_deg),
+            'version': hashlib.blake2b(payload, digest_size=8).hexdigest()}
+
+def classify_point(lat, lon, masks):
+    """Режим в точке трассы. Приоритет: сброс > приём > дежурство —
+    над станцией аппарат сбрасывает буфер, даже если под ним есть спрос."""
+    if any(_arc_km(lat, lon, la, lo) <= masks['downlink_radius_km']
+           for la, lo in masks['downlink_cells']):
+        return 'downlink'
+    if any(_arc_km(lat, lon, la, lo) <= masks['rx_radius_km']
+           for la, lo in masks['rx_cells']):
+        return 'rx'
+    return 'standby'
+
+def mode_fractions(track_points, masks):
+    """Доли витка по маскам вдоль трассы. Сумма равна единице по построению."""
+    if not track_points:
+        raise ValueError('трасса пуста: доли витка не определены')
+    counts = {'standby': 0, 'rx': 0, 'downlink': 0}
+    for lat, lon in track_points:
+        counts[classify_point(lat, lon, masks)] += 1
+    n = len(track_points)
+    return {mode: c / n for mode, c in counts.items()}
+
+def dynamic_scheduler(*_args, **_kwargs):
+    """Интерфейс динамического планировщика — ЗАГЛУШКА (ADR-004): вызов даёт
+    явную ошибку, а не тихое статическое расписание под видом динамического."""
+    raise NotImplementedError(
+        'динамический планировщик не входит в первую очередь (TZ-KA-009, ADR-004): '
+        'расписание режимов формируется статическими географическими масками')
+
 # ================= проверки =================
 def _run_checks():
 
@@ -166,6 +227,43 @@ def _run_checks():
           atmospheric_loss_db(5, 868e6) < 0.5, atmospheric_loss_db(5, 868e6))
     check("ниже 5° потери не экстраполируются плоским приближением",
           atmospheric_loss_db(1, 868e6) == atmospheric_loss_db(5, 868e6))
+
+
+    print("\nTZ-KA-009: режимы и географические маски")
+    # ячейка спроса на 100°в.д. — заведомо дальше зоны сброса станции (~1660 км)
+    CELLS = [{'lat': 55.0, 'lon': 37.0, 'weight': 0.6},
+             {'lat': 50.0, 'lon': 100.0, 'weight': 0.4},
+             {'lat': 0.0, 'lon': -140.0, 'weight': 0.0}]
+    ST = [{'lat': 55.75, 'lon': 37.62}]
+    masks = build_masks(CELLS, ST, alt_km=550)
+    check("ячейка с нулевым весом в маску приёма не входит",
+          (0.0, -140.0) not in masks['rx_cells'] and len(masks['rx_cells']) == 2)
+    check("зоны станций образуют маску сброса", len(masks['downlink_cells']) == 1)
+    check("изменение карты спроса перегенерирует маску",
+          build_masks(CELLS[:1], ST, 550)['version'] != masks['version'])
+    check("изменение состава станций перегенерирует маску",
+          build_masks(CELLS, [], 550)['version'] != masks['version'])
+    check("над станцией — сброс, даже если есть спрос",
+          classify_point(55.75, 37.62, masks) == 'downlink')
+    check("над спросом без станции — приём",
+          classify_point(50.0, 100.0, masks) == 'rx')
+    check("над пустым океаном — дежурство",
+          classify_point(-10.0, -140.0, masks) == 'standby')
+    TRACK = [(55.75, 37.62), (50.0, 100.0), (-10.0, -140.0), (-40.0, 170.0)]
+    fr = mode_fractions(TRACK, masks)
+    check("доли витка в сумме дают единицу", abs(sum(fr.values()) - 1.0) < 1e-12)
+    check("доли отражают классификацию точек",
+          fr == {'downlink': 0.25, 'rx': 0.25, 'standby': 0.5}, fr)
+    try:
+        dynamic_scheduler('SC-0001')
+        check("заглушка планировщика даёт явную ошибку", False)
+    except NotImplementedError as e:
+        check("заглушка планировщика даёт явную ошибку", 'ADR-004' in str(e))
+    # замена источника расписания не меняет модуль потоков: маски выдают те же
+    # доли витка, что модель хранит в modes[].orbit_fraction, — форма одна
+    modes = [{'name': m, 'orbit_fraction': f} for m, f in sorted(fr.items())]
+    check("сгенерированные доли ложатся в то же поле, что ручные",
+          all(0.0 <= m['orbit_fraction'] <= 1.0 for m in modes) and len(modes) == 3)
 
     print("\nTZ-KA-005: зона обслуживания ≠ зона видимости")
     # A': односторонний приём сильной линии — ограничена геометрия.
