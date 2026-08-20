@@ -4,5 +4,5 @@ rootProject.name = "orbita"
 
 include(
     ":core:mod", ":core:com", ":core:req", ":core:usr", ":core:out",
-    ":core:bal", ":core:ka", ":core:net", ":core:flw",
+    ":core:bal", ":core:ka", ":core:net", ":core:flw", ":core:ai",
 )
