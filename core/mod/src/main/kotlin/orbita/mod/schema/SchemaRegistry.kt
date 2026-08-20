@@ -60,6 +60,10 @@ class SchemaRegistry(schemasDir: Path) {
         factory.getSchema(SchemaLocation.of("$ID_PREFIX$name.schema.json"), config)
     }
 
+    private val rawSchemas: Map<String, JsonNode> = names.associateWith { name ->
+        mapper.readTree(schemasDir.resolve("$name.schema.json").toFile())
+    }
+
     init {
         // fail fast: любой неразрешимый $ref обнаруживается при старте, а не на первом запросе
         schemas.values.forEach { it.initializeValidators() }
@@ -67,6 +71,16 @@ class SchemaRegistry(schemasDir: Path) {
 
     fun schema(name: String): JsonSchema =
         schemas[name] ?: throw IllegalArgumentException(
+            "unknown schema '$name'; known: ${names.joinToString(", ")}"
+        )
+
+    /**
+     * Исходный текст схемы структурой. Нужен там, где схема сама является
+     * данными — например, схемой ответа промпт-пакета (TZ-AI-001): она берётся
+     * из реестра, а не пишется рядом второй копией.
+     */
+    fun raw(name: String): JsonNode =
+        rawSchemas[name] ?: throw IllegalArgumentException(
             "unknown schema '$name'; known: ${names.joinToString(", ")}"
         )
 

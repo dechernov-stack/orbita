@@ -1,0 +1,43 @@
+{
+  "_source": "Виды промпт-пакетов первой очереди (STEP-5 §1.1). Перечень конфигурируем без изменения кода (TZ-AI-001): переопределяется файлом из переменной ORBITA_PACKAGE_KINDS.",
+  "kinds": [
+    {
+      "id": "needs_to_services",
+      "input": "нужды, ограничения",
+      "output": "кандидаты сервисов с MOE",
+      "target_schema": "core/service"
+    },
+    {
+      "id": "services_to_requirements",
+      "input": "сервис, QoS-профили по классам",
+      "output": "системные требования с условиями",
+      "target_schema": "core/requirement"
+    },
+    {
+      "id": "requirement_quality",
+      "input": "пакет требований",
+      "output": "замечания и переформулировки",
+      "target_schema": "core/requirement"
+    },
+    {
+      "id": "requirement_decomposition",
+      "input": "требование, поддерево компонентов",
+      "output": "потомки с распределением и видом декомпозиции",
+      "target_schema": "core/requirement"
+    },
+    {
+      "id": "verification_approach",
+      "input": "требование, фаза",
+      "output": "события верификации с подходом и средством",
+      "target_schema": "core/requirement",
+      "target_pointer": "/properties/verification_events/items"
+    },
+    {
+      "id": "risk_register",
+      "input": "описание сценария",
+      "output": "записи реестра рисков",
+      "target_schema": null,
+      "_note": "Объект «риск» в модели не описан: схемы core/risk нет, требования TZ на реестр рисков нет — он упомянут только в Концепции 5.8. Вид зарегистрирован, но пакет по нему не собирается: схема ответа обязана соответствовать объекту модели (TZ-AI-001). Как только схема появится, вид заработает без изменения кода."
+    }
+  ]
+}
