@@ -102,3 +102,58 @@ export interface ComponentSpecification {
 
 /** Подписи единиц: подстановка на стороне представления, коды СИ в модели. */
 export type UnitLabels = Record<string, string>
+
+// ---------- экран 7: сравнение вариантов ----------
+
+export interface RadarOption {
+  name: string
+  values: Record<string, number>
+}
+
+export interface RadarSeriesEntry {
+  name: string
+  values: number[]
+}
+
+/** Диаграмма несёт состав набора, по которому нормирована: без него её сравнят с чужой. */
+export interface RadarChart {
+  axes: string[]
+  series: RadarSeriesEntry[]
+  normalizedOver: string[]
+}
+
+export interface ComparisonView {
+  options: RadarOption[]
+  radar: RadarChart
+  paretoFront: string[]
+  axes: string[]
+}
+
+// ---------- экран 12: система в целом ----------
+
+export interface RiskCell {
+  probability: number
+  impact: number
+  /** Критичность клетки посчитана сервером: раскраска — следствие правила. */
+  criticality: string
+  risks: string[]
+}
+
+export interface RegisterSummary {
+  total: number
+  active: number
+  distribution: Record<string, number>
+  escalate: string[]
+  closedRetained: string[]
+}
+
+export interface SystemOverview {
+  requirements: number
+  components: number
+  verification: Record<string, number>
+  budgets: Record<string, BudgetBar>
+  budgetsOverrun: string[]
+  riskSummary: RegisterSummary
+  riskMatrix: RiskCell[]
+  problems: string[]
+}

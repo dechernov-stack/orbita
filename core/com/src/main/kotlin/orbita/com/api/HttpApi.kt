@@ -270,6 +270,53 @@ class HttpApi(private val boundary: Boundary) {
                 respond(ex, 200, mapper.valueToTree(boundary.screens.card(id)))
             }
 
+            // Экран 6: глобус — CZML-поток с траекториями. Собственной модели
+            // движения в клиенте нет: трассы считает пропагатор на сервере.
+            method == "GET" && path == "/views/globe" -> {
+                val q = query(ex)
+                val config = orbita.bal.ConstellationConfig(
+                    incDeg = q["inc_deg"]?.toDoubleOrNull() ?: 53.0,
+                    total = q["total"]?.toIntOrNull() ?: 8,
+                    planes = q["planes"]?.toIntOrNull() ?: 2,
+                    phasing = q["phasing"]?.toIntOrNull() ?: 1,
+                    altKm = q["alt_km"]?.toDoubleOrNull() ?: 550.0,
+                )
+                val epoch = q["epoch"] ?: "2026-03-20T00:00:00.000Z"
+                val durationS = q["duration_s"]?.toDoubleOrNull() ?: 5400.0
+                val tracks = boundary.visibility.groundTracks(config, epoch, durationS)
+                respond(ex, 200, orbita.bal.VizData.czml(config, epoch, durationS, tracks, mapper))
+            }
+
+            // Экран 12: система в целом — сводки, бюджеты, матрица рисков
+            method == "GET" && path == "/views/system" ->
+                respond(ex, 200, mapper.valueToTree(boundary.screens.systemOverview()))
+
+            // Экран 7: сравнение вариантов — нормировка и Парето считаются здесь
+            method == "GET" && path == "/views/comparison" -> {
+                val options = boundary.results.activeForScenario(
+                    query(ex)["scenario"] ?: "SC-0001", "kpi",
+                ).map { r ->
+                    orbita.bal.RadarOption(
+                        r.payload.path("name").asText(),
+                        buildMap {
+                            listOf("quality", "cost", "reliability", "energy",
+                                "deployment_days", "launch_campaigns").forEach { axis ->
+                                r.payload.path(axis).takeIf { it.isNumber }?.let { put(axis, it.asDouble()) }
+                            }
+                        },
+                    )
+                }
+                if (options.size < 2) {
+                    respond(
+                        ex, 409,
+                        mapper.createObjectNode()
+                            .put("error", "сравнение требует не менее двух вариантов: нормировать не по чему"),
+                    )
+                } else {
+                    respond(ex, 200, mapper.valueToTree(orbita.out.comparisonView(options)))
+                }
+            }
+
             method == "GET" && Regex("^/views/components/(CM-[0-9]{4})$").matches(path) -> {
                 val id = path.removePrefix("/views/components/")
                 respond(ex, 200, mapper.valueToTree(boundary.screens.componentSpecification(id)))

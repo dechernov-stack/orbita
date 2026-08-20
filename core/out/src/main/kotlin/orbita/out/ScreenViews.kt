@@ -10,6 +10,8 @@ package orbita.out
 
 import orbita.mod.model.Lifecycle
 import orbita.req.ReqService
+import orbita.req.VerificationState
+import orbita.req.registerSummary
 import orbita.req.UnitLabels
 import orbita.req.renderConstraint
 import orbita.req.successCriterion
@@ -174,6 +176,44 @@ class ScreenViews(
             (name.ifBlank { id }) to bar
         }.toMap()
         return ComponentSpecification(componentId, rows, budgets)
+    }
+
+    /**
+     * Экран 12: система в целом. Все сводки считаются здесь — клиент получает
+     * готовые числа, включая критичность клеток матрицы рисков.
+     */
+    fun systemOverview(): SystemOverview {
+        val requirements = currentRequirements()
+        val components = req.objects.listCurrent()
+            .filter { (it.type == "component" || it.type == "interface") && it.status != Lifecycle.Cancelled }
+        val tree = requirementTree()
+
+        val budgets = tree.rows.filter { it.budget != null }.associate { it.id to it.budget!! }
+        val risks = req.risks()
+
+        val problems = buildList {
+            tree.rows.filter { it.verificationState == VerificationState.PlanIncomplete.label }
+                .forEach { add("${it.id}: план верификации неполон — нет закрывающего события") }
+            budgets.filterValues { it.overrun }
+                .forEach { (id, bar) -> add("$id: бюджет превышен на ${bar.overrunValue}") }
+            registerSummary(risks).escalate.forEach { add("$it: риск подлежит эскалации") }
+            req.elementsWithoutRequirements().forEach { add("$it: на элемент не распределено ни одного требования") }
+        }
+
+        return SystemOverview(
+            requirements = requirements.size,
+            components = components.size,
+            verification = tree.rows.groupingBy { it.verificationState }.eachCount().toSortedMap(),
+            budgets = budgets,
+            budgetsOverrun = budgets.filterValues { it.overrun }.keys.sorted(),
+            riskSummary = registerSummary(risks),
+            riskMatrix = riskMatrix(
+                risks.map {
+                    it.path("id").asText() to (it.path("probability").asInt() to it.path("impact").asInt())
+                },
+            ),
+            problems = problems,
+        )
     }
 
     private fun row(id: String, tree: RequirementTree): RequirementRow {

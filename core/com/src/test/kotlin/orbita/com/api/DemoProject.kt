@@ -20,6 +20,9 @@ import java.util.concurrent.TimeUnit
 /** Пометка демо-объектов: по ней они отличимы от рабочих (STEP-7-9 §7.2). */
 const val DEMO_AUTHOR = "demo"
 
+/** Сценарий сравнения вариантов демо-проекта. */
+const val DEMO_SCENARIO = "SC-0001"
+
 object DemoProject {
 
     private val mapper = ObjectMapper()
@@ -79,7 +82,37 @@ object DemoProject {
                 derivationKind = kind,
             )
         }
+
+        // Сценарий и результаты сравнения вариантов: экран 7 читает их из базы,
+        // а не получает списком в коде — так он работает на данных модели.
+        boundary.ingest(orbita.mod.model.CoreType.Scenario, scenarioJson(), DEMO_AUTHOR)
+        project.path("options").forEachIndexed { i, option ->
+            boundary.results.insert(
+                scenarioId = DEMO_SCENARIO,
+                kind = "kpi",
+                payload = option,
+                inputVersions = mapOf("demo_project" to "1"),
+                moduleVersion = "0.1",
+                rngSeed = 42L + i,
+            )
+        }
     }
+
+    private fun scenarioJson(): String = mapper.writeValueAsString(
+        mapper.createObjectNode().apply {
+            put("id", DEMO_SCENARIO)
+            put("name", "Сравнение вариантов построения «Орбита-IoT»")
+            put("constellation_ref", "CM-0010")
+            put("spacecraft_ref", "CM-0011")
+            put("demand_map_ref", "DM-0001")
+            put("delivery_mode", "store_and_forward")
+            put("epoch", "2026-03-20T00:00:00Z")
+            put("duration_s", 86400)
+            put("rng_seed", 42)
+            // схема сценария поля lifecycle не содержит: сценарий — расчётный
+            // случай, а не управляемый объект со статусом
+        },
+    )
 
     /** Есть ли в базе объекты, созданные не заполнением демо-проекта. */
     fun hasNonDemoObjects(boundary: Boundary): Boolean =
