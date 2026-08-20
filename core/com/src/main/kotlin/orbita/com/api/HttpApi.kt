@@ -24,6 +24,14 @@ import orbita.mod.store.StoredObject
 import java.net.InetSocketAddress
 import java.time.OffsetDateTime
 
+/**
+ * Идентификатор адаптера протокола, который отдаётся справочным запросом
+ * `/protocol-adapter`. Это форма обмена, а не выборка из хранилища: адаптер
+ * встроен в ядро, и объект модели с этим идентификатором может ещё не
+ * существовать (ADR-021).
+ */
+private const val PROTOCOL_ADAPTER_ID = "PA-0001"
+
 class HttpApi(private val boundary: Boundary) {
 
     private val mapper = ObjectMapper()
@@ -73,9 +81,11 @@ class HttpApi(private val boundary: Boundary) {
         val objectMatch = Regex("^/objects/([A-Z]{2,3}-[0-9]{4})(/.*)?$").find(path)
 
         when {
-            method == "POST" && Regex("^/objects/(need|service|requirement|component|scenario|risk)$").matches(path) -> {
-                val type = CoreType.byDbType(path.substringAfterLast('/'))
-                val stored = boundary.ingest(type, body(ex))
+            // Список видов выводится из состава типов, а не перечисляется руками:
+            // после ADR-021 их стало пятнадцать, и забытый в регулярном выражении
+            // вид означал бы объект, который модель хранит, но принять не может.
+            method == "POST" && objectTypePath(path) != null -> {
+                val stored = boundary.ingest(objectTypePath(path)!!, body(ex))
                 respond(ex, 201, summary(stored))
             }
 
@@ -378,6 +388,16 @@ class HttpApi(private val boundary: Boundary) {
                 respond(ex, 200, n)
             }
 
+            // Хранимая карта спроса (ADR-021): ячейки и веса берутся из
+            // сохранённого документа, а не пересчитываются. Сценарий ссылается
+            // именно на сохранённую карту.
+            method == "GET" && Regex("^/views/demand/(DM-[0-9]{4})$").matches(path) -> {
+                val id = path.removePrefix("/views/demand/")
+                val stored = boundary.objects.current(id)
+                    ?: throw NoSuchElementException("карта спроса $id в модели отсутствует")
+                respond(ex, 200, mapper.valueToTree(boundary.demand.fromDocument(stored.doc)))
+            }
+
             // Экран 4: карта спроса. Библиотека референсных сценариев — слой 3
             // (TZ-USR-006); её состав задаётся ресурсом, а не экраном.
             method == "GET" && path == "/views/demand/library" ->
@@ -394,20 +414,25 @@ class HttpApi(private val boundary: Boundary) {
             method == "GET" && path == "/views/spacecraft/presets" ->
                 respond(ex, 200, mapper.valueToTree(boundary.spacecraft.presetRows()))
 
-            // Бюджеты аппарата по модели КА. Модель проходит схему контракта
-            // до расчёта: считать по документу, не прошедшему схему, нельзя.
+            // Бюджеты аппарата по ХРАНИМОЙ модели КА (ADR-021). Модель берётся
+            // из хранилища по ссылке, а не приходит телом запроса: до CR-005
+            // экран жил в пределах сеанса и сохранить построенное было некуда.
+            method == "GET" && Regex("^/views/spacecraft/(SP-[0-9]{4})$").matches(path) -> {
+                val id = path.removePrefix("/views/spacecraft/")
+                val stored = boundary.objects.current(id)
+                    ?: throw NoSuchElementException("модель аппарата $id в модели отсутствует")
+                respond(ex, 200, mapper.valueToTree(boundary.spacecraft.build(stored.doc, conditions(query(ex)))))
+            }
+
+            // Расчёт по ещё не сохранённой модели: экран считает до записи.
+            // Документ проходит схему контракта — считать по не прошедшему нельзя.
             method == "POST" && path == "/views/spacecraft" -> {
                 val request = mapper.readTree(body(ex))
                 val doc = request.path("spacecraft")
                 boundary.validateContract("contracts/spacecraft", mapper.writeValueAsString(doc))
                     .takeIf { it.isNotEmpty() }
                     ?.let { return respond(ex, 422, errorsJson(it)) }
-                respond(
-                    ex, 200,
-                    mapper.valueToTree(
-                        boundary.spacecraft.build(doc, massItems(request), conditions(request)),
-                    ),
-                )
+                respond(ex, 200, mapper.valueToTree(boundary.spacecraft.build(doc, conditions(request))))
             }
 
             // Экран 6: глобус — CZML-поток с траекториями. Собственной модели
@@ -483,7 +508,7 @@ class HttpApi(private val boundary: Boundary) {
 
             // Параметры канала отдаются только адаптером (TZ-NET-001, TZ-NET-006)
             method == "GET" && path == "/protocol-adapter" ->
-                respond(ex, 200, boundary.protocolAdapter.toContractJson(mapper))
+                respond(ex, 200, boundary.protocolAdapter.toContractJson(PROTOCOL_ADAPTER_ID, mapper))
 
             method == "POST" && path.startsWith("/validate/") -> {
                 val schema = path.removePrefix("/validate/")
@@ -498,6 +523,14 @@ class HttpApi(private val boundary: Boundary) {
                 mapper.createObjectNode().put("error", "no route: $method /api$path"),
             )
         }
+    }
+
+    /** Вид объекта из пути `/objects/<db_type>`; null — путь не про приём объекта. */
+    private fun objectTypePath(path: String): CoreType? {
+        val name = path.removePrefix("/objects/")
+        if (path == name || '/' in name) return null
+        // интерфейс принимается своим маршрутом контура требований, а не здесь
+        return CoreType.entries.firstOrNull { it.dbType == name }
     }
 
     private fun body(ex: HttpExchange): String = ex.requestBody.readAllBytes().decodeToString()
@@ -538,14 +571,8 @@ class HttpApi(private val boundary: Boundary) {
         seasonal = request.path("seasonal").takeIf { it.isArray }?.map { it.asDouble() },
     )
 
-    /** Ведомость масс экрана 5: зрелость обязательна — она задаёт резерв (TZ-KA-002). */
-    private fun massItems(request: JsonNode) = request.path("mass_items").map {
-        orbita.ka.MassItem(
-            name = it.path("name").asText(),
-            massKg = it.path("mass_kg").asDouble(),
-            maturity = orbita.ka.Maturity.of(it.path("maturity").asText()),
-        )
-    }
+    // Ведомость масс телом запроса больше не приходит: после CR-006 она часть
+    // модели аппарата (platform.mel), а не состояние экрана.
 
     private fun conditions(request: JsonNode) = request.path("conditions").let { c ->
         orbita.out.SpacecraftConditions(
@@ -556,6 +583,15 @@ class HttpApi(private val boundary: Boundary) {
             plannedPayloadDuty = c.path("planned_payload_duty").asDouble(0.5),
         )
     }
+
+    /** Условия оценки из строки запроса — для хранимой модели аппарата. */
+    private fun conditions(q: Map<String, String>) = orbita.out.SpacecraftConditions(
+        altKm = q["alt_km"]?.toDoubleOrNull() ?: 550.0,
+        worstBetaDeg = q["worst_beta_deg"]?.toDoubleOrNull() ?: 0.0,
+        minElevDeg = q["min_elev_deg"]?.toDoubleOrNull() ?: 5.0,
+        yearsInOrbit = q["years_in_orbit"]?.toDoubleOrNull() ?: 0.0,
+        plannedPayloadDuty = q["planned_payload_duty"]?.toDoubleOrNull() ?: 0.5,
+    )
 
     private fun hops(hops: List<orbita.mod.store.TraceHop>): ArrayNode =
         mapper.createArrayNode().apply { hops.forEach { addObject().put("id", it.id).put("depth", it.depth) } }

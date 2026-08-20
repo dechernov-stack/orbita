@@ -21,7 +21,7 @@ class TerminalAndLibraryTest {
 
     private fun profile(klass: String, mutate: (ObjectNode) -> Unit = {}): ObjectNode =
         (mapper.readTree(
-            """{"id": "T-1", "consumer_class": "$klass",
+            """{"id": "TP-0001", "consumer_class": "$klass",
                 "radio": {"eirp_dbm": 14, "rx_sensitivity_dbm": -137},
                 "generation": {"model": "periodic", "rate_per_day": 24, "payload_bytes": 24},
                 "ephemeris": {"knows_ephemeris": true, "max_almanac_age_s": 86400, "degraded_rate_factor": 0.2}}"""
@@ -112,7 +112,7 @@ class TerminalAndLibraryTest {
         val seeds = library.expandSeeds("maritime_vessels")
         val cells = DemandMapBuilder.build(emptyList(), scenarios = seeds)
         val doc = DemandMapBuilder.toContractJson(
-            "DM-1", cells, terminalsPerCapita = 0.02,
+            "DM-0001", cells, terminalsPerCapita = 0.02,
             scenarioLibraryIds = listOf("maritime_vessels"), libraryVersion = library.version,
         )
         // документ карты валиден по нормативной схеме contracts/demand-map

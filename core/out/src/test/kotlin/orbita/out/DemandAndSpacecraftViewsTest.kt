@@ -142,32 +142,40 @@ class SpacecraftViewsTest {
     private val mapper = ObjectMapper()
     private val views = SpacecraftViews()
 
-    private val massItems = listOf(
-        MassItem("Конструкция", 8.0, Maturity.Existing),
-        MassItem("СЭП", 6.0, Maturity.Modified),
-        MassItem("ПН", 9.0, Maturity.New),
-    )
+    /** Ведомость масс — часть модели аппарата (CR-006), а не параметр экрана. */
+    private val mel =
+        """[{"name":"Конструкция","subsystem":"structure","mass_kg":8.0,"maturity":"existing"},
+            {"name":"СЭП","subsystem":"power","mass_kg":6.0,"maturity":"modified"},
+            {"name":"ПН","subsystem":"payload","mass_kg":9.0,"maturity":"new"}]"""
+
+    /** Ведомость с добавленной позицией: сборка строкой, а не правкой JSON руками. */
+    private fun melPlus(item: String): String = mel.trimEnd().removeSuffix("]") + ",$item]"
 
     private fun model(
         beacon: Boolean = true,
         txPowerW: Double = 2.0,
         gainDbi: Double = 6.0,
+        mel: String = this.mel,
+        modes: String = """[{"name":"standby","power_w":6.0,"orbit_fraction":1.0}]""",
+        beaconPeriodS: Double = 60.0,
     ) = mapper.readTree(
-        """{"id":"SC-0001","preset":"cubesat_16u",
+        """{"id":"SP-0001","preset":"cubesat_16u",
             "platform":{"dry_mass_kg":30,
               "power":{"sa_area_m2":0.18,"sa_efficiency":0.29,"battery_wh":120},
-              "attitude":{"pointing_accuracy_deg":1}},
+              "attitude":{"pointing_accuracy_deg":1},
+              "mel":$mel},
             "payload":{"architecture":"regenerative",
               "links":[{"id":"RL-DN","role":"user_downlink","band_hz":868000000,
                 "tx_power_w":$txPowerW,"g_over_t_db_k":-22,"required_margin_db":3,
                 "antenna":{"type":"patch","gain_dbi":$gainDbi}}],
               "onboard":{"buffer_mb":64}
-              ${if (beacon) ""","ephemeris_beacon":{"enabled":true,"period_s":60,"format":"orbit_model"}""" else ""}}}"""
+              ${if (beacon) ""","ephemeris_beacon":{"enabled":true,"period_s":$beaconPeriodS,"format":"orbit_model"}""" else ""}},
+            "modes":$modes}"""
     )
 
     @Test
     fun `резерв по зрелости применяется поэлементно, а не общей надбавкой`() {
-        val view = views.build(model(), massItems)
+        val view = views.build(model())
         // 8·1.05 + 6·1.15 + 9·1.25 = 26.55; с системным резервом 10 % — 29.205,
         // на экране — округлённые до четырёх значащих 29.21
         assertEquals(29.21, view.mass.dryMassKg, 1e-9)
@@ -180,22 +188,36 @@ class SpacecraftViewsTest {
 
     @Test
     fun `масса вне диапазона платформы помечается со ссылкой на ADR`() {
-        val heavy = massItems + MassItem("Балласт", 90.0, Maturity.Existing)
-        val view = views.build(model(), heavy)
+        val heavy = melPlus("""{"name":"Балласт","subsystem":"structure","mass_kg":90.0,"maturity":"existing"}""")
+        val view = views.build(model(mel = heavy))
         assertFalse(view.mass.withinPlatformRange)
         assertTrue(view.issues.any { it.contains("ADR-002") })
     }
 
+    /**
+     * Маяк входит в циклограмму слагаемым (TZ-KA-006). Сравнивать «с маяком»
+     * и «без маяка» по одному периоду нельзя: вклад маяка при периоде 60 с
+     * лежит ниже четвёртой значащей цифры, до которой округляется величина
+     * представления, и строгое сравнение сорвалось бы на округлении, а не
+     * на модели. Проверяется наблюдаемое свойство: чаще маяк — меньше
+     * остаётся полезной нагрузке.
+     */
     @Test
     fun `энергия маяка входит в баланс слагаемым`() {
-        val withBeacon = views.build(model(beacon = true), massItems)
-        val withoutBeacon = views.build(model(beacon = false), massItems)
+        val withBeacon = views.build(model(beacon = true))
+        val withoutBeacon = views.build(model(beacon = false))
         assertNotNull(withBeacon.beacon)
         assertNull(withoutBeacon.beacon)
         assertTrue(withBeacon.power.beaconWh > 0.0)
-        // маяк отбирает энергию: допустимая скважность ПН с ним СТРОГО меньше
+        assertEquals(0.0, withoutBeacon.power.beaconWh)
+
+        val frequent = views.build(model(beacon = true, beaconPeriodS = 1.0))
         assertTrue(
-            withBeacon.power.allowedPayloadDuty < withoutBeacon.power.allowedPayloadDuty,
+            frequent.power.beaconWh > withBeacon.power.beaconWh,
+            "частый маяк не стоит дороже редкого — значит, период в расчёт не входит",
+        )
+        assertTrue(
+            frequent.power.allowedPayloadDuty < withoutBeacon.power.allowedPayloadDuty,
             "маяк не изменил допустимую скважность — значит, в циклограмму он не вошёл",
         )
     }
@@ -207,7 +229,7 @@ class SpacecraftViewsTest {
      */
     @Test
     fun `баланс считается при заявленной скважности, а не при допустимой`() {
-        val view = views.build(model(), massItems, SpacecraftConditions(plannedPayloadDuty = 0.2))
+        val view = views.build(model(), SpacecraftConditions(plannedPayloadDuty = 0.2))
         assertEquals(0.2, view.power.plannedPayloadDuty)
         assertTrue(view.power.allowedPayloadDuty > 0.2)
         assertTrue(view.power.balanceWh > 0.0, "запас энергии при малой скважности не показан")
@@ -216,7 +238,7 @@ class SpacecraftViewsTest {
 
     @Test
     fun `скважность выше допустимой названа нарушением, а не молча урезана`() {
-        val view = views.build(model(), massItems, SpacecraftConditions(plannedPayloadDuty = 0.99))
+        val view = views.build(model(), SpacecraftConditions(plannedPayloadDuty = 0.99))
         assertFalse(view.power.dutyOk)
         assertTrue(view.power.balanceWh < 0.0)
         assertTrue(view.issues.any { it.contains("выше допустимой") })
@@ -225,13 +247,13 @@ class SpacecraftViewsTest {
 
     @Test
     fun `отсутствие маяка названо нарушением Р5`() {
-        val view = views.build(model(beacon = false), massItems)
+        val view = views.build(model(beacon = false))
         assertTrue(view.issues.any { it.contains("ADR-005") })
     }
 
     @Test
     fun `линия без энергетики не замыкается и названа так`() {
-        val view = views.build(model(txPowerW = 0.001, gainDbi = -20.0), massItems)
+        val view = views.build(model(txPowerW = 0.001, gainDbi = -20.0))
         val link = view.links.single()
         assertFalse(link.closes)
         assertNull(link.serviceElevationDeg)
@@ -240,13 +262,13 @@ class SpacecraftViewsTest {
 
     @Test
     fun `запас в надире не меньше запаса на границе зоны`() {
-        val link = views.build(model(), massItems).links.single()
+        val link = views.build(model()).links.single()
         assertTrue(link.marginAtZenithDb >= link.marginAtMinElevDb)
     }
 
     @Test
     fun `TPM собирается из модели, а не заполняется вручную`() {
-        val view = views.build(model(), massItems)
+        val view = views.build(model())
         assertEquals(
             listOf("Сухая масса", "Запас худшей линии", "Скважность ПН", "Глубина разряда АБ"),
             view.tpm.map { it.name },
@@ -258,10 +280,10 @@ class SpacecraftViewsTest {
 
     @Test
     fun `превышение массы над целью помечается выходом за резерв`() {
-        val ok = views.build(model(), massItems)
+        val ok = views.build(model())
         assertFalse(ok.tpm.first { it.name == "Сухая масса" }.breached)
-        val heavy = massItems + MassItem("Довесок", 20.0, Maturity.New)
-        val view = views.build(model(), heavy)
+        val heavy = melPlus("""{"name":"Довесок","subsystem":"payload","mass_kg":20.0,"maturity":"new"}""")
+        val view = views.build(model(mel = heavy))
         assertTrue(view.tpm.first { it.name == "Сухая масса" }.breached)
     }
 
@@ -273,12 +295,65 @@ class SpacecraftViewsTest {
     @Test
     fun `округление не отменяет вердикт о выходе за диапазон`() {
         // 86.4·1.05·1.1 = 99.792 — в диапазоне; 86.5·1.05·1.1 = 99.9075 — тоже
-        val edge = listOf(MassItem("Платформа", 86.62, Maturity.Existing))
-        val view = views.build(model(), edge)
+        val edge = """[{"name":"Платформа","subsystem":"structure","mass_kg":86.62,"maturity":"existing"}]"""
+        val view = views.build(model(mel = edge))
         // масса 100.04 кг: на экране 100.0, но вердикт — вне диапазона
         assertEquals(100.0, view.mass.dryMassKg, 1e-9)
         assertFalse(view.mass.withinPlatformRange)
         assertTrue(view.issues.any { it.contains("ADR-002") })
+    }
+
+    /**
+     * CR-006: ведомость — часть модели, а не параметр экрана. Расчёт без неё
+     * обязан падать: молчаливый ноль выглядит как результат.
+     */
+    @Test
+    fun `модель без ведомости масс не считается, а падает`() {
+        val e = assertThrows(orbita.mod.model.MissingMelException::class.java) {
+            views.build(model(mel = "[]"))
+        }
+        assertTrue(e.message!!.contains("ведомость масс не задана"))
+    }
+
+    /**
+     * CR-007: раньше виток делился поровну между режимами и это было названо
+     * вслух. Допущение всё равно недопустимо — оно даёт правдоподобное число,
+     * которое ни о чём не говорит.
+     */
+    @Test
+    fun `режим без доли витка не делится поровну, а роняет расчёт`() {
+        val e = assertThrows(orbita.mod.model.MissingOrbitFractionException::class.java) {
+            views.build(model(modes = """[{"name":"standby","power_w":6.0},{"name":"rx","power_w":9.0}]"""))
+        }
+        assertTrue(e.message!!.contains("доля витка не задана"))
+    }
+
+    @Test
+    fun `доли витка, не дающие единицу, отклонены`() {
+        val e = assertThrows(IllegalArgumentException::class.java) {
+            views.build(
+                model(
+                    modes = """[{"name":"standby","power_w":6.0,"orbit_fraction":0.4},
+                                {"name":"rx","power_w":9.0,"orbit_fraction":0.4}]""",
+                ),
+            )
+        }
+        assertTrue(e.message!!.contains("в сумме дают"))
+    }
+
+    @Test
+    fun `циклограмма из модели влияет на потребление`() {
+        val quiet = views.build(
+            model(modes = """[{"name":"standby","power_w":6.0,"orbit_fraction":1.0}]"""),
+        )
+        val busy = views.build(
+            model(
+                modes = """[{"name":"standby","power_w":6.0,"orbit_fraction":0.2},
+                            {"name":"downlink","power_w":40.0,"orbit_fraction":0.8}]""",
+            ),
+        )
+        assertTrue(busy.power.consumedWh > quiet.power.consumedWh)
+        assertTrue(busy.power.balanceWh < quiet.power.balanceWh)
     }
 
     @Test

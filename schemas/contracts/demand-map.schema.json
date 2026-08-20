@@ -4,77 +4,172 @@
   "title": "DemandMap",
   "description": "Карта спроса — контракт «потребители → баллистика, потоки». Трёхслойная (Р8/ADR-008).",
   "type": "object",
-  "required": ["id", "grid", "layers", "cells", "version"],
+  "required": [
+    "id",
+    "grid",
+    "layers",
+    "cells",
+    "version"
+  ],
   "additionalProperties": false,
   "properties": {
-    "id": { "type": "string" },
-    "version": { "type": "string" },
+    "id": {
+      "type": "string",
+      "pattern": "^DM-[0-9]{4}$",
+      "description": "Карта спроса — хранимый объект модели: на него ссылается сценарий, а версия входит в input_versions (TZ-COM-006)"
+    },
+    "version": {
+      "type": "string"
+    },
     "grid": {
       "type": "object",
-      "required": ["type", "nominal_cell_km"],
+      "required": [
+        "type",
+        "nominal_cell_km"
+      ],
       "additionalProperties": false,
       "properties": {
-        "type": { "enum": ["h3", "equal_area_lat"], "description": "Равноплощадная сетка обязательна: иначе веса широт искажаются" },
-        "nominal_cell_km": { "type": "number", "description": "Первое приближение — 100" },
-        "resolution": { "type": "integer" }
+        "type": {
+          "enum": [
+            "h3",
+            "equal_area_lat"
+          ],
+          "description": "Равноплощадная сетка обязательна: иначе веса широт искажаются"
+        },
+        "nominal_cell_km": {
+          "type": "number",
+          "description": "Первое приближение — 100"
+        },
+        "resolution": {
+          "type": "integer"
+        }
       }
     },
     "layers": {
       "type": "object",
       "description": "Три слоя формирования спроса (Р8)",
-      "required": ["population"],
+      "required": [
+        "population"
+      ],
       "additionalProperties": false,
       "properties": {
         "population": {
           "type": "object",
-          "required": ["dataset", "terminals_per_capita"],
+          "required": [
+            "dataset",
+            "terminals_per_capita"
+          ],
           "additionalProperties": false,
           "properties": {
-            "dataset": { "type": "string", "description": "Открытый датасет плотности населения на сетке" },
-            "terminals_per_capita": { "type": "number", "exclusiveMinimum": 0 }
+            "dataset": {
+              "type": "string",
+              "description": "Открытый датасет плотности населения на сетке"
+            },
+            "terminals_per_capita": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
           }
         },
-        "point_objects": { "type": "boolean", "description": "Единичные объекты и маршруты вне корреляции с населением (СМП и т.п.)" },
-        "scenario_library": { "type": "array", "items": { "type": "string" } }
+        "point_objects": {
+          "type": "boolean",
+          "description": "Единичные объекты и маршруты вне корреляции с населением (СМП и т.п.)"
+        },
+        "scenario_library": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
       }
     },
     "cells": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["cell_id", "lat_deg", "lon_deg", "demand"],
+        "required": [
+          "cell_id",
+          "lat_deg",
+          "lon_deg",
+          "demand"
+        ],
         "additionalProperties": false,
         "properties": {
-          "cell_id": { "type": "string" },
-          "lat_deg": { "type": "number", "minimum": -90, "maximum": 90 },
-          "lon_deg": { "type": "number", "minimum": -180, "maximum": 180 },
-          "area_km2": { "type": "number" },
+          "cell_id": {
+            "type": "string"
+          },
+          "lat_deg": {
+            "type": "number",
+            "minimum": -90,
+            "maximum": 90
+          },
+          "lon_deg": {
+            "type": "number",
+            "minimum": -180,
+            "maximum": 180
+          },
+          "area_km2": {
+            "type": "number"
+          },
           "demand": {
-            "type": "array", "minItems": 1,
+            "type": "array",
+            "minItems": 1,
             "items": {
               "type": "object",
-              "required": ["terminal_profile_ref", "count", "uplink_msgs_per_day"],
+              "required": [
+                "terminal_profile_ref",
+                "count",
+                "uplink_msgs_per_day"
+              ],
               "additionalProperties": false,
               "properties": {
-                "terminal_profile_ref": { "type": "string" },
-                "count": { "type": "integer", "minimum": 0 },
-                "uplink_msgs_per_day": { "type": "number", "minimum": 0 },
-                "downlink_msgs_per_day": { "type": "number", "minimum": 0 },
-                "weight": { "type": "number", "minimum": 0, "description": "Вес ячейки в интеграле качества" }
+                "terminal_profile_ref": {
+                  "type": "string"
+                },
+                "count": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "uplink_msgs_per_day": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "downlink_msgs_per_day": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "weight": {
+                  "type": "number",
+                  "minimum": 0,
+                  "description": "Вес ячейки в интеграле качества"
+                }
               }
             }
           },
           "diurnal_profile": {
-            "type": "array", "minItems": 24, "maxItems": 24,
-            "items": { "type": "number", "minimum": 0 },
+            "type": "array",
+            "minItems": 24,
+            "maxItems": 24,
+            "items": {
+              "type": "number",
+              "minimum": 0
+            },
             "description": "Почасовые множители интенсивности"
           },
           "seasonal_profile": {
-            "type": "array", "minItems": 12, "maxItems": 12,
-            "items": { "type": "number", "minimum": 0 }
+            "type": "array",
+            "minItems": 12,
+            "maxItems": 12,
+            "items": {
+              "type": "number",
+              "minimum": 0
+            }
           }
         }
       }
+    },
+    "lifecycle": {
+      "$ref": "https://kis.local/schemas/common/status.schema.json"
     }
   }
 }

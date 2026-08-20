@@ -15,7 +15,7 @@
         { "cell_id": "agro-55", "lat": 55, "lon": 50, "terminals": 10000 }
       ],
       "terminal_profile": {
-        "id": "T-AGRO",
+        "id": "TP-0101",
         "consumer_class": "A_prime",
         "radio": { "eirp_dbm": 14, "rx_sensitivity_dbm": -137 },
         "environment": "open_sky",
@@ -37,7 +37,7 @@
         { "cell_id": "meter-55", "lat": 55, "lon": 38, "terminals": 60000 }
       ],
       "terminal_profile": {
-        "id": "T-METER",
+        "id": "TP-0102",
         "consumer_class": "B_prime",
         "radio": { "eirp_dbm": 14, "rx_sensitivity_dbm": -134 },
         "environment": "indoor",
@@ -61,7 +61,7 @@
         { "cell_id": "pipe-68", "lat": 68, "lon": 78, "terminals": 1500 }
       ],
       "terminal_profile": {
-        "id": "T-PIPE",
+        "id": "TP-0103",
         "consumer_class": "B_prime",
         "radio": { "eirp_dbm": 16, "rx_sensitivity_dbm": -137 },
         "environment": "open_sky",
@@ -85,7 +85,7 @@
         { "cell_id": "route-56", "lat": 56, "lon": 85, "terminals": 6000 }
       ],
       "terminal_profile": {
-        "id": "T-TRACK",
+        "id": "TP-0104",
         "consumer_class": "B_prime",
         "radio": { "eirp_dbm": 14, "rx_sensitivity_dbm": -136 },
         "environment": "shadowed",
@@ -109,7 +109,7 @@
         { "cell_id": "sea-42", "lat": 42, "lon": 132, "terminals": 900 }
       ],
       "terminal_profile": {
-        "id": "T-SEA",
+        "id": "TP-0105",
         "consumer_class": "C_prime",
         "radio": { "eirp_dbm": 20, "rx_sensitivity_dbm": -137 },
         "environment": "open_sky",
@@ -133,7 +133,7 @@
         { "cell_id": "eco-68", "lat": 68, "lon": 125, "terminals": 1200 }
       ],
       "terminal_profile": {
-        "id": "T-ECO",
+        "id": "TP-0106",
         "consumer_class": "A_prime",
         "radio": { "eirp_dbm": 10, "rx_sensitivity_dbm": -139 },
         "environment": "open_sky",

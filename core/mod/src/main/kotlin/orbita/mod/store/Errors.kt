@@ -30,7 +30,25 @@ internal fun <T> mappingConstraints(block: () -> T): T {
                 "TZ-MOD-007: object id is already in use; ids are stable and must not be reused", e
             )
             "id_pattern" -> ModelViolationException(
-                "TZ-MOD-007: object id must match (ND|SV|RQ|CM|SC)-NNNN", e
+                "TZ-MOD-007 (id_pattern): object id must match " +
+                    "(${orbita.mod.model.CoreType.entries.joinToString("|") { it.idPrefix }})-NNNN",
+                e,
+            )
+            // CR-005/ADR-021: ограничения миграции V008 на входы моделирования
+            "scenario_refs_typed" -> ModelViolationException(
+                "CR-005 (scenario_refs_typed): ссылки сценария обязаны вести на хранимые объекты " +
+                    "нужного вида — CN, SP, DM, GS, PA; требуемый вид задаёт поле, а не префикс",
+                e,
+            )
+            "scenario_input_versions" -> ModelViolationException(
+                "TZ-COM-006 (scenario_input_versions): версии входов не зафиксированы — " +
+                    "результат такого сценария невоспроизводим",
+                e,
+            )
+            "constellation_sso_ltan" -> ModelViolationException(
+                "TZ-BAL-003 (constellation_sso_ltan): для ССО обязателен LTAN — " +
+                    "без него прецессия не определена",
+                e,
             )
             "scenario_pattern" -> ModelViolationException(
                 "TZ-MOD-007: scenario id must match SC-NNNN", e

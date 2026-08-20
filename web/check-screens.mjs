@@ -140,11 +140,13 @@ await shot('02-services')
 
 console.log('Ш2 · экран 4: карта спроса')
 await open(2, 'Карта спроса')
-await page.waitForSelector('.empty, svg rect')
-expect(
-  (await page.$$('.empty')).length > 0,
-  'пустая карта названа пустой, а не показана нулями',
-)
+await page.waitForSelector('svg rect')
+// Экран открывается на ХРАНИМОЙ карте (ADR-021): именно на неё ссылается
+// сценарий. До CR-005 карта жила в сеансе, и уход с экрана терял её.
+const storedMapId = await page.$eval('.pane .chip', (e) => e.innerText)
+expect(/^DM-\d{4}$/.test(storedMapId.trim()), `показана хранимая карта ${storedMapId.trim()}`)
+const storedCells = (await page.$$('svg rect')).length
+expect(storedCells > 0, `ячейки хранимой карты отрисованы (${storedCells})`)
 // слой библиотеки включается кнопкой — это и есть проход шага интерфейсом
 await page.click('.pane .tab:has-text("Агромониторинг")')
 await page.waitForSelector('svg rect')
@@ -296,12 +298,19 @@ expect(spec.every((r) => /\d+ из \d+/.test(r[4])), 'прогресс собы�
 
 console.log('Ш4 · экран 5: модель космического аппарата')
 await open(4, 'Модель КА')
-await page.waitForSelector('.card:has-text("массовый бюджет") tbody tr')
-const mass = await page.$$eval('.card:has-text("массовый бюджет") tbody tr', (trs) =>
+await page.waitForSelector('.card:has-text("ведомость масс") tbody tr')
+const mass = await page.$$eval('.card:has-text("ведомость масс") tbody tr', (trs) =>
   trs.map((tr) => [...tr.querySelectorAll('td')].map((td) => td.innerText.trim())),
 )
 expect(mass.length >= 3, `ведомость масс отрисована (${mass.length})`)
 expect(new Set(mass.map((r) => r[3])).size > 1, 'резерв по зрелости различается по элементам')
+// Ведомость и циклограмма пришли из ХРАНИМОЙ модели (ADR-021), а не из полей
+// экрана: до CR-005 уход с экрана терял их, а сценарий ссылался в никуда.
+expect(
+  (await page.$$('.pane .id')).length > 0 &&
+    (await page.$eval('.pane .id', (e) => e.innerText)).startsWith('SP-'),
+  'экран показывает идентификатор хранимой модели аппарата',
+)
 const links = await page.$$eval('.card:has-text("радиолинии") tbody tr', (trs) =>
   trs.map((tr) => [...tr.querySelectorAll('td')].map((td) => td.innerText.trim())),
 )

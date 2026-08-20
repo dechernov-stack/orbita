@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/core/constellation.schema.json",
+  "title": "Constellation",
+  "description": "Конфигурация группировки. Хранимый объект: сценарий ссылается на него, версия входит в input_versions.",
+  "type": "object",
+  "required": [
+    "id",
+    "kind"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^CN-[0-9]{4}$"
+    },
+    "name": {
+      "type": "string"
+    },
+    "kind": {
+      "enum": [
+        "walker_delta",
+        "explicit"
+      ]
+    },
+    "walker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "inclination_deg",
+        "total",
+        "planes",
+        "phasing",
+        "altitude_km"
+      ],
+      "properties": {
+        "inclination_deg": {
+          "type": "number"
+        },
+        "total": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "planes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "phasing": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "altitude_km": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "sso": {
+          "type": "boolean"
+        },
+        "ltan_h": {
+          "type": "number",
+          "description": "Обязателен для ССО (TZ-BAL-003)"
+        }
+      }
+    },
+    "orbits": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "inclination_deg",
+          "altitude_km",
+          "raan_deg",
+          "mean_anomaly_deg"
+        ],
+        "properties": {
+          "inclination_deg": {
+            "type": "number"
+          },
+          "altitude_km": {
+            "type": "number"
+          },
+          "raan_deg": {
+            "type": "number"
+          },
+          "mean_anomaly_deg": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "lifecycle": {
+      "$ref": "https://kis.local/schemas/common/status.schema.json"
+    }
+  }
+}

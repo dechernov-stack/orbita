@@ -4,43 +4,109 @@
   "title": "TerminalProfile",
   "description": "Профиль терминала. Кодирует решения Р5 (обязательные эфемериды), Р6 (эфемеридный backoff), Р7 (подвижность без роуминга).",
   "type": "object",
-  "required": ["id", "consumer_class", "radio", "generation", "ephemeris"],
+  "required": [
+    "id",
+    "consumer_class",
+    "radio",
+    "generation",
+    "ephemeris"
+  ],
   "additionalProperties": false,
   "properties": {
-    "id": { "type": "string" },
-    "consumer_class": { "enum": ["A_prime", "B_prime", "C_prime"] },
-    "regulatory_region": { "enum": ["EU868", "US915", "RU864", "AS923"] },
+    "id": {
+      "type": "string",
+      "pattern": "^TP-[0-9]{4}$",
+      "description": "Профиль терминала — хранимый объект модели: на него ссылается сценарий, а версия входит в input_versions (TZ-COM-006)"
+    },
+    "consumer_class": {
+      "enum": [
+        "A_prime",
+        "B_prime",
+        "C_prime"
+      ]
+    },
+    "regulatory_region": {
+      "enum": [
+        "EU868",
+        "US915",
+        "RU864",
+        "AS923"
+      ]
+    },
     "radio": {
       "type": "object",
-      "required": ["eirp_dbm", "rx_sensitivity_dbm"],
+      "required": [
+        "eirp_dbm",
+        "rx_sensitivity_dbm"
+      ],
       "additionalProperties": false,
       "properties": {
-        "eirp_dbm": { "type": "number" },
-        "antenna_gain_dbi": { "type": "number" },
-        "rx_sensitivity_dbm": { "type": "number" },
-        "duty_cycle_limit": { "type": "number", "minimum": 0, "maximum": 1 }
+        "eirp_dbm": {
+          "type": "number"
+        },
+        "antenna_gain_dbi": {
+          "type": "number"
+        },
+        "rx_sensitivity_dbm": {
+          "type": "number"
+        },
+        "duty_cycle_limit": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
       }
     },
     "environment": {
-      "enum": ["open_sky", "shadowed", "indoor"],
+      "enum": [
+        "open_sky",
+        "shadowed",
+        "indoor"
+      ],
       "description": "Дополнительное затухание учитывается адаптером протокола"
     },
     "generation": {
       "type": "object",
-      "required": ["model", "rate_per_day", "payload_bytes"],
+      "required": [
+        "model",
+        "rate_per_day",
+        "payload_bytes"
+      ],
       "additionalProperties": false,
       "properties": {
-        "model": { "enum": ["periodic", "poisson", "event_mmpp"] },
-        "rate_per_day": { "type": "number", "exclusiveMinimum": 0 },
-        "payload_bytes": { "type": "integer", "minimum": 1 },
+        "model": {
+          "enum": [
+            "periodic",
+            "poisson",
+            "event_mmpp"
+          ]
+        },
+        "rate_per_day": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "payload_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
         "event_correlation": {
           "type": "object",
           "description": "Для event_mmpp: корреляция событий внутри ячейки/региона (шторм будит тысячи датчиков)",
           "additionalProperties": false,
           "properties": {
-            "burst_multiplier": { "type": "number", "minimum": 1 },
-            "burst_duration_s": { "type": "number" },
-            "spatial_scope": { "enum": ["cell", "region"] }
+            "burst_multiplier": {
+              "type": "number",
+              "minimum": 1
+            },
+            "burst_duration_s": {
+              "type": "number"
+            },
+            "spatial_scope": {
+              "enum": [
+                "cell",
+                "region"
+              ]
+            }
           }
         }
       }
@@ -48,14 +114,27 @@
     "ephemeris": {
       "type": "object",
       "description": "Р5/ADR-005: знание эфемерид обязательно для всех классов",
-      "required": ["knows_ephemeris", "max_almanac_age_s"],
+      "required": [
+        "knows_ephemeris",
+        "max_almanac_age_s"
+      ],
       "additionalProperties": false,
       "properties": {
-        "knows_ephemeris": { "const": true, "description": "Слепая передача — только деградированный режим" },
-        "max_almanac_age_s": { "type": "number", "exclusiveMinimum": 0 },
-        "beacon_rx_period_s": { "type": "number" },
+        "knows_ephemeris": {
+          "const": true,
+          "description": "Слепая передача — только деградированный режим"
+        },
+        "max_almanac_age_s": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "beacon_rx_period_s": {
+          "type": "number"
+        },
         "degraded_rate_factor": {
-          "type": "number", "minimum": 0, "maximum": 1,
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
           "description": "Множитель интенсивности при устаревшем альманахе (отказовое состояние)"
         }
       }
@@ -65,36 +144,88 @@
       "description": "Для B'/C'. Р6/ADR-006: эфемеридный backoff",
       "additionalProperties": false,
       "properties": {
-        "ack_required": { "type": "boolean" },
-        "max_attempts_per_pass": { "type": "integer", "minimum": 1 },
-        "backoff": { "enum": ["random", "sf_channel_hop", "ephemeris_wait"] },
-        "ephemeris_backoff_enabled": { "type": "boolean", "description": "После N попыток — ожидание следующего КА" },
-        "buffer_depth_msgs": { "type": "integer", "minimum": 0 },
-        "blind_repeats": { "type": "integer", "minimum": 0, "description": "Только для A'" }
+        "ack_required": {
+          "type": "boolean"
+        },
+        "max_attempts_per_pass": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "backoff": {
+          "enum": [
+            "random",
+            "sf_channel_hop",
+            "ephemeris_wait"
+          ]
+        },
+        "ephemeris_backoff_enabled": {
+          "type": "boolean",
+          "description": "После N попыток — ожидание следующего КА"
+        },
+        "buffer_depth_msgs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "blind_repeats": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Только для A'"
+        }
       }
     },
     "control_loop": {
       "type": "object",
       "description": "Только для C'",
-      "required": ["required_reaction_time_s", "external_decision_time_s"],
+      "required": [
+        "required_reaction_time_s",
+        "external_decision_time_s"
+      ],
       "additionalProperties": false,
       "properties": {
-        "required_reaction_time_s": { "type": "number", "exclusiveMinimum": 0 },
-        "external_decision_time_s": { "type": "number", "minimum": 0, "description": "Параметр внешней системы; ИС не моделирует, но учитывает в бюджете T" },
-        "command_bytes": { "type": "integer", "minimum": 1 },
-        "execution_confirm": { "type": "boolean" }
+        "required_reaction_time_s": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "external_decision_time_s": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Параметр внешней системы; ИС не моделирует, но учитывает в бюджете T"
+        },
+        "command_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "execution_confirm": {
+          "type": "boolean"
+        }
       }
     },
     "mobility": {
       "type": "object",
       "description": "Р7/ADR-007: роуминг регуляторных зон не поддерживается",
-      "required": ["model"],
+      "required": [
+        "model"
+      ],
       "additionalProperties": false,
       "properties": {
-        "model": { "enum": ["static", "route"], "description": "random_walk и roaming вне первой очереди" },
-        "route_ref": { "type": "string" },
-        "speed_mps": { "type": "number", "minimum": 0 }
+        "model": {
+          "enum": [
+            "static",
+            "route"
+          ],
+          "description": "random_walk и roaming вне первой очереди"
+        },
+        "route_ref": {
+          "type": "string"
+        },
+        "speed_mps": {
+          "type": "number",
+          "minimum": 0
+        }
       }
+    },
+    "lifecycle": {
+      "$ref": "https://kis.local/schemas/common/status.schema.json"
     }
   }
 }

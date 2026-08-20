@@ -105,6 +105,72 @@ class DemandViews(private val library: ScenarioLibrary = ScenarioLibrary()) {
         )
     }
 
+    /**
+     * Представление ХРАНИМОЙ карты (ADR-021): ячейки и веса берутся из
+     * документа, а не пересчитываются. Пересчёт здесь означал бы, что
+     * показанная карта может отличаться от сохранённой — а сценарий
+     * ссылается именно на сохранённую.
+     */
+    fun fromDocument(doc: com.fasterxml.jackson.databind.JsonNode): DemandMapView {
+        // Ячейки модели восстанавливаются из документа, чтобы широтный профиль
+        // считала ТА ЖЕ функция разбиения на пояса, что и при сборке карты:
+        // второе разбиение однажды дало бы другие пояса на том же спросе.
+        val modelCells = doc.path("cells").associate { cell ->
+            val id = cell.path("cell_id").asText("")
+            id to DemandCell(
+                id = id,
+                lat = cell.path("lat_deg").asDouble(),
+                lon = cell.path("lon_deg").asDouble(),
+                areaKm2 = cell.path("area_km2").asDouble(),
+                terminals = cell.path("demand").associate {
+                    it.path("terminal_profile_ref").asText("") to it.path("count").asDouble()
+                },
+                msgsPerDay = cell.path("demand").associate {
+                    it.path("terminal_profile_ref").asText("") to it.path("uplink_msgs_per_day").asDouble()
+                },
+                weight = cell.path("demand").firstOrNull()?.path("weight")?.asDouble() ?: 0.0,
+            )
+        }
+        val cells = modelCells.values.map { c ->
+            DemandCellView(
+                id = c.id,
+                latDeg = c.lat,
+                lonDeg = c.lon,
+                areaKm2 = sig(c.areaKm2),
+                msgsPerDay = sig(c.totalMsgsPerDay()),
+                byClass = sig(c.msgsPerDay.toSortedMap()),
+                weight = sig(c.weight),
+                intensity = 0.0,
+            )
+        }
+        val maxCell = cells.maxOfOrNull { it.msgsPerDay } ?: 0.0
+        val total = cells.sumOf { it.msgsPerDay }
+        val classes = cells.flatMap { it.byClass.keys }.toSortedSet()
+        return DemandMapView(
+            version = doc.path("version").asText(""),
+            cells = cells.map { it.copy(intensity = sig(if (maxCell > 0) it.msgsPerDay / maxCell else 0.0)) },
+            totalMsgsPerDay = sig(total),
+            byClass = sig(classes.associateWith { k -> cells.sumOf { it.byClass[k] ?: 0.0 } }),
+            terminalsByClass = sig(
+                classes.associateWith { k ->
+                    doc.path("cells").sumOf { c ->
+                        c.path("demand").filter { it.path("terminal_profile_ref").asText() == k }
+                            .sumOf { it.path("count").asDouble() }
+                    }
+                },
+            ),
+            // Профили активности в документе карты — ячейковые; общего пика
+            // по ним не строим, чтобы не выдать допущение за расчёт.
+            peak = DemandPeak(0, 0, sig(total / 86400.0), profiled = false),
+            latitudeProfile = latitudeProfile(modelCells, quality = { 1.0 }).map(::band),
+            // Вклад слоёв в сохранённой карте не восстанавливается: документ
+            // несёт результат сборки, а не то, из чего она собиралась.
+            contributions = emptyList(),
+            layers = doc.path("layers").fieldNames().asSequence().toList(),
+            issues = if (cells.isEmpty()) listOf("сохранённая карта не содержит ячеек") else emptyList(),
+        )
+    }
+
     fun build(layers: DemandLayers): DemandMapView {
         val unknown = layers.scenarioIds.filterNot { id -> library.scenarios.any { it.id == id } }
         require(unknown.isEmpty()) { "неизвестные сценарии библиотеки: $unknown" }
