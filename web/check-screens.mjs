@@ -72,6 +72,13 @@ const needs = await page.$$eval('tbody tr', (trs) =>
 )
 expect(needs.length >= 3, `нужды отрисованы (${needs.length})`)
 expect(needs.some((r) => r[5].includes('нет сервисов')), 'разрыв трассировки виден в строке')
+// Формулировка — главное содержимое строки; сжатая до нечитаемости колонка
+// делает экран бесполезным, и по ответу API этого не увидеть.
+const statementWidth = await page.$eval(
+  '.pane > table tbody tr:first-child td:nth-child(2)',
+  (td) => td.getBoundingClientRect().width,
+)
+expect(statementWidth >= 200, `колонка формулировки читаема (${Math.round(statementWidth)} px)`)
 await page.click('.pane button:has-text("Без сервисов")')
 await page.waitForTimeout(200)
 const orphans = await page.$$eval('tbody tr', (trs) => trs.length)
