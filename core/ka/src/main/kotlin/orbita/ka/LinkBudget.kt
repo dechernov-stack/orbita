@@ -15,8 +15,25 @@ import kotlin.math.log10
 const val C_LIGHT_MS = 299_792_458.0
 const val K_BOLTZ_DBW = -228.6          // дБВт/К/Гц
 
+/**
+ * Зенитное газовое поглощение на УВЧ ~1 ГГц (сухой воздух + водяной пар,
+ * семейство ITU-R P.676), дБ. На 868 МГц дождь и облака пренебрежимы.
+ */
+const val ATM_ZENITH_UHF_DB = 0.04
+
 fun fsplDb(rangeKm: Double, freqHz: Double): Double =
     20 * log10(4 * Math.PI * rangeKm * 1000 * freqHz / C_LIGHT_MS)
+
+/**
+ * Атмосферные потери от угла места (ADR-025, шаг 12.4).
+ *
+ * Плоско-слоистое приближение: путь через атмосферу растёт как 1/sin(el).
+ * Применимо при el ≥ 5° — ниже плоское приближение завышает путь, и там
+ * зона обслуживания всё равно обрезана min_elev. Константа вместо модели
+ * занижала потери у ГРАНИЦЫ зоны — ровно там, где решается её размер.
+ */
+fun atmosphericLossDb(elevDeg: Double, zenithDb: Double = ATM_ZENITH_UHF_DB): Double =
+    zenithDb / kotlin.math.sin(Math.toRadians(kotlin.math.max(elevDeg, 5.0)))
 
 /** Участок радиолинии: одно направление одного плеча (Р1: сквозной бюджет не считается). */
 data class LinkLeg(
@@ -31,10 +48,14 @@ data class LinkLeg(
     val extraLossesDb: Double = 2.0,
 )
 
-/** Запас линии на заданном угле места, дБ. */
+/**
+ * Запас линии на заданном угле места, дБ. extraLossesDb — потери, не зависящие
+ * от угла (поляризация, наведение, реализация); атмосферные — отдельно (ADR-025).
+ */
 fun linkMarginDb(leg: LinkLeg, elevDeg: Double): Double {
     val d = slantRangeKm(leg.altKm, elevDeg)
-    val cn0 = leg.eirpDbw - fsplDb(d, leg.freqHz) - leg.extraLossesDb + leg.gOverTDbk - K_BOLTZ_DBW
+    val cn0 = leg.eirpDbw - fsplDb(d, leg.freqHz) - leg.extraLossesDb -
+        atmosphericLossDb(elevDeg) + leg.gOverTDbk - K_BOLTZ_DBW
     val ebn0 = cn0 - 10 * log10(leg.bitrateBps)
     return ebn0 - leg.requiredEbn0Db
 }
@@ -44,6 +65,8 @@ data class LinkBudgetBreakdown(
     val eirpDbw: Double,
     val fsplDb: Double,
     val extraLossesDb: Double,
+    /** Атмосферные — отдельной строкой: на границе зоны они зависят от угла (ADR-025). */
+    val atmosphericLossDb: Double,
     val cOverN0DbHz: Double,
     val requiredEbn0Db: Double,
     val marginDb: Double,
@@ -52,9 +75,11 @@ data class LinkBudgetBreakdown(
 fun linkBudget(leg: LinkLeg, elevDeg: Double): LinkBudgetBreakdown {
     val d = slantRangeKm(leg.altKm, elevDeg)
     val fspl = fsplDb(d, leg.freqHz)
-    val cn0 = leg.eirpDbw - fspl - leg.extraLossesDb + leg.gOverTDbk - K_BOLTZ_DBW
+    val cn0 = leg.eirpDbw - fspl - leg.extraLossesDb -
+        atmosphericLossDb(elevDeg) + leg.gOverTDbk - K_BOLTZ_DBW
     return LinkBudgetBreakdown(
         eirpDbw = leg.eirpDbw, fsplDb = fspl, extraLossesDb = leg.extraLossesDb,
+        atmosphericLossDb = atmosphericLossDb(elevDeg),
         cOverN0DbHz = cn0, requiredEbn0Db = leg.requiredEbn0Db,
         marginDb = cn0 - 10 * log10(leg.bitrateBps) - leg.requiredEbn0Db,
     )

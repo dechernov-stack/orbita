@@ -35,11 +35,31 @@ def slant_range_km(alt_km, elev_deg):
     e = math.radians(elev_deg)
     return -RE * math.sin(e) + math.sqrt((RE * math.sin(e))**2 + alt_km**2 + 2 * RE * alt_km)
 
+# Зенитное газовое поглощение на УВЧ ~1 ГГц (сухой воздух + водяной пар,
+# семейство ITU-R P.676), дБ. На 868 МГц дождь и облака пренебрежимы.
+ATM_ZENITH_UHF_DB = 0.04
+
+def atmospheric_loss_db(elev_deg, freq_hz, zenith_db=ATM_ZENITH_UHF_DB):
+    """Атмосферные потери от угла места (ADR-025, шаг 12.4).
+
+    Плоско-слоистое приближение: путь через атмосферу растёт как 1/sin(el).
+    Применимо при el >= 5 градусах — ниже плоское приближение завышает путь,
+    и там зона обслуживания всё равно обрезана min_elev. Константа вместо
+    модели занижала потери у ГРАНИЦЫ зоны — там, где решается её размер.
+    """
+    e = math.radians(max(elev_deg, 5.0))
+    return zenith_db / math.sin(e)
+
 def link_margin_db(eirp_dbw, alt_km, elev_deg, freq_hz, g_over_t_dbk,
                    bitrate_bps, required_ebn0_db, extra_losses_db=2.0):
-    """Запас линии. required_ebn0_db приходит ИЗ АДАПТЕРА ПРОТОКОЛА, не задаётся вручную."""
+    """Запас линии. required_ebn0_db приходит ИЗ АДАПТЕРА ПРОТОКОЛА, не задаётся вручную.
+
+    extra_losses_db — потери, НЕ зависящие от угла места (поляризация,
+    наведение, реализация); атмосферные считаются отдельно от угла (ADR-025).
+    """
     d = slant_range_km(alt_km, elev_deg)
     cn0 = (eirp_dbw - fspl_db(d, freq_hz) - extra_losses_db
+           - atmospheric_loss_db(elev_deg, freq_hz)
            + g_over_t_dbk - K_BOLTZ_DBW)
     ebn0 = cn0 - 10 * math.log10(bitrate_bps)
     return ebn0 - required_ebn0_db
@@ -136,6 +156,16 @@ def _run_checks():
     check("рост скорости снижает запас",
           link_margin_db(elev_deg=90, **{**up, 'bitrate_bps': 50000}) < mz)
     check("сквозной бюджет терминал→КА→НС не вычисляется (regenerative, Р1)", True)
+
+    print("\nADR-025: атмосферные потери от угла места")
+    check("у горизонта потери больше, чем в зените",
+          atmospheric_loss_db(5, 868e6) > atmospheric_loss_db(90, 868e6))
+    check("в зените потери равны зенитному поглощению",
+          abs(atmospheric_loss_db(90, 868e6) - ATM_ZENITH_UHF_DB) < 1e-12)
+    check("на границе зоны (5°) потери меньше полудецибела — УВЧ, не Ka",
+          atmospheric_loss_db(5, 868e6) < 0.5, atmospheric_loss_db(5, 868e6))
+    check("ниже 5° потери не экстраполируются плоским приближением",
+          atmospheric_loss_db(1, 868e6) == atmospheric_loss_db(5, 868e6))
 
     print("\nTZ-KA-005: зона обслуживания ≠ зона видимости")
     # A': односторонний приём сильной линии — ограничена геометрия.

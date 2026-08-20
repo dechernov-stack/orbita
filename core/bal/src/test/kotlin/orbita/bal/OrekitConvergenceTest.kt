@@ -56,7 +56,7 @@ class OrekitConvergenceTest {
     }
 
     @Test
-    fun `геометрия пролёта Orekit сходится с эталонным набором`() {
+    fun `геометрия пролёта сходится с эталонным набором TAT-C`() {
         val ref = mapper.readTree(RepoPaths.repoRoot().resolve("spec/reference/coverage_reference.json").toFile())
         val tol = ref["thresholds"]["coverage_pct"].asDouble() / 100.0
         ref["cases"].forEach { c ->
@@ -67,7 +67,13 @@ class OrekitConvergenceTest {
                 "период на $alt км: $period против ${c["period_min"]}"
             }
             val fp = footprintRadiusKm(alt, elev)
-            assertTrue(abs(fp - c["footprint_km"].asDouble()) / c["footprint_km"].asDouble() < tol)
+            assertTrue(
+                abs(fp - c["footprint_radius_km"].asDouble()) / c["footprint_radius_km"].asDouble() < tol,
+            ) { "радиус footprint на $alt км: $fp против ${c["footprint_radius_km"]}" }
+            val pass = maxPassDurationS(alt, elev)
+            assertTrue(
+                abs(pass - c["max_pass_s"].asDouble()) / c["max_pass_s"].asDouble() < tol,
+            ) { "пролёт на $alt км: $pass с против ${c["max_pass_s"]}" }
         }
     }
 

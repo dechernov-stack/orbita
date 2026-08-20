@@ -74,6 +74,7 @@ object ServiceZones {
         n.putObject("link_budget")
             .put("eirp_dbw", zone.budget.eirpDbw)
             .put("fspl_db", zone.budget.fsplDb)
+            .put("atmospheric_loss_db", zone.budget.atmosphericLossDb)
             .put("c_over_n0_dbhz", zone.budget.cOverN0DbHz)
             .put("required_ebn0_db", zone.budget.requiredEbn0Db)
             .put("margin_db", zone.budget.marginDb)

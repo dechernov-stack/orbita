@@ -1,5 +1,5 @@
 {
-  "_source": "Сформировано из замкнутых формул spec/ballistics_semantics.py (эталонные наборы TAT-C недоступны в этой среде; при их появлении файл заменяется с указанием источника, TZ-BAL-008).",
+  "_source": "TAT-C (Tradespace Analysis Toolkit for Constellations) 3.5.0, PyPI-пакет tatc; функции tatc.utils: semimajor_axis_to_orbit_period (кеплеров период, сферическая Земля), compute_field_of_regard + field_of_regard_to_swath_width (радиус footprint = полуширина полосы), compute_max_access_time (максимальная длительность пролёта). Получено прогоном пакета 2026-08-20 (TZ-BAL-008); прежний набор из замкнутых формул ballistics_semantics совпал с TAT-C в пределах 0.16% и заменён внешними числами.",
   "thresholds": {
     "coverage_pct": 2.0,
     "revisit_pct": 5.0
@@ -8,37 +8,37 @@
     {
       "alt_km": 550,
       "min_elev_deg": 10,
-      "period_min": 95.6499,
-      "footprint_km": 1664.97,
-      "max_pass_s": 476.87
+      "period_min": 95.5023,
+      "footprint_radius_km": 1664.32,
+      "max_pass_s": 476.48
     },
     {
       "alt_km": 550,
       "min_elev_deg": 25,
-      "period_min": 95.6499,
-      "footprint_km": 940.74,
-      "max_pass_s": 269.44
+      "period_min": 95.5023,
+      "footprint_radius_km": 940.55,
+      "max_pass_s": 269.27
     },
     {
       "alt_km": 400,
       "min_elev_deg": 10,
-      "period_min": 92.5604,
-      "footprint_km": 1344.21,
-      "max_pass_s": 372.56
+      "period_min": 92.4144,
+      "footprint_radius_km": 1343.75,
+      "max_pass_s": 372.26
     },
     {
       "alt_km": 700,
       "min_elev_deg": 10,
-      "period_min": 98.773,
-      "footprint_km": 1942.52,
-      "max_pass_s": 574.53
+      "period_min": 98.6238,
+      "footprint_radius_km": 1941.7,
+      "max_pass_s": 574.06
     },
     {
       "alt_km": 1200,
       "min_elev_deg": 10,
-      "period_min": 109.4217,
-      "footprint_km": 2673.66,
-      "max_pass_s": 876.03
+      "period_min": 109.2673,
+      "footprint_radius_km": 2672.34,
+      "max_pass_s": 875.34
     }
   ]
 }
