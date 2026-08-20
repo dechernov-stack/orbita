@@ -74,6 +74,25 @@ data class AnalyticReport<T>(val name: String, val executed: Boolean, val entrie
     }
 }
 
+/** Узкое место прогона: участок и его загрузка (TZ-FLW-007). */
+data class BottleneckEntry(val scenarioRef: String, val location: String, val utilization: Double)
+
+/**
+ * Узкие места из сохранённых результатов моделирования. Отчёт читает то,
+ * что посчитало ядро потоков, и ничего не пересчитывает: единственный
+ * источник загрузки участков — прогон.
+ */
+fun bottlenecks(flowResults: List<JsonNode>): AnalyticReport<BottleneckEntry> =
+    AnalyticReport.of(
+        "bottlenecks",
+        flowResults.flatMap { result ->
+            val scenario = result.path("scenario_ref").asText("")
+            result.path("bottlenecks").map {
+                BottleneckEntry(scenario, it.path("location").asText(), it.path("utilization").asDouble())
+            }
+        }.sortedByDescending { it.utilization },
+    )
+
 /** TPM за пределами резервов: фактическое значение вне допуска параметра. */
 data class TpmBreach(val parameterId: String, val value: Double, val limit: Double, val overrun: Double)
 
