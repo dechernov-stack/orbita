@@ -1,0 +1,19 @@
+{
+  "_source": "Направления показателей розы KPI (TZ-BAL-007, STEP-6 §1.1). Перечень конфигурируем без изменения кода: переопределяется файлом из переменной ORBITA_KPI_AXES. Показатель, которого здесь нет, отклоняется — нормировка без направления нарисовала бы дорогой вариант хорошим.",
+  "higher_is_better": [
+    "quality",
+    "reliability",
+    "energy",
+    "availability",
+    "multiplicity",
+    "lifetime_years"
+  ],
+  "lower_is_better": [
+    "cost",
+    "deployment_days",
+    "launch_campaigns",
+    "total_mass_kg",
+    "max_gap_s",
+    "revisit_s"
+  ]
+}
