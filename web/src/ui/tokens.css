@@ -1,0 +1,263 @@
+/* Дизайн-токены (docs/ui/stitch-prompts.md, блок B).
+   Инструмент инженера, а не потребительская панель: плотные таблицы, острые
+   углы, волосяные линии вместо теней, моноширинный шрифт для чисел и единиц. */
+:root {
+  --bg: #ffffff;
+  --surface: #f7f8fa;
+  --border: #e1e4e8;
+  --text: #1b1f24;
+  --text-secondary: #57606a;
+  --accent: #0b5fff;
+
+  --status-draft: #8c959f;
+  --status-preliminary: #0b5fff;
+  --status-approved: #bf8700;
+  --status-baseline: #1a7f37;
+  --status-error: #cf222e;
+
+  --font: Inter, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace;
+  --row-height: 28px;
+  --indent: 16px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 13px;
+}
+
+.app {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  height: 100vh;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 16px;
+  height: 40px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.topbar h1 {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.tabs {
+  display: flex;
+  gap: 2px;
+}
+
+.tab {
+  padding: 4px 10px;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  background: none;
+  color: var(--text-secondary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.tab[aria-selected='true'] {
+  color: var(--text);
+  background: var(--bg);
+  border-color: var(--border);
+}
+
+.split {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  min-height: 0;
+}
+
+.pane {
+  overflow: auto;
+  min-width: 0;
+}
+
+.pane--side {
+  border-left: 1px solid var(--border);
+  padding: 12px 16px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  /* фиксированная раскладка: ширины колонок соблюдаются точно, а лишний текст
+     срезается многоточием — колонка не наезжает на соседнюю */
+  table-layout: fixed;
+}
+
+thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  font-weight: 600;
+  padding: 0 8px;
+  height: var(--row-height);
+  white-space: nowrap;
+}
+
+tbody tr {
+  height: var(--row-height);
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+
+tbody tr[aria-selected='true'] {
+  background: #eef4ff;
+}
+
+td {
+  padding: 0 8px;
+  vertical-align: middle;
+}
+
+.num,
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.num {
+  text-align: right;
+}
+
+.id {
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+/* Строка таблицы не переносится: перенос ломает и выравнивание чисел,
+   и отступ дерева — а сравнивать значения по строкам инженер должен глазом. */
+tbody td {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.twisty {
+  display: inline-block;
+  width: 12px;
+  color: var(--text-secondary);
+}
+
+.secondary {
+  color: var(--text-secondary);
+}
+
+.truncate {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chip {
+  display: inline-block;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.chip--derived {
+  border-style: dashed;
+}
+
+.dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.status-Draft { background: var(--status-draft); }
+.status-Preliminary { background: var(--status-preliminary); }
+.status-Approved { background: var(--status-approved); }
+.status-Baseline { background: var(--status-baseline); }
+.status-Cancelled { background: var(--status-error); }
+
+.bar {
+  display: inline-block;
+  position: relative;
+  width: 90px;
+  height: 6px;
+  background: var(--border);
+  vertical-align: middle;
+  margin-right: 8px;
+}
+
+.bar__fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--accent);
+}
+
+.bar__fill--overrun {
+  background: var(--status-error);
+}
+
+.warn {
+  color: var(--status-error);
+}
+
+.amber {
+  color: var(--status-approved);
+}
+
+.card {
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  margin-bottom: 12px;
+}
+
+.card > h3 {
+  margin: 0;
+  padding: 6px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.card > div {
+  padding: 8px 10px;
+}
+
+.field {
+  margin-bottom: 8px;
+}
+
+.field > label {
+  display: block;
+  color: var(--text-secondary);
+  margin-bottom: 2px;
+}
+
+.empty {
+  padding: 16px;
+  color: var(--text-secondary);
+}

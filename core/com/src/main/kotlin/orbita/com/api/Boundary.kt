@@ -19,6 +19,7 @@ import orbita.net.LoRaWanAdapter
 import orbita.net.validateAdapterContract
 import orbita.out.Matrices
 import orbita.out.MaturityReports
+import orbita.out.ScreenViews
 import orbita.req.ReqService
 import orbita.usr.TerminalRules
 import java.sql.Connection
@@ -32,6 +33,9 @@ class Boundary(private val registry: SchemaRegistry, conn: Connection) {
     val req = ReqService(conn, registry)
     val matrices = Matrices(req)
     val maturity = MaturityReports(req)
+
+    /** Готовые строки экранов: расчётов в клиенте нет (STEP-6 §3.2). */
+    val screens = ScreenViews(req)
 
     /** Расчётный контур шага 3: адаптер протокола и предрасчёт геометрии. */
     val protocolAdapter = LoRaWanAdapter()

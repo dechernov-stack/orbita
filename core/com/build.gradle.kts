@@ -14,3 +14,14 @@ dependencies {
     testImplementation(testFixtures(project(":core:mod")))
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
+
+// Сервер с наполненной моделью для проверки экранов клиента на реальных данных
+// API (STEP-6). Не часть изделия: точка входа и фикстуры живут в тестовом наборе.
+tasks.register<JavaExec>("demoServer") {
+    group = "verification"
+    description = "STEP-6: API с демонстрационной моделью для проверки экранов клиента"
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass.set("orbita.com.api.DemoServerKt")
+    environment("ORBITA_REPO_ROOT", rootDir.absolutePath)
+    jvmArgs("-Dfile.encoding=UTF-8", "-Dstdout.encoding=UTF-8")
+}

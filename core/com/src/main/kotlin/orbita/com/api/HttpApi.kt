@@ -249,6 +249,31 @@ class HttpApi(private val boundary: Boundary) {
                 respond(ex, 200, arr)
             }
 
+            // Экраны клиента: строки приходят готовыми, клиент ничего не считает
+            method == "GET" && path == "/views/requirement-tree" -> {
+                val view = boundary.screens.requirementTree()
+                val n = mapper.createObjectNode()
+                n.set<ArrayNode>("roots", mapper.valueToTree(view.roots))
+                n.set<ObjectNode>("children", mapper.valueToTree(view.children))
+                n.set<ArrayNode>("rows", mapper.valueToTree(view.rows))
+                respond(ex, 200, n)
+            }
+
+            method == "GET" && Regex("^/views/requirements/(RQ-[0-9]{4})$").matches(path) -> {
+                val id = path.removePrefix("/views/requirements/")
+                respond(ex, 200, mapper.valueToTree(boundary.screens.card(id)))
+            }
+
+            method == "GET" && Regex("^/views/components/(CM-[0-9]{4})$").matches(path) -> {
+                val id = path.removePrefix("/views/components/")
+                respond(ex, 200, mapper.valueToTree(boundary.screens.componentSpecification(id)))
+            }
+
+            // Подписи единиц: подстановка на стороне представления, коды СИ
+            // в модели не меняются (STEP-6 §3.2, ловушка 6)
+            method == "GET" && path == "/unit-labels" ->
+                respond(ex, 200, mapper.valueToTree(orbita.req.UnitLabels().all()))
+
             method == "GET" && Regex("^/components/(CM-[0-9]{4})/specification$").matches(path) -> {
                 val cm = path.removePrefix("/components/").removeSuffix("/specification")
                 respond(ex, 200, mapper.valueToTree(boundary.req.specificationOf(cm)))
