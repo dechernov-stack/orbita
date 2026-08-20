@@ -19,11 +19,13 @@ const BASE = process.env.ORBITA_WEB_URL ?? 'http://127.0.0.1:5173/'
 const SHOTS = process.env.ORBITA_SHOTS ?? null
 
 const failures = []
-const expect = (condition, message) => {
+// Третий довод — что увидели вместо ожидаемого. Отказ без него сообщает,
+// какая проверка не прошла, но не даёт зацепки, с чего начинать разбор.
+const expect = (condition, message, detail = '') => {
   if (condition) console.log(`  + ${message}`)
   else {
     failures.push(message)
-    console.log(`  - ${message}`)
+    console.log(`  - ${message}${detail ? ` — получено: ${detail}` : ''}`)
   }
 }
 
@@ -53,13 +55,15 @@ const shot = async (name) => {
 // стенде он приходит мгновенно, и первое состояние проверить нечем. На холодном
 // стенде оно держалось секунды, и мастер всё это время говорил «нет данных».
 console.log('Мастер: состояние до прихода ответа')
-let wizardDelayed = false
+// Задерживается КАЖДЫЙ запрос, пока состояние загрузки не осмотрено, а не
+// только первый. React в режиме разработки вызывает эффект дважды, и при
+// одноразовой задержке второй запрос уходил без неё, отвечал мгновенно —
+// и мастер успевал заполниться раньше, чем проверка успевала посмотреть.
+// Окно осмотра теперь отсчитывается от МОНТИРОВАНИЯ и не зависит от того,
+// сколько занял разбор модулей на холодном стенде.
+let delayWizard = true
 await page.route('**/api/views/wizard', async (route) => {
-  // задерживается только первый запрос: дальше мастер работает как обычно
-  if (!wizardDelayed) {
-    wizardDelayed = true
-    await new Promise((r) => setTimeout(r, 1500))
-  }
+  if (delayWizard) await new Promise((r) => setTimeout(r, 1500))
   // переход на новую страницу отменяет запрос — тогда продолжать уже нечего
   try {
     await route.continue()
@@ -73,11 +77,13 @@ const whileLoading = await page.$$eval('.wizard__step small', (ss) => ss.map((s)
 expect(
   whileLoading.every((s) => s.includes('загрузка')),
   'до ответа шаг помечен загрузкой, а не «нет данных»',
+  whileLoading.join(' · '),
 )
 expect(
   (await page.$$('.wizard__step small.amber')).length === 0,
   'до ответа шаги не покрашены: замечаний ещё никто не находил',
 )
+delayWizard = false
 await page.goto(BASE, { waitUntil: 'networkidle' })
 await page.waitForSelector('.wizard__step')
 // Ждём именно ПРИХОДА состояния, а не «сколько-нибудь секунд»: на холодном
