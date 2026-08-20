@@ -157,3 +157,273 @@ export interface SystemOverview {
   riskMatrix: RiskCell[]
   problems: string[]
 }
+
+// ---------- экраны мастера (шаг 9) ----------
+
+export interface NeedRow {
+  id: string
+  statement: string
+  stakeholder: string
+  role: string
+  priority: number
+  /** Пустой список — нужда не порождает сервисов: разрыв трассировки. */
+  services: string[]
+  status: string
+}
+
+export interface MoeRow {
+  id: string
+  name: string
+  target: number | null
+  unit: string | null
+}
+
+export interface QosProfileRow {
+  consumerClass: string
+  moe: MoeRow[]
+}
+
+export interface ServiceRow {
+  id: string
+  name: string
+  needs: string[]
+  profiles: QosProfileRow[]
+  /** Классы, присутствующие в спросе, но без профиля. */
+  uncoveredClasses: string[]
+  requirements: string[]
+  status: string
+}
+
+export interface GateGap {
+  id: string
+  actual: string
+  required: string
+}
+
+export interface ReadinessView {
+  gate: string
+  gaps: GateGap[]
+  ready: boolean
+  readyObjects: number
+  totalObjects: number
+}
+
+export interface WizardStep {
+  number: number
+  title: string
+  objects: number
+  issues: string[]
+  complete: boolean
+}
+
+export interface RiskRegisterView {
+  summary: RegisterSummary
+  risks: Array<Record<string, unknown>>
+  matrix: RiskCell[]
+}
+
+// ---------- экран 4: карта спроса ----------
+
+/** Ячейка карты. `intensity` — доля от максимума, посчитанная сервером. */
+export interface DemandCellView {
+  id: string
+  latDeg: number
+  lonDeg: number
+  areaKm2: number
+  msgsPerDay: number
+  /** Спрос по классам раздельно: классы не усредняются (Р9). */
+  byClass: Record<string, number>
+  weight: number
+  intensity: number
+}
+
+export interface LatitudeBandView {
+  bandDeg: number
+  weight: number
+}
+
+export interface PopulationContribution {
+  id: string
+  consumerClass: string
+  terminals: number
+  msgsPerDay: number
+  share: number
+  cells: number
+}
+
+export interface ReferenceScenarioRow {
+  id: string
+  name: string
+  consumerClass: string
+  geography: string
+  terminals: number
+  msgsPerTerminalDay: number
+  mobilityModel: string
+}
+
+/** Пик спроса: худшее сочетание часа и месяца, а не среднее. */
+export interface DemandPeak {
+  hour: number
+  month: number
+  msgsPerS: number
+  profiled: boolean
+}
+
+export interface DemandMapView {
+  version: string
+  cells: DemandCellView[]
+  totalMsgsPerDay: number
+  byClass: Record<string, number>
+  terminalsByClass: Record<string, number>
+  peak: DemandPeak
+  latitudeProfile: LatitudeBandView[]
+  contributions: PopulationContribution[]
+  layers: string[]
+  issues: string[]
+}
+
+/** Слои карты, как их задаёт экран (тело запроса). */
+export interface DemandLayersRequest {
+  population: Array<{
+    id: string
+    lat: number
+    lon?: number
+    pop_density_per_km2: number
+    terminals_per_capita: number
+    msgs_per_terminal_day: number
+    consumer_class: string
+  }>
+  point_objects: Array<{
+    cell_id: string
+    lat: number
+    lon?: number
+    terminals: number
+    msgs_per_terminal_day: number
+    consumer_class: string
+  }>
+  scenario_ids: string[]
+}
+
+// ---------- экран 5: модель космического аппарата ----------
+
+export interface PresetRow {
+  id: string
+  name: string
+  dryMassKg: number
+  saAreaM2: number
+  batteryWh: number
+  busPowerW: number
+  payloadPowerW: number
+  designLifeYears: number
+}
+
+export interface MassRow {
+  name: string
+  massKg: number
+  maturity: string
+  marginPct: number
+  withMarginKg: number
+}
+
+export interface MassBudgetView {
+  items: MassRow[]
+  nominalKg: number
+  systemMarginPct: number
+  dryMassKg: number
+  wetMassKg: number
+  deltaVMs: number
+  /** Р2/ADR-002: диапазон 12U–100 кг. */
+  withinPlatformRange: boolean
+}
+
+/** Баланс считается при заявленной скважности ПН, а не при допустимой. */
+export interface PowerView {
+  altKm: number
+  worstBetaDeg: number
+  generatedWh: number
+  consumedWh: number
+  balanceWh: number
+  beaconWh: number
+  plannedPayloadDuty: number
+  allowedPayloadDuty: number
+  batteryDod: number
+  batteryMaxDod: number
+  balanceOk: boolean
+  dutyOk: boolean
+  dodOk: boolean
+}
+
+export interface LinkRow {
+  id: string
+  role: string
+  bandHz: number
+  eirpDbw: number
+  bitrateBps: number
+  requiredMarginDb: number
+  marginAtZenithDb: number
+  marginAtMinElevDb: number
+  serviceElevationDeg: number | null
+  limitingFactor: string
+  closes: boolean
+}
+
+export interface BeaconView {
+  format: string
+  periodS: number
+  payloadBytes: number
+  downlinkLoad: number
+  energyWhPerOrbit: number
+}
+
+export interface TpmRow {
+  name: string
+  current: number
+  unit: string
+  target: number
+  marginPct: number
+  requiredMarginPct: number
+  breached: boolean
+  lowerIsBetter: boolean
+}
+
+export interface SpacecraftView {
+  id: string
+  preset: string | null
+  mass: MassBudgetView
+  power: PowerView
+  links: LinkRow[]
+  beacon: BeaconView | null
+  tpm: TpmRow[]
+  issues: string[]
+}
+
+// ---------- экран 8: предложение ИИ ----------
+
+export interface PromptPackage {
+  id: string
+  kind: string
+  context: unknown
+  task: string
+  response_schema: unknown
+}
+
+export interface DiffEntryView {
+  op: 'add' | 'change' | 'keep' | 'same'
+  from?: unknown
+  to?: unknown
+  value?: unknown
+}
+
+export interface ScreenedProposal {
+  item: Record<string, unknown>
+  diff: Record<string, DiffEntryView>
+}
+
+export interface AnswerReport {
+  package_id: string
+  proposed: number
+  malformed: Array<{ item?: unknown; errors: string[] }>
+  shown: ScreenedProposal[]
+  rework: { proposed: number; rejected: number; rework: Array<{ item: unknown; issues: string[] }> }
+  by_rule: Record<string, number>
+}
