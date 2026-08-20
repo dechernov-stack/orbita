@@ -167,6 +167,35 @@ class VisibilityPrecompute(private val mapper: ObjectMapper = ObjectMapper()) {
     }
 
     /**
+     * Подспутниковые трассы для 3D-глобуса (STEP-7-9 §8.1): satId → (t, широта,
+     * долгота). Собственной модели движения в клиенте нет — траектории приходят
+     * с сервера, из того же пропагатора, что считает и видимость.
+     */
+    fun groundTracks(
+        config: ConstellationConfig,
+        epochIso: String,
+        durationS: Double,
+        stepS: Double = 60.0,
+    ): Map<String, List<Triple<Double, Double, Double>>> {
+        OrekitSetup.ensureInitialized()
+        val epoch = AbsoluteDate(epochIso, TimeScalesFactory.getUTC())
+        val earthFrame = FramesFactory.getGTOD(false)
+        val earth = OneAxisEllipsoid(
+            Constants.WGS84_EARTH_EQUATORIAL_RADIUS, Constants.WGS84_EARTH_FLATTENING, earthFrame,
+        )
+        val steps = (durationS / stepS).toInt()
+        return config.expand().associate { slot ->
+            val prop = propagatorFor(slot, epoch)
+            slot.satId to (0..steps).map { k ->
+                val date = epoch.shiftedBy(k * stepS)
+                val p = prop.getPVCoordinates(date, earthFrame).position
+                val gp = earth.transform(p, earthFrame, date)
+                Triple(k * stepS, FastMath.toDegrees(gp.latitude), FastMath.toDegrees(gp.longitude))
+            }
+        }
+    }
+
+    /**
      * Второй уровень ADR-013: точное уточнение границ пролёта событиями Orekit
      * (ElevationDetector) в окне вокруг грубого пролёта. Используется для ячеек
      * спроса по границе зоны обслуживания и для проверки сходимости.

@@ -162,16 +162,43 @@ object VizData {
         mapper: ObjectMapper = ObjectMapper(),
     ): ArrayNode {
         val arr = mapper.createArrayNode()
+        // Интервал часов — от эпохи до конца прогона. Вырожденный интервал
+        // «эпоха/эпоха» клиент принимает без ошибки, но время не идёт и
+        // траектории не отображаются: дефект найден показом экрана, а не тестом.
+        val endIso = java.time.Instant.parse(epochIso)
+            .plusMillis((durationS * 1000).toLong()).toString()
+        // След на один виток: длиннее — трассы сливаются в клубок
+        val trailS = minOf(durationS, orbitalPeriodS(config.altKm))
         arr.addObject()
             .put("id", "document")
             .put("name", "orbita-constellation")
             .put("version", "1.0")
             .putObject("clock")
-            .put("interval", "$epochIso/${epochIso}")
+            .put("interval", "$epochIso/$endIso")
+            .put("currentTime", epochIso)
+            .put("range", "LOOP_STOP")
             .put("multiplier", 60)
         samples.forEach { (satId, points) ->
             val sat = arr.addObject()
             sat.put("id", satId)
+            sat.put("name", satId)
+            // Пакет с одной лишь позицией невидим: у сущности нет графики,
+            // и клиенту нечего рисовать. Точка и след — часть выдачи данных,
+            // а не оформление на стороне клиента.
+            sat.putObject("point").apply {
+                put("pixelSize", 8.0)
+                putObject("color").putArray("rgba").apply { add(11); add(95); add(255); add(255) }
+                putObject("outlineColor").putArray("rgba").apply { add(255); add(255); add(255); add(180) }
+                put("outlineWidth", 1.0)
+            }
+            sat.putObject("path").apply {
+                put("width", 1.5)
+                put("leadTime", 0.0)
+                put("trailTime", trailS)
+                put("resolution", 60.0)
+                putObject("material").putObject("solidColor").putObject("color")
+                    .putArray("rgba").apply { add(11); add(95); add(255); add(140) }
+            }
             val pos = sat.putObject("position")
             pos.put("epoch", epochIso)
             pos.put("interpolationAlgorithm", "LAGRANGE")

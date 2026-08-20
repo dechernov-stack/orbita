@@ -2,9 +2,11 @@
 // Других источников нет и быть не должно: данные приходят посчитанными,
 // клиент их отображает (ADR-010, STEP-6 §3).
 import type {
+  ComparisonView,
   ComponentSpecification,
   RequirementCard,
   RequirementTreeView,
+  SystemOverview,
   UnitLabels,
 } from './types'
 
@@ -33,4 +35,9 @@ export const api = {
   requirementCard: (id: string) => get<RequirementCard>(`/views/requirements/${id}`),
   componentSpecification: (id: string) => get<ComponentSpecification>(`/views/components/${id}`),
   unitLabels: () => get<UnitLabels>('/unit-labels'),
+  systemOverview: () => get<SystemOverview>('/views/system'),
+  comparison: () => get<ComparisonView>('/views/comparison'),
+  /** CZML-поток глобуса: траектории считает пропагатор на сервере. */
+  globe: (query = 'total=8&planes=2&duration_s=5400') =>
+    get<unknown[]>(`/views/globe?${query}`),
 }

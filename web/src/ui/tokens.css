@@ -261,3 +261,35 @@ tbody td {
   padding: 16px;
   color: var(--text-secondary);
 }
+
+/* Матрица рисков 5×5: класс клетки приходит с сервера вместе с критичностью. */
+.matrix {
+  width: auto;
+  table-layout: auto;
+  margin-bottom: 8px;
+}
+
+.matrix th {
+  position: static;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  width: 28px;
+  height: 28px;
+  text-align: center;
+}
+
+.matrix .cell {
+  width: 68px;
+  height: 28px;
+  border: 1px solid var(--bg);
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.cell--low { background: #dafbe1; }
+.cell--medium { background: #fff8c5; }
+.cell--high { background: #ffebe9; }

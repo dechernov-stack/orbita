@@ -1,36 +1,42 @@
-// Оболочка клиента: экраны первой очереди (STEP-6 §3.1) — требования с карточкой
-// и спецификация элемента. Данные только из API ядра.
+// Оболочка клиента. Экраны первой и второй очереди (STEP-6 §3.1, STEP-7-9 §8).
+// Данные только из API ядра: расчётов в клиенте нет.
 import { useState } from 'react'
+import { Comparison } from './screens/Comparison'
 import { ComponentSpec } from './screens/ComponentSpec'
+import { Globe } from './screens/Globe'
 import { Requirements } from './screens/Requirements'
+import { SystemOverview } from './screens/SystemOverview'
 
-type Screen = 'requirements' | 'component'
+const SCREENS = [
+  { id: 'requirements', title: 'Требования', render: () => <Requirements /> },
+  { id: 'component', title: 'Спецификация элемента', render: () => <ComponentSpec componentId="CM-0011" /> },
+  { id: 'comparison', title: 'Сравнение вариантов', render: () => <Comparison /> },
+  { id: 'system', title: 'Система в целом', render: () => <SystemOverview /> },
+  { id: 'globe', title: 'Баллистика', render: () => <Globe /> },
+] as const
 
 export function App() {
-  const [screen, setScreen] = useState<Screen>('requirements')
+  const [screen, setScreen] = useState<string>(SCREENS[0].id)
+  const active = SCREENS.find((s) => s.id === screen) ?? SCREENS[0]
 
   return (
     <div className="app">
       <header className="topbar">
         <h1>Орбита</h1>
         <nav className="tabs">
-          <button
-            className="tab"
-            aria-selected={screen === 'requirements'}
-            onClick={() => setScreen('requirements')}
-          >
-            Требования
-          </button>
-          <button
-            className="tab"
-            aria-selected={screen === 'component'}
-            onClick={() => setScreen('component')}
-          >
-            Спецификация элемента
-          </button>
+          {SCREENS.map((s) => (
+            <button
+              key={s.id}
+              className="tab"
+              aria-selected={s.id === screen}
+              onClick={() => setScreen(s.id)}
+            >
+              {s.title}
+            </button>
+          ))}
         </nav>
       </header>
-      {screen === 'requirements' ? <Requirements /> : <ComponentSpec componentId="CM-0002" />}
+      {active.render()}
     </div>
   )
 }
