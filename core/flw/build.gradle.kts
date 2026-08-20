@@ -25,3 +25,15 @@ tasks.register<JavaExec>("perfCheck") {
     environment("ORBITA_REPO_ROOT", rootDir.absolutePath)
     jvmArgs("-Dfile.encoding=UTF-8", "-Dstdout.encoding=UTF-8")
 }
+
+// Полный эталонный масштаб TZ-COM-004 (шаг 13.1): 60 КА, ~20 000 ячеек,
+// 1000 реализаций. Не в цикле CI — прогоняется приёмкой шага 13.
+tasks.register<JavaExec>("fullScaleCheck") {
+    group = "verification"
+    description = "TZ-COM-004: полный эталонный сценарий против бюджета 300 с"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("orbita.flw.FlowPerfCheckKt")
+    environment("ORBITA_REPO_ROOT", rootDir.absolutePath)
+    environment("ORBITA_PERF_CONFIG", "perf_full_run.json")
+    jvmArgs("-Dfile.encoding=UTF-8", "-Dstdout.encoding=UTF-8", "-Xmx3g")
+}

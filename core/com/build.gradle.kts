@@ -84,3 +84,13 @@ tasks.register<JavaExec>("dumpDocsOnDb") {
     environment("ORBITA_REPO_ROOT", rootDir.absolutePath)
     jvmArgs("-Dfile.encoding=UTF-8", "-Dstdout.encoding=UTF-8")
 }
+
+// Сервер с нагрузочным проектом (шаг 13.2): экраны на полном масштабе.
+tasks.register<JavaExec>("loadServer") {
+    group = "verification"
+    description = "Шаг 13.2: API с нагрузочным проектом для прохода экранов"
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass.set("orbita.com.api.LoadProjectKt")
+    environment("ORBITA_REPO_ROOT", rootDir.absolutePath)
+    jvmArgs("-Dfile.encoding=UTF-8", "-Dstdout.encoding=UTF-8")
+}

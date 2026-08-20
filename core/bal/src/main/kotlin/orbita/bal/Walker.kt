@@ -6,7 +6,7 @@ package orbita.bal
 import orbita.mod.store.ModelViolationException
 
 /** Версия расчётного модуля — входит в input_versions результатов (TZ-COM-006). */
-const val BAL_MODULE_VERSION = "0.1"
+const val BAL_MODULE_VERSION = "0.2"
 
 data class OrbitSlot(
     val plane: Int,

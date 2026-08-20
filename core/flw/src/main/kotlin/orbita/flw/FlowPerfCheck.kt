@@ -16,7 +16,10 @@ import kotlin.system.exitProcess
 
 fun main() {
     val mapper = ObjectMapper()
-    val cfg = mapper.readTree(RepoPaths.repoRoot().resolve("spec/reference/perf_flow_run.json").toFile())
+    // ORBITA_PERF_CONFIG выбирает сценарий: perf_flow_run.json — регрессия CI,
+    // perf_full_run.json — полный эталонный масштаб TZ-COM-004 (шаг 13.1)
+    val configName = System.getenv("ORBITA_PERF_CONFIG") ?: "perf_flow_run.json"
+    val cfg = mapper.readTree(RepoPaths.repoRoot().resolve("spec/reference/$configName").toFile())
     val c = cfg["constellation"]
     val config = ConstellationConfig(
         incDeg = c["inc_deg"].asDouble(), total = c["total"].asInt(),
