@@ -79,14 +79,25 @@ const STEPS: Array<{ number: number; screens: Screen[] }> = [
 ]
 
 export function App() {
-  const [steps, setSteps] = useState<WizardStep[]>([])
+  // null — ответ ещё не пришёл; пустой массив — пришёл и оказался пустым
+  const [steps, setSteps] = useState<WizardStep[] | null>(null)
   const [step, setStep] = useState(1)
   const [screen, setScreen] = useState(STEPS[0].screens[0].id)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    api.wizard().then(setSteps).catch((e) => setError(String(e)))
+    api
+      .wizard()
+      .then(setSteps)
+      // ответ не пришёл — состояние шагов неизвестно, и это тоже надо показать
+      .catch((e) => {
+        setError(String(e))
+        setSteps([])
+      })
   }, [])
+
+  /** Ответ ещё в пути: состояние шагов неизвестно, а не пусто. */
+  const pending = steps === null
 
   const openStep = (number: number) => {
     setStep(number)
@@ -118,7 +129,7 @@ export function App() {
       <nav className="wizard">
         <div className="wizard__group">Мастер</div>
         {STEPS.map(({ number }) => {
-          const state = steps.find((s) => s.number === number)
+          const state = steps?.find((s) => s.number === number)
           return (
             <button
               key={number}
@@ -127,8 +138,9 @@ export function App() {
               onClick={() => openStep(number)}
             >
               Ш{number}. {state?.title ?? '—'}
-              <small className={state?.complete ? '' : 'amber'}>
-                {stepState(state)}
+              {/* пока ответа нет, шаг не красится: замечаний ещё никто не находил */}
+              <small className={pending || state?.complete ? '' : 'amber'}>
+                {stepState(state, pending)}
               </small>
             </button>
           )
@@ -144,8 +156,15 @@ export function App() {
 /**
  * Подпись состояния шага. Сервер уже различил «пусто» и «замечаний нет»;
  * здесь только выбираются слова, признак не выводится заново.
+ *
+ * Состояний ТРИ, а не два. «Ответ ещё не пришёл» — не то же самое, что
+ * «сервер ответил, и данных нет»: на холодном стенде первый случай держался
+ * заметное время, и мастер всё это время утверждал, будто состояния шагов
+ * неизвестны системе. Смешивать их нельзя ровно по той же причине, по которой
+ * сервер не смешивает «пусто» и «замечаний нет».
  */
-function stepState(state: WizardStep | undefined): string {
+function stepState(state: WizardStep | undefined, pending: boolean): string {
+  if (pending) return 'загрузка…'
   if (!state) return 'нет данных'
   if (state.complete) return `${state.objects} · без замечаний`
   if (state.objects === 0) return 'пусто'
