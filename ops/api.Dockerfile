@@ -33,6 +33,9 @@ COPY core core
 COPY schemas schemas
 COPY db db
 COPY spec spec
+# Датасет населённых пунктов нужен заполнителю: демо-проект строит карту
+# спроса из него же, что и импорт (второй копии чисел нет).
+COPY data data
 # apiJar — только main; seedJar — main + test. Собираются одной командой,
 # раскладываются по разным целевым образам ниже.
 RUN gradle --no-daemon :core:com:apiJar :core:com:seedJar
@@ -76,6 +79,7 @@ WORKDIR /opt/orbita
 COPY --from=build /src/schemas schemas
 COPY --from=build /src/db/migrations db/migrations
 COPY --from=build /src/spec spec
+COPY --from=build /src/data data
 COPY --from=build /src/core/com/build/libs/orbita-seed.jar app.jar
 COPY ops/seed.sh seed.sh
 RUN chmod +x seed.sh
