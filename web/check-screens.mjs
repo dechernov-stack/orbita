@@ -12,9 +12,15 @@
 //
 // Проход идёт ТОЛЬКО через интерфейс: ни консоли, ни правки базы. Иначе это
 // уже не проверка пригодности для работы, а проверка API другим способом.
+import { existsSync } from 'node:fs'
 import { chromium } from 'playwright'
 
-const CHROME = process.env.ORBITA_CHROME ?? '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'
+// Явно заданный ORBITA_CHROME используется как есть: опечатка в пути — громкая
+// ошибка запуска, а не молчаливая подмена браузера. Без него — Chromium среды
+// разработки, если он есть, иначе браузер самого Playwright (на macOS:
+// `npx playwright install chromium` один раз).
+const CONTAINER_CHROME = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'
+const CHROME = process.env.ORBITA_CHROME ?? (existsSync(CONTAINER_CHROME) ? CONTAINER_CHROME : null)
 const BASE = process.env.ORBITA_WEB_URL ?? 'http://127.0.0.1:5173/'
 const SHOTS = process.env.ORBITA_SHOTS ?? null
 
@@ -33,7 +39,7 @@ const expect = (condition, message, detail = '') => {
 // скрыла невыполнявшийся эталон — повторять это в клиенте незачем.
 const skip = (message, why) => console.log(`  ~ ПРОПУЩЕНО: ${message} — ${why}`)
 
-const browser = await chromium.launch({ executablePath: CHROME })
+const browser = await chromium.launch(CHROME ? { executablePath: CHROME } : {})
 const page = await browser.newPage({ viewport: { width: 1440, height: 800 } })
 const consoleErrors = []
 page.on('pageerror', (e) => consoleErrors.push(String(e)))
