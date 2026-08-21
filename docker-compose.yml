@@ -56,6 +56,10 @@ services:
       ORBITA_DB_USER: orbita
       ORBITA_DB_PASSWORD: ${ORBITA_DB_PASSWORD:-orbita}
       ORBITA_HTTP_PORT: 8090
+      # В контейнере петля недоступна nginx (502 на /api). Порт наружу
+      # не публикуется, единственный вход — nginx, поэтому 0.0.0.0 здесь
+      # не открывает API в сеть хоста.
+      ORBITA_HTTP_BIND: 0.0.0.0
       ORBITA_EXCHANGE_URL: http://exchange:8091
     depends_on:
       db:

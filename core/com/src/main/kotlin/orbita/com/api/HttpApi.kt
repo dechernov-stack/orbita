@@ -36,9 +36,18 @@ class HttpApi(private val boundary: Boundary) {
 
     private val mapper = ObjectMapper()
 
-    /** Запуск на 127.0.0.1; port=0 — эфемерный порт (для тестов). */
+    /**
+     * Запуск на 127.0.0.1; port=0 — эфемерный порт (для тестов).
+     *
+     * Адрес привязки переопределяется ORBITA_HTTP_BIND. В контейнере петля
+     * недоступна соседям по сети, и nginx получал бы 502: единственный вход —
+     * nginx, порт API наружу не публикуется, поэтому там привязка 0.0.0.0
+     * (docker-compose.yml). По умолчанию — петля: в разработке API не должен
+     * оказаться открытым в сеть без явного решения.
+     */
     fun start(port: Int): HttpServer {
-        val server = HttpServer.create(InetSocketAddress("127.0.0.1", port), 0)
+        val bind = System.getenv("ORBITA_HTTP_BIND") ?: "127.0.0.1"
+        val server = HttpServer.create(InetSocketAddress(bind, port), 0)
         server.createContext("/api/") { ex -> handle(ex) }
         server.start()
         return server
