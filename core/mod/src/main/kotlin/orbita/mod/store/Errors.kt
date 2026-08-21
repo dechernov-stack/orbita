@@ -16,6 +16,22 @@ class BaselineChangeException(message: String, cause: Throwable? = null) : Store
 /** Повторное использование ID (TZ-MOD-007). */
 class IdReuseException(message: String, cause: Throwable? = null) : StoreException(message, cause)
 
+/**
+ * Правка на устаревшей версии (шаг 15, spec/editing_semantics.py). Несёт то,
+ * что нужно инженеру для разрешения: чужое значение и его автора. Отказ, а не
+ * слепое слияние: «последний победил» на сессии параллельного проектирования
+ * означает потерянную работу коллеги без следа.
+ */
+class VersionConflictException(
+    val id: String,
+    val yourBase: String,
+    val currentVersion: String,
+    val changedBy: String,
+    val theirValues: Map<String, com.fasterxml.jackson.databind.JsonNode>,
+) : StoreException(
+    "TZ-COM-003: объект '$id' изменён с версии $yourBase: текущая $currentVersion, автор $changedBy"
+)
+
 /** Циклическая зависимость параметров (TZ-MOD-005). */
 class CycleException(message: String) : StoreException(message)
 

@@ -72,6 +72,12 @@ class Boundary(private val registry: SchemaRegistry, conn: Connection) {
     /** Импорт — третий канал в модель (шаг 14, ADR-024): правовой режим источников. */
     val importPolicy = orbita.mod.model.ImportPolicy()
 
+    /**
+     * Рабочий слой (шаг 15): ввод, правка и отмена через интерфейс. Правила —
+     * те же, что у приёма и импорта; собственных у форм нет.
+     */
+    val editing: Editing by lazy { Editing(this) }
+
     private val terminalRules = TerminalRules(registry)
 
     /**
@@ -116,6 +122,35 @@ class Boundary(private val registry: SchemaRegistry, conn: Connection) {
         }
     }
 
+    /**
+     * Проверка документа БЕЗ сохранения — теми же функциями, что и приём:
+     * схема вида плюс прикладные правила (`requireApplicationRules`), плюс
+     * особенности отдельных видов. Используется правкой через интерфейс
+     * (шаг 15 §1.3), чтобы у форм не завёлся собственный набор правил.
+     */
+    fun validate(type: CoreType, doc: JsonNode) {
+        // Интерфейс схемы своего вида не имеет: в CoreType он делит схему
+        // с элементом, а его id ей не соответствует — приём тоже её не требует.
+        if (type != CoreType.Interface) registry.require(type.schemaName, doc)
+        req.requireApplicationRules(type.dbType, doc)
+        when (type) {
+            CoreType.TerminalProfile -> terminalRules.validate(doc).takeIf { it.isNotEmpty() }
+                ?.let { throw SchemaValidationException(type.schemaName, it) }
+
+            CoreType.Scenario -> {
+                val problems = resolveScenario(doc) { ref -> objects.current(ref)?.let { CoreType.byDbType(it.type) } } +
+                    inputVersionsComplete(doc)
+                if (problems.isNotEmpty()) {
+                    throw ModelViolationException(
+                        "сценарий ${doc.path("id").asText()}: " + problems.joinToString("; ")
+                    )
+                }
+            }
+
+            else -> {}
+        }
+    }
+
     /** Сохранение объекта, у которого прикладных правил связей нет: схема и статус. */
     private fun store(type: CoreType, doc: JsonNode, createdBy: String): StoredObject {
         val lifecycle = doc.path("lifecycle")
@@ -144,6 +179,9 @@ class Boundary(private val registry: SchemaRegistry, conn: Connection) {
     }
 
     fun schemaNames(): List<String> = registry.names
+
+    /** Схема вида как документ — правке нужны обязательные поля (шаг 15). */
+    fun rawSchema(name: String): JsonNode = registry.raw(name)
 
     private fun parse(json: String): JsonNode = registry.parse(json)
 }

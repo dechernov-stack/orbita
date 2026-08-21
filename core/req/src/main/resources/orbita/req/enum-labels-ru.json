@@ -1,0 +1,213 @@
+{
+  "_note": "Подписи кодов перечислений (шаг 15 §2). Модель хранит коды, экран показывает подписи. Механизм тот же, что у единиц (CR-001 п. 6): таблица в конфигурации, а не в коде клиента. Неизвестный код выводится как есть — теряться он не должен.",
+  "groups": {
+    "lifecycle": {
+      "Draft": "черновик",
+      "Preliminary": "предварительный",
+      "Approved": "утверждён",
+      "Baseline": "базирован",
+      "Cancelled": "отменён"
+    },
+    "stakeholder_role": {
+      "customer": "заказчик",
+      "operator": "оператор",
+      "end_user": "конечный пользователь",
+      "regulator": "регулятор",
+      "agency": "агентство",
+      "partner": "партнёр"
+    },
+    "consumer_class": {
+      "A_prime": "A′ — телеметрия малой скважности",
+      "B_prime": "B′ — периодический сбор",
+      "C_prime": "C′ — оперативное управление"
+    },
+    "requirement_category": {
+      "functional": "функциональное",
+      "performance": "характеристики",
+      "interface": "интерфейсное",
+      "environmental": "условия эксплуатации",
+      "operational": "эксплуатационное",
+      "reliability": "надёжность",
+      "safety": "безопасность",
+      "cost": "стоимость",
+      "schedule": "сроки",
+      "constraint": "ограничение",
+      "technical": "техническое"
+    },
+    "requirement_level": {
+      "project": "проект",
+      "system": "система",
+      "subsystem": "подсистема",
+      "component": "элемент",
+      "element": "элемент",
+      "end_to_end": "сквозной"
+    },
+    "verification_method": {
+      "analysis": "расчёт",
+      "demonstration": "демонстрация",
+      "inspection": "осмотр",
+      "test": "испытание"
+    },
+    "verification_kind": {
+      "preliminary": "предварительное",
+      "qualification": "квалификационное",
+      "acceptance": "приёмочное",
+      "certification": "сертификационное"
+    },
+    "verification_status": {
+      "planned": "запланировано",
+      "in_progress": "выполняется",
+      "passed": "выполнено",
+      "failed": "не выполнено",
+      "waived": "снято с проверки"
+    },
+    "phase": {
+      "PhaseA": "фаза A",
+      "PhaseB": "фаза B",
+      "PhaseC": "фаза C",
+      "PhaseD": "фаза D",
+      "PhaseE": "фаза E"
+    },
+    "risk_strategy": {
+      "accept": "принять",
+      "avoid": "избежать",
+      "mitigate": "снизить",
+      "transfer": "передать"
+    },
+    "risk_status": {
+      "open": "открыт",
+      "mitigating": "снижается",
+      "closed": "закрыт",
+      "accepted": "принят",
+      "waived": "снят"
+    },
+    "provenance_source": {
+      "manual": "ручной ввод",
+      "computed": "расчёт",
+      "ai_proposed": "предложение ИИ",
+      "imported": "импорт"
+    },
+    "segment": {
+      "space": "космический сегмент",
+      "ground": "наземный сегмент",
+      "user": "пользовательский сегмент"
+    },
+    "subsystem": {
+      "adcs": "ориентация и стабилизация",
+      "comms": "связь",
+      "obc": "бортовой компьютер",
+      "payload": "полезная нагрузка",
+      "power": "электропитание",
+      "propulsion": "двигательная установка",
+      "structure": "конструкция",
+      "thermal": "терморегулирование"
+    },
+    "placement": {
+      "manual": "выбрана вручную",
+      "suggested": "предложена расчётом"
+    },
+    "limiting_factor": {
+      "geometry": "геометрия",
+      "link_margin": "запас линии",
+      "capacity": "пропускная способность",
+      "doppler": "доплеровский сдвиг",
+      "antenna_pattern": "диаграмма антенны"
+    },
+    "mop_operator": {
+      "le": "не более",
+      "lt": "менее",
+      "ge": "не менее",
+      "gt": "более",
+      "eq": "равно",
+      "range": "в диапазоне",
+      "tolerance": "с допуском"
+    },
+    "mop_rollup": {
+      "sum": "сумма",
+      "max": "максимум",
+      "min": "минимум",
+      "none": "не сворачивается"
+    },
+    "maturity": {
+      "existing": "существующий",
+      "modified": "доработанный",
+      "new": "новый",
+      "preliminary": "предварительная",
+      "final": "окончательная"
+    },
+    "link_role": {
+      "user_uplink": "линия вверх, пользователь",
+      "user_downlink": "линия вниз, пользователь",
+      "feeder_uplink": "фидерная линия вверх",
+      "feeder_downlink": "фидерная линия вниз",
+      "isl": "межспутниковая линия",
+      "ttc": "командно-телеметрическая линия"
+    },
+    "review": {
+      "MDR": "MDR — обзор миссии",
+      "SRR": "SRR — обзор требований",
+      "SDR": "SDR — обзор облика",
+      "PDR": "PDR — эскизный проект"
+    },
+    "derivation_kind": {
+      "allocated": "распределение бюджета",
+      "derived": "производное требование"
+    },
+    "allocation_kind": {
+      "full": "полностью",
+      "partial": "частично",
+      "explicit": "явно"
+    },
+    "evidence_kind": {
+      "analysis_report": "отчёт о расчёте",
+      "test_report": "протокол испытаний",
+      "inspection_record": "акт осмотра",
+      "demonstration_record": "акт демонстрации",
+      "certificate": "сертификат",
+      "model_run": "прогон модели"
+    },
+    "product_kind": {
+      "engineering_unit": "технологический образец",
+      "flight_unit": "лётный образец",
+      "mockup": "макет",
+      "model": "модель",
+      "prototype": "прототип"
+    },
+    "spacecraft_mode": {
+      "standby": "дежурство",
+      "rx": "приём",
+      "rx_tx": "приём и передача",
+      "downlink": "сброс",
+      "isl": "межспутниковая связь",
+      "safe": "безопасный режим",
+      "maneuver": "манёвр"
+    },
+    "component_kind": {
+      "segment": "сегмент",
+      "system": "система",
+      "subsystem": "подсистема",
+      "assembly": "сборка"
+    },
+    "verification_level": {
+      "component": "элемент",
+      "subsystem": "подсистема",
+      "system": "система",
+      "end_to_end": "сквозной"
+    },
+    "moe_name": {
+      "delivery_probability_daily": "вероятность доставки за сутки",
+      "delivery_probability_n_attempts": "вероятность доставки за N попыток",
+      "reaction_time_probability": "вероятность уложиться во время реакции",
+      "age_of_information": "возраст информации",
+      "service_availability": "доступность сервиса",
+      "custom": "собственный показатель"
+    },
+    "interface_type": {
+      "rf": "радиоканал",
+      "data": "информационный",
+      "power": "электрический",
+      "mechanical": "механический",
+      "thermal": "тепловой"
+    }
+  }
+}

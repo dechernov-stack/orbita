@@ -132,12 +132,16 @@ class AiSemanticsTest {
 
         private val screening = ProposalScreening()
 
+        // Форма верификации — СОБЫТИЯМИ (CR-003/ADR-019). Прежние фикстуры несли
+        // блок `verification`, которого в схеме требования нет: объект такой формы
+        // модель не приняла бы, а фильтр на нём проверялся (шаг 15 §3).
         private val good = json(
             """{"id":"RQ-9001","category":"performance",
                "statement":"Система должна обеспечивать доставку не менее 0,9.",
                "mop":{"name":"доставка","operator":"ge","value":{"value":0.9,"unit":"1"}},
-               "verification":{"method":"analysis","means":"модель потоков",
-                 "approach":"Прогон Монте-Карло по предрасчитанному расписанию пролётов, 500 реализаций."}}""",
+               "verification_events":[{"id":"VE-9001","method":"analysis","kind":"qualification",
+                 "level":"end_to_end","closes":true,"status":"planned","means":"модель потоков",
+                 "approach":"Прогон Монте-Карло по предрасчитанному расписанию пролётов, 500 реализаций."}]}""",
         )
 
         private fun withoutOperator(): JsonNode {
@@ -147,7 +151,12 @@ class AiSemanticsTest {
             return n
         }
 
-        private val bad = json("""{"id":"RQ-9003","category":"performance","statement":"Хорошая доставка данных."}""")
+        // Негодное предложение: и формулировка, и показатель, и план верификации.
+        // Проверяется свойство «замечания собираются все сразу, а не первое».
+        private val bad = json(
+            """{"id":"RQ-9003","category":"performance","statement":"Хорошая доставка данных.",
+               "verification_events":[{"id":"VE-9003","method":"test","kind":"preliminary","closes":true}]}""",
+        )
 
         @Test
         fun `состоятельное предложение доходит до инженера`() {

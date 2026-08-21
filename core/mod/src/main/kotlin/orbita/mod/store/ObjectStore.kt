@@ -97,8 +97,15 @@ class ObjectStore(private val conn: Connection, private val mapper: ObjectMapper
         changeRef: String? = null,
         createdBy: String = "system",
         at: OffsetDateTime = OffsetDateTime.now(ZoneOffset.UTC),
+        baseVersion: String? = null,
     ): StoredObject {
         val cur = current(id) ?: throw NoSuchElementException("object '$id' has no current version")
+        // Оптимистичная блокировка (шаг 15): правка несёт версию, на которой
+        // основана. Расхождение — отказ с показом чужого значения и автора.
+        // Отсутствие baseVersion сохраняет прежнее поведение внутренних вызовов.
+        if (baseVersion != null && baseVersion != cur.version) {
+            throw conflictWith(cur, baseVersion, newDoc)
+        }
         if (cur.status == Lifecycle.Baseline && changeRef.isNullOrBlank()) {
             throw BaselineChangeException(
                 "TZ-COM-003: changing baseline object '$id' requires a change basis (change_ref)"
@@ -106,13 +113,21 @@ class ObjectStore(private val conn: Connection, private val mapper: ObjectMapper
         }
         return mappingConstraints {
             conn.tx {
-                conn.prepareStatement(
-                    "UPDATE objects SET valid_to = ?, change_ref = COALESCE(?, change_ref) WHERE pk = ?"
+                val closed = conn.prepareStatement(
+                    "UPDATE objects SET valid_to = ?, change_ref = COALESCE(?, change_ref) " +
+                        "WHERE pk = ? AND valid_to IS NULL"
                 ).use { ps ->
                     ps.setObject(1, at)
                     ps.setString(2, changeRef)
                     ps.setLong(3, cur.pk)
                     ps.executeUpdate()
+                }
+                // Интервал закрыл кто-то другой между чтением и записью: та же
+                // потерянная правка, что и расхождение версий, только в гонке.
+                // Сравнение версий её не ловит — ловит условие valid_to IS NULL.
+                if (closed == 0) {
+                    val now = current(id) ?: throw NoSuchElementException("object '$id' has no current version")
+                    throw conflictWith(now, baseVersion ?: cur.version, newDoc)
                 }
                 conn.prepareStatement(
                     """INSERT INTO objects(id, type, version, status, doc, valid_from, supersedes, change_ref, created_by)
@@ -180,8 +195,81 @@ class ObjectStore(private val conn: Connection, private val mapper: ObjectMapper
         }
     }
 
-    /** «1» → «2», «0.1» → «0.2»: увеличивается последний числовой сегмент версии. */
-    internal fun bumpVersion(version: String): String {
+    /**
+     * Отмена объекта (шаг 15): статус `Cancelled`, объект ОСТАЁТСЯ в хранилище.
+     * Настоящего удаления нет: на объект могут ссылаться, и удаление рвёт нить
+     * трассировки молча. В отличие от [transition], версия увеличивается —
+     * отмена есть изменение содержания, а не только состояния.
+     */
+    fun cancel(
+        id: String,
+        createdBy: String = "system",
+        at: OffsetDateTime = OffsetDateTime.now(ZoneOffset.UTC),
+        baseVersion: String? = null,
+    ): StoredObject {
+        val cur = current(id) ?: throw NoSuchElementException("object '$id' has no current version")
+        if (baseVersion != null && baseVersion != cur.version) {
+            throw conflictWith(cur, baseVersion, cur.doc)
+        }
+        if (cur.status == Lifecycle.Baseline) {
+            throw BaselineChangeException(
+                "TZ-COM-003: object '$id' is baselined; changes go through the change procedure"
+            )
+        }
+        val newDoc = cur.doc.deepCopy<JsonNode>()
+        val bumped = bumpVersion(cur.version)
+        (newDoc as? com.fasterxml.jackson.databind.node.ObjectNode)?.withObject("/lifecycle")
+            ?.put("status", Lifecycle.Cancelled.name)?.put("version", bumped)
+        return mappingConstraints {
+            conn.tx {
+                conn.prepareStatement("UPDATE objects SET valid_to = ? WHERE pk = ? AND valid_to IS NULL")
+                    .use { ps ->
+                        ps.setObject(1, at)
+                        ps.setLong(2, cur.pk)
+                        ps.executeUpdate()
+                    }
+                conn.prepareStatement(
+                    """INSERT INTO objects(id, type, version, status, doc, valid_from, supersedes, created_by)
+                       VALUES (?, ?::object_type, ?, 'Cancelled'::lifecycle, ?::jsonb, ?, ?, ?)
+                       RETURNING $COLUMNS"""
+                ).use { ps ->
+                    ps.setString(1, cur.id)
+                    ps.setString(2, cur.type)
+                    ps.setString(3, bumped)
+                    ps.setString(4, mapper.writeValueAsString(newDoc))
+                    ps.setObject(5, at)
+                    ps.setLong(6, cur.pk)
+                    ps.setString(7, createdBy)
+                    ps.executeQuery().use { rs -> rs.next(); rs.toStoredObject() }
+                }
+            }
+        }
+    }
+
+    /**
+     * Предыдущая версия объекта — вход для отмены действия из интерфейса
+     * (шаг 15 §1.4). Единственная версия отмены не имеет: откатывать не к чему.
+     */
+    fun previous(id: String): StoredObject? = history(id).let { if (it.size < 2) null else it[it.size - 2] }
+
+    /** Отказ с тем, что нужно инженеру: чужая версия, её автор и чужие значения полей. */
+    private fun conflictWith(cur: StoredObject, base: String, attempted: JsonNode): VersionConflictException {
+        val fields = attempted.properties().map { it.key }.filter { it != "id" }
+        return VersionConflictException(
+            id = cur.id,
+            yourBase = base,
+            currentVersion = cur.version,
+            changedBy = cur.createdBy,
+            theirValues = fields.associateWith { cur.doc.path(it) },
+        )
+    }
+
+    /**
+     * «1» → «2», «0.1» → «0.2»: увеличивается последний числовой сегмент версии.
+     * Открыто наружу с шага 15: правка через интерфейс держит `lifecycle.version`
+     * документа в согласии с колонкой версии, а не заводит второй счёт.
+     */
+    fun bumpVersion(version: String): String {
         val parts = version.split('.').toMutableList()
         val last = parts.last().toIntOrNull()
             ?: throw ModelViolationException("cannot bump non-numeric version '$version'")

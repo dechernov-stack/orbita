@@ -21,6 +21,7 @@ import orbita.mod.store.CycleException
 import orbita.mod.store.IdReuseException
 import orbita.mod.store.ModelViolationException
 import orbita.mod.store.StoredObject
+import orbita.mod.store.VersionConflictException
 import java.net.InetSocketAddress
 import java.time.OffsetDateTime
 
@@ -58,6 +59,19 @@ class HttpApi(private val boundary: Boundary) {
             respond(ex, 409, body)
         } catch (e: BaselineChangeException) {
             respond(ex, 409, errJson(e))
+        } catch (e: BaselineEditBlockedException) {
+            // Причина адресована инженеру: она попадает прямо на экран формы
+            respond(ex, 409, errJson(e).put("blocked", true).put("reason", e.reason))
+        } catch (e: VersionConflictException) {
+            // Отказ несёт то, чем разрешают конфликт: чужая версия, её автор
+            // и чужие значения тех полей, которые правились (шаг 15 §1.2)
+            val body = errJson(e).put("conflict", true)
+                .put("your_base", e.yourBase)
+                .put("current_version", e.currentVersion)
+                .put("changed_by", e.changedBy)
+            val theirs = body.putObject("their_values")
+            e.theirValues.forEach { (field, value) -> theirs.set<ObjectNode>(field, value) }
+            respond(ex, 409, body)
         } catch (e: IdReuseException) {
             respond(ex, 409, errJson(e))
         } catch (e: CycleException) {
@@ -79,6 +93,7 @@ class HttpApi(private val boundary: Boundary) {
         val path = ex.requestURI.path.removePrefix("/api").trimEnd('/')
         val method = ex.requestMethod
         val objectMatch = Regex("^/objects/([A-Z]{2,3}-[0-9]{4})(/.*)?$").find(path)
+        val editMatch = Regex("^/edit/([A-Z]{2,3}-[0-9]{4})(/.*)?$").find(path)
 
         when {
             // Список видов выводится из состава типов, а не перечисляется руками:
@@ -322,12 +337,17 @@ class HttpApi(private val boundary: Boundary) {
                     entry.set<ObjectNode>("item", proposal)
                     // diff к текущему состоянию: применять будет инженер по полям
                     val targetId = proposal.path("id").asText("")
-                    val current = boundary.objects.current(targetId)?.doc
-                        ?: mapper.createObjectNode()
+                    val stored = boundary.objects.current(targetId)
                     entry.set<ObjectNode>(
                         "diff",
-                        orbita.ai.diffToJson(orbita.ai.makeDiff(current, proposal), mapper),
+                        orbita.ai.diffToJson(
+                            orbita.ai.makeDiff(stored?.doc ?: mapper.createObjectNode(), proposal), mapper,
+                        ),
                     )
+                    // Версия, против которой посчитан diff: акцепт — такая же
+                    // правка, как ручная, и подчиняется той же блокировке.
+                    // null означает, что объекта ещё нет и акцепт его создаст.
+                    entry.put("base_version", stored?.version)
                 }
                 n.set<ObjectNode>("rework", report.reworkContext(mapper))
                 val byRule = n.putObject("by_rule")
@@ -337,10 +357,17 @@ class HttpApi(private val boundary: Boundary) {
 
             // Акцепт: применяются ТОЛЬКО выбранные поля; массового акцепта
             // без просмотра интерфейсом не предусмотрено (TZ-AI-004, ловушка 2).
+            //
+            // Акцепт СОХРАНЯЕТ объект в модель. До шага 15 этот маршрут возвращал
+            // размеченный объект и на этом заканчивался: экран рапортовал
+            // «принято полей: N», а в модели не менялось ничего — контур ИИ
+            // обрывался на последнем шаге. Запись идёт тем же путём, что ручная
+            // правка: те же правила, тот же автор, та же блокировка по версии.
             method == "POST" && path == "/ai/accept" -> {
                 val request = mapper.readTree(body(ex))
                 val targetId = request.path("target_id").asText()
-                val current = boundary.objects.current(targetId)?.doc ?: mapper.createObjectNode()
+                val stored = boundary.objects.current(targetId)
+                val current = stored?.doc ?: mapper.createObjectNode()
                 val proposal = request.path("proposal")
                 val selected = request.path("selected").map { it.asText() }.toSet()
                 val diff = orbita.ai.makeDiff(current, proposal)
@@ -352,7 +379,25 @@ class HttpApi(private val boundary: Boundary) {
                     ),
                     by = request.path("by").asText(""),
                 )
-                respond(ex, 200, marked)
+                // Акцептующий инженер и есть автор изменения (TZ-AI-004):
+                // поле называется `by`, но роль у него та же, что у `author`.
+                val author = request.path("by").asText("").trim().takeIf { it.isNotEmpty() }
+                    ?: throw IllegalArgumentException("TZ-AI-004: field 'by' is required to accept a proposal")
+                val type = CoreType.byDbType(stored?.type ?: typeByIdPrefix(targetId).dbType)
+                val saved = if (stored == null) {
+                    marked.put("id", targetId)
+                    boundary.editing.create(type, marked, author)
+                } else {
+                    val changes = mapper.createObjectNode()
+                    selected.forEach { field -> changes.set<ObjectNode>(field, marked.path(field)) }
+                    changes.set<ObjectNode>("provenance", marked.path("provenance"))
+                    boundary.editing.update(
+                        type = type, id = targetId, changes = changes,
+                        baseVersion = request.path("base_version").asText(stored.version),
+                        author = author,
+                    )
+                }
+                respond(ex, 200, summary(saved).apply { set<ObjectNode>("doc", saved.doc) })
             }
 
             // Экраны мастера: нужды, сервисы, готовность, состояние шагов
@@ -735,6 +780,12 @@ class HttpApi(private val boundary: Boundary) {
             method == "GET" && path == "/unit-labels" ->
                 respond(ex, 200, mapper.valueToTree(orbita.req.UnitLabels().all()))
 
+            // Подписи кодов перечислений — тем же способом, что и единицы
+            // (шаг 15 §2): до этого шага коды `operator`, `customer`,
+            // `regulator` выходили на экран как есть.
+            method == "GET" && path == "/enum-labels" ->
+                respond(ex, 200, mapper.valueToTree(orbita.req.EnumLabels().all()))
+
             method == "GET" && Regex("^/components/(CM-[0-9]{4})/specification$").matches(path) -> {
                 val cm = path.removePrefix("/components/").removeSuffix("/specification")
                 respond(ex, 200, mapper.valueToTree(boundary.req.specificationOf(cm)))
@@ -753,6 +804,84 @@ class HttpApi(private val boundary: Boundary) {
             method == "GET" && path == "/protocol-adapter" ->
                 respond(ex, 200, boundary.protocolAdapter.toContractJson(PROTOCOL_ADAPTER_ID, mapper))
 
+            // ---------- рабочий слой: ввод и правка через интерфейс (шаг 15) ----------
+            // Автор идёт ТЕЛОМ запроса, а не заголовком: имена инженеров русские,
+            // а значение заголовка HTTP обязано быть ASCII — на первом же
+            // «инженер А» клиент отказывается собрать запрос. Автор и по смыслу
+            // часть изменения, а не сведения о транспорте.
+
+            method == "POST" && editTypePath(path) != null -> {
+                val req = mapper.readTree(body(ex))
+                val stored = boundary.editing.create(
+                    editTypePath(path)!!, req.path("doc"), author(req),
+                )
+                respond(ex, 201, summary(stored).apply { set<ObjectNode>("doc", stored.doc) })
+            }
+
+            method == "PATCH" && editMatch != null && editMatch.groupValues[2].isEmpty() -> {
+                val req = mapper.readTree(body(ex))
+                val id = editMatch.groupValues[1]
+                val type = CoreType.byDbType(
+                    boundary.objects.current(id)?.type
+                        ?: throw NoSuchElementException("object '$id' not found")
+                )
+                val stored = boundary.editing.update(
+                    type = type,
+                    id = id,
+                    changes = req.path("changes"),
+                    baseVersion = req.path("base_version").asText(""),
+                    author = author(req),
+                )
+                respond(ex, 200, summary(stored).apply { set<ObjectNode>("doc", stored.doc) })
+            }
+
+            method == "POST" && editMatch?.groupValues?.get(2) == "/cancel" -> {
+                val req = mapper.readTree(body(ex).ifBlank { "{}" })
+                val stored = boundary.editing.cancel(
+                    editMatch.groupValues[1], author(req),
+                    baseVersion = req.path("base_version").textValue(),
+                )
+                respond(ex, 200, summary(stored))
+            }
+
+            // Отмена действия (§1.4): содержание предыдущей версии становится
+            // новой текущей. Отменять нечего — это 409, а не молчаливое «ок».
+            method == "POST" && editMatch?.groupValues?.get(2) == "/undo" -> {
+                val req = mapper.readTree(body(ex).ifBlank { "{}" })
+                val stored = boundary.editing.undo(editMatch.groupValues[1], author(req))
+                if (stored == null) {
+                    respond(
+                        ex, 409,
+                        mapper.createObjectNode()
+                            .put("error", "object '${editMatch.groupValues[1]}' has a single version: nothing to undo"),
+                    )
+                } else {
+                    respond(ex, 200, summary(stored).apply { set<ObjectNode>("doc", stored.doc) })
+                }
+            }
+
+            method == "GET" && editMatch?.groupValues?.get(2) == "/history" -> {
+                val arr = mapper.createArrayNode()
+                boundary.editing.history(editMatch.groupValues[1]).forEach { v ->
+                    arr.addObject()
+                        .put("version", v.version).put("status", v.status.name)
+                        .put("author", v.createdBy).put("valid_from", v.validFrom.toString())
+                        .put("valid_to", v.validTo?.toString())
+                        .put("current", v.validTo == null)
+                }
+                respond(ex, 200, arr)
+            }
+
+            // Что мешает базированию — до попытки перевода, чтобы форма могла
+            // показать это инженеру, а не отказом после нажатия.
+            method == "GET" && editMatch?.groupValues?.get(2) == "/issues" -> {
+                val issues = boundary.editing.promotionIssues(editMatch.groupValues[1])
+                val n = mapper.createObjectNode().put("can_baseline", issues.isEmpty())
+                val arr = n.putArray("issues")
+                issues.forEach(arr::add)
+                respond(ex, 200, n)
+            }
+
             method == "POST" && path.startsWith("/validate/") -> {
                 val schema = path.removePrefix("/validate/")
                 val errors = boundary.validateContract(schema, body(ex))
@@ -767,6 +896,26 @@ class HttpApi(private val boundary: Boundary) {
             )
         }
     }
+
+    /** Вид объекта по префиксу идентификатора — для акцепта предложения нового объекта. */
+    private fun typeByIdPrefix(id: String): CoreType =
+        CoreType.entries.firstOrNull { id.startsWith("${it.idPrefix}-") }
+            ?: throw IllegalArgumentException("unknown object id prefix: '$id'")
+
+    /** Вид объекта из пути `/edit/<db_type>`; null — путь не про создание. */
+    private fun editTypePath(path: String): CoreType? {
+        val name = path.removePrefix("/edit/")
+        if (path == name || '/' in name) return null
+        return CoreType.entries.firstOrNull { it.dbType == name }
+    }
+
+    /**
+     * Автор изменения (шаг 15 §1.2). Обязателен: правка без автора на сессии
+     * параллельного проектирования — это правка, о которой некого спросить.
+     */
+    private fun author(request: JsonNode): String =
+        request.path("author").asText("").trim().takeIf { it.isNotEmpty() }
+            ?: throw IllegalArgumentException("TZ-COM-005: field 'author' is required for editing")
 
     /** Вид объекта из пути `/objects/<db_type>`; null — путь не про приём объекта. */
     private fun objectTypePath(path: String): CoreType? {

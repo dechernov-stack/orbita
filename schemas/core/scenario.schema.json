@@ -103,6 +103,10 @@
       "type": "boolean",
       "default": false,
       "description": "true — входные данные изменились после прогона"
+    },
+    "provenance": {
+      "$ref": "https://kis.local/schemas/common/provenance.schema.json",
+      "description": "Происхождение объекта: ручной ввод, предложение ИИ или импорт (TZ-COM-005, шаг 15)"
     }
   }
 }

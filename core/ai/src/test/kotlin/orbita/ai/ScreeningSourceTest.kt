@@ -32,7 +32,9 @@ class ScreeningSourceTest {
                 "allocationConsistent",     // traceability_semantics
                 "interfaceAllocationValid", // traceability_semantics
                 "rollupCheck",              // constraint_semantics
-                "verificationIssues",       // verification_semantics
+                // verificationIssues здесь БОЛЬШЕ НЕТ: это правило отдельного
+                // события, и применять его к требованию целиком нельзя —
+                // блок `verification` заменён массивом событий (CR-003, шаг 15 §3)
                 "verificationPlanIssues",   // verification_semantics
             ),
             imported,
@@ -60,7 +62,6 @@ class ScreeningSourceTest {
         issueLines.forEach { line ->
             val callsRule = listOf(
                 "quality.check",            // requirements_semantics
-                "verificationIssues",       // verification_semantics
                 "verificationPlanIssues",   // verification_semantics
                 "reason",                   // allocationConsistent / interfaceAllocationValid
                 "roll.error",               // rollupCheck: текст замечания от правила
