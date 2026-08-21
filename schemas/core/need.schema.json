@@ -25,6 +25,10 @@
       "description": "ID сервисов, реализующих нужду (TZ-COM-002)",
       "items": { "type": "string", "pattern": "^SV-[0-9]{4}$" }
     },
-    "lifecycle": { "$ref": "https://kis.local/schemas/common/status.schema.json" }
+    "lifecycle": { "$ref": "https://kis.local/schemas/common/status.schema.json" },
+    "provenance": {
+      "$ref": "https://kis.local/schemas/common/provenance.schema.json",
+      "description": "Происхождение объекта: ручной ввод, предложение ИИ или импорт (TZ-COM-005, шаг 15)"
+    }
   }
 }

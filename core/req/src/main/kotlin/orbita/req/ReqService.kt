@@ -26,6 +26,68 @@ class ReqService(
 
     // ---------- приём объектов: валидация + связи из документа (TZ-REQ-003) ----------
 
+    /**
+     * Прикладные правила вида объекта — сверх схемы. ЕДИНСТВЕННОЕ их место:
+     * применяются и при приёме (`ingest*`), и при правке через интерфейс
+     * (шаг 15 §1.3), и при импорте (ADR-024), и в фильтре предложений ИИ.
+     *
+     * Отдельная «облегчённая» проверка для форм была бы ровно той ошибкой,
+     * что уже случалась с предложениями ИИ на шаге 5: расхождение заводится
+     * не в правилах, а во втором их экземпляре.
+     */
+    fun requireApplicationRules(type: String, doc: JsonNode) {
+        when (type) {
+            "requirement" -> {
+                doc.path("traces_up").forEach { t ->
+                    val ref = t.path("ref").asText()
+                    if (ref.startsWith("SV-") && t.path("consumer_class").asText("").isBlank()) {
+                        throw ModelViolationException(
+                            "TZ-REQ-003 (Р9/ADR-009): reference to service $ref requires consumer_class"
+                        )
+                    }
+                }
+                // CR-001/CR-003: распределение — объект {component|interface, kind, rationale}
+                doc.path("allocated_to").forEach { a ->
+                    val target = a.path("component").asText("").ifBlank { a.path("interface").asText("") }
+                    objects.current(target)
+                        ?: throw ModelViolationException("TZ-REQ-005: allocation to missing element $target")
+                }
+                // CR-003: интерфейсное требование распределяется на интерфейс с двумя сторонами
+                interfaceAllocationValid(doc, productTree()).let { (ok, why) ->
+                    if (!ok) throw ModelViolationException("CR-003 (ADR-019): $why")
+                }
+                // CR-001: декомпозиция — отдельная связь derive, не trace
+                doc.path("derives_from").forEach { parent ->
+                    objects.current(parent.asText())
+                        ?: throw ModelViolationException(
+                            "TZ-REQ-005 (ADR-017): derive from missing requirement ${parent.asText()}"
+                        )
+                }
+            }
+
+            "interface" -> {
+                val owners = doc.path("owners")
+                if (!owners.isArray || owners.size() != 2) {
+                    throw ModelViolationException(
+                        "CR-003 (ADR-019): interface ${doc.path("id").asText()} requires exactly two sides (owners)"
+                    )
+                }
+            }
+
+            "validation" -> validationIssues(doc).takeIf { it.isNotEmpty() }?.let {
+                throw ModelViolationException("CR-003 (ADR-019): " + it.joinToString("; "))
+            }
+
+            "risk" -> {
+                val issues = riskIssues(doc).toMutableList()
+                if (!residualOk(doc)) issues += "остаточный риск выше исходного"
+                if (issues.isNotEmpty()) {
+                    throw ModelViolationException("NPR 8000.4: " + issues.joinToString("; "))
+                }
+            }
+        }
+    }
+
     /** Нужда (TZ-REQ-001): стейкхолдер обязателен схемой; traces_down порождает связи. */
     fun ingestNeed(json: String, createdBy: String = "api"): StoredObject {
         val doc = registry.parse(json)
@@ -60,31 +122,7 @@ class ReqService(
     fun ingestRequirement(json: String, createdBy: String = "api"): StoredObject {
         val doc = registry.parse(json)
         registry.require("core/requirement", doc)
-        doc.path("traces_up").forEach { t ->
-            val ref = t.path("ref").asText()
-            if (ref.startsWith("SV-") && t.path("consumer_class").asText("").isBlank()) {
-                throw ModelViolationException(
-                    "TZ-REQ-003 (Р9/ADR-009): reference to service $ref requires consumer_class"
-                )
-            }
-        }
-        // CR-001/CR-003: распределение — объект {component|interface, kind, rationale}
-        doc.path("allocated_to").forEach { a ->
-            val target = a.path("component").asText("").ifBlank { a.path("interface").asText("") }
-            objects.current(target)
-                ?: throw ModelViolationException("TZ-REQ-005: allocation to missing element $target")
-        }
-        // CR-003: интерфейсное требование распределяется на интерфейс с двумя сторонами
-        interfaceAllocationValid(doc, productTree()).let { (ok, why) ->
-            if (!ok) throw ModelViolationException("CR-003 (ADR-019): $why")
-        }
-        // CR-001: декомпозиция — отдельная связь derive, не trace
-        doc.path("derives_from").forEach { parent ->
-            objects.current(parent.asText())
-                ?: throw ModelViolationException(
-                    "TZ-REQ-005 (ADR-017): derive from missing requirement ${parent.asText()}"
-                )
-        }
+        requireApplicationRules("requirement", doc)
         return conn.tx {
             val stored = create(doc, "requirement", createdBy)
             doc.path("traces_up").forEach { t ->
@@ -164,12 +202,7 @@ class ReqService(
     /** Интерфейс IF-NNNN: две стороны ответственности (CR-003/ADR-019). */
     fun ingestInterface(json: String, createdBy: String = "api"): StoredObject {
         val doc = registry.parse(json)
-        val owners = doc.path("owners")
-        if (!owners.isArray || owners.size() != 2) {
-            throw ModelViolationException(
-                "CR-003 (ADR-019): interface ${doc.path("id").asText()} requires exactly two sides (owners)"
-            )
-        }
+        requireApplicationRules("interface", doc)
         return create(doc, "interface", createdBy)
     }
 
@@ -187,10 +220,7 @@ class ReqService(
     fun ingestValidation(json: String, createdBy: String = "api"): StoredObject {
         val doc = registry.parse(json)
         registry.require("core/validation", doc)
-        val issues = validationIssues(doc)
-        if (issues.isNotEmpty()) {
-            throw ModelViolationException("CR-003 (ADR-019): " + issues.joinToString("; "))
-        }
+        requireApplicationRules("validation", doc)
         return create(doc, "validation", createdBy)
     }
 
@@ -203,13 +233,7 @@ class ReqService(
     fun ingestRisk(json: String, createdBy: String = "api"): StoredObject {
         val doc = registry.parse(json)
         registry.require("core/risk", doc)
-        val issues = riskIssues(doc).toMutableList()
-        if (!residualOk(doc)) {
-            issues += "остаточный риск выше исходного"
-        }
-        if (issues.isNotEmpty()) {
-            throw ModelViolationException("NPR 8000.4: " + issues.joinToString("; "))
-        }
+        requireApplicationRules("risk", doc)
         val stored = create(doc, "risk", createdBy)
         // связь риска с затронутыми объектами выводится из документа
         doc.path("affects").forEach { a ->
@@ -218,6 +242,14 @@ class ReqService(
         }
         return stored
     }
+
+    /**
+     * Что мешает базированию — без попытки перевода (шаг 15 §1.3). Та же
+     * функция, что решает переход в [promote]: черновик допускает неполноту,
+     * Baseline — нет, и причины называются поимённо.
+     */
+    fun baselineIssues(type: String, doc: JsonNode): List<String> =
+        if (type == "requirement") baselining.canBaseline(doc).second else emptyList()
 
     /** Активные и закрытые риски: закрытый сохраняется в реестре. */
     fun risks(): List<JsonNode> = objects.listCurrent()

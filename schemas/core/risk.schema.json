@@ -138,6 +138,10 @@
         }
       },
       "description": "Тренд оценки: предъявляется на обзорах"
+    },
+    "provenance": {
+      "$ref": "https://kis.local/schemas/common/provenance.schema.json",
+      "description": "Происхождение объекта: ручной ввод, предложение ИИ или импорт (TZ-COM-005, шаг 15)"
     }
   }
 }
