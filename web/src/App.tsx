@@ -13,6 +13,7 @@ import { Comparison } from './screens/Comparison'
 import { ComponentSpec } from './screens/ComponentSpec'
 import { Demand } from './screens/Demand'
 import { Globe } from './screens/Globe'
+import { ModelObjects } from './screens/ModelObjects'
 import { Needs } from './screens/Needs'
 import { Readiness } from './screens/Readiness'
 import { Requirements } from './screens/Requirements'
@@ -20,6 +21,7 @@ import { Risks } from './screens/Risks'
 import { Services } from './screens/Services'
 import { Spacecraft } from './screens/Spacecraft'
 import { SystemOverview } from './screens/SystemOverview'
+import { AuthorField } from './ui/session'
 
 interface Screen {
   id: string
@@ -56,6 +58,12 @@ const STEPS: Array<{ number: number; screens: Screen[] }> = [
         render: () => <ComponentSpec componentId="CM-0011" />,
       },
       { id: 'spacecraft', title: 'Модель КА', render: () => <Spacecraft /> },
+      // Ввод состава руками: без него шаг проходится только на чужих данных
+      {
+        id: 'architecture',
+        title: 'Состав и интерфейсы',
+        render: () => <ModelObjects kinds={['component', 'interface']} />,
+      },
     ],
   },
   {
@@ -63,6 +71,24 @@ const STEPS: Array<{ number: number; screens: Screen[] }> = [
     screens: [
       { id: 'comparison', title: 'Сравнение вариантов', render: () => <Comparison /> },
       { id: 'globe', title: 'Баллистика', render: () => <Globe /> },
+      // Входы моделирования — хранимые объекты (CR-005/ADR-021), значит вводимые
+      {
+        id: 'inputs',
+        title: 'Входы моделирования',
+        render: () => (
+          <ModelObjects
+            kinds={[
+              'constellation',
+              'spacecraft',
+              'demand_map',
+              'terminal_profile',
+              'ground_stations',
+              'protocol_adapter',
+              'scenario',
+            ]}
+          />
+        ),
+      },
     ],
   },
   {
@@ -74,6 +100,11 @@ const STEPS: Array<{ number: number; screens: Screen[] }> = [
     screens: [
       { id: 'readiness', title: 'Готовность к точке', render: () => <Readiness /> },
       { id: 'risks', title: 'Реестр рисков', render: () => <Risks /> },
+      {
+        id: 'closure',
+        title: 'Ведение реестров',
+        render: () => <ModelObjects kinds={['risk', 'evidence', 'validation']} />,
+      },
     ],
   },
 ]
@@ -124,6 +155,8 @@ export function App() {
             </button>
           ))}
         </nav>
+        {/* Автор изменений записывается в каждую версию объекта (шаг 15 §1.2) */}
+        <AuthorField />
       </header>
 
       <nav className="wizard">

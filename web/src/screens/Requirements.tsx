@@ -3,21 +3,38 @@
 //
 // Все числа и строки берутся из /views/requirement-tree и /views/requirements/{id}
 // как есть. Клиент не считает ни глубину отступа, ни свёртку, ни критерий успеха.
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { api } from '../api/client'
 import type { RequirementCard, RequirementRow, RequirementTreeView } from '../api/types'
+import { ObjectEditor } from '../ui/ObjectEditor'
 import { BudgetGauge, Condition, StatusDot, Verification } from '../ui/parts'
+import { useSession } from '../ui/session'
 
 export function Requirements() {
+  const { label } = useSession()
   const [tree, setTree] = useState<RequirementTreeView | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
+  const [creating, setCreating] = useState(false)
+  const [editing, setEditing] = useState(false)
   const [card, setCard] = useState<RequirementCard | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [onlyViolated, setOnlyViolated] = useState(false)
 
+  const reload = useCallback(
+    () =>
+      api
+        .requirementTree()
+        .then((next) => {
+          setTree(next)
+          setError(null)
+        })
+        .catch((e) => setError(String(e))),
+    [],
+  )
+
   useEffect(() => {
-    api.requirementTree().then(setTree).catch((e) => setError(String(e)))
-  }, [])
+    void reload()
+  }, [reload])
 
   useEffect(() => {
     if (!selected) return setCard(null)
@@ -42,8 +59,20 @@ export function Requirements() {
   return (
     <div className="split">
       <div className="pane">
-        <div style={{ padding: '8px 8px 0' }}>
+        <div className="pane__tools">
           <button
+            type="button"
+            className="tab tab--primary"
+            onClick={() => {
+              setCreating(true)
+              setEditing(true)
+              setSelected(null)
+            }}
+          >
+            + Добавить требование
+          </button>
+          <button
+            type="button"
             className="tab"
             aria-selected={onlyViolated}
             onClick={() => setOnlyViolated((v) => !v)}
@@ -51,18 +80,25 @@ export function Requirements() {
             Бюджет нарушен
           </button>
         </div>
+
+        {ordered.length === 0 && (
+          <div className="empty">
+            Требований пока нет. Требование не бывает сиротой: укажите в traces_up нужду
+            или сервис, из которых оно следует.
+          </div>
+        )}
         <table>
           <thead>
-            {/* Ширины заданы всем колонкам, включая формулировку. При
-                table-layout: fixed колонка без ширины получает лишь остаток —
-                и когда слева появился мастер, остатка не осталось вовсе:
-                формулировка схлопнулась до полусотни пикселей. */}
+            {/* Формулировка идёт БЕЗ ширины и забирает остаток, вспомогательные
+                колонки урезаны до необходимого. При table-layout: fixed остаток —
+                это всё, что не заняли колонки с шириной, поэтому их сумма и есть
+                бюджет читаемости главной колонки (шаг 15 §2, дефект 1). */}
             <tr>
-              <th style={{ width: 120 }}>ID</th>
-              <th style={{ width: 240 }}>Требование</th>
-              <th style={{ width: 130 }}>Условие</th>
-              <th style={{ width: 200 }}>Свёртка</th>
-              <th style={{ width: 190 }}>Метод V&amp;V</th>
+              <th style={{ width: 110 }}>ID</th>
+              <th>Требование</th>
+              <th style={{ width: 120 }}>Условие</th>
+              <th style={{ width: 170 }}>Свёртка</th>
+              <th style={{ width: 160 }}>Метод V&amp;V</th>
               <th style={{ width: 80 }}>Статус</th>
             </tr>
           </thead>
@@ -71,7 +107,11 @@ export function Requirements() {
               <tr
                 key={row.id}
                 aria-selected={row.id === selected}
-                onClick={() => setSelected(row.id)}
+                onClick={() => {
+                  setSelected(row.id)
+                  setCreating(false)
+                  setEditing(false)
+                }}
               >
                 <td>
                   {/* отступ по уровню — depth пришёл с сервера */}
@@ -80,9 +120,7 @@ export function Requirements() {
                     <span className="id">{row.id}</span>
                   </span>
                 </td>
-                <td>
-                  <span className="truncate">{row.statement}</span>
-                </td>
+                <td className="wrap">{row.statement}</td>
                 <td>
                   <Condition condition={row.condition} />
                 </td>
@@ -94,7 +132,7 @@ export function Requirements() {
                 </td>
                 <td>
                   <StatusDot status={row.status} />
-                  <span className="secondary">{row.status}</span>
+                  <span className="secondary">{label('lifecycle', row.status)}</span>
                 </td>
               </tr>
             ))}
@@ -103,7 +141,35 @@ export function Requirements() {
       </div>
 
       <aside className="pane pane--side">
-        {card ? <Card card={card} /> : <div className="secondary">Выберите требование</div>}
+        {creating || editing ? (
+          <ObjectEditor
+            kind="requirement"
+            schemaName="core/requirement"
+            title="требование"
+            id={creating ? null : selected}
+            onSaved={(id) => {
+              setCreating(false)
+              setSelected(id)
+              void reload()
+            }}
+            onCancelled={() => {
+              setSelected(null)
+              setEditing(false)
+              void reload()
+            }}
+          />
+        ) : card ? (
+          <>
+            <div className="pane__tools" style={{ padding: '0 0 8px' }}>
+              <button type="button" className="tab" onClick={() => setEditing(true)}>
+                Править требование
+              </button>
+            </div>
+            <Card card={card} />
+          </>
+        ) : (
+          <div className="secondary">Выберите требование</div>
+        )}
       </aside>
     </div>
   )

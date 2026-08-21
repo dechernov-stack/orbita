@@ -1,35 +1,76 @@
-// Экран 2 — сервисы и профили QoS по классам потребителей (Ш2 мастера).
+// Экран 2 — сервисы и профили QoS по классам потребителей (Ш2 мастера)
+// и их ввод руками (шаг 15).
 //
 // Непокрытый класс определяет сервер, сверяя профили с классами карты спроса
 // (Р9: классы не усредняются). Клиент показывает вывод, а не выводит его.
-import { useEffect, useState } from 'react'
+//
+// Подписи классов приходят с сервера одной таблицей: собственный словарь
+// на экране расходился бы с соседними (шаг 15 §2, дефект 2).
+import { useCallback, useEffect, useState } from 'react'
 import { api } from '../api/client'
 import type { ServiceRow } from '../api/types'
+import { ObjectEditor } from '../ui/ObjectEditor'
 import { StatusDot } from '../ui/parts'
-
-const CLASS_LABEL: Record<string, string> = {
-  A_prime: "A′ односторонний",
-  B_prime: "B′ с подтверждением",
-  C_prime: "C′ оперативное управление",
-}
+import { useSession } from '../ui/session'
 
 export function Services() {
+  const { label } = useSession()
   const [rows, setRows] = useState<ServiceRow[] | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
+  const [creating, setCreating] = useState(false)
+  // Правка — отдельное действие: выбор строки показывает карточку сервиса,
+  // а не подменяет её формой. Замечание о непокрытом классе нужно видеть
+  // до того, как начал править, а не вместо этого.
+  const [editing, setEditing] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const reload = useCallback(
+    () =>
+      api
+        .services()
+        .then((next) => {
+          setRows(next)
+          setError(null)
+        })
+        .catch((e) => setError(String(e))),
+    [],
+  )
+
   useEffect(() => {
-    api.services().then(setRows).catch((e) => setError(String(e)))
-  }, [])
+    void reload()
+  }, [reload])
 
   if (error) return <div className="empty">Ошибка обращения к API: {error}</div>
   if (!rows) return <div className="empty">Загрузка…</div>
 
+  // Без выбора показывается первый сервис: экран открывают, чтобы увидеть
+  // покрытие классов, и пустая панель прячет ровно это.
   const service = rows.find((r) => r.id === selected) ?? rows[0]
 
   return (
     <div className="split">
       <div className="pane">
+        <div className="pane__tools">
+          <button
+            type="button"
+            className="tab tab--primary"
+            onClick={() => {
+              setCreating(true)
+              setEditing(true)
+              setSelected(null)
+            }}
+          >
+            + Добавить сервис
+          </button>
+        </div>
+
+        {rows.length === 0 && (
+          <div className="empty">
+            Сервисов пока нет. Сервис — это то, чем нужда реализуется: заведите его
+            и укажите нужду в traces_up.
+          </div>
+        )}
+
         <table>
           <thead>
             <tr>
@@ -45,14 +86,16 @@ export function Services() {
               <tr
                 key={row.id}
                 aria-selected={row.id === service?.id}
-                onClick={() => setSelected(row.id)}
+                onClick={() => {
+                  setSelected(row.id)
+                  setCreating(false)
+                  setEditing(false)
+                }}
               >
                 <td>
                   <span className="id">{row.id}</span>
                 </td>
-                <td>
-                  <span className="truncate">{row.name}</span>
-                </td>
+                <td className="wrap">{row.name}</td>
                 <td>
                   {['A_prime', 'B_prime', 'C_prime'].map((klass) => {
                     const has = row.profiles.some((p) => p.consumerClass === klass)
@@ -71,7 +114,7 @@ export function Services() {
                 <td className="mono">{row.requirements.length}</td>
                 <td>
                   <StatusDot status={row.status} />
-                  <span className="secondary">{row.status}</span>
+                  <span className="secondary">{label('lifecycle', row.status)}</span>
                 </td>
               </tr>
             ))}
@@ -80,17 +123,38 @@ export function Services() {
       </div>
 
       <aside className="pane pane--side">
-        {service && (
+        {creating || editing ? (
+          <ObjectEditor
+            kind="service"
+            schemaName="core/service"
+            title="сервис"
+            id={creating ? null : selected}
+            onSaved={(id) => {
+              setCreating(false)
+              setSelected(id)
+              void reload()
+            }}
+            onCancelled={() => {
+              setSelected(null)
+              setEditing(false)
+              void reload()
+            }}
+          />
+        ) : service ? (
           <div>
-            <h2 style={{ fontSize: 15, margin: '0 0 8px' }}>{service.name}</h2>
+            <div className="pane__tools" style={{ padding: '0 0 8px' }}>
+              <button type="button" className="tab" onClick={() => setEditing(true)}>
+                Править сервис
+              </button>
+            </div>
             {service.uncoveredClasses.map((klass) => (
               <div key={klass} className="amber field">
-                △ класс {CLASS_LABEL[klass] ?? klass} присутствует в карте спроса, профиль не задан
+                △ класс {label('consumer_class', klass)} присутствует в карте спроса, профиль не задан
               </div>
             ))}
             {service.profiles.map((profile) => (
               <div key={profile.consumerClass} className="card">
-                <h3>{CLASS_LABEL[profile.consumerClass] ?? profile.consumerClass}</h3>
+                <h3>{label('consumer_class', profile.consumerClass)}</h3>
                 <div>
                   <table>
                     <thead>
@@ -103,9 +167,7 @@ export function Services() {
                     <tbody>
                       {profile.moe.map((moe) => (
                         <tr key={moe.id}>
-                          <td>
-                            <span className="truncate">{moe.name}</span>
-                          </td>
+                          <td className="wrap">{label('moe_name', moe.name)}</td>
                           <td className="num">{moe.target ?? '—'}</td>
                           <td className="mono">{moe.unit ?? '—'}</td>
                         </tr>
@@ -137,6 +199,8 @@ export function Services() {
               </div>
             </div>
           </div>
+        ) : (
+          <div className="secondary">Выберите сервис для правки или добавьте новый.</div>
         )}
       </aside>
     </div>

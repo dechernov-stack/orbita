@@ -1,0 +1,156 @@
+// Рабочий слой клиента (шаг 15 §1): создание, правка, отмена, история, откат.
+//
+// Автор идёт ТЕЛОМ запроса, а не заголовком: значение заголовка HTTP обязано
+// быть ASCII, а имена инженеров русские — на «инженер А» запрос не собирается
+// вовсе. Автор и по смыслу часть изменения, а не сведения о транспорте.
+import { ApiError } from './client'
+
+const BASE = '/api'
+
+/** Отказ по расхождению версий: то, чем инженер конфликт и разрешает. */
+export interface EditConflict {
+  conflict: true
+  your_base: string
+  current_version: string
+  changed_by: string
+  their_values: Record<string, unknown>
+  error: string
+}
+
+/** Отказ правки базированного объекта: причина адресована инженеру. */
+export interface EditBlocked {
+  blocked: true
+  reason: string
+}
+
+export interface StoredSummary {
+  id: string
+  type: string
+  version: string
+  status: string
+  /** Содержательная подпись объекта; выбирает сервер, а не клиент по именам полей. */
+  title?: string
+  doc?: Record<string, unknown>
+}
+
+export interface HistoryEntry {
+  version: string
+  status: string
+  author: string
+  valid_from: string
+  valid_to: string | null
+  current: boolean
+}
+
+export interface BaselineIssues {
+  can_baseline: boolean
+  issues: string[]
+}
+
+export interface KindRow {
+  type: string
+  prefix: string
+  schema: string
+}
+
+/** Схема вида с раскрытыми ссылками: по ней строится форма. */
+export type JsonSchema = {
+  type?: string
+  title?: string
+  description?: string
+  required?: string[]
+  properties?: Record<string, JsonSchema>
+  items?: JsonSchema
+  enum?: string[]
+  minimum?: number
+  maximum?: number
+  minLength?: number
+  minItems?: number
+  pattern?: string
+  /** Примеры значений — форма подставляет их подсказкой (например, единицы СИ). */
+  examples?: string[]
+  default?: unknown
+  additionalProperties?: unknown
+}
+
+/**
+ * Отказ разбирается на понятный инженеру исход. Конфликт и блокировка — не
+ * «ошибка сети», а рабочие состояния: их показывают в форме, а не в консоли.
+ */
+export class EditRejected extends Error {
+  constructor(
+    readonly status: number,
+    readonly payload: Record<string, unknown>,
+  ) {
+    super(String(payload.error ?? payload.reason ?? `отказ ${status}`))
+  }
+
+  get conflict(): EditConflict | null {
+    return this.payload.conflict ? (this.payload as unknown as EditConflict) : null
+  }
+
+  get blocked(): EditBlocked | null {
+    return this.payload.blocked ? (this.payload as unknown as EditBlocked) : null
+  }
+
+  /** Ошибки схемы: путь до поля и правило — форма показывает их у полей. */
+  get fieldErrors(): Array<{ path: string; message: string }> {
+    const errors = this.payload.errors
+    if (!Array.isArray(errors)) return []
+    return errors.map((e) => ({
+      path: String((e as Record<string, unknown>).path ?? ''),
+      message: String((e as Record<string, unknown>).message ?? ''),
+    }))
+  }
+}
+
+async function send<T>(method: string, path: string, body?: unknown): Promise<T> {
+  const response = await fetch(`${BASE}${path}`, {
+    method,
+    headers: { 'Content-Type': 'application/json; charset=utf-8', Accept: 'application/json' },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  })
+  const text = await response.text()
+  if (!response.ok) {
+    let payload: Record<string, unknown> | null = null
+    try {
+      payload = JSON.parse(text) as Record<string, unknown>
+    } catch {
+      payload = null
+    }
+    if (payload) throw new EditRejected(response.status, payload)
+    throw new ApiError(response.status, path, text)
+  }
+  return (text ? JSON.parse(text) : null) as T
+}
+
+export const edit = {
+  kinds: () => send<KindRow[]>('GET', '/kinds'),
+
+  /** Объекты одного вида с подписями — список экрана. */
+  list: (type: string) => send<StoredSummary[]>('GET', `/objects?type=${encodeURIComponent(type)}`),
+  schema: (name: string) => send<JsonSchema>('GET', `/schemas/${name}`),
+
+  create: (type: string, doc: Record<string, unknown>, author: string) =>
+    send<StoredSummary>('POST', `/edit/${type}`, { author, doc }),
+
+  update: (id: string, changes: Record<string, unknown>, baseVersion: string, author: string) =>
+    send<StoredSummary>('PATCH', `/edit/${id}`, { author, base_version: baseVersion, changes }),
+
+  cancel: (id: string, author: string, baseVersion?: string) =>
+    send<StoredSummary>('POST', `/edit/${id}/cancel`, { author, base_version: baseVersion }),
+
+  undo: (id: string, author: string) => send<StoredSummary>('POST', `/edit/${id}/undo`, { author }),
+
+  history: (id: string) => send<HistoryEntry[]>('GET', `/edit/${id}/history`),
+
+  issues: (id: string) => send<BaselineIssues>('GET', `/edit/${id}/issues`),
+
+  /** Текущий документ объекта — правка начинается с него, а не с копии строки. */
+  object: (id: string) => send<StoredSummary>('GET', `/objects/${id}`),
+
+  promote: (id: string, status: string) =>
+    send<StoredSummary>('POST', `/objects/${id}/promote`, { status }),
+
+  enumLabels: () => send<Record<string, Record<string, string>>>('GET', '/enum-labels'),
+}

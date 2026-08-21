@@ -882,6 +882,33 @@ class HttpApi(private val boundary: Boundary) {
                 respond(ex, 200, n)
             }
 
+            // Объекты вида для списка на экране (шаг 15). Подпись объекта
+            // выбирает СЕРВЕР: какое поле содержательно, знает модель, а не
+            // клиент, которому иначе пришлось бы гадать по именам полей.
+            method == "GET" && path == "/objects" -> {
+                val type = query(ex)["type"]
+                    ?: throw IllegalArgumentException("query parameter 'type' is required")
+                val arr = mapper.createArrayNode()
+                boundary.objects.listCurrent().filter { it.type == type }.forEach { o ->
+                    arr.add(summary(o).put("title", titleOf(o)))
+                }
+                respond(ex, 200, arr)
+            }
+
+            // Схемы видов — источник структуры форм ввода (шаг 15 §2).
+            // Виды перечисляются из состава CoreType, а не списком в клиенте.
+            method == "GET" && path == "/kinds" -> {
+                val arr = mapper.createArrayNode()
+                CoreType.entries.forEach { t ->
+                    arr.addObject().put("type", t.dbType).put("prefix", t.idPrefix)
+                        .put("schema", t.schemaName)
+                }
+                respond(ex, 200, arr)
+            }
+
+            method == "GET" && path.startsWith("/schemas/") ->
+                respond(ex, 200, boundary.bundledSchema(path.removePrefix("/schemas/")))
+
             method == "POST" && path.startsWith("/validate/") -> {
                 val schema = path.removePrefix("/validate/")
                 val errors = boundary.validateContract(schema, body(ex))
@@ -952,6 +979,17 @@ class HttpApi(private val boundary: Boundary) {
 
     private fun summary(o: StoredObject): ObjectNode = mapper.createObjectNode()
         .put("id", o.id).put("type", o.type).put("version", o.version).put("status", o.status.name)
+
+    /**
+     * Содержательная подпись объекта для списка. Виды называют главное поле
+     * по-разному: у нужды и требования это формулировка, у элемента и сервиса —
+     * наименование. Пустая подпись — честный признак того, что содержания
+     * в объекте ещё нет.
+     */
+    private fun titleOf(o: StoredObject): String =
+        listOf("statement", "name", "title").firstNotNullOfOrNull { field ->
+            o.doc.path(field).asText("").takeIf { it.isNotBlank() }
+        } ?: ""
 
     /** Слои карты спроса из запроса экрана 4 (TZ-USR-004). */
     private fun demandLayers(request: JsonNode) = orbita.out.DemandLayers(

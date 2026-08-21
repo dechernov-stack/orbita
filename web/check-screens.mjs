@@ -134,7 +134,15 @@ const orphans = await page.$$eval('tbody tr', (trs) => trs.length)
 expect(orphans > 0 && orphans < needs.length, `отбор «без сервисов» сузил список до ${orphans}`)
 await page.click('.pane button:has-text("Без сервисов")')
 await page.click('tbody tr:first-child')
-expect((await page.$$('aside .card')).length > 0, 'карточка нужды открывается')
+// С шага 15 правая панель — не второй показ строки, а рабочая панель объекта:
+// форма по схеме, история версий и действия. Проверяется именно она.
+await page.waitForSelector('aside .editor', { timeout: 10_000 })
+const needPanel = await page.$eval('aside .editor__title', (el) => el.innerText)
+expect(/ND-\d{4}/.test(needPanel), `панель нужды открывается на выбранном объекте (${needPanel})`)
+expect(
+  (await page.$$('aside .editor [aria-label="statement"]')).length === 1,
+  'панель даёт править формулировку, а не повторяет её',
+)
 await shot('01-needs')
 
 console.log('Ш2 · экран 2: сервисы и профили QoS')
