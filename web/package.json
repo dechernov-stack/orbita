@@ -9,7 +9,8 @@
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "check:screens": "node check-screens.mjs"
+    "check:screens": "node check-screens.mjs",
+    "check:empty": "node check-empty-project.mjs"
   },
   "dependencies": {
     "cesium": "^1.144.0",

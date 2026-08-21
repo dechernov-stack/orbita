@@ -27,6 +27,17 @@ tasks.register<JavaExec>("demoServer") {
     jvmArgs("-Dfile.encoding=UTF-8", "-Dstdout.encoding=UTF-8")
 }
 
+// ПУСТОЙ проект для проверки рабочего слоя (шаг 15, критерий приёмки):
+// Ш1–Ш7 проходятся через интерфейс, а не по чужим данным seedDemo.
+tasks.register<JavaExec>("emptyServer") {
+    group = "verification"
+    description = "STEP-15: API с ПУСТЫМ проектом — наполнение только через интерфейс"
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass.set("orbita.com.api.EmptyServerKt")
+    environment("ORBITA_REPO_ROOT", rootDir.absolutePath)
+    jvmArgs("-Dfile.encoding=UTF-8", "-Dstdout.encoding=UTF-8")
+}
+
 // Заполнение базы демонстрационным проектом одной операцией (STEP-7-9 §7.2).
 // Данные берутся из эталона spec/demo_project.py — второй копии в проекте нет.
 tasks.register<JavaExec>("seedDemo") {

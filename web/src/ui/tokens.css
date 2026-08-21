@@ -140,7 +140,11 @@ textarea {
 
 .split {
   display: grid;
-  grid-template-columns: 1fr 380px;
+  /* minmax(0, 1fr) вместо 1fr: без нижней границы колонка списка раздувается
+     под ширину содержимого и уезжает под боковую панель — панель «перекрывала»
+     колонку таблицы (шаг 15 §2, дефект 3). Боковая панель ужимается на узких
+     экранах, но не наезжает. */
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
   min-height: 0;
 }
 
@@ -152,13 +156,22 @@ textarea {
 .pane--side {
   border-left: 1px solid var(--border);
   padding: 12px 16px;
+  min-width: 0;
+}
+
+.pane__tools {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 8px 0;
 }
 
 table {
   width: 100%;
   border-collapse: collapse;
-  /* фиксированная раскладка: ширины колонок соблюдаются точно, а лишний текст
-     срезается многоточием — колонка не наезжает на соседнюю */
+  /* Фиксированная раскладка: ширины колонок соблюдаются точно. Колонка БЕЗ
+     заданной ширины забирает остаток — так главная колонка получает всё
+     свободное место, а не фиксированные 320 px с многоточием. */
   table-layout: fixed;
 }
 
@@ -176,9 +189,23 @@ thead th {
 }
 
 tbody tr {
+  /* Высота строки — МИНИМУМ, а не потолок: колонка с переносом растит строку
+     под содержание вместо того, чтобы срезать его (шаг 15 §2, дефект 1). */
   height: var(--row-height);
   border-bottom: 1px solid var(--border);
   cursor: pointer;
+}
+
+/* Колонка, переносящаяся по словам вместо многоточия. Опт-ин на колонку:
+   числа и отступ дерева переноса не терпят (см. правило tbody td ниже),
+   а главная колонка — наоборот, ради неё таблицу и читают. */
+.wrap {
+  white-space: normal;
+  overflow: visible;
+  overflow-wrap: anywhere;
+  text-overflow: clip;
+  padding-top: 4px;
+  padding-bottom: 4px;
 }
 
 tbody tr[aria-selected='true'] {
@@ -355,3 +382,125 @@ tbody td {
 .cell--low { background: #dafbe1; }
 .cell--medium { background: #fff8c5; }
 .cell--high { background: #ffebe9; }
+
+/* ---------------------------------------------------------------------------
+   Рабочий слой: форма ввода и панель работы с объектом (шаг 15).
+   Плотность — блока B: строка 28 px, волосяные границы, углы до 2 px.
+   Композиция панели — из макетов Stitch (docs/ui/stitch/README.md).
+   --------------------------------------------------------------------------- */
+
+.author {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.author input {
+  width: 150px;
+  height: 22px;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 12px;
+}
+
+.editor__title {
+  font-size: 15px;
+  margin: 0 0 8px;
+}
+
+.editor__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0 12px;
+}
+
+.tab--primary {
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.form input,
+.form select,
+.form textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 3px 6px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 13px;
+}
+
+.form input[type='number'],
+.form .mono {
+  font-family: var(--font-mono);
+}
+
+.form input[type='checkbox'] {
+  width: auto;
+}
+
+.quantity {
+  display: flex;
+  gap: 6px;
+}
+
+.quantity .unit {
+  width: 80px;
+  flex: none;
+}
+
+.req {
+  color: var(--status-error);
+}
+
+.hint {
+  font-size: 11px;
+  margin: 2px 0 0;
+}
+
+/* Подформа элемента массива: та же плотность, отступ показывает вложенность. */
+.subform {
+  border-left: 2px solid var(--border);
+  padding: 6px 0 2px 8px;
+  margin-bottom: 8px;
+}
+
+.subform__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.notice {
+  border: 1px solid var(--border);
+  border-left-width: 3px;
+  border-radius: 2px;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+}
+
+/* Конфликт версий — рабочее состояние, а не сбой: его читают и разрешают. */
+.notice--conflict {
+  border-left-color: var(--status-approved);
+  background: #fff8c5;
+}
+
+.notice--blocked {
+  border-left-color: var(--status-error);
+  background: #ffebe9;
+}
+
+.conflict__values {
+  margin: 6px 0;
+}

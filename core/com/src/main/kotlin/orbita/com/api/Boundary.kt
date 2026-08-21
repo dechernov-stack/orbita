@@ -183,5 +183,42 @@ class Boundary(private val registry: SchemaRegistry, conn: Connection) {
     /** Схема вида как документ — правке нужны обязательные поля (шаг 15). */
     fun rawSchema(name: String): JsonNode = registry.raw(name)
 
+    /**
+     * Схема с раскрытыми ссылками — для форм ввода (шаг 15 §2). Форма строится
+     * ПО СХЕМЕ: перечень полей, обязательность и допустимые значения приходят
+     * из нормативной структуры, а не переписываются в клиент, где разошлись бы
+     * с ней молча. Клиенту незачем ходить за общими схемами отдельно.
+     */
+    fun bundledSchema(name: String): JsonNode = inline(registry.raw(name), mutableSetOf(name))
+
+    private fun inline(node: JsonNode, seen: MutableSet<String>): JsonNode {
+        if (node.isArray) {
+            val arr = (node as com.fasterxml.jackson.databind.node.ArrayNode).deepCopy()
+            for (i in 0 until arr.size()) arr.set(i, inline(arr[i], seen))
+            return arr
+        }
+        if (!node.isObject) return node
+        val obj = (node as com.fasterxml.jackson.databind.node.ObjectNode).deepCopy()
+        val ref = obj.path("\$ref").asText("")
+        if (ref.startsWith(SCHEMA_URI_PREFIX)) {
+            val target = ref.removePrefix(SCHEMA_URI_PREFIX).removeSuffix(".schema.json")
+            // Циклическая ссылка оставляется ссылкой: форма покажет её полем
+            // структурного ввода, а не уйдёт в бесконечную подстановку.
+            if (target in seen) return obj
+            val resolved = inline(registry.raw(target), (seen + target).toMutableSet())
+            val merged = (resolved as com.fasterxml.jackson.databind.node.ObjectNode).deepCopy()
+            merged.remove(listOf("\$id", "\$schema"))
+            // собственные поля ссылки (description и т.п.) важнее общих
+            obj.properties().forEach { (k, v) -> if (k != "\$ref") merged.set<JsonNode>(k, v) }
+            return merged
+        }
+        obj.properties().toList().forEach { (k, v) -> obj.set<JsonNode>(k, inline(v, seen)) }
+        return obj
+    }
+
+    private companion object {
+        const val SCHEMA_URI_PREFIX = "https://kis.local/schemas/"
+    }
+
     private fun parse(json: String): JsonNode = registry.parse(json)
 }
