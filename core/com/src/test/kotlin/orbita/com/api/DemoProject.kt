@@ -107,12 +107,40 @@ object DemoProject {
      * разошлась бы с первой молча (ловушка 1).
      */
     private fun seedModelingInputs(boundary: Boundary) {
+        // Карта и станции строятся ДО модели аппарата: доли витка его
+        // циклограммы генерируются из их масок (TZ-KA-009), а не пишутся руками
+        val demandMap = demandMapJson()
+        val stations = groundStationsJson()
         boundary.ingest(CoreType.Constellation, constellationJson(), DEMO_AUTHOR)
-        boundary.ingest(CoreType.Spacecraft, spacecraftJson(), DEMO_AUTHOR)
-        boundary.ingest(CoreType.DemandMap, demandMapJson(), DEMO_AUTHOR)
+        boundary.ingest(CoreType.Spacecraft, spacecraftJson(maskFractions(demandMap, stations)), DEMO_AUTHOR)
+        boundary.ingest(CoreType.DemandMap, demandMap, DEMO_AUTHOR)
         boundary.ingest(CoreType.TerminalProfile, terminalProfileJson(), DEMO_AUTHOR)
-        boundary.ingest(CoreType.GroundStations, groundStationsJson(), DEMO_AUTHOR)
+        boundary.ingest(CoreType.GroundStations, stations, DEMO_AUTHOR)
         boundary.ingest(CoreType.ProtocolAdapter, protocolAdapterJson(), DEMO_AUTHOR)
+    }
+
+    /**
+     * Доли витка из географических масок (TZ-KA-009): ровно тот же путь, что
+     * у `GET /views/spacecraft/mask-schedule`, — маски из карты и станций,
+     * трасса Orekit за сутки, классификация точек. Второй копии чисел нет:
+     * изменение карты спроса перегенерирует и маску, и циклограмму демо-модели.
+     */
+    private fun maskFractions(demandMapJson: String, stationsJson: String): Map<String, Double> {
+        val walker = mapper.readTree(constellationJson()).path("walker")
+        val config = orbita.bal.ConstellationConfig(
+            incDeg = walker.path("inclination_deg").asDouble(),
+            total = walker.path("total").asInt(),
+            planes = walker.path("planes").asInt(),
+            phasing = walker.path("phasing").asInt(),
+            altKm = walker.path("altitude_km").asDouble(),
+        )
+        val masks = orbita.ka.buildMasks(
+            mapper.readTree(demandMapJson), mapper.readTree(stationsJson), config.altKm,
+        )
+        val track = orbita.bal.VisibilityPrecompute(mapper)
+            .groundTracks(config, "2026-03-20T00:00:00.000Z", 86400.0)
+            .values.first().map { (_, lat, lon) -> orbita.ka.MaskPoint(lat, lon) }
+        return orbita.ka.modeFractions(track, masks)
     }
 
     /**
@@ -178,11 +206,12 @@ object DemoProject {
 
     /**
      * Модель аппарата. Ведомость масс задана позиционно (CR-006): без неё
-     * расчёт массы обязан падать, а не возвращать ноль. Доли витка заданы
-     * явно (CR-007): равномерное деление дало бы правдоподобное число,
-     * которое ни о чём не говорит.
+     * расчёт массы обязан падать, а не возвращать ноль. Доли витка режимов
+     * ГЕНЕРИРУЮТСЯ из географических масок карты спроса и станций
+     * (TZ-KA-009, [maskFractions]) — явные значения в модели обязательны
+     * по CR-007, но их источником служит география, а не ручной ввод.
      */
-    private fun spacecraftJson(): String =
+    private fun spacecraftJson(fractions: Map<String, Double>): String =
         """{"id":"$DEMO_SPACECRAFT","preset":"cubesat_16u",
             "platform":{
               "dry_mass_kg":30,
@@ -208,9 +237,9 @@ object DemoProject {
               "onboard":{"buffer_mb":64,"priority_policy":["C_prime","B_prime","A_prime"]},
               "ephemeris_beacon":{"enabled":true,"period_s":60,"format":"orbit_model"}},
             "modes":[
-              {"name":"standby","power_w":6.0,"orbit_fraction":0.55},
-              {"name":"rx","power_w":9.0,"orbit_fraction":0.3},
-              {"name":"downlink","power_w":14.0,"orbit_fraction":0.15}
+              {"name":"standby","power_w":6.0,"orbit_fraction":${fractions.getValue("standby")}},
+              {"name":"rx","power_w":9.0,"orbit_fraction":${fractions.getValue("rx")}},
+              {"name":"downlink","power_w":14.0,"orbit_fraction":${fractions.getValue("downlink")}}
             ],
             "lifecycle":{"status":"Draft","version":"1"}}"""
 

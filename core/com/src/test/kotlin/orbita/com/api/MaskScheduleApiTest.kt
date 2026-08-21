@@ -61,10 +61,35 @@ class MaskScheduleApiTest {
         val sum = listOf("standby", "rx", "downlink").sumOf { generated.path(it).asDouble() }
         assertEquals(1.0, sum, 1e-9)
 
-        // ручные доли модели лежат рядом — инженеру есть с чем сравнивать
+        // доли модели ПЕРЕНЕСЕНЫ из масок (решение владельца продукта):
+        // модель и генератор обязаны совпадать, пока карта и станции те же.
+        // Эндпоинт здесь считает по короткой трассе, а модель заполнена
+        // по суточной — сверка по точным числам идёт отдельным тестом ниже.
         val manual = body.path("model_orbit_fractions")
-        assertEquals(0.55, manual.path("standby").asDouble())
-        assertEquals(0.3, manual.path("rx").asDouble())
-        assertEquals(0.15, manual.path("downlink").asDouble())
+        val manualSum = listOf("standby", "rx", "downlink").sumOf { manual.path(it).asDouble() }
+        assertEquals(1.0, manualSum, 1e-9)
+        assertTrue(manual.path("rx").asDouble() > manual.path("downlink").asDouble()) {
+            "география демо-проекта даёт приёму больше витка, чем сбросу: $manual"
+        }
+    }
+
+    /**
+     * Доли модели совпадают со сгенерированными на том же горизонте:
+     * заполнение демо-проекта и эндпоинт идут одним путём (TZ-KA-009),
+     * второй копии чисел нет.
+     */
+    @Test
+    @DisplayName("TZ-KA-009: доли модели совпадают с генерацией на суточной трассе")
+    fun `доли модели совпадают с генерацией`() {
+        val r = get("/views/spacecraft/mask-schedule?duration_s=86400")
+        assertEquals(200, r.statusCode())
+        val body = mapper.readTree(r.body())
+        val generated = body.path("generated_orbit_fractions")
+        val manual = body.path("model_orbit_fractions")
+        listOf("standby", "rx", "downlink").forEach { mode ->
+            assertEquals(generated.path(mode).asDouble(), manual.path(mode).asDouble(), 1e-12) {
+                "режим $mode: модель разошлась с маской"
+            }
+        }
     }
 }
