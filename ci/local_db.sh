@@ -10,6 +10,29 @@ ROLE=orbita
 PASS=orbita
 DB_TEST=orbita_test
 
+# pg_lsclusters есть только в Debian/Ubuntu. На macOS (и любой другой системе)
+# скрипт не угадывает раскладку кластеров, а говорит, что сделать руками:
+# непроверенная платформа получает инструкцию, а не молчаливо другой код.
+if ! command -v pg_lsclusters >/dev/null 2>&1; then
+  cat >&2 <<'EOF'
+Этот скрипт управляет кластером через pg_lsclusters (Debian/Ubuntu).
+На macOS поднимите БД тестов одним из двух способов и запускать скрипт не нужно:
+
+  1) Docker Desktop (проще всего):
+       docker run -d --name orbita-test-db -p 5432:5432 \
+         -e POSTGRES_USER=orbita -e POSTGRES_PASSWORD=orbita \
+         -e POSTGRES_DB=orbita_test postgres:16
+
+  2) Homebrew:
+       brew install postgresql@16 && brew services start postgresql@16
+       psql -d postgres -c "CREATE ROLE orbita LOGIN PASSWORD 'orbita' SUPERUSER"
+       createdb -O orbita orbita_test
+
+Проверка: psql "postgresql://orbita:orbita@127.0.0.1:5432/orbita_test" -c 'SELECT 1'
+EOF
+  exit 1
+fi
+
 status="$(pg_lsclusters --no-header 2>/dev/null | awk -v v="$PGVER" -v c="$CLUSTER" '$1==v && $2==c {print $4}')"
 if [ -z "$status" ]; then
   echo "кластер PostgreSQL $PGVER/$CLUSTER не найден — установите postgresql-$PGVER" >&2

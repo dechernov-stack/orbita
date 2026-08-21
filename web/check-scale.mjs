@@ -10,9 +10,13 @@
 // Замеряется и ВРЕМЯ: экран, который строится десять секунд, формально работает,
 // а практически не пригоден. Пороги грубые — ловится деградация на порядок,
 // а не дрожание миллисекунд.
+import { existsSync } from 'node:fs'
 import { chromium } from 'playwright'
 
-const CHROME = process.env.ORBITA_CHROME ?? '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'
+// Разрешение браузера — как в check-screens.mjs: явный ORBITA_CHROME как есть,
+// иначе Chromium среды разработки, иначе браузер самого Playwright.
+const CONTAINER_CHROME = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'
+const CHROME = process.env.ORBITA_CHROME ?? (existsSync(CONTAINER_CHROME) ? CONTAINER_CHROME : null)
 const BASE = process.env.ORBITA_WEB_URL ?? 'http://127.0.0.1:5173/'
 const RENDER_BUDGET_MS = 10_000
 
@@ -25,7 +29,7 @@ const expect = (condition, message, detail = '') => {
   }
 }
 
-const browser = await chromium.launch({ executablePath: CHROME })
+const browser = await chromium.launch(CHROME ? { executablePath: CHROME } : {})
 const page = await browser.newPage({ viewport: { width: 1440, height: 800 } })
 const consoleErrors = []
 page.on('pageerror', (e) => consoleErrors.push(String(e)))
