@@ -1,9 +1,12 @@
 // Экспорт в форматы обмена (TZ-OUT-005, STEP-6 §2.4).
 // Эталон spec/presentation_semantics.py, один в один.
 //
-// Круговой обмен не теряет данные, В ТОМ ЧИСЛЕ НЕЗНАКОМЫЕ АТРИБУТЫ: инструмент,
+// Выгрузка не теряет данные, В ТОМ ЧИСЛЕ НЕЗНАКОМЫЕ АТРИБУТЫ: инструмент,
 // который молча выбрасывает то, чего не знает, портит чужую модель — а замечают
 // это только после обратной загрузки.
+//
+// Направление только наружу (Шаг 16 §2.1): ввод идёт настоящим ReqIF через
+// службу обмена (ADR-023), и круговой обмен проверяется на нём.
 package orbita.out
 
 import com.fasterxml.jackson.databind.JsonNode
@@ -36,10 +39,6 @@ fun toExchange(
     exportedAt = exportedAt,
 )
 
-fun fromExchange(doc: ExchangeDocument): Pair<List<ExchangeRequirement>, List<Link>> =
-    doc.requirements.map { ExchangeRequirement(it.id, LinkedHashMap(it.attributes)) } to
-        doc.links.map { it.copy() }
-
 /** Сериализация ReqIF-подобного документа: атрибуты переносятся как есть. */
 fun exchangeToJson(doc: ExchangeDocument, mapper: ObjectMapper = ObjectMapper()): ObjectNode {
     val root = mapper.createObjectNode()
@@ -65,28 +64,6 @@ fun exchangeToJson(doc: ExchangeDocument, mapper: ObjectMapper = ObjectMapper())
     }
     return root
 }
-
-fun exchangeFromJson(doc: JsonNode): ExchangeDocument = ExchangeDocument(
-    requirements = doc.path("requirements").map { r ->
-        ExchangeRequirement(
-            r.path("id").asText(),
-            r.path("attributes").properties().associate { (k, v) -> k to v },
-        )
-    },
-    links = doc.path("links").map { l ->
-        Link(
-            fromId = l.path("from").asText(),
-            toId = l.path("to").asText(),
-            kind = l.path("kind").asText(),
-            consumerClass = l.path("consumer_class").asText("").ifBlank { null },
-            allocationKind = l.path("allocation_kind").asText("").ifBlank { null },
-            rationale = l.path("rationale").asText("").ifBlank { null },
-            derivationKind = l.path("derivation_kind").asText("").ifBlank { null },
-        )
-    },
-    formatVersion = doc.path("format_version").asText(ExchangeDocument.FORMAT_VERSION),
-    exportedAt = doc.path("exported_at").asText("").ifBlank { null },
-)
 
 /**
  * CSV-выгрузка требований. Колонки — объединение всех встреченных атрибутов:

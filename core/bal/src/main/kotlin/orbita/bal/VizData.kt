@@ -25,46 +25,13 @@ data class HeatCell(val id: String, val series: List<Double>)
 
 object VizData {
 
-    /** Показатели варианта в исходных единицах — вход нормировки розы KPI. */
-    fun radarOption(v: KpiVector): RadarOption = RadarOption(
-        name = v.scenarioRef,
-        values = buildMap {
-            put("quality", v.quality.demandWeightedScore)
-            put("launch_campaigns", v.economics.launchCampaigns.toDouble())
-            put("deployment_days", v.economics.deploymentTimeDays)
-            v.energy.allowedPayloadDutyCycle?.let { put("energy", it) }
-            v.degradationCurve.lastOrNull()?.let { put("reliability", it.second) }
-            v.economics.totalMassKg?.let { put("total_mass_kg", it) }
-        },
-    )
+    // Отображение KpiVector в вход розы ушло вместе с kpiRose (Шаг 16 §2.1):
+    // экран сравнения собирает RadarOption из ХРАНИМОГО результата, беря оси,
+    // которые в нём фактически есть. Второе отображение расходилось бы с ним.
 
-    /**
-     * Роза KPI по СРАВНИВАЕМОМУ НАБОРУ: нормировка с учётом направления
-     * показателя, состав набора — в результате. Одного варианта для розы
-     * недостаточно: нормировать не по чему.
-     */
-    fun kpiRose(
-        vectors: List<KpiVector>,
-        axes: List<String> = listOf("quality", "launch_campaigns", "deployment_days"),
-        directions: KpiAxes = KpiAxes.default,
-    ): RadarChart = radarSeries(vectors.map { radarOption(it) }, axes, directions)
-
-    fun kpiRoseJson(chart: RadarChart, mapper: ObjectMapper = ObjectMapper()): ObjectNode {
-        val root = mapper.createObjectNode()
-        val axes = root.putArray("axes")
-        chart.axes.forEach { axes.add(it) }
-        val series = root.putArray("series")
-        chart.series.forEach { s ->
-            val n = series.addObject()
-            n.put("name", s.name)
-            val v = n.putArray("values")
-            s.values.forEach { v.add(it) }
-        }
-        // состав набора обязателен: без него диаграмму сравнят с чужой (ловушка 2)
-        val over = root.putArray("normalized_over")
-        chart.normalizedOver.forEach { over.add(it) }
-        return root
-    }
+    // Розы KPI здесь больше нет (Шаг 16 §2.1): нормировка идёт единственным
+    // входом radarSeries, к которому обращается экран сравнения. Две реализации
+    // нормировки разошлись бы на первом изменении набора осей.
 
     /**
      * Доступность по горизонтам усреднения. Среднесуточная ВЗВЕШИВАЕТСЯ

@@ -162,13 +162,28 @@ class KpiAndVizTest {
         val v = kpi()
         // роза строится по СРАВНИВАЕМОМУ НАБОРУ: одного варианта мало —
         // нормировать не по чему (шаг 6 §1.1)
-        val chart = VizData.kpiRose(listOf(v, kpi("SC-0002", score = 0.6, campaigns = 2)))
-        val rose = VizData.kpiRoseJson(chart, mapper)
+        // Второго входа в нормировку больше нет (Шаг 16 §2.1): и экран сравнения,
+        // и этот эталон идут через radarSeries.
+        val vectors = listOf(v, kpi("SC-0002", score = 0.6, campaigns = 2))
+        val chart = radarSeries(
+            vectors.map {
+                RadarOption(
+                    it.scenarioRef,
+                    mapOf(
+                        "quality" to it.quality.demandWeightedScore,
+                        "launch_campaigns" to it.economics.launchCampaigns.toDouble(),
+                        "deployment_days" to it.economics.deploymentTimeDays,
+                    ),
+                )
+            },
+            listOf("quality", "launch_campaigns", "deployment_days"),
+        )
+        val rose = mapper.valueToTree<com.fasterxml.jackson.databind.JsonNode>(chart)
         assertEquals(3, rose["axes"].size())
         assertEquals(2, rose["series"].size())
         assertTrue(rose["series"].all { s -> s["values"].all { it.isNumber } })
         // и несёт состав набора, по которому нормирована
-        assertEquals(listOf("SC-0001", "SC-0002"), rose["normalized_over"].map { it.asText() })
+        assertEquals(listOf("SC-0001", "SC-0002"), rose["normalizedOver"].map { it.asText() })
 
         val profile = VizData.latitudeProfile(v, mapper)
         assertEquals(2, profile.size())
