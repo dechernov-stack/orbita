@@ -10,6 +10,7 @@
 // в нём вес пояса виден числом, а не размером пятна.
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
+import { edit, type StoredSummary } from '../api/edit'
 import type { DemandLayersRequest, DemandMapView, ReferenceScenarioRow } from '../api/types'
 
 const CLASSES = ['A_prime', 'B_prime', 'C_prime']
@@ -31,7 +32,9 @@ const EMPTY: Population = {
   consumer_class: 'A_prime',
 }
 
-export function Demand({ demandMapId = 'DM-0001' }: { demandMapId?: string }) {
+// Зашитого идентификатора карты больше нет (шаг 16 §3.2): по умолчанию
+// берётся ПЕРВАЯ хранимая карта спроса, выбор — из хранимых.
+export function Demand({ demandMapId }: { demandMapId?: string }) {
   const [library, setLibrary] = useState<ReferenceScenarioRow[]>([])
   const [populations, setPopulations] = useState<Population[]>([])
   const [scenarioIds, setScenarioIds] = useState<string[]>([])
@@ -41,6 +44,18 @@ export function Demand({ demandMapId = 'DM-0001' }: { demandMapId?: string }) {
   const [error, setError] = useState<string | null>(null)
   /** Показывается хранимая карта, пока инженер не начал собирать свою. */
   const [editing, setEditing] = useState(false)
+  const [storedMaps, setStoredMaps] = useState<StoredSummary[]>([])
+  const [mapId, setMapId] = useState<string | undefined>(demandMapId)
+
+  useEffect(() => {
+    edit
+      .list('demand_map')
+      .then((rows) => {
+        setStoredMaps(rows)
+        if (!demandMapId && rows.length > 0) setMapId((cur) => cur ?? rows[0].id)
+      })
+      .catch((e) => setError(String(e)))
+  }, [demandMapId])
 
   useEffect(() => {
     api.demandLibrary().then(setLibrary).catch((e) => setError(String(e)))
@@ -49,16 +64,17 @@ export function Demand({ demandMapId = 'DM-0001' }: { demandMapId?: string }) {
   useEffect(() => {
     setError(null)
     if (!editing) {
+      if (!mapId) return
       // Хранимая карта (ADR-021): ячейки и веса из сохранённого документа,
       // на который ссылается сценарий, а не пересчитанные заново.
-      api.demandStored(demandMapId).then(setView).catch((e) => setError(String(e)))
+      api.demandStored(mapId).then(setView).catch((e) => setError(String(e)))
       return
     }
     api
       .demand({ population: populations, point_objects: [], scenario_ids: scenarioIds })
       .then(setView)
       .catch((e) => setError(String(e)))
-  }, [demandMapId, editing, populations, scenarioIds])
+  }, [mapId, editing, populations, scenarioIds])
 
   const addPopulation = () => {
     const id = draft.id.trim()
@@ -84,9 +100,15 @@ export function Demand({ demandMapId = 'DM-0001' }: { demandMapId?: string }) {
               ← к хранимой карте
             </button>
           ) : (
-            <span className="chip" title="карта из модели, на неё ссылается сценарий">
-              {demandMapId}
-            </span>
+            <select
+              value={mapId ?? ''}
+              onChange={(e) => setMapId(e.target.value)}
+              title="карта из модели, на неё ссылается сценарий"
+            >
+              {storedMaps.map((m) => (
+                <option key={m.id} value={m.id}>{m.id}</option>
+              ))}
+            </select>
           )}
           <span className="secondary"> Слои: </span>
           <span className="chip">население {populations.length}</span>
