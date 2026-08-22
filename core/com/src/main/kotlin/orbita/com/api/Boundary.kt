@@ -186,6 +186,11 @@ class Boundary(private val registry: SchemaRegistry, conn: Connection) {
     /** Схема вида как документ — правке нужны обязательные поля (шаг 15). */
     fun rawSchema(name: String): JsonNode = registry.raw(name)
 
+    /** Допускает ли схема вида поле верхнего уровня — служебные поля правки
+     *  навешиваются только тем, чья схема их несёт. */
+    fun schemaAllows(type: CoreType, field: String): Boolean =
+        registry.raw(type.schemaName).path("properties").has(field)
+
     /**
      * Схема с раскрытыми ссылками — для форм ввода (шаг 15 §2). Форма строится
      * ПО СХЕМЕ: перечень полей, обязательность и допустимые значения приходят

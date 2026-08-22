@@ -53,12 +53,20 @@ class Editing(
         require(author.isNotBlank()) { "TZ-COM-005: change without an author is not accepted" }
         val doc = draft.deepCopy<ObjectNode>()
         if (doc.path("id").asText("").isBlank()) doc.put("id", nextId(type))
-        val lifecycle = doc.withObject("/lifecycle")
-        if (lifecycle.path("status").asText("").isBlank()) lifecycle.put("status", Lifecycle.Draft.name)
-        if (lifecycle.path("version").asText("").isBlank()) lifecycle.put("version", "1")
+        // Статусная модель — только у объектов, чья схема её несёт: сценарий —
+        // расчётный случай, не управляемый объект, и схема поля lifecycle не
+        // содержит. Навешенный всем подряд lifecycle отклонялся схемой, и
+        // создать сценарий через интерфейс было нельзя (приёмка Шага 16 §4).
+        if (boundary.schemaAllows(type, "lifecycle")) {
+            val lifecycle = doc.withObject("/lifecycle")
+            if (lifecycle.path("status").asText("").isBlank()) lifecycle.put("status", Lifecycle.Draft.name)
+            if (lifecycle.path("version").asText("").isBlank()) lifecycle.put("version", "1")
+        }
         // Происхождение чужого канала (импорт, предложение ИИ) не перебивается:
         // ручным ввод считается только тогда, когда его действительно ввели руками.
-        if (doc.path("provenance").path("source").asText("").isBlank()) {
+        if (boundary.schemaAllows(type, "provenance") &&
+            doc.path("provenance").path("source").asText("").isBlank()
+        ) {
             doc.withObject("/provenance").put("source", SOURCE_MANUAL).put("author", author)
         }
         fillRequiredCollections(type, doc)
