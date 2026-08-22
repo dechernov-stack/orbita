@@ -226,6 +226,26 @@ function Field(props: FieldProps) {
     )
   }
 
+  // Константа схемы (например, ephemeris_beacon.enabled: const true — Р5):
+  // у неё нет type, и текстовое поле предлагало бы ввести то, что вводу
+  // не подлежит. Значение показывается и подставляется в документ как есть.
+  if (schema.const !== undefined) {
+    if (value !== schema.const) {
+      // подстановка после рендера: значение принадлежит схеме, не инженеру
+      setTimeout(() => onChange(schema.const), 0)
+    }
+    return (
+      <div className="field">
+        <label>
+          {name}
+          {required && <span className="req"> *</span>}
+        </label>
+        <span className="mono">{String(schema.const)}</span>
+        <Errors path={path} errors={errors} />
+      </div>
+    )
+  }
+
   if (isQuantity(schema)) return <QuantityField {...props} />
 
   if (schema.type === 'array') {
