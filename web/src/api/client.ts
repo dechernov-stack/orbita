@@ -77,9 +77,12 @@ export const api = {
   componentSpecification: (id: string) => get<ComponentSpecification>(`/views/components/${id}`),
   unitLabels: () => get<UnitLabels>('/unit-labels'),
   systemOverview: () => get<SystemOverview>('/views/system'),
-  /** Сценарий обязателен (шаг 16 §3.2): умолчаний нет. */
-  comparison: (scenario: string) =>
-    get<ComparisonView>(`/views/comparison?scenario=${encodeURIComponent(scenario)}`),
+  /** Сценарий обязателен (§3.2); оси — из фактически имеющихся (§3.5). */
+  comparison: (scenario: string, axes?: string[]) =>
+    get<ComparisonView>(
+      `/views/comparison?scenario=${encodeURIComponent(scenario)}` +
+        (axes && axes.length > 0 ? `&axes=${axes.map(encodeURIComponent).join(',')}` : ''),
+    ),
   /** Устаревшие результаты: пометка живёт на экране сравнения (шаг 16 §2.4). */
   staleResults: () => get<StaleResultRow[]>('/reports/stale-results'),
   /** Зрелость пакета к точке — основная таблица экрана готовности. */

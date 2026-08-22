@@ -19,6 +19,8 @@ export function Comparison() {
   const [view, setView] = useState<ComparisonView | null>(null)
   const [stale, setStale] = useState<StaleResultRow[]>([])
   const [bottlenecks, setBottlenecks] = useState<BottlenecksReport | null>(null)
+  /** Выбранные оси; пусто — набор по умолчанию из фактических (§3.5). */
+  const [axes, setAxes] = useState<string[]>([])
   const [notice, setNotice] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -43,7 +45,7 @@ export function Comparison() {
     // Узкие места из сохранённого прогона (шаг 16 §2.4): ничего не пересчитывается
     api.bottlenecks(scenario).then(setBottlenecks).catch(() => setBottlenecks(null))
     api
-      .comparison(scenario)
+      .comparison(scenario, axes)
       .then(setView)
       .catch((e) => {
         setView(null)
@@ -58,7 +60,7 @@ export function Comparison() {
           setError(String(e))
         }
       })
-  }, [scenario])
+  }, [scenario, axes])
 
   const staleHere = stale.filter((r) => r.scenario_id === scenario)
 
@@ -79,6 +81,28 @@ export function Comparison() {
           <option key={s.id} value={s.id}>{s.id}{s.title ? ` — ${s.title}` : ''}</option>
         ))}
       </select>
+      {view && (
+        <span>
+          <span className="secondary"> Оси: </span>
+          {view.availableAxes.map((a) => {
+            const active = view.axes.includes(a)
+            return (
+              <button
+                key={a}
+                type="button"
+                className="tab"
+                aria-selected={active}
+                onClick={() =>
+                  // выбор из фактических: расчёта в клиенте нет, сервер пересоберёт
+                  setAxes(active ? view.axes.filter((x) => x !== a) : [...view.axes, a])
+                }
+              >
+                {a}
+              </button>
+            )
+          })}
+        </span>
+      )}
       {staleHere.length > 0 && (
         <span className="warn">
           результаты устарели: {staleHere.length} — входы изменились после расчёта, пересчитайте
