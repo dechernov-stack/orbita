@@ -26,7 +26,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 ALLOWED = ROOT / "ci/allowed-literals.txt"
 SEPARATOR = "·"
-ID_RE = re.compile(r"\b(ND|SV|RQ|CM|SC|EV|VA|IF|RSK|CN|SP|DM|TP|GS|PA)-\d{4}\b")
+ID_RE = re.compile(r"\b(ND|SV|RQ|CM|SC|EV|VA|IF|RSK|CN|SP|DM|TP|GS|PA|CO|TL|DN|PJ|DI)-\d{4}\b")
 
 
 def product_sources() -> list[Path]:

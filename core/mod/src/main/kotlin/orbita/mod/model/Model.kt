@@ -36,7 +36,15 @@ enum class CoreType(val idPrefix: String, val dbType: String, val schemaName: St
     DemandMap("DM", "demand_map", "contracts/demand-map"),
     TerminalProfile("TP", "terminal_profile", "contracts/terminal-profile"),
     GroundStations("GS", "ground_stations", "core/ground-stations"),
-    ProtocolAdapter("PA", "protocol_adapter", "contracts/protocol-adapter");
+    ProtocolAdapter("PA", "protocol_adapter", "contracts/protocol-adapter"),
+
+    // Блок C (Шаг 17): виды, на которые модель уже ссылалась в пустоту —
+    // conops_ref валидации, реестр ворот без проекта, документы без статуса.
+    Conops("CO", "conops", "core/conops"),
+    Technology("TL", "technology", "core/technology"),
+    Decision("DN", "decision", "core/decision"),
+    Project("PJ", "project", "core/project"),
+    DocumentIssue("DI", "document_issue", "core/document-issue");
 
     companion object {
         fun byDbType(t: String): CoreType = entries.firstOrNull { it.dbType == t }

@@ -731,6 +731,88 @@ class HttpApi(private val boundary: Boundary) {
             // Экспорт ReqIF (TZ-OUT-005, ADR-023): отображение здесь, XML — в службе
             // обмена. Дата выгрузки фиксируется в файле; параметр exported_at
             // позволяет получить воспроизводимый файл.
+            // Контрольные точки (Шаг 17 C4): перечень и даты — из ХРАНИМОГО
+            // проекта; без проекта — имена из реестра ворот с пометкой источника.
+            // Реестр ворот в любом случае остаётся источником планок статусов.
+            method == "GET" && path == "/views/gates" -> {
+                val project = boundary.objects.listCurrent()
+                    .firstOrNull { it.type == "project" && it.status != Lifecycle.Cancelled }
+                val out = mapper.createObjectNode()
+                val gates = out.putArray("gates")
+                if (project != null) {
+                    out.put("source", "project")
+                    out.put("project_ref", project.id)
+                    out.put("project_name", project.doc.path("name").asText(""))
+                    out.put("phase", project.doc.path("phase").asText(""))
+                    project.doc.path("milestones").forEach { m ->
+                        gates.addObject()
+                            .put("gate", m.path("gate").asText())
+                            .put("due", m.path("due").asText(null))
+                            .put("held", m.path("held").asBoolean(false))
+                    }
+                } else {
+                    out.put("source", "registry")
+                    boundary.maturity.gateNames().sorted().forEach { g ->
+                        gates.addObject().put("gate", g)
+                    }
+                }
+                respond(ex, 200, out)
+            }
+
+            // Выпуск документа (Шаг 17 C5): слепок текущей генерации становится
+            // объектом document_issue. Дата выпуска — из запроса, не из часов:
+            // воспроизводимость выпусков та же, что у экспорта ReqIF.
+            method == "POST" && Regex("^/export/documents/[a-z_]+/issue$").matches(path) -> {
+                val code = path.removePrefix("/export/documents/").removeSuffix("/issue")
+                val template = orbita.out.DocumentTemplate.entries.firstOrNull { it.code == code }
+                    ?: throw IllegalArgumentException(
+                        "unknown document template '$code'; known: " +
+                            orbita.out.DocumentTemplate.entries.joinToString { it.code },
+                    )
+                val req = mapper.readTree(body(ex))
+                val issuedAt = req.path("issued_at").asText("")
+                if (issuedAt.isBlank()) throw IllegalArgumentException("'issued_at' is required: дата выпуска — аргумент, не чтение часов")
+                val author = req.path("author").asText("")
+                if (author.isBlank()) throw IllegalArgumentException("'author' is required (TZ-COM-005)")
+                val model = orbita.out.ModelSnapshot.of(boundary.objects, mapper)
+                val generated = orbita.out.DocumentGenerator(mapper).render(model, template)
+                val issue = mapper.createObjectNode()
+                issue.put("template", template.code)
+                issue.put("digest", generated.digest)
+                issue.put("issued_at", issuedAt)
+                issue.put("status", "issued")
+                issue.put("gaps", generated.gaps.size)
+                val stored = boundary.editing.create(CoreType.DocumentIssue, issue, author)
+                respond(ex, 201, summary(stored))
+            }
+
+            // Выпуски документа со сверкой слепков: расхождение текущей
+            // генерации с выпущенной — факт, а не ощущение (Шаг 17 C5)
+            method == "GET" && Regex("^/export/documents/[a-z_]+/issues$").matches(path) -> {
+                val code = path.removePrefix("/export/documents/").removeSuffix("/issues")
+                val template = orbita.out.DocumentTemplate.entries.firstOrNull { it.code == code }
+                    ?: throw IllegalArgumentException("unknown document template '$code'")
+                val model = orbita.out.ModelSnapshot.of(boundary.objects, mapper)
+                val currentDigest = orbita.out.DocumentGenerator(mapper).render(model, template).digest
+                val out = mapper.createObjectNode()
+                out.put("template", template.code)
+                out.put("current_digest", currentDigest)
+                val issues = out.putArray("issues")
+                boundary.objects.listCurrent()
+                    .filter { it.type == "document_issue" && it.doc.path("template").asText() == template.code }
+                    .sortedBy { it.id }
+                    .forEach { di ->
+                        issues.addObject()
+                            .put("id", di.id)
+                            .put("digest", di.doc.path("digest").asText())
+                            .put("issued_at", di.doc.path("issued_at").asText())
+                            .put("status", di.doc.path("status").asText())
+                            .put("gaps", di.doc.path("gaps").asInt(0))
+                            .put("stale", di.doc.path("digest").asText() != currentDigest)
+                    }
+                respond(ex, 200, out)
+            }
+
             // Документы БП-PA из модели (TZ-OUT-001, шаг 16 §2.4): чистая функция
             // модели, ручное дополнение текста не сохраняется — правка вносится
             // в модель. Пустой раздел остаётся на месте вместе с разрывом.

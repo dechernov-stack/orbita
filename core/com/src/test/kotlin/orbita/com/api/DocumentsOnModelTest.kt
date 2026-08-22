@@ -114,8 +114,11 @@ class DocumentsOnModelTest {
         assertEquals(9, spec.gaps.count { it.what.contains("обоснование") })
 
         val conops = generator.render(snapshot(), DocumentTemplate.ConOps)
+        // Шаг 17 C1: раздел 4 «Операционные сценарии» больше не вечно пуст —
+        // он наполняется хранимыми объектами conops; пустым остался только
+        // раздел 6 «Персонал и обеспечение», которого в модели ещё нет
         assertEquals(
-            listOf(4, 6),
+            listOf(6),
             conops.gaps.filter { it.what == "раздел пуст" }.map { it.section }.sorted(),
         )
     }

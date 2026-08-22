@@ -37,7 +37,11 @@ interface Screen {
 const STEPS: Array<{ number: number; screens: Screen[] }> = [
   {
     number: 1,
-    screens: [{ id: 'needs', title: 'Нужды стейкхолдеров', render: () => <Needs /> }],
+    screens: [
+      { id: 'needs', title: 'Нужды стейкхолдеров', render: () => <Needs /> },
+      // Сценарии ConOps растут из нужд (Шаг 17 C1)
+      { id: 'conops', title: 'ConOps', render: () => <ModelObjects kinds={['conops']} /> },
+    ],
   },
   {
     number: 2,
@@ -70,12 +74,16 @@ const STEPS: Array<{ number: number; screens: Screen[] }> = [
         title: 'Состав и интерфейсы',
         render: () => <ModelObjects kinds={['component', 'interface']} />,
       },
+      // Технология — свойство конфигурации, не отчёта (Шаг 17 C2)
+      { id: 'technology', title: 'Технологии и TRL', render: () => <ModelObjects kinds={['technology']} /> },
     ],
   },
   {
     number: 5,
     screens: [
       { id: 'comparison', title: 'Сравнение вариантов', render: () => <Comparison /> },
+      // Сравнение даёт числа, решение фиксирует выбор (Шаг 17 C3)
+      { id: 'decisions', title: 'Решения', render: () => <ModelObjects kinds={['decision']} /> },
       { id: 'coverage', title: 'Карта покрытия', render: () => <Coverage /> },
       { id: 'globe', title: 'Баллистика', render: () => <Globe /> },
       { id: 'ground', title: 'Наземный сегмент', render: () => <GroundSegment /> },
@@ -113,7 +121,7 @@ const STEPS: Array<{ number: number; screens: Screen[] }> = [
       {
         id: 'closure',
         title: 'Ведение реестров',
-        render: () => <ModelObjects kinds={['risk', 'evidence', 'validation']} />,
+        render: () => <ModelObjects kinds={['risk', 'evidence', 'validation', 'project']} />,
       },
     ],
   },

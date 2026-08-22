@@ -313,7 +313,18 @@ class DocumentGenerator(private val mapper: ObjectMapper = ObjectMapper()) {
                 n.put("power_w", m.path("power_w").asDouble(0.0))
                 n.put("orbit_fraction", m.path("orbit_fraction").asDouble(0.0))
             }
-            4 -> model.path("operational_scenarios").forEach(items::add)
+            // Шаг 17 C1: операционные сценарии — ХРАНИМЫЕ объекты conops,
+            // а не поле, которого в модели никогда не было
+            4 -> model.path("conops_scenarios").sortedBy { it.path("id").asText() }.forEach { co ->
+                val n = items.addObject()
+                n.put("id", co.path("id").asText())
+                n.put("name", co.path("name").asText(""))
+                n.put("kind", co.path("kind").asText(""))
+                n.put("phase", co.path("phase").asText(""))
+                n.put("success_criterion", co.path("success_criterion").asText(""))
+                val flow = n.putArray("flow")
+                co.path("flow").forEach(flow::add)
+            }
             5 -> {
                 model.path("constellation").takeIf { it.isObject && !it.isEmpty }?.let { c ->
                     val n = items.addObject()

@@ -17,7 +17,7 @@ class ReqService(
     private val conn: Connection,
     private val registry: SchemaRegistry,
     private val quality: QualityControl = QualityControl(),
-    private val gates: Gates = Gates(),
+    val gates: Gates = Gates(),
 ) {
     val objects = ObjectStore(conn)
     val links = LinkStore(conn)
@@ -71,6 +71,32 @@ class ReqService(
                     throw ModelViolationException(
                         "CR-003 (ADR-019): interface ${doc.path("id").asText()} requires exactly two sides (owners)"
                     )
+                }
+            }
+
+            // Шаг 17 C3: решение decided без выбора или обоснования — запись
+            // «решили, но не скажем что», хуже отсутствия записи
+            "decision" -> {
+                if (doc.path("status").asText() == "decided") {
+                    val selected = doc.path("selected").asText("")
+                    val names = doc.path("alternatives").map { it.path("name").asText() }
+                    val issues = buildList {
+                        if (selected.isBlank()) add("нет выбранной альтернативы")
+                        else if (selected !in names) add("выбранная альтернатива '$selected' не среди перечисленных")
+                        if (doc.path("rationale").asText("").isBlank()) add("нет обоснования")
+                    }
+                    if (issues.isNotEmpty()) {
+                        throw ModelViolationException("C3: решение decided — " + issues.joinToString("; "))
+                    }
+                }
+            }
+
+            // Шаг 17 C5: одобрение безымянным не бывает
+            "document_issue" -> {
+                if (doc.path("status").asText() == "approved" &&
+                    doc.path("approved_by").asText("").isBlank()
+                ) {
+                    throw ModelViolationException("C5: approved требует approved_by — кто одобрил")
                 }
             }
 
@@ -160,6 +186,10 @@ class ReqService(
                     "service" -> d.path("traces_up").forEach { nd ->
                         put(Triple(nd.asText(), objId, "trace"), Attrs())
                     }
+                    // ConOps-сценарий разворачивает нужды (Шаг 17 C1)
+                    "conops" -> d.path("traces_up").forEach { nd ->
+                        put(Triple(nd.asText(), objId, "trace"), Attrs())
+                    }
                     "requirement" -> {
                         d.path("traces_up").forEach { t ->
                             put(
@@ -187,7 +217,7 @@ class ReqService(
         val want = desired(type, id, doc).toMutableMap()
         val existing = when (type) {
             "need" -> links.linksFrom(id, "trace")
-            "service" -> links.linksTo(id, "trace")
+            "service", "conops" -> links.linksTo(id, "trace")
             "requirement" ->
                 links.linksTo(id, "trace") + links.linksFrom(id, "allocation") + links.linksTo(id, "derive")
             else -> emptyList()
@@ -286,6 +316,27 @@ class ReqService(
         return create(doc, "interface", createdBy)
     }
 
+    /**
+     * Сценарий ConOps (Шаг 17 C1): против него выполняется валидация, из него
+     * наполняется документ «Концепция применения». Связи с нуждами — тем же
+     * пересчётом, что и у всех (ADR-027).
+     */
+    fun ingestConops(json: String, createdBy: String = "api"): StoredObject {
+        val doc = registry.parse(json)
+        registry.require("core/conops", doc)
+        doc.path("traces_up").forEach { nd ->
+            objects.current(nd.asText())
+                ?: throw ModelViolationException(
+                    "C1: conops разворачивает несуществующую нужду ${nd.asText()}"
+                )
+        }
+        return conn.tx {
+            val stored = create(doc, "conops", createdBy)
+            syncLinks("conops", stored.id, doc)
+            stored
+        }
+    }
+
     /** Свидетельство EV-NNNN (CR-003/ADR-019). */
     fun ingestEvidence(json: String, createdBy: String = "api"): StoredObject {
         val doc = registry.parse(json)
@@ -301,6 +352,17 @@ class ReqService(
         val doc = registry.parse(json)
         registry.require("core/validation", doc)
         requireApplicationRules("validation", doc)
+        // Шаг 17 C1: conops_ref был строкой в никуда — валидация против
+        // несуществующего сценария не проверка, а обещание проверки
+        val conopsRef = doc.path("conops_ref").asText("")
+        if (conopsRef.isNotBlank()) {
+            val target = objects.current(conopsRef)
+            if (target == null || target.type != "conops") {
+                throw ModelViolationException(
+                    "C1: валидация ссылается на несуществующий сценарий ConOps $conopsRef"
+                )
+            }
+        }
         return create(doc, "validation", createdBy)
     }
 

@@ -615,3 +615,26 @@ export interface GroundSuggestView {
   coverage_before: number
   coverage_after: number
 }
+
+/** Контрольные точки (Шаг 17 C4): из проекта, без него — из реестра ворот. */
+export interface GatesView {
+  source: 'project' | 'registry'
+  project_ref?: string
+  project_name?: string
+  phase?: string
+  gates: Array<{ gate: string; due?: string | null; held?: boolean }>
+}
+
+/** Выпуски документа со сверкой слепков (Шаг 17 C5). */
+export interface DocumentIssuesView {
+  template: string
+  current_digest: string
+  issues: Array<{
+    id: string
+    digest: string
+    issued_at: string
+    status: string
+    gaps: number
+    stale: boolean
+  }>
+}

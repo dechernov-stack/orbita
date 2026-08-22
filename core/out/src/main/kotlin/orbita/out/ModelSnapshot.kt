@@ -33,6 +33,10 @@ private val COLLECTIONS = linkedMapOf(
     CoreType.Validation.dbType to "validations",
     CoreType.Risk.dbType to "risks",
     CoreType.Scenario.dbType to "scenarios",
+    // Блок C (Шаг 17): сценарии ConOps, технологии и решения — материал документов
+    CoreType.Conops.dbType to "conops_scenarios",
+    CoreType.Technology.dbType to "technologies",
+    CoreType.Decision.dbType to "decisions",
 )
 
 /**

@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/core/technology.schema.json",
+  "title": "Technology",
+  "description": "Технология с уровнем готовности (Шаг 17 C2): текущий и требуемый TRL, контрольная точка, к которой требуемый уровень должен быть достигнут, план дозревания. Технология ниже требуемого TRL к своей точке — блокирующая причина отчёта зрелости.",
+  "type": "object",
+  "required": ["id", "name", "trl_current", "trl_required", "gate", "lifecycle"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {"type": "string", "pattern": "^TL-[0-9]{4}$"},
+    "name": {"type": "string", "minLength": 1},
+    "trl_current": {"type": "integer", "minimum": 1, "maximum": 9},
+    "trl_required": {"type": "integer", "minimum": 1, "maximum": 9},
+    "gate": {"type": "string", "minLength": 1, "description": "Контрольная точка (SRR, SDR, …)"},
+    "components": {
+      "type": "array",
+      "items": {"type": "string", "pattern": "^CM-[0-9]{4}$"},
+      "description": "Элементы архитектуры, зависящие от технологии"
+    },
+    "maturation_plan": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["step", "target_trl"],
+        "additionalProperties": false,
+        "properties": {
+          "step": {"type": "string", "minLength": 1},
+          "target_trl": {"type": "integer", "minimum": 1, "maximum": 9},
+          "due": {"type": "string", "description": "Плановая дата, ISO"}
+        }
+      },
+      "description": "Шаги дозревания до требуемого уровня"
+    },
+    "risk_ref": {"type": "string", "pattern": "^RSK-[0-9]{4}$"},
+    "lifecycle": {"$ref": "https://kis.local/schemas/common/status.schema.json"},
+    "provenance": {"$ref": "https://kis.local/schemas/common/provenance.schema.json"}
+  }
+}
