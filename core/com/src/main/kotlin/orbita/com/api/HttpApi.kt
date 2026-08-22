@@ -119,6 +119,9 @@ class HttpApi(private val boundary: Boundary) {
                 respond(ex, 200, summary(boundary.req.promote(objectMatch.groupValues[1], target)))
             }
 
+            // Процедура изменения базированного объекта (TZ-COM-003): рабочий слой
+            // правки (/edit) базированный объект не трогает и отсылает сюда —
+            // изменение принимается только с основанием (change_ref).
             method == "POST" && objectMatch?.groupValues?.get(2) == "/change" -> {
                 val id = objectMatch.groupValues[1]
                 val req = mapper.readTree(body(ex))
@@ -137,15 +140,6 @@ class HttpApi(private val boundary: Boundary) {
                 val stored = boundary.objects.current(objectMatch.groupValues[1])
                     ?: throw NoSuchElementException("object '${objectMatch.groupValues[1]}' not found")
                 respond(ex, 200, summary(stored).apply { set<ObjectNode>("doc", stored.doc) })
-            }
-
-            method == "GET" && path == "/slice" -> {
-                val at = ex.requestURI.query?.split('&')
-                    ?.firstOrNull { it.startsWith("at=") }?.substringAfter('=')
-                    ?: throw IllegalArgumentException("query parameter 'at' is required")
-                val arr = mapper.createArrayNode()
-                boundary.objects.sliceAt(OffsetDateTime.parse(at)).forEach { arr.add(summary(it)) }
-                respond(ex, 200, arr)
             }
 
             method == "POST" && path == "/links" -> {
@@ -177,12 +171,6 @@ class HttpApi(private val boundary: Boundary) {
                     formula = req.path("formula").textValue(),
                 )
                 respond(ex, 204, null)
-            }
-
-            // Реестр рисков (шаг 7): сводка считается сервером, включая критичность
-            method == "GET" && path == "/reports/risk-register" -> {
-                val summary = orbita.req.registerSummary(boundary.req.risks())
-                respond(ex, 200, mapper.valueToTree(summary))
             }
 
             method == "GET" && path == "/reports/trace-breaks" ->
@@ -795,11 +783,6 @@ class HttpApi(private val boundary: Boundary) {
             method == "GET" && path == "/enum-labels" ->
                 respond(ex, 200, mapper.valueToTree(orbita.req.EnumLabels().all()))
 
-            method == "GET" && Regex("^/components/(CM-[0-9]{4})/specification$").matches(path) -> {
-                val cm = path.removePrefix("/components/").removeSuffix("/specification")
-                respond(ex, 200, mapper.valueToTree(boundary.req.specificationOf(cm)))
-            }
-
             method == "GET" && path == "/reports/needs-without-services" ->
                 respond(ex, 200, mapper.valueToTree(boundary.req.needsWithoutServices()))
 
@@ -917,14 +900,6 @@ class HttpApi(private val boundary: Boundary) {
 
             method == "GET" && path.startsWith("/schemas/") ->
                 respond(ex, 200, boundary.bundledSchema(path.removePrefix("/schemas/")))
-
-            method == "POST" && path.startsWith("/validate/") -> {
-                val schema = path.removePrefix("/validate/")
-                val errors = boundary.validateContract(schema, body(ex))
-                val res = mapper.createObjectNode().put("valid", errors.isEmpty())
-                res.set<ArrayNode>("errors", (errorsJson(errors)["errors"] as ArrayNode))
-                respond(ex, 200, res)
-            }
 
             else -> respond(
                 ex, 404,

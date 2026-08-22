@@ -71,23 +71,25 @@ class HttpApiTest {
     }
 
     @Test
-    fun `нарушение Р2 в контракте видно через validate со ссылкой на ADR-002`() {
+    fun `нарушение Р2 в контракте видно при расчёте со ссылкой на ADR-002`() {
+        // Отдельного «проверить, не сохраняя» больше нет (Шаг 16 §2.1): расчёт по
+        // ещё не сохранённой модели сам не считает по непрошедшему документу и
+        // отвечает тем же перечнем ошибок.
         val r = post(
-            "/validate/contracts/spacecraft",
+            "/views/spacecraft",
             """
-            {"id": "KA-9",
+            {"spacecraft": {"id": "KA-9",
              "platform": {"dry_mass_kg": 250,
                "power": {"sa_area_m2": 0.5, "sa_efficiency": 0.3, "battery_wh": 100},
                "attitude": {"pointing_accuracy_deg": 1.0}},
              "payload": {"architecture": "regenerative",
                "links": [{"id": "L1", "role": "user_uplink", "band_hz": 868.0e6, "tx_power_w": 2,
                           "antenna": {"type": "patch", "gain_dbi": 6}}],
-               "onboard": {"buffer_mb": 64, "priority_policy": ["C_prime"]}}}
+               "onboard": {"buffer_mb": 64, "priority_policy": ["C_prime"]}}}}
             """,
         )
-        assertEquals(200, r.statusCode())
+        assertEquals(422, r.statusCode())
         val res = mapper.readTree(r.body())
-        assertEquals(false, res["valid"].asBoolean())
         assertTrue(res["errors"].any { it["adr"].asText("").startsWith("ADR-002") }) { r.body() }
     }
 
