@@ -11,7 +11,7 @@ import type { WizardStep } from './api/types'
 import { AiProposal } from './screens/AiProposal'
 import { Comparison } from './screens/Comparison'
 import { Coverage } from './screens/Coverage'
-import { ComponentSpec } from './screens/ComponentSpec'
+import { SystemComposition } from './screens/SystemComposition'
 import { Demand } from './screens/Demand'
 import { Documents } from './screens/Documents'
 import { Globe } from './screens/Globe'
@@ -56,10 +56,12 @@ const STEPS: Array<{ number: number; screens: Screen[] }> = [
   {
     number: 4,
     screens: [
+      // Зашитого идентификатора элемента больше нет (шаг 16 §3.2): выбирается из
+      // хранимых, спецификация — карточка выбранного (§3.3)
       {
-        id: 'component',
-        title: 'Спецификация элемента',
-        render: () => <ComponentSpec componentId="CM-0011" />,
+        id: 'composition',
+        title: 'Состав системы',
+        render: () => <SystemComposition />,
       },
       { id: 'spacecraft', title: 'Модель КА', render: () => <Spacecraft /> },
       // Ввод состава руками: без него шаг проходится только на чужих данных

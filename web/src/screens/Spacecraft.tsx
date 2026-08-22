@@ -13,6 +13,7 @@
 // и не сравнивает запас с нулём — это правила, а не отрисовка.
 import { useEffect, useState } from 'react'
 import { api, ApiError } from '../api/client'
+import { edit, type StoredSummary } from '../api/edit'
 import type { MaskScheduleView, ProtocolAdapterView, SpacecraftView } from '../api/types'
 
 const ROLE_LABEL: Record<string, string> = {
@@ -30,7 +31,9 @@ const MATURITY_LABEL: Record<string, string> = {
   existing: 'существующий',
 }
 
-export function Spacecraft({ spacecraftId = 'SP-0001' }: { spacecraftId?: string }) {
+// Зашитого идентификатора аппарата больше нет (шаг 16 §3.2): по умолчанию
+// берётся первый хранимый, выбор — из хранимых.
+export function Spacecraft({ spacecraftId }: { spacecraftId?: string }) {
   const [altKm, setAltKm] = useState(550)
   const [plannedDuty, setPlannedDuty] = useState(0.5)
   const [view, setView] = useState<SpacecraftView | null>(null)
@@ -38,6 +41,18 @@ export function Spacecraft({ spacecraftId = 'SP-0001' }: { spacecraftId?: string
   const [masks, setMasks] = useState<MaskScheduleView | null>(null)
   const [masksNotice, setMasksNotice] = useState<string | null>(null)
   const [adapter, setAdapter] = useState<ProtocolAdapterView | null>(null)
+  const [stored, setStored] = useState<StoredSummary[]>([])
+  const [spId, setSpId] = useState<string | undefined>(spacecraftId)
+
+  useEffect(() => {
+    edit
+      .list('spacecraft')
+      .then((rows) => {
+        setStored(rows)
+        if (!spacecraftId && rows.length > 0) setSpId((cur) => cur ?? rows[0].id)
+      })
+      .catch((e) => setError(String(e)))
+  }, [spacecraftId])
 
   // Циклограмма из масок и параметры канала (шаг 16 §2.4): считает сервер,
   // подстановка сгенерированных долей в модель — решение инженера, не автоматика
@@ -53,12 +68,13 @@ export function Spacecraft({ spacecraftId = 'SP-0001' }: { spacecraftId?: string
   }, [])
 
   useEffect(() => {
+    if (!spId) return
     setError(null)
     api
-      .spacecraftStored(spacecraftId, { alt_km: altKm, planned_payload_duty: plannedDuty })
+      .spacecraftStored(spId, { alt_km: altKm, planned_payload_duty: plannedDuty })
       .then(setView)
       .catch((e) => setError(String(e)))
-  }, [spacecraftId, altKm, plannedDuty])
+  }, [spId, altKm, plannedDuty])
 
   if (error) return <div className="empty">Ошибка обращения к API: {error}</div>
 
@@ -66,7 +82,11 @@ export function Spacecraft({ spacecraftId = 'SP-0001' }: { spacecraftId?: string
     <div className="split">
       <div className="pane" style={{ padding: 12 }}>
         <div className="tabs" style={{ marginBottom: 8, alignItems: 'center' }}>
-          <span className="id">{spacecraftId}</span>
+          <select value={spId ?? ''} onChange={(e) => setSpId(e.target.value)}>
+            {stored.map((sp) => (
+              <option key={sp.id} value={sp.id}>{sp.id}</option>
+            ))}
+          </select>
           {view?.preset && <span className="chip">{view.preset}</span>}
           <span className="secondary" style={{ marginLeft: 12 }}>
             высота, км

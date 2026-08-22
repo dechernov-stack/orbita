@@ -9,7 +9,14 @@ import { edit } from '../api/edit'
 import type { ComponentSpecification } from '../api/types'
 import { BudgetGauge, Condition, StatusDot } from '../ui/parts'
 
-export function ComponentSpec({ componentId }: { componentId: string }) {
+export function ComponentSpec({
+  componentId,
+  onSelectRequirement,
+}: {
+  componentId: string
+  /** Переход к требованию из строки спецификации (шаг 16 §3.3). */
+  onSelectRequirement?: (id: string) => void
+}) {
   const [spec, setSpec] = useState<ComponentSpecification | null>(null)
   const [error, setError] = useState<string | null>(null)
   type ParamRow = Awaited<ReturnType<typeof edit.listParams>>[number]
@@ -48,7 +55,11 @@ export function ComponentSpec({ componentId }: { componentId: string }) {
           </thead>
           <tbody>
             {spec.rows.map((row) => (
-              <tr key={row.id}>
+              <tr
+                key={row.id}
+                onClick={() => onSelectRequirement?.(row.id)}
+                style={onSelectRequirement ? { cursor: 'pointer' } : undefined}
+              >
                 <td>
                   <span className="id">{row.id}</span>
                 </td>
