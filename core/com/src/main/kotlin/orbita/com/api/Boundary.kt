@@ -5,6 +5,7 @@
 package orbita.com.api
 
 import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.node.ObjectNode
 import orbita.mod.model.CoreType
 import orbita.mod.model.Lifecycle
 import orbita.mod.model.inputVersionsComplete
@@ -98,6 +99,7 @@ class Boundary(private val registry: SchemaRegistry, conn: Connection) {
         CoreType.Scenario -> {
             val doc = parse(json)
             registry.require(type.schemaName, doc)
+            if (doc is ObjectNode) stampInputVersions(doc)
             // Ссылки разрешаются ДО сохранения: сценарий со ссылкой в никуда
             // не расчётный случай, а обещание невоспроизводимого результата.
             val problems = resolveScenario(doc) { ref -> objects.current(ref)?.let { CoreType.byDbType(it.type) } } +
@@ -138,6 +140,7 @@ class Boundary(private val registry: SchemaRegistry, conn: Connection) {
                 ?.let { throw SchemaValidationException(type.schemaName, it) }
 
             CoreType.Scenario -> {
+                if (doc is ObjectNode) stampInputVersions(doc)
                 val problems = resolveScenario(doc) { ref -> objects.current(ref)?.let { CoreType.byDbType(it.type) } } +
                     inputVersionsComplete(doc)
                 if (problems.isNotEmpty()) {
@@ -221,4 +224,21 @@ class Boundary(private val registry: SchemaRegistry, conn: Connection) {
     }
 
     private fun parse(json: String): JsonNode = registry.parse(json)
+    /**
+     * Фиксация версий входов сценария (V008, TZ-MOD-007): версию знает система,
+     * а не инженер — форма ввода словаря версий и не нужна, и вредна: версия,
+     * набранная из головы, разойдётся с хранилищем молча. Явно заданные версии
+     * НЕ перетираются: это заявка «считаю по той версии», и расхождение с
+     * текущей — предмет stale-каскада, а не тихой правки.
+     */
+    private fun stampInputVersions(doc: ObjectNode) {
+        val versions = doc.withObject("/input_versions")
+        orbita.mod.model.SCENARIO_REF_FIELDS.keys.forEach { field ->
+            val ref = doc.path(field).asText("")
+            if (ref.isNotBlank() && versions.path(ref).isMissingNode) {
+                objects.current(ref)?.let { versions.put(ref, it.version) }
+            }
+        }
+    }
+
 }
