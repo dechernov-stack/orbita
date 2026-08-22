@@ -157,8 +157,11 @@ export function Globe() {
   }
 
   return (
-    <div style={{ display: 'grid', gridTemplateRows: 'auto 1fr', minHeight: 0 }}>
-      <div className="topbar" style={{ borderTop: '1px solid var(--border)', display: 'flex', gap: 8, alignItems: 'center' }}>
+    // gridArea main: экран кладётся прямо в сетку .app, и без области корень
+    // уезжает в автопоток. Класс topbar внутри экрана не используется — он
+    // несёт grid-area: top и растаскивал раскладку (дефект виден показом).
+    <div style={{ gridArea: 'main', display: 'grid', gridTemplateRows: 'auto 1fr', minHeight: 0, minWidth: 0 }}>
+      <div style={{ borderBottom: '1px solid var(--border)', padding: '6px 8px', display: 'flex', gap: 8, alignItems: 'center' }}>
         <span className="secondary">Сценарий:</span>
         <select value={scenario} onChange={(e) => setScenario(e.target.value)}>
           {scenarios.map((s) => (
