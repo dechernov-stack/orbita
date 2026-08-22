@@ -5,6 +5,9 @@ import type {
   AnswerReport,
   CoverageView,
   GlobeView,
+  TraceMatrixView,
+  ValidationRow,
+  VerificationMatrixFlatView,
   ComparisonView,
   ComponentSpecification,
   DemandLayersRequest,
@@ -58,6 +61,10 @@ async function get<T>(path: string): Promise<T> {
 
 export const api = {
   requirementTree: () => get<RequirementTreeView>('/views/requirement-tree'),
+  /** Матрицы живут на экране требований — там принимается решение (шаг 16 §2.4). */
+  traceMatrix: () => get<TraceMatrixView>('/reports/trace-matrix'),
+  verificationMatrix: () => get<VerificationMatrixFlatView>('/reports/verification-matrix'),
+  validationMatrix: () => get<ValidationRow[]>('/reports/validation-matrix'),
   requirementCard: (id: string) => get<RequirementCard>(`/views/requirements/${id}`),
   componentSpecification: (id: string) => get<ComponentSpecification>(`/views/components/${id}`),
   unitLabels: () => get<UnitLabels>('/unit-labels'),

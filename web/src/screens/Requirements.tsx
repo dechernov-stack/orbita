@@ -4,6 +4,7 @@
 // Все числа и строки берутся из /views/requirement-tree и /views/requirements/{id}
 // как есть. Клиент не считает ни глубину отступа, ни свёртку, ни критерий успеха.
 import { useCallback, useEffect, useState } from 'react'
+import { RequirementMatrices, type MatrixKind } from './RequirementMatrices'
 import { api } from '../api/client'
 import type { RequirementCard, RequirementRow, RequirementTreeView } from '../api/types'
 import { ObjectEditor } from '../ui/ObjectEditor'
@@ -19,6 +20,8 @@ export function Requirements() {
   const [card, setCard] = useState<RequirementCard | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [onlyViolated, setOnlyViolated] = useState(false)
+  /** Вкладка: дерево или одна из матриц (шаг 16 §2.4). */
+  const [matrix, setMatrix] = useState<MatrixKind | null>(null)
 
   const reload = useCallback(
     () =>
@@ -79,7 +82,36 @@ export function Requirements() {
           >
             Бюджет нарушен
           </button>
+          <span style={{ flex: 1 }} />
+          {/* Матрицы живут здесь, где принимается решение по требованию, —
+              отдельного экрана «Отчёты» нет намеренно (шаг 16 §2.4) */}
+          <button type="button" className="tab" aria-selected={matrix === null} onClick={() => setMatrix(null)}>
+            Дерево
+          </button>
+          <button type="button" className="tab" aria-selected={matrix === 'trace'} onClick={() => setMatrix('trace')}>
+            Трассировка
+          </button>
+          <button
+            type="button"
+            className="tab"
+            aria-selected={matrix === 'verification'}
+            onClick={() => setMatrix('verification')}
+          >
+            Верификация
+          </button>
+          <button
+            type="button"
+            className="tab"
+            aria-selected={matrix === 'validation'}
+            onClick={() => setMatrix('validation')}
+          >
+            Валидация
+          </button>
         </div>
+
+        {matrix !== null && <RequirementMatrices kind={matrix} />}
+        {matrix === null && (
+        <>
 
         {ordered.length === 0 && (
           <div className="empty">
@@ -138,6 +170,8 @@ export function Requirements() {
             ))}
           </tbody>
         </table>
+        </>
+        )}
       </div>
 
       <aside className="pane pane--side">

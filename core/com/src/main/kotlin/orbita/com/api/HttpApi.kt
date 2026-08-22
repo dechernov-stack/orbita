@@ -237,23 +237,34 @@ class HttpApi(private val boundary: Boundary) {
             }
 
             // CR-003: строка на каждое событие плюс состояние требования
+            // Вкладка «Верификация» экрана требований (шаг 16 §2.4): строка на
+            // пару «требование × событие» (verificationMatrixView), разрывы —
+            // ОТДЕЛЬНЫМ списком: пустая ячейка читается как «данных нет», а не
+            // как «проверять нечего». Рядом — непокрытые требования (TZ-REQ-008).
+            // Богатая сборка matrices.verificationMatrix остаётся входом пакета
+            // передачи (TZ-OUT-006) — у неё другой потребитель, не экран.
             method == "GET" && path == "/reports/verification-matrix" -> {
-                val arr = mapper.createArrayNode()
-                boundary.matrices.verificationMatrix(query(ex)["configuration"]).forEach { r ->
-                    val n = arr.addObject()
-                    n.put("requirement", r.requirementId).put("state", r.state)
-                    n.set<ArrayNode>("plan_issues", mapper.valueToTree(r.planIssues))
-                    val events = n.putArray("events")
-                    r.events.forEach { e ->
-                        events.addObject()
-                            .put("event", e.eventId).put("method", e.method).put("kind", e.kind)
-                            .put("phase", e.phase).put("level", e.level).put("closes", e.closes)
-                            .put("status", e.status).put("approach", e.approach).put("means", e.means)
-                            .put("success_criterion", e.successCriterion)
-                            .put("evidence_ref", e.evidenceRef).put("evidence_state", e.evidenceState)
-                    }
+                val docs = boundary.objects.listCurrent()
+                    .filter { it.type == "requirement" && it.status != Lifecycle.Cancelled }
+                    .map { it.doc }
+                val view = orbita.out.verificationMatrixView(docs)
+                val n = mapper.createObjectNode()
+                val rows = n.putArray("rows")
+                view.rows.forEach { r ->
+                    rows.addObject()
+                        .put("requirement", r.requirementId).put("event", r.eventId)
+                        .put("method", r.method).put("level", r.level).put("closes", r.closes)
+                        .put("approach", r.approach).put("status", r.status)
+                        .put("evidence_ref", r.evidenceRef).put("evidence_stale", r.evidenceStale)
                 }
-                respond(ex, 200, arr)
+                val gaps = n.putArray("gaps")
+                view.gaps.forEach { g ->
+                    gaps.addObject().put("requirement", g.requirementId)
+                        .put("event", g.eventId).put("reason", g.reason)
+                }
+                val unverified = n.putArray("unverified")
+                boundary.matrices.unverifiedRequirements().forEach(unverified::add)
+                respond(ex, 200, n)
             }
 
             // CR-003: валидация — отдельная матрица, отдельный вопрос «то ли построили»
