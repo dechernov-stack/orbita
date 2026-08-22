@@ -130,13 +130,16 @@ export function Globe() {
     const viewer = viewerRef.current
     if (!viewer || !view) return
     const listener = () => {
+      // уход с экрана уничтожает viewer, а тик может прийти после: обращение
+      // к часам уничтоженного viewer роняло всё приложение в белый экран
+      if (viewer.isDestroyed()) return
       const now = JulianDate.toIso8601(viewer.clock.currentTime)
       const i = view.passes.findIndex((p) => p.start_utc <= now && now <= p.end_utc)
       setActiveRow((cur) => (cur === i ? cur : i))
     }
     viewer.clock.onTick.addEventListener(listener)
     return () => {
-      viewer.clock.onTick.removeEventListener(listener)
+      if (!viewer.isDestroyed()) viewer.clock.onTick.removeEventListener(listener)
     }
   }, [view])
 
