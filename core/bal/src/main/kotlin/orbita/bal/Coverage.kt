@@ -57,17 +57,61 @@ fun coverageMetrics(windows: List<Pair<Double, Double>>, durationS: Double): Cov
     )
 }
 
-/** Метрики покрытия по каждой цели из документа contracts/visibility. */
+/**
+ * Метрики покрытия по целям из документа contracts/visibility.
+ *
+ * Цели передаются СПИСКОМ, а не выводятся из пролётов: цель без единого
+ * пролёта в пролётах не встречается и молча исчезла бы из выдачи, а
+ * непокрытая ячейка — главное, что карта покрытия обязана показать
+ * (эталон: «непокрытая цель остаётся в выдаче с нулевой доступностью»).
+ */
 fun coverageByTarget(
     visibility: com.fasterxml.jackson.databind.JsonNode,
     durationS: Double,
+    targets: Collection<String> = emptyList(),
     serviceZoneOnly: Boolean = false,
 ): Map<String, CoverageMetrics> {
     val byTarget = linkedMapOf<String, MutableList<Pair<Double, Double>>>()
+    targets.forEach { byTarget[it] = mutableListOf() }
     visibility["passes"].forEach { p ->
         if (serviceZoneOnly && !p.path("in_service_zone").asBoolean(false)) return@forEach
         byTarget.getOrPut(p["target_ref"].asText()) { mutableListOf() } +=
             p["start_s"].asDouble() to p["end_s"].asDouble()
     }
     return byTarget.mapValues { (_, w) -> coverageMetrics(w, durationS) }
+}
+
+/**
+ * Доля покрытия по часам прогона — вход суточного взвешивания профилем
+ * активности (VizData.availability, Daily): пик спроса, пришедшийся на провал
+ * покрытия, простое среднее по часам скрывает. Неполный последний час
+ * отбрасывается, как неполное окно усреднения в тепловой карте.
+ */
+fun hourlySeries(windows: List<Pair<Double, Double>>, durationS: Double): List<Double> {
+    val merged = mergeWindows(windows)
+    val hours = Math.floor(durationS / 3600.0).toInt()
+    return (0 until hours).map { h ->
+        val from = h * 3600.0
+        val to = from + 3600.0
+        merged.sumOf { (s, e) -> (minOf(e, to) - maxOf(s, from)).coerceAtLeast(0.0) } / 3600.0
+    }
+}
+
+/** Класс ячейки карты покрытия. Код уходит клиенту: клиент красит, не считает. */
+enum class CoverageClass(val code: String) {
+    Ok("ok"), Degraded("degraded"), Gap("gap")
+}
+
+/**
+ * Класс ячейки считает СЕРВЕР — клиент только красит (шаг 16, ловушка 2).
+ *
+ * gap — есть окно горизонта вообще без связи: провал, который среднее скрывает;
+ * degraded — худшее окно хуже половины среднего: покрытие неровное;
+ * ok — остальное. Порог половины — правило представления, не физика: он делит
+ * ровное и рваное покрытие, а не годное и негодное.
+ */
+fun coverageClass(meanAvail: Double, worstAvail: Double): CoverageClass = when {
+    worstAvail <= 0.0 -> CoverageClass.Gap
+    worstAvail < meanAvail / 2.0 -> CoverageClass.Degraded
+    else -> CoverageClass.Ok
 }

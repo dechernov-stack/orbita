@@ -427,3 +427,30 @@ export interface AnswerReport {
   rework: { proposed: number; rejected: number; rework: Array<{ item: unknown; issues: string[] }> }
   by_rule: Record<string, number>
 }
+
+/**
+ * Карта покрытия (шаг 16 §2.2). Все значения и класс каждой ячейки посчитаны
+ * сервером; клиент красит по классу и подписывает числа — своих порогов,
+ * средних и нормировок в клиенте нет (ловушка 2).
+ */
+export interface CoverageCell {
+  cell_id: string
+  lat_deg: number
+  lon_deg: number
+  availability_mean: number
+  availability_worst: number
+  /** Среднесуточная, взвешенная профилем активности ячейки (ловушка 3). */
+  availability_weighted?: number
+  class: 'ok' | 'degraded' | 'gap'
+  access_windows: number
+  mean_gap_s?: number
+  max_gap_s?: number
+  revisit_s?: number
+}
+
+export interface CoverageView {
+  scenario_ref: string
+  horizon: 'orbit' | 'day' | 'run'
+  horizons: { orbit_s: number; day_s: number; run_s: number }
+  cells: CoverageCell[]
+}

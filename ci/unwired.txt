@@ -40,6 +40,3 @@
 функция mappingIssues · не подключено на момент постановки Шага 16 (core/out/src/main/kotlin/orbita/out/ReqifMapping.kt:122) · 2026-08-22
 функция flattenedAsString · не подключено на момент постановки Шага 16 (core/out/src/main/kotlin/orbita/out/ReqifMapping.kt:204) · 2026-08-22
 функция treeCycle · не подключено на момент постановки Шага 16 (core/out/src/main/kotlin/orbita/out/Tree.kt:33) · 2026-08-22
-функция availability · не подключено на момент постановки Шага 16 (core/bal/src/main/kotlin/orbita/bal/VizData.kt:74) · 2026-08-22
-функция availabilityHeatmap · не подключено на момент постановки Шага 16 (core/bal/src/main/kotlin/orbita/bal/VizData.kt:106) · 2026-08-22
-функция coverageByTarget · не подключено на момент постановки Шага 16 (core/bal/src/main/kotlin/orbita/bal/Coverage.kt:61) · 2026-08-22
