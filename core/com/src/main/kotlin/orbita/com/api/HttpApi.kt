@@ -669,8 +669,17 @@ class HttpApi(private val boundary: Boundary) {
                 out.put("duration_s", durationS)
                 out.set<ObjectNode>("czml", czml)
                 val epochInstant = java.time.Instant.parse(epoch)
+                // Расписание ограничено первыми окнами по времени: на полном
+                // проекте окон сотни тысяч, и таблица такого размера — не
+                // инструмент. Ограничение НЕ тихое: полное число объявлено
+                // в passes_total, обрезка — в passes_truncated (ловушка 3 §1.1
+                // про счётчики: молчаливая обрезка читалась бы как «всё»).
+                val sorted = vis["passes"].sortedBy { it.path("start_s").asDouble() }
+                val limit = 500
+                out.put("passes_total", sorted.size)
+                out.put("passes_truncated", sorted.size > limit)
                 val passes = out.putArray("passes")
-                vis["passes"].sortedBy { it.path("start_s").asDouble() }.forEach { p ->
+                sorted.take(limit).forEach { p ->
                     val startS = p.path("start_s").asDouble()
                     val endS = p.path("end_s").asDouble()
                     passes.addObject()

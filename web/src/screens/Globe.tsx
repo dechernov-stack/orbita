@@ -94,7 +94,7 @@ export function Globe() {
         setStatus(
           `аппаратов: ${data.czml.filter((p) => (p as { id?: string }).id?.startsWith('SAT-')).length}` +
             ` · станций: ${data.czml.filter((p) => (p as { id?: string }).id?.startsWith('gs-')).length}` +
-            ` · окон: ${data.passes.length}`,
+            ` · окон: ${data.passes_total}`,
         )
       } catch (e) {
         setView(null)
@@ -184,6 +184,8 @@ export function Globe() {
             <h3 style={{ fontSize: 13, margin: '8px 8px 4px' }}>Расписание пролётов</h3>
             <p className="secondary" style={{ margin: '0 8px 6px', fontSize: 12 }}>
               Строка подсвечивается синхронно со шкалой; выбор строки ведёт время к началу окна.
+              {view?.passes_truncated &&
+                ` Показаны первые ${view.passes.length} из ${view.passes_total} окон.`}
             </p>
             <table>
               <thead>
