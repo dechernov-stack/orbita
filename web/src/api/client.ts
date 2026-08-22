@@ -4,6 +4,7 @@
 import type {
   AnswerReport,
   CoverageView,
+  GlobeView,
   ComparisonView,
   ComponentSpecification,
   DemandLayersRequest,
@@ -62,9 +63,12 @@ export const api = {
   unitLabels: () => get<UnitLabels>('/unit-labels'),
   systemOverview: () => get<SystemOverview>('/views/system'),
   comparison: () => get<ComparisonView>('/views/comparison'),
-  /** CZML-поток глобуса: траектории считает пропагатор на сервере. */
-  globe: (query = 'total=8&planes=2&duration_s=5400') =>
-    get<unknown[]>(`/views/globe?${query}`),
+  /**
+   * Глобус от модели проекта (шаг 16 §2.3): конфигурация — из хранимой
+   * группировки по ссылке сценария, зашитой строки параметров больше нет.
+   * Траектории считает пропагатор на сервере.
+   */
+  globe: (scenario: string) => get<GlobeView>(`/views/globe?scenario=${encodeURIComponent(scenario)}`),
   /**
    * Карта покрытия от ХРАНИМЫХ объектов по ссылкам сценария (шаг 16 §2.2).
    * Сценарий обязателен: умолчания нет, его отсутствие — 400 с объяснением.

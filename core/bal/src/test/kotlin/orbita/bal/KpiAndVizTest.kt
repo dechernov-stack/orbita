@@ -209,10 +209,27 @@ class KpiAndVizTest {
 
         val czml = VizData.czml(
             ConstellationConfig(53.0, 1, 1, 0, 550.0), "2026-03-20T00:00:00.000Z", 3600.0,
-            mapOf("SAT-1" to listOf(Triple(0.0, 10.0, 20.0), Triple(60.0, 11.0, 22.0))), mapper,
+            mapOf("SAT-1" to listOf(Triple(0.0, 10.0, 20.0), Triple(60.0, 11.0, 22.0))),
+            stations = listOf(VizData.GlobeStation("GS-1", "Мурманск", 68.9, 33.1)),
+            demandCells = listOf(
+                VizData.GlobeCell("c1", 45.0, 20.0, 2.0),
+                VizData.GlobeCell("c2", 15.0, 30.0, 1.0),
+            ),
+            serviceRadiusKm = footprintRadiusKm(550.0, 25.0),
+            mapper = mapper,
         )
         assertEquals("document", czml[0]["id"].asText())
         assertEquals(8, czml[1]["position"]["cartographicDegrees"].size())
+        // наземная обстановка — часть выдачи данных (шаг 16 §2.3):
+        // зона обслуживания у аппарата, станция и ячейки спроса в потоке
+        assertTrue(czml[1].has("ellipse")) { "у аппарата нет зоны обслуживания" }
+        val ids = czml.map { it["id"].asText() }
+        assertTrue("gs-GS-1" in ids) { "станции нет в потоке" }
+        assertTrue("dm-c1" in ids && "dm-c2" in ids) { "ячеек спроса нет в потоке" }
+        // вес — прозрачностью, нормирована ЗДЕСЬ: у тяжёлой ячейки альфа выше
+        fun alpha(id: String) = czml.first { it["id"].asText() == id }
+            .path("rectangle").path("material").path("solidColor").path("color").path("rgba")[3].asInt()
+        assertTrue(alpha("dm-c1") > alpha("dm-c2"))
     }
 
     @Test
