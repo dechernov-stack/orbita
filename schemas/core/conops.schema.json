@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/core/conops.schema.json",
+  "title": "ConopsScenario",
+  "description": "Операционный сценарий ConOps (Шаг 17 C1): против него выполняется валидация (validation.conops_ref), из него наполняется раздел 4 «Концепции применения». traces_up — нужды, которые сценарий разворачивает (связь trace, ADR-027).",
+  "type": "object",
+  "required": ["id", "name", "kind", "phase", "flow", "success_criterion", "lifecycle"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {"type": "string", "pattern": "^CO-[0-9]{4}$"},
+    "name": {"type": "string", "minLength": 1},
+    "kind": {
+      "type": "string",
+      "enum": ["nominal", "off_nominal", "contingency", "disposal"],
+      "description": "Номинальный / нештатный / аварийный / завершение миссии"
+    },
+    "phase": {
+      "type": "string",
+      "enum": ["deployment", "commissioning", "operations", "decommissioning"],
+      "description": "Этап полёта, к которому сценарий относится"
+    },
+    "actors": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Действующие лица: операторы, терминалы, внешние системы"
+    },
+    "preconditions": {"type": "array", "items": {"type": "string"}},
+    "flow": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"type": "string"},
+      "description": "Шаги сценария по порядку"
+    },
+    "success_criterion": {"type": "string", "minLength": 1},
+    "traces_up": {
+      "type": "array",
+      "items": {"type": "string", "pattern": "^ND-[0-9]{4}$"},
+      "description": "Нужды, которые сценарий разворачивает"
+    },
+    "lifecycle": {"$ref": "https://kis.local/schemas/common/status.schema.json"},
+    "provenance": {"$ref": "https://kis.local/schemas/common/provenance.schema.json"}
+  }
+}

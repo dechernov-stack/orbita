@@ -6,6 +6,8 @@ import type {
   CoverageView,
   BottlenecksReport,
   GeneratedDocumentView,
+  DocumentIssuesView,
+  GatesView,
   GlobeView,
   GroundSuggestView,
   MaskScheduleView,
@@ -137,6 +139,15 @@ export const api = {
     if (!response.ok) throw new ApiError(response.status, '/import/reqif', await response.text())
     return (await response.json()) as { drafts: unknown[]; source_title: string; relations: number }
   },
+  /** Контрольные точки: из хранимого проекта, без него — из реестра ворот. */
+  gates: () => get<GatesView>('/views/gates'),
+  /** Выпуск документа: слепок текущей генерации становится объектом (C5). */
+  issueDocument: (code: string, issuedAt: string, author: string) =>
+    post<Record<string, unknown>>(`/export/documents/${code}/issue`, {
+      issued_at: issuedAt,
+      author,
+    }),
+  documentIssues: (code: string) => get<DocumentIssuesView>(`/export/documents/${code}/issues`),
   /** Перечень шаблонов документов БП-PA и сборка документа из модели. */
   documentTemplates: () =>
     get<Array<{ code: string; title: string; source: string }>>('/export/documents'),

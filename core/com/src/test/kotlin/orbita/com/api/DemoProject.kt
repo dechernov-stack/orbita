@@ -52,6 +52,8 @@ object DemoProject {
         project.path("services").forEach { boundary.req.ingestService(withLifecycle(it), DEMO_AUTHOR) }
         project.path("requirements").forEach { boundary.req.ingestRequirement(withLifecycle(it), DEMO_AUTHOR) }
         project.path("evidence").forEach { boundary.req.ingestEvidence(withLifecycle(it), DEMO_AUTHOR) }
+        // сценарии ConOps — до валидаций: их ссылки теперь резолвятся (Шаг 17 C1)
+        project.path("conops").forEach { boundary.req.ingestConops(withLifecycle(it), DEMO_AUTHOR) }
         project.path("validations").forEach { boundary.req.ingestValidation(withLifecycle(it), DEMO_AUTHOR) }
         project.path("risks").forEach { boundary.req.ingestRisk(withLifecycle(it), DEMO_AUTHOR) }
 

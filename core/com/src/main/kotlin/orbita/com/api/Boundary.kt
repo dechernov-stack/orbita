@@ -96,6 +96,32 @@ class Boundary(private val registry: SchemaRegistry, conn: Connection) {
         CoreType.Validation -> req.ingestValidation(json, createdBy)
         CoreType.Interface -> req.ingestInterface(json, createdBy)
         CoreType.Risk -> req.ingestRisk(json, createdBy)
+        CoreType.Conops -> req.ingestConops(json, createdBy)
+        // Решение проверяется правилом C3 сверх схемы; технология, проект и
+        // выпуск документа — схема и статусная модель, общий путь сохранения
+        CoreType.Decision -> {
+            val doc = parse(json)
+            registry.require(type.schemaName, doc)
+            req.requireApplicationRules("decision", doc)
+            store(type, doc, createdBy)
+        }
+        CoreType.DocumentIssue -> {
+            val doc = parse(json)
+            registry.require(type.schemaName, doc)
+            // Шаг 17 C5: создание — это выпуск. Сразу approved не бывает:
+            // одобрение — отдельное действие поверх выпущенного.
+            if (doc.path("status").asText() != "issued") {
+                throw orbita.mod.store.ModelViolationException(
+                    "C5: выпуск создаётся со статусом issued; approved — правкой выпущенного"
+                )
+            }
+            store(type, doc, createdBy)
+        }
+        CoreType.Technology, CoreType.Project -> {
+            val doc = parse(json)
+            registry.require(type.schemaName, doc)
+            store(type, doc, createdBy)
+        }
         CoreType.Scenario -> {
             val doc = parse(json)
             registry.require(type.schemaName, doc)

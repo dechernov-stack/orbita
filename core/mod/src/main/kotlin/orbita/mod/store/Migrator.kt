@@ -133,6 +133,9 @@ object SchemaCheck {
         }
         val missingTypes = listOf("evidence", "validation", "interface").filterNot { it in objectTypes }
         check(missingTypes.isEmpty()) { "schema check failed: object_type lacks $missingTypes (V005)" }
+        val missingC = listOf("conops", "technology", "decision", "project", "document_issue")
+            .filterNot { it in objectTypes }
+        check(missingC.isEmpty()) { "schema check failed: object_type lacks $missingC (V009)" }
 
         val hasGuard = conn.createStatement().use { st ->
             st.executeQuery(

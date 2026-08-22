@@ -332,7 +332,14 @@ class ReqStoreTest {
                 .any { "а не к ожиданию" in it }
         )
 
-        // привязка к нужде — принимается
+        // привязка к нужде — принимается; сценарий ConOps существует,
+        // ссылка резолвится (Шаг 17 C1)
+        req.ingestConops(
+            """{"id":"CO-0001","name":"Номинальный сбор","kind":"nominal",
+                "phase":"operations","flow":["шаг"],
+                "success_criterion":"доставлено",
+                "lifecycle":{"status":"Draft","version":"1"}}"""
+        )
         req.ingestValidation(
             """{"id":"VA-0003","target":"ND-0001","conops_ref":"CO-0001","product_kind":"model",
                 "method":"demonstration","status":"planned"}"""

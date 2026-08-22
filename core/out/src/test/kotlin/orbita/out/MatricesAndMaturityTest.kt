@@ -132,6 +132,13 @@ class MatricesAndMaturityTest {
 
     @Test
     fun `матрица валидации формируется отдельно от матрицы верификации`() {
+        // сценарий ConOps существует: ссылка валидации резолвится (Шаг 17 C1)
+        req.ingestConops(
+            """{"id":"CO-0003","name":"Оперативное управление","kind":"nominal",
+                "phase":"operations","flow":["команда уходит на КА"],
+                "success_criterion":"подтверждение получено",
+                "lifecycle":{"status":"Draft","version":"1"}}"""
+        )
         req.ingestValidation(
             """{"id":"VA-0001","target":"ND-0001","conops_ref":"CO-0003","product_kind":"model",
                 "method":"demonstration","phase":"PhaseA","status":"planned",

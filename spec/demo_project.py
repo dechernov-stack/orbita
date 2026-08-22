@@ -134,6 +134,23 @@ EVIDENCE = [
      'source': {'scenario_ref': 'SC-0001'}, 'configuration': 'C1', 'date': '2026-05-02'},
 ]
 
+# Шаг 17 C1: сценарии ConOps, против которых выполняются валидации. Раньше
+# conops_ref был строкой в никуда — резолв при приёме сделал это отказом.
+CONOPS = [
+    {'id': 'CO-0001', 'name': 'Номинальный сбор телеметрии', 'kind': 'nominal',
+     'phase': 'operations', 'traces_up': ['ND-0001'],
+     'actors': ['терминал A′', 'КА', 'станция приёма'],
+     'flow': ['терминал накапливает пакет', 'КА принимает пакет в зоне обслуживания',
+              'КА сбрасывает на станцию в окне сброса'],
+     'success_criterion': 'пакет доставлен получателю в течение суток'},
+    {'id': 'CO-0003', 'name': 'Оперативное управление объектом', 'kind': 'nominal',
+     'phase': 'operations', 'traces_up': ['ND-0002'],
+     'actors': ['оператор', 'КА', 'терминал C′'],
+     'flow': ['оператор формирует команду', 'команда уходит на КА в окне связи',
+              'КА доставляет команду терминалу', 'терминал подтверждает исполнение'],
+     'success_criterion': 'подтверждение исполнения получено в срок реакции'},
+]
+
 VALIDATIONS = [
     {'id': 'VA-0001', 'target': 'ND-0001', 'conops_ref': 'CO-0001', 'product_kind': 'model',
      'method': 'analysis', 'phase': 'PhaseA', 'status': 'passed',
@@ -325,6 +342,7 @@ def dump():
         'services': SERVICES,
         'requirements': REQUIREMENTS,
         'links': LINKS,
+        'conops': CONOPS,
         'evidence': EVIDENCE,
         'validations': VALIDATIONS,
         'risks': RISKS,

@@ -7,9 +7,11 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import { edit, type StoredSummary } from '../api/edit'
-import type { MaturityView, ReadinessView } from '../api/types'
+import type { GatesView, MaturityView, ReadinessView } from '../api/types'
 
-const GATES = ['MCR', 'SRR', 'SDR', 'PDR']
+// Перечень точек больше не зашит (Шаг 17 C4): его называет проект, а без
+// проекта — реестр ворот. Зашитый список показывал точки, которых у проекта
+// может не быть, и молчал о тех, что есть.
 
 /** Части пакета передачи: состав определяет сервер, клиент их только называет. */
 interface PackageSummary {
@@ -19,7 +21,8 @@ interface PackageSummary {
 }
 
 export function Readiness() {
-  const [gate, setGate] = useState('SRR')
+  const [gatesView, setGatesView] = useState<GatesView | null>(null)
+  const [gate, setGate] = useState('')
   const [view, setView] = useState<ReadinessView | null>(null)
   const [maturity, setMaturity] = useState<MaturityView | null>(null)
   const [candidates, setCandidates] = useState<string[] | null>(null)
@@ -30,6 +33,7 @@ export function Readiness() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    if (!gate) return
     setView(null)
     setMaturity(null)
     api.readiness(gate).then(setView).catch((e) => setError(String(e)))
@@ -38,6 +42,13 @@ export function Readiness() {
   }, [gate])
 
   useEffect(() => {
+    api
+      .gates()
+      .then((g) => {
+        setGatesView(g)
+        if (g.gates.length > 0) setGate((cur) => cur || g.gates[0].gate)
+      })
+      .catch((e) => setError(String(e)))
     api.reviewCandidates().then(setCandidates).catch((e) => setError(String(e)))
     // Сценарий для пакета передачи выбирается из хранимых (шаг 16 §3.2)
     edit
@@ -56,11 +67,25 @@ export function Readiness() {
       <div className="pane" style={{ padding: 16 }}>
         <h2 style={{ fontSize: 15, marginTop: 0 }}>Готовность к контрольной точке</h2>
         <div className="tabs" style={{ marginBottom: 12 }}>
-          {GATES.map((g) => (
-            <button key={g} className="tab" aria-selected={g === gate} onClick={() => setGate(g)}>
-              {g}
+          {(gatesView?.gates ?? []).map((g) => (
+            <button
+              key={g.gate}
+              className="tab"
+              aria-selected={g.gate === gate}
+              onClick={() => setGate(g.gate)}
+              title={g.due ? `план: ${g.due}` : undefined}
+            >
+              {g.gate}
+              {g.held ? ' ✓' : ''}
             </button>
           ))}
+          {gatesView && (
+            <span className="secondary">
+              {gatesView.source === 'project'
+                ? ` точки проекта ${gatesView.project_ref}`
+                : ' точки из реестра ворот: проект в модели не заведён (Ш7 «Ведение реестров»)'}
+            </span>
+          )}
         </div>
 
         {!view ? (
