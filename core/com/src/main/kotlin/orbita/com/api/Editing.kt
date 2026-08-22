@@ -96,7 +96,12 @@ class Editing(
         merged.withObject("/lifecycle").put("version", next)
         stampQuantities(merged, author)
         boundary.validate(type, merged)
-        return boundary.objects.change(id, merged, createdBy = author, baseVersion = baseVersion)
+        val stored = boundary.objects.change(id, merged, createdBy = author, baseVersion = baseVersion)
+        // Связи выводятся из документа при каждой записи (ADR-027): до этого
+        // «создал, потом привязал правкой» не давал ни одной связи — дерево
+        // оставалось плоским, матрица трассировки пустой
+        boundary.req.syncLinks(stored.type, stored.id, stored.doc)
+        return stored
     }
 
     /**
@@ -122,7 +127,9 @@ class Editing(
         val cur = boundary.objects.current(id) ?: throw NoSuchElementException("object '$id' not found")
         val restored = prev.doc.deepCopy<ObjectNode>()
         restored.withObject("/lifecycle").put("version", boundary.objects.bumpVersion(cur.version))
-        return boundary.objects.change(id, restored, createdBy = author, baseVersion = cur.version)
+        val stored = boundary.objects.change(id, restored, createdBy = author, baseVersion = cur.version)
+        boundary.req.syncLinks(stored.type, stored.id, stored.doc)
+        return stored
     }
 
     /**

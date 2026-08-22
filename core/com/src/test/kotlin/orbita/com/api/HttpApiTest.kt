@@ -112,8 +112,21 @@ class HttpApiTest {
     fun `предки и потомки возвращаются за один запрос`() {
         listOf("ND-0301" to "need", "SV-0301" to "service", "RQ-0301" to "requirement")
             .forEach { (id, t) -> boundary.objects.create(id, t, mapper.createObjectNode()) }
-        assertEquals(201, post("/links", """{"from":"ND-0301","to":"SV-0301"}""").statusCode())
-        assertEquals(201, post("/links", """{"from":"SV-0301","to":"RQ-0301"}""").statusCode())
+        // связи — из документов (ADR-027): ручной POST /links для trace запрещён
+        assertEquals(
+            409,
+            post("/links", """{"from":"ND-0301","to":"SV-0301","kind":"trace"}""").statusCode(),
+        )
+        boundary.req.syncLinks(
+            "need", "ND-0301",
+            mapper.createObjectNode().apply { putArray("traces_down").add("SV-0301") },
+        )
+        boundary.req.syncLinks(
+            "requirement", "RQ-0301",
+            mapper.createObjectNode().apply {
+                putArray("traces_up").addObject().put("ref", "SV-0301")
+            },
+        )
 
         val up = mapper.readTree(get("/objects/RQ-0301/ancestors").body())
         assertEquals(listOf("ND-0301", "SV-0301"), up.map { it["id"].asText() }.sorted())

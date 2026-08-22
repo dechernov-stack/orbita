@@ -48,6 +48,46 @@ class LinkStore(private val conn: Connection) {
         }
     }
 
+    /** Удаление связи — ход пересчёта по документу (ADR-027), не операция API. */
+    fun remove(fromId: String, toId: String, kind: String): Unit = mappingConstraints {
+        conn.prepareStatement(
+            "DELETE FROM links WHERE from_id = ? AND to_id = ? AND kind = ?::link_kind"
+        ).use { ps ->
+            ps.setString(1, fromId)
+            ps.setString(2, toId)
+            ps.setString(3, kind)
+            ps.executeUpdate()
+        }
+    }
+
+    /**
+     * Правка уцелевшей связи НА МЕСТЕ (ADR-027): несущностные атрибуты — из
+     * документа. derivation_kind НЕ трогается: его выставляет операция deriveAs,
+     * и удаление-вставка молча вернули бы 'allocated' — производное требование
+     * вошло бы в свёртку бюджета.
+     */
+    fun updateAttrs(
+        fromId: String,
+        toId: String,
+        kind: String,
+        consumerClass: String? = null,
+        allocationKind: String? = null,
+        rationale: String? = null,
+    ): Unit = mappingConstraints {
+        conn.prepareStatement(
+            """UPDATE links SET consumer_class = ?, allocation_kind = ?, rationale = ?
+                WHERE from_id = ? AND to_id = ? AND kind = ?::link_kind"""
+        ).use { ps ->
+            ps.setString(1, consumerClass)
+            ps.setString(2, if (kind == "allocation") allocationKind else null)
+            ps.setString(3, rationale)
+            ps.setString(4, fromId)
+            ps.setString(5, toId)
+            ps.setString(6, kind)
+            ps.executeUpdate()
+        }
+    }
+
     fun linksFrom(id: String, kind: String? = null): List<Link> = select("from_id", id, kind)
 
     fun linksTo(id: String, kind: String? = null): List<Link> = select("to_id", id, kind)
