@@ -124,6 +124,75 @@ def demand_weighted_score(cells, in_service_fn):
 # Проверки исполняются только при прямом запуске: модуль импортируется
 # другими эталонами (в частности demo_project.py), и sys.exit при импорте
 # обрывал бы их на середине — CI видел бы код 0 при невыполненных проверках.
+
+# ---------- TZ-BAL-006: метрики покрытия ячейки (шаг 16 §2.2) ----------
+def merge_windows(windows):
+    """Объединение перекрывающихся окон: сколько КА видно — здесь неважно."""
+    if not windows:
+        return []
+    out = [list(windows[0])]
+    for s0, e0 in sorted(windows)[1:]:
+        if s0 <= out[-1][1]:
+            out[-1][1] = max(out[-1][1], e0)
+        else:
+            out.append([s0, e0])
+    return [tuple(w) for w in out]
+
+def coverage_metrics(windows, duration_s):
+    """Разрывы, период повторного обзора, доступность.
+
+    Разрыв — интервал БЕЗ видимости между соседними слитыми окнами; период
+    повторного обзора — между НАЧАЛАМИ соседних окон. Краевые интервалы
+    (до первого окна и после последнего) в статистику не входят: они усечены
+    горизонтом прогона и занижают среднее.
+    """
+    merged = merge_windows(windows)
+    gaps = [b[0] - a[1] for a, b in zip(merged, merged[1:])]
+    revisits = [b[0] - a[0] for a, b in zip(merged, merged[1:])]
+    return {
+        'mean_gap_s': sum(gaps) / len(gaps) if gaps else None,
+        'max_gap_s': max(gaps) if gaps else None,
+        'revisit_s': sum(revisits) / len(revisits) if revisits else None,
+        'availability': sum(e - s for s, e in merged) / duration_s,
+        'access_windows': len(merged),
+    }
+
+def coverage_by_target(passes, duration_s, targets=(), service_zone_only=False):
+    """Метрики по целям. Цели передаются СПИСКОМ, а не выводятся из пролётов:
+    непокрытая ячейка — главное, что карта покрытия обязана показать, а цель
+    без единого пролёта в самих пролётах не встречается и молча исчезла бы."""
+    by_target = {t: [] for t in targets}
+    for p in passes:
+        if service_zone_only and not p.get('in_service_zone', False):
+            continue
+        by_target.setdefault(p['target_ref'], []).append((p['start_s'], p['end_s']))
+    return {t: coverage_metrics(w, duration_s) for t, w in by_target.items()}
+
+def hourly_series(windows, duration_s):
+    """Доля покрытия по часам прогона — вход суточного взвешивания профилем
+    активности (ловушка 3: пик спроса в провале покрытия скрыт простым средним).
+    Неполный последний час отбрасывается, как неполное окно усреднения."""
+    merged = merge_windows(windows)
+    hours = int(duration_s // 3600.0)
+    return [
+        sum(max(0.0, min(e, (h + 1) * 3600.0) - max(s, h * 3600.0)) for s, e in merged) / 3600.0
+        for h in range(hours)
+    ]
+
+def coverage_class(mean_avail, worst_avail):
+    """Класс ячейки считает СЕРВЕР — клиент только красит (шаг 16, ловушка 2).
+
+    gap — есть окно горизонта вообще без связи: провал, который среднее скрывает;
+    degraded — худшее окно хуже половины среднего: покрытие неровное;
+    ok — остальное. Порог половины — правило представления, не физика:
+    он делит «ровное» и «рваное» покрытие, а не годное и негодное.
+    """
+    if worst_avail <= 0.0:
+        return 'gap'
+    if worst_avail < mean_avail / 2.0:
+        return 'degraded'
+    return 'ok'
+
 if __name__ == '__main__':
     ok = fail = 0
     def check(name, cond, detail=''):
@@ -216,6 +285,39 @@ if __name__ == '__main__':
     check("узкая зона теряет ровно вес непокрытых ячеек",
           abs(demand_weighted_score(cells, zone_narrow) - 0.95) < 1e-9,
           demand_weighted_score(cells, zone_narrow))
+
+
+    print("\nTZ-BAL-006: метрики покрытия ячейки (шаг 16 §2.2)")
+    over = [(0.0, 100.0), (50.0, 200.0), (400.0, 500.0)]
+    cm = coverage_metrics(over, 1000.0)
+    check("перекрывающиеся окна двух КА не считаются дважды",
+          abs(cm['availability'] - 0.3) < 1e-12, cm['availability'])
+    check("разрыв — между концом и началом соседних слитых окон",
+          cm['max_gap_s'] == 200.0, cm['max_gap_s'])
+    check("период повторного обзора — между началами окон",
+          cm['revisit_s'] == 400.0, cm['revisit_s'])
+    check("краевые интервалы в статистику разрывов не входят",
+          coverage_metrics([(400.0, 500.0)], 1000.0)['max_gap_s'] is None)
+
+    ps = [{'target_ref': 'c1', 'start_s': 0.0, 'end_s': 100.0, 'in_service_zone': True},
+          {'target_ref': 'c1', 'start_s': 300.0, 'end_s': 400.0, 'in_service_zone': False}]
+    bt = coverage_by_target(ps, 1000.0, targets=['c1', 'c2'])
+    check("непокрытая цель остаётся в выдаче с нулевой доступностью",
+          bt['c2']['availability'] == 0.0 and bt['c2']['access_windows'] == 0)
+    bt_sz = coverage_by_target(ps, 1000.0, targets=['c1'], service_zone_only=True)
+    check("фильтр зоны обслуживания отбрасывает пролёт вне её",
+          bt_sz['c1']['access_windows'] == 1 and bt['c1']['access_windows'] == 2)
+
+    hs = hourly_series([(0.0, 3600.0), (5400.0, 7200.0)], 3 * 3600.0)
+    check("час целиком в окне даёт 1, вне окна — 0, частично — долю",
+          hs == [1.0, 0.5, 0.0], hs)
+    check("неполный последний час отбрасывается",
+          len(hourly_series([(0.0, 3600.0)], 5400.0)) == 1)
+
+    check("окно горизонта без связи — класс gap", coverage_class(0.4, 0.0) == 'gap')
+    check("худшее окно хуже половины среднего — degraded", coverage_class(0.6, 0.2) == 'degraded')
+    check("ровное покрытие — ok", coverage_class(0.6, 0.5) == 'ok')
+    check("пустая ячейка — gap, не деление на ноль", coverage_class(0.0, 0.0) == 'gap')
 
     print(f"\nИтог: пройдено {ok}, провалено {fail}")
     sys.exit(1 if fail else 0)
