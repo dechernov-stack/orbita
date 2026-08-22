@@ -7,9 +7,10 @@
 // Массового акцепта здесь нет намеренно: применяются выбранные поля выбранного
 // предложения. «Улучшить тысячу требований» одной кнопкой — обход управления
 // конфигурацией (STEP-5, ловушка 2).
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { api } from '../api/client'
-import type { AnswerReport, PromptPackage, ScreenedProposal } from '../api/types'
+import type {
+  UnacceptedAiRow, AnswerReport, PromptPackage, ScreenedProposal } from '../api/types'
 
 const DEFAULT_TASK =
   'Проверь формулировки требований и предложи исправления. Верни объекты по схеме ответа.'
@@ -21,6 +22,13 @@ export function AiProposal() {
   const [selected, setSelected] = useState<Record<string, Set<string>>>({})
   const [accepted, setAccepted] = useState<Record<string, string[]>>({})
   const [error, setError] = useState<string | null>(null)
+  const [unaccepted, setUnaccepted] = useState<UnacceptedAiRow[]>([])
+
+  // Список неакцептованного живёт здесь (шаг 16 §2.4, TZ-AI-004): предложение,
+  // принятое «на словах», но не акцептованное, — незакрытая работа инженера
+  useEffect(() => {
+    api.unacceptedAi().then(setUnaccepted).catch((e) => setError(String(e)))
+  }, [accepted])
 
   const kind = 'requirement_quality'
   const context = { scope: 'демо-проект «Орбита-IoT»' }
@@ -66,6 +74,12 @@ export function AiProposal() {
   return (
     <div className="split">
       <div className="pane" style={{ padding: 16 }}>
+        {unaccepted.length > 0 && (
+          <div className="warn" style={{ padding: 8, marginBottom: 8 }}>
+            Неакцептовано ({unaccepted.length}):{' '}
+            {unaccepted.map((u) => `${u.object_id} · ${u.name}`).join('; ')}
+          </div>
+        )}
         <h2 style={{ fontSize: 15, marginTop: 0 }}>Промпт-пакет</h2>
         <p className="secondary">
           Генерация происходит вне системы: пакет копируется во внешний интерфейс LLM, ответ

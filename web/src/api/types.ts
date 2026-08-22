@@ -522,3 +522,29 @@ export interface ValidationRow {
   status: string | null
   evidence_ref: string | null
 }
+
+/** Устаревший результат: входы изменились после расчёта (TZ-MOD-007). */
+export interface StaleResultRow {
+  pk: number
+  scenario_id: string
+  kind: string
+}
+
+/** Зрелость пакета к контрольной точке (TZ-OUT-003). */
+export interface MaturityView {
+  gate: string
+  at?: string
+  ready: boolean
+  blocking: string[]
+  gaps_by_type: Record<string, Array<{ id: string; actual: string; required: string; owner: string | null }>>
+  open_tbd: Array<{ id: string; owner: string | null }>
+  trace_breaks: string[]
+  unverified: string[]
+}
+
+/** Неакцептованное предложение ИИ (TZ-AI-004). */
+export interface UnacceptedAiRow {
+  object_id: string
+  name: string
+  prompt_package_id: string
+}

@@ -191,6 +191,10 @@ class ScreenViews(
         val budgets = tree.rows.filter { it.budget != null }.associate { it.id to it.budget!! }
         val risks = req.risks()
 
+        // Единый вход раздела «Проблемы» (шаг 16 §2.4): разрывы трассировки,
+        // несогласованные распределения и цикл подчинённости добавлены СЮДА,
+        // а их отчётные маршруты удалены — два источника одного перечня
+        // разошлись бы молча.
         val problems = buildList {
             tree.rows.filter { it.verificationState == VerificationState.PlanIncomplete.label }
                 .forEach { add("${it.id}: план верификации неполон — нет закрывающего события") }
@@ -198,6 +202,13 @@ class ScreenViews(
                 .forEach { (id, bar) -> add("$id: бюджет превышен на ${bar.overrunValue}") }
             registerSummary(risks).escalate.forEach { add("$it: риск подлежит эскалации") }
             req.elementsWithoutRequirements().forEach { add("$it: на элемент не распределено ни одного требования") }
+            req.links.traceBreaks().forEach { add("$it: требование без входящей нити трассировки") }
+            req.inconsistentAllocations().forEach { (parent, child, why) ->
+                add("$parent → $child: распределение несогласовано — $why")
+            }
+            if (treeCycle(tree.rows.flatMap { row -> req.links.linksFrom(row.id, "derive") })) {
+                add("дерево требований содержит цикл подчинённости")
+            }
         }
 
         return SystemOverview(
