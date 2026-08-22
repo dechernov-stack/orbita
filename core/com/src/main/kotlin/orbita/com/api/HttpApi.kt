@@ -492,19 +492,17 @@ class HttpApi(private val boundary: Boundary) {
                 if (horizon !in setOf("orbit", "day", "run")) {
                     throw IllegalArgumentException("query parameter 'horizon' must be one of: orbit, day, run")
                 }
-                fun missing(text: String, step: Int) =
-                    respond(ex, 409, mapper.createObjectNode().put("error", text).put("wizard_step", step))
                 val scenario = boundary.objects.current(scenarioId)
-                    ?: return missing("сценарий $scenarioId в модели отсутствует: заведите его на Ш5 «Входы моделирования»", 5)
+                    ?: return respondMissing(ex, "сценарий $scenarioId в модели отсутствует: заведите его на Ш5 «Входы моделирования»", 5)
                 val constellation = scenario.doc.path("constellation_ref").asText("")
                     .takeIf { it.isNotBlank() }?.let { boundary.objects.current(it) }
-                    ?: return missing("группировка по ссылке сценария не найдена: заведите её на Ш5 «Входы моделирования»", 5)
+                    ?: return respondMissing(ex, "группировка по ссылке сценария не найдена: заведите её на Ш5 «Входы моделирования»", 5)
                 val demandMap = scenario.doc.path("demand_map_ref").asText("")
                     .takeIf { it.isNotBlank() }?.let { boundary.objects.current(it) }
-                    ?: return missing("карта спроса по ссылке сценария не найдена: постройте её на Ш2 «Карта спроса»", 2)
+                    ?: return respondMissing(ex, "карта спроса по ссылке сценария не найдена: постройте её на Ш2 «Карта спроса»", 2)
                 val cellNodes = demandMap.doc.path("cells")
                 if (!cellNodes.isArray || cellNodes.isEmpty) {
-                    return missing("карта спроса пуста: постройте её на Ш2 «Карта спроса»", 2)
+                    return respondMissing(ex, "карта спроса пуста: постройте её на Ш2 «Карта спроса»", 2)
                 }
                 val durationS = scenario.doc.path("duration_s").asDouble(0.0)
                 if (durationS <= 0.0) throw IllegalArgumentException("scenario '$scenarioId' has no positive duration_s")
@@ -593,21 +591,97 @@ class HttpApi(private val boundary: Boundary) {
                 respond(ex, 200, out)
             }
 
-            // Экран 6: глобус — CZML-поток с траекториями. Собственной модели
-            // движения в клиенте нет: трассы считает пропагатор на сервере.
+            // Экран 6: глобус — модель проекта, а не демонстрация пропагатора
+            // (шаг 16 §2.3): группировка, станции и ячейки — ХРАНИМЫЕ объекты
+            // по ссылкам сценария, умолчаний нет. Собственной модели движения
+            // в клиенте нет: трассы считает пропагатор на сервере. Расписание
+            // пролётов — из того же расписания видимости, что карта покрытия
+            // (общий кэш), времена окон переведены в UTC здесь: клиент
+            // подсвечивает и мотает шкалу, но не считает.
             method == "GET" && path == "/views/globe" -> {
                 val q = query(ex)
-                val config = orbita.bal.ConstellationConfig(
-                    incDeg = q["inc_deg"]?.toDoubleOrNull() ?: 53.0,
-                    total = q["total"]?.toIntOrNull() ?: 8,
-                    planes = q["planes"]?.toIntOrNull() ?: 2,
-                    phasing = q["phasing"]?.toIntOrNull() ?: 1,
-                    altKm = q["alt_km"]?.toDoubleOrNull() ?: 550.0,
+                val scenarioId = q["scenario"] ?: throw IllegalArgumentException(
+                    "query parameter 'scenario' is required: выберите сценарий из /objects?type=scenario",
                 )
-                val epoch = q["epoch"] ?: "2026-03-20T00:00:00.000Z"
-                val durationS = q["duration_s"]?.toDoubleOrNull() ?: 5400.0
+                val scenario = boundary.objects.current(scenarioId)
+                    ?: return respondMissing(ex, "сценарий $scenarioId в модели отсутствует: заведите его на Ш5 «Входы моделирования»", 5)
+                val constellation = scenario.doc.path("constellation_ref").asText("")
+                    .takeIf { it.isNotBlank() }?.let { boundary.objects.current(it) }
+                    ?: return respondMissing(ex, "группировка по ссылке сценария не найдена: заведите её на Ш5 «Входы моделирования»", 5)
+                val demandMap = scenario.doc.path("demand_map_ref").asText("")
+                    .takeIf { it.isNotBlank() }?.let { boundary.objects.current(it) }
+                    ?: return respondMissing(ex, "карта спроса по ссылке сценария не найдена: постройте её на Ш2 «Карта спроса»", 2)
+                val stations = scenario.doc.path("ground_stations_ref").asText("")
+                    .takeIf { it.isNotBlank() }?.let { boundary.objects.current(it) }
+                    ?: return respondMissing(ex, "набор станций по ссылке сценария не найден: заведите его на Ш5 «Входы моделирования»", 5)
+                val cellNodes = demandMap.doc.path("cells")
+                if (!cellNodes.isArray || cellNodes.isEmpty) {
+                    return respondMissing(ex, "карта спроса пуста: постройте её на Ш2 «Карта спроса»", 2)
+                }
+                val epoch = q["epoch"] ?: scenario.doc.path("epoch").asText("")
+                if (epoch.isBlank()) throw IllegalArgumentException("scenario '$scenarioId' has no epoch")
+                val durationS = q["duration_s"]?.toDoubleOrNull() ?: scenario.doc.path("duration_s").asDouble(0.0)
+                if (durationS <= 0.0) throw IllegalArgumentException("scenario '$scenarioId' has no positive duration_s")
+
+                val w = constellation.doc.path("walker")
+                val config = orbita.bal.ConstellationConfig(
+                    incDeg = w.path("inclination_deg").asDouble(),
+                    total = w.path("total").asInt(),
+                    planes = w.path("planes").asInt(),
+                    phasing = w.path("phasing").asInt(),
+                    altKm = w.path("altitude_km").asDouble(),
+                )
+                val targets = cellNodes.map {
+                    orbita.bal.GridPoint(it.path("cell_id").asText(), it.path("lat_deg").asDouble(), it.path("lon_deg").asDouble())
+                }
                 val tracks = boundary.visibility.groundTracks(config, epoch, durationS)
-                respond(ex, 200, orbita.bal.VizData.czml(config, epoch, durationS, tracks, mapper))
+                val vis = boundary.visibility.schedule(
+                    config, epoch, durationS,
+                    minElevDeg = 10.0, targets = targets, scenarioRef = scenarioId,
+                    serviceElevDeg = 25.0,
+                )
+                val globeStations = stations.doc.path("stations").map { st ->
+                    orbita.bal.VizData.GlobeStation(
+                        id = st.path("id").asText(),
+                        name = st.path("name").asText(""),
+                        latDeg = st.path("lat_deg").asDouble(),
+                        lonDeg = st.path("lon_deg").asDouble(),
+                    )
+                }
+                val globeCells = cellNodes.map { c ->
+                    orbita.bal.VizData.GlobeCell(
+                        id = c.path("cell_id").asText(),
+                        latDeg = c.path("lat_deg").asDouble(),
+                        lonDeg = c.path("lon_deg").asDouble(),
+                        weight = c.path("demand").sumOf { d -> d.path("weight").asDouble(0.0) },
+                    )
+                }
+                val czml = orbita.bal.VizData.czml(
+                    config, epoch, durationS, tracks,
+                    stations = globeStations,
+                    demandCells = globeCells,
+                    serviceRadiusKm = orbita.bal.footprintRadiusKm(config.altKm, 25.0),
+                    mapper = mapper,
+                )
+                val out = mapper.createObjectNode()
+                out.put("scenario_ref", scenarioId)
+                out.put("epoch", epoch)
+                out.put("duration_s", durationS)
+                out.set<ObjectNode>("czml", czml)
+                val epochInstant = java.time.Instant.parse(epoch)
+                val passes = out.putArray("passes")
+                vis["passes"].sortedBy { it.path("start_s").asDouble() }.forEach { p ->
+                    val startS = p.path("start_s").asDouble()
+                    val endS = p.path("end_s").asDouble()
+                    passes.addObject()
+                        .put("spacecraft_ref", p.path("spacecraft_ref").asText())
+                        .put("target_ref", p.path("target_ref").asText())
+                        .put("start_utc", epochInstant.plusMillis((startS * 1000).toLong()).toString())
+                        .put("end_utc", epochInstant.plusMillis((endS * 1000).toLong()).toString())
+                        .put("duration_s", endS - startS)
+                        .put("in_service_zone", p.path("in_service_zone").asBoolean(false))
+                }
+                respond(ex, 200, out)
             }
 
             // Экран 12: система в целом — сводки, бюджеты, матрица рисков
@@ -1156,6 +1230,13 @@ class HttpApi(private val boundary: Boundary) {
 
     private fun errJson(e: Exception): ObjectNode =
         mapper.createObjectNode().put("error", e.message ?: e.javaClass.simpleName)
+
+    /**
+     * Пустое состояние модели — рабочее, а не отказ (шаг 16 §2.2): 409 с текстом,
+     * адресованным инженеру, и шагом мастера, где заводится недостающее.
+     */
+    private fun respondMissing(ex: HttpExchange, text: String, step: Int) =
+        respond(ex, 409, mapper.createObjectNode().put("error", text).put("wizard_step", step))
 
     private fun respond(ex: HttpExchange, code: Int, node: JsonNode?) {
         if (node == null) {

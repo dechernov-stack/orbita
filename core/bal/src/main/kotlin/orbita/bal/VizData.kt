@@ -116,6 +116,12 @@ object VizData {
         }
     }
 
+    /** Станция на глобусе — из ХРАНИМОГО набора ground_stations. */
+    data class GlobeStation(val id: String, val name: String, val latDeg: Double, val lonDeg: Double)
+
+    /** Ячейка карты спроса на глобусе; вес показывается прозрачностью. */
+    data class GlobeCell(val id: String, val latDeg: Double, val lonDeg: Double, val weight: Double)
+
     /**
      * CZML-поток для 3D-глобуса: пакет документа и по пакету на аппарат
      * с позициями в фиксированной СК. Формат — только выдача данных;
@@ -126,6 +132,10 @@ object VizData {
         epochIso: String,
         durationS: Double,
         samples: Map<String, List<Triple<Double, Double, Double>>>,  // satId → (t, lat, lon)
+        stations: List<GlobeStation> = emptyList(),
+        demandCells: List<GlobeCell> = emptyList(),
+        /** Радиус зоны обслуживания; null — зоны не рисуются (нет модели КА). */
+        serviceRadiusKm: Double? = null,
         mapper: ObjectMapper = ObjectMapper(),
     ): ArrayNode {
         val arr = mapper.createArrayNode()
@@ -166,6 +176,19 @@ object VizData {
                 putObject("material").putObject("solidColor").putObject("color")
                     .putArray("rgba").apply { add(11); add(95); add(255); add(140) }
             }
+            // Зона обслуживания — движущийся круг у поверхности под аппаратом
+            // (шаг 16 §2.3). Радиус посчитан сервером по границе обслуживания,
+            // а не видимости (TZ-MOD-006): где линия не замыкается, зоны нет.
+            serviceRadiusKm?.let { radiusKm ->
+                sat.putObject("ellipse").apply {
+                    put("semiMajorAxis", radiusKm * 1000.0)
+                    put("semiMinorAxis", radiusKm * 1000.0)
+                    put("height", 0.0)
+                    put("granularity", 0.05)
+                    putObject("material").putObject("solidColor").putObject("color")
+                        .putArray("rgba").apply { add(11); add(95); add(255); add(36) }
+                }
+            }
             val pos = sat.putObject("position")
             pos.put("epoch", epochIso)
             pos.put("interpolationAlgorithm", "LAGRANGE")
@@ -173,6 +196,44 @@ object VizData {
             val carto = pos.putArray("cartographicDegrees")
             points.forEach { (t, lat, lon) ->
                 carto.add(t); carto.add(lon); carto.add(lat); carto.add(config.altKm * 1000.0)
+            }
+        }
+        stations.forEach { st ->
+            val n = arr.addObject()
+            n.put("id", "gs-${st.id}")
+            n.put("name", st.name.ifBlank { st.id })
+            n.putObject("position").putArray("cartographicDegrees")
+                .apply { add(st.lonDeg); add(st.latDeg); add(0.0) }
+            n.putObject("point").apply {
+                put("pixelSize", 9.0)
+                putObject("color").putArray("rgba").apply { add(255); add(209); add(102); add(255) }
+                putObject("outlineColor").putArray("rgba").apply { add(0); add(0); add(0); add(200) }
+                put("outlineWidth", 1.0)
+            }
+            n.putObject("label").apply {
+                put("text", st.name.ifBlank { st.id })
+                put("font", "12px sans-serif")
+                putObject("pixelOffset").putArray("cartesian2").apply { add(12); add(-10) }
+                putObject("fillColor").putArray("rgba").apply { add(255); add(226); add(160); add(255) }
+            }
+        }
+        // Ячейки карты спроса: вес — прозрачностью, доля от максимума посчитана
+        // ЗДЕСЬ; нормировки в клиенте нет (ловушка 2). Полградуса с четвертью
+        // в каждую сторону — размер отображения, не физика ячейки.
+        val maxWeight = demandCells.maxOfOrNull { it.weight } ?: 0.0
+        demandCells.forEach { c ->
+            val alpha = if (maxWeight > 0.0) (30 + 130 * c.weight / maxWeight).toInt() else 30
+            val n = arr.addObject()
+            n.put("id", "dm-${c.id}")
+            n.put("name", c.id)
+            n.putObject("rectangle").apply {
+                putObject("coordinates").putArray("wsenDegrees").apply {
+                    add(c.lonDeg - 0.75); add(c.latDeg - 0.75)
+                    add(c.lonDeg + 0.75); add(c.latDeg + 0.75)
+                }
+                put("height", 0.0)
+                putObject("material").putObject("solidColor").putObject("color")
+                    .putArray("rgba").apply { add(255); add(209); add(102); add(alpha) }
             }
         }
         return arr

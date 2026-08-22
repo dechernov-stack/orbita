@@ -454,3 +454,25 @@ export interface CoverageView {
   horizons: { orbit_s: number; day_s: number; run_s: number }
   cells: CoverageCell[]
 }
+
+/** Строка расписания пролётов (шаг 16 §2.3): времена в UTC посчитаны сервером. */
+export interface PassRow {
+  spacecraft_ref: string
+  target_ref: string
+  start_utc: string
+  end_utc: string
+  duration_s: number
+  in_service_zone: boolean
+}
+
+/**
+ * Глобус от модели проекта: CZML собран сервером из хранимых объектов по
+ * ссылкам сценария — группировка, станции, ячейки спроса, зоны обслуживания.
+ */
+export interface GlobeView {
+  scenario_ref: string
+  epoch: string
+  duration_s: number
+  czml: unknown[]
+  passes: PassRow[]
+}
