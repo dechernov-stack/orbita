@@ -147,13 +147,13 @@ def verification_matrix(reqs):
     return {'rows': rows, 'gaps': gaps}
 
 # ---------- экспорт ----------
+# Только направление наружу. Обратное (`from_exchange`) убрано Шагом 16 §2.1:
+# ввод идёт настоящим ReqIF через службу обмена (ADR-023), и круговой обмен
+# проверяется на нём — tools/check_reqif_roundtrip.py, со сверкой по XSD OMG.
+# Второй формат ввода означал бы вторую семантику приёма.
 def to_exchange(reqs, links):
     return {'requirements': [{'id': r['id'], 'attributes': dict(r.get('attributes', {}))} for r in reqs],
             'links': [dict(l) for l in links]}
-
-def from_exchange(doc):
-    return ([{'id': r['id'], 'attributes': dict(r['attributes'])} for r in doc['requirements']],
-            [dict(l) for l in doc['links']])
 
 # ---------- пакет передачи ----------
 PACKAGE_PARTS = ['requirements', 'architecture', 'parameters', 'verification_matrix', 'modeling_reports']
@@ -294,11 +294,11 @@ def _run_checks():
     print("\nЭкспорт и обмен")
     EX_REQS = [{'id': 'RQ-0100', 'attributes': {'statement': 'a', 'operator': 'le', 'value': 100}}]
     EX_LINKS = [{'from': 'ND-0001', 'to': 'RQ-0100', 'kind': 'trace'}]
-    back_r, back_l = from_exchange(to_exchange(EX_REQS, EX_LINKS))
-    check("атрибуты сохраняются при обмене", back_r == EX_REQS, back_r)
-    check("связи сохраняются при обмене", back_l == EX_LINKS)
+    doc = to_exchange(EX_REQS, EX_LINKS)
+    check("атрибуты сохраняются при выгрузке", doc['requirements'] == EX_REQS, doc['requirements'])
+    check("связи сохраняются при выгрузке", doc['links'] == EX_LINKS)
     check("незнакомый атрибут не теряется молча",
-          from_exchange(to_exchange([{'id': 'R', 'attributes': {'custom_x': 7}}], []))[0][0]['attributes']['custom_x'] == 7)
+          to_exchange([{'id': 'R', 'attributes': {'custom_x': 7}}], [])['requirements'][0]['attributes']['custom_x'] == 7)
 
     print("\nПакет передачи")
     full = {p: [] for p in PACKAGE_PARTS}
