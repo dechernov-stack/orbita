@@ -6,7 +6,8 @@
 // Клиент показывает разрывы, а не вычисляет их.
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
-import type { ReadinessView } from '../api/types'
+import { edit, type StoredSummary } from '../api/edit'
+import type { MaturityView, ReadinessView } from '../api/types'
 
 const GATES = ['MCR', 'SRR', 'SDR', 'PDR']
 
@@ -20,14 +21,33 @@ interface PackageSummary {
 export function Readiness() {
   const [gate, setGate] = useState('SRR')
   const [view, setView] = useState<ReadinessView | null>(null)
+  const [maturity, setMaturity] = useState<MaturityView | null>(null)
+  const [candidates, setCandidates] = useState<string[] | null>(null)
+  const [scenarios, setScenarios] = useState<StoredSummary[]>([])
+  const [scenario, setScenario] = useState('')
   const [pkg, setPkg] = useState<PackageSummary | null>(null)
   const [pkgError, setPkgError] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     setView(null)
+    setMaturity(null)
     api.readiness(gate).then(setView).catch((e) => setError(String(e)))
+    // Зрелость пакета — основная таблица экрана (шаг 16 §2.4, TZ-OUT-003)
+    api.maturity(gate).then(setMaturity).catch((e) => setError(String(e)))
   }, [gate])
+
+  useEffect(() => {
+    api.reviewCandidates().then(setCandidates).catch((e) => setError(String(e)))
+    // Сценарий для пакета передачи выбирается из хранимых (шаг 16 §3.2)
+    edit
+      .list('scenario')
+      .then((rows) => {
+        setScenarios(rows)
+        if (rows.length > 0) setScenario((cur) => cur || rows[0].id)
+      })
+      .catch((e) => setError(String(e)))
+  }, [])
 
   if (error) return <div className="empty">Ошибка обращения к API: {error}</div>
 
@@ -93,6 +113,77 @@ export function Readiness() {
                 </tbody>
               </table>
             )}
+            {/* Основная таблица зрелости (шаг 16 §2.4, TZ-OUT-003): разрывы
+                по видам, TBD, разрывы трассировки, непокрытые — считает сервер */}
+            <h2 style={{ fontSize: 15 }}>Зрелость пакета к {gate}</h2>
+            {!maturity ? (
+              <div className="secondary">Загрузка отчёта зрелости…</div>
+            ) : maturity.ready ? (
+              <div className="card">
+                <h3>Пакет зрел</h3>
+                <div>Разрывов, TBD и непокрытых требований к точке {maturity.gate} нет.</div>
+              </div>
+            ) : (
+              <>
+                <div className="warn" style={{ padding: 8 }}>
+                  Блокирует: {maturity.blocking.join('; ')}
+                </div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th style={{ width: 130 }}>Вид</th>
+                      <th style={{ width: 110 }}>Объект</th>
+                      <th style={{ width: 140 }}>Сейчас</th>
+                      <th style={{ width: 140 }}>Требуется</th>
+                      <th>Владелец</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Object.entries(maturity.gaps_by_type).flatMap(([type, gaps]) =>
+                      gaps.map((g) => (
+                        <tr key={`${type}-${g.id}`}>
+                          <td>{type}</td>
+                          <td className="mono">{g.id}</td>
+                          <td className="secondary">{g.actual}</td>
+                          <td className="mono">{g.required}</td>
+                          <td className="secondary">{g.owner ?? '—'}</td>
+                        </tr>
+                      )),
+                    )}
+                    {maturity.open_tbd.map((t) => (
+                      <tr key={`tbd-${t.id}`}>
+                        <td>TBD/TBR</td>
+                        <td className="mono">{t.id}</td>
+                        <td className="secondary" colSpan={2}>не закрыто</td>
+                        <td className="secondary">{t.owner ?? '—'}</td>
+                      </tr>
+                    ))}
+                    {maturity.trace_breaks.map((id) => (
+                      <tr key={`trace-${id}`}>
+                        <td>трассировка</td>
+                        <td className="mono">{id}</td>
+                        <td className="secondary" colSpan={3}>разрыв нити</td>
+                      </tr>
+                    ))}
+                    {maturity.unverified.map((id) => (
+                      <tr key={`unv-${id}`}>
+                        <td>верификация</td>
+                        <td className="mono">{id}</td>
+                        <td className="secondary" colSpan={3}>требование не покрыто</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </>
+            )}
+
+            {/* Требования, чей источник моложе их самих (шаг 16 §2.4) */}
+            {candidates && candidates.length > 0 && (
+              <div className="warn" style={{ padding: 8, marginTop: 8 }}>
+                К рассмотрению — источник изменился после требования:{' '}
+                <span className="mono">{candidates.join(', ')}</span>
+              </div>
+            )}
           </>
         )}
       </div>
@@ -105,7 +196,20 @@ export function Readiness() {
               Выход всего пути: модель, трассировка, матрицы верификации и валидации, реестр
               рисков и отчёт зрелости — одной операцией.
             </p>
-            <button type="button" className="tab tab--primary" onClick={() => void collect(setPkg, setPkgError)}>
+            <div className="field">
+              <span className="secondary">Сценарий: </span>
+              <select value={scenario} onChange={(e) => setScenario(e.target.value)}>
+                {scenarios.map((s) => (
+                  <option key={s.id} value={s.id}>{s.id}</option>
+                ))}
+              </select>
+            </div>
+            <button
+              type="button"
+              className="tab tab--primary"
+              disabled={!scenario}
+              onClick={() => void collect(scenario, setPkg, setPkgError)}
+            >
               Собрать пакет передачи
             </button>
             {pkgError && <div className="warn" role="alert">{pkgError}</div>}
@@ -152,13 +256,17 @@ export function Readiness() {
  * количество записей в каждой части — то, что видно глазом в самом ответе.
  */
 async function collect(
+  scenario: string,
   setPkg: (p: PackageSummary | null) => void,
   setError: (e: string | null) => void,
 ) {
   setError(null)
   setPkg(null)
   try {
-    const response = await fetch('/api/export/package', { headers: { Accept: 'application/json' } })
+    // Сценарий обязателен (шаг 16 §3.2): умолчания SC-0001 больше нет
+    const response = await fetch(`/api/export/package?scenario=${encodeURIComponent(scenario)}`, {
+      headers: { Accept: 'application/json' },
+    })
     const text = await response.text()
     if (!response.ok) {
       setError(`пакет не собран: ${response.status} ${text.slice(0, 200)}`)

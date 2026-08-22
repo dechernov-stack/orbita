@@ -4,8 +4,9 @@
 // так и появилась бы вторая реализация правила направления показателя, и
 // диаграмма нарисовала бы дорогой вариант хорошим (STEP-7-9, ловушка 2).
 import { useEffect, useState } from 'react'
-import { api } from '../api/client'
-import type { ComparisonView } from '../api/types'
+import { api, ApiError } from '../api/client'
+import { edit, type StoredSummary } from '../api/edit'
+import type { ComparisonView, StaleResultRow } from '../api/types'
 
 const SIZE = 260
 const CENTER = SIZE / 2
@@ -13,19 +14,95 @@ const RADIUS = SIZE / 2 - 30
 const PALETTE = ['#0b5fff', '#1a7f37', '#bf8700']
 
 export function Comparison() {
+  const [scenarios, setScenarios] = useState<StoredSummary[]>([])
+  const [scenario, setScenario] = useState('')
   const [view, setView] = useState<ComparisonView | null>(null)
+  const [stale, setStale] = useState<StaleResultRow[]>([])
+  const [notice, setNotice] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
+  // Сценарий выбирается из хранимых, не зашивается (шаг 16 §3.2)
   useEffect(() => {
-    api.comparison().then(setView).catch((e) => setError(String(e)))
+    edit
+      .list('scenario')
+      .then((rows) => {
+        setScenarios(rows)
+        if (rows.length > 0) setScenario((cur) => cur || rows[0].id)
+      })
+      .catch((e) => setError(String(e)))
+    // Пометка «результат устарел» живёт здесь (шаг 16 §2.4, TZ-MOD-007):
+    // устаревший результат в сравнение не входит, но исчезнуть молча не должен
+    api.staleResults().then(setStale).catch((e) => setError(String(e)))
   }, [])
 
+  useEffect(() => {
+    if (!scenario) return
+    setNotice(null)
+    setError(null)
+    api
+      .comparison(scenario)
+      .then(setView)
+      .catch((e) => {
+        setView(null)
+        if (e instanceof ApiError && e.status === 409) {
+          // «вариантов меньше двух» — рабочее состояние инженера, не отказ
+          try {
+            setNotice(String(JSON.parse(e.message.slice(e.message.indexOf('{'))).error))
+          } catch {
+            setNotice(e.message)
+          }
+        } else {
+          setError(String(e))
+        }
+      })
+  }, [scenario])
+
+  const staleHere = stale.filter((r) => r.scenario_id === scenario)
+
+  if (scenarios.length === 0 && !error) {
+    return (
+      <div className="empty">
+        Сценариев в модели нет: заведите сценарий на Ш5 «Входы моделирования».
+      </div>
+    )
+  }
   if (error) return <div className="empty">Ошибка обращения к API: {error}</div>
-  if (!view) return <div className="empty">Загрузка…</div>
+
+  const selector = (
+    <div className="pane__tools">
+      <span className="secondary">Сценарий:</span>
+      <select value={scenario} onChange={(e) => setScenario(e.target.value)}>
+        {scenarios.map((s) => (
+          <option key={s.id} value={s.id}>{s.id}{s.title ? ` — ${s.title}` : ''}</option>
+        ))}
+      </select>
+      {staleHere.length > 0 && (
+        <span className="warn">
+          результаты устарели: {staleHere.length} — входы изменились после расчёта, пересчитайте
+        </span>
+      )}
+    </div>
+  )
+
+  if (notice)
+    return (
+      <div className="pane">
+        {selector}
+        <div className="empty">{notice}</div>
+      </div>
+    )
+  if (!view)
+    return (
+      <div className="pane">
+        {selector}
+        <div className="empty">Загрузка…</div>
+      </div>
+    )
 
   return (
     <div className="split">
       <div className="pane" style={{ padding: 16 }}>
+        {selector}
         <h2 style={{ fontSize: 15, marginTop: 0 }}>Роза KPI</h2>
         <Radar view={view} />
         <p className="secondary" style={{ maxWidth: 560 }}>

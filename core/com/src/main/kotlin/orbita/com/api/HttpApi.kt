@@ -173,9 +173,6 @@ class HttpApi(private val boundary: Boundary) {
                 respond(ex, 204, null)
             }
 
-            method == "GET" && path == "/reports/trace-breaks" ->
-                respond(ex, 200, mapper.valueToTree(boundary.links.traceBreaks()))
-
             method == "GET" && path == "/reports/unaccepted-ai" -> {
                 val arr = mapper.createArrayNode()
                 boundary.params.unacceptedAiProposals().forEach {
@@ -280,15 +277,6 @@ class HttpApi(private val boundary: Boundary) {
                 respond(ex, 200, arr)
             }
 
-            method == "GET" && path == "/reports/inconsistent-allocations" -> {
-                val arr = mapper.createArrayNode()
-                boundary.req.inconsistentAllocations().forEach { (parent, child, why) ->
-                    arr.addObject().put("parent", parent).put("child", child).put("reason", why)
-                }
-                respond(ex, 200, arr)
-            }
-
-            // Экраны клиента: строки приходят готовыми, клиент ничего не считает
             method == "GET" && path == "/views/requirement-tree" -> {
                 val view = boundary.screens.requirementTree()
                 val n = mapper.createObjectNode()
@@ -920,8 +908,14 @@ class HttpApi(private val boundary: Boundary) {
             // Пакет передачи одной операцией (TZ-OUT-006, шаг 11.3). Вердикт
             // полноты и предупреждения о небазированном — внутри пакета.
             method == "GET" && path == "/export/package" -> {
+                // Сценарий обязателен (шаг 16 §3.2): умолчание SC-0001 показывало
+                // бы чужой проект молча — на пустой базе пакет выглядел бы пустым,
+                // а на демо-базе рабочий проект получил бы демо-результаты.
+                val packageScenario = query(ex)["scenario"] ?: throw IllegalArgumentException(
+                    "query parameter 'scenario' is required: выберите сценарий из /objects?type=scenario",
+                )
                 val options = boundary.results.activeForScenario(
-                    query(ex)["scenario"] ?: "SC-0001", "kpi",
+                    packageScenario, "kpi",
                 ).map { r ->
                     (r.payload.deepCopy() as ObjectNode)
                         .put("stale", r.stale)
@@ -951,10 +945,14 @@ class HttpApi(private val boundary: Boundary) {
                 respond(ex, 200, pkg)
             }
 
-            // Экран 7: сравнение вариантов — нормировка и Парето считаются здесь
+            // Экран 7: сравнение вариантов — нормировка и Парето считаются здесь.
+            // Сценарий обязателен (шаг 16 §3.2): умолчаний нет.
             method == "GET" && path == "/views/comparison" -> {
+                val comparisonScenario = query(ex)["scenario"] ?: throw IllegalArgumentException(
+                    "query parameter 'scenario' is required: выберите сценарий из /objects?type=scenario",
+                )
                 val options = boundary.results.activeForScenario(
-                    query(ex)["scenario"] ?: "SC-0001", "kpi",
+                    comparisonScenario, "kpi",
                 ).map { r ->
                     orbita.bal.RadarOption(
                         r.payload.path("name").asText(),
@@ -992,12 +990,6 @@ class HttpApi(private val boundary: Boundary) {
             // `regulator` выходили на экран как есть.
             method == "GET" && path == "/enum-labels" ->
                 respond(ex, 200, mapper.valueToTree(orbita.req.EnumLabels().all()))
-
-            method == "GET" && path == "/reports/needs-without-services" ->
-                respond(ex, 200, mapper.valueToTree(boundary.req.needsWithoutServices()))
-
-            method == "GET" && path == "/reports/elements-without-requirements" ->
-                respond(ex, 200, mapper.valueToTree(boundary.req.elementsWithoutRequirements()))
 
             method == "GET" && path == "/reports/review-candidates" ->
                 respond(ex, 200, mapper.valueToTree(boundary.req.reviewCandidates()))

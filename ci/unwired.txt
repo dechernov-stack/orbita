@@ -8,20 +8,12 @@
 маршрут /links · не подключено на момент постановки Шага 16 (HttpApi.kt:151) · 2026-08-22
 маршрут /param-deps · не подключено на момент постановки Шага 16 (HttpApi.kt:160) · 2026-08-22
 маршрут /params/ · не подключено на момент постановки Шага 16 (HttpApi.kt:169) · 2026-08-22
-маршрут /reports/trace-breaks · не подключено на момент постановки Шага 16 (HttpApi.kt:188) · 2026-08-22
-маршрут /reports/unaccepted-ai · не подключено на момент постановки Шага 16 (HttpApi.kt:191) · 2026-08-22
-маршрут /reports/stale-results · не подключено на момент постановки Шага 16 (HttpApi.kt:200) · 2026-08-22
-маршрут /reports/maturity · не подключено на момент постановки Шага 16 (HttpApi.kt:209) · 2026-08-22
-маршрут /reports/inconsistent-allocations · не подключено на момент постановки Шага 16 (HttpApi.kt:284) · 2026-08-22
 маршрут /export/reqif · не подключено на момент постановки Шага 16 (HttpApi.kt:516) · 2026-08-22
 маршрут /views/spacecraft/mask-schedule · не подключено на момент постановки Шага 16 (HttpApi.kt:551) · 2026-08-22
 маршрут /ground/suggest · не подключено на момент постановки Шага 16 (HttpApi.kt:596) · 2026-08-22
 маршрут /import/terminal-profile · не подключено на момент постановки Шага 16 (HttpApi.kt:653) · 2026-08-22
 маршрут /import/reqif · не подключено на момент постановки Шага 16 (HttpApi.kt:692) · 2026-08-22
 маршрут /export/package · не подключено на момент постановки Шага 16 (HttpApi.kt:724) · 2026-08-22
-маршрут /reports/needs-without-services · не подключено на момент постановки Шага 16 (HttpApi.kt:803) · 2026-08-22
-маршрут /reports/elements-without-requirements · не подключено на момент постановки Шага 16 (HttpApi.kt:806) · 2026-08-22
-маршрут /reports/review-candidates · не подключено на момент постановки Шага 16 (HttpApi.kt:809) · 2026-08-22
 маршрут /protocol-adapter · не подключено на момент постановки Шага 16 (HttpApi.kt:813) · 2026-08-22
 функция cellCriticality · не подключено на момент постановки Шага 16 (core/out/src/main/kotlin/orbita/out/ComparisonViews.kt:82) · 2026-08-22
 функция render · не подключено на момент постановки Шага 16 (core/out/src/main/kotlin/orbita/out/Documents.kt:168) · 2026-08-22
@@ -34,4 +26,3 @@
 функция datatypeDefinitions · не подключено на момент постановки Шага 16 (core/out/src/main/kotlin/orbita/out/ReqifMapping.kt:108) · 2026-08-22
 функция mappingIssues · не подключено на момент постановки Шага 16 (core/out/src/main/kotlin/orbita/out/ReqifMapping.kt:122) · 2026-08-22
 функция flattenedAsString · не подключено на момент постановки Шага 16 (core/out/src/main/kotlin/orbita/out/ReqifMapping.kt:204) · 2026-08-22
-функция treeCycle · не подключено на момент постановки Шага 16 (core/out/src/main/kotlin/orbita/out/Tree.kt:33) · 2026-08-22

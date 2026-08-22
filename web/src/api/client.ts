@@ -5,6 +5,9 @@ import type {
   AnswerReport,
   CoverageView,
   GlobeView,
+  MaturityView,
+  StaleResultRow,
+  UnacceptedAiRow,
   TraceMatrixView,
   ValidationRow,
   VerificationMatrixFlatView,
@@ -69,7 +72,17 @@ export const api = {
   componentSpecification: (id: string) => get<ComponentSpecification>(`/views/components/${id}`),
   unitLabels: () => get<UnitLabels>('/unit-labels'),
   systemOverview: () => get<SystemOverview>('/views/system'),
-  comparison: () => get<ComparisonView>('/views/comparison'),
+  /** Сценарий обязателен (шаг 16 §3.2): умолчаний нет. */
+  comparison: (scenario: string) =>
+    get<ComparisonView>(`/views/comparison?scenario=${encodeURIComponent(scenario)}`),
+  /** Устаревшие результаты: пометка живёт на экране сравнения (шаг 16 §2.4). */
+  staleResults: () => get<StaleResultRow[]>('/reports/stale-results'),
+  /** Зрелость пакета к точке — основная таблица экрана готовности. */
+  maturity: (gate: string) => get<MaturityView>(`/reports/maturity?gate=${gate}`),
+  /** Требования, чей источник моложе их самих, — перечень к рассмотрению. */
+  reviewCandidates: () => get<string[]>('/reports/review-candidates'),
+  /** Неакцептованные предложения ИИ — список на экране предложения (TZ-AI). */
+  unacceptedAi: () => get<UnacceptedAiRow[]>('/reports/unaccepted-ai'),
   /**
    * Глобус от модели проекта (шаг 16 §2.3): конфигурация — из хранимой
    * группировки по ссылке сценария, зашитой строки параметров больше нет.
