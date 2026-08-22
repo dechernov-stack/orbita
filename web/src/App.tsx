@@ -13,7 +13,10 @@ import { Comparison } from './screens/Comparison'
 import { Coverage } from './screens/Coverage'
 import { ComponentSpec } from './screens/ComponentSpec'
 import { Demand } from './screens/Demand'
+import { Documents } from './screens/Documents'
 import { Globe } from './screens/Globe'
+import { GroundSegment } from './screens/GroundSegment'
+import { ImportCatalog } from './screens/ImportCatalog'
 import { ModelObjects } from './screens/ModelObjects'
 import { Needs } from './screens/Needs'
 import { Readiness } from './screens/Readiness'
@@ -73,6 +76,8 @@ const STEPS: Array<{ number: number; screens: Screen[] }> = [
       { id: 'comparison', title: 'Сравнение вариантов', render: () => <Comparison /> },
       { id: 'coverage', title: 'Карта покрытия', render: () => <Coverage /> },
       { id: 'globe', title: 'Баллистика', render: () => <Globe /> },
+      { id: 'ground', title: 'Наземный сегмент', render: () => <GroundSegment /> },
+      { id: 'import-catalog', title: 'Импорт каталога', render: () => <ImportCatalog /> },
       // Входы моделирования — хранимые объекты (CR-005/ADR-021), значит вводимые
       {
         id: 'inputs',
@@ -101,6 +106,7 @@ const STEPS: Array<{ number: number; screens: Screen[] }> = [
     number: 7,
     screens: [
       { id: 'readiness', title: 'Готовность к точке', render: () => <Readiness /> },
+      { id: 'documents', title: 'Документы', render: () => <Documents /> },
       { id: 'risks', title: 'Реестр рисков', render: () => <Risks /> },
       {
         id: 'closure',

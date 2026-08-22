@@ -2,27 +2,4 @@
 # Формат: <элемент> · <причина> · <дата>. Заполняется `ci/wiring.py --init`,
 # правится вычёркиванием: подключить или удалить, третьего исхода нет (STEP-16 §2.1).
 
-маршрут /change · не подключено на момент постановки Шага 16 (HttpApi.kt:122) · 2026-08-22
-маршрут /ancestors · не подключено на момент постановки Шага 16 (HttpApi.kt:130) · 2026-08-22
-маршрут /descendants · не подключено на момент постановки Шага 16 (HttpApi.kt:133) · 2026-08-22
 маршрут /links · не подключено на момент постановки Шага 16 (HttpApi.kt:151) · 2026-08-22
-маршрут /param-deps · не подключено на момент постановки Шага 16 (HttpApi.kt:160) · 2026-08-22
-маршрут /params/ · не подключено на момент постановки Шага 16 (HttpApi.kt:169) · 2026-08-22
-маршрут /export/reqif · не подключено на момент постановки Шага 16 (HttpApi.kt:516) · 2026-08-22
-маршрут /views/spacecraft/mask-schedule · не подключено на момент постановки Шага 16 (HttpApi.kt:551) · 2026-08-22
-маршрут /ground/suggest · не подключено на момент постановки Шага 16 (HttpApi.kt:596) · 2026-08-22
-маршрут /import/terminal-profile · не подключено на момент постановки Шага 16 (HttpApi.kt:653) · 2026-08-22
-маршрут /import/reqif · не подключено на момент постановки Шага 16 (HttpApi.kt:692) · 2026-08-22
-маршрут /export/package · не подключено на момент постановки Шага 16 (HttpApi.kt:724) · 2026-08-22
-маршрут /protocol-adapter · не подключено на момент постановки Шага 16 (HttpApi.kt:813) · 2026-08-22
-функция cellCriticality · не подключено на момент постановки Шага 16 (core/out/src/main/kotlin/orbita/out/ComparisonViews.kt:82) · 2026-08-22
-функция render · не подключено на момент постановки Шага 16 (core/out/src/main/kotlin/orbita/out/Documents.kt:168) · 2026-08-22
-функция toExchange · не подключено на момент постановки Шага 16 (core/out/src/main/kotlin/orbita/out/Exchange.kt:29) · 2026-08-22
-функция exchangeToJson · не подключено на момент постановки Шага 16 (core/out/src/main/kotlin/orbita/out/Exchange.kt:44) · 2026-08-22
-функция toCsv · не подключено на момент постановки Шага 16 (core/out/src/main/kotlin/orbita/out/Exchange.kt:95) · 2026-08-22
-функция notExecuted · не подключено на момент постановки Шага 16 (core/out/src/main/kotlin/orbita/out/Presentation.kt:72) · 2026-08-22
-функция bottlenecks · не подключено на момент постановки Шага 16 (core/out/src/main/kotlin/orbita/out/Presentation.kt:85) · 2026-08-22
-функция tpmOutsideReserves · не подключено на момент постановки Шага 16 (core/out/src/main/kotlin/orbita/out/Presentation.kt:99) · 2026-08-22
-функция datatypeDefinitions · не подключено на момент постановки Шага 16 (core/out/src/main/kotlin/orbita/out/ReqifMapping.kt:108) · 2026-08-22
-функция mappingIssues · не подключено на момент постановки Шага 16 (core/out/src/main/kotlin/orbita/out/ReqifMapping.kt:122) · 2026-08-22
-функция flattenedAsString · не подключено на момент постановки Шага 16 (core/out/src/main/kotlin/orbita/out/ReqifMapping.kt:204) · 2026-08-22

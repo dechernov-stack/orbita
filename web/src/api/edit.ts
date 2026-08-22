@@ -148,6 +148,38 @@ export const edit = {
 
   /** Текущий документ объекта — правка начинается с него, а не с копии строки. */
   object: (id: string) => send<StoredSummary>('GET', `/objects/${id}`),
+  /**
+   * Процедура изменения базированного объекта (TZ-COM-003): рабочая правка
+   * его не трогает — принимается только изменение с основанием (change_ref).
+   */
+  changeWithRef: (id: string, doc: Record<string, unknown>, changeRef: string) =>
+    send<StoredSummary>('POST', `/objects/${id}/change`, { doc, change_ref: changeRef }),
+  /** Обходы трассировки за один запрос (TZ-REQ-003). */
+  ancestors: (id: string) => send<Array<{ id: string; depth: number }>>('GET', `/objects/${id}/ancestors`),
+  descendants: (id: string) =>
+    send<Array<{ id: string; depth: number }>>('GET', `/objects/${id}/descendants`),
+  /** Действующие параметры объекта — неакцептованное ИИ отфильтровано хранилищем. */
+  listParams: (id: string) =>
+    send<Array<{ name: string; unit: string; value?: number; formula?: string; source: string; is_tpm: boolean }>>(
+      'GET',
+      `/objects/${id}/params`,
+    ),
+  /** Параметр объекта: значение, единица, происхождение, формула (TZ-MOD-005). */
+  putParam: (id: string, name: string, value: number | null, unit: string, formula?: string) =>
+    send<void>('POST', `/objects/${id}/params/${encodeURIComponent(name)}`, {
+      value,
+      unit,
+      provenance: { source: 'manual' },
+      formula: formula || undefined,
+    }),
+  /** Зависимость параметра от параметра — вход каскада stale (TZ-MOD-005). */
+  addParamDependency: (id: string, name: string, depId: string, depName: string) =>
+    send<{ status: string }>('POST', '/param-deps', {
+      object_id: id,
+      name,
+      dep_object_id: depId,
+      dep_name: depName,
+    }),
 
   promote: (id: string, status: string) =>
     send<StoredSummary>('POST', `/objects/${id}/promote`, { status }),

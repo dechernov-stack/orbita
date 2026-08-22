@@ -548,3 +548,68 @@ export interface UnacceptedAiRow {
   name: string
   prompt_package_id: string
 }
+
+/** Циклограмма из географических масок (TZ-KA-009): сгенерированные доли рядом с ручными. */
+export interface MaskScheduleView {
+  mask_version: string
+  rx_cells: number
+  downlink_cells: number
+  generated_orbit_fractions: Record<string, number>
+  model_orbit_fractions?: Record<string, number>
+}
+
+/** Режим канала адаптера (TZ-NET-001): параметры отдаёт только адаптер. */
+export interface ProtocolAdapterView {
+  id: string
+  name: string
+  phy: {
+    modulation: string
+    modes: Array<{
+      mode_id: string
+      bitrate_bps: number
+      required_ebn0_db: number
+      time_on_air_ms_per_byte: number
+      doppler_tolerance_hz: number
+    }>
+  }
+  mac: Record<string, unknown>
+  calibration?: Record<string, unknown>
+}
+
+/** Узкие места из сохранённого прогона (TZ-OUT-002): «не считали» ≠ «пусто». */
+export interface BottlenecksReport {
+  name: string
+  executed: boolean
+  entries: Array<{ scenario_ref: string; location: string; utilization: number }>
+}
+
+/** Документ БП-PA из модели (TZ-OUT-001): разделы регламента + разрывы. */
+export interface GeneratedDocumentView {
+  body: {
+    template: string
+    title: string
+    source: string
+    sections: Array<{
+      number: number
+      title: string
+      expects: string
+      items: Array<Record<string, unknown>>
+    }>
+  }
+  digest: string
+  gaps: Array<{ section: number; what: string; expected: string }>
+}
+
+/** Рекомендательное размещение станций (шаг 12.1): подбор поверх ручных. */
+export interface GroundSuggestView {
+  suggested: Array<{
+    id: string
+    name: string
+    lat_deg: number
+    lon_deg: number
+    placement: string
+    gain: number
+  }>
+  coverage_before: number
+  coverage_after: number
+}

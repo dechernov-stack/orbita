@@ -12,8 +12,8 @@
 // Все бюджеты считает сервер вызовами core/ka: клиент не складывает массы
 // и не сравнивает запас с нулём — это правила, а не отрисовка.
 import { useEffect, useState } from 'react'
-import { api } from '../api/client'
-import type { SpacecraftView } from '../api/types'
+import { api, ApiError } from '../api/client'
+import type { MaskScheduleView, ProtocolAdapterView, SpacecraftView } from '../api/types'
 
 const ROLE_LABEL: Record<string, string> = {
   user_uplink: 'Абонентская вверх',
@@ -35,6 +35,22 @@ export function Spacecraft({ spacecraftId = 'SP-0001' }: { spacecraftId?: string
   const [plannedDuty, setPlannedDuty] = useState(0.5)
   const [view, setView] = useState<SpacecraftView | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [masks, setMasks] = useState<MaskScheduleView | null>(null)
+  const [masksNotice, setMasksNotice] = useState<string | null>(null)
+  const [adapter, setAdapter] = useState<ProtocolAdapterView | null>(null)
+
+  // Циклограмма из масок и параметры канала (шаг 16 §2.4): считает сервер,
+  // подстановка сгенерированных долей в модель — решение инженера, не автоматика
+  useEffect(() => {
+    api
+      .maskSchedule()
+      .then(setMasks)
+      .catch((e) => {
+        if (e instanceof ApiError && e.status === 404) setMasksNotice(e.message.slice(0, 200))
+        else setError(String(e))
+      })
+    api.protocolAdapter().then(setAdapter).catch((e) => setError(String(e)))
+  }, [])
 
   useEffect(() => {
     setError(null)
@@ -289,6 +305,84 @@ export function Spacecraft({ spacecraftId = 'SP-0001' }: { spacecraftId?: string
               </>
             ) : (
               <span className="warn">△ маяк в модели не задан</span>
+            )}
+          </div>
+        </div>
+
+        <div className="card">
+          <h3>Циклограмма из масок</h3>
+          <div>
+            <p className="secondary">
+              TZ-KA-009 (Р4): маски — из хранимых карты спроса и станций, доли витка —
+              по трассе. Подстановка в модель — решение инженера.
+            </p>
+            {masksNotice && <div className="secondary">{masksNotice}</div>}
+            {masks && (
+              <table>
+                <thead>
+                  <tr>
+                    <th>Режим</th>
+                    <th style={{ textAlign: 'right' }}>Из масок</th>
+                    <th style={{ textAlign: 'right' }}>В модели</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.entries(masks.generated_orbit_fractions).map(([mode, f]) => (
+                    <tr key={mode}>
+                      <td className="mono">{mode}</td>
+                      <td className="num">{(f * 100).toFixed(1)}%</td>
+                      <td className="num">
+                        {masks.model_orbit_fractions?.[mode] !== undefined
+                          ? `${(masks.model_orbit_fractions[mode] * 100).toFixed(1)}%`
+                          : '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+            {masks && (
+              <p className="secondary" style={{ marginBottom: 0 }}>
+                Маска <span className="mono">{masks.mask_version}</span>: приём{' '}
+                {masks.rx_cells} яч., сброс {masks.downlink_cells} ст.
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div className="card">
+          <h3>Канал (адаптер)</h3>
+          <div>
+            <p className="secondary">
+              Параметры канала отдаёт только адаптер (TZ-NET-001): вторая копия чисел
+              разошлась бы с расчётом потоков.
+            </p>
+            {adapter && (
+              <>
+                <div className="field">
+                  <label>Адаптер</label>
+                  <span className="mono">{adapter.id}</span> · {adapter.name} ·{' '}
+                  {adapter.phy.modulation}
+                </div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Режим</th>
+                      <th style={{ textAlign: 'right' }}>бит/с</th>
+                      <th style={{ textAlign: 'right' }}>Eb/N0, дБ</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {adapter.phy.modes.map((m) => (
+                      <tr key={m.mode_id}>
+                        <td className="mono">{m.mode_id}</td>
+                        <td className="num">{m.bitrate_bps}</td>
+                        <td className="num">{m.required_ebn0_db.toFixed(2)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </>
             )}
           </div>
         </div>

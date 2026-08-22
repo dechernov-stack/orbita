@@ -12,6 +12,8 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 
+// Отчёта «TPM за пределами резервов» здесь больше нет (Шаг 16 §2.1): выход за
+// резерв помечает TpmRegistry.breached (TZ-KA-010), второй вход удалён.
 class AnalyticReportsTest {
 
     private val mapper = ObjectMapper()
@@ -19,8 +21,8 @@ class AnalyticReportsTest {
     @Test
     @DisplayName("TZ-OUT-002: пустой отчёт отличается от неисполненного")
     fun `пустой отчёт отличается от неисполненного`() {
-        val notRun = AnalyticReport.notExecuted<TpmBreach>("tpm_outside_reserves")
-        val clean = AnalyticReport.of<TpmBreach>("tpm_outside_reserves", emptyList())
+        val notRun = AnalyticReport.notExecuted<BottleneckEntry>("bottlenecks")
+        val clean = AnalyticReport.of<BottleneckEntry>("bottlenecks", emptyList())
 
         assertFalse(notRun.executed)
         assertFalse(notRun.empty, "неисполненный отчёт не является пустым")
@@ -28,21 +30,6 @@ class AnalyticReportsTest {
         assertTrue(clean.empty, "исполненный отчёт без находок пуст")
         // и это два разных состояния, а не одно
         assertTrue(notRun.entries == clean.entries && notRun.empty != clean.empty)
-    }
-
-    @Test
-    @DisplayName("TZ-OUT-002: TPM за пределами резервов")
-    fun `параметр вне допуска попадает в отчёт`() {
-        val params = mapper.readTree(
-            """[{"id":"PM-0001","value":{"value":62.0},"limit":60.0},
-                {"id":"PM-0002","value":{"value":41.0},"limit":60.0},
-                {"id":"PM-0003","value":{"value":5.0}}]""",
-        ).toList()
-        val report = tpmOutsideReserves(params)
-        assertTrue(report.executed)
-        assertEquals(1, report.entries.size)
-        assertEquals("PM-0001", report.entries[0].parameterId)
-        assertEquals(2.0, report.entries[0].overrun, 1e-9)
     }
 
     @Test

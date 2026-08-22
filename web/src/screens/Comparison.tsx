@@ -6,7 +6,7 @@
 import { useEffect, useState } from 'react'
 import { api, ApiError } from '../api/client'
 import { edit, type StoredSummary } from '../api/edit'
-import type { ComparisonView, StaleResultRow } from '../api/types'
+import type { BottlenecksReport, ComparisonView, StaleResultRow } from '../api/types'
 
 const SIZE = 260
 const CENTER = SIZE / 2
@@ -18,6 +18,7 @@ export function Comparison() {
   const [scenario, setScenario] = useState('')
   const [view, setView] = useState<ComparisonView | null>(null)
   const [stale, setStale] = useState<StaleResultRow[]>([])
+  const [bottlenecks, setBottlenecks] = useState<BottlenecksReport | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -39,6 +40,8 @@ export function Comparison() {
     if (!scenario) return
     setNotice(null)
     setError(null)
+    // Узкие места из сохранённого прогона (шаг 16 §2.4): ничего не пересчитывается
+    api.bottlenecks(scenario).then(setBottlenecks).catch(() => setBottlenecks(null))
     api
       .comparison(scenario)
       .then(setView)
@@ -148,6 +151,37 @@ export function Comparison() {
       </div>
 
       <aside className="pane pane--side">
+        <div className="card">
+          <h3>Узкие места</h3>
+          <div>
+            {!bottlenecks || !bottlenecks.executed ? (
+              // «не считали» — не то же, что «узких мест нет» (TZ-OUT-002)
+              <span className="secondary">прогон потоков по сценарию не выполнялся</span>
+            ) : bottlenecks.entries.length === 0 ? (
+              <span>узких мест не найдено</span>
+            ) : (
+              <table>
+                <thead>
+                  <tr>
+                    <th>Участок</th>
+                    <th style={{ textAlign: 'right' }}>Загрузка</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {bottlenecks.entries.map((b) => (
+                    <tr key={`${b.scenario_ref}-${b.location}`}>
+                      <td className="mono">{b.location}</td>
+                      <td className={`num${b.utilization > 1 ? ' warn' : ''}`}>
+                        {(b.utilization * 100).toFixed(0)}%
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+
         <div className="card">
           <h3>Фронт Парето</h3>
           <div>

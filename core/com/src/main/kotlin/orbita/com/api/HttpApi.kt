@@ -160,6 +160,22 @@ class HttpApi(private val boundary: Boundary) {
                 respond(ex, 201, mapper.createObjectNode().put("status", "created"))
             }
 
+            // Параметры объекта на карточку (TZ-MOD-005): предложенное ИИ и не
+            // акцептованное в действующие не входит — фильтрует хранилище.
+            method == "GET" && objectMatch?.groupValues?.get(2) == "/params" -> {
+                val arr = mapper.createArrayNode()
+                boundary.params.effectiveParams(objectMatch.groupValues[1]).forEach { param ->
+                    val n = arr.addObject()
+                        .put("name", param.name)
+                        .put("unit", param.unit)
+                        .put("is_tpm", param.isTpm)
+                    param.value?.let { n.put("value", it) }
+                    param.formula?.let { n.put("formula", it) }
+                    n.put("source", param.provenance.path("source").asText(""))
+                }
+                respond(ex, 200, arr)
+            }
+
             method == "POST" && objectMatch != null && objectMatch.groupValues[2].startsWith("/params/") -> {
                 val req = mapper.readTree(body(ex))
                 boundary.params.putRaw(
@@ -699,6 +715,95 @@ class HttpApi(private val boundary: Boundary) {
             // Экспорт ReqIF (TZ-OUT-005, ADR-023): отображение здесь, XML — в службе
             // обмена. Дата выгрузки фиксируется в файле; параметр exported_at
             // позволяет получить воспроизводимый файл.
+            // Документы БП-PA из модели (TZ-OUT-001, шаг 16 §2.4): чистая функция
+            // модели, ручное дополнение текста не сохраняется — правка вносится
+            // в модель. Пустой раздел остаётся на месте вместе с разрывом.
+            method == "GET" && path == "/export/documents" -> {
+                val arr = mapper.createArrayNode()
+                orbita.out.DocumentTemplate.entries.forEach { t ->
+                    arr.addObject().put("code", t.code).put("title", t.title).put("source", t.source)
+                }
+                respond(ex, 200, arr)
+            }
+
+            method == "GET" && path.startsWith("/export/documents/") -> {
+                val code = path.removePrefix("/export/documents/")
+                val template = orbita.out.DocumentTemplate.entries.firstOrNull { it.code == code }
+                    ?: throw IllegalArgumentException(
+                        "unknown document template '$code'; known: " +
+                            orbita.out.DocumentTemplate.entries.joinToString { it.code },
+                    )
+                val model = orbita.out.ModelSnapshot.of(boundary.objects, mapper)
+                val doc = orbita.out.DocumentGenerator(mapper).render(model, template)
+                val out = mapper.createObjectNode()
+                out.set<ObjectNode>("body", doc.body)
+                out.put("digest", doc.digest)
+                val gaps = out.putArray("gaps")
+                doc.gaps.forEach { g ->
+                    gaps.addObject().put("section", g.section).put("what", g.what).put("expected", g.expected)
+                }
+                respond(ex, 200, out)
+            }
+
+            // Проверка отображения ПЕРЕД выгрузкой ReqIF (шаг 16 §2.4, ADR-023):
+            // замечания к словарю атрибутов, описания типов и объекты, у которых
+            // составное значение свёрнуто в строку. Файл при таких замечаниях
+            // валиден — терпит принимающий инструмент, поэтому предупреждение
+            // показывается инженеру рядом с кнопкой выгрузки, а не прячется в лог.
+            method == "GET" && path == "/export/reqif/check" -> {
+                val model = orbita.out.ModelSnapshot.of(boundary.objects, mapper)
+                val flattened = model.path("requirements")
+                    .map { orbita.out.toSpecObject(it) }
+                    .filter { orbita.out.flattenedAsString(it).isNotEmpty() }
+                    .map { it.identifier }
+                val out = mapper.createObjectNode()
+                val issues = out.putArray("mapping_issues")
+                orbita.out.mappingIssues().forEach(issues::add)
+                val flat = out.putArray("flattened")
+                flattened.forEach(flat::add)
+                val dts = out.putObject("datatypes")
+                orbita.out.datatypeDefinitions().forEach { (name, d) ->
+                    val n = dts.putObject(name)
+                    n.put("type", d.type)
+                    d.values?.let { vs -> n.putArray("values").also { a -> vs.forEach(a::add) } }
+                }
+                respond(ex, 200, out)
+            }
+
+            // Выгрузка в форматы обмена помимо ReqIF (TZ-OUT-005: «в ReqIF и CSV»).
+            // reqif-lite JSON — направление только наружу (Шаг 16 §2.1): ввод идёт
+            // настоящим ReqIF через службу обмена.
+            method == "GET" && path == "/export/exchange" -> {
+                val format = query(ex)["format"] ?: "csv"
+                if (format !in setOf("csv", "json")) {
+                    throw IllegalArgumentException("query parameter 'format' must be one of: csv, json")
+                }
+                val model = orbita.out.ModelSnapshot.of(boundary.objects, mapper)
+                val requirements = model.path("requirements").map { r ->
+                    orbita.out.ExchangeRequirement(
+                        id = r.path("id").asText(),
+                        // атрибуты — поля документа как есть: незнакомое поле
+                        // получает колонку, а не выбрасывается
+                        attributes = r.properties().asSequence()
+                            .filter { (k, _) -> k != "id" }
+                            .associate { (k, v) -> k to v },
+                    )
+                }
+                val links = (boundary.links.list("trace") + boundary.links.list("derive"))
+                val doc = orbita.out.toExchange(requirements, links, exportedAt = query(ex)["exported_at"])
+                if (format == "json") {
+                    ex.responseHeaders.add("Content-Disposition", "attachment; filename=\"orbita-requirements.json\"")
+                    respond(ex, 200, orbita.out.exchangeToJson(doc, mapper))
+                } else {
+                    val csv = orbita.out.toCsv(doc.requirements)
+                    ex.responseHeaders.add("Content-Type", "text/csv; charset=utf-8")
+                    ex.responseHeaders.add("Content-Disposition", "attachment; filename=\"orbita-requirements.csv\"")
+                    val bytes = csv.toByteArray()
+                    ex.sendResponseHeaders(200, bytes.size.toLong())
+                    ex.responseBody.use { it.write(bytes) }
+                }
+            }
+
             method == "GET" && path == "/export/reqif" -> {
                 val exchangeUrl = System.getenv("ORBITA_EXCHANGE_URL")
                 if (exchangeUrl.isNullOrBlank()) {
@@ -943,6 +1048,31 @@ class HttpApi(private val boundary: Boundary) {
                     mapper = mapper,
                 )
                 respond(ex, 200, pkg)
+            }
+
+            // Узкие места из СОХРАНЁННОГО прогона потоков (шаг 16 §2.4, TZ-OUT-002):
+            // отчёт ничего не пересчитывает. Пустой отчёт отличается от
+            // неисполненного: executed=false — «не считали», пустые entries при
+            // executed=true — «считали, узких мест нет».
+            method == "GET" && path == "/views/bottlenecks" -> {
+                val scenarioId = query(ex)["scenario"] ?: throw IllegalArgumentException(
+                    "query parameter 'scenario' is required: выберите сценарий из /objects?type=scenario",
+                )
+                val flowResults = boundary.results.activeForScenario(scenarioId, "flow").map { it.payload }
+                val report = if (flowResults.isEmpty()) {
+                    orbita.out.AnalyticReport.notExecuted<orbita.out.BottleneckEntry>("bottlenecks")
+                } else {
+                    orbita.out.bottlenecks(flowResults)
+                }
+                val out = mapper.createObjectNode()
+                out.put("name", report.name)
+                out.put("executed", report.executed)
+                val entries = out.putArray("entries")
+                report.entries.forEach { e ->
+                    entries.addObject().put("scenario_ref", e.scenarioRef)
+                        .put("location", e.location).put("utilization", e.utilization)
+                }
+                respond(ex, 200, out)
             }
 
             // Экран 7: сравнение вариантов — нормировка и Парето считаются здесь.

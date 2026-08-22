@@ -46,6 +46,8 @@ export function ObjectEditor({ kind, schemaName, id, title, onSaved, onCancelled
   const [errors, setErrors] = useState<Array<{ path: string; message: string }>>([])
   const [conflict, setConflict] = useState<Conflict | null>(null)
   const [blocked, setBlocked] = useState<string | null>(null)
+  /** Основание изменения базированного объекта (TZ-COM-003). */
+  const [changeRef, setChangeRef] = useState('')
   const [failure, setFailure] = useState<string | null>(null)
   const [issues, setIssues] = useState<BaselineIssues | null>(null)
   const [history, setHistory] = useState<HistoryEntry[] | null>(null)
@@ -204,6 +206,34 @@ export function ObjectEditor({ kind, schemaName, id, title, onSaved, onCancelled
       {blocked && (
         <div className="notice notice--blocked" role="alert">
           <b>Правка не принята.</b> {blocked}
+          {/* Единственный вход изменения базированного объекта — процедура
+              с основанием (TZ-COM-003): рабочая правка сюда и отсылает */}
+          {id && (
+            <div className="field" style={{ marginTop: 6 }}>
+              <input
+                placeholder="основание (напр. CR-9)"
+                value={changeRef}
+                onChange={(e) => setChangeRef(e.target.value)}
+                style={{ width: 160 }}
+              />
+              <button
+                type="button"
+                className="tab"
+                disabled={busy || !changeRef.trim()}
+                onClick={() =>
+                  run(() =>
+                    edit.changeWithRef(id, doc as Record<string, unknown>, changeRef.trim()).then((stored) => {
+                      setChangeRef('')
+                      setBlocked(null)
+                      return stored
+                    }),
+                  )
+                }
+              >
+                Изменить с основанием
+              </button>
+            </div>
+          )}
         </div>
       )}
 

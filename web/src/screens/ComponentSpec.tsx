@@ -5,15 +5,25 @@
 // модель (ADR-019).
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
+import { edit } from '../api/edit'
 import type { ComponentSpecification } from '../api/types'
 import { BudgetGauge, Condition, StatusDot } from '../ui/parts'
 
 export function ComponentSpec({ componentId }: { componentId: string }) {
   const [spec, setSpec] = useState<ComponentSpecification | null>(null)
   const [error, setError] = useState<string | null>(null)
+  type ParamRow = Awaited<ReturnType<typeof edit.listParams>>[number]
+  const [params, setParams] = useState<ParamRow[]>([])
+  const [paramError, setParamError] = useState<string | null>(null)
+  const [draft, setDraft] = useState({ name: '', value: '', unit: '', formula: '', depId: '', depName: '' })
+
+  const loadParams = () => {
+    edit.listParams(componentId).then(setParams).catch((e) => setParamError(String(e)))
+  }
 
   useEffect(() => {
     api.componentSpecification(componentId).then(setSpec).catch((e) => setError(String(e)))
+    loadParams()
   }, [componentId])
 
   if (error) return <div className="empty">Ошибка обращения к API: {error}</div>
@@ -92,6 +102,81 @@ export function ComponentSpec({ componentId }: { componentId: string }) {
                 <BudgetGauge bar={bar} />
               </div>
             ))}
+          </div>
+        </div>
+        <div className="card">
+          <h3>Параметры</h3>
+          <div>
+            <p className="secondary">
+              TZ-MOD-005: величина не существует без единицы; зависимость параметра —
+              вход каскада stale. Неакцептованное ИИ в действующие не входит.
+            </p>
+            {paramError && <div className="warn">{paramError}</div>}
+            {params.length > 0 && (
+              <table>
+                <thead>
+                  <tr>
+                    <th>Имя</th>
+                    <th style={{ textAlign: 'right' }}>Значение</th>
+                    <th>Ед.</th>
+                    <th>Происх.</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {params.map((p) => (
+                    <tr key={p.name} title={p.formula ? `формула: ${p.formula}` : undefined}>
+                      <td className="mono">{p.name}{p.is_tpm ? ' · TPM' : ''}</td>
+                      <td className="num">{p.value ?? '—'}</td>
+                      <td className="mono">{p.unit}</td>
+                      <td className="secondary">{p.source}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+            <div className="field">
+              <input placeholder="имя" value={draft.name}
+                onChange={(e) => setDraft({ ...draft, name: e.target.value })} style={{ width: 90 }} />
+              <input placeholder="знач." value={draft.value}
+                onChange={(e) => setDraft({ ...draft, value: e.target.value })} style={{ width: 60 }} />
+              <input placeholder="ед. СИ" value={draft.unit}
+                onChange={(e) => setDraft({ ...draft, unit: e.target.value })} style={{ width: 60 }} />
+              <button
+                type="button"
+                className="tab"
+                disabled={!draft.name || !draft.unit}
+                onClick={() => {
+                  setParamError(null)
+                  edit
+                    .putParam(componentId, draft.name, draft.value === '' ? null : Number(draft.value), draft.unit, draft.formula || undefined)
+                    .then(() => { setDraft({ ...draft, name: '', value: '', formula: '' }); loadParams() })
+                    .catch((e) => setParamError(String(e)))
+                }}
+              >
+                Задать
+              </button>
+            </div>
+            <div className="field">
+              <input placeholder="зависит от: объект" value={draft.depId}
+                onChange={(e) => setDraft({ ...draft, depId: e.target.value })} style={{ width: 110 }} />
+              <input placeholder="параметр" value={draft.depName}
+                onChange={(e) => setDraft({ ...draft, depName: e.target.value })} style={{ width: 90 }} />
+              <button
+                type="button"
+                className="tab"
+                disabled={!draft.name || !draft.depId || !draft.depName}
+                onClick={() => {
+                  setParamError(null)
+                  edit
+                    .addParamDependency(componentId, draft.name, draft.depId, draft.depName)
+                    .then(() => setDraft({ ...draft, depId: '', depName: '' }))
+                    .catch((e) => setParamError(String(e)))
+                }}
+                title="изменение источника пометит зависимый параметр устаревшим"
+              >
+                Связать
+              </button>
+            </div>
           </div>
         </div>
       </aside>

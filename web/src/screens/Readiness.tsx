@@ -263,15 +263,8 @@ async function collect(
   setError(null)
   setPkg(null)
   try {
-    // Сценарий обязателен (шаг 16 §3.2): умолчания SC-0001 больше нет
-    const response = await fetch(`/api/export/package?scenario=${encodeURIComponent(scenario)}`, {
-      headers: { Accept: 'application/json' },
-    })
-    const text = await response.text()
-    if (!response.ok) {
-      setError(`пакет не собран: ${response.status} ${text.slice(0, 200)}`)
-      return
-    }
+    // Сценарий обязателен (шаг 16 §3.2); маршрут живёт в слое API
+    const text = await api.transferPackage(scenario)
     const body = JSON.parse(text) as Record<string, unknown>
     // Состав пакета называет сервер; клиент перечисляет части и не считает
     // по ним ничего: пересчёт содержимого на экране — вторая реализация
