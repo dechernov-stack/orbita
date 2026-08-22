@@ -127,6 +127,8 @@ class HttpApi(private val boundary: Boundary) {
                 val req = mapper.readTree(body(ex))
                 val doc = req["doc"] ?: throw IllegalArgumentException("body must contain 'doc'")
                 val stored = boundary.objects.change(id, doc, changeRef = req.path("change_ref").textValue())
+                // и у процедуры с основанием связи выводятся из документа (ADR-027)
+                boundary.req.syncLinks(stored.type, stored.id, stored.doc)
                 respond(ex, 200, summary(stored))
             }
 
@@ -142,12 +144,26 @@ class HttpApi(private val boundary: Boundary) {
                 respond(ex, 200, summary(stored).apply { set<ObjectNode>("doc", stored.doc) })
             }
 
+            // Связи trace/allocation/derive выводятся из документа (ADR-027):
+            // ручное создание запрещено — два источника связей разошлись бы.
+            // Verification остаётся: событие привязывается к требованию отсюда.
             method == "POST" && path == "/links" -> {
                 val req = mapper.readTree(body(ex))
-                boundary.links.add(
-                    req["from"].asText(), req["to"].asText(),
-                    req.path("kind").asText("trace"),
-                )
+                val kind = req.path("kind").asText("trace")
+                if (kind in setOf("trace", "allocation", "derive")) {
+                    return respond(
+                        ex, 409,
+                        mapper.createObjectNode()
+                            .put(
+                                "error",
+                                "связь вида '$kind' выводится из документа и вручную не создаётся: " +
+                                    "укажите ссылку в самом объекте (traces_up / allocated_to / derives_from) — " +
+                                    "иначе два источника связей разойдутся (ADR-027)",
+                            )
+                            .put("adr", "ADR-027"),
+                    )
+                }
+                boundary.links.add(req["from"].asText(), req["to"].asText(), kind)
                 respond(ex, 201, mapper.createObjectNode().put("status", "created"))
             }
 

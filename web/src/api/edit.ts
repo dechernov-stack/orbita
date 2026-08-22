@@ -158,6 +158,12 @@ export const edit = {
   ancestors: (id: string) => send<Array<{ id: string; depth: number }>>('GET', `/objects/${id}/ancestors`),
   descendants: (id: string) =>
     send<Array<{ id: string; depth: number }>>('GET', `/objects/${id}/descendants`),
+  /**
+   * Привязка события верификации к требованию (единственный оставшийся вид
+   * ручной связи): trace/allocation/derive выводятся из документа (ADR-027).
+   */
+  addVerificationLink: (from: string, to: string) =>
+    send<{ status: string }>('POST', '/links', { from, to, kind: 'verification' }),
   /** Действующие параметры объекта — неакцептованное ИИ отфильтровано хранилищем. */
   listParams: (id: string) =>
     send<Array<{ name: string; unit: string; value?: number; formula?: string; source: string; is_tpm: boolean }>>(

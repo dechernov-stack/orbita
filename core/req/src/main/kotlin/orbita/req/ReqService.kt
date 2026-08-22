@@ -94,7 +94,8 @@ class ReqService(
         registry.require("core/need", doc)
         return conn.tx {
             val stored = create(doc, "need", createdBy)
-            doc.path("traces_down").forEach { sv -> links.add(stored.id, sv.asText(), "trace") }
+            // связи — тем же пересчётом, что и при правке (ADR-027): один вход
+            syncLinks("need", stored.id, doc)
             stored
         }
     }
@@ -105,11 +106,7 @@ class ReqService(
         registry.require("core/service", doc)
         return conn.tx {
             val stored = create(doc, "service", createdBy)
-            doc.path("traces_up").forEach { nd ->
-                if (links.linksTo(stored.id, "trace").none { it.fromId == nd.asText() }) {
-                    links.add(nd.asText(), stored.id, "trace")
-                }
-            }
+            syncLinks("service", stored.id, doc)
             stored
         }
     }
@@ -125,25 +122,107 @@ class ReqService(
         requireApplicationRules("requirement", doc)
         return conn.tx {
             val stored = create(doc, "requirement", createdBy)
-            doc.path("traces_up").forEach { t ->
-                links.add(t.path("ref").asText(), stored.id, "trace",
-                    t.path("consumer_class").asText(null))
-            }
-            doc.path("allocated_to").forEach { a ->
-                val target = a.path("component").asText("").ifBlank { a.path("interface").asText("") }
-                links.add(
-                    stored.id, target, "allocation",
-                    allocationKind = a.path("kind").asText("full"),
-                    rationale = a.path("rationale").asText(null),
-                )
-            }
-            // CR-003: вид декомпозиции — свойство СВЯЗИ, а не документа (ADR-017/019).
-            // Документ объявляет родителей; по умолчанию это распределение бюджета,
-            // производное требование помечается операцией deriveAs.
-            doc.path("derives_from").forEach { parent ->
-                links.add(parent.asText(), stored.id, "derive", derivationKind = "allocated")
-            }
+            // CR-003: вид декомпозиции — свойство СВЯЗИ (ADR-017/019); документ
+            // объявляет родителей, по умолчанию распределение бюджета, производное
+            // помечается deriveAs. Сами связи — тем же пересчётом, что и правка.
+            syncLinks("requirement", stored.id, doc)
             stored
+        }
+    }
+
+    /**
+     * Пересчёт связей объекта по документу (ADR-027, шаг 16 §3.1): документ —
+     * единственный источник trace, allocation и derive. Ссылка исчезла — связь
+     * удаляется; появилась — создаётся; уцелевшая правится НА МЕСТЕ, и
+     * derivation_kind, выставленный deriveAs, переживает правку.
+     *
+     * Связь need→service объявляется с двух сторон (need.traces_down и
+     * service.traces_up): удаляется, только когда её не объявляет НИ ОДИН
+     * из двух документов — иначе правка сервиса молча рвала бы нить,
+     * которую нужда продолжает объявлять.
+     *
+     * Эталон spec/link_semantics.py, один в один.
+     */
+    fun syncLinks(type: String, id: String, doc: JsonNode) {
+        data class Attrs(
+            val consumerClass: String? = null,
+            val allocationKind: String? = null,
+            val rationale: String? = null,
+            val derivationKind: String? = null,
+        )
+
+        fun desired(objType: String, objId: String, d: JsonNode): Map<Triple<String, String, String>, Attrs> =
+            buildMap {
+                when (objType) {
+                    "need" -> d.path("traces_down").forEach { sv ->
+                        put(Triple(objId, sv.asText(), "trace"), Attrs())
+                    }
+                    "service" -> d.path("traces_up").forEach { nd ->
+                        put(Triple(nd.asText(), objId, "trace"), Attrs())
+                    }
+                    "requirement" -> {
+                        d.path("traces_up").forEach { t ->
+                            put(
+                                Triple(t.path("ref").asText(), objId, "trace"),
+                                Attrs(consumerClass = t.path("consumer_class").asText(null)),
+                            )
+                        }
+                        d.path("allocated_to").forEach { a ->
+                            val target = a.path("component").asText("").ifBlank { a.path("interface").asText("") }
+                            put(
+                                Triple(objId, target, "allocation"),
+                                Attrs(
+                                    allocationKind = a.path("kind").asText("full"),
+                                    rationale = a.path("rationale").asText(null),
+                                ),
+                            )
+                        }
+                        d.path("derives_from").forEach { parent ->
+                            put(Triple(parent.asText(), objId, "derive"), Attrs(derivationKind = "allocated"))
+                        }
+                    }
+                }
+            }
+
+        val want = desired(type, id, doc).toMutableMap()
+        val existing = when (type) {
+            "need" -> links.linksFrom(id, "trace")
+            "service" -> links.linksTo(id, "trace")
+            "requirement" ->
+                links.linksTo(id, "trace") + links.linksFrom(id, "allocation") + links.linksTo(id, "derive")
+            else -> emptyList()
+        }
+
+        fun declaredByOtherEnd(link: orbita.mod.store.Link): Boolean {
+            if (link.kind != "trace" || type == "requirement") return false
+            val otherId = if (type == "need") link.toId else link.fromId
+            val other = objects.current(otherId) ?: return false
+            return desired(other.type, other.id, other.doc)
+                .containsKey(Triple(link.fromId, link.toId, link.kind))
+        }
+
+        existing.forEach { link ->
+            val key = Triple(link.fromId, link.toId, link.kind)
+            val attrs = want.remove(key)
+            when {
+                attrs != null -> links.updateAttrs(
+                    link.fromId, link.toId, link.kind,
+                    consumerClass = attrs.consumerClass,
+                    allocationKind = attrs.allocationKind,
+                    rationale = attrs.rationale,
+                )
+                declaredByOtherEnd(link) -> Unit
+                else -> links.remove(link.fromId, link.toId, link.kind)
+            }
+        }
+        want.forEach { (key, attrs) ->
+            links.add(
+                key.first, key.second, key.third,
+                consumerClass = attrs.consumerClass,
+                allocationKind = attrs.allocationKind,
+                rationale = attrs.rationale,
+                derivationKind = attrs.derivationKind,
+            )
         }
     }
 
