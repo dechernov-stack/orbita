@@ -82,6 +82,28 @@ class NetTest {
     }
 
     @Test
+    fun `калибровка против измеренных точек LoRaSim (Bor et al MSWiM 2016)`() {
+        val ref = mapper.readTree(
+            RepoPaths.repoRoot().resolve("spec/reference/net_aloha_reference.json").toFile()
+        )["measured"]
+        val tol = ref["max_deviation_pct"].asDouble() / 100.0
+        val simple = ref["der_simple_channel"]
+        val g = simple["nodes"].asInt() * simple["airtime_ms"].asDouble() * simple["lambda_per_ms"].asDouble()
+        // simple-канал статьи = чистая ALOHA: наша база сходится с независимой симуляцией
+        val expectedSimple = simple["value"].asDouble()
+        assertTrue(abs(deliveryProbability(g) - expectedSimple) <= tol * expectedSimple) {
+            "simple: ${deliveryProbability(g)} vs $expectedSimple"
+        }
+        // реалистичный канал LoRa: захват, откалиброванный по статье, даёт её же DER
+        val lora = ref["der_lora_channel"]
+        val capture = ref["derived_capture_fraction"]["value"].asDouble()
+        val expectedLora = lora["value"].asDouble()
+        assertTrue(abs(deliveryProbability(g, captureFraction = capture) - expectedLora) <= tol * expectedLora) {
+            "lora: ${deliveryProbability(g, captureFraction = capture)} vs $expectedLora"
+        }
+    }
+
+    @Test
     fun `эффект захвата и квазиортогональность повышают доставку`() {
         val base = deliveryProbability(1.0)
         assertTrue(deliveryProbability(1.0, captureFraction = 0.3) > base)
