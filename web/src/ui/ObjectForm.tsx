@@ -230,8 +230,11 @@ function Field(props: FieldProps) {
   // у неё нет type, и текстовое поле предлагало бы ввести то, что вводу
   // не подлежит. Значение показывается и подставляется в документ как есть.
   if (schema.const !== undefined) {
-    if (value !== schema.const) {
-      // подстановка после рендера: значение принадлежит схеме, не инженеру
+    // подстановка после рендера: значение принадлежит схеме, не инженеру.
+    // Сравнение здесь — со значением СХЕМЫ, а не между величинами модели:
+    // без него подстановка зациклила бы рендер.
+    const constPending = value !== schema.const // eslint-disable-line eqeqeq
+    if (constPending) {
       setTimeout(() => onChange(schema.const), 0)
     }
     return (
