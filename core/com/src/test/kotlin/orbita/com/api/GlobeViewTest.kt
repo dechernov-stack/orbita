@@ -126,6 +126,8 @@ class GlobeViewTest {
         // расписание пролётов: аппарат, цель, начало и конец в UTC, длительность
         val passes = body["passes"]
         assertTrue(passes.size() > 0) { "расписание пусто" }
+        // обрезка не тихая: полное число объявлено
+        assertEquals(body["passes_total"].asInt() > passes.size(), body["passes_truncated"].asBoolean())
         passes.forEach { p ->
             assertTrue(p.hasNonNull("spacecraft_ref") && p.hasNonNull("target_ref"))
             assertTrue(p["start_utc"].asText().startsWith("2026-03-20T"))

@@ -475,4 +475,7 @@ export interface GlobeView {
   duration_s: number
   czml: unknown[]
   passes: PassRow[]
+  /** Полное число окон; расписание обрезано до первых по времени. */
+  passes_total: number
+  passes_truncated: boolean
 }
