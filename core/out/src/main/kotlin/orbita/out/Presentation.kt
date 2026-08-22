@@ -93,19 +93,7 @@ fun bottlenecks(flowResults: List<JsonNode>): AnalyticReport<BottleneckEntry> =
         }.sortedByDescending { it.utilization },
     )
 
-/** TPM за пределами резервов: фактическое значение вне допуска параметра. */
-data class TpmBreach(val parameterId: String, val value: Double, val limit: Double, val overrun: Double)
-
-fun tpmOutsideReserves(parameters: List<JsonNode>): AnalyticReport<TpmBreach> =
-    AnalyticReport.of(
-        "tpm_outside_reserves",
-        parameters.mapNotNull { p ->
-            val value = p.path("value").path("value").takeIf { it.isNumber }?.asDouble() ?: return@mapNotNull null
-            val limit = p.path("limit").takeIf { it.isNumber }?.asDouble() ?: return@mapNotNull null
-            if (value > limit) {
-                TpmBreach(p.path("id").asText(), value, limit, value - limit)
-            } else {
-                null
-            }
-        }.sortedBy { it.parameterId },
-    )
+// TPM вне резервов здесь больше нет (Шаг 16 §2.1): выход за требуемый резерв
+// уже помечает TpmRegistry.breached (TZ-KA-010), и экран аппарата его показывает.
+// Вторая реализация той же проверки ждала параметры с полем limit, которых
+// хранилище не несёт, — вход без источника данных.

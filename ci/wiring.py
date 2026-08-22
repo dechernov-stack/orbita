@@ -116,7 +116,8 @@ def view_functions() -> list[Element]:
 
 def callers_outside_tests(name: str) -> bool:
     """Есть ли вызов функции вне src/test."""
-    call = re.compile(rf"\b{re.escape(name)}\s*\(")
+    # вызов может нести параметр типа: notExecuted<BottleneckEntry>(...)
+    call = re.compile(rf"\b{re.escape(name)}\s*(?:<[^>]*>)?\s*\(")
     declaration = re.compile(rf"\bfun\b\s+(?:<[^>]+>\s+)?(?:[\w.<>?]+\.)?{re.escape(name)}\s*[(<]")
     for source in sorted((ROOT / "core").rglob("*.kt")):
         if "/src/test/" in str(source):

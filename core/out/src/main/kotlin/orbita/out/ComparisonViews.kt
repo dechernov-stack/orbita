@@ -78,5 +78,6 @@ fun riskMatrix(risks: List<Pair<String, Pair<Int, Int>>>): List<RiskCell> =
         }
     }
 
-/** Класс критичности клетки — для проверки, что раскраска берётся из правила. */
-fun cellCriticality(probability: Int, impact: Int): Criticality = criticality(probability, impact)
+// cellCriticality здесь больше нет (Шаг 16 §2.1): обёртка над criticality без
+// собственного содержания — второй вход в то же правило. Матрица рисков зовёт
+// criticality напрямую, и раскраска берётся из правила по построению.

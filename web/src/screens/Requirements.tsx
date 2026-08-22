@@ -5,6 +5,7 @@
 // как есть. Клиент не считает ни глубину отступа, ни свёртку, ни критерий успеха.
 import { useCallback, useEffect, useState } from 'react'
 import { RequirementMatrices, type MatrixKind } from './RequirementMatrices'
+import { edit } from '../api/edit'
 import { api } from '../api/client'
 import type { RequirementCard, RequirementRow, RequirementTreeView } from '../api/types'
 import { ObjectEditor } from '../ui/ObjectEditor'
@@ -22,6 +23,32 @@ export function Requirements() {
   const [onlyViolated, setOnlyViolated] = useState(false)
   /** Вкладка: дерево или одна из матриц (шаг 16 §2.4). */
   const [matrix, setMatrix] = useState<MatrixKind | null>(null)
+  const [reqifIssues, setReqifIssues] = useState<string[]>([])
+  const [importReport, setImportReport] = useState<string | null>(null)
+
+  // Замечания отображения — рядом с кнопкой выгрузки (ADR-023): файл при них
+  // валиден, терпит принимающий инструмент, поэтому предупреждаем до выгрузки
+  useEffect(() => {
+    api
+      .reqifCheck()
+      .then((c) => setReqifIssues([...c.mapping_issues, ...c.flattened.map((f) => `${f}: составное значение свёрнуто в строку`)]))
+      .catch(() => setReqifIssues([]))
+  }, [])
+
+  // Импорт ReqIF (ADR-024, канал «требования»): файл разбирает служба обмена,
+  // сюда возвращаются черновики — хранение идёт обычным каналом
+  const importReqif = async (file: File) => {
+    setImportReport(null)
+    try {
+      const parsed = await api.importReqif(await file.text())
+      setImportReport(
+        `разобрано черновиков: ${parsed.drafts.length}` +
+          (parsed.source_title ? ` из «${parsed.source_title}»` : ''),
+      )
+    } catch (e) {
+      setImportReport(String(e))
+    }
+  }
 
   const reload = useCallback(
     () =>
@@ -107,7 +134,36 @@ export function Requirements() {
           >
             Валидация
           </button>
+          {/* Выгрузка (TZ-OUT-005: «в ReqIF и CSV») и импорт (ADR-024) */}
+          <a className="tab" href={api.exportUrls.reqif} download>
+            ReqIF↓
+          </a>
+          <a className="tab" href={api.exportUrls.csv} download>
+            CSV↓
+          </a>
+          <a className="tab" href={api.exportUrls.exchangeJson} download title="формат обмена reqif-lite, только наружу">
+            JSON↓
+          </a>
+          <label className="tab" style={{ cursor: 'pointer' }}>
+            ReqIF↑
+            <input
+              type="file"
+              accept=".reqif,.xml"
+              style={{ display: 'none' }}
+              onChange={(e) => {
+                const f = e.target.files?.[0]
+                if (f) void importReqif(f)
+                e.target.value = ''
+              }}
+            />
+          </label>
         </div>
+        {reqifIssues.length > 0 && (
+          <div className="warn" style={{ padding: '4px 8px' }}>
+            Отображение ReqIF с замечаниями: {reqifIssues.join('; ')}
+          </div>
+        )}
+        {importReport && <div className="empty" style={{ padding: '4px 8px' }}>{importReport}</div>}
 
         {matrix !== null && <RequirementMatrices kind={matrix} />}
         {matrix === null && (
@@ -211,6 +267,16 @@ export function Requirements() {
 
 /** Экран 3б: карточка требования — структурное условие и события верификации. */
 function Card({ card }: { card: RequirementCard }) {
+  /** Цепочка обхода трассировки: за один запрос, с глубиной (TZ-REQ-003). */
+  const [chain, setChain] = useState<{ kind: string; hops: Array<{ id: string; depth: number }> } | null>(null)
+
+  const walkChain = (kind: 'ancestors' | 'descendants') => {
+    const call = kind === 'ancestors' ? edit.ancestors : edit.descendants
+    call(card.row.id)
+      .then((hops) => setChain({ kind: kind === 'ancestors' ? 'предки' : 'потомки', hops }))
+      .catch(() => setChain({ kind: 'ошибка обхода', hops: [] }))
+  }
+
   return (
     <div>
       <h2 style={{ fontSize: 15, margin: '0 0 4px' }}>
@@ -300,6 +366,28 @@ function Card({ card }: { card: RequirementCard }) {
               </span>
             ))}
           </div>
+          <div className="field">
+            <button type="button" className="tab" onClick={() => walkChain('ancestors')}>
+              Предки
+            </button>
+            <button type="button" className="tab" onClick={() => walkChain('descendants')}>
+              Потомки
+            </button>
+          </div>
+          {chain && (
+            <div className="field">
+              <label>{chain.kind}</label>
+              {chain.hops.length === 0 ? (
+                <span className="secondary">цепочка пуста</span>
+              ) : (
+                chain.hops.map((h) => (
+                  <span key={h.id} className="chip" title={`глубина ${h.depth}`}>
+                    {h.id}
+                  </span>
+                ))
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -4,7 +4,12 @@
 import type {
   AnswerReport,
   CoverageView,
+  BottlenecksReport,
+  GeneratedDocumentView,
   GlobeView,
+  GroundSuggestView,
+  MaskScheduleView,
+  ProtocolAdapterView,
   MaturityView,
   StaleResultRow,
   UnacceptedAiRow,
@@ -107,6 +112,56 @@ export const api = {
   /** Хранимая карта спроса (ADR-021): ячейки и веса из сохранённого документа. */
   demandStored: (id: string) => get<DemandMapView>(`/views/demand/${id}`),
   platformPresets: () => get<PresetRow[]>('/views/spacecraft/presets'),
+  /** Циклограмма из масок (TZ-KA-009): подстановка в модель — решение инженера. */
+  maskSchedule: () => get<MaskScheduleView>('/views/spacecraft/mask-schedule'),
+  /** Параметры канала отдаёт только адаптер (TZ-NET-001, TZ-NET-006). */
+  protocolAdapter: () => get<ProtocolAdapterView>('/protocol-adapter'),
+  /** Узкие места из сохранённого прогона потоков (шаг 16 §2.4). */
+  bottlenecks: (scenario: string) =>
+    get<BottlenecksReport>(`/views/bottlenecks?scenario=${encodeURIComponent(scenario)}`),
+  /** Проверка отображения перед выгрузкой ReqIF (ADR-023). */
+  reqifCheck: () =>
+    get<{ mapping_issues: string[]; flattened: string[] }>('/export/reqif/check'),
+  /** Адреса выгрузок (TZ-OUT-005): маршруты живут в слое API, не в разметке. */
+  exportUrls: {
+    reqif: `${BASE}/export/reqif`,
+    csv: `${BASE}/export/exchange?format=csv`,
+    exchangeJson: `${BASE}/export/exchange?format=json`,
+  },
+  /** Импорт ReqIF (ADR-024): файл разбирает служба обмена, назад — черновики. */
+  importReqif: async (xml: string) => {
+    const response = await fetch(`${BASE}/import/reqif`, { method: 'POST', body: xml })
+    if (!response.ok) throw new ApiError(response.status, '/import/reqif', await response.text())
+    return (await response.json()) as { drafts: unknown[]; source_title: string; relations: number }
+  },
+  /** Перечень шаблонов документов БП-PA и сборка документа из модели. */
+  documentTemplates: () =>
+    get<Array<{ code: string; title: string; source: string }>>('/export/documents'),
+  document: (code: string) => get<GeneratedDocumentView>(`/export/documents/${code}`),
+  /** Подбор станций поверх ХРАНИМЫХ ручных: они не переписываются (шаг 12.1). */
+  groundSuggest: (request: {
+    candidates: Array<{ id: string; name: string; lat_deg: number; lon_deg: number }>
+    k: number
+    inclination_deg?: number
+    alt_km?: number
+  }) => post<GroundSuggestView>('/ground/suggest', request),
+  /** Импорт записи каталога устройств — по одной, по действию инженера (ADR-024). */
+  importTerminalProfile: (request: {
+    source: string
+    dataset_version: string
+    retrieved_at: string
+    item_ref?: string
+    device: Record<string, unknown>
+    profile: Record<string, unknown>
+  }) => post<Record<string, unknown>>('/import/terminal-profile', request),
+  /** Пакет передачи (TZ-OUT-006): сценарий обязателен. */
+  transferPackage: async (scenario: string) => {
+    const response = await fetch(`${BASE}/export/package?scenario=${encodeURIComponent(scenario)}`, {
+      headers: { Accept: 'application/json' },
+    })
+    if (!response.ok) throw new ApiError(response.status, '/export/package', await response.text())
+    return response.text()
+  },
   /**
    * Бюджеты ХРАНИМОЙ модели аппарата. Ведомость масс и циклограмма — часть
    * модели (CR-006, CR-007), а не состояние экрана, поэтому телом запроса
