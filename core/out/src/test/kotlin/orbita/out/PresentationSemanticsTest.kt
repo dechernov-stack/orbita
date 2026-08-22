@@ -127,7 +127,8 @@ class PresentationSemanticsTest {
         @Test
         fun `диаграмма несёт состав набора, по которому нормирована`() {
             assertEquals(3, three.normalizedOver.size)
-            assertTrue(VizData.kpiRoseJson(three, mapper).has("normalized_over"))
+            // Наружу состав уходит той же сериализацией, что и на экране сравнения.
+            assertTrue(mapper.valueToTree<com.fasterxml.jackson.databind.JsonNode>(three).has("normalizedOver"))
         }
 
         @Test
@@ -497,24 +498,24 @@ class PresentationSemanticsTest {
         )
         private val links = listOf(Link("ND-0001", "RQ-0100", "trace", null))
 
+        // Обратное направление формата reqif-lite убрано (Шаг 16 §2.1): ввод идёт
+        // настоящим ReqIF через службу обмена, круговой обмен проверяется на нём
+        // (tools/check_reqif_roundtrip.py). Здесь проверяется выгрузка.
         @Test
-        fun `атрибуты сохраняются при обмене`() {
-            val (back, _) = fromExchange(toExchange(requirements, links))
-            assertEquals(requirements, back)
+        fun `атрибуты сохраняются при выгрузке`() {
+            assertEquals(requirements, toExchange(requirements, links).requirements)
         }
 
         @Test
-        fun `связи сохраняются при обмене`() {
-            val (_, back) = fromExchange(toExchange(requirements, links))
-            assertEquals(links, back)
+        fun `связи сохраняются при выгрузке`() {
+            assertEquals(links, toExchange(requirements, links).links)
         }
 
         @Test
         fun `незнакомый атрибут не теряется молча`() {
             val custom = listOf(ExchangeRequirement("R", mapOf("custom_x" to mapper.readTree("7"))))
-            // через JSON целиком: незнакомый атрибут переживает и сериализацию
-            val round = exchangeFromJson(exchangeToJson(toExchange(custom, emptyList()), mapper))
-            assertEquals(7, round.requirements[0].attributes.getValue("custom_x").asInt())
+            val json = exchangeToJson(toExchange(custom, emptyList()), mapper)
+            assertEquals(7, json["requirements"][0]["attributes"]["custom_x"].asInt())
         }
     }
 
