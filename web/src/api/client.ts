@@ -3,6 +3,7 @@
 // клиент их отображает (ADR-010, STEP-6 §3).
 import type {
   AnswerReport,
+  CoverageView,
   ComparisonView,
   ComponentSpecification,
   DemandLayersRequest,
@@ -64,6 +65,12 @@ export const api = {
   /** CZML-поток глобуса: траектории считает пропагатор на сервере. */
   globe: (query = 'total=8&planes=2&duration_s=5400') =>
     get<unknown[]>(`/views/globe?${query}`),
+  /**
+   * Карта покрытия от ХРАНИМЫХ объектов по ссылкам сценария (шаг 16 §2.2).
+   * Сценарий обязателен: умолчания нет, его отсутствие — 400 с объяснением.
+   */
+  coverage: (scenario: string, horizon: 'orbit' | 'day' | 'run') =>
+    get<CoverageView>(`/views/coverage?scenario=${encodeURIComponent(scenario)}&horizon=${horizon}`),
   needs: () => get<NeedRow[]>('/views/needs'),
   services: () => get<ServiceRow[]>('/views/services'),
   readiness: (gate: string) => get<ReadinessView>(`/views/readiness?gate=${gate}`),

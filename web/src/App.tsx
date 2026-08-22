@@ -10,6 +10,7 @@ import { api } from './api/client'
 import type { WizardStep } from './api/types'
 import { AiProposal } from './screens/AiProposal'
 import { Comparison } from './screens/Comparison'
+import { Coverage } from './screens/Coverage'
 import { ComponentSpec } from './screens/ComponentSpec'
 import { Demand } from './screens/Demand'
 import { Globe } from './screens/Globe'
@@ -70,6 +71,7 @@ const STEPS: Array<{ number: number; screens: Screen[] }> = [
     number: 5,
     screens: [
       { id: 'comparison', title: 'Сравнение вариантов', render: () => <Comparison /> },
+      { id: 'coverage', title: 'Карта покрытия', render: () => <Coverage /> },
       { id: 'globe', title: 'Баллистика', render: () => <Globe /> },
       // Входы моделирования — хранимые объекты (CR-005/ADR-021), значит вводимые
       {

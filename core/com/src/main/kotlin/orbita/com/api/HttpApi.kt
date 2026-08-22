@@ -477,6 +477,122 @@ class HttpApi(private val boundary: Boundary) {
                 respond(ex, 200, mapper.valueToTree(boundary.spacecraft.build(doc, conditions(request))))
             }
 
+            // Карта покрытия (шаг 16 §2.2): всё — от ХРАНИМЫХ объектов по ссылкам
+            // сценария, по образцу mask-schedule. Показывается ЗОНА ОБСЛУЖИВАНИЯ,
+            // не footprint (TZ-MOD-006): углы — те же, что в GeoMasks (25°/10°).
+            // Значение И класс каждой ячейки считает сервер, клиент красит
+            // (ловушка 2). Пустые состояния — рабочие: 409 с шагом мастера,
+            // где заводится недостающее, а не 404 и не 500.
+            method == "GET" && path == "/views/coverage" -> {
+                val q = query(ex)
+                val scenarioId = q["scenario"] ?: throw IllegalArgumentException(
+                    "query parameter 'scenario' is required: выберите сценарий из /objects?type=scenario",
+                )
+                val horizon = q["horizon"] ?: "day"
+                if (horizon !in setOf("orbit", "day", "run")) {
+                    throw IllegalArgumentException("query parameter 'horizon' must be one of: orbit, day, run")
+                }
+                fun missing(text: String, step: Int) =
+                    respond(ex, 409, mapper.createObjectNode().put("error", text).put("wizard_step", step))
+                val scenario = boundary.objects.current(scenarioId)
+                    ?: return missing("сценарий $scenarioId в модели отсутствует: заведите его на Ш5 «Входы моделирования»", 5)
+                val constellation = scenario.doc.path("constellation_ref").asText("")
+                    .takeIf { it.isNotBlank() }?.let { boundary.objects.current(it) }
+                    ?: return missing("группировка по ссылке сценария не найдена: заведите её на Ш5 «Входы моделирования»", 5)
+                val demandMap = scenario.doc.path("demand_map_ref").asText("")
+                    .takeIf { it.isNotBlank() }?.let { boundary.objects.current(it) }
+                    ?: return missing("карта спроса по ссылке сценария не найдена: постройте её на Ш2 «Карта спроса»", 2)
+                val cellNodes = demandMap.doc.path("cells")
+                if (!cellNodes.isArray || cellNodes.isEmpty) {
+                    return missing("карта спроса пуста: постройте её на Ш2 «Карта спроса»", 2)
+                }
+                val durationS = scenario.doc.path("duration_s").asDouble(0.0)
+                if (durationS <= 0.0) throw IllegalArgumentException("scenario '$scenarioId' has no positive duration_s")
+                val epoch = scenario.doc.path("epoch").asText("")
+                if (epoch.isBlank()) throw IllegalArgumentException("scenario '$scenarioId' has no epoch")
+
+                val w = constellation.doc.path("walker")
+                val config = orbita.bal.ConstellationConfig(
+                    incDeg = w.path("inclination_deg").asDouble(),
+                    total = w.path("total").asInt(),
+                    planes = w.path("planes").asInt(),
+                    phasing = w.path("phasing").asInt(),
+                    altKm = w.path("altitude_km").asDouble(),
+                )
+                val targets = cellNodes.map {
+                    orbita.bal.GridPoint(it.path("cell_id").asText(), it.path("lat_deg").asDouble(), it.path("lon_deg").asDouble())
+                }
+                val vis = boundary.visibility.schedule(
+                    config, epoch, durationS,
+                    minElevDeg = 10.0, targets = targets, scenarioRef = scenarioId,
+                    serviceElevDeg = 25.0,
+                )
+                // Дальше — только пролёты в зоне обслуживания: там, где линия
+                // не замыкается, сервиса нет, и красить ячейку зелёным нельзя.
+                val serviceVis = mapper.createObjectNode()
+                val servicePasses = serviceVis.putArray("passes")
+                vis["passes"].forEach { p ->
+                    if (p.path("in_service_zone").asBoolean(false)) servicePasses.add(p)
+                }
+                val heatByCell = orbita.bal.VizData.availabilityHeatmap(serviceVis, durationS, config.altKm)
+                    .path("cells").associateBy { it.path("cell_id").asText() }
+                val byTarget = orbita.bal.coverageByTarget(serviceVis, durationS, targets = targets.map { it.id })
+                val windowsByCell = linkedMapOf<String, MutableList<Pair<Double, Double>>>()
+                servicePasses.forEach { p ->
+                    windowsByCell.getOrPut(p["target_ref"].asText()) { mutableListOf() } +=
+                        p["start_s"].asDouble() to p["end_s"].asDouble()
+                }
+
+                val out = mapper.createObjectNode()
+                out.put("scenario_ref", scenarioId)
+                out.put("horizon", horizon)
+                out.putObject("horizons")
+                    .put("orbit_s", orbita.bal.orbitalPeriodS(config.altKm))
+                    .put("day_s", 86400.0)
+                    .put("run_s", durationS)
+                val cellsOut = out.putArray("cells")
+                cellNodes.forEach { cellNode ->
+                    val id = cellNode.path("cell_id").asText()
+                    val metrics = byTarget.getValue(id)
+                    val heat = heatByCell[id]
+                    // непокрытая ячейка в тепловой карте отсутствует — её нули
+                    // подставляются здесь, а не теряются вместе с ячейкой
+                    val mean = when (horizon) {
+                        "run" -> heat?.path("availability_run")?.asDouble() ?: 0.0
+                        else -> heat?.path("availability_$horizon")?.asDouble() ?: 0.0
+                    }
+                    val worst = when (horizon) {
+                        "run" -> mean
+                        else -> heat?.path("availability_${horizon}_worst")?.asDouble() ?: 0.0
+                    }
+                    val node = cellsOut.addObject()
+                        .put("cell_id", id)
+                        .put("lat_deg", cellNode.path("lat_deg").asDouble())
+                        .put("lon_deg", cellNode.path("lon_deg").asDouble())
+                        .put("availability_mean", mean)
+                        .put("availability_worst", worst)
+                        .put("class", orbita.bal.coverageClass(mean, worst).code)
+                        .put("access_windows", metrics.accessWindows)
+                    metrics.meanGapS?.let { node.put("mean_gap_s", it) }
+                    metrics.maxGapS?.let { node.put("max_gap_s", it) }
+                    metrics.revisitS?.let { node.put("revisit_s", it) }
+                    // Суточное среднее взвешивается профилем активности ячейки
+                    // (ловушка 3): пик спроса в провале покрытия простое среднее
+                    // по часам скрывает.
+                    val diurnal = cellNode.path("diurnal_profile")
+                    if (horizon == "day" && diurnal.isArray && diurnal.size() == 24) {
+                        val series = orbita.bal.hourlySeries(windowsByCell[id] ?: emptyList(), durationS)
+                        val weighted = orbita.bal.VizData.availability(
+                            listOf(orbita.bal.HeatCell(id, series)),
+                            orbita.bal.Horizon.Daily,
+                            diurnal.map { it.asDouble() },
+                        ).getValue(id)
+                        node.put("availability_weighted", weighted)
+                    }
+                }
+                respond(ex, 200, out)
+            }
+
             // Экран 6: глобус — CZML-поток с траекториями. Собственной модели
             // движения в клиенте нет: трассы считает пропагатор на сервере.
             method == "GET" && path == "/views/globe" -> {
