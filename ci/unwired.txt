@@ -1,0 +1,53 @@
+# Элементы, посчитанные, но не доведённые до экрана.
+# Формат: <элемент> · <причина> · <дата>. Заполняется `ci/wiring.py --init`,
+# правится вычёркиванием: подключить или удалить, третьего исхода нет (STEP-16 §2.1).
+
+маршрут /change · не подключено на момент постановки Шага 16 (HttpApi.kt:122) · 2026-08-22
+маршрут /ancestors · не подключено на момент постановки Шага 16 (HttpApi.kt:130) · 2026-08-22
+маршрут /descendants · не подключено на момент постановки Шага 16 (HttpApi.kt:133) · 2026-08-22
+маршрут /slice · не подключено на момент постановки Шага 16 (HttpApi.kt:142) · 2026-08-22
+маршрут /links · не подключено на момент постановки Шага 16 (HttpApi.kt:151) · 2026-08-22
+маршрут /param-deps · не подключено на момент постановки Шага 16 (HttpApi.kt:160) · 2026-08-22
+маршрут /params/ · не подключено на момент постановки Шага 16 (HttpApi.kt:169) · 2026-08-22
+маршрут /reports/risk-register · не подключено на момент постановки Шага 16 (HttpApi.kt:183) · 2026-08-22
+маршрут /reports/trace-breaks · не подключено на момент постановки Шага 16 (HttpApi.kt:188) · 2026-08-22
+маршрут /reports/unaccepted-ai · не подключено на момент постановки Шага 16 (HttpApi.kt:191) · 2026-08-22
+маршрут /reports/stale-results · не подключено на момент постановки Шага 16 (HttpApi.kt:200) · 2026-08-22
+маршрут /reports/maturity · не подключено на момент постановки Шага 16 (HttpApi.kt:209) · 2026-08-22
+маршрут /reports/trace-matrix · не подключено на момент постановки Шага 16 (HttpApi.kt:234) · 2026-08-22
+маршрут /reports/verification-matrix · не подключено на момент постановки Шага 16 (HttpApi.kt:252) · 2026-08-22
+маршрут /reports/validation-matrix · не подключено на момент постановки Шага 16 (HttpApi.kt:272) · 2026-08-22
+маршрут /reports/inconsistent-allocations · не подключено на момент постановки Шага 16 (HttpApi.kt:284) · 2026-08-22
+маршрут /export/reqif · не подключено на момент постановки Шага 16 (HttpApi.kt:516) · 2026-08-22
+маршрут /views/spacecraft/mask-schedule · не подключено на момент постановки Шага 16 (HttpApi.kt:551) · 2026-08-22
+маршрут /ground/suggest · не подключено на момент постановки Шага 16 (HttpApi.kt:596) · 2026-08-22
+маршрут /import/terminal-profile · не подключено на момент постановки Шага 16 (HttpApi.kt:653) · 2026-08-22
+маршрут /import/reqif · не подключено на момент постановки Шага 16 (HttpApi.kt:692) · 2026-08-22
+маршрут /export/package · не подключено на момент постановки Шага 16 (HttpApi.kt:724) · 2026-08-22
+маршрут /specification · не подключено на момент постановки Шага 16 (HttpApi.kt:799) · 2026-08-22
+маршрут /reports/needs-without-services · не подключено на момент постановки Шага 16 (HttpApi.kt:803) · 2026-08-22
+маршрут /reports/elements-without-requirements · не подключено на момент постановки Шага 16 (HttpApi.kt:806) · 2026-08-22
+маршрут /reports/review-candidates · не подключено на момент постановки Шага 16 (HttpApi.kt:809) · 2026-08-22
+маршрут /protocol-adapter · не подключено на момент постановки Шага 16 (HttpApi.kt:813) · 2026-08-22
+маршрут /validate/ · не подключено на момент постановки Шага 16 (HttpApi.kt:921) · 2026-08-22
+функция cellCriticality · не подключено на момент постановки Шага 16 (core/out/src/main/kotlin/orbita/out/ComparisonViews.kt:82) · 2026-08-22
+функция render · не подключено на момент постановки Шага 16 (core/out/src/main/kotlin/orbita/out/Documents.kt:168) · 2026-08-22
+функция toExchange · не подключено на момент постановки Шага 16 (core/out/src/main/kotlin/orbita/out/Exchange.kt:29) · 2026-08-22
+функция fromExchange · не подключено на момент постановки Шага 16 (core/out/src/main/kotlin/orbita/out/Exchange.kt:39) · 2026-08-22
+функция exchangeToJson · не подключено на момент постановки Шага 16 (core/out/src/main/kotlin/orbita/out/Exchange.kt:44) · 2026-08-22
+функция exchangeFromJson · не подключено на момент постановки Шага 16 (core/out/src/main/kotlin/orbita/out/Exchange.kt:69) · 2026-08-22
+функция toCsv · не подключено на момент постановки Шага 16 (core/out/src/main/kotlin/orbita/out/Exchange.kt:95) · 2026-08-22
+функция unverifiedRequirements · не подключено на момент постановки Шага 16 (core/out/src/main/kotlin/orbita/out/Matrices.kt:162) · 2026-08-22
+функция verificationMatrixView · не подключено на момент постановки Шага 16 (core/out/src/main/kotlin/orbita/out/Presentation.kt:31) · 2026-08-22
+функция notExecuted · не подключено на момент постановки Шага 16 (core/out/src/main/kotlin/orbita/out/Presentation.kt:72) · 2026-08-22
+функция bottlenecks · не подключено на момент постановки Шага 16 (core/out/src/main/kotlin/orbita/out/Presentation.kt:85) · 2026-08-22
+функция tpmOutsideReserves · не подключено на момент постановки Шага 16 (core/out/src/main/kotlin/orbita/out/Presentation.kt:99) · 2026-08-22
+функция datatypeDefinitions · не подключено на момент постановки Шага 16 (core/out/src/main/kotlin/orbita/out/ReqifMapping.kt:108) · 2026-08-22
+функция mappingIssues · не подключено на момент постановки Шага 16 (core/out/src/main/kotlin/orbita/out/ReqifMapping.kt:122) · 2026-08-22
+функция flattenedAsString · не подключено на момент постановки Шага 16 (core/out/src/main/kotlin/orbita/out/ReqifMapping.kt:204) · 2026-08-22
+функция treeCycle · не подключено на момент постановки Шага 16 (core/out/src/main/kotlin/orbita/out/Tree.kt:33) · 2026-08-22
+функция kpiRose · не подключено на момент постановки Шага 16 (core/bal/src/main/kotlin/orbita/bal/VizData.kt:46) · 2026-08-22
+функция kpiRoseJson · не подключено на момент постановки Шага 16 (core/bal/src/main/kotlin/orbita/bal/VizData.kt:52) · 2026-08-22
+функция availability · не подключено на момент постановки Шага 16 (core/bal/src/main/kotlin/orbita/bal/VizData.kt:74) · 2026-08-22
+функция availabilityHeatmap · не подключено на момент постановки Шага 16 (core/bal/src/main/kotlin/orbita/bal/VizData.kt:106) · 2026-08-22
+функция coverageByTarget · не подключено на момент постановки Шага 16 (core/bal/src/main/kotlin/orbita/bal/Coverage.kt:61) · 2026-08-22
