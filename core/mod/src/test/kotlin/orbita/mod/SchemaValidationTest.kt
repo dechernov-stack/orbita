@@ -27,9 +27,11 @@ class SchemaValidationTest {
         // разрешение $ref происходит в init реестра (fail fast) — сюда доходим, только если оно удалось
         // CR-003 добавил core/evidence и core/validation
         // 20-я — core/risk, добавлена на шаге 7 вместе с реестром рисков
-        // 21-я и 22-я — core/constellation и core/ground-stations (CR-005/ADR-021):
+        // 21-я и 22-я — core/constellation и core/ground-stations (CR-005/ADR-021),
+        // 23-я — core/interface (Шаг 16): правило «ровно две стороны» жило без
+        // схемы, и форма по схеме компонента не давала завести интерфейс:
         // входы моделирования стали хранимыми объектами и получили схемы в core/
-        assertEquals(22, registry.names.size, "нормативных схем должно быть 22: ${registry.names}")
+        assertEquals(23, registry.names.size, "нормативных схем должно быть 23: ${registry.names}")
     }
 
     @Test

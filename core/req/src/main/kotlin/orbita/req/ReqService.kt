@@ -281,6 +281,7 @@ class ReqService(
     /** Интерфейс IF-NNNN: две стороны ответственности (CR-003/ADR-019). */
     fun ingestInterface(json: String, createdBy: String = "api"): StoredObject {
         val doc = registry.parse(json)
+        registry.require("core/interface", doc)
         requireApplicationRules("interface", doc)
         return create(doc, "interface", createdBy)
     }

@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/core/interface.schema.json",
+  "title": "Interface",
+  "description": "Интерфейс между двумя элементами архитектуры: ровно две стороны-владельца (CR-003/ADR-019). До Шага 16 интерфейс проверялся правилом приёма без схемы — форма, построенная по схеме компонента, поля owners не имела, и завести интерфейс через интерфейс было нельзя.",
+  "type": "object",
+  "required": [
+    "id",
+    "name",
+    "owners",
+    "lifecycle"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^IF-[0-9]{4}$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "kind": {
+      "type": "string",
+      "description": "Природа интерфейса (данные, РЧ, механика); исторические записи несут служебное 'interface'"
+    },
+    "owners": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "type": "string",
+        "pattern": "^CM-[0-9]{4}$"
+      },
+      "description": "Ровно две стороны: элементы, которым интерфейс принадлежит (CR-003)"
+    },
+    "description": {
+      "type": "string"
+    },
+    "lifecycle": {
+      "$ref": "https://kis.local/schemas/common/status.schema.json"
+    },
+    "provenance": {
+      "$ref": "https://kis.local/schemas/common/provenance.schema.json"
+    }
+  }
+}

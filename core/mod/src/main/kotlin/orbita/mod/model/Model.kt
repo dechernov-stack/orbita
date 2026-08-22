@@ -21,7 +21,9 @@ enum class CoreType(val idPrefix: String, val dbType: String, val schemaName: St
     // CR-003/ADR-019: свидетельство, валидация и интерфейс — самостоятельные объекты
     Evidence("EV", "evidence", "core/evidence"),
     Validation("VA", "validation", "core/validation"),
-    Interface("IF", "interface", "core/component"),
+    // Своя схема (Шаг 16): правило «ровно две стороны» жило без схемы, и форма,
+    // построенная по схеме компонента, не давала завести интерфейс вовсе
+    Interface("IF", "interface", "core/interface"),
     // Шаг 7: реестр рисков — входной материал MCR и KDP (NPR 8000.4)
     Risk("RSK", "risk", "core/risk"),
 
