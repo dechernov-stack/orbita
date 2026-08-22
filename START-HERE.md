@@ -49,7 +49,7 @@ docker compose up --build      # открыть http://localhost:8080
 
 ## Текущий шаг
 
-Шаги 1–15 выполнены; Шаг 16 — блоки A и B (приёмка §4 — впереди).
+Шаги 1–16 выполнены (приёмка Шага 16 — docs/tz/STEP-16-ПРИЁМКА.md).
 Задания: `docs/tz/STEP-1.md` … `STEP-6.md`, `STEP-7-9.md`, `STEP-10-13.md`,
 `STEP-14.md`, `STEP-15.md`, `STEP-16.md` (+ `STEP-16-ИНВЕНТАРИЗАЦИЯ.md`).
 
