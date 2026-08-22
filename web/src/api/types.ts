@@ -479,3 +479,46 @@ export interface GlobeView {
   passes_total: number
   passes_truncated: boolean
 }
+
+/** Матрица трассировки (TZ-OUT-004): строка на требование, разрывы отдельно. */
+export interface TraceMatrixView {
+  rows: Array<{
+    requirement: string
+    needs: string[]
+    services: Array<{ id: string; consumer_class: string }>
+    elements: string[]
+    method: string | null
+  }>
+  gaps: Array<{ requirement: string; missing: string }>
+}
+
+/**
+ * Матрица верификации (шаг 16 §2.4): строка на пару «требование × событие»,
+ * разрывы — отдельным списком, а не пустой ячейкой; рядом непокрытые (TZ-REQ-008).
+ */
+export interface VerificationMatrixFlatView {
+  rows: Array<{
+    requirement: string
+    event: string
+    method: string | null
+    level: string | null
+    closes: boolean
+    approach: string
+    status: string | null
+    evidence_ref: string | null
+    evidence_stale: boolean
+  }>
+  gaps: Array<{ requirement: string; event: string | null; reason: string }>
+  unverified: string[]
+}
+
+export interface ValidationRow {
+  validation: string
+  target: string
+  conops_ref: string | null
+  product_kind: string | null
+  method: string | null
+  phase: string | null
+  status: string | null
+  evidence_ref: string | null
+}

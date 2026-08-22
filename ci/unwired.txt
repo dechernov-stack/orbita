@@ -12,9 +12,6 @@
 маршрут /reports/unaccepted-ai · не подключено на момент постановки Шага 16 (HttpApi.kt:191) · 2026-08-22
 маршрут /reports/stale-results · не подключено на момент постановки Шага 16 (HttpApi.kt:200) · 2026-08-22
 маршрут /reports/maturity · не подключено на момент постановки Шага 16 (HttpApi.kt:209) · 2026-08-22
-маршрут /reports/trace-matrix · не подключено на момент постановки Шага 16 (HttpApi.kt:234) · 2026-08-22
-маршрут /reports/verification-matrix · не подключено на момент постановки Шага 16 (HttpApi.kt:252) · 2026-08-22
-маршрут /reports/validation-matrix · не подключено на момент постановки Шага 16 (HttpApi.kt:272) · 2026-08-22
 маршрут /reports/inconsistent-allocations · не подключено на момент постановки Шага 16 (HttpApi.kt:284) · 2026-08-22
 маршрут /export/reqif · не подключено на момент постановки Шага 16 (HttpApi.kt:516) · 2026-08-22
 маршрут /views/spacecraft/mask-schedule · не подключено на момент постановки Шага 16 (HttpApi.kt:551) · 2026-08-22
@@ -31,8 +28,6 @@
 функция toExchange · не подключено на момент постановки Шага 16 (core/out/src/main/kotlin/orbita/out/Exchange.kt:29) · 2026-08-22
 функция exchangeToJson · не подключено на момент постановки Шага 16 (core/out/src/main/kotlin/orbita/out/Exchange.kt:44) · 2026-08-22
 функция toCsv · не подключено на момент постановки Шага 16 (core/out/src/main/kotlin/orbita/out/Exchange.kt:95) · 2026-08-22
-функция unverifiedRequirements · не подключено на момент постановки Шага 16 (core/out/src/main/kotlin/orbita/out/Matrices.kt:162) · 2026-08-22
-функция verificationMatrixView · не подключено на момент постановки Шага 16 (core/out/src/main/kotlin/orbita/out/Presentation.kt:31) · 2026-08-22
 функция notExecuted · не подключено на момент постановки Шага 16 (core/out/src/main/kotlin/orbita/out/Presentation.kt:72) · 2026-08-22
 функция bottlenecks · не подключено на момент постановки Шага 16 (core/out/src/main/kotlin/orbita/out/Presentation.kt:85) · 2026-08-22
 функция tpmOutsideReserves · не подключено на момент постановки Шага 16 (core/out/src/main/kotlin/orbita/out/Presentation.kt:99) · 2026-08-22
