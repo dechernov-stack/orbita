@@ -56,6 +56,8 @@ export interface KindRow {
 /** Схема вида с раскрытыми ссылками: по ней строится форма. */
 export type JsonSchema = {
   type?: string
+  /** Константа схемы: значение принадлежит схеме, не инженеру. */
+  const?: unknown
   title?: string
   description?: string
   required?: string[]
