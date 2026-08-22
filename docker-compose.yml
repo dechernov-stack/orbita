@@ -25,7 +25,13 @@ services:
 
   # Разовое заполнение демо-проектом «Орбита-IoT». Отдельный образ: фикстуры
   # в образ изделия не попадают (STEP-7-9 §7.2).
+  #
+  # Стенд по умолчанию поднимается ПУСТЫМ (ADR-028): демо — отдельный профиль
+  #   docker compose --profile demo up
+  # Иначе первый экран показывал бы чужой проект, а «пусто» и «сломано»
+  # обязан различать экран — и он различает (три состояния на каждом).
   seed:
+    profiles: ["demo"]
     build:
       context: .
       dockerfile: ops/api.Dockerfile
@@ -64,10 +70,6 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      # Модель наполняется до старта API: иначе первый экран мастера покажет
-      # пустые таблицы и будет выглядеть поломкой, а не пустым проектом.
-      seed:
-        condition: service_completed_successfully
     restart: unless-stopped
 
   web:

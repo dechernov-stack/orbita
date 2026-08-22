@@ -159,7 +159,7 @@ export function ComponentSpec({
                 onClick={() => {
                   setParamError(null)
                   edit
-                    .putParam(componentId, draft.name, draft.value === '' ? null : Number(draft.value), draft.unit, draft.formula || undefined)
+                    .putParam(componentId, draft.name, draft.value ? Number(draft.value) : null, draft.unit, draft.formula || undefined)
                     .then(() => { setDraft({ ...draft, name: '', value: '', formula: '' }); loadParams() })
                     .catch((e) => setParamError(String(e)))
                 }}

@@ -1117,7 +1117,43 @@ class HttpApi(private val boundary: Boundary) {
                             .put("error", "сравнение требует не менее двух вариантов: нормировать не по чему"),
                     )
                 } else {
-                    respond(ex, 200, mapper.valueToTree(orbita.out.comparisonView(options)))
+                    // Оси — из фактически имеющихся в результатах (шаг 16 §3.5):
+                    // отсутствие оси — сообщение инженеру с перечнем доступных,
+                    // а не отказ сервера. Порядок общий для всех вариантов.
+                    // доступна ось, которая есть во ВСЕХ вариантах и у которой
+                    // задано направление показателя: без направления нормировать
+                    // нельзя, и предлагать такую ось значит предлагать отказ
+                    val available = options.first().values.keys
+                        .filter { axis -> options.all { it.values.containsKey(axis) } }
+                        .filter { it in orbita.bal.KpiAxes.default.axes }
+                    val requested = query(ex)["axes"]?.split(',')?.map { it.trim() }?.filter { it.isNotBlank() }
+                    val missing = requested.orEmpty().filterNot { it in available }
+                    if (missing.isNotEmpty()) {
+                        return respond(
+                            ex, 409,
+                            mapper.createObjectNode().put(
+                                "error",
+                                "в результатах нет ос${if (missing.size == 1) "и" else "ей"} " +
+                                    "${missing.joinToString()}: доступны ${available.sorted().joinToString()}",
+                            ),
+                        )
+                    }
+                    // Набор по умолчанию — тоже из фактических, не константа
+                    val axes = requested
+                        ?: listOf("quality", "cost", "reliability").filter { it in available }
+                            .ifEmpty { available.sorted().take(3) }
+                    if (axes.isEmpty()) {
+                        return respond(
+                            ex, 409,
+                            mapper.createObjectNode()
+                                .put("error", "в результатах нет ни одной общей оси: сравнивать не по чему"),
+                        )
+                    }
+                    val view = orbita.out.comparisonView(options, axes = axes)
+                    val out = mapper.valueToTree<ObjectNode>(view)
+                    val avail = out.putArray("availableAxes")
+                    available.sorted().forEach(avail::add)
+                    respond(ex, 200, out)
                 }
             }
 

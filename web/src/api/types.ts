@@ -127,6 +127,8 @@ export interface ComparisonView {
   radar: RadarChart
   paretoFront: string[]
   axes: string[]
+  /** Оси, фактически имеющиеся во всех вариантах, — из них выбирают (§3.5). */
+  availableAxes: string[]
 }
 
 // ---------- экран 12: система в целом ----------
