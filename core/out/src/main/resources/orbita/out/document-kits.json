@@ -1,0 +1,26 @@
+{
+  "_comment": "Комплекты документов фаз (блок C задания «прогон до KDP B»): Д-код регламента → код шаблона DocumentTemplate. Источники составов — §6 БП-PPA (Д1–Д9) и §6 БП-PA (Д1–Д10). Д3 Pre-Phase A — черновик (Прил. 4 БП-PPA), Д3 Phase A — спецификация (Прил. 2 БП-PA); ConOps и FA общие для фаз; ODA один шаблон на Д7 (начальная) и Д8 (актуализированная). Прохождение точки требует выпуска документов Д-кодов её операций (ADR-029).",
+  "pre_phase_a": {
+    "Д1": "fad",
+    "Д2": "mission_concept",
+    "Д3": "req_draft",
+    "Д4": "conops",
+    "Д5": "tech_needs",
+    "Д6": "risk_list",
+    "Д7": "oda",
+    "Д8": "cost_estimate",
+    "Д9": "formulation_agreement"
+  },
+  "phase_a": {
+    "Д1": "formulation_agreement",
+    "Д2": "semp",
+    "Д3": "req_spec",
+    "Д4": "conops",
+    "Д5": "architecture",
+    "Д6": "tech_plan",
+    "Д7": "risk_plan",
+    "Д8": "oda",
+    "Д9": "cost_ranges",
+    "Д10": "project_plan"
+  }
+}

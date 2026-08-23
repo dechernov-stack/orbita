@@ -44,7 +44,17 @@ enum class CoreType(val idPrefix: String, val dbType: String, val schemaName: St
     Technology("TL", "technology", "core/technology"),
     Decision("DN", "decision", "core/decision"),
     Project("PJ", "project", "core/project"),
-    DocumentIssue("DI", "document_issue", "core/document-issue");
+    DocumentIssue("DI", "document_issue", "core/document-issue"),
+
+    // Блок C задания «прогон до KDP B»: материал точек — виды, на которые
+    // регламенты ссылались, а система не хранила (цели и MOE, альтернативы,
+    // стоимость, ODA, замечания обзора, WBS).
+    MissionGoal("MG", "mission_goal", "core/mission-goal"),
+    Alternative("AL", "alternative", "core/alternative"),
+    CostEstimate("CE", "cost_estimate", "core/cost-estimate"),
+    Oda("OD", "oda", "core/oda"),
+    ReviewItem("RF", "review_item", "core/review-item"),
+    WbsElement("WB", "wbs_element", "core/wbs-element");
 
     companion object {
         fun byDbType(t: String): CoreType = entries.firstOrNull { it.dbType == t }

@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/core/cost-estimate.schema.json",
+  "title": "CostEstimate",
+  "description": "Оценка стоимости и сроков (блок C; БП-PPA О8/Д8 — rough order of magnitude, БП-PA О10/Д9 — диапазоны high/low к KDP B). Величины — quantity с единицей и происхождением: число без единицы в модели недопустимо.",
+  "type": "object",
+  "required": ["id", "name", "kind", "total_low", "total_high", "lifecycle"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {"type": "string", "pattern": "^CE-[0-9]{4}$"},
+    "name": {"type": "string", "minLength": 1},
+    "kind": {"enum": ["rom", "range"], "description": "rom — концептуальная оценка порядка величины (Pre-Phase A); range — диапазон high/low к KDP B (Phase A)"},
+    "basis": {"type": "string", "description": "Основание оценки: аналоги, параметрическая модель, экспертиза"},
+    "total_low": {"$ref": "https://kis.local/schemas/common/quantity.schema.json"},
+    "total_high": {"$ref": "https://kis.local/schemas/common/quantity.schema.json"},
+    "schedule_months_low": {"type": "integer", "minimum": 0},
+    "schedule_months_high": {"type": "integer", "minimum": 0},
+    "items": {
+      "type": "array",
+      "description": "Разбивка по WBS",
+      "items": {
+        "type": "object",
+        "required": ["name", "low", "high"],
+        "additionalProperties": false,
+        "properties": {
+          "wbs_ref": {"type": "string", "pattern": "^WB-[0-9]{4}$"},
+          "name": {"type": "string", "minLength": 1},
+          "low": {"$ref": "https://kis.local/schemas/common/quantity.schema.json"},
+          "high": {"$ref": "https://kis.local/schemas/common/quantity.schema.json"}
+        }
+      }
+    },
+    "lifecycle": {"$ref": "https://kis.local/schemas/common/status.schema.json"},
+    "provenance": {"$ref": "https://kis.local/schemas/common/provenance.schema.json"}
+  }
+}

@@ -60,7 +60,7 @@
         "properties": {
           "ref": {
             "type": "string",
-            "pattern": "^(ND|SV|RQ)-[0-9]{4}$"
+            "pattern": "^(MG|ND|SV|RQ)-[0-9]{4}$"
           },
           "consumer_class": {
             "enum": [

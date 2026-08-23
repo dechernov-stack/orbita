@@ -37,6 +37,13 @@ private val COLLECTIONS = linkedMapOf(
     CoreType.Conops.dbType to "conops_scenarios",
     CoreType.Technology.dbType to "technologies",
     CoreType.Decision.dbType to "decisions",
+    // Блок C задания «прогон до KDP B»: материал точек
+    CoreType.MissionGoal.dbType to "mission_goals",
+    CoreType.Alternative.dbType to "alternatives",
+    CoreType.CostEstimate.dbType to "cost_estimates",
+    CoreType.Oda.dbType to "oda_assessments",
+    CoreType.ReviewItem.dbType to "review_items",
+    CoreType.WbsElement.dbType to "wbs_elements",
 )
 
 /**

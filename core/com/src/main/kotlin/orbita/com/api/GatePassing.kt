@@ -32,8 +32,10 @@ class GatePassing(
      * Полная верификация точку Формулирования не блокирует — она закрывается
      * в Phase C/D и остаётся сведением отчёта зрелости.
      *
-     * Незакрытые блокирующие замечания обзора (RFA/RID) встанут сюда, как
-     * только вид появится (блок C); до этого проверка отсутствует честно.
+     * Блок C добавил сюда замечания обзора (RFA/RID): незакрытое критическое
+     * замечание своей точки блокирует прохождение; comment/question/
+     * recommendation — нет. И выпуски комплекта: Д-коды операций точки обязаны
+     * иметь выпуск документа своего шаблона (комплект Д1–Д9 / Д1–Д10).
      */
     fun issues(gate: String, projectId: String): List<String> {
         val project = projectOf(projectId)
@@ -65,6 +67,35 @@ class GatePassing(
                 report.openTbd.forEach { add("${it.id}: незакрытый TBD/TBR") }
                 report.traceBreaks.forEach { add("$it: требование без входящей нити трассировки") }
             }
+            // незакрытые критические замечания обзора точки (блок C)
+            boundary.objects.listCurrent(projectId)
+                .filter { it.type == "review_item" }
+                .map { it.doc }
+                .filter {
+                    it.path("review_gate").asText() == gate &&
+                        it.path("classification").asText() == "critical" &&
+                        it.path("status").asText() != "closed"
+                }
+                .sortedBy { it.path("id").asText() }
+                .forEach {
+                    add("${it.path("id").asText()}: незакрытое критическое замечание обзора — " +
+                        it.path("statement").asText(""))
+                }
+            // выпуски комплекта точки (блок C): Д-коды операций → шаблоны фазы
+            val kit = orbita.out.DocumentKits.kit(phase)
+            val issued = boundary.objects.listCurrent(projectId)
+                .filter { it.type == "document_issue" }
+                .map { it.doc.path("template").asText() }
+                .toSet()
+            rows.filter { it.operation.gate == gate }
+                .flatMap { r -> r.operation.docs }
+                .distinct().sorted()
+                .forEach { d ->
+                    val template = kit[d] ?: return@forEach
+                    if (template !in issued) {
+                        add("$d: документ не выпущен (шаблон $template — POST /export/documents/$template/issue)")
+                    }
+                }
         }
     }
 

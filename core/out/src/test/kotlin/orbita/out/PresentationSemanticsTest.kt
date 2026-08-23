@@ -429,7 +429,8 @@ class PresentationSemanticsTest {
 
         @Test
         fun `неизвестный шаблон отклонён`() {
-            assertThrows<IllegalArgumentException> { DocumentTemplate.of("semp") }
+            // «semp» был примером несуществующего, пока блок C его не завёл
+            assertThrows<IllegalArgumentException> { DocumentTemplate.of("no_such_template") }
         }
     }
 

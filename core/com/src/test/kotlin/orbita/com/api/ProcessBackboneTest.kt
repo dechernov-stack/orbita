@@ -81,15 +81,17 @@ class ProcessBackboneTest {
         assertEquals("internal_review", ops["next_gate"].asText())
         val byCode = ops["operations"].associateBy { it["code"].asText() }
         assertEquals("NotStarted", byCode["О2"]!!["state"].asText())
-        // стоимость (О8) до блока C системой не измеряется — видимый пробел
-        assertEquals("NotMeasurable", byCode["О8"]!!["state"].asText())
+        // блок C сделал стоимость (О8) измеримой; компиляция MCReport (О9)
+        // видов не порождает — видимый пробел, а не прочерк
+        assertEquals("NotStarted", byCode["О8"]!!["state"].asText())
+        assertEquals("NotMeasurable", byCode["О9"]!!["state"].asText())
         assertEquals(15, ops["operations"].size())
     }
 
     @Test
     @Order(3)
     fun `материал внесён - внутренний обзор проходится и фиксируется решением`() {
-        // выходы операций КТ-1 (О2–О7): черновики всех видов, что есть в системе
+        // выходы операций КТ-1 (О2–О11): черновики всех видов, что есть в системе
         listOf(
             "/objects/need" to """{"id":"ND-1001","statement":"Сбор телеметрии удалённых датчиков.",
                 "stakeholder":{"name":"Оператор","role":"operator"},
@@ -110,8 +112,40 @@ class ProcessBackboneTest {
                 "statement":"При задержке поставки — срыв интеграции — сдвиг обзора",
                 "category":"schedule","probability":2,"impact":2,
                 "owner":"руководитель","status":"open"}""",
+            // блок C: цели, альтернативы, стоимость, ODA — тоже выходы КТ-1
+            "/objects/mission_goal" to """{"id":"MG-1001","kind":"goal",
+                "statement":"Обеспечить суточный сбор телеметрии на всей территории обслуживания.",
+                "traces_up":["ND-1001"],
+                "moe":[{"id":"MOE-1001","name":"Вероятность суточной доставки",
+                        "target":{"value":0.9,"unit":"1","provenance":{"source":"manual"}}}],
+                "lifecycle":{"status":"Draft","version":"1"}}""",
+            "/objects/alternative" to """{"id":"AL-1001","name":"Walker 8/2","kind":"option",
+                "summary":"Восемь КА в двух плоскостях",
+                "criteria":[{"name":"покрытие","score":4}],
+                "lifecycle":{"status":"Draft","version":"1"}}""",
+            "/objects/cost_estimate" to """{"id":"CE-1001","name":"Концептуальная оценка","kind":"rom",
+                "basis":"аналоги",
+                "total_low":{"value":1.2e9,"unit":"RUB","provenance":{"source":"manual"}},
+                "total_high":{"value":2.4e9,"unit":"RUB","provenance":{"source":"manual"}},
+                "lifecycle":{"status":"Draft","version":"1"}}""",
+            "/objects/oda" to """{"id":"OD-1001","kind":"initial",
+                "deorbit_years":{"value":8,"unit":"a","provenance":{"source":"manual"}},
+                "findings":[{"rule":"4.5-1 увод с НОО ≤ 25 лет","compliant":true}],
+                "lifecycle":{"status":"Draft","version":"1"}}""",
         ).forEach { (path, body) ->
             assertEquals(201, post(path, body).statusCode()) { "$path: ${post(path, body).body()}" }
+        }
+
+        // комплект Д1–Д9: без выпусков точка не проходится и называет документы
+        val noDocs = post("/gates/internal_review/pass", """{$author,"rationale":"комплект"}""")
+        assertEquals(409, noDocs.statusCode()) { noDocs.body() }
+        assertTrue("не выпущен" in noDocs.body()) { noDocs.body() }
+        orbita.out.DocumentKits.PRE_PHASE_A.values.toSortedSet().forEach { template ->
+            val issued = post(
+                "/export/documents/$template/issue",
+                """{$author,"issued_at":"2026-08-23T00:00:00Z"}""",
+            )
+            assertEquals(201, issued.statusCode()) { "$template: ${issued.body()}" }
         }
 
         val r = post("/gates/internal_review/pass", """{$author,"rationale":"комплект КТ-1 собран"}""")
@@ -168,15 +202,42 @@ class ProcessBackboneTest {
         // нужда Draft ниже требуемого Approved — названа поимённо
         assertTrue(notReady.body().contains("ND-1001")) { notReady.body() }
 
-        // довод зрелости: нужда → Approved, технология и риск → Preliminary
-        listOf("ND-1001" to "Approved", "TL-1001" to "Preliminary", "RSK-1001" to "Preliminary")
-            .forEach { (id, status) ->
-                val p = post("/objects/$id/promote", """{"status":"$status"}""")
-                assertEquals(200, p.statusCode()) { "$id: ${p.body()}" }
-            }
+        // довод зрелости: нужда и цель → Approved, остальное → Preliminary
+        listOf(
+            "ND-1001" to "Approved", "MG-1001" to "Approved",
+            "TL-1001" to "Preliminary", "RSK-1001" to "Preliminary",
+            "AL-1001" to "Preliminary", "CE-1001" to "Preliminary",
+        ).forEach { (id, status) ->
+            val p = post("/objects/$id/promote", """{"status":"$status"}""")
+            assertEquals(200, p.statusCode()) { "$id: ${p.body()}" }
+        }
 
         val r = post("/gates/MCR/pass", """{$author,"rationale":"концепция признана зрелой"}""")
         assertEquals(200, r.statusCode()) { r.body() }
         assertEquals("KDP-A", mapper.readTree(r.body())["next_gate"].asText())
+    }
+
+    @Test
+    @Order(7)
+    fun `критическое замечание обзора блокирует точку, закрытие с ответом открывает`() {
+        // KDP-A: замечание категории critical от обзора KDP-A
+        val created = post(
+            "/objects/review_item",
+            """{"id":"RF-1001","review_gate":"KDP-A","classification":"critical",
+                "statement":"Стоимость наземного сегмента не обоснована",
+                "status":"open","owner":"офис оценки стоимости"}""",
+        )
+        assertEquals(201, created.statusCode()) { created.body() }
+
+        val blocked = post("/gates/KDP-A/pass", """{$author,"rationale":"комплект готов"}""")
+        assertEquals(409, blocked.statusCode()) { blocked.body() }
+        assertTrue("RF-1001" in blocked.body()) { blocked.body() }
+
+        // закрытие без ответа отклоняется правилом вида
+        val bare = post(
+            "/edit/RF-1001",
+            """{$author,"base_version":"1","doc":{"status":"closed"}}""",
+        )
+        assertTrue(bare.statusCode() != 200) { bare.body() }
     }
 }

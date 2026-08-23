@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/core/oda.schema.json",
+  "title": "OrbitalDebrisAssessment",
+  "description": "Оценка орбитального засорения (блок C; БП-PPA О7/Д7 — начальная, БП-PA О9/Д8 — актуализированная; NASA-STD-8719.14). Соответствие — перечнем проверенных правил стандарта, а не одним флагом.",
+  "type": "object",
+  "required": ["id", "kind", "deorbit_years", "findings", "lifecycle"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {"type": "string", "pattern": "^OD-[0-9]{4}$"},
+    "kind": {"enum": ["initial", "updated"]},
+    "deorbit_years": {"$ref": "https://kis.local/schemas/common/quantity.schema.json"},
+    "casualty_risk": {"$ref": "https://kis.local/schemas/common/quantity.schema.json"},
+    "findings": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Проверенные правила NASA-STD-8719.14",
+      "items": {
+        "type": "object",
+        "required": ["rule", "compliant"],
+        "additionalProperties": false,
+        "properties": {
+          "rule": {"type": "string", "minLength": 1, "description": "Пункт стандарта, напр. «4.5-1 увод с НОО ≤ 25 лет»"},
+          "compliant": {"type": "boolean"},
+          "note": {"type": "string"}
+        }
+      }
+    },
+    "lifecycle": {"$ref": "https://kis.local/schemas/common/status.schema.json"},
+    "provenance": {"$ref": "https://kis.local/schemas/common/provenance.schema.json"}
+  }
+}

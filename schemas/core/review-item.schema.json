@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/core/review-item.schema.json",
+  "title": "ReviewItem",
+  "description": "Замечание обзорной комиссии RFA/RID (блок C; БП-PPA/БП-PA §2, выход обзоров КТ). Классифицируется и закрывается; незакрытое замечание категории critical блокирует прохождение своей точки (ADR-029). Статусная модель документа не применяется — у замечания собственный цикл open → in_work → closed, как у риска.",
+  "type": "object",
+  "required": ["id", "review_gate", "classification", "statement", "status", "owner"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {"type": "string", "pattern": "^RF-[0-9]{4}$"},
+    "review_gate": {"type": "string", "minLength": 1, "description": "Точка, обзор которой выдал замечание (internal_review, MCR, SRR, SDR…)"},
+    "classification": {"enum": ["critical", "comment", "question", "recommendation"], "description": "critical блокирует прохождение точки; остальные — нет"},
+    "statement": {"type": "string", "minLength": 1},
+    "status": {"enum": ["open", "in_work", "closed"]},
+    "owner": {"type": "string", "minLength": 1},
+    "due": {"type": "string", "description": "Срок устранения, ISO-дата"},
+    "response": {"type": "string", "description": "Как устранено; обязателен при закрытии"},
+    "source": {"type": "string", "description": "Кто выдал: комиссия, участник обзора"},
+    "provenance": {"$ref": "https://kis.local/schemas/common/provenance.schema.json"}
+  }
+}

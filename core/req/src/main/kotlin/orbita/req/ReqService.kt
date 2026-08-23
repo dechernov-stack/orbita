@@ -91,6 +91,17 @@ class ReqService(
                 }
             }
 
+            // Блок C: закрытое замечание без ответа — «устранили, но не скажем как»
+            "review_item" -> {
+                if (doc.path("status").asText() == "closed" &&
+                    doc.path("response").asText("").isBlank()
+                ) {
+                    throw ModelViolationException(
+                        "C: замечание закрывается с ответом (response) — как устранено"
+                    )
+                }
+            }
+
             // Шаг 17 C5: одобрение безымянным не бывает
             "document_issue" -> {
                 if (doc.path("status").asText() == "approved" &&
@@ -207,6 +218,10 @@ class ReqService(
                     "conops" -> d.path("traces_up").forEach { nd ->
                         put(Triple(nd.asText(), objId, "trace"), Attrs())
                     }
+                    // Цель миссии выводится из нужд (блок C; БП-PPA О2)
+                    "mission_goal" -> d.path("traces_up").forEach { nd ->
+                        put(Triple(nd.asText(), objId, "trace"), Attrs())
+                    }
                     "requirement" -> {
                         d.path("traces_up").forEach { t ->
                             put(
@@ -234,7 +249,7 @@ class ReqService(
         val want = desired(type, id, doc).toMutableMap()
         val existing = when (type) {
             "need" -> links.linksFrom(id, "trace")
-            "service", "conops" -> links.linksTo(id, "trace")
+            "service", "conops", "mission_goal" -> links.linksTo(id, "trace")
             "requirement" ->
                 links.linksTo(id, "trace") + links.linksFrom(id, "allocation") + links.linksTo(id, "derive")
             else -> emptyList()
@@ -363,6 +378,21 @@ class ReqService(
         return conn.tx {
             val stored = create(doc, "conops", createdBy, projectId)
             syncLinks("conops", stored.id, doc, projectId)
+            stored
+        }
+    }
+
+    /** Цель миссии (блок C): traces_up разворачивает нужды связями, как ConOps. */
+    fun ingestMissionGoal(
+        json: String,
+        createdBy: String = "api",
+        projectId: String = ObjectStore.DEFAULT_PROJECT,
+    ): StoredObject {
+        val doc = registry.parse(json)
+        registry.require("core/mission-goal", doc)
+        return conn.tx {
+            val stored = create(doc, "mission_goal", createdBy, projectId)
+            syncLinks("mission_goal", stored.id, doc, projectId)
             stored
         }
     }

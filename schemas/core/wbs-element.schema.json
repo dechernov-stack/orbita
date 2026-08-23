@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/core/wbs-element.schema.json",
+  "title": "WbsElement",
+  "description": "Элемент структуры декомпозиции работ (блок C; БП-PPA §2 WBS, MEL по WBS в О3, разбивка оценок стоимости). Дерево — по parent; код — иерархический номер.",
+  "type": "object",
+  "required": ["id", "code", "name", "lifecycle"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {"type": "string", "pattern": "^WB-[0-9]{4}$"},
+    "code": {"type": "string", "pattern": "^[0-9]+(\\.[0-9]+)*$", "description": "Иерархический номер, напр. 1.2.3"},
+    "name": {"type": "string", "minLength": 1},
+    "parent": {"type": "string", "pattern": "^WB-[0-9]{4}$"},
+    "owner": {"type": "string"},
+    "component_refs": {
+      "type": "array",
+      "items": {"type": "string", "pattern": "^(CM|IF)-[0-9]{4}$"},
+      "description": "Элементы архитектуры, закреплённые за пакетом работ"
+    },
+    "lifecycle": {"$ref": "https://kis.local/schemas/common/status.schema.json"},
+    "provenance": {"$ref": "https://kis.local/schemas/common/provenance.schema.json"}
+  }
+}

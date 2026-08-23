@@ -106,6 +106,20 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
         CoreType.Interface -> req.ingestInterface(json, createdBy, projectId)
         CoreType.Risk -> req.ingestRisk(json, createdBy, projectId)
         CoreType.Conops -> req.ingestConops(json, createdBy, projectId)
+        CoreType.MissionGoal -> req.ingestMissionGoal(json, createdBy, projectId)
+        // Блок C: замечание обзора несёт правило закрытия сверх схемы
+        CoreType.ReviewItem -> {
+            val doc = parse(json)
+            registry.require(type.schemaName, doc)
+            req.requireApplicationRules("review_item", doc)
+            store(type, doc, createdBy, projectId)
+        }
+        // Блок C: альтернативы, стоимость, ODA, WBS — схема и статусная модель
+        CoreType.Alternative, CoreType.CostEstimate, CoreType.Oda, CoreType.WbsElement -> {
+            val doc = parse(json)
+            registry.require(type.schemaName, doc)
+            store(type, doc, createdBy, projectId)
+        }
         // Решение проверяется правилом C3 сверх схемы; технология, проект и
         // выпуск документа — схема и статусная модель, общий путь сохранения
         CoreType.Decision -> {

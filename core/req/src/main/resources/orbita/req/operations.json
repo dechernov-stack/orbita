@@ -29,7 +29,8 @@
         "text": "Перечень целей и задач миссии; перечень ограничений",
         "doc": null,
         "kinds": [
-          "need"
+          "need",
+          "mission_goal"
         ]
       },
       "gate": "internal_review",
@@ -48,7 +49,8 @@
         "text": "Отчёты по альтернативам; матрицы AoA; MEL по WBS; CAD-модель (при наличии)",
         "doc": null,
         "kinds": [
-          "component"
+          "component",
+          "alternative"
         ]
       },
       "gate": "internal_review",
@@ -129,7 +131,8 @@
           "Д7"
         ],
         "kinds": [
-          "risk"
+          "risk",
+          "oda"
         ]
       },
       "gate": "internal_review",
@@ -147,7 +150,9 @@
       "output": {
         "text": "Д8 — концептуальные оценки стоимости и сроков; материалы ASM; CADRe (начальный)",
         "doc": "Д8",
-        "kinds": []
+        "kinds": [
+          "cost_estimate"
+        ]
       },
       "gate": "internal_review",
       "required_status": "Draft"
@@ -441,7 +446,9 @@
       "output": {
         "text": "Д8 — ODA (акт.); предварительные планы SMA",
         "doc": "Д8",
-        "kinds": []
+        "kinds": [
+          "oda"
+        ]
       },
       "gate": "KDP-B",
       "required_status": "Preliminary"
@@ -458,7 +465,9 @@
       "output": {
         "text": "Д9 — диапазоны стоимости и сроков; CADRe (акт.); материалы по закупкам",
         "doc": "Д9",
-        "kinds": []
+        "kinds": [
+          "cost_estimate"
+        ]
       },
       "gate": "KDP-B",
       "required_status": "Preliminary"

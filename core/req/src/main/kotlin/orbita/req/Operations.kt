@@ -68,7 +68,8 @@ class Operations(
             val state = when {
                 op.kinds.isEmpty() -> OperationState.NotMeasurable
                 relevant.isEmpty() -> OperationState.NotStarted
-                op.requiredStatus == null -> OperationState.InProgress
+                // статус к точке не требуется — наличие выхода и есть выполнение
+                op.requiredStatus == null -> OperationState.Done
                 op.kinds.all { kind ->
                     val objs = byKind[kind].orEmpty()
                     objs.isNotEmpty() && objs.all {

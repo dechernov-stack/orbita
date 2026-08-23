@@ -38,7 +38,7 @@ def operation_state(op, objects):
         return "NotStarted"
     required = op.get("required_status")
     if required is None:
-        return "InProgress"
+        return "Done"      # статус к точке не требуется — наличие выхода и есть выполнение
     for kind in kinds:
         of_kind = [o for o in alive if o["type"] == kind]
         if not of_kind or any(ORDER.index(o.get("status", "Draft")) < ORDER.index(required)
@@ -94,6 +94,35 @@ def can_pass(gate, milestones, active_return, issues):
     return (not reasons), reasons
 
 
+KITS = json.loads(
+    (ROOT / "core/out/src/main/resources/orbita/out/document-kits.json").read_text()
+)
+
+
+def kit(phase):
+    """Комплект документов фазы: Д-код → шаблон (блок C, document-kits.json)."""
+    return KITS.get(phase, KITS["pre_phase_a"])
+
+
+def blocking_reviews(gate, review_items):
+    """Незакрытые критические замечания точки блокируют её (блок C, ADR-029)."""
+    return [r["id"] for r in review_items
+            if r.get("review_gate") == gate
+            and r.get("classification") == "critical"
+            and r.get("status") != "closed"]
+
+
+def missing_issues(gate, phase, issued_templates):
+    """Д-коды операций точки без выпуска документа своего шаблона."""
+    reg = load_operations()
+    k = kit(phase)
+    dcodes = sorted({d for op in reg["operations"]
+                     if op["phase"] == phase and op.get("gate") == gate
+                     for d in ((op["output"]["doc"] if isinstance(op["output"]["doc"], list)
+                                else [op["output"]["doc"]]) if op["output"]["doc"] else [])})
+    return [d for d in dcodes if d in k and k[d] not in set(issued_templates)]
+
+
 def return_targets(phase, gate):
     """Допустимые цели возврата — §5.1 регламентов, из реестра."""
     for r in load_operations().get("returns", []):
@@ -117,14 +146,15 @@ if __name__ == "__main__":
 
     reg = load_operations()
     o2 = next(o for o in reg["operations"] if o["phase"] == "pre_phase_a" and o["code"] == "О2")
-    o8 = next(o for o in reg["operations"] if o["phase"] == "pre_phase_a" and o["code"] == "О8")
+    o9 = next(o for o in reg["operations"] if o["phase"] == "pre_phase_a" and o["code"] == "О9")
 
     check("пустой проект: операция с видами — не начата",
           operation_state(o2, []) == "NotStarted")
     check("операция без видов в системе — нечем измерить (не прочерк)",
-          operation_state(o8, []) == "NotMeasurable")
+          operation_state(o9, []) == "NotMeasurable")
     check("черновик достаточен, когда планка Draft",
-          operation_state(o2, [{"type": "need", "status": "Draft"}]) == "Done")
+          operation_state(o2, [{"type": "need", "status": "Draft"},
+                               {"type": "mission_goal", "status": "Draft"}]) == "Done")
     check("один из объектов ниже планки — в работе",
           operation_state(dict(o2, required_status="Approved"),
                           [{"type": "need", "status": "Draft"}]) == "InProgress")
@@ -154,6 +184,25 @@ if __name__ == "__main__":
           can_pass("MCR", ms, None, [])[0] is True)
     check("все вехи пройдены — проходить нечего",
           can_pass("KDP-A", [{"gate": "KDP-A", "held": True}], None, [])[0] is False)
+
+    check("комплекты полны: Д1–Д9 и Д1–Д10",
+          list(kit("pre_phase_a")) == [f"Д{i}" for i in range(1, 10)] and
+          list(kit("phase_a")) == [f"Д{i}" for i in range(1, 11)])
+    check("КТ-1 без выпусков требует все девять документов",
+          len(missing_issues("internal_review", "pre_phase_a", [])) == 9)
+    check("выпуск шаблона закрывает свой Д-код",
+          "Д1" not in missing_issues("internal_review", "pre_phase_a", ["fad"]))
+    check("критическое незакрытое замечание своей точки блокирует",
+          blocking_reviews("MCR", [{"id": "RF-1", "review_gate": "MCR",
+                                    "classification": "critical", "status": "open"}]) == ["RF-1"])
+    check("замечание-вопрос и чужая точка не блокируют",
+          blocking_reviews("MCR", [
+              {"id": "RF-2", "review_gate": "MCR", "classification": "question", "status": "open"},
+              {"id": "RF-3", "review_gate": "SRR", "classification": "critical", "status": "open"},
+          ]) == [])
+    check("закрытое критическое не блокирует",
+          blocking_reviews("MCR", [{"id": "RF-4", "review_gate": "MCR",
+                                    "classification": "critical", "status": "closed"}]) == [])
 
     check("возвраты MCR — только О3 (§5.1 БП-PPA)",
           return_targets("pre_phase_a", "MCR") == ["О3"])

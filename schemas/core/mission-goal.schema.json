@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/core/mission-goal.schema.json",
+  "title": "MissionGoal",
+  "description": "Цель или задача миссии с показателями эффективности (блок C задания «прогон до KDP B»; БП-PPA О2, Прил. 3 §1: цели; задачи; MOE; связь с программными целями). Верх нити трассировки требований: цель выводится из нужд стейкхолдеров и программных целей.",
+  "type": "object",
+  "required": ["id", "kind", "statement", "lifecycle"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {"type": "string", "pattern": "^MG-[0-9]{4}$"},
+    "kind": {"enum": ["goal", "objective"], "description": "goal — цель миссии; objective — задача, конкретизирующая цель"},
+    "statement": {"type": "string", "minLength": 1},
+    "program_link": {"type": "string", "description": "Связь с целями Агентства и дирекции (Прил. 3 §1)"},
+    "parent": {"type": "string", "pattern": "^MG-[0-9]{4}$", "description": "Задача принадлежит цели"},
+    "traces_up": {
+      "type": "array",
+      "items": {"type": "string", "pattern": "^ND-[0-9]{4}$"},
+      "description": "Нужды стейкхолдеров, из которых цель выведена (О2)"
+    },
+    "moe": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "target"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {"type": "string", "pattern": "^MOE-[0-9]{4}$"},
+          "name": {"type": "string", "minLength": 1, "description": "Показатель эффективности миссии — свободное имя, не перечень сервисных MOE"},
+          "target": {"$ref": "https://kis.local/schemas/common/quantity.schema.json"}
+        }
+      }
+    },
+    "lifecycle": {"$ref": "https://kis.local/schemas/common/status.schema.json"},
+    "provenance": {"$ref": "https://kis.local/schemas/common/provenance.schema.json"}
+  }
+}

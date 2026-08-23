@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/core/alternative.schema.json",
+  "title": "Alternative",
+  "description": "Альтернатива концепции или допустимое сокращение (descope) — материал AoA (блок C; БП-PPA О3, Прил. 3 §2 и §9: пространство альтернатив, критерии сравнения, матрицы оценки, обоснование выбора). Выбор фиксируется отдельным объектом decision.",
+  "type": "object",
+  "required": ["id", "name", "kind", "summary", "lifecycle"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {"type": "string", "pattern": "^AL-[0-9]{4}$"},
+    "name": {"type": "string", "minLength": 1},
+    "kind": {"enum": ["option", "descope"], "description": "option — вариант концепции; descope — допустимое сокращение состава/характеристик (Прил. 3 §9)"},
+    "summary": {"type": "string", "minLength": 1},
+    "criteria": {
+      "type": "array",
+      "description": "Матрица AoA: оценка по критериям сравнения",
+      "items": {
+        "type": "object",
+        "required": ["name", "score"],
+        "additionalProperties": false,
+        "properties": {
+          "name": {"type": "string", "minLength": 1},
+          "score": {"type": "number"},
+          "rationale": {"type": "string"}
+        }
+      }
+    },
+    "scenario_ref": {"type": "string", "pattern": "^SC-[0-9]{4}$", "description": "Сценарий моделирования, которым альтернатива посчитана"},
+    "consequences": {"type": "string", "description": "Для descope — оценка последствий сокращения (Прил. 3 §9)"},
+    "lifecycle": {"$ref": "https://kis.local/schemas/common/status.schema.json"},
+    "provenance": {"$ref": "https://kis.local/schemas/common/provenance.schema.json"}
+  }
+}
