@@ -1,0 +1,685 @@
+{
+ "_comment": "Материал Pre-Phase A для шага 7 ПМИ: состав системы и интерфейсы, элементы WBS, альтернативы AoA и descope, оценки стоимости (ROM и диапазоны), ODA начальная и актуализированная, риски по NPR 8000.4, технологии с планами созревания, сценарии ConOps. Формат загрузки пачкой (POST /import/objects).",
+ "author": "Подготовка ПМИ",
+ "objects": [
+  {
+   "id": "CM-0001",
+   "name": "Космический сегмент",
+   "kind": "segment",
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   }
+  },
+  {
+   "id": "CM-0002",
+   "name": "Космический аппарат платформы IoT",
+   "kind": "system",
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "parent": "CM-0001"
+  },
+  {
+   "id": "CM-0003",
+   "name": "Полезная нагрузка IoT",
+   "kind": "subsystem",
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "parent": "CM-0002"
+  },
+  {
+   "id": "CM-0004",
+   "name": "Служебная платформа",
+   "kind": "subsystem",
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "parent": "CM-0002"
+  },
+  {
+   "id": "CM-0005",
+   "name": "Наземный сегмент",
+   "kind": "segment",
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   }
+  },
+  {
+   "id": "CM-0006",
+   "name": "Станция приёма и управления",
+   "kind": "system",
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "parent": "CM-0005"
+  },
+  {
+   "id": "CM-0007",
+   "name": "Центр обработки данных",
+   "kind": "system",
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "parent": "CM-0005"
+  },
+  {
+   "id": "CM-0008",
+   "name": "Пользовательский сегмент",
+   "kind": "segment",
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   }
+  },
+  {
+   "id": "CM-0009",
+   "name": "Терминал класса A'",
+   "kind": "system",
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "parent": "CM-0008"
+  },
+  {
+   "id": "CM-0010",
+   "name": "Терминал класса B'",
+   "kind": "system",
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "parent": "CM-0008"
+  },
+  {
+   "id": "IF-0001",
+   "name": "Радиолиния КА — станция",
+   "kind": "interface",
+   "owners": [
+    "CM-0002",
+    "CM-0006"
+   ],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   }
+  },
+  {
+   "id": "IF-0002",
+   "name": "Платформа — полезная нагрузка",
+   "kind": "interface",
+   "owners": [
+    "CM-0004",
+    "CM-0003"
+   ],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   }
+  },
+  {
+   "id": "WB-0001",
+   "code": "1",
+   "name": "Космическая система",
+   "owner": "руководитель проекта",
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   }
+  },
+  {
+   "id": "WB-0002",
+   "code": "1.1",
+   "name": "Космический сегмент",
+   "owner": "руководитель проекта",
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "parent": "WB-0001"
+  },
+  {
+   "id": "WB-0003",
+   "code": "1.2",
+   "name": "Наземный сегмент",
+   "owner": "руководитель проекта",
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "parent": "WB-0001"
+  },
+  {
+   "id": "WB-0004",
+   "code": "1.3",
+   "name": "Пользовательский сегмент",
+   "owner": "руководитель проекта",
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "parent": "WB-0001"
+  },
+  {
+   "id": "WB-0005",
+   "code": "1.4",
+   "name": "Системная инженерия",
+   "owner": "руководитель проекта",
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "parent": "WB-0001"
+  },
+  {
+   "id": "WB-0006",
+   "code": "1.5",
+   "name": "Испытания и верификация",
+   "owner": "руководитель проекта",
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "parent": "WB-0001"
+  },
+  {
+   "id": "WB-0007",
+   "code": "1.6",
+   "name": "Управление проектом",
+   "owner": "руководитель проекта",
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "parent": "WB-0001"
+  },
+  {
+   "id": "WB-0008",
+   "code": "1.1.1",
+   "name": "Полезная нагрузка",
+   "owner": "руководитель проекта",
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "parent": "WB-0002"
+  },
+  {
+   "id": "AL-0001",
+   "name": "Walker 12/3, высота 550 км",
+   "kind": "option",
+   "summary": "Двенадцать КА в трёх плоскостях: интервал пролёта до 3 ч.",
+   "criteria": [
+    {
+     "name": "покрытие",
+     "score": 4
+    },
+    {
+     "name": "стоимость",
+     "score": 3
+    },
+    {
+     "name": "риск",
+     "score": 4
+    }
+   ],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   }
+  },
+  {
+   "id": "AL-0002",
+   "name": "Walker 8/2, высота 600 км",
+   "kind": "option",
+   "summary": "Восемь КА в двух плоскостях: дешевле, интервал до 5 ч.",
+   "criteria": [
+    {
+     "name": "покрытие",
+     "score": 3
+    },
+    {
+     "name": "стоимость",
+     "score": 4
+    },
+    {
+     "name": "риск",
+     "score": 4
+    }
+   ],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   }
+  },
+  {
+   "id": "AL-0003",
+   "name": "Попутные запуски на ССО",
+   "kind": "option",
+   "summary": "Развёртывание попутными запусками без выделенного носителя.",
+   "criteria": [
+    {
+     "name": "покрытие",
+     "score": 3
+    },
+    {
+     "name": "стоимость",
+     "score": 5
+    },
+    {
+     "name": "риск",
+     "score": 3
+    }
+   ],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   }
+  },
+  {
+   "id": "AL-0004",
+   "name": "Отказ от класса C' в первой очереди",
+   "kind": "descope",
+   "summary": "Первая очередь без оперативного управления.",
+   "consequences": "Сдвиг обязательств перед энергосетями на вторую очередь.",
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   }
+  },
+  {
+   "id": "CE-0001",
+   "name": "Концептуальная оценка программы",
+   "kind": "rom",
+   "basis": "аналоги малых группировок",
+   "total_low": {
+    "value": 1800000000.0,
+    "unit": "RUB",
+    "provenance": {
+     "source": "manual"
+    }
+   },
+   "total_high": {
+    "value": 3600000000.0,
+    "unit": "RUB",
+    "provenance": {
+     "source": "manual"
+    }
+   },
+   "schedule_months_low": 30,
+   "schedule_months_high": 42,
+   "items": [
+    {
+     "wbs_ref": "WB-0002",
+     "name": "Космический сегмент",
+     "low": {
+      "value": 1100000000.0,
+      "unit": "RUB",
+      "provenance": {
+       "source": "manual"
+      }
+     },
+     "high": {
+      "value": 2200000000.0,
+      "unit": "RUB",
+      "provenance": {
+       "source": "manual"
+      }
+     }
+    },
+    {
+     "wbs_ref": "WB-0003",
+     "name": "Наземный сегмент",
+     "low": {
+      "value": 400000000.0,
+      "unit": "RUB",
+      "provenance": {
+       "source": "manual"
+      }
+     },
+     "high": {
+      "value": 800000000.0,
+      "unit": "RUB",
+      "provenance": {
+       "source": "manual"
+      }
+     }
+    }
+   ],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   }
+  },
+  {
+   "id": "OD-0001",
+   "kind": "initial",
+   "deorbit_years": {
+    "value": 9,
+    "unit": "a",
+    "provenance": {
+     "source": "manual"
+    }
+   },
+   "findings": [
+    {
+     "rule": "4.5-1 увод с НОО ≤ 25 лет",
+     "compliant": true,
+     "note": "пассивный увод с 550 км"
+    },
+    {
+     "rule": "4.7-1 риск для населения",
+     "compliant": true
+    }
+   ],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   }
+  },
+  {
+   "id": "OD-0002",
+   "kind": "updated",
+   "deorbit_years": {
+    "value": 8,
+    "unit": "a",
+    "provenance": {
+     "source": "manual"
+    }
+   },
+   "casualty_risk": {
+    "value": 2e-05,
+    "unit": "1",
+    "provenance": {
+     "source": "manual"
+    }
+   },
+   "findings": [
+    {
+     "rule": "4.5-1 увод с НОО ≤ 25 лет",
+     "compliant": true
+    },
+    {
+     "rule": "4.7-1 риск для населения",
+     "compliant": true,
+     "note": "полное сгорание"
+    }
+   ],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   }
+  },
+  {
+   "id": "CE-0002",
+   "name": "Диапазоны к KDP B",
+   "kind": "range",
+   "basis": "параметрическая модель по MEL",
+   "total_low": {
+    "value": 2100000000.0,
+    "unit": "RUB",
+    "provenance": {
+     "source": "manual"
+    }
+   },
+   "total_high": {
+    "value": 2900000000.0,
+    "unit": "RUB",
+    "provenance": {
+     "source": "manual"
+    }
+   },
+   "schedule_months_low": 32,
+   "schedule_months_high": 38,
+   "items": [
+    {
+     "wbs_ref": "WB-0002",
+     "name": "Космический сегмент",
+     "low": {
+      "value": 1300000000.0,
+      "unit": "RUB",
+      "provenance": {
+       "source": "manual"
+      }
+     },
+     "high": {
+      "value": 1800000000.0,
+      "unit": "RUB",
+      "provenance": {
+       "source": "manual"
+      }
+     }
+    }
+   ],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   }
+  },
+  {
+   "id": "RSK-0001",
+   "statement": "При недоборе TRL демодулятора к SRR — задержка интеграции ПН — сдвиг SRR",
+   "category": "technical",
+   "probability": 3,
+   "impact": 4,
+   "strategy": "mitigate",
+   "actions": [
+    "макет на ПЛИС",
+    "резервный трансивер"
+   ],
+   "due": "2027-01-15",
+   "owner": "руководитель проекта",
+   "status": "open"
+  },
+  {
+   "id": "RSK-0002",
+   "statement": "При ограничении полосы регулятором — бюджет линии не замыкается — падение вероятности доставки",
+   "category": "technical",
+   "probability": 2,
+   "impact": 4,
+   "strategy": "mitigate",
+   "actions": [
+    "запрос параметров",
+    "выигрыш антенны"
+   ],
+   "due": "2026-12-01",
+   "owner": "руководитель проекта",
+   "status": "open"
+  },
+  {
+   "id": "RSK-0003",
+   "statement": "При задержке платформы — сдвиг графика Phase B — рост стоимости",
+   "category": "schedule",
+   "probability": 3,
+   "impact": 3,
+   "strategy": "mitigate",
+   "actions": [
+    "резервный поставщик"
+   ],
+   "due": "2027-03-01",
+   "owner": "руководитель проекта",
+   "status": "open"
+  },
+  {
+   "id": "RSK-0004",
+   "statement": "При отказе терминала на морозе — сокращение зоны — срыв обязательств",
+   "category": "technical",
+   "probability": 2,
+   "impact": 3,
+   "strategy": "mitigate",
+   "actions": [
+    "климатические испытания"
+   ],
+   "due": "2027-02-01",
+   "owner": "руководитель проекта",
+   "status": "open"
+  },
+  {
+   "id": "RSK-0005",
+   "statement": "При срыве попутного запуска — задержка развёртывания — сдвиг ввода в обслуживание",
+   "category": "schedule",
+   "probability": 2,
+   "impact": 3,
+   "strategy": "mitigate",
+   "actions": [
+    "резервные окна запусков"
+   ],
+   "due": "2027-05-01",
+   "owner": "руководитель проекта",
+   "status": "open"
+  },
+  {
+   "id": "TL-0001",
+   "name": "Многоканальный демодулятор на ПЛИС",
+   "trl_current": 5,
+   "trl_required": 5,
+   "gate": "SRR",
+   "maturation_plan": [
+    {
+     "step": "Стендовый прогон подтверждения достигнутого уровня",
+     "target_trl": 5,
+     "due": "2026-12-01"
+    }
+   ],
+   "components": [
+    "CM-0003"
+   ],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   }
+  },
+  {
+   "id": "TL-0002",
+   "name": "Развёртываемая антенна УКВ",
+   "trl_current": 5,
+   "trl_required": 5,
+   "gate": "SRR",
+   "maturation_plan": [
+    {
+     "step": "Стендовый прогон подтверждения достигнутого уровня",
+     "target_trl": 5,
+     "due": "2026-12-01"
+    }
+   ],
+   "components": [
+    "CM-0003"
+   ],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   }
+  },
+  {
+   "id": "TL-0003",
+   "name": "Эфемеридный backoff терминала",
+   "trl_current": 5,
+   "trl_required": 5,
+   "gate": "SRR",
+   "maturation_plan": [
+    {
+     "step": "Стендовый прогон подтверждения достигнутого уровня",
+     "target_trl": 5,
+     "due": "2026-12-01"
+    }
+   ],
+   "components": [
+    "CM-0003"
+   ],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   }
+  },
+  {
+   "id": "TL-0004",
+   "name": "Бортовое сжатие пакетов",
+   "trl_current": 6,
+   "trl_required": 5,
+   "gate": "SRR",
+   "maturation_plan": [
+    {
+     "step": "Стендовый прогон подтверждения достигнутого уровня",
+     "target_trl": 5,
+     "due": "2026-12-01"
+    }
+   ],
+   "components": [
+    "CM-0003"
+   ],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   }
+  },
+  {
+   "id": "CO-0001",
+   "name": "Номинальный суточный сбор",
+   "kind": "nominal",
+   "phase": "operations",
+   "flow": [
+    "терминал накапливает измерения",
+    "передача по альманаху в зоне",
+    "бортовая обработка и хранение",
+    "сброс на станцию",
+    "выдача потребителю"
+   ],
+   "success_criterion": "пакет активного терминала доставлен за сутки",
+   "traces_up": [
+    "ND-0001"
+   ],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   }
+  },
+  {
+   "id": "CO-0002",
+   "name": "Подтверждённая доставка с backoff",
+   "kind": "off_nominal",
+   "phase": "operations",
+   "flow": [
+    "терминал B' передаёт",
+    "подтверждение не получено",
+    "ожидание следующего КА по альманаху",
+    "повтор"
+   ],
+   "success_criterion": "подтверждение не позже второго пролёта",
+   "traces_up": [
+    "ND-0003"
+   ],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   }
+  },
+  {
+   "id": "CO-0003",
+   "name": "Оповещение о ЧС",
+   "kind": "contingency",
+   "phase": "operations",
+   "flow": [
+    "тревожный терминал формирует пакет",
+    "приоритетная передача",
+    "приоритет в буфере борта",
+    "немедленный сброс"
+   ],
+   "success_criterion": "тревога у потребителя за один пролёт",
+   "traces_up": [
+    "ND-0010"
+   ],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   }
+  }
+ ]
+}
