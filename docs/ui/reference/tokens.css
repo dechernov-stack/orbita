@@ -1,0 +1,61 @@
+:root {
+  /* Поверхности */
+  --surface: #f8f9fa;          /* фон рабочей области */
+  --container: #ffffff;        /* шапки, карточки, панели */
+  --container-2: #f3f4f5;      /* вложенный контейнер, неактивная вкладка */
+  --container-3: #edeeef;      /* заголовок группы, аватар, шкала */
+
+  /* Текст */
+  --text: #191c1d;
+  --text-secondary: #44474c;
+  --text-muted: #74777d;       /* совпадает со статусом Draft */
+
+  /* Линии и рейка */
+  --hairline: #c4c6cc;         /* все границы, 1px */
+  --rail: #0f1c2c;             /* рейка разделов */
+  --rail-active: #1b2f47;
+  --rail-label: #9aa4b2;
+
+  /* Акцент */
+  --accent: #115cb9;
+  --accent-hover: #0d4a97;
+  --accent-soft: #7ea6e8;      /* второстепенные трассы, маркеры */
+  --selection: #d7e2ff;        /* заливка выбора, подсветка правки */
+
+  /* Ошибка */
+  --error: #ba1a1a;
+  --error-surface: #ffdad6;
+
+  /* Статусы документов и объектов */
+  --status-draft: #74777d;
+  --status-preliminary: #115cb9;
+  --status-approved: #584329;
+  --status-baseline: #1a7f37;
+
+  /* Типографика */
+  --font-ui: Inter, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;  /* идентификаторы, числа, единицы, даты, время */
+  --fs-row: 12.5px;            /* строка таблицы и основной текст */
+  --fs-secondary: 11.5px;
+  --fs-caption: 11px;          /* надзаголовки: uppercase, letter-spacing .4px */
+  --fs-screen-title: 13px;
+  --fs-page-title: 18px;
+  --fs-metric: 26px;           /* показатель в инспекторе */
+  --lh: 1.35;
+
+  /* Размеры каркаса */
+  --rail-w: 52px;
+  --ops-w: 236px;
+  --inspector-w: 372px;
+  --header-h: 48px;            /* шапка проекта */
+  --toolbar-h: 40px;           /* шапка экрана */
+  --row-h: 26px;               /* строка таблицы — не менять */
+  --control-h: 26px;           /* кнопка */
+  --chip-h: 24px;
+
+  /* Форма */
+  --radius: 6px;
+  --radius-lg: 8px;            /* карточки и панели */
+  --border: 1px solid var(--hairline);
+  /* Теней в системе нет. */
+}

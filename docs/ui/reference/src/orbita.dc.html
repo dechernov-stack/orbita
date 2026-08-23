@@ -1,0 +1,1970 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" />
+<style>
+  html,body{margin:0;padding:0;background:#f8f9fa;-webkit-font-smoothing:antialiased}
+  a{color:#115cb9;text-decoration:none}
+  a:hover{color:#0d4a97;text-decoration:underline}
+  *{box-sizing:border-box}
+  ::-webkit-scrollbar{width:9px;height:9px}
+  ::-webkit-scrollbar-thumb{background:#c4c6cc;border-radius:6px}
+</style>
+</helmet>
+<div style="width:1440px;height:900px;display:flex;flex-direction:column;overflow:hidden;background:#f8f9fa;color:#191c1d;font-family:Inter,system-ui,sans-serif;font-size:12.5px;line-height:1.35">
+
+  <div style="height:48px;min-height:48px;display:flex;align-items:center;gap:16px;padding:0 14px;background:#ffffff;border-bottom:1px solid #c4c6cc">
+    <div style="display:flex;align-items:center;gap:8px">
+      <div style="width:14px;height:14px;border-radius:50%;border:2px solid #0f1c2c"></div>
+      <div style="font-size:13px;font-weight:600;letter-spacing:0.2px">Орбита</div>
+    </div>
+    <sc-if value="{{ inApp }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;align-items:center;gap:16px;flex:1;min-width:0">
+        <div style="width:1px;height:22px;background:#c4c6cc"></div>
+        <div style="display:flex;align-items:baseline;gap:8px;min-width:0">
+          <div style="font-size:13px;font-weight:600">{{ proj.name }}</div>
+          <div style="font-size:11.5px;color:#44474c">{{ proj.phase }}</div>
+        </div>
+        <div onClick="{{ nav.readiness }}" style="display:flex;align-items:center;gap:8px;height:28px;padding:0 10px;border:1px solid #115cb9;border-radius:6px;background:#d7e2ff;cursor:pointer" style-hover="background:#c7d7ff">
+          <div style="font-size:11.5px;color:#191c1d">Ближайшая точка</div>
+          <div style="font-size:12px;font-weight:600;color:#115cb9">{{ proj.gate }}</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#ba1a1a">{{ proj.openCount }}</div>
+          <div style="font-size:11px;color:#44474c">не закрыто</div>
+        </div>
+        <div style="font-size:11.5px;color:#44474c;margin-left:auto;white-space:nowrap">Последнее изменение: {{ proj.lastChange }}</div>
+      </div>
+    </sc-if>
+    <sc-if value="{{ notInApp }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;align-items:center;gap:12px;flex:1;justify-content:flex-end">
+        <div style="font-size:11.5px;color:#44474c">Ведущий системный инженер</div>
+        <div style="height:24px;display:flex;align-items:center;gap:8px;padding:0 8px 0 4px;border:1px solid #c4c6cc;border-radius:6px">
+          <div style="width:18px;height:18px;border-radius:50%;background:#0f1c2c;color:#ffffff;font-size:9.5px;display:flex;align-items:center;justify-content:center">АВ</div>
+          <div style="font-size:11.5px">А. Верещагин</div>
+        </div>
+      </div>
+    </sc-if>
+  </div>
+
+  <div style="flex:1;display:flex;min-height:0">
+
+    <div style="width:52px;min-width:52px;background:#0f1c2c;display:flex;flex-direction:column;padding-top:4px">
+      <sc-for list="{{ rail }}" as="s" hint-placeholder-count="7">
+        <div onClick="{{ s.on }}" style="height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;border-left:2px solid {{ s.mark }};background:{{ s.bg }}">
+          <div style="width:9px;height:9px;border-radius:2px;border:1.5px solid {{ s.dot }}"></div>
+          <div style="font-size:8.5px;letter-spacing:0.2px;color:{{ s.color }};text-align:center">{{ s.label }}</div>
+        </div>
+      </sc-for>
+    </div>
+
+    <sc-if value="{{ inApp }}" hint-placeholder-val="{{ false }}">
+      <div style="width:236px;min-width:236px;background:#ffffff;border-right:1px solid #c4c6cc;display:flex;flex-direction:column;overflow:auto">
+        <div style="height:34px;display:flex;align-items:center;padding:0 12px;font-size:10.5px;letter-spacing:0.6px;text-transform:uppercase;color:#44474c;border-bottom:1px solid #edeeef">{{ opsTitle }}</div>
+        <sc-for list="{{ ops }}" as="o" hint-placeholder-count="5">
+          <div onClick="{{ o.on }}" style="height:30px;display:flex;align-items:center;gap:8px;padding:0 12px;cursor:pointer;background:{{ o.bg }};border-left:2px solid {{ o.mark }}" style-hover="background:#f3f4f5">
+            <div style="flex:1;font-size:12.5px;color:{{ o.color }}">{{ o.name }}</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:{{ o.badgeColor }}">{{ o.badge }}</div>
+          </div>
+        </sc-for>
+        <div style="margin-top:auto;padding:10px 12px;border-top:1px solid #edeeef">
+          <div style="font-size:10.5px;letter-spacing:0.6px;text-transform:uppercase;color:#44474c;margin-bottom:6px">Команда проекта</div>
+          <sc-for list="{{ team }}" as="t" hint-placeholder-count="4">
+            <div style="display:flex;align-items:center;gap:8px;height:24px">
+              <div style="width:18px;height:18px;border-radius:50%;background:#edeeef;color:#44474c;font-size:9px;display:flex;align-items:center;justify-content:center">{{ t.ini }}</div>
+              <div style="font-size:11.5px">{{ t.name }}</div>
+              <div style="font-size:10.5px;color:#44474c;margin-left:auto">{{ t.role }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden">
+
+      <sc-if value="{{ isPortfolio }}" hint-placeholder-val="{{ true }}">
+        <div style="flex:1;overflow:auto;padding:18px 22px">
+          <sc-if value="{{ hasProjects }}" hint-placeholder-val="{{ true }}">
+            <div>
+              <div style="display:flex;align-items:flex-end;gap:14px;margin-bottom:14px">
+                <div>
+                  <div style="font-size:18px;font-weight:600;letter-spacing:-0.2px">Портфель проектов</div>
+                  <div style="font-size:12px;color:#44474c;margin-top:3px">Стадия Формулирования: Pre-Phase A → Phase A → решение KDP B</div>
+                </div>
+                <div onClick="{{ nav.create }}" style="margin-left:auto;height:30px;display:flex;align-items:center;padding:0 14px;border-radius:6px;background:#115cb9;color:#ffffff;font-size:12.5px;font-weight:500;cursor:pointer" style-hover="background:#0d4a97">Создать проект</div>
+                <div onClick="{{ nav.importb }}" style="height:30px;display:flex;align-items:center;padding:0 14px;border-radius:6px;border:1px solid #c4c6cc;background:#ffffff;font-size:12.5px;cursor:pointer" style-hover="background:#f3f4f5">Загрузить пачкой</div>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
+                <sc-for list="{{ projects }}" as="p" hint-placeholder-count="4">
+                  <div onClick="{{ p.on }}" style="background:#ffffff;border:1px solid #c4c6cc;border-radius:8px;padding:14px 16px;cursor:pointer;display:flex;flex-direction:column;gap:12px" style-hover="border-color:#115cb9">
+                    <div style="display:flex;align-items:flex-start;gap:10px">
+                      <div style="flex:1;min-width:0">
+                        <div style="font-size:15px;font-weight:600">{{ p.name }}</div>
+                        <div style="font-size:11.5px;color:#44474c;margin-top:2px">{{ p.subtitle }}</div>
+                      </div>
+                      <div style="height:22px;display:flex;align-items:center;padding:0 8px;border-radius:6px;background:#edeeef;font-size:11.5px;color:#44474c;white-space:nowrap">{{ p.phase }}</div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;background:#f3f4f5">
+                      <div style="font-size:11.5px;color:#44474c">Ближайшая точка</div>
+                      <div style="font-size:12.5px;font-weight:600">{{ p.gate }}</div>
+                      <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#44474c">{{ p.gateDate }}</div>
+                      <div style="margin-left:auto;display:flex;align-items:center;gap:6px">
+                        <div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;color:{{ p.openColor }}">{{ p.open }}</div>
+                        <div style="font-size:11px;color:#44474c">не закрыто</div>
+                      </div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:10px">
+                      <div style="display:flex;gap:-4px">
+                        <sc-for list="{{ p.team }}" as="m" hint-placeholder-count="3">
+                          <div style="width:20px;height:20px;border-radius:50%;background:#edeeef;border:1px solid #ffffff;color:#44474c;font-size:9px;display:flex;align-items:center;justify-content:center;margin-right:-4px">{{ m }}</div>
+                        </sc-for>
+                      </div>
+                      <div style="font-size:11.5px;color:#44474c">{{ p.teamLabel }}</div>
+                      <div style="margin-left:auto;font-size:11.5px;color:#44474c">{{ p.last }}</div>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="margin-top:14px;font-size:11.5px;color:#44474c">Первая установка системы: <a href="#" onClick="{{ act.emptyOn }}">показать пустой портфель</a></div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ noProjects }}" hint-placeholder-val="{{ false }}">
+            <div style="height:100%;display:flex;align-items:center;justify-content:center">
+              <div style="max-width:560px;background:#ffffff;border:1px solid #c4c6cc;border-radius:8px;padding:28px 30px">
+                <div style="font-size:18px;font-weight:600">Проектов пока нет</div>
+                <div style="font-size:12.5px;color:#44474c;margin-top:8px;line-height:1.5">«Орбита» ведёт космические проекты через стадию Формулирования: постановка целей и нужд, требования с трассировкой, концепция и альтернативы, моделирование орбит и покрытия, подготовка к контрольным точкам MCR, KDP A, SRR, SDR/MDR и KDP B. Создайте первый проект — система подставит набор точек по выбранной фазе.</div>
+                <div style="display:flex;gap:10px;margin-top:18px">
+                  <div onClick="{{ nav.create }}" style="height:30px;display:flex;align-items:center;padding:0 14px;border-radius:6px;background:#115cb9;color:#ffffff;font-size:12.5px;font-weight:500;cursor:pointer">Создать первый проект</div>
+                  <div onClick="{{ nav.importb }}" style="height:30px;display:flex;align-items:center;padding:0 14px;border-radius:6px;border:1px solid #c4c6cc;font-size:12.5px;cursor:pointer">Загрузить данные пачкой</div>
+                  <div onClick="{{ act.emptyOff }}" style="height:30px;display:flex;align-items:center;padding:0 10px;font-size:12.5px;color:#115cb9;cursor:pointer">Вернуть демонстрационный портфель</div>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isCreate }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:1;overflow:auto;padding:18px 22px">
+          <div style="max-width:840px">
+            <div style="font-size:18px;font-weight:600">Создание проекта</div>
+            <div style="font-size:12px;color:#44474c;margin-top:3px">Проект создаётся пустым: реестры заполняются вручную или загрузкой пачкой.</div>
+            <div style="margin-top:16px;background:#ffffff;border:1px solid #c4c6cc;border-radius:8px">
+              <div style="display:flex;gap:16px;padding:14px 16px;border-bottom:1px solid #edeeef">
+                <div style="flex:1">
+                  <div style="font-size:11px;letter-spacing:0.4px;text-transform:uppercase;color:#44474c;margin-bottom:5px">Имя проекта</div>
+                  <div style="height:30px;border:1px solid #115cb9;border-radius:6px;background:#ffffff;display:flex;align-items:center;padding:0 10px;font-size:12.5px">Ротор-Л</div>
+                </div>
+                <div style="width:260px">
+                  <div style="font-size:11px;letter-spacing:0.4px;text-transform:uppercase;color:#44474c;margin-bottom:5px">Фаза</div>
+                  <div style="display:flex;gap:6px">
+                    <sc-for list="{{ phaseChoices }}" as="c" hint-placeholder-count="2">
+                      <div onClick="{{ c.on }}" style="flex:1;height:30px;display:flex;align-items:center;justify-content:center;border:1px solid {{ c.border }};border-radius:6px;background:{{ c.bg }};font-size:12.5px;cursor:pointer">{{ c.name }}</div>
+                    </sc-for>
+                  </div>
+                </div>
+              </div>
+              <div style="padding:12px 16px">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+                  <div style="font-size:11px;letter-spacing:0.4px;text-transform:uppercase;color:#44474c">Контрольные точки</div>
+                  <div style="font-size:11.5px;color:#44474c">набор подставлен по фазе, даты правятся</div>
+                </div>
+                <div style="display:grid;grid-template-columns:150px 1fr 116px 120px;height:26px;align-items:center;border-bottom:1px solid #c4c6cc;font-size:11px;letter-spacing:0.4px;text-transform:uppercase;color:#44474c">
+                  <div>Точка</div><div>Содержание</div><div style="text-align:right">Дата</div><div style="text-align:right">Ответственный</div>
+                </div>
+                <sc-for list="{{ newGates }}" as="g" hint-placeholder-count="6">
+                  <div style="display:grid;grid-template-columns:150px 1fr 116px 120px;height:26px;align-items:center;border-bottom:1px solid #edeeef;font-size:12.5px">
+                    <div style="font-weight:500">{{ g.name }}</div>
+                    <div style="color:#44474c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ g.what }}</div>
+                    <div style="font-family:'JetBrains Mono',monospace;text-align:right">{{ g.date }}</div>
+                    <div style="text-align:right;color:#44474c">{{ g.owner }}</div>
+                  </div>
+                </sc-for>
+                <div style="display:flex;gap:10px;margin-top:14px;align-items:center">
+                  <div onClick="{{ nav.lifecycle }}" style="height:30px;display:flex;align-items:center;padding:0 14px;border-radius:6px;background:#115cb9;color:#ffffff;font-size:12.5px;font-weight:500;cursor:pointer">Создать проект</div>
+                  <div onClick="{{ nav.portfolio }}" style="height:30px;display:flex;align-items:center;padding:0 14px;border-radius:6px;border:1px solid #c4c6cc;font-size:12.5px;cursor:pointer">Отменить</div>
+                  <div style="font-size:11.5px;color:#44474c">После создания система откроет жизненный цикл проекта.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isLifecycle }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:1;overflow:auto;padding:16px 20px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+            <div style="font-size:16px;font-weight:600">Жизненный цикл</div>
+            <div style="font-size:11.5px;color:#44474c">Pre-Phase A завершена · идёт Phase A</div>
+          </div>
+          <div style="display:flex;gap:8px;margin-bottom:14px">
+            <sc-for list="{{ gates }}" as="g" hint-placeholder-count="6">
+              <div style="flex:1;background:#ffffff;border:1px solid {{ g.border }};border-top:3px solid {{ g.top }};border-radius:6px;padding:10px 11px;display:flex;flex-direction:column;gap:6px">
+                <div style="font-size:12.5px;font-weight:600">{{ g.name }}</div>
+                <div style="font-size:11px;color:{{ g.stColor }}">{{ g.status }}</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#44474c">{{ g.date }}</div>
+                <div style="height:3px;border-radius:2px;background:#edeeef;overflow:hidden">
+                  <div style="height:3px;width:{{ g.pct }};background:{{ g.top }}"></div>
+                </div>
+                <div style="font-size:11px;color:#44474c">{{ g.note }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:flex;gap:12px;align-items:flex-start">
+            <div style="flex:1;background:#ffffff;border:1px solid #c4c6cc;border-radius:8px;padding:12px 14px">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+                <div style="font-size:12.5px;font-weight:600">Карта операций Phase A</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#44474c">О1–О17</div>
+                <div style="margin-left:auto;display:flex;gap:12px;font-size:11px;color:#44474c">
+                  <div>■ выполнена</div><div style="color:#115cb9">■ в работе</div><div>□ не начата</div>
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px">
+                <sc-for list="{{ operations }}" as="o" hint-placeholder-count="17">
+                  <div style="display:flex;align-items:center;gap:8px;height:30px;padding:0 9px;border:1px solid {{ o.border }};border-radius:6px;background:{{ o.bg }}">
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#44474c">{{ o.id }}</div>
+                    <div style="flex:1;min-width:0;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ o.name }}</div>
+                    <div style="width:8px;height:8px;border-radius:2px;background:{{ o.dot }};border:1px solid {{ o.dotBorder }}"></div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="width:340px;min-width:340px;display:flex;flex-direction:column;gap:12px">
+              <div style="background:#ffdad6;border:1px solid #ba1a1a;border-radius:8px;padding:12px 14px">
+                <div style="font-size:12.5px;font-weight:600;color:#ba1a1a">Возврат после отрицательного заключения</div>
+                <div style="font-size:12px;color:#191c1d;margin-top:6px;line-height:1.45">Внутренний обзор 12.05.2026 дал отрицательное заключение: вернули в операцию О7 «Выбор облика системы». Снять — четыре замечания и пересчёт бюджета массы.</div>
+                <div style="margin-top:10px;display:flex;flex-direction:column;gap:5px">
+                  <sc-for list="{{ returnItems }}" as="r" hint-placeholder-count="4">
+                    <div style="display:flex;align-items:center;gap:8px;height:24px;background:#ffffff;border-radius:6px;padding:0 8px">
+                      <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#115cb9">{{ r.id }}</div>
+                      <div style="flex:1;min-width:0;font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.name }}</div>
+                      <div style="font-size:11px;color:#44474c">{{ r.owner }}</div>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="background:#ffffff;border:1px solid #c4c6cc;border-radius:8px;padding:12px 14px">
+                <div style="font-size:12.5px;font-weight:600;margin-bottom:8px">Что делать следующим</div>
+                <sc-for list="{{ nextSteps }}" as="n" hint-placeholder-count="4">
+                  <div onClick="{{ n.on }}" style="display:flex;align-items:center;gap:9px;height:30px;border-bottom:1px solid #edeeef;cursor:pointer" style-hover="background:#f3f4f5">
+                    <div style="width:18px;height:18px;border-radius:50%;background:#d7e2ff;color:#115cb9;font-family:'JetBrains Mono',monospace;font-size:10.5px;display:flex;align-items:center;justify-content:center">{{ n.n }}</div>
+                    <div style="flex:1;min-width:0;font-size:12px">{{ n.name }}</div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#ba1a1a">{{ n.count }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isAi }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:1;display:flex;flex-direction:column;min-height:0">
+          <div style="height:40px;min-height:40px;display:flex;align-items:center;gap:12px;padding:0 16px;background:#ffffff;border-bottom:1px solid #c4c6cc">
+            <div style="font-size:13px;font-weight:600">Пакет предложений ИИ</div>
+            <div style="font-size:11.5px;color:#44474c">12 предложений · принято</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:12.5px;color:#115cb9">{{ aiAcceptedCount }}</div>
+            <div style="margin-left:auto;display:flex;gap:8px">
+              <div onClick="{{ aiReset }}" style="height:26px;display:flex;align-items:center;padding:0 12px;border-radius:6px;border:1px solid #c4c6cc;font-size:12px;cursor:pointer">Снять всё</div>
+              <div onClick="{{ aiAcceptAll }}" style="height:26px;display:flex;align-items:center;padding:0 12px;border-radius:6px;background:#115cb9;color:#ffffff;font-size:12px;cursor:pointer">Принять пачкой</div>
+            </div>
+          </div>
+          <div style="flex:1;display:flex;min-height:0">
+            <div style="flex:1;min-width:0;overflow:auto;padding:12px 16px;display:flex;flex-direction:column;gap:8px">
+              <sc-for list="{{ aiPack }}" as="p" hint-placeholder-count="12">
+                <div style="border:1px solid {{ p.border }};background:{{ p.bg }};border-radius:6px;padding:9px 11px;display:flex;align-items:center;gap:12px">
+                  <div style="width:150px;display:flex;flex-direction:column;gap:2px">
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#115cb9">{{ p.id }}</div>
+                    <div style="font-size:11px;color:#44474c">{{ p.field }}</div>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:9px;width:340px">
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:12.5px;color:#74777d;text-decoration:line-through">{{ p.was }}</div>
+                    <div style="color:#44474c">→</div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:12.5px;background:#d7e2ff;border-radius:4px;padding:1px 6px">{{ p.now }}</div>
+                  </div>
+                  <div style="flex:1;min-width:0;font-size:12px;color:#44474c">{{ p.why }}</div>
+                  <sc-if value="{{ p.accepted }}" hint-placeholder-val="{{ false }}">
+                    <div onClick="{{ p.on }}" style="height:24px;display:flex;align-items:center;padding:0 10px;border-radius:6px;background:#1a7f37;color:#ffffff;font-size:11.5px;cursor:pointer;white-space:nowrap">ИИ · принято</div>
+                  </sc-if>
+                  <sc-if value="{{ p.notAccepted }}" hint-placeholder-val="{{ true }}">
+                    <div onClick="{{ p.on }}" style="height:24px;display:flex;align-items:center;padding:0 10px;border-radius:6px;border:1px solid #115cb9;color:#115cb9;font-size:11.5px;cursor:pointer;white-space:nowrap">Принять</div>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+            <div style="width:330px;min-width:330px;border-left:1px solid #c4c6cc;background:#ffffff;padding:12px 14px">
+              <div style="font-size:12.5px;font-weight:600">Отчёт фильтра</div>
+              <div style="font-size:12px;color:#44474c;margin-top:5px;line-height:1.5">Модель предложила 31 правку, до реестра допущено 12. Остальные сняты фильтром до показа.</div>
+              <div style="margin-top:10px">
+                <div style="display:grid;grid-template-columns:1fr 44px;height:26px;align-items:center;border-bottom:1px solid #edeeef;font-size:12.5px"><div>Затрагивает базированное поле</div><div style="font-family:'JetBrains Mono',monospace;text-align:right">9</div></div>
+                <div style="display:grid;grid-template-columns:1fr 44px;height:26px;align-items:center;border-bottom:1px solid #edeeef;font-size:12.5px"><div>Показатель без единицы</div><div style="font-family:'JetBrains Mono',monospace;text-align:right">5</div></div>
+                <div style="display:grid;grid-template-columns:1fr 44px;height:26px;align-items:center;border-bottom:1px solid #edeeef;font-size:12.5px"><div>Ссылка на несуществующий объект</div><div style="font-family:'JetBrains Mono',monospace;text-align:right">3</div></div>
+                <div style="display:grid;grid-template-columns:1fr 44px;height:26px;align-items:center;border-bottom:1px solid #edeeef;font-size:12.5px"><div>Повтор уже принятого</div><div style="font-family:'JetBrains Mono',monospace;text-align:right">2</div></div>
+              </div>
+              <div style="margin-top:12px;font-size:11.5px;color:#44474c;line-height:1.5">Принятое поле помечается «ИИ · принято» и попадает в историю версий требования вместе с основанием.</div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isImport }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:1;display:flex;flex-direction:column;min-height:0">
+          <div style="height:40px;min-height:40px;display:flex;align-items:center;gap:8px;padding:0 16px;background:#ffffff;border-bottom:1px solid #c4c6cc">
+            <div style="font-size:13px;font-weight:600">Загрузка пачкой</div>
+            <div style="display:flex;gap:6px;margin-left:12px">
+              <sc-for list="{{ impSteps }}" as="s" hint-placeholder-count="4">
+                <div style="height:24px;display:flex;align-items:center;gap:6px;padding:0 10px;border:1px solid {{ s.border }};background:{{ s.bg }};color:{{ s.color }};border-radius:6px;font-size:11.5px">
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:11px">{{ s.n }}</div>{{ s.name }}
+                </div>
+              </sc-for>
+            </div>
+            <div style="margin-left:auto;font-size:11.5px;color:#44474c">Запись в реестр — только после подтверждения отчёта</div>
+          </div>
+          <div style="flex:1;overflow:auto;padding:16px">
+            <sc-if value="{{ impStep1 }}" hint-placeholder-val="{{ true }}">
+              <div style="max-width:720px;background:#ffffff;border:1px dashed #c4c6cc;border-radius:8px;padding:26px;text-align:center">
+                <div style="font-size:13px;font-weight:600">Перетащите файл реестра или выберите на диске</div>
+                <div style="font-size:12px;color:#44474c;margin-top:6px">CSV или XLSX · одна строка — один объект · обязательные поля: идентификатор, уровень, формулировка, показатель, единица</div>
+                <div onClick="{{ impGo2 }}" style="height:28px;display:inline-flex;align-items:center;padding:0 14px;border-radius:6px;background:#115cb9;color:#ffffff;font-size:12.5px;margin-top:14px;cursor:pointer">Выбрать файл</div>
+                <div onClick="{{ impGoErr }}" style="margin-top:10px;font-size:11.5px;color:#115cb9;cursor:pointer">показать отказ всей пачки</div>
+              </div>
+            </sc-if>
+            <sc-if value="{{ impStep2 }}" hint-placeholder-val="{{ false }}">
+              <div style="max-width:1000px">
+                <div style="display:flex;align-items:center;gap:10px">
+                  <div style="font-size:13px;font-weight:600">Отчёт проверки: требования-Q3.xlsx</div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#44474c">64 строки · 59 пройдут · 4 отклонены · 1 исправлена</div>
+                </div>
+                <div style="margin-top:10px;background:#ffffff;border:1px solid #c4c6cc;border-radius:8px;padding:12px 14px">
+                  <div style="display:grid;grid-template-columns:70px 100px 130px 1fr 200px;height:26px;align-items:center;font-size:11px;text-transform:uppercase;letter-spacing:0.4px;color:#44474c;border-bottom:1px solid #c4c6cc">
+                    <div>Строка</div><div>Идентиф.</div><div>Поле</div><div>Правило</div><div style="text-align:right">Решение</div>
+                  </div>
+                  <sc-for list="{{ impRows }}" as="r" hint-placeholder-count="5">
+                    <div style="display:grid;grid-template-columns:70px 100px 130px 1fr 200px;height:26px;align-items:center;border-bottom:1px solid #edeeef;font-size:12.5px">
+                      <div style="font-family:'JetBrains Mono',monospace">{{ r.idx }}</div>
+                      <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#115cb9">{{ r.id }}</div>
+                      <div style="color:#44474c">{{ r.field }}</div>
+                      <div>{{ r.rule }}</div>
+                      <div style="text-align:right;color:{{ r.color }}">{{ r.res }}</div>
+                    </div>
+                  </sc-for>
+                  <div style="display:flex;gap:9px;margin-top:14px;align-items:center">
+                    <div onClick="{{ impGo3 }}" style="height:28px;display:flex;align-items:center;padding:0 13px;border-radius:6px;background:#115cb9;color:#ffffff;font-size:12.5px;cursor:pointer">Записать 60 строк</div>
+                    <div onClick="{{ impGo1 }}" style="height:28px;display:flex;align-items:center;padding:0 13px;border-radius:6px;border:1px solid #c4c6cc;font-size:12.5px;cursor:pointer">Заменить файл</div>
+                    <div style="font-size:11.5px;color:#44474c">До подтверждения в реестр ничего не записано.</div>
+                  </div>
+                </div>
+              </div>
+            </sc-if>
+            <sc-if value="{{ impStep3 }}" hint-placeholder-val="{{ false }}">
+              <div style="max-width:720px;background:#ffffff;border:1px solid #1a7f37;border-radius:8px;padding:16px 18px">
+                <div style="font-size:13px;font-weight:600">Записано 60 строк</div>
+                <div style="font-size:12.5px;color:#44474c;margin-top:6px;line-height:1.5">Новые требования получили статус Draft и попали в реестр уровня системы и элемента. Четыре отклонённые строки выгружены отдельным файлом с причинами.</div>
+                <div style="display:flex;gap:9px;margin-top:14px">
+                  <div onClick="{{ nav.req }}" style="height:28px;display:flex;align-items:center;padding:0 13px;border-radius:6px;background:#115cb9;color:#ffffff;font-size:12.5px;cursor:pointer">Открыть реестр требований</div>
+                  <div onClick="{{ impGo1 }}" style="height:28px;display:flex;align-items:center;padding:0 13px;border-radius:6px;border:1px solid #c4c6cc;font-size:12.5px;cursor:pointer">Загрузить ещё файл</div>
+                </div>
+              </div>
+            </sc-if>
+            <sc-if value="{{ impErr }}" hint-placeholder-val="{{ false }}">
+              <div style="max-width:720px;background:#ffdad6;border:1px solid #ba1a1a;border-radius:8px;padding:16px 18px">
+                <div style="font-size:13px;font-weight:600;color:#ba1a1a">Пачка отклонена целиком</div>
+                <div style="font-size:12.5px;margin-top:6px;line-height:1.5">В файле нет столбца «единица измерения», а идентификаторы в строках 3–64 повторяют уже существующие RQ-0001…RQ-0062. Добавьте столбец и уберите повторы, затем загрузите файл заново.</div>
+                <div style="display:flex;gap:9px;margin-top:14px">
+                  <div onClick="{{ impGo1 }}" style="height:28px;display:flex;align-items:center;padding:0 13px;border-radius:6px;background:#ba1a1a;color:#ffffff;font-size:12.5px;cursor:pointer">Загрузить другой файл</div>
+                  <div style="height:28px;display:flex;align-items:center;padding:0 13px;border-radius:6px;border:1px solid #ba1a1a;color:#ba1a1a;font-size:12.5px;cursor:pointer">Скачать шаблон</div>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isReadiness }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:1;display:flex;flex-direction:column;min-height:0;position:relative">
+          <div style="height:40px;min-height:40px;display:flex;align-items:center;gap:12px;padding:0 16px;background:#ffffff;border-bottom:1px solid #c4c6cc">
+            <div style="font-size:13px;font-weight:600">Готовность к точке KDP B</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#44474c">14.11.2026 · осталось 83 дня</div>
+            <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+              <div style="font-size:11.5px;color:#44474c">не закрыто</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#ba1a1a">14</div>
+              <div onClick="{{ openModal }}" style="height:26px;display:flex;align-items:center;padding:0 12px;border-radius:6px;background:#115cb9;color:#ffffff;font-size:12px;cursor:pointer">Запросить прохождение</div>
+            </div>
+          </div>
+          <div style="flex:1;display:flex;min-height:0">
+            <div style="width:420px;min-width:420px;border-right:1px solid #c4c6cc;background:#ffffff;overflow:auto;padding:12px 14px">
+              <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.4px;color:#44474c;margin-bottom:8px">Зрелость по видам объектов</div>
+              <sc-for list="{{ maturity }}" as="m" hint-placeholder-count="9">
+                <div style="padding:7px 0;border-bottom:1px solid #edeeef">
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <div style="flex:1;font-size:12.5px">{{ m.kind }}</div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#44474c">{{ m.done }}</div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:12.5px;width:46px;text-align:right">{{ m.pct }}</div>
+                  </div>
+                  <div style="height:4px;border-radius:2px;background:#edeeef;margin-top:5px;overflow:hidden"><div style="height:4px;width:{{ m.bar }};background:{{ m.color }}"></div></div>
+                  <div style="font-size:11.5px;color:{{ m.color }};margin-top:3px">{{ m.note }}</div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+              <div style="height:32px;display:flex;align-items:center;gap:8px;padding:0 14px;border-bottom:1px solid #c4c6cc;background:#ffffff">
+                <div style="font-size:12.5px;font-weight:600">Незакрытое поимённо</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#ba1a1a">14 позиций</div>
+                <div style="margin-left:auto;font-size:11.5px;color:#44474c">строка ведёт на объект</div>
+              </div>
+              <div style="flex:1;overflow:auto;padding:0 14px">
+                <div style="display:grid;grid-template-columns:92px 110px 1fr 260px 130px;height:26px;align-items:center;font-size:11px;text-transform:uppercase;letter-spacing:0.4px;color:#44474c;border-bottom:1px solid #c4c6cc;position:sticky;top:0;background:#f8f9fa">
+                  <div>Идентиф.</div><div>Вид</div><div>Объект</div><div>Что мешает</div><div style="text-align:right">Владелец</div>
+                </div>
+                <sc-for list="{{ openItems }}" as="o" hint-placeholder-count="14">
+                  <div onClick="{{ o.on }}" style="display:grid;grid-template-columns:92px 110px 1fr 260px 130px;height:26px;align-items:center;border-bottom:1px solid #edeeef;font-size:12.5px;cursor:pointer" style-hover="background:#f3f4f5">
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#115cb9">{{ o.id }}</div>
+                    <div style="color:#44474c">{{ o.kind }}</div>
+                    <div>{{ o.name }}</div>
+                    <div style="color:#ba1a1a">{{ o.why }}</div>
+                    <div style="text-align:right;color:#44474c">{{ o.who }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+          <sc-if value="{{ modalNotReady }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;inset:0;background:rgba(15,28,44,0.32);display:flex;align-items:center;justify-content:center">
+              <div style="width:560px;background:#ffffff;border:1px solid #c4c6cc;border-radius:8px;padding:16px 18px">
+                <div style="font-size:14px;font-weight:600">Прохождение KDP B невозможно</div>
+                <div style="font-size:12.5px;color:#44474c;margin-top:5px">14 позиций не закрыто. Ниже — те, что блокируют решение; остальные видны в реестре готовности.</div>
+                <div style="margin-top:12px;border:1px solid #ffdad6;border-radius:6px;overflow:hidden">
+                  <sc-for list="{{ openItems }}" as="o" hint-placeholder-count="6">
+                    <div style="display:grid;grid-template-columns:92px 1fr 200px;height:26px;align-items:center;padding:0 10px;border-bottom:1px solid #ffdad6;font-size:12px;background:#ffffff">
+                      <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#115cb9">{{ o.id }}</div>
+                      <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ o.name }}</div>
+                      <div style="color:#ba1a1a;font-size:11.5px;text-align:right">{{ o.why }}</div>
+                    </div>
+                  </sc-for>
+                </div>
+                <div style="display:flex;gap:9px;margin-top:14px">
+                  <div onClick="{{ closeModal }}" style="height:28px;display:flex;align-items:center;padding:0 13px;border-radius:6px;background:#115cb9;color:#ffffff;font-size:12.5px;cursor:pointer">Вернуться к работе</div>
+                  <div onClick="{{ toDecision }}" style="height:28px;display:flex;align-items:center;padding:0 13px;border-radius:6px;border:1px solid #c4c6cc;font-size:12.5px;cursor:pointer">Провести точку с отступлениями</div>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ modalDecision }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;inset:0;background:rgba(15,28,44,0.32);display:flex;align-items:center;justify-content:center">
+              <div style="width:560px;background:#ffffff;border:1px solid #c4c6cc;border-radius:8px;padding:16px 18px">
+                <div style="font-size:14px;font-weight:600">Фиксация решения по KDP B</div>
+                <div style="font-size:12.5px;color:#44474c;margin-top:5px">Решение уйдёт в историю проекта вместе с перечнем отступлений и сроками их снятия.</div>
+                <div style="display:flex;gap:8px;margin-top:12px">
+                  <div style="flex:1;height:30px;display:flex;align-items:center;justify-content:center;border:1px solid #1a7f37;background:#ffffff;border-radius:6px;font-size:12.5px;cursor:pointer">Положительное</div>
+                  <div style="flex:1;height:30px;display:flex;align-items:center;justify-content:center;border:1px solid #115cb9;background:#d7e2ff;border-radius:6px;font-size:12.5px;cursor:pointer">С отступлениями</div>
+                  <div style="flex:1;height:30px;display:flex;align-items:center;justify-content:center;border:1px solid #ba1a1a;background:#ffffff;border-radius:6px;font-size:12.5px;color:#ba1a1a;cursor:pointer">Отрицательное</div>
+                </div>
+                <div style="margin-top:12px;font-size:11px;text-transform:uppercase;letter-spacing:0.4px;color:#44474c">Основание решения</div>
+                <div style="margin-top:5px;min-height:62px;border:1px solid #c4c6cc;border-radius:6px;padding:8px 10px;font-size:12.5px;color:#74777d">Назовите отступления, срок их снятия и ответственных</div>
+                <div style="display:flex;gap:9px;margin-top:14px">
+                  <div onClick="{{ closeModal }}" style="height:28px;display:flex;align-items:center;padding:0 13px;border-radius:6px;background:#115cb9;color:#ffffff;font-size:12.5px;cursor:pointer">Зафиксировать решение</div>
+                  <div onClick="{{ closeModal }}" style="height:28px;display:flex;align-items:center;padding:0 13px;border-radius:6px;border:1px solid #c4c6cc;font-size:12.5px;cursor:pointer">Отменить</div>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isRfa }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:1;display:flex;flex-direction:column;min-height:0">
+          <div style="height:40px;min-height:40px;display:flex;align-items:center;gap:12px;padding:0 16px;background:#ffffff;border-bottom:1px solid #c4c6cc">
+            <div style="font-size:13px;font-weight:600">Замечания обзоров</div>
+            <div style="font-size:11.5px;color:#44474c">12 записей · 6 в работе · 3 критических</div>
+            <div style="margin-left:auto;height:26px;display:flex;align-items:center;padding:0 12px;border-radius:6px;background:#115cb9;color:#ffffff;font-size:12px;cursor:pointer">Добавить замечание</div>
+          </div>
+          <div style="flex:1;overflow:auto;padding:0 16px">
+            <div style="display:grid;grid-template-columns:92px 150px 120px 1fr 110px 130px 106px;height:26px;align-items:center;font-size:11px;text-transform:uppercase;letter-spacing:0.4px;color:#44474c;border-bottom:1px solid #c4c6cc;position:sticky;top:0;background:#f8f9fa">
+              <div>Идентиф.</div><div>Обзор</div><div>Классификация</div><div>Содержание</div><div>Статус</div><div>Владелец</div><div style="text-align:right">Срок</div>
+            </div>
+            <sc-for list="{{ rfa }}" as="r" hint-placeholder-count="12">
+              <div style="display:grid;grid-template-columns:92px 150px 120px 1fr 110px 130px 106px;height:26px;align-items:center;border-bottom:1px solid #edeeef;font-size:12.5px;cursor:pointer" style-hover="background:#f3f4f5">
+                <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#115cb9">{{ r.id }}</div>
+                <div style="color:#44474c">{{ r.src }}</div>
+                <div style="color:{{ r.clsColor }}">{{ r.cls }}</div>
+                <div>{{ r.what }}</div>
+                <div style="color:{{ r.stColor }}">{{ r.state }}</div>
+                <div style="color:#44474c">{{ r.who }}</div>
+                <div style="font-family:'JetBrains Mono',monospace;text-align:right;font-size:11.5px">{{ r.due }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isRisks }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:1;display:flex;flex-direction:column;min-height:0">
+          <div style="height:40px;min-height:40px;display:flex;align-items:center;gap:12px;padding:0 16px;background:#ffffff;border-bottom:1px solid #c4c6cc">
+            <div style="font-size:13px;font-weight:600">Реестр рисков</div>
+            <div style="font-size:11.5px;color:#44474c">7 показано из 11 · 2 в красной зоне</div>
+          </div>
+          <div style="flex:1;display:flex;min-height:0">
+            <div style="flex:1;min-width:0;overflow:auto;padding:0 16px">
+              <div style="display:grid;grid-template-columns:92px 1fr 92px 92px 100px 140px 160px;height:26px;align-items:center;font-size:11px;text-transform:uppercase;letter-spacing:0.4px;color:#44474c;border-bottom:1px solid #c4c6cc;position:sticky;top:0;background:#f8f9fa">
+                <div>Идентиф.</div><div>Риск</div><div style="text-align:right">Вероятн.</div><div style="text-align:right">Ущерб</div><div style="text-align:right">Зона</div><div style="text-align:right">Владелец</div><div style="text-align:right">Меры</div>
+              </div>
+              <sc-for list="{{ risks }}" as="r" hint-placeholder-count="7">
+                <div style="display:grid;grid-template-columns:92px 1fr 92px 92px 100px 140px 160px;height:26px;align-items:center;border-bottom:1px solid #edeeef;font-size:12.5px;cursor:pointer" style-hover="background:#f3f4f5">
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#115cb9">{{ r.id }}</div>
+                  <div>{{ r.name }}</div>
+                  <div style="font-family:'JetBrains Mono',monospace;text-align:right">{{ r.p }}</div>
+                  <div style="font-family:'JetBrains Mono',monospace;text-align:right">{{ r.s }}</div>
+                  <div style="text-align:right;color:{{ r.zoneColor }}">{{ r.zone }}</div>
+                  <div style="text-align:right;color:#44474c">{{ r.who }}</div>
+                  <div style="text-align:right;color:{{ r.planColor }}">{{ r.plan }}</div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="width:330px;min-width:330px;border-left:1px solid #c4c6cc;background:#ffffff;padding:12px 14px">
+              <div style="font-size:12.5px;font-weight:600;margin-bottom:10px">Матрица 5 × 5</div>
+              <sc-for list="{{ riskGrid }}" as="g" hint-placeholder-count="5">
+                <div style="display:flex;align-items:center;gap:4px;margin-bottom:4px">
+                  <div style="width:16px;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#44474c">{{ g.p }}</div>
+                  <sc-for list="{{ g.cells }}" as="c" hint-placeholder-count="5">
+                    <div style="flex:1;height:44px;display:flex;align-items:center;justify-content:center;border:1px solid {{ c.border }};background:{{ c.bg }};color:{{ c.color }};border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:13px">{{ c.n }}</div>
+                  </sc-for>
+                </div>
+              </sc-for>
+              <div style="display:flex;gap:4px;padding-left:20px;margin-top:4px">
+                <div style="flex:1;text-align:center;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#44474c">1</div>
+                <div style="flex:1;text-align:center;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#44474c">2</div>
+                <div style="flex:1;text-align:center;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#44474c">3</div>
+                <div style="flex:1;text-align:center;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#44474c">4</div>
+                <div style="flex:1;text-align:center;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#44474c">5</div>
+              </div>
+              <div style="font-size:11.5px;color:#44474c;margin-top:8px">По вертикали — ущерб, по горизонтали — вероятность. Красная зона требует утверждённого плана мер до KDP B.</div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isTrl }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:1;display:flex;flex-direction:column;min-height:0">
+          <div style="height:40px;min-height:40px;display:flex;align-items:center;gap:12px;padding:0 16px;background:#ffffff;border-bottom:1px solid #c4c6cc">
+            <div style="font-size:13px;font-weight:600">Технологии и TRL</div>
+            <div style="font-size:11.5px;color:#ba1a1a">1 позиция ниже требуемого уровня</div>
+          </div>
+          <div style="flex:1;overflow:auto;padding:0 16px">
+            <div style="display:grid;grid-template-columns:92px 1fr 100px 110px 220px 140px;height:26px;align-items:center;font-size:11px;text-transform:uppercase;letter-spacing:0.4px;color:#44474c;border-bottom:1px solid #c4c6cc;position:sticky;top:0;background:#f8f9fa">
+              <div>Идентиф.</div><div>Технология</div><div style="text-align:right">Текущий</div><div style="text-align:right">Требуемый</div><div style="text-align:right">План повышения</div><div style="text-align:right">Владелец</div>
+            </div>
+            <sc-for list="{{ trl }}" as="t" hint-placeholder-count="7">
+              <div style="display:grid;grid-template-columns:92px 1fr 100px 110px 220px 140px;height:26px;align-items:center;border-bottom:1px solid #edeeef;font-size:12.5px;cursor:pointer" style-hover="background:#f3f4f5">
+                <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#115cb9">{{ t.id }}</div>
+                <div>{{ t.name }}</div>
+                <div style="font-family:'JetBrains Mono',monospace;text-align:right;color:{{ t.color }}">{{ t.now }}</div>
+                <div style="font-family:'JetBrains Mono',monospace;text-align:right">{{ t.need }}</div>
+                <div style="text-align:right;color:#44474c">{{ t.plan }}</div>
+                <div style="text-align:right;color:#44474c">{{ t.who }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isDocs }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:1;display:flex;flex-direction:column;min-height:0">
+          <div style="height:40px;min-height:40px;display:flex;align-items:center;gap:12px;padding:0 16px;background:#ffffff;border-bottom:1px solid #c4c6cc">
+            <div style="font-size:13px;font-weight:600">Комплект документов фазы</div>
+            <div style="font-size:11.5px;color:#44474c">9 шаблонов · 6 выпущено · 3 с пробелами</div>
+            <div style="margin-left:auto;display:flex;align-items:center;gap:6px">
+              <sc-for list="{{ docChain }}" as="c" hint-placeholder-count="4">
+                <div style="height:22px;display:flex;align-items:center;padding:0 9px;border:1px solid {{ c.c }};background:{{ c.bg }};color:{{ c.c }};border-radius:6px;font-size:11px">{{ c.n }}</div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="flex:1;display:flex;min-height:0">
+            <div style="flex:1;min-width:0;overflow:auto;padding:0 16px">
+              <div style="display:grid;grid-template-columns:92px 1fr 90px 110px 110px 106px 240px;height:26px;align-items:center;font-size:11px;text-transform:uppercase;letter-spacing:0.4px;color:#44474c;border-bottom:1px solid #c4c6cc;position:sticky;top:0;background:#f8f9fa">
+                <div>Идентиф.</div><div>Шаблон документа</div><div>Точка</div><div>Состояние</div><div>Статус</div><div style="text-align:right">Выпущен</div><div style="text-align:right">Пробелы</div>
+              </div>
+              <sc-for list="{{ docs }}" as="d" hint-placeholder-count="9">
+                <div style="display:grid;grid-template-columns:92px 1fr 90px 110px 110px 106px 240px;height:26px;align-items:center;border-bottom:1px solid #edeeef;font-size:12.5px;cursor:pointer" style-hover="background:#f3f4f5">
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#115cb9">{{ d.id }}</div>
+                  <div>{{ d.name }}</div>
+                  <div style="color:#44474c">{{ d.gate }}</div>
+                  <div style="color:{{ d.stateColor }}">{{ d.state }}</div>
+                  <div style="color:{{ d.stColor }}">{{ d.status }}</div>
+                  <div style="font-family:'JetBrains Mono',monospace;text-align:right;font-size:11.5px;color:#44474c">{{ d.when }}</div>
+                  <div style="text-align:right;color:{{ d.gapColor }}">{{ d.gap }}</div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="width:372px;min-width:372px;border-left:1px solid #c4c6cc;background:#ffffff;padding:12px 14px;overflow:auto">
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#115cb9">DOC-003</div>
+                <div style="margin-left:auto;font-size:11.5px;color:#1a7f37">Baseline</div>
+              </div>
+              <div style="font-size:14px;font-weight:600;margin-top:4px">Спецификация требований</div>
+              <div style="font-size:11.5px;color:#44474c;margin-top:3px">выпуск 14.08.2026 · А. Верещагин · редакция 4</div>
+              <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.4px;color:#44474c;margin-top:14px">Разделы</div>
+              <div style="margin-top:6px">
+                <div style="display:grid;grid-template-columns:1fr 96px;height:26px;align-items:center;border-bottom:1px solid #edeeef;font-size:12.5px"><div>1. Назначение и область применения</div><div style="text-align:right;color:#1a7f37;font-size:11.5px">готов</div></div>
+                <div style="display:grid;grid-template-columns:1fr 96px;height:26px;align-items:center;border-bottom:1px solid #edeeef;font-size:12.5px"><div>2. Требования уровня проекта</div><div style="text-align:right;color:#1a7f37;font-size:11.5px">готов</div></div>
+                <div style="display:grid;grid-template-columns:1fr 96px;height:26px;align-items:center;border-bottom:1px solid #edeeef;font-size:12.5px"><div>3. Требования уровня системы</div><div style="text-align:right;color:#584329;font-size:11.5px">правки</div></div>
+                <div style="display:grid;grid-template-columns:1fr 96px;height:26px;align-items:center;border-bottom:1px solid #edeeef;font-size:12.5px"><div>4. Требования уровня элемента</div><div style="text-align:right;color:#584329;font-size:11.5px">правки</div></div>
+                <div style="display:grid;grid-template-columns:1fr 96px;height:26px;align-items:center;border-bottom:1px solid #edeeef;font-size:12.5px"><div>5. Трассировка и верификация</div><div style="text-align:right;color:#ba1a1a;font-size:11.5px">пробел</div></div>
+              </div>
+              <div style="margin-top:12px;border:1px solid #ffdad6;background:#ffdad6;border-radius:6px;padding:9px 10px">
+                <div style="font-size:12.5px;font-weight:600;color:#ba1a1a">Пробел в разделе 5</div>
+                <div style="font-size:12px;margin-top:4px">9 требований без базирования и 2 без события верификации не попадут в выпуск. Снимите их или выпустите документ с перечнем отступлений.</div>
+              </div>
+              <div style="display:flex;gap:8px;margin-top:12px">
+                <div style="height:28px;display:flex;align-items:center;padding:0 12px;border-radius:6px;background:#115cb9;color:#ffffff;font-size:12.5px;cursor:pointer">Выпустить редакцию 5</div>
+                <div style="height:28px;display:flex;align-items:center;padding:0 12px;border-radius:6px;border:1px solid #c4c6cc;font-size:12.5px;cursor:pointer">Сравнить с редакцией 4</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isSimInputs }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:1;display:flex;flex-direction:column;min-height:0">
+          <div style="height:40px;min-height:40px;display:flex;align-items:center;gap:12px;padding:0 16px;background:#ffffff;border-bottom:1px solid #c4c6cc">
+            <div style="font-size:13px;font-weight:600">Входы моделирования</div>
+            <div style="font-size:11.5px;color:#ba1a1a">2 входа устарели — результаты на их основе помечены</div>
+            <div style="margin-left:auto;height:26px;display:flex;align-items:center;padding:0 12px;border-radius:6px;background:#115cb9;color:#ffffff;font-size:12px;cursor:pointer">Пересчитать</div>
+          </div>
+          <div style="flex:1;overflow:auto;padding:0 16px">
+            <div style="display:grid;grid-template-columns:88px 150px 1fr 140px 106px 92px;height:26px;align-items:center;font-size:11px;text-transform:uppercase;letter-spacing:0.4px;color:#44474c;border-bottom:1px solid #c4c6cc;position:sticky;top:0;background:#f8f9fa">
+              <div>Идентиф.</div><div>Вид входа</div><div>Значение</div><div>Владелец</div><div style="text-align:right">Обновлён</div><div style="text-align:right">Состояние</div>
+            </div>
+            <sc-for list="{{ simInputs }}" as="s" hint-placeholder-count="8">
+              <div style="display:grid;grid-template-columns:88px 150px 1fr 140px 106px 92px;height:26px;align-items:center;border-bottom:1px solid #edeeef;font-size:12.5px;cursor:pointer" style-hover="background:#f3f4f5">
+                <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#115cb9">{{ s.id }}</div>
+                <div>{{ s.kind }}</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px">{{ s.what }}</div>
+                <div style="color:#44474c">{{ s.who }}</div>
+                <div style="font-family:'JetBrains Mono',monospace;text-align:right;font-size:11.5px;color:#44474c">{{ s.when }}</div>
+                <div style="text-align:right;font-size:11.5px;color:{{ s.stColor }}">{{ s.st }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isBallistics }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:1;display:flex;flex-direction:column;min-height:0">
+          <div style="height:40px;min-height:40px;display:flex;align-items:center;gap:12px;padding:0 16px;background:#ffffff;border-bottom:1px solid #c4c6cc">
+            <div style="font-size:13px;font-weight:600">Баллистика</div>
+            <div style="font-size:11.5px;color:#44474c">560 км · 82,0° · 24 аппарата · горизонт 24 ч, шаг 10 с</div>
+          </div>
+          <div style="flex:1;display:flex;min-height:0">
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;padding:12px 14px">
+              <div style="flex:1;display:flex;align-items:center;justify-content:center;background:#ffffff;border:1px solid #c4c6cc;border-radius:8px">
+                <svg width="320" height="320" viewBox="0 0 320 320">
+                  <circle cx="160" cy="160" r="148" fill="#f3f4f5" stroke="#c4c6cc"></circle>
+                  <sc-for list="{{ grat }}" as="g" hint-placeholder-count="10">
+                    <path d="{{ g.d }}" fill="none" stroke="#c4c6cc" stroke-width="0.7"></path>
+                  </sc-for>
+                  <sc-for list="{{ coast }}" as="c" hint-placeholder-count="0">
+                    <path d="{{ c.d }}" fill="none" stroke="#74777d" stroke-width="0.8"></path>
+                  </sc-for>
+                  <sc-for list="{{ tracks }}" as="t" hint-placeholder-count="3">
+                    <path d="{{ t.d }}" fill="none" stroke="{{ t.color }}" stroke-width="{{ t.w }}"></path>
+                  </sc-for>
+                  <sc-for list="{{ stations }}" as="s" hint-placeholder-count="5">
+                    <g display="{{ s.show }}">
+                      <circle cx="{{ s.x }}" cy="{{ s.y }}" r="16" fill="#d7e2ff" fill-opacity="0.55" stroke="#115cb9" stroke-width="0.6"></circle>
+                      <rect x="{{ s.x }}" y="{{ s.y }}" width="5" height="5" transform="translate(-2.5,-2.5)" fill="#0f1c2c"></rect>
+                    </g>
+                  </sc-for>
+                </svg>
+                <div style="margin-left:18px;display:flex;flex-direction:column;gap:8px">
+                  <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.4px;color:#44474c">Обозначения</div>
+                  <div style="display:flex;align-items:center;gap:8px;font-size:12px"><div style="width:18px;height:2px;background:#115cb9"></div>трасса SV-0003</div>
+                  <div style="display:flex;align-items:center;gap:8px;font-size:12px"><div style="width:18px;height:2px;background:#7ea6e8"></div>трассы соседних плоскостей</div>
+                  <div style="display:flex;align-items:center;gap:8px;font-size:12px"><div style="width:12px;height:12px;border-radius:50%;background:#d7e2ff;border:1px solid #115cb9"></div>зона обслуживания станции</div>
+                  <div style="display:flex;align-items:center;gap:8px;font-size:12px"><div style="width:8px;height:8px;background:#0f1c2c"></div>наземная станция</div>
+                  <div style="margin-top:6px;display:flex;flex-direction:column;gap:3px">
+                    <sc-for list="{{ stations }}" as="s" hint-placeholder-count="5">
+                      <div style="font-size:11.5px;color:#44474c">{{ s.name }}</div>
+                    </sc-for>
+                  </div>
+                </div>
+              </div>
+              <div style="height:86px;min-height:86px;margin-top:10px;background:#ffffff;border:1px solid #c4c6cc;border-radius:8px;padding:8px 12px">
+                <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.4px;color:#44474c">Шкала времени · 06:10 — 08:50</div>
+                <div style="position:relative;height:44px;margin-top:6px">
+                  <sc-for list="{{ passes }}" as="p" hint-placeholder-count="12">
+                    <div style="position:absolute;top:{{ p.row }};left:{{ p.left }};width:{{ p.w }};height:11px;border-radius:3px;background:{{ p.bg }}"></div>
+                  </sc-for>
+                </div>
+                <div style="display:flex;justify-content:space-between;border-top:1px solid #edeeef;padding-top:3px">
+                  <sc-for list="{{ timeTicks }}" as="t" hint-placeholder-count="6">
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#44474c">{{ t.t }}</div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+            <div style="width:372px;min-width:372px;border-left:1px solid #c4c6cc;background:#ffffff;display:flex;flex-direction:column">
+              <div style="height:34px;display:flex;align-items:center;gap:8px;padding:0 12px;border-bottom:1px solid #edeeef">
+                <div style="font-size:12.5px;font-weight:600">Расписание пролётов</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#44474c">12 из 214</div>
+              </div>
+              <div style="display:grid;grid-template-columns:62px 82px 60px 60px 1fr;height:24px;align-items:center;padding:0 12px;font-size:10.5px;text-transform:uppercase;letter-spacing:0.3px;color:#44474c;border-bottom:1px solid #c4c6cc">
+                <div>Аппарат</div><div>Цель</div><div>Начало</div><div>Конец</div><div style="text-align:right">Длительность</div>
+              </div>
+              <div style="flex:1;overflow:auto">
+                <sc-for list="{{ passes }}" as="p" hint-placeholder-count="12">
+                  <div style="display:grid;grid-template-columns:62px 82px 60px 60px 1fr;height:26px;align-items:center;padding:0 12px;border-bottom:1px solid #edeeef;font-size:12px;cursor:pointer" style-hover="background:#f3f4f5">
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#115cb9">{{ p.sv }}</div>
+                    <div>{{ p.tgt }}</div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px">{{ p.a }}</div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px">{{ p.b }}</div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;text-align:right;white-space:nowrap">{{ p.dur }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isCoverage }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:1;display:flex;flex-direction:column;min-height:0">
+          <div style="height:40px;min-height:40px;display:flex;align-items:center;gap:12px;padding:0 16px;background:#ffffff;border-bottom:1px solid #c4c6cc">
+            <div style="font-size:13px;font-weight:600">Карта покрытия</div>
+            <div style="font-size:11.5px;color:#44474c">среднее окно обслуживания, мин · сетка 20°</div>
+            <div style="display:flex;gap:6px;margin-left:12px">
+              <sc-for list="{{ horizons }}" as="h" hint-placeholder-count="3">
+                <div style="height:24px;display:flex;align-items:center;padding:0 10px;border:1px solid {{ h.border }};background:{{ h.bg }};border-radius:6px;font-size:11.5px;cursor:pointer">{{ h.name }}</div>
+              </sc-for>
+            </div>
+            <div style="margin-left:auto;display:flex;gap:12px;font-size:11.5px;align-items:center">
+              <div style="display:flex;align-items:center;gap:6px"><div style="width:12px;height:12px;background:#d7e2ff;border-radius:3px"></div>≤ 34 мин</div>
+              <div style="display:flex;align-items:center;gap:6px"><div style="width:12px;height:12px;background:#edeeef;border-radius:3px"></div>35–46 мин</div>
+              <div style="display:flex;align-items:center;gap:6px"><div style="width:12px;height:12px;background:#ffdad6;border-radius:3px"></div>&gt; 46 мин · провал</div>
+            </div>
+          </div>
+          <div style="flex:1;overflow:auto;padding:14px 16px">
+            <div style="background:#ffffff;border:1px solid #c4c6cc;border-radius:8px;padding:12px 14px">
+              <sc-for list="{{ covRows }}" as="r" hint-placeholder-count="9">
+                <div style="display:flex;align-items:center;gap:3px;margin-bottom:3px">
+                  <div style="width:44px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#44474c;text-align:right;padding-right:6px">{{ r.lat }}</div>
+                  <sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="18">
+                    <div style="flex:1;height:34px;display:flex;align-items:center;justify-content:center;background:{{ c.bg }};color:{{ c.color }};border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:11.5px;cursor:pointer">{{ c.val }}</div>
+                  </sc-for>
+                </div>
+              </sc-for>
+              <div style="display:flex;justify-content:space-between;padding-left:44px;margin-top:6px;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#44474c">
+                <div>−180°</div><div>−90°</div><div>0°</div><div>+90°</div><div>+180°</div>
+              </div>
+            </div>
+            <div style="margin-top:12px;display:flex;gap:10px;max-width:1000px">
+              <div style="flex:1;border:1px solid #ba1a1a;background:#ffdad6;border-radius:6px;padding:10px 12px">
+                <div style="font-size:12.5px;font-weight:600;color:#ba1a1a">Худшее окно 61 мин на широте −60°, долгота +40°</div>
+                <div style="font-size:12px;margin-top:4px">Требование RQ-0007 держит границу 42 мин: провал в южном полушарии закрывается только для класса C′.</div>
+              </div>
+              <div style="flex:1;border:1px solid #c4c6cc;background:#ffffff;border-radius:6px;padding:10px 12px">
+                <div style="font-size:12.5px;font-weight:600">Полоса 55–70° с. ш. — целевой спрос</div>
+                <div style="font-size:12px;color:#44474c;margin-top:4px">Среднее окно 31 мин, худшее 38 мин: внутри границы требования с запасом 4 мин.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isCompare }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:1;display:flex;flex-direction:column;min-height:0">
+          <div style="height:40px;min-height:40px;display:flex;align-items:center;gap:12px;padding:0 16px;background:#ffffff;border-bottom:1px solid #c4c6cc">
+            <div style="font-size:13px;font-weight:600">Сравнение вариантов</div>
+            <div style="font-size:11.5px;color:#44474c">нормированные значения, 1,00 — лучшее по критерию</div>
+            <div style="margin-left:auto;display:flex;align-items:center;gap:8px;height:24px;padding:0 10px;border:1px solid #ba1a1a;background:#ffdad6;border-radius:6px;font-size:11.5px;color:#ba1a1a">Результат устарел: карта спроса обновлена 02.08.2026 после расчёта</div>
+            <div style="height:26px;display:flex;align-items:center;padding:0 12px;border-radius:6px;background:#115cb9;color:#ffffff;font-size:12px;cursor:pointer">Пересчитать</div>
+          </div>
+          <div style="flex:1;overflow:auto;padding:14px 16px;display:flex;gap:16px">
+            <div style="width:300px;min-width:300px;background:#ffffff;border:1px solid #c4c6cc;border-radius:8px;padding:10px;display:flex;flex-direction:column;align-items:center">
+              <div style="position:relative;width:272px;height:248px">
+              <sc-for list="{{ kpiAxes }}" as="a" hint-placeholder-count="6">
+                <div style="position:absolute;left:{{ a.x }}px;top:{{ a.y }}px;transform:translate(-50%,-50%);font-size:10.5px;color:#44474c;white-space:nowrap">{{ a.name }}</div>
+              </sc-for>
+              <svg width="272" height="248" viewBox="0 0 272 248" style="position:absolute;left:0;top:0">
+                <polygon points="{{ kpiRing2 }}" fill="none" stroke="#c4c6cc" stroke-width="0.8"></polygon>
+                <polygon points="{{ kpiRing1 }}" fill="none" stroke="#c4c6cc" stroke-width="0.8"></polygon>
+                <sc-for list="{{ kpiAxes }}" as="a" hint-placeholder-count="6">
+                  <line x1="{{ a.cx }}" y1="{{ a.cy }}" x2="{{ a.lx }}" y2="{{ a.ly }}" stroke="#c4c6cc" stroke-width="0.8"></line>
+                </sc-for>
+                <polygon points="{{ kpiPolyB }}" fill="#584329" fill-opacity="0.14" stroke="#584329" stroke-width="1.4"></polygon>
+                <polygon points="{{ kpiPolyA }}" fill="#115cb9" fill-opacity="0.18" stroke="#115cb9" stroke-width="1.8"></polygon>
+              </svg>
+              </div>
+              <div style="display:flex;gap:14px;margin-top:6px">
+                <div style="display:flex;align-items:center;gap:6px;font-size:12px"><div style="width:14px;height:3px;background:#115cb9"></div>А-1 · выбран</div>
+                <div style="display:flex;align-items:center;gap:6px;font-size:12px"><div style="width:14px;height:3px;background:#584329"></div>А-3</div>
+              </div>
+            </div>
+            <div style="flex:1;min-width:0;background:#ffffff;border:1px solid #c4c6cc;border-radius:8px;padding:12px 14px">
+              <div style="display:grid;grid-template-columns:1fr 110px 110px 130px;height:26px;align-items:center;font-size:11px;text-transform:uppercase;letter-spacing:0.4px;color:#44474c;border-bottom:1px solid #c4c6cc">
+                <div>Ось KPI</div><div style="text-align:right">А-1</div><div style="text-align:right">А-3</div><div style="text-align:right">Лучше</div>
+              </div>
+              <sc-for list="{{ cmpRows }}" as="c" hint-placeholder-count="6">
+                <div style="display:grid;grid-template-columns:1fr 110px 110px 130px;height:26px;align-items:center;border-bottom:1px solid #edeeef;font-size:12.5px">
+                  <div>{{ c.name }}</div>
+                  <div style="font-family:'JetBrains Mono',monospace;text-align:right">{{ c.a }}</div>
+                  <div style="font-family:'JetBrains Mono',monospace;text-align:right;color:#44474c">{{ c.b }}</div>
+                  <div style="text-align:right;font-size:11.5px;color:{{ c.color }}">{{ c.better }}</div>
+                </div>
+              </sc-for>
+              <div style="margin-top:12px;font-size:12px;color:#44474c;max-width:640px;line-height:1.5">А-3 выигрывает две оси из шести и проигрывает по массе, затратам и зрелости решений. Пока карта спроса не пересчитана, сравнение годится для обсуждения, но не для фиксации решения на KDP B.</div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isAoa }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:1;display:flex;flex-direction:column;min-height:0">
+          <div style="height:40px;min-height:40px;display:flex;align-items:center;gap:12px;padding:0 16px;background:#ffffff;border-bottom:1px solid #c4c6cc">
+            <div style="font-size:13px;font-weight:600">Анализ альтернатив</div>
+            <div style="font-size:11.5px;color:#44474c">4 варианта облика · выбран А-1 · решение зафиксировано 30.06.2026</div>
+          </div>
+          <div style="flex:1;overflow:auto;padding:14px 16px">
+            <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px">
+              <sc-for list="{{ aoaCards }}" as="a" hint-placeholder-count="4">
+                <div style="border:1px solid {{ a.border }};background:{{ a.bg }};border-radius:8px;padding:11px 12px;display:flex;flex-direction:column;gap:8px">
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:12.5px;font-weight:500">{{ a.id }}</div>
+                    <div style="margin-left:auto;font-size:11px;color:{{ a.stColor }}">{{ a.state }}</div>
+                  </div>
+                  <div style="font-size:12.5px;font-weight:600;line-height:1.35">{{ a.cfg }}</div>
+                  <div style="font-size:11.5px;color:#44474c;line-height:1.45;text-wrap:pretty">{{ a.note }}</div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:auto">
+                    <div><div style="font-size:10.5px;color:#44474c">спрос</div><div style="font-family:'JetBrains Mono',monospace;font-size:12.5px">{{ a.moe1 }}</div></div>
+                    <div><div style="font-size:10.5px;color:#44474c">перерыв</div><div style="font-family:'JetBrains Mono',monospace;font-size:12.5px">{{ a.moe3 }}</div></div>
+                    <div><div style="font-size:10.5px;color:#44474c">масса</div><div style="font-family:'JetBrains Mono',monospace;font-size:12.5px">{{ a.mass }}</div></div>
+                    <div><div style="font-size:10.5px;color:#44474c">затраты</div><div style="font-family:'JetBrains Mono',monospace;font-size:12.5px">{{ a.cost }}</div></div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="margin-top:14px;background:#ffffff;border:1px solid #c4c6cc;border-radius:8px;padding:12px 14px">
+              <div style="font-size:12.5px;font-weight:600;margin-bottom:8px">Сравнение по критериям</div>
+              <div style="display:grid;grid-template-columns:220px 88px repeat(4,minmax(0,1fr)) 120px;height:26px;align-items:center;font-size:11px;text-transform:uppercase;letter-spacing:0.4px;color:#44474c;border-bottom:1px solid #c4c6cc">
+                <div>Критерий</div><div>Источник</div><div style="text-align:right">А-1</div><div style="text-align:right">А-2</div><div style="text-align:right">А-3</div><div style="text-align:right">А-4</div><div style="text-align:right">Правило</div>
+              </div>
+              <sc-for list="{{ aoaCrit }}" as="c" hint-placeholder-count="6">
+                <div style="display:grid;grid-template-columns:220px 88px repeat(4,minmax(0,1fr)) 120px;height:26px;align-items:center;border-bottom:1px solid #edeeef;font-size:12.5px">
+                  <div>{{ c.name }}</div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#115cb9">{{ c.src }}</div>
+                  <div style="font-family:'JetBrains Mono',monospace;text-align:right;background:#d7e2ff;border-radius:4px">{{ c.a }}</div>
+                  <div style="font-family:'JetBrains Mono',monospace;text-align:right;color:#44474c">{{ c.b }}</div>
+                  <div style="font-family:'JetBrains Mono',monospace;text-align:right;color:#44474c">{{ c.c }}</div>
+                  <div style="font-family:'JetBrains Mono',monospace;text-align:right;color:#44474c">{{ c.d }}</div>
+                  <div style="text-align:right;font-size:11px;color:#44474c">{{ c.rule }}</div>
+                </div>
+              </sc-for>
+              <div style="margin-top:12px;border-left:3px solid #1a7f37;padding:2px 0 2px 10px">
+                <div style="font-size:12.5px;font-weight:600">Выбран А-1 · обоснование</div>
+                <div style="font-size:12.5px;color:#44474c;margin-top:4px;line-height:1.5;max-width:900px;text-wrap:pretty">А-3 выигрывает по покрытию, но выходит за срок развёртывания и за затраты на год эксплуатации. А-2 и А-4 не удерживают перерыв на широте 60° в границах MOE-3. А-1 — единственный вариант, где все шесть критериев внутри допусков при минимальном TRL 7.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isWbs }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:1;display:flex;flex-direction:column;min-height:0">
+          <div style="height:40px;min-height:40px;display:flex;align-items:center;gap:12px;padding:0 16px;background:#ffffff;border-bottom:1px solid #c4c6cc">
+            <div style="font-size:13px;font-weight:600">Состав системы и WBS</div>
+            <div style="font-size:11.5px;color:#44474c">бюджеты массы и энергии с остатками резервов</div>
+            <div style="margin-left:auto;display:flex;gap:14px;font-size:11.5px">
+              <div style="color:#44474c">Масса группировки <span style="font-family:'JetBrains Mono',monospace;color:#191c1d">5 400 / 5 400 кг</span></div>
+              <div style="color:#44474c">Резерв массы <span style="font-family:'JetBrains Mono',monospace;color:#ba1a1a">9 %</span> при норме 12 %</div>
+            </div>
+          </div>
+          <div style="flex:1;overflow:auto;padding:0 16px">
+            <div style="display:grid;grid-template-columns:110px 1fr 220px 110px 100px 92px 130px;height:26px;align-items:center;font-size:11px;text-transform:uppercase;letter-spacing:0.4px;color:#44474c;border-bottom:1px solid #c4c6cc;position:sticky;top:0;background:#f8f9fa">
+              <div>Идентиф.</div><div>Элемент</div><div>Состав</div><div style="text-align:right">Масса</div><div style="text-align:right">Мощность</div><div style="text-align:right">Резерв</div><div style="text-align:right">Владелец</div>
+            </div>
+            <sc-for list="{{ wbsRows }}" as="w" hint-placeholder-count="12">
+              <div style="display:grid;grid-template-columns:110px 1fr 220px 110px 100px 92px 130px;height:26px;align-items:center;border-bottom:1px solid #edeeef;font-size:12.5px;background:{{ w.bg }};cursor:pointer" style-hover="background:#f3f4f5">
+                <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#115cb9;padding-left:{{ w.pad }}">{{ w.id }}</div>
+                <div style="font-weight:{{ w.weight }}">{{ w.name }}</div>
+                <div style="color:#44474c">{{ w.what }}</div>
+                <div style="font-family:'JetBrains Mono',monospace;text-align:right">{{ w.mass }}</div>
+                <div style="font-family:'JetBrains Mono',monospace;text-align:right">{{ w.pwr }}</div>
+                <div style="font-family:'JetBrains Mono',monospace;text-align:right;color:{{ w.resColor }}">{{ w.res }}</div>
+                <div style="text-align:right;color:#44474c">{{ w.owner }}</div>
+              </div>
+            </sc-for>
+            <div style="margin-top:12px;display:flex;gap:10px;max-width:900px">
+              <div style="flex:1;background:#ffffff;border:1px solid #c4c6cc;border-radius:6px;padding:10px 12px">
+                <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.4px;color:#44474c">Бюджет массы аппарата</div>
+                <div style="display:flex;align-items:baseline;gap:8px;margin-top:4px"><div style="font-family:'JetBrains Mono',monospace;font-size:20px">860 кг</div><div style="font-size:11.5px;color:#44474c">лимит RQ-0019 · резерв 9 %</div></div>
+                <div style="height:6px;border-radius:3px;background:#edeeef;margin-top:8px;overflow:hidden"><div style="height:6px;width:91%;background:#584329"></div></div>
+              </div>
+              <div style="flex:1;background:#ffffff;border:1px solid #c4c6cc;border-radius:6px;padding:10px 12px">
+                <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.4px;color:#44474c">Бюджет энергии аппарата</div>
+                <div style="display:flex;align-items:baseline;gap:8px;margin-top:4px"><div style="font-family:'JetBrains Mono',monospace;font-size:20px">1 250 Вт</div><div style="font-size:11.5px;color:#44474c">лимит RQ-0020 · резерв 14 %</div></div>
+                <div style="height:6px;border-radius:3px;background:#edeeef;margin-top:8px;overflow:hidden"><div style="height:6px;width:86%;background:#1a7f37"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isIcd }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:1;display:flex;flex-direction:column;min-height:0">
+          <div style="height:40px;min-height:40px;display:flex;align-items:center;gap:12px;padding:0 16px;background:#ffffff;border-bottom:1px solid #c4c6cc">
+            <div style="font-size:13px;font-weight:600">Матрица интерфейсов ICD</div>
+            <div style="font-size:11.5px;color:#44474c">строка — источник, столбец — приёмник · 12 интерфейсов описано</div>
+          </div>
+          <div style="flex:1;overflow:auto;padding:14px 16px">
+            <div style="max-width:1000px;background:#ffffff;border:1px solid #c4c6cc;border-radius:8px;padding:12px 14px">
+              <div style="display:grid;grid-template-columns:{{ icdGrid }};height:26px;align-items:center;border-bottom:1px solid #c4c6cc">
+                <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.4px;color:#44474c">Источник</div>
+                <sc-for list="{{ icdCols }}" as="c" hint-placeholder-count="7">
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#44474c;text-align:center">{{ c.name }}</div>
+                </sc-for>
+              </div>
+              <sc-for list="{{ icdRows }}" as="r" hint-placeholder-count="7">
+                <div style="display:grid;grid-template-columns:{{ icdGrid }};height:28px;align-items:center;border-bottom:1px solid #edeeef">
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#115cb9">{{ r.id }}</div>
+                  <sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="7">
+                    <div style="height:24px;display:flex;align-items:center;justify-content:center;font-size:11px;color:{{ c.color }};background:{{ c.bg }};border-radius:4px;margin:0 2px;cursor:pointer">{{ c.v }}</div>
+                  </sc-for>
+                </div>
+              </sc-for>
+              <div style="margin-top:10px;font-size:11.5px;color:#44474c">Диагональ закрыта. Пустая клетка означает «интерфейса нет»; чтобы описать новый — выберите клетку и заполните карточку ICD.</div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isReq }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:1;display:flex;flex-direction:column;min-height:0">
+          <div style="height:40px;min-height:40px;display:flex;align-items:center;gap:10px;padding:0 14px;background:#ffffff;border-bottom:1px solid #c4c6cc">
+            <div style="font-size:13px;font-weight:600;white-space:nowrap">Реестр требований</div>
+            <div style="height:24px;flex:1 1 120px;min-width:80px;display:flex;align-items:center;padding:0 9px;border:1px solid #c4c6cc;border-radius:6px;font-size:12px;color:#74777d;white-space:nowrap;overflow:hidden">Поиск по реестру</div>
+            <div style="display:flex;gap:6px;flex:0 0 auto">
+              <div style="height:24px;display:flex;align-items:center;padding:0 9px;border:1px solid #115cb9;border-radius:6px;background:#d7e2ff;font-size:11.5px;white-space:nowrap">Все уровни</div>
+              <div style="height:24px;display:flex;align-items:center;padding:0 9px;border:1px solid #c4c6cc;border-radius:6px;font-size:11.5px;color:#44474c;white-space:nowrap">Статус</div>
+            </div>
+            <div style="font-size:11.5px;color:#44474c;white-space:nowrap;flex:0 0 auto">{{ reqTotal }}</div>
+            <div style="height:26px;display:flex;align-items:center;padding:0 12px;border-radius:6px;background:#115cb9;color:#ffffff;font-size:12px;cursor:pointer;white-space:nowrap;flex:0 0 auto">Добавить</div>
+          </div>
+          <div style="flex:1;overflow:auto;padding:0 14px 20px">
+            <div style="display:grid;grid-template-columns:78px 1fr 120px 96px 104px 88px;height:26px;align-items:center;font-size:11px;letter-spacing:0.4px;text-transform:uppercase;color:#44474c;border-bottom:1px solid #c4c6cc;position:sticky;top:0;background:#f8f9fa;z-index:1">
+              <div>Идентиф.</div><div>Формулировка</div><div style="text-align:right">Показатель</div><div style="text-align:right">Статус</div><div style="text-align:right">Верификация</div><div style="text-align:right">Источник</div>
+            </div>
+            <sc-for list="{{ reqGroups }}" as="grp" hint-placeholder-count="3">
+              <div>
+                <div style="height:26px;display:flex;align-items:center;gap:8px;background:#edeeef;padding:0 8px;border-bottom:1px solid #c4c6cc">
+                  <div style="font-size:11.5px;font-weight:600">{{ grp.title }}</div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#44474c">{{ grp.count }}</div>
+                </div>
+                <sc-for list="{{ grp.rows }}" as="r" hint-placeholder-count="10">
+                  <div onClick="{{ r.on }}" style="display:grid;grid-template-columns:78px 1fr 120px 96px 104px 88px;height:26px;align-items:center;border-bottom:1px solid #edeeef;font-size:12.5px;cursor:pointer;background:{{ r.bg }};border-left:2px solid {{ r.mark }};padding-left:6px" style-hover="background:#f3f4f5">
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#115cb9">{{ r.id }}</div>
+                    <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.text }}</div>
+                    <div style="font-family:'JetBrains Mono',monospace;text-align:right">{{ r.metric }}</div>
+                    <div style="text-align:right;font-size:11.5px;color:{{ r.stColor }}">{{ r.st }}</div>
+                    <div style="text-align:right;font-size:11.5px;color:#44474c">{{ r.verif }}</div>
+                    <div style="text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px;color:{{ r.srcColor }}">{{ r.src }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isMatrix }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:1;display:flex;flex-direction:column;min-height:0">
+          <div style="height:40px;min-height:40px;display:flex;align-items:flex-end;gap:0;padding:0 14px;background:#ffffff;border-bottom:1px solid #c4c6cc">
+            <div onClick="{{ mtabTrace.on }}" style="height:32px;display:flex;align-items:center;padding:0 14px;font-size:12.5px;cursor:pointer;background:{{ mtabTrace.bg }};border-bottom:2px solid {{ mtabTrace.border }}">Трассировка</div>
+            <div onClick="{{ mtabVerify.on }}" style="height:32px;display:flex;align-items:center;padding:0 14px;font-size:12.5px;cursor:pointer;background:{{ mtabVerify.bg }};border-bottom:2px solid {{ mtabVerify.border }}">Верификация</div>
+            <div style="margin-left:auto;padding-bottom:8px;font-size:11.5px;color:#44474c">{{ mtxTitle }}</div>
+          </div>
+          <div style="flex:1;display:flex;min-height:0">
+            <div style="flex:1;min-width:0;overflow:auto;padding:14px">
+              <div style="display:grid;grid-template-columns:{{ mtxGrid }};align-items:end;border-bottom:1px solid #c4c6cc;padding-bottom:6px">
+                <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.4px;color:#44474c">Требование</div>
+                <sc-for list="{{ mtxCols }}" as="c" hint-placeholder-count="8">
+                  <div style="font-size:11px;color:#44474c;text-align:center;line-height:1.2;padding:0 2px">{{ c.name }}</div>
+                </sc-for>
+              </div>
+              <sc-for list="{{ mtxRows }}" as="r" hint-placeholder-count="12">
+                <div style="display:grid;grid-template-columns:{{ mtxGrid }};height:26px;align-items:center;border-bottom:1px solid #edeeef;background:{{ r.rowBg }}">
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:{{ r.idColor }}">{{ r.id }}</div>
+                  <sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="8">
+                    <div style="height:24px;display:flex;align-items:center;justify-content:center;font-size:12px;color:{{ c.color }};background:{{ c.bg }};border-radius:4px;margin:0 2px">{{ c.mark }}</div>
+                  </sc-for>
+                </div>
+              </sc-for>
+              <div style="margin-top:12px;font-size:11.5px;color:#44474c">Пересечение отмечено точкой. Строка без единой отметки поднята в список разрывов справа — пустая ячейка сама по себе о разрыве не сообщает.</div>
+            </div>
+            <div style="width:330px;min-width:330px;border-left:1px solid #c4c6cc;background:#ffffff;display:flex;flex-direction:column">
+              <div style="height:34px;display:flex;align-items:center;gap:8px;padding:0 12px;border-bottom:1px solid #edeeef">
+                <div style="font-size:12.5px;font-weight:600">Разрывы</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#ffffff;background:#ba1a1a;border-radius:9px;padding:1px 7px">{{ gapCount }}</div>
+              </div>
+              <div style="flex:1;overflow:auto;padding:8px 12px;display:flex;flex-direction:column;gap:8px">
+                <sc-for list="{{ gaps }}" as="g" hint-placeholder-count="5">
+                  <div style="border:1px solid #c4c6cc;border-radius:6px;padding:8px 10px">
+                    <div style="display:flex;align-items:center;gap:8px">
+                      <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#115cb9">{{ g.id }}</div>
+                      <div style="font-size:11px;color:#ba1a1a">{{ g.kind }}</div>
+                      <div style="margin-left:auto;font-size:11px;color:#44474c">{{ g.who }}</div>
+                    </div>
+                    <div style="font-size:12px;margin-top:4px">{{ g.what }}</div>
+                    <div style="margin-top:7px;height:24px;display:inline-flex;align-items:center;padding:0 10px;border:1px solid #115cb9;border-radius:6px;color:#115cb9;font-size:11.5px;cursor:pointer">Привязать источник</div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isGoals }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:1;display:flex;flex-direction:column;min-height:0">
+          <div style="height:40px;min-height:40px;display:flex;align-items:center;gap:12px;padding:0 16px;background:#ffffff;border-bottom:1px solid #c4c6cc">
+            <div style="font-size:13px;font-weight:600">Цели миссии</div>
+            <div style="font-size:11.5px;color:#44474c">6 целей · показатели эффективности MOE</div>
+            <div style="margin-left:auto;height:26px;display:flex;align-items:center;padding:0 12px;border-radius:6px;background:#115cb9;color:#ffffff;font-size:12px;cursor:pointer">Добавить цель</div>
+          </div>
+          <div style="flex:1;overflow:auto;padding:0 16px">
+            <div style="display:grid;grid-template-columns:78px 1fr 250px 96px 96px 104px;height:26px;align-items:center;font-size:11px;letter-spacing:0.4px;text-transform:uppercase;color:#44474c;border-bottom:1px solid #c4c6cc;position:sticky;top:0;background:#f8f9fa">
+              <div>Идентиф.</div><div>Цель</div><div>Показатель эффективности</div><div style="text-align:right">Целевое</div><div style="text-align:right">Оценка</div><div style="text-align:right">Статус</div>
+            </div>
+            <sc-for list="{{ goals }}" as="g" hint-placeholder-count="6">
+              <div style="display:grid;grid-template-columns:78px 1fr 250px 96px 96px 104px;height:26px;align-items:center;border-bottom:1px solid #edeeef;font-size:12.5px;cursor:pointer" style-hover="background:#f3f4f5">
+                <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#115cb9">{{ g.id }}</div>
+                <div>{{ g.name }}</div>
+                <div style="color:#44474c">{{ g.moe }}</div>
+                <div style="font-family:'JetBrains Mono',monospace;text-align:right">{{ g.target }}</div>
+                <div style="font-family:'JetBrains Mono',monospace;text-align:right">{{ g.now }}</div>
+                <div style="text-align:right;font-size:11.5px;color:{{ g.stColor }}">{{ g.st }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isNeeds }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:1;display:flex;flex-direction:column;min-height:0">
+          <div style="height:40px;min-height:40px;display:flex;align-items:center;gap:12px;padding:0 16px;background:#ffffff;border-bottom:1px solid #c4c6cc">
+            <div style="font-size:13px;font-weight:600">Нужды стейкхолдеров</div>
+            <div style="font-size:11.5px;color:#44474c">14 из 23 сформулировано · 9 в работе</div>
+            <div style="margin-left:auto;height:26px;display:flex;align-items:center;padding:0 12px;border-radius:6px;background:#115cb9;color:#ffffff;font-size:12px;cursor:pointer">Добавить нужду</div>
+          </div>
+          <div style="flex:1;overflow:auto;padding:0 16px">
+            <div style="display:grid;grid-template-columns:78px 150px 92px 78px 1fr 180px 96px;height:26px;align-items:center;font-size:11px;letter-spacing:0.4px;text-transform:uppercase;color:#44474c;border-bottom:1px solid #c4c6cc;position:sticky;top:0;background:#f8f9fa">
+              <div>Идентиф.</div><div>Стейкхолдер</div><div>Роль</div><div>Приоритет</div><div>Формулировка</div><div>Ограничения</div><div style="text-align:right">Статус</div>
+            </div>
+            <sc-for list="{{ needs }}" as="n" hint-placeholder-count="14">
+              <div style="display:grid;grid-template-columns:78px 150px 92px 78px 1fr 180px 96px;height:26px;align-items:center;border-bottom:1px solid #edeeef;font-size:12.5px;cursor:pointer" style-hover="background:#f3f4f5">
+                <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#115cb9">{{ n.id }}</div>
+                <div>{{ n.who }}</div>
+                <div style="color:#44474c">{{ n.role }}</div>
+                <div style="color:{{ n.prioColor }}">{{ n.prio }}</div>
+                <div>{{ n.text }}</div>
+                <div style="color:#44474c">{{ n.limit }}</div>
+                <div style="text-align:right;font-size:11.5px;color:{{ n.stColor }}">{{ n.st }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isServices }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:1;display:flex;flex-direction:column;min-height:0">
+          <div style="height:40px;min-height:40px;display:flex;align-items:center;gap:12px;padding:0 16px;background:#ffffff;border-bottom:1px solid #c4c6cc">
+            <div style="font-size:13px;font-weight:600">Сервисы и профили QoS</div>
+            <div style="font-size:11.5px;color:#44474c">классы потребителей A′ · B′ · C′ · формат «задержка · готовность · полоса»</div>
+            <div style="margin-left:auto;height:26px;display:flex;align-items:center;padding:0 12px;border-radius:6px;background:#115cb9;color:#ffffff;font-size:12px;cursor:pointer">Добавить сервис</div>
+          </div>
+          <div style="flex:1;overflow:auto;padding:0 16px">
+            <div style="display:grid;grid-template-columns:78px 236px repeat(3,minmax(0,1fr)) 96px;height:26px;align-items:center;font-size:11px;letter-spacing:0.4px;text-transform:uppercase;color:#44474c;border-bottom:1px solid #c4c6cc;position:sticky;top:0;background:#f8f9fa">
+              <div>Идентиф.</div><div>Сервис</div><div>Класс A′</div><div>Класс B′</div><div>Класс C′</div><div style="text-align:right">Статус</div>
+            </div>
+            <sc-for list="{{ services }}" as="s" hint-placeholder-count="5">
+              <div style="display:grid;grid-template-columns:78px 236px repeat(3,minmax(0,1fr)) 96px;height:26px;align-items:center;border-bottom:1px solid #edeeef;font-size:12.5px;cursor:pointer" style-hover="background:#f3f4f5">
+                <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#115cb9">{{ s.id }}</div>
+                <div>{{ s.name }}</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px">{{ s.a }}</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#44474c">{{ s.b }}</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#44474c">{{ s.c }}</div>
+                <div style="text-align:right;font-size:11.5px;color:{{ s.stColor }}">{{ s.st }}</div>
+              </div>
+            </sc-for>
+            <div style="margin-top:14px;padding:10px 12px;border:1px solid #c4c6cc;border-radius:6px;background:#ffffff;font-size:11.5px;color:#44474c;max-width:760px">Профиль класса A′ задаёт верхнюю границу для требований уровня системы: изменение здесь помечает связанные требования как «показатель пересчитан после базирования».</div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isOther }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:1;display:flex;align-items:center;justify-content:center;color:#44474c;font-size:12.5px">Экран готовится</div>
+      </sc-if>
+
+    </div>
+
+    <sc-if value="{{ showInspector }}" hint-placeholder-val="{{ false }}">
+      <div style="width:372px;min-width:372px;background:#ffffff;border-left:1px solid #c4c6cc;display:flex;flex-direction:column;min-height:0">
+        <div style="padding:10px 14px 8px;border-bottom:1px solid #edeeef">
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#115cb9">{{ sel.id }}</div>
+            <div style="font-size:11px;color:#44474c">{{ sel.level }}</div>
+            <div style="margin-left:auto;font-size:11.5px;color:{{ sel.stColor }}">{{ sel.st }}</div>
+          </div>
+          <div style="font-size:13px;font-weight:600;margin-top:5px;line-height:1.35;text-wrap:pretty">{{ sel.text }}</div>
+          <div style="display:flex;gap:5px;margin-top:9px">
+            <sc-for list="{{ insStates }}" as="s" hint-placeholder-count="4">
+              <div onClick="{{ s.on }}" style="height:22px;display:flex;align-items:center;padding:0 8px;border:1px solid {{ s.border }};background:{{ s.bg }};color:{{ s.color }};border-radius:6px;font-size:11px;cursor:pointer">{{ s.name }}</div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="display:flex;background:#f3f4f5;border-bottom:1px solid #c4c6cc">
+          <sc-for list="{{ insTabs }}" as="t" hint-placeholder-count="6">
+            <div onClick="{{ t.on }}" style="flex:1;height:30px;display:flex;align-items:center;justify-content:center;font-size:11.5px;cursor:pointer;background:{{ t.bg }};color:{{ t.color }};border-bottom:2px solid {{ t.border }}">{{ t.name }}</div>
+          </sc-for>
+        </div>
+        <div style="flex:1;overflow:auto;padding:12px 14px">
+
+          <sc-if value="{{ tabDef }}" hint-placeholder-val="{{ true }}">
+            <div>
+              <sc-if value="{{ insConflict }}" hint-placeholder-val="{{ false }}">
+                <div style="border:1px solid #ba1a1a;background:#ffdad6;border-radius:6px;padding:10px 11px;margin-bottom:12px">
+                  <div style="font-size:12.5px;font-weight:600;color:#ba1a1a">Показатель пересчитан после базирования</div>
+                  <div style="display:flex;gap:10px;margin-top:8px">
+                    <div style="flex:1;background:#ffffff;border-radius:6px;padding:7px 9px">
+                      <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:0.4px;color:#44474c">Было в Baseline</div>
+                      <div style="font-family:'JetBrains Mono',monospace;font-size:14px;margin-top:3px">≤ 42 мин</div>
+                    </div>
+                    <div style="flex:1;background:#ffffff;border-radius:6px;padding:7px 9px">
+                      <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:0.4px;color:#44474c">Стало по расчёту</div>
+                      <div style="font-family:'JetBrains Mono',monospace;font-size:14px;margin-top:3px;color:#ba1a1a">≤ 51 мин</div>
+                    </div>
+                  </div>
+                  <div style="font-size:12px;margin-top:8px;line-height:1.45">Расчёт покрытия от 14.08.2026 даёт перерыв больше базированного. Пока расхождение не снято, KDP B не примет требование.</div>
+                  <div style="display:flex;gap:8px;margin-top:9px">
+                    <div style="height:26px;display:flex;align-items:center;padding:0 11px;border-radius:6px;background:#ba1a1a;color:#ffffff;font-size:12px;cursor:pointer">Принять расчёт и открыть изменение</div>
+                    <div style="height:26px;display:flex;align-items:center;padding:0 11px;border-radius:6px;border:1px solid #ba1a1a;color:#ba1a1a;font-size:12px;cursor:pointer">Оспорить расчёт</div>
+                  </div>
+                </div>
+              </sc-if>
+              <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:0.5px;color:#44474c">Показатель</div>
+              <div style="display:flex;align-items:baseline;gap:8px;margin-top:4px">
+                <div style="font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:500">{{ sel.metric }}</div>
+                <div style="font-size:11.5px;color:#44474c">верификация: {{ sel.verif }}</div>
+              </div>
+              <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:0.5px;color:#44474c;margin-top:14px">Обоснование</div>
+              <div style="font-size:12.5px;margin-top:4px;line-height:1.5;text-wrap:pretty">Значение получено из показателя эффективности MOE-3: обслуживание высоких широт без разрывов. Перерыв на широте 60° определяется наклонением 82° и высотой 560 км; запас 4 мин оставлен на манёвры поддержания орбиты.</div>
+              <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:0.5px;color:#44474c;margin-top:14px">Источник</div>
+              <div style="display:flex;align-items:center;gap:8px;margin-top:5px;height:26px">
+                <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#115cb9">{{ sel.src }}</div>
+                <div style="font-size:12px;color:#44474c">связь установлена вручную</div>
+              </div>
+              <sc-if value="{{ insBaseline }}" hint-placeholder-val="{{ true }}">
+                <div style="margin-top:14px;border:1px solid #1a7f37;border-radius:6px;padding:10px 11px">
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <div style="width:8px;height:8px;border-radius:50%;background:#1a7f37"></div>
+                    <div style="font-size:12.5px;font-weight:600">Требование базировано 14.08.2026</div>
+                  </div>
+                  <div style="font-size:12px;color:#44474c;margin-top:5px">Правка возможна только с основанием — оно уйдёт в историю версий и в комплект документов точки.</div>
+                  <div style="margin-top:8px;min-height:52px;border:1px solid #c4c6cc;border-radius:6px;padding:7px 9px;font-size:12px;color:#74777d">Основание изменения: назовите расчёт, замечание обзора или решение, из-за которого меняется показатель</div>
+                  <div style="height:26px;display:inline-flex;align-items:center;padding:0 11px;border-radius:6px;background:#115cb9;color:#ffffff;font-size:12px;margin-top:8px;cursor:pointer">Изменить с основанием</div>
+                </div>
+              </sc-if>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ tabTrace }}" hint-placeholder-val="{{ false }}">
+            <div>
+              <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:0.5px;color:#44474c">Вверх по цепочке</div>
+              <sc-for list="{{ traceUp }}" as="t" hint-placeholder-count="3">
+                <div style="display:flex;gap:9px;margin-top:7px">
+                  <div style="width:2px;background:#c4c6cc;border-radius:1px"></div>
+                  <div style="flex:1;min-width:0">
+                    <div style="display:flex;align-items:center;gap:8px">
+                      <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#115cb9">{{ t.id }}</div>
+                      <div style="font-size:11px;color:#44474c">{{ t.kind }}</div>
+                    </div>
+                    <div style="font-size:12px;line-height:1.4">{{ t.name }}</div>
+                  </div>
+                </div>
+              </sc-for>
+              <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:0.5px;color:#44474c;margin-top:16px">Вниз по цепочке</div>
+              <sc-for list="{{ traceDown }}" as="t" hint-placeholder-count="3">
+                <div style="display:flex;gap:9px;margin-top:7px">
+                  <div style="width:2px;background:#c4c6cc;border-radius:1px"></div>
+                  <div style="flex:1;min-width:0">
+                    <div style="display:flex;align-items:center;gap:8px">
+                      <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#115cb9">{{ t.id }}</div>
+                      <div style="font-size:11px;color:#44474c">{{ t.kind }}</div>
+                    </div>
+                    <div style="font-size:12px;line-height:1.4">{{ t.name }}</div>
+                  </div>
+                </div>
+              </sc-for>
+              <sc-if value="{{ insGap }}" hint-placeholder-val="{{ false }}">
+                <div style="margin-top:14px;border:1px solid #ba1a1a;background:#ffdad6;border-radius:6px;padding:10px 11px">
+                  <div style="font-size:12.5px;font-weight:600;color:#ba1a1a">Разрыв трассировки вниз</div>
+                  <div style="font-size:12px;margin-top:5px;line-height:1.45">Требование не раскрыто ни одним требованием уровня элемента: переключение потребителя между аппаратами влияет на перерыв, но связь не установлена. Привяжите RQ-0031 или создайте требование элемента.</div>
+                  <div style="display:flex;gap:8px;margin-top:9px">
+                    <div style="height:26px;display:flex;align-items:center;padding:0 11px;border-radius:6px;background:#ba1a1a;color:#ffffff;font-size:12px;cursor:pointer">Привязать требование</div>
+                    <div style="height:26px;display:flex;align-items:center;padding:0 11px;border-radius:6px;border:1px solid #ba1a1a;color:#ba1a1a;font-size:12px;cursor:pointer">Создать требование элемента</div>
+                  </div>
+                </div>
+              </sc-if>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ tabAlloc }}" hint-placeholder-val="{{ false }}">
+            <div>
+              <div style="font-size:12px;color:#44474c;margin-bottom:8px">Показатель разложен на элементы состава системы; сумма долей не превышает базированного значения.</div>
+              <sc-for list="{{ allocRows }}" as="a" hint-placeholder-count="3">
+                <div style="border-bottom:1px solid #edeeef;padding:7px 0">
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <div style="flex:1;font-size:12.5px">{{ a.el }}</div>
+                    <div style="font-size:11px;color:#44474c">{{ a.share }}</div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:12.5px">{{ a.val }}</div>
+                  </div>
+                  <div style="font-size:11.5px;color:#44474c;margin-top:2px">{{ a.note }}</div>
+                </div>
+              </sc-for>
+              <div style="display:flex;align-items:center;gap:8px;margin-top:9px">
+                <div style="flex:1;font-size:12.5px;font-weight:600">Итого распределено</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:12.5px">≤ 42 мин</div>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ tabVer }}" hint-placeholder-val="{{ false }}">
+            <div>
+              <div style="display:grid;grid-template-columns:1fr 88px 96px;height:24px;align-items:center;font-size:10.5px;text-transform:uppercase;letter-spacing:0.4px;color:#44474c;border-bottom:1px solid #c4c6cc">
+                <div>Событие</div><div style="text-align:right">Срок</div><div style="text-align:right">Результат</div>
+              </div>
+              <sc-for list="{{ verRows }}" as="v" hint-placeholder-count="2">
+                <div style="display:grid;grid-template-columns:1fr 88px 96px;height:26px;align-items:center;border-bottom:1px solid #edeeef;font-size:12.5px">
+                  <div>{{ v.ev }}</div>
+                  <div style="font-family:'JetBrains Mono',monospace;text-align:right;font-size:11.5px">{{ v.when }}</div>
+                  <div style="text-align:right;font-size:11.5px;color:{{ v.color }}">{{ v.res }}</div>
+                </div>
+              </sc-for>
+              <div style="margin-top:12px;border:1px dashed #c4c6cc;border-radius:6px;padding:12px;text-align:center">
+                <div style="font-size:12px;color:#44474c">Метод «испытание» ещё не назначен на событие</div>
+                <div style="height:26px;display:inline-flex;align-items:center;padding:0 11px;border-radius:6px;background:#115cb9;color:#ffffff;font-size:12px;margin-top:8px;cursor:pointer">Назначить событие</div>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ tabHist }}" hint-placeholder-val="{{ false }}">
+            <div>
+              <sc-for list="{{ history }}" as="h" hint-placeholder-count="6">
+                <div style="border-bottom:1px solid #edeeef;padding:8px 0">
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px">{{ h.v }}</div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#44474c">{{ h.d }}</div>
+                    <div style="font-size:11px;color:#44474c">{{ h.who }}</div>
+                    <div style="margin-left:auto;font-size:11px;color:{{ h.stColor }}">{{ h.st }}</div>
+                  </div>
+                  <div style="display:flex;align-items:flex-start;gap:10px;margin-top:3px">
+                    <div style="flex:1;font-size:12px;line-height:1.4">{{ h.what }}</div>
+                    <div style="height:22px;display:flex;align-items:center;padding:0 8px;border:1px solid #c4c6cc;border-radius:6px;font-size:11px;color:#115cb9;cursor:pointer;white-space:nowrap" style-hover="border-color:#115cb9">Откатить</div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ tabAi }}" hint-placeholder-val="{{ false }}">
+            <div>
+              <div style="font-size:12px;color:#44474c;margin-bottom:9px">Три предложения по этому требованию. Принятое поле помечается «ИИ · принято» и уходит в историю версий.</div>
+              <sc-for list="{{ aiSug }}" as="s" hint-placeholder-count="3">
+                <div style="border:1px solid #c4c6cc;border-radius:6px;padding:9px 10px;margin-bottom:8px">
+                  <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.4px;color:#44474c">{{ s.field }}</div>
+                  <div style="display:flex;align-items:center;gap:9px;margin-top:5px">
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:12.5px;color:#74777d;text-decoration:line-through">{{ s.was }}</div>
+                    <div style="color:#44474c">→</div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:12.5px;background:#d7e2ff;border-radius:4px;padding:1px 6px">{{ s.now }}</div>
+                  </div>
+                  <div style="font-size:11.5px;color:#44474c;margin-top:5px">{{ s.why }}</div>
+                  <div style="display:flex;gap:7px;margin-top:8px">
+                    <div style="height:24px;display:flex;align-items:center;padding:0 10px;border-radius:6px;background:#115cb9;color:#ffffff;font-size:11.5px;cursor:pointer">Принять</div>
+                    <div style="height:24px;display:flex;align-items:center;padding:0 10px;border-radius:6px;border:1px solid #c4c6cc;font-size:11.5px;cursor:pointer">Отклонить</div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+
+        </div>
+      </div>
+    </sc-if>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900},&quot;firstRun&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Состояния&quot;},&quot;inspectorState&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;baseline&quot;,&quot;conflict&quot;,&quot;gap&quot;,&quot;history&quot;],&quot;default&quot;:&quot;baseline&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Состояния&quot;}}">
+const RAIL = [
+  ['portfolio','Портфель'],['goals','Постановка'],['req','Требования'],['aoa','Концепция'],
+  ['ballistics','Модели'],['readiness','Контроль'],['ai','Инструм.']
+];
+const SECTION_OF = {
+  portfolio:'portfolio', create:'portfolio', lifecycle:'portfolio',
+  goals:'goals', needs:'goals', services:'goals',
+  req:'req', matrix:'req',
+  aoa:'aoa', wbs:'aoa', icd:'aoa',
+  siminputs:'ballistics', ballistics:'ballistics', coverage:'ballistics', compare:'ballistics',
+  readiness:'readiness', rfa:'readiness', risks:'readiness', trl:'readiness', docs:'readiness',
+  ai:'ai', importb:'ai'
+};
+const OPS = {
+  portfolio:['Портфель проектов',[['portfolio','Все проекты','4'],['create','Создать проект',''],['lifecycle','Жизненный цикл','']]],
+  goals:['Постановка',[['goals','Цели миссии','6'],['needs','Нужды стейкхолдеров','23'],['services','Сервисы и QoS','5']]],
+  req:['Требования',[['req','Реестр требований','148'],['matrix','Матрицы','9']]],
+  aoa:['Концепция',[['aoa','Альтернативы','4'],['wbs','Состав системы','31'],['icd','Интерфейсы','12']]],
+  ballistics:['Моделирование',[['siminputs','Входы моделирования','14'],['ballistics','Баллистика',''],['coverage','Карта покрытия',''],['compare','Сравнение вариантов','3']]],
+  readiness:['Контроль',[['readiness','Готовность к точке','14'],['rfa','Замечания обзора','18'],['risks','Риски','11'],['trl','Технологии','7'],['docs','Документы','9']]],
+  ai:['Инструменты',[['ai','Предложения ИИ','12'],['importb','Загрузка пачкой','']]]
+};
+const PROJECTS = [
+  ['Ротор-Л','Низкоорбитальная группировка связи и мониторинга, 24 аппарата','Phase A','KDP B','14.11.2026',14,['АВ','ЛК','ПИ','МГ'],'4 участника','2 ч назад · А. Верещагин'],
+  ['Каскад-О','Обзорная съёмка в оптическом диапазоне, 6 аппаратов','Pre-Phase A','MCR','03.10.2026',31,['ЛК','ДС','РН'],'3 участника','вчера · Л. Ким'],
+  ['Терраскан','Радарная съёмка поверхности, демонстратор','Phase A','SDR','22.09.2026',6,['ПИ','АВ','НТ','ЕЗ','ОБ'],'5 участников','3 дня назад · П. Ильющенко'],
+  ['Виток-3','Ретрансляция на высоких широтах, техническое предложение','Pre-Phase A','Внутренний обзор','11.09.2026',2,['МГ','СШ'],'2 участника','12 дней назад · М. Ганиева']
+];
+const GATES = [
+  ['Внутренний обзор','пройдена повторно','24.05.2026','100%','#1a7f37','заключение положительное'],
+  ['MCR','пройдена','18.06.2026','100%','#1a7f37','концепция миссии принята'],
+  ['KDP A','пройдена','30.06.2026','100%','#1a7f37','переход в Phase A разрешён'],
+  ['SRR','в работе','04.09.2026','68%','#115cb9','9 требований без базирования'],
+  ['SDR/MDR','не начата','16.10.2026','12%','#74777d','ожидает закрытия SRR'],
+  ['KDP B','не начата','14.11.2026','4%','#74777d','14 позиций не закрыто']
+];
+const OPERATIONS = [
+  ['О1','Уточнение целей миссии','done'],['О2','Реестр нужд стейкхолдеров','done'],['О3','Профили сервисов и QoS','done'],
+  ['О4','Требования уровня проекта','done'],['О5','Функциональная декомпозиция','done'],['О6','Альтернативы облика','done'],
+  ['О7','Выбор облика системы','work'],['О8','Требования уровня системы','work'],['О9','Распределение на элементы','work'],
+  ['О10','Бюджеты массы и энергии','work'],['О11','Матрица интерфейсов','todo'],['О12','План верификации','todo'],
+  ['О13','Баллистический расчёт','done'],['О14','Оценка покрытия','work'],['О15','Оценка стоимости','todo'],
+  ['О16','Реестр рисков и TRL','work'],['О17','Комплект документов SDR','todo']
+];
+const NEW_GATES = [
+  ['Внутренний обзор','готовность материалов к внешнему обзору','14.09.2026','А. Верещагин'],
+  ['MCR','обоснование концепции миссии','12.10.2026','А. Верещагин'],
+  ['KDP A','решение о переходе в Phase A','26.10.2026','заказчик'],
+  ['SRR','полнота и качество требований','18.01.2027','Л. Ким'],
+  ['SDR/MDR','облик системы и распределение требований','15.03.2027','А. Верещагин'],
+  ['KDP B','решение о переходе в Phase B','29.03.2027','заказчик']
+];
+const TEAM = [['АВ','А. Верещагин','вед. системный'],['ЛК','Л. Ким','аппарат'],['ПИ','П. Ильющенко','баллистика'],['МГ','М. Ганиева','экономика']];
+const RETURN_ITEMS = [
+  ['RFA-004','Пересчитать бюджет массы с резервом 12 %','Л. Ким'],
+  ['RFA-007','Обосновать выбор высоты 560 км','П. Ильющенко'],
+  ['RFA-009','Показатель задержки привязать к MOE-2','А. Верещагин'],
+  ['RFA-011','Уточнить стоимость наземного сегмента','М. Ганиева']
+];
+
+class Component extends DCLogic {
+  state = { screen:'portfolio', empty:false, req:'RQ-0007', tab:'def', ins:null, mtab:'trace' };
+
+  componentDidMount(){
+    import('./coastlines.js').then(m => this.setState({ coast: m.COAST })).catch(() => {});
+  }
+
+  go(s){ return () => this.setState({ screen:s }); }
+
+  reqVals(){
+    const st = this.state;
+    const ins = st.ins || this.props.inspectorState || 'baseline';
+    const tab = st.tab;
+    const sel = REQS.find(r => r[0] === st.req) || REQS[6];
+    const levels = [['проект','Уровень проекта'],['система','Уровень системы'],['элемент','Уровень элемента']];
+    const groups = levels.map(([lv,title]) => {
+      const rows = REQS.filter(r => r[1] === lv);
+      return { title, count: rows.length + ' требований', rows: rows.map(r => ({
+        id:r[0], text:r[2], metric:r[3], st:r[4], verif:r[5], src:r[6],
+        stColor: ST_COLOR[r[4]],
+        bg: r[0] === sel[0] ? '#d7e2ff' : 'transparent',
+        mark: r[0] === sel[0] ? '#115cb9' : 'transparent',
+        srcColor: (r[0] === 'RQ-0031' || r[0] === 'RQ-0033') ? '#ba1a1a' : '#44474c',
+        on: () => this.setState({ req: r[0] })
+      })) };
+    });
+    const mkTab = (k,name) => ({ name, on: () => this.setState({ tab:k }),
+      bg: tab === k ? '#ffffff' : '#f3f4f5', color: tab === k ? '#191c1d' : '#44474c',
+      border: tab === k ? '#115cb9' : 'transparent' });
+    const mkIns = (k,name) => ({ name, on: () => this.setState({ ins:k, tab: k === 'history' ? 'hist' : (k === 'gap' ? 'trace' : 'def') }),
+      bg: ins === k ? '#0f1c2c' : '#ffffff', color: ins === k ? '#ffffff' : '#44474c',
+      border: ins === k ? '#0f1c2c' : '#c4c6cc' });
+    return {
+      reqGroups: groups,
+      reqTotal: REQS.length + ' из 148 показано',
+      sel: { id:sel[0], level:sel[1], text:sel[2], metric:sel[3], st:sel[4], verif:sel[5], src:sel[6], stColor:ST_COLOR[sel[4]] },
+      insTabs: [mkTab('def','Определение'),mkTab('trace','Трассировка'),mkTab('alloc','Распределение'),mkTab('ver','Верификация'),mkTab('hist','История'),mkTab('ai','ИИ')],
+      insStates: [mkIns('baseline','Baseline'),mkIns('conflict','Конфликт'),mkIns('gap','Разрыв'),mkIns('history','История')],
+      tabDef: tab === 'def', tabTrace: tab === 'trace', tabAlloc: tab === 'alloc',
+      tabVer: tab === 'ver', tabHist: tab === 'hist', tabAi: tab === 'ai',
+      insConflict: ins === 'conflict', insBaseline: ins !== 'conflict', insGap: ins === 'gap', insNoGap: ins !== 'gap',
+      traceUp: [
+        { id:'MG-0003', name:'Обслуживание высоких широт без разрывов', kind:'цель миссии' },
+        { id:'ND-0001', name:'Доводить телеметрию до рабочего места не позднее чем через полминуты', kind:'нужда' },
+        { id:'RQ-0005', name:'Средняя задержка доставки телеметрии', kind:'требование проекта' }
+      ],
+      traceDown: [
+        { id:'RQ-0010', name:'Высота рабочей орбиты после выведения', kind:'требование системы' },
+        { id:'RQ-0011', name:'Наклонение рабочей орбиты', kind:'требование системы' },
+        { id:'RQ-0030', name:'Угол места начала сеанса связи со станцией', kind:'требование элемента' }
+      ],
+      allocRows: [
+        { el:'Космический сегмент', share:'ведущий', val:'≤ 34 мин', note:'перерыв по геометрии орбиты' },
+        { el:'Наземный сегмент', share:'участвующий', val:'≤ 6 мин', note:'ожидание окна станции' },
+        { el:'Сегмент управления', share:'участвующий', val:'≤ 2 мин', note:'постановка задачи' }
+      ],
+      verRows: [
+        { ev:'Анализ покрытия', when:'IV кв. 2026', who:'П. Ильющенко', res:'частично', color:'#584329' },
+        { ev:'Комплексные испытания', when:'II кв. 2027', who:'Л. Ким', res:'не начато', color:'#74777d' }
+      ],
+      history: HISTORY.map(([v,d,who,what,st2]) => ({ v, d, who, what, st:st2, stColor:ST_COLOR[st2] })),
+      aiSug: AI_SUG.map(([field,was,now,why]) => ({ field, was, now, why }))
+    };
+  }
+
+  toolVals(){
+    const acc = this.state.acc || {};
+    const step = this.state.imp || 1;
+    const n = AI_PACK.filter((p,i) => acc[i]).length;
+    return {
+      aiPack: AI_PACK.map(([id,field,was,now,why],i) => ({
+        id, field, was, now, why,
+        accepted: !!acc[i], notAccepted: !acc[i],
+        bg: acc[i] ? '#f3f4f5' : '#ffffff',
+        border: acc[i] ? '#1a7f37' : '#c4c6cc',
+        on: () => this.setState({ acc: Object.assign({}, acc, { [i]: !acc[i] }) })
+      })),
+      aiAcceptedCount: String(n),
+      aiAcceptAll: () => { const a = {}; AI_PACK.forEach((p,i) => a[i] = true); this.setState({ acc:a }); },
+      aiReset: () => this.setState({ acc:{} }),
+      impStep1: step === 1, impStep2: step === 2, impStep3: step === 3, impErr: step === 4,
+      impSteps: ['Файл','Отчёт проверки','Подтверждение','Результат'].map((name,i) => ({
+        name, n: String(i+1),
+        bg: step === i+1 ? '#0f1c2c' : '#ffffff', color: step === i+1 ? '#ffffff' : '#44474c',
+        border: step === i+1 ? '#0f1c2c' : '#c4c6cc'
+      })),
+      impGo2: () => this.setState({ imp:2 }), impGo3: () => this.setState({ imp:3 }),
+      impGo1: () => this.setState({ imp:1 }), impGoErr: () => this.setState({ imp:4 }),
+      impRows: IMPORT_ROWS.map(([idx,id,field,rule,res]) => ({ idx, id, field, rule, res,
+        color: res === 'отклонена' ? '#ba1a1a' : '#584329' }))
+    };
+  }
+
+  ctlVals(){
+    const st = this.state;
+    const mode = st.modal;
+    const risk = [];
+    for (let p = 5; p >= 1; p--) {
+      const cells = [];
+      for (let i = 1; i <= 5; i++) {
+        const n = RISKS.filter(r => Number(r[2]) === i && Number(r[3]) === p).length;
+        const sev = i * p;
+        cells.push({ n: n ? String(n) : '', bg: sev >= 15 ? '#ffdad6' : (sev >= 8 ? '#edeeef' : '#ffffff'),
+          border: sev >= 15 ? '#ba1a1a' : '#c4c6cc', color: sev >= 15 ? '#ba1a1a' : '#44474c' });
+      }
+      risk.push({ p: String(p), cells });
+    }
+    return {
+      maturity: MATURITY.map(([kind, done, pct, note, color]) => ({ kind, done, pct, note, color, bar: pct })),
+      openItems: OPEN_ITEMS.map(([id, kind, name, why, who, to]) => ({ id, kind, name, why, who, on: this.go(to) })),
+      modalOff: !mode, modalNotReady: mode === 'notready', modalDecision: mode === 'decision',
+      openModal: () => this.setState({ modal: 'notready' }),
+      closeModal: () => this.setState({ modal: null }),
+      toDecision: () => this.setState({ modal: 'decision' }),
+      rfa: RFA.map(([id, src, cls, what, state, who, due]) => ({ id, src, cls, what, state, who, due,
+        clsColor: cls === 'критическое' ? '#ba1a1a' : (cls === 'замечание' ? '#584329' : '#44474c'),
+        stColor: state === 'снято' ? '#1a7f37' : (state === 'отклонено' ? '#74777d' : '#115cb9') })),
+      risks: RISKS.map(([id, name, p, s, zone, who, plan]) => ({ id, name, p, s, zone, who, plan,
+        zoneColor: zone === 'красная' ? '#ba1a1a' : (zone === 'жёлтая' ? '#584329' : '#1a7f37'),
+        planColor: plan === 'план не утверждён' ? '#ba1a1a' : '#44474c' })),
+      riskGrid: risk,
+      trl: TRL.map(([id, name, now, need, plan, who]) => ({ id, name, now, need, plan, who,
+        color: Number(now) < Number(need) ? '#ba1a1a' : '#1a7f37' })),
+      docs: DOCS.map(([id, name, gate, state, status, when, gap]) => ({ id, name, gate, state, status, when, gap,
+        stColor: ST_COLOR[status], stateColor: state === 'выпущен' ? '#1a7f37' : (state === 'черновик' ? '#584329' : '#ba1a1a'),
+        gapColor: gap === '—' ? '#44474c' : '#ba1a1a' })),
+      docChain: [['Draft', '#74777d', '#ffffff'], ['Preliminary', '#115cb9', '#ffffff'], ['Approved', '#584329', '#ffffff'], ['Baseline', '#1a7f37', '#ffffff']]
+        .map(([n, c]) => ({ n, c, bg: n === 'Baseline' ? '#f3f4f5' : '#ffffff' }))
+    };
+  }
+
+  simVals(){
+    const R = 148, CX = 160, CY = 160, lat0 = 32, lon0 = 55;
+    const rad = d => d * Math.PI / 180;
+    const proj = (lat, lon) => {
+      const f = rad(lat), l = rad(lon - lon0), f0 = rad(lat0);
+      const cosc = Math.sin(f0) * Math.sin(f) + Math.cos(f0) * Math.cos(f) * Math.cos(l);
+      return { x: CX + R * Math.cos(f) * Math.sin(l), y: CY - R * (Math.cos(f0) * Math.sin(f) - Math.sin(f0) * Math.cos(f) * Math.cos(l)), v: cosc > 0 };
+    };
+    const path = pts => {
+      let d = '', pen = false;
+      pts.forEach(([la, lo]) => {
+        const p = proj(la, lo);
+        if (!p.v) { pen = false; return; }
+        d += (pen ? 'L' : 'M') + p.x.toFixed(1) + ' ' + p.y.toFixed(1) + ' ';
+        pen = true;
+      });
+      return d;
+    };
+    const coast = (this.state.coast || []).map(pts => ({ d: path(pts) })).filter(p => p.d.length > 12);
+    const grat = [];
+    for (let la = -80; la <= 80; la += 20) { const pts = []; for (let lo = -180; lo <= 180; lo += 3) pts.push([la, lo]); grat.push({ d: path(pts) }); }
+    for (let lo = -180; lo < 180; lo += 20) { const pts = []; for (let la = -88; la <= 88; la += 3) pts.push([la, lo]); grat.push({ d: path(pts) }); }
+    const inc = 82, per = 95.6;
+    const tracks = [20, 140, 260].map((node, k) => {
+      const pts = [];
+      for (let u = 0; u <= 720; u += 2) {
+        const ur = rad(u);
+        const la = Math.asin(Math.sin(rad(inc)) * Math.sin(ur)) * 180 / Math.PI;
+        const lo = node + Math.atan2(Math.cos(rad(inc)) * Math.sin(ur), Math.cos(ur)) * 180 / Math.PI - 0.2507 * (u / 360) * per;
+        pts.push([la, ((lo + 540) % 360) - 180]);
+      }
+      return { d: path(pts), color: k === 0 ? '#115cb9' : '#7ea6e8', w: k === 0 ? '1.6' : '1' };
+    });
+    const stations = STATIONS.map(([name, la, lo]) => { const p = proj(la, lo); return { name, x: p.x.toFixed(1), y: p.y.toFixed(1), show: p.v ? 'inline' : 'none' }; });
+    const cov = [];
+    for (let r = 0; r < 9; r++) {
+      const lat = 80 - r * 20 + 10;
+      const cells = [];
+      for (let c = 0; c < 18; c++) {
+        const lon = -180 + c * 20;
+        const base = 26 + Math.abs(Math.abs(lat) - 55) * 0.55 + Math.sin((lon + lat * 3) / 40) * 9;
+        const val = Math.max(14, Math.round(base));
+        cells.push({ val: String(val), bg: val <= 34 ? '#d7e2ff' : (val <= 46 ? '#edeeef' : '#ffdad6'), color: val > 46 ? '#ba1a1a' : '#191c1d' });
+      }
+      cov.push({ lat: (80 - r * 20 >= 0 ? '+' : '') + (80 - r * 20) + '°', cells });
+    }
+    const rr = 92, rx = 130, ry = 120;
+    const pt = (i, v) => { const a = rad(-90 + i * 60); return (rx + rr * v * Math.cos(a)).toFixed(1) + ',' + (ry + rr * v * Math.sin(a)).toFixed(1); };
+    return {
+      simInputs: SIM_INPUTS.map(([id, kind, what, who, when, st]) => ({ id, kind, what, who, when, st, stColor: st === 'устарел' ? '#ba1a1a' : '#1a7f37' })),
+      grat, tracks, stations, coast,
+      passes: PASSES.map(([sv, tgt, a, b, dur], i) => {
+        const min = t => { const [h, m, s] = t.split(':').map(Number); return h * 60 + m + s / 60; };
+        const left = ((min(a) - 370) / 160 * 100).toFixed(2) + '%';
+        const w = Math.max(0.6, (min(b) - min(a)) / 160 * 100).toFixed(2) + '%';
+        return { sv, tgt, a, b, dur, left, w, bg: i % 3 === 0 ? '#115cb9' : '#7ea6e8', row: (i % 4) * 15 + 'px' };
+      }),
+      timeTicks: ['06:10', '06:40', '07:10', '07:40', '08:10', '08:40'].map(t => ({ t })),
+      covRows: cov,
+      horizons: ['24 ч', '7 сут', '30 сут'].map((h, i) => ({ name: h, bg: i === 0 ? '#d7e2ff' : '#ffffff', border: i === 0 ? '#115cb9' : '#c4c6cc' })),
+      kpiAxes: KPI_AXES.map(([name, a, b], i) => {
+        const ang = rad(-90 + i * 60);
+        return { name, x: (rx + (rr + 20) * Math.cos(ang)).toFixed(1), y: (ry + (rr + 20) * Math.sin(ang)).toFixed(1),
+          lx: (rx + rr * Math.cos(ang)).toFixed(1), ly: (ry + rr * Math.sin(ang)).toFixed(1), cx: rx, cy: ry, a, b };
+      }),
+      kpiPolyA: KPI_AXES.map(([, a], i) => pt(i, a)).join(' '),
+      kpiPolyB: KPI_AXES.map(([, , b], i) => pt(i, b)).join(' '),
+      kpiRing1: [0, 1, 2, 3, 4, 5].map(i => pt(i, 0.5)).join(' '),
+      kpiRing2: [0, 1, 2, 3, 4, 5].map(i => pt(i, 1)).join(' '),
+      cmpRows: KPI_AXES.map(([name, a, b]) => ({ name, a: a.toFixed(2).replace('.', ','), b: b.toFixed(2).replace('.', ','), better: a >= b ? 'А-1' : 'А-3', color: a >= b ? '#115cb9' : '#584329' }))
+    };
+  }
+
+  conceptVals(){
+    const chosen = 'А-1';
+    return {
+      aoaCards: AOA.map(([id,cfg,state,note,moe1,moe3,mass,cost,trl]) => ({
+        id, cfg, state, note, moe1, moe3, mass, cost, trl,
+        border: state === 'выбран' ? '#115cb9' : '#c4c6cc',
+        bg: state === 'выбран' ? '#d7e2ff' : '#ffffff',
+        stColor: state === 'выбран' ? '#115cb9' : (state === 'отложен' ? '#584329' : '#74777d')
+      })),
+      aoaCrit: AOA_CRIT.map(([name,src,a,b,c,d,rule]) => ({ name, src, a, b, c, d, rule })),
+      wbsRows: WBS.map(([lvl,id,name,what,mass,pwr,res,owner]) => ({
+        id, name, what, mass, pwr, res, owner,
+        pad: (12 + lvl * 18) + 'px',
+        weight: lvl < 2 ? '600' : '400',
+        bg: lvl === 0 ? '#edeeef' : (lvl === 1 ? '#f3f4f5' : 'transparent'),
+        resColor: parseInt(res) < 10 ? '#ba1a1a' : '#1a7f37'
+      })),
+      icdCols: ICD_EL.map(e => ({ name: e })),
+      icdGrid: '92px repeat(' + ICD_EL.length + ',minmax(0,1fr))',
+      icdRows: ICD_EL.map(r => ({
+        id: r,
+        cells: ICD_EL.map((c,i) => {
+          const v = (ICD_M[r] || [])[i] || '';
+          return { v, bg: r === c ? '#edeeef' : (v ? '#d7e2ff' : 'transparent'), color: v ? '#115cb9' : '#c4c6cc' };
+        })
+      })),
+      chosen
+    };
+  }
+
+  mtxVals(){
+    const st = this.state;
+    const isTrace = st.mtab !== 'verify';
+    const cols = isTrace ? MTX_SRC : MTX_EV;
+    const marks = isTrace ? MTX_MARKS : MTX_VMARKS;
+    return {
+      mtabTrace: { on: () => this.setState({mtab:'trace'}), bg: isTrace ? '#ffffff' : '#f3f4f5', border: isTrace ? '#115cb9' : 'transparent' },
+      mtabVerify: { on: () => this.setState({mtab:'verify'}), bg: !isTrace ? '#ffffff' : '#f3f4f5', border: !isTrace ? '#115cb9' : 'transparent' },
+      mtxTitle: isTrace ? 'Требование × источник' : 'Требование × событие верификации',
+      mtxCols: cols.map(c => ({ name:c })),
+      mtxGrid: '160px repeat(' + cols.length + ',minmax(0,1fr))',
+      mtxRows: MTX_ROWS.map(id => {
+        const row = marks[id] || [];
+        const empty = row.every(v => !v);
+        return { id, idColor: empty ? '#ba1a1a' : '#115cb9', rowBg: empty ? '#ffdad6' : 'transparent',
+          cells: row.map(v => ({ mark: v ? '●' : '', color: v ? '#115cb9' : '#c4c6cc', bg: v ? '#d7e2ff' : 'transparent' })) };
+      }),
+      gaps: GAPS.map(([id,kind,what,who]) => ({ id, kind, what, who })),
+      gapCount: String(GAPS.length)
+    };
+  }
+
+  renderVals(){
+    const st = this.state;
+    const scr = st.screen;
+    const sect = SECTION_OF[scr] || 'portfolio';
+    const inApp = scr !== 'portfolio' && scr !== 'create';
+    const empty = st.empty || (this.props.firstRun ?? false);
+    const nav = {}; Object.keys(SECTION_OF).forEach(k => nav[k] = this.go(k));
+    const [opsTitle, opsList] = OPS[sect];
+
+    return {
+      inApp, notInApp: !inApp, nav,
+      act: { emptyOn: () => this.setState({empty:true}), emptyOff: () => this.setState({empty:false}) },
+      isPortfolio: scr === 'portfolio', isCreate: scr === 'create', isLifecycle: scr === 'lifecycle',
+      isOther: !['portfolio','create','lifecycle','goals','needs','services','req','matrix','aoa','wbs','icd','siminputs','ballistics','coverage','compare','readiness','rfa','risks','trl','docs','ai','importb'].includes(scr),
+      isAi: scr === 'ai', isImport: scr === 'importb',
+      ...this.toolVals(),
+      isReadiness: scr === 'readiness', isRfa: scr === 'rfa', isRisks: scr === 'risks', isTrl: scr === 'trl', isDocs: scr === 'docs',
+      ...this.ctlVals(),
+      isSimInputs: scr === 'siminputs', isBallistics: scr === 'ballistics', isCoverage: scr === 'coverage', isCompare: scr === 'compare',
+      ...this.simVals(),
+      isAoa: scr === 'aoa', isWbs: scr === 'wbs', isIcd: scr === 'icd',
+      ...this.conceptVals(),
+      isReq: scr === 'req', isMatrix: scr === 'matrix', showInspector: scr === 'req',
+      ...this.reqVals(), ...this.mtxVals(),
+      isGoals: scr === 'goals', isNeeds: scr === 'needs', isServices: scr === 'services',
+      goals: GOALS.map(([id,name,moe,target,now,st]) => ({id,name,moe,target,now,st,stColor:ST_COLOR[st]})),
+      needs: NEEDS.map(([id,who,role,prio,text,limit,st]) => ({id,who,role,prio,text,limit,st,
+        stColor:ST_COLOR[st], prioColor: prio === 'высокий' ? '#ba1a1a' : (prio === 'средний' ? '#584329' : '#74777d')})),
+      services: SERVICES.map(([id,name,a,b,c,st]) => ({id,name,a,b,c,st,stColor:ST_COLOR[st]})),
+      hasProjects: !empty, noProjects: empty,
+      proj: { name:'Ротор-Л', phase:'Phase A', gate:'KDP B', openCount:'14', lastChange:'2 ч назад · А. Верещагин' },
+      opsTitle,
+      rail: RAIL.map(([k,label]) => ({
+        label, on: this.go(k),
+        bg: sect === k ? '#1b2f47' : 'transparent',
+        mark: sect === k ? '#115cb9' : 'transparent',
+        color: sect === k ? '#ffffff' : '#9aa4b2',
+        dot: sect === k ? '#7ea6e8' : '#5c6675'
+      })),
+      ops: opsList.map(([k,name,badge]) => ({
+        name, badge, on: this.go(k),
+        bg: scr === k ? '#d7e2ff' : 'transparent',
+        mark: scr === k ? '#115cb9' : 'transparent',
+        color: scr === k ? '#191c1d' : '#44474c',
+        badgeColor: scr === k ? '#115cb9' : '#74777d'
+      })),
+      team: TEAM.map(([ini,name,role]) => ({ini,name,role})),
+      projects: PROJECTS.map(([name,subtitle,phase,gate,gateDate,open,team,teamLabel,last]) => ({
+        name, subtitle, phase, gate, gateDate, team, teamLabel, last,
+        open: String(open), openColor: open > 10 ? '#ba1a1a' : '#584329',
+        on: this.go('lifecycle')
+      })),
+      phaseChoices: [
+        { name:'Pre-Phase A', on:()=>{}, bg:'#ffffff', border:'#c4c6cc' },
+        { name:'Phase A', on:()=>{}, bg:'#d7e2ff', border:'#115cb9' }
+      ],
+      newGates: NEW_GATES.map(([name,what,date,owner]) => ({name,what,date,owner})),
+      gates: GATES.map(([name,status,date,pct,top,note]) => ({
+        name, status, date, pct, top, note,
+        border: status === 'в работе' ? '#115cb9' : '#c4c6cc',
+        stColor: top
+      })),
+      operations: OPERATIONS.map(([id,name,s]) => ({
+        id, name,
+        bg: s === 'work' ? '#d7e2ff' : '#ffffff',
+        border: s === 'work' ? '#115cb9' : '#c4c6cc',
+        dot: s === 'done' ? '#1a7f37' : (s === 'work' ? '#115cb9' : '#ffffff'),
+        dotBorder: s === 'todo' ? '#c4c6cc' : 'transparent'
+      })),
+      returnItems: RETURN_ITEMS.map(([id,name,owner]) => ({id,name,owner})),
+      nextSteps: [
+        { n:'1', name:'Закрыть 9 требований без базирования', count:'9', on:this.go('req') },
+        { n:'2', name:'Снять замечания внутреннего обзора', count:'4', on:this.go('rfa') },
+        { n:'3', name:'Восстановить 5 разрывов трассировки', count:'5', on:this.go('matrix') },
+        { n:'4', name:'Выпустить комплект документов SDR', count:'3', on:this.go('docs') }
+      ]
+    };
+  }
+}
+
+const GOALS = [
+  ['MG-0001','Непрерывная передача данных мониторинга потребителям Севера','MOE-1 · доля обслуженного спроса','≥ 0,95','0,91','Approved'],
+  ['MG-0002','Сокращение времени доведения телеметрии до оператора','MOE-2 · средняя задержка доставки','≤ 30 с','24 с','Baseline'],
+  ['MG-0003','Обслуживание высоких широт без разрывов','MOE-3 · перерыв на широте 60°','≤ 42 мин','51 мин','Preliminary'],
+  ['MG-0004','Устойчивость группировки к отказу аппарата','MOE-4 · деградация пропускной способности','≤ 8 %','6 %','Approved'],
+  ['MG-0005','Развёртывание в сроки федеральной программы','MOE-5 · срок полного развёртывания','≤ 18 мес','17 мес','Approved'],
+  ['MG-0006','Приемлемая стоимость владения','MOE-6 · затраты на год эксплуатации','≤ 1,8 млрд ₽','1,74 млрд ₽','Preliminary']
+];
+const NEEDS = [
+  ['ND-0001','Оператор сети','ключевой','высокий','Доводить телеметрию до рабочего места не позднее чем через полминуты','круглосуточная смена','Baseline'],
+  ['ND-0002','Заказчик программы','ключевой','высокий','Держать срок активного существования аппарата не ниже пяти лет','бюджет зафиксирован','Baseline'],
+  ['ND-0003','Служба эксплуатации','влияющий','средний','Обслуживать группировку без выхода из графика профилактики','штат 12 человек','Approved'],
+  ['ND-0004','Головной изготовитель','влияющий','высокий','Сохранить возможность серийного изготовления платформы','темп 4 аппарата в год','Approved'],
+  ['ND-0005','Потребитель класса A′','ключевой','высокий','Получать поток без потерь в часы наибольшего спроса','приоритет над B′ и C′','Baseline'],
+  ['ND-0006','Потребитель класса B′','ключевой','средний','Получать данные с задержкой, приемлемой для суточного цикла','допускает деградацию','Approved'],
+  ['ND-0007','Экономический блок','влияющий','средний','Видеть стоимость владения по годам эксплуатации','методика заказчика','Preliminary'],
+  ['ND-0008','Оператор наземных станций','влияющий','средний','Не превышать загрузку станции 70 % суточного ресурса','пять станций','Approved'],
+  ['ND-0009','Служба безопасности','влияющий','высокий','Разграничивать доступ к целевым данным по классам','нормативный акт','Approved'],
+  ['ND-0010','Баллистическая служба','влияющий','средний','Пересчитывать трассы после каждой коррекции орбиты','сутки на расчёт','Preliminary'],
+  ['ND-0011','Пусковой заказчик','влияющий','низкий','Уложить группировку в четыре пуска','ограничение по массе','Draft'],
+  ['ND-0012','Потребитель класса C′','наблюдающий','низкий','Получать данные по остаточному ресурсу канала','без гарантий','Draft'],
+  ['ND-0013','Метрологическая служба','наблюдающий','низкий','Подтверждать точность привязки времени','поверка раз в год','Draft'],
+  ['ND-0014','Служба сопровождения ПО','влияющий','средний','Обновлять бортовое ПО без перерыва обслуживания','окно 40 мин','Preliminary']
+];
+const SERVICES = [
+  ['SV-0001','Передача целевых данных','≤ 30 с · ≥ 0,995 · 1,2 Гбит/с','≤ 5 мин · ≥ 0,98 · 400 Мбит/с','по остатку · ≥ 0,90 · 80 Мбит/с','Baseline'],
+  ['SV-0002','Доставка телеметрии аппарата','≤ 15 с · ≥ 0,999 · 2 Мбит/с','≤ 60 с · ≥ 0,99 · 1 Мбит/с','≤ 10 мин · ≥ 0,95 · 256 кбит/с','Baseline'],
+  ['SV-0003','Приём команд управления','≤ 10 с · ≥ 0,999 · 64 кбит/с','—','—','Approved'],
+  ['SV-0004','Оповещение о событиях мониторинга','≤ 45 с · ≥ 0,99 · 512 кбит/с','≤ 3 мин · ≥ 0,97 · 256 кбит/с','≤ 15 мин · ≥ 0,90 · 64 кбит/с','Approved'],
+  ['SV-0005','Выдача архива за сутки','≤ 30 мин · ≥ 0,98 · 600 Мбит/с','≤ 2 ч · ≥ 0,95 · 200 Мбит/с','≤ 12 ч · ≥ 0,90 · 50 Мбит/с','Preliminary']
+];
+const REQS = [
+  ['RQ-0001','проект','Срок активного существования космического аппарата','≥ 5 лет','Baseline','Анализ','ND-0002'],
+  ['RQ-0002','проект','Готовность сервиса передачи целевых данных для класса A′','≥ 0,995','Baseline','Демонстрация','ND-0005'],
+  ['RQ-0003','проект','Срок полного развёртывания группировки после первого пуска','≤ 18 мес','Approved','Анализ','MG-0005'],
+  ['RQ-0004','проект','Затраты на год эксплуатации системы','≤ 1,8 млрд ₽','Preliminary','Анализ','ND-0007'],
+  ['RQ-0005','проект','Средняя задержка доставки телеметрии на рабочее место оператора','≤ 30 с','Baseline','Испытание','ND-0001'],
+  ['RQ-0006','проект','Деградация пропускной способности при отказе одного аппарата','≤ 8 %','Approved','Анализ','MG-0004'],
+  ['RQ-0007','система','Максимальный перерыв в обслуживании ячейки широты 60°','≤ 42 мин','Baseline','Анализ','RQ-0005'],
+  ['RQ-0008','система','Пропускная способность радиолинии «борт — станция» в надире','≥ 1,2 Гбит/с','Approved','Испытание','RQ-0002'],
+  ['RQ-0009','система','Число одновременно обслуживаемых потребителей класса A′','≥ 400','Approved','Анализ','SV-0001'],
+  ['RQ-0010','система','Высота рабочей орбиты после выведения','560 ± 15 км','Baseline','Анализ','RQ-0007'],
+  ['RQ-0011','система','Наклонение рабочей орбиты','82,0 ± 0,2 °','Baseline','Анализ','RQ-0007'],
+  ['RQ-0012','система','Число аппаратов в развёрнутой группировке','≥ 24','Approved','Инспекция','RQ-0003'],
+  ['RQ-0013','система','Загрузка одной наземной станции за сутки','≤ 70 %','Preliminary','Анализ','ND-0008'],
+  ['RQ-0014','система','Время восстановления обслуживания после отказа аппарата','≤ 6 ч','Preliminary','Испытание','RQ-0006'],
+  ['RQ-0015','система','Точность привязки времени бортовой шкалы','≤ 1 мкс','Approved','Испытание','ND-0013'],
+  ['RQ-0016','система','Окно обновления бортового ПО без перерыва обслуживания','≤ 40 мин','Draft','Демонстрация','ND-0014'],
+  ['RQ-0017','система','Разграничение доступа к целевым данным по классам потребителей','3 класса','Approved','Инспекция','ND-0009'],
+  ['RQ-0018','система','Суммарная масса группировки на один пуск','≤ 5 400 кг','Preliminary','Анализ','ND-0011'],
+  ['RQ-0019','элемент','Масса аппарата с топливом','≤ 860 кг','Approved','Инспекция','RQ-0018'],
+  ['RQ-0020','элемент','Среднесуточная мощность энергоустановки','≥ 1 250 Вт','Approved','Анализ','RQ-0008'],
+  ['RQ-0021','элемент','Ёмкость аккумуляторной батареи','≥ 82 А·ч','Preliminary','Испытание','RQ-0020'],
+  ['RQ-0022','элемент','Запас характеристической скорости на коррекции','≥ 95 м/с','Approved','Анализ','RQ-0001'],
+  ['RQ-0023','элемент','Мощность передатчика целевого канала','≥ 42 Вт','Approved','Испытание','RQ-0008'],
+  ['RQ-0024','элемент','Ошибка ориентации по трём осям','≤ 0,06 °','Baseline','Испытание','RQ-0008'],
+  ['RQ-0025','элемент','Скорость записи бортового накопителя','≥ 400 Мбит/с','Approved','Испытание','RQ-0008'],
+  ['RQ-0026','элемент','Объём бортового накопителя целевых данных','≥ 512 Гбит','Approved','Инспекция','RQ-0025'],
+  ['RQ-0027','элемент','Диапазон рабочих температур приборного отсека','−15…+45 °C','Approved','Испытание','RQ-0001'],
+  ['RQ-0028','элемент','Ресурс маховиков системы ориентации','≥ 45 000 ч','Preliminary','Анализ','RQ-0001'],
+  ['RQ-0029','элемент','Пропускная способность приёмного тракта станции','≥ 1,4 Гбит/с','Approved','Испытание','RQ-0008'],
+  ['RQ-0030','элемент','Угол места начала сеанса связи со станцией','≥ 7 °','Baseline','Анализ','RQ-0013'],
+  ['RQ-0031','элемент','Время переключения потребителя между аппаратами','≤ 2,5 с','Draft','Испытание','RQ-0005'],
+  ['RQ-0032','элемент','Число станций приёма целевых данных','≥ 5','Approved','Инспекция','RQ-0013'],
+  ['RQ-0033','элемент','Задержка обработки кадра в наземном сегменте','≤ 4 с','Draft','Испытание','RQ-0005'],
+  ['RQ-0034','элемент','Ресурс двигательной установки по числу включений','≥ 3 000','Draft','Анализ','RQ-0022']
+];
+const HISTORY = [
+  ['v6','14.08.2026','А. Верещагин','Показатель ужесточён с ≤ 48 мин до ≤ 42 мин после пересчёта покрытия','Baseline'],
+  ['v5','02.08.2026','П. Ильющенко','Уточнена привязка к ячейке широты 60°','Approved'],
+  ['v4','21.07.2026','А. Верещагин','Базирование после SRR','Approved'],
+  ['v3','09.07.2026','Л. Ким','Формулировка приведена к измеримому виду','Preliminary'],
+  ['v2','28.06.2026','А. Верещагин','Добавлено обоснование от MOE-3','Preliminary'],
+  ['v1','19.06.2026','Л. Ким','Создано из нужды ND-0001','Draft']
+];
+const AI_SUG = [
+  ['Показатель','≤ 42 мин','≤ 38 мин','покрытие на широте 60° по расчёту от 14.08'],
+  ['Верификация','Анализ','Анализ + испытание','точка требует подтверждения на макете'],
+  ['Трассировка вниз','—','RQ-0031','переключение между аппаратами влияет на перерыв']
+];
+const MTX_ROWS = ['RQ-0005','RQ-0007','RQ-0008','RQ-0010','RQ-0012','RQ-0013','RQ-0019','RQ-0020','RQ-0024','RQ-0030','RQ-0031','RQ-0033'];
+const MTX_SRC = ['ND-0001','ND-0005','ND-0008','ND-0011','MG-0002','MG-0003','SV-0001','SV-0002'];
+const MTX_EV = ['Анализ покрытия','Макет радиолинии','Тепловые испытания','Комплексные испытания','Демонстрация сервиса','Инспекция состава'];
+const MTX_MARKS = {
+  'RQ-0005':[1,1,0,0,1,0,1,1], 'RQ-0007':[1,0,0,0,0,1,1,0], 'RQ-0008':[0,1,0,0,0,0,1,0],
+  'RQ-0010':[0,0,0,0,0,1,0,0], 'RQ-0012':[0,0,0,1,0,0,0,0], 'RQ-0013':[0,0,1,0,0,0,0,1],
+  'RQ-0019':[0,0,0,1,0,0,0,0], 'RQ-0020':[0,0,0,0,0,0,1,0], 'RQ-0024':[0,1,0,0,0,0,0,0],
+  'RQ-0030':[0,0,1,0,0,0,0,0], 'RQ-0031':[0,0,0,0,0,0,0,0], 'RQ-0033':[0,0,0,0,0,0,0,0]
+};
+const MTX_VMARKS = {
+  'RQ-0005':[1,0,0,1,1,0], 'RQ-0007':[1,0,0,0,0,0], 'RQ-0008':[0,1,0,1,0,0], 'RQ-0010':[1,0,0,0,0,0],
+  'RQ-0012':[0,0,0,0,0,1], 'RQ-0013':[1,0,0,0,1,0], 'RQ-0019':[0,0,0,0,0,1], 'RQ-0020':[0,0,1,0,0,0],
+  'RQ-0024':[0,1,0,1,0,0], 'RQ-0030':[1,0,0,0,0,0], 'RQ-0031':[0,0,0,0,0,0], 'RQ-0033':[0,0,0,0,0,0]
+};
+const GAPS = [
+  ['RQ-0031','нет источника','Требование не привязано ни к одной нужде','Л. Ким'],
+  ['RQ-0033','нет источника','Требование не привязано ни к одной нужде','Л. Ким'],
+  ['RQ-0031','нет события','Не назначено событие верификации','А. Верещагин'],
+  ['RQ-0033','нет события','Не назначено событие верификации','А. Верещагин'],
+  ['ND-0012','нужда без требований','Нужда класса C′ не раскрыта требованиями','А. Верещагин']
+];
+const AOA = [
+  ['А-1','24 аппарата · 560 км · 82°','выбран','Перерыв на широте 60° укладывается в 42 мин, четыре пуска, платформа серийная','0,91','42 мин','5 400 кг','1,74 млрд ₽','7'],
+  ['А-2','18 аппаратов · 700 км · 74°','отклонён','Меньше аппаратов, но перерыв на высоких широтах вырастает вдвое','0,78','88 мин','4 100 кг','1,42 млрд ₽','6'],
+  ['А-3','30 аппаратов · 480 км · 88°','отклонён','Лучшее покрытие, но пять пусков и вдвое больший расход на поддержание орбиты','0,96','29 мин','6 800 кг','2,31 млрд ₽','5'],
+  ['А-4','12 аппаратов · 1 100 км · 82° + ретранслятор','отложен','Требует ретранслятора с TRL 4 — не проходит по срокам развёртывания','0,84','54 мин','3 900 кг','1,88 млрд ₽','4']
+];
+const AOA_CRIT = [
+  ['Доля обслуженного спроса','MOE-1','0,91','0,78','0,96','0,84','больше — лучше'],
+  ['Перерыв на широте 60°','MOE-3','42 мин','88 мин','29 мин','54 мин','меньше — лучше'],
+  ['Масса на один пуск','RQ-0018','5 400 кг','4 100 кг','6 800 кг','3 900 кг','меньше — лучше'],
+  ['Затраты на год эксплуатации','MOE-6','1,74 млрд ₽','1,42 млрд ₽','2,31 млрд ₽','1,88 млрд ₽','меньше — лучше'],
+  ['Минимальный TRL решения','—','7','6','5','4','больше — лучше'],
+  ['Срок развёртывания','MOE-5','17 мес','14 мес','23 мес','26 мес','меньше — лучше']
+];
+const WBS = [
+  [0,'SYS-000','Система «Ротор-Л»','—','5 400 кг','—','—','—'],
+  [1,'SYS-100','Космический сегмент','24 аппарата','5 160 кг','1 250 Вт','12 %','Л. Ким'],
+  [2,'SV-0001','Космический аппарат','платформа + полезная нагрузка','860 кг','1 250 Вт','12 %','Л. Ким'],
+  [3,'EL-110','Платформа служебная','—','470 кг','480 Вт','9 %','Л. Ким'],
+  [3,'EL-120','Полезная нагрузка целевая','приёмопередающий тракт','214 кг','520 Вт','8 %','Д. Соколов'],
+  [3,'EL-130','Двигательная установка','запас 95 м/с','96 кг','60 Вт','15 %','П. Ильющенко'],
+  [3,'EL-140','Энергоустановка','панели + батарея','80 кг','—','11 %','Л. Ким'],
+  [1,'SYS-200','Наземный сегмент','5 станций','—','—','18 %','Н. Тимофеева'],
+  [2,'EL-210','Станция приёма целевых данных','G/T 32 дБ/К','—','—','18 %','Н. Тимофеева'],
+  [2,'EL-220','Центр обработки','два контура','—','—','22 %','Н. Тимофеева'],
+  [1,'SYS-300','Сегмент управления','—','—','—','25 %','А. Верещагин'],
+  [2,'EL-310','Центр управления полётом','резервирование 2N','—','—','25 %','А. Верещагин']
+];
+const ICD_EL = ['EL-110','EL-120','EL-130','EL-140','EL-210','EL-220','EL-310'];
+const ICD_M = {
+  'EL-110':['','питание','команды','питание','','','телеметрия'],
+  'EL-120':['данные','','','питание','радиолиния','',''],
+  'EL-130':['телеметрия','','','питание','','',''],
+  'EL-140':['питание','питание','питание','','','',''],
+  'EL-210':['','радиолиния','','','','поток данных',''],
+  'EL-220':['','','','','поток данных','','заявки'],
+  'EL-310':['команды','','','','','заявки','']
+};
+const SIM_INPUTS = [
+  ['IN-0001','Группировка','24 аппарата · 6 плоскостей · фазировка 15°','П. Ильющенко','14.08.2026','актуален'],
+  ['IN-0002','Орбита','560 км · 82,0° · круговая','П. Ильющенко','14.08.2026','актуален'],
+  ['IN-0003','Аппарат','масса 860 кг · антенна 1,2 м · угол места ≥ 7°','Л. Ким','09.08.2026','актуален'],
+  ['IN-0004','Карта спроса','сетка 2° · пик в полосе 55–70° с. ш.','М. Ганиева','02.08.2026','устарел'],
+  ['IN-0005','Наземные станции','5 станций · G/T 32 дБ/К','Н. Тимофеева','11.08.2026','актуален'],
+  ['IN-0006','Модель атмосферы','NRLMSISE-00 · средняя солнечная активность','П. Ильющенко','19.07.2026','актуален'],
+  ['IN-0007','Профиль потребления','классы A′ / B′ / C′ по суточному циклу','М. Ганиева','02.08.2026','устарел'],
+  ['IN-0008','Горизонт моделирования','24 ч · шаг 10 с','П. Ильющенко','14.08.2026','актуален']
+];
+const PASSES = [
+  ['SV-0003','Мурманск','06:12:40','06:21:05','8 мин 25 с'],
+  ['SV-0007','Мурманск','06:24:10','06:33:52','9 мин 42 с'],
+  ['SV-0011','Калининград','06:31:02','06:37:44','6 мин 42 с'],
+  ['SV-0003','Иркутск','06:48:19','06:56:03','7 мин 44 с'],
+  ['SV-0015','Мурманск','07:02:55','07:12:31','9 мин 36 с'],
+  ['SV-0007','Хабаровск','07:14:08','07:21:19','7 мин 11 с'],
+  ['SV-0019','Калининград','07:28:44','07:35:02','6 мин 18 с'],
+  ['SV-0011','Иркутск','07:41:16','07:49:58','8 мин 42 с'],
+  ['SV-0015','Москва','07:55:30','08:02:47','7 мин 17 с'],
+  ['SV-0023','Мурманск','08:09:12','08:18:55','9 мин 43 с'],
+  ['SV-0019','Хабаровск','08:22:03','08:29:40','7 мин 37 с'],
+  ['SV-0003','Калининград','08:36:51','08:43:09','6 мин 18 с']
+];
+const STATIONS = [['Мурманск',68.97,33.05],['Москва',55.75,37.62],['Калининград',54.71,20.51],['Иркутск',52.29,104.28],['Хабаровск',48.48,135.08]];
+const KPI_AXES = [
+  ['Доля спроса', 0.91, 0.96], ['Перерыв 60°', 0.86, 0.98], ['Масса пуска', 0.79, 0.52],
+  ['Затраты', 0.83, 0.55], ['TRL', 1.00, 0.71], ['Срок', 0.94, 0.68]
+];
+const MATURITY = [
+  ['Требования','148 из 157','86 %','9 без базирования','#ba1a1a'],
+  ['Нужды стейкхолдеров','23 из 23','100 %','закрыто','#1a7f37'],
+  ['Сервисы и QoS','5 из 5','100 %','закрыто','#1a7f37'],
+  ['Состав системы','31 из 31','100 %','закрыто','#1a7f37'],
+  ['Интерфейсы','12 из 18','67 %','6 карточек ICD не выпущено','#ba1a1a'],
+  ['Верификация','96 из 148','65 %','2 требования без события','#ba1a1a'],
+  ['Риски','11 из 11','100 %','2 риска красной зоны','#584329'],
+  ['Технологии','7 из 7','100 %','1 позиция TRL ниже требуемого','#584329'],
+  ['Документы фазы','6 из 9','67 %','3 документа не выпущено','#ba1a1a']
+];
+const OPEN_ITEMS = [
+  ['RQ-0016','требование','Окно обновления бортового ПО','Draft без базирования','Л. Ким','req'],
+  ['RQ-0031','требование','Время переключения потребителя','разрыв трассировки и верификации','Л. Ким','req'],
+  ['RQ-0033','требование','Задержка обработки кадра','разрыв трассировки и верификации','Н. Тимофеева','req'],
+  ['RQ-0034','требование','Ресурс двигательной установки','Draft без базирования','П. Ильющенко','req'],
+  ['ICD-007','интерфейс','EL-120 ↔ EL-210','карточка не выпущена','Д. Соколов','icd'],
+  ['ICD-011','интерфейс','EL-220 ↔ EL-310','карточка не выпущена','Н. Тимофеева','icd'],
+  ['RFA-004','замечание','Пересчитать бюджет массы с резервом 12 %','не снято','Л. Ким','rfa'],
+  ['RFA-009','замечание','Показатель задержки привязать к MOE-2','не снято','А. Верещагин','rfa'],
+  ['RSK-003','риск','Срыв поставки маховиков','красная зона, план не утверждён','Л. Ким','risks'],
+  ['TRL-005','технология','Приёмный тракт Ka-диапазона','TRL 5 при требуемом 6','Д. Соколов','trl'],
+  ['DOC-004','документ','Спецификация системы','не выпущен','А. Верещагин','docs'],
+  ['DOC-007','документ','План верификации','не выпущен','Л. Ким','docs'],
+  ['DOC-009','документ','Обоснование облика для SDR','черновик','А. Верещагин','docs'],
+  ['IN-0004','вход','Карта спроса','устарел, результаты помечены','М. Ганиева','siminputs']
+];
+const RFA = [
+  ['RFA-001','SRR','замечание','Уточнить формулировку RQ-0009 — не измерима','снято','Л. Ким','30.07.2026'],
+  ['RFA-002','SRR','вопрос','Чем обоснована высота 560 км','снято','П. Ильющенко','02.08.2026'],
+  ['RFA-003','SRR','замечание','Нет плана верификации для класса B′','в работе','Н. Тимофеева','12.09.2026'],
+  ['RFA-004','внутренний обзор','критическое','Пересчитать бюджет массы с резервом 12 %','в работе','Л. Ким','05.09.2026'],
+  ['RFA-005','SRR','рекомендация','Добавить показатель загрузки станции','снято','Н. Тимофеева','28.07.2026'],
+  ['RFA-006','внутренний обзор','замечание','Разделить требования наземного сегмента','в работе','Н. Тимофеева','19.09.2026'],
+  ['RFA-007','внутренний обзор','критическое','Обосновать выбор высоты 560 км расчётом','в работе','П. Ильющенко','05.09.2026'],
+  ['RFA-008','MCR','вопрос','Почему отклонён вариант А-4','снято','А. Верещагин','25.06.2026'],
+  ['RFA-009','внутренний обзор','критическое','Показатель задержки привязать к MOE-2','в работе','А. Верещагин','05.09.2026'],
+  ['RFA-010','SRR','замечание','Проверить сходимость бюджета энергии','снято','Л. Ким','08.08.2026'],
+  ['RFA-011','внутренний обзор','замечание','Уточнить стоимость наземного сегмента','в работе','М. Ганиева','12.09.2026'],
+  ['RFA-012','SRR','рекомендация','Ввести резерв полосы для класса A′','отклонено','Д. Соколов','—']
+];
+const RISKS = [
+  ['RSK-001','Срыв срока поставки платформы','4','4','красная','Л. Ким','план утверждён'],
+  ['RSK-002','Недобор пропускной способности радиолинии','3','4','жёлтая','Д. Соколов','план утверждён'],
+  ['RSK-003','Срыв поставки маховиков системы ориентации','4','5','красная','Л. Ким','план не утверждён'],
+  ['RSK-004','Рост массы полезной нагрузки','3','3','жёлтая','Д. Соколов','план утверждён'],
+  ['RSK-005','Задержка ввода станции в Мурманске','2','4','жёлтая','Н. Тимофеева','наблюдение'],
+  ['RSK-006','Изменение карты спроса заказчиком','2','3','зелёная','М. Ганиева','наблюдение'],
+  ['RSK-007','Рост стоимости пусковых услуг','3','2','зелёная','М. Ганиева','наблюдение']
+];
+const TRL = [
+  ['TRL-001','Платформа служебная','9','9','—','Л. Ким'],
+  ['TRL-002','Двигательная установка на ксеноне','7','7','—','П. Ильющенко'],
+  ['TRL-003','Бортовой накопитель 512 Гбит','8','8','—','Д. Соколов'],
+  ['TRL-004','Антенна с электронным сканированием','6','6','—','Д. Соколов'],
+  ['TRL-005','Приёмный тракт Ka-диапазона','5','6','макет к II кв. 2027','Д. Соколов'],
+  ['TRL-006','Наземный центр обработки','8','8','—','Н. Тимофеева'],
+  ['TRL-007','Алгоритм распределения канала по классам','6','7','стенд к I кв. 2027','Н. Тимофеева']
+];
+const DOCS = [
+  ['DOC-001','Концепция миссии','MCR','выпущен','Approved','30.06.2026','—'],
+  ['DOC-002','Реестр нужд стейкхолдеров','SRR','выпущен','Baseline','21.07.2026','—'],
+  ['DOC-003','Спецификация требований','SRR','выпущен','Baseline','14.08.2026','9 требований без базирования'],
+  ['DOC-004','Спецификация системы','SDR','не выпущен','Draft','—','нет раздела по интерфейсам'],
+  ['DOC-005','Описание облика системы','SDR','черновик','Draft','—','нет обоснования выбора А-1'],
+  ['DOC-006','Отчёт по анализу альтернатив','SDR','выпущен','Approved','04.07.2026','—'],
+  ['DOC-007','План верификации','SDR','не выпущен','Draft','—','52 требования без события'],
+  ['DOC-008','Реестр рисков','KDP B','выпущен','Preliminary','12.08.2026','—'],
+  ['DOC-009','Обоснование облика для SDR','SDR','черновик','Draft','—','нет расчёта покрытия']
+];
+const AI_PACK = [
+  ['RQ-0007','Показатель','≤ 42 мин','≤ 38 мин','расчёт покрытия от 14.08 даёт запас 4 мин'],
+  ['RQ-0016','Статус','Draft','Preliminary','формулировка стала измеримой после правки'],
+  ['RQ-0031','Трассировка вверх','—','RQ-0005','переключение влияет на задержку доставки'],
+  ['RQ-0033','Трассировка вверх','—','RQ-0005','обработка кадра входит в бюджет задержки'],
+  ['RQ-0031','Верификация','—','Комплексные испытания','метод «испытание» без события'],
+  ['RQ-0013','Показатель','≤ 70 %','≤ 64 %','по расписанию пролётов пик загрузки выше'],
+  ['RQ-0021','Единица','82 А·ч','82 А·ч при 28 В','единица без условия измерения'],
+  ['RQ-0028','Верификация','Анализ','Анализ + испытание','ресурс маховиков подтверждается стендом'],
+  ['ND-0012','Приоритет','низкий','средний','класс C′ вошёл в договор с потребителем'],
+  ['RQ-0034','Показатель','≥ 3 000','≥ 3 200','включения на этапе развёртывания не учтены'],
+  ['RQ-0018','Единица','5 400 кг','5 400 кг','единица корректна, изменение не требуется'],
+  ['RQ-0009','Формулировка','≥ 400','≥ 400 одновременно','уточнение без изменения показателя']
+];
+const IMPORT_ROWS = [
+  ['12','RQ-0141','Показатель','показатель без единицы измерения','отклонена'],
+  ['27','RQ-0156','Уровень','значение «элемент» не найдено в составе системы','отклонена'],
+  ['31','ND-0031','Приоритет','код «high» вместо перечисления','исправлено на «высокий»'],
+  ['44','RQ-0163','Источник','ссылка на ND-0099 — нужды нет','отклонена'],
+  ['58','SV-0006','Класс QoS','класс D′ не определён','отклонена']
+];
+const ST_COLOR = { Draft:'#74777d', Preliminary:'#115cb9', Approved:'#584329', Baseline:'#1a7f37' };
+</script>
+</body>
+</html>
