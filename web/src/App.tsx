@@ -20,13 +20,11 @@ import { GroundSegment } from './screens/GroundSegment'
 import { ImportCatalog } from './screens/ImportCatalog'
 import { KindRegistry } from './screens/KindRegistry'
 import { Lifecycle } from './screens/Lifecycle'
-import { ModelObjects } from './screens/ModelObjects'
 import { Needs } from './screens/Needs'
 import { Portfolio } from './screens/Portfolio'
 import { RequirementMatrices, type MatrixKind } from './screens/RequirementMatrices'
 import { Requirements } from './screens/Requirements'
 import { Risks } from './screens/Risks'
-import { Services } from './screens/Services'
 import { Spacecraft } from './screens/Spacecraft'
 import { SystemComposition } from './screens/SystemComposition'
 import { SystemOverview } from './screens/SystemOverview'
@@ -106,19 +104,21 @@ export function App() {
         return project
           ? <Lifecycle project={project} onGo={go} />
           : <Portfolio onOpen={() => setScreen('lifecycle')} />
-      case 'goals': return <KindRegistry kinds={['mission_goal']} title="Цели миссии" />
+      case 'projreg': return <KindRegistry key={screen} kinds={['project']} title="Паспорт проекта" />
+      case 'goals': return <KindRegistry key={screen} kinds={['mission_goal', 'need']} title="Цели и нужды" />
       case 'needs': return <Needs />
-      case 'services': return <Services />
-      case 'conops': return <KindRegistry kinds={['conops']} title="Сценарии ConOps" />
+      case 'services': return <KindRegistry key={screen} kinds={['service']} title="Сервисы и QoS" />
+      case 'conops': return <KindRegistry key={screen} kinds={['conops']} title="Сценарии ConOps" />
       case 'req': return <Requirements />
       case 'matrix': return <MatrixScreen />
-      case 'aoa': return <KindRegistry kinds={['alternative', 'decision']} title="Альтернативы и решения" />
-      case 'wbs': return <SystemComposition />
-      case 'wbstree': return <KindRegistry kinds={['wbs_element']} title="Структура работ (WBS)" />
-      case 'cost': return <KindRegistry kinds={['cost_estimate']} title="Оценки стоимости и сроков" />
+      case 'aoa': return <KindRegistry key={screen} kinds={['alternative', 'decision']} title="Альтернативы и решения" />
+      case 'wbs': return <KindRegistry key={screen} kinds={['component', 'interface']} title="Элементы и интерфейсы" />
+      case 'composition': return <SystemComposition />
+      case 'wbstree': return <KindRegistry key={screen} kinds={['wbs_element']} title="Структура работ (WBS)" />
+      case 'cost': return <KindRegistry key={screen} kinds={['cost_estimate']} title="Оценки стоимости и сроков" />
       case 'siminputs':
         return (
-          <ModelObjects
+          <KindRegistry key={screen} title="Входы моделирования"
             kinds={['scenario', 'constellation', 'spacecraft', 'demand_map', 'terminal_profile', 'ground_stations', 'protocol_adapter']}
           />
         )
@@ -129,11 +129,12 @@ export function App() {
       case 'coverage': return <Coverage />
       case 'compare': return <Comparison />
       case 'readiness': return <GateReadiness onGo={go} />
-      case 'rfa': return <KindRegistry kinds={['review_item']} title="Замечания обзора (RFA/RID)" />
-      case 'risks': return <Risks />
-      case 'trl': return <KindRegistry kinds={['technology']} title="Технологии и TRL" />
-      case 'oda': return <KindRegistry kinds={['oda']} title="Оценка орбитального засорения" />
-      case 'vv': return <ModelObjects kinds={['evidence', 'validation']} />
+      case 'rfa': return <KindRegistry key={screen} kinds={['review_item']} title="Замечания обзора (RFA/RID)" />
+      case 'risks': return <KindRegistry key={screen} kinds={['risk']} title="Риски" />
+      case 'riskmatrix': return <Risks />
+      case 'trl': return <KindRegistry key={screen} kinds={['technology']} title="Технологии и TRL" />
+      case 'oda': return <KindRegistry key={screen} kinds={['oda']} title="Оценка орбитального засорения" />
+      case 'vv': return <KindRegistry key={screen} kinds={['evidence', 'validation']} title="Верификация и валидация" />
       case 'docs': return <Documents />
       case 'system': return <SystemOverview />
       case 'ai': return <AiProposal />

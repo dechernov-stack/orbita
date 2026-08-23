@@ -106,7 +106,12 @@ class Editing(
         val merged = cur.doc.deepCopy<ObjectNode>()
         changes.properties().forEach { (k, v) -> merged.set<ObjectNode>(k, v) }
         val next = boundary.objects.bumpVersion(cur.version)
-        merged.withObject("/lifecycle").put("version", next)
+        // Статусная модель — только у видов, чья схема её несёт (как в create):
+        // риск и замечание обзора живут своим циклом, и навешенный lifecycle
+        // отклонялся бы их схемой — правка была бы невозможна вовсе.
+        if (boundary.schemaAllows(type, "lifecycle")) {
+            merged.withObject("/lifecycle").put("version", next)
+        }
         stampQuantities(merged, author)
         boundary.validate(type, merged)
         val stored = boundary.objects.change(id, merged, createdBy = author, baseVersion = baseVersion)

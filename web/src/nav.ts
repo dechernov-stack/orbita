@@ -26,8 +26,8 @@ export const SECTIONS: NavSection[] = [
     key: 'goals',
     label: 'Постановка',
     screens: [
-      { key: 'goals', title: 'Цели миссии' },
-      { key: 'needs', title: 'Нужды стейкхолдеров' },
+      { key: 'goals', title: 'Цели и нужды' },
+      { key: 'needs', title: 'Нужды и их сервисы' },
       { key: 'services', title: 'Сервисы и QoS' },
       { key: 'conops', title: 'Сценарии ConOps' },
     ],
@@ -45,7 +45,8 @@ export const SECTIONS: NavSection[] = [
     label: 'Концепция',
     screens: [
       { key: 'aoa', title: 'Альтернативы и решения' },
-      { key: 'wbs', title: 'Состав системы' },
+      { key: 'wbs', title: 'Элементы и интерфейсы' },
+      { key: 'composition', title: 'Дерево состава' },
       { key: 'wbstree', title: 'Структура работ (WBS)' },
       { key: 'cost', title: 'Оценки стоимости' },
     ],
@@ -68,8 +69,10 @@ export const SECTIONS: NavSection[] = [
     label: 'Контроль',
     screens: [
       { key: 'readiness', title: 'Готовность к точке' },
+      { key: 'projreg', title: 'Паспорт проекта' },
       { key: 'rfa', title: 'Замечания обзора' },
       { key: 'risks', title: 'Риски' },
+      { key: 'riskmatrix', title: 'Матрица рисков' },
       { key: 'trl', title: 'Технологии' },
       { key: 'oda', title: 'Орбитальное засорение' },
       { key: 'vv', title: 'Верификация и валидация' },

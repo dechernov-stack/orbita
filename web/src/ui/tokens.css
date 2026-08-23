@@ -178,8 +178,11 @@ body {
   cursor: pointer;
   color: var(--rail-label);
   font-family: var(--font);
-  font-size: 8.5px;
-  letter-spacing: 0.2px;
+  /* 8 px: «Инструменты» обязано влезать в 52 px без обрезки (§3.6) */
+  font-size: 8px;
+  letter-spacing: 0.1px;
+  padding: 0 1px;
+  width: 100%;
 }
 
 .rail__item::before {

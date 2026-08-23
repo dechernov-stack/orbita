@@ -29,6 +29,13 @@ const KIND_TITLES: Record<string, string> = {
   component: 'Элементы',
   interface: 'Интерфейсы',
   project: 'Проекты',
+  scenario: 'Сценарии',
+  constellation: 'Группировка',
+  spacecraft: 'Модель КА',
+  demand_map: 'Карта спроса',
+  terminal_profile: 'Профили терминалов',
+  ground_stations: 'Наземные станции',
+  protocol_adapter: 'Адаптер протокола',
 }
 
 const kindTitle = (k: string) => KIND_TITLES[k] ?? k
