@@ -27,11 +27,25 @@ export function BatchLoad() {
     setFailure(null)
     setReport(null)
     try {
-      const body = JSON.parse(payload) as Record<string, unknown>
+      const parsed = JSON.parse(payload) as unknown
+      if (Array.isArray(parsed)) {
+        throw new Error(
+          'Это ответ канала ИИ (массив предложений), а не пачка. Вносите его на экране ' +
+            '«Служба ИИ»: соберите промпт, вставьте файл в поле ответа контура и примите ' +
+            'пачкой — так материал пройдёт фильтр и попадёт в журнал вызовов.',
+        )
+      }
+      const body = parsed as Record<string, unknown>
+      if (!Array.isArray(body.objects)) {
+        throw new Error('В файле нет поля objects: пачка — это {"objects": [ … ]}.')
+      }
+      if (!body.author && !author) {
+        throw new Error('Представьтесь в шапке: правка без автора не принимается (TZ-COM-005).')
+      }
       if (!body.author) body.author = author
       setReport(await api.importObjects(body))
     } catch (e) {
-      setFailure(String(e))
+      setFailure(e instanceof Error ? e.message : String(e))
     } finally {
       setBusy(false)
     }

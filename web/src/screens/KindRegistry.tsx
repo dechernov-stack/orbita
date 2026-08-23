@@ -146,12 +146,31 @@ export function KindRegistry({ kinds, title }: { kinds: string[]; title: string 
               setMassReport(null)
               file.text()
                 .then((text) => {
-                  const body = JSON.parse(text) as Record<string, unknown>
+                  const parsed = JSON.parse(text) as unknown
+                  // Формат канала ИИ — МАССИВ предложений: он вносится службой,
+                  // а не загрузкой пачкой. Иначе автор терялся (у массива
+                  // свойства не сериализуются), и сервер отвечал «нет автора» —
+                  // сообщение о последствии вместо причины.
+                  if (Array.isArray(parsed)) {
+                    throw new Error(
+                      'Это ответ канала ИИ (массив предложений), а не пачка. ' +
+                        'Вносите его на экране «Инструменты → Служба ИИ»: соберите промпт, ' +
+                        'вставьте файл в поле ответа контура и примите пачкой — так материал ' +
+                        'пройдёт фильтр и попадёт в журнал вызовов.',
+                    )
+                  }
+                  const body = parsed as Record<string, unknown>
+                  if (!Array.isArray(body.objects)) {
+                    throw new Error('В файле нет поля objects: пачка — это {"objects": [ … ]}.')
+                  }
+                  if (!body.author && !author) {
+                    throw new Error('Представьтесь в шапке: правка без автора не принимается (TZ-COM-005).')
+                  }
                   if (!body.author) body.author = author
                   return api.importObjects(body)
                 })
                 .then((r) => { setBatch(r); reload() })
-                .catch((err) => setMassReport(String(err)))
+                .catch((err) => setMassReport(err instanceof Error ? err.message : String(err)))
             }} />
         </label>
         <button className="btn btn--primary" onClick={() => { setSelected(null); setCreating(true) }}>
