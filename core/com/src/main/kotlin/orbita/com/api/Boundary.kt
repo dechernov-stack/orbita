@@ -14,6 +14,7 @@ import orbita.mod.schema.SchemaRegistry
 import orbita.mod.schema.SchemaValidationException
 import orbita.mod.schema.ValidationError
 import orbita.mod.store.ModelViolationException
+import orbita.mod.store.tx
 import orbita.mod.store.LinkStore
 import orbita.mod.store.ObjectStore
 import orbita.mod.store.ParamStore
@@ -35,7 +36,7 @@ import orbita.req.ReqService
 import orbita.usr.TerminalRules
 import java.sql.Connection
 
-class Boundary(private val registry: SchemaRegistry, conn: Connection) {
+class Boundary(private val registry: SchemaRegistry, private val conn: Connection) {
 
     val objects = ObjectStore(conn)
     val links = LinkStore(conn)
@@ -233,6 +234,13 @@ class Boundary(private val registry: SchemaRegistry, conn: Connection) {
             }
         else -> registry.validate(schemaName, parse(json))
     }
+
+    /** Границы «всё или ничего» для пакетных операций (импорт, ADR-024). */
+    fun <T> transaction(block: () -> T): T = conn.tx(block)
+
+    /** Ошибки схемы вида БЕЗ исключения — пакетный отчёт до записи. */
+    fun schemaProblems(type: CoreType, doc: JsonNode): List<ValidationError> =
+        if (type == CoreType.Interface) emptyList() else registry.validate(type.schemaName, doc)
 
     fun schemaNames(): List<String> = registry.names
 

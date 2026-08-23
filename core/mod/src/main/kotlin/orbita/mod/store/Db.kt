@@ -20,8 +20,13 @@ data class DbConfig(
     }
 }
 
-/** Транзакция: commit при успехе, rollback при любом исключении. */
+/**
+ * Транзакция: commit при успехе, rollback при любом исключении.
+ * Вложенный вызов НЕ управляет границами: commit посреди внешней транзакции
+ * разрушил бы «всё или ничего» пакетных операций — границы держит внешняя.
+ */
 fun <T> Connection.tx(block: () -> T): T {
+    if (!autoCommit) return block()
     val prev = autoCommit
     autoCommit = false
     try {

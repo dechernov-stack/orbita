@@ -59,6 +59,9 @@ class HttpApi(private val boundary: Boundary) {
             route(ex)
         } catch (e: SchemaValidationException) {
             respond(ex, 422, errorsJson(e.errors))
+        } catch (e: BatchRejectedException) {
+            // пачка откатана целиком; отчёт — причины поимённо
+            respond(ex, 422, batchJson(e.report))
         } catch (e: ModelViolationException) {
             respond(ex, 422, errJson(e))
         } catch (e: BaselineBlockedException) {
@@ -1049,6 +1052,18 @@ class HttpApi(private val boundary: Boundary) {
             // источник не знает наших параметров генерации, и выдумывать их
             // импорту нельзя. Хранение — обычный канал после дополнения,
             // теми же правилами, что рукописный ввод.
+            // Загрузка пачкой (блок A, ADR-024): проверка по схемам до записи,
+            // всё или ничего, порядок разрешает сервер, отчёт с путём до поля
+            method == "POST" && path == "/import/objects" -> {
+                val req = mapper.readTree(body(ex))
+                val report = BatchImport(boundary, mapper).import(req, author(req), project)
+                respond(ex, if (report.ok) 201 else 422, batchJson(report))
+            }
+
+            // Выгрузка проекта тем же форматом — выгруженное грузится обратно
+            method == "GET" && path == "/export/objects" ->
+                respond(ex, 200, BatchImport(boundary, mapper).export(requireProject(project)))
+
             method == "POST" && path == "/import/terminal-profile" -> {
                 val req = mapper.readTree(body(ex))
                 val source = req.path("source").asText("lorawan-devices")
@@ -1403,6 +1418,18 @@ class HttpApi(private val boundary: Boundary) {
      * Автор изменения (шаг 15 §1.2). Обязателен: правка без автора на сессии
      * параллельного проектирования — это правка, о которой некого спросить.
      */
+    private fun batchJson(report: BatchReport): ObjectNode {
+        val n = mapper.createObjectNode()
+        n.put("written", report.written)
+        val arr = n.putArray("problems")
+        report.problems.forEach { p ->
+            arr.addObject()
+                .put("index", p.index).put("id", p.id)
+                .put("path", p.path).put("rule", p.rule).put("message", p.message)
+        }
+        return n
+    }
+
     private fun author(request: JsonNode): String =
         request.path("author").asText("").trim().takeIf { it.isNotEmpty() }
             ?: throw IllegalArgumentException("TZ-COM-005: field 'author' is required for editing")
