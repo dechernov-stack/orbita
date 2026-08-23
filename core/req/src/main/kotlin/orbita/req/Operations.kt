@@ -17,6 +17,8 @@ data class Operation(
     val kinds: List<String>,
     val gate: String?,
     val requiredStatus: String?,
+    /** Рабочее место операции — ключ экрана клиента (назначен П2 по дизайну). */
+    val screen: String? = null,
 )
 
 /**
@@ -118,6 +120,7 @@ class Operations(
                         kinds = o.path("output").path("kinds").map { it.asText() },
                         gate = o.path("gate").takeIf { !it.isNull }?.asText(),
                         requiredStatus = o.path("required_status").takeIf { !it.isNull }?.asText(),
+                        screen = o.path("screen").takeIf { it.isTextual }?.asText(),
                     )
                 }
     }

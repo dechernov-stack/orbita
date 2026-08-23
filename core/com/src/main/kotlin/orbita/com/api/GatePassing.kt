@@ -269,6 +269,7 @@ class GatePassing(
             n.put("required_status", r.operation.requiredStatus)
             n.put("state", r.state.name)
             n.put("objects", r.objects)
+            r.operation.screen?.let { n.put("screen", it) }
             if (r.returnedTo) n.put("returned_to", true)
             r.operation.docs.takeIf { it.isNotEmpty() }?.let { docs ->
                 n.putArray("docs").also { a -> docs.forEach(a::add) }

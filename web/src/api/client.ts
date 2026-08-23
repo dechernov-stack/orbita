@@ -37,7 +37,56 @@ import type {
   WizardStep,
 } from './types'
 
+import { withProject } from './project'
+
 const BASE = '/api'
+
+export interface OperationRow {
+  code: string
+  name: string
+  executor: string
+  gate: string | null
+  required_status: string | null
+  state: string
+  objects: number
+  screen?: string
+  returned_to?: boolean
+  docs?: string[]
+}
+
+export interface OperationsView {
+  project: string
+  phase: string
+  next_gate: string | null
+  operations: OperationRow[]
+}
+
+export interface GateIssuesView {
+  gate: string
+  ready: boolean
+  next_gate: string | null
+  issues: string[]
+}
+
+export interface GatePassResult {
+  passed: boolean
+  gate: string
+  decision: string
+  next_gate: string | null
+}
+
+export interface BatchProblemRow {
+  index: number
+  id: string | null
+  path: string | null
+  rule: string | null
+  message: string
+}
+
+export interface BatchReport {
+  written: number
+  problems: BatchProblemRow[]
+}
 
 export class ApiError extends Error {
   constructor(
@@ -50,7 +99,7 @@ export class ApiError extends Error {
 }
 
 async function post<T>(path: string, body: unknown): Promise<T> {
-  const response = await fetch(`${BASE}${path}`, {
+  const response = await fetch(`${BASE}${withProject(path)}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
     body: JSON.stringify(body),
@@ -62,7 +111,7 @@ async function post<T>(path: string, body: unknown): Promise<T> {
 }
 
 async function get<T>(path: string): Promise<T> {
-  const response = await fetch(`${BASE}${path}`, { headers: { Accept: 'application/json' } })
+  const response = await fetch(`${BASE}${withProject(path)}`, { headers: { Accept: 'application/json' } })
   if (!response.ok) {
     throw new ApiError(response.status, path, await response.text())
   }
@@ -70,6 +119,22 @@ async function get<T>(path: string): Promise<T> {
 }
 
 export const api = {
+  // ---------- блок D: спина процесса и пачки ----------
+  /** Состояние операций фазы проекта (ADR-029): считает сервер. */
+  operations: () => get<OperationsView>('/views/operations'),
+  /** Предпросмотр незакрытого точки — тем же расчётом, что прохождение. */
+  gateIssues: (gate: string) => get<GateIssuesView>(`/gates/${encodeURIComponent(gate)}/issues`),
+  gatePass: (gate: string, author: string, rationale: string) =>
+    post<GatePassResult>(`/gates/${encodeURIComponent(gate)}/pass`, { author, rationale }),
+  gateReturn: (gate: string, author: string, reason: string, to: string[]) =>
+    post<Record<string, unknown>>(`/gates/${encodeURIComponent(gate)}/return`, { author, reason, to }),
+  gateReturnResolve: (author: string, note: string) =>
+    post<Record<string, unknown>>('/gates/return/resolve', { author, note }),
+  /** Загрузка пачкой (ADR-024): проверка до записи, всё или ничего. */
+  importObjects: (payload: unknown) => post<BatchReport>('/import/objects', payload),
+  /** Выгрузка проекта тем же форматом — для ссылки скачивания. */
+  exportObjectsUrl: () => `/api${'/export/objects'}`,
+
   requirementTree: () => get<RequirementTreeView>('/views/requirement-tree'),
   /** Матрицы живут на экране требований — там принимается решение (шаг 16 §2.4). */
   traceMatrix: () => get<TraceMatrixView>('/reports/trace-matrix'),

@@ -17,8 +17,11 @@ import {
   Ion,
   JulianDate,
   Viewer,
+  ArcType,
+  Cartesian3,
 } from 'cesium'
 import 'cesium/Build/Cesium/Widgets/widgets.css'
+import { COAST } from '../assets/coastlines'
 import { api, ApiError } from '../api/client'
 import { edit, type StoredSummary } from '../api/edit'
 import type { GlobeView } from '../api/types'
@@ -83,6 +86,20 @@ export function Globe() {
           })
           viewerRef.current.scene.globe.baseColor = Color.fromCssColorString('#1b3a5c')
           viewerRef.current.scene.globe.showGroundAtmosphere = true
+          // Подложка Земли (§3.7): береговые линии Natural Earth из репозитория —
+          // офлайн, без ключей и сети; глобус не рисуется от руки
+          const coastMaterial = Color.fromCssColorString('#7ea6e8').withAlpha(0.65)
+          for (const line of COAST as Array<Array<[number, number]>>) {
+            if (line.length < 2) continue
+            viewerRef.current.entities.add({
+              polyline: {
+                positions: line.map(([lat, lon]) => Cartesian3.fromDegrees(lon, lat)),
+                width: 1,
+                material: coastMaterial,
+                arcType: ArcType.GEODESIC,
+              },
+            })
+          }
         }
         const viewer = viewerRef.current
         viewer.dataSources.removeAll()

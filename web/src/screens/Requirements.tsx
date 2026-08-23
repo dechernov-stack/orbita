@@ -86,8 +86,9 @@ export function Requirements() {
   tree.roots.forEach(walk)
   const rows = onlyViolated ? ordered.filter((r) => r.budgetOverrun) : ordered
 
+  const inspectorOpen = creating || editing || card != null
   return (
-    <div className="split">
+    <div className={inspectorOpen ? 'split' : 'pane'}>
       <div className="pane">
         <div className="pane__tools">
           <button
@@ -182,12 +183,12 @@ export function Requirements() {
                 это всё, что не заняли колонки с шириной, поэтому их сумма и есть
                 бюджет читаемости главной колонки (шаг 15 §2, дефект 1). */}
             <tr>
-              <th style={{ width: 110 }}>ID</th>
+              <th style={{ width: 96 }}>ID</th>
               <th>Требование</th>
               <th style={{ width: 120 }}>Условие</th>
-              <th style={{ width: 170 }}>Свёртка</th>
-              <th style={{ width: 160 }}>Метод V&amp;V</th>
-              <th style={{ width: 80 }}>Статус</th>
+              <th style={{ width: 130 }}>Свёртка</th>
+              <th style={{ width: 130 }}>Метод V&amp;V</th>
+              <th style={{ width: 104 }}>Статус</th>
             </tr>
           </thead>
           <tbody>
@@ -208,7 +209,7 @@ export function Requirements() {
                     <span className="id">{row.id}</span>
                   </span>
                 </td>
-                <td className="wrap">{row.statement}</td>
+                <td title={row.statement}>{row.statement}</td>
                 <td>
                   <Condition condition={row.condition} />
                 </td>
@@ -230,6 +231,7 @@ export function Requirements() {
         )}
       </div>
 
+      {inspectorOpen && (
       <aside className="pane pane--side">
         {creating || editing ? (
           <ObjectEditor
@@ -261,6 +263,7 @@ export function Requirements() {
           <div className="secondary">Выберите требование</div>
         )}
       </aside>
+      )}
     </div>
   )
 }

@@ -1,5 +1,5 @@
 {
-  "_comment": "Реестр операций процесса (задача «реестры процесса», подготовка к П2). Наименования, исполнители, входы и выходы — дословно из таблиц §5 регламентов docs/regulations/BP-PreA.md (Pre-Phase A, О1–О15) и BP-PhaseA.md (Phase A, О1–О17). inputs — коды операций, извлечённые из колонки «Вход» (сама колонка — поле input); output.doc — Д-код артефакта (строка или список), output.kinds — виды объектов системы, порождаемые операцией; gate — точка из gates.json, где выход проверяется, required_status — требуемый к ней статус. Поле screen не заполняется — его назначит П2 после поставки дизайна. Ключ returns — допустимые цели возвратов по §5.1 обоих регламентов (ADR-029 п. 5): отрицательное заключение точки возвращает в перечисленные операции своей фазы.",
+  "_comment": "Реестр операций процесса (задача «реестры процесса», подготовка к П2). Наименования, исполнители, входы и выходы — дословно из таблиц §5 регламентов docs/regulations/BP-PreA.md (Pre-Phase A, О1–О15) и BP-PhaseA.md (Phase A, О1–О17). inputs — коды операций, извлечённые из колонки «Вход» (сама колонка — поле input); output.doc — Д-код артефакта (строка или список), output.kinds — виды объектов системы, порождаемые операцией; gate — точка из gates.json, где выход проверяется, required_status — требуемый к ней статус. Поле screen — рабочее место операции в клиенте (назначено П2 по дизайн-поставке docs/ui/reference): ключ экрана, где выход операции создаётся и доводится до статуса. Ключ returns — допустимые цели возвратов по §5.1 обоих регламентов (ADR-029 п. 5): отрицательное заключение точки возвращает в перечисленные операции своей фазы.",
   "operations": [
     {
       "code": "О1",
@@ -14,7 +14,8 @@
         "kinds": []
       },
       "gate": null,
-      "required_status": null
+      "required_status": null,
+      "screen": "lifecycle"
     },
     {
       "code": "О2",
@@ -34,7 +35,8 @@
         ]
       },
       "gate": "internal_review",
-      "required_status": "Draft"
+      "required_status": "Draft",
+      "screen": "goals"
     },
     {
       "code": "О3",
@@ -54,7 +56,8 @@
         ]
       },
       "gate": "internal_review",
-      "required_status": "Draft"
+      "required_status": "Draft",
+      "screen": "aoa"
     },
     {
       "code": "О4",
@@ -74,7 +77,8 @@
         ]
       },
       "gate": "internal_review",
-      "required_status": "Draft"
+      "required_status": "Draft",
+      "screen": "req"
     },
     {
       "code": "О5",
@@ -93,7 +97,8 @@
         ]
       },
       "gate": "internal_review",
-      "required_status": "Draft"
+      "required_status": "Draft",
+      "screen": "conops"
     },
     {
       "code": "О6",
@@ -112,7 +117,8 @@
         ]
       },
       "gate": "internal_review",
-      "required_status": "Draft"
+      "required_status": "Draft",
+      "screen": "trl"
     },
     {
       "code": "О7",
@@ -136,7 +142,8 @@
         ]
       },
       "gate": "internal_review",
-      "required_status": "Draft"
+      "required_status": "Draft",
+      "screen": "risks"
     },
     {
       "code": "О8",
@@ -155,7 +162,8 @@
         ]
       },
       "gate": "internal_review",
-      "required_status": "Draft"
+      "required_status": "Draft",
+      "screen": "cost"
     },
     {
       "code": "О9",
@@ -177,7 +185,8 @@
         "kinds": []
       },
       "gate": "internal_review",
-      "required_status": "Draft"
+      "required_status": "Draft",
+      "screen": "docs"
     },
     {
       "code": "О10",
@@ -195,7 +204,8 @@
         "kinds": []
       },
       "gate": "internal_review",
-      "required_status": "Draft"
+      "required_status": "Draft",
+      "screen": "docs"
     },
     {
       "code": "О11",
@@ -214,7 +224,8 @@
         "kinds": []
       },
       "gate": "internal_review",
-      "required_status": "Draft"
+      "required_status": "Draft",
+      "screen": "docs"
     },
     {
       "code": "О12",
@@ -238,7 +249,8 @@
         "kinds": []
       },
       "gate": "internal_review",
-      "required_status": null
+      "required_status": null,
+      "screen": "readiness"
     },
     {
       "code": "О13",
@@ -255,7 +267,8 @@
         "kinds": []
       },
       "gate": "MCR",
-      "required_status": null
+      "required_status": null,
+      "screen": "readiness"
     },
     {
       "code": "О14",
@@ -272,7 +285,8 @@
         "kinds": []
       },
       "gate": "KDP-A",
-      "required_status": null
+      "required_status": null,
+      "screen": "rfa"
     },
     {
       "code": "О15",
@@ -292,7 +306,8 @@
         ]
       },
       "gate": "KDP-A",
-      "required_status": null
+      "required_status": null,
+      "screen": "readiness"
     },
     {
       "code": "О1",
@@ -307,7 +322,8 @@
         "kinds": []
       },
       "gate": null,
-      "required_status": null
+      "required_status": null,
+      "screen": "lifecycle"
     },
     {
       "code": "О2",
@@ -322,7 +338,8 @@
         "kinds": []
       },
       "gate": "SRR",
-      "required_status": "Baseline"
+      "required_status": "Baseline",
+      "screen": "docs"
     },
     {
       "code": "О3",
@@ -339,7 +356,8 @@
         ]
       },
       "gate": "SRR",
-      "required_status": "Approved"
+      "required_status": "Approved",
+      "screen": "conops"
     },
     {
       "code": "О4",
@@ -358,7 +376,8 @@
         ]
       },
       "gate": "SRR",
-      "required_status": "Baseline"
+      "required_status": "Baseline",
+      "screen": "req"
     },
     {
       "code": "О5",
@@ -379,7 +398,8 @@
         ]
       },
       "gate": "SDR",
-      "required_status": "Preliminary"
+      "required_status": "Preliminary",
+      "screen": "wbs"
     },
     {
       "code": "О6",
@@ -398,7 +418,8 @@
         ]
       },
       "gate": "SDR",
-      "required_status": "Preliminary"
+      "required_status": "Preliminary",
+      "screen": "compare"
     },
     {
       "code": "О7",
@@ -415,7 +436,8 @@
         ]
       },
       "gate": "KDP-B",
-      "required_status": "Approved"
+      "required_status": "Approved",
+      "screen": "trl"
     },
     {
       "code": "О8",
@@ -432,7 +454,8 @@
         ]
       },
       "gate": "SRR",
-      "required_status": "Preliminary"
+      "required_status": "Preliminary",
+      "screen": "risks"
     },
     {
       "code": "О9",
@@ -451,7 +474,8 @@
         ]
       },
       "gate": "KDP-B",
-      "required_status": "Preliminary"
+      "required_status": "Preliminary",
+      "screen": "cost"
     },
     {
       "code": "О10",
@@ -470,7 +494,8 @@
         ]
       },
       "gate": "KDP-B",
-      "required_status": "Preliminary"
+      "required_status": "Preliminary",
+      "screen": "cost"
     },
     {
       "code": "О11",
@@ -496,7 +521,8 @@
         ]
       },
       "gate": "KDP-B",
-      "required_status": "Preliminary"
+      "required_status": "Preliminary",
+      "screen": "docs"
     },
     {
       "code": "О12",
@@ -515,7 +541,8 @@
         "kinds": []
       },
       "gate": "KDP-B",
-      "required_status": "Approved"
+      "required_status": "Approved",
+      "screen": "docs"
     },
     {
       "code": "О13",
@@ -535,7 +562,8 @@
         "kinds": []
       },
       "gate": "SRR",
-      "required_status": null
+      "required_status": null,
+      "screen": "readiness"
     },
     {
       "code": "О14",
@@ -552,7 +580,8 @@
         "kinds": []
       },
       "gate": "SRR",
-      "required_status": null
+      "required_status": null,
+      "screen": "readiness"
     },
     {
       "code": "О15",
@@ -570,7 +599,8 @@
         "kinds": []
       },
       "gate": "SDR",
-      "required_status": null
+      "required_status": null,
+      "screen": "rfa"
     },
     {
       "code": "О16",
@@ -587,7 +617,8 @@
         "kinds": []
       },
       "gate": "SDR",
-      "required_status": null
+      "required_status": null,
+      "screen": "readiness"
     },
     {
       "code": "О17",
@@ -609,7 +640,8 @@
         ]
       },
       "gate": "KDP-B",
-      "required_status": null
+      "required_status": null,
+      "screen": "readiness"
     }
   ],
   "returns": [

@@ -1,223 +1,214 @@
-// Оболочка клиента: мастер Ш1–Ш7 слева, экраны шага — вкладками сверху
-// (STEP-7-9 §9.1). Данные только из API ядра: расчётов в клиенте нет.
-//
-// Состояние шага — сколько объектов и сколько замечаний — приходит с сервера
-// (/views/wizard). Клиент не решает, закрыт шаг или нет: «пусто» и «всё
-// хорошо» различает WizardViews, потому что различать их надо одинаково
-// и на экране, и в отчёте зрелости.
-import { useEffect, useState, type ReactElement } from 'react'
-import { api } from './api/client'
-import type { WizardStep } from './api/types'
+// Оболочка (блок D, дизайн docs/ui/reference): шапка 48 px с проектом, фазой
+// и ближайшей точкой; рейка разделов 52 px; панель операций 236 px — экраны
+// раздела и операции фазы с состоянием от сервера (ADR-029); рабочая область.
+// Мастер как меню упразднён: навигация показывает состояние операций и
+// незакрытое до точки, а не список экранов.
+import { useCallback, useEffect, useState, type ReactElement } from 'react'
+import { api, type OperationRow } from './api/client'
+import { edit } from './api/edit'
+import { currentProject, selectProject } from './api/project'
+import { SECTIONS, sectionOf } from './nav'
 import { AiProposal } from './screens/AiProposal'
+import { BatchLoad } from './screens/BatchLoad'
 import { Comparison } from './screens/Comparison'
 import { Coverage } from './screens/Coverage'
-import { SystemComposition } from './screens/SystemComposition'
 import { Demand } from './screens/Demand'
 import { Documents } from './screens/Documents'
+import { GateReadiness } from './screens/GateReadiness'
 import { Globe } from './screens/Globe'
 import { GroundSegment } from './screens/GroundSegment'
 import { ImportCatalog } from './screens/ImportCatalog'
+import { KindRegistry } from './screens/KindRegistry'
+import { Lifecycle } from './screens/Lifecycle'
 import { ModelObjects } from './screens/ModelObjects'
 import { Needs } from './screens/Needs'
-import { Readiness } from './screens/Readiness'
+import { Portfolio } from './screens/Portfolio'
+import { RequirementMatrices, type MatrixKind } from './screens/RequirementMatrices'
 import { Requirements } from './screens/Requirements'
 import { Risks } from './screens/Risks'
 import { Services } from './screens/Services'
 import { Spacecraft } from './screens/Spacecraft'
+import { SystemComposition } from './screens/SystemComposition'
 import { SystemOverview } from './screens/SystemOverview'
 import { AuthorField } from './ui/session'
 
-interface Screen {
-  id: string
-  title: string
-  render: () => ReactElement
+interface HeaderInfo {
+  name: string
+  phase: string
+  nextGate: string | null
+  unclosed: number | null
+  operations: OperationRow[]
 }
 
-/** Экраны шага мастера. Номер шага совпадает с номером в /views/wizard. */
-const STEPS: Array<{ number: number; screens: Screen[] }> = [
-  {
-    number: 1,
-    screens: [
-      { id: 'needs', title: 'Нужды стейкхолдеров', render: () => <Needs /> },
-      // Сценарии ConOps растут из нужд (Шаг 17 C1)
-      { id: 'conops', title: 'ConOps', render: () => <ModelObjects kinds={['conops']} /> },
-    ],
-  },
-  {
-    number: 2,
-    screens: [
-      { id: 'services', title: 'Сервисы и профили QoS', render: () => <Services /> },
-      { id: 'demand', title: 'Карта спроса', render: () => <Demand /> },
-    ],
-  },
-  {
-    number: 3,
-    screens: [
-      { id: 'requirements', title: 'Дерево требований', render: () => <Requirements /> },
-      { id: 'ai', title: 'Предложение ИИ', render: () => <AiProposal /> },
-    ],
-  },
-  {
-    number: 4,
-    screens: [
-      // Зашитого идентификатора элемента больше нет (шаг 16 §3.2): выбирается из
-      // хранимых, спецификация — карточка выбранного (§3.3)
-      {
-        id: 'composition',
-        title: 'Состав системы',
-        render: () => <SystemComposition />,
-      },
-      { id: 'spacecraft', title: 'Модель КА', render: () => <Spacecraft /> },
-      // Ввод состава руками: без него шаг проходится только на чужих данных
-      {
-        id: 'architecture',
-        title: 'Состав и интерфейсы',
-        render: () => <ModelObjects kinds={['component', 'interface']} />,
-      },
-      // Технология — свойство конфигурации, не отчёта (Шаг 17 C2)
-      { id: 'technology', title: 'Технологии и TRL', render: () => <ModelObjects kinds={['technology']} /> },
-    ],
-  },
-  {
-    number: 5,
-    screens: [
-      { id: 'comparison', title: 'Сравнение вариантов', render: () => <Comparison /> },
-      // Сравнение даёт числа, решение фиксирует выбор (Шаг 17 C3)
-      { id: 'decisions', title: 'Решения', render: () => <ModelObjects kinds={['decision']} /> },
-      { id: 'coverage', title: 'Карта покрытия', render: () => <Coverage /> },
-      { id: 'globe', title: 'Баллистика', render: () => <Globe /> },
-      { id: 'ground', title: 'Наземный сегмент', render: () => <GroundSegment /> },
-      { id: 'import-catalog', title: 'Импорт каталога', render: () => <ImportCatalog /> },
-      // Входы моделирования — хранимые объекты (CR-005/ADR-021), значит вводимые
-      {
-        id: 'inputs',
-        title: 'Входы моделирования',
-        render: () => (
-          <ModelObjects
-            kinds={[
-              'constellation',
-              'spacecraft',
-              'demand_map',
-              'terminal_profile',
-              'ground_stations',
-              'protocol_adapter',
-              'scenario',
-            ]}
-          />
-        ),
-      },
-    ],
-  },
-  {
-    number: 6,
-    screens: [{ id: 'system', title: 'Система в целом', render: () => <SystemOverview /> }],
-  },
-  {
-    number: 7,
-    screens: [
-      { id: 'readiness', title: 'Готовность к точке', render: () => <Readiness /> },
-      { id: 'documents', title: 'Документы', render: () => <Documents /> },
-      { id: 'risks', title: 'Реестр рисков', render: () => <Risks /> },
-      {
-        id: 'closure',
-        title: 'Ведение реестров',
-        render: () => <ModelObjects kinds={['risk', 'evidence', 'validation', 'project']} />,
-      },
-    ],
-  },
-]
+const PHASE_LABEL: Record<string, string> = { pre_phase_a: 'Pre-Phase A', phase_a: 'Phase A' }
 
-export function App() {
-  // null — ответ ещё не пришёл; пустой массив — пришёл и оказался пустым
-  const [steps, setSteps] = useState<WizardStep[] | null>(null)
-  const [step, setStep] = useState(1)
-  const [screen, setScreen] = useState(STEPS[0].screens[0].id)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    api
-      .wizard()
-      .then(setSteps)
-      // ответ не пришёл — состояние шагов неизвестно, и это тоже надо показать
-      .catch((e) => {
-        setError(String(e))
-        setSteps([])
-      })
-  }, [])
-
-  /** Ответ ещё в пути: состояние шагов неизвестно, а не пусто. */
-  const pending = steps === null
-
-  const openStep = (number: number) => {
-    setStep(number)
-    const first = STEPS.find((s) => s.number === number)?.screens[0]
-    if (first) setScreen(first.id)
-  }
-
-  const current = STEPS.find((s) => s.number === step) ?? STEPS[0]
-  const active = current.screens.find((s) => s.id === screen) ?? current.screens[0]
-
+/** Шаблон «Матрица» (§3.4): трассировка, верификация, валидация вкладками. */
+function MatrixScreen() {
+  const [kind, setKind] = useState<MatrixKind>('trace')
+  const KINDS: Array<[MatrixKind, string]> = [
+    ['trace', 'Трассировка'],
+    ['verification', 'Верификация'],
+    ['validation', 'Валидация'],
+  ]
   return (
-    <div className="app">
-      <header className="topbar">
-        <h1>Орбита</h1>
-        <nav className="tabs">
-          {current.screens.map((s) => (
-            <button
-              key={s.id}
-              className="tab"
-              aria-selected={s.id === active.id}
-              onClick={() => setScreen(s.id)}
-            >
-              {s.title}
+    <>
+      <div className="toolbar">
+        <h2>Матрицы</h2>
+        <div className="tabs">
+          {KINDS.map(([k, t]) => (
+            <button key={k} className="tab" aria-selected={kind === k} onClick={() => setKind(k)}>
+              {t}
             </button>
           ))}
-        </nav>
-        {/* Автор изменений записывается в каждую версию объекта (шаг 15 §1.2) */}
-        <AuthorField />
-      </header>
-
-      <nav className="wizard">
-        <div className="wizard__group">Мастер</div>
-        {STEPS.map(({ number }) => {
-          const state = steps?.find((s) => s.number === number)
-          return (
-            <button
-              key={number}
-              className="wizard__step"
-              aria-selected={number === step}
-              onClick={() => openStep(number)}
-            >
-              Ш{number}. {state?.title ?? '—'}
-              {/* пока ответа нет, шаг не красится: замечаний ещё никто не находил */}
-              <small className={pending || state?.complete ? '' : 'amber'}>
-                {stepState(state, pending)}
-              </small>
-            </button>
-          )
-        })}
-        {error && <div className="warn" style={{ padding: '8px 12px' }}>API: {error}</div>}
-      </nav>
-
-      {active.render()}
-    </div>
+        </div>
+      </div>
+      <div className="workarea">
+        <RequirementMatrices kind={kind} />
+      </div>
+    </>
   )
 }
 
-/**
- * Подпись состояния шага. Сервер уже различил «пусто» и «замечаний нет»;
- * здесь только выбираются слова, признак не выводится заново.
- *
- * Состояний ТРИ, а не два. «Ответ ещё не пришёл» — не то же самое, что
- * «сервер ответил, и данных нет»: на холодном стенде первый случай держался
- * заметное время, и мастер всё это время утверждал, будто состояния шагов
- * неизвестны системе. Смешивать их нельзя ровно по той же причине, по которой
- * сервер не смешивает «пусто» и «замечаний нет».
- */
-function stepState(state: WizardStep | undefined, pending: boolean): string {
-  if (pending) return 'загрузка…'
-  if (!state) return 'нет данных'
-  if (state.complete) return `${state.objects} · без замечаний`
-  if (state.objects === 0) return 'пусто'
-  return `${state.objects} · замечаний ${state.issues.length}`
+export function App() {
+  const [screen, setScreen] = useState<string>(currentProject() ? 'lifecycle' : 'portfolio')
+  const [info, setInfo] = useState<HeaderInfo | null>(null)
+  const project = currentProject()
+  const section = sectionOf(screen)
+
+  const loadHeader = useCallback(() => {
+    if (!project) { setInfo(null); return }
+    api.operations()
+      .then(async (ops) => {
+        let name = project
+        try {
+          const p = await edit.object(project)
+          name = ((p.doc as { name?: string } | undefined)?.name) ?? project
+        } catch { /* имя не критично */ }
+        let unclosed: number | null = null
+        if (ops.next_gate) {
+          try {
+            unclosed = (await api.gateIssues(ops.next_gate)).issues.length
+          } catch { unclosed = null }
+        }
+        setInfo({ name, phase: ops.phase, nextGate: ops.next_gate, unclosed, operations: ops.operations })
+      })
+      .catch(() => setInfo(null))
+  }, [project])
+
+  useEffect(loadHeader, [loadHeader, screen])
+
+  const go = (next: string) => setScreen(next)
+
+  const render = (): ReactElement => {
+    switch (screen) {
+      case 'portfolio': return <Portfolio onOpen={() => { setScreen('lifecycle'); loadHeader() }} />
+      case 'lifecycle':
+        return project
+          ? <Lifecycle project={project} onGo={go} />
+          : <Portfolio onOpen={() => setScreen('lifecycle')} />
+      case 'goals': return <KindRegistry kinds={['mission_goal']} title="Цели миссии" />
+      case 'needs': return <Needs />
+      case 'services': return <Services />
+      case 'conops': return <KindRegistry kinds={['conops']} title="Сценарии ConOps" />
+      case 'req': return <Requirements />
+      case 'matrix': return <MatrixScreen />
+      case 'aoa': return <KindRegistry kinds={['alternative', 'decision']} title="Альтернативы и решения" />
+      case 'wbs': return <SystemComposition />
+      case 'wbstree': return <KindRegistry kinds={['wbs_element']} title="Структура работ (WBS)" />
+      case 'cost': return <KindRegistry kinds={['cost_estimate']} title="Оценки стоимости и сроков" />
+      case 'siminputs':
+        return (
+          <ModelObjects
+            kinds={['scenario', 'constellation', 'spacecraft', 'demand_map', 'terminal_profile', 'ground_stations', 'protocol_adapter']}
+          />
+        )
+      case 'spacecraft': return <Spacecraft />
+      case 'demand': return <Demand />
+      case 'ground': return <GroundSegment />
+      case 'ballistics': return <Globe />
+      case 'coverage': return <Coverage />
+      case 'compare': return <Comparison />
+      case 'readiness': return <GateReadiness onGo={go} />
+      case 'rfa': return <KindRegistry kinds={['review_item']} title="Замечания обзора (RFA/RID)" />
+      case 'risks': return <Risks />
+      case 'trl': return <KindRegistry kinds={['technology']} title="Технологии и TRL" />
+      case 'oda': return <KindRegistry kinds={['oda']} title="Оценка орбитального засорения" />
+      case 'vv': return <ModelObjects kinds={['evidence', 'validation']} />
+      case 'docs': return <Documents />
+      case 'system': return <SystemOverview />
+      case 'ai': return <AiProposal />
+      case 'importb': return <BatchLoad />
+      case 'terminals': return <ImportCatalog />
+      default: return <div className="empty">Экран «{screen}» не найден.</div>
+    }
+  }
+
+  const nav = SECTIONS.find((s) => s.key === section)!
+  const sectionOps = info?.operations.filter((o) => o.screen && sectionOf(o.screen) === section) ?? []
+
+  return (
+    <div className="shell">
+      <header className="header">
+        <div className="header__logo">Орбита</div>
+        {project && info && (
+          <div className="header__project">
+            <b>{info.name}</b>
+            <span className="header__phase">{PHASE_LABEL[info.phase] ?? info.phase}</span>
+          </div>
+        )}
+        {project && info?.nextGate && (
+          <button className="header__gate" onClick={() => setScreen('readiness')}
+            title="Готовность к точке — что мешает пройти">
+            <span className="secondary">ближайшая точка</span>
+            <b className="mono">{info.nextGate}</b>
+            <span className={`count ${info.unclosed === 0 ? 'count--ready' : ''}`}>
+              {info.unclosed == null ? '' : info.unclosed === 0 ? 'готово' : `не закрыто: ${info.unclosed}`}
+            </span>
+          </button>
+        )}
+        {project && (
+          <button className="btn" onClick={() => { selectProject(null); setScreen('portfolio') }}>
+            Сменить проект
+          </button>
+        )}
+        <div className="grow" style={{ flex: 1 }} />
+        <AuthorField />
+      </header>
+      <div className="shell__body">
+        <nav className="rail">
+          {SECTIONS.map((s) => (
+            <button key={s.key} className="rail__item" aria-selected={s.key === section}
+              onClick={() => setScreen(s.screens[0].key)}>
+              {s.label}
+            </button>
+          ))}
+        </nav>
+        {screen !== 'portfolio' && (
+          <aside className="ops">
+            <div className="ops__title">{nav.label}</div>
+            {nav.screens.map((sc) => (
+              <button key={sc.key} className="ops__item" aria-selected={sc.key === screen}
+                onClick={() => setScreen(sc.key)}>
+                <span className="name">{sc.title}</span>
+              </button>
+            ))}
+            {sectionOps.length > 0 && (
+              <>
+                <div className="ops__group">Операции фазы</div>
+                {sectionOps.map((o) => (
+                  <button key={o.code} className="ops__item" title={o.name}
+                    onClick={() => o.screen && setScreen(o.screen)}>
+                    <span className={`ops__state ops__state--${o.state} ${o.returned_to ? 'ops__state--returned' : ''}`} />
+                    <span className="mono" style={{ minWidth: 28 }}>{o.code}</span>
+                    <span className="name">{o.name}</span>
+                  </button>
+                ))}
+              </>
+            )}
+          </aside>
+        )}
+        <main className="shell__work">{render()}</main>
+      </div>
+    </div>
+  )
 }

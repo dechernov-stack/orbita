@@ -1,0 +1,105 @@
+// Загрузка пачкой (блок D, дизайн: экран importb): файл → отчёт проверки до
+// записи → результат. До подтверждения сервером в реестр ничего не пишется —
+// «всё или ничего» держит транзакция импорта (ADR-024). Выгрузка — тем же
+// форматом, выгруженное грузится обратно.
+import { useState } from 'react'
+import { api, type BatchReport } from '../api/client'
+import { currentProject, withProject } from '../api/project'
+import { useSession } from '../ui/session'
+
+export function BatchLoad() {
+  const { author } = useSession()
+  const [payload, setPayload] = useState('')
+  const [fileName, setFileName] = useState<string | null>(null)
+  const [report, setReport] = useState<BatchReport | null>(null)
+  const [failure, setFailure] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+
+  const pick = (file: File | null) => {
+    if (!file) return
+    setFileName(file.name)
+    setReport(null)
+    file.text().then(setPayload)
+  }
+
+  const run = async () => {
+    setBusy(true)
+    setFailure(null)
+    setReport(null)
+    try {
+      const body = JSON.parse(payload) as Record<string, unknown>
+      if (!body.author) body.author = author
+      setReport(await api.importObjects(body))
+    } catch (e) {
+      setFailure(String(e))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <>
+      <div className="toolbar">
+        <h2>Загрузка пачкой</h2>
+        <div className="grow" />
+        <a className="btn" href={withProject(api.exportObjectsUrl())} download="orbita-export.json">
+          Выгрузить проект
+        </a>
+        <button className="btn btn--primary" disabled={!payload.trim() || busy} onClick={run}>
+          {busy ? 'Проверка…' : 'Проверить и загрузить'}
+        </button>
+      </div>
+      <div className="workarea" style={{ padding: 14, maxWidth: 860 }}>
+        <div className="field">
+          <label>Файл пачки (формат /export/objects; порядок объектов не важен — его разрешает сервер)</label>
+          <input type="file" accept="application/json,.json" onChange={(e) => pick(e.target.files?.[0] ?? null)} />
+          {fileName && <span className="secondary"> {fileName}</span>}
+        </div>
+        <div className="field">
+          <label>Или вставьте JSON пачки</label>
+          <textarea rows={8} style={{ width: '100%' }} value={payload}
+            onChange={(e) => { setPayload(e.target.value); setReport(null) }}
+            placeholder={'{"objects": [ { "id": "ND-0001", … }, … ]}'} />
+        </div>
+        {!currentProject() && (
+          <p className="hint secondary">
+            Проект не выбран: пачка обязана нести объект проекта, иначе сервер откажет.
+          </p>
+        )}
+        {failure && <div className="notice notice--blocked">Пачка не разобрана: {failure}</div>}
+        {report && report.problems.length === 0 && (
+          <div className="notice">Записано объектов: <b className="mono">{report.written}</b></div>
+        )}
+        {report && report.problems.length > 0 && (
+          <div className="card">
+            <h3>Пачка отклонена целиком — {report.problems.length} замечаний, ничего не записано</h3>
+            <div>
+              <table>
+                <thead>
+                  <tr>
+                    <th style={{ width: 60 }}>Строка</th>
+                    <th style={{ width: 90 }}>Объект</th>
+                    <th style={{ width: 140 }}>Поле</th>
+                    <th style={{ width: 120 }}>Правило</th>
+                    <th>Что не так</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {report.problems.map((p, i) => (
+                    <tr key={i}>
+                      <td className="num">{p.index}</td>
+                      <td className="id">{p.id ?? '—'}</td>
+                      <td className="mono">{p.path ?? ''}</td>
+                      <td className="mono">{p.rule ?? ''}</td>
+                      <td className="wrap">{p.message}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
+    </>
+  )
+}

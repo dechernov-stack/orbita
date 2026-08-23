@@ -1,24 +1,50 @@
-/* Дизайн-токены (docs/ui/stitch-prompts.md, блок B).
-   Инструмент инженера, а не потребительская панель: плотные таблицы, острые
-   углы, волосяные линии вместо теней, моноширинный шрифт для чисел и единиц. */
+/* Дизайн-токены (docs/ui/reference/tokens.css, блок D задания «прогон до
+   KDP B»): плотность и спокойствие важнее эффектности. Строка 26 px, кегль
+   12,5 px, волосяные линии, теней нет. Старые имена переменных сохранены —
+   на них сидят экраны — и указывают на новую палитру. */
 :root {
+  /* Поверхности */
+  --surface-page: #f8f9fa;
+  --container: #ffffff;
+  --container-2: #f3f4f5;
+  --container-3: #edeeef;
+
+  /* Линии и рейка */
+  --hairline: #c4c6cc;
+  --rail: #0f1c2c;
+  --rail-active: #1b2f47;
+  --rail-label: #9aa4b2;
+
+  --accent-hover: #0d4a97;
+  --selection: #d7e2ff;
+  --error-surface: #ffdad6;
+
+  /* Прежние имена — новая палитра */
   --bg: #ffffff;
-  --surface: #f7f8fa;
-  --border: #e1e4e8;
-  --text: #1b1f24;
-  --text-secondary: #57606a;
-  --accent: #0b5fff;
+  --surface: #f3f4f5;
+  --border: #c4c6cc;
+  --text: #191c1d;
+  --text-secondary: #44474c;
+  --accent: #115cb9;
 
-  --status-draft: #8c959f;
-  --status-preliminary: #0b5fff;
-  --status-approved: #bf8700;
+  --status-draft: #74777d;
+  --status-preliminary: #115cb9;
+  --status-approved: #584329;
   --status-baseline: #1a7f37;
-  --status-error: #cf222e;
+  --status-error: #ba1a1a;
 
-  --font: Inter, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font: Inter, system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace;
-  --row-height: 28px;
+  --row-height: 26px;         /* строка таблицы — не менять (§3.6) */
   --indent: 16px;
+
+  --rail-w: 52px;
+  --ops-w: 236px;
+  --inspector-w: 372px;
+  --header-h: 48px;
+  --toolbar-h: 40px;
+  --radius: 6px;
+  --radius-lg: 8px;
 }
 
 * {
@@ -27,24 +53,395 @@
 
 body {
   margin: 0;
-  background: var(--bg);
+  background: var(--surface-page);
   color: var(--text);
   font-family: var(--font);
-  font-size: 13px;
+  font-size: 12.5px;
+  line-height: 1.35;
+  -webkit-font-smoothing: antialiased;
 }
 
-.app {
-  display: grid;
-  grid-template-rows: auto 1fr;
-  grid-template-columns: 220px 1fr;
-  grid-template-areas: 'top top' 'nav main';
+/* ---------- Оболочка (блок D): шапка 48 · рейка 52 · операции 236 · работа ---------- */
+
+.shell {
+  display: flex;
+  flex-direction: column;
   height: 100vh;
+  overflow: hidden;
 }
 
-.topbar { grid-area: top; }
-.wizard { grid-area: nav; }
-.app > .split,
-.app > .empty { grid-area: main; }
+.shell__body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.shell__work {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--surface-page);
+}
+
+.header {
+  height: var(--header-h);
+  min-height: var(--header-h);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 14px;
+  background: var(--container);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.header__logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+.header__logo::before {
+  content: '';
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--rail);
+}
+
+.header__project {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.header__phase {
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 8px;
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+/* Ближайшая точка — главный элемент системы: кликабельна, ведёт на готовность */
+.header__gate {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}
+
+.header__gate:hover { border-color: var(--accent); }
+
+.header__gate .count {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--status-error);
+}
+
+.header__gate .count--ready { color: var(--status-baseline); }
+
+.rail {
+  width: var(--rail-w);
+  min-width: var(--rail-w);
+  background: var(--rail);
+  display: flex;
+  flex-direction: column;
+  padding-top: 4px;
+}
+
+.rail__item {
+  height: 52px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: none;
+  border-left: 2px solid transparent;
+  background: none;
+  cursor: pointer;
+  color: var(--rail-label);
+  font-family: var(--font);
+  font-size: 8.5px;
+  letter-spacing: 0.2px;
+}
+
+.rail__item::before {
+  content: '';
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  border: 1.5px solid currentColor;
+}
+
+.rail__item[aria-selected='true'] {
+  background: var(--rail-active);
+  border-left-color: var(--accent);
+  color: #ffffff;
+}
+
+.ops {
+  width: var(--ops-w);
+  min-width: var(--ops-w);
+  background: var(--container);
+  border-right: 1px solid var(--hairline);
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+}
+
+.ops__title {
+  height: 34px;
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  font-size: 10.5px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--container-3);
+}
+
+.ops__item {
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border: none;
+  border-left: 2px solid transparent;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+
+.ops__item:hover { background: var(--container-2); }
+
+.ops__item[aria-selected='true'] {
+  background: var(--container-2);
+  border-left-color: var(--accent);
+  color: var(--text);
+}
+
+.ops__item .name { flex: 1; font-size: 12.5px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.ops__item .badge {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+/* Состояние операции — маркером слева от подписи (ADR-029 п. 6) */
+.ops__state {
+  width: 8px;
+  height: 8px;
+  min-width: 8px;
+  border-radius: 50%;
+  border: 1.5px solid var(--hairline);
+}
+.ops__state--Done { background: var(--status-baseline); border-color: var(--status-baseline); }
+.ops__state--InProgress { background: var(--status-preliminary); border-color: var(--status-preliminary); }
+.ops__state--NotStarted { background: none; }
+.ops__state--NotMeasurable { border-style: dashed; }
+.ops__state--returned { border-color: var(--status-error); background: var(--error-surface); }
+
+.ops__group {
+  padding: 10px 12px 4px;
+  font-size: 10.5px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+/* Шапка экрана 40 px: название, счётчики, главное действие справа */
+.toolbar {
+  height: var(--toolbar-h);
+  min-height: var(--toolbar-h);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  background: var(--container);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.toolbar h2 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.toolbar .count {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--text-secondary);
+}
+
+.toolbar .grow { flex: 1; }
+
+.btn {
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  background: var(--container);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn:hover { background: var(--container-2); }
+
+.btn--primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+
+.btn--primary:hover { background: var(--accent-hover); }
+
+.workarea {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* Реестр с инспектором: перекрытий нет, инспектор фиксированной ширины */
+.registry {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.inspector {
+  width: var(--inspector-w);
+  min-width: var(--inspector-w);
+  border-left: 1px solid var(--hairline);
+  background: var(--container);
+  overflow: auto;
+  padding: 12px 14px;
+}
+
+/* Карточки портфеля и жизненного цикла */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 12px;
+  padding: 14px;
+}
+
+.pcard {
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  background: var(--container);
+  cursor: pointer;
+  overflow: hidden;
+  text-align: left;
+  font: inherit;
+  padding: 0;
+}
+
+.pcard:hover { border-color: var(--accent); }
+
+.pcard__head { padding: 12px 14px 8px; }
+
+.pcard__head h3 { margin: 0 0 2px; font-size: 15px; font-weight: 600; }
+
+.pcard__gate {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: var(--container-2);
+  border-top: 1px solid var(--container-3);
+  border-bottom: 1px solid var(--container-3);
+}
+
+.pcard__foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  color: var(--text-secondary);
+  font-size: 11.5px;
+}
+
+.gatecard {
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  background: var(--container);
+  border-top: 3px solid var(--hairline);
+  padding: 10px 12px;
+  min-width: 0;
+}
+
+.gatecard--held { border-top-color: var(--status-baseline); }
+.gatecard--next { border-top-color: var(--accent); }
+
+.gatestrip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  padding: 14px;
+}
+
+.opsmap {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 2px 16px;
+  padding: 0 14px 14px;
+}
+
+.opsmap__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 24px;
+  border: none;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  color: var(--text);
+  min-width: 0;
+}
+
+.opsmap__row:hover { color: var(--accent); }
+
+.opsmap__row .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Перечень незакрытого — то, что мешает пройти точку */
+.issue {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--container-3);
+}
 
 /* Мастер Ш1–Ш7: шаги слева, состояние каждого приходит с сервера.
    «Пусто» и «всё хорошо» — разные состояния, и метка у них разная. */
@@ -138,13 +535,25 @@ textarea {
   border-color: var(--border);
 }
 
+/* Старые экраны верхнего уровня растягиваются на рабочую область */
+.shell__work > .split,
+.shell__work > .pane {
+  flex: 1;
+  min-height: 0;
+}
+
+.shell__work > .pane,
+.shell__work .split .pane {
+  background: var(--container);
+}
+
 .split {
   display: grid;
   /* minmax(0, 1fr) вместо 1fr: без нижней границы колонка списка раздувается
      под ширину содержимого и уезжает под боковую панель — панель «перекрывала»
      колонку таблицы (шаг 15 §2, дефект 3). Боковая панель ужимается на узких
      экранах, но не наезжает. */
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+  grid-template-columns: minmax(0, 1fr) minmax(300px, var(--inspector-w));
   min-height: 0;
 }
 
@@ -163,7 +572,12 @@ textarea {
   display: flex;
   gap: 8px;
   align-items: center;
-  padding: 8px 8px 0;
+  /* шапка экрана — 40 px (§3.1): плотность реестра 30 строк на 1440×900 */
+  min-height: var(--toolbar-h);
+  padding: 0 8px;
+  background: var(--container);
+  border-bottom: 1px solid var(--container-3);
+  flex-wrap: wrap;
 }
 
 table {
@@ -189,6 +603,7 @@ thead th {
 }
 
 tbody tr {
+  background: var(--container);
   /* Высота строки — МИНИМУМ, а не потолок: колонка с переносом растит строку
      под содержание вместо того, чтобы срезать его (шаг 15 §2, дефект 1). */
   height: var(--row-height);
@@ -209,7 +624,8 @@ tbody tr {
 }
 
 tbody tr[aria-selected='true'] {
-  background: #eef4ff;
+  background: var(--selection);
+  box-shadow: inset 2px 0 0 var(--accent);
 }
 
 td {
@@ -379,7 +795,7 @@ tbody td {
   overflow: hidden;
 }
 
-.cell--low { background: #dafbe1; }
+.cell--low { background: #d8f3dc; }
 .cell--medium { background: #fff8c5; }
 .cell--high { background: #ffebe9; }
 

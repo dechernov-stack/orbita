@@ -4,6 +4,7 @@
 // быть ASCII, а имена инженеров русские — на «инженер А» запрос не собирается
 // вовсе. Автор и по смыслу часть изменения, а не сведения о транспорте.
 import { ApiError } from './client'
+import { withProject } from './project'
 
 const BASE = '/api'
 
@@ -107,7 +108,7 @@ export class EditRejected extends Error {
 }
 
 async function send<T>(method: string, path: string, body?: unknown): Promise<T> {
-  const response = await fetch(`${BASE}${path}`, {
+  const response = await fetch(`${BASE}${withProject(path)}`, {
     method,
     headers: { 'Content-Type': 'application/json; charset=utf-8', Accept: 'application/json' },
     body: body === undefined ? undefined : JSON.stringify(body),

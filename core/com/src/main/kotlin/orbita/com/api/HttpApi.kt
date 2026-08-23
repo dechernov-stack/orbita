@@ -1075,6 +1075,19 @@ class HttpApi(private val boundary: Boundary) {
                 )
             }
 
+            // Предпросмотр незакрытого точки — тем же расчётом, что и прохождение
+            method == "GET" && gateMatch(path, "issues") != null -> {
+                val gate = gateMatch(path, "issues")!!
+                val p = requireProject(project)
+                val issues = boundary.gatePassing.issues(gate, p)
+                val n = mapper.createObjectNode()
+                n.put("gate", gate)
+                n.put("ready", issues.isEmpty())
+                n.put("next_gate", boundary.gatePassing.nextGate(p))
+                n.putArray("issues").also { a -> issues.forEach(a::add) }
+                respond(ex, 200, n)
+            }
+
             method == "POST" && gateMatch(path, "pass") != null -> {
                 val req = mapper.readTree(body(ex))
                 respond(

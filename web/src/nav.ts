@@ -1,0 +1,95 @@
+// Навигация оболочки (блок D, дизайн docs/ui/reference): рейка разделов и
+// экраны панели операций. Ключи экранов совпадают с полем screen реестра
+// операций (operations.json) — операция ведёт на своё рабочее место.
+
+export interface NavScreen {
+  key: string
+  title: string
+}
+
+export interface NavSection {
+  key: string
+  label: string
+  screens: NavScreen[]
+}
+
+export const SECTIONS: NavSection[] = [
+  {
+    key: 'portfolio',
+    label: 'Портфель',
+    screens: [
+      { key: 'portfolio', title: 'Все проекты' },
+      { key: 'lifecycle', title: 'Жизненный цикл' },
+    ],
+  },
+  {
+    key: 'goals',
+    label: 'Постановка',
+    screens: [
+      { key: 'goals', title: 'Цели миссии' },
+      { key: 'needs', title: 'Нужды стейкхолдеров' },
+      { key: 'services', title: 'Сервисы и QoS' },
+      { key: 'conops', title: 'Сценарии ConOps' },
+    ],
+  },
+  {
+    key: 'req',
+    label: 'Требования',
+    screens: [
+      { key: 'req', title: 'Реестр требований' },
+      { key: 'matrix', title: 'Матрицы' },
+    ],
+  },
+  {
+    key: 'aoa',
+    label: 'Концепция',
+    screens: [
+      { key: 'aoa', title: 'Альтернативы и решения' },
+      { key: 'wbs', title: 'Состав системы' },
+      { key: 'wbstree', title: 'Структура работ (WBS)' },
+      { key: 'cost', title: 'Оценки стоимости' },
+    ],
+  },
+  {
+    key: 'ballistics',
+    label: 'Модели',
+    screens: [
+      { key: 'siminputs', title: 'Входы моделирования' },
+      { key: 'spacecraft', title: 'Модель аппарата' },
+      { key: 'demand', title: 'Карта спроса' },
+      { key: 'ground', title: 'Наземный сегмент' },
+      { key: 'ballistics', title: 'Глобус' },
+      { key: 'coverage', title: 'Карта покрытия' },
+      { key: 'compare', title: 'Сравнение вариантов' },
+    ],
+  },
+  {
+    key: 'readiness',
+    label: 'Контроль',
+    screens: [
+      { key: 'readiness', title: 'Готовность к точке' },
+      { key: 'rfa', title: 'Замечания обзора' },
+      { key: 'risks', title: 'Риски' },
+      { key: 'trl', title: 'Технологии' },
+      { key: 'oda', title: 'Орбитальное засорение' },
+      { key: 'vv', title: 'Верификация и валидация' },
+      { key: 'docs', title: 'Документы' },
+      { key: 'system', title: 'Система в целом' },
+    ],
+  },
+  {
+    key: 'ai',
+    label: 'Инструменты',
+    screens: [
+      { key: 'ai', title: 'Предложения ИИ' },
+      { key: 'importb', title: 'Загрузка пачкой' },
+      { key: 'terminals', title: 'Импорт терминалов' },
+    ],
+  },
+]
+
+/** Раздел, которому принадлежит экран. */
+export function sectionOf(screen: string): string {
+  for (const s of SECTIONS) if (s.screens.some((x) => x.key === screen)) return s.key
+  return 'portfolio'
+}
