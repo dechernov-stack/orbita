@@ -62,7 +62,7 @@ EXPOSE 8090
 # Схема сверяется с моделями при старте; расхождение роняет запуск — это
 # и есть проверка живости, врать ей нечем.
 HEALTHCHECK --interval=10s --timeout=3s --start-period=40s --retries=6 \
-  CMD curl -fsS http://127.0.0.1:8090/api/views/wizard > /dev/null || exit 1
+  CMD curl -fsS http://127.0.0.1:8090/api/kinds > /dev/null || exit 1
 
 CMD ["java", "-jar", "app.jar"]
 
