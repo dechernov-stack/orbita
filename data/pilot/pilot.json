@@ -1,0 +1,1645 @@
+{
+ "author": "затравка data/pilot",
+ "project": "PJ-0100",
+ "objects": [
+  {
+   "id": "PJ-0100",
+   "name": "Ротор-Л (затравка)",
+   "phase": "phase_a",
+   "milestones": [
+    {
+     "gate": "SRR",
+     "due": "2027-02-15"
+    },
+    {
+     "gate": "SDR",
+     "due": "2027-07-01"
+    },
+    {
+     "gate": "KDP-B",
+     "due": "2027-09-30"
+    }
+   ],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   }
+  },
+  {
+   "id": "ND-0101",
+   "statement": "Оператор сети нуждается в сборе телеметрии стационарных датчиков на территориях без наземной связи.",
+   "stakeholder": {
+    "name": "Оператор сети",
+    "role": "operator",
+    "priority": 5
+   },
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   }
+  },
+  {
+   "id": "ND-0102",
+   "statement": "Агрохолдингу нужен суточный съём показаний полевых датчиков влажности и температуры.",
+   "stakeholder": {
+    "name": "Агрохолдинг «Поле»",
+    "role": "end_user",
+    "priority": 4
+   },
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   }
+  },
+  {
+   "id": "ND-0103",
+   "statement": "Логистическому оператору нужно отслеживание контейнеров на межконтинентальных маршрутах.",
+   "stakeholder": {
+    "name": "Логистика-ТК",
+    "role": "end_user",
+    "priority": 4
+   },
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   }
+  },
+  {
+   "id": "ND-0104",
+   "statement": "Регулятор требует работы бортовых передатчиков в выделенных полосах с ограничением помех.",
+   "stakeholder": {
+    "name": "Радиочастотная служба",
+    "role": "regulator",
+    "priority": 5
+   },
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   }
+  },
+  {
+   "id": "ND-0105",
+   "statement": "Агентству нужна демонстрация отечественной платформы IoT к смотру технологий.",
+   "stakeholder": {
+    "name": "Агентство",
+    "role": "agency",
+    "priority": 3
+   },
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   }
+  },
+  {
+   "id": "ND-0106",
+   "statement": "Партнёру наземной сети нужно дополнение зон покрытия его LPWAN из космоса.",
+   "stakeholder": {
+    "name": "Оператор LPWAN",
+    "role": "partner",
+    "priority": 3
+   },
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   }
+  },
+  {
+   "id": "SV-0101",
+   "name": "Сбор телеметрии без подтверждения",
+   "traces_up": [
+    "ND-0101",
+    "ND-0102"
+   ],
+   "qos_profiles": [
+    {
+     "consumer_class": "A_prime",
+     "moe": [
+      {
+       "id": "MOE-0001",
+       "name": "delivery_probability_daily",
+       "target": {
+        "value": 0.9,
+        "unit": "1",
+        "provenance": {
+         "source": "manual"
+        }
+       }
+      }
+     ]
+    }
+   ],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   }
+  },
+  {
+   "id": "SV-0102",
+   "name": "Доставка с подтверждением",
+   "traces_up": [
+    "ND-0103"
+   ],
+   "qos_profiles": [
+    {
+     "consumer_class": "B_prime",
+     "moe": [
+      {
+       "id": "MOE-0002",
+       "name": "delivery_probability_daily",
+       "target": {
+        "value": 0.99,
+        "unit": "1",
+        "provenance": {
+         "source": "manual"
+        }
+       }
+      }
+     ]
+    }
+   ],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   }
+  },
+  {
+   "id": "SV-0103",
+   "name": "Оперативное управление объектом",
+   "traces_up": [
+    "ND-0101"
+   ],
+   "qos_profiles": [
+    {
+     "consumer_class": "C_prime",
+     "moe": [
+      {
+       "id": "MOE-0003",
+       "name": "delivery_probability_daily",
+       "target": {
+        "value": 0.99,
+        "unit": "1",
+        "provenance": {
+         "source": "manual"
+        }
+       }
+      }
+     ]
+    }
+   ],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   }
+  },
+  {
+   "id": "SV-0104",
+   "name": "Дополнение наземной LPWAN",
+   "traces_up": [
+    "ND-0106"
+   ],
+   "qos_profiles": [
+    {
+     "consumer_class": "A_prime",
+     "moe": [
+      {
+       "id": "MOE-0004",
+       "name": "delivery_probability_daily",
+       "target": {
+        "value": 0.85,
+        "unit": "1",
+        "provenance": {
+         "source": "manual"
+        }
+       }
+      }
+     ]
+    }
+   ],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   }
+  },
+  {
+   "id": "CO-0101",
+   "name": "Номинальный суточный сбор телеметрии",
+   "kind": "nominal",
+   "phase": "operations",
+   "flow": [
+    "терминал накапливает измерения",
+    "КА проходит зону, терминал передаёт по альманаху",
+    "борт обрабатывает и хранит пакет",
+    "пакет сбрасывается на станцию",
+    "оператор получает данные"
+   ],
+   "success_criterion": "пакет каждого активного терминала доставлен за сутки",
+   "traces_up": [
+    "ND-0101",
+    "ND-0102"
+   ],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   }
+  },
+  {
+   "id": "CO-0102",
+   "name": "Подтверждённая доставка с эфемеридным backoff",
+   "kind": "off_nominal",
+   "phase": "operations",
+   "flow": [
+    "терминал B' передаёт пакет",
+    "подтверждение не получено",
+    "терминал ждёт следующий КА по альманаху",
+    "повтор до подтверждения"
+   ],
+   "success_criterion": "пакет подтверждён не позже второго пролёта",
+   "traces_up": [
+    "ND-0103"
+   ],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   }
+  },
+  {
+   "id": "CM-0101",
+   "name": "Космический сегмент",
+   "kind": "segment",
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   }
+  },
+  {
+   "id": "CM-0102",
+   "name": "Космический аппарат «Ротор-Л»",
+   "kind": "system",
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "parent": "CM-0101"
+  },
+  {
+   "id": "CM-0103",
+   "name": "Полезная нагрузка IoT",
+   "kind": "subsystem",
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "parent": "CM-0102"
+  },
+  {
+   "id": "CM-0104",
+   "name": "Служебная платформа 16U",
+   "kind": "subsystem",
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "parent": "CM-0102"
+  },
+  {
+   "id": "CM-0105",
+   "name": "Наземный сегмент",
+   "kind": "segment",
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   }
+  },
+  {
+   "id": "CM-0106",
+   "name": "Станция приёма и управления",
+   "kind": "system",
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "parent": "CM-0105"
+  },
+  {
+   "id": "CM-0107",
+   "name": "Пользовательский сегмент",
+   "kind": "segment",
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   }
+  },
+  {
+   "id": "CM-0108",
+   "name": "Терминал класса A'",
+   "kind": "system",
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "parent": "CM-0107"
+  },
+  {
+   "id": "CM-0109",
+   "name": "Терминал класса B'",
+   "kind": "system",
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "parent": "CM-0107"
+  },
+  {
+   "id": "IF-0101",
+   "name": "Радиолиния КА — станция",
+   "kind": "interface",
+   "owners": [
+    "CM-0102",
+    "CM-0106"
+   ],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   }
+  },
+  {
+   "id": "IF-0102",
+   "name": "Платформа — полезная нагрузка",
+   "kind": "interface",
+   "owners": [
+    "CM-0104",
+    "CM-0103"
+   ],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   }
+  },
+  {
+   "id": "RQ-0101",
+   "level": "project",
+   "category": "performance",
+   "statement": "Система должна доставлять пакет терминала класса A' с вероятностью не менее 0,90 за сутки.",
+   "traces_up": [
+    {
+     "ref": "SV-0101",
+     "consumer_class": "A_prime"
+    }
+   ],
+   "owner": "вед. системный инженер",
+   "verification_events": [],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "mop": {
+    "name": "Вероятность суточной доставки",
+    "operator": "ge",
+    "value": {
+     "value": 0.9,
+     "unit": "1",
+     "provenance": {
+      "source": "manual"
+     }
+    }
+   }
+  },
+  {
+   "id": "RQ-0102",
+   "level": "project",
+   "category": "performance",
+   "statement": "Система должна подтверждать доставку пакета терминала класса B' с вероятностью не менее 0,99 за двое суток.",
+   "traces_up": [
+    {
+     "ref": "SV-0102",
+     "consumer_class": "B_prime"
+    }
+   ],
+   "owner": "вед. системный инженер",
+   "verification_events": [],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "mop": {
+    "name": "Вероятность подтверждённой доставки",
+    "operator": "ge",
+    "value": {
+     "value": 0.99,
+     "unit": "1",
+     "provenance": {
+      "source": "manual"
+     }
+    }
+   }
+  },
+  {
+   "id": "RQ-0103",
+   "level": "project",
+   "category": "performance",
+   "statement": "Система должна доводить команду до объекта класса C' не более чем за 30 минут.",
+   "traces_up": [
+    {
+     "ref": "SV-0103",
+     "consumer_class": "C_prime"
+    }
+   ],
+   "owner": "вед. системный инженер",
+   "verification_events": [],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "mop": {
+    "name": "Время доведения команды",
+    "operator": "le",
+    "value": {
+     "value": 1800,
+     "unit": "s",
+     "provenance": {
+      "source": "manual"
+     }
+    }
+   }
+  },
+  {
+   "id": "RQ-0104",
+   "level": "project",
+   "category": "operational",
+   "statement": "Система должна обслуживать не менее 100 000 активных терминалов на территории обслуживания.",
+   "traces_up": [
+    {
+     "ref": "SV-0101",
+     "consumer_class": "A_prime"
+    }
+   ],
+   "owner": "вед. системный инженер",
+   "verification_events": [],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "mop": {
+    "name": "Число активных терминалов",
+    "operator": "ge",
+    "value": {
+     "value": 100000,
+     "unit": "1",
+     "provenance": {
+      "source": "manual"
+     }
+    }
+   }
+  },
+  {
+   "id": "RQ-0105",
+   "level": "project",
+   "category": "constraint",
+   "statement": "Космический аппарат должен выполняться в форм-факторе не более 16U и массой не более 100 кг.",
+   "traces_up": [
+    {
+     "ref": "ND-0105"
+    }
+   ],
+   "owner": "вед. системный инженер",
+   "verification_events": [],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "mop": {
+    "name": "Масса КА",
+    "operator": "le",
+    "value": {
+     "value": 100,
+     "unit": "kg",
+     "provenance": {
+      "source": "manual"
+     }
+    }
+   }
+  },
+  {
+   "id": "RQ-0106",
+   "level": "project",
+   "category": "environmental",
+   "statement": "Бортовые передатчики должны работать только в выделенных регулятором полосах частот.",
+   "traces_up": [
+    {
+     "ref": "ND-0104"
+    }
+   ],
+   "owner": "вед. системный инженер",
+   "verification_events": [],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   }
+  },
+  {
+   "id": "RQ-0107",
+   "level": "project",
+   "category": "operational",
+   "statement": "Система должна дополнять покрытие партнёрской наземной LPWAN без изменения протокола терминалов партнёра.",
+   "traces_up": [
+    {
+     "ref": "SV-0104",
+     "consumer_class": "A_prime"
+    }
+   ],
+   "owner": "вед. системный инженер",
+   "verification_events": [],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   }
+  },
+  {
+   "id": "RQ-0108",
+   "level": "project",
+   "category": "reliability",
+   "statement": "Система должна сохранять целевые показатели при отказе любого одного КА группировки.",
+   "traces_up": [
+    {
+     "ref": "SV-0101",
+     "consumer_class": "A_prime"
+    }
+   ],
+   "owner": "вед. системный инженер",
+   "verification_events": [],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   }
+  },
+  {
+   "id": "RQ-0109",
+   "level": "system",
+   "category": "functional",
+   "statement": "КА должен принимать пакеты терминалов в зоне обслуживания и обрабатывать их на борту.",
+   "traces_up": [
+    {
+     "ref": "RQ-0101"
+    }
+   ],
+   "owner": "вед. системный инженер",
+   "verification_events": [],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "allocated_to": [
+    {
+     "component": "CM-0103",
+     "kind": "full",
+     "rationale": "затравка"
+    }
+   ]
+  },
+  {
+   "id": "RQ-0110",
+   "level": "system",
+   "category": "functional",
+   "statement": "КА должен вести широковещательный маяк альманаха для планирования передач терминалами.",
+   "traces_up": [
+    {
+     "ref": "RQ-0101"
+    }
+   ],
+   "owner": "вед. системный инженер",
+   "verification_events": [],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "allocated_to": [
+    {
+     "component": "CM-0103",
+     "kind": "full",
+     "rationale": "затравка"
+    }
+   ]
+  },
+  {
+   "id": "RQ-0111",
+   "level": "system",
+   "category": "performance",
+   "statement": "Полезная нагрузка должна демодулировать не менее 250 пакетов в минуту в пике нагрузки.",
+   "traces_up": [
+    {
+     "ref": "RQ-0104"
+    }
+   ],
+   "owner": "вед. системный инженер",
+   "verification_events": [],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "allocated_to": [
+    {
+     "component": "CM-0103",
+     "kind": "full",
+     "rationale": "затравка"
+    }
+   ],
+   "mop": {
+    "name": "Пиковая производительность демодуляции",
+    "operator": "ge",
+    "value": {
+     "value": 250,
+     "unit": "1/min",
+     "provenance": {
+      "source": "manual"
+     }
+    }
+   }
+  },
+  {
+   "id": "RQ-0112",
+   "level": "system",
+   "category": "performance",
+   "statement": "Бюджет линии «терминал A' — КА» должен замыкаться при угле места не менее 15°.",
+   "traces_up": [
+    {
+     "ref": "RQ-0101"
+    }
+   ],
+   "owner": "вед. системный инженер",
+   "verification_events": [],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "allocated_to": [
+    {
+     "component": "CM-0103",
+     "kind": "full",
+     "rationale": "затравка"
+    },
+    {
+     "component": "CM-0108",
+     "kind": "full",
+     "rationale": "затравка"
+    }
+   ],
+   "mop": {
+    "name": "Минимальный угол места",
+    "operator": "le",
+    "value": {
+     "value": 15,
+     "unit": "deg",
+     "provenance": {
+      "source": "manual"
+     }
+    }
+   }
+  },
+  {
+   "id": "RQ-0113",
+   "level": "system",
+   "category": "functional",
+   "statement": "Борт должен хранить принятые пакеты до сброса на станцию не менее 12 часов.",
+   "traces_up": [
+    {
+     "ref": "RQ-0101"
+    }
+   ],
+   "owner": "вед. системный инженер",
+   "verification_events": [],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "allocated_to": [
+    {
+     "component": "CM-0103",
+     "kind": "full",
+     "rationale": "затравка"
+    }
+   ],
+   "mop": {
+    "name": "Время бортового хранения",
+    "operator": "ge",
+    "value": {
+     "value": 43200,
+     "unit": "s",
+     "provenance": {
+      "source": "manual"
+     }
+    }
+   }
+  },
+  {
+   "id": "RQ-0114",
+   "level": "system",
+   "category": "performance",
+   "statement": "Сухая масса КА не должна превышать 95 кг с резервом зрелости 10 %.",
+   "traces_up": [
+    {
+     "ref": "RQ-0105"
+    }
+   ],
+   "owner": "вед. системный инженер",
+   "verification_events": [],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "allocated_to": [
+    {
+     "component": "CM-0102",
+     "kind": "full",
+     "rationale": "затравка"
+    }
+   ],
+   "mop": {
+    "name": "Сухая масса",
+    "operator": "le",
+    "value": {
+     "value": 95,
+     "unit": "kg",
+     "provenance": {
+      "source": "manual"
+     }
+    }
+   }
+  },
+  {
+   "id": "RQ-0115",
+   "level": "system",
+   "category": "performance",
+   "statement": "Среднесуточная мощность полезной нагрузки не должна превышать 60 Вт.",
+   "traces_up": [
+    {
+     "ref": "RQ-0105"
+    }
+   ],
+   "owner": "вед. системный инженер",
+   "verification_events": [],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "allocated_to": [
+    {
+     "component": "CM-0103",
+     "kind": "full",
+     "rationale": "затравка"
+    }
+   ],
+   "mop": {
+    "name": "Среднесуточная мощность ПН",
+    "operator": "le",
+    "value": {
+     "value": 60,
+     "unit": "W",
+     "provenance": {
+      "source": "manual"
+     }
+    }
+   }
+  },
+  {
+   "id": "RQ-0116",
+   "level": "system",
+   "category": "functional",
+   "statement": "Платформа должна обеспечивать ориентацию антенны ПН на надир с точностью не хуже 5°.",
+   "traces_up": [
+    {
+     "ref": "RQ-0101"
+    }
+   ],
+   "owner": "вед. системный инженер",
+   "verification_events": [],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "allocated_to": [
+    {
+     "component": "CM-0104",
+     "kind": "full",
+     "rationale": "затравка"
+    }
+   ],
+   "mop": {
+    "name": "Точность ориентации",
+    "operator": "le",
+    "value": {
+     "value": 5,
+     "unit": "deg",
+     "provenance": {
+      "source": "manual"
+     }
+    }
+   }
+  },
+  {
+   "id": "RQ-0117",
+   "level": "system",
+   "category": "reliability",
+   "statement": "Вероятность безотказной работы КА за 5 лет должна быть не менее 0,85.",
+   "traces_up": [
+    {
+     "ref": "RQ-0108"
+    }
+   ],
+   "owner": "вед. системный инженер",
+   "verification_events": [],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "allocated_to": [
+    {
+     "component": "CM-0102",
+     "kind": "full",
+     "rationale": "затравка"
+    }
+   ],
+   "mop": {
+    "name": "ВБР за срок службы",
+    "operator": "ge",
+    "value": {
+     "value": 0.85,
+     "unit": "1",
+     "provenance": {
+      "source": "manual"
+     }
+    }
+   }
+  },
+  {
+   "id": "RQ-0118",
+   "level": "system",
+   "category": "functional",
+   "statement": "КА должен переключать режимы работы по статическим географическим маскам.",
+   "traces_up": [
+    {
+     "ref": "RQ-0106"
+    }
+   ],
+   "owner": "вед. системный инженер",
+   "verification_events": [],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "allocated_to": [
+    {
+     "component": "CM-0104",
+     "kind": "full",
+     "rationale": "затравка"
+    }
+   ]
+  },
+  {
+   "id": "RQ-0119",
+   "level": "system",
+   "category": "environmental",
+   "statement": "Излучение бортового передатчика вне выделенной полосы должно быть подавлено не менее чем на 43 дБ.",
+   "traces_up": [
+    {
+     "ref": "RQ-0106"
+    }
+   ],
+   "owner": "вед. системный инженер",
+   "verification_events": [],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "allocated_to": [
+    {
+     "component": "CM-0103",
+     "kind": "full",
+     "rationale": "затравка"
+    }
+   ],
+   "mop": {
+    "name": "Подавление внеполосного излучения",
+    "operator": "ge",
+    "value": {
+     "value": 43,
+     "unit": "dB",
+     "provenance": {
+      "source": "manual"
+     }
+    }
+   }
+  },
+  {
+   "id": "RQ-0120",
+   "level": "system",
+   "category": "functional",
+   "statement": "Станция должна принимать сброс борта и раздавать данные потребителям через API оператора.",
+   "traces_up": [
+    {
+     "ref": "RQ-0101"
+    }
+   ],
+   "owner": "вед. системный инженер",
+   "verification_events": [],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "allocated_to": [
+    {
+     "component": "CM-0106",
+     "kind": "full",
+     "rationale": "затравка"
+    }
+   ]
+  },
+  {
+   "id": "RQ-0121",
+   "level": "system",
+   "category": "performance",
+   "statement": "Задержка от сброса на станцию до выдачи потребителю не должна превышать 15 минут.",
+   "traces_up": [
+    {
+     "ref": "RQ-0101"
+    }
+   ],
+   "owner": "вед. системный инженер",
+   "verification_events": [],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "allocated_to": [
+    {
+     "component": "CM-0106",
+     "kind": "full",
+     "rationale": "затравка"
+    }
+   ],
+   "mop": {
+    "name": "Задержка наземной обработки",
+    "operator": "le",
+    "value": {
+     "value": 900,
+     "unit": "s",
+     "provenance": {
+      "source": "manual"
+     }
+    }
+   }
+  },
+  {
+   "id": "RQ-0122",
+   "level": "system",
+   "category": "functional",
+   "statement": "Станция должна формировать и выкладывать на борт суточное полётное задание.",
+   "traces_up": [
+    {
+     "ref": "RQ-0103"
+    }
+   ],
+   "owner": "вед. системный инженер",
+   "verification_events": [],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "allocated_to": [
+    {
+     "component": "CM-0106",
+     "kind": "full",
+     "rationale": "затравка"
+    }
+   ]
+  },
+  {
+   "id": "RQ-0123",
+   "level": "system",
+   "category": "interface",
+   "statement": "Радиолиния «КА — станция» должна обеспечивать сброс суточного объёма за один пролёт.",
+   "traces_up": [
+    {
+     "ref": "RQ-0101"
+    }
+   ],
+   "owner": "вед. системный инженер",
+   "verification_events": [],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "allocated_to": [
+    {
+     "interface": "IF-0101",
+     "kind": "full",
+     "rationale": "затравка"
+    }
+   ]
+  },
+  {
+   "id": "RQ-0124",
+   "level": "system",
+   "category": "functional",
+   "statement": "Терминал A' должен планировать передачу по альманаху и передавать без подтверждения.",
+   "traces_up": [
+    {
+     "ref": "RQ-0101"
+    }
+   ],
+   "owner": "вед. системный инженер",
+   "verification_events": [],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "allocated_to": [
+    {
+     "component": "CM-0108",
+     "kind": "full",
+     "rationale": "затравка"
+    }
+   ]
+  },
+  {
+   "id": "RQ-0125",
+   "level": "system",
+   "category": "functional",
+   "statement": "Терминал B' должен повторять передачу с эфемеридным backoff до получения подтверждения.",
+   "traces_up": [
+    {
+     "ref": "RQ-0102"
+    }
+   ],
+   "owner": "вед. системный инженер",
+   "verification_events": [],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "allocated_to": [
+    {
+     "component": "CM-0109",
+     "kind": "full",
+     "rationale": "затравка"
+    }
+   ]
+  },
+  {
+   "id": "RQ-0126",
+   "level": "system",
+   "category": "performance",
+   "statement": "Энергопотребление терминала A' не должно превышать 50 мВт·ч в сутки при одном сеансе.",
+   "traces_up": [
+    {
+     "ref": "RQ-0104"
+    }
+   ],
+   "owner": "вед. системный инженер",
+   "verification_events": [],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "allocated_to": [
+    {
+     "component": "CM-0108",
+     "kind": "full",
+     "rationale": "затравка"
+    }
+   ],
+   "mop": {
+    "name": "Суточное энергопотребление терминала",
+    "operator": "le",
+    "value": {
+     "value": 0.05,
+     "unit": "W*h",
+     "provenance": {
+      "source": "manual"
+     }
+    }
+   }
+  },
+  {
+   "id": "RQ-0127",
+   "level": "system",
+   "category": "performance",
+   "statement": "Терминал должен работать при температурах от −40 до +60 °C.",
+   "traces_up": [
+    {
+     "ref": "RQ-0104"
+    }
+   ],
+   "owner": "вед. системный инженер",
+   "verification_events": [],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "allocated_to": [
+    {
+     "component": "CM-0108",
+     "kind": "full",
+     "rationale": "затравка"
+    }
+   ]
+  },
+  {
+   "id": "RQ-0128",
+   "level": "system",
+   "category": "functional",
+   "statement": "Терминал должен хранить эфемериды группировки и обновлять их из маяка альманаха.",
+   "traces_up": [
+    {
+     "ref": "RQ-0101"
+    }
+   ],
+   "owner": "вед. системный инженер",
+   "verification_events": [],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "allocated_to": [
+    {
+     "component": "CM-0108",
+     "kind": "full",
+     "rationale": "затравка"
+    }
+   ]
+  },
+  {
+   "id": "RQ-0129",
+   "level": "system",
+   "category": "performance",
+   "statement": "Вероятность коллизии пакетов в пике нагрузки не должна превышать 0,10 на канал.",
+   "traces_up": [
+    {
+     "ref": "RQ-0104"
+    }
+   ],
+   "owner": "вед. системный инженер",
+   "verification_events": [],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "allocated_to": [
+    {
+     "component": "CM-0103",
+     "kind": "full",
+     "rationale": "затравка"
+    }
+   ],
+   "mop": {
+    "name": "Вероятность коллизии",
+    "operator": "le",
+    "value": {
+     "value": 0.1,
+     "unit": "1",
+     "provenance": {
+      "source": "manual"
+     }
+    }
+   }
+  },
+  {
+   "id": "RQ-0130",
+   "level": "system",
+   "category": "operational",
+   "statement": "Группировка должна обеспечивать интервал между пролётами над любой точкой обслуживания не более 4 часов.",
+   "traces_up": [
+    {
+     "ref": "RQ-0103"
+    }
+   ],
+   "owner": "вед. системный инженер",
+   "verification_events": [],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "allocated_to": [
+    {
+     "component": "CM-0101",
+     "kind": "full",
+     "rationale": "затравка"
+    }
+   ],
+   "mop": {
+    "name": "Интервал повторного пролёта",
+    "operator": "le",
+    "value": {
+     "value": 14400,
+     "unit": "s",
+     "provenance": {
+      "source": "manual"
+     }
+    }
+   }
+  },
+  {
+   "id": "RQ-0131",
+   "level": "system",
+   "category": "operational",
+   "statement": "Система должна вводить новый КА в обслуживание не более чем за 14 суток после выведения.",
+   "traces_up": [
+    {
+     "ref": "RQ-0108"
+    }
+   ],
+   "owner": "вед. системный инженер",
+   "verification_events": [],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "allocated_to": [
+    {
+     "component": "CM-0101",
+     "kind": "full",
+     "rationale": "затравка"
+    },
+    {
+     "component": "CM-0106",
+     "kind": "full",
+     "rationale": "затравка"
+    }
+   ]
+  },
+  {
+   "id": "RQ-0132",
+   "level": "system",
+   "category": "safety",
+   "statement": "КА должен обеспечивать увод с орбиты в срок не более 25 лет после завершения миссии.",
+   "traces_up": [
+    {
+     "ref": "RQ-0105"
+    }
+   ],
+   "owner": "вед. системный инженер",
+   "verification_events": [],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "allocated_to": [
+    {
+     "component": "CM-0104",
+     "kind": "full",
+     "rationale": "затравка"
+    }
+   ],
+   "mop": {
+    "name": "Срок увода с орбиты",
+    "operator": "le",
+    "value": {
+     "value": 25,
+     "unit": "a",
+     "provenance": {
+      "source": "manual"
+     }
+    }
+   }
+  },
+  {
+   "id": "RQ-0133",
+   "level": "system",
+   "category": "functional",
+   "statement": "Борт должен маркировать пакеты меткой времени с погрешностью не более 100 мс.",
+   "traces_up": [
+    {
+     "ref": "RQ-0101"
+    }
+   ],
+   "owner": "вед. системный инженер",
+   "verification_events": [],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "allocated_to": [
+    {
+     "component": "CM-0103",
+     "kind": "full",
+     "rationale": "затравка"
+    }
+   ],
+   "mop": {
+    "name": "Погрешность метки времени",
+    "operator": "le",
+    "value": {
+     "value": 0.1,
+     "unit": "s",
+     "provenance": {
+      "source": "manual"
+     }
+    }
+   }
+  },
+  {
+   "id": "RQ-0134",
+   "level": "system",
+   "category": "reliability",
+   "statement": "Полезная нагрузка должна восстанавливаться после одиночного сбоя без потери накопленных пакетов.",
+   "traces_up": [
+    {
+     "ref": "RQ-0108"
+    }
+   ],
+   "owner": "вед. системный инженер",
+   "verification_events": [],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "allocated_to": [
+    {
+     "component": "CM-0103",
+     "kind": "full",
+     "rationale": "затравка"
+    }
+   ]
+  },
+  {
+   "id": "RQ-0135",
+   "level": "system",
+   "category": "interface",
+   "statement": "Интерфейс «платформа — полезная нагрузка» должен передавать не менее 2 Мбит/с служебного обмена.",
+   "traces_up": [
+    {
+     "ref": "RQ-0101"
+    }
+   ],
+   "owner": "вед. системный инженер",
+   "verification_events": [],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "allocated_to": [
+    {
+     "interface": "IF-0102",
+     "kind": "full",
+     "rationale": "затравка"
+    }
+   ],
+   "mop": {
+    "name": "Пропускная способность интерфейса",
+    "operator": "ge",
+    "value": {
+     "value": 2000000.0,
+     "unit": "bit/s",
+     "provenance": {
+      "source": "manual"
+     }
+    }
+   }
+  },
+  {
+   "id": "RQ-0136",
+   "level": "system",
+   "category": "functional",
+   "statement": "Станция должна автоматически проверять целостность принятых пакетов и запрашивать повтор сброса.",
+   "traces_up": [
+    {
+     "ref": "RQ-0102"
+    }
+   ],
+   "owner": "вед. системный инженер",
+   "verification_events": [],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "allocated_to": [
+    {
+     "component": "CM-0106",
+     "kind": "full",
+     "rationale": "затравка"
+    }
+   ]
+  },
+  {
+   "id": "RQ-0137",
+   "level": "system",
+   "category": "operational",
+   "statement": "Оператор должен получать сводку состояния группировки не реже одного раза в час.",
+   "traces_up": [
+    {
+     "ref": "RQ-0108"
+    }
+   ],
+   "owner": "вед. системный инженер",
+   "verification_events": [],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "allocated_to": [
+    {
+     "component": "CM-0106",
+     "kind": "full",
+     "rationale": "затравка"
+    }
+   ]
+  },
+  {
+   "id": "RQ-0138",
+   "level": "system",
+   "category": "performance",
+   "statement": "Ложная тревога приёмника ПН не должна превышать одной на 10⁶ слотов.",
+   "traces_up": [
+    {
+     "ref": "RQ-0104"
+    }
+   ],
+   "owner": "вед. системный инженер",
+   "verification_events": [],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "allocated_to": [
+    {
+     "component": "CM-0103",
+     "kind": "full",
+     "rationale": "затравка"
+    }
+   ],
+   "mop": {
+    "name": "Частота ложных тревог",
+    "operator": "le",
+    "value": {
+     "value": 1e-06,
+     "unit": "1",
+     "provenance": {
+      "source": "manual"
+     }
+    }
+   }
+  },
+  {
+   "id": "RQ-0139",
+   "level": "system",
+   "category": "constraint",
+   "statement": "Компоненты полезной нагрузки должны выбираться из номенклатуры не ниже TRL 5 к SRR.",
+   "traces_up": [
+    {
+     "ref": "RQ-0105"
+    }
+   ],
+   "owner": "вед. системный инженер",
+   "verification_events": [],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "allocated_to": [
+    {
+     "component": "CM-0103",
+     "kind": "full",
+     "rationale": "затравка"
+    }
+   ]
+  },
+  {
+   "id": "RQ-0140",
+   "level": "system",
+   "category": "functional",
+   "statement": "Партнёрский шлюз должен транслировать пакеты наземной LPWAN в формат системы без изменения полезных данных.",
+   "traces_up": [
+    {
+     "ref": "RQ-0107"
+    }
+   ],
+   "owner": "вед. системный инженер",
+   "verification_events": [],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "allocated_to": [
+    {
+     "component": "CM-0106",
+     "kind": "full",
+     "rationale": "затравка"
+    }
+   ]
+  },
+  {
+   "id": "RQ-0141",
+   "level": "system",
+   "category": "operational",
+   "statement": "Система должна вести учёт активных терминалов и их профилей обслуживания.",
+   "traces_up": [
+    {
+     "ref": "RQ-0104"
+    }
+   ],
+   "owner": "вед. системный инженер",
+   "verification_events": [],
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   },
+   "allocated_to": [
+    {
+     "component": "CM-0106",
+     "kind": "full",
+     "rationale": "затравка"
+    }
+   ]
+  },
+  {
+   "id": "RSK-0101",
+   "statement": "При недоборе TRL 5 демодулятором ПН к SRR — задержка интеграции полезной нагрузки — сдвиг SRR на два месяца",
+   "category": "technical",
+   "probability": 3,
+   "impact": 4,
+   "strategy": "mitigate",
+   "owner": "руководитель проекта",
+   "status": "open",
+   "actions": [
+    "макет на ПЛИС к КТ-1",
+    "резервная схема на серийном трансивере"
+   ],
+   "due": "2027-01-15"
+  },
+  {
+   "id": "RSK-0102",
+   "statement": "При ограничении мощности в полосе регулятором — бюджет линии не замыкается на 15° — падение вероятности суточной доставки ниже 0,90",
+   "category": "technical",
+   "probability": 2,
+   "impact": 4,
+   "strategy": "mitigate",
+   "owner": "руководитель проекта",
+   "status": "open",
+   "actions": [
+    "запрос параметров у регулятора",
+    "проработка выигрыша антенны"
+   ],
+   "due": "2026-12-01"
+  },
+  {
+   "id": "RSK-0103",
+   "statement": "При задержке поставки платформы 16U — сдвиг графика Phase B — рост стоимости фазы",
+   "category": "schedule",
+   "probability": 3,
+   "impact": 3,
+   "strategy": "mitigate",
+   "owner": "руководитель проекта",
+   "status": "open",
+   "actions": [
+    "резервный поставщик платформы"
+   ],
+   "due": "2027-03-01"
+  },
+  {
+   "id": "RSK-0104",
+   "statement": "При отказе терминала на −40 °C — сокращение зоны обслуживания — нарушение обязательств перед логистическим оператором",
+   "category": "technical",
+   "probability": 2,
+   "impact": 3,
+   "strategy": "mitigate",
+   "owner": "руководитель проекта",
+   "status": "open",
+   "actions": [
+    "климатические испытания макета терминала"
+   ],
+   "due": "2027-02-01"
+  },
+  {
+   "id": "TL-0101",
+   "name": "Многоканальный демодулятор LoRa на ПЛИС",
+   "trl_current": 4,
+   "trl_required": 5,
+   "gate": "SRR",
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   }
+  },
+  {
+   "id": "TL-0102",
+   "name": "Развёртываемая антенна УКВ-диапазона",
+   "trl_current": 5,
+   "trl_required": 5,
+   "gate": "SRR",
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   }
+  },
+  {
+   "id": "TL-0103",
+   "name": "Эфемеридный backoff в терминале B'",
+   "trl_current": 3,
+   "trl_required": 5,
+   "gate": "SRR",
+   "lifecycle": {
+    "status": "Draft",
+    "version": "1"
+   }
+  }
+ ]
+}
