@@ -1653,7 +1653,7 @@
     "risk_register"
    ],
    "transport": "any",
-   "model_hint": "claude-sonnet-4-5",
+   "model_hint": "claude-sonnet-5",
    "statement_rules": [
     "формулировка требования содержит модальное «должна/должен»",
     "одно требование — одна нормативная мысль; конъюнкции разделять",
@@ -1698,7 +1698,7 @@
     "requirement_quality"
    ],
    "transport": "any",
-   "model_hint": "claude-sonnet-4-5",
+   "model_hint": "claude-sonnet-5",
    "statement_rules": [
     "не переписывать смысл требования — только форму и измеримость",
     "каждое замечание сопровождать предлагаемой правкой поля"

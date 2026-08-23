@@ -67,9 +67,10 @@ def source_issues(item, require_source=False):
         if isinstance(node, dict):
             if isinstance(node.get('value'), (int, float)) and isinstance(node.get('unit'), str):
                 prov = node.get('provenance') or {}
-                has_ref = bool(prov.get('ref')) or bool((prov.get('import') or {}).get('dataset')) \
-                    or bool((prov.get('calculation') or {}).get('module'))
-                if not has_ref and prov.get('source') not in ('calculated', 'import'):
+                src = prov.get('source')
+                grounded = (src == 'computed' and bool(prov.get('module'))) or \
+                    (src == 'imported' and bool((prov.get('import') or {}).get('dataset')))
+                if not grounded:
                     found.append(path or 'значение')
             for k, v in node.items():
                 if k != 'provenance':
@@ -301,7 +302,7 @@ def _run_checks():
 
     # ---------- П5: служба ИИ ----------
     q_ok = {'id': 'RQ-0001', 'mop': {'value': {'value': 0.9, 'unit': '1',
-            'provenance': {'source': 'calculated'}}}}
+            'provenance': {'source': 'computed', 'module': 'flows'}}}}
     q_bad = {'id': 'RQ-0002', 'mop': {'value': {'value': 0.9, 'unit': '1',
              'provenance': {'source': 'manual'}}}}
     check('правило основания выключено — значения проходят',

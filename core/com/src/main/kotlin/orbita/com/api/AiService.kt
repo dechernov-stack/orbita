@@ -76,7 +76,10 @@ class AiService(
     /** Промпт, собранный службой. Клиент его не сочиняет — только читает. */
     fun compose(kind: String, profileId: String, projectId: String, statement: String): Pair<AiProfile, String> {
         val p = profile(profileId, projectId)
-        return p to composer.compose(kind, p, context(projectId, statement))
+        // схема ответа — из пакета: прямой канал шлёт модели только текст,
+        // и без схемы она отвечает своей формой
+        val schema = boundary.packages.build(kind, mapper.createObjectNode(), "служба").responseSchema
+        return p to composer.compose(kind, p, context(projectId, statement), schema)
     }
 
     /**

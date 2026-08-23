@@ -72,7 +72,19 @@ class PromptComposer(private val kinds: PackageKinds = PackageKinds.default()) {
      * форма ответа. Схема ответа передаётся полем пакета, а не текстом
      * (TZ-AI-001, ловушка 5) — здесь на неё только ссылка.
      */
-    fun compose(kind: String, profile: AiProfile, context: ModelContext): String {
+    fun compose(
+        kind: String,
+        profile: AiProfile,
+        context: ModelContext,
+        /**
+         * Схема ответа. В закрытом контуре её несёт сам пакет (инженер копирует
+         * пакет целиком), а прямой канал шлёт модели ТОЛЬКО текст — и без схемы
+         * модель отвечает своей формой: первый же живой вызов вернул выдуманные
+         * поля и префикс MO- вместо MG-. Схема берётся из реестра, второй копии
+         * нет: это не «промпт в коде», а тот же артефакт пакета.
+         */
+        responseSchema: JsonNode? = null,
+    ): String {
         val k = kinds.of(kind)
         require(profile.allows(kind)) {
             "профиль ${profile.id} не разрешает вид пакета '$kind' (разрешены: ${profile.kinds})"
@@ -102,9 +114,16 @@ class PromptComposer(private val kinds: PackageKinds = PackageKinds.default()) {
             }
 
             if (profile.requireSource) {
-                appendLine("ОСНОВАНИЕ ЗНАЧЕНИЙ: каждое числовое значение сопровождай источником —")
-                appendLine("ссылкой на объект модели, документ или расчёт. Значение без основания")
-                appendLine("будет снято фильтром и вернётся инженеру на ручное решение.")
+                appendLine("ОСНОВАНИЕ ЗНАЧЕНИЙ. Каждое числовое значение обязано нести")
+                appendLine("происхождение одного из двух видов:")
+                appendLine("  · расчётное — \"provenance\": {\"source\": \"computed\", \"module\": <модуль>},")
+                appendLine("    где модуль один из: ballistics, spacecraft, consumers, protocol, flows, cost;")
+                appendLine("  · из источника — \"provenance\": {\"source\": \"imported\", \"import\":")
+                appendLine("    {\"dataset\": <наименование источника>, \"dataset_version\": <версия>,")
+                appendLine("     \"retrieved_at\": <дата>, \"terms\": <условия использования>}}.")
+                appendLine("Значение, которое ты не можешь обосновать ни расчётом, ни источником,")
+                appendLine("НЕ выдумывай: не давай его вовсе либо помечай source=manual — такое")
+                appendLine("значение снимается фильтром и возвращается инженеру на решение.")
                 appendLine()
             }
 
@@ -126,8 +145,14 @@ class PromptComposer(private val kinds: PackageKinds = PackageKinds.default()) {
                 appendLine("Профиль рецензионный: новых объектов не создавай — верни замечания")
                 appendLine("к существующим формулировкам с предлагаемой правкой поля.")
             }
-            appendLine("Ответ — массив объектов строго по схеме ответа пакета (поле response_schema).")
-            appendLine("Ничего, кроме массива JSON, в ответе быть не должно.")
+            appendLine("Ответ — массив объектов строго по схеме ниже.")
+            appendLine("Ничего, кроме массива JSON, в ответе быть не должно: ни пояснений,")
+            appendLine("ни обрамления ```json — только сам массив.")
+            responseSchema?.let {
+                appendLine()
+                appendLine("СХЕМА ОТВЕТА (JSON Schema; идентификаторы обязаны соответствовать pattern):")
+                appendLine(it.toPrettyString())
+            }
         }
     }
 

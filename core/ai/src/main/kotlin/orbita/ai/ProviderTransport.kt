@@ -38,6 +38,8 @@ class HttpProviderTransport(
     private val url: String? = System.getenv("ORBITA_AI_URL"),
     private val key: String? = System.getenv("ORBITA_AI_KEY"),
     private val defaultModel: String? = System.getenv("ORBITA_AI_MODEL"),
+    /** Потолок ответа: длинные ответы рвутся на VPN, пачку дробит инженер. */
+    private val maxTokens: Int = System.getenv("ORBITA_AI_MAX_TOKENS")?.toIntOrNull() ?: MAX_TOKENS,
     private val mapper: ObjectMapper = ObjectMapper(),
 ) : ProviderTransport {
 
@@ -52,7 +54,11 @@ class HttpProviderTransport(
         val model = modelHint ?: defaultModel ?: DEFAULT_MODEL
         val body = mapper.createObjectNode()
         body.put("model", model)
-        body.put("max_tokens", MAX_TOKENS)
+        body.put("max_tokens", maxTokens)
+        // Потоковый режим намеренно: длинный ответ модель отдаёт десятками
+        // секунд, и молчащее соединение рвётся посредником (на VPN — ровно
+        // на минуте). При потоке байты идут непрерывно, обрыва по простою нет.
+        body.put("stream", true)
         val messages = body.putArray("messages")
         messages.addObject().put("role", "user").put("content", prompt)
 
@@ -65,29 +71,81 @@ class HttpProviderTransport(
             .POST(HttpRequest.BodyPublishers.ofString(mapper.writeValueAsString(body), Charsets.UTF_8))
             .build()
 
-        val response = HttpClient.newBuilder()
+        // Любой отказ транспорта — состояние канала, а не сбой службы: он
+        // обязан дойти до журнала причиной, а не всплыть пятисоткой. Длинный
+        // ответ через VPN рвётся посередине, и «EOF при чтении» — ровно такой
+        // отказ: его видно в журнале, вызов повторяется меньшей пачкой.
+        // HTTP/1.1 намеренно: по умолчанию клиент JDK идёт по HTTP/2, и на
+        // длинном ответе через VPN поток обрывался ровно на минуте («EOF
+        // reached while reading»), тогда как curl из того же контейнера тем же
+        // ключом отвечал за 17 секунд. Разница — только версия протокола.
+        val client = HttpClient.newBuilder()
+            .version(HttpClient.Version.HTTP_1_1)
             .connectTimeout(Duration.ofSeconds(30))
             .build()
-            .send(request, HttpResponse.BodyHandlers.ofString(Charsets.UTF_8))
+        val response = try {
+            client.send(request, HttpResponse.BodyHandlers.ofString(Charsets.UTF_8))
+        } catch (e: Exception) {
+            throw ProviderUnavailableException(
+                "обрыв связи с провайдером: ${e.message ?: e::class.simpleName}",
+            )
+        }
         if (response.statusCode() !in 200..299) {
             throw ProviderUnavailableException(
                 "провайдер ответил ${response.statusCode()}: ${response.body().take(300)}",
             )
         }
-        val n = mapper.readTree(response.body())
-        val text = n.path("content").joinToString("") { it.path("text").asText("") }
-        return ProviderAnswer(
-            text = text,
-            model = n.path("model").asText(model),
-            tokensIn = n.path("usage").path("input_tokens").takeIf { it.isInt }?.asInt(),
-            tokensOut = n.path("usage").path("output_tokens").takeIf { it.isInt }?.asInt(),
-        )
+        return try {
+            parseStream(response.body(), model)
+        } catch (e: Exception) {
+            throw ProviderUnavailableException(
+                "поток провайдера не разбирается: ${e.message ?: e::class.simpleName}",
+            )
+        }
+    }
+
+    /**
+     * Разбор потока событий (SSE). Берутся дельты ТЕКСТА: у моделей с
+     * рассуждением поток несёт и блоки thinking — они к ответу не относятся
+     * и в разбор не идут. Учёт токенов приходит событиями message_start
+     * и message_delta.
+     */
+    private fun parseStream(raw: String, fallbackModel: String): ProviderAnswer {
+        val text = StringBuilder()
+        var model = fallbackModel
+        var tokensIn: Int? = null
+        var tokensOut: Int? = null
+        var currentIsText = false
+
+        raw.lineSequence().forEach { line ->
+            if (!line.startsWith("data:")) return@forEach
+            val payload = line.removePrefix("data:").trim()
+            if (payload.isEmpty() || payload == "[DONE]") return@forEach
+            val n = mapper.readTree(payload)
+            when (n.path("type").asText()) {
+                "message_start" -> {
+                    val m = n.path("message")
+                    model = m.path("model").asText(model)
+                    tokensIn = m.path("usage").path("input_tokens").takeIf { it.isInt }?.asInt()
+                }
+                "content_block_start" ->
+                    currentIsText = n.path("content_block").path("type").asText() == "text"
+                "content_block_delta" ->
+                    if (currentIsText) text.append(n.path("delta").path("text").asText(""))
+                "message_delta" ->
+                    tokensOut = n.path("usage").path("output_tokens").takeIf { it.isInt }?.asInt()
+                "error" -> throw ProviderUnavailableException(
+                    "провайдер прервал поток: ${n.path("error").path("message").asText()}",
+                )
+            }
+        }
+        return ProviderAnswer(text.toString(), model, tokensIn, tokensOut)
     }
 
     private companion object {
         const val DEFAULT_URL = "https://api.anthropic.com"
         const val DEFAULT_MODEL = "claude-sonnet-4-5"
         const val API_VERSION = "2023-06-01"
-        const val MAX_TOKENS = 16000
+        const val MAX_TOKENS = 8000
     }
 }

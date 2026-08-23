@@ -17,8 +17,12 @@ const val SOURCE_RULE = "основание"
 /**
  * Величины документа без ссылки на источник. Считается величиной объект с
  * числовым `value` и текстовой `unit` (та же форма, что у quantity.schema).
- * Основанием признаётся происхождение `calculated`/`import` либо явная ссылка:
- * `provenance.ref`, набор данных импорта, модуль расчёта.
+ *
+ * Основанием признаётся происхождение по schemas/common/provenance:
+ * `computed` с указанным модулем-вычислителем либо `imported` с блоком
+ * import (набор данных и его версия). `manual` — это «инженер отвечает
+ * сам»: от человека принимается, от службы ИИ — только его решением.
+ * `ai_proposed` основанием не является по определению.
  */
 fun unsourcedQuantities(doc: JsonNode): List<String> {
     val found = mutableListOf<String>()
@@ -28,12 +32,12 @@ fun unsourcedQuantities(doc: JsonNode): List<String> {
             node.isObject -> {
                 if (node.path("value").isNumber && node.path("unit").isTextual) {
                     val prov = node.path("provenance")
-                    val hasRef = prov.path("ref").asText("").isNotBlank() ||
-                        prov.path("import").path("dataset").asText("").isNotBlank() ||
-                        prov.path("calculation").path("module").asText("").isNotBlank()
-                    if (!hasRef && prov.path("source").asText("") !in SOURCED) {
-                        found += path.ifBlank { "значение" }
+                    val grounded = when (prov.path("source").asText("")) {
+                        "computed" -> prov.path("module").asText("").isNotBlank()
+                        "imported" -> prov.path("import").path("dataset").asText("").isNotBlank()
+                        else -> false
                     }
+                    if (!grounded) found += path.ifBlank { "значение" }
                 }
                 node.properties().forEach { (name, child) ->
                     if (name != "provenance") walk(child, if (path.isBlank()) name else "$path/$name")
@@ -52,5 +56,3 @@ fun unsourcedQuantities(doc: JsonNode): List<String> {
 fun sourceIssues(doc: JsonNode): List<String> = unsourcedQuantities(doc).map {
     "$SOURCE_RULE: значение «$it» без ссылки на источник — требуется решение инженера"
 }
-
-private val SOURCED = setOf("calculated", "import")
