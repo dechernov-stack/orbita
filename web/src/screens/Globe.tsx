@@ -88,13 +88,15 @@ export function Globe() {
           viewerRef.current.scene.globe.showGroundAtmosphere = true
           // Подложка Земли (§3.7): береговые линии Natural Earth из репозитория —
           // офлайн, без ключей и сети; глобус не рисуется от руки
-          const coastMaterial = Color.fromCssColorString('#7ea6e8').withAlpha(0.65)
+          // 20 км над эллипсоидом и заметная ширина: на поверхности линии
+          // тонули под заливкой зон обслуживания
+          const coastMaterial = Color.fromCssColorString('#cfe0ff').withAlpha(0.85)
           for (const line of COAST as Array<Array<[number, number]>>) {
             if (line.length < 2) continue
             viewerRef.current.entities.add({
               polyline: {
-                positions: line.map(([lat, lon]) => Cartesian3.fromDegrees(lon, lat)),
-                width: 1,
+                positions: line.map(([lat, lon]) => Cartesian3.fromDegrees(lon, lat, 20000)),
+                width: 1.4,
                 material: coastMaterial,
                 arcType: ArcType.GEODESIC,
               },

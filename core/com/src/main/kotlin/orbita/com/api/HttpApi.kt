@@ -1391,6 +1391,10 @@ class HttpApi(private val boundary: Boundary) {
             method == "GET" && path == "/enum-labels" ->
                 respond(ex, 200, mapper.valueToTree(orbita.req.EnumLabels().all()))
 
+            // Подписи имён полей форм (блок D, §3.6) — той же таблицей
+            method == "GET" && path == "/field-labels" ->
+                respond(ex, 200, mapper.valueToTree(orbita.req.FieldLabels().all()))
+
             method == "GET" && path == "/reports/review-candidates" ->
                 respond(ex, 200, mapper.valueToTree(boundary.req.reviewCandidates(project)))
 

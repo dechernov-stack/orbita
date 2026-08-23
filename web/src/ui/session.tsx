@@ -15,12 +15,15 @@ interface Session {
   setAuthor: (name: string) => void
   /** Подпись кода перечисления; неизвестный код возвращается как есть. */
   label: (group: string, code: string | null | undefined) => string
+  /** Подпись имени поля формы; неизвестное поле возвращается кодом. */
+  fieldLabel: (name: string) => string
 }
 
 const SessionContext = createContext<Session>({
   author: '',
   setAuthor: () => {},
   label: (_group, code) => code ?? '',
+  fieldLabel: (name) => name,
 })
 
 export function SessionProvider({ children }: { children: ReactNode }) {
@@ -33,12 +36,14 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     }
   })
   const [labels, setLabels] = useState<Record<string, Record<string, string>>>({})
+  const [fieldLabels, setFieldLabels] = useState<Record<string, string>>({})
 
   useEffect(() => {
     // Подписи приходят с сервера одной таблицей: словари, рассыпанные
     // по экранам, уже приводили к тому, что на одном экране класс подписан,
     // а на соседнем выходит кодом.
     edit.enumLabels().then(setLabels).catch(() => setLabels({}))
+    edit.fieldLabels().then(setFieldLabels).catch(() => setFieldLabels({}))
   }, [])
 
   const setAuthor = useCallback((name: string) => {
@@ -58,7 +63,15 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     [labels],
   )
 
-  const value = useMemo(() => ({ author, setAuthor, label }), [author, setAuthor, label])
+  const fieldLabel = useCallback(
+    (name: string) => fieldLabels[name] ?? name,
+    [fieldLabels],
+  )
+
+  const value = useMemo(
+    () => ({ author, setAuthor, label, fieldLabel }),
+    [author, setAuthor, label, fieldLabel],
+  )
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>
 }
 

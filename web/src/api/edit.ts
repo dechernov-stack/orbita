@@ -194,4 +194,7 @@ export const edit = {
     send<StoredSummary>('POST', `/objects/${id}/promote`, { status }),
 
   enumLabels: () => send<Record<string, Record<string, string>>>('GET', '/enum-labels'),
+
+  /** Подписи имён полей форм (блок D, §3.6) — одной таблицей с сервера. */
+  fieldLabels: () => send<Record<string, string>>('GET', '/field-labels'),
 }

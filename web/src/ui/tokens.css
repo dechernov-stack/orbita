@@ -540,7 +540,9 @@ textarea {
 
 /* Старые экраны верхнего уровня растягиваются на рабочую область */
 .shell__work > .split,
-.shell__work > .pane {
+.shell__work > .pane,
+.workarea > .split,
+.workarea > .pane {
   flex: 1;
   min-height: 0;
 }

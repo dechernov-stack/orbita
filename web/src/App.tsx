@@ -40,6 +40,16 @@ interface HeaderInfo {
 
 const PHASE_LABEL: Record<string, string> = { pre_phase_a: 'Pre-Phase A', phase_a: 'Phase A' }
 
+/** Спецэкран на шапке экрана (§3.1): заголовок 40 px + рабочая область. */
+function ScreenFrame({ title, children }: { title: string; children: ReactElement }) {
+  return (
+    <>
+      <div className="toolbar"><h2>{title}</h2></div>
+      <div className="workarea" style={{ display: 'flex', flexDirection: 'column' }}>{children}</div>
+    </>
+  )
+}
+
 /** Шаблон «Матрица» (§3.4): трассировка, верификация, валидация вкладками. */
 function MatrixScreen() {
   const [kind, setKind] = useState<MatrixKind>('trace')
@@ -106,14 +116,14 @@ export function App() {
           : <Portfolio onOpen={() => setScreen('lifecycle')} />
       case 'projreg': return <KindRegistry key={screen} kinds={['project']} title="Паспорт проекта" />
       case 'goals': return <KindRegistry key={screen} kinds={['mission_goal', 'need']} title="Цели и нужды" />
-      case 'needs': return <Needs />
+      case 'needs': return <ScreenFrame title="Нужды и их сервисы"><Needs /></ScreenFrame>
       case 'services': return <KindRegistry key={screen} kinds={['service']} title="Сервисы и QoS" />
       case 'conops': return <KindRegistry key={screen} kinds={['conops']} title="Сценарии ConOps" />
       case 'req': return <Requirements />
       case 'matrix': return <MatrixScreen />
       case 'aoa': return <KindRegistry key={screen} kinds={['alternative', 'decision']} title="Альтернативы и решения" />
       case 'wbs': return <KindRegistry key={screen} kinds={['component', 'interface']} title="Элементы и интерфейсы" />
-      case 'composition': return <SystemComposition />
+      case 'composition': return <ScreenFrame title="Дерево состава"><SystemComposition /></ScreenFrame>
       case 'wbstree': return <KindRegistry key={screen} kinds={['wbs_element']} title="Структура работ (WBS)" />
       case 'cost': return <KindRegistry key={screen} kinds={['cost_estimate']} title="Оценки стоимости и сроков" />
       case 'siminputs':
@@ -122,24 +132,24 @@ export function App() {
             kinds={['scenario', 'constellation', 'spacecraft', 'demand_map', 'terminal_profile', 'ground_stations', 'protocol_adapter']}
           />
         )
-      case 'spacecraft': return <Spacecraft />
-      case 'demand': return <Demand />
-      case 'ground': return <GroundSegment />
-      case 'ballistics': return <Globe />
-      case 'coverage': return <Coverage />
-      case 'compare': return <Comparison />
+      case 'spacecraft': return <ScreenFrame title="Модель аппарата"><Spacecraft /></ScreenFrame>
+      case 'demand': return <ScreenFrame title="Карта спроса"><Demand /></ScreenFrame>
+      case 'ground': return <ScreenFrame title="Наземный сегмент"><GroundSegment /></ScreenFrame>
+      case 'ballistics': return <ScreenFrame title="Глобус"><Globe /></ScreenFrame>
+      case 'coverage': return <ScreenFrame title="Карта покрытия"><Coverage /></ScreenFrame>
+      case 'compare': return <ScreenFrame title="Сравнение вариантов"><Comparison /></ScreenFrame>
       case 'readiness': return <GateReadiness onGo={go} />
       case 'rfa': return <KindRegistry key={screen} kinds={['review_item']} title="Замечания обзора (RFA/RID)" />
       case 'risks': return <KindRegistry key={screen} kinds={['risk']} title="Риски" />
-      case 'riskmatrix': return <Risks />
+      case 'riskmatrix': return <ScreenFrame title="Матрица рисков"><Risks /></ScreenFrame>
       case 'trl': return <KindRegistry key={screen} kinds={['technology']} title="Технологии и TRL" />
       case 'oda': return <KindRegistry key={screen} kinds={['oda']} title="Оценка орбитального засорения" />
       case 'vv': return <KindRegistry key={screen} kinds={['evidence', 'validation']} title="Верификация и валидация" />
-      case 'docs': return <Documents />
-      case 'system': return <SystemOverview />
-      case 'ai': return <AiProposal />
+      case 'docs': return <ScreenFrame title="Документы"><Documents /></ScreenFrame>
+      case 'system': return <ScreenFrame title="Система в целом"><SystemOverview /></ScreenFrame>
+      case 'ai': return <ScreenFrame title="Предложения ИИ"><AiProposal /></ScreenFrame>
       case 'importb': return <BatchLoad />
-      case 'terminals': return <ImportCatalog />
+      case 'terminals': return <ScreenFrame title="Импорт терминалов"><ImportCatalog /></ScreenFrame>
       default: return <div className="empty">Экран «{screen}» не найден.</div>
     }
   }

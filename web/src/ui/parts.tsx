@@ -55,13 +55,12 @@ export function Verification({
   issues: string[]
 }) {
   if (!method) return <span className="secondary">—</span>
+  // одна строка 26 px (§3.6): подход — подсказкой, а не второй строкой
   return (
-    <span>
-      <span className="chip">{method}</span>{' '}
-      {approach ? (
-        <span className="secondary truncate">{approach}</span>
-      ) : (
-        <span className="amber">△ не описано, как выполняется проверка</span>
+    <span style={{ whiteSpace: 'nowrap' }}>
+      <span className="chip" title={approach ?? undefined}>{method}</span>
+      {!approach && (
+        <span className="amber" title="не описано, как выполняется проверка"> △</span>
       )}
       {issues.length > 0 && (
         <span className="amber" title={issues.join('\n')}>

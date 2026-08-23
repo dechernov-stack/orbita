@@ -93,6 +93,20 @@ function Errors({ path, errors }: { path: string; errors: Array<{ path: string; 
   )
 }
 
+/**
+ * Подпись поля (блок D, §3.6): русская подпись из таблицы сервера, код поля —
+ * в подсказке. Неизвестное поле показывается кодом — видимый пробел.
+ */
+function FieldName({ name, required }: { name: string; required?: boolean }) {
+  const { fieldLabel } = useSession()
+  return (
+    <>
+      <span title={name}>{fieldLabel(name)}</span>
+      {required && <span className="req"> *</span>}
+    </>
+  )
+}
+
 /** Величина: число и единица рядом. Происхождение проставит сервер. */
 function QuantityField({ name, schema, value, required, path, errors, onChange }: FieldProps) {
   const current = (value ?? {}) as Record<string, unknown>
@@ -100,8 +114,7 @@ function QuantityField({ name, schema, value, required, path, errors, onChange }
   return (
     <div className="field">
       <label>
-        {name}
-        {required && <span className="req"> *</span>}
+        <FieldName name={name} required={required} />
       </label>
       <span className="quantity">
         <input
@@ -139,15 +152,14 @@ function ObjectArrayField({ name, schema, value, required, path, errors, onChang
   return (
     <div className="field">
       <label>
-        {name}
-        {required && <span className="req"> *</span>}
+        <FieldName name={name} required={required} />
         <span className="secondary"> · {items.length}</span>
       </label>
       {items.map((item, i) => (
         <div key={i} className="subform">
           <div className="subform__head">
             <span className="secondary">
-              {name} [{i + 1}]
+              <FieldName name={name} /> [{i + 1}]
             </span>
             <button
               type="button"
@@ -167,7 +179,7 @@ function ObjectArrayField({ name, schema, value, required, path, errors, onChang
         </div>
       ))}
       <button type="button" className="tab" onClick={() => onChange([...items, {}])}>
-        + {name}
+        + <FieldName name={name} />
       </button>
       <Errors path={path} errors={errors} />
     </div>
@@ -180,8 +192,7 @@ function StringArrayField({ name, value, required, path, errors, onChange }: Fie
   return (
     <div className="field">
       <label>
-        {name}
-        {required && <span className="req"> *</span>}
+        <FieldName name={name} required={required} />
       </label>
       <input
         aria-label={name}
@@ -210,8 +221,7 @@ function Field(props: FieldProps) {
     return (
       <div className="field">
         <label>
-          {name}
-          {required && <span className="req"> *</span>}
+          <FieldName name={name} required={required} />
         </label>
         <select aria-label={name} value={asText(value)} onChange={(e) => onChange(e.target.value || undefined)}>
           <option value="">—</option>
@@ -240,8 +250,7 @@ function Field(props: FieldProps) {
     return (
       <div className="field">
         <label>
-          {name}
-          {required && <span className="req"> *</span>}
+          <FieldName name={name} required={required} />
         </label>
         <span className="mono">{String(schema.const)}</span>
         <Errors path={path} errors={errors} />
@@ -259,8 +268,7 @@ function Field(props: FieldProps) {
     return (
       <div className="field">
         <label>
-          {name}
-          {required && <span className="req"> *</span>}
+          <FieldName name={name} required={required} />
         </label>
         <div className="subform">
           <Fields
@@ -285,7 +293,7 @@ function Field(props: FieldProps) {
             checked={isChecked(value)}
             onChange={(e) => onChange(e.target.checked)}
           />{' '}
-          {name}
+          <FieldName name={name} />
         </label>
         <Errors path={path} errors={errors} />
       </div>
@@ -296,8 +304,7 @@ function Field(props: FieldProps) {
     return (
       <div className="field">
         <label>
-          {name}
-          {required && <span className="req"> *</span>}
+          <FieldName name={name} required={required} />
         </label>
         <input
           type="number"
@@ -314,8 +321,7 @@ function Field(props: FieldProps) {
   return (
     <div className="field">
       <label>
-        {name}
-        {required && <span className="req"> *</span>}
+        <FieldName name={name} required={required} />
       </label>
       {isLongText(name) ? (
         <textarea
