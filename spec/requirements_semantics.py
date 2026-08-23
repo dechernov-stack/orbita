@@ -103,8 +103,28 @@ def can_baseline(req, results):
     return (not reasons), reasons
 
 ORDER = ['Draft', 'Preliminary', 'Approved', 'Baseline']
-GATES = {'SRR': {'requirement': 'Baseline', 'service': 'Approved', 'component': 'Preliminary'},
-         'SDR': {'requirement': 'Baseline', 'service': 'Baseline', 'component': 'Approved'}}
+# Шесть точек процесса (задача «реестры процесса»): значения зеркалят
+# core/req/.../gates.json, источники — §6/§7 регламентов БП-PPA и БП-PA.
+GATES = {
+    'internal_review': {'need': 'Draft', 'service': 'Draft', 'requirement': 'Draft',
+                        'conops': 'Draft', 'technology': 'Draft', 'risk': 'Draft',
+                        'component': 'Draft', 'scenario': 'Draft'},
+    'MCR':   {'need': 'Approved', 'service': 'Draft', 'requirement': 'Draft',
+              'conops': 'Draft', 'technology': 'Preliminary', 'risk': 'Preliminary',
+              'component': 'Draft', 'scenario': 'Draft'},
+    'KDP-A': {'need': 'Approved', 'service': 'Preliminary', 'requirement': 'Draft',
+              'conops': 'Draft', 'technology': 'Preliminary', 'risk': 'Preliminary',
+              'component': 'Preliminary', 'scenario': 'Draft'},
+    'SRR':   {'need': 'Baseline', 'service': 'Approved', 'requirement': 'Baseline',
+              'conops': 'Approved', 'technology': 'Preliminary', 'risk': 'Preliminary',
+              'component': 'Preliminary', 'interface': 'Draft', 'scenario': 'Draft'},
+    'SDR':   {'need': 'Baseline', 'service': 'Baseline', 'requirement': 'Baseline',
+              'conops': 'Baseline', 'technology': 'Preliminary', 'risk': 'Preliminary',
+              'component': 'Approved', 'interface': 'Preliminary', 'scenario': 'Preliminary'},
+    'KDP-B': {'need': 'Baseline', 'service': 'Baseline', 'requirement': 'Baseline',
+              'conops': 'Baseline', 'technology': 'Approved', 'risk': 'Preliminary',
+              'component': 'Approved', 'interface': 'Preliminary', 'scenario': 'Preliminary'},
+}
 
 def readiness(objects, gate):
     """Объекты, не достигшие требуемой зрелости к контрольной точке."""
