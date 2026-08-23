@@ -80,6 +80,9 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
      */
     val editing: Editing by lazy { Editing(this) }
 
+    /** Спина процесса (блок B, ADR-029): прохождение точек и возвраты. */
+    val gatePassing: GatePassing by lazy { GatePassing(this) }
+
     private val terminalRules = TerminalRules(registry)
 
     /**

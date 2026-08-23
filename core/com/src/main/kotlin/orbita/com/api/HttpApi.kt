@@ -59,6 +59,14 @@ class HttpApi(private val boundary: Boundary) {
             route(ex)
         } catch (e: SchemaValidationException) {
             respond(ex, 422, errorsJson(e.errors))
+        } catch (e: GateNotReadyException) {
+            // не готово — перечень незакрытого с операциями, где чинится (ADR-029)
+            val body = mapper.createObjectNode()
+            body.put("gate", e.gate)
+            body.put("ready", false)
+            body.putArray("issues").also { a -> e.issues.forEach(a::add) }
+            body.putArray("operations").also { a -> e.operations.forEach(a::add) }
+            respond(ex, 409, body)
         } catch (e: BatchRejectedException) {
             // пачка откатана целиком; отчёт — причины поимённо
             respond(ex, 422, batchJson(e.report))
@@ -1052,6 +1060,44 @@ class HttpApi(private val boundary: Boundary) {
             // источник не знает наших параметров генерации, и выдумывать их
             // импорту нельзя. Хранение — обычный канал после дополнения,
             // теми же правилами, что рукописный ввод.
+            // Спина процесса (блок B, ADR-029): состояние операций фазы,
+            // прохождение точки проверкой, возвраты §5.1
+            method == "GET" && path == "/views/operations" ->
+                respond(ex, 200, boundary.gatePassing.operationStates(requireProject(project)))
+
+            method == "POST" && path == "/gates/return/resolve" -> {
+                val req = mapper.readTree(body(ex))
+                respond(
+                    ex, 200,
+                    boundary.gatePassing.resolveReturn(
+                        req.path("note").asText(""), author(req), requireProject(project),
+                    ),
+                )
+            }
+
+            method == "POST" && gateMatch(path, "pass") != null -> {
+                val req = mapper.readTree(body(ex))
+                respond(
+                    ex, 200,
+                    boundary.gatePassing.pass(
+                        gateMatch(path, "pass")!!, req.path("rationale").asText(""),
+                        author(req), requireProject(project),
+                    ),
+                )
+            }
+
+            method == "POST" && gateMatch(path, "return") != null -> {
+                val req = mapper.readTree(body(ex))
+                respond(
+                    ex, 200,
+                    boundary.gatePassing.requestReturn(
+                        gateMatch(path, "return")!!,
+                        req.path("to").map { it.asText() },
+                        req.path("reason").asText(""), author(req), requireProject(project),
+                    ),
+                )
+            }
+
             // Загрузка пачкой (блок A, ADR-024): проверка по схемам до записи,
             // всё или ничего, порядок разрешает сервер, отчёт с путём до поля
             method == "POST" && path == "/import/objects" -> {
@@ -1429,6 +1475,11 @@ class HttpApi(private val boundary: Boundary) {
         }
         return n
     }
+
+    /** Точка из пути /gates/<точка>/<действие>; имена точек несут дефисы (KDP-A). */
+    private fun gateMatch(path: String, action: String): String? =
+        Regex("^/gates/([^/]+)/$action$").find(path)?.groupValues?.get(1)
+            ?.let { java.net.URLDecoder.decode(it, Charsets.UTF_8) }
 
     private fun author(request: JsonNode): String =
         request.path("author").asText("").trim().takeIf { it.isNotEmpty() }

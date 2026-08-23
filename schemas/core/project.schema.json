@@ -4,27 +4,104 @@
   "title": "Project",
   "description": "Проект как объект (Шаг 17 C4): фаза жизненного цикла и перечень контрольных точек с плановыми датами. Реестр ворот остаётся источником планок статусов; проект говорит, какие точки и когда.",
   "type": "object",
-  "required": ["id", "name", "phase", "milestones", "lifecycle"],
+  "required": [
+    "id",
+    "name",
+    "phase",
+    "milestones",
+    "lifecycle"
+  ],
   "additionalProperties": false,
   "properties": {
-    "id": {"type": "string", "pattern": "^PJ-[0-9]{4}$"},
-    "name": {"type": "string", "minLength": 1},
-    "phase": {"type": "string", "enum": ["pre_phase_a", "phase_a"]},
+    "id": {
+      "type": "string",
+      "pattern": "^PJ-[0-9]{4}$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "phase": {
+      "type": "string",
+      "enum": [
+        "pre_phase_a",
+        "phase_a"
+      ]
+    },
     "milestones": {
       "type": "array",
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": ["gate"],
+        "required": [
+          "gate"
+        ],
         "additionalProperties": false,
         "properties": {
-          "gate": {"type": "string", "minLength": 1},
-          "due": {"type": "string", "description": "Плановая дата, ISO"},
-          "held": {"type": "boolean", "description": "Точка пройдена"}
+          "gate": {
+            "type": "string",
+            "minLength": 1
+          },
+          "due": {
+            "type": "string",
+            "description": "Плановая дата, ISO"
+          },
+          "held": {
+            "type": "boolean",
+            "description": "Точка пройдена"
+          },
+          "held_at": {
+            "type": "string",
+            "description": "Когда точка пройдена, ISO"
+          }
         }
       }
     },
-    "lifecycle": {"$ref": "https://kis.local/schemas/common/status.schema.json"},
-    "provenance": {"$ref": "https://kis.local/schemas/common/provenance.schema.json"}
+    "lifecycle": {
+      "$ref": "https://kis.local/schemas/common/status.schema.json"
+    },
+    "provenance": {
+      "$ref": "https://kis.local/schemas/common/provenance.schema.json"
+    },
+    "return": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "Действующий возврат (ADR-029 п. 5): пока не снят, прохождение точек отклоняется",
+      "required": [
+        "gate",
+        "to",
+        "reason",
+        "decided_by",
+        "at"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "gate": {
+          "type": "string",
+          "minLength": 1
+        },
+        "to": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "decided_by": {
+          "type": "string",
+          "minLength": 1
+        },
+        "at": {
+          "type": "string"
+        }
+      }
+    }
   }
 }
