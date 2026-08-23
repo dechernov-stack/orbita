@@ -125,7 +125,9 @@ class Boundary(private val registry: SchemaRegistry, conn: Connection) {
         CoreType.Technology, CoreType.Project -> {
             val doc = parse(json)
             registry.require(type.schemaName, doc)
-            store(type, doc, createdBy, projectId)
+            // проект — контейнер сам себе (ADR-022): контекст ему не нужен
+            val owner = if (type == CoreType.Project) doc["id"].asText() else projectId
+            store(type, doc, createdBy, owner)
         }
         CoreType.Scenario -> {
             val doc = parse(json)

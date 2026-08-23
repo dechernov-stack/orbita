@@ -116,8 +116,9 @@ class HttpApi(private val boundary: Boundary) {
             method == "POST" && objectTypePath(path) != null -> {
                 val type = objectTypePath(path)!!
                 // создание проекта не требует контекста: оно контейнер и заводит
-                val ctx = if (type == CoreType.Project) "PJ-0000" else requireProject(project)
-                val stored = boundary.ingest(type, body(ex), projectId = ctx)
+                val stored =
+                    if (type == CoreType.Project) boundary.ingest(type, body(ex))
+                    else boundary.ingest(type, body(ex), projectId = requireProject(project))
                 respond(ex, 201, summary(stored))
             }
 
@@ -1281,8 +1282,9 @@ class HttpApi(private val boundary: Boundary) {
                 val req = mapper.readTree(body(ex))
                 val type = editTypePath(path)!!
                 // создание проекта из интерфейса заводит контейнер (ADR-022)
-                val ctx = if (type == CoreType.Project) "PJ-0000" else requireProject(project)
-                val stored = boundary.editing.create(type, req.path("doc"), author(req), ctx)
+                val stored =
+                    if (type == CoreType.Project) boundary.editing.create(type, req.path("doc"), author(req))
+                    else boundary.editing.create(type, req.path("doc"), author(req), requireProject(project))
                 respond(ex, 201, summary(stored).apply { set<ObjectNode>("doc", stored.doc) })
             }
 

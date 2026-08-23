@@ -6,3 +6,4 @@ core/bal/src/main/kotlin/orbita/bal/PerfCheck.kt:SC-0000 · испытатель
 core/bal/src/main/kotlin/orbita/bal/Visibility.kt:SC-0000 · умолчание scenarioRef для оснастки; продуктовые вызовы передают настоящий сценарий · 2026-08-22
 core/flw/src/main/kotlin/orbita/flw/FlowPerfCheck.kt:SC-0000 · испытательная оснастка регрессии потоков, не изделие · 2026-08-22
 core/com/src/main/kotlin/orbita/com/api/HttpApi.kt:PA-0001 · встроенный адаптер (ADR-021): объект модели с этим id может ещё не существовать, а параметры канала обязаны отдаваться · 2026-08-22
+core/mod/src/main/kotlin/orbita/mod/store/ObjectStore.kt:PJ-0001 · умолчание переходного режима единственного проекта (ADR-022): граница API передаёт проект явно · 2026-08-23
