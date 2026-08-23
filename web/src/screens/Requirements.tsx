@@ -13,9 +13,10 @@ import { BudgetGauge, Condition, StatusDot, Verification } from '../ui/parts'
 import { useSession } from '../ui/session'
 
 export function Requirements() {
-  const { label } = useSession()
+  const { label, author } = useSession()
   const [tree, setTree] = useState<RequirementTreeView | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
+  const [massReport, setMassReport] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
   const [editing, setEditing] = useState(false)
   const [card, setCard] = useState<RequirementCard | null>(null)
@@ -102,6 +103,25 @@ export function Requirements() {
           >
             + Добавить требование
           </button>
+          {/* Массовое действие реестра (§3.2, блок E): базирование пачкой —
+              каждый объект проходит ту же проверку, что одиночный promote;
+              не прошедшие называются поимённо */}
+          <button type="button" className="tab" disabled={!author}
+            title={author ? 'перевести все требования не в Baseline' : 'представьтесь в шапке'}
+            onClick={() => {
+              const ids = tree?.rows.filter((r) => r.status !== 'Baseline').map((r) => r.id) ?? []
+              if (ids.length === 0) { setMassReport('всё уже базировано'); return }
+              api.promoteBatch(ids, 'Baseline', author)
+                .then((r) => {
+                  setMassReport(`базировано ${r.promoted.length}; отказов ${r.failed.length}` +
+                    (r.failed.length ? ` — ${r.failed.slice(0, 3).map((f) => `${f.id}: ${f.reason}`).join('; ')}${r.failed.length > 3 ? '…' : ''}` : ''))
+                  void reload()
+                })
+                .catch((e) => setMassReport(String(e)))
+            }}>
+            Базировать все
+          </button>
+          {massReport && <span className="secondary">{massReport}</span>}
           <button
             type="button"
             className="tab"

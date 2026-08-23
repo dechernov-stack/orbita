@@ -134,6 +134,31 @@ class HttpApi(private val boundary: Boundary) {
             }
 
             // Перевод статуса (TZ-REQ-006): в Baseline — только зрелое требование
+            // Блок E/D: массовое действие реестра — перевод статуса пачкой.
+            // Каждый объект проходит ту же проверку, что и одиночный promote;
+            // отчёт называет непереведённые поимённо, переведённые остаются.
+            method == "POST" && path == "/objects/promote-batch" -> {
+                val request = mapper.readTree(body(ex))
+                val target = Lifecycle.valueOf(request.path("status").asText())
+                val by = request.path("author").asText("").trim().takeIf { it.isNotEmpty() }
+                    ?: throw IllegalArgumentException("TZ-COM-005: field 'author' is required")
+                val n = mapper.createObjectNode()
+                val done = n.putArray("promoted")
+                val failed = n.putArray("failed")
+                request.path("ids").forEach { idNode ->
+                    val id = idNode.asText()
+                    try {
+                        boundary.req.promote(id, target, by)
+                        done.add(id)
+                    } catch (e: Exception) {
+                        val f = failed.addObject().put("id", id)
+                        f.put("reason", (e as? BaselineBlockedException)?.reasons?.joinToString("; ")
+                            ?: (e.message ?: e.javaClass.simpleName))
+                    }
+                }
+                respond(ex, 200, n)
+            }
+
             method == "POST" && objectMatch?.groupValues?.get(2) == "/promote" -> {
                 val target = Lifecycle.valueOf(mapper.readTree(body(ex)).path("status").asText())
                 respond(ex, 200, summary(boundary.req.promote(objectMatch.groupValues[1], target)))
@@ -411,6 +436,33 @@ class HttpApi(private val boundary: Boundary) {
             // «принято полей: N», а в модели не менялось ничего — контур ИИ
             // обрывался на последнем шаге. Запись идёт тем же путём, что ручная
             // правка: те же правила, тот же автор, та же блокировка по версии.
+            // Блок E: акцепт ПАЧКОЙ — сотни предложений (нужды, сервисы,
+            // требования) принимаются одним действием; порядок разрешает
+            // сервер проходами, как в импорте (ADR-024); всё или ничего.
+            method == "POST" && path == "/ai/accept-batch" -> {
+                val request = mapper.readTree(body(ex))
+                val by = request.path("by").asText("").trim().takeIf { it.isNotEmpty() }
+                    ?: throw IllegalArgumentException("TZ-AI-004: field 'by' is required to accept proposals")
+                val packageId = request.path("package_id").asText("")
+                val llm = request.path("llm").asText("unknown")
+                val items = request.path("items")
+                require(items.isArray && items.size() > 0) { "items — пачка принятых предложений" }
+                val ctx = requireProject(project)
+                val payload = mapper.createObjectNode()
+                payload.put("author", by)
+                val arr = payload.putArray("objects")
+                items.forEach { item ->
+                    // происхождение ИИ с акцептом — на каждом объекте (TZ-AI-004)
+                    val marked = orbita.ai.accept(
+                        orbita.ai.asProposal(item.deepCopy(), packageId, llm, mapper),
+                        by = by,
+                    )
+                    arr.add(marked)
+                }
+                val report = BatchImport(boundary, mapper).import(payload, by, ctx)
+                respond(ex, if (report.ok) 201 else 422, batchJson(report))
+            }
+
             method == "POST" && path == "/ai/accept" -> {
                 val request = mapper.readTree(body(ex))
                 val targetId = request.path("target_id").asText()

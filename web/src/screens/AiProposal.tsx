@@ -1,19 +1,42 @@
-// Экран 8 — предложение ИИ: пакет, ответ модели, фильтр, diff, акцепт.
+// Экран «Предложения ИИ»: пакет, ответ модели, фильтр, diff, акцепт.
 //
 // Генерация происходит ВНЕ системы (канал 1, TZ-AI-001): пакет копируют во
 // внешний интерфейс LLM, ответ вставляют обратно. Разбор и структурный фильтр
 // выполняет сервер — до инженера доходит только состоятельное.
 //
-// Массового акцепта здесь нет намеренно: применяются выбранные поля выбранного
-// предложения. «Улучшить тысячу требований» одной кнопкой — обход управления
+// Пачечный акцепт (блок E) — только у ПОРОЖДАЮЩИХ видов (цели, нужды,
+// сервисы, требования из постановки): объём в сотни объектов приходит отсюда,
+// и до акцепта каждый виден списком. Для видов, ПРАВЯЩИХ существующие
+// объекты (качество, декомпозиция, верификация), массового акцепта нет
+// намеренно: «улучшить тысячу требований» одной кнопкой — обход управления
 // конфигурацией (STEP-5, ловушка 2).
 import { useEffect, useState } from 'react'
-import { api } from '../api/client'
+import { api, type BatchReport } from '../api/client'
+import { useSession } from '../ui/session'
 import type {
   UnacceptedAiRow, AnswerReport, PromptPackage, ScreenedProposal } from '../api/types'
 
-const DEFAULT_TASK =
-  'Проверь формулировки требований и предложи исправления. Верни объекты по схеме ответа.'
+/** Виды пакетов канала: порождающие принимаются пачкой, правящие — по одному. */
+const KINDS: Array<{ id: string; title: string; task: string; generative: boolean }> = [
+  { id: 'mission_to_goals', title: 'Постановка → цели миссии',
+    task: 'Из постановки миссии сформулируй цели и задачи с MOE. Верни объекты по схеме ответа.',
+    generative: true },
+  { id: 'mission_to_needs', title: 'Постановка → нужды',
+    task: 'Из постановки миссии выведи нужды стейкхолдеров. Верни объекты по схеме ответа.',
+    generative: true },
+  { id: 'needs_to_services', title: 'Нужды → сервисы',
+    task: 'По нуждам предложи сервисы с QoS-профилями по классам потребителей. Верни объекты по схеме ответа.',
+    generative: true },
+  { id: 'services_to_requirements', title: 'Сервисы → требования',
+    task: 'По сервисам и их QoS сформулируй системные требования с условиями и планом верификации. Верни объекты по схеме ответа.',
+    generative: true },
+  { id: 'risk_register', title: 'Сценарий → риски',
+    task: 'По описанию сценария предложи записи реестра рисков. Верни объекты по схеме ответа.',
+    generative: true },
+  { id: 'requirement_quality', title: 'Качество требований',
+    task: 'Проверь формулировки требований и предложи исправления. Верни объекты по схеме ответа.',
+    generative: false },
+]
 
 export function AiProposal() {
   const [pkg, setPkg] = useState<PromptPackage | null>(null)
@@ -23,6 +46,10 @@ export function AiProposal() {
   const [accepted, setAccepted] = useState<Record<string, string[]>>({})
   const [error, setError] = useState<string | null>(null)
   const [unaccepted, setUnaccepted] = useState<UnacceptedAiRow[]>([])
+  const { author } = useSession()
+  const [kindId, setKindId] = useState(KINDS[0].id)
+  const [mission, setMission] = useState('')
+  const [batchReport, setBatchReport] = useState<BatchReport | null>(null)
 
   // Список неакцептованного живёт здесь (шаг 16 §2.4, TZ-AI-004): предложение,
   // принятое «на словах», но не акцептованное, — незакрытая работа инженера
@@ -30,17 +57,35 @@ export function AiProposal() {
     api.unacceptedAi().then(setUnaccepted).catch((e) => setError(String(e)))
   }, [accepted])
 
-  const kind = 'requirement_quality'
-  const context = { scope: 'демо-проект «Орбита-IoT»' }
+  const chosen = KINDS.find((k) => k.id === kindId)!
+  const kind = chosen.id
+  const context = { mission: mission || 'проект текущего портфеля' }
 
   const build = () => {
     setError(null)
-    api.buildPackage(kind, context, DEFAULT_TASK).then(setPkg).catch((e) => setError(String(e)))
+    api.buildPackage(kind, context, chosen.task).then(setPkg).catch((e) => setError(String(e)))
   }
 
   const submit = () => {
     setError(null)
-    api.submitAnswer(kind, context, DEFAULT_TASK, raw).then(setReport).catch((e) => setError(String(e)))
+    setBatchReport(null)
+    api.submitAnswer(kind, context, chosen.task, raw).then(setReport).catch((e) => setError(String(e)))
+  }
+
+  /** Блок E: пачка показанных предложений принимается одним действием. */
+  const acceptAll = () => {
+    if (!report || !author) return
+    setError(null)
+    api
+      .acceptBatch(report.package_id, 'внешняя LLM', author, report.shown.map((p) => p.item))
+      .then((r) => {
+        setBatchReport(r)
+        setAccepted((prev) => ({
+          ...prev,
+          ...Object.fromEntries(report.shown.map((p) => [String(p.item.id), ['пачкой']])),
+        }))
+      })
+      .catch((e) => setError(String(e)))
   }
 
   const toggleField = (proposalId: string, field: string) => {
@@ -85,6 +130,23 @@ export function AiProposal() {
           Генерация происходит вне системы: пакет копируется во внешний интерфейс LLM, ответ
           вставляется обратно. Схема ответа — поле пакета, а не текст в задании.
         </p>
+        <div className="field">
+          <label>Вид пакета (канал О2–О4: объём приходит пачками)</label>
+          <div className="tabs" style={{ flexWrap: 'wrap' }}>
+            {KINDS.map((k) => (
+              <button key={k.id} className="tab" aria-selected={k.id === kindId}
+                onClick={() => { setKindId(k.id); setPkg(null); setReport(null) }}>
+                {k.title}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="field">
+          <label>Постановка миссии / контекст пакета</label>
+          <textarea rows={3} style={{ width: '100%' }} value={mission}
+            onChange={(e) => setMission(e.target.value)}
+            placeholder="Национальная спутниковая платформа IoT: сбор телеметрии…" />
+        </div>
         <button className="tab" onClick={build}>
           Собрать пакет
         </button>
@@ -117,6 +179,22 @@ export function AiProposal() {
         </div>
 
         {error && <div className="warn">Ошибка: {error}</div>}
+        {report && chosen.generative && report.shown.length > 0 && (
+          <div className="field" style={{ marginTop: 8 }}>
+            <button className="tab tab--primary" onClick={acceptAll} disabled={!author}
+              title={author ? '' : 'представьтесь в шапке'}>
+              Принять пачкой ({report.shown.length})
+            </button>
+            <span className="secondary"> порядок вставки разрешит сервер; всё или ничего</span>
+          </div>
+        )}
+        {batchReport && (
+          <div className={batchReport.problems.length ? 'notice notice--blocked' : 'notice'}>
+            {batchReport.problems.length === 0
+              ? <>Принято пачкой: <b className="mono">{batchReport.written}</b></>
+              : <>Пачка отклонена: {batchReport.problems.slice(0, 5).map((p) => `${p.id ?? p.index}: ${p.message}`).join('; ')}</>}
+          </div>
+        )}
 
         {report && (
           <div style={{ marginTop: 12 }}>

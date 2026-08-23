@@ -91,7 +91,12 @@ class ProposalScreening(private val quality: QualityControl = QualityControl()) 
     fun issues(item: JsonNode, ctx: ScreeningContext = ScreeningContext()): List<String> {
         // Запись реестра рисков — не требование: к ней применимы правила риска,
         // а правила формулировки требования неприменимы.
-        if (item.path("id").asText("").startsWith("RSK-")) return riskProposalIssues(item)
+        val id = item.path("id").asText("")
+        if (id.startsWith("RSK-")) return riskProposalIssues(item)
+        // Блок E: цели, нужды и сервисы — не требования; правил формулировки
+        // требований к ним нет, состоятельность держит нормативная схема
+        // на акцепте (всё или ничего). Фильтр пропускает их к инженеру.
+        if (id.startsWith("MG-") || id.startsWith("ND-") || id.startsWith("SV-")) return emptyList()
 
         val issues = mutableListOf<String>()
 

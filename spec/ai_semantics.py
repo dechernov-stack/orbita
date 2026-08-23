@@ -16,6 +16,8 @@ import json, re, sys, hashlib
 
 # ---------- TZ-AI-001: промпт-пакет ----------
 PACKAGE_KINDS = {
+    # блок E: канал О2 — из постановки миссии, объём пачками
+    'mission_to_goals', 'mission_to_needs',
     'needs_to_services', 'services_to_requirements', 'requirement_quality',
     'requirement_decomposition', 'verification_approach', 'risk_register',
 }
@@ -55,7 +57,12 @@ def parse_response(raw, pkg):
 # ---------- структурный фильтр: отбраковка ДО показа инженеру ----------
 def screen_requirement(item, rules):
     """Предложение проходит те же правила, что и рукописное требование.
-    rules — функции из эталонов: качество, условие, верификация, трассировка."""
+    rules — функции из эталонов: качество, условие, верификация, трассировка.
+    Блок E: цели, нужды и сервисы — не требования; правил формулировки к ним
+    нет, состоятельность держит нормативная схема на акцепте пачкой."""
+    oid = str(item.get('id', ''))
+    if oid.startswith(('MG-', 'ND-', 'SV-')):
+        return []
     issues = []
     for name, fn in rules.items():
         issues += [f'{name}: {i}' for i in fn(item)]

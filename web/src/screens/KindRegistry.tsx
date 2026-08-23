@@ -3,6 +3,7 @@
 // с выбранным объектом (§3.3). На него сажаются все виды без собственного
 // расчётного экрана. Правила формы — серверные (ObjectEditor, шаг 15).
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { api } from '../api/client'
 import { edit, type KindRow, type StoredSummary } from '../api/edit'
 import { ObjectEditor } from '../ui/ObjectEditor'
 import { useSession } from '../ui/session'
@@ -33,7 +34,9 @@ const KIND_TITLES: Record<string, string> = {
 const kindTitle = (k: string) => KIND_TITLES[k] ?? k
 
 export function KindRegistry({ kinds, title }: { kinds: string[]; title: string }) {
-  const { label } = useSession()
+  const { label, author } = useSession()
+  const [massStatus, setMassStatus] = useState('Preliminary')
+  const [massReport, setMassReport] = useState<string | null>(null)
   const [available, setAvailable] = useState<KindRow[] | null>(null)
   const [kind, setKind] = useState<string>(kinds[0])
   const [rows, setRows] = useState<StoredSummary[] | null>(null)
@@ -89,6 +92,32 @@ export function KindRegistry({ kinds, title }: { kinds: string[]; title: string 
           style={{ width: 200 }}
         />
         <div className="grow" />
+        {/* Массовое действие реестра (§3.2): перевод статуса пачкой */}
+        {(rows?.length ?? 0) > 0 && (
+          <>
+            <select value={massStatus} onChange={(e) => setMassStatus(e.target.value)}>
+              {['Preliminary', 'Approved', 'Baseline'].map((st) => (
+                <option key={st} value={st}>{label('lifecycle', st)}</option>
+              ))}
+            </select>
+            <button className="btn" disabled={!author}
+              title={author ? 'перевести все видимые ниже выбранного статуса' : 'представьтесь в шапке'}
+              onClick={() => {
+                const ids = visible.filter((r) => r.status !== massStatus && r.status !== 'Cancelled').map((r) => r.id)
+                if (ids.length === 0) { setMassReport('переводить нечего'); return }
+                api.promoteBatch(ids, massStatus, author)
+                  .then((r) => {
+                    setMassReport(`переведено ${r.promoted.length}; отказов ${r.failed.length}` +
+                      (r.failed.length ? ` — ${r.failed.slice(0, 3).map((f) => `${f.id}: ${f.reason}`).join('; ')}` : ''))
+                    reload()
+                  })
+                  .catch((e) => setMassReport(String(e)))
+              }}>
+              Все видимые →
+            </button>
+            {massReport && <span className="secondary">{massReport}</span>}
+          </>
+        )}
         <button className="btn btn--primary" onClick={() => { setSelected(null); setCreating(true) }}>
           Создать
         </button>

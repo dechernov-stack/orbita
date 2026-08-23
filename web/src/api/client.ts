@@ -88,6 +88,11 @@ export interface BatchReport {
   problems: BatchProblemRow[]
 }
 
+export interface PromoteBatchReport {
+  promoted: string[]
+  failed: Array<{ id: string; reason: string }>
+}
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -130,6 +135,12 @@ export const api = {
     post<Record<string, unknown>>(`/gates/${encodeURIComponent(gate)}/return`, { author, reason, to }),
   gateReturnResolve: (author: string, note: string) =>
     post<Record<string, unknown>>('/gates/return/resolve', { author, note }),
+  /** Блок E: акцепт предложений пачкой — порядок разрешает сервер. */
+  acceptBatch: (packageId: string, llm: string, by: string, items: unknown[]) =>
+    post<BatchReport>('/ai/accept-batch', { package_id: packageId, llm, by, items }),
+  /** Массовое действие реестра: перевод статуса пачкой, отказы поимённо. */
+  promoteBatch: (ids: string[], status: string, author: string) =>
+    post<PromoteBatchReport>('/objects/promote-batch', { ids, status, author }),
   /** Загрузка пачкой (ADR-024): проверка до записи, всё или ничего. */
   importObjects: (payload: unknown) => post<BatchReport>('/import/objects', payload),
   /** Выгрузка проекта тем же форматом — для ссылки скачивания. */

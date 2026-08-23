@@ -168,6 +168,9 @@ class GatePassing(
         }
         val changes = mapper.createObjectNode()
         changes.set<ObjectNode>("milestones", milestones)
+        // KDP A — вход в Phase A (§1.4 БП-PPA): решение «Approve» переводит
+        // проект в следующую фазу, операции и комплекты меняются вместе с ней
+        if (gate == "KDP-A") changes.put("phase", "phase_a")
         boundary.editing.update(CoreType.Project, projectId, changes, project.version, author)
 
         val out = mapper.createObjectNode()
