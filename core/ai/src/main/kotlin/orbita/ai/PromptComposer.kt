@@ -145,7 +145,11 @@ class PromptComposer(private val kinds: PackageKinds = PackageKinds.default()) {
                 appendLine("Профиль рецензионный: новых объектов не создавай — верни замечания")
                 appendLine("к существующим формулировкам с предлагаемой правкой поля.")
             }
-            appendLine("Ответ — массив объектов строго по схеме ниже.")
+            appendLine("Ответ — массив объектов строго по схеме ниже. Схема исполняется")
+            appendLine("буквально: поля вне схемы запрещены (additionalProperties: false),")
+            appendLine("обязательные поля обязательны. В частности, статусная модель —")
+            appendLine("\"lifecycle\": {\"status\": \"Draft\", \"version\": \"1\"}, а происхождение")
+            appendLine("предложения — \"provenance\": {\"source\": \"ai_proposed\"}.")
             appendLine("Ничего, кроме массива JSON, в ответе быть не должно: ни пояснений,")
             appendLine("ни обрамления ```json — только сам массив.")
             responseSchema?.let {

@@ -152,10 +152,24 @@ class AiService(
         return AiServiceRun(pk, prompt, "package", p.modelHint, screened)
     }
 
-    /** Разбор и фильтр — общие для обоих транспортов. */
+    /**
+     * Разбор и фильтр — общие для обоих транспортов.
+     *
+     * Проверка идёт по НОРМАТИВНОЙ СХЕМЕ целевого вида, а не по списку
+     * обязательных полей: список required — условие необходимое, но не
+     * достаточное, и предложение, прошедшее только его, до модели всё равно
+     * не доходит (пачка отклоняется целиком на записи). Инженер обязан
+     * видеть лишь то, что ляжет: иначе «до инженера доходит состоятельное»
+     * перестаёт быть правдой.
+     */
     private fun screen(raw: String, kind: String, p: AiProfile): ObjectNode {
         val pkg = boundary.packages.build(kind, mapper.createObjectNode(), "служба")
-        val parsed = boundary.parser.parse(raw, pkg)
+        val schemaName = orbita.ai.PackageKinds.default().of(kind).targetSchema
+        val parsed = if (schemaName != null) {
+            boundary.parser.parseAgainstSchema(raw, pkg, boundary.schemas, schemaName)
+        } else {
+            boundary.parser.parse(raw, pkg)
+        }
         val report = boundary.screening.screen(
             parsed.accepted,
             ScreeningContext(requireSource = p.requireSource),

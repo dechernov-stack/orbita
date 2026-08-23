@@ -89,6 +89,9 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
     /** Соединение — журналу вызовов и прочим служебным хранилищам. */
     val connection: Connection get() = conn
 
+    /** Реестр схем — службе ИИ: предложение проверяется схемой целевого вида. */
+    val schemas: SchemaRegistry get() = registry
+
     private val terminalRules = TerminalRules(registry)
 
     /**
