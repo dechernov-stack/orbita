@@ -98,11 +98,14 @@ class BlockCTest {
         val r = mapper.readTree(get("/reports/maturity?gate=SRR").body())
         assertTrue(r["gaps_by_type"].has("technology")) { r.toString() }
         assertTrue(r["blocking"].any { it.asText().startsWith("TRL технологий") })
-        // чужая точка — чужой срок
+        // чужая точка — чужой срок: TRL-разрыва к SDR нет; статусный разрыв
+        // (Draft ниже требуемого реестром точек) — отдельная, законная причина
         val sdr = mapper.readTree(get("/reports/maturity?gate=SDR").body())
         assertTrue(
             !sdr["gaps_by_type"].has("technology") ||
-                sdr["gaps_by_type"]["technology"].none { it["id"].asText() == "TL-0701" },
+                sdr["gaps_by_type"]["technology"].none {
+                    it["id"].asText() == "TL-0701" && it["actual"].asText().startsWith("TRL")
+                },
         )
     }
 

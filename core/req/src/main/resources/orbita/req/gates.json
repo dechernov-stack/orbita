@@ -1,5 +1,118 @@
 {
-  "_comment": "Требуемая зрелость по типам объектов к контрольным точкам (TZ-REQ-008, TZ-OUT-003). Конфигурация редактируется без изменения кода; значения — эталон spec/requirements_semantics.py (GATES).",
-  "SRR": { "requirement": "Baseline", "service": "Approved", "component": "Preliminary" },
-  "SDR": { "requirement": "Baseline", "service": "Baseline", "component": "Approved" }
+  "_comment": "Требуемая зрелость по видам объектов к контрольным точкам процесса (TZ-REQ-008, TZ-OUT-003; задача «реестры процесса»). Порядок точек: internal_review → MCR → KDP-A (БП-PPA, КТ-1..КТ-3) → SRR → SDR → KDP-B (БП-PA, КТ-1..КТ-3; SDR покрывает SDR/MDR). Источники значений: статусные таблицы §6 и критерии §7 регламентов docs/regulations/BP-PreA.md и BP-PhaseA.md, матрица зрелости NPR 7120.5 прил. I. Ключ pending — виды и составы, которых в системе ещё нет: пробел записан, чтобы быть видимым, а не забытым; значений-заглушек для них не делается. Конфигурация редактируется без изменения кода; значения — эталон spec/requirements_semantics.py (GATES).",
+
+  "internal_review": {
+    "_comment": "БП-PPA §4.5 КТ-1 (О12): внутренний обзор центра, на входе комплект Д1–Д9 в черновом виде. need — О2 (перечень целей и задач); requirement — Д3 (§6: черновик); conops — Д4 (§6: draft); technology — Д5 (О6); risk — Д6 (О7); component — MEL по WBS (О3); scenario — DRM и анализ осуществимости (О3); service — базовая концепция в составе Д2 (О9). interface к Pre-Phase A не требуется (интерфейсы определяются в БП-PA О5).",
+    "need": "Draft",
+    "service": "Draft",
+    "requirement": "Draft",
+    "conops": "Draft",
+    "technology": "Draft",
+    "risk": "Draft",
+    "component": "Draft",
+    "scenario": "Draft",
+    "pending": [
+      "mission_goal — цели и задачи миссии (БП-PPA О2, Прил. 3 §1): вида нет",
+      "alternative — альтернативы и матрицы AoA (БП-PPA О3): вида нет",
+      "cost_estimate — концептуальные оценки стоимости и сроков, Д8 (БП-PPA О8): вида нет",
+      "oda — начальная оценка орбитального засорения, Д7 (БП-PPA О7): вида нет",
+      "состав документов к КТ-1 — комплект Д1–Д9 (БП-PPA О12): проверка состава выпусков не ведётся"
+    ]
+  },
+
+  "MCR": {
+    "_comment": "БП-PPA §7.1 (входные критерии MCR). need Approved — §7.1а «цели и задачи миссии определены и согласованы со стейкхолдерами»; service/component Draft — §7.1б «концептуальная документация сформирована» (Д2 к KDP A лишь Preliminary); conops Draft — §7.1в «draft ConOps разработан»; requirement Draft — §7.1г «черновик требований сформирован»; technology Preliminary — §7.1д «потребности и разрывы TRL оценены» (Д5 к KDP A Preliminary, §6); risk Preliminary — §7.1е + §6 (Д6 «предварительный перечень», статус Preliminary); scenario Draft — §7.1б (результаты AoA).",
+    "need": "Approved",
+    "service": "Draft",
+    "requirement": "Draft",
+    "conops": "Draft",
+    "technology": "Preliminary",
+    "risk": "Preliminary",
+    "component": "Draft",
+    "scenario": "Draft",
+    "pending": [
+      "mission_goal — §7.1а: вида нет",
+      "alternative — §7.1б (полнота альтернатив, descopes): вида нет",
+      "cost_estimate — §7.1ж (концептуальные оценки выполнены): вида нет",
+      "oda — Д7 в комплекте: вида нет",
+      "review_item — RFA/RID выхода MCR (§7.2в): вида нет",
+      "состав документов к MCR — Д1–Д9 по §7.1: проверка состава выпусков не ведётся"
+    ]
+  },
+
+  "KDP-A": {
+    "_comment": "БП-PPA §6 (статусы к KDP A) и §7.3. requirement Draft — Д3 (§6); conops Draft — Д4 «Draft (в составе Д2)» (§6); technology Preliminary — Д5 (§6); risk Preliminary — Д6 (§6); service/component Preliminary — Д2 Mission Concept Report Preliminary (§6: базовая концепция, MEL); need Approved — §7.1а, цели согласованы до MCR; scenario Draft — моделирование в составе Д2, отдельный статус §6 не задаёт.",
+    "need": "Approved",
+    "service": "Preliminary",
+    "requirement": "Draft",
+    "conops": "Draft",
+    "technology": "Preliminary",
+    "risk": "Preliminary",
+    "component": "Preliminary",
+    "scenario": "Draft",
+    "pending": [
+      "mission_goal — соответствие целям дирекции (§7.3в): вида нет",
+      "alternative — в составе Д2 (§6): вида нет",
+      "cost_estimate — Д8 «rough order of magnitude» (§6): вида нет и статуса вне модели",
+      "oda — Д7 «Initial» (§6): вида нет и статуса вне модели",
+      "review_item — отчёт об устранении замечаний MCR (§7.3а): вида нет",
+      "состав документов к KDP A — Д1–Д9 в статусах §6 (Д1 Approved, Д9 Approved подписан): проверка состава выпусков не ведётся"
+    ]
+  },
+
+  "SRR": {
+    "_comment": "БП-PA §7.1 (входные критерии SRR) и §6. requirement Baseline — Д3 базируется на SRR (§6); service Approved и component Preliminary — прежние значения TZ-REQ-008 (§7.1г: предварительная архитектура доступна); need Baseline — §7.1б: требования трассированы к целям миссии, цели зафиксированы; conops Approved — §7.1в: «базирован или готов к базированию»; technology Preliminary — §7.1е: план созревания актуален (Approved лишь к KDP B); risk Preliminary — §7.1д + §6 (Д7 Preliminary); interface Draft — §7.1г, интерфейсы в предварительной архитектуре (О5); scenario Draft — анализы О6 в работе.",
+    "need": "Baseline",
+    "service": "Approved",
+    "requirement": "Baseline",
+    "conops": "Approved",
+    "technology": "Preliminary",
+    "risk": "Preliminary",
+    "component": "Preliminary",
+    "interface": "Draft",
+    "scenario": "Draft",
+    "pending": [
+      "review_item — замечания предшествующих обзоров закрыты (§7.1ж): вида нет",
+      "cost_estimate — обновлённые оценки LCC: вида нет",
+      "состав документов к SRR — пакет SRR: Д2 (SEMP, baseline до SRR), Д3, Д4, реестр рисков (О13): проверка состава выпусков не ведётся"
+    ]
+  },
+
+  "SDR": {
+    "_comment": "Покрывает SDR/MDR. БП-PA §7.3 (входные и выходные критерии) и §6. requirement/service Baseline, component Approved — прежние значения TZ-REQ-008 (§7.3: архитектура состоятельна и покрывает требования); need Baseline — базированные требования трассированы (§7.3а); conops Baseline — Д4 Baseline (§6); interface Preliminary — §7.3в: «определённые интерфейсы» (реестр в Д5, Прил. 4 §4); technology Preliminary — §7.3 вых. в: технологические риски приемлемы; risk Preliminary — §7.3г: обновлённые оценки рисков; scenario Preliminary — §7.3г: обновлённые оценки LCC и эффективности (анализы О6 на сценариях).",
+    "need": "Baseline",
+    "service": "Baseline",
+    "requirement": "Baseline",
+    "conops": "Baseline",
+    "technology": "Preliminary",
+    "risk": "Preliminary",
+    "component": "Approved",
+    "interface": "Preliminary",
+    "scenario": "Preliminary",
+    "pending": [
+      "review_item — RFA/RID SRR устранены (О15): вида нет",
+      "cost_estimate — обновлённые оценки LCC (§7.3г): вида нет",
+      "состав документов к SDR — пакет SDR/MDR (О15): проверка состава выпусков не ведётся"
+    ]
+  },
+
+  "KDP-B": {
+    "_comment": "БП-PA §7.4 (состав рассмотрения KDP B) и §6 (статусы к KDP B). requirement Baseline — Д3 (§6); conops Baseline — Д4 (§6); service/need Baseline — базированные требования и ConOps опираются на зафиксированные цели и сервисы; technology Approved — Д6 «Approved (план)» (§6); risk Preliminary — Д7 «Preliminary / актуальный реестр» (§6); component Approved — архитектура принята SDR/MDR (§7.3 вых. а, не ниже SDR); interface Preliminary — в составе Д5 Preliminary (§6); scenario Preliminary — анализы в комплекте.",
+    "need": "Baseline",
+    "service": "Baseline",
+    "requirement": "Baseline",
+    "conops": "Baseline",
+    "technology": "Approved",
+    "risk": "Preliminary",
+    "component": "Approved",
+    "interface": "Preliminary",
+    "scenario": "Preliminary",
+    "pending": [
+      "cost_estimate — Д9 диапазоны high/low к KDP B (§6, §7.4в): вида нет и статуса вне модели",
+      "oda — Д8 «Updated» (§6): вида нет",
+      "review_item — отчёты об устранении замечаний SRR и SDR/MDR (§7.4а): вида нет",
+      "project_plan — Д10 Preliminary (§6): выпуск ведётся видом project без статуса документа",
+      "состав документов к KDP B — комплект Д1–Д10 в статусах §6 (§7.4б, Д1 Approved подписывается): проверка состава выпусков не ведётся"
+    ]
+  }
 }

@@ -65,7 +65,12 @@ class Gates(private val gates: Map<String, Map<String, String>> = load()) {
             return buildMap {
                 n.fields().forEach { (gate, types) ->
                     if (gate.startsWith("_")) return@forEach
-                    put(gate, buildMap { types.fields().forEach { (t, s) -> put(t, s.asText()) } })
+                    put(gate, buildMap {
+                        types.fields().forEach { (t, s) ->
+                            // служебные ключи точки: пояснение и реестр пробелов, не статусы
+                            if (!t.startsWith("_") && t != "pending") put(t, s.asText())
+                        }
+                    })
                 }
             }
         }

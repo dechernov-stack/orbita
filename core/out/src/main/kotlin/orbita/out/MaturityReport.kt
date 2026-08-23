@@ -77,7 +77,10 @@ class MaturityReports(private val req: ReqService) {
                 )
             }
             .sortedBy { it.id }
-        val allGaps = if (trlGaps.isEmpty()) gaps else gaps + ("technology" to trlGaps)
+        // статусные разрывы технологий не замещаются TRL-разрывами: с шести
+        // точек реестра статус технологии требуется и сам по себе
+        val allGaps = if (trlGaps.isEmpty()) gaps
+                      else gaps + ("technology" to (gaps["technology"].orEmpty() + trlGaps))
         return MaturityReport(gate, at, allGaps, openTbd, breaks, unverified)
     }
 }
