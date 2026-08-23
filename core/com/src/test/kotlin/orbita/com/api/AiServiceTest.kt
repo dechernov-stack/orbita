@@ -91,10 +91,12 @@ class AiServiceTest {
                      "value":{"value":0.9,"unit":"1","provenance":{"source":"manual"}}},
               "verification_events":[{"id":"VE-1201","method":"analysis","kind":"preliminary",
                 "phase":"PhaseA","level":"system","status":"planned","closes":false,
-                "approach":"расчёт","means":"модель"},
+                "approach":"расчётная проверка по имитационной модели потоков",
+                "means":"модель Монте-Карло ядра"},
                {"id":"VE-1202","method":"test","kind":"qualification","phase":"PhaseC",
                 "level":"system","status":"planned","closes":true,
-                "approach":"испытания","means":"стенд","design_version":"К-1"}],
+                "approach":"квалификационные испытания на стенде радиолинии",
+                "means":"испытательный стенд радиолинии","design_version":"К-1"}],
               "lifecycle":{"status":"Draft","version":"1"}}]"""
         val run = service { _, _ -> ProviderAnswer(answer, "claude-sonnet-4-5", 1200, 800) }
             .ask("services_to_requirements", "AP-0001", PROJECT, "Платформа IoT.", "Чернов Д.")
