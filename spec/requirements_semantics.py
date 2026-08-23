@@ -105,25 +105,16 @@ def can_baseline(req, results):
 ORDER = ['Draft', 'Preliminary', 'Approved', 'Baseline']
 # Шесть точек процесса (задача «реестры процесса»): значения зеркалят
 # core/req/.../gates.json, источники — §6/§7 регламентов БП-PPA и БП-PA.
+# Шесть точек процесса: значения зеркалят core/req/.../gates.json,
+# источники — §6/§7 регламентов БП-PPA и БП-PA (блок C добавил цели,
+# альтернативы, стоимость и ODA).
 GATES = {
-    'internal_review': {'need': 'Draft', 'service': 'Draft', 'requirement': 'Draft',
-                        'conops': 'Draft', 'technology': 'Draft', 'risk': 'Draft',
-                        'component': 'Draft', 'scenario': 'Draft'},
-    'MCR':   {'need': 'Approved', 'service': 'Draft', 'requirement': 'Draft',
-              'conops': 'Draft', 'technology': 'Preliminary', 'risk': 'Preliminary',
-              'component': 'Draft', 'scenario': 'Draft'},
-    'KDP-A': {'need': 'Approved', 'service': 'Preliminary', 'requirement': 'Draft',
-              'conops': 'Draft', 'technology': 'Preliminary', 'risk': 'Preliminary',
-              'component': 'Preliminary', 'scenario': 'Draft'},
-    'SRR':   {'need': 'Baseline', 'service': 'Approved', 'requirement': 'Baseline',
-              'conops': 'Approved', 'technology': 'Preliminary', 'risk': 'Preliminary',
-              'component': 'Preliminary', 'interface': 'Draft', 'scenario': 'Draft'},
-    'SDR':   {'need': 'Baseline', 'service': 'Baseline', 'requirement': 'Baseline',
-              'conops': 'Baseline', 'technology': 'Preliminary', 'risk': 'Preliminary',
-              'component': 'Approved', 'interface': 'Preliminary', 'scenario': 'Preliminary'},
-    'KDP-B': {'need': 'Baseline', 'service': 'Baseline', 'requirement': 'Baseline',
-              'conops': 'Baseline', 'technology': 'Approved', 'risk': 'Preliminary',
-              'component': 'Approved', 'interface': 'Preliminary', 'scenario': 'Preliminary'},
+    'internal_review': {'need': 'Draft', 'service': 'Draft', 'requirement': 'Draft', 'conops': 'Draft', 'technology': 'Draft', 'risk': 'Draft', 'component': 'Draft', 'scenario': 'Draft', 'mission_goal': 'Draft', 'alternative': 'Draft', 'cost_estimate': 'Draft', 'oda': 'Draft'},
+    'MCR': {'need': 'Approved', 'service': 'Draft', 'requirement': 'Draft', 'conops': 'Draft', 'technology': 'Preliminary', 'risk': 'Preliminary', 'component': 'Draft', 'scenario': 'Draft', 'mission_goal': 'Approved', 'alternative': 'Preliminary', 'cost_estimate': 'Preliminary', 'oda': 'Draft'},
+    'KDP-A': {'need': 'Approved', 'service': 'Preliminary', 'requirement': 'Draft', 'conops': 'Draft', 'technology': 'Preliminary', 'risk': 'Preliminary', 'component': 'Preliminary', 'scenario': 'Draft', 'mission_goal': 'Approved', 'alternative': 'Preliminary', 'cost_estimate': 'Preliminary', 'oda': 'Draft'},
+    'SRR': {'need': 'Baseline', 'service': 'Approved', 'requirement': 'Baseline', 'conops': 'Approved', 'technology': 'Preliminary', 'risk': 'Preliminary', 'component': 'Preliminary', 'interface': 'Draft', 'scenario': 'Draft', 'mission_goal': 'Baseline'},
+    'SDR': {'need': 'Baseline', 'service': 'Baseline', 'requirement': 'Baseline', 'conops': 'Baseline', 'technology': 'Preliminary', 'risk': 'Preliminary', 'component': 'Approved', 'interface': 'Preliminary', 'scenario': 'Preliminary', 'mission_goal': 'Baseline'},
+    'KDP-B': {'need': 'Baseline', 'service': 'Baseline', 'requirement': 'Baseline', 'conops': 'Baseline', 'technology': 'Approved', 'risk': 'Preliminary', 'component': 'Approved', 'interface': 'Preliminary', 'scenario': 'Preliminary', 'mission_goal': 'Baseline', 'cost_estimate': 'Preliminary', 'oda': 'Preliminary'},
 }
 
 def readiness(objects, gate):
