@@ -107,8 +107,8 @@ class ScreenViews(
     private val unitLabels: UnitLabels = UnitLabels(),
 ) {
 
-    fun requirementTree(): RequirementTreeView {
-        val requirements = currentRequirements()
+    fun requirementTree(projectId: String? = null): RequirementTreeView {
+        val requirements = currentRequirements(projectId)
         val ids = requirements.map { it.id }
         val links = ids.flatMap { req.links.linksFrom(it, "derive") }
         val tree = buildTree(ids, links)
@@ -119,7 +119,7 @@ class ScreenViews(
     fun card(requirementId: String): RequirementCard {
         val stored = req.objects.current(requirementId)
             ?: throw NoSuchElementException("нет требования $requirementId")
-        val tree = requirementTree()
+        val tree = requirementTree(stored.projectId)
         val doc = stored.doc
         val events = doc.path("verification_events").map { e ->
             val ref = e.path("evidence_ref").asText("").ifBlank { null }
@@ -182,9 +182,9 @@ class ScreenViews(
      * Экран 12: система в целом. Все сводки считаются здесь — клиент получает
      * готовые числа, включая критичность клеток матрицы рисков.
      */
-    fun systemOverview(): SystemOverview {
+    fun systemOverview(projectId: String? = null): SystemOverview {
         val requirements = currentRequirements()
-        val components = req.objects.listCurrent()
+        val components = req.objects.listCurrent(projectId)
             .filter { (it.type == "component" || it.type == "interface") && it.status != Lifecycle.Cancelled }
         val tree = requirementTree()
 
@@ -202,7 +202,7 @@ class ScreenViews(
                 .forEach { (id, bar) -> add("$id: бюджет превышен на ${bar.overrunValue}") }
             registerSummary(risks).escalate.forEach { add("$it: риск подлежит эскалации") }
             req.elementsWithoutRequirements().forEach { add("$it: на элемент не распределено ни одного требования") }
-            req.links.traceBreaks().forEach { add("$it: требование без входящей нити трассировки") }
+            req.links.traceBreaks(projectId).forEach { add("$it: требование без входящей нити трассировки") }
             req.inconsistentAllocations().forEach { (parent, child, why) ->
                 add("$parent → $child: распределение несогласовано — $why")
             }
@@ -282,6 +282,6 @@ class ScreenViews(
         )
     }
 
-    private fun currentRequirements() =
-        req.objects.listCurrent().filter { it.type == "requirement" && it.status != Lifecycle.Cancelled }
+    private fun currentRequirements(projectId: String? = null) =
+        req.objects.listCurrent(projectId).filter { it.type == "requirement" && it.status != Lifecycle.Cancelled }
 }

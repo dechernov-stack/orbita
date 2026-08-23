@@ -143,5 +143,15 @@ object SchemaCheck {
             ).use { rs -> rs.next(); rs.getLong(1) > 0 }
         }
         check(hasGuard) { "schema check failed: trigger objects_baseline_guard is missing (TZ-COM-003)" }
+
+        // V010: проект — контейнер (ADR-022)
+        val hasProject = conn.createStatement().use { st ->
+            st.executeQuery(
+                """SELECT count(*) FROM information_schema.columns
+                    WHERE table_schema = current_schema() AND column_name = 'project_id'
+                      AND table_name IN ('objects', 'links')"""
+            ).use { rs -> rs.next(); rs.getLong(1) == 2L }
+        }
+        check(hasProject) { "schema check failed: objects/links.project_id is missing (V010)" }
     }
 }

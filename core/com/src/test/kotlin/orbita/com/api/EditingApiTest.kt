@@ -31,7 +31,16 @@ class EditingApiTest {
     private val client = HttpClient.newHttpClient()
 
     @BeforeEach
-    fun clean() = TestDb.truncateAll()
+    fun clean() {
+        TestDb.truncateAll()
+        // ADR-022: рабочий слой пишет в проект; пустой проект — не пустой портфель
+        boundary.ingest(
+            orbita.mod.model.CoreType.Project,
+            """{"id":"PJ-0001","name":"Тестовый проект","phase":"phase_a",
+                "milestones":[{"gate":"SRR"},{"gate":"SDR"}],
+                "lifecycle":{"status":"Draft","version":"1"}}""",
+        )
+    }
 
     @AfterAll
     fun stop() = server.stop(0)

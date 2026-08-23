@@ -79,10 +79,10 @@ class Matrices(
 ) {
 
     /** Матрица «цель ↔ требование ↔ элемент ↔ метод» из связей хранилища. */
-    fun traceMatrix(): TraceMatrix {
+    fun traceMatrix(projectId: String? = null): TraceMatrix {
         val rows = mutableListOf<TraceMatrixRow>()
         val gaps = mutableListOf<TraceGapEntry>()
-        for (r in currentRequirements()) {
+        for (r in currentRequirements(projectId)) {
             val up = req.links.linksTo(r.id, "trace")
             val needs = req.links.ancestors(r.id).map { it.id }.filter { it.startsWith("ND-") }.sorted()
             val services = up.filter { it.fromId.startsWith("SV-") }
@@ -106,8 +106,11 @@ class Matrices(
      * Свидетельство разрешается в объект EV-NNNN и проверяется на применимость
      * к текущей конфигурации.
      */
-    fun verificationMatrix(currentConfiguration: String? = null): List<VerificationSummaryRow> =
-        currentRequirements().map { r ->
+    fun verificationMatrix(
+        currentConfiguration: String? = null,
+        projectId: String? = null,
+    ): List<VerificationSummaryRow> =
+        currentRequirements(projectId).map { r ->
             val events = r.doc.path("verification_events").map { e ->
                 val ref = e.path("evidence_ref").asText("").ifBlank { null }
                 val evidence = ref?.let { req.objects.current(it) }
@@ -142,7 +145,7 @@ class Matrices(
      * Матрица ВАЛИДАЦИИ — отдельная от матрицы верификации (CR-003 п. 5):
      * «то ли мы построили» против «построили ли мы правильно».
      */
-    fun validationMatrix(): List<ValidationMatrixRow> = req.objects.listCurrent()
+    fun validationMatrix(projectId: String? = null): List<ValidationMatrixRow> = req.objects.listCurrent(projectId)
         .filter { it.type == "validation" && it.status != Lifecycle.Cancelled }
         .map { v ->
             ValidationMatrixRow(
@@ -159,10 +162,10 @@ class Matrices(
         }.sortedBy { it.validationId }
 
     /** Непокрытые требования: статус верификации «не проверено» (TZ-REQ-008). */
-    fun unverifiedRequirements(): List<String> = currentRequirements()
+    fun unverifiedRequirements(projectId: String? = null): List<String> = currentRequirements(projectId)
         .filter { verificationState(it.doc) != VerificationState.Verified }
         .map { it.id }.sorted()
 
-    private fun currentRequirements() =
-        req.objects.listCurrent().filter { it.type == "requirement" && it.status != Lifecycle.Cancelled }
+    private fun currentRequirements(projectId: String? = null) =
+        req.objects.listCurrent(projectId).filter { it.type == "requirement" && it.status != Lifecycle.Cancelled }
 }

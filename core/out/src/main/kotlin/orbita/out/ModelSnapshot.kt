@@ -71,8 +71,9 @@ object ModelSnapshot {
         mapper: ObjectMapper = ObjectMapper(),
         options: List<JsonNode> = emptyList(),
         budgets: List<JsonNode> = emptyList(),
+        projectId: String? = null,
     ): ObjectNode {
-        val current = objects.listCurrent().filter { it.status != Lifecycle.Cancelled }
+        val current = objects.listCurrent(projectId).filter { it.status != Lifecycle.Cancelled }
         val model = mapper.createObjectNode()
 
         for ((type, field) in COLLECTIONS) {

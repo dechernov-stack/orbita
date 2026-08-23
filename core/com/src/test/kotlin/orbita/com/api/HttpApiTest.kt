@@ -29,7 +29,16 @@ class HttpApiTest {
     private val client = HttpClient.newHttpClient()
 
     @BeforeAll
-    fun reset() = TestDb.truncateAll()
+    fun reset() {
+        TestDb.truncateAll()
+        // ADR-022: запись через API требует проекта-контейнера
+        boundary.ingest(
+            orbita.mod.model.CoreType.Project,
+            """{"id":"PJ-0001","name":"Тестовый проект","phase":"phase_a",
+                "milestones":[{"gate":"SRR"},{"gate":"SDR"}],
+                "lifecycle":{"status":"Draft","version":"1"}}""",
+        )
+    }
 
     @AfterAll
     fun stop() = server.stop(0)

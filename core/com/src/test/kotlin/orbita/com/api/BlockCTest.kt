@@ -30,6 +30,13 @@ class BlockCTest {
     @BeforeAll
     fun seed() {
         TestDb.truncateAll()
+        // ADR-022: контейнер прежде содержимого
+        boundary.ingest(
+            orbita.mod.model.CoreType.Project,
+            """{"id":"PJ-0001","name":"Тестовый проект","phase":"phase_a",
+                "milestones":[{"gate":"SRR"},{"gate":"SDR"}],
+                "lifecycle":{"status":"Draft","version":"1"}}""",
+        )
         boundary.req.ingestNeed(
             """{"id":"ND-0701","statement":"Сбор показаний датчиков без наземной связи.",
                 "stakeholder":{"name":"Оператор","role":"operator"},
@@ -165,18 +172,13 @@ class BlockCTest {
     }
 
     @Test
-    fun `точки читаются из проекта, без проекта — из реестра`() {
-        var gates = mapper.readTree(get("/views/gates").body())
-        assertEquals("registry", gates["source"].asText())
-
-        post(
-            "/objects/project",
-            """{"id":"PJ-0701","name":"Орбита-IoT","phase":"phase_a",
-                "milestones":[{"gate":"SRR","due":"2026-10-01"},{"gate":"SDR","due":"2027-02-01"}],
-                "lifecycle":{"status":"Draft","version":"1"}}""",
-        )
-        gates = mapper.readTree(get("/views/gates").body())
+    fun `точки читаются из проекта контекста`() {
+        // ADR-022: контекст запроса — единственный проект портфеля (PJ-0001
+        // из фикстуры); случай пустого портфеля (source=registry) — в
+        // ProjectContainerTest, где портфель действительно пуст
+        val gates = mapper.readTree(get("/views/gates").body())
         assertEquals("project", gates["source"].asText())
+        assertEquals("PJ-0001", gates["project_ref"].asText())
         assertEquals(listOf("SRR", "SDR"), gates["gates"].map { it["gate"].asText() })
     }
 }

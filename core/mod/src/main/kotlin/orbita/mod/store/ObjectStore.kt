@@ -23,6 +23,8 @@ data class StoredObject(
     val supersedes: Long?,
     val changeRef: String?,
     val createdBy: String,
+    /** Контейнер (ADR-022): идентификатор объекта вида project. */
+    val projectId: String,
 )
 
 class ObjectStore(private val conn: Connection, private val mapper: ObjectMapper = ObjectMapper()) {
@@ -36,10 +38,11 @@ class ObjectStore(private val conn: Connection, private val mapper: ObjectMapper
         version: String = "1",
         createdBy: String = "system",
         validFrom: OffsetDateTime = OffsetDateTime.now(ZoneOffset.UTC),
+        projectId: String = DEFAULT_PROJECT,
     ): StoredObject = mappingConstraints {
         conn.prepareStatement(
-            """INSERT INTO objects(id, type, version, status, doc, valid_from, created_by)
-               VALUES (?, ?::object_type, ?, ?::lifecycle, ?::jsonb, ?, ?)
+            """INSERT INTO objects(id, type, version, status, doc, valid_from, created_by, project_id)
+               VALUES (?, ?::object_type, ?, ?::lifecycle, ?::jsonb, ?, ?, ?)
                RETURNING $COLUMNS"""
         ).use { ps ->
             ps.setString(1, id)
@@ -49,6 +52,8 @@ class ObjectStore(private val conn: Connection, private val mapper: ObjectMapper
             ps.setString(5, mapper.writeValueAsString(doc))
             ps.setObject(6, validFrom)
             ps.setString(7, createdBy)
+            // объект вида project принадлежит сам себе (ADR-022)
+            ps.setString(8, if (type == "project") id else projectId)
             ps.executeQuery().use { rs -> rs.next(); rs.toStoredObject() }
         }
     }
@@ -69,20 +74,34 @@ class ObjectStore(private val conn: Connection, private val mapper: ObjectMapper
             ps.executeQuery().use { rs -> rs.collect() }
         }
 
-    /** Текущие версии всех объектов. */
-    fun listCurrent(): List<StoredObject> =
-        conn.prepareStatement("SELECT $COLUMNS FROM objects WHERE valid_to IS NULL ORDER BY id").use { ps ->
+    /** Текущие версии всех объектов; с [projectId] — только объекты проекта. */
+    fun listCurrent(projectId: String? = null): List<StoredObject> =
+        conn.prepareStatement(
+            "SELECT $COLUMNS FROM objects WHERE valid_to IS NULL" +
+                (if (projectId != null) " AND project_id = ?" else "") + " ORDER BY id"
+        ).use { ps ->
+            if (projectId != null) ps.setString(1, projectId)
             ps.executeQuery().use { rs -> rs.collect() }
         }
 
     /** Срез модели на дату (db/queries.sql, запрос 5; TZ-OUT-003). */
-    fun sliceAt(at: OffsetDateTime): List<StoredObject> =
+    fun sliceAt(at: OffsetDateTime, projectId: String? = null): List<StoredObject> =
         conn.prepareStatement(
-            "SELECT $COLUMNS FROM objects WHERE valid_from <= ? AND (valid_to IS NULL OR valid_to > ?) ORDER BY id"
+            "SELECT $COLUMNS FROM objects WHERE valid_from <= ? AND (valid_to IS NULL OR valid_to > ?)" +
+                (if (projectId != null) " AND project_id = ?" else "") + " ORDER BY id"
         ).use { ps ->
             ps.setObject(1, at)
             ps.setObject(2, at)
+            if (projectId != null) ps.setString(3, projectId)
             ps.executeQuery().use { rs -> rs.collect() }
+        }
+
+    /** Идентификаторы проектов портфеля (ADR-022): контейнеры — объекты вида project. */
+    fun projectIds(): List<String> =
+        conn.createStatement().use { st ->
+            st.executeQuery(
+                "SELECT id FROM objects WHERE type = 'project' AND valid_to IS NULL ORDER BY id"
+            ).use { rs -> buildList { while (rs.next()) add(rs.getString(1)) } }
         }
 
     /**
@@ -130,8 +149,8 @@ class ObjectStore(private val conn: Connection, private val mapper: ObjectMapper
                     throw conflictWith(now, baseVersion ?: cur.version, newDoc)
                 }
                 conn.prepareStatement(
-                    """INSERT INTO objects(id, type, version, status, doc, valid_from, supersedes, change_ref, created_by)
-                       VALUES (?, ?::object_type, ?, 'Draft'::lifecycle, ?::jsonb, ?, ?, ?, ?)
+                    """INSERT INTO objects(id, type, version, status, doc, valid_from, supersedes, change_ref, created_by, project_id)
+                       VALUES (?, ?::object_type, ?, 'Draft'::lifecycle, ?::jsonb, ?, ?, ?, ?, ?)
                        RETURNING $COLUMNS"""
                 ).use { ps ->
                     ps.setString(1, cur.id)
@@ -142,6 +161,7 @@ class ObjectStore(private val conn: Connection, private val mapper: ObjectMapper
                     ps.setLong(6, cur.pk)
                     ps.setString(7, changeRef)
                     ps.setString(8, createdBy)
+                    ps.setString(9, cur.projectId)
                     ps.executeQuery().use { rs -> rs.next(); rs.toStoredObject() }
                 }
             }
@@ -177,8 +197,8 @@ class ObjectStore(private val conn: Connection, private val mapper: ObjectMapper
                     ps.executeUpdate()
                 }
                 conn.prepareStatement(
-                    """INSERT INTO objects(id, type, version, status, doc, valid_from, supersedes, created_by)
-                       VALUES (?, ?::object_type, ?, ?::lifecycle, ?::jsonb, ?, ?, ?)
+                    """INSERT INTO objects(id, type, version, status, doc, valid_from, supersedes, created_by, project_id)
+                       VALUES (?, ?::object_type, ?, ?::lifecycle, ?::jsonb, ?, ?, ?, ?)
                        RETURNING $COLUMNS"""
                 ).use { ps ->
                     ps.setString(1, cur.id)
@@ -189,6 +209,7 @@ class ObjectStore(private val conn: Connection, private val mapper: ObjectMapper
                     ps.setObject(6, at)
                     ps.setLong(7, cur.pk)
                     ps.setString(8, createdBy)
+                    ps.setString(9, cur.projectId)
                     ps.executeQuery().use { rs -> rs.next(); rs.toStoredObject() }
                 }
             }
@@ -229,8 +250,8 @@ class ObjectStore(private val conn: Connection, private val mapper: ObjectMapper
                         ps.executeUpdate()
                     }
                 conn.prepareStatement(
-                    """INSERT INTO objects(id, type, version, status, doc, valid_from, supersedes, created_by)
-                       VALUES (?, ?::object_type, ?, 'Cancelled'::lifecycle, ?::jsonb, ?, ?, ?)
+                    """INSERT INTO objects(id, type, version, status, doc, valid_from, supersedes, created_by, project_id)
+                       VALUES (?, ?::object_type, ?, 'Cancelled'::lifecycle, ?::jsonb, ?, ?, ?, ?)
                        RETURNING $COLUMNS"""
                 ).use { ps ->
                     ps.setString(1, cur.id)
@@ -240,6 +261,7 @@ class ObjectStore(private val conn: Connection, private val mapper: ObjectMapper
                     ps.setObject(5, at)
                     ps.setLong(6, cur.pk)
                     ps.setString(7, createdBy)
+                    ps.setString(8, cur.projectId)
                     ps.executeQuery().use { rs -> rs.next(); rs.toStoredObject() }
                 }
             }
@@ -292,11 +314,19 @@ class ObjectStore(private val conn: Connection, private val mapper: ObjectMapper
         supersedes = getLong("supersedes").let { if (wasNull()) null else it },
         changeRef = getString("change_ref"),
         createdBy = getString("created_by"),
+        projectId = getString("project_id"),
     )
 
-    private companion object {
-        const val COLUMNS =
+    companion object {
+        /**
+         * Контейнер переходного режима (ADR-022): пока портфель состоит из одного
+         * проекта, вызовы без явного проекта пишут в него. Граница API всегда
+         * передаёт проект явно; умолчание — для внутренних вызовов и тестов.
+         */
+        const val DEFAULT_PROJECT = "PJ-0001"
+
+        private const val COLUMNS =
             "pk, id, type::text AS type, version, status::text AS status, doc::text AS doc, " +
-                "valid_from, valid_to, supersedes, change_ref, created_by"
+                "valid_from, valid_to, supersedes, change_ref, created_by, project_id"
     }
 }

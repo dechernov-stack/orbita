@@ -86,24 +86,29 @@ class Boundary(private val registry: SchemaRegistry, conn: Connection) {
      * прикладные правила (Р9, flow down) и связи из документа; сценарий
      * сохраняется напрямую после валидации по схеме.
      */
-    fun ingest(type: CoreType, json: String, createdBy: String = "api"): StoredObject = when (type) {
-        CoreType.Need -> req.ingestNeed(json, createdBy)
-        CoreType.Service -> req.ingestService(json, createdBy)
-        CoreType.Requirement -> req.ingestRequirement(json, createdBy)
-        CoreType.Component -> req.ingestComponent(json, createdBy)
+    fun ingest(
+        type: CoreType,
+        json: String,
+        createdBy: String = "api",
+        projectId: String = orbita.mod.store.ObjectStore.DEFAULT_PROJECT,
+    ): StoredObject = when (type) {
+        CoreType.Need -> req.ingestNeed(json, createdBy, projectId)
+        CoreType.Service -> req.ingestService(json, createdBy, projectId)
+        CoreType.Requirement -> req.ingestRequirement(json, createdBy, projectId)
+        CoreType.Component -> req.ingestComponent(json, createdBy, projectId)
         // CR-003: свидетельства, валидации и интерфейсы — самостоятельные объекты
-        CoreType.Evidence -> req.ingestEvidence(json, createdBy)
-        CoreType.Validation -> req.ingestValidation(json, createdBy)
-        CoreType.Interface -> req.ingestInterface(json, createdBy)
-        CoreType.Risk -> req.ingestRisk(json, createdBy)
-        CoreType.Conops -> req.ingestConops(json, createdBy)
+        CoreType.Evidence -> req.ingestEvidence(json, createdBy, projectId)
+        CoreType.Validation -> req.ingestValidation(json, createdBy, projectId)
+        CoreType.Interface -> req.ingestInterface(json, createdBy, projectId)
+        CoreType.Risk -> req.ingestRisk(json, createdBy, projectId)
+        CoreType.Conops -> req.ingestConops(json, createdBy, projectId)
         // Решение проверяется правилом C3 сверх схемы; технология, проект и
         // выпуск документа — схема и статусная модель, общий путь сохранения
         CoreType.Decision -> {
             val doc = parse(json)
             registry.require(type.schemaName, doc)
             req.requireApplicationRules("decision", doc)
-            store(type, doc, createdBy)
+            store(type, doc, createdBy, projectId)
         }
         CoreType.DocumentIssue -> {
             val doc = parse(json)
@@ -115,12 +120,12 @@ class Boundary(private val registry: SchemaRegistry, conn: Connection) {
                     "C5: выпуск создаётся со статусом issued; approved — правкой выпущенного"
                 )
             }
-            store(type, doc, createdBy)
+            store(type, doc, createdBy, projectId)
         }
         CoreType.Technology, CoreType.Project -> {
             val doc = parse(json)
             registry.require(type.schemaName, doc)
-            store(type, doc, createdBy)
+            store(type, doc, createdBy, projectId)
         }
         CoreType.Scenario -> {
             val doc = parse(json)
@@ -133,7 +138,8 @@ class Boundary(private val registry: SchemaRegistry, conn: Connection) {
             if (problems.isNotEmpty()) {
                 throw ModelViolationException("сценарий ${doc.path("id").asText()}: " + problems.joinToString("; "))
             }
-            store(type, doc, createdBy)
+            requireRefsInProject(doc, projectId)
+            store(type, doc, createdBy, projectId)
         }
         // CR-005/ADR-021: входы моделирования. Прикладных правил связей у них
         // нет — только схема и статусная модель, поэтому общий путь сохранения.
@@ -146,7 +152,25 @@ class Boundary(private val registry: SchemaRegistry, conn: Connection) {
                 terminalRules.validate(doc).takeIf { it.isNotEmpty() }
                     ?.let { throw SchemaValidationException(type.schemaName, it) }
             }
-            store(type, doc, createdBy)
+            store(type, doc, createdBy, projectId)
+        }
+    }
+
+    /**
+     * ADR-022: ссылки сценария не создают связей, поэтому граница проекта
+     * проверяется здесь — сценарий одного проекта не считает по входам другого.
+     */
+    private fun requireRefsInProject(doc: JsonNode, projectId: String) {
+        orbita.mod.model.SCENARIO_REF_FIELDS.keys.forEach { field ->
+            val ref = doc.path(field).asText("")
+            if (ref.isBlank()) return@forEach
+            val target = objects.current(ref) ?: return@forEach
+            if (target.projectId != projectId) {
+                throw ModelViolationException(
+                    "ADR-022: сценарий проекта $projectId ссылается на $ref " +
+                        "чужого проекта ${target.projectId}"
+                )
+            }
         }
     }
 
@@ -181,7 +205,7 @@ class Boundary(private val registry: SchemaRegistry, conn: Connection) {
     }
 
     /** Сохранение объекта, у которого прикладных правил связей нет: схема и статус. */
-    private fun store(type: CoreType, doc: JsonNode, createdBy: String): StoredObject {
+    private fun store(type: CoreType, doc: JsonNode, createdBy: String, projectId: String): StoredObject {
         val lifecycle = doc.path("lifecycle")
         return objects.create(
             id = doc["id"].asText(),
@@ -190,6 +214,7 @@ class Boundary(private val registry: SchemaRegistry, conn: Connection) {
             status = Lifecycle.valueOf(lifecycle.path("status").asText(Lifecycle.Draft.name)),
             version = lifecycle.path("version").asText("1"),
             createdBy = createdBy,
+            projectId = projectId,
         )
     }
 

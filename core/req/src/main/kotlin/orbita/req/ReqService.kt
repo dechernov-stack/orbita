@@ -115,24 +115,32 @@ class ReqService(
     }
 
     /** Нужда (TZ-REQ-001): стейкхолдер обязателен схемой; traces_down порождает связи. */
-    fun ingestNeed(json: String, createdBy: String = "api"): StoredObject {
+    fun ingestNeed(
+        json: String,
+        createdBy: String = "api",
+        projectId: String = ObjectStore.DEFAULT_PROJECT,
+    ): StoredObject {
         val doc = registry.parse(json)
         registry.require("core/need", doc)
         return conn.tx {
-            val stored = create(doc, "need", createdBy)
+            val stored = create(doc, "need", createdBy, projectId)
             // связи — тем же пересчётом, что и при правке (ADR-027): один вход
-            syncLinks("need", stored.id, doc)
+            syncLinks("need", stored.id, doc, projectId)
             stored
         }
     }
 
     /** Сервис (TZ-REQ-002): QoS-профили по классам обязательны схемой (Р9). */
-    fun ingestService(json: String, createdBy: String = "api"): StoredObject {
+    fun ingestService(
+        json: String,
+        createdBy: String = "api",
+        projectId: String = ObjectStore.DEFAULT_PROJECT,
+    ): StoredObject {
         val doc = registry.parse(json)
         registry.require("core/service", doc)
         return conn.tx {
-            val stored = create(doc, "service", createdBy)
-            syncLinks("service", stored.id, doc)
+            val stored = create(doc, "service", createdBy, projectId)
+            syncLinks("service", stored.id, doc, projectId)
             stored
         }
     }
@@ -142,16 +150,20 @@ class ReqService(
      * отклоняется (Р9); распределение на несуществующий элемент отклоняется.
      * Связи выводятся из документа — матрицы формируются из них, не вручную.
      */
-    fun ingestRequirement(json: String, createdBy: String = "api"): StoredObject {
+    fun ingestRequirement(
+        json: String,
+        createdBy: String = "api",
+        projectId: String = ObjectStore.DEFAULT_PROJECT,
+    ): StoredObject {
         val doc = registry.parse(json)
         registry.require("core/requirement", doc)
         requireApplicationRules("requirement", doc)
         return conn.tx {
-            val stored = create(doc, "requirement", createdBy)
+            val stored = create(doc, "requirement", createdBy, projectId)
             // CR-003: вид декомпозиции — свойство СВЯЗИ (ADR-017/019); документ
             // объявляет родителей, по умолчанию распределение бюджета, производное
             // помечается deriveAs. Сами связи — тем же пересчётом, что и правка.
-            syncLinks("requirement", stored.id, doc)
+            syncLinks("requirement", stored.id, doc, projectId)
             stored
         }
     }
@@ -169,7 +181,12 @@ class ReqService(
      *
      * Эталон spec/link_semantics.py, один в один.
      */
-    fun syncLinks(type: String, id: String, doc: JsonNode) {
+    fun syncLinks(
+        type: String,
+        id: String,
+        doc: JsonNode,
+        projectId: String = ObjectStore.DEFAULT_PROJECT,
+    ) {
         data class Attrs(
             val consumerClass: String? = null,
             val allocationKind: String? = null,
@@ -252,6 +269,7 @@ class ReqService(
                 allocationKind = attrs.allocationKind,
                 rationale = attrs.rationale,
                 derivationKind = attrs.derivationKind,
+                projectId = projectId,
             )
         }
     }
@@ -291,8 +309,8 @@ class ReqService(
     }
 
     /** Требования, декомпозиция которых превышает родительский бюджет. */
-    fun inconsistentDecompositions(): List<Pair<String, RollupResult>> =
-        objects.listCurrent()
+    fun inconsistentDecompositions(projectId: String? = null): List<Pair<String, RollupResult>> =
+        objects.listCurrent(projectId)
             .filter { it.type == "requirement" && it.status != Lifecycle.Cancelled }
             .mapNotNull { r ->
                 val result = rollupFor(r.id)
@@ -302,18 +320,26 @@ class ReqService(
             }
 
     /** Элемент архитектуры (TZ-REQ-005). */
-    fun ingestComponent(json: String, createdBy: String = "api"): StoredObject {
+    fun ingestComponent(
+        json: String,
+        createdBy: String = "api",
+        projectId: String = ObjectStore.DEFAULT_PROJECT,
+    ): StoredObject {
         val doc = registry.parse(json)
         registry.require("core/component", doc)
-        return create(doc, "component", createdBy)
+        return create(doc, "component", createdBy, projectId)
     }
 
     /** Интерфейс IF-NNNN: две стороны ответственности (CR-003/ADR-019). */
-    fun ingestInterface(json: String, createdBy: String = "api"): StoredObject {
+    fun ingestInterface(
+        json: String,
+        createdBy: String = "api",
+        projectId: String = ObjectStore.DEFAULT_PROJECT,
+    ): StoredObject {
         val doc = registry.parse(json)
         registry.require("core/interface", doc)
         requireApplicationRules("interface", doc)
-        return create(doc, "interface", createdBy)
+        return create(doc, "interface", createdBy, projectId)
     }
 
     /**
@@ -321,7 +347,11 @@ class ReqService(
      * наполняется документ «Концепция применения». Связи с нуждами — тем же
      * пересчётом, что и у всех (ADR-027).
      */
-    fun ingestConops(json: String, createdBy: String = "api"): StoredObject {
+    fun ingestConops(
+        json: String,
+        createdBy: String = "api",
+        projectId: String = ObjectStore.DEFAULT_PROJECT,
+    ): StoredObject {
         val doc = registry.parse(json)
         registry.require("core/conops", doc)
         doc.path("traces_up").forEach { nd ->
@@ -331,24 +361,32 @@ class ReqService(
                 )
         }
         return conn.tx {
-            val stored = create(doc, "conops", createdBy)
-            syncLinks("conops", stored.id, doc)
+            val stored = create(doc, "conops", createdBy, projectId)
+            syncLinks("conops", stored.id, doc, projectId)
             stored
         }
     }
 
     /** Свидетельство EV-NNNN (CR-003/ADR-019). */
-    fun ingestEvidence(json: String, createdBy: String = "api"): StoredObject {
+    fun ingestEvidence(
+        json: String,
+        createdBy: String = "api",
+        projectId: String = ObjectStore.DEFAULT_PROJECT,
+    ): StoredObject {
         val doc = registry.parse(json)
         registry.require("core/evidence", doc)
-        return create(doc, "evidence", createdBy)
+        return create(doc, "evidence", createdBy, projectId)
     }
 
     /**
      * Валидация VA-NNNN: привязка к ожиданию стейкхолдера, не к требованию
      * (CR-003/ADR-019). Прикладные правила дополняют схему.
      */
-    fun ingestValidation(json: String, createdBy: String = "api"): StoredObject {
+    fun ingestValidation(
+        json: String,
+        createdBy: String = "api",
+        projectId: String = ObjectStore.DEFAULT_PROJECT,
+    ): StoredObject {
         val doc = registry.parse(json)
         registry.require("core/validation", doc)
         requireApplicationRules("validation", doc)
@@ -362,8 +400,15 @@ class ReqService(
                     "C1: валидация ссылается на несуществующий сценарий ConOps $conopsRef"
                 )
             }
+            // ссылка не создаёт связи, поэтому границу проекта проверяем здесь (ADR-022)
+            if (target.projectId != projectId) {
+                throw ModelViolationException(
+                    "ADR-022: валидация проекта $projectId ссылается на сценарий " +
+                        "$conopsRef чужого проекта ${target.projectId}"
+                )
+            }
         }
-        return create(doc, "validation", createdBy)
+        return create(doc, "validation", createdBy, projectId)
     }
 
     /**
@@ -372,15 +417,19 @@ class ReqService(
      * оценка не выше исходной. Те же правила применяются к предложениям ИИ —
      * упрощённой версии для них нет.
      */
-    fun ingestRisk(json: String, createdBy: String = "api"): StoredObject {
+    fun ingestRisk(
+        json: String,
+        createdBy: String = "api",
+        projectId: String = ObjectStore.DEFAULT_PROJECT,
+    ): StoredObject {
         val doc = registry.parse(json)
         registry.require("core/risk", doc)
         requireApplicationRules("risk", doc)
-        val stored = create(doc, "risk", createdBy)
+        val stored = create(doc, "risk", createdBy, projectId)
         // связь риска с затронутыми объектами выводится из документа
         doc.path("affects").forEach { a ->
             val target = a.asText("")
-            if (target.isNotBlank()) links.add(stored.id, target, "trace")
+            if (target.isNotBlank()) links.add(stored.id, target, "trace", projectId = projectId)
         }
         return stored
     }
@@ -394,11 +443,16 @@ class ReqService(
         if (type == "requirement") baselining.canBaseline(doc).second else emptyList()
 
     /** Активные и закрытые риски: закрытый сохраняется в реестре. */
-    fun risks(): List<JsonNode> = objects.listCurrent()
+    fun risks(projectId: String? = null): List<JsonNode> = objects.listCurrent(projectId)
         .filter { it.type == "risk" && it.status != Lifecycle.Cancelled }
         .map { it.doc }
 
-    private fun create(doc: JsonNode, type: String, createdBy: String): StoredObject {
+    private fun create(
+        doc: JsonNode,
+        type: String,
+        createdBy: String,
+        projectId: String,
+    ): StoredObject {
         val lifecycle = doc.path("lifecycle")
         return objects.create(
             id = doc.path("id").asText(),
@@ -407,6 +461,7 @@ class ReqService(
             status = Lifecycle.valueOf(lifecycle.path("status").asText(Lifecycle.Draft.name)),
             version = lifecycle.path("version").asText("1"),
             createdBy = createdBy,
+            projectId = projectId,
         )
     }
 
@@ -458,42 +513,45 @@ class ReqService(
     // ---------- отчёты целостности (TZ-REQ-001/002/005) ----------
 
     /** Нужды без единого сервиса-потомка (TZ-REQ-001). */
-    fun needsWithoutServices(): List<String> = queryIds(
+    fun needsWithoutServices(projectId: String? = null): List<String> = queryIds(
         """SELECT o.id FROM objects o
             WHERE o.valid_to IS NULL AND o.type = 'need' AND o.status <> 'Cancelled'
               AND NOT EXISTS (
                   SELECT 1 FROM links l
                     JOIN objects s ON s.id = l.to_id AND s.valid_to IS NULL AND s.type = 'service'
-                   WHERE l.from_id = o.id AND l.kind = 'trace')
-            ORDER BY o.id"""
+                   WHERE l.from_id = o.id AND l.kind = 'trace')""" +
+            projectFilter(projectId) + " ORDER BY o.id",
+        projectId,
     )
 
     /** Элементы без назначенных требований (TZ-REQ-005). */
-    fun elementsWithoutRequirements(): List<String> = queryIds(
+    fun elementsWithoutRequirements(projectId: String? = null): List<String> = queryIds(
         """SELECT o.id FROM objects o
             WHERE o.valid_to IS NULL AND o.type = 'component'
               AND NOT EXISTS (
-                  SELECT 1 FROM links l WHERE l.to_id = o.id AND l.kind = 'allocation')
-            ORDER BY o.id"""
+                  SELECT 1 FROM links l WHERE l.to_id = o.id AND l.kind = 'allocation')""" +
+            projectFilter(projectId) + " ORDER BY o.id",
+        projectId,
     )
 
     /**
      * Требования к пересмотру (TZ-REQ-006): у их trace-источника текущая версия
      * новее версии самого требования — источник менялся после базирования связи.
      */
-    fun reviewCandidates(): List<String> = queryIds(
+    fun reviewCandidates(projectId: String? = null): List<String> = queryIds(
         """SELECT DISTINCT r.id FROM objects r
              JOIN links l ON l.to_id = r.id AND l.kind = 'trace'
              JOIN objects s ON s.id = l.from_id AND s.valid_to IS NULL
             WHERE r.type = 'requirement' AND r.valid_to IS NULL AND r.status <> 'Cancelled'
-              AND s.valid_from > r.valid_from
-            ORDER BY r.id"""
+              AND s.valid_from > r.valid_from""" +
+            (if (projectId != null) " AND r.project_id = ?" else "") + " ORDER BY r.id",
+        projectId,
     )
 
     // ---------- зрелость (TZ-REQ-008) ----------
 
     /** Дерево изделия: элементы с родителями и интерфейсы с двумя сторонами (CR-003). */
-    fun productTree(): Map<String, ProductNode> = objects.listCurrent()
+    fun productTree(projectId: String? = null): Map<String, ProductNode> = objects.listCurrent(projectId)
         .filter { it.type == "component" || it.type == "interface" }
         .associate { o ->
             o.id to ProductNode(
@@ -508,10 +566,10 @@ class ReqService(
      * Требования-потомки, распределённые вне области родителя (CR-003 п. 6).
      * Возвращает (родитель, потомок, причина).
      */
-    fun inconsistentAllocations(): List<Triple<String, String, String>> {
-        val tree = productTree()
-        val byId = objects.listCurrent().filter { it.type == "requirement" }.associateBy { it.id }
-        return links.list("derive").mapNotNull { link ->
+    fun inconsistentAllocations(projectId: String? = null): List<Triple<String, String, String>> {
+        val tree = productTree(projectId)
+        val byId = objects.listCurrent(projectId).filter { it.type == "requirement" }.associateBy { it.id }
+        return links.list("derive", projectId).mapNotNull { link ->
             val parent = byId[link.fromId] ?: return@mapNotNull null
             val child = byId[link.toId] ?: return@mapNotNull null
             val (ok, why) = allocationConsistent(parent.doc, child.doc, tree)
@@ -520,10 +578,13 @@ class ReqService(
     }
 
     /** Спецификация элемента: требования, распределённые на него (представление). */
-    fun specificationOf(componentId: String): List<String> =
-        componentSpecification(
-            objects.listCurrent().filter { it.type == "requirement" }.map { it.doc }, componentId,
+    fun specificationOf(componentId: String): List<String> {
+        // область — проект элемента: спецификация не тянет чужие требования (ADR-022)
+        val scope = objects.current(componentId)?.projectId
+        return componentSpecification(
+            objects.listCurrent(scope).filter { it.type == "requirement" }.map { it.doc }, componentId,
         )
+    }
 
     /** Состояние верификации требования по его событиям (CR-003). */
     fun verificationStateOf(id: String): VerificationState {
@@ -532,13 +593,19 @@ class ReqService(
     }
 
     /** Снимки объектов на дату (по истории версий шага 1) либо текущие. */
-    fun snapshotsAt(at: java.time.OffsetDateTime?): List<ObjectSnapshot> =
-        (at?.let { objects.sliceAt(it) } ?: objects.listCurrent()).map { ObjectSnapshot.of(it) }
+    fun snapshotsAt(at: java.time.OffsetDateTime?, projectId: String? = null): List<ObjectSnapshot> =
+        (at?.let { objects.sliceAt(it, projectId) } ?: objects.listCurrent(projectId))
+            .map { ObjectSnapshot.of(it) }
 
-    fun readiness(gate: String, at: java.time.OffsetDateTime? = null): List<GateGap> =
-        gates.readiness(snapshotsAt(at), gate)
+    fun readiness(gate: String, at: java.time.OffsetDateTime? = null, projectId: String? = null): List<GateGap> =
+        gates.readiness(snapshotsAt(at, projectId), gate)
 
-    private fun queryIds(sql: String): List<String> = conn.createStatement().use { st ->
-        st.executeQuery(sql).use { rs -> buildList { while (rs.next()) add(rs.getString(1)) } }
-    }
+    private fun projectFilter(projectId: String?): String =
+        if (projectId != null) " AND o.project_id = ?" else ""
+
+    private fun queryIds(sql: String, projectId: String? = null): List<String> =
+        conn.prepareStatement(sql).use { ps ->
+            if (projectId != null) ps.setString(1, projectId)
+            ps.executeQuery().use { rs -> buildList { while (rs.next()) add(rs.getString(1)) } }
+        }
 }

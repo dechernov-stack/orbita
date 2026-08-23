@@ -48,14 +48,14 @@ class MaturityReports(private val req: ReqService) {
     /** Имена точек из реестра ворот — для /views/gates без проекта. */
     fun gateNames(): Set<String> = req.gates.gateNames
 
-    fun build(gate: String, at: OffsetDateTime? = null): MaturityReport {
-        val objects = at?.let { req.objects.sliceAt(it) } ?: req.objects.listCurrent()
-        val gaps = req.readiness(gate, at).groupBy { it.type }
+    fun build(gate: String, at: OffsetDateTime? = null, projectId: String? = null): MaturityReport {
+        val objects = at?.let { req.objects.sliceAt(it, projectId) } ?: req.objects.listCurrent(projectId)
+        val gaps = req.readiness(gate, at, projectId).groupBy { it.type }
         val requirements = objects.filter { it.type == "requirement" && it.status != Lifecycle.Cancelled }
         val openTbd = requirements.filter { hasOpenTbd(it.doc) }
             .map { TbdItem(it.id, it.doc.path("owner").asText(null)) }
             .sortedBy { it.id }
-        val breaks = traceGaps(objects.map { ObjectSnapshot.of(it) }, req.links.list("trace"))
+        val breaks = traceGaps(objects.map { ObjectSnapshot.of(it) }, req.links.list("trace", projectId))
         // CR-003: требование покрыто, только когда закрывающие события успешны
         val unverified = requirements
             .filter { verificationState(it.doc) != VerificationState.Verified }

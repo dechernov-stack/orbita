@@ -39,6 +39,14 @@ object DemoProject {
      * моменту уже существует.
      */
     fun seed(boundary: Boundary, project: JsonNode = load()) {
+        // Контейнер (ADR-022): демо живёт в проекте PJ-0001, как и перенос V010
+        boundary.ingest(
+            orbita.mod.model.CoreType.Project,
+            """{"id":"PJ-0001","name":"Орбита-IoT (демо)","phase":"phase_a",
+                "milestones":[{"gate":"SRR"},{"gate":"SDR"}],
+                "lifecycle":{"status":"Draft","version":"1"}}""",
+            DEMO_AUTHOR,
+        )
         val components = project.path("components")
         // сначала элементы, затем интерфейсы: интерфейс ссылается на стороны
         components.properties().filter { it.value.path("kind").asText() != "interface" }

@@ -49,7 +49,12 @@ class Editing(
      * черновик. Проверка — та же, что у приёма по API: forms не имеют
      * собственного облегчённого набора правил (§1.3).
      */
-    fun create(type: CoreType, draft: JsonNode, author: String): StoredObject {
+    fun create(
+        type: CoreType,
+        draft: JsonNode,
+        author: String,
+        projectId: String = orbita.mod.store.ObjectStore.DEFAULT_PROJECT,
+    ): StoredObject {
         require(author.isNotBlank()) { "TZ-COM-005: change without an author is not accepted" }
         val doc = draft.deepCopy<ObjectNode>()
         if (doc.path("id").asText("").isBlank()) doc.put("id", nextId(type))
@@ -71,7 +76,7 @@ class Editing(
         }
         fillRequiredCollections(type, doc)
         stampQuantities(doc, author)
-        return boundary.ingest(type, mapper.writeValueAsString(doc), author)
+        return boundary.ingest(type, mapper.writeValueAsString(doc), author, projectId)
     }
 
     /**
@@ -108,7 +113,7 @@ class Editing(
         // Связи выводятся из документа при каждой записи (ADR-027): до этого
         // «создал, потом привязал правкой» не давал ни одной связи — дерево
         // оставалось плоским, матрица трассировки пустой
-        boundary.req.syncLinks(stored.type, stored.id, stored.doc)
+        boundary.req.syncLinks(stored.type, stored.id, stored.doc, stored.projectId)
         return stored
     }
 
@@ -136,7 +141,7 @@ class Editing(
         val restored = prev.doc.deepCopy<ObjectNode>()
         restored.withObject("/lifecycle").put("version", boundary.objects.bumpVersion(cur.version))
         val stored = boundary.objects.change(id, restored, createdBy = author, baseVersion = cur.version)
-        boundary.req.syncLinks(stored.type, stored.id, stored.doc)
+        boundary.req.syncLinks(stored.type, stored.id, stored.doc, stored.projectId)
         return stored
     }
 

@@ -62,7 +62,7 @@ data class ReadinessView(
 
 class WizardViews(private val req: ReqService) {
 
-    fun needs(): List<NeedRow> = req.objects.listCurrent()
+    fun needs(projectId: String? = null): List<NeedRow> = req.objects.listCurrent(projectId)
         .filter { it.type == "need" && it.status != Lifecycle.Cancelled }
         .map { n ->
             val doc = n.doc
@@ -78,8 +78,11 @@ class WizardViews(private val req: ReqService) {
             )
         }.sortedBy { it.id }
 
-    fun services(demandClasses: Set<String> = DEFAULT_CLASSES): List<ServiceRow> =
-        req.objects.listCurrent()
+    fun services(
+        demandClasses: Set<String> = DEFAULT_CLASSES,
+        projectId: String? = null,
+    ): List<ServiceRow> =
+        req.objects.listCurrent(projectId)
             .filter { it.type == "service" && it.status != Lifecycle.Cancelled }
             .map { s ->
                 val doc = s.doc
@@ -107,9 +110,9 @@ class WizardViews(private val req: ReqService) {
                 )
             }.sortedBy { it.id }
 
-    fun readiness(gate: String): ReadinessView {
-        val gaps = req.readiness(gate)
-        val total = req.objects.listCurrent().count { it.status != Lifecycle.Cancelled }
+    fun readiness(gate: String, projectId: String? = null): ReadinessView {
+        val gaps = req.readiness(gate, projectId = projectId)
+        val total = req.objects.listCurrent(projectId).count { it.status != Lifecycle.Cancelled }
         return ReadinessView(
             gate = gate,
             gaps = gaps,
@@ -124,14 +127,14 @@ class WizardViews(private val req: ReqService) {
      * объекты и нет замечаний: «пусто» и «всё хорошо» — разные состояния,
      * и путать их нельзя.
      */
-    fun wizard(screens: ScreenViews): List<WizardStep> {
-        val needs = needs()
-        val services = services()
-        val tree = screens.requirementTree()
-        val overview = screens.systemOverview()
-        val components = req.objects.listCurrent()
+    fun wizard(screens: ScreenViews, projectId: String? = null): List<WizardStep> {
+        val needs = needs(projectId)
+        val services = services(projectId = projectId)
+        val tree = screens.requirementTree(projectId)
+        val overview = screens.systemOverview(projectId)
+        val components = req.objects.listCurrent(projectId)
             .count { (it.type == "component" || it.type == "interface") && it.status != Lifecycle.Cancelled }
-        val risks = req.risks()
+        val risks = req.risks(projectId)
 
         return listOf(
             step(1, "Нужды", needs.size, needs.filter { it.services.isEmpty() }
@@ -142,11 +145,11 @@ class WizardViews(private val req: ReqService) {
             step(3, "Требования", tree.rows.size, tree.rows.flatMap { r ->
                 r.planIssues.map { "${r.id}: $it" }
             }),
-            step(4, "Конфигурация", components, req.elementsWithoutRequirements()
+            step(4, "Конфигурация", components, req.elementsWithoutRequirements(projectId)
                 .map { "$it: на элемент не распределено ни одного требования" }),
             // Счётчик шага — действующие результаты расчётов, а не «есть ли
             // устаревшие»: число в подписи шага обязано что-то означать.
-            step(5, "Моделирование", activeResults().size,
+            step(5, "Моделирование", activeResults(projectId).size,
                 req.results.staleReport().map { "результат ${it.pk} устарел" }),
             step(6, "Верификация", tree.rows.count { it.verificationState != NOT_PLANNED },
                 tree.rows.filter { it.verificationState == NOT_PLANNED }
@@ -159,7 +162,7 @@ class WizardViews(private val req: ReqService) {
         WizardStep(number, title, objects, issues, complete = objects > 0 && issues.isEmpty())
 
     /** Действующие результаты по всем сценариям модели. */
-    private fun activeResults() = req.objects.listCurrent()
+    private fun activeResults(projectId: String? = null) = req.objects.listCurrent(projectId)
         .filter { it.type == "scenario" && it.status != Lifecycle.Cancelled }
         .flatMap { req.results.activeForScenario(it.id) }
 

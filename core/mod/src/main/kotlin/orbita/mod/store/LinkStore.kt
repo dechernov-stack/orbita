@@ -20,6 +20,8 @@ data class Link(
     val rationale: String? = null,
     /** Вид декомпозиции для derive: allocated участвует в свёртке бюджета, derived — нет (ADR-019). */
     val derivationKind: String? = null,
+    /** Контейнер (ADR-022): проект, которому принадлежат обе стороны. */
+    val projectId: String? = null,
 )
 
 class LinkStore(private val conn: Connection) {
@@ -32,10 +34,12 @@ class LinkStore(private val conn: Connection) {
         allocationKind: String? = null,
         rationale: String? = null,
         derivationKind: String? = null,
+        projectId: String = ObjectStore.DEFAULT_PROJECT,
     ): Unit = mappingConstraints {
+        requireSameProject(fromId, toId, projectId)
         conn.prepareStatement(
-            """INSERT INTO links(from_id, to_id, kind, consumer_class, allocation_kind, rationale, derivation_kind)
-               VALUES (?, ?, ?::link_kind, ?, ?, ?, ?)"""
+            """INSERT INTO links(from_id, to_id, kind, consumer_class, allocation_kind, rationale, derivation_kind, project_id)
+               VALUES (?, ?, ?::link_kind, ?, ?, ?, ?, ?)"""
         ).use { ps ->
             ps.setString(1, fromId)
             ps.setString(2, toId)
@@ -44,7 +48,34 @@ class LinkStore(private val conn: Connection) {
             ps.setString(5, if (kind == "allocation") allocationKind else null)
             ps.setString(6, rationale)
             ps.setString(7, if (kind == "derive") derivationKind else null)
+            ps.setString(8, projectId)
             ps.executeUpdate()
+        }
+    }
+
+    /**
+     * ADR-022 п. 4: связь не пересекает границу проекта. Проверяются те стороны,
+     * которые существуют как объекты; несуществующая сторона — забота вызывающего
+     * (FK на links нет с V001, связь может опережать объект в ходе пересчёта).
+     */
+    private fun requireSameProject(fromId: String, toId: String, projectId: String) {
+        conn.prepareStatement(
+            "SELECT id, project_id FROM objects WHERE id IN (?, ?) AND valid_to IS NULL"
+        ).use { ps ->
+            ps.setString(1, fromId)
+            ps.setString(2, toId)
+            ps.executeQuery().use { rs ->
+                while (rs.next()) {
+                    val id = rs.getString(1)
+                    val owner = rs.getString(2)
+                    if (owner != projectId) {
+                        throw ModelViolationException(
+                            "ADR-022: link $fromId -> $toId crosses project boundary: " +
+                                "'$id' belongs to '$owner', link belongs to '$projectId'"
+                        )
+                    }
+                }
+            }
         }
     }
 
@@ -92,24 +123,36 @@ class LinkStore(private val conn: Connection) {
 
     fun linksTo(id: String, kind: String? = null): List<Link> = select("to_id", id, kind)
 
-    fun list(kind: String? = null): List<Link> =
-        conn.prepareStatement(
-            "SELECT from_id, to_id, kind::text, consumer_class, allocation_kind, rationale, derivation_kind FROM links" +
-                (if (kind != null) " WHERE kind = ?::link_kind" else "") + " ORDER BY from_id, to_id"
+    fun list(kind: String? = null, projectId: String? = null): List<Link> {
+        val conditions = listOfNotNull(
+            kind?.let { "kind = ?::link_kind" },
+            projectId?.let { "project_id = ?" },
+        )
+        val where = if (conditions.isEmpty()) "" else " WHERE " + conditions.joinToString(" AND ")
+        return conn.prepareStatement(
+            "SELECT $LINK_COLUMNS FROM links$where ORDER BY from_id, to_id"
         ).use { ps ->
-            if (kind != null) ps.setString(1, kind)
+            var i = 1
+            if (kind != null) ps.setString(i++, kind)
+            if (projectId != null) ps.setString(i, projectId)
             ps.executeQuery().use { rs -> rs.collectLinks() }
         }
+    }
 
     private fun java.sql.ResultSet.collectLinks(): List<Link> = buildList {
         while (next()) {
-            add(Link(getString(1), getString(2), getString(3), getString(4), getString(5), getString(6), getString(7)))
+            add(
+                Link(
+                    getString(1), getString(2), getString(3), getString(4),
+                    getString(5), getString(6), getString(7), getString(8),
+                ),
+            )
         }
     }
 
     private fun select(column: String, id: String, kind: String?): List<Link> =
         conn.prepareStatement(
-            "SELECT from_id, to_id, kind::text, consumer_class, allocation_kind, rationale, derivation_kind FROM links WHERE $column = ?" +
+            "SELECT $LINK_COLUMNS FROM links WHERE $column = ?" +
                 (if (kind != null) " AND kind = ?::link_kind" else "") + " ORDER BY from_id, to_id"
         ).use { ps ->
             ps.setString(1, id)
@@ -117,9 +160,13 @@ class LinkStore(private val conn: Connection) {
             ps.executeQuery().use { rs -> rs.collectLinks() }
         }
 
-    fun count(): Long = conn.createStatement().use { st ->
-        st.executeQuery("SELECT count(*) FROM links").use { rs -> rs.next(); rs.getLong(1) }
-    }
+    fun count(projectId: String? = null): Long =
+        conn.prepareStatement(
+            "SELECT count(*) FROM links" + (if (projectId != null) " WHERE project_id = ?" else "")
+        ).use { ps ->
+            if (projectId != null) ps.setString(1, projectId)
+            ps.executeQuery().use { rs -> rs.next(); rs.getLong(1) }
+        }
 
     /** Запрос 1: предки объекта — обход вверх до нужд. Один запрос на весь обход (TZ-COM-002). */
     fun ancestors(id: String): List<TraceHop> = traverse(id, up = true)
@@ -158,22 +205,31 @@ class LinkStore(private val conn: Connection) {
     }
 
     /** Запрос 3: разрывы трассировки — требования без источника (TZ-REQ-003). */
-    fun traceBreaks(): List<String> = conn.createStatement().use { st ->
-        st.executeQuery(
+    fun traceBreaks(projectId: String? = null): List<String> =
+        conn.prepareStatement(
             """SELECT o.id FROM objects o
                 WHERE o.valid_to IS NULL AND o.type = 'requirement' AND o.status <> 'Cancelled'
-                  AND NOT EXISTS (SELECT 1 FROM links l WHERE l.to_id = o.id AND l.kind = 'trace')
-                ORDER BY o.id"""
-        ).use { rs -> buildList { while (rs.next()) add(rs.getString(1)) } }
-    }
+                  AND NOT EXISTS (SELECT 1 FROM links l WHERE l.to_id = o.id AND l.kind = 'trace')""" +
+                (if (projectId != null) " AND o.project_id = ?" else "") + " ORDER BY o.id"
+        ).use { ps ->
+            if (projectId != null) ps.setString(1, projectId)
+            ps.executeQuery().use { rs -> buildList { while (rs.next()) add(rs.getString(1)) } }
+        }
 
     /** Запрос 4: нераспределённые системные требования (TZ-REQ-005). */
-    fun unallocatedSystemRequirements(): List<String> = conn.createStatement().use { st ->
-        st.executeQuery(
+    fun unallocatedSystemRequirements(projectId: String? = null): List<String> =
+        conn.prepareStatement(
             """SELECT o.id FROM objects o
                 WHERE o.valid_to IS NULL AND o.type = 'requirement' AND o.doc->>'level' = 'system'
-                  AND NOT EXISTS (SELECT 1 FROM links l WHERE l.from_id = o.id AND l.kind = 'allocation')
-                ORDER BY o.id"""
-        ).use { rs -> buildList { while (rs.next()) add(rs.getString(1)) } }
+                  AND NOT EXISTS (SELECT 1 FROM links l WHERE l.from_id = o.id AND l.kind = 'allocation')""" +
+                (if (projectId != null) " AND o.project_id = ?" else "") + " ORDER BY o.id"
+        ).use { ps ->
+            if (projectId != null) ps.setString(1, projectId)
+            ps.executeQuery().use { rs -> buildList { while (rs.next()) add(rs.getString(1)) } }
+        }
+
+    private companion object {
+        const val LINK_COLUMNS =
+            "from_id, to_id, kind::text, consumer_class, allocation_kind, rationale, derivation_kind, project_id"
     }
 }

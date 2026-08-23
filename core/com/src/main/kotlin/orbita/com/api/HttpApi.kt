@@ -103,13 +103,21 @@ class HttpApi(private val boundary: Boundary) {
         val method = ex.requestMethod
         val objectMatch = Regex("^/objects/([A-Z]{2,3}-[0-9]{4})(/.*)?$").find(path)
         val editMatch = Regex("^/edit/([A-Z]{2,3}-[0-9]{4})(/.*)?$").find(path)
+        // ADR-022: проектный контекст запроса. ?project=PJ-NNNN обязателен,
+        // как только в портфеле больше одного проекта; при единственном
+        // проекте вызов без параметра работает в нём (переходный режим до
+        // перевёрстки клиента). null — портфель пуст.
+        val project: String? by lazy { resolveProject(ex) }
 
         when {
             // Список видов выводится из состава типов, а не перечисляется руками:
             // после ADR-021 их стало пятнадцать, и забытый в регулярном выражении
             // вид означал бы объект, который модель хранит, но принять не может.
             method == "POST" && objectTypePath(path) != null -> {
-                val stored = boundary.ingest(objectTypePath(path)!!, body(ex))
+                val type = objectTypePath(path)!!
+                // создание проекта не требует контекста: оно контейнер и заводит
+                val ctx = if (type == CoreType.Project) "PJ-0000" else requireProject(project)
+                val stored = boundary.ingest(type, body(ex), projectId = ctx)
                 respond(ex, 201, summary(stored))
             }
 
@@ -226,7 +234,7 @@ class HttpApi(private val boundary: Boundary) {
             method == "GET" && path == "/reports/maturity" -> {
                 val q = query(ex)
                 val gate = q["gate"] ?: throw IllegalArgumentException("query parameter 'gate' is required")
-                val report = boundary.maturity.build(gate, q["at"]?.let(OffsetDateTime::parse))
+                val report = boundary.maturity.build(gate, q["at"]?.let(OffsetDateTime::parse), project)
                 val n = mapper.createObjectNode()
                 n.put("gate", report.gate)
                 report.at?.let { n.put("at", it.toString()) }
@@ -249,7 +257,7 @@ class HttpApi(private val boundary: Boundary) {
             }
 
             method == "GET" && path == "/reports/trace-matrix" -> {
-                val m = boundary.matrices.traceMatrix()
+                val m = boundary.matrices.traceMatrix(project)
                 val n = mapper.createObjectNode()
                 val rows = n.putArray("rows")
                 m.rows.forEach { r ->
@@ -273,7 +281,7 @@ class HttpApi(private val boundary: Boundary) {
             // Богатая сборка matrices.verificationMatrix остаётся входом пакета
             // передачи (TZ-OUT-006) — у неё другой потребитель, не экран.
             method == "GET" && path == "/reports/verification-matrix" -> {
-                val docs = boundary.objects.listCurrent()
+                val docs = boundary.objects.listCurrent(project)
                     .filter { it.type == "requirement" && it.status != Lifecycle.Cancelled }
                     .map { it.doc }
                 val view = orbita.out.verificationMatrixView(docs)
@@ -292,14 +300,14 @@ class HttpApi(private val boundary: Boundary) {
                         .put("event", g.eventId).put("reason", g.reason)
                 }
                 val unverified = n.putArray("unverified")
-                boundary.matrices.unverifiedRequirements().forEach(unverified::add)
+                boundary.matrices.unverifiedRequirements(project).forEach(unverified::add)
                 respond(ex, 200, n)
             }
 
             // CR-003: валидация — отдельная матрица, отдельный вопрос «то ли построили»
             method == "GET" && path == "/reports/validation-matrix" -> {
                 val arr = mapper.createArrayNode()
-                boundary.matrices.validationMatrix().forEach { v ->
+                boundary.matrices.validationMatrix(project).forEach { v ->
                     arr.addObject()
                         .put("validation", v.validationId).put("target", v.target)
                         .put("conops_ref", v.conopsRef).put("product_kind", v.productKind)
@@ -310,7 +318,7 @@ class HttpApi(private val boundary: Boundary) {
             }
 
             method == "GET" && path == "/views/requirement-tree" -> {
-                val view = boundary.screens.requirementTree()
+                val view = boundary.screens.requirementTree(project)
                 val n = mapper.createObjectNode()
                 n.set<ArrayNode>("roots", mapper.valueToTree(view.roots))
                 n.set<ObjectNode>("children", mapper.valueToTree(view.children))
@@ -414,7 +422,7 @@ class HttpApi(private val boundary: Boundary) {
                 val type = CoreType.byDbType(stored?.type ?: typeByIdPrefix(targetId).dbType)
                 val saved = if (stored == null) {
                     marked.put("id", targetId)
-                    boundary.editing.create(type, marked, author)
+                    boundary.editing.create(type, marked, author, requireProject(project))
                 } else {
                     val changes = mapper.createObjectNode()
                     selected.forEach { field -> changes.set<ObjectNode>(field, marked.path(field)) }
@@ -430,20 +438,20 @@ class HttpApi(private val boundary: Boundary) {
 
             // Экраны мастера: нужды, сервисы, готовность, состояние шагов
             method == "GET" && path == "/views/needs" ->
-                respond(ex, 200, mapper.valueToTree(boundary.wizard.needs()))
+                respond(ex, 200, mapper.valueToTree(boundary.wizard.needs(project)))
 
             method == "GET" && path == "/views/services" ->
-                respond(ex, 200, mapper.valueToTree(boundary.wizard.services()))
+                respond(ex, 200, mapper.valueToTree(boundary.wizard.services(projectId = project)))
 
             method == "GET" && path == "/views/readiness" ->
-                respond(ex, 200, mapper.valueToTree(boundary.wizard.readiness(query(ex)["gate"] ?: "SRR")))
+                respond(ex, 200, mapper.valueToTree(boundary.wizard.readiness(query(ex)["gate"] ?: "SRR", project)))
 
             method == "GET" && path == "/views/wizard" ->
-                respond(ex, 200, mapper.valueToTree(boundary.wizard.wizard(boundary.screens)))
+                respond(ex, 200, mapper.valueToTree(boundary.wizard.wizard(boundary.screens, project)))
 
             // Реестр рисков: список и матрица одним ответом
             method == "GET" && path == "/views/risks" -> {
-                val risks = boundary.req.risks()
+                val risks = boundary.req.risks(project)
                 val n = mapper.createObjectNode()
                 n.set<ObjectNode>("summary", mapper.valueToTree(orbita.req.registerSummary(risks)))
                 n.set<ArrayNode>("risks", mapper.valueToTree(risks))
@@ -726,7 +734,7 @@ class HttpApi(private val boundary: Boundary) {
 
             // Экран 12: система в целом — сводки, бюджеты, матрица рисков
             method == "GET" && path == "/views/system" ->
-                respond(ex, 200, mapper.valueToTree(boundary.screens.systemOverview()))
+                respond(ex, 200, mapper.valueToTree(boundary.screens.systemOverview(project)))
 
             // Экспорт ReqIF (TZ-OUT-005, ADR-023): отображение здесь, XML — в службе
             // обмена. Дата выгрузки фиксируется в файле; параметр exported_at
@@ -735,16 +743,17 @@ class HttpApi(private val boundary: Boundary) {
             // проекта; без проекта — имена из реестра ворот с пометкой источника.
             // Реестр ворот в любом случае остаётся источником планок статусов.
             method == "GET" && path == "/views/gates" -> {
-                val project = boundary.objects.listCurrent()
-                    .firstOrNull { it.type == "project" && it.status != Lifecycle.Cancelled }
+                // проект контекста (ADR-022): чужие точки не показываются
+                val projectObj = project?.let { boundary.objects.current(it) }
+                    ?.takeIf { it.status != Lifecycle.Cancelled }
                 val out = mapper.createObjectNode()
                 val gates = out.putArray("gates")
-                if (project != null) {
+                if (projectObj != null) {
                     out.put("source", "project")
-                    out.put("project_ref", project.id)
-                    out.put("project_name", project.doc.path("name").asText(""))
-                    out.put("phase", project.doc.path("phase").asText(""))
-                    project.doc.path("milestones").forEach { m ->
+                    out.put("project_ref", projectObj.id)
+                    out.put("project_name", projectObj.doc.path("name").asText(""))
+                    out.put("phase", projectObj.doc.path("phase").asText(""))
+                    projectObj.doc.path("milestones").forEach { m ->
                         gates.addObject()
                             .put("gate", m.path("gate").asText())
                             .put("due", m.path("due").asText(null))
@@ -774,7 +783,7 @@ class HttpApi(private val boundary: Boundary) {
                 if (issuedAt.isBlank()) throw IllegalArgumentException("'issued_at' is required: дата выпуска — аргумент, не чтение часов")
                 val author = req.path("author").asText("")
                 if (author.isBlank()) throw IllegalArgumentException("'author' is required (TZ-COM-005)")
-                val model = orbita.out.ModelSnapshot.of(boundary.objects, mapper)
+                val model = orbita.out.ModelSnapshot.of(boundary.objects, mapper, projectId = project)
                 val generated = orbita.out.DocumentGenerator(mapper).render(model, template)
                 val issue = mapper.createObjectNode()
                 issue.put("template", template.code)
@@ -782,7 +791,7 @@ class HttpApi(private val boundary: Boundary) {
                 issue.put("issued_at", issuedAt)
                 issue.put("status", "issued")
                 issue.put("gaps", generated.gaps.size)
-                val stored = boundary.editing.create(CoreType.DocumentIssue, issue, author)
+                val stored = boundary.editing.create(CoreType.DocumentIssue, issue, author, requireProject(project))
                 respond(ex, 201, summary(stored))
             }
 
@@ -792,13 +801,13 @@ class HttpApi(private val boundary: Boundary) {
                 val code = path.removePrefix("/export/documents/").removeSuffix("/issues")
                 val template = orbita.out.DocumentTemplate.entries.firstOrNull { it.code == code }
                     ?: throw IllegalArgumentException("unknown document template '$code'")
-                val model = orbita.out.ModelSnapshot.of(boundary.objects, mapper)
+                val model = orbita.out.ModelSnapshot.of(boundary.objects, mapper, projectId = project)
                 val currentDigest = orbita.out.DocumentGenerator(mapper).render(model, template).digest
                 val out = mapper.createObjectNode()
                 out.put("template", template.code)
                 out.put("current_digest", currentDigest)
                 val issues = out.putArray("issues")
-                boundary.objects.listCurrent()
+                boundary.objects.listCurrent(project)
                     .filter { it.type == "document_issue" && it.doc.path("template").asText() == template.code }
                     .sortedBy { it.id }
                     .forEach { di ->
@@ -831,7 +840,7 @@ class HttpApi(private val boundary: Boundary) {
                         "unknown document template '$code'; known: " +
                             orbita.out.DocumentTemplate.entries.joinToString { it.code },
                     )
-                val model = orbita.out.ModelSnapshot.of(boundary.objects, mapper)
+                val model = orbita.out.ModelSnapshot.of(boundary.objects, mapper, projectId = project)
                 val doc = orbita.out.DocumentGenerator(mapper).render(model, template)
                 val out = mapper.createObjectNode()
                 out.set<ObjectNode>("body", doc.body)
@@ -849,7 +858,7 @@ class HttpApi(private val boundary: Boundary) {
             // валиден — терпит принимающий инструмент, поэтому предупреждение
             // показывается инженеру рядом с кнопкой выгрузки, а не прячется в лог.
             method == "GET" && path == "/export/reqif/check" -> {
-                val model = orbita.out.ModelSnapshot.of(boundary.objects, mapper)
+                val model = orbita.out.ModelSnapshot.of(boundary.objects, mapper, projectId = project)
                 val flattened = model.path("requirements")
                     .map { orbita.out.toSpecObject(it) }
                     .filter { orbita.out.flattenedAsString(it).isNotEmpty() }
@@ -876,7 +885,7 @@ class HttpApi(private val boundary: Boundary) {
                 if (format !in setOf("csv", "json")) {
                     throw IllegalArgumentException("query parameter 'format' must be one of: csv, json")
                 }
-                val model = orbita.out.ModelSnapshot.of(boundary.objects, mapper)
+                val model = orbita.out.ModelSnapshot.of(boundary.objects, mapper, projectId = project)
                 val requirements = model.path("requirements").map { r ->
                     orbita.out.ExchangeRequirement(
                         id = r.path("id").asText(),
@@ -887,7 +896,7 @@ class HttpApi(private val boundary: Boundary) {
                             .associate { (k, v) -> k to v },
                     )
                 }
-                val links = (boundary.links.list("trace") + boundary.links.list("derive"))
+                val links = (boundary.links.list("trace", project) + boundary.links.list("derive", project))
                 val doc = orbita.out.toExchange(requirements, links, exportedAt = query(ex)["exported_at"])
                 if (format == "json") {
                     ex.responseHeaders.add("Content-Disposition", "attachment; filename=\"orbita-requirements.json\"")
@@ -914,8 +923,8 @@ class HttpApi(private val boundary: Boundary) {
                             .put("adr", "ADR-023"),
                     )
                 } else {
-                    val model = orbita.out.ModelSnapshot.of(boundary.objects, mapper)
-                    val links = (boundary.links.list("trace") + boundary.links.list("derive"))
+                    val model = orbita.out.ModelSnapshot.of(boundary.objects, mapper, projectId = project)
+                    val links = (boundary.links.list("trace", project) + boundary.links.list("derive", project))
                         .map { orbita.out.ExchangeLink(it.fromId, it.toId, it.kind) }
                     val exportedAt = query(ex)["exported_at"]
                         ?: java.time.OffsetDateTime.now(java.time.ZoneOffset.UTC)
@@ -938,7 +947,7 @@ class HttpApi(private val boundary: Boundary) {
             // по трассе аппарата. Ответ сравнивает их с ручными из модели;
             // подстановка в модель — решение инженера, не автоматика.
             method == "GET" && path == "/views/spacecraft/mask-schedule" -> {
-                val current = boundary.objects.listCurrent()
+                val current = boundary.objects.listCurrent(project)
                 val demandMap = current.firstOrNull { it.type == "demand_map" }
                     ?: throw NoSuchElementException("карта спроса не загружена: маску не из чего строить")
                 val stations = current.firstOrNull { it.type == "ground_stations" }
@@ -984,7 +993,7 @@ class HttpApi(private val boundary: Boundary) {
             // подбор строится поверх них, предложенное помечено происхождением.
             method == "POST" && path == "/ground/suggest" -> {
                 val req = mapper.readTree(body(ex))
-                val stored = boundary.objects.listCurrent()
+                val stored = boundary.objects.listCurrent(project)
                     .firstOrNull { it.type == "ground_stations" }
                 val manual = stored?.doc?.path("stations")?.map { s ->
                     orbita.bal.StationSite(
@@ -1059,7 +1068,7 @@ class HttpApi(private val boundary: Boundary) {
                     // повторный импорт той же записи источника — обновление
                     // существующего профиля; ручная правка не затирается
                     val itemRef = provenance.path("import").path("item_ref").asText("")
-                    val existing = boundary.objects.listCurrent()
+                    val existing = boundary.objects.listCurrent(project)
                         .filter { it.type == "terminal_profile" }
                         .map { it.doc.deepCopy<ObjectNode>() }
                         .filter {
@@ -1128,7 +1137,7 @@ class HttpApi(private val boundary: Boundary) {
                             r.inputVersions.forEach { (k, v) -> iv.put(k, v) }
                         }
                 }
-                val spacecraft = boundary.objects.listCurrent().firstOrNull { it.type == "spacecraft" }
+                val spacecraft = boundary.objects.listCurrent(project).firstOrNull { it.type == "spacecraft" }
                 val budgets = spacecraft?.let {
                     orbita.out.ModelSnapshot.budgetsOf(
                         boundary.spacecraft.build(it.doc, orbita.out.SpacecraftConditions()),
@@ -1136,7 +1145,7 @@ class HttpApi(private val boundary: Boundary) {
                     )
                 } ?: emptyList()
                 val model = orbita.out.ModelSnapshot.of(
-                    boundary.objects, mapper, options = options, budgets = budgets,
+                    boundary.objects, mapper, options = options, budgets = budgets, projectId = project,
                 )
                 val pkg = orbita.out.TransferPackages.assemble(
                     model = model,
@@ -1256,7 +1265,7 @@ class HttpApi(private val boundary: Boundary) {
                 respond(ex, 200, mapper.valueToTree(orbita.req.EnumLabels().all()))
 
             method == "GET" && path == "/reports/review-candidates" ->
-                respond(ex, 200, mapper.valueToTree(boundary.req.reviewCandidates()))
+                respond(ex, 200, mapper.valueToTree(boundary.req.reviewCandidates(project)))
 
             // Параметры канала отдаются только адаптером (TZ-NET-001, TZ-NET-006)
             method == "GET" && path == "/protocol-adapter" ->
@@ -1270,9 +1279,10 @@ class HttpApi(private val boundary: Boundary) {
 
             method == "POST" && editTypePath(path) != null -> {
                 val req = mapper.readTree(body(ex))
-                val stored = boundary.editing.create(
-                    editTypePath(path)!!, req.path("doc"), author(req),
-                )
+                val type = editTypePath(path)!!
+                // создание проекта из интерфейса заводит контейнер (ADR-022)
+                val ctx = if (type == CoreType.Project) "PJ-0000" else requireProject(project)
+                val stored = boundary.editing.create(type, req.path("doc"), author(req), ctx)
                 respond(ex, 201, summary(stored).apply { set<ObjectNode>("doc", stored.doc) })
             }
 
@@ -1347,8 +1357,9 @@ class HttpApi(private val boundary: Boundary) {
                 val type = query(ex)["type"]
                     ?: throw IllegalArgumentException("query parameter 'type' is required")
                 val arr = mapper.createArrayNode()
-                boundary.objects.listCurrent().filter { it.type == type }.forEach { o ->
-                    arr.add(summary(o).put("title", titleOf(o)))
+                boundary.objects.listCurrent(if (type == "project") null else project)
+                    .filter { it.type == type }.forEach { o ->
+                        arr.add(summary(o).put("title", titleOf(o)))
                 }
                 respond(ex, 200, arr)
             }
@@ -1420,6 +1431,32 @@ class HttpApi(private val boundary: Boundary) {
             throw IllegalStateException("служба обмена ответила $status: ${text.take(300)}")
         }
         return text
+    }
+
+    /** ADR-022: запись требует проекта; пустой портфель — сначала создайте проект. */
+    private fun requireProject(project: String?): String =
+        project ?: throw IllegalArgumentException(
+            "в портфеле нет ни одного проекта — сначала создайте проект (POST /objects/project)"
+        )
+
+    /** ADR-022: проект запроса — из ?project= либо единственный в портфеле. */
+    private fun resolveProject(ex: HttpExchange): String? {
+        val asked = query(ex)["project"]
+        if (asked != null) {
+            val p = boundary.objects.current(asked)
+            require(p != null && p.type == "project") {
+                "проект '$asked' не найден"
+            }
+            return asked
+        }
+        val ids = boundary.objects.projectIds()
+        return when {
+            ids.isEmpty() -> null
+            ids.size == 1 -> ids[0]
+            else -> throw IllegalArgumentException(
+                "в портфеле ${ids.size} проектов — укажите ?project=PJ-NNNN (${ids.joinToString()})"
+            )
+        }
     }
 
     private fun query(ex: HttpExchange): Map<String, String> =
