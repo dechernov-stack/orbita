@@ -8,3 +8,4 @@ core/flw/src/main/kotlin/orbita/flw/FlowPerfCheck.kt:SC-0000 · испытате
 core/com/src/main/kotlin/orbita/com/api/HttpApi.kt:PA-0001 · встроенный адаптер (ADR-021): объект модели с этим id может ещё не существовать, а параметры канала обязаны отдаваться · 2026-08-22
 core/mod/src/main/kotlin/orbita/mod/store/ObjectStore.kt:PJ-0001 · умолчание переходного режима единственного проекта (ADR-022): граница API передаёт проект явно · 2026-08-23
 web/src/screens/BatchLoad.tsx:ND-0001 · плейсхолдер примера формата пачки в пустом поле ввода, в модель не попадает · 2026-08-23
+web/src/screens/AiService.tsx:ND-0001 · плейсхолдер примера формата ответа контура в пустом поле, в модель не попадает · 2026-08-23
