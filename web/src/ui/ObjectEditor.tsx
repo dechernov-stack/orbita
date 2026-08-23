@@ -17,6 +17,26 @@ import {
 import { ObjectForm, editableFields, emptyDoc, useSystemFieldsNote } from './ObjectForm'
 import { useSession } from './session'
 
+/**
+ * Порядок зрелости (TZ-COM-003) и подпись действия перехода. Кнопка называет
+ * ДЕЙСТВИЕ, а не целевой код: «утвердить предварительно» понятнее, чем
+ * «Preliminary», и именно так о статусах говорит регламент.
+ */
+const STATUS_ORDER = ['Draft', 'Preliminary', 'Approved', 'Baseline']
+
+const STATUS_ACTION: Record<string, string> = {
+  Preliminary: 'Утвердить предварительно',
+  Approved: 'Утвердить',
+  Baseline: 'Базировать',
+}
+
+/** Куда объект может шагнуть со своего статуса: только вперёд и на одну ступень. */
+function nextStatuses(status: string | null): string[] {
+  const i = STATUS_ORDER.indexOf(status ?? 'Draft')
+  if (i < 0 || i === STATUS_ORDER.length - 1) return []
+  return [STATUS_ORDER[i + 1]]
+}
+
 interface Props {
   /** Вид объекта в модели: `need`, `service`, `requirement`… */
   kind: string
@@ -273,19 +293,26 @@ export function ObjectEditor({ kind, schemaName, id, title, onSaved, onCancelled
             >
               Отменить объект
             </button>
-            <button
-              type="button"
-              className="tab"
-              disabled={busy || (issues != null && !issues.can_baseline)}
-              onClick={() => run(() => edit.promote(id, 'Baseline'))}
-              title={
-                issues && !issues.can_baseline
-                  ? `Базирование заблокировано: ${issues.issues.join('; ')}`
-                  : 'Перевести в Baseline'
-              }
-            >
-              Базировать
-            </button>
+            {/* Лестница статусов (TZ-COM-003): следующий шаг зрелости назван
+                словом, а не спрятан за «базировать». Черновик утверждается
+                предварительно, потом окончательно, и лишь затем базируется —
+                перепрыгнуть ступень нельзя, и это видно на кнопках. */}
+            {nextStatuses(status).map((next) => (
+              <button
+                key={next}
+                type="button"
+                className="tab"
+                disabled={busy || (next === 'Baseline' && issues != null && !issues.can_baseline)}
+                onClick={() => run(() => edit.promote(id, next))}
+                title={
+                  next === 'Baseline' && issues && !issues.can_baseline
+                    ? `Базирование заблокировано: ${issues.issues.join('; ')}`
+                    : `Перевести из «${label('lifecycle', status)}» в «${label('lifecycle', next)}»`
+                }
+              >
+                {STATUS_ACTION[next] ?? `Перевести в ${label('lifecycle', next)}`}
+              </button>
+            ))}
           </>
         )}
       </div>

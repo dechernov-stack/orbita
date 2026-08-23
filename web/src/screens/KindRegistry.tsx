@@ -107,6 +107,7 @@ export function KindRegistry({ kinds, title }: { kinds: string[]; title: string 
         {/* Массовое действие реестра (§3.2): перевод статуса пачкой */}
         {(rows?.length ?? 0) > 0 && (
           <>
+            <span className="secondary">статус:</span>
             <select value={massStatus} onChange={(e) => setMassStatus(e.target.value)}>
               {['Preliminary', 'Approved', 'Baseline'].map((st) => (
                 <option key={st} value={st}>{label('lifecycle', st)}</option>
@@ -125,7 +126,7 @@ export function KindRegistry({ kinds, title }: { kinds: string[]; title: string 
                   })
                   .catch((e) => setMassReport(String(e)))
               }}>
-              Все видимые →
+              Перевести все видимые
             </button>
             {massReport && <span className="secondary">{massReport}</span>}
           </>
