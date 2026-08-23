@@ -30,10 +30,11 @@ class SchemaValidationTest {
         // 21-я и 22-я — core/constellation и core/ground-stations (CR-005/ADR-021),
         // 23-я — core/interface (Шаг 16), 24–28-я — блок C (Шаг 17): conops,
         // 29–34-я — блок C задания «прогон до KDP B»: mission-goal, alternative,
-        // cost-estimate, oda, review-item, wbs-element;
+        // cost-estimate, oda, review-item, wbs-element; 35-я — ai-profile (П5:
+        // ограничения службы ИИ объектом, а не текстом в коде);
         // technology, decision, project, document-issue:
         // входы моделирования стали хранимыми объектами и получили схемы в core/
-        assertEquals(34, registry.names.size, "нормативных схем должно быть 34: ${registry.names}")
+        assertEquals(35, registry.names.size, "нормативных схем должно быть 35: ${registry.names}")
     }
 
     @Test

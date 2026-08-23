@@ -18,7 +18,9 @@ import orbita.req.QualityControl
 import orbita.req.allocationConsistent
 import orbita.req.interfaceAllocationValid
 import orbita.req.residualOk
+import orbita.req.SOURCE_RULE
 import orbita.req.riskIssues
+import orbita.req.sourceIssues
 import orbita.req.rollupCheck
 import orbita.req.verificationPlanIssues
 
@@ -31,7 +33,15 @@ data class ScreeningContext(
     val parentRequirement: JsonNode? = null,
     /** Уже принятые потомки того же родителя — свёртка считается по всей группе. */
     val siblings: List<JsonNode> = emptyList(),
+    /**
+     * Правило основания (П5, ловушка 10) включается профилем службы: значение
+     * без ссылки на источник не проходит молча. Само правило — в core/req.
+     */
+    val requireSource: Boolean = false,
 )
+
+/** Имя правила основания в отчёте фильтра — из core/req, второй копии нет. */
+const val NO_SOURCE_RULE = SOURCE_RULE
 
 /** Отбракованное предложение с замечаниями, пригодными для повторного пакета. */
 data class Screened(val item: JsonNode, val issues: List<String>)
@@ -92,13 +102,16 @@ class ProposalScreening(private val quality: QualityControl = QualityControl()) 
         // Запись реестра рисков — не требование: к ней применимы правила риска,
         // а правила формулировки требования неприменимы.
         val id = item.path("id").asText("")
-        if (id.startsWith("RSK-")) return riskProposalIssues(item)
+        if (id.startsWith("RSK-")) return riskProposalIssues(item) + sourceRuleIssues(item, ctx)
         // Блок E: цели, нужды и сервисы — не требования; правил формулировки
         // требований к ним нет, состоятельность держит нормативная схема
         // на акцепте (всё или ничего). Фильтр пропускает их к инженеру.
-        if (id.startsWith("MG-") || id.startsWith("ND-") || id.startsWith("SV-")) return emptyList()
+        if (id.startsWith("MG-") || id.startsWith("ND-") || id.startsWith("SV-")) {
+            return sourceRuleIssues(item, ctx)
+        }
 
         val issues = mutableListOf<String>()
+        issues += sourceRuleIssues(item, ctx)
 
         // requirements_semantics + constraint_semantics: качество формулировки,
         // оператор условия, единица, согласованность формулировки с оператором
@@ -166,6 +179,10 @@ class ProposalScreening(private val quality: QualityControl = QualityControl()) 
      * конъюнкция. К модели уходит только то, что требует переформулирования.
      */
     fun deterministicIssues(item: JsonNode): List<String> = quality.check(item)
+
+    /** Правило основания применяется, когда его включил профиль службы (П5). */
+    private fun sourceRuleIssues(item: JsonNode, ctx: ScreeningContext): List<String> =
+        if (ctx.requireSource) sourceIssues(item) else emptyList()
 
     /** Предложения, по которым имеет смысл платить за обращение к модели. */
     fun needsModel(items: List<JsonNode>): List<JsonNode> =

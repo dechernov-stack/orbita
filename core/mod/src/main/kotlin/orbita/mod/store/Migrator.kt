@@ -156,5 +156,9 @@ object SchemaCheck {
             ).use { rs -> rs.next(); rs.getLong(1) == 2L }
         }
         check(hasProject) { "schema check failed: objects/links.project_id is missing (V010)" }
+
+        // V012: служба ИИ — профиль объектом и журнал вызовов
+        check("ai_profile" in objectTypes) { "schema check failed: object_type lacks ai_profile (V012)" }
+        check("ai_calls" in existing) { "schema check failed: table ai_calls is missing (V012)" }
     }
 }

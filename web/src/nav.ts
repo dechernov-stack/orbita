@@ -84,7 +84,9 @@ export const SECTIONS: NavSection[] = [
     key: 'ai',
     label: 'Инструменты',
     screens: [
-      { key: 'ai', title: 'Предложения ИИ' },
+      { key: 'aiservice', title: 'Служба ИИ' },
+      { key: 'aiprofiles', title: 'Профили службы' },
+      { key: 'ai', title: 'Предложения ИИ (контур пакетов)' },
       { key: 'importb', title: 'Загрузка пачкой' },
       { key: 'terminals', title: 'Импорт терминалов' },
     ],

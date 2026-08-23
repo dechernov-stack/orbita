@@ -55,15 +55,67 @@ def parse_response(raw, pkg):
     return accepted, rejected
 
 # ---------- структурный фильтр: отбраковка ДО показа инженеру ----------
+# ---------- П5: правило основания (ловушка 10) ----------
+def source_issues(item, require_source=False):
+    """Числовое значение без ссылки на источник — не «плохое», а требующее
+    решения инженера: помечается и снимается с показа, а не проходит молча."""
+    if not require_source:
+        return []
+    found = []
+
+    def walk(node, path=''):
+        if isinstance(node, dict):
+            if isinstance(node.get('value'), (int, float)) and isinstance(node.get('unit'), str):
+                prov = node.get('provenance') or {}
+                has_ref = bool(prov.get('ref')) or bool((prov.get('import') or {}).get('dataset')) \
+                    or bool((prov.get('calculation') or {}).get('module'))
+                if not has_ref and prov.get('source') not in ('calculated', 'import'):
+                    found.append(path or 'значение')
+            for k, v in node.items():
+                if k != 'provenance':
+                    walk(v, f'{path}/{k}' if path else k)
+        elif isinstance(node, list):
+            for i, v in enumerate(node):
+                walk(v, f'{path}/{i}')
+
+    walk(item)
+    return [f'основание: значение «{p}» без ссылки на источник — требуется решение инженера'
+            for p in dict.fromkeys(found)]
+
+
+def compose_prompt(profile, context, kind_io):
+    """Промпт собирает СЛУЖБА из профиля и состояния модели: текста задания
+    в коде и скриптах нет. Порядок частей постоянен — иначе сравнивать вызовы
+    между собой нечем."""
+    parts = [f"Ты — инженерная служба проекта «{context['project']}», фаза {context['phase']}."]
+    parts.append('ОГРАНИЧЕНИЯ ПРОЕКТА (нарушать нельзя):')
+    parts += [f'— {p}' for p in profile.get('prohibitions', [])] or ['— не заданы']
+    if profile.get('statement_rules'):
+        parts.append('ПРАВИЛА ФОРМУЛИРОВОК:')
+        parts += [f'— {r}' for r in profile['statement_rules']]
+    if profile.get('glossary'):
+        parts.append('ГЛОССАРИЙ (термины употреблять только в этом значении):')
+        parts += [f"— {g['term']}: {g['meaning']}" for g in profile['glossary']]
+    if profile.get('require_source', True):
+        parts.append('ОСНОВАНИЕ ЗНАЧЕНИЙ: каждое числовое значение сопровождай источником')
+    parts.append('ЧТО УЖЕ ЕСТЬ В ПРОЕКТЕ:')
+    parts += [f'{k} ({len(v)})' for k, v in context.get('existing', {}).items()] or ['— проект пуст']
+    parts.append('ВХОД ОПЕРАЦИИ:')
+    parts.append(context['statement'])
+    parts.append(f"ЗАДАНИЕ: из входа «{kind_io[0]}» получи «{kind_io[1]}».")
+    return '\n'.join(parts)
+
+
 def screen_requirement(item, rules):
     """Предложение проходит те же правила, что и рукописное требование.
     rules — функции из эталонов: качество, условие, верификация, трассировка.
     Блок E: цели, нужды и сервисы — не требования; правил формулировки к ним
     нет, состоятельность держит нормативная схема на акцепте пачкой."""
     oid = str(item.get('id', ''))
+    require_source = bool(rules.pop('__require_source__', False)) if isinstance(rules, dict) else False
     if oid.startswith(('MG-', 'ND-', 'SV-')):
-        return []
-    issues = []
+        return source_issues(item, require_source)
+    issues = source_issues(item, require_source)
     for name, fn in rules.items():
         issues += [f'{name}: {i}' for i in fn(item)]
     return issues
@@ -246,6 +298,31 @@ def _run_checks():
     res2 = apply_diff(current, d, selected=set())
     check("пустой выбор ничего не меняет", res2 == current)
     check("ручного перебивания значений не требуется", True)
+
+    # ---------- П5: служба ИИ ----------
+    q_ok = {'id': 'RQ-0001', 'mop': {'value': {'value': 0.9, 'unit': '1',
+            'provenance': {'source': 'calculated'}}}}
+    q_bad = {'id': 'RQ-0002', 'mop': {'value': {'value': 0.9, 'unit': '1',
+             'provenance': {'source': 'manual'}}}}
+    check('правило основания выключено — значения проходят',
+          source_issues(q_bad, require_source=False) == [])
+    check('значение без источника помечается правилом основания',
+          len(source_issues(q_bad, require_source=True)) == 1)
+    check('посчитанное значение основание имеет',
+          source_issues(q_ok, require_source=True) == [])
+
+    profile = {'prohibitions': ['bent-pipe не предлагать (Р1)'],
+               'statement_rules': ['формулировка содержит модальное «должна»'],
+               'glossary': [{'term': 'зона обслуживания', 'meaning': 'footprint с замкнутым бюджетом'}],
+               'require_source': True}
+    ctx = {'project': 'Платформа IoT', 'phase': 'pre_phase_a',
+           'existing': {'need': ['ND-0001 — сбор телеметрии']}, 'statement': 'записка миссии'}
+    prompt = compose_prompt(profile, ctx, ('нужды', 'сервисы'))
+    check('промпт собирает служба: запреты в тексте', 'bent-pipe' in prompt)
+    check('промпт несёт глоссарий проекта', 'зона обслуживания' in prompt)
+    check('промпт несёт состояние модели', 'need (1)' in prompt)
+    check('промпт несёт вход операции инженера', 'записка миссии' in prompt)
+    check('промпт объявляет правило основания', 'ОСНОВАНИЕ ЗНАЧЕНИЙ' in prompt)
 
     print(f"\nИтог: пройдено {ok}, провалено {fail}")
     sys.exit(1 if fail else 0)

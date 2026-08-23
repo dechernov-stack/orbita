@@ -61,6 +61,18 @@ class PilotSeedTest {
     }
 
     @Test
+    fun `в затравке есть профили службы ИИ - порождающий и рецензионный`() {
+        val profiles = boundary.objects.listCurrent("PJ-0100").filter { it.type == "ai_profile" }
+        assertEquals(2, profiles.size)
+        // порождающий профиль несёт запреты проекта и правило основания
+        val generative = profiles.first { !it.doc.path("review_only").asBoolean(false) }
+        assertTrue(generative.doc.path("prohibitions").any { "bent-pipe" in it.asText() })
+        assertTrue(generative.doc.path("require_source").asBoolean())
+        // рецензия — профиль службы, а не проверка фикстур скриптом
+        assertTrue(profiles.any { it.doc.path("review_only").asBoolean(false) })
+    }
+
+    @Test
     fun `зрелость к SRR считается по затравке и называет разрывы`() {
         val report = boundary.maturity.build("SRR", projectId = "PJ-0100")
         // черновая затравка не готова к SRR — и отчёт обязан сказать, чем

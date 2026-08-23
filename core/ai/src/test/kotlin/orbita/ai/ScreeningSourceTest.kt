@@ -36,6 +36,9 @@ class ScreeningSourceTest {
                 // события, и применять его к требованию целиком нельзя —
                 // блок `verification` заменён массивом событий (CR-003, шаг 15 §3)
                 "verificationPlanIssues",   // verification_semantics
+                // П5: правило основания живёт в core/req рядом с остальными
+                "SOURCE_RULE",              // имя правила в отчёте, не второе его определение
+                "sourceIssues",             // source_rule (правило основания, ловушка 10)
             ),
             imported,
         )
@@ -68,6 +71,7 @@ class ScreeningSourceTest {
                 "roll.aggregate",           // rollupCheck: числа от правила
                 "riskIssues",               // risk_semantics: текст замечания от правила
                 "residualOk",               // risk_semantics
+                "sourceRuleIssues",         // source_rule: текст замечания от правила core/req
             ).any { it in line }
             assertTrue(callsRule, "замечание сформулировано в фильтре, а не правилом: $line")
         }

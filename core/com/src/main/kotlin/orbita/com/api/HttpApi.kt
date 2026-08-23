@@ -439,6 +439,49 @@ class HttpApi(private val boundary: Boundary) {
             // Блок E: акцепт ПАЧКОЙ — сотни предложений (нужды, сервисы,
             // требования) принимаются одним действием; порядок разрешает
             // сервер проходами, как в импорте (ADR-024); всё или ничего.
+            // Служба ИИ (П5): промпт собирает СЛУЖБА из профиля и состояния
+            // модели; клиент его показывает, но не сочиняет
+            method == "POST" && path == "/ai/compose" -> {
+                val req = mapper.readTree(body(ex))
+                val (profile, prompt) = boundary.ai.compose(
+                    req.path("kind").asText(), req.path("profile").asText(),
+                    requireProject(project), req.path("statement").asText(""),
+                )
+                val n = mapper.createObjectNode()
+                n.put("profile", profile.id)
+                n.put("profile_version", profile.version)
+                n.put("transport", profile.transport)
+                n.put("require_source", profile.requireSource)
+                n.put("prompt", prompt)
+                respond(ex, 200, n)
+            }
+
+            // Прямой вызов провайдера — основной транспорт службы
+            method == "POST" && path == "/ai/ask" -> {
+                val req = mapper.readTree(body(ex))
+                val run = boundary.ai.ask(
+                    req.path("kind").asText(), req.path("profile").asText(),
+                    requireProject(project), req.path("statement").asText(""), author(req),
+                )
+                respond(ex, if (run.report.path("failed").asBoolean()) 503 else 200, run.report)
+            }
+
+            // Закрытый контур: ответ владельца, полученный файлом, — тем же
+            // разбором, фильтром и журналом
+            method == "POST" && path == "/ai/submit" -> {
+                val req = mapper.readTree(body(ex))
+                val run = boundary.ai.submit(
+                    req.path("kind").asText(), req.path("profile").asText(),
+                    requireProject(project), req.path("statement").asText(""),
+                    req.path("raw").asText(""), author(req),
+                )
+                respond(ex, 200, run.report)
+            }
+
+            // Журнал вызовов: «сколько и почём»
+            method == "GET" && path == "/ai/journal" ->
+                respond(ex, 200, boundary.ai.journal(requireProject(project)))
+
             method == "POST" && path == "/ai/accept-batch" -> {
                 val request = mapper.readTree(body(ex))
                 val by = request.path("by").asText("").trim().takeIf { it.isNotEmpty() }
@@ -460,6 +503,10 @@ class HttpApi(private val boundary: Boundary) {
                     arr.add(marked)
                 }
                 val report = BatchImport(boundary, mapper).import(payload, by, ctx)
+                // акцепт дописывается к своему вызову: «сколько дошло до модели»
+                request.path("call").takeIf { it.isNumber }?.let {
+                    if (report.ok) boundary.ai.markAccepted(it.asLong(), report.written, by)
+                }
                 respond(ex, if (report.ok) 201 else 422, batchJson(report))
             }
 

@@ -29,6 +29,7 @@ const KIND_TITLES: Record<string, string> = {
   component: 'Элементы',
   interface: 'Интерфейсы',
   project: 'Проекты',
+  ai_profile: 'Профили службы ИИ',
   scenario: 'Сценарии',
   constellation: 'Группировка',
   spacecraft: 'Модель КА',

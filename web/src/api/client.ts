@@ -88,6 +88,53 @@ export interface BatchReport {
   problems: BatchProblemRow[]
 }
 
+export interface AiRunReport {
+  call?: number
+  model?: string
+  proposed: number
+  no_source: number
+  shown: Array<{ item: Record<string, unknown> }>
+  rework?: { proposed: number; rejected: number; rework: Array<{ item: Record<string, unknown>; issues: string[] }> }
+  by_rule?: Record<string, number>
+  failed?: boolean
+  reason?: string
+}
+
+export interface AiJournalCall {
+  pk: number
+  at: string
+  kind: string
+  profile: string | null
+  profile_version: string | null
+  transport: string
+  model: string | null
+  tokens_in: number | null
+  tokens_out: number | null
+  cost_usd: string | null
+  proposed: number
+  filtered: number
+  no_source: number
+  accepted: number
+  accepted_by: string | null
+  failure: string | null
+  prompt: string
+  author: string
+}
+
+export interface AiJournal {
+  totals: {
+    calls: number
+    proposed: number
+    filtered: number
+    no_source: number
+    accepted: number
+    tokens_in: number
+    tokens_out: number
+    cost_usd: string
+  }
+  calls: AiJournalCall[]
+}
+
 export interface PromoteBatchReport {
   promoted: string[]
   failed: Array<{ id: string; reason: string }>
@@ -135,6 +182,24 @@ export const api = {
     post<Record<string, unknown>>(`/gates/${encodeURIComponent(gate)}/return`, { author, reason, to }),
   gateReturnResolve: (author: string, note: string) =>
     post<Record<string, unknown>>('/gates/return/resolve', { author, note }),
+  // ---------- П5: служба ИИ (профиль → промпт → вызов → фильтр → журнал) ----------
+  /** Промпт собирает служба из профиля и состояния модели; клиент его читает. */
+  aiCompose: (kind: string, profile: string, statement: string) =>
+    post<{ profile: string; profile_version: string; transport: string; require_source: boolean; prompt: string }>(
+      '/ai/compose', { kind, profile, statement },
+    ),
+  /** Прямой вызов провайдера — основной транспорт. */
+  aiAsk: (kind: string, profile: string, statement: string, author: string) =>
+    post<AiRunReport>('/ai/ask', { kind, profile, statement, author }),
+  /** Закрытый контур: ответ владельца файлом — тем же разбором и журналом. */
+  aiSubmit: (kind: string, profile: string, statement: string, raw: string, author: string) =>
+    post<AiRunReport>('/ai/submit', { kind, profile, statement, raw, author }),
+  /** Журнал вызовов: «сколько и почём». */
+  aiJournal: () => get<AiJournal>('/ai/journal'),
+  /** Акцепт пачкой с привязкой к вызову журнала. */
+  acceptBatchOfCall: (call: number | null, llm: string, by: string, items: unknown[]) =>
+    post<BatchReport>('/ai/accept-batch', { call, llm, by, items }),
+
   /** Блок E: акцепт предложений пачкой — порядок разрешает сервер. */
   acceptBatch: (packageId: string, llm: string, by: string, items: unknown[]) =>
     post<BatchReport>('/ai/accept-batch', { package_id: packageId, llm, by, items }),

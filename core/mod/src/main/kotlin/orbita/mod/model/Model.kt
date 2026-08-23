@@ -54,7 +54,10 @@ enum class CoreType(val idPrefix: String, val dbType: String, val schemaName: St
     CostEstimate("CE", "cost_estimate", "core/cost-estimate"),
     Oda("OD", "oda", "core/oda"),
     ReviewItem("RF", "review_item", "core/review-item"),
-    WbsElement("WB", "wbs_element", "core/wbs-element");
+    WbsElement("WB", "wbs_element", "core/wbs-element"),
+
+    // П5: профиль службы ИИ — ограничения инженера объектом, не текстом в коде
+    AiProfile("AP", "ai_profile", "core/ai-profile");
 
     companion object {
         fun byDbType(t: String): CoreType = entries.firstOrNull { it.dbType == t }
