@@ -3,8 +3,9 @@
 // с выбранным объектом (§3.3). На него сажаются все виды без собственного
 // расчётного экрана. Правила формы — серверные (ObjectEditor, шаг 15).
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { api } from '../api/client'
+import { api, type BatchReport } from '../api/client'
 import { edit, type KindRow, type StoredSummary } from '../api/edit'
+import { withProject } from '../api/project'
 import { ObjectEditor } from '../ui/ObjectEditor'
 import { useSession } from '../ui/session'
 
@@ -45,6 +46,9 @@ export function KindRegistry({ kinds, title }: { kinds: string[]; title: string 
   const { label, author } = useSession()
   const [massStatus, setMassStatus] = useState('Preliminary')
   const [massReport, setMassReport] = useState<string | null>(null)
+  /** Загрузка пачкой прямо в реестре (§3.2 дизайна): вид материала приходит
+   *  файлом, и уходить за ним на отдельный экран инженеру незачем. */
+  const [batch, setBatch] = useState<BatchReport | null>(null)
   const [available, setAvailable] = useState<KindRow[] | null>(null)
   const [kind, setKind] = useState<string>(kinds[0])
   const [rows, setRows] = useState<StoredSummary[] | null>(null)
@@ -126,10 +130,53 @@ export function KindRegistry({ kinds, title }: { kinds: string[]; title: string 
             {massReport && <span className="secondary">{massReport}</span>}
           </>
         )}
+        <a className="btn" href={withProject(api.exportObjectsUrl())} download="orbita-export.json"
+          title="выгрузить проект целиком тем же форматом, каким грузится пачка">
+          Выгрузить
+        </a>
+        <label className="btn" title="загрузить пачкой: проверка по схемам до записи, всё или ничего">
+          Загрузить пачкой
+          <input type="file" accept="application/json,.json" style={{ display: 'none' }}
+            onChange={(e) => {
+              const file = e.target.files?.[0]
+              e.target.value = ''
+              if (!file) return
+              setBatch(null)
+              setMassReport(null)
+              file.text()
+                .then((text) => {
+                  const body = JSON.parse(text) as Record<string, unknown>
+                  if (!body.author) body.author = author
+                  return api.importObjects(body)
+                })
+                .then((r) => { setBatch(r); reload() })
+                .catch((err) => setMassReport(String(err)))
+            }} />
+        </label>
         <button className="btn btn--primary" onClick={() => { setSelected(null); setCreating(true) }}>
           Создать
         </button>
       </div>
+      {batch && (
+        <div className={batch.problems.length ? 'notice notice--blocked' : 'notice'}
+          style={{ margin: '8px 14px 0' }}>
+          {batch.problems.length === 0 ? (
+            <>Записано объектов: <b className="mono">{batch.written}</b></>
+          ) : (
+            <>
+              Пачка отклонена целиком — {batch.problems.length} замечаний, ничего не записано:
+              <ul style={{ margin: '4px 0 0 16px' }}>
+                {batch.problems.slice(0, 5).map((p, i) => (
+                  <li key={i}>
+                    <span className="mono">{p.id ?? p.index}</span>
+                    {p.path ? ` · ${p.path}` : ''} — {p.message}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </div>
+      )}
       <div className="registry">
         <div className="pane">
           {rows == null ? (
