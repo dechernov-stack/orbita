@@ -13,7 +13,7 @@
     "statement": {"type": "string", "minLength": 1},
     "status": {"enum": ["open", "in_work", "closed"]},
     "owner": {"type": "string", "minLength": 1},
-    "due": {"type": "string", "description": "Срок устранения, ISO-дата"},
+    "due": {"type": "string", "format": "date", "description": "Срок устранения, ISO-дата"},
     "response": {"type": "string", "description": "Как устранено; обязателен при закрытии"},
     "source": {"type": "string", "description": "Кто выдал: комиссия, участник обзора"},
     "provenance": {"$ref": "https://kis.local/schemas/common/provenance.schema.json"}

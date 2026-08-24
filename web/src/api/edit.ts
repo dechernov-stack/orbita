@@ -70,6 +70,8 @@ export type JsonSchema = {
   minLength?: number
   minItems?: number
   pattern?: string
+  /** format: date — форма даёт календарь вместо свободного текста. */
+  format?: string
   /** Примеры значений — форма подставляет их подсказкой (например, единицы СИ). */
   examples?: string[]
   default?: unknown

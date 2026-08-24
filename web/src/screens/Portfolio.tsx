@@ -133,7 +133,8 @@ export function Portfolio({ onOpen }: { onOpen: () => void }) {
                   <tr key={g}>
                     <td className="mono">{g}</td>
                     <td>
-                      <input value={dates[g] ?? ''} placeholder="2027-02-15"
+                      {/* Календарь, не свободный текст (список после MCR, п. 1) */}
+                      <input type="date" value={dates[g] ?? ''}
                         onChange={(e) => setDates({ ...dates, [g]: e.target.value })} />
                     </td>
                   </tr>

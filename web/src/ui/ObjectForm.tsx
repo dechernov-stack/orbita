@@ -330,6 +330,15 @@ function Field(props: FieldProps) {
           value={asText(value)}
           onChange={(e) => onChange(e.target.value || undefined)}
         />
+      ) : schema.format === 'date' ? (
+        /* Дата — календарём, не свободным текстом (список после MCR, п. 1):
+           формат ISO гарантирует браузер, опечатка руками невозможна. */
+        <input
+          type="date"
+          aria-label={name}
+          value={asText(value).slice(0, 10)}
+          onChange={(e) => onChange(e.target.value || undefined)}
+        />
       ) : (
         <input
           aria-label={name}
