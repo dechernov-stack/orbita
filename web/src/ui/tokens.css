@@ -956,3 +956,16 @@ tbody td {
   .doc-screen table { page-break-inside: auto; }
   .doc-screen tr { page-break-inside: avoid; }
 }
+
+/* Кнопка без дела — приглушена: синяя «Сохранить правку» при отсутствии
+   изменений звала сохранять ничего (находка второго захода). */
+.tab:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.tab--primary:disabled {
+  border-color: var(--border);
+  color: var(--text-secondary);
+  font-weight: 400;
+}

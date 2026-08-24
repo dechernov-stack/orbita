@@ -52,6 +52,10 @@ export function ObjectEditor({ kind, schemaName, id, title, maturity, onSaved, o
   const [version, setVersion] = useState<string | null>(null)
   const [status, setStatus] = useState<string | null>(null)
   const [errors, setErrors] = useState<Array<{ path: string; message: string; rule?: string }>>([])
+  /** Снимок сохранённого содержимого: кнопка сохранения активна только при
+   *  расхождении с ним — синяя кнопка без изменений звала сохранять ничего
+   *  (находка второго захода). */
+  const [savedSnapshot, setSavedSnapshot] = useState<string | null>(null)
   const [conflict, setConflict] = useState<Conflict | null>(null)
   const [blocked, setBlocked] = useState<string | null>(null)
   /** Основание изменения базированного объекта (TZ-COM-003). */
@@ -83,6 +87,7 @@ export function ObjectEditor({ kind, schemaName, id, title, maturity, onSaved, o
           setDoc((stored.doc ?? {}) as Record<string, unknown>)
           setVersion(stored.version)
           setStatus(stored.status)
+          setSavedSnapshot(JSON.stringify(editableFields((stored.doc ?? {}) as Record<string, unknown>)))
         })
         .catch((e) => setFailure(String(e)))
       edit.issues(objectId).then(setIssues).catch(() => setIssues(null))
@@ -99,6 +104,7 @@ export function ObjectEditor({ kind, schemaName, id, title, maturity, onSaved, o
       setDoc(emptyDoc(schema))
       setVersion(null)
       setStatus(null)
+      setSavedSnapshot(null)
       setIssues(null)
       setHistory(null)
     }
@@ -142,6 +148,7 @@ export function ObjectEditor({ kind, schemaName, id, title, maturity, onSaved, o
       setDoc(saved.doc as Record<string, unknown>)
       setVersion(saved.version)
       setStatus(saved.status)
+      setSavedSnapshot(JSON.stringify(editableFields(saved.doc as Record<string, unknown>)))
       edit.issues(saved.id).then(setIssues).catch(() => setIssues(null))
       setHistory(null)
     } else {
@@ -176,6 +183,10 @@ export function ObjectEditor({ kind, schemaName, id, title, maturity, onSaved, o
   if (!schema) return <div className="empty">Загрузка формы…</div>
 
   const hasMaturity = maturity ?? Boolean(schema.properties?.lifecycle)
+  // Есть ли что сохранять: для существующего объекта — расхождение формы со
+  // снимком сохранённого; «изменил и вернул как было» честно гасит кнопку.
+  const dirty = !id || savedSnapshot == null ||
+    JSON.stringify(editableFields(doc)) !== savedSnapshot
 
   return (
     <div className="editor">
@@ -320,7 +331,8 @@ export function ObjectEditor({ kind, schemaName, id, title, maturity, onSaved, o
       <p className="secondary hint">{systemNote}</p>
 
       <div className="editor__actions">
-        <button type="button" className="tab tab--primary" disabled={busy} onClick={save}>
+        <button type="button" className="tab tab--primary" disabled={busy || !dirty} onClick={save}
+          title={dirty ? '' : 'изменений нет — сохранять нечего'}>
           {id ? 'Сохранить правку' : 'Создать'}
         </button>
         {id && (
