@@ -634,7 +634,7 @@
    ],
    "success_criterion": "пакет активного терминала доставлен за сутки",
    "traces_up": [
-    "ND-0001"
+    "ND-0101"
    ],
    "lifecycle": {
     "status": "Draft",
@@ -654,7 +654,7 @@
    ],
    "success_criterion": "подтверждение не позже второго пролёта",
    "traces_up": [
-    "ND-0003"
+    "ND-0102"
    ],
    "lifecycle": {
     "status": "Draft",
@@ -674,7 +674,7 @@
    ],
    "success_criterion": "тревога у потребителя за один пролёт",
    "traces_up": [
-    "ND-0010"
+    "ND-0301"
    ],
    "lifecycle": {
     "status": "Draft",
