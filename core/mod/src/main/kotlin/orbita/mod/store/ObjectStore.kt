@@ -187,7 +187,13 @@ class ObjectStore(private val conn: Connection, private val mapper: ObjectMapper
             )
         }
         val newDoc = cur.doc.deepCopy<JsonNode>()
+        // Блок lifecycle отражается в doc только там, где он уже есть: схема
+        // вида со статусной моделью несёт его обязательным, а вид без него
+        // (риск, замечание обзора, сценарий) получал сюда мусор, который его
+        // же схема отклоняла при следующей правке — объект становился
+        // нередактируемым (находка второго захода: «ответ не сохраняется»).
         (newDoc as? com.fasterxml.jackson.databind.node.ObjectNode)
+            ?.takeIf { it.has("lifecycle") }
             ?.withObject("/lifecycle")?.put("status", target.name)
         return mappingConstraints {
             conn.tx {

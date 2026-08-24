@@ -503,6 +503,21 @@ class ReqService(
      * Переход выполняется новой версией с закрытием интервала (ObjectStore.transition),
      * поэтому отчёт зрелости строится на произвольную дату по истории статусов.
      */
+    /**
+     * Применима ли зрелость к виду: её несёт схема (lifecycle) ЛИБО требуют
+     * планки ворот (риск: в схеме цикла зрелости нет, но Д6 зреет к MCR —
+     * §7.1е). Замечание обзора не подходит ни по одному критерию — живёт
+     * только собственным циклом open → answered/closed. Этим же критерием
+     * судит защита правки базированного: колоночный статус вида без
+     * зрелости — не основание запирать правку (находка второго захода:
+     * замечание с историческим Baseline не закрывалось).
+     */
+    fun maturityApplies(type: String): Boolean {
+        val coreType = orbita.mod.model.CoreType.byDbType(type)
+        return registry.raw(coreType.schemaName).path("properties").has("lifecycle") ||
+            type in gates.typesWithStatusBar
+    }
+
     fun promote(
         id: String,
         target: Lifecycle,
@@ -510,16 +525,7 @@ class ReqService(
         at: java.time.OffsetDateTime = java.time.OffsetDateTime.now(java.time.ZoneOffset.UTC),
     ): StoredObject {
         val cur = objects.current(id) ?: throw NoSuchElementException("object '$id' not found")
-        // Зрелость применима, если её несёт схема вида ЛИБО требуют планки
-        // ворот (риск: lifecycle в схеме нет, но Д6 зреет к MCR — §7.1е).
-        // Замечание обзора не подходит ни по одному критерию: оно живёт
-        // СОБСТВЕННЫМ циклом (open → answered/closed), и перевод зрелости к
-        // нему не применяется. Прежде массовый перевод «базировал» замечание,
-        // и в карточке жили два статуса сразу (находка второго захода).
-        val coreType = orbita.mod.model.CoreType.byDbType(cur.type)
-        val hasLifecycle = registry.raw(coreType.schemaName).path("properties").has("lifecycle") ||
-            cur.type in gates.typesWithStatusBar
-        if (!hasLifecycle) {
+        if (!maturityApplies(cur.type)) {
             throw orbita.mod.store.ModelViolationException(
                 "TZ-COM-003: вид '${cur.type}' живёт собственным циклом (поле status) — " +
                     "статусная модель зрелости к нему не применяется",
