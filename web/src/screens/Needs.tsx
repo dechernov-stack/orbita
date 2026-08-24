@@ -13,17 +13,20 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '../api/client'
 import type { NeedRow } from '../api/types'
+import { STATUS_MEANING } from '../ui/maturity'
 import { ObjectEditor } from '../ui/ObjectEditor'
 import { StatusDot } from '../ui/parts'
 import { useSession } from '../ui/session'
 
 export function Needs() {
-  const { label } = useSession()
+  const { label, author } = useSession()
   const [rows, setRows] = useState<NeedRow[] | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [onlyOrphans, setOnlyOrphans] = useState(false)
+  const [massStatus, setMassStatus] = useState('Preliminary')
+  const [massReport, setMassReport] = useState<string | null>(null)
 
   const reload = useCallback(
     () =>
@@ -68,6 +71,55 @@ export function Needs() {
           >
             Без сервисов
           </button>
+          {/* Массовый перевод зрелости — как в шапке реестров (§3.2): прежде
+              экран позволял переводить только по одной нужде через инспектор
+              (находка живой сессии, п. 5). */}
+          {rows.length > 0 && (
+            <>
+              <span className="secondary" style={{ marginLeft: 'auto' }}>статус:</span>
+              <select
+                value={massStatus}
+                onChange={(e) => setMassStatus(e.target.value)}
+                title={STATUS_MEANING[massStatus]}
+              >
+                {['Preliminary', 'Approved', 'Baseline'].map((st) => (
+                  <option key={st} value={st} title={STATUS_MEANING[st]}>
+                    {label('lifecycle', st)}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                className="tab"
+                disabled={!author}
+                title={author ? STATUS_MEANING[massStatus] : 'представьтесь в шапке'}
+                onClick={() => {
+                  const ids = shown
+                    .filter((r) => r.status !== massStatus && r.status !== 'Cancelled')
+                    .map((r) => r.id)
+                  if (ids.length === 0) {
+                    setMassReport('переводить нечего')
+                    return
+                  }
+                  api
+                    .promoteBatch(ids, massStatus, author)
+                    .then((r) => {
+                      setMassReport(
+                        `переведено ${r.promoted.length}; отказов ${r.failed.length}` +
+                          (r.failed.length
+                            ? ` — ${r.failed.slice(0, 3).map((f) => `${f.id}: ${f.reason}`).join('; ')}`
+                            : ''),
+                      )
+                      void reload()
+                    })
+                    .catch((e) => setMassReport(String(e)))
+                }}
+              >
+                Перевести все видимые
+              </button>
+              {massReport && <span className="secondary">{massReport}</span>}
+            </>
+          )}
         </div>
 
         {rows.length === 0 && (
@@ -78,7 +130,11 @@ export function Needs() {
         )}
 
         {rows.length > 0 && (
-          <table>
+          <div style={{ overflowX: 'auto' }}>
+          {/* min-width: при узкой панели фиксированные колонки съедали всю
+              ширину, и формулировка сжималась в столбик по букве на строку
+              (находка живой сессии); прокрутка честнее нечитаемой колонки. */}
+          <table style={{ minWidth: 720 }}>
             <thead>
               {/* Формулировка — главное содержимое строки: она БЕЗ ширины
                   и переносится по словам, забирая остаток. При table-layout:
@@ -134,6 +190,7 @@ export function Needs() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 

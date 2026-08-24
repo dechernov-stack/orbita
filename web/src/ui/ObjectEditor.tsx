@@ -17,25 +17,7 @@ import {
 import { ObjectForm, editableFields, emptyDoc, useSystemFieldsNote } from './ObjectForm'
 import { useSession } from './session'
 
-/**
- * Порядок зрелости (TZ-COM-003) и подпись действия перехода. Кнопка называет
- * ДЕЙСТВИЕ, а не целевой код: «утвердить предварительно» понятнее, чем
- * «Preliminary», и именно так о статусах говорит регламент.
- */
-const STATUS_ORDER = ['Draft', 'Preliminary', 'Approved', 'Baseline']
-
-const STATUS_ACTION: Record<string, string> = {
-  Preliminary: 'Утвердить предварительно',
-  Approved: 'Утвердить',
-  Baseline: 'Базировать',
-}
-
-/** Куда объект может шагнуть со своего статуса: только вперёд и на одну ступень. */
-function nextStatuses(status: string | null): string[] {
-  const i = STATUS_ORDER.indexOf(status ?? 'Draft')
-  if (i < 0 || i === STATUS_ORDER.length - 1) return []
-  return [STATUS_ORDER[i + 1]]
-}
+import { STATUS_ACTION, STATUS_MEANING, STATUS_ORDER } from './maturity'
 
 interface Props {
   /** Вид объекта в модели: `need`, `service`, `requirement`… */
@@ -202,6 +184,54 @@ export function ObjectEditor({ kind, schemaName, id, title, onSaved, onCancelled
         )}
       </h2>
 
+      {/* Лестница зрелости целиком (TZ-COM-003): видно, где объект стоит и
+          что пройдено, — прежде у базированного объекта кнопки исчезали
+          молча, а разница «утверждён» и «базирован» оставалась догадкой
+          (находка живой сессии). Следующая ступень — кнопка; подсказка на
+          каждой ступени объясняет, что ступень означает. */}
+      {id && status && STATUS_ORDER.includes(status) && (
+        <div
+          role="group"
+          aria-label="зрелость объекта"
+          style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', margin: '6px 0 10px' }}
+        >
+          {STATUS_ORDER.map((s, i) => {
+            const cur = STATUS_ORDER.indexOf(status)
+            const isNext = i === cur + 1
+            const blockedBaseline = s === 'Baseline' && issues != null && !issues.can_baseline
+            return (
+              <span key={s} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                {i > 0 && <span className="secondary">→</span>}
+                {isNext ? (
+                  <button
+                    type="button"
+                    className="tab"
+                    disabled={busy || blockedBaseline}
+                    onClick={() => run(() => edit.promote(id, s))}
+                    title={
+                      blockedBaseline
+                        ? `Базирование заблокировано: ${issues.issues.join('; ')}`
+                        : STATUS_MEANING[s]
+                    }
+                  >
+                    {STATUS_ACTION[s] ?? label('lifecycle', s)}
+                  </button>
+                ) : (
+                  <span
+                    className={i <= cur ? 'chip' : 'chip secondary'}
+                    title={STATUS_MEANING[s]}
+                    style={i === cur ? { fontWeight: 600 } : i > cur ? { opacity: 0.55 } : undefined}
+                  >
+                    {i < cur ? '✓ ' : ''}
+                    {label('lifecycle', s)}
+                  </span>
+                )}
+              </span>
+            )
+          })}
+        </div>
+      )}
+
       {conflict && (
         <div className="notice notice--conflict" role="alert">
           <b>Объект изменён другим инженером.</b>
@@ -293,26 +323,8 @@ export function ObjectEditor({ kind, schemaName, id, title, onSaved, onCancelled
             >
               Отменить объект
             </button>
-            {/* Лестница статусов (TZ-COM-003): следующий шаг зрелости назван
-                словом, а не спрятан за «базировать». Черновик утверждается
-                предварительно, потом окончательно, и лишь затем базируется —
-                перепрыгнуть ступень нельзя, и это видно на кнопках. */}
-            {nextStatuses(status).map((next) => (
-              <button
-                key={next}
-                type="button"
-                className="tab"
-                disabled={busy || (next === 'Baseline' && issues != null && !issues.can_baseline)}
-                onClick={() => run(() => edit.promote(id, next))}
-                title={
-                  next === 'Baseline' && issues && !issues.can_baseline
-                    ? `Базирование заблокировано: ${issues.issues.join('; ')}`
-                    : `Перевести из «${label('lifecycle', status)}» в «${label('lifecycle', next)}»`
-                }
-              >
-                {STATUS_ACTION[next] ?? `Перевести в ${label('lifecycle', next)}`}
-              </button>
-            ))}
+            {/* Переходы зрелости — лестницей под заголовком: там видно и
+                пройденное, и следующий шаг (TZ-COM-003). */}
           </>
         )}
       </div>

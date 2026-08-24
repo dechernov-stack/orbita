@@ -4,6 +4,7 @@
 // расчётного экрана. Правила формы — серверные (ObjectEditor, шаг 15).
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { api, asBatchReport, type BatchReport } from '../api/client'
+import { STATUS_MEANING } from '../ui/maturity'
 import { edit, type KindRow, type StoredSummary } from '../api/edit'
 import { withProject } from '../api/project'
 import { ObjectEditor } from '../ui/ObjectEditor'
@@ -108,9 +109,10 @@ export function KindRegistry({ kinds, title }: { kinds: string[]; title: string 
         {(rows?.length ?? 0) > 0 && (
           <>
             <span className="secondary">статус:</span>
-            <select value={massStatus} onChange={(e) => setMassStatus(e.target.value)}>
+            <select value={massStatus} onChange={(e) => setMassStatus(e.target.value)}
+              title={STATUS_MEANING[massStatus]}>
               {['Preliminary', 'Approved', 'Baseline'].map((st) => (
-                <option key={st} value={st}>{label('lifecycle', st)}</option>
+                <option key={st} value={st} title={STATUS_MEANING[st]}>{label('lifecycle', st)}</option>
               ))}
             </select>
             <button className="btn" disabled={!author}
