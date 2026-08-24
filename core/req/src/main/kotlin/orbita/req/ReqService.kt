@@ -45,6 +45,17 @@ class ReqService(
                             "TZ-REQ-003 (Р9/ADR-009): reference to service $ref requires consumer_class"
                         )
                     }
+                    // Трассировка — в существующий объект, как и распределение
+                    // (TZ-REQ-005): прежде 212 требований молча записались со
+                    // ссылками на невнесённые сервисы, и нить трассировки
+                    // родилась порванной (находка второго захода: пропущенный
+                    // шаг «нужды -> сервисы» никто не назвал)
+                    if (ref.isNotBlank() && objects.current(ref) == null) {
+                        throw ModelViolationException(
+                            "TZ-REQ-003: trace to missing object '$ref' — источник не внесён " +
+                                "(не пропущен ли шаг внесения сервисов или нужд?)"
+                        )
+                    }
                 }
                 // CR-001/CR-003: распределение — объект {component|interface, kind, rationale}
                 doc.path("allocated_to").forEach { a ->

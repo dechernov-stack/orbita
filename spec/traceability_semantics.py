@@ -43,6 +43,8 @@ def interface_allocation_valid(req, components):
     targets = req.get('allocated_to', [])
     ifaces = [t for t in targets if 'interface' in t]
     if not ifaces:
+        if not targets:
+            return False, 'интерфейсное требование не распределено: укажите интерфейс в allocated_to'
         return False, 'интерфейсное требование распределено на элемент, а не на интерфейс'
     for t in ifaces:
         owners = components.get(t['interface'], {}).get('owners', [])

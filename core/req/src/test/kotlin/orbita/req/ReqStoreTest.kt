@@ -95,6 +95,20 @@ class ReqStoreTest {
     }
 
     @Test
+    fun `трассировка на несуществующий источник отклоняется`() {
+        // Как и распределение (TZ-REQ-005): прежде требования молча писались
+        // со ссылками на невнесённые сервисы — 212 сирот у живого прогона,
+        // когда инженер пропустил шаг «нужды -> сервисы», и никто не крикнул
+        val e = assertThrows<ModelViolationException> {
+            req.ingestRequirement(
+                requirementJson("RQ-0013", tracesUp = """[{"ref":"SV-0999","consumer_class":"A_prime"}]"""),
+            )
+        }
+        assertTrue("SV-0999" in e.message!!) { e.message!! }
+        assertTrue("не пропущен ли шаг" in e.message!!) { e.message!! }
+    }
+
+    @Test
     fun `связи выводятся из документа, матрица не заполняется вручную`() {
         assertEquals(listOf("SV-0001"), req.links.linksTo("RQ-0010", "trace").map { it.fromId })
         assertEquals("A_prime", req.links.linksTo("RQ-0010", "trace").single().consumerClass)

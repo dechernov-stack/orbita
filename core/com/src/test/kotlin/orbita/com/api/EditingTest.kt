@@ -262,6 +262,16 @@ class EditingTest {
      * разошёлся бы со схемой, а вместе с ней и с проверяемым поведением.
      */
     private fun requirementDraft(): ObjectNode {
+        // Источник трассировки обязан существовать (TZ-REQ-003): фикстура
+        // прежде полагалась на дыру и трассировала в незаведённую нужду
+        if (boundary.objects.current("ND-0001") == null) {
+            boundary.ingest(
+                CoreType.Need,
+                """{"id":"ND-0001","statement":"Оператору нужен суточный сбор телеметрии.",
+                    "stakeholder":{"name":"Оператор","role":"operator"},
+                    "lifecycle":{"status":"Draft","version":"1"}}""",
+            )
+        }
         val doc = mapper.createObjectNode()
         doc.put("level", "system")
         doc.put("statement", "Сухая масса космического аппарата не должна превышать 100 кг.")

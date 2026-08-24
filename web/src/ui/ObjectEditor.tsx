@@ -377,6 +377,15 @@ export function ObjectEditor({ kind, schemaName, id, title, maturity, onSaved, o
                 △ {issue}
               </div>
             ))}
+            {/* Помощник распределения (находка второго захода): интерфейсы
+                появились позже требований, и искать «какой интерфейс связан
+                с этим элементом» инженер вынужден был руками по реестрам —
+                хотя стороны интерфейсов системе известны. Кнопка подставляет
+                распределение в форму; решает и сохраняет инженер. */}
+            {kind === 'requirement' &&
+              issues.issues.some((i) => i.includes('интерфейс')) && (
+                <InterfaceAllocationHelper doc={doc} onApply={(next) => setDoc(next)} />
+              )}
           </div>
         </div>
       )}
@@ -413,6 +422,119 @@ export function ObjectEditor({ kind, schemaName, id, title, maturity, onSaved, o
               </table>
             )}
           </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** Запись распределения требования (allocated_to). */
+interface AllocationEntry {
+  component?: string
+  interface?: string
+  kind?: string
+  rationale?: string
+}
+
+/**
+ * Помощник распределения интерфейсного требования: показывает интерфейсы
+ * проекта со сторонами и подставляет выбранный в allocated_to. Кандидаты,
+ * чьи стороны пересекаются с текущими элементами распределения, идут
+ * первыми — «какой интерфейс связан с этим элементом» знает система, а не
+ * инженер по памяти. Подстановка НЕ сохраняет: инженер видит результат в
+ * форме и сохраняет сам.
+ */
+function InterfaceAllocationHelper({ doc, onApply }: {
+  doc: Record<string, unknown>
+  onApply: (next: Record<string, unknown>) => void
+}) {
+  const [ifaces, setIfaces] = useState<Array<{ id: string; name: string; owners: string[] }> | null>(null)
+  const [applied, setApplied] = useState<string | null>(null)
+
+  useEffect(() => {
+    let alive = true
+    edit.list('interface')
+      .then((rows) => Promise.all(rows.map((r) =>
+        edit.object(r.id).then((o) => {
+          const d = o.doc as Record<string, unknown>
+          return {
+            id: r.id,
+            name: String(d.name ?? r.title ?? ''),
+            owners: Array.isArray(d.owners) ? (d.owners as string[]) : [],
+          }
+        }),
+      )))
+      .then((full) => { if (alive) setIfaces(full) })
+      .catch(() => { if (alive) setIfaces([]) })
+    return () => { alive = false }
+  }, [])
+
+  if (ifaces == null) return <div className="secondary">Ищу интерфейсы проекта…</div>
+  if (ifaces.length === 0) {
+    return (
+      <div className="secondary" style={{ marginTop: 6 }}>
+        Интерфейсов в проекте нет — заведите стык в реестре «Элементы и
+        интерфейсы» (у интерфейса две стороны-элемента), затем распределите
+        требование на него.
+      </div>
+    )
+  }
+
+  const current = Array.isArray(doc.allocated_to) ? (doc.allocated_to as AllocationEntry[]) : []
+  const components = new Set(current.map((a) => a.component).filter(Boolean) as string[])
+  // связанные с текущими элементами — первыми
+  const ranked = [...ifaces].sort((a, b) => {
+    const ra = a.owners.some((o) => components.has(o)) ? 0 : 1
+    const rb = b.owners.some((o) => components.has(o)) ? 0 : 1
+    return ra - rb || a.id.localeCompare(b.id)
+  })
+
+  const apply = (iface: { id: string; owners: string[] }) => {
+    const covered = new Set(iface.owners)
+    const next: AllocationEntry[] = []
+    let replaced = false
+    for (const a of current) {
+      if (a.component && covered.has(a.component)) {
+        // сторона выбранного интерфейса: запись становится интерфейсной
+        if (!replaced) {
+          const entry: AllocationEntry = { interface: iface.id, kind: a.kind ?? 'full' }
+          if (a.rationale) entry.rationale = a.rationale
+          next.push(entry)
+          replaced = true
+        }
+      } else if (a.interface === iface.id) {
+        if (!replaced) { next.push(a); replaced = true }
+      } else {
+        next.push(a)
+      }
+    }
+    if (!replaced) next.push({ interface: iface.id, kind: 'full' })
+    onApply({ ...doc, allocated_to: next })
+    setApplied(iface.id)
+  }
+
+  return (
+    <div style={{ marginTop: 8 }}>
+      <div className="secondary" style={{ marginBottom: 4 }}>
+        Распределить на интерфейс{components.size > 0 ? ' (связанные с текущими элементами — первыми)' : ''}:
+      </div>
+      {ranked.map((f) => {
+        const related = f.owners.some((o) => components.has(o))
+        return (
+          <div key={f.id} style={{ margin: '3px 0' }}>
+            <button type="button" className="tab" onClick={() => apply(f)}
+              title="подставить в форму — сохранение остаётся за вами">
+              → <span className="mono">{f.id}</span> «{f.name}»
+              <span className="secondary"> ({f.owners.join(' ↔ ')})</span>
+              {related && <b> · связан</b>}
+            </button>
+          </div>
+        )
+      })}
+      {applied && (
+        <div className="notice" style={{ marginTop: 4 }}>
+          Подставлено распределение на <span className="mono">{applied}</span> —
+          проверьте форму и нажмите «Сохранить правку».
         </div>
       )}
     </div>

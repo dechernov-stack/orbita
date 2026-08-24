@@ -57,7 +57,14 @@ fun interfaceAllocationValid(req: JsonNode, nodes: Map<String, ProductNode>): Pa
     val targets = req.path("allocated_to")
     val interfaces = targets.mapNotNull { it.path("interface").asText("").ifBlank { null } }
     if (interfaces.isEmpty()) {
-        return false to "интерфейсное требование распределено на элемент, а не на интерфейс"
+        // Два разных положения — два разных сообщения (находка второго
+        // захода: «распределено на элемент» про требование БЕЗ распределения
+        // посылало инженера чинить не то)
+        return if (targets.isEmpty || targets.size() == 0) {
+            false to "интерфейсное требование не распределено: укажите интерфейс в allocated_to"
+        } else {
+            false to "интерфейсное требование распределено на элемент, а не на интерфейс"
+        }
     }
     interfaces.forEach { id ->
         val owners = nodes[id]?.owners ?: emptyList()
