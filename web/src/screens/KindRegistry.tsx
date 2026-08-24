@@ -134,8 +134,11 @@ export function KindRegistry({ kinds, title }: { kinds: string[]; title: string 
           style={{ width: 200 }}
         />
         <div className="grow" />
-        {/* Массовое действие реестра (§3.2): перевод статуса пачкой */}
-        {(rows?.length ?? 0) > 0 && (
+        {/* Массовое действие реестра (§3.2): перевод статуса пачкой.
+            Вид без статусной модели (замечание обзора, риск) живёт своим
+            циклом — зрелость к нему неприменима, кнопки нет (находка
+            второго захода: замечание обзора «базировалось»). */}
+        {meta.lifecycle && (rows?.length ?? 0) > 0 && (
           <>
             <span className="secondary">статус:</span>
             <select value={massStatus} onChange={(e) => setMassStatus(e.target.value)}
@@ -251,7 +254,9 @@ export function KindRegistry({ kinds, title }: { kinds: string[]; title: string 
                 <tr>
                   <th style={{ width: 90 }}>ID</th>
                   <th>Содержание</th>
-                  <th style={{ width: 110 }}>Статус</th>
+                  {/* зрелость — только у видов со статусной моделью; у прочих
+                      свой цикл в собственном поле status объекта */}
+                  {meta.lifecycle && <th style={{ width: 110 }}>Статус</th>}
                   <th style={{ width: 60 }}>Версия</th>
                 </tr>
               </thead>
@@ -264,10 +269,12 @@ export function KindRegistry({ kinds, title }: { kinds: string[]; title: string 
                   >
                     <td className="id">{r.id}</td>
                     <td title={r.title}>{r.title}</td>
-                    <td>
-                      <span className={`dot status-${r.status}`} />
-                      {label('lifecycle', r.status)}
-                    </td>
+                    {meta.lifecycle && (
+                      <td>
+                        <span className={`dot status-${r.status}`} />
+                        {label('lifecycle', r.status)}
+                      </td>
+                    )}
                     <td className="num">{r.version}</td>
                   </tr>
                 ))}
@@ -282,6 +289,7 @@ export function KindRegistry({ kinds, title }: { kinds: string[]; title: string 
               schemaName={meta.schema}
               id={creating ? null : selected}
               title={kindTitle(kind)}
+              maturity={meta.lifecycle}
               onSaved={(id) => { setCreating(false); setSelected(id); reload() }}
               onCancelled={() => { setCreating(false); setSelected(null); reload() }}
             />

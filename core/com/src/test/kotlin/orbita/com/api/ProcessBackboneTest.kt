@@ -251,5 +251,13 @@ class ProcessBackboneTest {
             """{$author,"base_version":"1","doc":{"status":"closed"}}""",
         )
         assertTrue(bare.statusCode() != 200) { bare.body() }
+
+        // Замечание обзора живёт СОБСТВЕННЫМ циклом (open → answered/closed):
+        // зрелость Draft→Baseline к нему не применяется, перевод отклоняется
+        // с причиной (находка второго захода: «Перевести все видимые»
+        // базировал замечание, и в карточке жили два статуса сразу)
+        val promoted = post("/objects/RF-1001/promote", """{"status":"Baseline"}""")
+        assertEquals(422, promoted.statusCode()) { promoted.body() }
+        assertTrue("собственным циклом" in promoted.body()) { promoted.body() }
     }
 }

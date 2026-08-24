@@ -28,6 +28,12 @@ interface Props {
   id: string | null
   /** Заголовок панели: чем этот вид называется на экране. */
   title: string
+  /**
+   * Применима ли зрелость (лестница статусов). Реестр передаёт признак из
+   * /kinds: он учитывает и схему, и планки ворот (риск: lifecycle в схеме
+   * нет, но Д6 зреет к MCR). Не задан — по наличию lifecycle в схеме.
+   */
+  maturity?: boolean
   onSaved: (id: string) => void
   onCancelled?: () => void
 }
@@ -39,7 +45,7 @@ interface Conflict {
   theirValues: Record<string, unknown>
 }
 
-export function ObjectEditor({ kind, schemaName, id, title, onSaved, onCancelled }: Props) {
+export function ObjectEditor({ kind, schemaName, id, title, maturity, onSaved, onCancelled }: Props) {
   const { author, label } = useSession()
   const [schema, setSchema] = useState<JsonSchema | null>(null)
   const [doc, setDoc] = useState<Record<string, unknown>>({})
@@ -169,6 +175,8 @@ export function ObjectEditor({ kind, schemaName, id, title, onSaved, onCancelled
   if (failure && !schema) return <div className="empty">Схема вида недоступна: {failure}</div>
   if (!schema) return <div className="empty">Загрузка формы…</div>
 
+  const hasMaturity = maturity ?? Boolean(schema.properties?.lifecycle)
+
   return (
     <div className="editor">
       <h2 className="editor__title">
@@ -176,7 +184,8 @@ export function ObjectEditor({ kind, schemaName, id, title, onSaved, onCancelled
           <>
             <span className="id">{id}</span>{' '}
             <span className="secondary">
-              в. {version} · {label('lifecycle', status)}
+              в. {version}
+              {hasMaturity && status ? <> · {label('lifecycle', status)}</> : null}
             </span>
           </>
         ) : (
@@ -189,7 +198,7 @@ export function ObjectEditor({ kind, schemaName, id, title, onSaved, onCancelled
           молча, а разница «утверждён» и «базирован» оставалась догадкой
           (находка живой сессии). Следующая ступень — кнопка; подсказка на
           каждой ступени объясняет, что ступень означает. */}
-      {id && status && STATUS_ORDER.includes(status) && (
+      {id && status && STATUS_ORDER.includes(status) && hasMaturity && (
         <div
           role="group"
           aria-label="зрелость объекта"

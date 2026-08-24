@@ -510,6 +510,21 @@ class ReqService(
         at: java.time.OffsetDateTime = java.time.OffsetDateTime.now(java.time.ZoneOffset.UTC),
     ): StoredObject {
         val cur = objects.current(id) ?: throw NoSuchElementException("object '$id' not found")
+        // Зрелость применима, если её несёт схема вида ЛИБО требуют планки
+        // ворот (риск: lifecycle в схеме нет, но Д6 зреет к MCR — §7.1е).
+        // Замечание обзора не подходит ни по одному критерию: оно живёт
+        // СОБСТВЕННЫМ циклом (open → answered/closed), и перевод зрелости к
+        // нему не применяется. Прежде массовый перевод «базировал» замечание,
+        // и в карточке жили два статуса сразу (находка второго захода).
+        val coreType = orbita.mod.model.CoreType.byDbType(cur.type)
+        val hasLifecycle = registry.raw(coreType.schemaName).path("properties").has("lifecycle") ||
+            cur.type in gates.typesWithStatusBar
+        if (!hasLifecycle) {
+            throw orbita.mod.store.ModelViolationException(
+                "TZ-COM-003: вид '${cur.type}' живёт собственным циклом (поле status) — " +
+                    "статусная модель зрелости к нему не применяется",
+            )
+        }
         if (target == Lifecycle.Baseline && cur.type == "requirement" && cur.status != Lifecycle.Baseline) {
             val (ok, reasons) = baselining.canBaseline(cur.doc, productTree(cur.projectId))
             if (!ok) throw BaselineBlockedException(reasons)

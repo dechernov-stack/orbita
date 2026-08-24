@@ -38,6 +38,14 @@ class Gates(private val gates: Map<String, Map<String, String>> = load()) {
 
     val gateNames: Set<String> get() = gates.keys
 
+    /**
+     * Виды, от которых хоть одна точка требует зрелости. Риск не несёт
+     * lifecycle схемой (живёт циклом open/closed), но его ЗАПИСЬ в реестре
+     * зреет по планкам ворот (Д6: Preliminary к MCR) — зрелость применима.
+     * Замечание обзора в планках не встречается: у него только свой цикл.
+     */
+    val typesWithStatusBar: Set<String> by lazy { gates.values.flatMap { it.keys }.toSet() }
+
     /** Объекты, не достигшие требуемой зрелости; Cancelled не участвует. */
     fun readiness(objects: List<ObjectSnapshot>, gate: String): List<GateGap> {
         val required = gates[gate]

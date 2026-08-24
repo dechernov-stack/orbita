@@ -1550,6 +1550,14 @@ class HttpApi(private val boundary: Boundary) {
                 CoreType.entries.forEach { t ->
                     arr.addObject().put("type", t.dbType).put("prefix", t.idPrefix)
                         .put("schema", t.schemaName)
+                        // Вид без статусной модели живёт собственным циклом:
+                        // лестница зрелости и массовый перевод к нему неприменимы.
+                        // Риск — исключение по планкам ворот: Д6 зреет к MCR
+                        .put(
+                            "lifecycle",
+                            boundary.schemaAllows(t, "lifecycle") ||
+                                t.dbType in boundary.req.gates.typesWithStatusBar,
+                        )
                 }
                 respond(ex, 200, arr)
             }

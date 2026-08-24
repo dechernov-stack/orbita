@@ -52,6 +52,8 @@ export interface KindRow {
   type: string
   prefix: string
   schema: string
+  /** false — вид живёт собственным циклом (open/closed): зрелость неприменима. */
+  lifecycle: boolean
 }
 
 /** Схема вида с раскрытыми ссылками: по ней строится форма. */
