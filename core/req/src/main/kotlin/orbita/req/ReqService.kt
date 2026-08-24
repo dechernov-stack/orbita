@@ -93,11 +93,28 @@ class ReqService(
 
             // Блок C: закрытое замечание без ответа — «устранили, но не скажем как»
             "review_item" -> {
-                if (doc.path("status").asText() == "closed" &&
-                    doc.path("response").asText("").isBlank()
-                ) {
+                val closed = doc.path("status").asText() == "closed"
+                if (closed && doc.path("response").asText("").isBlank()) {
                     throw ModelViolationException(
                         "C: замечание закрывается с ответом (response) — как устранено"
+                    )
+                }
+                // Критическое замечание не закрывается голым текстом (находка
+                // второго захода): текст — обещание, подтверждение — ссылки на
+                // изменённые карточки и выпуски документов. Некритическим
+                // (comment/question/recommendation) достаточно ответа.
+                val refs = doc.path("resolution_refs").map { it.asText() }
+                if (closed && doc.path("classification").asText() == "critical" && refs.isEmpty()) {
+                    throw ModelViolationException(
+                        "C: критическое замечание закрывается с подтверждением — " +
+                            "укажите в resolution_refs изменённые карточки и/или выпуски " +
+                            "документов, которыми оно устранено"
+                    )
+                }
+                // Ссылка на несуществующий объект — не подтверждение, а опечатка
+                refs.forEach { ref ->
+                    objects.current(ref) ?: throw ModelViolationException(
+                        "C: resolution_refs ссылается на несуществующий объект '$ref'"
                     )
                 }
             }

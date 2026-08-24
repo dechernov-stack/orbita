@@ -55,6 +55,14 @@ class ProcessBackboneTest {
             HttpResponse.BodyHandlers.ofString(),
         )
 
+    private fun patch(path: String, body: String): HttpResponse<String> =
+        client.send(
+            HttpRequest.newBuilder(URI.create("$base$path"))
+                .header("Content-Type", "application/json; charset=utf-8")
+                .method("PATCH", HttpRequest.BodyPublishers.ofString(body, Charsets.UTF_8)).build(),
+            HttpResponse.BodyHandlers.ofString(),
+        )
+
     private fun get(path: String): HttpResponse<String> =
         client.send(
             HttpRequest.newBuilder(URI.create("$base$path")).GET().build(),
@@ -246,11 +254,41 @@ class ProcessBackboneTest {
         assertTrue("RF-1001" in blocked.body()) { blocked.body() }
 
         // закрытие без ответа отклоняется правилом вида
-        val bare = post(
+        val bare = patch(
             "/edit/RF-1001",
-            """{$author,"base_version":"1","doc":{"status":"closed"}}""",
+            """{$author,"base_version":"1","changes":{"status":"closed"}}""",
         )
-        assertTrue(bare.statusCode() != 200) { bare.body() }
+        assertEquals(422, bare.statusCode()) { bare.body() }
+
+        // Критическое замечание не закрывается голым текстом (находка второго
+        // захода): ответ — обещание, подтверждение — ссылки на изменённые
+        // карточки/выпуски (resolution_refs)
+        val textOnly = patch(
+            "/edit/RF-1001",
+            """{$author,"base_version":"1","changes":{"status":"closed",
+                "response":"стоимость обоснована"}}""",
+        )
+        assertEquals(422, textOnly.statusCode()) { textOnly.body() }
+        assertTrue("resolution_refs" in textOnly.body()) { textOnly.body() }
+
+        // ссылка на несуществующий объект — не подтверждение
+        val badRef = patch(
+            "/edit/RF-1001",
+            """{$author,"base_version":"1","changes":{"status":"closed",
+                "response":"стоимость обоснована",
+                "resolution_refs":["CE-9999"]}}""",
+        )
+        assertEquals(422, badRef.statusCode()) { badRef.body() }
+        assertTrue("CE-9999" in badRef.body()) { badRef.body() }
+
+        // со ссылкой на существующую карточку стоимости — закрывается
+        val ok = patch(
+            "/edit/RF-1001",
+            """{$author,"base_version":"1","changes":{"status":"closed",
+                "response":"оценка стоимости дополнена разбивкой по WBS",
+                "resolution_refs":["CE-1001"]}}""",
+        )
+        assertEquals(200, ok.statusCode()) { ok.body() }
 
         // Замечание обзора живёт СОБСТВЕННЫМ циклом (open → answered/closed):
         // зрелость Draft→Baseline к нему не применяется, перевод отклоняется

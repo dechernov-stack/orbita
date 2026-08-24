@@ -15,6 +15,11 @@
     "owner": {"type": "string", "minLength": 1},
     "due": {"type": "string", "format": "date", "description": "Срок устранения, ISO-дата"},
     "response": {"type": "string", "description": "Как устранено; обязателен при закрытии"},
+    "resolution_refs": {
+      "type": "array",
+      "description": "Чем устранено: идентификаторы изменённых карточек модели и выпусков документов (CE-0001, WB-0003, DI-0005…). Критическое замечание не закрывается голым текстом — только с подтверждением; каждая ссылка проверяется на существование",
+      "items": {"type": "string", "pattern": "^[A-Z]{2,3}-[0-9]{4}$"}
+    },
     "source": {"type": "string", "description": "Кто выдал: комиссия, участник обзора"},
     "provenance": {"$ref": "https://kis.local/schemas/common/provenance.schema.json"}
   }

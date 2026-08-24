@@ -153,8 +153,20 @@ class Editing(
         require(author.isNotBlank()) { "TZ-COM-005: change without an author is not accepted" }
         val prev = boundary.objects.previous(id) ?: return null
         val cur = boundary.objects.current(id) ?: throw NoSuchElementException("object '$id' not found")
+        val type = CoreType.byDbType(cur.type)
         val restored = prev.doc.deepCopy<ObjectNode>()
-        restored.withObject("/lifecycle").put("version", boundary.objects.bumpVersion(cur.version))
+        // Блок lifecycle — только видам, чья схема его несёт (как в update):
+        // прочим он не проставляется, а исторический мусор (до починки
+        // transition) вычищается, не воскресая откатом.
+        if (boundary.schemaAllows(type, "lifecycle")) {
+            restored.withObject("/lifecycle").put("version", boundary.objects.bumpVersion(cur.version))
+        } else {
+            restored.remove("lifecycle")
+        }
+        // Восстановленное обязано проходить НЫНЕШНЮЮ схему: откат, молча
+        // возвращающий недействительное содержание, делал объект
+        // нередактируемым (находка второго захода — RF-0001).
+        boundary.validate(type, restored)
         val stored = boundary.objects.change(id, restored, createdBy = author, baseVersion = cur.version)
         boundary.req.syncLinks(stored.type, stored.id, stored.doc, stored.projectId)
         return stored
