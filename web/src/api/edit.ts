@@ -101,12 +101,13 @@ export class EditRejected extends Error {
   }
 
   /** Ошибки схемы: путь до поля и правило — форма показывает их у полей. */
-  get fieldErrors(): Array<{ path: string; message: string }> {
+  get fieldErrors(): Array<{ path: string; message: string; rule?: string }> {
     const errors = this.payload.errors
     if (!Array.isArray(errors)) return []
     return errors.map((e) => ({
       path: String((e as Record<string, unknown>).path ?? ''),
       message: String((e as Record<string, unknown>).message ?? ''),
+      rule: String((e as Record<string, unknown>).rule ?? '') || undefined,
     }))
   }
 }

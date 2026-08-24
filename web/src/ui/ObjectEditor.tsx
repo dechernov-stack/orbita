@@ -14,7 +14,7 @@ import {
   type JsonSchema,
   type StoredSummary,
 } from '../api/edit'
-import { ObjectForm, editableFields, emptyDoc, useSystemFieldsNote } from './ObjectForm'
+import { ObjectForm, editableFields, emptyDoc, humanizeError, useSystemFieldsNote } from './ObjectForm'
 import { useSession } from './session'
 
 import { STATUS_ACTION, STATUS_MEANING, STATUS_ORDER } from './maturity'
@@ -51,7 +51,7 @@ export function ObjectEditor({ kind, schemaName, id, title, maturity, onSaved, o
   const [doc, setDoc] = useState<Record<string, unknown>>({})
   const [version, setVersion] = useState<string | null>(null)
   const [status, setStatus] = useState<string | null>(null)
-  const [errors, setErrors] = useState<Array<{ path: string; message: string }>>([])
+  const [errors, setErrors] = useState<Array<{ path: string; message: string; rule?: string }>>([])
   const [conflict, setConflict] = useState<Conflict | null>(null)
   const [blocked, setBlocked] = useState<string | null>(null)
   /** Основание изменения базированного объекта (TZ-COM-003). */
@@ -309,7 +309,7 @@ export function ObjectEditor({ kind, schemaName, id, title, maturity, onSaved, o
             {errors.map((e, i) => (
               <li key={i}>
                 {e.path && <span className="mono">{e.path} — </span>}
-                {e.message}
+                {humanizeError(e)}
               </li>
             ))}
           </ul>

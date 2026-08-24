@@ -19,7 +19,7 @@ interface FieldProps {
   value: Value
   required: boolean
   path: string
-  errors: Array<{ path: string; message: string }>
+  errors: Array<{ path: string; message: string; rule?: string }>
   onChange: (next: Value) => void
 }
 
@@ -83,7 +83,41 @@ const toNumber = (raw: string): number | undefined => (isBlank(raw) ? undefined 
 
 const isChecked = (raw: unknown): boolean => raw === true
 
-function Errors({ path, errors, deep }: { path: string; errors: Array<{ path: string; message: string }>; deep?: boolean }) {
+/**
+ * Схемный отказ — по-русски (второй заход: инженер получил
+ * «does not match the regex pattern ^[A-Z]{2,3}-[0-9]{4}$» на «CE-003»
+ * и не обязан был догадываться, что цифр должно быть четыре). Перевод —
+ * по правилу отказа; незнакомое правило показывается серверным текстом:
+ * честный пробел лучше молчания.
+ */
+export function humanizeError(e: { path: string; message: string; rule?: string }): string {
+  const field = e.path.replace(/^\//, '').replace(/\/[0-9]+$/, '')
+  switch (e.rule) {
+    case 'pattern':
+      if (e.message.includes('^[A-Z]{2,3}-[0-9]{4}$')) {
+        return 'не по формату идентификатора: нужно <ВИД>-НННН с четырьмя цифрами — CE-0003, а не CE-003'
+      }
+      return `не по формату: образец ${e.message.substring(e.message.indexOf('pattern') + 8) || '—'}`
+    case 'required':
+      return 'обязательное поле не заполнено'
+    case 'minLength':
+      return 'значение короче допустимого'
+    case 'maxLength':
+      return 'значение длиннее допустимого'
+    case 'minItems':
+      return 'записей меньше, чем требует схема'
+    case 'enum':
+      return 'значение вне допустимого перечня — выберите из списка'
+    case 'type':
+      return 'не тот тип значения'
+    case 'additionalProperties':
+      return `поле «${field || '—'}» схемой не предусмотрено`
+    default:
+      return e.message
+  }
+}
+
+function Errors({ path, errors, deep }: { path: string; errors: Array<{ path: string; message: string; rule?: string }>; deep?: boolean }) {
   // deep — для листовых коллекций: серверная ошибка элемента приходит путём
   // «/resolution_refs/0», а поле слушало ровно «/resolution_refs» — отказ
   // не показывался нигде, и сохранение выглядело молчаливо сломанным
@@ -92,7 +126,7 @@ function Errors({ path, errors, deep }: { path: string; errors: Array<{ path: st
   if (mine.length === 0) return null
   return (
     <div className="warn" role="alert">
-      {mine.map((e) => e.message).join('; ')}
+      {mine.map((e) => humanizeError(e)).join('; ')}
     </div>
   )
 }
@@ -452,6 +486,6 @@ export function useSystemFieldsNote(): string {
 /** Состояние формы: документ и ошибки полей от сервера. */
 export function useFormState(initial: Record<string, unknown>) {
   const [doc, setDoc] = useState<Record<string, unknown>>(initial)
-  const [errors, setErrors] = useState<Array<{ path: string; message: string }>>([])
+  const [errors, setErrors] = useState<Array<{ path: string; message: string; rule?: string }>>([])
   return { doc, setDoc, errors, setErrors }
 }
