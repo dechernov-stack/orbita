@@ -146,9 +146,22 @@ export function AiService() {
             <textarea rows={5} style={{ width: '100%', fontFamily: 'var(--font-mono)', fontSize: 12 }}
               value={raw} onChange={(e) => setRaw(e.target.value)}
               placeholder='[{"id": "ND-0001", …}]' />
-            <button className="btn" onClick={submit} disabled={!raw.trim() || !author || busy}>
-              Внести ответ контура
-            </button>
+            <div className="toolbar" style={{ padding: '6px 0' }}>
+              <button className="btn" onClick={submit} disabled={!raw.trim() || !author || busy}>
+                Внести ответ контура
+              </button>
+              <label className="btn" title="выбрать файл с ответом контура, не вставлять текст руками">
+                Выбрать файл…
+                <input type="file" accept="application/json,.json,.txt" style={{ display: 'none' }}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    e.target.value = ''
+                    if (!file) return
+                    setError(null)
+                    file.text().then(setRaw).catch((e) => setError(String(e)))
+                  }} />
+              </label>
+            </div>
           </div>
         )}
 
