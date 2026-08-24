@@ -108,8 +108,14 @@ class DocumentsOnModelTest {
     @DisplayName("§11.1: оставшиеся разрывы названы и относятся к модели")
     fun `оставшиеся разрывы относятся к модели`() {
         val spec = generator.render(snapshot(), DocumentTemplate.RequirementSpecification)
-        // введение и требования уровня проекта в демо-проекте не заданы
-        assertTrue(spec.gaps.any { it.section == 1 && it.what == "раздел пуст" })
+        // Введение в демо-проекте не заполнено. Разрыв называет НЕЗАПОЛНЕННОЕ
+        // ПОЛЕ, а не «раздел пуст»: проект в модели есть всегда (он контейнер),
+        // и инженеру нужно знать, чего именно не хватает, чтобы дописать.
+        assertEquals(
+            listOf("назначение", "область", "применимые документы"),
+            spec.gaps.filter { it.section == 1 }
+                .map { it.what.substringAfter('«').substringBefore('»') },
+        )
         // обоснование не задано ни у одного требования — это находка к SRR
         assertEquals(9, spec.gaps.count { it.what.contains("обоснование") })
 

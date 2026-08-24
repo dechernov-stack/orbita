@@ -99,6 +99,12 @@ object ModelSnapshot {
             current.firstOrNull { it.type == type }?.let { model.set<ObjectNode>(field, withLifecycle(it, mapper)) }
         }
 
+        // Сам проект-контейнер (ADR-022): «Введение» документов и их шапки
+        // читают его назначение, область и применимые документы. Без него
+        // раздел §1 оставался пустым при любом действии инженера.
+        current.firstOrNull { it.type == CoreType.Project.dbType }
+            ?.let { model.set<ObjectNode>("project", withLifecycle(it, mapper)) }
+
         // Варианты сравнения живут в результатах моделирования, а не в объектах:
         // вызывающий достаёт их из ResultStore и передаёт сюда.
         val opts = model.putArray("options")

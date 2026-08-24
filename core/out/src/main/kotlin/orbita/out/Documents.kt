@@ -298,6 +298,13 @@ data class GeneratedDocument(
  * разрыв документа: спецификация без обоснования требования проходит вычитку
  * и падает на первом же вопросе «почему именно сто килограммов».
  */
+/** Что регламент ждёт во «Введении» (БП-PA, Приложение 2, §1). */
+private val INTRODUCTION_ATTRIBUTES = listOf(
+    "purpose" to "назначение",
+    "scope" to "область",
+    "applicable_documents" to "применимые документы",
+)
+
 private val REQUIREMENT_ATTRIBUTES = listOf(
     "id" to "идентификатор",
     "statement" to "формулировка",
@@ -379,13 +386,7 @@ class DocumentGenerator(private val mapper: ObjectMapper = ObjectMapper()) {
     ) {
         val requirements = model.path("requirements").sortedBy { it.path("id").asText() }
         when (section) {
-            1 -> model.path("project").takeIf { it.isObject && !it.isEmpty }?.let { p ->
-                val n = items.addObject()
-                n.put("purpose", p.path("purpose").asText(""))
-                n.put("scope", p.path("scope").asText(""))
-                val docs = n.putArray("applicable_documents")
-                p.path("applicable_documents").forEach { docs.add(it.asText()) }
-            }
+            1 -> introduction(model, items, gaps, section)
             // Уровень требования задаёт раздел: проектные — во второй, системные —
             // в третий. Свалить всё в один список значило бы потерять различие,
             // которое регламент проводит намеренно.
@@ -422,6 +423,38 @@ class DocumentGenerator(private val mapper: ObjectMapper = ObjectMapper()) {
     }
 
     /** Запись требования со всеми атрибутами Приложения 2; недостающие — разрывы. */
+    /**
+     * «Введение»: назначение, область и применимые документы — из проекта
+     * (ADR-022). Незаполненное поле — разрыв ПОИМЁННО, а не молча пустая
+     * строка в разделе: инженер обязан видеть, чего именно не хватает, и
+     * иметь возможность это дописать. Отсутствие самого проекта оставляет
+     * раздел пустым, и общий разрыв «раздел пуст» скажет об этом сам.
+     */
+    private fun introduction(
+        model: JsonNode,
+        items: ArrayNode,
+        gaps: MutableList<DocumentGap>,
+        section: Int,
+    ) {
+        val p = model.path("project").takeIf { it.isObject && !it.isEmpty } ?: return
+        val n = items.addObject()
+        n.put("purpose", p.path("purpose").asText(""))
+        n.put("scope", p.path("scope").asText(""))
+        val docs = n.putArray("applicable_documents")
+        p.path("applicable_documents").forEach { d ->
+            val code = d.path("code").asText("")
+            val title = d.path("title").asText("")
+            val revision = d.path("revision").asText("")
+            docs.add(listOf(code, title, revision).filter { it.isNotBlank() }.joinToString(" — "))
+        }
+        for ((field, label) in INTRODUCTION_ATTRIBUTES) {
+            val value = n.path(field)
+            val blank = (value.isTextual && value.asText().isBlank()) ||
+                (value.isArray && value.isEmpty)
+            if (blank) gaps += DocumentGap(section, "проект: не заполнено «$label»", "Введение")
+        }
+    }
+
     private fun requirementRecord(r: JsonNode, gaps: MutableList<DocumentGap>, section: Int): ObjectNode {
         val n = mapper.createObjectNode()
         val id = r.path("id").asText()
