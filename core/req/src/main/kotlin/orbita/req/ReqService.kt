@@ -52,10 +52,10 @@ class ReqService(
                     objects.current(target)
                         ?: throw ModelViolationException("TZ-REQ-005: allocation to missing element $target")
                 }
-                // CR-003: интерфейсное требование распределяется на интерфейс с двумя сторонами
-                interfaceAllocationValid(doc, productTree()).let { (ok, why) ->
-                    if (!ok) throw ModelViolationException("CR-003 (ADR-019): $why")
-                }
+                // CR-003: распределение интерфейсного требования на интерфейс —
+                // проверка ПОЛНОТЫ, и она стоит на базировании (Baselining), а
+                // не здесь: на шаге «требования из сервисов» дерева изделия ещё
+                // нет, и запрет записи останавливал бы работу (CR-002 ловушка 5).
                 // CR-001: декомпозиция — отдельная связь derive, не trace
                 doc.path("derives_from").forEach { parent ->
                     objects.current(parent.asText())
@@ -469,8 +469,8 @@ class ReqService(
      * функция, что решает переход в [promote]: черновик допускает неполноту,
      * Baseline — нет, и причины называются поимённо.
      */
-    fun baselineIssues(type: String, doc: JsonNode): List<String> =
-        if (type == "requirement") baselining.canBaseline(doc).second else emptyList()
+    fun baselineIssues(type: String, doc: JsonNode, projectId: String? = null): List<String> =
+        if (type == "requirement") baselining.canBaseline(doc, productTree(projectId)).second else emptyList()
 
     /** Активные и закрытые риски: закрытый сохраняется в реестре. */
     fun risks(projectId: String? = null): List<JsonNode> = objects.listCurrent(projectId)
@@ -511,7 +511,7 @@ class ReqService(
     ): StoredObject {
         val cur = objects.current(id) ?: throw NoSuchElementException("object '$id' not found")
         if (target == Lifecycle.Baseline && cur.type == "requirement" && cur.status != Lifecycle.Baseline) {
-            val (ok, reasons) = baselining.canBaseline(cur.doc)
+            val (ok, reasons) = baselining.canBaseline(cur.doc, productTree(cur.projectId))
             if (!ok) throw BaselineBlockedException(reasons)
         }
         return objects.transition(id, target, createdBy, at)

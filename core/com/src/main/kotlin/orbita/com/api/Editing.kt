@@ -157,7 +157,7 @@ class Editing(
      */
     fun promotionIssues(id: String): List<String> {
         val cur = boundary.objects.current(id) ?: throw NoSuchElementException("object '$id' not found")
-        return boundary.req.baselineIssues(cur.type, cur.doc)
+        return boundary.req.baselineIssues(cur.type, cur.doc, cur.projectId)
     }
 
     /**

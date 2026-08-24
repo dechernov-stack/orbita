@@ -171,7 +171,7 @@ class RequirementsSemanticsTest {
 
         @Test
         fun `пригодное требование базируется`() {
-            val (ok, why) = baselining.canBaseline(ready)
+            val (ok, why) = baselining.canBaseline(ready, emptyMap())
             assertTrue(ok) { why.toString() }
         }
 
@@ -181,14 +181,14 @@ class RequirementsSemanticsTest {
                 putObject("mop").put("name", "Вероятность доставки").put("operator", "ge").put("tbd", true)
                     .putObject("value").put("value", 0.9).put("unit", "1")
             }
-            val (ok, why) = baselining.canBaseline(withTbd)
+            val (ok, why) = baselining.canBaseline(withTbd, emptyMap())
             assertFalse(ok)
             assertTrue(why.any { "TBD" in it }) { why.toString() }
         }
 
         @Test
         fun `отсутствие метода верификации блокирует`() {
-            val (ok, why) = baselining.canBaseline(good)
+            val (ok, why) = baselining.canBaseline(good, emptyMap())
             assertFalse(ok)
             assertTrue(why.any { "верификации" in it }) { why.toString() }
         }

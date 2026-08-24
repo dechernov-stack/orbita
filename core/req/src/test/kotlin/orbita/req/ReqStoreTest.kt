@@ -259,26 +259,41 @@ class ReqStoreTest {
     }
 
     @Test
-    fun `интерфейсное требование на одном элементе отклоняется`() {
+    fun `интерфейсное требование на одном элементе не базируется`() {
         req.ingestInterface(
             """{"id":"IF-0001","name":"Стык борт — наземный сегмент","kind":"interface",
                 "owners":["CM-0001","CM-0002"],"lifecycle":{"status":"Draft","version":"1"}}"""
         )
-        // интерфейсное требование на элементе — отклоняется
-        val e = assertThrows<ModelViolationException> {
-            req.ingestRequirement(
-                requirementJson("RQ-0080", allocated = """[{"component":"CM-0001","kind":"full"}]""")
-                    .replace(""""category":"performance"""", """"category":"interface"""")
-            )
-        }
-        assertTrue("интерфейс" in e.message!!) { e.message!! }
+        // Черновик интерфейсного требования на элементе ЗАПИСЫВАЕТСЯ: полнота
+        // распределения — условие базирования, а не сохранения (CR-002 ловушка 5).
+        // Иначе требования из сервисов нельзя было бы завести до дерева изделия.
+        req.ingestRequirement(
+            requirementJson("RQ-0080", allocated = """[{"component":"CM-0001","kind":"full"}]""")
+                .replace(""""category":"performance"""", """"category":"interface"""")
+        )
+        // …но в Baseline не проходит, и причина названа
+        val why = req.baselineIssues("requirement", req.objects.current("RQ-0080")!!.doc)
+        assertTrue(why.any { "интерфейс" in it }) { why.toString() }
+        assertThrows<BaselineBlockedException> { req.promote("RQ-0080", Lifecycle.Baseline) }
 
-        // на интерфейсе с двумя сторонами — принимается
+        // вовсе без распределения — тоже записывается, тоже не базируется:
+        // именно так приходит материал шага «требования из сервисов»
+        req.ingestRequirement(
+            requirementJson("RQ-0082", allocated = "[]")
+                .replace(""""category":"performance"""", """"category":"interface"""")
+        )
+        assertTrue(
+            req.baselineIssues("requirement", req.objects.current("RQ-0082")!!.doc)
+                .any { "интерфейс" in it },
+        )
+
+        // на интерфейсе с двумя сторонами — принимается и базируется
         req.ingestRequirement(
             requirementJson("RQ-0081", allocated = """[{"interface":"IF-0001","kind":"full"}]""")
                 .replace(""""category":"performance"""", """"category":"interface"""")
         )
         assertEquals(listOf("IF-0001"), req.links.linksFrom("RQ-0081", "allocation").map { it.toId })
+        assertTrue(req.baselineIssues("requirement", req.objects.current("RQ-0081")!!.doc).isEmpty())
     }
 
     @Test
