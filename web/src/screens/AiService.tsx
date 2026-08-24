@@ -5,7 +5,7 @@
 // один: прямой вызов провайдера — основной, закрытый контур (пакет владельцу,
 // ответ файлом) — режим того же формата. Журнал отвечает «сколько и почём».
 import { useCallback, useEffect, useState } from 'react'
-import { api, type AiJournal, type AiRunReport, type BatchReport } from '../api/client'
+import { api, asBatchReport, type AiJournal, type AiRunReport, type BatchReport } from '../api/client'
 import { edit, type StoredSummary } from '../api/edit'
 import { useSession } from '../ui/session'
 
@@ -29,6 +29,11 @@ export function AiService() {
   const [raw, setRaw] = useState('')
   const [report, setReport] = useState<AiRunReport | null>(null)
   const [batch, setBatch] = useState<BatchReport | null>(null)
+  // Пачка на запись — всё или ничего (ADR-024): одно требование с изъяном
+  // (например, интерфейсное распределено на элемент, а не на интерфейс —
+  // CR-003) не должно держать заложником весь показанный улов. Инженер
+  // снимает отметку у проблемных и принимает остальные тем же действием.
+  const [excluded, setExcluded] = useState<Set<string>>(new Set())
   const [journal, setJournal] = useState<AiJournal | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -60,6 +65,7 @@ export function AiService() {
     setBusy(true)
     setError(null)
     setBatch(null)
+    setExcluded(new Set())
     api.aiAsk(kind, profile, statement, author)
       .then(setReport)
       .catch((e) => setError(String(e)))
@@ -70,6 +76,7 @@ export function AiService() {
     setBusy(true)
     setError(null)
     setBatch(null)
+    setExcluded(new Set())
     api.aiSubmit(kind, profile, statement, raw, author)
       .then(setReport)
       .catch((e) => setError(String(e)))
@@ -78,10 +85,32 @@ export function AiService() {
 
   const acceptAll = () => {
     if (!report) return
+    const items = report.shown.filter((s) => !excluded.has(String(s.item.id ?? '')))
+    if (items.length === 0) return
     setBusy(true)
-    api.acceptBatchOfCall(report.call ?? null, 'служба', author, report.shown.map((s) => s.item))
-      .then(setBatch)
-      .catch((e) => setError(String(e)))
+    const onRejected = (r: BatchReport) => {
+      setBatch(r)
+      // Пачка всё-или-ничего: при отказе снять отметку у названных причиной
+      // объектов, чтобы повторное нажатие приняло уже без них.
+      if (r.problems.length > 0) {
+        setExcluded((prev) => {
+          const next = new Set(prev)
+          r.problems.forEach((p) => { if (p.id) next.add(p.id) })
+          return next
+        })
+      }
+    }
+    api.acceptBatchOfCall(report.call ?? null, 'служба', author, items.map((s) => s.item))
+      .then(onRejected)
+      .catch((e) => {
+        // Сервер отвечает 422 тем же BatchReport, что и 201 на успех (written: 0,
+        // problems построчно) — общий post() на не-2xx бросает исключение и
+        // разобранное тело теряет. Достаём его назад, а не пугаем инженера
+        // сырой строкой ответа сервера.
+        const parsed = asBatchReport(e)
+        if (parsed) onRejected(parsed)
+        else setError(String(e))
+      })
       .finally(() => { setBusy(false); reloadJournal() })
   }
 
@@ -190,15 +219,52 @@ export function AiService() {
                 </table>
               )}
               {generative && report.shown.length > 0 && (
-                <button className="btn btn--primary" onClick={acceptAll} disabled={!author || busy}>
-                  Принять пачкой ({report.shown.length})
-                </button>
+                <>
+                  <p className="secondary">
+                    Пачка пишется всё или ничего: отказ по одному объекту не даёт причины
+                    отказывать в остальных — снимите отметку у отклонённых (сервер называет их
+                    поимённо) и примите оставшихся тем же действием.
+                  </p>
+                  <div style={{ maxHeight: 220, overflowY: 'auto', marginBottom: 8 }}>
+                    <table>
+                      <thead><tr><th style={{ width: 30 }} /><th style={{ width: 90 }}>Id</th><th>Формулировка</th></tr></thead>
+                      <tbody>
+                        {report.shown.map((s) => {
+                          const id = String(s.item.id ?? '')
+                          const label = String(s.item.statement ?? s.item.name ?? s.item.title ?? '')
+                          const problem = batch?.problems.find((p) => p.id === id)
+                          return (
+                            <tr key={id}>
+                              <td>
+                                <input type="checkbox" checked={!excluded.has(id)}
+                                  onChange={(e) => setExcluded((prev) => {
+                                    const next = new Set(prev)
+                                    if (e.target.checked) next.delete(id); else next.add(id)
+                                    return next
+                                  })} />
+                              </td>
+                              <td className="mono">{id}</td>
+                              <td>
+                                {label}
+                                {problem && <div className="warn">{problem.rule ? `${problem.rule}: ` : ''}{problem.message}</div>}
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  <button className="btn btn--primary" onClick={acceptAll}
+                    disabled={!author || busy || report.shown.length === excluded.size}>
+                    Принять пачкой ({report.shown.length - excluded.size})
+                  </button>
+                </>
               )}
               {batch && (
                 <div className={batch.problems.length ? 'notice notice--blocked' : 'notice'}>
                   {batch.problems.length === 0
                     ? <>Принято: <b className="mono">{batch.written}</b> — акцепт записан в журнал вызова</>
-                    : <>Пачка отклонена: {batch.problems.slice(0, 4).map((p) => `${p.id ?? p.index}: ${p.message}`).join('; ')}</>}
+                    : <>Пачка отклонена, отклонённые сняты из выбора выше — примите оставшихся: {batch.problems.slice(0, 4).map((p) => `${p.id ?? p.index}: ${p.message}`).join('; ')}</>}
                 </div>
               )}
             </div>

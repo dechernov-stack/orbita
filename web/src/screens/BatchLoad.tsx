@@ -3,7 +3,7 @@
 // «всё или ничего» держит транзакция импорта (ADR-024). Выгрузка — тем же
 // форматом, выгруженное грузится обратно.
 import { useState } from 'react'
-import { api, type BatchReport } from '../api/client'
+import { api, asBatchReport, type BatchReport } from '../api/client'
 import { currentProject, withProject } from '../api/project'
 import { useSession } from '../ui/session'
 
@@ -45,7 +45,12 @@ export function BatchLoad() {
       if (!body.author) body.author = author
       setReport(await api.importObjects(body))
     } catch (e) {
-      setFailure(e instanceof Error ? e.message : String(e))
+      // 422 несёт тот же BatchReport построчно, что и успех (written: 0,
+      // problems) — общий post() на отказе его теряет; достаём назад, иначе
+      // инженер видит сырую строку вместо построчной таблицы замечаний.
+      const parsed = asBatchReport(e)
+      if (parsed) setReport(parsed)
+      else setFailure(e instanceof Error ? e.message : String(e))
     } finally {
       setBusy(false)
     }

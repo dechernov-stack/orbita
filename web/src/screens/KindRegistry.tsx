@@ -3,7 +3,7 @@
 // с выбранным объектом (§3.3). На него сажаются все виды без собственного
 // расчётного экрана. Правила формы — серверные (ObjectEditor, шаг 15).
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { api, type BatchReport } from '../api/client'
+import { api, asBatchReport, type BatchReport } from '../api/client'
 import { edit, type KindRow, type StoredSummary } from '../api/edit'
 import { withProject } from '../api/project'
 import { ObjectEditor } from '../ui/ObjectEditor'
@@ -170,7 +170,14 @@ export function KindRegistry({ kinds, title }: { kinds: string[]; title: string 
                   return api.importObjects(body)
                 })
                 .then((r) => { setBatch(r); reload() })
-                .catch((err) => setMassReport(err instanceof Error ? err.message : String(err)))
+                .catch((err) => {
+                  // 422 несёт тот же BatchReport построчно, что и успех — общий
+                  // post() на отказе его теряет и бросает голую строку; достаём
+                  // назад, чтобы инженер увидел замечания по строкам, а не текст.
+                  const parsed = asBatchReport(err)
+                  if (parsed) setBatch(parsed)
+                  else setMassReport(err instanceof Error ? err.message : String(err))
+                })
             }} />
         </label>
         <button className="btn btn--primary" onClick={() => { setSelected(null); setCreating(true) }}>

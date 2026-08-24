@@ -144,10 +144,30 @@ export class ApiError extends Error {
   constructor(
     readonly status: number,
     readonly path: string,
-    message: string,
+    /** Тело ответа как есть — сервер на отказ пачки (422) шлёт тот же BatchReport,
+     * что и на успех (201), только written: 0. Разбор тела заново — через body. */
+    readonly body: string,
   ) {
-    super(`${path}: ${status} ${message}`)
+    super(`${path}: ${status} ${body}`)
   }
+}
+
+/**
+ * Пачка (accept-batch, import/objects) отвечает 422 с тем же телом BatchReport,
+ * что и успех 201 — только written: 0. Общий post() бросает ApiError и теряет
+ * разобранное тело; вызывающий, которому нужен отчёт построчно (а не голая
+ * строка), достаёт его отсюда вместо String(e).
+ */
+export function asBatchReport(e: unknown): BatchReport | null {
+  if (!(e instanceof ApiError)) return null
+  try {
+    const parsed = JSON.parse(e.body) as unknown
+    const r = parsed as Record<string, unknown>
+    if (Array.isArray(r.problems)) return parsed as BatchReport
+  } catch {
+    // тело не JSON (сетевой отказ, HTML страница ошибки и т.п.) — не наш случай
+  }
+  return null
 }
 
 async function post<T>(path: string, body: unknown): Promise<T> {
