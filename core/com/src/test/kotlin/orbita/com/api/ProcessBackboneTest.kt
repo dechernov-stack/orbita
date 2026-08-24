@@ -148,6 +148,12 @@ class ProcessBackboneTest {
             assertEquals(201, issued.statusCode()) { "$template: ${issued.body()}" }
         }
 
+        // Паспорт БАЗИРОВАН до прохождения — и это не преграда (находка
+        // второго захода): прохождение само есть процедура с основанием
+        // (TZ-COM-003), основание — решение. Прежде здесь был 409 и ворота
+        // запирались наглухо.
+        boundary.req.promote("PJ-1001", orbita.mod.model.Lifecycle.Baseline)
+
         val r = post("/gates/internal_review/pass", """{$author,"rationale":"комплект КТ-1 собран"}""")
         assertEquals(200, r.statusCode()) { r.body() }
         val n = mapper.readTree(r.body())
@@ -159,6 +165,12 @@ class ProcessBackboneTest {
         assertEquals("Approve", decision.doc.path("selected").asText())
         val project = boundary.objects.current("PJ-1001")!!
         assertTrue(project.doc.path("milestones")[0].path("held").asBoolean())
+        // след основания — на закрытом интервале истории паспорта
+        val ref = TestDb.conn.prepareStatement(
+            "SELECT change_ref FROM objects WHERE id='PJ-1001' AND valid_to IS NOT NULL " +
+                "ORDER BY pk DESC LIMIT 1",
+        ).use { ps -> ps.executeQuery().use { rs -> rs.next(); rs.getString(1) } }
+        assertTrue(ref != null && "прохождение точки internal_review" in ref) { "change_ref=$ref" }
     }
 
     @Test

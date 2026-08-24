@@ -91,6 +91,14 @@ class Editing(
         changes: JsonNode,
         baseVersion: String,
         author: String,
+        /**
+         * Основание изменения базированного объекта (TZ-COM-003): без него
+         * правка Baseline отклоняется. Процессные события — прохождение точки,
+         * возврат — несут решением своё основание и проходят этим путём:
+         * иначе базированный паспорт наглухо запирал ворота (находка второго
+         * захода: 409 на «Запросить прохождение»).
+         */
+        changeRef: String? = null,
     ): StoredObject {
         require(author.isNotBlank()) { "TZ-COM-005: change without an author is not accepted" }
         val cur = boundary.objects.current(id) ?: throw NoSuchElementException("object '$id' not found")
@@ -98,7 +106,7 @@ class Editing(
         // правка на устаревшей версии базированного объекта сообщила бы о статусе
         // и умолчала о том, что её основание вообще устарело.
         if (cur.version != baseVersion) throw conflict(cur, baseVersion, changes)
-        if (cur.status == Lifecycle.Baseline) {
+        if (cur.status == Lifecycle.Baseline && changeRef.isNullOrBlank()) {
             throw BaselineEditBlockedException(
                 id, "объект базирован: изменение через процедуру с основанием",
             )
@@ -114,7 +122,9 @@ class Editing(
         }
         stampQuantities(merged, author)
         boundary.validate(type, merged)
-        val stored = boundary.objects.change(id, merged, createdBy = author, baseVersion = baseVersion)
+        val stored = boundary.objects.change(
+            id, merged, changeRef = changeRef, createdBy = author, baseVersion = baseVersion,
+        )
         // Связи выводятся из документа при каждой записи (ADR-027): до этого
         // «создал, потом привязал правкой» не давал ни одной связи — дерево
         // оставалось плоским, матрица трассировки пустой

@@ -171,7 +171,12 @@ class GatePassing(
         // KDP A — вход в Phase A (§1.4 БП-PPA): решение «Approve» переводит
         // проект в следующую фазу, операции и комплекты меняются вместе с ней
         if (gate == "KDP-A") changes.put("phase", "phase_a")
-        boundary.editing.update(CoreType.Project, projectId, changes, project.version, author)
+        // Паспорт может быть базирован — и это не преграда: прохождение точки
+        // само есть процедура с основанием (TZ-COM-003), основание — решение
+        boundary.editing.update(
+            CoreType.Project, projectId, changes, project.version, author,
+            changeRef = "${stored.id}: прохождение точки $gate",
+        )
 
         val out = mapper.createObjectNode()
         out.put("passed", true)
@@ -220,7 +225,10 @@ class GatePassing(
         ret.put("at", OffsetDateTime.now(ZoneOffset.UTC).toString())
         val changes = mapper.createObjectNode()
         changes.set<ObjectNode>("return", ret)
-        boundary.editing.update(CoreType.Project, projectId, changes, project.version, author)
+        boundary.editing.update(
+            CoreType.Project, projectId, changes, project.version, author,
+            changeRef = "${stored.id}: возврат от точки $gate",
+        )
 
         val out = mapper.createObjectNode()
         out.put("returned", true)
@@ -240,7 +248,10 @@ class GatePassing(
         require(note.isNotBlank()) { "ADR-029: снятие возврата требует основания (note)" }
         val changes = mapper.createObjectNode()
         changes.putNull("return")
-        boundary.editing.update(CoreType.Project, projectId, changes, project.version, author)
+        boundary.editing.update(
+            CoreType.Project, projectId, changes, project.version, author,
+            changeRef = "снятие возврата: $note",
+        )
         val out = mapper.createObjectNode()
         out.put("resolved", true)
         out.put("gate", active.path("gate").asText())
