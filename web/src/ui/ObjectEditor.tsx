@@ -297,6 +297,24 @@ export function ObjectEditor({ kind, schemaName, id, title, maturity, onSaved, o
       )}
 
       {failure && <div className="warn" role="alert">{failure}</div>}
+      {/* Сводка ВСЕХ замечаний сервера — страховка от молчаливого отказа:
+          ошибка с путём, не совпавшим ни с одним полем (элемент массива,
+          переименованное поле), терялась, и «Сохранить правку» выглядела
+          сломанной без объяснений (находка второго захода). Полевые
+          подсветки остаются точечной наводкой, эта сводка — гарантией. */}
+      {errors.length > 0 && (
+        <div className="notice notice--blocked" role="alert">
+          <b>Правка не принята — замечаний: {errors.length}.</b>
+          <ul style={{ margin: '4px 0 0 16px' }}>
+            {errors.map((e, i) => (
+              <li key={i}>
+                {e.path && <span className="mono">{e.path} — </span>}
+                {e.message}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <ObjectForm schema={schema} value={doc} errors={errors} onChange={setDoc} />
       <p className="secondary hint">{systemNote}</p>

@@ -83,8 +83,12 @@ const toNumber = (raw: string): number | undefined => (isBlank(raw) ? undefined 
 
 const isChecked = (raw: unknown): boolean => raw === true
 
-function Errors({ path, errors }: { path: string; errors: Array<{ path: string; message: string }> }) {
-  const mine = errors.filter((e) => e.path === path)
+function Errors({ path, errors, deep }: { path: string; errors: Array<{ path: string; message: string }>; deep?: boolean }) {
+  // deep — для листовых коллекций: серверная ошибка элемента приходит путём
+  // «/resolution_refs/0», а поле слушало ровно «/resolution_refs» — отказ
+  // не показывался нигде, и сохранение выглядело молчаливо сломанным
+  // (находка второго захода).
+  const mine = errors.filter((e) => e.path === path || (deep && e.path.startsWith(`${path}/`)))
   if (mine.length === 0) return null
   return (
     <div className="warn" role="alert">
@@ -187,7 +191,7 @@ function ObjectArrayField({ name, schema, value, required, path, errors, onChang
 }
 
 /** Массив строк: значения через запятую — ссылки на объекты вводятся так же. */
-function StringArrayField({ name, value, required, path, errors, onChange }: FieldProps) {
+function StringArrayField({ name, schema, value, required, path, errors, onChange }: FieldProps) {
   const items = Array.isArray(value) ? (value as string[]) : []
   return (
     <div className="field">
@@ -197,7 +201,7 @@ function StringArrayField({ name, value, required, path, errors, onChange }: Fie
       <input
         aria-label={name}
         value={items.join(', ')}
-        placeholder="через запятую"
+        placeholder="идентификаторы через запятую: CE-0001, DI-0005"
         onChange={(e) =>
           onChange(
             e.target.value
@@ -207,7 +211,8 @@ function StringArrayField({ name, value, required, path, errors, onChange }: Fie
           )
         }
       />
-      <Errors path={path} errors={errors} />
+      {schema.description && <div className="secondary hint">{schema.description}</div>}
+      <Errors path={path} errors={errors} deep />
     </div>
   )
 }
