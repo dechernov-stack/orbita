@@ -17,78 +17,23 @@ const STATE_LABEL: Record<string, string> = {
 const DAY = 86_400_000
 
 /**
- * Лёгкая шкала времени по плановым датам точек (список после MCR, п. 1):
- * маркеры пропорционально календарю, длительности промежутков в днях,
- * просроченная и непройденная точка — красным, «сегодня» — риской.
- * Не планировщик: перетаскиваний нет, даты правятся в паспорте проекта.
+ * Связка между соседними точками (второй заход прогона, замечание к п. 1):
+ * длительность стоит МЕЖДУ карточками, а не на отдельной шкале — прежняя
+ * шкала жила своей жизнью под лентой и связи точек не показывала. Обе даты
+ * есть — стрелка несёт число дней; какой-то нет — честное «даты нет».
  */
-function GateTimeline({ gates }: { gates: GateRow[] }) {
-  const dated = gates.filter((g): g is GateRow & { due: string } => !!g.due)
-  if (dated.length < 2) {
-    return (
-      <div className="secondary" style={{ padding: '2px 14px 10px', fontSize: 12 }}>
-        Шкала времени строится по плановым датам точек — задайте их в паспорте
-        проекта (Контроль → «Паспорт проекта»).
-      </div>
-    )
-  }
-  const t = (s: string) => new Date(s).getTime()
-  const start = t(dated[0].due)
-  const span = Math.max(t(dated[dated.length - 1].due) - start, DAY)
-  const pos = (s: string) => ((t(s) - start) / span) * 100
-  const today = Date.now()
-  const todayPos = ((today - start) / span) * 100
-
+function GateLink({ from, to }: { from: GateRow; to: GateRow }) {
+  const days = from.due && to.due
+    ? Math.round((new Date(to.due).getTime() - new Date(from.due).getTime()) / DAY)
+    : null
   return (
-    <div style={{ padding: '4px 24px 6px' }}>
-      <div style={{ position: 'relative', height: 64 }}>
-        <div style={{ position: 'absolute', top: 26, left: 0, right: 0, height: 2, background: 'var(--border, #d5d9e0)' }} />
-        {todayPos >= 0 && todayPos <= 100 && (
-          <div title={`сегодня: ${new Date(today).toISOString().slice(0, 10)}`}
-            style={{ position: 'absolute', top: 16, bottom: 18, left: `${todayPos}%`, width: 0, borderLeft: '1px dashed var(--status-approved, #7a6b2f)' }} />
-        )}
-        {/* длительности промежутков — дней между соседними датированными точками */}
-        {dated.slice(1).map((g, i) => {
-          const prev = dated[i]
-          const days = Math.round((t(g.due) - t(prev.due)) / DAY)
-          const mid = (pos(prev.due) + pos(g.due)) / 2
-          return (
-            <span key={`${prev.gate}-${g.gate}`} className="secondary"
-              style={{ position: 'absolute', top: 6, left: `${mid}%`, transform: 'translateX(-50%)', fontSize: 10.5, whiteSpace: 'nowrap' }}>
-              {days} дн.
-            </span>
-          )
-        })}
-        {dated.map((g, i) => {
-          const overdue = !g.held && t(g.due) < today
-          const color = g.held
-            ? 'var(--status-baseline, #2f7a3f)'
-            : overdue
-              ? 'var(--status-error, #b3261e)'
-              : 'var(--border-strong, #8a94a6)'
-          // Крайние подписи прижаты внутрь, иначе половина текста уходит за край;
-          // кружок при этом остаётся ровно на своей позиции по времени.
-          const first = i === 0
-          const last = i === dated.length - 1
-          return (
-            <div key={g.gate}
-              title={`${g.gate} — ${g.due}${g.held ? ' · пройдена' : overdue ? ' · просрочена' : ''}`}
-              style={{
-                position: 'absolute', top: 20, left: `${pos(g.due)}%`,
-                transform: `translateX(${first ? '0%' : last ? '-100%' : '-50%'})`,
-                textAlign: first ? 'left' : last ? 'right' : 'center',
-              }}>
-              <div style={{
-                width: 13, height: 13, borderRadius: '50%',
-                margin: first ? '0 auto 0 0' : last ? '0 0 0 auto' : '0 auto',
-                background: g.held ? color : '#fff', border: `3px solid ${color}`,
-              }} />
-              <div className="mono" style={{ fontSize: 10.5, fontWeight: 600, marginTop: 2, color: overdue ? color : undefined }}>{g.gate}</div>
-              <div className="secondary" style={{ fontSize: 10 }}>{g.due.slice(5)}</div>
-            </div>
-          )
-        })}
-      </div>
+    <div className="gatelink" title={days == null
+      ? 'длительность появится, когда у обеих точек будут плановые даты (паспорт проекта)'
+      : `${from.gate} → ${to.gate}: ${days} дн.`}>
+      <span className={days == null ? 'secondary' : ''} style={{ fontSize: 10.5, whiteSpace: 'nowrap' }}>
+        {days == null ? 'даты нет' : `${days} дн.`}
+      </span>
+      <span className="gatelink__arrow">→</span>
     </div>
   )
 }
@@ -124,9 +69,14 @@ export function Lifecycle({ project, onGo }: { project: string; onGo: (screen: s
         <div className="grow" />
         {/* Линейность без мастера (список после MCR, п. 3): спина процесса
             сама называет следующий незакрытый шаг и ведёт на его рабочее
-            место — свобода ходить по экранам при этом не отнимается. */}
+            место — свобода ходить по экранам при этом не отнимается.
+            Неизмеримые операции пропускаются: кнопка, вечно зовущая к шагу,
+            который никогда не станет «выполнен», — не подсказка, а капкан
+            (второй заход прогона). */}
         {(() => {
-          const next = ops.operations.find((o) => o.state !== 'Done' && o.screen)
+          const next = ops.operations.find(
+            (o) => o.state !== 'Done' && o.state !== 'NotMeasurable' && o.screen,
+          )
           if (!next) return null
           return (
             <button className="btn" onClick={() => onGo(next.screen!)}
@@ -139,18 +89,27 @@ export function Lifecycle({ project, onGo }: { project: string; onGo: (screen: s
       </div>
       <div className="workarea">
         <div className="gatestrip">
-          {gates.map((g) => (
-            <div key={g.gate}
-              className={`gatecard ${g.held ? 'gatecard--held' : g.gate === ops.next_gate ? 'gatecard--next' : ''}`}>
-              <div className="mono" style={{ fontWeight: 600 }}>{g.gate}</div>
-              <div className="secondary" style={{ fontSize: 11.5 }}>
-                {g.held ? 'пройдена' : g.gate === ops.next_gate ? 'ближайшая' : 'впереди'}
-              </div>
-              {g.due && <div className="mono" style={{ fontSize: 11 }}>{g.due}</div>}
-            </div>
-          ))}
+          {gates.map((g, i) => {
+            const overdue = !g.held && !!g.due && new Date(g.due).getTime() < Date.now()
+            return [
+              i > 0 ? <GateLink key={`l${i}`} from={gates[i - 1]} to={g} /> : null,
+              <div key={g.gate}
+                className={`gatecard ${g.held ? 'gatecard--held' : g.gate === ops.next_gate ? 'gatecard--next' : ''}`}>
+                <div className="mono" style={{ fontWeight: 600 }}>{g.gate}</div>
+                <div className="secondary" style={{ fontSize: 11.5 }}>
+                  {g.held ? 'пройдена' : g.gate === ops.next_gate ? 'ближайшая' : 'впереди'}
+                </div>
+                {g.due ? (
+                  <div className="mono" style={{ fontSize: 11, color: overdue ? 'var(--status-error, #b3261e)' : undefined }}>
+                    {g.due}{overdue ? ' · просрочена' : ''}
+                  </div>
+                ) : (
+                  <div className="secondary" style={{ fontSize: 10.5 }}>дата не задана</div>
+                )}
+              </div>,
+            ]
+          })}
         </div>
-        <GateTimeline gates={gates} />
         <div className="ops__group" style={{ padding: '0 14px 6px' }}>
           Операции фазы — {ops.operations.length}
         </div>

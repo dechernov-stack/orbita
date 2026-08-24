@@ -406,10 +406,29 @@ body {
 .gatecard--next { border-top-color: var(--accent); }
 
 .gatestrip {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 10px;
+  /* точки перемежаются связками «N дн.»: карточки делят ширину, связки
+     узкие; лента читается слева направо как одна цепь */
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
   padding: 14px;
+}
+
+.gatestrip .gatecard { flex: 1; }
+
+.gatelink {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  min-width: 52px;
+}
+
+.gatelink__arrow {
+  color: var(--border-strong, #8a94a6);
+  font-size: 15px;
+  line-height: 1;
 }
 
 .opsmap {

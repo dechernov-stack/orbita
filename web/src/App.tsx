@@ -150,7 +150,7 @@ export function App() {
       case 'vv': return <KindRegistry key={screen} kinds={['evidence', 'validation']} title="Верификация и валидация" />
       case 'docs': return <ScreenFrame title="Документы"><Documents onGo={go} /></ScreenFrame>
       case 'system': return <ScreenFrame title="Система в целом"><SystemOverview /></ScreenFrame>
-      case 'aiservice': return <AiService />
+      case 'aiservice': return <AiService onGo={go} />
       case 'aiprofiles': return <KindRegistry key={screen} kinds={['ai_profile']} title="Профили службы ИИ" />
       case 'ai': return <ScreenFrame title="Предложения ИИ"><AiProposal /></ScreenFrame>
       case 'importb': return <BatchLoad />

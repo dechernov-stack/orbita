@@ -15,7 +15,7 @@
       },
       "gate": null,
       "required_status": null,
-      "screen": "lifecycle"
+      "screen": "projreg"
     },
     {
       "code": "О2",
@@ -323,7 +323,7 @@
       },
       "gate": null,
       "required_status": null,
-      "screen": "lifecycle"
+      "screen": "projreg"
     },
     {
       "code": "О2",

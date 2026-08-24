@@ -18,7 +18,7 @@ const KINDS: Array<{ id: string; title: string; generative: boolean }> = [
   { id: 'requirement_quality', title: 'Рецензия формулировок', generative: false },
 ]
 
-export function AiService() {
+export function AiService({ onGo }: { onGo?: (screen: string) => void }) {
   const { author } = useSession()
   const [profiles, setProfiles] = useState<StoredSummary[]>([])
   const [profile, setProfile] = useState('')
@@ -149,9 +149,20 @@ export function AiService() {
       <div className="workarea" style={{ padding: 14 }}>
         {noProfiles && (
           <div className="notice notice--blocked">
-            Профилей службы в проекте нет. Профиль — ограничения инженера объектом
-            (виды, транспорт, правила формулировок, глоссарий, запреты); заведите
-            его в реестре «Профили службы ИИ», иначе служба работать не вправе.
+            Профилей службы в проекте нет — служба работать не вправе. Профиль —
+            ограничения инженера объектом (виды, транспорт, правила формулировок,
+            глоссарий, запреты). Заведите его в реестре «Профили службы»: формой
+            либо кнопкой «Загрузить пачкой» (файл материала —
+            <span className="mono"> 00-профили-службы.json</span>).
+            {/* Тупик второго захода: notice был табличкой без двери — инженер
+                читал «не работает» и не знал, куда идти */}
+            {onGo && (
+              <div style={{ marginTop: 6 }}>
+                <button type="button" className="btn" onClick={() => onGo('aiprofiles')}>
+                  Открыть «Профили службы» →
+                </button>
+              </div>
+            )}
           </div>
         )}
         {error && <div className="notice notice--blocked">{error}</div>}
