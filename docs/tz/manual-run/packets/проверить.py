@@ -37,7 +37,7 @@ PREFIX_SCHEMA = {
     "CN": "core/constellation", "SP": "contracts/spacecraft",
     "DM": "contracts/demand-map", "GS": "core/ground-stations",
     "PA": "contracts/protocol-adapter", "TP": "contracts/terminal-profile",
-    "SC": "core/scenario", "PJ": "core/project",
+    "SC": "core/scenario", "PJ": "core/project", "SD": "core/source-document",
 }
 
 

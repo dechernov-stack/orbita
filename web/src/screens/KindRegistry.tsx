@@ -2,8 +2,9 @@
 // отбором, счётчиком и главным действием; справа инспектор — панель работы
 // с выбранным объектом (§3.3). На него сажаются все виды без собственного
 // расчётного экрана. Правила формы — серверные (ObjectEditor, шаг 15).
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { api, asBatchReport, type BatchReport } from '../api/client'
+import { requestObject, takeObject } from '../api/intent'
 import { STATUS_MEANING } from '../ui/maturity'
 import { edit, type KindRow, type StoredSummary } from '../api/edit'
 import { withProject } from '../api/project'
@@ -32,6 +33,7 @@ const KIND_TITLES: Record<string, string> = {
   interface: 'Интерфейсы',
   project: 'Проекты',
   ai_profile: 'Профили службы ИИ',
+  source_document: 'Исходные документы',
   scenario: 'Сценарии',
   constellation: 'Группировка',
   spacecraft: 'Модель КА',
@@ -57,6 +59,8 @@ export function KindRegistry({ kinds, title }: { kinds: string[]; title: string 
   const [creating, setCreating] = useState(false)
   const [filter, setFilter] = useState('')
   const [error, setError] = useState<string | null>(null)
+  /** Счётчик перебора табов при поиске объекта из намерения. */
+  const seekRef = useRef(0)
 
   useEffect(() => {
     edit.kinds().then(setAvailable).catch((e) => setError(String(e)))
@@ -74,6 +78,31 @@ export function KindRegistry({ kinds, title }: { kinds: string[]; title: string 
     setCreating(false)
     reload()
   }, [reload])
+
+  // Переход «к объекту» с другого экрана (разрыв документа, строка
+  // готовности): как только строки вида загрузились и объект среди них —
+  // он открывается в инспекторе. В реестре нескольких видов объект ищется
+  // по табам (не больше одного круга — иначе чужое намерение зациклило бы
+  // переключение), ненайденное намерение возвращается на место: его
+  // заберёт правильный экран.
+  useEffect(() => {
+    if (!rows) return
+    const wanted = takeObject()
+    if (!wanted) return
+    if (rows.some((r) => r.id === wanted)) {
+      setSelected(wanted)
+      seekRef.current = 0
+      return
+    }
+    if (kinds.length > 1 && seekRef.current < kinds.length - 1) {
+      seekRef.current += 1
+      requestObject(wanted)
+      setKind(kinds[(kinds.indexOf(kind) + 1) % kinds.length])
+      return
+    }
+    seekRef.current = 0
+    requestObject(wanted)
+  }, [rows, kind, kinds])
 
   if (error) return <div className="empty">Ошибка обращения к API: {error}</div>
   if (!available || !meta) return <div className="empty">Загрузка…</div>

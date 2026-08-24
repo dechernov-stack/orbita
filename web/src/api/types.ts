@@ -43,6 +43,7 @@ export interface RequirementRow {
   hasChildren: boolean
   statement: string
   category: string | null
+  level: string | null
   status: string
   condition: ConditionView | null
   budget: BudgetBar | null
@@ -51,6 +52,10 @@ export interface RequirementRow {
   method: string | null
   approach: string | null
   planIssues: string[]
+  /** Откуда следует (traces_up) — «родители» смысла: нужды, сервисы, цели. */
+  sources: string[]
+  /** На что распределено: элементы и интерфейсы. */
+  allocatedTo: string[]
 }
 
 export interface RequirementTreeView {

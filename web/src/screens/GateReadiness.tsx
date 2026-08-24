@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api, ApiError, type GateIssuesView, type OperationRow } from '../api/client'
 import { edit, EditRejected } from '../api/edit'
+import { requestDocTemplate, requestObject, screenOfObject } from '../api/intent'
 import { currentProject } from '../api/project'
 import { useSession } from '../ui/session'
 
@@ -85,6 +86,33 @@ export function GateReadiness({ onGo }: { onGo: (screen: string) => void }) {
     return ops.find((o) => o.code === code && o.screen)
   }
 
+  /**
+   * Куда ведёт строка незакрытого (п. 7а списка после MCR): невыпущенный
+   * документ — на экран «Документы» с открытым шаблоном; строка, называющая
+   * объект, — в его реестр, в инспектор. Прежде такие строки были
+   * некликабельны, и инженер искал место руками.
+   */
+  const jump = (issue: string): { title: string; go: () => void } | null => {
+    const tpl = issue.match(/шаблон ([a-z_]+)/)
+    if (tpl) {
+      return {
+        title: 'открыть документ',
+        go: () => { requestDocTemplate(tpl[1]); onGo('docs') },
+      }
+    }
+    const obj = issue.match(/([A-Z]{2,3}-[0-9]{4})/)
+    if (obj) {
+      const screen = screenOfObject(obj[1])
+      if (screen) {
+        return {
+          title: `открыть ${obj[1]}`,
+          go: () => { requestObject(obj[1]); onGo(screen) },
+        }
+      }
+    }
+    return null
+  }
+
   return (
     <>
       <div className="toolbar">
@@ -141,12 +169,18 @@ export function GateReadiness({ onGo }: { onGo: (screen: string) => void }) {
             <div>
               {view.issues.map((issue, i) => {
                 const op = fixers(issue)
+                const j = op ? null : jump(issue)
                 return (
                   <div key={i} className="issue">
                     <span className="wrap" style={{ flex: 1 }}>{issue}</span>
                     {op && (
                       <button className="btn" onClick={() => onGo(op.screen!)}>
                         {op.code} →
+                      </button>
+                    )}
+                    {j && (
+                      <button className="btn" onClick={j.go} title={j.title}>
+                        →
                       </button>
                     )}
                   </div>

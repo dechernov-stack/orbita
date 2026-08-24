@@ -22,6 +22,8 @@ export function AiService() {
   const { author } = useSession()
   const [profiles, setProfiles] = useState<StoredSummary[]>([])
   const [profile, setProfile] = useState('')
+  const [sourceDocs, setSourceDocs] = useState<StoredSummary[]>([])
+  const [sourceDoc, setSourceDoc] = useState('')
   const [kind, setKind] = useState(KINDS[0].id)
   const [statement, setStatement] = useState('')
   const [prompt, setPrompt] = useState<string | null>(null)
@@ -49,6 +51,13 @@ export function AiService() {
         if (rows.length > 0) setProfile((cur) => cur || rows[0].id)
       })
       .catch((e) => setError(String(e)))
+    // библиотека исходных документов (ADR-030): пустая — просто нет кнопки
+    edit.list('source_document')
+      .then((rows) => {
+        setSourceDocs(rows)
+        if (rows.length > 0) setSourceDoc((cur) => cur || rows[0].id)
+      })
+      .catch(() => setSourceDocs([]))
     reloadJournal()
   }, [reloadJournal])
 
@@ -152,6 +161,41 @@ export function AiService() {
           <textarea rows={3} style={{ width: '100%' }} value={statement}
             onChange={(e) => setStatement(e.target.value)}
             placeholder="Национальная спутниковая платформа IoT: сбор телеметрии…" />
+          {/* Вход из библиотеки исходных документов (ADR-030): записка
+              Минтранса лежит объектом SD-NNNN — её текст подставляется сюда
+              вместе с реквизитами, и промпт понесёт ссылку на источник. */}
+          {sourceDocs.length > 0 && (
+            <div className="toolbar" style={{ padding: '4px 0', gap: 6 }}>
+              <span className="secondary">из документа:</span>
+              <select value={sourceDoc} onChange={(e) => setSourceDoc(e.target.value)}>
+                {sourceDocs.map((d) => (
+                  <option key={d.id} value={d.id}>{d.id} — {d.title}</option>
+                ))}
+              </select>
+              <button className="btn" disabled={!sourceDoc}
+                title="подставить текст документа с реквизитами во вход операции"
+                onClick={() => {
+                  setError(null)
+                  edit.object(sourceDoc)
+                    .then((o) => {
+                      const doc = o.doc as Record<string, unknown>
+                      const text = String(doc.text ?? '')
+                      if (!text.trim()) {
+                        setError(`У документа ${sourceDoc} нет текста: заполните поле «Текст» в реестре «Исходные документы».`)
+                        return
+                      }
+                      const head = `Источник: ${sourceDoc} в. ${o.version} «${String(doc.name ?? '')}»` +
+                        (doc.org ? `, ${String(doc.org)}` : '') +
+                        (doc.doc_date ? `, ${String(doc.doc_date)}` : '') +
+                        '. В rationale порождённых объектов ссылайтесь на этот документ.'
+                      setStatement(`${head}\n\n${text}`)
+                    })
+                    .catch((e) => setError(String(e)))
+                }}>
+                Взять вход из документа
+              </button>
+            </div>
+          )}
         </div>
 
         {prompt && (

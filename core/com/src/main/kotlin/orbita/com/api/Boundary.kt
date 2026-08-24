@@ -123,9 +123,10 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
             req.requireApplicationRules("review_item", doc)
             store(type, doc, createdBy, projectId)
         }
-        // Блок C: альтернативы, стоимость, ODA, WBS — схема и статусная модель
+        // Блок C: альтернативы, стоимость, ODA, WBS — схема и статусная модель;
+        // ADR-030: исходный документ — тем же общим путём
         CoreType.Alternative, CoreType.CostEstimate, CoreType.Oda, CoreType.WbsElement,
-        CoreType.AiProfile -> {
+        CoreType.AiProfile, CoreType.SourceDocument -> {
             val doc = parse(json)
             registry.require(type.schemaName, doc)
             store(type, doc, createdBy, projectId)

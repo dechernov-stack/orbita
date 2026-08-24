@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/core/source-document.schema.json",
+  "title": "SourceDocument",
+  "description": "Исходный документ (ADR-030): записка, письмо, отчёт, стандарт — внешний материал, из которого рождается постановка. Хранится текстом с реквизитами; правовой режим обязателен (ADR-024).",
+  "type": "object",
+  "required": ["id", "name", "kind", "org", "rights", "lifecycle"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^SD-[0-9]{4}$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 3,
+      "description": "Наименование документа: «Записка о развитии IoT-мониторинга транспорта»"
+    },
+    "kind": {
+      "type": "string",
+      "enum": ["memo", "letter", "report", "standard", "minutes", "other"],
+      "description": "Вид: записка, письмо, отчёт, стандарт, протокол, иное"
+    },
+    "org": {
+      "type": "string",
+      "minLength": 2,
+      "description": "Организация-источник: Минтранс, Минсельхоз…"
+    },
+    "doc_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Дата документа"
+    },
+    "revision": {
+      "type": "string",
+      "description": "Редакция/номер документа у источника"
+    },
+    "rights": {
+      "type": "string",
+      "minLength": 5,
+      "description": "Правовой режим использования (ADR-024): источник без описанного режима запрещён к использованию"
+    },
+    "summary": {
+      "type": "string",
+      "description": "О чём документ — одним абзацем"
+    },
+    "text": {
+      "type": "string",
+      "description": "Текст документа либо значимая выдержка: его берёт вход службы ИИ. Бинарные форматы в модель не кладутся (ADR-030 п. 1)"
+    },
+    "lifecycle": {
+      "$ref": "https://kis.local/schemas/common/status.schema.json"
+    },
+    "provenance": {
+      "$ref": "https://kis.local/schemas/common/provenance.schema.json"
+    }
+  }
+}

@@ -7,12 +7,25 @@ import { useCallback, useEffect, useState } from 'react'
 import { RequirementMatrices, type MatrixKind } from './RequirementMatrices'
 import { edit } from '../api/edit'
 import { api } from '../api/client'
+import { requestObject, screenOfObject, takeObject } from '../api/intent'
 import type { RequirementCard, RequirementRow, RequirementTreeView } from '../api/types'
 import { ObjectEditor } from '../ui/ObjectEditor'
 import { BudgetGauge, Condition, StatusDot, Verification } from '../ui/parts'
 import { useSession } from '../ui/session'
 
-export function Requirements() {
+/** Разрезы реестра (список после MCR, п. 6): дерево — по декомпозиции,
+ *  остальные группируют плоско — по уровню, категории, источнику,
+ *  распределению на элемент/интерфейс. Группы считает клиент из полей строки:
+ *  сами поля пришли с сервера. */
+const GROUPINGS: Array<{ key: string; title: string }> = [
+  { key: 'tree', title: 'Дерево' },
+  { key: 'level', title: 'По уровню' },
+  { key: 'category', title: 'По категории' },
+  { key: 'source', title: 'По источнику' },
+  { key: 'allocation', title: 'По распределению' },
+]
+
+export function Requirements({ onGo }: { onGo?: (screen: string) => void }) {
   const { label, author } = useSession()
   const [tree, setTree] = useState<RequirementTreeView | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
@@ -22,6 +35,7 @@ export function Requirements() {
   const [card, setCard] = useState<RequirementCard | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [onlyViolated, setOnlyViolated] = useState(false)
+  const [grouping, setGrouping] = useState('tree')
   /** Вкладка: дерево или одна из матриц (шаг 16 §2.4). */
   const [matrix, setMatrix] = useState<MatrixKind | null>(null)
   const [reqifIssues, setReqifIssues] = useState<string[]>([])
@@ -72,6 +86,15 @@ export function Requirements() {
     api.requirementCard(selected).then(setCard).catch((e) => setError(String(e)))
   }, [selected])
 
+  // Переход «к объекту» с другого экрана (готовность, разрыв документа)
+  useEffect(() => {
+    if (!tree) return
+    const wanted = takeObject()
+    if (!wanted) return
+    if (tree.rows.some((r) => r.id === wanted)) setSelected(wanted)
+    else requestObject(wanted)
+  }, [tree])
+
   if (error) return <div className="empty">Ошибка обращения к API: {error}</div>
   if (!tree) return <div className="empty">Загрузка…</div>
 
@@ -86,6 +109,34 @@ export function Requirements() {
   }
   tree.roots.forEach(walk)
   const rows = onlyViolated ? ordered.filter((r) => r.budgetOverrun) : ordered
+
+  // Группировка (п. 6): плоские разрезы поверх тех же строк. Требование с
+  // несколькими источниками/распределениями попадает в каждую свою группу —
+  // это разрез для чтения, а не разбиение множества.
+  const groups: Array<{ title: string; rows: RequirementRow[] }> | null = (() => {
+    if (grouping === 'tree') return null
+    const flat = [...rows].sort((a, b) => a.id.localeCompare(b.id))
+    const by = new Map<string, RequirementRow[]>()
+    const put = (key: string, r: RequirementRow) => {
+      const list = by.get(key) ?? []
+      list.push(r)
+      by.set(key, list)
+    }
+    flat.forEach((r) => {
+      if (grouping === 'level') put(r.level === 'project' ? 'Уровень проекта' : 'Системные', r)
+      else if (grouping === 'category') put(r.category ? label('req_category', r.category) : 'без категории', r)
+      else if (grouping === 'source') {
+        if (r.sources.length === 0) put('без источника', r)
+        r.sources.forEach((s) => put(s, r))
+      } else {
+        if (r.allocatedTo.length === 0) put('не распределено', r)
+        r.allocatedTo.forEach((a) => put(a, r))
+      }
+    })
+    return Array.from(by.entries())
+      .sort((a, b) => a[0].localeCompare(b[0], 'ru'))
+      .map(([title, list]) => ({ title, rows: list }))
+  })()
 
   const inspectorOpen = creating || editing || card != null
   return (
@@ -133,9 +184,11 @@ export function Requirements() {
           <span style={{ flex: 1 }} />
           {/* Матрицы живут здесь, где принимается решение по требованию, —
               отдельного экрана «Отчёты» нет намеренно (шаг 16 §2.4) */}
-          <button type="button" className="tab" aria-selected={matrix === null} onClick={() => setMatrix(null)}>
-            Дерево
-          </button>
+          {/* Разрезы реестра (п. 6): дерево и плоские группировки */}
+          <select value={grouping} onChange={(e) => { setGrouping(e.target.value); setMatrix(null) }}
+            title="как разложить реестр: деревом декомпозиции либо группами">
+            {GROUPINGS.map((g) => <option key={g.key} value={g.key}>{g.title}</option>)}
+          </select>
           <button type="button" className="tab" aria-selected={matrix === 'trace'} onClick={() => setMatrix('trace')}>
             Трассировка
           </button>
@@ -205,45 +258,93 @@ export function Requirements() {
             <tr>
               <th style={{ width: 96 }}>ID</th>
               <th>Требование</th>
-              <th style={{ width: 120 }}>Условие</th>
-              <th style={{ width: 130 }}>Свёртка</th>
-              <th style={{ width: 130 }}>Метод V&amp;V</th>
-              <th style={{ width: 104 }}>Статус</th>
+              <th style={{ width: 108 }}>Источники</th>
+              <th style={{ width: 108 }}>Распределение</th>
+              <th style={{ width: 110 }}>Условие</th>
+              <th style={{ width: 110 }}>Свёртка</th>
+              <th style={{ width: 120 }}>Метод V&amp;V</th>
+              <th style={{ width: 100 }}>Статус</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
-              <tr
-                key={row.id}
-                aria-selected={row.id === selected}
-                onClick={() => {
-                  setSelected(row.id)
-                  setCreating(false)
-                  setEditing(false)
-                }}
-              >
-                <td>
-                  {/* отступ по уровню — depth пришёл с сервера */}
-                  <span style={{ paddingLeft: row.depth * 16 }}>
-                    <span className="twisty">{row.hasChildren ? '▸' : ''}</span>
-                    <span className="id">{row.id}</span>
-                  </span>
-                </td>
-                <td title={row.statement}>{row.statement}</td>
-                <td>
-                  <Condition condition={row.condition} />
-                </td>
-                <td>
-                  <BudgetGauge bar={row.budget} />
-                </td>
-                <td>
-                  <Verification method={row.method} approach={row.approach} issues={row.planIssues} />
-                </td>
-                <td>
-                  <StatusDot status={row.status} />
-                  <span className="secondary">{label('lifecycle', row.status)}</span>
-                </td>
-              </tr>
+            {(groups ?? [{ title: '', rows }]).map((g) => (
+              [
+                g.title ? (
+                  <tr key={`h:${g.title}`}>
+                    <td colSpan={8} style={{ background: 'var(--surface-raised, #f3f4f6)', fontWeight: 600 }}>
+                      {g.title} <span className="secondary">· {g.rows.length}</span>
+                    </td>
+                  </tr>
+                ) : null,
+                ...g.rows.map((row) => (
+                  <tr
+                    key={`${g.title}:${row.id}`}
+                    aria-selected={row.id === selected}
+                    onClick={() => {
+                      setSelected(row.id)
+                      setCreating(false)
+                      setEditing(false)
+                    }}
+                  >
+                    <td>
+                      {/* отступ по уровню — depth пришёл с сервера; в плоских
+                          разрезах иерархия не рисуется */}
+                      <span style={{ paddingLeft: groups ? 0 : row.depth * 16 }}>
+                        {!groups && <span className="twisty">{row.hasChildren ? '▸' : ''}</span>}
+                        <span className="id">{row.id}</span>
+                      </span>
+                    </td>
+                    <td title={row.statement}>{row.statement}</td>
+                    <td>
+                      {row.sources.map((s, i) => (
+                        <span key={s}>
+                          {i > 0 && ' '}
+                          <button type="button" className="id" title="открыть источник"
+                            style={{ cursor: 'pointer', border: 0, background: 'none', padding: 0 }}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              const scr = screenOfObject(s)
+                              if (scr) { requestObject(s); onGo?.(scr) }
+                            }}>
+                            {s}
+                          </button>
+                        </span>
+                      ))}
+                    </td>
+                    <td>
+                      {row.allocatedTo.length === 0
+                        ? <span className="secondary">—</span>
+                        : row.allocatedTo.map((a, i) => (
+                          <span key={a}>
+                            {i > 0 && ' '}
+                            <button type="button" className="id" title="открыть элемент/интерфейс"
+                              style={{ cursor: 'pointer', border: 0, background: 'none', padding: 0 }}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                const scr = screenOfObject(a)
+                                if (scr) { requestObject(a); onGo?.(scr) }
+                              }}>
+                              {a}
+                            </button>
+                          </span>
+                        ))}
+                    </td>
+                    <td>
+                      <Condition condition={row.condition} />
+                    </td>
+                    <td>
+                      <BudgetGauge bar={row.budget} />
+                    </td>
+                    <td>
+                      <Verification method={row.method} approach={row.approach} issues={row.planIssues} />
+                    </td>
+                    <td>
+                      <StatusDot status={row.status} />
+                      <span className="secondary">{label('lifecycle', row.status)}</span>
+                    </td>
+                  </tr>
+                )),
+              ]
             ))}
           </tbody>
         </table>

@@ -208,6 +208,14 @@
       "power": "электрический",
       "mechanical": "механический",
       "thermal": "тепловой"
+    },
+    "source_document_kind": {
+      "memo": "записка",
+      "letter": "письмо",
+      "report": "отчёт",
+      "standard": "стандарт",
+      "minutes": "протокол",
+      "other": "иное"
     }
   }
 }

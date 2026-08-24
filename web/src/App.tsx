@@ -116,11 +116,13 @@ export function App() {
           ? <Lifecycle project={project} onGo={go} />
           : <Portfolio onOpen={() => setScreen('lifecycle')} />
       case 'projreg': return <KindRegistry key={screen} kinds={['project']} title="Паспорт проекта" />
+      case 'sourcedocs':
+        return <KindRegistry key={screen} kinds={['source_document']} title="Исходные документы (библиотека)" />
       case 'goals': return <KindRegistry key={screen} kinds={['mission_goal', 'need']} title="Цели и нужды" />
       case 'needs': return <ScreenFrame title="Нужды и их сервисы"><Needs /></ScreenFrame>
       case 'services': return <KindRegistry key={screen} kinds={['service']} title="Сервисы и QoS" />
       case 'conops': return <KindRegistry key={screen} kinds={['conops']} title="Сценарии ConOps" />
-      case 'req': return <Requirements />
+      case 'req': return <Requirements onGo={go} />
       case 'matrix': return <MatrixScreen />
       case 'aoa': return <KindRegistry key={screen} kinds={['alternative', 'decision']} title="Альтернативы и решения" />
       case 'wbs': return <KindRegistry key={screen} kinds={['component', 'interface']} title="Элементы и интерфейсы" />
@@ -146,7 +148,7 @@ export function App() {
       case 'trl': return <KindRegistry key={screen} kinds={['technology']} title="Технологии и TRL" />
       case 'oda': return <KindRegistry key={screen} kinds={['oda']} title="Оценка орбитального засорения" />
       case 'vv': return <KindRegistry key={screen} kinds={['evidence', 'validation']} title="Верификация и валидация" />
-      case 'docs': return <ScreenFrame title="Документы"><Documents /></ScreenFrame>
+      case 'docs': return <ScreenFrame title="Документы"><Documents onGo={go} /></ScreenFrame>
       case 'system': return <ScreenFrame title="Система в целом"><SystemOverview /></ScreenFrame>
       case 'aiservice': return <AiService />
       case 'aiprofiles': return <KindRegistry key={screen} kinds={['ai_profile']} title="Профили службы ИИ" />

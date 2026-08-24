@@ -32,9 +32,10 @@ class SchemaValidationTest {
         // 29–34-я — блок C задания «прогон до KDP B»: mission-goal, alternative,
         // cost-estimate, oda, review-item, wbs-element; 35-я — ai-profile (П5:
         // ограничения службы ИИ объектом, а не текстом в коде);
+        // 36-я — source-document (ADR-030: библиотека исходных документов);
         // technology, decision, project, document-issue:
         // входы моделирования стали хранимыми объектами и получили схемы в core/
-        assertEquals(35, registry.names.size, "нормативных схем должно быть 35: ${registry.names}")
+        assertEquals(36, registry.names.size, "нормативных схем должно быть 36: ${registry.names}")
     }
 
     @Test

@@ -57,7 +57,11 @@ enum class CoreType(val idPrefix: String, val dbType: String, val schemaName: St
     WbsElement("WB", "wbs_element", "core/wbs-element"),
 
     // П5: профиль службы ИИ — ограничения инженера объектом, не текстом в коде
-    AiProfile("AP", "ai_profile", "core/ai-profile");
+    AiProfile("AP", "ai_profile", "core/ai-profile"),
+
+    // ADR-030: исходный документ (записка, стандарт) — библиотека материала,
+    // из которого рождается постановка; текст с реквизитами, не бинарь
+    SourceDocument("SD", "source_document", "core/source-document");
 
     companion object {
         fun byDbType(t: String): CoreType = entries.firstOrNull { it.dbType == t }

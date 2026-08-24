@@ -40,6 +40,8 @@ data class RequirementRow(
     val hasChildren: Boolean,
     val statement: String,
     val category: String?,
+    /** project либо system: регламент делит спецификацию по уровню. */
+    val level: String?,
     val status: String,
     val condition: ConditionView?,
     /** Свёртка бюджета; заполнена только у требований с распределёнными потомками. */
@@ -49,6 +51,10 @@ data class RequirementRow(
     val method: String?,
     val approach: String?,
     val planIssues: List<String>,
+    /** Откуда следует (traces_up): нужды, сервисы, цели — «родители» смысла. */
+    val sources: List<String>,
+    /** На что распределено: элементы и интерфейсы (список после MCR, п. 6). */
+    val allocatedTo: List<String>,
 )
 
 data class RequirementTreeView(
@@ -239,6 +245,7 @@ class ScreenViews(
             hasChildren = tree.children[id]?.isNotEmpty() == true,
             statement = doc.path("statement").asText(""),
             category = doc.path("category").asText("").ifBlank { null },
+            level = doc.path("level").asText("").ifBlank { null },
             status = stored.status.name,
             condition = condition(doc),
             budget = bar,
@@ -247,6 +254,11 @@ class ScreenViews(
             method = event?.path("method")?.asText("")?.ifBlank { null },
             approach = event?.path("approach")?.asText("")?.ifBlank { null },
             planIssues = verificationPlanIssues(doc),
+            sources = doc.path("traces_up").map { it.path("ref").asText() }.filter { it.isNotBlank() },
+            allocatedTo = doc.path("allocated_to").mapNotNull {
+                it.path("component").asText("").ifBlank { null }
+                    ?: it.path("interface").asText("").ifBlank { null }
+            },
         )
     }
 

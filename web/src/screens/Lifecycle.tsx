@@ -122,6 +122,19 @@ export function Lifecycle({ project, onGo }: { project: string; onGo: (screen: s
           {ops.next_gate && <> · ближайшая точка <b className="mono">{ops.next_gate}</b></>}
         </span>
         <div className="grow" />
+        {/* Линейность без мастера (список после MCR, п. 3): спина процесса
+            сама называет следующий незакрытый шаг и ведёт на его рабочее
+            место — свобода ходить по экранам при этом не отнимается. */}
+        {(() => {
+          const next = ops.operations.find((o) => o.state !== 'Done' && o.screen)
+          if (!next) return null
+          return (
+            <button className="btn" onClick={() => onGo(next.screen!)}
+              title={`${next.name} — ${next.executor}`}>
+              следующий шаг: {next.code} {next.name.length > 34 ? `${next.name.slice(0, 34)}…` : next.name} →
+            </button>
+          )
+        })()}
         <button className="btn btn--primary" onClick={() => onGo('readiness')}>Готовность к точке</button>
       </div>
       <div className="workarea">

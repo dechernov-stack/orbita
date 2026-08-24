@@ -925,3 +925,15 @@ tbody td {
 .conflict__values {
   margin: 6px 0;
 }
+
+/* Печатная форма документа (список после MCR, п. 7б): на бумагу идёт сам
+   документ, а не оболочка — рейки, панели и действия экрана скрываются. */
+@media print {
+  .header, .rail, .ops, .toolbar, .doc-tabs, .doc-actions, .doc-issues, .doc-gaps {
+    display: none !important;
+  }
+  .shell__body { display: block !important; }
+  .pane.doc-screen { overflow: visible !important; padding: 0 !important; }
+  .doc-screen table { page-break-inside: auto; }
+  .doc-screen tr { page-break-inside: avoid; }
+}
