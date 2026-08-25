@@ -938,27 +938,36 @@ class HttpApi(private val boundary: Boundary) {
                     // это стережёт и поймал первую же шкалу с Math.round)
                     val today = java.time.LocalDate.now()
                     val known = boundary.req.gates.gateNames
-                    var prevDue: java.time.LocalDate? = null
+                    // Планирование длительностями (находка прогона: «двигать
+                    // сроки адекватно»): дата вехи = её явная due (якорь),
+                    // иначе дата предыдущей + duration_days — цепочкой от
+                    // последнего якоря. Считает СЕРВЕР (STEP-6 §3.2).
+                    var prevDate: java.time.LocalDate? = null
                     projectObj.doc.path("milestones").forEach { m ->
-                        val due = m.path("due").asText("").takeIf { it.isNotBlank() }
+                        val anchor = m.path("due").asText("").takeIf { it.isNotBlank() }
                             ?.let { runCatching { java.time.LocalDate.parse(it) }.getOrNull() }
+                        val duration = m.path("duration_days").takeIf { it.isInt }?.asInt()
+                        val effective = anchor
+                            ?: if (duration != null && prevDate != null) prevDate!!.plusDays(duration.toLong()) else null
                         val held = m.path("held").asBoolean(false)
                         val g = gates.addObject()
                             .put("gate", m.path("gate").asText())
-                            .put("due", m.path("due").asText(null))
+                            .put("due", effective?.toString())
                             .put("held", held)
                             // дальняя веха (Phase B–F) — план в едином ряду
                             // точек: показывается, но воротами не ведётся
                             .put("in_scope", m.path("gate").asText() in known)
+                        if (anchor == null && effective != null) g.put("computed", true)
+                        duration?.let { g.put("duration_days", it) }
                         m.path("phase").asText("").takeIf { it.isNotBlank() }?.let { g.put("phase", it) }
-                        if (due != null && prevDue != null) {
+                        if (effective != null && prevDate != null) {
                             g.put(
                                 "days_from_prev",
-                                java.time.temporal.ChronoUnit.DAYS.between(prevDue, due),
+                                java.time.temporal.ChronoUnit.DAYS.between(prevDate, effective),
                             )
                         }
-                        if (due != null && !held && due.isBefore(today)) g.put("overdue", true)
-                        prevDue = due ?: prevDue
+                        if (effective != null && !held && effective.isBefore(today)) g.put("overdue", true)
+                        prevDate = effective ?: prevDate
                     }
                     // стандартные дальние вехи, которых в паспорте ещё нет, —
                     // кнопке «+ вехи Phase B–F» (NPR 7120.5): инженер не обязан

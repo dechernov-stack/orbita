@@ -10,6 +10,9 @@ interface GateRow {
   gate: string
   due: string | null
   held: boolean
+  /** Дата выведена цепочкой длительностей, а не задана якорем. */
+  computed?: boolean
+  duration_days?: number
   /** Точка в горизонте ИС (ворота ведут) или плановая веха Phase B–F. */
   in_scope?: boolean
   phase?: string
@@ -52,6 +55,9 @@ export function Lifecycle({ project, onGo }: { project: string; onGo: (screen: s
   const [error, setError] = useState<string | null>(null)
 
   const [suggested, setSuggested] = useState<Array<{ gate: string; phase: string }>>([])
+  /** Правки плана (длительность/якорь по вехам) до сохранения одной кнопкой. */
+  const [planEdits, setPlanEdits] = useState<Record<string, { duration_days?: number | null; due?: string | null }>>({})
+  const [planBusy, setPlanBusy] = useState(false)
   const [outlookBusy, setOutlookBusy] = useState(false)
   const [outlookNote, setOutlookNote] = useState<string | null>(null)
 
@@ -136,6 +142,44 @@ export function Lifecycle({ project, onGo }: { project: string; onGo: (screen: s
             {outlookBusy ? 'Добавление…' : '+ вехи Phase B–F'}
           </button>
         )}
+        {Object.keys(planEdits).length > 0 && (
+          <button className="btn btn--primary" disabled={planBusy}
+            title="одной правкой паспорта, с основанием"
+            onClick={() => {
+              setPlanBusy(true)
+              setOutlookNote(null)
+              edit.object(project)
+                .then((p) => {
+                  const doc = p.doc as Record<string, unknown>
+                  const ms = (Array.isArray(doc.milestones) ? doc.milestones : []) as Array<Record<string, unknown>>
+                  const next = ms.map((m) => {
+                    const e = planEdits[String(m.gate)]
+                    if (!e) return m
+                    const out = { ...m }
+                    if (e.duration_days !== undefined) {
+                      if (e.duration_days == null) delete out.duration_days
+                      else out.duration_days = e.duration_days
+                    }
+                    if (e.due !== undefined) {
+                      if (!e.due) delete out.due
+                      else out.due = e.due
+                    }
+                    return out
+                  })
+                  return edit.changeWithRef(project, { ...doc, milestones: next },
+                    'план по фазам: длительности этапов и якорные даты')
+                })
+                .then(() => {
+                  setPlanEdits({})
+                  setOutlookNote('План сохранён. Паспорт вернулся в черновик — ре-базируйте его в «Паспорте проекта».')
+                  loadGates()
+                })
+                .catch((e) => setOutlookNote(String(e)))
+                .finally(() => setPlanBusy(false))
+            }}>
+            {planBusy ? 'Сохранение…' : `Сохранить план (${Object.keys(planEdits).length})`}
+          </button>
+        )}
         <button className="btn btn--primary" onClick={() => onGo('readiness')}>Готовность к точке</button>
       </div>
       <div className="workarea">
@@ -158,10 +202,34 @@ export function Lifecycle({ project, onGo }: { project: string; onGo: (screen: s
                 </div>
                 {g.due ? (
                   <div className="mono" style={{ fontSize: 11, color: overdue ? 'var(--status-error, #b3261e)' : undefined }}>
-                    {g.due}{overdue ? ' · просрочена' : ''}
+                    {g.due}{g.computed ? ' ⟲' : ''}{overdue ? ' · просрочена' : ''}
                   </div>
                 ) : (
                   <div className="secondary" style={{ fontSize: 10.5 }}>дата не задана</div>
+                )}
+                {/* Планирование длительностями прямо на ленте (находка
+                    прогона: «ориентируемся на длительности этапов; в
+                    неудобном документе работать сложно») — дни этапа и
+                    якорная дата правятся здесь, даты хвоста пересчитает
+                    сервер. Сохранение — одной кнопкой в шапке. */}
+                {!g.held && (
+                  <div style={{ marginTop: 4, display: 'flex', gap: 4, alignItems: 'center' }}>
+                    <input type="number" min={1} placeholder="дн."
+                      title="длительность этапа до вехи, дней"
+                      style={{ width: 52, fontSize: 11 }}
+                      value={planEdits[g.gate]?.duration_days ?? g.duration_days ?? ''}
+                      onChange={(e) => {
+                        const v = e.target.value === '' ? null : Number(e.target.value)
+                        setPlanEdits((prev) => ({ ...prev, [g.gate]: { ...prev[g.gate], duration_days: v } }))
+                      }} />
+                    <input type="date"
+                      title="якорная дата (сильнее расчёта); пусто — дата выводится из длительностей"
+                      style={{ width: 118, fontSize: 11 }}
+                      value={planEdits[g.gate]?.due ?? (g.computed ? '' : g.due ?? '')}
+                      onChange={(e) => {
+                        setPlanEdits((prev) => ({ ...prev, [g.gate]: { ...prev[g.gate], due: e.target.value || null } }))
+                      }} />
+                  </div>
                 )}
               </div>,
             ]

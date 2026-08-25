@@ -624,14 +624,27 @@ class DocumentGenerator(private val mapper: ObjectMapper = ObjectMapper()) {
             }
         }
 
-    private fun milestoneRecords(model: JsonNode, items: ArrayNode) =
+    private fun milestoneRecords(model: JsonNode, items: ArrayNode) {
+        // Планирование длительностями: дата вехи — якорная due либо расчёт
+        // цепочкой prev + duration_days (тот же вывод, что /views/gates).
+        // Расчёт детерминирован: часов здесь нет, только данные модели.
+        var prev: java.time.LocalDate? = null
         model.path("project").path("milestones").forEach { m ->
+            val anchor = m.path("due").asText("").takeIf { it.isNotBlank() }
+                ?.let { runCatching { java.time.LocalDate.parse(it) }.getOrNull() }
+            val duration = m.path("duration_days").takeIf { it.isInt }?.asInt()
+            val effective = anchor
+                ?: if (duration != null && prev != null) prev!!.plusDays(duration.toLong()) else null
             val n = items.addObject()
             n.put("gate", m.path("gate").asText())
             m.path("phase").asText("").takeIf { it.isNotBlank() }?.let { n.put("phase", it) }
-            n.put("due", m.path("due").asText(""))
+            duration?.let { n.put("duration_days", it) }
+            n.put("due", effective?.toString() ?: "")
+            if (anchor == null && effective != null) n.put("computed", true)
             n.put("held", m.path("held").asBoolean(false))
+            prev = effective ?: prev
         }
+    }
 
     private fun costRecords(model: JsonNode, items: ArrayNode, kind: String?) =
         model.path("cost_estimates").sortedBy { it.path("id").asText() }
