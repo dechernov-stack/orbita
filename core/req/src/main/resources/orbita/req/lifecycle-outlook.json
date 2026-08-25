@@ -1,0 +1,33 @@
+{
+ "_comment": "Стандартные вехи жизненного цикла за горизонтом Формулирования (NPR 7120.5, Fig. 2-4): предлагаются кнопкой на ленте цикла, инженер правит даты. ИС эти точки не проводит (ворот к ним нет) — они план, не процесс.",
+ "milestones": [
+  {
+   "gate": "PDR",
+   "phase": "Phase B"
+  },
+  {
+   "gate": "CDR",
+   "phase": "Phase C"
+  },
+  {
+   "gate": "SIR",
+   "phase": "Phase C"
+  },
+  {
+   "gate": "ORR",
+   "phase": "Phase D"
+  },
+  {
+   "gate": "FRR",
+   "phase": "Phase D"
+  },
+  {
+   "gate": "Launch",
+   "phase": "Phase D"
+  },
+  {
+   "gate": "EOM",
+   "phase": "Phase F"
+  }
+ ]
+}

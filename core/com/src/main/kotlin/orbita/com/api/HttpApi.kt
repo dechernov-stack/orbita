@@ -937,6 +937,7 @@ class HttpApi(private val boundary: Boundary) {
                     // (STEP-6 §3.2: расчётов в клиенте нет — обход кода клиента
                     // это стережёт и поймал первую же шкалу с Math.round)
                     val today = java.time.LocalDate.now()
+                    val known = boundary.req.gates.gateNames
                     var prevDue: java.time.LocalDate? = null
                     projectObj.doc.path("milestones").forEach { m ->
                         val due = m.path("due").asText("").takeIf { it.isNotBlank() }
@@ -946,6 +947,10 @@ class HttpApi(private val boundary: Boundary) {
                             .put("gate", m.path("gate").asText())
                             .put("due", m.path("due").asText(null))
                             .put("held", held)
+                            // дальняя веха (Phase B–F) — план в едином ряду
+                            // точек: показывается, но воротами не ведётся
+                            .put("in_scope", m.path("gate").asText() in known)
+                        m.path("phase").asText("").takeIf { it.isNotBlank() }?.let { g.put("phase", it) }
                         if (due != null && prevDue != null) {
                             g.put(
                                 "days_from_prev",
@@ -954,6 +959,16 @@ class HttpApi(private val boundary: Boundary) {
                         }
                         if (due != null && !held && due.isBefore(today)) g.put("overdue", true)
                         prevDue = due ?: prevDue
+                    }
+                    // стандартные дальние вехи, которых в паспорте ещё нет, —
+                    // кнопке «+ вехи Phase B–F» (NPR 7120.5): инженер не обязан
+                    // печатать PDR/CDR руками (находка прогона)
+                    val present = projectObj.doc.path("milestones").map { it.path("gate").asText() }.toSet()
+                    val suggest = out.putArray("suggested_outlook")
+                    orbita.req.LifecycleOutlook.default().forEach { (gname, phase) ->
+                        if (gname !in present) {
+                            suggest.addObject().put("gate", gname).put("phase", phase)
+                        }
                     }
                 } else {
                     out.put("source", "registry")

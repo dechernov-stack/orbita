@@ -4,11 +4,15 @@
 // на рабочее место операции.
 import { useEffect, useState } from 'react'
 import { api, type OperationsView } from '../api/client'
+import { edit } from '../api/edit'
 
 interface GateRow {
   gate: string
   due: string | null
   held: boolean
+  /** Точка в горизонте ИС (ворота ведут) или плановая веха Phase B–F. */
+  in_scope?: boolean
+  phase?: string
   /** Дней от предыдущей датированной точки — считает сервер (STEP-6 §3.2). */
   days_from_prev?: number
   /** Просрочена (дата в прошлом, точка не пройдена) — вердикт сервера. */
@@ -47,13 +51,26 @@ export function Lifecycle({ project, onGo }: { project: string; onGo: (screen: s
   const [ops, setOps] = useState<OperationsView | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
+  const [suggested, setSuggested] = useState<Array<{ gate: string; phase: string }>>([])
+  const [outlookBusy, setOutlookBusy] = useState(false)
+  const [outlookNote, setOutlookNote] = useState<string | null>(null)
+
+  const loadGates = () => {
     api.gates()
-      .then((g) => setGates((g as unknown as { gates: GateRow[] }).gates))
+      .then((g) => {
+        const v = g as unknown as { gates: GateRow[]; suggested_outlook?: Array<{ gate: string; phase: string }> }
+        setGates(v.gates)
+        setSuggested(v.suggested_outlook ?? [])
+      })
       .catch((e) => setError(String(e)))
+  }
+
+  useEffect(() => {
+    loadGates()
     api.operations()
       .then(setOps)
       .catch((e) => setError(String(e)))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project])
 
   if (error) return <div className="empty">Ошибка обращения к API: {error}</div>
@@ -89,19 +106,55 @@ export function Lifecycle({ project, onGo }: { project: string; onGo: (screen: s
             </button>
           )
         })()}
+        {/* Проект идёт через контрольные точки — и перспектива есть ТЕ ЖЕ
+            точки (находка прогона: текстовые поля сбоку — не план). Кнопка
+            добавляет стандартные вехи Phase B–F (NPR 7120.5) в паспорт;
+            даты инженер правит там же. ИС эти точки показывает, не проводит. */}
+        {suggested.length > 0 && (
+          <button className="btn" disabled={outlookBusy}
+            title={`добавить в контрольные точки: ${suggested.map((s) => s.gate).join(', ')} — даты правятся в паспорте`}
+            onClick={() => {
+              setOutlookBusy(true)
+              setOutlookNote(null)
+              edit.object(project)
+                .then((p) => {
+                  const doc = p.doc as Record<string, unknown>
+                  const cur = Array.isArray(doc.milestones) ? (doc.milestones as unknown[]) : []
+                  const next = [...cur, ...suggested.map((s) => ({ gate: s.gate, phase: s.phase }))]
+                  // паспорт может быть базирован: правка идёт процедурой с
+                  // основанием; статус честно вернётся в черновик
+                  return edit.changeWithRef(project, { ...doc, milestones: next },
+                    'план по фазам: добавлены стандартные вехи Phase B–F (NPR 7120.5)')
+                })
+                .then(() => {
+                  setOutlookNote('Вехи добавлены. Паспорт вернулся в черновик — задайте даты и ре-базируйте его в «Паспорте проекта».')
+                  loadGates()
+                })
+                .catch((e) => setOutlookNote(String(e)))
+                .finally(() => setOutlookBusy(false))
+            }}>
+            {outlookBusy ? 'Добавление…' : '+ вехи Phase B–F'}
+          </button>
+        )}
         <button className="btn btn--primary" onClick={() => onGo('readiness')}>Готовность к точке</button>
       </div>
       <div className="workarea">
+        {outlookNote && <div className="notice" style={{ margin: '8px 14px 0' }}>{outlookNote}</div>}
         <div className="gatestrip">
           {gates.map((g, i) => {
             const overdue = g.overdue === true
             return [
               i > 0 ? <GateLink key={`l${i}`} from={gates[i - 1]} to={g} /> : null,
               <div key={g.gate}
-                className={`gatecard ${g.held ? 'gatecard--held' : g.gate === ops.next_gate ? 'gatecard--next' : ''}`}>
+                className={`gatecard ${g.held ? 'gatecard--held' : g.gate === ops.next_gate ? 'gatecard--next' : ''}`}
+                style={g.in_scope === false ? { opacity: 0.62 } : undefined}
+                title={g.in_scope === false ? 'плановая веха за горизонтом Формулирования: ИС её показывает, но не проводит' : undefined}>
                 <div className="mono" style={{ fontWeight: 600 }}>{g.gate}</div>
                 <div className="secondary" style={{ fontSize: 11.5 }}>
-                  {g.held ? 'пройдена' : g.gate === ops.next_gate ? 'ближайшая' : 'впереди'}
+                  {g.held ? 'пройдена'
+                    : g.gate === ops.next_gate ? 'ближайшая'
+                    : g.in_scope === false ? `${g.phase ?? 'Phase B+'} · план`
+                    : 'впереди'}
                 </div>
                 {g.due ? (
                   <div className="mono" style={{ fontSize: 11, color: overdue ? 'var(--status-error, #b3261e)' : undefined }}>

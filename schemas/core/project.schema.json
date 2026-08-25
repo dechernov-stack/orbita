@@ -87,38 +87,14 @@
           "held_at": {
             "type": "string",
             "description": "Когда точка пройдена, ISO"
-          }
-        }
-      }
-    },
-    "outlook": {
-      "type": "array",
-      "description": "Перспективные вехи за горизонтом Формулирования (Phase B–F): PDR, CDR, запуск… ИС ведёт проект до KDP B, но план проекта (Д10, Приложение 7 §4) обязан показывать весь жизненный цикл — перспективу задаёт инженер, система её не выдумывает",
-      "items": {
-        "type": "object",
-        "required": [
-          "phase",
-          "milestone"
-        ],
-        "additionalProperties": false,
-        "properties": {
+          },
           "phase": {
             "type": "string",
-            "minLength": 1,
-            "description": "Фаза ЖЦ: Phase B, Phase C…"
-          },
-          "milestone": {
-            "type": "string",
-            "minLength": 1,
-            "description": "Веха или обзор: PDR, CDR, SIR, запуск…"
-          },
-          "due": {
-            "type": "string",
-            "format": "date",
-            "description": "Плановая дата (укрупнённо)"
+            "description": "Фаза ЖЦ вехи (Phase B, Phase C…) — для вех за горизонтом Формулирования"
           }
         }
-      }
+      },
+      "description": "Контрольные точки — ЕДИНЫЙ ряд жизненного цикла: точки Формулирования (ИС ведёт их воротами) и плановые вехи Phase B–F за горизонтом (PDR, CDR, запуск… — ИС их не проводит, но план проекта обязан их показывать). Стандартный набор дальних вех добавляется кнопкой на «Жизненном цикле»"
     },
     "lifecycle": {
       "$ref": "https://kis.local/schemas/common/status.schema.json"

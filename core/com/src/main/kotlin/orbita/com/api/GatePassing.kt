@@ -107,10 +107,18 @@ class GatePassing(
     private fun milestonesOf(project: StoredObject): List<JsonNode> =
         project.doc.path("milestones").toList()
 
-    /** Ближайшая непройденная веха; null — все пройдены. */
+    /**
+     * Ближайшая непройденная веха В ГОРИЗОНТЕ ИС; null — горизонт исчерпан.
+     * Вехи Phase B–F (PDR, CDR…) — план в едином ряду точек, но ворот к ним
+     * нет: ИС ведёт проект до конца Формулирования, дальние точки она
+     * показывает, не проводит.
+     */
     fun nextGate(projectId: String): String? =
         milestonesOf(projectOf(projectId))
-            .firstOrNull { !it.path("held").asBoolean(false) }
+            .firstOrNull {
+                !it.path("held").asBoolean(false) &&
+                    it.path("gate").asText() in boundary.req.gates.gateNames
+            }
             ?.path("gate")?.asText()
 
     /**
@@ -128,8 +136,14 @@ class GatePassing(
                     "(POST /gates/return/resolve)"
             )
         }
+        if (gate !in boundary.req.gates.gateNames) {
+            throw ModelViolationException(
+                "ADR-029: точка '$gate' за горизонтом Формулирования — ИС показывает её " +
+                    "в плане, но не проводит (ворот к ней нет)"
+            )
+        }
         val next = nextGate(projectId)
-            ?: throw ModelViolationException("ADR-029: все вехи проекта $projectId уже пройдены")
+            ?: throw ModelViolationException("ADR-029: все вехи проекта $projectId в горизонте ИС уже пройдены")
         if (gate != next) {
             throw ModelViolationException(
                 "ADR-029: точки проходятся по порядку вех — ближайшая непройденная '$next', не '$gate'"

@@ -628,6 +628,7 @@ class DocumentGenerator(private val mapper: ObjectMapper = ObjectMapper()) {
         model.path("project").path("milestones").forEach { m ->
             val n = items.addObject()
             n.put("gate", m.path("gate").asText())
+            m.path("phase").asText("").takeIf { it.isNotBlank() }?.let { n.put("phase", it) }
             n.put("due", m.path("due").asText(""))
             n.put("held", m.path("held").asBoolean(false))
         }
@@ -983,23 +984,20 @@ class DocumentGenerator(private val mapper: ObjectMapper = ObjectMapper()) {
                     .put("owner", w.path("owner").asText(""))
             }
             4 -> {
+                // График по фазам — ВЕСЬ жизненный цикл ЕДИНЫМ рядом
+                // контрольных точек (замечание прогона: «проект идёт через
+                // контрольные точки», а не через текстовые приписки сбоку).
+                // Вехи Phase B–F добавляются кнопкой на ленте цикла; ИС их
+                // показывает, но не проводит (ворот к ним нет).
                 milestoneRecords(model, items)
-                // График по фазам — ВЕСЬ жизненный цикл (Приложение 7 §4):
-                // ИС ведёт проект до KDP B, перспективу Phase B–F задаёт
-                // инженер в паспорте (outlook). План, обрывающийся на KDP B, —
-                // не план проекта (замечание живого прогона); пустая
-                // перспектива — именованный разрыв, а не молчание.
-                val outlook = model.path("project").path("outlook")
-                outlook.forEach { o ->
-                    items.addObject()
-                        .put("phase", o.path("phase").asText(""))
-                        .put("milestone", o.path("milestone").asText(""))
-                        .put("due", o.path("due").asText(""))
-                }
-                if (outlook.isEmpty || outlook.size() == 0) {
+                val known = orbita.req.Gates().gateNames
+                val beyond = model.path("project").path("milestones")
+                    .any { it.path("gate").asText() !in known }
+                if (!beyond) {
                     gaps += DocumentGap(
                         section,
-                        "проект: не заполнена «перспектива (Phase B–F)» — график обрывается на KDP B",
+                        "проект: план обрывается горизонтом Формулирования — добавьте " +
+                            "вехи Phase B–F («Жизненный цикл» → «+ вехи Phase B–F»)",
                         "Приложение 7 §4: укрупнённый план по фазам всего жизненного цикла",
                     )
                 }
