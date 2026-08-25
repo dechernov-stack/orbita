@@ -30,6 +30,7 @@ export function Requirements({ onGo }: { onGo?: (screen: string) => void }) {
   const [tree, setTree] = useState<RequirementTreeView | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
   const [massReport, setMassReport] = useState<string | null>(null)
+  const [massBusy, setMassBusy] = useState(false)
   const [creating, setCreating] = useState(false)
   const [editing, setEditing] = useState(false)
   const [card, setCard] = useState<RequirementCard | null>(null)
@@ -162,11 +163,12 @@ export function Requirements({ onGo }: { onGo?: (screen: string) => void }) {
           {/* Массовое действие реестра (§3.2, блок E): базирование пачкой —
               каждый объект проходит ту же проверку, что одиночный promote;
               не прошедшие называются поимённо */}
-          <button type="button" className="tab" disabled={!author}
+          <button type="button" className="tab" disabled={!author || massBusy}
             title={author ? 'перевести все требования не в Baseline' : 'представьтесь в шапке'}
             onClick={() => {
               const ids = tree?.rows.filter((r) => r.status !== 'Baseline').map((r) => r.id) ?? []
               if (ids.length === 0) { setMassReport('всё уже базировано'); return }
+              setMassBusy(true)
               api.promoteBatch(ids, 'Baseline', author)
                 .then((r) => {
                   setMassReport(`базировано ${r.promoted.length}; отказов ${r.failed.length}` +
@@ -174,8 +176,9 @@ export function Requirements({ onGo }: { onGo?: (screen: string) => void }) {
                   void reload()
                 })
                 .catch((e) => setMassReport(String(e)))
+                .finally(() => setMassBusy(false))
             }}>
-            Базировать все
+            {massBusy ? 'Базирование…' : 'Базировать все'}
           </button>
           {massReport && <span className="secondary">{massReport}</span>}
           <button

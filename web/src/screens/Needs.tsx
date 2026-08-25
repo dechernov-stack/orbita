@@ -27,6 +27,7 @@ export function Needs() {
   const [onlyOrphans, setOnlyOrphans] = useState(false)
   const [massStatus, setMassStatus] = useState('Preliminary')
   const [massReport, setMassReport] = useState<string | null>(null)
+  const [massBusy, setMassBusy] = useState(false)
 
   const reload = useCallback(
     () =>
@@ -91,7 +92,7 @@ export function Needs() {
               <button
                 type="button"
                 className="tab"
-                disabled={!author}
+                disabled={!author || massBusy}
                 title={author ? STATUS_MEANING[massStatus] : 'представьтесь в шапке'}
                 onClick={() => {
                   const ids = shown
@@ -101,6 +102,7 @@ export function Needs() {
                     setMassReport('переводить нечего')
                     return
                   }
+                  setMassBusy(true)
                   api
                     .promoteBatch(ids, massStatus, author)
                     .then((r) => {
@@ -113,9 +115,10 @@ export function Needs() {
                       void reload()
                     })
                     .catch((e) => setMassReport(String(e)))
+                    .finally(() => setMassBusy(false))
                 }}
               >
-                Перевести все видимые
+                {massBusy ? 'Перевод…' : 'Перевести все видимые'}
               </button>
               {massReport && <span className="secondary">{massReport}</span>}
             </>

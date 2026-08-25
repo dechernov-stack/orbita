@@ -49,6 +49,7 @@ export function KindRegistry({ kinds, title }: { kinds: string[]; title: string 
   const { label, author } = useSession()
   const [massStatus, setMassStatus] = useState('Preliminary')
   const [massReport, setMassReport] = useState<string | null>(null)
+  const [massBusy, setMassBusy] = useState(false)
   /** Загрузка пачкой прямо в реестре (§3.2 дизайна): вид материала приходит
    *  файлом, и уходить за ним на отдельный экран инженеру незачем. */
   const [batch, setBatch] = useState<BatchReport | null>(null)
@@ -147,11 +148,12 @@ export function KindRegistry({ kinds, title }: { kinds: string[]; title: string 
                 <option key={st} value={st} title={STATUS_MEANING[st]}>{label('lifecycle', st)}</option>
               ))}
             </select>
-            <button className="btn" disabled={!author}
+            <button className="btn" disabled={!author || massBusy}
               title={author ? 'перевести все видимые ниже выбранного статуса' : 'представьтесь в шапке'}
               onClick={() => {
                 const ids = visible.filter((r) => r.status !== massStatus && r.status !== 'Cancelled').map((r) => r.id)
                 if (ids.length === 0) { setMassReport('переводить нечего'); return }
+                setMassBusy(true)
                 api.promoteBatch(ids, massStatus, author)
                   .then((r) => {
                     setMassReport(`переведено ${r.promoted.length}; отказов ${r.failed.length}` +
@@ -159,8 +161,9 @@ export function KindRegistry({ kinds, title }: { kinds: string[]; title: string 
                     reload()
                   })
                   .catch((e) => setMassReport(String(e)))
+                  .finally(() => setMassBusy(false))
               }}>
-              Перевести все видимые
+              {massBusy ? 'Перевод…' : 'Перевести все видимые'}
             </button>
             {massReport && <span className="secondary">{massReport}</span>}
           </>
@@ -169,15 +172,17 @@ export function KindRegistry({ kinds, title }: { kinds: string[]; title: string 
           title="выгрузить проект целиком тем же форматом, каким грузится пачка">
           Выгрузить
         </a>
-        <label className="btn" title="загрузить пачкой: проверка по схемам до записи, всё или ничего">
-          Загрузить пачкой
-          <input type="file" accept="application/json,.json" style={{ display: 'none' }}
+        <label className="btn" title="загрузить пачкой: проверка по схемам до записи, всё или ничего"
+          style={massBusy ? { opacity: 0.5, pointerEvents: 'none' } : undefined}>
+          {massBusy ? 'Загрузка…' : 'Загрузить пачкой'}
+          <input type="file" accept="application/json,.json" style={{ display: 'none' }} disabled={massBusy}
             onChange={(e) => {
               const file = e.target.files?.[0]
               e.target.value = ''
               if (!file) return
               setBatch(null)
               setMassReport(null)
+              setMassBusy(true)
               file.text()
                 .then((text) => {
                   const parsed = JSON.parse(text) as unknown
@@ -212,6 +217,7 @@ export function KindRegistry({ kinds, title }: { kinds: string[]; title: string 
                   if (parsed) setBatch(parsed)
                   else setMassReport(err instanceof Error ? err.message : String(err))
                 })
+                .finally(() => setMassBusy(false))
             }} />
         </label>
         <button className="btn btn--primary" onClick={() => { setSelected(null); setCreating(true) }}>

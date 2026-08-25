@@ -185,6 +185,7 @@ export function Documents({ onGo }: { onGo?: (screen: string) => void }) {
   const [doc, setDoc] = useState<GeneratedDocumentView | null>(null)
   const [issues, setIssues] = useState<DocumentIssuesView | null>(null)
   const [issueReport, setIssueReport] = useState<string | null>(null)
+  const [issuing, setIssuing] = useState(false)
   const [showGaps, setShowGaps] = useState(true)
   /** «Развернуть всё»: длинные разделы схлопнуты по умолчанию; печать
    *  разворачивает сама (beforeprint) — на бумагу идёт полный документ. */
@@ -228,6 +229,7 @@ export function Documents({ onGo }: { onGo?: (screen: string) => void }) {
   // а слепок и объект выпуска делает сервер
   const issue = () => {
     setIssueReport(null)
+    setIssuing(true)
     api
       .issueDocument(code, new Date().toISOString(), author)
       .then(() => {
@@ -235,6 +237,7 @@ export function Documents({ onGo }: { onGo?: (screen: string) => void }) {
         loadIssues(code)
       })
       .catch((e) => setIssueReport(String(e).slice(0, 200)))
+      .finally(() => setIssuing(false))
   }
 
   if (error) return <div className="empty">Ошибка обращения к API: {error}</div>
@@ -287,10 +290,22 @@ export function Documents({ onGo }: { onGo?: (screen: string) => void }) {
           </div>
 
           <div className="field doc-actions" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <button type="button" className="tab tab--primary" disabled={!author} onClick={issue}
-              title={author ? 'зафиксировать слепок текущей генерации' : 'представьтесь в шапке'}>
-              Выпустить
-            </button>
+            {/* Кнопка, оставшаяся кликабельной после нажатия, копила дубли
+                выпусков одного слепка (находка прогона: DI-0001…0014 с одним
+                digest). Блокируется на время запроса И пока текущий слепок
+                уже выпущен — переиздавать без изменений модели нечего. */}
+            {(() => {
+              const already = issues?.issues.find((i) => i.digest === doc.digest)
+              const disabled = !author || issuing || already != null
+              return (
+                <button type="button" className="tab tab--primary" disabled={disabled} onClick={issue}
+                  title={!author ? 'представьтесь в шапке'
+                    : already ? `этот слепок уже выпущен (${already.id}) — переиздание не нужно`
+                    : 'зафиксировать слепок текущей генерации'}>
+                  {issuing ? 'Выпуск…' : already ? `Выпущено (${already.id})` : 'Выпустить'}
+                </button>
+              )
+            })()}
             <button type="button" className="tab" onClick={() => setExpandAll((v) => !v)}
               title="длинные разделы схлопнуты до строки «id — формулировка»">
               {expandAll ? 'Свернуть записи' : 'Развернуть всё'}

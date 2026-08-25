@@ -24,6 +24,7 @@ export function GateReadiness({ onGo }: { onGo: (screen: string) => void }) {
   const [activeReturn, setActiveReturn] = useState<{ gate: string; reason: string; to: string[] } | null>(null)
   const [rationale, setRationale] = useState('')
   const [report, setReport] = useState<string | null>(null)
+  const [acting, setActing] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const load = useCallback(() => {
@@ -63,8 +64,9 @@ export function GateReadiness({ onGo }: { onGo: (screen: string) => void }) {
   if (error) return <div className="empty">Ошибка обращения к API: {error}</div>
 
   const pass = async () => {
-    if (!view) return
+    if (!view || acting) return
     setReport(null)
+    setActing(true)
     try {
       const r = await api.gatePass(view.gate, author, rationale)
       setReport(`Точка ${view.gate} пройдена: решение ${r.decision}` +
@@ -72,12 +74,14 @@ export function GateReadiness({ onGo }: { onGo: (screen: string) => void }) {
       setRationale('')
     } catch (e) {
       setReport(e instanceof ApiError || e instanceof EditRejected ? String(e.message) : String(e))
+    } finally {
+      setActing(false)
     }
     load()
   }
 
   const requestReturn = async () => {
-    if (!view) return
+    if (!view || acting) return
     const reason = window.prompt('Причина возврата (заключение обзора):')
     if (!reason) return
     try {
@@ -179,10 +183,11 @@ export function GateReadiness({ onGo }: { onGo: (screen: string) => void }) {
                   onChange={(e) => setRationale(e.target.value)}
                   placeholder="комплект рассмотрен, замечания устранимы" />
               </div>
-              <button className="btn btn--primary" disabled={!author || !rationale.trim() || !!activeReturn}
+              <button className="btn btn--primary"
+                disabled={!author || !rationale.trim() || !!activeReturn || acting}
                 onClick={pass}
                 title={author ? '' : 'представьтесь в шапке'}>
-                Запросить прохождение
+                {acting ? 'Проверка…' : 'Запросить прохождение'}
               </button>
             </div>
           </div>
