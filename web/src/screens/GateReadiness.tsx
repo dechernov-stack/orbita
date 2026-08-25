@@ -9,6 +9,13 @@ import { requestDocTemplate, requestObject, screenOfObject } from '../api/intent
 import { currentProject } from '../api/project'
 import { useSession } from '../ui/session'
 
+/** Ярлык реестра по префиксу id — для сводных кнопок «открыть целиком». */
+const PREFIX_LABEL: Record<string, string> = {
+  RQ: 'Требования', SV: 'Сервисы', ND: 'Нужды', MG: 'Цели', CO: 'ConOps',
+  TL: 'Технологии', RSK: 'Риски', CM: 'Элементы', IF: 'Интерфейсы',
+  AL: 'Альтернативы', CE: 'Стоимость', OD: 'ODA', WB: 'WBS', RF: 'Замечания',
+}
+
 export function GateReadiness({ onGo }: { onGo: (screen: string) => void }) {
   const { author } = useSession()
   const project = currentProject()
@@ -183,19 +190,51 @@ export function GateReadiness({ onGo }: { onGo: (screen: string) => void }) {
           <div className="card">
             <h3>Что мешает пройти {view.gate} — {view.issues.length}</h3>
             <div>
+              {/* Сводные переходы (находка второго захода: «открывай сразу
+                  полную матрицу») — когда незакрытого по виду много, идти
+                  по одной строке мучительно: реестр целиком, с массовым
+                  переводом и «Базировать все», в один клик. */}
+              {(() => {
+                const byScreen = new Map<string, { label: string; count: number }>()
+                view.issues.forEach((issue) => {
+                  const m = issue.match(/([A-Z]{2,3})-[0-9]{4}/)
+                  if (!m) return
+                  const screen = screenOfObject(`${m[1]}-0000`)
+                  if (!screen) return
+                  const cur = byScreen.get(screen) ?? { label: PREFIX_LABEL[m[1]] ?? m[1], count: 0 }
+                  cur.count += 1
+                  byScreen.set(screen, cur)
+                })
+                if (byScreen.size === 0) return null
+                return (
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+                    <span className="secondary">Открыть реестр целиком:</span>
+                    {Array.from(byScreen.entries()).map(([screen, g]) => (
+                      <button key={screen} className="btn" onClick={() => onGo(screen)}
+                        title="реестр с массовым переводом статусов">
+                        {g.label} · {g.count} →
+                      </button>
+                    ))}
+                  </div>
+                )
+              })()}
               {view.issues.map((issue, i) => {
                 const op = fixers(issue)
                 const j = op ? null : jump(issue)
+                const go = op ? () => onGo(op.screen!) : j?.go
                 return (
-                  <div key={i} className="issue">
+                  <div key={i} className="issue"
+                    onClick={go}
+                    style={go ? { cursor: 'pointer' } : undefined}
+                    title={op ? `открыть операцию ${op.code}` : j?.title}>
                     <span className="wrap" style={{ flex: 1 }}>{issue}</span>
                     {op && (
-                      <button className="btn" onClick={() => onGo(op.screen!)}>
+                      <button className="btn" onClick={(e) => { e.stopPropagation(); onGo(op.screen!) }}>
                         {op.code} →
                       </button>
                     )}
                     {j && (
-                      <button className="btn" onClick={j.go} title={j.title}>
+                      <button className="btn" onClick={(e) => { e.stopPropagation(); j.go() }} title={j.title}>
                         →
                       </button>
                     )}
