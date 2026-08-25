@@ -864,11 +864,27 @@ class HttpApi(private val boundary: Boundary) {
                     out.put("project_ref", projectObj.id)
                     out.put("project_name", projectObj.doc.path("name").asText(""))
                     out.put("phase", projectObj.doc.path("phase").asText(""))
+                    // Длительности промежутков и просрочку считает СЕРВЕР
+                    // (STEP-6 §3.2: расчётов в клиенте нет — обход кода клиента
+                    // это стережёт и поймал первую же шкалу с Math.round)
+                    val today = java.time.LocalDate.now()
+                    var prevDue: java.time.LocalDate? = null
                     projectObj.doc.path("milestones").forEach { m ->
-                        gates.addObject()
+                        val due = m.path("due").asText("").takeIf { it.isNotBlank() }
+                            ?.let { runCatching { java.time.LocalDate.parse(it) }.getOrNull() }
+                        val held = m.path("held").asBoolean(false)
+                        val g = gates.addObject()
                             .put("gate", m.path("gate").asText())
                             .put("due", m.path("due").asText(null))
-                            .put("held", m.path("held").asBoolean(false))
+                            .put("held", held)
+                        if (due != null && prevDue != null) {
+                            g.put(
+                                "days_from_prev",
+                                java.time.temporal.ChronoUnit.DAYS.between(prevDue, due),
+                            )
+                        }
+                        if (due != null && !held && due.isBefore(today)) g.put("overdue", true)
+                        prevDue = due ?: prevDue
                     }
                 } else {
                     out.put("source", "registry")

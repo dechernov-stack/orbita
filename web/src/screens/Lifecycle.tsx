@@ -5,7 +5,15 @@
 import { useEffect, useState } from 'react'
 import { api, type OperationsView } from '../api/client'
 
-interface GateRow { gate: string; due: string | null; held: boolean }
+interface GateRow {
+  gate: string
+  due: string | null
+  held: boolean
+  /** Дней от предыдущей датированной точки — считает сервер (STEP-6 §3.2). */
+  days_from_prev?: number
+  /** Просрочена (дата в прошлом, точка не пройдена) — вердикт сервера. */
+  overdue?: boolean
+}
 
 const STATE_LABEL: Record<string, string> = {
   Done: 'выполнена',
@@ -14,18 +22,14 @@ const STATE_LABEL: Record<string, string> = {
   NotMeasurable: 'нечем измерить',
 }
 
-const DAY = 86_400_000
-
 /**
  * Связка между соседними точками (второй заход прогона, замечание к п. 1):
- * длительность стоит МЕЖДУ карточками, а не на отдельной шкале — прежняя
- * шкала жила своей жизнью под лентой и связи точек не показывала. Обе даты
- * есть — стрелка несёт число дней; какой-то нет — честное «даты нет».
+ * длительность стоит МЕЖДУ карточками, а не на отдельной шкале. Число дней
+ * приходит С СЕРВЕРА (days_from_prev): расчётов в клиенте нет (STEP-6 §3.2),
+ * обход кода клиента это стережёт — и поймал первую версию, считавшую дни сама.
  */
 function GateLink({ from, to }: { from: GateRow; to: GateRow }) {
-  const days = from.due && to.due
-    ? Math.round((new Date(to.due).getTime() - new Date(from.due).getTime()) / DAY)
-    : null
+  const days = to.days_from_prev ?? null
   return (
     <div className="gatelink" title={days == null
       ? 'длительность появится, когда у обеих точек будут плановые даты (паспорт проекта)'
@@ -90,7 +94,7 @@ export function Lifecycle({ project, onGo }: { project: string; onGo: (screen: s
       <div className="workarea">
         <div className="gatestrip">
           {gates.map((g, i) => {
-            const overdue = !g.held && !!g.due && new Date(g.due).getTime() < Date.now()
+            const overdue = g.overdue === true
             return [
               i > 0 ? <GateLink key={`l${i}`} from={gates[i - 1]} to={g} /> : null,
               <div key={g.gate}
