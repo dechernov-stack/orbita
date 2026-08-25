@@ -500,6 +500,11 @@ class ReqService(
     fun baselineIssues(type: String, doc: JsonNode, projectId: String? = null): List<String> =
         if (type == "requirement") baselining.canBaseline(doc, productTree(projectId)).second else emptyList()
 
+    /** Полный вердикт базирования: блокирующее, отводимое, отведённое. */
+    fun baselineVerdict(type: String, doc: JsonNode, projectId: String? = null): BaselineVerdict =
+        if (type == "requirement") baselining.verdict(doc, productTree(projectId))
+        else BaselineVerdict(emptyList(), emptySet(), emptyMap())
+
     /** Активные и закрытые риски: закрытый сохраняется в реестре. */
     fun risks(projectId: String? = null): List<JsonNode> = objects.listCurrent(projectId)
         .filter { it.type == "risk" && it.status != Lifecycle.Cancelled }

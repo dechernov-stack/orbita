@@ -46,6 +46,10 @@ export interface HistoryEntry {
 export interface BaselineIssues {
   can_baseline: boolean
   issues: string[]
+  /** Подмножество issues, отводимое вейвером (правила качества — эвристики). */
+  waivable?: string[]
+  /** Уже отведённые инженером: правило и обоснование. */
+  waived?: Array<{ rule: string; rationale: string }>
 }
 
 export interface KindRow {

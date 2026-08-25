@@ -176,6 +176,48 @@ class RequirementsSemanticsTest {
         }
 
         @Test
+        fun `отведённое правило качества не блокирует, чужой текст вейвера не действует`() {
+            // Находка прогона: «в пределах» по смыслу ровно — эвристика ошиблась,
+            // инженер отводит правило с обоснованием, след остаётся в объекте
+            val withRange = (ready.deepCopy<com.fasterxml.jackson.databind.node.ObjectNode>()).apply {
+                put("statement", "Система должна держать частоту в пределах 401,1 МГц.")
+            }
+            val issue = baselining.verdict(withRange, emptyMap())
+            assertTrue(issue.blocking.any { "в пределах" in it }) { issue.blocking.toString() }
+            assertTrue(issue.blocking.first { "в пределах" in it } in issue.waivable)
+
+            val waived = withRange.deepCopy().apply {
+                putArray("quality_waivers").addObject()
+                    .put("rule", issue.blocking.first { "в пределах" in it })
+                    .put("rationale", "полоса задана допуском вокруг номинала: по смыслу — ровно")
+            }
+            val v2 = baselining.verdict(waived, emptyMap())
+            assertTrue(v2.blocking.none { "в пределах" in it }) { v2.blocking.toString() }
+            assertTrue(v2.waived.keys.any { "в пределах" in it })
+
+            // вейвер с чужим текстом ничего не отводит
+            val stray = withRange.deepCopy().apply {
+                putArray("quality_waivers").addObject()
+                    .put("rule", "какое-то другое правило")
+                    .put("rationale", "не про это замечание вовсе")
+            }
+            assertTrue(baselining.verdict(stray, emptyMap()).blocking.any { "в пределах" in it })
+        }
+
+        @Test
+        fun `TBD не отводим - вейвер на него не действует`() {
+            val withTbd = (ready.deepCopy<com.fasterxml.jackson.databind.node.ObjectNode>()).apply {
+                withObject("/mop").put("tbd", true)
+                putArray("quality_waivers").addObject()
+                    .put("rule", "незакрытые TBD/TBR")
+                    .put("rationale", "попытка отвести неотводимое")
+            }
+            val v = baselining.verdict(withTbd, emptyMap())
+            assertTrue(v.blocking.any { "TBD" in it }) { v.blocking.toString() }
+            assertTrue(v.blocking.first { "TBD" in it } !in v.waivable)
+        }
+
+        @Test
         fun `незакрытый TBD блокирует базирование`() {
             val withTbd = (ready.deepCopy<com.fasterxml.jackson.databind.node.ObjectNode>()).apply {
                 putObject("mop").put("name", "Вероятность доставки").put("operator", "ge").put("tbd", true)

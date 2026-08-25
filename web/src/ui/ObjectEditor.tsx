@@ -440,11 +440,50 @@ export function ObjectEditor({ kind, schemaName, id, title, maturity, onSaved, o
             {issues == null || issues.can_baseline ? (
               <div className="secondary">Препятствий базированию нет.</div>
             ) : (
-              issues.issues.map((issue) => (
-                <div key={issue} className="amber">
-                  △ {issue}
-                </div>
-              ))
+              issues.issues.map((issue) => {
+                const waivable = issues.waivable?.includes(issue) ?? false
+                return (
+                  <div key={issue} className="amber"
+                    style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
+                    <span style={{ flex: 1 }}>△ {issue}</span>
+                    {/* Правила качества — эвристики, и они ошибаются
+                        (находка прогона: «в пределах» по смыслу ровно).
+                        Инженер вправе отвести правило С ОБОСНОВАНИЕМ:
+                        след остаётся в объекте, решение — за человеком.
+                        TBD и план верификации не отводимы. */}
+                    {waivable && (
+                      <button type="button" className="tab"
+                        title="отвести правило с обоснованием: замечание перестанет блокировать этот объект"
+                        onClick={() => {
+                          const rationale = window.prompt(
+                            `Отвести правило:\n«${issue}»\n\nОбоснование (почему здесь оно неприменимо, не короче 10 символов):`,
+                          )?.trim()
+                          if (!rationale) return
+                          if (rationale.length < 10) {
+                            setFailure('Обоснование отвода короче 10 символов — так не принимается.')
+                            return
+                          }
+                          const cur = Array.isArray(doc.quality_waivers)
+                            ? (doc.quality_waivers as Array<{ rule: string; rationale: string }>)
+                            : []
+                          setDoc({ ...doc, quality_waivers: [...cur, { rule: issue, rationale }] })
+                          setTab('form')
+                        }}>
+                        Отвести…
+                      </button>
+                    )}
+                  </div>
+                )
+              })
+            )}
+            {issues && (issues.waived?.length ?? 0) > 0 && (
+              <div style={{ marginTop: 8 }}>
+                {issues.waived!.map((w) => (
+                  <div key={w.rule} className="secondary">
+                    ✓ отведено: «{w.rule}» — {w.rationale}
+                  </div>
+                ))}
+              </div>
             )}
             {/* Помощник распределения (находка второго захода): интерфейсы
                 появились позже требований, и искать «какой интерфейс связан

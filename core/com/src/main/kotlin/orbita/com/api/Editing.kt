@@ -182,6 +182,12 @@ class Editing(
         return boundary.req.baselineIssues(cur.type, cur.doc, cur.projectId)
     }
 
+    /** Полный вердикт базирования — форме: что отводимо и что уже отведено. */
+    fun promotionVerdict(id: String): orbita.req.BaselineVerdict {
+        val cur = boundary.objects.current(id) ?: throw NoSuchElementException("object '$id' not found")
+        return boundary.req.baselineVerdict(cur.type, cur.doc, cur.projectId)
+    }
+
     /**
      * Обязательные схемой коллекции, которых нет в черновике, заводятся пустыми
      * (CR-002): полнота верификации и трассировки — условие БАЗИРОВАНИЯ,

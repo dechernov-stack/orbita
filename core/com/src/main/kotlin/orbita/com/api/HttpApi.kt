@@ -1607,10 +1607,19 @@ class HttpApi(private val boundary: Boundary) {
             // Что мешает базированию — до попытки перевода, чтобы форма могла
             // показать это инженеру, а не отказом после нажатия.
             method == "GET" && editMatch?.groupValues?.get(2) == "/issues" -> {
-                val issues = boundary.editing.promotionIssues(editMatch.groupValues[1])
-                val n = mapper.createObjectNode().put("can_baseline", issues.isEmpty())
+                val v = boundary.editing.promotionVerdict(editMatch.groupValues[1])
+                val n = mapper.createObjectNode().put("can_baseline", v.ok)
                 val arr = n.putArray("issues")
-                issues.forEach(arr::add)
+                v.blocking.forEach(arr::add)
+                // отводимость: правила качества — эвристики, инженер вправе
+                // отвести с обоснованием (находка прогона: «в пределах» по
+                // смыслу ровно); TBD и план верификации не отводимы
+                val wv = n.putArray("waivable")
+                v.blocking.filter { it in v.waivable }.forEach(wv::add)
+                val wd = n.putArray("waived")
+                v.waived.forEach { (rule, why) ->
+                    wd.addObject().put("rule", rule).put("rationale", why)
+                }
                 respond(ex, 200, n)
             }
 
