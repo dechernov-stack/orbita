@@ -11,6 +11,7 @@ import { SECTIONS, sectionOf } from './nav'
 import { AiProposal } from './screens/AiProposal'
 import { AiService } from './screens/AiService'
 import { BatchLoad } from './screens/BatchLoad'
+import { NewProject } from './screens/NewProject'
 import { Comparison } from './screens/Comparison'
 import { Coverage } from './screens/Coverage'
 import { Demand } from './screens/Demand'
@@ -37,6 +38,42 @@ interface HeaderInfo {
   nextGate: string | null
   unclosed: number | null
   operations: OperationRow[]
+}
+
+/** Иконки рейки — контуры эталона reference2 (штрих 1.6, 18 px);
+    «Концепция» и «Инструменты» дорисованы в той же стилистике. */
+const RAIL_ICONS: Record<string, ReactElement> = {
+  portfolio: (
+    <>
+      <rect x="4" y="4" width="7" height="7" rx="1.5" />
+      <rect x="13" y="4" width="7" height="7" rx="1.5" />
+      <rect x="4" y="13" width="7" height="7" rx="1.5" />
+      <rect x="13" y="13" width="7" height="7" rx="1.5" />
+    </>
+  ),
+  goals: (
+    <>
+      <circle cx="12" cy="12" r="8" />
+      <circle cx="12" cy="12" r="2.6" />
+    </>
+  ),
+  req: <path d="M5 5h14M5 10h14M5 15h9M5 20h6" />,
+  aoa: (
+    <>
+      <circle cx="12" cy="6" r="2.5" />
+      <circle cx="6" cy="18" r="2.5" />
+      <circle cx="18" cy="18" r="2.5" />
+      <path d="M10.8 8.2 7.2 15.8M13.2 8.2l3.6 7.6" />
+    </>
+  ),
+  ballistics: (
+    <>
+      <circle cx="12" cy="12" r="8" />
+      <path d="M2.5 12c3-4 16-4 19 0" />
+    </>
+  ),
+  readiness: <path d="M4 19V5m0 14h16M8 15l4-6 4 3 4-7" />,
+  ai: <path d="M12 4l1.8 5.2L19 11l-5.2 1.8L12 18l-1.8-5.2L5 11l5.2-1.8z" />,
 }
 
 const PHASE_LABEL: Record<string, string> = { pre_phase_a: 'Pre-Phase A', phase_a: 'Phase A' }
@@ -80,6 +117,8 @@ function MatrixScreen() {
 
 export function App() {
   const [screen, setScreen] = useState<string>(currentProject() ? 'lifecycle' : 'portfolio')
+  /** Первая установка: в портфеле нет проектов — форма с вводной строкой. */
+  const [firstRun, setFirstRun] = useState(false)
   const [info, setInfo] = useState<HeaderInfo | null>(null)
   const project = currentProject()
   const section = sectionOf(screen)
@@ -110,11 +149,28 @@ export function App() {
 
   const render = (): ReactElement => {
     switch (screen) {
-      case 'portfolio': return <Portfolio onOpen={() => { setScreen('lifecycle'); loadHeader() }} />
+      case 'portfolio': return (
+        <Portfolio onOpen={() => { setScreen('lifecycle'); loadHeader() }}
+          onNew={() => { setFirstRun(false); setScreen('newproject') }}
+          onFirstRun={() => { setFirstRun(true); setScreen('newproject') }} />
+      )
+      case 'newproject': return (
+        <NewProject firstRun={firstRun}
+          onDone={(id) => {
+            selectProject(id)
+            setFirstRun(false)
+            setScreen('lifecycle')
+            loadHeader()
+          }}
+          onCancel={() => { setFirstRun(false); setScreen('portfolio') }}
+          onLoadFile={() => { setFirstRun(false); setScreen('importb') }} />
+      )
       case 'lifecycle':
         return project
           ? <Lifecycle project={project} onGo={go} />
-          : <Portfolio onOpen={() => setScreen('lifecycle')} />
+          : <Portfolio onOpen={() => setScreen('lifecycle')}
+              onNew={() => { setFirstRun(false); setScreen('newproject') }}
+              onFirstRun={() => { setFirstRun(true); setScreen('newproject') }} />
       case 'projreg': return <KindRegistry key={screen} kinds={['project']} title="Паспорт проекта" />
       case 'sourcedocs':
         return <KindRegistry key={screen} kinds={['source_document']} title="Исходные документы (библиотека)" />
@@ -166,13 +222,18 @@ export function App() {
     <div className="shell">
       <header className="header">
         <div className="header__logo">Орбита</div>
-        {project && info && (
+        {screen === 'newproject' && (
+          <span className="np-crumb">
+            {firstRun ? <b>Первый проект</b> : <>Портфель / <b>Новый проект</b></>}
+          </span>
+        )}
+        {screen !== 'newproject' && project && info && (
           <div className="header__project">
             <b>{info.name}</b>
             <span className="header__phase">{PHASE_LABEL[info.phase] ?? info.phase}</span>
           </div>
         )}
-        {project && info?.nextGate && (
+        {screen !== 'newproject' && project && info?.nextGate && (
           <button className="header__gate" onClick={() => setScreen('readiness')}
             title="Готовность к точке — что мешает пройти">
             <span className="secondary">ближайшая точка</span>
@@ -182,7 +243,7 @@ export function App() {
             </span>
           </button>
         )}
-        {project && (
+        {screen !== 'newproject' && project && (
           <button className="btn" onClick={() => { selectProject(null); setScreen('portfolio') }}>
             Сменить проект
           </button>
@@ -195,11 +256,12 @@ export function App() {
           {SECTIONS.map((s) => (
             <button key={s.key} className="rail__item" aria-selected={s.key === section}
               onClick={() => setScreen(s.screens[0].key)}>
+              <svg viewBox="0 0 24 24" aria-hidden="true">{RAIL_ICONS[s.key]}</svg>
               {s.label}
             </button>
           ))}
         </nav>
-        {screen !== 'portfolio' && (
+        {screen !== 'portfolio' && screen !== 'newproject' && (
           <aside className="ops">
             <div className="ops__title">{nav.label}</div>
             {nav.screens.map((sc) => (
