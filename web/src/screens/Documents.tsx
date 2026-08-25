@@ -306,6 +306,18 @@ export function Documents({ onGo }: { onGo?: (screen: string) => void }) {
                                 ))}
                               </div>
                             )}
+                            {/* Разрыв о самом проекте (назначение, область,
+                                перспектива) не несёт id — дверь в паспорт
+                                (замечание прогона: «нельзя перейти и
+                                поправить») */}
+                            {g.ids.length === 0 && g.what.startsWith('проект') && onGo && (
+                              <div style={{ marginLeft: 16 }}>
+                                <button type="button" className="btn"
+                                  onClick={() => onGo('projreg')}>
+                                  → Паспорт проекта
+                                </button>
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>

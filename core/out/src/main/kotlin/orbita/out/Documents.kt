@@ -373,7 +373,7 @@ class DocumentGenerator(private val mapper: ObjectMapper = ObjectMapper()) {
         DocumentTemplate.TechnologyPlan -> fillTechnologyPlan(section, model, items, gaps)
         DocumentTemplate.RiskPlan -> fillRiskPlan(section, model, items)
         DocumentTemplate.CostRanges -> fillCost(section, model, items, "range")
-        DocumentTemplate.ProjectPlan -> fillProjectPlan(section, model, items)
+        DocumentTemplate.ProjectPlan -> fillProjectPlan(section, model, items, gaps)
     }
 
     // ---------- Приложение 2: спецификация требований ----------
@@ -957,7 +957,12 @@ class DocumentGenerator(private val mapper: ObjectMapper = ObjectMapper()) {
         }
     }
 
-    private fun fillProjectPlan(section: Int, model: JsonNode, items: ArrayNode) {
+    private fun fillProjectPlan(
+        section: Int,
+        model: JsonNode,
+        items: ArrayNode,
+        gaps: MutableList<DocumentGap>,
+    ) {
         when (section) {
             1 -> {
                 goalsRecords(model, items)
@@ -977,7 +982,28 @@ class DocumentGenerator(private val mapper: ObjectMapper = ObjectMapper()) {
                     .put("name", w.path("name").asText(""))
                     .put("owner", w.path("owner").asText(""))
             }
-            4 -> milestoneRecords(model, items)
+            4 -> {
+                milestoneRecords(model, items)
+                // График по фазам — ВЕСЬ жизненный цикл (Приложение 7 §4):
+                // ИС ведёт проект до KDP B, перспективу Phase B–F задаёт
+                // инженер в паспорте (outlook). План, обрывающийся на KDP B, —
+                // не план проекта (замечание живого прогона); пустая
+                // перспектива — именованный разрыв, а не молчание.
+                val outlook = model.path("project").path("outlook")
+                outlook.forEach { o ->
+                    items.addObject()
+                        .put("phase", o.path("phase").asText(""))
+                        .put("milestone", o.path("milestone").asText(""))
+                        .put("due", o.path("due").asText(""))
+                }
+                if (outlook.isEmpty || outlook.size() == 0) {
+                    gaps += DocumentGap(
+                        section,
+                        "проект: не заполнена «перспектива (Phase B–F)» — график обрывается на KDP B",
+                        "Приложение 7 §4: укрупнённый план по фазам всего жизненного цикла",
+                    )
+                }
+            }
             5 -> costRecords(model, items, null)
             6 -> riskRecords(model, items)
             else -> {}
