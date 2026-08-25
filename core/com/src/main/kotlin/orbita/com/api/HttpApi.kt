@@ -1459,6 +1459,67 @@ class HttpApi(private val boundary: Boundary) {
             // результат ложится в results (kind=flow), его читают «Сравнение»
             // (узкие места) и свидетельства верификации. Прежде ядро было
             // не подключено: запустить прогон из интерфейса было нельзя.
+            // Мастер-путь Ш2, «Взять из библиотеки»: библиотека исходных
+            // документов (ADR-030) — общая, а объекты попроектные. Здесь
+            // документы ДРУГИХ проектов видны как библиотека текущего:
+            // НПА и глоссарий, загруженные однажды, не заводятся заново.
+            method == "GET" && path == "/views/library/source-documents" -> {
+                val libProject = requireProject(project)
+                val arr = mapper.createArrayNode()
+                boundary.objects.listCurrent()
+                    .filter {
+                        it.type == "source_document" && it.status != Lifecycle.Cancelled &&
+                            it.projectId != libProject
+                    }
+                    .sortedBy { it.id }
+                    .forEach { o ->
+                        arr.addObject()
+                            .put("id", o.id)
+                            .put("project", o.projectId)
+                            .put("name", o.doc.path("name").asText(o.id))
+                            .put("kind", o.doc.path("kind").asText(""))
+                            .put("summary", o.doc.path("summary").asText(""))
+                            .put("has_text", o.doc.path("text").asText("").isNotBlank())
+                    }
+                respond(ex, 200, arr)
+            }
+
+            // Взятие из библиотеки — КОПИЯ в текущий проект с провенансом
+            // imported: откуда, какой версии, на каких условиях (TZ-COM-005).
+            // Исходный документ не тронут; копия начинает свой цикл черновиком.
+            method == "POST" && path == "/views/library/take" -> {
+                val req = mapper.readTree(body(ex))
+                val takeAuthor = req.path("author").asText("")
+                require(takeAuthor.isNotBlank()) { "field 'author' is required" }
+                val takeProject = requireProject(project)
+                val taken = mapper.createArrayNode()
+                req.path("ids").forEach { idNode ->
+                    val fromId = idNode.asText()
+                    val src = boundary.objects.current(fromId)
+                        ?: throw NoSuchElementException("source document '$fromId' not found")
+                    require(src.type == "source_document") {
+                        "'$fromId' is not a source document"
+                    }
+                    val copy = src.doc.deepCopy<ObjectNode>()
+                    copy.remove("id")
+                    copy.remove("lifecycle")
+                    copy.remove("provenance")
+                    copy.putObject("provenance")
+                        .put("source", "imported")
+                        .put("author", takeAuthor)
+                        .putObject("import")
+                        .put("dataset", "библиотека исходных документов: $fromId (${src.projectId})")
+                        .put("dataset_version", src.version)
+                        .put("retrieved_at", java.time.LocalDate.now().toString())
+                        .put("terms", src.doc.path("rights").asText(""))
+                    val stored = boundary.editing.create(
+                        orbita.mod.model.CoreType.SourceDocument, copy, takeAuthor, takeProject,
+                    )
+                    taken.addObject().put("from", fromId).put("id", stored.id)
+                }
+                respond(ex, 201, mapper.createObjectNode().set("taken", taken))
+            }
+
             // Мастер-путь «Начало проекта», Ш3: профиль службы — СЛЕДСТВИЕ
             // шагов, а не находка в меню. Запреты профиля собираются из
             // ограничений паспорта (Ш1) здесь, на сервере: правило «запреты

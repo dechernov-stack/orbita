@@ -206,6 +206,14 @@ export const api = {
     post<Record<string, unknown>>('/gates/return/resolve', { author, note }),
   // ---------- П5: служба ИИ (профиль → промпт → вызов → фильтр → журнал) ----------
   /** Промпт собирает служба из профиля и состояния модели; клиент его читает. */
+  /** Мастер-путь Ш2: исходные документы других проектов — библиотека текущего. */
+  libraryDocs: () =>
+    get<Array<{ id: string; project: string; name: string; kind: string; summary: string; has_text: boolean }>>(
+      '/views/library/source-documents',
+    ),
+  /** Взятие из библиотеки: копия в текущий проект с провенансом imported. */
+  libraryTake: (ids: string[], author: string) =>
+    post<{ taken: Array<{ from: string; id: string }> }>('/views/library/take', { ids, author }),
   /** Мастер-путь Ш3: профиль службы из ограничений паспорта — собирает сервер. */
   startPathProfile: (author: string) =>
     post<{ id: string; version: string; name: string; prohibitions: number }>(

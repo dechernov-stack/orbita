@@ -58,6 +58,12 @@ export function StartPath({ project, onGo, onDone }: {
   const [constraints, setConstraints] = useState<Constraint[]>([])
   const [adding, setAdding] = useState('')
   const [docs, setDocs] = useState<SourceDocRow[] | null>(null)
+  /** Библиотека: исходные документы других проектов (ADR-030). */
+  const [library, setLibrary] = useState<Array<{
+    id: string; project: string; name: string; kind: string; summary: string; has_text: boolean
+  }> | null>(null)
+  const [picked, setPicked] = useState<Set<string>>(new Set())
+  const [takeNote, setTakeNote] = useState<string | null>(null)
   const [sourceRef, setSourceRef] = useState('')
   const [profile, setProfile] = useState<{ id: string; version: string; name: string } | null>(null)
   const [promptFull, setPromptFull] = useState<string | null>(null)
@@ -81,6 +87,13 @@ export function StartPath({ project, onGo, onDone }: {
         if (sp?.source_ref) setSourceRef(sp.source_ref)
       })
       .catch((e) => setFailure(reasonOf(e)))
+    reloadOwn()
+    api.libraryDocs().then(setLibrary).catch(() => setLibrary([]))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project])
+
+  /** Документы проекта («своё»): перечитываются и после взятия из библиотеки. */
+  const reloadOwn = useCallback(() => {
     edit.list('source_document')
       .then(async (rows) => {
         const full = await Promise.all(rows.map(async (r) => {
@@ -91,7 +104,23 @@ export function StartPath({ project, onGo, onDone }: {
         setSourceRef((cur) => cur || full.find((d) => d.hasText)?.id || '')
       })
       .catch(() => setDocs([]))
-  }, [project])
+  }, [])
+
+  /** Взятие выбранного: копии в проект с провенансом imported — на сервере. */
+  const take = () => {
+    if (busyRef.current || picked.size === 0) return
+    busyRef.current = true
+    setBusy(true)
+    setFailure(null)
+    api.libraryTake([...picked], author)
+      .then((r) => {
+        setTakeNote(`взято: ${r.taken.length} — теперь материал проекта`)
+        setPicked(new Set())
+        reloadOwn()
+      })
+      .catch((e) => setFailure(reasonOf(e)))
+      .finally(() => { busyRef.current = false; setBusy(false) })
+  }
 
   /** Шаг сохраняется сам: паспорт правится процедурой с основанием. */
   const save = useCallback(async (path: PathState) => {
@@ -252,21 +281,47 @@ export function StartPath({ project, onGo, onDone }: {
             <div className="sp-two">
               <div className="sp-pane">
                 <div className="sp-ph">Взять из библиотеки
-                  {missionClass && <span className="sp-sub">по классу «{missionClass}»</span>}
+                  <span className="sp-sub">исходные документы других проектов</span>
                 </div>
-                {/* Библиотеки наборов (типовые требования, шаблоны компонентов)
-                    в системе пока нет — крайность брифа §4: путь работает без
-                    неё. Комплект документов фазы действует всегда. */}
-                <div className="sp-set">
-                  <span className="sp-tx">
-                    <div className="sp-nm">Библиотека наборов пуста</div>
-                    <div className="sp-ds">
-                      Путь работает без неё. Комплект документов фазы уже встроен —
-                      структуры разделов на экране «Документы».
-                    </div>
-                  </span>
-                  <button className="sp-open" onClick={() => onGo('docs')}>состав</button>
-                </div>
+                {/* Библиотека (ADR-030) — общая, объекты попроектные: здесь
+                    документы других проектов берутся копией с провенансом
+                    imported. Наборы типовых требований и шаблонов компонентов
+                    появятся с библиотечной волной. */}
+                {library == null && <div className="sp-set"><span className="sp-ds">Загрузка…</span></div>}
+                {library != null && library.length === 0 && (
+                  <div className="sp-set">
+                    <span className="sp-tx">
+                      <div className="sp-nm">В библиотеке пока нет документов</div>
+                      <div className="sp-ds">
+                        Путь работает без неё: сложите своё справа — в следующем
+                        проекте это уже будет библиотекой.
+                      </div>
+                    </span>
+                  </div>
+                )}
+                {(library ?? []).map((d) => (
+                  <div className="sp-set" key={d.id}>
+                    <input type="checkbox" checked={picked.has(d.id)}
+                      onChange={(e) => {
+                        const next = new Set(picked)
+                        if (e.target.checked) next.add(d.id)
+                        else next.delete(d.id)
+                        setPicked(next)
+                      }} />
+                    <span className="sp-tx">
+                      <div className="sp-nm">{d.name}</div>
+                      <div className="sp-ds">{d.summary || d.kind}{d.project ? ` · из ${d.project}` : ''}</div>
+                    </span>
+                  </div>
+                ))}
+                {library != null && library.length > 0 && (
+                  <div className="sp-set">
+                    <button className="sp-open" disabled={picked.size === 0 || busy} onClick={take}>
+                      Взять выбранное{picked.size > 0 ? ` · ${picked.size}` : ''}
+                    </button>
+                    {takeNote && <span className="sp-ds">{takeNote}</span>}
+                  </div>
+                )}
               </div>
               <div className="sp-pane">
                 <div className="sp-ph">Сложить своё
