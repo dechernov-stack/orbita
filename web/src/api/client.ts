@@ -251,6 +251,11 @@ export const api = {
       `/views/comparison?scenario=${encodeURIComponent(scenario)}` +
         (axes && axes.length > 0 ? `&axes=${axes.map(encodeURIComponent).join(',')}` : ''),
     ),
+  /** Прогон потоков (Монте-Карло) от хранимых входов сценария; долгий. */
+  flowsRun: (scenario: string) =>
+    post<{ result_pk: number; runs: number; passes: number; service_passes: number; populations: number; kpi: Record<string, unknown> }>(
+      '/views/flows/run', { scenario },
+    ),
   /** Устаревшие результаты: пометка живёт на экране сравнения (шаг 16 §2.4). */
   staleResults: () => get<StaleResultRow[]>('/reports/stale-results'),
   /** Зрелость пакета к точке — основная таблица экрана готовности. */

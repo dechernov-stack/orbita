@@ -22,6 +22,8 @@ export function Comparison() {
   /** Выбранные оси; пусто — набор по умолчанию из фактических (§3.5). */
   const [axes, setAxes] = useState<string[]>([])
   const [notice, setNotice] = useState<string | null>(null)
+  const [flowBusy, setFlowBusy] = useState(false)
+  const [flowNote, setFlowNote] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   // Сценарий выбирается из хранимых, не зашивается (шаг 16 §3.2)
@@ -178,6 +180,29 @@ export function Comparison() {
         <div className="card">
           <h3>Узкие места</h3>
           <div>
+            {/* Запуск прогона — отсюда: ядро Монте-Карло прежде было не
+                подключено, и «не выполнялся» было вечным состоянием
+                (находка живого прогона). Прогон долгий — кнопка честно
+                блокируется на время счёта. */}
+            <div style={{ marginBottom: 6 }}>
+              <button type="button" className="tab tab--primary" disabled={!scenario || flowBusy}
+                title="Монте-Карло по хранимым входам сценария: геометрия, популяции из карты спроса, канал из адаптера"
+                onClick={() => {
+                  if (!scenario) return
+                  setFlowBusy(true)
+                  setFlowNote(null)
+                  api.flowsRun(scenario)
+                    .then((r) => {
+                      setFlowNote(`прогон выполнен: реализаций ${r.runs}, пролётов ${r.passes} (в зоне обслуживания ${r.service_passes}), популяций ${r.populations}`)
+                      api.bottlenecks(scenario).then(setBottlenecks).catch(() => undefined)
+                    })
+                    .catch((e) => setFlowNote(String(e).slice(0, 300)))
+                    .finally(() => setFlowBusy(false))
+                }}>
+                {flowBusy ? 'Прогон потоков…' : 'Выполнить прогон потоков'}
+              </button>
+              {flowNote && <div className="secondary" style={{ marginTop: 4 }}>{flowNote}</div>}
+            </div>
             {!bottlenecks || !bottlenecks.executed ? (
               // «не считали» — не то же, что «узких мест нет» (TZ-OUT-002)
               <span className="secondary">прогон потоков по сценарию не выполнялся</span>

@@ -116,6 +116,18 @@ object DemoProject {
      * адаптер — сериализацией самого адаптера. Вторая копия этих данных
      * разошлась бы с первой молча (ловушка 1).
      */
+    /** Входы моделирования в указанный проект — для тестов прогона потоков. */
+    fun seedModelingInputsFor(boundary: Boundary, projectId: String) {
+        val demandMap = demandMapJson()
+        val stations = groundStationsJson()
+        boundary.ingest(CoreType.Constellation, constellationJson(), DEMO_AUTHOR, projectId)
+        boundary.ingest(CoreType.Spacecraft, spacecraftJson(maskFractions(demandMap, stations)), DEMO_AUTHOR, projectId)
+        boundary.ingest(CoreType.DemandMap, demandMap, DEMO_AUTHOR, projectId)
+        boundary.ingest(CoreType.TerminalProfile, terminalProfileJson(), DEMO_AUTHOR, projectId)
+        boundary.ingest(CoreType.GroundStations, stations, DEMO_AUTHOR, projectId)
+        boundary.ingest(CoreType.ProtocolAdapter, protocolAdapterJson(), DEMO_AUTHOR, projectId)
+    }
+
     private fun seedModelingInputs(boundary: Boundary) {
         // Карта и станции строятся ДО модели аппарата: доли витка его
         // циклограммы генерируются из их масок (TZ-KA-009), а не пишутся руками

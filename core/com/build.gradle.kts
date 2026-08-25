@@ -3,6 +3,7 @@
 dependencies {
     implementation(project(":core:mod"))
     implementation(project(":core:req"))
+    implementation(project(":core:flw"))
     implementation(project(":core:usr"))
     implementation(project(":core:out"))
     implementation(project(":core:bal"))

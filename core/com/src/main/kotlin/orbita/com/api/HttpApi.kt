@@ -1444,6 +1444,18 @@ class HttpApi(private val boundary: Boundary) {
             // отчёт ничего не пересчитывает. Пустой отчёт отличается от
             // неисполненного: executed=false — «не считали», пустые entries при
             // executed=true — «считали, узких мест нет».
+            // Прогон потоков (Монте-Карло) от хранимых объектов сценария —
+            // результат ложится в results (kind=flow), его читают «Сравнение»
+            // (узкие места) и свидетельства верификации. Прежде ядро было
+            // не подключено: запустить прогон из интерфейса было нельзя.
+            method == "POST" && path == "/views/flows/run" -> {
+                val req = mapper.readTree(body(ex))
+                val scenarioId = req.path("scenario").asText("")
+                require(scenarioId.isNotBlank()) { "field 'scenario' is required: сценарий прогона" }
+                requireProject(project)
+                respond(ex, 201, FlowRun(boundary).run(scenarioId, project!!))
+            }
+
             method == "GET" && path == "/views/bottlenecks" -> {
                 val scenarioId = query(ex)["scenario"] ?: throw IllegalArgumentException(
                     "query parameter 'scenario' is required: выберите сценарий из /objects?type=scenario",
