@@ -1066,7 +1066,7 @@ input.np-name:focus { outline: 2px solid var(--accent); outline-offset: -1px; bo
 .np-g .np-ph { font-size: 10.5px; color: var(--status-draft); }
 .np-g .np-dt { margin: 6px 8px 0 0; }
 .np-g .np-dt input {
-  width: 86px; font: 400 11px/16px var(--font-mono); color: var(--text-secondary);
+  width: 128px; /* календарь (решение владельца): шире строки дд.мм.гггг */ font: 400 11px/16px var(--font-mono); color: var(--text-secondary);
   padding: 2px 5px; border: 1px solid var(--hairline); border-radius: 5px; background: var(--container);
 }
 .np-g .np-dt input::placeholder { color: #b7bac0; }

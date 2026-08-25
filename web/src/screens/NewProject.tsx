@@ -42,12 +42,6 @@ const PASSPORT_GATES: Record<string, string[]> = {
   phase_a: ['SRR', 'SDR', 'KDP-B'],
 }
 
-/** дд.мм.гггг → ISO для паспорта; иное — «дата не задана». */
-function isoDate(raw: string): string | null {
-  const m = raw.trim().match(/^([0-3][0-9])\.([01][0-9])\.([12][0-9]{3})$/)
-  return m ? `${m[3]}-${m[2]}-${m[1]}` : null
-}
-
 export function NewProject({ firstRun, onDone, onCancel, onLoadFile }: {
   firstRun: boolean
   onDone: (id: string) => void
@@ -88,13 +82,9 @@ export function NewProject({ firstRun, onDone, onCancel, onLoadFile }: {
     busyRef.current = true
     setBusy(true)
     setFailure(null)
-    const dued = new Map(
-      PHASE_GATES[phase].map((g) => [g.gate, isoDate(dates[g.gate] ?? '')] as const),
+    const milestones = PASSPORT_GATES[phase].map((g) =>
+      dates[g] ? { gate: g, due: dates[g] } : { gate: g },
     )
-    const milestones = PASSPORT_GATES[phase].map((g) => {
-      const due = dued.get(g)
-      return due ? { gate: g, due } : { gate: g }
-    })
     edit.create('project', { name: name.trim(), phase, milestones }, author)
       .then((saved) => onDone(saved.id))
       .catch((e) => {
@@ -179,7 +169,9 @@ export function NewProject({ firstRun, onDone, onCancel, onLoadFile }: {
                   {gates.map((g) => (
                     <div className="np-g" key={g.gate}>
                       <div className="np-dt">
-                        <input placeholder="дд.мм.гггг" value={dates[g.gate] ?? ''}
+                        {/* Календарь — решение владельца по вопросу 1 отчёта:
+                            свободная строка заменена, ошибочный формат невозможен */}
+                        <input type="date" value={dates[g.gate] ?? ''}
                           onChange={(e) => setDates({ ...dates, [g.gate]: e.target.value })} />
                       </div>
                     </div>
