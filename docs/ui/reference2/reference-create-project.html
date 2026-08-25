@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Орбита · эталон: создать проект · круг 1</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --surface:#f8f9fa; --c-lowest:#ffffff; --c-low:#f3f4f5; --c:#edeeef;
+  --on:#191c1d; --on-var:#44474c; --outline:#74777d; --hair:#c4c6cc;
+  --rail:#0f1c2c; --on-rail:#8b97a8; --accent:#115cb9; --accent-fix:#d7e2ff;
+  --error:#ba1a1a; --error-c:#ffdad6; --on-error-c:#93000a;
+  --warn-c:#f6ecd7; --on-warn-c:#5c4a15;
+  --ok:#1a7f37;
+  --font:Inter,-apple-system,'Segoe UI',sans-serif;
+  --mono:'JetBrains Mono',Menlo,monospace;
+}
+*{box-sizing:border-box;margin:0}
+body{font:400 13px/20px var(--font);color:var(--on);background:#dfe2e6;padding:28px 0}
+.stand{max-width:1180px;margin:0 auto}
+.stand h1{font-size:15px;font-weight:600;padding:0 4px 6px}
+.stand .note{font-size:12px;color:var(--on-var);padding:0 4px 18px}
+.case{margin:0 0 34px}
+.case>.tag{display:inline-block;font:600 11px/16px var(--font);text-transform:uppercase;
+  letter-spacing:.07em;color:var(--on-var);background:#eef0f2;border:1px solid var(--hair);
+  border-bottom:none;border-radius:6px 6px 0 0;padding:4px 10px;margin-left:0}
+.frame{background:var(--surface);border:1px solid var(--hair);border-radius:0 8px 8px 8px;
+  overflow:hidden;display:grid;grid-template-rows:48px 1fr;grid-template-columns:68px 1fr;
+  grid-template-areas:'hdr hdr' 'rail main';min-height:560px}
+/* ── оболочка ── */
+.hdr{grid-area:hdr;display:flex;align-items:center;gap:14px;padding:0 16px;
+  background:var(--c-lowest);border-bottom:1px solid var(--hair)}
+.brand{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;letter-spacing:-.02em}
+.brand .o{width:16px;height:16px;border:2px solid var(--on);border-radius:50%}
+.crumb{font-size:13px;color:var(--on-var)}
+.crumb b{color:var(--on);font-weight:600}
+.hdr .who{margin-left:auto;font-size:12px;color:var(--on-var)}
+.hdr .who b{color:var(--on);font-weight:600}
+.rail{grid-area:rail;background:var(--rail);display:flex;flex-direction:column;align-items:center;
+  padding:10px 0;gap:2px}
+.rico{width:58px;padding:7px 0 6px;border-radius:8px;display:flex;flex-direction:column;
+  align-items:center;gap:3px;color:var(--on-rail);cursor:pointer}
+.rico:hover{color:#dfe5ec}
+.rico.on{background:rgba(255,255,255,.14);color:#fff}
+.rico svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round}
+.rlab{font:500 9px/10px var(--font);letter-spacing:.01em}
+.main{grid-area:main;display:flex;justify-content:center;padding:44px 24px 32px}
+.work{width:640px}
+/* ── форма ── */
+.first-run{font-size:12.5px;color:var(--on-var);background:var(--c-low);border:1px solid var(--hair);
+  border-radius:8px;padding:9px 12px;margin-bottom:18px}
+.work h2{font-size:19px;line-height:26px;font-weight:700;letter-spacing:-.015em}
+.work .sub{font-size:12.5px;color:var(--on-var);margin:4px 0 22px}
+.f-label{display:block;font:600 12px/16px var(--font);margin:0 0 6px}
+.f-label .opt{font-weight:400;color:var(--outline)}
+input.name{width:100%;font:400 15px/22px var(--font);color:var(--on);
+  padding:9px 12px;border:1px solid var(--hair);border-radius:8px;background:var(--c-lowest)}
+input.name:focus{outline:2px solid var(--accent);outline-offset:-1px;border-color:var(--accent)}
+.hint{font-size:11.5px;color:var(--outline);margin:5px 0 0}
+.row{margin:0 0 18px}
+/* сегмент фазы */
+.seg{display:inline-flex;border:1px solid var(--hair);border-radius:8px;overflow:hidden;background:var(--c-lowest)}
+.seg span{padding:6px 14px;font:500 12.5px/18px var(--font);color:var(--on-var);cursor:pointer;
+  border-right:1px solid var(--hair)}
+.seg span:last-child{border-right:none}
+.seg span.on{background:var(--accent);color:#fff;font-weight:600}
+.seg-hint{font-size:11.5px;color:var(--outline);margin-top:5px}
+/* ── подписной элемент: лента точек фазы ── */
+.gates{border:1px solid var(--hair);border-radius:8px;background:var(--c-lowest);
+  padding:12px 14px 10px;margin:6px 0 0}
+.gates .k{font:600 11px/14px var(--font);text-transform:uppercase;letter-spacing:.06em;
+  color:var(--on-var);margin-bottom:10px;display:flex;justify-content:space-between}
+.gates .k a{font-weight:500;text-transform:none;letter-spacing:0;color:var(--accent);
+  text-decoration:none;font-size:11.5px}
+.gates .k a:hover{text-decoration:underline}
+.gline{display:flex;align-items:flex-start}
+.g{flex:1;position:relative;text-align:left;min-width:0}
+.g .dot{width:9px;height:9px;border-radius:50%;background:var(--c-lowest);
+  border:2px solid var(--outline);position:relative;z-index:1}
+.g .lnk{position:absolute;top:4px;left:9px;right:-2px;height:1px;background:var(--hair)}
+.g:last-child .lnk{display:none}
+.g .nm{font:600 12px/15px var(--font);margin:7px 8px 1px 0;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.g .ph{font-size:10.5px;color:var(--outline)}
+.g .dt{margin:6px 8px 0 0}
+.g .dt input{width:86px;font:400 11px/16px var(--mono);color:var(--on-var);
+  padding:2px 5px;border:1px solid var(--hair);border-radius:5px;background:var(--c-lowest)}
+.g .dt input::placeholder{color:#b7bac0}
+.g .dt .free{font-size:10.5px;color:var(--outline)}
+/* раскрывашка дат */
+details.dates{margin-top:2px}
+details.dates summary{list-style:none;cursor:pointer;font:500 11.5px/16px var(--font);
+  color:var(--accent);display:inline-flex;gap:4px;align-items:center;margin-top:8px}
+details.dates summary::before{content:'▸';font-size:10px;transition:transform .12s}
+details.dates[open] summary::before{transform:rotate(90deg)}
+@media (prefers-reduced-motion:reduce){details.dates summary::before{transition:none}}
+.dates-grid{display:flex;margin-top:8px}
+/* предупреждения и ошибки */
+.warn{display:flex;gap:8px;align-items:flex-start;background:var(--warn-c);color:var(--on-warn-c);
+  border-radius:6px;padding:7px 10px;font-size:12px;line-height:17px;margin-top:8px}
+.err{background:var(--error-c);color:var(--on-error-c);border-radius:6px;
+  padding:8px 11px;font-size:12.5px;line-height:18px;margin:14px 0 0}
+.err b{font-weight:600}
+/* действия */
+.actions{display:flex;align-items:center;gap:12px;margin-top:24px}
+.btn{font:600 13px/20px var(--font);padding:8px 18px;border-radius:8px;cursor:pointer;
+  border:1px solid var(--hair);background:var(--c-lowest);color:var(--on)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.pri:hover{filter:brightness(1.07)}
+.btn.pri[disabled]{background:#9db8dd;border-color:#9db8dd;cursor:default}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.linkish{font-size:12.5px;color:var(--accent);text-decoration:none}
+.linkish:hover{text-decoration:underline}
+.after{font-size:11.5px;color:var(--outline);margin-top:14px}
+</style></head><body>
+<div class="stand">
+<h1>Создать проект — эталон, круг 1</h1>
+<div class="note">Четыре состояния одной страницей для разбора по снимку. Подписной
+элемент — лента контрольных точек выбранной фазы прямо в форме: язык жизненного цикла
+с первой минуты. Даты вех спрятаны в раскрывашку — «дата не задана» законно.</div>
+
+<!-- ═══════════ 1. Обычное состояние, Pre-Phase A ═══════════ -->
+<div class="case"><span class="tag">Состояние 1 · обычное · Pre-Phase A</span>
+<div class="frame">
+  <header class="hdr">
+    <span class="brand"><span class="o"></span>Орбита</span>
+    <span class="crumb">Портфель / <b>Новый проект</b></span>
+    <span class="who">Инженер: <b>Чернов Д.</b></span>
+  </header>
+  <nav class="rail">
+    <div class="rico on"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg><span class="rlab">Портфель</span></div>
+    <div class="rico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.6"/></svg><span class="rlab">Постановка</span></div>
+    <div class="rico"><svg viewBox="0 0 24 24"><path d="M5 5h14M5 10h14M5 15h9M5 20h6"/></svg><span class="rlab">Требования</span></div>
+    <div class="rico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M2.5 12c3-4 16-4 19 0"/></svg><span class="rlab">Модели</span></div>
+    <div class="rico"><svg viewBox="0 0 24 24"><path d="M4 19V5m0 14h16M8 15l4-6 4 3 4-7"/></svg><span class="rlab">Контроль</span></div>
+  </nav>
+  <main class="main"><div class="work">
+    <h2>Новый проект</h2>
+    <div class="sub">Проект создаётся пустым. Достаточно имени — остальное можно задать позже.</div>
+
+    <div class="row">
+      <label class="f-label" for="n1">Наименование</label>
+      <input class="name" id="n1" autofocus placeholder="Например: «Национальная спутниковая платформа IoT»">
+      <div class="hint">Идентификатор система назначит сама.</div>
+    </div>
+
+    <div class="row">
+      <label class="f-label">Фаза старта</label>
+      <span class="seg"><span class="on">Pre-Phase A</span><span>Phase A</span></span>
+      <div class="seg-hint">Pre-Phase A — концептуальные исследования от постановки задачи.</div>
+    </div>
+
+    <div class="row">
+      <div class="gates">
+        <div class="k">Контрольные точки фазы</div>
+        <div class="gline">
+          <div class="g"><div class="dot"></div><div class="lnk"></div><div class="nm">Внутренний обзор</div><div class="ph">КТ-1</div></div>
+          <div class="g"><div class="dot"></div><div class="lnk"></div><div class="nm">MCR</div><div class="ph">КТ-2 · обзор концепции</div></div>
+          <div class="g"><div class="dot"></div><div class="lnk"></div><div class="nm">KDP-A</div><div class="ph">КТ-3 · решение о входе в Phase A</div></div>
+        </div>
+        <details class="dates"><summary>Задать плановые даты</summary>
+          <div class="dates-grid gline">
+            <div class="g"><div class="dt"><input placeholder="дд.мм.гггг"></div></div>
+            <div class="g"><div class="dt"><input placeholder="дд.мм.гггг"></div></div>
+            <div class="g"><div class="dt"><input placeholder="дд.мм.гггг"></div></div>
+          </div>
+          <div class="hint">Дата не задана — законное состояние; даты правятся в паспорте проекта.</div>
+        </details>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn pri" disabled>Создать проект</button>
+      <button class="btn">Отмена</button>
+      <a class="linkish" href="#">или загрузить проект из файла</a>
+    </div>
+    <div class="after">После создания система откроет жизненный цикл и покажет первые
+    операции фазы: О1 — инициирование, О2 — цели и нужды.</div>
+  </div></main>
+</div></div>
+
+<!-- ═══════════ 2. Первая установка ═══════════ -->
+<div class="case"><span class="tag">Состояние 2 · первая установка</span>
+<div class="frame" style="min-height:420px">
+  <header class="hdr">
+    <span class="brand"><span class="o"></span>Орбита</span>
+    <span class="crumb"><b>Первый проект</b></span>
+    <span class="who">Инженер: <b>Чернов Д.</b></span>
+  </header>
+  <nav class="rail">
+    <div class="rico on"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg><span class="rlab">Портфель</span></div>
+    <div class="rico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.6"/></svg><span class="rlab">Постановка</span></div>
+    <div class="rico"><svg viewBox="0 0 24 24"><path d="M5 5h14M5 10h14M5 15h9M5 20h6"/></svg><span class="rlab">Требования</span></div>
+    <div class="rico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M2.5 12c3-4 16-4 19 0"/></svg><span class="rlab">Модели</span></div>
+    <div class="rico"><svg viewBox="0 0 24 24"><path d="M4 19V5m0 14h16M8 15l4-6 4 3 4-7"/></svg><span class="rlab">Контроль</span></div>
+  </nav>
+  <main class="main"><div class="work">
+    <div class="first-run">Орбита ведёт космический проект через стадию Формулирования —
+    от постановки задачи до решения KDP-B. Начните с первого проекта: он создастся пустым,
+    и система подскажет первые операции.</div>
+    <h2>Первый проект</h2>
+    <div class="sub">Достаточно имени — остальное можно задать позже.</div>
+    <div class="row">
+      <label class="f-label" for="n2">Наименование</label>
+      <input class="name" id="n2" placeholder="Например: «Национальная спутниковая платформа IoT»">
+    </div>
+    <div class="row">
+      <label class="f-label">Фаза старта</label>
+      <span class="seg"><span class="on">Pre-Phase A</span><span>Phase A</span></span>
+    </div>
+    <div class="actions">
+      <button class="btn pri" disabled>Создать проект</button>
+      <a class="linkish" href="#">или загрузить проект из файла</a>
+    </div>
+  </div></main>
+</div></div>
+
+<!-- ═══════════ 3. Предупреждение и ошибка ═══════════ -->
+<div class="case"><span class="tag">Состояние 3 · совпадение имени · отказ сервера</span>
+<div class="frame" style="min-height:430px">
+  <header class="hdr">
+    <span class="brand"><span class="o"></span>Орбита</span>
+    <span class="crumb">Портфель / <b>Новый проект</b></span>
+    <span class="who">Инженер: <b>Чернов Д.</b></span>
+  </header>
+  <nav class="rail">
+    <div class="rico on"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg><span class="rlab">Портфель</span></div>
+    <div class="rico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.6"/></svg><span class="rlab">Постановка</span></div>
+    <div class="rico"><svg viewBox="0 0 24 24"><path d="M5 5h14M5 10h14M5 15h9M5 20h6"/></svg><span class="rlab">Требования</span></div>
+    <div class="rico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M2.5 12c3-4 16-4 19 0"/></svg><span class="rlab">Модели</span></div>
+    <div class="rico"><svg viewBox="0 0 24 24"><path d="M4 19V5m0 14h16M8 15l4-6 4 3 4-7"/></svg><span class="rlab">Контроль</span></div>
+  </nav>
+  <main class="main"><div class="work">
+    <h2>Новый проект</h2>
+    <div class="sub">Проект создаётся пустым. Достаточно имени — остальное можно задать позже.</div>
+    <div class="row">
+      <label class="f-label" for="n3">Наименование</label>
+      <input class="name" id="n3" value="Национальная спутниковая платформа IoT">
+      <div class="warn">Проект с таким именем уже есть — PJ-0001, фаза Phase A.
+        Создать всё равно можно: у нового будет свой идентификатор.</div>
+    </div>
+    <div class="row">
+      <label class="f-label">Фаза старта</label>
+      <span class="seg"><span class="on">Pre-Phase A</span><span>Phase A</span></span>
+    </div>
+    <div class="err"><b>Проект не создан:</b> сервер недоступен. Введённое сохранено на
+      этой странице — повторите создание, когда связь восстановится.</div>
+    <div class="actions">
+      <button class="btn pri">Создать проект</button>
+      <button class="btn">Отмена</button>
+    </div>
+  </div></main>
+</div></div>
+
+<!-- ═══════════ 4. Фаза Phase A ═══════════ -->
+<div class="case"><span class="tag">Состояние 4 · выбрана Phase A — лента сменилась</span>
+<div class="frame" style="min-height:430px">
+  <header class="hdr">
+    <span class="brand"><span class="o"></span>Орбита</span>
+    <span class="crumb">Портфель / <b>Новый проект</b></span>
+    <span class="who">Инженер: <b>Чернов Д.</b></span>
+  </header>
+  <nav class="rail">
+    <div class="rico on"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg><span class="rlab">Портфель</span></div>
+    <div class="rico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.6"/></svg><span class="rlab">Постановка</span></div>
+    <div class="rico"><svg viewBox="0 0 24 24"><path d="M5 5h14M5 10h14M5 15h9M5 20h6"/></svg><span class="rlab">Требования</span></div>
+    <div class="rico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M2.5 12c3-4 16-4 19 0"/></svg><span class="rlab">Модели</span></div>
+    <div class="rico"><svg viewBox="0 0 24 24"><path d="M4 19V5m0 14h16M8 15l4-6 4 3 4-7"/></svg><span class="rlab">Контроль</span></div>
+  </nav>
+  <main class="main"><div class="work">
+    <h2>Новый проект</h2>
+    <div class="sub">Проект создаётся пустым. Достаточно имени — остальное можно задать позже.</div>
+    <div class="row">
+      <label class="f-label" for="n4">Наименование</label>
+      <input class="name" id="n4" value="Ретранслятор «Кольцо» — модернизация">
+    </div>
+    <div class="row">
+      <label class="f-label">Фаза старта</label>
+      <span class="seg"><span>Pre-Phase A</span><span class="on">Phase A</span></span>
+      <div class="seg-hint">Старт с Phase A предполагает состоявшееся решение KDP-A —
+        входы фазы (FAD, Formulation Agreement) загружаются документами.</div>
+    </div>
+    <div class="row">
+      <div class="gates">
+        <div class="k">Контрольные точки фазы</div>
+        <div class="gline">
+          <div class="g"><div class="dot"></div><div class="lnk"></div><div class="nm">SRR</div><div class="ph">КТ-1 · обзор требований</div></div>
+          <div class="g"><div class="dot"></div><div class="lnk"></div><div class="nm">SDR/MDR</div><div class="ph">КТ-2 · обзор определения</div></div>
+          <div class="g"><div class="dot"></div><div class="lnk"></div><div class="nm">KDP-B</div><div class="ph">КТ-3 · решение о входе в Phase B</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn pri">Создать проект</button>
+      <button class="btn">Отмена</button>
+      <a class="linkish" href="#">или загрузить проект из файла</a>
+    </div>
+    <div class="after">После создания система откроет жизненный цикл и покажет первые
+    операции фазы: О1 — вход в фазу, О2 — SEMP.</div>
+  </div></main>
+</div></div>
+
+</div>
+</body></html>
