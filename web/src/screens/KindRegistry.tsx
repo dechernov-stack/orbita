@@ -9,6 +9,7 @@ import { STATUS_MEANING } from '../ui/maturity'
 import { edit, type KindRow, type StoredSummary } from '../api/edit'
 import { withProject } from '../api/project'
 import { ObjectEditor } from '../ui/ObjectEditor'
+import { basedOnTemplate } from '../ui/ObjectForm'
 import { useSession } from '../ui/session'
 
 /** Подписи видов на экране; сервер отдаёт состав видов, имена — словарь экрана. */
@@ -232,16 +233,7 @@ export function KindRegistry({ kinds, title }: { kinds: string[]; title: string 
             onClick={() => {
               edit.object(selected)
                 .then((o) => {
-                  const doc = { ...(o.doc ?? {}) } as Record<string, unknown>
-                  delete doc.id
-                  delete doc.provenance
-                  delete doc.lifecycle
-                  // Версии входов штампует сервер по ТЕКУЩЕМУ хранилищу, а явно
-                  // заданные не перетирает (Boundary V008): унаследованный штамп
-                  // молча пришпилил бы вариант к старым версиям входов.
-                  delete doc.input_versions
-                  if (typeof doc.name === 'string' && doc.name) doc.name = `${doc.name} (вариант)`
-                  setTemplate(doc)
+                  setTemplate(basedOnTemplate((o.doc ?? {}) as Record<string, unknown>))
                   setSelected(null)
                   setCreating(true)
                 })

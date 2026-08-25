@@ -6,8 +6,9 @@
 //
 // Расчётов здесь нет и быть не может (STEP-6 §3.2): форма собирает документ
 // и отдаёт его серверу, проверяет — сервер теми же правилами, что и импорт.
-import { useEffect, useMemo, useState } from 'react'
-import { edit, type JsonSchema, type StoredSummary } from '../api/edit'
+import { useEffect, useMemo, useState , Suspense, lazy} from 'react'
+import { OBJECT_ID, screenOfObject } from '../api/intent'
+import { type KindRow, edit, type JsonSchema, type StoredSummary } from '../api/edit'
 import { useSession } from './session'
 
 /** Значение любого поля документа: форма не типизирует модель за схему. */
@@ -262,6 +263,89 @@ const REF_PATTERN = /^\^\(?([A-Z|]{2,24})\)?-\[0-9\]\{4\}\$$/
 
 const refCache = new Map<string, Promise<StoredSummary[]>>()
 
+/**
+ * Сброс кэша списков-ссылок. Кэш дедуплицирует запросы полей ОДНОЙ формы,
+ * а не переживает её: находка прогона — инженер создал вариант группировки,
+ * а выпадающий список сценария так и предлагал старый перечень, и внести
+ * новое построение было невозможно.
+ */
+export function invalidateRefOptions() {
+  refCache.clear()
+}
+
+/**
+ * Заготовка «на основе»: содержимое источника без служебных полей. Версии
+ * входов не наследуются намеренно: сервер явно заданные не перетирает
+ * (V008), и унаследованный штамп молча пришпилил бы вариант к старым
+ * версиям входов.
+ */
+export function basedOnTemplate(source: Record<string, unknown>): Record<string, unknown> {
+  const doc = { ...source }
+  delete doc.id
+  delete doc.provenance
+  delete doc.lifecycle
+  delete doc.input_versions
+  if (typeof doc.name === 'string' && doc.name) doc.name = `${doc.name} (вариант)`
+  return doc
+}
+
+// Редактор загружается отложенно: RefField открывает форму варианта, а
+// ObjectEditor сам строится на ObjectForm — прямой импорт закольцевал бы
+// модули на инициализации.
+const LazyObjectEditor = lazy(() =>
+  import('./ObjectEditor').then((m) => ({ default: m.ObjectEditor })),
+)
+
+/**
+ * Створка «вариант по ссылке»: форма нового объекта того же вида поверх
+ * текущей, с содержимым объекта, на который ссылается поле. Находка
+ * прогона: вариант сценария — это прежде всего другое орбитальное
+ * построение, а из формы сценария построение было не внести — только
+ * выбрать из существующих.
+ */
+function RefVariantSheet({ sourceId, onDone, onClose }: {
+  sourceId: string
+  onDone: (newId: string) => void
+  onClose: () => void
+}) {
+  const [row, setRow] = useState<KindRow | null>(null)
+  const [tpl, setTpl] = useState<Record<string, unknown> | null>(null)
+  const [failure, setFailure] = useState<string | null>(null)
+  useEffect(() => {
+    let alive = true
+    Promise.all([edit.kinds(), edit.object(sourceId)])
+      .then(([kinds, o]) => {
+        if (!alive) return
+        setRow(kinds.find((k) => k.prefix === sourceId.split('-')[0]) ?? null)
+        setTpl(basedOnTemplate(o.doc as Record<string, unknown>))
+      })
+      .catch((e) => { if (alive) setFailure(String(e)) })
+    return () => { alive = false }
+  }, [sourceId])
+  return (
+    <div className="overlay" onClick={onClose}>
+      <div className="sheet" onClick={(e) => e.stopPropagation()}>
+        {failure && <div className="empty">Не удалось открыть источник: {failure}</div>}
+        {!failure && (!row || !tpl) && <div className="empty">Загрузка…</div>}
+        {row && tpl && (
+          <Suspense fallback={<div className="empty">Загрузка…</div>}>
+            <LazyObjectEditor
+              kind={row.type}
+              schemaName={row.schema}
+              id={null}
+              title={`вариант на основе ${sourceId}`}
+              maturity={row.lifecycle}
+              template={tpl}
+              onSaved={onDone}
+              onCancelled={onClose}
+            />
+          </Suspense>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function loadRefOptions(key: string, prefixes: string[]): Promise<StoredSummary[]> {
   if (!refCache.has(key)) {
     refCache.set(
@@ -270,7 +354,10 @@ function loadRefOptions(key: string, prefixes: string[]): Promise<StoredSummary[
         const types = prefixes
           .map((pf) => kinds.find((k) => k.prefix === pf)?.type)
           .filter((t): t is string => Boolean(t))
-        return Promise.all(types.map((t) => edit.list(t))).then((lists) => lists.flat())
+        // Отменённый объект остаётся в реестре (на него могли ссылаться
+        // раньше), но НОВУЮ ссылку на него предлагать нечестно.
+        return Promise.all(types.map((t) => edit.list(t)))
+          .then((lists) => lists.flat().filter((o) => o.status !== 'Cancelled'))
       }),
     )
   }
@@ -281,13 +368,22 @@ function RefField(props: FieldProps & { prefixes: string[] }) {
   const { name, schema, value, required, path, errors, onChange, prefixes } = props
   const key = prefixes.join('|')
   const [options, setOptions] = useState<StoredSummary[] | null>(null)
+  const [refresh, setRefresh] = useState(0)
+  const [variantOf, setVariantOf] = useState<string | null>(null)
   useEffect(() => {
     let alive = true
     loadRefOptions(key, prefixes).then((o) => { if (alive) setOptions(o) }).catch(() => { if (alive) setOptions([]) })
     return () => { alive = false }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key])
+  }, [key, refresh])
   const dl = `ref-${path.replace(/[^a-zA-Z0-9]/g, '-')}`
+  // Вариантность уместна для входов моделирования (trade studies): другие
+  // ссылки — трассировка и распределение, там клон по ссылке — подмена
+  // содержательного решения.
+  const current = asText(value)
+  const cloneable = OBJECT_ID.test(current) &&
+    prefixes.includes(current.split('-')[0]) &&
+    screenOfObject(current) === 'siminputs'
   return (
     <div className="field">
       <label>
@@ -296,10 +392,28 @@ function RefField(props: FieldProps & { prefixes: string[] }) {
       <input
         aria-label={name}
         list={dl}
-        value={asText(value)}
+        value={current}
         placeholder={options && options.length > 0 ? 'выберите из списка или введите id' : `${prefixes.join('/')}-0001`}
         onChange={(e) => onChange(e.target.value || undefined)}
       />
+      {cloneable && (
+        <button type="button" className="tab" style={{ alignSelf: 'flex-start' }}
+          title={`создать вариант на основе ${current} и сослаться на него`}
+          onClick={() => setVariantOf(current)}>
+          вариант…
+        </button>
+      )}
+      {variantOf && (
+        <RefVariantSheet
+          sourceId={variantOf}
+          onDone={(newId) => {
+            onChange(newId)
+            setVariantOf(null)
+            setRefresh((n) => n + 1)
+          }}
+          onClose={() => setVariantOf(null)}
+        />
+      )}
       <datalist id={dl}>
         {(options ?? []).map((o) => (
           <option key={o.id} value={o.id}>{o.title ?? ''}</option>

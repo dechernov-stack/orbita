@@ -990,3 +990,23 @@ tbody td {
   /* на бумагу — только развёрнутый документ */
   .docsection, .docrow { border: none; }
 }
+
+/* Створка «вариант по ссылке»: форма нового объекта поверх текущей.
+   Затемнение кликабельно на закрытие; панель со своим скроллом. */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(28, 30, 33, 0.42);
+  display: flex;
+  justify-content: flex-end;
+  z-index: 40;
+}
+.sheet {
+  width: min(480px, 92vw);
+  height: 100%;
+  overflow-y: auto;
+  background: var(--bg);
+  border-left: 1px solid var(--border);
+  box-shadow: -12px 0 32px rgba(0, 0, 0, 0.18);
+  padding: 14px 18px;
+}

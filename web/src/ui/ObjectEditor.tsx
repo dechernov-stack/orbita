@@ -14,7 +14,7 @@ import {
   type JsonSchema,
   type StoredSummary,
 } from '../api/edit'
-import { ObjectForm, editableFields, emptyDoc, humanizeError, useSystemFieldsNote } from './ObjectForm'
+import { ObjectForm, editableFields, emptyDoc, humanizeError, invalidateRefOptions, useSystemFieldsNote } from './ObjectForm'
 import { useSession } from './session'
 
 import { STATUS_ACTION, STATUS_MEANING, STATUS_ORDER } from './maturity'
@@ -49,6 +49,7 @@ interface Conflict {
 }
 
 export function ObjectEditor({ kind, schemaName, id, title, maturity, template, onSaved, onCancelled }: Props) {
+  useEffect(() => { invalidateRefOptions() }, [id])
   const { author, label } = useSession()
   const [schema, setSchema] = useState<JsonSchema | null>(null)
   const [doc, setDoc] = useState<Record<string, unknown>>({})
@@ -183,6 +184,9 @@ export function ObjectEditor({ kind, schemaName, id, title, maturity, template, 
     setBusy(true)
     action()
       .then((saved) => {
+        // Списки-ссылки других форм обязаны увидеть записанное: без сброса
+        // новый объект не появлялся в выпадающих, пока жила страница.
+        invalidateRefOptions()
         applySaved(saved)
         onSaved(saved.id)
       })
