@@ -5,6 +5,7 @@
 import { useEffect, useState } from 'react'
 import { api, type OperationsView } from '../api/client'
 import { edit } from '../api/edit'
+import { requestDocTemplate } from '../api/intent'
 
 interface GateRow {
   gate: string
@@ -245,7 +246,12 @@ export function Lifecycle({ project, onGo }: { project: string; onGo: (screen: s
               {col.map((o) => (
                 <button key={o.code} className="opsmap__row" style={{ width: '100%' }}
                   title={`${o.name} — ${o.executor}`}
-                  onClick={() => o.screen && onGo(o.screen)}>
+                  onClick={() => {
+                    if (!o.screen) return
+                    // документная операция открывает СВОЙ шаблон
+                    if (o.screen === 'docs' && o.templates?.length) requestDocTemplate(o.templates[0])
+                    onGo(o.screen)
+                  }}>
                   <span className={`ops__state ops__state--${o.state} ${o.returned_to ? 'ops__state--returned' : ''}`} />
                   <span className="mono" style={{ minWidth: 30 }}>{o.code}</span>
                   <span className="name">{o.name}</span>

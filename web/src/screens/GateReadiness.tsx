@@ -105,6 +105,13 @@ export function GateReadiness({ onGo }: { onGo: (screen: string) => void }) {
     load()
   }
 
+  /** Переход к операции: документная операция открывает СВОЙ шаблон
+   *  (находка прогона: О11 «План проекта» открывал спецификацию). */
+  const goOp = (op: OperationRow) => {
+    if (op.screen === 'docs' && op.templates?.length) requestDocTemplate(op.templates[0])
+    onGo(op.screen!)
+  }
+
   const fixers = (issue: string): OperationRow | undefined => {
     const code = issue.split(':')[0]
     return ops.find((o) => o.code === code && o.screen)
@@ -226,7 +233,7 @@ export function GateReadiness({ onGo }: { onGo: (screen: string) => void }) {
               {view.issues.map((issue, i) => {
                 const op = fixers(issue)
                 const j = op ? null : jump(issue)
-                const go = op ? () => onGo(op.screen!) : j?.go
+                const go = op ? () => goOp(op) : j?.go
                 return (
                   <div key={i} className="issue"
                     onClick={go}
@@ -234,7 +241,7 @@ export function GateReadiness({ onGo }: { onGo: (screen: string) => void }) {
                     title={op ? `открыть операцию ${op.code}` : j?.title}>
                     <span className="wrap" style={{ flex: 1 }}>{issue}</span>
                     {op && (
-                      <button className="btn" onClick={(e) => { e.stopPropagation(); onGo(op.screen!) }}>
+                      <button className="btn" onClick={(e) => { e.stopPropagation(); goOp(op) }}>
                         {op.code} →
                       </button>
                     )}

@@ -301,6 +301,14 @@ class GatePassing(
             if (r.returnedTo) n.put("returned_to", true)
             r.operation.docs.takeIf { it.isNotEmpty() }?.let { docs ->
                 n.putArray("docs").also { a -> docs.forEach(a::add) }
+                // операция про документ обязана вести к СВОЕМУ шаблону, а не
+                // к первому попавшемуся на экране «Документы» (находка
+                // прогона: О11 «План проекта» открывал спецификацию)
+                val kit = orbita.out.DocumentKits.kit(phase)
+                val templates = docs.mapNotNull { kit[it] }
+                if (templates.isNotEmpty()) {
+                    n.putArray("templates").also { a -> templates.forEach(a::add) }
+                }
             }
         }
         return out

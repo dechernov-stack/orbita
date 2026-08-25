@@ -52,6 +52,8 @@ export interface OperationRow {
   screen?: string
   returned_to?: boolean
   docs?: string[]
+  /** Шаблоны документов операции: переход открывает СВОЙ документ. */
+  templates?: string[]
 }
 
 export interface OperationsView {
