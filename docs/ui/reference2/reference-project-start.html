@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Орбита · эталон: мастер-путь «Начало проекта» · круг 1</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --surface:#f8f9fa; --c-lowest:#ffffff; --c-low:#f3f4f5; --c:#edeeef;
+  --on:#191c1d; --on-var:#44474c; --outline:#74777d; --hair:#c4c6cc;
+  --rail:#0f1c2c; --on-rail:#8b97a8; --accent:#115cb9; --accent-fix:#d7e2ff;
+  --ok:#1a7f37; --warn-c:#f6ecd7; --on-warn-c:#5c4a15;
+  --src-profile:#115cb9; --src-model:#74777d; --src-input:#1a7f37;
+  --font:Inter,-apple-system,'Segoe UI',sans-serif; --mono:'JetBrains Mono',Menlo,monospace;
+}
+*{box-sizing:border-box;margin:0}
+body{font:400 13px/20px var(--font);color:var(--on);background:#dfe2e6;padding:28px 0}
+.stand{max-width:1240px;margin:0 auto}
+.stand h1{font-size:15px;font-weight:600;padding:0 4px 6px}
+.stand .note{font-size:12px;color:var(--on-var);padding:0 4px 18px;max-width:920px}
+.case{margin:0 0 34px}
+.case>.tag{display:inline-block;font:600 11px/16px var(--font);text-transform:uppercase;
+  letter-spacing:.07em;color:var(--on-var);background:#eef0f2;border:1px solid var(--hair);
+  border-bottom:none;border-radius:6px 6px 0 0;padding:4px 10px}
+.frame{background:var(--surface);border:1px solid var(--hair);border-radius:0 8px 8px 8px;
+  overflow:hidden;display:grid;grid-template-rows:48px 1fr;grid-template-columns:68px 1fr;
+  grid-template-areas:'hdr hdr' 'rail main';min-height:520px}
+.hdr{grid-area:hdr;display:flex;align-items:center;gap:12px;padding:0 16px;
+  background:var(--c-lowest);border-bottom:1px solid var(--hair)}
+.brand{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;letter-spacing:-.02em}
+.brand .o{width:16px;height:16px;border:2px solid var(--on);border-radius:50%}
+.proj{font-size:13px}.proj b{font-weight:600}
+.chip{font-size:12px;line-height:18px;padding:1px 8px;border-radius:9px;background:var(--c);color:var(--on-var)}
+.who{margin-left:auto;font-size:12px;color:var(--on-var)}.who b{color:var(--on)}
+.rail{grid-area:rail;background:var(--rail);display:flex;flex-direction:column;align-items:center;padding:10px 0;gap:2px}
+.rico{width:58px;padding:7px 0 6px;border-radius:8px;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--on-rail)}
+.rico.on{background:rgba(255,255,255,.14);color:#fff}
+.rico svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round}
+.rlab{font:500 9px/10px var(--font)}
+.main{grid-area:main;display:flex;justify-content:center;padding:30px 24px}
+.work{width:760px}
+/* ── степпер пути ── */
+.path{display:flex;align-items:center;gap:10px;margin:0 0 6px}
+.path h2{font-size:18px;font-weight:700;letter-spacing:-.015em;flex:1}
+.skip{font-size:12px;color:var(--on-var);text-decoration:none}
+.skip:hover{text-decoration:underline}
+.steps{display:flex;gap:6px;margin:0 0 22px}
+.st{flex:1;padding:7px 12px;border-radius:7px;border:1px solid var(--hair);background:var(--c-lowest);
+  font:500 12px/16px var(--font);color:var(--on-var);display:flex;gap:8px;align-items:center}
+.st .n{font-family:var(--mono);font-size:11px;color:var(--outline)}
+.st.on{border-color:var(--accent);background:var(--accent-fix);color:var(--on)}
+.st.on .n{color:var(--accent);font-weight:600}
+.st.done{color:var(--on)}
+.st.done .n{color:var(--ok)}
+.st.done .n::after{content:' ✓'}
+/* ── содержимое шага ── */
+.f-label{display:block;font:600 12px/16px var(--font);margin:0 0 6px}
+.row{margin:0 0 16px}
+.sel{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--hair);border-radius:8px;
+  background:var(--c-lowest);padding:7px 12px;font-size:13px;min-width:340px}
+.sel .cap{color:var(--outline);margin-left:auto;font-size:11px}
+.limits{border:1px solid var(--hair);border-radius:8px;background:var(--c-lowest);padding:4px 0}
+.lim{display:flex;gap:10px;align-items:flex-start;padding:6px 12px;border-bottom:1px solid var(--c)}
+.lim:last-child{border-bottom:none}
+.lim .no{font-family:var(--mono);font-size:11px;color:var(--outline);padding-top:2px}
+.lim .tx{flex:1;font-size:12.5px;line-height:18px}
+.lim .rm{font-size:11px;color:var(--outline);cursor:pointer}
+.addrow{padding:7px 12px}
+.addrow input{width:100%;font:400 12.5px/18px var(--font);border:1px dashed var(--hair);
+  border-radius:6px;padding:6px 10px;background:var(--c-low)}
+.hint{font-size:11.5px;color:var(--outline);margin-top:5px}
+/* шаг 2: библиотека */
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.pane{border:1px solid var(--hair);border-radius:8px;background:var(--c-lowest)}
+.pane .ph{padding:9px 12px;border-bottom:1px solid var(--hair);font:600 12px/16px var(--font)}
+.pane .ph .sub{font-weight:400;color:var(--outline);font-size:11px;margin-left:6px}
+.set{display:flex;gap:10px;align-items:flex-start;padding:8px 12px;border-bottom:1px solid var(--c)}
+.set:last-child{border-bottom:none}
+.set input[type=checkbox]{margin-top:3px;accent-color:var(--accent)}
+.set .tx{flex:1}
+.set .nm{font:500 12.5px/17px var(--font)}
+.set .ds{font-size:11.5px;color:var(--on-var)}
+.set .open{font-size:11.5px;color:var(--accent);text-decoration:none}
+.drop{margin:10px 12px;border:1px dashed var(--hair);border-radius:8px;background:var(--c-low);
+  padding:16px;text-align:center;font-size:12px;color:var(--on-var)}
+.drop b{color:var(--accent);font-weight:600;cursor:pointer}
+.file{display:flex;gap:8px;align-items:center;padding:7px 12px;font-size:12.5px}
+.file .mono{font-size:11.5px;color:var(--on-var)}
+.file .ok{color:var(--ok);font-size:11.5px;margin-left:auto}
+/* шаг 3: ИИ */
+.aihead{display:flex;gap:10px;align-items:center;margin-bottom:10px}
+.aihead .nm{font:600 13px/18px var(--font)}
+.aihead .mono{font-size:11.5px;color:var(--on-var)}
+.blk{border-left:3px solid var(--hair);padding:6px 12px;margin:0 0 8px;background:var(--c-low);border-radius:0 6px 6px 0}
+.blk .src{font:600 10.5px/14px var(--font);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px}
+.blk pre{font:400 12px/18px var(--mono);white-space:pre-wrap}
+.blk.profile{border-color:var(--src-profile)}.blk.profile .src{color:var(--src-profile)}
+.blk.input{border-color:var(--src-input)}.blk.input .src{color:var(--src-input)}
+mark{background:var(--accent-fix);border-radius:3px;padding:0 2px}
+.origin{font-size:11.5px;color:var(--on-var);margin:0 0 12px}
+.origin b{font-weight:600;color:var(--on)}
+/* действия */
+.actions{display:flex;align-items:center;gap:12px;margin-top:22px}
+.btn{font:600 13px/20px var(--font);padding:8px 18px;border-radius:8px;cursor:pointer;
+  border:1px solid var(--hair);background:var(--c-lowest)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+.linkish{font-size:12.5px;color:var(--accent);text-decoration:none}
+.linkish:hover{text-decoration:underline}
+.sp{flex:1}
+/* свёрнутая строка пути */
+.lcband{margin:14px;border:1px solid var(--hair);border-radius:8px;background:var(--c-lowest);
+  display:flex;gap:12px;align-items:center;padding:9px 14px;font-size:12.5px}
+.lcband .dotp{width:8px;height:8px;border-radius:50%;background:var(--accent)}
+.lcband b{font-weight:600}
+.lcband .sub{color:var(--on-var)}
+</style></head><body>
+<div class="stand">
+<h1>Мастер-путь «Начало проекта» — эталон, круг 1</h1>
+<div class="note">Три шага со степпером: параметры → библиотека → ИИ. Профиль службы —
+следствие шагов, а не находка в меню: запреты из Ш1 и материал Ш2 видны в собранном
+промпте Ш3 с подписями «из ваших параметров». Путь не клетка: «пропустить» всегда на
+виду, брошенный путь живёт строкой на жизненном цикле.</div>
+
+<!-- ═══════ Ш1 ═══════ -->
+<div class="case"><span class="tag">Шаг 1 · основные параметры</span>
+<div class="frame">
+  <header class="hdr"><span class="brand"><span class="o"></span>Орбита</span>
+    <span class="proj"><b>Национальная спутниковая платформа IoT</b></span>
+    <span class="chip">Pre-Phase A</span>
+    <span class="who">Инженер: <b>Чернов Д.</b></span></header>
+  <nav class="rail">
+    <div class="rico on"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg><span class="rlab">Портфель</span></div>
+    <div class="rico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.6"/></svg><span class="rlab">Постановка</span></div>
+    <div class="rico"><svg viewBox="0 0 24 24"><path d="M5 5h14M5 10h14M5 15h9M5 20h6"/></svg><span class="rlab">Требования</span></div>
+    <div class="rico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M2.5 12c3-4 16-4 19 0"/></svg><span class="rlab">Модели</span></div>
+    <div class="rico"><svg viewBox="0 0 24 24"><path d="M4 19V5m0 14h16M8 15l4-6 4 3 4-7"/></svg><span class="rlab">Контроль</span></div>
+  </nav>
+  <main class="main"><div class="work">
+    <div class="path"><h2>Начало проекта</h2><a class="skip" href="#">Пропустить — заполню руками</a></div>
+    <div class="steps">
+      <div class="st on"><span class="n">1</span>Основные параметры</div>
+      <div class="st"><span class="n">2</span>Библиотека и материалы</div>
+      <div class="st"><span class="n">3</span>Запуск ИИ</div>
+    </div>
+
+    <div class="row">
+      <label class="f-label">Класс миссии</label>
+      <div class="sel">НОО · связь и IoT <span class="cap">определяет наборы библиотеки ▾</span></div>
+    </div>
+
+    <div class="row">
+      <label class="f-label">Ограничения проекта <span style="font-weight:400;color:var(--outline)">— уйдут в запреты службы ИИ и проверки</span></label>
+      <div class="limits">
+        <div class="lim"><span class="no">Р1</span><span class="tx">Полезная нагрузка — только регенеративная; bent-pipe не рассматривается.</span><span class="rm">убрать</span></div>
+        <div class="lim"><span class="no">Р3</span><span class="tx">Межспутниковая связь — только радиодиапазон.</span><span class="rm">убрать</span></div>
+        <div class="lim"><span class="no">Р4</span><span class="tx">Платформа не тяжелее 100 кг.</span><span class="rm">убрать</span></div>
+        <div class="addrow"><input placeholder="Добавить ограничение — например: «зоны обслуживания — статическими масками»"></div>
+      </div>
+      <div class="hint">Из класса миссии предложено 3 типовых ограничения — правьте и дополняйте.</div>
+    </div>
+
+    <div class="actions">
+      <button class="btn pri">Далее — библиотека</button>
+      <span class="sp"></span>
+      <span class="hint" style="margin:0">Шаг сохраняется сам; вернуться можно в любой момент.</span>
+    </div>
+  </div></main>
+</div></div>
+
+<!-- ═══════ Ш2 ═══════ -->
+<div class="case"><span class="tag">Шаг 2 · библиотека и материалы</span>
+<div class="frame">
+  <header class="hdr"><span class="brand"><span class="o"></span>Орбита</span>
+    <span class="proj"><b>Национальная спутниковая платформа IoT</b></span>
+    <span class="chip">Pre-Phase A</span>
+    <span class="who">Инженер: <b>Чернов Д.</b></span></header>
+  <nav class="rail"><div class="rico on"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg><span class="rlab">Портфель</span></div></nav>
+  <main class="main"><div class="work">
+    <div class="path"><h2>Начало проекта</h2><a class="skip" href="#">Пропустить — заполню руками</a></div>
+    <div class="steps">
+      <div class="st done"><span class="n">1</span>Основные параметры</div>
+      <div class="st on"><span class="n">2</span>Библиотека и материалы</div>
+      <div class="st"><span class="n">3</span>Запуск ИИ</div>
+    </div>
+
+    <div class="two">
+      <div class="pane">
+        <div class="ph">Взять из библиотеки <span class="sub">по классу «НОО · связь и IoT»</span></div>
+        <div class="set"><input type="checkbox" checked><span class="tx">
+          <div class="nm">Типовые требования НОО-класса · 34</div>
+          <div class="ds">Увод с орбиты, ЭМС, стойкость к среде, КИИ — с основаниями</div></span>
+          <a class="open" href="#">состав</a></div>
+        <div class="set"><input type="checkbox" checked><span class="tx">
+          <div class="nm">Комплект документов Pre-Phase A · Д1–Д9</div>
+          <div class="ds">FAD, Mission Concept Report, ConOps — структуры разделов</div></span>
+          <a class="open" href="#">состав</a></div>
+        <div class="set"><input type="checkbox"><span class="tx">
+          <div class="nm">Шаблоны компонентов · 12</div>
+          <div class="ds">БЦВМ, СЭП, АФС, терминал — свойства и типовые требования</div></span>
+          <a class="open" href="#">состав</a></div>
+      </div>
+      <div class="pane">
+        <div class="ph">Сложить своё <span class="sub">материал проекта — для ИИ и документов</span></div>
+        <div class="file"><span>Постановка миссии</span>
+          <span class="mono">IoT_19_12_Минтранс.docx</span><span class="ok">приложена ✓</span></div>
+        <div class="drop">Перетащите файлы или <b>выберите</b> — справочники, записки,
+          регуляторные документы. Лягут материалом проекта.</div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn">Назад</button>
+      <button class="btn pri">Далее — запуск ИИ</button>
+      <span class="sp"></span>
+      <span class="hint" style="margin:0">Выбранное: 34 требования · комплект Д1–Д9 · 1 документ</span>
+    </div>
+  </div></main>
+</div></div>
+
+<!-- ═══════ Ш3 ═══════ -->
+<div class="case"><span class="tag">Шаг 3 · запуск ИИ: профиль собран из шагов 1–2</span>
+<div class="frame">
+  <header class="hdr"><span class="brand"><span class="o"></span>Орбита</span>
+    <span class="proj"><b>Национальная спутниковая платформа IoT</b></span>
+    <span class="chip">Pre-Phase A</span>
+    <span class="who">Инженер: <b>Чернов Д.</b></span></header>
+  <nav class="rail"><div class="rico on"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg><span class="rlab">Портфель</span></div></nav>
+  <main class="main"><div class="work">
+    <div class="path"><h2>Начало проекта</h2><a class="skip" href="#">Пропустить — заполню руками</a></div>
+    <div class="steps">
+      <div class="st done"><span class="n">1</span>Основные параметры</div>
+      <div class="st done"><span class="n">2</span>Библиотека и материалы</div>
+      <div class="st on"><span class="n">3</span>Запуск ИИ</div>
+    </div>
+
+    <div class="aihead"><span class="nm">Профиль службы собран:</span>
+      <span class="mono">AP-0201 · Генерация О2 — цели и нужды · v1</span>
+      <a class="linkish" href="#">настроить подробнее</a></div>
+    <div class="origin">Запреты — <b>из ваших ограничений (Ш1)</b>; материал — <b>из постановки
+      и наборов (Ш2)</b>. Промпт собирает служба; руками он не пишется.</div>
+
+    <div class="blk profile"><div class="src">Из ограничений проекта · Ш1</div>
+<pre>— <mark>полезная нагрузка — только регенеративная; bent-pipe не предлагать (Р1)</mark>
+— межспутниковая связь — только радиодиапазон (Р3)
+— платформа не тяжелее 100 кг (Р4)
+— число без ссылки на источник не предлагать вовсе</pre></div>
+    <div class="blk input"><div class="src">Из материалов · Ш2</div>
+<pre>Постановка: «…геопозиция ТС с опасным грузом не реже одного раза в 30 с
+(ПП РФ № 2216)…» · Типовые требования НОО-класса: 34 · Комплект Д1–Д9.</pre></div>
+
+    <div class="actions">
+      <button class="btn">Назад</button>
+      <button class="btn pri">Запустить генерацию целей и нужд</button>
+      <a class="linkish" href="#">показать промпт целиком</a>
+      <span class="sp"></span>
+      <span class="hint" style="margin:0">Предложения придут на акцепт — в модель ИИ не пишет.</span>
+    </div>
+  </div></main>
+</div></div>
+
+<!-- ═══════ Свёрнутое состояние ═══════ -->
+<div class="case"><span class="tag">Состояние 4 · путь на жизненном цикле: не завершён / завершён</span>
+<div class="frame" style="min-height:150px;grid-template-rows:48px auto">
+  <header class="hdr"><span class="brand"><span class="o"></span>Орбита</span>
+    <span class="proj"><b>Национальная спутниковая платформа IoT</b></span>
+    <span class="chip">Pre-Phase A</span>
+    <span class="who">Инженер: <b>Чернов Д.</b></span></header>
+  <nav class="rail"><div class="rico on"><svg viewBox="0 0 24 24"><path d="M4 19V5m0 14h16M8 15l4-6 4 3 4-7"/></svg><span class="rlab">Контроль</span></div></nav>
+  <main style="grid-area:main;display:block">
+    <div class="lcband"><span class="dotp"></span>
+      <span><b>Начало проекта: шаг 2 из 3.</b> <span class="sub">Параметры заданы;
+      осталось подключить библиотеку и запустить генерацию.</span></span>
+      <span class="sp"></span><button class="btn pri" style="padding:5px 14px">Продолжить</button></div>
+    <div class="lcband" style="border-style:dashed"><span class="dotp" style="background:var(--ok)"></span>
+      <span><b>Начало пройдено.</b> <span class="sub">34 типовых требования применены,
+      профиль AP-0201 создан, генерация запущена вчера.</span></span>
+      <span class="sp"></span><a class="linkish" href="#">настроить заново</a></div>
+  </main>
+</div></div>
+
+</div>
+</body></html>
