@@ -6,8 +6,8 @@
 //
 // Расчётов здесь нет и быть не может (STEP-6 §3.2): форма собирает документ
 // и отдаёт его серверу, проверяет — сервер теми же правилами, что и импорт.
-import { useMemo, useState } from 'react'
-import type { JsonSchema } from '../api/edit'
+import { useEffect, useMemo, useState } from 'react'
+import { edit, type JsonSchema, type StoredSummary } from '../api/edit'
 import { useSession } from './session'
 
 /** Значение любого поля документа: форма не типизирует модель за схему. */
@@ -251,6 +251,71 @@ function StringArrayField({ name, schema, value, required, path, errors, onChang
   )
 }
 
+/**
+ * Поле-ссылка на объект модели (второй заход: «allocated_to — это ссылка на
+ * элемент? непонятно что делать»). Паттерн схемы вида ^(CM|IF)-[0-9]{4}$
+ * называет допустимые ВИДЫ — форма подгружает их реестры и даёт выпадающий
+ * список «идентификатор — название» вместо голого текста. Ввод руками
+ * остаётся: список подсказывает, а не запирает.
+ */
+const REF_PATTERN = /^\^\(?([A-Z|]{2,24})\)?-\[0-9\]\{4\}\$$/
+
+const refCache = new Map<string, Promise<StoredSummary[]>>()
+
+function loadRefOptions(key: string, prefixes: string[]): Promise<StoredSummary[]> {
+  if (!refCache.has(key)) {
+    refCache.set(
+      key,
+      edit.kinds().then((kinds) => {
+        const types = prefixes
+          .map((pf) => kinds.find((k) => k.prefix === pf)?.type)
+          .filter((t): t is string => Boolean(t))
+        return Promise.all(types.map((t) => edit.list(t))).then((lists) => lists.flat())
+      }),
+    )
+  }
+  return refCache.get(key)!
+}
+
+function RefField(props: FieldProps & { prefixes: string[] }) {
+  const { name, schema, value, required, path, errors, onChange, prefixes } = props
+  const key = prefixes.join('|')
+  const [options, setOptions] = useState<StoredSummary[] | null>(null)
+  useEffect(() => {
+    let alive = true
+    loadRefOptions(key, prefixes).then((o) => { if (alive) setOptions(o) }).catch(() => { if (alive) setOptions([]) })
+    return () => { alive = false }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key])
+  const dl = `ref-${path.replace(/[^a-zA-Z0-9]/g, '-')}`
+  return (
+    <div className="field">
+      <label>
+        <FieldName name={name} required={required} />
+      </label>
+      <input
+        aria-label={name}
+        list={dl}
+        value={asText(value)}
+        placeholder={options && options.length > 0 ? 'выберите из списка или введите id' : `${prefixes.join('/')}-0001`}
+        onChange={(e) => onChange(e.target.value || undefined)}
+      />
+      <datalist id={dl}>
+        {(options ?? []).map((o) => (
+          <option key={o.id} value={o.id}>{o.title ?? ''}</option>
+        ))}
+      </datalist>
+      {options != null && options.length === 0 && (
+        <div className="secondary hint">
+          Объектов вида {prefixes.join('/')} в проекте пока нет — ссылаться не на что.
+        </div>
+      )}
+      {schema.description && <div className="secondary hint">{schema.description}</div>}
+      <Errors path={path} errors={errors} />
+    </div>
+  )
+}
+
 function Field(props: FieldProps) {
   const { name, schema, value, required, path, errors, onChange } = props
   const { label } = useSession()
@@ -356,6 +421,9 @@ function Field(props: FieldProps) {
       </div>
     )
   }
+
+  const refMatch = schema.type === 'string' && schema.pattern ? REF_PATTERN.exec(schema.pattern) : null
+  if (refMatch) return <RefField {...props} prefixes={refMatch[1].split('|')} />
 
   return (
     <div className="field">

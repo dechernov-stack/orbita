@@ -60,7 +60,8 @@
         "properties": {
           "ref": {
             "type": "string",
-            "pattern": "^(MG|ND|SV|RQ)-[0-9]{4}$"
+            "pattern": "^(MG|ND|SV|RQ)-[0-9]{4}$",
+            "description": "Откуда следует требование: цель (MG), нужда (ND), сервис (SV) или родительское требование (RQ)"
           },
           "consumer_class": {
             "enum": [
@@ -94,11 +95,13 @@
         "properties": {
           "component": {
             "type": "string",
-            "pattern": "^CM-[0-9]{4}$"
+            "pattern": "^CM-[0-9]{4}$",
+            "description": "Элемент дерева изделия (CM-NNNN), на который распределено требование; выбирается из реестра «Элементы и интерфейсы»"
           },
           "interface": {
             "type": "string",
-            "pattern": "^IF-[0-9]{4}$"
+            "pattern": "^IF-[0-9]{4}$",
+            "description": "Интерфейс (IF-NNNN) — стык с двумя сторонами; ИНТЕРФЕЙСНОЕ требование распределяется сюда, а не на элемент"
           },
           "kind": {
             "enum": [
