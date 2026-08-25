@@ -69,7 +69,9 @@ export function Comparison() {
     api.bottlenecks(scenario).then(setBottlenecks).catch(() => setBottlenecks(null))
   }, [scenario, flowBusy])
 
-  const staleHere = stale.filter((r) => r.scenario_id === scenario)
+  // Роза сравнивает все сценарии проекта: устаревший результат любого
+  // участника искажает сравнение — фильтра по выбранному сценарию нет.
+  const staleHere = stale
 
   if (scenarios.length === 0 && !error) {
     return (
@@ -104,7 +106,7 @@ export function Comparison() {
                   setAxes(active ? view.axes.filter((x) => x !== a) : [...view.axes, a])
                 }
               >
-                {a}
+                {view.axisLabels?.[a] ?? a}
               </button>
             )
           })}
@@ -112,7 +114,8 @@ export function Comparison() {
       )}
       {staleHere.length > 0 && (
         <span className="warn">
-          результаты устарели: {staleHere.length} — входы изменились после расчёта, пересчитайте
+          результаты устарели: {[...new Set(staleHere.map((r) => r.scenario_id))].join(', ')} —
+          входы изменились после расчёта, пересчитайте
         </span>
       )}
     </div>
@@ -165,11 +168,22 @@ export function Comparison() {
         {selector}
         <h2 style={{ fontSize: 15, marginTop: 0 }}>Роза KPI</h2>
         <Radar view={view} />
+        <div style={{ display: 'flex', gap: 14, margin: '4px 0' }}>
+          {view.radar.series.map((sr, si) => (
+            <span key={sr.name}>
+              <span style={{ display: 'inline-block', width: 10, height: 10, marginRight: 5,
+                background: PALETTE[si % PALETTE.length] }} />
+              <span className="mono">{sr.name}</span>
+            </span>
+          ))}
+        </div>
         <p className="secondary" style={{ maxWidth: 560 }}>
-          Значения нормированы по набору{' '}
-          <span className="mono">{view.radar.normalizedOver.join(' · ')}</span>. Диаграммы,
-          построенные по разным наборам, несопоставимы: удаление крайнего варианта смещает
-          значения промежуточных.
+          Дальше от центра — лучше: направление каждого показателя учтено. Лепестки
+          нормированы по набору{' '}
+          <span className="mono">{view.radar.normalizedOver.join(' · ')}</span>: край — лучший
+          из вариантов, центр — худший, а не абсолютный ноль (исходные значения — в таблице
+          ниже). Диаграммы, построенные по разным наборам, несопоставимы: удаление крайнего
+          варианта смещает значения промежуточных.
         </p>
 
         <h2 style={{ fontSize: 15 }}>Варианты</h2>
@@ -179,7 +193,7 @@ export function Comparison() {
               <th>Вариант</th>
               {view.axes.map((a) => (
                 <th key={a} style={{ width: 120, textAlign: 'right' }}>
-                  {a}
+                  {view.axisLabels?.[a] ?? a}
                 </th>
               ))}
               <th style={{ width: 120 }}>Парето</th>
@@ -191,7 +205,8 @@ export function Comparison() {
                 <td>{option.name}</td>
                 {view.axes.map((a) => (
                   <td key={a} className="num">
-                    {option.values[a]}
+                    {/* формат отображения: три значащих, без хвоста двоичной дроби */}
+                    {option.values[a].toLocaleString('ru-RU', { maximumSignificantDigits: 3 })}
                   </td>
                 ))}
                 <td>
@@ -265,6 +280,7 @@ export function Comparison() {
 /** Лепестковая диаграмма по УЖЕ нормированным значениям: клиент их не считает. */
 function Radar({ view }: { view: ComparisonView }) {
   const axes = view.radar.axes
+  const label = (a: string) => view.axisLabels?.[a] ?? a
   const angle = (i: number) => (Math.PI * 2 * i) / axes.length - Math.PI / 2
   // fraction, а не value: это доля радиуса для отрисовки, а не величина модели.
   // Совпадение имени с полем модели читалось бы как расчёт над ним.
@@ -299,7 +315,7 @@ function Radar({ view }: { view: ComparisonView }) {
             fontSize="11"
             fill="var(--text-secondary)"
           >
-            {axisName}
+            {label(axisName)}
           </text>
         </g>
       ))}

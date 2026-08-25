@@ -98,5 +98,7 @@ class ComparisonApiTest {
         assertTrue("retransmission_ratio" in axes) { axes.toString() }
         // роза нормирована по обоим вариантам — состав уходит наружу
         assertEquals(2, view["radar"]["normalizedOver"].size()) { ok.body() }
+        // подписи показателей — русские, из реестра направлений
+        assertEquals("Доставка A′", view["axisLabels"]["delivery_a_prime"].asText()) { ok.body() }
     }
 }

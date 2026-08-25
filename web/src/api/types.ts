@@ -134,6 +134,8 @@ export interface ComparisonView {
   axes: string[]
   /** Оси, фактически имеющиеся во всех вариантах, — из них выбирают (§3.5). */
   availableAxes: string[]
+  /** Подписи показателей из реестра направлений; без подписи — ключ. */
+  axisLabels: Record<string, string>
 }
 
 // ---------- экран 12: система в целом ----------

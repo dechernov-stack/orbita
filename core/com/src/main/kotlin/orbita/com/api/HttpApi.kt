@@ -260,9 +260,20 @@ class HttpApi(private val boundary: Boundary) {
             }
 
             method == "GET" && path == "/reports/stale-results" -> {
+                // Устаревшие бывают двух родов: вытесненные СВЕЖИМ прогоном
+                // (история, тревоги не стоят) и помеченные каскадом при правке
+                // входов. Наружу идут только вторые — те, чей сценарий остался
+                // без активного результата того же вида: плашка «пересчитайте»
+                // при уже выполненном пересчёте — ложная тревога (находка
+                // живого прогона: после двух свежих прогонов сравнение
+                // требовало пересчитать вытесненную историю).
                 val arr = mapper.createArrayNode()
                 boundary.results.staleReport().forEach {
-                    arr.addObject().put("pk", it.pk).put("scenario_id", it.scenarioId).put("kind", it.kind)
+                    val recomputed = boundary.results
+                        .activeForScenario(it.scenarioId, it.kind).isNotEmpty()
+                    if (!recomputed) {
+                        arr.addObject().put("pk", it.pk).put("scenario_id", it.scenarioId).put("kind", it.kind)
+                    }
                 }
                 respond(ex, 200, arr)
             }
@@ -1550,6 +1561,10 @@ class HttpApi(private val boundary: Boundary) {
                     val out = mapper.valueToTree<ObjectNode>(view)
                     val avail = out.putArray("availableAxes")
                     available.sorted().forEach(avail::add)
+                    // Подписи показателей — из того же реестра, что направления:
+                    // ключи вида delivery_a_prime инженеру не адресованы
+                    val labels = out.putObject("axisLabels")
+                    available.forEach { labels.put(it, orbita.bal.KpiAxes.default.label(it)) }
                     respond(ex, 200, out)
                 }
             }

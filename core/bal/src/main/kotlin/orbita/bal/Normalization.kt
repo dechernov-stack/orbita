@@ -15,10 +15,16 @@ import kotlin.math.abs
 enum class AxisDirection { HigherIsBetter, LowerIsBetter }
 
 /** Направления показателей; конфигурируемы через ORBITA_KPI_AXES. */
-class KpiAxes(private val directions: Map<String, AxisDirection>) {
+class KpiAxes(
+    private val directions: Map<String, AxisDirection>,
+    /** Подписи показателей для экранов; без подписи ось выводится ключом. */
+    private val labels: Map<String, String> = emptyMap(),
+) {
 
     fun direction(axis: String): AxisDirection =
         directions[axis] ?: throw UnknownAxisException(axis, directions.keys)
+
+    fun label(axis: String): String = labels[axis] ?: axis
 
     val axes: Set<String> get() = directions.keys
 
@@ -40,7 +46,10 @@ class KpiAxes(private val directions: Map<String, AxisDirection>) {
                 n.path("higher_is_better").forEach { put(it.asText(), AxisDirection.HigherIsBetter) }
                 n.path("lower_is_better").forEach { put(it.asText(), AxisDirection.LowerIsBetter) }
             }
-            return KpiAxes(map)
+            val labels = buildMap {
+                n.path("labels").properties().forEach { (k, v) -> put(k, v.asText()) }
+            }
+            return KpiAxes(map, labels)
         }
     }
 }

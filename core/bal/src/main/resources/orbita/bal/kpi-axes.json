@@ -19,5 +19,24 @@
     "max_gap_s",
     "revisit_s",
     "retransmission_ratio"
-  ]
+  ],
+  "_labels": "Подписи показателей для экранов; показатель без подписи выводится ключом",
+  "labels": {
+    "quality": "Качество сервиса",
+    "cost": "Стоимость",
+    "reliability": "Надёжность",
+    "energy": "Энергетика",
+    "availability": "Доступность",
+    "multiplicity": "Кратность покрытия",
+    "lifetime_years": "Срок службы, лет",
+    "deployment_days": "Развёртывание, сут",
+    "launch_campaigns": "Пусковые кампании",
+    "total_mass_kg": "Масса, кг",
+    "max_gap_s": "Разрыв покрытия, с",
+    "revisit_s": "Ревизит, с",
+    "delivery_a_prime": "Доставка A′",
+    "delivery_b_prime": "Доставка B′",
+    "delivery_c_prime": "Доставка C′",
+    "retransmission_ratio": "Кратность повторов"
+  }
 }
