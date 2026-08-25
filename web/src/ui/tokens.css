@@ -277,12 +277,15 @@ body {
 
 /* Шапка экрана 40 px: название, счётчики, главное действие справа */
 .toolbar {
-  height: var(--toolbar-h);
+  /* Перенос вместо вытеснения (находка прогона: «нельзя добавить
+     сценарий» — семь табов видов выталкивали «Создать» за правый край
+     экрана). Высота — минимум 40 px, при переносе растёт. */
   min-height: var(--toolbar-h);
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
-  padding: 0 14px;
+  gap: 4px 10px;
+  padding: 4px 14px;
   background: var(--container);
   border-bottom: 1px solid var(--hairline);
 }
