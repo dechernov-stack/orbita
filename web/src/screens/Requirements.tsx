@@ -140,7 +140,12 @@ export function Requirements({ onGo }: { onGo?: (screen: string) => void }) {
 
   const inspectorOpen = creating || editing || card != null
   return (
-    <div className={inspectorOpen ? 'split' : 'pane'}>
+    <div className={inspectorOpen ? 'split' : 'pane'}
+      style={inspectorOpen
+        // Карточке — ширину (второй заход): при открытой карточке таблица
+        // ужимается до ключевых колонок, остальное видно в самой карточке
+        ? { gridTemplateColumns: 'minmax(0, 1fr) minmax(340px, 560px)' }
+        : undefined}>
       <div className="pane">
         <div className="pane__tools">
           <button
@@ -258,11 +263,11 @@ export function Requirements({ onGo }: { onGo?: (screen: string) => void }) {
             <tr>
               <th style={{ width: 96 }}>ID</th>
               <th>Требование</th>
-              <th style={{ width: 108 }}>Источники</th>
-              <th style={{ width: 108 }}>Распределение</th>
-              <th style={{ width: 110 }}>Условие</th>
-              <th style={{ width: 110 }}>Свёртка</th>
-              <th style={{ width: 120 }}>Метод V&amp;V</th>
+              {!inspectorOpen && <th style={{ width: 108 }}>Источники</th>}
+              {!inspectorOpen && <th style={{ width: 108 }}>Распределение</th>}
+              {!inspectorOpen && <th style={{ width: 110 }}>Условие</th>}
+              {!inspectorOpen && <th style={{ width: 110 }}>Свёртка</th>}
+              {!inspectorOpen && <th style={{ width: 120 }}>Метод V&amp;V</th>}
               <th style={{ width: 100 }}>Статус</th>
             </tr>
           </thead>
@@ -271,7 +276,7 @@ export function Requirements({ onGo }: { onGo?: (screen: string) => void }) {
               [
                 g.title ? (
                   <tr key={`h:${g.title}`}>
-                    <td colSpan={8} style={{ background: 'var(--surface-raised, #f3f4f6)', fontWeight: 600 }}>
+                    <td colSpan={inspectorOpen ? 3 : 8} style={{ background: 'var(--surface-raised, #f3f4f6)', fontWeight: 600 }}>
                       {g.title} <span className="secondary">· {g.rows.length}</span>
                     </td>
                   </tr>
@@ -295,7 +300,7 @@ export function Requirements({ onGo }: { onGo?: (screen: string) => void }) {
                       </span>
                     </td>
                     <td title={row.statement}>{row.statement}</td>
-                    <td>
+                    {!inspectorOpen && <td>
                       {row.sources.map((s, i) => (
                         <span key={s}>
                           {i > 0 && ' '}
@@ -310,8 +315,8 @@ export function Requirements({ onGo }: { onGo?: (screen: string) => void }) {
                           </button>
                         </span>
                       ))}
-                    </td>
-                    <td>
+                    </td>}
+                    {!inspectorOpen && <td>
                       {row.allocatedTo.length === 0
                         ? <span className="secondary">—</span>
                         : row.allocatedTo.map((a, i) => (
@@ -328,16 +333,16 @@ export function Requirements({ onGo }: { onGo?: (screen: string) => void }) {
                             </button>
                           </span>
                         ))}
-                    </td>
-                    <td>
+                    </td>}
+                    {!inspectorOpen && <td>
                       <Condition condition={row.condition} />
-                    </td>
-                    <td>
+                    </td>}
+                    {!inspectorOpen && <td>
                       <BudgetGauge bar={row.budget} />
-                    </td>
-                    <td>
+                    </td>}
+                    {!inspectorOpen && <td>
                       <Verification method={row.method} approach={row.approach} issues={row.planIssues} />
-                    </td>
+                    </td>}
                     <td>
                       <StatusDot status={row.status} />
                       <span className="secondary">{label('lifecycle', row.status)}</span>

@@ -64,6 +64,9 @@ export function ObjectEditor({ kind, schemaName, id, title, maturity, onSaved, o
   const [issues, setIssues] = useState<BaselineIssues | null>(null)
   const [history, setHistory] = useState<HistoryEntry[] | null>(null)
   const [busy, setBusy] = useState(false)
+  /** Вкладки карточки (второй заход): «что мешает» жило в подвале прокрутки —
+   *  теперь готовность и история на своих вкладках, препятствия видны сверху. */
+  const [tab, setTab] = useState<'form' | 'ready' | 'history'>('form')
   const systemNote = useSystemFieldsNote()
 
   useEffect(() => {
@@ -97,6 +100,7 @@ export function ObjectEditor({ kind, schemaName, id, title, maturity, onSaved, o
   )
 
   useEffect(() => {
+    setTab('form')
     if (id) {
       load(id)
     } else if (schema) {
@@ -171,6 +175,12 @@ export function ObjectEditor({ kind, schemaName, id, title, maturity, onSaved, o
       .catch(handleRejection)
       .finally(() => setBusy(false))
   }
+
+  useEffect(() => {
+    if (tab === 'history' && id && history === null) {
+      edit.history(id).then(setHistory).catch(() => setHistory([]))
+    }
+  }, [tab, id, history])
 
   const save = () =>
     run(() =>
@@ -252,6 +262,36 @@ export function ObjectEditor({ kind, schemaName, id, title, maturity, onSaved, o
         </div>
       )}
 
+      {/* Вкладки карточки: определение · готовность (с числом препятствий) ·
+          история. Прежде «Что мешает базированию» лежало в подвале прокрутки
+          (находка второго захода: «подсказка внизу — очень неудобно»). */}
+      {id && (
+        <div className="tabs" style={{ margin: '2px 0 8px' }}>
+          <button type="button" className="tab" aria-selected={tab === 'form'}
+            onClick={() => setTab('form')}>
+            Определение
+          </button>
+          <button type="button" className="tab" aria-selected={tab === 'ready'}
+            onClick={() => setTab('ready')}>
+            Готовность{issues && !issues.can_baseline ? ` · △${issues.issues.length}` : ''}
+          </button>
+          <button type="button" className="tab" aria-selected={tab === 'history'}
+            onClick={() => setTab('history')}>
+            История
+          </button>
+        </div>
+      )}
+
+      {/* Препятствия — на виду и на вкладке «Определение»: одной строкой */}
+      {id && tab === 'form' && issues && !issues.can_baseline && (
+        <button type="button" className="notice notice--blocked"
+          style={{ display: 'block', width: '100%', textAlign: 'left', cursor: 'pointer', border: 0, marginBottom: 8 }}
+          title="открыть вкладку «Готовность»"
+          onClick={() => setTab('ready')}>
+          △ Базированию мешает: {issues.issues.length} — открыть «Готовность» →
+        </button>
+      )}
+
       {conflict && (
         <div className="notice notice--conflict" role="alert">
           <b>Объект изменён другим инженером.</b>
@@ -327,6 +367,8 @@ export function ObjectEditor({ kind, schemaName, id, title, maturity, onSaved, o
         </div>
       )}
 
+      {(!id || tab === 'form') && (
+      <>
       <ObjectForm schema={schema} value={doc} errors={errors} onChange={setDoc} />
       <p className="secondary hint">{systemNote}</p>
 
@@ -367,37 +409,42 @@ export function ObjectEditor({ kind, schemaName, id, title, maturity, onSaved, o
           </>
         )}
       </div>
+      </>
+      )}
 
-      {id && issues && !issues.can_baseline && (
+      {id && tab === 'ready' && (
         <div className="card">
           <h3>Что мешает базированию</h3>
           <div>
-            {issues.issues.map((issue) => (
-              <div key={issue} className="amber">
-                △ {issue}
-              </div>
-            ))}
+            {issues == null || issues.can_baseline ? (
+              <div className="secondary">Препятствий базированию нет.</div>
+            ) : (
+              issues.issues.map((issue) => (
+                <div key={issue} className="amber">
+                  △ {issue}
+                </div>
+              ))
+            )}
             {/* Помощник распределения (находка второго захода): интерфейсы
                 появились позже требований, и искать «какой интерфейс связан
                 с этим элементом» инженер вынужден был руками по реестрам —
                 хотя стороны интерфейсов системе известны. Кнопка подставляет
                 распределение в форму; решает и сохраняет инженер. */}
-            {kind === 'requirement' &&
+            {kind === 'requirement' && issues && !issues.can_baseline &&
               issues.issues.some((i) => i.includes('интерфейс')) && (
-                <InterfaceAllocationHelper doc={doc} onApply={(next) => setDoc(next)} />
+                <InterfaceAllocationHelper doc={doc}
+                  onApply={(next) => { setDoc(next); setTab('form') }} />
               )}
           </div>
         </div>
       )}
 
-      {id && (
+      {id && tab === 'history' && (
         <div className="card">
           <h3>История версий</h3>
           <div>
             {history === null ? (
-              <button type="button" className="tab" onClick={() => edit.history(id).then(setHistory)}>
-                Показать историю
-              </button>
+              <div className="secondary">Загрузка…</div>
             ) : (
               <table>
                 <thead>
