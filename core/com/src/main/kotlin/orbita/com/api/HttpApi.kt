@@ -508,7 +508,7 @@ class HttpApi(private val boundary: Boundary) {
                     val id = item.path("id").asText("")
                     val cur = boundary.objects.current(id)
                     if (cur == null || cur.type != "requirement") {
-                        problems += BatchProblem(i, id.ifBlank { null }, "/id", "unknown", "требование '$id' не найдено")
+                        problems += BatchProblem(i, id.ifBlank { null }, null, "unknown", "требование '$id' не найдено")
                         return@forEachIndexed
                     }
                     val changes = mapper.createObjectNode()
