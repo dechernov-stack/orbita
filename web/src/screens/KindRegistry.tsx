@@ -58,6 +58,8 @@ export function KindRegistry({ kinds, title }: { kinds: string[]; title: string 
   const [rows, setRows] = useState<StoredSummary[] | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
+  /** Заготовка «на основе» выбранного: вариантность без перепечатки полей. */
+  const [template, setTemplate] = useState<Record<string, unknown> | null>(null)
   const [filter, setFilter] = useState('')
   const [error, setError] = useState<string | null>(null)
   /** Счётчик перебора табов при поиске объекта из намерения. */
@@ -220,7 +222,35 @@ export function KindRegistry({ kinds, title }: { kinds: string[]; title: string 
                 .finally(() => setMassBusy(false))
             }} />
         </label>
-        <button className="btn btn--primary" onClick={() => { setSelected(null); setCreating(true) }}>
+        {/* «Создать на основе» (находка прогона: варианты сравнения — это
+            клон сценария с другой группировкой, перепечатывать восемь ссылок
+            руками — мучение). Копируется содержимое выбранного без id и
+            служебных полей; наименование получает пометку «(вариант)». */}
+        {selected && (
+          <button className="btn" disabled={massBusy}
+            title={`новый объект с содержимым ${selected}: поменяйте отличающееся и сохраните`}
+            onClick={() => {
+              edit.object(selected)
+                .then((o) => {
+                  const doc = { ...(o.doc ?? {}) } as Record<string, unknown>
+                  delete doc.id
+                  delete doc.provenance
+                  delete doc.lifecycle
+                  // Версии входов штампует сервер по ТЕКУЩЕМУ хранилищу, а явно
+                  // заданные не перетирает (Boundary V008): унаследованный штамп
+                  // молча пришпилил бы вариант к старым версиям входов.
+                  delete doc.input_versions
+                  if (typeof doc.name === 'string' && doc.name) doc.name = `${doc.name} (вариант)`
+                  setTemplate(doc)
+                  setSelected(null)
+                  setCreating(true)
+                })
+                .catch((e) => setMassReport(String(e)))
+            }}>
+            Создать на основе
+          </button>
+        )}
+        <button className="btn btn--primary" onClick={() => { setSelected(null); setTemplate(null); setCreating(true) }}>
           Создать
         </button>
       </div>
@@ -296,6 +326,7 @@ export function KindRegistry({ kinds, title }: { kinds: string[]; title: string 
               id={creating ? null : selected}
               title={kindTitle(kind)}
               maturity={meta.lifecycle}
+              template={creating ? template : null}
               onSaved={(id) => { setCreating(false); setSelected(id); reload() }}
               onCancelled={() => { setCreating(false); setSelected(null); reload() }}
             />

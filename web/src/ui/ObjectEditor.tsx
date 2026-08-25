@@ -34,6 +34,9 @@ interface Props {
    * нет, но Д6 зреет к MCR). Не задан — по наличию lifecycle в схеме.
    */
   maturity?: boolean
+  /** Заготовка создания «на основе»: форма нового объекта открывается с
+   *  этим содержимым вместо пустого (вариантность: клон + правка поля). */
+  template?: Record<string, unknown> | null
   onSaved: (id: string) => void
   onCancelled?: () => void
 }
@@ -45,7 +48,7 @@ interface Conflict {
   theirValues: Record<string, unknown>
 }
 
-export function ObjectEditor({ kind, schemaName, id, title, maturity, onSaved, onCancelled }: Props) {
+export function ObjectEditor({ kind, schemaName, id, title, maturity, template, onSaved, onCancelled }: Props) {
   const { author, label } = useSession()
   const [schema, setSchema] = useState<JsonSchema | null>(null)
   const [doc, setDoc] = useState<Record<string, unknown>>({})
@@ -105,14 +108,14 @@ export function ObjectEditor({ kind, schemaName, id, title, maturity, onSaved, o
       load(id)
     } else if (schema) {
       clearNotices()
-      setDoc(emptyDoc(schema))
+      setDoc(template ? { ...template } : emptyDoc(schema))
       setVersion(null)
       setStatus(null)
       setSavedSnapshot(null)
       setIssues(null)
       setHistory(null)
     }
-  }, [id, schema, load])
+  }, [id, schema, load, template])
 
   const handleRejection = (e: unknown) => {
     if (e instanceof EditRejected) {
