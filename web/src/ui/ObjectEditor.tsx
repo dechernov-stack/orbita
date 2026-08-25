@@ -147,7 +147,17 @@ export function ObjectEditor({ kind, schemaName, id, title, maturity, onSaved, o
      * оставалась на прежней версии: следующая правка уходила с устаревшим
      * base_version и получала отказ по конфликту — с самим собой.
      */
+  /** Правка вернула объект в черновик — сказать, а не промолчать. */
+  const [demoted, setDemoted] = useState<string | null>(null)
+
   const applySaved = (saved: StoredSummary) => {
+    // Сброс статуса правкой — закон (TZ-COM-003: изменённое содержание
+    // проходит утверждение заново), но МОЛЧАЛИВЫЙ сброс — ловушка: инженер
+    // базировал, поправил и не понимал, почему объект снова в незакрытых
+    // «Готовности» (находка второго захода).
+    if (status && status !== 'Draft' && saved.status === 'Draft') {
+      setDemoted(status)
+    }
     if (saved.doc) {
       setDoc(saved.doc as Record<string, unknown>)
       setVersion(saved.version)
@@ -165,6 +175,7 @@ export function ObjectEditor({ kind, schemaName, id, title, maturity, onSaved, o
       setFailure('Представьтесь в шапке: изменение записывается с автором')
       return
     }
+    setDemoted(null)
     clearNotices()
     setBusy(true)
     action()
@@ -369,10 +380,17 @@ export function ObjectEditor({ kind, schemaName, id, title, maturity, onSaved, o
 
       {(!id || tab === 'form') && (
       <>
-      <ObjectForm schema={schema} value={doc} errors={errors} onChange={setDoc} />
-      <p className="secondary hint">{systemNote}</p>
-
-      <div className="editor__actions">
+      {demoted && (
+        <div className="notice notice--blocked" role="alert">
+          Правка вернула объект в <b>черновик</b> (был «{label('lifecycle', demoted)}»):
+          изменённое содержание проходит утверждение заново — лестница сверху
+          (TZ-COM-003). Если объект держал контрольную точку, он снова в
+          незакрытых «Готовности».
+        </div>
+      )}
+      {/* Действия — СВЕРХУ формы (находка второго захода: «сохранить — тоже
+          вверх»): длинная форма прокручивается, кнопка — нет */}
+      <div className="editor__actions" style={{ marginBottom: 8 }}>
         <button type="button" className="tab tab--primary" disabled={busy || !dirty} onClick={save}
           title={dirty ? '' : 'изменений нет — сохранять нечего'}>
           {id ? 'Сохранить правку' : 'Создать'}
@@ -409,6 +427,9 @@ export function ObjectEditor({ kind, schemaName, id, title, maturity, onSaved, o
           </>
         )}
       </div>
+
+      <ObjectForm schema={schema} value={doc} errors={errors} onChange={setDoc} />
+      <p className="secondary hint">{systemNote}</p>
       </>
       )}
 

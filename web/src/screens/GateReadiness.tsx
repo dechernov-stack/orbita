@@ -39,6 +39,19 @@ export function GateReadiness({ onGo }: { onGo: (screen: string) => void }) {
 
   useEffect(load, [load])
 
+  // Свежесть перечня (находка второго захода): инженер уходит чинить
+  // названное, возвращается — перечень обязан пересчитаться. Возврат фокуса
+  // окну и вкладке — сигнал «я вернулся».
+  useEffect(() => {
+    const onFocus = () => load()
+    window.addEventListener('focus', onFocus)
+    document.addEventListener('visibilitychange', onFocus)
+    return () => {
+      window.removeEventListener('focus', onFocus)
+      document.removeEventListener('visibilitychange', onFocus)
+    }
+  }, [load])
+
   if (!project) return <div className="empty">Выберите проект на портфеле.</div>
   if (error) return <div className="empty">Ошибка обращения к API: {error}</div>
 
@@ -125,6 +138,9 @@ export function GateReadiness({ onGo }: { onGo: (screen: string) => void }) {
           </span>
         )}
         <div className="grow" />
+        <button className="btn" onClick={load} title="пересчитать перечень незакрытого">
+          Обновить
+        </button>
         {activeReturn ? (
           <button className="btn" onClick={resolveReturn}>Снять возврат</button>
         ) : (
