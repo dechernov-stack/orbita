@@ -91,6 +91,35 @@
         }
       }
     },
+    "outlook": {
+      "type": "array",
+      "description": "Перспективные вехи за горизонтом Формулирования (Phase B–F): PDR, CDR, запуск… ИС ведёт проект до KDP B, но план проекта (Д10, Приложение 7 §4) обязан показывать весь жизненный цикл — перспективу задаёт инженер, система её не выдумывает",
+      "items": {
+        "type": "object",
+        "required": [
+          "phase",
+          "milestone"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "phase": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Фаза ЖЦ: Phase B, Phase C…"
+          },
+          "milestone": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Веха или обзор: PDR, CDR, SIR, запуск…"
+          },
+          "due": {
+            "type": "string",
+            "format": "date",
+            "description": "Плановая дата (укрупнённо)"
+          }
+        }
+      }
+    },
     "lifecycle": {
       "$ref": "https://kis.local/schemas/common/status.schema.json"
     },
@@ -134,35 +163,6 @@
         },
         "at": {
           "type": "string"
-        }
-      }
-    },
-    "outlook": {
-      "type": "array",
-      "description": "Перспективные вехи за горизонтом Формулирования (Phase B–F): PDR, CDR, запуск… ИС ведёт проект до KDP B, но план проекта (Д10, Приложение 7 §4) обязан показывать весь жизненный цикл — перспективу задаёт инженер, система её не выдумывает",
-      "items": {
-        "type": "object",
-        "required": [
-          "phase",
-          "milestone"
-        ],
-        "additionalProperties": false,
-        "properties": {
-          "phase": {
-            "type": "string",
-            "minLength": 1,
-            "description": "Фаза ЖЦ: Phase B, Phase C…"
-          },
-          "milestone": {
-            "type": "string",
-            "minLength": 1,
-            "description": "Веха или обзор: PDR, CDR, SIR, запуск…"
-          },
-          "due": {
-            "type": "string",
-            "format": "date",
-            "description": "Плановая дата (укрупнённо)"
-          }
         }
       }
     }
