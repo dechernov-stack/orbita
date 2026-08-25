@@ -219,7 +219,8 @@ export function Lifecycle({ project, onGo }: { project: string; onGo: (screen: s
                       style={{ width: 52, fontSize: 11 }}
                       value={planEdits[g.gate]?.duration_days ?? g.duration_days ?? ''}
                       onChange={(e) => {
-                        const v = e.target.value === '' ? null : Number(e.target.value)
+                        const raw = e.target.value
+                        const v = raw ? Number(raw) : null
                         setPlanEdits((prev) => ({ ...prev, [g.gate]: { ...prev[g.gate], duration_days: v } }))
                       }} />
                     <input type="date"
