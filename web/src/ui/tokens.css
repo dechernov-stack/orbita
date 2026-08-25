@@ -969,3 +969,21 @@ tbody td {
   color: var(--text-secondary);
   font-weight: 400;
 }
+
+/* Схлопывание длинного документа (находка прогона: «километр листания») */
+.docsection { margin-top: 14px; }
+.docsection > summary { cursor: pointer; list-style: revert; margin-bottom: 4px; }
+.docrow { border-bottom: 1px solid var(--container-3); }
+.docrow > summary {
+  cursor: pointer;
+  padding: 3px 2px;
+  list-style: revert;
+}
+.docrow[open] > summary { background: var(--container-2); }
+.docrow__body { padding: 4px 8px 8px 22px; }
+.docrow__field { margin: 2px 0; }
+
+@media print {
+  /* на бумагу — только развёрнутый документ */
+  .docsection, .docrow { border: none; }
+}

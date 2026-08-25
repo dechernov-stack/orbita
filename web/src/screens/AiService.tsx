@@ -16,6 +16,10 @@ const KINDS: Array<{ id: string; title: string; generative: boolean }> = [
   { id: 'services_to_requirements', title: 'Сервисы → требования', generative: true },
   { id: 'risk_register', title: 'Сценарий → риски', generative: true },
   { id: 'requirement_quality', title: 'Рецензия формулировок', generative: false },
+  // Дозаполнение (находка прогона: 140 требований без обоснования и
+  // показателя): вход собирает СЛУЖБА — дырявые требования пачкой; ответ —
+  // частичные правки, применяются к существующим объектам
+  { id: 'requirement_enrichment', title: 'Дозаполнение требований (обоснование, MOP)', generative: false },
 ]
 
 export function AiService({ onGo }: { onGo?: (screen: string) => void }) {
@@ -75,6 +79,7 @@ export function AiService({ onGo }: { onGo?: (screen: string) => void }) {
     setError(null)
     setBatch(null)
     setExcluded(new Set())
+    setEnriched(null)
     api.aiAsk(kind, profile, statement, author)
       .then(setReport)
       .catch((e) => setError(String(e)))
@@ -86,9 +91,37 @@ export function AiService({ onGo }: { onGo?: (screen: string) => void }) {
     setError(null)
     setBatch(null)
     setExcluded(new Set())
+    setEnriched(null)
     api.aiSubmit(kind, profile, statement, raw, author)
       .then(setReport)
       .catch((e) => setError(String(e)))
+      .finally(() => { setBusy(false); reloadJournal() })
+  }
+
+  const [enriched, setEnriched] = useState<{ written: number; demoted: string[] } | null>(null)
+
+  const enrichApply = () => {
+    if (!report) return
+    const items = report.shown.filter((s) => !excluded.has(String(s.item.id ?? '')))
+    if (items.length === 0) return
+    setBusy(true)
+    setEnriched(null)
+    const onRejected = (r: BatchReport & { demoted?: string[] }) => {
+      setBatch(r)
+      if (r.problems.length === 0) setEnriched({ written: r.written, demoted: r.demoted ?? [] })
+      else setExcluded((prev) => {
+        const next = new Set(prev)
+        r.problems.forEach((p) => { if (p.id) next.add(p.id) })
+        return next
+      })
+    }
+    api.enrichApply(report.call ?? null, author, items.map((s) => s.item))
+      .then(onRejected)
+      .catch((e) => {
+        const parsed = asBatchReport(e)
+        if (parsed) onRejected(parsed)
+        else setError(String(e))
+      })
       .finally(() => { setBusy(false); reloadJournal() })
   }
 
@@ -272,6 +305,59 @@ export function AiService({ onGo }: { onGo?: (screen: string) => void }) {
                     ))}
                   </tbody>
                 </table>
+              )}
+              {kind === 'requirement_enrichment' && report.shown.length > 0 && (
+                <>
+                  <p className="secondary">
+                    Правки применяются к СУЩЕСТВУЮЩИМ требованиям — с основанием
+                    (акцепт предложений службы). Правка вернёт объект в черновик:
+                    после применения ре-базируйте пачкой в реестре требований.
+                  </p>
+                  <div style={{ maxHeight: 260, overflowY: 'auto', marginBottom: 8 }}>
+                    <table>
+                      <thead><tr><th style={{ width: 30 }} /><th style={{ width: 90 }}>Id</th><th>Обоснование</th><th style={{ width: 220 }}>Показатель</th></tr></thead>
+                      <tbody>
+                        {report.shown.map((s) => {
+                          const id = String(s.item.id ?? '')
+                          const mop = s.item.mop as { name?: string; operator?: string; value?: { value?: number; unit?: string } } | undefined
+                          const problem = batch?.problems.find((p) => p.id === id)
+                          return (
+                            <tr key={id}>
+                              <td>
+                                <input type="checkbox" checked={!excluded.has(id)}
+                                  onChange={(e) => setExcluded((prev) => {
+                                    const next = new Set(prev)
+                                    if (e.target.checked) next.delete(id); else next.add(id)
+                                    return next
+                                  })} />
+                              </td>
+                              <td className="mono">{id}</td>
+                              <td className="wrap">{String(s.item.rationale ?? '—')}
+                                {problem && <div className="warn">{problem.message}</div>}
+                              </td>
+                              <td className="wrap">
+                                {mop ? `${mop.name ?? ''} ${mop.operator ?? ''} ${mop.value?.value ?? ''} ${mop.value?.unit ?? ''}` : '—'}
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  <button className="btn btn--primary" onClick={enrichApply}
+                    disabled={!author || busy || report.shown.length === excluded.size}>
+                    Применить правками ({report.shown.length - excluded.size})
+                  </button>
+                  {enriched && (
+                    <div className="notice">
+                      Применено правок: <b className="mono">{enriched.written}</b>.
+                      {enriched.demoted.length > 0 && (
+                        <> Объекты вернулись в черновик ({enriched.demoted.length}) —
+                        откройте реестр требований и ре-базируйте пачкой («Базировать все»).</>
+                      )}
+                    </div>
+                  )}
+                </>
               )}
               {generative && report.shown.length > 0 && (
                 <>

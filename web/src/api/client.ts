@@ -219,6 +219,9 @@ export const api = {
   /** Акцепт пачкой с привязкой к вызову журнала. */
   acceptBatchOfCall: (call: number | null, llm: string, by: string, items: unknown[]) =>
     post<BatchReport>('/ai/accept-batch', { call, llm, by, items }),
+  /** Дозаполнение: применить частичные правки к существующим требованиям. */
+  enrichApply: (call: number | null, by: string, items: unknown[]) =>
+    post<BatchReport & { demoted?: string[] }>('/ai/enrich-apply', { call, by, items }),
 
   /** Блок E: акцепт предложений пачкой — порядок разрешает сервер. */
   acceptBatch: (packageId: string, llm: string, by: string, items: unknown[]) =>

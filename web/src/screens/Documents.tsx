@@ -102,34 +102,73 @@ function Value({ v, onGo }: { v: unknown; onGo?: (screen: string) => void }): Re
   )
 }
 
-/** Раздел — таблица: колонки собраны из записей, подписи из словаря полей. */
-function SectionTable({ items, fieldLabel, onGo }: {
+/** Первый «текстовый» ключ записи — для сводной строки схлопнутого вида. */
+const HEADLINE_KEYS = ['statement', 'name', 'title', 'question', 'gate', 'rule', 'kind', 'code']
+
+/**
+ * Раздел — таблица. Длинный раздел с широкими записями (спецификация на 200+
+ * требований — «километр листания», находка прогона) схлопывается: строка —
+ * id и формулировка, остальные атрибуты раскрываются по клику. expandAll
+ * (кнопка «Развернуть всё» и печать) раскрывает принудительно.
+ */
+function SectionTable({ items, fieldLabel, onGo, expandAll }: {
   items: Array<Record<string, unknown>>
   fieldLabel: (name: string) => string
   onGo?: (screen: string) => void
+  expandAll: boolean
 }) {
   const columns: string[] = []
   items.forEach((it) => Object.keys(it).forEach((k) => { if (!columns.includes(k)) columns.push(k) }))
-  return (
-    <div style={{ overflowX: 'auto' }}>
-      <table style={{ minWidth: 560 }}>
-        <thead>
-          <tr>
-            {columns.map((c) => <th key={c}>{fieldLabel(c)}</th>)}
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((it, i) => (
-            <tr key={i}>
-              {columns.map((c) => (
-                <td key={c} className="wrap" style={{ verticalAlign: 'top' }}>
-                  <Value v={it[c]} onGo={onGo} />
-                </td>
-              ))}
+  const compact = !expandAll && items.length > 12 && columns.length > 4
+  if (!compact) {
+    return (
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ minWidth: 560 }}>
+          <thead>
+            <tr>
+              {columns.map((c) => <th key={c}>{fieldLabel(c)}</th>)}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {items.map((it, i) => (
+              <tr key={i}>
+                {columns.map((c) => (
+                  <td key={c} className="wrap" style={{ verticalAlign: 'top' }}>
+                    <Value v={it[c]} onGo={onGo} />
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )
+  }
+  const head = HEADLINE_KEYS.find((k) => columns.includes(k))
+  return (
+    <div>
+      {items.map((it, i) => {
+        const id = String(it.id ?? it.requirement ?? i + 1)
+        const rest = columns.filter((c) => c !== 'id' && c !== head)
+        return (
+          <details key={i} className="docrow">
+            <summary>
+              <span className="mono" style={{ marginRight: 8 }}>{id}</span>
+              {head ? String(it[head] ?? '') : ''}
+            </summary>
+            <div className="docrow__body">
+              {rest.map((c) => (
+                it[c] == null || it[c] === '' ? null : (
+                  <div key={c} className="docrow__field">
+                    <span className="secondary">{fieldLabel(c)}: </span>
+                    <Value v={it[c]} onGo={onGo} />
+                  </div>
+                )
+              ))}
+            </div>
+          </details>
+        )
+      })}
     </div>
   )
 }
@@ -147,6 +186,15 @@ export function Documents({ onGo }: { onGo?: (screen: string) => void }) {
   const [issues, setIssues] = useState<DocumentIssuesView | null>(null)
   const [issueReport, setIssueReport] = useState<string | null>(null)
   const [showGaps, setShowGaps] = useState(true)
+  /** «Развернуть всё»: длинные разделы схлопнуты по умолчанию; печать
+   *  разворачивает сама (beforeprint) — на бумагу идёт полный документ. */
+  const [expandAll, setExpandAll] = useState(false)
+
+  useEffect(() => {
+    const before = () => setExpandAll(true)
+    window.addEventListener('beforeprint', before)
+    return () => window.removeEventListener('beforeprint', before)
+  }, [])
   const [error, setError] = useState<string | null>(null)
   const { author, fieldLabel } = useSession()
 
@@ -243,8 +291,13 @@ export function Documents({ onGo }: { onGo?: (screen: string) => void }) {
               title={author ? 'зафиксировать слепок текущей генерации' : 'представьтесь в шапке'}>
               Выпустить
             </button>
-            <button type="button" className="tab" onClick={() => window.print()}
-              title="печатная форма: без оболочки, только документ">
+            <button type="button" className="tab" onClick={() => setExpandAll((v) => !v)}
+              title="длинные разделы схлопнуты до строки «id — формулировка»">
+              {expandAll ? 'Свернуть записи' : 'Развернуть всё'}
+            </button>
+            <button type="button" className="tab"
+              onClick={() => { setExpandAll(true); setTimeout(() => window.print(), 50) }}
+              title="печатная форма: без оболочки, только документ (записи развёрнуты)">
               Печать
             </button>
             {issueReport && <span className="secondary">{issueReport}</span>}
@@ -329,18 +382,21 @@ export function Documents({ onGo }: { onGo?: (screen: string) => void }) {
           )}
 
           {doc.body.sections.map((s) => (
-            <div key={s.number} style={{ marginTop: 14 }}>
-              <h3 style={{ fontSize: 13.5, marginBottom: 4 }}>
-                {s.number}. {s.title}
-              </h3>
+            <details key={s.number} className="docsection" open={expandAll || s.items.length <= 25}>
+              <summary>
+                <h3 style={{ fontSize: 13.5, display: 'inline' }}>
+                  {s.number}. {s.title}
+                </h3>
+                <span className="secondary"> · записей: {s.items.length}</span>
+              </summary>
               {s.items.length === 0 ? (
                 <div className="empty" style={{ padding: 8 }}>
                   Раздел пуст. Регламент ожидает: {s.expects}
                 </div>
               ) : (
-                <SectionTable items={s.items} fieldLabel={fieldLabel} onGo={onGo} />
+                <SectionTable items={s.items} fieldLabel={fieldLabel} onGo={onGo} expandAll={expandAll} />
               )}
-            </div>
+            </details>
           ))}
         </>
       )}

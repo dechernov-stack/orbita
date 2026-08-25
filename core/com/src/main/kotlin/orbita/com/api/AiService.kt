@@ -78,8 +78,108 @@ class AiService(
         val p = profile(profileId, projectId)
         // схема ответа — из пакета: прямой канал шлёт модели только текст,
         // и без схемы она отвечает своей формой
-        val schema = boundary.packages.build(kind, mapper.createObjectNode(), "служба").responseSchema
-        return p to composer.compose(kind, p, context(projectId, statement), schema)
+        val schema = if (kind == ENRICHMENT_KIND) enrichmentResponseSchema()
+        else boundary.packages.build(kind, mapper.createObjectNode(), "служба").responseSchema
+        val effective = if (kind == ENRICHMENT_KIND) enrichmentStatement(projectId, statement)
+        else statement
+        return p to composer.compose(kind, p, context(projectId, effective), schema)
+    }
+
+    /**
+     * Дозаполнение (находка живого прогона: 140 требований без обоснования
+     * и показателя): ВХОД собирает служба — дырявые требования проекта с
+     * перечнем недостающего, пачкой не больше [ENRICHMENT_BATCH] за вызов
+     * (длинный ответ дорог и рвётся; вызов повторяется, пока дыры есть).
+     */
+    fun enrichmentStatement(projectId: String, note: String): String {
+        val holes = enrichmentCandidates(projectId)
+        val batch = holes.take(ENRICHMENT_BATCH)
+        val sb = StringBuilder()
+        if (note.isNotBlank()) sb.append(note).append("\n\n")
+        sb.append("Дозаполни атрибуты СУЩЕСТВУЮЩИХ требований. Верни массив объектов ")
+        sb.append("строго по схеме ответа: только id из перечня ниже и ТОЛЬКО недостающие поля ")
+        sb.append("(rationale — обоснование одним-двумя предложениями со ссылкой на источник ")
+        sb.append("Р-ограничение/сервис/нужду; mop — показатель с оператором и величиной, ")
+        sb.append("значение обязано нести основание по правилу основания). Новых требований не создавать.\n")
+        sb.append("Всего дырявых: ${holes.size}; в этой пачке: ${batch.size}.\n\n")
+        batch.forEach { (o, missing) ->
+            sb.append("- ").append(o.id).append(" [не хватает: ").append(missing.joinToString(", ")).append("] ")
+            sb.append(o.doc.path("category").asText("")).append(": ")
+            sb.append(o.doc.path("statement").asText("").take(220)).append("\n")
+        }
+        return sb.toString()
+    }
+
+    /** Требования с дырами: без обоснования либо без показателя. */
+    fun enrichmentCandidates(projectId: String): List<Pair<orbita.mod.store.StoredObject, List<String>>> =
+        boundary.objects.listCurrent(projectId)
+            .filter { it.type == "requirement" && it.status.name != "Cancelled" }
+            .sortedBy { it.id }
+            .mapNotNull { o ->
+                val missing = buildList {
+                    if (o.doc.path("rationale").asText("").isBlank()) add("rationale")
+                    if (!o.doc.path("mop").isObject || o.doc.path("mop").isEmpty) add("mop")
+                }
+                if (missing.isEmpty()) null else o to missing
+            }
+
+    /** Схема ответа дозаполнения: частичные правки, не полные объекты вида. */
+    private fun enrichmentResponseSchema(): com.fasterxml.jackson.databind.JsonNode {
+        val quantity = mapper.createObjectNode().apply {
+            put("type", "object")
+            putArray("required").add("value").add("unit").add("provenance")
+            put("additionalProperties", false)
+            with(putObject("properties")) {
+                putObject("value").put("type", "number")
+                putObject("unit").put("type", "string")
+                with(putObject("provenance")) {
+                    put("type", "object")
+                    putArray("required").add("source")
+                    with(putObject("properties")) {
+                        putObject("source").putArray("enum")
+                            .add("computed").add("imported")
+                        with(putObject("module")) { put("type", "string") }
+                        with(putObject("import")) {
+                            put("type", "object")
+                            // полное происхождение (ADR-024): без версии и даты
+                            // получения нормативная схема правку отклонит
+                            putArray("required").add("dataset").add("dataset_version")
+                                .add("retrieved_at").add("terms")
+                            with(putObject("properties")) {
+                                putObject("dataset").put("type", "string")
+                                putObject("dataset_version").put("type", "string")
+                                putObject("retrieved_at").put("type", "string")
+                                putObject("terms").put("type", "string")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        val item = mapper.createObjectNode().apply {
+            put("type", "object")
+            putArray("required").add("id")
+            put("additionalProperties", false)
+            with(putObject("properties")) {
+                putObject("id").put("type", "string").put("pattern", "^RQ-[0-9]{4}$")
+                putObject("rationale").put("type", "string").put("minLength", 10)
+                with(putObject("mop")) {
+                    put("type", "object")
+                    putArray("required").add("name").add("operator").add("value")
+                    put("additionalProperties", false)
+                    with(putObject("properties")) {
+                        putObject("name").put("type", "string").put("minLength", 3)
+                        putObject("operator").putArray("enum")
+                            .add("ge").add("le").add("gt").add("lt").add("eq")
+                        set<com.fasterxml.jackson.databind.node.ObjectNode>("value", quantity)
+                    }
+                }
+            }
+        }
+        return mapper.createObjectNode().apply {
+            put("type", "array")
+            set<com.fasterxml.jackson.databind.node.ObjectNode>("items", item)
+        }
     }
 
     /**
@@ -165,7 +265,11 @@ class AiService(
     private fun screen(raw: String, kind: String, p: AiProfile): ObjectNode {
         val pkg = boundary.packages.build(kind, mapper.createObjectNode(), "служба")
         val schemaName = orbita.ai.PackageKinds.default().of(kind).targetSchema
-        val parsed = if (schemaName != null) {
+        val parsed = if (kind == ENRICHMENT_KIND) {
+            // частичные правки: полная схема вида к ним неприменима,
+            // проверка — против схемы ответа дозаполнения
+            boundary.parser.parseAgainstInline(raw, pkg, enrichmentResponseSchema())
+        } else if (schemaName != null) {
             boundary.parser.parseAgainstSchema(raw, pkg, boundary.schemas, schemaName)
         } else {
             boundary.parser.parse(raw, pkg)
@@ -192,6 +296,12 @@ class AiService(
         val byRule = out.putObject("by_rule")
         report.byRule.forEach { (rule, count) -> byRule.put(rule, count) }
         return out
+    }
+
+    companion object {
+        const val ENRICHMENT_KIND = "requirement_enrichment"
+        /** Дырявых в один вызов: длинный ответ дорог и рвётся. */
+        const val ENRICHMENT_BATCH = 30
     }
 
     /** Акцепт дописывается к своему вызову — «сколько дошло до модели». */

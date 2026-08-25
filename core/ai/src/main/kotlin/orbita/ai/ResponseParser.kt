@@ -22,6 +22,27 @@ private val FENCE = Regex("^```(?:json)?|```$", setOf(RegexOption.MULTILINE))
 class ResponseParser(private val mapper: ObjectMapper = ObjectMapper()) {
 
     /**
+     * Проверка по ИНЛАЙН-схеме (дозаполнение: ответ — частичные правки, а не
+     * объекты нормативного вида; их схему собирает вызывающий). Элементы
+     * проверяются поштучно: частично корректный ответ принимается в части
+     * валидных, причины отклонения — с путём до поля.
+     */
+    fun parseAgainstInline(raw: String, pkg: PromptPackage, schema: JsonNode): ParseResult {
+        val first = parse(raw, pkg)
+        val itemSchema = schema.path("items").takeIf { it.isObject } ?: schema
+        val compiled = com.networknt.schema.JsonSchemaFactory
+            .getInstance(com.networknt.schema.SpecVersion.VersionFlag.V202012)
+            .getSchema(itemSchema)
+        val accepted = mutableListOf<JsonNode>()
+        val rejected = first.rejected.toMutableList()
+        first.accepted.forEach { item ->
+            val errors = compiled.validate(item).map { "${'$'}{it.instanceLocation}: ${'$'}{it.message}" }
+            if (errors.isEmpty()) accepted.add(item) else rejected += Rejected(item, errors)
+        }
+        return ParseResult(accepted, rejected)
+    }
+
+    /**
      * Разбор ответа по схеме пакета. Частично корректный ответ принимается
      * в части валидных объектов; причина отклонения называется по полю.
      * Неразбираемый ответ не роняет обработку.

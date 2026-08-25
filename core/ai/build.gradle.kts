@@ -8,6 +8,9 @@ dependencies {
     implementation(project(":core:mod"))
     implementation(project(":core:req"))
     implementation("com.fasterxml.jackson.core:jackson-databind:2.18.2")
+    // инлайн-схема ответа дозаполнения (parseAgainstInline) — та же
+    // библиотека, что в core/mod у нормативного реестра схем
+    implementation("com.networknt:json-schema-validator:1.5.6")
 
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")

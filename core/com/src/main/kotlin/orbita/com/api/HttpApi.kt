@@ -482,6 +482,75 @@ class HttpApi(private val boundary: Boundary) {
             method == "GET" && path == "/ai/journal" ->
                 respond(ex, 200, boundary.ai.journal(requireProject(project)))
 
+            // Дозаполнение: применить частичные правки к СУЩЕСТВУЮЩИМ
+            // требованиям (находка прогона: 140 без обоснования/показателя).
+            // Два прохода: сухая проверка ВСЕХ с отчётом поимённо, затем
+            // транзакционная запись — всё или ничего, как у пачек (ADR-024).
+            // Базированные правятся с основанием (TZ-COM-003): основание —
+            // акцепт инженером предложений службы; статус слетает в черновик,
+            // и это называется в ответе, а не выясняется на «Готовности».
+            method == "POST" && path == "/ai/enrich-apply" -> {
+                val request = mapper.readTree(body(ex))
+                val by = request.path("by").asText("").trim().takeIf { it.isNotEmpty() }
+                    ?: throw IllegalArgumentException("TZ-AI-004: field 'by' is required to accept proposals")
+                val call = request.path("call").takeIf { it.isNumber }?.asLong()
+                val items = request.path("items")
+                require(items.isArray && items.size() > 0) { "items — принятые правки дозаполнения" }
+                val ctx = requireProject(project)
+                val changeRef = "акцепт предложений службы ИИ" +
+                    (call?.let { " (вызов $it)" } ?: "") + ": дозаполнение rationale/mop"
+
+                // проход 1: сухая проверка каждого слияния по нормативной схеме
+                data class Prep(val id: String, val base: String, val changes: com.fasterxml.jackson.databind.node.ObjectNode)
+                val problems = mutableListOf<BatchProblem>()
+                val prepared = mutableListOf<Prep>()
+                items.forEachIndexed { i, item ->
+                    val id = item.path("id").asText("")
+                    val cur = boundary.objects.current(id)
+                    if (cur == null || cur.type != "requirement") {
+                        problems += BatchProblem(i, id.ifBlank { null }, "/id", "unknown", "требование '$id' не найдено")
+                        return@forEachIndexed
+                    }
+                    val changes = mapper.createObjectNode()
+                    item.path("rationale").takeIf { it.isTextual && it.asText().isNotBlank() }
+                        ?.let { changes.put("rationale", it.asText()) }
+                    item.path("mop").takeIf { it.isObject && !it.isEmpty }
+                        ?.let { changes.set<com.fasterxml.jackson.databind.node.ObjectNode>("mop", it.deepCopy()) }
+                    if (changes.isEmpty) {
+                        problems += BatchProblem(i, id, null, "empty", "правка пуста: нет ни rationale, ни mop")
+                        return@forEachIndexed
+                    }
+                    val merged = cur.doc.deepCopy<com.fasterxml.jackson.databind.node.ObjectNode>()
+                    changes.properties().forEach { (k, v) -> merged.set<com.fasterxml.jackson.databind.node.ObjectNode>(k, v) }
+                    boundary.schemaProblems(orbita.mod.model.CoreType.Requirement, merged).forEach { e ->
+                        problems += BatchProblem(i, id, e.path, e.rule, e.message)
+                    }
+                    prepared += Prep(id, cur.version, changes)
+                }
+                if (problems.isNotEmpty()) {
+                    respond(ex, 422, batchJson(BatchReport(0, problems.sortedBy { it.index })))
+                } else {
+                    // проход 2: запись в одной транзакции
+                    val demoted = mutableListOf<String>()
+                    boundary.transaction {
+                        prepared.forEach { pr ->
+                            val was = boundary.objects.current(pr.id)!!.status
+                            boundary.editing.update(
+                                orbita.mod.model.CoreType.Requirement, pr.id, pr.changes,
+                                pr.base, by, changeRef = changeRef,
+                            )
+                            if (was != orbita.mod.model.Lifecycle.Draft) demoted += pr.id
+                        }
+                    }
+                    call?.let { boundary.ai.markAccepted(it, prepared.size, by) }
+                    val out = mapper.createObjectNode()
+                    out.put("written", prepared.size)
+                    out.putArray("problems")
+                    out.putArray("demoted").also { arr -> demoted.forEach(arr::add) }
+                    respond(ex, 201, out)
+                }
+            }
+
             method == "POST" && path == "/ai/accept-batch" -> {
                 val request = mapper.readTree(body(ex))
                 val by = request.path("by").asText("").trim().takeIf { it.isNotEmpty() }
