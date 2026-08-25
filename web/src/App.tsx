@@ -12,6 +12,7 @@ import { AiProposal } from './screens/AiProposal'
 import { AiService } from './screens/AiService'
 import { BatchLoad } from './screens/BatchLoad'
 import { NewProject } from './screens/NewProject'
+import { StartPath } from './screens/StartPath'
 import { Comparison } from './screens/Comparison'
 import { Coverage } from './screens/Coverage'
 import { Demand } from './screens/Demand'
@@ -159,12 +160,18 @@ export function App() {
           onDone={(id) => {
             selectProject(id)
             setFirstRun(false)
-            setScreen('lifecycle')
+            setScreen('startpath')
             loadHeader()
           }}
           onCancel={() => { setFirstRun(false); setScreen('portfolio') }}
           onLoadFile={() => { setFirstRun(false); setScreen('importb') }} />
       )
+      case 'startpath':
+        return project
+          ? <StartPath project={project} onGo={go} onDone={() => { setScreen('lifecycle'); loadHeader() }} />
+          : <Portfolio onOpen={() => setScreen('lifecycle')}
+              onNew={() => { setFirstRun(false); setScreen('newproject') }}
+              onFirstRun={() => { setFirstRun(true); setScreen('newproject') }} />
       case 'lifecycle':
         return project
           ? <Lifecycle project={project} onGo={go} />
@@ -261,7 +268,7 @@ export function App() {
             </button>
           ))}
         </nav>
-        {screen !== 'portfolio' && screen !== 'newproject' && (
+        {!['portfolio', 'newproject', 'startpath'].includes(screen) && (
           <aside className="ops">
             <div className="ops__title">{nav.label}</div>
             {nav.screens.map((sc) => (

@@ -1102,3 +1102,69 @@ details.np-dates[open] summary::before { transform: rotate(90deg); }
 .np-after { font-size: 11.5px; color: var(--status-draft); margin-top: 14px; }
 .np-crumb { font-size: 13px; color: var(--text-secondary); }
 .np-crumb b { color: var(--text); font-weight: 600; }
+
+/* ── Мастер-путь «Начало проекта» — эталон reference2/reference-project-start.html ── */
+.sp-work { width: 760px; }
+.sp-path { display: flex; align-items: center; gap: 10px; margin: 0 0 6px; }
+.sp-path h2 { font-size: 18px; font-weight: 700; letter-spacing: -0.015em; flex: 1; }
+.sp-skip { font-size: 12px; color: var(--text-secondary); background: none; border: none; cursor: pointer; padding: 0; font-family: var(--font); }
+.sp-skip:hover { text-decoration: underline; }
+.sp-steps { display: flex; gap: 6px; margin: 0 0 22px; }
+.sp-st {
+  flex: 1; padding: 7px 12px; border-radius: 7px; border: 1px solid var(--hairline);
+  background: var(--container); font: 500 12px/16px var(--font); color: var(--text-secondary);
+  display: flex; gap: 8px; align-items: center;
+}
+.sp-st .sp-n { font-family: var(--font-mono); font-size: 11px; color: var(--status-draft); }
+.sp-st.sp-on { border-color: var(--accent); background: var(--selection); color: var(--text); }
+.sp-st.sp-on .sp-n { color: var(--accent); font-weight: 600; }
+.sp-st.sp-done { color: var(--text); }
+.sp-st.sp-done .sp-n { color: var(--status-baseline); }
+.sp-st.sp-done .sp-n::after { content: ' ✓'; }
+.sp-limits { border: 1px solid var(--hairline); border-radius: 8px; background: var(--container); padding: 4px 0; }
+.sp-lim { display: flex; gap: 10px; align-items: flex-start; padding: 6px 12px; border-bottom: 1px solid var(--container-3); }
+.sp-lim:last-of-type { border-bottom: none; }
+.sp-no { font-family: var(--font-mono); font-size: 11px; color: var(--status-draft); padding-top: 2px; min-width: 18px; }
+.sp-tx { flex: 1; font-size: 12.5px; line-height: 18px; }
+.sp-rm { font-size: 11px; color: var(--status-draft); cursor: pointer; background: none; border: none; padding: 0; font-family: var(--font); }
+.sp-addrow { padding: 7px 12px; }
+.sp-addrow input {
+  width: 100%; font: 400 12.5px/18px var(--font); border: 1px dashed var(--hairline);
+  border-radius: 6px; padding: 6px 10px; background: var(--container-2);
+}
+.sp-two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.sp-pane { border: 1px solid var(--hairline); border-radius: 8px; background: var(--container); }
+.sp-ph { padding: 9px 12px; border-bottom: 1px solid var(--hairline); font: 600 12px/16px var(--font); }
+.sp-ph .sp-sub { font-weight: 400; color: var(--status-draft); font-size: 11px; margin-left: 6px; }
+.sp-set { display: flex; gap: 10px; align-items: flex-start; padding: 8px 12px; border-bottom: 1px solid var(--container-3); }
+.sp-set:last-of-type { border-bottom: none; }
+.sp-nm { font: 500 12.5px/17px var(--font); }
+.sp-ds { font-size: 11.5px; color: var(--text-secondary); }
+.sp-open { font-size: 11.5px; color: var(--accent); background: none; border: none; cursor: pointer; padding: 0; font-family: var(--font); }
+.sp-open:hover { text-decoration: underline; }
+.sp-file { display: flex; gap: 8px; align-items: center; padding: 7px 12px; font-size: 12.5px; }
+.sp-mono { font-family: var(--font-mono); font-size: 11.5px; color: var(--text-secondary); }
+.sp-ok { color: var(--status-baseline); font-size: 11.5px; margin-left: auto; }
+.sp-aihead { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
+.sp-aihead .sp-nm { font: 600 13px/18px var(--font); }
+.sp-origin { font-size: 11.5px; color: var(--text-secondary); margin: 0 0 12px; }
+.sp-origin b { font-weight: 600; color: var(--text); }
+.sp-blk { border-left: 3px solid var(--hairline); padding: 6px 12px; margin: 0 0 8px; background: var(--container-2); border-radius: 0 6px 6px 0; }
+.sp-src { font: 600 10.5px/14px var(--font); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 3px; }
+.sp-blk pre { font: 400 12px/18px var(--font-mono); white-space: pre-wrap; margin: 0; }
+.sp-blk.sp-profile { border-color: var(--accent); }
+.sp-blk.sp-profile .sp-src { color: var(--accent); }
+.sp-blk.sp-input { border-color: var(--status-baseline); }
+.sp-blk.sp-input .sp-src { color: var(--status-baseline); }
+.sp-sp { flex: 1; }
+/* Свёрнутая строка пути на жизненном цикле */
+.lcband {
+  margin: 0 14px 10px; border: 1px solid var(--hairline); border-radius: 8px;
+  background: var(--container); display: flex; gap: 12px; align-items: center;
+  padding: 9px 14px; font-size: 12.5px;
+}
+.lcband--done { border-style: dashed; }
+.lcband .dotp { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex: none; }
+.lcband--done .dotp { background: var(--status-baseline); }
+.lcband b { font-weight: 600; }
+.lcband .sub { color: var(--text-secondary); }

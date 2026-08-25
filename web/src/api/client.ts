@@ -206,6 +206,11 @@ export const api = {
     post<Record<string, unknown>>('/gates/return/resolve', { author, note }),
   // ---------- П5: служба ИИ (профиль → промпт → вызов → фильтр → журнал) ----------
   /** Промпт собирает служба из профиля и состояния модели; клиент его читает. */
+  /** Мастер-путь Ш3: профиль службы из ограничений паспорта — собирает сервер. */
+  startPathProfile: (author: string) =>
+    post<{ id: string; version: string; name: string; prohibitions: number }>(
+      '/views/start-path/profile', { author },
+    ),
   aiCompose: (kind: string, profile: string, statement: string) =>
     post<{ profile: string; profile_version: string; transport: string; require_source: boolean; prompt: string }>(
       '/ai/compose', { kind, profile, statement },

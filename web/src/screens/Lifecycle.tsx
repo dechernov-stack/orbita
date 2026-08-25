@@ -61,6 +61,21 @@ export function Lifecycle({ project, onGo }: { project: string; onGo: (screen: s
   const [planBusy, setPlanBusy] = useState(false)
   const [outlookBusy, setOutlookBusy] = useState(false)
   const [outlookNote, setOutlookNote] = useState<string | null>(null)
+  /** Мастер-путь «Начало проекта»: брошенный или пройденный живёт строкой. */
+  const [startPath, setStartPath] = useState<{
+    status: string
+    step: number
+    profile_ref?: string
+  } | null>(null)
+
+  useEffect(() => {
+    edit.object(project)
+      .then((o) => {
+        const sp = (o.doc as { start_path?: { status: string; step: number; profile_ref?: string } }).start_path
+        setStartPath(sp ?? null)
+      })
+      .catch(() => setStartPath(null))
+  }, [project])
 
   const loadGates = () => {
     api.gates()
@@ -185,6 +200,47 @@ export function Lifecycle({ project, onGo }: { project: string; onGo: (screen: s
       </div>
       <div className="workarea">
         {outlookNote && <div className="notice" style={{ margin: '8px 14px 0' }}>{outlookNote}</div>}
+        {startPath && startPath.status === 'in_progress' && (
+          <div className="lcband" style={{ marginTop: 10 }}>
+            <span className="dotp" />
+            <span>
+              <b>Начало проекта: шаг {startPath.step} из 3.</b>{' '}
+              {startPath.step === 2 && (
+                <span className="sub">
+                  Параметры заданы; осталось подключить библиотеку и запустить генерацию.
+                </span>
+              )}
+            </span>
+            <span className="grow" />
+            <button className="btn btn--primary" style={{ padding: '5px 14px' }}
+              onClick={() => onGo('startpath')}>
+              Продолжить
+            </button>
+          </div>
+        )}
+        {startPath && startPath.status === 'done' && (
+          <div className="lcband lcband--done" style={{ marginTop: 10 }}>
+            <span className="dotp" />
+            <span>
+              <b>Начало пройдено.</b>{' '}
+              <span className="sub">
+                {startPath.profile_ref
+                  ? `Профиль ${startPath.profile_ref} создан, генерация запущена.`
+                  : 'Профиль создан, генерация запущена.'}
+              </span>
+            </span>
+            <span className="grow" />
+            <button className="sp-open" onClick={() => onGo('startpath')}>настроить заново</button>
+          </div>
+        )}
+        {startPath && startPath.status === 'skipped' && (
+          <div className="lcband lcband--done" style={{ marginTop: 10 }}>
+            <span className="dotp" style={{ background: 'var(--status-draft)' }} />
+            <span><b>Начало пропущено.</b></span>
+            <span className="grow" />
+            <button className="sp-open" onClick={() => onGo('startpath')}>пройти</button>
+          </div>
+        )}
         <div className="gatestrip">
           {gates.map((g, i) => {
             const overdue = g.overdue === true

@@ -1459,6 +1459,59 @@ class HttpApi(private val boundary: Boundary) {
             // результат ложится в results (kind=flow), его читают «Сравнение»
             // (узкие места) и свидетельства верификации. Прежде ядро было
             // не подключено: запустить прогон из интерфейса было нельзя.
+            // Мастер-путь «Начало проекта», Ш3: профиль службы — СЛЕДСТВИЕ
+            // шагов, а не находка в меню. Запреты профиля собираются из
+            // ограничений паспорта (Ш1) здесь, на сервере: правило «запреты
+            // службы = ограничения проекта» живёт в одном месте. Повторный
+            // вызов обновляет собранный профиль, а не плодит дубли.
+            method == "POST" && path == "/views/start-path/profile" -> {
+                val req = mapper.readTree(body(ex))
+                val startAuthor = req.path("author").asText("")
+                require(startAuthor.isNotBlank()) { "field 'author' is required" }
+                val startProject = requireProject(project)
+                val passport = boundary.objects.current(startProject)
+                    ?: throw NoSuchElementException("project '$startProject' not found")
+                val prohibitions = mapper.createArrayNode()
+                passport.doc.path("constraints").forEach { c ->
+                    val text = c.path("text").asText("")
+                    val code = c.path("code").asText("")
+                    if (text.isNotBlank()) {
+                        prohibitions.add(if (code.isBlank()) text else "$text ($code)")
+                    }
+                }
+                val profileName = "Генерация О2 — цели и нужды"
+                val doc = mapper.createObjectNode()
+                doc.put("name", profileName)
+                doc.put("purpose", "Собран мастер-путём «Начало проекта»: запреты — из ограничений паспорта")
+                doc.putArray("kinds").add("mission_to_goals").add("mission_to_needs")
+                doc.put("transport", "any")
+                doc.set<ObjectNode>("prohibitions", prohibitions)
+                doc.put("require_source", true)
+                val existing = boundary.objects.listCurrent(startProject)
+                    .firstOrNull {
+                        it.type == "ai_profile" && it.status != Lifecycle.Cancelled &&
+                            it.doc.path("name").asText("") == profileName
+                    }
+                val stored = if (existing == null) {
+                    boundary.editing.create(
+                        orbita.mod.model.CoreType.AiProfile, doc, startAuthor, startProject,
+                    )
+                } else {
+                    boundary.editing.update(
+                        orbita.mod.model.CoreType.AiProfile, existing.id, doc,
+                        existing.version, startAuthor,
+                    )
+                }
+                respond(
+                    ex, if (existing == null) 201 else 200,
+                    mapper.createObjectNode()
+                        .put("id", stored.id)
+                        .put("version", stored.version)
+                        .put("name", profileName)
+                        .put("prohibitions", prohibitions.size()),
+                )
+            }
+
             method == "POST" && path == "/views/flows/run" -> {
                 val req = mapper.readTree(body(ex))
                 val scenarioId = req.path("scenario").asText("")
