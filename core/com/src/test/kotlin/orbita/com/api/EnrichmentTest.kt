@@ -62,6 +62,16 @@ class EnrichmentTest {
         // Baseline низким уровнем хранилища: promote честно требует полный
         // план верификации, а тесту нужно лишь СОСТОЯНИЕ базированного
         boundary.objects.transition("RQ-1401", Lifecycle.Baseline)
+        // профиль, разрешающий дозаполнение, — закон П5: без него ни compose,
+        // ни submit не работают
+        boundary.ingest(
+            orbita.mod.model.CoreType.AiProfile,
+            """{"id":"AP-1401","name":"Дозаполнение","purpose":"обоснования и показатели",
+                "kinds":["requirement_enrichment"],"transport":"any",
+                "require_source":true,
+                "lifecycle":{"status":"Draft","version":"1"}}""",
+            "test", "PJ-1401",
+        )
     }
 
     @AfterAll
@@ -81,6 +91,39 @@ class EnrichmentTest {
         assertTrue("RQ-1401" in stmt) { stmt }
         assertTrue("rationale" in stmt && "mop" in stmt) { stmt }
         assertTrue("Всего дырявых: 1" in stmt) { stmt }
+    }
+
+    @Test
+    fun `закрытый контур дозаполнения - разбор без пакета вида, фильтр по спец-схеме`() {
+        // прежде здесь был 500 «схему ответа выводить не из чего»: screen
+        // строил пакет вида безусловно, а у дозаполнения его нет (находка
+        // живого прогона — тест бил мимо этой ветки)
+        val raw = """[
+            {"id":"RQ-1401",
+             "rationale":"Следует из нужды ND-1401: суточный цикл сбора телеметрии.",
+             "mop":{"name":"Вероятность суточной доставки","operator":"ge",
+                    "value":{"value":0.9,"unit":"1",
+                             "provenance":{"source":"imported",
+                               "import":{"dataset":"постановка миссии","dataset_version":"1",
+                                         "retrieved_at":"2026-08-25","terms":"внутренний документ проекта"}}}}},
+            {"id":"НЕ-ИД","rationale":"мимо схемы"}]"""
+        val r = post(
+            "/ai/submit?project=PJ-1401",
+            mapper.writeValueAsString(
+                mapper.createObjectNode()
+                    .put("kind", "requirement_enrichment")
+                    .put("profile", "AP-1401")
+                    .put("statement", "")
+                    .put("raw", raw)
+                    .put("author", "Инженер"),
+            ),
+        )
+        assertEquals(200, r.statusCode()) { r.body() }
+        val n = mapper.readTree(r.body())
+        assertEquals(2, n["proposed"].asInt())
+        assertEquals(1, n["shown"].size()) { r.body() }
+        // вход собрала служба (промпт с дырявым поимённо) — проверено
+        // отдельным тестом enrichmentStatement; здесь важен сам контур
     }
 
     @Test

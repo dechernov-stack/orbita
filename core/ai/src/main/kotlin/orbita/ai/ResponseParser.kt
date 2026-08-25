@@ -27,16 +27,27 @@ class ResponseParser(private val mapper: ObjectMapper = ObjectMapper()) {
      * проверяются поштучно: частично корректный ответ принимается в части
      * валидных, причины отклонения — с путём до поля.
      */
-    fun parseAgainstInline(raw: String, pkg: PromptPackage, schema: JsonNode): ParseResult {
-        val first = parse(raw, pkg)
+    fun parseAgainstInline(raw: String, schema: JsonNode): ParseResult {
+        // самодостаточный разбор: у дозаполнения нет пакета вида (ответ —
+        // частичные правки), и требовать его значило бы падать на сборке
+        // пакета «схему ответа выводить не из чего» (находка прогона)
+        val data = try {
+            mapper.readTree(FENCE.replace(raw.trim(), "").trim())
+        } catch (e: com.fasterxml.jackson.core.JsonProcessingException) {
+            return ParseResult(
+                emptyList(),
+                listOf(Rejected(null, listOf("ответ не разбирается как JSON: ${e.originalMessage}"))),
+            )
+        }
+        val items = if (data.isArray) data.toList() else data.path("items").toList()
         val itemSchema = schema.path("items").takeIf { it.isObject } ?: schema
         val compiled = com.networknt.schema.JsonSchemaFactory
             .getInstance(com.networknt.schema.SpecVersion.VersionFlag.V202012)
             .getSchema(itemSchema)
         val accepted = mutableListOf<JsonNode>()
-        val rejected = first.rejected.toMutableList()
-        first.accepted.forEach { item ->
-            val errors = compiled.validate(item).map { "${'$'}{it.instanceLocation}: ${'$'}{it.message}" }
+        val rejected = mutableListOf<Rejected>()
+        items.forEach { item ->
+            val errors = compiled.validate(item).map { "${it.instanceLocation}: ${it.message}" }
             if (errors.isEmpty()) accepted.add(item) else rejected += Rejected(item, errors)
         }
         return ParseResult(accepted, rejected)

@@ -263,21 +263,38 @@ class AiService(
      * перестаёт быть правдой.
      */
     private fun screen(raw: String, kind: String, p: AiProfile): ObjectNode {
-        val pkg = boundary.packages.build(kind, mapper.createObjectNode(), "служба")
-        val schemaName = orbita.ai.PackageKinds.default().of(kind).targetSchema
         val parsed = if (kind == ENRICHMENT_KIND) {
-            // частичные правки: полная схема вида к ним неприменима,
-            // проверка — против схемы ответа дозаполнения
-            boundary.parser.parseAgainstInline(raw, pkg, enrichmentResponseSchema())
-        } else if (schemaName != null) {
-            boundary.parser.parseAgainstSchema(raw, pkg, boundary.schemas, schemaName)
+            // частичные правки: пакета вида у дозаполнения НЕТ (сборка пакета
+            // упала бы «схему ответа выводить не из чего» — находка прогона);
+            // разбор самодостаточен, проверка — против схемы дозаполнения
+            boundary.parser.parseAgainstInline(raw, enrichmentResponseSchema())
         } else {
-            boundary.parser.parse(raw, pkg)
+            val pkg = boundary.packages.build(kind, mapper.createObjectNode(), "служба")
+            val schemaName = orbita.ai.PackageKinds.default().of(kind).targetSchema
+            if (schemaName != null) {
+                boundary.parser.parseAgainstSchema(raw, pkg, boundary.schemas, schemaName)
+            } else {
+                boundary.parser.parse(raw, pkg)
+            }
         }
-        val report = boundary.screening.screen(
-            parsed.accepted,
-            ScreeningContext(requireSource = p.requireSource),
-        )
+        val report = if (kind == ENRICHMENT_KIND) {
+            // частичная правка — не объект вида: правила качества формулировок
+            // к ней неприменимы (срезали бы «нет модального „должна"» у правки
+            // без formulировки — находка прогона); действует только правило
+            // основания по величинам
+            val shown = mutableListOf<com.fasterxml.jackson.databind.JsonNode>()
+            val rework = mutableListOf<orbita.ai.Screened>()
+            parsed.accepted.forEach { item ->
+                val issues = if (p.requireSource) orbita.req.sourceIssues(item) else emptyList()
+                if (issues.isEmpty()) shown.add(item) else rework += orbita.ai.Screened(item, issues)
+            }
+            orbita.ai.ScreenReport(shown, rework)
+        } else {
+            boundary.screening.screen(
+                parsed.accepted,
+                ScreeningContext(requireSource = p.requireSource),
+            )
+        }
         val out = mapper.createObjectNode()
         out.put("proposed", parsed.accepted.size + parsed.rejected.size)
         out.put(
