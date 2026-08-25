@@ -291,9 +291,9 @@ export function Documents({ onGo }: { onGo?: (screen: string) => void }) {
 
           <div className="field doc-actions" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             {/* Кнопка, оставшаяся кликабельной после нажатия, копила дубли
-                выпусков одного слепка (находка прогона: DI-0001…0014 с одним
-                digest). Блокируется на время запроса И пока текущий слепок
-                уже выпущен — переиздавать без изменений модели нечего. */}
+                выпусков одного слепка (находка прогона: четырнадцать выпусков
+                с одним digest). Блокируется на время запроса И пока текущий
+                слепок уже выпущен — переиздавать без изменений модели нечего. */}
             {(() => {
               const already = issues?.issues.find((i) => i.digest === doc.digest)
               const disabled = !author || issuing || already != null
