@@ -38,9 +38,53 @@ fun comparisonView(
     return ComparisonView(
         options = options,
         radar = radarSeries(options, axes, directions),
-        paretoFront = paretoFrontByAxes(options, directions = directions),
+        paretoFront = paretoFrontOverAxes(options, axes, directions),
         axes = axes,
     )
+}
+
+/**
+ * Недоминируемые варианты по ФАКТИЧЕСКИМ осям сравнения: вариант выпадает из
+ * фронта, если найдётся другой, не хуже по всем осям и строго лучше хотя бы
+ * по одной (направление каждой оси — из реестра показателей). Пара cost×quality
+ * прежнего paretoFrontByAxes у вариантов из прогона потоков отсутствует —
+ * фронт по несуществующим осям ронял всё сравнение (находка живого прогона).
+ */
+fun paretoFrontOverAxes(
+    options: List<RadarOption>,
+    axes: List<String>,
+    directions: KpiAxes,
+): List<String> {
+    fun notWorse(axis: String, b: Double, a: Double) =
+        if (directions.direction(axis) == orbita.bal.AxisDirection.LowerIsBetter) b <= a else b >= a
+    fun better(axis: String, b: Double, a: Double) =
+        if (directions.direction(axis) == orbita.bal.AxisDirection.LowerIsBetter) b < a else b > a
+    return options.filter { a ->
+        options.none { b ->
+            b !== a &&
+                axes.all { notWorse(it, b.values.getValue(it), a.values.getValue(it)) } &&
+                axes.any { better(it, b.values.getValue(it), a.values.getValue(it)) }
+        }
+    }.map { it.name }.sorted()
+}
+
+/**
+ * Оси сравнения из результата прогона потоков: вероятность доставки по
+ * классам потребителей и кратность повторов. Латентности осями сознательно
+ * не делаются: перцентиль пришлось бы выбирать за инженера.
+ *
+ * Находка живого прогона: сравнение ждало нескольких kpi-расчётов ОДНОГО
+ * сценария, а процесс порождает вариантность клонами сценариев — и у
+ * сценария результат один, прогон потоков. Вариант сравнения = сценарий.
+ */
+fun flowComparisonAxes(payload: com.fasterxml.jackson.databind.JsonNode): Map<String, Double> = buildMap {
+    payload.path("by_class").forEach { c ->
+        val cls = c.path("consumer_class").asText("")
+        val prob = c.path("delivery_probability")
+        if (cls.isNotBlank() && prob.isNumber) put("delivery_" + cls.lowercase(), prob.asDouble())
+    }
+    payload.path("load").path("retransmission_ratio")
+        .takeIf { it.isNumber }?.let { put("retransmission_ratio", it.asDouble()) }
 }
 
 /** Клетка матрицы рисков 5×5 с уже вычисленной критичностью. */

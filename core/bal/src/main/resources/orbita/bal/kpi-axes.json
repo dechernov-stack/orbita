@@ -6,7 +6,10 @@
     "energy",
     "availability",
     "multiplicity",
-    "lifetime_years"
+    "lifetime_years",
+    "delivery_a_prime",
+    "delivery_b_prime",
+    "delivery_c_prime"
   ],
   "lower_is_better": [
     "cost",
@@ -14,6 +17,7 @@
     "launch_campaigns",
     "total_mass_kg",
     "max_gap_s",
-    "revisit_s"
+    "revisit_s",
+    "retransmission_ratio"
   ]
 }

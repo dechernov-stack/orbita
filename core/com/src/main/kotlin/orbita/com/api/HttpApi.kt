@@ -1480,27 +1480,38 @@ class HttpApi(private val boundary: Boundary) {
             // Экран 7: сравнение вариантов — нормировка и Парето считаются здесь.
             // Сценарий обязателен (шаг 16 §3.2): умолчаний нет.
             method == "GET" && path == "/views/comparison" -> {
-                val comparisonScenario = query(ex)["scenario"] ?: throw IllegalArgumentException(
-                    "query parameter 'scenario' is required: выберите сценарий из /objects?type=scenario",
-                )
-                val options = boundary.results.activeForScenario(
-                    comparisonScenario, "kpi",
-                ).map { r ->
-                    orbita.bal.RadarOption(
-                        r.payload.path("name").asText(),
-                        buildMap {
+                // Вариант сравнения = СЦЕНАРИЙ с выполненным прогоном (второй
+                // заход: маршрут ждал нескольких kpi-расчётов одного сценария,
+                // а процесс порождает вариантность клонами сценариев — базовый
+                // против варианта, — и сравнение не работало никогда). Значения
+                // осей берутся из активных результатов сценария: kpi-вектора,
+                // если он есть, и прогона потоков.
+                val comparisonScenarios = boundary.objects.listCurrent(project)
+                    .filter { it.type == "scenario" && it.status != Lifecycle.Cancelled }
+                val options = comparisonScenarios.mapNotNull { sc ->
+                    val values = buildMap {
+                        boundary.results.activeForScenario(sc.id, "kpi").lastOrNull()?.let { r ->
                             listOf("quality", "cost", "reliability", "energy",
                                 "deployment_days", "launch_campaigns").forEach { axis ->
                                 r.payload.path(axis).takeIf { it.isNumber }?.let { put(axis, it.asDouble()) }
                             }
-                        },
-                    )
+                        }
+                        boundary.results.activeForScenario(sc.id, "flow").lastOrNull()?.let { r ->
+                            putAll(orbita.out.flowComparisonAxes(r.payload))
+                        }
+                    }
+                    if (values.isEmpty()) null else orbita.bal.RadarOption(sc.id, values)
                 }
                 if (options.size < 2) {
+                    val have = options.joinToString { it.name }.ifEmpty { "ни одного" }
                     respond(
                         ex, 409,
-                        mapper.createObjectNode()
-                            .put("error", "сравнение требует не менее двух вариантов: нормировать не по чему"),
+                        mapper.createObjectNode().put(
+                            "error",
+                            "в сравнении участвуют сценарии с выполненным прогоном: " +
+                                "сейчас с результатами $have из ${comparisonScenarios.size} — " +
+                                "выполните прогон потоков по второму сценарию",
+                        ),
                     )
                 } else {
                     // Оси — из фактически имеющихся в результатах (шаг 16 §3.5):

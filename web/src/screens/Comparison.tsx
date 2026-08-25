@@ -40,14 +40,13 @@ export function Comparison() {
     api.staleResults().then(setStale).catch((e) => setError(String(e)))
   }, [])
 
+  // Роза строится по ВСЕМ сценариям с прогоном (вариант = сценарий), выбор
+  // сценария сверху относится к прогону и узким местам, не к составу розы.
   useEffect(() => {
-    if (!scenario) return
     setNotice(null)
     setError(null)
-    // Узкие места из сохранённого прогона (шаг 16 §2.4): ничего не пересчитывается
-    api.bottlenecks(scenario).then(setBottlenecks).catch(() => setBottlenecks(null))
     api
-      .comparison(scenario, axes)
+      .comparison(axes)
       .then(setView)
       .catch((e) => {
         setView(null)
@@ -62,7 +61,13 @@ export function Comparison() {
           setError(String(e))
         }
       })
-  }, [scenario, axes])
+  }, [axes, flowBusy])
+
+  useEffect(() => {
+    if (!scenario) return
+    // Узкие места из сохранённого прогона (шаг 16 §2.4): ничего не пересчитывается
+    api.bottlenecks(scenario).then(setBottlenecks).catch(() => setBottlenecks(null))
+  }, [scenario, flowBusy])
 
   const staleHere = stale.filter((r) => r.scenario_id === scenario)
 
@@ -77,7 +82,7 @@ export function Comparison() {
 
   const selector = (
     <div className="pane__tools">
-      <span className="secondary">Сценарий:</span>
+      <span className="secondary" title="выбор относится к прогону потоков и узким местам; роза сравнивает все сценарии с выполненным прогоном">Сценарий:</span>
       <select value={scenario} onChange={(e) => setScenario(e.target.value)}>
         {scenarios.map((s) => (
           <option key={s.id} value={s.id}>{s.id}{s.title ? ` — ${s.title}` : ''}</option>
@@ -113,11 +118,37 @@ export function Comparison() {
     </div>
   )
 
+  const runCard = (
+    <div style={{ margin: '6px 0' }}>
+      <button type="button" className="tab tab--primary" disabled={!scenario || flowBusy}
+        title="Монте-Карло по хранимым входам сценария: геометрия, популяции из карты спроса, канал из адаптера"
+        onClick={() => {
+          if (!scenario) return
+          setFlowBusy(true)
+          setFlowNote(null)
+          api.flowsRun(scenario)
+            .then((r) => {
+              setFlowNote(`прогон выполнен: реализаций ${r.runs}, пролётов ${r.passes} (в зоне обслуживания ${r.service_passes}), популяций ${r.populations}`)
+            })
+            .catch((e) => setFlowNote(String(e).slice(0, 300)))
+            .finally(() => setFlowBusy(false))
+        }}>
+        {flowBusy ? 'Прогон потоков…' : 'Выполнить прогон потоков'}
+      </button>
+      {flowNote && <div className="secondary" style={{ marginTop: 4 }}>{flowNote}</div>}
+    </div>
+  )
+
   if (notice)
+    // «вариантов меньше двух» — рабочее состояние, и выход из него — прогон:
+    // кнопка обязана быть видна здесь же, иначе подсказка ведёт в тупик
+    // (находка живого прогона: сообщение велело выполнить прогон, а кнопка
+    // жила в боковой панели готовой розы)
     return (
       <div className="pane">
         {selector}
         <div className="empty">{notice}</div>
+        <div style={{ padding: '0 16px 16px' }}>{runCard}</div>
       </div>
     )
   if (!view)
@@ -184,25 +215,7 @@ export function Comparison() {
                 подключено, и «не выполнялся» было вечным состоянием
                 (находка живого прогона). Прогон долгий — кнопка честно
                 блокируется на время счёта. */}
-            <div style={{ marginBottom: 6 }}>
-              <button type="button" className="tab tab--primary" disabled={!scenario || flowBusy}
-                title="Монте-Карло по хранимым входам сценария: геометрия, популяции из карты спроса, канал из адаптера"
-                onClick={() => {
-                  if (!scenario) return
-                  setFlowBusy(true)
-                  setFlowNote(null)
-                  api.flowsRun(scenario)
-                    .then((r) => {
-                      setFlowNote(`прогон выполнен: реализаций ${r.runs}, пролётов ${r.passes} (в зоне обслуживания ${r.service_passes}), популяций ${r.populations}`)
-                      api.bottlenecks(scenario).then(setBottlenecks).catch(() => undefined)
-                    })
-                    .catch((e) => setFlowNote(String(e).slice(0, 300)))
-                    .finally(() => setFlowBusy(false))
-                }}>
-                {flowBusy ? 'Прогон потоков…' : 'Выполнить прогон потоков'}
-              </button>
-              {flowNote && <div className="secondary" style={{ marginTop: 4 }}>{flowNote}</div>}
-            </div>
+            {runCard}
             {!bottlenecks || !bottlenecks.executed ? (
               // «не считали» — не то же, что «узких мест нет» (TZ-OUT-002)
               <span className="secondary">прогон потоков по сценарию не выполнялся</span>

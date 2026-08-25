@@ -245,11 +245,11 @@ export const api = {
   componentSpecification: (id: string) => get<ComponentSpecification>(`/views/components/${id}`),
   unitLabels: () => get<UnitLabels>('/unit-labels'),
   systemOverview: () => get<SystemOverview>('/views/system'),
-  /** Сценарий обязателен (§3.2); оси — из фактически имеющихся (§3.5). */
-  comparison: (scenario: string, axes?: string[]) =>
+  /** Вариант = сценарий с выполненным прогоном; оси — из фактических (§3.5). */
+  comparison: (axes?: string[]) =>
     get<ComparisonView>(
-      `/views/comparison?scenario=${encodeURIComponent(scenario)}` +
-        (axes && axes.length > 0 ? `&axes=${axes.map(encodeURIComponent).join(',')}` : ''),
+      '/views/comparison' +
+        (axes && axes.length > 0 ? `?axes=${axes.map(encodeURIComponent).join(',')}` : ''),
     ),
   /** Прогон потоков (Монте-Карло) от хранимых входов сценария; долгий. */
   flowsRun: (scenario: string) =>
