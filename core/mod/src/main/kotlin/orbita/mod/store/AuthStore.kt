@@ -116,6 +116,24 @@ class AuthStore(private val conn: Connection) {
             }
         }
 
+    fun mapAuthor(author: String, login: String) {
+        conn.prepareStatement(
+            """INSERT INTO author_map(author_string, login) VALUES (?,?)
+               ON CONFLICT (author_string) DO UPDATE SET login = EXCLUDED.login"""
+        ).use { ps ->
+            ps.setString(1, author)
+            ps.setString(2, login)
+            ps.executeUpdate()
+        }
+    }
+
+    fun authorMap(): Map<String, String> =
+        conn.createStatement().use { st ->
+            st.executeQuery("SELECT author_string, login FROM author_map").use { rs ->
+                buildMap { while (rs.next()) put(rs.getString(1), rs.getString(2)) }
+            }
+        }
+
     private fun pbkdf2(password: String, salt: ByteArray): ByteArray =
         SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
             .generateSecret(PBEKeySpec(password.toCharArray(), salt, 210_000, 256))

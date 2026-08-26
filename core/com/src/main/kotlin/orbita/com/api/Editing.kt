@@ -249,5 +249,7 @@ class Editing(
             currentVersion = cur.version,
             changedBy = cur.createdBy,
             theirValues = changes.properties().map { it.key }.associateWith { cur.doc.path(it) },
+            // обе версии разошедшихся полей — материал экрана конфликта (В3)
+            yourValues = changes.properties().associate { (k, v) -> k to v },
         )
 }

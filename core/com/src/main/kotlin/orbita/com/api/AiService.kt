@@ -56,7 +56,13 @@ class AiService(
      */
     fun context(projectId: String, statement: String): ModelContext {
         val project = boundary.objects.current(projectId)
-        val objects = boundary.objects.listCurrent(projectId)
+        // §6 СТРУКТУРЫ-БИБЛИОТЕКИ: compose тянет и полки — профили
+        // стейкхолдеров, типовые риски, нормативы живут в области LIB,
+        // а выборка операции должна их видеть
+        val shelfTypes = setOf("stakeholder_profile", "typical_risk", "normative_document", "mission_class")
+        val objects = (boundary.objects.listCurrent(projectId) +
+            boundary.objects.listCurrent(orbita.mod.store.ObjectStore.LIBRARY_PROJECT)
+                .filter { it.type in shelfTypes })
             .filter { it.status.name != "Cancelled" && it.type != "ai_profile" }
         return ModelContext(
             projectName = project?.doc?.path("name")?.asText(projectId) ?: projectId,

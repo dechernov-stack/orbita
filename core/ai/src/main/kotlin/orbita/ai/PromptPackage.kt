@@ -23,6 +23,9 @@ data class PackageKind(
     val targetSchema: String?,
     /** JSON Pointer внутрь схемы, если целевой объект — её часть. */
     val targetPointer: String? = null,
+    /** Виды, чья поимённая выборка нужна операции (СТАРТ-В3 §1);
+        остальное уходит агрегатом — счётчик и занятый диапазон id. */
+    val contextTypes: List<String> = emptyList(),
 )
 
 /**
@@ -57,6 +60,7 @@ class PackageKinds(private val kinds: Map<String, PackageKind>) {
                     output = n.path("output").asText(""),
                     targetSchema = n.path("target_schema").takeIf { it.isTextual }?.asText(),
                     targetPointer = n.path("target_pointer").takeIf { it.isTextual }?.asText(),
+                    contextTypes = n.path("context_types").map { it.asText() },
                 )
             },
         )

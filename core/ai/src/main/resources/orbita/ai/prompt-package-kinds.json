@@ -5,86 +5,132 @@
       "id": "mission_to_goals",
       "input": "постановка миссии, программные цели",
       "output": "цели и задачи миссии с MOE",
-      "target_schema": "core/mission-goal"
+      "target_schema": "core/mission-goal",
+      "context_types": [
+        "mission_goal",
+        "need"
+      ]
     },
     {
       "id": "mission_to_needs",
       "input": "постановка миссии, перечень стейкхолдеров",
       "output": "нужды стейкхолдеров",
-      "target_schema": "core/need"
+      "target_schema": "core/need",
+      "context_types": [
+        "need",
+        "stakeholder_profile"
+      ]
     },
     {
       "id": "needs_to_services",
       "input": "нужды, ограничения",
       "output": "кандидаты сервисов с MOE",
-      "target_schema": "core/service"
+      "target_schema": "core/service",
+      "context_types": [
+        "need",
+        "service"
+      ]
     },
     {
       "id": "services_to_requirements",
       "input": "сервис, QoS-профили по классам",
       "output": "системные требования с условиями",
-      "target_schema": "core/requirement"
+      "target_schema": "core/requirement",
+      "context_types": [
+        "service",
+        "requirement"
+      ]
     },
     {
       "id": "requirement_quality",
       "input": "пакет требований",
       "output": "замечания и переформулировки",
-      "target_schema": "core/requirement"
+      "target_schema": "core/requirement",
+      "context_types": [
+        "requirement"
+      ]
     },
     {
       "id": "requirement_decomposition",
       "input": "требование, поддерево компонентов",
       "output": "потомки с распределением и видом декомпозиции",
-      "target_schema": "core/requirement"
+      "target_schema": "core/requirement",
+      "context_types": [
+        "requirement",
+        "component"
+      ]
     },
     {
       "id": "verification_approach",
       "input": "требование, фаза",
       "output": "события верификации с подходом и средством",
       "target_schema": "core/requirement",
-      "target_pointer": "/properties/verification_events/items"
+      "target_pointer": "/properties/verification_events/items",
+      "context_types": [
+        "requirement"
+      ]
     },
     {
       "id": "risk_register",
       "input": "описание сценария",
       "output": "записи реестра рисков",
-      "target_schema": "core/risk"
+      "target_schema": "core/risk",
+      "context_types": [
+        "risk",
+        "typical_risk"
+      ]
     },
     {
       "id": "requirement_enrichment",
       "input": "требования проекта с незаполненными атрибутами (отбирает служба)",
       "output": "частичные правки: обоснование и показатель к названным id",
-      "target_schema": null
+      "target_schema": null,
+      "context_types": [
+        "requirement"
+      ]
     },
     {
       "id": "mission_to_stakeholders",
       "input": "записка миссии, регуляторные документы, класс миссии",
       "output": "профили стейкхолдеров полки А2: интересы, полномочия, типовые нужды",
-      "target_schema": "core/stakeholder-profile"
+      "target_schema": "core/stakeholder-profile",
+      "context_types": [
+        "stakeholder_profile",
+        "normative_document"
+      ]
     },
     {
       "id": "mission_to_typical_risks",
       "input": "записка миссии, регламенты, класс миссии",
       "output": "каталог типовых рисков полки Б3 с типовыми митигациями",
-      "target_schema": "core/typical-risk"
+      "target_schema": "core/typical-risk",
+      "context_types": [
+        "typical_risk"
+      ]
     },
     {
       "id": "checklist_extraction",
       "input": "текст критериев обзора (NPR 7123.1 прил. G)",
       "output": "чек-лист точки полки В3: входные и выходные критерии текстом",
-      "target_schema": "core/source-document"
+      "target_schema": "core/source-document",
+      "context_types": []
     },
     {
       "id": "template_extraction",
       "input": "текст документа-образца (PDF/текст)",
       "output": "предложение шаблона документа: структура разделов с подсказками, источник и редакция",
-      "target_schema": "core/document-template"
+      "target_schema": "core/document-template",
+      "context_types": [
+        "document_template"
+      ]
     },
     {
       "id": "section_editor",
       "input": "шаблон раздела (подсказка «что требуется видеть») и состояние модели",
       "output": "связный авторский текст раздела документа; акцепт делает его авторским",
-      "target_schema": "core/section-text"
+      "target_schema": "core/section-text",
+      "context_types": []
     }
-  ]
+  ],
+  "_context": "context_types — виды, чья ПОИМЁННАЯ выборка нужна операции (решение владельца, СТАРТ-В3 §1): остальное уходит в промпт агрегатом (счётчик + занятый диапазон id)"
 }

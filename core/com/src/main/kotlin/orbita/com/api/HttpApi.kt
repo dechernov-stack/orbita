@@ -91,6 +91,8 @@ class HttpApi(private val boundary: Boundary) {
                 .put("changed_by", e.changedBy)
             val theirs = body.putObject("their_values")
             e.theirValues.forEach { (field, value) -> theirs.set<ObjectNode>(field, value) }
+            val yours = body.putObject("your_values")
+            e.yourValues.forEach { (field, value) -> yours.set<ObjectNode>(field, value) }
             respond(ex, 409, body)
         } catch (e: IdReuseException) {
             respond(ex, 409, errJson(e))
@@ -618,6 +620,32 @@ class HttpApi(private val boundary: Boundary) {
                 val items = request.path("items")
                 require(items.isArray && items.size() > 0) { "items — пачка принятых предложений" }
                 val ctx = requireProject(project)
+                // В3 §2.5: акцепт ИИ — роль из профиля. Профиль вызова несёт
+                // accept_role; несовпадение — отказ (руководителю можно всегда).
+                currentAuthorLogin.get()?.let { login ->
+                    val callPk = request.path("call").takeIf { it.isNumber }?.asLong()
+                    val profileId = callPk?.let { pk ->
+                        boundary.ai.journal(ctx).path("calls")
+                            .firstOrNull { it.path("pk").asLong() == pk }
+                            ?.path("profile")?.asText("")
+                    }
+                    val need = profileId?.let {
+                        boundary.objects.current(it)?.doc?.path("accept_role")?.asText("")
+                    } ?: ""
+                    if (need.isNotBlank()) {
+                        val actual = boundary.auth.roleIn(ctx, login)
+                        if (actual != need && actual != "lead") {
+                            respond(
+                                ex, 403,
+                                mapper.createObjectNode().put(
+                                    "error",
+                                    "акцепт профиля $profileId — роль «$need» (ваша — ${actual ?: "нет"})",
+                                ),
+                            )
+                            return
+                        }
+                    }
+                }
                 val payload = mapper.createObjectNode()
                 payload.put("author", by)
                 val arr = payload.putArray("objects")
@@ -2363,10 +2391,10 @@ class HttpApi(private val boundary: Boundary) {
             ?: ex.requestHeaders.getFirst("Authorization")?.removePrefix("Bearer ")?.takeIf { it.isNotBlank() }
 
     /**
-     * Матрица прав по маршрутам (В3, роли из регламентов). Возвращает причину
-     * отказа или null. Точку фиксирует DA; базирование и изменение с
-     * основанием — ведущий СИ; специалист — владелец своих узлов; замечания —
-     * обзорная роль; читатель не пишет.
+     * Права по РЕЕСТРУ (В3, СТАРТ-В3 §2.3): «маршрут → роль» — данные
+     * permissions.json, не константы в коде. Первый совпавший решает;
+     * write-маршрут без правила закрыт. Спец-проверка владельца узла —
+     * owner_guard правила.
      */
     private fun denyReason(
         method: String,
@@ -2377,46 +2405,23 @@ class HttpApi(private val boundary: Boundary) {
         objectMatch: MatchResult?,
         editMatch: MatchResult?,
     ): String? {
-        // создание первой учётки/проекта не должно запирать систему:
-        // без роли в проекте разрешено только создать проект (создатель — lead)
+        // создание проекта не должно запирать систему: без роли можно
+        // только завести проект (создатель становится его руководителем)
         if (path == "/objects/project" || path == "/edit/project") return null
         if (role == null) return "у ${user.login} нет роли в проекте ${project ?: "—"}: назначает руководитель"
-        if (role == "reader") return "роль «читатель» не пишет"
-
-        val gatePass = Regex("^/gates/[^/]+/pass$").matches(path)
-        if (gatePass) return if (role == "da_review") null else
-            "точку фиксирует DA (обзорная роль); ваша роль — $role"
-
-        val baselineChannel = path == "/objects/promote-batch" ||
-            objectMatch?.groupValues?.get(2) == "/promote" ||
-            objectMatch?.groupValues?.get(2) == "/change"
-        if (baselineChannel) return if (role == "lead_se" || role == "lead") null else
-            "базирование и изменение с основанием — ведущий системный инженер"
-
-        val reviewChannel = path.startsWith("/edit/review_item") ||
-            (editMatch != null && editMatch.groupValues[1].startsWith("RF-"))
-        if (reviewChannel) return if (role in setOf("da_review", "sma", "lead_se", "lead")) null else
-            "замечания обзора — обзорная роль (DA/SMA)"
-
-        if (role == "da_review") return "обзорная роль пишет только замечания и решения точек"
-        if (role == "sma") {
-            val smaOk = path.startsWith("/edit/risk") || path.startsWith("/edit/oda") ||
-                (editMatch != null && (editMatch.groupValues[1].startsWith("RSK-") ||
-                    editMatch.groupValues[1].startsWith("OD-")))
-            return if (smaOk) null else "роль SMA пишет риски и ODA"
-        }
-
-        // специалист — владелец своих узлов: чужой узел закрыт на запись
-        if (role == "specialist" && editMatch != null) {
-            val id = editMatch.groupValues[1]
-            if (id.startsWith("CM-") || id.startsWith("CU-")) {
+        val rule = orbita.req.Permissions.default.ruleFor(method, path)
+            ?: return "маршрут $method $path не покрыт реестром прав — запись закрыта (fail-closed)"
+        if (role !in rule.allow) return rule.why + "; ваша роль — " + role
+        if (rule.ownerGuard && role == "specialist") {
+            val id = editMatch?.groupValues?.get(1) ?: objectMatch?.groupValues?.get(1)
+            if (id != null && (id.startsWith("CM-") || id.startsWith("CU-"))) {
                 val owner = boundary.objects.current(id)?.doc?.path("owner")?.asText("") ?: ""
                 if (owner.isNotBlank() && owner != user.login) {
                     return "узел $id принадлежит $owner: специалист работает в своих узлах"
                 }
             }
         }
-        return null   // lead, lead_se, specialist — инженерный контур свободен
+        return null
     }
 
     /** Маршруты учёток: регистрация, вход, выход, кто я, роли. */
@@ -2430,11 +2435,19 @@ class HttpApi(private val boundary: Boundary) {
                 require(login.isNotBlank() && password.isNotBlank()) { "login и password обязательны" }
                 // первая учётка заводится свободно (включение режима);
                 // дальше регистрирует руководитель любого проекта
-                if (boundary.auth.enabled()) {
+                val bootstrap = !boundary.auth.enabled()
+                if (!bootstrap) {
                     val isLead = user != null && boundary.auth.rolesOf(user.login).containsValue("lead")
                     require(isLead) { "новые учётки заводит руководитель проекта" }
                 }
                 boundary.auth.createUser(login, password, display)
+                if (bootstrap) {
+                    // режим первичной настройки (СТАРТ-В3 §2.1): первая учётка —
+                    // руководитель существующих проектов, ей назначать роли
+                    boundary.objects.listCurrent()
+                        .filter { it.type == "project" && it.status != Lifecycle.Cancelled }
+                        .forEach { boundary.auth.setRole(it.id, login, "lead") }
+                }
                 respond(ex, 201, mapper.createObjectNode().put("login", login))
             }
 
@@ -2493,6 +2506,23 @@ class HttpApi(private val boundary: Boundary) {
                 }
                 boundary.auth.setRole(projectId, login, role)
                 respond(ex, 200, mapper.createObjectNode().put("ok", true))
+            }
+
+            // В3 §2.2: история неприкосновенна — карта «строка → учётка»
+            method == "POST" && path == "/auth/author-map" -> {
+                requireNotNull(user) { "войдите" }
+                require(boundary.auth.rolesOf(user.login).containsValue("lead")) {
+                    "карту авторов ведёт руководитель"
+                }
+                val req = mapper.readTree(body(ex))
+                boundary.auth.mapAuthor(req.path("author").asText(), req.path("login").asText())
+                respond(ex, 200, mapper.createObjectNode().put("ok", true))
+            }
+
+            method == "GET" && path == "/auth/author-map" -> {
+                val out = mapper.createObjectNode()
+                boundary.auth.authorMap().forEach { (a, l) -> out.put(a, l) }
+                respond(ex, 200, out)
             }
 
             method == "GET" && Regex("^/auth/roles/PJ-[0-9]{4}$").matches(path) -> {

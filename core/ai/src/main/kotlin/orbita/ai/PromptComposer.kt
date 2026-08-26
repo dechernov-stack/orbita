@@ -14,6 +14,7 @@ data class AiProfile(
     val version: String,
     val name: String,
     val purpose: String?,
+    val role: String?,
     val kinds: List<String>,
     val transport: String,
     val modelHint: String?,
@@ -32,6 +33,7 @@ data class AiProfile(
             version = doc.path("lifecycle").path("version").asText("1"),
             name = doc.path("name").asText(""),
             purpose = doc.path("purpose").asText("").ifBlank { null },
+            role = doc.path("role").asText("").ifBlank { null },
             kinds = doc.path("kinds").map { it.asText() },
             transport = doc.path("transport").asText("package"),
             modelHint = doc.path("model_hint").asText("").ifBlank { null },
@@ -88,13 +90,17 @@ class PromptComposer(private val kinds: PackageKinds = PackageKinds.default()) {
             "профиль ${profile.id} не разрешает вид пакета '$kind' (разрешены: ${profile.kinds})"
         }
         val blocks = mutableListOf<PromptBlock>()
-        blocks += PromptBlock(
-            "model", "Проект",
-            buildString {
-                appendLine("Ты — инженерная служба проекта «${context.projectName}», фаза ${context.phase}.")
-                profile.purpose?.let { appendLine("Назначение профиля ${profile.id}: $it.") }
-            }.trimEnd(),
-        )
+        // Роль — из профиля (СТАРТ-В3 §1): преамбула в коде — «промпт руками»,
+        // наш же запрет; профиль без роли промпта-роли не несёт.
+        if (profile.role != null || profile.purpose != null) {
+            blocks += PromptBlock(
+                "profile", "Роль и назначение",
+                buildString {
+                    profile.role?.let { appendLine(it) }
+                    profile.purpose?.let { appendLine("Назначение профиля ${profile.id}: $it.") }
+                }.trimEnd(),
+            )
+        }
         blocks += PromptBlock(
             "profile", "Ограничения проекта",
             buildString {
@@ -143,15 +149,28 @@ class PromptComposer(private val kinds: PackageKinds = PackageKinds.default()) {
                 }.trimEnd(),
             )
         }
+        // Состояние модели — агрегатом плюс релевантная выборка операции
+        // (СТАРТ-В3 §1): счётчики и занятые диапазоны id стабильны и дёшевы,
+        // поимённо — только виды, нужные ЭТОЙ операции (context_types реестра).
         blocks += PromptBlock(
             "model", "Что уже есть в проекте",
             buildString {
-                appendLine("ЧТО УЖЕ ЕСТЬ В ПРОЕКТЕ:")
+                appendLine("ПРОЕКТ: «${context.projectName}», фаза ${context.phase}.")
+                appendLine("ЧТО УЖЕ ЕСТЬ (счётчики; идентификаторы заняты по названные):")
                 if (context.existing.isEmpty()) appendLine("— проект пуст")
                 context.existing.forEach { (kindName, items) ->
-                    appendLine("$kindName (${items.size}):")
-                    items.take(MAX_LISTED).forEach { appendLine("  · $it") }
-                    if (items.size > MAX_LISTED) appendLine("  · … ещё ${items.size - MAX_LISTED}")
+                    appendLine("— $kindName: ${items.size}" +
+                        (items.lastOrNull()?.substringBefore(" — ")?.let { "; занято до $it" } ?: ""))
+                }
+                val relevant = context.existing.filterKeys { it in k.contextTypes }
+                if (relevant.isNotEmpty()) {
+                    appendLine()
+                    appendLine("РЕЛЕВАНТНАЯ ВЫБОРКА для «${k.id}»:")
+                    relevant.forEach { (kindName, items) ->
+                        appendLine("$kindName (${items.size}):")
+                        items.take(MAX_LISTED).forEach { appendLine("  · $it") }
+                        if (items.size > MAX_LISTED) appendLine("  · … ещё ${items.size - MAX_LISTED}")
+                    }
                 }
             }.trimEnd(),
         )

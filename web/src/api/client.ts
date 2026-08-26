@@ -264,6 +264,10 @@ export const api = {
   logout: () => post<{ ok: boolean }>('/auth/logout', {}),
   registerUser: (login: string, password: string, display_name: string) =>
     post<{ login: string }>('/auth/register', { login, password, display_name }),
+  /** В3 §2.2: карта «строка автора → учётка» — история неприкосновенна. */
+  authorMap: () => get<Record<string, string>>('/auth/author-map'),
+  mapAuthor: (author: string, login: string) =>
+    post<{ ok: boolean }>('/auth/author-map', { author, login }),
   rolesOf: (project: string) =>
     get<Record<string, string>>(`/auth/roles/${encodeURIComponent(project)}`),
   setRole: (project: string, login: string, role: string) =>

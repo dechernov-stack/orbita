@@ -1,0 +1,110 @@
+{
+  "_source": "В3 (СТАРТ-В3 §2.3): реестр прав — данные, не код. Правило: method + regex пути → роли. Первый совпавший решает; write-маршрут без правила закрыт (fail-closed). owner_guard — спец-проверка владельца узла для специалиста (исполняет сервер).",
+  "rules": [
+    {
+      "methods": [
+        "POST"
+      ],
+      "path": "^/gates/[^/]+/pass$",
+      "allow": [
+        "da_review"
+      ],
+      "why": "точку фиксирует DA (обзорная роль)"
+    },
+    {
+      "methods": [
+        "POST"
+      ],
+      "path": "^/objects/promote-batch$|^/objects/[A-Z]{2,3}-[0-9]{4}/(promote|change)$",
+      "allow": [
+        "lead_se",
+        "lead"
+      ],
+      "why": "базирование и изменение с основанием — ведущий системный инженер"
+    },
+    {
+      "methods": [
+        "POST",
+        "PATCH",
+        "PUT"
+      ],
+      "path": "^/(edit|objects)/review_item$|^/edit/RF-[0-9]{4}",
+      "allow": [
+        "da_review",
+        "sma",
+        "lead_se",
+        "lead"
+      ],
+      "why": "замечания заводит и закрывает обзорная роль"
+    },
+    {
+      "methods": [
+        "POST"
+      ],
+      "path": "^/ai/(accept|accept-batch|enrich-apply)",
+      "allow": [
+        "specialist",
+        "lead_se",
+        "lead"
+      ],
+      "why": "акцепт ИИ — инженерный контур; роль из профиля проверяется по вызову"
+    },
+    {
+      "methods": [
+        "POST"
+      ],
+      "path": "^/auth/roles$",
+      "allow": [
+        "lead"
+      ],
+      "why": "роли назначает руководитель проекта"
+    },
+    {
+      "methods": [
+        "POST",
+        "PATCH",
+        "PUT",
+        "DELETE"
+      ],
+      "path": "^/(edit|objects)/(risk|oda)$|^/edit/(RSK|OD)-[0-9]{4}",
+      "allow": [
+        "sma",
+        "specialist",
+        "lead_se",
+        "lead"
+      ],
+      "why": "риски и ODA — SMA и инженерный контур"
+    },
+    {
+      "methods": [
+        "POST",
+        "PATCH",
+        "PUT",
+        "DELETE"
+      ],
+      "path": "^/edit/(CM|CU)-[0-9]{4}",
+      "allow": [
+        "specialist",
+        "lead_se",
+        "lead"
+      ],
+      "owner_guard": true,
+      "why": "узлы: специалист — в границах своих (владение — поле узла)"
+    },
+    {
+      "methods": [
+        "POST",
+        "PATCH",
+        "PUT",
+        "DELETE"
+      ],
+      "path": ".*",
+      "allow": [
+        "specialist",
+        "lead_se",
+        "lead"
+      ],
+      "why": "инженерный контур свободен для инженерных ролей"
+    }
+  ]
+}

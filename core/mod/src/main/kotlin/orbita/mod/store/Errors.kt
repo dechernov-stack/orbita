@@ -28,6 +28,8 @@ class VersionConflictException(
     val currentVersion: String,
     val changedBy: String,
     val theirValues: Map<String, com.fasterxml.jackson.databind.JsonNode>,
+    /** В3 §2.5: экран конфликта получает ОБЕ версии значений разошедшихся полей. */
+    val yourValues: Map<String, com.fasterxml.jackson.databind.JsonNode> = emptyMap(),
 ) : StoreException(
     "TZ-COM-003: объект '$id' изменён с версии $yourBase: текущая $currentVersion, автор $changedBy"
 )
