@@ -207,6 +207,16 @@ class HttpApi(private val boundary: Boundary) {
                 val id = objectMatch.groupValues[1]
                 val req = mapper.readTree(body(ex))
                 val doc = req["doc"] ?: throw IllegalArgumentException("body must contain 'doc'")
+                // процедура с основанием проходит прикладные правила приёма
+                // (порядок дат вех — круг 2, одно правило на сервере). Схему
+                // канал исторически не требует: он принимает и частичный
+                // документ. Отказ «нет основания» старше отказа содержания.
+                boundary.objects.current(id)?.let { cur ->
+                    val changeRef = req.path("change_ref").asText("")
+                    if (!(cur.status == Lifecycle.Baseline && changeRef.isBlank())) {
+                        boundary.req.requireApplicationRules(cur.type, doc)
+                    }
+                }
                 val stored = boundary.objects.change(id, doc, changeRef = req.path("change_ref").textValue())
                 // и у процедуры с основанием связи выводятся из документа (ADR-027)
                 boundary.req.syncLinks(stored.type, stored.id, stored.doc)
@@ -1072,6 +1082,62 @@ class HttpApi(private val boundary: Boundary) {
                     }
                 }
                 respond(ex, 200, out)
+            }
+
+            // Круг 2 стартового потока: приём файла исходного документа.
+            // Файл + карточка (тип и наименование обязательны); текст
+            // извлекается сервером (docx/PDF/txt) — от него работают
+            // аннотация и типовые разборы. Файл хранится при стенде
+            // (ORBITA_FILES_DIR, том orbita-files) и входит в копию О-18.
+            method == "POST" && path == "/sd-files" -> {
+                val q = query(ex)
+                val fileName = q["filename"]
+                    ?: throw IllegalArgumentException("query 'filename' is required")
+                val cardName = q["name"] ?: throw IllegalArgumentException("query 'name' is required: наименование карточки")
+                val kind = q["kind"] ?: throw IllegalArgumentException(
+                    "query 'kind' is required: mission_note · normative · datasheet · reference · other")
+                val area = q["area"] ?: "project"   // project | library (полки А3/А4/В2 — той же формой)
+                val fileProject =
+                    if (area == "library") orbita.mod.store.ObjectStore.LIBRARY_PROJECT
+                    else requireProject(project)
+                val bytes = ex.requestBody.readAllBytes()
+                require(bytes.isNotEmpty()) { "пустой файл" }
+                require(bytes.size <= 50 * 1024 * 1024) { "файл больше 50 МБ" }
+                val fileAuthor = author(q["author"] ?: "")
+                val doc = mapper.createObjectNode()
+                doc.put("name", cardName)
+                doc.put("kind", kind)
+                q["org"]?.let { doc.put("org", it) }
+                q["doc_date"]?.let { doc.put("doc_date", it) }
+                q["shelf"]?.let { doc.put("shelf", it) }
+                doc.put("rights", q["rights"] ?: "внутренний документ проекта")
+                orbita.out.TextExtractor.extract(fileName, bytes)?.let { doc.put("text", it) }
+                doc.putObject("file").put("name", fileName).put("size", bytes.size)
+                val stored = boundary.editing.create(
+                    CoreType.SourceDocument, doc, fileAuthor, fileProject,
+                )
+                val dir = java.nio.file.Path.of(filesDir(), stored.id)
+                java.nio.file.Files.createDirectories(dir)
+                java.nio.file.Files.write(dir.resolve(java.nio.file.Path.of(fileName).fileName.toString()), bytes)
+                respond(
+                    ex, 201,
+                    mapper.createObjectNode()
+                        .put("id", stored.id)
+                        .put("file", fileName)
+                        .put("text_extracted", doc.has("text")),
+                )
+            }
+
+            // файл карточки — обратно (пакет уходит людям, файл — инженеру)
+            method == "GET" && Regex("^/sd-files/SD-[0-9]{4}$").matches(path) -> {
+                val sdId = path.removePrefix("/sd-files/")
+                val sd = boundary.objects.current(sdId)
+                    ?: throw NoSuchElementException("document '$sdId' not found")
+                val fileName = sd.doc.path("file").path("name").asText("")
+                require(fileName.isNotBlank()) { "у карточки $sdId нет файла" }
+                val f = java.nio.file.Path.of(filesDir(), sdId, java.nio.file.Path.of(fileName).fileName.toString())
+                require(java.nio.file.Files.exists(f)) { "файл карточки $sdId не найден в хранилище" }
+                respondBinary(ex, java.nio.file.Files.readAllBytes(f), "application/octet-stream", fileName)
             }
 
             // В1.2: сохранение авторского текста раздела. Отпечаток данных
@@ -2536,6 +2602,9 @@ class HttpApi(private val boundary: Boundary) {
             else -> respond(ex, 404, mapper.createObjectNode().put("error", "unknown auth route"))
         }
     }
+
+    /** Каталог файлов исходных документов (том orbita-files; копия О-18). */
+    private fun filesDir(): String = System.getenv("ORBITA_FILES_DIR") ?: "/files"
 
     /** Бинарный ответ печати: файл уходит людям без Орбиты (В1.4/О-8). */
     private fun respondBinary(ex: HttpExchange, bytes: ByteArray, contentType: String, filename: String) {

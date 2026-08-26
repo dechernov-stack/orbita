@@ -68,6 +68,8 @@ services:
       # не открывает API в сеть хоста.
       ORBITA_HTTP_BIND: 0.0.0.0
       ORBITA_EXCHANGE_URL: http://exchange:8091
+      # круг 2: файлы исходных документов — при стенде, в копии О-18
+      ORBITA_FILES_DIR: /files
       # Служба ИИ (П5): прямой канал к провайдеру. Пустое значение — канал
       # не настроен, и это ЧЕСТНОЕ состояние: служба работает режимом
       # закрытого контура, а вызов оставляет след в журнале с причиной.
@@ -79,6 +81,8 @@ services:
       ORBITA_AI_MAX_TOKENS: ${ORBITA_AI_MAX_TOKENS:-}
       ORBITA_AI_PRICE_IN: ${ORBITA_AI_PRICE_IN:-}
       ORBITA_AI_PRICE_OUT: ${ORBITA_AI_PRICE_OUT:-}
+    volumes:
+      - orbita-files:/files
     depends_on:
       db:
         condition: service_healthy
@@ -97,3 +101,5 @@ services:
 
 volumes:
   orbita-db:
+  # круг 2: файлы исходных документов; входит в резервную копию О-18
+  orbita-files:

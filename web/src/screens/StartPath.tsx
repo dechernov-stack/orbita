@@ -24,6 +24,11 @@ interface SourceDocRow {
   id: string
   name: string
   hasText: boolean
+  kind?: string
+  org?: string
+  docDate?: string
+  summary?: string
+  fileName?: string
 }
 
 const CHANGE_REF = 'мастер-путь «Начало проекта»: параметры старта'
@@ -52,7 +57,7 @@ export function StartPath({ project, onGo, onDone }: {
   onGo: (screen: string) => void
   onDone: () => void
 }) {
-  const { author } = useSession()
+  const { author, label } = useSession()
   const [step, setStep] = useState(1)
   const [missionClass, setMissionClass] = useState('')
   const [constraints, setConstraints] = useState<Constraint[]>([])
@@ -76,6 +81,13 @@ export function StartPath({ project, onGo, onDone }: {
   }> | null>(null)
   const [openManifest, setOpenManifest] = useState<string | null>(null)
   const [applyNote, setApplyNote] = useState<string | null>(null)
+  /** Круг 2: загрузка файла с карточкой и раскрытие карточки у файла. */
+  const [upKind, setUpKind] = useState('mission_note')
+  const [upName, setUpName] = useState('')
+  const [upOrg, setUpOrg] = useState('')
+  const [upFile, setUpFile] = useState<File | null>(null)
+  const [openCard, setOpenCard] = useState<string | null>(null)
+  const [parseNote, setParseNote] = useState<string | null>(null)
   const [sourceRef, setSourceRef] = useState('')
   const [profile, setProfile] = useState<{ id: string; version: string; name: string } | null>(null)
   const [promptFull, setPromptFull] = useState<string | null>(null)
@@ -111,8 +123,15 @@ export function StartPath({ project, onGo, onDone }: {
     edit.list('source_document')
       .then(async (rows) => {
         const full = await Promise.all(rows.map(async (r) => {
-          const doc = (await edit.object(r.id)).doc as { name?: string; text?: string }
-          return { id: r.id, name: doc.name ?? r.id, hasText: Boolean(doc.text?.trim()) }
+          const doc = (await edit.object(r.id)).doc as {
+            name?: string; text?: string; kind?: string; org?: string
+            doc_date?: string; summary?: string; file?: { name?: string }
+          }
+          return {
+            id: r.id, name: doc.name ?? r.id, hasText: Boolean(doc.text?.trim()),
+            kind: doc.kind, org: doc.org, docDate: doc.doc_date,
+            summary: doc.summary, fileName: doc.file?.name,
+          }
         }))
         setDocs(full)
         setSourceRef((cur) => cur || full.find((d) => d.hasText)?.id || '')
@@ -145,6 +164,48 @@ export function StartPath({ project, onGo, onDone }: {
     api.libraryApply(id, author)
       .then((r) => setApplyNote(`применено из ${id}: объектов ${r.created.length}`))
       .catch((e) => setFailure(reasonOf(e)))
+      .finally(() => { busyRef.current = false; setBusy(false) })
+  }
+
+  /** Круг 2: файл + карточка одним приёмом; текст извлекает сервер. */
+  const upload = () => {
+    if (busyRef.current || !upFile || !upName.trim()) return
+    busyRef.current = true
+    setBusy(true)
+    setFailure(null)
+    api.sdUpload(upFile, { name: upName.trim(), kind: upKind, org: upOrg.trim() || undefined as unknown as string, author })
+      .then((r) => {
+        setTakeNote(r.text_extracted
+          ? `загружено: ${r.id} — текст извлечён, карточка заполнена`
+          : `загружено: ${r.id} — формат не читается, заполните текст в карточке`)
+        setUpFile(null); setUpName('')
+        reloadOwn()
+      })
+      .catch((e) => setFailure(reasonOf(e)))
+      .finally(() => { busyRef.current = false; setBusy(false) })
+  }
+
+  /** Разбор карточки службой: результат придёт на акцепт (область LIB). */
+  const parse = (d: SourceDocRow, kind: string, label: string) => {
+    if (busyRef.current) return
+    busyRef.current = true
+    setBusy(true)
+    setParseNote(null)
+    Promise.all([edit.object(d.id), edit.list('ai_profile')])
+      .then(async ([o, profiles]) => {
+        const doc = o.doc as { name?: string; text?: string }
+        const statement = statementOf(d.id, o.version, doc.name ?? d.id, doc.text ?? '')
+        // профиль — тот, что разрешает вид разбора; промпт собирает служба
+        for (const pr of profiles) {
+          const pd = (await edit.object(pr.id)).doc as { kinds?: string[] }
+          if ((pd.kinds ?? []).includes(kind)) {
+            return api.aiAsk(kind, pr.id, statement, author)
+          }
+        }
+        throw new Error(`нет профиля службы, разрешающего вид «${kind}» — добавьте вид в профиль`)
+      })
+      .then((r) => setParseNote(`${label}: предложений ${(r as { proposed?: number }).proposed ?? '—'} — результат придёт на акцепт`))
+      .catch((e) => setParseNote(reasonOf(e)))
       .finally(() => { busyRef.current = false; setBusy(false) })
   }
 
@@ -404,22 +465,72 @@ export function StartPath({ project, onGo, onDone }: {
                 </div>
                 {docs == null && <div className="sp-set"><span className="sp-ds">Загрузка…</span></div>}
                 {(docs ?? []).map((d) => (
-                  <div className="sp-file" key={d.id}>
-                    {withText.length > 1 && (
-                      <input type="radio" name="sp-src" checked={sourceRef === d.id}
-                        disabled={!d.hasText} onChange={() => setSourceRef(d.id)} />
+                  <div key={d.id}>
+                    <div className="sp-file" style={{ cursor: 'pointer' }}
+                      onClick={() => setOpenCard(openCard === d.id ? null : d.id)}>
+                      {withText.length > 1 && (
+                        <input type="radio" name="sp-src" checked={sourceRef === d.id}
+                          disabled={!d.hasText} onChange={() => setSourceRef(d.id)}
+                          onClick={(e) => e.stopPropagation()} />
+                      )}
+                      <span>{d.name}</span>
+                      {d.fileName
+                        ? <a className="sp-mono" href={api.sdFileUrl(d.id)}
+                            onClick={(e) => e.stopPropagation()}>{d.fileName}</a>
+                        : <span className="sp-mono">{d.id}</span>}
+                      {d.hasText
+                        ? <span className="sp-ok">карточка заполнена ✓</span>
+                        : <span className="sp-ds" style={{ marginLeft: 'auto' }}>текста нет</span>}
+                    </div>
+                    {openCard === d.id && (
+                      <div className="sp-card">
+                        <div className="sp-card__meta">
+                          <span>Тип: <b>{label('sd_kind', d.kind)}</b></span>
+                          {d.org && <span>Источник: <b>{d.org}</b></span>}
+                          {d.docDate && <span>Дата: <b>{d.docDate}</b></span>}
+                        </div>
+                        {d.summary && <div className="sp-card__sum">{d.summary}</div>}
+                        <div className="sp-card__acts">
+                          <button className="np-btn" disabled={busy}
+                            onClick={() => parse(d, 'mission_to_stakeholders', 'профили стейкхолдеров')}>
+                            Разобрать: профили стейкхолдеров
+                          </button>
+                          <button className="np-btn" disabled={busy}
+                            onClick={() => parse(d, 'mission_to_typical_risks', 'типовые риски')}>
+                            Разобрать: типовые риски
+                          </button>
+                          <span className="sp-ds">результат придёт на акцепт</span>
+                        </div>
+                        {parseNote && <div className="sp-ds" style={{ marginTop: 4 }}>{parseNote}</div>}
+                      </div>
                     )}
-                    <span>{d.name}</span>
-                    <span className="sp-mono">{d.id}</span>
-                    {d.hasText
-                      ? <span className="sp-ok">приложена ✓</span>
-                      : <span className="sp-ds" style={{ marginLeft: 'auto' }}>текста нет</span>}
                   </div>
                 ))}
-                <div className="sp-set" style={{ borderTop: '1px solid var(--container-3)' }}>
-                  <button className="sp-open" onClick={() => onGo('sourcedocs')}>
-                    Загрузить документ
-                  </button>
+                {/* круг 2: файл + карточка (тип и наименование обязательны) */}
+                <div className="sp-set" style={{ borderTop: '1px solid var(--container-3)', display: 'block' }}>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                    <input type="file" onChange={(e) => {
+                      const f = e.target.files?.[0] ?? null
+                      setUpFile(f)
+                      if (f && !upName) setUpName(f.name.replace(/\.[^.]+$/, ''))
+                    }} />
+                    <select value={upKind} onChange={(e) => setUpKind(e.target.value)}>
+                      <option value="mission_note">записка миссии</option>
+                      <option value="normative">норматив</option>
+                      <option value="datasheet">даташит</option>
+                      <option value="reference">справка</option>
+                      <option value="other">прочее</option>
+                    </select>
+                  </div>
+                  <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                    <input placeholder="наименование карточки" value={upName}
+                      onChange={(e) => setUpName(e.target.value)} style={{ flex: 1 }} />
+                    <input placeholder="источник (организация)" value={upOrg}
+                      onChange={(e) => setUpOrg(e.target.value)} style={{ width: 160 }} />
+                    <button className="sp-open" disabled={busy || !upFile || !upName.trim()} onClick={upload}>
+                      Загрузить
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

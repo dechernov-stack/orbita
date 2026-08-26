@@ -40,7 +40,7 @@ class LibraryTest {
         }
         boundary.ingest(
             orbita.mod.model.CoreType.SourceDocument,
-            """{"id":"SD-0001","name":"ПП РФ № 2216","kind":"standard","org":"Правительство РФ",
+            """{"id":"SD-0001","name":"ПП РФ № 2216","kind":"normative","org":"Правительство РФ",
                 "rights":"открытый нормативный акт","summary":"мониторинг опасных грузов",
                 "text":"геопозиция ТС не реже раза в 30 с",
                 "lifecycle":{"status":"Draft","version":"1"}}""",

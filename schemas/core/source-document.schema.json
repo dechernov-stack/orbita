@@ -24,16 +24,14 @@
       "description": "Наименование документа: «Записка о развитии IoT-мониторинга транспорта»"
     },
     "kind": {
-      "type": "string",
       "enum": [
-        "memo",
-        "letter",
-        "report",
-        "standard",
-        "minutes",
+        "mission_note",
+        "normative",
+        "datasheet",
+        "reference",
         "other"
       ],
-      "description": "Вид: записка, письмо, отчёт, стандарт, протокол, иное"
+      "description": "Тип: записка миссии · норматив · даташит · справка · прочее (круг 2 стартового потока)"
     },
     "shelf": {
       "enum": [
@@ -77,6 +75,24 @@
     },
     "provenance": {
       "$ref": "https://kis.local/schemas/common/provenance.schema.json"
+    },
+    "file": {
+      "type": "object",
+      "description": "Файл при карточке: хранится при стенде (том orbita-files), входит в копию О-18",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "size"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
     }
   }
 }

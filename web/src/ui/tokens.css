@@ -1230,3 +1230,11 @@ details.np-dates[open] summary::before { transform: rotate(90deg); }
 .login-card { width: 360px; background: var(--container); border: 1px solid var(--hairline); border-radius: 10px; padding: 22px 24px; }
 .login-card h2 { font-size: 17px; font-weight: 700; margin-bottom: 4px; }
 .login-card p { margin-bottom: 14px; }
+
+/* круг 2: карточка исходного документа раскрытием у файла */
+.sp-card { margin: 0 12px 10px; border: 1px solid var(--hairline); border-radius: 8px; background: var(--container-2); padding: 8px 12px; }
+.sp-card__meta { display: flex; gap: 14px; flex-wrap: wrap; font-size: 11.5px; color: var(--text-secondary); }
+.sp-card__meta b { color: var(--text); }
+.sp-card__sum { font-size: 12px; line-height: 17px; margin-top: 5px; }
+.sp-card__acts { display: flex; gap: 8px; margin-top: 7px; align-items: center; }
+.sp-card__acts .np-btn { padding: 3px 10px; font-size: 11.5px; }

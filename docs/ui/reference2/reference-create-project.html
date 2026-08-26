@@ -243,6 +243,20 @@ details.dates[open] summary::before{transform:rotate(90deg)}
       <label class="f-label">Фаза старта</label>
       <span class="seg"><span class="on">Pre-Phase A</span><span>Phase A</span></span>
     </div>
+    <div class="row">
+      <label class="f-label">Контрольные точки фазы <span class="opt">— плановые даты</span></label>
+      <div class="gates"><div class="gline">
+        <div class="g"><div class="dot"></div><div class="lnk"></div><div class="nm">Внутренний обзор</div>
+          <div class="dt"><input value="15.03.2027" style="border-color:var(--hair)"></div></div>
+        <div class="g"><div class="dot"></div><div class="lnk"></div><div class="nm">MCR</div>
+          <div class="dt"><input value="20.01.2027" style="border-color:var(--error)"></div></div>
+        <div class="g"><div class="dot"></div><div class="lnk"></div><div class="nm">KDP-A</div>
+          <div class="dt"><input placeholder="дд.мм.гггг"></div></div>
+      </div>
+      <div class="warn" style="background:var(--error-c);color:var(--on-error-c)">MCR не может быть
+        раньше внутреннего обзора — даты идут по порядку точек. Календарь каждой даты
+        открывается от предыдущей заданной вехи.</div></div>
+    </div>
     <div class="err"><b>Проект не создан:</b> сервер недоступен. Введённое сохранено на
       этой странице — повторите создание, когда связь восстановится.</div>
     <div class="actions">

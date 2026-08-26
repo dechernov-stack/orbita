@@ -35,8 +35,49 @@ class ReqService(
      * что уже случалась с предложениями ИИ на шаге 5: расхождение заводится
      * не в правилах, а во втором их экземпляре.
      */
+    private val gateLabels: Map<String, String> by lazy {
+        val res = ReqService::class.java.getResourceAsStream("/orbita/req/gate-labels-ru.json")
+            ?: return@lazy emptyMap()
+        com.fasterxml.jackson.databind.ObjectMapper().readTree(res).properties()
+            .filter { (k, _) -> !k.startsWith("_") }
+            .associate { (k, v) -> k to v.asText() }
+    }
+
+    private fun gateLabel(gate: String): String =
+        (gateLabels[gate] ?: gate).replaceFirstChar { it.uppercase() }
+
+    /** Родительный падеж подписи — для «раньше …» (внутреннего обзора). */
+    private fun gateLabelGen(gate: String): String = when (gate) {
+        "internal_review" -> "внутреннего обзора"
+        "Launch" -> "пуска"
+        "EOM" -> "завершения миссии"
+        else -> gateLabels[gate] ?: gate
+    }
+
     fun requireApplicationRules(type: String, doc: JsonNode) {
         when (type) {
+            // Круг 2 стартового потока: порядок дат вех — инвариант, ОДНО
+            // правило на сервере (создание проекта, паспорт, любая правка
+            // дат). Частично заданные даты законны: сравниваются только
+            // соседние ЗАДАННЫЕ; «дата не задана» — законно всегда.
+            "project" -> {
+                var prevGate: String? = null
+                var prevDue: String? = null
+                doc.path("milestones").forEach { m ->
+                    val gate = m.path("gate").asText("")
+                    val due = m.path("due").asText("")
+                    if (due.isNotBlank()) {
+                        if (prevDue != null && due < prevDue!!) {
+                            throw ModelViolationException(
+                                "${gateLabel(gate)} не может быть раньше ${gateLabelGen(prevGate!!)} — " +
+                                    "даты идут по порядку точек",
+                            )
+                        }
+                        prevGate = gate
+                        prevDue = due
+                    }
+                }
+            }
             // В2.1: композиция вхождений — строго дерево: один владелец
             // (одно поле parent_usage) и ацикличность; разделяемое — связи
             // uses/hosted_on, не второй родитель. Определение обязано

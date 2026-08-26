@@ -165,6 +165,8 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
         CoreType.Technology, CoreType.Project -> {
             val doc = parse(json)
             registry.require(type.schemaName, doc)
+            // круг 2 стартового потока: порядок дат вех — одно правило
+            req.requireApplicationRules(type.dbType, doc)
             // проект — контейнер сам себе (ADR-022): контекст ему не нужен
             val owner = if (type == CoreType.Project) doc["id"].asText() else projectId
             store(type, doc, createdBy, owner)

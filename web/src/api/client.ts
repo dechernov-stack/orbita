@@ -254,6 +254,22 @@ export const api = {
     post<{ id: string; version: string; name: string; prohibitions: number }>(
       '/views/start-path/profile', { author },
     ),
+  /** Круг 2: файл исходного документа + карточка; текст извлекает сервер. */
+  sdUpload: async (file: File, meta: {
+    name: string; kind: string; org?: string; doc_date?: string; author: string; area?: string
+  }) => {
+    const q = new URLSearchParams({ filename: file.name, ...meta })
+    const response = await fetch(withProject(`/api/sd-files?${q.toString()}`), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/octet-stream' },
+      body: file,
+    })
+    const text = await response.text()
+    if (!response.ok) throw new ApiError(response.status, '/sd-files', text)
+    return JSON.parse(text) as { id: string; file: string; text_extracted: boolean }
+  },
+  /** Круг 2: файл карточки — обратно (ссылка скачивания). */
+  sdFileUrl: (id: string) => withProject(`/api/sd-files/${encodeURIComponent(id)}`),
   /** В3: кто я — режим учёток, пользователь и его роли по проектам. */
   whoami: () =>
     get<{ enabled: boolean; user?: { login: string; display_name: string; roles: Record<string, string> } }>(

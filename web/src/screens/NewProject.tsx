@@ -8,9 +8,9 @@ import { edit, type StoredSummary } from '../api/edit'
 import { useSession } from '../ui/session'
 
 /** Точки фазы: код паспорта + подписи ленты (тексты — эталон, дословно). */
-const PHASE_GATES: Record<string, Array<{ gate: string; nm: string; ph: string }>> = {
+const PHASE_GATES: Record<string, Array<{ gate: string; nm: string; nmGen?: string; ph: string }>> = {
   pre_phase_a: [
-    { gate: 'internal_review', nm: 'Внутренний обзор', ph: 'КТ-1' },
+    { gate: 'internal_review', nm: 'Внутренний обзор', nmGen: 'внутреннего обзора', ph: 'КТ-1' },
     { gate: 'MCR', nm: 'MCR', ph: 'КТ-2 · обзор концепции' },
     { gate: 'KDP-A', nm: 'KDP-A', ph: 'КТ-3 · решение о входе в Phase A' },
   ],
@@ -104,6 +104,31 @@ export function NewProject({ firstRun, onDone, onCancel, onLoadFile }: {
 
   const gates = PHASE_GATES[phase]
 
+  // Круг 2: порядок дат — инвариант; форма проверяет тем же правилом, что
+  // сервер (частично заданные даты законны), календарь ограничен предыдущей
+  // заданной вехой (min). Сервер — истина: его отказ придёт и без формы.
+  let prevDue = ''
+  let orderProblem: string | null = null
+  const gateRows = gates.map((g) => {
+    const due = dates[g.gate] ?? ''
+    const min = prevDue
+    let bad = false
+    if (due) {
+      if (prevDue && due < prevDue) {
+        bad = true
+        if (!orderProblem) {
+          const prev = gates.find((x) => (dates[x.gate] ?? '') === prevDue)
+          const prevName = prev?.nmGen ?? prev?.nm ?? ''
+          orderProblem = `${g.nm} не может быть раньше ${prevName} — даты идут по порядку точек. ` +
+            'Календарь каждой даты открывается от предыдущей заданной вехи.'
+        }
+      } else {
+        prevDue = due
+      }
+    }
+    return { ...g, min, bad }
+  })
+
   return (
     <div className="np-main">
       <div className="np-work">
@@ -166,17 +191,25 @@ export function NewProject({ firstRun, onDone, onCancel, onLoadFile }: {
               <details className="np-dates">
                 <summary>Задать плановые даты</summary>
                 <div className="np-dates-grid np-gline">
-                  {gates.map((g) => (
+                  {gateRows.map((g) => (
                     <div className="np-g" key={g.gate}>
                       <div className="np-dt">
-                        {/* Календарь — решение владельца по вопросу 1 отчёта:
-                            свободная строка заменена, ошибочный формат невозможен */}
+                        {/* Календарь — решение владельца; круг 2: min — от
+                            предыдущей заданной вехи, нарушение порядка красит
+                            поле и даёт warn с именами точек (эталон S3) */}
                         <input type="date" value={dates[g.gate] ?? ''}
+                          min={g.min || undefined}
+                          style={g.bad ? { borderColor: 'var(--status-error)' } : undefined}
                           onChange={(e) => setDates({ ...dates, [g.gate]: e.target.value })} />
                       </div>
                     </div>
                   ))}
                 </div>
+                {orderProblem && (
+                  <div className="np-warn" style={{ background: 'var(--error-surface)', color: '#93000a' }}>
+                    {orderProblem}
+                  </div>
+                )}
                 <div className="np-hint">
                   Дата не задана — законное состояние; даты правятся в паспорте проекта.
                 </div>
