@@ -38,7 +38,33 @@ object DemoProject {
      * риски. Виды декомпозиции проставляются после — связь derive к этому
      * моменту уже существует.
      */
+    /** Шаблоны документов — в библиотечную область: выпуск работает только
+        по библиотечному шаблону (нитка Б.1), пустая библиотека валит рендер. */
+    fun seedTemplates(boundary: Boundary) {
+        val mapper = ObjectMapper()
+        orbita.out.SeedTemplates.all.forEachIndexed { i, t ->
+            val doc = mapper.createObjectNode()
+            doc.put("id", "DT-%04d".format(i + 1))
+            doc.put("code", t.code)
+            doc.put("name", t.title)
+            doc.put("source", t.source)
+            val secs = doc.putArray("sections")
+            t.sections.forEach { sc ->
+                secs.addObject()
+                    .put("number", sc.number)
+                    .put("title", sc.title)
+                    .put("expects", sc.expects)
+            }
+            doc.putObject("lifecycle").put("status", "Draft").put("version", "1")
+            boundary.ingest(
+                CoreType.DocumentTemplate, mapper.writeValueAsString(doc), DEMO_AUTHOR,
+                orbita.mod.store.ObjectStore.LIBRARY_PROJECT,
+            )
+        }
+    }
+
     fun seed(boundary: Boundary, project: JsonNode = load()) {
+        seedTemplates(boundary)
         // Контейнер (ADR-022): демо живёт в проекте PJ-0001, как и перенос V010
         boundary.ingest(
             orbita.mod.model.CoreType.Project,

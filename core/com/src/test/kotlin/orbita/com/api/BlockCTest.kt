@@ -30,6 +30,7 @@ class BlockCTest {
     @BeforeAll
     fun seed() {
         TestDb.truncateAll()
+        DemoProject.seedTemplates(boundary)
         // ADR-022: контейнер прежде содержимого
         boundary.ingest(
             orbita.mod.model.CoreType.Project,

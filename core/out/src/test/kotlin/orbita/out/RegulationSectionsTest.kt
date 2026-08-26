@@ -40,7 +40,7 @@ class RegulationSectionsTest {
     }
 
     private fun assertMatches(
-        template: DocumentTemplate,
+        template: TemplateData,
         appendixNumber: Int,
         source: String = text,
     ) {
@@ -63,45 +63,45 @@ class RegulationSectionsTest {
 
     @Test
     fun `спецификация требований соответствует приложению 2`() =
-        assertMatches(DocumentTemplate.RequirementSpecification, 2)
+        assertMatches(SeedTemplates.of("req_spec"), 2)
 
     @Test
     fun `ConOps соответствует приложению 3`() =
-        assertMatches(DocumentTemplate.ConOps, 3)
+        assertMatches(SeedTemplates.of("conops"), 3)
 
     @Test
     fun `описание архитектуры соответствует приложению 4`() =
-        assertMatches(DocumentTemplate.ArchitectureDescription, 4)
+        assertMatches(SeedTemplates.of("architecture"), 4)
 
     // ---------- блок C: комплекты Д1–Д9 / Д1–Д10 ----------
 
     @Test
     fun `FAD соответствует приложению 1 БП-PPA`() =
-        assertMatches(DocumentTemplate.Fad, 1, textPpa)
+        assertMatches(SeedTemplates.of("fad"), 1, textPpa)
 
     @Test
     fun `MCReport соответствует приложению 3 БП-PPA`() =
-        assertMatches(DocumentTemplate.MissionConcept, 3, textPpa)
+        assertMatches(SeedTemplates.of("mission_concept"), 3, textPpa)
 
     @Test
     fun `FA соответствует приложению 2 БП-PPA`() =
-        assertMatches(DocumentTemplate.FormulationAgreement, 2, textPpa)
+        assertMatches(SeedTemplates.of("formulation_agreement"), 2, textPpa)
 
     @Test
     fun `SEMP соответствует приложению 1 БП-PA`() =
-        assertMatches(DocumentTemplate.Semp, 1)
+        assertMatches(SeedTemplates.of("semp"), 1)
 
     @Test
     fun `план технологий соответствует приложению 5 БП-PA`() =
-        assertMatches(DocumentTemplate.TechnologyPlan, 5)
+        assertMatches(SeedTemplates.of("tech_plan"), 5)
 
     @Test
     fun `план рисков соответствует приложению 6 БП-PA`() =
-        assertMatches(DocumentTemplate.RiskPlan, 6)
+        assertMatches(SeedTemplates.of("risk_plan"), 6)
 
     @Test
     fun `план проекта соответствует приложению 7 БП-PA`() =
-        assertMatches(DocumentTemplate.ProjectPlan, 7)
+        assertMatches(SeedTemplates.of("project_plan"), 7)
 
     /**
      * Ссылка на источник структуры ведёт на существующее место: приложение
@@ -111,7 +111,7 @@ class RegulationSectionsTest {
      */
     @Test
     fun `каждый шаблон называет своё приложение регламента`() {
-        DocumentTemplate.entries.forEach { t ->
+        SeedTemplates.all.forEach { t ->
             when {
                 t.source.startsWith("БП-PA, Приложение ") -> {
                     val number = t.source.substringAfterLast(" ").toInt()

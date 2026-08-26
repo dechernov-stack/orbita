@@ -1017,11 +1017,7 @@ class HttpApi(private val boundary: Boundary) {
             // воспроизводимость выпусков та же, что у экспорта ReqIF.
             method == "POST" && Regex("^/export/documents/[a-z_]+/issue$").matches(path) -> {
                 val code = path.removePrefix("/export/documents/").removeSuffix("/issue")
-                val template = orbita.out.DocumentTemplate.entries.firstOrNull { it.code == code }
-                    ?: throw IllegalArgumentException(
-                        "unknown document template '$code'; known: " +
-                            orbita.out.DocumentTemplate.entries.joinToString { it.code },
-                    )
+                val template = templateOf(code)
                 val req = mapper.readTree(body(ex))
                 val issuedAt = req.path("issued_at").asText("")
                 if (issuedAt.isBlank()) throw IllegalArgumentException("'issued_at' is required: дата выпуска — аргумент, не чтение часов")
@@ -1043,8 +1039,7 @@ class HttpApi(private val boundary: Boundary) {
             // генерации с выпущенной — факт, а не ощущение (Шаг 17 C5)
             method == "GET" && Regex("^/export/documents/[a-z_]+/issues$").matches(path) -> {
                 val code = path.removePrefix("/export/documents/").removeSuffix("/issues")
-                val template = orbita.out.DocumentTemplate.entries.firstOrNull { it.code == code }
-                    ?: throw IllegalArgumentException("unknown document template '$code'")
+                val template = templateOf(code)
                 val model = orbita.out.ModelSnapshot.of(boundary.objects, mapper, projectId = project)
                 val currentDigest = orbita.out.DocumentGenerator(mapper).render(model, template).digest
                 val out = mapper.createObjectNode()
@@ -1071,7 +1066,7 @@ class HttpApi(private val boundary: Boundary) {
             // в модель. Пустой раздел остаётся на месте вместе с разрывом.
             method == "GET" && path == "/export/documents" -> {
                 val arr = mapper.createArrayNode()
-                orbita.out.DocumentTemplate.entries.forEach { t ->
+                libraryTemplates().forEach { t ->
                     arr.addObject().put("code", t.code).put("title", t.title).put("source", t.source)
                 }
                 respond(ex, 200, arr)
@@ -1079,11 +1074,7 @@ class HttpApi(private val boundary: Boundary) {
 
             method == "GET" && path.startsWith("/export/documents/") -> {
                 val code = path.removePrefix("/export/documents/")
-                val template = orbita.out.DocumentTemplate.entries.firstOrNull { it.code == code }
-                    ?: throw IllegalArgumentException(
-                        "unknown document template '$code'; known: " +
-                            orbita.out.DocumentTemplate.entries.joinToString { it.code },
-                    )
+                val template = templateOf(code)
                 val model = orbita.out.ModelSnapshot.of(boundary.objects, mapper, projectId = project)
                 val doc = orbita.out.DocumentGenerator(mapper).render(model, template)
                 val out = mapper.createObjectNode()
@@ -2074,6 +2065,30 @@ class HttpApi(private val boundary: Boundary) {
         )
 
     /** ADR-022: проект запроса — из ?project= либо единственный в портфеле. */
+    /**
+     * Шаблон документа — из библиотечной области (нитка Б.1): enum удалён.
+     * Отсутствие шаблона — внятный отказ с перечнем заведённых кодов.
+     */
+    private fun templateOf(code: String): orbita.out.TemplateData {
+        val rows = boundary.objects
+            .listCurrent(orbita.mod.store.ObjectStore.LIBRARY_PROJECT)
+            .filter { it.type == "document_template" && it.status != Lifecycle.Cancelled }
+        return rows.firstOrNull { it.doc.path("code").asText() == code }
+            ?.let { orbita.out.TemplateData.of(it.doc) }
+            ?: throw IllegalArgumentException(
+                "шаблон документа '$code' не заведён в библиотеке; заведены: " +
+                    rows.map { it.doc.path("code").asText() }.sorted().joinToString()
+                        .ifBlank { "ни одного — залейте сид data/library/document-templates.json" },
+            )
+    }
+
+    private fun libraryTemplates(): List<orbita.out.TemplateData> =
+        boundary.objects
+            .listCurrent(orbita.mod.store.ObjectStore.LIBRARY_PROJECT)
+            .filter { it.type == "document_template" && it.status != Lifecycle.Cancelled }
+            .map { orbita.out.TemplateData.of(it.doc) }
+            .sortedBy { it.code }
+
     private fun resolveProject(ex: HttpExchange): String? {
         val asked = query(ex)["project"]
         // Область библиотеки — законный контекст запроса (СТРУКТУРА-БИБЛИОТЕКИ

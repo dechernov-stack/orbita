@@ -70,7 +70,9 @@ enum class CoreType(val idPrefix: String, val dbType: String, val schemaName: St
     MissionClass("MC", "mission_class", "core/mission-class"),
     StakeholderProfile("SH", "stakeholder_profile", "core/stakeholder-profile"),
     TypicalRisk("TR", "typical_risk", "core/typical-risk"),
-    LibraryFragment("LF", "library_fragment", "core/library-fragment");
+    LibraryFragment("LF", "library_fragment", "core/library-fragment"),
+    // Нитка Б.1: шаблон документа — библиотечный объект, не enum в коде
+    DocumentTemplate("DT", "document_template", "core/document-template");
 
     companion object {
         fun byDbType(t: String): CoreType = entries.firstOrNull { it.dbType == t }

@@ -298,23 +298,23 @@ class PresentationSemanticsTest {
         @Test
         fun `повторная генерация идентична`() {
             assertEquals(
-                generator.render(model, DocumentTemplate.RequirementSpecification).digest,
-                generator.render(model, DocumentTemplate.RequirementSpecification).digest,
+                generator.render(model, SeedTemplates.of("req_spec")).digest,
+                generator.render(model, SeedTemplates.of("req_spec")).digest,
             )
         }
 
         @Test
         fun `генерация не изменяет модель`() {
             val snapshot = model.toString()
-            generator.render(model, DocumentTemplate.RequirementSpecification)
+            generator.render(model, SeedTemplates.of("req_spec"))
             assertEquals(snapshot, model.toString())
         }
 
         @Test
         fun `другой шаблон даёт другой результат`() {
             assertTrue(
-                generator.render(model, DocumentTemplate.ConOps).digest !=
-                    generator.render(model, DocumentTemplate.RequirementSpecification).digest,
+                generator.render(model, SeedTemplates.of("conops")).digest !=
+                    generator.render(model, SeedTemplates.of("req_spec")).digest,
             )
         }
 
@@ -325,7 +325,7 @@ class PresentationSemanticsTest {
 
         @Test
         fun `состав разделов спецификации совпадает с приложением 2`() {
-            val doc = generator.render(demo, DocumentTemplate.RequirementSpecification)
+            val doc = generator.render(demo, SeedTemplates.of("req_spec"))
             assertEquals("БП-PA, Приложение 2", doc.body.path("source").asText())
             assertEquals(
                 listOf(
@@ -339,7 +339,7 @@ class PresentationSemanticsTest {
 
         @Test
         fun `состав разделов ConOps совпадает с приложением 3`() {
-            val doc = generator.render(demo, DocumentTemplate.ConOps)
+            val doc = generator.render(demo, SeedTemplates.of("conops"))
             assertEquals("БП-PA, Приложение 3", doc.body.path("source").asText())
             assertEquals(7, doc.body.path("sections").size())
             assertEquals("Валидационные положения", doc.body.path("sections")[6].path("title").asText())
@@ -347,7 +347,7 @@ class PresentationSemanticsTest {
 
         @Test
         fun `состав разделов описания архитектуры совпадает с приложением 4`() {
-            val doc = generator.render(demo, DocumentTemplate.ArchitectureDescription)
+            val doc = generator.render(demo, SeedTemplates.of("architecture"))
             assertEquals("БП-PA, Приложение 4", doc.body.path("source").asText())
             assertEquals(7, doc.body.path("sections").size())
             assertEquals("Бюджеты", doc.body.path("sections")[6].path("title").asText())
@@ -360,7 +360,7 @@ class PresentationSemanticsTest {
          */
         @Test
         fun `пустой раздел остаётся на месте и назван разрывом`() {
-            val doc = generator.render(demo, DocumentTemplate.ConOps)
+            val doc = generator.render(demo, SeedTemplates.of("conops"))
             val staffing = doc.body.path("sections").first { it.path("number").asInt() == 6 }
             assertEquals("Персонал и обеспечение", staffing.path("title").asText())
             assertTrue(staffing.path("items").isEmpty)
@@ -372,7 +372,7 @@ class PresentationSemanticsTest {
 
         @Test
         fun `заполненный раздел разрывом не считается`() {
-            val doc = generator.render(demo, DocumentTemplate.ConOps)
+            val doc = generator.render(demo, SeedTemplates.of("conops"))
             assertTrue(doc.gaps.none { it.section == 7 && it.what == "раздел пуст" })
             assertTrue(doc.body.path("sections")[6].path("items").size() > 0)
         }
@@ -380,7 +380,7 @@ class PresentationSemanticsTest {
         /** Приложение 2 перечисляет атрибуты записи; отсутствие любого — разрыв. */
         @Test
         fun `требование без обоснования попадает в разрывы спецификации`() {
-            val doc = generator.render(demo, DocumentTemplate.RequirementSpecification)
+            val doc = generator.render(demo, SeedTemplates.of("req_spec"))
             val missing = doc.gaps.filter { it.what.contains("обоснование") }
             assertTrue(missing.isNotEmpty(), "разрыв по обоснованию не найден")
             assertTrue(missing.all { it.what.startsWith("RQ-") }) { missing.toString() }
@@ -388,7 +388,7 @@ class PresentationSemanticsTest {
 
         @Test
         fun `запись требования несёт все атрибуты приложения 2`() {
-            val doc = generator.render(demo, DocumentTemplate.RequirementSpecification)
+            val doc = generator.render(demo, SeedTemplates.of("req_spec"))
             val record = doc.body.path("sections").first { it.path("number").asInt() == 3 }
                 .path("items").first { it.path("id").asText() == "RQ-0100" }
             listOf(
@@ -403,7 +403,7 @@ class PresentationSemanticsTest {
         /** Строка матрицы верификации — на СОБЫТИЕ, а не на требование. */
         @Test
         fun `матрица верификации даёт строку на каждое событие`() {
-            val doc = generator.render(demo, DocumentTemplate.RequirementSpecification)
+            val doc = generator.render(demo, SeedTemplates.of("req_spec"))
             val rows = doc.body.path("sections").first { it.path("number").asInt() == 5 }.path("items")
             val events = demo.path("requirements").sumOf { it.path("verification_events").size() }
             assertEquals(events, rows.size())
@@ -412,7 +412,7 @@ class PresentationSemanticsTest {
 
         @Test
         fun `раздел обоснования архитектуры собран из сравнения вариантов`() {
-            val doc = generator.render(demo, DocumentTemplate.ArchitectureDescription)
+            val doc = generator.render(demo, SeedTemplates.of("architecture"))
             val rationale = doc.body.path("sections").first { it.path("number").asInt() == 6 }
             assertEquals(demo.path("options").size(), rationale.path("items").size())
             assertTrue(rationale.path("items")[0].has("quality"))
@@ -421,8 +421,8 @@ class PresentationSemanticsTest {
         @Test
         fun `на настоящей модели генерация тоже воспроизводима и не меняет модель`() {
             val snapshot = demo.toString()
-            val first = generator.render(demo, DocumentTemplate.ArchitectureDescription)
-            val second = generator.render(demo, DocumentTemplate.ArchitectureDescription)
+            val first = generator.render(demo, SeedTemplates.of("architecture"))
+            val second = generator.render(demo, SeedTemplates.of("architecture"))
             assertEquals(first.digest, second.digest)
             assertEquals(snapshot, demo.toString())
         }
@@ -430,7 +430,7 @@ class PresentationSemanticsTest {
         @Test
         fun `неизвестный шаблон отклонён`() {
             // «semp» был примером несуществующего, пока блок C его не завёл
-            assertThrows<IllegalArgumentException> { DocumentTemplate.of("no_such_template") }
+            assertThrows<IllegalArgumentException> { SeedTemplates.of("no_such_template") }
         }
     }
 

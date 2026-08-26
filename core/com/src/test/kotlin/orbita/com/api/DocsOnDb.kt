@@ -5,7 +5,7 @@ import orbita.mod.RepoPaths
 import orbita.mod.TestDb
 import orbita.mod.schema.SchemaRegistry
 import orbita.out.DocumentGenerator
-import orbita.out.DocumentTemplate
+import orbita.out.SeedTemplates
 import orbita.out.ModelSnapshot
 import orbita.out.SpacecraftConditions
 
@@ -26,7 +26,7 @@ fun main() {
         ),
     )
     val g = DocumentGenerator(mapper)
-    for (t in DocumentTemplate.entries) {
+    for (t in SeedTemplates.all) {
         val d = g.render(model, t)
         println("=".repeat(74))
         println("${d.body.path("title").asText()}  [${t.source}]  слепок ${d.digest}")

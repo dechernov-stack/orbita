@@ -20,7 +20,7 @@ class DocumentKitsTest {
     @Test
     fun `каждый шаблон комплекта существует в генераторе`() {
         (DocumentKits.PRE_PHASE_A.values + DocumentKits.PHASE_A.values).toSet().forEach { code ->
-            DocumentTemplate.of(code) // неизвестный код бросил бы исключение
+            SeedTemplates.of(code) // неизвестный код бросил бы исключение
         }
     }
 
@@ -38,8 +38,8 @@ class DocumentKitsTest {
     @Test
     fun `тринадцать шаблонов блока C - все со своим источником структуры`() {
         // 3 было до блока C (req_spec, conops, architecture), 13 добавил блок C
-        assertEquals(16, DocumentTemplate.entries.size)
-        DocumentTemplate.entries.forEach { t ->
+        assertEquals(16, SeedTemplates.all.size)
+        SeedTemplates.all.forEach { t ->
             assertTrue(t.sections.isNotEmpty()) { t.code }
             assertTrue(t.source.isNotBlank()) { t.code }
         }

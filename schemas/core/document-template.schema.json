@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/core/document-template.schema.json",
+  "title": "DocumentTemplate",
+  "description": "Шаблон документа в библиотечной области (нитка Б.1): структура разделов с подсказками и вставками; источник и редакция. Выпуск работает по библиотечному шаблону; enum в коде удалён.",
+  "type": "object",
+  "required": [
+    "id",
+    "code",
+    "name",
+    "source",
+    "sections"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^DT-[0-9]{4}$"
+    },
+    "code": {
+      "type": "string",
+      "minLength": 2,
+      "description": "Код документа в комплектах фазы (req_spec, conops, …) — ключ наполнения разделов"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 3
+    },
+    "source": {
+      "type": "string",
+      "description": "Откуда структура: документ и приложение («БП-PA, Приложение 2», «NPR 7120.5, Appendix …»)"
+    },
+    "edition": {
+      "type": "string",
+      "description": "Редакция источника"
+    },
+    "sections": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "number",
+          "title"
+        ],
+        "properties": {
+          "number": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "title": {
+            "type": "string",
+            "minLength": 2
+          },
+          "expects": {
+            "type": "string",
+            "description": "Подсказка: что регламент требует видеть в разделе"
+          },
+          "inserts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Именованные вставки раздела (В1.2); пусто — только авторский текст"
+          },
+          "required": {
+            "type": "boolean",
+            "description": "Требуемость раздела"
+          }
+        }
+      }
+    },
+    "lifecycle": {
+      "$ref": "https://kis.local/schemas/common/status.schema.json"
+    },
+    "provenance": {
+      "$ref": "https://kis.local/schemas/common/provenance.schema.json"
+    }
+  }
+}

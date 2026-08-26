@@ -24,6 +24,7 @@ const KINDS: Array<{ id: string; title: string; generative: boolean }> = [
   { id: 'mission_to_stakeholders', title: 'Записка → профили стейкхолдеров (полка А2)', generative: true },
   { id: 'mission_to_typical_risks', title: 'Записка → типовые риски (полка Б3)', generative: true },
   { id: 'checklist_extraction', title: 'Прил. G → чек-листы обзоров (полка В3)', generative: true },
+  { id: 'template_extraction', title: 'Документ-образец → шаблон документа (нитка Б)', generative: true },
 ]
 
 export function AiService({ onGo }: { onGo?: (screen: string) => void }) {

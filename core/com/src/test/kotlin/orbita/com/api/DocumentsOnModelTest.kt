@@ -14,7 +14,7 @@ import orbita.mod.RepoPaths
 import orbita.mod.TestDb
 import orbita.mod.schema.SchemaRegistry
 import orbita.out.DocumentGenerator
-import orbita.out.DocumentTemplate
+import orbita.out.SeedTemplates
 import orbita.out.ModelSnapshot
 import orbita.out.SpacecraftConditions
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -76,7 +76,7 @@ class DocumentsOnModelTest {
     @Test
     @DisplayName("§11.1: разделы ConOps о режимах и среде заполнены из модели")
     fun `ConOps заполняется входами моделирования`() {
-        val doc = generator.render(snapshot(), DocumentTemplate.ConOps)
+        val doc = generator.render(snapshot(), SeedTemplates.of("conops"))
         val modes = doc.body.path("sections").first { it.path("number").asInt() == 3 }
         assertEquals(3, modes.path("items").size(), "режимы КА не дошли до документа")
         assertTrue(modes.path("items").any { it.path("name").asText() == "downlink" })
@@ -90,7 +90,7 @@ class DocumentsOnModelTest {
     @Test
     @DisplayName("§11.1: раздел бюджетов описания архитектуры собран из расчёта")
     fun `бюджеты доходят до описания архитектуры`() {
-        val doc = generator.render(snapshot(), DocumentTemplate.ArchitectureDescription)
+        val doc = generator.render(snapshot(), SeedTemplates.of("architecture"))
         val budgets = doc.body.path("sections").first { it.path("number").asInt() == 7 }
         val kinds = budgets.path("items").map { it.path("kind").asText() }
         assertTrue(kinds.containsAll(listOf("mass", "power", "tpm"))) { kinds.toString() }
@@ -107,7 +107,7 @@ class DocumentsOnModelTest {
     @Test
     @DisplayName("§11.1: оставшиеся разрывы названы и относятся к модели")
     fun `оставшиеся разрывы относятся к модели`() {
-        val spec = generator.render(snapshot(), DocumentTemplate.RequirementSpecification)
+        val spec = generator.render(snapshot(), SeedTemplates.of("req_spec"))
         // Введение в демо-проекте не заполнено. Разрыв называет НЕЗАПОЛНЕННОЕ
         // ПОЛЕ, а не «раздел пуст»: проект в модели есть всегда (он контейнер),
         // и инженеру нужно знать, чего именно не хватает, чтобы дописать.
@@ -119,7 +119,7 @@ class DocumentsOnModelTest {
         // обоснование не задано ни у одного требования — это находка к SRR
         assertEquals(9, spec.gaps.count { it.what.contains("обоснование") })
 
-        val conops = generator.render(snapshot(), DocumentTemplate.ConOps)
+        val conops = generator.render(snapshot(), SeedTemplates.of("conops"))
         // Шаг 17 C1: раздел 4 «Операционные сценарии» больше не вечно пуст —
         // он наполняется хранимыми объектами conops; пустым остался только
         // раздел 6 «Персонал и обеспечение», которого в модели ещё нет
@@ -134,8 +134,8 @@ class DocumentsOnModelTest {
     fun `генерация воспроизводима на полной модели`() {
         val model = snapshot()
         val before = model.toString()
-        val first = generator.render(model, DocumentTemplate.RequirementSpecification)
-        val second = generator.render(model, DocumentTemplate.RequirementSpecification)
+        val first = generator.render(model, SeedTemplates.of("req_spec"))
+        val second = generator.render(model, SeedTemplates.of("req_spec"))
         assertEquals(first.digest, second.digest)
         assertEquals(before, model.toString())
     }

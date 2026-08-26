@@ -36,6 +36,7 @@ class ProcessBackboneTest {
     @BeforeAll
     fun clean() {
         TestDb.truncateAll()
+        DemoProject.seedTemplates(boundary)
         boundary.ingest(
             orbita.mod.model.CoreType.Project,
             """{"id":"PJ-1001","name":"Спина процесса","phase":"pre_phase_a",
