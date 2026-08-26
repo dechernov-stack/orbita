@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Орбита · эталон Т-1: реестр требований + инспектор · круг 1</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--surface:#f8f9fa;--c-lowest:#ffffff;--c-low:#f3f4f5;--c:#edeeef;--on:#191c1d;--on-var:#44474c;
+--outline:#74777d;--hair:#c4c6cc;--rail:#0f1c2c;--on-rail:#8b97a8;--accent:#115cb9;--accent-fix:#d7e2ff;
+--error:#ba1a1a;--error-c:#ffdad6;--on-error-c:#93000a;--warn-c:#f6ecd7;--on-warn-c:#5c4a15;
+--st-draft:#74777d;--st-prelim:#115cb9;--st-appr:#584329;--st-base:#1a7f37;--recalc:#b3600e;
+--font:Inter,-apple-system,'Segoe UI',sans-serif;--mono:'JetBrains Mono',Menlo,monospace;--row:26px}
+*{box-sizing:border-box;margin:0}
+body{font:400 13px/20px var(--font);color:var(--on);background:#dfe2e6;padding:28px 0}
+.stand{max-width:1400px;margin:0 auto} .stand h1{font-size:15px;font-weight:600;padding:0 4px 6px}
+.stand .note{font-size:12px;color:var(--on-var);padding:0 4px 18px;max-width:960px}
+.case{margin:0 0 34px}
+.case>.tag{display:inline-block;font:600 11px/16px var(--font);text-transform:uppercase;letter-spacing:.07em;
+color:var(--on-var);background:#eef0f2;border:1px solid var(--hair);border-bottom:none;border-radius:6px 6px 0 0;padding:4px 10px}
+.frame{background:var(--surface);border:1px solid var(--hair);border-radius:0 8px 8px 8px;overflow:hidden;
+display:grid;grid-template-rows:48px 1fr;grid-template-columns:68px 1fr;
+grid-template-areas:'hdr hdr' 'rail main';min-height:640px}
+.frame.noinsp{}
+.hdr{grid-area:hdr;display:flex;align-items:center;gap:12px;padding:0 16px;background:var(--c-lowest);border-bottom:1px solid var(--hair)}
+.brand{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;letter-spacing:-.02em}
+.brand .o{width:16px;height:16px;border:2px solid var(--on);border-radius:50%}
+.proj b{font-weight:600} .chip{font-size:12px;line-height:18px;padding:1px 8px;border-radius:9px;background:var(--c);color:var(--on-var)}
+.gate{margin-left:auto;display:flex;align-items:center;gap:8px;border:1px solid var(--accent);border-radius:8px;padding:3px 10px;background:var(--c-lowest);font-size:12px}
+.gate .k{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--on-var)}
+.gate b{font-weight:600} .gate .n{font-family:var(--mono);font-size:12px;color:var(--on-error-c);background:var(--error-c);border-radius:8px;padding:0 7px}
+.who{font-size:12px;color:var(--on-var)} .who b{color:var(--on)}
+.rail{grid-area:rail;background:var(--rail);display:flex;flex-direction:column;align-items:center;padding:10px 0;gap:2px}
+.rico{width:58px;padding:7px 0 6px;border-radius:8px;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--on-rail)}
+.rico.on{background:rgba(255,255,255,.14);color:#fff}
+.rico svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round}
+.rlab{font:500 9px/10px var(--font)}
+.main{grid-area:main;display:flex;flex-direction:column;min-width:0;background:var(--c-lowest)}
+.tbar{display:flex;align-items:center;gap:12px;padding:8px 14px;border-bottom:1px solid var(--hair)}
+.tbar h1{font-size:14px;font-weight:600}
+.tabs .t{font:600 12px/16px var(--font);color:var(--on-var);padding:6px 10px;cursor:pointer;border-bottom:2px solid transparent}
+.tabs .t.on{color:var(--accent);border-bottom-color:var(--accent)}
+.cut{display:inline-flex;border:1px solid var(--hair);border-radius:7px;overflow:hidden}
+.cut .c{font:500 11.5px/16px var(--font);padding:4px 10px;color:var(--on-var);cursor:pointer;border-right:1px solid var(--hair)}
+.cut .c:last-child{border-right:none} .cut .c.on{background:var(--accent);color:#fff;font-weight:600}
+.spacer{flex:1}
+.tbar2{display:flex;align-items:center;gap:10px;padding:6px 14px;border-bottom:1px solid var(--hair);background:var(--c-lowest)}
+.grpby{font-size:12px;color:var(--on-var);border:1px solid var(--hair);border-radius:7px;padding:4px 10px;cursor:pointer;background:var(--c-lowest)}
+.grpby b{color:var(--on);font-weight:600}
+.search{font:400 12px/18px var(--font);border:1px solid var(--hair);border-radius:7px;padding:4px 10px;width:230px;background:var(--c-low)}
+tr.grp td{cursor:pointer}
+.chev{display:inline-block;width:12px;color:var(--outline);font-size:10px}
+.child .id{padding-left:20px} .child .st::before{content:'└ ';color:var(--outline)}
+.btn{font:600 12px/18px var(--font);padding:4px 10px;border-radius:6px;border:1px solid var(--hair);background:var(--c-lowest);cursor:pointer}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+.gaps{display:flex;gap:6px;padding:6px 14px;border-bottom:1px solid var(--hair);background:var(--c-low);flex-wrap:wrap}
+.g{font-size:11.5px;line-height:16px;padding:2px 9px;border-radius:9px;border:1px solid var(--hair);background:var(--c-lowest);color:var(--on-var);cursor:pointer}
+.g b{font-family:var(--mono);font-size:11px;font-weight:600}
+.g.on{background:var(--accent-fix);border-color:var(--accent-fix);color:#004491;font-weight:600}
+.g.bad{border-color:var(--error);color:var(--on-error-c)} .g.bad.on{background:var(--error-c)}
+.g.warnc{border-color:#d9c58a;color:var(--on-warn-c)}
+.selbar{display:flex;gap:12px;align-items:center;padding:7px 14px;background:var(--accent-fix);border-bottom:1px solid var(--hair);font-size:12.5px}
+.selbar b{font-weight:600}
+.twrap{overflow:auto;flex:1}
+table{width:100%;border-collapse:collapse}
+thead th{position:sticky;top:0;background:var(--c-lowest);z-index:1;text-align:left;font:600 11px/14px var(--font);
+text-transform:uppercase;letter-spacing:.05em;color:var(--on-var);padding:7px 8px;border-bottom:1px solid var(--hair)}
+td{height:var(--row);padding:0 8px;border-bottom:1px solid var(--c);font-size:12.5px;white-space:nowrap}
+td.chk{width:26px} td.chk input{accent-color:var(--accent)}
+td.st{max-width:0;width:99%;overflow:hidden;text-overflow:ellipsis}
+td.id{color:var(--on-var)} td.mop{text-align:right}
+td.vv{text-align:center;width:30px} td.vv.ok{color:var(--st-base)} td.vv.no{color:var(--outline)}
+tr.grp td{height:24px;background:var(--c-low);font:600 11px/14px var(--font);text-transform:uppercase;letter-spacing:.06em;color:var(--on-var)}
+tr.grp .cnt{color:var(--outline);text-transform:none;letter-spacing:0}
+tr.row:hover td{background:var(--c-low)} tr.row.sel td{background:var(--accent-fix)}
+tr.row.sel{}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;vertical-align:1px}
+.dot.draft{background:var(--st-draft)} .dot.prelim{background:var(--st-prelim)}
+.dot.appr{background:var(--st-appr)} .dot.base{background:var(--st-base)}
+.mk{display:inline-block;width:7px;height:7px;border-radius:2px;margin-left:6px;vertical-align:1px}
+.mk.recalc{background:var(--recalc)} .mk.chg{background:#8a6a1f}
+.assign{color:var(--accent);font-size:12px;text-decoration:none} .assign:hover{text-decoration:underline}
+.dim{color:var(--on-var)} .mono{font-family:var(--mono);font-size:12px}
+.insp{grid-area:insp;border-left:1px solid var(--hair);background:var(--c-lowest);display:flex;flex-direction:column;min-height:0}
+.itabs{display:flex;border-bottom:1px solid var(--hair)}
+.itab{flex:1;text-align:center;font:600 11px/14px var(--font);color:var(--on-var);padding:9px 2px;cursor:pointer;border-bottom:2px solid transparent}
+.itab.on{color:var(--accent);border-bottom-color:var(--accent)}
+.ibody{padding:13px 15px;overflow:auto;flex:1}
+.iid{font-family:var(--mono);font-size:12px;color:var(--on-var)}
+.ibody h2{font-size:13.5px;line-height:19px;font-weight:600;margin:2px 0 8px}
+.istate{display:flex;gap:6px;margin:0 0 10px;flex-wrap:wrap}
+.card{border:1px solid var(--hair);border-radius:8px;padding:9px 11px;margin:0 0 9px}
+.card .k{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--on-var);margin-bottom:4px;display:flex;justify-content:space-between}
+.card .k a{text-transform:none;letter-spacing:0;font-size:11.5px;color:var(--accent);text-decoration:none;font-weight:500}
+.mopv{font-family:var(--mono);font-size:15px;font-weight:600} .mopn{font-size:11.5px;color:var(--on-var)}
+.tnode{display:flex;gap:7px;align-items:baseline;padding:2px 0}
+.tnode .tid{font-family:var(--mono);font-size:11.5px;color:var(--accent)}
+.tnode .tt{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tarrow{color:var(--outline);font-size:10.5px;padding-left:2px}
+.prov{font-size:11px;color:var(--outline)}
+.ifoot{border-top:1px solid var(--hair);padding:7px 15px;display:flex;gap:12px;font-size:11px;color:var(--on-var)}
+.confirm{display:flex;gap:10px;align-items:center;background:var(--warn-c);color:var(--on-warn-c);
+border-bottom:1px solid var(--hair);padding:8px 14px;font-size:12.5px}
+.confirm b{font-weight:600}
+/* сохранённые виды */
+.views{display:flex;gap:6px;align-items:center}
+.v{font-size:11.5px;padding:2px 9px;border-radius:9px;border:1px solid var(--hair);background:var(--c-lowest);color:var(--on-var);cursor:pointer}
+.v.on{background:var(--rail);border-color:var(--rail);color:#fff;font-weight:600}
+.v.add{border-style:dashed;color:var(--accent)}
+.gear{font:600 11.5px/16px var(--font);padding:4px 10px;border-radius:6px;border:1px solid var(--hair);background:var(--c-lowest);cursor:pointer;color:var(--on-var)}
+/* раскрытие строки */
+tr.exp>td{background:var(--accent-fix)}
+tr.expand td{height:auto;padding:10px 12px 12px 42px;background:#f2f6fd;border-bottom:1px solid var(--hair);white-space:normal}
+.xgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;max-width:1020px}
+.xk{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--on-var);margin-bottom:3px}
+.xv{font-size:12.5px;line-height:18px}
+.xv .mono{font-size:12px}
+.xfoot{margin-top:8px;display:flex;gap:14px;align-items:center;font-size:11.5px}
+.xfoot a{color:var(--accent);text-decoration:none} .xfoot a:hover{text-decoration:underline}
+/* конфигуратор вида */
+.cfg{position:absolute;right:14px;top:44px;width:270px;background:var(--c-lowest);border:1px solid var(--hair);
+border-radius:10px;box-shadow:0 8px 24px rgba(15,28,44,.14);padding:10px 12px;z-index:5}
+.cfg h4{font-size:12px;font-weight:600;margin-bottom:8px;display:flex;justify-content:space-between}
+.cfg h4 a{font-weight:500;font-size:11.5px;color:var(--accent);text-decoration:none}
+.col{display:flex;gap:8px;align-items:center;padding:3px 0;font-size:12.5px}
+.col .grip{color:var(--hair);cursor:grab;font-size:13px}
+.col input{accent-color:var(--accent)}
+.col .off{color:var(--outline)}
+.cfg .sec{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--on-var);margin:8px 0 3px}
+/* карточка требования */
+.cardpage{padding:0;display:flex;flex-direction:column;min-height:0}
+.chead2{display:flex;gap:12px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--hair)}
+.chead2 .back{color:var(--accent);text-decoration:none;font-size:12.5px;white-space:nowrap}
+.chead2 .rid{font-family:var(--mono);font-size:13px;color:var(--on-var)}
+.chead2 .nav{margin-left:auto;display:flex;gap:6px;align-items:center;font-size:12px;color:var(--on-var)}
+.chead2 .nav .btn{padding:3px 9px}
+.ctitle{padding:12px 18px 2px}
+.ctitle h2{font-size:16px;line-height:23px;font-weight:650;max-width:1020px}
+.cstate{display:flex;gap:6px;margin:8px 0 0;flex-wrap:wrap;align-items:center}
+.cbody2{padding:12px 18px 18px;overflow:auto;display:grid;grid-template-columns:1fr 1fr;gap:12px;align-content:start}
+.cbody2 .card{margin:0}
+.cbody2 .wide{grid-column:1/3}
+.hist{display:flex;gap:10px;align-items:baseline;padding:3px 0;font-size:12px}
+.hist .mono{color:var(--on-var)}
+</style></head><body>
+<div class="stand">
+<h1>Т-1 · Реестр требований — эталон, круг 3</h1>
+<div class="note">Решения круга: <b>боковой панели нет</b> — требование раскрывается строкой вниз
+(суть без ухода), полная анатомия — карточкой на всю рабочую область с листанием по реестру.
+<b>Тулбар — три строки, у каждой одна работа</b>: раздел и главное действие · форма данных
+(Дерево/Плоско × Группировка по критерию) с видами и поиском · счётчики разрывов. Группы
+схлопываются шевроном («по носителю» — ваш пример по элементам КА); ребёнок в дереве — с отступом
+(связь для показа). Вторичные действия — в меню «⋯». Конфигуратор колонок — прежний, ⚙ Вид. Данные — пилот «Ротор-Л», статусы смешаны
+для показа; сироты настоящие. Пометы — квадратики у статуса; разрывы — счётчики-фильтры.</div>
+
+<div class="case"><span class="tag">Состояние 1 · дерево, группировка «по носителю»: группы схлопываются, строка раскрыта</span>
+<div class="frame">
+  <header class="hdr"><span class="brand"><span class="o"></span>Орбита</span>
+    <span class="proj"><b>Ротор-Л</b></span><span class="chip">Pre-Phase A</span>
+    <span class="gate"><span class="k">ближайшая точка</span><b>Внутренний обзор</b>
+      <span class="n">не закрыто · 17</span></span>
+    <span class="who">Инженер: <b>Чернов Д.</b></span></header>
+  <nav class="rail"><div class="rico"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg><span class="rlab">Портфель</span></div>
+<div class="rico"><svg viewBox="0 0 24 24"><path d="M12 6c-2-1.4-5-1.4-7 0v12c2-1.4 5-1.4 7 0c2-1.4 5-1.4 7 0V6c-2-1.4-5-1.4-7 0z"/><path d="M12 6v12"/></svg><span class="rlab">Библиотека</span></div>
+<div class="rico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.6"/></svg><span class="rlab">Постановка</span></div>
+<div class="rico on"><svg viewBox="0 0 24 24"><path d="M5 5h14M5 10h14M5 15h9M5 20h6"/></svg><span class="rlab">Требования</span></div>
+<div class="rico"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/><path d="M11 7.5h5.5V13"/></svg><span class="rlab">Концепция</span></div>
+<div class="rico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M2.5 12c3-4 16-4 19 0"/></svg><span class="rlab">Модели</span></div>
+<div class="rico"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></svg><span class="rlab">Документы</span></div>
+<div class="rico"><svg viewBox="0 0 24 24"><path d="M4 19V5m0 14h16M8 15l4-6 4 3 4-7"/></svg><span class="rlab">Контроль</span></div>
+<div class="rico"><svg viewBox="0 0 24 24"><path d="M9 4h6l1 3 3 1v6l-3 1-1 3H9l-1-3-3-1V8l3-1z"/><circle cx="12" cy="11.5" r="2.4"/></svg><span class="rlab">Инструменты</span></div></nav>
+  <main class="main">
+    <div class="tbar" style="position:relative"><h1>Требования</h1>
+      <span class="tabs"><span class="t on">Реестр</span><span class="t">Матрицы</span></span>
+      <span class="spacer"></span>
+      <button class="btn pri">Добавить требование</button><button class="btn">⋯</button></div>
+    <div class="tbar2">
+      <span class="cut"><span class="c on">Дерево</span><span class="c">Плоско</span></span>
+      <span class="grpby">Группировка: <b>по носителю</b> ▾</span>
+      <span class="views"><span class="v on">Рабочий</span><span class="v">К обзору</span><span class="v">Сироты</span><span class="v add">+ сохранить</span></span>
+      <span class="spacer"></span>
+      <input class="search" placeholder="Поиск по формулировке и ID">
+      <button class="gear">⚙ Вид</button></div>
+    <div class="gaps"><span class="g on">Все<b> · 41</b></span><span class="g bad">Без носителя<b> · 8</b></span><span class="g">Без верификации<b> · 0</b></span><span class="g warnc">Пересчитан после базирования<b> · 2</b></span><span class="g warnc">Изменено после утверждения<b> · 1</b></span></div>
+    <div class="twrap"><table>
+      <thead><tr><th></th><th>ID</th><th>Формулировка</th><th>Вид</th>
+        <th style="text-align:right">Показатель ↓</th><th>Статус</th><th>Носитель</th><th>В</th></tr></thead>
+      <tbody><tr class="grp"><td colspan="8"><span class="chev">▾</span>Не распределено<span class="cnt"> · 8</span></td></tr>
+<tr class="row" tabindex="0"><td class="chk"><input type="checkbox"></td><td class="mono id">RQ-0101</td><td class="st" title="Система должна доставлять пакет терминала класса A&#x27; с вероятностью не менее 0,90 за сутки.">Система должна доставлять пакет терминала класса A&#x27; с вероятностью не менее 0,90 за сутки.</td><td class="dim">Числовое</td><td class="mono mop">≥ 0,9</td><td><span class="dot base"></span>Baseline<span class="mk recalc" title="Показатель пересчитан после базирования"></span></td><td><a class="assign" href="#">распределить</a></td><td class="vv no">—</td></tr>
+<tr class="row" tabindex="0"><td class="chk"><input type="checkbox"></td><td class="mono id">RQ-0102</td><td class="st" title="Система должна подтверждать доставку пакета терминала класса B&#x27; с вероятностью не менее 0,99 за двое суток.">Система должна подтверждать доставку пакета терминала класса B&#x27; с вероятностью не менее 0,99 за двое суток.</td><td class="dim">Числовое</td><td class="mono mop">≥ 0,99</td><td><span class="dot base"></span>Baseline<span class="mk recalc" title="Показатель пересчитан после базирования"></span></td><td><a class="assign" href="#">распределить</a></td><td class="vv no">—</td></tr>
+<tr class="row" tabindex="0"><td class="chk"><input type="checkbox"></td><td class="mono id">RQ-0103</td><td class="st" title="Система должна доводить команду до объекта класса C&#x27; не более чем за 30 минут.">Система должна доводить команду до объекта класса C&#x27; не более чем за 30 минут.</td><td class="dim">Числовое</td><td class="mono mop">≤ 1 800 с</td><td><span class="dot base"></span>Baseline<span class="mk chg" title="Изменено после утверждения"></span></td><td><a class="assign" href="#">распределить</a></td><td class="vv no">—</td></tr>
+<tr class="grp"><td colspan="8"><span class="chev">▸</span>…ещё 5 в группе</td></tr>
+<tr class="grp"><td colspan="8"><span class="chev">▾</span><span class="mono" style="text-transform:none">CM-0103</span> Полезная нагрузка IoT<span class="cnt"> · 12</span></td></tr>
+<tr class="row" tabindex="0"><td class="chk"><input type="checkbox"></td><td class="mono id">RQ-0109</td><td class="st" title="КА должен принимать пакеты терминалов в зоне обслуживания и обрабатывать их на борту.">КА должен принимать пакеты терминалов в зоне обслуживания и обрабатывать их на борту.</td><td class="dim">Текстовое</td><td class="mono mop"></td><td><span class="dot draft"></span>Draft</td><td><span class="mono dim">CM-0103</span></td><td class="vv no">—</td></tr>
+<tr class="row" tabindex="0"><td class="chk"><input type="checkbox"></td><td class="mono id">RQ-0110</td><td class="st" title="КА должен вести широковещательный маяк альманаха для планирования передач терминалами.">КА должен вести широковещательный маяк альманаха для планирования передач терминалами.</td><td class="dim">Текстовое</td><td class="mono mop"></td><td><span class="dot prelim"></span>Preliminary</td><td><span class="mono dim">CM-0103</span></td><td class="vv no">—</td></tr>
+<tr class="row sel" tabindex="0"><td class="chk"><input type="checkbox"></td><td class="mono id">RQ-0111</td><td class="st" title="Полезная нагрузка должна демодулировать не менее 250 пакетов в минуту в пике нагрузки.">Полезная нагрузка должна демодулировать не менее 250 пакетов в минуту в пике нагрузки.</td><td class="dim">Числовое</td><td class="mono mop">≥ 250 1/мин</td><td><span class="dot prelim"></span>Preliminary</td><td><span class="mono dim">CM-0103</span></td><td class="vv no">—</td></tr>
+<tr class="expand"><td colspan="8"><div class="xgrid">
+      <div><div class="xk">Показатель</div><div class="xv mono">≥ 250 1/мин</div>
+        <div class="xk" style="margin-top:8px">Обоснование</div>
+        <div class="xv">Реализует RQ-0104; основание — постановка миссии.</div></div>
+      <div><div class="xk">Трассировка</div><div class="xv">↑ <span class="mono">RQ-0104</span><br>↓ детей нет</div></div>
+      <div><div class="xk">Носитель</div><div class="xv"><span class="mono">CM-0103</span> Полезная нагрузка IoT</div>
+        <div class="xk" style="margin-top:8px">Верификация</div><div class="xv">Испытание · Phase A · запланировано</div></div>
+    </div>
+    <div class="xfoot"><a href="#">Открыть карточку →</a><span class="prov">v1 · Чернов Д. · 26.08.2026</span>
+      <span class="prov">Esc — свернуть · ↑↓ — по строкам</span></div></td></tr>
+<tr class="row child" tabindex="0"><td class="chk"><input type="checkbox"></td><td class="mono id">RQ-0112</td><td class="st" title="Бюджет линии «терминал A&#x27; — КА» должен замыкаться при угле места не менее 15°.">Бюджет линии «терминал A&#x27; — КА» должен замыкаться при угле места не менее 15°.</td><td class="dim">Числовое</td><td class="mono mop">≤ 15 deg</td><td><span class="dot draft"></span>Draft</td><td><span class="mono dim">CM-0103</span></td><td class="vv no">—</td></tr>
+<tr class="row" tabindex="0"><td class="chk"><input type="checkbox"></td><td class="mono id">RQ-0112</td><td class="st" title="Бюджет линии «терминал A&#x27; — КА» должен замыкаться при угле места не менее 15°.">Бюджет линии «терминал A&#x27; — КА» должен замыкаться при угле места не менее 15°.</td><td class="dim">Числовое</td><td class="mono mop">≤ 15 deg</td><td><span class="dot draft"></span>Draft</td><td><span class="mono dim">CM-0103</span></td><td class="vv no">—</td></tr>
+<tr class="row" tabindex="0"><td class="chk"><input type="checkbox"></td><td class="mono id">RQ-0113</td><td class="st" title="Борт должен хранить принятые пакеты до сброса на станцию не менее 12 часов.">Борт должен хранить принятые пакеты до сброса на станцию не менее 12 часов.</td><td class="dim">Числовое</td><td class="mono mop">≥ 43 200 с</td><td><span class="dot prelim"></span>Preliminary</td><td><span class="mono dim">CM-0103</span></td><td class="vv no">—</td></tr>
+<tr class="row" tabindex="0"><td class="chk"><input type="checkbox"></td><td class="mono id">RQ-0115</td><td class="st" title="Среднесуточная мощность полезной нагрузки не должна превышать 60 Вт.">Среднесуточная мощность полезной нагрузки не должна превышать 60 Вт.</td><td class="dim">Числовое</td><td class="mono mop">≤ 60 Вт</td><td><span class="dot prelim"></span>Preliminary</td><td><span class="mono dim">CM-0103</span></td><td class="vv no">—</td></tr>
+<tr class="row" tabindex="0"><td class="chk"><input type="checkbox"></td><td class="mono id">RQ-0119</td><td class="st" title="Излучение бортового передатчика вне выделенной полосы должно быть подавлено не менее чем на 43 дБ.">Излучение бортового передатчика вне выделенной полосы должно быть подавлено не менее чем на 43 дБ.</td><td class="dim">Числовое</td><td class="mono mop">≥ 43 дБ</td><td><span class="dot draft"></span>Draft</td><td><span class="mono dim">CM-0103</span></td><td class="vv no">—</td></tr>
+<tr class="row" tabindex="0"><td class="chk"><input type="checkbox"></td><td class="mono id">RQ-0129</td><td class="st" title="Вероятность коллизии пакетов в пике нагрузки не должна превышать 0,10 на канал.">Вероятность коллизии пакетов в пике нагрузки не должна превышать 0,10 на канал.</td><td class="dim">Числовое</td><td class="mono mop">≤ 0,1</td><td><span class="dot prelim"></span>Preliminary</td><td><span class="mono dim">CM-0103</span></td><td class="vv no">—</td></tr>
+<tr class="row" tabindex="0"><td class="chk"><input type="checkbox"></td><td class="mono id">RQ-0133</td><td class="st" title="Борт должен маркировать пакеты меткой времени с погрешностью не более 100 мс.">Борт должен маркировать пакеты меткой времени с погрешностью не более 100 мс.</td><td class="dim">Числовое</td><td class="mono mop">≤ 0,1 с</td><td><span class="dot prelim"></span>Preliminary</td><td><span class="mono dim">CM-0103</span></td><td class="vv no">—</td></tr>
+<tr class="row" tabindex="0"><td class="chk"><input type="checkbox"></td><td class="mono id">RQ-0134</td><td class="st" title="Полезная нагрузка должна восстанавливаться после одиночного сбоя без потери накопленных пакетов.">Полезная нагрузка должна восстанавливаться после одиночного сбоя без потери накопленных пакетов.</td><td class="dim">Текстовое</td><td class="mono mop"></td><td><span class="dot draft"></span>Draft</td><td><span class="mono dim">CM-0103</span></td><td class="vv no">—</td></tr>
+<tr class="row" tabindex="0"><td class="chk"><input type="checkbox"></td><td class="mono id">RQ-0138</td><td class="st" title="Ложная тревога приёмника ПН не должна превышать одной на 10⁶ слотов.">Ложная тревога приёмника ПН не должна превышать одной на 10⁶ слотов.</td><td class="dim">Числовое</td><td class="mono mop">≤ 1e-06</td><td><span class="dot prelim"></span>Preliminary</td><td><span class="mono dim">CM-0103</span></td><td class="vv no">—</td></tr>
+<tr class="row" tabindex="0"><td class="chk"><input type="checkbox"></td><td class="mono id">RQ-0139</td><td class="st" title="Компоненты полезной нагрузки должны выбираться из номенклатуры не ниже TRL 5 к SRR.">Компоненты полезной нагрузки должны выбираться из номенклатуры не ниже TRL 5 к SRR.</td><td class="dim">Текстовое</td><td class="mono mop"></td><td><span class="dot prelim"></span>Preliminary</td><td><span class="mono dim">CM-0103</span></td><td class="vv no">—</td></tr>
+<tr class="grp"><td colspan="8"><span class="chev">▾</span><span class="mono" style="text-transform:none">CM-0106</span> Станция приёма и управления<span class="cnt"> · 7</span></td></tr>
+<tr class="row" tabindex="0"><td class="chk"><input type="checkbox"></td><td class="mono id">RQ-0120</td><td class="st" title="Станция должна принимать сброс борта и раздавать данные потребителям через API оператора.">Станция должна принимать сброс борта и раздавать данные потребителям через API оператора.</td><td class="dim">Текстовое</td><td class="mono mop"></td><td><span class="dot draft"></span>Draft</td><td><span class="mono dim">CM-0106</span></td><td class="vv no">—</td></tr>
+<tr class="row" tabindex="0"><td class="chk"><input type="checkbox"></td><td class="mono id">RQ-0121</td><td class="st" title="Задержка от сброса на станцию до выдачи потребителю не должна превышать 15 минут.">Задержка от сброса на станцию до выдачи потребителю не должна превышать 15 минут.</td><td class="dim">Числовое</td><td class="mono mop">≤ 900 с</td><td><span class="dot prelim"></span>Preliminary</td><td><span class="mono dim">CM-0106</span></td><td class="vv no">—</td></tr>
+<tr class="row" tabindex="0"><td class="chk"><input type="checkbox"></td><td class="mono id">RQ-0122</td><td class="st" title="Станция должна формировать и выкладывать на борт суточное полётное задание.">Станция должна формировать и выкладывать на борт суточное полётное задание.</td><td class="dim">Текстовое</td><td class="mono mop"></td><td><span class="dot prelim"></span>Preliminary</td><td><span class="mono dim">CM-0106</span></td><td class="vv no">—</td></tr>
+<tr class="row" tabindex="0"><td class="chk"><input type="checkbox"></td><td class="mono id">RQ-0136</td><td class="st" title="Станция должна автоматически проверять целостность принятых пакетов и запрашивать повтор сброса.">Станция должна автоматически проверять целостность принятых пакетов и запрашивать повтор сброса.</td><td class="dim">Текстовое</td><td class="mono mop"></td><td><span class="dot draft"></span>Draft</td><td><span class="mono dim">CM-0106</span></td><td class="vv no">—</td></tr>
+<tr class="row" tabindex="0"><td class="chk"><input type="checkbox"></td><td class="mono id">RQ-0137</td><td class="st" title="Оператор должен получать сводку состояния группировки не реже одного раза в час.">Оператор должен получать сводку состояния группировки не реже одного раза в час.</td><td class="dim">Текстовое</td><td class="mono mop"></td><td><span class="dot prelim"></span>Preliminary</td><td><span class="mono dim">CM-0106</span></td><td class="vv no">—</td></tr>
+<tr class="row" tabindex="0"><td class="chk"><input type="checkbox"></td><td class="mono id">RQ-0140</td><td class="st" title="Партнёрский шлюз должен транслировать пакеты наземной LPWAN в формат системы без изменения полезных данных.">Партнёрский шлюз должен транслировать пакеты наземной LPWAN в формат системы без изменения полезных данных.</td><td class="dim">Текстовое</td><td class="mono mop"></td><td><span class="dot prelim"></span>Preliminary</td><td><span class="mono dim">CM-0106</span></td><td class="vv no">—</td></tr>
+<tr class="row" tabindex="0"><td class="chk"><input type="checkbox"></td><td class="mono id">RQ-0141</td><td class="st" title="Система должна вести учёт активных терминалов и их профилей обслуживания.">Система должна вести учёт активных терминалов и их профилей обслуживания.</td><td class="dim">Текстовое</td><td class="mono mop"></td><td><span class="dot draft"></span>Draft</td><td><span class="mono dim">CM-0106</span></td><td class="vv no">—</td></tr>
+<tr class="grp"><td colspan="8"><span class="chev">▸</span><span class="mono" style="text-transform:none">CM-0108</span> Терминал класса A&#x27;<span class="cnt"> · 4 — схлопнуто</span></td></tr>
+<tr class="grp"><td colspan="8"><span class="chev">▸</span><span class="mono" style="text-transform:none">CM-0104</span> Служебная платформа 16U<span class="cnt"> · 3 — схлопнуто</span></td></tr>
+<tr class="grp"><td colspan="8"><span class="chev">▾</span><span class="mono" style="text-transform:none">CM-0102</span> Космический аппарат «Ротор-Л»<span class="cnt"> · 2</span></td></tr>
+<tr class="row" tabindex="0"><td class="chk"><input type="checkbox"></td><td class="mono id">RQ-0114</td><td class="st" title="Сухая масса КА не должна превышать 95 кг с резервом зрелости 10 %.">Сухая масса КА не должна превышать 95 кг с резервом зрелости 10 %.</td><td class="dim">Числовое</td><td class="mono mop">≤ 95 кг</td><td><span class="dot draft"></span>Draft</td><td><span class="mono dim">CM-0102</span></td><td class="vv no">—</td></tr>
+<tr class="row" tabindex="0"><td class="chk"><input type="checkbox"></td><td class="mono id">RQ-0117</td><td class="st" title="Вероятность безотказной работы КА за 5 лет должна быть не менее 0,85.">Вероятность безотказной работы КА за 5 лет должна быть не менее 0,85.</td><td class="dim">Числовое</td><td class="mono mop">≥ 0,85</td><td><span class="dot prelim"></span>Preliminary</td><td><span class="mono dim">CM-0102</span></td><td class="vv no">—</td></tr>
+<tr class="grp"><td colspan="8"><span class="chev">▾</span><span class="mono" style="text-transform:none">CM-0101</span> Космический сегмент<span class="cnt"> · 2</span></td></tr>
+<tr class="row" tabindex="0"><td class="chk"><input type="checkbox"></td><td class="mono id">RQ-0130</td><td class="st" title="Группировка должна обеспечивать интервал между пролётами над любой точкой обслуживания не более 4 часов.">Группировка должна обеспечивать интервал между пролётами над любой точкой обслуживания не более 4 часов.</td><td class="dim">Числовое</td><td class="mono mop">≤ 14 400 с</td><td><span class="dot draft"></span>Draft</td><td><span class="mono dim">CM-0101</span></td><td class="vv no">—</td></tr>
+<tr class="row" tabindex="0"><td class="chk"><input type="checkbox"></td><td class="mono id">RQ-0131</td><td class="st" title="Система должна вводить новый КА в обслуживание не более чем за 14 суток после выведения.">Система должна вводить новый КА в обслуживание не более чем за 14 суток после выведения.</td><td class="dim">Текстовое</td><td class="mono mop"></td><td><span class="dot prelim"></span>Preliminary</td><td><span class="mono dim">CM-0101</span></td><td class="vv no">—</td></tr>
+<tr class="grp"><td colspan="8"><span class="chev">▾</span><span class="mono" style="text-transform:none">IF-0101</span> IF-0101<span class="cnt"> · 1</span></td></tr>
+<tr class="row" tabindex="0"><td class="chk"><input type="checkbox"></td><td class="mono id">RQ-0123</td><td class="st" title="Радиолиния «КА — станция» должна обеспечивать сброс суточного объёма за один пролёт.">Радиолиния «КА — станция» должна обеспечивать сброс суточного объёма за один пролёт.</td><td class="dim">Текстовое</td><td class="mono mop"></td><td><span class="dot draft"></span>Draft</td><td><span class="mono dim">IF-0101</span></td><td class="vv no">—</td></tr>
+<tr class="grp"><td colspan="8"><span class="chev">▾</span><span class="mono" style="text-transform:none">CM-0109</span> Терминал класса B&#x27;<span class="cnt"> · 1</span></td></tr>
+<tr class="row" tabindex="0"><td class="chk"><input type="checkbox"></td><td class="mono id">RQ-0125</td><td class="st" title="Терминал B&#x27; должен повторять передачу с эфемеридным backoff до получения подтверждения.">Терминал B&#x27; должен повторять передачу с эфемеридным backoff до получения подтверждения.</td><td class="dim">Текстовое</td><td class="mono mop"></td><td><span class="dot draft"></span>Draft</td><td><span class="mono dim">CM-0109</span></td><td class="vv no">—</td></tr>
+<tr class="grp"><td colspan="8"><span class="chev">▾</span><span class="mono" style="text-transform:none">IF-0102</span> IF-0102<span class="cnt"> · 1</span></td></tr>
+<tr class="row" tabindex="0"><td class="chk"><input type="checkbox"></td><td class="mono id">RQ-0135</td><td class="st" title="Интерфейс «платформа — полезная нагрузка» должен передавать не менее 2 Мбит/с служебного обмена.">Интерфейс «платформа — полезная нагрузка» должен передавать не менее 2 Мбит/с служебного обмена.</td><td class="dim">Числовое</td><td class="mono mop">≥ 2 000 000 бит/с</td><td><span class="dot draft"></span>Draft</td><td><span class="mono dim">IF-0102</span></td><td class="vv no">—</td></tr></tbody></table></div>
+  </main>
+</div></div>
+
+<div class="case"><span class="tag">Состояние 2 · карточка требования — вся рабочая область, две колонки</span>
+<div class="frame">
+  <header class="hdr"><span class="brand"><span class="o"></span>Орбита</span>
+    <span class="proj"><b>Ротор-Л</b></span><span class="chip">Pre-Phase A</span>
+    <span class="gate"><span class="k">ближайшая точка</span><b>Внутренний обзор</b>
+      <span class="n">не закрыто · 17</span></span>
+    <span class="who">Инженер: <b>Чернов Д.</b></span></header>
+  <nav class="rail"><div class="rico"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg><span class="rlab">Портфель</span></div>
+<div class="rico"><svg viewBox="0 0 24 24"><path d="M12 6c-2-1.4-5-1.4-7 0v12c2-1.4 5-1.4 7 0c2-1.4 5-1.4 7 0V6c-2-1.4-5-1.4-7 0z"/><path d="M12 6v12"/></svg><span class="rlab">Библиотека</span></div>
+<div class="rico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.6"/></svg><span class="rlab">Постановка</span></div>
+<div class="rico on"><svg viewBox="0 0 24 24"><path d="M5 5h14M5 10h14M5 15h9M5 20h6"/></svg><span class="rlab">Требования</span></div>
+<div class="rico"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/><path d="M11 7.5h5.5V13"/></svg><span class="rlab">Концепция</span></div>
+<div class="rico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M2.5 12c3-4 16-4 19 0"/></svg><span class="rlab">Модели</span></div>
+<div class="rico"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></svg><span class="rlab">Документы</span></div>
+<div class="rico"><svg viewBox="0 0 24 24"><path d="M4 19V5m0 14h16M8 15l4-6 4 3 4-7"/></svg><span class="rlab">Контроль</span></div>
+<div class="rico"><svg viewBox="0 0 24 24"><path d="M9 4h6l1 3 3 1v6l-3 1-1 3H9l-1-3-3-1V8l3-1z"/><circle cx="12" cy="11.5" r="2.4"/></svg><span class="rlab">Инструменты</span></div></nav>
+  <main class="main cardpage">
+    <div class="chead2"><a class="back" href="#">← Реестр требований</a>
+      <span class="rid">RQ-0111</span>
+      <span class="chip"><span class="dot prelim"></span>Preliminary · v1</span>
+      <span class="nav"><span>7 из 41</span><button class="btn">↑ пред.</button><button class="btn">след. ↓</button>
+        <button class="btn">Изменить</button><button class="btn">⋯</button></span></div>
+    <div class="ctitle"><h2>Полезная нагрузка должна демодулировать не менее 250 пакетов в минуту в пике нагрузки.</h2>
+      <div class="cstate"><span class="chip">Система</span><span class="chip">Числовое</span>
+        <span class="chip">Происхождение: затравка</span></div></div>
+    <div class="cbody2">
+      <div class="card"><div class="k">Показатель</div>
+        <div class="mopv">≥ 250 1/мин</div><div class="mopn">Пиковая производительность демодуляции</div>
+        <div class="prov" style="margin-top:4px">Основание: постановка миссии · раздел 3</div></div>
+      <div class="card"><div class="k">Трассировка <a href="#">в матрицу →</a></div>
+        <div class="tnode"><span class="tid">RQ-0104</span></div>
+        <div class="tarrow">↓ вниз</div>
+        <div class="tnode"><span class="tt dim">детей нет — </span><a class="assign" href="#">декомпозировать</a></div></div>
+      <div class="card"><div class="k">Обоснование</div>
+        <div style="font-size:12.5px;line-height:18px">Реализует сервис доставки класса A′;
+        порог из постановки миссии, раздел 3.</div></div>
+      <div class="card"><div class="k">Распределение <a href="#">к носителю →</a></div>
+        <div class="tnode"><span class="tid">CM-0103</span><span class="tt">Полезная нагрузка IoT</span></div></div>
+      <div class="card"><div class="k">Верификация</div>
+        <div class="tnode"><span class="tt">Испытание · предварительная · Phase A · система</span>
+          <span class="chip">Запланировано</span></div></div>
+      <div class="card"><div class="k">История</div>
+        <div class="hist"><span class="mono">v1</span><span>создано · Чернов Д. · 26.08.2026</span>
+          <a class="assign" href="#" style="margin-left:auto">откатить</a></div></div>
+      <div class="card wide"><div class="k">Предложения ИИ · 1</div>
+        <div class="tnode"><span class="tt">Рецензия: формулировка содержит два предмета — разделить
+          приём пакетов и подтверждение доставки.</span>
+          <span style="margin-left:auto;display:flex;gap:6px"><button class="btn">Принять</button>
+          <button class="btn">Отклонить</button></span></div></div>
+    </div>
+  </main>
+</div></div>
+
+<div class="case"><span class="tag">Состояние 3 · конфигуратор вида открыт: колонки, порядок, сохранение</span>
+<div class="frame" style="min-height:480px">
+  <header class="hdr"><span class="brand"><span class="o"></span>Орбита</span>
+    <span class="proj"><b>Ротор-Л</b></span><span class="chip">Pre-Phase A</span>
+    <span class="gate"><span class="k">ближайшая точка</span><b>Внутренний обзор</b>
+      <span class="n">не закрыто · 17</span></span>
+    <span class="who">Инженер: <b>Чернов Д.</b></span></header>
+  <nav class="rail"><div class="rico"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg><span class="rlab">Портфель</span></div>
+<div class="rico"><svg viewBox="0 0 24 24"><path d="M12 6c-2-1.4-5-1.4-7 0v12c2-1.4 5-1.4 7 0c2-1.4 5-1.4 7 0V6c-2-1.4-5-1.4-7 0z"/><path d="M12 6v12"/></svg><span class="rlab">Библиотека</span></div>
+<div class="rico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.6"/></svg><span class="rlab">Постановка</span></div>
+<div class="rico on"><svg viewBox="0 0 24 24"><path d="M5 5h14M5 10h14M5 15h9M5 20h6"/></svg><span class="rlab">Требования</span></div>
+<div class="rico"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/><path d="M11 7.5h5.5V13"/></svg><span class="rlab">Концепция</span></div>
+<div class="rico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M2.5 12c3-4 16-4 19 0"/></svg><span class="rlab">Модели</span></div>
+<div class="rico"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></svg><span class="rlab">Документы</span></div>
+<div class="rico"><svg viewBox="0 0 24 24"><path d="M4 19V5m0 14h16M8 15l4-6 4 3 4-7"/></svg><span class="rlab">Контроль</span></div>
+<div class="rico"><svg viewBox="0 0 24 24"><path d="M9 4h6l1 3 3 1v6l-3 1-1 3H9l-1-3-3-1V8l3-1z"/><circle cx="12" cy="11.5" r="2.4"/></svg><span class="rlab">Инструменты</span></div></nav>
+  <main class="main">
+    <div class="tbar" style="position:relative"><h1>Требования</h1>
+      <span class="tabs"><span class="t on">Реестр</span><span class="t">Матрицы</span></span>
+      <span class="spacer"></span>
+      <button class="btn pri">Добавить требование</button><button class="btn">⋯</button></div>
+    <div class="tbar2">
+      <span class="cut"><span class="c on">Дерево</span><span class="c">Плоско</span></span>
+      <span class="grpby">Группировка: <b>по носителю</b> ▾</span>
+      <span class="views"><span class="v on">Рабочий</span><span class="v">К обзору</span><span class="v">Сироты</span><span class="v add">+ сохранить</span></span>
+      <span class="spacer"></span>
+      <input class="search" placeholder="Поиск по формулировке и ID">
+      <button class="gear">⚙ Вид</button></div>
+    <div class="cfg">
+      <h4>Вид «Рабочий» <a href="#">сохранить как…</a></h4>
+      <div class="sec">Колонки — порядок перетаскиванием</div>
+      <div class="col"><span class="grip">⠿</span><input type="checkbox" checked>ID</div>
+      <div class="col"><span class="grip">⠿</span><input type="checkbox" checked>Формулировка</div>
+      <div class="col"><span class="grip">⠿</span><input type="checkbox" checked>Показатель</div>
+      <div class="col"><span class="grip">⠿</span><input type="checkbox" checked>Статус</div>
+      <div class="col"><span class="grip">⠿</span><input type="checkbox" checked>Носитель (элемент/интерфейс)</div>
+      <div class="col"><span class="grip">⠿</span><input type="checkbox" checked>Родитель</div>
+      <div class="col"><span class="grip">⠿</span><input type="checkbox">Вид требования</div>
+      <div class="col"><span class="grip">⠿</span><input type="checkbox">Категория</div>
+      <div class="col"><span class="grip">⠿</span><input type="checkbox">Уровень</div>
+      <div class="col"><span class="grip">⠿</span><input type="checkbox">Версия</div>
+      <div class="col"><span class="grip">⠿</span><input type="checkbox">Владелец</div>
+      <div class="col"><span class="grip">⠿</span><input type="checkbox">Происхождение</div>
+      <div class="sec">Сортировка</div>
+      <div class="col off">Показатель · по убыванию — клик по заголовку меняет</div>
+      <div class="sec">Область вида</div>
+      <div class="col off">личный · <a class="assign" href="#">сделать проектным</a></div>
+    </div>
+    <div class="twrap"><table>
+      <thead><tr><th></th><th>ID</th><th>Формулировка</th><th>Вид</th>
+        <th style="text-align:right">Показатель ↓</th><th>Статус</th><th>Носитель</th><th>В</th></tr></thead>
+      <tbody><tr class="grp"><td colspan="8"><span class="chev">▾</span>Уровень проекта<span class="cnt"> · 8</span></td></tr>
+<tr class="row" tabindex="0"><td class="chk"><input type="checkbox"></td><td class="mono id">RQ-0101</td><td class="st" title="Система должна доставлять пакет терминала класса A&#x27; с вероятностью не менее 0,90 за сутки.">Система должна доставлять пакет терминала класса A&#x27; с вероятностью не менее 0,90 за сутки.</td><td class="dim">Числовое</td><td class="mono mop">≥ 0,9</td><td><span class="dot base"></span>Baseline<span class="mk recalc" title="Показатель пересчитан после базирования"></span></td><td><a class="assign" href="#">распределить</a></td><td class="vv no">—</td></tr>
+<tr class="row" tabindex="0"><td class="chk"><input type="checkbox"></td><td class="mono id">RQ-0102</td><td class="st" title="Система должна подтверждать доставку пакета терминала класса B&#x27; с вероятностью не менее 0,99 за двое суток.">Система должна подтверждать доставку пакета терминала класса B&#x27; с вероятностью не менее 0,99 за двое суток.</td><td class="dim">Числовое</td><td class="mono mop">≥ 0,99</td><td><span class="dot base"></span>Baseline<span class="mk recalc" title="Показатель пересчитан после базирования"></span></td><td><a class="assign" href="#">распределить</a></td><td class="vv no">—</td></tr>
+<tr class="row" tabindex="0"><td class="chk"><input type="checkbox"></td><td class="mono id">RQ-0103</td><td class="st" title="Система должна доводить команду до объекта класса C&#x27; не более чем за 30 минут.">Система должна доводить команду до объекта класса C&#x27; не более чем за 30 минут.</td><td class="dim">Числовое</td><td class="mono mop">≤ 1 800 с</td><td><span class="dot base"></span>Baseline<span class="mk chg" title="Изменено после утверждения"></span></td><td><a class="assign" href="#">распределить</a></td><td class="vv no">—</td></tr>
+<tr class="row" tabindex="0"><td class="chk"><input type="checkbox"></td><td class="mono id">RQ-0104</td><td class="st" title="Система должна обслуживать не менее 100 000 активных терминалов на территории обслуживания.">Система должна обслуживать не менее 100 000 активных терминалов на территории обслуживания.</td><td class="dim">Числовое</td><td class="mono mop">≥ 100 000</td><td><span class="dot base"></span>Baseline</td><td><a class="assign" href="#">распределить</a></td><td class="vv no">—</td></tr>
+<tr class="row" tabindex="0"><td class="chk"><input type="checkbox"></td><td class="mono id">RQ-0105</td><td class="st" title="Космический аппарат должен выполняться в форм-факторе не более 16U и массой не более 100 кг.">Космический аппарат должен выполняться в форм-факторе не более 16U и массой не более 100 кг.</td><td class="dim">Числовое</td><td class="mono mop">≤ 100 кг</td><td><span class="dot base"></span>Baseline</td><td><a class="assign" href="#">распределить</a></td><td class="vv no">—</td></tr>
+<tr class="row" tabindex="0"><td class="chk"><input type="checkbox"></td><td class="mono id">RQ-0106</td><td class="st" title="Бортовые передатчики должны работать только в выделенных регулятором полосах частот.">Бортовые передатчики должны работать только в выделенных регулятором полосах частот.</td><td class="dim">Текстовое</td><td class="mono mop"></td><td><span class="dot base"></span>Baseline</td><td><a class="assign" href="#">распределить</a></td><td class="vv no">—</td></tr>
+<tr class="row" tabindex="0"><td class="chk"><input type="checkbox"></td><td class="mono id">RQ-0107</td><td class="st" title="Система должна дополнять покрытие партнёрской наземной LPWAN без изменения протокола терминалов партнёра.">Система должна дополнять покрытие партнёрской наземной LPWAN без изменения протокола терминалов партнёра.</td><td class="dim">Текстовое</td><td class="mono mop"></td><td><span class="dot base"></span>Baseline</td><td><a class="assign" href="#">распределить</a></td><td class="vv no">—</td></tr>
+<tr class="row" tabindex="0"><td class="chk"><input type="checkbox"></td><td class="mono id">RQ-0108</td><td class="st" title="Система должна сохранять целевые показатели при отказе любого одного КА группировки.">Система должна сохранять целевые показатели при отказе любого одного КА группировки.</td><td class="dim">Текстовое</td><td class="mono mop"></td><td><span class="dot base"></span>Baseline</td><td><a class="assign" href="#">распределить</a></td><td class="vv no">—</td></tr>
+<tr class="grp"><td colspan="8"><span class="chev">▾</span>Системный уровень<span class="cnt"> · 33</span></td></tr>
+<tr class="row" tabindex="0"><td class="chk"><input type="checkbox"></td><td class="mono id">RQ-0109</td><td class="st" title="КА должен принимать пакеты терминалов в зоне обслуживания и обрабатывать их на борту.">КА должен принимать пакеты терминалов в зоне обслуживания и обрабатывать их на борту.</td><td class="dim">Текстовое</td><td class="mono mop"></td><td><span class="dot draft"></span>Draft</td><td><span class="mono dim">CM-0103</span></td><td class="vv no">—</td></tr>
+<tr class="row" tabindex="0"><td class="chk"><input type="checkbox"></td><td class="mono id">RQ-0110</td><td class="st" title="КА должен вести широковещательный маяк альманаха для планирования передач терминалами.">КА должен вести широковещательный маяк альманаха для планирования передач терминалами.</td><td class="dim">Текстовое</td><td class="mono mop"></td><td><span class="dot prelim"></span>Preliminary</td><td><span class="mono dim">CM-0103</span></td><td class="vv no">—</td></tr>
+<tr class="row" tabindex="0"><td class="chk"><input type="checkbox"></td><td class="mono id">RQ-0111</td><td class="st" title="Полезная нагрузка должна демодулировать не менее 250 пакетов в минуту в пике нагрузки.">Полезная нагрузка должна демодулировать не менее 250 пакетов в минуту в пике нагрузки.</td><td class="dim">Числовое</td><td class="mono mop">≥ 250 1/мин</td><td><span class="dot prelim"></span>Preliminary</td><td><span class="mono dim">CM-0103</span></td><td class="vv no">—</td></tr>
+<tr class="row" tabindex="0"><td class="chk"><input type="checkbox"></td><td class="mono id">RQ-0112</td><td class="st" title="Бюджет линии «терминал A&#x27; — КА» должен замыкаться при угле места не менее 15°.">Бюджет линии «терминал A&#x27; — КА» должен замыкаться при угле места не менее 15°.</td><td class="dim">Числовое</td><td class="mono mop">≤ 15 deg</td><td><span class="dot draft"></span>Draft</td><td><span class="mono dim">CM-0103</span></td><td class="vv no">—</td></tr></tbody></table></div>
+  </main>
+</div></div>
+
+<div class="case"><span class="tag">Состояние 4 · массовое действие: подтверждение числом</span>
+<div class="frame" style="min-height:400px">
+  <header class="hdr"><span class="brand"><span class="o"></span>Орбита</span>
+    <span class="proj"><b>Ротор-Л</b></span><span class="chip">Pre-Phase A</span>
+    <span class="gate"><span class="k">ближайшая точка</span><b>Внутренний обзор</b>
+      <span class="n">не закрыто · 17</span></span>
+    <span class="who">Инженер: <b>Чернов Д.</b></span></header>
+  <nav class="rail"><div class="rico"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg><span class="rlab">Портфель</span></div>
+<div class="rico"><svg viewBox="0 0 24 24"><path d="M12 6c-2-1.4-5-1.4-7 0v12c2-1.4 5-1.4 7 0c2-1.4 5-1.4 7 0V6c-2-1.4-5-1.4-7 0z"/><path d="M12 6v12"/></svg><span class="rlab">Библиотека</span></div>
+<div class="rico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.6"/></svg><span class="rlab">Постановка</span></div>
+<div class="rico on"><svg viewBox="0 0 24 24"><path d="M5 5h14M5 10h14M5 15h9M5 20h6"/></svg><span class="rlab">Требования</span></div>
+<div class="rico"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/><path d="M11 7.5h5.5V13"/></svg><span class="rlab">Концепция</span></div>
+<div class="rico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M2.5 12c3-4 16-4 19 0"/></svg><span class="rlab">Модели</span></div>
+<div class="rico"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></svg><span class="rlab">Документы</span></div>
+<div class="rico"><svg viewBox="0 0 24 24"><path d="M4 19V5m0 14h16M8 15l4-6 4 3 4-7"/></svg><span class="rlab">Контроль</span></div>
+<div class="rico"><svg viewBox="0 0 24 24"><path d="M9 4h6l1 3 3 1v6l-3 1-1 3H9l-1-3-3-1V8l3-1z"/><circle cx="12" cy="11.5" r="2.4"/></svg><span class="rlab">Инструменты</span></div></nav>
+  <main class="main">
+    <div class="tbar" style="position:relative"><h1>Требования</h1>
+      <span class="tabs"><span class="t on">Реестр</span><span class="t">Матрицы</span></span>
+      <span class="spacer"></span>
+      <button class="btn pri">Добавить требование</button><button class="btn">⋯</button></div>
+    <div class="tbar2">
+      <span class="cut"><span class="c on">Дерево</span><span class="c">Плоско</span></span>
+      <span class="grpby">Группировка: <b>по носителю</b> ▾</span>
+      <span class="views"><span class="v on">Рабочий</span><span class="v">К обзору</span><span class="v">Сироты</span><span class="v add">+ сохранить</span></span>
+      <span class="spacer"></span>
+      <input class="search" placeholder="Поиск по формулировке и ID">
+      <button class="gear">⚙ Вид</button></div>
+    <div class="selbar"><b>Выбрано: 12</b><span>уровень «Проект», статус Draft</span>
+      <span class="spacer"></span>
+      <span>Базировать <b>12 требований</b>?</span>
+      <button class="btn pri">Базировать</button><button class="btn">Отмена</button></div>
+    <div class="twrap"><table>
+      <thead><tr><th></th><th>ID</th><th>Формулировка</th><th>Вид</th>
+        <th style="text-align:right">Показатель</th><th>Статус</th><th>Носитель</th><th>В</th></tr></thead>
+      <tbody><tr class="grp"><td colspan="8"><span class="chev">▾</span>Уровень проекта<span class="cnt"> · 8</span></td></tr>
+<tr class="row" tabindex="0"><td class="chk"><input type="checkbox"></td><td class="mono id">RQ-0101</td><td class="st" title="Система должна доставлять пакет терминала класса A&#x27; с вероятностью не менее 0,90 за сутки.">Система должна доставлять пакет терминала класса A&#x27; с вероятностью не менее 0,90 за сутки.</td><td class="dim">Числовое</td><td class="mono mop">≥ 0,9</td><td><span class="dot base"></span>Baseline<span class="mk recalc" title="Показатель пересчитан после базирования"></span></td><td><a class="assign" href="#">распределить</a></td><td class="vv no">—</td></tr>
+<tr class="row" tabindex="0"><td class="chk"><input type="checkbox"></td><td class="mono id">RQ-0102</td><td class="st" title="Система должна подтверждать доставку пакета терминала класса B&#x27; с вероятностью не менее 0,99 за двое суток.">Система должна подтверждать доставку пакета терминала класса B&#x27; с вероятностью не менее 0,99 за двое суток.</td><td class="dim">Числовое</td><td class="mono mop">≥ 0,99</td><td><span class="dot base"></span>Baseline<span class="mk recalc" title="Показатель пересчитан после базирования"></span></td><td><a class="assign" href="#">распределить</a></td><td class="vv no">—</td></tr>
+<tr class="row" tabindex="0"><td class="chk"><input type="checkbox"></td><td class="mono id">RQ-0103</td><td class="st" title="Система должна доводить команду до объекта класса C&#x27; не более чем за 30 минут.">Система должна доводить команду до объекта класса C&#x27; не более чем за 30 минут.</td><td class="dim">Числовое</td><td class="mono mop">≤ 1 800 с</td><td><span class="dot base"></span>Baseline<span class="mk chg" title="Изменено после утверждения"></span></td><td><a class="assign" href="#">распределить</a></td><td class="vv no">—</td></tr>
+<tr class="row" tabindex="0"><td class="chk"><input type="checkbox"></td><td class="mono id">RQ-0104</td><td class="st" title="Система должна обслуживать не менее 100 000 активных терминалов на территории обслуживания.">Система должна обслуживать не менее 100 000 активных терминалов на территории обслуживания.</td><td class="dim">Числовое</td><td class="mono mop">≥ 100 000</td><td><span class="dot base"></span>Baseline</td><td><a class="assign" href="#">распределить</a></td><td class="vv no">—</td></tr>
+<tr class="row" tabindex="0"><td class="chk"><input type="checkbox"></td><td class="mono id">RQ-0105</td><td class="st" title="Космический аппарат должен выполняться в форм-факторе не более 16U и массой не более 100 кг.">Космический аппарат должен выполняться в форм-факторе не более 16U и массой не более 100 кг.</td><td class="dim">Числовое</td><td class="mono mop">≤ 100 кг</td><td><span class="dot base"></span>Baseline</td><td><a class="assign" href="#">распределить</a></td><td class="vv no">—</td></tr>
+<tr class="row" tabindex="0"><td class="chk"><input type="checkbox"></td><td class="mono id">RQ-0106</td><td class="st" title="Бортовые передатчики должны работать только в выделенных регулятором полосах частот.">Бортовые передатчики должны работать только в выделенных регулятором полосах частот.</td><td class="dim">Текстовое</td><td class="mono mop"></td><td><span class="dot base"></span>Baseline</td><td><a class="assign" href="#">распределить</a></td><td class="vv no">—</td></tr>
+<tr class="row" tabindex="0"><td class="chk"><input type="checkbox"></td><td class="mono id">RQ-0107</td><td class="st" title="Система должна дополнять покрытие партнёрской наземной LPWAN без изменения протокола терминалов партнёра.">Система должна дополнять покрытие партнёрской наземной LPWAN без изменения протокола терминалов партнёра.</td><td class="dim">Текстовое</td><td class="mono mop"></td><td><span class="dot base"></span>Baseline</td><td><a class="assign" href="#">распределить</a></td><td class="vv no">—</td></tr>
+<tr class="row" tabindex="0"><td class="chk"><input type="checkbox"></td><td class="mono id">RQ-0108</td><td class="st" title="Система должна сохранять целевые показатели при отказе любого одного КА группировки.">Система должна сохранять целевые показатели при отказе любого одного КА группировки.</td><td class="dim">Текстовое</td><td class="mono mop"></td><td><span class="dot base"></span>Baseline</td><td><a class="assign" href="#">распределить</a></td><td class="vv no">—</td></tr>
+<tr class="grp"><td colspan="8"><span class="chev">▾</span>Системный уровень<span class="cnt"> · 33</span></td></tr></tbody></table></div>
+  </main>
+</div></div>
+
+</div></body></html>
