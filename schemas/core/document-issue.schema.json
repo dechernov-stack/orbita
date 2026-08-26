@@ -4,17 +4,59 @@
   "title": "DocumentIssue",
   "description": "Выпуск документа (Шаг 17 C5): код шаблона, слепок содержимого и статус issued → approved. Слепок делает «документ устарел» фактом: расхождение текущей генерации с выпущенной видно сравнением digest, а не ощущением. Повторный выпуск — новый объект, история остаётся.",
   "type": "object",
-  "required": ["id", "template", "digest", "issued_at", "status", "lifecycle"],
+  "required": [
+    "id",
+    "template",
+    "digest",
+    "issued_at",
+    "status",
+    "lifecycle"
+  ],
   "additionalProperties": false,
   "properties": {
-    "id": {"type": "string", "pattern": "^DI-[0-9]{4}$"},
-    "template": {"type": "string", "minLength": 1, "description": "Код шаблона (req_spec, conops, architecture)"},
-    "digest": {"type": "string", "minLength": 16, "description": "Слепок содержимого выпущенной генерации"},
-    "issued_at": {"type": "string", "minLength": 1, "description": "Дата выпуска — аргумент, не чтение часов"},
-    "status": {"type": "string", "enum": ["issued", "approved"]},
-    "approved_by": {"type": "string"},
-    "gaps": {"type": "integer", "minimum": 0, "description": "Разрывов в документе на момент выпуска"},
-    "lifecycle": {"$ref": "https://kis.local/schemas/common/status.schema.json"},
-    "provenance": {"$ref": "https://kis.local/schemas/common/provenance.schema.json"}
+    "id": {
+      "type": "string",
+      "pattern": "^DI-[0-9]{4}$"
+    },
+    "template": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Код шаблона (req_spec, conops, architecture)"
+    },
+    "digest": {
+      "type": "string",
+      "minLength": 16,
+      "description": "Слепок содержимого выпущенной генерации"
+    },
+    "issued_at": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Дата выпуска — аргумент, не чтение часов"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "issued",
+        "approved"
+      ]
+    },
+    "approved_by": {
+      "type": "string"
+    },
+    "gaps": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Разрывов в документе на момент выпуска"
+    },
+    "lifecycle": {
+      "$ref": "https://kis.local/schemas/common/status.schema.json"
+    },
+    "provenance": {
+      "$ref": "https://kis.local/schemas/common/provenance.schema.json"
+    },
+    "snapshot": {
+      "type": "object",
+      "description": "Снимок выпуска (В1.2): тело документа целиком — авторские тексты и данные вставок на момент выпуска"
+    }
   }
 }

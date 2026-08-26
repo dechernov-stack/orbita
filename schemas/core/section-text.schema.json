@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/core/section-text.schema.json",
+  "title": "SectionText",
+  "description": "Авторский текст раздела документа (В1.2): хранимый, версионируемый, правится в системе. При сохранении запоминает отпечаток данных своих вставок; расхождение при выпуске — помета «текст устарел» (второй вид пробела), не блокировка и не перезапись.",
+  "type": "object",
+  "required": [
+    "id",
+    "template_code",
+    "section",
+    "text"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^ST-[0-9]{4}$"
+    },
+    "template_code": {
+      "type": "string",
+      "minLength": 2,
+      "description": "Код документа (req_spec, conops, …) — из библиотечного шаблона"
+    },
+    "section": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "text": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Авторский текст; акцептованный ИИ-текст становится авторским"
+    },
+    "inserts_fingerprint": {
+      "type": "string",
+      "description": "Отпечаток данных вставок раздела на момент сохранения — ставит сервер"
+    },
+    "lifecycle": {
+      "$ref": "https://kis.local/schemas/common/status.schema.json"
+    },
+    "provenance": {
+      "$ref": "https://kis.local/schemas/common/provenance.schema.json"
+    }
+  }
+}

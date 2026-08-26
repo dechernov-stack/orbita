@@ -1012,6 +1012,55 @@ class HttpApi(private val boundary: Boundary) {
                 respond(ex, 200, out)
             }
 
+            // В1.2: сохранение авторского текста раздела. Отпечаток данных
+            // вставок ставит СЕРВЕР на момент сохранения: по нему выпуск
+            // узнаёт, что модель уехала из-под текста («текст устарел» —
+            // помета, не блокировка). Существующий текст правится процедурой
+            // с основанием, если базирован; генерация сюда не пишет никогда.
+            method == "PUT" && Regex("^/export/documents/[a-z_]+/sections/[0-9]+/text$").matches(path) -> {
+                val parts = path.removePrefix("/export/documents/").split("/")
+                val code = parts[0]
+                val sectionNo = parts[2].toInt()
+                val template = templateOf(code)
+                require(template.sections.any { it.number == sectionNo }) {
+                    "раздела $sectionNo нет в шаблоне '$code'"
+                }
+                val req = mapper.readTree(body(ex))
+                val textAuthor = req.path("author").asText("")
+                require(textAuthor.isNotBlank()) { "field 'author' is required" }
+                val text = req.path("text").asText("")
+                require(text.isNotBlank()) { "field 'text' is required" }
+                val textProject = requireProject(project)
+                val model = orbita.out.ModelSnapshot.of(boundary.objects, mapper, projectId = project)
+                val rendered = orbita.out.DocumentGenerator(mapper).render(model, template)
+                val fingerprint = rendered.body.path("sections")
+                    .first { it.path("number").asInt() == sectionNo }
+                    .path("inserts_fingerprint").asText("")
+                val doc = mapper.createObjectNode()
+                doc.put("template_code", code)
+                doc.put("section", sectionNo)
+                doc.put("text", text)
+                doc.put("inserts_fingerprint", fingerprint)
+                val existing = boundary.objects.listCurrent(textProject).firstOrNull {
+                    it.type == "section_text" && it.status != Lifecycle.Cancelled &&
+                        it.doc.path("template_code").asText() == code &&
+                        it.doc.path("section").asInt() == sectionNo
+                }
+                val stored = if (existing == null) {
+                    boundary.editing.create(CoreType.SectionText, doc, textAuthor, textProject)
+                } else {
+                    boundary.editing.update(
+                        CoreType.SectionText, existing.id, doc, existing.version, textAuthor,
+                        changeRef = "правка авторского текста раздела $sectionNo документа '$code'",
+                    )
+                }
+                respond(
+                    ex, if (existing == null) 201 else 200,
+                    mapper.createObjectNode().put("id", stored.id).put("version", stored.version)
+                        .put("inserts_fingerprint", fingerprint),
+                )
+            }
+
             // Выпуск документа (Шаг 17 C5): слепок текущей генерации становится
             // объектом document_issue. Дата выпуска — из запроса, не из часов:
             // воспроизводимость выпусков та же, что у экспорта ReqIF.
@@ -1024,13 +1073,17 @@ class HttpApi(private val boundary: Boundary) {
                 val author = req.path("author").asText("")
                 if (author.isBlank()) throw IllegalArgumentException("'author' is required (TZ-COM-005)")
                 val model = orbita.out.ModelSnapshot.of(boundary.objects, mapper, projectId = project)
-                val generated = orbita.out.DocumentGenerator(mapper).render(model, template)
+                val generated = orbita.out.DocumentGenerator(mapper)
+                    .render(model, template, sectionTexts(code, project))
                 val issue = mapper.createObjectNode()
                 issue.put("template", template.code)
                 issue.put("digest", generated.digest)
                 issue.put("issued_at", issuedAt)
                 issue.put("status", "issued")
                 issue.put("gaps", generated.gaps.size)
+                // В1.2: выпуск фиксирует снимок — авторские тексты и данные
+                // вставок на момент выпуска, целиком
+                issue.set<ObjectNode>("snapshot", generated.body)
                 val stored = boundary.editing.create(CoreType.DocumentIssue, issue, author, requireProject(project))
                 respond(ex, 201, summary(stored))
             }
@@ -1041,7 +1094,8 @@ class HttpApi(private val boundary: Boundary) {
                 val code = path.removePrefix("/export/documents/").removeSuffix("/issues")
                 val template = templateOf(code)
                 val model = orbita.out.ModelSnapshot.of(boundary.objects, mapper, projectId = project)
-                val currentDigest = orbita.out.DocumentGenerator(mapper).render(model, template).digest
+                val currentDigest = orbita.out.DocumentGenerator(mapper)
+                    .render(model, template, sectionTexts(code, project)).digest
                 val out = mapper.createObjectNode()
                 out.put("template", template.code)
                 out.put("current_digest", currentDigest)
@@ -1076,7 +1130,8 @@ class HttpApi(private val boundary: Boundary) {
                 val code = path.removePrefix("/export/documents/")
                 val template = templateOf(code)
                 val model = orbita.out.ModelSnapshot.of(boundary.objects, mapper, projectId = project)
-                val doc = orbita.out.DocumentGenerator(mapper).render(model, template)
+                val doc = orbita.out.DocumentGenerator(mapper)
+                    .render(model, template, sectionTexts(code, project))
                 val out = mapper.createObjectNode()
                 out.set<ObjectNode>("body", doc.body)
                 out.put("digest", doc.digest)
@@ -2081,6 +2136,20 @@ class HttpApi(private val boundary: Boundary) {
                         .ifBlank { "ни одного — залейте сид data/library/document-templates.json" },
             )
     }
+
+    /** Авторские тексты разделов документа (В1.2) — текущие объекты проекта. */
+    private fun sectionTexts(code: String, projectId: String?): Map<Int, orbita.out.SectionAuthorText> =
+        boundary.objects.listCurrent(projectId)
+            .filter {
+                it.type == "section_text" && it.status != Lifecycle.Cancelled &&
+                    it.doc.path("template_code").asText() == code
+            }
+            .associate {
+                it.doc.path("section").asInt() to orbita.out.SectionAuthorText(
+                    text = it.doc.path("text").asText(""),
+                    insertsFingerprint = it.doc.path("inserts_fingerprint").asText(""),
+                )
+            }
 
     private fun libraryTemplates(): List<orbita.out.TemplateData> =
         boundary.objects

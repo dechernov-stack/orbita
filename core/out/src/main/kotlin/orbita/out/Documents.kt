@@ -80,6 +80,9 @@ object DocumentKits {
     fun kit(phase: String): Map<String, String> = kits[phase] ?: PRE_PHASE_A
 }
 
+/** Авторский текст раздела с отпечатком вставок на момент его сохранения. */
+data class SectionAuthorText(val text: String, val insertsFingerprint: String)
+
 /** Разрыв документа: раздел или запись, которую модель заполнить не может. */
 data class DocumentGap(val section: Int, val what: String, val expected: String)
 
@@ -123,7 +126,17 @@ class DocumentGenerator(private val mapper: ObjectMapper = ObjectMapper()) {
      * Сборка документа из выгрузки модели. Функция не принимает изменяемого
      * состояния и ничего не пишет: модель после вызова та же, что и до.
      */
-    fun render(model: JsonNode, template: TemplateData): GeneratedDocument {
+    fun render(
+        model: JsonNode,
+        template: TemplateData,
+        /**
+         * Авторские тексты разделов (В1.2): номер раздела → (текст, отпечаток
+         * вставок на момент сохранения). Раздел документа = авторский текст +
+         * данные вставок; расхождение отпечатка — помета «текст устарел»
+         * в gaps-механику: помета, не блокировка и не перезапись.
+         */
+        texts: Map<Int, SectionAuthorText> = emptyMap(),
+    ): GeneratedDocument {
         val body = mapper.createObjectNode()
         body.put("template", template.code)
         body.put("title", template.title)
@@ -138,9 +151,25 @@ class DocumentGenerator(private val mapper: ObjectMapper = ObjectMapper()) {
             node.put("expects", s.expects)
             val items = node.putArray("items")
             fill(template, s.number, model, items, gaps)
-            // Раздел остаётся в документе пустым, но не молча: регламент
-            // сказал, что в нём должно быть, — это и записывается разрывом.
-            if (items.isEmpty) gaps += DocumentGap(s.number, "раздел пуст", s.expects)
+            // отпечаток данных вставок раздела — по нему авторский текст
+            // узнаёт, что модель уехала из-под него
+            val fingerprint = digestOf(items)
+            node.put("inserts_fingerprint", fingerprint)
+            texts[s.number]?.let { t ->
+                node.put("text", t.text)
+                if (t.insertsFingerprint.isNotBlank() && t.insertsFingerprint != fingerprint) {
+                    gaps += DocumentGap(
+                        s.number, "текст устарел",
+                        "данные вставок изменились после сохранения авторского текста — перечитайте и сохраните заново",
+                    )
+                }
+            }
+            // Раздел без текста и записей остаётся в документе пустым, но не
+            // молча: регламент сказал, что в нём должно быть, — это и
+            // записывается разрывом.
+            if (items.isEmpty && texts[s.number] == null) {
+                gaps += DocumentGap(s.number, "раздел пуст", s.expects)
+            }
         }
 
         // Плоский перечень записей документа: сохраняется для совместимости
