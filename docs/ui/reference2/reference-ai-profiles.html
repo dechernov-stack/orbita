@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Орбита · эталон: профили службы · круг 1</title>
+<title>Орбита · эталон: профили службы ИИ · круг 1</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
@@ -9,218 +9,251 @@
   --surface:#f8f9fa; --c-lowest:#ffffff; --c-low:#f3f4f5; --c:#edeeef;
   --on:#191c1d; --on-var:#44474c; --outline:#74777d; --hair:#c4c6cc;
   --rail:#0f1c2c; --on-rail:#8b97a8; --accent:#115cb9; --accent-fix:#d7e2ff;
-  --ok:#1a7f37;
-  --src-profile:#115cb9; --src-model:#74777d; --src-input:#1a7f37;
+  --ok:#1a7f37; --warn-c:#f6ecd7; --on-warn-c:#5c4a15;
+  --src-profile:#115cb9; --src-model:#74777d; --src-input:#1a7f37; --src-format:#584329;
   --font:Inter,-apple-system,'Segoe UI',sans-serif; --mono:'JetBrains Mono',Menlo,monospace;
 }
 *{box-sizing:border-box;margin:0}
 body{font:400 13px/20px var(--font);color:var(--on);background:#dfe2e6;padding:28px 0}
-.stand{max-width:1240px;margin:0 auto}
+.stand{max-width:1280px;margin:0 auto}
 .stand h1{font-size:15px;font-weight:600;padding:0 4px 6px}
-.stand .note{font-size:12px;color:var(--on-var);padding:0 4px 18px;max-width:920px}
+.stand .note{font-size:12px;color:var(--on-var);padding:0 4px 18px;max-width:900px}
 .case{margin:0 0 34px}
 .case>.tag{display:inline-block;font:600 11px/16px var(--font);text-transform:uppercase;
   letter-spacing:.07em;color:var(--on-var);background:#eef0f2;border:1px solid var(--hair);
   border-bottom:none;border-radius:6px 6px 0 0;padding:4px 10px}
 .frame{background:var(--surface);border:1px solid var(--hair);border-radius:0 8px 8px 8px;
   overflow:hidden;display:grid;grid-template-rows:48px 1fr;grid-template-columns:68px 1fr;
-  grid-template-areas:'hdr hdr' 'rail main';min-height:520px}
+  grid-template-areas:'hdr hdr' 'rail main';min-height:600px}
 .hdr{grid-area:hdr;display:flex;align-items:center;gap:12px;padding:0 16px;
   background:var(--c-lowest);border-bottom:1px solid var(--hair)}
 .brand{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;letter-spacing:-.02em}
 .brand .o{width:16px;height:16px;border:2px solid var(--on);border-radius:50%}
 .proj{font-size:13px}.proj b{font-weight:600}
 .chip{font-size:12px;line-height:18px;padding:1px 8px;border-radius:9px;background:var(--c);color:var(--on-var)}
-.who{margin-left:auto;font-size:12px;color:var(--on-var)}.who b{color:var(--on)}
+.gate{margin-left:auto;display:flex;align-items:center;gap:8px;border:1px solid var(--accent);
+  border-radius:8px;padding:3px 10px;background:var(--c-lowest);font-size:12px}
+.gate .k{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--on-var)}
+.gate b{font-weight:600}
+.who{font-size:12px;color:var(--on-var)}.who b{color:var(--on)}
 .rail{grid-area:rail;background:var(--rail);display:flex;flex-direction:column;align-items:center;padding:10px 0;gap:2px}
 .rico{width:58px;padding:7px 0 6px;border-radius:8px;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--on-rail)}
 .rico.on{background:rgba(255,255,255,.14);color:#fff}
 .rico svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round}
 .rlab{font:500 9px/10px var(--font)}
 .main{grid-area:main;display:grid;grid-template-columns:300px 1fr;min-height:0}
-/* ── список профилей ── */
-.list{border-right:1px solid var(--hair);background:var(--c-lowest);overflow:auto}
-.list .lh{padding:10px 14px;border-bottom:1px solid var(--hair);display:flex;align-items:center}
-.list .lh b{font-size:13px}
-.list .lh .cnt{margin-left:6px;font-size:11px;color:var(--outline)}
-.list .lh .mkbtn{margin-left:auto;font:600 12px/18px var(--font);padding:4px 10px;border-radius:7px;
-  border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer}
-.prow{padding:8px 14px;border-bottom:1px solid var(--c);cursor:pointer}
-.prow.on{background:var(--accent-fix)}
-.prow .pid{font:600 11px/14px var(--mono);color:var(--on-var)}
-.prow .pnm{font:500 12.5px/17px var(--font);margin:1px 0}
-.prow .pds{font-size:11px;color:var(--outline)}
-.prow .st{display:inline-block;font-size:10.5px;color:var(--on-var);background:var(--c);
-  border-radius:8px;padding:0 7px;margin-top:2px}
+/* ── реестр профилей ── */
+.list{border-right:1px solid var(--hair);background:var(--c-low);display:flex;flex-direction:column}
+.list .bar{display:flex;gap:8px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--hair)}
+.list .bar h2{font-size:13px;font-weight:600;flex:1}
+.mini{font:600 11px/16px var(--font);padding:3px 9px;border-radius:6px;border:1px solid var(--hair);
+  background:var(--c-lowest);cursor:pointer;white-space:nowrap}
+.mini.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+.p{padding:9px 12px;border-bottom:1px solid var(--c);cursor:pointer}
+.p:hover{background:var(--c)}
+.p.sel{background:var(--c-lowest);box-shadow:inset 2px 0 0 var(--accent)}
+.p .nm{font:600 12.5px/17px var(--font)}
+.p .meta{display:flex;gap:8px;margin-top:2px;font-size:11px;color:var(--on-var)}
+.p .meta .mono{font-size:11px}
+.acc{margin-left:auto;font:600 11px/16px var(--mono)}
+.acc.good{color:var(--ok)} .acc.mid{color:var(--on-warn-c)} .acc.none{color:var(--outline);font-weight:400}
 /* ── карточка ── */
-.card{padding:16px 22px;overflow:auto}
-.card h2{font-size:17px;font-weight:700;letter-spacing:-.015em}
-.card .sub{font-size:12px;color:var(--on-var);margin:2px 0 12px}
-.tabs{display:flex;gap:2px;border-bottom:1px solid var(--hair);margin:0 0 14px}
-.tab{font:500 12.5px/18px var(--font);color:var(--on-var);padding:7px 14px;cursor:pointer;
-  border:none;background:none;border-bottom:2px solid transparent}
-.tab.on{color:var(--on);font-weight:600;border-bottom-color:var(--accent)}
-.f-label{display:block;font:600 12px/16px var(--font);margin:0 0 4px}
-.row{margin:0 0 14px}
-.val{font-size:12.5px}
-.limits{border:1px solid var(--hair);border-radius:8px;background:var(--c-lowest);padding:4px 0;max-width:640px}
-.lim{display:flex;gap:10px;padding:5px 12px;border-bottom:1px solid var(--c);font-size:12.5px;line-height:18px}
-.lim:last-child{border-bottom:none}
-.kindchips .chip{margin-right:6px}
-/* ── вкладка «Промпт»: атрибуция источников ── */
-.legend{display:flex;gap:16px;margin:0 0 10px;font-size:11.5px;color:var(--on-var)}
-.legend .sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
-.pctl{display:flex;gap:10px;align-items:center;margin:0 0 12px}
-.pctl select{font:400 12.5px/18px var(--font);padding:5px 8px;border:1px solid var(--hair);border-radius:7px;background:var(--c-lowest)}
-.pctl .hint{font-size:11.5px;color:var(--outline)}
-.blk{border-left:3px solid var(--hair);padding:7px 12px;margin:0 0 8px;background:var(--c-low);
-  border-radius:0 6px 6px 0;max-width:820px}
+.card{display:flex;flex-direction:column;min-width:0;background:var(--c-lowest)}
+.chead{padding:12px 18px 0}
+.cid{font-family:var(--mono);font-size:12px;color:var(--on-var)}
+.chead h3{font-size:16px;font-weight:700;letter-spacing:-.01em;margin:2px 0 4px}
+.chead .row{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--on-var);flex-wrap:wrap}
+.ver{font-family:var(--mono);font-size:11.5px;background:var(--c);border-radius:6px;padding:1px 7px}
+.ctabs{display:flex;gap:2px;padding:10px 18px 0;border-bottom:1px solid var(--hair)}
+.ctab{font:600 12px/16px var(--font);color:var(--on-var);padding:8px 12px;cursor:pointer;
+  border-bottom:2px solid transparent;margin-bottom:-1px}
+.ctab.on{color:var(--accent);border-bottom-color:var(--accent)}
+.cbody{padding:14px 18px;overflow:auto}
+.sec{margin:0 0 14px}
+.sec .k{font:600 11px/14px var(--font);text-transform:uppercase;letter-spacing:.06em;color:var(--on-var);margin-bottom:6px}
+.rule{display:flex;gap:8px;padding:4px 0;font-size:12.5px;line-height:18px}
+.rule .no{font-family:var(--mono);font-size:11px;color:var(--outline);padding-top:1px;white-space:nowrap}
+.pill{display:inline-block;font-size:11.5px;padding:1px 8px;border-radius:9px;background:var(--c);color:var(--on-var);margin:0 4px 4px 0}
+details.fold summary{list-style:none;cursor:pointer;font:600 11px/14px var(--font);
+  text-transform:uppercase;letter-spacing:.06em;color:var(--accent);display:inline-flex;gap:5px}
+details.fold summary::before{content:'▸';font-size:10px}
+details.fold[open] summary::before{content:'▾'}
+/* ── промпт с атрибуцией ── */
+.legend{display:flex;gap:14px;align-items:center;font-size:11.5px;color:var(--on-var);margin:0 0 10px}
+.sw{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px;vertical-align:0}
+.blk{border-left:3px solid var(--hair);padding:6px 12px;margin:0 0 10px;background:var(--c-low);border-radius:0 6px 6px 0}
 .blk .src{font:600 10.5px/14px var(--font);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px}
-.blk pre{font:400 12px/18px var(--mono);white-space:pre-wrap}
-.blk.profile{border-color:var(--src-profile)}.blk.profile .src{color:var(--src-profile)}
-.blk.model{border-color:var(--src-model)}.blk.model .src{color:var(--src-model)}
-.blk.input{border-color:var(--src-input)}.blk.input .src{color:var(--src-input)}
+.blk pre{font:400 12px/18px var(--mono);white-space:pre-wrap;color:var(--on)}
+.blk.profile{border-color:var(--src-profile)} .blk.profile .src{color:var(--src-profile)}
+.blk.model{border-color:var(--src-model)} .blk.model .src{color:var(--src-model)}
+.blk.input{border-color:var(--src-input)} .blk.input .src{color:var(--src-input)}
+.blk.format{border-color:var(--src-format)} .blk.format .src{color:var(--src-format)}
 mark{background:var(--accent-fix);border-radius:3px;padding:0 2px}
-.empty{padding:40px;text-align:center;color:var(--on-var);font-size:12.5px}
+.ro{display:flex;gap:8px;align-items:center;font-size:11.5px;color:var(--on-var);
+  background:var(--c-low);border:1px solid var(--hair);border-radius:6px;padding:6px 10px;margin:0 0 12px}
+.cfoot{border-top:1px solid var(--hair);padding:9px 18px;display:flex;gap:10px;align-items:center}
+.btn{font:600 12.5px/18px var(--font);padding:6px 14px;border-radius:7px;cursor:pointer;
+  border:1px solid var(--hair);background:var(--c-lowest)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+.cfoot .sp{flex:1}
+.cfoot .aud{font-size:11px;color:var(--outline)}
+/* пустое состояние */
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:60px 20px;text-align:center}
+.empty h3{font-size:15px;font-weight:600}
+.empty p{font-size:12.5px;color:var(--on-var);max-width:420px}
+.empty .row{display:flex;gap:10px;margin-top:8px}
 </style></head><body>
 <div class="stand">
-<h1>Профили службы — эталон, круг 1</h1>
-<div class="note">Три состояния. Подписной элемент — вкладка «Промпт» с атрибуцией
-источников: каждая часть собранного службой промпта подписана, откуда она пришла —
-из профиля (запреты, правила, глоссарий — синее), из модели проекта (серое) или из
-входа операции (зелёное). Запрет из профиля виден строкой в предпросмотре — мера О-4.
-Промпт собирает служба; руками он не пишется и здесь не правится.</div>
+<h1>Профили службы ИИ — эталон, круг 1</h1>
+<div class="note">Подписной элемент — вкладка «Промпт»: собранный службой текст, только чтение,
+каждый блок подписан источником. Ожидание шага ПМИ «в промпте появляются запреты проекта»
+проверяется глазами: запрет из профиля виден строкой в синем блоке. Доля акцепта в реестре —
+главный показатель здоровья профиля.</div>
 
-<!-- ═══════ 1. Реестр + определение ═══════ -->
-<div class="case"><span class="tag">Состояние 1 · профиль · вкладка «Определение»</span>
+<!-- ═══════ 1. Основное: карточка + промпт ═══════ -->
+<div class="case"><span class="tag">Состояние 1 · профиль AP-0201, вкладка «Промпт»</span>
 <div class="frame">
-  <header class="hdr"><span class="brand"><span class="o"></span>Орбита</span>
+  <header class="hdr">
+    <span class="brand"><span class="o"></span>Орбита</span>
     <span class="proj"><b>Национальная спутниковая платформа IoT</b></span>
     <span class="chip">Pre-Phase A</span>
-    <span class="who">Инженер: <b>Чернов Д.</b></span></header>
-  <nav class="rail"><div class="rico on"><svg viewBox="0 0 24 24"><path d="M12 4l1.8 5.2L19 11l-5.2 1.8L12 18l-1.8-5.2L5 11l5.2-1.8z"/></svg><span class="rlab">Инструменты</span></div></nav>
+    <span class="gate"><span class="k">ближайшая точка</span><b>Внутренний обзор</b><span class="chip">не закрыто · 9</span></span>
+    <span class="who">Инженер: <b>Чернов Д.</b></span>
+  </header>
+  <nav class="rail">
+    <div class="rico"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg><span class="rlab">Портфель</span></div>
+    <div class="rico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.6"/></svg><span class="rlab">Постановка</span></div>
+    <div class="rico"><svg viewBox="0 0 24 24"><path d="M5 5h14M5 10h14M5 15h9M5 20h6"/></svg><span class="rlab">Требования</span></div>
+    <div class="rico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M2.5 12c3-4 16-4 19 0"/></svg><span class="rlab">Модели</span></div>
+    <div class="rico"><svg viewBox="0 0 24 24"><path d="M4 19V5m0 14h16M8 15l4-6 4 3 4-7"/></svg><span class="rlab">Контроль</span></div>
+    <div class="rico on"><svg viewBox="0 0 24 24"><path d="M9 4h6l1 3 3 1v6l-3 1-1 3H9l-1-3-3-1V8l3-1z"/><circle cx="12" cy="11.5" r="2.4"/></svg><span class="rlab">Инструменты</span></div>
+  </nav>
   <main class="main">
-    <div class="list">
-      <div class="lh"><b>Профили службы</b><span class="cnt">2</span><button class="mkbtn">Создать</button></div>
-      <div class="prow on">
-        <div class="pid">AP-0001 · в. 3</div>
-        <div class="pnm">Генерация О2 — цели и нужды</div>
-        <div class="pds">mission_to_goals · mission_to_needs</div>
-        <span class="st">черновик</span>
+    <aside class="list">
+      <div class="bar"><h2>Профили службы</h2>
+        <button class="mini">Пачкой</button><button class="mini pri">Создать</button></div>
+      <div class="p sel"><div class="nm">Генерация О2–О4: цели, нужды, требования</div>
+        <div class="meta"><span class="mono">AP-0201</span><span class="ver">v4</span>
+          <span>вчера</span><span class="acc good">акцепт 78 %</span></div></div>
+      <div class="p"><div class="nm">Рецензия формулировок требований</div>
+        <div class="meta"><span class="mono">AP-0202</span><span class="ver">v2</span>
+          <span>3 дня назад</span><span class="acc mid">акцепт 54 %</span></div></div>
+      <div class="p"><div class="nm">Редактор раздела: ConOps</div>
+        <div class="meta"><span class="mono">AP-0203</span><span class="ver">v1</span>
+          <span class="acc none">вызовов не было</span></div></div>
+      <div class="p"><div class="nm">Извлечение структуры шаблона</div>
+        <div class="meta"><span class="mono">AP-0204</span><span class="ver">v1</span>
+          <span class="acc none">вызовов не было</span></div></div>
+    </aside>
+    <section class="card">
+      <div class="chead">
+        <div class="cid">AP-0201</div>
+        <h3>Генерация О2–О4: цели, нужды, требования</h3>
+        <div class="row"><span class="ver">v4 · Чернов Д. · 24.08.2026</span>
+          <span>основание обязательно: число без источника не проходит фильтр</span></div>
       </div>
-      <div class="prow">
-        <div class="pid">AP-0002 · в. 1</div>
-        <div class="pnm">Рецензия формулировок</div>
-        <div class="pds">requirement_quality · рецензионный</div>
-        <span class="st">черновик</span>
+      <div class="ctabs">
+        <span class="ctab">Правила</span><span class="ctab on">Промпт</span>
+        <span class="ctab">Глоссарий</span><span class="ctab">Журнал</span>
       </div>
-    </div>
-    <div class="card">
-      <h2>Генерация О2 — цели и нужды</h2>
-      <div class="sub">AP-0001 · в. 3 · собран мастер-путём «Начало проекта» — запреты из ограничений паспорта</div>
-      <div class="tabs">
-        <button class="tab on">Определение</button>
-        <button class="tab">Промпт</button>
-        <button class="tab">История</button>
+      <div class="cbody">
+        <div class="ro">Только чтение — промпт собирает служба из профиля, состояния модели и
+          входа. Изменить его можно одним способом: новой версией профиля.</div>
+        <div class="legend">Источники:
+          <span><span class="sw" style="background:var(--src-profile)"></span>профиль AP-0201 v4</span>
+          <span><span class="sw" style="background:var(--src-model)"></span>состояние модели</span>
+          <span><span class="sw" style="background:var(--src-input)"></span>постановка миссии</span>
+          <span><span class="sw" style="background:var(--src-format)"></span>формат ответа</span></div>
+        <div class="blk profile"><div class="src">Из профиля · роль и правила</div>
+<pre>Ты — помощник ведущего системного инженера. Предлагай цели, нужды и
+требования по постановке миссии. Формулировка требования: «⟨носитель⟩
+должен …», один предмет на требование, проверяемость обязательна.</pre></div>
+        <div class="blk profile"><div class="src">Из профиля · запреты проекта</div>
+<pre>— <mark>bent-pipe не предлагать: полезная нагрузка только регенеративная (Р1)</mark>
+— межспутниковая связь — только радиодиапазон, оптику не предлагать (Р3)
+— платформа не тяжелее 100 кг (Р4)
+— зоны обслуживания задавать статическими географическими масками (Р5)
+— число без ссылки на источник не предлагать вовсе</pre></div>
+        <div class="blk model"><div class="src">Из состояния модели</div>
+<pre>В проекте: 8 целей миссии, 24 нужды (6 регулятора), 12 сервисов
+классов A′/B′/C′. Идентификаторы заняты до: MG-0008, ND-0024, RQ-0212.</pre></div>
+        <div class="blk input"><div class="src">Из постановки миссии · фрагмент</div>
+<pre>«…отслеживание перевозок опасных грузов на всей территории РФ: геопозиция
+не реже одного раза в 30 секунд (ПП РФ № 2216)…»</pre></div>
+        <div class="blk format"><div class="src">Формат ответа</div>
+<pre>Пачка по схемам системы: {"objects": {"need": […], "requirement": […]}}.
+У каждого показателя — value, unit (СИ), provenance с источником.</pre></div>
       </div>
-      <div class="row"><span class="f-label">Виды пакетов</span>
-        <span class="kindchips"><span class="chip">mission_to_goals</span><span class="chip">mission_to_needs</span></span></div>
-      <div class="row"><span class="f-label">Запреты <span style="font-weight:400;color:var(--outline)">— чего служба предлагать не вправе</span></span>
-        <div class="limits">
-          <div class="lim">Полезная нагрузка — только регенеративная; bent-pipe не предлагать (Р1)</div>
-          <div class="lim">Межспутниковая связь — только радиодиапазон (Р3)</div>
-          <div class="lim">Платформа не тяжелее 100 кг (Р2)</div>
-        </div></div>
-      <div class="row"><span class="f-label">Правила формулировок</span>
-        <div class="limits">
-          <div class="lim">формулировка нужды — от лица стейкхолдера, с источником</div>
-          <div class="lim">цель миссии несёт измеримый показатель MOE</div>
-        </div></div>
-      <div class="row"><span class="f-label">Основание значений</span>
-        <span class="val">обязательно: число без ссылки на источник снимается фильтром</span></div>
-    </div>
+      <div class="cfoot">
+        <button class="btn pri">Запустить прогон</button>
+        <button class="btn">Новая версия</button>
+        <span class="sp"></span>
+        <span class="aud">Вызовов: 65 · 1,84 $ · последний — вчера, claude-sonnet-5</span>
+      </div>
+    </section>
   </main>
 </div></div>
 
-<!-- ═══════ 2. Вкладка «Промпт» — атрибуция источников ═══════ -->
-<div class="case"><span class="tag">Состояние 2 · вкладка «Промпт» — атрибуция источников</span>
-<div class="frame">
+<!-- ═══════ 2. Вкладка «Правила» ═══════ -->
+<div class="case"><span class="tag">Состояние 2 · вкладка «Правила» того же профиля</span>
+<div class="frame" style="min-height:430px">
   <header class="hdr"><span class="brand"><span class="o"></span>Орбита</span>
-    <span class="proj"><b>Национальная спутниковая платформа IoT</b></span>
-    <span class="chip">Pre-Phase A</span>
+    <span class="proj"><b>Национальная спутниковая платформа IoT</b></span><span class="chip">Pre-Phase A</span>
+    <span class="gate"><span class="k">ближайшая точка</span><b>Внутренний обзор</b><span class="chip">не закрыто · 9</span></span>
     <span class="who">Инженер: <b>Чернов Д.</b></span></header>
-  <nav class="rail"><div class="rico on"><svg viewBox="0 0 24 24"><path d="M12 4l1.8 5.2L19 11l-5.2 1.8L12 18l-1.8-5.2L5 11l5.2-1.8z"/></svg><span class="rlab">Инструменты</span></div></nav>
+  <nav class="rail"><div class="rico on"><svg viewBox="0 0 24 24"><path d="M9 4h6l1 3 3 1v6l-3 1-1 3H9l-1-3-3-1V8l3-1z"/><circle cx="12" cy="11.5" r="2.4"/></svg><span class="rlab">Инструменты</span></div></nav>
   <main class="main">
-    <div class="list">
-      <div class="lh"><b>Профили службы</b><span class="cnt">2</span><button class="mkbtn">Создать</button></div>
-      <div class="prow on">
-        <div class="pid">AP-0001 · в. 3</div>
-        <div class="pnm">Генерация О2 — цели и нужды</div>
-        <div class="pds">mission_to_goals · mission_to_needs</div>
-        <span class="st">черновик</span>
+    <aside class="list"><div class="bar"><h2>Профили службы</h2>
+      <button class="mini">Пачкой</button><button class="mini pri">Создать</button></div>
+      <div class="p sel"><div class="nm">Генерация О2–О4: цели, нужды, требования</div>
+        <div class="meta"><span class="mono">AP-0201</span><span class="ver">v4</span><span>вчера</span><span class="acc good">акцепт 78 %</span></div></div>
+    </aside>
+    <section class="card">
+      <div class="chead"><div class="cid">AP-0201</div>
+        <h3>Генерация О2–О4: цели, нужды, требования</h3>
+        <div class="row"><span class="ver">v4 · Чернов Д. · 24.08.2026</span></div></div>
+      <div class="ctabs"><span class="ctab on">Правила</span><span class="ctab">Промпт</span>
+        <span class="ctab">Глоссарий</span><span class="ctab">Журнал</span></div>
+      <div class="cbody">
+        <div class="sec"><div class="k">Разрешённые виды и носители</div>
+          <span class="pill">цель миссии</span><span class="pill">нужда</span>
+          <span class="pill">сервис</span><span class="pill">требование · проект и система</span></div>
+        <div class="sec"><div class="k">Правила формулировок</div>
+          <div class="rule"><span class="no">П1</span><span>«⟨носитель⟩ должен …» — активный залог, один предмет на требование.</span></div>
+          <div class="rule"><span class="no">П2</span><span>Каждое требование проверяемо: показатель, метод или инспекция соответствия.</span></div>
+          <div class="rule"><span class="no">П3</span><span>Термины — из глоссария проекта; синонимы не вводить.</span></div></div>
+        <div class="sec"><div class="k">Запреты проекта</div>
+          <div class="rule"><span class="no">Р1</span><span>Bent-pipe не предлагать: полезная нагрузка только регенеративная.</span></div>
+          <div class="rule"><span class="no">Р3</span><span>Межспутниковая связь — только радиодиапазон; оптические каналы не предлагать.</span></div>
+          <div class="rule"><span class="no">Р4</span><span>Платформа не тяжелее 100 кг; решения, требующие тяжёлой платформы, отклонять на этапе предложения.</span></div>
+          <div class="rule"><span class="no">Р5</span><span>Зоны обслуживания — статическими географическими масками; динамическое перенацеливание лучей не предлагать.</span></div>
+          <div class="rule"><span class="no">—</span><span>Число без ссылки на источник не предлагать вовсе — фильтр его не пропустит.</span></div></div>
+        <details class="fold"><summary>Глоссарий · 18 терминов</summary></details>
       </div>
-      <div class="prow">
-        <div class="pid">AP-0002 · в. 1</div>
-        <div class="pnm">Рецензия формулировок</div>
-        <div class="pds">requirement_quality · рецензионный</div>
-        <span class="st">черновик</span>
-      </div>
-    </div>
-    <div class="card">
-      <h2>Генерация О2 — цели и нужды</h2>
-      <div class="sub">AP-0001 · в. 3 · промпт собирает служба; здесь он читается, не правится</div>
-      <div class="tabs">
-        <button class="tab">Определение</button>
-        <button class="tab on">Промпт</button>
-        <button class="tab">История</button>
-      </div>
-      <div class="pctl">
-        <span class="f-label" style="margin:0">Вид пакета</span>
-        <select><option>mission_to_goals</option><option>mission_to_needs</option></select>
-        <span class="hint">предпросмотр без входа операции — вход подставится при запуске</span>
-      </div>
-      <div class="legend">
-        <span><span class="sw" style="background:var(--src-profile)"></span>из профиля</span>
-        <span><span class="sw" style="background:var(--src-model)"></span>из модели проекта</span>
-        <span><span class="sw" style="background:var(--src-input)"></span>из входа операции</span>
-      </div>
-      <div class="blk model"><div class="src">Проект · из модели</div>
-<pre>Ты — инженерная служба проекта «Национальная спутниковая платформа IoT», фаза pre_phase_a.
-Назначение профиля AP-0001: Собран мастер-путём «Начало проекта»: запреты — из ограничений паспорта.</pre></div>
-      <div class="blk profile"><div class="src">Ограничения проекта · из профиля</div>
-<pre>ОГРАНИЧЕНИЯ ПРОЕКТА (нарушать нельзя):
-— <mark>Полезная нагрузка — только регенеративная; bent-pipe не предлагать (Р1)</mark>
-— Межспутниковая связь — только радиодиапазон (Р3)
-— Платформа не тяжелее 100 кг (Р2)</pre></div>
-      <div class="blk profile"><div class="src">Основание значений · из профиля</div>
-<pre>ОСНОВАНИЕ ЗНАЧЕНИЙ. Каждое числовое значение обязано нести
-происхождение одного из двух видов: …</pre></div>
-      <div class="blk model"><div class="src">Что уже есть в проекте · из модели</div>
-<pre>ЧТО УЖЕ ЕСТЬ В ПРОЕКТЕ:
-need (24): ND-0001 — Геопозиция ТС с опасным грузом… · … ещё 23</pre></div>
-      <div class="blk input"><div class="src">Вход операции · из входа</div>
-<pre>ВХОД ОПЕРАЦИИ:
-Источник: SD-0001 в. 1 «Постановка миссии» …</pre></div>
-      <div class="blk model"><div class="src">Задание и форма ответа · из модели</div>
-<pre>ЗАДАНИЕ: из входа «постановка миссии, программные цели» получи «цели миссии с MOE». …</pre></div>
-    </div>
+      <div class="cfoot"><button class="btn pri">Запустить прогон</button>
+        <button class="btn">Новая версия</button><span class="sp"></span>
+        <span class="aud">Вызовов: 65 · 1,84 $ · последний — вчера</span></div>
+    </section>
   </main>
 </div></div>
 
-<!-- ═══════ 3. Пустой реестр ═══════ -->
+<!-- ═══════ 3. Пусто ═══════ -->
 <div class="case"><span class="tag">Состояние 3 · профилей нет</span>
-<div class="frame" style="min-height:300px">
+<div class="frame" style="min-height:360px">
   <header class="hdr"><span class="brand"><span class="o"></span>Орбита</span>
-    <span class="proj"><b>Ретранслятор «Кольцо» — модернизация</b></span>
-    <span class="chip">Pre-Phase A</span>
+    <span class="proj"><b>Ретранслятор «Кольцо» — модернизация</b></span><span class="chip">Phase A</span>
+    <span class="gate"><span class="k">ближайшая точка</span><b>SRR</b><span class="chip">не закрыто · 14</span></span>
     <span class="who">Инженер: <b>Чернов Д.</b></span></header>
-  <nav class="rail"><div class="rico on"><svg viewBox="0 0 24 24"><path d="M12 4l1.8 5.2L19 11l-5.2 1.8L12 18l-1.8-5.2L5 11l5.2-1.8z"/></svg><span class="rlab">Инструменты</span></div></nav>
-  <main class="main">
-    <div class="list">
-      <div class="lh"><b>Профили службы</b><span class="cnt">0</span><button class="mkbtn">Создать</button></div>
+  <nav class="rail"><div class="rico on"><svg viewBox="0 0 24 24"><path d="M9 4h6l1 3 3 1v6l-3 1-1 3H9l-1-3-3-1V8l3-1z"/><circle cx="12" cy="11.5" r="2.4"/></svg><span class="rlab">Инструменты</span></div></nav>
+  <main class="main" style="grid-template-columns:1fr">
+    <div class="empty">
+      <h3>Профилей службы пока нет</h3>
+      <p>Профиль — это ограничения инженера для ИИ: разрешённые виды, правила формулировок,
+        запреты проекта. Служба собирает из него промпт для каждого прогона —
+        промптов, написанных руками, в системе нет.</p>
+      <div class="row"><button class="btn pri">Создать профиль</button>
+        <button class="btn">Загрузить пачкой</button></div>
     </div>
-    <div class="card"><div class="empty">Профилей в проекте нет. Мастер-путь «Начало проекта»
-      соберёт профиль из заготовки библиотеки и ограничений проекта — или создайте руками.</div></div>
   </main>
 </div></div>
 
