@@ -206,6 +206,41 @@ export const api = {
     post<Record<string, unknown>>('/gates/return/resolve', { author, note }),
   // ---------- П5: служба ИИ (профиль → промпт → вызов → фильтр → журнал) ----------
   /** Промпт собирает служба из профиля и состояния модели; клиент его читает. */
+  /** Полки библиотеки (§4 Ш2): фрагменты с живыми счётчиками и манифестом. */
+  libraryShelves: () =>
+    get<Array<{
+      id: string; name: string; shelf: string; mission_class_ref: string; summary: string
+      counters: Record<string, number>
+      origin: { project?: string; author?: string; date?: string }
+    }>>('/library/shelves'),
+  /** Классы миссии (§4 Ш1) — полка Б4. */
+  missionClasses: () =>
+    get<Array<{ id: string; name: string; typical_constraints: Array<{ code?: string; text: string }> }>>(
+      '/library/mission-classes',
+    ),
+  /** Применение фрагмента: экземпляры со связью «применяет» и родословной. */
+  libraryApply: (fragment: string, author: string) =>
+    post<{ created: Array<{ from: string; id: string }> }>(
+      `/library/fragments/${encodeURIComponent(fragment)}/apply`, { author },
+    ),
+  /** Предпросмотр «Сохранить как шаблон»: резы поимённо до записи. */
+  libraryPreview: (sel: { kind?: string; ids?: string[]; root?: string }) =>
+    post<{
+      objects: Array<{ id: string; type: string; name: string }>
+      counters: Record<string, number>
+      cuts: string[]
+      value_candidates: Array<{ object: string; path: string; value: string }>
+    }>('/library/fragments/preview', sel),
+  /** Запись фрагмента — только с подтверждёнными резами. */
+  librarySave: (body: {
+    kind?: string; ids?: string[]; root?: string
+    name: string; shelf: string; mission_class_ref?: string
+    acknowledged_cuts: string[]; replacements?: Record<string, string[]>
+    author: string
+  }) => post<{ id: string; version: string }>('/library/fragments', body),
+  /** Наполнение полки: объект в область библиотеки. */
+  libraryPut: (type: string, doc: Record<string, unknown>, author: string) =>
+    post<{ id: string; type: string }>('/library/objects', { type, doc, author }),
   /** Мастер-путь Ш2: исходные документы других проектов — библиотека текущего. */
   libraryDocs: () =>
     get<Array<{ id: string; project: string; name: string; kind: string; summary: string; has_text: boolean }>>(

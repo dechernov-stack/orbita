@@ -1459,6 +1459,134 @@ class HttpApi(private val boundary: Boundary) {
             // результат ложится в results (kind=flow), его читают «Сравнение»
             // (узкие места) и свидетельства верификации. Прежде ядро было
             // не подключено: запустить прогон из интерфейса было нельзя.
+            // Наполнение полок (§5): объект в область LIB — тип и документ.
+            // Обычные edit-маршруты требуют проект; библиотека — область.
+            method == "POST" && path == "/library/objects" -> {
+                val req = mapper.readTree(body(ex))
+                val libAuthor = req.path("author").asText("")
+                require(libAuthor.isNotBlank()) { "field 'author' is required" }
+                val typeName = req.path("type").asText("")
+                val libType = orbita.mod.model.CoreType.entries.firstOrNull { it.dbType == typeName }
+                    ?: throw IllegalArgumentException("unknown type '$typeName'")
+                val stored = boundary.editing.create(
+                    libType, req.path("doc"), libAuthor, orbita.mod.store.ObjectStore.LIBRARY_PROJECT,
+                )
+                respond(
+                    ex, 201,
+                    mapper.createObjectNode().put("id", stored.id).put("type", stored.type),
+                )
+            }
+
+            // Канал «Сохранить как шаблон» (§2): предпросмотр ДО записи —
+            // что войдёт, какие связи будут отрезаны поимённо, какие величины
+            // можно обезличить. Без предпросмотра фрагмент не пишется.
+            method == "POST" && path == "/library/fragments/preview" -> {
+                val req = mapper.readTree(body(ex))
+                val prevProject = requireProject(project)
+                val c = LibraryChannel(boundary).closure(
+                    prevProject,
+                    req.path("kind").asText(null),
+                    req.path("ids").map { it.asText() },
+                    req.path("root").asText(null),
+                )
+                val out = mapper.createObjectNode()
+                val objs = out.putArray("objects")
+                c.objects.forEach { o ->
+                    objs.addObject().put("id", o.id).put("type", o.type)
+                        .put("name", o.doc.path("name").asText(o.doc.path("statement").asText("")))
+                }
+                val counters = out.putObject("counters")
+                c.objects.groupBy { it.type }.forEach { (t, l) -> counters.put(t, l.size) }
+                val cuts = out.putArray("cuts")
+                c.cuts.forEach { cuts.add("${it.from} → ${it.to} (${it.what})") }
+                val vals = out.putArray("value_candidates")
+                c.valueCandidates.forEach { (id, pth, v) ->
+                    vals.addObject().put("object", id).put("path", pth).put("value", v)
+                }
+                respond(ex, 200, out)
+            }
+
+            // Запись фрагмента: резы обязаны быть подтверждены предпросмотром
+            method == "POST" && path == "/library/fragments" -> {
+                val req = mapper.readTree(body(ex))
+                val saveAuthor = req.path("author").asText("")
+                require(saveAuthor.isNotBlank()) { "field 'author' is required" }
+                val saveProject = requireProject(project)
+                val stored = LibraryChannel(boundary).save(
+                    projectId = saveProject,
+                    kind = req.path("kind").asText(null),
+                    ids = req.path("ids").map { it.asText() },
+                    root = req.path("root").asText(null),
+                    name = req.path("name").asText(""),
+                    shelf = req.path("shelf").asText(""),
+                    missionClassRef = req.path("mission_class_ref").asText(null),
+                    acknowledgedCuts = req.path("acknowledged_cuts").map { it.asText() }.toSet(),
+                    replacements = buildMap {
+                        req.path("replacements").properties().forEach { (k, v) ->
+                            put(k, v.map { it.asText() })
+                        }
+                    },
+                    author = saveAuthor,
+                )
+                respond(
+                    ex, 201,
+                    mapper.createObjectNode().put("id", stored.id).put("version", stored.version),
+                )
+            }
+
+            // Применение фрагмента (§3): экземпляры со связью «применяет»
+            method == "POST" && path.matches(Regex("/library/fragments/LF-[0-9]{4}/apply")) -> {
+                val req = mapper.readTree(body(ex))
+                val applyAuthor = req.path("author").asText("")
+                require(applyAuthor.isNotBlank()) { "field 'author' is required" }
+                val applyProject = requireProject(project)
+                val fragId = path.removePrefix("/library/fragments/").removeSuffix("/apply")
+                val created = LibraryChannel(boundary).apply(fragId, applyProject, applyAuthor)
+                val out = mapper.createObjectNode()
+                val arr = out.putArray("created")
+                created.forEach { (from, id) -> arr.addObject().put("from", from).put("id", id) }
+                respond(ex, 201, out)
+            }
+
+            // Полки библиотеки по классу (§4 Ш2): фрагменты с живыми счётчиками
+            method == "GET" && path == "/library/shelves" -> {
+                val arr = mapper.createArrayNode()
+                boundary.objects.listCurrent(orbita.mod.store.ObjectStore.LIBRARY_PROJECT)
+                    .filter { it.type == "library_fragment" && it.status != Lifecycle.Cancelled }
+                    .sortedBy { it.id }
+                    .forEach { f ->
+                        val row = arr.addObject()
+                            .put("id", f.id)
+                            .put("name", f.doc.path("name").asText(""))
+                            .put("shelf", f.doc.path("shelf").asText(""))
+                            .put("mission_class_ref", f.doc.path("mission_class_ref").asText(""))
+                            .put("summary", f.doc.path("summary").asText(""))
+                        row.set<ObjectNode>("counters", f.doc.path("counters").deepCopy())
+                        val manifest = row.putObject("origin")
+                        f.doc.path("origin").properties().forEach { (k, v) ->
+                            if (k != "object_versions") manifest.set<com.fasterxml.jackson.databind.JsonNode>(k, v.deepCopy())
+                        }
+                    }
+                respond(ex, 200, arr)
+            }
+
+            // Классы миссии (§4 Ш1) — из полки Б4
+            method == "GET" && path == "/library/mission-classes" -> {
+                val arr = mapper.createArrayNode()
+                boundary.objects.listCurrent(orbita.mod.store.ObjectStore.LIBRARY_PROJECT)
+                    .filter { it.type == "mission_class" && it.status != Lifecycle.Cancelled }
+                    .sortedBy { it.id }
+                    .forEach { c ->
+                        arr.addObject()
+                            .put("id", c.id)
+                            .put("name", c.doc.path("name").asText(""))
+                            .set<com.fasterxml.jackson.databind.JsonNode>(
+                                "typical_constraints", c.doc.path("typical_constraints").deepCopy(),
+                            )
+                    }
+                respond(ex, 200, arr)
+            }
+
             // Мастер-путь Ш2, «Взять из библиотеки»: библиотека исходных
             // документов (ADR-030) — общая, а объекты попроектные. Здесь
             // документы ДРУГИХ проектов видны как библиотека текущего:
@@ -1541,11 +1669,30 @@ class HttpApi(private val boundary: Boundary) {
                     }
                 }
                 val profileName = "Генерация О2 — цели и нужды"
-                val doc = mapper.createObjectNode()
+                // Заготовка Г1 (§4 Ш3): базовые правила и глоссарий — из
+                // библиотечного фрагмента полки G1; поверх — запреты проекта.
+                val template = boundary.objects
+                    .listCurrent(orbita.mod.store.ObjectStore.LIBRARY_PROJECT)
+                    .filter { it.type == "library_fragment" && it.doc.path("shelf").asText() == "G1" }
+                    .maxByOrNull { it.id }
+                    ?.doc?.path("payload")?.path("objects")
+                    ?.firstOrNull { it.path("id").asText("").startsWith("AP-") }
+                val doc = (template?.deepCopy() as? ObjectNode) ?: mapper.createObjectNode()
+                doc.remove("id")
+                doc.remove("lifecycle")
+                doc.remove("provenance")
                 doc.put("name", profileName)
-                doc.put("purpose", "Собран мастер-путём «Начало проекта»: запреты — из ограничений паспорта")
-                doc.putArray("kinds").add("mission_to_goals").add("mission_to_needs")
-                doc.put("transport", "any")
+                doc.put(
+                    "purpose",
+                    if (template == null)
+                        "Собран мастер-путём «Начало проекта»: запреты — из ограничений паспорта"
+                    else
+                        "Собран мастер-путём из заготовки Г1: запреты — из ограничений паспорта",
+                )
+                if (!doc.has("kinds") || doc.path("kinds").isEmpty) {
+                    doc.putArray("kinds").add("mission_to_goals").add("mission_to_needs")
+                }
+                if (!doc.has("transport")) doc.put("transport", "any")
                 doc.set<ObjectNode>("prohibitions", prohibitions)
                 doc.put("require_source", true)
                 val existing = boundary.objects.listCurrent(startProject)

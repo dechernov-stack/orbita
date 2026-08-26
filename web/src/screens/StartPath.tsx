@@ -64,6 +64,18 @@ export function StartPath({ project, onGo, onDone }: {
   }> | null>(null)
   const [picked, setPicked] = useState<Set<string>>(new Set())
   const [takeNote, setTakeNote] = useState<string | null>(null)
+  /** Полка Б4: классы миссии; выбор подставляет типовые ограничения. */
+  const [classes, setClasses] = useState<Array<{
+    id: string; name: string; typical_constraints: Array<{ code?: string; text: string }>
+  }> | null>(null)
+  /** Фрагменты полок (Б1/Б5/Б6/Б7/Г1) с живыми счётчиками. */
+  const [shelves, setShelves] = useState<Array<{
+    id: string; name: string; shelf: string; mission_class_ref: string; summary: string
+    counters: Record<string, number>
+    origin: { project?: string; author?: string; date?: string }
+  }> | null>(null)
+  const [openManifest, setOpenManifest] = useState<string | null>(null)
+  const [applyNote, setApplyNote] = useState<string | null>(null)
   const [sourceRef, setSourceRef] = useState('')
   const [profile, setProfile] = useState<{ id: string; version: string; name: string } | null>(null)
   const [promptFull, setPromptFull] = useState<string | null>(null)
@@ -89,6 +101,8 @@ export function StartPath({ project, onGo, onDone }: {
       .catch((e) => setFailure(reasonOf(e)))
     reloadOwn()
     api.libraryDocs().then(setLibrary).catch(() => setLibrary([]))
+    api.missionClasses().then(setClasses).catch(() => setClasses([]))
+    api.libraryShelves().then(setShelves).catch(() => setShelves([]))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project])
 
@@ -118,6 +132,18 @@ export function StartPath({ project, onGo, onDone }: {
         setPicked(new Set())
         reloadOwn()
       })
+      .catch((e) => setFailure(reasonOf(e)))
+      .finally(() => { busyRef.current = false; setBusy(false) })
+  }
+
+  /** Взятие набора: применение фрагмента — экземпляры со связью «применяет». */
+  const applyFragment = (id: string) => {
+    if (busyRef.current) return
+    busyRef.current = true
+    setBusy(true)
+    setFailure(null)
+    api.libraryApply(id, author)
+      .then((r) => setApplyNote(`применено из ${id}: объектов ${r.created.length}`))
       .catch((e) => setFailure(reasonOf(e)))
       .finally(() => { busyRef.current = false; setBusy(false) })
   }
@@ -233,8 +259,28 @@ export function StartPath({ project, onGo, onDone }: {
           <>
             <div className="np-row">
               <label className="np-label" htmlFor="sp-class">Класс миссии</label>
-              <input className="np-name" id="sp-class" value={missionClass}
-                onChange={(e) => setMissionClass(e.target.value)} />
+              {(classes ?? []).length > 0 ? (
+                <>
+                  <select id="sp-class" value={missionClass}
+                    onChange={(e) => {
+                      const cls = classes?.find((c) => c.id === e.target.value)
+                      setMissionClass(e.target.value)
+                      // выбор класса подставляет типовые ограничения — правятся
+                      if (cls && constraints.length === 0 && cls.typical_constraints.length > 0) {
+                        setConstraints(cls.typical_constraints)
+                      }
+                    }}>
+                    <option value="">—</option>
+                    {(classes ?? []).map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                  <div className="np-hint">Класс определяет наборы библиотеки на следующем шаге.</div>
+                </>
+              ) : (
+                <input className="np-name" id="sp-class" value={missionClass}
+                  onChange={(e) => setMissionClass(e.target.value)} />
+              )}
             </div>
             <div className="np-row">
               <label className="np-label">Ограничения проекта{' '}
@@ -283,12 +329,41 @@ export function StartPath({ project, onGo, onDone }: {
                 <div className="sp-ph">Взять из библиотеки
                   <span className="sp-sub">исходные документы других проектов</span>
                 </div>
-                {/* Библиотека (ADR-030) — общая, объекты попроектные: здесь
-                    документы других проектов берутся копией с провенансом
-                    imported. Наборы типовых требований и шаблонов компонентов
-                    появятся с библиотечной волной. */}
-                {library == null && <div className="sp-set"><span className="sp-ds">Загрузка…</span></div>}
-                {library != null && library.length === 0 && (
+                {/* Полки (§4 Ш2): фрагменты по классу миссии с живыми
+                    счётчиками; «состав» раскрывает манифест; «взять» создаёт
+                    экземпляры со связью «применяет». Ниже — документы других
+                    проектов (канал сбора из живой работы). */}
+                {(shelves ?? [])
+                  .filter((f) => !missionClass || !f.mission_class_ref || f.mission_class_ref === missionClass)
+                  .map((f) => (
+                    <div className="sp-set" key={f.id}>
+                      <span className="sp-tx">
+                        <div className="sp-nm">
+                          {f.name}
+                          {' · '}
+                          {Object.values(f.counters).reduce((a, b) => a + b, 0)}
+                        </div>
+                        <div className="sp-ds">{f.summary || f.id}</div>
+                        {openManifest === f.id && (
+                          <div className="sp-ds">
+                            {Object.entries(f.counters).map(([t, n]) => `${t}: ${n}`).join(' · ')}
+                            {f.origin.project ? ` — из ${f.origin.project}` : ''}
+                            {f.origin.date ? `, ${f.origin.date}` : ''}
+                          </div>
+                        )}
+                      </span>
+                      <button className="sp-open"
+                        onClick={() => setOpenManifest(openManifest === f.id ? null : f.id)}>
+                        состав
+                      </button>
+                      <button className="sp-open" disabled={busy} onClick={() => applyFragment(f.id)}>
+                        взять
+                      </button>
+                    </div>
+                  ))}
+                {applyNote && <div className="sp-set"><span className="sp-ds">{applyNote}</span></div>}
+                {library == null && shelves == null && <div className="sp-set"><span className="sp-ds">Загрузка…</span></div>}
+                {library != null && library.length === 0 && (shelves ?? []).length === 0 && (
                   <div className="sp-set">
                     <span className="sp-tx">
                       <div className="sp-nm">В библиотеке пока нет документов</div>
