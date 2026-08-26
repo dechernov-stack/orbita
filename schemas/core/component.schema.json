@@ -39,8 +39,18 @@
       "type": "string",
       "pattern": "^CM-[0-9]{4}$"
     },
-    "wbs": {
-      "type": "string"
+    "evolves_from": {
+      "type": "string",
+      "pattern": "^CM-[0-9]{4}$",
+      "description": "Развитие определения: версия — часть идентичности, v2 помнит v1 (В2.1)"
+    },
+    "wbs_refs": {
+      "type": "array",
+      "description": "Связь состав ↔ WBS многие-ко-многим (В2.2): дерево работ — своя структура, не зеркало состава",
+      "items": {
+        "type": "string",
+        "pattern": "^WB-[0-9]{4}$"
+      }
     },
     "parameters": {
       "type": "array",

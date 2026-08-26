@@ -74,7 +74,9 @@ enum class CoreType(val idPrefix: String, val dbType: String, val schemaName: St
     // Нитка Б.1: шаблон документа — библиотечный объект, не enum в коде
     DocumentTemplate("DT", "document_template", "core/document-template"),
     // В1.2: авторский текст раздела — хранимый и версионируемый
-    SectionText("ST", "section_text", "core/section-text");
+    SectionText("ST", "section_text", "core/section-text"),
+    // В2.1: вхождение — определение × количество × роль в родителе
+    ComponentUsage("CU", "component_usage", "core/component-usage");
 
     companion object {
         fun byDbType(t: String): CoreType = entries.firstOrNull { it.dbType == t }

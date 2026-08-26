@@ -130,6 +130,11 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
         // Библиотечные полки (СТРУКТУРА-БИБЛИОТЕКИ §2) — общим путём: схема
         // и статусная модель, прикладных правил сверх схемы у полок нет
         CoreType.NormativeDocument, CoreType.MissionClass, CoreType.StakeholderProfile,
+        CoreType.ComponentUsage -> {
+            val doc = parse(json)
+            validate(type, doc)   // схема + правила В2.1: дерево, ацикличность
+            store(type, doc, createdBy, projectId)
+        }
         CoreType.TypicalRisk, CoreType.LibraryFragment, CoreType.DocumentTemplate,
         CoreType.SectionText -> {
             val doc = parse(json)

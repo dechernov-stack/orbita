@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/core/component-usage.schema.json",
+  "title": "ComponentUsage",
+  "description": "Вхождение (В2.1): определение × количество × роль в родителе. Композиция вхождений — строго дерево (один владелец, ацикличность — проверка сервера); разделяемое — связи «использует»/«размещено на», не второй родитель.",
+  "type": "object",
+  "required": [
+    "id",
+    "definition_ref",
+    "quantity"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^CU-[0-9]{4}$"
+    },
+    "definition_ref": {
+      "type": "string",
+      "pattern": "^CM-[0-9]{4}$",
+      "description": "Определение: носитель требований в Формулировании"
+    },
+    "parent_usage": {
+      "type": "string",
+      "pattern": "^CU-[0-9]{4}$",
+      "description": "Родительское вхождение; без него — корень композиции"
+    },
+    "quantity": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Кратность: свёртка бюджетов умножает на неё"
+    },
+    "role": {
+      "type": "string",
+      "description": "Роль в родителе: «основная БЦВМ», «резерв»"
+    },
+    "relations": {
+      "type": "array",
+      "description": "Разделяемое БЕЗ второго родителя: использует · размещено на",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "ref"
+        ],
+        "properties": {
+          "kind": {
+            "enum": [
+              "uses",
+              "hosted_on"
+            ]
+          },
+          "ref": {
+            "type": "string",
+            "pattern": "^CU-[0-9]{4}$"
+          }
+        }
+      }
+    },
+    "applies": {
+      "type": "object",
+      "description": "Применение библиотечного фрагмента (tailoring): экземпляр помнит прототип; отклонение и неприменимость требуют обоснования",
+      "additionalProperties": false,
+      "required": [
+        "ref",
+        "status"
+      ],
+      "properties": {
+        "ref": {
+          "type": "string",
+          "pattern": "^LF-[0-9]{4}$"
+        },
+        "status": {
+          "enum": [
+            "applied",
+            "deviation",
+            "not_applicable"
+          ],
+          "description": "применено · с отклонением · неприменимо"
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 10
+        }
+      },
+      "if": {
+        "properties": {
+          "status": {
+            "enum": [
+              "deviation",
+              "not_applicable"
+            ]
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "ref",
+          "status",
+          "rationale"
+        ]
+      }
+    },
+    "lifecycle": {
+      "$ref": "https://kis.local/schemas/common/status.schema.json"
+    },
+    "provenance": {
+      "$ref": "https://kis.local/schemas/common/provenance.schema.json"
+    }
+  }
+}

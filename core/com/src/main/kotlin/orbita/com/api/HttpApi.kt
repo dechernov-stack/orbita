@@ -1706,6 +1706,96 @@ class HttpApi(private val boundary: Boundary) {
                 respond(ex, 200, arr)
             }
 
+            // В2.1: свёртка бюджетов — по вхождениям с кратностью. Величина
+            // узла = параметр определения × произведение quantity по пути от
+            // корня. Считает сервер; расчётов в клиенте нет.
+            method == "GET" && path == "/views/composition/budgets" -> {
+                val cur = boundary.objects.listCurrent(requireProject(project))
+                val usages = cur.filter { it.type == "component_usage" && it.status != Lifecycle.Cancelled }
+                val defs = cur.filter { it.type == "component" }.associateBy { it.id }
+                val byId = usages.associateBy { it.id }
+                fun multiplier(u: orbita.mod.store.StoredObject): Long {
+                    var m = 1L
+                    var c: orbita.mod.store.StoredObject? = u
+                    while (c != null) {
+                        m *= c.doc.path("quantity").asLong(1)
+                        c = byId[c.doc.path("parent_usage").asText("")]
+                    }
+                    return m
+                }
+                val totals = linkedMapOf<String, Pair<Double, String>>()
+                val rows = mapper.createArrayNode()
+                usages.sortedBy { it.id }.forEach { u ->
+                    val def = defs[u.doc.path("definition_ref").asText("")] ?: return@forEach
+                    val m = multiplier(u)
+                    val row = rows.addObject()
+                        .put("usage", u.id)
+                        .put("definition", def.id)
+                        .put("name", def.doc.path("name").asText(""))
+                        .put("multiplier", m)
+                    val params = row.putObject("parameters")
+                    def.doc.path("parameters").forEach { pr ->
+                        val nm = pr.path("name").asText("")
+                        val q = pr.path("quantity")
+                        if (nm.isNotBlank() && q.path("value").isNumber) {
+                            val total = q.path("value").asDouble() * m
+                            val unit = q.path("unit").asText("")
+                            params.putObject(nm).put("value", total).put("unit", unit)
+                            val prev = totals[nm]
+                            totals[nm] = ((prev?.first ?: 0.0) + total) to unit
+                        }
+                    }
+                }
+                val out = mapper.createObjectNode()
+                out.set<com.fasterxml.jackson.databind.JsonNode>("rows", rows)
+                val t = out.putObject("totals")
+                totals.forEach { (nm, v) -> t.putObject(nm).put("value", v.first).put("unit", v.second) }
+                respond(ex, 200, out)
+            }
+
+            // В2.2: стоимость и сроки сворачиваются по дереву работ. Стоимость —
+            // сумма привязанных оценок по поддереву; срок — максимум по детям
+            // (работы ветвей параллельны; последовательность — предмет графика,
+            // не свёртки).
+            method == "GET" && path == "/views/wbs/rollup" -> {
+                val cur = boundary.objects.listCurrent(requireProject(project))
+                val wbs = cur.filter { it.type == "wbs_element" && it.status != Lifecycle.Cancelled }
+                val estimates = cur.filter { it.type == "cost_estimate" && it.status != Lifecycle.Cancelled }
+                    .groupBy { it.doc.path("wbs_ref").asText("") }
+                val children = wbs.groupBy { it.doc.path("parent").asText("") }
+                data class Roll(val low: Double, val high: Double, val monthsLow: Double, val monthsHigh: Double)
+                val memo = mutableMapOf<String, Roll>()
+                fun roll(id: String): Roll = memo.getOrPut(id) {
+                    val own = estimates[id].orEmpty()
+                    fun num(n: com.fasterxml.jackson.databind.JsonNode): Double =
+                        if (n.isNumber) n.asDouble() else n.path("value").asDouble(0.0)
+                    var low = own.sumOf { num(it.doc.path("total_low")) }
+                    var high = own.sumOf { num(it.doc.path("total_high")) }
+                    var ml = own.maxOfOrNull { num(it.doc.path("schedule_months_low")) } ?: 0.0
+                    var mh = own.maxOfOrNull { num(it.doc.path("schedule_months_high")) } ?: 0.0
+                    children[id].orEmpty().forEach { ch ->
+                        val r = roll(ch.id)
+                        low += r.low; high += r.high
+                        ml = maxOf(ml, r.monthsLow); mh = maxOf(mh, r.monthsHigh)
+                    }
+                    Roll(low, high, ml, mh)
+                }
+                val arr = mapper.createArrayNode()
+                wbs.sortedBy { it.id }.forEach { w ->
+                    val r = roll(w.id)
+                    arr.addObject()
+                        .put("id", w.id)
+                        .put("name", w.doc.path("name").asText(""))
+                        .put("parent", w.doc.path("parent").asText(""))
+                        .put("estimates", estimates[w.id].orEmpty().size)
+                        .put("total_low", r.low)
+                        .put("total_high", r.high)
+                        .put("schedule_months_low", r.monthsLow)
+                        .put("schedule_months_high", r.monthsHigh)
+                }
+                respond(ex, 200, mapper.createObjectNode().set("elements", arr))
+            }
+
             // Мастер-путь Ш2, «Взять из библиотеки»: библиотека исходных
             // документов (ADR-030) — общая, а объекты попроектные. Здесь
             // документы ДРУГИХ проектов видны как библиотека текущего:

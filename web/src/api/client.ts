@@ -254,6 +254,14 @@ export const api = {
     post<{ id: string; version: string; name: string; prohibitions: number }>(
       '/views/start-path/profile', { author },
     ),
+  /** В2.1: свёртка бюджетов по вхождениям с кратностью — считает сервер. */
+  compositionBudgets: () =>
+    get<{ rows: Array<Record<string, unknown>>; totals: Record<string, { value: number; unit: string }> }>(
+      '/views/composition/budgets',
+    ),
+  /** В2.2: стоимость и сроки по дереву работ — считает сервер. */
+  wbsRollup: () =>
+    get<{ elements: Array<Record<string, unknown>> }>('/views/wbs/rollup'),
   /** Печать (В1.4/О-8): файл отдаёт сервер; путь ссылки живёт здесь одним местом. */
   printUrl: (code: string, fmt: 'docx' | 'pdf', issue?: string) =>
     withProject(`/api/export/documents/${code}/print.${fmt}${issue ? `?issue=${encodeURIComponent(issue)}` : ''}`),

@@ -37,6 +37,35 @@ class ReqService(
      */
     fun requireApplicationRules(type: String, doc: JsonNode) {
         when (type) {
+            // В2.1: композиция вхождений — строго дерево: один владелец
+            // (одно поле parent_usage) и ацикличность; разделяемое — связи
+            // uses/hosted_on, не второй родитель. Определение обязано
+            // существовать: вхождение без определения — не вхождение.
+            "component_usage" -> {
+                val definition = doc.path("definition_ref").asText("")
+                val def = objects.current(definition)
+                    ?: throw ModelViolationException(
+                        "В2.1: definition_ref '$definition' not found — вхождение ссылается на определение")
+                if (def.type != "component") {
+                    throw ModelViolationException("В2.1: '$definition' is not a component definition")
+                }
+                val selfId = doc.path("id").asText("")
+                var cursor = doc.path("parent_usage").asText("")
+                val visited = mutableSetOf<String>()
+                while (cursor.isNotBlank()) {
+                    if (cursor == selfId || cursor in visited) {
+                        throw ModelViolationException(
+                            "В2.1: composition cycle through '$cursor' — дерево вхождений ациклично")
+                    }
+                    visited += cursor
+                    val parent = objects.current(cursor)
+                        ?: throw ModelViolationException("В2.1: parent_usage '$cursor' not found")
+                    if (parent.type != "component_usage") {
+                        throw ModelViolationException("В2.1: parent_usage '$cursor' is not a component_usage")
+                    }
+                    cursor = parent.doc.path("parent_usage").asText("")
+                }
+            }
             "requirement" -> {
                 doc.path("traces_up").forEach { t ->
                     val ref = t.path("ref").asText()
@@ -275,6 +304,24 @@ class ReqService(
             }
 
         val want = desired(type, id, doc).toMutableMap()
+        // В2: развитие определения, связь состав↔WBS, разделяемое вхождений,
+        // стоимость на элементе работ — всё из документа (ADR-027)
+        doc.path("evolves_from").asText("").takeIf { it.isNotBlank() }?.let { prev ->
+            want[Triple(prev, id, "evolves")] = Attrs()
+        }
+        doc.path("wbs_refs").forEach { wb ->
+            want[Triple(id, wb.asText(), "wbs")] = Attrs()
+        }
+        doc.path("relations").forEach { r ->
+            val kindName = r.path("kind").asText("")
+            val ref = r.path("ref").asText("")
+            if (kindName.isNotBlank() && ref.isNotBlank()) {
+                want[Triple(id, ref, kindName)] = Attrs()
+            }
+        }
+        doc.path("wbs_ref").asText("").takeIf { it.isNotBlank() }?.let { wb ->
+            want[Triple(id, wb, "wbs")] = Attrs()
+        }
         // Применение библиотечного фрагмента — у любого вида с полем applies
         // (ЗАДАЧА-CODE-БИБЛИОТЕКА §3): связь выводится из документа, как и
         // остальные (ADR-027). Статус и обоснование остаются в документе.
@@ -287,7 +334,8 @@ class ReqService(
             "requirement" ->
                 links.linksTo(id, "trace") + links.linksFrom(id, "allocation") + links.linksTo(id, "derive")
             else -> emptyList()
-        } + links.linksFrom(id, "applies")
+        } + links.linksFrom(id, "applies") + links.linksTo(id, "evolves") +
+            links.linksFrom(id, "wbs") + links.linksFrom(id, "uses") + links.linksFrom(id, "hosted_on")
 
         fun declaredByOtherEnd(link: orbita.mod.store.Link): Boolean {
             if (link.kind != "trace" || type == "requirement") return false
