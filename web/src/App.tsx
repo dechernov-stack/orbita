@@ -32,7 +32,7 @@ import { Risks } from './screens/Risks'
 import { Spacecraft } from './screens/Spacecraft'
 import { SystemComposition } from './screens/SystemComposition'
 import { SystemOverview } from './screens/SystemOverview'
-import { AuthorField } from './ui/session'
+import { AuthorField, LoginGate } from './ui/session'
 
 interface HeaderInfo {
   name: string
@@ -232,6 +232,7 @@ export function App() {
   const sectionOps = info?.operations.filter((o) => o.screen && sectionOf(o.screen) === section) ?? []
 
   return (
+    <LoginGate>
     <div className="shell">
       <header className="header">
         <div className="header__logo">Орбита</div>
@@ -301,5 +302,6 @@ export function App() {
         <main className="shell__work">{render()}</main>
       </div>
     </div>
+    </LoginGate>
   )
 }

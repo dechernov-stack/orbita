@@ -27,6 +27,9 @@ object TestDb {
     fun truncateAll() {
         conn.createStatement().use {
             it.execute("TRUNCATE objects, links, params, param_deps, results RESTART IDENTITY CASCADE")
+            // В3: учётки и сессии — иначе тест, включивший многопользовательский
+            // режим, запирал бы все последующие на 401
+            it.execute("TRUNCATE users, sessions, project_roles CASCADE")
         }
     }
 }

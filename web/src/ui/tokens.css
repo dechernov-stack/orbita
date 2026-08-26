@@ -1224,3 +1224,9 @@ details.np-dates[open] summary::before { transform: rotate(90deg); }
 .apf-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 60px 20px; text-align: center; flex: 1; }
 .apf-empty h3 { font-size: 15px; font-weight: 600; }
 .apf-empty p { font-size: 12.5px; color: var(--text-secondary); max-width: 420px; }
+
+/* ── В3: вход ── */
+.login-gate { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--surface-page); }
+.login-card { width: 360px; background: var(--container); border: 1px solid var(--hairline); border-radius: 10px; padding: 22px 24px; }
+.login-card h2 { font-size: 17px; font-weight: 700; margin-bottom: 4px; }
+.login-card p { margin-bottom: 14px; }

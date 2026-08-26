@@ -114,11 +114,41 @@ class HttpApi(private val boundary: Boundary) {
         val method = ex.requestMethod
         val objectMatch = Regex("^/objects/([A-Z]{2,3}-[0-9]{4})(/.*)?$").find(path)
         val editMatch = Regex("^/edit/([A-Z]{2,3}-[0-9]{4})(/.*)?$").find(path)
+
+        // ── В3: учётки и права. Пока учёток нет — прежний однопользовательский
+        // режим (мягкое включение: владелец сам решает, когда завести первую).
+        // Проверка прав — ЗДЕСЬ, на сервере: спрятанная кнопка правом не
+        // является (ловушка 5).
+        val authOn = boundary.auth.enabled()
+        val sessionUser = sessionToken(ex)?.let { boundary.auth.sessionUser(it) }
+        if (path.startsWith("/auth/")) {
+            authRoutes(ex, method, path, sessionUser)
+            return
+        }
+        if (authOn && sessionUser == null) {
+            respond(ex, 401, mapper.createObjectNode().put("error", "войдите: сессия не найдена или истекла"))
+            return
+        }
         // ADR-022: проектный контекст запроса. ?project=PJ-NNNN обязателен,
         // как только в портфеле больше одного проекта; при единственном
         // проекте вызов без параметра работает в нём (переходный режим до
         // перевёрстки клиента). null — портфель пуст.
         val project: String? by lazy { resolveProject(ex) }
+
+        if (authOn && sessionUser != null && method != "GET" && method != "HEAD") {
+            val role = boundary.auth.roleIn(
+                if (path.startsWith("/objects/project") || path == "/edit/project") null else project,
+                sessionUser.login,
+            )
+            denyReason(method, path, role, sessionUser, project, objectMatch, editMatch)?.let { why ->
+                respond(ex, 403, mapper.createObjectNode().put("error", why))
+                return
+            }
+        }
+        // автор — из учётки везде: тело может нести что угодно, провенанс
+        // получает имя вошедшего
+        currentAuthor.set(sessionUser?.displayName)
+        currentAuthorLogin.set(sessionUser?.login)
 
         when {
             // Список видов выводится из состава типов, а не перечисляется руками:
@@ -130,6 +160,10 @@ class HttpApi(private val boundary: Boundary) {
                 val stored =
                     if (type == CoreType.Project) boundary.ingest(type, body(ex))
                     else boundary.ingest(type, body(ex), projectId = requireProject(project))
+                // В3: создатель проекта — его руководитель
+                if (type == CoreType.Project) {
+                    currentAuthorLogin.get()?.let { boundary.auth.setRole(stored.id, it, "lead") }
+                }
                 respond(ex, 201, summary(stored))
             }
 
@@ -140,7 +174,7 @@ class HttpApi(private val boundary: Boundary) {
             method == "POST" && path == "/objects/promote-batch" -> {
                 val request = mapper.readTree(body(ex))
                 val target = Lifecycle.valueOf(request.path("status").asText())
-                val by = request.path("author").asText("").trim().takeIf { it.isNotEmpty() }
+                val by = (currentAuthor.get() ?: request.path("author").asText("")).trim().takeIf { it.isNotEmpty() }
                     ?: throw IllegalArgumentException("TZ-COM-005: field 'author' is required")
                 val n = mapper.createObjectNode()
                 val done = n.putArray("promoted")
@@ -515,7 +549,7 @@ class HttpApi(private val boundary: Boundary) {
             // и это называется в ответе, а не выясняется на «Готовности».
             method == "POST" && path == "/ai/enrich-apply" -> {
                 val request = mapper.readTree(body(ex))
-                val by = request.path("by").asText("").trim().takeIf { it.isNotEmpty() }
+                val by = (currentAuthor.get() ?: request.path("by").asText("")).trim().takeIf { it.isNotEmpty() }
                     ?: throw IllegalArgumentException("TZ-AI-004: field 'by' is required to accept proposals")
                 val call = request.path("call").takeIf { it.isNumber }?.asLong()
                 val items = request.path("items")
@@ -577,7 +611,7 @@ class HttpApi(private val boundary: Boundary) {
 
             method == "POST" && path == "/ai/accept-batch" -> {
                 val request = mapper.readTree(body(ex))
-                val by = request.path("by").asText("").trim().takeIf { it.isNotEmpty() }
+                val by = (currentAuthor.get() ?: request.path("by").asText("")).trim().takeIf { it.isNotEmpty() }
                     ?: throw IllegalArgumentException("TZ-AI-004: field 'by' is required to accept proposals")
                 val packageId = request.path("package_id").asText("")
                 val llm = request.path("llm").asText("unknown")
@@ -617,11 +651,11 @@ class HttpApi(private val boundary: Boundary) {
                         applied, request.path("package_id").asText(""),
                         request.path("llm").asText("unknown"), mapper,
                     ),
-                    by = request.path("by").asText(""),
+                    by = currentAuthor.get() ?: request.path("by").asText(""),
                 )
                 // Акцептующий инженер и есть автор изменения (TZ-AI-004):
                 // поле называется `by`, но роль у него та же, что у `author`.
-                val author = request.path("by").asText("").trim().takeIf { it.isNotEmpty() }
+                val author = (currentAuthor.get() ?: request.path("by").asText("")).trim().takeIf { it.isNotEmpty() }
                     ?: throw IllegalArgumentException("TZ-AI-004: field 'by' is required to accept a proposal")
                 val type = CoreType.byDbType(stored?.type ?: typeByIdPrefix(targetId).dbType)
                 val saved = if (stored == null) {
@@ -1026,7 +1060,7 @@ class HttpApi(private val boundary: Boundary) {
                     "раздела $sectionNo нет в шаблоне '$code'"
                 }
                 val req = mapper.readTree(body(ex))
-                val textAuthor = req.path("author").asText("")
+                val textAuthor = author(req.path("author").asText(""))
                 require(textAuthor.isNotBlank()) { "field 'author' is required" }
                 val text = req.path("text").asText("")
                 require(text.isNotBlank()) { "field 'text' is required" }
@@ -1130,7 +1164,7 @@ class HttpApi(private val boundary: Boundary) {
                 val req = mapper.readTree(body(ex))
                 val issuedAt = req.path("issued_at").asText("")
                 if (issuedAt.isBlank()) throw IllegalArgumentException("'issued_at' is required: дата выпуска — аргумент, не чтение часов")
-                val author = req.path("author").asText("")
+                val author = author(req.path("author").asText(""))
                 if (author.isBlank()) throw IllegalArgumentException("'author' is required (TZ-COM-005)")
                 val model = orbita.out.ModelSnapshot.of(boundary.objects, mapper, projectId = project)
                 val generated = orbita.out.DocumentGenerator(mapper)
@@ -1582,7 +1616,7 @@ class HttpApi(private val boundary: Boundary) {
             // Обычные edit-маршруты требуют проект; библиотека — область.
             method == "POST" && path == "/library/objects" -> {
                 val req = mapper.readTree(body(ex))
-                val libAuthor = req.path("author").asText("")
+                val libAuthor = author(req.path("author").asText(""))
                 require(libAuthor.isNotBlank()) { "field 'author' is required" }
                 val typeName = req.path("type").asText("")
                 val libType = orbita.mod.model.CoreType.entries.firstOrNull { it.dbType == typeName }
@@ -1628,7 +1662,7 @@ class HttpApi(private val boundary: Boundary) {
             // Запись фрагмента: резы обязаны быть подтверждены предпросмотром
             method == "POST" && path == "/library/fragments" -> {
                 val req = mapper.readTree(body(ex))
-                val saveAuthor = req.path("author").asText("")
+                val saveAuthor = author(req.path("author").asText(""))
                 require(saveAuthor.isNotBlank()) { "field 'author' is required" }
                 val saveProject = requireProject(project)
                 val stored = LibraryChannel(boundary).save(
@@ -1656,7 +1690,7 @@ class HttpApi(private val boundary: Boundary) {
             // Применение фрагмента (§3): экземпляры со связью «применяет»
             method == "POST" && path.matches(Regex("/library/fragments/LF-[0-9]{4}/apply")) -> {
                 val req = mapper.readTree(body(ex))
-                val applyAuthor = req.path("author").asText("")
+                val applyAuthor = author(req.path("author").asText(""))
                 require(applyAuthor.isNotBlank()) { "field 'author' is required" }
                 val applyProject = requireProject(project)
                 val fragId = path.removePrefix("/library/fragments/").removeSuffix("/apply")
@@ -1826,7 +1860,7 @@ class HttpApi(private val boundary: Boundary) {
             // Исходный документ не тронут; копия начинает свой цикл черновиком.
             method == "POST" && path == "/views/library/take" -> {
                 val req = mapper.readTree(body(ex))
-                val takeAuthor = req.path("author").asText("")
+                val takeAuthor = author(req.path("author").asText(""))
                 require(takeAuthor.isNotBlank()) { "field 'author' is required" }
                 val takeProject = requireProject(project)
                 val taken = mapper.createArrayNode()
@@ -1864,7 +1898,7 @@ class HttpApi(private val boundary: Boundary) {
             // вызов обновляет собранный профиль, а не плодит дубли.
             method == "POST" && path == "/views/start-path/profile" -> {
                 val req = mapper.readTree(body(ex))
-                val startAuthor = req.path("author").asText("")
+                val startAuthor = author(req.path("author").asText(""))
                 require(startAuthor.isNotBlank()) { "field 'author' is required" }
                 val startProject = requireProject(project)
                 val passport = boundary.objects.current(startProject)
@@ -2079,6 +2113,10 @@ class HttpApi(private val boundary: Boundary) {
                 val stored =
                     if (type == CoreType.Project) boundary.editing.create(type, req.path("doc"), author(req))
                     else boundary.editing.create(type, req.path("doc"), author(req), requireProject(project))
+                // В3: создатель проекта — его руководитель
+                if (type == CoreType.Project) {
+                    currentAuthorLogin.get()?.let { boundary.auth.setRole(stored.id, it, "lead") }
+                }
                 respond(ex, 201, summary(stored).apply { set<ObjectNode>("doc", stored.doc) })
             }
 
@@ -2232,7 +2270,8 @@ class HttpApi(private val boundary: Boundary) {
             ?.let { java.net.URLDecoder.decode(it, Charsets.UTF_8) }
 
     private fun author(request: JsonNode): String =
-        request.path("author").asText("").trim().takeIf { it.isNotEmpty() }
+        currentAuthor.get()
+            ?: request.path("author").asText("").trim().takeIf { it.isNotEmpty() }
             ?: throw IllegalArgumentException("TZ-COM-005: field 'author' is required for editing")
 
     /** Вид объекта из пути `/objects/<db_type>`; null — путь не про приём объекта. */
@@ -2307,6 +2346,166 @@ class HttpApi(private val boundary: Boundary) {
             .filter { it.type == "document_template" && it.status != Lifecycle.Cancelled }
             .map { orbita.out.TemplateData.of(it.doc) }
             .sortedBy { it.code }
+
+    /** Автор текущего запроса из учётки (В3); null — однопользовательский режим. */
+    private val currentAuthor = ThreadLocal<String?>()
+    private val currentAuthorLogin = ThreadLocal<String?>()
+
+    /** Автор для провенанса: учётка главнее поля тела (В3: автор — из учётки везде). */
+    private fun author(fromBody: String): String = currentAuthor.get() ?: fromBody
+
+    private fun sessionToken(ex: HttpExchange): String? =
+        ex.requestHeaders.getFirst("Cookie")
+            ?.split(';')
+            ?.map { it.trim() }
+            ?.firstOrNull { it.startsWith("orbita_session=") }
+            ?.substringAfter('=')
+            ?: ex.requestHeaders.getFirst("Authorization")?.removePrefix("Bearer ")?.takeIf { it.isNotBlank() }
+
+    /**
+     * Матрица прав по маршрутам (В3, роли из регламентов). Возвращает причину
+     * отказа или null. Точку фиксирует DA; базирование и изменение с
+     * основанием — ведущий СИ; специалист — владелец своих узлов; замечания —
+     * обзорная роль; читатель не пишет.
+     */
+    private fun denyReason(
+        method: String,
+        path: String,
+        role: String?,
+        user: orbita.mod.store.AuthUser,
+        project: String?,
+        objectMatch: MatchResult?,
+        editMatch: MatchResult?,
+    ): String? {
+        // создание первой учётки/проекта не должно запирать систему:
+        // без роли в проекте разрешено только создать проект (создатель — lead)
+        if (path == "/objects/project" || path == "/edit/project") return null
+        if (role == null) return "у ${user.login} нет роли в проекте ${project ?: "—"}: назначает руководитель"
+        if (role == "reader") return "роль «читатель» не пишет"
+
+        val gatePass = Regex("^/gates/[^/]+/pass$").matches(path)
+        if (gatePass) return if (role == "da_review") null else
+            "точку фиксирует DA (обзорная роль); ваша роль — $role"
+
+        val baselineChannel = path == "/objects/promote-batch" ||
+            objectMatch?.groupValues?.get(2) == "/promote" ||
+            objectMatch?.groupValues?.get(2) == "/change"
+        if (baselineChannel) return if (role == "lead_se" || role == "lead") null else
+            "базирование и изменение с основанием — ведущий системный инженер"
+
+        val reviewChannel = path.startsWith("/edit/review_item") ||
+            (editMatch != null && editMatch.groupValues[1].startsWith("RF-"))
+        if (reviewChannel) return if (role in setOf("da_review", "sma", "lead_se", "lead")) null else
+            "замечания обзора — обзорная роль (DA/SMA)"
+
+        if (role == "da_review") return "обзорная роль пишет только замечания и решения точек"
+        if (role == "sma") {
+            val smaOk = path.startsWith("/edit/risk") || path.startsWith("/edit/oda") ||
+                (editMatch != null && (editMatch.groupValues[1].startsWith("RSK-") ||
+                    editMatch.groupValues[1].startsWith("OD-")))
+            return if (smaOk) null else "роль SMA пишет риски и ODA"
+        }
+
+        // специалист — владелец своих узлов: чужой узел закрыт на запись
+        if (role == "specialist" && editMatch != null) {
+            val id = editMatch.groupValues[1]
+            if (id.startsWith("CM-") || id.startsWith("CU-")) {
+                val owner = boundary.objects.current(id)?.doc?.path("owner")?.asText("") ?: ""
+                if (owner.isNotBlank() && owner != user.login) {
+                    return "узел $id принадлежит $owner: специалист работает в своих узлах"
+                }
+            }
+        }
+        return null   // lead, lead_se, specialist — инженерный контур свободен
+    }
+
+    /** Маршруты учёток: регистрация, вход, выход, кто я, роли. */
+    private fun authRoutes(ex: HttpExchange, method: String, path: String, user: orbita.mod.store.AuthUser?) {
+        when {
+            method == "POST" && path == "/auth/register" -> {
+                val req = mapper.readTree(body(ex))
+                val login = req.path("login").asText("")
+                val password = req.path("password").asText("")
+                val display = req.path("display_name").asText("").ifBlank { login }
+                require(login.isNotBlank() && password.isNotBlank()) { "login и password обязательны" }
+                // первая учётка заводится свободно (включение режима);
+                // дальше регистрирует руководитель любого проекта
+                if (boundary.auth.enabled()) {
+                    val isLead = user != null && boundary.auth.rolesOf(user.login).containsValue("lead")
+                    require(isLead) { "новые учётки заводит руководитель проекта" }
+                }
+                boundary.auth.createUser(login, password, display)
+                respond(ex, 201, mapper.createObjectNode().put("login", login))
+            }
+
+            method == "POST" && path == "/auth/login" -> {
+                val req = mapper.readTree(body(ex))
+                val verified = boundary.auth.verify(
+                    req.path("login").asText(""), req.path("password").asText(""),
+                )
+                if (verified == null) {
+                    respond(ex, 401, mapper.createObjectNode().put("error", "неверный логин или пароль"))
+                    return
+                }
+                val token = boundary.auth.createSession(verified.login)
+                ex.responseHeaders.add(
+                    "Set-Cookie",
+                    "orbita_session=$token; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000",
+                )
+                respond(
+                    ex, 200,
+                    mapper.createObjectNode()
+                        .put("login", verified.login)
+                        .put("display_name", verified.displayName),
+                )
+            }
+
+            method == "POST" && path == "/auth/logout" -> {
+                sessionToken(ex)?.let { boundary.auth.dropSession(it) }
+                ex.responseHeaders.add(
+                    "Set-Cookie", "orbita_session=; Path=/; HttpOnly; Max-Age=0",
+                )
+                respond(ex, 200, mapper.createObjectNode().put("ok", true))
+            }
+
+            method == "GET" && path == "/auth/whoami" -> {
+                val out = mapper.createObjectNode()
+                out.put("enabled", boundary.auth.enabled())
+                if (user != null) {
+                    val u = out.putObject("user")
+                    u.put("login", user.login)
+                    u.put("display_name", user.displayName)
+                    val roles = u.putObject("roles")
+                    boundary.auth.rolesOf(user.login).forEach { (pj, r) -> roles.put(pj, r) }
+                }
+                respond(ex, 200, out)
+            }
+
+            // роли назначает руководитель проекта (создатель проекта — lead)
+            method == "POST" && path == "/auth/roles" -> {
+                requireNotNull(user) { "войдите" }
+                val req = mapper.readTree(body(ex))
+                val projectId = req.path("project").asText("")
+                val login = req.path("login").asText("")
+                val role = req.path("role").asText("")
+                require(boundary.auth.roleIn(projectId, user.login) == "lead") {
+                    "роли назначает руководитель проекта"
+                }
+                boundary.auth.setRole(projectId, login, role)
+                respond(ex, 200, mapper.createObjectNode().put("ok", true))
+            }
+
+            method == "GET" && Regex("^/auth/roles/PJ-[0-9]{4}$").matches(path) -> {
+                requireNotNull(user) { "войдите" }
+                val projectId = path.removePrefix("/auth/roles/")
+                val out = mapper.createObjectNode()
+                boundary.auth.listRoles(projectId).forEach { (l, r) -> out.put(l, r) }
+                respond(ex, 200, out)
+            }
+
+            else -> respond(ex, 404, mapper.createObjectNode().put("error", "unknown auth route"))
+        }
+    }
 
     /** Бинарный ответ печати: файл уходит людям без Орбиты (В1.4/О-8). */
     private fun respondBinary(ex: HttpExchange, bytes: ByteArray, contentType: String, filename: String) {

@@ -312,22 +312,53 @@ export function ObjectEditor({ kind, schemaName, id, title, maturity, template, 
 
       {conflict && (
         <div className="notice notice--conflict" role="alert">
+          {/* В3: конфликт одновременной правки — экран «кто, что, какие
+              поля; взять их / наложить своё / открыть обе»; потери правок
+              нет ни в одном исходе: и их, и ваши значения перед глазами,
+              выбор поимённый. */}
           <b>Объект изменён другим инженером.</b>
           <div>
             Ваша правка основана на версии {conflict.yourBase}, текущая — {conflict.currentVersion},
             изменил: {conflict.changedBy}.
           </div>
           <div className="conflict__values">
-            {Object.entries(conflict.theirValues).map(([field, value]) => (
-              <div key={field} className="field">
-                <label>{field} — сейчас в модели</label>
-                <span className="mono">{JSON.stringify(value)}</span>
-              </div>
-            ))}
+            <table style={{ maxWidth: 640 }}>
+              <thead>
+                <tr><th>Поле</th><th>Их значение ({conflict.changedBy})</th><th>Ваше значение</th></tr>
+              </thead>
+              <tbody>
+                {Object.entries(conflict.theirValues).map(([field, value]) => (
+                  <tr key={field}>
+                    <td>{field}</td>
+                    <td className="mono">{JSON.stringify(value)}</td>
+                    <td className="mono">{JSON.stringify(doc[field])}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-          <button type="button" className="tab" onClick={() => id && load(id)}>
-            Перечитать и править заново
-          </button>
+          <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+            <button type="button" className="tab" title="их значения конфликтных полей встают в форму; остальные ваши правки остаются"
+              onClick={() => {
+                setDoc({ ...doc, ...conflict.theirValues })
+                setVersion(conflict.currentVersion)
+                setConflict(null)
+              }}>
+              Взять их
+            </button>
+            <button type="button" className="tab" title="повторить сохранение ваших значений поверх их версии"
+              onClick={() => {
+                setVersion(conflict.currentVersion)
+                setConflict(null)
+                run(() => edit.update(id!, editableFields(doc), conflict.currentVersion, author))
+              }}>
+              Наложить своё
+            </button>
+            <button type="button" className="tab" title="перечитать объект целиком; ваши правки будут заменены их состоянием"
+              onClick={() => id && load(id)}>
+              Открыть их версию
+            </button>
+          </div>
         </div>
       )}
 

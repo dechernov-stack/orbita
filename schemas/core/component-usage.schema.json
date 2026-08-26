@@ -107,6 +107,10 @@
     },
     "provenance": {
       "$ref": "https://kis.local/schemas/common/provenance.schema.json"
+    },
+    "owner": {
+      "type": "string",
+      "description": "Владелец узла — логин учётки (В3): специалист работает в своих узлах; чужие для него закрыты на запись"
     }
   }
 }

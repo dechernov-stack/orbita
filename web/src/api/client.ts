@@ -254,6 +254,20 @@ export const api = {
     post<{ id: string; version: string; name: string; prohibitions: number }>(
       '/views/start-path/profile', { author },
     ),
+  /** В3: кто я — режим учёток, пользователь и его роли по проектам. */
+  whoami: () =>
+    get<{ enabled: boolean; user?: { login: string; display_name: string; roles: Record<string, string> } }>(
+      '/auth/whoami',
+    ),
+  login: (login: string, password: string) =>
+    post<{ login: string; display_name: string }>('/auth/login', { login, password }),
+  logout: () => post<{ ok: boolean }>('/auth/logout', {}),
+  registerUser: (login: string, password: string, display_name: string) =>
+    post<{ login: string }>('/auth/register', { login, password, display_name }),
+  rolesOf: (project: string) =>
+    get<Record<string, string>>(`/auth/roles/${encodeURIComponent(project)}`),
+  setRole: (project: string, login: string, role: string) =>
+    post<{ ok: boolean }>('/auth/roles', { project, login, role }),
   /** В2.1: свёртка бюджетов по вхождениям с кратностью — считает сервер. */
   compositionBudgets: () =>
     get<{ rows: Array<Record<string, unknown>>; totals: Record<string, { value: number; unit: string }> }>(

@@ -39,6 +39,7 @@ import java.sql.Connection
 class Boundary(private val registry: SchemaRegistry, private val conn: Connection) {
 
     val objects = ObjectStore(conn)
+    val auth = orbita.mod.store.AuthStore(conn)
     val links = LinkStore(conn)
     val params = ParamStore(conn)
     val results = ResultStore(conn)
