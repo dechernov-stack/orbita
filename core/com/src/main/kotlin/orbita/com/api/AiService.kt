@@ -346,8 +346,25 @@ class AiService(
                 else -> totals.put(k, v.toLong())
             }
         }
+        // Сводка по профилям (эталон профилей: доля акцепта — главный
+        // показатель здоровья профиля; аудит вызовов — в подвале карточки)
+        val listed = calls.list(projectId)
+        val byProfile = out.putObject("by_profile")
+        listed.groupBy { it.profileId }.forEach { (pid, rows) ->
+            val n = byProfile.putObject(pid)
+            n.put("calls", rows.size)
+            n.put("proposed", rows.sumOf { it.proposed })
+            n.put("accepted", rows.sumOf { it.accepted })
+            val prop = rows.sumOf { it.proposed }
+            if (prop > 0) n.put("acceptance_pct", rows.sumOf { it.accepted } * 100 / prop)
+            n.put("cost_usd", rows.sumOf { it.costUsd?.toDouble() ?: 0.0 })
+            rows.maxByOrNull { it.at }?.let { last ->
+                n.put("last_at", last.at.toString())
+                n.put("last_model", last.model ?: "")
+            }
+        }
         val arr = out.putArray("calls")
-        calls.list(projectId).forEach { c ->
+        listed.forEach { c ->
             val n = arr.addObject()
             n.put("pk", c.pk)
             n.put("at", c.at.toString())

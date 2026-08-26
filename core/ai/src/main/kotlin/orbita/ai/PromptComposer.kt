@@ -163,7 +163,7 @@ class PromptComposer(private val kinds: PackageKinds = PackageKinds.default()) {
             }.trimEnd(),
         )
         blocks += PromptBlock(
-            "model", "Задание и форма ответа",
+            "format", "Задание и форма ответа",
             buildString {
                 appendLine("ЗАДАНИЕ: из входа «${k.input}» получи «${k.output}».")
                 if (profile.reviewOnly) {

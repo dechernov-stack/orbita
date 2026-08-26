@@ -75,7 +75,12 @@ const RAIL_ICONS: Record<string, ReactElement> = {
     </>
   ),
   readiness: <path d="M4 19V5m0 14h16M8 15l4-6 4 3 4-7" />,
-  ai: <path d="M12 4l1.8 5.2L19 11l-5.2 1.8L12 18l-1.8-5.2L5 11l5.2-1.8z" />,
+  ai: (
+    <>
+      <path d="M9 4h6l1 3 3 1v6l-3 1-1 3H9l-1-3-3-1V8l3-1z" />
+      <circle cx="12" cy="11.5" r="2.4" />
+    </>
+  ),
 }
 
 const PHASE_LABEL: Record<string, string> = { pre_phase_a: 'Pre-Phase A', phase_a: 'Phase A' }
@@ -215,7 +220,7 @@ export function App() {
       case 'docs': return <ScreenFrame title="Документы"><Documents onGo={go} /></ScreenFrame>
       case 'system': return <ScreenFrame title="Система в целом"><SystemOverview /></ScreenFrame>
       case 'aiservice': return <AiService onGo={go} />
-      case 'aiprofiles': return <AiProfiles key={screen} />
+      case 'aiprofiles': return <AiProfiles key={screen} onGo={go} />
       case 'ai': return <ScreenFrame title="Предложения ИИ"><AiProposal /></ScreenFrame>
       case 'importb': return <BatchLoad />
       case 'terminals': return <ScreenFrame title="Импорт терминалов"><ImportCatalog /></ScreenFrame>

@@ -1200,3 +1200,27 @@ details.np-dates[open] summary::before { transform: rotate(90deg); }
 .apf-blk--model .sp-src { color: var(--status-draft); }
 .apf-blk--input { border-color: var(--status-baseline); }
 .apf-blk--input .sp-src { color: var(--status-baseline); }
+
+/* Профили службы — круг 2 по эталону владельца */
+.apf-meta { display: flex; gap: 8px; font-size: 11px; color: var(--text-secondary); margin-top: 2px; align-items: center; }
+.apf-acc { font-size: 10.5px; padding: 0 7px; border-radius: 8px; background: var(--container-3); color: var(--text-secondary); }
+.apf-acc--good { background: #dcffe4; color: var(--status-baseline); }
+.apf-acc--none { background: none; color: var(--status-draft); }
+.apf-chead { padding: 8px 4px 0; }
+.apf-cid { font-size: 11px; color: var(--text-secondary); }
+.apf-chead h3 { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; }
+.apf-cver { font-size: 11.5px; color: var(--text-secondary); margin-top: 2px; }
+.apf-body { padding: 0 4px; }
+.apf-sec { margin: 0 0 14px; }
+.apf-k { font: 600 11px/14px var(--font); text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary); margin-bottom: 6px; }
+.apf-rule { display: flex; gap: 10px; padding: 4px 0; font-size: 12.5px; line-height: 18px; }
+.apf-no { color: var(--status-draft); font-size: 11px; padding-top: 2px; min-width: 20px; }
+.apf-ro { font-size: 12px; color: var(--text-secondary); background: var(--container-2); border: 1px solid var(--hairline); border-radius: 7px; padding: 7px 10px; margin: 0 0 10px; }
+.apf-sw--format { background: #8250df; }
+.apf-blk--format { border-color: #8250df; }
+.apf-blk--format .sp-src { color: #8250df; }
+.apf-cfoot { display: flex; gap: 10px; align-items: center; margin: 14px 4px; }
+.apf-aud { font-size: 11.5px; color: var(--text-secondary); }
+.apf-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 60px 20px; text-align: center; flex: 1; }
+.apf-empty h3 { font-size: 15px; font-weight: 600; }
+.apf-empty p { font-size: 12.5px; color: var(--text-secondary); max-width: 420px; }
