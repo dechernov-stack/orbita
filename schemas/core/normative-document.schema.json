@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/core/normative-document.schema.json",
+  "title": "NormativeDocument",
+  "description": "Полка А1 библиотеки: норматив реквизитами и пунктами — не полным текстом (СТРУКТУРА-БИБЛИОТЕКИ §2). Редакция и дата обязательны: новая редакция подсвечивает применения; на пункты ссылаются основания требований.",
+  "type": "object",
+  "required": [
+    "id",
+    "name",
+    "kind",
+    "number",
+    "edition_date",
+    "in_force"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^NR-[0-9]{4}$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 3
+    },
+    "kind": {
+      "enum": [
+        "law",
+        "decree",
+        "tech_reg",
+        "order",
+        "gost",
+        "standard",
+        "convention",
+        "regulation"
+      ],
+      "description": "закон · ПП · техрегламент · приказ · ГОСТ · стандарт · конвенция · регламент"
+    },
+    "number": {
+      "type": "string",
+      "description": "Реквизит: «ПП РФ № 2216», «NASA-STD-8719.14»"
+    },
+    "org": {
+      "type": "string"
+    },
+    "edition": {
+      "type": "string",
+      "description": "Редакция (ревизия, изменение)"
+    },
+    "edition_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "in_force": {
+      "enum": [
+        "in_force",
+        "draft",
+        "superseded"
+      ],
+      "description": "Статус действия; draft — проект акта (например, по БАС)"
+    },
+    "clauses": {
+      "type": "array",
+      "description": "Пункты, на которые ссылаются основания: реквизит пункта + своя формулировка (не полный текст ГОСТ)",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "clause",
+          "text"
+        ],
+        "properties": {
+          "clause": {
+            "type": "string",
+            "description": "«п. 3.2», «ст. 5»"
+          },
+          "text": {
+            "type": "string",
+            "minLength": 5
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "string"
+    },
+    "lifecycle": {
+      "$ref": "https://kis.local/schemas/common/status.schema.json"
+    },
+    "provenance": {
+      "$ref": "https://kis.local/schemas/common/provenance.schema.json"
+    }
+  }
+}

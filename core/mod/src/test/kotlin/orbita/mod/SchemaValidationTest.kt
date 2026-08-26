@@ -35,7 +35,7 @@ class SchemaValidationTest {
         // 36-я — source-document (ADR-030: библиотека исходных документов);
         // technology, decision, project, document-issue:
         // входы моделирования стали хранимыми объектами и получили схемы в core/
-        assertEquals(36, registry.names.size, "нормативных схем должно быть 36: ${registry.names}")
+        assertEquals(41, registry.names.size, "нормативных схем должно быть 36: ${registry.names}")
     }
 
     @Test

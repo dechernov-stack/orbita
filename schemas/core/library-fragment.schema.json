@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/core/library-fragment.schema.json",
+  "title": "LibraryFragment",
+  "description": "Одна форма на полки Б1/Б2/Б5/Б6/Б7/Г1 (ловушка «вид на каждую полку»): содержимое — пачка формата импорта П1/П2, манифест — полка, класс, счётчики, происхождение, обезличенность.",
+  "type": "object",
+  "required": [
+    "id",
+    "name",
+    "shelf",
+    "payload"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^LF-[0-9]{4}$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 3
+    },
+    "shelf": {
+      "enum": [
+        "B1",
+        "B2",
+        "B5",
+        "B6",
+        "B7",
+        "G1"
+      ],
+      "description": "типовые требования · шаблоны компонентов · PBS · WBS · интерфейсы · заготовки профилей"
+    },
+    "mission_class_ref": {
+      "type": "string",
+      "pattern": "^MC-[0-9]{4}$"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "counters": {
+      "type": "object",
+      "description": "Счётчики состава по видам — Ш2 показывает живые числа",
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "origin": {
+      "type": "object",
+      "description": "Родословная: из какого проекта, какой версии объектов и кем рождён",
+      "additionalProperties": false,
+      "required": [
+        "project",
+        "author",
+        "date"
+      ],
+      "properties": {
+        "project": {
+          "type": "string"
+        },
+        "author": {
+          "type": "string"
+        },
+        "date": {
+          "type": "string",
+          "format": "date"
+        },
+        "object_versions": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "anonymized": {
+      "type": "boolean",
+      "description": "Проектные значения заменены умолчаниями/TBD, имена проекта вычищены"
+    },
+    "payload": {
+      "type": "object",
+      "description": "Пачка формата импорта (П1/П2): {objects:[…]} — применяется готовым механизмом",
+      "required": [
+        "objects"
+      ],
+      "properties": {
+        "objects": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "lifecycle": {
+      "$ref": "https://kis.local/schemas/common/status.schema.json"
+    },
+    "provenance": {
+      "$ref": "https://kis.local/schemas/common/provenance.schema.json"
+    }
+  }
+}

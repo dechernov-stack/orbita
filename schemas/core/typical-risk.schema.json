@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/core/typical-risk.schema.json",
+  "title": "TypicalRisk",
+  "description": "Полка Б3: каталог рисков программ класса с типовыми митигациями — О7 стартует со справочника, а не с чистого листа.",
+  "type": "object",
+  "required": [
+    "id",
+    "statement",
+    "category"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^TR-[0-9]{4}$"
+    },
+    "statement": {
+      "type": "string",
+      "minLength": 20,
+      "description": "Форма «условие — событие — последствие», как у проектного риска"
+    },
+    "category": {
+      "enum": [
+        "technical",
+        "cost",
+        "schedule",
+        "safety",
+        "supply",
+        "regulatory",
+        "demand"
+      ]
+    },
+    "typical_mitigations": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 5
+      }
+    },
+    "mission_class_ref": {
+      "type": "string",
+      "pattern": "^MC-[0-9]{4}$"
+    },
+    "lifecycle": {
+      "$ref": "https://kis.local/schemas/common/status.schema.json"
+    },
+    "provenance": {
+      "$ref": "https://kis.local/schemas/common/provenance.schema.json"
+    }
+  }
+}

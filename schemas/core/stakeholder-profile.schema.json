@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/core/stakeholder-profile.schema.json",
+  "title": "StakeholderProfile",
+  "description": "Полка А2: организация/роль с интересами, полномочиями и типовыми нуждами — генерация О2 строит нужды из профилей, не из воздуха.",
+  "type": "object",
+  "required": [
+    "id",
+    "name",
+    "role"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^SH-[0-9]{4}$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 2
+    },
+    "role": {
+      "enum": [
+        "regulator",
+        "customer",
+        "operator",
+        "supplier",
+        "state_program",
+        "end_user"
+      ],
+      "description": "регулятор · заказчик · оператор · поставщик · госпрограмма · конечный пользователь"
+    },
+    "interests": {
+      "type": "string"
+    },
+    "regulatory_powers": {
+      "type": "string",
+      "description": "«ОГ по ПП № 2216, БАС с 03.2026…»"
+    },
+    "typical_needs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 5
+      }
+    },
+    "documents_issued": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "mission_class_ref": {
+      "type": "string",
+      "pattern": "^MC-[0-9]{4}$"
+    },
+    "lifecycle": {
+      "$ref": "https://kis.local/schemas/common/status.schema.json"
+    },
+    "provenance": {
+      "$ref": "https://kis.local/schemas/common/provenance.schema.json"
+    }
+  }
+}

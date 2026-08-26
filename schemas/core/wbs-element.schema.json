@@ -4,20 +4,91 @@
   "title": "WbsElement",
   "description": "Элемент структуры декомпозиции работ (блок C; БП-PPA §2 WBS, MEL по WBS в О3, разбивка оценок стоимости). Дерево — по parent; код — иерархический номер.",
   "type": "object",
-  "required": ["id", "code", "name", "lifecycle"],
+  "required": [
+    "id",
+    "code",
+    "name",
+    "lifecycle"
+  ],
   "additionalProperties": false,
   "properties": {
-    "id": {"type": "string", "pattern": "^WB-[0-9]{4}$"},
-    "code": {"type": "string", "pattern": "^[0-9]+(\\.[0-9]+)*$", "description": "Иерархический номер, напр. 1.2.3"},
-    "name": {"type": "string", "minLength": 1},
-    "parent": {"type": "string", "pattern": "^WB-[0-9]{4}$"},
-    "owner": {"type": "string"},
+    "id": {
+      "type": "string",
+      "pattern": "^WB-[0-9]{4}$"
+    },
+    "code": {
+      "type": "string",
+      "pattern": "^[0-9]+(\\.[0-9]+)*$",
+      "description": "Иерархический номер, напр. 1.2.3"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "parent": {
+      "type": "string",
+      "pattern": "^WB-[0-9]{4}$"
+    },
+    "owner": {
+      "type": "string"
+    },
     "component_refs": {
       "type": "array",
-      "items": {"type": "string", "pattern": "^(CM|IF)-[0-9]{4}$"},
+      "items": {
+        "type": "string",
+        "pattern": "^(CM|IF)-[0-9]{4}$"
+      },
       "description": "Элементы архитектуры, закреплённые за пакетом работ"
     },
-    "lifecycle": {"$ref": "https://kis.local/schemas/common/status.schema.json"},
-    "provenance": {"$ref": "https://kis.local/schemas/common/provenance.schema.json"}
+    "lifecycle": {
+      "$ref": "https://kis.local/schemas/common/status.schema.json"
+    },
+    "provenance": {
+      "$ref": "https://kis.local/schemas/common/provenance.schema.json"
+    },
+    "applies": {
+      "type": "object",
+      "description": "Применение библиотечного фрагмента (tailoring): экземпляр помнит прототип; отклонение и неприменимость требуют обоснования",
+      "additionalProperties": false,
+      "required": [
+        "ref",
+        "status"
+      ],
+      "properties": {
+        "ref": {
+          "type": "string",
+          "pattern": "^LF-[0-9]{4}$"
+        },
+        "status": {
+          "enum": [
+            "applied",
+            "deviation",
+            "not_applicable"
+          ],
+          "description": "применено · с отклонением · неприменимо"
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 10
+        }
+      },
+      "if": {
+        "properties": {
+          "status": {
+            "enum": [
+              "deviation",
+              "not_applicable"
+            ]
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "ref",
+          "status",
+          "rationale"
+        ]
+      }
+    }
   }
 }

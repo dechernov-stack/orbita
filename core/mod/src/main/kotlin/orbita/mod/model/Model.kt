@@ -61,7 +61,16 @@ enum class CoreType(val idPrefix: String, val dbType: String, val schemaName: St
 
     // ADR-030: исходный документ (записка, стандарт) — библиотека материала,
     // из которого рождается постановка; текст с реквизитами, не бинарь
-    SourceDocument("SD", "source_document", "core/source-document");
+    SourceDocument("SD", "source_document", "core/source-document"),
+
+    // Библиотека (СТРУКТУРА-БИБЛИОТЕКИ §2): три формы хранения, не вид на
+    // каждую полку. Типизированные объекты — там, где структура нужна ИИ и
+    // проверкам; фрагмент — одна форма на Б1/Б2/Б5/Б6/Б7/Г1.
+    NormativeDocument("NR", "normative_document", "core/normative-document"),
+    MissionClass("MC", "mission_class", "core/mission-class"),
+    StakeholderProfile("SH", "stakeholder_profile", "core/stakeholder-profile"),
+    TypicalRisk("TR", "typical_risk", "core/typical-risk"),
+    LibraryFragment("LF", "library_fragment", "core/library-fragment");
 
     companion object {
         fun byDbType(t: String): CoreType = entries.firstOrNull { it.dbType == t }

@@ -4,44 +4,110 @@
   "title": "Component",
   "description": "Узел дерева «Система — Компоненты» с параметрами и TPM (Ш4).",
   "type": "object",
-  "required": ["id", "name", "kind", "lifecycle"],
+  "required": [
+    "id",
+    "name",
+    "kind",
+    "lifecycle"
+  ],
   "additionalProperties": false,
   "properties": {
-    "id": { "type": "string", "pattern": "^CM-[0-9]{4}$" },
-    "name": { "type": "string" },
-    "kind": { "enum": ["segment", "system", "subsystem", "assembly"] },
-    "segment": { "enum": ["space", "ground", "user"], "description": "Обязателен для kind=segment" },
-    "parent": { "type": "string", "pattern": "^CM-[0-9]{4}$" },
-    "wbs": { "type": "string" },
+    "id": {
+      "type": "string",
+      "pattern": "^CM-[0-9]{4}$"
+    },
+    "name": {
+      "type": "string"
+    },
+    "kind": {
+      "enum": [
+        "segment",
+        "system",
+        "subsystem",
+        "assembly"
+      ]
+    },
+    "segment": {
+      "enum": [
+        "space",
+        "ground",
+        "user"
+      ],
+      "description": "Обязателен для kind=segment"
+    },
+    "parent": {
+      "type": "string",
+      "pattern": "^CM-[0-9]{4}$"
+    },
+    "wbs": {
+      "type": "string"
+    },
     "parameters": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["name", "quantity"],
+        "required": [
+          "name",
+          "quantity"
+        ],
         "additionalProperties": false,
         "properties": {
-          "name": { "type": "string" },
-          "quantity": { "$ref": "https://kis.local/schemas/common/quantity.schema.json" },
-          "formula": { "type": "string", "description": "Выражение через параметры других компонентов (параметрическая модель)" },
-          "depends_on": { "type": "array", "items": { "type": "string" } },
-          "is_tpm": { "type": "boolean", "default": false },
+          "name": {
+            "type": "string"
+          },
+          "quantity": {
+            "$ref": "https://kis.local/schemas/common/quantity.schema.json"
+          },
+          "formula": {
+            "type": "string",
+            "description": "Выражение через параметры других компонентов (параметрическая модель)"
+          },
+          "depends_on": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "is_tpm": {
+            "type": "boolean",
+            "default": false
+          },
           "tpm": {
             "type": "object",
             "description": "Technical Performance Measure: цель, резерв, тренд к обзорам",
             "additionalProperties": false,
             "properties": {
-              "target": { "$ref": "https://kis.local/schemas/common/quantity.schema.json" },
-              "required_margin_pct": { "type": "number" },
+              "target": {
+                "$ref": "https://kis.local/schemas/common/quantity.schema.json"
+              },
+              "required_margin_pct": {
+                "type": "number"
+              },
               "trend": {
                 "type": "array",
                 "items": {
                   "type": "object",
-                  "required": ["at", "value"],
+                  "required": [
+                    "at",
+                    "value"
+                  ],
                   "additionalProperties": false,
                   "properties": {
-                    "at": { "type": "string", "format": "date-time" },
-                    "review": { "enum": ["SRR", "SDR", "MDR", "PDR"] },
-                    "value": { "type": "number" }
+                    "at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "review": {
+                      "enum": [
+                        "SRR",
+                        "SDR",
+                        "MDR",
+                        "PDR"
+                      ]
+                    },
+                    "value": {
+                      "type": "number"
+                    }
                   }
                 }
               }
@@ -54,20 +120,84 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["id", "peer"],
+        "required": [
+          "id",
+          "peer"
+        ],
         "additionalProperties": false,
         "properties": {
-          "id": { "type": "string" },
-          "peer": { "type": "string", "pattern": "^CM-[0-9]{4}$" },
-          "type": { "enum": ["rf", "data", "power", "mechanical", "thermal"] },
-          "responsibility": { "type": "string" }
+          "id": {
+            "type": "string"
+          },
+          "peer": {
+            "type": "string",
+            "pattern": "^CM-[0-9]{4}$"
+          },
+          "type": {
+            "enum": [
+              "rf",
+              "data",
+              "power",
+              "mechanical",
+              "thermal"
+            ]
+          },
+          "responsibility": {
+            "type": "string"
+          }
         }
       }
     },
-    "lifecycle": { "$ref": "https://kis.local/schemas/common/status.schema.json" },
+    "lifecycle": {
+      "$ref": "https://kis.local/schemas/common/status.schema.json"
+    },
     "provenance": {
       "$ref": "https://kis.local/schemas/common/provenance.schema.json",
       "description": "Происхождение объекта: ручной ввод, предложение ИИ или импорт (TZ-COM-005, шаг 15)"
+    },
+    "applies": {
+      "type": "object",
+      "description": "Применение библиотечного фрагмента (tailoring): экземпляр помнит прототип; отклонение и неприменимость требуют обоснования",
+      "additionalProperties": false,
+      "required": [
+        "ref",
+        "status"
+      ],
+      "properties": {
+        "ref": {
+          "type": "string",
+          "pattern": "^LF-[0-9]{4}$"
+        },
+        "status": {
+          "enum": [
+            "applied",
+            "deviation",
+            "not_applicable"
+          ],
+          "description": "применено · с отклонением · неприменимо"
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 10
+        }
+      },
+      "if": {
+        "properties": {
+          "status": {
+            "enum": [
+              "deviation",
+              "not_applicable"
+            ]
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "ref",
+          "status",
+          "rationale"
+        ]
+      }
     }
   }
 }

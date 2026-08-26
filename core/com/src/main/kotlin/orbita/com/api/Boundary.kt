@@ -126,7 +126,11 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
         // Блок C: альтернативы, стоимость, ODA, WBS — схема и статусная модель;
         // ADR-030: исходный документ — тем же общим путём
         CoreType.Alternative, CoreType.CostEstimate, CoreType.Oda, CoreType.WbsElement,
-        CoreType.AiProfile, CoreType.SourceDocument -> {
+        CoreType.AiProfile, CoreType.SourceDocument,
+        // Библиотечные полки (СТРУКТУРА-БИБЛИОТЕКИ §2) — общим путём: схема
+        // и статусная модель, прикладных правил сверх схемы у полок нет
+        CoreType.NormativeDocument, CoreType.MissionClass, CoreType.StakeholderProfile,
+        CoreType.TypicalRisk, CoreType.LibraryFragment -> {
             val doc = parse(json)
             registry.require(type.schemaName, doc)
             store(type, doc, createdBy, projectId)

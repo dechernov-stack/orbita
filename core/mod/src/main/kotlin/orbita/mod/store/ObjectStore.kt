@@ -330,6 +330,9 @@ class ObjectStore(private val conn: Connection, private val mapper: ObjectMapper
          * передаёт проект явно; умолчание — для внутренних вызовов и тестов.
          */
         const val DEFAULT_PROJECT = "PJ-0001"
+        /** Область библиотеки (СТРУКТУРА-БИБЛИОТЕКИ §4): переиспользуемое
+            между проектами; ссылки проект → библиотека законны. */
+        const val LIBRARY_PROJECT = "LIB"
 
         private const val COLUMNS =
             "pk, id, type::text AS type, version, status::text AS status, doc::text AS doc, " +

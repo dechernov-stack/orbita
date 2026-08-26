@@ -4,7 +4,14 @@
   "title": "SourceDocument",
   "description": "Исходный документ (ADR-030): записка, письмо, отчёт, стандарт — внешний материал, из которого рождается постановка. Хранится текстом с реквизитами; правовой режим обязателен (ADR-024).",
   "type": "object",
-  "required": ["id", "name", "kind", "org", "rights", "lifecycle"],
+  "required": [
+    "id",
+    "name",
+    "kind",
+    "org",
+    "rights",
+    "lifecycle"
+  ],
   "additionalProperties": false,
   "properties": {
     "id": {
@@ -18,8 +25,23 @@
     },
     "kind": {
       "type": "string",
-      "enum": ["memo", "letter", "report", "standard", "minutes", "other"],
+      "enum": [
+        "memo",
+        "letter",
+        "report",
+        "standard",
+        "minutes",
+        "other"
+      ],
       "description": "Вид: записка, письмо, отчёт, стандарт, протокол, иное"
+    },
+    "shelf": {
+      "enum": [
+        "A3",
+        "A4",
+        "B2"
+      ],
+      "description": "Полка библиотеки для документа-карточки: техсправочник (даташит) · аналог · образец документа (СТРУКТУРА-БИБЛИОТЕКИ §2); без полки — проектный материал"
     },
     "org": {
       "type": "string",

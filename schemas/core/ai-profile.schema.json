@@ -4,46 +4,89 @@
   "title": "AiProfile",
   "description": "Профиль службы ИИ (П5): ограничения инженера ОБЪЕКТОМ, а не текстом в коде. Профиль задаёт, какие виды служба вправе предлагать, каким транспортом идёт вызов, правила формулировок, глоссарий проекта и запреты; служба собирает промпт из профиля, состояния модели и шаблона документа. Версионируется статусной моделью: журнал вызова хранит профиль и его версию — по какому своду правил получен ответ, видно всегда.",
   "type": "object",
-  "required": ["id", "name", "kinds", "transport", "lifecycle"],
+  "required": [
+    "id",
+    "name",
+    "kinds",
+    "transport",
+    "lifecycle"
+  ],
   "additionalProperties": false,
   "properties": {
-    "id": {"type": "string", "pattern": "^AP-[0-9]{4}$"},
-    "name": {"type": "string", "minLength": 1},
-    "purpose": {"type": "string", "description": "Для чего профиль: порождение материала, рецензия формулировок, декомпозиция"},
+    "id": {
+      "type": "string",
+      "pattern": "^AP-[0-9]{4}$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "purpose": {
+      "type": "string",
+      "description": "Для чего профиль: порождение материала, рецензия формулировок, декомпозиция"
+    },
     "kinds": {
       "type": "array",
       "minItems": 1,
       "description": "Виды пакетов, которые служба вправе исполнять по этому профилю (реестр prompt-package-kinds)",
-      "items": {"type": "string", "minLength": 1}
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
     },
     "transport": {
-      "enum": ["direct", "package", "any"],
+      "enum": [
+        "direct",
+        "package",
+        "any"
+      ],
       "description": "direct — прямой вызов провайдера (основной); package — закрытый контур: пакет отдаётся владельцу, ответ возвращается файлом; any — оба"
     },
-    "model_hint": {"type": "string", "description": "Желаемая модель провайдера; фактическая пишется в журнал"},
+    "model_hint": {
+      "type": "string",
+      "description": "Желаемая модель провайдера; фактическая пишется в журнал"
+    },
     "statement_rules": {
       "type": "array",
       "description": "Правила формулировок сверх машинных проверок качества: как писать, чего избегать",
-      "items": {"type": "string", "minLength": 1}
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
     },
     "glossary": {
       "type": "array",
       "description": "Термины проекта: служба обязана употреблять их в заданном значении",
       "items": {
         "type": "object",
-        "required": ["term", "meaning"],
+        "required": [
+          "term",
+          "meaning"
+        ],
         "additionalProperties": false,
         "properties": {
-          "term": {"type": "string", "minLength": 1},
-          "meaning": {"type": "string", "minLength": 1},
-          "not": {"type": "string", "description": "С чем не путать"}
+          "term": {
+            "type": "string",
+            "minLength": 1
+          },
+          "meaning": {
+            "type": "string",
+            "minLength": 1
+          },
+          "not": {
+            "type": "string",
+            "description": "С чем не путать"
+          }
         }
       }
     },
     "prohibitions": {
       "type": "array",
       "description": "Запреты проекта (Р1–Р9 и решения ADR): чего служба предлагать не вправе",
-      "items": {"type": "string", "minLength": 1}
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
     },
     "require_source": {
       "type": "boolean",
@@ -55,7 +98,55 @@
       "default": false,
       "description": "Профиль рецензии: служба не порождает объекты, а возвращает замечания к существующим формулировкам"
     },
-    "lifecycle": {"$ref": "https://kis.local/schemas/common/status.schema.json"},
-    "provenance": {"$ref": "https://kis.local/schemas/common/provenance.schema.json"}
+    "lifecycle": {
+      "$ref": "https://kis.local/schemas/common/status.schema.json"
+    },
+    "provenance": {
+      "$ref": "https://kis.local/schemas/common/provenance.schema.json"
+    },
+    "applies": {
+      "type": "object",
+      "description": "Применение библиотечного фрагмента (tailoring): экземпляр помнит прототип; отклонение и неприменимость требуют обоснования",
+      "additionalProperties": false,
+      "required": [
+        "ref",
+        "status"
+      ],
+      "properties": {
+        "ref": {
+          "type": "string",
+          "pattern": "^LF-[0-9]{4}$"
+        },
+        "status": {
+          "enum": [
+            "applied",
+            "deviation",
+            "not_applicable"
+          ],
+          "description": "применено · с отклонением · неприменимо"
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 10
+        }
+      },
+      "if": {
+        "properties": {
+          "status": {
+            "enum": [
+              "deviation",
+              "not_applicable"
+            ]
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "ref",
+          "status",
+          "rationale"
+        ]
+      }
+    }
   }
 }

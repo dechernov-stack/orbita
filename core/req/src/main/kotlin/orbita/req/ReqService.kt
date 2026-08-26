@@ -275,13 +275,19 @@ class ReqService(
             }
 
         val want = desired(type, id, doc).toMutableMap()
+        // Применение библиотечного фрагмента — у любого вида с полем applies
+        // (ЗАДАЧА-CODE-БИБЛИОТЕКА §3): связь выводится из документа, как и
+        // остальные (ADR-027). Статус и обоснование остаются в документе.
+        doc.path("applies").path("ref").asText("").takeIf { it.isNotBlank() }?.let { proto ->
+            want[Triple(id, proto, "applies")] = Attrs()
+        }
         val existing = when (type) {
             "need" -> links.linksFrom(id, "trace")
             "service", "conops", "mission_goal" -> links.linksTo(id, "trace")
             "requirement" ->
                 links.linksTo(id, "trace") + links.linksFrom(id, "allocation") + links.linksTo(id, "derive")
             else -> emptyList()
-        }
+        } + links.linksFrom(id, "applies")
 
         fun declaredByOtherEnd(link: orbita.mod.store.Link): Boolean {
             if (link.kind != "trace" || type == "requirement") return false

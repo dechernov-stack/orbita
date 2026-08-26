@@ -68,6 +68,10 @@ class LinkStore(private val conn: Connection) {
                 while (rs.next()) {
                     val id = rs.getString(1)
                     val owner = rs.getString(2)
+                    // Область библиотеки — исключение ADR-022 (СТРУКТУРА-
+                    // БИБЛИОТЕКИ §4): ссылка проекта на библиотечный объект
+                    // законна — «применяет», основания на нормативы А1.
+                    if (owner == ObjectStore.LIBRARY_PROJECT) continue
                     if (owner != projectId) {
                         throw ModelViolationException(
                             "ADR-022: link $fromId -> $toId crosses project boundary: " +

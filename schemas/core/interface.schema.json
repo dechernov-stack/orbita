@@ -42,6 +42,50 @@
     },
     "provenance": {
       "$ref": "https://kis.local/schemas/common/provenance.schema.json"
+    },
+    "applies": {
+      "type": "object",
+      "description": "Применение библиотечного фрагмента (tailoring): экземпляр помнит прототип; отклонение и неприменимость требуют обоснования",
+      "additionalProperties": false,
+      "required": [
+        "ref",
+        "status"
+      ],
+      "properties": {
+        "ref": {
+          "type": "string",
+          "pattern": "^LF-[0-9]{4}$"
+        },
+        "status": {
+          "enum": [
+            "applied",
+            "deviation",
+            "not_applicable"
+          ],
+          "description": "применено · с отклонением · неприменимо"
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 10
+        }
+      },
+      "if": {
+        "properties": {
+          "status": {
+            "enum": [
+              "deviation",
+              "not_applicable"
+            ]
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "ref",
+          "status",
+          "rationale"
+        ]
+      }
     }
   }
 }

@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/core/mission-class.schema.json",
+  "title": "MissionClass",
+  "description": "Полка Б4 — ключ ко всему: класс связывает наборы полок; мастер-путь Ш1 выбирает класс, Ш2 предлагает его наборы. Наборы ссылаются НА класс (mission_class_ref), класс списков не хранит — иначе два источника правды.",
+  "type": "object",
+  "required": [
+    "id",
+    "name"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^MC-[0-9]{4}$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 3
+    },
+    "description": {
+      "type": "string"
+    },
+    "typical_constraints": {
+      "type": "array",
+      "description": "Типовые ограничения класса — Ш1 подставляет, инженер правит",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "text"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string",
+            "minLength": 5
+          }
+        }
+      }
+    },
+    "lifecycle": {
+      "$ref": "https://kis.local/schemas/common/status.schema.json"
+    },
+    "provenance": {
+      "$ref": "https://kis.local/schemas/common/provenance.schema.json"
+    }
+  }
+}
