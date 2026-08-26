@@ -34,6 +34,9 @@ done
 echo "   ВСЕГО ПРОВЕРОК: $total"
 
 if [ -f gradlew ]; then
+  # Каталог файлов исходных документов: без переменной сервер берёт /files —
+  # он есть в контейнере стенда, но не на машине тестов. Тесты кладут во времянку.
+  export ORBITA_FILES_DIR="${ORBITA_FILES_DIR:-$(mktemp -d)}"
   echo "== сборка и тесты ядра ==" ; ./gradlew test
   echo "== регрессия производительности (TZ-COM-004) ==" ; ./gradlew perfCheck
 fi

@@ -206,6 +206,11 @@ export const api = {
     post<Record<string, unknown>>('/gates/return/resolve', { author, note }),
   // ---------- П5: служба ИИ (профиль → промпт → вызов → фильтр → журнал) ----------
   /** Промпт собирает служба из профиля и состояния модели; клиент его читает. */
+  /** Полки: объекты библиотечной области (круг 2 §3 — раздел «Библиотека»). */
+  libraryObjects: (type: string) =>
+    get<Array<{ id: string; title?: string }>>(
+      `/objects?type=${encodeURIComponent(type)}&project=LIB`,
+    ),
   /** Полки библиотеки (§4 Ш2): фрагменты с живыми счётчиками и манифестом. */
   libraryShelves: () =>
     get<Array<{

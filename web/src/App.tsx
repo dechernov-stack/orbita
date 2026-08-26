@@ -13,6 +13,7 @@ import { AiProposal } from './screens/AiProposal'
 import { AiService } from './screens/AiService'
 import { BatchLoad } from './screens/BatchLoad'
 import { NewProject } from './screens/NewProject'
+import { Shelves } from './screens/Shelves'
 import { StartPath } from './screens/StartPath'
 import { Comparison } from './screens/Comparison'
 import { Coverage } from './screens/Coverage'
@@ -51,6 +52,18 @@ const RAIL_ICONS: Record<string, ReactElement> = {
       <rect x="13" y="4" width="7" height="7" rx="1.5" />
       <rect x="4" y="13" width="7" height="7" rx="1.5" />
       <rect x="13" y="13" width="7" height="7" rx="1.5" />
+    </>
+  ),
+  library: (
+    <>
+      <path d="M12 6c-2-1.4-5-1.4-7 0v12c2-1.4 5-1.4 7 0c2-1.4 5-1.4 7 0V6c-2-1.4-5-1.4-7 0z" />
+      <path d="M12 6v12" />
+    </>
+  ),
+  documents: (
+    <>
+      <path d="M6 3h8l4 4v14H6z" />
+      <path d="M14 3v4h4" />
     </>
   ),
   goals: (
@@ -185,6 +198,7 @@ export function App() {
               onNew={() => { setFirstRun(false); setScreen('newproject') }}
               onFirstRun={() => { setFirstRun(true); setScreen('newproject') }} />
       case 'projreg': return <KindRegistry key={screen} kinds={['project']} title="Паспорт проекта" />
+      case 'shelves': return <Shelves key={screen} />
       case 'sourcedocs':
         return <KindRegistry key={screen} kinds={['source_document']} title="Исходные документы (библиотека)" />
       case 'goals': return <KindRegistry key={screen} kinds={['mission_goal', 'need']} title="Цели и нужды" />

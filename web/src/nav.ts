@@ -23,10 +23,17 @@ export const SECTIONS: NavSection[] = [
     ],
   },
   {
+    key: 'library',
+    label: 'Библиотека',
+    screens: [
+      { key: 'sourcedocs', title: 'Материалы проекта' },
+      { key: 'shelves', title: 'Полки' },
+    ],
+  },
+  {
     key: 'goals',
     label: 'Постановка',
     screens: [
-      { key: 'sourcedocs', title: 'Исходные документы' },
       { key: 'goals', title: 'Цели и нужды' },
       { key: 'needs', title: 'Нужды и их сервисы' },
       { key: 'services', title: 'Сервисы и QoS' },
@@ -66,6 +73,13 @@ export const SECTIONS: NavSection[] = [
     ],
   },
   {
+    key: 'documents',
+    label: 'Документы',
+    screens: [
+      { key: 'docs', title: 'Комплект фазы и выпуски' },
+    ],
+  },
+  {
     key: 'readiness',
     label: 'Контроль',
     screens: [
@@ -77,7 +91,6 @@ export const SECTIONS: NavSection[] = [
       { key: 'trl', title: 'Технологии' },
       { key: 'oda', title: 'Орбитальное засорение' },
       { key: 'vv', title: 'Верификация и валидация' },
-      { key: 'docs', title: 'Документы' },
       { key: 'system', title: 'Система в целом' },
     ],
   },
