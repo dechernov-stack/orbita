@@ -2063,6 +2063,9 @@ class HttpApi(private val boundary: Boundary) {
     /** ADR-022: проект запроса — из ?project= либо единственный в портфеле. */
     private fun resolveProject(ex: HttpExchange): String? {
         val asked = query(ex)["project"]
+        // Область библиотеки — законный контекст запроса (СТРУКТУРА-БИБЛИОТЕКИ
+        // §4): акцепт предложений службы для полок А2/Б3/В3 идёт в LIB.
+        if (asked == orbita.mod.store.ObjectStore.LIBRARY_PROJECT) return asked
         if (asked != null) {
             val p = boundary.objects.current(asked)
             require(p != null && p.type == "project") {

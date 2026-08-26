@@ -82,6 +82,30 @@ class LibraryShelvesTest {
     }
 
     @Test
+    fun `пакеты видов полок строятся и акцепт ложится в область библиотеки`() {
+        // виды извлечения А2/Б3/В3 известны и несут схему цели
+        listOf("mission_to_stakeholders", "mission_to_typical_risks", "checklist_extraction")
+            .forEach { kind ->
+                val pkg = boundary.packages.build(kind, mapper().createObjectNode(), "test")
+                org.junit.jupiter.api.Assertions.assertNotNull(pkg.responseSchema) { kind }
+            }
+        // акцепт с областью LIB кладёт профиль стейкхолдера на полку
+        val payload = mapper().createObjectNode()
+        payload.put("author", "владелец")
+        payload.putArray("objects").addObject()
+            .put("id", "SH-0100")
+            .put("name", "Росгидромет")
+            .put("role", "customer")
+            .put("interests", "метеоданные с удалённых постов")
+        val report = BatchImport(boundary, mapper()).import(payload, "владелец", lib)
+        assertTrue(report.ok) { report.toString() }
+        val sh = boundary.objects.listCurrent(lib).first { it.type == "stakeholder_profile" && it.doc.path("name").asText() == "Росгидромет" }
+        assertEquals(lib, sh.projectId)
+    }
+
+    private fun mapper() = com.fasterxml.jackson.databind.ObjectMapper()
+
+    @Test
     fun `отклонение без обоснования отклоняется схемой, применение даёт связь`() {
         // фрагмент-прототип
         boundary.objects.current("LF-0002") ?: boundary.ingest(

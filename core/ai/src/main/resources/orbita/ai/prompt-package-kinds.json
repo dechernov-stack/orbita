@@ -1,60 +1,78 @@
 {
- "_source": "Виды промпт-пакетов первой очереди (STEP-5 §1.1). Перечень конфигурируем без изменения кода (TZ-AI-001): переопределяется файлом из переменной ORBITA_PACKAGE_KINDS. risk_register включён на шаге 7 вместе со схемой core/risk. Блок E задания «прогон до KDP B»: mission_to_goals и mission_to_needs — канал О2 (из постановки миссии), объём приходит пачками.",
- "kinds": [
-  {
-   "id": "mission_to_goals",
-   "input": "постановка миссии, программные цели",
-   "output": "цели и задачи миссии с MOE",
-   "target_schema": "core/mission-goal"
-  },
-  {
-   "id": "mission_to_needs",
-   "input": "постановка миссии, перечень стейкхолдеров",
-   "output": "нужды стейкхолдеров",
-   "target_schema": "core/need"
-  },
-  {
-   "id": "needs_to_services",
-   "input": "нужды, ограничения",
-   "output": "кандидаты сервисов с MOE",
-   "target_schema": "core/service"
-  },
-  {
-   "id": "services_to_requirements",
-   "input": "сервис, QoS-профили по классам",
-   "output": "системные требования с условиями",
-   "target_schema": "core/requirement"
-  },
-  {
-   "id": "requirement_quality",
-   "input": "пакет требований",
-   "output": "замечания и переформулировки",
-   "target_schema": "core/requirement"
-  },
-  {
-   "id": "requirement_decomposition",
-   "input": "требование, поддерево компонентов",
-   "output": "потомки с распределением и видом декомпозиции",
-   "target_schema": "core/requirement"
-  },
-  {
-   "id": "verification_approach",
-   "input": "требование, фаза",
-   "output": "события верификации с подходом и средством",
-   "target_schema": "core/requirement",
-   "target_pointer": "/properties/verification_events/items"
-  },
-  {
-   "id": "risk_register",
-   "input": "описание сценария",
-   "output": "записи реестра рисков",
-   "target_schema": "core/risk"
-  },
-  {
-   "id": "requirement_enrichment",
-   "input": "требования проекта с незаполненными атрибутами (отбирает служба)",
-   "output": "частичные правки: обоснование и показатель к названным id",
-   "target_schema": null
-  }
- ]
+  "_source": "Виды промпт-пакетов первой очереди (STEP-5 §1.1). Перечень конфигурируем без изменения кода (TZ-AI-001): переопределяется файлом из переменной ORBITA_PACKAGE_KINDS. risk_register включён на шаге 7 вместе со схемой core/risk. Блок E задания «прогон до KDP B»: mission_to_goals и mission_to_needs — канал О2 (из постановки миссии), объём приходит пачками.",
+  "kinds": [
+    {
+      "id": "mission_to_goals",
+      "input": "постановка миссии, программные цели",
+      "output": "цели и задачи миссии с MOE",
+      "target_schema": "core/mission-goal"
+    },
+    {
+      "id": "mission_to_needs",
+      "input": "постановка миссии, перечень стейкхолдеров",
+      "output": "нужды стейкхолдеров",
+      "target_schema": "core/need"
+    },
+    {
+      "id": "needs_to_services",
+      "input": "нужды, ограничения",
+      "output": "кандидаты сервисов с MOE",
+      "target_schema": "core/service"
+    },
+    {
+      "id": "services_to_requirements",
+      "input": "сервис, QoS-профили по классам",
+      "output": "системные требования с условиями",
+      "target_schema": "core/requirement"
+    },
+    {
+      "id": "requirement_quality",
+      "input": "пакет требований",
+      "output": "замечания и переформулировки",
+      "target_schema": "core/requirement"
+    },
+    {
+      "id": "requirement_decomposition",
+      "input": "требование, поддерево компонентов",
+      "output": "потомки с распределением и видом декомпозиции",
+      "target_schema": "core/requirement"
+    },
+    {
+      "id": "verification_approach",
+      "input": "требование, фаза",
+      "output": "события верификации с подходом и средством",
+      "target_schema": "core/requirement",
+      "target_pointer": "/properties/verification_events/items"
+    },
+    {
+      "id": "risk_register",
+      "input": "описание сценария",
+      "output": "записи реестра рисков",
+      "target_schema": "core/risk"
+    },
+    {
+      "id": "requirement_enrichment",
+      "input": "требования проекта с незаполненными атрибутами (отбирает служба)",
+      "output": "частичные правки: обоснование и показатель к названным id",
+      "target_schema": null
+    },
+    {
+      "id": "mission_to_stakeholders",
+      "input": "записка миссии, регуляторные документы, класс миссии",
+      "output": "профили стейкхолдеров полки А2: интересы, полномочия, типовые нужды",
+      "target_schema": "core/stakeholder-profile"
+    },
+    {
+      "id": "mission_to_typical_risks",
+      "input": "записка миссии, регламенты, класс миссии",
+      "output": "каталог типовых рисков полки Б3 с типовыми митигациями",
+      "target_schema": "core/typical-risk"
+    },
+    {
+      "id": "checklist_extraction",
+      "input": "текст критериев обзора (NPR 7123.1 прил. G)",
+      "output": "чек-лист точки полки В3: входные и выходные критерии текстом",
+      "target_schema": "core/source-document"
+    }
+  ]
 }

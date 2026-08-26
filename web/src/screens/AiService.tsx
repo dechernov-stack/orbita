@@ -20,6 +20,10 @@ const KINDS: Array<{ id: string; title: string; generative: boolean }> = [
   // показателя): вход собирает СЛУЖБА — дырявые требования пачкой; ответ —
   // частичные правки, применяются к существующим объектам
   { id: 'requirement_enrichment', title: 'Дозаполнение требований (обоснование, MOP)', generative: false },
+  // Наполнение полок библиотеки (О-5): акцепт — с областью LIB
+  { id: 'mission_to_stakeholders', title: 'Записка → профили стейкхолдеров (полка А2)', generative: true },
+  { id: 'mission_to_typical_risks', title: 'Записка → типовые риски (полка Б3)', generative: true },
+  { id: 'checklist_extraction', title: 'Прил. G → чек-листы обзоров (полка В3)', generative: true },
 ]
 
 export function AiService({ onGo }: { onGo?: (screen: string) => void }) {
