@@ -254,6 +254,9 @@ export const api = {
     post<{ id: string; version: string; name: string; prohibitions: number }>(
       '/views/start-path/profile', { author },
     ),
+  /** Печать (В1.4/О-8): файл отдаёт сервер; путь ссылки живёт здесь одним местом. */
+  printUrl: (code: string, fmt: 'docx' | 'pdf', issue?: string) =>
+    withProject(`/api/export/documents/${code}/print.${fmt}${issue ? `?issue=${encodeURIComponent(issue)}` : ''}`),
   /** Ответ несёт и blocks — атрибуцию источников для предпросмотра (О-4). */
   aiCompose: (kind: string, profile: string, statement: string) =>
     post<{ profile: string; profile_version: string; transport: string; require_source: boolean; prompt: string }>(
