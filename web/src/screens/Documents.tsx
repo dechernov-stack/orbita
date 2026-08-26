@@ -11,6 +11,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { api } from '../api/client'
 import { requestObject, screenOfObject, takeDocTemplate, OBJECT_ID } from '../api/intent'
+import { withProject } from '../api/project'
 import { useSession } from '../ui/session'
 import type { DocumentIssuesView, GeneratedDocumentView } from '../api/types'
 
@@ -315,6 +316,17 @@ export function Documents({ onGo }: { onGo?: (screen: string) => void }) {
               title="печатная форма: без оболочки, только документ (записи развёрнуты)">
               Печать
             </button>
+            {/* В1.4/О-8: файл уходит людям без Орбиты — docx и PDF рендерит
+                сервер; текущая генерация помечается черновиком просмотра,
+                печать выпуска — из таблицы выпусков ниже */}
+            <a className="tab" href={withProject(`/api/export/documents/${code}/print.docx`)}
+              title="скачать текущую генерацию файлом Word (черновик просмотра)">
+              docx
+            </a>
+            <a className="tab" href={withProject(`/api/export/documents/${code}/print.pdf`)}
+              title="скачать текущую генерацию файлом PDF (черновик просмотра)">
+              PDF
+            </a>
             {issueReport && <span className="secondary">{issueReport}</span>}
           </div>
 
@@ -327,6 +339,7 @@ export function Documents({ onGo }: { onGo?: (screen: string) => void }) {
                   <th style={{ width: 90 }}>Статус</th>
                   <th style={{ width: 80 }}>Разрывов</th>
                   <th>Слепок</th>
+                  <th style={{ width: 110 }}>Печать</th>
                 </tr>
               </thead>
               <tbody>
@@ -340,6 +353,11 @@ export function Documents({ onGo }: { onGo?: (screen: string) => void }) {
                       {i.digest.slice(0, 12)}
                       {/* расхождение слепков — факт, а не ощущение */}
                       {i.stale && <span className="warn"> устарел: модель ушла вперёд</span>}
+                    </td>
+                    <td>
+                      <a className="mono" href={withProject(`/api/export/documents/${code}/print.docx?issue=${i.id}`)}>docx</a>
+                      {' · '}
+                      <a className="mono" href={withProject(`/api/export/documents/${code}/print.pdf?issue=${i.id}`)}>PDF</a>
                     </td>
                   </tr>
                 ))}

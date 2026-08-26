@@ -1061,6 +1061,66 @@ class HttpApi(private val boundary: Boundary) {
                 )
             }
 
+            // В1.4/О-8: печать — выпуск рендерится документом (docx и PDF
+            // с сервера); ?issue=DI-NNNN печатает СНИМОК выпуска, без него —
+            // текущую генерацию (черновой просмотр). Оформление подтянется
+            // вёрсткой по эталону печатной формы.
+            method == "GET" && Regex("^/export/documents/[a-z_]+/print\\.(docx|pdf)$").matches(path) -> {
+                val fmt = path.substringAfterLast('.')
+                val code = path.removePrefix("/export/documents/").substringBefore("/print.")
+                val template = templateOf(code)
+                val q = query(ex)
+                val issueId = q["issue"]
+                val printProject = requireProject(project)
+                val passportName = boundary.objects.current(printProject)
+                    ?.doc?.path("name")?.asText(printProject) ?: printProject
+                val (printBody, meta) = if (issueId != null) {
+                    val di = boundary.objects.current(issueId)
+                        ?: throw NoSuchElementException("issue '$issueId' not found")
+                    require(di.type == "document_issue" && di.doc.path("template").asText() == code) {
+                        "'$issueId' is not an issue of '$code'"
+                    }
+                    val snapshot = di.doc.path("snapshot")
+                    require(snapshot.isObject && snapshot.size() > 0) {
+                        "выпуск '$issueId' сделан до модели снимков (В1.2) — перевыпустите документ"
+                    }
+                    snapshot to orbita.out.PrintMeta(
+                        project = passportName,
+                        designation = "$code · $issueId",
+                        version = di.version,
+                        status = di.doc.path("status").asText("issued"),
+                        issuedAt = di.doc.path("issued_at").asText(""),
+                        author = di.createdBy,
+                    )
+                } else {
+                    val model = orbita.out.ModelSnapshot.of(boundary.objects, mapper, projectId = project)
+                    val generated = orbita.out.DocumentGenerator(mapper)
+                        .render(model, template, sectionTexts(code, project))
+                    generated.body to orbita.out.PrintMeta(
+                        project = passportName,
+                        designation = "$code · текущая генерация",
+                        version = "—",
+                        status = "черновик просмотра",
+                        issuedAt = "не выпускался",
+                        author = "—",
+                    )
+                }
+                val renderer = orbita.out.PrintRenderer()
+                if (fmt == "docx") {
+                    respondBinary(
+                        ex, renderer.docx(printBody, meta),
+                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                        "$code${issueId?.let { "-$it" } ?: ""}.docx",
+                    )
+                } else {
+                    respondBinary(
+                        ex, renderer.pdf(printBody, meta),
+                        "application/pdf",
+                        "$code${issueId?.let { "-$it" } ?: ""}.pdf",
+                    )
+                }
+            }
+
             // Выпуск документа (Шаг 17 C5): слепок текущей генерации становится
             // объектом document_issue. Дата выпуска — из запроса, не из часов:
             // воспроизводимость выпусков та же, что у экспорта ReqIF.
@@ -2157,6 +2217,17 @@ class HttpApi(private val boundary: Boundary) {
             .filter { it.type == "document_template" && it.status != Lifecycle.Cancelled }
             .map { orbita.out.TemplateData.of(it.doc) }
             .sortedBy { it.code }
+
+    /** Бинарный ответ печати: файл уходит людям без Орбиты (В1.4/О-8). */
+    private fun respondBinary(ex: HttpExchange, bytes: ByteArray, contentType: String, filename: String) {
+        ex.responseHeaders.set("Content-Type", contentType)
+        ex.responseHeaders.set(
+            "Content-Disposition",
+            "attachment; filename*=UTF-8''" + java.net.URLEncoder.encode(filename, Charsets.UTF_8).replace("+", "%20"),
+        )
+        ex.sendResponseHeaders(200, bytes.size.toLong())
+        ex.responseBody.use { it.write(bytes) }
+    }
 
     private fun resolveProject(ex: HttpExchange): String? {
         val asked = query(ex)["project"]

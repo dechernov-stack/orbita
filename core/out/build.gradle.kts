@@ -8,6 +8,10 @@ dependencies {
     implementation(project(":core:ka"))    // бюджеты аппарата экрана 5
     implementation(project(":core:net"))   // скорость и Eb/N0 радиолиний — из адаптера
     implementation("com.fasterxml.jackson.core:jackson-databind:2.18.2")
+    // В1.4/О-8: печать выпуска с сервера — docx (POI) и PDF (PDFBox);
+    // обе лицензии Apache 2.0, iText (AGPL) не заимствуется
+    implementation("org.apache.poi:poi-ooxml:5.3.0")
+    implementation("org.apache.pdfbox:pdfbox:3.0.3")
 
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
     testImplementation(testFixtures(project(":core:mod")))

@@ -114,5 +114,34 @@ class SectionTextTest {
         val snapText = stored.doc.path("snapshot").path("sections")
             .first { it.path("number").asInt() == 1 }.path("text").asText()
         assertTrue(snapText.contains("уточнено после ND-0001")) { snapText }
+        issueId = id
+    }
+
+    private var issueId = ""
+
+    @Test
+    @Order(4)
+    fun `выпуск печатается docx и PDF со снимка`() {
+        val docx = client.send(
+            HttpRequest.newBuilder(
+                URI.create("$base/export/documents/conops/print.docx?project=PJ-2201&issue=$issueId"),
+            ).GET().build(),
+            HttpResponse.BodyHandlers.ofByteArray(),
+        )
+        assertEquals(200, docx.statusCode())
+        // docx — zip: магия PK
+        assertEquals(0x50, docx.body()[0].toInt())
+        assertEquals(0x4B, docx.body()[1].toInt())
+        assertTrue(docx.body().size > 2000) { "docx ${docx.body().size} байт" }
+
+        val pdf = client.send(
+            HttpRequest.newBuilder(
+                URI.create("$base/export/documents/conops/print.pdf?project=PJ-2201&issue=$issueId"),
+            ).GET().build(),
+            HttpResponse.BodyHandlers.ofByteArray(),
+        )
+        assertEquals(200, pdf.statusCode()) { String(pdf.body()).take(200) }
+        assertEquals("%PDF", String(pdf.body(), 0, 4, Charsets.US_ASCII))
+        assertTrue(pdf.body().size > 2000) { "pdf ${pdf.body().size} байт" }
     }
 }
