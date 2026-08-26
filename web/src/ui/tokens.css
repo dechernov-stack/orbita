@@ -1168,3 +1168,35 @@ details.np-dates[open] summary::before { transform: rotate(90deg); }
 .lcband--done .dotp { background: var(--status-baseline); }
 .lcband b { font-weight: 600; }
 .lcband .sub { color: var(--text-secondary); }
+
+/* ── Профили службы — эталон reference2/reference-ai-profiles.html ── */
+.apf { display: grid; grid-template-columns: 300px 1fr; min-height: 0; flex: 1; overflow: hidden; }
+.apf-list { border-right: 1px solid var(--hairline); background: var(--container); overflow: auto; }
+.apf-lh { padding: 10px 14px; border-bottom: 1px solid var(--hairline); display: flex; align-items: center; gap: 6px; }
+.apf-row {
+  display: block; width: 100%; text-align: left; padding: 8px 14px;
+  border: none; border-bottom: 1px solid var(--container-3); background: none;
+  cursor: pointer; font-family: var(--font);
+}
+.apf-row[aria-selected='true'] { background: var(--selection); }
+.apf-pid { font-size: 11px; color: var(--text-secondary); }
+.apf-pnm { font: 500 12.5px/17px var(--font); margin: 1px 0; }
+.apf-pds { font-size: 11px; color: var(--status-draft); }
+.apf-card { padding: 4px 10px; overflow: auto; }
+.apf-prompt { padding: 8px 12px; }
+.apf-pctl { display: flex; gap: 10px; align-items: center; margin: 0 0 12px; }
+.apf-pctl select {
+  font: 400 12.5px/18px var(--font); padding: 5px 8px;
+  border: 1px solid var(--hairline); border-radius: 7px; background: var(--container);
+}
+.apf-legend { display: flex; gap: 16px; margin: 0 0 10px; font-size: 11.5px; color: var(--text-secondary); }
+.apf-sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+.apf-sw--profile { background: var(--accent); }
+.apf-sw--model { background: var(--status-draft); }
+.apf-sw--input { background: var(--status-baseline); }
+.apf-blk--profile { border-color: var(--accent); }
+.apf-blk--profile .sp-src { color: var(--accent); }
+.apf-blk--model { border-color: var(--status-draft); }
+.apf-blk--model .sp-src { color: var(--status-draft); }
+.apf-blk--input { border-color: var(--status-baseline); }
+.apf-blk--input .sp-src { color: var(--status-baseline); }

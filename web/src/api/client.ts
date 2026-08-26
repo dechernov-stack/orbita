@@ -254,6 +254,7 @@ export const api = {
     post<{ id: string; version: string; name: string; prohibitions: number }>(
       '/views/start-path/profile', { author },
     ),
+  /** Ответ несёт и blocks — атрибуцию источников для предпросмотра (О-4). */
   aiCompose: (kind: string, profile: string, statement: string) =>
     post<{ profile: string; profile_version: string; transport: string; require_source: boolean; prompt: string }>(
       '/ai/compose', { kind, profile, statement },

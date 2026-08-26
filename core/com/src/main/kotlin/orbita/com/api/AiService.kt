@@ -74,6 +74,18 @@ class AiService(
     }
 
     /** Промпт, собранный службой. Клиент его не сочиняет — только читает. */
+    /** Блоки промпта с атрибуцией источников — предпросмотру (О-4). */
+    fun composeBlocks(
+        kind: String, profileId: String, projectId: String, statement: String,
+    ): Pair<AiProfile, List<orbita.ai.PromptComposer.PromptBlock>> {
+        val p = profile(profileId, projectId)
+        val schema = if (kind == ENRICHMENT_KIND) enrichmentResponseSchema()
+        else boundary.packages.build(kind, mapper.createObjectNode(), "служба").responseSchema
+        val effective = if (kind == ENRICHMENT_KIND) enrichmentStatement(projectId, statement)
+        else statement
+        return p to composer.composeBlocks(kind, p, context(projectId, effective), schema)
+    }
+
     fun compose(kind: String, profileId: String, projectId: String, statement: String): Pair<AiProfile, String> {
         val p = profile(profileId, projectId)
         // схема ответа — из пакета: прямой канал шлёт модели только текст,

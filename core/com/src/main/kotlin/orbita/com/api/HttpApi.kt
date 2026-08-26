@@ -464,6 +464,19 @@ class HttpApi(private val boundary: Boundary) {
                 n.put("transport", profile.transport)
                 n.put("require_source", profile.requireSource)
                 n.put("prompt", prompt)
+                // Атрибуция источников (О-4): каждая часть промпта помнит,
+                // пришла она из профиля, модели проекта или входа операции
+                val (_, promptBlocks) = boundary.ai.composeBlocks(
+                    req.path("kind").asText(), req.path("profile").asText(),
+                    requireProject(project), req.path("statement").asText(""),
+                )
+                val blocksArr = n.putArray("blocks")
+                promptBlocks.forEach { b ->
+                    blocksArr.addObject()
+                        .put("source", b.source)
+                        .put("title", b.title)
+                        .put("text", b.text)
+                }
                 respond(ex, 200, n)
             }
 

@@ -8,6 +8,7 @@ import { api, type OperationRow } from './api/client'
 import { edit } from './api/edit'
 import { currentProject, selectProject } from './api/project'
 import { SECTIONS, sectionOf } from './nav'
+import { AiProfiles } from './screens/AiProfiles'
 import { AiProposal } from './screens/AiProposal'
 import { AiService } from './screens/AiService'
 import { BatchLoad } from './screens/BatchLoad'
@@ -214,7 +215,7 @@ export function App() {
       case 'docs': return <ScreenFrame title="Документы"><Documents onGo={go} /></ScreenFrame>
       case 'system': return <ScreenFrame title="Система в целом"><SystemOverview /></ScreenFrame>
       case 'aiservice': return <AiService onGo={go} />
-      case 'aiprofiles': return <KindRegistry key={screen} kinds={['ai_profile']} title="Профили службы ИИ" />
+      case 'aiprofiles': return <AiProfiles key={screen} />
       case 'ai': return <ScreenFrame title="Предложения ИИ"><AiProposal /></ScreenFrame>
       case 'importb': return <BatchLoad />
       case 'terminals': return <ScreenFrame title="Импорт терминалов"><ImportCatalog /></ScreenFrame>

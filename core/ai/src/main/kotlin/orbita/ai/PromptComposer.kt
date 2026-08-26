@@ -72,6 +72,127 @@ class PromptComposer(private val kinds: PackageKinds = PackageKinds.default()) {
      * форма ответа. Схема ответа передаётся полем пакета, а не текстом
      * (TZ-AI-001, ловушка 5) — здесь на неё только ссылка.
      */
+    /** Кусок промпта с источником: profile — из профиля, model — из модели
+        проекта, input — из входа операции. Атрибуция для предпросмотра
+        (О-4): инженер видит, откуда взялась каждая строка. */
+    data class PromptBlock(val source: String, val title: String, val text: String)
+
+    fun composeBlocks(
+        kind: String,
+        profile: AiProfile,
+        context: ModelContext,
+        responseSchema: JsonNode? = null,
+    ): List<PromptBlock> {
+        val k = kinds.of(kind)
+        require(profile.allows(kind)) {
+            "профиль ${profile.id} не разрешает вид пакета '$kind' (разрешены: ${profile.kinds})"
+        }
+        val blocks = mutableListOf<PromptBlock>()
+        blocks += PromptBlock(
+            "model", "Проект",
+            buildString {
+                appendLine("Ты — инженерная служба проекта «${context.projectName}», фаза ${context.phase}.")
+                profile.purpose?.let { appendLine("Назначение профиля ${profile.id}: $it.") }
+            }.trimEnd(),
+        )
+        blocks += PromptBlock(
+            "profile", "Ограничения проекта",
+            buildString {
+                appendLine("ОГРАНИЧЕНИЯ ПРОЕКТА (нарушать нельзя):")
+                if (profile.prohibitions.isEmpty()) appendLine("— не заданы")
+                profile.prohibitions.forEach { appendLine("— $it") }
+            }.trimEnd(),
+        )
+        if (profile.statementRules.isNotEmpty()) {
+            blocks += PromptBlock(
+                "profile", "Правила формулировок",
+                buildString {
+                    appendLine("ПРАВИЛА ФОРМУЛИРОВОК:")
+                    profile.statementRules.forEach { appendLine("— $it") }
+                }.trimEnd(),
+            )
+        }
+        if (profile.glossary.isNotEmpty()) {
+            blocks += PromptBlock(
+                "profile", "Глоссарий",
+                buildString {
+                    appendLine("ГЛОССАРИЙ (термины употреблять только в этом значении):")
+                    profile.glossary.forEach { (term, meaning, not) ->
+                        appendLine("— $term: $meaning" + (not?.let { "; не путать с $it" } ?: ""))
+                    }
+                }.trimEnd(),
+            )
+        }
+        if (profile.requireSource) {
+            blocks += PromptBlock(
+                "profile", "Основание значений",
+                buildString {
+                    appendLine("ОСНОВАНИЕ ЗНАЧЕНИЙ. Каждое числовое значение обязано нести")
+                    appendLine("происхождение одного из двух видов:")
+                    appendLine("  · расчётное — \"provenance\": {\"source\": \"computed\", \"module\": <модуль>},")
+                    appendLine("    где модуль один из: ballistics, spacecraft, consumers, protocol, flows, cost;")
+                    appendLine("  · из источника — \"provenance\": {\"source\": \"imported\", \"import\":")
+                    appendLine("    {\"dataset\": <наименование источника>, \"dataset_version\": <версия>,")
+                    appendLine("     \"retrieved_at\": <дата>, \"terms\": <условия использования>}}.")
+                    appendLine("  · значение, ЗАДАННОЕ входом операции (постановкой миссии, техническим")
+                    appendLine("    заданием, регламентом), — это тоже источник: imported с dataset =")
+                    appendLine("    наименование этого документа и terms = «внутренний документ проекта».")
+                    appendLine("Значение, которое ты не можешь обосновать ни расчётом, ни источником,")
+                    appendLine("НЕ выдумывай: не давай его вовсе либо помечай source=manual — такое")
+                    appendLine("значение снимается фильтром и возвращается инженеру на решение.")
+                }.trimEnd(),
+            )
+        }
+        blocks += PromptBlock(
+            "model", "Что уже есть в проекте",
+            buildString {
+                appendLine("ЧТО УЖЕ ЕСТЬ В ПРОЕКТЕ:")
+                if (context.existing.isEmpty()) appendLine("— проект пуст")
+                context.existing.forEach { (kindName, items) ->
+                    appendLine("$kindName (${items.size}):")
+                    items.take(MAX_LISTED).forEach { appendLine("  · $it") }
+                    if (items.size > MAX_LISTED) appendLine("  · … ещё ${items.size - MAX_LISTED}")
+                }
+            }.trimEnd(),
+        )
+        blocks += PromptBlock(
+            "input", "Вход операции",
+            buildString {
+                appendLine("ВХОД ОПЕРАЦИИ:")
+                appendLine(context.statement)
+            }.trimEnd(),
+        )
+        blocks += PromptBlock(
+            "model", "Задание и форма ответа",
+            buildString {
+                appendLine("ЗАДАНИЕ: из входа «${k.input}» получи «${k.output}».")
+                if (profile.reviewOnly) {
+                    appendLine("Профиль рецензионный: новых объектов не создавай — верни замечания")
+                    appendLine("к существующим формулировкам с предлагаемой правкой поля.")
+                }
+                appendLine("Ответ — массив объектов строго по схеме ниже. Схема исполняется")
+                appendLine("буквально: поля вне схемы запрещены (additionalProperties: false),")
+                appendLine("обязательные поля обязательны. В частности, статусная модель —")
+                appendLine("\"lifecycle\": {\"status\": \"Draft\", \"version\": \"1\"}, а происхождение")
+                appendLine("предложения — \"provenance\": {\"source\": \"ai_proposed\"}.")
+                appendLine()
+                appendLine("ФОРМА ВЕЛИЧИНЫ. Величина — это ровно три поля:")
+                appendLine("  {\"value\": 0.9, \"unit\": \"1\", \"provenance\": {…}}")
+                appendLine("Ни оператора сравнения, ни порога, ни названия внутрь величины класть")
+                appendLine("нельзя: сравнение выражается отдельным полем схемы (operator рядом")
+                appendLine("с value в mop), а целевое значение MOE — само по себе порог.")
+                appendLine("Ничего, кроме массива JSON, в ответе быть не должно: ни пояснений,")
+                appendLine("ни обрамления ```json — только сам массив.")
+                responseSchema?.let {
+                    appendLine()
+                    appendLine("СХЕМА ОТВЕТА (JSON Schema; идентификаторы обязаны соответствовать pattern):")
+                    appendLine(it.toPrettyString())
+                }
+            }.trimEnd(),
+        )
+        return blocks
+    }
+
     fun compose(
         kind: String,
         profile: AiProfile,
@@ -84,90 +205,9 @@ class PromptComposer(private val kinds: PackageKinds = PackageKinds.default()) {
          * нет: это не «промпт в коде», а тот же артефакт пакета.
          */
         responseSchema: JsonNode? = null,
-    ): String {
-        val k = kinds.of(kind)
-        require(profile.allows(kind)) {
-            "профиль ${profile.id} не разрешает вид пакета '$kind' (разрешены: ${profile.kinds})"
-        }
-        return buildString {
-            appendLine("Ты — инженерная служба проекта «${context.projectName}», фаза ${context.phase}.")
-            profile.purpose?.let { appendLine("Назначение профиля ${profile.id}: $it.") }
-            appendLine()
-
-            appendLine("ОГРАНИЧЕНИЯ ПРОЕКТА (нарушать нельзя):")
-            if (profile.prohibitions.isEmpty()) appendLine("— не заданы")
-            profile.prohibitions.forEach { appendLine("— $it") }
-            appendLine()
-
-            if (profile.statementRules.isNotEmpty()) {
-                appendLine("ПРАВИЛА ФОРМУЛИРОВОК:")
-                profile.statementRules.forEach { appendLine("— $it") }
-                appendLine()
-            }
-
-            if (profile.glossary.isNotEmpty()) {
-                appendLine("ГЛОССАРИЙ (термины употреблять только в этом значении):")
-                profile.glossary.forEach { (term, meaning, not) ->
-                    appendLine("— $term: $meaning" + (not?.let { "; не путать с $it" } ?: ""))
-                }
-                appendLine()
-            }
-
-            if (profile.requireSource) {
-                appendLine("ОСНОВАНИЕ ЗНАЧЕНИЙ. Каждое числовое значение обязано нести")
-                appendLine("происхождение одного из двух видов:")
-                appendLine("  · расчётное — \"provenance\": {\"source\": \"computed\", \"module\": <модуль>},")
-                appendLine("    где модуль один из: ballistics, spacecraft, consumers, protocol, flows, cost;")
-                appendLine("  · из источника — \"provenance\": {\"source\": \"imported\", \"import\":")
-                appendLine("    {\"dataset\": <наименование источника>, \"dataset_version\": <версия>,")
-                appendLine("     \"retrieved_at\": <дата>, \"terms\": <условия использования>}}.")
-                appendLine("  · значение, ЗАДАННОЕ входом операции (постановкой миссии, техническим")
-                appendLine("    заданием, регламентом), — это тоже источник: imported с dataset =")
-                appendLine("    наименование этого документа и terms = «внутренний документ проекта».")
-                appendLine("Значение, которое ты не можешь обосновать ни расчётом, ни источником,")
-                appendLine("НЕ выдумывай: не давай его вовсе либо помечай source=manual — такое")
-                appendLine("значение снимается фильтром и возвращается инженеру на решение.")
-                appendLine()
-            }
-
-            appendLine("ЧТО УЖЕ ЕСТЬ В ПРОЕКТЕ:")
-            if (context.existing.isEmpty()) appendLine("— проект пуст")
-            context.existing.forEach { (kindName, items) ->
-                appendLine("$kindName (${items.size}):")
-                items.take(MAX_LISTED).forEach { appendLine("  · $it") }
-                if (items.size > MAX_LISTED) appendLine("  · … ещё ${items.size - MAX_LISTED}")
-            }
-            appendLine()
-
-            appendLine("ВХОД ОПЕРАЦИИ:")
-            appendLine(context.statement)
-            appendLine()
-
-            appendLine("ЗАДАНИЕ: из входа «${k.input}» получи «${k.output}».")
-            if (profile.reviewOnly) {
-                appendLine("Профиль рецензионный: новых объектов не создавай — верни замечания")
-                appendLine("к существующим формулировкам с предлагаемой правкой поля.")
-            }
-            appendLine("Ответ — массив объектов строго по схеме ниже. Схема исполняется")
-            appendLine("буквально: поля вне схемы запрещены (additionalProperties: false),")
-            appendLine("обязательные поля обязательны. В частности, статусная модель —")
-            appendLine("\"lifecycle\": {\"status\": \"Draft\", \"version\": \"1\"}, а происхождение")
-            appendLine("предложения — \"provenance\": {\"source\": \"ai_proposed\"}.")
-            appendLine()
-            appendLine("ФОРМА ВЕЛИЧИНЫ. Величина — это ровно три поля:")
-            appendLine("  {\"value\": 0.9, \"unit\": \"1\", \"provenance\": {…}}")
-            appendLine("Ни оператора сравнения, ни порога, ни названия внутрь величины класть")
-            appendLine("нельзя: сравнение выражается отдельным полем схемы (operator рядом")
-            appendLine("с value в mop), а целевое значение MOE — само по себе порог.")
-            appendLine("Ничего, кроме массива JSON, в ответе быть не должно: ни пояснений,")
-            appendLine("ни обрамления ```json — только сам массив.")
-            responseSchema?.let {
-                appendLine()
-                appendLine("СХЕМА ОТВЕТА (JSON Schema; идентификаторы обязаны соответствовать pattern):")
-                appendLine(it.toPrettyString())
-            }
-        }
-    }
+    ): String =
+        composeBlocks(kind, profile, context, responseSchema)
+            .joinToString("\n\n", postfix = "\n") { it.text }
 
     private companion object {
         /** Сколько существующих объектов вида перечислять: длинный список дорожает. */
