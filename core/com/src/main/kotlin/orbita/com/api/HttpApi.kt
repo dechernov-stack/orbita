@@ -443,6 +443,12 @@ class HttpApi(private val boundary: Boundary) {
             method == "GET" && path == "/views/portfolio" -> {
                 val projects = boundary.objects.listCurrent()
                     .filter { it.type == "project" && it.status != Lifecycle.Cancelled }
+                // активность — последняя правка НЕслужебной учётки (§1.1:
+                // один список служебности с якорем помет); проект без единой
+                // содержательной правки — тихая служебная строка (§1.2)
+                val human = boundary.objects.lastActivityByProject(
+                    orbita.req.ServiceAuthors.all, orbita.req.ServiceAuthors.MIGRATION_PREFIX,
+                )
                 val activity = boundary.objects.lastActivityByProject()
                 val arr = mapper.createArrayNode()
                 projects.forEach { p ->
@@ -477,17 +483,24 @@ class HttpApi(private val boundary: Boundary) {
                     } else {
                         row.putNull("start_path")
                     }
-                    activity[p.id]?.let { last ->
+                    val engineering = human[p.id]
+                    if (engineering != null) {
                         row.putObject("last_activity")
-                            .put("at", last.validFrom.toString())
-                            .put("author", last.createdBy)
+                            .put("at", engineering.validFrom.toString())
+                            .put("author", humanAuthor(engineering.createdBy))
                             .put(
                                 "what",
-                                last.changeRef?.ifBlank { null }
-                                    ?: (if (last.version == "1" && last.supersedes == null) "создан ${last.id}"
-                                        else "правка ${last.id}"),
+                                engineering.changeRef?.ifBlank { null }
+                                    ?: (if (engineering.version == "1" && engineering.supersedes == null)
+                                        "создан ${engineering.id}" else "правка ${engineering.id}"),
                             )
-                    } ?: row.putNull("last_activity")
+                    } else {
+                        activity[p.id]?.let { last ->
+                            row.putObject("last_activity")
+                                .put("at", last.validFrom.toString())
+                                .put("service", true)
+                        } ?: row.putNull("last_activity")
+                    }
                 }
                 // «что нового» читается сверху: сортировка — последняя активность
                 val sorted = arr.sortedByDescending {
@@ -2395,7 +2408,7 @@ class HttpApi(private val boundary: Boundary) {
                 boundary.editing.history(editMatch.groupValues[1]).forEach { v ->
                     arr.addObject()
                         .put("version", v.version).put("status", v.status.name)
-                        .put("author", v.createdBy).put("valid_from", v.validFrom.toString())
+                        .put("author", humanAuthor(v.createdBy)).put("valid_from", v.validFrom.toString())
                         .put("valid_to", v.validTo?.toString())
                         .put("current", v.validTo == null)
                 }
@@ -2496,6 +2509,16 @@ class HttpApi(private val boundary: Boundary) {
     private fun gateMatch(path: String, action: String): String? =
         Regex("^/gates/([^/]+)/$action$").find(path)?.groupValues?.get(1)
             ?.let { java.net.URLDecoder.decode(it, Charsets.UTF_8) }
+
+    /** Показ автора (круг 2 портфеля §1.3): карта авторов → учётка → имя;
+     * «system» на экраны не выходит — безымянный служебный след. */
+    private fun humanAuthor(name: String): String {
+        val login = boundary.auth.authorMap()[name]
+            ?: name.takeIf { boundary.auth.displayNameOf(it) != null }
+        val display = login?.let { boundary.auth.displayNameOf(it) }
+        return display
+            ?: if (orbita.req.ServiceAuthors.isService(name)) "служебная запись" else name
+    }
 
     private fun author(request: JsonNode): String =
         currentAuthor.get()

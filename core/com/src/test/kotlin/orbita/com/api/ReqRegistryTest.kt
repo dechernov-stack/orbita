@@ -323,6 +323,43 @@ class ReqRegistryTest {
         assertTrue(row.path("gate").path("open_count").isInt)
         assertTrue(row.path("last_activity").path("what").asText().isNotBlank()) { row.toString() }
         assertTrue(row.path("owner").asText().isNotBlank())
+
+        // круг 2 портфеля §1.1: служебная правка ПОЗЖЕ человеческой не
+        // перекрывает «что нового» — активность остаётся инженерной
+        val pj = boundary.objects.current(project)!!
+        boundary.objects.change(
+            project, pj.doc, changeRef = "выкатка стенда: служебная волна", createdBy = "ci-runner",
+        )
+        val after = mapper.readTree(send("GET", "/views/portfolio", asUser = "vera").body())
+            .path("projects").first { it.path("id").asText() == project }
+        val act = after.path("last_activity")
+        assertFalse(act.path("service").asBoolean(false)) { act.toString() }
+        assertTrue("ci-runner" !in act.path("author").asText() && "system" !in act.path("author").asText())
+
+        // §1.2: проект только со служебными правками — тихая строка
+        val bareDoc = mapper.readTree(
+            """{"name":"Служебный проект","phase":"pre_phase_a",
+                "milestones":[{"gate":"internal_review"},{"gate":"MCR"}]}""",
+        )
+        val bare = boundary.editing.create(
+            orbita.mod.model.CoreType.Project, bareDoc, author = "ci-runner",
+        ).id
+        val svc = mapper.readTree(send("GET", "/views/portfolio", asUser = "vera").body())
+            .path("projects").first { it.path("id").asText() == bare }
+        assertTrue(svc.path("last_activity").path("service").asBoolean(false)) { svc.toString() }
+        assertTrue(svc.path("last_activity").path("author").isMissingNode)
+
+        // §1.3: «system» из истории не выходит на экраны
+        val sysTouched = boundary.objects.listCurrent(project)
+            .first { it.type == "requirement" }.id
+        boundary.objects.change(
+            sysTouched, boundary.objects.current(sysTouched)!!.doc,
+            changeRef = "техническая волна", createdBy = "system",
+        )
+        val hist = mapper.readTree(send("GET", "/edit/$sysTouched/history", asUser = "vera").body())
+        val authors = hist.map { it.path("author").asText() }
+        assertTrue(authors.none { it == "system" }) { authors.toString() }
+        assertTrue("служебная запись" in authors) { authors.toString() }
     }
 
     private fun login(user: String, password: String) {

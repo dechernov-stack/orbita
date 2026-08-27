@@ -366,7 +366,7 @@ class ScreenViews(
      * Сравниваются содержательные поля против ЯКОРЯ; якорь передвигают
      * служебные правки (канонизация, перелинковка, миграции) — инженерская
      * правка горит, техническая волна — нет. */
-    private val serviceAuthors = setOf("system", "ci-runner")
+    private val serviceAuthors = orbita.req.ServiceAuthors.all
     private val contentFields = listOf("statement", "mop", "allocated_to", "level", "category")
 
     /** Пусто/TBD: закрытие пустого значения — штатная работа, не ревизия. */

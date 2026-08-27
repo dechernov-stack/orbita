@@ -116,6 +116,13 @@ class AuthStore(private val conn: Connection) {
             }
         }
 
+    /** Человеческое имя учётки — для показа авторов (круг 2 портфеля §1.3). */
+    fun displayNameOf(login: String): String? =
+        conn.prepareStatement("SELECT display_name FROM users WHERE login = ?").use { ps ->
+            ps.setString(1, login)
+            ps.executeQuery().use { rs -> if (rs.next()) rs.getString(1) else null }
+        }
+
     fun mapAuthor(author: String, login: String) {
         conn.prepareStatement(
             """INSERT INTO author_map(author_string, login) VALUES (?,?)

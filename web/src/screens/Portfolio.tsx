@@ -126,11 +126,19 @@ export function Portfolio({ onOpen, onNew, onLoadFile, onStart }: {
               <span className="pf-start done">начало пройдено</span>
             ) : null}
             {r.last_activity && (
-              <span className="pf-act">
-                <b>{relTime(r.last_activity.at)}</b> · {r.last_activity.author}
-                <br />
-                {r.last_activity.what}
-              </span>
+              r.last_activity.service
+                ? (
+                  // без единой содержательной правки — тихая строка, без
+                  // имени учётки (круг 2 портфеля §1.2)
+                  <span className="pf-act">служебное обновление · {relTime(r.last_activity.at)}</span>
+                )
+                : (
+                  <span className="pf-act">
+                    <b>{relTime(r.last_activity.at)}</b> · {r.last_activity.author}
+                    <br />
+                    {r.last_activity.what}
+                  </span>
+                )
             )}
           </button>
         ))}

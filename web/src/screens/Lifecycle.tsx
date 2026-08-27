@@ -263,6 +263,13 @@ export function Lifecycle({ project, onGo }: { project: string; onGo: (screen: s
                     : g.in_scope === false ? `${g.phase ?? 'Phase B+'} · план`
                     : 'впереди'}
                 </div>
+                {g.in_scope === false && gates.findIndex((x) => !x.held) === i && (
+                  // круг 2 портфеля §2: отсутствующий счётчик честнее нуля —
+                  // тихая подпись горизонта, не задача сейчас
+                  <div className="secondary" style={{ fontSize: 10.5 }}>
+                    проверки появятся с регламентом {g.phase ?? 'Phase B'}
+                  </div>
+                )}
                 {g.due ? (
                   <div className="mono" style={{ fontSize: 11, color: overdue ? 'var(--status-error, #b3261e)' : undefined }}>
                     {g.due}{g.computed ? ' ⟲' : ''}{overdue ? ' · просрочена' : ''}

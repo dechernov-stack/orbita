@@ -721,7 +721,7 @@ class ReqService(
     fun promote(
         id: String,
         target: Lifecycle,
-        createdBy: String = "system",
+        createdBy: String = "ci-runner",
         at: java.time.OffsetDateTime = java.time.OffsetDateTime.now(java.time.ZoneOffset.UTC),
     ): StoredObject {
         val cur = objects.current(id) ?: throw NoSuchElementException("object '$id' not found")

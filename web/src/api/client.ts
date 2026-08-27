@@ -352,7 +352,7 @@ export const api = {
       gate: { name: string; label: string; open_count?: number } | null
       return: { reason: string } | null
       start_path: { status: string; step: number } | null
-      last_activity: { at: string; author: string; what: string } | null
+      last_activity: { at: string; author?: string; what?: string; service?: boolean } | null
     }> }>('/views/portfolio'),
   requirementTree: () => get<RequirementTreeView>('/views/requirement-tree'),
   /** Т-1: сохранённые виды реестра — сервер фильтрует личные по учётке. */

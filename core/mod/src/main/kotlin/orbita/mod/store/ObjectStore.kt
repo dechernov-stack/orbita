@@ -36,7 +36,7 @@ class ObjectStore(private val conn: Connection, private val mapper: ObjectMapper
         doc: JsonNode,
         status: Lifecycle = Lifecycle.Draft,
         version: String = "1",
-        createdBy: String = "system",
+        createdBy: String = "ci-runner",
         validFrom: OffsetDateTime = OffsetDateTime.now(ZoneOffset.UTC),
         projectId: String = DEFAULT_PROJECT,
     ): StoredObject = mappingConstraints {
@@ -85,13 +85,24 @@ class ObjectStore(private val conn: Connection, private val mapper: ObjectMapper
             ps.executeQuery().use { rs -> rs.collect() }
         }
 
-    /** Последняя запись каждого проекта — «что нового» портфеля одним запросом. */
-    fun lastActivityByProject(): Map<String, StoredObject> =
-        conn.createStatement().use { st ->
-            st.executeQuery(
-                "SELECT DISTINCT ON (project_id) $COLUMNS FROM objects " +
-                    "WHERE project_id IS NOT NULL ORDER BY project_id, valid_from DESC, pk DESC"
-            ).use { rs -> rs.collect() }
+    /** Последняя запись каждого проекта — «что нового» портфеля одним
+     * запросом; [excludeAuthors] отсекает служебные учётки (круг 2 §1.1). */
+    fun lastActivityByProject(
+        excludeAuthors: Set<String> = emptySet(),
+        excludeAuthorPrefix: String? = null,
+    ): Map<String, StoredObject> =
+        conn.prepareStatement(
+            "SELECT DISTINCT ON (project_id) $COLUMNS FROM objects " +
+                "WHERE project_id IS NOT NULL" +
+                (if (excludeAuthors.isEmpty()) "" else
+                    " AND created_by NOT IN (${excludeAuthors.joinToString(",") { "?" }})") +
+                (if (excludeAuthorPrefix == null) "" else " AND created_by NOT LIKE ?") +
+                " ORDER BY project_id, valid_from DESC, pk DESC"
+        ).use { ps ->
+            var i = 0
+            excludeAuthors.forEach { a -> ps.setString(++i, a) }
+            excludeAuthorPrefix?.let { ps.setString(++i, "$it%") }
+            ps.executeQuery().use { rs -> rs.collect() }
         }.associateBy { it.projectId }
 
     /** Текущие версии всех объектов; с [projectId] — только объекты проекта. */
@@ -134,7 +145,7 @@ class ObjectStore(private val conn: Connection, private val mapper: ObjectMapper
         id: String,
         newDoc: JsonNode,
         changeRef: String? = null,
-        createdBy: String = "system",
+        createdBy: String = "ci-runner",
         at: OffsetDateTime = OffsetDateTime.now(ZoneOffset.UTC),
         baseVersion: String? = null,
     ): StoredObject {
@@ -204,7 +215,7 @@ class ObjectStore(private val conn: Connection, private val mapper: ObjectMapper
     fun transition(
         id: String,
         target: Lifecycle,
-        createdBy: String = "system",
+        createdBy: String = "ci-runner",
         at: OffsetDateTime = OffsetDateTime.now(ZoneOffset.UTC),
     ): StoredObject {
         val cur = current(id) ?: throw NoSuchElementException("object '$id' has no current version")
@@ -265,7 +276,7 @@ class ObjectStore(private val conn: Connection, private val mapper: ObjectMapper
      */
     fun cancel(
         id: String,
-        createdBy: String = "system",
+        createdBy: String = "ci-runner",
         at: OffsetDateTime = OffsetDateTime.now(ZoneOffset.UTC),
         baseVersion: String? = null,
     ): StoredObject {
