@@ -417,6 +417,9 @@ class HttpApi(private val boundary: Boundary) {
                 n.set<ArrayNode>("roots", mapper.valueToTree(view.roots))
                 n.set<ObjectNode>("children", mapper.valueToTree(view.children))
                 n.set<ArrayNode>("rows", mapper.valueToTree(view.rows))
+                n.set<ArrayNode>("needsUncovered", mapper.valueToTree(view.needsUncovered))
+                n.set<ObjectNode>("systemRoot", mapper.valueToTree(view.systemRoot))
+                n.put("compositionRoots", view.compositionRoots)
                 respond(ex, 200, n)
             }
 

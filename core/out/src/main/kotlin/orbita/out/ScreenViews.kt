@@ -71,12 +71,27 @@ data class RequirementRow(
     val recalcAfterBaseline: Boolean,
     /** Документ правился после первого утверждения (Approved/Baseline). */
     val changedAfterApproval: Boolean,
+    /** Разрывы СТРАТИФИЦИРОВАНЫ по уровням (РЕШЕНИЕ-НОСИТЕЛЬ-УРОВНИ):
+     * настоящий сирота — системное требование без элемента/интерфейса. */
+    val noCarrierGap: Boolean,
+    /** Проектное требование без трассировки на нужду/источник — разрыв «без нужды». */
+    val noNeedGap: Boolean,
 )
+
+data class SystemRootRef(val id: String, val name: String?)
 
 data class RequirementTreeView(
     val roots: List<String>,
     val children: Map<String, List<String>>,
     val rows: List<RequirementRow>,
+    /** Нужды проекта без единого требования (прямо или через сервис) —
+     * валидационная дыра «нужда не покрыта»; клик ведёт в «Постановку». */
+    val needsUncovered: List<String>,
+    /** Корень системы — определение ЕДИНСТВЕННОГО корневого вхождения;
+     * носитель требований уровня проекта. Null — корня нет или их несколько. */
+    val systemRoot: SystemRootRef?,
+    /** Сколько корней у дерева состава: 0 — состава нет, >1 — корень не определён. */
+    val compositionRoots: Int,
 )
 
 /** Событие верификации карточки требования (экран 3б). */
@@ -144,7 +159,39 @@ class ScreenViews(
         val rows = requirements
             .map { r -> row(r, tree, parents[r.id], marksById[r.id], carrierNames) }
             .sortedBy { it.id }
-        return RequirementTreeView(tree.roots, tree.children, rows)
+        val usageRoots = compositionRoots(projectId)
+        return RequirementTreeView(
+            tree.roots, tree.children, rows,
+            needsUncovered = uncoveredNeeds(projectId),
+            systemRoot = usageRoots.singleOrNull()?.let { rootRef(it) },
+            compositionRoots = usageRoots.size,
+        )
+    }
+
+    /** Нужда покрыта, когда на её нити стоит требование: НД→требование или
+     * НД→сервис→требование (trace хранится от источника к потребителю). */
+    private fun uncoveredNeeds(projectId: String?): List<String> =
+        req.objects.listCurrent(projectId)
+            .filter { it.type == "need" && it.status != Lifecycle.Cancelled }
+            .map { it.id }
+            .filter { nd ->
+                req.links.linksFrom(nd, "trace").none { first ->
+                    first.toId.startsWith("RQ-") ||
+                        req.links.linksFrom(first.toId, "trace").any { it.toId.startsWith("RQ-") }
+                }
+            }
+            .sorted()
+
+    /** Корневые вхождения дерева состава (без родителя). */
+    private fun compositionRoots(projectId: String?) =
+        req.objects.listCurrent(projectId)
+            .filter { it.type == "component_usage" && it.status != Lifecycle.Cancelled }
+            .filter { it.doc.path("parent_usage").asText("").isBlank() }
+
+    private fun rootRef(root: orbita.mod.store.StoredObject): SystemRootRef? {
+        val defId = root.doc.path("definition_ref").asText("")
+        if (defId.isBlank()) return null
+        return SystemRootRef(defId, req.objects.current(defId)?.doc?.path("name")?.asText("")?.ifBlank { null })
     }
 
     fun card(requirementId: String): RequirementCard {
@@ -306,6 +353,9 @@ class ScreenViews(
             carrierName = carrierName,
             recalcAfterBaseline = marks?.recalcAfterBaseline == true,
             changedAfterApproval = marks?.changedAfterApproval == true,
+            noCarrierGap = doc.path("level").asText("") != "project" && allocated.isEmpty(),
+            noNeedGap = doc.path("level").asText("") == "project" &&
+                doc.path("traces_up").none { it.path("ref").asText().isNotBlank() },
         )
     }
 

@@ -15,7 +15,7 @@ import { ObjectEditor } from '../ui/ObjectEditor'
 import { useSession } from '../ui/session'
 import {
   buildItems, COLUMN_LABELS, defaultColumns, flatRows, gapCounters, GAP_LABELS,
-  UNASSIGNED, visibleColumns,
+  PROJECT_GROUP, visibleColumns,
   type ColumnState, type GapKey, type GroupKey, type RegistryItem, type SortState,
 } from './requirementsView'
 
@@ -177,6 +177,8 @@ export function Requirements({ onGo }: { onGo?: (screen: string) => void }) {
         seq={seq}
         rows={tree.rows}
         childrenMap={tree.children}
+        systemRoot={tree.systemRoot}
+        compositionRoots={tree.compositionRoots}
         onBack={() => setMode({ kind: 'registry' })}
         onOpen={(id) => setMode({ kind: 'card', id })}
         onEdit={() => setMode({ kind: 'edit', id: mode.id })}
@@ -188,6 +190,17 @@ export function Requirements({ onGo }: { onGo?: (screen: string) => void }) {
   }
 
   const visible = visibleColumns(columns)
+
+  const gapChip = (g: GapKey) => (
+    <button
+      key={g}
+      type="button"
+      className={`rr-g${gap === g ? ' on' : ''}${g === 'no_carrier' || g === 'no_need' ? ' bad' : ''}${g === 'recalc' || g === 'changed' ? ' warnc' : ''}`}
+      onClick={() => setGap((cur) => (cur === g ? null : g))}
+    >
+      {GAP_LABELS[g]}<b> · {counters[g]}</b>
+    </button>
+  )
 
   return (
     <div className="pane rr-pane">
@@ -291,21 +304,22 @@ export function Requirements({ onGo }: { onGo?: (screen: string) => void }) {
         </span>
       </div>
 
-      {/* строка 3: счётчики-фильтры разрывов */}
+      {/* строка 3: счётчики-фильтры разрывов — стратифицированы по уровням;
+          «Нужда не покрыта» — не фильтр строк, а переход к перечню нужд */}
       <div className="rr-gaps">
         <button type="button" className={`rr-g${gap === null ? ' on' : ''}`} onClick={() => setGap(null)}>
           Все<b> · {tree.rows.length}</b>
         </button>
-        {(Object.keys(GAP_LABELS) as GapKey[]).map((g) => (
-          <button
-            key={g}
-            type="button"
-            className={`rr-g${gap === g ? ' on' : ''}${g === 'no_carrier' ? ' bad' : ''}${g === 'recalc' || g === 'changed' ? ' warnc' : ''}`}
-            onClick={() => setGap((cur) => (cur === g ? null : g))}
-          >
-            {GAP_LABELS[g]}<b> · {counters[g]}</b>
-          </button>
-        ))}
+        {(['no_carrier'] as GapKey[]).map((g) => gapChip(g))}
+        <button
+          type="button"
+          className="rr-g bad"
+          title="нужды без единого требования — открыть перечень нужд"
+          onClick={() => onGo?.('needs')}
+        >
+          Нужда не покрыта<b> · {tree.needsUncovered.length}</b>
+        </button>
+        {(['no_need', 'no_verification', 'recalc', 'changed'] as GapKey[]).map((g) => gapChip(g))}
       </div>
 
       {notice && <div className="warn" style={{ padding: '4px 14px' }}>{notice}</div>}
@@ -378,10 +392,10 @@ export function Requirements({ onGo }: { onGo?: (screen: string) => void }) {
                   <tr key={`g:${item.key}`} className="rr-grp" onClick={() => toggleGroup(item.key)}>
                     <td colSpan={visible.length + 1}>
                       <span className="rr-chev">{item.collapsed ? '▸' : '▾'}</span>
-                      {item.key !== item.label && item.key !== UNASSIGNED
+                      {item.key !== item.label && !item.key.startsWith('__')
                         ? <><span className="mono" style={{ textTransform: 'none' }}>{item.key}</span> {item.label.slice(item.key.length + 1)}</>
                         : item.label}
-                      <span className="rr-cnt"> · {item.count}</span>
+                      <span className="rr-cnt"> · {item.count}{item.key === PROJECT_GROUP && !tree.systemRoot ? ' · носитель придёт с корнем' : ''}</span>
                     </td>
                   </tr>
                 ) : (
@@ -394,6 +408,7 @@ export function Requirements({ onGo }: { onGo?: (screen: string) => void }) {
                     active={activeId === item.row.id}
                     expanded={expandedId === item.row.id}
                     childrenMap={tree.children}
+                    systemRoot={tree.systemRoot}
                     onToggleSelect={(id) =>
                       setSelection((prev) => {
                         const next = new Set(prev)
@@ -416,7 +431,7 @@ export function Requirements({ onGo }: { onGo?: (screen: string) => void }) {
 
 /** Строка реестра + её раскрытие (суть без ухода с экрана). */
 function RegistryRow({
-  item, visible, label, selected, active, expanded, childrenMap,
+  item, visible, label, selected, active, expanded, childrenMap, systemRoot,
   onToggleSelect, onActivate, onOpenCard,
 }: {
   item: Extract<RegistryItem, { type: 'row' }>
@@ -426,6 +441,7 @@ function RegistryRow({
   active: boolean
   expanded: boolean
   childrenMap: Record<string, string[]>
+  systemRoot: { id: string; name: string | null } | null
   onToggleSelect: (id: string) => void
   onActivate: (id: string) => void
   onOpenCard: (id: string) => void
@@ -456,17 +472,21 @@ function RegistryRow({
       case 'carrier':
         return (
           <td key={key}>
-            {r.allocatedTo.length === 0
-              ? (
-                <button
-                  type="button" className="rr-assign"
-                  title="требование без носителя — распределить"
-                  onClick={(e) => { e.stopPropagation(); onOpenCard(r.id) }}
-                >
-                  распределить
-                </button>
-              )
-              : <span className="mono secondary" title={r.carrierName ?? undefined}>{r.allocatedTo[0]}</span>}
+            {r.allocatedTo.length > 0
+              ? <span className="mono secondary" title={r.carrierName ?? undefined}>{r.allocatedTo[0]}</span>
+              : r.level === 'project'
+                ? (systemRoot
+                  ? <span className="mono secondary" title="распределено на корень системы автоматически">{systemRoot.id}</span>
+                  : <span className="secondary" title="Распределится на корень системы автоматически">—</span>)
+                : (
+                  <button
+                    type="button" className="rr-assign"
+                    title="системное требование без носителя — распределить"
+                    onClick={(e) => { e.stopPropagation(); onOpenCard(r.id) }}
+                  >
+                    распределить
+                  </button>
+                )}
           </td>
         )
       case 'verification':
@@ -536,9 +556,11 @@ function RegistryRow({
               <div>
                 <div className="rr-xk">Носитель</div>
                 <div className="rr-xv">
-                  {r.allocatedTo.length === 0
-                    ? <span className="secondary">не распределено</span>
-                    : <><span className="mono">{r.allocatedTo[0]}</span> {r.carrierName}</>}
+                  {r.allocatedTo.length > 0
+                    ? <><span className="mono">{r.allocatedTo[0]}</span> {r.carrierName}</>
+                    : r.level === 'project'
+                      ? <span className="secondary">носитель придёт с корнем</span>
+                      : <span className="secondary">не распределено</span>}
                 </div>
                 <div className="rr-xk" style={{ marginTop: 8 }}>Верификация</div>
                 <div className="rr-xv">
@@ -685,12 +707,14 @@ function ViewConfig({
 
 /** Карточка требования — вся рабочая область, листание по текущей выборке. */
 function CardView({
-  id, seq, rows, childrenMap, onBack, onOpen, onEdit, onCreate, onGo, onChanged,
+  id, seq, rows, childrenMap, systemRoot, compositionRoots, onBack, onOpen, onEdit, onCreate, onGo, onChanged,
 }: {
   id: string
   seq: RequirementRow[]
   rows: RequirementRow[]
   childrenMap: Record<string, string[]>
+  systemRoot: { id: string; name: string | null } | null
+  compositionRoots: number
   onBack: () => void
   onOpen: (id: string) => void
   onEdit: () => void
@@ -737,6 +761,15 @@ function CardView({
         <button type="button" className="rr-btn" onClick={onEdit}>Изменить</button>
       </div>
       <div className="workarea" style={{ overflow: 'auto' }}>
+        {r.noCarrierGap && (
+          <CarrierBand
+            id={id}
+            version={r.version}
+            author={author || 'инженер'}
+            onDone={() => { onChanged(); api.requirementCard(id).then(setCard).catch(() => undefined) }}
+            onFail={(e) => setFailure(e)}
+          />
+        )}
         <div className="rr-ctitle">
           <h2>{r.statement}</h2>
           <div className="rr-cstate">
@@ -759,7 +792,12 @@ function CardView({
               : <div className="secondary">текстовое требование — показателя нет</div>}
           </div>
           <div className="card">
-            <div className="rr-xk">Трассировка <button type="button" className="rr-assign" onClick={() => onGo?.('matrix')}>в матрицу →</button></div>
+            <div className="rr-xk">{r.level === 'project' ? 'Источник — нужда' : 'Трассировка'} <button type="button" className="rr-assign" onClick={() => onGo?.('matrix')}>в матрицу →</button></div>
+            {r.level === 'project' && (
+              <div className="secondary" style={{ fontSize: 11, marginBottom: 4 }}>
+                Якорь требования уровня проекта — трассировка на нужду; без неё — разрыв.
+              </div>
+            )}
             {(r.parentId ? [r.parentId] : []).concat(card.sources).map((s) => (
               <div key={s} className="rr-tnode">
                 <button type="button" className="rr-assign mono" onClick={() => jump(s)}>{s}</button>
@@ -785,8 +823,33 @@ function CardView({
             </div>
           </div>
           <div className="card">
-            <div className="rr-xk">Распределение</div>
-            {card.allocatedTo.length === 0
+            <div className="rr-xk">{r.level === 'project' ? 'Распределение · механика' : 'Распределение'}</div>
+            {r.level === 'project' && card.allocatedTo.length === 0 && (
+              <>
+                <div style={{ fontSize: 12.5, margin: '2px 0 6px' }}>
+                  {systemRoot
+                    ? <>Носитель — корень системы: <span className="mono">{systemRoot.id}</span> {systemRoot.name}. Распределение выполняется автоматически.</>
+                    : compositionRoots > 1
+                      ? <>Носитель — корень системы; в дереве состава несколько корней, корень не определён.</>
+                      : <>Носитель — корень системы; корня в дереве пока нет. При его появлении распределение выполнится <b>автоматически</b> и запишется в журнал.</>}
+                </div>
+                {!systemRoot && compositionRoots === 0 && (
+                  <button
+                    type="button" className="rr-btn"
+                    onClick={() => {
+                      edit.create('component', { name: 'Система', kind: 'system' }, author || 'инженер')
+                        .then((cm) => edit.create('component_usage', { definition_ref: cm.id, quantity: 1 }, author || 'инженер'))
+                        .then(onChanged)
+                        .catch((e) => setFailure(String(e)))
+                    }}
+                  >
+                    Создать корень системы сейчас
+                  </button>
+                )}
+
+              </>
+            )}
+            {r.level !== 'project' && card.allocatedTo.length === 0
               ? (
                 <div className="rr-tnode secondary">
                   не распределено — <button type="button" className="rr-assign" onClick={onEdit}>распределить</button>
@@ -860,6 +923,52 @@ function CardView({
           </div>
         </div>
       </div>
+    </div>
+  )
+}
+
+/** Состояние 5б: системное требование без носителя — настоящий разрыв.
+ * Распределение прямо из полосы: селектор элементов и интерфейсов проекта. */
+function CarrierBand({ id, version, author, onDone, onFail }: {
+  id: string
+  version: string
+  author: string
+  onDone: () => void
+  onFail: (reason: string) => void
+}) {
+  const [options, setOptions] = useState<Array<{ id: string; title: string; iface: boolean }>>([])
+  const [picked, setPicked] = useState('')
+  useEffect(() => {
+    Promise.all([edit.list('component'), edit.list('interface')])
+      .then(([cms, ifs]) => setOptions([
+        ...cms.map((c) => ({ id: c.id, title: c.title ?? '', iface: false })),
+        ...ifs.map((c) => ({ id: c.id, title: c.title ?? '', iface: true })),
+      ]))
+      .catch(() => setOptions([]))
+  }, [])
+  return (
+    <div className="rr-band">
+      <b>Требование системного уровня не распределено.</b>
+      <span>Системное требование обязано иметь носителя — элемент или интерфейс.</span>
+      <span style={{ flex: 1 }} />
+      <select className="rr-grpby" value={picked} onChange={(e) => setPicked(e.target.value)}>
+        <option value="">выбрать носителя…</option>
+        {options.map((o) => <option key={o.id} value={o.id}>{o.id} · {o.title}</option>)}
+      </select>
+      <button
+        type="button" className="rr-btn rr-btn--pri" disabled={!picked}
+        onClick={() => {
+          const target = options.find((o) => o.id === picked)!
+          const entry = target.iface
+            ? { interface: target.id, kind: 'full' }
+            : { component: target.id, kind: 'full' }
+          edit.update(id, { allocated_to: [entry] }, version, author)
+            .then(onDone)
+            .catch((e) => onFail(String(e)))
+        }}
+      >
+        Распределить
+      </button>
     </div>
   )
 }

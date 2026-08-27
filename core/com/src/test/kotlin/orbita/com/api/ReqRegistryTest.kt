@@ -121,6 +121,48 @@ class ReqRegistryTest {
     }
 
     @Test
+    @Order(11)
+    fun `носитель стратифицирован - сирота только системный, проектному нужна нужда, нужда без требования не покрыта`() {
+        // системное без носителя — настоящий разрыв
+        val rows0 = mapper.readTree(send("GET", "/views/requirement-tree?project=$project", asUser = "vera").body()).path("rows")
+        val sysRow = rows0.firstOrNull { it.path("level").asText() == "system" && it.path("allocatedTo").isEmpty }
+            ?: error("нет системного без носителя: " + rows0.map { it.path("id").asText() + "/" + it.path("level").asText() + "/" + it.path("allocatedTo").size() })
+        assertTrue(sysRow.path("noCarrierGap").asBoolean()) { sysRow.toString() }
+
+        // проектное без носителя — НЕ разрыв носителя; без trace — разрыв «без нужды»
+        val nd = boundary.objects.listCurrent(project).first { it.type == "need" }.id
+        val withNeed = send(
+            "POST", "/edit/requirement?project=$project", asUser = "vera", body =
+            requirementJson("Проект должен покрывать регион обслуживания целиком.", nd,
+                extra = "" ).replaceFirst("\"level\":\"system\"", "\"level\":\"project\""),
+        ).let { assertEquals(201, it.statusCode()) { it.body() }; mapper.readTree(it.body())["id"].asText() }
+        val tree = mapper.readTree(send("GET", "/views/requirement-tree?project=$project", asUser = "vera").body())
+        val prj = tree.path("rows").firstOrNull { it.path("id").asText() == withNeed }
+            ?: error("создание проектного не отразилось: " + tree.path("rows").size())
+        assertFalse(prj.path("noCarrierGap").asBoolean()) { "проектное не сирота: $prj" }
+        assertFalse(prj.path("noNeedGap").asBoolean()) { "нужда указана: $prj" }
+
+        // нужда с требованием (через что угодно) покрыта; свежая нужда — нет
+        val uncovered = tree.path("needsUncovered").map { it.asText() }
+        assertFalse(nd in uncovered) { "покрытая нужда не в списке: $uncovered" }
+        val lonely = send(
+            "POST", "/edit/need?project=$project", asUser = "vera", body =
+            """{"author":"т","doc":{"statement":"Оператору нужна валидационная дыра для показа.",
+                "stakeholder":{"name":"Оператор","role":"operator"}}}""",
+        ).let { assertEquals(201, it.statusCode()) { it.body() }; mapper.readTree(it.body())["id"].asText() }
+        val after = mapper.readTree(send("GET", "/views/requirement-tree?project=$project", asUser = "vera").body())
+        assertTrue(lonely in after.path("needsUncovered").map { it.asText() }) { after.path("needsUncovered").toString() }
+
+        // корень системы: единственное корневое вхождение — его определение
+        assertTrue(after.path("systemRoot").isNull) { "вхождений нет — корня нет" }
+        val cm = boundary.objects.listCurrent(project).first { it.type == "component" }.id
+        send("POST", "/edit/component_usage?project=$project", asUser = "vera", body = """{"author":"т","doc":{"definition_ref":"$cm","quantity":1}}""")
+            .also { assertEquals(201, it.statusCode()) { it.body() } }
+        val rooted = mapper.readTree(send("GET", "/views/requirement-tree?project=$project", asUser = "vera").body())
+        assertEquals(cm, rooted.path("systemRoot").path("id").asText()) { rooted.path("systemRoot").toString() }
+    }
+
+    @Test
     @Order(2)
     fun `пометы считает сервер по истории - показатель после базирования и правка после утверждения`() {
         val id = boundary.objects.listCurrent(project)

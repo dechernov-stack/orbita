@@ -1324,3 +1324,7 @@ details.np-dates[open] summary::before { transform: rotate(90deg); }
   border: 1px solid var(--hairline); background: var(--bg); cursor: pointer; color: var(--text); }
 .rr-btn--pri { background: var(--accent); border-color: var(--accent); color: #fff; }
 .rr-btn:disabled { opacity: .5; cursor: default; }
+/* Полоса разрыва в карточке (состояние 5б эталона) */
+.rr-band { display: flex; gap: 10px; align-items: center; margin: 10px 16px 0;
+  padding: 8px 12px; border: 1px solid var(--status-error); border-radius: 8px;
+  background: var(--error-surface); color: #93000a; font-size: 12.5px; }

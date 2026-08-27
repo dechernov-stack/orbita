@@ -69,6 +69,9 @@ export interface RequirementRow {
   /** Пометы с сервера — клиент их семантику не вычисляет. */
   recalcAfterBaseline: boolean
   changedAfterApproval: boolean
+  /** Разрывы стратифицированы по уровням: сирота — только системное. */
+  noCarrierGap: boolean
+  noNeedGap: boolean
 }
 
 /** Сохранённый вид реестра (Т-1): серверный объект, не localStorage. */
@@ -90,6 +93,11 @@ export interface RequirementTreeView {
   roots: string[]
   children: Record<string, string[]>
   rows: RequirementRow[]
+  /** Нужды без единого требования — «нужда не покрыта», счётчик реестра. */
+  needsUncovered: string[]
+  /** Корень системы — носитель проектных требований; null — не определён. */
+  systemRoot: { id: string; name: string | null } | null
+  compositionRoots: number
 }
 
 export interface EventView {

@@ -10,7 +10,8 @@ import {
   flatRows,
   gapCounters,
   hasGap,
-  UNASSIGNED,
+  PROJECT_GROUP,
+  NO_CARRIER_GROUP,
   visibleColumns,
   type ViewOptions,
 } from './requirementsView'
@@ -41,6 +42,9 @@ function row(partial: Partial<RequirementRow> & { id: string }): RequirementRow 
     carrierName: null,
     recalcAfterBaseline: false,
     changedAfterApproval: false,
+    // флаги сервера: системное без носителя — разрыв; проектное — нет
+    noCarrierGap: (partial.level ?? 'system') !== 'project' && (partial.allocatedTo ?? []).length === 0,
+    noNeedGap: (partial.level ?? 'system') === 'project' && (partial.sources ?? ['SV-0001']).length === 0,
     ...partial,
   }
 }
@@ -101,11 +105,20 @@ describe('дубль ID невозможен', () => {
 })
 
 describe('группировка по носителю', () => {
-  it('«Не распределено» — первая группа', () => {
-    const items = buildItems(fixture, opts())
-    const first = items[0]
-    expect(first.type).toBe('group')
-    if (first.type === 'group') expect(first.key).toBe(UNASSIGNED)
+  it('системные сироты — своя группа сразу после проектных; проектные — первой', () => {
+    const withProject = [...fixture, row({ id: 'RQ-0001', level: 'project' })]
+    const items = buildItems(withProject, opts())
+    const groups = items.filter((i) => i.type === 'group').map((i) => (i.type === 'group' ? i.key : ''))
+    expect(groups[0]).toBe(PROJECT_GROUP)
+    expect(groups[1]).toBe(NO_CARRIER_GROUP)
+  })
+
+  it('проектное без носителя — НЕ разрыв носителя; без нужды — разрыв «без нужды»', () => {
+    const prj = row({ id: 'RQ-0002', level: 'project' })
+    const lost = row({ id: 'RQ-0003', level: 'project', sources: [] })
+    expect(hasGap(prj, 'no_carrier')).toBe(false)
+    expect(hasGap(lost, 'no_need')).toBe(true)
+    expect(hasGap(fixture[0], 'no_carrier')).toBe(true)
   })
 
   it('схлопнутая группа прячет строки, счётчик остаётся', () => {

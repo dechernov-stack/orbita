@@ -50,10 +50,13 @@ export function visibleColumns(columns: ColumnState[]): ColumnState[] {
   return columns.filter((c) => c.on)
 }
 
-export type GapKey = 'no_carrier' | 'no_verification' | 'recalc' | 'changed'
+// Разрывы стратифицированы по уровням (РЕШЕНИЕ-НОСИТЕЛЬ-УРОВНИ): флаги
+// носителя и нужды приходят С СЕРВЕРА — клиент их семантику не вычисляет.
+export type GapKey = 'no_carrier' | 'no_need' | 'no_verification' | 'recalc' | 'changed'
 
 export const GAP_LABELS: Record<GapKey, string> = {
-  no_carrier: 'Без носителя',
+  no_carrier: 'Без носителя (системные)',
+  no_need: 'Без нужды (проектные)',
   no_verification: 'Без верификации',
   recalc: 'Пересчитан после базирования',
   changed: 'Изменено после утверждения',
@@ -62,7 +65,9 @@ export const GAP_LABELS: Record<GapKey, string> = {
 export function hasGap(row: RequirementRow, gap: GapKey): boolean {
   switch (gap) {
     case 'no_carrier':
-      return row.allocatedTo.length === 0
+      return row.noCarrierGap
+    case 'no_need':
+      return row.noNeedGap
     case 'no_verification':
       return row.method === null
     case 'recalc':
@@ -75,6 +80,7 @@ export function hasGap(row: RequirementRow, gap: GapKey): boolean {
 export function gapCounters(rows: RequirementRow[]): Record<GapKey, number> {
   const counters: Record<GapKey, number> = {
     no_carrier: 0,
+    no_need: 0,
     no_verification: 0,
     recalc: 0,
     changed: 0,
@@ -88,7 +94,10 @@ export function gapCounters(rows: RequirementRow[]): Record<GapKey, number> {
 }
 
 export type GroupKey = 'carrier' | 'level' | 'status' | 'owner'
-export const UNASSIGNED = 'Не распределено'
+/** Группа «Не распределено» умерла (решение): проектные держатся за нужды,
+ * системные без носителя — настоящий разрыв со своей группой. */
+export const PROJECT_GROUP = '__project__'
+export const NO_CARRIER_GROUP = '__no_carrier__'
 
 export interface SortState {
   key: string
@@ -160,8 +169,9 @@ function compare(a: RequirementRow, b: RequirementRow, sort: SortState | null): 
 function groupOf(row: RequirementRow, grouping: GroupKey): { key: string; label: string } {
   switch (grouping) {
     case 'carrier': {
+      if (row.level === 'project') return { key: PROJECT_GROUP, label: 'Уровень проекта — на нуждах' }
       const id = row.allocatedTo[0]
-      if (!id) return { key: UNASSIGNED, label: UNASSIGNED }
+      if (!id) return { key: NO_CARRIER_GROUP, label: 'Без носителя (системные)' }
       return { key: id, label: row.carrierName ? `${id} ${row.carrierName}` : id }
     }
     case 'level':
@@ -224,10 +234,11 @@ export function buildItems(rows: RequirementRow[], opts: ViewOptions): RegistryI
     bucket.rows.push(r)
     groups.set(g.key, bucket)
   })
-  // «Не распределено» — первая группа, не последняя; остальные — по величине
+  // проектные — первой группой, системные сироты — сразу за ними (разрыв
+  // на виду, не в хвосте); носители — по наполнению
+  const rank = (k: string) => (k === PROJECT_GROUP ? 0 : k === NO_CARRIER_GROUP ? 1 : 2)
   const orderedKeys = [...groups.keys()].sort((a, b) => {
-    if (a === UNASSIGNED) return -1
-    if (b === UNASSIGNED) return 1
+    if (rank(a) !== rank(b)) return rank(a) - rank(b)
     const diff = groups.get(b)!.rows.length - groups.get(a)!.rows.length
     return diff !== 0 ? diff : a.localeCompare(b, 'ru')
   })

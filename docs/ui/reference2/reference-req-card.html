@@ -1,0 +1,260 @@
+<!DOCTYPE html><html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Орбита · эталон Т-2: карточка требования в состояниях · круг 1</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--surface:#f8f9fa;--c-lowest:#fff;--c-low:#f3f4f5;--c:#edeeef;--on:#191c1d;--on-var:#44474c;
+--outline:#74777d;--hair:#c4c6cc;--rail:#0f1c2c;--on-rail:#8b97a8;--accent:#115cb9;--accent-fix:#d7e2ff;
+--error:#ba1a1a;--error-c:#ffdad6;--on-error-c:#93000a;--warn-c:#f6ecd7;--on-warn-c:#5c4a15;
+--st-base:#1a7f37;--st-prelim:#115cb9;--recalc:#b3600e;
+--font:Inter,-apple-system,'Segoe UI',sans-serif;--mono:'JetBrains Mono',Menlo,monospace}
+*{box-sizing:border-box;margin:0}
+body{font:400 13px/20px var(--font);color:var(--on);background:#dfe2e6;padding:28px 0}
+.stand{max-width:1240px;margin:0 auto}.stand h1{font-size:15px;font-weight:600;padding:0 4px 6px}
+.stand .note{font-size:12px;color:var(--on-var);padding:0 4px 18px;max-width:940px}
+.case{margin:0 0 30px}
+.case>.tag{display:inline-block;font:600 11px/16px var(--font);text-transform:uppercase;letter-spacing:.07em;
+color:var(--on-var);background:#eef0f2;border:1px solid var(--hair);border-bottom:none;border-radius:6px 6px 0 0;padding:4px 10px}
+.frame{background:var(--surface);border:1px solid var(--hair);border-radius:0 8px 8px 8px;overflow:hidden;
+display:grid;grid-template-rows:48px 1fr;grid-template-columns:68px 1fr;grid-template-areas:'hdr hdr' 'rail main';min-height:470px}
+.hdr{grid-area:hdr;display:flex;align-items:center;gap:12px;padding:0 16px;background:var(--c-lowest);border-bottom:1px solid var(--hair)}
+.brand{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;letter-spacing:-.02em}
+.brand .o{width:16px;height:16px;border:2px solid var(--on);border-radius:50%}
+.chip{font-size:12px;line-height:18px;padding:1px 8px;border-radius:9px;background:var(--c);color:var(--on-var)}
+.who{margin-left:auto;font-size:12px;color:var(--on-var)}.who b{color:var(--on)}
+.rail{grid-area:rail;background:var(--rail);display:flex;flex-direction:column;align-items:center;padding:10px 0;gap:2px}
+.rico{width:58px;padding:7px 0 6px;border-radius:8px;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--on-rail)}
+.rico.on{background:rgba(255,255,255,.14);color:#fff}
+.rico svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round}
+.rlab{font:500 9px/10px var(--font)}
+.main{grid-area:main;display:flex;flex-direction:column;min-width:0;background:var(--c-lowest)}
+.chead2{display:flex;gap:12px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--hair)}
+.back{color:var(--accent);text-decoration:none;font-size:12.5px;white-space:nowrap}
+.rid{font-family:var(--mono);font-size:13px;color:var(--on-var)}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;vertical-align:1px}
+.dot.base{background:var(--st-base)}.dot.prelim{background:var(--st-prelim)}.dot.draft{background:var(--outline)}
+.mk{display:inline-block;width:7px;height:7px;border-radius:2px;margin-left:6px;vertical-align:1px}
+.mk.recalc{background:var(--recalc)}
+.nav{margin-left:auto;display:flex;gap:6px;align-items:center;font-size:12px;color:var(--on-var)}
+.btn{font:600 12px/18px var(--font);padding:4px 10px;border-radius:6px;border:1px solid var(--hair);background:var(--c-lowest);cursor:pointer}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.danger{border-color:var(--error);color:var(--on-error-c)}
+.ctitle{padding:12px 18px 2px}
+.ctitle h2{font-size:16px;line-height:23px;font-weight:650;max-width:980px}
+.cstate{display:flex;gap:6px;margin:8px 0 0;flex-wrap:wrap;align-items:center}
+.cbody2{padding:12px 18px 18px;overflow:auto;display:grid;grid-template-columns:1fr 1fr;gap:12px;align-content:start}
+.card{border:1px solid var(--hair);border-radius:8px;padding:9px 11px}
+.card .k{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--on-var);margin-bottom:4px;display:flex;justify-content:space-between}
+.card .k a{text-transform:none;letter-spacing:0;font-size:11.5px;color:var(--accent);text-decoration:none;font-weight:500}
+.wide{grid-column:1/3}
+.mopv{font-family:var(--mono);font-size:15px;font-weight:600}
+.mopn{font-size:11.5px;color:var(--on-var)}
+.prov{font-size:11px;color:var(--outline)}
+.tnode{display:flex;gap:7px;align-items:baseline;padding:2px 0}
+.tid{font-family:var(--mono);font-size:11.5px;color:var(--accent)}
+.tt{font-size:12px}
+.assign{color:var(--accent);font-size:12px;text-decoration:none}.assign:hover{text-decoration:underline}
+.dim{color:var(--on-var)}.mono{font-family:var(--mono);font-size:12px}
+.band{display:flex;gap:10px;align-items:center;padding:8px 12px;border-radius:8px;font-size:12.5px;line-height:18px}
+.band.warn{background:var(--warn-c);color:var(--on-warn-c)}
+.band.err{background:var(--error-c);color:var(--on-error-c)}
+.band .sp{flex:1}
+.field label{display:block;font:600 11.5px/15px var(--font);margin:8px 0 4px}
+.field textarea,.field input,.field select{width:100%;font:400 12.5px/18px var(--font);border:1px solid var(--hair);border-radius:7px;padding:6px 9px;background:var(--c-lowest)}
+.req{color:var(--error)}
+.diff{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;font-size:12.5px;margin:6px 0}
+.diff .l{color:var(--on-var)}
+.diff .old{font-family:var(--mono);text-decoration:line-through;color:var(--outline)}
+.diff .new{font-family:var(--mono);font-weight:600}
+.hist{display:flex;gap:10px;align-items:baseline;padding:5px 0;border-bottom:1px solid var(--c);font-size:12.5px}
+.hist:last-child{border-bottom:none}
+.hist .v{font-family:var(--mono);font-size:11.5px;width:26px;color:var(--on-var)}
+.hist .what{flex:1}
+.hist .chg{font-family:var(--mono);font-size:11.5px;color:var(--on-var)}
+.hist .who2{font-size:11px;color:var(--outline);white-space:nowrap}
+</style></head><body><div class="stand">
+<h1>Т-2 · Карточка требования в состояниях — эталон, круг 1</h1>
+<div class="note">Пять трудных состояний карточки из Т-1. Правила: изменение базированного —
+только с основанием (v+1); конфликт пересчёта показывает «было/стало/что делать» и не решается
+молча; разрыв — приглашение с действием, не прочерк; откат — новая версия, история не
+переписывается; уровень проекта держится за нужду (носитель — механика, придёт с корнем автоматически); настоящий сирота — системное требование без элемента. Пометы после доработки
+семантики — исключения, и карточка обращается с ними как с событиями.</div>
+<div class="case"><span class="tag">Состояние 1 · Baseline: «Изменить» открывает полосу основания</span>
+<div class="frame" style="min-height:470px"><header class="hdr"><span class="brand"><span class="o"></span>Орбита</span>
+    <span><b>Ротор-Л</b></span><span class="chip">Pre-Phase A</span>
+    <span class="who">Инженер: <b>Чернов Д.</b></span></header><nav class="rail">
+<div class="rico"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg><span class="rlab">Портфель</span></div>
+<div class="rico"><svg viewBox="0 0 24 24"><path d="M12 6c-2-1.4-5-1.4-7 0v12c2-1.4 5-1.4 7 0c2-1.4 5-1.4 7 0V6c-2-1.4-5-1.4-7 0z"/><path d="M12 6v12"/></svg><span class="rlab">Библиотека</span></div>
+<div class="rico on"><svg viewBox="0 0 24 24"><path d="M5 5h14M5 10h14M5 15h9M5 20h6"/></svg><span class="rlab">Требования</span></div>
+<div class="rico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M2.5 12c3-4 16-4 19 0"/></svg><span class="rlab">Модели</span></div>
+<div class="rico"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></svg><span class="rlab">Документы</span></div>
+<div class="rico"><svg viewBox="0 0 24 24"><path d="M4 19V5m0 14h16M8 15l4-6 4 3 4-7"/></svg><span class="rlab">Контроль</span></div>
+</nav><main class="main"><div class="chead2"><a class="back" href="#">← Реестр требований</a>
+      <span class="rid">RQ-0101</span>
+      <span class="chip"><span class="dot base"></span>Baseline · v2</span>
+      <span class="nav"><span>3 из 41</span><button class="btn">↑ пред.</button><button class="btn">след. ↓</button>
+      <button class="btn">⋯</button></span></div>
+<div class="ctitle"><h2>Система должна доставлять пакет терминала класса A&#x27; с вероятностью не менее 0,90 за сутки.</h2>
+  <div class="cstate"><span class="chip">Проект</span><span class="chip">Числовое</span></div></div>
+<div class="cbody2">
+  <div class="card wide"><div class="k">Изменение базированного требования</div>
+    <div class="diff"><span class="l">Показатель</span><span><span class="old">≥ 0,95</span> → <span class="new">≥ 0,90</span></span></div>
+    <div class="field"><label>Основание изменения <span class="req">*</span></label>
+      <textarea rows="2">Модель покрытия v3: порог 0,95 недостижим при 100 КА без межспутниковых линий; согласовано с MG-0001.</textarea></div>
+    <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
+      <button class="btn pri">Сохранить как v3</button><button class="btn">Отмена</button>
+      <span class="prov">Изменение получит помету «изменено после утверждения» до следующего базирования.</span></div></div>
+  <div class="card"><div class="k">Показатель · базировано</div>
+    <div class="mopv">≥ 0,95</div><div class="mopn">Вероятность суточной доставки</div>
+    <div class="prov">Базировано на KDP-A · 10.09.2026</div></div>
+  <div class="card"><div class="k">Трассировка</div>
+    <div class="tnode"><span class="tid">MG-0001</span><span class="tt">Суточная доставка данных терминалов</span></div></div>
+</div></main></div></div>
+<div class="case"><span class="tag">Состояние 2 · конфликт: показатель пересчитан после базирования</span>
+<div class="frame" style="min-height:470px"><header class="hdr"><span class="brand"><span class="o"></span>Орбита</span>
+    <span><b>Ротор-Л</b></span><span class="chip">Pre-Phase A</span>
+    <span class="who">Инженер: <b>Чернов Д.</b></span></header><nav class="rail">
+<div class="rico"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg><span class="rlab">Портфель</span></div>
+<div class="rico"><svg viewBox="0 0 24 24"><path d="M12 6c-2-1.4-5-1.4-7 0v12c2-1.4 5-1.4 7 0c2-1.4 5-1.4 7 0V6c-2-1.4-5-1.4-7 0z"/><path d="M12 6v12"/></svg><span class="rlab">Библиотека</span></div>
+<div class="rico on"><svg viewBox="0 0 24 24"><path d="M5 5h14M5 10h14M5 15h9M5 20h6"/></svg><span class="rlab">Требования</span></div>
+<div class="rico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M2.5 12c3-4 16-4 19 0"/></svg><span class="rlab">Модели</span></div>
+<div class="rico"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></svg><span class="rlab">Документы</span></div>
+<div class="rico"><svg viewBox="0 0 24 24"><path d="M4 19V5m0 14h16M8 15l4-6 4 3 4-7"/></svg><span class="rlab">Контроль</span></div>
+</nav><main class="main"><div class="chead2"><a class="back" href="#">← Реестр требований</a>
+      <span class="rid">RQ-0111</span>
+      <span class="chip"><span class="dot base"></span>Baseline · v3</span><span class="mk recalc" title="пересчитан"></span>
+      <span class="nav"><span>7 из 41</span><button class="btn">↑ пред.</button><button class="btn">след. ↓</button>
+      <button class="btn">⋯</button></span></div>
+<div class="ctitle"><h2>Полезная нагрузка должна демодулировать не менее 250 пакетов в минуту в пике нагрузки.</h2></div>
+<div class="cbody2">
+  <div class="band warn wide"><b>Показатель пересчитан после базирования.</b>
+    Модель покрытия пересчитала значение 25.08.2026 — базированное и расчётное разошлись.<span class="sp"></span></div>
+  <div class="card"><div class="k">Базировано</div>
+    <div class="mopv">≥ 0,90</div><div class="mopn">Вероятность суточной доставки</div>
+    <div class="prov">Базировано 10.09.2026 · KDP-A</div></div>
+  <div class="card"><div class="k">Пересчитано моделью</div>
+    <div class="mopv">≥ 0,87</div><div class="mopn">из /coverage · группировка 96 КА</div>
+    <div class="prov">provenance: recomputed · 25.08.2026</div></div>
+  <div class="card wide"><div class="k">Что делать</div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn pri">Принять пересчитанное — изменить с основанием</button>
+      <button class="btn">Оставить базированное</button>
+      <a class="assign" href="#">разобраться в модели →</a>
+      <span class="prov">Молча конфликт не закрывается: любое решение — след в истории.</span></div></div>
+</div></main></div></div>
+<div class="case"><span class="tag">Состояние 3 · разрыв трассировки: источник отменён</span>
+<div class="frame" style="min-height:440px"><header class="hdr"><span class="brand"><span class="o"></span>Орбита</span>
+    <span><b>Ротор-Л</b></span><span class="chip">Pre-Phase A</span>
+    <span class="who">Инженер: <b>Чернов Д.</b></span></header><nav class="rail">
+<div class="rico"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg><span class="rlab">Портфель</span></div>
+<div class="rico"><svg viewBox="0 0 24 24"><path d="M12 6c-2-1.4-5-1.4-7 0v12c2-1.4 5-1.4 7 0c2-1.4 5-1.4 7 0V6c-2-1.4-5-1.4-7 0z"/><path d="M12 6v12"/></svg><span class="rlab">Библиотека</span></div>
+<div class="rico on"><svg viewBox="0 0 24 24"><path d="M5 5h14M5 10h14M5 15h9M5 20h6"/></svg><span class="rlab">Требования</span></div>
+<div class="rico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M2.5 12c3-4 16-4 19 0"/></svg><span class="rlab">Модели</span></div>
+<div class="rico"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></svg><span class="rlab">Документы</span></div>
+<div class="rico"><svg viewBox="0 0 24 24"><path d="M4 19V5m0 14h16M8 15l4-6 4 3 4-7"/></svg><span class="rlab">Контроль</span></div>
+</nav><main class="main"><div class="chead2"><a class="back" href="#">← Реестр требований</a>
+      <span class="rid">RQ-0112</span>
+      <span class="chip"><span class="dot prelim"></span>Preliminary · v1</span>
+      <span class="nav"><span>12 из 41</span><button class="btn">↑ пред.</button><button class="btn">след. ↓</button>
+      <button class="btn">⋯</button></span></div>
+<div class="ctitle"><h2>Система должна обеспечивать подтверждение доставки команд терминалам класса B′ в течение суток.</h2></div>
+<div class="cbody2">
+  <div class="band err wide"><b>Разрыв трассировки:</b> источник SV-0007 отменён 24.08.2026 —
+    требование осталось без действующего основания.<span class="sp"></span>
+    <button class="btn">Перепривязать…</button><button class="btn">К пересмотру</button></div>
+  <div class="card"><div class="k">Трассировка вверх</div>
+    <div class="tnode"><span class="tid" style="text-decoration:line-through;color:var(--outline)">SV-0007</span>
+      <span class="tt dim">Сервис подтверждения доставки — отменён</span></div></div>
+  <div class="card"><div class="k">Трассировка вниз</div>
+    <div class="tnode"><span class="tt dim">детей нет — </span><a class="assign" href="#">декомпозировать</a></div></div>
+</div></main></div></div>
+<div class="case"><span class="tag">Состояние 4 · история: откат — новая версия, не переписывание</span>
+<div class="frame" style="min-height:450px"><header class="hdr"><span class="brand"><span class="o"></span>Орбита</span>
+    <span><b>Ротор-Л</b></span><span class="chip">Pre-Phase A</span>
+    <span class="who">Инженер: <b>Чернов Д.</b></span></header><nav class="rail">
+<div class="rico"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg><span class="rlab">Портфель</span></div>
+<div class="rico"><svg viewBox="0 0 24 24"><path d="M12 6c-2-1.4-5-1.4-7 0v12c2-1.4 5-1.4 7 0c2-1.4 5-1.4 7 0V6c-2-1.4-5-1.4-7 0z"/><path d="M12 6v12"/></svg><span class="rlab">Библиотека</span></div>
+<div class="rico on"><svg viewBox="0 0 24 24"><path d="M5 5h14M5 10h14M5 15h9M5 20h6"/></svg><span class="rlab">Требования</span></div>
+<div class="rico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M2.5 12c3-4 16-4 19 0"/></svg><span class="rlab">Модели</span></div>
+<div class="rico"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></svg><span class="rlab">Документы</span></div>
+<div class="rico"><svg viewBox="0 0 24 24"><path d="M4 19V5m0 14h16M8 15l4-6 4 3 4-7"/></svg><span class="rlab">Контроль</span></div>
+</nav><main class="main"><div class="chead2"><a class="back" href="#">← Реестр требований</a>
+      <span class="rid">RQ-0101</span>
+      <span class="chip"><span class="dot base"></span>Baseline · v3</span>
+      <span class="nav"><span>3 из 41</span><button class="btn">↑ пред.</button><button class="btn">след. ↓</button>
+      <button class="btn">⋯</button></span></div>
+<div class="ctitle"><h2>Система должна доставлять пакет терминала класса A&#x27; с вероятностью не менее 0,90 за сутки.</h2></div>
+<div class="cbody2">
+  <div class="card wide"><div class="k">История</div>
+    <div class="hist"><span class="v">v3</span><span class="what">изменение с основанием: порог по модели покрытия v3</span>
+      <span class="chg">0,95 → 0,90</span><span class="who2">Чернов Д. · 25.08.2026</span><a class="assign" href="#">текущая</a></div>
+    <div class="hist"><span class="v">—</span><span class="what">переход в Baseline (KDP-A) — версия не меняется</span>
+      <span class="who2">DA · 10.09.2026</span></div>
+    <div class="hist"><span class="v">v2</span><span class="what">уточнение формулировки по рецензии службы</span>
+      <span class="chg">формулировка</span><span class="who2">Чернов Д. · 30.08.2026</span><a class="assign" href="#">откатить к v2</a></div>
+    <div class="hist"><span class="v">v1</span><span class="what">создано из предложения службы · пакет PR-0007</span>
+      <span class="who2">Чернов Д. · 26.08.2026</span><a class="assign" href="#">откатить к v1</a></div></div>
+  <div class="band warn wide">Откатить к v2? Появится <b>v4 — копия v2</b> с основанием отката;
+    v3 останется в истории. <span class="sp"></span>
+    <button class="btn pri">Откатить — создать v4</button><button class="btn">Отмена</button></div>
+</div></main></div></div>
+<div class="case"><span class="tag">Состояние 5 · требование уровня проекта: держится за нужду, носитель придёт с корнем</span>
+<div class="frame" style="min-height:430px"><header class="hdr"><span class="brand"><span class="o"></span>Орбита</span>
+    <span><b>Ротор-Л</b></span><span class="chip">Pre-Phase A</span>
+    <span class="who">Инженер: <b>Чернов Д.</b></span></header><nav class="rail">
+<div class="rico"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg><span class="rlab">Портфель</span></div>
+<div class="rico"><svg viewBox="0 0 24 24"><path d="M12 6c-2-1.4-5-1.4-7 0v12c2-1.4 5-1.4 7 0c2-1.4 5-1.4 7 0V6c-2-1.4-5-1.4-7 0z"/><path d="M12 6v12"/></svg><span class="rlab">Библиотека</span></div>
+<div class="rico on"><svg viewBox="0 0 24 24"><path d="M5 5h14M5 10h14M5 15h9M5 20h6"/></svg><span class="rlab">Требования</span></div>
+<div class="rico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M2.5 12c3-4 16-4 19 0"/></svg><span class="rlab">Модели</span></div>
+<div class="rico"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></svg><span class="rlab">Документы</span></div>
+<div class="rico"><svg viewBox="0 0 24 24"><path d="M4 19V5m0 14h16M8 15l4-6 4 3 4-7"/></svg><span class="rlab">Контроль</span></div>
+</nav><main class="main"><div class="chead2"><a class="back" href="#">← Реестр требований</a>
+      <span class="rid">RQ-0101</span>
+      <span class="chip"><span class="dot draft"></span>Draft · v1</span>
+      <span class="nav"><span>3 из 8 · уровень «Проект»</span><button class="btn">↑ пред.</button><button class="btn">след. ↓</button>
+      <button class="btn">⋯</button></span></div>
+<div class="ctitle"><h2>Система должна доставлять пакет терминала класса A&#x27; с вероятностью не менее 0,90 за сутки.</h2>
+  <div class="cstate"><span class="chip">Проект</span>
+    <span class="chip">нужда, приведённая к инженерной форме</span></div></div>
+<div class="cbody2">
+  <div class="card"><div class="k">Источник — нужда <a href="#">открыть →</a></div>
+    <div class="tnode"><span class="tid">SV-0101</span>
+      <span class="tt">Нужда стейкхолдера · покрыта этим требованием</span></div>
+    <div class="prov">Якорь требования уровня проекта — трассировка на нужду; без неё — разрыв.</div></div>
+  <div class="card"><div class="k">Распределение · механика</div>
+    <div style="font-size:12.5px;margin:2px 0 6px">Носитель — корень системы; корня в дереве
+      пока нет. При его появлении распределение выполнится <b>автоматически</b> и запишется
+      в журнал.</div>
+    <button class="btn">Создать корень системы сейчас</button></div>
+  <div class="card wide"><div class="k">Верификация</div>
+    <div class="tnode"><span class="tt dim">не назначена — </span><a class="assign" href="#">назначить событие</a></div></div>
+</div></main></div></div>
+<div class="case"><span class="tag">Состояние 5б · системное требование без носителя — настоящий разрыв (связь снята для показа)</span>
+<div class="frame" style="min-height:400px"><header class="hdr"><span class="brand"><span class="o"></span>Орбита</span>
+    <span><b>Ротор-Л</b></span><span class="chip">Pre-Phase A</span>
+    <span class="who">Инженер: <b>Чернов Д.</b></span></header><nav class="rail">
+<div class="rico"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg><span class="rlab">Портфель</span></div>
+<div class="rico"><svg viewBox="0 0 24 24"><path d="M12 6c-2-1.4-5-1.4-7 0v12c2-1.4 5-1.4 7 0c2-1.4 5-1.4 7 0V6c-2-1.4-5-1.4-7 0z"/><path d="M12 6v12"/></svg><span class="rlab">Библиотека</span></div>
+<div class="rico on"><svg viewBox="0 0 24 24"><path d="M5 5h14M5 10h14M5 15h9M5 20h6"/></svg><span class="rlab">Требования</span></div>
+<div class="rico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M2.5 12c3-4 16-4 19 0"/></svg><span class="rlab">Модели</span></div>
+<div class="rico"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></svg><span class="rlab">Документы</span></div>
+<div class="rico"><svg viewBox="0 0 24 24"><path d="M4 19V5m0 14h16M8 15l4-6 4 3 4-7"/></svg><span class="rlab">Контроль</span></div>
+</nav><main class="main"><div class="chead2"><a class="back" href="#">← Реестр требований</a>
+      <span class="rid">RQ-0111</span>
+      <span class="chip"><span class="dot prelim"></span>Preliminary · v2</span>
+      <span class="nav"><span>вид «Разрывы»</span><button class="btn">↑ пред.</button><button class="btn">след. ↓</button>
+      <button class="btn">⋯</button></span></div>
+<div class="ctitle"><h2>Полезная нагрузка должна демодулировать не менее 250 пакетов в минуту в пике нагрузки.</h2>
+  <div class="cstate"><span class="chip">Система</span></div></div>
+<div class="cbody2">
+  <div class="band err wide"><b>Требование системного уровня не распределено.</b>
+    Системное требование обязано иметь носителя — элемент или интерфейс.<span class="sp"></span>
+    <select style="width:250px;font:400 12.5px/18px var(--font);border:1px solid var(--hair);border-radius:7px;padding:5px 8px"><option>выбрать носителя…</option><option>CM-0103 · Полезная нагрузка IoT</option></select>
+    <button class="btn pri">Распределить</button></div>
+  <div class="card"><div class="k">Трассировка вверх</div>
+    <div class="tnode"><span class="tid">RQ-0104</span></div></div>
+  <div class="card"><div class="k">Показатель</div>
+    <div class="mopv">&#8805; 0,90</div><div class="mopn">Пиковая производительность демодуляции</div></div>
+</div></main></div></div>
+</div></body></html>
