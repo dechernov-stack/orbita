@@ -41,6 +41,17 @@ interface SourceDocRow {
 
 const CHANGE_REF = 'мастер-путь «Начало проекта»: параметры старта'
 
+/** Своё ограничение получает номер проектной серии П1, П2, … — типовые
+ * несут коды реестра класса (Р-серия) и не перенумеровываются. */
+function nextOwnCode(existing: Constraint[]): string {
+  let top = 0
+  existing.forEach((c) => {
+    const m = (c.code ?? '').match(/^П(\d+)$/)
+    if (m && Number(m[1]) > top) top = Number(m[1])
+  })
+  return `П${top + 1}`
+}
+
 /** Отказ — причиной, а не сырым JSON: службе есть что сказать инженеру. */
 function reasonOf(e: unknown): string {
   const raw = String((e as Error).message ?? e)
@@ -121,6 +132,8 @@ export function StartPath({ project, onGo, onDone }: {
   /** Круг 3 §1: взятые фрагменты — из связей «применяет» и локальных взятий. */
   const [applied, setApplied] = useState<Record<string, { count: number; by_type: Record<string, number> }>>({})
   const [busyFrag, setBusyFrag] = useState<string | null>(null)
+  /** Отказ взятия виден у самой кнопки — низ экрана вне поля зрения. */
+  const [fragErr, setFragErr] = useState<{ id: string; msg: string } | null>(null)
   const [dragOver, setDragOver] = useState(false)
   const [profile, setProfile] = useState<{ id: string; version: string; name: string } | null>(null)
   const [promptFull, setPromptFull] = useState<string | null>(null)
@@ -207,7 +220,7 @@ export function StartPath({ project, onGo, onDone }: {
   const applyFragment = (id: string) => {
     if (busyFrag) return
     setBusyFrag(id)
-    setFailure(null)
+    setFragErr(null)
     api.libraryApply(id, author)
       .then((r) => {
         const byType: Record<string, number> = {}
@@ -222,7 +235,7 @@ export function StartPath({ project, onGo, onDone }: {
             : prev[id] ?? { count: r.existing.length, by_type: {} },
         }))
       })
-      .catch((e) => setFailure(reasonOf(e)))
+      .catch((e) => setFragErr({ id, msg: reasonOf(e) }))
       .finally(() => setBusyFrag(null))
   }
 
@@ -230,14 +243,14 @@ export function StartPath({ project, onGo, onDone }: {
   const revertFragment = (id: string) => {
     if (busyFrag) return
     setBusyFrag(id)
-    setFailure(null)
+    setFragErr(null)
     api.libraryRevert(id, author)
       .then(() => setApplied((prev) => {
         const next = { ...prev }
         delete next[id]
         return next
       }))
-      .catch((e) => setFailure(reasonOf(e)))
+      .catch((e) => setFragErr({ id, msg: reasonOf(e) }))
       .finally(() => setBusyFrag(null))
   }
 
@@ -283,13 +296,19 @@ export function StartPath({ project, onGo, onDone }: {
       .finally(() => { busyRef.current = false; setBusy(false) })
   }
 
-  /** Шаг сохраняется сам: паспорт правится процедурой с основанием. */
-  const save = useCallback(async (path: PathState) => {
+  /** Шаг сохраняется сам: паспорт правится процедурой с основанием.
+   * over — значения свежее state (автосохранение правки ограничений). */
+  const save = useCallback(async (
+    path: PathState,
+    over?: { constraints?: Constraint[]; missionClass?: string },
+  ) => {
+    const cons = over?.constraints ?? constraints
+    const mc = over?.missionClass ?? missionClass
     const fresh = await edit.object(project)
     const doc = { ...(fresh.doc as Record<string, unknown>) }
-    doc.mission_class = missionClass.trim() || undefined
+    doc.mission_class = mc.trim() || undefined
     if (doc.mission_class === undefined) delete doc.mission_class
-    if (constraints.length > 0) doc.constraints = constraints
+    if (cons.length > 0) doc.constraints = cons
     else delete doc.constraints
     doc.start_path = {
       ...path,
@@ -299,14 +318,43 @@ export function StartPath({ project, onGo, onDone }: {
     return edit.changeWithRef(project, doc, CHANGE_REF)
   }, [project, missionClass, constraints, promptDocs, applied])
 
+  /** А2 ПМИ-2: «сохраняется само» — правка ограничений и класса пишется в
+   * паспорт сразу, а не при смене шага; уход с экрана ничего не теряет. */
+  const saveNow = (over: { constraints?: Constraint[]; missionClass?: string }) => {
+    save({ status: 'in_progress', step }, over).catch((e) => setFailure(reasonOf(e)))
+  }
+
+  /** Набранное, но не добавленное ограничение не теряется: перед сменой
+   * шага строка из поля становится ограничением с номером. */
+  const flushAdding = (): Constraint[] => {
+    if (!adding.trim()) return constraints
+    const next = [...constraints, { code: nextOwnCode(constraints), text: adding.trim() }]
+    setConstraints(next)
+    setAdding('')
+    return next
+  }
+
+  const addConstraint = () => {
+    if (!adding.trim()) return
+    const next = flushAdding()
+    saveNow({ constraints: next })
+  }
+
+  const removeConstraint = (i: number) => {
+    const next = constraints.filter((_, j) => j !== i)
+    setConstraints(next)
+    saveNow({ constraints: next })
+  }
+
   const skip = () => {
     if (busyRef.current) return
-    save({ status: 'skipped', step }).then(onDone).catch((e) => setFailure(reasonOf(e)))
+    save({ status: 'skipped', step }, { constraints: flushAdding() })
+      .then(onDone).catch((e) => setFailure(reasonOf(e)))
   }
 
   const toStep = (next: number) => {
     setFailure(null)
-    save({ status: 'in_progress', step: next })
+    save({ status: 'in_progress', step: next }, { constraints: flushAdding() })
       .then(() => setStep(next))
       .catch((e) => setFailure(reasonOf(e)))
   }
@@ -316,7 +364,7 @@ export function StartPath({ project, onGo, onDone }: {
     busyRef.current = true
     setBusy(true)
     setFailure(null)
-    save({ status: 'in_progress', step: 3 })
+    save({ status: 'in_progress', step: 3 }, { constraints: flushAdding() })
       .then(() => api.startPathProfile(author))
       .then((p) => { setProfile(p); setStep(3) })
       .catch((e) => setFailure(reasonOf(e)))
@@ -369,6 +417,41 @@ export function StartPath({ project, onGo, onDone }: {
     }
   }
 
+  /** А6 ПМИ-2: промпт уносится в любую LLM одним действием — целиком в
+   * буфер обмена; вне защищённого контекста — запасной путь. */
+  const [copied, setCopied] = useState(false)
+  const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const copyPrompt = async () => {
+    if (!profile) return
+    setFailure(null)
+    try {
+      let text = promptFull
+      if (!text) {
+        const statement = await materialStatement()
+        const r = await api.aiCompose('mission_to_goals', profile.id, statement)
+        text = r.prompt
+        setPromptFull(text)
+      }
+      try {
+        await navigator.clipboard.writeText(text)
+      } catch {
+        const ta = document.createElement('textarea')
+        ta.value = text
+        ta.style.position = 'fixed'
+        ta.style.opacity = '0'
+        document.body.appendChild(ta)
+        ta.select()
+        document.execCommand('copy')
+        ta.remove()
+      }
+      setCopied(true)
+      if (copyTimer.current) clearTimeout(copyTimer.current)
+      copyTimer.current = setTimeout(() => setCopied(false), 2500)
+    } catch (e) {
+      setFailure(reasonOf(e))
+    }
+  }
+
   // Продолжение брошенного пути с Ш3: профиль пересобирается при входе —
   // вызов идемпотентен (сервер обновляет, а не плодит дубли)
   useEffect(() => {
@@ -415,9 +498,12 @@ export function StartPath({ project, onGo, onDone }: {
                       const cls = classes?.find((c) => c.id === v)
                       setMissionClass(v)
                       // выбор класса подставляет типовые ограничения — правятся
-                      if (cls && constraints.length === 0 && cls.typical_constraints.length > 0) {
-                        setConstraints(cls.typical_constraints)
-                      }
+                      const subst = cls && constraints.length === 0 && cls.typical_constraints.length > 0
+                      if (subst) setConstraints(cls.typical_constraints)
+                      saveNow({
+                        missionClass: v,
+                        ...(subst ? { constraints: cls.typical_constraints } : {}),
+                      })
                     }}
                   />
                   <div className="np-hint">Класс определяет наборы библиотеки на следующем шаге.</div>
@@ -438,22 +524,19 @@ export function StartPath({ project, onGo, onDone }: {
                   <div className="sp-lim" key={`${c.code ?? ''}-${i}`}>
                     <span className="sp-no">{c.code ?? ''}</span>
                     <span className="sp-tx">{c.text}</span>
-                    <button className="sp-rm"
-                      onClick={() => setConstraints(constraints.filter((_, j) => j !== i))}>
+                    <button className="sp-rm" onClick={() => removeConstraint(i)}>
                       убрать
                     </button>
                   </div>
                 ))}
-                <div className="sp-addrow">
-                  <input value={adding}
+                <div className="sp-addrow" style={{ display: 'flex', gap: 6 }}>
+                  <input value={adding} style={{ flex: 1 }}
                     placeholder="Добавить ограничение — например: «зоны обслуживания — статическими масками»"
                     onChange={(e) => setAdding(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && adding.trim()) {
-                        setConstraints([...constraints, { text: adding.trim() }])
-                        setAdding('')
-                      }
-                    }} />
+                    onKeyDown={(e) => { if (e.key === 'Enter') addConstraint() }} />
+                  <button className="sp-open" disabled={!adding.trim()} onClick={addConstraint}>
+                    добавить
+                  </button>
                 </div>
               </div>
             </div>
@@ -494,6 +577,11 @@ export function StartPath({ project, onGo, onDone }: {
                             {Object.entries(f.counters).map(([t, n]) => `${t}: ${n}`).join(' · ')}
                             {f.origin.project ? ` — из ${f.origin.project}` : ''}
                             {f.origin.date ? `, ${f.origin.date}` : ''}
+                          </div>
+                        )}
+                        {fragErr?.id === f.id && (
+                          <div className="sp-ds" style={{ color: 'var(--error, #b3261e)' }}>
+                            не взято: {fragErr.msg}
                           </div>
                         )}
                       </span>
@@ -730,7 +818,12 @@ export function StartPath({ project, onGo, onDone }: {
             </div>
             {promptFull && (
               <div className="sp-blk">
-                <div className="sp-src">Промпт целиком</div>
+                <div className="sp-src" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  Промпт целиком
+                  <button className="rr-assign" onClick={copyPrompt}>
+                    {copied ? 'скопирован ✓' : 'скопировать'}
+                  </button>
+                </div>
                 <pre>{promptFull}</pre>
               </div>
             )}
@@ -742,6 +835,9 @@ export function StartPath({ project, onGo, onDone }: {
                 {busy ? 'Генерация…' : 'Запустить генерацию целей и нужд'}
               </button>
               <button className="np-linkish" onClick={showPrompt}>показать промпт целиком</button>
+              <button className="np-linkish" onClick={copyPrompt}>
+                {copied ? 'скопирован ✓' : 'скопировать промпт'}
+              </button>
               <span className="sp-sp" />
               <span className="np-hint" style={{ margin: 0 }}>
                 Предложения придут на акцепт — в модель ИИ не пишет.

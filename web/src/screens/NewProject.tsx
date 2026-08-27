@@ -108,7 +108,10 @@ export function NewProject({ firstRun, onDone, onCancel, onLoadFile }: {
   // Круг 2: порядок дат — инвариант; форма проверяет тем же правилом, что
   // сервер (частично заданные даты законны), календарь ограничен предыдущей
   // заданной вехой (min). Сервер — истина: его отказ придёт и без формы.
-  let prevDue = ''
+  // Старт с Phase A: pre-A уже позади (KDP-A состоялось — подсказка фазы),
+  // поэтому опора первой вехи — сегодняшний день, раньше него дат нет.
+  const startFloor = phase === 'phase_a' ? new Date().toISOString().slice(0, 10) : ''
+  let prevDue = startFloor
   let orderProblem: string | null = null
   const gateRows = gates.map((g) => {
     const due = dates[g.gate] ?? ''
@@ -119,7 +122,8 @@ export function NewProject({ firstRun, onDone, onCancel, onLoadFile }: {
         bad = true
         if (!orderProblem) {
           const prev = gates.find((x) => (dates[x.gate] ?? '') === prevDue)
-          const prevName = prev?.nmGen ?? prev?.nm ?? ''
+          const prevName = prev?.nmGen ?? prev?.nm ??
+            (prevDue === startFloor ? 'состоявшегося KDP-A' : '')
           orderProblem = `${g.nm} не может быть раньше ${prevName} — даты идут по порядку точек. ` +
             'Календарь каждой даты открывается от предыдущей заданной вехи.'
         }
@@ -128,7 +132,13 @@ export function NewProject({ firstRun, onDone, onCancel, onLoadFile }: {
       }
     }
     const anchorRow = gates.find((x) => (dates[x.gate] ?? '') === min)
-    return { ...g, min, bad, anchorName: anchorRow?.nmGen ?? anchorRow?.nm ?? 'предыдущей точки' }
+    return {
+      ...g,
+      min,
+      bad,
+      anchorName: anchorRow?.nmGen ?? anchorRow?.nm ??
+        (min === startFloor && startFloor ? 'состоявшегося KDP-A' : 'предыдущей точки'),
+    }
   })
 
   return (

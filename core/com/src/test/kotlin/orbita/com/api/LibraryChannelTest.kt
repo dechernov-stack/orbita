@@ -216,4 +216,41 @@ class LibraryChannelTest {
         ) { channel.revert(fragmentId, "PJ-2102", "приёмник") }
         assertTrue(touchedId in blocked.touched) { blocked.touched.toString() }
     }
+
+    @Test
+    @Order(5)
+    fun `полка Б6 - WBS-пачка берётся с кодами, без кодов - отказ схемой`() {
+        // триаж ПМИ-2 А3: «кнопка взять не нажимается» — пачка полки без
+        // обязательного code падала схемой на первом же элементе
+        fun frag(objects: String): String {
+            val doc = mapper.readTree(
+                """{"name":"WBS-пачка теста","shelf":"B6",
+                    "payload":{"objects":$objects}}""",
+            ) as com.fasterxml.jackson.databind.node.ObjectNode
+            return boundary.editing.create(
+                CoreType.LibraryFragment, doc, "test", ObjectStore.LIBRARY_PROJECT,
+            ).id
+        }
+
+        val good = frag(
+            """[
+                {"id":"WB-9001","code":"1","name":"Программа"},
+                {"id":"WB-9002","code":"1.1","name":"Изготовление КА","parent":"WB-9001"},
+                {"id":"WB-9003","code":"1.2","name":"Испытания","parent":"WB-9001"}
+            ]""",
+        )
+        val outcome = channel.apply(good, "PJ-2102", "приёмник")
+        assertEquals(3, outcome.created.size)
+        val byOld = outcome.created.toMap()
+        val child = boundary.objects.current(byOld["WB-9002"]!!)!!
+        assertEquals("wbs_element", child.type)
+        assertEquals(byOld["WB-9001"]!!, child.doc.path("parent").asText())
+        assertEquals("1.1", child.doc.path("code").asText())
+
+        val broken = frag("""[{"id":"WB-9101","name":"Без кода"}]""")
+        val refusal = org.junit.jupiter.api.Assertions.assertThrows(Exception::class.java) {
+            channel.apply(broken, "PJ-2102", "приёмник")
+        }
+        assertTrue("code" in (refusal.message ?: "")) { "отказ называет поле: ${'$'}{refusal.message}" }
+    }
 }
