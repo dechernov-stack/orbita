@@ -6,6 +6,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api } from '../api/client'
 import { edit } from '../api/edit'
+import { countPhrase } from '../ui/countPhrase'
+import { Select } from '../ui/Select'
 import { useSession } from '../ui/session'
 
 interface Constraint {
@@ -16,9 +18,15 @@ interface Constraint {
 interface PathState {
   status: 'in_progress' | 'done' | 'skipped'
   step: number
+  /** Прежний одиночный выбор — читается для совместимости старых паспортов. */
   source_ref?: string
+  /** Круг 3 §3: участие документов в промпте — множественное. */
+  source_refs?: string[]
+  /** Круг 3 §1: создано взятиями — числа для итога пути и свёрнутой строки. */
+  created_counts?: Record<string, number>
   profile_ref?: string
 }
+
 
 interface SourceDocRow {
   id: string
@@ -52,6 +60,26 @@ function statementOf(id: string, version: string, name: string, text: string): s
   return `Источник: ${id} в. ${version} «${name}»\n\n${text}`
 }
 
+/** Тип по префиксу id — для счётчиков создания (подписи TYPE_PLURALS). */
+function typeOfId(id: string): string {
+  const prefix = id.split('-')[0]
+  const map: Record<string, string> = {
+    RQ: 'requirement', DT: 'document_template', CM: 'component', CU: 'component_usage',
+    IF: 'interface', TR: 'typical_risk', SH: 'stakeholder_profile', NR: 'normative_document',
+    WB: 'wbs_element', CE: 'cost_estimate',
+  }
+  return map[prefix] ?? prefix
+}
+
+/** «Создано этим шагом: 34 требования · 13 шаблонов документов». */
+function sumCounts(applied: Record<string, { by_type: Record<string, number> }>): Record<string, number> {
+  const total: Record<string, number> = {}
+  Object.values(applied).forEach((a) => {
+    Object.entries(a.by_type).forEach(([t, n]) => { total[t] = (total[t] ?? 0) + n })
+  })
+  return total
+}
+
 export function StartPath({ project, onGo, onDone }: {
   project: string
   onGo: (screen: string) => void
@@ -80,7 +108,6 @@ export function StartPath({ project, onGo, onDone }: {
     origin: { project?: string; author?: string; date?: string }
   }> | null>(null)
   const [openManifest, setOpenManifest] = useState<string | null>(null)
-  const [applyNote, setApplyNote] = useState<string | null>(null)
   /** Круг 2: загрузка файла с карточкой и раскрытие карточки у файла. */
   const [upKind, setUpKind] = useState('mission_note')
   const [upName, setUpName] = useState('')
@@ -88,7 +115,13 @@ export function StartPath({ project, onGo, onDone }: {
   const [upFile, setUpFile] = useState<File | null>(null)
   const [openCard, setOpenCard] = useState<string | null>(null)
   const [parseNote, setParseNote] = useState<string | null>(null)
-  const [sourceRef, setSourceRef] = useState('')
+  /** Круг 3 §3: участие в промпте множественное — чекбоксы, не radio. */
+  const [promptDocs, setPromptDocs] = useState<Set<string>>(new Set())
+  const promptSeeded = useRef(false)
+  /** Круг 3 §1: взятые фрагменты — из связей «применяет» и локальных взятий. */
+  const [applied, setApplied] = useState<Record<string, { count: number; by_type: Record<string, number> }>>({})
+  const [busyFrag, setBusyFrag] = useState<string | null>(null)
+  const [dragOver, setDragOver] = useState(false)
   const [profile, setProfile] = useState<{ id: string; version: string; name: string } | null>(null)
   const [promptFull, setPromptFull] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -108,13 +141,23 @@ export function StartPath({ project, onGo, onDone }: {
         const sp = doc.start_path
         // шаг за пределами 1..3 отсекает схема паспорта — доверяем ей
         if (sp && sp.status === 'in_progress') setStep(sp.step)
-        if (sp?.source_ref) setSourceRef(sp.source_ref)
+        if (sp?.source_refs?.length || sp?.source_ref) {
+          promptSeeded.current = true
+          setPromptDocs(new Set(sp.source_refs ?? [sp.source_ref!]))
+        }
       })
       .catch((e) => setFailure(reasonOf(e)))
     reloadOwn()
     api.libraryDocs().then(setLibrary).catch(() => setLibrary([]))
     api.missionClasses().then(setClasses).catch(() => setClasses([]))
-    api.libraryShelves().then(setShelves).catch(() => setShelves([]))
+    api.libraryShelves()
+      .then((rows) => {
+        setShelves(rows)
+        const taken: Record<string, { count: number; by_type: Record<string, number> }> = {}
+        rows.forEach((f) => { if (f.applied) taken[f.id] = f.applied })
+        setApplied(taken)
+      })
+      .catch(() => setShelves([]))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project])
 
@@ -134,7 +177,11 @@ export function StartPath({ project, onGo, onDone }: {
           }
         }))
         setDocs(full)
-        setSourceRef((cur) => cur || full.find((d) => d.hasText)?.id || '')
+        // по умолчанию отмечены все с заполненной карточкой; снятие — осознанное
+        if (!promptSeeded.current) {
+          promptSeeded.current = true
+          setPromptDocs(new Set(full.filter((d) => d.hasText).map((d) => d.id)))
+        }
       })
       .catch(() => setDocs([]))
   }, [])
@@ -155,16 +202,43 @@ export function StartPath({ project, onGo, onDone }: {
       .finally(() => { busyRef.current = false; setBusy(false) })
   }
 
-  /** Взятие набора: применение фрагмента — экземпляры со связью «применяет». */
+  /** Круг 3 §1: «взять» — немедленное действие с видимым результатом.
+   * Идемпотентность — на сервере (по связи «применяет»). */
   const applyFragment = (id: string) => {
-    if (busyRef.current) return
-    busyRef.current = true
-    setBusy(true)
+    if (busyFrag) return
+    setBusyFrag(id)
     setFailure(null)
     api.libraryApply(id, author)
-      .then((r) => setApplyNote(`применено из ${id}: объектов ${r.created.length}`))
+      .then((r) => {
+        const byType: Record<string, number> = {}
+        r.created.forEach((c) => {
+          const t = typeOfId(c.id)
+          byType[t] = (byType[t] ?? 0) + 1
+        })
+        setApplied((prev) => ({
+          ...prev,
+          [id]: r.created.length > 0
+            ? { count: r.created.length, by_type: byType }
+            : prev[id] ?? { count: r.existing.length, by_type: {} },
+        }))
+      })
       .catch((e) => setFailure(reasonOf(e)))
-      .finally(() => { busyRef.current = false; setBusy(false) })
+      .finally(() => setBusyFrag(null))
+  }
+
+  /** Отмена взятия: удаляет созданное именно этим взятием; тронутое — отказ. */
+  const revertFragment = (id: string) => {
+    if (busyFrag) return
+    setBusyFrag(id)
+    setFailure(null)
+    api.libraryRevert(id, author)
+      .then(() => setApplied((prev) => {
+        const next = { ...prev }
+        delete next[id]
+        return next
+      }))
+      .catch((e) => setFailure(reasonOf(e)))
+      .finally(() => setBusyFrag(null))
   }
 
   /** Круг 2: файл + карточка одним приёмом; текст извлекает сервер. */
@@ -217,9 +291,13 @@ export function StartPath({ project, onGo, onDone }: {
     if (doc.mission_class === undefined) delete doc.mission_class
     if (constraints.length > 0) doc.constraints = constraints
     else delete doc.constraints
-    doc.start_path = { ...path, ...(sourceRef ? { source_ref: sourceRef } : {}) }
+    doc.start_path = {
+      ...path,
+      ...(promptDocs.size > 0 ? { source_refs: [...promptDocs] } : {}),
+      ...(Object.keys(applied).length > 0 ? { created_counts: sumCounts(applied) } : {}),
+    }
     return edit.changeWithRef(project, doc, CHANGE_REF)
-  }, [project, missionClass, constraints, sourceRef])
+  }, [project, missionClass, constraints, promptDocs, applied])
 
   const skip = () => {
     if (busyRef.current) return
@@ -245,19 +323,28 @@ export function StartPath({ project, onGo, onDone }: {
       .finally(() => { busyRef.current = false; setBusy(false) })
   }
 
+  /** Круг 3 §3: материал промпта — ВСЕ отмеченные документы, поимённо. */
+  const materialStatement = async (): Promise<string> => {
+    const chosen = (docs ?? []).filter((d) => promptDocs.has(d.id) && d.hasText)
+    const excluded = (docs ?? []).filter((d) => d.hasText && !promptDocs.has(d.id))
+    const parts = await Promise.all(chosen.map(async (src) => {
+      const o = await edit.object(src.id)
+      const d = o.doc as { name?: string; text?: string }
+      return statementOf(src.id, o.version, d.name ?? src.id, d.text ?? '')
+    }))
+    if (parts.length === 0) return ''
+    const head = `Документы в промпте — ${chosen.length} из ${chosen.length + excluded.length}` +
+      (excluded.length > 0 ? ` (${excluded.map((d) => `«${d.name}»`).join(', ')} исключен${excluded.length === 1 ? 'а' : 'ы'} вами)` : '') + ':'
+    return [head, ...parts].join('\n\n')
+  }
+
   const run = async () => {
     if (busyRef.current || !profile) return
     busyRef.current = true
     setBusy(true)
     setFailure(null)
     try {
-      const src = docs?.find((d) => d.id === sourceRef)
-      let statement = ''
-      if (src) {
-        const o = await edit.object(src.id)
-        const d = o.doc as { name?: string; text?: string }
-        statement = statementOf(src.id, o.version, d.name ?? src.id, d.text ?? '')
-      }
+      const statement = await materialStatement()
       await api.aiAsk('mission_to_goals', profile.id, statement, author)
       await api.aiAsk('mission_to_needs', profile.id, statement, author)
       await save({ status: 'done', step: 3, profile_ref: profile.id })
@@ -274,13 +361,7 @@ export function StartPath({ project, onGo, onDone }: {
     if (!profile) return
     setFailure(null)
     try {
-      const src = docs?.find((d) => d.id === sourceRef)
-      let statement = ''
-      if (src) {
-        const o = await edit.object(src.id)
-        const d = o.doc as { name?: string; text?: string }
-        statement = statementOf(src.id, o.version, d.name ?? src.id, d.text ?? '')
-      }
+      const statement = await materialStatement()
       const r = await api.aiCompose('mission_to_goals', profile.id, statement)
       setPromptFull(r.prompt)
     } catch (e) {
@@ -297,8 +378,10 @@ export function StartPath({ project, onGo, onDone }: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, profile, author])
 
-  const source = docs?.find((d) => d.id === sourceRef)
   const withText = (docs ?? []).filter((d) => d.hasText)
+  const chosenDocs = withText.filter((d) => promptDocs.has(d.id))
+  const excludedDocs = withText.filter((d) => !promptDocs.has(d.id))
+  const stepCounts = sumCounts(applied)
 
   return (
     <div className="np-main">
@@ -322,20 +405,21 @@ export function StartPath({ project, onGo, onDone }: {
               <label className="np-label" htmlFor="sp-class">Класс миссии</label>
               {(classes ?? []).length > 0 ? (
                 <>
-                  <select id="sp-class" value={missionClass}
-                    onChange={(e) => {
-                      const cls = classes?.find((c) => c.id === e.target.value)
-                      setMissionClass(e.target.value)
+                  <Select
+                    value={missionClass}
+                    placeholder="—"
+                    width={320}
+                    options={[{ key: '', title: '—' },
+                      ...(classes ?? []).map((c) => ({ key: c.id, title: c.name }))]}
+                    onChange={(v) => {
+                      const cls = classes?.find((c) => c.id === v)
+                      setMissionClass(v)
                       // выбор класса подставляет типовые ограничения — правятся
                       if (cls && constraints.length === 0 && cls.typical_constraints.length > 0) {
                         setConstraints(cls.typical_constraints)
                       }
-                    }}>
-                    <option value="">—</option>
-                    {(classes ?? []).map((c) => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
+                    }}
+                  />
                   <div className="np-hint">Класс определяет наборы библиотеки на следующем шаге.</div>
                 </>
               ) : (
@@ -413,16 +497,42 @@ export function StartPath({ project, onGo, onDone }: {
                           </div>
                         )}
                       </span>
+                      {applied[f.id] && (
+                        <span className="sp-took">Взято ✓ создано <b>{applied[f.id].count}</b></span>
+                      )}
                       <button className="sp-open"
                         onClick={() => setOpenManifest(openManifest === f.id ? null : f.id)}>
                         состав
                       </button>
-                      <button className="sp-open" disabled={busy} onClick={() => applyFragment(f.id)}>
-                        взять
-                      </button>
+                      {applied[f.id]
+                        ? (
+                          <button className="sp-undo" disabled={busyFrag !== null}
+                            title="удаляет созданное именно этим взятием; тронутое руками — отказ"
+                            onClick={() => revertFragment(f.id)}>
+                            {busyFrag === f.id ? 'отменяю…' : 'отменить'}
+                          </button>
+                        )
+                        : (
+                          <button className="sp-take" disabled={busyFrag !== null}
+                            onClick={() => applyFragment(f.id)}>
+                            {busyFrag === f.id ? 'беру…' : 'взять'}
+                          </button>
+                        )}
                     </div>
                   ))}
-                {applyNote && <div className="sp-set"><span className="sp-ds">{applyNote}</span></div>}
+                {Object.keys(stepCounts).length > 0 && (
+                  <div className="sp-stepsum">
+                    Создано этим шагом:{' '}
+                    <span>
+                      {Object.entries(stepCounts).map(([t, n], i) => (
+                        <span key={t}>{i > 0 && ' · '}<b>{n}</b> {countPhrase(t, n).replace(/^\d+ /, '')}</span>
+                      ))}
+                    </span>
+                    <span className="secondary" style={{ marginLeft: 'auto' }}>
+                      — со связями «применяет»; отмена удаляет созданное взятием
+                    </span>
+                  </div>
+                )}
                 {library == null && shelves == null && <div className="sp-set"><span className="sp-ds">Загрузка…</span></div>}
                 {library != null && library.length === 0 && (shelves ?? []).length === 0 && (
                   <div className="sp-set">
@@ -464,15 +574,25 @@ export function StartPath({ project, onGo, onDone }: {
                   <span className="sp-sub">материал проекта — для ИИ и документов</span>
                 </div>
                 {docs == null && <div className="sp-set"><span className="sp-ds">Загрузка…</span></div>}
+                {(docs ?? []).length > 0 && (
+                  <div className="sp-ds" style={{ padding: '2px 0 4px' }}>
+                    отмеченные уходят в промпт службы на Ш3 — участие множественное
+                  </div>
+                )}
                 {(docs ?? []).map((d) => (
                   <div key={d.id}>
                     <div className="sp-file" style={{ cursor: 'pointer' }}
                       onClick={() => setOpenCard(openCard === d.id ? null : d.id)}>
-                      {withText.length > 1 && (
-                        <input type="radio" name="sp-src" checked={sourceRef === d.id}
-                          disabled={!d.hasText} onChange={() => setSourceRef(d.id)}
-                          onClick={(e) => e.stopPropagation()} />
-                      )}
+                      <input type="checkbox" checked={promptDocs.has(d.id)}
+                        disabled={!d.hasText}
+                        title={d.hasText ? 'участвует в промпте службы' : 'текста нет — в промпт не попадёт'}
+                        onChange={() => setPromptDocs((prev) => {
+                          const next = new Set(prev)
+                          if (next.has(d.id)) next.delete(d.id)
+                          else next.add(d.id)
+                          return next
+                        })}
+                        onClick={(e) => e.stopPropagation()} />
                       <span>{d.name}</span>
                       {d.fileName
                         ? <a className="sp-mono" href={api.sdFileUrl(d.id)}
@@ -506,21 +626,50 @@ export function StartPath({ project, onGo, onDone }: {
                     )}
                   </div>
                 ))}
-                {/* круг 2: файл + карточка (тип и наименование обязательны) */}
+                {/* круг 2: файл + карточка; круг 3 §2: без нативных контролов —
+                    drop-зона, стилизованная кнопка, тип чипами */}
                 <div className="sp-set" style={{ borderTop: '1px solid var(--container-3)', display: 'block' }}>
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                    <input type="file" onChange={(e) => {
-                      const f = e.target.files?.[0] ?? null
-                      setUpFile(f)
-                      if (f && !upName) setUpName(f.name.replace(/\.[^.]+$/, ''))
-                    }} />
-                    <select value={upKind} onChange={(e) => setUpKind(e.target.value)}>
-                      <option value="mission_note">записка миссии</option>
-                      <option value="normative">норматив</option>
-                      <option value="datasheet">даташит</option>
-                      <option value="reference">справка</option>
-                      <option value="other">прочее</option>
-                    </select>
+                  <div
+                    className={`sp-drop${dragOver ? ' over' : ''}`}
+                    onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
+                    onDragLeave={() => setDragOver(false)}
+                    onDrop={(e) => {
+                      e.preventDefault()
+                      setDragOver(false)
+                      const f = e.dataTransfer.files?.[0] ?? null
+                      if (f) {
+                        setUpFile(f)
+                        if (!upName) setUpName(f.name.replace(/\.[^.]+$/, ''))
+                      }
+                    }}
+                  >
+                    Перетащите файлы сюда — справочники, записки, регуляторные документы —{' '}
+                    <label className="sp-take" style={{ cursor: 'pointer', display: 'inline-block' }}>
+                      Выбрать файлы
+                      <input type="file" style={{ display: 'none' }} onChange={(e) => {
+                        const f = e.target.files?.[0] ?? null
+                        setUpFile(f)
+                        if (f && !upName) setUpName(f.name.replace(/\.[^.]+$/, ''))
+                        e.target.value = ''
+                      }} />
+                    </label>{' '}
+                    лягут материалом проекта.
+                  </div>
+                  {upFile && (
+                    <div className="sp-file" style={{ marginTop: 6 }}>
+                      <span className="sp-mono">{upFile.name}</span>
+                      <button className="sp-undo" onClick={() => setUpFile(null)}>убрать</button>
+                    </div>
+                  )}
+                  <div className="sp-tchips" style={{ marginTop: 6 }}>
+                    Тип:{' '}
+                    {(['mission_note', 'normative', 'datasheet', 'reference', 'other'] as const).map((k) => (
+                      <button key={k} type="button"
+                        className={`sp-tchip${upKind === k ? ' sel' : ''}`}
+                        onClick={() => setUpKind(k)}>
+                        {label('sd_kind', k)}
+                      </button>
+                    ))}
                   </div>
                   <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
                     <input placeholder="наименование карточки" value={upName}
@@ -566,8 +715,17 @@ export function StartPath({ project, onGo, onDone }: {
             </div>
             <div className="sp-blk sp-input">
               <div className="sp-src">Из материалов · Ш2</div>
-              <pre>{source
-                ? `Постановка: ${source.name} (${source.id})`
+              <pre>{chosenDocs.length > 0
+                ? [
+                  `Документы в промпте — ${chosenDocs.length} из ${withText.length}` +
+                    (excludedDocs.length > 0
+                      ? ` (${excludedDocs.map((d) => `«${d.name}»`).join(', ')} исключен${excludedDocs.length === 1 ? 'а' : 'ы'} вами)`
+                      : '') + ':',
+                  ...chosenDocs.map((d) => `· ${d.name}${d.summary ? `: «${d.summary}»` : ''}`),
+                  ...(Object.keys(stepCounts).length > 0
+                    ? [`Наборы: ${Object.entries(stepCounts).map(([t, n]) => countPhrase(t, n)).join(' · ')}.`]
+                    : []),
+                ].join('\n')
                 : 'генерация без постановки даст общие места'}</pre>
             </div>
             {promptFull && (

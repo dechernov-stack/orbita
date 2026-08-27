@@ -243,10 +243,43 @@ class LibraryChannel(
      * ссылки пачки ремапятся, каждый созданный несёт «применяет» на прототип
      * и происхождение imported с родословной фрагмента.
      */
-    fun apply(fragmentId: String, projectId: String, author: String): List<Pair<String, String>> {
+    /** Итог применения: created — пары «старый id → новый»; existing — живые
+     * экземпляры прежнего взятия (идемпотентность: второй набор не создаётся). */
+    data class ApplyOutcome(val created: List<Pair<String, String>>, val existing: List<String>)
+
+    /** Отмена заблокирована: созданное взятием уже тронуто руками. */
+    class RevertBlockedException(val touched: List<String>) :
+        IllegalStateException("созданное взятием уже тронуто руками: ${touched.joinToString()}")
+
+    /** Живые экземпляры проекта, применённые из фрагмента, — журнал применения
+     * и есть связи «применяет»: отдельного состояния у взятия нет. */
+    fun appliedInstances(fragmentId: String, projectId: String): List<orbita.mod.store.StoredObject> =
+        boundary.links.linksTo(fragmentId, "applies")
+            .mapNotNull { boundary.objects.current(it.fromId) }
+            .filter { it.projectId == projectId && it.status != orbita.mod.model.Lifecycle.Cancelled }
+            .sortedBy { it.id }
+
+    /**
+     * Отмена взятия — до конца пути: гасит созданное ИМЕННО этим взятием.
+     * Тронутое руками (история длиннее создания) — отказ с перечнем, не
+     * молчаливое удаление.
+     */
+    fun revert(fragmentId: String, projectId: String, author: String): List<String> {
+        val instances = appliedInstances(fragmentId, projectId)
+        val touched = instances.filter { boundary.objects.history(it.id).size > 1 }.map { it.id }
+        if (touched.isNotEmpty()) throw RevertBlockedException(touched)
+        instances.forEach { boundary.editing.cancel(it.id, author) }
+        return instances.map { it.id }
+    }
+
+    fun apply(fragmentId: String, projectId: String, author: String): ApplyOutcome {
         val frag = boundary.objects.current(fragmentId)
             ?: throw NoSuchElementException("fragment '$fragmentId' not found")
         require(frag.type == "library_fragment") { "'$fragmentId' is not a library fragment" }
+        // идемпотентность по связи «применяет»: повторное нажатие не плодит набор
+        appliedInstances(fragmentId, projectId).takeIf { it.isNotEmpty() }?.let { alive ->
+            return ApplyOutcome(created = emptyList(), existing = alive.map { it.id })
+        }
         val objects = frag.doc.path("payload").path("objects")
         require(objects.isArray && objects.size() > 0) { "fragment '$fragmentId' payload is empty" }
 
@@ -305,6 +338,6 @@ class LibraryChannel(
             val stored = boundary.ingest(type, mapper.writeValueAsString(doc), author, projectId)
             boundary.req.syncLinks(stored.type, stored.id, stored.doc, stored.projectId)
         }
-        return created
+        return ApplyOutcome(created = created, existing = emptyList())
     }
 }

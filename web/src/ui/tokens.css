@@ -1328,3 +1328,39 @@ details.np-dates[open] summary::before { transform: rotate(90deg); }
 .rr-band { display: flex; gap: 10px; align-items: center; margin: 10px 16px 0;
   padding: 8px 12px; border: 1px solid var(--status-error); border-radius: 8px;
   background: var(--error-surface); color: #93000a; font-size: 12.5px; }
+/* Компонент выбора оболочки (круг 3 §2): нативные select запрещены */
+.osel { position: relative; display: inline-flex; }
+.osel__btn { font: 400 12px/18px var(--font); border: 1px solid var(--hairline);
+  border-radius: 7px; padding: 3px 10px; background: var(--bg); color: var(--text);
+  cursor: pointer; text-align: left; width: 100%; white-space: nowrap; }
+.osel__pop { position: absolute; top: calc(100% + 4px); left: 0; min-width: 100%;
+  max-height: 260px; overflow: auto; background: var(--bg); border: 1px solid var(--hairline);
+  border-radius: 8px; box-shadow: 0 8px 24px rgba(15, 28, 44, .14); padding: 4px;
+  display: flex; flex-direction: column; z-index: 6; }
+.osel__opt { font: 400 12px/18px var(--font); padding: 4px 9px; border: 0; background: none;
+  text-align: left; cursor: pointer; border-radius: 5px; color: var(--text); white-space: nowrap; }
+.osel__opt:hover { background: var(--container-2); }
+.osel__opt.on { background: var(--selection); font-weight: 600; }
+/* Круг 3 Ш2: взятие с видимым результатом */
+.sp-take { font: 600 11.5px/16px var(--font); padding: 3px 12px; border-radius: 6px;
+  border: 1px solid var(--accent); color: var(--accent); background: var(--bg);
+  cursor: pointer; white-space: nowrap; }
+.sp-take:disabled { opacity: .55; cursor: default; }
+.sp-took { font-size: 11.5px; color: var(--status-baseline); white-space: nowrap; }
+.sp-took b { font-family: var(--font-mono); font-weight: 600; }
+.sp-undo { font-size: 11px; color: var(--text-secondary); border: 0; background: none;
+  cursor: pointer; padding: 0; }
+.sp-undo:hover { color: var(--status-error); }
+.sp-stepsum { display: flex; gap: 10px; align-items: center; margin-top: 10px;
+  padding: 7px 11px; border: 1px solid var(--hairline); border-radius: 8px;
+  background: var(--container-2); font-size: 12px; }
+.sp-stepsum b { font-family: var(--font-mono); }
+/* Круг 3 §2: загрузка без нативного вида */
+.sp-drop { border: 1.5px dashed var(--hairline); border-radius: 8px; padding: 12px;
+  font-size: 12px; color: var(--text-secondary); text-align: center; }
+.sp-drop.over { border-color: var(--accent); background: var(--selection); }
+.sp-tchips { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; font-size: 12px; }
+.sp-tchip { font-size: 11.5px; padding: 2px 9px; border-radius: 9px;
+  border: 1px solid var(--hairline); cursor: pointer; color: var(--text-secondary);
+  background: var(--bg); }
+.sp-tchip.sel { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }

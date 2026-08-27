@@ -1824,11 +1824,32 @@ class HttpApi(private val boundary: Boundary) {
                 require(applyAuthor.isNotBlank()) { "field 'author' is required" }
                 val applyProject = requireProject(project)
                 val fragId = path.removePrefix("/library/fragments/").removeSuffix("/apply")
-                val created = LibraryChannel(boundary).apply(fragId, applyProject, applyAuthor)
+                val outcome = LibraryChannel(boundary).apply(fragId, applyProject, applyAuthor)
                 val out = mapper.createObjectNode()
                 val arr = out.putArray("created")
-                created.forEach { (from, id) -> arr.addObject().put("from", from).put("id", id) }
-                respond(ex, 201, out)
+                outcome.created.forEach { (from, id) -> arr.addObject().put("from", from).put("id", id) }
+                out.set<ArrayNode>("existing", mapper.valueToTree(outcome.existing))
+                // 200 на повтор: набор уже взят, второй не создан (идемпотентность)
+                respond(ex, if (outcome.created.isEmpty() && outcome.existing.isNotEmpty()) 200 else 201, out)
+            }
+
+            // Круг 3 §1: отмена взятия — до конца пути; тронутое руками — отказ
+            method == "POST" && path.matches(Regex("/library/fragments/LF-[0-9]{4}/revert")) -> {
+                val req = mapper.readTree(body(ex))
+                val revertAuthor = author(req.path("author").asText(""))
+                require(revertAuthor.isNotBlank()) { "field 'author' is required" }
+                val fragId = path.removePrefix("/library/fragments/").removeSuffix("/revert")
+                try {
+                    val removed = LibraryChannel(boundary).revert(fragId, requireProject(project), revertAuthor)
+                    respond(ex, 200, mapper.createObjectNode().apply {
+                        set<ArrayNode>("removed", mapper.valueToTree(removed))
+                    })
+                } catch (e: LibraryChannel.RevertBlockedException) {
+                    respond(ex, 409, mapper.createObjectNode().apply {
+                        put("error", "созданное этим взятием уже тронуто руками — отмена не выполняется")
+                        set<ArrayNode>("touched", mapper.valueToTree(e.touched))
+                    })
+                }
             }
 
             // Полки библиотеки по классу (§4 Ш2): фрагменты с живыми счётчиками
@@ -1848,6 +1869,18 @@ class HttpApi(private val boundary: Boundary) {
                         val manifest = row.putObject("origin")
                         f.doc.path("origin").properties().forEach { (k, v) ->
                             if (k != "object_versions") manifest.set<com.fasterxml.jackson.databind.JsonNode>(k, v.deepCopy())
+                        }
+                        // круг 3 §1: взятие видно после перезахода — по связям
+                        // «применяет», отдельного состояния у взятия нет
+                        project?.let { pj ->
+                            val alive = LibraryChannel(boundary).appliedInstances(f.id, pj)
+                            if (alive.isNotEmpty()) {
+                                val taken = row.putObject("applied")
+                                taken.put("count", alive.size)
+                                val byType = taken.putObject("by_type")
+                                alive.groupingBy { it.type }.eachCount()
+                                    .forEach { (t, n) -> byType.put(t, n) }
+                            }
                         }
                     }
                 respond(ex, 200, arr)
@@ -2675,9 +2708,15 @@ class HttpApi(private val boundary: Boundary) {
         }
     }
 
+    // Разбор по СЫРОЙ строке: URI.getQuery() снимает проценты, но оставляет
+    // «+» плюсом — имя карточки с пробелом приезжало как «Имя+карточки»
+    // (замечание круга 3). URLDecoder декодирует и %XX, и «+» → пробел.
     private fun query(ex: HttpExchange): Map<String, String> =
-        ex.requestURI.query?.split('&')?.mapNotNull { p ->
-            p.substringBefore('=').takeIf { it.isNotBlank() }?.let { it to p.substringAfter('=', "") }
+        ex.requestURI.rawQuery?.split('&')?.mapNotNull { p ->
+            p.substringBefore('=').takeIf { it.isNotBlank() }?.let {
+                java.net.URLDecoder.decode(it, Charsets.UTF_8) to
+                    java.net.URLDecoder.decode(p.substringAfter('=', ""), Charsets.UTF_8)
+            }
         }?.toMap() ?: emptyMap()
 
     private fun summary(o: StoredObject): ObjectNode = mapper.createObjectNode()

@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { api, type AiJournal } from '../api/client'
 import { edit, type StoredSummary } from '../api/edit'
 import { ObjectEditor } from '../ui/ObjectEditor'
+import { Select } from '../ui/Select'
 
 interface Block {
   source: string
@@ -217,9 +218,11 @@ export function AiProfiles({ onGo }: { onGo?: (screen: string) => void }) {
                 </div>
                 <div className="apf-pctl">
                   <span className="np-label" style={{ margin: 0 }}>Вид пакета</span>
-                  <select value={pkgKind} onChange={(e) => setPkgKind(e.target.value)}>
-                    {(doc.kinds ?? []).map((k) => <option key={k} value={k}>{k}</option>)}
-                  </select>
+                  <Select
+                    value={pkgKind}
+                    options={(doc.kinds ?? []).map((k) => ({ key: k, title: k }))}
+                    onChange={setPkgKind}
+                  />
                   <span className="np-hint" style={{ margin: 0 }}>
                     предпросмотр без входа операции — вход подставится при запуске
                   </span>

@@ -155,7 +155,8 @@ class LibraryChannelTest {
         assertEquals(2, frag.doc.path("counters").path("component").asInt())
         assertEquals("PJ-2101", frag.doc.path("origin").path("project").asText())
 
-        val created = channel.apply(frag.id, "PJ-2102", "приёмник")
+        val outcome = channel.apply(frag.id, "PJ-2102", "приёмник")
+        val created = outcome.created
         assertEquals(4, created.size)
         val newByOld = created.toMap()
         val ka = boundary.objects.current(newByOld["CM-0002"]!!)!!
@@ -182,5 +183,37 @@ class LibraryChannelTest {
         )
         // обезличенная масса не приехала
         assertTrue(ka.doc.path("parameters").isEmpty || ka.doc.path("parameters").isMissingNode)
+    }
+
+    @Test
+    @Order(4)
+    fun `взятие идемпотентно, отмена гасит созданное, тронутое руками не отменяется`() {
+        // повторное нажатие не плодит второй набор — по связям «применяет»
+        val again = channel.apply(fragmentId, "PJ-2102", "приёмник")
+        assertTrue(again.created.isEmpty()) { "второй набор не создан: ${'$'}{again.created}" }
+        assertEquals(4, again.existing.size)
+
+        // отмена гасит созданное именно этим взятием
+        val removed = channel.revert(fragmentId, "PJ-2102", "приёмник")
+        assertEquals(4, removed.size)
+        removed.forEach {
+            assertEquals(orbita.mod.model.Lifecycle.Cancelled, boundary.objects.current(it)!!.status)
+        }
+        // после отмены путь свободен: взятие создаёт набор заново
+        val fresh = channel.apply(fragmentId, "PJ-2102", "приёмник")
+        assertEquals(4, fresh.created.size)
+
+        // тронутое руками — отказ с перечнем, не молчаливое удаление
+        val touchedId = fresh.created.first { it.first == "CM-0002" }.second
+        val cur = boundary.objects.current(touchedId)!!
+        val doc = cur.doc.deepCopy<com.fasterxml.jackson.databind.node.ObjectNode>()
+        doc.put("name", "Тронуто рукой инженера")
+        boundary.editing.update(
+            orbita.mod.model.CoreType.Component, touchedId, doc, cur.version, "инженер",
+        )
+        val blocked = org.junit.jupiter.api.Assertions.assertThrows(
+            LibraryChannel.RevertBlockedException::class.java,
+        ) { channel.revert(fragmentId, "PJ-2102", "приёмник") }
+        assertTrue(touchedId in blocked.touched) { blocked.touched.toString() }
     }
 }

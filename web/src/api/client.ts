@@ -218,16 +218,25 @@ export const api = {
       id: string; name: string; shelf: string; mission_class_ref: string; summary: string
       counters: Record<string, number>
       origin: { project?: string; author?: string; date?: string }
+      /** Взятие видно после перезахода — по связям «применяет». */
+      applied?: { count: number; by_type: Record<string, number> }
     }>>('/library/shelves'),
   /** Классы миссии (§4 Ш1) — полка Б4. */
   missionClasses: () =>
     get<Array<{ id: string; name: string; typical_constraints: Array<{ code?: string; text: string }> }>>(
       '/library/mission-classes',
     ),
-  /** Применение фрагмента: экземпляры со связью «применяет» и родословной. */
+  /** Применение фрагмента: экземпляры со связью «применяет» и родословной.
+   * Идемпотентно: повторное нажатие возвращает existing, второй набор
+   * не создаётся (круг 3 §1). */
   libraryApply: (fragment: string, author: string) =>
-    post<{ created: Array<{ from: string; id: string }> }>(
+    post<{ created: Array<{ from: string; id: string }>; existing: string[] }>(
       `/library/fragments/${encodeURIComponent(fragment)}/apply`, { author },
+    ),
+  /** Отмена взятия — до конца пути; тронутое руками — отказ с перечнем. */
+  libraryRevert: (fragment: string, author: string) =>
+    post<{ removed: string[] }>(
+      `/library/fragments/${encodeURIComponent(fragment)}/revert`, { author },
     ),
   /** Предпросмотр «Сохранить как шаблон»: резы поимённо до записи. */
   libraryPreview: (sel: { kind?: string; ids?: string[]; root?: string }) =>

@@ -216,6 +216,13 @@
       "standard": "стандарт",
       "minutes": "протокол",
       "other": "иное"
+    },
+    "sd_kind": {
+      "mission_note": "записка миссии",
+      "normative": "норматив",
+      "datasheet": "даташит",
+      "reference": "справка",
+      "other": "прочее"
     }
   }
 }

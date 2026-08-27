@@ -84,6 +84,15 @@ body{font:400 13px/20px var(--font);color:var(--on);background:#dfe2e6;padding:2
 .drop{margin:10px 12px;border:1px dashed var(--hair);border-radius:8px;background:var(--c-low);
   padding:16px;text-align:center;font-size:12px;color:var(--on-var)}
 .drop b{color:var(--accent);font-weight:600;cursor:pointer}
+.take{font:600 11.5px/16px var(--font);padding:3px 12px;border-radius:6px;border:1px solid var(--accent);color:var(--accent);background:var(--c-lowest);cursor:pointer;white-space:nowrap}
+.took{font-size:11.5px;color:var(--ok);white-space:nowrap}
+.took b{font-family:var(--mono);font-weight:600}
+.undo{font-size:11px;color:var(--outline);text-decoration:none}.undo:hover{color:var(--error)}
+.tchips{display:flex;gap:5px;flex-wrap:wrap}
+.tchip{font-size:11.5px;padding:2px 9px;border-radius:9px;border:1px solid var(--hair);cursor:pointer;color:var(--on-var);background:var(--c-lowest)}
+.tchip.sel{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.stepsum{display:flex;gap:10px;align-items:center;margin-top:10px;padding:7px 11px;border:1px solid var(--hair);border-radius:8px;background:var(--c-low);font-size:12px}
+.stepsum b{font-family:var(--mono)}
 .file{display:flex;gap:8px;align-items:center;padding:7px 12px;font-size:12.5px}
 .file .mono{font-size:11.5px;color:var(--on-var)}
 .file .ok{color:var(--ok);font-size:11.5px;margin-left:auto}
@@ -188,35 +197,19 @@ mark{background:var(--accent-fix);border-radius:3px;padding:0 2px}
 
     <div class="two">
       <div class="pane">
-        <div class="ph">Взять из библиотеки <span class="sub">по классу «НОО · связь и IoT»</span></div>
-        <div class="set"><input type="checkbox" checked><span class="tx">
-          <div class="nm">Типовые требования НОО-класса · 34</div>
-          <div class="ds">Увод с орбиты, ЭМС, стойкость к среде, КИИ — с основаниями</div></span>
-          <a class="open" href="#">состав</a></div>
-        <div class="set"><input type="checkbox" checked><span class="tx">
-          <div class="nm">Комплект документов Pre-Phase A · Д1–Д9</div>
-          <div class="ds">FAD, Mission Concept Report, ConOps — структуры разделов</div></span>
-          <a class="open" href="#">состав</a></div>
-        <div class="set"><input type="checkbox" checked><span class="tx">
-          <div class="nm">Каркас состава и работ · PBS + WBS</div>
-          <div class="ds">Типовой КА с подсистемами, сегменты, ЦУП; дерево работ программы</div></span>
-          <a class="open" href="#">состав</a></div>
-        <div class="set"><input type="checkbox"><span class="tx">
-          <div class="nm">Типовые интерфейсы · 4</div>
-          <div class="ds">Радиолиния КА↔станция, КА↔терминал, межспутниковая РЧ, ЦУП↔станция</div></span>
-          <a class="open" href="#">состав</a></div>
-        <div class="set"><input type="checkbox"><span class="tx">
-          <div class="nm">Шаблоны компонентов · 12</div>
-          <div class="ds">БЦВМ, СЭП, АФС, терминал — свойства и типовые требования</div></span>
-          <a class="open" href="#">состав</a></div>
-      </div>
+        <div class="ph">Взять из библиотеки <span class="sub">по классу «НОО · связь и IoT» · действие немедленное, отмена — до конца пути</span></div><div class="set"><span class="tx"><div class="nm">Типовые требования НОО-класса · 34</div><div class="ds">Увод с орбиты, ЭМС, стойкость к среде, КИИ — с основаниями</div></span><span class="took">Взято ✓ создано <b>34</b></span> <a class="open" href="#">состав</a> <a class="undo" href="#">отменить</a></div><div class="set"><span class="tx"><div class="nm">Комплект документов Pre-Phase A · Д1–Д9</div><div class="ds">FAD, Mission Concept Report, ConOps — структуры разделов</div></span><span class="took">Взято ✓ создано <b>13</b></span> <a class="open" href="#">состав</a> <a class="undo" href="#">отменить</a></div><div class="set"><span class="tx"><div class="nm">Каркас состава и работ · PBS + WBS</div><div class="ds">Типовой КА с подсистемами, сегменты, ЦУП; дерево работ программы</div></span><a class="open" href="#">состав</a> <button class="take">Взять</button></div><div class="set"><span class="tx"><div class="nm">Типовые интерфейсы · 4</div><div class="ds">Радиолиния КА↔станция, КА↔терминал, межспутниковая РЧ, ЦУП↔станция</div></span><a class="open" href="#">состав</a> <button class="take">Взять</button></div><div class="set"><span class="tx"><div class="nm">Шаблоны компонентов · 12</div><div class="ds">БЦВМ, СЭП, АФС, терминал — свойства и типовые требования</div></span><a class="open" href="#">состав</a> <button class="take">Взять</button></div><div class="stepsum">Создано этим шагом: <b>34</b> требования · <b>13</b> шаблонов документов<span style="color:var(--outline)">— со связями «применяет»; отмена удаляет созданное взятием</span></div></div>
       <div class="pane">
         <div class="ph">Сложить своё <span class="sub">материал проекта — для ИИ и документов</span></div>
-        <div class="file"><span>Постановка миссии</span>
-          <span class="mono">IoT_19_12_Минтранс.docx</span><span class="ok">карточка заполнена ✓</span></div>
+        <div class="ph" style="border-top:1px solid var(--hair);font-weight:400;font-size:11px;color:var(--outline)">отмеченные уходят в промпт службы на Ш3 — участие множественное</div>
+        <label class="file"><input type="checkbox" checked style="accent-color:var(--accent)"><span>Постановка миссии</span>
+          <span class="mono">IoT_19_12_Минтранс.docx</span><span class="ok">карточка заполнена ✓</span></label>
+        <label class="file"><input type="checkbox" checked style="accent-color:var(--accent)"><span>Даташит терминала</span>
+          <span class="mono">LR1121_ds.pdf</span><span class="ok">карточка заполнена ✓</span></label>
+        <label class="file"><input type="checkbox" style="accent-color:var(--accent)"><span>Справка по частотам</span>
+          <span class="mono">спектр_обзор.docx</span><span style="font-size:11px;color:var(--outline)">исключена из промпта</span></label>
         <div style="margin:0 12px 10px;border:1px solid var(--hair);border-radius:8px;background:var(--c-low);padding:8px 12px">
           <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--on-var)">
-            <span>Тип: <b style="color:var(--on)">записка миссии</b></span>
+            <span class="tchips">Тип: <span class="tchip sel">записка миссии</span><span class="tchip">норматив</span><span class="tchip">даташит</span><span class="tchip">справка</span><span class="tchip">прочее</span></span>
             <span>Источник: <b style="color:var(--on)">Минтранс России</b></span>
             <span>Дата: <b style="color:var(--on)">19.12.2025</b></span></div>
           <div style="font-size:12px;line-height:17px;margin-top:5px">Аннотация (ИИ, акцептована):
@@ -226,8 +219,9 @@ mark{background:var(--accent-fix);border-radius:3px;padding:0 2px}
             <button class="btn" style="padding:3px 10px;font-size:11.5px">Разобрать: типовые риски</button>
             <span style="font-size:11px;color:var(--outline);align-self:center">результат придёт на акцепт</span>
           </div></div>
-        <div class="drop">Перетащите файлы или <b>выберите</b> — справочники, записки,
-          регуляторные документы. Лягут материалом проекта.</div>
+        <div class="drop">Перетащите файлы сюда — справочники, записки, регуляторные документы —
+          <button class="take" style="margin:0 4px">Выбрать файлы</button> лягут материалом проекта.
+          Нативных контролов браузера в экранах нет — правило дизайн-системы.</div>
       </div>
     </div>
 
@@ -269,8 +263,11 @@ mark{background:var(--accent-fix);border-radius:3px;padding:0 2px}
 — платформа не тяжелее 100 кг (Р4)
 — число без ссылки на источник не предлагать вовсе</pre></div>
     <div class="blk input"><div class="src">Из материалов · Ш2</div>
-<pre>Постановка: «…геопозиция ТС с опасным грузом не реже одного раза в 30 с
-(ПП РФ № 2216)…» · Типовые требования НОО-класса: 34 · Комплект Д1–Д9.</pre></div>
+<pre>Документы в промпте — 2 из 3 (справка по частотам исключена вами):
+· Постановка миссии: «…геопозиция ТС с опасным грузом не реже одного раза
+  в 30 с (ПП РФ № 2216)…»
+· Даташит терминала LR1121: чувствительность −129 дБм, LR-FHSS.
+Наборы: типовые требования НОО-класса · 34; комплект Д1–Д9.</pre></div>
 
     <div class="actions">
       <button class="btn">Назад</button>

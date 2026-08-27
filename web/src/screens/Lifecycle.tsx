@@ -4,6 +4,7 @@
 // на рабочее место операции.
 import { useEffect, useState } from 'react'
 import { api, type OperationsView } from '../api/client'
+import { countPhrase } from '../ui/countPhrase'
 import { edit } from '../api/edit'
 import { requestDocTemplate } from '../api/intent'
 
@@ -66,12 +67,13 @@ export function Lifecycle({ project, onGo }: { project: string; onGo: (screen: s
     status: string
     step: number
     profile_ref?: string
+    created_counts?: Record<string, number>
   } | null>(null)
 
   useEffect(() => {
     edit.object(project)
       .then((o) => {
-        const sp = (o.doc as { start_path?: { status: string; step: number; profile_ref?: string } }).start_path
+        const sp = (o.doc as { start_path?: { status: string; step: number; profile_ref?: string; created_counts?: Record<string, number> } }).start_path
         setStartPath(sp ?? null)
       })
       .catch(() => setStartPath(null))
@@ -227,6 +229,9 @@ export function Lifecycle({ project, onGo }: { project: string; onGo: (screen: s
                 {startPath.profile_ref
                   ? `Профиль ${startPath.profile_ref} создан, генерация запущена.`
                   : 'Профиль создан, генерация запущена.'}
+                {startPath.created_counts && Object.keys(startPath.created_counts).length > 0 &&
+                  ` Создано путём: ${Object.entries(startPath.created_counts)
+                    .map(([t, n]) => countPhrase(t, n)).join(' · ')}.`}
               </span>
             </span>
             <span className="grow" />

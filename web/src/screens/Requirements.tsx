@@ -12,6 +12,7 @@ import { edit } from '../api/edit'
 import { requestObject, screenOfObject, takeObject } from '../api/intent'
 import type { RequirementCard, RequirementRow, RequirementTreeView, SavedViewDoc } from '../api/types'
 import { ObjectEditor } from '../ui/ObjectEditor'
+import { Select } from '../ui/Select'
 import { useSession } from '../ui/session'
 import {
   buildItems, COLUMN_LABELS, defaultColumns, flatRows, gapCounters, GAP_LABELS,
@@ -232,15 +233,13 @@ export function Requirements({ onGo }: { onGo?: (screen: string) => void }) {
           <button type="button" className={form === 'tree' ? 'on' : ''} onClick={() => setForm('tree')}>Дерево</button>
           <button type="button" className={form === 'flat' ? 'on' : ''} onClick={() => setForm('flat')}>Плоско</button>
         </span>
-        <select
-          className="rr-grpby"
+        <Select
           value={grouping ?? ''}
-          onChange={(e) => setGrouping((e.target.value || null) as GroupKey | null)}
-          title="как сгруппировать строки реестра"
-        >
-          <option value="">без группировки</option>
-          {GROUPINGS.map((g) => <option key={g.key} value={g.key}>Группировка: {g.title}</option>)}
-        </select>
+          prefix="Группировка: "
+          options={[{ key: '', title: 'нет' },
+            ...GROUPINGS.map((g) => ({ key: g.key, title: g.title }))]}
+          onChange={(v) => setGrouping((v || null) as GroupKey | null)}
+        />
         <span className="rr-views">
           {views.map((v) => (
             <button
@@ -951,10 +950,14 @@ function CarrierBand({ id, version, author, onDone, onFail }: {
       <b>Требование системного уровня не распределено.</b>
       <span>Системное требование обязано иметь носителя — элемент или интерфейс.</span>
       <span style={{ flex: 1 }} />
-      <select className="rr-grpby" value={picked} onChange={(e) => setPicked(e.target.value)}>
-        <option value="">выбрать носителя…</option>
-        {options.map((o) => <option key={o.id} value={o.id}>{o.id} · {o.title}</option>)}
-      </select>
+      <Select
+        value={picked}
+        placeholder="выбрать носителя…"
+        width={250}
+        options={[{ key: '', title: 'выбрать носителя…' },
+          ...options.map((o) => ({ key: o.id, title: `${o.id} · ${o.title}` }))]}
+        onChange={setPicked}
+      />
       <button
         type="button" className="rr-btn rr-btn--pri" disabled={!picked}
         onClick={() => {
