@@ -1179,6 +1179,60 @@ class HttpApi(private val boundary: Boundary) {
                         if (effective != null && !held && effective.isBefore(today)) g.put("overdue", true)
                         prevDate = effective ?: prevDate
                     }
+                    // О-10: пройденной вехе — решение прохождения; ближайшей —
+                    // счётчик незакрытого (без конфигурации — честно нет)
+                    val decisions = boundary.objects.listCurrent(projectObj.id)
+                        .filter { it.type == "decision" }
+                    gates.forEach { gn ->
+                        val g = gn as ObjectNode
+                        val gname = g.path("gate").asText()
+                        g.put("label", boundary.req.gateLabel(gname))
+                        if (g.path("held").asBoolean(false)) {
+                            decisions.lastOrNull {
+                                it.doc.path("question").asText() == "Прохождение точки $gname"
+                            }?.let { g.put("decision_rationale", it.doc.path("rationale").asText("")) }
+                        }
+                    }
+                    gates.firstOrNull { !it.path("held").asBoolean(false) }?.let { gn ->
+                        val g = gn as ObjectNode
+                        runCatching { boundary.gatePassing.issues(g.path("gate").asText(), projectObj.id).size }
+                            .onSuccess { g.put("open_count", it) }
+                    }
+                    // возврат — полосой между лентой и паспортом (О-10);
+                    // счётчик открытых замечаний точки — ссылке «замечания →»
+                    val ret = projectObj.doc.path("return")
+                    if (ret.isObject) {
+                        val r = out.putObject("return")
+                        r.put("gate", ret.path("gate").asText(""))
+                        r.put("reason", ret.path("reason").asText(""))
+                        r.put("at", ret.path("at").asText(""))
+                        r.put(
+                            "open_reviews",
+                            boundary.objects.listCurrent(projectObj.id).count {
+                                it.type == "review_item" && it.status != Lifecycle.Cancelled &&
+                                    it.doc.path("status").asText("") != "closed"
+                            },
+                        )
+                    }
+                    // паспорт — второй блок экрана (О-10 §5)
+                    val pass = out.putObject("passport")
+                    val leadLogin = boundary.auth.listRoles(projectObj.id).entries
+                        .firstOrNull { it.value == "lead" }?.key
+                    pass.put(
+                        "owner",
+                        leadLogin?.let { boundary.auth.displayNameOf(it) ?: it }
+                            ?: humanAuthor(boundary.objects.history(projectObj.id).firstOrNull()?.createdBy ?: ""),
+                    )
+                    val mc = projectObj.doc.path("mission_class").asText("")
+                    if (mc.isNotBlank()) {
+                        pass.putObject("mission_class")
+                            .put("id", mc)
+                            .put("name", boundary.objects.current(mc)?.doc?.path("name")?.asText("") ?: mc)
+                    }
+                    pass.set<ArrayNode>("constraints", projectObj.doc.path("constraints").deepCopy())
+                    projectObj.doc.path("start_path").takeIf { it.isObject }?.let {
+                        pass.set<ObjectNode>("start_path", it.deepCopy())
+                    }
                     // стандартные дальние вехи, которых в паспорте ещё нет, —
                     // кнопке «+ вехи Phase B–F» (NPR 7120.5): инженер не обязан
                     // печатать PDR/CDR руками (находка прогона)

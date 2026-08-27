@@ -1,0 +1,164 @@
+<!DOCTYPE html><html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Орбита · эталон О-10: жизненный цикл · круг 1</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--surface:#f8f9fa;--c-lowest:#fff;--c-low:#f3f4f5;--c:#edeeef;--on:#191c1d;--on-var:#44474c;
+--outline:#74777d;--hair:#c4c6cc;--rail:#0f1c2c;--on-rail:#8b97a8;--accent:#115cb9;--accent-fix:#d7e2ff;
+--error:#ba1a1a;--error-c:#ffdad6;--on-error-c:#93000a;--ok:#1a7f37;--ok-c:#e6f2e9;
+--font:Inter,-apple-system,'Segoe UI',sans-serif;--mono:'JetBrains Mono',Menlo,monospace}
+*{box-sizing:border-box;margin:0}
+body{font:400 13px/20px var(--font);color:var(--on);background:#dfe2e6;padding:28px 0}
+.stand{max-width:1240px;margin:0 auto}
+.stand h1{font-size:15px;font-weight:600;padding:0 4px 6px}
+.stand .note{font-size:12px;color:var(--on-var);padding:0 4px 18px;max-width:920px}
+.case{margin:0 0 30px}
+.case>.tag{display:inline-block;font:600 11px/16px var(--font);text-transform:uppercase;letter-spacing:.07em;
+color:var(--on-var);background:#eef0f2;border:1px solid var(--hair);border-bottom:none;border-radius:6px 6px 0 0;padding:4px 10px}
+.frame{background:var(--surface);border:1px solid var(--hair);border-radius:0 8px 8px 8px;overflow:hidden;
+display:grid;grid-template-rows:48px 1fr;grid-template-columns:68px 1fr;grid-template-areas:'hdr hdr' 'rail main';min-height:430px}
+.hdr{grid-area:hdr;display:flex;align-items:center;gap:12px;padding:0 16px;background:var(--c-lowest);border-bottom:1px solid var(--hair)}
+.brand{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;letter-spacing:-.02em}
+.brand .o{width:16px;height:16px;border:2px solid var(--on);border-radius:50%}
+.proj b{font-weight:600}
+.chip{font-size:12px;line-height:18px;padding:1px 8px;border-radius:9px;background:var(--c);color:var(--on-var)}
+.who{margin-left:auto;font-size:12px;color:var(--on-var)}.who b{color:var(--on)}
+.rail{grid-area:rail;background:var(--rail);display:flex;flex-direction:column;align-items:center;padding:10px 0;gap:2px}
+.rico{width:58px;padding:7px 0 6px;border-radius:8px;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--on-rail)}
+.rico.on{background:rgba(255,255,255,.14);color:#fff}
+.rico svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round}
+.rlab{font:500 9px/10px var(--font)}
+.main{grid-area:main;background:var(--c-lowest);padding:16px 20px;overflow:auto}
+.main h1{font-size:14px;font-weight:600;margin-bottom:14px}
+/* лента вех */
+.lane{display:flex;align-items:flex-start;gap:0;margin:0 0 18px}
+.g{flex:1;min-width:150px;position:relative;padding:0 10px 0 0}
+.g .lnk{position:absolute;top:10px;left:26px;right:-4px;height:2px;background:var(--hair)}
+.g.past .lnk{background:var(--ok)}
+.g .dot{width:20px;height:20px;border-radius:50%;border:2px solid var(--hair);background:var(--c-lowest);
+display:grid;place-items:center;font-size:11px;position:relative;z-index:1}
+.g.past .dot{border-color:var(--ok);background:var(--ok);color:#fff}
+.g.next .dot{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-fix)}
+.g .nm{font:600 12.5px/17px var(--font);margin:7px 0 2px}
+.g .dt{font-size:11.5px;color:var(--on-var)}
+.g .dt .mono{font-family:var(--mono);font-size:11.5px}
+.g .dt.quiet{color:var(--outline)}
+.g .st{margin-top:5px}
+.cnt{display:inline-block;font-family:var(--mono);font-size:11.5px;color:var(--on-error-c);background:var(--error-c);border-radius:8px;padding:0 7px;cursor:pointer}
+.pass{display:inline-block;font-size:11px;color:var(--ok);background:var(--ok-c);border-radius:8px;padding:0 7px}
+.hz{font-size:11px;color:var(--outline);margin-top:5px;max-width:150px}
+.fix{margin-top:6px}
+.btn{font:600 12px/17px var(--font);padding:4px 11px;border-radius:6px;border:1px solid var(--hair);background:var(--c-lowest);cursor:pointer}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+.rolehint{font-size:10.5px;color:var(--outline);margin-top:3px}
+/* возврат */
+.retband{display:flex;gap:12px;align-items:flex-start;background:var(--error-c);color:var(--on-error-c);
+border-radius:8px;padding:9px 13px;margin:0 0 18px;font-size:12.5px;line-height:18px}
+.retband b{font-weight:600}
+.retband .sp{flex:1}
+.retband a{color:var(--on-error-c);font-weight:600}
+/* паспорт */
+.pass2{border:1px solid var(--hair);border-radius:8px;padding:11px 14px;max-width:760px}
+.pass2 .k{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--on-var);margin-bottom:8px;display:flex;justify-content:space-between}
+.pass2 .k a{text-transform:none;letter-spacing:0;font-size:11.5px;color:var(--accent);text-decoration:none;font-weight:500}
+.prow{display:grid;grid-template-columns:150px 1fr;gap:3px 14px;font-size:12.5px}
+.prow .l{color:var(--on-var)}
+.pchips{display:flex;gap:5px;flex-wrap:wrap}
+.pchip{font-size:11.5px;padding:1px 8px;border-radius:9px;background:var(--c);color:var(--on-var)}
+.startline{font-size:12px;color:var(--on-var);margin-top:8px}
+.startline a{color:var(--accent);text-decoration:none}
+</style></head><body><div class="stand">
+<h1>О-10 · Жизненный цикл — эталон, круг 1</h1>
+<div class="note">Лента вех — главная и единственная: пройденные зелёным с датой факта и решением,
+ближайшая — акцентом со счётчиком незакрытого (клик → готовность) и фиксацией (подпись «фиксирует
+DA» — роль, отказ сервером), будущие — план одной строкой, «дата не задана» — тихо, без водопада.
+Горизонт следующей фазы — тихой подписью (PDR). Возврат — полосой между лентой и паспортом.
+Активности на экране нет — она в портфеле.</div>
+
+<div class="case"><span class="tag">Состояние 1 · Pre-Phase A: обзор пройден, MCR ближайшая</span>
+<div class="frame">
+  <header class="hdr"><span class="brand"><span class="o"></span>Орбита</span>
+    <span class="proj"><b>Национальная спутниковая платформа IoT</b></span>
+    <span class="chip">Pre-Phase A</span>
+    <span class="who">Инженер: <b>Чернов Д.</b></span></header>
+  <nav class="rail">
+    <div class="rico"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg><span class="rlab">Портфель</span></div>
+    <div class="rico"><svg viewBox="0 0 24 24"><path d="M12 6c-2-1.4-5-1.4-7 0v12c2-1.4 5-1.4 7 0c2-1.4 5-1.4 7 0V6c-2-1.4-5-1.4-7 0z"/><path d="M12 6v12"/></svg><span class="rlab">Библиотека</span></div>
+    <div class="rico"><svg viewBox="0 0 24 24"><path d="M5 5h14M5 10h14M5 15h9M5 20h6"/></svg><span class="rlab">Требования</span></div>
+    <div class="rico"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></svg><span class="rlab">Документы</span></div>
+    <div class="rico on"><svg viewBox="0 0 24 24"><path d="M4 19V5m0 14h16M8 15l4-6 4 3 4-7"/></svg><span class="rlab">Контроль</span></div>
+  </nav>
+  <main class="main">
+    <h1>Жизненный цикл</h1>
+    <div class="lane">
+      <div class="g past"><span class="lnk"></span><span class="dot">✓</span>
+        <div class="nm">Внутренний обзор</div>
+        <div class="dt">пройден <span class="mono">20.08.2026</span></div>
+        <div class="st"><span class="pass">замечания устранены</span></div></div>
+      <div class="g next"><span class="lnk"></span><span class="dot"></span>
+        <div class="nm">MCR</div>
+        <div class="dt">план: <span class="mono">28.09.2026</span></div>
+        <div class="st"><span class="cnt">не закрыто · 9</span></div>
+        <div class="fix"><button class="btn pri">Зафиксировать прохождение</button>
+          <div class="rolehint">фиксирует DA</div></div></div>
+      <div class="g"><span class="lnk"></span><span class="dot"></span>
+        <div class="nm">KDP-A</div>
+        <div class="dt quiet">дата не задана</div></div>
+      <div class="g"><span class="dot"></span>
+        <div class="nm" style="color:var(--outline)">SRR</div>
+        <div class="dt quiet">Phase A</div>
+        <div class="hz">проверки появятся с регламентом Phase A после KDP-A</div></div>
+    </div>
+
+    <div class="pass2">
+      <div class="k">Паспорт проекта <a href="#">изменить</a></div>
+      <div class="prow">
+        <span class="l">Руководитель</span><span>Чернов Д.</span>
+        <span class="l">Класс миссии</span><span>НОО · связь и IoT</span>
+        <span class="l">Ограничения</span><span class="pchips"><span class="pchip">регенеративная ПН (Р1)</span><span class="pchip">радиодиапазон МСС (Р3)</span><span class="pchip">платформа ≤ 100 кг (Р4)</span><span class="pchip">статические маски (Р5)</span></span>
+      </div>
+      <div class="startline">Начало проекта пройдено: 34 типовых требования · комплект Д1–Д9 ·
+        профиль AP-0201 · <a href="#">настроить заново</a></div>
+    </div>
+  </main>
+</div></div>
+
+<div class="case"><span class="tag">Состояние 2 · возврат: MCR вернул на доработку</span>
+<div class="frame" style="min-height:360px">
+  <header class="hdr"><span class="brand"><span class="o"></span>Орбита</span>
+    <span class="proj"><b>Ретранслятор «Кольцо» — модернизация</b></span>
+    <span class="chip">Pre-Phase A</span>
+    <span class="who">Инженер: <b>Чернов Д.</b></span></header>
+  <nav class="rail"><div class="rico on"><svg viewBox="0 0 24 24"><path d="M4 19V5m0 14h16M8 15l4-6 4 3 4-7"/></svg><span class="rlab">Контроль</span></div></nav>
+  <main class="main">
+    <h1>Жизненный цикл</h1>
+    <div class="lane">
+      <div class="g past"><span class="lnk"></span><span class="dot">✓</span>
+        <div class="nm">Внутренний обзор</div>
+        <div class="dt">пройден <span class="mono">12.07.2026</span></div></div>
+      <div class="g next"><span class="lnk"></span><span class="dot">↩</span>
+        <div class="nm">MCR</div>
+        <div class="dt">повторно: <span class="mono">дата не задана</span></div>
+        <div class="st"><span class="cnt">не закрыто · 16</span></div></div>
+      <div class="g"><span class="dot"></span>
+        <div class="nm">KDP-A</div>
+        <div class="dt quiet">дата не задана</div></div>
+    </div>
+    <div class="retband"><b>Возврат MCR · 19.08.2026.</b>
+      <span>Заключение комиссии: полнота альтернатив недостаточна — доработать AoA по
+      двум отклонённым конфигурациям; RFA-0003, RFA-0004.</span>
+      <span class="sp"></span><a href="#">замечания · 2 →</a></div>
+    <div class="pass2">
+      <div class="k">Паспорт проекта <a href="#">изменить</a></div>
+      <div class="prow">
+        <span class="l">Руководитель</span><span>Чернов Д.</span>
+        <span class="l">Класс миссии</span><span>ГСО · ретрансляция</span>
+        <span class="l">Ограничения</span><span class="pchips"><span class="pchip">совместимость с бортом «Кольцо-1» (Р1)</span></span>
+      </div>
+      <div class="startline">Начало проекта: шаг 2 из 3 · <a href="#">продолжить</a></div>
+    </div>
+  </main>
+</div></div>
+
+</div></body></html>

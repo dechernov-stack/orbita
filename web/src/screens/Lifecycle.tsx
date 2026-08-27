@@ -1,339 +1,273 @@
-// Жизненный цикл проекта (блок D, дизайн: экран lifecycle): лента шести
-// контрольных точек и карта операций текущей фазы в три колонки. Состояние
-// операций считает сервер (ADR-029 п. 6) — клиент только показывает и ведёт
-// на рабочее место операции.
-import { useEffect, useState } from 'react'
-import { api, type OperationsView } from '../api/client'
+// О-10 «Жизненный цикл» (БРИФ-ЖИЗНЕННЫЙ-ЦИКЛ, эталон reference-lifecycle,
+// круг 1): лента вех — главная и единственная (пройденные зелёным с датой
+// факта и решением; ближайшая — акцентом со счётчиком незакрытого, клик →
+// готовность, и фиксацией «фиксирует DA»; будущие — план ОДНОЙ строкой,
+// «дата не задана» — тихо, водопад запрещён; горизонт следующей фазы —
+// тихой подписью). Возврат — полосой между лентой и паспортом. Активности
+// и операций на экране нет (бриф §5, §8) — активность живёт в портфеле,
+// мастер-механика операций — отдельно.
+import { useCallback, useEffect, useState } from 'react'
+import { api } from '../api/client'
+import { edit } from '../api/edit'
 import { countPhrase } from '../ui/countPhrase'
 import { DateInput } from '../ui/DateInput'
-import { edit } from '../api/edit'
-import { requestDocTemplate } from '../api/intent'
+import { useSession } from '../ui/session'
 
 interface GateRow {
   gate: string
-  due: string | null
-  held: boolean
-  /** Дата выведена цепочкой длительностей, а не задана якорем. */
+  label?: string
+  due?: string | null
+  held?: boolean
+  held_at?: string
+  decision_rationale?: string
   computed?: boolean
   duration_days?: number
   /** Точка в горизонте ИС (ворота ведут) или плановая веха Phase B–F. */
   in_scope?: boolean
   phase?: string
-  /** Дней от предыдущей датированной точки — считает сервер (STEP-6 §3.2). */
-  days_from_prev?: number
-  /** Просрочена (дата в прошлом, точка не пройдена) — вердикт сервера. */
+  open_count?: number
   overdue?: boolean
 }
 
-const STATE_LABEL: Record<string, string> = {
-  Done: 'выполнена',
-  InProgress: 'в работе',
-  NotStarted: 'не начата',
-  NotMeasurable: 'нечем измерить',
-}
-
-/**
- * Связка между соседними точками (второй заход прогона, замечание к п. 1):
- * длительность стоит МЕЖДУ карточками, а не на отдельной шкале. Число дней
- * приходит С СЕРВЕРА (days_from_prev): расчётов в клиенте нет (STEP-6 §3.2),
- * обход кода клиента это стережёт — и поймал первую версию, считавшую дни сама.
- */
-function GateLink({ from, to }: { from: GateRow; to: GateRow }) {
-  const days = to.days_from_prev ?? null
-  return (
-    <div className="gatelink" title={days == null
-      ? 'длительность появится, когда у обеих точек будут плановые даты (паспорт проекта)'
-      : `${from.gate} → ${to.gate}: ${days} дн.`}>
-      <span className={days == null ? 'secondary' : ''} style={{ fontSize: 10.5, whiteSpace: 'nowrap' }}>
-        {days == null ? 'даты нет' : `${days} дн.`}
-      </span>
-      <span className="gatelink__arrow">→</span>
-    </div>
-  )
-}
-
-export function Lifecycle({ project, onGo }: { project: string; onGo: (screen: string) => void }) {
-  const [gates, setGates] = useState<GateRow[] | null>(null)
-  const [ops, setOps] = useState<OperationsView | null>(null)
-  const [error, setError] = useState<string | null>(null)
-
-  const [suggested, setSuggested] = useState<Array<{ gate: string; phase: string }>>([])
-  /** Правки плана (длительность/якорь по вехам) до сохранения одной кнопкой. */
-  const [planEdits, setPlanEdits] = useState<Record<string, { duration_days?: number | null; due?: string | null }>>({})
-  const [planBusy, setPlanBusy] = useState(false)
-  const [outlookBusy, setOutlookBusy] = useState(false)
-  const [outlookNote, setOutlookNote] = useState<string | null>(null)
-  /** Мастер-путь «Начало проекта»: брошенный или пройденный живёт строкой. */
-  const [startPath, setStartPath] = useState<{
-    status: string
-    step: number
-    profile_ref?: string
-    created_counts?: Record<string, number>
-  } | null>(null)
-
-  useEffect(() => {
-    edit.object(project)
-      .then((o) => {
-        const sp = (o.doc as { start_path?: { status: string; step: number; profile_ref?: string; created_counts?: Record<string, number> } }).start_path
-        setStartPath(sp ?? null)
-      })
-      .catch(() => setStartPath(null))
-  }, [project])
-
-  const loadGates = () => {
-    api.gates()
-      .then((g) => {
-        const v = g as unknown as { gates: GateRow[]; suggested_outlook?: Array<{ gate: string; phase: string }> }
-        setGates(v.gates)
-        setSuggested(v.suggested_outlook ?? [])
-      })
-      .catch((e) => setError(String(e)))
+interface GatesView {
+  gates: GateRow[]
+  phase?: string
+  return?: { gate: string; reason: string; at: string; open_reviews: number }
+  passport?: {
+    owner: string
+    mission_class?: { id: string; name: string }
+    constraints?: Array<{ code?: string; text: string }>
+    start_path?: {
+      status: string
+      step: number
+      profile_ref?: string
+      created_counts?: Record<string, number>
+    }
   }
+}
 
-  useEffect(() => {
-    loadGates()
-    api.operations()
-      .then(setOps)
+const CHANGE_REF = 'планирование дат жизненного цикла'
+
+function shortDate(iso?: string | null): string | null {
+  if (!iso) return null
+  const m = iso.slice(0, 10).match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  return m ? `${m[3]}.${m[2]}.${m[1]}` : null
+}
+
+export function Lifecycle({ project, onGo }: {
+  project: string
+  onGo: (screen: string) => void
+}) {
+  const { author } = useSession()
+  const [view, setView] = useState<GatesView | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+  const [fixOpen, setFixOpen] = useState(false)
+  const [rationale, setRationale] = useState('')
+  const [busy, setBusy] = useState(false)
+
+  const load = useCallback(() => {
+    api.gates()
+      .then((g) => setView(g as unknown as GatesView))
       .catch((e) => setError(String(e)))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [project])
+  }, [])
+  useEffect(load, [load, project])
 
   if (error) return <div className="empty">Ошибка обращения к API: {error}</div>
-  if (!gates || !ops) return <div className="empty">Загрузка…</div>
+  if (!view) return <div className="empty">Загрузка…</div>
 
-  const columns: OperationsView['operations'][number][][] = [[], [], []]
-  ops.operations.forEach((o, i) => columns[i % 3].push(o))
+  const gates = view.gates
+  const nextAt = gates.findIndex((g) => !g.held)
+  const horizonAt = gates.findIndex((g) => g.in_scope === false)
+  const lastScoped = [...gates].reverse().find((g) => g.in_scope !== false)?.gate
+
+  /** Правка даты вехи — процедурой с основанием: паспорт может быть базирован. */
+  const setDue = async (gate: string, iso: string) => {
+    try {
+      const cur = await edit.object(project)
+      const doc = cur.doc as { milestones?: Array<Record<string, unknown>> }
+      const milestones = (doc.milestones ?? []).map((m) => {
+        if (m.gate !== gate) return m
+        const next = { ...m }
+        if (iso) next.due = iso
+        else delete next.due
+        return next
+      })
+      await edit.changeWithRef(project, { ...(cur.doc as object), milestones }, CHANGE_REF)
+      setNotice(null)
+      load()
+    } catch (e) {
+      setNotice(String(e))
+    }
+  }
+
+  const fix = () => {
+    if (busy || nextAt < 0) return
+    setBusy(true)
+    api.gatePass(gates[nextAt].gate, author || 'инженер', rationale)
+      .then(() => { setFixOpen(false); setRationale(''); setNotice(null); load() })
+      .catch((e) => setNotice(String(e)))
+      .finally(() => setBusy(false))
+  }
+
+  const anchorFor = (i: number): string | undefined => {
+    for (let j = i - 1; j >= 0; j--) {
+      const d = gates[j].due
+      if (d) return d
+    }
+    return undefined
+  }
+
+  const sp = view.passport?.start_path
+  const counts = sp?.created_counts ?? {}
 
   return (
     <>
       <div className="toolbar">
         <h2>Жизненный цикл</h2>
-        <span className="secondary">
-          фаза {ops.phase === 'phase_a' ? 'Phase A' : 'Pre-Phase A'}
-          {ops.next_gate && <> · ближайшая точка <b className="mono">{ops.next_gate}</b></>}
-        </span>
-        <div className="grow" />
-        {/* Линейность без мастера (список после MCR, п. 3): спина процесса
-            сама называет следующий незакрытый шаг и ведёт на его рабочее
-            место — свобода ходить по экранам при этом не отнимается.
-            Неизмеримые операции пропускаются: кнопка, вечно зовущая к шагу,
-            который никогда не станет «выполнен», — не подсказка, а капкан
-            (второй заход прогона). */}
-        {(() => {
-          const next = ops.operations.find(
-            (o) => o.state !== 'Done' && o.state !== 'NotMeasurable' && o.screen,
-          )
-          if (!next) return null
-          return (
-            <button className="btn" onClick={() => onGo(next.screen!)}
-              title={`${next.name} — ${next.executor}`}>
-              следующий шаг: {next.code} {next.name.length > 34 ? `${next.name.slice(0, 34)}…` : next.name} →
-            </button>
-          )
-        })()}
-        {/* Проект идёт через контрольные точки — и перспектива есть ТЕ ЖЕ
-            точки (находка прогона: текстовые поля сбоку — не план). Кнопка
-            добавляет стандартные вехи Phase B–F (NPR 7120.5) в паспорт;
-            даты инженер правит там же. ИС эти точки показывает, не проводит. */}
-        {suggested.length > 0 && (
-          <button className="btn" disabled={outlookBusy}
-            title={`добавить в контрольные точки: ${suggested.map((s) => s.gate).join(', ')} — даты правятся в паспорте`}
-            onClick={() => {
-              setOutlookBusy(true)
-              setOutlookNote(null)
-              edit.object(project)
-                .then((p) => {
-                  const doc = p.doc as Record<string, unknown>
-                  const cur = Array.isArray(doc.milestones) ? (doc.milestones as unknown[]) : []
-                  const next = [...cur, ...suggested.map((s) => ({ gate: s.gate, phase: s.phase }))]
-                  // паспорт может быть базирован: правка идёт процедурой с
-                  // основанием; статус честно вернётся в черновик
-                  return edit.changeWithRef(project, { ...doc, milestones: next },
-                    'план по фазам: добавлены стандартные вехи Phase B–F (NPR 7120.5)')
-                })
-                .then(() => {
-                  setOutlookNote('Вехи добавлены. Паспорт вернулся в черновик — задайте даты и ре-базируйте его в «Паспорте проекта».')
-                  loadGates()
-                })
-                .catch((e) => setOutlookNote(String(e)))
-                .finally(() => setOutlookBusy(false))
-            }}>
-            {outlookBusy ? 'Добавление…' : '+ вехи Phase B–F'}
-          </button>
-        )}
-        {Object.keys(planEdits).length > 0 && (
-          <button className="btn btn--primary" disabled={planBusy}
-            title="одной правкой паспорта, с основанием"
-            onClick={() => {
-              setPlanBusy(true)
-              setOutlookNote(null)
-              edit.object(project)
-                .then((p) => {
-                  const doc = p.doc as Record<string, unknown>
-                  const ms = (Array.isArray(doc.milestones) ? doc.milestones : []) as Array<Record<string, unknown>>
-                  const next = ms.map((m) => {
-                    const e = planEdits[String(m.gate)]
-                    if (!e) return m
-                    const out = { ...m }
-                    if (e.duration_days !== undefined) {
-                      if (e.duration_days == null) delete out.duration_days
-                      else out.duration_days = e.duration_days
-                    }
-                    if (e.due !== undefined) {
-                      if (!e.due) delete out.due
-                      else out.due = e.due
-                    }
-                    return out
-                  })
-                  return edit.changeWithRef(project, { ...doc, milestones: next },
-                    'план по фазам: длительности этапов и якорные даты')
-                })
-                .then(() => {
-                  setPlanEdits({})
-                  setOutlookNote('План сохранён. Паспорт вернулся в черновик — ре-базируйте его в «Паспорте проекта».')
-                  loadGates()
-                })
-                .catch((e) => setOutlookNote(String(e)))
-                .finally(() => setPlanBusy(false))
-            }}>
-            {planBusy ? 'Сохранение…' : `Сохранить план (${Object.keys(planEdits).length})`}
-          </button>
-        )}
-        <button className="btn btn--primary" onClick={() => onGo('readiness')}>Готовность к точке</button>
       </div>
-      <div className="workarea">
-        {outlookNote && <div className="notice" style={{ margin: '8px 14px 0' }}>{outlookNote}</div>}
-        {startPath && startPath.status === 'in_progress' && (
-          <div className="lcband" style={{ marginTop: 10 }}>
-            <span className="dotp" />
-            <span>
-              <b>Начало проекта: шаг {startPath.step} из 3.</b>{' '}
-              {startPath.step === 2 && (
-                <span className="sub">
-                  Параметры заданы; осталось подключить библиотеку и запустить генерацию.
-                </span>
-              )}
-            </span>
-            <span className="grow" />
-            <button className="btn btn--primary" style={{ padding: '5px 14px' }}
-              onClick={() => onGo('startpath')}>
-              Продолжить
-            </button>
-          </div>
-        )}
-        {startPath && startPath.status === 'done' && (
-          <div className="lcband lcband--done" style={{ marginTop: 10 }}>
-            <span className="dotp" />
-            <span>
-              <b>Начало пройдено.</b>{' '}
-              <span className="sub">
-                {startPath.profile_ref
-                  ? `Профиль ${startPath.profile_ref} создан, генерация запущена.`
-                  : 'Профиль создан, генерация запущена.'}
-                {startPath.created_counts && Object.keys(startPath.created_counts).length > 0 &&
-                  ` Создано путём: ${Object.entries(startPath.created_counts)
-                    .map(([t, n]) => countPhrase(t, n)).join(' · ')}.`}
-              </span>
-            </span>
-            <span className="grow" />
-            <button className="sp-open" onClick={() => onGo('startpath')}>настроить заново</button>
-          </div>
-        )}
-        {startPath && startPath.status === 'skipped' && (
-          <div className="lcband lcband--done" style={{ marginTop: 10 }}>
-            <span className="dotp" style={{ background: 'var(--status-draft)' }} />
-            <span><b>Начало пропущено.</b></span>
-            <span className="grow" />
-            <button className="sp-open" onClick={() => onGo('startpath')}>пройти</button>
-          </div>
-        )}
-        <div className="gatestrip">
+      <div className="workarea" style={{ padding: '14px 20px' }}>
+        <div className="lc2-lane">
           {gates.map((g, i) => {
-            const overdue = g.overdue === true
-            return [
-              i > 0 ? <GateLink key={`l${i}`} from={gates[i - 1]} to={g} /> : null,
-              <div key={g.gate}
-                className={`gatecard ${g.held ? 'gatecard--held' : g.gate === ops.next_gate ? 'gatecard--next' : ''}`}
-                style={g.in_scope === false ? { opacity: 0.62 } : undefined}
-                title={g.in_scope === false ? 'плановая веха за горизонтом Формулирования: ИС её показывает, но не проводит' : undefined}>
-                <div className="mono" style={{ fontWeight: 600 }}>{g.gate}</div>
-                <div className="secondary" style={{ fontSize: 11.5 }}>
-                  {g.held ? 'пройдена'
-                    : g.gate === ops.next_gate ? 'ближайшая'
-                    : g.in_scope === false ? `${g.phase ?? 'Phase B+'} · план`
-                    : 'впереди'}
+            const past = Boolean(g.held)
+            const next = i === nextAt
+            const horizon = g.in_scope === false
+            const returned = Boolean(view.return && view.return.gate === g.gate)
+            return (
+              <div key={g.gate} className={`lc2-g${past ? ' past' : ''}${next ? ' next' : ''}`}>
+                {i < gates.length - 1 && <span className="lc2-lnk" />}
+                <span className="lc2-dot">{past ? '✓' : returned ? '↩' : ''}</span>
+                <div className="lc2-nm" style={horizon ? { color: 'var(--text-secondary)' } : undefined}>
+                  {g.label ?? g.gate}
                 </div>
-                {g.in_scope === false && gates.findIndex((x) => !x.held) === i && (
-                  // круг 2 портфеля §2: отсутствующий счётчик честнее нуля —
-                  // тихая подпись горизонта, не задача сейчас
-                  <div className="secondary" style={{ fontSize: 10.5 }}>
-                    проверки появятся с регламентом {g.phase ?? 'Phase B'}
-                  </div>
-                )}
-                {g.due ? (
-                  <div className="mono" style={{ fontSize: 11, color: overdue ? 'var(--status-error, #b3261e)' : undefined }}>
-                    {g.due}{g.computed ? ' ⟲' : ''}{overdue ? ' · просрочена' : ''}
-                  </div>
+                {past ? (
+                  <div className="lc2-dt">пройден <span className="mono">{shortDate(g.held_at) ?? shortDate(g.due) ?? ''}</span></div>
+                ) : horizon ? (
+                  <div className="lc2-dt quiet">{g.phase ?? 'Phase B+'}</div>
                 ) : (
-                  <div className="secondary" style={{ fontSize: 10.5 }}>дата не задана</div>
-                )}
-                {/* Планирование длительностями прямо на ленте (находка
-                    прогона: «ориентируемся на длительности этапов; в
-                    неудобном документе работать сложно») — дни этапа и
-                    якорная дата правятся здесь, даты хвоста пересчитает
-                    сервер. Сохранение — одной кнопкой в шапке. */}
-                {!g.held && (
-                  <div style={{ marginTop: 4, display: 'flex', gap: 4, alignItems: 'center' }}>
-                    <input type="number" min={1} placeholder="дн."
-                      title="длительность этапа до вехи, дней"
-                      style={{ width: 52, fontSize: 11 }}
-                      value={planEdits[g.gate]?.duration_days ?? g.duration_days ?? ''}
-                      onChange={(e) => {
-                        const raw = e.target.value
-                        const v = raw ? Number(raw) : null
-                        setPlanEdits((prev) => ({ ...prev, [g.gate]: { ...prev[g.gate], duration_days: v } }))
-                      }} />
-                    <span title="якорная дата (сильнее расчёта); пусто — дата выводится из длительностей">
-                      <DateInput
-                        iso={planEdits[g.gate]?.due ?? (g.computed ? '' : g.due ?? '')}
-                        width={150}
-                        onChange={(v) => {
-                          setPlanEdits((prev) => ({ ...prev, [g.gate]: { ...prev[g.gate], due: v || null } }))
-                        }}
-                      />
-                    </span>
+                  // план — ОДНОЙ строкой: DateInput с опорой (бриф §6);
+                  // пустая дата — тихое «дд.мм.гггг» самого компонента
+                  <div className="lc2-dt">
+                    <DateInput
+                      iso={g.due ?? ''}
+                      anchor={anchorFor(i)}
+                      name={g.gate}
+                      width={136}
+                      onChange={(v) => void setDue(g.gate, v)}
+                    />
+                    {g.computed && <span className="secondary" title="дата выведена из длительностей"> ⟲</span>}
                   </div>
                 )}
-              </div>,
-            ]
+                {past && g.decision_rationale && (
+                  <div className="lc2-st"><span className="lc2-pass">{g.decision_rationale}</span></div>
+                )}
+                {next && !horizon && (
+                  <>
+                    {g.open_count !== undefined && (
+                      <div className="lc2-st">
+                        <button className="lc2-cnt" title="что мешает точке — в готовность"
+                          onClick={() => onGo('readiness')}>
+                          не закрыто · {g.open_count}
+                        </button>
+                      </div>
+                    )}
+                    <div className="lc2-fix">
+                      {fixOpen ? (
+                        <span style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                          <input
+                            placeholder="основание решения"
+                            value={rationale}
+                            onChange={(e) => setRationale(e.target.value)}
+                            style={{ width: 180 }}
+                          />
+                          <button className="rr-btn rr-btn--pri" disabled={busy || !rationale.trim()} onClick={fix}>
+                            Провести
+                          </button>
+                          <button className="rr-btn" onClick={() => setFixOpen(false)}>Отмена</button>
+                        </span>
+                      ) : (
+                        <button className="rr-btn rr-btn--pri" onClick={() => setFixOpen(true)}>
+                          Зафиксировать прохождение
+                        </button>
+                      )}
+                      <div className="lc2-rolehint">фиксирует DA</div>
+                    </div>
+                  </>
+                )}
+                {horizon && i === horizonAt && (
+                  <div className="lc2-hz">
+                    проверки появятся с регламентом {g.phase ?? 'Phase B'}
+                    {lastScoped ? ` после ${lastScoped}` : ''}
+                  </div>
+                )}
+              </div>
+            )
           })}
         </div>
-        <div className="ops__group" style={{ padding: '0 14px 6px' }}>
-          Операции фазы — {ops.operations.length}
-        </div>
-        <div className="opsmap">
-          {columns.map((col, ci) => (
-            <div key={ci}>
-              {col.map((o) => (
-                <button key={o.code} className="opsmap__row" style={{ width: '100%' }}
-                  title={`${o.name} — ${o.executor}`}
-                  onClick={() => {
-                    if (!o.screen) return
-                    // документная операция открывает СВОЙ шаблон
-                    if (o.screen === 'docs' && o.templates?.length) requestDocTemplate(o.templates[0])
-                    onGo(o.screen)
-                  }}>
-                  <span className={`ops__state ops__state--${o.state} ${o.returned_to ? 'ops__state--returned' : ''}`} />
-                  <span className="mono" style={{ minWidth: 30 }}>{o.code}</span>
-                  <span className="name">{o.name}</span>
-                  <span className="secondary" style={{ marginLeft: 'auto', fontSize: 11 }}>
-                    {o.returned_to ? 'возврат' : STATE_LABEL[o.state] ?? o.state}
-                  </span>
-                </button>
-              ))}
+
+        {view.return && (
+          <div className="lc2-retband">
+            <b>Возврат {view.return.gate}{shortDate(view.return.at) ? ` · ${shortDate(view.return.at)}` : ''}.</b>
+            <span>{view.return.reason}</span>
+            <span style={{ flex: 1 }} />
+            <button className="lc2-retlink" onClick={() => onGo('rfa')}>
+              замечания · {view.return.open_reviews} →
+            </button>
+          </div>
+        )}
+
+        {notice && <div className="warn" style={{ padding: '6px 10px', marginBottom: 12 }}>{notice}</div>}
+
+        {view.passport && (
+          <div className="lc2-pass2">
+            <div className="lc2-k">
+              Паспорт проекта
+              <button className="rr-assign" onClick={() => onGo('projreg')}>изменить</button>
             </div>
-          ))}
-        </div>
+            <div className="lc2-prow">
+              <span className="l">Руководитель</span><span>{view.passport.owner}</span>
+              {view.passport.mission_class && (
+                <>
+                  <span className="l">Класс миссии</span>
+                  <span>{view.passport.mission_class.name}</span>
+                </>
+              )}
+              {(view.passport.constraints ?? []).length > 0 && (
+                <>
+                  <span className="l">Ограничения</span>
+                  <span className="lc2-pchips">
+                    {(view.passport.constraints ?? []).map((c, i) => (
+                      <span key={`${c.code ?? ''}-${i}`} className="lc2-pchip">
+                        {c.text}{c.code ? ` (${c.code})` : ''}
+                      </span>
+                    ))}
+                  </span>
+                </>
+              )}
+            </div>
+            {sp && (
+              <div className="lc2-startline">
+                {sp.status === 'done' ? (
+                  <>
+                    Начало проекта пройдено
+                    {Object.keys(counts).length > 0 &&
+                      `: ${Object.entries(counts).map(([t, n]) => countPhrase(t, n)).join(' · ')}`}
+                    {sp.profile_ref ? ` · профиль ${sp.profile_ref}` : ''}
+                    {' · '}
+                    <button className="rr-assign" onClick={() => onGo('startpath')}>настроить заново</button>
+                  </>
+                ) : sp.status === 'in_progress' ? (
+                  <>
+                    Начало проекта: шаг {sp.step} из 3 ·{' '}
+                    <button className="rr-assign" onClick={() => onGo('startpath')}>продолжить</button>
+                  </>
+                ) : (
+                  <>Начало проекта пропущено.</>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </>
   )
