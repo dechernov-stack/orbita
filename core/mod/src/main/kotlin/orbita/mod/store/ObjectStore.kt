@@ -85,6 +85,15 @@ class ObjectStore(private val conn: Connection, private val mapper: ObjectMapper
             ps.executeQuery().use { rs -> rs.collect() }
         }
 
+    /** Последняя запись каждого проекта — «что нового» портфеля одним запросом. */
+    fun lastActivityByProject(): Map<String, StoredObject> =
+        conn.createStatement().use { st ->
+            st.executeQuery(
+                "SELECT DISTINCT ON (project_id) $COLUMNS FROM objects " +
+                    "WHERE project_id IS NOT NULL ORDER BY project_id, valid_from DESC, pk DESC"
+            ).use { rs -> rs.collect() }
+        }.associateBy { it.projectId }
+
     /** Текущие версии всех объектов; с [projectId] — только объекты проекта. */
     fun listCurrent(projectId: String? = null): List<StoredObject> =
         conn.prepareStatement(

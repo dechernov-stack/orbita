@@ -345,6 +345,15 @@ export const api = {
   /** Выгрузка проекта тем же форматом — для ссылки скачивания. */
   exportObjectsUrl: () => `/api${'/export/objects'}`,
 
+  /** О-9: портфель одним запросом — сервер собрал и отсортировал. */
+  portfolio: () =>
+    get<{ projects: Array<{
+      id: string; name: string; phase: string; owner: string
+      gate: { name: string; label: string; open_count?: number } | null
+      return: { reason: string } | null
+      start_path: { status: string; step: number } | null
+      last_activity: { at: string; author: string; what: string } | null
+    }> }>('/views/portfolio'),
   requirementTree: () => get<RequirementTreeView>('/views/requirement-tree'),
   /** Т-1: сохранённые виды реестра — сервер фильтрует личные по учётке. */
   reqViews: () => get<{ views: SavedViewDoc[] }>('/views/req-views'),

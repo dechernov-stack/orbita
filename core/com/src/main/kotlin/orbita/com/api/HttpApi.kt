@@ -438,6 +438,66 @@ class HttpApi(private val boundary: Boundary) {
             // ---- Т-1: сохранённые виды реестра (VW) ----
             // Личные виды фильтрует СЕРВЕР по учётке — generic /objects отдал бы
             // чужие личные; при выключенных учётках (login == null) фильтра нет.
+            // О-9: портфель одним запросом — входная дверь: строка проекта
+            // несёт всё для решения «куда идти» (бриф §2), клиент не собирает
+            method == "GET" && path == "/views/portfolio" -> {
+                val projects = boundary.objects.listCurrent()
+                    .filter { it.type == "project" && it.status != Lifecycle.Cancelled }
+                val activity = boundary.objects.lastActivityByProject()
+                val arr = mapper.createArrayNode()
+                projects.forEach { p ->
+                    val row = arr.addObject()
+                    row.put("id", p.id)
+                    row.put("name", p.doc.path("name").asText(p.id))
+                    row.put("phase", p.doc.path("phase").asText(""))
+                    // руководитель: роль lead при учётках, иначе автор создания
+                    val lead = boundary.auth.listRoles(p.id).entries.firstOrNull { it.value == "lead" }?.key
+                    row.put("owner", lead ?: boundary.objects.history(p.id).firstOrNull()?.createdBy ?: "")
+                    val next = p.doc.path("milestones").firstOrNull { !it.path("held").asBoolean(false) }
+                        ?.path("gate")?.asText("")?.ifBlank { null }
+                    if (next != null) {
+                        val g = row.putObject("gate")
+                        g.put("name", next)
+                        g.put("label", boundary.req.gateLabel(next))
+                        // у точки без конфигурации проверок счётчика нет —
+                        // честное отсутствие, не ноль и не отказ всего портфеля
+                        runCatching { boundary.gatePassing.issues(next, p.id).size }
+                            .onSuccess { g.put("open_count", it) }
+                    } else {
+                        row.putNull("gate")
+                    }
+                    val ret = p.doc.path("return")
+                    if (ret.isObject) row.putObject("return").put("reason", ret.path("reason").asText(""))
+                    else row.putNull("return")
+                    val sp = p.doc.path("start_path")
+                    if (sp.isObject) {
+                        row.putObject("start_path")
+                            .put("status", sp.path("status").asText(""))
+                            .put("step", sp.path("step").asInt(0))
+                    } else {
+                        row.putNull("start_path")
+                    }
+                    activity[p.id]?.let { last ->
+                        row.putObject("last_activity")
+                            .put("at", last.validFrom.toString())
+                            .put("author", last.createdBy)
+                            .put(
+                                "what",
+                                last.changeRef?.ifBlank { null }
+                                    ?: (if (last.version == "1" && last.supersedes == null) "создан ${last.id}"
+                                        else "правка ${last.id}"),
+                            )
+                    } ?: row.putNull("last_activity")
+                }
+                // «что нового» читается сверху: сортировка — последняя активность
+                val sorted = arr.sortedByDescending {
+                    it.path("last_activity").path("at").asText("")
+                }
+                val out = mapper.createObjectNode()
+                out.putArray("projects").also { a -> sorted.forEach(a::add) }
+                respond(ex, 200, out)
+            }
+
             method == "GET" && path == "/views/req-views" -> {
                 val login = currentAuthorLogin.get()
                 val arr = mapper.createArrayNode()

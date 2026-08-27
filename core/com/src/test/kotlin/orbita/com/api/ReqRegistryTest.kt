@@ -310,6 +310,21 @@ class ReqRegistryTest {
         assertTrue(again.any { it.path("name").asText() == "Мой личный" }) { "вид пережил перезаход" }
     }
 
+    @Test
+    @Order(13)
+    fun `портфель одним запросом - строка несёт всё для решения куда идти`() {
+        val r = send("GET", "/views/portfolio", asUser = "vera")
+        assertEquals(200, r.statusCode()) { r.body() }
+        val rows = mapper.readTree(r.body()).path("projects")
+        assertTrue(rows.size() >= 1) { r.body() }
+        val row = rows.first { it.path("id").asText() == project }
+        assertEquals("Реестр Т-1", row.path("name").asText())
+        assertEquals("Внутренний обзор", row.path("gate").path("label").asText()) { row.toString() }
+        assertTrue(row.path("gate").path("open_count").isInt)
+        assertTrue(row.path("last_activity").path("what").asText().isNotBlank()) { row.toString() }
+        assertTrue(row.path("owner").asText().isNotBlank())
+    }
+
     private fun login(user: String, password: String) {
         val r = send("POST", "/auth/login", """{"login":"$user","password":"$password"}""")
         assertEquals(200, r.statusCode()) { r.body() }

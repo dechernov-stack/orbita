@@ -43,7 +43,7 @@ class ReqService(
             .associate { (k, v) -> k to v.asText() }
     }
 
-    private fun gateLabel(gate: String): String =
+    fun gateLabel(gate: String): String =
         (gateLabels[gate] ?: gate).replaceFirstChar { it.uppercase() }
 
     /** Родительный падеж подписи — для «раньше …» (внутреннего обзора). */

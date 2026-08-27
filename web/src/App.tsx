@@ -172,7 +172,8 @@ export function App() {
       case 'portfolio': return (
         <Portfolio onOpen={() => { setScreen('lifecycle'); loadHeader() }}
           onNew={() => { setFirstRun(false); setScreen('newproject') }}
-          onFirstRun={() => { setFirstRun(true); setScreen('newproject') }} />
+          onLoadFile={() => { setFirstRun(false); setScreen('importb') }}
+          onStart={() => { setScreen('startpath'); loadHeader() }} />
       )
       case 'newproject': return (
         <NewProject firstRun={firstRun}
@@ -190,13 +191,15 @@ export function App() {
           ? <StartPath project={project} onGo={go} onDone={() => { setScreen('lifecycle'); loadHeader() }} />
           : <Portfolio onOpen={() => setScreen('lifecycle')}
               onNew={() => { setFirstRun(false); setScreen('newproject') }}
-              onFirstRun={() => { setFirstRun(true); setScreen('newproject') }} />
+              onLoadFile={() => { setFirstRun(false); setScreen('importb') }}
+              onStart={() => { setScreen('startpath'); loadHeader() }} />
       case 'lifecycle':
         return project
           ? <Lifecycle project={project} onGo={go} />
           : <Portfolio onOpen={() => setScreen('lifecycle')}
               onNew={() => { setFirstRun(false); setScreen('newproject') }}
-              onFirstRun={() => { setFirstRun(true); setScreen('newproject') }} />
+              onLoadFile={() => { setFirstRun(false); setScreen('importb') }}
+              onStart={() => { setScreen('startpath'); loadHeader() }} />
       case 'projreg': return <KindRegistry key={screen} kinds={['project']} title="Паспорт проекта" />
       case 'shelves': return <Shelves key={screen} />
       case 'sourcedocs':

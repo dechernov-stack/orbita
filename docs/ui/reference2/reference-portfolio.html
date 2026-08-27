@@ -1,0 +1,131 @@
+<!DOCTYPE html><html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Орбита · эталон О-9: портфель · круг 1</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--surface:#f8f9fa;--c-lowest:#fff;--c-low:#f3f4f5;--c:#edeeef;--on:#191c1d;--on-var:#44474c;
+--outline:#74777d;--hair:#c4c6cc;--rail:#0f1c2c;--on-rail:#8b97a8;--accent:#115cb9;--accent-fix:#d7e2ff;
+--error:#ba1a1a;--error-c:#ffdad6;--on-error-c:#93000a;--ok:#1a7f37;
+--font:Inter,-apple-system,'Segoe UI',sans-serif;--mono:'JetBrains Mono',Menlo,monospace}
+*{box-sizing:border-box;margin:0}
+body{font:400 13px/20px var(--font);color:var(--on);background:#dfe2e6;padding:28px 0}
+.stand{max-width:1240px;margin:0 auto}
+.stand h1{font-size:15px;font-weight:600;padding:0 4px 6px}
+.stand .note{font-size:12px;color:var(--on-var);padding:0 4px 18px;max-width:920px}
+.case{margin:0 0 30px}
+.case>.tag{display:inline-block;font:600 11px/16px var(--font);text-transform:uppercase;letter-spacing:.07em;
+color:var(--on-var);background:#eef0f2;border:1px solid var(--hair);border-bottom:none;border-radius:6px 6px 0 0;padding:4px 10px}
+.frame{background:var(--surface);border:1px solid var(--hair);border-radius:0 8px 8px 8px;overflow:hidden;
+display:grid;grid-template-rows:48px 1fr;grid-template-columns:68px 1fr;grid-template-areas:'hdr hdr' 'rail main';min-height:470px}
+.hdr{grid-area:hdr;display:flex;align-items:center;gap:12px;padding:0 16px;background:var(--c-lowest);border-bottom:1px solid var(--hair)}
+.brand{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;letter-spacing:-.02em}
+.brand .o{width:16px;height:16px;border:2px solid var(--on);border-radius:50%}
+.who{margin-left:auto;font-size:12px;color:var(--on-var)}.who b{color:var(--on)}
+.rail{grid-area:rail;background:var(--rail);display:flex;flex-direction:column;align-items:center;padding:10px 0;gap:2px}
+.rico{width:58px;padding:7px 0 6px;border-radius:8px;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--on-rail)}
+.rico.on{background:rgba(255,255,255,.14);color:#fff}
+.rico svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round}
+.rlab{font:500 9px/10px var(--font)}
+.main{grid-area:main;display:flex;flex-direction:column;min-width:0;background:var(--c-lowest)}
+.tbar{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--hair)}
+.tbar h1{font-size:14px;font-weight:600}
+.tbar .sub{font-size:12px;color:var(--on-var)}
+.spacer{flex:1}
+.btn{font:600 12.5px/18px var(--font);padding:6px 14px;border-radius:7px;border:1px solid var(--hair);background:var(--c-lowest);cursor:pointer}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+.linkish{font-size:12.5px;color:var(--accent);text-decoration:none}
+.linkish:hover{text-decoration:underline}
+/* строка проекта */
+.p{display:flex;gap:14px;align-items:center;padding:11px 16px;border-bottom:1px solid var(--c);cursor:pointer}
+.p:hover{background:var(--c-low)}
+.pnm{min-width:0;flex:1}
+.pnm .nm{font:600 13.5px/19px var(--font)}
+.pnm .own{font-size:11.5px;color:var(--outline);margin-top:1px}
+.chip{font-size:12px;line-height:18px;padding:1px 8px;border-radius:9px;background:var(--c);color:var(--on-var);white-space:nowrap}
+.gatecell{display:flex;gap:7px;align-items:center;min-width:230px}
+.gatecell .k{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--outline)}
+.gatecell b{font-size:12.5px;font-weight:600;white-space:nowrap}
+.cnt{font-family:var(--mono);font-size:11.5px;color:var(--on-error-c);background:var(--error-c);border-radius:8px;padding:0 7px}
+.cnt.zero{color:var(--ok);background:#e6f2e9}
+.ret{font-size:11.5px;color:var(--on-error-c);background:var(--error-c);border-radius:8px;padding:1px 8px;white-space:nowrap}
+.startchip{font-size:11.5px;padding:1px 9px;border-radius:9px;border:1px solid var(--accent);color:var(--accent);white-space:nowrap;cursor:pointer}
+.startchip.done{border-color:var(--hair);color:var(--outline)}
+.act{font-size:11.5px;color:var(--outline);white-space:nowrap;text-align:right;min-width:120px}
+.act b{color:var(--on-var);font-weight:500}
+/* первая установка */
+.welcome{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;flex:1;text-align:center;padding:40px}
+.welcome .o2{width:34px;height:34px;border:3px solid var(--on);border-radius:50%}
+.welcome h2{font-size:17px;font-weight:700;letter-spacing:-.015em}
+.welcome p{font-size:12.5px;line-height:19px;color:var(--on-var);max-width:460px}
+.welcome .row{display:flex;gap:10px;margin-top:6px;align-items:center}
+</style></head><body><div class="stand">
+<h1>О-9 · Портфель — эталон, круг 1</h1>
+<div class="note">Входная дверь: строки, не плитки; сортировка по последней активности — «что нового»
+читается сверху. В строке всё для решения «куда идти»: фаза · ближайшая точка со счётчиком
+незакрытого (ноль — зелёный) · возврат красным маркером · путь начала чипом · последняя активность.
+Вся строка — цель клика. До 20 проектов — без поиска, фильтров и группировок.</div>
+
+<div class="case"><span class="tag">Состояние 1 · обычное: три проекта, возврат, незавершённый путь</span>
+<div class="frame">
+  <header class="hdr"><span class="brand"><span class="o"></span>Орбита</span>
+    <span class="who">Инженер: <b>Чернов Д.</b></span></header>
+  <nav class="rail">
+    <div class="rico on"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg><span class="rlab">Портфель</span></div>
+    <div class="rico"><svg viewBox="0 0 24 24"><path d="M12 6c-2-1.4-5-1.4-7 0v12c2-1.4 5-1.4 7 0c2-1.4 5-1.4 7 0V6c-2-1.4-5-1.4-7 0z"/><path d="M12 6v12"/></svg><span class="rlab">Библиотека</span></div>
+    <div class="rico"><svg viewBox="0 0 24 24"><path d="M5 5h14M5 10h14M5 15h9M5 20h6"/></svg><span class="rlab">Требования</span></div>
+    <div class="rico"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></svg><span class="rlab">Документы</span></div>
+    <div class="rico"><svg viewBox="0 0 24 24"><path d="M4 19V5m0 14h16M8 15l4-6 4 3 4-7"/></svg><span class="rlab">Контроль</span></div>
+  </nav>
+  <main class="main">
+    <div class="tbar"><h1>Портфель</h1><span class="sub">3 проекта</span>
+      <span class="spacer"></span>
+      <a class="linkish" href="#">загрузить из файла</a>
+      <button class="btn pri">Создать проект</button></div>
+
+    <div class="p">
+      <span class="pnm"><span class="nm">Национальная спутниковая платформа IoT</span>
+        <span class="own">руководитель: Чернов Д.</span></span>
+      <span class="chip">Pre-Phase A</span>
+      <span class="gatecell"><span class="k">ближайшая</span><b>Внутренний обзор</b><span class="cnt">не закрыто · 9</span></span>
+      <span class="startchip done">начало пройдено</span>
+      <span class="act"><b>вчера</b> · Чернов Д.<br>акцепт 12 требований</span></div>
+
+    <div class="p">
+      <span class="pnm"><span class="nm">Ротор-Л</span>
+        <span class="own">руководитель: Смирнова А.</span></span>
+      <span class="chip">Phase A</span>
+      <span class="gatecell"><span class="k">ближайшая</span><b>SRR</b><span class="cnt">не закрыто · 14</span></span>
+      <span class="startchip done">начало пройдено</span>
+      <span class="act"><b>3 дня назад</b> · Смирнова А.<br>выпуск SEMP v2</span></div>
+
+    <div class="p">
+      <span class="pnm"><span class="nm">Ретранслятор «Кольцо» — модернизация</span>
+        <span class="own">руководитель: Чернов Д.</span></span>
+      <span class="chip">Pre-Phase A</span>
+      <span class="gatecell"><span class="k">ближайшая</span><b>MCR</b><span class="ret">возврат: доработка концепции</span></span>
+      <span class="startchip">начало: шаг 2 из 3 · продолжить</span>
+      <span class="act"><b>неделю назад</b> · Чернов Д.<br>возврат по заключению</span></div>
+  </main>
+</div></div>
+
+<div class="case"><span class="tag">Состояние 2 · первая установка</span>
+<div class="frame" style="min-height:380px">
+  <header class="hdr"><span class="brand"><span class="o"></span>Орбита</span>
+    <span class="who">Инженер: <b>Чернов Д.</b></span></header>
+  <nav class="rail"><div class="rico on"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg><span class="rlab">Портфель</span></div></nav>
+  <main class="main">
+    <div class="welcome">
+      <span class="o2"></span>
+      <h2>Орбита</h2>
+      <p>Система ведёт космический проект через стадию Формулирования — от постановки
+      задачи до решения KDP-B: требования, состав, документы, контрольные точки и
+      служба ИИ под ограничениями инженера. Начните с первого проекта — он создастся
+      пустым, и система подскажет первые шаги.</p>
+      <div class="row"><button class="btn pri">Создать первый проект</button>
+        <a class="linkish" href="#">или загрузить проект из файла</a></div>
+    </div>
+  </main>
+</div></div>
+
+</div></body></html>
