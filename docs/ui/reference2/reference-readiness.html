@@ -1,0 +1,154 @@
+<!DOCTYPE html><html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Орбита · эталон О-11: готовность к точке · круг 1</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--surface:#f8f9fa;--c-lowest:#fff;--c-low:#f3f4f5;--c:#edeeef;--on:#191c1d;--on-var:#44474c;
+--outline:#74777d;--hair:#c4c6cc;--rail:#0f1c2c;--on-rail:#8b97a8;--accent:#115cb9;--accent-fix:#d7e2ff;
+--error:#ba1a1a;--error-c:#ffdad6;--on-error-c:#93000a;--ok:#1a7f37;--ok-c:#e6f2e9;
+--font:Inter,-apple-system,'Segoe UI',sans-serif;--mono:'JetBrains Mono',Menlo,monospace}
+*{box-sizing:border-box;margin:0}
+body{font:400 13px/20px var(--font);color:var(--on);background:#dfe2e6;padding:28px 0}
+.stand{max-width:1240px;margin:0 auto}
+.stand h1{font-size:15px;font-weight:600;padding:0 4px 6px}
+.stand .note{font-size:12px;color:var(--on-var);padding:0 4px 18px;max-width:930px}
+.case{margin:0 0 30px}
+.case>.tag{display:inline-block;font:600 11px/16px var(--font);text-transform:uppercase;letter-spacing:.07em;
+color:var(--on-var);background:#eef0f2;border:1px solid var(--hair);border-bottom:none;border-radius:6px 6px 0 0;padding:4px 10px}
+.frame{background:var(--surface);border:1px solid var(--hair);border-radius:0 8px 8px 8px;overflow:hidden;
+display:grid;grid-template-rows:48px 1fr;grid-template-columns:68px 1fr;grid-template-areas:'hdr hdr' 'rail main';min-height:470px}
+.hdr{grid-area:hdr;display:flex;align-items:center;gap:12px;padding:0 16px;background:var(--c-lowest);border-bottom:1px solid var(--hair)}
+.brand{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;letter-spacing:-.02em}
+.brand .o{width:16px;height:16px;border:2px solid var(--on);border-radius:50%}
+.proj b{font-weight:600}
+.chip{font-size:12px;line-height:18px;padding:1px 8px;border-radius:9px;background:var(--c);color:var(--on-var)}
+.who{margin-left:auto;font-size:12px;color:var(--on-var)}.who b{color:var(--on)}
+.rail{grid-area:rail;background:var(--rail);display:flex;flex-direction:column;align-items:center;padding:10px 0;gap:2px}
+.rico{width:58px;padding:7px 0 6px;border-radius:8px;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--on-rail)}
+.rico.on{background:rgba(255,255,255,.14);color:#fff}
+.rico svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round}
+.rlab{font:500 9px/10px var(--font)}
+.main{grid-area:main;background:var(--c-lowest);padding:14px 20px;overflow:auto}
+.top{display:flex;gap:18px;align-items:baseline;margin-bottom:12px}
+.top h1{font-size:14px;font-weight:600}
+.top .big{font-family:var(--mono);font-size:15px;font-weight:600;color:var(--on-error-c)}
+.top .big.ok{color:var(--ok)}
+.top .sub{font-size:12px;color:var(--on-var)}
+.top .sub .mono{font-family:var(--mono)}
+/* группы и строки */
+.grp{margin:0 0 10px;border:1px solid var(--hair);border-radius:8px;overflow:hidden;max-width:980px}
+.gh{display:flex;gap:9px;align-items:center;padding:7px 12px;background:var(--c-low);cursor:pointer;
+font:600 12px/16px var(--font)}
+.gh .chev{font-size:10px;color:var(--outline);width:10px}
+.gh .n{font-family:var(--mono);font-size:11.5px;font-weight:600}
+.gh .n.bad{color:var(--on-error-c)} .gh .n.okc{color:var(--ok)}
+.gh.block{background:var(--error-c);color:var(--on-error-c)}
+.chk{display:flex;gap:10px;align-items:center;padding:6px 12px 6px 30px;border-top:1px solid var(--c);font-size:12.5px}
+.chk .st{width:8px;height:8px;border-radius:50%;flex:none}
+.chk .st.bad{background:var(--error)} .chk .st.okd{background:var(--ok)} .chk .st.na{background:var(--outline)}
+.chk .tx{flex:1;min-width:0}
+.chk .num{font-family:var(--mono);font-size:11.5px;color:var(--on-var);white-space:nowrap}
+.chk .num b{color:var(--on-error-c);font-weight:600}
+.chk a{color:var(--accent);text-decoration:none;font-size:12px;white-space:nowrap}
+.chk a:hover{text-decoration:underline}
+.chk .na-why{font-size:11.5px;color:var(--outline);font-style:italic}
+.chk.closed .tx{color:var(--on-var)}
+.okband{display:flex;gap:12px;align-items:center;background:var(--ok-c);color:var(--ok);
+border-radius:8px;padding:10px 14px;margin:0 0 14px;font-size:13px;max-width:980px}
+.okband b{font-weight:700}
+.okband a{color:var(--ok);font-weight:600}
+.okband .sp{flex:1}
+</style></head><body><div class="stand">
+<h1>О-11 · Готовность к точке — эталон, круг 1</h1>
+<div class="note">Телефонная книга умерла: проверки — группами со схлопыванием, закрытые группы
+свёрнуты; «Блокирует фиксацию» — первая и всегда раскрыта. Каждая строка: имя человеческим языком ·
+число · «к месту →». Готовность вычисляется, не отмечается — ручных галочек нет; «0 объектов» —
+разрыв, не зелёный ноль; неприменимое — серым с обоснованием (это tailoring, след с автором).</div>
+
+<div class="case"><span class="tag">Состояние 1 · MCR: 9 не закрыто, 3 блокируют</span>
+<div class="frame">
+  <header class="hdr"><span class="brand"><span class="o"></span>Орбита</span>
+    <span class="proj"><b>Национальная спутниковая платформа IoT</b></span>
+    <span class="chip">Pre-Phase A</span>
+    <span class="who">Инженер: <b>Чернов Д.</b></span></header>
+  <nav class="rail">
+    <div class="rico"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg><span class="rlab">Портфель</span></div>
+    <div class="rico"><svg viewBox="0 0 24 24"><path d="M12 6c-2-1.4-5-1.4-7 0v12c2-1.4 5-1.4 7 0c2-1.4 5-1.4 7 0V6c-2-1.4-5-1.4-7 0z"/><path d="M12 6v12"/></svg><span class="rlab">Библиотека</span></div>
+    <div class="rico"><svg viewBox="0 0 24 24"><path d="M5 5h14M5 10h14M5 15h9M5 20h6"/></svg><span class="rlab">Требования</span></div>
+    <div class="rico"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></svg><span class="rlab">Документы</span></div>
+    <div class="rico on"><svg viewBox="0 0 24 24"><path d="M4 19V5m0 14h16M8 15l4-6 4 3 4-7"/></svg><span class="rlab">Контроль</span></div>
+  </nav>
+  <main class="main">
+    <div class="top"><h1>Готовность к точке · MCR</h1>
+      <span class="big">не закрыто · 9</span>
+      <span class="sub">блокирует фиксацию · 3</span>
+      <span class="sub">план: <span class="mono">28.09.2026</span></span></div>
+
+    <div class="grp">
+      <div class="gh block"><span class="chev">▾</span>Блокирует фиксацию<span class="n bad">· 3</span></div>
+      <div class="chk"><span class="st bad"></span><span class="tx">Требования уровня проекта базированы</span>
+        <span class="num"><b>7</b> из 41 не базировано</span><a href="#">к реестру →</a></div>
+      <div class="chk"><span class="st bad"></span><span class="tx">ConOps: разделы наполнены</span>
+        <span class="num"><b>1</b> из 7 пуст</span><a href="#">к документу →</a></div>
+      <div class="chk"><span class="st bad"></span><span class="tx">Концептуальная оценка стоимости присутствует</span>
+        <span class="num"><b>0</b> объектов — оценки не заведены</span><a href="#">к оценкам →</a></div>
+    </div>
+
+    <div class="grp">
+      <div class="gh"><span class="chev">▾</span>Постановка и требования<span class="n bad">· 4</span></div>
+      <div class="chk"><span class="st bad"></span><span class="tx">Нужды покрыты требованиями</span>
+        <span class="num"><b>4</b> нужды не покрыты</span><a href="#">к нуждам →</a></div>
+      <div class="chk"><span class="st bad"></span><span class="tx">Верификация назначена</span>
+        <span class="num"><b>13</b> из 41 без события</span><a href="#">к реестру →</a></div>
+      <div class="chk"><span class="st bad"></span><span class="tx">Разрывы трассировки</span>
+        <span class="num"><b>1</b> источник отменён</span><a href="#">к требованию →</a></div>
+      <div class="chk"><span class="st bad"></span><span class="tx">Предложения службы разобраны</span>
+        <span class="num"><b>12</b> ждут акцепта</span><a href="#">к предложениям →</a></div>
+      <div class="chk closed"><span class="st okd"></span><span class="tx">Требования: показатели с основаниями</span>
+        <span class="num">41 из 41</span></div>
+    </div>
+
+    <div class="grp">
+      <div class="gh"><span class="chev">▾</span>Нормативы<span class="n bad">· 2</span></div>
+      <div class="chk"><span class="st bad"></span><span class="tx">Применимые нормативы просмотрены</span>
+        <span class="num"><b>2</b> без решения о применимости</span><a href="#">к библиотеке →</a></div>
+      <div class="chk"><span class="st na"></span><span class="tx">Оценка орбитального засорения актуальна</span>
+        <span class="na-why">неприменимо: суборбитальный демонстратор — Чернов Д., 20.08</span></div>
+    </div>
+
+    <div class="grp">
+      <div class="gh"><span class="chev">▸</span>Документы комплекта<span class="n okc">· закрыто</span></div>
+    </div>
+    <div class="grp">
+      <div class="gh"><span class="chev">▸</span>Риски<span class="n okc">· закрыто</span></div>
+    </div>
+  </main>
+</div></div>
+
+<div class="case"><span class="tag">Состояние 2 · всё закрыто: готово к фиксации</span>
+<div class="frame" style="min-height:330px">
+  <header class="hdr"><span class="brand"><span class="o"></span>Орбита</span>
+    <span class="proj"><b>Ротор-Л</b></span><span class="chip">Pre-Phase A</span>
+    <span class="who">Инженер: <b>Чернов Д.</b></span></header>
+  <nav class="rail"><div class="rico on"><svg viewBox="0 0 24 24"><path d="M4 19V5m0 14h16M8 15l4-6 4 3 4-7"/></svg><span class="rlab">Контроль</span></div></nav>
+  <main class="main">
+    <div class="top"><h1>Готовность к точке · KDP-A</h1>
+      <span class="big ok">закрыто всё · 24 из 24</span>
+      <span class="sub">план: <span class="mono">10.09.2026</span></span></div>
+    <div class="okband"><b>Готово к фиксации.</b>
+      <span>Все проверки закрыты; неприменимых — 1, с обоснованием.</span>
+      <span class="sp"></span><a href="#">к фиксации на жизненном цикле →</a></div>
+    <div class="grp">
+      <div class="gh"><span class="chev">▸</span>Блокирует фиксацию<span class="n okc">· закрыто</span></div>
+    </div>
+    <div class="grp">
+      <div class="gh"><span class="chev">▸</span>Постановка и требования<span class="n okc">· закрыто</span></div>
+    </div>
+    <div class="grp">
+      <div class="gh"><span class="chev">▸</span>Документы комплекта<span class="n okc">· закрыто</span></div>
+    </div>
+  </main>
+</div></div>
+
+</div></body></html>

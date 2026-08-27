@@ -204,6 +204,39 @@
           "type": "string"
         }
       }
+    },
+    "gate_tailoring": {
+      "type": "array",
+      "description": "Tailoring готовности (О-11): проверка объявлена неприменимой к точке — с обоснованием, автором и датой; отмена возможна (запись убирается процедурой)",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "gate",
+          "check",
+          "rationale",
+          "author",
+          "at"
+        ],
+        "properties": {
+          "gate": {
+            "type": "string"
+          },
+          "check": {
+            "type": "string"
+          },
+          "rationale": {
+            "type": "string",
+            "minLength": 10
+          },
+          "author": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string"
+          }
+        }
+      }
     }
   }
 }

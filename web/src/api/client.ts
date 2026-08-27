@@ -345,6 +345,24 @@ export const api = {
   /** Выгрузка проекта тем же форматом — для ссылки скачивания. */
   exportObjectsUrl: () => `/api${'/export/objects'}`,
 
+  /** О-11: готовность точки — агрегаты группами, tailoring неприменимости. */
+  gateReadiness: () =>
+    get<{
+      gate: string; label: string; due?: string
+      open_total: number; blocking_open: number; total: number; na_total: number
+      groups: Array<{
+        key: string; title: string; open: number
+        checks: Array<{
+          id: string; title: string; state: 'open' | 'closed' | 'na'
+          blocking: boolean; note: string; place?: string
+          na_rationale?: string; na_author?: string; na_at?: string
+        }>
+      }>
+    }>('/views/gate-readiness'),
+  gateReadinessNa: (check: string, rationale: string, author: string) =>
+    post<{ ok: boolean }>('/views/gate-readiness/na', { check, rationale, author }),
+  gateReadinessNaRemove: (check: string, author: string) =>
+    post<{ ok: boolean }>('/views/gate-readiness/na', { check, remove: true, author }),
   /** О-9: портфель одним запросом — сервер собрал и отсортировал. */
   portfolio: () =>
     get<{ projects: Array<{

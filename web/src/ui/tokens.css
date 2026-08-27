@@ -1468,3 +1468,35 @@ details.np-dates[open] summary::before { transform: rotate(90deg); }
 .lc2-pchip { font-size: 11.5px; padding: 1px 8px; border-radius: 9px;
   background: var(--container-3); color: var(--text-secondary); }
 .lc2-startline { font-size: 12px; color: var(--text-secondary); margin-top: 8px; }
+/* О-11: готовность к точке (reference-readiness) */
+.gr-big { font: 600 13px/18px var(--font-mono); color: #93000a;
+  background: var(--error-surface); border-radius: 9px; padding: 2px 10px; }
+.gr-big.ok { color: var(--status-baseline); background: #e6f2e9; }
+.gr-okband { display: flex; gap: 12px; align-items: center; background: #e6f2e9;
+  color: var(--status-baseline); border-radius: 8px; padding: 9px 13px;
+  margin: 0 0 14px; font-size: 12.5px; }
+.gr-grp { margin: 0 0 10px; }
+.gr-gh { display: flex; gap: 6px; align-items: center; width: 100%; text-align: left;
+  font: 600 11px/16px var(--font); text-transform: uppercase; letter-spacing: .06em;
+  color: var(--text-secondary); background: var(--container-2); border: 1px solid var(--hairline);
+  border-radius: 7px; padding: 5px 10px; cursor: pointer; }
+.gr-gh.block { border-color: var(--status-error); color: #93000a; background: #fdf1f0; }
+.gr-n { text-transform: none; letter-spacing: 0; font-family: var(--font-mono); font-size: 11px; }
+.gr-n.bad { color: #93000a; }
+.gr-n.okc { color: var(--status-baseline); }
+.gr-chk { display: flex; gap: 10px; align-items: center; padding: 6px 10px 6px 26px;
+  border-bottom: 1px solid var(--container-3); font-size: 12.5px; flex-wrap: wrap; }
+.gr-chk.closed { color: var(--text-secondary); }
+.gr-st { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.gr-st.bad { background: var(--status-error); }
+.gr-st.okd { background: var(--status-baseline); }
+.gr-st.na { background: var(--hairline); }
+.gr-tx { min-width: 0; }
+.gr-num { color: var(--text-secondary); font-size: 12px; }
+.gr-num b, .gr-num { font-variant-numeric: tabular-nums; }
+.gr-nawhy { color: var(--text-secondary); font-size: 11.5px; }
+.gr-nabtn { font-size: 11px; color: var(--text-secondary); border: 0; background: none;
+  cursor: pointer; padding: 0; margin-left: auto; }
+.gr-nabtn:hover { color: var(--text); text-decoration: underline; }
+.gr-retops { display: flex; gap: 10px; align-items: center; margin-top: 16px;
+  padding-top: 10px; border-top: 1px dashed var(--hairline); font-size: 12px; }

@@ -362,6 +362,48 @@ class ReqRegistryTest {
         assertTrue("служебная запись" in authors) { authors.toString() }
     }
 
+    @Test
+    @Order(14)
+    fun `готовность О-11 - агрегаты группами, ноль объектов это разрыв, tailoring с автором и отменой`() {
+        val r = send("GET", "/views/gate-readiness?project=$project", asUser = "vera")
+        assertEquals(200, r.statusCode()) { r.body() }
+        val v = mapper.readTree(r.body())
+        assertEquals("Внутренний обзор", v.path("label").asText())
+        assertTrue(v.path("open_total").asInt() > 0)
+        assertTrue(v.path("blocking_open").asInt() <= v.path("open_total").asInt())
+        val groups = v.path("groups")
+        assertEquals("blocking", groups[0].path("key").asText()) { "блокирующие — первая группа" }
+        // «0 объектов» — разрыв, не зелёный ноль: рисков в проекте нет
+        val risks = groups.flatMap { it.path("checks") }.first { it.path("id").asText() == "risks" }
+        assertEquals("open", risks.path("state").asText()) { risks.toString() }
+        assertTrue("0 объектов" in risks.path("note").asText())
+
+        // tailoring: неприменимо с обоснованием — след с автором; отмена возвращает
+        send(
+            "POST", "/views/gate-readiness/na?project=$project", asUser = "vera",
+            body = """{"author":"Вера И.","check":"oda","rationale":"суборбитальный демонстратор — засорение вне области"}""",
+        ).also { assertEquals(200, it.statusCode()) { it.body() } }
+        val after = mapper.readTree(send("GET", "/views/gate-readiness?project=$project", asUser = "vera").body())
+        val oda = after.path("groups").flatMap { it.path("checks") }.first { it.path("id").asText() == "oda" }
+        assertEquals("na", oda.path("state").asText()) { oda.toString() }
+        assertTrue(oda.path("na_author").asText().isNotBlank())
+        assertTrue("демонстратор" in oda.path("na_rationale").asText())
+        // короткое обоснование — отказ
+        val bad = send(
+            "POST", "/views/gate-readiness/na?project=$project", asUser = "vera",
+            body = """{"author":"Вера И.","check":"risks","rationale":"нет"}""",
+        )
+        assertTrue(bad.statusCode() >= 400) { bad.body() }
+        // отмена
+        send(
+            "POST", "/views/gate-readiness/na?project=$project", asUser = "vera",
+            body = """{"author":"Вера И.","check":"oda","remove":true}""",
+        ).also { assertEquals(200, it.statusCode()) { it.body() } }
+        val back = mapper.readTree(send("GET", "/views/gate-readiness?project=$project", asUser = "vera").body())
+        val oda2 = back.path("groups").flatMap { it.path("checks") }.first { it.path("id").asText() == "oda" }
+        assertEquals("open", oda2.path("state").asText())
+    }
+
     private fun login(user: String, password: String) {
         val r = send("POST", "/auth/login", """{"login":"$user","password":"$password"}""")
         assertEquals(200, r.statusCode()) { r.body() }

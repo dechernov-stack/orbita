@@ -1708,6 +1708,99 @@ class HttpApi(private val boundary: Boundary) {
                 )
             }
 
+            // О-11: структурная готовность — группы агрегатов с местом починки
+            method == "GET" && path == "/views/gate-readiness" -> {
+                val p = requireProject(project)
+                val gateOrNull = query(ex)["gate"] ?: boundary.gatePassing.nextGate(p)
+                if (gateOrNull == null) {
+                    // горизонт исчерпан — честное состояние, не ошибка
+                    respond(ex, 200, mapper.createObjectNode().put("horizon_done", true))
+                    return
+                }
+                val gate = gateOrNull
+                val checks = boundary.gatePassing.readiness(gate, p)
+                val out = mapper.createObjectNode()
+                out.put("gate", gate)
+                out.put("label", boundary.req.gateLabel(gate))
+                boundary.objects.current(p)!!.doc.path("milestones")
+                    .firstOrNull { it.path("gate").asText() == gate }
+                    ?.path("due")?.asText("")?.ifBlank { null }
+                    ?.let { out.put("due", it) }
+                out.put("open_total", checks.count { it.state == "open" })
+                out.put("blocking_open", checks.count { it.state == "open" && it.blocking })
+                out.put("total", checks.count { it.state != "na" })
+                out.put("na_total", checks.count { it.state == "na" })
+                val titles = mapOf(
+                    "blocking" to "Блокирует фиксацию",
+                    "statement" to "Постановка и требования",
+                    "ai" to "Служба ИИ",
+                    "risks" to "Риски",
+                )
+                val groups = out.putArray("groups")
+                listOf("blocking", "statement", "ai", "risks").forEach { key ->
+                    val inGroup = checks.filter { it.group == key }
+                    if (inGroup.isEmpty()) return@forEach
+                    val g = groups.addObject()
+                    g.put("key", key)
+                    g.put("title", titles[key])
+                    g.put("open", inGroup.count { it.state == "open" })
+                    val arr = g.putArray("checks")
+                    inGroup.forEach { c ->
+                        val n = arr.addObject()
+                            .put("id", c.id).put("title", c.title).put("state", c.state)
+                            .put("blocking", c.blocking).put("note", c.note)
+                        c.place?.let { n.put("place", it) }
+                        c.naRationale?.let {
+                            n.put("na_rationale", it)
+                            n.put("na_author", humanAuthor(c.naAuthor ?: ""))
+                            n.put("na_at", c.naAt ?: "")
+                        }
+                    }
+                }
+                respond(ex, 200, out)
+            }
+
+            // О-11: tailoring — проверка неприменима к точке (след с автором);
+            // remove: true снимает запись — отмена возможна
+            method == "POST" && path == "/views/gate-readiness/na" -> {
+                val req = mapper.readTree(body(ex))
+                val p = requireProject(project)
+                val gate = req.path("gate").asText("").ifBlank {
+                    boundary.gatePassing.nextGate(p) ?: throw IllegalArgumentException("точка не названа")
+                }
+                val check = req.path("check").asText("")
+                require(check.isNotBlank()) { "field 'check' is required" }
+                val remove = req.path("remove").asBoolean(false)
+                val na = author(req)
+                val cur = boundary.objects.current(p)!!
+                val doc = cur.doc.deepCopy<ObjectNode>()
+                val next = mapper.createArrayNode()
+                doc.path("gate_tailoring").forEach { t ->
+                    if (!(t.path("gate").asText() == gate && t.path("check").asText() == check)) {
+                        next.add(t.deepCopy<JsonNode>())
+                    }
+                }
+                if (!remove) {
+                    val rationale = req.path("rationale").asText("")
+                    require(rationale.length >= 10) {
+                        "неприменимость — это tailoring: обоснование обязательно (не короче 10 знаков)"
+                    }
+                    next.addObject()
+                        .put("gate", gate).put("check", check)
+                        .put("rationale", rationale).put("author", na)
+                        .put("at", java.time.LocalDate.now().toString())
+                }
+                if (next.isEmpty) doc.remove("gate_tailoring")
+                else doc.set<ObjectNode>("gate_tailoring", next)
+                boundary.objects.change(
+                    p, doc,
+                    changeRef = if (remove) "tailoring снят: проверка «$check» точки $gate снова применима"
+                    else "tailoring: проверка «$check» точки $gate неприменима",
+                    createdBy = na,
+                )
+                respond(ex, 200, mapper.createObjectNode().put("ok", true))
+            }
+
             // Предпросмотр незакрытого точки — тем же расчётом, что и прохождение
             method == "GET" && gateMatch(path, "issues") != null -> {
                 val gate = gateMatch(path, "issues")!!

@@ -99,6 +99,153 @@ class GatePassing(
         }
     }
 
+    /** Проверка готовности (О-11): агрегат, не телефонная книга строк. */
+    data class Check(
+        val id: String,
+        val group: String,
+        val title: String,
+        /** open | closed | na; «0 объектов» — open (разрыв, не зелёный ноль). */
+        val state: String,
+        val blocking: Boolean,
+        /** Число словами: «7 из 41 не базировано», «0 объектов — не заведены». */
+        val note: String,
+        /** Экран починки — «к месту →»; null у закрытых. */
+        val place: String?,
+        val naRationale: String? = null,
+        val naAuthor: String? = null,
+        val naAt: String? = null,
+    )
+
+    /**
+     * Структурная готовность точки (О-11): те же источники, что блокируют
+     * pass (выходы операций · зрелость · TBD/трассировка · критические
+     * замечания · комплект документов) — агрегатами с местом починки, плюс
+     * вычисляемые предупреждения (нужды, верификация, сироты, служба ИИ,
+     * риски). Готовность вычисляется, не отмечается: ручных галочек нет.
+     * Неприменимость — tailoring в паспорте (gate_tailoring), с автором.
+     */
+    fun readiness(gate: String, projectId: String): List<Check> {
+        val project = projectOf(projectId)
+        val phase = project.doc.path("phase").asText()
+        val na = project.doc.path("gate_tailoring")
+            .filter { it.path("gate").asText() == gate }
+            .associateBy { it.path("check").asText() }
+        val checks = mutableListOf<Check>()
+        fun add(
+            id: String, group: String, title: String, open: Int, note: String,
+            place: String?, blocking: Boolean, closedNote: String = "закрыто",
+        ) {
+            val n = na[id]
+            checks += when {
+                n != null -> Check(
+                    id, group, title, "na", blocking, note, null,
+                    n.path("rationale").asText(), n.path("author").asText(),
+                    n.path("at").asText(""),
+                )
+                open > 0 -> Check(id, group, title, "open", blocking, note, place)
+                else -> Check(id, group, title, "closed", blocking, closedNote, null)
+            }
+        }
+
+        val rows = operations.states(phase, boundary.req.snapshotsAt(null, projectId))
+        rows.filter { it.operation.gate == gate }.forEach { r ->
+            val open = if (r.state == orbita.req.OperationState.NotStarted ||
+                r.state == orbita.req.OperationState.InProgress
+            ) 1 else 0
+            val note = when (r.state) {
+                orbita.req.OperationState.NotStarted ->
+                    "выход не создан (${r.operation.kinds.joinToString()})"
+                orbita.req.OperationState.InProgress ->
+                    "выход не достиг статуса ${r.operation.requiredStatus}"
+                else -> "выход готов"
+            }
+            add(
+                "op:${r.operation.code}", "blocking",
+                "${r.operation.code} · ${r.operation.name}",
+                open, note, r.operation.screen, blocking = true, closedNote = "выход готов",
+            )
+        }
+        val report = boundary.maturity.build(gate, projectId = projectId)
+        report.gapsByType.forEach { (type, gaps) ->
+            add(
+                "maturity:$type", "blocking", "Зрелость: $type",
+                gaps.size, "${gaps.size} ниже требуемого статуса", "req", blocking = true,
+            )
+        }
+        if (gate in BASELINE_GATES) {
+            add(
+                "tbd", "blocking", "TBD/TBR закрыты",
+                report.openTbd.size, "${report.openTbd.size} незакрытых", "req", blocking = true,
+            )
+            add(
+                "trace", "blocking", "Трассировка без разрывов",
+                report.traceBreaks.size, "${report.traceBreaks.size} без входящей нити", "req", blocking = true,
+            )
+        }
+        val critical = boundary.objects.listCurrent(projectId)
+            .filter { it.type == "review_item" }
+            .map { it.doc }
+            .count {
+                it.path("review_gate").asText() == gate &&
+                    it.path("classification").asText() == "critical" &&
+                    it.path("status").asText() != "closed"
+            }
+        add(
+            "reviews", "blocking", "Критические замечания обзора закрыты",
+            critical, "$critical открыто", "rfa", blocking = true,
+        )
+        val kit = orbita.out.DocumentKits.kit(phase)
+        val issued = boundary.objects.listCurrent(projectId)
+            .filter { it.type == "document_issue" }
+            .map { it.doc.path("template").asText() }.toSet()
+        val docsDue = rows.filter { it.operation.gate == gate }
+            .flatMap { r -> r.operation.docs }.distinct()
+            .mapNotNull { kit[it] }
+        val unissued = docsDue.count { it !in issued }
+        add(
+            "docs", "blocking", "Комплект документов точки выпущен",
+            unissued, "$unissued из ${docsDue.size} не выпущено", "docs", blocking = true,
+        )
+
+        // тематические — вычисляемые предупреждения (не блокируют pass)
+        val tree = boundary.screens.requirementTree(projectId)
+        add(
+            "needs", "statement", "Нужды покрыты требованиями",
+            tree.needsUncovered.size, "${tree.needsUncovered.size} нужды не покрыты", "needs", blocking = false,
+        )
+        val noVerif = tree.rows.count { it.method == null }
+        add(
+            "verification", "statement", "Верификация назначена",
+            noVerif, "$noVerif из ${tree.rows.size} без события", "req", blocking = false,
+        )
+        val orphans = tree.rows.count { it.noCarrierGap }
+        add(
+            "carriers", "statement", "Системные требования распределены",
+            orphans, "$orphans из ${tree.rows.size} без носителя", "req", blocking = false,
+        )
+        val pending = tree.rows.count { it.origin == "ai_proposed" && it.status == "Draft" }
+        add(
+            "ai", "ai", "Предложения службы разобраны",
+            pending, "$pending ждут акцепта", "req", blocking = false,
+        )
+        val risks = boundary.objects.listCurrent(projectId)
+            .filter { it.type == "risk" && it.status.name != "Cancelled" }
+        add(
+            "risks", "risks", "Риски заведены и живы",
+            if (risks.isEmpty()) 1 else 0,
+            if (risks.isEmpty()) "0 объектов — рисков не заведено" else "${risks.size} в реестре",
+            "risks", blocking = false, closedNote = "${risks.size} в реестре",
+        )
+        val oda = boundary.objects.listCurrent(projectId).count { it.type == "oda" }
+        add(
+            "oda", "risks", "Оценка орбитального засорения присутствует",
+            if (oda == 0) 1 else 0,
+            if (oda == 0) "0 объектов — оценка не заведена" else "оценка есть",
+            "oda", blocking = false, closedNote = "оценка есть",
+        )
+        return checks
+    }
+
     /** Проект обязан существовать и вести перечень вех. */
     private fun projectOf(projectId: String): StoredObject =
         boundary.objects.current(projectId)?.takeIf { it.type == "project" }

@@ -235,7 +235,13 @@ export function App() {
       case 'ballistics': return <ScreenFrame title="Глобус"><Globe /></ScreenFrame>
       case 'coverage': return <ScreenFrame title="Карта покрытия"><Coverage /></ScreenFrame>
       case 'compare': return <ScreenFrame title="Сравнение вариантов"><Comparison /></ScreenFrame>
-      case 'readiness': return <GateReadiness onGo={go} />
+      case 'readiness':
+        return project
+          ? <GateReadiness project={project} onGo={go} />
+          : <Portfolio onOpen={() => setScreen('lifecycle')}
+              onNew={() => { setFirstRun(false); setScreen('newproject') }}
+              onLoadFile={() => { setFirstRun(false); setScreen('importb') }}
+              onStart={() => { setScreen('startpath'); loadHeader() }} />
       case 'rfa': return <KindRegistry key={screen} kinds={['review_item']} title="Замечания обзора (RFA/RID)" />
       case 'risks': return <KindRegistry key={screen} kinds={['risk']} title="Риски" />
       case 'riskmatrix': return <ScreenFrame title="Матрица рисков"><Risks /></ScreenFrame>
