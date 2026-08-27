@@ -325,6 +325,10 @@ export const api = {
   /** Закрытый контур: ответ владельца файлом — тем же разбором и журналом. */
   aiSubmit: (kind: string, profile: string, statement: string, raw: string, author: string) =>
     post<AiRunReport>('/ai/submit', { kind, profile, statement, raw, author }),
+  /** Б-01: заготовленный пакет — без вызова модели; вид из самого пакета,
+   * журнал — «пакет». */
+  aiPacket: (raw: string, author: string) =>
+    post<AiRunReport & { kind: string; profile: string }>('/ai/packet', { raw, author }),
   /** Журнал вызовов: «сколько и почём». */
   aiJournal: () => get<AiJournal>('/ai/journal'),
   /** Акцепт пачкой с привязкой к вызову журнала. */

@@ -132,6 +132,47 @@ class AiServiceTest {
     }
 
     @Test
+    fun `Б-01 - пакет вносится без модели, вид из самого пакета, журнал модель пакет`() {
+        val svc = service { _, _ -> error("модель не вызывается — Б-01") }
+        // голый массив: вид по префиксу id, профиль подобран по виду
+        val bare = """
+            [{"id":"ND-1301","statement":"Перевозчику нужен контроль рефрижераторов в пути.",
+              "stakeholder":{"name":"Перевозчик","role":"end_user"},
+              "lifecycle":{"status":"Draft","version":"1"}}]"""
+        val run = svc.packet(bare, PROJECT, "Чернов Д.")
+        assertEquals("package", run.transport)
+        assertEquals(AiService.PACKET_MODEL, run.model)
+        assertEquals("mission_to_needs", run.report["kind"].asText())
+        assertEquals("AP-0001", run.report["profile"].asText())
+        assertEquals(1, run.report["proposed"].asInt())
+        assertEquals(1, run.report["shown"].size())
+        val journal = svc.journal(PROJECT)
+        assertEquals(AiService.PACKET_MODEL, journal["calls"][0]["model"].asText())
+        assertEquals("package", journal["calls"][0]["transport"].asText())
+
+        // обёртка несёт вид явно — правящим видам только так
+        val wrapped = """{"kind":"mission_to_needs","items":[
+            {"id":"ND-1302","statement":"Диспетчеру нужна сводка потерянных терминалов.",
+             "stakeholder":{"name":"Диспетчер","role":"operator"},
+             "lifecycle":{"status":"Draft","version":"1"}}]}"""
+        assertEquals(1, svc.packet(wrapped, PROJECT, "Чернов Д.").report["shown"].size())
+
+        // смешанные префиксы вид не выводят — отказ зовёт обёртку
+        val mixed = """[{"id":"ND-1303","statement":"x"},{"id":"MG-1301","statement":"y"}]"""
+        val refusal = runCatching { svc.packet(mixed, PROJECT, "Чернов Д.") }
+        assertTrue("оберните" in (refusal.exceptionOrNull()?.message ?: "")) {
+            refusal.exceptionOrNull()?.message ?: "нет отказа"
+        }
+
+        // вид без разрешающего профиля — отказ называет причину
+        val risky = """[{"id":"RSK-1301","title":"z"}]"""
+        val noProfile = runCatching { svc.packet(risky, PROJECT, "Чернов Д.") }
+        assertTrue("нет профиля службы" in (noProfile.exceptionOrNull()?.message ?: "")) {
+            noProfile.exceptionOrNull()?.message ?: "нет отказа"
+        }
+    }
+
+    @Test
     fun `закрытый контур - тот же разбор, фильтр и журнал, транспорт package`() {
         val raw = """
             [{"id":"ND-1202","statement":"Агрохолдингу нужен суточный съём показаний.",

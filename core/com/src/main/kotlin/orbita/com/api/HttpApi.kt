@@ -664,6 +664,17 @@ class HttpApi(private val boundary: Boundary) {
                 respond(ex, 200, run.report)
             }
 
+            // Б-01: заготовленный пакет предложений — без вызова модели.
+            // Вид — из самого пакета; разбор, фильтр и журнал общие
+            // (transport `package`, модель «пакет»).
+            method == "POST" && path == "/ai/packet" -> {
+                val req = mapper.readTree(body(ex))
+                val run = boundary.ai.packet(
+                    req.path("raw").asText(""), requireProject(project), author(req),
+                )
+                respond(ex, 200, run.report)
+            }
+
             // Журнал вызовов: «сколько и почём»
             method == "GET" && path == "/ai/journal" ->
                 respond(ex, 200, boundary.ai.journal(requireProject(project)))

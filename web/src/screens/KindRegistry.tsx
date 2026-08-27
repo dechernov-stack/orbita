@@ -62,6 +62,9 @@ export function KindRegistry({ kinds, title }: { kinds: string[]; title: string 
   /** Заготовка «на основе» выбранного: вариантность без перепечатки полей. */
   const [template, setTemplate] = useState<Record<string, unknown> | null>(null)
   const [filter, setFilter] = useState('')
+  /** Б-02 реестра блокеров: мягкая отмена по выбранному — с подтверждением
+   * числом; жёсткого удаления нет, история неприкосновенна. */
+  const [picked, setPicked] = useState<Set<string>>(new Set())
   const [error, setError] = useState<string | null>(null)
   /** Счётчик перебора табов при поиске объекта из намерения. */
   const seekRef = useRef(0)
@@ -80,6 +83,7 @@ export function KindRegistry({ kinds, title }: { kinds: string[]; title: string 
     setRows(null)
     setSelected(null)
     setCreating(false)
+    setPicked(new Set())
     reload()
   }, [reload])
 
@@ -116,6 +120,34 @@ export function KindRegistry({ kinds, title }: { kinds: string[]; title: string 
       (r.title ?? '').toLowerCase().includes(filter.toLowerCase()),
   )
   const open = creating || selected != null
+  /** К отмене годно только живое: Cancelled второй раз не отменяется. */
+  const pickedAlive = visible.filter((r) => picked.has(r.id) && r.status !== 'Cancelled')
+
+  const cancelPicked = async () => {
+    if (pickedAlive.length === 0 || !author || massBusy) return
+    const ok = window.confirm(
+      `Отменить объектов: ${pickedAlive.length} (${pickedAlive.slice(0, 5).map((r) => r.id).join(', ')}` +
+      `${pickedAlive.length > 5 ? ', …' : ''})?\n\nОтмена мягкая: объект остаётся в истории со статусом ` +
+      '«отменён», трассировки на него честно покажут разрыв. Жёсткого удаления нет.',
+    )
+    if (!ok) return
+    setMassBusy(true)
+    setMassReport(null)
+    const failed: string[] = []
+    let done = 0
+    for (const r of pickedAlive) {
+      try {
+        await edit.cancel(r.id, author)
+        done += 1
+      } catch (e) {
+        failed.push(`${r.id}: ${String((e as Error).message ?? e).slice(0, 80)}`)
+      }
+    }
+    setMassReport(`отменено ${done}${failed.length ? `; отказов ${failed.length} — ${failed.slice(0, 3).join('; ')}` : ''}`)
+    setPicked(new Set())
+    setMassBusy(false)
+    reload()
+  }
 
   return (
     <>
@@ -168,6 +200,13 @@ export function KindRegistry({ kinds, title }: { kinds: string[]; title: string 
               }}>
               {massBusy ? 'Перевод…' : 'Перевести все видимые'}
             </button>
+            {pickedAlive.length > 0 && (
+              <button className="btn" disabled={!author || massBusy}
+                title="мягкая отмена выбранных: история сохраняется, ссылки покажут разрыв"
+                onClick={cancelPicked}>
+                Отменить выбранные · {pickedAlive.length}
+              </button>
+            )}
             {massReport && <span className="secondary">{massReport}</span>}
           </>
         )}
@@ -280,6 +319,18 @@ export function KindRegistry({ kinds, title }: { kinds: string[]; title: string 
             <table>
               <thead>
                 <tr>
+                  {/* Б-02: выбор строк — для мягкой отмены по выбранному */}
+                  {meta.lifecycle && (
+                    <th style={{ width: 28 }}>
+                      <input type="checkbox"
+                        title="выбрать все видимые живые"
+                        checked={visible.some((r) => r.status !== 'Cancelled') &&
+                          visible.filter((r) => r.status !== 'Cancelled').every((r) => picked.has(r.id))}
+                        onChange={(e) => setPicked(e.target.checked
+                          ? new Set(visible.filter((r) => r.status !== 'Cancelled').map((r) => r.id))
+                          : new Set())} />
+                    </th>
+                  )}
                   <th style={{ width: 90 }}>ID</th>
                   <th>Содержание</th>
                   {/* зрелость — только у видов со статусной моделью; у прочих
@@ -295,6 +346,20 @@ export function KindRegistry({ kinds, title }: { kinds: string[]; title: string 
                     aria-selected={r.id === selected}
                     onClick={() => { setCreating(false); setSelected(r.id) }}
                   >
+                    {meta.lifecycle && (
+                      <td onClick={(e) => e.stopPropagation()}>
+                        <input type="checkbox"
+                          disabled={r.status === 'Cancelled'}
+                          title={r.status === 'Cancelled' ? 'уже отменён' : 'выбрать к отмене'}
+                          checked={picked.has(r.id)}
+                          onChange={(e) => setPicked((prev) => {
+                            const next = new Set(prev)
+                            if (e.target.checked) next.add(r.id)
+                            else next.delete(r.id)
+                            return next
+                          })} />
+                      </td>
+                    )}
                     <td className="id">{r.id}</td>
                     <td title={r.title}>{r.title}</td>
                     {meta.lifecycle && (

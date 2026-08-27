@@ -271,6 +271,89 @@ class AiService(
     }
 
     /**
+     * Б-01 реестра блокеров MVP-прохода: заготовленный ПАКЕТ предложений
+     * вносится без вызова модели. Вид — из самого пакета: обёртка
+     * {"kind": "...", "profile": "AP-NNNN"?, "items": [...]} несёт вид явно;
+     * голый массив объектов вида выводит вид по префиксу id (только
+     * порождающие виды — правящему виду обёртка обязательна). Разбор,
+     * фильтр и журнал — общие с прочими транспортами (transport `package`,
+     * модель «пакет»); профиль — из обёртки либо первый профиль проекта,
+     * разрешающий вид.
+     */
+    fun packet(rawPacket: String, projectId: String, author: String): AiServiceRun {
+        require(rawPacket.isNotBlank()) { "пакет пуст — вставьте JSON пакета" }
+        val cleaned = rawPacket.trim().removePrefix("```json").removePrefix("```").removeSuffix("```").trim()
+        val root = try {
+            mapper.readTree(cleaned)
+        } catch (e: Exception) {
+            throw IllegalArgumentException("пакет не разобран как JSON: ${e.message}")
+        }
+        val (kind, profileRef, items) = when {
+            root.isArray -> Triple(kindOfBareArray(root), null, root)
+            root.isObject && root.path("kind").isTextual -> {
+                val arr = root.path("items").takeIf { it.isArray }
+                    ?: root.path("objects").takeIf { it.isArray }
+                    ?: throw IllegalArgumentException("в обёртке пакета нет массива items")
+                Triple(
+                    root.path("kind").asText(),
+                    root.path("profile").asText("").ifBlank { null },
+                    arr,
+                )
+            }
+            else -> throw IllegalArgumentException(
+                "формат пакета: массив объектов вида либо обёртка {\"kind\": \"...\", \"items\": [...]}",
+            )
+        }
+        orbita.ai.PackageKinds.default().of(kind) // неизвестный вид — отказ с перечнем
+        val profileId = profileRef ?: boundary.objects.listCurrent(projectId)
+            .filter { it.type == "ai_profile" && it.status.name != "Cancelled" }
+            .sortedBy { it.id }
+            .firstOrNull { p -> p.doc.path("kinds").any { it.asText() == kind } }?.id
+        ?: throw IllegalArgumentException(
+            "нет профиля службы, разрешающего вид «$kind» — добавьте вид в профиль",
+        )
+        val p = profile(profileId, projectId)
+        val prompt = compose(kind, profileId, projectId, "").second
+        val itemsJson = mapper.writeValueAsString(items)
+        val screened = screen(itemsJson, kind, p)
+        val pk = calls.record(
+            projectId = projectId, kind = kind, transport = "package", prompt = prompt,
+            createdBy = author, profileId = p.id, profileVersion = p.version,
+            model = PACKET_MODEL, response = itemsJson,
+            proposed = screened.path("proposed").asInt(),
+            filtered = screened.path("rework").path("rejected").asInt(),
+            noSource = screened.path("no_source").asInt(),
+        )
+        screened.put("call", pk)
+        screened.put("kind", kind)
+        screened.put("profile", profileId)
+        screened.put("model", PACKET_MODEL)
+        return AiServiceRun(pk, prompt, "package", PACKET_MODEL, screened)
+    }
+
+    /** Вид голого массива — по префиксу id элементов; двусмысленное — отказ. */
+    private fun kindOfBareArray(arr: JsonNode): String {
+        require(arr.size() > 0) { "пакет пуст — предложений в массиве нет" }
+        val prefixes = arr.map { el ->
+            val id = el.path("id").asText("")
+            require(id.contains('-')) {
+                "у элемента пакета нет id вида «ПРЕФИКС-NNNN» — вид не выводится; " +
+                    "оберните пакет {\"kind\": \"...\", \"items\": [...]}"
+            }
+            id.substringBefore('-')
+        }.toSet()
+        require(prefixes.size == 1) {
+            "в пакете смешаны виды (${prefixes.sorted()}) — вносите пакет одним видом " +
+                "либо оберните {\"kind\": \"...\", \"items\": [...]}"
+        }
+        return BARE_PREFIX_KINDS[prefixes.single()]
+            ?: throw IllegalArgumentException(
+                "вид по префиксу «${prefixes.single()}» не выводится — оберните пакет " +
+                    "{\"kind\": \"...\", \"items\": [...]} (правящим видам обёртка обязательна)",
+            )
+    }
+
+    /**
      * Разбор и фильтр — общие для обоих транспортов.
      *
      * Проверка идёт по НОРМАТИВНОЙ СХЕМЕ целевого вида, а не по списку
@@ -337,6 +420,23 @@ class AiService(
         const val ENRICHMENT_KIND = "requirement_enrichment"
         /** Дырявых в один вызов: длинный ответ дорог и рвётся. */
         const val ENRICHMENT_BATCH = 30
+
+        /** Подпись источника в журнале для внесённого пакета (Б-01). */
+        const val PACKET_MODEL = "пакет"
+
+        /** Голый массив: префикс id → порождающий вид. Правящие виды
+         * (quality, decomposition, verification, enrichment, section_editor,
+         * checklist/annotation) сюда не входят намеренно — им обёртка. */
+        val BARE_PREFIX_KINDS: Map<String, String> = mapOf(
+            "MG" to "mission_to_goals",
+            "ND" to "mission_to_needs",
+            "SV" to "needs_to_services",
+            "RQ" to "services_to_requirements",
+            "RSK" to "risk_register",
+            "SH" to "mission_to_stakeholders",
+            "TR" to "mission_to_typical_risks",
+            "DT" to "template_extraction",
+        )
     }
 
     /** Акцепт дописывается к своему вызову — «сколько дошло до модели». */

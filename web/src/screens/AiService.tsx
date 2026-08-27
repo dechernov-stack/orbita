@@ -104,6 +104,27 @@ export function AiService({ onGo }: { onGo?: (screen: string) => void }) {
       .finally(() => { setBusy(false); reloadJournal() })
   }
 
+  /** Б-01 реестра блокеров: заготовленный пакет — всегда доступный вход,
+   * без сборки промпта и без вызова модели. Вид определяет сам пакет;
+   * отчёт фильтра и акцепт — общие с прочими транспортами. */
+  const [packetRaw, setPacketRaw] = useState('')
+  const insertPacket = () => {
+    if (!packetRaw.trim() || !author || busy) return
+    setBusy(true)
+    setError(null)
+    setBatch(null)
+    setExcluded(new Set())
+    setEnriched(null)
+    api.aiPacket(packetRaw, author)
+      .then((r) => {
+        if (r.kind) setKind(r.kind)
+        setReport(r)
+        setPacketRaw('')
+      })
+      .catch((e) => setError(String(e)))
+      .finally(() => { setBusy(false); reloadJournal() })
+  }
+
   const [enriched, setEnriched] = useState<{ written: number; demoted: string[] } | null>(null)
 
   const enrichApply = () => {
@@ -205,6 +226,40 @@ export function AiService({ onGo }: { onGo?: (screen: string) => void }) {
           </div>
         )}
         {error && <div className="notice notice--blocked">{error}</div>}
+
+        {/* Б-01: вход пакета — первым и всегда, живой прогон не нужен */}
+        <div className="card">
+          <h3>Вставить пакет</h3>
+          <div>
+            <p className="secondary" style={{ marginTop: 0 }}>
+              Заготовленный пакет предложений вносится без вызова модели: вид —
+              из самого пакета (массив объектов вида либо обёртка{' '}
+              <span className="mono">{'{"kind": "…", "items": […]}'}</span>),
+              фильтр и акцепт — общие, в журнале источник «пакет».
+            </p>
+            <textarea rows={4} style={{ width: '100%', fontFamily: 'var(--font-mono)', fontSize: 12 }}
+              value={packetRaw} onChange={(e) => setPacketRaw(e.target.value)}
+              placeholder='[{"id": "MG-0001", …}] — либо {"kind": "…", "items": […]}' />
+            <div className="toolbar" style={{ padding: '6px 0' }}>
+              <label className="btn" title="выбрать файл пакета, не вставлять текст руками">
+                Выбрать файл…
+                <input type="file" accept="application/json,.json,.txt" style={{ display: 'none' }}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    e.target.value = ''
+                    if (!file) return
+                    setError(null)
+                    file.text().then(setPacketRaw).catch((err) => setError(String(err)))
+                  }} />
+              </label>
+              <button className="btn btn--primary" onClick={insertPacket}
+                disabled={!packetRaw.trim() || !author || busy}
+                title={author ? '' : 'представьтесь в шапке'}>
+                {busy ? 'Внесение…' : 'Вставить пакет'}
+              </button>
+            </div>
+          </div>
+        </div>
 
         <div className="field">
           <label>Вход операции (постановка миссии либо иной материал инженера)</label>
