@@ -1238,3 +1238,89 @@ details.np-dates[open] summary::before { transform: rotate(90deg); }
 .sp-card__sum { font-size: 12px; line-height: 17px; margin-top: 5px; }
 .sp-card__acts { display: flex; gap: 8px; margin-top: 7px; align-items: center; }
 .sp-card__acts .np-btn { padding: 3px 10px; font-size: 11.5px; }
+
+/* ---- Т-1: реестр требований (эталон круга 4) ---- */
+.rr-tbar { display: flex; align-items: center; gap: 12px; padding: 5px 14px;
+  border-bottom: 1px solid var(--hairline); background: var(--bg); }
+.rr-tbar--form { padding: 4px 14px; gap: 10px; }
+.rr-h1 { font-size: 14px; font-weight: 600; margin: 0; }
+.rr-cut { display: inline-flex; border: 1px solid var(--hairline); border-radius: 7px; overflow: hidden; }
+.rr-cut button { font: 500 11.5px/16px var(--font); padding: 4px 10px; color: var(--text-secondary);
+  cursor: pointer; border: 0; background: var(--bg); border-right: 1px solid var(--hairline); }
+.rr-cut button:last-child { border-right: none; }
+.rr-cut button.on { background: var(--accent); color: #fff; font-weight: 600; }
+.rr-grpby { font-size: 12px; color: var(--text); border: 1px solid var(--hairline);
+  border-radius: 7px; padding: 3px 8px; background: var(--bg); }
+.rr-views { display: inline-flex; gap: 6px; align-items: center; }
+.rr-v { font-size: 11.5px; line-height: 16px; padding: 2px 9px; border-radius: 9px;
+  border: 1px solid var(--hairline); background: var(--bg); color: var(--text-secondary); cursor: pointer; }
+.rr-v.on { background: var(--rail); border-color: var(--rail); color: #fff; font-weight: 600; }
+.rr-v--add { border-style: dashed; color: var(--accent); }
+.rr-search { font: 400 12px/18px var(--font); border: 1px solid var(--hairline);
+  border-radius: 7px; padding: 3px 10px; width: 230px; background: var(--container-2); }
+.rr-gaps { display: flex; gap: 6px; padding: 4px 14px; border-bottom: 1px solid var(--hairline);
+  background: var(--container-2); flex-wrap: wrap; }
+.rr-g { font-size: 11.5px; line-height: 16px; padding: 2px 9px; border-radius: 9px;
+  border: 1px solid var(--hairline); background: var(--bg); color: var(--text-secondary); cursor: pointer; }
+.rr-g b { font-family: var(--font-mono); font-size: 11px; font-weight: 600; }
+.rr-g.on { background: var(--selection); border-color: var(--selection); color: #004491; font-weight: 600; }
+.rr-g.bad { border-color: var(--status-error); color: #93000a; }
+.rr-g.bad.on { background: var(--error-surface); }
+.rr-g.warnc { border-color: #d9c58a; color: #5c4a15; }
+.rr-selbar { display: flex; gap: 12px; align-items: center; padding: 7px 14px;
+  background: var(--selection); border-bottom: 1px solid var(--hairline); font-size: 12.5px; }
+.rr-grp td { height: 24px; background: var(--container-2); font: 600 11px/14px var(--font);
+  text-transform: uppercase; letter-spacing: .06em; color: var(--text-secondary); cursor: pointer; }
+.rr-grp .mono { text-transform: none; letter-spacing: 0; }
+.rr-cnt { color: var(--text-secondary); text-transform: none; letter-spacing: 0; font-weight: 400; }
+.rr-chev { display: inline-block; width: 12px; color: var(--text-secondary); font-size: 10px; }
+.rr-chk { width: 26px; }
+.rr-chk input { accent-color: var(--accent); }
+.rr-st { max-width: 0; width: 99%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rr-mk { display: inline-block; width: 7px; height: 7px; border-radius: 2px;
+  margin-left: 6px; vertical-align: 1px; }
+.rr-mk--recalc { background: #b3600e; }
+.rr-mk--chg { background: #8a6a1f; }
+.rr-assign { color: var(--accent); font-size: 12px; text-decoration: none; border: 0;
+  background: none; padding: 0; cursor: pointer; }
+.rr-assign:hover { text-decoration: underline; }
+.rr-expand > td { height: auto; padding: 10px 12px 12px 42px; background: #f2f6fd;
+  border-bottom: 1px solid var(--hairline); white-space: normal; }
+.rr-xgrid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; max-width: 1020px; }
+.rr-xk { font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--text-secondary); margin-bottom: 3px; display: flex; justify-content: space-between; }
+.rr-xv { font-size: 12.5px; line-height: 18px; }
+.rr-xfoot { margin-top: 8px; display: flex; gap: 14px; align-items: center; font-size: 11.5px; }
+.rr-cfg { position: absolute; right: 0; top: 30px; width: 270px; background: var(--bg);
+  border: 1px solid var(--hairline); border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(15, 28, 44, .14); padding: 10px 12px; z-index: 5; text-align: left; }
+.rr-cfg h4 { font-size: 12px; font-weight: 600; margin: 0 0 8px; display: flex;
+  justify-content: space-between; gap: 8px; }
+.rr-sec { font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--text-secondary); margin: 8px 0 3px; }
+.rr-col { display: flex; gap: 8px; align-items: center; padding: 3px 0; font-size: 12.5px; }
+.rr-grip { color: var(--hairline); cursor: grab; font-size: 13px; }
+.rr-col input { accent-color: var(--accent); }
+.rr-chead { display: flex; gap: 12px; align-items: center; padding: 10px 16px;
+  border-bottom: 1px solid var(--hairline); background: var(--bg); }
+.rr-back { color: var(--accent); font-size: 12.5px; white-space: nowrap; border: 0;
+  background: none; cursor: pointer; padding: 0; }
+.rr-ctitle { padding: 12px 18px 2px; }
+.rr-ctitle h2 { font-size: 16px; line-height: 23px; font-weight: 650; max-width: 1020px; margin: 0; }
+.rr-cstate { display: flex; gap: 6px; margin: 8px 0 0; flex-wrap: wrap; align-items: center; }
+.rr-cbody { padding: 12px 18px 18px; display: grid; grid-template-columns: 1fr 1fr;
+  gap: 12px; align-content: start; }
+.rr-cbody .card { margin: 0; }
+.rr-wide { grid-column: 1 / 3; }
+.rr-mopv { font-size: 15px; font-weight: 600; }
+.rr-tnode { display: flex; gap: 7px; align-items: baseline; padding: 2px 0; font-size: 12px; }
+.rr-hist { display: flex; gap: 10px; align-items: baseline; padding: 3px 0; font-size: 12px; }
+.rr-warn-chip { background: #f6ecd7; color: #5c4a15; }
+/* Экран реестра сам держит высоту: тулбары стоят, скроллится таблица */
+.rr-pane { display: flex; flex-direction: column; overflow: hidden; }
+.rr-pane .workarea { flex: 1; min-height: 0; }
+/* Компактные кнопки реестра — высоты тулбаров по эталону (37/31/29) */
+.rr-btn { font: 600 12px/16px var(--font); padding: 3px 10px; border-radius: 6px;
+  border: 1px solid var(--hairline); background: var(--bg); cursor: pointer; color: var(--text); }
+.rr-btn--pri { background: var(--accent); border-color: var(--accent); color: #fff; }
+.rr-btn:disabled { opacity: .5; cursor: default; }

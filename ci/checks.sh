@@ -45,6 +45,8 @@ fi
 # явно — молчаливо пропущенная проверка однажды уже скрыла невыполнявшийся эталон.
 if [ -d web/node_modules ]; then
   echo "== типы клиента ==" ; (cd web && npm run --silent typecheck)
+  # Т-1: модель реестра (дубль ID, конфигуратор=факт, разрывы) — vitest
+  echo "== тесты клиента ==" ; (cd web && npm run --silent test)
 else
   echo "== типы клиента == ПРОПУЩЕНО: нет web/node_modules (npm ci в web/)"
 fi

@@ -137,7 +137,7 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
             store(type, doc, createdBy, projectId)
         }
         CoreType.TypicalRisk, CoreType.LibraryFragment, CoreType.DocumentTemplate,
-        CoreType.SectionText -> {
+        CoreType.SectionText, CoreType.SavedView -> {
             val doc = parse(json)
             registry.require(type.schemaName, doc)
             store(type, doc, createdBy, projectId)

@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/core/saved-view.schema.json",
+  "title": "SavedView",
+  "description": "Сохранённый вид реестра (Т-1): колонки · порядок · сортировка · фильтры · группировка · форма. Область — личный (владелец-учётка) или проектный; не localStorage: вид переживает перезаход и смену машины.",
+  "type": "object",
+  "required": [
+    "id",
+    "name",
+    "section",
+    "scope",
+    "columns",
+    "form"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^VW-[0-9]{4}$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Подпись чипа: «Рабочий», «К обзору», «Сироты»"
+    },
+    "section": {
+      "enum": [
+        "requirements"
+      ],
+      "description": "Раздел, чей реестр настраивает вид; пока один"
+    },
+    "scope": {
+      "enum": [
+        "personal",
+        "project"
+      ],
+      "description": "личный — виден только владельцу; проектный — всем в проекте"
+    },
+    "owner_login": {
+      "type": "string",
+      "description": "Логин владельца (В3): сервер берёт из учётки, документ его не задаёт"
+    },
+    "columns": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Состав и порядок колонок — единственный источник и для таблицы, и для конфигуратора",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "key",
+          "on"
+        ],
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "on": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "sort": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "key",
+        "dir"
+      ],
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "dir": {
+          "enum": [
+            "asc",
+            "desc"
+          ]
+        }
+      }
+    },
+    "filters": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "gap": {
+          "enum": [
+            "no_carrier",
+            "no_verification",
+            "recalc_after_baseline",
+            "changed_after_approval"
+          ],
+          "description": "Счётчик-фильтр разрывов, зажатый в виде"
+        },
+        "search": {
+          "type": "string"
+        }
+      }
+    },
+    "grouping": {
+      "enum": [
+        "carrier",
+        "level",
+        "status",
+        "owner"
+      ],
+      "description": "Критерий группировки; без поля — без группировки"
+    },
+    "form": {
+      "enum": [
+        "tree",
+        "flat"
+      ],
+      "description": "Дерево или плоско"
+    },
+    "lifecycle": {
+      "$ref": "https://kis.local/schemas/common/status.schema.json"
+    },
+    "provenance": {
+      "$ref": "https://kis.local/schemas/common/provenance.schema.json"
+    }
+  }
+}

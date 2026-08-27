@@ -36,7 +36,9 @@ def product_sources() -> list[Path]:
         if main.is_dir():
             files += sorted(main.rglob("*.kt"))
     for ext in ("*.ts", "*.tsx"):
-        files += sorted((ROOT / "web/src").rglob(ext))
+        # тесты клиента — фикстуры, не продуктовый код: та же граница,
+        # по которой обход берёт у ядра только src/main
+        files += sorted(p for p in (ROOT / "web/src").rglob(ext) if ".test." not in p.name)
     return files
 
 

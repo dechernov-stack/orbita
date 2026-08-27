@@ -34,8 +34,9 @@ class SchemaValidationTest {
         // ограничения службы ИИ объектом, а не текстом в коде);
         // 36-я — source-document (ADR-030: библиотека исходных документов);
         // technology, decision, project, document-issue:
-        // входы моделирования стали хранимыми объектами и получили схемы в core/
-        assertEquals(44, registry.names.size, "нормативных схем должно быть 36: ${registry.names}")
+        // входы моделирования стали хранимыми объектами и получили схемы в core/;
+        // 45-я — saved-view (Т-1: сохранённые виды реестра)
+        assertEquals(45, registry.names.size, "нормативных схем должно быть 45: ${registry.names}")
     }
 
     @Test

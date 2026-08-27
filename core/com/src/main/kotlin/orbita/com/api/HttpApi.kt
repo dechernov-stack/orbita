@@ -425,6 +425,39 @@ class HttpApi(private val boundary: Boundary) {
                 respond(ex, 200, mapper.valueToTree(boundary.screens.card(id)))
             }
 
+            // ---- Т-1: сохранённые виды реестра (VW) ----
+            // Личные виды фильтрует СЕРВЕР по учётке — generic /objects отдал бы
+            // чужие личные; при выключенных учётках (login == null) фильтра нет.
+            method == "GET" && path == "/views/req-views" -> {
+                val login = currentAuthorLogin.get()
+                val arr = mapper.createArrayNode()
+                boundary.objects.listCurrent(project)
+                    .filter { it.type == "saved_view" }
+                    .filter {
+                        it.doc.path("scope").asText() == "project" ||
+                            login == null || it.doc.path("owner_login").asText("") == login
+                    }
+                    .sortedBy { it.id }
+                    .forEach { st ->
+                        arr.add((st.doc.deepCopy<ObjectNode>()).put("version", st.version))
+                    }
+                respond(ex, 200, mapper.createObjectNode().apply { set<ArrayNode>("views", arr) })
+            }
+
+            // owner_login проставляется здесь из сессии: документ клиента его
+            // не задаёт — иначе личный вид можно было бы подписать чужим именем.
+            method == "POST" && path == "/views/req-views" -> {
+                val request = mapper.readTree(body(ex))
+                val doc = request.path("doc") as? ObjectNode
+                    ?: throw IllegalArgumentException("doc object is required")
+                doc.remove("owner_login")
+                currentAuthorLogin.get()?.let { doc.put("owner_login", it) }
+                val stored = boundary.editing.create(
+                    CoreType.SavedView, doc, author(request), requireProject(project),
+                )
+                respond(ex, 201, summary(stored).apply { set<ObjectNode>("doc", stored.doc) })
+            }
+
             // ---- ИИ-контур (TZ-AI) ----
             // Генерация происходит ВНЕ системы: пакет копируют во внешний
             // интерфейс LLM, ответ вставляют обратно. Никакого вызова модели

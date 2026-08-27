@@ -56,6 +56,34 @@ export interface RequirementRow {
   sources: string[]
   /** На что распределено: элементы и интерфейсы. */
   allocatedTo: string[]
+  /** Т-1: вид требования — до Г5 вычисляется сервером (numeric при mop). */
+  kind: 'numeric' | 'text'
+  rationale: string | null
+  version: string
+  owner: string | null
+  origin: string | null
+  /** Родитель-требование (derive); null у корней. */
+  parentId: string | null
+  /** Имя первого носителя — строка рисуется без догрузок. */
+  carrierName: string | null
+  /** Пометы с сервера — клиент их семантику не вычисляет. */
+  recalcAfterBaseline: boolean
+  changedAfterApproval: boolean
+}
+
+/** Сохранённый вид реестра (Т-1): серверный объект, не localStorage. */
+export interface SavedViewDoc {
+  id?: string
+  name: string
+  section: 'requirements'
+  scope: 'personal' | 'project'
+  owner_login?: string
+  columns: Array<{ key: string; on: boolean }>
+  sort?: { key: string; dir: 'asc' | 'desc' }
+  filters?: { gap?: string; search?: string }
+  grouping?: 'carrier' | 'level' | 'status' | 'owner'
+  form: 'tree' | 'flat'
+  version?: string
 }
 
 export interface RequirementTreeView {

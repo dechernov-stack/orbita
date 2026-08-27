@@ -74,6 +74,17 @@ class ObjectStore(private val conn: Connection, private val mapper: ObjectMapper
             ps.executeQuery().use { rs -> rs.collect() }
         }
 
+    /** Вся история объектов одного типа одним запросом (Т-1: флаги помет реестра). */
+    fun historyByType(type: String, projectId: String? = null): List<StoredObject> =
+        conn.prepareStatement(
+            "SELECT $COLUMNS FROM objects WHERE type = ?::object_type" +
+                (if (projectId != null) " AND project_id = ?" else "") + " ORDER BY id, valid_from, pk"
+        ).use { ps ->
+            ps.setString(1, type)
+            if (projectId != null) ps.setString(2, projectId)
+            ps.executeQuery().use { rs -> rs.collect() }
+        }
+
     /** Текущие версии всех объектов; с [projectId] — только объекты проекта. */
     fun listCurrent(projectId: String? = null): List<StoredObject> =
         conn.prepareStatement(

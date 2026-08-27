@@ -26,6 +26,7 @@ import type {
   ReferenceScenarioRow,
   RequirementCard,
   RequirementTreeView,
+  SavedViewDoc,
   NeedRow,
   PromptPackage,
   ReadinessView,
@@ -336,6 +337,10 @@ export const api = {
   exportObjectsUrl: () => `/api${'/export/objects'}`,
 
   requirementTree: () => get<RequirementTreeView>('/views/requirement-tree'),
+  /** Т-1: сохранённые виды реестра — сервер фильтрует личные по учётке. */
+  reqViews: () => get<{ views: SavedViewDoc[] }>('/views/req-views'),
+  saveReqView: (doc: SavedViewDoc, author: string) =>
+    post<{ id: string }>('/views/req-views', { author, doc }),
   /** Матрицы живут на экране требований — там принимается решение (шаг 16 §2.4). */
   traceMatrix: () => get<TraceMatrixView>('/reports/trace-matrix'),
   verificationMatrix: () => get<VerificationMatrixFlatView>('/reports/verification-matrix'),

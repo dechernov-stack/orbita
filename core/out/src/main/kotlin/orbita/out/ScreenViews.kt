@@ -55,6 +55,22 @@ data class RequirementRow(
     val sources: List<String>,
     /** На что распределено: элементы и интерфейсы (список после MCR, п. 6). */
     val allocatedTo: List<String>,
+    /** Т-1: вид требования — до Г5 вычисляемый (numeric при mop, иначе text). */
+    val kind: String,
+    /** Обоснование — раскрытие строки рисует его без догрузки. */
+    val rationale: String?,
+    val version: String,
+    val owner: String?,
+    /** Происхождение из provenance.source: manual/imported/ai_proposed/computed. */
+    val origin: String?,
+    /** Родитель-требование (derive); null у корней. */
+    val parentId: String?,
+    /** Имя первого носителя — чтобы строка рисовалась без догрузок. */
+    val carrierName: String?,
+    /** Пометы (сервер считает по истории): показатель менялся после базирования. */
+    val recalcAfterBaseline: Boolean,
+    /** Документ правился после первого утверждения (Approved/Baseline). */
+    val changedAfterApproval: Boolean,
 )
 
 data class RequirementTreeView(
@@ -118,7 +134,16 @@ class ScreenViews(
         val ids = requirements.map { it.id }
         val links = ids.flatMap { req.links.linksFrom(it, "derive") }
         val tree = buildTree(ids, links)
-        val rows = requirements.map { r -> row(r.id, tree) }.sortedBy { it.id }
+        val parents = tree.children.entries
+            .flatMap { (parent, kids) -> kids.map { it to parent } }.toMap()
+        // Пометы — по истории всех требований проекта ОДНИМ запросом: считать
+        // по одному значило бы запрос на строку при каждой отрисовке реестра
+        val marksById = req.objects.historyByType("requirement", projectId)
+            .groupBy { it.id }.mapValues { rowMarks(it.value) }
+        val carrierNames = mutableMapOf<String, String?>()
+        val rows = requirements
+            .map { r -> row(r, tree, parents[r.id], marksById[r.id], carrierNames) }
+            .sortedBy { it.id }
         return RequirementTreeView(tree.roots, tree.children, rows)
     }
 
@@ -233,12 +258,28 @@ class ScreenViews(
         )
     }
 
-    private fun row(id: String, tree: RequirementTree): RequirementRow {
-        val stored = req.objects.current(id)!!
+    private fun row(
+        stored: orbita.mod.store.StoredObject,
+        tree: RequirementTree,
+        parentId: String?,
+        marks: RowMarks?,
+        carrierNames: MutableMap<String, String?>,
+    ): RequirementRow {
+        val id = stored.id
         val doc = stored.doc
         val closing = doc.path("verification_events").firstOrNull { it.path("closes").asBoolean(false) }
         val event = closing ?: doc.path("verification_events").firstOrNull()
         val bar = budgetBarFor(id)
+        val cond = condition(doc)
+        val allocated = doc.path("allocated_to").mapNotNull {
+            it.path("component").asText("").ifBlank { null }
+                ?: it.path("interface").asText("").ifBlank { null }
+        }
+        val carrierName = allocated.firstOrNull()?.let { carrierId ->
+            carrierNames.getOrPut(carrierId) {
+                req.objects.current(carrierId)?.doc?.path("name")?.asText("")?.ifBlank { null }
+            }
+        }
         return RequirementRow(
             id = id,
             depth = tree.depthOf(id),
@@ -247,7 +288,7 @@ class ScreenViews(
             category = doc.path("category").asText("").ifBlank { null },
             level = doc.path("level").asText("").ifBlank { null },
             status = stored.status.name,
-            condition = condition(doc),
+            condition = cond,
             budget = bar,
             budgetOverrun = bar?.overrun == true,
             verificationState = verificationState(doc).label,
@@ -255,10 +296,34 @@ class ScreenViews(
             approach = event?.path("approach")?.asText("")?.ifBlank { null },
             planIssues = verificationPlanIssues(doc),
             sources = doc.path("traces_up").map { it.path("ref").asText() }.filter { it.isNotBlank() },
-            allocatedTo = doc.path("allocated_to").mapNotNull {
-                it.path("component").asText("").ifBlank { null }
-                    ?: it.path("interface").asText("").ifBlank { null }
-            },
+            allocatedTo = allocated,
+            kind = if (cond != null) "numeric" else "text",
+            rationale = doc.path("rationale").asText("").ifBlank { null },
+            version = stored.version,
+            owner = doc.path("owner").asText("").ifBlank { null },
+            origin = doc.path("provenance").path("source").asText("").ifBlank { null },
+            parentId = parentId,
+            carrierName = carrierName,
+            recalcAfterBaseline = marks?.recalcAfterBaseline == true,
+            changedAfterApproval = marks?.changedAfterApproval == true,
+        )
+    }
+
+    /** Пометы Т-1 — семантика живёт здесь, клиент флаги только рисует. */
+    private data class RowMarks(val recalcAfterBaseline: Boolean, val changedAfterApproval: Boolean)
+
+    private fun rowMarks(history: List<orbita.mod.store.StoredObject>): RowMarks {
+        val current = history.lastOrNull() ?: return RowMarks(false, false)
+        // Правка — всегда новая версия (transition версию не меняет), поэтому
+        // «изменено после утверждения» = версия ушла от первой утверждённой
+        val firstApproved = history.firstOrNull {
+            it.status == Lifecycle.Approved || it.status == Lifecycle.Baseline
+        }
+        val firstBaseline = history.firstOrNull { it.status == Lifecycle.Baseline }
+        return RowMarks(
+            recalcAfterBaseline = firstBaseline != null &&
+                current.doc.path("mop") != firstBaseline.doc.path("mop"),
+            changedAfterApproval = firstApproved != null && current.version != firstApproved.version,
         )
     }
 

@@ -76,7 +76,9 @@ enum class CoreType(val idPrefix: String, val dbType: String, val schemaName: St
     // В1.2: авторский текст раздела — хранимый и версионируемый
     SectionText("ST", "section_text", "core/section-text"),
     // В2.1: вхождение — определение × количество × роль в родителе
-    ComponentUsage("CU", "component_usage", "core/component-usage");
+    ComponentUsage("CU", "component_usage", "core/component-usage"),
+    // Т-1: сохранённый вид реестра — серверный объект, переживает перезаход
+    SavedView("VW", "saved_view", "core/saved-view");
 
     companion object {
         fun byDbType(t: String): CoreType = entries.firstOrNull { it.dbType == t }
