@@ -217,7 +217,14 @@ class HttpApi(private val boundary: Boundary) {
                         boundary.req.requireApplicationRules(cur.type, doc)
                     }
                 }
-                val stored = boundary.objects.change(id, doc, changeRef = req.path("change_ref").textValue())
+                // автор изменения — из учётки/тела, когда назван (дефект:
+                // канал писал все правки как «system»); без автора — прежний
+                // контракт канала (внутренние вызовы), не отказ
+                val changeAuthor = currentAuthor.get()
+                    ?: req.path("author").asText("").trim().ifEmpty { "system" }
+                val stored = boundary.objects.change(
+                    id, doc, changeRef = req.path("change_ref").textValue(), createdBy = changeAuthor,
+                )
                 // и у процедуры с основанием связи выводятся из документа (ADR-027)
                 boundary.req.syncLinks(stored.type, stored.id, stored.doc)
                 respond(ex, 200, summary(stored))

@@ -6,6 +6,7 @@
 //
 // Расчётов здесь нет и быть не может (STEP-6 §3.2): форма собирает документ
 // и отдаёт его серверу, проверяет — сервер теми же правилами, что и импорт.
+import { DateInput } from './DateInput'
 import { useEffect, useMemo, useState , Suspense, lazy} from 'react'
 import { OBJECT_ID, screenOfObject } from '../api/intent'
 import { type KindRow, edit, type JsonSchema, type StoredSummary } from '../api/edit'
@@ -552,13 +553,11 @@ function Field(props: FieldProps) {
           onChange={(e) => onChange(e.target.value || undefined)}
         />
       ) : schema.format === 'date' ? (
-        /* Дата — календарём, не свободным текстом (список после MCR, п. 1):
-           формат ISO гарантирует браузер, опечатка руками невозможна. */
-        <input
-          type="date"
-          aria-label={name}
-          value={asText(value).slice(0, 10)}
-          onChange={(e) => onChange(e.target.value || undefined)}
+        /* Дата — компонентом оболочки (reference-date-input): нативные
+           date input в продуктовых экранах запрещены (круг 3 §2). */
+        <DateInput
+          iso={asText(value).slice(0, 10)}
+          onChange={(v) => onChange(v || undefined)}
         />
       ) : (
         <input

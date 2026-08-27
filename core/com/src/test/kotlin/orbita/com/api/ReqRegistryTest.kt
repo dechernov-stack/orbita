@@ -155,39 +155,74 @@ class ReqRegistryTest {
 
         // корень системы: единственное корневое вхождение — его определение
         assertTrue(after.path("systemRoot").isNull) { "вхождений нет — корня нет" }
-        val cm = boundary.objects.listCurrent(project).first { it.type == "component" }.id
+        // корень — СВОЙ компонент: на «Полезной нагрузке» висит ручное
+        // распределение, и симметрия отмены честно блокировала бы снятие
+        val cm = send(
+            "POST", "/edit/component?project=$project", asUser = "vera",
+            body = """{"author":"т","doc":{"name":"Корень системы теста","kind":"system"}}""",
+        ).let { assertEquals(201, it.statusCode()) { it.body() }; mapper.readTree(it.body())["id"].asText() }
         send("POST", "/edit/component_usage?project=$project", asUser = "vera", body = """{"author":"т","doc":{"definition_ref":"$cm","quantity":1}}""")
             .also { assertEquals(201, it.statusCode()) { it.body() } }
         val rooted = mapper.readTree(send("GET", "/views/requirement-tree?project=$project", asUser = "vera").body())
         assertEquals(cm, rooted.path("systemRoot").path("id").asText()) { rooted.path("systemRoot").toString() }
+
+        // появление корня раздало носителя проектным — хранимо, auto_root,
+        // сводной записью, автором действия (ОТВЕТЫ-Т1-ДОП §2)
+        val prj2 = boundary.objects.listCurrent(project)
+            .first { it.type == "requirement" && it.doc.path("level").asText() == "project" }
+        val alloc = prj2.doc.path("allocated_to").first()
+        assertEquals(cm, alloc.path("component").asText()) { prj2.doc.toString() }
+        assertEquals("auto_root", alloc.path("provenance").path("source").asText())
+        assertTrue(boundary.objects.history(prj2.id).last().changeRef!!.startsWith("Распределено на корень"))
+
+        // симметрия: ручное распределение на корень блокирует снятие
+        val (released, manual) = boundary.req.releaseAutoRoot(project, cm, "т")
+        assertEquals(listOf(prj2.id), released) { "автосвязь снята: $released" }
+        assertTrue(manual.isEmpty())
+        assertTrue(
+            boundary.objects.current(prj2.id)!!.doc.path("allocated_to").let { it.isEmpty || it.isMissingNode },
+        )
     }
 
     @Test
     @Order(2)
-    fun `пометы считает сервер по истории - показатель после базирования и правка после утверждения`() {
+    fun `пометы содержательные - инженерская правка горит, служебная двигает якорь, пересчёта нет`() {
         val id = boundary.objects.listCurrent(project)
             .first { it.type == "requirement" && it.doc.path("statement").asText().startsWith("Сухая масса") }.id
         send("POST", "/objects/$id/promote", """{"status":"Baseline","author":"т"}""")
             .also { assertEquals(200, it.statusCode()) { it.body() } }
         assertFalse(rowOf(id).path("changedAfterApproval").asBoolean()) { "базирование само по себе — не правка" }
 
-        // правка с основанием: меняется показатель
-        val doc = boundary.objects.current(id)!!.doc.deepCopy<com.fasterxml.jackson.databind.node.ObjectNode>()
-        (doc.path("mop").path("value") as com.fasterxml.jackson.databind.node.ObjectNode).put("value", 90.0)
-        send(
-            "POST", "/objects/$id/change?project=$project",
-            mapper.writeValueAsString(
-                mapper.createObjectNode().apply {
-                    set<com.fasterxml.jackson.databind.JsonNode>("doc", doc)
-                    put("change_ref", "пересчёт бюджета массы")
-                    put("author", "т")
-                },
-            ),
-        ).also { assertEquals(200, it.statusCode()) { it.body() } }
+        val change = { value: Double, author: String, ref: String ->
+            val doc = boundary.objects.current(id)!!.doc.deepCopy<com.fasterxml.jackson.databind.node.ObjectNode>()
+            (doc.path("mop").path("value") as com.fasterxml.jackson.databind.node.ObjectNode).put("value", value)
+            send(
+                "POST", "/objects/$id/change?project=$project",
+                mapper.writeValueAsString(
+                    mapper.createObjectNode().apply {
+                        set<com.fasterxml.jackson.databind.JsonNode>("doc", doc)
+                        put("change_ref", ref)
+                        put("author", author)
+                    },
+                ),
+            ).also { assertEquals(200, it.statusCode()) { it.body() } }
+        }
 
-        val row = rowOf(id)
-        assertTrue(row.path("recalcAfterBaseline").asBoolean()) { row.toString() }
+        // инженерская правка показателя — содержательное изменение: горит
+        change(90.0, "т", "пересчёт бюджета массы")
+        var row = rowOf(id)
         assertTrue(row.path("changedAfterApproval").asBoolean()) { row.toString() }
+        // механизма пересчёта нет — «пересчитан» честно молчит (РЕШЕНИЯ-Т1 §1.2)
+        assertFalse(row.path("recalcAfterBaseline").asBoolean()) { row.toString() }
+
+        // служебная правка (канонизация) двигает якорь — помета гаснет
+        change(90.0, "system", "канонизация единиц")
+        row = rowOf(id)
+        assertFalse(row.path("changedAfterApproval").asBoolean()) { "техническая волна не горит: $row" }
+
+        // следующая инженерская — снова горит против нового якоря
+        change(85.0, "т", "ужесточение лимита")
+        assertTrue(rowOf(id).path("changedAfterApproval").asBoolean())
     }
 
     @Test

@@ -130,11 +130,19 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
         CoreType.AiProfile, CoreType.SourceDocument,
         // Библиотечные полки (СТРУКТУРА-БИБЛИОТЕКИ §2) — общим путём: схема
         // и статусная модель, прикладных правил сверх схемы у полок нет
-        CoreType.NormativeDocument, CoreType.MissionClass, CoreType.StakeholderProfile,
+        CoreType.NormativeDocument, CoreType.MissionClass, CoreType.StakeholderProfile -> {
+            val doc = parse(json)
+            validate(type, doc)
+            store(type, doc, createdBy, projectId)
+        }
         CoreType.ComponentUsage -> {
             val doc = parse(json)
             validate(type, doc)   // схема + правила В2.1: дерево, ацикличность
-            store(type, doc, createdBy, projectId)
+            val stored = store(type, doc, createdBy, projectId)
+            // появление ЕДИНСТВЕННОГО корня раздаёт носителя проектным
+            // требованиям (ОТВЕТЫ-Т1-ДОП §2) — автором действия, не службой
+            req.autoAllocateOnRoot(projectId, createdBy)
+            stored
         }
         CoreType.TypicalRisk, CoreType.LibraryFragment, CoreType.DocumentTemplate,
         CoreType.SectionText, CoreType.SavedView -> {

@@ -5,6 +5,7 @@
 import { useEffect, useState } from 'react'
 import { api, type OperationsView } from '../api/client'
 import { countPhrase } from '../ui/countPhrase'
+import { DateInput } from '../ui/DateInput'
 import { edit } from '../api/edit'
 import { requestDocTemplate } from '../api/intent'
 
@@ -285,13 +286,15 @@ export function Lifecycle({ project, onGo }: { project: string; onGo: (screen: s
                         const v = raw ? Number(raw) : null
                         setPlanEdits((prev) => ({ ...prev, [g.gate]: { ...prev[g.gate], duration_days: v } }))
                       }} />
-                    <input type="date"
-                      title="якорная дата (сильнее расчёта); пусто — дата выводится из длительностей"
-                      style={{ width: 118, fontSize: 11 }}
-                      value={planEdits[g.gate]?.due ?? (g.computed ? '' : g.due ?? '')}
-                      onChange={(e) => {
-                        setPlanEdits((prev) => ({ ...prev, [g.gate]: { ...prev[g.gate], due: e.target.value || null } }))
-                      }} />
+                    <span title="якорная дата (сильнее расчёта); пусто — дата выводится из длительностей">
+                      <DateInput
+                        iso={planEdits[g.gate]?.due ?? (g.computed ? '' : g.due ?? '')}
+                        width={150}
+                        onChange={(v) => {
+                          setPlanEdits((prev) => ({ ...prev, [g.gate]: { ...prev[g.gate], due: v || null } }))
+                        }}
+                      />
+                    </span>
                   </div>
                 )}
               </div>,

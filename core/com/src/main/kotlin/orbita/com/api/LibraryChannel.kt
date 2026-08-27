@@ -268,6 +268,15 @@ class LibraryChannel(
         val instances = appliedInstances(fragmentId, projectId)
         val touched = instances.filter { boundary.objects.history(it.id).size > 1 }.map { it.id }
         if (touched.isNotEmpty()) throw RevertBlockedException(touched)
+        // симметрия автораспределения (ОТВЕТЫ-Т1-ДОП §2): уходит корень —
+        // авто-связи гаснут той же сводной записью; ручные на корень — отказ
+        val rootDefs = instances
+            .filter { it.type == "component_usage" && it.doc.path("parent_usage").asText("").isBlank() }
+            .mapNotNull { it.doc.path("definition_ref").asText("").ifBlank { null } }
+        rootDefs.forEach { def ->
+            val (_, manual) = boundary.req.releaseAutoRoot(projectId, def, author)
+            if (manual.isNotEmpty()) throw RevertBlockedException(manual)
+        }
         instances.forEach { boundary.editing.cancel(it.id, author) }
         return instances.map { it.id }
     }

@@ -362,19 +362,30 @@ class ScreenViews(
     /** Пометы Т-1 — семантика живёт здесь, клиент флаги только рисует. */
     private data class RowMarks(val recalcAfterBaseline: Boolean, val changedAfterApproval: Boolean)
 
+    /** РЕШЕНИЯ-Т1 §1: пометы — о содержательности, не об арифметике версий.
+     * Сравниваются содержательные поля против ЯКОРЯ; якорь передвигают
+     * служебные правки (канонизация, перелинковка, миграции) — инженерская
+     * правка горит, техническая волна — нет. */
+    private val serviceAuthors = setOf("system", "ci-runner")
+    private val contentFields = listOf("statement", "mop", "allocated_to", "level", "category")
+
     private fun rowMarks(history: List<orbita.mod.store.StoredObject>): RowMarks {
         val current = history.lastOrNull() ?: return RowMarks(false, false)
-        // Правка — всегда новая версия (transition версию не меняет), поэтому
-        // «изменено после утверждения» = версия ушла от первой утверждённой
-        val firstApproved = history.firstOrNull {
+        val firstApprovedAt = history.indexOfFirst {
             it.status == Lifecycle.Approved || it.status == Lifecycle.Baseline
         }
-        val firstBaseline = history.firstOrNull { it.status == Lifecycle.Baseline }
-        return RowMarks(
-            recalcAfterBaseline = firstBaseline != null &&
-                current.doc.path("mop") != firstBaseline.doc.path("mop"),
-            changedAfterApproval = firstApproved != null && current.version != firstApproved.version,
-        )
+        if (firstApprovedAt < 0) return RowMarks(recalcAfterBaseline = false, changedAfterApproval = false)
+        var anchor = history[firstApprovedAt]
+        for (i in firstApprovedAt + 1 until history.size) {
+            if (history[i].createdBy in serviceAuthors) anchor = history[i]
+        }
+        val changed = contentFields.any { f -> current.doc.path(f) != anchor.doc.path(f) }
+        // «Пересчитан после базирования» — только от механизма пересчёта
+        // (mop.provenance.source = recomputed); механизма пока нет, флаг
+        // честно ноль: молчащий флаг лучше врущего (РЕШЕНИЯ-Т1 §1.2)
+        val recalc = history.any { it.status == Lifecycle.Baseline } &&
+            current.doc.path("mop").path("provenance").path("source").asText("") == "recomputed"
+        return RowMarks(recalcAfterBaseline = recalc, changedAfterApproval = changed)
     }
 
     /** Свёртка бюджета готовой полосой: клиент её только рисует. */

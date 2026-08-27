@@ -171,7 +171,8 @@ function groupOf(row: RequirementRow, grouping: GroupKey): { key: string; label:
     case 'carrier': {
       if (row.level === 'project') return { key: PROJECT_GROUP, label: 'Уровень проекта — на нуждах' }
       const id = row.allocatedTo[0]
-      if (!id) return { key: NO_CARRIER_GROUP, label: 'Без носителя (системные)' }
+      // короткое имя в заголовке: уровень ясен из контекста группировки
+      if (!id) return { key: NO_CARRIER_GROUP, label: 'Без носителя' }
       return { key: id, label: row.carrierName ? `${id} ${row.carrierName}` : id }
     }
     case 'level':

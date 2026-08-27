@@ -112,6 +112,19 @@
           },
           "rationale": {
             "type": "string"
+          },
+          "provenance": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "Происхождение связи: auto_root — автораспределение на корень системы (правило уровня проекта), отличимо от ручного навсегда",
+            "properties": {
+              "source": {
+                "enum": [
+                  "manual",
+                  "auto_root"
+                ]
+              }
+            }
           }
         }
       }

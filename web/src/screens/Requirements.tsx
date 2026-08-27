@@ -37,7 +37,7 @@ const COLUMN_WIDTHS: Record<string, number> = {
 type Mode =
   | { kind: 'registry' }
   | { kind: 'card'; id: string }
-  | { kind: 'create' }
+  | { kind: 'create'; template?: Record<string, unknown> }
   | { kind: 'edit'; id: string }
 
 export function Requirements({ onGo }: { onGo?: (screen: string) => void }) {
@@ -162,6 +162,7 @@ export function Requirements({ onGo }: { onGo?: (screen: string) => void }) {
             kind="requirement"
             schemaName="core/requirement"
             title="требование"
+            template={mode.kind === 'create' ? mode.template ?? null : null}
             id={mode.kind === 'edit' ? mode.id : null}
             onSaved={(id) => { setMode({ kind: 'card', id }); void reload() }}
             onCancelled={() => { setMode({ kind: 'registry' }); void reload() }}
@@ -183,7 +184,7 @@ export function Requirements({ onGo }: { onGo?: (screen: string) => void }) {
         onBack={() => setMode({ kind: 'registry' })}
         onOpen={(id) => setMode({ kind: 'card', id })}
         onEdit={() => setMode({ kind: 'edit', id: mode.id })}
-        onCreate={() => setMode({ kind: 'create' })}
+        onCreate={(template) => setMode({ kind: 'create', template })}
         onGo={onGo}
         onChanged={() => void reload()}
       />
@@ -199,7 +200,7 @@ export function Requirements({ onGo }: { onGo?: (screen: string) => void }) {
       className={`rr-g${gap === g ? ' on' : ''}${g === 'no_carrier' || g === 'no_need' ? ' bad' : ''}${g === 'recalc' || g === 'changed' ? ' warnc' : ''}`}
       onClick={() => setGap((cur) => (cur === g ? null : g))}
     >
-      {GAP_LABELS[g]}<b> · {counters[g]}</b>
+      {GAP_LABELS[g]} · <b>{counters[g]}</b>
     </button>
   )
 
@@ -307,7 +308,7 @@ export function Requirements({ onGo }: { onGo?: (screen: string) => void }) {
           «Нужда не покрыта» — не фильтр строк, а переход к перечню нужд */}
       <div className="rr-gaps">
         <button type="button" className={`rr-g${gap === null ? ' on' : ''}`} onClick={() => setGap(null)}>
-          Все<b> · {tree.rows.length}</b>
+          Все · <b>{tree.rows.length}</b>
         </button>
         {(['no_carrier'] as GapKey[]).map((g) => gapChip(g))}
         <button
@@ -316,7 +317,7 @@ export function Requirements({ onGo }: { onGo?: (screen: string) => void }) {
           title="нужды без единого требования — открыть перечень нужд"
           onClick={() => onGo?.('needs')}
         >
-          Нужда не покрыта<b> · {tree.needsUncovered.length}</b>
+          Нужда не покрыта · <b>{tree.needsUncovered.length}</b>
         </button>
         {(['no_need', 'no_verification', 'recalc', 'changed'] as GapKey[]).map((g) => gapChip(g))}
       </div>
@@ -717,7 +718,7 @@ function CardView({
   onBack: () => void
   onOpen: (id: string) => void
   onEdit: () => void
-  onCreate: () => void
+  onCreate: (template?: Record<string, unknown>) => void
   onGo?: (screen: string) => void
   onChanged: () => void
 }) {
@@ -806,7 +807,19 @@ function CardView({
             {kids.length === 0
               ? (
                 <div className="rr-tnode secondary">
-                  детей нет — <button type="button" className="rr-assign" onClick={onCreate}>декомпозировать</button>
+                  {/* автоподстановка (РЕШЕНИЯ-Т1 §2.3): родитель — текущее,
+                      уровень наследуется, носитель пуст — ребёнок может уйти
+                      на другой элемент; отмена создания следа не оставляет */}
+                  детей нет —{' '}
+                  <button
+                    type="button" className="rr-assign"
+                    onClick={() => onCreate({
+                      derives_from: [id],
+                      ...(r.level ? { level: r.level } : {}),
+                    })}
+                  >
+                    декомпозировать
+                  </button>
                 </div>
               )
               : kids.map((k) => (

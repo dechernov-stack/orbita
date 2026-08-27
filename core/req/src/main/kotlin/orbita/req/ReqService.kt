@@ -54,6 +54,78 @@ class ReqService(
         else -> gateLabels[gate] ?: gate
     }
 
+    /**
+     * Автораспределение на корень (ОТВЕТЫ-Т1-ДОП §2): при появлении
+     * ЕДИНСТВЕННОГО корня дерева состава требования уровня проекта без
+     * носителя получают его — хранимой правкой с происхождением auto_root,
+     * автором-человеком (чьё действие породило корень) и ОДНОЙ сводной
+     * записью-основанием. Идемпотентно: только пустые allocated_to.
+     */
+    fun autoAllocateOnRoot(projectId: String, author: String): List<String> {
+        val cur = objects.listCurrent(projectId)
+        val roots = cur.filter {
+            it.type == "component_usage" && it.status != Lifecycle.Cancelled &&
+                it.doc.path("parent_usage").asText("").isBlank()
+        }
+        val rootDef = roots.singleOrNull()?.doc?.path("definition_ref")?.asText("")?.ifBlank { null }
+            ?: return emptyList()
+        val targets = cur.filter {
+            it.type == "requirement" && it.status != Lifecycle.Cancelled &&
+                it.doc.path("level").asText() == "project" &&
+                it.doc.path("allocated_to").none { a ->
+                    a.path("component").asText("").isNotBlank() || a.path("interface").asText("").isNotBlank()
+                }
+        }
+        if (targets.isEmpty()) return emptyList()
+        val note = "Распределено на корень: ${targets.size} " +
+            (if (targets.size == 1) "требование" else "требований") +
+            " уровня проекта — автоматически, по правилу уровня проекта"
+        return targets.map { r ->
+            val doc = r.doc.deepCopy<com.fasterxml.jackson.databind.node.ObjectNode>()
+            doc.putArray("allocated_to").addObject()
+                .put("component", rootDef).put("kind", "full")
+                .putObject("provenance").put("source", "auto_root")
+            val stored = objects.change(r.id, doc, changeRef = note, createdBy = author)
+            syncLinks("requirement", stored.id, stored.doc, stored.projectId)
+            stored.id
+        }
+    }
+
+    /**
+     * Симметрия отмены (ОТВЕТЫ-Т1-ДОП §2): корень уходит — автосвязи гаснут
+     * той же сводной записью; РУЧНЫЕ распределения на корень — отказ с
+     * перечнем (исполняет вызывающий канал по возвращённому списку).
+     */
+    fun releaseAutoRoot(projectId: String, rootDef: String, author: String): Pair<List<String>, List<String>> {
+        val cur = objects.listCurrent(projectId).filter {
+            it.type == "requirement" && it.status != Lifecycle.Cancelled
+        }
+        val onRoot = cur.filter { r ->
+            r.doc.path("allocated_to").any { it.path("component").asText("") == rootDef }
+        }
+        val manual = onRoot.filter { r ->
+            r.doc.path("allocated_to").any {
+                it.path("component").asText("") == rootDef &&
+                    it.path("provenance").path("source").asText("") != "auto_root"
+            }
+        }.map { it.id }
+        if (manual.isNotEmpty()) return emptyList<String>() to manual
+        val auto = onRoot.filter { r ->
+            r.doc.path("allocated_to").any { it.path("provenance").path("source").asText("") == "auto_root" }
+        }
+        val note = "Снято распределение на корень: ${auto.size} " +
+            (if (auto.size == 1) "требование" else "требований") +
+            " уровня проекта — отмена корня"
+        val released = auto.map { r ->
+            val doc = r.doc.deepCopy<com.fasterxml.jackson.databind.node.ObjectNode>()
+            doc.remove("allocated_to")
+            val stored = objects.change(r.id, doc, changeRef = note, createdBy = author)
+            syncLinks("requirement", stored.id, stored.doc, stored.projectId)
+            stored.id
+        }
+        return released to emptyList()
+    }
+
     fun requireApplicationRules(type: String, doc: JsonNode) {
         when (type) {
             // Круг 2 стартового потока: порядок дат вех — инвариант, ОДНО

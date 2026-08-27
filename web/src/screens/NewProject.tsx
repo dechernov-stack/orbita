@@ -5,6 +5,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { ApiError } from '../api/client'
 import { edit, type StoredSummary } from '../api/edit'
+import { DateInput } from '../ui/DateInput'
 import { useSession } from '../ui/session'
 
 /** Точки фазы: код паспорта + подписи ленты (тексты — эталон, дословно). */
@@ -126,7 +127,8 @@ export function NewProject({ firstRun, onDone, onCancel, onLoadFile }: {
         prevDue = due
       }
     }
-    return { ...g, min, bad }
+    const anchorRow = gates.find((x) => (dates[x.gate] ?? '') === min)
+    return { ...g, min, bad, anchorName: anchorRow?.nmGen ?? anchorRow?.nm ?? 'предыдущей точки' }
   })
 
   return (
@@ -194,13 +196,17 @@ export function NewProject({ firstRun, onDone, onCancel, onLoadFile }: {
                   {gateRows.map((g) => (
                     <div className="np-g" key={g.gate}>
                       <div className="np-dt">
-                        {/* Календарь — решение владельца; круг 2: min — от
-                            предыдущей заданной вехи, нарушение порядка красит
-                            поле и даёт warn с именами точек (эталон S3) */}
-                        <input type="date" value={dates[g.gate] ?? ''}
-                          min={g.min || undefined}
-                          style={g.bad ? { borderColor: 'var(--status-error)' } : undefined}
-                          onChange={(e) => setDates({ ...dates, [g.gate]: e.target.value })} />
+                        {/* Компонент оболочки (reference-date-input): календарь
+                            от опорной даты — предыдущей заданной вехи; отказ
+                            порядка тем же текстом, что серверный (круг 2) */}
+                        <DateInput
+                          iso={dates[g.gate] ?? ''}
+                          anchor={g.min || undefined}
+                          name={g.nm}
+                          anchorName={g.anchorName}
+                          width={150}
+                          onChange={(v) => setDates({ ...dates, [g.gate]: v })}
+                        />
                       </div>
                     </div>
                   ))}

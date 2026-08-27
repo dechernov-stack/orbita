@@ -1,0 +1,103 @@
+<!DOCTYPE html><html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Орбита · компонент даты · эталон</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--c-lowest:#fff;--c-low:#f3f4f5;--c:#edeeef;--on:#191c1d;--on-var:#44474c;--outline:#74777d;
+--hair:#c4c6cc;--accent:#115cb9;--accent-fix:#d7e2ff;--error:#ba1a1a;--error-c:#ffdad6;--on-error-c:#93000a;
+--font:Inter,-apple-system,'Segoe UI',sans-serif;--mono:'JetBrains Mono',Menlo,monospace}
+*{box-sizing:border-box;margin:0}
+body{font:400 13px/20px var(--font);color:var(--on);background:#dfe2e6;padding:28px}
+.stand{max-width:1000px;margin:0 auto}
+h1{font-size:15px;font-weight:600;margin-bottom:4px}
+.note{font-size:12px;color:var(--on-var);margin-bottom:20px;max-width:860px}
+.row{display:flex;gap:26px;align-items:flex-start;flex-wrap:wrap;margin-bottom:26px}
+.case{background:#f8f9fa;border:1px solid var(--hair);border-radius:8px;padding:14px 16px;min-width:280px}
+.case .tag{font:600 10.5px/14px var(--font);text-transform:uppercase;letter-spacing:.06em;color:var(--on-var);margin-bottom:10px}
+label{display:block;font:600 12px/16px var(--font);margin:0 0 5px}
+label .opt{font-weight:400;color:var(--outline)}
+.dinput{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--hair);border-radius:7px;
+background:var(--c-lowest);padding:5px 9px;width:150px;cursor:text}
+.dinput input{border:none;outline:none;font:400 12.5px/18px var(--mono);width:92px;background:transparent;color:var(--on)}
+.dinput input::placeholder{color:#b7bac0}
+.dinput svg{width:15px;height:15px;stroke:var(--on-var);fill:none;stroke-width:1.6;margin-left:auto;cursor:pointer}
+.dinput.focus{outline:2px solid var(--accent);outline-offset:-1px;border-color:var(--accent)}
+.dinput.err{border-color:var(--error)}
+.clr{font-size:11px;color:var(--outline);cursor:pointer}
+.hint{font-size:11px;color:var(--outline);margin-top:5px}
+.errline{font-size:11.5px;color:var(--on-error-c);background:var(--error-c);border-radius:6px;padding:4px 9px;margin-top:6px;max-width:300px}
+/* календарь */
+.pop{margin-top:8px;width:252px;background:var(--c-lowest);border:1px solid var(--hair);border-radius:10px;
+box-shadow:0 8px 24px rgba(15,28,44,.14);padding:10px 12px}
+.mhead{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.mhead b{flex:1;text-align:center;font:600 12.5px/18px var(--font)}
+.mbtn{width:22px;height:22px;border-radius:6px;border:1px solid var(--hair);background:var(--c-lowest);
+cursor:pointer;font-size:11px;color:var(--on-var);display:grid;place-items:center}
+.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;text-align:center}
+.dow{font:600 10px/16px var(--font);color:var(--outline);text-transform:uppercase}
+.d{font:400 12px/24px var(--mono);border-radius:6px;cursor:pointer;color:var(--on)}
+.d:hover{background:var(--c-low)}
+.d.out{color:#c9ccd2}
+.d.today{outline:1px solid var(--hair);outline-offset:-1px}
+.d.anchor{background:var(--c);color:var(--on-var)}
+.d.sel{background:var(--accent);color:#fff;font-weight:600}
+.d.dis{color:#d6d9de;cursor:default;text-decoration:line-through}
+.pfoot{display:flex;gap:10px;align-items:center;margin-top:8px;font-size:11px;color:var(--outline)}
+.pfoot a{color:var(--accent);text-decoration:none;font-size:11.5px}
+</style></head><body><div class="stand">
+<h1>Компонент даты — эталон оболочки (закрывает последний нативный контрол)</h1>
+<div class="note">Правила: ручной ввод <span style="font-family:var(--mono)">дд.мм.гггг</span> равноправен
+календарю; пустая дата законна («дата не задана»), очистка — крестиком; календарь открывается
+<b>от опорной даты</b> (предыдущая заданная веха — правило круга 2), опорный день подсвечен серым;
+дни раньше опорного — недоступны с зачёркиванием, попытка ручного ввода даёт отказ с именами точек;
+клавиатура: ↑↓ день, PgUp/PgDn месяц, Enter выбор, Esc закрыть. Никаких системных date input.</div>
+
+<div class="row">
+<div class="case"><div class="tag">Закрыт · значение задано</div>
+  <label>MCR <span class="opt">— плановая дата</span></label>
+  <span class="dinput"><input value="28.08.2026"><span class="clr">✕</span>
+    <svg viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="14" rx="2"/><path d="M4 10h16M8 4v4M16 4v4"/></svg></span>
+  <div class="hint">Очистка возвращает «дата не задана» — это законно.</div></div>
+
+<div class="case"><div class="tag">Закрыт · пусто</div>
+  <label>KDP-A <span class="opt">— плановая дата</span></label>
+  <span class="dinput"><input placeholder="дд.мм.гггг">
+    <svg viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="14" rx="2"/><path d="M4 10h16M8 4v4M16 4v4"/></svg></span>
+  <div class="hint">Плановые даты необязательны.</div></div>
+
+<div class="case"><div class="tag">Отказ порядка · ручной ввод</div>
+  <label>MCR</label>
+  <span class="dinput err"><input value="20.01.2027">
+    <svg viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="14" rx="2"/><path d="M4 10h16M8 4v4M16 4v4"/></svg></span>
+  <div class="errline">MCR не может быть раньше внутреннего обзора (15.03.2027) — даты идут по порядку точек.</div></div>
+</div>
+
+<div class="row">
+<div class="case"><div class="tag">Открыт · календарь от опорной даты</div>
+  <label>MCR <span class="opt">— опора: внутренний обзор, 15.03.2027</span></label>
+  <span class="dinput focus"><input value="">
+    <svg viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="14" rx="2"/><path d="M4 10h16M8 4v4M16 4v4"/></svg></span>
+  <div class="pop">
+    <div class="mhead"><button class="mbtn">‹</button><b>Март 2027</b><button class="mbtn">›</button></div>
+    <div class="grid">
+      <span class="dow">пн</span><span class="dow">вт</span><span class="dow">ср</span><span class="dow">чт</span><span class="dow">пт</span><span class="dow">сб</span><span class="dow">вс</span>
+      <span class="d out">22</span><span class="d out">23</span><span class="d out">24</span><span class="d out">25</span><span class="d out">26</span><span class="d out">27</span><span class="d out">28</span>
+      <span class="d dis">1</span><span class="d dis">2</span><span class="d dis">3</span><span class="d dis">4</span><span class="d dis">5</span><span class="d dis">6</span><span class="d dis">7</span>
+      <span class="d dis">8</span><span class="d dis">9</span><span class="d dis">10</span><span class="d dis">11</span><span class="d dis">12</span><span class="d dis">13</span><span class="d dis">14</span>
+      <span class="d anchor" title="Внутренний обзор — опора">15</span><span class="d">16</span><span class="d">17</span><span class="d">18</span><span class="d">19</span><span class="d">20</span><span class="d">21</span>
+      <span class="d">22</span><span class="d">23</span><span class="d sel">24</span><span class="d">25</span><span class="d">26</span><span class="d">27</span><span class="d">28</span>
+      <span class="d">29</span><span class="d">30</span><span class="d">31</span><span class="d out">1</span><span class="d out">2</span><span class="d out">3</span><span class="d out">4</span>
+    </div>
+    <div class="pfoot"><a href="#">Сегодня</a><span>серый — опора; зачёркнутые — раньше опоры</span></div>
+  </div></div>
+
+<div class="case"><div class="tag">Состав и поведение — для вёрстки</div>
+  <div style="font-size:12px;line-height:19px;color:var(--on-var)">
+  Компонент один — <span style="font-family:var(--mono)">ui/DateInput</span>: поле-моно + иконка +
+  поповер; параметры: опорная дата (мин), подпись опоры для отказа, необязательность.<br><br>
+  Применения сразу: даты вех в создании проекта и паспорте (опора — предыдущая веха),
+  дата документа в карточке источника (без опоры), даты событий верификации.<br><br>
+  Отказ порядка — тем же текстом, что серверный (одно правило, круг 2).</div></div>
+</div>
+</div></body></html>
