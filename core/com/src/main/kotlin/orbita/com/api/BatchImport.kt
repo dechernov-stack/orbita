@@ -86,17 +86,25 @@ class BatchImport(private val boundary: Boundary, private val mapper: ObjectMapp
         }
         if (problems.isNotEmpty()) return BatchReport(0, problems.sortedBy { it.index })
 
-        // запись: проходы до неподвижной точки внутри одной транзакции
+        // запись: проходы до неподвижной точки внутри одной транзакции.
+        // Каждая строка — под SAVEPOINT: отказ строки (в том числе SQL,
+        // например дубль id) откатывается точечно, не портя транзакцию
+        // пачки, — иначе после первой ошибки все последующие строки
+        // сыпались каскадом «current transaction is aborted» (находка
+        // MVP-прохода, акцепт пакета целей).
         return boundary.transaction {
             var pending = rows.sortedBy { it.index }
             val lastError = mutableMapOf<Int, String>()
             while (pending.isNotEmpty()) {
                 val next = mutableListOf<Row>()
                 for (row in pending) {
+                    val sp = boundary.connection.setSavepoint()
                     try {
                         boundary.ingest(row.type, mapper.writeValueAsString(row.doc), author, container!!)
+                        boundary.connection.releaseSavepoint(sp)
                         lastError.remove(row.index)
                     } catch (e: Exception) {
+                        boundary.connection.rollback(sp)
                         lastError[row.index] = e.message ?: e.javaClass.simpleName
                         next += row
                     }
@@ -113,6 +121,89 @@ class BatchImport(private val boundary: Boundary, private val mapper: ObjectMapp
             BatchReport(rows.size, emptyList())
         }
     }
+
+    /**
+     * Акцепт предложений (Б-01/находка прохода): id из пакета — черновые,
+     * их придумала модель или заготовил пакет, а id в системе глобальны и
+     * не переиспользуются (TZ-MOD-007). Занятые id получают свежие; ссылки
+     * ВНУТРИ пачки (traces_up и прочие) перебиваются на новые. Ссылка на
+     * существующий объект, чей id в пачку не входит, остаётся как есть.
+     * Импорт пачки это не трогает: формат экспорта == формату импорта.
+     */
+    fun remapBusyIds(items: com.fasterxml.jackson.databind.node.ArrayNode):
+        Pair<com.fasterxml.jackson.databind.node.ArrayNode, Map<String, String>> {
+        val packIds = items.mapNotNull { it.path("id").asText("").ifBlank { null } }.toSet()
+        val busy = packIds.filter { boundary.objects.current(it) != null }
+        if (busy.isEmpty()) return items to emptyMap()
+        val counters = mutableMapOf<CoreType, Int>()
+        val taken = mutableSetOf<String>()
+        val remap = busy.sorted().associateWith { old ->
+            val type = ObjectId(old).type
+            var n = counters.getOrPut(type) {
+                boundary.editing.nextId(type).substringAfterLast('-').toInt()
+            }
+            // свежий id не должен совпасть ни с другой строкой пачки, ни с
+            // уже назначенным — иначе пачка сама себе создаёт дубль
+            var candidate: String
+            do {
+                candidate = "%s-%04d".format(type.idPrefix, n)
+                n += 1
+            } while (candidate in packIds || candidate in taken)
+            counters[type] = n
+            taken += candidate
+            candidate
+        }
+        var text = mapper.writeValueAsString(items)
+        remap.forEach { (old, new) ->
+            text = text.replace(Regex("\\b" + Regex.escape(old) + "\\b"), new)
+        }
+        return mapper.readTree(text) as com.fasterxml.jackson.databind.node.ArrayNode to remap
+    }
+
+    /**
+     * Полный акцептный ремап: комплект пакетов согласован МЕЖДУ СОБОЙ по
+     * черновым id (02-нужды трассируется на MG-0001 из 01-целей). Сначала
+     * ссылки пачки перебиваются по карте проекта (черновой id → настоящий,
+     * из provenance.ai.source_id прежних акцептов) — иначе они тихо указали
+     * бы в чужой проект; затем занятые id строк получают свежие; настоящий
+     * след кладётся в provenance.ai.source_id каждой переназначенной строки.
+     */
+    fun remapForAccept(items: com.fasterxml.jackson.databind.node.ArrayNode, projectId: String):
+        Pair<com.fasterxml.jackson.databind.node.ArrayNode, Map<String, String>> {
+        val packIds = items.mapNotNull { it.path("id").asText("").ifBlank { null } }.toSet()
+        // СНАЧАЛА строки пачки: занятые id получают свежие, внутренние
+        // ссылки (на id строк) перебиваются вместе с ними
+        val (remapped, idMap) = remapBusyIds(items)
+        // ПОТОМ межпакетные ссылки — по карте проекта, только ключи, НЕ
+        // бывшие строками этой пачки: порядок наоборот перебил бы ссылку на
+        // существующий объект, чей id совпал со свежим id строки
+        var text = mapper.writeValueAsString(remapped)
+        projectPacketMap(projectId)
+            .filterKeys { it !in packIds }
+            .forEach { (old, new) ->
+                text = text.replace(Regex("\\b" + Regex.escape(old) + "\\b"), new)
+            }
+        val crossed = mapper.readTree(text) as com.fasterxml.jackson.databind.node.ArrayNode
+        if (idMap.isNotEmpty()) {
+            val byNew = idMap.entries.associate { (old, new) -> new to old }
+            crossed.forEach { row ->
+                val ai = row.path("provenance").path("ai")
+                val old = byNew[row.path("id").asText("")]
+                if (old != null && ai is ObjectNode) ai.put("source_id", old)
+            }
+        }
+        return crossed to idMap
+    }
+
+    /** Карта пакетных id проекта: черновой id → настоящий (по следам акцептов). */
+    private fun projectPacketMap(projectId: String): Map<String, String> =
+        boundary.objects.listCurrent(projectId)
+            .filter { it.status.name != "Cancelled" }
+            .mapNotNull { o ->
+                o.doc.path("provenance").path("ai").path("source_id").asText("")
+                    .ifBlank { null }?.let { it to o.id }
+            }
+            .toMap()
 
     /** Выгрузка проекта тем же форматом: текущие версии, включая сам проект. */
     fun export(projectId: String): ObjectNode {

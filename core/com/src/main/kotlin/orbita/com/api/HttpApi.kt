@@ -792,12 +792,23 @@ class HttpApi(private val boundary: Boundary) {
                     )
                     arr.add(marked)
                 }
-                val report = BatchImport(boundary, mapper).import(payload, by, ctx)
+                val importer = BatchImport(boundary, mapper)
+                // id предложений — черновые (TZ-MOD-007: id глобальны и не
+                // переиспользуются): межпакетные ссылки — по карте проекта,
+                // занятые id — свежие, след в provenance.ai.source_id
+                val (remapped, idMap) = importer.remapForAccept(arr, ctx)
+                payload.set<ObjectNode>("objects", remapped)
+                val report = importer.import(payload, by, ctx)
                 // акцепт дописывается к своему вызову: «сколько дошло до модели»
                 request.path("call").takeIf { it.isNumber }?.let {
                     if (report.ok) boundary.ai.markAccepted(it.asLong(), report.written, by)
                 }
-                respond(ex, if (report.ok) 201 else 422, batchJson(report))
+                val out = batchJson(report)
+                if (idMap.isNotEmpty()) {
+                    val rm = out.putArray("remapped")
+                    idMap.forEach { (old, new) -> rm.addObject().put("from", old).put("to", new) }
+                }
+                respond(ex, if (report.ok) 201 else 422, out)
             }
 
             method == "POST" && path == "/ai/accept" -> {

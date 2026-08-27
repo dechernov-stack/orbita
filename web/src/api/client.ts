@@ -331,9 +331,12 @@ export const api = {
     post<AiRunReport & { kind: string; profile: string }>('/ai/packet', { raw, author }),
   /** Журнал вызовов: «сколько и почём». */
   aiJournal: () => get<AiJournal>('/ai/journal'),
-  /** Акцепт пачкой с привязкой к вызову журнала. */
+  /** Акцепт пачкой с привязкой к вызову журнала. Занятые id пакета сервер
+   * переназначает (TZ-MOD-007) и возвращает соответствие в remapped. */
   acceptBatchOfCall: (call: number | null, llm: string, by: string, items: unknown[]) =>
-    post<BatchReport>('/ai/accept-batch', { call, llm, by, items }),
+    post<BatchReport & { remapped?: Array<{ from: string; to: string }> }>(
+      '/ai/accept-batch', { call, llm, by, items },
+    ),
   /** Дозаполнение: применить частичные правки к существующим требованиям. */
   enrichApply: (call: number | null, by: string, items: unknown[]) =>
     post<BatchReport & { demoted?: string[] }>('/ai/enrich-apply', { call, by, items }),

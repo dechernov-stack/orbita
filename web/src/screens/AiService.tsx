@@ -40,7 +40,9 @@ export function AiService({ onGo }: { onGo?: (screen: string) => void }) {
   const [transport, setTransport] = useState<string>('')
   const [raw, setRaw] = useState('')
   const [report, setReport] = useState<AiRunReport | null>(null)
-  const [batch, setBatch] = useState<BatchReport | null>(null)
+  const [batch, setBatch] = useState<
+    (BatchReport & { remapped?: Array<{ from: string; to: string }> }) | null
+  >(null)
   // Пачка на запись — всё или ничего (ADR-024): одно требование с изъяном
   // (например, интерфейсное распределено на элемент, а не на интерфейс —
   // CR-003) не должно держать заложником весь показанный улов. Инженер
@@ -465,7 +467,18 @@ export function AiService({ onGo }: { onGo?: (screen: string) => void }) {
               {batch && (
                 <div className={batch.problems.length ? 'notice notice--blocked' : 'notice'}>
                   {batch.problems.length === 0
-                    ? <>Принято: <b className="mono">{batch.written}</b> — акцепт записан в журнал вызова</>
+                    ? <>
+                        Принято: <b className="mono">{batch.written}</b> — акцепт записан в журнал вызова
+                        {(batch.remapped?.length ?? 0) > 0 && (
+                          <>
+                            {'. '}Черновые id пакета были заняты — назначены свежие ({batch.remapped!.length}):{' '}
+                            <span className="mono">
+                              {batch.remapped!.slice(0, 4).map((r) => `${r.from}→${r.to}`).join(', ')}
+                              {batch.remapped!.length > 4 ? ', …' : ''}
+                            </span>
+                          </>
+                        )}
+                      </>
                     : <>Пачка отклонена, отклонённые сняты из выбора выше — примите оставшихся: {batch.problems.slice(0, 4).map((p) => `${p.id ?? p.index}: ${p.message}`).join('; ')}</>}
                 </div>
               )}
