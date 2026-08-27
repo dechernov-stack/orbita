@@ -643,23 +643,21 @@ class HttpApi(private val boundary: Boundary) {
                 if (problems.isNotEmpty()) {
                     respond(ex, 422, batchJson(BatchReport(0, problems.sortedBy { it.index })))
                 } else {
-                    // проход 2: запись в одной транзакции
-                    val demoted = mutableListOf<String>()
+                    // проход 2: запись в одной транзакции. ADR-031: правка
+                    // наследует статус — дозаполнение (закрытие TBD) ничего
+                    // не понижает; прежний «честный сброс в черновик» умер
                     boundary.transaction {
                         prepared.forEach { pr ->
-                            val was = boundary.objects.current(pr.id)!!.status
                             boundary.editing.update(
                                 orbita.mod.model.CoreType.Requirement, pr.id, pr.changes,
                                 pr.base, by, changeRef = changeRef,
                             )
-                            if (was != orbita.mod.model.Lifecycle.Draft) demoted += pr.id
                         }
                     }
                     call?.let { boundary.ai.markAccepted(it, prepared.size, by) }
                     val out = mapper.createObjectNode()
                     out.put("written", prepared.size)
                     out.putArray("problems")
-                    out.putArray("demoted").also { arr -> demoted.forEach(arr::add) }
                     respond(ex, 201, out)
                 }
             }

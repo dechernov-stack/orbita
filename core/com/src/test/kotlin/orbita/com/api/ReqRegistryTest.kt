@@ -161,8 +161,17 @@ class ReqRegistryTest {
             "POST", "/edit/component?project=$project", asUser = "vera",
             body = """{"author":"т","doc":{"name":"Корень системы теста","kind":"system"}}""",
         ).let { assertEquals(201, it.statusCode()) { it.body() }; mapper.readTree(it.body())["id"].asText() }
+        // мера ADR-031: базируем проектное ДО появления корня — после
+        // автораспределения оно обязано остаться Baseline
+        val prjId = boundary.objects.listCurrent(project)
+            .first { it.type == "requirement" && it.doc.path("level").asText() == "project" }.id
+        send("POST", "/objects/$prjId/promote", """{"status":"Baseline","author":"т"}""", asUser = "vera")
+            .also { assertEquals(200, it.statusCode()) { it.body() } }
         send("POST", "/edit/component_usage?project=$project", asUser = "vera", body = """{"author":"т","doc":{"definition_ref":"$cm","quantity":1}}""")
             .also { assertEquals(201, it.statusCode()) { it.body() } }
+        assertEquals(orbita.mod.model.Lifecycle.Baseline, boundary.objects.current(prjId)!!.status) {
+            "автораспределение не понизило статус (ADR-031)"
+        }
         val rooted = mapper.readTree(send("GET", "/views/requirement-tree?project=$project", asUser = "vera").body())
         assertEquals(cm, rooted.path("systemRoot").path("id").asText()) { rooted.path("systemRoot").toString() }
 
@@ -223,6 +232,23 @@ class ReqRegistryTest {
         // следующая инженерская — снова горит против нового якоря
         change(85.0, "т", "ужесточение лимита")
         assertTrue(rowOf(id).path("changedAfterApproval").asBoolean())
+
+        // ADR-031: правка НАСЛЕДУЕТ статус — объект остался базированным
+        assertEquals(orbita.mod.model.Lifecycle.Baseline, boundary.objects.current(id)!!.status)
+        // правка Baseline без основания — отказ
+        val bare = boundary.objects.current(id)!!.doc
+        val noRef = send(
+            "POST", "/objects/$id/change?project=$project",
+            mapper.writeValueAsString(mapper.createObjectNode().apply {
+                set<com.fasterxml.jackson.databind.JsonNode>("doc", bare)
+                put("author", "т")
+            }),
+        )
+        assertEquals(409, noRef.statusCode()) { noRef.body() }
+        // повторное базирование — подтверждение статуса — гасит помету (§2.4)
+        send("POST", "/objects/$id/promote", """{"status":"Baseline","author":"т"}""")
+            .also { assertEquals(200, it.statusCode()) { it.body() } }
+        assertFalse(rowOf(id).path("changedAfterApproval").asBoolean()) { "повторное базирование гасит" }
     }
 
     @Test

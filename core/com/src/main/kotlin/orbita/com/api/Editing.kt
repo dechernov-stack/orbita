@@ -106,9 +106,13 @@ class Editing(
         // правка на устаревшей версии базированного объекта сообщила бы о статусе
         // и умолчала о том, что её основание вообще устарело.
         if (cur.version != baseVersion) throw conflict(cur, baseVersion, changes)
-        if (cur.status == Lifecycle.Baseline && changeRef.isNullOrBlank()) {
+        // ADR-031: утверждённое (Approved/Baseline) правится только с
+        // основанием — рабочий слой отсылает к процедуре
+        if ((cur.status == Lifecycle.Baseline || cur.status == Lifecycle.Approved) &&
+            changeRef.isNullOrBlank()
+        ) {
             throw BaselineEditBlockedException(
-                id, "объект базирован: изменение через процедуру с основанием",
+                id, "объект утверждён: изменение через процедуру с основанием",
             )
         }
         val merged = cur.doc.deepCopy<ObjectNode>()

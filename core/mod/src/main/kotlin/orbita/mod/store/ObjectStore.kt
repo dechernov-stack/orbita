@@ -136,9 +136,13 @@ class ObjectStore(private val conn: Connection, private val mapper: ObjectMapper
         if (baseVersion != null && baseVersion != cur.version) {
             throw conflictWith(cur, baseVersion, newDoc)
         }
-        if (cur.status == Lifecycle.Baseline && changeRef.isNullOrBlank()) {
+        // ADR-031: на утверждённом (Approved/Baseline) правка допустима
+        // только с основанием; в Draft/Preliminary основание не обязательно
+        if ((cur.status == Lifecycle.Baseline || cur.status == Lifecycle.Approved) &&
+            changeRef.isNullOrBlank()
+        ) {
             throw BaselineChangeException(
-                "TZ-COM-003: changing baseline object '$id' requires a change basis (change_ref)"
+                "TZ-COM-003: changing approved object '$id' requires a change basis (change_ref)"
             )
         }
         return mappingConstraints {
@@ -160,19 +164,22 @@ class ObjectStore(private val conn: Connection, private val mapper: ObjectMapper
                     throw conflictWith(now, baseVersion ?: cur.version, newDoc)
                 }
                 conn.prepareStatement(
+                    // ADR-031: правка содержимого НАСЛЕДУЕТ статус (v+1 в том
+                    // же статусе); смена статуса — только переходом (transition)
                     """INSERT INTO objects(id, type, version, status, doc, valid_from, supersedes, change_ref, created_by, project_id)
-                       VALUES (?, ?::object_type, ?, 'Draft'::lifecycle, ?::jsonb, ?, ?, ?, ?, ?)
+                       VALUES (?, ?::object_type, ?, ?::lifecycle, ?::jsonb, ?, ?, ?, ?, ?)
                        RETURNING $COLUMNS"""
                 ).use { ps ->
                     ps.setString(1, cur.id)
                     ps.setString(2, cur.type)
                     ps.setString(3, bumpVersion(cur.version))
-                    ps.setString(4, mapper.writeValueAsString(newDoc))
-                    ps.setObject(5, at)
-                    ps.setLong(6, cur.pk)
-                    ps.setString(7, changeRef)
-                    ps.setString(8, createdBy)
-                    ps.setString(9, cur.projectId)
+                    ps.setString(4, cur.status.name)
+                    ps.setString(5, mapper.writeValueAsString(newDoc))
+                    ps.setObject(6, at)
+                    ps.setLong(7, cur.pk)
+                    ps.setString(8, changeRef)
+                    ps.setString(9, createdBy)
+                    ps.setString(10, cur.projectId)
                     ps.executeQuery().use { rs -> rs.next(); rs.toStoredObject() }
                 }
             }
@@ -192,7 +199,10 @@ class ObjectStore(private val conn: Connection, private val mapper: ObjectMapper
         at: OffsetDateTime = OffsetDateTime.now(ZoneOffset.UTC),
     ): StoredObject {
         val cur = current(id) ?: throw NoSuchElementException("object '$id' has no current version")
-        if (cur.status == Lifecycle.Baseline) {
+        // ADR-031: подтверждение — переход в ТОТ ЖЕ утверждённый статус —
+        // законно (повторное базирование гасит помету); прочие уходы с
+        // Baseline — только процедурой изменения
+        if (cur.status == Lifecycle.Baseline && target != Lifecycle.Baseline) {
             throw BaselineChangeException(
                 "TZ-COM-003: object '$id' is baselined; changes go through the change procedure"
             )
@@ -208,9 +218,14 @@ class ObjectStore(private val conn: Connection, private val mapper: ObjectMapper
             ?.withObject("/lifecycle")?.put("status", target.name)
         return mappingConstraints {
             conn.tx {
-                conn.prepareStatement("UPDATE objects SET valid_to = ? WHERE pk = ?").use { ps ->
+                // основание в закрываемой строке — требование триггера при
+                // закрытии Baseline-версии (подтверждение статуса)
+                conn.prepareStatement(
+                    "UPDATE objects SET valid_to = ?, change_ref = COALESCE(change_ref, ?) WHERE pk = ?"
+                ).use { ps ->
                     ps.setObject(1, at)
-                    ps.setLong(2, cur.pk)
+                    ps.setString(2, if (cur.status == Lifecycle.Baseline) "повторное утверждение" else null)
+                    ps.setLong(3, cur.pk)
                     ps.executeUpdate()
                 }
                 conn.prepareStatement(

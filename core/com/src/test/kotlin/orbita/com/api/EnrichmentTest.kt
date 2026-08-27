@@ -1,8 +1,8 @@
 // Дозаполнение атрибутов требований службой ИИ (находка живого прогона:
 // 140 требований без обоснования и показателя). Путь: служба сама отбирает
 // дырявые и собирает вход; ответ — частичные правки по спец-схеме; акцепт
-// применяется ПРАВКАМИ существующих объектов — с основанием для базированных
-// и честным сбросом в черновик.
+// применяется ПРАВКАМИ существующих объектов — с основанием для базированных;
+// статус наследуется (ADR-031): закрытие TBD ничего не понижает.
 package orbita.com.api
 
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -141,7 +141,7 @@ class EnrichmentTest {
     }
 
     @Test
-    fun `акцепт применяется правкой базированного - с основанием и честным сбросом в черновик`() {
+    fun `акцепт применяется правкой базированного - с основанием, статус наследуется`() {
         val r = post(
             "/ai/enrich-apply?project=PJ-1401",
             """{"by":"Инженер","items":[
@@ -154,10 +154,10 @@ class EnrichmentTest {
         assertEquals(201, r.statusCode()) { r.body() }
         val n = mapper.readTree(r.body())
         assertEquals(1, n["written"].asInt())
-        assertEquals("RQ-1401", n["demoted"][0].asText())
 
         val cur = boundary.objects.current("RQ-1401")!!
-        assertEquals(Lifecycle.Draft, cur.status) // сброс — закон, и он назван
+        // ADR-031: правка наследует статус — базированное осталось базированным
+        assertEquals(Lifecycle.Baseline, cur.status)
         assertTrue(cur.doc.path("rationale").asText().contains("ND-1401"))
         assertEquals("ge", cur.doc.path("mop").path("operator").asText())
         // след основания — на закрытом интервале

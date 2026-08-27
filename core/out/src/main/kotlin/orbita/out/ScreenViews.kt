@@ -369,17 +369,34 @@ class ScreenViews(
     private val serviceAuthors = setOf("system", "ci-runner")
     private val contentFields = listOf("statement", "mop", "allocated_to", "level", "category")
 
+    /** Пусто/TBD: закрытие пустого значения — штатная работа, не ревизия. */
+    private fun blankValue(n: com.fasterxml.jackson.databind.JsonNode): Boolean =
+        n.isMissingNode || n.isNull ||
+            (n.isTextual && n.asText().isBlank()) ||
+            ((n.isArray || n.isObject) && n.isEmpty)
+
     private fun rowMarks(history: List<orbita.mod.store.StoredObject>): RowMarks {
         val current = history.lastOrNull() ?: return RowMarks(false, false)
-        val firstApprovedAt = history.indexOfFirst {
-            it.status == Lifecycle.Approved || it.status == Lifecycle.Baseline
+        // Якорь — ПОСЛЕДНЕЕ утверждение: transition-строка (версия не
+        // бампается) в Approved/Baseline — и переход, и подтверждение;
+        // повторное базирование гасит помету (решение §2.4)
+        var anchorAt = -1
+        for (i in history.indices) {
+            val approvedNow = history[i].status == Lifecycle.Approved || history[i].status == Lifecycle.Baseline
+            val isTransition = i == 0 || history[i].version == history[i - 1].version
+            if (approvedNow && isTransition) anchorAt = i
         }
-        if (firstApprovedAt < 0) return RowMarks(recalcAfterBaseline = false, changedAfterApproval = false)
-        var anchor = history[firstApprovedAt]
-        for (i in firstApprovedAt + 1 until history.size) {
+        if (anchorAt < 0) return RowMarks(recalcAfterBaseline = false, changedAfterApproval = false)
+        var anchor = history[anchorAt]
+        for (i in anchorAt + 1 until history.size) {
             if (history[i].createdBy in serviceAuthors) anchor = history[i]
         }
-        val changed = contentFields.any { f -> current.doc.path(f) != anchor.doc.path(f) }
+        // Закрытие TBD — не помета (решение §1): переход пусто → значение не
+        // ревизия; горит только изменение УЖЕ ЗАДАННОГО значения
+        val changed = contentFields.any { f ->
+            val was = anchor.doc.path(f)
+            !blankValue(was) && current.doc.path(f) != was
+        }
         // «Пересчитан после базирования» — только от механизма пересчёта
         // (mop.provenance.source = recomputed); механизма пока нет, флаг
         // честно ноль: молчащий флаг лучше врущего (РЕШЕНИЯ-Т1 §1.2)

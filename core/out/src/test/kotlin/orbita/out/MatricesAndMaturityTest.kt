@@ -116,7 +116,7 @@ class MatricesAndMaturityTest {
         val cur = req.objects.current("RQ-0010")!!
         val doc = cur.doc.deepCopy<ObjectNode>()
         (doc.path("verification_events").get(1) as ObjectNode).put("status", "planned")
-        req.objects.change("RQ-0010", doc, at = cur.validFrom.plusDays(1))
+        req.objects.change("RQ-0010", doc, changeRef = "прогон верификации: статус события", at = cur.validFrom.plusDays(1))
         assertEquals("предварительно подтверждено", matrices.verificationMatrix()
             .single { it.requirementId == "RQ-0010" }.state)
         assertTrue("RQ-0010" in matrices.unverifiedRequirements())
@@ -125,7 +125,7 @@ class MatricesAndMaturityTest {
         val mid = req.objects.current("RQ-0010")!!
         val back = mid.doc.deepCopy<ObjectNode>()
         (back.path("verification_events").get(1) as ObjectNode).put("status", "passed")
-        req.objects.change("RQ-0010", back, at = mid.validFrom.plusDays(1))
+        req.objects.change("RQ-0010", back, changeRef = "прогон верификации: возврат успеха", at = mid.validFrom.plusDays(1))
         assertEquals("верифицировано", matrices.verificationMatrix()
             .single { it.requirementId == "RQ-0010" }.state)
     }

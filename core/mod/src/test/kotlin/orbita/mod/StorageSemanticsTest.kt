@@ -108,8 +108,10 @@ class StorageSemanticsTest {
         @Test
         fun `новая версия текущая`() {
             val cur = objects.current("RQ-0100")!!
+            // ADR-031: правка НАСЛЕДУЕТ статус (Baseline остаётся Baseline);
+            // смена статуса — только переходом
             assertEquals(
-                Triple("2", Lifecycle.Draft, "v2"),
+                Triple("2", Lifecycle.Baseline, "v2"),
                 Triple(cur.version, cur.status, cur.doc["statement"].asText()),
             )
         }
