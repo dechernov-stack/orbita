@@ -3,6 +3,7 @@
 // раздела и операции фазы с состоянием от сервера (ADR-029); рабочая область.
 // Мастер как меню упразднён: навигация показывает состояние операций и
 // незакрытое до точки, а не список экранов.
+import { Accounts } from './ui/Accounts'
 import { useCallback, useEffect, useState, type ReactElement } from 'react'
 import { api, type OperationRow } from './api/client'
 import { edit } from './api/edit'
@@ -294,7 +295,8 @@ export function App() {
           </button>
         )}
         <div className="grow" style={{ flex: 1 }} />
-        <AuthorField />
+        <Accounts />
+          <AuthorField />
       </header>
       <div className="shell__body">
         <nav className="rail">
