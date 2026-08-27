@@ -26,6 +26,7 @@ import { ImportCatalog } from './screens/ImportCatalog'
 import { KindRegistry } from './screens/KindRegistry'
 import { Lifecycle } from './screens/Lifecycle'
 import { Needs } from './screens/Needs'
+import { Operations } from './screens/Operations'
 import { Portfolio } from './screens/Portfolio'
 import { RequirementMatrices, type MatrixKind } from './screens/RequirementMatrices'
 import { Requirements } from './screens/Requirements'
@@ -196,6 +197,13 @@ export function App() {
       case 'lifecycle':
         return project
           ? <Lifecycle project={project} onGo={go} />
+          : <Portfolio onOpen={() => setScreen('lifecycle')}
+              onNew={() => { setFirstRun(false); setScreen('newproject') }}
+              onLoadFile={() => { setFirstRun(false); setScreen('importb') }}
+              onStart={() => { setScreen('startpath'); loadHeader() }} />
+      case 'operations':
+        return project
+          ? <Operations project={project} onGo={go} />
           : <Portfolio onOpen={() => setScreen('lifecycle')}
               onNew={() => { setFirstRun(false); setScreen('newproject') }}
               onLoadFile={() => { setFirstRun(false); setScreen('importb') }}

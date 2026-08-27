@@ -1152,32 +1152,31 @@ class HttpApi(private val boundary: Boundary) {
                     // сроки адекватно»): дата вехи = её явная due (якорь),
                     // иначе дата предыдущей + duration_days — цепочкой от
                     // последнего якоря. Считает СЕРВЕР (STEP-6 §3.2).
+                    // Ответ по О-10 §2: источник сроков — ПЛАНОВЫЕ ДАТЫ вех;
+                    // длительность — производная (интервал), отдельно не
+                    // хранится, не редактируется и дат больше не выводит
                     var prevDate: java.time.LocalDate? = null
                     projectObj.doc.path("milestones").forEach { m ->
                         val anchor = m.path("due").asText("").takeIf { it.isNotBlank() }
                             ?.let { runCatching { java.time.LocalDate.parse(it) }.getOrNull() }
-                        val duration = m.path("duration_days").takeIf { it.isInt }?.asInt()
-                        val effective = anchor
-                            ?: if (duration != null && prevDate != null) prevDate!!.plusDays(duration.toLong()) else null
                         val held = m.path("held").asBoolean(false)
                         val g = gates.addObject()
                             .put("gate", m.path("gate").asText())
-                            .put("due", effective?.toString())
+                            .put("due", anchor?.toString())
                             .put("held", held)
                             // дальняя веха (Phase B–F) — план в едином ряду
                             // точек: показывается, но воротами не ведётся
                             .put("in_scope", m.path("gate").asText() in known)
-                        if (anchor == null && effective != null) g.put("computed", true)
-                        duration?.let { g.put("duration_days", it) }
+                        m.path("held_at").asText("").takeIf { it.isNotBlank() }?.let { g.put("held_at", it) }
                         m.path("phase").asText("").takeIf { it.isNotBlank() }?.let { g.put("phase", it) }
-                        if (effective != null && prevDate != null) {
+                        if (anchor != null && prevDate != null) {
                             g.put(
                                 "days_from_prev",
-                                java.time.temporal.ChronoUnit.DAYS.between(prevDate, effective),
+                                java.time.temporal.ChronoUnit.DAYS.between(prevDate, anchor),
                             )
                         }
-                        if (effective != null && !held && effective.isBefore(today)) g.put("overdue", true)
-                        prevDate = effective ?: prevDate
+                        if (anchor != null && !held && anchor.isBefore(today)) g.put("overdue", true)
+                        prevDate = anchor ?: prevDate
                     }
                     // О-10: пройденной вехе — решение прохождения; ближайшей —
                     // счётчик незакрытого (без конфигурации — честно нет)

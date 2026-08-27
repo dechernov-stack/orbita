@@ -20,8 +20,6 @@ interface GateRow {
   held?: boolean
   held_at?: string
   decision_rationale?: string
-  computed?: boolean
-  duration_days?: number
   /** Точка в горизонте ИС (ворота ведут) или плановая веха Phase B–F. */
   in_scope?: boolean
   phase?: string
@@ -155,7 +153,6 @@ export function Lifecycle({ project, onGo }: {
                       width={136}
                       onChange={(v) => void setDue(g.gate, v)}
                     />
-                    {g.computed && <span className="secondary" title="дата выведена из длительностей"> ⟲</span>}
                   </div>
                 )}
                 {past && g.decision_rationale && (

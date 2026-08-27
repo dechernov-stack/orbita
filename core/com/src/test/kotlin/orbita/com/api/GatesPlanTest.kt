@@ -56,34 +56,20 @@ class GatesPlanTest {
         )["gates"]
 
     @Test
-    fun `дата вехи выводится цепочкой от якоря, якорь сильнее расчёта`() {
+    fun `источник сроков - плановые даты вех, длительности дат не выводят`() {
+        // Ответ по О-10 §2: длительность — производная (интервал), отдельно
+        // не хранится и дат не выводит; расчётные сроки работ живут в WBS
+        // и встретятся с датами вех в О-20 разрывом, не полем ввода
         val g = gates().associateBy { it["gate"].asText() }
-        // PDR: якоря нет — KDP-B (якорь 2026-11-24) + 120 дн.
-        assertEquals("2027-03-24", g["PDR"]!!["due"].asText())
-        assertTrue(g["PDR"]!!["computed"].asBoolean()) { g["PDR"].toString() }
-        assertEquals(120, g["PDR"]!!["days_from_prev"].asInt())
-        // CDR: от расчётной PDR + 200 дн.
-        assertEquals("2027-10-10", g["CDR"]!!["due"].asText())
-        assertTrue(g["CDR"]!!["computed"].asBoolean())
-        // Launch: явная due — якорь, расчёт её не перебивает
+        // PDR: явной даты нет — даты НЕТ (цепочка длительностей умерла)
+        assertTrue(g["PDR"]!!["due"].isNull) { g["PDR"].toString() }
+        assertTrue(!g["PDR"]!!.has("computed"))
+        // Launch: явная due — единственный источник
         assertEquals("2028-06-01", g["Launch"]!!["due"].asText())
-        assertTrue(!g["Launch"]!!.has("computed"))
+        // интервал читается между ЯВНЫМИ датами
+        assertTrue(g["Launch"]!!["days_from_prev"].isInt) { g["Launch"].toString() }
         // дальние вехи вне горизонта ворот
         assertTrue(!g["PDR"]!!["in_scope"].asBoolean())
         assertTrue(g["KDP-B"]!!["in_scope"].asBoolean())
-    }
-
-    @Test
-    fun `сдвиг якоря пересчитывает хвост`() {
-        // KDP-B сдвинулась на месяц — PDR и CDR уехали следом, Launch (якорь) нет
-        val cur = boundary.objects.current("PJ-1501")!!
-        val doc = cur.doc.deepCopy<com.fasterxml.jackson.databind.node.ObjectNode>()
-        (doc.path("milestones")[1] as com.fasterxml.jackson.databind.node.ObjectNode)
-            .put("due", "2026-12-24")
-        boundary.objects.change("PJ-1501", doc, createdBy = "test")
-        val g = gates().associateBy { it["gate"].asText() }
-        assertEquals("2027-04-23", g["PDR"]!!["due"].asText())
-        assertEquals("2027-11-09", g["CDR"]!!["due"].asText())
-        assertEquals("2028-06-01", g["Launch"]!!["due"].asText())
     }
 }

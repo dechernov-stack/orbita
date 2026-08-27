@@ -19,7 +19,6 @@ export const SECTIONS: NavSection[] = [
     label: 'Портфель',
     screens: [
       { key: 'portfolio', title: 'Все проекты' },
-      { key: 'lifecycle', title: 'Жизненный цикл' },
     ],
   },
   {
@@ -83,7 +82,9 @@ export const SECTIONS: NavSection[] = [
     key: 'readiness',
     label: 'Контроль',
     screens: [
+      { key: 'lifecycle', title: 'Жизненный цикл' },
       { key: 'readiness', title: 'Готовность к точке' },
+      { key: 'operations', title: 'Операции' },
       { key: 'projreg', title: 'Паспорт проекта' },
       { key: 'rfa', title: 'Замечания обзора' },
       { key: 'risks', title: 'Риски' },
