@@ -115,8 +115,9 @@ class GlobeViewTest {
         assertEquals("SC-0901", body["scenario_ref"].asText())
 
         val ids = body["czml"].map { it["id"].asText() }
-        // группировка из хранимой модели: 2 аппарата, не зашитые 8
-        assertEquals(2, ids.count { it.startsWith("SAT-") }) { ids.toString() }
+        // группировка из хранимой модели: 2 аппарата, не зашитые 8;
+        // составное построение даёт префикс подгруппы (G1-SAT-…)
+        assertEquals(2, ids.count { it.contains("SAT-") }) { ids.toString() }
         assertTrue("gs-GS-01" in ids) { "станции нет в потоке: $ids" }
         assertTrue("dm-c-heavy" in ids && "dm-c-light" in ids) { "ячеек спроса нет в потоке" }
         // зона обслуживания у каждого аппарата
