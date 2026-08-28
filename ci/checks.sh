@@ -16,6 +16,8 @@ echo "== подключённость =="  ; python3 ci/wiring.py
 echo "== идентификаторы =="   ; python3 ci/literals.py
 # МВП-П1 §2.3: маркерный элемент без текста обязан нести подсказку
 echo "== подсказки =="        ; python3 tools/validate_tooltips.py
+# Справочник единиц (решение ранга ADR): unit-строки ∈ справочнику
+echo "== единицы =="          ; python3 tools/validate_units.py && python3 tools/validate_units.py --selftest
 
 # Круговой обмен ReqIF и сверка с XSD OMG (шаг 11.2, ADR-023). Требует пакета
 # reqif==0.0.47 — CI его ставит. Локально без пакета пропуск объявляется вслух.

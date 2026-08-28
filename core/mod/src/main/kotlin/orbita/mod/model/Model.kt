@@ -82,7 +82,10 @@ enum class CoreType(val idPrefix: String, val dbType: String, val schemaName: St
 
     // МВП-П1 (процесс к точке): задание = адресованный разрыв готовности.
     // Статусной модели нет — статус вычисляется закрытием разрыва.
-    Task("TS", "task", "core/task");
+    Task("TS", "task", "core/task"),
+
+    // Справочник единиц (решение ранга ADR): полка LIB, один на систему.
+    UnitRegistry("UR", "unit_registry", "core/unit-registry");
 
     companion object {
         fun byDbType(t: String): CoreType = entries.firstOrNull { it.dbType == t }

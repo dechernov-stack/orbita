@@ -10,6 +10,7 @@
 // в нём вес пояса виден числом, а не размером пятна.
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
+import { MapView } from '../ui/MapView'
 import { edit, type StoredSummary } from '../api/edit'
 import type { DemandLayersRequest, DemandMapView, ReferenceScenarioRow } from '../api/types'
 
@@ -135,50 +136,20 @@ export function Demand({ demandMapId }: { demandMapId?: string }) {
           view && (
             <div style={{ padding: 12 }}>
               <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                <svg
-                  viewBox="-180 -90 360 180"
-                  preserveAspectRatio="none"
-                  style={{ flex: 1, height: 260, background: '#0d1b2a', border: '1px solid var(--border)' }}
-                >
-                  {/* сетка координат: без неё пятно на тёмном поле не читается */}
-                  {[-60, -30, 0, 30, 60].map((lat) => (
-                    <line
-                      key={`lat${lat}`}
-                      x1={-180}
-                      x2={180}
-                      y1={-lat}
-                      y2={-lat}
-                      stroke="#22384f"
-                      strokeWidth={lat === 0 ? 1 : 0.5}
-                    />
-                  ))}
-                  {[-120, -60, 0, 60, 120].map((lon) => (
-                    <line
-                      key={`lon${lon}`}
-                      y1={-90}
-                      y2={90}
-                      x1={lon}
-                      x2={lon}
-                      stroke="#22384f"
-                      strokeWidth={lon === 0 ? 1 : 0.5}
-                    />
-                  ))}
-                  {view.cells.map((cell) => (
-                    <rect
-                      key={cell.id}
-                      x={cell.lonDeg}
-                      y={-cell.latDeg}
-                      width={8}
-                      height={8}
-                      fill="#ffd166"
-                      opacity={cell.intensity}
-                    >
-                      <title>
-                        {cell.id}: {cell.msgsPerDay} сообщ./сут, вес {cell.weight}
-                      </title>
-                    </rect>
-                  ))}
-                </svg>
+                {/* §6.3а: вьюер один на систему — превью спроса тем же
+                    MapView, что ёмкость и запас; интенсивность — от сервера */}
+                <div style={{ flex: 1 }}>
+                  <MapView
+                    height={300}
+                    demandCells={view.cells.map((cell) => ({
+                      id: cell.id,
+                      latDeg: cell.latDeg,
+                      lonDeg: cell.lonDeg,
+                      intensity: cell.intensity,
+                      tip: `${cell.id}: ${cell.msgsPerDay} сообщ./сут, вес ${cell.weight}`,
+                    }))}
+                  />
+                </div>
                 <div style={{ width: 180 }}>
                   <h3 style={{ fontSize: 13, margin: '0 0 4px' }}>Широтный профиль</h3>
                   <table>

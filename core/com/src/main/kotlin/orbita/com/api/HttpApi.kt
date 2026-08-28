@@ -1315,6 +1315,24 @@ class HttpApi(private val boundary: Boundary) {
                         .put("class", orbita.bal.coverageClass(mean, worst).code)
                         .put("access_windows", metrics.accessWindows)
                     node.put("pass_minutes", passMinutes[id] ?: 0.0)
+                    // §6 слои «спрос» и «запас»: спрос по классам и
+                    // обслуживаемо/спрос (метрика 6) — тем же вьюером
+                    val demandByClass = node.putObject("demand_by_class")
+                    var msgsDay = 0.0
+                    cellNode.path("demand").forEach { d ->
+                        val cls = d.path("terminal_profile_ref").asText("A_prime")
+                        demandByClass.put(
+                            cls,
+                            demandByClass.path(cls).asDouble(0.0) + d.path("count").asDouble(0.0),
+                        )
+                        msgsDay += d.path("uplink_msgs_per_day").asDouble(0.0)
+                    }
+                    if (msgsDay > 0) {
+                        node.put(
+                            "margin_min_per_msg",
+                            (passMinutes[id] ?: 0.0) / (msgsDay * durationS / 86400.0),
+                        )
+                    }
                     node.put("half_lat_deg", latStep / 2.0)
                     node.put(
                         "half_lon_deg",
@@ -1341,11 +1359,28 @@ class HttpApi(private val boundary: Boundary) {
                 // §5: числовая шкала и баланс — статистика карты считается
                 // сервером; клиент только красит по ней
                 val values = cellNodes.map { passMinutes[it.path("cell_id").asText()] ?: 0.0 }
+                val margins = cellsOut.mapNotNull {
+                    it.path("margin_min_per_msg").takeIf { m -> m.isNumber }?.asDouble()
+                }
+                val demandTotals = cellsOut.flatMap { c ->
+                    c.path("demand_by_class").properties().map { it.key to it.value.asDouble() }
+                }.groupBy({ it.first }, { it.second }).mapValues { it.value.sum() }
                 out.putObject("map_stats")
                     .put("pass_minutes_min", values.minOrNull() ?: 0.0)
                     .put("pass_minutes_max", values.maxOrNull() ?: 0.0)
                     .put("pass_minutes_total", values.sum())
                     .put("cells_out_of_view", values.count { it <= 0.0 })
+                    .put("margin_min", margins.minOrNull() ?: 0.0)
+                    .put("margin_max", margins.maxOrNull() ?: 0.0)
+                    .also { ms ->
+                        val dm = (ms as ObjectNode).putObject("demand_max_by_class")
+                        cellsOut.flatMap { c ->
+                            c.path("demand_by_class").properties().map { it.key to it.value.asDouble() }
+                        }.groupBy({ it.first }, { it.second })
+                            .forEach { (cls, vals) -> dm.put(cls, vals.max()) }
+                        val dt = ms.putObject("demand_total_by_class")
+                        demandTotals.forEach { (cls, v) -> dt.put(cls, v) }
+                    }
                 // сводка построения — подписи «итого КА: сумма по подгруппам»
                 val cst = out.putObject("constellation")
                 cst.put("total_sats", parsed.totalSats)

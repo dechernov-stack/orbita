@@ -481,6 +481,9 @@ export interface AnswerReport {
 export interface CoverageCell {
   /** §5: ёмкостная мера — проходо-минуты (все сервисные пролёты, без слияния). */
   pass_minutes: number
+  /** §6: запас — проходо-минуты на сообщение спроса; нет спроса — поля нет. */
+  margin_min_per_msg?: number
+  demand_by_class?: Record<string, number>
   half_lat_deg: number
   half_lon_deg: number
   cell_id: string
@@ -508,6 +511,11 @@ export interface CoverageView {
     pass_minutes_max: number
     pass_minutes_total: number
     cells_out_of_view: number
+    /** §6 МВП-М3: слой «запас» — обслуживаемо/спрос. */
+    margin_min: number
+    margin_max: number
+    demand_max_by_class?: Record<string, number>
+    demand_total_by_class?: Record<string, number>
   }
   constellation: {
     total_sats: number

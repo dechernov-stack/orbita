@@ -288,24 +288,26 @@ class CompareMetrics(
      * J2, Солнце — круговой эклиптикой. Тень — цилиндр Земли.
      */
     private fun betaAndShadow(g: SubgroupConfig, epochIso: String): Triple<Double, Double, Double> {
-        val inc = Math.toRadians(g.effectiveIncDeg())
-        val eps = Math.toRadians(23.44)
+        // §7: внутри расчётов только радианы, суффикс — часть правила
+        val incRad = Math.toRadians(g.effectiveIncDeg())
+        val epsRad = Math.toRadians(23.44)
         // прецессия ВДУ J2: Ω̇ = −1.5·J2·n·(RE/a)²·cos i (та же физика, что ССО)
         val aKm = RE_KM + g.altKm
-        val raanRate = -1.5 * J2 * meanMotionRadS(g.altKm) *
-            (RE_KM / aKm) * (RE_KM / aKm) * cos(inc)
+        val raanRateRadS = -1.5 * J2 * meanMotionRadS(g.altKm) *
+            (RE_KM / aKm) * (RE_KM / aKm) * cos(incRad)
         // опорный RAAN: для ССО — из LTAN (солнечная привязка), иначе 0
-        val raan0 = Math.toRadians(((g.ltanH ?: 12.0) - 12.0) * 15.0)
+        val raan0Rad = Math.toRadians(((g.ltanH ?: 12.0) - 12.0) * 15.0)
         var betaMin = Double.MAX_VALUE
         var betaMax = -Double.MAX_VALUE
         var worstShadow = 0.0
         val ratio = RE_KM / (RE_KM + g.altKm)
         for (day in 0 until 365) {
-            val ls = 2 * Math.PI * day / 365.2422           // эклиптическая долгота Солнца
-            val ds = asin(sin(eps) * sin(ls))                // склонение
-            val ra = kotlin.math.atan2(cos(eps) * sin(ls), cos(ls)) // прямое восхождение
-            val raan = if (g.kind == "sso") ra + raan0 else raan0 + raanRate * day * 86400.0
-            val sinBeta = cos(inc) * sin(ds) + sin(inc) * cos(ds) * sin(raan - ra)
+            val lsRad = 2 * Math.PI * day / 365.2422             // эклиптическая долгота Солнца
+            val dsRad = asin(sin(epsRad) * sin(lsRad))            // склонение
+            val raRad = kotlin.math.atan2(cos(epsRad) * sin(lsRad), cos(lsRad)) // прямое восхождение
+            val raanRad = if (g.kind == "sso") raRad + raan0Rad
+            else raan0Rad + raanRateRadS * day * 86400.0
+            val sinBeta = cos(incRad) * sin(dsRad) + sin(incRad) * cos(dsRad) * sin(raanRad - raRad)
             val beta = Math.toDegrees(asin(sinBeta.coerceIn(-1.0, 1.0)))
             if (beta < betaMin) betaMin = beta
             if (beta > betaMax) betaMax = beta

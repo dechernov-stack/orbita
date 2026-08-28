@@ -10,7 +10,7 @@
 // показывает, а не превращает в «ошибку».
 import { useEffect, useState } from 'react'
 import { api, ApiError } from '../api/client'
-import { CoverageMap } from './CoverageMap'
+import { MapView } from '../ui/MapView'
 import { edit, type StoredSummary } from '../api/edit'
 import type { CoverageView } from '../api/types'
 
@@ -120,7 +120,7 @@ export function Coverage() {
         <div style={{ padding: 12 }}>
           {/* §5/§6 МВП-М1: карта с зумом, ёмкостная шкала числами; классовая
               заливка тремя цветами (гипотеза №3: скрывала вариацию) умерла */}
-          <CoverageMap scenario={scenario} view={view} />
+          <MapView scenario={scenario} view={view} />
           <p className="secondary" style={{ marginBottom: 0 }}>
             Построение: <b>{view.constellation.total_sats} КА</b>
             {view.constellation.subgroups.length > 0 && (

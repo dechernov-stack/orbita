@@ -78,6 +78,21 @@ class BatchImport(private val boundary: Boundary, private val mapper: ObjectMapp
             )
         }
 
+        // граница переводит (справочник единиц): несистемная единица — в
+        // канон с происхождением; неизвестная/курсовая — отказ поимённо
+        UnitBoundary.registryOf(boundary)?.let { registry ->
+            rows.forEach { row ->
+                try {
+                    UnitBoundary.normalize(row.doc, registry)
+                } catch (e: UnknownUnitException) {
+                    problems += BatchProblem(row.index, row.id, null, "unit_unknown", e.message ?: e.unit)
+                } catch (e: RateUnitException) {
+                    problems += BatchProblem(row.index, row.id, null, "unit_rate", e.message ?: e.unit)
+                }
+            }
+        }
+        if (problems.isNotEmpty()) return BatchReport(0, problems.sortedBy { it.index })
+
         // проверка по схемам ДО записи: отчёт собирается целиком, а не до первой ошибки
         rows.forEach { row ->
             boundary.schemaProblems(row.type, row.doc).forEach { e ->

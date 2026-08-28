@@ -23,10 +23,10 @@ fun walkerDelta(incDeg: Double, t: Int, p: Int, f: Int, altKm: Double): List<Orb
     val s = t / p
     return buildList {
         for (plane in 0 until p) {
-            val raan = 360.0 * plane / p
+            val raanDeg = 360.0 * plane / p
             for (slot in 0 until s) {
-                val ma = (360.0 * slot / s + 360.0 * f * plane / t).mod(360.0)
-                add(OrbitSlot(plane, raan, ma, incDeg, altKm))
+                val maDeg = (360.0 * slot / s + 360.0 * f * plane / t).mod(360.0)
+                add(OrbitSlot(plane, raanDeg, maDeg, incDeg, altKm))
             }
         }
     }
@@ -42,10 +42,10 @@ fun walkerStar(incDeg: Double, t: Int, p: Int, f: Int, altKm: Double): List<Orbi
     val s = t / p
     return buildList {
         for (plane in 0 until p) {
-            val raan = 180.0 * plane / p
+            val raanDeg = 180.0 * plane / p
             for (slot in 0 until s) {
-                val ma = (360.0 * slot / s + 360.0 * f * plane / t).mod(360.0)
-                add(OrbitSlot(plane, raan, ma, incDeg, altKm))
+                val maDeg = (360.0 * slot / s + 360.0 * f * plane / t).mod(360.0)
+                add(OrbitSlot(plane, raanDeg, maDeg, incDeg, altKm))
             }
         }
     }
