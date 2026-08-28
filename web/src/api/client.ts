@@ -444,6 +444,20 @@ export const api = {
    * Карта покрытия от ХРАНИМЫХ объектов по ссылкам сценария (шаг 16 §2.2).
    * Сценарий обязателен: умолчания нет, его отсутствие — 400 с объяснением.
    */
+  /** §6 МВП-М1: трассы подгрупп (виток) — сверка рисунка глазами. */
+  groundTracks: (scenario: string) =>
+    get<import('./types').GroundTracksView>(`/views/ground-tracks?scenario=${encodeURIComponent(scenario)}`),
+  /** §6: маски зон приёма и сброса — слой карты. */
+  geoMasks: (scenario: string) =>
+    get<import('./types').GeoMasksView>(`/views/geo-masks?scenario=${encodeURIComponent(scenario)}`),
+  /** §3: сводка построения для формы — сервер считает, клиент показывает. */
+  calcConstellationSummary: (subgroups: unknown[]) =>
+    post<{
+      total_sats: number
+      formula: string
+      warnings: string[]
+      subgroups: Array<{ index: number; sats: number; computed_inclination_deg?: number }>
+    }>('/calc/constellation-summary', { subgroups }),
   coverage: (scenario: string, horizon: 'orbit' | 'day' | 'run') =>
     get<CoverageView>(`/views/coverage?scenario=${encodeURIComponent(scenario)}&horizon=${horizon}`),
   needs: () => get<NeedRow[]>('/views/needs'),

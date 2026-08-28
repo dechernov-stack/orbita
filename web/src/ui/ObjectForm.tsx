@@ -186,6 +186,151 @@ function QuantityField({ name, schema, value, required, path, errors, onChange }
   )
 }
 
+/**
+ * МВП-М1 §3 (ЗАДАЧА-CODE-ПОСТРОЕНИЕ): подгруппы построения — таблицей.
+ * Строка = подгруппа; поля по типу (ССО скрывает наклонение, показывает
+ * LTAN и вычисленное серым); свёртка «итого КА: сумма» под таблицей.
+ * Арифметику и наклонение ССО считает СЕРВЕР (/calc/constellation-summary,
+ * ловушка 2) — клиент показывает ответ.
+ */
+function SubgroupsField({ value, path, errors, onChange }: FieldProps) {
+  type Row = {
+    name?: string; kind?: string; planes?: number; per_plane?: number
+    altitude_km?: number; inclination_deg?: number; phasing?: number; ltan_h?: number
+  }
+  const rows = (Array.isArray(value) ? value : []) as Row[]
+  const [summary, setSummary] = useState<{
+    total_sats: number; formula: string; warnings: string[]
+    subgroups: Array<{ index: number; sats: number; computed_inclination_deg?: number }>
+  } | null>(null)
+  const { fieldLabel } = useSession()
+
+  // сводка — сервером, с лёгкой задержкой на ввод
+  useEffect(() => {
+    if (rows.length === 0) { setSummary(null); return }
+    const t = setTimeout(() => {
+      import('../api/client').then(({ api }) =>
+        api.calcConstellationSummary(rows).then(setSummary).catch(() => setSummary(null)),
+      )
+    }, 350)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(rows)])
+
+  const patch = (i: number, changes: Partial<Row>) => {
+    const next = rows.map((r, j) => (j === i ? { ...r, ...changes } : r))
+    onChange(next)
+  }
+  const numArg = (raw: string): number | undefined => (raw === '' ? undefined : Number(raw))
+
+  const KINDS: Array<{ key: string; title: string }> = [
+    { key: 'walker_delta', title: 'Walker Δ' },
+    { key: 'walker_star', title: 'Walker ★' },
+    { key: 'sso', title: 'ССО' },
+  ]
+
+  return (
+    <div className="field">
+      <label><FieldName name="subgroups" /></label>
+      <table style={{ width: '100%' }}>
+        <thead>
+          <tr>
+            <th>Имя</th>
+            <th style={{ width: 150 }}>Тип</th>
+            <th style={{ width: 70 }} title="число орбитальных плоскостей">Плоск.</th>
+            <th style={{ width: 70 }} title="КА в каждой плоскости">КА/пл.</th>
+            <th style={{ width: 84 }}>Высота, км</th>
+            <th style={{ width: 110 }} title="walker: вводится; ССО: вычисляется из высоты">Наклонение, °</th>
+            <th style={{ width: 60 }} title="фазовый параметр F (Walker)">F</th>
+            <th style={{ width: 80 }} title="ССО: местное время восходящего узла, ч">LTAN, ч</th>
+            <th style={{ width: 60 }} title="КА подгруппы — произведение, считает сервер">КА</th>
+            <th style={{ width: 30 }} />
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, i) => {
+            const sso = r.kind === 'sso'
+            const srv = summary?.subgroups.find((g) => g.index === i)
+            return (
+              <tr key={i}>
+                <td>
+                  <input aria-label="имя подгруппы" value={r.name ?? ''} style={{ width: '100%' }}
+                    onChange={(e) => patch(i, { name: e.target.value || undefined })} />
+                </td>
+                <td>
+                  <span style={{ display: 'flex', gap: 2 }}>
+                    {KINDS.map((k) => (
+                      <button key={k.key} type="button" className="tab" aria-selected={r.kind === k.key}
+                        title={k.key === 'sso'
+                          ? 'солнечно-синхронная: наклонение вычисляется из высоты, вводится LTAN'
+                          : k.key === 'walker_star' ? 'плоскости веером 180°/P' : 'плоскости по кругу 360°/P'}
+                        onClick={() => patch(i, { kind: k.key })}>
+                        {k.title}
+                      </button>
+                    ))}
+                  </span>
+                </td>
+                <td><input aria-label="плоскости" type="number" min={1} value={r.planes ?? ''} style={{ width: 56 }}
+                  onChange={(e) => patch(i, { planes: numArg(e.target.value) })} /></td>
+                <td><input aria-label="КА в плоскости" type="number" min={1} value={r.per_plane ?? ''} style={{ width: 56 }}
+                  onChange={(e) => patch(i, { per_plane: numArg(e.target.value) })} /></td>
+                <td><input aria-label="высота" type="number" value={r.altitude_km ?? ''} style={{ width: 70 }}
+                  onChange={(e) => patch(i, { altitude_km: numArg(e.target.value) })} /></td>
+                <td>
+                  {sso ? (
+                    <span className="secondary"
+                      title={`вычислено: ССО для h=${r.altitude_km ?? '—'} км — руками не вводится`}>
+                      {srv?.computed_inclination_deg !== undefined
+                        ? `${srv.computed_inclination_deg.toFixed(2)} (выч.)`
+                        : '— (выч.)'}
+                    </span>
+                  ) : (
+                    <input aria-label="наклонение" type="number" value={r.inclination_deg ?? ''} style={{ width: 80 }}
+                      onChange={(e) => patch(i, { inclination_deg: numArg(e.target.value) })} />
+                  )}
+                </td>
+                <td><input aria-label="фазовый параметр" type="number" min={0} value={r.phasing ?? ''} style={{ width: 44 }}
+                  disabled={sso} title={sso ? 'фазировка ССО — нулевая' : 'фазовый параметр F'}
+                  onChange={(e) => patch(i, { phasing: numArg(e.target.value) })} /></td>
+                <td>
+                  <input aria-label="LTAN" type="number" min={0} max={23.99} step={0.5}
+                    value={r.ltan_h ?? ''} style={{ width: 64 }} disabled={!sso}
+                    title={sso ? 'местное время восходящего узла опорной плоскости' : 'только для ССО'}
+                    onChange={(e) => patch(i, { ltan_h: numArg(e.target.value) })} />
+                </td>
+                <td className="num" title="произведение плоскостей на КА в плоскости — считает сервер">
+                  {srv?.sats ?? '…'}
+                </td>
+                <td>
+                  <button type="button" className="tab" title="убрать подгруппу"
+                    onClick={() => onChange(rows.filter((_, j) => j !== i))}>✕</button>
+                </td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+        <button type="button" className="tab"
+          onClick={() => onChange([...rows, { kind: 'walker_delta', planes: 1, per_plane: 1, altitude_km: 600, phasing: 0 }])}>
+          + подгруппа
+        </button>
+        {summary && (
+          <span title="итог построения — сумма по подгруппам, вычисляется, не вводится">
+            итого КА: <b className="mono">{summary.formula || summary.total_sats}</b>
+          </span>
+        )}
+        {summary?.warnings.map((w) => <span key={w} className="warn">{w}</span>)}
+      </div>
+      <div className="secondary hint">{fieldLabel('subgroups') === 'subgroups' ? '' : ''}
+        Составное построение: подгруппы считаются объединением — покрытие по всем КА,
+        свёртки и бюджеты суммой. Прежний одиночный Walker живёт как одна подгруппа.
+      </div>
+      <Errors path={path} errors={errors} deep />
+    </div>
+  )
+}
+
 /** Массив объектов: подформа на каждый элемент, тоже по схеме. */
 function ObjectArrayField({ name, schema, value, required, path, errors, onChange }: FieldProps) {
   const items = Array.isArray(value) ? (value as Record<string, unknown>[]) : []
@@ -476,6 +621,9 @@ function Field(props: FieldProps) {
   }
 
   if (isQuantity(schema)) return <QuantityField {...props} />
+
+  // МВП-М1 §3: подгруппы построения — таблицей со сводкой (не подформами)
+  if (path === '/subgroups') return <SubgroupsField {...props} />
 
   if (schema.type === 'array') {
     return schema.items?.type === 'object' ? <ObjectArrayField {...props} /> : <StringArrayField {...props} />

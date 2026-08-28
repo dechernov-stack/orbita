@@ -208,7 +208,7 @@ class KpiAndVizTest {
         }
 
         val czml = VizData.czml(
-            ConstellationConfig(53.0, 1, 1, 0, 550.0), "2026-03-20T00:00:00.000Z", 3600.0,
+            mapOf("SAT-1" to 550.0), "2026-03-20T00:00:00.000Z", 3600.0,
             mapOf("SAT-1" to listOf(Triple(0.0, 10.0, 20.0), Triple(60.0, 11.0, 22.0))),
             stations = listOf(VizData.GlobeStation("GS-1", "Мурманск", 68.9, 33.1)),
             demandCells = listOf(

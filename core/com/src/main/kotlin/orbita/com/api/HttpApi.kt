@@ -930,6 +930,115 @@ class HttpApi(private val boundary: Boundary) {
                 respond(ex, 200, mapper.valueToTree(boundary.spacecraft.build(doc, conditions(request))))
             }
 
+            // §3 МВП-М1: сводка построения для ФОРМЫ — сервер считает, клиент
+            // показывает (ловушка 2): итог КА суммой с формулой, наклонение
+            // ССО из высоты, предупреждения (T не делится на P) — до записи.
+            method == "POST" && path == "/calc/constellation-summary" -> {
+                val req = mapper.readTree(body(ex))
+                val out = mapper.createObjectNode()
+                val rows = out.putArray("subgroups")
+                var total = 0
+                val parts = mutableListOf<String>()
+                val warnings = out.putArray("warnings")
+                req.path("subgroups").forEachIndexed { i, g ->
+                    val planes = g.path("planes").asInt(0)
+                    val perPlane = g.path("per_plane").asInt(0)
+                    val altKm = g.path("altitude_km").asDouble(0.0)
+                    val kind = g.path("kind").asText("walker_delta")
+                    val sats = planes * perPlane
+                    total += sats
+                    if (sats > 0) parts += "$planes×$perPlane"
+                    val row = rows.addObject().put("index", i).put("sats", sats)
+                    if (kind == "sso" && altKm > 0) {
+                        row.put("computed_inclination_deg", orbita.bal.ssoInclinationDeg(altKm))
+                    }
+                    val f = g.path("phasing").asInt(0)
+                    if (sats > 0 && f >= sats) {
+                        warnings.add("подгруппа ${i + 1}: F=$f не меньше T=$sats — фазовый параметр берётся по модулю T")
+                    }
+                }
+                out.put("total_sats", total)
+                out.put("formula", if (parts.isEmpty()) "" else "$total = ${parts.joinToString(" + ")}")
+                respond(ex, 200, out)
+            }
+
+            // §6 МВП-М1: географические маски зон — слой карты (точки зон
+            // приёма и сброса с радиусами; геометрия — сервером, клиент рисует)
+            method == "GET" && path == "/views/geo-masks" -> {
+                val q = query(ex)
+                val scenarioId = q["scenario"] ?: throw IllegalArgumentException(
+                    "query parameter 'scenario' is required",
+                )
+                val scenario = boundary.objects.current(scenarioId)
+                    ?: throw NoSuchElementException("сценарий $scenarioId не найден")
+                val constellation = scenario.doc.path("constellation_ref").asText("")
+                    .takeIf { it.isNotBlank() }?.let { boundary.objects.current(it) }
+                    ?: throw NoSuchElementException("группировка по ссылке сценария не найдена")
+                val demandMap = scenario.doc.path("demand_map_ref").asText("")
+                    .takeIf { it.isNotBlank() }?.let { boundary.objects.current(it) }
+                    ?: throw NoSuchElementException("карта спроса по ссылке сценария не найдена")
+                val stationsObj = boundary.objects.listCurrent(requireProject(project))
+                    .firstOrNull { it.type == "ground_stations" }
+                val parsed = orbita.bal.parseConstellationDoc(constellation.doc)
+                val masks = orbita.ka.buildMasks(
+                    demandMap.doc,
+                    stationsObj?.doc ?: mapper.createObjectNode().set("stations", mapper.createArrayNode()),
+                    parsed.minAltKm,
+                )
+                val out = mapper.createObjectNode()
+                out.put("rx_radius_km", masks.rxRadiusKm)
+                out.put("downlink_radius_km", masks.downlinkRadiusKm)
+                out.putArray("rx").also { a ->
+                    masks.rxCells.forEach { a.addArray().add(it.lat).add(it.lon) }
+                }
+                out.putArray("downlink").also { a ->
+                    masks.downlinkCells.forEach { a.addArray().add(it.lat).add(it.lon) }
+                }
+                respond(ex, 200, out)
+            }
+
+            // §6 МВП-М1: наземные трассы подгрупп — каждая своим цветом
+            // (индекс подгруппы; палитра у клиента — раскраска, не расчёт).
+            // Один виток самой низкой подгруппы: сверка рисунка глазами.
+            method == "GET" && path == "/views/ground-tracks" -> {
+                val q = query(ex)
+                val scenarioId = q["scenario"] ?: throw IllegalArgumentException(
+                    "query parameter 'scenario' is required",
+                )
+                val scenario = boundary.objects.current(scenarioId)
+                    ?: throw NoSuchElementException("сценарий $scenarioId не найден")
+                val constellation = scenario.doc.path("constellation_ref").asText("")
+                    .takeIf { it.isNotBlank() }?.let { boundary.objects.current(it) }
+                    ?: throw NoSuchElementException("группировка по ссылке сценария не найдена")
+                val epoch = scenario.doc.path("epoch").asText("")
+                    .ifBlank { throw IllegalArgumentException("scenario '$scenarioId' has no epoch") }
+                val parsed = orbita.bal.parseConstellationDoc(constellation.doc)
+                val orbitS = orbita.bal.orbitalPeriodS(parsed.minAltKm)
+                val out = mapper.createObjectNode()
+                out.put("scenario_ref", scenarioId)
+                out.put("duration_s", orbitS)
+                val groups = out.putArray("subgroups")
+                val bySub = parsed.slotsBySubgroup().ifEmpty {
+                    listOf(null to parsed.slots) // explicit: одна группа без имени
+                }
+                bySub.forEachIndexed { gi, (g, slots) ->
+                    val node = groups.addObject()
+                    node.put("name", g?.name ?: "перечень орбит")
+                    node.put("kind", g?.kind ?: "explicit")
+                    node.put("color_index", gi)
+                    val tracks = boundary.visibility.groundTracksSlots(slots, epoch, orbitS, stepS = 60.0)
+                    val arr = node.putArray("tracks")
+                    tracks.forEach { (sat, pts) ->
+                        val t = arr.addObject().put("sat", sat)
+                        val pa = t.putArray("points")
+                        pts.forEach { (_, lat, lon) ->
+                            pa.addArray().add(lat).add(lon)
+                        }
+                    }
+                }
+                respond(ex, 200, out)
+            }
+
             // Карта покрытия (шаг 16 §2.2): всё — от ХРАНИМЫХ объектов по ссылкам
             // сценария, по образцу mask-schedule. Показывается ЗОНА ОБСЛУЖИВАНИЯ,
             // не footprint (TZ-MOD-006): углы — те же, что в GeoMasks (25°/10°).
@@ -962,19 +1071,14 @@ class HttpApi(private val boundary: Boundary) {
                 val epoch = scenario.doc.path("epoch").asText("")
                 if (epoch.isBlank()) throw IllegalArgumentException("scenario '$scenarioId' has no epoch")
 
-                val w = constellation.doc.path("walker")
-                val config = orbita.bal.ConstellationConfig(
-                    incDeg = w.path("inclination_deg").asDouble(),
-                    total = w.path("total").asInt(),
-                    planes = w.path("planes").asInt(),
-                    phasing = w.path("phasing").asInt(),
-                    altKm = w.path("altitude_km").asDouble(),
-                )
+                // составное построение (МВП-М1): подгруппы, объединение
+                // пролётов — само собой (пролёты всех КА в одном расписании)
+                val parsed = orbita.bal.parseConstellationDoc(constellation.doc)
                 val targets = cellNodes.map {
                     orbita.bal.GridPoint(it.path("cell_id").asText(), it.path("lat_deg").asDouble(), it.path("lon_deg").asDouble())
                 }
-                val vis = boundary.visibility.schedule(
-                    config, epoch, durationS,
+                val vis = boundary.visibility.scheduleSlots(
+                    parsed.slots, epoch, durationS,
                     minElevDeg = 10.0, targets = targets, scenarioRef = scenarioId,
                     serviceElevDeg = 25.0,
                 )
@@ -985,7 +1089,7 @@ class HttpApi(private val boundary: Boundary) {
                 vis["passes"].forEach { p ->
                     if (p.path("in_service_zone").asBoolean(false)) servicePasses.add(p)
                 }
-                val heatByCell = orbita.bal.VizData.availabilityHeatmap(serviceVis, durationS, config.altKm)
+                val heatByCell = orbita.bal.VizData.availabilityHeatmap(serviceVis, durationS, parsed.minAltKm)
                     .path("cells").associateBy { it.path("cell_id").asText() }
                 val byTarget = orbita.bal.coverageByTarget(serviceVis, durationS, targets = targets.map { it.id })
                 val windowsByCell = linkedMapOf<String, MutableList<Pair<Double, Double>>>()
@@ -998,9 +1102,25 @@ class HttpApi(private val boundary: Boundary) {
                 out.put("scenario_ref", scenarioId)
                 out.put("horizon", horizon)
                 out.putObject("horizons")
-                    .put("orbit_s", orbita.bal.orbitalPeriodS(config.altKm))
+                    .put("orbit_s", orbita.bal.orbitalPeriodS(parsed.minAltKm))
                     .put("day_s", 86400.0)
                     .put("run_s", durationS)
+                // §5 МВП-М1: ёмкостная мера ячейки — проходо-минуты (сумма
+                // длительностей ВСЕХ сервисных пролётов, без слияния окон:
+                // два КА над ячейкой — двойная ёмкость). Ёмкости канала в
+                // модели КА нет — при её появлении мера умножается на канал.
+                val passMinutes = linkedMapOf<String, Double>()
+                servicePasses.forEach { p ->
+                    val id = p["target_ref"].asText()
+                    passMinutes[id] = (passMinutes[id] ?: 0.0) +
+                        (p["end_s"].asDouble() - p["start_s"].asDouble()) / 60.0
+                }
+                // геометрия ячеек для карты: шаг сетки по широтным кольцам,
+                // долготный — равноплощадный (как строится сама сетка спроса)
+                val uniqueLats = cellNodes.map { it.path("lat_deg").asDouble() }
+                    .distinct().sorted()
+                val latStep = uniqueLats.zipWithNext { a, b -> b - a }
+                    .filter { it > 1e-6 }.minOrNull() ?: 0.9
                 val cellsOut = out.putArray("cells")
                 cellNodes.forEach { cellNode ->
                     val id = cellNode.path("cell_id").asText()
@@ -1024,6 +1144,13 @@ class HttpApi(private val boundary: Boundary) {
                         .put("availability_worst", worst)
                         .put("class", orbita.bal.coverageClass(mean, worst).code)
                         .put("access_windows", metrics.accessWindows)
+                    node.put("pass_minutes", passMinutes[id] ?: 0.0)
+                    node.put("half_lat_deg", latStep / 2.0)
+                    node.put(
+                        "half_lon_deg",
+                        latStep / 2.0 / Math.cos(Math.toRadians(cellNode.path("lat_deg").asDouble()))
+                            .coerceAtLeast(0.1),
+                    )
                     metrics.meanGapS?.let { node.put("mean_gap_s", it) }
                     metrics.maxGapS?.let { node.put("max_gap_s", it) }
                     metrics.revisitS?.let { node.put("revisit_s", it) }
@@ -1040,6 +1167,28 @@ class HttpApi(private val boundary: Boundary) {
                         ).getValue(id)
                         node.put("availability_weighted", weighted)
                     }
+                }
+                // §5: числовая шкала и баланс — статистика карты считается
+                // сервером; клиент только красит по ней
+                val values = cellNodes.map { passMinutes[it.path("cell_id").asText()] ?: 0.0 }
+                out.putObject("map_stats")
+                    .put("pass_minutes_min", values.minOrNull() ?: 0.0)
+                    .put("pass_minutes_max", values.maxOrNull() ?: 0.0)
+                    .put("pass_minutes_total", values.sum())
+                    .put("cells_out_of_view", values.count { it <= 0.0 })
+                // сводка построения — подписи «итого КА: сумма по подгруппам»
+                val cst = out.putObject("constellation")
+                cst.put("total_sats", parsed.totalSats)
+                val sgArr = cst.putArray("subgroups")
+                parsed.subgroups.forEach { g ->
+                    sgArr.addObject()
+                        .put("name", g.name)
+                        .put("kind", g.kind)
+                        .put("planes", g.planes)
+                        .put("per_plane", g.perPlane)
+                        .put("altitude_km", g.altKm)
+                        .put("inclination_deg", g.effectiveIncDeg())
+                        .put("sats", g.total)
                 }
                 respond(ex, 200, out)
             }
@@ -1076,20 +1225,13 @@ class HttpApi(private val boundary: Boundary) {
                 val durationS = q["duration_s"]?.toDoubleOrNull() ?: scenario.doc.path("duration_s").asDouble(0.0)
                 if (durationS <= 0.0) throw IllegalArgumentException("scenario '$scenarioId' has no positive duration_s")
 
-                val w = constellation.doc.path("walker")
-                val config = orbita.bal.ConstellationConfig(
-                    incDeg = w.path("inclination_deg").asDouble(),
-                    total = w.path("total").asInt(),
-                    planes = w.path("planes").asInt(),
-                    phasing = w.path("phasing").asInt(),
-                    altKm = w.path("altitude_km").asDouble(),
-                )
+                val parsed = orbita.bal.parseConstellationDoc(constellation.doc)
                 val targets = cellNodes.map {
                     orbita.bal.GridPoint(it.path("cell_id").asText(), it.path("lat_deg").asDouble(), it.path("lon_deg").asDouble())
                 }
-                val tracks = boundary.visibility.groundTracks(config, epoch, durationS)
-                val vis = boundary.visibility.schedule(
-                    config, epoch, durationS,
+                val tracks = boundary.visibility.groundTracksSlots(parsed.slots, epoch, durationS)
+                val vis = boundary.visibility.scheduleSlots(
+                    parsed.slots, epoch, durationS,
                     minElevDeg = 10.0, targets = targets, scenarioRef = scenarioId,
                     serviceElevDeg = 25.0,
                 )
@@ -1110,10 +1252,10 @@ class HttpApi(private val boundary: Boundary) {
                     )
                 }
                 val czml = orbita.bal.VizData.czml(
-                    config, epoch, durationS, tracks,
+                    parsed.altBySat, epoch, durationS, tracks,
                     stations = globeStations,
                     demandCells = globeCells,
-                    serviceRadiusKm = orbita.bal.footprintRadiusKm(config.altKm, 25.0),
+                    serviceRadiusKm = orbita.bal.footprintRadiusKm(parsed.minAltKm, 25.0),
                     mapper = mapper,
                 )
                 val out = mapper.createObjectNode()
@@ -1625,20 +1767,15 @@ class HttpApi(private val boundary: Boundary) {
                     ?: throw NoSuchElementException("группировка не задана: трассу не по чему считать")
                 val spacecraft = current.firstOrNull { it.type == "spacecraft" }
 
-                val w = constellation.doc.path("walker")
-                val config = orbita.bal.ConstellationConfig(
-                    incDeg = w.path("inclination_deg").asDouble(),
-                    total = w.path("total").asInt(),
-                    planes = w.path("planes").asInt(),
-                    phasing = w.path("phasing").asInt(),
-                    altKm = w.path("altitude_km").asDouble(),
-                )
-                val masks = orbita.ka.buildMasks(demandMap.doc, stations.doc, config.altKm)
+                val parsed = orbita.bal.parseConstellationDoc(constellation.doc)
+                val masks = orbita.ka.buildMasks(demandMap.doc, stations.doc, parsed.minAltKm)
                 val epoch = query(ex)["epoch"] ?: "2026-03-20T00:00:00.000Z"
                 val durationS = query(ex)["duration_s"]?.toDoubleOrNull() ?: 86400.0
                 // трасса одного аппарата: в симметричном Уокере статистика
-                // долей витка одна на всех
-                val track = boundary.visibility.groundTracks(config, epoch, durationS)
+                // долей витка одна на всех; для составного — первый КА первой
+                // подгруппы (сводка режимов, не точный расчёт по каждому)
+                val track = boundary.visibility
+                    .groundTracksSlots(parsed.slots.take(1), epoch, durationS)
                     .values.first().map { (_, lat, lon) -> orbita.ka.MaskPoint(lat, lon) }
                 val fractions = orbita.ka.modeFractions(track, masks)
 

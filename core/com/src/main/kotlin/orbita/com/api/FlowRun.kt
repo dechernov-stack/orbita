@@ -52,14 +52,8 @@ class FlowRun(private val boundary: Boundary, private val mapper: ObjectMapper =
             it.wireId == scenario.doc.path("delivery_mode").asText("")
         } ?: DeliveryMode.StoreAndForward
 
-        val w = constellation.doc.path("walker")
-        val config = ConstellationConfig(
-            incDeg = w.path("inclination_deg").asDouble(),
-            total = w.path("total").asInt(),
-            planes = w.path("planes").asInt(),
-            phasing = w.path("phasing").asInt(),
-            altKm = w.path("altitude_km").asDouble(),
-        )
+        // составное построение (МВП-М1): свёртки и бюджеты — суммой подгрупп
+        val parsed = orbita.bal.parseConstellationDoc(constellation.doc)
 
         // Геометрия ячеек спроса — те же углы, что у карты покрытия
         // (/views/coverage): второй пары констант быть не должно.
@@ -67,8 +61,8 @@ class FlowRun(private val boundary: Boundary, private val mapper: ObjectMapper =
             GridPoint(it.path("cell_id").asText(), it.path("lat_deg").asDouble(), it.path("lon_deg").asDouble())
         }
         require(cellTargets.isNotEmpty()) { "карта спроса пуста: прогону не по чему считать" }
-        val userVis = boundary.visibility.schedule(
-            config, epoch, durationS,
+        val userVis = boundary.visibility.scheduleSlots(
+            parsed.slots, epoch, durationS,
             minElevDeg = USER_MIN_ELEV_DEG, targets = cellTargets, scenarioRef = scenarioId,
             serviceElevDeg = SERVICE_ELEV_DEG,
         )
@@ -89,8 +83,8 @@ class FlowRun(private val boundary: Boundary, private val mapper: ObjectMapper =
             .mapNotNull { it.path("min_elevation_deg").takeIf { e -> e.isNumber }?.asDouble() }
             .minOrNull() ?: USER_MIN_ELEV_DEG
         val relayContacts = if (stationTargets.isEmpty()) emptyList() else
-            boundary.visibility.schedule(
-                config, epoch, durationS,
+            boundary.visibility.scheduleSlots(
+                parsed.slots, epoch, durationS,
                 minElevDeg = stationMinElev, targets = stationTargets, scenarioRef = scenarioId,
             )["passes"].map {
                 CellPass(

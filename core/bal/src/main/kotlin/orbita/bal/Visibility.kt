@@ -82,11 +82,29 @@ class VisibilityPrecompute(private val mapper: ObjectMapper = ObjectMapper()) {
         scenarioRef: String = "SC-0000",
         serviceElevDeg: Double? = null,
         stepS: Double = 30.0,
+    ): ObjectNode = scheduleSlots(
+        config.expand(), epochIso, durationS, minElevDeg, targets, scenarioRef, serviceElevDeg, stepS,
+    )
+
+    /**
+     * Составное построение (МВП-М1): расписание по ПЕРЕЧНЮ орбит — подгруппы
+     * разных высот и наклонений; зона видимости каждого КА считается его
+     * высотой (λ на трек, не одна на конфигурацию).
+     */
+    fun scheduleSlots(
+        slots: List<OrbitSlot>,
+        epochIso: String,
+        durationS: Double,
+        minElevDeg: Double,
+        targets: List<GridPoint>,
+        scenarioRef: String = "SC-0000",
+        serviceElevDeg: Double? = null,
+        stepS: Double = 30.0,
     ): ObjectNode {
-        val key = cacheKey(config, epochIso, durationS, minElevDeg, targets, serviceElevDeg, stepS)
+        val key = cacheKey(slots, epochIso, durationS, minElevDeg, targets, serviceElevDeg, stepS)
         return cache.getOrPut(key) {
             computeCount++
-            compute(config, epochIso, durationS, minElevDeg, targets, scenarioRef, serviceElevDeg, stepS)
+            compute(slots, epochIso, durationS, minElevDeg, targets, scenarioRef, serviceElevDeg, stepS)
         }
     }
 
@@ -104,7 +122,7 @@ class VisibilityPrecompute(private val mapper: ObjectMapper = ObjectMapper()) {
     }
 
     private fun compute(
-        config: ConstellationConfig,
+        slots: List<OrbitSlot>,
         epochIso: String,
         durationS: Double,
         minElevDeg: Double,
@@ -119,13 +137,16 @@ class VisibilityPrecompute(private val mapper: ObjectMapper = ObjectMapper()) {
         val earth = OneAxisEllipsoid(
             Constants.WGS84_EARTH_EQUATORIAL_RADIUS, Constants.WGS84_EARTH_FLATTENING, earthFrame,
         )
-        val lambdaDeg = centralAngleDeg(config.altKm, minElevDeg)
         val steps = (durationS / stepS).toInt()
 
-        // подспутниковые трассы: пропагация Orekit, шаг stepS
-        data class Track(val satId: String, val latDeg: DoubleArray, val lonDeg: DoubleArray)
+        // подспутниковые трассы: пропагация Orekit, шаг stepS; зона видимости
+        // КА — его высотой (составное построение: высоты подгрупп различаются)
+        data class Track(
+            val satId: String, val altKm: Double,
+            val latDeg: DoubleArray, val lonDeg: DoubleArray,
+        )
 
-        val tracks = config.expand().map { slot ->
+        val tracks = slots.map { slot ->
             val prop = propagatorFor(slot, epoch)
             val lat = DoubleArray(steps + 1)
             val lon = DoubleArray(steps + 1)
@@ -136,7 +157,7 @@ class VisibilityPrecompute(private val mapper: ObjectMapper = ObjectMapper()) {
                 lat[k] = FastMath.toDegrees(gp.latitude)
                 lon[k] = FastMath.toDegrees(gp.longitude)
             }
-            Track(slot.satId, lat, lon)
+            Track(slot.satId, slot.altKm, lat, lon)
         }
 
         // Горячий цикл: трассы × цели × шаги — на полном масштабе TZ-COM-004
@@ -155,8 +176,6 @@ class VisibilityPrecompute(private val mapper: ObjectMapper = ObjectMapper()) {
         // 2. Параллельность по трассам: пролёты каждой трассы независимы.
         //    Список собирается В ПОРЯДКЕ ТРАСС — результат детерминирован
         //    и совпадает с последовательным проходом.
-        val sinHalfLambdaSq = sin(Math.toRadians(lambdaDeg) / 2).let { it * it }
-        val aThreshold = sinHalfLambdaSq
         val nTargets = targets.size
         val tSinLat = DoubleArray(nTargets)
         val tCosLat = DoubleArray(nTargets)
@@ -172,6 +191,8 @@ class VisibilityPrecompute(private val mapper: ObjectMapper = ObjectMapper()) {
         val passes = tracks.map { track ->
             java.util.concurrent.CompletableFuture.supplyAsync {
                 val out = mutableListOf<Pass>()
+                val lambdaDeg = centralAngleDeg(track.altKm, minElevDeg)
+                val aThreshold = sin(Math.toRadians(lambdaDeg) / 2).let { it * it }
                 val sSinLat = DoubleArray(steps + 1)
                 val sCosLat = DoubleArray(steps + 1)
                 val sSinLon = DoubleArray(steps + 1)
@@ -199,7 +220,7 @@ class VisibilityPrecompute(private val mapper: ObjectMapper = ObjectMapper()) {
                             out += Pass(
                                 track.satId, targets[i].id,
                                 startS = start * stepS, endS = endK * stepS,
-                                maxElevDeg = elevationDegFromCentralAngle(config.altKm, bestPsi),
+                                maxElevDeg = elevationDegFromCentralAngle(track.altKm, bestPsi),
                             )
                             start = -1
                             bestA = Double.MAX_VALUE
@@ -222,6 +243,15 @@ class VisibilityPrecompute(private val mapper: ObjectMapper = ObjectMapper()) {
         epochIso: String,
         durationS: Double,
         stepS: Double = 60.0,
+    ): Map<String, List<Triple<Double, Double, Double>>> =
+        groundTracksSlots(config.expand(), epochIso, durationS, stepS)
+
+    /** Слотовая форма — составное построение (МВП-М1). */
+    fun groundTracksSlots(
+        slots: List<OrbitSlot>,
+        epochIso: String,
+        durationS: Double,
+        stepS: Double = 60.0,
     ): Map<String, List<Triple<Double, Double, Double>>> {
         OrekitSetup.ensureInitialized()
         val epoch = AbsoluteDate(epochIso, TimeScalesFactory.getUTC())
@@ -230,7 +260,7 @@ class VisibilityPrecompute(private val mapper: ObjectMapper = ObjectMapper()) {
             Constants.WGS84_EARTH_EQUATORIAL_RADIUS, Constants.WGS84_EARTH_FLATTENING, earthFrame,
         )
         val steps = (durationS / stepS).toInt()
-        return config.expand().associate { slot ->
+        return slots.associate { slot ->
             val prop = propagatorFor(slot, epoch)
             slot.satId to (0..steps).map { k ->
                 val date = epoch.shiftedBy(k * stepS)
@@ -346,7 +376,7 @@ class VisibilityPrecompute(private val mapper: ObjectMapper = ObjectMapper()) {
     }
 
     private fun cacheKey(
-        config: ConstellationConfig,
+        slots: List<OrbitSlot>,
         epochIso: String,
         durationS: Double,
         minElevDeg: Double,
@@ -355,7 +385,7 @@ class VisibilityPrecompute(private val mapper: ObjectMapper = ObjectMapper()) {
         stepS: Double,
     ): String {
         val md = MessageDigest.getInstance("SHA-256")
-        md.update(config.toString().toByteArray())
+        slots.forEach { md.update(it.toString().toByteArray()) }
         md.update("$epochIso|$durationS|$minElevDeg|$serviceElevDeg|$stepS".toByteArray())
         targets.forEach { md.update("${it.id}|${it.latDeg}|${it.lonDeg}".toByteArray()) }
         OrekitSetup.inputVersions().entries.sortedBy { it.key }

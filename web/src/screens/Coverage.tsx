@@ -10,6 +10,7 @@
 // показывает, а не превращает в «ошибку».
 import { useEffect, useState } from 'react'
 import { api, ApiError } from '../api/client'
+import { CoverageMap } from './CoverageMap'
 import { edit, type StoredSummary } from '../api/edit'
 import type { CoverageView } from '../api/types'
 
@@ -117,43 +118,22 @@ export function Coverage() {
 
       {view && (
         <div style={{ padding: 12 }}>
-          <svg
-            viewBox="-180 -90 360 180"
-            preserveAspectRatio="none"
-            style={{ width: '100%', height: 280, background: '#0d1b2a', border: '1px solid var(--border)' }}
-          >
-            {[-60, -30, 0, 30, 60].map((lat) => (
-              <line key={`lat${lat}`} x1={-180} x2={180} y1={-lat} y2={-lat} stroke="#22384f" strokeWidth={lat === 0 ? 1 : 0.5} />
-            ))}
-            {[-120, -60, 0, 60, 120].map((lon) => (
-              <line key={`lon${lon}`} y1={-90} y2={90} x1={lon} x2={lon} stroke="#22384f" strokeWidth={lon === 0 ? 1 : 0.5} />
-            ))}
-            {view.cells.map((cell) => (
-              <rect
-                key={cell.cell_id}
-                x={cell.lon_deg}
-                y={-cell.lat_deg}
-                width={8}
-                height={8}
-                fill={CLASS_COLOR[cell.class]}
-                opacity={cell.class === 'gap' ? 0.9 : 0.35 + 0.6 * cell.availability_mean}
-              >
-                <title>
-                  {cell.cell_id}: среднее {fmtShare(cell.availability_mean)}, худшее окно{' '}
-                  {fmtShare(cell.availability_worst)} · {CLASS_LABEL[cell.class]}
-                </title>
-              </rect>
-            ))}
-          </svg>
+          {/* §5/§6 МВП-М1: карта с зумом, ёмкостная шкала числами; классовая
+              заливка тремя цветами (гипотеза №3: скрывала вариацию) умерла */}
+          <CoverageMap scenario={scenario} view={view} />
           <p className="secondary" style={{ marginBottom: 0 }}>
-            Горизонт «{HORIZON_LABEL[view.horizon]}»: по каждой ячейке — среднее и{' '}
-            <b>худшее окно</b>; провалы покрытия среднее по прогону скрывает. Цвет — класс,
-            посчитанный сервером:{' '}
-            {(['ok', 'degraded', 'gap'] as const).map((c) => (
-              <span key={c} style={{ marginRight: 8 }}>
-                <span style={{ color: CLASS_COLOR[c] }}>■</span> {CLASS_LABEL[c]}
-              </span>
-            ))}
+            Построение: <b>{view.constellation.total_sats} КА</b>
+            {view.constellation.subgroups.length > 0 && (
+              <>
+                {' '}={' '}
+                {view.constellation.subgroups.map((g, i) => (
+                  <span key={g.name} title={`${g.kind} · h=${g.altitude_km} км · i=${g.inclination_deg.toFixed(2)}°`}>
+                    {i > 0 && ' + '}{g.planes}×{g.per_plane} «{g.name}»
+                  </span>
+                ))}
+              </>
+            )}
+            {' '}· горизонт «{HORIZON_LABEL[view.horizon]}»: в таблице — среднее и <b>худшее окно</b> доступности.
           </p>
 
           <h3 style={{ fontSize: 13 }}>Ячейки</h3>
@@ -164,6 +144,7 @@ export function Coverage() {
                 <th style={{ width: 90 }}>Среднее</th>
                 <th style={{ width: 110 }}>Худшее окно</th>
                 {horizon === 'day' && <th style={{ width: 130 }}>С проф. активности</th>}
+                <th style={{ width: 120 }}>Проходо-мин</th>
                 <th style={{ width: 90 }}>Окон</th>
                 <th style={{ width: 110 }}>Макс. разрыв</th>
                 <th style={{ width: 120 }}>Повторный обзор</th>
@@ -181,6 +162,9 @@ export function Coverage() {
                       {cell.availability_weighted === undefined ? '—' : fmtShare(cell.availability_weighted)}
                     </td>
                   )}
+                  <td className="num" title="сумма длительностей сервисных пролётов всех КА — ёмкостная мера">
+                    {cell.pass_minutes.toFixed(1)}
+                  </td>
                   <td className="num">{cell.access_windows}</td>
                   <td className="num">{fmtMin(cell.max_gap_s)}</td>
                   <td className="num">{fmtMin(cell.revisit_s)}</td>

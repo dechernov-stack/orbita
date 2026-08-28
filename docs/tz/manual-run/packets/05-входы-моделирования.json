@@ -3,7 +3,7 @@
   "author": "Подготовка ПМИ",
   "objects": [
     {
-      "id": "CN-0001",
+      "id": "CN-9001",
       "kind": "walker_delta",
       "name": "Walker 40/5 · 550 км",
       "walker": {
@@ -19,7 +19,7 @@
       }
     },
     {
-      "id": "DM-0001",
+      "id": "DM-9001",
       "grid": {
         "type": "equal_area_lat",
         "nominal_cell_km": 100.0
@@ -16958,7 +16958,7 @@
       }
     },
     {
-      "id": "GS-0001",
+      "id": "GS-9001",
       "name": "Станции приёма «Орбита-IoT»",
       "stations": [
         {
@@ -16995,7 +16995,7 @@
       }
     },
     {
-      "id": "PA-0001",
+      "id": "PA-9001",
       "mac": {
         "access": "aloha",
         "ack_supported": true,
@@ -17081,27 +17081,27 @@
       }
     },
     {
-      "id": "SC-0001",
+      "id": "SC-9001",
       "name": "Сравнение вариантов построения «Орбита-IoT»",
       "epoch": "2026-03-20T00:00:00Z",
       "rng_seed": 42,
       "duration_s": 86400,
       "delivery_mode": "store_and_forward",
-      "demand_map_ref": "DM-0001",
+      "demand_map_ref": "DM-9001",
       "input_versions": {
-        "CN-0001": "1",
-        "DM-0001": "1",
-        "GS-0001": "1",
-        "PA-0001": "1",
-        "SP-0001": "1"
+        "CN-9001": "1",
+        "DM-9001": "1",
+        "GS-9001": "1",
+        "PA-9001": "1",
+        "SP-9001": "1"
       },
-      "spacecraft_ref": "SP-0001",
-      "constellation_ref": "CN-0001",
-      "ground_stations_ref": "GS-0001",
-      "protocol_adapter_ref": "PA-0001"
+      "spacecraft_ref": "SP-9001",
+      "constellation_ref": "CN-9001",
+      "ground_stations_ref": "GS-9001",
+      "protocol_adapter_ref": "PA-9001"
     },
     {
-      "id": "SP-0001",
+      "id": "SP-9001",
       "modes": [
         {
           "name": "standby",
@@ -17219,7 +17219,7 @@
       }
     },
     {
-      "id": "TP-0001",
+      "id": "TP-9001",
       "radio": {
         "eirp_dbm": 14,
         "antenna_gain_dbi": 2,

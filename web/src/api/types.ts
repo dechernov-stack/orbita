@@ -479,6 +479,10 @@ export interface AnswerReport {
  * средних и нормировок в клиенте нет (ловушка 2).
  */
 export interface CoverageCell {
+  /** §5: ёмкостная мера — проходо-минуты (все сервисные пролёты, без слияния). */
+  pass_minutes: number
+  half_lat_deg: number
+  half_lon_deg: number
   cell_id: string
   lat_deg: number
   lon_deg: number
@@ -498,6 +502,38 @@ export interface CoverageView {
   horizon: 'orbit' | 'day' | 'run'
   horizons: { orbit_s: number; day_s: number; run_s: number }
   cells: CoverageCell[]
+  /** §5 МВП-М1: числовая шкала и баланс — статистика карты от сервера. */
+  map_stats: {
+    pass_minutes_min: number
+    pass_minutes_max: number
+    pass_minutes_total: number
+    cells_out_of_view: number
+  }
+  constellation: {
+    total_sats: number
+    subgroups: Array<{
+      name: string; kind: string; planes: number; per_plane: number
+      altitude_km: number; inclination_deg: number; sats: number
+    }>
+  }
+}
+
+/** §6: наземные трассы подгрупп — каждая своим цветом (индекс от сервера). */
+export interface GroundTracksView {
+  scenario_ref: string
+  duration_s: number
+  subgroups: Array<{
+    name: string; kind: string; color_index: number
+    tracks: Array<{ sat: string; points: Array<[number, number]> }>
+  }>
+}
+
+/** §6: географические маски зон — точки с радиусами. */
+export interface GeoMasksView {
+  rx_radius_km: number
+  downlink_radius_km: number
+  rx: Array<[number, number]>
+  downlink: Array<[number, number]>
 }
 
 /** Строка расписания пролётов (шаг 16 §2.3): времена в UTC посчитаны сервером. */

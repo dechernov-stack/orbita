@@ -128,7 +128,7 @@ object VizData {
      * отображение делает клиент (CesiumJS).
      */
     fun czml(
-        config: ConstellationConfig,
+        altBySat: Map<String, Double>,
         epochIso: String,
         durationS: Double,
         samples: Map<String, List<Triple<Double, Double, Double>>>,  // satId → (t, lat, lon)
@@ -144,8 +144,9 @@ object VizData {
         // траектории не отображаются: дефект найден показом экрана, а не тестом.
         val endIso = java.time.Instant.parse(epochIso)
             .plusMillis((durationS * 1000).toLong()).toString()
-        // След на один виток: длиннее — трассы сливаются в клубок
-        val trailS = minOf(durationS, orbitalPeriodS(config.altKm))
+        // След на один виток: длиннее — трассы сливаются в клубок;
+        // для смеси высот — по самой низкой (короткий виток)
+        val trailS = minOf(durationS, orbitalPeriodS(altBySat.values.min()))
         arr.addObject()
             .put("id", "document")
             .put("name", "orbita-constellation")
@@ -194,8 +195,9 @@ object VizData {
             pos.put("interpolationAlgorithm", "LAGRANGE")
             pos.put("interpolationDegree", 2)
             val carto = pos.putArray("cartographicDegrees")
+            val altM = (altBySat[satId] ?: altBySat.values.min()) * 1000.0
             points.forEach { (t, lat, lon) ->
-                carto.add(t); carto.add(lon); carto.add(lat); carto.add(config.altKm * 1000.0)
+                carto.add(t); carto.add(lon); carto.add(lat); carto.add(altM)
             }
         }
         stations.forEach { st ->
