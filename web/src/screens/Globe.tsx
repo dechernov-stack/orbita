@@ -86,6 +86,12 @@ export function Globe() {
           })
           viewerRef.current.scene.globe.baseColor = Color.fromCssColorString('#1b3a5c')
           viewerRef.current.scene.globe.showGroundAtmosphere = true
+          // Стартовый вид — как у плоской карты (§6.3): Россия по центру,
+          // север вверху (heading 0, взгляд отвесно вниз)
+          viewerRef.current.camera.setView({
+            destination: Cartesian3.fromDegrees(95, 62, 9_000_000),
+            orientation: { heading: 0, pitch: -1.5707963267948966, roll: 0 },
+          })
           // Подложка Земли (§3.7): береговые линии Natural Earth из репозитория —
           // офлайн, без ключей и сети; глобус не рисуется от руки
           // 20 км над эллипсоидом и заметная ширина: на поверхности линии
@@ -109,9 +115,14 @@ export function Globe() {
         await viewer.dataSources.add(source)
         viewer.clock.currentTime = JulianDate.clone(viewer.clock.startTime)
         viewer.clock.shouldAnimate = true
-        await viewer.zoomTo(source)
+        // Стартовый вид не перебивается автопривязкой к данным: Россия по
+        // центру, север вверху — как на плоской карте (§6.3)
+        viewer.camera.setView({
+          destination: Cartesian3.fromDegrees(95, 62, 9_000_000),
+          orientation: { heading: 0, pitch: -1.5707963267948966, roll: 0 },
+        })
         setStatus(
-          `аппаратов: ${data.czml.filter((p) => (p as { id?: string }).id?.startsWith('SAT-')).length}` +
+          `аппаратов: ${data.czml.filter((p) => (p as { id?: string }).id?.includes('SAT-')).length}` +
             ` · станций: ${data.czml.filter((p) => (p as { id?: string }).id?.startsWith('gs-')).length}` +
             ` · окон: ${data.passes_total}`,
         )
