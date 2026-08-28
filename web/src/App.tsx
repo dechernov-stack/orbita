@@ -213,9 +213,11 @@ export function App() {
       case 'shelves': return <Shelves key={screen} />
       case 'sourcedocs':
         return <KindRegistry key={screen} kinds={['source_document']} title="Исходные документы (библиотека)" />
-      case 'goals': return <KindRegistry key={screen} kinds={['mission_goal', 'need']} title="Цели и нужды" />
+      {/* формы постановки: редактор раскрывается вниз, как в требованиях
+          (замечание МВП-прохода) */}
+      case 'goals': return <KindRegistry key={screen} kinds={['mission_goal', 'need']} title="Цели и нужды" expandDown />
       case 'needs': return <ScreenFrame title="Нужды и их сервисы"><Needs /></ScreenFrame>
-      case 'services': return <KindRegistry key={screen} kinds={['service']} title="Сервисы и QoS" />
+      case 'services': return <KindRegistry key={screen} kinds={['service']} title="Сервисы и QoS" expandDown />
       case 'conops': return <KindRegistry key={screen} kinds={['conops']} title="Сценарии ConOps" />
       case 'req': return <Requirements onGo={go} />
       case 'matrix': return <MatrixScreen />

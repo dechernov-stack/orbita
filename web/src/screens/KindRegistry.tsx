@@ -2,7 +2,7 @@
 // отбором, счётчиком и главным действием; справа инспектор — панель работы
 // с выбранным объектом (§3.3). На него сажаются все виды без собственного
 // расчётного экрана. Правила формы — серверные (ObjectEditor, шаг 15).
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { api, asBatchReport, type BatchReport } from '../api/client'
 import { requestObject, takeObject } from '../api/intent'
 import { STATUS_MEANING } from '../ui/maturity'
@@ -46,7 +46,14 @@ const KIND_TITLES: Record<string, string> = {
 
 const kindTitle = (k: string) => KIND_TITLES[k] ?? k
 
-export function KindRegistry({ kinds, title }: { kinds: string[]; title: string }) {
+export function KindRegistry({ kinds, title, expandDown }: {
+  kinds: string[]
+  title: string
+  /** Раскрытие редактора ВНИЗ под строкой — как в реестре требований
+   * (замечание прохода МВП по формам постановки); без флага — прежний
+   * боковой инспектор. */
+  expandDown?: boolean
+}) {
   const { label, author } = useSession()
   const [massStatus, setMassStatus] = useState('Preliminary')
   const [massReport, setMassReport] = useState<string | null>(null)
@@ -120,6 +127,21 @@ export function KindRegistry({ kinds, title }: { kinds: string[]; title: string 
       (r.title ?? '').toLowerCase().includes(filter.toLowerCase()),
   )
   const open = creating || selected != null
+  const colCount = meta.lifecycle ? 5 : 3
+
+  /** Редактор один — и для инспектора, и для раскрытия вниз. */
+  const editor = (
+    <ObjectEditor
+      kind={kind}
+      schemaName={meta.schema}
+      id={creating ? null : selected}
+      title={kindTitle(kind)}
+      maturity={meta.lifecycle}
+      template={creating ? template : null}
+      onSaved={(id) => { setCreating(false); setSelected(id); reload() }}
+      onCancelled={() => { setCreating(false); setSelected(null); reload() }}
+    />
+  )
   /** К отмене годно только живое: Cancelled второй раз не отменяется. */
   const pickedAlive = visible.filter((r) => picked.has(r.id) && r.status !== 'Cancelled')
 
@@ -307,6 +329,12 @@ export function KindRegistry({ kinds, title }: { kinds: string[]; title: string 
       )}
       <div className="registry">
         <div className="pane">
+          {/* создание при раскрытии вниз — формой над таблицей, на месте */}
+          {expandDown && creating && (
+            <div className="rr-expand" style={{ display: 'block', padding: '10px 14px 12px', maxWidth: 760 }}>
+              {editor}
+            </div>
+          )}
           {rows == null ? (
             <div className="empty">Загрузка…</div>
           ) : visible.length === 0 ? (
@@ -341,10 +369,14 @@ export function KindRegistry({ kinds, title }: { kinds: string[]; title: string 
               </thead>
               <tbody>
                 {visible.map((r) => (
+                  <React.Fragment key={r.id}>
                   <tr
-                    key={r.id}
                     aria-selected={r.id === selected}
-                    onClick={() => { setCreating(false); setSelected(r.id) }}
+                    onClick={() => {
+                      setCreating(false)
+                      // при раскрытии вниз повторный клик закрывает строку
+                      setSelected(expandDown && selected === r.id ? null : r.id)
+                    }}
                   >
                     {meta.lifecycle && (
                       <td onClick={(e) => e.stopPropagation()}>
@@ -370,23 +402,23 @@ export function KindRegistry({ kinds, title }: { kinds: string[]; title: string 
                     )}
                     <td className="num">{r.version}</td>
                   </tr>
+                  {/* раскрытие редактора вниз — как в реестре требований */}
+                  {expandDown && selected === r.id && !creating && (
+                    <tr className="rr-expand">
+                      <td colSpan={colCount}>
+                        <div style={{ maxWidth: 760 }}>{editor}</div>
+                      </td>
+                    </tr>
+                  )}
+                  </React.Fragment>
                 ))}
               </tbody>
             </table>
           )}
         </div>
-        {open && (
+        {!expandDown && open && (
           <aside className="inspector">
-            <ObjectEditor
-              kind={kind}
-              schemaName={meta.schema}
-              id={creating ? null : selected}
-              title={kindTitle(kind)}
-              maturity={meta.lifecycle}
-              template={creating ? template : null}
-              onSaved={(id) => { setCreating(false); setSelected(id); reload() }}
-              onCancelled={() => { setCreating(false); setSelected(null); reload() }}
-            />
+            {editor}
           </aside>
         )}
       </div>
