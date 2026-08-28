@@ -78,7 +78,11 @@ enum class CoreType(val idPrefix: String, val dbType: String, val schemaName: St
     // В2.1: вхождение — определение × количество × роль в родителе
     ComponentUsage("CU", "component_usage", "core/component-usage"),
     // Т-1: сохранённый вид реестра — серверный объект, переживает перезаход
-    SavedView("VW", "saved_view", "core/saved-view");
+    SavedView("VW", "saved_view", "core/saved-view"),
+
+    // МВП-П1 (процесс к точке): задание = адресованный разрыв готовности.
+    // Статусной модели нет — статус вычисляется закрытием разрыва.
+    Task("TS", "task", "core/task");
 
     companion object {
         fun byDbType(t: String): CoreType = entries.firstOrNull { it.dbType == t }

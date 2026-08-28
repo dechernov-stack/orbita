@@ -134,7 +134,10 @@ export function Lifecycle({ project, onGo }: {
             return (
               <div key={g.gate} className={`lc2-g${past ? ' past' : ''}${next ? ' next' : ''}`}>
                 {i < gates.length - 1 && <span className="lc2-lnk" />}
-                <span className="lc2-dot">{past ? '✓' : returned ? '↩' : ''}</span>
+                <span className="lc2-dot"
+                  title={past ? 'точка пройдена' : returned ? 'действует возврат от точки' : 'точка впереди'}>
+                  {past ? '✓' : returned ? '↩' : ''}
+                </span>
                 <div className="lc2-nm" style={horizon ? { color: 'var(--text-secondary)' } : undefined}>
                   {g.label ?? g.gate}
                 </div>

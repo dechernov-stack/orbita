@@ -117,6 +117,14 @@ class AuthStore(private val conn: Connection) {
         }
 
     /** Человеческое имя учётки — для показа авторов (круг 2 портфеля §1.3). */
+    /** Учётки поимённо — пикеру исполнителя (МВП-П1: назначение заданий). */
+    fun listUsers(): List<Pair<String, String>> =
+        conn.prepareStatement("SELECT login, display_name FROM users ORDER BY login").use { st ->
+            st.executeQuery().use { rs ->
+                buildList { while (rs.next()) add(rs.getString(1) to rs.getString(2)) }
+            }
+        }
+
     fun displayNameOf(login: String): String? =
         conn.prepareStatement("SELECT display_name FROM users WHERE login = ?").use { ps ->
             ps.setString(1, login)

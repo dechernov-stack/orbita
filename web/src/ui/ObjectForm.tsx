@@ -9,6 +9,7 @@
 import { DateInput } from './DateInput'
 import { useEffect, useMemo, useState , Suspense, lazy} from 'react'
 import { OBJECT_ID, screenOfObject } from '../api/intent'
+import { RefPicker } from './RefPicker'
 import { type KindRow, edit, type JsonSchema, type StoredSummary } from '../api/edit'
 import { useSession } from './session'
 
@@ -377,7 +378,6 @@ function RefField(props: FieldProps & { prefixes: string[] }) {
     return () => { alive = false }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, refresh])
-  const dl = `ref-${path.replace(/[^a-zA-Z0-9]/g, '-')}`
   // Вариантность уместна для входов моделирования (trade studies): другие
   // ссылки — трассировка и распределение, там клон по ссылке — подмена
   // содержательного решения.
@@ -390,12 +390,15 @@ function RefField(props: FieldProps & { prefixes: string[] }) {
       <label>
         <FieldName name={name} required={required} />
       </label>
-      <input
-        aria-label={name}
-        list={dl}
+      {/* МВП-П1 §2.2: ввод ссылки — справочником; текстовый ввод ID умер */}
+      <RefPicker
         value={current}
-        placeholder={options && options.length > 0 ? 'выберите из списка или введите id' : `${prefixes.join('/')}-0001`}
-        onChange={(e) => onChange(e.target.value || undefined)}
+        options={(options ?? []).map((o) => ({ id: o.id, title: o.title ?? undefined }))}
+        placeholder={options && options.length > 0
+          ? 'выбрать из справочника…'
+          : `объектов ${prefixes.join('/')} пока нет`}
+        clearable={!required}
+        onChange={(id) => onChange(id || undefined)}
       />
       {cloneable && (
         <button type="button" className="tab" style={{ alignSelf: 'flex-start' }}
@@ -415,11 +418,6 @@ function RefField(props: FieldProps & { prefixes: string[] }) {
           onClose={() => setVariantOf(null)}
         />
       )}
-      <datalist id={dl}>
-        {(options ?? []).map((o) => (
-          <option key={o.id} value={o.id}>{o.title ?? ''}</option>
-        ))}
-      </datalist>
       {options != null && options.length === 0 && (
         <div className="secondary hint">
           Объектов вида {prefixes.join('/')} в проекте пока нет — ссылаться не на что.

@@ -12,6 +12,8 @@ import { edit } from '../api/edit'
 import { requestObject, screenOfObject, takeObject } from '../api/intent'
 import type { RequirementCard, RequirementRow, RequirementTreeView, SavedViewDoc } from '../api/types'
 import { ObjectEditor } from '../ui/ObjectEditor'
+import { RefChip } from '../ui/RefChip'
+import { RefPicker } from '../ui/RefPicker'
 import { Select } from '../ui/Select'
 import { useSession } from '../ui/session'
 import {
@@ -418,6 +420,7 @@ export function Requirements({ onGo }: { onGo?: (screen: string) => void }) {
                       })}
                     onActivate={(id) => { setActiveId(id); setExpandedId((cur) => (cur === id ? null : id)) }}
                     onOpenCard={(id) => setMode({ kind: 'card', id })}
+                    onGoRef={onGo}
                   />
                 ),
               )}
@@ -432,7 +435,7 @@ export function Requirements({ onGo }: { onGo?: (screen: string) => void }) {
 /** Строка реестра + её раскрытие (суть без ухода с экрана). */
 function RegistryRow({
   item, visible, label, selected, active, expanded, childrenMap, systemRoot,
-  onToggleSelect, onActivate, onOpenCard,
+  onToggleSelect, onActivate, onOpenCard, onGoRef,
 }: {
   item: Extract<RegistryItem, { type: 'row' }>
   visible: ColumnState[]
@@ -445,6 +448,7 @@ function RegistryRow({
   onToggleSelect: (id: string) => void
   onActivate: (id: string) => void
   onOpenCard: (id: string) => void
+  onGoRef?: (screen: string) => void
 }) {
   const r = item.row
   const cell = (key: string) => {
@@ -464,7 +468,7 @@ function RegistryRow({
       case 'status':
         return (
           <td key={key}>
-            <span className={`dot status-${r.status}`} />{label('lifecycle', r.status)}
+            <span className={`dot status-${r.status}`} title={label('lifecycle', r.status)} />{label('lifecycle', r.status)}
             {r.recalcAfterBaseline && <span className="rr-mk rr-mk--recalc" title="Показатель пересчитан после базирования" />}
             {r.changedAfterApproval && <span className="rr-mk rr-mk--chg" title="Изменено после утверждения" />}
           </td>
@@ -538,10 +542,14 @@ function RegistryRow({
                 <div className="rr-xk">Трассировка</div>
                 <div className="rr-xv">
                   ↑ {[...(r.parentId ? [r.parentId] : []), ...r.sources].map((s) => (
-                    <span key={s} className="mono">{s} </span>
+                    <RefChip key={s} id={s}
+                      onOpen={s.startsWith('RQ-') ? onOpenCard : undefined}
+                      onGo={onGoRef} />
                   ))}
                   <br />
-                  ↓ {kids.length === 0 ? 'детей нет' : kids.map((k) => <span key={k} className="mono">{k} </span>)}
+                  ↓ {kids.length === 0 ? 'детей нет' : kids.map((k) => (
+                    <RefChip key={k} id={k} onOpen={onOpenCard} />
+                  ))}
                 </div>
                 {(r.recalcAfterBaseline || r.changedAfterApproval) && (
                   <>
@@ -751,7 +759,7 @@ function CardView({
       <div className="rr-chead">
         <button type="button" className="rr-back" onClick={onBack}>← Реестр требований</button>
         <span className="mono secondary">{r.id}</span>
-        <span className="chip"><span className={`dot status-${r.status}`} />{label('lifecycle', r.status)} · v{r.version}</span>
+        <span className="chip"><span className={`dot status-${r.status}`} title={label('lifecycle', r.status)} />{label('lifecycle', r.status)} · v{r.version}</span>
         {r.recalcAfterBaseline && <span className="chip rr-warn-chip" title="Показатель пересчитан после базирования">пересчитан</span>}
         {r.changedAfterApproval && <span className="chip rr-warn-chip" title="Изменено после утверждения">изменено</span>}
         <span style={{ flex: 1 }} />
@@ -963,12 +971,12 @@ function CarrierBand({ id, version, author, onDone, onFail }: {
       <b>Требование системного уровня не распределено.</b>
       <span>Системное требование обязано иметь носителя — элемент или интерфейс.</span>
       <span style={{ flex: 1 }} />
-      <Select
+      {/* МВП-П1 §2.2: распределение — через пикер (поиск по ID и имени) */}
+      <RefPicker
         value={picked}
         placeholder="выбрать носителя…"
         width={250}
-        options={[{ key: '', title: 'выбрать носителя…' },
-          ...options.map((o) => ({ key: o.id, title: `${o.id} · ${o.title}` }))]}
+        options={options.map((o) => ({ id: o.id, title: o.title }))}
         onChange={setPicked}
       />
       <button

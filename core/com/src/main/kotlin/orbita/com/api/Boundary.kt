@@ -84,6 +84,9 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
     /** Спина процесса (блок B, ADR-029): прохождение точек и возвраты. */
     val gatePassing: GatePassing by lazy { GatePassing(this) }
 
+    /** Процесс к точке (МВП-П1): задания-разрывы и личный разрез готовности. */
+    val processTasks: ProcessTasks by lazy { ProcessTasks(this) }
+
     /** Служба ИИ (П5): профиль → промпт → вызов → фильтр → журнал. */
     val ai: AiService by lazy { AiService(this, orbita.ai.HttpProviderTransport()) }
 
@@ -145,7 +148,7 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
             stored
         }
         CoreType.TypicalRisk, CoreType.LibraryFragment, CoreType.DocumentTemplate,
-        CoreType.SectionText, CoreType.SavedView -> {
+        CoreType.SectionText, CoreType.SavedView, CoreType.Task -> {
             val doc = parse(json)
             registry.require(type.schemaName, doc)
             store(type, doc, createdBy, projectId)

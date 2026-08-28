@@ -55,6 +55,8 @@ export interface OperationRow {
   docs?: string[]
   /** Шаблоны документов операции: переход открывает СВОЙ документ. */
   templates?: string[]
+  /** МВП-П1: входы-предшественники — порядок работы только данными. */
+  inputs?: string[]
 }
 
 export interface OperationsView {
@@ -331,6 +333,27 @@ export const api = {
     post<AiRunReport & { kind: string; profile: string }>('/ai/packet', { raw, author }),
   /** Журнал вызовов: «сколько и почём». */
   aiJournal: () => get<AiJournal>('/ai/journal'),
+  /** МВП-П1: назначение заданий по разрывам — пачкой, идемпотентно. */
+  tasksAssign: (body: {
+    gate: string
+    gaps: Array<{ id: string; title: string; place?: string | null }>
+    assignee: string
+    due?: string
+    note?: string
+    author: string
+  }) => post<{ created: string[]; existing: string[] }>('/tasks/assign', body),
+  /** «Мои задания» — личный разрез готовности; без assignee — все. */
+  myTasks: (assignee?: string) =>
+    get<{
+      tasks: Array<{
+        id: string; gap_ref: string; gate: string; title: string; assignee: string
+        due?: string; note?: string; state: 'active' | 'waiting' | 'done'
+        waits_on?: string; place?: string; overdue?: boolean
+      }>
+      counts: { active: number; overdue: number; waiting: number }
+    }>(`/views/my-tasks${assignee ? `?assignee=${encodeURIComponent(assignee)}` : ''}`),
+  /** Учётки поимённо — пикеру исполнителя. */
+  authUsers: () => get<{ users: Array<{ login: string; display_name: string }> }>('/auth/users'),
   /** Акцепт пачкой с привязкой к вызову журнала. Занятые id пакета сервер
    * переназначает (TZ-MOD-007) и возвращает соответствие в remapped. */
   acceptBatchOfCall: (call: number | null, llm: string, by: string, items: unknown[]) =>

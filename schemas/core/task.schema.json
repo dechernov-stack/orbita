@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/core/task.schema.json",
+  "title": "Task",
+  "description": "Задание процесса (МВП-П1): адресованный разрыв готовности. Статус ВЫЧИСЛЯЕТСЯ закрытием разрыва — ручного «сделано» нет, статусной модели нет.",
+  "type": "object",
+  "required": ["id", "gap_ref", "gate", "title", "assignee"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "pattern": "^TS-[0-9]{4}$" },
+    "gap_ref": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Адрес разрыва — стабильный id проверки готовности (op:О5, tbd, needs, …)"
+    },
+    "gate": { "type": "string", "minLength": 1, "description": "Точка, к которой разрыв" },
+    "title": { "type": "string", "minLength": 1, "description": "Имя проверки человеческим языком (снимок на момент назначения)" },
+    "assignee": { "type": "string", "minLength": 1, "description": "Исполнитель: логин учётки (В3) либо имя при выключенных учётках" },
+    "due": { "type": "string", "format": "date", "description": "Срок; не тикает, пока задание ожидает вход" },
+    "note": { "type": "string", "description": "Комментарий назначившего" },
+    "provenance": { "$ref": "https://kis.local/schemas/common/provenance.schema.json" }
+  }
+}

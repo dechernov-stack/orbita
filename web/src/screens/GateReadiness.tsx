@@ -11,6 +11,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '../api/client'
 import { edit } from '../api/edit'
+import { DateInput } from '../ui/DateInput'
+import { Select } from '../ui/Select'
 import { useSession } from '../ui/session'
 
 interface CheckRow {
@@ -54,6 +56,59 @@ export function GateReadiness({ project, onGo }: {
   const [naFor, setNaFor] = useState<string | null>(null)
   const [naText, setNaText] = useState('')
   const [activeReturn, setActiveReturn] = useState<{ gate: string; reason: string } | null>(null)
+  /** МВП-П1: назначение задания — с разрыва и по группе, с числом. */
+  const { authEnabled } = useSession()
+  const [users, setUsers] = useState<Array<{ login: string; display_name: string }>>([])
+  const [assignFor, setAssignFor] = useState<{ kind: 'check' | 'group'; key: string } | null>(null)
+  const [asWho, setAsWho] = useState('')
+  const [asDue, setAsDue] = useState('')
+  const [asNote, setAsNote] = useState('')
+
+  useEffect(() => {
+    if (authEnabled) api.authUsers().then((r) => setUsers(r.users)).catch(() => setUsers([]))
+  }, [authEnabled])
+
+  const doAssign = (gaps: Array<{ id: string; title: string; place?: string | null }>) => {
+    if (!view || !asWho.trim() || gaps.length === 0) return
+    if (gaps.length > 1 && !window.confirm(
+      `Назначить разрывов: ${gaps.length} — на ${asWho.trim()}?`,
+    )) return
+    api.tasksAssign({
+      gate: view.gate, gaps, assignee: asWho.trim(),
+      due: asDue || undefined, note: asNote.trim() || undefined,
+      author: author || 'инженер',
+    })
+      .then((r) => {
+        setNotice(`назначено: ${r.created.length}` +
+          (r.existing.length ? `; уже были: ${r.existing.length}` : '') +
+          ` — «${asWho.trim()}» увидит их в «Моих заданиях»`)
+        setAssignFor(null)
+        setAsNote('')
+        // бейдж «мои» в шапке узнаёт о назначении сразу, не дожидаясь смены экрана
+        window.dispatchEvent(new Event('orbita:tasks-changed'))
+      })
+      .catch((e) => setNotice(String(e)))
+  }
+
+  const assignForm = (gaps: Array<{ id: string; title: string; place?: string | null }>) => (
+    <span style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+      {authEnabled && users.length > 0 ? (
+        <Select value={asWho} placeholder="исполнитель" width={170}
+          options={users.map((u) => ({ key: u.login, title: `${u.display_name} (${u.login})` }))}
+          onChange={setAsWho} />
+      ) : (
+        <input placeholder="исполнитель" value={asWho} style={{ width: 150 }}
+          onChange={(e) => setAsWho(e.target.value)} />
+      )}
+      <DateInput iso={asDue} name="Срок" width={128} onChange={setAsDue} />
+      <input placeholder="комментарий" value={asNote} style={{ width: 150 }}
+        onChange={(e) => setAsNote(e.target.value)} />
+      <button className="rr-btn" disabled={!asWho.trim()} onClick={() => doAssign(gaps)}>
+        назначить{gaps.length > 1 ? ` · ${gaps.length}` : ''}
+      </button>
+      <button className="rr-assign" onClick={() => setAssignFor(null)}>отмена</button>
+    </span>
+  )
 
   const load = useCallback(() => {
     api.gateReadiness()
@@ -159,9 +214,26 @@ export function GateReadiness({ project, onGo }: {
                   ? <span className="gr-n bad">· {g.open}</span>
                   : <span className="gr-n okc">· закрыто</span>}
               </button>
+              {/* МВП-П1: по группе — массово, с подтверждением числом */}
+              {!isCollapsed && g.open > 1 && (
+                <div className="gr-chk" style={{ background: 'transparent' }}>
+                  <span className="gr-st na" title="назначение группой" />
+                  <span className="gr-tx secondary">открытые разрывы группы — одному исполнителю</span>
+                  {assignFor?.kind === 'group' && assignFor.key === g.key
+                    ? assignForm(g.checks.filter((c) => c.state === 'open')
+                        .map((c) => ({ id: c.id, title: c.title, place: c.place })))
+                    : (
+                      <button className="gr-nabtn"
+                        onClick={() => { setAssignFor({ kind: 'group', key: g.key }) }}>
+                        назначить группу · {g.open}…
+                      </button>
+                    )}
+                </div>
+              )}
               {!isCollapsed && g.checks.map((c) => (
                 <div key={c.id} className={`gr-chk${c.state === 'closed' ? ' closed' : ''}`}>
-                  <span className={`gr-st ${c.state === 'open' ? 'bad' : c.state === 'na' ? 'na' : 'okd'}`} />
+                  <span className={`gr-st ${c.state === 'open' ? 'bad' : c.state === 'na' ? 'na' : 'okd'}`}
+                    title={c.state === 'open' ? 'разрыв открыт' : c.state === 'na' ? 'неприменимо (tailoring)' : 'закрыто'} />
                   <span className="gr-tx" style={c.state === 'na' ? { color: 'var(--text-secondary)' } : undefined}>
                     {c.title}
                   </span>
@@ -176,6 +248,17 @@ export function GateReadiness({ project, onGo }: {
                       <span className="gr-num">{c.note}</span>
                       {c.state === 'open' && c.place && (
                         <button className="rr-assign" onClick={() => onGo(c.place!)}>к месту →</button>
+                      )}
+                      {c.state === 'open' && (
+                        assignFor?.kind === 'check' && assignFor.key === c.id
+                          ? assignForm([{ id: c.id, title: c.title, place: c.place }])
+                          : (
+                            <button className="gr-nabtn"
+                              title="задание исполнителю: разрыв закроется — задание закроется само"
+                              onClick={() => setAssignFor({ kind: 'check', key: c.id })}>
+                              назначить…
+                            </button>
+                          )
                       )}
                       {c.state === 'open' && (
                         naFor === c.id ? (

@@ -57,6 +57,8 @@ class HttpApi(private val boundary: Boundary) {
     private fun handle(ex: HttpExchange) {
         try {
             route(ex)
+        } catch (e: ProcessTasks.AssignForbiddenException) {
+            respond(ex, 403, errJson(e))
         } catch (e: SchemaValidationException) {
             respond(ex, 422, errorsJson(e.errors))
         } catch (e: GateNotReadyException) {
@@ -1717,6 +1719,40 @@ class HttpApi(private val boundary: Boundary) {
             // теми же правилами, что рукописный ввод.
             // Спина процесса (блок B, ADR-029): состояние операций фазы,
             // прохождение точки проверкой, возвраты §5.1
+            // МВП-П1: назначение заданий — с готовности и с разрыва; пачка
+            // идемпотентна, право — руководитель и ведущий СИ (при учётках)
+            method == "POST" && path == "/tasks/assign" -> {
+                val req = mapper.readTree(body(ex))
+                val gaps = req.path("gaps").map {
+                    ProcessTasks.GapRef(
+                        it.path("id").asText(),
+                        it.path("title").asText(""),
+                        it.path("place").asText("").ifBlank { null },
+                    )
+                }
+                val (created, skipped) = boundary.processTasks.assign(
+                    gate = req.path("gate").asText(),
+                    gaps = gaps,
+                    assignee = req.path("assignee").asText(),
+                    due = req.path("due").asText("").ifBlank { null },
+                    note = req.path("note").asText("").ifBlank { null },
+                    author = author(req),
+                    projectId = requireProject(project),
+                    authorLogin = currentAuthorLogin.get(),
+                )
+                val out = mapper.createObjectNode()
+                out.putArray("created").also { a -> created.forEach(a::add) }
+                out.putArray("existing").also { a -> skipped.forEach(a::add) }
+                respond(ex, 201, out)
+            }
+
+            // МВП-П1: «Мои задания» — личный разрез готовности; без assignee
+            // (руководителю) — все задания проекта
+            method == "GET" && path == "/views/my-tasks" -> {
+                val who = query(ex)["assignee"]?.ifBlank { null }
+                respond(ex, 200, boundary.processTasks.myTasks(requireProject(project), who))
+            }
+
             method == "GET" && path == "/views/operations" ->
                 respond(ex, 200, boundary.gatePassing.operationStates(requireProject(project)))
 
@@ -2881,6 +2917,16 @@ class HttpApi(private val boundary: Boundary) {
                     u.put("display_name", user.displayName)
                     val roles = u.putObject("roles")
                     boundary.auth.rolesOf(user.login).forEach { (pj, r) -> roles.put(pj, r) }
+                }
+                respond(ex, 200, out)
+            }
+
+            // учётки поимённо — пикеру исполнителя (МВП-П1); паролей тут нет
+            method == "GET" && path == "/auth/users" -> {
+                val out = mapper.createObjectNode()
+                val arr = out.putArray("users")
+                boundary.auth.listUsers().forEach { (login, name) ->
+                    arr.addObject().put("login", login).put("display_name", name)
                 }
                 respond(ex, 200, out)
             }

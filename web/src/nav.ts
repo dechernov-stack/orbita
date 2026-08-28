@@ -84,7 +84,8 @@ export const SECTIONS: NavSection[] = [
     screens: [
       { key: 'lifecycle', title: 'Жизненный цикл' },
       { key: 'readiness', title: 'Готовность к точке' },
-      { key: 'operations', title: 'Операции' },
+      { key: 'mytasks', title: 'Мои задания' },
+      { key: 'operations', title: 'Порядок работы' },
       { key: 'projreg', title: 'Паспорт проекта' },
       { key: 'rfa', title: 'Замечания обзора' },
       { key: 'risks', title: 'Риски' },

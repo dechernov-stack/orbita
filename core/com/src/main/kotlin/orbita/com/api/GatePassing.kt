@@ -445,6 +445,9 @@ class GatePassing(
             n.put("state", r.state.name)
             n.put("objects", r.objects)
             r.operation.screen?.let { n.put("screen", it) }
+            // МВП-П1: порядок работы — данными; параллельность только из
+            // карты фазы (входы-предшественники), не рисунком
+            n.putArray("inputs").also { a -> r.operation.inputs.forEach(a::add) }
             if (r.returnedTo) n.put("returned_to", true)
             r.operation.docs.takeIf { it.isNotEmpty() }?.let { docs ->
                 n.putArray("docs").also { a -> docs.forEach(a::add) }

@@ -9,6 +9,7 @@ import { STATUS_MEANING } from '../ui/maturity'
 import { edit, type KindRow, type StoredSummary } from '../api/edit'
 import { withProject } from '../api/project'
 import { ObjectEditor } from '../ui/ObjectEditor'
+import { SortTh, useSort } from '../ui/sort'
 import { basedOnTemplate } from '../ui/ObjectForm'
 import { useSession } from '../ui/session'
 
@@ -119,13 +120,22 @@ export function KindRegistry({ kinds, title, expandDown }: {
     requestObject(wanted)
   }, [rows, kind, kinds])
 
-  if (error) return <div className="empty">Ошибка обращения к API: {error}</div>
-  if (!available || !meta) return <div className="empty">Загрузка…</div>
-
+  // до ранних return — хукам нужен стабильный порядок (React)
   const visible = (rows ?? []).filter(
     (r) => !filter || r.id.toLowerCase().includes(filter.toLowerCase()) ||
       (r.title ?? '').toLowerCase().includes(filter.toLowerCase()),
   )
+  // П-Б: сортировка заголовком — клиентская по загруженному
+  const { sorted, sort, toggle } = useSort(visible, {
+    id: (r) => r.id,
+    title: (r) => r.title ?? '',
+    status: (r) => r.status ?? '',
+    version: (r) => Number(r.version) || 0,
+  })
+
+  if (error) return <div className="empty">Ошибка обращения к API: {error}</div>
+  if (!available || !meta) return <div className="empty">Загрузка…</div>
+
   const open = creating || selected != null
   const colCount = meta.lifecycle ? 5 : 3
 
@@ -359,16 +369,16 @@ export function KindRegistry({ kinds, title, expandDown }: {
                           : new Set())} />
                     </th>
                   )}
-                  <th style={{ width: 90 }}>ID</th>
-                  <th>Содержание</th>
+                  <SortTh label="ID" sortKey="id" sort={sort} onToggle={toggle} width={90} />
+                  <SortTh label="Содержание" sortKey="title" sort={sort} onToggle={toggle} />
                   {/* зрелость — только у видов со статусной моделью; у прочих
                       свой цикл в собственном поле status объекта */}
-                  {meta.lifecycle && <th style={{ width: 110 }}>Статус</th>}
-                  <th style={{ width: 60 }}>Версия</th>
+                  {meta.lifecycle && <SortTh label="Статус" sortKey="status" sort={sort} onToggle={toggle} width={110} />}
+                  <SortTh label="Версия" sortKey="version" sort={sort} onToggle={toggle} width={60} />
                 </tr>
               </thead>
               <tbody>
-                {visible.map((r) => (
+                {sorted.map((r) => (
                   <React.Fragment key={r.id}>
                   <tr
                     aria-selected={r.id === selected}
@@ -396,7 +406,7 @@ export function KindRegistry({ kinds, title, expandDown }: {
                     <td title={r.title}>{r.title}</td>
                     {meta.lifecycle && (
                       <td>
-                        <span className={`dot status-${r.status}`} />
+                        <span className={`dot status-${r.status}`} title={label('lifecycle', r.status)} />
                         {label('lifecycle', r.status)}
                       </td>
                     )}

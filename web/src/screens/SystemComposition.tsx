@@ -5,6 +5,7 @@
 // Из строки спецификации — переход к требованию, из карточки требования —
 // обратно к элементу, на который оно распределено.
 import { useEffect, useState } from 'react'
+import { SortTh, useSort } from '../ui/sort'
 import { api } from '../api/client'
 import { edit, type StoredSummary } from '../api/edit'
 import type { RequirementCard } from '../api/types'
@@ -12,6 +13,11 @@ import { ComponentSpec } from './ComponentSpec'
 
 export function SystemComposition() {
   const [items, setItems] = useState<StoredSummary[]>([])
+  // П-Б: сортировка заголовком — общий компонент, клиентская
+  const { sorted: sortedItems, sort, toggle } = useSort(items, {
+    id: (r) => r.id,
+    title: (r) => r.title ?? '',
+  })
   const [selected, setSelected] = useState<string | null>(null)
   const [reqId, setReqId] = useState<string | null>(null)
   const [card, setCard] = useState<RequirementCard | null>(null)
@@ -56,8 +62,14 @@ export function SystemComposition() {
       <div className="pane" style={{ borderRight: '1px solid var(--border)' }}>
         <h3 style={{ fontSize: 13, margin: '10px 8px 4px' }}>Состав системы</h3>
         <table>
+          <thead>
+            <tr>
+              <SortTh label="ID" sortKey="id" sort={sort} onToggle={toggle} width={80} />
+              <SortTh label="Название" sortKey="title" sort={sort} onToggle={toggle} />
+            </tr>
+          </thead>
           <tbody>
-            {items.map((item) => (
+            {sortedItems.map((item) => (
               <tr
                 key={item.id}
                 onClick={() => {

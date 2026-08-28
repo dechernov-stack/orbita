@@ -1500,3 +1500,19 @@ details.np-dates[open] summary::before { transform: rotate(90deg); }
 .gr-nabtn:hover { color: var(--text); text-decoration: underline; }
 .gr-retops { display: flex; gap: 10px; align-items: center; margin-top: 16px;
   padding-top: 10px; border-top: 1px dashed var(--hairline); font-size: 12px; }
+
+/* МВП-П1 §2: пикер ссылок и чипы */
+.rp-pop { display: flex; flex-direction: column; max-height: 300px; overflow-y: auto; min-width: 280px; }
+.rp-q { margin: 4px 6px; padding: 4px 8px; border: 1px solid var(--container-3); border-radius: 6px; font-size: 12.5px; }
+.rp-row { display: flex; gap: 8px; align-items: baseline; padding: 4px 10px; border: none; background: none;
+  text-align: left; cursor: pointer; font-size: 12.5px; width: 100%; }
+.rp-row:hover { background: var(--container-1); }
+.rp-row[aria-selected="true"] { background: var(--container-2); }
+.rp-nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-secondary); }
+.rp-sec { padding: 3px 10px; font-size: 10.5px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .04em; }
+.refchip { display: inline-flex; gap: 5px; align-items: baseline; border: 1px solid var(--container-3);
+  border-radius: 6px; background: var(--container-0, #fff); padding: 1px 7px; margin: 1px 3px 1px 0;
+  cursor: pointer; font-size: 12px; }
+.refchip:hover:not(:disabled) { border-color: var(--accent, #2f6fd0); }
+.refchip:disabled { cursor: default; opacity: .75; }
+.refchip__nm { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-secondary); }

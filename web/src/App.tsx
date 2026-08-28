@@ -15,6 +15,7 @@ import { AiService } from './screens/AiService'
 import { BatchLoad } from './screens/BatchLoad'
 import { NewProject } from './screens/NewProject'
 import { Shelves } from './screens/Shelves'
+import { MyTasks, MyTasksBadge } from './screens/MyTasks'
 import { StartPath } from './screens/StartPath'
 import { Comparison } from './screens/Comparison'
 import { Coverage } from './screens/Coverage'
@@ -99,6 +100,14 @@ const RAIL_ICONS: Record<string, ReactElement> = {
 }
 
 const PHASE_LABEL: Record<string, string> = { pre_phase_a: 'Pre-Phase A', phase_a: 'Phase A' }
+
+/** Расшифровки состояния операции — подсказками к маркерам (§2.3). */
+const STATE_TITLES: Record<string, string> = {
+  Done: 'выполнена — выход достиг требуемого статуса',
+  InProgress: 'в работе — выход есть, статус ниже требуемого',
+  NotStarted: 'не начата — выхода ещё нет',
+  NotMeasurable: 'нечем измерить — вид выхода в системе отсутствует',
+}
 
 /** Спецэкран на шапке экрана (§3.1): заголовок 40 px + рабочая область. */
 function ScreenFrame({ title, children }: { title: string; children: ReactElement }) {
@@ -202,6 +211,13 @@ export function App() {
               onNew={() => { setFirstRun(false); setScreen('newproject') }}
               onLoadFile={() => { setFirstRun(false); setScreen('importb') }}
               onStart={() => { setScreen('startpath'); loadHeader() }} />
+      case 'mytasks':
+        return project
+          ? <MyTasks onGo={go} />
+          : <Portfolio onOpen={() => setScreen('lifecycle')}
+              onNew={() => { setFirstRun(false); setScreen('newproject') }}
+              onLoadFile={() => { setFirstRun(false); setScreen('importb') }}
+              onStart={() => { setScreen('startpath'); loadHeader() }} />
       case 'operations':
         return project
           ? <Operations project={project} onGo={go} />
@@ -297,6 +313,7 @@ export function App() {
           </button>
         )}
         <div className="grow" style={{ flex: 1 }} />
+        {screen !== 'newproject' && project && <MyTasksBadge tick={screen} onGo={go} />}
         <Accounts />
           <AuthorField />
       </header>
@@ -304,6 +321,7 @@ export function App() {
         <nav className="rail">
           {SECTIONS.map((s) => (
             <button key={s.key} className="rail__item" aria-selected={s.key === section}
+              title={`раздел «${s.label}»`}
               onClick={() => setScreen(s.screens[0].key)}>
               <svg viewBox="0 0 24 24" aria-hidden="true">{RAIL_ICONS[s.key]}</svg>
               {s.label}
@@ -325,7 +343,8 @@ export function App() {
                 {sectionOps.map((o) => (
                   <button key={o.code} className="ops__item" title={o.name}
                     onClick={() => o.screen && setScreen(o.screen)}>
-                    <span className={`ops__state ops__state--${o.state} ${o.returned_to ? 'ops__state--returned' : ''}`} />
+                    <span className={`ops__state ops__state--${o.state} ${o.returned_to ? 'ops__state--returned' : ''}`}
+                      title={o.returned_to ? 'цель действующего возврата' : STATE_TITLES[o.state] ?? o.state} />
                     <span className="mono" style={{ minWidth: 28 }}>{o.code}</span>
                     <span className="name">{o.name}</span>
                   </button>
