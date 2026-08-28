@@ -35,8 +35,9 @@ class SchemaValidationTest {
         // 36-я — source-document (ADR-030: библиотека исходных документов);
         // technology, decision, project, document-issue:
         // входы моделирования стали хранимыми объектами и получили схемы в core/;
-        // 45-я — saved-view (Т-1: сохранённые виды реестра)
-        assertEquals(45, registry.names.size, "нормативных схем должно быть 45: ${registry.names}")
+        // 45-я — saved-view (Т-1: сохранённые виды реестра);
+        // 46-я — task (МВП-П1: задание = адресованный разрыв готовности)
+        assertEquals(46, registry.names.size, "нормативных схем должно быть 46: ${registry.names}")
     }
 
     @Test
