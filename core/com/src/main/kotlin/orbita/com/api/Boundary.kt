@@ -87,6 +87,11 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
     /** Процесс к точке (МВП-П1): задания-разрывы и личный разрез готовности. */
     val processTasks: ProcessTasks by lazy { ProcessTasks(this) }
 
+    /** Сравнение построений (МВП-М2) — из того же интеграла видимости. */
+    val compareMetrics: orbita.bal.CompareMetrics by lazy {
+        orbita.bal.CompareMetrics(visibility)
+    }
+
     /** Служба ИИ (П5): профиль → промпт → вызов → фильтр → журнал. */
     val ai: AiService by lazy { AiService(this, orbita.ai.HttpProviderTransport()) }
 

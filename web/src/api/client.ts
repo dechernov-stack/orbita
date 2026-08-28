@@ -444,6 +444,16 @@ export const api = {
    * Карта покрытия от ХРАНИМЫХ объектов по ссылкам сценария (шаг 16 §2.2).
    * Сценарий обязателен: умолчания нет, его отсутствие — 400 с объяснением.
    */
+  /** МВП-М2: сравнение построений — метрики группами из интеграла §5. */
+  constellationCompare: (body: {
+    scenario: string
+    variants: string[]
+    axes?: string[]
+    thresholds?: Array<{ metric: string; value: number; label?: string }>
+  }) => post<import('./types').ConstellationCompareView>('/views/constellation-compare', body),
+  /** МВП-М2 §1: смена рабочего варианта — явным действием с основанием. */
+  setWorkingConstellation: (scenario: string, constellation: string, author: string) =>
+    post<{ working: string }>('/scenarios/working-constellation', { scenario, constellation, author }),
   /** §6 МВП-М1: трассы подгрупп (виток) — сверка рисунка глазами. */
   groundTracks: (scenario: string) =>
     get<import('./types').GroundTracksView>(`/views/ground-tracks?scenario=${encodeURIComponent(scenario)}`),

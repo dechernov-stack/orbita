@@ -18,6 +18,7 @@ import { Shelves } from './screens/Shelves'
 import { MyTasks, MyTasksBadge } from './screens/MyTasks'
 import { StartPath } from './screens/StartPath'
 import { Comparison } from './screens/Comparison'
+import { ConstellationCompare } from './screens/ConstellationCompare'
 import { Coverage } from './screens/Coverage'
 import { Demand } from './screens/Demand'
 import { Documents } from './screens/Documents'
@@ -252,6 +253,7 @@ export function App() {
       case 'demand': return <ScreenFrame title="Карта спроса"><Demand /></ScreenFrame>
       case 'ground': return <ScreenFrame title="Наземный сегмент"><GroundSegment /></ScreenFrame>
       case 'ballistics': return <ScreenFrame title="Глобус"><Globe /></ScreenFrame>
+      case 'constcompare': return <ScreenFrame title="Сравнение построений"><ConstellationCompare /></ScreenFrame>
       case 'coverage': return <ScreenFrame title="Карта покрытия"><Coverage /></ScreenFrame>
       case 'compare': return <ScreenFrame title="Сравнение вариантов"><Comparison /></ScreenFrame>
       case 'readiness':

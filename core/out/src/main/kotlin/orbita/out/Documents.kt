@@ -549,7 +549,20 @@ class DocumentGenerator(private val mapper: ObjectMapper = ObjectMapper()) {
         val all = components(model)
         when (section) {
             1 -> goalsRecords(model, items)
-            2 -> model.path("alternatives").sortedBy { it.path("id").asText() }
+            2 -> {
+                // МВП-М2 §3.5: живая матрица сравнения построений — вставкой
+                // механизма В1; выпуск фиксирует снимок вместе с телом
+                val cmp = model.path("constellation_compare")
+                if (cmp.isObject && cmp.path("variants").isArray && cmp.path("variants").size() > 0) {
+                    val n = items.addObject()
+                    n.put("kind", "constellation_compare_table")
+                    n.put("computed_at", cmp.path("computed_at").asText(""))
+                    n.put("scenario_ref", cmp.path("scenario_ref").asText(""))
+                    n.set<com.fasterxml.jackson.databind.node.ArrayNode>(
+                        "variants", cmp.path("variants").deepCopy(),
+                    )
+                }
+                model.path("alternatives").sortedBy { it.path("id").asText() }
                 .filter { it.path("kind").asText() == "option" }
                 .forEach { a ->
                     val n = items.addObject()
@@ -565,6 +578,7 @@ class DocumentGenerator(private val mapper: ObjectMapper = ObjectMapper()) {
                             .put("rationale", c.path("rationale").asText(""))
                     }
                 }
+            }
             3 -> all.filter { it.second.path("kind").asText() in setOf("segment", "system") }
                 .forEach { (id, c) ->
                     items.addObject()

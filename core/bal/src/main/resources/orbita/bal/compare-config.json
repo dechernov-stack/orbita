@@ -1,0 +1,38 @@
+{
+  "_comment": "МВП-М2: коэффициенты и таблицы сравнения — ДАННЫМИ (ловушка 5). Правка без пересборки: файл compare-config.json в каталоге файлов стенда (ORBITA_FILES_DIR) перекрывает этот дефолт целиком.",
+  "deploy": {
+    "days_per_campaign": 30.0,
+    "days_per_plane_raan_drift": 15.0
+  },
+  "cost": {
+    "platform_unit": 1.0,
+    "launch_batch_unit": 8.0,
+    "rideshare_factor": { "sso": 0.6, "walker_delta": 1.0, "walker_star": 1.1 }
+  },
+  "station_keeping_dv_mps_year": [
+    { "alt_max_km": 450, "dv": 25.0 },
+    { "alt_max_km": 550, "dv": 12.0 },
+    { "alt_max_km": 700, "dv": 5.0 },
+    { "alt_max_km": 2000, "dv": 2.0 }
+  ],
+  "disposal": { "limit_years": 25.0, "mass_kg": 80.0, "area_m2": 0.5 },
+  "radiation_classes": [
+    { "alt_max_km": 500, "inc_max_deg": 70, "class": "low", "note": "под поясами; ЮАА касание" },
+    { "alt_max_km": 500, "inc_max_deg": 180, "class": "mid", "note": "полярные рога на каждом витке" },
+    { "alt_max_km": 900, "inc_max_deg": 70, "class": "mid", "note": "ЮАА заметна" },
+    { "alt_max_km": 900, "inc_max_deg": 180, "class": "high", "note": "рога + ЮАА" },
+    { "alt_max_km": 100000, "inc_max_deg": 180, "class": "high", "note": "внутренний пояс" }
+  ],
+  "stations_catalog": [
+    { "id": "MSK", "name": "Московская обл.", "lat": 55.9, "lon": 37.6 },
+    { "id": "NVS", "name": "Новосибирск", "lat": 55.0, "lon": 82.9 },
+    { "id": "KHB", "name": "Хабаровск", "lat": 48.5, "lon": 135.1 },
+    { "id": "MUR", "name": "Мурманск", "lat": 68.9, "lon": 33.1 },
+    { "id": "NOR", "name": "Норильск", "lat": 69.3, "lon": 88.2 },
+    { "id": "ANA", "name": "Анадырь", "lat": 64.7, "lon": 177.5 },
+    { "id": "KLG", "name": "Калининград", "lat": 54.7, "lon": 20.5 },
+    { "id": "SOC", "name": "Сочи", "lat": 43.6, "lon": 39.7 }
+  ],
+  "latency_target_s": 1800.0,
+  "doppler_ref_hz": 868000000.0
+}

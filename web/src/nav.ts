@@ -68,6 +68,7 @@ export const SECTIONS: NavSection[] = [
       { key: 'ground', title: 'Наземный сегмент' },
       { key: 'ballistics', title: 'Глобус' },
       { key: 'coverage', title: 'Карта покрытия' },
+      { key: 'constcompare', title: 'Сравнение построений' },
       { key: 'compare', title: 'Сравнение вариантов' },
     ],
   },

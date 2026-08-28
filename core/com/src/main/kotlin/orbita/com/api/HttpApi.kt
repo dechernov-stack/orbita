@@ -962,6 +962,176 @@ class HttpApi(private val boundary: Boundary) {
                 respond(ex, 200, out)
             }
 
+            // МВП-М2: сравнение построений — 2–5 вариантов, метрики группами
+            // из того же интеграла §5; пороги — фильтром с перечнем отсеянных;
+            // Парето — сервером; результат хранится (kind constellation_compare)
+            // и уходит вставкой в раздел AoA при рендере документа.
+            method == "POST" && path == "/views/constellation-compare" -> {
+                val req = mapper.readTree(body(ex))
+                val ctx = requireProject(project)
+                val scenarioId = req.path("scenario").asText("")
+                    .ifBlank { throw IllegalArgumentException("field 'scenario' is required") }
+                val scenario = boundary.objects.current(scenarioId)
+                    ?: throw NoSuchElementException("сценарий $scenarioId не найден")
+                val variantIds = req.path("variants").map { it.asText() }.distinct()
+                require(variantIds.size in 2..5) {
+                    "сравнение — по выбранным 2–5 вариантам (передано ${variantIds.size})"
+                }
+                val demandMap = scenario.doc.path("demand_map_ref").asText("")
+                    .takeIf { it.isNotBlank() }?.let { boundary.objects.current(it) }
+                    ?: throw NoSuchElementException("карта спроса по ссылке сценария не найдена")
+                val epoch = scenario.doc.path("epoch").asText("")
+                    .ifBlank { throw IllegalArgumentException("scenario has no epoch") }
+                val durationS = scenario.doc.path("duration_s").asDouble(0.0)
+                    .takeIf { it > 0 } ?: throw IllegalArgumentException("scenario has no duration_s")
+                val cells = demandMap.doc.path("cells").map { c ->
+                    orbita.bal.CompareMetrics.DemandCell(
+                        orbita.bal.GridPoint(
+                            c.path("cell_id").asText(), c.path("lat_deg").asDouble(), c.path("lon_deg").asDouble(),
+                        ),
+                        c.path("demand").groupBy { it.path("terminal_profile_ref").asText("A_prime") }
+                            .mapValues { (_, ds) ->
+                                ds.sumOf { it.path("count").asDouble(0.0) } to
+                                    ds.sumOf { it.path("uplink_msgs_per_day").asDouble(0.0) }
+                            },
+                    )
+                }
+                val stations = boundary.objects.listCurrent(ctx)
+                    .firstOrNull { it.type == "ground_stations" }?.doc?.path("stations")
+                    ?.map {
+                        orbita.bal.GridPoint(
+                            it.path("id").asText(), it.path("lat_deg").asDouble(), it.path("lon_deg").asDouble(),
+                        )
+                    } ?: emptyList()
+
+                val evaluated = variantIds.map { vid ->
+                    val v = boundary.objects.current(vid)
+                        ?: throw NoSuchElementException("вариант $vid не найден")
+                    require(v.type == "constellation") { "'$vid' — не построение" }
+                    boundary.compareMetrics.evaluate(
+                        vid, v.doc.path("name").asText(vid), v.doc, cells, stations, epoch, durationS,
+                    )
+                }
+
+                // значение метрики по имени фильтра/оси — одна карта направлений
+                fun metricOf(v: JsonNode, key: String): Double? = when {
+                    key.startsWith("coverage_") ->
+                        v.path("service").path(key.removePrefix("coverage_")).path("coverage_share")
+                            .takeIf { it.isNumber }?.asDouble()
+                    key.startsWith("max_gap_") ->
+                        v.path("service").path(key.removePrefix("max_gap_")).path("max_gap_s")
+                            .takeIf { it.isNumber }?.asDouble()
+                    key.startsWith("latency_") ->
+                        v.path("service").path(key.removePrefix("latency_")).path("latency_s")
+                            .takeIf { it.isNumber }?.asDouble()
+                    key.startsWith("capacity_") ->
+                        v.path("service").path(key.removePrefix("capacity_"))
+                            .path("capacity_margin_min_per_msg").takeIf { it.isNumber }?.asDouble()
+                    key == "max_gap" -> v.path("service").properties().asSequence()
+                        .mapNotNull { it.value.path("max_gap_s").takeIf { n -> n.isNumber }?.asDouble() }
+                        .maxOrNull()
+                    key == "capacity" -> v.path("service").properties().asSequence()
+                        .mapNotNull {
+                            it.value.path("capacity_margin_min_per_msg")
+                                .takeIf { n -> n.isNumber }?.asDouble()
+                        }
+                        .minOrNull()
+                    key == "cost" -> v.path("logistics").path("cost_proxy").asDouble()
+                    key == "deployment_days" -> v.path("logistics").path("deployment_days").asDouble()
+                    key == "degradation" -> v.path("resilience").path("degradation_dmax_gap_s").asDouble()
+                    else -> null
+                }
+                // направление: true — больше лучше
+                fun higherBetter(key: String) = key.startsWith("coverage_") ||
+                    key.startsWith("capacity") || key == "capacity"
+
+                // пороги требований — фильтр с перечнем «кто и по какому выбыл»
+                val excluded = mapper.createArrayNode()
+                val passing = evaluated.filter { v ->
+                    var ok = true
+                    req.path("thresholds").forEach { t ->
+                        val key = t.path("metric").asText()
+                        val value = metricOf(v, key) ?: return@forEach
+                        val limit = t.path("value").asDouble()
+                        val violated = if (higherBetter(key)) value < limit else value > limit
+                        if (violated) {
+                            ok = false
+                            excluded.addObject()
+                                .put("variant", v.path("variant").asText())
+                                .put("name", v.path("name").asText())
+                                .put("threshold", t.path("label").asText(key))
+                                .put("metric", key)
+                                .put("value", value)
+                                .put("limit", limit)
+                        }
+                    }
+                    ok
+                }
+
+                // Парето по осям (2–3): недоминируемые среди прошедших пороги
+                val axes = req.path("axes").map { it.asText() }
+                    .ifEmpty { listOf("capacity", "max_gap", "cost") }
+                fun dominates(a: JsonNode, b: JsonNode): Boolean {
+                    var strictly = false
+                    axes.forEach { ax ->
+                        val av = metricOf(a, ax) ?: return false
+                        val bv = metricOf(b, ax) ?: return false
+                        val better = if (higherBetter(ax)) av >= bv else av <= bv
+                        if (!better) return false
+                        val strictlyBetter = if (higherBetter(ax)) av > bv else av < bv
+                        if (strictlyBetter) strictly = true
+                    }
+                    return strictly
+                }
+                val nondominated = passing.filter { v ->
+                    passing.none { other -> other !== v && dominates(other, v) }
+                }.map { it.path("variant").asText() }
+
+                val out = mapper.createObjectNode()
+                out.put("scenario_ref", scenarioId)
+                out.put("computed_at", java.time.OffsetDateTime.now(java.time.ZoneOffset.UTC).toString())
+                out.put("working_variant", scenario.doc.path("constellation_ref").asText(""))
+                val varr = out.putArray("variants")
+                evaluated.forEach { varr.add(it) }
+                out.set<ObjectNode>("excluded", excluded)
+                out.putArray("axes").also { a -> axes.forEach(a::add) }
+                out.putArray("pareto").also { a -> nondominated.forEach(a::add) }
+
+                // хранимый результат: сценарий + версии входов (TZ-COM-006);
+                // рендер AoA возьмёт последний, выпуск зафиксирует снимок
+                val versions = buildMap {
+                    put(scenarioId, scenario.version)
+                    put(demandMap.id, demandMap.version)
+                    variantIds.forEach { vid -> put(vid, boundary.objects.current(vid)!!.version) }
+                }
+                boundary.results.insert(
+                    scenarioId, "constellation_compare", out, versions,
+                    orbita.bal.BAL_MODULE_VERSION, rngSeed = 0L,
+                )
+                respond(ex, 200, out)
+            }
+
+            // МВП-М2 §1: «рабочий» вариант — ссылка сценария; смена — явным
+            // действием с основанием (изменение через процедуру)
+            method == "POST" && path == "/scenarios/working-constellation" -> {
+                val req = mapper.readTree(body(ex))
+                val scenarioId = req.path("scenario").asText("")
+                val variant = req.path("constellation").asText("")
+                val by = author(req)
+                val scenario = boundary.objects.current(scenarioId)
+                    ?: throw NoSuchElementException("сценарий $scenarioId не найден")
+                val v = boundary.objects.current(variant)
+                    ?: throw NoSuchElementException("построение $variant не найдено")
+                require(v.type == "constellation") { "'$variant' — не построение" }
+                val changes = mapper.createObjectNode()
+                changes.put("constellation_ref", variant)
+                boundary.editing.update(
+                    CoreType.Scenario, scenarioId, changes, scenario.version, by,
+                    changeRef = "смена рабочего варианта построения на $variant",
+                )
+                respond(ex, 200, mapper.createObjectNode().put("working", variant))
+            }
+
             // §6 МВП-М1: географические маски зон — слой карты (точки зон
             // приёма и сброса с радиусами; геометрия — сервером, клиент рисует)
             method == "GET" && path == "/views/geo-masks" -> {
@@ -1493,6 +1663,17 @@ class HttpApi(private val boundary: Boundary) {
                 require(text.isNotBlank()) { "field 'text' is required" }
                 val textProject = requireProject(project)
                 val model = orbita.out.ModelSnapshot.of(boundary.objects, mapper, projectId = project)
+                    .also { m ->
+                        // МВП-М2 §3.5: последняя матрица сравнения построений —
+                        // вставкой в раздел AoA; выпуск зафиксирует снимок
+                        boundary.objects.listCurrent(project)
+                            .filter { it.type == "scenario" }
+                            .flatMap { sc ->
+                                boundary.results.activeForScenario(sc.id, "constellation_compare")
+                            }
+                            .maxByOrNull { it.pk }
+                            ?.let { (m as ObjectNode).set<ObjectNode>("constellation_compare", it.payload.deepCopy()) }
+                    }
                 val rendered = orbita.out.DocumentGenerator(mapper).render(model, template)
                 val fingerprint = rendered.body.path("sections")
                     .first { it.path("number").asInt() == sectionNo }
@@ -1555,6 +1736,17 @@ class HttpApi(private val boundary: Boundary) {
                     )
                 } else {
                     val model = orbita.out.ModelSnapshot.of(boundary.objects, mapper, projectId = project)
+                    .also { m ->
+                        // МВП-М2 §3.5: последняя матрица сравнения построений —
+                        // вставкой в раздел AoA; выпуск зафиксирует снимок
+                        boundary.objects.listCurrent(project)
+                            .filter { it.type == "scenario" }
+                            .flatMap { sc ->
+                                boundary.results.activeForScenario(sc.id, "constellation_compare")
+                            }
+                            .maxByOrNull { it.pk }
+                            ?.let { (m as ObjectNode).set<ObjectNode>("constellation_compare", it.payload.deepCopy()) }
+                    }
                     val generated = orbita.out.DocumentGenerator(mapper)
                         .render(model, template, sectionTexts(code, project))
                     generated.body to orbita.out.PrintMeta(
@@ -1594,6 +1786,17 @@ class HttpApi(private val boundary: Boundary) {
                 val author = author(req.path("author").asText(""))
                 if (author.isBlank()) throw IllegalArgumentException("'author' is required (TZ-COM-005)")
                 val model = orbita.out.ModelSnapshot.of(boundary.objects, mapper, projectId = project)
+                    .also { m ->
+                        // МВП-М2 §3.5: последняя матрица сравнения построений —
+                        // вставкой в раздел AoA; выпуск зафиксирует снимок
+                        boundary.objects.listCurrent(project)
+                            .filter { it.type == "scenario" }
+                            .flatMap { sc ->
+                                boundary.results.activeForScenario(sc.id, "constellation_compare")
+                            }
+                            .maxByOrNull { it.pk }
+                            ?.let { (m as ObjectNode).set<ObjectNode>("constellation_compare", it.payload.deepCopy()) }
+                    }
                 val generated = orbita.out.DocumentGenerator(mapper)
                     .render(model, template, sectionTexts(code, project))
                 val issue = mapper.createObjectNode()
@@ -1615,6 +1818,17 @@ class HttpApi(private val boundary: Boundary) {
                 val code = path.removePrefix("/export/documents/").removeSuffix("/issues")
                 val template = templateOf(code)
                 val model = orbita.out.ModelSnapshot.of(boundary.objects, mapper, projectId = project)
+                    .also { m ->
+                        // МВП-М2 §3.5: последняя матрица сравнения построений —
+                        // вставкой в раздел AoA; выпуск зафиксирует снимок
+                        boundary.objects.listCurrent(project)
+                            .filter { it.type == "scenario" }
+                            .flatMap { sc ->
+                                boundary.results.activeForScenario(sc.id, "constellation_compare")
+                            }
+                            .maxByOrNull { it.pk }
+                            ?.let { (m as ObjectNode).set<ObjectNode>("constellation_compare", it.payload.deepCopy()) }
+                    }
                 val currentDigest = orbita.out.DocumentGenerator(mapper)
                     .render(model, template, sectionTexts(code, project)).digest
                 val out = mapper.createObjectNode()
@@ -1651,6 +1865,17 @@ class HttpApi(private val boundary: Boundary) {
                 val code = path.removePrefix("/export/documents/")
                 val template = templateOf(code)
                 val model = orbita.out.ModelSnapshot.of(boundary.objects, mapper, projectId = project)
+                    .also { m ->
+                        // МВП-М2 §3.5: последняя матрица сравнения построений —
+                        // вставкой в раздел AoA; выпуск зафиксирует снимок
+                        boundary.objects.listCurrent(project)
+                            .filter { it.type == "scenario" }
+                            .flatMap { sc ->
+                                boundary.results.activeForScenario(sc.id, "constellation_compare")
+                            }
+                            .maxByOrNull { it.pk }
+                            ?.let { (m as ObjectNode).set<ObjectNode>("constellation_compare", it.payload.deepCopy()) }
+                    }
                 val doc = orbita.out.DocumentGenerator(mapper)
                     .render(model, template, sectionTexts(code, project))
                 val out = mapper.createObjectNode()
@@ -1670,6 +1895,17 @@ class HttpApi(private val boundary: Boundary) {
             // показывается инженеру рядом с кнопкой выгрузки, а не прячется в лог.
             method == "GET" && path == "/export/reqif/check" -> {
                 val model = orbita.out.ModelSnapshot.of(boundary.objects, mapper, projectId = project)
+                    .also { m ->
+                        // МВП-М2 §3.5: последняя матрица сравнения построений —
+                        // вставкой в раздел AoA; выпуск зафиксирует снимок
+                        boundary.objects.listCurrent(project)
+                            .filter { it.type == "scenario" }
+                            .flatMap { sc ->
+                                boundary.results.activeForScenario(sc.id, "constellation_compare")
+                            }
+                            .maxByOrNull { it.pk }
+                            ?.let { (m as ObjectNode).set<ObjectNode>("constellation_compare", it.payload.deepCopy()) }
+                    }
                 val flattened = model.path("requirements")
                     .map { orbita.out.toSpecObject(it) }
                     .filter { orbita.out.flattenedAsString(it).isNotEmpty() }
@@ -1697,6 +1933,17 @@ class HttpApi(private val boundary: Boundary) {
                     throw IllegalArgumentException("query parameter 'format' must be one of: csv, json")
                 }
                 val model = orbita.out.ModelSnapshot.of(boundary.objects, mapper, projectId = project)
+                    .also { m ->
+                        // МВП-М2 §3.5: последняя матрица сравнения построений —
+                        // вставкой в раздел AoA; выпуск зафиксирует снимок
+                        boundary.objects.listCurrent(project)
+                            .filter { it.type == "scenario" }
+                            .flatMap { sc ->
+                                boundary.results.activeForScenario(sc.id, "constellation_compare")
+                            }
+                            .maxByOrNull { it.pk }
+                            ?.let { (m as ObjectNode).set<ObjectNode>("constellation_compare", it.payload.deepCopy()) }
+                    }
                 val requirements = model.path("requirements").map { r ->
                     orbita.out.ExchangeRequirement(
                         id = r.path("id").asText(),
@@ -1735,6 +1982,17 @@ class HttpApi(private val boundary: Boundary) {
                     )
                 } else {
                     val model = orbita.out.ModelSnapshot.of(boundary.objects, mapper, projectId = project)
+                    .also { m ->
+                        // МВП-М2 §3.5: последняя матрица сравнения построений —
+                        // вставкой в раздел AoA; выпуск зафиксирует снимок
+                        boundary.objects.listCurrent(project)
+                            .filter { it.type == "scenario" }
+                            .flatMap { sc ->
+                                boundary.results.activeForScenario(sc.id, "constellation_compare")
+                            }
+                            .maxByOrNull { it.pk }
+                            ?.let { (m as ObjectNode).set<ObjectNode>("constellation_compare", it.payload.deepCopy()) }
+                    }
                     val links = (boundary.links.list("trace", project) + boundary.links.list("derive", project))
                         .map { orbita.out.ExchangeLink(it.fromId, it.toId, it.kind) }
                     val exportedAt = query(ex)["exported_at"]

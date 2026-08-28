@@ -518,6 +518,38 @@ export interface CoverageView {
   }
 }
 
+/** МВП-М2: строка сравнения — метрики группами; Г — прокси с пометкой. */
+export interface CompareVariantRow {
+  variant: string
+  name: string
+  total_sats: number
+  subgroups: Array<{ name: string; kind: string; planes: number; per_plane: number
+    altitude_km: number; inclination_deg: number }>
+  service: Record<string, {
+    coverage_share: number; max_gap_s: number; revisit_p75_s?: number
+    mean_response_s: number; latency_s: number; capacity_margin_min_per_msg?: number
+  }>
+  logistics: { launch_batches: number; deployment_days: number; cost_proxy: number }
+  resilience: { degradation_dmax_gap_s: number; station_keeping_dv_mps_year: number; disposal: string }
+  orbit_proxy: {
+    proxy: boolean
+    power_regime: Array<{ name: string; beta_min_deg: number; beta_max_deg: number; worst_shadow_share: number }>
+    radiation_class: string; radiation_note: string
+    stations_for_latency: number; stations_names: string
+    median_pass_s?: number; doppler_max_hz: number
+  }
+}
+
+export interface ConstellationCompareView {
+  scenario_ref: string
+  computed_at: string
+  working_variant: string
+  variants: CompareVariantRow[]
+  excluded: Array<{ variant: string; name: string; threshold: string; metric: string; value: number; limit: number }>
+  axes: string[]
+  pareto: string[]
+}
+
 /** §6: наземные трассы подгрупп — каждая своим цветом (индекс от сервера). */
 export interface GroundTracksView {
   scenario_ref: string

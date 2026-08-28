@@ -111,12 +111,72 @@ const HEADLINE_KEYS = ['statement', 'name', 'title', 'question', 'gate', 'rule',
  * id и формулировка, остальные атрибуты раскрываются по клику. expandAll
  * (кнопка «Развернуть всё» и печать) раскрывает принудительно.
  */
+/** МВП-М2 §3.5: вставка «таблица сравнения построений» в разделе AoA. */
+function CompareInsert({ item }: { item: Record<string, unknown> }) {
+  const variants = (item.variants ?? []) as Array<{
+    variant: string; name: string; total_sats: number
+    service: Record<string, { coverage_share: number; max_gap_s: number; latency_s: number }>
+    logistics: { launch_batches: number; deployment_days: number; cost_proxy: number }
+  }>
+  return (
+    <div style={{ margin: '4px 0 8px' }}>
+      <div className="secondary" style={{ marginBottom: 4 }}
+        title="живая матрица сравнения построений — последний расчёт; выпуск фиксирует снимок">
+        Сравнение построений · {String(item.scenario_ref ?? '')} · {String(item.computed_at ?? '').slice(0, 16).replace('T', ' ')}
+      </div>
+      <table style={{ minWidth: 560 }}>
+        <thead>
+          <tr>
+            <th>Вариант</th><th style={{ width: 46 }}>КА</th>
+            <th style={{ width: 90 }} title="покрытие A′ — доля времени, взвешено спросом">Покр. A′</th>
+            <th style={{ width: 90 }} title="худший по классам максимальный разрыв">Max gap</th>
+            <th style={{ width: 90 }} title="худшая латентность доставки">Латентн.</th>
+            <th style={{ width: 66 }} title="несовместимые пусковые партии">Партии</th>
+            <th style={{ width: 80 }} title="прокси-стоимость, у.е.">Стоим.</th>
+          </tr>
+        </thead>
+        <tbody>
+          {variants.map((v) => {
+            const gaps = Object.values(v.service ?? {})
+            const gap = gaps.reduce((m, s) => (s.max_gap_s > m ? s.max_gap_s : m), 0)
+            const lat = gaps.reduce((m, s) => (s.latency_s > m ? s.latency_s : m), 0)
+            return (
+              <tr key={v.variant}>
+                <td><span className="mono">{v.variant}</span> {v.name}</td>
+                <td className="num">{v.total_sats}</td>
+                <td className="num">{((v.service?.A_prime?.coverage_share ?? 0) * 100).toFixed(1)}%</td>
+                <td className="num">{(gap / 60).toFixed(0)} мин</td>
+                <td className="num">{(lat / 60).toFixed(0)} мин</td>
+                <td className="num">{v.logistics?.launch_batches}</td>
+                <td className="num">{v.logistics?.cost_proxy?.toFixed(1)}</td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
 function SectionTable({ items, fieldLabel, onGo, expandAll }: {
   items: Array<Record<string, unknown>>
   fieldLabel: (name: string) => string
   onGo?: (screen: string) => void
   expandAll: boolean
 }) {
+  // вставки со своим рендером — отдельно от табличных записей раздела
+  const inserts = items.filter((it) => it.kind === 'constellation_compare_table')
+  if (inserts.length > 0) {
+    const rest = items.filter((it) => it.kind !== 'constellation_compare_table')
+    return (
+      <div>
+        {inserts.map((it, i) => <CompareInsert key={i} item={it} />)}
+        {rest.length > 0 && (
+          <SectionTable items={rest} fieldLabel={fieldLabel} onGo={onGo} expandAll={expandAll} />
+        )}
+      </div>
+    )
+  }
   const columns: string[] = []
   items.forEach((it) => Object.keys(it).forEach((k) => { if (!columns.includes(k)) columns.push(k) }))
   const compact = !expandAll && items.length > 12 && columns.length > 4
