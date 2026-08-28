@@ -14,6 +14,7 @@ import { AiProposal } from './screens/AiProposal'
 import { AiService } from './screens/AiService'
 import { BatchLoad } from './screens/BatchLoad'
 import { NewProject } from './screens/NewProject'
+import { SeedDemand } from './screens/SeedDemand'
 import { Shelves } from './screens/Shelves'
 import { MyTasks, MyTasksBadge } from './screens/MyTasks'
 import { StartPath } from './screens/StartPath'
@@ -250,6 +251,7 @@ export function App() {
           />
         )
       case 'spacecraft': return <ScreenFrame title="Модель аппарата"><Spacecraft /></ScreenFrame>
+      case 'seeddemand': return <ScreenFrame title="Затравка спроса"><SeedDemand /></ScreenFrame>
       case 'demand': return <ScreenFrame title="Карта спроса"><Demand /></ScreenFrame>
       case 'ground': return <ScreenFrame title="Наземный сегмент"><GroundSegment /></ScreenFrame>
       case 'ballistics': return <ScreenFrame title="Глобус"><Globe /></ScreenFrame>

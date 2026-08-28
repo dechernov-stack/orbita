@@ -101,6 +101,7 @@ export const SECTIONS: NavSection[] = [
     key: 'ai',
     label: 'Инструменты',
     screens: [
+      { key: 'seeddemand', title: 'Затравка спроса' },
       { key: 'aiservice', title: 'Служба ИИ' },
       { key: 'aiprofiles', title: 'Профили службы' },
       { key: 'ai', title: 'Предложения ИИ (контур пакетов)' },

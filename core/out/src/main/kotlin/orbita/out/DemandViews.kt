@@ -31,7 +31,22 @@ data class DemandCellView(
     val byClass: Map<String, Double>,
     val weight: Double,
     val intensity: Double,
+    /** Полустороны ячейки для карты: спрос — сеткой, не пузырями (замечание 28.08). */
+    val halfLatDeg: Double = 0.45,
+    val halfLonDeg: Double = 0.45,
 )
+
+/** Полустороны сетки: шаг широтных колец, долготный — равноплощадно. */
+private fun withHalves(cells: List<DemandCellView>): List<DemandCellView> {
+    val lats = cells.map { it.latDeg }.distinct().sorted()
+    val step = lats.zipWithNext { a, b -> b - a }.filter { it > 1e-6 }.minOrNull() ?: 0.9
+    return cells.map { c ->
+        c.copy(
+            halfLatDeg = step / 2.0,
+            halfLonDeg = step / 2.0 / Math.cos(Math.toRadians(c.latDeg)).coerceAtLeast(0.1),
+        )
+    }
+}
 
 /** Широтный пояс: суммарный вес ячеек пояса. */
 data class LatitudeBandView(val bandDeg: Int, val weight: Double)
@@ -148,7 +163,7 @@ class DemandViews(private val library: ScenarioLibrary = ScenarioLibrary()) {
         val classes = cells.flatMap { it.byClass.keys }.toSortedSet()
         return DemandMapView(
             version = doc.path("version").asText(""),
-            cells = cells.map { it.copy(intensity = sig(if (maxCell > 0) it.msgsPerDay / maxCell else 0.0)) },
+            cells = withHalves(cells.map { it.copy(intensity = sig(if (maxCell > 0) it.msgsPerDay / maxCell else 0.0)) }),
             totalMsgsPerDay = sig(total),
             byClass = sig(classes.associateWith { k -> cells.sumOf { it.byClass[k] ?: 0.0 } }),
             terminalsByClass = sig(
@@ -187,19 +202,21 @@ class DemandViews(private val library: ScenarioLibrary = ScenarioLibrary()) {
 
         return DemandMapView(
             version = DemandMapBuilder.version(cells, library.version),
-            cells = cells.keys.sorted().map { id ->
-                val c = cells.getValue(id)
-                DemandCellView(
-                    id = c.id,
-                    latDeg = c.lat,
-                    lonDeg = c.lon,
-                    areaKm2 = sig(c.areaKm2),
-                    msgsPerDay = sig(c.totalMsgsPerDay()),
-                    byClass = sig(c.msgsPerDay.toSortedMap()),
-                    weight = sig(c.weight),
-                    intensity = sig(if (maxCell > 0) c.totalMsgsPerDay() / maxCell else 0.0),
-                )
-            },
+            cells = withHalves(
+                cells.keys.sorted().map { id ->
+                    val c = cells.getValue(id)
+                    DemandCellView(
+                        id = c.id,
+                        latDeg = c.lat,
+                        lonDeg = c.lon,
+                        areaKm2 = sig(c.areaKm2),
+                        msgsPerDay = sig(c.totalMsgsPerDay()),
+                        byClass = sig(c.msgsPerDay.toSortedMap()),
+                        weight = sig(c.weight),
+                        intensity = sig(if (maxCell > 0) c.totalMsgsPerDay() / maxCell else 0.0),
+                    )
+                },
+            ),
             totalMsgsPerDay = sig(total),
             byClass = sig(classes.associateWith { k -> cells.values.sumOf { it.msgsPerDay[k] ?: 0.0 } }),
             terminalsByClass = sig(classes.associateWith { k -> cells.values.sumOf { it.terminals[k] ?: 0.0 } }),

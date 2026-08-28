@@ -1,52 +1,31 @@
-// Экран 4 — карта спроса (Ш2 мастера, TZ-USR-004).
+// Экран 4 — карта спроса (Ш2 мастера, TZ-USR-004) — рабочее место АНАЛИЗА
+// спроса (замечание 28.08): карта ГЛАВНАЯ и тянется с окном; сводка и
+// широтный профиль — сворачиваемой боковой панелью; числа — общим правилом
+// (ui/Num: без float-хвостов, веса — процентами полосками); хеш версии —
+// в подсказке, не в продуктовом месте. Затравка данных (популяции,
+// сценарии) — отдельным местом: Инструменты → «Затравка спроса».
 //
-// Слои задаются здесь, карта собирается на сервере. Ни веса ячеек, ни доля
-// от максимума, ни пик «час × месяц» в клиенте не считаются: вторая
-// нормировка разошлась бы с первой молча — обе показали бы число, просто
-// разное (STEP-7-9, ловушка 2).
-//
-// Проекция равнопромежуточная, а сетка равноплощадная: у полюсов ячейка
-// выглядит крупнее, чем весит. Поэтому рядом с картой стоит широтный профиль —
-// в нём вес пояса виден числом, а не размером пятна.
+// Ни веса ячеек, ни доля от максимума, ни пик «час × месяц» в клиенте не
+// считаются (ловушка 2) — всё приходит посчитанным с сервера.
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import { MapView } from '../ui/MapView'
+import { Num, ShareBar, fmtNum } from '../ui/Num'
 import { edit, type StoredSummary } from '../api/edit'
-import type { DemandLayersRequest, DemandMapView, ReferenceScenarioRow } from '../api/types'
+import type { DemandMapView } from '../api/types'
 
-const CLASSES = ['A_prime', 'B_prime', 'C_prime']
 const CLASS_LABEL: Record<string, string> = {
   A_prime: "A′",
   B_prime: "B′",
   C_prime: "C′",
 }
 
-type Population = DemandLayersRequest['population'][number]
-
-const EMPTY: Population = {
-  id: '',
-  lat: 45,
-  lon: 0,
-  pop_density_per_km2: 40,
-  terminals_per_capita: 0.02,
-  msgs_per_terminal_day: 4,
-  consumer_class: 'A_prime',
-}
-
-// Зашитого идентификатора карты больше нет (шаг 16 §3.2): по умолчанию
-// берётся ПЕРВАЯ хранимая карта спроса, выбор — из хранимых.
 export function Demand({ demandMapId }: { demandMapId?: string }) {
-  const [library, setLibrary] = useState<ReferenceScenarioRow[]>([])
-  const [populations, setPopulations] = useState<Population[]>([])
-  const [scenarioIds, setScenarioIds] = useState<string[]>([])
   const [view, setView] = useState<DemandMapView | null>(null)
-  const [draft, setDraft] = useState<Population>(EMPTY)
-  const [selected, setSelected] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  /** Показывается хранимая карта, пока инженер не начал собирать свою. */
-  const [editing, setEditing] = useState(false)
   const [storedMaps, setStoredMaps] = useState<StoredSummary[]>([])
   const [mapId, setMapId] = useState<string | undefined>(demandMapId)
+  const [panelOpen, setPanelOpen] = useState(true)
 
   useEffect(() => {
     edit
@@ -59,319 +38,133 @@ export function Demand({ demandMapId }: { demandMapId?: string }) {
   }, [demandMapId])
 
   useEffect(() => {
-    api.demandLibrary().then(setLibrary).catch((e) => setError(String(e)))
-  }, [])
-
-  useEffect(() => {
     setError(null)
-    if (!editing) {
-      if (!mapId) return
-      // Хранимая карта (ADR-021): ячейки и веса из сохранённого документа,
-      // на который ссылается сценарий, а не пересчитанные заново.
-      api.demandStored(mapId).then(setView).catch((e) => setError(String(e)))
-      return
-    }
-    api
-      .demand({ population: populations, point_objects: [], scenario_ids: scenarioIds })
-      .then(setView)
-      .catch((e) => setError(String(e)))
-  }, [mapId, editing, populations, scenarioIds])
+    if (!mapId) return
+    // Хранимая карта (ADR-021): ячейки и веса из сохранённого документа,
+    // на который ссылается сценарий, а не пересчитанные заново.
+    api.demandStored(mapId).then(setView).catch((e) => setError(String(e)))
+  }, [mapId])
 
-  const addPopulation = () => {
-    const id = draft.id.trim()
-    if (!id) return
-    setEditing(true)
-    setPopulations((prev) => [...prev.filter((p) => p.id !== id), { ...draft, id }])
-    setDraft({ ...EMPTY, id: '' })
+  if (storedMaps.length === 0 && !error) {
+    return (
+      <div className="empty">
+        Хранимых карт спроса нет. Данные затравки (популяции, сценарии
+        библиотеки) вносятся в «Инструменты → Затравка спроса»; карта, на
+        которую ссылается сценарий, появится здесь.
+      </div>
+    )
   }
 
-  const toggleScenario = (id: string) => {
-    setEditing(true)
-    setScenarioIds((prev) => (prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]))
-  }
-
-  const contribution = view?.contributions.find((c) => c.id === selected)
+  const latTotal = view?.latitudeProfile.reduce((a, b) => a + b.weight, 0) ?? 0
 
   return (
-    <div className="split">
-      <div className="pane">
-        <div style={{ padding: '8px 8px 0' }}>
-          {editing ? (
-            <button className="tab" onClick={() => setEditing(false)}>
-              ← к хранимой карте
-            </button>
-          ) : (
-            <select
-              value={mapId ?? ''}
-              onChange={(e) => setMapId(e.target.value)}
-              title="карта из модели, на неё ссылается сценарий"
-            >
-              {storedMaps.map((m) => (
-                <option key={m.id} value={m.id}>{m.id}</option>
-              ))}
-            </select>
-          )}
-          <span className="secondary"> Слои: </span>
-          <span className="chip">население {populations.length}</span>
-          {library.map((s) => (
-            <button
-              key={s.id}
-              className="tab"
-              aria-selected={scenarioIds.includes(s.id)}
-              onClick={() => toggleScenario(s.id)}
-              title={`${s.geography} · ${CLASS_LABEL[s.consumerClass] ?? s.consumerClass} · ${s.mobilityModel}`}
-            >
-              {s.name}
-            </button>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0, flex: 1 }}>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '6px 0' }}>
+        <span className="secondary">Карта:</span>
+        <select
+          value={mapId ?? ''}
+          onChange={(e) => setMapId(e.target.value)}
+          title={view ? `карта из модели, на неё ссылается сценарий · версия ${view.version}` : 'карта из модели'}
+        >
+          {storedMaps.map((m) => (
+            <option key={m.id} value={m.id}>{m.id}{m.title ? ` — ${m.title}` : ''}</option>
           ))}
-        </div>
-
-        {error && <div className="warn" style={{ padding: 8 }}>Ошибка: {error}</div>}
-
-        {view && view.cells.length === 0 ? (
-          <div className="empty">
-            Карта пуста: включите сценарий библиотеки или добавьте популяцию справа.
-          </div>
-        ) : (
-          view && (
-            <div style={{ padding: 12 }}>
-              <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                {/* §6.3а: вьюер один на систему — превью спроса тем же
-                    MapView, что ёмкость и запас; интенсивность — от сервера */}
-                <div style={{ flex: 1 }}>
-                  <MapView
-                    height={300}
-                    demandCells={view.cells.map((cell) => ({
-                      id: cell.id,
-                      latDeg: cell.latDeg,
-                      lonDeg: cell.lonDeg,
-                      intensity: cell.intensity,
-                      tip: `${cell.id}: ${cell.msgsPerDay} сообщ./сут, вес ${cell.weight}`,
-                    }))}
-                  />
-                </div>
-                <div style={{ width: 180 }}>
-                  <h3 style={{ fontSize: 13, margin: '0 0 4px' }}>Широтный профиль</h3>
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Пояс</th>
-                        <th style={{ textAlign: 'right' }}>Вес спроса</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {view.latitudeProfile.map((band) => (
-                        <tr key={band.bandDeg}>
-                          <td className="mono">{band.bandDeg}°</td>
-                          <td className="num">{band.weight}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-              <p className="secondary" style={{ marginBottom: 0 }}>
-                Яркость ячейки — доля от максимума карты (посчитана сервером). Проекция
-                равнопромежуточная: у полюсов ячейка выглядит крупнее, чем весит, — вес
-                смотрите в профиле.
-              </p>
-
-              <h3 style={{ fontSize: 13 }}>Ячейки</h3>
-              <table>
-                <thead>
-                  <tr>
-                    <th style={{ width: 90 }}>Ячейка</th>
-                    <th style={{ width: 70 }}>Широта</th>
-                    <th style={{ width: 110 }}>Площадь, км²</th>
-                    <th style={{ width: 130 }}>Сообщ./сут</th>
-                    <th style={{ width: 110 }}>Вес</th>
-                    <th>По классам</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {view.cells.map((cell) => (
-                    <tr key={cell.id} onClick={() => setSelected(cell.id)}>
-                      <td>
-                        <span className="id">{cell.id}</span>
-                      </td>
-                      <td className="num">{cell.latDeg}</td>
-                      <td className="num">{cell.areaKm2}</td>
-                      <td className="num">{cell.msgsPerDay}</td>
-                      <td className="num">{cell.weight}</td>
-                      <td>
-                        {Object.entries(cell.byClass).map(([klass, msgs]) => (
-                          <span key={klass} className="chip">
-                            {CLASS_LABEL[klass] ?? klass} {msgs}
-                          </span>
-                        ))}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )
-        )}
+        </select>
+        <span className="secondary" title="равнопромежуточная проекция при равноплощадной сетке: у полюсов ячейка выглядит крупнее, чем весит — вес пояса читается числом в профиле">
+          проекция равнопромежуточная — вес пояса см. в профиле
+        </span>
+        <div style={{ flex: 1 }} />
+        <button className="rr-assign"
+          title={panelOpen ? 'спрятать сводку — карте всё место' : 'показать сводку и широтный профиль'}
+          onClick={() => setPanelOpen((v) => !v)}>
+          {panelOpen ? 'сводка ⟩' : '⟨ сводка'}
+        </button>
       </div>
-
-      <aside className="pane pane--side">
-        {view && (
-          <div className="card">
-            <h3>Вклад в спрос</h3>
-            <div>
-              <div className="field">
-                <label>Версия карты</label>
-                <span className="mono">{view.version}</span>
-              </div>
-              <div className="field">
-                <label>Всего сообщений в сутки</label>
-                <span className="mono">{view.totalMsgsPerDay}</span>
-              </div>
-              <div className="field">
-                <label>Пик, сообщ./с</label>
-                <span className="mono">{view.peak.msgsPerS}</span>
-                <div className="secondary">
-                  {view.peak.profiled
-                    ? `худший час ${view.peak.hour}, месяц ${view.peak.month}`
-                    : 'профили активности не заданы — активность равномерная'}
+      {error && <div className="warn" style={{ padding: 8 }}>Ошибка: {error}</div>}
+      {view && (
+        <div style={{ display: 'flex', gap: 10, minHeight: 0, flex: 1, alignItems: 'stretch' }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <MapView
+              height="calc(100vh - 230px)"
+              demandCells={view.cells.map((cell) => ({
+                id: cell.id,
+                latDeg: cell.latDeg,
+                lonDeg: cell.lonDeg,
+                halfLatDeg: cell.halfLatDeg,
+                halfLonDeg: cell.halfLonDeg,
+                intensity: cell.intensity,
+                tip: `${cell.id}: ${fmtNum(cell.msgsPerDay)} сообщ./сут · ` +
+                  Object.entries(cell.byClass).map(([k, v]) => `${CLASS_LABEL[k] ?? k} ${fmtNum(v)}`).join(' · '),
+              }))}
+            />
+          </div>
+          {panelOpen && (
+            <aside style={{ width: 280, flex: 'none', overflowY: 'auto' }}>
+              <div className="card">
+                <h3>Сводка спроса</h3>
+                <div>
+                  <div className="field">
+                    <label>Всего сообщений в сутки</label>
+                    <Num v={view.totalMsgsPerDay} />
+                  </div>
+                  <div className="field">
+                    <label>Пик, сообщ./с</label>
+                    <Num v={view.peak.msgsPerS} />
+                    <div className="secondary">
+                      {view.peak.profiled
+                        ? `худший час ${view.peak.hour}, месяц ${view.peak.month}`
+                        : 'профили активности не заданы — активность равномерная'}
+                    </div>
+                  </div>
+                  <div className="field">
+                    <label>Терминалов по классам</label>
+                    {Object.entries(view.terminalsByClass).map(([klass, count]) => (
+                      <div key={klass} style={{ display: 'flex', gap: 6, alignItems: 'baseline' }}>
+                        <span style={{ width: 22 }}>{CLASS_LABEL[klass] ?? klass}</span>
+                        <Num v={count} />
+                      </div>
+                    ))}
+                  </div>
+                  <div className="field">
+                    <label>Сообщений по классам, в сутки</label>
+                    {Object.entries(view.byClass).map(([klass, msgs]) => (
+                      <div key={klass} style={{ display: 'flex', gap: 6, alignItems: 'baseline' }}>
+                        <span style={{ width: 22 }}>{CLASS_LABEL[klass] ?? klass}</span>
+                        <Num v={msgs} />
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
-              <div className="field">
-                <label>Терминалов по классам</label>
-                {Object.entries(view.terminalsByClass).map(([klass, count]) => (
-                  <span key={klass} className="chip">
-                    {CLASS_LABEL[klass] ?? klass} {count}
-                  </span>
-                ))}
+              <div className="card">
+                <h3>Широтный профиль</h3>
+                <div>
+                  <p className="secondary" style={{ margin: '0 0 6px' }}>
+                    вес пояса — долей от всего спроса
+                  </p>
+                  {view.latitudeProfile.filter((b) => b.weight > 0).map((band) => (
+                    <div key={band.bandDeg}
+                      style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '1px 0' }}>
+                      <span className="mono" style={{ width: 40 }}>{band.bandDeg}°</span>
+                      <ShareBar share={latTotal > 0 ? band.weight / latTotal : 0} />
+                    </div>
+                  ))}
+                </div>
               </div>
-              {contribution && (
-                <div className="field">
-                  <label>Доля ячейки {contribution.id}</label>
-                  <span className="mono">{contribution.share}</span>
+              {view.issues.length > 0 && (
+                <div className="card">
+                  <h3>Замечания</h3>
+                  <div>
+                    {view.issues.map((issue) => (
+                      <div key={issue} className="amber">△ {issue}</div>
+                    ))}
+                  </div>
                 </div>
               )}
-            </div>
-          </div>
-        )}
-
-        {view && view.issues.length > 0 && (
-          <div className="card">
-            <h3>Замечания</h3>
-            <div>
-              {view.issues.map((issue) => (
-                <div key={issue} className="amber">
-                  △ {issue}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="card">
-          <h3>Добавить популяцию</h3>
-          <div>
-            <div className="field">
-              <label>Ячейка</label>
-              <input
-                value={draft.id}
-                onChange={(e) => setDraft({ ...draft, id: e.target.value })}
-                placeholder="например, p45"
-              />
-            </div>
-            <div className="field">
-              <label>Широта, °</label>
-              <input
-                type="number"
-                value={draft.lat}
-                onChange={(e) => setDraft({ ...draft, lat: Number(e.target.value) })}
-              />
-            </div>
-            <div className="field">
-              <label>Долгота, °</label>
-              <input
-                type="number"
-                value={draft.lon}
-                onChange={(e) => setDraft({ ...draft, lon: Number(e.target.value) })}
-              />
-            </div>
-            <div className="field">
-              <label>Плотность, чел./км²</label>
-              <input
-                type="number"
-                value={draft.pop_density_per_km2}
-                onChange={(e) =>
-                  setDraft({ ...draft, pop_density_per_km2: Number(e.target.value) })
-                }
-              />
-            </div>
-            <div className="field">
-              <label>Терминалов на жителя</label>
-              <input
-                type="number"
-                step="0.001"
-                value={draft.terminals_per_capita}
-                onChange={(e) =>
-                  setDraft({ ...draft, terminals_per_capita: Number(e.target.value) })
-                }
-              />
-            </div>
-            <div className="field">
-              <label>Сообщений на терминал в сутки</label>
-              <input
-                type="number"
-                value={draft.msgs_per_terminal_day}
-                onChange={(e) =>
-                  setDraft({ ...draft, msgs_per_terminal_day: Number(e.target.value) })
-                }
-              />
-            </div>
-            <div className="field">
-              <label>Класс терминала</label>
-              <div className="tabs">
-                {CLASSES.map((klass) => (
-                  <button
-                    key={klass}
-                    className="tab"
-                    aria-selected={draft.consumer_class === klass}
-                    onClick={() => setDraft({ ...draft, consumer_class: klass })}
-                  >
-                    {CLASS_LABEL[klass]}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <button className="tab" onClick={addPopulation} disabled={!draft.id.trim()}>
-              Добавить популяцию
-            </button>
-          </div>
+            </aside>
+          )}
         </div>
-
-        {populations.length > 0 && (
-          <div className="card">
-            <h3>Популяции</h3>
-            <div>
-              {populations.map((p) => (
-                <div key={p.id} className="field">
-                  <label>{p.id}</label>
-                  <span className="chip">{CLASS_LABEL[p.consumer_class] ?? p.consumer_class}</span>
-                  <button
-                    className="tab"
-                    onClick={() => setPopulations((prev) => prev.filter((x) => x.id !== p.id))}
-                  >
-                    убрать
-                  </button>
-                </div>
-              ))}
-              <p className="secondary">
-                Собранная здесь карта — черновик поверх хранимой. Сохранённая карта
-                <span className="mono"> {demandMapId} </span>
-                остаётся тем, на что ссылается сценарий: подменять её незаметно
-                для расчёта нельзя (ADR-021).
-              </p>
-            </div>
-          </div>
-        )}
-      </aside>
+      )}
     </div>
   )
 }

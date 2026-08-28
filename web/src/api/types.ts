@@ -271,6 +271,8 @@ export interface RiskRegisterView {
 
 /** Ячейка карты. `intensity` — доля от максимума, посчитанная сервером. */
 export interface DemandCellView {
+  halfLatDeg: number
+  halfLonDeg: number
   id: string
   latDeg: number
   lonDeg: number

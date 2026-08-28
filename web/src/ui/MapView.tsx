@@ -44,6 +44,8 @@ export interface DemandPreviewCell {
   id: string
   latDeg: number
   lonDeg: number
+  halfLatDeg: number
+  halfLonDeg: number
   intensity: number
   tip: string
 }
@@ -53,7 +55,7 @@ interface Props {
   view?: CoverageView | null
   /** Слой спроса без выдачи покрытия — превью конструктора карты спроса. */
   demandCells?: DemandPreviewCell[]
-  height?: number
+  height?: number | string
   initialLayers?: Partial<Record<LayerKey, boolean>>
 }
 
@@ -88,19 +90,48 @@ export function MapView({ scenario, view, demandCells, height, initialLayers }: 
       worldCopyJump: true,
       attributionControl: false,
     })
+    // Подложка контурами-линиями с разрезкой по антимеридиану: полигон
+    // России идёт через 180° и рисовался «полосой» поперёк карты
+    // (замечание 28.08 §5); сегмент со скачком долготы >180° разрывается
     const world = feature(
       worldData as unknown as Topology,
       (worldData as unknown as { objects: { countries: GeometryCollection } }).objects.countries,
-    )
-    L.geoJSON(world, {
-      style: { color: '#5b6b7c', weight: 0.6, fillColor: '#22303f', fillOpacity: 1 },
-      interactive: false,
-    }).addTo(map)
+    ) as unknown as { features: Array<{ geometry: { type: string; coordinates: unknown } }> }
+    const rings: number[][][] = []
+    world.features.forEach((f) => {
+      const g = f.geometry
+      if (g.type === 'Polygon') (g.coordinates as number[][][]).forEach((r) => rings.push(r))
+      if (g.type === 'MultiPolygon') {
+        (g.coordinates as number[][][][]).forEach((p) => p.forEach((r) => rings.push(r)))
+      }
+    })
+    rings.forEach((ring) => {
+      let seg: Array<[number, number]> = []
+      const flush = () => {
+        if (seg.length > 1) {
+          L.polyline(seg, { color: '#5b6b7c', weight: 0.6, interactive: false }).addTo(map)
+        }
+        seg = []
+      }
+      ring.forEach(([lon, lat], i) => {
+        if (i > 0) {
+          const prev = ring[i - 1][0]
+          if ((lon > prev ? lon - prev : prev - lon) > 180) flush()
+        }
+        seg.push([lat, lon])
+      })
+      flush()
+    })
     ;(['capacity', 'margin', 'demand', 'masks', 'stations', 'tracks'] as LayerKey[]).forEach((k) => {
       groups.current[k] = L.layerGroup()
     })
     mapRef.current = map
-    return () => { map.remove(); mapRef.current = null; loaded.current.clear() }
+    const onFs = () => setTimeout(() => map.invalidateSize(), 60)
+    document.addEventListener('fullscreenchange', onFs)
+    return () => {
+      document.removeEventListener('fullscreenchange', onFs)
+      map.remove(); mapRef.current = null; loaded.current.clear()
+    }
   }, [])
 
   // слой ёмкости — из данных выдачи покрытия (значения и min/max — сервера)
@@ -185,10 +216,11 @@ export function MapView({ scenario, view, demandCells, height, initialLayers }: 
       })
     } else {
       ;(demandCells ?? []).forEach((c) => {
-        L.circleMarker([c.latDeg, c.lonDeg], {
-          radius: 6, stroke: false, fillColor: '#ffd166',
-          fillOpacity: 0.2 + 0.7 * c.intensity,
-        }).bindTooltip(c.tip, { sticky: true }).addTo(g)
+        L.rectangle(
+          [[c.latDeg - c.halfLatDeg, c.lonDeg - c.halfLonDeg],
+            [c.latDeg + c.halfLatDeg, c.lonDeg + c.halfLonDeg]],
+          { stroke: false, fillColor: '#ffd166', fillOpacity: 0.2 + 0.7 * c.intensity },
+        ).bindTooltip(c.tip, { sticky: true }).addTo(g)
       })
     }
   }, [view, demandCells, demandClass])
@@ -326,6 +358,15 @@ export function MapView({ scenario, view, demandCells, height, initialLayers }: 
         <button className="rr-assign" title="домой: Россия в кадре, север вверху"
           onClick={() => mapRef.current?.setView(HOME.center, HOME.zoom)}>
           ⌂ домой
+        </button>
+        <button className="rr-assign" title="карта на весь экран; Esc — назад"
+          onClick={() => {
+            const el = holder.current
+            if (!el) return
+            if (document.fullscreenElement) void document.exitFullscreen()
+            else void el.requestFullscreen()
+          }}>
+          ⛶ развернуть
         </button>
         {note && <span className="warn">{note}</span>}
       </div>
