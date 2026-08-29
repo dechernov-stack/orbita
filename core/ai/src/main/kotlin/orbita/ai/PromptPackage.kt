@@ -33,6 +33,12 @@ data class PackageKind(
     val requiresMissionIntent: Boolean = false,
     /** Ф-05: источники промпта операции, в порядке их показа предпросмотром. */
     val statementSources: List<String> = emptyList(),
+    /**
+     * Редакция правил вида. Правила меняются (семантика меток источников
+     * была исправлена дословно по записке владельца) — по редакции видно,
+     * какой свод правил породил урожай.
+     */
+    val rulesVersion: Int = 1,
 )
 
 /**
@@ -71,6 +77,7 @@ class PackageKinds(private val kinds: Map<String, PackageKind>) {
                     rules = n.path("rules").map { it.asText() },
                     requiresMissionIntent = n.path("requires_mission_intent").asBoolean(false),
                     statementSources = n.path("statement_sources").map { it.asText() },
+                    rulesVersion = n.path("rules_version").asInt(1),
                 )
             },
         )

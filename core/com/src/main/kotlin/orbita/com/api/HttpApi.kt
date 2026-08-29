@@ -3525,6 +3525,14 @@ class HttpApi(private val boundary: Boundary) {
                     return true
                 }
                 harvest.put("accepted_at_document", sdId)
+                // редакция правил, по которой урожай собран: семантика меток
+                // источников уточнялась — по редакции видно, чей это свод
+                if (!harvest.has("rules_version")) {
+                    harvest.put(
+                        "rules_version",
+                        orbita.ai.PackageKinds.default().of(DocumentHarvest.KIND).rulesVersion,
+                    )
+                }
                 harvest.set<ObjectNode>("summary", DocumentHarvest.summaryOf(harvest))
                 DocumentHarvest.store(filesDir(), sdId, map.path("fingerprint").asText(), harvest)
                 respond(

@@ -191,7 +191,7 @@ class PromptComposer(private val kinds: PackageKinds = PackageKinds.default()) {
             blocks += PromptBlock(
                 "kind", "Правила разбора",
                 buildString {
-                    appendLine("ПРАВИЛА (нарушение любого — брак ответа):")
+                    appendLine("ПРАВИЛА (нарушение любого — брак ответа), редакция ${k.rulesVersion}:")
                     k.rules.forEachIndexed { i, r -> appendLine("${i + 1}. $r") }
                 }.trimEnd(),
             )

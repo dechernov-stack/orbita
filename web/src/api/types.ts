@@ -817,7 +817,8 @@ export interface DocumentHarvestView {
     establishes?: boolean
     need_ref?: boolean
     priority?: boolean
-    /** Ф-08.3: метка утверждения — [И] источник, [В] вывод, [П] предложение. */
+    /** Ф-08.3: метка достоверности — [И] внутренний документ, [В] внешний
+     *  проверенный источник, [П] предлагаемая цель либо допущение. */
     source_mark?: 'И' | 'В' | 'П' 
     scale?: string
     schema_note?: string
