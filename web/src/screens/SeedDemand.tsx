@@ -4,6 +4,7 @@
 // собранное сохраняется хранимой картой, на которую ссылается сценарий.
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
+import { GeoMasks } from './GeoMasks'
 import { MapView } from '../ui/MapView'
 import { Num, fmtNum } from '../ui/Num'
 import type { DemandLayersRequest, DemandMapView, ReferenceScenarioRow } from '../api/types'
@@ -98,7 +99,10 @@ export function SeedDemand() {
           <div className="empty">Включите сценарий библиотеки или добавьте популяцию — предпросмотр соберётся сервером.</div>
         )}
       </div>
-      <aside style={{ width: 260, flex: 'none', overflowY: 'auto' }}>
+      <aside style={{ width: 300, flex: 'none', overflowY: 'auto' }}>
+        {/* Д2: области приоритета из документов — заготовками, с разрывом
+            границы, пока её не задал инженер */}
+        <GeoMasks />
         <div className="card">
           <h3>Добавить популяцию</h3>
           <div>

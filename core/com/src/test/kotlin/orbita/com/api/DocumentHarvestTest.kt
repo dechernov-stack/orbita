@@ -1,8 +1,11 @@
-// Д2, приёмка: урожай смыслового разбора — ЭТАЛОННЫЙ пакет владельца
-// (пачка-1/ПАКЕТ-РАЗБОР-ЗАПИСКИ.json, шаг Б2 ПМИ) проходит нормативную
-// схему, даёт эталонные счётчики по классам и раскладывается по адресам:
-// стейкхолдеры на полку А2, ограничения в паспорт Р-кодом, суммы — каноном
-// денег; нормативы без реквизитов НЕ создаются — это разрыв, не выдумка.
+// Д2, приёмка — на СИНТЕТИКЕ (решение владельца): пакет урожая строит сам
+// тест, по девяти классам плюс один класс вне схемы (мера правила 9).
+// Примеры владельца в репозитории не лежат — репозиторий публичен.
+//
+// Меры: пакет проходит нормативную схему; счётчики по классам считаются;
+// урожай раскладывается по адресам — стейкхолдеры на полку А2, ограничения
+// в паспорт Р-кодом, суммы каноном денег, география маской-заготовкой, этап
+// вехой без даты; нормативы без реквизитов НЕ создаются — это разрыв.
 package orbita.com.api
 
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -16,16 +19,41 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
-import java.nio.file.Files
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class DocumentHarvestTest {
 
     private val mapper = ObjectMapper()
     private val boundary = Boundary(SchemaRegistry(RepoPaths.schemasDir()), TestDb.conn)
-    private val batch = RepoPaths.repoRoot().resolve("docs/tz/manual-run-2/пачка-1")
-    private val harvest by lazy {
-        mapper.readTree(Files.readString(batch.resolve("ПАКЕТ-РАЗБОР-ЗАПИСКИ.json"))) as ObjectNode
+    /** Урожай-фикстура: девять классов схемы плюс класс вне перечня. */
+    private val harvest: ObjectNode by lazy {
+        mapper.readTree(
+            """
+            {"kind":"document_semantic_parse","source_document":"SD-0003",
+             "parser":"фикстура приёмки",
+             "items":[
+               {"class":"stakeholder","name":"Минтранс России",
+                "role":"адресат, инициатор программы","block":["b0","b8"]},
+               {"class":"stakeholder","name":"Единый центр мониторинга",
+                "establishes":true,"block":["b12"]},
+               {"class":"normative_ref","statement":"Оснащение транспорта, перевозящего опасные грузы",
+                "need_ref":true,"block":["b2"]},
+               {"class":"service","name":"Цифровой контроль перевозок опасных грузов","block":["b2"]},
+               {"class":"goal","statement":"100% отслеживаемость критических грузов",
+                "measure":{"value":1.0,"unit":"1"},"horizon":2033,"block":["b13"]},
+               {"class":"need","statement":"Массовая передача обязательной телеметрии","block":["b1","b2"]},
+               {"class":"milestone","name":"Этап 1: MVP","span":{"min":0,"max":2,"unit":"год"},
+                "fleet":{"value":50,"unit":"шт","approx":true},"block":["b4"]},
+               {"class":"budget","statement":"Инвестиции этапа 1",
+                "range":{"min":7,"max":9,"unit":"млрд ₽"},
+                "canonical":{"min":7000,"max":9000,"unit":"млн ₽"},"block":["b7"]},
+               {"class":"geography","name":"Арктика","priority":true,"block":["b3","b11"]},
+               {"class":"constraint","statement":"Приоритетное покрытие логистических коридоров","block":["b9"]},
+               {"class":"evaluation_criterion","name":"Востребованность через спутник","scale":"1–10",
+                "schema_note":"класс вне перечня — расширение схемы документом (правило 9)","anchor":"s1"}
+             ]}
+            """.trimIndent(),
+        ) as ObjectNode
     }
 
     @BeforeEach
@@ -44,22 +72,22 @@ class DocumentHarvestTest {
         harvest.path("items").filter { it.path("class").asText() == cls }[at]
 
     @Test
-    fun `эталонный пакет владельца проходит нормативную схему`() {
+    fun `пакет урожая проходит нормативную схему, класс вне перечня — тоже`() {
         val problems = boundary.schemaProblems("core/document-harvest", harvest)
-        assertTrue(problems.isEmpty()) { "пакет ПМИ Б2 не по схеме: ${problems.take(3)}" }
+        assertTrue(problems.isEmpty()) { "пакет не по схеме: ${problems.take(3)}" }
+        // правило 9: сущность вне известных классов несёт schema_note и живёт
+        val extra = harvest.path("items").first { it.path("class").asText() == "evaluation_criterion" }
+        assertTrue(extra.path("schema_note").asText().isNotBlank())
     }
 
     @Test
-    fun `счётчики по классам совпадают с эталонными`() {
+    fun `счётчики по классам считаются, включая пометку «уточнить обозначение»`() {
         val summary = DocumentHarvest.summaryOf(harvest)
-        val reference = harvest.path("summary")
-        reference.properties().forEach { (cls, expected) ->
-            assertEquals(expected.asInt(), summary.path(cls).asInt()) { "класс $cls" }
-        }
-        // меры решения Д2: ≥6 стейкхолдеров, 6 нормативов «уточнить», сумма
-        assertTrue(summary.path("stakeholder").asInt() >= 6)
-        assertEquals(6, summary.path("need_ref_flags").asInt())
+        assertEquals(2, summary.path("stakeholder").asInt())
+        assertEquals(1, summary.path("normative_ref").asInt())
+        assertEquals(1, summary.path("need_ref_flags").asInt())
         assertEquals(1, summary.path("budget").asInt())
+        assertEquals(1, summary.path("evaluation_criterion").asInt())
     }
 
     @Test
@@ -136,15 +164,51 @@ class DocumentHarvestTest {
     }
 
     @Test
-    fun `география и вехи адресуются, но объектами не становятся`() {
-        listOf("geography", "milestone").forEach { cls ->
-            assertEquals(null, DocumentHarvest.TARGETS[cls]?.type) { "$cls не объект" }
-            assertTrue(DocumentHarvest.TARGETS[cls]?.where?.isNotBlank() == true) { "$cls без адреса" }
-            assertEquals(
-                null,
-                DocumentHarvest.objectOf(item(cls), mapper.createObjectNode(), "SD-0003", "3", "З", "2026-08-29"),
-            )
+    fun `география - область-заготовка с приоритетом и БЕЗ геометрии`() {
+        val doc = DocumentHarvest.objectOf(
+            item("geography"), mapper.createObjectNode(), "SD-0003", "3", "Записка", "2026-08-29",
+        )!!
+        val stored = boundary.editing.create(CoreType.GeoMask, doc, "инженер", "PJ-1801")
+        val saved = boundary.objects.current(stored.id)!!.doc
+        assertEquals("Арктика", saved.path("name").asText())
+        assertTrue(saved.path("priority").asBoolean()) { "приоритет документа потерян" }
+        assertTrue(saved.path("geometry").isMissingNode) {
+            "граница выдумана: контур «Арктики» из слова был бы витриной"
         }
+        assertTrue("b3" in saved.path("provenance").path("import").path("item_ref").asText())
+    }
+
+    @Test
+    fun `область без границы - разрыв готовности карты спроса, а не тишина`() {
+        val doc = DocumentHarvest.objectOf(
+            item("geography"), mapper.createObjectNode(), "SD-0003", "3", "Записка", "2026-08-29",
+        )!!
+        boundary.editing.create(CoreType.GeoMask, doc, "инженер", "PJ-1801")
+        val checks = boundary.gatePassing.readiness("MCR", "PJ-1801")
+        val gap = checks.first { it.id == "geo_masks" }
+        assertEquals("open", gap.state)
+        assertTrue("Арктика" in gap.note) { gap.note }
+        assertEquals("seeddemand", gap.place)
+    }
+
+    @Test
+    fun `веха этапа - без даты, с примечанием-происхождением`() {
+        val m = DocumentHarvest.milestoneOf(item("milestone"), "SD-0003")
+        assertEquals("Этап 1: MVP", m.path("gate").asText())
+        assertTrue(m.path("due").isMissingNode) { "дата вычислена — этого делать нельзя" }
+        assertTrue(m.path("duration_days").isMissingNode) { "длительность документа стала планом" }
+        val note = m.path("note").asText()
+        assertTrue("0–2 год" in note && "SD-0003" in note && "b4" in note) { note }
+
+        // веха ложится в ленту паспорта и не ломает правило порядка дат
+        val passport = boundary.objects.current("PJ-1801")!!
+        val lane = (passport.doc.path("milestones").deepCopy() as com.fasterxml.jackson.databind.node.ArrayNode)
+        lane.add(m)
+        val changes = mapper.createObjectNode()
+        changes.set<com.fasterxml.jackson.databind.node.ArrayNode>("milestones", lane)
+        boundary.editing.update(CoreType.Project, "PJ-1801", changes, passport.version, "инженер")
+        val saved = boundary.objects.current("PJ-1801")!!.doc.path("milestones")
+        assertTrue(saved.any { it.path("gate").asText() == "Этап 1: MVP" && !it.has("due") })
     }
 
     @Test

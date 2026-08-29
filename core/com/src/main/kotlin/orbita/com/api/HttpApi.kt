@@ -1869,7 +1869,8 @@ class HttpApi(private val boundary: Boundary) {
                 try {
                     boundary.transaction {
                         val constraints = ready.filter { it.cls == "constraint" }
-                        ready.filter { it.cls != "constraint" }.forEach { r ->
+                        val milestones = ready.filter { it.cls == "milestone" }
+                        ready.filter { it.cls != "constraint" && it.cls != "milestone" }.forEach { r ->
                             val doc = DocumentHarvest.objectOf(
                                 r.item, r.filled, sdId, sd.version, sdName, java.time.LocalDate.now().toString(),
                             )
@@ -1888,20 +1889,37 @@ class HttpApi(private val boundary: Boundary) {
                             created.addObject().put("index", r.index).put("class", r.cls)
                                 .put("id", stored.id).put("where", DocumentHarvest.TARGETS[r.cls]!!.where)
                         }
-                        if (constraints.isNotEmpty()) {
+                        // паспорт правится ОДНОЙ версией: ограничения Р-кодами
+                        // и вехи-заготовки без дат — обе ленты сразу
+                        if (constraints.isNotEmpty() || milestones.isNotEmpty()) {
                             val passport = boundary.objects.current(ctx)
                                 ?: throw NoSuchElementException("project '$ctx' not found")
-                            val list = (passport.doc.path("constraints").deepCopy() as? ArrayNode)
-                                ?: mapper.createArrayNode()
-                            constraints.forEach { r ->
-                                val c = DocumentHarvest.constraintOf(r.item, list, sdId)
-                                list.add(c)
-                                created.addObject().put("index", r.index).put("class", r.cls)
-                                    .put("id", c.path("code").asText())
-                                    .put("where", DocumentHarvest.TARGETS["constraint"]!!.where)
-                            }
                             val changes = mapper.createObjectNode()
-                            changes.set<ArrayNode>("constraints", list)
+                            if (constraints.isNotEmpty()) {
+                                val list = (passport.doc.path("constraints").deepCopy() as? ArrayNode)
+                                    ?: mapper.createArrayNode()
+                                constraints.forEach { r ->
+                                    val c = DocumentHarvest.constraintOf(r.item, list, sdId)
+                                    list.add(c)
+                                    created.addObject().put("index", r.index).put("class", r.cls)
+                                        .put("id", c.path("code").asText())
+                                        .put("where", DocumentHarvest.TARGETS["constraint"]!!.where)
+                                }
+                                changes.set<ArrayNode>("constraints", list)
+                            }
+                            if (milestones.isNotEmpty()) {
+                                val list = (passport.doc.path("milestones").deepCopy() as? ArrayNode)
+                                    ?: mapper.createArrayNode()
+                                milestones.forEach { r ->
+                                    val m = DocumentHarvest.milestoneOf(r.item, sdId)
+                                    val gate = m.path("gate").asText()
+                                    if (list.none { it.path("gate").asText() == gate }) list.add(m)
+                                    created.addObject().put("index", r.index).put("class", r.cls)
+                                        .put("id", gate)
+                                        .put("where", DocumentHarvest.TARGETS["milestone"]!!.where)
+                                }
+                                changes.set<ArrayNode>("milestones", list)
+                            }
                             boundary.editing.update(
                                 CoreType.Project, ctx, changes, passport.version, by,
                                 changeRef = "акцепт урожая смыслового разбора $sdId",

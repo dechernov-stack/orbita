@@ -38,8 +38,9 @@ class SchemaValidationTest {
         // 45-я — saved-view (Т-1: сохранённые виды реестра);
         // 46-я — task (МВП-П1); 47-я — unit-registry (справочник единиц);
         // 48-я — glossary (Ф-03: смысловые подсказки — данными полки);
-        // 49-я — document-harvest (Д2: схема ответа смыслового разбора)
-        assertEquals(49, registry.names.size, "нормативных схем должно быть 49: ${registry.names}")
+        // 49-я — document-harvest (Д2: схема ответа смыслового разбора);
+        // 50-я — geo-mask (Д2: область карты спроса заготовкой, без геометрии)
+        assertEquals(50, registry.names.size, "нормативных схем должно быть 50: ${registry.names}")
     }
 
     @Test

@@ -236,6 +236,23 @@ class GatePassing(
             if (risks.isEmpty()) "0 объектов — рисков не заведено" else "${risks.size} в реестре",
             "risks", blocking = false, closedNote = "${risks.size} в реестре",
         )
+        // Д2 (ответ владельца): область приоритета, принятая из документа,
+        // живёт заготовкой — имя есть, границы нет. Пустота не тихая: она
+        // разрыв готовности карты спроса, и его закрывает инженер границей.
+        val masks = boundary.objects.listCurrent(projectId)
+            .filter { it.type == "geo_mask" && it.status.name != "Cancelled" }
+        val maskless = masks.count { !it.doc.path("geometry").isObject }
+        if (masks.isNotEmpty()) {
+            add(
+                "geo_masks", "statement", "Области приоритета обведены границей",
+                maskless,
+                "$maskless из ${masks.size} без геометрии: " +
+                    masks.filter { !it.doc.path("geometry").isObject }
+                        .joinToString(", ") { it.doc.path("name").asText(it.id) },
+                "seeddemand", blocking = false,
+                closedNote = "${masks.size} с границей",
+            )
+        }
         val oda = boundary.objects.listCurrent(projectId).count { it.type == "oda" }
         add(
             "oda", "risks", "Оценка орбитального засорения присутствует",

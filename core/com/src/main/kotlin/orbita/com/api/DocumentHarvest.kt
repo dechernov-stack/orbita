@@ -88,13 +88,16 @@ object DocumentHarvest {
             gaps = listOf(HarvestGap("need_ref", "нужда, которую сервис закрывает (traces_up)")),
             note = "сервис без нужды и QoS схему не проходит — сначала нужда",
         ),
+        // Ответ владельца: ни «руками», ни автоматикой — ЗАГОТОВКА с честной
+        // пустотой. Объект создаётся, значение не выдумывается; пустота видима
+        // и приглашает там, где она разрыв.
         "geography" to HarvestTarget(
-            null, "маски карты спроса",
-            note = "география документа — приоритет покрытия; маску задаёт инженер в затравке спроса",
+            CoreType.GeoMask, "карта спроса — область приоритета заготовкой",
+            note = "имя и приоритет из документа; геометрия не задана — разрыв готовности карты спроса, границу рисует инженер",
         ),
         "milestone" to HarvestTarget(
-            null, "лента вех паспорта",
-            note = "этап документа несёт длительность, а не дату: веху с датой ставит инженер",
+            null, "лента вех паспорта — веха без даты",
+            note = "длительность документа в дату не превращается: веха ложится с примечанием-происхождением, дата — тихий дефис до руки инженера",
         ),
     )
 
@@ -211,6 +214,14 @@ object DocumentHarvest {
                 quantity(doc.putObject("total_high"), high, sdId, sdVersion, sdName, acceptedOn, item)
                 doc.put("basis", "величина из документа $sdId, блок ${blocksOf(item).joinToString(", ")}")
             }
+            CoreType.GeoMask -> {
+                doc.put("name", item.path("name").asText("").ifBlank { text })
+                if (item.path("priority").asBoolean(false)) doc.put("priority", true)
+                val said = item.path("statement").asText("")
+                if (said.isNotBlank()) doc.put("note", said)
+                // геометрии НЕТ намеренно: контур «Арктики» из слова был бы
+                // витриной. Пустота видна разрывом готовности карты спроса.
+            }
             CoreType.Service -> {
                 doc.put("name", item.path("name").asText("").ifBlank { text })
                 doc.put("description", text)
@@ -276,6 +287,33 @@ object DocumentHarvest {
             .put("code", "Р${top + 1}")
             .put("text", item.path("statement").asText("").ifBlank { item.path("name").asText("") })
             .put("source", "$sdId, блоки ${blocksOf(item).joinToString(", ")}")
+    }
+
+    /**
+     * Веха программы из кандидата: имя этапа воротами ленты, происхождение —
+     * примечанием, дата НЕ ЗАДАЁТСЯ. Длительность документа («0–2 года») в
+     * дату не превращается: планирование сроками умерло решением О-10 и через
+     * документ не воскресает.
+     */
+    fun milestoneOf(item: JsonNode, sdId: String): ObjectNode {
+        val name = item.path("name").asText("").ifBlank { item.path("statement").asText("") }
+        val said = buildString {
+            item.path("statement").takeIf { it.isTextual }?.let { append(it.asText()).append("; ") }
+            val span = item.path("span")
+            if (span.isObject) {
+                append("длительность по документу ")
+                append(span.path("min").asText("")).append("–").append(span.path("max").asText(""))
+                append(" ").append(span.path("unit").asText("")).append("; ")
+            }
+            val fleet = item.path("fleet")
+            if (fleet.isObject) {
+                append(if (fleet.path("approx").asBoolean(false)) "около " else "")
+                append(fleet.path("value").asText("")).append(" ")
+                append(fleet.path("unit").asText("")).append("; ")
+            }
+            append("источник $sdId, блоки ").append(blocksOf(item).joinToString(", "))
+        }
+        return mapper.createObjectNode().put("gate", name).put("note", said)
     }
 
     /** Кандидаты, готовые к раскладке без вопросов инженеру. */

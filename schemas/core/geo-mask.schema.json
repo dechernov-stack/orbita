@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/core/geo-mask.schema.json",
+  "title": "GeoMask",
+  "description": "Географическая область карты спроса: приоритет покрытия, названный документом или инженером. Область СОЗДАЁТСЯ именем и происхождением, геометрия может отсутствовать — это законная и видимая пустота: «геометрия не задана» становится разрывом в готовности карты спроса, который закрывает инженер. Автополигон по названию из текста не рисуется: выдуманная граница выглядела бы как знание.",
+  "type": "object",
+  "required": ["id", "name", "lifecycle"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^GM-[0-9]{4}$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Как область названа в источнике: «Арктика», «Северный морской путь»"
+    },
+    "priority": {
+      "type": "boolean",
+      "description": "Приоритет покрытия по источнику (документ назвал область приоритетной)"
+    },
+    "note": {
+      "type": "string",
+      "description": "Что сказано об области в источнике — дословно, без обобщения"
+    },
+    "geometry": {
+      "type": "object",
+      "description": "Граница области. Отсутствует — область-заготовка: разрыв готовности, а не ошибка.",
+      "required": ["kind"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": ["bbox", "polygon", "cap"],
+          "description": "bbox — прямоугольник по широте и долготе; polygon — контур; cap — круг вокруг точки"
+        },
+        "lat_min_deg": { "type": "number", "minimum": -90, "maximum": 90 },
+        "lat_max_deg": { "type": "number", "minimum": -90, "maximum": 90 },
+        "lon_min_deg": { "type": "number", "minimum": -180, "maximum": 180 },
+        "lon_max_deg": { "type": "number", "minimum": -180, "maximum": 180 },
+        "center_lat_deg": { "type": "number", "minimum": -90, "maximum": 90 },
+        "center_lon_deg": { "type": "number", "minimum": -180, "maximum": 180 },
+        "radius_km": { "type": "number", "exclusiveMinimum": 0 },
+        "points": {
+          "type": "array",
+          "minItems": 3,
+          "description": "Контур: пары [широта, долгота] в градусах",
+          "items": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": { "type": "number" }
+          }
+        }
+      }
+    },
+    "lifecycle": { "$ref": "https://kis.local/schemas/common/status.schema.json" },
+    "provenance": { "$ref": "https://kis.local/schemas/common/provenance.schema.json" }
+  }
+}
