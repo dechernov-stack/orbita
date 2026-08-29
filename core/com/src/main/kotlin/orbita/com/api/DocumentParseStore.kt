@@ -86,7 +86,10 @@ object DocumentParseStore {
         val dir = dirOf(filesDir, sdId)
         if (!Files.isDirectory(dir)) return null
         Files.list(dir).use { stream ->
-            return stream.filter { it.fileName.toString().endsWith(suffix) }
+            return stream
+                // рядом лежит урожай Д2 (<отпечаток>.harvest.json) — он тоже
+                // .json, но это ДРУГОЙ слой: карту им подменять нельзя
+                .filter { val n = it.fileName.toString(); n.endsWith(suffix) && !n.endsWith(".harvest.json") }
                 .max(compareBy { Files.getLastModifiedTime(it) })
                 .orElse(null)
         }

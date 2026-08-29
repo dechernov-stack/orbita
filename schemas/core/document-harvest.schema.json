@@ -1,0 +1,281 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/core/document-harvest.schema.json",
+  "title": "DocumentHarvest",
+  "description": "Д2 (ADR-032): урожай смыслового разбора документа — кандидаты сущностей с координатами блоков канона. Один вызов службы на документ, по всем классам сразу: тип документа — подсказка приоритетов, не фильтр. Урожай — не объекты модели: он раскладывается по адресам системы акцептом (стейкхолдеры на полку А2, нормативы кандидатами, сервисы и цели в постановку, суммы каноном денег).",
+  "type": "object",
+  "required": [
+    "kind",
+    "source_document",
+    "items"
+  ],
+  "properties": {
+    "kind": {
+      "const": "document_semantic_parse",
+      "description": "Вид пакета — реестр prompt-package-kinds"
+    },
+    "source_document": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Источник урожая: идентификатор SD-NNNN либо описание документа, как его назвал разборщик. Привязка к карточке — адресом маршрута приёма, а не этим полем."
+    },
+    "parser": {
+      "type": "string",
+      "description": "Кто разобрал: модель службы либо «прототип-вручную»"
+    },
+    "canonical_text": {
+      "type": "string",
+      "description": "Носитель текста — MD-канон разбора Д1; здесь только ссылка на него"
+    },
+    "structure": {
+      "type": "array",
+      "description": "Оглавление блоков — как его видел разборщик (справочно; истина — карта Д1)",
+      "items": {
+        "type": "object"
+      }
+    },
+    "items": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Кандидаты. Класс — по смыслу; перечень известных классов расширяем (правило 9 промпта Д2): сущность вне списка несёт schema_note и не выбрасывается молча.",
+      "items": {
+        "type": "object",
+        "required": [
+          "class"
+        ],
+        "properties": {
+          "class": {
+            "type": "string",
+            "minLength": 1,
+            "description": "stakeholder · normative_ref · service · goal · need · milestone · budget · geography · constraint · иной по смыслу"
+          },
+          "block": {
+            "description": "Координата основания: якорь блока канона (b7, s2, t1#15) либо их список",
+            "oneOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            ]
+          },
+          "name": {
+            "type": "string",
+            "description": "Имя сущности, как названо в документе"
+          },
+          "statement": {
+            "type": "string",
+            "description": "Формулировка, как сказано в документе"
+          },
+          "role": {
+            "type": "string",
+            "description": "Стейкхолдер: его роль по документу"
+          },
+          "establishes": {
+            "type": "boolean",
+            "description": "Сущность, которую документ УЧРЕЖДАЕТ (её ещё не существует)"
+          },
+          "need_ref": {
+            "type": "boolean",
+            "description": "Норматив без реквизитов: обозначение уточняет инженер — готовый разрыв, не выдумка модели"
+          },
+          "international": {
+            "type": "boolean"
+          },
+          "priority": {
+            "type": "boolean",
+            "description": "География: приоритет покрытия по документу"
+          },
+          "measure": {
+            "oneOf": [
+              {
+                "$ref": "#/$defs/quantity"
+              },
+              {
+                "$ref": "#/$defs/span"
+              }
+            ],
+            "description": ""
+          },
+          "fleet": {
+            "oneOf": [
+              {
+                "$ref": "#/$defs/quantity"
+              },
+              {
+                "$ref": "#/$defs/span"
+              }
+            ],
+            "description": ""
+          },
+          "range": {
+            "$ref": "#/$defs/span"
+          },
+          "span": {
+            "$ref": "#/$defs/span"
+          },
+          "span_from": {
+            "description": "Открытый диапазон: «5+ лет» — величина без верхней границы",
+            "oneOf": [
+              {
+                "$ref": "#/$defs/quantity"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          },
+          "horizon": {
+            "type": "integer",
+            "description": "Год-горизонт целевого значения"
+          },
+          "horizon_note": {
+            "type": "string"
+          },
+          "canonical": {
+            "description": "Величина каноном справочника единиц — приёмник хранит её",
+            "oneOf": [
+              {
+                "$ref": "#/$defs/quantity"
+              },
+              {
+                "$ref": "#/$defs/span"
+              }
+            ]
+          },
+          "scores": {
+            "type": "object",
+            "description": "Оценки и шкалы таблиц — структурой, не текстом (правило 10)",
+            "additionalProperties": {
+              "type": "number"
+            }
+          },
+          "scale": {
+            "type": "string",
+            "description": "Шкала критерия оценки («1–10»)"
+          },
+          "schema_note": {
+            "type": "string",
+            "description": "Класс вне известного перечня: чем он является по смыслу"
+          },
+          "note": {
+            "type": "string"
+          },
+          "anchor": {
+            "description": "Синоним block: одиночная координата блока",
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "block"
+            ]
+          },
+          {
+            "required": [
+              "anchor"
+            ]
+          }
+        ],
+        "description": "Координата основания обязательна: поле block (правило 2 промпта Д2) либо его синоним anchor — ручные эталоны пишут и так, и так."
+      }
+    },
+    "derived": {
+      "type": "array",
+      "description": "Вычисленное (топы, суммы, сортировки) — ОТДЕЛЬНО от сказанного автором (правило 11)",
+      "items": {
+        "type": "object",
+        "required": [
+          "kind",
+          "derived"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "derived": {
+            "const": true
+          },
+          "note": {
+            "type": "string"
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "schema_note": {
+      "type": "string"
+    },
+    "note": {
+      "type": "string"
+    },
+    "summary": {
+      "type": "object",
+      "description": "Счётчики по классам — ими сверяют урожай с эталоном",
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "quantity": {
+      "type": "object",
+      "required": [
+        "value"
+      ],
+      "properties": {
+        "value": {
+          "type": "number"
+        },
+        "unit": {
+          "type": "string"
+        },
+        "approx": {
+          "type": "boolean",
+          "description": "«около 50 аппаратов» — приблизительность автора"
+        }
+      },
+      "additionalProperties": false
+    },
+    "span": {
+      "type": "object",
+      "required": [
+        "min",
+        "max"
+      ],
+      "properties": {
+        "min": {
+          "type": "number"
+        },
+        "max": {
+          "type": "number"
+        },
+        "unit": {
+          "type": "string"
+        },
+        "approx": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

@@ -9,6 +9,7 @@ import { api } from '../api/client'
 import { edit, type StoredSummary } from '../api/edit'
 import { Num } from '../ui/Num'
 import { useSession } from '../ui/session'
+import { DocHarvest } from './DocHarvest'
 import type { DocumentParseMap } from '../api/types'
 
 const TYPE_LABEL: Record<string, string> = {
@@ -29,6 +30,8 @@ export function DocParse({ documentId }: { documentId?: string }) {
   const [map, setMap] = useState<DocumentParseMap | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  /** Д2: смысловой урожай — вкладкой рядом с детерминированным разбором. */
+  const [tab, setTab] = useState<'parse' | 'harvest'>('parse')
 
   useEffect(() => {
     edit.list('source_document')
@@ -92,6 +95,14 @@ export function DocParse({ documentId }: { documentId?: string }) {
             </span>
           </>
         )}
+        <button className="tab" aria-selected={tab === 'parse'} onClick={() => setTab('parse')}
+          title="что система увидела сама, без службы: оглавление, величины, нормативы">
+          Разбор
+        </button>
+        <button className="tab" aria-selected={tab === 'harvest'} onClick={() => setTab('harvest')}
+          title="урожай смыслового разбора: кандидаты сущностей с координатами и акцепт по адресам">
+          Найдено в документе
+        </button>
         <div style={{ flex: 1 }} />
         <button className="rr-assign" disabled={busy || !id} onClick={reparse}
           title="пересчитать разбор: нужен документам, загруженным до появления разбора, и после смены версии разборщика">
@@ -105,7 +116,15 @@ export function DocParse({ documentId }: { documentId?: string }) {
         </div>
       )}
 
-      {map && s && (
+      {tab === 'harvest' && id && <DocHarvest documentId={id} />}
+
+      {tab === 'parse' && map && !s && (
+        <div className="warn" style={{ padding: 8 }}>
+          Разбор старой версии — сводки нет. Нажмите «переразобрать».
+        </div>
+      )}
+
+      {tab === 'parse' && map && s && (
         <>
           <div className="card">
             <h3>Что система увидела сама</h3>
@@ -127,8 +146,7 @@ export function DocParse({ documentId }: { documentId?: string }) {
                 нормативов <Num v={s.normative_candidates} />
               </span>
               <span className="secondary" title="канон несёт весь текст документа: потери нет">
-                текста {s.source_chars.toLocaleString('ru-RU')} знаков → канон{' '}
-                {s.canon_chars.toLocaleString('ru-RU')}
+                текста <Num v={s.source_chars} /> знаков → канон <Num v={s.canon_chars} />
               </span>
             </div>
           </div>

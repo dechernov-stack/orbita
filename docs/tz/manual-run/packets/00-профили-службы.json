@@ -12,7 +12,8 @@
         "needs_to_services",
         "services_to_requirements",
         "risk_register",
-        "requirement_enrichment"
+        "requirement_enrichment",
+        "document_semantic_parse"
       ],
       "transport": "any",
       "model_hint": "claude-sonnet-5",

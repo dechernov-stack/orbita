@@ -26,6 +26,9 @@ data class PackageKind(
     /** Виды, чья поимённая выборка нужна операции (СТАРТ-В3 §1);
         остальное уходит агрегатом — счётчик и занятый диапазон id. */
     val contextTypes: List<String> = emptyList(),
+    /** Правила задания, специфичные виду (Д2: 11 правил разбора документа).
+        Живут в реестре видов — расширение перечня не трогает код. */
+    val rules: List<String> = emptyList(),
 )
 
 /**
@@ -61,6 +64,7 @@ class PackageKinds(private val kinds: Map<String, PackageKind>) {
                     targetSchema = n.path("target_schema").takeIf { it.isTextual }?.asText(),
                     targetPointer = n.path("target_pointer").takeIf { it.isTextual }?.asText(),
                     contextTypes = n.path("context_types").map { it.asText() },
+                    rules = n.path("rules").map { it.asText() },
                 )
             },
         )

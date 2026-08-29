@@ -300,6 +300,10 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
     fun schemaProblems(type: CoreType, doc: JsonNode): List<ValidationError> =
         if (type == CoreType.Interface) emptyList() else registry.validate(type.schemaName, doc)
 
+    /** Проверка по имени схемы: Д2 — ответ службы схемой без объекта модели. */
+    fun schemaProblems(schemaName: String, doc: JsonNode): List<ValidationError> =
+        registry.validate(schemaName, doc)
+
     fun schemaNames(): List<String> = registry.names
 
     /** Схема вида как документ — правке нужны обязательные поля (шаг 15). */

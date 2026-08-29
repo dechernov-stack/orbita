@@ -799,3 +799,38 @@ export interface DocumentParseMap {
     canon_chars: number
   }
 }
+
+/** Д2: урожай смыслового разбора и адреса его раскладки. */
+export interface DocumentHarvestView {
+  kind: string
+  source_document: string
+  parser?: string
+  note?: string
+  schema_note?: string
+  items: Array<{
+    class: string
+    block?: string | string[]
+    anchor?: string
+    name?: string
+    statement?: string
+    role?: string
+    establishes?: boolean
+    need_ref?: boolean
+    priority?: boolean
+    scale?: string
+    schema_note?: string
+    scores?: Record<string, number>
+    horizon?: number
+    /** Готовит сервер: величина каноном строкой и координаты блоков строкой. */
+    display?: string
+    blocks_label?: string
+  }>
+  derived?: Array<{ kind: string; derived: true; note?: string; rows?: Array<Record<string, unknown>> }>
+  summary: Record<string, number>
+  targets: Record<string, {
+    where: string
+    type: string
+    note?: string
+    gaps: Array<{ field: string; prompt: string; options: string[] }>
+  }>
+}

@@ -1,256 +1,260 @@
 {
- "$schema": "https://json-schema.org/draft/2020-12/schema",
- "$id": "https://kis.local/schemas/core/project.schema.json",
- "title": "Project",
- "description": "Проект как объект (Шаг 17 C4): фаза жизненного цикла и перечень контрольных точек с плановыми датами. Реестр ворот остаётся источником планок статусов; проект говорит, какие точки и когда.",
- "type": "object",
- "required": [
-  "id",
-  "name",
-  "phase",
-  "milestones",
-  "lifecycle"
- ],
- "additionalProperties": false,
- "properties": {
-  "id": {
-   "type": "string",
-   "pattern": "^PJ-[0-9]{4}$"
-  },
-  "name": {
-   "type": "string",
-   "minLength": 1
-  },
-  "phase": {
-   "type": "string",
-   "enum": [
-    "pre_phase_a",
-    "phase_a"
-   ]
-  },
-  "mission_class": {
-   "type": "string",
-   "description": "Класс миссии (мастер-путь «Начало проекта», Ш1); определяет наборы библиотеки"
-  },
-  "constraints": {
-   "type": "array",
-   "description": "Ограничения проекта (Ш1): уходят в запреты службы ИИ и проверки",
-   "items": {
-    "type": "object",
-    "additionalProperties": false,
-    "required": [
-     "text"
-    ],
-    "properties": {
-     "code": {
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/core/project.schema.json",
+  "title": "Project",
+  "description": "Проект как объект (Шаг 17 C4): фаза жизненного цикла и перечень контрольных точек с плановыми датами. Реестр ворот остаётся источником планок статусов; проект говорит, какие точки и когда.",
+  "type": "object",
+  "required": [
+    "id",
+    "name",
+    "phase",
+    "milestones",
+    "lifecycle"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
       "type": "string",
-      "description": "Короткий код — Р1, Р2…"
-     },
-     "text": {
+      "pattern": "^PJ-[0-9]{4}$"
+    },
+    "name": {
       "type": "string",
       "minLength": 1
-     },
-     "category": {
+    },
+    "phase": {
       "type": "string",
-      "description": "Семантика группы — полем, не буквой кода (техническое/программное/пусковое)"
-     },
-     "removed": {
-      "type": "boolean",
-      "description": "Мягкая отмена с историей (Ф-02): след решения ценен для точки; жёсткого удаления нет"
-     },
-     "removed_by": {
-      "type": "string"
-     },
-     "removed_at": {
-      "type": "string"
-     }
+      "enum": [
+        "pre_phase_a",
+        "phase_a"
+      ]
+    },
+    "mission_class": {
+      "type": "string",
+      "description": "Класс миссии (мастер-путь «Начало проекта», Ш1); определяет наборы библиотеки"
+    },
+    "constraints": {
+      "type": "array",
+      "description": "Ограничения проекта (Ш1): уходят в запреты службы ИИ и проверки",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "text"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Короткий код — Р1, Р2…"
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1
+          },
+          "category": {
+            "type": "string",
+            "description": "Семантика группы — полем, не буквой кода (техническое/программное/пусковое)"
+          },
+          "removed": {
+            "type": "boolean",
+            "description": "Мягкая отмена с историей (Ф-02): след решения ценен для точки; жёсткого удаления нет"
+          },
+          "removed_by": {
+            "type": "string"
+          },
+          "removed_at": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string",
+            "description": "След источника (Д2): документ и блоки, из которых ограничение принято акцептом урожая"
+          }
+        }
+      }
+    },
+    "start_path": {
+      "type": "object",
+      "description": "Состояние мастер-пути «Начало проекта»: путь, не клетка — выйти и вернуться можно всегда",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "step"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "in_progress",
+            "done",
+            "skipped"
+          ]
+        },
+        "step": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3
+        },
+        "source_ref": {
+          "type": "string",
+          "pattern": "^SD-[0-9]{4}$",
+          "description": "Постановка миссии, выбранная на Ш2"
+        },
+        "profile_ref": {
+          "type": "string",
+          "pattern": "^AP-[0-9]{4}$",
+          "description": "Профиль службы, собранный на Ш3"
+        }
+      }
+    },
+    "purpose": {
+      "type": "string",
+      "description": "Назначение проекта: раздел «Введение» выпускаемых документов (БП-PA, Приложение 2, §1). Пустое — разрыв документа, а не молчаливо пустой раздел."
+    },
+    "scope": {
+      "type": "string",
+      "description": "Область: что входит в проект и что за его границами. Тот же §1."
+    },
+    "applicable_documents": {
+      "type": "array",
+      "description": "Применимые документы: нормативные и программные основания, на которые ссылается комплект. Тот же §1.",
+      "items": {
+        "type": "object",
+        "required": [
+          "code",
+          "title"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "revision": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "milestones": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "gate"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "gate": {
+            "type": "string",
+            "minLength": 1
+          },
+          "due": {
+            "type": "string",
+            "format": "date",
+            "description": "Плановая дата, ISO"
+          },
+          "held": {
+            "type": "boolean",
+            "description": "Точка пройдена"
+          },
+          "held_at": {
+            "type": "string",
+            "description": "Когда точка пройдена, ISO"
+          },
+          "phase": {
+            "type": "string",
+            "description": "Фаза ЖЦ вехи (Phase B, Phase C…) — для вех за горизонтом Формулирования"
+          },
+          "duration_days": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Длительность этапа ДО этой вехи от предыдущей, дней. Планирование ведётся длительностями: дата вехи выводится цепочкой от последнего якоря (явной due); сдвинулся якорь — хвост пересчитался. Явная due у вехи — якорь, она сильнее расчёта"
+          }
+        }
+      },
+      "description": "Контрольные точки — ЕДИНЫЙ ряд жизненного цикла: точки Формулирования (ИС ведёт их воротами) и плановые вехи Phase B–F за горизонтом (PDR, CDR, запуск… — ИС их не проводит, но план проекта обязан их показывать). Стандартный набор дальних вех добавляется кнопкой на «Жизненном цикле»"
+    },
+    "lifecycle": {
+      "$ref": "https://kis.local/schemas/common/status.schema.json"
+    },
+    "provenance": {
+      "$ref": "https://kis.local/schemas/common/provenance.schema.json"
+    },
+    "return": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "Действующий возврат (ADR-029 п. 5): пока не снят, прохождение точек отклоняется",
+      "required": [
+        "gate",
+        "to",
+        "reason",
+        "decided_by",
+        "at"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "gate": {
+          "type": "string",
+          "minLength": 1
+        },
+        "to": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "decided_by": {
+          "type": "string",
+          "minLength": 1
+        },
+        "at": {
+          "type": "string"
+        }
+      }
+    },
+    "gate_tailoring": {
+      "type": "array",
+      "description": "Tailoring готовности (О-11): проверка объявлена неприменимой к точке — с обоснованием, автором и датой; отмена возможна (запись убирается процедурой)",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "gate",
+          "check",
+          "rationale",
+          "author",
+          "at"
+        ],
+        "properties": {
+          "gate": {
+            "type": "string"
+          },
+          "check": {
+            "type": "string"
+          },
+          "rationale": {
+            "type": "string",
+            "minLength": 10
+          },
+          "author": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string"
+          }
+        }
+      }
     }
-   }
-  },
-  "start_path": {
-   "type": "object",
-   "description": "Состояние мастер-пути «Начало проекта»: путь, не клетка — выйти и вернуться можно всегда",
-   "additionalProperties": false,
-   "required": [
-    "status",
-    "step"
-   ],
-   "properties": {
-    "status": {
-     "enum": [
-      "in_progress",
-      "done",
-      "skipped"
-     ]
-    },
-    "step": {
-     "type": "integer",
-     "minimum": 1,
-     "maximum": 3
-    },
-    "source_ref": {
-     "type": "string",
-     "pattern": "^SD-[0-9]{4}$",
-     "description": "Постановка миссии, выбранная на Ш2"
-    },
-    "profile_ref": {
-     "type": "string",
-     "pattern": "^AP-[0-9]{4}$",
-     "description": "Профиль службы, собранный на Ш3"
-    }
-   }
-  },
-  "purpose": {
-   "type": "string",
-   "description": "Назначение проекта: раздел «Введение» выпускаемых документов (БП-PA, Приложение 2, §1). Пустое — разрыв документа, а не молчаливо пустой раздел."
-  },
-  "scope": {
-   "type": "string",
-   "description": "Область: что входит в проект и что за его границами. Тот же §1."
-  },
-  "applicable_documents": {
-   "type": "array",
-   "description": "Применимые документы: нормативные и программные основания, на которые ссылается комплект. Тот же §1.",
-   "items": {
-    "type": "object",
-    "required": [
-     "code",
-     "title"
-    ],
-    "additionalProperties": false,
-    "properties": {
-     "code": {
-      "type": "string",
-      "minLength": 1
-     },
-     "title": {
-      "type": "string",
-      "minLength": 1
-     },
-     "revision": {
-      "type": "string"
-     }
-    }
-   }
-  },
-  "milestones": {
-   "type": "array",
-   "minItems": 1,
-   "items": {
-    "type": "object",
-    "required": [
-     "gate"
-    ],
-    "additionalProperties": false,
-    "properties": {
-     "gate": {
-      "type": "string",
-      "minLength": 1
-     },
-     "due": {
-      "type": "string",
-      "format": "date",
-      "description": "Плановая дата, ISO"
-     },
-     "held": {
-      "type": "boolean",
-      "description": "Точка пройдена"
-     },
-     "held_at": {
-      "type": "string",
-      "description": "Когда точка пройдена, ISO"
-     },
-     "phase": {
-      "type": "string",
-      "description": "Фаза ЖЦ вехи (Phase B, Phase C…) — для вех за горизонтом Формулирования"
-     },
-     "duration_days": {
-      "type": "integer",
-      "minimum": 1,
-      "description": "Длительность этапа ДО этой вехи от предыдущей, дней. Планирование ведётся длительностями: дата вехи выводится цепочкой от последнего якоря (явной due); сдвинулся якорь — хвост пересчитался. Явная due у вехи — якорь, она сильнее расчёта"
-     }
-    }
-   },
-   "description": "Контрольные точки — ЕДИНЫЙ ряд жизненного цикла: точки Формулирования (ИС ведёт их воротами) и плановые вехи Phase B–F за горизонтом (PDR, CDR, запуск… — ИС их не проводит, но план проекта обязан их показывать). Стандартный набор дальних вех добавляется кнопкой на «Жизненном цикле»"
-  },
-  "lifecycle": {
-   "$ref": "https://kis.local/schemas/common/status.schema.json"
-  },
-  "provenance": {
-   "$ref": "https://kis.local/schemas/common/provenance.schema.json"
-  },
-  "return": {
-   "type": [
-    "object",
-    "null"
-   ],
-   "description": "Действующий возврат (ADR-029 п. 5): пока не снят, прохождение точек отклоняется",
-   "required": [
-    "gate",
-    "to",
-    "reason",
-    "decided_by",
-    "at"
-   ],
-   "additionalProperties": false,
-   "properties": {
-    "gate": {
-     "type": "string",
-     "minLength": 1
-    },
-    "to": {
-     "type": "array",
-     "minItems": 1,
-     "items": {
-      "type": "string",
-      "minLength": 1
-     }
-    },
-    "reason": {
-     "type": "string",
-     "minLength": 1
-    },
-    "decided_by": {
-     "type": "string",
-     "minLength": 1
-    },
-    "at": {
-     "type": "string"
-    }
-   }
-  },
-  "gate_tailoring": {
-   "type": "array",
-   "description": "Tailoring готовности (О-11): проверка объявлена неприменимой к точке — с обоснованием, автором и датой; отмена возможна (запись убирается процедурой)",
-   "items": {
-    "type": "object",
-    "additionalProperties": false,
-    "required": [
-     "gate",
-     "check",
-     "rationale",
-     "author",
-     "at"
-    ],
-    "properties": {
-     "gate": {
-      "type": "string"
-     },
-     "check": {
-      "type": "string"
-     },
-     "rationale": {
-      "type": "string",
-      "minLength": 10
-     },
-     "author": {
-      "type": "string"
-     },
-     "at": {
-      "type": "string"
-     }
-    }
-   }
   }
- }
 }

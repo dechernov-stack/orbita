@@ -174,6 +174,17 @@ class PromptComposer(private val kinds: PackageKinds = PackageKinds.default()) {
                 }
             }.trimEnd(),
         )
+        // Правила вида пакета (Д2): «нарушение любого — брак ответа».
+        // Они специфичны операции, а не профилю, и живут в реестре видов.
+        if (k.rules.isNotEmpty()) {
+            blocks += PromptBlock(
+                "kind", "Правила разбора",
+                buildString {
+                    appendLine("ПРАВИЛА (нарушение любого — брак ответа):")
+                    k.rules.forEachIndexed { i, r -> appendLine("${i + 1}. $r") }
+                }.trimEnd(),
+            )
+        }
         blocks += PromptBlock(
             "input", "Вход операции",
             buildString {

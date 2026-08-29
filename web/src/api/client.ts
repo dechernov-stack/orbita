@@ -37,6 +37,7 @@ import type {
   UnitLabels,
   WizardStep,
   DocumentParseMap,
+  DocumentHarvestView,
 } from './types'
 
 import { withProject } from './project'
@@ -306,6 +307,27 @@ export const api = {
   sdCanonUrl: (id: string) => withProject(`/api/sd-parse/${encodeURIComponent(id)}/canon`),
   /** Д1: переразбор (документы до Д1 и смена версии разборщика). */
   sdReparse: (id: string) => post<{ id: string; parsed: string }>(`/sd-parse/${encodeURIComponent(id)}`, {}),
+  /** Д2: промпт смыслового разбора — собирает система (правила + карточка + выжимка). */
+  sdHarvestPrompt: (id: string) =>
+    get<{
+      document: string; profile: string; kind: string
+      blocks: Array<{ source: string; title: string; text: string }>
+      text: string
+    }>(`/sd-parse/${encodeURIComponent(id)}/harvest/prompt`),
+  /** Д2: приём урожая пакетом (закрытый контур, шаг Б2 ПМИ). */
+  sdHarvestPut: (id: string, raw: string) =>
+    post<{ document: string; items: number; summary: Record<string, number> }>(
+      `/sd-parse/${encodeURIComponent(id)}/harvest`, { raw },
+    ),
+  /** Д2: урожай документа с адресами раскладки. */
+  sdHarvest: (id: string) => get<DocumentHarvestView>(`/sd-parse/${encodeURIComponent(id)}/harvest`),
+  /** Д2: акцепт урожая по адресам — дозаполнение приходит от инженера. */
+  sdHarvestAccept: (id: string, selected: Array<{ index: number; filled?: Record<string, string> }>, author: string) =>
+    post<{
+      document: string
+      created: Array<{ index: number; class: string; id: string; where: string }>
+      refused: Array<{ index: number; class?: string; why: string }>
+    }>(`/sd-parse/${encodeURIComponent(id)}/harvest/accept`, { selected, author }),
   /** В3: кто я — режим учёток, пользователь и его роли по проектам. */
   whoami: () =>
     get<{ enabled: boolean; user?: { login: string; display_name: string; roles: Record<string, string> } }>(
