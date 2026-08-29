@@ -37,6 +37,10 @@ export function AiService({ onGo }: { onGo?: (screen: string) => void }) {
   const [kind, setKind] = useState(KINDS[0].id)
   const [statement, setStatement] = useState('')
   const [prompt, setPrompt] = useState<string | null>(null)
+  /** Ф-05: состав промпта по источникам — счётчики и пустые строки. */
+  const [sources, setSources] = useState<
+    Array<{ key: string; title: string; count: number; empty: boolean; note?: string }> | null
+  >(null)
   const [transport, setTransport] = useState<string>('')
   const [raw, setRaw] = useState('')
   const [report, setReport] = useState<AiRunReport | null>(null)
@@ -78,7 +82,7 @@ export function AiService({ onGo }: { onGo?: (screen: string) => void }) {
     setReport(null)
     setBatch(null)
     api.aiCompose(kind, profile, statement)
-      .then((r) => { setPrompt(r.prompt); setTransport(r.transport) })
+      .then((r) => { setPrompt(r.prompt); setTransport(r.transport); setSources(r.sources ?? null) })
       .catch((e) => setError(String(e)))
   }
 
@@ -304,6 +308,31 @@ export function AiService({ onGo }: { onGo?: (screen: string) => void }) {
             </div>
           )}
         </div>
+
+        {sources && (
+          <div className="card">
+            <h3>Состав промпта по источникам</h3>
+            <div>
+              <p className="secondary" style={{ marginTop: 0 }}>
+                Промпт собирается из данных проекта и полок. Пустой источник не
+                исчезает — он назван строкой: видно, чего в промпте нет.
+              </p>
+              {sources.map((src) => (
+                <div key={src.key}
+                  style={{ display: 'flex', gap: 8, alignItems: 'baseline', padding: '2px 0' }}>
+                  <span style={{ minWidth: 210 }}>{src.title}</span>
+                  {src.empty ? (
+                    <span className="amber" title={src.note ?? 'источник пуст'}>— пусто</span>
+                  ) : (
+                    <span className="mono" title="позиций вошло в промпт">{src.count}</span>
+                  )}
+                  {src.note && !src.empty && <span className="secondary">{src.note}</span>}
+                  {src.empty && src.note && <span className="secondary">{src.note}</span>}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {prompt && (
           <div className="card">

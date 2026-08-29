@@ -29,6 +29,10 @@ data class PackageKind(
     /** Правила задания, специфичные виду (Д2: 11 правил разбора документа).
         Живут в реестре видов — расширение перечня не трогает код. */
     val rules: List<String> = emptyList(),
+    /** Ф-05: виду нужен замысел миссии — без него генерация заблокирована. */
+    val requiresMissionIntent: Boolean = false,
+    /** Ф-05: источники промпта операции, в порядке их показа предпросмотром. */
+    val statementSources: List<String> = emptyList(),
 )
 
 /**
@@ -65,6 +69,8 @@ class PackageKinds(private val kinds: Map<String, PackageKind>) {
                     targetPointer = n.path("target_pointer").takeIf { it.isTextual }?.asText(),
                     contextTypes = n.path("context_types").map { it.asText() },
                     rules = n.path("rules").map { it.asText() },
+                    requiresMissionIntent = n.path("requires_mission_intent").asBoolean(false),
+                    statementSources = n.path("statement_sources").map { it.asText() },
                 )
             },
         )

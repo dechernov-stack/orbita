@@ -25,6 +25,15 @@ interface GateRow {
   phase?: string
   open_count?: number
   overdue?: boolean
+  /** Ф-01: опору календаря считает сервер — точка, от которой открывается
+   *  эта; на границе фаз это последняя точка предыдущей фазы. */
+  opens_from?: {
+    gate: string
+    label?: string
+    due?: string
+    phase_boundary?: boolean
+    note?: string
+  }
 }
 
 interface GatesView {
@@ -108,14 +117,6 @@ export function Lifecycle({ project, onGo }: {
       .finally(() => setBusy(false))
   }
 
-  const anchorFor = (i: number): string | undefined => {
-    for (let j = i - 1; j >= 0; j--) {
-      const d = gates[j].due
-      if (d) return d
-    }
-    return undefined
-  }
-
   const sp = view.passport?.start_path
   const counts = sp?.created_counts ?? {}
 
@@ -151,11 +152,17 @@ export function Lifecycle({ project, onGo }: {
                   <div className="lc2-dt">
                     <DateInput
                       iso={g.due ?? ''}
-                      anchor={anchorFor(i)}
-                      name={g.gate}
+                      anchor={g.opens_from?.due}
+                      anchorName={g.opens_from?.label ?? g.opens_from?.gate}
+                      name={g.label ?? g.gate}
                       width={136}
                       onChange={(v) => void setDue(g.gate, v)}
                     />
+                    {g.opens_from?.phase_boundary && (
+                      <div className="secondary" title={g.opens_from.note}>
+                        граница фаз: от {g.opens_from.label ?? g.opens_from.gate}
+                      </div>
+                    )}
                   </div>
                 )}
                 {past && g.decision_rationale && (

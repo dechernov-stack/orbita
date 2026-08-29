@@ -359,9 +359,13 @@ export const api = {
     withProject(`/api/export/documents/${code}/print.${fmt}${issue ? `?issue=${encodeURIComponent(issue)}` : ''}`),
   /** Ответ несёт и blocks — атрибуцию источников для предпросмотра (О-4). */
   aiCompose: (kind: string, profile: string, statement: string) =>
-    post<{ profile: string; profile_version: string; transport: string; require_source: boolean; prompt: string }>(
-      '/ai/compose', { kind, profile, statement },
-    ),
+    post<{
+      profile: string; profile_version: string; transport: string
+      require_source: boolean; prompt: string
+      blocks?: Array<{ source: string; title: string; text: string }>
+      /** Ф-05: состав промпта по источникам — со счётчиками и пустыми. */
+      sources?: Array<{ key: string; title: string; count: number; empty: boolean; note?: string }>
+    }>('/ai/compose', { kind, profile, statement }),
   /** Прямой вызов провайдера — основной транспорт. */
   aiAsk: (kind: string, profile: string, statement: string, author: string) =>
     post<AiRunReport>('/ai/ask', { kind, profile, statement, author }),

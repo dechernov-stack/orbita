@@ -41,7 +41,10 @@ class AiServiceTest {
         TestDb.conn.createStatement().use { it.execute("DELETE FROM ai_calls") }
         boundary.ingest(
             orbita.mod.model.CoreType.Project,
+            // Ф-05: у видов постановки промпт без замысла миссии не
+            // собирается — замысел входит в фикстуру проекта службы
             """{"id":"$PROJECT","name":"Служба","phase":"pre_phase_a",
+                "mission_intent":{"text":"Группировка передаёт телеметрию перевозчикам в Арктике к 2033 году."},
                 "milestones":[{"gate":"MCR"}],"lifecycle":{"status":"Draft","version":"1"}}""",
         )
         boundary.ingest(orbita.mod.model.CoreType.AiProfile, PROFILE, "test", PROJECT)

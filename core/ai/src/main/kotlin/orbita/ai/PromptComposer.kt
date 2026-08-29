@@ -64,6 +64,17 @@ data class ModelContext(
     val existing: Map<String, List<String>>,
     /** Постановка миссии либо иной вход операции — от инженера. */
     val statement: String,
+    /** Ф-05: источники промпта операции — данными, с именем и содержимым.
+        Пустой источник печатается строкой «— пусто»: видно, чего нет. */
+    val sources: List<ContextSource> = emptyList(),
+)
+
+/** Источник промпта: имя, счётчик и строки — как их собрал сервер. */
+data class ContextSource(
+    val key: String,
+    val title: String,
+    val lines: List<String>,
+    val note: String? = null,
 )
 
 class PromptComposer(private val kinds: PackageKinds = PackageKinds.default()) {
@@ -182,6 +193,21 @@ class PromptComposer(private val kinds: PackageKinds = PackageKinds.default()) {
                 buildString {
                     appendLine("ПРАВИЛА (нарушение любого — брак ответа):")
                     k.rules.forEachIndexed { i, r -> appendLine("${i + 1}. $r") }
+                }.trimEnd(),
+            )
+        }
+        // Ф-05: источники операции — данными полок и проекта, не общими
+        // словами. Пустой источник печатается: «— пусто» честнее тишины.
+        if (context.sources.isNotEmpty()) {
+            blocks += PromptBlock(
+                "sources", "Данные операции",
+                buildString {
+                    context.sources.forEach { s ->
+                        appendLine("${s.title.uppercase()} (${s.lines.size}):")
+                        if (s.lines.isEmpty()) appendLine("— пусто${s.note?.let { ": $it" } ?: ""}")
+                        s.lines.forEach { appendLine("— $it") }
+                        appendLine()
+                    }
                 }.trimEnd(),
             )
         }

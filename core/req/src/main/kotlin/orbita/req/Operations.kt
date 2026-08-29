@@ -55,6 +55,15 @@ class Operations(
     fun ofGate(gate: String): List<Operation> = registry.filter { it.gate == gate }
 
     /**
+     * Фаза точки — из реестра операций (Ф-01, второй пункт): по ней видно
+     * границу фаз, и от последней точки предыдущей фазы открывается календарь
+     * первой точки следующей. Дальние точки (Phase B–F) — из горизонта.
+     */
+    fun phaseOfGate(gate: String): String? =
+        registry.firstOrNull { it.gate == gate }?.phase
+            ?: LifecycleOutlook.default().firstOrNull { it.first == gate }?.second
+
+    /**
      * Состояние операций фазы по снимкам объектов проекта (ADR-029 п. 6):
      * не «строки есть», а «выход достиг требуемого статуса».
      */

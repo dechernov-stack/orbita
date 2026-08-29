@@ -641,6 +641,19 @@ class HttpApi(private val boundary: Boundary) {
                         .put("title", b.title)
                         .put("text", b.text)
                 }
+                // Ф-05: состав промпта ПО ИСТОЧНИКАМ со счётчиками — пустой
+                // источник виден строкой, а не исчезает: инженер сразу знает,
+                // чего в промпте нет и откуда это взять
+                val sourcesArr = n.putArray("sources")
+                StatementSources(boundary).of(req.path("kind").asText(), requireProject(project))
+                    .forEach { src ->
+                        val o = sourcesArr.addObject()
+                            .put("key", src.key)
+                            .put("title", src.title)
+                            .put("count", src.count)
+                            .put("empty", src.empty)
+                        src.note?.let { o.put("note", it) }
+                    }
                 respond(ex, 200, n)
             }
 
@@ -1527,19 +1540,51 @@ class HttpApi(private val boundary: Boundary) {
                     // длительность — производная (интервал), отдельно не
                     // хранится, не редактируется и дат больше не выводит
                     var prevDate: java.time.LocalDate? = null
+                    // Ф-01, второй пункт: опору календаря считает СЕРВЕР —
+                    // веха открывается от предыдущей ЗАДАННОЙ точки, а первая
+                    // точка фазы — от последней точки предыдущей фазы, и это
+                    // называется вслух (граница фаз перестаёт быть невидимой).
+                    val ops = orbita.req.Operations()
+                    // предыдущая точка ленты (её имя и её дата) — она и есть
+                    // опора: на границе фаз это последняя точка предыдущей фазы
+                    var prevGateName: String? = null
+                    var prevGateDue: java.time.LocalDate? = null
+                    var prevPhase: String? = null
                     projectObj.doc.path("milestones").forEach { m ->
+                        val gateName = m.path("gate").asText()
                         val anchor = m.path("due").asText("").takeIf { it.isNotBlank() }
                             ?.let { runCatching { java.time.LocalDate.parse(it) }.getOrNull() }
                         val held = m.path("held").asBoolean(false)
+                        val phaseOfGate = m.path("phase").asText("").takeIf { it.isNotBlank() }
+                            ?: ops.phaseOfGate(gateName)
+                        val boundaryOfPhase = prevPhase != null && phaseOfGate != null && phaseOfGate != prevPhase
                         val g = gates.addObject()
-                            .put("gate", m.path("gate").asText())
+                            .put("gate", gateName)
                             .put("due", anchor?.toString())
                             .put("held", held)
                             // дальняя веха (Phase B–F) — план в едином ряду
                             // точек: показывается, но воротами не ведётся
-                            .put("in_scope", m.path("gate").asText() in known)
+                            .put("in_scope", gateName in known)
+                        // опора: точка, от которой открывается календарь этой
+                        val opensFromGate = prevGateName
+                        if (opensFromGate != null) {
+                            val from = g.putObject("opens_from")
+                            from.put("gate", opensFromGate)
+                            from.put("label", boundary.req.gateLabel(opensFromGate))
+                            // дата опоры — дата ИМЕННО той точки; её нет —
+                            // календарь опирается на ближайшую заданную ранее
+                            (prevGateDue ?: prevDate)?.let { from.put("due", it.toString()) }
+                            if (boundaryOfPhase) {
+                                from.put("phase_boundary", true)
+                                from.put(
+                                    "note",
+                                    "граница фаз: ${phaseOfGate ?: "фаза"} открывается от точки " +
+                                        boundary.req.gateLabel(opensFromGate),
+                                )
+                            }
+                        }
                         m.path("held_at").asText("").takeIf { it.isNotBlank() }?.let { g.put("held_at", it) }
-                        m.path("phase").asText("").takeIf { it.isNotBlank() }?.let { g.put("phase", it) }
+                        phaseOfGate?.let { g.put("phase", it) }
                         if (anchor != null && prevDate != null) {
                             g.put(
                                 "days_from_prev",
@@ -1547,7 +1592,10 @@ class HttpApi(private val boundary: Boundary) {
                             )
                         }
                         if (anchor != null && !held && anchor.isBefore(today)) g.put("overdue", true)
+                        prevGateName = gateName
+                        prevGateDue = anchor
                         prevDate = anchor ?: prevDate
+                        phaseOfGate?.let { prevPhase = it }
                     }
                     // О-10: пройденной вехе — решение прохождения; ближайшей —
                     // счётчик незакрытого (без конфигурации — честно нет)

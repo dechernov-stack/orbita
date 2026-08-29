@@ -54,7 +54,21 @@ class AiService(
      * видами, которые вид пакета берёт на вход, — пакет с полным проектом
      * внутри и дороже, и хуже.
      */
-    fun context(projectId: String, statement: String): ModelContext {
+    private val statementSources by lazy { StatementSources(boundary) }
+
+    /**
+     * Ф-05: генерация постановки без замысла миссии заблокирована — промпт
+     * без него даёт общие места. Проверка живёт здесь, у сборки промпта, и
+     * потому одинаково срабатывает и на предпросмотре, и на вызове модели.
+     * Пакетный канал (вставка готового пакета) не затронут.
+     */
+    fun requireStatementReady(kind: String, projectId: String) {
+        statementSources.refusalFor(kind, projectId)?.let {
+            throw IllegalArgumentException(it)
+        }
+    }
+
+    fun context(projectId: String, statement: String, kind: String? = null): ModelContext {
         val project = boundary.objects.current(projectId)
         // §6 СТРУКТУРЫ-БИБЛИОТЕКИ: compose тянет и полки — профили
         // стейкхолдеров, типовые риски, нормативы живут в области LIB,
@@ -76,6 +90,11 @@ class AiService(
                 }
             },
             statement = statement,
+            sources = kind?.let { k ->
+                statementSources.of(k, projectId).map {
+                    orbita.ai.ContextSource(it.key, it.title, it.lines, it.note)
+                }
+            } ?: emptyList(),
         )
     }
 
@@ -89,10 +108,22 @@ class AiService(
         else boundary.packages.build(kind, mapper.createObjectNode(), "служба").responseSchema
         val effective = if (kind == ENRICHMENT_KIND) enrichmentStatement(projectId, statement)
         else statement
-        return p to composer.composeBlocks(kind, p, context(projectId, effective), schema)
+        requireStatementReady(kind, projectId)
+        return p to composer.composeBlocks(kind, p, context(projectId, effective, kind), schema)
     }
 
-    fun compose(kind: String, profileId: String, projectId: String, statement: String): Pair<AiProfile, String> {
+    /**
+     * @param enforceReady Ф-05: требовать замысел миссии. Пакетный канал
+     * (готовый пакет вносится без вызова модели) проверкой не затронут —
+     * там промпт собирается лишь для журнала.
+     */
+    fun compose(
+        kind: String,
+        profileId: String,
+        projectId: String,
+        statement: String,
+        enforceReady: Boolean = true,
+    ): Pair<AiProfile, String> {
         val p = profile(profileId, projectId)
         // схема ответа — из пакета: прямой канал шлёт модели только текст,
         // и без схемы она отвечает своей формой
@@ -100,7 +131,8 @@ class AiService(
         else boundary.packages.build(kind, mapper.createObjectNode(), "служба").responseSchema
         val effective = if (kind == ENRICHMENT_KIND) enrichmentStatement(projectId, statement)
         else statement
-        return p to composer.compose(kind, p, context(projectId, effective), schema)
+        if (enforceReady) requireStatementReady(kind, projectId)
+        return p to composer.compose(kind, p, context(projectId, effective, kind), schema)
     }
 
     /**
@@ -313,7 +345,7 @@ class AiService(
             "нет профиля службы, разрешающего вид «$kind» — добавьте вид в профиль",
         )
         val p = profile(profileId, projectId)
-        val prompt = compose(kind, profileId, projectId, "").second
+        val prompt = compose(kind, profileId, projectId, "", enforceReady = false).second
         val itemsJson = mapper.writeValueAsString(items)
         val screened = screen(itemsJson, kind, p)
         val pk = calls.record(

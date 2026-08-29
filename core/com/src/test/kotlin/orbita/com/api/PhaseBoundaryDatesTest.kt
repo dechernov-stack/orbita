@@ -52,6 +52,26 @@ class PhaseBoundaryDatesTest {
     }
 
     @Test
+    fun `опора календаря через границу фаз - первая точка Phase A открывается от KDP-A`() {
+        boundary.ingest(CoreType.Project, project(srr = null, kdpA = "2026-09-18"), "test", "PJ-1701")
+        val ops = orbita.req.Operations()
+        // фазы точек знает реестр операций, не клиент
+        assertEquals("pre_phase_a", ops.phaseOfGate("KDP-A"))
+        assertEquals("phase_a", ops.phaseOfGate("SRR"))
+
+        val lane = boundary.objects.current("PJ-1701")!!.doc.path("milestones")
+        val gateNames = lane.map { it.path("gate").asText() }
+        val srrAt = gateNames.indexOf("SRR")
+        // первая точка новой фазы стоит сразу за последней точкой прежней:
+        // от неё и открывается её календарь
+        assertEquals("KDP-A", gateNames[srrAt - 1])
+        assertEquals(
+            "pre_phase_a",
+            ops.phaseOfGate(gateNames[srrAt - 1]),
+        ) { "опорой первой точки Phase A обязана быть точка Pre-A" }
+    }
+
+    @Test
     fun `равенство на границе законно - KDP-A и SRR в один день`() {
         val stored = boundary.ingest(
             CoreType.Project, project(srr = "2026-09-18", kdpA = "2026-09-18"), "test", "PJ-1701",

@@ -106,6 +106,10 @@ export function StartPath({ project, onGo, onDone }: {
   const [step, setStep] = useState(1)
   const [missionClass, setMissionClass] = useState('')
   const [constraints, setConstraints] = useState<Constraint[]>([])
+  /** Ф-05: замысел миссии — без него генерация постановки заблокирована. */
+  const [intent, setIntent] = useState<{
+    for_whom?: string; what?: string; where?: string; horizon?: string; text?: string
+  }>({})
   const [adding, setAdding] = useState('')
   const [docs, setDocs] = useState<SourceDocRow[] | null>(null)
   /** Библиотека: исходные документы других проектов (ADR-030). */
@@ -158,9 +162,13 @@ export function StartPath({ project, onGo, onDone }: {
           mission_class?: string
           constraints?: Constraint[]
           start_path?: PathState
+          mission_intent?: {
+            for_whom?: string; what?: string; where?: string; horizon?: string; text?: string
+          }
         }
         setMissionClass(doc.mission_class ?? '')
         setConstraints(doc.constraints ?? [])
+        setIntent(doc.mission_intent ?? {})
         const sp = doc.start_path
         // шаг за пределами 1..3 отсекает схема паспорта — доверяем ей
         if (sp && sp.status === 'in_progress') setStep(sp.step)
@@ -317,27 +325,42 @@ export function StartPath({ project, onGo, onDone }: {
    * over — значения свежее state (автосохранение правки ограничений). */
   const save = useCallback(async (
     path: PathState,
-    over?: { constraints?: Constraint[]; missionClass?: string },
+    over?: {
+      constraints?: Constraint[]
+      missionClass?: string
+      intent?: { for_whom?: string; what?: string; where?: string; horizon?: string; text?: string }
+    },
   ) => {
     const cons = over?.constraints ?? constraints
     const mc = over?.missionClass ?? missionClass
+    const mi = over?.intent ?? intent
     const fresh = await edit.object(project)
     const doc = { ...(fresh.doc as Record<string, unknown>) }
     doc.mission_class = mc.trim() || undefined
     if (doc.mission_class === undefined) delete doc.mission_class
     if (cons.length > 0) doc.constraints = cons
     else delete doc.constraints
+    // Ф-05: замысел миссии — поле паспорта; пустые поля не хранятся
+    const intentDoc = Object.fromEntries(
+      Object.entries(mi).filter(([, v]) => (v ?? '').trim() !== ''),
+    )
+    if (Object.keys(intentDoc).length > 0) doc.mission_intent = intentDoc
+    else delete doc.mission_intent
     doc.start_path = {
       ...path,
       ...(promptDocs.size > 0 ? { source_refs: [...promptDocs] } : {}),
       ...(Object.keys(applied).length > 0 ? { created_counts: sumCounts(applied) } : {}),
     }
     return edit.changeWithRef(project, doc, CHANGE_REF)
-  }, [project, missionClass, constraints, promptDocs, applied])
+  }, [project, missionClass, constraints, intent, promptDocs, applied])
 
   /** А2 ПМИ-2: «сохраняется само» — правка ограничений и класса пишется в
    * паспорт сразу, а не при смене шага; уход с экрана ничего не теряет. */
-  const saveNow = (over: { constraints?: Constraint[]; missionClass?: string }) => {
+  const saveNow = (over: {
+    constraints?: Constraint[]
+    missionClass?: string
+    intent?: { for_whom?: string; what?: string; where?: string; horizon?: string; text?: string }
+  }) => {
     save({ status: 'in_progress', step }, over).catch((e) => setFailure(reasonOf(e)))
   }
 
@@ -356,6 +379,12 @@ export function StartPath({ project, onGo, onDone }: {
     const next = flushAdding()
     saveNow({ constraints: next })
   }
+
+  /** Замысел задан: связный абзац либо все четыре поля (правило сервера). */
+  const intentReady = (intent.text ?? '').trim() !== '' ||
+    ['for_whom', 'what', 'where', 'horizon'].every(
+      (f) => ((intent as Record<string, string | undefined>)[f] ?? '').trim() !== '',
+    )
 
   const removeConstraint = (i: number) => {
     // Ф-02: отмена с историей (механика Б-02) — жёсткого удаления нет;
@@ -544,6 +573,47 @@ export function StartPath({ project, onGo, onDone }: {
                 <input className="np-name" id="sp-class" value={missionClass}
                   onChange={(e) => setMissionClass(e.target.value)} />
               )}
+            </div>
+            {/* Ф-05: замысел миссии — обязательная мини-форма. Без него
+                генерация постановки заблокирована: промпт без замысла даёт
+                общие места, а не проект. */}
+            <div className="np-row">
+              <label className="np-label">Замысел миссии{' '}
+                <span style={{ fontWeight: 400, color: 'var(--status-draft)' }}>
+                  — без него генерация постановки заблокирована
+                </span>
+              </label>
+              <div style={{ display: 'grid', gap: 6 }}>
+                {([
+                  ['for_whom', 'Для кого', 'перевозчики опасных грузов, операторы БПЛА'],
+                  ['what', 'Что делает', 'передаёт короткие сообщения от датчиков'],
+                  ['where', 'Где', 'Арктика, СМП, Сибирь и ДФО'],
+                  ['horizon', 'Горизонт', 'к 2033 году, около 150 аппаратов'],
+                ] as const).map(([field, label, hint]) => (
+                  <div key={field} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    <span className="secondary" style={{ minWidth: 108 }}>{label}</span>
+                    <input className="np-name" style={{ flex: 1 }} placeholder={hint}
+                      value={intent[field] ?? ''}
+                      onChange={(e) => setIntent({ ...intent, [field]: e.target.value })}
+                      onBlur={() => saveNow({ intent })} />
+                  </div>
+                ))}
+                <details>
+                  <summary className="secondary" style={{ cursor: 'pointer' }}>
+                    либо одним связным абзацем
+                  </summary>
+                  <textarea rows={3} style={{ width: '100%', marginTop: 4 }}
+                    placeholder="Группировка передаёт телеметрию перевозчикам в Арктике; горизонт — 2033 год."
+                    value={intent.text ?? ''}
+                    onChange={(e) => setIntent({ ...intent, text: e.target.value })}
+                    onBlur={() => saveNow({ intent })} />
+                </details>
+                <div className="np-hint">
+                  {intentReady
+                    ? 'замысел задан — служба соберёт постановку по данным проекта'
+                    : 'нужны все четыре поля либо связный абзац'}
+                </div>
+              </div>
             </div>
             <div className="np-row">
               <label className="np-label">Ограничения проекта{' '}
@@ -879,7 +949,7 @@ export function StartPath({ project, onGo, onDone }: {
                     ? [`Наборы: ${Object.entries(stepCounts).map(([t, n]) => countPhrase(t, n)).join(' · ')}.`]
                     : []),
                 ].join('\n')
-                : 'генерация без постановки даст общие места'}</pre>
+                : 'материалы не выбраны — промпт возьмёт замысел, полки класса и принятое'}</pre>
             </div>
             {promptFull && (
               <div className="sp-blk">
@@ -896,9 +966,20 @@ export function StartPath({ project, onGo, onDone }: {
             {failure && <div className="np-err"><b>Не выполнено:</b> {failure}</div>}
             <div className="np-actions">
               <button className="np-btn" onClick={() => setStep(2)}>Назад</button>
-              <button className="np-btn np-pri" disabled={busy} onClick={run}>
+              {/* Ф-05: без замысла кнопка заблокирована С ПРИЧИНОЙ —
+                  предупреждения мелким шрифтом тут мало */}
+              <button className="np-btn np-pri" disabled={busy || !intentReady} onClick={run}
+                title={intentReady
+                  ? 'служба соберёт постановку по данным проекта'
+                  : 'нет замысла — генерация даст общие места: заполните замысел на шаге 1'}>
                 {busy ? 'Генерация…' : 'Запустить генерацию целей и нужд'}
               </button>
+              {!intentReady && (
+                <button className="np-linkish" onClick={() => setStep(1)}
+                  title="замысел задаётся на первом шаге мастера">
+                  нет замысла — заполнить →
+                </button>
+              )}
               <button className="np-linkish" onClick={showPrompt}>показать промпт целиком</button>
               <button className="np-linkish" onClick={copyPrompt}>
                 {copied ? 'скопирован ✓' : 'скопировать промпт'}

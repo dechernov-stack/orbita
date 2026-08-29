@@ -9,6 +9,14 @@
       "context_types": [
         "mission_goal",
         "need"
+      ],
+      "requires_mission_intent": true,
+      "statement_sources": [
+        "intent",
+        "class_library",
+        "taken",
+        "accepted",
+        "prohibitions"
       ]
     },
     {
@@ -19,6 +27,14 @@
       "context_types": [
         "need",
         "stakeholder_profile"
+      ],
+      "requires_mission_intent": true,
+      "statement_sources": [
+        "intent",
+        "class_library",
+        "taken",
+        "accepted",
+        "prohibitions"
       ]
     },
     {
