@@ -4,29 +4,72 @@
   "title": "Glossary",
   "description": "Глоссарий системы (Ф-03): полка LIB, сосед справочника единиц — один источник смысловых подсказок; копия-текст в клиенте запрещена. Запись типа документа несёт бриф: что это, что система извлечёт, что важно в карточке.",
   "type": "object",
-  "required": ["id", "name", "entries"],
+  "required": [
+    "id",
+    "name",
+    "entries"
+  ],
   "additionalProperties": false,
   "properties": {
-    "id": { "type": "string", "pattern": "^GL-[0-9]{4}$" },
-    "name": { "type": "string", "minLength": 1 },
+    "id": {
+      "type": "string",
+      "pattern": "^GL-[0-9]{4}$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
     "entries": {
       "type": "array",
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": ["term", "brief"],
+        "required": [
+          "term",
+          "brief"
+        ],
         "additionalProperties": false,
         "properties": {
-          "term": { "type": "string", "minLength": 1 },
-          "brief": { "type": "string", "minLength": 1, "description": "Что это — одним-двумя предложениями" },
-          "sd_kind": { "type": "string", "description": "Код типа исходного документа, которому запись даёт подсказку" },
-          "extracts": { "type": "string", "description": "Что система извлечёт из документа этого типа" },
-          "card_hint": { "type": "string", "description": "Что важно заполнить в карточке" },
-          "not_to_confuse": { "type": "string", "description": "С чем не путать" }
+          "term": {
+            "type": "string",
+            "minLength": 1
+          },
+          "brief": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Что это — одним-двумя предложениями"
+          },
+          "sd_kind": {
+            "type": "string",
+            "description": "Код типа исходного документа, которому запись даёт подсказку"
+          },
+          "extracts": {
+            "type": "string",
+            "description": "Что система извлечёт из документа этого типа"
+          },
+          "card_hint": {
+            "type": "string",
+            "description": "Что важно заполнить в карточке"
+          },
+          "not_to_confuse": {
+            "type": "string",
+            "description": "С чем не путать"
+          },
+          "prompt_default": {
+            "enum": [
+              "on",
+              "off"
+            ],
+            "description": "Ф-08.1: как документ этого типа входит в промпт при загрузке. on — разделы включены сразу (постановочный документ: записка миссии); off — выключены, включение осознанное. Умолчание — свойство типа, а не догадка кода."
+          }
         }
       }
     },
-    "lifecycle": { "$ref": "https://kis.local/schemas/common/status.schema.json" },
-    "provenance": { "$ref": "https://kis.local/schemas/common/provenance.schema.json" }
+    "lifecycle": {
+      "$ref": "https://kis.local/schemas/common/status.schema.json"
+    },
+    "provenance": {
+      "$ref": "https://kis.local/schemas/common/provenance.schema.json"
+    }
   }
 }

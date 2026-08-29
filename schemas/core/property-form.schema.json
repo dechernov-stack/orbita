@@ -4,7 +4,12 @@
   "title": "PropertyForm",
   "description": "Ф-06: анкета характеристик носителя — библиотека САМА говорит, какие данные ей нужны и в каком формате. Роль носителя (платформа, полезная нагрузка, терминал, наземная станция) задаёт перечень полей: имя, единица из справочника, обязательность, подсказка из глоссария. Анкета — данные полки: новое поле вносится правкой справочника, не правкой кода.",
   "type": "object",
-  "required": ["id", "name", "role", "fields"],
+  "required": [
+    "id",
+    "name",
+    "role",
+    "fields"
+  ],
   "additionalProperties": false,
   "properties": {
     "id": {
@@ -17,7 +22,12 @@
       "description": "Как анкета называется инженеру: «Платформа», «Полезная нагрузка IoT»"
     },
     "role": {
-      "enum": ["platform", "payload", "terminal", "ground_station"],
+      "enum": [
+        "platform",
+        "payload",
+        "terminal",
+        "ground_station"
+      ],
       "description": "Роль носителя: платформа · полезная нагрузка · терминал · наземная станция"
     },
     "mission_class_ref": {
@@ -32,7 +42,10 @@
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": ["key", "name"],
+        "required": [
+          "key",
+          "name"
+        ],
         "additionalProperties": false,
         "properties": {
           "key": {
@@ -52,7 +65,7 @@
           "required": {
             "type": "boolean",
             "default": false,
-            "description": "Обязательное поле: незаполненное становится разрывом «данные не заданы»"
+            "description": "Обязательное поле. Когда именно оно обязано быть заданным — говорит required_by; без required_by поле спрашивается, но разрывом не становится."
           },
           "hint_term": {
             "type": "string",
@@ -67,19 +80,34 @@
             "description": "Адрес значения в модели (JSON Pointer в документе аппарата): по нему считается «заполнено или нет»"
           },
           "kind": {
-            "enum": ["number", "range", "text", "enum"],
+            "enum": [
+              "number",
+              "range",
+              "text",
+              "enum"
+            ],
             "default": "number",
             "description": "Форма значения: число · диапазон (дежурное/пик) · текст · выбор"
           },
           "options": {
             "type": "array",
-            "items": { "type": "string" },
+            "items": {
+              "type": "string"
+            },
             "description": "Варианты для kind=enum: формат платформы (3U, 6U, 12U…)"
+          },
+          "required_by": {
+            "type": "string",
+            "description": "Ф-06 п.5: точка, к которой поле обязано быть заданным (дух матрицы зрелости NPR 7120.5). Разрыв «данные не заданы» считается только по полям БЛИЖАЙШЕЙ точки: в Pre-A анкеты железа — приглашение, а не требование. Заполнить раньше срока законно."
           }
         }
       }
     },
-    "lifecycle": { "$ref": "https://kis.local/schemas/common/status.schema.json" },
-    "provenance": { "$ref": "https://kis.local/schemas/common/provenance.schema.json" }
+    "lifecycle": {
+      "$ref": "https://kis.local/schemas/common/status.schema.json"
+    },
+    "provenance": {
+      "$ref": "https://kis.local/schemas/common/provenance.schema.json"
+    }
   }
 }

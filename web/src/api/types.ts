@@ -817,6 +817,8 @@ export interface DocumentHarvestView {
     establishes?: boolean
     need_ref?: boolean
     priority?: boolean
+    /** Ф-08.3: метка утверждения — [И] источник, [В] вывод, [П] предложение. */
+    source_mark?: 'И' | 'В' | 'П' 
     scale?: string
     schema_note?: string
     scores?: Record<string, number>
@@ -858,4 +860,17 @@ export interface DataRequestsView {
       options?: string[]
     }>
   }>
+}
+
+/** Ф-07: предложение замысла из документов — четыре поля с якорями. */
+export interface MissionIntentDraftView {
+  kind: string
+  source_document?: string
+  note?: string
+  intent: {
+    for_whom: { text: string; anchors?: string[] }
+    what: { text: string; anchors?: string[] }
+    where: { text: string; anchors?: string[] }
+    horizon: { text: string; anchors?: string[] }
+  }
 }

@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/core/mission-intent-draft.schema.json",
+  "title": "MissionIntentDraft",
+  "description": "Ф-07: замысел миссии, собранный ИЗ ДОКУМЕНТОВ. Табличка из четырёх пустых полей рядом с разобранной запиской — работа, которую система обязана сделать сама: постановка уже приложена и разобрана. Каждое поле приходит связным текстом и НЕСЁТ ЯКОРЯ происхождения — блоки канона, из которых оно выведено. Предложение, не истина: инженер правит текст и принимает его в паспорт.",
+  "type": "object",
+  "required": ["kind", "intent"],
+  "additionalProperties": false,
+  "properties": {
+    "kind": { "const": "mission_intent_from_docs" },
+    "source_document": {
+      "type": "string",
+      "description": "Документ-источник: идентификатор SD-NNNN либо его описание"
+    },
+    "note": { "type": "string" },
+    "intent": {
+      "type": "object",
+      "required": ["for_whom", "what", "where", "horizon"],
+      "additionalProperties": false,
+      "description": "Четыре поля замысла — те же, что в паспорте проекта",
+      "properties": {
+        "for_whom": { "$ref": "#/$defs/field" },
+        "what": { "$ref": "#/$defs/field" },
+        "where": { "$ref": "#/$defs/field" },
+        "horizon": { "$ref": "#/$defs/field" }
+      }
+    }
+  },
+  "$defs": {
+    "field": {
+      "type": "object",
+      "required": ["text"],
+      "additionalProperties": false,
+      "properties": {
+        "text": { "type": "string", "minLength": 1 },
+        "anchors": {
+          "type": "array",
+          "description": "Якоря блоков канона, из которых поле выведено — по ним видно основание",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}

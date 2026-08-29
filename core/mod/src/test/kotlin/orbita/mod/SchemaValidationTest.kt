@@ -40,8 +40,9 @@ class SchemaValidationTest {
         // 48-я — glossary (Ф-03: смысловые подсказки — данными полки);
         // 49-я — document-harvest (Д2: схема ответа смыслового разбора);
         // 50-я — geo-mask (Д2: область карты спроса заготовкой, без геометрии);
-        // 51-я — property-form (Ф-06: анкета характеристик носителя данными полки)
-        assertEquals(51, registry.names.size, "нормативных схем должно быть 51: ${registry.names}")
+        // 51-я — property-form (Ф-06: анкета характеристик носителя данными полки);
+        // 52-я — mission-intent-draft (Ф-07: замысел, собранный из документов)
+        assertEquals(52, registry.names.size, "нормативных схем должно быть 52: ${registry.names}")
     }
 
     @Test

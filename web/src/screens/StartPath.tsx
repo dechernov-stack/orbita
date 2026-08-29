@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { api } from '../api/client'
 import { edit } from '../api/edit'
 import { countPhrase } from '../ui/countPhrase'
+import { MissionIntent } from './MissionIntent'
 import { Select } from '../ui/Select'
 import { useSession } from '../ui/session'
 
@@ -613,6 +614,14 @@ export function StartPath({ project, onGo, onDone }: {
                     ? 'замысел задан — служба соберёт постановку по данным проекта'
                     : 'нужны все четыре поля либо связный абзац'}
                 </div>
+                {/* Ф-07: второй путь — собрать по разобранным документам */}
+                <MissionIntent onAccepted={() => {
+                  edit.object(project)
+                    .then((o) => setIntent(
+                      (o.doc as { mission_intent?: typeof intent }).mission_intent ?? {},
+                    ))
+                    .catch(() => undefined)
+                }} />
               </div>
             </div>
             <div className="np-row">
@@ -975,10 +984,16 @@ export function StartPath({ project, onGo, onDone }: {
                 {busy ? 'Генерация…' : 'Запустить генерацию целей и нужд'}
               </button>
               {!intentReady && (
-                <button className="np-linkish" onClick={() => setStep(1)}
-                  title="замысел задаётся на первом шаге мастера">
-                  нет замысла — заполнить →
-                </button>
+                <>
+                  <button className="np-linkish" onClick={() => setStep(1)}
+                    title="замысел задаётся на первом шаге мастера: четыре поля либо абзац">
+                    нет замысла — заполнить рукой →
+                  </button>
+                  <button className="np-linkish" onClick={() => setStep(1)}
+                    title="постановка уже приложена и разобрана — собрать замысел по документам">
+                    собрать из документов →
+                  </button>
+                </>
               )}
               <button className="np-linkish" onClick={showPrompt}>показать промпт целиком</button>
               <button className="np-linkish" onClick={copyPrompt}>

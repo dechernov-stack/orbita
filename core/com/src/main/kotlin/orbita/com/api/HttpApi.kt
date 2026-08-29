@@ -137,7 +137,11 @@ class HttpApi(private val boundary: Boundary) {
         // как только в портфеле больше одного проекта; при единственном
         // проекте вызов без параметра работает в нём (переходный режим до
         // перевёрстки клиента). null — портфель пуст.
-        val project: String? by lazy { resolveProject(ex) }
+        // проект вычисляется ЛЕНИВО: маршруты, которым он не нужен, не
+        // должны получать отказ «укажите ?project» (вынос маршрутов в
+        // отдельную функцию однажды это и сломал)
+        val projectRef = lazy { resolveProject(ex) }
+        val project: String? by projectRef
 
         if (authOn && sessionUser != null && method != "GET" && method != "HEAD") {
             val role = boundary.auth.roleIn(
@@ -153,6 +157,9 @@ class HttpApi(private val boundary: Boundary) {
         // получает имя вошедшего
         currentAuthor.set(sessionUser?.displayName)
         currentAuthorLogin.set(sessionUser?.login)
+
+        // поток документов вынесен отдельной функцией (предел метода JVM)
+        if (routeDocuments(ex, method, path, projectRef)) return
 
         when {
             // Список видов выводится из состава типов, а не перечисляется руками:
@@ -1710,13 +1717,21 @@ class HttpApi(private val boundary: Boundary) {
                 val parseId = DocumentParseStore.parseAndStore(
                     filesDir(), stored.id, fileName, bytes, DocumentParseStore.lexiconOf(boundary),
                 )
+                // Ф-08.1: умолчание «в промпт» — свойство ТИПА документа
+                val promptDefault = promptDefaultOf(kind)
+                val includedBlocks =
+                    if (promptDefault == "on" && area != "library") {
+                        includeDocumentInPrompt(stored.id, fileProject, fileAuthor)
+                    } else 0
                 respond(
                     ex, 201,
                     mapper.createObjectNode()
                         .put("id", stored.id)
                         .put("file", fileName)
                         .put("text_extracted", doc.has("text"))
-                        .put("parsed", parseId),
+                        .put("parsed", parseId)
+                        .put("prompt_default", promptDefault)
+                        .put("blocks_in_prompt", includedBlocks),
                 )
             }
 
@@ -1730,296 +1745,6 @@ class HttpApi(private val boundary: Boundary) {
                 val f = java.nio.file.Path.of(filesDir(), sdId, java.nio.file.Path.of(fileName).fileName.toString())
                 require(java.nio.file.Files.exists(f)) { "файл карточки $sdId не найден в хранилище" }
                 respondBinary(ex, java.nio.file.Files.readAllBytes(f), "application/octet-stream", fileName)
-            }
-
-            // Д3: поиск по материалам проекта — по канонам разбора, с
-            // координатой блока: найденное можно взять в промпт куском.
-            method == "GET" && path == "/views/document-search" -> {
-                val q = query(ex)["q"] ?: ""
-                val search = DocumentSearch(boundary)
-                val hits = search.search(requireProject(project), q)
-                val out = mapper.createObjectNode()
-                out.put("query", q)
-                out.put("hits", hits.size)
-                out.set<ArrayNode>("results", search.toJson(hits))
-                respond(ex, 200, out)
-            }
-
-            // Ф-06: запросы данных — анкеты характеристик, наложенные на
-            // модель: что заполнено, чего не хватает и откуда это взять.
-            method == "GET" && path == "/views/data-requests" -> {
-                val requests = DataRequests(boundary).of(requireProject(project))
-                val out = mapper.createObjectNode()
-                out.put("missing_total", requests.sumOf { it.missing.size })
-                out.set<ArrayNode>("requests", DataRequests(boundary).toJson(requests))
-                respond(ex, 200, out)
-            }
-
-            // Ф-06: анкеты полки — просмотром (правятся пачкой, как справочники)
-            method == "GET" && path == "/library/property-forms" -> {
-                val arr = mapper.createArrayNode()
-                boundary.objects.listCurrent(orbita.mod.store.ObjectStore.LIBRARY_PROJECT)
-                    .filter { it.type == "property_form" && it.status != Lifecycle.Cancelled }
-                    .sortedBy { it.id }
-                    .forEach { f -> arr.add(f.doc.deepCopy<com.fasterxml.jackson.databind.JsonNode>()) }
-                respond(ex, 200, arr)
-            }
-
-            // Д1: карта разбора — структура, числа каноном, термы,
-            // нормативы-кандидаты. Текста не несёт: он в каноне (ниже).
-            method == "GET" && Regex("^/sd-parse/SD-[0-9]{4}$").matches(path) -> {
-                val sdId = path.removePrefix("/sd-parse/")
-                boundary.objects.current(sdId) ?: throw NoSuchElementException("document '$sdId' not found")
-                val map = DocumentParseStore.mapOf(filesDir(), sdId)
-                    ?: throw NoSuchElementException(
-                        "разбора у $sdId нет — переразберите документ (POST /sd-parse/$sdId)",
-                    )
-                respond(ex, 200, map)
-            }
-
-            // Д1: MD-канон — 100% текста документа с якорями блоков. Люди
-            // читают его как документ, промпт берёт разделы по якорям.
-            method == "GET" && Regex("^/sd-parse/SD-[0-9]{4}/canon$").matches(path) -> {
-                val sdId = path.removePrefix("/sd-parse/").removeSuffix("/canon")
-                boundary.objects.current(sdId) ?: throw NoSuchElementException("document '$sdId' not found")
-                val canon = DocumentParseStore.canonOf(filesDir(), sdId)
-                    ?: throw NoSuchElementException("разбора у $sdId нет — переразберите документ")
-                respondBinary(ex, canon.toByteArray(), "text/markdown; charset=utf-8", "$sdId.md")
-            }
-
-            // Д1: переразбор — документам, загруженным до появления разбора,
-            // и после смены версии разборщика (кэш по хешу файла).
-            method == "POST" && Regex("^/sd-parse/SD-[0-9]{4}$").matches(path) -> {
-                val sdId = path.removePrefix("/sd-parse/")
-                val sd = boundary.objects.current(sdId)
-                    ?: throw NoSuchElementException("document '$sdId' not found")
-                val fileName = sd.doc.path("file").path("name").asText("")
-                require(fileName.isNotBlank()) { "у карточки $sdId нет файла — разбирать нечего" }
-                val f = java.nio.file.Path.of(filesDir(), sdId, java.nio.file.Path.of(fileName).fileName.toString())
-                require(java.nio.file.Files.exists(f)) { "файл карточки $sdId не найден в хранилище" }
-                val parseId = DocumentParseStore.parseAndStore(
-                    filesDir(), sdId, fileName, java.nio.file.Files.readAllBytes(f),
-                    DocumentParseStore.lexiconOf(boundary),
-                ) ?: throw IllegalArgumentException("формат '$fileName' разборщику не поддаётся")
-                respond(ex, 200, mapper.createObjectNode().put("id", sdId).put("parsed", parseId))
-            }
-
-            // Д2: промпт смыслового разбора — собирает СИСТЕМА: правила вида
-            // (реестр пакетов) + карточка + выжимка блоками из канона Д1.
-            // Службе уходит выжимка, сырой файл не уходит никогда.
-            method == "GET" && Regex("^/sd-parse/SD-[0-9]{4}/harvest/prompt$").matches(path) -> {
-                val sdId = path.removePrefix("/sd-parse/").removeSuffix("/harvest/prompt")
-                val sd = boundary.objects.current(sdId)
-                    ?: throw NoSuchElementException("document '$sdId' not found")
-                val canon = DocumentParseStore.canonOf(filesDir(), sdId)
-                    ?: throw NoSuchElementException("у $sdId нет разбора — переразберите документ")
-                val statement = DocumentHarvest.statementOf(
-                    sd.doc, sdId, canon, DocumentParseStore.mapOf(filesDir(), sdId),
-                )
-                val ctx = requireProject(project)
-                val profileId = query(ex)["profile"] ?: boundary.objects.listCurrent(ctx)
-                    .filter { it.type == "ai_profile" && it.status != Lifecycle.Cancelled }
-                    .sortedBy { it.id }
-                    .firstOrNull { p -> p.doc.path("kinds").any { it.asText() == DocumentHarvest.KIND } }?.id
-                    ?: throw IllegalArgumentException(
-                        "нет профиля службы с видом «${DocumentHarvest.KIND}» — добавьте вид в профиль",
-                    )
-                val (profile, blocks) = boundary.ai.composeBlocks(DocumentHarvest.KIND, profileId, ctx, statement)
-                val out = mapper.createObjectNode()
-                out.put("document", sdId)
-                out.put("profile", profile.id)
-                out.put("kind", DocumentHarvest.KIND)
-                val arr = out.putArray("blocks")
-                blocks.forEach { b ->
-                    arr.addObject().put("source", b.source).put("title", b.title).put("text", b.text)
-                }
-                out.put("text", blocks.joinToString("\n\n") { it.text })
-                respond(ex, 200, out)
-            }
-
-            // Д2: приём урожая — пакетом (закрытый контур и ПМИ Б2). Ворота —
-            // нормативная схема ответа: чужая форма внутрь не проходит.
-            method == "POST" && Regex("^/sd-parse/SD-[0-9]{4}/harvest$").matches(path) -> {
-                val sdId = path.removePrefix("/sd-parse/").removeSuffix("/harvest")
-                boundary.objects.current(sdId) ?: throw NoSuchElementException("document '$sdId' not found")
-                val map = DocumentParseStore.mapOf(filesDir(), sdId)
-                    ?: throw NoSuchElementException("у $sdId нет разбора — сначала разбор Д1")
-                val req = mapper.readTree(body(ex))
-                val raw = req.path("raw").takeIf { it.isTextual }?.asText()
-                val harvest = (
-                    if (raw != null) mapper.readTree(
-                        raw.trim().removePrefix("```json").removePrefix("```").removeSuffix("```").trim(),
-                    ) else req.path("harvest")
-                    ) as? ObjectNode ?: throw IllegalArgumentException(
-                    "тело: {\"raw\": \"<JSON пакета>\"} либо {\"harvest\": {…}}",
-                )
-                val problems = boundary.schemaProblems("core/document-harvest", harvest)
-                if (problems.isNotEmpty()) {
-                    val out = mapper.createObjectNode().put("error", "пакет не по схеме разбора")
-                    val arr = out.putArray("problems")
-                    problems.take(20).forEach { e ->
-                        arr.addObject().put("path", e.path).put("rule", e.rule).put("message", e.message)
-                    }
-                    respond(ex, 422, out)
-                    return
-                }
-                harvest.put("accepted_at_document", sdId)
-                harvest.set<ObjectNode>("summary", DocumentHarvest.summaryOf(harvest))
-                DocumentHarvest.store(filesDir(), sdId, map.path("fingerprint").asText(), harvest)
-                respond(
-                    ex, 201,
-                    mapper.createObjectNode().put("document", sdId)
-                        .put("items", harvest.path("items").size())
-                        .set<ObjectNode>("summary", DocumentHarvest.summaryOf(harvest)),
-                )
-            }
-
-            // Д2: урожай документа — вкладка «Найдено в документе»
-            method == "GET" && Regex("^/sd-parse/SD-[0-9]{4}/harvest$").matches(path) -> {
-                val sdId = path.removePrefix("/sd-parse/").removeSuffix("/harvest")
-                val harvest = DocumentHarvest.of(filesDir(), sdId)
-                    ?: throw NoSuchElementException(
-                        "смыслового разбора у $sdId нет — соберите промпт и внесите урожай пакетом",
-                    )
-                val out = (harvest as ObjectNode).deepCopy()
-                // показ величин и координат готовит сервер: клиент печатает
-                out.path("items").forEach { i ->
-                    (i as ObjectNode).put("display", DocumentHarvest.displayOf(i))
-                    i.put("blocks_label", DocumentHarvest.blocksOf(i).joinToString(", "))
-                }
-                // адреса раскладки — рядом с кандидатами: инженеру видно,
-                // куда ляжет каждый класс и чего системе не хватает
-                val targets = out.putObject("targets")
-                DocumentHarvest.TARGETS.forEach { (cls, t) ->
-                    val node = targets.putObject(cls)
-                    node.put("where", t.where)
-                    node.put("type", t.type?.dbType ?: "")
-                    t.note?.let { node.put("note", it) }
-                    val gaps = node.putArray("gaps")
-                    t.gaps.forEach { g ->
-                        val gn = gaps.addObject().put("field", g.field).put("prompt", g.prompt)
-                        val opts = gn.putArray("options")
-                        g.options.forEach { opts.add(it) }
-                    }
-                }
-                respond(ex, 200, out)
-            }
-
-            // Д2: акцепт урожая ПО АДРЕСАМ — кандидаты становятся объектами
-            // системы; недостающее обязательное поле приходит от инженера,
-            // не выдумывается. Запись — транзакцией: всё или ничего.
-            method == "POST" && Regex("^/sd-parse/SD-[0-9]{4}/harvest/accept$").matches(path) -> {
-                val sdId = path.removePrefix("/sd-parse/").removeSuffix("/harvest/accept")
-                val sd = boundary.objects.current(sdId)
-                    ?: throw NoSuchElementException("document '$sdId' not found")
-                val req = mapper.readTree(body(ex))
-                val by = author(req)
-                val ctx = requireProject(project)
-                val harvest = DocumentHarvest.of(filesDir(), sdId)
-                    ?: throw NoSuchElementException("урожая у $sdId нет")
-                val items = DocumentHarvest.itemsOf(harvest)
-                val sdName = sd.doc.path("name").asText(sdId)
-
-                data class Ready(val index: Int, val cls: String, val item: JsonNode, val filled: JsonNode)
-                val ready = mutableListOf<Ready>()
-                val refused = mapper.createArrayNode()
-                req.path("selected").forEach { sel ->
-                    val index = sel.path("index").asInt(-1)
-                    val item = items.get(index) ?: run {
-                        refused.addObject().put("index", index).put("why", "кандидата с таким номером нет")
-                        return@forEach
-                    }
-                    val cls = item.path("class").asText("")
-                    val target = DocumentHarvest.TARGETS[cls]
-                    val filled = sel.path("filled").takeIf { it.isObject } ?: mapper.createObjectNode()
-                    if (target == null) {
-                        refused.addObject().put("index", index).put("class", cls)
-                            .put("why", "класс вне раскладки — адрес назначает инженер")
-                        return@forEach
-                    }
-                    val gaps = DocumentHarvest.gapsOf(cls, item, filled)
-                    if (gaps.isNotEmpty()) {
-                        refused.addObject().put("index", index).put("class", cls)
-                            .put("why", "не заполнено: " + gaps.joinToString(", ") { it.prompt })
-                        return@forEach
-                    }
-                    ready += Ready(index, cls, item, filled)
-                }
-
-                val created = mapper.createArrayNode()
-                try {
-                    boundary.transaction {
-                        val constraints = ready.filter { it.cls == "constraint" }
-                        val milestones = ready.filter { it.cls == "milestone" }
-                        ready.filter { it.cls != "constraint" && it.cls != "milestone" }.forEach { r ->
-                            val doc = DocumentHarvest.objectOf(
-                                r.item, r.filled, sdId, sd.version, sdName, java.time.LocalDate.now().toString(),
-                            )
-                            if (doc == null) {
-                                refused.addObject().put("index", r.index).put("class", r.cls)
-                                    .put("why", "класс кладётся не объектом — см. адрес класса")
-                                return@forEach
-                            }
-                            val type = DocumentHarvest.TARGETS[r.cls]!!.type!!
-                            // стейкхолдеры и нормативы — общая полка LIB (А1/А2),
-                            // постановка и оценки — проект
-                            val where = if (type == CoreType.StakeholderProfile ||
-                                type == CoreType.NormativeDocument
-                            ) orbita.mod.store.ObjectStore.LIBRARY_PROJECT else ctx
-                            val stored = boundary.editing.create(type, doc, by, where)
-                            created.addObject().put("index", r.index).put("class", r.cls)
-                                .put("id", stored.id).put("where", DocumentHarvest.TARGETS[r.cls]!!.where)
-                        }
-                        // паспорт правится ОДНОЙ версией: ограничения Р-кодами
-                        // и вехи-заготовки без дат — обе ленты сразу
-                        if (constraints.isNotEmpty() || milestones.isNotEmpty()) {
-                            val passport = boundary.objects.current(ctx)
-                                ?: throw NoSuchElementException("project '$ctx' not found")
-                            val changes = mapper.createObjectNode()
-                            if (constraints.isNotEmpty()) {
-                                val list = (passport.doc.path("constraints").deepCopy() as? ArrayNode)
-                                    ?: mapper.createArrayNode()
-                                constraints.forEach { r ->
-                                    val c = DocumentHarvest.constraintOf(r.item, list, sdId)
-                                    list.add(c)
-                                    created.addObject().put("index", r.index).put("class", r.cls)
-                                        .put("id", c.path("code").asText())
-                                        .put("where", DocumentHarvest.TARGETS["constraint"]!!.where)
-                                }
-                                changes.set<ArrayNode>("constraints", list)
-                            }
-                            if (milestones.isNotEmpty()) {
-                                val list = (passport.doc.path("milestones").deepCopy() as? ArrayNode)
-                                    ?: mapper.createArrayNode()
-                                milestones.forEach { r ->
-                                    val m = DocumentHarvest.milestoneOf(r.item, sdId)
-                                    val gate = m.path("gate").asText()
-                                    if (list.none { it.path("gate").asText() == gate }) list.add(m)
-                                    created.addObject().put("index", r.index).put("class", r.cls)
-                                        .put("id", gate)
-                                        .put("where", DocumentHarvest.TARGETS["milestone"]!!.where)
-                                }
-                                changes.set<ArrayNode>("milestones", list)
-                            }
-                            boundary.editing.update(
-                                CoreType.Project, ctx, changes, passport.version, by,
-                                changeRef = "акцепт урожая смыслового разбора $sdId",
-                            )
-                        }
-                    }
-                } catch (e: Exception) {
-                    respond(
-                        ex, 422,
-                        mapper.createObjectNode()
-                            .put("error", "акцепт отклонён целиком: ${e.message}")
-                            .set<ObjectNode>("refused", refused),
-                    )
-                    return
-                }
-                val out = mapper.createObjectNode().put("document", sdId)
-                out.set<ArrayNode>("created", created)
-                out.set<ArrayNode>("refused", refused)
-                respond(ex, if (created.isEmpty) 422 else 201, out)
             }
 
             // В1.2: сохранение авторского текста раздела. Отпечаток данных
@@ -3578,6 +3303,426 @@ class HttpApi(private val boundary: Boundary) {
                     rows.map { it.doc.path("code").asText() }.sorted().joinToString()
                         .ifBlank { "ни одного — залейте сид data/library/document-templates.json" },
             )
+    }
+
+
+    /**
+     * Маршруты потока документов (Д1–Д3, Ф-06, Ф-07) — отдельной функцией:
+     * общий when маршрутизации перерос предел метода JVM (64 КБ байт-кода),
+     * и компилятор отказывался собирать класс. Возвращает true, если запрос
+     * обработан здесь.
+     */
+    private fun routeDocuments(
+        ex: HttpExchange,
+        method: String,
+        path: String,
+        projectRef: Lazy<String?>,
+    ): Boolean {
+        val project: String? by projectRef
+        when {
+            // Ф-07: есть ли из чего собирать замысел — и чем именно
+            method == "GET" && path == "/views/mission-intent/readiness" ->
+                respond(ex, 200, MissionIntentDraft.readiness(boundary, filesDir(), requireProject(project)))
+
+            // Ф-07: промпт сборки замысла из документов — собирает система
+            method == "GET" && path == "/views/mission-intent/prompt" -> {
+                val ctx = requireProject(project)
+                val profileId = query(ex)["profile"] ?: boundary.objects.listCurrent(ctx)
+                    .filter { it.type == "ai_profile" && it.status != Lifecycle.Cancelled }
+                    .sortedBy { it.id }
+                    .firstOrNull { p -> p.doc.path("kinds").any { it.asText() == MissionIntentDraft.KIND } }?.id
+                    ?: throw IllegalArgumentException(
+                        "нет профиля службы с видом «${MissionIntentDraft.KIND}» — добавьте вид в профиль",
+                    )
+                val statement = MissionIntentDraft.statementOf(boundary, filesDir(), ctx)
+                val (profile, blocks) = boundary.ai.composeBlocks(MissionIntentDraft.KIND, profileId, ctx, statement)
+                val out = mapper.createObjectNode()
+                out.put("profile", profile.id)
+                out.put("kind", MissionIntentDraft.KIND)
+                out.put("text", blocks.joinToString("\n\n") { it.text })
+                respond(ex, 200, out)
+            }
+
+            // Ф-07: предложение замысла пакетом — проверяется схемой и
+            // возвращается инженеру НА ПРАВКУ, в паспорт само не ложится
+            method == "POST" && path == "/views/mission-intent/draft" -> {
+                val req = mapper.readTree(body(ex))
+                val raw = req.path("raw").takeIf { it.isTextual }?.asText()
+                val draft = (
+                    if (raw != null) mapper.readTree(
+                        raw.trim().removePrefix("```json").removePrefix("```").removeSuffix("```").trim(),
+                    ) else req.path("draft")
+                    ) as? ObjectNode ?: throw IllegalArgumentException(
+                    "тело: {\"raw\": \"<JSON пакета>\"} либо {\"draft\": {…}}",
+                )
+                val problems = MissionIntentDraft.problems(boundary, draft)
+                if (problems.isNotEmpty()) {
+                    val out = mapper.createObjectNode().put("error", "предложение не по схеме замысла")
+                    val arr = out.putArray("problems")
+                    problems.take(10).forEach { arr.add(it) }
+                    respond(ex, 422, out)
+                    return true
+                }
+                respond(ex, 200, draft)
+            }
+
+            // Ф-07: акцепт замысла — правкой паспорта, с якорями происхождения
+            method == "POST" && path == "/views/mission-intent/accept" -> {
+                val req = mapper.readTree(body(ex))
+                val by = author(req)
+                val ctx = requireProject(project)
+                val draft = req.path("draft").takeIf { it.isObject }
+                    ?: throw IllegalArgumentException("нет предложения замысла: поле 'draft'")
+                val problems = MissionIntentDraft.problems(boundary, draft)
+                require(problems.isEmpty()) { "предложение не по схеме замысла: ${problems.take(3)}" }
+                val passport = boundary.objects.current(ctx)
+                    ?: throw NoSuchElementException("project '$ctx' not found")
+                val intent = MissionIntentDraft.applyTo(passport.doc, draft)
+                val changes = mapper.createObjectNode()
+                changes.set<ObjectNode>("mission_intent", intent)
+                val stored = boundary.editing.update(
+                    CoreType.Project, ctx, changes, passport.version, by,
+                    changeRef = "Ф-07: замысел миссии собран из документов и принят инженером",
+                )
+                respond(
+                    ex, 200,
+                    mapper.createObjectNode()
+                        .put("project", stored.id)
+                        .put("version", stored.version)
+                        .set<ObjectNode>("mission_intent", MissionIntentDraft.toJson(intent)),
+                )
+            }
+
+            // Д3: поиск по материалам проекта — по канонам разбора, с
+            // координатой блока: найденное можно взять в промпт куском.
+            method == "GET" && path == "/views/document-search" -> {
+                val q = query(ex)["q"] ?: ""
+                val search = DocumentSearch(boundary)
+                val hits = search.search(requireProject(project), q)
+                val out = mapper.createObjectNode()
+                out.put("query", q)
+                out.put("hits", hits.size)
+                out.set<ArrayNode>("results", search.toJson(hits))
+                respond(ex, 200, out)
+            }
+
+            // Ф-06: запросы данных — анкеты характеристик, наложенные на
+            // модель: что заполнено, чего не хватает и откуда это взять.
+            method == "GET" && path == "/views/data-requests" -> {
+                val requests = DataRequests(boundary).of(requireProject(project))
+                val out = mapper.createObjectNode()
+                out.put("missing_total", requests.sumOf { it.missing.size })
+                out.set<ArrayNode>("requests", DataRequests(boundary).toJson(requests))
+                respond(ex, 200, out)
+            }
+
+            // Ф-06: анкеты полки — просмотром (правятся пачкой, как справочники)
+            method == "GET" && path == "/library/property-forms" -> {
+                val arr = mapper.createArrayNode()
+                boundary.objects.listCurrent(orbita.mod.store.ObjectStore.LIBRARY_PROJECT)
+                    .filter { it.type == "property_form" && it.status != Lifecycle.Cancelled }
+                    .sortedBy { it.id }
+                    .forEach { f -> arr.add(f.doc.deepCopy<com.fasterxml.jackson.databind.JsonNode>()) }
+                respond(ex, 200, arr)
+            }
+
+            // Д1: карта разбора — структура, числа каноном, термы,
+            // нормативы-кандидаты. Текста не несёт: он в каноне (ниже).
+            method == "GET" && Regex("^/sd-parse/SD-[0-9]{4}$").matches(path) -> {
+                val sdId = path.removePrefix("/sd-parse/")
+                boundary.objects.current(sdId) ?: throw NoSuchElementException("document '$sdId' not found")
+                val map = DocumentParseStore.mapOf(filesDir(), sdId)
+                    ?: throw NoSuchElementException(
+                        "разбора у $sdId нет — переразберите документ (POST /sd-parse/$sdId)",
+                    )
+                respond(ex, 200, map)
+            }
+
+            // Д1: MD-канон — 100% текста документа с якорями блоков. Люди
+            // читают его как документ, промпт берёт разделы по якорям.
+            method == "GET" && Regex("^/sd-parse/SD-[0-9]{4}/canon$").matches(path) -> {
+                val sdId = path.removePrefix("/sd-parse/").removeSuffix("/canon")
+                boundary.objects.current(sdId) ?: throw NoSuchElementException("document '$sdId' not found")
+                val canon = DocumentParseStore.canonOf(filesDir(), sdId)
+                    ?: throw NoSuchElementException("разбора у $sdId нет — переразберите документ")
+                respondBinary(ex, canon.toByteArray(), "text/markdown; charset=utf-8", "$sdId.md")
+            }
+
+            // Д1: переразбор — документам, загруженным до появления разбора,
+            // и после смены версии разборщика (кэш по хешу файла).
+            method == "POST" && Regex("^/sd-parse/SD-[0-9]{4}$").matches(path) -> {
+                val sdId = path.removePrefix("/sd-parse/")
+                val sd = boundary.objects.current(sdId)
+                    ?: throw NoSuchElementException("document '$sdId' not found")
+                val fileName = sd.doc.path("file").path("name").asText("")
+                require(fileName.isNotBlank()) { "у карточки $sdId нет файла — разбирать нечего" }
+                val f = java.nio.file.Path.of(filesDir(), sdId, java.nio.file.Path.of(fileName).fileName.toString())
+                require(java.nio.file.Files.exists(f)) { "файл карточки $sdId не найден в хранилище" }
+                val parseId = DocumentParseStore.parseAndStore(
+                    filesDir(), sdId, fileName, java.nio.file.Files.readAllBytes(f),
+                    DocumentParseStore.lexiconOf(boundary),
+                ) ?: throw IllegalArgumentException("формат '$fileName' разборщику не поддаётся")
+                respond(ex, 200, mapper.createObjectNode().put("id", sdId).put("parsed", parseId))
+            }
+
+            // Д2: промпт смыслового разбора — собирает СИСТЕМА: правила вида
+            // (реестр пакетов) + карточка + выжимка блоками из канона Д1.
+            // Службе уходит выжимка, сырой файл не уходит никогда.
+            method == "GET" && Regex("^/sd-parse/SD-[0-9]{4}/harvest/prompt$").matches(path) -> {
+                val sdId = path.removePrefix("/sd-parse/").removeSuffix("/harvest/prompt")
+                val sd = boundary.objects.current(sdId)
+                    ?: throw NoSuchElementException("document '$sdId' not found")
+                val canon = DocumentParseStore.canonOf(filesDir(), sdId)
+                    ?: throw NoSuchElementException("у $sdId нет разбора — переразберите документ")
+                val statement = DocumentHarvest.statementOf(
+                    sd.doc, sdId, canon, DocumentParseStore.mapOf(filesDir(), sdId),
+                )
+                val ctx = requireProject(project)
+                val profileId = query(ex)["profile"] ?: boundary.objects.listCurrent(ctx)
+                    .filter { it.type == "ai_profile" && it.status != Lifecycle.Cancelled }
+                    .sortedBy { it.id }
+                    .firstOrNull { p -> p.doc.path("kinds").any { it.asText() == DocumentHarvest.KIND } }?.id
+                    ?: throw IllegalArgumentException(
+                        "нет профиля службы с видом «${DocumentHarvest.KIND}» — добавьте вид в профиль",
+                    )
+                val (profile, blocks) = boundary.ai.composeBlocks(DocumentHarvest.KIND, profileId, ctx, statement)
+                val out = mapper.createObjectNode()
+                out.put("document", sdId)
+                out.put("profile", profile.id)
+                out.put("kind", DocumentHarvest.KIND)
+                val arr = out.putArray("blocks")
+                blocks.forEach { b ->
+                    arr.addObject().put("source", b.source).put("title", b.title).put("text", b.text)
+                }
+                out.put("text", blocks.joinToString("\n\n") { it.text })
+                respond(ex, 200, out)
+            }
+
+            // Д2: приём урожая — пакетом (закрытый контур и ПМИ Б2). Ворота —
+            // нормативная схема ответа: чужая форма внутрь не проходит.
+            method == "POST" && Regex("^/sd-parse/SD-[0-9]{4}/harvest$").matches(path) -> {
+                val sdId = path.removePrefix("/sd-parse/").removeSuffix("/harvest")
+                boundary.objects.current(sdId) ?: throw NoSuchElementException("document '$sdId' not found")
+                val map = DocumentParseStore.mapOf(filesDir(), sdId)
+                    ?: throw NoSuchElementException("у $sdId нет разбора — сначала разбор Д1")
+                val req = mapper.readTree(body(ex))
+                val raw = req.path("raw").takeIf { it.isTextual }?.asText()
+                val harvest = (
+                    if (raw != null) mapper.readTree(
+                        raw.trim().removePrefix("```json").removePrefix("```").removeSuffix("```").trim(),
+                    ) else req.path("harvest")
+                    ) as? ObjectNode ?: throw IllegalArgumentException(
+                    "тело: {\"raw\": \"<JSON пакета>\"} либо {\"harvest\": {…}}",
+                )
+                val problems = boundary.schemaProblems("core/document-harvest", harvest)
+                if (problems.isNotEmpty()) {
+                    val out = mapper.createObjectNode().put("error", "пакет не по схеме разбора")
+                    val arr = out.putArray("problems")
+                    problems.take(20).forEach { e ->
+                        arr.addObject().put("path", e.path).put("rule", e.rule).put("message", e.message)
+                    }
+                    respond(ex, 422, out)
+                    return true
+                }
+                harvest.put("accepted_at_document", sdId)
+                harvest.set<ObjectNode>("summary", DocumentHarvest.summaryOf(harvest))
+                DocumentHarvest.store(filesDir(), sdId, map.path("fingerprint").asText(), harvest)
+                respond(
+                    ex, 201,
+                    mapper.createObjectNode().put("document", sdId)
+                        .put("items", harvest.path("items").size())
+                        .set<ObjectNode>("summary", DocumentHarvest.summaryOf(harvest)),
+                )
+            }
+
+            // Д2: урожай документа — вкладка «Найдено в документе»
+            method == "GET" && Regex("^/sd-parse/SD-[0-9]{4}/harvest$").matches(path) -> {
+                val sdId = path.removePrefix("/sd-parse/").removeSuffix("/harvest")
+                val harvest = DocumentHarvest.of(filesDir(), sdId)
+                    ?: throw NoSuchElementException(
+                        "смыслового разбора у $sdId нет — соберите промпт и внесите урожай пакетом",
+                    )
+                val out = (harvest as ObjectNode).deepCopy()
+                // показ величин и координат готовит сервер: клиент печатает
+                out.path("items").forEach { i ->
+                    (i as ObjectNode).put("display", DocumentHarvest.displayOf(i))
+                    i.put("blocks_label", DocumentHarvest.blocksOf(i).joinToString(", "))
+                }
+                // адреса раскладки — рядом с кандидатами: инженеру видно,
+                // куда ляжет каждый класс и чего системе не хватает
+                val targets = out.putObject("targets")
+                DocumentHarvest.TARGETS.forEach { (cls, t) ->
+                    val node = targets.putObject(cls)
+                    node.put("where", t.where)
+                    node.put("type", t.type?.dbType ?: "")
+                    t.note?.let { node.put("note", it) }
+                    val gaps = node.putArray("gaps")
+                    t.gaps.forEach { g ->
+                        val gn = gaps.addObject().put("field", g.field).put("prompt", g.prompt)
+                        val opts = gn.putArray("options")
+                        g.options.forEach { opts.add(it) }
+                    }
+                }
+                respond(ex, 200, out)
+            }
+
+            // Д2: акцепт урожая ПО АДРЕСАМ — кандидаты становятся объектами
+            // системы; недостающее обязательное поле приходит от инженера,
+            // не выдумывается. Запись — транзакцией: всё или ничего.
+            method == "POST" && Regex("^/sd-parse/SD-[0-9]{4}/harvest/accept$").matches(path) -> {
+                val sdId = path.removePrefix("/sd-parse/").removeSuffix("/harvest/accept")
+                val sd = boundary.objects.current(sdId)
+                    ?: throw NoSuchElementException("document '$sdId' not found")
+                val req = mapper.readTree(body(ex))
+                val by = author(req)
+                val ctx = requireProject(project)
+                val harvest = DocumentHarvest.of(filesDir(), sdId)
+                    ?: throw NoSuchElementException("урожая у $sdId нет")
+                val items = DocumentHarvest.itemsOf(harvest)
+                val sdName = sd.doc.path("name").asText(sdId)
+
+                data class Ready(val index: Int, val cls: String, val item: JsonNode, val filled: JsonNode)
+                val ready = mutableListOf<Ready>()
+                val refused = mapper.createArrayNode()
+                req.path("selected").forEach { sel ->
+                    val index = sel.path("index").asInt(-1)
+                    val item = items.get(index) ?: run {
+                        refused.addObject().put("index", index).put("why", "кандидата с таким номером нет")
+                        return@forEach
+                    }
+                    val cls = item.path("class").asText("")
+                    val target = DocumentHarvest.TARGETS[cls]
+                    val filled = sel.path("filled").takeIf { it.isObject } ?: mapper.createObjectNode()
+                    if (target == null) {
+                        refused.addObject().put("index", index).put("class", cls)
+                            .put("why", "класс вне раскладки — адрес назначает инженер")
+                        return@forEach
+                    }
+                    val gaps = DocumentHarvest.gapsOf(cls, item, filled)
+                    if (gaps.isNotEmpty()) {
+                        refused.addObject().put("index", index).put("class", cls)
+                            .put("why", "не заполнено: " + gaps.joinToString(", ") { it.prompt })
+                        return@forEach
+                    }
+                    ready += Ready(index, cls, item, filled)
+                }
+
+                val created = mapper.createArrayNode()
+                try {
+                    boundary.transaction {
+                        val constraints = ready.filter { it.cls == "constraint" }
+                        val milestones = ready.filter { it.cls == "milestone" }
+                        ready.filter { it.cls != "constraint" && it.cls != "milestone" }.forEach { r ->
+                            val doc = DocumentHarvest.objectOf(
+                                r.item, r.filled, sdId, sd.version, sdName, java.time.LocalDate.now().toString(),
+                            )
+                            if (doc == null) {
+                                refused.addObject().put("index", r.index).put("class", r.cls)
+                                    .put("why", "класс кладётся не объектом — см. адрес класса")
+                                return@forEach
+                            }
+                            val type = DocumentHarvest.TARGETS[r.cls]!!.type!!
+                            // стейкхолдеры и нормативы — общая полка LIB (А1/А2),
+                            // постановка и оценки — проект
+                            val where = if (type == CoreType.StakeholderProfile ||
+                                type == CoreType.NormativeDocument
+                            ) orbita.mod.store.ObjectStore.LIBRARY_PROJECT else ctx
+                            val stored = boundary.editing.create(type, doc, by, where)
+                            created.addObject().put("index", r.index).put("class", r.cls)
+                                .put("id", stored.id).put("where", DocumentHarvest.TARGETS[r.cls]!!.where)
+                        }
+                        // паспорт правится ОДНОЙ версией: ограничения Р-кодами
+                        // и вехи-заготовки без дат — обе ленты сразу
+                        if (constraints.isNotEmpty() || milestones.isNotEmpty()) {
+                            val passport = boundary.objects.current(ctx)
+                                ?: throw NoSuchElementException("project '$ctx' not found")
+                            val changes = mapper.createObjectNode()
+                            if (constraints.isNotEmpty()) {
+                                val list = (passport.doc.path("constraints").deepCopy() as? ArrayNode)
+                                    ?: mapper.createArrayNode()
+                                constraints.forEach { r ->
+                                    val c = DocumentHarvest.constraintOf(r.item, list, sdId)
+                                    list.add(c)
+                                    created.addObject().put("index", r.index).put("class", r.cls)
+                                        .put("id", c.path("code").asText())
+                                        .put("where", DocumentHarvest.TARGETS["constraint"]!!.where)
+                                }
+                                changes.set<ArrayNode>("constraints", list)
+                            }
+                            if (milestones.isNotEmpty()) {
+                                val list = (passport.doc.path("milestones").deepCopy() as? ArrayNode)
+                                    ?: mapper.createArrayNode()
+                                milestones.forEach { r ->
+                                    val m = DocumentHarvest.milestoneOf(r.item, sdId)
+                                    val gate = m.path("gate").asText()
+                                    if (list.none { it.path("gate").asText() == gate }) list.add(m)
+                                    created.addObject().put("index", r.index).put("class", r.cls)
+                                        .put("id", gate)
+                                        .put("where", DocumentHarvest.TARGETS["milestone"]!!.where)
+                                }
+                                changes.set<ArrayNode>("milestones", list)
+                            }
+                            boundary.editing.update(
+                                CoreType.Project, ctx, changes, passport.version, by,
+                                changeRef = "акцепт урожая смыслового разбора $sdId",
+                            )
+                        }
+                    }
+                } catch (e: Exception) {
+                    respond(
+                        ex, 422,
+                        mapper.createObjectNode()
+                            .put("error", "акцепт отклонён целиком: ${e.message}")
+                            .set<ObjectNode>("refused", refused),
+                    )
+                    return true
+                }
+                val out = mapper.createObjectNode().put("document", sdId)
+                out.set<ArrayNode>("created", created)
+                out.set<ArrayNode>("refused", refused)
+                respond(ex, if (created.isEmpty) 422 else 201, out)
+            }
+            else -> return false
+        }
+        return true
+    }
+
+    /**
+     * Ф-08.1: умолчание включения документа в промпт — по его ТИПУ, из
+     * глоссария (поле prompt_default). Постановочный документ входит в
+     * промпт разделами сразу: без этого «загрузил и смотри» оставалось
+     * тупиком — блоки не выбраны, и в промпт уходило одно оглавление.
+     */
+    private fun promptDefaultOf(kind: String): String =
+        boundary.objects.listCurrent(orbita.mod.store.ObjectStore.LIBRARY_PROJECT)
+            .filter { it.type == "glossary" && it.status != Lifecycle.Cancelled }
+            .flatMap { g -> g.doc.path("entries").toList() }
+            .firstOrNull { it.path("sd_kind").asText() == kind }
+            ?.path("prompt_default")?.asText("off") ?: "off"
+
+    /** Включает все блоки разбора документа в промпт проекта; сколько вошло. */
+    private fun includeDocumentInPrompt(sdId: String, projectId: String, author: String): Int {
+        val map = DocumentParseStore.mapOf(filesDir(), sdId) ?: return 0
+        val anchors = map.path("structure")
+            .map { it.path("anchor").asText() }
+            .filter { it.isNotBlank() }
+        if (anchors.isEmpty()) return 0
+        val passport = boundary.objects.current(projectId)?.takeIf { it.type == "project" } ?: return 0
+        val path = (passport.doc.path("start_path").deepCopy<JsonNode>() as? ObjectNode)
+            ?: mapper.createObjectNode().put("status", "in_progress").put("step", 2)
+        val refs = (path.path("source_refs").takeIf { it.isArray } as? ArrayNode) ?: path.putArray("source_refs")
+        if (refs.none { it.asText() == sdId }) refs.add(sdId)
+        val blocks = (path.path("source_blocks").takeIf { it.isObject } as? ObjectNode)
+            ?: path.putObject("source_blocks")
+        val arr = blocks.putArray(sdId)
+        anchors.forEach { arr.add(it) }
+        val changes = mapper.createObjectNode()
+        changes.set<ObjectNode>("start_path", path)
+        boundary.editing.update(
+            CoreType.Project, passport.id, changes, passport.version, author,
+            changeRef = "Ф-08.1: постановочный документ $sdId включён в промпт разделами",
+        )
+        return anchors.size
     }
 
     /** Авторские тексты разделов документа (В1.2) — текущие объекты проекта. */

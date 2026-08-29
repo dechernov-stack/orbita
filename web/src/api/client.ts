@@ -39,6 +39,7 @@ import type {
   DocumentParseMap,
   DocumentHarvestView,
   DataRequestsView,
+  MissionIntentDraftView,
 } from './types'
 
 import { withProject } from './project'
@@ -316,6 +317,23 @@ export const api = {
       id: string; name: string; role: string; note?: string
       fields: Array<{ key: string; name: string; unit?: string; required?: boolean; hint?: string }>
     }>>('/library/property-forms'),
+  /** Ф-07: есть ли из чего собирать замысел — и по каким документам. */
+  missionIntentReadiness: () =>
+    get<{
+      documents: number; parsed: number; harvested: number
+      can_compose: boolean; why: string
+      sources: Array<{ document: string; name: string; harvest: boolean }>
+    }>('/views/mission-intent/readiness'),
+  /** Ф-07: промпт сборки замысла — собирает система (закрытый контур). */
+  missionIntentPrompt: () =>
+    get<{ profile: string; kind: string; text: string }>('/views/mission-intent/prompt'),
+  /** Ф-07: предложение замысла пакетом — проверяется схемой, в паспорт не пишется. */
+  missionIntentDraft: (raw: string) => post<MissionIntentDraftView>('/views/mission-intent/draft', { raw }),
+  /** Ф-07: акцепт замысла — правкой паспорта, с якорями происхождения. */
+  missionIntentAccept: (draft: MissionIntentDraftView, author: string) =>
+    post<{ project: string; version: string; mission_intent: Record<string, unknown> }>(
+      '/views/mission-intent/accept', { draft, author },
+    ),
   /** Д3: поиск по материалам проекта — по канонам, с координатой блока. */
   documentSearch: (q: string) =>
     get<{

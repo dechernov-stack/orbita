@@ -234,7 +234,7 @@ export function App() {
       case 'references':
         return <ScreenFrame title="Справочники"><References /></ScreenFrame>
       case 'docparse':
-        return <ScreenFrame title="Разбор документов"><DocParse /></ScreenFrame>
+        return <ScreenFrame title="Разбор документов"><DocParse onGo={go} /></ScreenFrame>
       case 'sourcedocs':
         return <KindRegistry key={screen} kinds={['source_document']} title="Исходные документы (библиотека)" />
       {/* формы постановки: редактор раскрывается вниз, как в требованиях

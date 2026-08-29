@@ -206,6 +206,17 @@ export function DocHarvest({ documentId }: { documentId: string }) {
                     </td>
                     <td>
                       {CLASS_LABEL[item.class] ?? item.class}
+                      {item.source_mark && (
+                        <div className="chip" title={
+                          item.source_mark === 'П'
+                            ? 'предложение автора документа — не внешний факт'
+                            : item.source_mark === 'И'
+                              ? 'из источника: внешний факт'
+                              : 'вывод автора документа'
+                        }>
+                          [{item.source_mark}]
+                        </div>
+                      )}
                       {item.need_ref && (
                         <div className="amber" title="реквизиты документ не назвал — их вносит инженер">
                           уточнить обозначение

@@ -20,7 +20,25 @@ SEEDS = [
     ("glossary", "/library/glossary", "08-глоссарий.json"),
     # Ф-06: анкеты характеристик — ими библиотека запрашивает данные
     ("property_form", "/library/property-forms", "09-анкеты-характеристик.json"),
+    # Пачка-2: шаблон записки миссии — полка Б, нитка «образец → шаблон».
+    # Списка шаблонов своей ручкой нет: наличие проверяем прямым чтением
+    # объекта — портфель из нескольких проектов ломает общий /objects.
+    ("document_template", None, "10-шаблон-записки.json"),
 ]
+
+
+def present(view, packet):
+    """Что уже лежит на полке: списком ручки либо прямым чтением объектов."""
+    if view:
+        return call("GET", view)
+    rows = []
+    for obj in packet["objects"]:
+        try:
+            rows.append(call("GET", f"/objects/{obj['id']}")["doc"])
+        except urllib.error.HTTPError as e:
+            if e.code != 404:
+                raise
+    return rows
 
 
 def call(method: str, path: str, body=None):
@@ -35,16 +53,23 @@ def call(method: str, path: str, body=None):
 
 
 def obsolete(type_: str, rows: list) -> bool:
-    """Справочник на полке старее сида по СОСТАВУ полей — не по версии:
-    написания единиц (Д1) добавились к существующим записям."""
-    if type_ != "unit_registry":
-        return False
-    return not any("spellings" in d for d in rows)
+    """Полка старее сида по СОСТАВУ полей, а не по версии: поля добавляются
+    пачками (написания единиц — Д1, умолчание промпта — Ф-08.1, точки
+    зрелости — Ф-06 п.5), и объект надо обновить, а не пересоздать."""
+    if type_ == "unit_registry":
+        return not any("spellings" in d for d in rows)
+    if type_ == "glossary":
+        return not any(
+            e.get("prompt_default") for d in rows for e in ([d] if "term" in d else d.get("entries", []))
+        )
+    if type_ == "property_form":
+        return not any(f.get("required_by") for d in rows for f in d.get("fields", []))
+    return False
 
 
 for type_, view, fname in SEEDS:
-    rows = call("GET", view)
     packet = json.loads((PACKETS / fname).read_text())
+    rows = present(view, packet)
     if rows and not obsolete(type_, rows):
         print(f"{type_}: уже на полке — пропуск")
         continue
@@ -57,7 +82,7 @@ for type_, view, fname in SEEDS:
             call("PATCH", f"/edit/{obj['id']}", {
                 "author": packet["author"], "base_version": cur["version"], "changes": changes,
             })
-            print(f"{type_}: обновлён {obj['id']} (написания единиц для разбора Д1)")
+            print(f"{type_}: обновлён {obj['id']} — полка была старее сида")
         continue
     for obj in packet["objects"]:
         out = call("POST", "/library/objects", {"type": type_, "doc": obj, "author": packet["author"]})

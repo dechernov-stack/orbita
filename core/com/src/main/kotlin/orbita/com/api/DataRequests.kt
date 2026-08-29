@@ -19,6 +19,10 @@ data class DataRequestField(
     val name: String,
     val unit: String?,
     val required: Boolean,
+    /** Ф-06 п.5: точка, к которой поле обязано быть задано; null — без срока. */
+    val requiredBy: String?,
+    /** Спрошено сейчас: точка поля — ближайшая. Иначе приглашение. */
+    val dueNow: Boolean,
     val hint: String?,
     val kind: String,
     val options: List<String>,
@@ -37,7 +41,15 @@ data class DataRequest(
     val target: String?,
     val fields: List<DataRequestField>,
 ) {
-    val missing: List<DataRequestField> get() = fields.filter { it.required && !it.filled }
+    /**
+     * Ф-06 п.5: разрывом считается только то, что требуется к БЛИЖАЙШЕЙ точке.
+     * В Pre-A анкеты железа — приглашение: «данные не заданы» не горит там,
+     * где срок ещё не пришёл. Заполнить раньше срока законно.
+     */
+    val missing: List<DataRequestField> get() = fields.filter { it.required && it.dueNow && !it.filled }
+
+    /** Приглашения: спрошено, но срок ещё не наступил. */
+    val invited: List<DataRequestField> get() = fields.filter { !it.filled && !it.dueNow }
 }
 
 class DataRequests(private val boundary: Boundary) {
@@ -58,6 +70,8 @@ class DataRequests(private val boundary: Boundary) {
      * если анкета назвала терм.
      */
     fun of(projectId: String): List<DataRequest> {
+        // ближайшая непройденная точка проекта — по ней и меряется зрелость
+        val nextGate = runCatching { boundary.gatePassing.nextGate(projectId) }.getOrNull()
         val lib = boundary.objects.listCurrent(ObjectStore.LIBRARY_PROJECT)
             .filter { it.status.name != "Cancelled" }
         val classRef = boundary.objects.current(projectId)?.doc?.path("mission_class")?.asText("") ?: ""
@@ -85,11 +99,14 @@ class DataRequests(private val boundary: Boundary) {
                         if (target.isBlank()) null else doc.at(target).takeIf { !it.isMissingNode && !it.isNull }
                     }
                     val harvested = fromDatasheets[key]
+                    val requiredBy = f.path("required_by").asText("").ifBlank { null }
                     DataRequestField(
                         key = key,
                         name = f.path("name").asText(),
                         unit = f.path("unit").asText("").ifBlank { null },
                         required = f.path("required").asBoolean(false),
+                        requiredBy = requiredBy,
+                        dueNow = requiredBy != null && requiredBy == nextGate,
                         hint = f.path("hint_term").asText("").ifBlank { null }?.let { terms[it] }
                             ?: f.path("hint").asText("").ifBlank { null },
                         kind = f.path("kind").asText("number"),
@@ -154,6 +171,7 @@ class DataRequests(private val boundary: Boundary) {
             val node = addObject()
                 .put("form", r.form).put("name", r.name).put("role", r.role)
                 .put("missing", r.missing.size)
+                .put("invited", r.invited.size)
             r.note?.let { node.put("note", it) }
             r.target?.let { node.put("holder", it) }
             val arr = node.putArray("fields")
@@ -161,7 +179,9 @@ class DataRequests(private val boundary: Boundary) {
                 val fn = arr.addObject()
                     .put("key", f.key).put("name", f.name)
                     .put("required", f.required).put("filled", f.filled)
+                    .put("due_now", f.dueNow)
                     .put("kind", f.kind)
+                f.requiredBy?.let { fn.put("required_by", it) }
                 f.unit?.let { fn.put("unit", it) }
                 f.hint?.let { fn.put("hint", it) }
                 f.value?.let { fn.put("value", it) }

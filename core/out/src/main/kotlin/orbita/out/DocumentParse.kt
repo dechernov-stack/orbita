@@ -63,7 +63,7 @@ class ParsedDocument(
 object DocumentParse {
 
     /** Версия разборщика: входит в имя разбора — смена версии переиндексирует. */
-    const val VERSION = 2
+    const val VERSION = 3
 
     /** Длиннее — лист уходит приложением-CSV, в канон идёт начало с пометой. */
     const val CSV_ROW_LIMIT = 50
@@ -77,6 +77,13 @@ object DocumentParse {
             """Федеральн\w+\s+закон\w*[^.,;]{0,60}|ФЗ\s*[-–—]?\s*№?\s*\d+|""" +
             """ГОСТ|ОСТ\s+\d[\d.\-]*|СП\s+\d[\d.\-]*|ITU-[RT]\s+[A-Z]?\.?\d+)""",
     )
+
+    /**
+     * Ф-08.3: метка источника утверждения в начале блока — [И] из источника,
+     * [В] вывод автора, [П] предложение. Метка попадает координатой в карту:
+     * предложение автора («1 млн терминалов») не путается с внешним фактом.
+     */
+    private val SOURCE_MARK = Regex("""^\s*\[([ИВП])]\s*""")
 
     /** Число и диапазон: «7–9 …», «30 …», «75–80…»; единица — словарём. */
     private val NUMBER = Regex(
@@ -280,6 +287,8 @@ object DocumentParse {
         private val numbers: ArrayNode = mapper.createArrayNode()
         private val terms: ArrayNode = mapper.createArrayNode()
         private val normatives: ArrayNode = mapper.createArrayNode()
+        /** Ф-08.3: метки источников блоков — [И]/[В]/[П] с координатой. */
+        private val marks: ArrayNode = mapper.createArrayNode()
         private var blockNo = 0
         private var sectionNo = 0
         private var tableNo = 0
@@ -318,6 +327,7 @@ object DocumentParse {
 
         fun para(text: String, listItem: Boolean = false) {
             val anchor = nextBlock()
+            val mark = SOURCE_MARK.find(text)?.groupValues?.get(1)
             md.append("<!-- ").append(anchor).append(" -->\n")
                 .append(if (listItem) "- " else "").append(text).append("\n\n")
             lastWasSection = false
@@ -327,6 +337,9 @@ object DocumentParse {
             } else {
                 structure.addObject().put("anchor", anchor).put("type", "para")
             }
+            // метка живёт отдельным слоем карты: текст блока её сохраняет,
+            // а координата «чем это является» становится машиночитаемой
+            if (mark != null) marks.addObject().put("block", anchor).put("mark", mark)
             harvest(text, anchor)
         }
 
@@ -482,6 +495,7 @@ object DocumentParse {
             map.set<ArrayNode>("numbers", numbers)
             map.set<ArrayNode>("terms", dedupTerms())
             map.set<ArrayNode>("normative_candidates", normatives)
+            map.set<ArrayNode>("source_marks", marks)
             map.putObject("summary")
                 .put("blocks", blockNo)
                 .put("sections", sectionNo)
@@ -489,6 +503,7 @@ object DocumentParse {
                 .put("numbers", numbers.size())
                 .put("terms", map.path("terms").size())
                 .put("normative_candidates", normatives.size())
+                .put("source_marks", marks.size())
                 .put("source_chars", sourceChars)
                 .put("canon_chars", canon.length)
             return ParsedDocument(

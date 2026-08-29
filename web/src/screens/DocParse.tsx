@@ -23,7 +23,10 @@ function valueOf(v: number | { min: number; max: number }): string {
   return typeof v === 'number' ? String(v) : `${v.min}…${v.max}`
 }
 
-export function DocParse({ documentId }: { documentId?: string }) {
+export function DocParse({ documentId, onGo }: {
+  documentId?: string
+  onGo?: (screen: string) => void
+}) {
   const { label } = useSession()
   const [docs, setDocs] = useState<StoredSummary[]>([])
   const [id, setId] = useState<string | undefined>(documentId)
@@ -38,6 +41,9 @@ export function DocParse({ documentId }: { documentId?: string }) {
   /** Д3: блоки, отмеченные «в промпт» — хранятся в паспорте (start_path). */
   const [inPrompt, setInPrompt] = useState<Set<string>>(new Set())
   const [promptNote, setPromptNote] = useState<string | null>(null)
+  /** Ф-08.2: состояние цепочки — урожай принят, замысел собран. */
+  const [harvestDone, setHarvestDone] = useState(false)
+  const [intentDone, setIntentDone] = useState(false)
 
   /** Д3: выбор блоков в промпт живёт в паспорте — читаем при заходе. */
   useEffect(() => {
@@ -68,6 +74,18 @@ export function DocParse({ documentId }: { documentId?: string }) {
   }
 
   useEffect(() => { if (id) load(id) }, [id])
+
+  useEffect(() => {
+    if (!id) return
+    api.sdHarvest(id).then(() => setHarvestDone(true)).catch(() => setHarvestDone(false))
+    edit.list('project')
+      .then((rows) => rows[0] && edit.object(rows[0].id))
+      .then((p) => {
+        const mi = (p?.doc as { mission_intent?: Record<string, unknown> })?.mission_intent
+        setIntentDone(!!mi && Object.keys(mi).length > 0)
+      })
+      .catch(() => setIntentDone(false))
+  }, [id])
 
   /** Отметка блока «в промпт»: правит паспорт — состав промпта хранится там. */
   const togglePromptBlock = async (anchor: string) => {
@@ -171,6 +189,51 @@ export function DocParse({ documentId }: { documentId?: string }) {
       {error && (
         <div className="warn" style={{ padding: 8 }}>
           Разбора нет или он не удался: {error}. Нажмите «переразобрать».
+        </div>
+      )}
+
+      {/* Ф-08.2: полоса-проводник — цепочка приглашений от загрузки до
+          промпта; сделанное гаснет, мёртвых состояний не остаётся */}
+      {id && (
+        <div className="card">
+          <h3>Что дальше с документом</h3>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+            {[
+              {
+                done: !!map,
+                label: 'разобрать',
+                hint: 'канон с якорями и карта координат',
+                act: () => void reparse(),
+              },
+              {
+                done: harvestDone,
+                label: 'акцептовать урожай',
+                hint: 'смысловой разбор: кандидаты сущностей по адресам',
+                act: () => setTab('harvest'),
+              },
+              {
+                done: intentDone,
+                label: 'собрать замысел',
+                hint: 'четыре поля замысла по документам — на шаге 1 мастера',
+                act: () => onGo?.('startpath'),
+              },
+              {
+                done: inPrompt.size > 0,
+                label: 'взять в промпт',
+                hint: 'выбрать блоки документа для промпта службы',
+                act: () => setTab('parse'),
+              },
+            ].map((step, i) => (
+              <span key={step.label} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                {i > 0 && <span className="secondary">→</span>}
+                {step.done ? (
+                  <span className="secondary" title={`${step.hint} — сделано`}>✓ {step.label}</span>
+                ) : (
+                  <button className="rr-assign" onClick={step.act} title={step.hint}>{step.label}</button>
+                )}
+              </span>
+            ))}
+          </div>
         </div>
       )}
 

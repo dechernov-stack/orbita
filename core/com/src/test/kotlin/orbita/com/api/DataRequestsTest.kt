@@ -69,7 +69,7 @@ class DataRequestsTest {
         val platform = list.first { it.role == "platform" }
         assertTrue(platform.fields.any { it.key == "dry_mass" && it.required && it.unit == "kg" })
         assertTrue(platform.fields.all { !it.filled }) { "в пустом проекте заполненных полей нет" }
-        assertTrue(platform.missing.isNotEmpty())
+        assertTrue(platform.fields.any { it.required })
 
         // поле несёт единицу справочника и подсказку — форма объясняет себя
         val life = platform.fields.first { it.key == "design_life" }
@@ -107,8 +107,9 @@ class DataRequestsTest {
         assertTrue(dry.filled) { "масса задана в модели — значит спрашивать её незачем" }
         assertEquals("model", dry.from)
         assertTrue(platform.missing.none { it.key == "dry_mass" })
-        // а незаполненные обязательные остаются спрошенными
-        assertTrue(platform.missing.any { it.key == "form_factor" })
+        // остальные поля платформы зреют к своим точкам: к MCR они
+        // приглашение, а не разрыв (Ф-06 п.5)
+        assertTrue(platform.invited.any { it.key == "form_factor" })
     }
 
     @Test
@@ -148,12 +149,31 @@ class DataRequestsTest {
     }
 
     @Test
-    fun `незаполненное обязательное — разрыв готовности с местом починки`() {
-        val checks = requests.let { boundary.gatePassing.readiness("MCR", "PJ-2001") }
+    fun `в Pre-A анкеты железа приглашают, а не горят разрывом`() {
+        // ближайшая точка проекта — MCR: к ней требуется концептуальное
+        // (диапазон частот, класс потребителя), а не масса платформы
+        val platform = requests.of("PJ-2001").first { it.role == "platform" }
+        assertTrue(platform.missing.isEmpty()) {
+            "к MCR железо не требуется: ${platform.missing.map { it.name }}"
+        }
+        assertTrue(platform.invited.isNotEmpty()) { "поля обязаны быть видны приглашением" }
+
+        val payload = requests.of("PJ-2001").first { it.role == "payload" }
+        val freq = payload.fields.first { it.key == "frequency_range" }
+        assertEquals("MCR", freq.requiredBy)
+        assertTrue(freq.dueNow) { "диапазон частот нужен уже к MCR — без него нет концепции связи" }
+        assertTrue(payload.missing.any { it.key == "frequency_range" })
+        assertTrue(payload.missing.none { it.key == "mass" }) { "масса ПН зреет к SDR" }
+    }
+
+    @Test
+    fun `разрыв готовности — только по полям ближайшей точки`() {
+        val checks = boundary.gatePassing.readiness("MCR", "PJ-2001")
         val gap = checks.first { it.id == "data_requests" }
         assertEquals("open", gap.state)
         assertEquals("spacecraft", gap.place)
-        assertTrue("Платформа: Масса сухая" in gap.note || "Масса сухая" in gap.note) { gap.note }
+        assertTrue("Диапазон частот" in gap.note) { gap.note }
+        assertTrue("Масса сухая" !in gap.note) { "поле SDR к MCR разрывом не считается: ${gap.note}" }
         assertTrue(!gap.blocking) { "запрос данных — предупреждение фазы, а не блокировка ворот" }
     }
 
