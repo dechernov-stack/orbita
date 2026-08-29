@@ -27,12 +27,20 @@ class UnitRegistryIndex(doc: JsonNode) {
 
     private val canons = mutableSetOf<String>()
     private val inputs = mutableMapOf<String, Input>()
+    /**
+     * Написание единицы → её имя в справочнике: «кг» → kg, «КА» → pcs.
+     * Блокер прохода: пачка целей отклонялась на «кг» и «КА», хотя оба
+     * написания в справочнике есть, — граница читала только ASCII-имена.
+     * Написания сравниваются без учёта регистра.
+     */
+    private val spellings = mutableMapOf<String, String>()
 
     init {
         doc.path("dimensions").forEach { d ->
             val canon = d.path("canon").asText()
             val conversion = d.path("conversion").asText("linear")
             canons += canon
+            d.path("spellings").forEach { s -> spellings[s.asText().lowercase()] = canon }
             d.path("inputs").forEach { i ->
                 val unit = i.path("unit").asText()
                 val factor = i.path("factor").takeIf { it.isNumber }?.asDouble()
@@ -43,23 +51,34 @@ class UnitRegistryIndex(doc: JsonNode) {
                     // курсовая: linear-размерность, вход без коэффициента
                     rate = conversion == "rate" || (conversion == "linear" && factor == null),
                 )
+                i.path("spellings").forEach { s -> spellings[s.asText().lowercase()] = unit }
             }
         }
     }
 
+    /** Имя единицы справочника по строке пачки: сама единица либо написание. */
+    private fun resolve(unit: String): String? = when {
+        unit in canons || unit in inputs -> unit
+        else -> spellings[unit.lowercase()]
+    }
+
     val empty: Boolean get() = canons.isEmpty()
 
-    fun known(unit: String): Boolean = unit in canons || unit in inputs
+    fun known(unit: String): Boolean = resolve(unit) != null
 
     /**
      * Единица значения → канон. null — уже канон либо конверсии нет по
      * определению (log/none: dBm, U — известные единицы без пересчёта).
      */
     fun toCanon(value: Double, unit: String): Pair<Double, String>? {
-        if (unit in canons) return null
-        val i = inputs[unit] ?: throw UnknownUnitException(unit)
+        val resolved = resolve(unit) ?: throw UnknownUnitException(unit)
+        // написание канона («кг», «шт») — то же значение, но имя единицы
+        // приводится к справочному: провенанс запишет «переведено из кг»
+        if (resolved in canons) return if (resolved == unit) null else value to resolved
+        val i = inputs[resolved]!!
         if (i.rate) throw RateUnitException(unit)
-        if (i.factor == null) return null // log/none: известна, не переводится
+        // счётные и log-величины не пересчитываются, но имя выравнивается
+        if (i.factor == null) return if (resolved == unit) null else value to resolved
         return value * i.factor + (i.shift ?: 0.0) to i.canon
     }
 }
