@@ -36,6 +36,7 @@ import type {
   SystemOverview,
   UnitLabels,
   WizardStep,
+  DocumentParseMap,
 } from './types'
 
 import { withProject } from './project'
@@ -299,6 +300,12 @@ export const api = {
   },
   /** Круг 2: файл карточки — обратно (ссылка скачивания). */
   sdFileUrl: (id: string) => withProject(`/api/sd-files/${encodeURIComponent(id)}`),
+  /** Д1: карта разбора документа — структура, числа каноном, находки. */
+  sdParse: (id: string) => get<DocumentParseMap>(`/sd-parse/${encodeURIComponent(id)}`),
+  /** Д1: MD-канон — единственный носитель текста документа. */
+  sdCanonUrl: (id: string) => withProject(`/api/sd-parse/${encodeURIComponent(id)}/canon`),
+  /** Д1: переразбор (документы до Д1 и смена версии разборщика). */
+  sdReparse: (id: string) => post<{ id: string; parsed: string }>(`/sd-parse/${encodeURIComponent(id)}`, {}),
   /** В3: кто я — режим учёток, пользователь и его роли по проектам. */
   whoami: () =>
     get<{ enabled: boolean; user?: { login: string; display_name: string; roles: Record<string, string> } }>(

@@ -1657,12 +1657,18 @@ class HttpApi(private val boundary: Boundary) {
                 val dir = java.nio.file.Path.of(filesDir(), stored.id)
                 java.nio.file.Files.createDirectories(dir)
                 java.nio.file.Files.write(dir.resolve(java.nio.file.Path.of(fileName).fileName.toString()), bytes)
+                // Д1: разбор — при загрузке, один раз. Дальше документ живёт
+                // каноном и картой: службе сырой файл больше не отдаётся.
+                val parseId = DocumentParseStore.parseAndStore(
+                    filesDir(), stored.id, fileName, bytes, DocumentParseStore.lexiconOf(boundary),
+                )
                 respond(
                     ex, 201,
                     mapper.createObjectNode()
                         .put("id", stored.id)
                         .put("file", fileName)
-                        .put("text_extracted", doc.has("text")),
+                        .put("text_extracted", doc.has("text"))
+                        .put("parsed", parseId),
                 )
             }
 
@@ -1676,6 +1682,45 @@ class HttpApi(private val boundary: Boundary) {
                 val f = java.nio.file.Path.of(filesDir(), sdId, java.nio.file.Path.of(fileName).fileName.toString())
                 require(java.nio.file.Files.exists(f)) { "файл карточки $sdId не найден в хранилище" }
                 respondBinary(ex, java.nio.file.Files.readAllBytes(f), "application/octet-stream", fileName)
+            }
+
+            // Д1: карта разбора — структура, числа каноном, термы,
+            // нормативы-кандидаты. Текста не несёт: он в каноне (ниже).
+            method == "GET" && Regex("^/sd-parse/SD-[0-9]{4}$").matches(path) -> {
+                val sdId = path.removePrefix("/sd-parse/")
+                boundary.objects.current(sdId) ?: throw NoSuchElementException("document '$sdId' not found")
+                val map = DocumentParseStore.mapOf(filesDir(), sdId)
+                    ?: throw NoSuchElementException(
+                        "разбора у $sdId нет — переразберите документ (POST /sd-parse/$sdId)",
+                    )
+                respond(ex, 200, map)
+            }
+
+            // Д1: MD-канон — 100% текста документа с якорями блоков. Люди
+            // читают его как документ, промпт берёт разделы по якорям.
+            method == "GET" && Regex("^/sd-parse/SD-[0-9]{4}/canon$").matches(path) -> {
+                val sdId = path.removePrefix("/sd-parse/").removeSuffix("/canon")
+                boundary.objects.current(sdId) ?: throw NoSuchElementException("document '$sdId' not found")
+                val canon = DocumentParseStore.canonOf(filesDir(), sdId)
+                    ?: throw NoSuchElementException("разбора у $sdId нет — переразберите документ")
+                respondBinary(ex, canon.toByteArray(), "text/markdown; charset=utf-8", "$sdId.md")
+            }
+
+            // Д1: переразбор — документам, загруженным до появления разбора,
+            // и после смены версии разборщика (кэш по хешу файла).
+            method == "POST" && Regex("^/sd-parse/SD-[0-9]{4}$").matches(path) -> {
+                val sdId = path.removePrefix("/sd-parse/")
+                val sd = boundary.objects.current(sdId)
+                    ?: throw NoSuchElementException("document '$sdId' not found")
+                val fileName = sd.doc.path("file").path("name").asText("")
+                require(fileName.isNotBlank()) { "у карточки $sdId нет файла — разбирать нечего" }
+                val f = java.nio.file.Path.of(filesDir(), sdId, java.nio.file.Path.of(fileName).fileName.toString())
+                require(java.nio.file.Files.exists(f)) { "файл карточки $sdId не найден в хранилище" }
+                val parseId = DocumentParseStore.parseAndStore(
+                    filesDir(), sdId, fileName, java.nio.file.Files.readAllBytes(f),
+                    DocumentParseStore.lexiconOf(boundary),
+                ) ?: throw IllegalArgumentException("формат '$fileName' разборщику не поддаётся")
+                respond(ex, 200, mapper.createObjectNode().put("id", sdId).put("parsed", parseId))
             }
 
             // В1.2: сохранение авторского текста раздела. Отпечаток данных

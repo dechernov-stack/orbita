@@ -759,3 +759,43 @@ export interface DocumentIssuesView {
     stale: boolean
   }>
 }
+
+/** Д1: карта разбора документа — координаты и находки, текста не несёт. */
+export interface DocumentParseMap {
+  parser_version: number
+  fingerprint: string
+  source_document: string
+  source_file: string
+  canonical_text: string
+  structure: Array<{
+    anchor: string
+    type: 'title' | 'section' | 'para' | 'table'
+    title?: string
+    level?: number
+    blocks?: string[]
+    /** таблицы: строк без шапки, ключевая колонка (адрес строки t1#15), колонки */
+    rows?: number
+    row_key?: string
+    cols?: string[]
+    section?: string
+  }>
+  numbers: Array<{
+    block: string
+    unit: string
+    value: number | { min: number; max: number }
+    canonical?: { unit: string; value: number | { min: number; max: number } }
+    converted_from?: string
+  }>
+  terms: Array<{ term: string; blocks: string[] }>
+  normative_candidates: Array<{ mention: string; block: string }>
+  summary: {
+    blocks: number
+    sections: number
+    tables: number
+    numbers: number
+    terms: number
+    normative_candidates: number
+    source_chars: number
+    canon_chars: number
+  }
+}

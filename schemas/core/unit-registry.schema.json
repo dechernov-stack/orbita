@@ -4,45 +4,111 @@
   "title": "UnitRegistry",
   "description": "Справочник единиц (решение ранга ADR): один на систему, полка LIB, применяется каждому проекту автоматически. Хранение — только в канонической единице размерности; конверсия — на границах; новая единица — правка справочника, не кода.",
   "type": "object",
-  "required": ["id", "name", "dimensions"],
+  "required": [
+    "id",
+    "name",
+    "dimensions"
+  ],
   "additionalProperties": false,
   "properties": {
-    "id": { "type": "string", "pattern": "^UR-[0-9]{4}$" },
-    "name": { "type": "string", "minLength": 1 },
+    "id": {
+      "type": "string",
+      "pattern": "^UR-[0-9]{4}$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
     "dimensions": {
       "type": "array",
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": ["name", "canon"],
+        "required": [
+          "name",
+          "canon"
+        ],
         "additionalProperties": false,
         "properties": {
-          "name": { "type": "string", "minLength": 1, "description": "Размерность: масса, время, деньги, …" },
-          "canon": { "type": "string", "minLength": 1, "description": "Каноническая единица хранения (unit-строка)" },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Размерность: масса, время, деньги, …"
+          },
+          "canon": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Каноническая единица хранения (unit-строка)"
+          },
           "conversion": {
-            "enum": ["linear", "shift", "log", "rate", "none"],
+            "enum": [
+              "linear",
+              "shift",
+              "log",
+              "rate",
+              "none"
+            ],
             "description": "linear — коэффициентом; shift — со сдвигом (°C); log — дБ-величины, конверсии нет; rate — курсовая, требует курс и дату; none — счётные и шкальные"
           },
-          "display": { "type": "string", "description": "Предпочтительная единица показа, если отлична от канона" },
-          "note": { "type": "string" },
+          "display": {
+            "type": "string",
+            "description": "Предпочтительная единица показа, если отлична от канона"
+          },
+          "note": {
+            "type": "string"
+          },
           "inputs": {
             "type": "array",
             "items": {
               "type": "object",
-              "required": ["unit"],
+              "required": [
+                "unit"
+              ],
               "additionalProperties": false,
               "properties": {
-                "unit": { "type": "string", "minLength": 1, "description": "Имя единицы ввода — уникально во всём справочнике" },
-                "factor": { "type": "number", "description": "Коэффициент к канону (linear)" },
-                "shift": { "type": "number", "description": "Сдвиг к канону после умножения (shift: K = °C + 273.15)" },
-                "note": { "type": "string" }
+                "unit": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Имя единицы ввода — уникально во всём справочнике"
+                },
+                "factor": {
+                  "type": "number",
+                  "description": "Коэффициент к канону (linear)"
+                },
+                "shift": {
+                  "type": "number",
+                  "description": "Сдвиг к канону после умножения (shift: K = °C + 273.15)"
+                },
+                "note": {
+                  "type": "string"
+                },
+                "spellings": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "description": "Написания единицы в тексте документов («млрд руб.», «млрд ₽») — по ним разбор (Д1) узнаёт величину и канонизирует её. Пополняется правкой справочника, не кода."
+                }
               }
             }
+          },
+          "spellings": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "description": "Написания единицы в тексте документов («млрд руб.», «млрд ₽») — по ним разбор (Д1) узнаёт величину и канонизирует её. Пополняется правкой справочника, не кода."
           }
         }
       }
     },
-    "lifecycle": { "$ref": "https://kis.local/schemas/common/status.schema.json" },
-    "provenance": { "$ref": "https://kis.local/schemas/common/provenance.schema.json" }
+    "lifecycle": {
+      "$ref": "https://kis.local/schemas/common/status.schema.json"
+    },
+    "provenance": {
+      "$ref": "https://kis.local/schemas/common/provenance.schema.json"
+    }
   }
 }

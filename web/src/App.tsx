@@ -17,6 +17,7 @@ import { NewProject } from './screens/NewProject'
 import { SeedDemand } from './screens/SeedDemand'
 import { Shelves } from './screens/Shelves'
 import { References } from './screens/References'
+import { DocParse } from './screens/DocParse'
 import { MyTasks, MyTasksBadge } from './screens/MyTasks'
 import { StartPath } from './screens/StartPath'
 import { Comparison } from './screens/Comparison'
@@ -232,6 +233,8 @@ export function App() {
       case 'shelves': return <Shelves key={screen} />
       case 'references':
         return <ScreenFrame title="Справочники"><References /></ScreenFrame>
+      case 'docparse':
+        return <ScreenFrame title="Разбор документов"><DocParse /></ScreenFrame>
       case 'sourcedocs':
         return <KindRegistry key={screen} kinds={['source_document']} title="Исходные документы (библиотека)" />
       {/* формы постановки: редактор раскрывается вниз, как в требованиях

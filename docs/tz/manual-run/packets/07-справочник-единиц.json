@@ -6,72 +6,558 @@
       "id": "UR-9001",
       "name": "Справочник единиц «Орбиты»",
       "dimensions": [
-        { "name": "масса", "canon": "kg", "conversion": "linear",
-          "inputs": [ { "unit": "g", "factor": 0.001 }, { "unit": "t", "factor": 1000 } ] },
-        { "name": "длина", "canon": "m", "conversion": "linear", "display": "km",
+        {
+          "name": "масса",
+          "canon": "kg",
+          "conversion": "linear",
+          "inputs": [
+            {
+              "unit": "g",
+              "factor": 0.001,
+              "spellings": [
+                "г",
+                "грамм",
+                "грамма",
+                "граммов"
+              ]
+            },
+            {
+              "unit": "t",
+              "factor": 1000,
+              "spellings": [
+                "т",
+                "тонн",
+                "тонны",
+                "тонна"
+              ]
+            }
+          ],
+          "spellings": [
+            "кг",
+            "килограмм",
+            "килограмма",
+            "килограммов"
+          ]
+        },
+        {
+          "name": "длина",
+          "canon": "m",
+          "conversion": "linear",
+          "display": "km",
           "note": "показ: км для орбит, м прочее",
-          "inputs": [ { "unit": "mm", "factor": 0.001 }, { "unit": "km", "factor": 1000 } ] },
-        { "name": "площадь", "canon": "m2", "conversion": "linear",
-          "inputs": [ { "unit": "km2", "factor": 1000000 } ] },
-        { "name": "объём", "canon": "m3", "conversion": "linear",
-          "inputs": [ { "unit": "dm3", "factor": 0.001 } ] },
-        { "name": "время", "canon": "s", "conversion": "linear",
+          "inputs": [
+            {
+              "unit": "mm",
+              "factor": 0.001
+            },
+            {
+              "unit": "km",
+              "factor": 1000,
+              "spellings": [
+                "км",
+                "километр",
+                "километра",
+                "километров"
+              ]
+            }
+          ],
+          "spellings": [
+            "м",
+            "метр",
+            "метра",
+            "метров"
+          ]
+        },
+        {
+          "name": "площадь",
+          "canon": "m2",
+          "conversion": "linear",
+          "inputs": [
+            {
+              "unit": "km2",
+              "factor": 1000000,
+              "spellings": [
+                "км2",
+                "км²"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "объём",
+          "canon": "m3",
+          "conversion": "linear",
+          "inputs": [
+            {
+              "unit": "dm3",
+              "factor": 0.001
+            }
+          ]
+        },
+        {
+          "name": "время",
+          "canon": "s",
+          "conversion": "linear",
           "note": "показ по полю: с/мин/сут",
-          "inputs": [ { "unit": "min", "factor": 60 }, { "unit": "h", "factor": 3600 },
-                      { "unit": "d", "factor": 86400 }, { "unit": "a", "factor": 31557600 } ] },
-        { "name": "угол", "canon": "rad", "conversion": "linear", "display": "deg",
+          "inputs": [
+            {
+              "unit": "min",
+              "factor": 60,
+              "spellings": [
+                "мин",
+                "минут",
+                "минуты",
+                "минута"
+              ]
+            },
+            {
+              "unit": "h",
+              "factor": 3600,
+              "spellings": [
+                "ч",
+                "час",
+                "часа",
+                "часов"
+              ]
+            },
+            {
+              "unit": "d",
+              "factor": 86400,
+              "spellings": [
+                "сут",
+                "суток",
+                "сутки",
+                "дн",
+                "дня",
+                "дней",
+                "день"
+              ]
+            },
+            {
+              "unit": "a",
+              "factor": 31557600,
+              "spellings": [
+                "год",
+                "года",
+                "лет",
+                "году",
+                "годы"
+              ]
+            }
+          ],
+          "spellings": [
+            "с",
+            "сек",
+            "секунд",
+            "секунды",
+            "секунда"
+          ]
+        },
+        {
+          "name": "угол",
+          "canon": "rad",
+          "conversion": "linear",
+          "display": "deg",
           "note": "радианы — только внутри расчётов (§7); ввода в радианах нет",
-          "inputs": [ { "unit": "deg", "factor": 0.0174532925199433 },
-                      { "unit": "arcmin", "factor": 0.000290888208665722 } ] },
-        { "name": "скорость", "canon": "m/s", "conversion": "linear",
-          "inputs": [ { "unit": "km/s", "factor": 1000 }, { "unit": "km/h", "factor": 0.2777777777777778 } ] },
-        { "name": "температура", "canon": "K", "conversion": "shift", "display": "degC",
-          "inputs": [ { "unit": "degC", "factor": 1, "shift": 273.15 } ] },
-        { "name": "давление", "canon": "Pa", "conversion": "linear",
-          "inputs": [ { "unit": "bar", "factor": 100000 } ] },
-        { "name": "частота", "canon": "Hz", "conversion": "linear", "display": "MHz",
-          "inputs": [ { "unit": "kHz", "factor": 1000 }, { "unit": "MHz", "factor": 1000000 },
-                      { "unit": "GHz", "factor": 1000000000 } ] },
-        { "name": "энергия", "canon": "J", "conversion": "linear", "display": "Wh",
-          "inputs": [ { "unit": "Wh", "factor": 3600 }, { "unit": "kWh", "factor": 3600000 } ] },
-        { "name": "мощность", "canon": "W", "conversion": "linear",
-          "inputs": [ { "unit": "mW", "factor": 0.001 }, { "unit": "kW", "factor": 1000 } ] },
-        { "name": "заряд АКБ", "canon": "Ah", "conversion": "linear",
+          "inputs": [
+            {
+              "unit": "deg",
+              "factor": 0.0174532925199433,
+              "spellings": [
+                "°",
+                "град",
+                "градус",
+                "градуса",
+                "градусов"
+              ]
+            },
+            {
+              "unit": "arcmin",
+              "factor": 0.000290888208665722
+            }
+          ]
+        },
+        {
+          "name": "скорость",
+          "canon": "m/s",
+          "conversion": "linear",
+          "inputs": [
+            {
+              "unit": "km/s",
+              "factor": 1000,
+              "spellings": [
+                "км/с"
+              ]
+            },
+            {
+              "unit": "km/h",
+              "factor": 0.2777777777777778,
+              "spellings": [
+                "км/ч"
+              ]
+            }
+          ],
+          "spellings": [
+            "м/с"
+          ]
+        },
+        {
+          "name": "температура",
+          "canon": "K",
+          "conversion": "shift",
+          "display": "degC",
+          "inputs": [
+            {
+              "unit": "degC",
+              "factor": 1,
+              "shift": 273.15,
+              "spellings": [
+                "°c",
+                "градусов цельсия"
+              ]
+            }
+          ],
+          "spellings": [
+            "к"
+          ]
+        },
+        {
+          "name": "давление",
+          "canon": "Pa",
+          "conversion": "linear",
+          "inputs": [
+            {
+              "unit": "bar",
+              "factor": 100000
+            }
+          ]
+        },
+        {
+          "name": "частота",
+          "canon": "Hz",
+          "conversion": "linear",
+          "display": "MHz",
+          "inputs": [
+            {
+              "unit": "kHz",
+              "factor": 1000,
+              "spellings": [
+                "кгц"
+              ]
+            },
+            {
+              "unit": "MHz",
+              "factor": 1000000,
+              "spellings": [
+                "мгц"
+              ]
+            },
+            {
+              "unit": "GHz",
+              "factor": 1000000000,
+              "spellings": [
+                "ггц"
+              ]
+            }
+          ],
+          "spellings": [
+            "гц"
+          ]
+        },
+        {
+          "name": "энергия",
+          "canon": "J",
+          "conversion": "linear",
+          "display": "Wh",
+          "inputs": [
+            {
+              "unit": "Wh",
+              "factor": 3600
+            },
+            {
+              "unit": "kWh",
+              "factor": 3600000,
+              "spellings": [
+                "квт·ч",
+                "квтч"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "мощность",
+          "canon": "W",
+          "conversion": "linear",
+          "inputs": [
+            {
+              "unit": "mW",
+              "factor": 0.001,
+              "spellings": [
+                "мвт"
+              ]
+            },
+            {
+              "unit": "kW",
+              "factor": 1000,
+              "spellings": [
+                "квт"
+              ]
+            }
+          ],
+          "spellings": [
+            "вт"
+          ]
+        },
+        {
+          "name": "заряд АКБ",
+          "canon": "Ah",
+          "conversion": "linear",
           "note": "прикладной канон — инженерная практика",
-          "inputs": [ { "unit": "mAh", "factor": 0.001 } ] },
-        { "name": "скорость передачи", "canon": "bit/s", "conversion": "linear", "display": "kbit/s",
-          "inputs": [ { "unit": "kbit/s", "factor": 1000 }, { "unit": "Mbit/s", "factor": 1000000 } ] },
-        { "name": "объём данных", "canon": "bit", "conversion": "linear", "display": "MB",
+          "inputs": [
+            {
+              "unit": "mAh",
+              "factor": 0.001
+            }
+          ]
+        },
+        {
+          "name": "скорость передачи",
+          "canon": "bit/s",
+          "conversion": "linear",
+          "display": "kbit/s",
+          "inputs": [
+            {
+              "unit": "kbit/s",
+              "factor": 1000,
+              "spellings": [
+                "кбит/с"
+              ]
+            },
+            {
+              "unit": "Mbit/s",
+              "factor": 1000000,
+              "spellings": [
+                "мбит/с"
+              ]
+            }
+          ],
+          "spellings": [
+            "бит/с"
+          ]
+        },
+        {
+          "name": "объём данных",
+          "canon": "bit",
+          "conversion": "linear",
+          "display": "MB",
           "note": "приставки десятичные",
-          "inputs": [ { "unit": "B", "factor": 8 }, { "unit": "KB", "factor": 8000 },
-                      { "unit": "MB", "factor": 8000000 }, { "unit": "GB", "factor": 8000000000 } ] },
-        { "name": "уровни и усиление", "canon": "dB", "conversion": "log",
+          "inputs": [
+            {
+              "unit": "B",
+              "factor": 8
+            },
+            {
+              "unit": "KB",
+              "factor": 8000
+            },
+            {
+              "unit": "MB",
+              "factor": 8000000
+            },
+            {
+              "unit": "GB",
+              "factor": 8000000000
+            }
+          ]
+        },
+        {
+          "name": "уровни и усиление",
+          "canon": "dB",
+          "conversion": "log",
           "note": "дБ-семейство: линейной конверсии нет, сравнение напрямую",
-          "inputs": [ { "unit": "dBm" }, { "unit": "dBi" }, { "unit": "dBW" } ] },
-        { "name": "поглощённая доза", "canon": "Gy", "conversion": "linear", "display": "krad",
+          "inputs": [
+            {
+              "unit": "dBm"
+            },
+            {
+              "unit": "dBi"
+            },
+            {
+              "unit": "dBW"
+            }
+          ]
+        },
+        {
+          "name": "поглощённая доза",
+          "canon": "Gy",
+          "conversion": "linear",
+          "display": "krad",
           "note": "имя «rad_dose», не «rad»: угловой рад — только внутри расчётов",
-          "inputs": [ { "unit": "krad", "factor": 10 }, { "unit": "rad_dose", "factor": 0.01 } ] },
-        { "name": "эквивалентная доза", "canon": "Sv", "conversion": "linear",
-          "inputs": [ { "unit": "mSv", "factor": 0.001 } ] },
-        { "name": "деньги", "canon": "MRUB", "conversion": "linear",
+          "inputs": [
+            {
+              "unit": "krad",
+              "factor": 10
+            },
+            {
+              "unit": "rad_dose",
+              "factor": 0.01
+            }
+          ]
+        },
+        {
+          "name": "эквивалентная доза",
+          "canon": "Sv",
+          "conversion": "linear",
+          "inputs": [
+            {
+              "unit": "mSv",
+              "factor": 0.001
+            }
+          ]
+        },
+        {
+          "name": "деньги",
+          "canon": "MRUB",
+          "conversion": "linear",
           "note": "иные валюты — rate: конверсия фиксирует курс и дату",
-          "inputs": [ { "unit": "kRUB", "factor": 0.001 }, { "unit": "RUB", "factor": 0.000001 },
-                      { "unit": "BRUB", "factor": 1000 },
-                      { "unit": "MUSD", "note": "rate: требует курс и дату" } ] },
-        { "name": "удельная стоимость выведения", "canon": "MRUB/kg", "conversion": "linear",
-          "inputs": [ { "unit": "kUSD/kg", "note": "rate: требует курс и дату" } ] },
-        { "name": "трудоёмкость", "canon": "man_month", "conversion": "linear",
-          "inputs": [ { "unit": "man_h", "factor": 0.005952380952380952 },
-                      { "unit": "man_year", "factor": 12 } ] },
-        { "name": "доля и вероятность", "canon": "1", "conversion": "linear",
-          "inputs": [ { "unit": "%", "factor": 0.01 } ] },
-        { "name": "счётные", "canon": "pcs", "conversion": "none",
+          "inputs": [
+            {
+              "unit": "kRUB",
+              "factor": 0.001,
+              "spellings": [
+                "тыс руб",
+                "тыс. руб",
+                "тыс руб.",
+                "тыс рублей"
+              ]
+            },
+            {
+              "unit": "RUB",
+              "factor": 1e-06,
+              "spellings": [
+                "руб",
+                "руб.",
+                "рублей",
+                "₽"
+              ]
+            },
+            {
+              "unit": "BRUB",
+              "factor": 1000,
+              "spellings": [
+                "млрд руб",
+                "млрд руб.",
+                "млрд рублей",
+                "млрд ₽"
+              ]
+            },
+            {
+              "unit": "MUSD",
+              "note": "rate: требует курс и дату",
+              "spellings": [
+                "млн долл",
+                "млн долларов",
+                "млн $"
+              ]
+            }
+          ],
+          "spellings": [
+            "млн руб",
+            "млн руб.",
+            "млн рублей",
+            "млн ₽",
+            "млн рублей."
+          ]
+        },
+        {
+          "name": "удельная стоимость выведения",
+          "canon": "MRUB/kg",
+          "conversion": "linear",
+          "inputs": [
+            {
+              "unit": "kUSD/kg",
+              "note": "rate: требует курс и дату"
+            }
+          ]
+        },
+        {
+          "name": "трудоёмкость",
+          "canon": "man_month",
+          "conversion": "linear",
+          "inputs": [
+            {
+              "unit": "man_h",
+              "factor": 0.005952380952380952
+            },
+            {
+              "unit": "man_year",
+              "factor": 12,
+              "spellings": [
+                "чел-год",
+                "человеко-лет"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "доля и вероятность",
+          "canon": "1",
+          "conversion": "linear",
+          "inputs": [
+            {
+              "unit": "%",
+              "factor": 0.01,
+              "spellings": [
+                "%",
+                "процент",
+                "процента",
+                "процентов"
+              ]
+            }
+          ],
+          "spellings": [
+            "доля"
+          ]
+        },
+        {
+          "name": "счётные",
+          "canon": "pcs",
+          "conversion": "none",
           "note": "КА, плоскости, станции, циклы АКБ",
-          "inputs": [ { "unit": "U", "note": "формфактор платформы — счётная, без конверсии" } ] },
-        { "name": "шкальные метки", "canon": "TRL", "conversion": "none",
-          "inputs": [ { "unit": "mission_class" } ] }
+          "inputs": [
+            {
+              "unit": "U",
+              "note": "формфактор платформы — счётная, без конверсии",
+              "spellings": [
+                "u",
+                "юнит",
+                "юнита",
+                "юнитов"
+              ]
+            }
+          ],
+          "spellings": [
+            "шт",
+            "шт.",
+            "штук",
+            "штуки"
+          ]
+        },
+        {
+          "name": "шкальные метки",
+          "canon": "TRL",
+          "conversion": "none",
+          "inputs": [
+            {
+              "unit": "mission_class"
+            }
+          ]
+        }
       ],
-      "lifecycle": { "status": "Draft", "version": "1" }
+      "lifecycle": {
+        "status": "Draft",
+        "version": "1"
+      }
     }
   ]
 }
