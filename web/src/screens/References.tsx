@@ -7,6 +7,7 @@ import { api } from '../api/client'
 
 type GlossaryEntry = Awaited<ReturnType<typeof api.glossary>>[number]
 type UnitDimension = Awaited<ReturnType<typeof api.unitRegistry>>[number]
+type PropertyForm = Awaited<ReturnType<typeof api.propertyForms>>[number]
 
 const CONVERSION_LABEL: Record<string, string> = {
   linear: 'линейная',
@@ -17,14 +18,16 @@ const CONVERSION_LABEL: Record<string, string> = {
 }
 
 export function References() {
-  const [tab, setTab] = useState<'glossary' | 'units'>('glossary')
+  const [tab, setTab] = useState<'glossary' | 'units' | 'forms'>('glossary')
   const [glossary, setGlossary] = useState<GlossaryEntry[] | null>(null)
   const [units, setUnits] = useState<UnitDimension[] | null>(null)
+  const [forms, setForms] = useState<PropertyForm[] | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     api.glossary().then(setGlossary).catch((e) => setError(String(e)))
     api.unitRegistry().then(setUnits).catch((e) => setError(String(e)))
+    api.propertyForms().then(setForms).catch(() => setForms([]))
   }, [])
 
   const kinds = (glossary ?? []).filter((e) => e.sd_kind)
@@ -41,8 +44,51 @@ export function References() {
           title="размерности и единицы — этим же словарём канонизируются пачки и загрузки">
           Единицы{units ? ` · ${units.length}` : ''}
         </button>
+        <button className="tab" aria-selected={tab === 'forms'} onClick={() => setTab('forms')}
+          title="анкеты характеристик носителей — ими библиотека запрашивает данные">
+          Анкеты{forms ? ` · ${forms.length}` : ''}
+        </button>
       </div>
       {error && <div className="warn" style={{ padding: 8 }}>Ошибка: {error}</div>}
+      {tab === 'forms' && forms && (
+        forms.length === 0 ? (
+          <div className="empty">
+            Анкет характеристик нет — вносятся «Загрузить пачкой» в область LIB
+            (объект property_form): библиотека тогда сама запросит данные.
+          </div>
+        ) : (
+          <>
+            {forms.map((f) => (
+              <div className="card" key={f.id}>
+                <h3>{f.name} · <span className="mono secondary">{f.id}</span></h3>
+                <div style={{ overflowX: 'auto' }}>
+                  {f.note && <p className="secondary" style={{ marginTop: 0 }}>{f.note}</p>}
+                  <table className="rr-table">
+                    <thead>
+                      <tr>
+                        <th>Характеристика</th>
+                        <th title="единица справочника — в ней система ждёт значение">Единица</th>
+                        <th title="обязательное поле становится разрывом готовности, пока не задано">Обязательно</th>
+                        <th>Подсказка</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {f.fields.map((fl) => (
+                        <tr key={fl.key}>
+                          <td>{fl.name} <span className="mono secondary">{fl.key}</span></td>
+                          <td className="mono">{fl.unit ?? '—'}</td>
+                          <td>{fl.required ? 'да' : '—'}</td>
+                          <td className="secondary">{fl.hint ?? '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ))}
+          </>
+        )
+      )}
       {tab === 'glossary' && glossary && (
         glossary.length === 0 ? (
           <div className="empty">

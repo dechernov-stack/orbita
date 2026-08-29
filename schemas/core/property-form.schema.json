@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/core/property-form.schema.json",
+  "title": "PropertyForm",
+  "description": "Ф-06: анкета характеристик носителя — библиотека САМА говорит, какие данные ей нужны и в каком формате. Роль носителя (платформа, полезная нагрузка, терминал, наземная станция) задаёт перечень полей: имя, единица из справочника, обязательность, подсказка из глоссария. Анкета — данные полки: новое поле вносится правкой справочника, не правкой кода.",
+  "type": "object",
+  "required": ["id", "name", "role", "fields"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^PF-[0-9]{4}$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Как анкета называется инженеру: «Платформа», «Полезная нагрузка IoT»"
+    },
+    "role": {
+      "enum": ["platform", "payload", "terminal", "ground_station"],
+      "description": "Роль носителя: платформа · полезная нагрузка · терминал · наземная станция"
+    },
+    "mission_class_ref": {
+      "type": "string",
+      "description": "Класс миссии, которому анкета принадлежит; без него — общая для всех классов"
+    },
+    "note": {
+      "type": "string"
+    },
+    "fields": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["key", "name"],
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Машинное имя поля — им же метится значение, извлечённое из даташита (Д2, класс property)"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Имя поля инженеру: «масса под полезную нагрузку»"
+          },
+          "unit": {
+            "type": "string",
+            "description": "Единица из справочника единиц (unit-строка); отсутствует — величина безразмерная либо текстовая"
+          },
+          "required": {
+            "type": "boolean",
+            "default": false,
+            "description": "Обязательное поле: незаполненное становится разрывом «данные не заданы»"
+          },
+          "hint_term": {
+            "type": "string",
+            "description": "Терм глоссария — подсказка поля берётся оттуда (механика Ф-03), а не пишется в форме"
+          },
+          "hint": {
+            "type": "string",
+            "description": "Подсказка, если терма глоссария для поля нет"
+          },
+          "target": {
+            "type": "string",
+            "description": "Адрес значения в модели (JSON Pointer в документе аппарата): по нему считается «заполнено или нет»"
+          },
+          "kind": {
+            "enum": ["number", "range", "text", "enum"],
+            "default": "number",
+            "description": "Форма значения: число · диапазон (дежурное/пик) · текст · выбор"
+          },
+          "options": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Варианты для kind=enum: формат платформы (3U, 6U, 12U…)"
+          }
+        }
+      }
+    },
+    "lifecycle": { "$ref": "https://kis.local/schemas/common/status.schema.json" },
+    "provenance": { "$ref": "https://kis.local/schemas/common/provenance.schema.json" }
+  }
+}

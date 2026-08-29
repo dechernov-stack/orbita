@@ -89,7 +89,8 @@ enum class CoreType(val idPrefix: String, val dbType: String, val schemaName: St
 
     // Глоссарий (Ф-03): полка LIB — один источник смысловых подсказок.
     Glossary("GL", "glossary", "core/glossary"),
-    GeoMask("GM", "geo_mask", "core/geo-mask");
+    GeoMask("GM", "geo_mask", "core/geo-mask"),
+    PropertyForm("PF", "property_form", "core/property-form");
 
     companion object {
         fun byDbType(t: String): CoreType = entries.firstOrNull { it.dbType == t }

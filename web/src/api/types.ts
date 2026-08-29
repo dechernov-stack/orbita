@@ -834,3 +834,28 @@ export interface DocumentHarvestView {
     gaps: Array<{ field: string; prompt: string; options: string[] }>
   }>
 }
+
+/** Ф-06: запросы данных — анкеты характеристик, наложенные на модель. */
+export interface DataRequestsView {
+  missing_total: number
+  requests: Array<{
+    form: string
+    name: string
+    role: string
+    note?: string
+    holder?: string
+    missing: number
+    fields: Array<{
+      key: string
+      name: string
+      unit?: string
+      required: boolean
+      filled: boolean
+      value?: string
+      from?: string
+      hint?: string
+      kind: string
+      options?: string[]
+    }>
+  }>
+}

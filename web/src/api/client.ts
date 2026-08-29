@@ -38,6 +38,7 @@ import type {
   WizardStep,
   DocumentParseMap,
   DocumentHarvestView,
+  DataRequestsView,
 } from './types'
 
 import { withProject } from './project'
@@ -307,6 +308,14 @@ export const api = {
   sdCanonUrl: (id: string) => withProject(`/api/sd-parse/${encodeURIComponent(id)}/canon`),
   /** Д1: переразбор (документы до Д1 и смена версии разборщика). */
   sdReparse: (id: string) => post<{ id: string; parsed: string }>(`/sd-parse/${encodeURIComponent(id)}`, {}),
+  /** Ф-06: запросы данных — анкеты характеристик с состоянием заполнения. */
+  dataRequests: () => get<DataRequestsView>('/views/data-requests'),
+  /** Ф-06: анкеты полки — просмотром в «Справочниках» (правятся пачкой). */
+  propertyForms: () =>
+    get<Array<{
+      id: string; name: string; role: string; note?: string
+      fields: Array<{ key: string; name: string; unit?: string; required?: boolean; hint?: string }>
+    }>>('/library/property-forms'),
   /** Д2: промпт смыслового разбора — собирает система (правила + карточка + выжимка). */
   sdHarvestPrompt: (id: string) =>
     get<{

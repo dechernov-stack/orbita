@@ -18,6 +18,8 @@ PACKETS = ROOT / "docs/tz/manual-run/packets"
 SEEDS = [
     ("unit_registry", "/library/unit-registry", "07-справочник-единиц.json"),
     ("glossary", "/library/glossary", "08-глоссарий.json"),
+    # Ф-06: анкеты характеристик — ими библиотека запрашивает данные
+    ("property_form", "/library/property-forms", "09-анкеты-характеристик.json"),
 ]
 
 

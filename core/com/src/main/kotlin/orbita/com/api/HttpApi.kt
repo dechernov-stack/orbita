@@ -1732,6 +1732,26 @@ class HttpApi(private val boundary: Boundary) {
                 respondBinary(ex, java.nio.file.Files.readAllBytes(f), "application/octet-stream", fileName)
             }
 
+            // Ф-06: запросы данных — анкеты характеристик, наложенные на
+            // модель: что заполнено, чего не хватает и откуда это взять.
+            method == "GET" && path == "/views/data-requests" -> {
+                val requests = DataRequests(boundary).of(requireProject(project))
+                val out = mapper.createObjectNode()
+                out.put("missing_total", requests.sumOf { it.missing.size })
+                out.set<ArrayNode>("requests", DataRequests(boundary).toJson(requests))
+                respond(ex, 200, out)
+            }
+
+            // Ф-06: анкеты полки — просмотром (правятся пачкой, как справочники)
+            method == "GET" && path == "/library/property-forms" -> {
+                val arr = mapper.createArrayNode()
+                boundary.objects.listCurrent(orbita.mod.store.ObjectStore.LIBRARY_PROJECT)
+                    .filter { it.type == "property_form" && it.status != Lifecycle.Cancelled }
+                    .sortedBy { it.id }
+                    .forEach { f -> arr.add(f.doc.deepCopy<com.fasterxml.jackson.databind.JsonNode>()) }
+                respond(ex, 200, arr)
+            }
+
             // Д1: карта разбора — структура, числа каноном, термы,
             // нормативы-кандидаты. Текста не несёт: он в каноне (ниже).
             method == "GET" && Regex("^/sd-parse/SD-[0-9]{4}$").matches(path) -> {

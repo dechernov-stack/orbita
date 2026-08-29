@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ObjectNode
 import orbita.mod.model.CoreType
 import orbita.mod.store.ModelViolationException
+import orbita.mod.store.ObjectStore
 import orbita.mod.store.StoredObject
 import orbita.req.Operations
 import java.time.OffsetDateTime
@@ -251,6 +252,23 @@ class GatePassing(
                         .joinToString(", ") { it.doc.path("name").asText(it.id) },
                 "seeddemand", blocking = false,
                 closedNote = "${masks.size} с границей",
+            )
+        }
+        // Ф-06: анкеты библиотеки объявили потребные данные — незаполненное
+        // обязательное поле становится разрывом «данные не заданы» с местом
+        // починки, а не тихой дырой в модели.
+        val dataMissing = DataRequests(boundary).missingSummary(projectId)
+        if (dataMissing.isNotEmpty() || boundary.objects.listCurrent(ObjectStore.LIBRARY_PROJECT)
+                .any { it.type == "property_form" }
+        ) {
+            add(
+                "data_requests", "statement", "Характеристики носителей заданы",
+                dataMissing.size,
+                if (dataMissing.isEmpty()) "анкеты закрыты"
+                else "${dataMissing.size} обязательных полей не заданы: " +
+                    dataMissing.take(4).joinToString("; ") +
+                    (if (dataMissing.size > 4) " и ещё ${dataMissing.size - 4}" else ""),
+                "spacecraft", blocking = false, closedNote = "анкеты закрыты",
             )
         }
         val oda = boundary.objects.listCurrent(projectId).count { it.type == "oda" }

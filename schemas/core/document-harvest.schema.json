@@ -47,7 +47,7 @@
           "class": {
             "type": "string",
             "minLength": 1,
-            "description": "stakeholder · normative_ref · service · goal · need · milestone · budget · geography · constraint · иной по смыслу"
+            "description": "stakeholder · normative_ref · service · goal · need · milestone · budget · geography · constraint · иной по смыслу · property (характеристика из даташита, с form_field)"
           },
           "block": {
             "description": "Координата основания: якорь блока канона (b7, s2, t1#15) либо их список",
@@ -172,6 +172,10 @@
             "description": "Синоним block: одиночная координата блока",
             "type": "string",
             "minLength": 1
+          },
+          "form_field": {
+            "type": "string",
+            "description": "Ф-06: имя поля анкеты характеристик, которому принадлежит значение (класс property) — им даташит предзаполняет форму"
           }
         },
         "additionalProperties": false,

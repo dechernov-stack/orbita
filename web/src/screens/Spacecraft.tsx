@@ -13,6 +13,7 @@
 // и не сравнивает запас с нулём — это правила, а не отрисовка.
 import { useEffect, useState } from 'react'
 import { api, ApiError } from '../api/client'
+import { DataRequests } from './DataRequests'
 import { edit, type StoredSummary } from '../api/edit'
 import type { MaskScheduleView, ProtocolAdapterView, SpacecraftView } from '../api/types'
 
@@ -33,7 +34,10 @@ const MATURITY_LABEL: Record<string, string> = {
 
 // Зашитого идентификатора аппарата больше нет (шаг 16 §3.2): по умолчанию
 // берётся первый хранимый, выбор — из хранимых.
-export function Spacecraft({ spacecraftId }: { spacecraftId?: string }) {
+export function Spacecraft({ spacecraftId, onGo }: {
+  spacecraftId?: string
+  onGo?: (screen: string) => void
+}) {
   const [altKm, setAltKm] = useState(550)
   const [plannedDuty, setPlannedDuty] = useState(0.5)
   const [view, setView] = useState<SpacecraftView | null>(null)
@@ -81,6 +85,9 @@ export function Spacecraft({ spacecraftId }: { spacecraftId?: string }) {
   return (
     <div className="split">
       <div className="pane" style={{ padding: 12 }}>
+        {/* Ф-06: библиотека сама называет потребные данные — до того, как
+            инженер начнёт гадать, что вводить */}
+        <DataRequests onGo={onGo} />
         <div className="tabs" style={{ marginBottom: 8, alignItems: 'center' }}>
           <select value={spId ?? ''} onChange={(e) => setSpId(e.target.value)}>
             {stored.map((sp) => (

@@ -256,7 +256,8 @@ export function App() {
             kinds={['scenario', 'constellation', 'spacecraft', 'demand_map', 'terminal_profile', 'ground_stations', 'protocol_adapter']}
           />
         )
-      case 'spacecraft': return <ScreenFrame title="Модель аппарата"><Spacecraft /></ScreenFrame>
+      case 'spacecraft':
+        return <ScreenFrame title="Модель аппарата"><Spacecraft onGo={go} /></ScreenFrame>
       case 'seeddemand': return <ScreenFrame title="Затравка спроса"><SeedDemand /></ScreenFrame>
       case 'demand': return <ScreenFrame title="Карта спроса"><Demand /></ScreenFrame>
       case 'ground': return <ScreenFrame title="Наземный сегмент"><GroundSegment /></ScreenFrame>
