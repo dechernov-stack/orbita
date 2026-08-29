@@ -1,0 +1,434 @@
+{
+ "kind": "document_semantic_parse",
+ "source_document": "SD-XXXX (Служебная записка Минтранс IoT, 01.03.26)",
+ "parser": "прототип-вручную, схема Д2",
+ "items": [
+  {
+   "class": "stakeholder",
+   "name": "Минтранс России",
+   "role": "адресат, инициатор программы",
+   "block": [
+    "b0",
+    "b8"
+   ]
+  },
+  {
+   "class": "stakeholder",
+   "name": "Перевозчики опасных грузов",
+   "block": [
+    "b2",
+    "b11"
+   ]
+  },
+  {
+   "class": "stakeholder",
+   "name": "Оператор системы «ЭРА-ГЛОНАСС»",
+   "block": [
+    "b2"
+   ]
+  },
+  {
+   "class": "stakeholder",
+   "name": "Эксплуатанты локомотивов и цистерн",
+   "block": [
+    "b2"
+   ]
+  },
+  {
+   "class": "stakeholder",
+   "name": "Операторы гражданских БПЛА (включая BVLOS)",
+   "block": [
+    "b2",
+    "b10"
+   ]
+  },
+  {
+   "class": "stakeholder",
+   "name": "Морской транспорт (суда под AIS/LRIT, СМП)",
+   "block": [
+    "b2",
+    "b11"
+   ]
+  },
+  {
+   "class": "stakeholder",
+   "name": "Речные судовладельцы",
+   "block": [
+    "b11"
+   ]
+  },
+  {
+   "class": "stakeholder",
+   "name": "Объекты КИИ в зоне ответственности Минтранса",
+   "block": [
+    "b10"
+   ]
+  },
+  {
+   "class": "stakeholder",
+   "name": "Единый центр мониторинга логистических угроз",
+   "establishes": true,
+   "block": [
+    "b12"
+   ]
+  },
+  {
+   "class": "normative_ref",
+   "statement": "Оснащение ТС, перевозящих опасные грузы",
+   "need_ref": true,
+   "block": [
+    "b2"
+   ]
+  },
+  {
+   "class": "normative_ref",
+   "statement": "Система «ЭРА-ГЛОНАСС»",
+   "need_ref": true,
+   "block": [
+    "b2"
+   ]
+  },
+  {
+   "class": "normative_ref",
+   "statement": "Оснащение локомотивов и цистерн аппаратурой ГЛОНАСС/GPS",
+   "need_ref": true,
+   "block": [
+    "b2"
+   ]
+  },
+  {
+   "class": "normative_ref",
+   "statement": "Обязательная идентификация и трекинг гражданских БПЛА",
+   "need_ref": true,
+   "block": [
+    "b2"
+   ]
+  },
+  {
+   "class": "normative_ref",
+   "statement": "Международные требования AIS",
+   "need_ref": true,
+   "international": true,
+   "block": [
+    "b2"
+   ]
+  },
+  {
+   "class": "normative_ref",
+   "statement": "Международные требования LRIT",
+   "need_ref": true,
+   "international": true,
+   "block": [
+    "b2"
+   ]
+  },
+  {
+   "class": "service",
+   "name": "Цифровой контроль перевозок опасных грузов",
+   "block": [
+    "b2",
+    "b11"
+   ]
+  },
+  {
+   "class": "service",
+   "name": "Трекинг железнодорожного подвижного состава",
+   "block": [
+    "b2"
+   ]
+  },
+  {
+   "class": "service",
+   "name": "Морской трекинг (СМП, AIS/LRIT)",
+   "block": [
+    "b2",
+    "b11"
+   ]
+  },
+  {
+   "class": "service",
+   "name": "Трекинг речных судов",
+   "block": [
+    "b11"
+   ]
+  },
+  {
+   "class": "service",
+   "name": "Мониторинг беспилотных перевозок (BVLOS)",
+   "block": [
+    "b10",
+    "b11"
+   ]
+  },
+  {
+   "class": "service",
+   "name": "Резервирование каналов связи для кризисных ситуаций",
+   "block": [
+    "b12"
+   ]
+  },
+  {
+   "class": "goal",
+   "statement": "100% отслеживаемость критических грузов в зоне покрытия",
+   "measure": {
+    "value": 1.0,
+    "unit": "1"
+   },
+   "horizon": 2033,
+   "block": [
+    "b13"
+   ]
+  },
+  {
+   "class": "goal",
+   "statement": "Покрытие территории РФ и Северного морского пути (этап 1)",
+   "block": [
+    "b4"
+   ]
+  },
+  {
+   "class": "goal",
+   "statement": "Локализация технологий",
+   "measure": {
+    "min": 0.75,
+    "max": 0.8,
+    "unit": "1"
+   },
+   "horizon_note": "к концу этапа 2",
+   "block": [
+    "b5"
+   ]
+  },
+  {
+   "class": "goal",
+   "statement": "Устранение зависимости от иностранных IoT-операторов",
+   "block": [
+    "b15"
+   ]
+  },
+  {
+   "class": "need",
+   "statement": "Массовая передача обязательной телеметрии от миллионов датчиков",
+   "block": [
+    "b1",
+    "b2"
+   ]
+  },
+  {
+   "class": "need",
+   "statement": "Гарантированная доставка коротких сообщений при автономной работе датчиков",
+   "block": [
+    "b3"
+   ]
+  },
+  {
+   "class": "need",
+   "statement": "Покрытие удалённых территорий (Арктика, СМП, Сибирь, ДФО)",
+   "block": [
+    "b3"
+   ]
+  },
+  {
+   "class": "need",
+   "statement": "Контроль стратегических данных внутри национальной инфраструктуры",
+   "block": [
+    "b3"
+   ]
+  },
+  {
+   "class": "milestone",
+   "name": "Этап 1: MVP",
+   "span": {
+    "min": 0,
+    "max": 2,
+    "unit": "год"
+   },
+   "fleet": {
+    "value": 50,
+    "unit": "шт",
+    "approx": true
+   },
+   "block": [
+    "b4"
+   ]
+  },
+  {
+   "class": "milestone",
+   "name": "Этап 2: национальная система",
+   "span": {
+    "min": 2,
+    "max": 5,
+    "unit": "год"
+   },
+   "fleet": {
+    "value": 150,
+    "unit": "шт",
+    "approx": true
+   },
+   "block": [
+    "b5"
+   ]
+  },
+  {
+   "class": "milestone",
+   "name": "Этап 3: масштабирование, международные рынки",
+   "span_from": {
+    "value": 5,
+    "unit": "год"
+   },
+   "block": [
+    "b6"
+   ]
+  },
+  {
+   "class": "budget",
+   "statement": "Инвестиции этапа 1",
+   "range": {
+    "min": 7,
+    "max": 9,
+    "unit": "млрд ₽"
+   },
+   "canonical": {
+    "min": 7000,
+    "max": 9000,
+    "unit": "млн ₽"
+   },
+   "block": [
+    "b7"
+   ]
+  },
+  {
+   "class": "geography",
+   "name": "Арктика",
+   "priority": true,
+   "block": [
+    "b3",
+    "b11"
+   ]
+  },
+  {
+   "class": "geography",
+   "name": "Северный морской путь",
+   "priority": true,
+   "block": [
+    "b3",
+    "b4",
+    "b9",
+    "b11"
+   ]
+  },
+  {
+   "class": "geography",
+   "name": "Сибирь",
+   "block": [
+    "b3",
+    "b11"
+   ]
+  },
+  {
+   "class": "geography",
+   "name": "Дальневосточный ФО",
+   "block": [
+    "b3",
+    "b11"
+   ]
+  },
+  {
+   "class": "geography",
+   "name": "Транссиб",
+   "priority": true,
+   "block": [
+    "b9"
+   ]
+  },
+  {
+   "class": "geography",
+   "name": "Ключевые порты и транспортные узлы",
+   "priority": true,
+   "block": [
+    "b9"
+   ]
+  },
+  {
+   "class": "constraint",
+   "statement": "Приоритетное покрытие логистических коридоров",
+   "block": [
+    "b9"
+   ]
+  },
+  {
+   "class": "constraint",
+   "statement": "Обязательность отечественной IoT-инфраструктуры для стратегических перевозок, БПЛА BVLOS и объектов КИИ",
+   "block": [
+    "b10"
+   ]
+  }
+ ],
+ "summary": {
+  "stakeholder": 9,
+  "normative_ref": 6,
+  "service": 6,
+  "goal": 4,
+  "need": 4,
+  "milestone": 3,
+  "budget": 1,
+  "geography": 6,
+  "constraint": 2,
+  "need_ref_flags": 6
+ },
+ "canonical_text": "ЗАПИСКА-КАНОН.md — единственный носитель текста; ссылки ниже — якоря в нём",
+ "structure": [
+  {
+   "anchor": "b0",
+   "type": "title",
+   "title": "О формировании национальной спутниковой IoT-платформы…"
+  },
+  {
+   "anchor": "b1",
+   "type": "para",
+   "role": "преамбула"
+  },
+  {
+   "anchor": "s1",
+   "type": "section",
+   "title": "1. Обоснование",
+   "blocks": [
+    "b2",
+    "b3"
+   ]
+  },
+  {
+   "anchor": "s2",
+   "type": "section",
+   "title": "2. Предлагаемая модель реализации",
+   "blocks": [
+    "b4",
+    "b5",
+    "b6",
+    "b7"
+   ]
+  },
+  {
+   "anchor": "s3",
+   "type": "section",
+   "title": "3. Предложения для Минтранса России",
+   "blocks": [
+    "b8",
+    "b9",
+    "b10",
+    "b11",
+    "b12"
+   ]
+  },
+  {
+   "anchor": "s4",
+   "type": "section",
+   "title": "4. Ожидаемые результаты",
+   "blocks": [
+    "b13",
+    "b14"
+   ]
+  }
+ ],
+ "note": "таблиц в документе нет; при сложных таблицах здесь появляется запись о деградации и приложении-CSV"
+}

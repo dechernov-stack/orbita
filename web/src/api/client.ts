@@ -223,6 +223,18 @@ export const api = {
       /** Взятие видно после перезахода — по связям «применяет». */
       applied?: { count: number; by_type: Record<string, number> }
     }>>('/library/shelves'),
+  /** Ф-03: глоссарий — смысловые подсказки данными полки LIB. */
+  glossary: () =>
+    get<Array<{
+      term: string; brief: string; sd_kind?: string
+      extracts?: string; card_hint?: string; not_to_confuse?: string
+    }>>('/library/glossary'),
+  /** Ф-03: справочник единиц просмотром — как лежит в UR. */
+  unitRegistry: () =>
+    get<Array<{
+      name: string; canon: string; conversion: string
+      inputs?: Array<{ unit: string; factor?: number; offset?: number; note?: string }>
+    }>>('/library/unit-registry'),
   /** Классы миссии (§4 Ш1) — полка Б4. */
   missionClasses: () =>
     get<Array<{ id: string; name: string; typical_constraints: Array<{ code?: string; text: string }> }>>(

@@ -2615,6 +2615,29 @@ class HttpApi(private val boundary: Boundary) {
                 respond(ex, 200, arr)
             }
 
+            // Ф-03: глоссарий — смысловые подсказки типов и терминов ДАННЫМИ
+            // полки LIB, не хардкодом клиента (один источник, как словарь
+            // единиц); тот же список кормит экран «Справочники».
+            method == "GET" && path == "/library/glossary" -> {
+                val arr = mapper.createArrayNode()
+                boundary.objects.listCurrent(orbita.mod.store.ObjectStore.LIBRARY_PROJECT)
+                    .filter { it.type == "glossary" && it.status != Lifecycle.Cancelled }
+                    .sortedBy { it.id }
+                    .forEach { g -> g.doc.path("entries").forEach { e -> arr.add(e.deepCopy<com.fasterxml.jackson.databind.JsonNode>()) } }
+                respond(ex, 200, arr)
+            }
+
+            // Ф-03: справочник единиц просмотром — размерности с канонами
+            // и входными единицами, как лежат в UR (границы читают его же).
+            method == "GET" && path == "/library/unit-registry" -> {
+                val arr = mapper.createArrayNode()
+                boundary.objects.listCurrent(orbita.mod.store.ObjectStore.LIBRARY_PROJECT)
+                    .filter { it.type == "unit_registry" && it.status != Lifecycle.Cancelled }
+                    .sortedBy { it.id }
+                    .forEach { u -> u.doc.path("dimensions").forEach { d -> arr.add(d.deepCopy<com.fasterxml.jackson.databind.JsonNode>()) } }
+                respond(ex, 200, arr)
+            }
+
             // В2.1: свёртка бюджетов — по вхождениям с кратностью. Величина
             // узла = параметр определения × произведение quantity по пути от
             // корня. Считает сервер; расчётов в клиенте нет.
@@ -2779,7 +2802,9 @@ class HttpApi(private val boundary: Boundary) {
                 val passport = boundary.objects.current(startProject)
                     ?: throw NoSuchElementException("project '$startProject' not found")
                 val prohibitions = mapper.createArrayNode()
-                passport.doc.path("constraints").forEach { c ->
+                passport.doc.path("constraints")
+                    .filterNot { it.path("removed").asBoolean(false) } // Ф-02: отменённое — след, не запрет
+                    .forEach { c ->
                     val text = c.path("text").asText("")
                     val code = c.path("code").asText("")
                     if (text.isNotBlank()) {

@@ -16,6 +16,7 @@ import { BatchLoad } from './screens/BatchLoad'
 import { NewProject } from './screens/NewProject'
 import { SeedDemand } from './screens/SeedDemand'
 import { Shelves } from './screens/Shelves'
+import { References } from './screens/References'
 import { MyTasks, MyTasksBadge } from './screens/MyTasks'
 import { StartPath } from './screens/StartPath'
 import { Comparison } from './screens/Comparison'
@@ -229,6 +230,8 @@ export function App() {
               onStart={() => { setScreen('startpath'); loadHeader() }} />
       case 'projreg': return <KindRegistry key={screen} kinds={['project']} title="Паспорт проекта" />
       case 'shelves': return <Shelves key={screen} />
+      case 'references':
+        return <ScreenFrame title="Справочники"><References /></ScreenFrame>
       case 'sourcedocs':
         return <KindRegistry key={screen} kinds={['source_document']} title="Исходные документы (библиотека)" />
       {/* формы постановки: редактор раскрывается вниз, как в требованиях

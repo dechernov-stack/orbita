@@ -27,6 +27,7 @@ export const SECTIONS: NavSection[] = [
     screens: [
       { key: 'sourcedocs', title: 'Материалы проекта' },
       { key: 'shelves', title: 'Полки' },
+      { key: 'references', title: 'Справочники' },
     ],
   },
   {

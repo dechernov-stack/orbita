@@ -13,6 +13,11 @@ import { useSession } from '../ui/session'
 interface Constraint {
   code?: string
   text: string
+  category?: string
+  /** Ф-02: мягкая отмена с историей — след решения ценен для точки. */
+  removed?: boolean
+  removed_by?: string
+  removed_at?: string
 }
 
 interface PathState {
@@ -41,15 +46,16 @@ interface SourceDocRow {
 
 const CHANGE_REF = 'мастер-путь «Начало проекта»: параметры старта'
 
-/** Своё ограничение получает номер проектной серии П1, П2, … — типовые
- * несут коды реестра класса (Р-серия) и не перенумеровываются. */
+/** Ф-02: ОДИН префикс кодов — Р-серия для всех ограничений проекта;
+ * коды стабильны (на них ссылаются промпт службы и трассировки), дыры
+ * законны — убранное код не переиспользует. */
 function nextOwnCode(existing: Constraint[]): string {
   let top = 0
   existing.forEach((c) => {
-    const m = (c.code ?? '').match(/^П(\d+)$/)
+    const m = (c.code ?? '').match(/^Р(\d+)$/)
     if (m && Number(m[1]) > top) top = Number(m[1])
   })
-  return `П${top + 1}`
+  return `Р${top + 1}`
 }
 
 /** Отказ — причиной, а не сырым JSON: службе есть что сказать инженеру. */
@@ -121,6 +127,10 @@ export function StartPath({ project, onGo, onDone }: {
   const [openManifest, setOpenManifest] = useState<string | null>(null)
   /** Круг 2: загрузка файла с карточкой и раскрытие карточки у файла. */
   const [upKind, setUpKind] = useState('mission_note')
+  /** Ф-03: брифы типов — из глоссария (полка LIB), не из хардкода. */
+  const [glossary, setGlossary] = useState<Record<string, {
+    brief: string; extracts?: string; card_hint?: string
+  }>>({})
   const [upName, setUpName] = useState('')
   const [upOrg, setUpOrg] = useState('')
   const [upFile, setUpFile] = useState<File | null>(null)
@@ -163,6 +173,13 @@ export function StartPath({ project, onGo, onDone }: {
     reloadOwn()
     api.libraryDocs().then(setLibrary).catch(() => setLibrary([]))
     api.missionClasses().then(setClasses).catch(() => setClasses([]))
+    api.glossary()
+      .then((rows) => {
+        const byKind: Record<string, { brief: string; extracts?: string; card_hint?: string }> = {}
+        rows.forEach((e) => { if (e.sd_kind) byKind[e.sd_kind] = e })
+        setGlossary(byKind)
+      })
+      .catch(() => setGlossary({}))
     api.libraryShelves()
       .then((rows) => {
         setShelves(rows)
@@ -341,7 +358,22 @@ export function StartPath({ project, onGo, onDone }: {
   }
 
   const removeConstraint = (i: number) => {
-    const next = constraints.filter((_, j) => j !== i)
+    // Ф-02: отмена с историей (механика Б-02) — жёсткого удаления нет;
+    // отклонение затравочного ограничения — след решения для точки
+    const next = constraints.map((c, j) => (j === i
+      ? { ...c, removed: true, removed_by: author || 'инженер', removed_at: new Date().toISOString().slice(0, 10) }
+      : c))
+    setConstraints(next)
+    saveNow({ constraints: next })
+  }
+
+  const restoreConstraint = (i: number) => {
+    const next = constraints.map((c, j) => {
+      if (j !== i) return c
+      const { removed, removed_by, removed_at, ...rest } = c
+      void removed; void removed_by; void removed_at
+      return rest
+    })
     setConstraints(next)
     saveNow({ constraints: next })
   }
@@ -521,12 +553,34 @@ export function StartPath({ project, onGo, onDone }: {
               </label>
               <div className="sp-limits">
                 {constraints.map((c, i) => (
-                  <div className="sp-lim" key={`${c.code ?? ''}-${i}`}>
-                    <span className="sp-no">{c.code ?? ''}</span>
-                    <span className="sp-tx">{c.text}</span>
-                    <button className="sp-rm" onClick={() => removeConstraint(i)}>
-                      убрать
-                    </button>
+                  <div className="sp-lim" key={`${c.code ?? ''}-${i}`}
+                    style={c.removed ? { opacity: 0.55 } : undefined}>
+                    <span className="sp-no"
+                      title="код стабилен: на него ссылаются промпт службы и трассировки; дыры в нумерации законны">
+                      {c.code ?? ''}
+                    </span>
+                    <span className="sp-tx"
+                      style={c.removed ? { textDecoration: 'line-through' } : undefined}>
+                      {c.text}
+                      {c.category && <span className="secondary"> · {c.category}</span>}
+                      {c.removed && (
+                        <span className="secondary"
+                          title="след решения: отклонённое ограничение ценно для точки; в запреты службы не уходит">
+                          {' '}— отменено{c.removed_by ? ` (${c.removed_by}` : ''}{c.removed_at ? `, ${c.removed_at})` : c.removed_by ? ')' : ''}
+                        </span>
+                      )}
+                    </span>
+                    {c.removed ? (
+                      <button className="sp-rm" title="вернуть ограничение в действующие"
+                        onClick={() => restoreConstraint(i)}>
+                        вернуть
+                      </button>
+                    ) : (
+                      <button className="sp-rm" title="мягкая отмена с историей — след останется"
+                        onClick={() => removeConstraint(i)}>
+                        убрать
+                      </button>
+                    )}
                   </div>
                 ))}
                 <div className="sp-addrow" style={{ display: 'flex', gap: 6 }}>
@@ -754,11 +808,21 @@ export function StartPath({ project, onGo, onDone }: {
                     {(['mission_note', 'normative', 'datasheet', 'reference', 'other'] as const).map((k) => (
                       <button key={k} type="button"
                         className={`sp-tchip${upKind === k ? ' sel' : ''}`}
+                        title={glossary[k]
+                          ? [glossary[k].brief, glossary[k].extracts, glossary[k].card_hint]
+                              .filter(Boolean).join(' ')
+                          : undefined}
                         onClick={() => setUpKind(k)}>
                         {label('sd_kind', k)}
                       </button>
                     ))}
                   </div>
+                  {glossary[upKind] && (
+                    <div className="secondary" style={{ marginTop: 4 }}>
+                      {glossary[upKind].brief}
+                      {glossary[upKind].extracts && ` ${glossary[upKind].extracts}`}
+                    </div>
+                  )}
                   <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
                     <input placeholder="наименование карточки" value={upName}
                       onChange={(e) => setUpName(e.target.value)} style={{ flex: 1 }} />
@@ -797,7 +861,8 @@ export function StartPath({ project, onGo, onDone }: {
             <div className="sp-blk sp-profile">
               <div className="sp-src">Из ограничений проекта · Ш1</div>
               <pre>{[
-                ...constraints.map((c) => `— ${c.text}${c.code ? ` (${c.code})` : ''}`),
+                ...constraints.filter((c) => !c.removed)
+                  .map((c) => `— ${c.text}${c.code ? ` (${c.code})` : ''}`),
                 '— число без ссылки на источник не предлагать вовсе',
               ].join('\n')}</pre>
             </div>
