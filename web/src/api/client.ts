@@ -316,6 +316,16 @@ export const api = {
       id: string; name: string; role: string; note?: string
       fields: Array<{ key: string; name: string; unit?: string; required?: boolean; hint?: string }>
     }>>('/library/property-forms'),
+  /** Д3: поиск по материалам проекта — по канонам, с координатой блока. */
+  documentSearch: (q: string) =>
+    get<{
+      query: string
+      hits: number
+      results: Array<{
+        document: string; document_name: string; anchor: string
+        section?: string; fragment: string; by: string
+      }>
+    }>(`/views/document-search?q=${encodeURIComponent(q)}`),
   /** Д2: промпт смыслового разбора — собирает система (правила + карточка + выжимка). */
   sdHarvestPrompt: (id: string) =>
     get<{

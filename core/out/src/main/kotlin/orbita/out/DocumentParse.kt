@@ -14,6 +14,10 @@ import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 import org.apache.pdfbox.Loader
 import org.apache.pdfbox.text.PDFTextStripper
+import org.apache.poi.ss.usermodel.DataFormatter
+import org.apache.poi.xslf.usermodel.XMLSlideShow
+import org.apache.poi.xslf.usermodel.XSLFTextShape
+import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import org.apache.poi.xwpf.usermodel.XWPFDocument
 import org.apache.poi.xwpf.usermodel.XWPFParagraph
 import org.apache.poi.xwpf.usermodel.XWPFTable
@@ -46,13 +50,23 @@ class ParseLexicon(
     }
 }
 
-/** Разбор: канон-текст (MD) и карта (JSON, без текста документа). */
-class ParsedDocument(val canonMd: String, val map: ObjectNode)
+/**
+ * Разбор: канон-текст (MD), карта (JSON, без текста документа) и приложения —
+ * длинные листы книги, вынесенные из канона в CSV (Д3).
+ */
+class ParsedDocument(
+    val canonMd: String,
+    val map: ObjectNode,
+    val appendices: Map<String, String> = emptyMap(),
+)
 
 object DocumentParse {
 
     /** Версия разборщика: входит в имя разбора — смена версии переиндексирует. */
-    const val VERSION = 1
+    const val VERSION = 2
+
+    /** Длиннее — лист уходит приложением-CSV, в канон идёт начало с пометой. */
+    const val CSV_ROW_LIMIT = 50
 
     private val mapper = ObjectMapper()
 
@@ -92,6 +106,8 @@ object DocumentParse {
         runCatching {
             when {
                 fileName.endsWith(".docx", true) -> parseDocx(bytes, lexicon)
+                fileName.endsWith(".xlsx", true) -> parseXlsx(bytes, lexicon)
+                fileName.endsWith(".pptx", true) -> parsePptx(bytes, lexicon)
                 fileName.endsWith(".pdf", true) -> parsePdf(bytes, lexicon)
                 fileName.endsWith(".txt", true) || fileName.endsWith(".md", true) ->
                     parsePlain(bytes.decodeToString(), lexicon)
@@ -157,6 +173,67 @@ object DocumentParse {
         return -1
     }
 
+    // ——— xlsx: лист — раздел, таблица листа — MD-таблица ———
+
+    /**
+     * Д3: книга разбирается листами. Лист становится разделом, его данные —
+     * MD-таблицей с шапкой из первой непустой строки; адрес строки — ключевой
+     * колонкой, как у docx-таблиц. Длинный лист в канон целиком не идёт:
+     * он помечается деградацией и выкладывается приложением-CSV (решение
+     * владельца) — иначе канон превращается в свалку чисел.
+     */
+    private fun parseXlsx(bytes: ByteArray, lexicon: ParseLexicon): ParsedDocument =
+        XSSFWorkbook(ByteArrayInputStream(bytes)).use { book ->
+            val b = Builder(lexicon)
+            val formatter = DataFormatter()
+            var titled = false
+            for (i in 0 until book.numberOfSheets) {
+                val sheet = book.getSheetAt(i)
+                val rows = mutableListOf<List<String>>()
+                for (r in 0..sheet.lastRowNum) {
+                    val row = sheet.getRow(r) ?: continue
+                    val cells = (0 until row.lastCellNum.toInt().coerceAtLeast(0)).map { c ->
+                        formatter.formatCellValue(row.getCell(c)).trim()
+                    }
+                    if (cells.any { it.isNotEmpty() }) rows += cells
+                }
+                if (!titled) {
+                    b.title(book.getSheetName(i).ifBlank { "Книга" })
+                    titled = true
+                } else {
+                    b.section(book.getSheetName(i).ifBlank { "Лист ${i + 1}" }, 1)
+                }
+                if (rows.isEmpty()) {
+                    b.para("Лист пуст.")
+                    continue
+                }
+                if (rows.size == 1) {
+                    b.para(rows.first().filter { it.isNotEmpty() }.joinToString("; "))
+                } else {
+                    b.rowsTable(rows, book.getSheetName(i), CSV_ROW_LIMIT)
+                }
+            }
+            b.build()
+        }
+
+    // ——— pptx: слайд — раздел, тезисы — абзацы ———
+
+    /** Д3: слайд становится разделом, его тезисы — блоками; номер слайда — в якоре. */
+    private fun parsePptx(bytes: ByteArray, lexicon: ParseLexicon): ParsedDocument =
+        XMLSlideShow(ByteArrayInputStream(bytes)).use { deck ->
+            val b = Builder(lexicon)
+            deck.slides.forEachIndexed { index, slide ->
+                val texts = slide.shapes.filterIsInstance<XSLFTextShape>()
+                    .flatMap { shape -> shape.textParagraphs.map { it.text.trim() } }
+                    .filter { it.isNotEmpty() }
+                val heading = texts.firstOrNull() ?: "Слайд ${index + 1}"
+                if (index == 0) b.title(heading) else b.section(heading, 1)
+                texts.drop(1).forEach { b.para(it, listItem = true) }
+                if (texts.size <= 1) b.para("Слайд без текста.")
+            }
+            b.build()
+        }
+
     // ——— pdf: страница — единица координат (текст постранично) ———
 
     private fun parsePdf(bytes: ByteArray, lexicon: ParseLexicon): ParsedDocument =
@@ -211,6 +288,8 @@ object DocumentParse {
         private val headings = mutableListOf<Pair<Int, Int>>()
         /** Свёрнутые заголовки таблиц: якорь раздела → якорь таблицы. */
         private val foldedAnchors = mutableListOf<Pair<String, String>>()
+        /** Длинные листы книги: якорь таблицы → все строки для CSV-приложения. */
+        val csvAppendices = linkedMapOf<String, List<List<String>>>()
         private var lastWasSection = false
         private var sourceChars = 0
 
@@ -253,6 +332,20 @@ object DocumentParse {
 
         fun table(t: XWPFTable) {
             val rows = t.rows.map { r -> r.tableCells.map { it.text.trim().replace("\n", " ") } }
+            rowsTable(rows, null, Int.MAX_VALUE)
+        }
+
+        /**
+         * Таблица строками — общая механика для docx и листов книги: якорь
+         * комментарием, шапка первой строкой, адрес строки ключевой колонкой.
+         * Длиннее предела — в канон идёт начало с пометой деградации, полный
+         * лист выкладывается приложением-CSV (решение владельца по xlsx).
+         */
+        fun rowsTable(all: List<List<String>>, sheetName: String?, limit: Int) {
+            // сравнение без limit + 1: у docx предел Int.MAX_VALUE, и
+            // прибавление единицы переполняло счёт (разбор падал целиком)
+            val rows = if (all.size - 1 > limit) all.take(limit + 1) else all
+            val degraded = all.size > rows.size
             if (rows.isEmpty()) return
             // Раздел без абзацев прямо перед таблицей — не раздел, а ЗАГОЛОВОК
             // ТАБЛИЦЫ (так и в ручном эталоне: «## Таблица оценок {#t1}»).
@@ -279,12 +372,23 @@ object DocumentParse {
             body.forEach { r ->
                 md.append(r.joinToString(" | ", "| ", " |") { it.ifBlank { " " } }).append('\n')
             }
+            if (degraded) {
+                md.append("<!-- деградация: показаны первые ").append(body.size)
+                    .append(" строк из ").append(all.size - 1)
+                    .append("; полный лист — приложением-CSV ").append(anchor).append(".csv -->\n")
+            }
             md.append('\n')
             val node = structure.addObject()
                 .put("anchor", anchor).put("type", "table")
-                .put("title", ownTitle ?: "")
+                .put("title", ownTitle ?: sheetName ?: "")
                 .put("section", outerSection)
                 .put("rows", body.size).put("row_key", header.firstOrNull() ?: "")
+            if (degraded) {
+                node.put("rows_total", all.size - 1)
+                node.put("degraded", true)
+                node.put("csv", "$anchor.csv")
+                csvAppendices[anchor] = all
+            }
             val cols = node.putArray("cols")
             header.drop(1).forEach { cols.add(it) }
             // адрес строки — ключевой колонкой (правило 10 промпта Д2: t1#15)
@@ -340,6 +444,20 @@ object DocumentParse {
 
         private fun nextBlock(): String = "b${blockNo++}"
 
+        /** Приложение-CSV: лист целиком, экранирование — по RFC 4180. */
+        private fun csv(rows: List<List<String>>): String = buildString {
+            rows.forEach { row ->
+                append(
+                    row.joinToString(",") { cell ->
+                        if (cell.any { it == ',' || it == '"' || it == '\n' }) {
+                            "\"" + cell.replace("\"", "\"\"") + "\""
+                        } else cell
+                    },
+                )
+                append('\n')
+            }
+        }
+
         fun build(): ParsedDocument {
             val minLevel = headings.minOfOrNull { it.second } ?: 1
             val text = StringBuilder(md)
@@ -373,7 +491,10 @@ object DocumentParse {
                 .put("normative_candidates", normatives.size())
                 .put("source_chars", sourceChars)
                 .put("canon_chars", canon.length)
-            return ParsedDocument(canon, map)
+            return ParsedDocument(
+                canon, map,
+                appendices = csvAppendices.entries.associate { (anchor, rows) -> "$anchor.csv" to csv(rows) },
+            )
         }
 
         /** Терм упоминается многократно — одна запись со списком блоков. */

@@ -72,6 +72,7 @@ class StatementSources(private val boundary: Boundary) {
                 "intent" -> intentSource(project)
                 "class_library" -> classLibrarySource(project, lib)
                 "taken" -> takenSource(project)
+                "materials" -> materialsSource(project, projectId)
                 "accepted" -> acceptedSource(own)
                 "prohibitions" -> prohibitionsSource(project)
                 else -> null
@@ -137,6 +138,79 @@ class StatementSources(private val boundary: Boundary) {
             note = if (lines.isEmpty()) "наборы библиотеки не брались" else null,
         )
     }
+
+    /**
+     * Д3: материалы — ВЫБРАННЫМИ БЛОКАМИ канона, а не файлом целиком.
+     * Документ, отмеченный в промпт, отдаёт указанные якоря; без выбора —
+     * оглавление документа, чтобы промпт знал, что можно попросить.
+     */
+    private fun materialsSource(project: JsonNode, projectId: String): StatementSource {
+        val chosen = project.path("start_path").path("source_refs").map { it.asText() }
+        val blocksByDoc = project.path("start_path").path("source_blocks")
+        val lines = mutableListOf<String>()
+        var blocks = 0
+        chosen.forEach { sdId ->
+            val sd = boundary.objects.current(sdId) ?: return@forEach
+            val name = sd.doc.path("name").asText(sdId)
+            val canon = DocumentParseStore.canonOf(filesDir(), sdId)
+            val map = DocumentParseStore.mapOf(filesDir(), sdId)
+            val wanted = blocksByDoc.path(sdId).map { it.asText() }
+            if (canon == null || map == null) {
+                lines += "$sdId «$name»: разбора нет — документ в промпт не идёт"
+                return@forEach
+            }
+            if (wanted.isEmpty()) {
+                val titles = map.path("structure").filter { it.path("type").asText() == "section" }
+                    .joinToString("; ") { it.path("anchor").asText() + " " + it.path("title").asText() }
+                lines += "$sdId «$name»: блоки не выбраны — оглавление: ${titles.take(300)}"
+                return@forEach
+            }
+            val texts = blockTexts(canon, wanted.toSet())
+            texts.forEach { (anchor, text) ->
+                blocks++
+                lines += "$sdId «$name» [$anchor]: ${text.take(500)}"
+            }
+        }
+        return StatementSource(
+            "materials", "Материалы блоками", blocks.coerceAtLeast(lines.size), lines,
+            note = if (chosen.isEmpty()) "документы в промпт не выбраны" else null,
+        )
+    }
+
+    /** Тексты выбранных блоков канона — по тем же якорям, что в карте. */
+    private fun blockTexts(canon: String, wanted: Set<String>): List<Pair<String, String>> {
+        val out = mutableListOf<Pair<String, String>>()
+        var anchor: String? = null
+        val text = StringBuilder()
+        fun flush() {
+            val a = anchor
+            if (a != null && a in wanted) {
+                val body = text.toString().trim()
+                if (body.isNotEmpty()) out += a to body
+            }
+            text.setLength(0)
+        }
+        canon.lineSequence().forEach { line ->
+            val comment = Regex("""^<!--\s*([bt]\d+[^\s]*)\s*-->$""").find(line.trim())
+            val heading = Regex("""^(#{1,6})\s+(.*?)\s*\{#([bs]\d+)}$""").find(line.trim())
+            when {
+                comment != null -> { flush(); anchor = comment.groupValues[1] }
+                heading != null -> {
+                    flush()
+                    anchor = heading.groupValues[3]
+                    text.append(heading.groupValues[2])
+                }
+                else -> if (anchor != null) text.appendLine(line)
+            }
+        }
+        flush()
+        return out
+    }
+
+    private fun filesDir(): String =
+        System.getProperty("orbita.test.filesDir")
+            ?: System.getenv("ORBITA_FILES_DIR")
+            ?: "files"
 
     /** Принятый урожай разбора документов (Д2): «уже принято». */
     private fun acceptedSource(own: List<StoredObject>): StatementSource {

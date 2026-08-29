@@ -1732,6 +1732,19 @@ class HttpApi(private val boundary: Boundary) {
                 respondBinary(ex, java.nio.file.Files.readAllBytes(f), "application/octet-stream", fileName)
             }
 
+            // Д3: поиск по материалам проекта — по канонам разбора, с
+            // координатой блока: найденное можно взять в промпт куском.
+            method == "GET" && path == "/views/document-search" -> {
+                val q = query(ex)["q"] ?: ""
+                val search = DocumentSearch(boundary)
+                val hits = search.search(requireProject(project), q)
+                val out = mapper.createObjectNode()
+                out.put("query", q)
+                out.put("hits", hits.size)
+                out.set<ArrayNode>("results", search.toJson(hits))
+                respond(ex, 200, out)
+            }
+
             // Ф-06: запросы данных — анкеты характеристик, наложенные на
             // модель: что заполнено, чего не хватает и откуда это взять.
             method == "GET" && path == "/views/data-requests" -> {

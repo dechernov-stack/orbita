@@ -14,6 +14,7 @@
       "statement_sources": [
         "intent",
         "class_library",
+        "materials",
         "taken",
         "accepted",
         "prohibitions"
@@ -32,6 +33,7 @@
       "statement_sources": [
         "intent",
         "class_library",
+        "materials",
         "taken",
         "accepted",
         "prohibitions"

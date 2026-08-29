@@ -108,7 +108,8 @@ class StatementSourcesTest {
 
         val list = sources.of("mission_to_goals", "PJ-1901")
         assertEquals(
-            listOf("intent", "class_library", "taken", "accepted", "prohibitions"),
+            // Д3 добавил «материалы блоками» между библиотекой и взятым
+            listOf("intent", "class_library", "materials", "taken", "accepted", "prohibitions"),
             list.map { it.key },
         ) { "порядок источников — он же порядок предпросмотра" }
 

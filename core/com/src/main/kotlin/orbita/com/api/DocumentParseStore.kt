@@ -65,6 +65,11 @@ object DocumentParseStore {
         val parsed = DocumentParse.parse(fileName, bytes, lexicon) ?: return null
         Files.createDirectories(dir)
         Files.writeString(dir.resolve("$fingerprint.md"), parsed.canonMd)
+        // Д3: длинные листы книги — приложениями-CSV рядом с каноном; канон
+        // остаётся читаемым, а данные не теряются
+        parsed.appendices.forEach { (name, csv) ->
+            Files.writeString(dir.resolve("$fingerprint.$name"), csv)
+        }
         val map = parsed.map
         map.put("source_document", sdId)
         map.put("source_file", fileName)

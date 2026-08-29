@@ -31,7 +31,26 @@ export function DocParse({ documentId }: { documentId?: string }) {
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   /** Д2: смысловой урожай — вкладкой рядом с детерминированным разбором. */
-  const [tab, setTab] = useState<'parse' | 'harvest'>('parse')
+  const [tab, setTab] = useState<'parse' | 'harvest' | 'search'>('parse')
+  /** Д3: поиск по материалам — по канонам, с координатой блока. */
+  const [query, setQuery] = useState('')
+  const [found, setFound] = useState<Awaited<ReturnType<typeof api.documentSearch>> | null>(null)
+  /** Д3: блоки, отмеченные «в промпт» — хранятся в паспорте (start_path). */
+  const [inPrompt, setInPrompt] = useState<Set<string>>(new Set())
+  const [promptNote, setPromptNote] = useState<string | null>(null)
+
+  /** Д3: выбор блоков в промпт живёт в паспорте — читаем при заходе. */
+  useEffect(() => {
+    if (!id) return
+    edit.list('project')
+      .then((rows) => rows[0] && edit.object(rows[0].id))
+      .then((p) => {
+        const blocks = (p?.doc as { start_path?: { source_blocks?: Record<string, string[]> } })
+          ?.start_path?.source_blocks?.[id] ?? []
+        setInPrompt(new Set(blocks))
+      })
+      .catch(() => setInPrompt(new Set()))
+  }, [id])
 
   useEffect(() => {
     edit.list('source_document')
@@ -49,6 +68,41 @@ export function DocParse({ documentId }: { documentId?: string }) {
   }
 
   useEffect(() => { if (id) load(id) }, [id])
+
+  /** Отметка блока «в промпт»: правит паспорт — состав промпта хранится там. */
+  const togglePromptBlock = async (anchor: string) => {
+    if (!id) return
+    const next = new Set(inPrompt)
+    if (next.has(anchor)) next.delete(anchor)
+    else next.add(anchor)
+    setInPrompt(next)
+    setPromptNote(null)
+    try {
+      const projects = await edit.list('project')
+      if (projects.length === 0) return
+      const fresh = await edit.object(projects[0].id)
+      const doc = { ...(fresh.doc as Record<string, unknown>) }
+      const path = (doc.start_path as Record<string, unknown> | undefined) ?? { status: 'in_progress', step: 3 }
+      const refs = new Set((path.source_refs as string[] | undefined) ?? [])
+      const blocks = { ...((path.source_blocks as Record<string, string[]> | undefined) ?? {}) }
+      if (next.size > 0) { refs.add(id); blocks[id] = [...next] } else { delete blocks[id] }
+      doc.start_path = {
+        ...path,
+        ...(refs.size > 0 ? { source_refs: [...refs] } : {}),
+        ...(Object.keys(blocks).length > 0 ? { source_blocks: blocks } : {}),
+      }
+      await edit.changeWithRef(projects[0].id, doc, 'состав промпта: выбор блоков документа (Д3)')
+      setPromptNote(`в промпт: ${next.size} блоков документа ${id}`)
+    } catch (e) {
+      setPromptNote(String(e))
+    }
+  }
+
+  const runSearch = () => {
+    if (query.trim().length < 2) return
+    setError(null)
+    api.documentSearch(query).then(setFound).catch((e) => setError(String(e)))
+  }
 
   const reparse = () => {
     if (!id) return
@@ -103,6 +157,10 @@ export function DocParse({ documentId }: { documentId?: string }) {
           title="урожай смыслового разбора: кандидаты сущностей с координатами и акцепт по адресам">
           Найдено в документе
         </button>
+        <button className="tab" aria-selected={tab === 'search'} onClick={() => setTab('search')}
+          title="поиск по материалам проекта: находит блок, а не файл — с координатой">
+          Поиск по материалам
+        </button>
         <div style={{ flex: 1 }} />
         <button className="rr-assign" disabled={busy || !id} onClick={reparse}
           title="пересчитать разбор: нужен документам, загруженным до появления разбора, и после смены версии разборщика">
@@ -117,6 +175,46 @@ export function DocParse({ documentId }: { documentId?: string }) {
       )}
 
       {tab === 'harvest' && id && <DocHarvest documentId={id} />}
+
+      {tab === 'search' && (
+        <div className="card">
+          <h3>Поиск по материалам проекта</h3>
+          <div>
+            <p className="secondary" style={{ marginTop: 0 }}>
+              Ищется по канонам разбора: находка — блок с координатой, а не
+              «где-то в файле». Терм глоссария находит блоки, где он употреблён.
+            </p>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <input style={{ flex: 1 }} value={query} placeholder="слово, число или терм глоссария"
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') runSearch() }} />
+              <button className="tab tab--primary" onClick={runSearch} disabled={query.trim().length < 2}
+                title="искать по всем материалам проекта">
+                Искать
+              </button>
+            </div>
+            {found && (
+              <div style={{ marginTop: 8 }}>
+                <div className="secondary">
+                  найдено {found.hits}{found.hits === 0 ? ' — ни одного блока' : ''}
+                </div>
+                {found.results.map((r, i) => (
+                  <div key={`${r.document}-${r.anchor}-${i}`}
+                    style={{ padding: '4px 0', borderBottom: '1px solid var(--line, #2223)' }}>
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'baseline', flexWrap: 'wrap' }}>
+                      <span className="mono secondary">{r.document} · {r.anchor}</span>
+                      <b>{r.document_name}</b>
+                      {r.section && <span className="secondary">{r.section}</span>}
+                      <span className="chip" title="как нашлось: по тексту либо по терму глоссария">{r.by}</span>
+                    </div>
+                    <div>{r.fragment}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {tab === 'parse' && map && !s && (
         <div className="warn" style={{ padding: 8 }}>
@@ -161,6 +259,9 @@ export function DocParse({ documentId }: { documentId?: string }) {
                     <th>Тип</th>
                     <th>Заголовок</th>
                     <th title="блоки раздела или строки таблицы">Состав</th>
+                    <th title="Д3: включение документа в промпт — выбором блоков, а не файлом целиком">
+                      В промпт
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -176,11 +277,18 @@ export function DocParse({ documentId }: { documentId?: string }) {
                             ? `блоки ${el.blocks.join(', ')}`
                             : '—'}
                       </td>
+                      <td>
+                        <input type="checkbox" checked={inPrompt.has(el.anchor)}
+                          aria-label={`блок ${el.anchor} в промпт`}
+                          title="взять этот блок в промпт службы"
+                          onChange={() => void togglePromptBlock(el.anchor)} />
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
+            {promptNote && <div className="secondary" style={{ padding: '4px 0' }}>{promptNote}</div>}
           </div>
 
           {map.numbers.length > 0 && (
