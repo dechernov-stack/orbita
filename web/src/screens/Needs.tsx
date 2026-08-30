@@ -10,7 +10,7 @@
 //   2) роль выводится подписью, а не кодом `operator`;
 //   3) правая панель не перекрывает колонку таблицы;
 //   4) панель не повторяет поля строки, а даёт работать с объектом.
-import { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { api } from '../api/client'
 import type { NeedRow } from '../api/types'
 import { STATUS_MEANING } from '../ui/maturity'
@@ -50,8 +50,28 @@ export function Needs() {
 
   const shown = onlyOrphans ? rows.filter((r) => r.services.length === 0) : rows
 
+  /** Редактор нужды — один узел: раскрывается ВНИЗ, как в прочих реестрах. */
+  const editor = (
+    <ObjectEditor
+      kind="need"
+      schemaName="core/need"
+      title="нужда стейкхолдера"
+      id={creating ? null : selected}
+      onSaved={(id) => {
+        setCreating(false)
+        setSelected(id)
+        void reload()
+      }}
+      onCancelled={() => {
+        setCreating(false)
+        setSelected(null)
+        void reload()
+      }}
+    />
+  )
+
   return (
-    <div className="split">
+    <div className="registry">
       <div className="pane">
         <div className="pane__tools">
           <button
@@ -125,6 +145,14 @@ export function Needs() {
           )}
         </div>
 
+        {/* создание — формой на месте, над таблицей: тот же приём, что в
+            реестрах с раскрытием вниз, никакой боковой панели */}
+        {creating && (
+          <div className="rr-expand" style={{ display: 'block', padding: '10px 14px 12px', maxWidth: 760 }}>
+            {editor}
+          </div>
+        )}
+
         {rows.length === 0 && (
           <div className="empty">
             Нужд пока нет. С них начинается проект: нажмите «Добавить нужду» — форма построена
@@ -159,11 +187,12 @@ export function Needs() {
             </thead>
             <tbody>
               {shown.map((row) => (
+                <React.Fragment key={row.id}>
                 <tr
-                  key={row.id}
                   aria-selected={row.id === selected}
                   onClick={() => {
-                    setSelected(row.id)
+                    // второй щелчок по строке закрывает правку — как в реестрах
+                    setSelected(selected === row.id ? null : row.id)
                     setCreating(false)
                   }}
                 >
@@ -190,6 +219,15 @@ export function Needs() {
                     <span className="secondary">{label('lifecycle', row.status)}</span>
                   </td>
                 </tr>
+                {/* правка раскрывается вниз — как в реестрах требований и целей */}
+                {selected === row.id && !creating && (
+                  <tr className="rr-expand">
+                    <td colSpan={7}>
+                      <div style={{ maxWidth: 760 }}>{editor}</div>
+                    </td>
+                  </tr>
+                )}
+                </React.Fragment>
               ))}
             </tbody>
           </table>
@@ -197,29 +235,7 @@ export function Needs() {
         )}
       </div>
 
-      <aside className="pane pane--side">
-        {creating || selected ? (
-          <ObjectEditor
-            kind="need"
-            schemaName="core/need"
-            title="нужда стейкхолдера"
-            id={creating ? null : selected}
-            onSaved={(id) => {
-              setCreating(false)
-              setSelected(id)
-              void reload()
-            }}
-            onCancelled={() => {
-              setSelected(null)
-              void reload()
-            }}
-          />
-        ) : (
-          <div className="secondary">
-            Выберите нужду для правки или добавьте новую.
-          </div>
-        )}
-      </aside>
+
     </div>
   )
 }
