@@ -1000,12 +1000,12 @@ export function StartPath({ project, onGo, onDone }: {
               </button>
               {!intentReady && (
                 <>
-                  <button className="np-linkish" onClick={() => setStep(1)}
-                    title="замысел задаётся на третьем шаге мастера: четыре поля либо абзац">
+                  <button className="np-linkish" onClick={() => toStep(3)}
+                    title="шаг 3 «Замысел миссии»: четыре поля либо связный абзац">
                     нет замысла — заполнить рукой →
                   </button>
-                  <button className="np-linkish" onClick={() => setStep(1)}
-                    title="постановка уже приложена и разобрана — собрать замысел по документам">
+                  <button className="np-linkish" onClick={() => toStep(3)}
+                    title="шаг 3 «Замысел миссии»: постановка уже приложена и разобрана — собрать замысел по документам">
                     собрать из документов →
                   </button>
                 </>
