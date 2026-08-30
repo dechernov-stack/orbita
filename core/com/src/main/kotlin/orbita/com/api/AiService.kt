@@ -276,6 +276,52 @@ class AiService(
         return AiServiceRun(pk, prompt, "direct", answer.model, screened)
     }
 
+    /** Сырой ответ службы: текст как пришёл, плюс запись в журнал. */
+    data class RawAnswer(
+        val call: Long,
+        val text: String?,
+        val model: String?,
+        val failure: String?,
+    )
+
+    /**
+     * Живой вызов БЕЗ фильтра предложений: операции, чей ответ — не пачка
+     * объектов на акцепт, а один документ по своей схеме (замысел миссии,
+     * кандидаты из нормативов), разбираются собственными воротами. В журнал
+     * вызов ложится так же: промпт, модель, токены, стоимость — иначе живой
+     * канал стал бы дырой в учёте.
+     */
+    fun askRaw(
+        kind: String,
+        profileId: String,
+        projectId: String,
+        statement: String,
+        author: String,
+    ): RawAnswer {
+        val (p, prompt) = compose(kind, profileId, projectId, statement)
+        require(p.transport != "package") {
+            "профиль ${p.id} работает режимом закрытого контура: соберите пакет и внесите ответ"
+        }
+        val answer = try {
+            provider.ask(prompt, p.modelHint)
+        } catch (e: ProviderUnavailableException) {
+            val pk = calls.record(
+                projectId = projectId, kind = kind, transport = "direct", prompt = prompt,
+                createdBy = author, profileId = p.id, profileVersion = p.version,
+                failure = e.message,
+            )
+            return RawAnswer(pk, null, null, e.message)
+        }
+        val pk = calls.record(
+            projectId = projectId, kind = kind, transport = "direct", prompt = prompt,
+            createdBy = author, profileId = p.id, profileVersion = p.version,
+            model = answer.model, response = answer.text,
+            tokensIn = answer.tokensIn, tokensOut = answer.tokensOut,
+            costUsd = cost(answer.tokensIn, answer.tokensOut),
+        )
+        return RawAnswer(pk, answer.text, answer.model, null)
+    }
+
     /**
      * Закрытый контур: ответ владельца, полученный файлом, — тем же разбором
      * и фильтром, с той же записью в журнал (транспорт `package`).

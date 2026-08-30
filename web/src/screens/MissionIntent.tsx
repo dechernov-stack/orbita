@@ -35,6 +35,28 @@ export function MissionIntent(
     api.missionIntentReadiness().then(setReadiness).catch((e) => setError(String(e)))
   }, [])
 
+  /**
+   * «Собрать из документов» — это СБОРКА, а не показ промпта. Система сама
+   * спрашивает службу и приносит четыре поля с якорями. Канал не настроен
+   * либо служба молчит — честно говорим причину и открываем прежний путь:
+   * промпт наружу, ответ пакетом (внешний контур, Ф-10).
+   */
+  const composeDraft = () => {
+    setBusy(true)
+    setError(null)
+    setNote(null)
+    api.missionIntentCompose()
+      .then((r) => {
+        setDraft(r.draft)
+        setNote(`замысел собран службой${r.model ? ` (${r.model})` : ''} — правьте и принимайте`)
+      })
+      .catch((e) => {
+        setError(`служба не собрала замысел: ${String(e)}. Промпт ниже — его можно отдать внешнему контуру и вернуть ответ пакетом`)
+        return api.missionIntentPrompt().then((p) => setPrompt(p.text)).catch(() => undefined)
+      })
+      .finally(() => setBusy(false))
+  }
+
   const composePrompt = () => {
     setBusy(true)
     setError(null)
@@ -91,10 +113,16 @@ export function MissionIntent(
               Нечего разбирать — кнопка не сереет, а ведёт туда, где материал
               прикладывается, и возвращает обратно. */}
           {readiness.can_compose ? (
-            <button className="rr-assign" disabled={busy} onClick={composePrompt}
-              title="собрать промпт по урожаю разбора и блокам канона — для закрытого контура">
-              Собрать из документов
-            </button>
+            <>
+              <button className="rr-assign" disabled={busy} onClick={composeDraft}
+                title="система спросит службу по урожаю разбора и блокам канона и принесёт четыре поля с якорями">
+                {busy ? 'Собираю…' : 'Собрать из документов'}
+              </button>
+              <button className="np-linkish" disabled={busy} onClick={composePrompt}
+                title="показать промпт целиком — для внешнего контура: отдать наружу и вернуть ответ пакетом">
+                промпт для внешнего контура
+              </button>
+            </>
           ) : readiness.documents === 0 && onNeedMaterials ? (
             <button className="rr-assign" onClick={onNeedMaterials}
               title="собирать замысел не из чего: материалов в проекте нет — шаг назад приложит документ, оттуда вернётесь сюда">

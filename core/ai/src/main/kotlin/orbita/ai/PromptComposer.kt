@@ -226,7 +226,12 @@ class PromptComposer(private val kinds: PackageKinds = PackageKinds.default()) {
                     appendLine("Профиль рецензионный: новых объектов не создавай — верни замечания")
                     appendLine("к существующим формулировкам с предлагаемой правкой поля.")
                 }
-                appendLine("Ответ — массив объектов строго по схеме ниже. Схема исполняется")
+                appendLine(
+                    if (k.singleDocument)
+                        "Ответ — ОДИН объект JSON строго по схеме ниже (не массив). Схема исполняется"
+                    else
+                        "Ответ — массив объектов строго по схеме ниже. Схема исполняется",
+                )
                 appendLine("буквально: поля вне схемы запрещены (additionalProperties: false),")
                 appendLine("обязательные поля обязательны. В частности, статусная модель —")
                 appendLine("\"lifecycle\": {\"status\": \"Draft\", \"version\": \"1\"}, а происхождение")
@@ -237,8 +242,13 @@ class PromptComposer(private val kinds: PackageKinds = PackageKinds.default()) {
                 appendLine("Ни оператора сравнения, ни порога, ни названия внутрь величины класть")
                 appendLine("нельзя: сравнение выражается отдельным полем схемы (operator рядом")
                 appendLine("с value в mop), а целевое значение MOE — само по себе порог.")
-                appendLine("Ничего, кроме массива JSON, в ответе быть не должно: ни пояснений,")
-                appendLine("ни обрамления ```json — только сам массив.")
+                if (k.singleDocument) {
+                    appendLine("Ничего, кроме этого объекта, в ответе быть не должно: ни пояснений,")
+                    appendLine("ни обрамления ```json, ни массива вокруг — только сам объект.")
+                } else {
+                    appendLine("Ничего, кроме массива JSON, в ответе быть не должно: ни пояснений,")
+                    appendLine("ни обрамления ```json — только сам массив.")
+                }
                 responseSchema?.let {
                     appendLine()
                     appendLine("СХЕМА ОТВЕТА (JSON Schema; идентификаторы обязаны соответствовать pattern):")

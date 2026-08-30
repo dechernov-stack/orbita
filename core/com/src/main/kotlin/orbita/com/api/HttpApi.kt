@@ -3299,6 +3299,67 @@ class HttpApi(private val boundary: Boundary) {
 
             // Ф-07: предложение замысла пакетом — проверяется схемой и
             // возвращается инженеру НА ПРАВКУ, в паспорт само не ложится
+            // Ф-07 + живой канал: «собрать из документов» ДЕЛАЕТ сборку, а не
+            // отдаёт текст промпта. Владелец нажал кнопку — система спросила
+            // службу сама, показала четыре поля с якорями и ждёт правки.
+            // Канал не настроен — честный отказ с причиной: тогда работает
+            // прежний путь, промпт наружу и ответ пакетом.
+            method == "POST" && path == "/views/mission-intent/compose" -> {
+                val req = mapper.readTree(body(ex))
+                val ctx = requireProject(project)
+                val by = author(req)
+                val profileId = req.path("profile").asText("").ifBlank {
+                    profileFor(MissionIntentDraft.KIND, ctx, by)
+                }
+                val statement = MissionIntentDraft.statementOf(boundary, filesDir(), ctx)
+                val answer = boundary.ai.askRaw(MissionIntentDraft.KIND, profileId, ctx, statement, by)
+                if (answer.failure != null || answer.text == null) {
+                    respond(
+                        ex, 503,
+                        mapper.createObjectNode()
+                            .put("error", answer.failure ?: "служба не ответила")
+                            .put("call", answer.call)
+                            .put("profile", profileId),
+                    )
+                    return true
+                }
+                val cleaned = answer.text.trim()
+                    .removePrefix("```json").removePrefix("```").removeSuffix("```").trim()
+                val draft = try {
+                    val parsed = mapper.readTree(cleaned)
+                    // терпимость к обёртке: общая форма ответа — массив, и
+                    // модель иногда заворачивает документ в него. Рабочий
+                    // ответ из-за обёртки терять нельзя — разворачиваем.
+                    if (parsed.isArray && parsed.size() == 1) parsed[0] else parsed
+                } catch (e: Exception) {
+                    respond(
+                        ex, 422,
+                        mapper.createObjectNode()
+                            .put("error", "ответ службы не разобрался как JSON: ${e.message}")
+                            .put("raw", answer.text.take(2000))
+                            .put("call", answer.call),
+                    )
+                    return true
+                }
+                val problems = MissionIntentDraft.problems(boundary, draft)
+                if (problems.isNotEmpty()) {
+                    respond(
+                        ex, 422,
+                        mapper.createObjectNode()
+                            .put("error", "ответ службы не по схеме замысла: ${problems.take(3)}")
+                            .put("raw", answer.text.take(2000))
+                            .put("call", answer.call),
+                    )
+                    return true
+                }
+                val out = mapper.createObjectNode()
+                out.put("call", answer.call)
+                answer.model?.let { out.put("model", it) }
+                out.put("profile", profileId)
+                out.set<JsonNode>("draft", draft)
+                respond(ex, 200, out)
+            }
+
             method == "POST" && path == "/views/mission-intent/draft" -> {
                 val req = mapper.readTree(body(ex))
                 val raw = req.path("raw").takeIf { it.isTextual }?.asText()

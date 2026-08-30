@@ -39,6 +39,13 @@ data class PackageKind(
      * какой свод правил породил урожай.
      */
     val rulesVersion: Int = 1,
+    /**
+     * Ответ вида — ОДИН документ по своей схеме, а не пачка объектов на
+     * акцепт (замысел миссии, урожай разбора, кандидаты из нормативов).
+     * Общая форма «массив объектов» их ломает: приходит массив из одного
+     * элемента, и ворота схемы законно отказывают.
+     */
+    val singleDocument: Boolean = false,
 )
 
 /**
@@ -78,6 +85,7 @@ class PackageKinds(private val kinds: Map<String, PackageKind>) {
                     requiresMissionIntent = n.path("requires_mission_intent").asBoolean(false),
                     statementSources = n.path("statement_sources").map { it.asText() },
                     rulesVersion = n.path("rules_version").asInt(1),
+                    singleDocument = n.path("single_document").asBoolean(false),
                 )
             },
         )
