@@ -16,8 +16,19 @@ set -euo pipefail
 
 BUILDER="${BUILDER:-orbita-mtu}"
 NETWORK="${NETWORK:-orbita-mtu1380}"
-# Порог тома состояния, ГБ. Меньше 2 держать смысла нет: кэш слоёв полезен.
-BUILDER_STATE_LIMIT_GB="${BUILDER_STATE_LIMIT_GB:-2}"
+# Порог тома состояния, ГБ. Пересоздание НЕ бесплатно: следующая сборка
+# тянет базовые слои заново, а канал с MTU 1380 медленный — это десятки
+# минут. Поэтому порог мягкий, и он срабатывает, только когда на диске уже
+# тесно; жёсткий предел рвёт кэш независимо от места.
+BUILDER_STATE_LIMIT_GB="${BUILDER_STATE_LIMIT_GB:-3}"
+# Жёсткий предел: том такого размера пересоздаётся при любом свободном месте.
+BUILDER_STATE_HARD_GB="${BUILDER_STATE_HARD_GB:-6}"
+# Ниже этого свободного места (ГБ) мягкий порог считается сработавшим.
+# Держать высоким нельзя: на рабочей машине свободно обычно 5–10 ГБ, и
+# порог 15 срабатывал КАЖДЫЙ раз — сборщик пересоздавался перед каждым
+# выкатом, а следующая сборка тянула базовые слои по медленному каналу
+# (наблюдение: два подряд выката по 25+ минут вместо трёх).
+DISK_FREE_MIN_GB="${DISK_FREE_MIN_GB:-5}"
 
 ensure_network() {
   docker network inspect "$NETWORK" > /dev/null 2>&1 \
@@ -47,15 +58,18 @@ builder_hygiene() {
     create_builder
     return
   fi
-  local gb
+  local gb free
   gb="$(builder_state_gb)"
-  if [ "${gb:-0}" -ge "$BUILDER_STATE_LIMIT_GB" ]; then
-    echo "==> Том сборщика разросся до ${gb} ГБ (порог ${BUILDER_STATE_LIMIT_GB}) — пересоздаю $BUILDER"
+  free="$(df -g / | awk 'NR==2 {print $4}')"
+  if [ "${gb:-0}" -ge "$BUILDER_STATE_HARD_GB" ] \
+     || { [ "${gb:-0}" -ge "$BUILDER_STATE_LIMIT_GB" ] && [ "${free:-99}" -lt "$DISK_FREE_MIN_GB" ]; }; then
+    echo "==> Том сборщика ${gb} ГБ, свободно ${free} ГБ — пересоздаю $BUILDER"
+    echo "    (следующая сборка тянет базовые слои заново — это надолго)"
     docker buildx rm "$BUILDER" > /dev/null 2>&1 || true
     ensure_network
     create_builder
   else
-    echo "==> Том сборщика: ${gb} ГБ — в пределах порога ${BUILDER_STATE_LIMIT_GB} ГБ"
+    echo "==> Том сборщика: ${gb} ГБ, свободно ${free} ГБ — пересоздание не нужно"
   fi
 }
 

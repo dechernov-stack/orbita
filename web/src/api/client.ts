@@ -43,6 +43,7 @@ import type {
   NormativeReadiness,
   NormativeCandidatesPacket,
   KnowledgeExportView,
+  StatementPathView,
 } from './types'
 
 import { withProject } from './project'
@@ -662,6 +663,8 @@ export const api = {
     by: string
   }) => post<Record<string, unknown>>('/ai/accept', request),
 
+  /** Ф-12: путь постановки — состояние цепочки и следующий шаг, считает сервер. */
+  statementPath: () => get<StatementPathView>('/views/statement-path'),
   /** Профиль под вид операции: подбирается системой, а не инженером. */
   profileForKind: (kind: string) =>
     get<{ profile: string; kind: string; ensured: boolean }>(

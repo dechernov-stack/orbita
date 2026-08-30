@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/core/stakeholder.schema.json",
+  "title": "Stakeholder",
+  "description": "Ф-13: стейкхолдер проекта — тот, чей интерес или обязанность система обязана учесть. Круг шире потребителей: заказчик, регулятор, оператор, партнёр и организация, которую проект УЧРЕЖДАЕТ. Профиль стейкхолдера (полка А2) — шаблон класса миссии; этот объект — факт конкретного проекта, и на него ссылаются нужды и сервисы.",
+  "type": "object",
+  "required": [
+    "id",
+    "name",
+    "role",
+    "lifecycle"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^SK-[0-9]{4}$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Как называется в проекте: «Минтранс России», «оператор связи», «владельцы БВС»"
+    },
+    "role": {
+      "enum": [
+        "customer",
+        "regulator",
+        "operator",
+        "consumer",
+        "partner",
+        "established"
+      ],
+      "description": "Заказчик · регулятор · оператор · потребитель · партнёр · учреждаемый (организация, которую проект создаёт)"
+    },
+    "interest": {
+      "type": "string",
+      "description": "Интерес или обязанность: ЗАЧЕМ этот стейкхолдер в проекте. Из него растут нужды"
+    },
+    "scale": {
+      "$ref": "https://kis.local/schemas/common/quantity.schema.json",
+      "description": "Масштаб: сколько их (шт) — если это множество, а не одна организация"
+    },
+    "establishes": {
+      "type": "boolean",
+      "default": false,
+      "description": "Организация учреждается проектом, а не существует сегодня. Учреждаемую сторону нельзя выдавать за действующую: у неё нет ни решений, ни обязательств"
+    },
+    "profile_ref": {
+      "type": "string",
+      "pattern": "^SH-[0-9]{4}$",
+      "description": "Профиль полки А2, которым этот стейкхолдер типизирован (если обобщение делалось)"
+    },
+    "anchors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Якоря блоков канона, из которых стейкхолдер выведен: происхождение проверяемо"
+    },
+    "note": {
+      "type": "string"
+    },
+    "lifecycle": {
+      "$ref": "https://kis.local/schemas/common/status.schema.json"
+    },
+    "provenance": {
+      "$ref": "https://kis.local/schemas/common/provenance.schema.json"
+    }
+  }
+}

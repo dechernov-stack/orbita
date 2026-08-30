@@ -17,6 +17,7 @@ import { NewProject } from './screens/NewProject'
 import { SeedDemand } from './screens/SeedDemand'
 import { Shelves } from './screens/Shelves'
 import { References } from './screens/References'
+import { StatementGuide } from './ui/StatementGuide'
 import { LibraryKnowledge } from './screens/LibraryKnowledge'
 import { DocParse } from './screens/DocParse'
 import { MyTasks, MyTasksBadge } from './screens/MyTasks'
@@ -181,7 +182,12 @@ export function App() {
 
   useEffect(loadHeader, [loadHeader, screen])
 
-  const go = (next: string) => setScreen(next)
+  /** Ф-12: переход к месту действия — с преднастроенным видом операции. */
+  const [pendingKind, setPendingKind] = useState<string | undefined>(undefined)
+  const go = (next: string, kind?: string) => {
+    setPendingKind(kind)
+    setScreen(next)
+  }
 
   const render = (): ReactElement => {
     switch (screen) {
@@ -242,9 +248,32 @@ export function App() {
         return <KindRegistry key={screen} kinds={['source_document']} title="Исходные документы (библиотека)" />
       {/* формы постановки: редактор раскрывается вниз, как в требованиях
           (замечание МВП-прохода) */}
-      case 'goals': return <KindRegistry key={screen} kinds={['mission_goal', 'need']} title="Цели и нужды" expandDown />
-      case 'needs': return <ScreenFrame title="Нужды и их сервисы"><Needs /></ScreenFrame>
-      case 'services': return <KindRegistry key={screen} kinds={['service']} title="Сервисы и QoS" expandDown />
+      case 'goals': return (
+        <>
+          <StatementGuide onGo={go} />
+          <KindRegistry key={screen} kinds={['mission_goal', 'need']} title="Цели и нужды" expandDown />
+        </>
+      )
+      case 'stakeholders': return (
+        <>
+          <StatementGuide onGo={go} />
+          <KindRegistry key={screen} kinds={['stakeholder']} title="Стейкхолдеры проекта" expandDown />
+        </>
+      )
+      case 'needs': return (
+        <ScreenFrame title="Нужды и их сервисы">
+          <div>
+            <StatementGuide onGo={go} />
+            <Needs />
+          </div>
+        </ScreenFrame>
+      )
+      case 'services': return (
+        <>
+          <StatementGuide onGo={go} />
+          <KindRegistry key={screen} kinds={['service']} title="Сервисы и QoS" expandDown />
+        </>
+      )
       case 'conops': return <KindRegistry key={screen} kinds={['conops']} title="Сценарии ConOps" />
       case 'req': return <Requirements onGo={go} />
       case 'matrix': return <MatrixScreen />
@@ -283,7 +312,7 @@ export function App() {
       case 'vv': return <KindRegistry key={screen} kinds={['evidence', 'validation']} title="Верификация и валидация" />
       case 'docs': return <ScreenFrame title="Документы"><Documents onGo={go} /></ScreenFrame>
       case 'system': return <ScreenFrame title="Система в целом"><SystemOverview /></ScreenFrame>
-      case 'aiservice': return <AiService onGo={go} />
+      case 'aiservice': return <AiService onGo={go} initialKind={pendingKind} />
       case 'aiprofiles': return <AiProfiles key={screen} onGo={go} />
       case 'ai': return <ScreenFrame title="Предложения ИИ"><AiProposal /></ScreenFrame>
       case 'importb': return <BatchLoad />

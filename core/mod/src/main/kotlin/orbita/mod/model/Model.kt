@@ -90,7 +90,11 @@ enum class CoreType(val idPrefix: String, val dbType: String, val schemaName: St
     // Глоссарий (Ф-03): полка LIB — один источник смысловых подсказок.
     Glossary("GL", "glossary", "core/glossary"),
     GeoMask("GM", "geo_mask", "core/geo-mask"),
-    PropertyForm("PF", "property_form", "core/property-form");
+    PropertyForm("PF", "property_form", "core/property-form"),
+
+    // Ф-13: стейкхолдер проекта. Профиль (SH) — шаблон класса миссии на полке;
+    // этот объект — факт проекта, на него ссылаются нужды и сервисы.
+    Stakeholder("SK", "stakeholder", "core/stakeholder");
 
     companion object {
         fun byDbType(t: String): CoreType = entries.firstOrNull { it.dbType == t }

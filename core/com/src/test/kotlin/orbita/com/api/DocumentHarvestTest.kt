@@ -91,14 +91,15 @@ class DocumentHarvestTest {
     }
 
     @Test
-    fun `стейкхолдер ложится на полку А2 с ролью инженера и координатой блока`() {
+    fun `стейкхолдер ложится В ПРОЕКТ с ролью инженера и координатой блока`() {
+        // Ф-13: кандидат стейкхолдера — факт проекта, а не шаблон полки.
+        // Прежде он молча обобщался в профиль А2: библиотека наполнялась
+        // сама собой, а в проекте стейкхолдеров не заводилось вовсе.
         val filled = mapper.createObjectNode().put("role", "regulator")
         val doc = DocumentHarvest.objectOf(
             item("stakeholder"), filled, "SD-0003", "3", "Записка Минтранса", "2026-08-29",
         )!!
-        val stored = boundary.editing.create(
-            CoreType.StakeholderProfile, doc, "инженер", orbita.mod.store.ObjectStore.LIBRARY_PROJECT,
-        )
+        val stored = boundary.editing.create(CoreType.Stakeholder, doc, "инженер", "PJ-1801")
         val saved = boundary.objects.current(stored.id)!!
         assertEquals("Минтранс России", saved.doc.path("name").asText())
         assertEquals("regulator", saved.doc.path("role").asText())

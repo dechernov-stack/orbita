@@ -188,4 +188,26 @@ class DataRequestsTest {
             else System.setProperty("orbita.test.filesDir", previous)
         }
     }
+
+    /**
+     * Ф-06 путь 3 (сверка владельца по репозиторию): механика чтения значений
+     * из даташита была, а ВХОДА для неё не было — служба не знала ключей полей
+     * анкеты и метить характеристику ей было нечем. Перечень полей обязан
+     * попадать во вход разбора.
+     */
+    @Test
+    fun `вход разбора несёт ключи полей анкет — иначе даташит нечем метить`() {
+        val forms = boundary.objects.listCurrent(ObjectStore.LIBRARY_PROJECT)
+            .filter { it.type == "property_form" }
+        assertTrue(forms.isNotEmpty()) { "фикстура обязана иметь анкету" }
+        val card = ObjectMapper().readTree("""{"name":"Даташит приёмника","kind":"datasheet"}""")
+        val statement = DocumentHarvest.statementOf(card, "SD-2001", "# канон", null, forms)
+        assertTrue("form_field" in statement) { "перечень полей обязан быть назван ключом: $statement" }
+        assertTrue("sensitivity" in statement) { "ключ поля обязан дойти до службы: $statement" }
+        // правило вида объясняет, что с этим перечнем делать
+        val kind = orbita.ai.PackageKinds.default().of(DocumentHarvest.KIND)
+        assertTrue(kind.rules.any { "form_field" in it }) { "правило про метку поля обязано быть в реестре" }
+        assertTrue(kind.rulesVersion >= 3) { "редакция правил поднята: ${kind.rulesVersion}" }
+    }
 }
+

@@ -39,6 +39,7 @@ private val DEFAULT_PROFILE_KINDS = listOf(
     "mission_to_needs",
     "mission_intent_from_docs",
     "normative_to_candidates",
+    "document_semantic_parse",
 )
 
 class HttpApi(private val boundary: Boundary) {
@@ -3410,6 +3411,11 @@ class HttpApi(private val boundary: Boundary) {
                 )
             }
 
+            // Ф-12: проводник постановки — сквозная цепочка со счётчиками и
+            // первым несделанным звеном. Куда идти дальше, знает система.
+            method == "GET" && path == "/views/statement-path" ->
+                respond(ex, 200, StatementPath.toJson(boundary, requireProject(project)))
+
             // Профиль под вид операции: инженер выбирает ЧТО делать, а не
             // какой профиль это разрешает. Есть подходящий — вернём его;
             // нет — обеспечим (тот же закон, что у мастер-пути).
@@ -3654,17 +3660,18 @@ class HttpApi(private val boundary: Boundary) {
                     ?: throw NoSuchElementException("document '$sdId' not found")
                 val canon = DocumentParseStore.canonOf(filesDir(), sdId)
                     ?: throw NoSuchElementException("у $sdId нет разбора — переразберите документ")
+                // Ф-06 путь 3: анкеты полки идут во вход — служба метит
+                // характеристики даташита ключом поля, и они предзаполняют форму
+                val forms = boundary.objects.listCurrent(orbita.mod.store.ObjectStore.LIBRARY_PROJECT)
+                    .filter { it.type == "property_form" && it.status != Lifecycle.Cancelled }
                 val statement = DocumentHarvest.statementOf(
-                    sd.doc, sdId, canon, DocumentParseStore.mapOf(filesDir(), sdId),
+                    sd.doc, sdId, canon, DocumentParseStore.mapOf(filesDir(), sdId), forms,
                 )
                 val ctx = requireProject(project)
-                val profileId = query(ex)["profile"] ?: boundary.objects.listCurrent(ctx)
-                    .filter { it.type == "ai_profile" && it.status != Lifecycle.Cancelled }
-                    .sortedBy { it.id }
-                    .firstOrNull { p -> p.doc.path("kinds").any { it.asText() == DocumentHarvest.KIND } }?.id
-                    ?: throw IllegalArgumentException(
-                        "нет профиля службы с видом «${DocumentHarvest.KIND}» — добавьте вид в профиль",
-                    )
+                // Тот же закон, что у замысла и кандидатов: профиль под вид
+                // обеспечивает система, а не спрашивает у инженера
+                val profileId = query(ex)["profile"]
+                    ?: profileFor(DocumentHarvest.KIND, ctx, author(query(ex)["author"] ?: ""))
                 val (profile, blocks) = boundary.ai.composeBlocks(DocumentHarvest.KIND, profileId, ctx, statement)
                 val out = mapper.createObjectNode()
                 out.put("document", sdId)

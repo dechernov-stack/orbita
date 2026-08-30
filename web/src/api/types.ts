@@ -922,3 +922,20 @@ export interface KnowledgeExportView {
   fingerprint: string
   parts: Array<{ key: string; file: string; title: string; chosen: boolean; size: number; size_kb: number }>
 }
+
+/** Ф-12: сквозная цепочка постановки со счётчиками и следующим шагом. */
+export interface StatementPathView {
+  complete: boolean
+  summary: string
+  links: Array<{
+    key: string
+    title: string
+    count: number
+    done: boolean
+    screen: string
+    kind?: string
+    invitation: string
+    why: string
+  }>
+  next?: { key: string; title: string; screen: string; kind?: string; invitation: string; why: string }
+}

@@ -18,6 +18,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 import orbita.mod.model.CoreType
+import orbita.mod.store.StoredObject
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -40,12 +41,16 @@ object DocumentHarvest {
 
     /** Раскладка классов по адресам системы (манифест пачки-1). */
     val TARGETS: Map<String, HarvestTarget> = mapOf(
+        // Ф-13: стейкхолдер документа — ФАКТ ПРОЕКТА, а не шаблон полки.
+        // Раньше кандидат уходил профилем в библиотеку: обобщение делалось
+        // само собой, без решения инженера, а в проекте стейкхолдеров не
+        // заводилось вовсе. Обобщить в профиль А2 — отдельное действие.
         "stakeholder" to HarvestTarget(
-            CoreType.StakeholderProfile, "полка А2 — профили стейкхолдеров",
+            CoreType.Stakeholder, "проект — стейкхолдеры (обобщение в профиль А2 — отдельно)",
             gaps = listOf(
                 HarvestGap(
-                    "role", "роль стейкхолдера в системе",
-                    listOf("regulator", "customer", "operator", "supplier", "state_program", "end_user"),
+                    "role", "роль стейкхолдера в проекте",
+                    listOf("customer", "regulator", "operator", "consumer", "partner", "established"),
                 ),
             ),
         ),
@@ -148,7 +153,37 @@ object DocumentHarvest {
      * с якорями. Он и есть «блоки с координатами»: модель отвечает адресами,
      * которые система умеет разложить.
      */
-    fun statementOf(card: JsonNode, sdId: String, canon: String, map: JsonNode?): String = buildString {
+    /**
+     * Ф-06 путь 3: даташит предзаполняет анкету. Чтобы это работало, служба
+     * обязана знать КЛЮЧИ ПОЛЕЙ анкет — иначе характеристику некуда метить,
+     * и путь остаётся мёртвым (механика чтения была, входа для неё не было —
+     * находка сверки владельца по репозиторию).
+     *
+     * Перечень идёт полем `form_field`: ключ · имя · единица справочника.
+     */
+    fun formFieldsOf(forms: List<StoredObject>): String = buildString {
+        if (forms.isEmpty()) return ""
+        appendLine("ПОЛЯ АНКЕТ ХАРАКТЕРИСТИК (для класса property — метить ключом form_field):")
+        forms.sortedBy { it.id }.forEach { pf ->
+            appendLine("— анкета ${pf.id} «${pf.doc.path("name").asText(pf.id)}» " +
+                "(роль ${pf.doc.path("role").asText("")}):")
+            pf.doc.path("fields").forEach { f ->
+                val unit = f.path("unit").asText("")
+                appendLine(
+                    "    ${f.path("key").asText("")} — ${f.path("name").asText("")}" +
+                        (if (unit.isNotBlank()) ", единица $unit" else ""),
+                )
+            }
+        }
+    }
+
+    fun statementOf(
+        card: JsonNode,
+        sdId: String,
+        canon: String,
+        map: JsonNode?,
+        forms: List<StoredObject> = emptyList(),
+    ): String = buildString {
         appendLine("КАРТОЧКА ДОКУМЕНТА")
         appendLine("— идентификатор: $sdId")
         appendLine("— наименование: ${card.path("name").asText("")}")
@@ -160,6 +195,11 @@ object DocumentHarvest {
                 "— разбор: блоков ${s.path("blocks").asInt()}, разделов ${s.path("sections").asInt()}, " +
                     "таблиц ${s.path("tables").asInt()}",
             )
+        }
+        val fields = formFieldsOf(forms)
+        if (fields.isNotBlank()) {
+            appendLine()
+            append(fields)
         }
         appendLine()
         appendLine("ВЫЖИМКА ДОКУМЕНТА БЛОКАМИ (якорь блока — в комментарии либо в {#…}):")
@@ -186,10 +226,21 @@ object DocumentHarvest {
         val doc = mapper.createObjectNode()
         val text = item.path("statement").asText("").ifBlank { item.path("name").asText("") }
         when (target) {
-            CoreType.StakeholderProfile -> {
+            // Ф-13: стейкхолдер проекта — с интересом и происхождением.
+            // Учреждаемая сторона помечается: у неё нет ни решений, ни
+            // обязательств, и выдавать её за действующую нельзя.
+            CoreType.Stakeholder -> {
                 doc.put("name", item.path("name").asText("").ifBlank { text })
                 doc.put("role", filled.path("role").asText(""))
-                item.path("role").takeIf { it.isTextual }?.let { doc.put("interests", it.asText()) }
+                val interest = listOf("statement", "note")
+                    .firstNotNullOfOrNull { item.path(it).asText("").ifBlank { null } }
+                if (interest != null && interest != doc.path("name").asText()) doc.put("interest", interest)
+                if (filled.path("role").asText("") == "established") doc.put("establishes", true)
+                val anchors = blocksOf(item)
+                if (anchors.isNotEmpty()) {
+                    val arr = doc.putArray("anchors")
+                    anchors.forEach { arr.add(it) }
+                }
             }
             CoreType.MissionGoal -> {
                 doc.put("kind", filled.path("kind").asText("goal"))

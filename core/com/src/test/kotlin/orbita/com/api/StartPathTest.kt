@@ -70,7 +70,10 @@ class StartPathTest {
         assertEquals(
             // Ф-11: профиль умеет и то, что мастер предлагает сам, — иначе
             // «собрать замысел из документов» упиралось бы в настройку
-            listOf("mission_to_goals", "mission_to_needs", "mission_intent_from_docs", "normative_to_candidates"),
+            listOf(
+                "mission_to_goals", "mission_to_needs", "mission_intent_from_docs",
+                "normative_to_candidates", "document_semantic_parse",
+            ),
             stored.doc.path("kinds").map { it.asText() },
         )
 

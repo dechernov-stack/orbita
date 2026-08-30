@@ -28,14 +28,20 @@ const KINDS: Array<{ id: string; title: string; generative: boolean }> = [
   { id: 'section_editor', title: 'Редактор раздела: связный текст из модели (В1.3)', generative: true },
 ]
 
-export function AiService({ onGo }: { onGo?: (screen: string) => void }) {
+export function AiService({ onGo, initialKind }: {
+  onGo?: (screen: string) => void
+  /** Ф-12: проводник постановки открывает службу сразу нужным видом. */
+  initialKind?: string
+}) {
   const { author } = useSession()
   const [profiles, setProfiles] = useState<StoredSummary[]>([])
   const [profile, setProfile] = useState('')
   const [profileNote, setProfileNote] = useState<string | null>(null)
   const [sourceDocs, setSourceDocs] = useState<StoredSummary[]>([])
   const [sourceDoc, setSourceDoc] = useState('')
-  const [kind, setKind] = useState(KINDS[0].id)
+  const [kind, setKind] = useState(initialKind && KINDS.some((k) => k.id === initialKind)
+    ? initialKind
+    : KINDS[0].id)
   const [statement, setStatement] = useState('')
   const [prompt, setPrompt] = useState<string | null>(null)
   /** Ф-05: состав промпта по источникам — счётчики и пустые строки. */

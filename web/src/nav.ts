@@ -37,6 +37,7 @@ export const SECTIONS: NavSection[] = [
     label: 'Постановка',
     screens: [
       { key: 'goals', title: 'Цели и нужды' },
+      { key: 'stakeholders', title: 'Стейкхолдеры' },
       { key: 'needs', title: 'Нужды и их сервисы' },
       { key: 'services', title: 'Сервисы и QoS' },
       { key: 'conops', title: 'Сценарии ConOps' },

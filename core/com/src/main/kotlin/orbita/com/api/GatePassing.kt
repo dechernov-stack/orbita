@@ -271,6 +271,26 @@ class GatePassing(
                 "spacecraft", blocking = false, closedNote = "анкеты закрыты",
             )
         }
+        // Ф-13: у нужды обязан быть носитель — стейкхолдер проекта. Разрыв
+        // МЯГКИЙ: связь дозревает к MCR, и на ранней фазе нужда без носителя
+        // законна. Пока стейкхолдеров в проекте нет вовсе, спрашивать не о чем.
+        val stakeholders = boundary.objects.listCurrent(projectId)
+            .filter { it.type == "stakeholder" && it.status.name != "Cancelled" }
+        val needs = boundary.objects.listCurrent(projectId)
+            .filter { it.type == "need" && it.status.name != "Cancelled" }
+        if (stakeholders.isNotEmpty() && needs.isNotEmpty()) {
+            val orphan = needs.filter { it.doc.path("stakeholder_ref").asText("").isBlank() }
+            add(
+                "need_stakeholder", "statement", "У нужд назван носитель",
+                orphan.size,
+                if (orphan.isEmpty()) "у всех нужд есть стейкхолдер-носитель"
+                else "${orphan.size} из ${needs.size} нужд без носителя: " +
+                    orphan.take(3).joinToString("; ") { it.id } +
+                    (if (orphan.size > 3) " и ещё ${orphan.size - 3}" else ""),
+                "needs", blocking = false,
+                closedNote = "носитель назван у всех ${needs.size}",
+            )
+        }
         val oda = boundary.objects.listCurrent(projectId).count { it.type == "oda" }
         add(
             "oda", "risks", "Оценка орбитального засорения присутствует",
