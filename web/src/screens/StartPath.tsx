@@ -196,8 +196,11 @@ export function StartPath({ project, onGo, onDone }: {
         // только тексты, иначе обход полей спотыкается о объект.
         setIntent(textOfIntent(doc.mission_intent))
         const sp = doc.start_path
-        // шаг за пределами 1..4 отсекает схема паспорта — доверяем ей
-        if (sp && sp.status === 'in_progress') setStep(sp.step)
+        // шаг за пределами 1..4 отсекает схема паспорта — доверяем ей.
+        // Путь, не клетка: пройденный путь открывается там, где его
+        // оставили, а не сбрасывается на первый шаг — вернуться к запуску
+        // генерации инженер обязан уметь в один щелчок.
+        if (sp && (sp.status === 'in_progress' || sp.status === 'done')) setStep(sp.step)
         if (sp?.source_refs?.length || sp?.source_ref) {
           promptSeeded.current = true
           setPromptDocs(new Set(sp.source_refs ?? [sp.source_ref!]))
@@ -612,10 +615,15 @@ export function StartPath({ project, onGo, onDone }: {
         </div>
         <div className="sp-steps">
           {['Основные параметры', 'Библиотека и материалы', 'Замысел миссии', 'Запуск ИИ'].map((t, i) => (
-            <div key={t}
-              className={`sp-st${step === i + 1 ? ' sp-on' : ''}${step > i + 1 ? ' sp-done' : ''}`}>
+            <button key={t} type="button"
+              className={`sp-st${step === i + 1 ? ' sp-on' : ''}${step > i + 1 ? ' sp-done' : ''}`}
+              onClick={() => toStep(i + 1)}
+              disabled={!author || step === i + 1}
+              title={!author
+                ? 'представьтесь в шапке: переход пишет шаг в паспорт'
+                : step === i + 1 ? 'вы на этом шаге' : `перейти к шагу «${t}»`}>
               <span className="sp-n">{i + 1}</span>{t}
-            </div>
+            </button>
           ))}
         </div>
 
