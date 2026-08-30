@@ -260,7 +260,7 @@ class AiService(
             out.put("reason", e.message)
             return AiServiceRun(pk, prompt, "direct", null, out)
         }
-        val screened = screen(answer.text, kind, p)
+        val screened = screen(completeImportProvenance(answer.text, projectId), kind, p)
         val pk = calls.record(
             projectId = projectId, kind = kind, transport = "direct", prompt = prompt,
             createdBy = author, profileId = p.id, profileVersion = p.version,
@@ -335,7 +335,7 @@ class AiService(
         author: String,
     ): AiServiceRun {
         val (p, prompt) = compose(kind, profileId, projectId, statement)
-        val screened = screen(raw, kind, p)
+        val screened = screen(completeImportProvenance(raw, projectId), kind, p)
         val pk = calls.record(
             projectId = projectId, kind = kind, transport = "package", prompt = prompt,
             createdBy = author, profileId = p.id, profileVersion = p.version,
@@ -393,7 +393,7 @@ class AiService(
         val p = profile(profileId, projectId)
         val prompt = compose(kind, profileId, projectId, "", enforceReady = false).second
         val itemsJson = mapper.writeValueAsString(items)
-        val screened = screen(itemsJson, kind, p)
+        val screened = screen(completeImportProvenance(itemsJson, projectId), kind, p)
         val pk = calls.record(
             projectId = projectId, kind = kind, transport = "package", prompt = prompt,
             createdBy = author, profileId = p.id, profileVersion = p.version,
@@ -441,6 +441,71 @@ class AiService(
      * видеть лишь то, что ляжет: иначе «до инженера доходит состоятельное»
      * перестаёт быть правдой.
      */
+    /**
+     * Происхождение импорта — ДОПОЛНЯЕТСЯ ФАКТАМИ, а не отбраковывается.
+     *
+     * Служба ссылается на документ проекта («Записка… (SD-0006)») и ставит
+     * source=imported, но версию документа и дату получения знает не она, а
+     * система: это её карточка. Схема требует оба поля — и весь ответ уходил
+     * в брак целиком (находка живого прогона: предложено 7, показано 0).
+     *
+     * Здесь недостающие поля берутся из карточки названного документа. Это
+     * не выдумывание значения: версия и дата — факты хранилища. Документ, на
+     * который сослаться не удалось, не трогаем — такой ответ честно
+     * отбраковывается.
+     */
+    private fun completeImportProvenance(raw: String, projectId: String): String {
+        val cleaned = raw.trim().removePrefix("```json").removePrefix("```").removeSuffix("```").trim()
+        val root = try {
+            mapper.readTree(cleaned)
+        } catch (e: Exception) {
+            return raw
+        }
+        val docs = boundary.objects.listCurrent(projectId)
+            .filter { it.type == "source_document" && it.status != orbita.mod.model.Lifecycle.Cancelled }
+        if (docs.isEmpty()) return raw
+        var touched = false
+
+        fun complete(node: com.fasterxml.jackson.databind.JsonNode) {
+            when {
+                node.isArray -> node.forEach { complete(it) }
+                node.isObject -> {
+                    val obj = node as ObjectNode
+                    val imp = obj.path("import")
+                    if (obj.path("source").asText("") == "imported" && imp is ObjectNode) {
+                        val dataset = imp.path("dataset").asText("")
+                        val sd = docs.firstOrNull { dataset.contains(it.id) }
+                            ?: docs.firstOrNull { d ->
+                                val name = d.doc.path("name").asText("")
+                                name.isNotBlank() && dataset.contains(name, ignoreCase = true)
+                            }
+                        if (sd != null) {
+                            if (imp.path("dataset_version").asText("").isBlank()) {
+                                imp.put("dataset_version", sd.version)
+                                touched = true
+                            }
+                            if (imp.path("retrieved_at").asText("").isBlank()) {
+                                imp.put("retrieved_at", sd.validFrom.toLocalDate().toString())
+                                touched = true
+                            }
+                            if (imp.path("terms").asText("").isBlank()) {
+                                imp.put(
+                                    "terms",
+                                    sd.doc.path("rights").asText("").ifBlank { "внутренний документ проекта" },
+                                )
+                                touched = true
+                            }
+                        }
+                    }
+                    obj.properties().forEach { (_, v) -> complete(v) }
+                }
+            }
+        }
+
+        complete(root)
+        return if (touched) mapper.writeValueAsString(root) else raw
+    }
+
     private fun screen(raw: String, kind: String, p: AiProfile): ObjectNode {
         val parsed = if (kind == ENRICHMENT_KIND) {
             // частичные правки: пакета вида у дозаполнения НЕТ (сборка пакета

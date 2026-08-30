@@ -172,6 +172,11 @@ export function StartPath({ project, onGo, onDone }: {
   const [busy, setBusy] = useState(false)
   const busyRef = useRef(false)
   const [failure, setFailure] = useState<string | null>(null)
+  /** Что принесла генерация: предложения ждут акцепта, а не исчезают. */
+  const [harvest, setHarvest] = useState<
+    { call: number | null; model: string; items: Array<Record<string, unknown>> } | null
+  >(null)
+  const [pickedItems, setPickedItems] = useState<Set<number>>(new Set())
 
   useEffect(() => {
     edit.object(project)
@@ -475,6 +480,13 @@ export function StartPath({ project, onGo, onDone }: {
     return [head, ...parts].join('\n\n')
   }
 
+  /**
+   * Генерация приносит ПРЕДЛОЖЕНИЯ, а не тишину. Раньше мастер звал службу
+   * дважды и выбрасывал оба ответа: журнал считал «предложено 10 и 15», а
+   * инженер видел пустые экраны — принять было нечего, потому что до акцепта
+   * ничего не доходило. Теперь предложения складываются и ждут решения:
+   * в модель по-прежнему пишет только акцепт.
+   */
   const run = async () => {
     if (busyRef.current || !profile) return
     busyRef.current = true
@@ -482,9 +494,45 @@ export function StartPath({ project, onGo, onDone }: {
     setFailure(null)
     try {
       const statement = await materialStatement()
-      await api.aiAsk('mission_to_goals', profile.id, statement, author)
-      await api.aiAsk('mission_to_needs', profile.id, statement, author)
-      await save({ status: 'done', step: 4, profile_ref: profile.id })
+      const goals = await api.aiAsk('mission_to_goals', profile.id, statement, author)
+      const needs = await api.aiAsk('mission_to_needs', profile.id, statement, author)
+      const failed = [goals, needs].find((r) => r.failed)
+      if (failed) {
+        setFailure(failed.reason ?? 'служба не ответила')
+        return
+      }
+      const items = [...goals.shown, ...needs.shown].map((s) => s.item)
+      setHarvest({
+        call: needs.call ?? goals.call ?? null,
+        model: needs.model ?? goals.model ?? '',
+        items,
+      })
+      setPickedItems(new Set(items.map((_, i) => i)))
+      if (items.length === 0) {
+        setFailure(
+          'служба ответила, но ни одного предложения не прошло фильтр — ' +
+          'смотрите журнал вызовов: там причина по каждому',
+        )
+      }
+    } catch (e) {
+      setFailure(reasonOf(e))
+    } finally {
+      busyRef.current = false
+      setBusy(false)
+    }
+  }
+
+  /** Акцепт принесённого: в модель пишет инженер, не служба. */
+  const acceptHarvest = async () => {
+    if (!harvest || busyRef.current || pickedItems.size === 0) return
+    busyRef.current = true
+    setBusy(true)
+    setFailure(null)
+    try {
+      const chosen = harvest.items.filter((_, i) => pickedItems.has(i))
+      await api.acceptBatchOfCall(harvest.call, harvest.model, author, chosen)
+      await save({ status: 'done', step: 4, profile_ref: profile!.id })
+      setHarvest(null)
       onDone()
     } catch (e) {
       setFailure(reasonOf(e))
@@ -1063,6 +1111,53 @@ export function StartPath({ project, onGo, onDone }: {
                 Предложения придут на акцепт — в модель ИИ не пишет.
               </span>
             </div>
+
+            {/* Принесённое генерацией: список ждёт решения инженера. Пока он
+                не принял — в модели ничего нет, и это видно. */}
+            {harvest && (
+              <div className="sp-blk" style={{ marginTop: 8 }}>
+                <div className="sp-src">
+                  Служба предложила: {harvest.items.length}
+                  {harvest.model ? ` · ${harvest.model}` : ''} — отметьте, что принять
+                </div>
+                <table className="grid">
+                  <thead>
+                    <tr><th style={{ width: 24 }}></th><th>Код</th><th>Что предлагается</th></tr>
+                  </thead>
+                  <tbody>
+                    {harvest.items.map((item, i) => (
+                      <tr key={i}>
+                        <td>
+                          <input type="checkbox" checked={pickedItems.has(i)}
+                            onChange={() => {
+                              const next = new Set(pickedItems)
+                              if (next.has(i)) next.delete(i); else next.add(i)
+                              setPickedItems(next)
+                            }} />
+                        </td>
+                        <td className="mono">{String(item.id ?? '—')}</td>
+                        <td>{String(item.statement ?? item.name ?? '')}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <div className="np-actions" style={{ marginTop: 6 }}>
+                  <button className="np-btn np-pri" onClick={acceptHarvest}
+                    disabled={busy || pickedItems.size === 0 || !author}
+                    title={!author
+                      ? 'представьтесь в шапке: акцепт пишется в модель на автора'
+                      : pickedItems.size === 0
+                        ? 'отметьте хотя бы одно предложение — принимается отмеченное'
+                        : 'принять отмеченные предложения в модель проекта'}>
+                    {busy ? 'Принимаю…' : `Принять отмеченные (${pickedItems.size})`}
+                  </button>
+                  <button className="np-btn" onClick={() => setHarvest(null)}
+                    title="отказаться от предложений — в модели ничего не изменится">
+                    отклонить всё
+                  </button>
+                </div>
+              </div>
+            )}
           </>
         )}
 
