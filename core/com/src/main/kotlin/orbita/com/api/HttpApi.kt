@@ -3307,7 +3307,9 @@ class HttpApi(private val boundary: Boundary) {
             method == "POST" && path == "/views/mission-intent/compose" -> {
                 val req = mapper.readTree(body(ex))
                 val ctx = requireProject(project)
-                val by = author(req)
+                // вызов службы — не правка модели: без представления он
+                // законен, а подпись правки профиля подставит profileFor
+                val by = author(req.path("author").asText(""))
                 val profileId = req.path("profile").asText("").ifBlank {
                     profileFor(MissionIntentDraft.KIND, ctx, by)
                 }

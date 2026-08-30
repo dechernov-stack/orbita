@@ -45,7 +45,7 @@ export function MissionIntent(
     setBusy(true)
     setError(null)
     setNote(null)
-    api.missionIntentCompose()
+    api.missionIntentCompose(author)
       .then((r) => {
         setDraft(r.draft)
         setNote(`замысел собран службой${r.model ? ` (${r.model})` : ''} — правьте и принимайте`)

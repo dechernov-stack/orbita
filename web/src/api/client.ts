@@ -332,9 +332,9 @@ export const api = {
     get<{ profile: string; kind: string; text: string }>('/views/mission-intent/prompt'),
   /** Ф-07: предложение замысла пакетом — проверяется схемой, в паспорт не пишется. */
   /** Ф-07 + живой канал: система САМА спрашивает службу и приносит замысел. */
-  missionIntentCompose: () =>
+  missionIntentCompose: (author?: string) =>
     post<{ call: number; model?: string; profile: string; draft: MissionIntentDraftView }>(
-      '/views/mission-intent/compose', {},
+      '/views/mission-intent/compose', author ? { author } : {},
     ),
   missionIntentDraft: (raw: string) => post<MissionIntentDraftView>('/views/mission-intent/draft', { raw }),
   /** Ф-07: акцепт замысла — правкой паспорта, с якорями происхождения. */
