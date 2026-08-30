@@ -68,7 +68,9 @@ class StartPathTest {
         assertTrue(texts.any { it.endsWith("(Р1)") }) { texts.toString() }
         assertTrue("Платформа не тяжелее 100 кг." in texts) { texts.toString() }
         assertEquals(
-            listOf("mission_to_goals", "mission_to_needs"),
+            // Ф-11: профиль умеет и то, что мастер предлагает сам, — иначе
+            // «собрать замысел из документов» упиралось бы в настройку
+            listOf("mission_to_goals", "mission_to_needs", "mission_intent_from_docs", "normative_to_candidates"),
             stored.doc.path("kinds").map { it.asText() },
         )
 
@@ -103,6 +105,32 @@ class StartPathTest {
         assertTrue(boundary.schemaProblems("core/project", five).isNotEmpty()) {
             "шаг вне 1..4 обязан отсекаться схемой, а не жить в паспорте"
         }
+    }
+
+    /**
+     * Ф-11 (продолжение по живому наблюдению владельца): «собрать замысел из
+     * документов» отвечало 400 «нет профиля службы с видом …» — профиль
+     * собирается на последнем шаге мастера, а замысел спрашивается раньше.
+     * Операция, предложенная системой, не имеет права упереться в её же
+     * настройку: профиль обеспечивается сам.
+     */
+    @Test
+    fun `промпт замысла обеспечивает профиль сам, а не отказывает`() {
+        val response = client.send(
+            HttpRequest.newBuilder(URI.create("$base/views/mission-intent/prompt?project=PJ-1801"))
+                .GET().build(),
+            HttpResponse.BodyHandlers.ofString(),
+        )
+        // документов у фикстуры нет, поэтому промпт может быть пуст по данным,
+        // но отказа «нет профиля службы с видом» быть не должно
+        assertTrue("нет профиля службы с видом" !in response.body()) {
+            "профиль обязан обеспечиваться системой: ${response.body().take(200)}"
+        }
+        val profiles = boundary.objects.listCurrent("PJ-1801").filter { it.type == "ai_profile" }
+        assertTrue(profiles.isNotEmpty()) { "профиль обязан появиться сам" }
+        assertTrue(
+            profiles.any { p -> p.doc.path("kinds").any { it.asText() == MissionIntentDraft.KIND } },
+        ) { "вид «${MissionIntentDraft.KIND}» обязан быть в профиле: ${profiles.map { it.doc.path("kinds") }}" }
     }
 }
 

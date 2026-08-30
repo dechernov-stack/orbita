@@ -33,6 +33,14 @@ import java.time.OffsetDateTime
  */
 private const val PROTOCOL_ADAPTER_ID = "PA-0001"
 
+private val DEFAULT_PROFILE_KINDS = listOf(
+    // цепочка постановки О2–О4 плюс операции, которые мастер предлагает сам
+    "mission_to_goals",
+    "mission_to_needs",
+    "mission_intent_from_docs",
+    "normative_to_candidates",
+)
+
 class HttpApi(private val boundary: Boundary) {
 
     private val mapper = ObjectMapper()
@@ -2869,68 +2877,14 @@ class HttpApi(private val boundary: Boundary) {
                 val req = mapper.readTree(body(ex))
                 val startAuthor = author(req.path("author").asText(""))
                 require(startAuthor.isNotBlank()) { "field 'author' is required" }
-                val startProject = requireProject(project)
-                val passport = boundary.objects.current(startProject)
-                    ?: throw NoSuchElementException("project '$startProject' not found")
-                val prohibitions = mapper.createArrayNode()
-                passport.doc.path("constraints")
-                    .filterNot { it.path("removed").asBoolean(false) } // Ф-02: отменённое — след, не запрет
-                    .forEach { c ->
-                    val text = c.path("text").asText("")
-                    val code = c.path("code").asText("")
-                    if (text.isNotBlank()) {
-                        prohibitions.add(if (code.isBlank()) text else "$text ($code)")
-                    }
-                }
-                val profileName = "Генерация О2 — цели и нужды"
-                // Заготовка Г1 (§4 Ш3): базовые правила и глоссарий — из
-                // библиотечного фрагмента полки G1; поверх — запреты проекта.
-                val template = boundary.objects
-                    .listCurrent(orbita.mod.store.ObjectStore.LIBRARY_PROJECT)
-                    .filter { it.type == "library_fragment" && it.doc.path("shelf").asText() == "G1" }
-                    .maxByOrNull { it.id }
-                    ?.doc?.path("payload")?.path("objects")
-                    ?.firstOrNull { it.path("id").asText("").startsWith("AP-") }
-                val doc = (template?.deepCopy() as? ObjectNode) ?: mapper.createObjectNode()
-                doc.remove("id")
-                doc.remove("lifecycle")
-                doc.remove("provenance")
-                doc.put("name", profileName)
-                doc.put(
-                    "purpose",
-                    if (template == null)
-                        "Собран мастер-путём «Начало проекта»: запреты — из ограничений паспорта"
-                    else
-                        "Собран мастер-путём из заготовки Г1: запреты — из ограничений паспорта",
-                )
-                if (!doc.has("kinds") || doc.path("kinds").isEmpty) {
-                    doc.putArray("kinds").add("mission_to_goals").add("mission_to_needs")
-                }
-                if (!doc.has("transport")) doc.put("transport", "any")
-                doc.set<ObjectNode>("prohibitions", prohibitions)
-                doc.put("require_source", true)
-                val existing = boundary.objects.listCurrent(startProject)
-                    .firstOrNull {
-                        it.type == "ai_profile" && it.status != Lifecycle.Cancelled &&
-                            it.doc.path("name").asText("") == profileName
-                    }
-                val stored = if (existing == null) {
-                    boundary.editing.create(
-                        orbita.mod.model.CoreType.AiProfile, doc, startAuthor, startProject,
-                    )
-                } else {
-                    boundary.editing.update(
-                        orbita.mod.model.CoreType.AiProfile, existing.id, doc,
-                        existing.version, startAuthor,
-                    )
-                }
+                val assembled = assembleStartProfile(requireProject(project), startAuthor)
                 respond(
-                    ex, if (existing == null) 201 else 200,
+                    ex, if (assembled.created) 201 else 200,
                     mapper.createObjectNode()
-                        .put("id", stored.id)
-                        .put("version", stored.version)
-                        .put("name", profileName)
-                        .put("prohibitions", prohibitions.size()),
+                        .put("id", assembled.id)
+                        .put("version", assembled.version)
+                        .put("name", assembled.name)
+                        .put("prohibitions", assembled.prohibitions),
                 )
             }
 
@@ -3329,13 +3283,11 @@ class HttpApi(private val boundary: Boundary) {
             // Ф-07: промпт сборки замысла из документов — собирает система
             method == "GET" && path == "/views/mission-intent/prompt" -> {
                 val ctx = requireProject(project)
-                val profileId = query(ex)["profile"] ?: boundary.objects.listCurrent(ctx)
-                    .filter { it.type == "ai_profile" && it.status != Lifecycle.Cancelled }
-                    .sortedBy { it.id }
-                    .firstOrNull { p -> p.doc.path("kinds").any { it.asText() == MissionIntentDraft.KIND } }?.id
-                    ?: throw IllegalArgumentException(
-                        "нет профиля службы с видом «${MissionIntentDraft.KIND}» — добавьте вид в профиль",
-                    )
+                // Ф-11: профиль не спрашивается у инженера — система его
+                // обеспечивает сама (дописывает вид либо собирает профиль
+                // из ограничений паспорта). Кнопка не ведёт в тупик.
+                val profileId = query(ex)["profile"]
+                    ?: profileFor(MissionIntentDraft.KIND, ctx, author(query(ex)["author"] ?: ""))
                 val statement = MissionIntentDraft.statementOf(boundary, filesDir(), ctx)
                 val (profile, blocks) = boundary.ai.composeBlocks(MissionIntentDraft.KIND, profileId, ctx, statement)
                 val out = mapper.createObjectNode()
@@ -3450,13 +3402,9 @@ class HttpApi(private val boundary: Boundary) {
             // НПА и блоками канонов, не перечнем кодов.
             method == "GET" && path == "/views/normative-candidates/prompt" -> {
                 val ctx = requireProject(project)
-                val profileId = query(ex)["profile"] ?: boundary.objects.listCurrent(ctx)
-                    .filter { it.type == "ai_profile" && it.status != Lifecycle.Cancelled }
-                    .sortedBy { it.id }
-                    .firstOrNull { p -> p.doc.path("kinds").any { it.asText() == NormativeCandidates.KIND } }?.id
-                    ?: throw IllegalArgumentException(
-                        "нет профиля службы с видом «${NormativeCandidates.KIND}» — добавьте вид в профиль",
-                    )
+                // Ф-11: тот же закон — профиль обеспечивается системой
+                val profileId = query(ex)["profile"]
+                    ?: profileFor(NormativeCandidates.KIND, ctx, author(query(ex)["author"] ?: ""))
                 val statement = NormativeCandidates.statementOf(boundary, filesDir(), ctx)
                 val (profile, blocks) = boundary.ai.composeBlocks(NormativeCandidates.KIND, profileId, ctx, statement)
                 val out = mapper.createObjectNode()
@@ -3882,6 +3830,115 @@ class HttpApi(private val boundary: Boundary) {
             changeRef = "Ф-08.1: постановочный документ $sdId включён в промпт разделами",
         )
         return anchors.size
+    }
+
+    /** Собранный профиль службы: что вышло из ограничений паспорта. */
+    private data class AssembledProfile(
+        val id: String,
+        val version: String,
+        val name: String,
+        val prohibitions: Int,
+        val created: Boolean,
+    )
+
+    /**
+     * Профиль службы из ограничений паспорта (мастер-путь, шаг запуска).
+     * Виды по умолчанию — вся цепочка постановки и обе операции, которые
+     * мастер предлагает сам: замысел из документов и кандидаты из нормативов.
+     * Иначе кнопка, предложенная системой, упиралась бы в её же настройку.
+     */
+    private fun assembleStartProfile(
+        projectId: String,
+        by: String,
+        extraKinds: List<String> = emptyList(),
+    ): AssembledProfile {
+        val passport = boundary.objects.current(projectId)
+            ?: throw NoSuchElementException("project '$projectId' not found")
+        val prohibitions = mapper.createArrayNode()
+        passport.doc.path("constraints")
+            .filterNot { it.path("removed").asBoolean(false) } // Ф-02: отменённое — след, не запрет
+            .forEach { c ->
+                val text = c.path("text").asText("")
+                val code = c.path("code").asText("")
+                if (text.isNotBlank()) prohibitions.add(if (code.isBlank()) text else "$text ($code)")
+            }
+        val profileName = "Генерация О2 — цели и нужды"
+        // Заготовка Г1 (§4 Ш3): базовые правила и глоссарий — из
+        // библиотечного фрагмента полки G1; поверх — запреты проекта.
+        val template = boundary.objects
+            .listCurrent(orbita.mod.store.ObjectStore.LIBRARY_PROJECT)
+            .filter { it.type == "library_fragment" && it.doc.path("shelf").asText() == "G1" }
+            .maxByOrNull { it.id }
+            ?.doc?.path("payload")?.path("objects")
+            ?.firstOrNull { it.path("id").asText("").startsWith("AP-") }
+        val doc = (template?.deepCopy() as? ObjectNode) ?: mapper.createObjectNode()
+        doc.remove("id")
+        doc.remove("lifecycle")
+        doc.remove("provenance")
+        doc.put("name", profileName)
+        doc.put(
+            "purpose",
+            if (template == null)
+                "Собран мастер-путём «Начало проекта»: запреты — из ограничений паспорта"
+            else
+                "Собран мастер-путём из заготовки Г1: запреты — из ограничений паспорта",
+        )
+        val kinds = (doc.path("kinds").takeIf { it.isArray } as? ArrayNode) ?: doc.putArray("kinds")
+        DEFAULT_PROFILE_KINDS.forEach { k -> if (kinds.none { it.asText() == k }) kinds.add(k) }
+        extraKinds.forEach { k -> if (kinds.none { it.asText() == k }) kinds.add(k) }
+        doc.set<ArrayNode>("kinds", kinds)
+        if (!doc.has("transport")) doc.put("transport", "any")
+        doc.set<ObjectNode>("prohibitions", prohibitions)
+        doc.put("require_source", true)
+        val existing = boundary.objects.listCurrent(projectId)
+            .firstOrNull {
+                it.type == "ai_profile" && it.status != Lifecycle.Cancelled &&
+                    it.doc.path("name").asText("") == profileName
+            }
+        val stored = if (existing == null) {
+            boundary.editing.create(orbita.mod.model.CoreType.AiProfile, doc, by, projectId)
+        } else {
+            boundary.editing.update(
+                orbita.mod.model.CoreType.AiProfile, existing.id, doc, existing.version, by,
+            )
+        }
+        return AssembledProfile(
+            stored.id, stored.version, profileName, prohibitions.size(), created = existing == null,
+        )
+    }
+
+    /**
+     * Ф-11 (тот же закон, что у кнопок): операция, которую система предлагает,
+     * не имеет права упереться в служебную настройку. Раньше «собрать замысел
+     * из документов» отвечало 400 «нет профиля службы с видом …»: профиль
+     * собирается на последнем шаге мастера, а замысел спрашивается раньше —
+     * тупик по построению.
+     *
+     * Теперь профиль ОБЕСПЕЧИВАЕТСЯ: у проекта уже есть профиль — вид
+     * дописывается в него правкой; профилей нет вовсе — собирается тот же
+     * профиль из ограничений паспорта, что и на шаге запуска. Инженеру
+     * ничего настраивать не нужно, и запреты Р-кодов при этом не теряются.
+     */
+    private fun profileFor(kind: String, projectId: String, author: String): String {
+        // учётки могут быть выключены — правку всё равно кто-то подписывает
+        val by = author.ifBlank { "мастер-путь «Начало проекта»" }
+        val profiles = boundary.objects.listCurrent(projectId)
+            .filter { it.type == "ai_profile" && it.status != Lifecycle.Cancelled }
+            .sortedBy { it.id }
+        profiles.firstOrNull { p -> p.doc.path("kinds").any { it.asText() == kind } }?.let { return it.id }
+        val host = profiles.firstOrNull()
+        if (host != null) {
+            val kinds = (host.doc.path("kinds").deepCopy<JsonNode>() as? ArrayNode) ?: mapper.createArrayNode()
+            kinds.add(kind)
+            val changes = mapper.createObjectNode()
+            changes.set<ArrayNode>("kinds", kinds)
+            val stored = boundary.editing.update(
+                orbita.mod.model.CoreType.AiProfile, host.id, changes, host.version, by,
+                changeRef = "вид «$kind» добавлен в профиль: операция предложена системой, настройка не спрашивается",
+            )
+            return stored.id
+        }
+        return assembleStartProfile(projectId, by, extraKinds = listOf(kind)).id
     }
 
     /**
