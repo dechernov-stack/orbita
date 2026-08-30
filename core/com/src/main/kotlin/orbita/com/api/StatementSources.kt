@@ -6,6 +6,8 @@
 //   · замысел миссии — обязательный (без него генерация заблокирована);
 //   · библиотека класса миссии — типовые сервисы, профили стейкхолдеров (А2),
 //     типовые риски (Б3), применённые нормативы (Б1), термины глоссария;
+//   · знание полки (Ф-09) — пункты нормативов с реквизитами и блоки канонов
+//     библиотечных документов: не перечень позиций, а то, что в них написано;
 //   · взятые наборы Ш2 — рамкой «опираться, не дублировать»;
 //   · принятый урожай разбора (Д2) — контекстом «уже принято»;
 //   · запреты проекта — ограничениями паспорта.
@@ -71,6 +73,7 @@ class StatementSources(private val boundary: Boundary) {
             when (key) {
                 "intent" -> intentSource(project)
                 "class_library" -> classLibrarySource(project, lib)
+                "library_facts" -> libraryFactsSource(project, lib)
                 "taken" -> takenSource(project)
                 "materials" -> materialsSource(project, projectId)
                 "accepted" -> acceptedSource(own)
@@ -125,6 +128,82 @@ class StatementSources(private val boundary: Boundary) {
             "class_library", "Библиотека класса миссии", lines.size, lines,
             note = if (missionClass == null) "класс миссии не выбран — полки не подтянуты" else null,
         )
+    }
+
+    /**
+     * Ф-09: библиотека отдаёт ЗНАНИЕ, а не имена позиций. Источник
+     * «класс миссии» перечисляет, ЧТО есть на полке; этот — ЧТО В НЁМ
+     * НАПИСАНО: пункты нормативов с реквизитом и числами и блоки канонов
+     * библиотечных документов, помеченных «в промпт».
+     *
+     * Координата обязательна у каждой строки: у пункта — реквизит
+     * («ПП №2216, п. 3»), у блока — якорь канона. По ней потом ложится
+     * основание требования, и проверить его можно, не выходя из системы.
+     */
+    private fun libraryFactsSource(project: JsonNode, lib: List<StoredObject>): StatementSource {
+        val classRef = project.path("mission_class").asText("")
+        fun forClass(o: StoredObject): Boolean {
+            val ref = o.doc.path("mission_class_ref").asText("")
+            return ref.isBlank() || classRef.isBlank() || ref == classRef
+        }
+        val lines = mutableListOf<String>()
+        var facts = 0
+        var silent = 0
+        // 1) нормативы полки — своими пунктами, а не наименованием
+        lib.filter { it.type == "normative_document" }.filter(::forClass).sortedBy { it.id }.forEach { nr ->
+            val designation = listOf("number", "name")
+                .firstNotNullOfOrNull { nr.doc.path(it).asText("").ifBlank { null } } ?: nr.id
+            val clauses = nr.doc.path("clauses")
+            if (clauses.isEmpty) {
+                silent++
+                return@forEach
+            }
+            clauses.forEach { c ->
+                val clause = c.path("clause").asText("")
+                val text = c.path("text").asText("").trim()
+                if (text.isNotBlank()) {
+                    facts++
+                    lines += "${nr.id} «$designation», $clause: ${text.take(400)}"
+                }
+            }
+        }
+        // 2) документы полки — выбранными блоками канона (бюджет токенов)
+        lib.filter { it.type == "source_document" }
+            .filter { it.doc.path("prompt").path("included").asBoolean(false) }
+            .sortedBy { it.id }
+            .forEach { sd ->
+                val name = sd.doc.path("name").asText(sd.id)
+                val canon = DocumentParseStore.canonOf(filesDir(), sd.id)
+                if (canon == null) {
+                    lines += "${sd.id} «$name»: разбора нет — документ полки в промпт не идёт"
+                    return@forEach
+                }
+                val wanted = sd.doc.path("prompt").path("blocks").map { it.asText() }.toSet()
+                if (wanted.isEmpty()) {
+                    // включён, но блоки не выбраны: отдаём оглавление —
+                    // промпт знает, что можно попросить, токены не жжём
+                    val map = DocumentParseStore.mapOf(filesDir(), sd.id)
+                    val titles = (map?.path("structure")?.toList() ?: emptyList())
+                        .filter { it.path("type").asText() == "section" }
+                        .joinToString("; ") { it.path("anchor").asText() + " " + it.path("title").asText() }
+                    lines += "${sd.id} «$name»: блоки не выбраны — оглавление: ${titles.take(300)}"
+                    return@forEach
+                }
+                val texts = blockTexts(canon, wanted)
+                texts.forEach { (anchor, text) ->
+                    facts++
+                    lines += "${sd.id} «$name» [$anchor]: ${text.take(500)}"
+                }
+            }
+        val note = when {
+            facts == 0 && silent > 0 ->
+                "нормативы полки ($silent) знают только своё наименование — " +
+                    "разберите их документы или впишите пункты, иначе промпт получит имена вместо норм"
+            facts == 0 -> "полка не отдала фактов: ни пунктов нормативов, ни блоков документов в промпте"
+            silent > 0 -> "нормативов без пунктов на полке: $silent — их знание в промпт не попало"
+            else -> null
+        }
+        return StatementSource("library_facts", "Знание полки (нормы и блоки)", facts, lines, note = note)
     }
 
     /** Взятые наборы Ш2 — рамкой: «опираться, не дублировать». */

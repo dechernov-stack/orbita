@@ -14,6 +14,7 @@
       "statement_sources": [
         "intent",
         "class_library",
+        "library_facts",
         "materials",
         "taken",
         "accepted",
@@ -33,6 +34,7 @@
       "statement_sources": [
         "intent",
         "class_library",
+        "library_facts",
         "materials",
         "taken",
         "accepted",
@@ -47,6 +49,15 @@
       "context_types": [
         "need",
         "service"
+      ],
+      "statement_sources": [
+        "intent",
+        "class_library",
+        "library_facts",
+        "materials",
+        "taken",
+        "accepted",
+        "prohibitions"
       ]
     },
     {
@@ -57,6 +68,15 @@
       "context_types": [
         "service",
         "requirement"
+      ],
+      "statement_sources": [
+        "intent",
+        "class_library",
+        "library_facts",
+        "materials",
+        "taken",
+        "accepted",
+        "prohibitions"
       ]
     },
     {
@@ -202,6 +222,33 @@
         "Учреждаемые стороны называй как учреждаемые, а не как существующие.",
         "Числа — с единицами справочника; предложения автора ([П]) не выдавай за свершившийся факт.",
         "Ответ — только JSON по схеме пакета mission_intent_from_docs."
+      ]
+    },
+    {
+      "id": "normative_to_candidates",
+      "input": "нормативы полки: их пункты и блоки канонов приложенных документов",
+      "output": "кандидаты требований и ограничений с основанием-пунктом",
+      "target_schema": "core/normative-candidates",
+      "context_types": [
+        "requirement",
+        "service"
+      ],
+      "statement_sources": [
+        "intent",
+        "class_library",
+        "library_facts",
+        "taken",
+        "prohibitions"
+      ],
+      "rules_version": 1,
+      "rules": [
+        "Кандидат порождается ТОЛЬКО из пункта норматива или блока канона, приведённых во входе операции. Своих знаний о нормативах не привноси: реквизиты и числа по памяти не восстанавливай.",
+        "Основание обязательно: basis.normative_ref — код норматива из входа, basis.clause — реквизит пункта, как он там записан, basis.anchors — якоря блоков канона, если канон приведён. Кандидат без основания не выдаётся вовсе.",
+        "Класс кандидата: requirement — «система должна …» (проверяемое утверждение о системе); constraint — запрет или сужение пространства решений («только российские РН»). Сомневаешься — не выдавай.",
+        "Величина нормы — парой measure {value, unit}, единица из справочника единиц. Число без единицы — брак. «Около», «не менее примерно» без границы — брак.",
+        "Не дублируй: если во входе уже есть требование или ограничение того же смысла, кандидат не выдаётся.",
+        "Текст нормы своими словами (basis.quote — место нормы кратко); полный текст стандарта не воспроизводится.",
+        "Ответ — только JSON по схеме вида, без преамбулы. Не ложится в схему — верни {\"error\": \"…\", \"needs\": [...]}."
       ]
     }
   ],

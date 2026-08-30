@@ -40,6 +40,9 @@ import type {
   DocumentHarvestView,
   DataRequestsView,
   MissionIntentDraftView,
+  NormativeReadiness,
+  NormativeCandidatesPacket,
+  KnowledgeExportView,
 } from './types'
 
 import { withProject } from './project'
@@ -653,4 +656,31 @@ export const api = {
     llm: string
     by: string
   }) => post<Record<string, unknown>>('/ai/accept', request),
+
+  /** Ф-10: состав выгрузки знаний и её отпечаток — до скачивания видно, что уйдёт. */
+  knowledgeExport: (parts?: string[]) =>
+    get<KnowledgeExportView>(
+      `/views/knowledge-export${parts && parts.length ? `?parts=${encodeURIComponent(parts.join(','))}` : ''}`,
+    ),
+  /** Ф-10: ссылка на сам пакет — архив MD-файлов с отпечатком в шапке каждого. */
+  knowledgeBundleUrl: (parts: string[]) =>
+    withProject(`/api/views/knowledge-export/bundle.zip?parts=${encodeURIComponent(parts.join(','))}`),
+
+  /** Ф-09: что полка знает — нормативы своими пунктами и разобранными документами. */
+  normativeReadiness: () => get<NormativeReadiness>('/views/normative-candidates/readiness'),
+  /** Ф-09: промпт «норматив → кандидаты» — собирает служба, не клиент. */
+  normativePrompt: () =>
+    get<{ profile: string; kind: string; text: string }>('/views/normative-candidates/prompt'),
+  /** Ф-09: ворота пакета кандидатов — до модели дело ещё не дошло. */
+  normativeDraft: (raw: string) =>
+    post<{ kind: string; items: number; packet: NormativeCandidatesPacket; knowledge_warning?: string }>(
+      '/views/normative-candidates/draft', { raw },
+    ),
+  /** Ф-09: акцепт выбранных кандидатов — требования объектами, ограничения Р-кодами. */
+  normativeAccept: (packet: NormativeCandidatesPacket, selected: number[], author: string) =>
+    post<{
+      accepted: number
+      requirements: Array<{ id: string; statement: string; basis: string }>
+      constraints: Array<{ code: string; text: string; source: string }>
+    }>('/views/normative-candidates/accept', { packet, selected, author }),
 }

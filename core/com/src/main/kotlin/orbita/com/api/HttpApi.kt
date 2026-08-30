@@ -1719,10 +1719,12 @@ class HttpApi(private val boundary: Boundary) {
                 )
                 // Ф-08.1: умолчание «в промпт» — свойство ТИПА документа
                 val promptDefault = promptDefaultOf(kind)
-                val includedBlocks =
-                    if (promptDefault == "on" && area != "library") {
-                        includeDocumentInPrompt(stored.id, fileProject, fileAuthor)
-                    } else 0
+                val includedBlocks = when {
+                    promptDefault != "on" -> 0
+                    // Ф-09: на полке паспорта нет — умолчание ложится на карточку
+                    area == "library" -> includeShelfDocumentInPrompt(stored.id, stored.version, fileAuthor)
+                    else -> includeDocumentInPrompt(stored.id, fileProject, fileAuthor)
+                }
                 respond(
                     ex, 201,
                     mapper.createObjectNode()
@@ -3393,6 +3395,155 @@ class HttpApi(private val boundary: Boundary) {
                 )
             }
 
+            // Ф-10: состав выгрузки знаний и её отпечаток — до скачивания
+            // видно, что уйдёт во внешний контур и сколько это весит.
+            method == "GET" && path == "/views/knowledge-export" -> {
+                val ctx = requireProject(project)
+                val asked = query(ex)["parts"]?.split(",")?.map { it.trim() }?.filter { it.isNotBlank() }?.toSet()
+                    ?: KnowledgeExport.PARTS.map { it.key }.toSet()
+                val bundle = KnowledgeExport.bundle(boundary, filesDir(), ctx, asked)
+                val out = mapper.createObjectNode()
+                out.put("fingerprint", bundle.fingerprint)
+                val parts = out.putArray("parts")
+                KnowledgeExport.PARTS.forEach { p ->
+                    val body = bundle.files[p.file]
+                    val size = body?.toByteArray()?.size ?: 0
+                    parts.addObject()
+                        .put("key", p.key)
+                        .put("file", p.file)
+                        .put("title", p.title)
+                        .put("chosen", p.key in asked)
+                        .put("size", size)
+                        // величину для показа считает сервер: в клиенте расчётов нет
+                        .put("size_kb", if (size == 0) 0 else maxOf(1, Math.round(size / 1024.0).toInt()))
+                }
+                respond(ex, 200, out)
+            }
+
+            // Ф-10: сам пакет — архивом MD-файлов. Каноны уже в MD, поэтому
+            // выгрузка их переносит, а не пересобирает.
+            method == "GET" && path == "/views/knowledge-export/bundle.zip" -> {
+                val ctx = requireProject(project)
+                val asked = query(ex)["parts"]?.split(",")?.map { it.trim() }?.filter { it.isNotBlank() }?.toSet()
+                    ?: KnowledgeExport.PARTS.map { it.key }.toSet()
+                val bundle = KnowledgeExport.bundle(boundary, filesDir(), ctx, asked)
+                val buffer = java.io.ByteArrayOutputStream()
+                java.util.zip.ZipOutputStream(buffer).use { zip ->
+                    bundle.files.forEach { (name, body) ->
+                        zip.putNextEntry(java.util.zip.ZipEntry(name))
+                        zip.write(body.toByteArray())
+                        zip.closeEntry()
+                    }
+                }
+                respondBinary(
+                    ex, buffer.toByteArray(), "application/zip",
+                    "знания-$ctx-${bundle.fingerprint}.zip",
+                )
+            }
+
+            // Ф-09: есть ли на полке нормативы, из которых можно порождать
+            // кандидатов, — и какие из них знают только своё имя.
+            method == "GET" && path == "/views/normative-candidates/readiness" ->
+                respond(ex, 200, NormativeCandidates.readiness(boundary, filesDir(), requireProject(project)))
+
+            // Ф-09: промпт «норматив → кандидаты» собирает служба — пунктами
+            // НПА и блоками канонов, не перечнем кодов.
+            method == "GET" && path == "/views/normative-candidates/prompt" -> {
+                val ctx = requireProject(project)
+                val profileId = query(ex)["profile"] ?: boundary.objects.listCurrent(ctx)
+                    .filter { it.type == "ai_profile" && it.status != Lifecycle.Cancelled }
+                    .sortedBy { it.id }
+                    .firstOrNull { p -> p.doc.path("kinds").any { it.asText() == NormativeCandidates.KIND } }?.id
+                    ?: throw IllegalArgumentException(
+                        "нет профиля службы с видом «${NormativeCandidates.KIND}» — добавьте вид в профиль",
+                    )
+                val statement = NormativeCandidates.statementOf(boundary, filesDir(), ctx)
+                val (profile, blocks) = boundary.ai.composeBlocks(NormativeCandidates.KIND, profileId, ctx, statement)
+                val out = mapper.createObjectNode()
+                out.put("profile", profile.id)
+                out.put("kind", NormativeCandidates.KIND)
+                out.put("text", blocks.joinToString("\n\n") { it.text })
+                respond(ex, 200, out)
+            }
+
+            // Ф-09: предложение пакетом — ворота нормативной схемой, показ
+            // кандидатов инженеру. В модель здесь ещё ничего не ложится.
+            method == "POST" && path == "/views/normative-candidates/draft" -> {
+                val req = mapper.readTree(body(ex))
+                val raw = req.path("raw").asText("")
+                val packet = if (raw.isNotBlank()) mapper.readTree(raw) else req.path("packet")
+                require(packet.isObject) { "нет пакета кандидатов: поле 'raw' либо 'packet'" }
+                val problems = NormativeCandidates.problems(boundary, packet)
+                require(problems.isEmpty()) { "пакет не по схеме кандидатов: ${problems.take(3)}" }
+                val out = mapper.createObjectNode()
+                out.put("kind", NormativeCandidates.KIND)
+                out.put("items", packet.path("items").size())
+                // Ф-10: пакет из внешнего контура сверяется с отпечатком знаний —
+                // предупреждением, не отказом: знания стенда меняются чаще, чем
+                // идёт диалог, и рабочий ответ терять нельзя
+                val said = packet.path("knowledge_fingerprint").asText("")
+                val current = if (said.isBlank()) "" else KnowledgeExport
+                    .bundle(boundary, filesDir(), requireProject(project), KnowledgeExport.PARTS.map { it.key }.toSet())
+                    .fingerprint
+                KnowledgeExport.staleWarning(packet, current)?.let { out.put("knowledge_warning", it) }
+                out.set<JsonNode>("packet", packet)
+                respond(ex, 200, out)
+            }
+
+            // Ф-09: акцепт кандидатов — требования объектами с трассой на
+            // норматив, ограничения Р-кодами в паспорт. Выбор — инженера.
+            method == "POST" && path == "/views/normative-candidates/accept" -> {
+                val req = mapper.readTree(body(ex))
+                val by = author(req)
+                val ctx = requireProject(project)
+                val packet = req.path("packet").takeIf { it.isObject }
+                    ?: throw IllegalArgumentException("нет пакета кандидатов: поле 'packet'")
+                val problems = NormativeCandidates.problems(boundary, packet)
+                require(problems.isEmpty()) { "пакет не по схеме кандидатов: ${problems.take(3)}" }
+                val selected = req.path("selected").map { it.asInt() }.toSet()
+                val items = packet.path("items").toList()
+                require(selected.isNotEmpty()) { "не выбрано ни одного кандидата" }
+                val created = mapper.createArrayNode()
+                val addedConstraints = mapper.createArrayNode()
+                // ограничения ложатся одной правкой паспорта: коды Р-серии
+                // выдаются подряд, а не гонкой отдельных запросов
+                var passport = boundary.objects.current(ctx)
+                    ?: throw NoSuchElementException("project '$ctx' not found")
+                val constraints = (passport.doc.path("constraints").deepCopy<JsonNode>() as? ArrayNode)
+                    ?: mapper.createArrayNode()
+                items.forEachIndexed { i, item ->
+                    if (i !in selected) return@forEachIndexed
+                    when (item.path("class").asText()) {
+                        "requirement" -> {
+                            val doc = NormativeCandidates.requirementOf(item, owner = by)
+                            val stored = boundary.editing.create(CoreType.Requirement, doc, by, ctx)
+                            created.addObject()
+                                .put("id", stored.id)
+                                .put("statement", doc.path("statement").asText(""))
+                                .put("basis", item.path("basis").path("normative_ref").asText(""))
+                        }
+                        "constraint" -> {
+                            val c = NormativeCandidates.constraintOf(item, constraints)
+                            constraints.add(c)
+                            addedConstraints.add(c)
+                        }
+                    }
+                }
+                if (!addedConstraints.isEmpty) {
+                    val changes = mapper.createObjectNode()
+                    changes.set<ArrayNode>("constraints", constraints)
+                    passport = boundary.editing.update(
+                        CoreType.Project, ctx, changes, passport.version, by,
+                        changeRef = "Ф-09: ограничения-кандидаты из нормативов полки приняты инженером",
+                    )
+                }
+                val out = mapper.createObjectNode()
+                out.put("accepted", selected.size)
+                out.set<ArrayNode>("requirements", created)
+                out.set<ArrayNode>("constraints", addedConstraints)
+                respond(ex, 200, out)
+            }
+
             // Д3: поиск по материалам проекта — по канонам разбора, с
             // координатой блока: найденное можно взять в промпт куском.
             method == "GET" && path == "/views/document-search" -> {
@@ -3729,6 +3880,29 @@ class HttpApi(private val boundary: Boundary) {
         boundary.editing.update(
             CoreType.Project, passport.id, changes, passport.version, author,
             changeRef = "Ф-08.1: постановочный документ $sdId включён в промпт разделами",
+        )
+        return anchors.size
+    }
+
+    /**
+     * Ф-09: тот же закон умолчания — но для документа ПОЛКИ. Паспорта у
+     * библиотечной области нет, поэтому состав промпта хранится на самой
+     * карточке: полка общая, и знание из неё идёт всем проектам класса.
+     */
+    private fun includeShelfDocumentInPrompt(sdId: String, version: String, author: String): Int {
+        val map = DocumentParseStore.mapOf(filesDir(), sdId) ?: return 0
+        val anchors = map.path("structure")
+            .map { it.path("anchor").asText() }
+            .filter { it.isNotBlank() }
+        if (anchors.isEmpty()) return 0
+        val prompt = mapper.createObjectNode().put("included", true)
+        val arr = prompt.putArray("blocks")
+        anchors.forEach { arr.add(it) }
+        val changes = mapper.createObjectNode()
+        changes.set<ObjectNode>("prompt", prompt)
+        boundary.editing.update(
+            CoreType.SourceDocument, sdId, changes, version, author,
+            changeRef = "Ф-09: документ полки $sdId включён в промпт блоками — знание, а не имя",
         )
         return anchors.size
     }

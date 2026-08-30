@@ -17,6 +17,7 @@ import { NewProject } from './screens/NewProject'
 import { SeedDemand } from './screens/SeedDemand'
 import { Shelves } from './screens/Shelves'
 import { References } from './screens/References'
+import { LibraryKnowledge } from './screens/LibraryKnowledge'
 import { DocParse } from './screens/DocParse'
 import { MyTasks, MyTasksBadge } from './screens/MyTasks'
 import { StartPath } from './screens/StartPath'
@@ -233,6 +234,8 @@ export function App() {
       case 'shelves': return <Shelves key={screen} />
       case 'references':
         return <ScreenFrame title="Справочники"><References /></ScreenFrame>
+      case 'libknowledge':
+        return <ScreenFrame title="Знание полки"><LibraryKnowledge /></ScreenFrame>
       case 'docparse':
         return <ScreenFrame title="Разбор документов"><DocParse onGo={go} /></ScreenFrame>
       case 'sourcedocs':

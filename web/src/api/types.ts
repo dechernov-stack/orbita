@@ -875,3 +875,50 @@ export interface MissionIntentDraftView {
     horizon: { text: string; anchors?: string[] }
   }
 }
+
+/** Ф-09: что нормативы полки знают — и потому могут порождать кандидатов. */
+export interface NormativeReadiness {
+  normatives: number
+  speaking: number
+  can_compose: boolean
+  why: string
+  sources: Array<{
+    id: string
+    name: string
+    clauses: number
+    document?: string | null
+    parsed: boolean
+    speaks: boolean
+  }>
+  documents: Array<{
+    id: string
+    name: string
+    kind: string
+    parsed: boolean
+    harvested: boolean
+    in_prompt: boolean
+    blocks: number
+  }>
+}
+
+/** Ф-09: пакет кандидатов из нормативов — у каждого обязательное основание. */
+export interface NormativeCandidatesPacket {
+  kind: string
+  rules_version?: number
+  knowledge_fingerprint?: string
+  items: Array<{
+    class: 'requirement' | 'constraint'
+    statement: string
+    category?: string
+    applies_to?: string
+    note?: string
+    measure?: { value: number; unit: string }
+    basis: { normative_ref: string; clause?: string; anchors?: string[]; quote?: string }
+  }>
+}
+
+/** Ф-10: состав выгрузки знаний и её отпечаток. */
+export interface KnowledgeExportView {
+  fingerprint: string
+  parts: Array<{ key: string; file: string; title: string; chosen: boolean; size: number; size_kb: number }>
+}

@@ -28,6 +28,7 @@ export const SECTIONS: NavSection[] = [
       { key: 'sourcedocs', title: 'Материалы проекта' },
       { key: 'docparse', title: 'Разбор документов' },
       { key: 'shelves', title: 'Полки' },
+      { key: 'libknowledge', title: 'Знание полки' },
       { key: 'references', title: 'Справочники' },
     ],
   },
