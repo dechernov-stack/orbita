@@ -101,6 +101,20 @@ function sumCounts(applied: Record<string, { by_type: Record<string, number> }>)
   return total
 }
 
+/** Тексты замысла без служебных полей: sources — якоря, не строка. */
+export function textOfIntent(mi: unknown): {
+  for_whom?: string; what?: string; where?: string; horizon?: string; text?: string
+} {
+  if (!mi || typeof mi !== 'object') return {}
+  const src = mi as Record<string, unknown>
+  const out: Record<string, string> = {}
+  for (const field of ['for_whom', 'what', 'where', 'horizon', 'text']) {
+    const v = src[field]
+    if (typeof v === 'string' && v.trim() !== '') out[field] = v
+  }
+  return out
+}
+
 export function StartPath({ project, onGo, onDone }: {
   project: string
   onGo: (screen: string) => void
@@ -172,7 +186,10 @@ export function StartPath({ project, onGo, onDone }: {
         }
         setMissionClass(doc.mission_class ?? '')
         setConstraints(doc.constraints ?? [])
-        setIntent(doc.mission_intent ?? {})
+        // Ф-07: у принятого замысла рядом с текстами лежат sources —
+        // якоря происхождения полей. Это НЕ строка: в состояние формы идут
+        // только тексты, иначе обход полей спотыкается о объект.
+        setIntent(textOfIntent(doc.mission_intent))
         const sp = doc.start_path
         // шаг за пределами 1..4 отсекает схема паспорта — доверяем ей
         if (sp && sp.status === 'in_progress') setStep(sp.step)
@@ -344,12 +361,19 @@ export function StartPath({ project, onGo, onDone }: {
     if (doc.mission_class === undefined) delete doc.mission_class
     if (cons.length > 0) doc.constraints = cons
     else delete doc.constraints
-    // Ф-05: замысел миссии — поле паспорта; пустые поля не хранятся
-    const intentDoc = Object.fromEntries(
-      Object.entries(mi).filter(([, v]) => (v ?? '').trim() !== ''),
+    // Ф-05: замысел миссии — поле паспорта; пустые поля не хранятся.
+    // Ф-07: якоря происхождения (sources) — не текст и правке рукой не
+    // подлежат, но и теряться не должны: правка формулировки не стирает
+    // след того, из каких блоков документа поле выведено.
+    const intentDoc: Record<string, unknown> = Object.fromEntries(
+      Object.entries(mi).filter(([, v]) => typeof v === 'string' && v.trim() !== ''),
     )
-    if (Object.keys(intentDoc).length > 0) doc.mission_intent = intentDoc
-    else delete doc.mission_intent
+    const keptSources = (fresh.doc as { mission_intent?: { sources?: unknown } })
+      ?.mission_intent?.sources
+    if (Object.keys(intentDoc).length > 0) {
+      if (keptSources) intentDoc.sources = keptSources
+      doc.mission_intent = intentDoc
+    } else delete doc.mission_intent
     doc.start_path = {
       ...path,
       ...(promptDocs.size > 0 ? { source_refs: [...promptDocs] } : {}),
@@ -932,7 +956,7 @@ export function StartPath({ project, onGo, onDone }: {
                 <MissionIntent onNeedMaterials={() => toStep(2)} onNeedParse={() => onGo('docparse')} onAccepted={() => {
                   edit.object(project)
                     .then((o) => setIntent(
-                      (o.doc as { mission_intent?: typeof intent }).mission_intent ?? {},
+                      textOfIntent((o.doc as { mission_intent?: Record<string, unknown> }).mission_intent),
                     ))
                     .catch(() => undefined)
                 }} />
