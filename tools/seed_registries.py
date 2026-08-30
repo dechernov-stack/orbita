@@ -1,14 +1,24 @@
 #!/usr/bin/env python3
-"""Справочники системы на полку LIB: единицы (UR, СПРАВОЧНИК-ЕДИНИЦ.md) и
-глоссарий (GL, Ф-03 — смысловые подсказки данными, не хардкодом клиента).
+"""Справочники и шаблоны системы на полку LIB: единицы (UR), глоссарий (GL),
+анкеты характеристик (PF, Ф-06), шаблон записки миссии (DT, пачка-2).
 
 Запуск: python3 tools/seed_registries.py [http://localhost:8080/api]
-Идемпотентно: непустой справочник на полке повторно не заливается — их
-правка идёт «Загрузить пачкой» новыми версиями, не пересозданием.
+
+Идемпотентно: полка, совпадающая с сидом, не трогается; полка старее сида
+обновляется НОВОЙ ВЕРСИЕЙ объекта, а не пересозданием — ссылки на неё
+(границы пачек, разбор документов) обязаны правку пережить.
+
+Учётки: когда они включены, сервер требует сессию, и сид без входа получает
+401. Логин и пароль берутся из ORBITA_LOGIN / ORBITA_PASSWORD, а если их нет
+и запуск идёт из терминала — спрашиваются здесь же. Пароль в командную
+строку не передаётся: он попал бы в историю оболочки и в список процессов.
 """
+import getpass
 import json
+import os
 import pathlib
 import sys
+import urllib.error
 import urllib.request
 
 BASE = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:8080/api"
@@ -26,6 +36,85 @@ SEEDS = [
     ("document_template", None, "10-шаблон-записки.json"),
 ]
 
+TOKEN: str | None = None
+
+
+def request(method: str, path: str, body=None):
+    """Один запрос с текущей сессией; 401 отдаётся наверх для входа."""
+    headers = {"Content-Type": "application/json; charset=utf-8"}
+    if TOKEN:
+        headers["Authorization"] = f"Bearer {TOKEN}"
+    req = urllib.request.Request(
+        BASE + path,
+        data=json.dumps(body, ensure_ascii=False).encode() if body is not None else None,
+        headers=headers,
+        method=method,
+    )
+    with urllib.request.urlopen(req) as r:
+        return json.loads(r.read().decode())
+
+
+def login() -> str:
+    """Вход по учётке: сервер принимает тот же токен заголовком Bearer."""
+    user = os.environ.get("ORBITA_LOGIN")
+    password = os.environ.get("ORBITA_PASSWORD")
+    if not user or not password:
+        if not sys.stdin.isatty():
+            sys.exit(
+                "нужен вход: учётки включены. Задайте ORBITA_LOGIN и ORBITA_PASSWORD "
+                "либо запустите сид из терминала — логин спросится здесь"
+            )
+        print("учётки включены — нужен вход")
+        user = user or input("логин: ").strip()
+        password = password or getpass.getpass("пароль: ")
+    req = urllib.request.Request(
+        BASE + "/auth/login",
+        data=json.dumps({"login": user, "password": password}, ensure_ascii=False).encode(),
+        headers={"Content-Type": "application/json; charset=utf-8"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req) as r:
+            # сессия приходит кукой; сервер принимает тот же токен заголовком
+            # Authorization: Bearer — им и ходим дальше
+            cookies = r.headers.get_all("Set-Cookie") or []
+            body = json.loads(r.read().decode())
+    except urllib.error.HTTPError as e:
+        if e.code == 401:
+            sys.exit("вход отклонён: неверный логин или пароль")
+        raise
+    token = None
+    for c in cookies:
+        for part in c.split(";"):
+            name, _, value = part.strip().partition("=")
+            if name == "orbita_session" and value:
+                token = value
+    if not token:
+        sys.exit(f"вход прошёл, но сессия не пришла: {body}")
+    print(f"вошли как {body.get('display_name') or user}")
+    return token
+
+
+def call(method: str, path: str, body=None):
+    """Запрос с одной попыткой входа: сид не должен падать об учётки."""
+    global TOKEN
+    try:
+        return request(method, path, body)
+    except urllib.error.HTTPError as e:
+        if e.code == 403:
+            # вход прошёл, но правка запрещена ролью: полки правит инженерный
+            # контур (specialist · lead_se · lead), и это решает сервер
+            sys.exit(
+                f"вход есть, но роли не хватает: {method} {path} → 403. "
+                "Полки правят роли specialist, lead_se или lead — "
+                "назначьте роль учётке сида в проекте либо запустите сид "
+                "под учёткой руководителя"
+            )
+        if e.code != 401 or TOKEN:
+            raise
+        TOKEN = login()
+        return request(method, path, body)
+
 
 def present(view, packet):
     """Что уже лежит на полке: списком ручки либо прямым чтением объектов."""
@@ -41,21 +130,11 @@ def present(view, packet):
     return rows
 
 
-def call(method: str, path: str, body=None):
-    req = urllib.request.Request(
-        BASE + path,
-        data=json.dumps(body, ensure_ascii=False).encode() if body is not None else None,
-        headers={"Content-Type": "application/json; charset=utf-8"},
-        method=method,
-    )
-    with urllib.request.urlopen(req) as r:
-        return json.loads(r.read().decode())
-
-
 def obsolete(type_: str, rows: list) -> bool:
     """Полка старее сида по СОСТАВУ полей, а не по версии: поля добавляются
     пачками (написания единиц — Д1, умолчание промпта — Ф-08.1, точки
-    зрелости — Ф-06 п.5), и объект надо обновить, а не пересоздать."""
+    зрелости — Ф-06 п.5, метки источников в шаблоне — правка пачки-2), и
+    объект надо обновить, а не пересоздать."""
     if type_ == "unit_registry":
         return not any("spellings" in d for d in rows)
     if type_ == "glossary":
@@ -64,6 +143,16 @@ def obsolete(type_: str, rows: list) -> bool:
         )
     if type_ == "property_form":
         return not any(f.get("required_by") for d in rows for f in d.get("fields", []))
+    if type_ == "document_template":
+        # семантика меток источников выправлена дословно: полка со старой
+        # расшифровкой («вывод автора») обязана обновиться
+        return any(
+            "вывод автора" in s.get("expects", "")
+            for d in rows for s in d.get("sections", [])
+        ) or not any(
+            "внешний источник, проверенный" in s.get("expects", "")
+            for d in rows for s in d.get("sections", [])
+        )
     return False
 
 
@@ -74,8 +163,7 @@ for type_, view, fname in SEEDS:
         print(f"{type_}: уже на полке — пропуск")
         continue
     if rows:
-        # правка справочника — новой версией объекта, не пересозданием:
-        # ссылки на него (границы пачек, разбор Д1) обязаны пережить правку
+        # правка полки — новой версией объекта, не пересозданием
         for obj in packet["objects"]:
             cur = call("GET", f"/objects/{obj['id']}")
             changes = {k: v for k, v in obj.items() if k not in ("id", "lifecycle")}
