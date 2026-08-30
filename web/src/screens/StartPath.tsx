@@ -896,8 +896,18 @@ export function StartPath({ project, onGo, onDone }: {
                   ['horizon', 'Горизонт', 'к 2033 году, около 150 аппаратов'],
                 ] as const).map(([field, label, hint]) => (
                   <div key={field} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                    <span className="secondary" style={{ minWidth: 108 }}>{label}</span>
-                    <input className="np-name" style={{ flex: 1 }} placeholder={hint}
+                    <span className="secondary" style={{ minWidth: 108, alignSelf: 'flex-start', paddingTop: 6 }}>
+                      {label}
+                    </span>
+                    {/* Замысел, собранный из документов, — связный абзац на
+                        полтысячи знаков: однострочное поле его прячет. Поле
+                        растёт по содержимому, но остаётся полем ввода. */}
+                    <textarea className="np-name" placeholder={hint}
+                      style={{
+                        flex: 1, minHeight: 34, maxHeight: 220, resize: 'vertical',
+                        lineHeight: 1.35, overflowY: 'auto',
+                      }}
+                      rows={(intent[field] ?? '').length > 120 ? 5 : 1}
                       value={intent[field] ?? ''}
                       onChange={(e) => setIntent({ ...intent, [field]: e.target.value })}
                       onBlur={() => saveNow({ intent })} />
@@ -929,9 +939,19 @@ export function StartPath({ project, onGo, onDone }: {
               </div>
             </div>
             <div className="np-actions">
-              <button className="np-btn" onClick={() => toStep(2)}>Назад — к материалам</button>
-              <button title="идёт запись в паспорт — дождитесь её окончания"
-                className="np-btn np-pri" disabled={busy} onClick={assembleAndGo}>
+              <button className="np-btn" onClick={() => toStep(2)}
+                title={author
+                  ? 'вернуться к материалам — замысел сохранён в паспорте'
+                  : 'представьтесь в шапке: переход пишет шаг в паспорт, а правка без автора не принимается'}
+                disabled={!author}>
+                Назад — к материалам
+              </button>
+              <button
+                title={!author
+                  ? 'представьтесь в шапке: сборка профиля пишется в паспорт на автора'
+                  : busy ? 'идёт запись в паспорт — дождитесь её окончания'
+                    : 'собрать профиль службы из ограничений и перейти к запуску'}
+                className="np-btn np-pri" disabled={busy || !author} onClick={assembleAndGo}>
                 Далее — запуск ИИ
               </button>
             </div>
@@ -1022,7 +1042,7 @@ export function StartPath({ project, onGo, onDone }: {
           </>
         )}
 
-        {step !== 3 && failure && <div className="np-err"><b>Не выполнено:</b> {failure}</div>}
+        {step !== 4 && failure && <div className="np-err"><b>Не выполнено:</b> {failure}</div>}
         {step === 4 && !profile && <div className="empty">Сборка профиля…</div>}
       </div>
     </div>
