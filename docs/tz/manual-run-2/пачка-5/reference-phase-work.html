@@ -1,0 +1,266 @@
+<!DOCTYPE html><html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Орбита · эталон: Работа фазы · круг 1</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--surface:#f8f9fa;--c-lowest:#fff;--c-low:#f3f4f5;--c:#edeeef;--on:#191c1d;--on-var:#44474c;
+--outline:#74777d;--hair:#c4c6cc;--rail:#0f1c2c;--on-rail:#8b97a8;--accent:#115cb9;--accent-fix:#d7e2ff;
+--error:#ba1a1a;--error-c:#ffdad6;--on-error-c:#93000a;--ok:#1a7f37;--ok-c:#e6f2e9;
+--font:Inter,-apple-system,'Segoe UI',sans-serif;--mono:'JetBrains Mono',Menlo,monospace}
+*{box-sizing:border-box;margin:0}
+body{font:400 13px/20px var(--font);color:var(--on);background:#dfe2e6;padding:28px 0}
+.stand{max-width:1240px;margin:0 auto}
+.stand h1{font-size:15px;font-weight:600;padding:0 4px 6px}
+.stand .note{font-size:12px;color:var(--on-var);padding:0 4px 18px;max-width:930px}
+.case{margin:0 0 30px}
+.case>.tag{display:inline-block;font:600 11px/16px var(--font);text-transform:uppercase;letter-spacing:.07em;
+color:var(--on-var);background:#eef0f2;border:1px solid var(--hair);border-bottom:none;border-radius:6px 6px 0 0;padding:4px 10px}
+.frame{background:var(--surface);border:1px solid var(--hair);border-radius:0 8px 8px 8px;overflow:hidden;
+display:grid;grid-template-rows:48px 1fr;grid-template-columns:68px 1fr;grid-template-areas:'hdr hdr' 'rail main';min-height:460px}
+.hdr{grid-area:hdr;display:flex;align-items:center;gap:12px;padding:0 16px;background:var(--c-lowest);border-bottom:1px solid var(--hair)}
+.brand{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;letter-spacing:-.02em}
+.brand .o{width:16px;height:16px;border:2px solid var(--on);border-radius:50%}
+.proj b{font-weight:600}
+.chip{font-size:12px;line-height:18px;padding:1px 8px;border-radius:9px;background:var(--c);color:var(--on-var)}
+.nextstep{margin-left:auto;font-size:12px;color:var(--on-var)}
+.nextstep a{color:var(--accent);text-decoration:none;font-weight:600}
+.rail{grid-area:rail;background:var(--rail);display:flex;flex-direction:column;align-items:center;padding:10px 0;gap:2px}
+.rico{width:58px;padding:7px 0 6px;border-radius:8px;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--on-rail)}
+.rico.on{background:rgba(255,255,255,.14);color:#fff}
+.rico svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round}
+.rlab{font:500 9px/10px var(--font)}
+.main{grid-area:main;background:var(--c-lowest);padding:14px 20px;overflow:auto}
+.main h1{font-size:14px;font-weight:600;margin-bottom:4px}
+.sub{font-size:12px;color:var(--on-var);margin-bottom:12px}
+/* группы и строки задач */
+.wg{font:600 11px/16px var(--font);text-transform:uppercase;letter-spacing:.06em;color:var(--on-var);
+margin:14px 0 6px;display:flex;gap:8px;align-items:center}
+.wg .n{font-family:var(--mono);font-size:11px}
+.t{display:flex;gap:12px;align-items:center;padding:9px 12px;border:1px solid var(--c);border-radius:8px;
+margin:0 0 6px;cursor:pointer;max-width:960px}
+.t:hover{background:var(--c-low)}
+.t .st{width:9px;height:9px;border-radius:50%;flex:none}
+.st.run{background:var(--accent)} .st.avail{background:var(--ok)} .st.wait{background:var(--outline)}
+.st.done{background:var(--ok-c);border:2px solid var(--ok)}
+.t .nm{flex:1;min-width:0}
+.t .nm b{font:600 13px/18px var(--font)}
+.t .nm .d{font-size:11.5px;color:var(--on-var)}
+.t .meta{font-size:11.5px;color:var(--on-var);white-space:nowrap;text-align:right}
+.t .meta .mono{font-family:var(--mono)}
+.t .gap{font-family:var(--mono);font-size:11.5px;color:var(--on-error-c);background:var(--error-c);border-radius:8px;padding:0 7px;white-space:nowrap}
+.t .who{display:flex;gap:4px}
+.av{width:20px;height:20px;border-radius:50%;background:var(--accent-fix);color:var(--accent);
+font:600 9.5px/20px var(--font);text-align:center}
+.t.dim{opacity:.72}
+.waitwhy{font-size:11.5px;color:var(--outline);white-space:nowrap}
+.waitwhy b{color:var(--on-var);font-weight:500}
+/* карточка задачи */
+.back{font-size:12px;color:var(--accent);text-decoration:none;display:inline-block;margin-bottom:8px}
+.tcard h2{font:600 15px/21px var(--font)}
+.why{font-size:12.5px;line-height:19px;color:var(--on-var);max-width:820px;margin:4px 0 12px}
+.inrow{display:flex;gap:8px;align-items:center;font-size:12.5px;margin-bottom:14px}
+.inrow .okb{color:var(--ok);background:var(--ok-c);border-radius:8px;padding:1px 9px;font-size:12px}
+.steps{max-width:860px;border:1px solid var(--hair);border-radius:10px;overflow:hidden;margin-bottom:14px}
+.sh{padding:7px 12px;background:var(--c-low);font:600 12px/16px var(--font)}
+.step{display:flex;gap:10px;align-items:flex-start;padding:9px 12px;border-top:1px solid var(--c)}
+.step .dot{width:18px;height:18px;border-radius:50%;flex:none;display:grid;place-items:center;
+font-size:10.5px;border:2px solid var(--hair);color:var(--outline);background:var(--c-lowest)}
+.step.done .dot{border-color:var(--ok);background:var(--ok);color:#fff}
+.step.cur .dot{border-color:var(--accent);color:var(--accent);box-shadow:0 0 0 3px var(--accent-fix)}
+.step .tx{flex:1;min-width:0}
+.step .tx b{font:600 12.5px/18px var(--font)}
+.step .tx .hint{font-size:11.5px;color:var(--on-var)}
+.step.done .tx b{color:var(--on-var);font-weight:500}
+.step .go{font-size:12px;color:var(--accent);text-decoration:none;white-space:nowrap}
+.step .st2{font-size:11.5px;color:var(--ok);white-space:nowrap}
+.tworow{display:flex;gap:14px;max-width:860px;flex-wrap:wrap}
+.pane{flex:1;min-width:330px;border:1px solid var(--hair);border-radius:10px;overflow:hidden}
+.pane .sh{display:flex;gap:8px;align-items:center}
+.gaprow{display:flex;gap:9px;align-items:center;padding:7px 12px;border-top:1px solid var(--c);font-size:12.5px}
+.gaprow .b{width:8px;height:8px;border-radius:50%;background:var(--error);flex:none}
+.gaprow .tx{flex:1}
+.gaprow a{color:var(--accent);text-decoration:none;font-size:12px;white-space:nowrap}
+.gaprow .asg{font-size:11.5px;color:var(--on-var);white-space:nowrap}
+.outrow{padding:8px 12px;border-top:1px solid var(--c);font-size:12.5px;display:flex;gap:8px;align-items:center}
+.outrow .mat{font-size:11.5px;color:var(--outline)}
+</style></head><body><div class="stand">
+<h1>Работа фазы — эталон, круг 1</h1>
+<div class="note"><b>Лента (лёгкий Гант) — вид по умолчанию</b>: окна задач <b>вычислены</b> из дат
+вех и зависимостей — ручных длительностей и сроков задач не существует. Старт окна — готовность
+входа (дедлайн предшественника), конец — точка, к которой зреет выход. Переключатель
+«Моя работа | Весь проект» — один экран для обоих взглядов инженера. Список — вторая проекция
+того же состояния, группами статуса:
+В работе · Доступны · Ожидают (именем, кого) · Выполнены. Карточка задачи — на всю область:
+зачем (с полки), вход вычислен, полоса шагов с переходами к преднастроенным местам, разрывы
+задачи (те же, что в готовности, — разрезом) с назначением, выход со зрелостью. Ручных
+статусов нет нигде.</div>
+
+
+<div class="case"><span class="tag">Состояние 0 · Лента фазы (лёгкий Гант) — вид по умолчанию</span>
+<div class="frame" style="min-height:430px">
+  <header class="hdr"><span class="brand"><span class="o"></span>Орбита</span>
+    <span class="proj"><b>Национальная спутниковая платформа IoT</b></span>
+    <span class="chip">Pre-Phase A</span>
+    <span class="nextstep">следующий шаг: <a href="#">покрыть 4 нужды требованиями →</a></span></header>
+  <nav class="rail"><div class="rico on"><svg viewBox="0 0 24 24"><path d="M5 6h14M5 12h14M5 18h9"/><path d="M17 16l2 2 3-3"/></svg><span class="rlab">Работа</span></div></nav>
+  <main class="main">
+    <div style="display:flex;gap:10px;align-items:baseline;margin-bottom:10px">
+      <h1 style="margin:0">Работа фазы</h1>
+      <span class="chip" style="background:var(--accent-fix);color:var(--accent)">Лента</span>
+      <span class="chip">Список</span>
+      <span class="spacer" style="flex:1"></span>
+      <span style="font-size:12px;color:var(--on-var)">показ: <b>Весь проект</b> · <a href="#" style="color:var(--accent);text-decoration:none">моя работа (ЧД)</a></span>
+    </div>
+    <div style="max-width:960px;border:1px solid var(--hair);border-radius:10px;padding:10px 14px 14px">
+      <!-- шкала -->
+      <div style="position:relative;height:22px;margin-left:210px;font:600 10.5px/16px var(--font);color:var(--on-var)">
+        <span style="position:absolute;left:0">28.08</span>
+        <span style="position:absolute;left:34%;transform:translateX(-50%)">◆ MCR · 28.09</span>
+        <span style="position:absolute;left:72%;transform:translateX(-50%)">◆ KDP-A · 10.11</span>
+        <span style="position:absolute;right:0;color:var(--outline)">Phase A</span>
+        <span style="position:absolute;left:9%;top:14px;color:var(--accent)">▾ сегодня</span>
+      </div>
+      <div style="position:relative">
+        <div style="position:absolute;left:calc(210px + 9% * (100% - 210px) / 100%);top:0;bottom:0;width:0;border-left:1.5px dashed var(--accent);opacity:.55"></div>
+        <!-- строки -->
+        <div style="display:grid;grid-template-columns:210px 1fr;row-gap:7px;font-size:12px">
+          <div>1 · Постановка <span class="av" style="display:inline-block;vertical-align:-5px">ЧД</span><span class="av" style="display:inline-block;vertical-align:-5px">СА</span></div>
+          <div style="position:relative;height:20px"><div style="position:absolute;left:0;width:34%;height:16px;top:2px;border-radius:8px;background:var(--accent);opacity:.9;color:#fff;font:600 10.5px/16px var(--font);padding:0 8px">в работе · разрывы 5</div></div>
+
+          <div>2 · Концепция и AoA <span class="av" style="display:inline-block;vertical-align:-5px">ЧД</span></div>
+          <div style="position:relative;height:20px"><div style="position:absolute;left:4%;width:26%;height:16px;top:2px;border-radius:8px;background:var(--accent);opacity:.75;color:#fff;font:600 10.5px/16px var(--font);padding:0 8px">в работе</div>
+            <span style="position:absolute;left:30%;top:3px;color:var(--outline)">→</span></div>
+
+          <div>3 · Черновик требований <span style="color:var(--ok);font-size:11px">старт: сегодня</span></div>
+          <div style="position:relative;height:20px"><div style="position:absolute;left:9%;width:25%;height:16px;top:2px;border-radius:8px;border:1.5px solid var(--ok);color:var(--ok);font:600 10.5px/14px var(--font);padding:0 8px;background:var(--ok-c)">окно до MCR</div></div>
+
+          <div style="color:var(--on-var)">4 · Draft ConOps <span style="font-size:11px;color:var(--outline)">ждёт 2</span></div>
+          <div style="position:relative;height:20px"><div style="position:absolute;left:30%;width:24%;height:14px;top:3px;border-radius:8px;border:1.5px dashed var(--outline);color:var(--on-var);font:500 10.5px/12px var(--font);padding:0 8px">старт ≈ 12.09</div></div>
+
+          <div style="color:var(--on-var)">6 · Риски и ОСЗ <span style="font-size:11px;color:var(--outline)">ждёт 2</span></div>
+          <div style="position:relative;height:20px"><div style="position:absolute;left:30%;width:20%;height:14px;top:3px;border-radius:8px;border:1.5px dashed var(--outline);color:var(--on-var);font:500 10.5px/12px var(--font);padding:0 8px">старт ≈ 12.09</div></div>
+
+          <div style="color:var(--on-var)">8 · Mission Concept Report</div>
+          <div style="position:relative;height:20px"><div style="position:absolute;left:56%;width:14%;height:14px;top:3px;border-radius:8px;border:1.5px dashed var(--on-error-c);color:var(--on-error-c);font:600 10.5px/12px var(--font);padding:0 8px;background:var(--error-c)">окно сжато · 6 дн</div></div>
+
+          <div style="color:var(--on-var)">9 · Точка MCR → KDP-A</div>
+          <div style="position:relative;height:20px"><div style="position:absolute;left:70%;width:18%;height:14px;top:3px;border-radius:8px;border:1.5px solid var(--hair);color:var(--on-var);font:500 10.5px/12px var(--font);padding:0 8px">после MCR</div></div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--outline);margin-top:10px;border-top:1px solid var(--c);padding-top:8px">
+        Сплошная полоса — в работе/доступна; пунктир — расчётное окно (старт ≈ дедлайн входа);
+        красное — окно к дедлайну сжато (разрыв «цепочка не успевает» в готовности). Даты только
+        от вех: изменили дату MCR — лента пересчиталась; длительности руками не вводятся.
+      </div>
+    </div>
+  </main>
+</div></div>
+
+<div class="case"><span class="tag">Состояние 1 · Список (вторая проекция)</span>
+<div class="frame">
+  <header class="hdr"><span class="brand"><span class="o"></span>Орбита</span>
+    <span class="proj"><b>Национальная спутниковая платформа IoT</b></span>
+    <span class="chip">Pre-Phase A</span>
+    <span class="nextstep">следующий шаг: <a href="#">покрыть 4 нужды требованиями →</a></span></header>
+  <nav class="rail">
+    <div class="rico on"><svg viewBox="0 0 24 24"><path d="M5 6h14M5 12h14M5 18h9"/><path d="M17 16l2 2 3-3"/></svg><span class="rlab">Работа</span></div>
+    <div class="rico"><svg viewBox="0 0 24 24"><path d="M5 5h14M5 10h14M5 15h9M5 20h6"/></svg><span class="rlab">Требования</span></div>
+    <div class="rico"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></svg><span class="rlab">Документы</span></div>
+    <div class="rico"><svg viewBox="0 0 24 24"><path d="M4 19V5m0 14h16M8 15l4-6 4 3 4-7"/></svg><span class="rlab">Контроль</span></div>
+  </nav>
+  <main class="main">
+    <h1>Работа фазы</h1>
+    <div class="sub">9 задач · 2 в работе · 1 доступна · 5 ожидают · 1 выполнена</div>
+
+    <div class="wg">В работе <span class="n">· 2</span></div>
+    <div class="t"><span class="st run"></span>
+      <span class="nm"><b>1 · Постановка: цели, нужды, стейкхолдеры</b>
+        <div class="d">шаг 4 из 5 — покрытие нужд · <span style="color:var(--on-error-c)">4 нужды не покрыты</span></div></span>
+      <span class="who"><span class="av">ЧД</span><span class="av">СА</span></span>
+      <span class="gap">разрывы · 5</span>
+      <span class="meta">выход: постановка к MCR</span></div>
+    <div class="t"><span class="st run"></span>
+      <span class="nm"><b>2 · Концепция и альтернативы (DRM, AoA)</b>
+        <div class="d">шаг 2 из 4 — варианты построений · 2 варианта считаются</div></span>
+      <span class="who"><span class="av">ЧД</span></span>
+      <span class="gap">разрывы · 3</span>
+      <span class="meta">выход: таблица AoA → Д2</span></div>
+
+    <div class="wg">Доступны <span class="n">· 1</span></div>
+    <div class="t"><span class="st avail"></span>
+      <span class="nm"><b>3 · Черновик требований уровня проекта</b>
+        <div class="d">вход готов: цели и нужды приняты</div></span>
+      <span class="meta">выход: Д3 draft · служба: нужды → требования</span></div>
+
+    <div class="wg">Ожидают <span class="n">· 5</span></div>
+    <div class="t dim"><span class="st wait"></span>
+      <span class="nm"><b>4 · Draft ConOps</b></span>
+      <span class="waitwhy">ожидает: <b>2 · Концепция</b> — базовый вариант</span></div>
+    <div class="t dim"><span class="st wait"></span>
+      <span class="nm"><b>6 · Риски и начальная ОСЗ</b></span>
+      <span class="waitwhy">ожидает: <b>2 · Концепция</b></span></div>
+    <div class="t dim"><span class="st wait"></span>
+      <span class="nm"><b>8 · Mission Concept Report</b></span>
+      <span class="waitwhy">ожидает: <b>задачи 2–7</b></span></div>
+
+    <div class="wg">Выполнены <span class="n">· 1 ▸</span></div>
+  </main>
+</div></div>
+
+<div class="case"><span class="tag">Состояние 2 · карточка задачи 3 — вход готов, полоса ведёт</span>
+<div class="frame" style="min-height:430px">
+  <header class="hdr"><span class="brand"><span class="o"></span>Орбита</span>
+    <span class="proj"><b>Национальная спутниковая платформа IoT</b></span>
+    <span class="chip">Pre-Phase A</span></header>
+  <nav class="rail"><div class="rico on"><svg viewBox="0 0 24 24"><path d="M5 6h14M5 12h14M5 18h9"/><path d="M17 16l2 2 3-3"/></svg><span class="rlab">Работа</span></div></nav>
+  <main class="main">
+    <a class="back" href="#">← Работа фазы</a>
+    <div class="tcard">
+      <h2>3 · Черновик требований уровня проекта</h2>
+      <div class="why">Перевести принятые цели и нужды в проверяемые требования уровня проекта
+      (операция О4 регламента): каждая нужда покрыта, у требования — показатель, источник и
+      предварительный метод верификации. Выход — Д3 (черновик) к MCR.</div>
+      <div class="inrow"><span class="okb">вход готов</span>
+        <span>цели · 6 и нужды · 14 приняты; замысел задан</span></div>
+
+      <div class="steps">
+        <div class="sh">Шаги</div>
+        <div class="step done"><span class="dot">✓</span>
+          <span class="tx"><b>Просмотреть типовые требования класса</b>
+            <div class="hint">34 позиции НОО-IoT взяты из библиотеки — что уже покрыто рамкой</div></span>
+          <span class="st2">сделано</span></div>
+        <div class="step cur"><span class="dot">2</span>
+          <span class="tx"><b>Сгенерировать требования из нужд</b>
+            <div class="hint">служба, вид «нужды → требования»; промпт несёт нужды, запреты Р и факты нормативов</div></span>
+          <a class="go" href="#">собрать промпт →</a></div>
+        <div class="step"><span class="dot">3</span>
+          <span class="tx"><b>Акцептовать и дозаполнить показатели</b>
+            <div class="hint">числа парой по справочнику; TBD законен до своей точки</div></span>
+          <a class="go" href="#">к предложениям →</a></div>
+        <div class="step"><span class="dot">4</span>
+          <span class="tx"><b>Закрыть покрытие нужд</b>
+            <div class="hint">каждая нужда → требование; матрица покрытия чиста</div></span>
+          <a class="go" href="#">к матрице →</a></div>
+      </div>
+
+      <div class="tworow">
+        <div class="pane">
+          <div class="sh">Разрывы задачи <span class="gap" style="margin-left:auto">· 4</span></div>
+          <div class="gaprow"><span class="b"></span><span class="tx">Нужды не покрыты · 4</span>
+            <span class="asg">не назначено</span><a href="#">назначить…</a></div>
+          <div class="gaprow"><span class="b"></span><span class="tx">Требования без показателя · —</span>
+            <span class="asg" style="color:var(--outline)">появятся после шага 2</span></div>
+        </div>
+        <div class="pane">
+          <div class="sh">Выход</div>
+          <div class="outrow"><b>Д3 · Черновик требований уровня проекта</b>
+            <span class="chip">Draft к MCR</span></div>
+          <div class="outrow"><span class="mat">зрелость вычисляется готовностью к точке; ручной отметки нет</span></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div></div>
+
+</div></body></html>
