@@ -144,12 +144,10 @@ def obsolete(type_: str, rows: list) -> bool:
     if type_ == "property_form":
         return not any(f.get("required_by") for d in rows for f in d.get("fields", []))
     if type_ == "document_template":
-        # семантика меток источников выправлена дословно: полка со старой
-        # расшифровкой («вывод автора») обязана обновиться
-        return any(
-            "вывод автора" in s.get("expects", "")
-            for d in rows for s in d.get("sections", [])
-        ) or not any(
+        # полка устарела, если раздел «Обозначения источников» не несёт
+        # авторской семантики меток: проверяем НАЛИЧИЕ верной формулировки,
+        # а не отсутствие прежней — так детектор не хранит старую ошибку
+        return not any(
             "внешний источник, проверенный" in s.get("expects", "")
             for d in rows for s in d.get("sections", [])
         )
