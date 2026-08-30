@@ -3410,6 +3410,24 @@ class HttpApi(private val boundary: Boundary) {
                 )
             }
 
+            // Профиль под вид операции: инженер выбирает ЧТО делать, а не
+            // какой профиль это разрешает. Есть подходящий — вернём его;
+            // нет — обеспечим (тот же закон, что у мастер-пути).
+            method == "GET" && path == "/views/ai/profile-for" -> {
+                val kind = query(ex)["kind"]
+                    ?: throw IllegalArgumentException("query 'kind' is required: вид пакета")
+                val ctx = requireProject(project)
+                val had = boundary.objects.listCurrent(ctx)
+                    .filter { it.type == "ai_profile" && it.status != Lifecycle.Cancelled }
+                    .any { p -> p.doc.path("kinds").any { it.asText() == kind } }
+                val id = profileFor(kind, ctx, author(query(ex)["author"] ?: ""))
+                val out = mapper.createObjectNode()
+                out.put("profile", id)
+                out.put("kind", kind)
+                out.put("ensured", !had)
+                respond(ex, 200, out)
+            }
+
             // Ф-10: состав выгрузки знаний и её отпечаток — до скачивания
             // видно, что уйдёт во внешний контур и сколько это весит.
             method == "GET" && path == "/views/knowledge-export" -> {

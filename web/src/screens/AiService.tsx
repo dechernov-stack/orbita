@@ -32,6 +32,7 @@ export function AiService({ onGo }: { onGo?: (screen: string) => void }) {
   const { author } = useSession()
   const [profiles, setProfiles] = useState<StoredSummary[]>([])
   const [profile, setProfile] = useState('')
+  const [profileNote, setProfileNote] = useState<string | null>(null)
   const [sourceDocs, setSourceDocs] = useState<StoredSummary[]>([])
   const [sourceDoc, setSourceDoc] = useState('')
   const [kind, setKind] = useState(KINDS[0].id)
@@ -190,6 +191,23 @@ export function AiService({ onGo }: { onGo?: (screen: string) => void }) {
   }
 
   const generative = KINDS.find((k) => k.id === kind)?.generative ?? false
+  /**
+   * Профиль под вид подбирает СИСТЕМА. Инженер выбирает, что делать
+   * («сервисы → требования»), а не какой профиль это разрешает: раньше
+   * несовпадение всплывало отказом службы «профиль не разрешает вид».
+   */
+  useEffect(() => {
+    if (profiles.length === 0) return
+    api.profileForKind(kind)
+      .then((r) => {
+        setProfile((cur) => (cur === r.profile ? cur : r.profile))
+        setProfileNote(r.ensured
+          ? `вид «${kind}» разрешён профилю ${r.profile} — он его прежде не умел`
+          : null)
+      })
+      .catch(() => setProfileNote(null))
+  }, [kind, profiles.length])
+
   const noProfiles = profiles.length === 0
 
   return (
@@ -204,6 +222,7 @@ export function AiService({ onGo }: { onGo?: (screen: string) => void }) {
         <select value={kind} onChange={(e) => { setKind(e.target.value); setPrompt(null) }}>
           {KINDS.map((k) => <option key={k.id} value={k.id}>{k.title}</option>)}
         </select>
+        {profileNote && <span className="secondary">{profileNote}</span>}
         <div className="grow" />
         <button title="нужен профиль службы: выберите его выше либо соберите на мастер-пути (Ш4)" className="btn" onClick={compose} disabled={!profile || noProfiles}>Собрать промпт</button>
         <button className="btn btn--primary" onClick={ask}

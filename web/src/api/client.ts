@@ -662,6 +662,11 @@ export const api = {
     by: string
   }) => post<Record<string, unknown>>('/ai/accept', request),
 
+  /** Профиль под вид операции: подбирается системой, а не инженером. */
+  profileForKind: (kind: string) =>
+    get<{ profile: string; kind: string; ensured: boolean }>(
+      `/views/ai/profile-for?kind=${encodeURIComponent(kind)}`,
+    ),
   /** Ф-10: состав выгрузки знаний и её отпечаток — до скачивания видно, что уйдёт. */
   knowledgeExport: (parts?: string[]) =>
     get<KnowledgeExportView>(
