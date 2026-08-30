@@ -15,10 +15,11 @@ SSH="ssh -i $SSH_KEY -o BatchMode=yes root@$SERVER"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 BUILDER="${BUILDER:-orbita-mtu}"
 
-docker network inspect orbita-mtu1380 > /dev/null 2>&1 \
-  || docker network create --opt com.docker.network.driver.mtu=1380 orbita-mtu1380
-docker buildx inspect "$BUILDER" > /dev/null 2>&1 \
-  || docker buildx create --name "$BUILDER" --driver docker-container --driver-opt network=orbita-mtu1380
+# Гигиена сборщика — общая с локальным выкатом: сеть с MTU 1380 и
+# пересоздание builder'а, когда его том состояния перерос порог.
+# shellcheck source=ops/builder-hygiene.sh
+. "$ROOT/ops/builder-hygiene.sh"
+builder_hygiene
 
 echo "==> Сборка образов (linux/amd64, builder $BUILDER)"
 docker buildx build --builder "$BUILDER" --platform linux/amd64 --load \
