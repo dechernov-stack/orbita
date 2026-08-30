@@ -187,7 +187,7 @@ export function Lifecycle({ project, onGo }: {
                             onChange={(e) => setRationale(e.target.value)}
                             style={{ width: 180 }}
                           />
-                          <button className="rr-btn rr-btn--pri" disabled={busy || !rationale.trim()} onClick={fix}>
+                          <button title="напишите обоснование решения — точка проходится с записанной причиной" className="rr-btn rr-btn--pri" disabled={busy || !rationale.trim()} onClick={fix}>
                             Провести
                           </button>
                           <button className="rr-btn" onClick={() => setFixOpen(false)}>Отмена</button>
@@ -265,7 +265,7 @@ export function Lifecycle({ project, onGo }: {
                   </>
                 ) : sp.status === 'in_progress' ? (
                   <>
-                    Начало проекта: шаг {sp.step} из 3 ·{' '}
+                    Начало проекта: шаг {sp.step} из 4 ·{' '}
                     <button className="rr-assign" onClick={() => onGo('startpath')}>продолжить</button>
                   </>
                 ) : (

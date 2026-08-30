@@ -229,7 +229,7 @@ export function Readiness() {
                 ))}
               </select>
             </div>
-            <button
+            <button title="выберите сценарий выше — готовность считается по нему"
               type="button"
               className="tab tab--primary"
               disabled={!scenario}

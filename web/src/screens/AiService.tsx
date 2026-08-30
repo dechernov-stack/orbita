@@ -205,7 +205,7 @@ export function AiService({ onGo }: { onGo?: (screen: string) => void }) {
           {KINDS.map((k) => <option key={k.id} value={k.id}>{k.title}</option>)}
         </select>
         <div className="grow" />
-        <button className="btn" onClick={compose} disabled={!profile || noProfiles}>Собрать промпт</button>
+        <button title="нужен профиль службы: выберите его выше либо соберите на мастер-пути (Ш4)" className="btn" onClick={compose} disabled={!profile || noProfiles}>Собрать промпт</button>
         <button className="btn btn--primary" onClick={ask}
           disabled={!profile || !author || busy || transport === 'package'}
           title={transport === 'package' ? 'профиль работает режимом закрытого контура' : ''}>
@@ -356,7 +356,7 @@ export function AiService({ onGo }: { onGo?: (screen: string) => void }) {
               value={raw} onChange={(e) => setRaw(e.target.value)}
               placeholder='[{"id": "ND-0001", …}]' />
             <div className="toolbar" style={{ padding: '6px 0' }}>
-              <button className="btn" onClick={submit} disabled={!raw.trim() || !author || busy}>
+              <button title="вставьте ответ модели и представьтесь в шапке — тогда разбор пойдёт" className="btn" onClick={submit} disabled={!raw.trim() || !author || busy}>
                 Внести ответ контура
               </button>
               <label className="btn" title="выбрать файл с ответом контура, не вставлять текст руками">
@@ -436,7 +436,7 @@ export function AiService({ onGo }: { onGo?: (screen: string) => void }) {
                       </tbody>
                     </table>
                   </div>
-                  <button className="btn btn--primary" onClick={enrichApply}
+                  <button title="нечего применять: представьтесь в шапке и оставьте хотя бы одно предложение невыключенным" className="btn btn--primary" onClick={enrichApply}
                     disabled={!author || busy || report.shown.length === excluded.size}>
                     Применить правками ({report.shown.length - excluded.size})
                   </button>
@@ -487,7 +487,7 @@ export function AiService({ onGo }: { onGo?: (screen: string) => void }) {
                       </tbody>
                     </table>
                   </div>
-                  <button className="btn btn--primary" onClick={acceptAll}
+                  <button title="нечего принимать: представьтесь в шапке и оставьте хотя бы одно предложение невыключенным" className="btn btn--primary" onClick={acceptAll}
                     disabled={!author || busy || report.shown.length === excluded.size}>
                     Принять пачкой ({report.shown.length - excluded.size})
                   </button>

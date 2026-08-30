@@ -78,4 +78,31 @@ class StartPathTest {
         val profiles = boundary.objects.listCurrent("PJ-1801").filter { it.type == "ai_profile" }
         assertEquals(1, profiles.size) { profiles.map { it.id }.toString() }
     }
+
+    /**
+     * Ф-11: шагов мастера четыре — параметры · библиотека и материалы ·
+     * замысел · запуск ИИ. Замысел стоит ПОСЛЕ материалов, поэтому паспорт
+     * обязан принимать шаг 4; пятого шага не существует.
+     */
+    @Test
+    fun `путь знает четыре шага, пятого нет`() {
+        val four = mapper.readTree(
+            """{"id":"PJ-1802","name":"Порядок","phase":"pre_phase_a",
+                "start_path":{"status":"in_progress","step":4},
+                "milestones":[{"gate":"MCR"}],"lifecycle":{"status":"Draft","version":"1"}}""",
+        )
+        assertTrue(boundary.schemaProblems("core/project", four).isEmpty()) {
+            "замысел стоит четвёртым шагом — паспорт обязан его принимать: " +
+                boundary.schemaProblems("core/project", four).toString()
+        }
+        val five = mapper.readTree(
+            """{"id":"PJ-1803","name":"Лишний","phase":"pre_phase_a",
+                "start_path":{"status":"in_progress","step":5},
+                "milestones":[{"gate":"MCR"}],"lifecycle":{"status":"Draft","version":"1"}}""",
+        )
+        assertTrue(boundary.schemaProblems("core/project", five).isNotEmpty()) {
+            "шаг вне 1..4 обязан отсекаться схемой, а не жить в паспорте"
+        }
+    }
 }
+

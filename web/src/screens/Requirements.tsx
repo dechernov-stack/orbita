@@ -650,7 +650,7 @@ function SaveViewForm({ onClose, onSave }: {
         <label><input type="radio" checked={scope === 'project'} onChange={() => setScope('project')} /> проектный</label>
       </div>
       <div style={{ marginTop: 8 }}>
-        <button type="button" className="rr-btn rr-btn--pri" disabled={!name.trim()} onClick={() => onSave(name.trim(), scope)}>
+        <button title="дайте имя — безымянный вид реестра не сохраняется" type="button" className="rr-btn rr-btn--pri" disabled={!name.trim()} onClick={() => onSave(name.trim(), scope)}>
           Сохранить
         </button>
       </div>
@@ -764,8 +764,8 @@ function CardView({
         {r.changedAfterApproval && <span className="chip rr-warn-chip" title="Изменено после утверждения">изменено</span>}
         <span style={{ flex: 1 }} />
         <span className="secondary">{at >= 0 ? `${at + 1} из ${seq.length}` : `вне текущей выборки · всего ${seq.length}`}</span>
-        <button type="button" className="rr-btn" disabled={at <= 0} onClick={() => onOpen(seq[at - 1].id)}>↑ пред.</button>
-        <button type="button" className="rr-btn" disabled={at < 0 || at >= seq.length - 1} onClick={() => onOpen(seq[at + 1].id)}>след. ↓</button>
+        <button title="это первый элемент — выше двигать некуда" type="button" className="rr-btn" disabled={at <= 0} onClick={() => onOpen(seq[at - 1].id)}>↑ пред.</button>
+        <button title="это последний элемент — ниже двигать некуда" type="button" className="rr-btn" disabled={at < 0 || at >= seq.length - 1} onClick={() => onOpen(seq[at + 1].id)}>след. ↓</button>
         <button type="button" className="rr-btn" onClick={onEdit}>Изменить</button>
       </div>
       <div className="workarea" style={{ overflow: 'auto' }}>
@@ -979,7 +979,7 @@ function CarrierBand({ id, version, author, onDone, onFail }: {
         options={options.map((o) => ({ id: o.id, title: o.title }))}
         onChange={setPicked}
       />
-      <button
+      <button title="выберите требование в списке — действие идёт по выбранному"
         type="button" className="rr-btn rr-btn--pri" disabled={!picked}
         onClick={() => {
           const target = options.find((o) => o.id === picked)!

@@ -120,7 +120,7 @@ export function Portfolio({ onOpen, onNew, onLoadFile, onStart }: {
                 title="продолжить путь начала проекта"
                 onClick={(e) => { e.stopPropagation(); selectProject(r.id); onStart() }}
               >
-                начало: шаг {r.start_path.step} из 3 · продолжить
+                начало: шаг {r.start_path.step} из 4 · продолжить
               </span>
             ) : r.start_path?.status === 'done' ? (
               <span className="pf-start done">начало пройдено</span>

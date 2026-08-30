@@ -64,7 +64,7 @@ export function BatchLoad() {
         <a className="btn" href={withProject(api.exportObjectsUrl())} download="orbita-export.json">
           Выгрузить проект
         </a>
-        <button className="btn btn--primary" disabled={!payload.trim() || busy} onClick={run}>
+        <button title="вставьте пакет объектов в поле выше — кнопка оживёт" className="btn btn--primary" disabled={!payload.trim() || busy} onClick={run}>
           {busy ? 'Проверка…' : 'Проверить и загрузить'}
         </button>
       </div>

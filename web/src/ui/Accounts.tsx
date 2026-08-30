@@ -82,7 +82,7 @@ export function Accounts() {
                 placeholder="пароль (не короче 8)" value={password} onChange={(e) => setPassword(e.target.value)} />
               <input className="rr-search" style={{ width: '100%', marginBottom: 6 }} placeholder="имя (как показывать)"
                 value={name} onChange={(e) => setName(e.target.value)} />
-              <button type="button" className="rr-btn rr-btn--pri" disabled={busy || !login.trim() || password.length < 8}
+              <button title="нужны логин и пароль не короче восьми знаков" type="button" className="rr-btn rr-btn--pri" disabled={busy || !login.trim() || password.length < 8}
                 onClick={register}>
                 {authEnabled ? 'Завести учётку' : 'Включить и войти'}
               </button>
@@ -104,7 +104,7 @@ export function Accounts() {
                   </label>
                 ))}
               </span>
-              <button type="button" className="rr-btn" disabled={busy || !roleLogin.trim()} onClick={assign}>
+              <button title="назовите учётку, которой назначается роль" type="button" className="rr-btn" disabled={busy || !roleLogin.trim()} onClick={assign}>
                 Назначить роль
               </button>
             </>

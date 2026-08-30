@@ -1,6 +1,9 @@
 // Мастер-путь «Начало проекта» — конвейер экранов, эталон
 // docs/ui/reference2/reference-project-start.html (круг 1) + бриф
-// БРИФ-МАСТЕР-ПУТЬ.md. Три шага со степпером: параметры → библиотека → ИИ.
+// БРИФ-МАСТЕР-ПУТЬ.md. Четыре шага со степпером: параметры → библиотека и
+// материалы → замысел → ИИ. Ф-11: замысел стоит ПОСЛЕ материалов — «собрать
+// из документов» на первом шаге была мертва по построению, документы
+// появлялись только на втором.
 // Путь, не клетка: «пропустить» всегда на виду, шаг сохраняется в паспорт,
 // брошенный путь живёт строкой на жизненном цикле.
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -171,7 +174,7 @@ export function StartPath({ project, onGo, onDone }: {
         setConstraints(doc.constraints ?? [])
         setIntent(doc.mission_intent ?? {})
         const sp = doc.start_path
-        // шаг за пределами 1..3 отсекает схема паспорта — доверяем ей
+        // шаг за пределами 1..4 отсекает схема паспорта — доверяем ей
         if (sp && sp.status === 'in_progress') setStep(sp.step)
         if (sp?.source_refs?.length || sp?.source_ref) {
           promptSeeded.current = true
@@ -426,9 +429,9 @@ export function StartPath({ project, onGo, onDone }: {
     busyRef.current = true
     setBusy(true)
     setFailure(null)
-    save({ status: 'in_progress', step: 3 }, { constraints: flushAdding() })
+    save({ status: 'in_progress', step: 4 }, { constraints: flushAdding() })
       .then(() => api.startPathProfile(author))
-      .then((p) => { setProfile(p); setStep(3) })
+      .then((p) => { setProfile(p); setStep(4) })
       .catch((e) => setFailure(reasonOf(e)))
       .finally(() => { busyRef.current = false; setBusy(false) })
   }
@@ -457,7 +460,7 @@ export function StartPath({ project, onGo, onDone }: {
       const statement = await materialStatement()
       await api.aiAsk('mission_to_goals', profile.id, statement, author)
       await api.aiAsk('mission_to_needs', profile.id, statement, author)
-      await save({ status: 'done', step: 3, profile_ref: profile.id })
+      await save({ status: 'done', step: 4, profile_ref: profile.id })
       onDone()
     } catch (e) {
       setFailure(reasonOf(e))
@@ -514,10 +517,10 @@ export function StartPath({ project, onGo, onDone }: {
     }
   }
 
-  // Продолжение брошенного пути с Ш3: профиль пересобирается при входе —
+  // Продолжение брошенного пути с Ш4: профиль пересобирается при входе —
   // вызов идемпотентен (сервер обновляет, а не плодит дубли)
   useEffect(() => {
-    if (step === 3 && !profile && author && !busyRef.current) {
+    if (step === 4 && !profile && author && !busyRef.current) {
       api.startPathProfile(author).then(setProfile).catch((e) => setFailure(reasonOf(e)))
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -536,7 +539,7 @@ export function StartPath({ project, onGo, onDone }: {
           <button className="sp-skip" onClick={skip}>Пропустить — заполню руками</button>
         </div>
         <div className="sp-steps">
-          {['Основные параметры', 'Библиотека и материалы', 'Запуск ИИ'].map((t, i) => (
+          {['Основные параметры', 'Библиотека и материалы', 'Замысел миссии', 'Запуск ИИ'].map((t, i) => (
             <div key={t}
               className={`sp-st${step === i + 1 ? ' sp-on' : ''}${step > i + 1 ? ' sp-done' : ''}`}>
               <span className="sp-n">{i + 1}</span>{t}
@@ -574,55 +577,6 @@ export function StartPath({ project, onGo, onDone }: {
                 <input className="np-name" id="sp-class" value={missionClass}
                   onChange={(e) => setMissionClass(e.target.value)} />
               )}
-            </div>
-            {/* Ф-05: замысел миссии — обязательная мини-форма. Без него
-                генерация постановки заблокирована: промпт без замысла даёт
-                общие места, а не проект. */}
-            <div className="np-row">
-              <label className="np-label">Замысел миссии{' '}
-                <span style={{ fontWeight: 400, color: 'var(--status-draft)' }}>
-                  — без него генерация постановки заблокирована
-                </span>
-              </label>
-              <div style={{ display: 'grid', gap: 6 }}>
-                {([
-                  ['for_whom', 'Для кого', 'перевозчики опасных грузов, операторы БПЛА'],
-                  ['what', 'Что делает', 'передаёт короткие сообщения от датчиков'],
-                  ['where', 'Где', 'Арктика, СМП, Сибирь и ДФО'],
-                  ['horizon', 'Горизонт', 'к 2033 году, около 150 аппаратов'],
-                ] as const).map(([field, label, hint]) => (
-                  <div key={field} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                    <span className="secondary" style={{ minWidth: 108 }}>{label}</span>
-                    <input className="np-name" style={{ flex: 1 }} placeholder={hint}
-                      value={intent[field] ?? ''}
-                      onChange={(e) => setIntent({ ...intent, [field]: e.target.value })}
-                      onBlur={() => saveNow({ intent })} />
-                  </div>
-                ))}
-                <details>
-                  <summary className="secondary" style={{ cursor: 'pointer' }}>
-                    либо одним связным абзацем
-                  </summary>
-                  <textarea rows={3} style={{ width: '100%', marginTop: 4 }}
-                    placeholder="Группировка передаёт телеметрию перевозчикам в Арктике; горизонт — 2033 год."
-                    value={intent.text ?? ''}
-                    onChange={(e) => setIntent({ ...intent, text: e.target.value })}
-                    onBlur={() => saveNow({ intent })} />
-                </details>
-                <div className="np-hint">
-                  {intentReady
-                    ? 'замысел задан — служба соберёт постановку по данным проекта'
-                    : 'нужны все четыре поля либо связный абзац'}
-                </div>
-                {/* Ф-07: второй путь — собрать по разобранным документам */}
-                <MissionIntent onAccepted={() => {
-                  edit.object(project)
-                    .then((o) => setIntent(
-                      (o.doc as { mission_intent?: typeof intent }).mission_intent ?? {},
-                    ))
-                    .catch(() => undefined)
-                }} />
-              </div>
             </div>
             <div className="np-row">
               <label className="np-label">Ограничения проекта{' '}
@@ -667,7 +621,7 @@ export function StartPath({ project, onGo, onDone }: {
                     placeholder="Добавить ограничение — например: «зоны обслуживания — статическими масками»"
                     onChange={(e) => setAdding(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter') addConstraint() }} />
-                  <button className="sp-open" disabled={!adding.trim()} onClick={addConstraint}>
+                  <button title="впишите текст ограничения — пустая строка кодом не становится" className="sp-open" disabled={!adding.trim()} onClick={addConstraint}>
                     добавить
                   </button>
                 </div>
@@ -734,7 +688,7 @@ export function StartPath({ project, onGo, onDone }: {
                           </button>
                         )
                         : (
-                          <button className="sp-take" disabled={busyFrag !== null}
+                          <button title="идёт взятие другого набора — дождитесь его окончания" className="sp-take" disabled={busyFrag !== null}
                             onClick={() => applyFragment(f.id)}>
                             {busyFrag === f.id ? 'беру…' : 'взять'}
                           </button>
@@ -783,7 +737,7 @@ export function StartPath({ project, onGo, onDone }: {
                 ))}
                 {library != null && library.length > 0 && (
                   <div className="sp-set">
-                    <button className="sp-open" disabled={picked.size === 0 || busy} onClick={take}>
+                    <button title="отметьте наборы библиотеки галочками — берётся отмеченное" className="sp-open" disabled={picked.size === 0 || busy} onClick={take}>
                       Взять выбранное{picked.size > 0 ? ` · ${picked.size}` : ''}
                     </button>
                     {takeNote && <span className="sp-ds">{takeNote}</span>}
@@ -797,7 +751,7 @@ export function StartPath({ project, onGo, onDone }: {
                 {docs == null && <div className="sp-set"><span className="sp-ds">Загрузка…</span></div>}
                 {(docs ?? []).length > 0 && (
                   <div className="sp-ds" style={{ padding: '2px 0 4px' }}>
-                    отмеченные уходят в промпт службы на Ш3 — участие множественное
+                    отмеченные уходят в промпт службы на Ш4 — участие множественное
                   </div>
                 )}
                 {(docs ?? []).map((d) => (
@@ -832,11 +786,11 @@ export function StartPath({ project, onGo, onDone }: {
                         </div>
                         {d.summary && <div className="sp-card__sum">{d.summary}</div>}
                         <div className="sp-card__acts">
-                          <button className="np-btn" disabled={busy}
+                          <button title="идёт запись в паспорт — дождитесь её окончания" className="np-btn" disabled={busy}
                             onClick={() => parse(d, 'mission_to_stakeholders', 'профили стейкхолдеров')}>
                             Разобрать: профили стейкхолдеров
                           </button>
-                          <button className="np-btn" disabled={busy}
+                          <button title="идёт запись в паспорт — дождитесь её окончания" className="np-btn" disabled={busy}
                             onClick={() => parse(d, 'mission_to_typical_risks', 'типовые риски')}>
                             Разобрать: типовые риски
                           </button>
@@ -907,7 +861,7 @@ export function StartPath({ project, onGo, onDone }: {
                       onChange={(e) => setUpName(e.target.value)} style={{ flex: 1 }} />
                     <input placeholder="источник (организация)" value={upOrg}
                       onChange={(e) => setUpOrg(e.target.value)} style={{ width: 160 }} />
-                    <button className="sp-open" disabled={busy || !upFile || !upName.trim()} onClick={upload}>
+                    <button title="выберите файл и назовите карточку — материал ложится с именем" className="sp-open" disabled={busy || !upFile || !upName.trim()} onClick={upload}>
                       Загрузить
                     </button>
                   </div>
@@ -916,14 +870,75 @@ export function StartPath({ project, onGo, onDone }: {
             </div>
             <div className="np-actions">
               <button className="np-btn" onClick={() => toStep(1)}>Назад</button>
-              <button className="np-btn np-pri" disabled={busy} onClick={assembleAndGo}>
+              <button className="np-btn np-pri" onClick={() => toStep(3)}>
+                Далее — замысел миссии
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* Ф-11: замысел — ПОСЛЕ материалов. Документы уже приложены на Ш2,
+            поэтому «собрать из документов» здесь живая, а не серая по
+            построению. Форма рукой остаётся запасным путём. */}
+        {step === 3 && (
+          <>
+            <div className="np-row">
+              <label className="np-label">Замысел миссии{' '}
+                <span style={{ fontWeight: 400, color: 'var(--status-draft)' }}>
+                  — без него генерация постановки заблокирована
+                </span>
+              </label>
+              <div style={{ display: 'grid', gap: 6 }}>
+                {([
+                  ['for_whom', 'Для кого', 'перевозчики опасных грузов, операторы БПЛА'],
+                  ['what', 'Что делает', 'передаёт короткие сообщения от датчиков'],
+                  ['where', 'Где', 'Арктика, СМП, Сибирь и ДФО'],
+                  ['horizon', 'Горизонт', 'к 2033 году, около 150 аппаратов'],
+                ] as const).map(([field, label, hint]) => (
+                  <div key={field} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    <span className="secondary" style={{ minWidth: 108 }}>{label}</span>
+                    <input className="np-name" style={{ flex: 1 }} placeholder={hint}
+                      value={intent[field] ?? ''}
+                      onChange={(e) => setIntent({ ...intent, [field]: e.target.value })}
+                      onBlur={() => saveNow({ intent })} />
+                  </div>
+                ))}
+                <details>
+                  <summary className="secondary" style={{ cursor: 'pointer' }}>
+                    либо одним связным абзацем
+                  </summary>
+                  <textarea rows={3} style={{ width: '100%', marginTop: 4 }}
+                    placeholder="Группировка передаёт телеметрию перевозчикам в Арктике; горизонт — 2033 год."
+                    value={intent.text ?? ''}
+                    onChange={(e) => setIntent({ ...intent, text: e.target.value })}
+                    onBlur={() => saveNow({ intent })} />
+                </details>
+                <div className="np-hint">
+                  {intentReady
+                    ? 'замысел задан — служба соберёт постановку по данным проекта'
+                    : 'нужны все четыре поля либо связный абзац'}
+                </div>
+                {/* Ф-07: второй путь — собрать по разобранным документам */}
+                <MissionIntent onNeedMaterials={() => toStep(2)} onNeedParse={() => onGo('docparse')} onAccepted={() => {
+                  edit.object(project)
+                    .then((o) => setIntent(
+                      (o.doc as { mission_intent?: typeof intent }).mission_intent ?? {},
+                    ))
+                    .catch(() => undefined)
+                }} />
+              </div>
+            </div>
+            <div className="np-actions">
+              <button className="np-btn" onClick={() => toStep(2)}>Назад — к материалам</button>
+              <button title="идёт запись в паспорт — дождитесь её окончания"
+                className="np-btn np-pri" disabled={busy} onClick={assembleAndGo}>
                 Далее — запуск ИИ
               </button>
             </div>
           </>
         )}
 
-        {step === 3 && profile && (
+        {step === 4 && profile && (
           <>
             <div className="sp-aihead">
               <span className="sp-nm">Профиль службы собран:</span>
@@ -934,7 +949,7 @@ export function StartPath({ project, onGo, onDone }: {
             </div>
             <div className="sp-origin">
               Запреты — <b>из ваших ограничений (Ш1)</b>; материал — <b>из постановки
-              и наборов (Ш2)</b>. Промпт собирает служба; руками он не пишется.
+              и наборов (Ш2)</b>; замысел — <b>с Ш3</b>. Промпт собирает служба; руками он не пишется.
             </div>
 
             <div className="sp-blk sp-profile">
@@ -980,13 +995,13 @@ export function StartPath({ project, onGo, onDone }: {
               <button className="np-btn np-pri" disabled={busy || !intentReady} onClick={run}
                 title={intentReady
                   ? 'служба соберёт постановку по данным проекта'
-                  : 'нет замысла — генерация даст общие места: заполните замысел на шаге 1'}>
+                  : 'нет замысла — генерация даст общие места: заполните замысел на шаге 3'}>
                 {busy ? 'Генерация…' : 'Запустить генерацию целей и нужд'}
               </button>
               {!intentReady && (
                 <>
                   <button className="np-linkish" onClick={() => setStep(1)}
-                    title="замысел задаётся на первом шаге мастера: четыре поля либо абзац">
+                    title="замысел задаётся на третьем шаге мастера: четыре поля либо абзац">
                     нет замысла — заполнить рукой →
                   </button>
                   <button className="np-linkish" onClick={() => setStep(1)}
@@ -1008,7 +1023,7 @@ export function StartPath({ project, onGo, onDone }: {
         )}
 
         {step !== 3 && failure && <div className="np-err"><b>Не выполнено:</b> {failure}</div>}
-        {step === 3 && !profile && <div className="empty">Сборка профиля…</div>}
+        {step === 4 && !profile && <div className="empty">Сборка профиля…</div>}
       </div>
     </div>
   )

@@ -143,7 +143,7 @@ export function SeedDemand() {
                 {['A_prime', 'B_prime', 'C_prime'].map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
-            <button className="tab tab--primary" onClick={addPopulation} disabled={!draft.id.trim()}>
+            <button title="задайте идентификатор — по нему объект ложится в модель" className="tab tab--primary" onClick={addPopulation} disabled={!draft.id.trim()}>
               Добавить слой
             </button>
           </div>

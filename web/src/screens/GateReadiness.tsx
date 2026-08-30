@@ -103,7 +103,7 @@ export function GateReadiness({ project, onGo }: {
       <DateInput iso={asDue} name="Срок" width={128} onChange={setAsDue} />
       <input placeholder="комментарий" value={asNote} style={{ width: 150 }}
         onChange={(e) => setAsNote(e.target.value)} />
-      <button className="rr-btn" disabled={!asWho.trim()} onClick={() => doAssign(gaps)}>
+      <button title="назовите исполнителя — задание адресуется человеку, не воздуху" className="rr-btn" disabled={!asWho.trim()} onClick={() => doAssign(gaps)}>
         назначить{gaps.length > 1 ? ` · ${gaps.length}` : ''}
       </button>
       <button className="rr-assign" onClick={() => setAssignFor(null)}>отмена</button>
@@ -269,7 +269,7 @@ export function GateReadiness({ project, onGo }: {
                               onChange={(e) => setNaText(e.target.value)}
                               style={{ width: 220 }}
                             />
-                            <button className="rr-btn" disabled={naText.trim().length < 10}
+                            <button title="обоснование неприменимости — не меньше десяти знаков: «н/п» без причины не принимается" className="rr-btn" disabled={naText.trim().length < 10}
                               onClick={() => markNa(c.id)}>
                               записать
                             </button>

@@ -163,7 +163,7 @@ export function LoginGate({ children }: { children: ReactNode }) {
           onKeyDown={(e) => { if (e.key === 'Enter') enter() }} />
         {failure && <div className="np-err">{failure}</div>}
         <div className="np-actions">
-          <button className="np-btn np-pri" disabled={busy || !login || !password} onClick={enter}>
+          <button title="введите логин и пароль" className="np-btn np-pri" disabled={busy || !login || !password} onClick={enter}>
             Войти
           </button>
         </div>

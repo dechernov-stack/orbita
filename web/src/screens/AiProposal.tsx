@@ -173,7 +173,7 @@ export function AiProposal() {
           style={{ width: '100%', height: 140, fontFamily: 'var(--font-mono)', fontSize: 12 }}
         />
         <div>
-          <button className="tab" onClick={submit} disabled={!raw.trim()}>
+          <button title="вставьте ответ службы пакетом — кнопка оживёт" className="tab" onClick={submit} disabled={!raw.trim()}>
             Разобрать и отфильтровать
           </button>
         </div>
@@ -353,7 +353,7 @@ function Proposal({
             предложение ИИ, акцептовано инженером (TZ-AI-004).
           </div>
         ) : (
-          <button className="tab" onClick={onAccept} disabled={selected.size === 0}>
+          <button title="отметьте хотя бы одно предложение слева — акцепт идёт по выбранным" className="tab" onClick={onAccept} disabled={selected.size === 0}>
             Применить выбранные поля
           </button>
         )}

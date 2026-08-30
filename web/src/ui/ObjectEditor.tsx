@@ -375,7 +375,7 @@ export function ObjectEditor({ kind, schemaName, id, title, maturity, template, 
                 onChange={(e) => setChangeRef(e.target.value)}
                 style={{ width: 160 }}
               />
-              <button
+              <button title="напишите, ЧТО меняется: правка без основания в историю не идёт"
                 type="button"
                 className="tab"
                 disabled={busy || !changeRef.trim()}

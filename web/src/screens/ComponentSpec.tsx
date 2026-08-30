@@ -152,7 +152,7 @@ export function ComponentSpec({
                 onChange={(e) => setDraft({ ...draft, value: e.target.value })} style={{ width: 60 }} />
               <input placeholder="ед. СИ" value={draft.unit}
                 onChange={(e) => setDraft({ ...draft, unit: e.target.value })} style={{ width: 60 }} />
-              <button
+              <button title="у характеристики обязаны быть имя и единица из справочника"
                 type="button"
                 className="tab"
                 disabled={!draft.name || !draft.unit}

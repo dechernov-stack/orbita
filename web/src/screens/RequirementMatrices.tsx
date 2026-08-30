@@ -94,7 +94,7 @@ export function RequirementMatrices({ kind }: { kind: MatrixKind }) {
             onChange={(e) => setLink({ ...link, from: e.target.value })} />
           <input placeholder="свидетельство (EV-…)" value={link.to} style={{ width: 150 }}
             onChange={(e) => setLink({ ...link, to: e.target.value })} />
-          <button type="button" className="tab" disabled={!link.from || !link.to}
+          <button title="выберите оба конца связи: откуда и куда" type="button" className="tab" disabled={!link.from || !link.to}
             onClick={() => {
               setLinkReport(null)
               edit.addVerificationLink(link.from, link.to)

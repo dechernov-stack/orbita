@@ -92,7 +92,7 @@ export function GroundSegment() {
           <label>Сколько добавить</label>
           <input type="number" min={1} max={10} value={k} style={{ width: 60 }}
             onChange={(e) => setK(Number(e.target.value))} />
-          <button type="button" className="tab tab--primary" disabled={candidates.length === 0} onClick={suggest}>
+          <button title="кандидатов нет: сначала задайте площадки наземного сегмента" type="button" className="tab tab--primary" disabled={candidates.length === 0} onClick={suggest}>
             Подобрать
           </button>
         </div>

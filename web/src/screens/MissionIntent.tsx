@@ -15,7 +15,13 @@ const FIELD_LABEL: Record<string, string> = {
   horizon: 'Горизонт',
 }
 
-export function MissionIntent({ onAccepted }: { onAccepted?: () => void }) {
+export function MissionIntent(
+  { onAccepted, onNeedMaterials, onNeedParse }: {
+    onAccepted?: () => void
+    onNeedMaterials?: () => void
+    onNeedParse?: () => void
+  },
+) {
   const { author } = useSession()
   const [readiness, setReadiness] = useState<Awaited<ReturnType<typeof api.missionIntentReadiness>> | null>(null)
   const [draft, setDraft] = useState<MissionIntentDraftView | null>(null)
@@ -81,12 +87,29 @@ export function MissionIntent({ onAccepted }: { onAccepted?: () => void }) {
         {note && <div className="secondary">{note}</div>}
 
         <div className="toolbar" style={{ padding: '4px 0', gap: 6 }}>
-          <button className="rr-assign" disabled={!readiness.can_compose || busy} onClick={composePrompt}
-            title={readiness.can_compose
-              ? 'собрать промпт по урожаю разбора и блокам канона — для закрытого контура'
-              : 'нечего собирать: документы не разобраны'}>
-            Собрать из документов
-          </button>
+          {/* Ф-11: неактивный контрол обязан нести причину И ПУТЬ оживления.
+              Нечего разбирать — кнопка не сереет, а ведёт туда, где материал
+              прикладывается, и возвращает обратно. */}
+          {readiness.can_compose ? (
+            <button className="rr-assign" disabled={busy} onClick={composePrompt}
+              title="собрать промпт по урожаю разбора и блокам канона — для закрытого контура">
+              Собрать из документов
+            </button>
+          ) : readiness.documents === 0 && onNeedMaterials ? (
+            <button className="rr-assign" onClick={onNeedMaterials}
+              title="собирать замысел не из чего: материалов в проекте нет — шаг назад приложит документ, оттуда вернётесь сюда">
+              ← Приложить материалы
+            </button>
+          ) : readiness.documents > 0 && onNeedParse ? (
+            <button className="rr-assign" onClick={onNeedParse}
+              title="материалы есть, но не разобраны: разбор даёт канон с якорями, по нему и собирается замысел">
+              Разобрать документы →
+            </button>
+          ) : (
+            <button className="rr-assign" disabled title={readiness.why}>
+              Собрать из документов
+            </button>
+          )}
           {readiness.sources.map((s) => (
             <span key={s.document} className="chip"
               title={s.harvest ? 'есть смысловой разбор — урожай усилит сборку' : 'есть канон разбора'}>
