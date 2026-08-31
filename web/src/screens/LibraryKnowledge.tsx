@@ -8,6 +8,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import { useSession } from '../ui/session'
+import { SortTh, useSort } from '../ui/sort'
 import type { KnowledgeExportView, NormativeCandidatesPacket, NormativeReadiness } from '../api/types'
 
 export function LibraryKnowledge() {
@@ -87,6 +88,21 @@ export function LibraryKnowledge() {
       .finally(() => setBusy(false))
   }
 
+  // Сортировка заголовком (§2.4) — на обе таблицы экрана
+  const норм = useSort(readiness?.sources ?? [], {
+    id: (r) => r.id,
+    clauses: (r) => r.clauses,
+    document: (r) => r.document ?? '',
+    speaks: (r) => (r.speaks ? 1 : 0),
+  })
+  const док = useSort(readiness?.documents ?? [], {
+    id: (r) => r.id,
+    kind: (r) => r.kind,
+    parsed: (r) => (r.parsed ? 1 : 0),
+    harvested: (r) => (r.harvested ? 1 : 0),
+    blocks: (r) => (r.in_prompt ? r.blocks : -1),
+  })
+
   if (!readiness) return null
 
   return (
@@ -98,10 +114,15 @@ export function LibraryKnowledge() {
 
       <table className="grid" style={{ marginBottom: 8 }}>
         <thead>
-          <tr><th>Норматив</th><th>Пунктов</th><th>Документ</th><th>Что знает</th></tr>
+          <tr>
+            <SortTh label="Норматив" sortKey="id" sort={норм.sort} onToggle={норм.toggle} />
+            <SortTh label="Пунктов" sortKey="clauses" sort={норм.sort} onToggle={норм.toggle} />
+            <SortTh label="Документ" sortKey="document" sort={норм.sort} onToggle={норм.toggle} />
+            <SortTh label="Что знает" sortKey="speaks" sort={норм.sort} onToggle={норм.toggle} />
+          </tr>
         </thead>
         <tbody>
-          {readiness.sources.map((s) => (
+          {норм.sorted.map((s) => (
             <tr key={s.id}>
               <td className="mono">{s.id}</td>
               <td>{s.clauses || '—'}</td>
@@ -124,10 +145,16 @@ export function LibraryKnowledge() {
         : (
           <table className="grid" style={{ marginBottom: 8 }}>
             <thead>
-              <tr><th>Документ</th><th>Тип</th><th>Разбор</th><th>Урожай</th><th>В промпт</th></tr>
+              <tr>
+                <SortTh label="Документ" sortKey="id" sort={док.sort} onToggle={док.toggle} />
+                <SortTh label="Тип" sortKey="kind" sort={док.sort} onToggle={док.toggle} />
+                <SortTh label="Разбор" sortKey="parsed" sort={док.sort} onToggle={док.toggle} />
+                <SortTh label="Урожай" sortKey="harvested" sort={док.sort} onToggle={док.toggle} />
+                <SortTh label="В промпт" sortKey="blocks" sort={док.sort} onToggle={док.toggle} />
+              </tr>
             </thead>
             <tbody>
-              {readiness.documents.map((d) => (
+              {док.sorted.map((d) => (
                 <tr key={d.id}>
                   <td className="mono" title={d.name}>{d.id}</td>
                   <td>{d.kind || '—'}</td>

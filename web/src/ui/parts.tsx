@@ -1,9 +1,21 @@
 // Мелкие элементы отображения. Ни один из них не считает — все получают
 // готовые значения с сервера и только выбирают, как их нарисовать.
 import type { BudgetBar, ConditionView } from '../api/types'
+import { Tooltip } from './Tooltip'
+import { STATUS_MEANING } from './maturity'
 
+/**
+ * Статусная точка. Раньше несла в подсказке машинное имя статуса («Draft»),
+ * то есть повторяла саму себя. Теперь — расшифровку смысла: что этот статус
+ * значит для работы (§2.3 процесс-задачи).
+ */
 export function StatusDot({ status }: { status: string }) {
-  return <span className={`dot status-${status}`} title={status} />
+  const meaning = STATUS_MEANING[status]
+  return (
+    <Tooltip text={meaning ? `${status}: ${meaning}` : status}>
+      <span className={`dot status-${status}`} title={meaning ?? status} />
+    </Tooltip>
+  )
 }
 
 /**

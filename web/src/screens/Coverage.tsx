@@ -13,6 +13,7 @@ import { api, ApiError } from '../api/client'
 import { MapView } from '../ui/MapView'
 import { edit, type StoredSummary } from '../api/edit'
 import type { CoverageView } from '../api/types'
+import { SortTh, useSort } from '../ui/sort'
 
 type Horizon = 'orbit' | 'day' | 'run'
 
@@ -46,6 +47,16 @@ export function Coverage() {
   const [notice, setNotice] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+
+  // Сортировка заголовком (§2.4): худшие ячейки — вверх одним кликом
+  const { sorted: sortedCells, sort: cellSort, toggle: cellToggle } = useSort(view?.cells ?? [], {
+    cell: (c) => c.cell_id,
+    mean: (c) => c.availability_mean,
+    worst: (c) => c.availability_worst,
+    passes: (c) => c.pass_minutes,
+    windows: (c) => c.access_windows,
+    gap: (c) => c.max_gap_s ?? 0,
+  })
 
   // Сценарий выбирается из хранимых, не зашивается (шаг 16 §3.2)
   useEffect(() => {
@@ -140,19 +151,19 @@ export function Coverage() {
           <table>
             <thead>
               <tr>
-                <th style={{ width: 110 }}>Ячейка</th>
-                <th style={{ width: 90 }}>Среднее</th>
-                <th style={{ width: 110 }}>Худшее окно</th>
+                <SortTh label="Ячейка" sortKey="cell" sort={cellSort} onToggle={cellToggle} width={110} />
+                <SortTh label="Среднее" sortKey="mean" sort={cellSort} onToggle={cellToggle} width={90} />
+                <SortTh label="Худшее окно" sortKey="worst" sort={cellSort} onToggle={cellToggle} width={110} />
                 {horizon === 'day' && <th style={{ width: 130 }}>С проф. активности</th>}
-                <th style={{ width: 120 }}>Проходо-мин</th>
-                <th style={{ width: 90 }}>Окон</th>
-                <th style={{ width: 110 }}>Макс. разрыв</th>
+                <SortTh label="Проходо-мин" sortKey="passes" sort={cellSort} onToggle={cellToggle} width={120} />
+                <SortTh label="Окон" sortKey="windows" sort={cellSort} onToggle={cellToggle} width={90} />
+                <SortTh label="Макс. разрыв" sortKey="gap" sort={cellSort} onToggle={cellToggle} width={110} />
                 <th style={{ width: 120 }}>Повторный обзор</th>
                 <th>Класс</th>
               </tr>
             </thead>
             <tbody>
-              {view.cells.map((cell) => (
+              {sortedCells.map((cell) => (
                 <tr key={cell.cell_id}>
                   <td className="mono">{cell.cell_id}</td>
                   <td className="num">{fmtShare(cell.availability_mean)}</td>

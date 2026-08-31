@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import { edit, type StoredSummary } from '../api/edit'
 import type { GatesView, MaturityView, ReadinessView } from '../api/types'
+import { SortTh, useSort } from '../ui/sort'
 
 // Перечень точек больше не зашит (Шаг 17 C4): его называет проект, а без
 // проекта — реестр ворот. Зашитый список показывал точки, которых у проекта
@@ -31,6 +32,13 @@ export function Readiness() {
   const [pkg, setPkg] = useState<PackageSummary | null>(null)
   const [pkgError, setPkgError] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  // Сортировка заголовком (§2.4): разрывы точки — по объекту и требуемому
+  const { sorted: sortedGaps, sort: gapSort, toggle: gapToggle } = useSort(view?.gaps ?? [], {
+    id: (g) => g.id,
+    actual: (g) => g.actual ?? '',
+    required: (g) => g.required ?? '',
+  })
 
   useEffect(() => {
     if (!gate) return
@@ -116,14 +124,14 @@ export function Readiness() {
               <table>
                 <thead>
                   <tr>
-                    <th style={{ width: 120 }}>Объект</th>
-                    <th style={{ width: 140 }}>Статус сейчас</th>
-                    <th style={{ width: 140 }}>Требуется</th>
+                    <SortTh label="Объект" sortKey="id" sort={gapSort} onToggle={gapToggle} width={120} />
+                    <SortTh label="Статус сейчас" sortKey="actual" sort={gapSort} onToggle={gapToggle} width={140} />
+                    <SortTh label="Требуется" sortKey="required" sort={gapSort} onToggle={gapToggle} width={140} />
                     <th>Что сделать</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {view.gaps.map((gap) => (
+                  {sortedGaps.map((gap) => (
                     <tr key={gap.id}>
                       <td>
                         <span className="id">{gap.id}</span>

@@ -7,6 +7,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import type { RiskRegisterView } from '../api/types'
+import { SortTh, useSort } from '../ui/sort'
 
 const CRITICALITY_CLASS: Record<string, string> = {
   low: 'cell--low',
@@ -36,6 +37,17 @@ export function Risks() {
     view.matrix.find((c) => c.risks.includes(id))?.criticality ?? 'low'
 
   const rows = filter ? view.risks.filter((r) => criticalityOf(str(r, 'id')) === filter) : view.risks
+  // Сортировка заголовком (§2.4): вероятность, влияние и критичность — числами
+  const РАНГ: Record<string, number> = { low: 1, medium: 2, high: 3, extreme: 4 }
+  const { sorted, sort, toggle } = useSort(rows, {
+    id: (r) => str(r, 'id'),
+    statement: (r) => str(r, 'statement'),
+    category: (r) => str(r, 'category'),
+    p: (r) => num(r, 'probability') ?? 0,
+    i: (r) => num(r, 'impact') ?? 0,
+    severity: (r) => РАНГ[criticalityOf(str(r, 'id'))] ?? 0,
+    state: (r) => str(r, 'status'),
+  })
   const risk = view.risks.find((r) => str(r, 'id') === selected)
 
   return (
@@ -56,17 +68,17 @@ export function Risks() {
         <table>
           <thead>
             <tr>
-              <th style={{ width: 100 }}>ID</th>
-              <th>Формулировка</th>
-              <th style={{ width: 110 }}>Категория</th>
-              <th style={{ width: 60 }}>P</th>
-              <th style={{ width: 60 }}>I</th>
-              <th style={{ width: 100 }}>Критичность</th>
-              <th style={{ width: 90 }}>Состояние</th>
+              <SortTh label="ID" sortKey="id" sort={sort} onToggle={toggle} width={100} />
+              <SortTh label="Формулировка" sortKey="statement" sort={sort} onToggle={toggle} />
+              <SortTh label="Категория" sortKey="category" sort={sort} onToggle={toggle} width={110} />
+              <SortTh label="P" sortKey="p" sort={sort} onToggle={toggle} width={60} />
+              <SortTh label="I" sortKey="i" sort={sort} onToggle={toggle} width={60} />
+              <SortTh label="Критичность" sortKey="severity" sort={sort} onToggle={toggle} width={100} />
+              <SortTh label="Состояние" sortKey="state" sort={sort} onToggle={toggle} width={90} />
             </tr>
           </thead>
           <tbody>
-            {rows.map((r) => (
+            {sorted.map((r) => (
               <tr
                 key={str(r, 'id')}
                 aria-selected={str(r, 'id') === selected}

@@ -6,6 +6,7 @@
 import { useState } from 'react'
 import { api, ApiError } from '../api/client'
 import type { GroundSuggestView } from '../api/types'
+import { SortTh, useSort } from '../ui/sort'
 
 interface Candidate {
   id: string
@@ -40,6 +41,14 @@ export function GroundSegment() {
       .catch((e) => setError(e instanceof ApiError ? e.message.slice(0, 300) : String(e)))
   }
 
+  // Сортировка заголовком (§2.4): площадки — по имени и координатам
+  const { sorted, sort, toggle } = useSort(candidates, {
+    id: (c) => c.id,
+    name: (c) => c.name,
+    lat: (c) => c.lat_deg,
+    lon: (c) => c.lon_deg,
+  })
+
   return (
     <div className="split">
       <div className="pane" style={{ padding: 16 }}>
@@ -68,14 +77,14 @@ export function GroundSegment() {
           <table>
             <thead>
               <tr>
-                <th style={{ width: 90 }}>id</th>
-                <th>Название</th>
-                <th style={{ width: 90 }}>Широта</th>
-                <th style={{ width: 90 }}>Долгота</th>
+                <SortTh label="id" sortKey="id" sort={sort} onToggle={toggle} width={90} />
+                <SortTh label="Название" sortKey="name" sort={sort} onToggle={toggle} />
+                <SortTh label="Широта" sortKey="lat" sort={sort} onToggle={toggle} width={90} />
+                <SortTh label="Долгота" sortKey="lon" sort={sort} onToggle={toggle} width={90} />
               </tr>
             </thead>
             <tbody>
-              {candidates.map((c) => (
+              {sorted.map((c) => (
                 <tr key={c.id} onClick={() => setCandidates((prev) => prev.filter((x) => x.id !== c.id))}
                   title="убрать из кандидатов" style={{ cursor: 'pointer' }}>
                   <td className="mono">{c.id}</td>

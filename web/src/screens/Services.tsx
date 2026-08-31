@@ -12,6 +12,7 @@ import type { ServiceRow } from '../api/types'
 import { ObjectEditor } from '../ui/ObjectEditor'
 import { StatusDot } from '../ui/parts'
 import { useSession } from '../ui/session'
+import { SortTh, useSort } from '../ui/sort'
 
 export function Services() {
   const { label } = useSession()
@@ -46,6 +47,14 @@ export function Services() {
   // Без выбора показывается первый сервис: экран открывают, чтобы увидеть
   // покрытие классов, и пустая панель прячет ровно это.
   const service = rows.find((r) => r.id === selected) ?? rows[0]
+  // Сортировка заголовком (§2.4): классы и требования — числом позиций
+  const { sorted, sort, toggle } = useSort(rows, {
+    id: (r) => r.id,
+    name: (r) => r.name,
+    classes: (r) => r.profiles.length,
+    requirements: (r) => r.requirements.length,
+    status: (r) => r.status,
+  })
 
   return (
     <div className="split">
@@ -74,15 +83,15 @@ export function Services() {
         <table>
           <thead>
             <tr>
-              <th style={{ width: 100 }}>ID</th>
-              <th>Сервис</th>
-              <th style={{ width: 180 }}>Классы</th>
-              <th style={{ width: 160 }}>Требований</th>
-              <th style={{ width: 90 }}>Статус</th>
+              <SortTh label="ID" sortKey="id" sort={sort} onToggle={toggle} width={100} />
+              <SortTh label="Сервис" sortKey="name" sort={sort} onToggle={toggle} />
+              <SortTh label="Классы" sortKey="classes" sort={sort} onToggle={toggle} width={180} />
+              <SortTh label="Требований" sortKey="requirements" sort={sort} onToggle={toggle} width={160} />
+              <SortTh label="Статус" sortKey="status" sort={sort} onToggle={toggle} width={90} />
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
+            {sorted.map((row) => (
               <tr
                 key={row.id}
                 aria-selected={row.id === service?.id}

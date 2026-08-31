@@ -7,6 +7,7 @@ import { api } from '../api/client'
 import { Num } from '../ui/Num'
 import { useSession } from '../ui/session'
 import type { DocumentHarvestView } from '../api/types'
+import { SortTh, useSort } from '../ui/sort'
 
 type Item = DocumentHarvestView['items'][number]
 
@@ -90,8 +91,18 @@ export function DocHarvest({ documentId }: { documentId: string }) {
   const setField = (index: number, field: string, value: string) =>
     setFilled((prev) => ({ ...prev, [index]: { ...prev[index], [field]: value } }))
 
+  // Сортировка заголовком (§2.4): кандидаты урожая — по классу и координате.
+  // Исходный индекс несём с собой: акцепт идёт по позициям пакета, и порядок
+  // показа не имеет права его сдвинуть.
+  const пронумерованные = (view?.items ?? []).map((item, index) => ({ item, index }))
+  const { sorted, sort, toggle } = useSort(пронумерованные, {
+    cls: (r) => String(r.item.class ?? ''),
+    what: (r) => String(r.item.statement ?? r.item.name ?? ''),
+    block: (r) => String(r.item.block ?? ''),
+  })
+
   if (!view) {
-    return (
+  return (
       <div style={{ padding: '8px 0' }}>
         <div className="card">
           <h3>Смысловой разбор — урожай</h3>
@@ -180,14 +191,14 @@ export function DocHarvest({ documentId }: { documentId: string }) {
             <thead>
               <tr>
                 <th title="выбрать кандидата для акцепта">✓</th>
-                <th>Класс</th>
-                <th>Что нашлось</th>
-                <th title="координата блока канона — основание кандидата">Блок</th>
+                <SortTh label="Класс" sortKey="cls" sort={sort} onToggle={toggle} />
+                <SortTh label="Что нашлось" sortKey="what" sort={sort} onToggle={toggle} />
+                <SortTh label="Блок" sortKey="block" sort={sort} onToggle={toggle} />
                 <th title="куда ляжет при акцепте и чего системе не хватает">Адрес и дозаполнение</th>
               </tr>
             </thead>
             <tbody>
-              {view.items.map((item, index) => {
+              {sorted.map(({ item, index }) => {
                 const target = view.targets[item.class]
                 const value = item.display ?? ''
                 return (

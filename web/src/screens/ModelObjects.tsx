@@ -12,6 +12,7 @@ import { edit, type KindRow, type StoredSummary } from '../api/edit'
 import { ObjectEditor } from '../ui/ObjectEditor'
 import { StatusDot } from '../ui/parts'
 import { useSession } from '../ui/session'
+import { SortTh, useSort } from '../ui/sort'
 
 /** Подписи видов: код вида — тоже код, и на экран он выходить не должен. */
 const KIND_TITLE: Record<string, string> = {
@@ -69,6 +70,14 @@ export function ModelObjects({ kinds }: { kinds: string[] }) {
   if (!available) return <div className="empty">Загрузка видов…</div>
   if (!row) return <div className="empty">Вид «{kind}» ядру неизвестен</div>
 
+  // Сортировка заголовком (§2.4): реестр объектов модели
+  const { sorted, sort, toggle } = useSort(rows ?? [], {
+    id: (o) => o.id,
+    version: (o) => o.version,
+    status: (o) => o.status,
+    title: (o) => o.title ?? '',
+  })
+
   return (
     <div className="split">
       <div className="pane">
@@ -106,14 +115,14 @@ export function ModelObjects({ kinds }: { kinds: string[] }) {
           <table>
             <thead>
               <tr>
-                <th style={{ width: 90 }}>ID</th>
-                <th style={{ width: 70 }}>Версия</th>
-                <th style={{ width: 130 }}>Статус</th>
-                <th>Содержание</th>
+                <SortTh label="ID" sortKey="id" sort={sort} onToggle={toggle} width={90} />
+                <SortTh label="Версия" sortKey="version" sort={sort} onToggle={toggle} width={70} />
+                <SortTh label="Статус" sortKey="status" sort={sort} onToggle={toggle} width={130} />
+                <SortTh label="Содержание" sortKey="title" sort={sort} onToggle={toggle} />
               </tr>
             </thead>
             <tbody>
-              {rows.map((o) => (
+              {sorted.map((o) => (
                 <tr
                   key={o.id}
                   aria-selected={o.id === selected}

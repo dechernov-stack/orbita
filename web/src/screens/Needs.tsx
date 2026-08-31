@@ -16,6 +16,7 @@ import type { NeedRow } from '../api/types'
 import { STATUS_MEANING } from '../ui/maturity'
 import { ObjectEditor } from '../ui/ObjectEditor'
 import { StatusDot } from '../ui/parts'
+import { SortTh, useSort } from '../ui/sort'
 import { useSession } from '../ui/session'
 
 export function Needs() {
@@ -49,6 +50,17 @@ export function Needs() {
   if (!rows) return <div className="empty">Загрузка…</div>
 
   const shown = onlyOrphans ? rows.filter((r) => r.services.length === 0) : rows
+
+  // Сортировка заголовком (§2.4): клиентская, по загруженному
+  const { sorted, sort, toggle } = useSort(shown, {
+    id: (r) => r.id,
+    statement: (r) => r.statement,
+    stakeholder: (r) => r.stakeholder,
+    role: (r) => r.role,
+    priority: (r) => r.priority,
+    services: (r) => r.services.length,
+    status: (r) => r.status,
+  })
 
   /** Редактор нужды — один узел: раскрывается ВНИЗ, как в прочих реестрах. */
   const editor = (
@@ -176,17 +188,17 @@ export function Needs() {
                   Прежде формулировка имела фиксированные 320 px и обрезалась
                   многоточием при свободном месте справа (шаг 15 §2, дефект 1). */}
               <tr>
-                <th style={{ width: 90 }}>ID</th>
-                <th>Формулировка</th>
-                <th style={{ width: 140 }}>Стейкхолдер</th>
-                <th style={{ width: 120 }}>Роль</th>
-                <th style={{ width: 70 }}>Приоритет</th>
-                <th style={{ width: 110 }}>Сервисы</th>
-                <th style={{ width: 95 }}>Статус</th>
+                <SortTh label="ID" sortKey="id" sort={sort} onToggle={toggle} width={90} />
+                <SortTh label="Формулировка" sortKey="statement" sort={sort} onToggle={toggle} />
+                <SortTh label="Стейкхолдер" sortKey="stakeholder" sort={sort} onToggle={toggle} width={140} />
+                <SortTh label="Роль" sortKey="role" sort={sort} onToggle={toggle} width={120} />
+                <SortTh label="Приоритет" sortKey="priority" sort={sort} onToggle={toggle} width={70} />
+                <SortTh label="Сервисы" sortKey="services" sort={sort} onToggle={toggle} width={110} />
+                <SortTh label="Статус" sortKey="status" sort={sort} onToggle={toggle} width={95} />
               </tr>
             </thead>
             <tbody>
-              {shown.map((row) => (
+              {sorted.map((row) => (
                 <React.Fragment key={row.id}>
                 <tr
                   aria-selected={row.id === selected}

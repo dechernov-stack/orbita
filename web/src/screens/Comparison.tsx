@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react'
 import { api, ApiError } from '../api/client'
 import { edit, type StoredSummary } from '../api/edit'
 import type { BottlenecksReport, ComparisonView, StaleResultRow } from '../api/types'
+import { SortTh, useSort } from '../ui/sort'
 
 const SIZE = 260
 const CENTER = SIZE / 2
@@ -19,6 +20,11 @@ export function Comparison() {
   const [view, setView] = useState<ComparisonView | null>(null)
   const [stale, setStale] = useState<StaleResultRow[]>([])
   const [bottlenecks, setBottlenecks] = useState<BottlenecksReport | null>(null)
+
+  // Сортировка заголовком (§2.4): альтернативы — по имени и свёртке
+  const { sorted: sortedOptions, sort: optSort, toggle: optToggle } = useSort(view?.options ?? [], {
+    name: (o) => o.name,
+  })
   /** Выбранные оси; пусто — набор по умолчанию из фактических (§3.5). */
   const [axes, setAxes] = useState<string[]>([])
   const [notice, setNotice] = useState<string | null>(null)
@@ -190,7 +196,7 @@ export function Comparison() {
         <table>
           <thead>
             <tr>
-              <th>Вариант</th>
+              <SortTh label="Вариант" sortKey="name" sort={optSort} onToggle={optToggle} />
               {view.axes.map((a) => (
                 <th key={a} style={{ width: 120, textAlign: 'right' }}>
                   {view.axisLabels?.[a] ?? a}
@@ -200,7 +206,7 @@ export function Comparison() {
             </tr>
           </thead>
           <tbody>
-            {view.options.map((option) => (
+            {sortedOptions.map((option) => (
               <tr key={option.name}>
                 <td>{option.name}</td>
                 {view.axes.map((a) => (
