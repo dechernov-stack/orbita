@@ -829,15 +829,20 @@ class HttpApi(private val boundary: Boundary) {
                 // занятые id — свежие, след в provenance.ai.source_id
                 val (remapped, idMap) = importer.remapForAccept(arr, ctx)
                 payload.set<ObjectNode>("objects", remapped)
-                val сырой = importer.import(payload, by, ctx)
                 // Отказ обязан называть строку ТАК ЖЕ, как её видит инженер:
                 // перебитый id ему ни о чём не говорит и снять отметку не даёт
-                // (находка живого прохода ПМИ-3).
+                // (находка живого прохода ПМИ-3). Отказ записи приходит
+                // ИСКЛЮЧЕНИЕМ — обогащать надо и его, иначе обратный адрес
+                // теряется по дороге к общему обработчику.
                 val обратно = idMap.entries.associate { (old, new) -> new to old }
-                val report = if (обратно.isEmpty()) сырой else BatchReport(
-                    сырой.written,
-                    сырой.problems.map { p -> p.copy(sourceId = обратно[p.id]) },
-                )
+                fun сИсходными(r: BatchReport): BatchReport =
+                    if (обратно.isEmpty()) r
+                    else BatchReport(r.written, r.problems.map { p -> p.copy(sourceId = обратно[p.id]) })
+                val report = try {
+                    сИсходными(importer.import(payload, by, ctx))
+                } catch (e: BatchRejectedException) {
+                    throw BatchRejectedException(сИсходными(e.report))
+                }
                 // акцепт дописывается к своему вызову: «сколько дошло до модели»
                 request.path("call").takeIf { it.isNumber }?.let {
                     if (report.ok) boundary.ai.markAccepted(it.asLong(), report.written, by)
