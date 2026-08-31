@@ -1,0 +1,647 @@
+{
+  "kind": "needs_to_services",
+  "items": [
+    {
+      "id": "SV-0101",
+      "name": "Агромониторинг посевов и почвы, подтверждённая доставка команд полива",
+      "description": "Односторонний сбор телеметрии состояния посевов и почвы (A') и подтверждённая доставка команд управления поливом и внесением (B') для агропредприятий.",
+      "traces_up": [
+        "ND-0101",
+        "ND-0102"
+      ],
+      "qos_profiles": [
+        {
+          "consumer_class": "A_prime",
+          "moe": [
+            {
+              "id": "MOE-0001",
+              "name": "delivery_probability_daily",
+              "target": {
+                "value": 0.9,
+                "unit": "1",
+                "provenance": {
+                  "source": "imported",
+                  "import": {
+                    "dataset": "Постановка миссии «Национальная спутниковая платформа IoT»",
+                    "dataset_version": "1",
+                    "retrieved_at": "2026-08-23",
+                    "terms": "внутренний документ проекта"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "consumer_class": "B_prime",
+          "moe": [
+            {
+              "id": "MOE-0002",
+              "name": "delivery_probability_n_attempts",
+              "target": {
+                "value": 0.99,
+                "unit": "1",
+                "provenance": {
+                  "source": "imported",
+                  "import": {
+                    "dataset": "Постановка миссии «Национальная спутниковая платформа IoT»",
+                    "dataset_version": "1",
+                    "retrieved_at": "2026-08-23",
+                    "terms": "внутренний документ проекта"
+                  }
+                }
+              },
+              "condition": "окно подтверждения двое суток (172800 с)"
+            }
+          ]
+        }
+      ],
+      "lifecycle": {
+        "status": "Draft",
+        "version": "1"
+      },
+      "provenance": {
+        "source": "ai_proposed"
+      }
+    },
+    {
+      "id": "SV-0102",
+      "name": "Оперативное управление ирригационными системами агропредприятия",
+      "description": "Доведение команд оперативного управления ирригационными и технологическими системами (C') для агропредприятий.",
+      "traces_up": [
+        "ND-0103"
+      ],
+      "qos_profiles": [
+        {
+          "consumer_class": "C_prime",
+          "moe": [
+            {
+              "id": "MOE-0003",
+              "name": "reaction_time_probability",
+              "target": {
+                "value": 1800,
+                "unit": "s",
+                "provenance": {
+                  "source": "imported",
+                  "import": {
+                    "dataset": "Постановка миссии «Национальная спутниковая платформа IoT»",
+                    "dataset_version": "1",
+                    "retrieved_at": "2026-08-23",
+                    "terms": "внутренний документ проекта"
+                  }
+                }
+              },
+              "condition": "доведение команды C' за 30 минут"
+            }
+          ]
+        }
+      ],
+      "lifecycle": {
+        "status": "Draft",
+        "version": "1"
+      },
+      "provenance": {
+        "source": "ai_proposed"
+      }
+    },
+    {
+      "id": "SV-0103",
+      "name": "Мониторинг сети водоснабжения и подтверждение аварийных сообщений",
+      "description": "Односторонний сбор телеметрии уровня, давления и качества воды (A') и подтверждённая доставка аварийных сообщений о протечках и авариях (B') для водоканалов.",
+      "traces_up": [
+        "ND-0104",
+        "ND-0105"
+      ],
+      "qos_profiles": [
+        {
+          "consumer_class": "A_prime",
+          "moe": [
+            {
+              "id": "MOE-0004",
+              "name": "delivery_probability_daily",
+              "target": {
+                "value": 0.9,
+                "unit": "1",
+                "provenance": {
+                  "source": "imported",
+                  "import": {
+                    "dataset": "Постановка миссии «Национальная спутниковая платформа IoT»",
+                    "dataset_version": "1",
+                    "retrieved_at": "2026-08-23",
+                    "terms": "внутренний документ проекта"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "consumer_class": "B_prime",
+          "moe": [
+            {
+              "id": "MOE-0005",
+              "name": "delivery_probability_n_attempts",
+              "target": {
+                "value": 0.99,
+                "unit": "1",
+                "provenance": {
+                  "source": "imported",
+                  "import": {
+                    "dataset": "Постановка миссии «Национальная спутниковая платформа IoT»",
+                    "dataset_version": "1",
+                    "retrieved_at": "2026-08-23",
+                    "terms": "внутренний документ проекта"
+                  }
+                }
+              },
+              "condition": "окно подтверждения двое суток (172800 с)"
+            }
+          ]
+        }
+      ],
+      "lifecycle": {
+        "status": "Draft",
+        "version": "1"
+      },
+      "provenance": {
+        "source": "ai_proposed"
+      }
+    },
+    {
+      "id": "SV-0104",
+      "name": "Оперативное управление задвижками и насосными станциями водоканала",
+      "description": "Доведение команд оперативного управления задвижками и насосными станциями (C') для водоканалов.",
+      "traces_up": [
+        "ND-0106"
+      ],
+      "qos_profiles": [
+        {
+          "consumer_class": "C_prime",
+          "moe": [
+            {
+              "id": "MOE-0006",
+              "name": "reaction_time_probability",
+              "target": {
+                "value": 1800,
+                "unit": "s",
+                "provenance": {
+                  "source": "imported",
+                  "import": {
+                    "dataset": "Постановка миссии «Национальная спутниковая платформа IoT»",
+                    "dataset_version": "1",
+                    "retrieved_at": "2026-08-23",
+                    "terms": "внутренний документ проекта"
+                  }
+                }
+              },
+              "condition": "доведение команды C' за 30 минут"
+            }
+          ]
+        }
+      ],
+      "lifecycle": {
+        "status": "Draft",
+        "version": "1"
+      },
+      "provenance": {
+        "source": "ai_proposed"
+      }
+    },
+    {
+      "id": "SV-0105",
+      "name": "Подтверждённая телеметрия состояния линий и оперативное управление коммутационной аппаратурой",
+      "description": "Подтверждённая доставка сигналов о состоянии линий электропередачи (B') и доведение команд оперативного управления коммутационной аппаратурой (C') для энергосетевой компании.",
+      "traces_up": [
+        "ND-0107",
+        "ND-0108"
+      ],
+      "qos_profiles": [
+        {
+          "consumer_class": "B_prime",
+          "moe": [
+            {
+              "id": "MOE-0007",
+              "name": "delivery_probability_n_attempts",
+              "target": {
+                "value": 0.99,
+                "unit": "1",
+                "provenance": {
+                  "source": "imported",
+                  "import": {
+                    "dataset": "Постановка миссии «Национальная спутниковая платформа IoT»",
+                    "dataset_version": "1",
+                    "retrieved_at": "2026-08-23",
+                    "terms": "внутренний документ проекта"
+                  }
+                }
+              },
+              "condition": "окно подтверждения двое суток (172800 с)"
+            }
+          ]
+        },
+        {
+          "consumer_class": "C_prime",
+          "moe": [
+            {
+              "id": "MOE-0008",
+              "name": "reaction_time_probability",
+              "target": {
+                "value": 1800,
+                "unit": "s",
+                "provenance": {
+                  "source": "imported",
+                  "import": {
+                    "dataset": "Постановка миссии «Национальная спутниковая платформа IoT»",
+                    "dataset_version": "1",
+                    "retrieved_at": "2026-08-23",
+                    "terms": "внутренний документ проекта"
+                  }
+                }
+              },
+              "condition": "доведение команды C' за 30 минут"
+            }
+          ]
+        }
+      ],
+      "lifecycle": {
+        "status": "Draft",
+        "version": "1"
+      },
+      "provenance": {
+        "source": "ai_proposed"
+      }
+    },
+    {
+      "id": "SV-0106",
+      "name": "Трекинг местоположения и подтверждённые событийные сообщения логистики",
+      "description": "Односторонняя передача данных о местоположении и статусе грузового транспорта (A') и подтверждённая доставка событийных сообщений о состоянии груза (B') для логистических компаний.",
+      "traces_up": [
+        "ND-0201",
+        "ND-0202"
+      ],
+      "qos_profiles": [
+        {
+          "consumer_class": "A_prime",
+          "moe": [
+            {
+              "id": "MOE-0009",
+              "name": "delivery_probability_daily",
+              "target": {
+                "value": 0.9,
+                "unit": "1",
+                "provenance": {
+                  "source": "imported",
+                  "import": {
+                    "dataset": "Постановка миссии «Национальная спутниковая платформа IoT»",
+                    "dataset_version": "1",
+                    "retrieved_at": "2026-08-23",
+                    "terms": "внутренний документ проекта"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "consumer_class": "B_prime",
+          "moe": [
+            {
+              "id": "MOE-0010",
+              "name": "delivery_probability_n_attempts",
+              "target": {
+                "value": 0.99,
+                "unit": "1",
+                "provenance": {
+                  "source": "imported",
+                  "import": {
+                    "dataset": "Постановка миссии «Национальная спутниковая платформа IoT»",
+                    "dataset_version": "1",
+                    "retrieved_at": "2026-08-23",
+                    "terms": "внутренний документ проекта"
+                  }
+                }
+              },
+              "condition": "окно подтверждения двое суток (172800 с)"
+            }
+          ]
+        }
+      ],
+      "lifecycle": {
+        "status": "Draft",
+        "version": "1"
+      },
+      "provenance": {
+        "source": "ai_proposed"
+      }
+    },
+    {
+      "id": "SV-0107",
+      "name": "Оперативная блокировка транспортного средства",
+      "description": "Доведение команды оперативного управления блокировкой транспортного средства (C') для логистических компаний.",
+      "traces_up": [
+        "ND-0203"
+      ],
+      "qos_profiles": [
+        {
+          "consumer_class": "C_prime",
+          "moe": [
+            {
+              "id": "MOE-0011",
+              "name": "reaction_time_probability",
+              "target": {
+                "value": 1800,
+                "unit": "s",
+                "provenance": {
+                  "source": "imported",
+                  "import": {
+                    "dataset": "Постановка миссии «Национальная спутниковая платформа IoT»",
+                    "dataset_version": "1",
+                    "retrieved_at": "2026-08-23",
+                    "terms": "внутренний документ проекта"
+                  }
+                }
+              },
+              "condition": "доведение команды C' за 30 минут"
+            }
+          ]
+        }
+      ],
+      "lifecycle": {
+        "status": "Draft",
+        "version": "1"
+      },
+      "provenance": {
+        "source": "ai_proposed"
+      }
+    },
+    {
+      "id": "SV-0108",
+      "name": "Мониторинг координат промысловых операций и подтверждение данных об улове",
+      "description": "Односторонняя передача координат и параметров хода промысловых операций (A') и подтверждённая передача данных о суточном улове (B') для предприятий морского промысла.",
+      "traces_up": [
+        "ND-0204",
+        "ND-0205"
+      ],
+      "qos_profiles": [
+        {
+          "consumer_class": "A_prime",
+          "moe": [
+            {
+              "id": "MOE-0012",
+              "name": "delivery_probability_daily",
+              "target": {
+                "value": 0.9,
+                "unit": "1",
+                "provenance": {
+                  "source": "imported",
+                  "import": {
+                    "dataset": "Постановка миссии «Национальная спутниковая платформа IoT»",
+                    "dataset_version": "1",
+                    "retrieved_at": "2026-08-23",
+                    "terms": "внутренний документ проекта"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "consumer_class": "B_prime",
+          "moe": [
+            {
+              "id": "MOE-0013",
+              "name": "delivery_probability_n_attempts",
+              "target": {
+                "value": 0.99,
+                "unit": "1",
+                "provenance": {
+                  "source": "imported",
+                  "import": {
+                    "dataset": "Постановка миссии «Национальная спутниковая платформа IoT»",
+                    "dataset_version": "1",
+                    "retrieved_at": "2026-08-23",
+                    "terms": "внутренний документ проекта"
+                  }
+                }
+              },
+              "condition": "окно подтверждения двое суток (172800 с)"
+            }
+          ]
+        }
+      ],
+      "lifecycle": {
+        "status": "Draft",
+        "version": "1"
+      },
+      "provenance": {
+        "source": "ai_proposed"
+      }
+    },
+    {
+      "id": "SV-0109",
+      "name": "Оперативное изменение района промысла",
+      "description": "Доведение команды оперативного управления изменением района промысла (C') для предприятий морского промысла.",
+      "traces_up": [
+        "ND-0206"
+      ],
+      "qos_profiles": [
+        {
+          "consumer_class": "C_prime",
+          "moe": [
+            {
+              "id": "MOE-0014",
+              "name": "reaction_time_probability",
+              "target": {
+                "value": 1800,
+                "unit": "s",
+                "provenance": {
+                  "source": "imported",
+                  "import": {
+                    "dataset": "Постановка миссии «Национальная спутниковая платформа IoT»",
+                    "dataset_version": "1",
+                    "retrieved_at": "2026-08-23",
+                    "terms": "внутренний документ проекта"
+                  }
+                }
+              },
+              "condition": "доведение команды C' за 30 минут"
+            }
+          ]
+        }
+      ],
+      "lifecycle": {
+        "status": "Draft",
+        "version": "1"
+      },
+      "provenance": {
+        "source": "ai_proposed"
+      }
+    },
+    {
+      "id": "SV-0110",
+      "name": "Сбор показаний автономных геологоразведочных датчиков и подтверждение доставки измерений",
+      "description": "Односторонний сбор показаний автономных датчиков и станций (A') и подтверждённая доставка результатов измерений (B') для геологоразведочных организаций.",
+      "traces_up": [
+        "ND-0207",
+        "ND-0208"
+      ],
+      "qos_profiles": [
+        {
+          "consumer_class": "A_prime",
+          "moe": [
+            {
+              "id": "MOE-0015",
+              "name": "delivery_probability_daily",
+              "target": {
+                "value": 0.9,
+                "unit": "1",
+                "provenance": {
+                  "source": "imported",
+                  "import": {
+                    "dataset": "Постановка миссии «Национальная спутниковая платформа IoT»",
+                    "dataset_version": "1",
+                    "retrieved_at": "2026-08-23",
+                    "terms": "внутренний документ проекта"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "consumer_class": "B_prime",
+          "moe": [
+            {
+              "id": "MOE-0016",
+              "name": "delivery_probability_n_attempts",
+              "target": {
+                "value": 0.99,
+                "unit": "1",
+                "provenance": {
+                  "source": "imported",
+                  "import": {
+                    "dataset": "Постановка миссии «Национальная спутниковая платформа IoT»",
+                    "dataset_version": "1",
+                    "retrieved_at": "2026-08-23",
+                    "terms": "внутренний документ проекта"
+                  }
+                }
+              },
+              "condition": "окно подтверждения двое суток (172800 с)"
+            }
+          ]
+        }
+      ],
+      "lifecycle": {
+        "status": "Draft",
+        "version": "1"
+      },
+      "provenance": {
+        "source": "ai_proposed"
+      }
+    },
+    {
+      "id": "SV-0111",
+      "name": "Подтверждённая доставка критических сообщений и оперативное управление силами МЧС",
+      "description": "Подтверждённая доставка критических команд и сообщений (B') и гарантированное доведение команд оперативного управления (C') до территориальных подразделений МЧС.",
+      "traces_up": [
+        "ND-0301",
+        "ND-0302"
+      ],
+      "qos_profiles": [
+        {
+          "consumer_class": "B_prime",
+          "moe": [
+            {
+              "id": "MOE-0017",
+              "name": "delivery_probability_n_attempts",
+              "target": {
+                "value": 0.99,
+                "unit": "1",
+                "provenance": {
+                  "source": "imported",
+                  "import": {
+                    "dataset": "Постановка миссии «Национальная спутниковая платформа IoT»",
+                    "dataset_version": "1",
+                    "retrieved_at": "2026-08-23",
+                    "terms": "внутренний документ проекта"
+                  }
+                }
+              },
+              "condition": "окно подтверждения двое суток (172800 с)"
+            }
+          ]
+        },
+        {
+          "consumer_class": "C_prime",
+          "moe": [
+            {
+              "id": "MOE-0018",
+              "name": "reaction_time_probability",
+              "target": {
+                "value": 1800,
+                "unit": "s",
+                "provenance": {
+                  "source": "imported",
+                  "import": {
+                    "dataset": "Постановка миссии «Национальная спутниковая платформа IoT»",
+                    "dataset_version": "1",
+                    "retrieved_at": "2026-08-23",
+                    "terms": "внутренний документ проекта"
+                  }
+                }
+              },
+              "condition": "доведение команды C' за 30 минут"
+            }
+          ]
+        }
+      ],
+      "lifecycle": {
+        "status": "Draft",
+        "version": "1"
+      },
+      "provenance": {
+        "source": "ai_proposed"
+      }
+    },
+    {
+      "id": "SV-0112",
+      "name": "Регулярный сбор телеметрии автоматических метеостанций",
+      "description": "Односторонний регулярный сбор телеметрии с удалённых автоматических метеостанций (A') для метеослужбы.",
+      "traces_up": [
+        "ND-0303"
+      ],
+      "qos_profiles": [
+        {
+          "consumer_class": "A_prime",
+          "moe": [
+            {
+              "id": "MOE-0019",
+              "name": "delivery_probability_daily",
+              "target": {
+                "value": 0.9,
+                "unit": "1",
+                "provenance": {
+                  "source": "imported",
+                  "import": {
+                    "dataset": "Постановка миссии «Национальная спутниковая платформа IoT»",
+                    "dataset_version": "1",
+                    "retrieved_at": "2026-08-23",
+                    "terms": "внутренний документ проекта"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "lifecycle": {
+        "status": "Draft",
+        "version": "1"
+      },
+      "provenance": {
+        "source": "ai_proposed"
+      }
+    }
+  ]
+}
