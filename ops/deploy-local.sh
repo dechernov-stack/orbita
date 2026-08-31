@@ -18,6 +18,11 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+
+# Провал обязан быть виден ПОСЛЕДНЕЙ строкой: вывод скрипта часто смотрят
+# хвостом, а `| tail` съедает код возврата — упавшая сборка выглядела
+# успешным выкатом (наблюдение живого прохода).
+trap 'code=$?; [ $code -ne 0 ] && echo "!!! ВЫКАТ НЕ ВЫПОЛНЕН (код $code) — стенд остался на прежней версии"; exit $code' EXIT
 # shellcheck source=ops/builder-hygiene.sh
 . "$ROOT/ops/builder-hygiene.sh"
 
