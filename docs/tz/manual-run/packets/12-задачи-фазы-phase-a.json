@@ -1,0 +1,732 @@
+{
+  "author": "регламент БП-PA (контент владельца: КОНТЕНТ-ЗАДАЧИ-PHASE-A.md)",
+  "objects": [
+    {
+      "id": "PW-0101",
+      "order": 1,
+      "name": "Развёртывание фазы и SEMP",
+      "why": "Открыть фазу как управляемую работу: закрепить роли и план, выпустить SEMP — свод того, как система будет проектироваться, и базировать его до SRR. Без SEMP инженерная работа фазы идёт без общего свода правил, и каждый обзор спорит о процедуре вместо существа.",
+      "operations": [
+        "О1",
+        "О2"
+      ],
+      "input": [
+        {
+          "check": "always",
+          "label": "фаза A открыта решением KDP-A"
+        }
+      ],
+      "steps": [
+        {
+          "title": "Орг-структура и план работ",
+          "hint": "роли по FA; право на действие берётся из реестра прав, а не из договорённости",
+          "screen": "startpath",
+          "done_when": {
+            "check": "passport_field",
+            "field": "mission_intent",
+            "label": "паспорт актуален"
+          }
+        },
+        {
+          "title": "SEMP по шаблону",
+          "hint": "8 разделов; tailoring — только с обоснованием, след обязателен",
+          "screen": "documents",
+          "done_when": {
+            "check": "document_issued",
+            "code": "semp",
+            "label": "SEMP выпущен"
+          }
+        },
+        {
+          "title": "Базировать до SRR",
+          "hint": "переходом статуса; DA для базирования SEMP не требуется",
+          "screen": "lifecycle",
+          "done_when": {
+            "check": "objects",
+            "type": "review_item",
+            "label": "базирование оформлено"
+          }
+        }
+      ],
+      "output": {
+        "artifact": "Д2 · SEMP",
+        "document_code": "semp",
+        "maturity": "baseline",
+        "gate": "SRR",
+        "done_when": {
+          "check": "document_issued",
+          "code": "semp",
+          "label": "SEMP базирован"
+        }
+      },
+      "phase": "phase_a",
+      "lifecycle": {
+        "status": "Draft",
+        "version": "1"
+      }
+    },
+    {
+      "id": "PW-0102",
+      "order": 2,
+      "name": "ConOps — базирование",
+      "why": "Довести черновой ConOps Pre-A до базированного описания того, как система эксплуатируется: режимы, переходы, нештатные ситуации и положения, которыми ConOps проверяет требования. Базированный ConOps — опора валидации: без него «система делает не то» выясняется на испытаниях.",
+      "operations": [
+        "О3"
+      ],
+      "depends_on": [
+        "PW-0101"
+      ],
+      "input": [
+        {
+          "check": "document_issued",
+          "code": "d4",
+          "label": "черновик ConOps есть (Pre-A)"
+        }
+      ],
+      "steps": [
+        {
+          "title": "Дорастить сценарии",
+          "hint": "режимы и переходы между ними; нештатные сценарии — из реестра рисков, а не из воображения",
+          "screen": "conops",
+          "done_when": {
+            "check": "document_issued",
+            "code": "conops",
+            "label": "ConOps выпущен"
+          }
+        },
+        {
+          "title": "Валидационные положения",
+          "hint": "раздел 7: чем именно ConOps проверяет требования",
+          "screen": "conops",
+          "done_when": {
+            "check": "document_issued",
+            "code": "conops",
+            "label": "раздел валидации есть"
+          }
+        },
+        {
+          "title": "Базировать",
+          "hint": "переходом статуса, с обоснованием",
+          "screen": "lifecycle",
+          "done_when": {
+            "check": "objects",
+            "type": "review_item",
+            "label": "базирование оформлено"
+          }
+        }
+      ],
+      "output": {
+        "artifact": "Д4 · ConOps",
+        "document_code": "conops",
+        "maturity": "baseline",
+        "gate": "SRR",
+        "done_when": {
+          "check": "document_issued",
+          "code": "conops",
+          "label": "ConOps базирован"
+        }
+      },
+      "phase": "phase_a",
+      "lifecycle": {
+        "status": "Draft",
+        "version": "1"
+      }
+    },
+    {
+      "id": "PW-0103",
+      "order": 3,
+      "name": "Иерархия требований",
+      "why": "Развернуть черновик требований в иерархию: базировать проектный уровень и вывести из него системные требования, каждое — с родителем и основанием. Двунаправленная трассировка без дыр — то, что на SRR отличает набор требований от списка пожеланий.",
+      "operations": [
+        "О4"
+      ],
+      "depends_on": [
+        "PW-0102"
+      ],
+      "input": [
+        {
+          "check": "objects",
+          "type": "requirement",
+          "label": "черновик требований есть"
+        }
+      ],
+      "steps": [
+        {
+          "title": "Базировать проектный уровень",
+          "hint": "каждый TBD либо закрыт значением, либо обоснован сроком закрытия",
+          "screen": "req",
+          "done_when": {
+            "check": "objects",
+            "type": "requirement",
+            "label": "проектные требования базированы",
+            "min": 3
+          }
+        },
+        {
+          "title": "Системные из проектных",
+          "hint": "деривация: каждое системное несёт родителя и основание",
+          "screen": "aiservice",
+          "done_when": {
+            "check": "objects",
+            "type": "requirement",
+            "label": "системные требования выведены",
+            "min": 8
+          },
+          "kind": "services_to_requirements"
+        },
+        {
+          "title": "Матрицы трассировки и верификации",
+          "hint": "дыр быть не должно: требование без источника и без метода — разрыв",
+          "screen": "matrix",
+          "done_when": {
+            "check": "objects",
+            "type": "requirement",
+            "label": "матрицы сходятся",
+            "min": 8
+          }
+        }
+      ],
+      "output": {
+        "artifact": "Д3 · Требования проектного и системного уровня",
+        "document_code": "req_spec",
+        "maturity": "baseline",
+        "gate": "SRR",
+        "done_when": {
+          "check": "document_issued",
+          "code": "req_spec",
+          "label": "спецификация требований выпущена"
+        }
+      },
+      "phase": "phase_a",
+      "lifecycle": {
+        "status": "Draft",
+        "version": "1"
+      }
+    },
+    {
+      "id": "PW-0104",
+      "order": 4,
+      "name": "Архитектура системы",
+      "why": "Разложить систему на сегменты и подсистемы, распределить по ним системные требования и описать интерфейсы и бюджеты. Архитектура — ответ на «чем именно требования будут выполнены»; к SDR она обязана покрывать их полностью, а не выборочно.",
+      "operations": [
+        "О5"
+      ],
+      "depends_on": [
+        "PW-0103"
+      ],
+      "input": [
+        {
+          "check": "objects",
+          "type": "requirement",
+          "label": "системные требования есть",
+          "min": 8
+        }
+      ],
+      "steps": [
+        {
+          "title": "Декомпозиция на сегменты и подсистемы",
+          "hint": "дерево носителей; повторяющийся узел — вхождением ×N, а не копией",
+          "screen": "composition",
+          "done_when": {
+            "check": "objects",
+            "type": "component",
+            "label": "дерево состава заведено",
+            "min": 5
+          }
+        },
+        {
+          "title": "Распределение системных требований",
+          "hint": "требований «без носителя» к SDR быть не должно",
+          "screen": "req",
+          "done_when": {
+            "check": "objects",
+            "type": "requirement",
+            "label": "требования распределены",
+            "min": 8
+          }
+        },
+        {
+          "title": "Интерфейсы",
+          "hint": "реестр внутренних и внешних; у каждого — ответственность сторон",
+          "screen": "composition",
+          "done_when": {
+            "check": "objects",
+            "type": "interface",
+            "label": "интерфейсы описаны",
+            "min": 2
+          }
+        },
+        {
+          "title": "Бюджеты массы, энергии и линка",
+          "hint": "с резервами; свёртки считает система по дереву",
+          "screen": "composition",
+          "done_when": {
+            "check": "objects",
+            "type": "component",
+            "label": "бюджеты сведены",
+            "min": 5
+          }
+        }
+      ],
+      "output": {
+        "artifact": "Д5 · Описание архитектуры и черновые спецификации подсистем",
+        "document_code": "architecture",
+        "maturity": "preliminary",
+        "gate": "SDR",
+        "done_when": {
+          "check": "document_issued",
+          "code": "architecture",
+          "label": "описание архитектуры выпущено"
+        }
+      },
+      "phase": "phase_a",
+      "lifecycle": {
+        "status": "Draft",
+        "version": "1"
+      }
+    },
+    {
+      "id": "PW-0105",
+      "order": 5,
+      "name": "Анализы и trade studies",
+      "why": "Сравнить варианты архитектуры на числах и записать протоколы решений: что выбрано, что отклонено и почему. Отклонённое с причиной — половина ценности анализа: без неё следующая фаза заново предлагает уже отвергнутое.",
+      "operations": [
+        "О6"
+      ],
+      "depends_on": [
+        "PW-0104"
+      ],
+      "input": [
+        {
+          "check": "objects",
+          "type": "alternative",
+          "label": "альтернативы Pre-A есть"
+        }
+      ],
+      "steps": [
+        {
+          "title": "Сравнение вариантов",
+          "hint": "метрики без скрытого балла; фронт Парето виден",
+          "screen": "constcompare",
+          "done_when": {
+            "check": "objects",
+            "type": "scenario",
+            "label": "сравнение посчитано"
+          }
+        },
+        {
+          "title": "Протоколы решений",
+          "hint": "отклонённый вариант с причиной уходит в архитектурное обоснование",
+          "screen": "aoa",
+          "done_when": {
+            "check": "objects",
+            "type": "decision",
+            "label": "решения записаны"
+          }
+        }
+      ],
+      "output": {
+        "artifact": "Отчёты эффективности и стоимости жизненного цикла, протоколы trade studies",
+        "maturity": "preliminary",
+        "gate": "SDR",
+        "done_when": {
+          "check": "objects",
+          "type": "decision",
+          "label": "решения оформлены"
+        }
+      },
+      "phase": "phase_a",
+      "lifecycle": {
+        "status": "Draft",
+        "version": "1"
+      }
+    },
+    {
+      "id": "PW-0106",
+      "order": 6,
+      "name": "Созревание технологий",
+      "why": "Назвать критические технологии, спланировать их доведение и переоценить TRL. Критическое — то, что ниже TRL 6 к PDR: у каждого такого элемента обязан быть план созревания и запасное решение, иначе фаза B начнётся с необеспеченного риска.",
+      "operations": [
+        "О7"
+      ],
+      "depends_on": [
+        "PW-0104"
+      ],
+      "input": [
+        {
+          "check": "objects",
+          "type": "technology",
+          "label": "перечень технологий Pre-A есть"
+        }
+      ],
+      "steps": [
+        {
+          "title": "Актуализовать перечень технологий",
+          "hint": "критическое = ниже TRL 6 к PDR",
+          "screen": "tech",
+          "done_when": {
+            "check": "objects",
+            "type": "technology",
+            "label": "перечень актуален",
+            "min": 2
+          }
+        },
+        {
+          "title": "Планы созревания",
+          "hint": "вехи, критерии достижения и резервное решение у каждой критической позиции",
+          "screen": "tech",
+          "done_when": {
+            "check": "objects",
+            "type": "technology",
+            "label": "планы заданы",
+            "min": 2
+          }
+        },
+        {
+          "title": "Переоценка TRL",
+          "hint": "периодичность — по плану; отчёт приурочен к точкам фазы",
+          "screen": "datarequests",
+          "done_when": {
+            "check": "objects",
+            "type": "technology",
+            "label": "TRL переоценён",
+            "min": 2
+          }
+        }
+      ],
+      "output": {
+        "artifact": "Д6 · План созревания технологий и отчёты TRL",
+        "document_code": "tech_plan",
+        "maturity": "approved",
+        "gate": "SDR",
+        "done_when": {
+          "check": "document_issued",
+          "code": "tech_plan",
+          "label": "план созревания выпущен"
+        }
+      },
+      "phase": "phase_a",
+      "lifecycle": {
+        "status": "Draft",
+        "version": "1"
+      }
+    },
+    {
+      "id": "PW-0107",
+      "order": 7,
+      "name": "Риски",
+      "why": "Перевести перечень рисков Pre-A в управляемый процесс: план управления со шкалами и порогами эскалации плюс живой реестр, где у каждого риска есть владелец. Риск без владельца не управляется — он просто записан.",
+      "operations": [
+        "О8"
+      ],
+      "depends_on": [
+        "PW-0104"
+      ],
+      "input": [
+        {
+          "check": "objects",
+          "type": "risk",
+          "label": "перечень рисков Pre-A есть"
+        }
+      ],
+      "steps": [
+        {
+          "title": "План управления рисками",
+          "hint": "шкалы 1–5 и пороги эскалации — до того, как рисков станет много",
+          "screen": "documents",
+          "done_when": {
+            "check": "document_issued",
+            "code": "risk_plan",
+            "label": "план управления выпущен"
+          }
+        },
+        {
+          "title": "Реестр актуален",
+          "hint": "условие — событие — последствие; владелец у каждого риска",
+          "screen": "risks",
+          "done_when": {
+            "check": "objects",
+            "type": "risk",
+            "label": "реестр ведётся",
+            "min": 3
+          },
+          "kind": "risk_register"
+        }
+      ],
+      "output": {
+        "artifact": "Д7 · План управления рисками и живой реестр",
+        "document_code": "risk_plan",
+        "maturity": "preliminary",
+        "gate": "SDR",
+        "done_when": {
+          "check": "document_issued",
+          "code": "risk_plan",
+          "label": "план управления выпущен"
+        }
+      },
+      "phase": "phase_a",
+      "lifecycle": {
+        "status": "Draft",
+        "version": "1"
+      }
+    },
+    {
+      "id": "PW-0108",
+      "order": 8,
+      "name": "ОСЗ и планы обеспечения",
+      "why": "Актуализовать оценку орбитального засорения под выбранную архитектуру и подготовить предварительные планы обеспечения безопасности. Увод с орбиты — не декларация: он стоит Δv, и эта цена обязана стоять в бюджете, а не появиться в фазе C.",
+      "operations": [
+        "О9"
+      ],
+      "depends_on": [
+        "PW-0104"
+      ],
+      "input": [
+        {
+          "check": "objects",
+          "type": "oda",
+          "label": "начальная ОСЗ есть"
+        }
+      ],
+      "steps": [
+        {
+          "title": "Актуализовать ОСЗ",
+          "hint": "увод по нормативу полки Б1; Δv увода — строкой в бюджете",
+          "screen": "debris",
+          "done_when": {
+            "check": "objects",
+            "type": "oda",
+            "label": "оценка актуальна"
+          }
+        },
+        {
+          "title": "Предварительные планы обеспечения",
+          "hint": "классификация полезной нагрузки — основание требований безопасности",
+          "screen": "documents",
+          "done_when": {
+            "check": "document_issued",
+            "code": "oda",
+            "label": "документ ОСЗ выпущен"
+          }
+        }
+      ],
+      "output": {
+        "artifact": "Д8 · Оценка орбитального засорения",
+        "document_code": "oda",
+        "maturity": "preliminary",
+        "gate": "SDR",
+        "done_when": {
+          "check": "document_issued",
+          "code": "oda",
+          "label": "оценка выпущена"
+        }
+      },
+      "phase": "phase_a",
+      "lifecycle": {
+        "status": "Draft",
+        "version": "1"
+      }
+    },
+    {
+      "id": "PW-0109",
+      "order": 9,
+      "name": "Программатика: стоимость и сроки",
+      "why": "Дать диапазоны стоимости и сроков к KDP-B с явными допущениями, актуализовать CADRe и подготовить материалы закупок. Диапазон с названными допущениями — честная оценка ранней фазы; одно число без них — обещание, за которое отвечать нечем.",
+      "operations": [
+        "О10"
+      ],
+      "depends_on": [
+        "PW-0104"
+      ],
+      "input": [
+        {
+          "check": "objects",
+          "type": "wbs_element",
+          "label": "WBS и MEL заведены",
+          "min": 3
+        }
+      ],
+      "steps": [
+        {
+          "title": "Диапазоны стоимости и сроков",
+          "hint": "high/low с явными допущениями; свёртки считает система по составу",
+          "screen": "cost",
+          "done_when": {
+            "check": "objects",
+            "type": "cost_estimate",
+            "label": "оценка посчитана"
+          }
+        },
+        {
+          "title": "CADRe и материалы закупок",
+          "hint": "партнёрства и длинные позиции называются заранее",
+          "screen": "documents",
+          "done_when": {
+            "check": "document_issued",
+            "code": "cost_ranges",
+            "label": "диапазоны выпущены"
+          }
+        }
+      ],
+      "output": {
+        "artifact": "Д9 · Диапазоны стоимости и сроков, CADRe",
+        "document_code": "cost_ranges",
+        "maturity": "preliminary",
+        "gate": "KDP-B",
+        "done_when": {
+          "check": "document_issued",
+          "code": "cost_ranges",
+          "label": "диапазоны выпущены"
+        }
+      },
+      "phase": "phase_a",
+      "lifecycle": {
+        "status": "Draft",
+        "version": "1"
+      }
+    },
+    {
+      "id": "PW-0110",
+      "order": 10,
+      "name": "Project Plan и обновление соглашения",
+      "why": "Собрать Project Plan из уже готовых документов и подготовить обновлённое соглашение о формулировании с детальным планом фазы B. Ссылки вместо копий: план, который дублирует содержимое других документов, устаревает в день выпуска.",
+      "operations": [
+        "О11",
+        "О12"
+      ],
+      "depends_on": [
+        "PW-0101",
+        "PW-0103",
+        "PW-0104",
+        "PW-0109"
+      ],
+      "input": [
+        {
+          "check": "document_issued",
+          "code": "semp",
+          "label": "SEMP выпущен"
+        }
+      ],
+      "steps": [
+        {
+          "title": "Project Plan по шаблону",
+          "hint": "10 разделов; ссылки на документы, а не их копии",
+          "screen": "documents",
+          "done_when": {
+            "check": "document_issued",
+            "code": "project_plan",
+            "label": "Project Plan выпущен"
+          }
+        },
+        {
+          "title": "Обновление соглашения: план фазы B",
+          "hint": "вехи и требуемые зрелости по приложению I регламента",
+          "screen": "documents",
+          "done_when": {
+            "check": "document_issued",
+            "code": "fad",
+            "label": "соглашение обновлено"
+          }
+        }
+      ],
+      "output": {
+        "artifact": "Д10 · Project Plan и проект обновлённого соглашения",
+        "document_code": "project_plan",
+        "maturity": "preliminary",
+        "gate": "KDP-B",
+        "done_when": {
+          "check": "document_issued",
+          "code": "project_plan",
+          "label": "Project Plan выпущен"
+        }
+      },
+      "phase": "phase_a",
+      "lifecycle": {
+        "status": "Draft",
+        "version": "1"
+      }
+    },
+    {
+      "id": "PW-0111",
+      "order": 11,
+      "name": "Точки фазы: SRR, SDR/MDR, KDP-B",
+      "why": "Пройти точки фазы строгой цепочкой: внутренний обзор, SRR по требованиям, SDR/MDR по архитектуре и решение KDP-B по комплекту Д1–Д10. Точка проходится решением с записанным основанием, а не наступлением даты в календаре.",
+      "operations": [
+        "О13",
+        "О14",
+        "О15",
+        "О16",
+        "О17"
+      ],
+      "depends_on": [
+        "PW-0103",
+        "PW-0104",
+        "PW-0110"
+      ],
+      "input": [
+        {
+          "check": "document_issued",
+          "code": "req_spec",
+          "label": "требования базированы"
+        }
+      ],
+      "steps": [
+        {
+          "title": "Внутренний обзор",
+          "hint": "замечания устраняются до SRR, а не переносятся через точку",
+          "screen": "readiness",
+          "done_when": {
+            "check": "objects",
+            "type": "review_item",
+            "label": "внутренний обзор проведён"
+          }
+        },
+        {
+          "title": "SRR",
+          "hint": "требования пригодны к базированию; замечания устранимы в фазе",
+          "screen": "readiness",
+          "done_when": {
+            "check": "gate_check",
+            "gate_check_id": "trace",
+            "label": "готовность к SRR закрыта"
+          }
+        },
+        {
+          "title": "SDR/MDR",
+          "hint": "архитектура покрывает требования; распределение полно",
+          "screen": "readiness",
+          "done_when": {
+            "check": "gate_check",
+            "gate_check_id": "carriers",
+            "label": "готовность к SDR закрыта"
+          }
+        },
+        {
+          "title": "KDP-B",
+          "hint": "комплект Д1–Д10 в зрелостях регламента",
+          "screen": "lifecycle",
+          "done_when": {
+            "check": "objects",
+            "type": "review_item",
+            "label": "решение точки записано"
+          }
+        }
+      ],
+      "output": {
+        "artifact": "Заключения SRR и SDR/MDR, решение KDP-B, подписанное соглашение",
+        "maturity": "baseline",
+        "gate": "KDP-B",
+        "done_when": {
+          "check": "objects",
+          "type": "review_item",
+          "label": "решения точек записаны"
+        }
+      },
+      "phase": "phase_a",
+      "lifecycle": {
+        "status": "Draft",
+        "version": "1"
+      }
+    }
+  ]
+}

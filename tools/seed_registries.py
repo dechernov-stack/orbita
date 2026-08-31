@@ -36,6 +36,9 @@ SEEDS = [
     ("document_template", None, "10-шаблон-записки.json"),
     # «Работа фазы»: задачи регламента — контент полки, а не код экрана.
     ("phase_task", None, "11-задачи-фазы-pre-a.json"),
+    # Контент Phase A (БП-PA, О1–О17) — отдельным пакетом: полка наполняется
+    # по фазам, и фаза без контента честно говорит об этом, а не пустует
+    ("phase_task", None, "12-задачи-фазы-phase-a.json"),
 ]
 
 TOKEN: str | None = None
@@ -146,8 +149,17 @@ def obsolete(type_: str, rows: list) -> bool:
     if type_ == "property_form":
         return not any(f.get("required_by") for d in rows for f in d.get("fields", []))
     if type_ == "phase_task":
-        # задачи фазы обновляются, когда меняется их контент: сверяем по
-        # числу шагов первой задачи — оно растёт вместе с проводником
+        # Задачи фазы обновляются, когда меняется их контент. Сверяем по
+        # АДРЕСАМ условий: выдуманный идентификатор проверки готовности не
+        # гасит шаг никогда, и полка с такими адресами обязана обновиться
+        # (три таких были в первом наполнении Pre-A).
+        живые = {"tbd", "trace", "reviews", "docs", "needs",
+                 "verification", "carriers", "geo_masks", "data_requests", "need_stakeholder"}
+        for d in rows:
+            условия = [s.get("done_when", {}) for s in d.get("steps", [])] + d.get("input", [])
+            for c in условия:
+                if c.get("check") == "gate_check" and c.get("gate_check_id") not in живые:
+                    return True
         return not any(len(d.get("steps", [])) >= 4 for d in rows)
     if type_ == "document_template":
         # полка устарела, если раздел «Обозначения источников» не несёт
