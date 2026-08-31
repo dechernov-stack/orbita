@@ -3411,6 +3411,11 @@ class HttpApi(private val boundary: Boundary) {
                 )
             }
 
+            // «Работа фазы»: задачи регламента со статусами, шагами, разрывами
+            // разрезом и окнами ленты. Всё вычисляется — ручного нет ничего.
+            method == "GET" && path == "/views/phase-work" ->
+                respond(ex, 200, PhaseWork.toJson(boundary, requireProject(project)))
+
             // Ф-12: проводник постановки — сквозная цепочка со счётчиками и
             // первым несделанным звеном. Куда идти дальше, знает система.
             method == "GET" && path == "/views/statement-path" ->

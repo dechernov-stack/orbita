@@ -15,6 +15,13 @@ export interface NavSection {
 
 export const SECTIONS: NavSection[] = [
   {
+    key: 'work',
+    label: 'Работа',
+    screens: [
+      { key: 'phasework', title: 'Работа фазы' },
+    ],
+  },
+  {
     key: 'portfolio',
     label: 'Портфель',
     screens: [

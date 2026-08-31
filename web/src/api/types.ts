@@ -939,3 +939,37 @@ export interface StatementPathView {
   }>
   next?: { key: string; title: string; screen: string; kind?: string; invitation: string; why: string }
 }
+
+/** «Работа фазы»: задача регламента со статусом, шагами и окном ленты. */
+export interface PhaseWorkTask {
+  id: string
+  order: number
+  name: string
+  why: string
+  status: 'waiting' | 'available' | 'in_progress' | 'done'
+  waits_on?: string
+  input_ready: boolean
+  input_why: string
+  artifact: string
+  gate?: string
+  output_done: boolean
+  start?: string
+  end?: string
+  tight: boolean
+  lane_offset_pct?: number
+  lane_width_pct?: number
+  steps: Array<{ title: string; hint?: string; screen?: string; kind?: string; done: boolean; why: string }>
+  gaps: string[]
+}
+
+export interface PhaseWorkView {
+  lane_from?: string
+  lane_to?: string
+  tasks: number
+  in_progress: number
+  available: number
+  waiting: number
+  done: number
+  next?: { task: string; name: string; step?: string; screen?: string; kind?: string }
+  items: PhaseWorkTask[]
+}

@@ -1,0 +1,267 @@
+{
+  "author": "регламент БП-PPA (концепция «Работа фазы»)",
+  "objects": [
+    {
+      "id": "PW-0001",
+      "phase": "pre_phase_a",
+      "order": 1,
+      "name": "Постановка: цели, нужды, стейкхолдеры",
+      "why": "Определить, ЗАЧЕМ система строится и чьи интересы обязана удовлетворить: цели миссии с показателями, нужды стейкхолдеров и сами стейкхолдеры как объекты проекта. Всё дальнейшее — требования, концепция, документы — опирается на этот слой; ошибка здесь дорожает с каждой фазой.",
+      "operations": ["О2"],
+      "input": [
+        {"check": "passport_field", "field": "mission_intent", "label": "замысел миссии задан"}
+      ],
+      "steps": [
+        {"title": "Задать замысел миссии", "hint": "четыре поля либо связный абзац; можно собрать из приложенных документов",
+         "screen": "startpath", "done_when": {"check": "passport_field", "field": "mission_intent"}},
+        {"title": "Собрать цели из замысла", "hint": "служба, вид «замысел → цели»: промпт несёт замысел, полки класса и факты нормативов",
+         "screen": "aiservice", "kind": "mission_to_goals",
+         "done_when": {"check": "objects", "type": "mission_goal", "label": "цели приняты"}},
+        {"title": "Собрать нужды стейкхолдеров", "hint": "служба, вид «замысел → нужды»; каждая нужда несёт носителя",
+         "screen": "aiservice", "kind": "mission_to_needs",
+         "done_when": {"check": "objects", "type": "need", "label": "нужды приняты"}},
+        {"title": "Завести стейкхолдеров проекта", "hint": "заказчик, регуляторы, операторы, учреждаемые организации — из урожая записки либо рукой",
+         "screen": "stakeholders",
+         "done_when": {"check": "objects", "type": "stakeholder", "label": "стейкхолдеры заведены"}}
+      ],
+      "output": {
+        "artifact": "Постановка: цели · нужды · стейкхолдеры",
+        "maturity": "draft",
+        "gate": "MCR",
+        "done_when": {"check": "objects", "type": "need", "min": 1}
+      },
+      "lifecycle": {"status": "Draft", "version": "1"}
+    },
+    {
+      "id": "PW-0002",
+      "phase": "pre_phase_a",
+      "order": 2,
+      "name": "Концепция и альтернативы (DRM, AoA)",
+      "why": "Найти, ЧЕМ закрывать нужды: собрать варианты построения группировки, посчитать их и сравнить по одним метрикам. Выбор без сравнения — вкусовщина; сравнение без расчёта — риторика.",
+      "operations": ["О3"],
+      "depends_on": ["PW-0001"],
+      "input": [
+        {"check": "objects", "type": "need", "label": "нужды приняты"}
+      ],
+      "steps": [
+        {"title": "Задать варианты построений", "hint": "Walker и подгруппы; ограничения Р2 и пусковые проверяются схемой",
+         "screen": "constellations",
+         "done_when": {"check": "objects", "type": "constellation", "label": "построения заданы"}},
+        {"title": "Сравнить варианты", "hint": "покрытие, разрывы, латентность, партии, прокси-стоимость — одной свёрткой",
+         "screen": "constcompare",
+         "done_when": {"check": "objects", "type": "alternative", "label": "альтернативы оформлены"}},
+        {"title": "Записать решение", "hint": "выбранный вариант с обоснованием — решение проекта, а не заметка",
+         "screen": "aoa",
+         "done_when": {"check": "objects", "type": "decision", "label": "решение записано"}}
+      ],
+      "output": {
+        "artifact": "Варианты и таблица AoA",
+        "maturity": "draft",
+        "gate": "MCR",
+        "done_when": {"check": "objects", "type": "decision", "min": 1}
+      },
+      "lifecycle": {"status": "Draft", "version": "1"}
+    },
+    {
+      "id": "PW-0003",
+      "phase": "pre_phase_a",
+      "order": 3,
+      "name": "Черновик требований уровня проекта",
+      "why": "Перевести принятые цели и нужды в проверяемые требования уровня проекта: каждая нужда покрыта, у требования есть показатель, источник и предварительный метод верификации. Требование без показателя — пожелание.",
+      "operations": ["О4"],
+      "depends_on": ["PW-0001"],
+      "input": [
+        {"check": "objects", "type": "mission_goal", "label": "цели приняты"},
+        {"check": "objects", "type": "need", "label": "нужды приняты"}
+      ],
+      "steps": [
+        {"title": "Просмотреть типовые требования класса", "hint": "что уже покрыто библиотекой — опираться, не дублировать",
+         "screen": "startpath",
+         "done_when": {"check": "taken_from_library", "type": "requirement", "label": "типовые взяты"}},
+        {"title": "Сгенерировать требования из сервисов", "hint": "служба, вид «сервисы → требования»: промпт несёт нужды, запреты Р и пункты нормативов",
+         "screen": "aiservice", "kind": "services_to_requirements",
+         "done_when": {"check": "objects", "type": "requirement", "label": "требования приняты"}},
+        {"title": "Дозаполнить показатели", "hint": "величина парой «число · единица» по справочнику; TBD законен до своей точки",
+         "screen": "req",
+         "done_when": {"check": "gate_check", "gate_check_id": "requirement_mop", "label": "показатели заданы"}},
+        {"title": "Закрыть покрытие нужд", "hint": "каждая нужда → требование; матрица покрытия чиста",
+         "screen": "matrix",
+         "done_when": {"check": "gate_check", "gate_check_id": "needs_covered", "label": "нужды покрыты"}}
+      ],
+      "output": {
+        "artifact": "Д3 · Черновик требований уровня проекта",
+        "document_code": "d3",
+        "maturity": "draft",
+        "gate": "MCR",
+        "done_when": {"check": "objects", "type": "requirement", "min": 1}
+      },
+      "lifecycle": {"status": "Draft", "version": "1"}
+    },
+    {
+      "id": "PW-0004",
+      "phase": "pre_phase_a",
+      "order": 4,
+      "name": "Draft ConOps",
+      "why": "Описать, КАК система работает в жизни: сценарии применения, роли участников, режимы и обмены. ConOps связывает нужды с концепцией языком, понятным заказчику.",
+      "operations": ["О5"],
+      "depends_on": ["PW-0002"],
+      "input": [
+        {"check": "objects", "type": "decision", "label": "базовый вариант выбран"}
+      ],
+      "steps": [
+        {"title": "Собрать сценарии применения", "hint": "кто, что делает и чем система помогает — по нуждам и сервисам",
+         "screen": "conops",
+         "done_when": {"check": "objects", "type": "conops", "label": "сценарии заведены"}},
+        {"title": "Свести в документ", "hint": "разделы собираются из модели; авторский текст правится на месте",
+         "screen": "documents",
+         "done_when": {"check": "document_issued", "code": "d4", "label": "Д4 выпущен"}}
+      ],
+      "output": {
+        "artifact": "Д4 · ConOps (черновик)",
+        "document_code": "d4",
+        "maturity": "draft",
+        "gate": "MCR",
+        "done_when": {"check": "objects", "type": "conops", "min": 1}
+      },
+      "lifecycle": {"status": "Draft", "version": "1"}
+    },
+    {
+      "id": "PW-0005",
+      "phase": "pre_phase_a",
+      "order": 5,
+      "name": "Технологические потребности",
+      "why": "Понять, чего у нас ещё нет: какие характеристики носителей нужны, какие технологии не готовы и что придётся созревать. Незаданные данные — это не пустота, а вопрос, который система задаёт анкетой.",
+      "operations": ["О6"],
+      "depends_on": ["PW-0002"],
+      "input": [
+        {"check": "objects", "type": "decision", "label": "базовый вариант выбран"}
+      ],
+      "steps": [
+        {"title": "Ответить на анкеты характеристик", "hint": "рукой, типовым с полки или даташитом: разбор предзаполнит поля с координатами блоков",
+         "screen": "datarequests",
+         "done_when": {"check": "gate_check", "gate_check_id": "data_requests", "label": "анкеты закрыты"}},
+        {"title": "Отметить незрелые технологии", "hint": "TRL и потребность в созревании — по позициям, где данных нет",
+         "screen": "tech",
+         "done_when": {"check": "objects", "type": "technology", "label": "технологии перечислены"}}
+      ],
+      "output": {
+        "artifact": "Д5 · Технологические потребности",
+        "document_code": "d5",
+        "maturity": "draft",
+        "gate": "MCR",
+        "done_when": {"check": "objects", "type": "technology", "min": 1}
+      },
+      "lifecycle": {"status": "Draft", "version": "1"}
+    },
+    {
+      "id": "PW-0006",
+      "phase": "pre_phase_a",
+      "order": 6,
+      "name": "Риски и начальное орбитальное засорение",
+      "why": "Назвать, что может пойти не так, и посчитать, чем группировка платит космосу: реестр рисков с критичностью и начальная оценка засорения. Риск, не записанный до точки, на точке становится сюрпризом.",
+      "operations": ["О7"],
+      "depends_on": ["PW-0002"],
+      "input": [
+        {"check": "objects", "type": "decision", "label": "базовый вариант выбран"}
+      ],
+      "steps": [
+        {"title": "Собрать реестр рисков", "hint": "типовые риски класса с полки Б3 плюс сценарные — служба помогает",
+         "screen": "risks", "kind": "risk_register",
+         "done_when": {"check": "objects", "type": "risk", "label": "риски заведены"}},
+        {"title": "Оценить орбитальное засорение", "hint": "деградация и время схода считаются по построению",
+         "screen": "debris",
+         "done_when": {"check": "objects", "type": "constellation", "label": "построение задано"}}
+      ],
+      "output": {
+        "artifact": "Д6 · Риски, Д7 · ОСЗ",
+        "maturity": "draft",
+        "gate": "MCR",
+        "done_when": {"check": "objects", "type": "risk", "min": 1}
+      },
+      "lifecycle": {"status": "Draft", "version": "1"}
+    },
+    {
+      "id": "PW-0007",
+      "phase": "pre_phase_a",
+      "order": 7,
+      "name": "Оценка стоимости и сроков",
+      "why": "Показать цену решения: состав системы, свёртки по элементам и оценка стоимости с диапазоном. Цифра без диапазона на ранней фазе — обман точности.",
+      "operations": ["О8"],
+      "depends_on": ["PW-0002"],
+      "input": [
+        {"check": "objects", "type": "wbs_element", "label": "состав заведён"}
+      ],
+      "steps": [
+        {"title": "Собрать состав и WBS", "hint": "элементы и вхождения; свёртки считает система",
+         "screen": "composition",
+         "done_when": {"check": "objects", "type": "wbs_element", "label": "WBS заведена"}},
+        {"title": "Оценить стоимость", "hint": "диапазон каноном млн ₽ с происхождением каждой величины",
+         "screen": "cost",
+         "done_when": {"check": "objects", "type": "cost_estimate", "label": "оценка задана"}}
+      ],
+      "output": {
+        "artifact": "Д8 · Оценка стоимости",
+        "maturity": "draft",
+        "gate": "MCR",
+        "done_when": {"check": "objects", "type": "cost_estimate", "min": 1}
+      },
+      "lifecycle": {"status": "Draft", "version": "1"}
+    },
+    {
+      "id": "PW-0008",
+      "phase": "pre_phase_a",
+      "order": 8,
+      "name": "Mission Concept Report",
+      "why": "Свести сделанное в один документ для точки: концепция, постановка, требования, риски и стоимость связным текстом. Отчёт собирается из модели — переписывать руками то, что уже есть в объектах, не нужно.",
+      "operations": ["О9"],
+      "depends_on": ["PW-0003", "PW-0004", "PW-0005", "PW-0006", "PW-0007"],
+      "input": [
+        {"check": "objects", "type": "requirement", "label": "требования есть"},
+        {"check": "objects", "type": "risk", "label": "риски есть"}
+      ],
+      "steps": [
+        {"title": "Собрать разделы из модели", "hint": "таблицы и перечни подставляются данными; авторский текст — поверх",
+         "screen": "documents",
+         "done_when": {"check": "document_issued", "code": "d2", "label": "Д2 выпущен"}},
+        {"title": "Проверить полноту", "hint": "разрывы готовности к MCR — это и есть список недостающего",
+         "screen": "readiness",
+         "done_when": {"check": "gate_check", "gate_check_id": "documents_issued", "label": "документы выпущены"}}
+      ],
+      "output": {
+        "artifact": "Д2 · Mission Concept Report",
+        "document_code": "d2",
+        "maturity": "draft",
+        "gate": "MCR",
+        "done_when": {"check": "document_issued", "code": "d2"}
+      },
+      "lifecycle": {"status": "Draft", "version": "1"}
+    },
+    {
+      "id": "PW-0009",
+      "phase": "pre_phase_a",
+      "order": 9,
+      "name": "Точка: внутренний обзор и MCR",
+      "why": "Пройти точку с записанным решением: закрыть разрывы готовности, провести внутренний обзор и зафиксировать прохождение MCR. Точка проходится решением, а не наступлением даты.",
+      "operations": ["О12", "О13", "О14", "О15"],
+      "depends_on": ["PW-0008"],
+      "input": [
+        {"check": "document_issued", "code": "d2", "label": "Mission Concept Report выпущен"}
+      ],
+      "steps": [
+        {"title": "Закрыть разрывы готовности", "hint": "назначение разрыва создаёт задание исполнителю; закрытие двигает задачу само",
+         "screen": "readiness",
+         "done_when": {"check": "gate_check", "gate_check_id": "documents_issued", "label": "разрывы закрыты"}},
+        {"title": "Зафиксировать прохождение", "hint": "решение с обоснованием — след для следующей фазы",
+         "screen": "lifecycle",
+         "done_when": {"check": "objects", "type": "review_item", "label": "обзор проведён"}}
+      ],
+      "output": {
+        "artifact": "Решения контрольной точки MCR",
+        "maturity": "baseline",
+        "gate": "MCR",
+        "done_when": {"check": "objects", "type": "review_item", "min": 1}
+      },
+      "lifecycle": {"status": "Draft", "version": "1"}
+    }
+  ]
+}

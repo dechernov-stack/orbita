@@ -18,6 +18,7 @@ import { SeedDemand } from './screens/SeedDemand'
 import { Shelves } from './screens/Shelves'
 import { References } from './screens/References'
 import { StatementGuide } from './ui/StatementGuide'
+import { PhaseWork, NextStepBadge } from './screens/PhaseWork'
 import { LibraryKnowledge } from './screens/LibraryKnowledge'
 import { DocParse } from './screens/DocParse'
 import { MyTasks, MyTasksBadge } from './screens/MyTasks'
@@ -236,6 +237,8 @@ export function App() {
               onNew={() => { setFirstRun(false); setScreen('newproject') }}
               onLoadFile={() => { setFirstRun(false); setScreen('importb') }}
               onStart={() => { setScreen('startpath'); loadHeader() }} />
+      case 'phasework':
+        return <ScreenFrame title="Работа фазы"><PhaseWork onGo={go} /></ScreenFrame>
       case 'projreg': return <KindRegistry key={screen} kinds={['project']} title="Паспорт проекта" />
       case 'shelves': return <Shelves key={screen} />
       case 'references':
@@ -356,6 +359,7 @@ export function App() {
           </button>
         )}
         <div className="grow" style={{ flex: 1 }} />
+        {screen !== 'newproject' && project && <NextStepBadge tick={screen} onGo={go} />}
         {screen !== 'newproject' && project && <MyTasksBadge tick={screen} onGo={go} />}
         <Accounts />
           <AuthorField />

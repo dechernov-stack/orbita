@@ -43,8 +43,9 @@ class SchemaValidationTest {
         // 51-я — property-form (Ф-06: анкета характеристик носителя данными полки);
         // 52-я — mission-intent-draft (Ф-07: замысел, собранный из документов);
         // 53-я — normative-candidates (Ф-09: норматив полки порождает кандидатов);
-        // 54-я — stakeholder (Ф-13: стейкхолдер как сущность проекта)
-        assertEquals(54, registry.names.size, "нормативных схем должно быть 54: ${registry.names}")
+        // 54-я — stakeholder (Ф-13: стейкхолдер как сущность проекта);
+        // 55-я — phase-task («Работа фазы»: задача регламента данными полки)
+        assertEquals(55, registry.names.size, "нормативных схем должно быть 55: ${registry.names}")
     }
 
     @Test

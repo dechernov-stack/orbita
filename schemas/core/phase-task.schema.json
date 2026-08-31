@@ -1,0 +1,185 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/core/phase-task.schema.json",
+  "title": "PhaseTask",
+  "description": "Задача фазы — операция регламента, развёрнутая в ведомый процесс. Полка (LIB): контент задач — «зачем», шаги и подсказки — живёт данными, а не в коде экрана. Статусы, окна и разрывы НЕ хранятся: они вычисляются из состояния проекта, дат вех и зависимостей. Ручных статусов, процентов, длительностей и сроков у задачи не существует по построению.",
+  "type": "object",
+  "required": [
+    "id",
+    "phase",
+    "order",
+    "name",
+    "why",
+    "steps",
+    "output"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^PW-[0-9]{4}$"
+    },
+    "phase": {
+      "enum": [
+        "pre_phase_a",
+        "phase_a",
+        "phase_b"
+      ],
+      "description": "Фаза, чей регламент задача разворачивает"
+    },
+    "order": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Номер задачи в списке фазы — порядок регламента, не приоритет"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "why": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Зачем эта задача — человеческим языком из регламента. Текст с полки: в коде экрана контента нет"
+    },
+    "operations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Операции регламента, которые задача покрывает (О2, О4…). По ним берётся разрез разрывов готовности — второй готовности не заводится"
+    },
+    "depends_on": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^PW-[0-9]{4}$"
+      },
+      "description": "Задачи-предшественники. Пока их выход не готов, эта — «ожидает: ‹имя›»"
+    },
+    "input": {
+      "type": "array",
+      "description": "Что нужно на входе. Условие проверяемое: система сама решает, готов вход или нет",
+      "items": {
+        "$ref": "#/$defs/condition"
+      }
+    },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Шаги-проводник: что сделать, где и чем поможет служба. Сделанность ВЫЧИСЛЯЕТСЯ условием done_when — ручной отметки нет",
+      "items": {
+        "type": "object",
+        "required": [
+          "title",
+          "done_when"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "hint": {
+            "type": "string",
+            "description": "Подсказка шага: чем поможет служба, что важно проверить"
+          },
+          "screen": {
+            "type": "string",
+            "description": "Экран, куда ведёт переход «→»"
+          },
+          "kind": {
+            "type": "string",
+            "description": "Вид пакета службы: переход открывает операцию преднастроенной"
+          },
+          "done_when": {
+            "$ref": "#/$defs/condition"
+          }
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "required": [
+        "artifact"
+      ],
+      "additionalProperties": false,
+      "description": "Выход задачи: артефакт и точка, к которой он зреет",
+      "properties": {
+        "artifact": {
+          "type": "string",
+          "description": "Что получается: «Д3 · Черновик требований уровня проекта»"
+        },
+        "document_code": {
+          "type": "string",
+          "description": "Код генерируемого документа, если выход — документ"
+        },
+        "maturity": {
+          "type": "string",
+          "description": "Требуемая зрелость: draft · baseline"
+        },
+        "gate": {
+          "type": "string",
+          "description": "Точка, к которой выход обязан созреть (MCR, KDP-A…). Конец окна ленты берётся отсюда"
+        },
+        "done_when": {
+          "$ref": "#/$defs/condition"
+        }
+      }
+    },
+    "lifecycle": {
+      "$ref": "https://kis.local/schemas/common/status.schema.json"
+    },
+    "provenance": {
+      "$ref": "https://kis.local/schemas/common/provenance.schema.json"
+    }
+  },
+  "$defs": {
+    "condition": {
+      "type": "object",
+      "required": [
+        "check"
+      ],
+      "additionalProperties": false,
+      "description": "Проверяемое условие. Набор закрытый: система обязана уметь ответить да/нет сама, без ручной отметки",
+      "properties": {
+        "check": {
+          "enum": [
+            "objects",
+            "passport_field",
+            "taken_from_library",
+            "gate_check",
+            "document_issued",
+            "always"
+          ],
+          "description": "objects — в проекте есть объекты вида; passport_field — поле паспорта заполнено; taken_from_library — набор взят на мастер-пути; gate_check — проверка готовности к точке закрыта; document_issued — документ выпущен"
+        },
+        "type": {
+          "type": "string",
+          "description": "Для objects и taken_from_library: вид объекта"
+        },
+        "min": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1,
+          "description": "Сколько объектов достаточно"
+        },
+        "field": {
+          "type": "string",
+          "description": "Для passport_field: имя поля паспорта проекта"
+        },
+        "gate_check_id": {
+          "type": "string",
+          "description": "Для gate_check: идентификатор проверки готовности"
+        },
+        "code": {
+          "type": "string",
+          "description": "Для document_issued: код документа"
+        },
+        "label": {
+          "type": "string",
+          "description": "Как условие называется инженеру: «цели и нужды приняты». Без него сообщение собирается из полей"
+        }
+      }
+    }
+  }
+}

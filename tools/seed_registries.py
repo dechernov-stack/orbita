@@ -34,6 +34,8 @@ SEEDS = [
     # Списка шаблонов своей ручкой нет: наличие проверяем прямым чтением
     # объекта — портфель из нескольких проектов ломает общий /objects.
     ("document_template", None, "10-шаблон-записки.json"),
+    # «Работа фазы»: задачи регламента — контент полки, а не код экрана.
+    ("phase_task", None, "11-задачи-фазы-pre-a.json"),
 ]
 
 TOKEN: str | None = None
@@ -143,6 +145,10 @@ def obsolete(type_: str, rows: list) -> bool:
         )
     if type_ == "property_form":
         return not any(f.get("required_by") for d in rows for f in d.get("fields", []))
+    if type_ == "phase_task":
+        # задачи фазы обновляются, когда меняется их контент: сверяем по
+        # числу шагов первой задачи — оно растёт вместе с проводником
+        return not any(len(d.get("steps", [])) >= 4 for d in rows)
     if type_ == "document_template":
         # полка устарела, если раздел «Обозначения источников» не несёт
         # авторской семантики меток: проверяем НАЛИЧИЕ верной формулировки,
