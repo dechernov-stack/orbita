@@ -76,6 +76,12 @@ data class RequirementRow(
     val noCarrierGap: Boolean,
     /** Проектное требование без трассировки на нужду/источник — разрыв «без нужды». */
     val noNeedGap: Boolean,
+    /**
+     * Мягкие пометы формулировки (L-C1…L-C6, NASA SEH App. C): совет, а не
+     * запрет — базирование они не держат. Считает сервер по словарю полки,
+     * клиент показывает жёлтым с текстом подсказки.
+     */
+    val lint: List<orbita.req.LintNote> = emptyList(),
 )
 
 data class SystemRootRef(val id: String, val name: String?)
@@ -356,6 +362,7 @@ class ScreenViews(
             noCarrierGap = doc.path("level").asText("") != "project" && allocated.isEmpty(),
             noNeedGap = doc.path("level").asText("") == "project" &&
                 doc.path("traces_up").none { it.path("ref").asText().isNotBlank() },
+            lint = orbita.req.QualityControl().lint(doc),
         )
     }
 

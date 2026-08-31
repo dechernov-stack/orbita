@@ -41,6 +41,9 @@ SEEDS = [
     ("phase_task", None, "12-задачи-фазы-phase-a.json"),
     # Шаблон SEMP (Phase A, задача 1): 8 разделов прил. 1 БП-PA
     ("document_template", None, "13-шаблон-semp.json"),
+    # Глоссарий системной инженерии (NASA SEH App. B): отдельный объект полки —
+    # наш глоссарий главнее, заимствованный лежит рядом с пометкой источника
+    ("glossary", None, "14-глоссарий-se.json"),
 ]
 
 TOKEN: str | None = None
@@ -185,9 +188,41 @@ def obsolete(type_: str, rows: list) -> bool:
     return False
 
 
+def коллизии_глоссария(packet, rows) -> list:
+    """Термины, которые уже есть на полке под другим определением.
+
+    Владелец: «наш термин главнее, SEH примечанием». Тихая перезапись
+    подменила бы принятое определение чужим — поэтому коллизии
+    докладываются списком и остаются решением человека.
+    """
+    свои = {}
+    for d in rows:
+        for e in ([d] if "term" in d else d.get("entries", [])):
+            if e.get("term"):
+                свои[e["term"]] = e.get("brief", "")
+    спорные = []
+    for obj in packet["objects"]:
+        for e in obj.get("entries", []):
+            прежнее = свои.get(e.get("term"))
+            if прежнее is not None and прежнее.strip() != e.get("brief", "").strip():
+                спорные.append((e["term"], прежнее, e.get("brief", "")))
+    return спорные
+
+
 for type_, view, fname in SEEDS:
     packet = json.loads((PACKETS / fname).read_text())
     rows = present(view, packet)
+    if type_ == "glossary":
+        # наш термин главнее: спорные показываем владельцу, не перезаписываем
+        все = present("/library/glossary", packet) or []
+        спорные = коллизии_глоссария(packet, [{"entries": все}] if все else [])
+        if спорные:
+            print(f"glossary: КОЛЛИЗИИ ТЕРМИНОВ — {len(спорные)}; заимствованное определение "
+                  f"НЕ подменяет принятое, решение за владельцем:")
+            for термин, прежнее, чужое in спорные:
+                print(f"  · {термин}")
+                print(f"      наше:  {прежнее[:90]}")
+                print(f"      SEH:   {чужое[:90]}")
     if rows and not obsolete(type_, rows):
         print(f"{type_}: уже на полке — пропуск")
         continue

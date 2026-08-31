@@ -16,6 +16,7 @@ import { RefChip } from '../ui/RefChip'
 import { RefPicker } from '../ui/RefPicker'
 import { Select } from '../ui/Select'
 import { useSession } from '../ui/session'
+import { Tooltip } from '../ui/Tooltip'
 import {
   buildItems, COLUMN_LABELS, defaultColumns, flatRows, gapCounters, GAP_LABELS,
   PROJECT_GROUP, visibleColumns,
@@ -760,6 +761,11 @@ function CardView({
         <button type="button" className="rr-back" onClick={onBack}>← Реестр требований</button>
         <span className="mono secondary">{r.id}</span>
         <span className="chip"><span className={`dot status-${r.status}`} title={label('lifecycle', r.status)} />{label('lifecycle', r.status)} · v{r.version}</span>
+        {(r.lint ?? []).map((n) => (
+          <Tooltip key={n.id} text={`${n.text} · правило ${n.id} (NASA SEH App. C)`}>
+            <span className="chip rr-warn-chip">{n.id}</span>
+          </Tooltip>
+        ))}
         {r.recalcAfterBaseline && <span className="chip rr-warn-chip" title="Показатель пересчитан после базирования">пересчитан</span>}
         {r.changedAfterApproval && <span className="chip rr-warn-chip" title="Изменено после утверждения">изменено</span>}
         <span style={{ flex: 1 }} />

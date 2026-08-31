@@ -67,6 +67,8 @@ export interface RequirementRow {
   /** Имя первого носителя — строка рисуется без догрузок. */
   carrierName: string | null
   /** Пометы с сервера — клиент их семантику не вычисляет. */
+  /** L-C1…L-C6: мягкие пометы формулировки — совет, не запрет. */
+  lint?: Array<{ id: string; text: string }>
   recalcAfterBaseline: boolean
   changedAfterApproval: boolean
   /** Разрывы стратифицированы по уровням: сирота — только системное. */

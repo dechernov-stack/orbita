@@ -17,6 +17,12 @@ data class QualityRules(
     val conjunctionRegexes: List<String>,
     val vagueWords: List<String>,
     val measuredCategories: Set<String>,
+    /** L-C6: слова цели — целям не место среди требований (П18). */
+    val goalWords: List<String> = emptyList(),
+    /** L-C4: негативная форма, где выразимо позитивно (П17). */
+    val negativeWords: List<String> = emptyList(),
+    /** L-C3: начало формулировки не от носителя — пассив или безличность (П13). */
+    val passiveStarts: List<String> = emptyList(),
 ) {
     companion object {
         private val mapper = ObjectMapper()
@@ -31,8 +37,13 @@ data class QualityRules(
         fun fromJson(json: String): QualityRules {
             val n = mapper.readTree(json)
             fun list(key: String) = n.path(key).map { it.asText() }
-            return QualityRules(list("modal_words"), list("conjunction_regexes"),
-                list("vague_words"), list("measured_categories").toSet())
+            return QualityRules(
+                list("modal_words"), list("conjunction_regexes"),
+                list("vague_words"), list("measured_categories").toSet(),
+                goalWords = list("goal_words"),
+                negativeWords = list("negative_words"),
+                passiveStarts = list("passive_starts"),
+            )
         }
     }
 }
@@ -73,7 +84,54 @@ class QualityControl(private val rules: QualityRules = QualityRules.default()) {
 
     private fun hasMop(req: JsonNode): Boolean =
         req.path("mop").let { !it.isMissingNode && !it.isNull && !(it.isObject && it.isEmpty) }
+
+    /**
+     * Мягкие пометы формулировки (L-C1…L-C6, NASA SEH App. C).
+     *
+     * Не запрет, а совет: базирование они не держат — держит `check`. Текст
+     * пометы говорит, ЧТО не так и что с этим делать, а не называет правило
+     * кодом: инженер читает подсказку, а не расшифровывает шифр.
+     */
+    fun lint(req: JsonNode): List<LintNote> {
+        val notes = mutableListOf<LintNote>()
+        val text = req.path("statement").asText("")
+        if (text.isBlank()) return notes
+        val low = text.lowercase()
+
+        if (conjunctions.any { it.containsMatchIn(low) }) {
+            notes += LintNote("L-C1", "возможно, два требования в одном — рассмотрите разделение")
+        }
+        rules.vagueWords.firstOrNull { it in low }?.let {
+            notes += LintNote("L-C2", "неопределённое слово «$it» — уточните")
+        }
+        if (rules.passiveStarts.any { low.trimStart().startsWith(it) }) {
+            notes += LintNote("L-C3", "пассив или безличная форма — перепишите от изделия или стороны")
+        }
+        rules.negativeWords.firstOrNull { it in low }?.let {
+            notes += LintNote("L-C4", "негативная форма «$it» — выразима ли позитивно?")
+        }
+        if (hasOpenTbd(req)) {
+            val владелец = req.path("mop").path("tbd_owner").asText("")
+                .ifBlank { req.path("owner").asText("") }
+            val срок = req.path("mop").path("tbd_due").asText("")
+            if (владелец.isBlank() || срок.isBlank()) {
+                notes += LintNote(
+                    "L-C5",
+                    "канон TBR: назовите, что сделать, кто отвечает и к какому сроку" +
+                        (if (владелец.isBlank()) "; владелец не назван" else "") +
+                        (if (срок.isBlank()) "; срок устранения не назван" else ""),
+                )
+            }
+        }
+        rules.goalWords.firstOrNull { it in low }?.let {
+            notes += LintNote("L-C6", "«$it» — это цель, а не требование: вынесите отдельным классом")
+        }
+        return notes
+    }
 }
+
+/** Мягкая помета формулировки: код правила и человеческий текст. */
+data class LintNote(val id: String, val text: String)
 
 /** Незакрытые TBD/TBR показателя (TZ-REQ-006, TZ-REQ-008). */
 fun hasOpenTbd(req: JsonNode): Boolean =
