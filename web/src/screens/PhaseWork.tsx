@@ -47,7 +47,7 @@ export function PhaseWork({ onGo }: { onGo: (screen: string, kind?: string) => v
   return (
     <>
       <div className="toolbar">
-        <h2>Работа фазы</h2>
+        {/* Круг 2: заголовок один — второй давала рейка раздела */}
         <span className="secondary">
           {view.tasks} задач · {view.in_progress} в работе · {view.available} доступна ·{' '}
           {view.waiting} ожидают · {view.done} выполнена
@@ -85,22 +85,38 @@ function Lane({ view, onOpen }: { view: PhaseWorkView; onOpen: (id: string) => v
   }
   return (
     <div className="card">
-      <div className="secondary" style={{ marginBottom: 8 }}>
-        окно {view.lane_from} — {view.lane_to}; сплошная полоса — в работе либо доступна, пунктир — расчётное
-        окно от дедлайна входа, красное — до точки осталось меньше недели
+      {/* Круг 2: шкала дат сверху — вехи ◆ именами и линия «сегодня».
+          Положения посчитал сервер; здесь только рисование. */}
+      <div className="pw-scale">
+        <span className="pw-scale__edge">{view.lane_from}</span>
+        <div className="pw-scale__track">
+          {/* Подсказка здесь — атрибутом, а не обёрткой: обёртка Tooltip
+              становится родителем позиционирования, и метки вех слипались
+              в левом углу вместо своих долей шкалы. */}
+          {(view.scale ?? []).map((m) => (
+            <span key={m.gate}
+              className={`pw-scale__gate${m.at_pct > 90 ? ' pw-scale__gate--right' : ''}`}
+              style={{ left: `${m.at_pct}%` }}
+              title={`${m.gate}: ${m.date}`}>
+              ◆ {m.gate}
+            </span>
+          ))}
+          {view.today_pct != null && (
+            <span className="pw-scale__today" style={{ left: `${view.today_pct}%` }}
+              title={`сегодня: ${view.today}`} />
+          )}
+        </div>
+        <span className="pw-scale__edge">{view.lane_to}</span>
       </div>
-      <table className="grid">
+
+      <table className="grid pw-lane">
         <tbody>
           {view.items.map((t) => (
-            <tr key={t.id}>
+            /* Правило Т-1: цель клика — вся строка, синее оставлено действиям */
+            <tr key={t.id} className="pw-row" onClick={() => onOpen(t.id)} title={t.why}>
               <td style={{ width: 300 }}>
-                <button className="np-linkish" onClick={() => onOpen(t.id)}
-                  title={t.why}>
-                  {t.order} · {t.name}
-                </button>
-              </td>
-              <td style={{ width: 150 }}>
-                <StatusChip task={t} />
+                <div>{t.order} · {t.name}</div>
+                <div className="secondary pw-row__status">{statusText(t)}</div>
               </td>
               <td>
                 <LaneBar task={t} />
@@ -109,51 +125,64 @@ function Lane({ view, onOpen }: { view: PhaseWorkView; onOpen: (id: string) => v
           ))}
         </tbody>
       </table>
+
+      {/* Круг 2: легенда — короткой строкой ПОД лентой, не абзацем над ней */}
+      <div className="secondary pw-legend">
+        окна — расчётные доли интервала до точки по порядку зависимостей, не обещание сроков;
+        красное — до точки меньше недели при неготовом выходе
+      </div>
     </div>
   )
 }
 
-/** Полоса окна: положение и длина — из дат сервера, здесь только показ. */
+/** Статус — текстом второй строкой имени (эталон списка), не пилюлей. */
+function statusText(task: PhaseWorkTask): string {
+  if (task.status === 'waiting') return `ждёт: ${task.waits_on ?? task.input_why}`
+  if (task.status === 'done') return 'выполнена'
+  if (task.status === 'in_progress') {
+    const done = task.steps.filter((s) => s.done).length
+    return `в работе · шаг ${done + 1} из ${task.steps.length}`
+  }
+  return 'доступна'
+}
+
+/** Полоса окна: доли посчитал сервер, здесь показ и подпись внутри. */
 function LaneBar({ task }: { task: PhaseWorkTask }) {
   if (!task.end || task.lane_width_pct == null) {
     return <Muted why="у выхода задачи не назначена точка — окно считать не от чего" />
   }
-  // доли полосы посчитал сервер: клиент только рисует
-  const style: React.CSSProperties = {
-    marginLeft: `${task.lane_offset_pct ?? 0}%`,
-    width: `${task.lane_width_pct}%`,
-    height: 12,
-    borderRadius: 6,
-    background: task.tight ? 'var(--status-cancelled, #b3261e)' : 'var(--accent)',
-    opacity: task.status === 'done' ? 0.35 : 1,
-    border: task.status === 'waiting' ? '1px dashed var(--hairline)' : undefined,
-  }
-  const подпись = task.tight
-    ? `окно сжато: до ${task.end} меньше недели, а выход не готов`
-    : `${task.start ?? 'сейчас'} — ${task.end}`
+  const подписьВнутри = task.status === 'waiting'
+    ? `ждёт ${task.waits_on?.split(' · ')[0] ?? ''}`.trim()
+    : task.gaps.length > 0
+      ? `${statusShort(task)} · разрывы ${task.gaps.length}`
+      : statusShort(task)
+  const подсказка = [
+    `окно ${task.lane_start ?? task.start ?? 'сейчас'} — ${task.lane_end ?? task.end}`,
+    `ярус ${task.tier ?? 1} из ${task.tiers ?? 1} до точки ${task.gate ?? '—'}`,
+    task.waits_on ? `ждёт: ${task.waits_on}` : 'вход готов',
+    task.tight ? 'окно сжато: до точки меньше недели, а выход не готов' : '',
+  ].filter(Boolean).join('\n')
   return (
-    <Tooltip text={подпись}>
-      <span style={{ display: 'block', width: '100%' }}>
-        <span style={style} />
+    <Tooltip text={подсказка}>
+      <span className="pw-bar__track">
+        <span
+          className={`pw-bar${task.tight ? ' pw-bar--tight' : ''}` +
+            (task.status === 'waiting' ? ' pw-bar--waiting' : '') +
+            (task.status === 'done' ? ' pw-bar--done' : '')}
+          style={{ marginLeft: `${task.lane_offset_pct ?? 0}%`, width: `${task.lane_width_pct}%` }}
+        >
+          <span className="pw-bar__label">{подписьВнутри}</span>
+        </span>
       </span>
     </Tooltip>
   )
 }
 
-function StatusChip({ task }: { task: PhaseWorkTask }) {
-  if (task.status === 'waiting') {
-    return (
-      <Tooltip text={`ожидает: ${task.waits_on ?? task.input_why}`}>
-        <span className="chip">ждёт{task.waits_on ? ` · ${task.waits_on.split(' · ')[0]}` : ''}</span>
-      </Tooltip>
-    )
-  }
-  if (task.status === 'done') return <span className="secondary">✓ выполнена</span>
-  if (task.status === 'in_progress') {
-    const done = task.steps.filter((s) => s.done).length
-    return <span className="chip">в работе · шаг {done + 1} из {task.steps.length}</span>
-  }
-  return <span className="chip">доступна</span>
+/** Короткий статус для подписи внутри полосы. */
+function statusShort(task: PhaseWorkTask): string {
+  if (task.status === 'done') return 'выполнена'
+  if (task.status === 'in_progress') return 'в работе'
+  return 'доступна'
 }
 
 function Muted({ why }: { why: string }) {

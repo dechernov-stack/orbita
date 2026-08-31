@@ -1535,3 +1535,35 @@ details.np-dates[open] summary::before { transform: rotate(90deg); }
 }
 .tip__box--top { bottom: calc(100% + 6px); }
 .tip__box--bottom { top: calc(100% + 6px); }
+
+/* Круг 2 «Работы»: лента читается — шкала с вехами, полосы с подписью
+   внутри, статус текстом. Ширина полосы не меньше подписи: обрезков нет. */
+.pw-scale { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; }
+.pw-scale__edge { font: 400 11px/14px var(--font-mono); color: var(--text-secondary); }
+.pw-scale__track {
+  position: relative; flex: 1; height: 18px;
+  border-bottom: 1px solid var(--hairline);
+}
+.pw-scale__gate {
+  position: absolute; top: 0; transform: translateX(-50%);
+  font: 500 11px/14px var(--font); color: var(--text-secondary); white-space: nowrap;
+}
+.pw-scale__gate--right { transform: translateX(-100%); }
+.pw-scale__today {
+  position: absolute; top: -2px; bottom: -4px; width: 2px;
+  background: var(--accent); border-radius: 1px;
+}
+.pw-lane tr.pw-row { cursor: pointer; }
+.pw-lane tr.pw-row:hover { background: var(--selection); }
+.pw-row__status { font-size: 11px; }
+.pw-bar__track { display: block; width: 100%; }
+.pw-bar {
+  display: inline-flex; align-items: center; min-width: 90px; height: 20px;
+  padding: 0 8px; border-radius: 10px; background: var(--accent); color: #fff;
+  font: 500 11px/20px var(--font); white-space: nowrap; overflow: visible;
+}
+.pw-bar--waiting { background: var(--container); color: var(--text-secondary); border: 1px dashed var(--hairline); }
+.pw-bar--done { opacity: 0.45; }
+.pw-bar--tight { background: var(--status-cancelled, #b3261e); color: #fff; }
+.pw-bar__label { overflow: visible; }
+.pw-legend { margin-top: 8px; font-size: 11px; }

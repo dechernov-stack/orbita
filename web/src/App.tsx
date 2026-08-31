@@ -377,7 +377,12 @@ export function App() {
             </button>
           ))}
         </nav>
-        {!['portfolio', 'newproject', 'startpath'].includes(screen) && (
+        {/* Круг 2 (правило общесистемное): панель раздела с единственным
+            пунктом и без операций фазы схлопывается — пустая белая колонка
+            занимала треть окна и ничего не давала. Раздел открывается сразу
+            экраном; прямые маршруты при этом живут. */}
+        {!['portfolio', 'newproject', 'startpath'].includes(screen) &&
+          !(nav.screens.length <= 1 && sectionOps.length === 0) && (
           <aside className="ops">
             <div className="ops__title">{nav.label}</div>
             {nav.screens.map((sc) => (

@@ -958,11 +958,20 @@ export interface PhaseWorkTask {
   tight: boolean
   lane_offset_pct?: number
   lane_width_pct?: number
+  /** Ярус зависимостей внутри интервала точки и границы доли датами. */
+  tier?: number
+  tiers?: number
+  lane_start?: string
+  lane_end?: string
   steps: Array<{ title: string; hint?: string; screen?: string; kind?: string; done: boolean; why: string }>
   gaps: string[]
 }
 
 export interface PhaseWorkView {
+  /** Круг 2: шкала ленты — вехи ◆ и линия «сегодня», положения считает сервер. */
+  scale?: Array<{ gate: string; date: string; at_pct: number }>
+  today?: string
+  today_pct?: number
   phase?: string
   empty_why?: string
   lane_from?: string
