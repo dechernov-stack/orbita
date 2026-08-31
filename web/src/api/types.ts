@@ -1013,3 +1013,17 @@ export interface StakeholderCoverageView {
   }>
   without_stakeholder: Array<{ id: string; statement: string; state: string; named?: string }>
 }
+
+/** Г-01: чужие ссылки пакета и предложения замены по смыслу. */
+export interface LinkMappingView {
+  foreign: number
+  summary: string
+  links: Array<{
+    ref: string
+    from_project?: string | null
+    text: string
+    kind: string
+    suggested?: { id: string; text: string; score: number }
+    candidates: Array<{ id: string; text: string; score: number }>
+  }>
+}

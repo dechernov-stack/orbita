@@ -823,6 +823,19 @@ class HttpApi(private val boundary: Boundary) {
                     )
                     arr.add(marked)
                 }
+                // Г-01: подтверждённое инженером сопоставление чужих ссылок —
+                // применяется ДО перебивки собственных id пачки
+                val карта = mutableMapOf<String, String>()
+                request.path("link_mapping").properties().forEach { (старый, новый) ->
+                    новый.asText("").takeIf { it.isNotBlank() }?.let { карта[старый] = it }
+                }
+                if (карта.isNotEmpty()) {
+                    // применяем к КОПИИ: очистка исходного массива до
+                    // переноса выносила бы пакет целиком (поймано прогоном)
+                    val сопоставленные = LinkMapping.применить(arr.deepCopy(), карта)
+                    arr.removeAll()
+                    сопоставленные.forEach { arr.add(it) }
+                }
                 val importer = BatchImport(boundary, mapper)
                 // id предложений — черновые (TZ-MOD-007: id глобальны и не
                 // переиспользуются): межпакетные ссылки — по карте проекта,
@@ -3592,6 +3605,24 @@ class HttpApi(private val boundary: Boundary) {
                         .put("project", ctx)
                         .put("note", "профиль А2 создан обобщением: полка знает исток, факт знает шаблон"),
                 )
+            }
+
+            // Г-01: чужие ссылки пакета — не отказ, а сопоставление. Здесь
+            // только разбор и предложение по смыслу: решение за инженером,
+            // изоляция проектов не ослабляется ни на шаг.
+            method == "POST" && path == "/views/link-mapping" -> {
+                val req = mapper.readTree(body(ex))
+                val ctx = requireProject(project)
+                val raw = req.path("raw").asText("")
+                val items = if (raw.isNotBlank()) {
+                    val cleaned = raw.trim()
+                        .removePrefix("```json").removePrefix("```").removeSuffix("```").trim()
+                    mapper.readTree(cleaned)
+                } else {
+                    req.path("items")
+                }
+                require(items.isArray) { "нет пакета: поле 'raw' либо 'items' массивом" }
+                respond(ex, 200, LinkMapping.toJson(LinkMapping.разобрать(boundary, items, ctx)))
             }
 
             // Ф-15: правка справочника не бесплатна — она меняет смысл

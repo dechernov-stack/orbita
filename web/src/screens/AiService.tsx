@@ -8,6 +8,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { api, asBatchReport, type AiJournal, type AiRunReport, type BatchReport } from '../api/client'
 import { edit, type StoredSummary } from '../api/edit'
 import { useSession } from '../ui/session'
+import type { LinkMappingView } from '../api/types'
+import { Muted } from '../ui/Tooltip'
 
 const KINDS: Array<{ id: string; title: string; generative: boolean }> = [
   { id: 'mission_to_goals', title: 'Постановка → цели миссии', generative: true },
@@ -52,6 +54,9 @@ export function AiService({ onGo, initialKind }: {
   const [raw, setRaw] = useState('')
   const [report, setReport] = useState<AiRunReport | null>(null)
   const [reworkPicked, setReworkPicked] = useState<Set<string>>(new Set())
+  // Г-01: чужие ссылки пакета — сопоставление, а не отказ строки
+  const [mapping, setMapping] = useState<LinkMappingView | null>(null)
+  const [mapChoice, setMapChoice] = useState<Record<string, string>>({})
   const [reworkNote, setReworkNote] = useState<string | null>(null)
   const [batch, setBatch] = useState<
     (BatchReport & { remapped?: Array<{ from: string; to: string }> }) | null
@@ -102,7 +107,7 @@ export function AiService({ onGo, initialKind }: {
     setExcluded(new Set())
     setEnriched(null)
     api.aiAsk(kind, profile, statement, author)
-      .then(setReport)
+      .then((r) => { setReport(r); askMapping(r.shown.map((x) => x.item)) })
       .catch((e) => setError(String(e)))
       .finally(() => { setBusy(false); reloadJournal() })
   }
@@ -114,7 +119,7 @@ export function AiService({ onGo, initialKind }: {
     setExcluded(new Set())
     setEnriched(null)
     api.aiSubmit(kind, profile, statement, raw, author)
-      .then(setReport)
+      .then((r) => { setReport(r); askMapping(r.shown.map((x) => x.item)) })
       .catch((e) => setError(String(e)))
       .finally(() => { setBusy(false); reloadJournal() })
   }
@@ -134,6 +139,7 @@ export function AiService({ onGo, initialKind }: {
       .then((r) => {
         if (r.kind) setKind(r.kind)
         setReport(r)
+        askMapping(r.shown.map((x) => x.item))
         setPacketRaw('')
       })
       .catch((e) => setError(String(e)))
@@ -191,6 +197,23 @@ export function AiService({ onGo, initialKind }: {
       .finally(() => { setBusy(false); reloadJournal() })
   }
 
+  /**
+   * Г-01: чужие ссылки пакета разбираются ДО акцепта. Изоляция проектов не
+   * ослабляется: система лишь показывает, чем заменить, и предлагает по
+   * совпадению формулировки. Решение — инженера, несопоставленное остаётся
+   * без связи и честно даст разрыв трассировки.
+   */
+  const askMapping = (items: unknown[]) => {
+    api.linkMapping(items)
+      .then((m) => {
+        setMapping(m.foreign > 0 ? m : null)
+        setMapChoice(Object.fromEntries(
+          m.links.filter((l) => l.suggested).map((l) => [l.ref, l.suggested!.id]),
+        ))
+      })
+      .catch(() => setMapping(null))
+  }
+
   const acceptAll = () => {
     if (!report) return
     const items = report.shown.filter((s) => !excluded.has(String(s.item.id ?? '')))
@@ -214,7 +237,13 @@ export function AiService({ onGo, initialKind }: {
         })
       }
     }
-    api.acceptBatchOfCall(report.call ?? null, 'служба', author, items.map((s) => s.item))
+    const карта = Object.fromEntries(
+      Object.entries(mapChoice).filter(([, v]) => v),
+    )
+    api.acceptBatchOfCall(
+      report.call ?? null, 'служба', author, items.map((s) => s.item),
+      Object.keys(карта).length > 0 ? карта : undefined,
+    )
       .then(onRejected)
       .catch((e) => {
         // Сервер отвечает 422 тем же BatchReport, что и 201 на успех (written: 0,
@@ -605,6 +634,55 @@ export function AiService({ onGo, initialKind }: {
                       </tbody>
                     </table>
                   </div>
+                  {/* Г-01: чужие ссылки — сопоставление, а не отказ строки.
+                      Изоляция проектов не ослабляется: связь пишется только
+                      на объект ЭТОГО проекта, выбранный инженером. */}
+                  {mapping && (
+                    <div className="rr-expand" style={{ display: 'block', padding: '8px 10px', marginBottom: 8 }}>
+                      <div className="secondary" style={{ marginBottom: 6 }}>{mapping.summary}</div>
+                      <table className="grid">
+                        <thead>
+                          <tr>
+                            <th style={{ width: 110 }}>Ссылка пакета</th>
+                            <th>Что это в исходном проекте</th>
+                            <th style={{ width: 260 }}>Чем заменить здесь</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {mapping.links.map((l) => (
+                            <tr key={l.ref}>
+                              <td className="mono">
+                                {l.ref}
+                                {l.from_project && <div className="secondary">{l.from_project}</div>}
+                              </td>
+                              <td className="wrap">{l.text || <Muted why="объект исходного проекта недоступен — формулировку показать неоткуда" />}</td>
+                              <td>
+                                <select value={mapChoice[l.ref] ?? ''}
+                                  title="объект этого проекта, которым заменится чужая ссылка; «без связи» — строка ляжет с разрывом трассировки"
+                                  onChange={(e) => setMapChoice((prev) => ({ ...prev, [l.ref]: e.target.value }))}>
+                                  <option value="">— без связи (разрыв трассировки) —</option>
+                                  {l.candidates.map((c) => (
+                                    <option key={c.id} value={c.id}>
+                                      {c.id} · {c.text.slice(0, 46)}{c.score > 0 ? ` (${Math.round(c.score * 100)}%)` : ''}
+                                    </option>
+                                  ))}
+                                </select>
+                                {l.suggested && mapChoice[l.ref] === l.suggested.id && (
+                                  <div className="secondary">предложено по совпадению формулировки</div>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      <div className="secondary" style={{ marginTop: 6 }}>
+                        Связь запишется только на объект этого проекта. Оставленное «без связи»
+                        уйдёт в разрыв трассировки, а строка, которой связь обязательна по схеме,
+                        честно не пройдёт ворота.
+                      </div>
+                    </div>
+                  )}
+
                   <button title="нечего принимать: представьтесь в шапке и оставьте хотя бы одно предложение невыключенным" className="btn btn--primary" onClick={acceptAll}
                     disabled={!author || busy
                       || report.shown.every((s) => excluded.has(String(s.item.id ?? '')))}>

@@ -44,6 +44,7 @@ import type {
   NormativeCandidatesPacket,
   KnowledgeExportView,
   StatementPathView,
+  LinkMappingView,
   PhaseWorkView,
   StakeholderCoverageView,
 } from './types'
@@ -464,9 +465,14 @@ export const api = {
     post<BatchReport & { signed_by?: string; note?: string; remapped?: Array<{ from: string; to: string }> }>(
       '/ai/accept-rework', { author: by, items },
     ),
-  acceptBatchOfCall: (call: number | null, llm: string, by: string, items: unknown[]) =>
+  acceptBatchOfCall: (
+    call: number | null, llm: string, by: string, items: unknown[],
+    /** Г-01: подтверждённое инженером сопоставление чужих ссылок. */
+    linkMapping?: Record<string, string>,
+  ) =>
     post<BatchReport & { remapped?: Array<{ from: string; to: string }> }>(
-      '/ai/accept-batch', { call, llm, by, items },
+      '/ai/accept-batch',
+      { call, llm, by, items, ...(linkMapping ? { link_mapping: linkMapping } : {}) },
     ),
   /** Дозаполнение: применить частичные правки к существующим требованиям. */
   enrichApply: (call: number | null, by: string, items: unknown[]) =>
@@ -700,6 +706,8 @@ export const api = {
   stakeholderCoverage: () => get<StakeholderCoverageView>('/views/stakeholder-coverage'),
   /** «Работа фазы»: задачи регламента со статусами, шагами и окнами — считает сервер. */
   phaseWork: () => get<PhaseWorkView>('/views/phase-work'),
+  /** Г-01: чужие ссылки пакета — разбор и предложение замены по смыслу. */
+  linkMapping: (items: unknown[]) => post<LinkMappingView>('/views/link-mapping', { items }),
   /** Ф-12: путь постановки — состояние цепочки и следующий шаг, считает сервер. */
   statementPath: () => get<StatementPathView>('/views/statement-path'),
   /** Профиль под вид операции: подбирается системой, а не инженером. */
