@@ -158,7 +158,7 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
         CoreType.Glossary, CoreType.GeoMask, CoreType.PropertyForm, CoreType.Stakeholder,
         // Чек-лист обзора — данные полки: инспекция ведётся по нему, но
         // сам он такой же объект по схеме, как прочие полочные виды
-        CoreType.PhaseTask, CoreType.ReviewChecklist -> {
+        CoreType.PhaseTask, CoreType.ReviewChecklist, CoreType.QualityDictionary -> {
             val doc = parse(json)
             registry.require(type.schemaName, doc)
             store(type, doc, createdBy, projectId)

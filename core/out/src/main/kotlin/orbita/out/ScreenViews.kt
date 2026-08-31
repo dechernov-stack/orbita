@@ -150,6 +150,22 @@ class ScreenViews(
     private val unitLabels: UnitLabels = UnitLabels(),
 ) {
 
+    /**
+     * Линт формулировок словарём ПОЛКИ: список неопределённых слов растёт от
+     * прогона к прогону, и инженер вносит найденное с экрана. Полки нет —
+     * работает ресурс по умолчанию, поведение прежнее.
+     *
+     * Читается лениво и один раз на построение вида: словарь один на систему,
+     * запрос на строку реестра был бы расточительством.
+     */
+    private val lintControl: orbita.req.QualityControl by lazy {
+        val словарь = req.objects
+            .listCurrent(orbita.mod.store.ObjectStore.LIBRARY_PROJECT)
+            .firstOrNull { it.type == "quality_dictionary" && it.status.name != "Cancelled" }
+        if (словарь == null) orbita.req.QualityControl()
+        else orbita.req.QualityControl(orbita.req.QualityRules.fromShelf(словарь.doc))
+    }
+
     fun requirementTree(projectId: String? = null): RequirementTreeView {
         val requirements = currentRequirements(projectId)
         val ids = requirements.map { it.id }
@@ -362,7 +378,7 @@ class ScreenViews(
             noCarrierGap = doc.path("level").asText("") != "project" && allocated.isEmpty(),
             noNeedGap = doc.path("level").asText("") == "project" &&
                 doc.path("traces_up").none { it.path("ref").asText().isNotBlank() },
-            lint = orbita.req.QualityControl().lint(doc),
+            lint = lintControl.lint(doc),
         )
     }
 

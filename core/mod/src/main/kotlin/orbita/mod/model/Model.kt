@@ -102,7 +102,11 @@ enum class CoreType(val idPrefix: String, val dbType: String, val schemaName: St
 
     // Чек-лист обзора (NASA SEH): инспекция ЛЮДЕЙ — единственное место, где
     // отметка ставится рукой. Всё вычислимое живёт разрывами готовности.
-    ReviewChecklist("RC", "review_checklist", "core/review-checklist");
+    ReviewChecklist("RC", "review_checklist", "core/review-checklist"),
+
+    // Словарь линта формулировок: список неопределённых слов — данные, не
+    // код. Инженер вносит найденное слово с экрана, без пересборки ядра.
+    QualityDictionary("QD", "quality_dictionary", "core/quality-dictionary");
 
     companion object {
         fun byDbType(t: String): CoreType = entries.firstOrNull { it.dbType == t }

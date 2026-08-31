@@ -34,6 +34,23 @@ data class QualityRules(
             return res.use { fromJson(it.readAllBytes().decodeToString()) }
         }
 
+        /**
+         * Правила из документа полки (quality_dictionary). Полка ПЕРЕКРЫВАЕТ
+         * ресурс целиком: пустой список означает «правило не проверяется», а
+         * не «взять умолчание» — тайно вернувшееся умолчание объясняло бы
+         * пометы, которых инженер не заводил.
+         */
+        fun fromShelf(doc: JsonNode): QualityRules {
+            fun list(key: String) = doc.path(key).map { it.asText() }
+            return QualityRules(
+                list("modal_words"), list("conjunction_regexes"),
+                list("vague_words"), list("measured_categories").toSet(),
+                goalWords = list("goal_words"),
+                negativeWords = list("negative_words"),
+                passiveStarts = list("passive_starts"),
+            )
+        }
+
         fun fromJson(json: String): QualityRules {
             val n = mapper.readTree(json)
             fun list(key: String) = n.path(key).map { it.asText() }

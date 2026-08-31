@@ -46,6 +46,8 @@ SEEDS = [
     ("glossary", None, "14-глоссарий-se.json"),
     # Чек внутреннего обзора (NASA SEH App. C): инспекция людей, задача 11
     ("review_checklist", None, "15-чек-обзора.json"),
+    # Словарь линта формулировок: правится с экрана справочников
+    ("quality_dictionary", None, "16-словарь-линта.json"),
 ]
 
 TOKEN: str | None = None

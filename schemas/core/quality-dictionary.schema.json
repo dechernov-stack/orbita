@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/core/quality-dictionary.schema.json",
+  "title": "QualityDictionary",
+  "description": "Словарь линта формулировок (NASA SEH App. C, правила L-C1…L-C6) — ДАННЫМИ ПОЛКИ, а не ресурсом сборки. Список неопределённых слов растёт от прогона к прогону: инженер, наткнувшийся на «адекватный» в чужом требовании, обязан уметь внести это слово с экрана, а не ждать пересборки ядра. Словарь полки перекрывает ресурс по умолчанию; пустой список означает «правило не проверяется», а не «взять из ресурса» — умолчание не должно возвращаться тайком.",
+  "type": "object",
+  "required": ["id", "name"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "pattern": "^QD-[0-9]{4}$" },
+    "name": { "type": "string", "minLength": 1 },
+    "source": { "type": "string", "description": "Откуда правила: «NASA SEH App. C», «решение проекта»" },
+    "vague_words": {
+      "type": "array", "items": { "type": "string" },
+      "description": "L-C2 (П16): неопределённые слова — «при необходимости», «соответствующий», «адекватный»"
+    },
+    "goal_words": {
+      "type": "array", "items": { "type": "string" },
+      "description": "L-C6 (П18): слова цели — «желательно», «следует»: целям не место среди требований"
+    },
+    "negative_words": {
+      "type": "array", "items": { "type": "string" },
+      "description": "L-C4 (П17): негативная форма — «не должен», где выразимо позитивно"
+    },
+    "passive_starts": {
+      "type": "array", "items": { "type": "string" },
+      "description": "L-C3 (П13): начала пассивных и безличных формулировок — «должно быть», «необходимо»"
+    },
+    "conjunction_regexes": {
+      "type": "array", "items": { "type": "string" },
+      "description": "L-C1 (П14): шаблоны конъюнкции — два требования в одном. Java-regex; (?U) обязателен для кириллицы"
+    },
+    "modal_words": {
+      "type": "array", "items": { "type": "string" },
+      "description": "Модальность требования: «должен», «должна», «должно» (жёсткий свод базирования)"
+    },
+    "measured_categories": {
+      "type": "array", "items": { "type": "string" },
+      "description": "Категории, которым обязателен измеримый показатель (жёсткий свод базирования)"
+    },
+    "lifecycle": { "$ref": "https://kis.local/schemas/common/status.schema.json" },
+    "provenance": { "$ref": "https://kis.local/schemas/common/provenance.schema.json" }
+  }
+}

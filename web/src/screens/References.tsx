@@ -5,6 +5,7 @@
 import { useEffect, useState } from 'react'
 import { edit } from '../api/edit'
 import { useSession } from '../ui/session'
+import { Muted } from '../ui/Tooltip'
 import { api } from '../api/client'
 
 type GlossaryEntry = Awaited<ReturnType<typeof api.glossary>>[number]
@@ -20,7 +21,7 @@ const CONVERSION_LABEL: Record<string, string> = {
 }
 
 export function References() {
-  const [tab, setTab] = useState<'glossary' | 'units' | 'forms'>('glossary')
+  const [tab, setTab] = useState<'glossary' | 'units' | 'forms' | 'lint'>('glossary')
   const [glossary, setGlossary] = useState<GlossaryEntry[] | null>(null)
   const [units, setUnits] = useState<UnitDimension[] | null>(null)
   const [forms, setForms] = useState<PropertyForm[] | null>(null)
@@ -32,12 +33,21 @@ export function References() {
     dimension: '', canon: '', unit: '', factor: '1', spellings: '',
   })
   const [busy, setBusy] = useState(false)
+  // Словарь линта — данные полки: инженер вносит найденное слово с экрана,
+  // без пересборки ядра. Списки правятся по одному слову: пакетная правка
+  // тут не нужна, а ошибиться в длинной строке легко.
+  const [lint, setLint] = useState<{ id: string; version: string; doc: Record<string, unknown> } | null>(null)
+  const [wordDraft, setWordDraft] = useState<Record<string, string>>({})
   const [note, setNote] = useState<string | null>(null)
 
   useEffect(() => {
     api.glossary().then(setGlossary).catch((e) => setError(String(e)))
     api.unitRegistry().then(setUnits).catch((e) => setError(String(e)))
     api.propertyForms().then(setForms).catch(() => setForms([]))
+    edit.list('quality_dictionary')
+      .then((rows) => (rows.length > 0 ? edit.object(rows[0].id) : null))
+      .then((o) => setLint(o ? { id: o.id, version: o.version, doc: o.doc as Record<string, unknown> } : null))
+      .catch(() => setLint(null))
   }, [])
 
   const kinds = (glossary ?? []).filter((e) => e.sd_kind)
@@ -101,6 +111,40 @@ export function References() {
     }
   }
 
+  /**
+   * Правка словаря линта: слово добавляется и снимается по одному, правка
+   * идёт тем же путём, что любая другая — чтение свежей версии, изменение,
+   * запись с основанием. Право проверяет сервер (ведущий СИ, руководитель).
+   */
+  const правитьСлова = async (ключ: string, слова: string[], основание: string) => {
+    if (!lint || !author) return
+    setBusy(true)
+    setNote(null)
+    try {
+      const fresh = await edit.object(lint.id)
+      const doc = { ...(fresh.doc as Record<string, unknown>), [ключ]: слова }
+      await edit.changeWithRef(lint.id, doc, основание)
+      const свежий = await edit.object(lint.id)
+      setLint({ id: свежий.id, version: свежий.version, doc: свежий.doc as Record<string, unknown> })
+      setNote(`${основание}; реестр требований пересчитает пометы при следующем открытии`)
+    } catch (e) {
+      setNote(String(e))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const СПИСКИ: Array<{ key: string; title: string; rule: string; hint: string }> = [
+    { key: 'vague_words', title: 'Неопределённые слова', rule: 'L-C2',
+      hint: 'слово из списка в формулировке — помета «уточните»' },
+    { key: 'goal_words', title: 'Слова цели', rule: 'L-C6',
+      hint: '«желательно», «следует» — это цель, а не требование' },
+    { key: 'negative_words', title: 'Негативная форма', rule: 'L-C4',
+      hint: '«не должен» — помета «выразимо ли позитивно?»' },
+    { key: 'passive_starts', title: 'Пассивные начала', rule: 'L-C3',
+      hint: 'формулировка начинается не с носителя — пассив или безличность' },
+  ]
+
   return (
     <div style={{ padding: '8px 0', overflowY: 'auto' }}>
       <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
@@ -111,6 +155,10 @@ export function References() {
         <button className="tab" aria-selected={tab === 'units'} onClick={() => setTab('units')}
           title="размерности и единицы — этим же словарём канонизируются пачки и загрузки">
           Единицы{units ? ` · ${units.length}` : ''}
+        </button>
+        <button className="tab" aria-selected={tab === 'lint'} onClick={() => setTab('lint')}
+          title="словарь линта формулировок: слова, на которые реестр ставит мягкие пометы L-C">
+          Линт формулировок
         </button>
         <button className="tab" aria-selected={tab === 'forms'} onClick={() => setTab('forms')}
           title="анкеты характеристик носителей — ими библиотека запрашивает данные">
@@ -194,6 +242,77 @@ export function References() {
           </>
         )
       )}
+      {tab === 'lint' && (
+        lint == null ? (
+          <div className="empty">
+            Словаря линта на полке нет — работает список по умолчанию из сборки.
+            Залейте объект вида quality_dictionary, чтобы править слова с экрана.
+          </div>
+        ) : (
+          <div className="card">
+            <h3>Словарь линта формулировок</h3>
+            <p className="secondary" style={{ marginTop: 0 }}>
+              По этим словам реестр требований ставит мягкие пометы: они советуют, а не
+              запрещают. Список полки перекрывает умолчание сборки целиком — пустой список
+              означает «правило не проверяется».
+              {lint.doc.source ? ` Источник: ${String(lint.doc.source)}.` : ''}
+            </p>
+            {note && <div className="secondary" style={{ marginBottom: 6 }}>{note}</div>}
+            {СПИСКИ.map(({ key, title, rule, hint }) => {
+              const слова = (lint.doc[key] as string[] | undefined) ?? []
+              return (
+                <div key={key} style={{ marginBottom: 10 }}>
+                  <div>
+                    <b>{title}</b> <span className="mono secondary">{rule}</span>
+                    <div className="secondary">{hint}</div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', margin: '4px 0' }}>
+                    {слова.length === 0 && <Muted why="список пуст — правило не проверяется" />}
+                    {слова.map((w) => (
+                      <span key={w} className="chip">
+                        {w}
+                        <button className="np-linkish" disabled={busy || !author}
+                          style={{ marginLeft: 4 }}
+                          title={author
+                            ? `убрать «${w}» из словаря — помета по нему ставиться перестанет`
+                            : 'представьтесь в шапке: правка словаря пишется на автора'}
+                          onClick={() => void правитьСлова(key, слова.filter((x) => x !== w),
+                            `линт: слово «${w}» убрано из списка «${title}»`)}>
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <input placeholder="новое слово или оборот" style={{ flex: 1, maxWidth: 320 }}
+                      value={wordDraft[key] ?? ''}
+                      onChange={(e) => setWordDraft((p) => ({ ...p, [key]: e.target.value }))} />
+                    <button className="rr-assign"
+                      disabled={busy || !author || !(wordDraft[key] ?? '').trim()
+                        || слова.includes((wordDraft[key] ?? '').trim().toLowerCase())}
+                      title={!author
+                        ? 'представьтесь в шапке: правка словаря пишется на автора'
+                        : !(wordDraft[key] ?? '').trim()
+                          ? 'впишите слово, на которое реестр будет ставить помету'
+                          : слова.includes((wordDraft[key] ?? '').trim().toLowerCase())
+                            ? 'это слово уже в списке'
+                            : 'внести в словарь — пометы появятся при следующем открытии реестра'}
+                      onClick={() => {
+                        const w = (wordDraft[key] ?? '').trim().toLowerCase()
+                        void правитьСлова(key, [...слова, w],
+                          `линт: слово «${w}» внесено в список «${title}»`)
+                        setWordDraft((p) => ({ ...p, [key]: '' }))
+                      }}>
+                      Внести
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )
+      )}
+
       {tab === 'units' && units && (
         units.length === 0 ? (
           <div className="empty">
