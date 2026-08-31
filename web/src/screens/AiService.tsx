@@ -51,6 +51,8 @@ export function AiService({ onGo, initialKind }: {
   const [transport, setTransport] = useState<string>('')
   const [raw, setRaw] = useState('')
   const [report, setReport] = useState<AiRunReport | null>(null)
+  const [reworkPicked, setReworkPicked] = useState<Set<string>>(new Set())
+  const [reworkNote, setReworkNote] = useState<string | null>(null)
   const [batch, setBatch] = useState<
     (BatchReport & { remapped?: Array<{ from: string; to: string }> }) | null
   >(null)
@@ -162,6 +164,30 @@ export function AiService({ onGo, initialKind }: {
         if (parsed) onRejected(parsed)
         else setError(String(e))
       })
+      .finally(() => { setBusy(false); reloadJournal() })
+  }
+
+  /**
+   * Правило основания снимает величины, которые служба придумала сама. Решение
+   * человека — часть правила, а не обход: инженер подписывает значения своим
+   * именем, и в происхождении видно, кто за них отвечает.
+   */
+  const acceptRework = () => {
+    const rows = report?.rework?.rework ?? []
+    const chosen = rows
+      .filter((r) => reworkPicked.has(String((r.item as { id?: string }).id ?? '')))
+      .map((r) => r.item)
+    if (chosen.length === 0 || !author) return
+    setBusy(true)
+    setReworkNote(null)
+    api.acceptRework(author, chosen)
+      .then((r) => {
+        setReworkNote(r.problems.length === 0
+          ? `принято под ответственность инженера: ${r.written}`
+          : `отказ: ${r.problems.slice(0, 3).map((p) => `${p.source_id ?? p.id}: ${p.message}`).join('; ')}`)
+        if (r.problems.length === 0) setReworkPicked(new Set())
+      })
+      .catch((e) => setReworkNote(String(e)))
       .finally(() => { setBusy(false); reloadJournal() })
   }
 
@@ -419,6 +445,67 @@ export function AiService({ onGo, initialKind }: {
                   такие предложения сняты и требуют ручного решения инженера.
                 </p>
               )}
+              {/* Ф-11: снятое не висит счётчиком — у него есть путь. Правило
+                  основания требует РЕШЕНИЯ ЧЕЛОВЕКА, и здесь оно принимается:
+                  инженер подписывает значения именем, и это видно в модели. */}
+              {(report.rework?.rework?.length ?? 0) > 0 && (
+                <div style={{ margin: '8px 0' }}>
+                  <h4 style={{ margin: '0 0 4px' }}>
+                    Снятые предложения · {report.rework!.rework.length}
+                  </h4>
+                  <p className="secondary" style={{ margin: '0 0 6px' }}>
+                    Служба предложила значения, за которые никто не отвечает. Принять их
+                    можно только вашим решением: в происхождении каждой такой величины
+                    встанет ваше имя и время — «я так решил», но подписанное.
+                  </p>
+                  <div style={{ maxHeight: 240, overflowY: 'auto' }}>
+                    <table>
+                      <thead>
+                        <tr>
+                          <th style={{ width: 30 }} />
+                          <th style={{ width: 90 }}>Id</th>
+                          <th>Что предложено</th>
+                          <th style={{ width: 260 }}>Почему снято</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {report.rework!.rework.map((r, i) => {
+                          const it = r.item as { id?: string; name?: string; statement?: string }
+                          const id = String(it.id ?? i)
+                          return (
+                            <tr key={id}>
+                              <td>
+                                <input type="checkbox" checked={reworkPicked.has(id)}
+                                  onChange={(e) => setReworkPicked((prev) => {
+                                    const next = new Set(prev)
+                                    if (e.target.checked) next.add(id); else next.delete(id)
+                                    return next
+                                  })} />
+                              </td>
+                              <td className="mono">{id}</td>
+                              <td className="wrap">{String(it.name ?? it.statement ?? '')}</td>
+                              <td className="wrap secondary">{r.issues.slice(0, 2).join('; ')}</td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="toolbar" style={{ padding: '6px 0', gap: 6 }}>
+                    <button className="btn" onClick={acceptRework}
+                      disabled={busy || !author || reworkPicked.size === 0}
+                      title={!author
+                        ? 'представьтесь в шапке: решение подписывается вашим именем'
+                        : reworkPicked.size === 0
+                          ? 'отметьте предложения, значения которых берёте под свою ответственность'
+                          : 'принять отмеченные: в происхождении величин встанет ваше имя и время'}>
+                      Принять под мою ответственность ({reworkPicked.size})
+                    </button>
+                    {reworkNote && <span className="secondary">{reworkNote}</span>}
+                  </div>
+                </div>
+              )}
+
               {report.by_rule && Object.keys(report.by_rule).length > 0 && (
                 <table style={{ maxWidth: 460, marginBottom: 8 }}>
                   <thead><tr><th>Правило фильтра</th><th style={{ width: 90 }}>Снято</th></tr></thead>

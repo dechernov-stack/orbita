@@ -850,6 +850,55 @@ class HttpApi(private val boundary: Boundary) {
                 respond(ex, if (report.ok) 201 else 422, out)
             }
 
+            // Правило основания требует ЯВНОГО РЕШЕНИЯ ЧЕЛОВЕКА: величина,
+            // придуманная службой (source=manual от модели), не проходит молча.
+            // Но решение это негде было принять — снятые предложения висели
+            // счётчиком «снято 8» без единого действия (находка живого прохода
+            // ПМИ-3: сервисы внешнего контура встали намертво).
+            //
+            // Здесь инженер берёт значения ПОД СВОЮ ОТВЕТСТВЕННОСТЬ: провенанс
+            // получает его имя и время — след того, кто отвечает за число.
+            // Это исполнение правила, а не обход: «я так решил» становится
+            // подписанным «я так решил», и видно, кем.
+            method == "POST" && path == "/ai/accept-rework" -> {
+                val request = mapper.readTree(body(ex))
+                val by = author(request)
+                require(by.isNotBlank()) { "TZ-COM-005: field 'author' is required for editing" }
+                val ctx = requireProject(project)
+                val items = request.path("items").takeIf { it.isArray } as? ArrayNode
+                    ?: throw IllegalArgumentException("нет предложений: поле 'items'")
+                require(!items.isEmpty()) { "не выбрано ни одного предложения" }
+                val принято = mapper.createArrayNode()
+                val подписано = java.time.OffsetDateTime.now().toString()
+                items.forEach { item ->
+                    val копия = item.deepCopy<JsonNode>() as ObjectNode
+                    подписатьВеличины(копия, by, подписано)
+                    принято.add(копия)
+                }
+                val payload = mapper.createObjectNode()
+                val работник = BatchImport(boundary, mapper)
+                val (remapped, idMap) = работник.remapForAccept(принято, ctx)
+                payload.set<ArrayNode>("objects", remapped)
+                val сырой = работник.import(payload, by, ctx)
+                val обратно = idMap.entries.associate { (old, new) -> new to old }
+                val report = if (обратно.isEmpty()) сырой else BatchReport(
+                    сырой.written,
+                    сырой.problems.map { p -> p.copy(sourceId = обратно[p.id]) },
+                )
+                val out = batchJson(report)
+                out.put("signed_by", by)
+                out.put(
+                    "note",
+                    "значения приняты под ответственность инженера: в происхождении каждой " +
+                        "величины стоит его имя и время решения",
+                )
+                if (idMap.isNotEmpty()) {
+                    val rm = out.putArray("remapped")
+                    idMap.forEach { (old, new) -> rm.addObject().put("from", old).put("to", new) }
+                }
+                respond(ex, if (report.ok) 201 else 422, out)
+            }
+
             method == "POST" && path == "/ai/accept" -> {
                 val request = mapper.readTree(body(ex))
                 val targetId = request.path("target_id").asText()
@@ -3198,6 +3247,40 @@ class HttpApi(private val boundary: Boundary) {
             p.sourceId?.let { n2.put("source_id", it) }
         }
         return n
+    }
+
+    /**
+     * Подпись величин без основания именем инженера: правило основания
+     * принимает «manual» от ЧЕЛОВЕКА, но не от службы. Значение, за которое
+     * никто не отвечал, получает того, кто отвечает.
+     *
+     * Величины с настоящим основанием (imported с набором данных, computed с
+     * модулем) не трогаются: подписывать чужой источник своим именем нельзя.
+     */
+    private fun подписатьВеличины(node: JsonNode, by: String, at: String) {
+        when {
+            node.isArray -> node.forEach { подписатьВеличины(it, by, at) }
+            node.isObject -> {
+                val obj = node as ObjectNode
+                if (obj.path("value").isNumber && obj.path("unit").isTextual) {
+                    val prov = obj.path("provenance")
+                    val обосновано = when (prov.path("source").asText("")) {
+                        "computed" -> prov.path("module").asText("").isNotBlank()
+                        "imported" -> prov.path("import").path("dataset").asText("").isNotBlank()
+                        else -> false
+                    }
+                    if (!обосновано) {
+                        obj.putObject("provenance")
+                            .put("source", "manual")
+                            .put("author", by)
+                            .put("timestamp", at)
+                    }
+                }
+                obj.properties().forEach { (name, child) ->
+                    if (name != "provenance") подписатьВеличины(child, by, at)
+                }
+            }
+        }
     }
 
     /** Точка из пути /gates/<точка>/<действие>; имена точек несут дефисы (KDP-A). */

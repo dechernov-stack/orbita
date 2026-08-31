@@ -19,9 +19,14 @@ const val SOURCE_RULE = "основание"
  * числовым `value` и текстовой `unit` (та же форма, что у quantity.schema).
  *
  * Основанием признаётся происхождение по schemas/common/provenance:
- * `computed` с указанным модулем-вычислителем либо `imported` с блоком
- * import (набор данных и его версия). `manual` — это «инженер отвечает
- * сам»: от человека принимается, от службы ИИ — только его решением.
+ * `computed` с указанным модулем-вычислителем; `imported` с блоком import
+ * (набор данных и его версия); `manual` С НАЗВАННЫМ АВТОРОМ — «я так решил»,
+ * но подписанное: видно, кто отвечает за число.
+ *
+ * Безымянный `manual` основанием не является: служба ИИ метит им значения,
+ * которые придумала сама (находка живого прохода ПМИ-3 — восемь сервисов
+ * внешнего контура пришли с `manual` без автора). Имя ставит СЕРВЕР при
+ * решении инженера, из учётки, — подделать его ответом модели нельзя.
  * `ai_proposed` основанием не является по определению.
  */
 fun unsourcedQuantities(doc: JsonNode): List<String> {
@@ -35,6 +40,8 @@ fun unsourcedQuantities(doc: JsonNode): List<String> {
                     val grounded = when (prov.path("source").asText("")) {
                         "computed" -> prov.path("module").asText("").isNotBlank()
                         "imported" -> prov.path("import").path("dataset").asText("").isNotBlank()
+                        // решение человека, за которым стоит имя человека
+                        "manual" -> prov.path("author").asText("").isNotBlank()
                         else -> false
                     }
                     if (!grounded) found += path.ifBlank { "значение" }

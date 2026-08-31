@@ -455,6 +455,15 @@ export const api = {
   authUsers: () => get<{ users: Array<{ login: string; display_name: string }> }>('/auth/users'),
   /** Акцепт пачкой с привязкой к вызову журнала. Занятые id пакета сервер
    * переназначает (TZ-MOD-007) и возвращает соответствие в remapped. */
+  /**
+   * Снятые правилом основания предложения — ПОД ОТВЕТСТВЕННОСТЬ инженера.
+   * Правило требует явного решения человека; здесь оно и принимается: в
+   * происхождение каждой неподкреплённой величины уходит имя и время.
+   */
+  acceptRework: (by: string, items: unknown[]) =>
+    post<BatchReport & { signed_by?: string; note?: string; remapped?: Array<{ from: string; to: string }> }>(
+      '/ai/accept-rework', { author: by, items },
+    ),
   acceptBatchOfCall: (call: number | null, llm: string, by: string, items: unknown[]) =>
     post<BatchReport & { remapped?: Array<{ from: string; to: string }> }>(
       '/ai/accept-batch', { call, llm, by, items },
