@@ -3607,6 +3607,52 @@ class HttpApi(private val boundary: Boundary) {
                 )
             }
 
+            // Инспекция обзора: чек-листы полки с состоянием пунктов.
+            method == "GET" && path == "/views/review-checklist" ->
+                respond(
+                    ex, 200,
+                    ReviewChecklist.view(boundary, requireProject(project), query(ex)["gate"]),
+                )
+
+            // Отметка пункта — единственное место, где состояние ставится
+            // РУКОЙ: инспекция формулировок машине не поручается. Поэтому
+            // отметка несёт автора, время и замечание словами.
+            method == "POST" && path == "/views/review-checklist/check" -> {
+                val req = mapper.readTree(body(ex))
+                val by = author(req)
+                require(by.isNotBlank()) { "TZ-COM-005: field 'author' is required for editing" }
+                val ctx = requireProject(project)
+                val чек = req.path("checklist").asText("")
+                val пункт = req.path("item").asText("")
+                require(чек.isNotBlank() && пункт.isNotBlank()) { "нужны 'checklist' и 'item'" }
+                val снять = req.path("uncheck").asBoolean(false)
+                val паспорт = boundary.objects.current(ctx)
+                    ?: throw NoSuchElementException("project '$ctx' not found")
+                val отметки = (паспорт.doc.path("review_checks").deepCopy<JsonNode>() as? ArrayNode)
+                    ?: mapper.createArrayNode()
+                val остальные = mapper.createArrayNode()
+                отметки.forEach { o ->
+                    val тот = o.path("checklist").asText() == чек && o.path("item").asText() == пункт
+                    if (!тот) остальные.add(o)
+                }
+                if (!снять) {
+                    val n = остальные.addObject()
+                    n.put("checklist", чек)
+                    n.put("item", пункт)
+                    n.put("author", by)
+                    n.put("at", java.time.LocalDate.now().toString())
+                    req.path("note").asText("").takeIf { it.isNotBlank() }?.let { n.put("note", it) }
+                }
+                val changes = mapper.createObjectNode()
+                changes.set<ArrayNode>("review_checks", остальные)
+                boundary.editing.update(
+                    CoreType.Project, ctx, changes, паспорт.version, by,
+                    changeRef = if (снять) "инспекция: отметка снята с «$пункт»"
+                    else "инспекция: пункт «$пункт» проверен",
+                )
+                respond(ex, 200, ReviewChecklist.view(boundary, ctx, query(ex)["gate"]))
+            }
+
             // Г-01: чужие ссылки пакета — не отказ, а сопоставление. Здесь
             // только разбор и предложение по смыслу: решение за инженером,
             // изоляция проектов не ослабляется ни на шаг.

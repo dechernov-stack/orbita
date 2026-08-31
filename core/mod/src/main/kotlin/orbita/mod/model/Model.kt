@@ -98,7 +98,11 @@ enum class CoreType(val idPrefix: String, val dbType: String, val schemaName: St
 
     // «Работа фазы»: задача фазы — операция регламента, развёрнутая в
     // ведомый процесс. Контент — полкой; статусы и окна вычисляются.
-    PhaseTask("PW", "phase_task", "core/phase-task");
+    PhaseTask("PW", "phase_task", "core/phase-task"),
+
+    // Чек-лист обзора (NASA SEH): инспекция ЛЮДЕЙ — единственное место, где
+    // отметка ставится рукой. Всё вычислимое живёт разрывами готовности.
+    ReviewChecklist("RC", "review_checklist", "core/review-checklist");
 
     companion object {
         fun byDbType(t: String): CoreType = entries.firstOrNull { it.dbType == t }

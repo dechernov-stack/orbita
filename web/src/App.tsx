@@ -18,6 +18,7 @@ import { SeedDemand } from './screens/SeedDemand'
 import { Shelves } from './screens/Shelves'
 import { References } from './screens/References'
 import { StatementGuide } from './ui/StatementGuide'
+import { ReviewInspection } from './screens/ReviewInspection'
 import { PhaseWork, NextStepBadge } from './screens/PhaseWork'
 import { StakeholderCoverage } from './screens/StakeholderCoverage'
 import { LibraryKnowledge } from './screens/LibraryKnowledge'
@@ -244,6 +245,8 @@ export function App() {
         return <ScreenFrame title="Работа фазы"><PhaseWork onGo={go} /></ScreenFrame>
       case 'projreg': return <KindRegistry key={screen} kinds={['project']} title="Паспорт проекта" />
       case 'shelves': return <Shelves key={screen} />
+      case 'inspection':
+        return <ScreenFrame title="Инспекция обзора"><ReviewInspection onGo={go} /></ScreenFrame>
       case 'references':
         return <ScreenFrame title="Справочники"><References /></ScreenFrame>
       case 'libknowledge':

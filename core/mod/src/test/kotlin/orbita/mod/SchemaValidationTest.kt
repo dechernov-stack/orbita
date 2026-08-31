@@ -45,7 +45,9 @@ class SchemaValidationTest {
         // 53-я — normative-candidates (Ф-09: норматив полки порождает кандидатов);
         // 54-я — stakeholder (Ф-13: стейкхолдер как сущность проекта);
         // 55-я — phase-task («Работа фазы»: задача регламента данными полки)
-        assertEquals(55, registry.names.size, "нормативных схем должно быть 55: ${registry.names}")
+        // 56-я — review-checklist (инспекция людей: единственное место,
+        // где отметка ставится рукой, а не вычисляется)
+        assertEquals(56, registry.names.size, "нормативных схем должно быть 56: ${registry.names}")
     }
 
     @Test

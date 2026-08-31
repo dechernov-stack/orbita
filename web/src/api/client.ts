@@ -45,6 +45,7 @@ import type {
   KnowledgeExportView,
   StatementPathView,
   LinkMappingView,
+  ReviewChecklistView,
   PhaseWorkView,
   StakeholderCoverageView,
 } from './types'
@@ -706,6 +707,14 @@ export const api = {
   stakeholderCoverage: () => get<StakeholderCoverageView>('/views/stakeholder-coverage'),
   /** «Работа фазы»: задачи регламента со статусами, шагами и окнами — считает сервер. */
   phaseWork: () => get<PhaseWorkView>('/views/phase-work'),
+  /** Инспекция обзора: чек-листы полки с состоянием пунктов. */
+  reviewChecklist: (gate?: string) =>
+    get<ReviewChecklistView>(`/views/review-checklist${gate ? `?gate=${encodeURIComponent(gate)}` : ''}`),
+  /** Отметка пункта инспекции — с автором и временем; повторный клик снимает. */
+  reviewCheck: (checklist: string, item: string, author: string, checked: boolean, note?: string) =>
+    post<ReviewChecklistView>('/views/review-checklist/check', {
+      checklist, item, author, uncheck: checked, ...(note ? { note } : {}),
+    }),
   /** Г-01: чужие ссылки пакета — разбор и предложение замены по смыслу. */
   linkMapping: (items: unknown[]) => post<LinkMappingView>('/views/link-mapping', { items }),
   /** Ф-12: путь постановки — состояние цепочки и следующий шаг, считает сервер. */

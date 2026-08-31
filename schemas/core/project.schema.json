@@ -323,6 +323,42 @@
           }
         }
       }
+    },
+    "review_checks": {
+      "type": "array",
+      "description": "Отметки чек-листов обзора: пункт проверен человеком — с автором, временем и, если нужно, замечанием. Исключение из закона «всё вычисляется»: инспекция формулировок машине не поручается.",
+      "items": {
+        "type": "object",
+        "required": [
+          "checklist",
+          "item",
+          "author",
+          "at"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "checklist": {
+            "type": "string",
+            "pattern": "^RC-[0-9]{4}$"
+          },
+          "item": {
+            "type": "string",
+            "description": "Ключ пункта чек-листа"
+          },
+          "author": {
+            "type": "string",
+            "minLength": 1
+          },
+          "at": {
+            "type": "string",
+            "description": "Когда отмечено"
+          },
+          "note": {
+            "type": "string",
+            "description": "Что увидел проверяющий: замечание либо подтверждение словами"
+          }
+        }
+      }
     }
   }
 }

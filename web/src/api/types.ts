@@ -1029,3 +1029,27 @@ export interface LinkMappingView {
     candidates: Array<{ id: string; text: string; score: number }>
   }>
 }
+
+/** Инспекция обзора: чек-листы полки с отметками людей. */
+export interface ReviewChecklistView {
+  total: number
+  checked: number
+  summary: string
+  checklists: Array<{
+    id: string
+    name: string
+    gate: string
+    source?: string
+    items: Array<{
+      key: string
+      title: string
+      hint?: string
+      screen?: string
+      evidence?: string
+      checked: boolean
+      author?: string
+      at?: string
+      note?: string
+    }>
+  }>
+}

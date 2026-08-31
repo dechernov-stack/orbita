@@ -100,6 +100,7 @@ export const SECTIONS: NavSection[] = [
       { key: 'operations', title: 'Порядок работы' },
       { key: 'projreg', title: 'Паспорт проекта' },
       { key: 'rfa', title: 'Замечания обзора' },
+      { key: 'inspection', title: 'Инспекция обзора' },
       { key: 'risks', title: 'Риски' },
       { key: 'riskmatrix', title: 'Матрица рисков' },
       { key: 'trl', title: 'Технологии' },
