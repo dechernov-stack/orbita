@@ -29,6 +29,14 @@ export function Shelves() {
     id: string; name: string; shelf: string; counters: Record<string, number>
   }> | null>(null)
   const [failure, setFailure] = useState<string | null>(null)
+  // Ф-14 п.3: полка знает, кто её брал — иначе она витрина, а не фонд
+  const [usage, setUsage] = useState<Record<string, string>>({})
+
+  const askUsage = (id: string) => {
+    api.libraryUsage(id)
+      .then((r) => setUsage((prev) => ({ ...prev, [id]: r.note })))
+      .catch(() => setUsage((prev) => ({ ...prev, [id]: 'нитку взятия узнать не удалось' })))
+  }
 
   useEffect(() => {
     api.libraryObjects('normative_document').then(setNormative).catch((e) => setFailure(String(e)))
@@ -50,6 +58,11 @@ export function Shelves() {
         <div key={r.id} className="sp-file" style={{ padding: '3px 0' }}>
           <span className="mono">{r.id}</span>
           <span>{r.title ?? ''}</span>
+          <button className="np-linkish" onClick={() => askUsage(r.id)}
+            title="кто брал эту позицию в свои проекты — правка шаблона отразится на них">
+            кто брал?
+          </button>
+          {usage[r.id] && <span className="secondary"> {usage[r.id]}</span>}
         </div>
       ))}
     </div>

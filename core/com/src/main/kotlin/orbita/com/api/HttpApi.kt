@@ -3411,6 +3411,122 @@ class HttpApi(private val boundary: Boundary) {
                 )
             }
 
+            // Ф-14 п.3: нитка «взято/брали» в обе стороны. Полка обязана
+            // знать, кто её брал: без этого библиотека — витрина, а не
+            // общий фонд, и последствия правки шаблона невидимы.
+            method == "GET" && path == "/views/library/usage" -> {
+                val libId = query(ex)["id"]
+                    ?: throw IllegalArgumentException("query 'id' is required: объект полки")
+                val takers = boundary.objects.listCurrent()
+                    .filter { it.projectId != orbita.mod.store.ObjectStore.LIBRARY_PROJECT }
+                    .filter { it.status != Lifecycle.Cancelled }
+                    .filter { o ->
+                        val dataset = o.doc.path("provenance").path("import").path("dataset").asText("")
+                        val profile = o.doc.path("profile_ref").asText("")
+                        dataset.contains(libId) || profile == libId
+                    }
+                val out = mapper.createObjectNode()
+                out.put("id", libId)
+                out.put("takers", takers.size)
+                val byProject = takers.groupBy { it.projectId ?: "—" }
+                val arr = out.putArray("projects")
+                byProject.toSortedMap().forEach { (prj, rows) ->
+                    val n = arr.addObject()
+                    n.put("project", prj)
+                    n.put("name", boundary.objects.current(prj)?.doc?.path("name")?.asText(prj) ?: prj)
+                    n.put("objects", rows.size)
+                    val ids = n.putArray("ids")
+                    rows.sortedBy { it.id }.take(20).forEach { ids.add(it.id) }
+                }
+                out.put(
+                    "note",
+                    if (takers.isEmpty()) "с этой полки ещё не брали — правка никого не затронет"
+                    else "брали: ${byProject.keys.sorted().joinToString(", ")} — правка отразится на них",
+                )
+                respond(ex, 200, out)
+            }
+
+            // Ф-14: второй конец контура библиотеки. Ш2 берёт типовое с полки
+            // в проект; здесь проектный факт ОБОБЩАЕТСЯ в шаблон полки —
+            // отдельным осознанным действием, со следом «обобщено из PJ-…».
+            method == "POST" && Regex("^/views/stakeholders/SK-[0-9]{4}/generalize$").matches(path) -> {
+                val skId = path.removePrefix("/views/stakeholders/").removeSuffix("/generalize")
+                val req = mapper.readTree(body(ex))
+                val by = author(req)
+                require(by.isNotBlank()) { "TZ-COM-005: field 'author' is required for editing" }
+                val ctx = requireProject(project)
+                val sk = boundary.objects.current(skId)
+                    ?: throw NoSuchElementException("стейкхолдер '$skId' не найден")
+                require(sk.type == "stakeholder") { "$skId — не стейкхолдер проекта" }
+                // роль профиля полки — свой перечень; отображаем честно
+                val role = when (val r = sk.doc.path("role").asText("")) {
+                    "consumer" -> "end_user"
+                    "established" -> "operator"
+                    "supplier" -> "supplier"
+                    else -> r
+                }
+                val doc = mapper.createObjectNode()
+                doc.put("name", sk.doc.path("name").asText(skId))
+                doc.put("role", role)
+                sk.doc.path("interest").asText("").takeIf { it.isNotBlank() }?.let { doc.put("interests", it) }
+                boundary.objects.current(ctx)?.doc?.path("mission_class")?.asText("")
+                    ?.takeIf { it.isNotBlank() }?.let { doc.put("mission_class_ref", it) }
+                // происхождение: обобщение — не ручной ввод и не импорт извне
+                val provenance = doc.putObject("provenance")
+                provenance.put("source", "manual")
+                provenance.put("author", "обобщено из $ctx · $skId (автор: $by)")
+                val stored = boundary.editing.create(
+                    orbita.mod.model.CoreType.StakeholderProfile, doc, by,
+                    orbita.mod.store.ObjectStore.LIBRARY_PROJECT,
+                )
+                // нитка в обратную сторону: факт знает свой шаблон
+                val back = mapper.createObjectNode()
+                back.put("profile_ref", stored.id)
+                boundary.editing.update(
+                    orbita.mod.model.CoreType.Stakeholder, skId, back, sk.version, by,
+                    changeRef = "Ф-14: обобщён в профиль полки ${stored.id}",
+                )
+                respond(
+                    ex, 201,
+                    mapper.createObjectNode()
+                        .put("profile", stored.id)
+                        .put("from", skId)
+                        .put("project", ctx)
+                        .put("note", "профиль А2 создан обобщением: полка знает исток, факт знает шаблон"),
+                )
+            }
+
+            // Ф-15: правка справочника не бесплатна — она меняет смысл
+            // величин во всех разборах. До сохранения инженер обязан знать
+            // объём последствий: сколько документов придётся переразобрать.
+            method == "GET" && path == "/views/registry-impact" -> {
+                val kind = query(ex)["type"] ?: "unit_registry"
+                val ctx = resolveProject(ex)
+                val docs = boundary.objects.listCurrent(ctx)
+                    .filter { it.type == "source_document" && it.status != Lifecycle.Cancelled }
+                val parsed = docs.count { DocumentParseStore.mapOf(filesDir(), it.id) != null }
+                val harvested = docs.count { DocumentHarvest.of(filesDir(), it.id) != null }
+                val out = mapper.createObjectNode()
+                out.put("type", kind)
+                out.put("documents", docs.size)
+                out.put("parsed", parsed)
+                out.put("harvested", harvested)
+                out.put(
+                    "warning",
+                    when {
+                        parsed == 0 -> "разобранных документов нет — правка ни на что не повлияет"
+                        kind == "unit_registry" ->
+                            "правка справочника единиц меняет отпечаток разбора: " +
+                                "$parsed документов будут переразобраны при следующем открытии" +
+                                (if (harvested > 0) ", у $harvested придётся сверить урожай" else "")
+                        else ->
+                            "правка глоссария меняет отпечаток разбора: $parsed документов " +
+                                "получат новые термы при следующем открытии"
+                    },
+                )
+                respond(ex, 200, out)
+            }
+
             // Ф-13: матрица «стейкхолдер × нужды» — тройное состояние и
             // видимые края (стейкхолдер без нужд, нужда без носителя).
             method == "GET" && path == "/views/stakeholder-coverage" ->

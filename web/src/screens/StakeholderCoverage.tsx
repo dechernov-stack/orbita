@@ -9,6 +9,7 @@ import { api } from '../api/client'
 import type { StakeholderCoverageView } from '../api/types'
 import { Tooltip } from '../ui/Tooltip'
 import { SortTh, useSort } from '../ui/sort'
+import { useSession } from '../ui/session'
 
 const STATE_LABEL: Record<string, string> = {
   declared: 'заявлена',
@@ -33,8 +34,25 @@ const ROLE_LABEL: Record<string, string> = {
 }
 
 export function StakeholderCoverage({ onGo }: { onGo?: (screen: string, kind?: string) => void }) {
+  const { author } = useSession()
   const [view, setView] = useState<StakeholderCoverageView | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [note, setNote] = useState<string | null>(null)
+
+  /**
+   * Ф-14: второй конец контура библиотеки. Ш2 берёт типовое с полки в
+   * проект; здесь проектный факт обобщается в шаблон А2 — отдельным
+   * действием инженера, а не побочным эффектом акцепта.
+   */
+  const generalize = (id: string) => {
+    if (!author) return
+    api.generalizeStakeholder(id, author)
+      .then((r) => {
+        setNote(`${id} обобщён в профиль ${r.profile} — полка знает исток, факт знает шаблон`)
+        return api.stakeholderCoverage().then(setView)
+      })
+      .catch((e) => setNote(String(e)))
+  }
   const { sorted, sort, toggle } = useSort(view?.rows ?? [], {
     id: (r) => r.id,
     name: (r) => r.name,
@@ -55,6 +73,7 @@ export function StakeholderCoverage({ onGo }: { onGo?: (screen: string, kind?: s
     <>
       <div className="card">
         <h3>Покрытие нужд по стейкхолдерам</h3>
+        {note && <div className="secondary" style={{ marginBottom: 6 }}>{note}</div>}
         <p className="secondary" style={{ marginTop: 0 }}>
           {view.summary} · заявлено {view.declared} · покрыто {view.covered} · закрыто {view.verified}
         </p>
@@ -73,6 +92,9 @@ export function StakeholderCoverage({ onGo }: { onGo?: (screen: string, kind?: s
                 <SortTh label="Нужд" sortKey="needs" sort={sort} onToggle={toggle} width={70} />
                 <SortTh label="Покрыто" sortKey="covered" sort={sort} onToggle={toggle} width={90} />
                 <SortTh label="Закрыто" sortKey="verified" sort={sort} onToggle={toggle} width={90} />
+                <th title="обобщение проектного факта в шаблон полки — второй конец контура библиотеки">
+                  На полку
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -103,6 +125,14 @@ export function StakeholderCoverage({ onGo }: { onGo?: (screen: string, kind?: s
                   <td className="num">{r.needs}</td>
                   <td className="num">{r.covered}</td>
                   <td className="num">{r.verified}</td>
+                  <td style={{ width: 150 }}>
+                    <button className="rr-assign" onClick={() => generalize(r.id)} disabled={!author}
+                      title={author
+                        ? 'обобщить в профиль полки А2: проектная специфика уходит, остаётся шаблон класса'
+                        : 'представьтесь в шапке: обобщение пишется на автора'}>
+                      обобщить →
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>

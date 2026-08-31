@@ -3,6 +3,20 @@
   "rules": [
     {
       "methods": [
+        "POST",
+        "PATCH",
+        "PUT",
+        "DELETE"
+      ],
+      "path": "^/edit/(UR|GL|PF|DT|PW)-[0-9]{4}$|^/library/(unit-registry|glossary|property-forms)$",
+      "allow": [
+        "lead_se",
+        "lead"
+      ],
+      "why": "Ф-15: справочники и полки ведёт инженерный контур — правка единицы меняет смысл величин во всех разборах и пакетах, поэтому право у ведущего СИ и руководителя"
+    },
+    {
+      "methods": [
         "POST"
       ],
       "path": "^/gates/[^/]+/pass$",

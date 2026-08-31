@@ -665,6 +665,22 @@ export const api = {
     by: string
   }) => post<Record<string, unknown>>('/ai/accept', request),
 
+  /** Ф-14: кто брал объект полки — нитка «взято/брали» в обратную сторону. */
+  libraryUsage: (id: string) =>
+    get<{
+      id: string; takers: number; note: string
+      projects: Array<{ project: string; name: string; objects: number; ids: string[] }>
+    }>(`/views/library/usage?id=${encodeURIComponent(id)}`),
+  /** Ф-14: обобщить проектного стейкхолдера в профиль полки А2 — со следом. */
+  generalizeStakeholder: (id: string, author: string) =>
+    post<{ profile: string; from: string; project: string; note: string }>(
+      `/views/stakeholders/${encodeURIComponent(id)}/generalize`, { author },
+    ),
+  /** Ф-15: объём последствий правки справочника — считает сервер, до сохранения. */
+  registryImpact: (type: 'unit_registry' | 'glossary') =>
+    get<{ type: string; documents: number; parsed: number; harvested: number; warning: string }>(
+      `/views/registry-impact?type=${type}`,
+    ),
   /** Ф-13: матрица «стейкхолдер × нужды» — состояния считает сервер. */
   stakeholderCoverage: () => get<StakeholderCoverageView>('/views/stakeholder-coverage'),
   /** «Работа фазы»: задачи регламента со статусами, шагами и окнами — считает сервер. */
