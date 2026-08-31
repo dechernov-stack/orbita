@@ -96,6 +96,12 @@ export interface BatchProblemRow {
   path: string | null
   rule: string | null
   message: string
+  /**
+   * Как строка называлась в пакете инженера, если её id перебивался при
+   * акцепте (занятый черновой id получает свежий). Снимать отметку и
+   * показывать причину нужно по НЕМУ: нового имени в списке нет.
+   */
+  source_id?: string | null
 }
 
 export interface BatchReport {

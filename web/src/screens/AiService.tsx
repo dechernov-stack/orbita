@@ -177,7 +177,13 @@ export function AiService({ onGo, initialKind }: {
       if (r.problems.length > 0) {
         setExcluded((prev) => {
           const next = new Set(prev)
-          r.problems.forEach((p) => { if (p.id) next.add(p.id) })
+          // снимаем отметку по тому имени, под которым строка стоит В СПИСКЕ:
+          // при акцепте занятый id перебивается, и отказ приходит на новый —
+          // по нему в списке снимать нечего (находка живого прохода ПМИ-3)
+          r.problems.forEach((p) => {
+            const вСписке = p.source_id ?? p.id
+            if (вСписке) next.add(вСписке)
+          })
           return next
         })
       }
@@ -437,7 +443,7 @@ export function AiService({ onGo, initialKind }: {
                         {report.shown.map((s) => {
                           const id = String(s.item.id ?? '')
                           const mop = s.item.mop as { name?: string; operator?: string; value?: { value?: number; unit?: string } } | undefined
-                          const problem = batch?.problems.find((p) => p.id === id)
+                          const problem = batch?.problems.find((p) => (p.source_id ?? p.id) === id)
                           return (
                             <tr key={id}>
                               <td>
@@ -490,7 +496,7 @@ export function AiService({ onGo, initialKind }: {
                         {report.shown.map((s) => {
                           const id = String(s.item.id ?? '')
                           const label = String(s.item.statement ?? s.item.name ?? s.item.title ?? '')
-                          const problem = batch?.problems.find((p) => p.id === id)
+                          const problem = batch?.problems.find((p) => (p.source_id ?? p.id) === id)
                           return (
                             <tr key={id}>
                               <td>
@@ -513,8 +519,10 @@ export function AiService({ onGo, initialKind }: {
                     </table>
                   </div>
                   <button title="нечего принимать: представьтесь в шапке и оставьте хотя бы одно предложение невыключенным" className="btn btn--primary" onClick={acceptAll}
-                    disabled={!author || busy || report.shown.length === excluded.size}>
-                    Принять пачкой ({report.shown.length - excluded.size})
+                    disabled={!author || busy
+                      || report.shown.every((s) => excluded.has(String(s.item.id ?? '')))}>
+                    Принять пачкой (
+                    {report.shown.filter((s) => !excluded.has(String(s.item.id ?? ''))).length})
                   </button>
                 </>
               )}
@@ -533,7 +541,7 @@ export function AiService({ onGo, initialKind }: {
                           </>
                         )}
                       </>
-                    : <>Пачка отклонена, отклонённые сняты из выбора выше — примите оставшихся: {batch.problems.slice(0, 4).map((p) => `${p.id ?? p.index}: ${p.message}`).join('; ')}</>}
+                    : <>Пачка отклонена, отклонённые сняты из выбора выше — примите оставшихся: {batch.problems.slice(0, 4).map((p) => `${p.source_id ?? p.id ?? p.index}: ${p.message}`).join('; ')}</>}
                 </div>
               )}
             </div>

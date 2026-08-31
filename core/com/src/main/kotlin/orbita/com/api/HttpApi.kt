@@ -829,7 +829,15 @@ class HttpApi(private val boundary: Boundary) {
                 // занятые id — свежие, след в provenance.ai.source_id
                 val (remapped, idMap) = importer.remapForAccept(arr, ctx)
                 payload.set<ObjectNode>("objects", remapped)
-                val report = importer.import(payload, by, ctx)
+                val сырой = importer.import(payload, by, ctx)
+                // Отказ обязан называть строку ТАК ЖЕ, как её видит инженер:
+                // перебитый id ему ни о чём не говорит и снять отметку не даёт
+                // (находка живого прохода ПМИ-3).
+                val обратно = idMap.entries.associate { (old, new) -> new to old }
+                val report = if (обратно.isEmpty()) сырой else BatchReport(
+                    сырой.written,
+                    сырой.problems.map { p -> p.copy(sourceId = обратно[p.id]) },
+                )
                 // акцепт дописывается к своему вызову: «сколько дошло до модели»
                 request.path("call").takeIf { it.isNumber }?.let {
                     if (report.ok) boundary.ai.markAccepted(it.asLong(), report.written, by)
@@ -3183,9 +3191,11 @@ class HttpApi(private val boundary: Boundary) {
         n.put("written", report.written)
         val arr = n.putArray("problems")
         report.problems.forEach { p ->
-            arr.addObject()
+            val n2 = arr.addObject()
                 .put("index", p.index).put("id", p.id)
                 .put("path", p.path).put("rule", p.rule).put("message", p.message)
+            // как строка называлась в пакете инженера — если id перебивался
+            p.sourceId?.let { n2.put("source_id", it) }
         }
         return n
     }
