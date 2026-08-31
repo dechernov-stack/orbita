@@ -45,6 +45,7 @@ import type {
   KnowledgeExportView,
   StatementPathView,
   PhaseWorkView,
+  StakeholderCoverageView,
 } from './types'
 
 import { withProject } from './project'
@@ -664,6 +665,8 @@ export const api = {
     by: string
   }) => post<Record<string, unknown>>('/ai/accept', request),
 
+  /** Ф-13: матрица «стейкхолдер × нужды» — состояния считает сервер. */
+  stakeholderCoverage: () => get<StakeholderCoverageView>('/views/stakeholder-coverage'),
   /** «Работа фазы»: задачи регламента со статусами, шагами и окнами — считает сервер. */
   phaseWork: () => get<PhaseWorkView>('/views/phase-work'),
   /** Ф-12: путь постановки — состояние цепочки и следующий шаг, считает сервер. */

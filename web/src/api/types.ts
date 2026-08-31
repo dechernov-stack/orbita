@@ -975,3 +975,27 @@ export interface PhaseWorkView {
   next?: { task: string; name: string; step?: string; screen?: string; kind?: string }
   items: PhaseWorkTask[]
 }
+
+/** Ф-13: матрица «стейкхолдер × нужды» с тройным состоянием и краями. */
+export interface StakeholderCoverageView {
+  stakeholders: number
+  needs: number
+  declared: number
+  covered: number
+  verified: number
+  summary: string
+  rows: Array<{
+    id: string
+    name: string
+    role: string
+    establishes: boolean
+    interest?: string
+    supplies?: Array<{ id: string; name: string; has_form: boolean }>
+    needs: number
+    covered: number
+    verified: number
+    empty_why?: string
+    items: Array<{ id: string; statement: string; state: string; covered_by?: string[] }>
+  }>
+  without_stakeholder: Array<{ id: string; statement: string; state: string; named?: string }>
+}

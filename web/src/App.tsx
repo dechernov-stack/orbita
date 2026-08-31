@@ -19,6 +19,7 @@ import { Shelves } from './screens/Shelves'
 import { References } from './screens/References'
 import { StatementGuide } from './ui/StatementGuide'
 import { PhaseWork, NextStepBadge } from './screens/PhaseWork'
+import { StakeholderCoverage } from './screens/StakeholderCoverage'
 import { LibraryKnowledge } from './screens/LibraryKnowledge'
 import { DocParse } from './screens/DocParse'
 import { MyTasks, MyTasksBadge } from './screens/MyTasks'
@@ -260,6 +261,7 @@ export function App() {
       case 'stakeholders': return (
         <>
           <StatementGuide onGo={go} />
+          <StakeholderCoverage onGo={go} />
           <KindRegistry key={screen} kinds={['stakeholder']} title="Стейкхолдеры проекта" expandDown />
         </>
       )

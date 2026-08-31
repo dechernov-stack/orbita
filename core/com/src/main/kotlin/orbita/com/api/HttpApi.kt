@@ -3411,6 +3411,11 @@ class HttpApi(private val boundary: Boundary) {
                 )
             }
 
+            // Ф-13: матрица «стейкхолдер × нужды» — тройное состояние и
+            // видимые края (стейкхолдер без нужд, нужда без носителя).
+            method == "GET" && path == "/views/stakeholder-coverage" ->
+                respond(ex, 200, StakeholderCoverage.toJson(boundary, requireProject(project)))
+
             // «Работа фазы»: задачи регламента со статусами, шагами, разрывами
             // разрезом и окнами ленты. Всё вычисляется — ручного нет ничего.
             method == "GET" && path == "/views/phase-work" ->
