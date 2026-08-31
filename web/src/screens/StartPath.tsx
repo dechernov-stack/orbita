@@ -170,6 +170,7 @@ export function StartPath({ project, onGo, onDone }: {
   const [profile, setProfile] = useState<{ id: string; version: string; name: string } | null>(null)
   const [promptFull, setPromptFull] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [packetNote, setPacketNote] = useState<string | null>(null)
   const busyRef = useRef(false)
   const [failure, setFailure] = useState<string | null>(null)
   /** Что принесла генерация: предложения ждут акцепта, а не исчезают. */
@@ -414,6 +415,40 @@ export function StartPath({ project, onGo, onDone }: {
     if (!adding.trim()) return
     const next = flushAdding()
     saveNow({ constraints: next })
+  }
+
+  /**
+   * Вставленный в поле абзаца ПАКЕТ — не текст замысла.
+   *
+   * Инженер копирует ответ службы и вставляет в ближайшее поле; форма его
+   * послушно сохраняла строкой, и в паспорт ложился весь JSON целиком —
+   * замысел «задан», но состоит из фигурных скобок, а документы печатают
+   * его как есть (находка живого прохода ПМИ-3). Теперь пакет узнаётся и
+   * идёт своим путём: через ворота схемы на предложение с якорями.
+   */
+  const saveIntentText = async () => {
+    const текст = (intent.text ?? '').trim()
+    const похоже = текст.startsWith('{') && текст.includes('mission_intent')
+    if (!похоже) {
+      setPacketNote(null)
+      saveNow({ intent })
+      return
+    }
+    try {
+      const draft = await api.missionIntentDraft(текст)
+      const поля = draft.intent
+      const собранный = {
+        for_whom: поля.for_whom?.text ?? '',
+        what: поля.what?.text ?? '',
+        where: поля.where?.text ?? '',
+        horizon: поля.horizon?.text ?? '',
+      }
+      setIntent(собранный)
+      saveNow({ intent: собранный })
+      setPacketNote('это был пакет службы, а не абзац — разобран воротами схемы, поля заполнены; якоря происхождения ложатся при акцепте предложения ниже')
+    } catch (e) {
+      setPacketNote(`похоже на пакет службы, но ворота его не приняли: ${String(e)}. Исправьте пакет либо напишите замысел словами`)
+    }
   }
 
   /** Замысел задан: связный абзац либо все четыре поля (правило сервера). */
@@ -1001,7 +1036,8 @@ export function StartPath({ project, onGo, onDone }: {
                     placeholder="Группировка передаёт телеметрию перевозчикам в Арктике; горизонт — 2033 год."
                     value={intent.text ?? ''}
                     onChange={(e) => setIntent({ ...intent, text: e.target.value })}
-                    onBlur={() => saveNow({ intent })} />
+                    onBlur={() => void saveIntentText()} />
+                  {packetNote && <div className="np-hint">{packetNote}</div>}
                 </details>
                 <div className="np-hint">
                   {intentReady
