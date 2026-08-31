@@ -114,4 +114,27 @@ class PhaseWorkTest {
             "переход обязан вести к преднастроенной операции, а не просто на экран"
         }
     }
+
+    /**
+     * Правило-класс: пустой раздел — приглашение с причиной, а не голый ноль.
+     * Проект в фазе, задач которой на полке ещё нет, обязан узнать об этом
+     * словами: «наполнение регламентом не сделано», — а не смотреть в пустоту.
+     */
+    @Test
+    fun `пустая работа фазы объясняет себя`() {
+        val passport = boundary.objects.current("PJ-1908")!!
+        boundary.editing.update(
+            CoreType.Project, "PJ-1908",
+            com.fasterxml.jackson.databind.ObjectMapper().readTree("""{"phase":"phase_a"}""")
+                as com.fasterxml.jackson.databind.node.ObjectNode,
+            passport.version, "test", changeRef = "переход фазы",
+        )
+        val view = PhaseWork.toJson(boundary, "PJ-1908")
+        assertEquals(0, view.path("tasks").asInt())
+        val why = view.path("empty_why").asText()
+        assertTrue("phase_a" in why && "pre_phase_a" in why) {
+            "пустота обязана назвать фазу проекта и то, что есть на полке: $why"
+        }
+    }
 }
+

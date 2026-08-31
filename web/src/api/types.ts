@@ -963,6 +963,8 @@ export interface PhaseWorkTask {
 }
 
 export interface PhaseWorkView {
+  phase?: string
+  empty_why?: string
   lane_from?: string
   lane_to?: string
   tasks: number

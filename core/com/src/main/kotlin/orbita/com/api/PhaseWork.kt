@@ -220,6 +220,31 @@ object PhaseWork {
         val span = if (from != null && to != null)
             java.time.temporal.ChronoUnit.DAYS.between(from, to).coerceAtLeast(1) else 1L
         val out = mapper.createObjectNode()
+        // Пустота обязана объяснять себя (правило-класс: пустой раздел —
+        // приглашение, а не голый ноль). Задач фазы проекта может не быть
+        // потому, что полка наполнена другой фазой, — так и скажем.
+        if (tasks.isEmpty()) {
+            val passport = boundary.objects.current(projectId)?.doc ?: mapper.createObjectNode()
+            val phase = passport.path("phase").asText("")
+            val onShelf = boundary.objects.listCurrent(ObjectStore.LIBRARY_PROJECT)
+                .filter { it.type == "phase_task" && it.status.name != "Cancelled" }
+                .map { it.doc.path("phase").asText() }
+                .distinct()
+                .sorted()
+            out.put("phase", phase)
+            out.put(
+                "empty_why",
+                when {
+                    onShelf.isEmpty() ->
+                        "задач фазы на полке нет вовсе — залейте пакет задач регламента"
+                    phase !in onShelf ->
+                        "проект в фазе «$phase», а на полке наполнены задачи: " +
+                            onShelf.joinToString(", ") +
+                            ". Задачи этой фазы собираются той же схемой — наполнение регламентом ещё не сделано"
+                    else -> "задач фазы «$phase» на полке нет"
+                },
+            )
+        }
         from?.let { out.put("lane_from", it.toString()) }
         to?.let { out.put("lane_to", it.toString()) }
         out.put("tasks", tasks.size)
