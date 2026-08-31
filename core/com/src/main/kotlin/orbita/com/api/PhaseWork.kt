@@ -27,7 +27,16 @@ object PhaseWork {
     /** До точки меньше этого — окно считается сжатым (разрыв «цепочка не успевает»). */
     private const val TIGHT_DAYS = 7L
 
-    data class StepState(val title: String, val hint: String?, val screen: String?, val kind: String?, val done: Boolean, val why: String)
+    data class StepState(
+        val title: String,
+        val hint: String?,
+        val screen: String?,
+        val kind: String?,
+        /** Шаблон документа, если шаг ведёт в создание документа (Phase A, SEMP). */
+        val documentCode: String?,
+        val done: Boolean,
+        val why: String,
+    )
 
     data class TaskState(
         val id: String,
@@ -139,6 +148,7 @@ object PhaseWork {
                     hint = st.path("hint").asText("").ifBlank { null },
                     screen = st.path("screen").asText("").ifBlank { null },
                     kind = st.path("kind").asText("").ifBlank { null },
+                    documentCode = st.path("document_code").asText("").ifBlank { null },
                     done = holds(st.path("done_when"), own, passport, gateChecks, issued),
                     why = labelOf(st.path("done_when")),
                 )
@@ -339,6 +349,7 @@ object PhaseWork {
                 n.put("step", it.title)
                 it.screen?.let { s -> n.put("screen", s) }
                 it.kind?.let { k -> n.put("kind", k) }
+                it.documentCode?.let { c -> n.put("document_code", c) }
             }
         }
         val arr = out.putArray("items")
@@ -386,6 +397,7 @@ object PhaseWork {
                 s.hint?.let { sn.put("hint", it) }
                 s.screen?.let { sn.put("screen", it) }
                 s.kind?.let { sn.put("kind", it) }
+                s.documentCode?.let { sn.put("document_code", it) }
                 sn.put("done", s.done)
                 sn.put("why", s.why)
             }

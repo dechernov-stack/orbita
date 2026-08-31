@@ -239,9 +239,13 @@ function parseGap(g: { section: number; what: string; expected: string }) {
   return { section: g.section, id: m?.[1] ?? null, what: m?.[2] ?? g.what, expected: g.expected }
 }
 
-export function Documents({ onGo }: { onGo?: (screen: string) => void }) {
+export function Documents({ onGo, initialCode }: {
+  onGo?: (screen: string) => void
+  /** Шаг задачи фазы ведёт сюда УЖЕ настроенным на свой шаблон (SEMP, ConOps). */
+  initialCode?: string
+}) {
   const [templates, setTemplates] = useState<Array<{ code: string; title: string; source: string }>>([])
-  const [code, setCode] = useState('')
+  const [code, setCode] = useState(initialCode ?? '')
   const [doc, setDoc] = useState<GeneratedDocumentView | null>(null)
   const [issues, setIssues] = useState<DocumentIssuesView | null>(null)
   const [issueReport, setIssueReport] = useState<string | null>(null)

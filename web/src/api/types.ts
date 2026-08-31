@@ -963,7 +963,12 @@ export interface PhaseWorkTask {
   tiers?: number
   lane_start?: string
   lane_end?: string
-  steps: Array<{ title: string; hint?: string; screen?: string; kind?: string; done: boolean; why: string }>
+  steps: Array<{
+    title: string; hint?: string; screen?: string; kind?: string
+    /** Шаблон документа: переход открывает место уже настроенным на него. */
+    document_code?: string
+    done: boolean; why: string
+  }>
   gaps: string[]
 }
 

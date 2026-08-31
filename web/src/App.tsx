@@ -186,8 +186,10 @@ export function App() {
 
   /** Ф-12: переход к месту действия — с преднастроенным видом операции. */
   const [pendingKind, setPendingKind] = useState<string | undefined>(undefined)
-  const go = (next: string, kind?: string) => {
+  const [pendingDoc, setPendingDoc] = useState<string | undefined>(undefined)
+  const go = (next: string, kind?: string, doc?: string) => {
     setPendingKind(kind)
+    setPendingDoc(doc)
     setScreen(next)
   }
 
@@ -315,7 +317,9 @@ export function App() {
       case 'trl': return <KindRegistry key={screen} kinds={['technology']} title="Технологии и TRL" />
       case 'oda': return <KindRegistry key={screen} kinds={['oda']} title="Оценка орбитального засорения" />
       case 'vv': return <KindRegistry key={screen} kinds={['evidence', 'validation']} title="Верификация и валидация" />
-      case 'docs': return <ScreenFrame title="Документы"><Documents onGo={go} /></ScreenFrame>
+      case 'docs': return (
+        <ScreenFrame title="Документы"><Documents onGo={go} initialCode={pendingDoc} /></ScreenFrame>
+      )
       case 'system': return <ScreenFrame title="Система в целом"><SystemOverview /></ScreenFrame>
       case 'aiservice': return <AiService onGo={go} initialKind={pendingKind} />
       case 'aiprofiles': return <AiProfiles key={screen} onGo={go} />

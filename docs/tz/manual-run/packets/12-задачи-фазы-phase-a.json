@@ -13,7 +13,7 @@
       "input": [
         {
           "check": "always",
-          "label": "фаза A открыта решением KDP-A"
+          "label": "фаза открыта решением KDP-A"
         }
       ],
       "steps": [
@@ -29,13 +29,14 @@
         },
         {
           "title": "SEMP по шаблону",
-          "hint": "8 разделов; tailoring — только с обоснованием, след обязателен",
+          "hint": "8 разделов приложения 1; разделы процессов, обзоров, отклонений и среды приходят вставками из конфигурации — инженер правит поверх; tailoring только с обоснованием",
           "screen": "documents",
           "done_when": {
             "check": "document_issued",
             "code": "semp",
             "label": "SEMP выпущен"
-          }
+          },
+          "document_code": "semp"
         },
         {
           "title": "Базировать до SRR",
@@ -676,9 +677,9 @@
           "hint": "замечания устраняются до SRR, а не переносятся через точку",
           "screen": "readiness",
           "done_when": {
-            "check": "objects",
-            "type": "review_item",
-            "label": "внутренний обзор проведён"
+            "check": "gate_check",
+            "gate_check_id": "reviews",
+            "label": "замечания обзора закрыты"
           }
         },
         {
@@ -688,7 +689,7 @@
           "done_when": {
             "check": "gate_check",
             "gate_check_id": "trace",
-            "label": "готовность к SRR закрыта"
+            "label": "трассировка требований без дыр"
           }
         },
         {
@@ -698,7 +699,7 @@
           "done_when": {
             "check": "gate_check",
             "gate_check_id": "carriers",
-            "label": "готовность к SDR закрыта"
+            "label": "требований без носителя не осталось"
           }
         },
         {
@@ -706,9 +707,9 @@
           "hint": "комплект Д1–Д10 в зрелостях регламента",
           "screen": "lifecycle",
           "done_when": {
-            "check": "objects",
-            "type": "review_item",
-            "label": "решение точки записано"
+            "check": "gate_check",
+            "gate_check_id": "docs",
+            "label": "комплект документов выпущен"
           }
         }
       ],

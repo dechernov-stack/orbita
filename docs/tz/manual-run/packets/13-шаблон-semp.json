@@ -1,0 +1,88 @@
+{
+  "author": "БП-PA прил. 1 (контент владельца: ШАБЛОН-SEMP.md)",
+  "objects": [
+    {
+      "id": "DT-9002",
+      "code": "semp",
+      "name": "План управления системной инженерией (SEMP)",
+      "source": "БП-PA, приложение 1",
+      "edition": "1",
+      "sections": [
+        {
+          "number": 1,
+          "title": "Назначение и область",
+          "expects": "проект, фазы, связь с соглашением о формулировании",
+          "inserts": [
+            "project"
+          ],
+          "required": true
+        },
+        {
+          "number": 2,
+          "title": "Техническое резюме",
+          "expects": "система, её границы и ключевые задачи фазы",
+          "inserts": [
+            "mission_intent",
+            "system_components"
+          ],
+          "required": true
+        },
+        {
+          "number": 3,
+          "title": "Организация",
+          "expects": "роли, ответственность, подрядчики и поставщики",
+          "inserts": [
+            "stakeholders"
+          ],
+          "required": true
+        },
+        {
+          "number": 4,
+          "title": "Технические процессы",
+          "expects": "как реализованы процессы NPR 7123.1: процесс → механизм → место",
+          "inserts": [
+            "process_map"
+          ],
+          "required": true
+        },
+        {
+          "number": 5,
+          "title": "Технические обзоры",
+          "expects": "перечень обзоров, критерии входа и выхода, порядок замечаний",
+          "inserts": [
+            "milestones"
+          ],
+          "required": true
+        },
+        {
+          "number": 6,
+          "title": "Отклонения (tailoring)",
+          "expects": "согласованные отклонения с обоснованием, автором и датой",
+          "inserts": [
+            "gate_tailoring"
+          ],
+          "required": true
+        },
+        {
+          "number": 7,
+          "title": "Инструменты и среда",
+          "expects": "управление требованиями, MBSE-модель, данные и расчёты",
+          "inserts": [
+            "tools"
+          ],
+          "required": true
+        },
+        {
+          "number": 8,
+          "title": "Согласование",
+          "expects": "подписи, версия и порядок актуализации",
+          "required": false
+        }
+      ],
+      "lifecycle": {
+        "status": "Draft",
+        "version": "1"
+      }
+    }
+  ]
+}

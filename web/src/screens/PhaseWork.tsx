@@ -20,7 +20,7 @@ const STATUS_LABEL: Record<string, string> = {
 
 const STATUS_ORDER = ['in_progress', 'available', 'waiting', 'done']
 
-export function PhaseWork({ onGo }: { onGo: (screen: string, kind?: string) => void }) {
+export function PhaseWork({ onGo }: { onGo: (screen: string, kind?: string, doc?: string) => void }) {
   const [view, setView] = useState<PhaseWorkView | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [tab, setTab] = useState<'lane' | 'list'>('lane')
@@ -246,7 +246,7 @@ function List({ view, onOpen }: { view: PhaseWorkView; onOpen: (id: string) => v
 function TaskCard({ task, onBack, onGo }: {
   task: PhaseWorkTask
   onBack: () => void
-  onGo: (screen: string, kind?: string) => void
+  onGo: (screen: string, kind?: string, doc?: string) => void
 }) {
   return (
     <>
@@ -275,7 +275,7 @@ function TaskCard({ task, onBack, onGo }: {
               {!s.done && <div className="secondary">готово, когда: {s.why}</div>}
             </div>
             {s.screen
-              ? <button className="rr-assign" onClick={() => onGo(s.screen!, s.kind)}
+              ? <button className="rr-assign" onClick={() => onGo(s.screen!, s.kind, s.document_code)}
                   title={s.kind
                     ? `открыть место действия с преднастроенной операцией «${s.kind}»`
                     : 'открыть место действия'}>
@@ -318,7 +318,7 @@ function TaskCard({ task, onBack, onGo }: {
  */
 export function NextStepBadge({ tick, onGo }: {
   tick: string
-  onGo: (screen: string, kind?: string) => void
+  onGo: (screen: string, kind?: string, doc?: string) => void
 }) {
   const [next, setNext] = useState<PhaseWorkView['next'] | null>(null)
   useEffect(() => {

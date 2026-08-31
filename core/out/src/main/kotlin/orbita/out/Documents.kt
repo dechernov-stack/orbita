@@ -748,6 +748,15 @@ class DocumentGenerator(private val mapper: ObjectMapper = ObjectMapper()) {
         }
     }
 
+    /**
+     * SEMP наполовину — САМООПИСАНИЕ КОНФИГУРАЦИИ проекта (БП-PA прил. 1).
+     * Разделы 3–7 приходят вставками из модели и конфигурации системы:
+     * организация — стейкхолдерами и поставщиками со связями на узлы;
+     * процессы — таблицей соответствия «процесс → механизм → место»;
+     * обзоры — вехами ленты; tailoring — записями неприменимости с
+     * обоснованием; среда работ — перечнем инструментов. Инженер правит и
+     * дополняет поверх, а расхождение со снимком помечается «текст устарел».
+     */
     private fun fillSemp(section: Int, model: JsonNode, items: ArrayNode) {
         when (section) {
             1 -> model.path("project").takeIf { it.isObject && !it.isEmpty }?.let { p ->
@@ -755,12 +764,57 @@ class DocumentGenerator(private val mapper: ObjectMapper = ObjectMapper()) {
                     .put("project", p.path("name").asText(""))
                     .put("phase", p.path("phase").asText(""))
             }
-            2 -> components(model).filter { it.second.path("kind").asText() == "system" }
-                .forEach { (id, c) ->
-                    items.addObject().put("id", id).put("name", c.path("name").asText(""))
+            2 -> {
+                model.path("project").path("mission_intent").takeIf { it.isObject }?.let { mi ->
+                    val n = items.addObject()
+                    n.put("kind", "mission_intent")
+                    listOf("for_whom", "what", "where", "horizon").forEach { f ->
+                        mi.path(f).asText("").takeIf { it.isNotBlank() }?.let { n.put(f, it) }
+                    }
+                    mi.path("text").asText("").takeIf { it.isNotBlank() }?.let { n.put("text", it) }
                 }
+                components(model).filter { it.second.path("kind").asText() == "system" }
+                    .forEach { (id, c) ->
+                        items.addObject().put("id", id).put("name", c.path("name").asText(""))
+                    }
+            }
+            // 3: организация — кто отвечает. Поставщик показывается вместе с
+            // узлом, который он поставляет: ответственность без адреса пуста.
+            3 -> model.path("stakeholders").sortedBy { it.path("id").asText() }.forEach { sh ->
+                val n = items.addObject()
+                n.put("id", sh.path("id").asText())
+                n.put("name", sh.path("name").asText(""))
+                n.put("role", sh.path("role").asText(""))
+                sh.path("interest").asText("").takeIf { it.isNotBlank() }?.let { n.put("interest", it) }
+                val supplies = sh.path("supplies").mapNotNull { it.asText().takeIf(String::isNotBlank) }
+                if (supplies.isNotEmpty()) n.put("supplies", supplies.joinToString(", "))
+            }
+            // 4: соответствие процессов регламента механизмам системы —
+            // конфигурация, а не сочинение: таблица приходит данными.
+            4 -> SempConfiguration.processes().forEach { p ->
+                items.addObject()
+                    .put("process", p.process)
+                    .put("mechanism", p.mechanism)
+                    .put("place", p.place)
+            }
+            // 5: технические обзоры — вехи фазы с датами; критерии входа и
+            // выхода живут проверками готовности, поэтому здесь — адрес.
             5 -> milestoneRecords(model, items)
-            else -> {}   // организация, процессы, tailoring, подписи — вне модели
+            // 6: tailoring — записи неприменимости с обоснованием. Их не
+            // сочиняют: каждая пришла решением инженера и несёт след.
+            6 -> model.path("project").path("gate_tailoring").forEach { w ->
+                items.addObject()
+                    .put("gate", w.path("gate").asText(""))
+                    .put("check", w.path("check").asText(""))
+                    .put("rationale", w.path("rationale").asText(""))
+                    .put("author", w.path("author").asText(""))
+                    .put("at", w.path("at").asText(""))
+            }
+            // 7: среда работ — тем же законом, что и процессы.
+            7 -> SempConfiguration.tools().forEach { t ->
+                items.addObject().put("area", t.area).put("tool", t.tool)
+            }
+            else -> {}   // подписи и порядок актуализации — фиксациями историей
         }
     }
 
