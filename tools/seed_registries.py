@@ -162,6 +162,17 @@ def obsolete(type_: str, rows: list) -> bool:
             for c in условия:
                 if c.get("check") == "gate_check" and c.get("gate_check_id") not in живые:
                     return True
+        # Адреса шагов писались на слух, и часть вела в несуществующие
+        # экраны (находка живого прохода: «Орг-структура» вела в СОЗДАНИЕ
+        # проекта). Полка с такими адресами обязана обновиться.
+        мёртвые = {"constellations", "datarequests", "debris", "tech", "documents"}
+        for d in rows:
+            for шаг in d.get("steps", []):
+                if шаг.get("screen") in мёртвые:
+                    return True
+                # задача фазы не ведёт в мастер начала проекта
+                if d.get("phase") != "pre_phase_a" and шаг.get("screen") == "startpath":
+                    return True
         return not any(len(d.get("steps", [])) >= 4 for d in rows)
     if type_ == "document_template":
         # полка устарела, если раздел «Обозначения источников» не несёт
