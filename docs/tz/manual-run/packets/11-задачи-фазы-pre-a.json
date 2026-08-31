@@ -98,7 +98,7 @@
         {
           "title": "Задать варианты построений",
           "hint": "Walker и подгруппы; ограничения Р2 и пусковые проверяются схемой",
-          "screen": "constellations",
+          "screen": "siminputs",
           "done_when": {
             "check": "objects",
             "type": "constellation",
@@ -257,7 +257,7 @@
         {
           "title": "Свести в документ",
           "hint": "разделы собираются из модели; авторский текст правится на месте",
-          "screen": "documents",
+          "screen": "docs",
           "done_when": {
             "check": "document_issued",
             "code": "d4",
@@ -304,7 +304,7 @@
         {
           "title": "Ответить на анкеты характеристик",
           "hint": "рукой, типовым с полки или даташитом: разбор предзаполнит поля с координатами блоков",
-          "screen": "datarequests",
+          "screen": "spacecraft",
           "done_when": {
             "check": "gate_check",
             "gate_check_id": "data_requests",
@@ -314,7 +314,7 @@
         {
           "title": "Отметить незрелые технологии",
           "hint": "TRL и потребность в созревании — по позициям, где данных нет",
-          "screen": "tech",
+          "screen": "trl",
           "done_when": {
             "check": "objects",
             "type": "technology",
@@ -372,7 +372,7 @@
         {
           "title": "Оценить орбитальное засорение",
           "hint": "деградация и время схода считаются по построению",
-          "screen": "debris",
+          "screen": "oda",
           "done_when": {
             "check": "objects",
             "type": "constellation",
@@ -483,7 +483,7 @@
         {
           "title": "Собрать разделы из модели",
           "hint": "таблицы и перечни подставляются данными; авторский текст — поверх",
-          "screen": "documents",
+          "screen": "docs",
           "done_when": {
             "check": "document_issued",
             "code": "d2",

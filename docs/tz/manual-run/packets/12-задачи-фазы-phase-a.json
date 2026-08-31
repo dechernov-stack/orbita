@@ -19,18 +19,18 @@
       "steps": [
         {
           "title": "Орг-структура и план работ",
-          "hint": "роли по FA; право на действие берётся из реестра прав, а не из договорённости",
-          "screen": "startpath",
+          "hint": "кто отвечает за работы фазы: заказчик, регулятор, операторы, поставщики — они же дают раздел 3 SEMP; учётки и роли заводятся в шапке, право на действие берётся из реестра прав, а не из договорённости",
+          "screen": "stakeholders",
           "done_when": {
-            "check": "passport_field",
-            "field": "mission_intent",
-            "label": "паспорт актуален"
+            "check": "objects",
+            "type": "stakeholder",
+            "label": "ответственные названы"
           }
         },
         {
           "title": "SEMP по шаблону",
           "hint": "8 разделов приложения 1; разделы процессов, обзоров, отклонений и среды приходят вставками из конфигурации — инженер правит поверх; tailoring только с обоснованием",
-          "screen": "documents",
+          "screen": "docs",
           "done_when": {
             "check": "document_issued",
             "code": "semp",
@@ -364,7 +364,7 @@
         {
           "title": "Актуализовать перечень технологий",
           "hint": "критическое = ниже TRL 6 к PDR",
-          "screen": "tech",
+          "screen": "trl",
           "done_when": {
             "check": "objects",
             "type": "technology",
@@ -375,7 +375,7 @@
         {
           "title": "Планы созревания",
           "hint": "вехи, критерии достижения и резервное решение у каждой критической позиции",
-          "screen": "tech",
+          "screen": "trl",
           "done_when": {
             "check": "objects",
             "type": "technology",
@@ -386,7 +386,7 @@
         {
           "title": "Переоценка TRL",
           "hint": "периодичность — по плану; отчёт приурочен к точкам фазы",
-          "screen": "datarequests",
+          "screen": "spacecraft",
           "done_when": {
             "check": "objects",
             "type": "technology",
@@ -434,7 +434,7 @@
         {
           "title": "План управления рисками",
           "hint": "шкалы 1–5 и пороги эскалации — до того, как рисков станет много",
-          "screen": "documents",
+          "screen": "docs",
           "done_when": {
             "check": "document_issued",
             "code": "risk_plan",
@@ -493,7 +493,7 @@
         {
           "title": "Актуализовать ОСЗ",
           "hint": "увод по нормативу полки Б1; Δv увода — строкой в бюджете",
-          "screen": "debris",
+          "screen": "oda",
           "done_when": {
             "check": "objects",
             "type": "oda",
@@ -503,7 +503,7 @@
         {
           "title": "Предварительные планы обеспечения",
           "hint": "классификация полезной нагрузки — основание требований безопасности",
-          "screen": "documents",
+          "screen": "docs",
           "done_when": {
             "check": "document_issued",
             "code": "oda",
@@ -561,7 +561,7 @@
         {
           "title": "CADRe и материалы закупок",
           "hint": "партнёрства и длинные позиции называются заранее",
-          "screen": "documents",
+          "screen": "docs",
           "done_when": {
             "check": "document_issued",
             "code": "cost_ranges",
@@ -612,7 +612,7 @@
         {
           "title": "Project Plan по шаблону",
           "hint": "10 разделов; ссылки на документы, а не их копии",
-          "screen": "documents",
+          "screen": "docs",
           "done_when": {
             "check": "document_issued",
             "code": "project_plan",
@@ -622,7 +622,7 @@
         {
           "title": "Обновление соглашения: план фазы B",
           "hint": "вехи и требуемые зрелости по приложению I регламента",
-          "screen": "documents",
+          "screen": "docs",
           "done_when": {
             "check": "document_issued",
             "code": "fad",
