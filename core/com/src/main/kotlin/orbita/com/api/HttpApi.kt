@@ -3604,6 +3604,52 @@ class HttpApi(private val boundary: Boundary) {
                 respond(ex, 201, out)
             }
 
+            // Ф-14: обобщение ПАЧКОЙ. По одному это было неудобно: нажатие
+            // не давало видимого следа, и инженер не понимал, сработало ли
+            // (наблюдение живого прохода). Отмеченные уходят одним движением,
+            // отчёт называет каждого поимённо.
+            method == "POST" && path == "/views/stakeholders/generalize-batch" -> {
+                val req = mapper.readTree(body(ex))
+                val by = author(req)
+                require(by.isNotBlank()) { "TZ-COM-005: field 'author' is required for editing" }
+                val ctx = requireProject(project)
+                val создано = mapper.createArrayNode()
+                val пропущено = mapper.createArrayNode()
+                req.path("ids").forEach { node ->
+                    val skId = node.asText("")
+                    val sk = boundary.objects.current(skId)
+                    if (sk == null || sk.type != "stakeholder") {
+                        пропущено.addObject().put("id", skId).put("why", "не стейкхолдер проекта")
+                        return@forEach
+                    }
+                    val уже = sk.doc.path("profile_ref").asText("")
+                    if (уже.isNotBlank()) {
+                        пропущено.addObject().put("id", skId)
+                            .put("why", "уже обобщён в профиль $уже")
+                        return@forEach
+                    }
+                    val профиль = generalizeStakeholder(sk, ctx, by)
+                    создано.addObject().put("from", skId)
+                        .put("profile", профиль).put("name", sk.doc.path("name").asText(skId))
+                }
+                val out = mapper.createObjectNode()
+                out.put("created", создано.size())
+                out.set<ArrayNode>("profiles", создано)
+                out.set<ArrayNode>("skipped", пропущено)
+                out.put(
+                    "summary",
+                    when {
+                        создано.size() == 0 && пропущено.size() > 0 ->
+                            "новых профилей нет: ${пропущено.size()} уже на полке"
+                        создано.size() == 0 -> "никого не отмечено"
+                        пропущено.size() > 0 ->
+                            "на полку ушло ${создано.size()}, пропущено ${пропущено.size()} (уже там)"
+                        else -> "на полку ушло ${создано.size()} — полка знает исток, факт знает шаблон"
+                    },
+                )
+                respond(ex, 201, out)
+            }
+
             // Ф-14: второй конец контура библиотеки. Ш2 берёт типовое с полки
             // в проект; здесь проектный факт ОБОБЩАЕТСЯ в шаблон полки —
             // отдельным осознанным действием, со следом «обобщено из PJ-…».
@@ -4341,6 +4387,47 @@ class HttpApi(private val boundary: Boundary) {
         return AssembledProfile(
             stored.id, stored.version, profileName, prohibitions.size(), created = existing == null,
         )
+    }
+
+    /**
+     * Ф-14: проектный стейкхолдер → профиль полки А2. Общий путь для обоих
+     * маршрутов: по одному и пачкой — иначе своды разойдутся при первой правке.
+     *
+     * Проектная специфика уходит, остаётся шаблон класса; след — в обе
+     * стороны: полка знает исток, факт знает свой шаблон.
+     */
+    private fun generalizeStakeholder(
+        sk: orbita.mod.store.StoredObject,
+        projectId: String,
+        by: String,
+    ): String {
+        // роль профиля полки — свой перечень; отображаем честно
+        val role = when (val r = sk.doc.path("role").asText("")) {
+            "consumer" -> "end_user"
+            "established" -> "operator"
+            "supplier" -> "supplier"
+            else -> r
+        }
+        val doc = mapper.createObjectNode()
+        doc.put("name", sk.doc.path("name").asText(sk.id))
+        doc.put("role", role)
+        sk.doc.path("interest").asText("").takeIf { it.isNotBlank() }?.let { doc.put("interests", it) }
+        boundary.objects.current(projectId)?.doc?.path("mission_class")?.asText("")
+            ?.takeIf { it.isNotBlank() }?.let { doc.put("mission_class_ref", it) }
+        val provenance = doc.putObject("provenance")
+        provenance.put("source", "manual")
+        provenance.put("author", "обобщено из $projectId · ${sk.id} (автор: $by)")
+        val stored = boundary.editing.create(
+            orbita.mod.model.CoreType.StakeholderProfile, doc, by,
+            orbita.mod.store.ObjectStore.LIBRARY_PROJECT,
+        )
+        val back = mapper.createObjectNode()
+        back.put("profile_ref", stored.id)
+        boundary.editing.update(
+            orbita.mod.model.CoreType.Stakeholder, sk.id, back, sk.version, by,
+            changeRef = "Ф-14: обобщён в профиль полки ${stored.id}",
+        )
+        return stored.id
     }
 
     /**

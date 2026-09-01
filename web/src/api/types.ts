@@ -1005,6 +1005,8 @@ export interface StakeholderCoverageView {
     name: string
     role: string
     establishes: boolean
+    /** Профиль полки, если факт уже обобщён: нитка в обе стороны. */
+    profile_ref?: string
     interest?: string
     supplies?: Array<{ id: string; name: string; has_form: boolean }>
     needs: number

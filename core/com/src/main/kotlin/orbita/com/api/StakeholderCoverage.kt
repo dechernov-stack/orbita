@@ -61,6 +61,9 @@ object StakeholderCoverage {
             n.put("name", sh.doc.path("name").asText(sh.id))
             n.put("role", sh.doc.path("role").asText(""))
             n.put("establishes", sh.doc.path("establishes").asBoolean(false))
+            // уже обобщён? тогда отмечать его к переносу незачем — это видно
+            sh.doc.path("profile_ref").asText("").takeIf { it.isNotBlank() }
+                ?.let { n.put("profile_ref", it) }
             sh.doc.path("interest").asText("").takeIf { it.isNotBlank() }?.let { n.put("interest", it) }
             val supplies = sh.doc.path("supplies").map { it.asText() }
             if (supplies.isNotEmpty()) {

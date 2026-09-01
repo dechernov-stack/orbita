@@ -11,6 +11,7 @@ import { Tooltip } from '../ui/Tooltip'
 import { SortTh, useSort } from '../ui/sort'
 import { useSession } from '../ui/session'
 import { edit } from '../api/edit'
+import { StatementGuide } from '../ui/StatementGuide'
 
 const STATE_LABEL: Record<string, string> = {
   declared: 'заявлена',
@@ -46,6 +47,27 @@ export function StakeholderCoverage({ onGo }: {
   // роли для носителей, названных в нуждах словами: имя — факт документа,
   // роль — решение инженера, выдумывать её система не вправе
   const [roleFor, setRoleFor] = useState<Record<string, string>>({})
+  // Обобщение ПАЧКОЙ: по одному нажатию не было видимого следа, и инженер не
+  // понимал, сработало ли (замечание живого прохода). Отмеченные уходят
+  // одним движением, отчёт называет каждого.
+  const [toShelf, setToShelf] = useState<Set<string>>(new Set())
+
+  const обобщитьОтмеченных = async () => {
+    if (!author || toShelf.size === 0) return
+    setBusy(true)
+    setNote(null)
+    try {
+      const r = await api.generalizeBatch([...toShelf], author)
+      const кто = r.profiles.map((p) => `${p.from} → ${p.profile}`).join(', ')
+      setNote(`${r.summary}${кто ? `: ${кто}` : ''}`)
+      setToShelf(new Set())
+      await api.stakeholderCoverage().then(setView)
+    } catch (e) {
+      setNote(String(e))
+    } finally {
+      setBusy(false)
+    }
+  }
   const [busy, setBusy] = useState(false)
 
   /**
@@ -105,15 +127,6 @@ export function StakeholderCoverage({ onGo }: {
    * проект; здесь проектный факт обобщается в шаблон А2 — отдельным
    * действием инженера, а не побочным эффектом акцепта.
    */
-  const generalize = (id: string) => {
-    if (!author) return
-    api.generalizeStakeholder(id, author)
-      .then((r) => {
-        setNote(`${id} обобщён в профиль ${r.profile} — полка знает исток, факт знает шаблон`)
-        return api.stakeholderCoverage().then(setView)
-      })
-      .catch((e) => setNote(String(e)))
-  }
   const { sorted, sort, toggle } = useSort(view?.rows ?? [], {
     id: (r) => r.id,
     name: (r) => r.name,
@@ -138,6 +151,19 @@ export function StakeholderCoverage({ onGo }: {
         <p className="secondary" style={{ marginTop: 0 }}>
           {view.summary} · заявлено {view.declared} · покрыто {view.covered} · закрыто {view.verified}
         </p>
+        {view.rows.length > 0 && (
+          <div className="np-actions" style={{ marginTop: 6 }}>
+            <button className="np-btn" onClick={() => void обобщитьОтмеченных()}
+              disabled={busy || !author || toShelf.size === 0}
+              title={!author
+                ? 'представьтесь в шапке: обобщение пишется на автора'
+                : toShelf.size === 0
+                  ? 'отметьте, кого обобщить в шаблоны полки А2'
+                  : 'обобщить отмеченных одним движением — отчёт назовёт каждого'}>
+              {busy ? 'Обобщаю…' : `Обобщить отмеченных (${toShelf.size})`}
+            </button>
+          </div>
+        )}
         {view.rows.length === 0 ? (
           <p className="secondary" style={{ margin: 0 }}>
             Стейкхолдеров в проекте нет. Они заводятся вручную либо приходят урожаем
@@ -186,13 +212,22 @@ export function StakeholderCoverage({ onGo }: {
                   <td className="num">{r.needs}</td>
                   <td className="num">{r.covered}</td>
                   <td className="num">{r.verified}</td>
-                  <td style={{ width: 150 }}>
-                    <button className="rr-assign" onClick={() => generalize(r.id)} disabled={!author}
-                      title={author
-                        ? 'обобщить в профиль полки А2: проектная специфика уходит, остаётся шаблон класса'
-                        : 'представьтесь в шапке: обобщение пишется на автора'}>
-                      обобщить →
-                    </button>
+                  <td style={{ width: 130 }}>
+                    {r.profile_ref ? (
+                      <Tooltip text="этот факт уже обобщён: полка знает исток, факт знает шаблон">
+                        <span className="chip">на полке · {r.profile_ref}</span>
+                      </Tooltip>
+                    ) : (
+                      <label title="отметить для обобщения в профиль полки А2">
+                        <input type="checkbox" checked={toShelf.has(r.id)} disabled={!author}
+                          onChange={() => setToShelf((prev) => {
+                            const next = new Set(prev)
+                            if (next.has(r.id)) next.delete(r.id); else next.add(r.id)
+                            return next
+                          })} />{' '}
+                        на полку
+                      </label>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -281,6 +316,11 @@ export function StakeholderCoverage({ onGo }: {
           </div>
         </div>
       )}
+
+      {/* «Следующий шаг непонятен» (замечание живого прохода): после того как
+          носители названы, экран обязан сказать, куда идти дальше по цепочке
+          постановки, а не оставлять инженера перед заполненной таблицей. */}
+      {view.rows.length > 0 && <StatementGuide onGo={onGo} />}
 
       {view.without_stakeholder.length > 0 && (
         <div className="card">

@@ -699,6 +699,13 @@ export const api = {
     post<{ count: number; created: Array<{ id: string; name: string; role: string; needs: number }> }>(
       '/views/stakeholders/from-needs', { carriers, author },
     ),
+  /** Ф-14: обобщить отмеченных одним движением — с отчётом поимённо. */
+  generalizeBatch: (ids: string[], author: string) =>
+    post<{
+      created: number; summary: string
+      profiles: Array<{ from: string; profile: string; name: string }>
+      skipped: Array<{ id: string; why: string }>
+    }>('/views/stakeholders/generalize-batch', { ids, author }),
   /** Ф-14: обобщить проектного стейкхолдера в профиль полки А2 — со следом. */
   generalizeStakeholder: (id: string, author: string) =>
     post<{ profile: string; from: string; project: string; note: string }>(
