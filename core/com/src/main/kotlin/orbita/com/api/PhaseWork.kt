@@ -36,7 +36,25 @@ object PhaseWork {
         val tally: String?,
         val done: Boolean,
         val why: String,
+        /**
+         * Круг 6: порядок шагов — не догадка. Связи с соседними шагами живут в
+         * полке (`after`), из них считается ЯРУС шага внутри задачи: шаги
+         * одного яруса идут параллельно. Умолчания «следом за предыдущим» нет.
+         */
+        val after: List<StepDep>,
+        val tier: Int,
+        val tiers: Int,
     )
+
+    /** Связь шага с соседним шагом той же задачи. */
+    data class StepDep(val step: Int, val type: String)
+
+    /**
+     * Круг 6: связь задачи с предшественником вместе с ТИПОМ. Регламент
+     * итеративно-параллелен, и рисовать всё «после окончания» — неправда:
+     * тип обязателен и приходит с полки.
+     */
+    data class Dep(val task: String, val type: String, val note: String?)
 
     data class TaskState(
         val id: String,
@@ -69,7 +87,7 @@ object PhaseWork {
          * здесь, а не считается заново схемой: «как течёт» и «что делать» —
          * одна и та же цепочка зависимостей, второй её копии не заводится.
          */
-        val dependsOn: List<String>,
+        val dependsOn: List<Dep>,
         val consumers: List<String>,
         val inputs: List<InputState>,
         /** Код документа выхода — по нему артефакт открывается с ребра схемы. */
@@ -190,6 +208,43 @@ object PhaseWork {
             }
         }
 
+    /**
+     * Связи задачи с типами. Строка вместо объекта — неразмеченная связь
+     * прежнего формата: читается как INPUT («нужен выход-артефакт»), то есть
+     * ровно тем смыслом, который «ждёт» имело раньше. FS по умолчанию не
+     * подставляется никогда: это была бы выдумка о регламенте.
+     */
+    private fun depsOf(doc: JsonNode, known: Set<String>): List<Dep> =
+        doc.path("depends_on").mapNotNull { d ->
+            if (d.isTextual) Dep(d.asText(), "INPUT", null)
+            else Dep(
+                d.path("task").asText(""),
+                d.path("type").asText("INPUT"),
+                d.path("note").asText("").ifBlank { null },
+            )
+        }.filter { it.task in known }
+
+    /**
+     * Блокирует ли связь работу. Тип решает:
+     *   FS, INPUT — предшественник обязан ЗАКОНЧИТЬ (его выход готов);
+     *   SS        — предшественник обязан НАЧАТЬСЯ (хоть один шаг сделан);
+     *   FF        — не блокирует вовсе: это условие на окончание, не на старт.
+     */
+    private fun blocks(type: String, predOutputDone: Boolean, predStarted: Boolean): Boolean =
+        when (type) {
+            "FS", "INPUT" -> !predOutputDone
+            "SS" -> !predStarted && !predOutputDone
+            else -> false
+        }
+
+    /** Связь словами: «вместе с 4 · Архитектура (после её старта)». */
+    fun linkWords(type: String, who: String): String = when (type) {
+        "FS" -> "после окончания $who"
+        "SS" -> "вместе с $who (после её старта)"
+        "FF" -> "закончить не раньше $who"
+        else -> "нужен выход-артефакт задачи $who"
+    }
+
     /** Все условия задачи одним списком: вход, шаги, выход. */
     private fun conditionsOf(doc: JsonNode): List<JsonNode> =
         doc.path("input").toList() +
@@ -222,7 +277,12 @@ object PhaseWork {
             val doc = task.doc
             val inputs = doc.path("input").toList()
             val unmet = inputs.filterNot { holds(it, own, passport, gateChecks, issued) }
-            val steps = doc.path("steps").map { st ->
+            val stepDeps = doc.path("steps").map { st ->
+                st.path("after").map { a -> StepDep(a.path("step").asInt(), a.path("type").asText("FS")) }
+            }
+            val stepTiers = stepTiers(stepDeps)
+            val stepsTotal = stepTiers.maxOrNull() ?: 1
+            val steps = doc.path("steps").mapIndexed { i, st ->
                 StepState(
                     title = st.path("title").asText(),
                     hint = st.path("hint").asText("").ifBlank { null },
@@ -232,14 +292,23 @@ object PhaseWork {
                     tally = tally(st.path("done_when"), own, passport, issued),
                     done = holds(st.path("done_when"), own, passport, gateChecks, issued),
                     why = labelOf(st.path("done_when")),
+                    after = stepDeps[i],
+                    tier = stepTiers[i],
+                    tiers = stepsTotal,
                 )
             }
-            // предшественник, чей выход ещё не готов, — вот кого ждём
-            val waiting = doc.path("depends_on").mapNotNull { byId[it.asText()] }
-                .firstOrNull { pred ->
-                    val out = pred.doc.path("output").path("done_when")
-                    !out.isMissingNode && !holds(out, own, passport, gateChecks, issued)
-                }
+            // Кого ждём — решает ТИП связи, а не общий закон «после окончания».
+            // SS ждёт старта, FF не ждёт вовсе, FS и INPUT ждут выхода.
+            val deps = depsOf(doc, byId.keys)
+            val waitingDep = deps.firstOrNull { dep ->
+                val pred = byId.getValue(dep.task)
+                val out = pred.doc.path("output").path("done_when")
+                val predDone = !out.isMissingNode && holds(out, own, passport, gateChecks, issued)
+                val predStarted = pred.doc.path("steps")
+                    .any { holds(it.path("done_when"), own, passport, gateChecks, issued) }
+                blocks(dep.type, predDone, predStarted)
+            }
+            val waiting = waitingDep?.let { byId.getValue(it.task) }
             val outputDone = doc.path("output").path("done_when").let {
                 !it.isMissingNode && holds(it, own, passport, gateChecks, issued)
             }
@@ -280,8 +349,13 @@ object PhaseWork {
                 name = doc.path("name").asText(),
                 why = doc.path("why").asText(),
                 status = status,
-                waitsOn = waiting?.let { "${it.doc.path("order").asInt()} · ${it.doc.path("name").asText()}" }
-                    ?: unmet.firstOrNull()?.let { labelOf(it) },
+                waitsOn = waitingDep?.let { dep ->
+                    val pred = byId.getValue(dep.task)
+                    linkWords(
+                        dep.type,
+                        "${pred.doc.path("order").asInt()} · ${pred.doc.path("name").asText()}",
+                    )
+                } ?: unmet.firstOrNull()?.let { labelOf(it) },
                 inputReady = unmet.isEmpty() && waiting == null,
                 inputWhy = if (unmet.isEmpty() && waiting == null) "вход готов"
                 else (unmet.map { labelOf(it) } + listOfNotNull(waiting?.doc?.path("name")?.asText()))
@@ -295,7 +369,7 @@ object PhaseWork {
                 end = end,
                 tier = 1,
                 tiers = 1,
-                dependsOn = doc.path("depends_on").map { it.asText() }.filter { it in byId },
+                dependsOn = deps,
                 consumers = emptyList(),
                 inputs = inputs.map { InputState(labelOf(it), holds(it, own, passport, gateChecks, issued)) },
                 documentCode = doc.path("output").path("document_code").asText("").ifBlank { null },
@@ -308,7 +382,7 @@ object PhaseWork {
         }
         // потребители — обратная сторона той же зависимости, не второй список
         val withConsumers = states.values.map { t ->
-            t.copy(consumers = states.values.filter { t.id in it.dependsOn }.map { it.id })
+            t.copy(consumers = states.values.filter { c -> c.dependsOn.any { it.task == t.id } }.map { it.id })
         }
         return withTiers(withConsumers, byId)
     }
@@ -327,16 +401,19 @@ object PhaseWork {
         byId: Map<String, StoredObject>,
     ): List<TaskState> {
         val порядок = tasks.associateBy { it.id }
-        val зависит = tasks.associate { t ->
-            t.id to (byId[t.id]?.doc?.path("depends_on")?.map { it.asText() } ?: emptyList())
-                .filter { it in порядок }
-        }
-        // ярус = 1 + максимум ярусов предшественников (цикл невозможен:
-        // сторож сида держит зависимости внутри фазы и по возрастанию)
+        val зависит = tasks.associate { t -> t.id to t.dependsOn.filter { it.task in порядок } }
+        // Ярус = 1 + максимум ярусов предшественников. Круг 6: FF порядок не
+        // двигает — «закончить не раньше» говорит об окончании, а не о старте,
+        // и такие задачи живут в одном ярусе. Цикл невозможен: сторож сида
+        // держит зависимости внутри фазы и по возрастанию.
         val ярусы = HashMap<String, Int>()
         fun ярус(id: String, глубина: Int = 0): Int = ярусы.getOrPut(id) {
             if (глубина > tasks.size) 1
-            else (зависит[id].orEmpty().maxOfOrNull { ярус(it, глубина + 1) + 1 } ?: 1)
+            else (
+                зависит[id].orEmpty()
+                    .maxOfOrNull { d -> ярус(d.task, глубина + 1) + (if (d.type == "FF") 0 else 1) }
+                    ?: 1
+                )
         }
         tasks.forEach { ярус(it.id) }
         // знаменатель считается ПО ТОЧКЕ: у каждой точки своя сетка ярусов
@@ -346,6 +423,28 @@ object PhaseWork {
             val всего = поТочке[t.gate].orEmpty().maxOfOrNull { ярус(it.id) } ?: 1
             t.copy(tier = свой, tiers = maxOf(1, всего))
         }
+    }
+
+    /**
+     * Ярусы шагов внутри задачи по связям полки: FS уводит на ярус ниже, SS
+     * оставляет рядом. Шаг без связей — начальный (первый ярус). Умолчания
+     * «следом за предыдущим» нет: порядок обязан быть размечен, иначе шаги
+     * честно показываются параллельными.
+     */
+    private fun stepTiers(deps: List<List<StepDep>>): List<Int> {
+        val ярусы = IntArray(deps.size)
+        fun ярус(i: Int, глубина: Int = 0): Int {
+            if (ярусы[i] != 0) return ярусы[i]
+            if (глубина > deps.size) return 1
+            val свой = deps[i]
+                .filter { it.step - 1 in deps.indices && it.step - 1 != i }
+                .maxOfOrNull { d -> ярус(d.step - 1, глубина + 1) + (if (d.type == "FS") 1 else 0) }
+                ?: 1
+            ярусы[i] = свой
+            return свой
+        }
+        deps.indices.forEach { ярус(it) }
+        return ярусы.toList()
     }
 
     private fun milestoneDate(passport: JsonNode, gate: String): LocalDate? {
@@ -364,13 +463,16 @@ object PhaseWork {
     fun flowOf(task: TaskState, byId: Map<String, TaskState>): ObjectNode {
         val flow = mapper.createObjectNode()
         val inArr = flow.putArray("in")
-        task.dependsOn.mapNotNull { byId[it] }.forEach { pred ->
+        task.dependsOn.forEach { dep ->
+            val pred = byId[dep.task] ?: return@forEach
             inArr.addObject()
                 .put("kind", "task")
                 .put("id", pred.id)
                 .put("order", pred.order)
                 .put("name", pred.name)
                 .put("artifact", pred.artifact)
+                .put("link", dep.type)
+                .put("link_words", linkWords(dep.type, "${pred.order} · ${pred.name}"))
                 .put("ready", pred.outputDone)
         }
         task.inputs.forEach { c ->
@@ -489,8 +591,19 @@ object PhaseWork {
                     .put("author", p.path("author").asText(""))
             }
             val steps = n.putArray("steps")
-            t.steps.forEach { s ->
+            t.steps.forEachIndexed { i, s ->
                 val sn = steps.addObject()
+                sn.put("index", i)
+                sn.put("tier", s.tier)
+                sn.put("tiers", s.tiers)
+                val after = sn.putArray("after")
+                s.after.forEach { a ->
+                    val имя = t.steps.getOrNull(a.step - 1)?.title ?: "шаг ${a.step}"
+                    after.addObject()
+                        .put("step", a.step - 1)
+                        .put("type", a.type)
+                        .put("words", linkWords(a.type, "«$имя»"))
+                }
                 sn.put("title", s.title)
                 s.hint?.let { sn.put("hint", it) }
                 s.screen?.let { sn.put("screen", it) }

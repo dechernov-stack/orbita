@@ -36,7 +36,13 @@
             "check": "objects",
             "type": "mission_goal",
             "label": "цели приняты"
-          }
+          },
+          "after": [
+            {
+              "step": 1,
+              "type": "FS"
+            }
+          ]
         },
         {
           "title": "Собрать нужды стейкхолдеров",
@@ -47,7 +53,13 @@
             "check": "objects",
             "type": "need",
             "label": "нужды приняты"
-          }
+          },
+          "after": [
+            {
+              "step": 1,
+              "type": "FS"
+            }
+          ]
         },
         {
           "title": "Завести стейкхолдеров проекта",
@@ -57,7 +69,13 @@
             "check": "objects",
             "type": "stakeholder",
             "label": "стейкхолдеры заведены"
-          }
+          },
+          "after": [
+            {
+              "step": 3,
+              "type": "SS"
+            }
+          ]
         }
       ],
       "output": {
@@ -85,7 +103,11 @@
         "О3"
       ],
       "depends_on": [
-        "PW-0001"
+        {
+          "task": "PW-0001",
+          "type": "SS",
+          "note": "варианты построений набрасываются, пока постановка ещё зреет"
+        }
       ],
       "input": [
         {
@@ -113,7 +135,13 @@
             "check": "objects",
             "type": "alternative",
             "label": "альтернативы оформлены"
-          }
+          },
+          "after": [
+            {
+              "step": 1,
+              "type": "FS"
+            }
+          ]
         },
         {
           "title": "Записать решение",
@@ -123,7 +151,13 @@
             "check": "objects",
             "type": "decision",
             "label": "решение записано"
-          }
+          },
+          "after": [
+            {
+              "step": 2,
+              "type": "FS"
+            }
+          ]
         }
       ],
       "output": {
@@ -151,7 +185,11 @@
         "О4"
       ],
       "depends_on": [
-        "PW-0001"
+        {
+          "task": "PW-0001",
+          "type": "INPUT",
+          "note": "требования выводятся из принятых целей и нужд — нужен выход постановки"
+        }
       ],
       "input": [
         {
@@ -185,7 +223,13 @@
             "check": "objects",
             "type": "requirement",
             "label": "требования приняты"
-          }
+          },
+          "after": [
+            {
+              "step": 1,
+              "type": "SS"
+            }
+          ]
         },
         {
           "title": "Дозаполнить показатели",
@@ -195,7 +239,13 @@
             "check": "gate_check",
             "gate_check_id": "verification",
             "label": "показатели заданы"
-          }
+          },
+          "after": [
+            {
+              "step": 2,
+              "type": "SS"
+            }
+          ]
         },
         {
           "title": "Закрыть покрытие нужд",
@@ -205,7 +255,13 @@
             "check": "gate_check",
             "gate_check_id": "needs",
             "label": "нужды покрыты"
-          }
+          },
+          "after": [
+            {
+              "step": 3,
+              "type": "FS"
+            }
+          ]
         }
       ],
       "output": {
@@ -234,7 +290,11 @@
         "О5"
       ],
       "depends_on": [
-        "PW-0002"
+        {
+          "task": "PW-0002",
+          "type": "SS",
+          "note": "сценарии пишутся вместе со сравнением вариантов"
+        }
       ],
       "input": [
         {
@@ -262,7 +322,13 @@
             "check": "document_issued",
             "code": "d4",
             "label": "Д4 выпущен"
-          }
+          },
+          "after": [
+            {
+              "step": 1,
+              "type": "FS"
+            }
+          ]
         }
       ],
       "output": {
@@ -291,7 +357,11 @@
         "О6"
       ],
       "depends_on": [
-        "PW-0002"
+        {
+          "task": "PW-0002",
+          "type": "SS",
+          "note": "технологические потребности видны уже по вариантам"
+        }
       ],
       "input": [
         {
@@ -319,7 +389,13 @@
             "check": "objects",
             "type": "technology",
             "label": "технологии перечислены"
-          }
+          },
+          "after": [
+            {
+              "step": 1,
+              "type": "SS"
+            }
+          ]
         }
       ],
       "output": {
@@ -348,7 +424,11 @@
         "О7"
       ],
       "depends_on": [
-        "PW-0002"
+        {
+          "task": "PW-0002",
+          "type": "SS",
+          "note": "риски ведутся с первых вариантов"
+        }
       ],
       "input": [
         {
@@ -377,7 +457,13 @@
             "check": "objects",
             "type": "constellation",
             "label": "построение задано"
-          }
+          },
+          "after": [
+            {
+              "step": 1,
+              "type": "SS"
+            }
+          ]
         }
       ],
       "output": {
@@ -405,7 +491,11 @@
         "О8"
       ],
       "depends_on": [
-        "PW-0002"
+        {
+          "task": "PW-0002",
+          "type": "SS",
+          "note": "оценка идёт по мере выбора варианта"
+        }
       ],
       "input": [
         {
@@ -433,7 +523,13 @@
             "check": "objects",
             "type": "cost_estimate",
             "label": "оценка задана"
-          }
+          },
+          "after": [
+            {
+              "step": 1,
+              "type": "FS"
+            }
+          ]
         }
       ],
       "output": {
@@ -461,11 +557,31 @@
         "О9"
       ],
       "depends_on": [
-        "PW-0003",
-        "PW-0004",
-        "PW-0005",
-        "PW-0006",
-        "PW-0007"
+        {
+          "task": "PW-0003",
+          "type": "INPUT",
+          "note": "в записку входит черновик требований"
+        },
+        {
+          "task": "PW-0004",
+          "type": "INPUT",
+          "note": "и ConOps"
+        },
+        {
+          "task": "PW-0005",
+          "type": "INPUT",
+          "note": "и технологические потребности"
+        },
+        {
+          "task": "PW-0006",
+          "type": "INPUT",
+          "note": "и риски с ОСЗ"
+        },
+        {
+          "task": "PW-0007",
+          "type": "INPUT",
+          "note": "и оценка стоимости"
+        }
       ],
       "input": [
         {
@@ -498,7 +614,13 @@
             "check": "gate_check",
             "gate_check_id": "docs",
             "label": "документы выпущены"
-          }
+          },
+          "after": [
+            {
+              "step": 1,
+              "type": "FS"
+            }
+          ]
         }
       ],
       "output": {
@@ -529,7 +651,11 @@
         "О15"
       ],
       "depends_on": [
-        "PW-0008"
+        {
+          "task": "PW-0008",
+          "type": "FS",
+          "note": "обзор проводится по выпущенной записке"
+        }
       ],
       "input": [
         {
@@ -557,7 +683,13 @@
             "check": "objects",
             "type": "review_item",
             "label": "обзор проведён"
-          }
+          },
+          "after": [
+            {
+              "step": 1,
+              "type": "FS"
+            }
+          ]
         }
       ],
       "output": {

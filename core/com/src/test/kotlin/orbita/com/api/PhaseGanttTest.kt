@@ -30,10 +30,17 @@ class PhaseGanttTest {
     private val mapper = ObjectMapper()
     private val boundary = Boundary(SchemaRegistry(RepoPaths.schemasDir()), TestDb.conn)
 
-    private fun задача(id: String, order: Int, name: String, depends: String = "", выходВид: String = "mission_goal") = """
+    private fun задача(
+        id: String,
+        order: Int,
+        name: String,
+        depends: String = "",
+        тип: String = "FS",
+        выходВид: String = "mission_goal",
+    ) = """
         {"id":"$id","phase":"pre_phase_a","order":$order,"name":"$name",
          "why":"Зачем эта задача — текстом с полки.",
-         ${if (depends.isBlank()) "" else "\"depends_on\":[\"$depends\"],"}
+         ${if (depends.isBlank()) "" else "\"depends_on\":[{\"task\":\"$depends\",\"type\":\"$тип\"}],"}
          "steps":[{"title":"Собрать цели","screen":"aiservice",
                    "done_when":{"check":"objects","type":"$выходВид","label":"цели приняты"}}],
          "output":{"artifact":"Д2 · Постановка","gate":"MCR","maturity":"draft",
@@ -172,6 +179,80 @@ class PhaseGanttTest {
         boundary.auth.setRole("PJ-2101", "chief", "lead")
         поставить("PW-9001", "2027-01-11", "2027-02-02", author = "Чернов", login = "chief")
         assertTrue(строки(полотно("chief")).getValue("PW-9001").path("planned").asBoolean())
+    }
+
+    // ---- Круг 6: связи типами, вехи вертикалями, шаги подзадачами ----
+
+    @Test
+    fun `связь приходит типом и словами, а стрелку рисует библиотека`() {
+        val v = полотно()
+        val связь = v.path("links").first { it.path("to").asText() == "PW-9002" }
+        assertEquals("FS", связь.path("type").asText())
+        assertTrue("после окончания" in связь.path("words").asText()) {
+            "тип связи обязан звучать словами: ${связь.path("words").asText()}"
+        }
+        // библиотеке по-прежнему отдаётся простой список — рисует она сама
+        assertEquals("PW-9001", строки(v).getValue("PW-9002").path("dependencies").asText())
+    }
+
+    @Test
+    fun `конфликт плана считается по типу связи, а не одним законом`() {
+        // SS: конфликт — когда преемник начинается раньше СТАРТА предшественника
+        TestDb.truncateAll()
+        clean()
+        boundary.ingest(
+            CoreType.PhaseTask,
+            задача("PW-9003", 3, "Параллельная", depends = "PW-9001", тип = "SS", выходВид = "conops"),
+            "test", ObjectStore.LIBRARY_PROJECT,
+        )
+        поставить("PW-9001", "2027-03-10", "2027-04-01")
+        val ссКонфликт = строки(поставить("PW-9003", "2027-03-01", "2027-03-20"))
+        assertTrue(ссКонфликт.getValue("PW-9003").path("conflict").asBoolean()) {
+            "SS сравнивает СТАРТЫ: начать раньше предшественника нельзя"
+        }
+        // тот же план при FS-связи конфликтом бы не был только по концу —
+        // проверяем, что INPUT сроков не касается вовсе
+        val input = полотно().path("links").firstOrNull { it.path("type").asText() == "INPUT" }
+        assertTrue(input == null || !input.path("conflict").asBoolean()) {
+            "INPUT — условие готовности, а не срок: конфликта дат у него не бывает"
+        }
+    }
+
+    @Test
+    fun `вехи приходят вертикалями полотна, а не только ромбами`() {
+        val линии = полотно().path("milestone_lines")
+        assertEquals(1, линии.size())
+        assertEquals("MCR", линии[0].path("name").asText())
+        assertTrue(линии[0].path("date").asText().isNotBlank())
+    }
+
+    @Test
+    fun `шаги приходят подзадачами при раскрытии, планов им не заводят`() {
+        val свёрнуто = полотно()
+        assertTrue(свёрнуто.path("tasks").none { it.path("kind").asText() == "step" }) {
+            "по умолчанию шаги свёрнуты: полотно не обязано быть простынёй"
+        }
+        val раскрыто = PhaseGantt.toJson(boundary, "PJ-2101", null, setOf("PW-9001"))
+        val шаги = раскрыто.path("tasks").filter { it.path("kind").asText() == "step" }
+        assertEquals(1, шаги.size)
+        assertEquals("PW-9001", шаги[0].path("parent").asText())
+        assertTrue(шаги[0].path("name").asText().startsWith("— ")) { "шаг отбит в имени: ${шаги[0].path("name")}" }
+        assertTrue(шаги[0].path("custom_class").asText().startsWith("pw-step"))
+        assertTrue("не сроки" in шаги[0].path("window_why").asText()) {
+            "окно шага — порядок, а не срок: ${шаги[0].path("window_why").asText()}"
+        }
+        // строка шага идёт сразу за своей задачей: библиотека рисует порядком
+        val id = раскрыто.path("tasks").map { it.path("id").asText() }
+        assertEquals(id.indexOf("PW-9001") + 1, id.indexOf("PW-9001#0"))
+        // ловушка 2: планов шагам не заводят
+        val e = assertThrows<IllegalArgumentException> {
+            PhaseGantt.plan(
+                boundary, "PJ-2101",
+                mapper.readTree("""{"task":"PW-9001#0","start":"2027-01-01","end":"2027-01-05"}"""),
+                "Чернов", null,
+            )
+        }
+        assertTrue("шагам не заводят" in e.message!!) { e.message!! }
     }
 
     @Test

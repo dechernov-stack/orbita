@@ -3803,7 +3803,13 @@ class HttpApi(private val boundary: Boundary) {
             // Раскрытые задачи приходят параметром: раскрытие меняет геометрию,
             // а геометрию считает сервер.
             method == "GET" && path == "/views/phase-gantt" ->
-                respond(ex, 200, PhaseGantt.toJson(boundary, requireProject(project), currentAuthorLogin.get()))
+                respond(
+                    ex, 200,
+                    PhaseGantt.toJson(
+                        boundary, requireProject(project), currentAuthorLogin.get(),
+                        (query(ex)["expand"] ?: "").split(",").filter { it.isNotBlank() }.toSet(),
+                    ),
+                )
 
             // План работ фазы (О1): даты ставит руководитель — полями карточки
             // либо перетаскиванием полосы (доли полотна переводит в даты сервер).
@@ -3812,7 +3818,13 @@ class HttpApi(private val boundary: Boundary) {
                 val req = mapper.readTree(body(ex))
                 val ctx = requireProject(project)
                 try {
-                    respond(ex, 200, PhaseGantt.plan(boundary, ctx, req, author(req), currentAuthorLogin.get()))
+                    respond(
+                        ex, 200,
+                        PhaseGantt.plan(
+                            boundary, ctx, req, author(req), currentAuthorLogin.get(),
+                            (query(ex)["expand"] ?: "").split(",").filter { it.isNotBlank() }.toSet(),
+                        ),
+                    )
                 } catch (e: PhaseGantt.RightDeniedException) {
                     // Отказ обязан называть право: «нельзя» без имени права
                     // инженеру ничего не говорит и чинить его нечем.

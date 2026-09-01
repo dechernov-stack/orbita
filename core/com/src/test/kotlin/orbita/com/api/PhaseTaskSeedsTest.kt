@@ -55,6 +55,65 @@ class PhaseTaskSeedsTest {
         }
     }
 
+    /**
+     * Круг 6, ловушка 1: FS «потому что по умолчанию» — выдумка о регламенте.
+     * Тип связи обязан стоять в полке у КАЖДОЙ зависимости; неразмеченная
+     * строка прежнего формата на полке больше не живёт.
+     */
+    @Test
+    fun `у каждой связи задач размечен тип`() {
+        val голые = mutableListOf<String>()
+        val чужие = mutableListOf<String>()
+        val типы = setOf("FS", "SS", "FF", "INPUT")
+        пакеты.forEach { (имя, пакет) ->
+            пакет.path("objects").forEach { задача ->
+                задача.path("depends_on").forEach { d ->
+                    val кто = "$имя · ${задача.path("id").asText()}"
+                    if (d.isTextual) голые += "$кто → ${d.asText()}"
+                    else if (d.path("type").asText("") !in типы) {
+                        чужие += "$кто → ${d.path("task").asText()}: «${d.path("type").asText()}»"
+                    }
+                }
+            }
+        }
+        assertTrue(голые.isEmpty()) { "связь без типа читается как INPUT и врёт о регламенте: $голые" }
+        assertTrue(чужие.isEmpty()) { "тип связи вне набора FS · SS · FF · INPUT: $чужие" }
+    }
+
+    /**
+     * Порядок шагов — тоже связями. Шаг без `after` считается начальным, и
+     * это законно; незаконно — ссылаться на несуществующий соседний шаг или
+     * на себя: такая связь тихо перестала бы держать порядок.
+     */
+    @Test
+    fun `связи шагов ссылаются на соседей той же задачи`() {
+        val битые = mutableListOf<String>()
+        val начальные = mutableListOf<String>()
+        пакеты.forEach { (имя, пакет) ->
+            пакет.path("objects").forEach { задача ->
+                val шагов = задача.path("steps").size()
+                var первых = 0
+                задача.path("steps").forEachIndexed { i, шаг ->
+                    if (шаг.path("after").isEmpty) первых += 1
+                    шаг.path("after").forEach { a ->
+                        val n = a.path("step").asInt(0)
+                        val тип = a.path("type").asText("")
+                        val кто = "$имя · ${задача.path("id").asText()} шаг ${i + 1}"
+                        if (n < 1 || n > шагов || n - 1 == i) битые += "$кто → шаг $n"
+                        if (тип !in setOf("FS", "SS")) битые += "$кто: тип «$тип»"
+                    }
+                }
+                if (шагов > 1 && первых == шагов) {
+                    начальные += "$имя · ${задача.path("id").asText()}"
+                }
+            }
+        }
+        assertTrue(битые.isEmpty()) { "связь шага никуда не ведёт: $битые" }
+        assertTrue(начальные.isEmpty()) {
+            "у задачи с несколькими шагами порядок не размечен вовсе — шаги встанут все параллельно: $начальные"
+        }
+    }
+
     @Test
     fun `каждый вид объекта в сиде — настоящий вид модели`() {
         val виды = CoreType.entries.map { it.dbType }.toSet()
@@ -100,8 +159,9 @@ class PhaseTaskSeedsTest {
             val ids = пакет.path("objects").map { it.path("id").asText() }.toSet()
             пакет.path("objects").forEach { задача ->
                 задача.path("depends_on").forEach { d ->
-                    assertTrue(d.asText() in ids) {
-                        "$имя · ${задача.path("id").asText()} зависит от ${d.asText()}, которого в фазе нет"
+                    val кого = if (d.isTextual) d.asText() else d.path("task").asText("")
+                    assertTrue(кого in ids) {
+                        "$имя · ${задача.path("id").asText()} зависит от $кого, которого в фазе нет"
                     }
                 }
             }

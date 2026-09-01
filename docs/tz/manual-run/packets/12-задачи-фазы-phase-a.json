@@ -36,7 +36,13 @@
             "code": "semp",
             "label": "SEMP выпущен"
           },
-          "document_code": "semp"
+          "document_code": "semp",
+          "after": [
+            {
+              "step": 1,
+              "type": "SS"
+            }
+          ]
         },
         {
           "title": "Базировать до SRR",
@@ -46,7 +52,17 @@
             "check": "objects",
             "type": "review_item",
             "label": "базирование оформлено"
-          }
+          },
+          "after": [
+            {
+              "step": 1,
+              "type": "FS"
+            },
+            {
+              "step": 2,
+              "type": "FS"
+            }
+          ]
         }
       ],
       "output": {
@@ -75,7 +91,11 @@
         "О3"
       ],
       "depends_on": [
-        "PW-0101"
+        {
+          "task": "PW-0101",
+          "type": "SS",
+          "note": "SEMP базируется до SRR, а ConOps дорастает параллельно: регламент не требует ждать выпуска свода"
+        }
       ],
       "input": [
         {
@@ -103,7 +123,13 @@
             "check": "document_issued",
             "code": "conops",
             "label": "раздел валидации есть"
-          }
+          },
+          "after": [
+            {
+              "step": 1,
+              "type": "SS"
+            }
+          ]
         },
         {
           "title": "Базировать",
@@ -113,7 +139,17 @@
             "check": "objects",
             "type": "review_item",
             "label": "базирование оформлено"
-          }
+          },
+          "after": [
+            {
+              "step": 1,
+              "type": "FS"
+            },
+            {
+              "step": 2,
+              "type": "FS"
+            }
+          ]
         }
       ],
       "output": {
@@ -142,7 +178,16 @@
         "О4"
       ],
       "depends_on": [
-        "PW-0102"
+        {
+          "task": "PW-0101",
+          "type": "SS",
+          "note": "требования разрабатываются параллельно SEMP — ждать его выпуска нечего"
+        },
+        {
+          "task": "PW-0102",
+          "type": "SS",
+          "note": "ConOps и требования итеративны: положения валидации и требования зреют вместе"
+        }
       ],
       "input": [
         {
@@ -173,7 +218,13 @@
             "label": "системные требования выведены",
             "min": 8
           },
-          "kind": "services_to_requirements"
+          "kind": "services_to_requirements",
+          "after": [
+            {
+              "step": 1,
+              "type": "FS"
+            }
+          ]
         },
         {
           "title": "Матрицы трассировки и верификации",
@@ -184,7 +235,13 @@
             "type": "requirement",
             "label": "матрицы сходятся",
             "min": 8
-          }
+          },
+          "after": [
+            {
+              "step": 2,
+              "type": "SS"
+            }
+          ]
         }
       ],
       "output": {
@@ -213,7 +270,11 @@
         "О5"
       ],
       "depends_on": [
-        "PW-0103"
+        {
+          "task": "PW-0103",
+          "type": "SS",
+          "note": "архитектура начинается на черновых требованиях; полное покрытие требуется к SDR, не к старту"
+        }
       ],
       "input": [
         {
@@ -244,7 +305,13 @@
             "type": "requirement",
             "label": "требования распределены",
             "min": 8
-          }
+          },
+          "after": [
+            {
+              "step": 1,
+              "type": "FS"
+            }
+          ]
         },
         {
           "title": "Интерфейсы",
@@ -255,7 +322,13 @@
             "type": "interface",
             "label": "интерфейсы описаны",
             "min": 2
-          }
+          },
+          "after": [
+            {
+              "step": 2,
+              "type": "SS"
+            }
+          ]
         },
         {
           "title": "Бюджеты массы, энергии и линка",
@@ -266,7 +339,13 @@
             "type": "component",
             "label": "бюджеты сведены",
             "min": 5
-          }
+          },
+          "after": [
+            {
+              "step": 2,
+              "type": "SS"
+            }
+          ]
         }
       ],
       "output": {
@@ -295,7 +374,11 @@
         "О6"
       ],
       "depends_on": [
-        "PW-0104"
+        {
+          "task": "PW-0104",
+          "type": "SS",
+          "note": "черновой архитектуры достаточно, чтобы сравнивать варианты"
+        }
       ],
       "input": [
         {
@@ -323,7 +406,13 @@
             "check": "objects",
             "type": "decision",
             "label": "решения записаны"
-          }
+          },
+          "after": [
+            {
+              "step": 1,
+              "type": "FS"
+            }
+          ]
         }
       ],
       "output": {
@@ -351,7 +440,11 @@
         "О7"
       ],
       "depends_on": [
-        "PW-0104"
+        {
+          "task": "PW-0104",
+          "type": "SS",
+          "note": "перечень технологий уточняется по мере разложения системы"
+        }
       ],
       "input": [
         {
@@ -381,7 +474,13 @@
             "type": "technology",
             "label": "планы заданы",
             "min": 2
-          }
+          },
+          "after": [
+            {
+              "step": 1,
+              "type": "FS"
+            }
+          ]
         },
         {
           "title": "Переоценка TRL",
@@ -392,7 +491,13 @@
             "type": "technology",
             "label": "TRL переоценён",
             "min": 2
-          }
+          },
+          "after": [
+            {
+              "step": 2,
+              "type": "SS"
+            }
+          ]
         }
       ],
       "output": {
@@ -421,7 +526,11 @@
         "О8"
       ],
       "depends_on": [
-        "PW-0104"
+        {
+          "task": "PW-0104",
+          "type": "SS",
+          "note": "риски ведутся с первого разложения, а не после его окончания"
+        }
       ],
       "input": [
         {
@@ -451,7 +560,13 @@
             "label": "реестр ведётся",
             "min": 3
           },
-          "kind": "risk_register"
+          "kind": "risk_register",
+          "after": [
+            {
+              "step": 1,
+              "type": "SS"
+            }
+          ]
         }
       ],
       "output": {
@@ -480,7 +595,11 @@
         "О9"
       ],
       "depends_on": [
-        "PW-0104"
+        {
+          "task": "PW-0104",
+          "type": "SS",
+          "note": "ОСЗ считается по черновому облику и уточняется вместе с ним"
+        }
       ],
       "input": [
         {
@@ -508,7 +627,13 @@
             "check": "document_issued",
             "code": "oda",
             "label": "документ ОСЗ выпущен"
-          }
+          },
+          "after": [
+            {
+              "step": 1,
+              "type": "SS"
+            }
+          ]
         }
       ],
       "output": {
@@ -537,7 +662,11 @@
         "О10"
       ],
       "depends_on": [
-        "PW-0104"
+        {
+          "task": "PW-0104",
+          "type": "SS",
+          "note": "оценки идут по мере разложения состава"
+        }
       ],
       "input": [
         {
@@ -566,7 +695,13 @@
             "check": "document_issued",
             "code": "cost_ranges",
             "label": "диапазоны выпущены"
-          }
+          },
+          "after": [
+            {
+              "step": 1,
+              "type": "FS"
+            }
+          ]
         }
       ],
       "output": {
@@ -596,10 +731,26 @@
         "О12"
       ],
       "depends_on": [
-        "PW-0101",
-        "PW-0103",
-        "PW-0104",
-        "PW-0109"
+        {
+          "task": "PW-0101",
+          "type": "SS",
+          "note": "план работ фазы пишется вместе со сводом SEMP"
+        },
+        {
+          "task": "PW-0103",
+          "type": "SS",
+          "note": "Project Plan уточняется по мере роста требований"
+        },
+        {
+          "task": "PW-0104",
+          "type": "SS",
+          "note": "и по мере разложения архитектуры"
+        },
+        {
+          "task": "PW-0109",
+          "type": "INPUT",
+          "note": "в план входят диапазоны стоимости и сроков — нужен выход Д9 целиком"
+        }
       ],
       "input": [
         {
@@ -627,7 +778,13 @@
             "check": "document_issued",
             "code": "fad",
             "label": "соглашение обновлено"
-          }
+          },
+          "after": [
+            {
+              "step": 1,
+              "type": "FS"
+            }
+          ]
         }
       ],
       "output": {
@@ -660,9 +817,21 @@
         "О17"
       ],
       "depends_on": [
-        "PW-0103",
-        "PW-0104",
-        "PW-0110"
+        {
+          "task": "PW-0103",
+          "type": "FF",
+          "note": "перед SRR требования обязаны быть базированы"
+        },
+        {
+          "task": "PW-0104",
+          "type": "FF",
+          "note": "перед SDR архитектура обязана покрывать требования"
+        },
+        {
+          "task": "PW-0110",
+          "type": "FF",
+          "note": "KDP-B принимает решение по Project Plan — он обязан быть готов не позже"
+        }
       ],
       "input": [
         {
@@ -690,7 +859,13 @@
             "check": "gate_check",
             "gate_check_id": "trace",
             "label": "трассировка требований без дыр"
-          }
+          },
+          "after": [
+            {
+              "step": 1,
+              "type": "FS"
+            }
+          ]
         },
         {
           "title": "SDR/MDR",
@@ -700,7 +875,13 @@
             "check": "gate_check",
             "gate_check_id": "carriers",
             "label": "требований без носителя не осталось"
-          }
+          },
+          "after": [
+            {
+              "step": 2,
+              "type": "FS"
+            }
+          ]
         },
         {
           "title": "KDP-B",
@@ -710,7 +891,13 @@
             "check": "gate_check",
             "gate_check_id": "docs",
             "label": "комплект документов выпущен"
-          }
+          },
+          "after": [
+            {
+              "step": 3,
+              "type": "FS"
+            }
+          ]
         }
       ],
       "output": {

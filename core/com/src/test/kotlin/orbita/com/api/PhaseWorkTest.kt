@@ -26,16 +26,19 @@ class PhaseWorkTest {
         order: Int,
         name: String,
         depends: String = "",
+        тип: String = "INPUT",
         input: String = "",
         выходВид: String = "mission_goal",
+        шаги: String = """
+            {"title":"Собрать цели","hint":"служба соберёт по замыслу",
+             "screen":"aiservice","kind":"mission_to_goals",
+             "done_when":{"check":"objects","type":"mission_goal","label":"цели приняты"}}""",
     ) = """
         {"id":"$id","phase":"pre_phase_a","order":$order,"name":"$name",
          "why":"Зачем эта задача — текстом с полки, а не из кода экрана.",
-         ${if (depends.isBlank()) "" else "\"depends_on\":[\"$depends\"],"}
+         ${if (depends.isBlank()) "" else "\"depends_on\":[{\"task\":\"$depends\",\"type\":\"$тип\"}],"}
          ${if (input.isBlank()) "" else "\"input\":[$input],"}
-         "steps":[{"title":"Собрать цели","hint":"служба соберёт по замыслу",
-                   "screen":"aiservice","kind":"mission_to_goals",
-                   "done_when":{"check":"objects","type":"mission_goal","label":"цели приняты"}}],
+         "steps":[$шаги],
          "output":{"artifact":"Постановка","gate":"MCR","maturity":"draft",
                    "done_when":{"check":"objects","type":"$выходВид","min":1}},
          "lifecycle":{"status":"Draft","version":"1"}}"""
@@ -59,6 +62,18 @@ class PhaseWorkTest {
             "test", ObjectStore.LIBRARY_PROJECT,
         )
     }
+
+    private fun проект() = boundary.ingest(
+        CoreType.Project,
+        """{"id":"PJ-1908","name":"Работа","phase":"pre_phase_a",
+            "mission_intent":{"text":"Группировка IoT для логистики."},
+            "milestones":[{"gate":"MCR","due":"2026-12-01"}],
+            "lifecycle":{"status":"Draft","version":"1"}}""",
+        "test", "PJ-1908",
+    )
+
+    private fun состояния() =
+        PhaseWork.toJson(boundary, "PJ-1908").path("items").associateBy { it.path("id").asText() }
 
     @Test
     fun `задача без входа доступна, зависимая ждёт предшественника ИМЕНЕМ`() {
@@ -134,6 +149,111 @@ class PhaseWorkTest {
         val why = view.path("empty_why").asText()
         assertTrue("phase_a" in why && "pre_phase_a" in why) {
             "пустота обязана назвать фазу проекта и то, что есть на полке: $why"
+        }
+    }
+
+    /**
+     * Круг 6, п. 1: тип связи решает, чего ждать. Регламент итеративно-
+     * параллелен, и «после окончания» у всех подряд — неправда о нём.
+     */
+    @Test
+    fun `SS ждёт старта предшественника, а не его окончания`() {
+        TestDb.truncateAll()
+        проект()
+        // у предшественника СТАРТ и ОКОНЧАНИЕ — разные события: шаг закрывается
+        // целями, а выход — решением. Иначе проверять SS было бы не на чем
+        boundary.ingest(
+            CoreType.PhaseTask,
+            задача("PW-9001", 1, "Постановка", выходВид = "decision"),
+            "test", ObjectStore.LIBRARY_PROJECT,
+        )
+        boundary.ingest(
+            CoreType.PhaseTask,
+            задача(
+                "PW-9002", 2, "Концепция", depends = "PW-9001", тип = "SS", выходВид = "service",
+                шаги = """{"title":"Сценарии","screen":"conops",
+                           "done_when":{"check":"objects","type":"conops","label":"сценарии есть"}}""",
+            ),
+            "test", ObjectStore.LIBRARY_PROJECT,
+        )
+        val до = состояния()
+        assertEquals("waiting", до.getValue("PW-9002").path("status").asText())
+        assertTrue("после её старта" in до.getValue("PW-9002").path("waits_on").asText()) {
+            "ожидание обязано называть тип связи словами: ${до.getValue("PW-9002").path("waits_on").asText()}"
+        }
+        // первый шаг предшественника закрыт — он стартовал, и SS отпускает
+        boundary.ingest(
+            CoreType.MissionGoal,
+            """{"id":"MG-0001","kind":"goal","statement":"Покрыть логистику связью",
+                "lifecycle":{"status":"Draft","version":"1"}}""",
+            "test", "PJ-1908",
+        )
+        // выход предшественника по-прежнему не готов — и это больше не важно:
+        // SS отпускает по СТАРТУ (сама вторая задача уже пошла в работу)
+        val после = состояния()
+        assertEquals("available", после.getValue("PW-9002").path("status").asText()) {
+            "SS не ждёт окончания: предшественник начат — можно идти вместе"
+        }
+        assertFalse(после.getValue("PW-9001").path("output_done").asBoolean()) {
+            "проверка имеет смысл, только пока выход предшественника не готов"
+        }
+    }
+
+    @Test
+    fun `FF не блокирует старт вовсе, INPUT ждёт выход`() {
+        TestDb.truncateAll()
+        проект()
+        boundary.ingest(CoreType.PhaseTask, задача("PW-9001", 1, "Постановка"), "test", ObjectStore.LIBRARY_PROJECT)
+        boundary.ingest(
+            CoreType.PhaseTask,
+            задача("PW-9002", 2, "Точки", depends = "PW-9001", тип = "FF", выходВид = "decision"),
+            "test", ObjectStore.LIBRARY_PROJECT,
+        )
+        boundary.ingest(
+            CoreType.PhaseTask,
+            задача("PW-9003", 3, "Записка", depends = "PW-9001", тип = "INPUT", выходВид = "conops"),
+            "test", ObjectStore.LIBRARY_PROJECT,
+        )
+        val s = состояния()
+        assertEquals("available", s.getValue("PW-9002").path("status").asText()) {
+            "FF говорит об окончании, а не о старте: работать можно с самого начала"
+        }
+        assertEquals("waiting", s.getValue("PW-9003").path("status").asText())
+        assertTrue("выход-артефакт" in s.getValue("PW-9003").path("waits_on").asText())
+        assertEquals(
+            s.getValue("PW-9001").path("tier").asInt(),
+            s.getValue("PW-9002").path("tier").asInt(),
+        ) { "FF-задачи кончаются вместе — и ярус у них общий" }
+        assertEquals(2, s.getValue("PW-9003").path("tier").asInt())
+    }
+
+    /** Круг 6, п. 3: порядок шагов — связями полки, а не догадкой по номеру. */
+    @Test
+    fun `ярусы шагов считаются по связям, а не по порядку в списке`() {
+        TestDb.truncateAll()
+        проект()
+        boundary.ingest(
+            CoreType.PhaseTask,
+            задача(
+                "PW-9001", 1, "Развёртывание",
+                шаги = """
+                    {"title":"Орг-структура","screen":"stakeholders",
+                     "done_when":{"check":"objects","type":"stakeholder"}},
+                    {"title":"SEMP по шаблону","screen":"docs","after":[{"step":1,"type":"SS"}],
+                     "done_when":{"check":"document_issued","code":"semp"}},
+                    {"title":"Базировать","screen":"lifecycle",
+                     "after":[{"step":1,"type":"FS"},{"step":2,"type":"FS"}],
+                     "done_when":{"check":"objects","type":"mission_goal"}}""",
+            ),
+            "test", ObjectStore.LIBRARY_PROJECT,
+        )
+        val шаги = состояния().getValue("PW-9001").path("steps")
+        assertEquals(listOf(1, 1, 2), шаги.map { it.path("tier").asInt() }) {
+            "SS оставляет шаг рядом, FS уводит на ярус ниже: ${шаги.map { it.path("tier").asInt() }}"
+        }
+        assertEquals(2, шаги[0].path("tiers").asInt())
+        assertTrue("вместе с" in шаги[1].path("after")[0].path("words").asText()) {
+            "связь шага обязана называться словами: ${шаги[1].path("after")}"
         }
     }
 

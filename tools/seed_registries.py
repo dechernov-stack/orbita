@@ -180,6 +180,14 @@ def obsolete(type_: str, rows: list) -> bool:
                 # задача фазы не ведёт в мастер начала проекта
                 if d.get("phase") != "pre_phase_a" and шаг.get("screen") == "startpath":
                     return True
+        # Круг 6: тип связи и порядок шагов стали данными полки. Полка без
+        # них рисует всё «после окончания» — то есть врёт о регламенте.
+        for d in rows:
+            for связь in d.get("depends_on", []):
+                if isinstance(связь, str) or "type" not in связь:
+                    return True
+            if len(d.get("steps", [])) > 1 and not any(s.get("after") for s in d.get("steps", [])):
+                return True
         return not any(len(d.get("steps", [])) >= 4 for d in rows)
     if type_ == "document_template":
         # полка устарела, если раздел «Обозначения источников» не несёт

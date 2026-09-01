@@ -47,6 +47,8 @@ object PhaseFlow {
         val code: String?,
         val ready: Boolean,
         val kind: String,
+        /** Круг 6: тип связи с полки — FS · SS · FF · INPUT. */
+        val link: String?,
     )
 
     fun toJson(boundary: Boundary, projectId: String): ObjectNode {
@@ -96,18 +98,22 @@ object PhaseFlow {
         // ---- рёбра: задача → артефакт → задача либо точка
         val edges = mutableListOf<Edge>()
         tasks.forEach { t ->
-            t.dependsOn.mapNotNull { byId[it] }.forEach { pred ->
+            t.dependsOn.forEach { dep ->
+                val pred = byId[dep.task] ?: return@forEach
                 edges += Edge(
                     pred.id, t.id, shortArtifact(pred.artifact), pred.artifact,
-                    pred.documentCode, pred.outputDone, "artifact",
+                    pred.documentCode, pred.outputDone, "artifact", dep.type,
                 )
             }
             t.gate?.let { g ->
-                edges += Edge(t.id, g, shortArtifact(t.artifact), t.artifact, t.documentCode, t.outputDone, "gate")
+                edges += Edge(
+                    t.id, g, shortArtifact(t.artifact), t.artifact, t.documentCode,
+                    t.outputDone, "gate", null,
+                )
             }
         }
         if (next != null && gates.isNotEmpty()) {
-            edges += Edge(gates.last(), "cloud", "", "", null, false, "cloud")
+            edges += Edge(gates.last(), "cloud", "", "", null, false, "cloud", null)
         }
 
         val colOf = HashMap<String, Int>()
@@ -163,6 +169,10 @@ object PhaseFlow {
             n.put("to", e.to)
             n.put("kind", e.kind)
             n.put("ready", e.ready)
+            e.link?.let {
+                n.put("link", it)
+                n.put("link_words", PhaseWork.linkWords(it, "предшественника"))
+            }
             if (e.label.isNotBlank()) {
                 n.put("label", e.label)
                 n.put("full", e.full)

@@ -37,6 +37,8 @@ declare module 'frappe-gantt' {
     lines?: 'none' | 'vertical' | 'horizontal' | 'both'
     scroll_to?: string
     popup_on?: 'click' | 'hover'
+    /** Подсветка колонок: цвет → 'weekend' либо список дат с именами. */
+    holidays?: Record<string, 'weekend' | Array<{ date: string; name: string }>>
     popup?: (ctx: GanttPopupContext) => string | false | undefined
     on_click?: (task: GanttTask) => void
     on_date_change?: (task: GanttTask, start: Date, end: Date) => void
@@ -44,6 +46,8 @@ declare module 'frappe-gantt' {
   }
 
   export default class Gantt {
+    /** Стрелки, которые нарисовала библиотека: их DOM мы только помечаем. */
+    arrows?: Array<{ element?: SVGElement }>
     constructor(target: HTMLElement | string, tasks: GanttTask[], options?: GanttOptions)
     change_view_mode(mode: string, maintain_pos?: boolean): void
     update_options(options: GanttOptions): void

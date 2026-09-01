@@ -992,6 +992,13 @@ export interface PhaseGanttView {
   right: string
   planned?: number
   total?: number
+  /** Круг 6: вехи вертикалями полотна — подсветкой колонок библиотеки. */
+  milestone_lines?: Array<{ date: string; name: string }>
+  /** Даты вех разошлись с порядком прохождения — молчать об этом нельзя. */
+  gate_conflict?: string
+  /** Связи с ТИПОМ: библиотека рисует одну стрелку, тип приходит отдельно. */
+  links?: Array<{ from: string; to: string; type: 'FS' | 'SS' | 'FF' | 'INPUT'
+    conflict: boolean; words: string; note?: string }>
   tasks: Array<{
     id: string
     name: string
@@ -1000,15 +1007,18 @@ export interface PhaseGanttView {
     progress: number
     dependencies: string
     custom_class: string
-    kind: 'task' | 'gate'
+    kind: 'task' | 'gate' | 'step'
     /** задача */
     order?: number; title?: string; status?: string; status_text?: string
     why?: string; planned?: boolean; plan_author?: string
     gaps?: number; steps_done?: number; steps_total?: number
     tier?: number; tiers?: number; gate?: string; waits_on?: string
-    artifact?: string; alarm?: string; conflict?: boolean
+    artifact?: string; alarm?: string; conflict?: boolean; expanded?: boolean
     /** точка */
     held?: boolean
+    /** шаг (круг 6): подзадача задачи-родителя, планов ему не заводят */
+    parent?: string; step_index?: number; done?: boolean; hint?: string; tally?: string
+    links?: Array<{ type: string; words: string }>
     window_why: string
   }>
 }

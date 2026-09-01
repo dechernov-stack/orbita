@@ -25,8 +25,11 @@ const STATUS_ORDER = ['in_progress', 'available', 'waiting', 'done']
 
 export function PhaseWork({ onGo, onLead, here }: {
   onGo: (screen: string, kind?: string, doc?: string) => void
-  /** Круг 3: открыть задачу в рамке ведения — режим работы, а не переход. */
-  onLead?: (taskId: string) => void
+  /**
+   * Круг 3: открыть задачу в рамке ведения — режим работы, а не переход.
+   * Круг 6: с конкретного шага, если ведут с подзадачи полотна.
+   */
+  onLead?: (taskId: string, step?: number) => void
   /** Круг 4: «вы здесь» — задача, открытая в рамке ведения. */
   here?: string
 }) {
@@ -142,7 +145,7 @@ function List({ view, onOpen }: { view: PhaseWorkView; onOpen: (id: string) => v
 
 /** Карточка задачи: зачем · вход · полоса шагов · разрывы · выход. */
 function TaskCard({ task, onBack, onGo, onLead }: {
-  onLead?: (taskId: string) => void
+  onLead?: (taskId: string, step?: number) => void
   task: PhaseWorkTask
   onBack: () => void
   onGo: (screen: string, kind?: string, doc?: string) => void
