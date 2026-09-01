@@ -663,7 +663,7 @@ export function AiService({ onGo, initialKind }: {
                                   <option value="">— без связи (разрыв трассировки) —</option>
                                   {l.candidates.map((c) => (
                                     <option key={c.id} value={c.id}>
-                                      {c.id} · {c.text.slice(0, 46)}{c.score > 0 ? ` (${Math.round(c.score * 100)}%)` : ''}
+                                      {c.id} · {c.text.slice(0, 46)}{c.percent > 0 ? ` (${c.percent}%)` : ''}
                                     </option>
                                   ))}
                                 </select>

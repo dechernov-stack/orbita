@@ -164,11 +164,13 @@ object LinkMapping {
             n.put("text", л.текст)
             n.put("kind", л.вид)
             л.предложение?.let {
-                n.putObject("suggested").put("id", it.id).put("text", it.текст).put("score", it.мера)
+                n.putObject("suggested").put("id", it.id).put("text", it.текст)
+                    .put("score", it.мера).put("percent", Math.round(it.мера * 100).toInt())
             }
             val cand = n.putArray("candidates")
             л.кандидаты.forEach { k ->
                 cand.addObject().put("id", k.id).put("text", k.текст).put("score", k.мера)
+                .put("percent", Math.round(k.мера * 100).toInt())
             }
         }
         return out

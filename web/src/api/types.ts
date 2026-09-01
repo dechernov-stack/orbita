@@ -1025,8 +1025,8 @@ export interface LinkMappingView {
     from_project?: string | null
     text: string
     kind: string
-    suggested?: { id: string; text: string; score: number }
-    candidates: Array<{ id: string; text: string; score: number }>
+    suggested?: { id: string; text: string; score: number; percent: number }
+    candidates: Array<{ id: string; text: string; score: number; percent: number }>
   }>
 }
 

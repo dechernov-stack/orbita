@@ -10,6 +10,7 @@ import type { StakeholderCoverageView } from '../api/types'
 import { Tooltip } from '../ui/Tooltip'
 import { SortTh, useSort } from '../ui/sort'
 import { useSession } from '../ui/session'
+import { edit } from '../api/edit'
 
 const STATE_LABEL: Record<string, string> = {
   declared: 'заявлена',
@@ -33,11 +34,40 @@ const ROLE_LABEL: Record<string, string> = {
   established: 'учреждаемый',
 }
 
-export function StakeholderCoverage({ onGo }: { onGo?: (screen: string, kind?: string) => void }) {
+export function StakeholderCoverage({ onGo }: {
+  onGo?: (screen: string, kind?: string, id?: string) => void
+}) {
   const { author } = useSession()
   const [view, setView] = useState<StakeholderCoverageView | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [note, setNote] = useState<string | null>(null)
+  // выбор носителя для нужды: назначение делается на месте, где виден разрыв
+  const [carrier, setCarrier] = useState<Record<string, string>>({})
+  const [busy, setBusy] = useState(false)
+
+  /**
+   * Назначить нужде носителя. Раньше кнопка вела «в реестр нужд» и на этом
+   * заканчивалась: инженер оказывался на другом экране без подсказки, что
+   * там делать (наблюдение живого прохода). Связь ставится там, где виден
+   * разрыв, и матрица пересчитывается сразу.
+   */
+  const назначить = async (needId: string) => {
+    const skId = carrier[needId]
+    if (!skId || !author) return
+    setBusy(true)
+    setNote(null)
+    try {
+      const fresh = await edit.object(needId)
+      const doc = { ...(fresh.doc as Record<string, unknown>), stakeholder_ref: skId }
+      await edit.changeWithRef(needId, doc, `носитель нужды назван: ${skId}`)
+      setNote(`${needId} → ${skId}: носитель назван, матрица пересчитана`)
+      await api.stakeholderCoverage().then(setView)
+    } catch (e) {
+      setNote(String(e))
+    } finally {
+      setBusy(false)
+    }
+  }
 
   /**
    * Ф-14: второй конец контура библиотеки. Ш2 берёт типовое с полки в
@@ -83,7 +113,7 @@ export function StakeholderCoverage({ onGo }: { onGo?: (screen: string, kind?: s
             разбора записки — акцепт кладёт их в проект.
           </p>
         ) : (
-          <table className="grid">
+          <div style={{ overflowX: "auto" }}><table className="grid">
             <thead>
               <tr>
                 <SortTh label="Стейкхолдер" sortKey="id" sort={sort} onToggle={toggle} width={110} />
@@ -136,14 +166,14 @@ export function StakeholderCoverage({ onGo }: { onGo?: (screen: string, kind?: s
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         )}
       </div>
 
       {view.rows.filter((r) => r.items.length > 0).map((r) => (
         <div className="card" key={`items-${r.id}`}>
           <h4 style={{ margin: '0 0 6px' }}>{r.name} · нужды</h4>
-          <table className="grid">
+          <div style={{ overflowX: "auto" }}><table className="grid">
             <tbody>
               {r.items.map((it) => (
                 <tr key={it.id}>
@@ -162,7 +192,7 @@ export function StakeholderCoverage({ onGo }: { onGo?: (screen: string, kind?: s
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         </div>
       ))}
 
@@ -173,34 +203,56 @@ export function StakeholderCoverage({ onGo }: { onGo?: (screen: string, kind?: s
             Эти нужды не видны ни в одной строке матрицы: у них не назван стейкхолдер.
             Разрыв мягкий — связь дозревает к MCR.
           </p>
-          <table className="grid">
+          <div style={{ overflowX: "auto" }}><table className="grid">
             <tbody>
               {view.without_stakeholder.map((it) => (
                 <tr key={it.id}>
                   <td className="mono" style={{ width: 110 }}>{it.id}</td>
                   <td>{it.statement}</td>
-                  <td style={{ width: 160 }} className="secondary">
+                  <td style={{ width: 150 }} className="secondary">
                     {it.named ? `назван словами: ${it.named}` : 'носитель не назван вовсе'}
                   </td>
-                  <td style={{ width: 130 }}>
+                  <td style={{ width: 120 }}>
                     <Tooltip text={STATE_WHY[it.state]}>
                       <span className={it.state === 'declared' ? 'warn' : 'chip'}>
                         {STATE_LABEL[it.state]}
                       </span>
                     </Tooltip>
                   </td>
+                  <td style={{ width: 260 }}>
+                    <div style={{ display: 'flex', gap: 4 }}>
+                      <select value={carrier[it.id] ?? ''} style={{ flex: 1, minWidth: 120 }}
+                        title="стейкхолдер проекта, чья это нужда"
+                        onChange={(e) => setCarrier((p) => ({ ...p, [it.id]: e.target.value }))}>
+                        <option value="">— носитель —</option>
+                        {view.rows.map((r) => (
+                          <option key={r.id} value={r.id}>{r.name}</option>
+                        ))}
+                      </select>
+                      <button className="rr-assign" disabled={busy || !author || !carrier[it.id]}
+                        title={!author
+                          ? 'представьтесь в шапке: связь пишется на автора'
+                          : !carrier[it.id]
+                            ? 'выберите стейкхолдера — чья это нужда'
+                            : 'назвать носителя: нужда войдёт в его строку матрицы'}
+                        onClick={() => void назначить(it.id)}>
+                        назвать
+                      </button>
+                    </div>
+                    {onGo && (
+                      <button className="np-linkish" onClick={() => onGo('needs', undefined, it.id)}
+                        title="открыть карточку нужды: формулировка, сервисы, история">
+                        открыть нужду →
+                      </button>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
-          </table>
-          {onGo && (
-            <div className="toolbar" style={{ padding: '6px 0' }}>
-              <button className="rr-assign" onClick={() => onGo('needs')}
-                title="открыть реестр нужд — носитель указывается в карточке нужды">
-                назвать носителей →
-              </button>
-            </div>
-          )}
+          </table></div>
+          <p className="secondary" style={{ margin: '6px 0 0' }}>
+            Носитель называется прямо здесь — в строке, где виден разрыв.
+          </p>
         </div>
       )}
     </>

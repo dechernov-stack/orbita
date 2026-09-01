@@ -188,9 +188,14 @@ export function App() {
   /** Ф-12: переход к месту действия — с преднастроенным видом операции. */
   const [pendingKind, setPendingKind] = useState<string | undefined>(undefined)
   const [pendingDoc, setPendingDoc] = useState<string | undefined>(undefined)
-  const go = (next: string, kind?: string, doc?: string) => {
+  /**
+   * Переход к месту действия. Третий параметр — конкретный объект либо
+   * шаблон документа: переход обязан открывать ТО, ради чего он сделан, а
+   * не общий список, где инженер ищет заново (наблюдение живого прохода).
+   */
+  const go = (next: string, kind?: string, target?: string) => {
     setPendingKind(kind)
-    setPendingDoc(doc)
+    setPendingDoc(target)
     setScreen(next)
   }
 
@@ -274,7 +279,7 @@ export function App() {
         <ScreenFrame title="Нужды и их сервисы">
           <div>
             <StatementGuide onGo={go} />
-            <Needs />
+            <Needs initialId={pendingDoc} />
           </div>
         </ScreenFrame>
       )

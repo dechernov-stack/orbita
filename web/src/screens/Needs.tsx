@@ -19,10 +19,13 @@ import { StatusDot } from '../ui/parts'
 import { SortTh, useSort } from '../ui/sort'
 import { useSession } from '../ui/session'
 
-export function Needs() {
+export function Needs({ initialId }: {
+  /** Нужда, ради которой сюда пришли: раскрывается сразу, искать не нужно. */
+  initialId?: string
+} = {}) {
   const { label, author } = useSession()
   const [rows, setRows] = useState<NeedRow[] | null>(null)
-  const [selected, setSelected] = useState<string | null>(null)
+  const [selected, setSelected] = useState<string | null>(initialId ?? null)
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [onlyOrphans, setOnlyOrphans] = useState(false)
