@@ -19,6 +19,8 @@ import { Shelves } from './screens/Shelves'
 import { References } from './screens/References'
 import { StatementGuide } from './ui/StatementGuide'
 import { ReviewInspection } from './screens/ReviewInspection'
+import { TaskFrameBar } from './ui/TaskFrame'
+import type { PhaseWorkView } from './api/types'
 import { PhaseWork, NextStepBadge } from './screens/PhaseWork'
 import { StakeholderCoverage } from './screens/StakeholderCoverage'
 import { LibraryKnowledge } from './screens/LibraryKnowledge'
@@ -45,7 +47,7 @@ import { Risks } from './screens/Risks'
 import { Spacecraft } from './screens/Spacecraft'
 import { SystemComposition } from './screens/SystemComposition'
 import { SystemOverview } from './screens/SystemOverview'
-import { AuthorField, LoginGate } from './ui/session'
+import { AuthorField, LoginGate, useSession } from './ui/session'
 
 interface HeaderInfo {
   name: string
@@ -199,6 +201,57 @@ export function App() {
     setScreen(next)
   }
 
+  /**
+   * Круг 3: рамка ведения — РЕЖИМ, а не экран. Сверху степпер задачи, ниже
+   * тот же самый экран системы, преднастроенный шагом. Собственных форм у
+   * рамки нет по построению: она добавляет одну строку, всё рабочее рисует
+   * встроенный экран.
+   */
+  const session = useSession()
+  const [frame, setFrame] = useState<{ task: string; step: number } | null>(null)
+  const [frameTask, setFrameTask] = useState<PhaseWorkView['items'][number] | null>(null)
+  const [frameBusy, setFrameBusy] = useState(false)
+
+  const открытьШаг = (task: PhaseWorkView['items'][number], index: number) => {
+    const шаг = task.steps[index]
+    setFrame({ task: task.id, step: index })
+    setFrameTask(task)
+    if (шаг?.screen) go(шаг.screen, шаг.kind, шаг.document_code)
+  }
+
+  /** Ведение задачи: открывается на первом незакрытом шаге. */
+  const вестиЗадачу = (taskId: string) => {
+    api.phaseWork()
+      .then((v) => {
+        const задача = v.items.find((t) => t.id === taskId)
+        if (!задача) return
+        const первый = задача.steps.findIndex((s) => !s.done)
+        открытьШаг(задача, первый >= 0 ? первый : 0)
+      })
+      .catch(() => undefined)
+  }
+
+  /** Перечитать задачу: шаг мог закрыться работой на встроенном экране. */
+  const обновитьРамку = (следующий?: boolean) => {
+    if (!frame) return
+    setFrameBusy(true)
+    api.phaseWork()
+      .then((v) => {
+        const задача = v.items.find((t) => t.id === frame.task)
+        if (!задача) return
+        setFrameTask(задача)
+        if (следующий) {
+          const дальше = frame.step + 1
+          if (дальше >= задача.steps.length) {
+            setFrame(null)
+            setFrameTask(null)
+            go('phasework')
+          } else открытьШаг(задача, дальше)
+        }
+      })
+      .finally(() => setFrameBusy(false))
+  }
+
   const render = (): ReactElement => {
     switch (screen) {
       case 'portfolio': return (
@@ -247,7 +300,7 @@ export function App() {
               onLoadFile={() => { setFirstRun(false); setScreen('importb') }}
               onStart={() => { setScreen('startpath'); loadHeader() }} />
       case 'phasework':
-        return <ScreenFrame title="Работа фазы"><PhaseWork onGo={go} /></ScreenFrame>
+        return <ScreenFrame title="Работа фазы"><PhaseWork onGo={go} onLead={вестиЗадачу} /></ScreenFrame>
       case 'projreg': return <KindRegistry key={screen} kinds={['project']} title="Паспорт проекта" />
       case 'shelves': return <Shelves key={screen} />
       case 'inspection':
@@ -419,7 +472,16 @@ export function App() {
             )}
           </aside>
         )}
-        <main className="shell__work">{render()}</main>
+        <main className="shell__work">
+          {frame && frameTask && (
+            <TaskFrameBar task={frameTask} step={frame.step} busy={frameBusy} author={session.author}
+              onStep={(i) => открытьШаг(frameTask, i)}
+              onExit={() => { setFrame(null); setFrameTask(null); go('phasework') }}
+              onAdvance={() => обновитьРамку(true)}
+              onManualDone={() => обновитьРамку(false)} />
+          )}
+          {render()}
+        </main>
       </div>
     </div>
     </LoginGate>

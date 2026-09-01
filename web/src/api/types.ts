@@ -969,6 +969,8 @@ export interface PhaseWorkTask {
     title: string; hint?: string; screen?: string; kind?: string
     /** Шаблон документа: переход открывает место уже настроенным на него. */
     document_code?: string
+    /** Мини-итог шага: «стейкхолдеров: 5» — след работы виден на месте. */
+    tally?: string
     done: boolean; why: string
   }>
   gaps: string[]

@@ -34,6 +34,8 @@ object PhaseWork {
         val kind: String?,
         /** Шаблон документа, если шаг ведёт в создание документа (Phase A, SEMP). */
         val documentCode: String?,
+        /** Мини-итог: что уже сделано этим шагом — «стейкхолдеров: 5». */
+        val tally: String?,
         val done: Boolean,
         val why: String,
     )
@@ -72,6 +74,60 @@ object PhaseWork {
      * обязана уметь ответить сама, иначе на экране появился бы ручной
      * переключатель «сделано», а его быть не должно.
      */
+    /**
+     * Круг 3, мини-итог шага: СКОЛЬКО уже есть по его условию — «стейкхолдеров:
+     * 5». Без числа «что я сделал» приходится раскапывать по разделам, а
+     * рамка ведения обязана показывать след работы на месте.
+     *
+     * Считается тем же условием, что и сделанность: другого источника у шага
+     * нет, и расхождению взяться неоткуда.
+     */
+    private fun tally(
+        condition: JsonNode,
+        own: List<StoredObject>,
+        passport: JsonNode,
+        issued: Set<String>,
+    ): String? = when (condition.path("check").asText()) {
+        "objects" -> {
+            val type = condition.path("type").asText("")
+            val n = own.count { it.type == type }
+            if (n > 0) "${labelOfType(type)}: $n" else null
+        }
+        "taken_from_library" -> {
+            val n = passport.path("start_path").path("created_counts")
+                .path(condition.path("type").asText("")).asInt(0)
+            if (n > 0) "взято: $n" else null
+        }
+        "document_issued" -> {
+            val code = condition.path("code").asText("")
+            if (code in issued) "выпущен" else null
+        }
+        "passport_field" -> {
+            val field = condition.path("field").asText("")
+            if (passport.path(field).isMissingNode) null else "задано"
+        }
+        else -> null
+    }
+
+    /** Имя вида для мини-итога — человеку, а не машинное. */
+    private fun labelOfType(type: String): String = when (type) {
+        "stakeholder" -> "стейкхолдеров"
+        "mission_goal" -> "целей"
+        "need" -> "нужд"
+        "service" -> "сервисов"
+        "requirement" -> "требований"
+        "component" -> "узлов"
+        "interface" -> "интерфейсов"
+        "risk" -> "рисков"
+        "technology" -> "технологий"
+        "decision" -> "решений"
+        "review_item" -> "записей обзора"
+        "cost_estimate" -> "оценок"
+        "oda" -> "оценок ОСЗ"
+        "wbs_element" -> "элементов ВС"
+        else -> type
+    }
+
     private fun holds(
         condition: JsonNode,
         own: List<StoredObject>,
@@ -149,6 +205,7 @@ object PhaseWork {
                     screen = st.path("screen").asText("").ifBlank { null },
                     kind = st.path("kind").asText("").ifBlank { null },
                     documentCode = st.path("document_code").asText("").ifBlank { null },
+                    tally = tally(st.path("done_when"), own, passport, issued),
                     done = holds(st.path("done_when"), own, passport, gateChecks, issued),
                     why = labelOf(st.path("done_when")),
                 )
@@ -350,6 +407,7 @@ object PhaseWork {
                 it.screen?.let { s -> n.put("screen", s) }
                 it.kind?.let { k -> n.put("kind", k) }
                 it.documentCode?.let { c -> n.put("document_code", c) }
+                it.tally?.let { t -> n.put("tally", t) }
             }
         }
         val arr = out.putArray("items")
@@ -398,6 +456,7 @@ object PhaseWork {
                 s.screen?.let { sn.put("screen", it) }
                 s.kind?.let { sn.put("kind", it) }
                 s.documentCode?.let { sn.put("document_code", it) }
+                s.tally?.let { sn.put("tally", it) }
                 sn.put("done", s.done)
                 sn.put("why", s.why)
             }

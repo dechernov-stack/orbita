@@ -20,7 +20,11 @@ const STATUS_LABEL: Record<string, string> = {
 
 const STATUS_ORDER = ['in_progress', 'available', 'waiting', 'done']
 
-export function PhaseWork({ onGo }: { onGo: (screen: string, kind?: string, doc?: string) => void }) {
+export function PhaseWork({ onGo, onLead }: {
+  onGo: (screen: string, kind?: string, doc?: string) => void
+  /** Круг 3: открыть задачу в рамке ведения — режим работы, а не переход. */
+  onLead?: (taskId: string) => void
+}) {
   const [view, setView] = useState<PhaseWorkView | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [tab, setTab] = useState<'lane' | 'list'>('lane')
@@ -42,7 +46,7 @@ export function PhaseWork({ onGo }: { onGo: (screen: string, kind?: string, doc?
   }
 
   const task = open ? view.items.find((t) => t.id === open) ?? null : null
-  if (task) return <TaskCard task={task} onBack={() => setOpen(null)} onGo={onGo} />
+  if (task) return <TaskCard task={task} onBack={() => setOpen(null)} onGo={onGo} onLead={onLead} />
 
   return (
     <>
@@ -243,16 +247,24 @@ function List({ view, onOpen }: { view: PhaseWorkView; onOpen: (id: string) => v
 }
 
 /** Карточка задачи: зачем · вход · полоса шагов · разрывы · выход. */
-function TaskCard({ task, onBack, onGo }: {
+function TaskCard({ task, onBack, onGo, onLead }: {
+  onLead?: (taskId: string) => void
   task: PhaseWorkTask
   onBack: () => void
   onGo: (screen: string, kind?: string, doc?: string) => void
 }) {
   return (
     <>
-      <div className="toolbar">
+      <div className="toolbar" style={{ gap: 8 }}>
         <button className="tab" onClick={onBack} title="вернуться к работе фазы">← Работа фазы</button>
         <h2>{task.order} · {task.name}</h2>
+        <span style={{ flex: 1 }} />
+        {onLead && (
+          <button className="tab tab--primary" onClick={() => onLead(task.id)}
+            title="вести задачу: степпер сверху, рабочий экран шага снизу — контекст задачи не теряется">
+            Вести задачу →
+          </button>
+        )}
       </div>
 
       <div className="card">
