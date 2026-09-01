@@ -10,8 +10,10 @@
 //     называется в попапе словами;
 //   · вехи — вертикалями через полотно: это подсветка колонок библиотеки
 //     (holidays), а не наш SVG;
-//   · шаги — подзадачами при раскрытии: библиотека плоская, поэтому шаги идут
-//     обычными строками с отступом в имени. Планов шагам не заводят.
+//   · шаги — подзадачами: библиотека плоская, поэтому шаги идут обычными
+//     строками. Круг 7 сделал их полноправными: нумерация «N.M», развёрнуто
+//     по умолчанию, свернуть — шевроном (память — на сессию), план ставится
+//     ШАГУ, а полоса задачи с шагами сводная и не тянется.
 //
 // Наше здесь — только данные и правила: строки приходят с сервера уже в форме
 // библиотеки, даты берутся из ПЛАНА руководителя, а где плана нет — из
@@ -40,57 +42,91 @@ function esc(text: string): string {
 /** Цвет вертикали вехи — тот же токен, что у ромба на полотне. */
 const MILESTONE_TINT = 'rgba(55, 53, 47, 0.5)'
 
-export function PhaseGanttChart({ onOpen, onLead }: {
+/** Свёрнутые задачи держатся на сессию: вкладка помнит, вечность — нет. */
+const COLLAPSE_KEY = 'orbita.gantt.collapsed'
+
+function свёрнутыеИзСессии(): string[] {
+  try {
+    const raw = sessionStorage.getItem(COLLAPSE_KEY)
+    return raw ? (JSON.parse(raw) as string[]) : []
+  } catch {
+    return []
+  }
+}
+
+export function PhaseGanttChart({ onOpen, onLead, onGo }: {
   onOpen: (taskId: string) => void
   /** Вести задачу; шаг — если ведут с конкретного шага (клик подзадачи). */
   onLead?: (taskId: string, step?: number) => void
+  /** Переход к месту: с попапа точки — на жизненный цикл, перенести дату. */
+  onGo?: (screen: string) => void
 }) {
   const { author } = useSession()
   const host = useRef<HTMLDivElement>(null)
   const [view, setView] = useState<PhaseGanttView | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
-  const [expand, setExpand] = useState<readonly string[]>([])
-  const mode = useRef<string>('Week')
+  const [collapse, setCollapse] = useState<readonly string[]>(свёрнутыеИзСессии)
+  // режим шкалы: совет сервера по длине фазы, пока инженер не выбрал свой
+  const mode = useRef<string | null>(null)
 
-  const load = useCallback((раскрыты: readonly string[]) => {
-    api.phaseGantt([...раскрыты]).then(setView).catch((e) => setError(String(e)))
+  const load = useCallback((свёрнуты: readonly string[]) => {
+    api.phaseGantt([...свёрнуты]).then(setView).catch((e) => setError(String(e)))
   }, [])
-  useEffect(() => load(expand), [load, expand])
+  useEffect(() => load(collapse), [load, collapse])
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(COLLAPSE_KEY, JSON.stringify(collapse))
+    } catch {
+      // память сессии может быть закрыта настройками — полотно живёт и без неё
+    }
+  }, [collapse])
+
+  const переключить = (id: string) =>
+    setCollapse((было) => (было.includes(id) ? было.filter((x) => x !== id) : [...было, id]))
 
   useEffect(() => {
     const box = host.current
     if (!view || !box || view.tasks.length === 0) return
     box.innerHTML = ''
     // библиотека дописывает в задачи служебные поля — отдаём копии
-    const rows = view.tasks.map((t) => ({ ...t })) as unknown as GanttTask[]
+    const rows = view.tasks.map((t) => ({
+      ...t,
+      // шеврон — в имени строки: левой колонки у библиотеки нет, а сворачивать
+      // задачу надо чем-то видимым. Клик по сводной полосе — то же действие
+      name: t.summary ? `${t.collapsed ? '▸' : '▾'} ${t.name}` : t.name,
+    })) as unknown as GanttTask[]
     const byId = new Map(view.tasks.map((t) => [t.id, t]))
     const связи = view.links ?? []
 
     const сохранить = (task: GanttTask, start: Date, end: Date) => {
       const строка = byId.get(String(task.id))
-      // веха — не задача, шаг — не задача: сроки живут у задач и вех
-      if (!строка || строка.kind !== 'task') {
-        setNotice(строка?.kind === 'step'
-          ? 'планов шагам не заводят: у шагов — порядок, сроки у задач и вех'
-          : 'дата точки живёт в паспорте проекта, а не в плане работ')
-        load(expand)
+      if (!строка || строка.kind === 'gate') {
+        setNotice('дата точки живёт в паспорте проекта: перенесите её на жизненном цикле')
+        load(collapse)
+        return
+      }
+      // сводную полосу не тянут: она вычисляется из шагов
+      if (строка.summary) {
+        setNotice(`полоса задачи ${строка.order} сводная — она вычислена из шагов. План ставится шагам`)
+        load(collapse)
         return
       }
       if (!author) {
         setNotice('представьтесь в шапке: план подписывается автором')
-        load(expand)
+        load(collapse)
         return
       }
-      api.phaseWorkPlan({ task: строка.id, start: iso(start), end: iso(end), author }, [...expand])
+      const что = строка.kind === 'step' ? `шага ${строка.number}` : `задачи «${строка.title}»`
+      api.phaseWorkPlan({ task: строка.id, start: iso(start), end: iso(end), author }, [...collapse])
         .then((v) => {
-          setNotice(`план задачи «${строка.title}»: ${iso(start)} — ${iso(end)}`)
+          setNotice(`план ${что}: ${iso(start)} — ${iso(end)}`)
           setView(v)
         })
         .catch((e) => {
           // отказ права называет право; полоса возвращается на место
           setNotice(String(e))
-          load(expand)
+          load(collapse)
         })
     }
 
@@ -113,7 +149,7 @@ export function PhaseGanttChart({ onOpen, onLead }: {
     }
 
     const gantt = new Gantt(box, rows, {
-      view_mode: mode.current,
+      view_mode: mode.current ?? view.view_mode ?? 'Week',
       view_mode_select: true,
       language: 'ru',
       bar_height: 22,
@@ -139,7 +175,9 @@ export function PhaseGanttChart({ onOpen, onLead }: {
       },
       on_click: (task: GanttTask) => {
         const r = byId.get(String(task.id))
-        if (r?.kind === 'step' && r.parent) onLead?.(r.parent, r.step_index)
+        if (r?.kind === 'step' && r.parent) { onLead?.(r.parent, r.step_index); return }
+        // клик по сводной полосе — свернуть или развернуть её шаги
+        if (r?.summary) { gantt.hide_popup?.(); переключить(r.id) }
       },
       popup: ({ task, set_title, set_subtitle, set_details, add_action }) => {
         const r = byId.get(String(task.id))
@@ -167,21 +205,22 @@ export function PhaseGanttChart({ onOpen, onLead }: {
             r.tally ? `сделано: ${r.tally}` : '',
             (r.gaps ?? 0) > 0 ? `разрывы задачи: ${r.gaps}` : '',
             r.alarm ?? '',
-            r.conflict
+            r.gate_overrun ?? '',
+            r.conflict && !r.gate_overrun
               ? 'конфликт плана со стрелкой зависимости: сроки спорят с типом связи. ' +
                 'Соседей система не двигает — сдвиньте сами'
               : '',
             r.kind === 'task' ? (r.why ?? '') : '',
           ].filter(Boolean).map((s) => `<div>${esc(s)}</div>`).join(''),
         )
+        if (r.kind === 'gate') {
+          add_action('перенести точку →', () => onGo?.('lifecycle'))
+        }
         if (r.kind === 'task') {
-          const раскрыта = expand.includes(r.id)
           if ((r.steps_total ?? 0) > 0) {
             add_action(
-              раскрыта ? 'скрыть шаги ▴' : `шаги ▾ (${r.steps_total})`,
-              (t) => setExpand((было) => раскрыта
-                ? было.filter((id) => id !== String(t.id))
-                : [...было, String(t.id)]),
+              r.collapsed ? `развернуть шаги ▾ (${r.steps_total})` : 'свернуть шаги ▴',
+              (t) => переключить(String(t.id)),
             )
           }
           add_action(
@@ -199,7 +238,7 @@ export function PhaseGanttChart({ onOpen, onLead }: {
       },
     })
     покраситьСтрелки(gantt as never)
-  }, [view, author, load, onOpen, onLead, expand])
+  }, [view, author, load, onOpen, onLead, onGo, collapse])
 
   if (error) return <div className="empty">Ошибка обращения к API: {error}</div>
   if (!view) return <div className="empty">Загрузка…</div>
@@ -221,8 +260,10 @@ export function PhaseGanttChart({ onOpen, onLead }: {
         Стрелки: сплошная — после окончания (FS), штриховая — вместе, после
         старта (SS), точечная — закончить не раньше (FF), тонкая серая —
         нужен выход-артефакт (INPUT); тип берётся с полки и назван словами в
-        попапе. Вертикали — точки фазы, ромбами они же строками. Шаги
-        раскрываются из попапа задачи: их окна — порядок, а не сроки.
+        попапе. Вертикали — точки фазы: каждая закрывает свой интервал, и
+        задачи без плана размечены внутри него. Шаги — строки «N.M», развёрнуты
+        по умолчанию; свернуть — щелчком по сводной полосе задачи (▾/▸),
+        память — на сессию. Тянут шаги: полоса задачи с шагами сводная.
         Процентов выполнения у задач не существует.
         {!view.can_plan && ` План правит руководитель проекта: ${view.right}.`}
       </div>

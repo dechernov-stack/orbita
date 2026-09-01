@@ -3807,7 +3807,7 @@ class HttpApi(private val boundary: Boundary) {
                     ex, 200,
                     PhaseGantt.toJson(
                         boundary, requireProject(project), currentAuthorLogin.get(),
-                        (query(ex)["expand"] ?: "").split(",").filter { it.isNotBlank() }.toSet(),
+                        (query(ex)["collapse"] ?: "").split(",").filter { it.isNotBlank() }.toSet(),
                     ),
                 )
 
@@ -3822,7 +3822,7 @@ class HttpApi(private val boundary: Boundary) {
                         ex, 200,
                         PhaseGantt.plan(
                             boundary, ctx, req, author(req), currentAuthorLogin.get(),
-                            (query(ex)["expand"] ?: "").split(",").filter { it.isNotBlank() }.toSet(),
+                            (query(ex)["collapse"] ?: "").split(",").filter { it.isNotBlank() }.toSet(),
                         ),
                     )
                 } catch (e: PhaseGantt.RightDeniedException) {

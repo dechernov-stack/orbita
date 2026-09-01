@@ -78,7 +78,7 @@ export function PhaseWork({ onGo, onLead, here }: {
           Схема
         </button>
       </div>
-      {tab === 'lane' ? <PhaseGanttChart onOpen={setOpen} onLead={onLead} />
+      {tab === 'lane' ? <PhaseGanttChart onOpen={setOpen} onLead={onLead} onGo={onGo} />
         : tab === 'list' ? <List view={view} onOpen={setOpen} />
           : <PhaseFlow here={here} onOpenTask={onLead} onGo={onGo} />}
     </>

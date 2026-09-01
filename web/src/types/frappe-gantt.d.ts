@@ -52,5 +52,6 @@ declare module 'frappe-gantt' {
     change_view_mode(mode: string, maintain_pos?: boolean): void
     update_options(options: GanttOptions): void
     scroll_current(): void
+    hide_popup?(): void
   }
 }

@@ -725,13 +725,15 @@ export const api = {
   /** Круг 4: схема потока фазы — узлы, рёбра-артефакты и точки с готовностью. */
   phaseFlow: () => get<PhaseFlowView>('/views/phase-flow'),
   /** Круг 5: строки полотна Ганта — план руководителя либо расчётная сетка. */
-  phaseGantt: (expand: string[] = []) =>
-    get<PhaseGanttView>('/views/phase-gantt' + (expand.length ? `?expand=${expand.join(',')}` : '')),
+  phaseGantt: (collapse: string[] = []) =>
+    get<PhaseGanttView>('/views/phase-gantt' + (collapse.length ? `?collapse=${collapse.join(',')}` : '')),
   /** План задачи: даты ставит руководитель — перетаскиванием либо полями. */
   phaseWorkPlan: (
     body: { task: string; start?: string; end?: string; clear?: boolean; author: string },
-    expand: string[] = [],
-  ) => post<PhaseGanttView>('/views/phase-work/plan' + (expand.length ? `?expand=${expand.join(',')}` : ''), body),
+    collapse: string[] = [],
+  ) => post<PhaseGanttView>(
+    '/views/phase-work/plan' + (collapse.length ? `?collapse=${collapse.join(',')}` : ''), body,
+  ),
   /** Инспекция обзора: чек-листы полки с состоянием пунктов. */
   reviewChecklist: (gate?: string) =>
     get<ReviewChecklistView>(`/views/review-checklist${gate ? `?gate=${encodeURIComponent(gate)}` : ''}`),

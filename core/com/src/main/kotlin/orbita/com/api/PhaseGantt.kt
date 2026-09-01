@@ -3,18 +3,22 @@
 // режимы День/Неделя/Месяц из коробки. Решение владельца: самострой SVG не
 // пишем; здесь — только данные и правила поверх.
 //
-// Наше в этом файле:
-//   · ПЛАН руководителя — источник дат полосы. План есть → полоса по плану;
-//     плана нет → расчётная сетка прежних долей, серым классом и с честной
-//     подписью «план не задан» (ловушка 3: фикция не выдаётся за план);
-//   · «план против факта» — предупреждение считает сервер, на полосе оно
-//     становится классом-окантовкой; ждущая задача с далёким дедлайном
-//     красной не бывает;
-//   · план НЕ влияет на статусы (ловушка 1): статусы посчитаны PhaseWork из
-//     состояния проекта и о плане не знают;
-//   · автосдвига соседей нет (ловушка 2): конфликт плана со стрелкой
-//     зависимости подсвечивается классом, решает человек;
-//   · процентов выполнения не существует (ловушка 4): progress всегда 0.
+// Круг 6 добавил типы связей (FS · SS · FF · INPUT) — они приходят с полки и
+// решают, чего задача ждёт, каков её ярус и что считается конфликтом плана.
+//
+// Круг 7 переложил модель времени на ТОЧКИ, а строки — на шаги:
+//   · фаза делится точками на интервалы: начало фазы → SRR → SDR → KDP-B.
+//     Задача без плана размечается ВНУТРИ интервала своей точки, поэтому
+//     ромб оказывается в конце интервала по построению, а не по удаче с датой;
+//   · шаги — полноправные строки «N.M», развёрнутые по умолчанию;
+//   · план ставится ШАГУ, а полоса задачи с шагами — СВОДНАЯ: она вычисляется
+//     из шагов и не тянется. План задачи остаётся только у задач без шагов;
+//   · задача, чьё окно уходит за свою точку, — конфликт: подсвечены обе,
+//     двигает человек.
+//
+// Что не изменилось: план не влияет на статусы (ловушка 1), автосдвига
+// соседей нет (ловушка 2), расчётная сетка не выдаётся за план (ловушка 3),
+// процентов выполнения не существует (ловушка 4).
 package orbita.com.api
 
 import com.fasterxml.jackson.databind.JsonNode
@@ -32,7 +36,12 @@ object PhaseGantt {
     /** Без плана «не успевает» считается по-старому: точка ближе недели. */
     private const val TIGHT_DAYS = 7L
 
+    /** Если начала фазы взять неоткуда — интервал первой точки такой. */
+    private const val FALLBACK_PHASE_DAYS = 14L
+
     private data class Plan(val start: LocalDate, val end: LocalDate, val author: String)
+
+    private data class Window(val start: LocalDate, val end: LocalDate, val planned: Boolean)
 
     private fun plansOf(passport: JsonNode): Map<String, Plan> =
         passport.path("work_plan").mapNotNull { p ->
@@ -54,18 +63,19 @@ object PhaseGantt {
      * Строки полотна в форме, которую библиотека принимает как есть
      * (`id · name · start · end · dependencies · custom_class · progress`),
      * плюс наши поля для попапа: они не нужны библиотеке и ей не мешают.
+     *
+     * [collapse] — задачи, чьи шаги свёрнуты. По умолчанию развёрнуты все:
+     * иерархия строк — это и есть полотно, а не выпадающая подробность.
      */
     fun toJson(
         boundary: Boundary,
         projectId: String,
         login: String? = null,
-        expand: Set<String> = emptySet(),
+        collapse: Set<String> = emptySet(),
     ): ObjectNode {
         val out = mapper.createObjectNode()
         val passport = boundary.objects.current(projectId)?.doc ?: mapper.createObjectNode()
         val tasks = PhaseWork.of(boundary, projectId)
-        // Право на план: план работ фазы ведёт руководитель проекта. При
-        // выключенных учётках права не спрашиваются — стенд одноголовый.
         val canPlan = login == null || boundary.auth.roleIn(projectId, login) == "lead"
         out.put("can_plan", canPlan)
         out.put("right", "план работ фазы ведёт руководитель проекта")
@@ -79,67 +89,105 @@ object PhaseGantt {
         val today = LocalDate.now()
         val byId = tasks.associateBy { it.id }
 
-        // Интервал сетки — тот же, что делил ленту: от «сегодня» либо самой
-        // ранней точки до последней точки фазы. Он нужен ТОЛЬКО задачам без
-        // плана: у планов даты свои.
-        val gateDates = tasks.mapNotNull { t -> t.gate?.let { g -> milestones.firstOrNull { it.first == g }?.second } }
-        val gridFrom = (gateDates + listOf(today)).min()
+        // ---- Интервалы фазы: начало фазы → точка → точка → точка.
+        // Точка закрывает свой интервал по построению, поэтому ромб всегда
+        // оказывается в его конце, а не там, куда пришлась дата.
+        val gates = tasks.mapNotNull { it.gate }.distinct()
+            .mapNotNull { g -> milestones.firstOrNull { it.first == g }?.let { g to it.second } }
+            .sortedBy { it.second }
+        val phaseStart = phaseStart(boundary, projectId, passport, gates.firstOrNull()?.second)
+        val intervals = HashMap<String, Pair<LocalDate, LocalDate>>()
+        var от = phaseStart
+        gates.forEach { (gate, due) ->
+            intervals[gate] = от to due
+            от = due
+        }
+        out.put("phase_start", phaseStart.toString())
+        val сетка = out.putArray("intervals")
+        gates.forEach { (gate, due) ->
+            сетка.addObject()
+                .put("gate", gate)
+                .put("from", intervals.getValue(gate).first.toString())
+                .put("to", due.toString())
+        }
 
-        // ---- связи с типами: библиотека рисует одну стрелку, тип приходит
-        // отдельно — им красится стрелка и объясняется попап (круг 6).
-        // Конфликт плана считается ПО ТИПУ: у SS сравниваются старты, у FF —
-        // окончания, у FS — старт преемника с концом предшественника, а INPUT
-        // сроков не касается вовсе: это условие готовности, а не срок.
+        // ---- Окна: базовое окно задачи, окна её шагов, сводная полоса
+        val базовые = HashMap<String, Window>()
+        val окнаШагов = HashMap<String, List<Window>>()
+        val сводные = HashMap<String, Window>()
+        tasks.forEach { t ->
+            val база = baseWindow(t, plans[t.id], intervals, today)
+            базовые[t.id] = база
+            val шаги = t.steps.mapIndexed { i, шаг ->
+                val план = plans["${t.id}#$i"]
+                if (план != null) Window(план.start, план.end, true)
+                else доляЯруса(база, шаг.tier, t.steps.maxOf { it.tiers })
+            }
+            окнаШагов[t.id] = шаги
+            сводные[t.id] = if (шаги.isEmpty()) база
+            else Window(шаги.minOf { it.start }, шаги.maxOf { it.end }, шаги.any { it.planned })
+        }
+
+        // ---- Связи с типами (круг 6). Конфликт плана считается по типу связи
+        // и по ДЕЙСТВУЮЩИМ окнам: план мог приехать с шагов, а не с задачи.
         val links = out.putArray("links")
-        val конфликтные = HashSet<String>()
+        val конфликтныеСвязи = HashSet<String>()
         tasks.forEach { t ->
             t.dependsOn.forEach { dep ->
                 val pred = byId[dep.task] ?: return@forEach
-                val a = plans[pred.id]
-                val b = plans[t.id]
-                val конфликт = a != null && b != null && when (dep.type) {
+                val a = сводные.getValue(pred.id)
+                val b = сводные.getValue(t.id)
+                val естьПлан = a.planned || b.planned
+                val конфликт = естьПлан && when (dep.type) {
                     "FS" -> b.start < a.end
                     "SS" -> b.start < a.start
                     "FF" -> b.end < a.end
                     else -> false
                 }
-                if (конфликт) { конфликтные += t.id; конфликтные += pred.id }
+                if (конфликт) { конфликтныеСвязи += t.id; конфликтныеСвязи += pred.id }
                 links.addObject()
                     .put("from", pred.id)
                     .put("to", t.id)
                     .put("type", dep.type)
                     .put("conflict", конфликт)
-                    .put(
-                        "words",
-                        PhaseWork.linkWords(dep.type, "${pred.order} · ${pred.name}"),
-                    )
+                    .put("words", PhaseWork.linkWords(dep.type, "${pred.order} · ${pred.name}"))
                     .put("note", dep.note ?: "")
             }
         }
 
+        // ---- Строки: задача, под ней её шаги. Порядок массива и есть порядок
+        // строк полотна: библиотека рисует, что дано.
         val arr = out.putArray("tasks")
+        val точкиСКонфликтом = HashSet<String>()
         tasks.forEach { t ->
-            val plan = plans[t.id]
-            val окно = window(t, plan, gridFrom, milestones, today)
-            val alarm = alarmOf(t, plan, today, milestones)
-            val конфликт = t.id in конфликтные
+            val окно = сводные.getValue(t.id)
+            val планЗадачи = plans[t.id]
+            val естьШаги = t.steps.isNotEmpty()
+            val точка = t.gate?.let { g -> milestones.firstOrNull { it.first == g }?.second }
+            // Круг 7: задача не может кончаться позже точки, к которой зреет
+            val заТочкой = точка != null && окно.end.isAfter(точка)
+            if (заТочкой) t.gate?.let { точкиСКонфликтом += it }
+            val alarm = alarmOf(t, окно, точка, today)
+            val конфликт = t.id in конфликтныеСвязи || заТочкой
+
             val n = arr.addObject()
             n.put("id", t.id)
             n.put("name", "${t.order} · ${t.name}")
-            n.put("start", окно.first.toString())
-            n.put("end", окно.second.toString())
+            n.put("start", окно.start.toString())
+            n.put("end", окно.end.toString())
             n.put("progress", 0)
             n.put("dependencies", t.dependsOn.joinToString(",") { it.task })
-            n.put("custom_class", cssClass(t, plan != null, alarm != null, конфликт))
-            // ---- наше, для попапа: слова «ждёт: …» живут здесь, не в подписи
+            n.put("custom_class", cssClass(t, окно.planned, alarm != null, конфликт, естьШаги))
             n.put("kind", "task")
             n.put("order", t.order)
             n.put("title", t.name)
             n.put("status", t.status)
             n.put("status_text", statusText(t))
             n.put("why", t.why)
-            n.put("planned", plan != null)
-            plan?.let { n.put("plan_author", it.author) }
+            n.put("planned", окно.planned)
+            n.put("summary", естьШаги)
+            n.put("collapsed", t.id in collapse)
+            планЗадачи?.let { n.put("plan_author", it.author) }
             n.put("gaps", t.gaps.size)
             n.put("steps_done", t.steps.count { it.done })
             n.put("steps_total", t.steps.size)
@@ -150,43 +198,48 @@ object PhaseGantt {
             n.put("artifact", t.artifact)
             alarm?.let { n.put("alarm", it) }
             n.put("conflict", конфликт)
-            n.put(
-                "window_why",
-                if (plan != null) "план: ${окно.first} — ${окно.second}, поставил ${plan.author}"
-                else "план не задан — полоса показывает расчётную долю интервала до точки " +
-                    "по порядку зависимостей (ярус ${t.tier} из ${t.tiers}). Потяните полосу, чтобы задать план",
-            )
-            n.put("expanded", t.id in expand)
+            if (заТочкой && точка != null) {
+                n.put(
+                    "gate_overrun",
+                    "задача ${t.order} заканчивается ${окно.end} — после точки ${t.gate} ($точка). " +
+                        "Систему это не двигает: сдвиньте план или дату точки",
+                )
+            }
+            n.put("window_why", windowWhy(t, окно, планЗадачи, естьШаги, intervals))
 
-            // ---- Круг 6: шаги — дочерними полосами при раскрытии. Библиотека
-            // плоская, поэтому шаги идут обычными строками с отступом в имени и
-            // своим классом. Планов шагам не заводят (ловушка 2): окно шага —
-            // доля окна задачи по ЕГО ЯРУСУ, то есть порядок, а не сроки.
-            if (t.id in expand && t.steps.isNotEmpty()) {
-                val длина = ChronoUnit.DAYS.between(окно.first, окно.second).coerceAtLeast(1)
-                val ярусов = t.steps.maxOf { it.tiers }.coerceAtLeast(1)
+            if (естьШаги && t.id !in collapse) {
                 t.steps.forEachIndexed { i, шаг ->
-                    val начало = окно.first.plusDays(длина * (шаг.tier - 1) / ярусов)
-                    val конец = окно.first.plusDays(длина * шаг.tier / ярусов)
-                    // стрелку рисуем только у FS: SS-шаги идут вместе, и
-                    // стрелка «после окончания» соврала бы о них
-                    val предки = шаг.after.filter { it.type == "FS" }
-                        .mapNotNull { a -> t.steps.getOrNull(a.step - 1)?.let { "${t.id}#${a.step - 1}" } }
+                    val w = окнаШагов.getValue(t.id)[i]
+                    val планШага = plans["${t.id}#$i"]
+                    // связи шагов рисуются ВСЕ: параллельность видна глазами
+                    val предки = шаг.after.mapNotNull { a ->
+                        t.steps.getOrNull(a.step - 1)?.let { "${t.id}#${a.step - 1}" }
+                    }
                     val sn = arr.addObject()
                     sn.put("id", "${t.id}#$i")
-                    sn.put("name", "— ${шаг.title}")
-                    sn.put("start", начало.toString())
-                    sn.put("end", if (конец.isAfter(начало)) конец.toString() else начало.plusDays(1).toString())
+                    sn.put("name", "${t.order}.${i + 1} · ${шаг.title}")
+                    sn.put("start", w.start.toString())
+                    sn.put("end", if (w.end.isAfter(w.start)) w.end.toString() else w.start.plusDays(1).toString())
                     sn.put("progress", 0)
                     sn.put("dependencies", предки.joinToString(","))
-                    sn.put("custom_class", if (шаг.done) "pw-step-done" else "pw-step")
+                    sn.put(
+                        "custom_class",
+                        when {
+                            шаг.done -> "pw-step-done"
+                            планШага != null -> "pw-step-plan"
+                            else -> "pw-step"
+                        },
+                    )
                     sn.put("kind", "step")
                     sn.put("parent", t.id)
                     sn.put("step_index", i)
+                    sn.put("number", "${t.order}.${i + 1}")
                     sn.put("title", шаг.title)
                     sn.put("done", шаг.done)
+                    sn.put("planned", планШага != null)
+                    планШага?.let { sn.put("plan_author", it.author) }
                     sn.put("tier", шаг.tier)
-                    sn.put("tiers", ярусов)
+                    sn.put("tiers", t.steps.maxOf { it.tiers })
                     шаг.hint?.let { sn.put("hint", it) }
                     шаг.tally?.let { sn.put("tally", it) }
                     sn.put("why", шаг.why)
@@ -199,20 +252,21 @@ object PhaseGantt {
                     }
                     sn.put(
                         "window_why",
-                        "шаг ${шаг.tier} яруса из $ярусов: окно — доля окна задачи по порядку шагов. " +
-                            "Это порядок, а не сроки: планов шагам не заводят" +
-                            (if (шаг.after.isEmpty()) ". Связей с соседними шагами в полке нет — шаг начальный" else ""),
+                        if (планШага != null) "план шага: ${w.start} — ${w.end}, поставил ${планШага.author}"
+                        else "плана нет: окно — доля окна задачи по ярусу ${шаг.tier} из " +
+                            "${t.steps.maxOf { it.tiers }}. Это порядок, а не срок — потяните полосу, чтобы задать план",
                     )
                 }
             }
         }
 
-        // Вехи — полосами нулевой длины: ромб рисует CSS по классу.
-        // KDP-B обязана быть на полотне: точки берутся из паспорта целиком,
-        // а не из дат задач.
-        milestones.filter { (gate, _) -> tasks.any { it.gate == gate } }.forEach { (gate, due) ->
+        // ---- Точки: ромбами строками и вертикалями через полотно
+        val линии = out.putArray("milestone_lines")
+        gates.forEach { (gate, due) ->
+            линии.addObject().put("date", due.toString()).put("name", gate)
             val held = passport.path("milestones")
                 .any { it.path("gate").asText() == gate && it.path("held").asBoolean(false) }
+            val интервал = intervals.getValue(gate)
             arr.addObject()
                 .put("id", "gate:$gate")
                 .put("name", gate)
@@ -220,79 +274,131 @@ object PhaseGantt {
                 .put("end", due.toString())
                 .put("progress", 0)
                 .put("dependencies", "")
-                .put("custom_class", "pw-ms")
+                .put("custom_class", if (gate in точкиСКонфликтом) "pw-ms-conflict" else "pw-ms")
                 .put("kind", "gate")
                 .put("gate", gate)
                 .put("held", held)
-                .put("window_why", "точка $gate: $due" + if (held) " — пройдена" else "")
+                .put("conflict", gate in точкиСКонфликтом)
+                .put(
+                    "window_why",
+                    "точка $gate закрывает интервал ${интервал.first} — $due" +
+                        (if (held) " · пройдена" else "") +
+                        (if (gate in точкиСКонфликтом)
+                            ". Есть задачи, чьё окно уходит за точку: сдвиньте их план или перенесите точку"
+                        else ""),
+                )
         }
 
-        // Вертикали вех через всё полотно: колонки-подсветки библиотеки
-        // (holidays), а не своя графика. Порядок обязан совпадать с лентой
-        // цикла — расхождение дат называется конфликтом вех, а не молчится.
-        val линии = out.putArray("milestone_lines")
-        val вехиФазы = milestones.filter { (gate, _) -> tasks.any { it.gate == gate } }
-        вехиФазы.forEach { (gate, due) -> линии.addObject().put("date", due.toString()).put("name", gate) }
+        // Порядок точек по датам обязан совпадать с порядком прохождения
         val порядокПаспорта = passport.path("milestones").map { it.path("gate").asText() }
-        val поДате = вехиФазы.sortedBy { it.second }.map { it.first }
-        val поЦиклу = вехиФазы.map { it.first }.sortedBy { порядокПаспорта.indexOf(it) }
+        val поДате = gates.map { it.first }
+        val поЦиклу = gates.map { it.first }.sortedBy { порядокПаспорта.indexOf(it) }
         if (поДате != поЦиклу) {
             out.put(
                 "gate_conflict",
                 "конфликт вех: по датам точки идут ${поДате.joinToString(" → ")}, " +
-                    "а по ленте цикла — ${поЦиклу.joinToString(" → ")}. Даты вех расходятся с порядком прохождения",
+                    "а по ленте цикла — ${поЦиклу.joinToString(" → ")}. Перенесите точку на жизненном цикле",
+            )
+        }
+        if (gates.isNotEmpty() && !gates.first().second.isAfter(phaseStart)) {
+            out.put(
+                "gate_conflict",
+                "конфликт вех: точка ${gates.first().first} (${gates.first().second}) не позже начала " +
+                    "фазы ($phaseStart) — интервалу неоткуда взяться. Перенесите точку на жизненном цикле",
             )
         }
 
-        out.put("planned", plans.keys.count { it in byId })
+        // Режим шкалы советует СЕРВЕР: он знает длину фазы, а клиент гадал бы.
+        // Фаза в пару недель в режиме «Неделя» схлопывается в чёрточки.
+        val длинаФазы = ChronoUnit.DAYS.between(phaseStart, gates.lastOrNull()?.second ?: phaseStart)
+        out.put(
+            "view_mode",
+            when {
+                длинаФазы <= 45 -> "Day"
+                длинаФазы <= 200 -> "Week"
+                else -> "Month"
+            },
+        )
+        out.put("planned", plans.keys.count { it.substringBefore('#') in byId })
         out.put("total", tasks.size)
         return out
     }
 
     /**
-     * Окно полосы: план, если он задан. Иначе — расчётная сетка прежних долей
-     * (ярус зависимостей внутри интервала до своей точки). Сетка серая и
-     * подписана: за план она себя не выдаёт.
+     * Начало фазы: последняя ПРОЙДЕННАЯ точка перед первой точкой фазы, иначе
+     * день создания проекта. «Сегодня» началом фазы не бывает: полотно
+     * показывает фазу, а не то, когда на него посмотрели.
      */
-    private fun window(
+    private fun phaseStart(
+        boundary: Boundary,
+        projectId: String,
+        passport: JsonNode,
+        firstGate: LocalDate?,
+    ): LocalDate {
+        val пройденные = passport.path("milestones")
+            .filter { it.path("held").asBoolean(false) }
+            .mapNotNull { runCatching { LocalDate.parse(it.path("due").asText()) }.getOrNull() }
+            .filter { firstGate == null || it.isBefore(firstGate) }
+        пройденные.maxOrNull()?.let { return it }
+        val создан = boundary.objects.history(projectId).firstOrNull()?.validFrom?.toLocalDate()
+        if (создан != null && (firstGate == null || создан.isBefore(firstGate))) return создан
+        return firstGate?.minusDays(FALLBACK_PHASE_DAYS) ?: LocalDate.now()
+    }
+
+    /**
+     * Базовое окно задачи: план, если он задан. Иначе — доля яруса ВНУТРИ
+     * интервала своей точки (круг 7): так ромб оказывается в конце интервала
+     * по построению. Сетка серая и подписана — за план она себя не выдаёт.
+     */
+    private fun baseWindow(
         t: PhaseWork.TaskState,
         plan: Plan?,
-        gridFrom: LocalDate,
-        milestones: List<Pair<String, LocalDate>>,
+        intervals: Map<String, Pair<LocalDate, LocalDate>>,
         today: LocalDate,
-    ): Pair<LocalDate, LocalDate> {
-        if (plan != null) return plan.start to plan.end
-        val gate = t.gate?.let { g -> milestones.firstOrNull { it.first == g }?.second }
-            ?: today.plusDays(14)
-        val дней = ChronoUnit.DAYS.between(gridFrom, gate).coerceAtLeast(t.tiers.toLong())
-        val наЯрус = дней.toDouble() / t.tiers.coerceAtLeast(1)
-        val начало = gridFrom.plusDays((наЯрус * (t.tier - 1)).toLong())
-        val конец = gridFrom.plusDays((наЯрус * t.tier).toLong())
-        return начало to if (конец.isAfter(начало)) конец else начало.plusDays(1)
+    ): Window {
+        if (plan != null) return Window(plan.start, plan.end, true)
+        val интервал = t.gate?.let { intervals[it] }
+            ?: (today to today.plusDays(FALLBACK_PHASE_DAYS))
+        return доляЯруса(Window(интервал.first, интервал.second, false), t.tier, t.tiers)
+    }
+
+    /**
+     * Доля яруса ВНУТРИ окна: порядок работ, а не срок. Доля не имеет права
+     * вылезти за окно — иначе интервал короче числа ярусов рождал бы
+     * ложный «конфликт за точкой» на ровном месте. Когда дней меньше, чем
+     * ярусов, доли просто накладываются: интервал короток, и это правда о нём.
+     */
+    private fun доляЯруса(окно: Window, ярус: Int, ярусов: Int): Window {
+        val дней = ChronoUnit.DAYS.between(окно.start, окно.end).coerceAtLeast(0)
+        val на = дней.toDouble() / ярусов.coerceAtLeast(1)
+        val начало = окно.start.plusDays((на * (ярус - 1)).toLong()).coerceAtMost(окно.end)
+        val край = окно.start.plusDays((на * ярус).toLong()).coerceAtMost(окно.end)
+        val конец = if (край.isAfter(начало)) край else minOf(начало.plusDays(1), окно.end)
+        return Window(начало, if (конец.isAfter(начало)) конец else окно.end, false)
     }
 
     /**
      * «План против факта». Красное — только предупреждение и только по делу:
-     * задача не начата после планового старта либо выход не готов после
+     * работа не начата после планового старта либо выход не готов после
      * планового конца. Где плана нет — по-старому: точка ближе недели при
      * неготовом выходе. Ждущая задача с далёким дедлайном красной не бывает.
      */
     private fun alarmOf(
         t: PhaseWork.TaskState,
-        plan: Plan?,
+        окно: Window,
+        точка: LocalDate?,
         today: LocalDate,
-        milestones: List<Pair<String, LocalDate>>,
     ): String? {
         if (t.outputDone) return null
-        if (plan != null) {
-            if (today > plan.end) return "выход не готов, а плановый конец ${plan.end} позади"
-            if (today > plan.start && t.steps.none { it.done }) {
-                return "плановый старт ${plan.start} позади, а работа не начата"
+        if (окно.planned) {
+            if (today > окно.end) return "выход не готов, а плановый конец ${окно.end} позади"
+            if (today > окно.start && t.steps.none { it.done }) {
+                return "плановый старт ${окно.start} позади, а работа не начата"
             }
             return null
         }
-        val gate = t.gate?.let { g -> milestones.firstOrNull { it.first == g }?.second } ?: return null
-        val дней = ChronoUnit.DAYS.between(today, gate)
+        if (точка == null) return null
+        val дней = ChronoUnit.DAYS.between(today, точка)
         return when {
             дней < 0 -> "точка ${t.gate} позади, а выход не готов"
             дней < TIGHT_DAYS -> "до точки ${t.gate} осталось дней: $дней, а выход не готов; плана у задачи нет"
@@ -300,20 +406,49 @@ object PhaseGantt {
         }
     }
 
+    private fun windowWhy(
+        t: PhaseWork.TaskState,
+        окно: Window,
+        планЗадачи: Plan?,
+        естьШаги: Boolean,
+        intervals: Map<String, Pair<LocalDate, LocalDate>>,
+    ): String = when {
+        естьШаги && окно.planned ->
+            "сводная полоса: ${окно.start} — ${окно.end}, вычислена из шагов. " +
+                "Тянуть её нельзя — план ставится шагам"
+        естьШаги ->
+            "сводная полоса: ${окно.start} — ${окно.end}, вычислена из окон шагов. Планов пока нет — " +
+                "окна шагов расчётные, доли интервала ${t.gate ?: "фазы"} по порядку. " +
+                "Тяните шаги, чтобы задать план"
+        планЗадачи != null ->
+            "план: ${окно.start} — ${окно.end}, поставил ${планЗадачи.author}"
+        else ->
+            "план не задан — полоса показывает долю интервала " +
+                (t.gate?.let { g -> intervals[g]?.let { "$g (${it.first} — ${it.second})" } } ?: "фазы") +
+                " по порядку зависимостей (ярус ${t.tier} из ${t.tiers}). Потяните полосу, чтобы задать план"
+    }
+
     /**
      * Один класс на полосу: библиотека кладёт его через classList.add, и
-     * строка с пробелами её сломала бы. Поэтому состояние кодируется одним
-     * словом, а порядок важности такой: конфликт → нет плана → предупреждение
-     * → статус.
+     * строка с пробелами её сломала бы. Порядок важности: конфликт → сводная
+     * → нет плана → предупреждение → статус.
      */
-    private fun cssClass(t: PhaseWork.TaskState, planned: Boolean, alarm: Boolean, conflict: Boolean): String =
-        when {
-            conflict -> "pw-conflict"
-            !planned && alarm -> "pw-grid-alarm"
-            !planned -> "pw-grid"
-            alarm -> "pw-${t.status}-alarm"
-            else -> "pw-${t.status}"
-        }
+    private fun cssClass(
+        t: PhaseWork.TaskState,
+        planned: Boolean,
+        alarm: Boolean,
+        conflict: Boolean,
+        summary: Boolean,
+    ): String = when {
+        summary && conflict -> "pw-summary-conflict"
+        summary && alarm -> "pw-summary-alarm"
+        summary -> "pw-summary"
+        conflict -> "pw-conflict"
+        !planned && alarm -> "pw-grid-alarm"
+        !planned -> "pw-grid"
+        alarm -> "pw-${t.status}-alarm"
+        else -> "pw-${t.status}"
+    }
 
     private fun statusText(t: PhaseWork.TaskState): String = when (t.status) {
         "done" -> "выполнена"
@@ -326,9 +461,8 @@ object PhaseGantt {
     }
 
     /**
-     * Постановка плана задачи. Даты приходят датами: их даёт библиотека из
-     * перетаскивания полосы либо инженер полями карточки — считать пиксели
-     * клиенту не приходится.
+     * Постановка плана. Круг 7: план ставится ШАГУ (`PW-NNNN#k`) либо задаче
+     * БЕЗ шагов; полоса задачи с шагами сводная и вычисляется из них.
      *
      * Соседей не двигаем: конфликт со стрелкой зависимости показывается, а
      * решает человек.
@@ -339,14 +473,24 @@ object PhaseGantt {
         request: JsonNode,
         author: String,
         login: String? = null,
-        expand: Set<String> = emptySet(),
+        collapse: Set<String> = emptySet(),
     ): ObjectNode {
         require(author.isNotBlank()) { "TZ-COM-005: field 'author' is required for editing" }
-        val task = request.path("task").asText("")
-        require(task.isNotBlank()) { "нужно поле 'task' — какой задаче ставится план" }
-        require('#' !in task) { "планов шагам не заводят: сроки — у задач и вех, у шагов — порядок" }
-        val known = PhaseWork.of(boundary, projectId).map { it.id }.toSet()
-        require(task in known) { "задача '$task' не принадлежит работам текущей фазы" }
+        val цель = request.path("task").asText("")
+        require(цель.isNotBlank()) { "нужно поле 'task' — какой задаче или шагу ставится план" }
+        val задача = цель.substringBefore('#')
+        val шаг = цель.substringAfter('#', "").toIntOrNull()
+        val состояния = PhaseWork.of(boundary, projectId).associateBy { it.id }
+        val t = состояния[задача]
+            ?: throw IllegalArgumentException("задача '$задача' не принадлежит работам текущей фазы")
+        if (шаг == null) {
+            require(t.steps.isEmpty()) {
+                "у задачи ${t.order} есть шаги — её полоса сводная и вычисляется из них. " +
+                    "План ставится шагам"
+            }
+        } else {
+            require(шаг in t.steps.indices) { "у задачи ${t.order} нет шага №${шаг + 1}" }
+        }
         if (login != null && boundary.auth.roleIn(projectId, login) != "lead") {
             throw RightDeniedException(
                 "план работ фазы ведёт руководитель проекта (ваша роль — " +
@@ -358,7 +502,7 @@ object PhaseGantt {
         val текущие = (passport.doc.path("work_plan").deepCopy<JsonNode>() as? ArrayNode)
             ?: mapper.createArrayNode()
         val остальные = mapper.createArrayNode()
-        текущие.forEach { p -> if (p.path("task").asText() != task) остальные.add(p) }
+        текущие.forEach { p -> if (p.path("task").asText() != цель) остальные.add(p) }
 
         val снять = request.path("clear").asBoolean(false)
         if (!снять) {
@@ -366,7 +510,7 @@ object PhaseGantt {
             val end = LocalDate.parse(request.path("end").asText())
             require(!end.isBefore(start)) { "плановый конец раньше начала: $start — $end" }
             остальные.addObject()
-                .put("task", task)
+                .put("task", цель)
                 .put("start", start.toString())
                 .put("end", end.toString())
                 .put("author", author)
@@ -374,12 +518,13 @@ object PhaseGantt {
         }
         val changes = mapper.createObjectNode()
         changes.set<ArrayNode>("work_plan", остальные)
+        val что = if (шаг == null) "задаче $задача" else "шагу ${t.order}.${шаг + 1}"
         boundary.editing.update(
             CoreType.Project, projectId, changes, passport.version, author,
-            changeRef = if (снять) "план работ фазы: план задачи $task снят"
-            else "план работ фазы: задаче $task поставлен план",
+            changeRef = if (снять) "план работ фазы: план $что снят"
+            else "план работ фазы: $что поставлен план",
         )
-        return toJson(boundary, projectId, login, expand)
+        return toJson(boundary, projectId, login, collapse)
     }
 
     /** Право не подошло: отказ обязан называть право, а не просто запрещать. */

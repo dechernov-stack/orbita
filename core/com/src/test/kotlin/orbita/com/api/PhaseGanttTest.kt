@@ -1,11 +1,14 @@
-// Круг 5: Гант на библиотеке. Полотно рисует frappe-gantt, поэтому проверять
+// Круг 5–7: Гант на библиотеке. Полотно рисует frappe-gantt, поэтому проверять
 // здесь нечего кроме СВОЕГО — данных и правил:
 //   · строки приходят в форме библиотеки, прогресс всегда 0 (ловушка 4);
-//   · план — источник дат полосы; без плана полоса остаётся расчётной сеткой
-//     и подписана «план не задан» (ловушка 3);
+//   · план — источник дат; без плана окно остаётся расчётной сеткой и
+//     подписано «план не задан» (ловушка 3);
 //   · план НЕ влияет на статус (ловушка 1);
 //   · соседей автосдвиг не двигает, конфликт подсвечен (ловушка 2);
-//   · план ведёт руководитель: отказ называет право.
+//   · план ведёт руководитель: отказ называет право;
+//   · круг 6: тип связи приходит с полки и решает, что считается конфликтом;
+//   · круг 7: шаги — строки «N.M» по умолчанию, полоса задачи с шагами
+//     сводная и не тянется, точка закрывает свой интервал.
 package orbita.com.api
 
 import com.fasterxml.jackson.databind.JsonNode
@@ -30,6 +33,8 @@ class PhaseGanttTest {
     private val mapper = ObjectMapper()
     private val boundary = Boundary(SchemaRegistry(RepoPaths.schemasDir()), TestDb.conn)
 
+    private val точка = LocalDate.now().plusMonths(6)
+
     private fun задача(
         id: String,
         order: Int,
@@ -37,12 +42,13 @@ class PhaseGanttTest {
         depends: String = "",
         тип: String = "FS",
         выходВид: String = "mission_goal",
+        шаги: String = """{"title":"Собрать цели","screen":"aiservice",
+                           "done_when":{"check":"objects","type":"mission_goal","label":"цели приняты"}}""",
     ) = """
         {"id":"$id","phase":"pre_phase_a","order":$order,"name":"$name",
          "why":"Зачем эта задача — текстом с полки.",
          ${if (depends.isBlank()) "" else "\"depends_on\":[{\"task\":\"$depends\",\"type\":\"$тип\"}],"}
-         "steps":[{"title":"Собрать цели","screen":"aiservice",
-                   "done_when":{"check":"objects","type":"$выходВид","label":"цели приняты"}}],
+         "steps":[$шаги],
          "output":{"artifact":"Д2 · Постановка","gate":"MCR","maturity":"draft",
                    "done_when":{"check":"objects","type":"$выходВид","min":1}},
          "lifecycle":{"status":"Draft","version":"1"}}"""
@@ -54,7 +60,7 @@ class PhaseGanttTest {
             CoreType.Project,
             """{"id":"PJ-2101","name":"Гант","phase":"pre_phase_a",
                 "mission_intent":{"text":"Группировка IoT для логистики."},
-                "milestones":[{"gate":"MCR","due":"${LocalDate.now().plusMonths(6)}"}],
+                "milestones":[{"gate":"MCR","due":"$точка"}],
                 "lifecycle":{"status":"Draft","version":"1"}}""",
             "test", "PJ-2101",
         )
@@ -66,17 +72,20 @@ class PhaseGanttTest {
         )
     }
 
-    private fun полотно(login: String? = null): JsonNode = PhaseGantt.toJson(boundary, "PJ-2101", login)
+    private fun полотно(login: String? = null, свёрнуты: Set<String> = emptySet()): JsonNode =
+        PhaseGantt.toJson(boundary, "PJ-2101", login, свёрнуты)
 
     private fun строки(v: JsonNode): Map<String, JsonNode> =
         v.path("tasks").associateBy { it.path("id").asText() }
 
-    private fun поставить(task: String, start: String, end: String, author: String = "Чернов", login: String? = null) =
+    private fun поставить(цель: String, start: String, end: String, author: String = "Чернов", login: String? = null) =
         PhaseGantt.plan(
             boundary, "PJ-2101",
-            mapper.readTree("""{"task":"$task","start":"$start","end":"$end"}"""),
+            mapper.readTree("""{"task":"$цель","start":"$start","end":"$end"}"""),
             author, login,
         )
+
+    // ---- форма и запреты ------------------------------------------------
 
     @Test
     fun `строки приходят в форме библиотеки, процентов выполнения нет`() {
@@ -87,81 +96,193 @@ class PhaseGanttTest {
         }
         assertEquals(0, t.path("progress").asInt()) { "процентов выполнения у задач не существует" }
         assertEquals("PW-9001", t.path("dependencies").asText()) { "стрелку рисует библиотека по зависимости" }
-        // слова «ждёт: …» живут в попапе, а не в подписи полосы
         assertEquals("2 · Концепция", t.path("name").asText())
         assertTrue(t.path("waits_on").asText().contains("Постановка"))
     }
 
     @Test
-    fun `без плана полоса — расчётная сетка и подписана честно`() {
-        val t = строки(полотно()).getValue("PW-9001")
-        assertFalse(t.path("planned").asBoolean())
-        assertEquals("pw-grid", t.path("custom_class").asText())
-        assertTrue(t.path("window_why").asText().contains("план не задан")) {
-            "фикция долей не выдаётся за план: ${t.path("window_why").asText()}"
+    fun `связь приходит типом и словами, а стрелку рисует библиотека`() {
+        val связь = полотно().path("links").first { it.path("to").asText() == "PW-9002" }
+        assertEquals("FS", связь.path("type").asText())
+        assertTrue("после окончания" in связь.path("words").asText()) {
+            "тип связи обязан звучать словами: ${связь.path("words").asText()}"
         }
     }
 
+    // ---- круг 7: строки шагов, сводная полоса, интервалы -----------------
+
     @Test
-    fun `план — источник дат полосы, но статуса он не касается`() {
-        val доПлана = строки(полотно()).getValue("PW-9001")
-        val статусДо = доПлана.path("status").asText()
-        val v = поставить("PW-9001", "2027-01-11", "2027-02-02")
-        val t = строки(v).getValue("PW-9001")
-        assertEquals("2027-01-11", t.path("start").asText())
-        assertEquals("2027-02-02", t.path("end").asText())
-        assertTrue(t.path("planned").asBoolean())
-        assertEquals("Чернов", t.path("plan_author").asText())
-        assertEquals("pw-$статусДо", t.path("custom_class").asText()) { "класс — статусный, план его не менял" }
-        // ловушка 1: статус вычисляется из состояния проекта и план не читает
-        assertEquals(статусДо, t.path("status").asText())
-        assertEquals(
-            статусДо,
-            PhaseWork.toJson(boundary, "PJ-2101").path("items")
-                .first { it.path("id").asText() == "PW-9001" }.path("status").asText(),
-        ) { "план не имеет права двигать статус задачи" }
+    fun `шаги — строки N M и развёрнуты по умолчанию`() {
+        TestDb.truncateAll()
+        проект()
+        boundary.ingest(CoreType.PhaseTask, задачаСТремяШагами(), "test", ObjectStore.LIBRARY_PROJECT)
+        val v = полотно()
+        val id = v.path("tasks").map { it.path("id").asText() }
+        assertEquals(listOf("PW-9001", "PW-9001#0", "PW-9001#1", "PW-9001#2", "gate:MCR"), id) {
+            "шаги — строки полотна сразу под своей задачей, а не выпадающая подробность"
+        }
+        val шаг = строки(v).getValue("PW-9001#1")
+        assertEquals("1.2 · SEMP по шаблону", шаг.path("name").asText()) { "нумерация сквозная ‹задача›.‹шаг›" }
+        assertEquals("1.2", шаг.path("number").asText())
+        // SS оставляет 1.1 и 1.2 рядом, FS уводит 1.3 ниже — видно окнами
+        val ш1 = строки(v).getValue("PW-9001#0")
+        val ш3 = строки(v).getValue("PW-9001#2")
+        assertEquals(ш1.path("start").asText(), шаг.path("start").asText()) {
+            "SS: шаги 1.1 и 1.2 начинаются вместе"
+        }
+        assertTrue(ш3.path("start").asText() >= ш1.path("end").asText()) {
+            "FS: шаг 1.3 идёт после первых двух"
+        }
+        // свёрнутая задача прячет свои шаги
+        val свёрнуто = полотно(свёрнуты = setOf("PW-9001"))
+        assertTrue(свёрнуто.path("tasks").none { it.path("kind").asText() == "step" })
+        assertTrue(строки(свёрнуто).getValue("PW-9001").path("collapsed").asBoolean())
+    }
+
+    @Test
+    fun `полоса задачи с шагами — сводная и не тянется`() {
+        TestDb.truncateAll()
+        проект()
+        boundary.ingest(CoreType.PhaseTask, задачаСТремяШагами(), "test", ObjectStore.LIBRARY_PROJECT)
+        val t = строки(полотно()).getValue("PW-9001")
+        assertTrue(t.path("summary").asBoolean()) { "у задачи с шагами полоса сводная" }
+        assertEquals("pw-summary", t.path("custom_class").asText())
+        val e = assertThrows<IllegalArgumentException> {
+            поставить("PW-9001", "2027-01-11", "2027-02-02")
+        }
+        assertTrue("План ставится шагам" in e.message!!) { e.message!! }
+    }
+
+    @Test
+    fun `план ставится шагу, сводная полоса вычисляется из шагов`() {
+        TestDb.truncateAll()
+        проект()
+        boundary.ingest(CoreType.PhaseTask, задачаСТремяШагами(), "test", ObjectStore.LIBRARY_PROJECT)
+        val статусДо = строки(полотно()).getValue("PW-9001").path("status").asText()
+        val v = поставить("PW-9001#2", "2027-05-01", "2027-05-20")
+        val шаг = строки(v).getValue("PW-9001#2")
+        assertEquals("2027-05-01", шаг.path("start").asText())
+        assertTrue(шаг.path("planned").asBoolean())
+        assertEquals("pw-step-plan", шаг.path("custom_class").asText())
+        val сводная = строки(v).getValue("PW-9001")
+        assertEquals("2027-05-20", сводная.path("end").asText()) {
+            "сводная полоса тянется до конца самого позднего шага"
+        }
+        assertTrue("вычислена из шагов" in сводная.path("window_why").asText())
+        // ловушка 1: план статуса не касается
+        assertEquals(статусДо, сводная.path("status").asText())
+    }
+
+    @Test
+    fun `точка закрывает свой интервал, а задача за точкой — конфликт`() {
+        val v = полотно()
+        val интервал = v.path("intervals").first { it.path("gate").asText() == "MCR" }
+        assertEquals(v.path("phase_start").asText(), интервал.path("from").asText()) {
+            "первый интервал начинается началом фазы, а не «сегодня»"
+        }
+        assertEquals(точка.toString(), интервал.path("to").asText())
+        // расчётные окна задач лежат ВНУТРИ интервала — ромб оказывается в конце
+        строки(v).values.filter { it.path("kind").asText() == "task" }.forEach { t ->
+            assertTrue(t.path("end").asText() <= точка.toString()) {
+                "окно задачи ${t.path("id").asText()} уходит за свою точку: ${t.path("end").asText()}"
+            }
+        }
+        // план за точкой — конфликт с обеих сторон
+        val после = поставить("PW-9001#0", точка.plusDays(3).toString(), точка.plusDays(9).toString())
+        val задача = строки(после).getValue("PW-9001")
+        assertTrue(задача.path("conflict").asBoolean())
+        assertTrue("после точки MCR" in задача.path("gate_overrun").asText()) {
+            задача.path("gate_overrun").asText()
+        }
+        assertEquals("pw-summary-conflict", задача.path("custom_class").asText())
+        assertTrue(строки(после).getValue("gate:MCR").path("conflict").asBoolean()) {
+            "точку тоже подсвечиваем: двигать можно и её"
+        }
+    }
+
+    /**
+     * Живая находка круга 7: интервал короче числа ярусов (SRR через два дня,
+     * а ярусов три) растягивал доли ЗА окно, и полотно рисовало «конфликт за
+     * точкой» на ровном месте. Доля обязана оставаться внутри своего окна.
+     */
+    @Test
+    fun `короткий интервал не рождает ложный конфликт за точкой`() {
+        TestDb.truncateAll()
+        val близкая = LocalDate.now().plusDays(2)
+        boundary.ingest(
+            CoreType.Project,
+            """{"id":"PJ-2101","name":"Гант","phase":"pre_phase_a",
+                "mission_intent":{"text":"Группировка IoT для логистики."},
+                "milestones":[{"gate":"MCR","due":"$близкая"}],
+                "lifecycle":{"status":"Draft","version":"1"}}""",
+            "test", "PJ-2101",
+        )
+        boundary.ingest(CoreType.PhaseTask, задачаСТремяШагами(), "test", ObjectStore.LIBRARY_PROJECT)
+        boundary.ingest(
+            CoreType.PhaseTask,
+            задача("PW-9002", 2, "Концепция", depends = "PW-9001", выходВид = "decision"),
+            "test", ObjectStore.LIBRARY_PROJECT,
+        )
+        val v = полотно()
+        строки(v).values.filter { it.path("kind").asText() != "gate" }.forEach { r ->
+            assertTrue(r.path("end").asText() <= близкая.toString()) {
+                "строка ${r.path("id").asText()} вылезла за точку: ${r.path("end").asText()}"
+            }
+            assertFalse(r.path("conflict").asBoolean()) {
+                "конфликта нет: планов никто не ставил, интервал просто короткий"
+            }
+        }
+    }
+
+    // ---- правила плана ---------------------------------------------------
+
+    @Test
+    fun `без плана полоса — расчётная сетка и подписана честно`() {
+        val t = строки(полотно()).getValue("PW-9001")
+        assertFalse(t.path("planned").asBoolean())
+        assertTrue("план не задан" in t.path("window_why").asText() ||
+            "Планов пока нет" in t.path("window_why").asText()) {
+            "фикция долей не выдаётся за план: ${t.path("window_why").asText()}"
+        }
     }
 
     @Test
     fun `просроченный план — окантовка, а ждущая задача с далёкой точкой не красная`() {
         val далёкая = строки(полотно()).getValue("PW-9002")
         assertFalse(далёкая.has("alarm")) { "точка через полгода — тревоги нет" }
-        assertFalse(далёкая.path("custom_class").asText().contains("alarm"))
 
         val вчера = LocalDate.now().minusDays(1)
-        val t = строки(поставить("PW-9001", вчера.minusDays(10).toString(), вчера.toString()))
+        val t = строки(поставить("PW-9001#0", вчера.minusDays(10).toString(), вчера.toString()))
             .getValue("PW-9001")
         assertTrue(t.path("alarm").asText().contains("плановый конец")) { t.path("alarm").asText() }
-        assertTrue(t.path("custom_class").asText().endsWith("-alarm")) { t.path("custom_class").asText() }
+        assertEquals("pw-summary-alarm", t.path("custom_class").asText())
     }
 
     @Test
     fun `конфликт плана подсвечен с обеих сторон, соседей никто не двигал`() {
-        поставить("PW-9001", "2027-03-01", "2027-04-01")
-        val было = строки(полотно()).getValue("PW-9001").let {
+        поставить("PW-9001#0", "2027-03-01", "2027-04-01")
+        val было = строки(полотно()).getValue("PW-9001#0").let {
             it.path("start").asText() to it.path("end").asText()
         }
-        // преемник начинается раньше, чем кончается предшественник
-        val v = поставить("PW-9002", "2027-03-10", "2027-03-20")
+        val v = поставить("PW-9002#0", "2027-03-10", "2027-03-20")
         val предшественник = строки(v).getValue("PW-9001")
         val преемник = строки(v).getValue("PW-9002")
         assertTrue(преемник.path("conflict").asBoolean()) { "конфликт обязан быть виден" }
         assertTrue(предшественник.path("conflict").asBoolean()) { "и со стороны предшественника тоже" }
-        assertEquals("pw-conflict", преемник.path("custom_class").asText())
         assertEquals(
             было,
-            предшественник.path("start").asText() to предшественник.path("end").asText(),
+            строки(v).getValue("PW-9001#0").let { it.path("start").asText() to it.path("end").asText() },
         ) { "автосдвига соседей нет: план предшественника остался как был" }
     }
 
     @Test
     fun `точки фазы приходят полосами нулевой длины ромбами`() {
-        val точка = строки(полотно()).getValue("gate:MCR")
-        assertEquals("pw-ms", точка.path("custom_class").asText())
-        assertEquals(точка.path("start").asText(), точка.path("end").asText()) {
+        val точкаСтрока = строки(полотно()).getValue("gate:MCR")
+        assertEquals("pw-ms", точкаСтрока.path("custom_class").asText())
+        assertEquals(точкаСтрока.path("start").asText(), точкаСтрока.path("end").asText()) {
             "веха — полоса нулевой длины: ромб рисует CSS"
         }
-        assertEquals("gate", точка.path("kind").asText())
+        assertEquals(1, полотно().path("milestone_lines").size()) { "и вертикаль через полотно" }
     }
 
     @Test
@@ -170,99 +291,49 @@ class PhaseGanttTest {
         boundary.auth.createUser("chief", "парольшефа", "Чернов Д.")
         boundary.auth.setRole("PJ-2101", "ivan", "specialist")
         val e = assertThrows<PhaseGantt.RightDeniedException> {
-            поставить("PW-9001", "2027-01-11", "2027-02-02", author = "Иванов", login = "ivan")
+            поставить("PW-9001#0", "2027-01-11", "2027-02-02", author = "Иванов", login = "ivan")
         }
         assertTrue(e.message!!.contains("руководитель")) { "отказ обязан называть право: ${e.message}" }
-        assertFalse(строки(полотно("ivan")).getValue("PW-9001").path("planned").asBoolean())
+        assertFalse(строки(полотно("ivan")).getValue("PW-9001#0").path("planned").asBoolean())
         assertFalse(полотно("ivan").path("can_plan").asBoolean()) { "экран обязан знать право заранее" }
 
         boundary.auth.setRole("PJ-2101", "chief", "lead")
-        поставить("PW-9001", "2027-01-11", "2027-02-02", author = "Чернов", login = "chief")
-        assertTrue(строки(полотно("chief")).getValue("PW-9001").path("planned").asBoolean())
-    }
-
-    // ---- Круг 6: связи типами, вехи вертикалями, шаги подзадачами ----
-
-    @Test
-    fun `связь приходит типом и словами, а стрелку рисует библиотека`() {
-        val v = полотно()
-        val связь = v.path("links").first { it.path("to").asText() == "PW-9002" }
-        assertEquals("FS", связь.path("type").asText())
-        assertTrue("после окончания" in связь.path("words").asText()) {
-            "тип связи обязан звучать словами: ${связь.path("words").asText()}"
-        }
-        // библиотеке по-прежнему отдаётся простой список — рисует она сама
-        assertEquals("PW-9001", строки(v).getValue("PW-9002").path("dependencies").asText())
-    }
-
-    @Test
-    fun `конфликт плана считается по типу связи, а не одним законом`() {
-        // SS: конфликт — когда преемник начинается раньше СТАРТА предшественника
-        TestDb.truncateAll()
-        clean()
-        boundary.ingest(
-            CoreType.PhaseTask,
-            задача("PW-9003", 3, "Параллельная", depends = "PW-9001", тип = "SS", выходВид = "conops"),
-            "test", ObjectStore.LIBRARY_PROJECT,
-        )
-        поставить("PW-9001", "2027-03-10", "2027-04-01")
-        val ссКонфликт = строки(поставить("PW-9003", "2027-03-01", "2027-03-20"))
-        assertTrue(ссКонфликт.getValue("PW-9003").path("conflict").asBoolean()) {
-            "SS сравнивает СТАРТЫ: начать раньше предшественника нельзя"
-        }
-        // тот же план при FS-связи конфликтом бы не был только по концу —
-        // проверяем, что INPUT сроков не касается вовсе
-        val input = полотно().path("links").firstOrNull { it.path("type").asText() == "INPUT" }
-        assertTrue(input == null || !input.path("conflict").asBoolean()) {
-            "INPUT — условие готовности, а не срок: конфликта дат у него не бывает"
-        }
-    }
-
-    @Test
-    fun `вехи приходят вертикалями полотна, а не только ромбами`() {
-        val линии = полотно().path("milestone_lines")
-        assertEquals(1, линии.size())
-        assertEquals("MCR", линии[0].path("name").asText())
-        assertTrue(линии[0].path("date").asText().isNotBlank())
-    }
-
-    @Test
-    fun `шаги приходят подзадачами при раскрытии, планов им не заводят`() {
-        val свёрнуто = полотно()
-        assertTrue(свёрнуто.path("tasks").none { it.path("kind").asText() == "step" }) {
-            "по умолчанию шаги свёрнуты: полотно не обязано быть простынёй"
-        }
-        val раскрыто = PhaseGantt.toJson(boundary, "PJ-2101", null, setOf("PW-9001"))
-        val шаги = раскрыто.path("tasks").filter { it.path("kind").asText() == "step" }
-        assertEquals(1, шаги.size)
-        assertEquals("PW-9001", шаги[0].path("parent").asText())
-        assertTrue(шаги[0].path("name").asText().startsWith("— ")) { "шаг отбит в имени: ${шаги[0].path("name")}" }
-        assertTrue(шаги[0].path("custom_class").asText().startsWith("pw-step"))
-        assertTrue("не сроки" in шаги[0].path("window_why").asText()) {
-            "окно шага — порядок, а не срок: ${шаги[0].path("window_why").asText()}"
-        }
-        // строка шага идёт сразу за своей задачей: библиотека рисует порядком
-        val id = раскрыто.path("tasks").map { it.path("id").asText() }
-        assertEquals(id.indexOf("PW-9001") + 1, id.indexOf("PW-9001#0"))
-        // ловушка 2: планов шагам не заводят
-        val e = assertThrows<IllegalArgumentException> {
-            PhaseGantt.plan(
-                boundary, "PJ-2101",
-                mapper.readTree("""{"task":"PW-9001#0","start":"2027-01-01","end":"2027-01-05"}"""),
-                "Чернов", null,
-            )
-        }
-        assertTrue("шагам не заводят" in e.message!!) { e.message!! }
+        поставить("PW-9001#0", "2027-01-11", "2027-02-02", author = "Чернов", login = "chief")
+        assertTrue(строки(полотно("chief")).getValue("PW-9001#0").path("planned").asBoolean())
     }
 
     @Test
     fun `план снимается — полоса возвращается в расчётную сетку`() {
-        поставить("PW-9001", "2027-01-11", "2027-02-02")
+        поставить("PW-9001#0", "2027-01-11", "2027-02-02")
         val v = PhaseGantt.plan(
-            boundary, "PJ-2101", mapper.readTree("""{"task":"PW-9001","clear":true}"""), "Чернов", null,
+            boundary, "PJ-2101", mapper.readTree("""{"task":"PW-9001#0","clear":true}"""), "Чернов", null,
         )
-        val t = строки(v).getValue("PW-9001")
-        assertFalse(t.path("planned").asBoolean())
-        assertEquals("pw-grid", t.path("custom_class").asText())
+        val шаг = строки(v).getValue("PW-9001#0")
+        assertFalse(шаг.path("planned").asBoolean())
+        assertEquals("pw-step", шаг.path("custom_class").asText())
     }
+
+    // ---- фикстуры --------------------------------------------------------
+
+    private fun проект() = boundary.ingest(
+        CoreType.Project,
+        """{"id":"PJ-2101","name":"Гант","phase":"pre_phase_a",
+            "mission_intent":{"text":"Группировка IoT для логистики."},
+            "milestones":[{"gate":"MCR","due":"$точка"}],
+            "lifecycle":{"status":"Draft","version":"1"}}""",
+        "test", "PJ-2101",
+    )
+
+    /** Задача 1 регламента в миниатюре: 1.1 и 1.2 параллельны, 1.3 — после. */
+    private fun задачаСТремяШагами() = задача(
+        "PW-9001", 1, "Развёртывание",
+        шаги = """
+            {"title":"Орг-структура","screen":"stakeholders",
+             "done_when":{"check":"objects","type":"stakeholder"}},
+            {"title":"SEMP по шаблону","screen":"docs","after":[{"step":1,"type":"SS"}],
+             "done_when":{"check":"document_issued","code":"semp"}},
+            {"title":"Базировать","screen":"lifecycle",
+             "after":[{"step":1,"type":"FS"},{"step":2,"type":"FS"}],
+             "done_when":{"check":"objects","type":"mission_goal"}}""",
+    )
 }

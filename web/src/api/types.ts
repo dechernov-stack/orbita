@@ -994,6 +994,11 @@ export interface PhaseGanttView {
   total?: number
   /** Круг 6: вехи вертикалями полотна — подсветкой колонок библиотеки. */
   milestone_lines?: Array<{ date: string; name: string }>
+  /** Круг 7: фаза делится точками на интервалы, ромб — конец своего. */
+  phase_start?: string
+  /** Режим шкалы по длине фазы: считает сервер, клиент не гадает. */
+  view_mode?: string
+  intervals?: Array<{ gate: string; from: string; to: string }>
   /** Даты вех разошлись с порядком прохождения — молчать об этом нельзя. */
   gate_conflict?: string
   /** Связи с ТИПОМ: библиотека рисует одну стрелку, тип приходит отдельно. */
@@ -1013,11 +1018,14 @@ export interface PhaseGanttView {
     why?: string; planned?: boolean; plan_author?: string
     gaps?: number; steps_done?: number; steps_total?: number
     tier?: number; tiers?: number; gate?: string; waits_on?: string
-    artifact?: string; alarm?: string; conflict?: boolean; expanded?: boolean
+    artifact?: string; alarm?: string; conflict?: boolean
+    /** Круг 7: полоса задачи с шагами — сводная, её не тянут. */
+    summary?: boolean; collapsed?: boolean; gate_overrun?: string
     /** точка */
     held?: boolean
-    /** шаг (круг 6): подзадача задачи-родителя, планов ему не заводят */
+    /** шаг (круг 6–7): полноправная строка «N.M», план ставится ей */
     parent?: string; step_index?: number; done?: boolean; hint?: string; tally?: string
+    number?: string
     links?: Array<{ type: string; words: string }>
     window_why: string
   }>

@@ -1577,6 +1577,34 @@ details.np-dates[open] summary::before { transform: rotate(90deg); }
   fill: var(--container-2); stroke: var(--status-approved); stroke-width: 2; stroke-dasharray: 6 3;
 }
 
+/* Круг 7: сводная полоса задачи — тонкая тёмная скобка, как в любом Ганте.
+   Её не тянут: план ставится шагам, а она из них вычисляется. */
+.pw-gt .pw-summary .bar, .pw-gt .pw-summary-alarm .bar, .pw-gt .pw-summary-conflict .bar {
+  /* сдвиг — ОТНОСИТЕЛЬНЫЙ: абсолютная координата y собрала бы все сводные
+     полосы в одну строку у верхнего края полотна */
+  fill: var(--rail); stroke: none; height: 9px;
+  transform: translateY(6px); transform-box: fill-box;
+}
+.pw-gt .pw-summary-alarm .bar { fill: var(--status-error); }
+.pw-gt .pw-summary-conflict .bar { fill: var(--status-approved); }
+.pw-gt .pw-summary .handle-group,
+.pw-gt .pw-summary-alarm .handle-group,
+.pw-gt .pw-summary-conflict .handle-group { display: none; }
+.pw-gt .pw-summary .bar-label, .pw-gt .pw-summary-alarm .bar-label,
+.pw-gt .pw-summary-conflict .bar-label { fill: var(--text); font-weight: 600; }
+
+/* Точка, за которую уходит чья-то задача, — конфликт: ромб красным */
+.pw-gt .pw-ms-conflict .bar {
+  width: 15px; height: 15px; fill: var(--status-error); stroke: none;
+  transform: translate(-7px, 3px) rotate(45deg); transform-box: fill-box; transform-origin: center;
+}
+.pw-gt .pw-ms-conflict .handle-group { display: none; }
+.pw-gt .pw-ms-conflict .bar-label { fill: var(--status-error); font-weight: 600; }
+
+/* Шаг с планом — сплошной: план человека виден так же, как у задач */
+.pw-gt .pw-step-plan .bar { fill: #cfe0f8; stroke: var(--accent); }
+.pw-gt .pw-step-plan .bar-label { fill: var(--text); }
+
 /* Круг 6: шаги подзадачами — тонкие серые полосы. Это ПОРЯДОК, а не сроки,
    и выглядеть они обязаны иначе, чем полосы задач с планом. */
 .pw-gt .pw-step .bar, .pw-gt .pw-step-done .bar {
