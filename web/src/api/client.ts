@@ -693,6 +693,12 @@ export const api = {
       id: string; takers: number; note: string
       projects: Array<{ project: string; name: string; objects: number; ids: string[] }>
     }>(`/views/library/usage?id=${encodeURIComponent(id)}`),
+  /** Носители, названные в нуждах словами, — объектами проекта: имя из
+   *  документа, роль называет инженер. */
+  stakeholdersFromNeeds: (carriers: Array<{ name: string; role: string }>, author: string) =>
+    post<{ count: number; created: Array<{ id: string; name: string; role: string; needs: number }> }>(
+      '/views/stakeholders/from-needs', { carriers, author },
+    ),
   /** Ф-14: обобщить проектного стейкхолдера в профиль полки А2 — со следом. */
   generalizeStakeholder: (id: string, author: string) =>
     post<{ profile: string; from: string; project: string; note: string }>(

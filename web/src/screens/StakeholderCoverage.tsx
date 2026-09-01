@@ -43,6 +43,9 @@ export function StakeholderCoverage({ onGo }: {
   const [note, setNote] = useState<string | null>(null)
   // выбор носителя для нужды: назначение делается на месте, где виден разрыв
   const [carrier, setCarrier] = useState<Record<string, string>>({})
+  // роли для носителей, названных в нуждах словами: имя — факт документа,
+  // роль — решение инженера, выдумывать её система не вправе
+  const [roleFor, setRoleFor] = useState<Record<string, string>>({})
   const [busy, setBusy] = useState(false)
 
   /**
@@ -51,6 +54,34 @@ export function StakeholderCoverage({ onGo }: {
    * там делать (наблюдение живого прохода). Связь ставится там, где виден
    * разрыв, и матрица пересчитывается сразу.
    */
+  /**
+   * Завести стейкхолдеров из имён, УЖЕ НАЗВАННЫХ в нуждах словами.
+   *
+   * Первый вариант экрана предлагал выбрать носителя из списка — а список
+   * был пуст, потому что стейкхолдеров в проекте нет вовсе: выбирать не из
+   * чего, и «назвать» не работало ни для одной нужды (наблюдение живого
+   * прохода). Имена при этом лежат в самих нуждах: «Минтранс России»,
+   * «АО ГЛОНАСС». Система заводит их объектами и связывает нужды разом.
+   */
+  const завестиНосителей = async (имена: string[]) => {
+    if (!author) return
+    const carriers = имена
+      .filter((имя) => (roleFor[имя] ?? '').length > 0)
+      .map((имя) => ({ name: имя, role: roleFor[имя] }))
+    if (carriers.length === 0) return
+    setBusy(true)
+    setNote(null)
+    try {
+      const r = await api.stakeholdersFromNeeds(carriers, author)
+      setNote(`заведено носителей: ${r.count}; связано нужд: ${r.created.reduce((a, c) => a + c.needs, 0)}`)
+      await api.stakeholderCoverage().then(setView)
+    } catch (e) {
+      setNote(String(e))
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const назначить = async (needId: string) => {
     const skId = carrier[needId]
     if (!skId || !author) return
@@ -195,6 +226,61 @@ export function StakeholderCoverage({ onGo }: {
           </table></div>
         </div>
       ))}
+
+      {/* Носители названы в нуждах словами — система заводит их объектами.
+          Имя берётся из документа, роль называет инженер: выдумывать роль
+          система не вправе, а перепечатывать имена ему незачем. */}
+      {view.rows.length === 0 && view.without_stakeholder.length > 0 && (
+        <div className="card">
+          <h4 style={{ margin: '0 0 6px' }}>Носители, названные в нуждах</h4>
+          <p className="secondary" style={{ marginTop: 0 }}>
+            Стейкхолдеров в проекте нет, но в нуждах носители уже названы словами.
+            Назовите роль каждому — и он станет объектом проекта, а его нужды свяжутся сами.
+          </p>
+          {note && <div className="secondary" style={{ marginBottom: 6 }}>{note}</div>}
+          <div style={{ overflowX: 'auto' }}>
+            <table className="grid">
+              <thead>
+                <tr><th>Кто назван</th><th style={{ width: 90 }}>Нужд</th><th style={{ width: 210 }}>Роль в проекте</th></tr>
+              </thead>
+              <tbody>
+                {[...new Set(view.without_stakeholder.map((it) => it.named).filter(Boolean))].map((имя) => (
+                  <tr key={имя}>
+                    <td className="wrap">{имя}</td>
+                    <td className="num">
+                      {view.without_stakeholder.filter((it) => it.named === имя).length}
+                    </td>
+                    <td>
+                      <select value={roleFor[имя!] ?? ''} style={{ width: '100%' }}
+                        title="роль называет инженер: заказчик, регулятор, оператор, потребитель, поставщик, партнёр либо учреждаемая организация"
+                        onChange={(e) => setRoleFor((p) => ({ ...p, [имя!]: e.target.value }))}>
+                        <option value="">— роль —</option>
+                        {Object.entries(ROLE_LABEL).map(([k, v]) => (
+                          <option key={k} value={k}>{v}</option>
+                        ))}
+                      </select>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="np-actions" style={{ marginTop: 6 }}>
+            <button className="np-btn np-pri" disabled={busy || !author
+              || Object.values(roleFor).filter(Boolean).length === 0}
+              title={!author
+                ? 'представьтесь в шапке: объекты пишутся на автора'
+                : Object.values(roleFor).filter(Boolean).length === 0
+                  ? 'назовите роль хотя бы одному носителю'
+                  : 'завести отмеченных носителей объектами и связать их нужды'}
+              onClick={() => void завестиНосителей(
+                [...new Set(view.without_stakeholder.map((it) => it.named).filter(Boolean))] as string[],
+              )}>
+              {busy ? 'Завожу…' : `Завести носителей (${Object.values(roleFor).filter(Boolean).length})`}
+            </button>
+          </div>
+        </div>
+      )}
 
       {view.without_stakeholder.length > 0 && (
         <div className="card">

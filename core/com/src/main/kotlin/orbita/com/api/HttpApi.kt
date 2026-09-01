@@ -3557,6 +3557,53 @@ class HttpApi(private val boundary: Boundary) {
                 respond(ex, 200, out)
             }
 
+            // Носители, названные в нуждах СЛОВАМИ, — в объекты проекта.
+            // Имя берётся из документа (факт), роль называет инженер (решение):
+            // выдумывать роль нельзя, а заставлять перепечатывать имена,
+            // которые уже написаны в нуждах, — незачем.
+            method == "POST" && path == "/views/stakeholders/from-needs" -> {
+                val req = mapper.readTree(body(ex))
+                val by = author(req)
+                require(by.isNotBlank()) { "TZ-COM-005: field 'author' is required for editing" }
+                val ctx = requireProject(project)
+                val создано = mapper.createArrayNode()
+                req.path("carriers").forEach { c ->
+                    val имя = c.path("name").asText("").trim()
+                    val роль = c.path("role").asText("").trim()
+                    if (имя.isBlank() || роль.isBlank()) return@forEach
+                    val doc = mapper.createObjectNode()
+                    doc.put("name", имя)
+                    doc.put("role", роль)
+                    doc.put(
+                        "interest",
+                        "назван носителем нужд проекта; интерес уточняется инженером",
+                    )
+                    val stored = boundary.editing.create(CoreType.Stakeholder, doc, by, ctx)
+                    // связываем те нужды, где это имя названо словами
+                    var связано = 0
+                    boundary.objects.listCurrent(ctx)
+                        .filter { it.type == "need" && it.status != Lifecycle.Cancelled }
+                        .filter { it.doc.path("stakeholder_ref").asText("").isBlank() }
+                        .filter { it.doc.path("stakeholder").path("name").asText("") == имя }
+                        .forEach { нужда ->
+                            val changes = mapper.createObjectNode()
+                            changes.put("stakeholder_ref", stored.id)
+                            boundary.editing.update(
+                                CoreType.Need, нужда.id, changes, нужда.version, by,
+                                changeRef = "носитель нужды назван объектом: ${stored.id}",
+                            )
+                            связано += 1
+                        }
+                    создано.addObject()
+                        .put("id", stored.id).put("name", имя).put("role", роль)
+                        .put("needs", связано)
+                }
+                val out = mapper.createObjectNode()
+                out.set<ArrayNode>("created", создано)
+                out.put("count", создано.size())
+                respond(ex, 201, out)
+            }
+
             // Ф-14: второй конец контура библиотеки. Ш2 берёт типовое с полки
             // в проект; здесь проектный факт ОБОБЩАЕТСЯ в шаблон полки —
             // отдельным осознанным действием, со следом «обобщено из PJ-…».
