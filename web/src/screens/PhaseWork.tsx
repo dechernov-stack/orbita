@@ -10,6 +10,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import type { PhaseWorkView, PhaseWorkTask } from '../api/types'
 import { Tooltip } from '../ui/Tooltip'
+import { PhaseFlow } from './PhaseFlow'
 
 const STATUS_LABEL: Record<string, string> = {
   in_progress: 'В работе',
@@ -20,14 +21,16 @@ const STATUS_LABEL: Record<string, string> = {
 
 const STATUS_ORDER = ['in_progress', 'available', 'waiting', 'done']
 
-export function PhaseWork({ onGo, onLead }: {
+export function PhaseWork({ onGo, onLead, here }: {
   onGo: (screen: string, kind?: string, doc?: string) => void
   /** Круг 3: открыть задачу в рамке ведения — режим работы, а не переход. */
   onLead?: (taskId: string) => void
+  /** Круг 4: «вы здесь» — задача, открытая в рамке ведения. */
+  here?: string
 }) {
   const [view, setView] = useState<PhaseWorkView | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [tab, setTab] = useState<'lane' | 'list'>('lane')
+  const [tab, setTab] = useState<'lane' | 'list' | 'flow'>('lane')
   const [open, setOpen] = useState<string | null>(null)
 
   useEffect(() => {
@@ -65,8 +68,14 @@ export function PhaseWork({ onGo, onLead }: {
           title="список: та же работа группами статуса">
           Список
         </button>
+        <button className={`tab${tab === 'flow' ? ' tab--primary' : ''}`} onClick={() => setTab('flow')}
+          title="схема: как течёт работа — артефакты между задачами и точками">
+          Схема
+        </button>
       </div>
-      {tab === 'lane' ? <Lane view={view} onOpen={setOpen} /> : <List view={view} onOpen={setOpen} />}
+      {tab === 'lane' ? <Lane view={view} onOpen={setOpen} />
+        : tab === 'list' ? <List view={view} onOpen={setOpen} />
+          : <PhaseFlow here={here} onOpenTask={onLead} onGo={onGo} />}
     </>
   )
 }

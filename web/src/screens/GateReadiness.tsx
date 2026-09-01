@@ -44,8 +44,14 @@ function shortDate(iso?: string): string | null {
   return m ? `${m[3]}.${m[2]}.${m[1]}` : null
 }
 
-export function GateReadiness({ project, onGo }: {
+export function GateReadiness({ project, gate, onGo }: {
   project: string
+  /**
+   * Круг 4: точка, названная переходом (клик ромба на схеме потока). Без неё
+   * экран открывает ближайшую непройденную — «готовность SDR» вела бы к SRR
+   * и врала бы молча.
+   */
+  gate?: string
   onGo: (screen: string) => void
 }) {
   const { author } = useSession()
@@ -111,7 +117,7 @@ export function GateReadiness({ project, onGo }: {
   )
 
   const load = useCallback(() => {
-    api.gateReadiness()
+    api.gateReadiness(gate)
       .then((v) => {
         setView(v)
         // закрытые группы схлопнуты по умолчанию; «Блокирует» всегда раскрыта
@@ -126,7 +132,7 @@ export function GateReadiness({ project, onGo }: {
         setActiveReturn(doc.return ?? null)
       })
       .catch(() => setActiveReturn(null))
-  }, [project])
+  }, [project, gate])
   useEffect(load, [load])
 
   // свежесть перечня: инженер вернулся чинить — перечень пересчитался

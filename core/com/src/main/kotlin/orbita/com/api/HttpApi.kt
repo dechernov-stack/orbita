@@ -3306,15 +3306,8 @@ class HttpApi(private val boundary: Boundary) {
         Regex("^/gates/([^/]+)/$action$").find(path)?.groupValues?.get(1)
             ?.let { java.net.URLDecoder.decode(it, Charsets.UTF_8) }
 
-    /** Показ автора (круг 2 портфеля §1.3): карта авторов → учётка → имя;
-     * «system» на экраны не выходит — безымянный служебный след. */
-    private fun humanAuthor(name: String): String {
-        val login = boundary.auth.authorMap()[name]
-            ?: name.takeIf { boundary.auth.displayNameOf(it) != null }
-        val display = login?.let { boundary.auth.displayNameOf(it) }
-        return display
-            ?: if (orbita.req.ServiceAuthors.isService(name)) "служебная запись" else name
-    }
+    /** Показ автора: правило одно на систему и живёт на границе модуля. */
+    private fun humanAuthor(name: String): String = boundary.humanAuthor(name)
 
     private fun author(request: JsonNode): String =
         currentAuthor.get()
@@ -3804,6 +3797,12 @@ class HttpApi(private val boundary: Boundary) {
             // разрезом и окнами ленты. Всё вычисляется — ручного нет ничего.
             method == "GET" && path == "/views/phase-work" ->
                 respond(ex, 200, PhaseWork.toJson(boundary, requireProject(project)))
+
+            // Круг 4: схема — карта потока фазы. Узлы-задачи, рёбра-артефакты,
+            // точки ромбами с процентом ИЗ готовности. Раскладка вычисляется
+            // каждый раз: сохранённых координат у схемы нет.
+            method == "GET" && path == "/views/phase-flow" ->
+                respond(ex, 200, PhaseFlow.toJson(boundary, requireProject(project)))
 
             // Ф-12: проводник постановки — сквозная цепочка со счётчиками и
             // первым несделанным звеном. Куда идти дальше, знает система.

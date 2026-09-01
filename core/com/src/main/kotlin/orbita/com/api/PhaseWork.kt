@@ -67,7 +67,28 @@ object PhaseWork {
         val tier: Int,
         /** Сколько ярусов в интервале этой точки — знаменатель доли. */
         val tiers: Int,
+        /**
+         * Круг 4, поток: от кого пришёл вход и кто ждёт выход. Держится
+         * здесь, а не считается заново схемой: «как течёт» и «что делать» —
+         * одна и та же цепочка зависимостей, второй её копии не заводится.
+         */
+        val dependsOn: List<String>,
+        val consumers: List<String>,
+        val inputs: List<InputState>,
+        /** Код документа выхода — по нему артефакт открывается с ребра схемы. */
+        val documentCode: String?,
+        val maturity: String?,
+        /**
+         * Чего задача КАСАЕТСЯ: виды объектов и коды документов, названные её
+         * же условиями. По ним берётся последняя активность на схеме — счёт
+         * тот же самый, что у сделанности шага и мини-итога.
+         */
+        val touchesTypes: List<String>,
+        val touchesCodes: List<String>,
     )
+
+    /** Условие входа задачи: как называется человеку и выполнено ли оно. */
+    data class InputState(val label: String, val ready: Boolean)
 
     /**
      * Условие полки → да/нет по состоянию проекта. Набор закрытый: система
@@ -172,6 +193,12 @@ object PhaseWork {
             }
         }
 
+    /** Все условия задачи одним списком: вход, шаги, выход. */
+    private fun conditionsOf(doc: JsonNode): List<JsonNode> =
+        doc.path("input").toList() +
+            doc.path("steps").map { it.path("done_when") } +
+            listOf(doc.path("output").path("done_when"))
+
     fun of(boundary: Boundary, projectId: String): List<TaskState> {
         val passport = boundary.objects.current(projectId)?.doc ?: mapper.createObjectNode()
         val phase = passport.path("phase").asText("pre_phase_a")
@@ -272,9 +299,22 @@ object PhaseWork {
                 tight = end != null && !outputDone && tightness(end),
                 tier = 1,
                 tiers = 1,
+                dependsOn = doc.path("depends_on").map { it.asText() }.filter { it in byId },
+                consumers = emptyList(),
+                inputs = inputs.map { InputState(labelOf(it), holds(it, own, passport, gateChecks, issued)) },
+                documentCode = doc.path("output").path("document_code").asText("").ifBlank { null },
+                maturity = doc.path("output").path("maturity").asText("").ifBlank { null },
+                touchesTypes = conditionsOf(doc)
+                    .mapNotNull { it.path("type").asText("").ifBlank { null } }.distinct(),
+                touchesCodes = conditionsOf(doc)
+                    .mapNotNull { it.path("code").asText("").ifBlank { null } }.distinct(),
             )
         }
-        return withTiers(states.values.toList(), byId)
+        // потребители — обратная сторона той же зависимости, не второй список
+        val withConsumers = states.values.map { t ->
+            t.copy(consumers = states.values.filter { t.id in it.dependsOn }.map { it.id })
+        }
+        return withTiers(withConsumers, byId)
     }
 
     /**
@@ -324,8 +364,56 @@ object PhaseWork {
         return runCatching { LocalDate.parse(text) }.getOrNull()
     }
 
+    /**
+     * Круг 4, нить потока: вход · выход · потребители одной задачи. Рамка
+     * ведения перестаёт быть туннелем — видно, откуда пришёл и кого кормишь.
+     * Собирается из тех же зависимостей, что рисуют схему: одна цепочка.
+     */
+    fun flowOf(task: TaskState, byId: Map<String, TaskState>): ObjectNode {
+        val flow = mapper.createObjectNode()
+        val inArr = flow.putArray("in")
+        task.dependsOn.mapNotNull { byId[it] }.forEach { pred ->
+            inArr.addObject()
+                .put("kind", "task")
+                .put("id", pred.id)
+                .put("order", pred.order)
+                .put("name", pred.name)
+                .put("artifact", pred.artifact)
+                .put("ready", pred.outputDone)
+        }
+        task.inputs.forEach { c ->
+            inArr.addObject().put("kind", "condition").put("name", c.label).put("ready", c.ready)
+        }
+        val out = flow.putObject("out")
+        out.put("artifact", task.artifact)
+        task.documentCode?.let { out.put("document_code", it) }
+        task.gate?.let { out.put("gate", it) }
+        task.maturity?.let { out.put("maturity", it) }
+        out.put("ready", task.outputDone)
+        out.put(
+            "state",
+            when {
+                task.outputDone -> if (task.maturity == "baseline") "базирован" else "готов"
+                else -> "не готов"
+            },
+        )
+        val cons = flow.putArray("consumers")
+        task.consumers.mapNotNull { byId[it] }.forEach { next ->
+            cons.addObject()
+                .put("kind", "task")
+                .put("id", next.id)
+                .put("order", next.order)
+                .put("name", next.name)
+        }
+        task.gate?.let { g ->
+            cons.addObject().put("kind", "gate").put("gate", g).put("name", "пакет $g")
+        }
+        return flow
+    }
+
     fun toJson(boundary: Boundary, projectId: String): ObjectNode {
         val tasks = of(boundary, projectId)
+        val byId = tasks.associateBy { it.id }
         val passport = boundary.objects.current(projectId)?.doc ?: mapper.createObjectNode()
         // Геометрия ленты — тоже расчёт, и место ему на сервере: клиент
         // рисует полосу по готовым долям, а не делит даты сам.
@@ -462,6 +550,7 @@ object PhaseWork {
             }
             val gaps = n.putArray("gaps")
             t.gaps.forEach { gaps.add(it) }
+            n.set<ObjectNode>("flow", flowOf(t, byId))
         }
         return out
     }

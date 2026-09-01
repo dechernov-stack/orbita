@@ -300,7 +300,7 @@ export function App() {
               onLoadFile={() => { setFirstRun(false); setScreen('importb') }}
               onStart={() => { setScreen('startpath'); loadHeader() }} />
       case 'phasework':
-        return <ScreenFrame title="Работа фазы"><PhaseWork onGo={go} onLead={вестиЗадачу} /></ScreenFrame>
+        return <ScreenFrame title="Работа фазы"><PhaseWork onGo={go} onLead={вестиЗадачу} here={frame?.task} /></ScreenFrame>
       case 'projreg': return <KindRegistry key={screen} kinds={['project']} title="Паспорт проекта" />
       case 'shelves': return <Shelves key={screen} />
       case 'inspection':
@@ -367,7 +367,7 @@ export function App() {
       case 'compare': return <ScreenFrame title="Сравнение вариантов"><Comparison /></ScreenFrame>
       case 'readiness':
         return project
-          ? <GateReadiness project={project} onGo={go} />
+          ? <GateReadiness key={pendingDoc ?? 'next'} project={project} gate={pendingDoc} onGo={go} />
           : <Portfolio onOpen={() => setScreen('lifecycle')}
               onNew={() => { setFirstRun(false); setScreen('newproject') }}
               onLoadFile={() => { setFirstRun(false); setScreen('importb') }}
@@ -478,7 +478,8 @@ export function App() {
               onStep={(i) => открытьШаг(frameTask, i)}
               onExit={() => { setFrame(null); setFrameTask(null); go('phasework') }}
               onAdvance={() => обновитьРамку(true)}
-              onManualDone={() => обновитьРамку(false)} />
+              onManualDone={() => обновитьРамку(false)}
+              onOpenTask={вестиЗадачу} onGo={go} />
           )}
           {render()}
         </main>

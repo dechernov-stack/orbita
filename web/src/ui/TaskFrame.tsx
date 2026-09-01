@@ -13,7 +13,9 @@ import type { PhaseWorkView } from '../api/types'
 
 type Task = PhaseWorkView['items'][number]
 
-export function TaskFrameBar({ task, step, onStep, onExit, onAdvance, onManualDone, busy, author }: {
+export function TaskFrameBar({
+  task, step, onStep, onExit, onAdvance, onManualDone, busy, author, onOpenTask, onGo,
+}: {
   task: Task
   /** Текущий шаг (индекс): рамка ведёт по нему, а не по порядку экранов. */
   step: number
@@ -24,6 +26,9 @@ export function TaskFrameBar({ task, step, onStep, onExit, onAdvance, onManualDo
   onManualDone?: () => void
   busy?: boolean
   author?: string
+  /** Круг 4: нить потока — переход к соседям задачи по цепочке. */
+  onOpenTask?: (taskId: string) => void
+  onGo?: (screen: string, kind?: string, doc?: string) => void
 }) {
   const current = task.steps[step]
   const done = current?.done ?? false
@@ -79,6 +84,63 @@ export function TaskFrameBar({ task, step, onStep, onExit, onAdvance, onManualDo
       {current?.hint && (
         <div className="secondary" style={{ marginTop: 4 }}>{current.hint}</div>
       )}
+      {task.flow && <FlowThread task={task} onOpenTask={onOpenTask} onGo={onGo} />}
+    </div>
+  )
+}
+
+/**
+ * Круг 4, нить потока: «вход → задача → выход → кого кормит». Без неё рамка
+ * ведения — туннель: видно, что делать сейчас, и не видно, откуда пришёл и
+ * кто ждёт результата. Цепочка та же, что рисует схему: второй её копии нет.
+ */
+function FlowThread({ task, onOpenTask, onGo }: {
+  task: Task
+  onOpenTask?: (taskId: string) => void
+  onGo?: (screen: string, kind?: string, doc?: string) => void
+}) {
+  const flow = task.flow!
+  return (
+    <div className="fr-thread">
+      <span className="secondary">вход:</span>
+      {flow.in.length === 0 && <span className="secondary">условий нет</span>}
+      {flow.in.map((i) => (i.kind === 'task' && i.id
+        ? <button key={i.id} className="np-linkish" onClick={() => onOpenTask?.(i.id!)}
+            title={`${i.artifact ?? ''} — ${i.ready ? 'выход готов' : 'выход ещё не готов'}; вести задачу-предшественника`}>
+            {i.order} · {i.name} {i.ready ? '✓' : '…'}
+          </button>
+        : <span key={i.name} className="secondary"
+            title={i.ready ? 'условие входа выполнено' : 'условие входа ещё не выполнено'}>
+            {i.name} {i.ready ? '✓' : '…'}
+          </span>))}
+
+      <span className="fr-thread__arrow">→</span>
+      <b>{task.order} · {task.name}</b>
+      <span className="fr-thread__arrow">→</span>
+
+      <span className="secondary">выход:</span>
+      {flow.out.document_code && onGo
+        ? <button className="np-linkish" onClick={() => onGo('docs', undefined, flow.out.document_code)}
+            title={`открыть документ «${flow.out.artifact}»; состояние: ${flow.out.state}${
+              flow.out.maturity ? `, требуется ${flow.out.maturity}` : ''}`}>
+            {flow.out.artifact} ({flow.out.state})
+          </button>
+        : <span title={`состояние выхода: ${flow.out.state}`}>
+            {flow.out.artifact} ({flow.out.state})
+          </span>}
+
+      {flow.consumers.length > 0 && <span className="fr-thread__arrow">→</span>}
+      {flow.consumers.length > 0 && <span className="secondary">ждут:</span>}
+      {flow.consumers.map((c) => (c.kind === 'gate'
+        ? <button key={c.name} className="np-linkish"
+            onClick={() => onGo?.('readiness', undefined, c.gate)}
+            title="открыть готовность к точке: выход задачи зреет к ней">
+            ◆ {c.name}
+          </button>
+        : <button key={c.id} className="np-linkish" onClick={() => c.id && onOpenTask?.(c.id)}
+            title="вести задачу, которая ждёт этот выход">
+            {c.order} · {c.name}
+          </button>))}
     </div>
   )
 }

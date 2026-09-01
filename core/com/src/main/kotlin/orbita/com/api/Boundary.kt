@@ -355,6 +355,18 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
         const val SCHEMA_URI_PREFIX = "https://kis.local/schemas/"
     }
 
+    /**
+     * Показ автора (круг 2 портфеля §1.3) — ОДИН на систему: карта авторов →
+     * учётка → отображаемое имя. «system» на экраны не выходит: это
+     * безымянный служебный след, а не человек. Живёт здесь, потому что имена
+     * авторов показывает не только портфель — активность схемы потока тоже.
+     */
+    fun humanAuthor(name: String): String {
+        val login = auth.authorMap()[name] ?: name.takeIf { auth.displayNameOf(it) != null }
+        return login?.let { auth.displayNameOf(it) }
+            ?: if (orbita.req.ServiceAuthors.isService(name)) "служебная запись" else name
+    }
+
     private fun parse(json: String): JsonNode = registry.parse(json)
     /**
      * Фиксация версий входов сценария (V008, TZ-MOD-007): версию знает система,

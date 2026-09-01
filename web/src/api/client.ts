@@ -47,6 +47,7 @@ import type {
   LinkMappingView,
   ReviewChecklistView,
   PhaseWorkView,
+  PhaseFlowView,
   StakeholderCoverageView,
 } from './types'
 
@@ -491,7 +492,7 @@ export const api = {
   exportObjectsUrl: () => `/api${'/export/objects'}`,
 
   /** О-11: готовность точки — агрегаты группами, tailoring неприменимости. */
-  gateReadiness: () =>
+  gateReadiness: (gate?: string) =>
     get<{
       gate: string; label: string; due?: string
       open_total: number; blocking_open: number; total: number; na_total: number
@@ -503,7 +504,7 @@ export const api = {
           na_rationale?: string; na_author?: string; na_at?: string
         }>
       }>
-    }>('/views/gate-readiness'),
+    }>(`/views/gate-readiness${gate ? `?gate=${encodeURIComponent(gate)}` : ''}`),
   gateReadinessNa: (check: string, rationale: string, author: string) =>
     post<{ ok: boolean }>('/views/gate-readiness/na', { check, rationale, author }),
   gateReadinessNaRemove: (check: string, author: string) =>
@@ -720,6 +721,8 @@ export const api = {
   stakeholderCoverage: () => get<StakeholderCoverageView>('/views/stakeholder-coverage'),
   /** «Работа фазы»: задачи регламента со статусами, шагами и окнами — считает сервер. */
   phaseWork: () => get<PhaseWorkView>('/views/phase-work'),
+  /** Круг 4: схема потока фазы — узлы, рёбра-артефакты и точки с готовностью. */
+  phaseFlow: () => get<PhaseFlowView>('/views/phase-flow'),
   /** Инспекция обзора: чек-листы полки с состоянием пунктов. */
   reviewChecklist: (gate?: string) =>
     get<ReviewChecklistView>(`/views/review-checklist${gate ? `?gate=${encodeURIComponent(gate)}` : ''}`),

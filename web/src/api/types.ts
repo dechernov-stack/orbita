@@ -974,6 +974,45 @@ export interface PhaseWorkTask {
     done: boolean; why: string
   }>
   gaps: string[]
+  /** Круг 4: нить потока — вход, выход и потребители задачи. */
+  flow?: {
+    in: Array<{ kind: 'task' | 'condition'; id?: string; order?: number; name: string; artifact?: string; ready: boolean }>
+    out: { artifact: string; document_code?: string; gate?: string; maturity?: string; ready: boolean; state: string }
+    consumers: Array<{ kind: 'task' | 'gate'; id?: string; order?: number; name: string; gate?: string }>
+  }
+}
+
+/**
+ * Круг 4: схема потока фазы. Геометрия целиком приходит с сервера — узлы,
+ * ромбы точек и пути рёбер: раскладка вычисляется каждый раз и не хранится,
+ * рисовать её руками негде по построению.
+ */
+export interface PhaseFlowView {
+  phase: string
+  phase_label: string
+  empty_why?: string
+  width?: number
+  height?: number
+  nodes?: Array<{
+    kind: 'task' | 'gate' | 'cloud'
+    id: string
+    x: number; y: number; w: number; h: number
+    /** задача */
+    order?: number; name?: string; status?: string; why?: string
+    gaps?: number; steps_done?: number; steps_total?: number
+    artifact?: string; gate?: string; waits_on?: string
+    people?: Array<{ name: string; initials: string }>
+    activity?: { at: string; author: string; initials: string; what: string }
+    recent?: boolean
+    /** точка */
+    label?: string; pct?: number; note?: string; due?: string; blocking_open?: number
+    points?: string
+  }>
+  edges?: Array<{
+    from: string; to: string; kind: 'artifact' | 'gate' | 'cloud'
+    label?: string; full?: string; document_code?: string
+    ready: boolean; path: string; label_x?: number; label_y?: number
+  }>
 }
 
 export interface PhaseWorkView {
