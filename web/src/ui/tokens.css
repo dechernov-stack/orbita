@@ -1549,7 +1549,9 @@ details.np-dates[open] summary::before { transform: rotate(90deg); }
 
 .pw-gt .pw-available .bar { fill: #cfe0f8; stroke: var(--accent); }
 .pw-gt .pw-in_progress .bar { fill: var(--accent); }
-.pw-gt .pw-in_progress .bar-label { fill: #fff; }
+/* Белая подпись — только ВНУТРИ полосы: узкую полосу библиотека подписывает
+   снаружи (класс big), и белым по белому имя задачи исчезало бы. */
+.pw-gt .pw-in_progress .bar-label:not(.big) { fill: #fff; }
 .pw-gt .pw-waiting .bar { fill: var(--container-3); stroke: var(--hairline); }
 .pw-gt .pw-done .bar { fill: #cfe9d6; stroke: var(--status-baseline); }
 
@@ -1567,6 +1569,7 @@ details.np-dates[open] summary::before { transform: rotate(90deg); }
 .pw-gt .pw-waiting-alarm .bar { stroke: var(--status-error); stroke-width: 2; }
 .pw-gt .pw-available-alarm .bar { fill: #cfe0f8; }
 .pw-gt .pw-in_progress-alarm .bar { fill: var(--accent); }
+.pw-gt .pw-in_progress-alarm .bar-label:not(.big) { fill: #fff; }
 .pw-gt .pw-waiting-alarm .bar { fill: var(--container-3); }
 
 /* Конфликт плана со стрелкой: подсвечены обе стороны, двигает человек */
