@@ -21,9 +21,18 @@ export function selectProject(id: string | null) {
   }
 }
 
-/** Дописывает проект контекста в путь запроса. */
+/**
+ * Дописывает проект контекста в путь запроса.
+ *
+ * ЯВНО УКАЗАННЫЙ проект не перебивается: у библиотечной области свой
+ * контейнер (LIB), и запрос «дай профили полки» уже несёт его сам. Раньше
+ * обёртка добавляла второй параметр — `?project=LIB&project=PJ-0003` — и
+ * сервер брал последний: полка А2 показывалась пустой, хотя профили на ней
+ * лежали (находка живого прохода ПМИ-3).
+ */
 export function withProject(path: string): string {
   const project = currentProject()
   if (!project) return path
+  if (/[?&]project=/.test(path)) return path
   return path + (path.includes('?') ? '&' : '?') + 'project=' + encodeURIComponent(project)
 }

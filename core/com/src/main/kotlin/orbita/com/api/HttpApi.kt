@@ -4417,7 +4417,17 @@ class HttpApi(private val boundary: Boundary) {
         val provenance = doc.putObject("provenance")
         provenance.put("source", "manual")
         provenance.put("author", "обобщено из $projectId · ${sk.id} (автор: $by)")
-        val stored = boundary.editing.create(
+        // Профиль с таким же именем на полке уже есть — второй не заводим:
+        // шаблон один на класс миссии, а дубли полки хуже её отсутствия
+        // (в живом проходе «ТЭК» обобщился дважды и лёг двумя записями).
+        val имя = doc.path("name").asText("")
+        val существующий = boundary.objects
+            .listCurrent(orbita.mod.store.ObjectStore.LIBRARY_PROJECT)
+            .firstOrNull {
+                it.type == "stakeholder_profile" && it.status != Lifecycle.Cancelled &&
+                    it.doc.path("name").asText("") == имя
+            }
+        val stored = существующий ?: boundary.editing.create(
             orbita.mod.model.CoreType.StakeholderProfile, doc, by,
             orbita.mod.store.ObjectStore.LIBRARY_PROJECT,
         )

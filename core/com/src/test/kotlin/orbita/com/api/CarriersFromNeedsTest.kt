@@ -96,4 +96,37 @@ class CarriersFromNeedsTest {
             boundary.objects.listCurrent("PJ-1950").none { it.type == "stakeholder" },
         ) { "пустая роль не должна порождать стейкхолдера" }
     }
+
+    /**
+     * Живой проход: «ТЭК» обобщился дважды и лёг на полку двумя записями.
+     * Шаблон один на класс миссии — дубли полки хуже её отсутствия, потому
+     * что следующий проект берёт наугад один из двух.
+     */
+    @Test
+    fun `повторное обобщение не плодит профиль на полке`() {
+        post(
+            "/views/stakeholders/from-needs?project=PJ-1950",
+            """{"author":"инженер","carriers":[{"name":"Минтранс России","role":"customer"}]}""",
+        )
+        val sk = boundary.objects.listCurrent("PJ-1950").first { it.type == "stakeholder" }
+        post(
+            "/views/stakeholders/generalize-batch?project=PJ-1950",
+            """{"author":"инженер","ids":["${sk.id}"]}""",
+        )
+        // второй раз — тем же именем: профиль обязан остаться один
+        val ещё = boundary.editing.create(
+            CoreType.Stakeholder,
+            mapper.readTree("""{"name":"Минтранс России","role":"regulator"}"""),
+            "инженер", "PJ-1950",
+        )
+        post(
+            "/views/stakeholders/generalize-batch?project=PJ-1950",
+            """{"author":"инженер","ids":["${ещё.id}"]}""",
+        )
+        val профили = boundary.objects
+            .listCurrent(orbita.mod.store.ObjectStore.LIBRARY_PROJECT)
+            .filter { it.type == "stakeholder_profile" && it.doc.path("name").asText() == "Минтранс России" }
+        assertEquals(1, профили.size) { "на полке обязан остаться один шаблон: ${профили.map { it.id }}" }
+    }
 }
+
