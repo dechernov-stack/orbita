@@ -51,6 +51,15 @@ builder_state_gb() {
     | awk '{print int($1/1024)}' || echo 0
 }
 
+# Есть ли связь с реестром образов. Пересоздание сборщика стирает его кэш
+# базовых образов, и без сети собрать станет НЕЧЕМ: за место мы заплатим
+# невозможностью выката (наблюдение живого прогона — так и вышло).
+registry_reachable() {
+  curl -fsS -m 6 -o /dev/null https://registry-1.docker.io/v2/ 2>/dev/null && return 0
+  # 401 от реестра — это тоже связь: он отвечает, просто просит токен
+  [ "$(curl -s -m 6 -o /dev/null -w '%{http_code}' https://registry-1.docker.io/v2/ 2>/dev/null)" = "401" ]
+}
+
 builder_hygiene() {
   ensure_network
   if ! docker buildx inspect "$BUILDER" > /dev/null 2>&1; then
@@ -63,6 +72,11 @@ builder_hygiene() {
   free="$(df -g / | awk 'NR==2 {print $4}')"
   if [ "${gb:-0}" -ge "$BUILDER_STATE_HARD_GB" ] \
      || { [ "${gb:-0}" -ge "$BUILDER_STATE_LIMIT_GB" ] && [ "${free:-99}" -lt "$DISK_FREE_MIN_GB" ]; }; then
+    if ! registry_reachable; then
+      echo "==> Том сборщика ${gb} ГБ, но реестр образов недоступен — НЕ пересоздаю"
+      echo "    (без сети кэш базовых образов не восстановить, и собрать станет нечем)"
+      return
+    fi
     echo "==> Том сборщика ${gb} ГБ, свободно ${free} ГБ — пересоздаю $BUILDER"
     echo "    (следующая сборка тянет базовые слои заново — это надолго)"
     docker buildx rm "$BUILDER" > /dev/null 2>&1 || true
