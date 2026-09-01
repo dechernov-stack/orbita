@@ -8,8 +8,9 @@
 //   · шаги — из полки, сделанность каждого — проверяемым условием;
 //   · разрывы задачи — те же разрывы готовности к точке, взятые РАЗРЕЗОМ по
 //     операциям задачи. Второй готовности не заводится;
-//   · окна ленты — только производные от дат вех и зависимостей: старт —
-//     готовность входа либо дедлайн предшественника, конец — дата точки, к
+//   · окна ленты живут в Ганте (круг 5, PhaseGantt): их источник — ПЛАН
+//     руководителя, а где плана нет — расчётная сетка ярусов, серая и
+//     подписанная. Здесь остаются лишь даты точек: конец — дата точки, к
 //     которой зреет выход. Ручных длительностей и сроков задач нет.
 package orbita.com.api
 
@@ -23,9 +24,6 @@ import java.time.LocalDate
 object PhaseWork {
 
     private val mapper = ObjectMapper()
-
-    /** До точки меньше этого — окно считается сжатым (разрыв «цепочка не успевает»). */
-    private const val TIGHT_DAYS = 7L
 
     data class StepState(
         val title: String,
@@ -56,7 +54,6 @@ object PhaseWork {
         val outputDone: Boolean,
         val start: LocalDate?,
         val end: LocalDate?,
-        val tight: Boolean,
         /**
          * Круг 2: топологический ярус задачи в цепочке зависимостей внутри
          * межвехового интервала. Ярус 1 — задачи, чьи входы готовы сами
@@ -296,7 +293,6 @@ object PhaseWork {
                 outputDone = outputDone,
                 start = start,
                 end = end,
-                tight = end != null && !outputDone && tightness(end),
                 tier = 1,
                 tiers = 1,
                 dependsOn = doc.path("depends_on").map { it.asText() }.filter { it in byId },
@@ -351,10 +347,6 @@ object PhaseWork {
             t.copy(tier = свой, tiers = maxOf(1, всего))
         }
     }
-
-    /** Окно сжато: до точки осталось меньше порога, а выход не готов. */
-    private fun tightness(end: LocalDate): Boolean =
-        java.time.temporal.ChronoUnit.DAYS.between(LocalDate.now(), end) in 0 until TIGHT_DAYS
 
     private fun milestoneDate(passport: JsonNode, gate: String): LocalDate? {
         if (gate.isBlank()) return null
@@ -415,23 +407,11 @@ object PhaseWork {
         val tasks = of(boundary, projectId)
         val byId = tasks.associateBy { it.id }
         val passport = boundary.objects.current(projectId)?.doc ?: mapper.createObjectNode()
-        // Геометрия ленты — тоже расчёт, и место ему на сервере: клиент
-        // рисует полосу по готовым долям, а не делит даты сам.
-        // Интервал ленты — МЕЖВЕХОВОЙ: от сегодняшнего дня (или от самой
-        // ранней точки, если она уже позади) до последней точки фазы. Брать
-        // его из дат самих задач нельзя: у задач одной точки дата одна, и
-        // интервал схлопывался в ноль — отсюда и полосы-чёрточки.
-        val gates = tasks.mapNotNull { it.end }
-        val from = listOfNotNull(gates.minOrNull(), LocalDate.now()).minOrNull()
-        val to = gates.maxOrNull()
-        val span = if (from != null && to != null)
-            java.time.temporal.ChronoUnit.DAYS.between(from, to).coerceAtLeast(1) else 1L
         val out = mapper.createObjectNode()
         // Пустота обязана объяснять себя (правило-класс: пустой раздел —
         // приглашение, а не голый ноль). Задач фазы проекта может не быть
         // потому, что полка наполнена другой фазой, — так и скажем.
         if (tasks.isEmpty()) {
-            val passport = boundary.objects.current(projectId)?.doc ?: mapper.createObjectNode()
             val phase = passport.path("phase").asText("")
             val onShelf = boundary.objects.listCurrent(ObjectStore.LIBRARY_PROJECT)
                 .filter { it.type == "phase_task" && it.status.name != "Cancelled" }
@@ -451,30 +431,6 @@ object PhaseWork {
                     else -> "задач фазы «$phase» на полке нет"
                 },
             )
-        }
-        from?.let { out.put("lane_from", it.toString()) }
-        to?.let { out.put("lane_to", it.toString()) }
-        // Круг 2: шкала ленты — вехи ◆ именами и линия «сегодня». Положения
-        // на шкале считает сервер: клиент не вычисляет (правило обхода).
-        if (from != null && to != null) {
-            val вехи = out.putArray("scale")
-            passport.path("milestones").forEach { m ->
-                val gate = m.path("gate").asText("")
-                val due = runCatching { LocalDate.parse(m.path("due").asText("")) }.getOrNull()
-                if (gate.isNotBlank() && due != null && !due.isBefore(from) && !due.isAfter(to)) {
-                    val сдвиг = java.time.temporal.ChronoUnit.DAYS.between(from, due)
-                    вехи.addObject()
-                        .put("gate", gate)
-                        .put("date", due.toString())
-                        .put("at_pct", (сдвиг * 100.0 / span).coerceIn(0.0, 100.0))
-                }
-            }
-            val сегодня = LocalDate.now()
-            if (!сегодня.isBefore(from) && !сегодня.isAfter(to)) {
-                val сдвиг = java.time.temporal.ChronoUnit.DAYS.between(from, сегодня)
-                out.put("today_pct", (сдвиг * 100.0 / span).coerceIn(0.0, 100.0))
-                out.put("today", сегодня.toString())
-            }
         }
         out.put("tasks", tasks.size)
         out.put("in_progress", tasks.count { it.status == "in_progress" })
@@ -514,27 +470,23 @@ object PhaseWork {
             n.put("output_done", t.outputDone)
             t.start?.let { n.put("start", it.toString()) }
             t.end?.let { n.put("end", it.toString()) }
-            n.put("tight", t.tight)
             n.put("tier", t.tier)
             n.put("tiers", t.tiers)
-            // Круг 2: окно — ДОЛЯ ЯРУСА внутри интервала до своей точки.
-            // Прежняя раскладка брала дату предшественника, а у задач одной
-            // точки она совпадала с датой выхода — полоса вырождалась в
-            // чёрточку. Доли считает сервер: в клиенте расчётов нет.
-            if (from != null && t.end != null) {
-                val доТочки = java.time.temporal.ChronoUnit.DAYS.between(from, t.end)
-                val ширинаИнтервала = (доТочки * 100.0 / span).coerceIn(0.0, 100.0)
-                val доля = ширинаИнтервала / t.tiers
-                n.put("lane_offset_pct", (доля * (t.tier - 1)).coerceIn(0.0, 100.0))
-                n.put("lane_width_pct", доля.coerceIn(2.0, 100.0))
-                // Границы доли ДАТАМИ — они и стоят в подсказке полосы.
-                // Проценты нормированы лентой и на сдвиг точки не отвечают;
-                // даты отвечают, и по ним видно, что сетка растянулась.
-                val днейНаЯрус = доТочки.toDouble() / t.tiers
-                val началоДоли = from.plusDays((днейНаЯрус * (t.tier - 1)).toLong())
-                val конецДоли = from.plusDays((днейНаЯрус * t.tier).toLong())
-                n.put("lane_start", началоДоли.toString())
-                n.put("lane_end", конецДоли.toString())
+            // Круг 5: план задачи — намерение руководителя, показанное рядом с
+            // задачей. На статус он НЕ влияет: статус выше посчитан без него.
+            passport.path("work_plan").firstOrNull { it.path("task").asText() == t.id }?.let { p ->
+                n.putObject("plan")
+                    .put("start", p.path("start").asText(""))
+                    .put("end", p.path("end").asText(""))
+                    .put("author", p.path("author").asText(""))
+            }
+            // Круг 5: план задачи — намерение руководителя, показанное рядом с
+            // задачей. На статус он НЕ влияет: статус выше посчитан без него.
+            passport.path("work_plan").firstOrNull { it.path("task").asText() == t.id }?.let { p ->
+                n.putObject("plan")
+                    .put("start", p.path("start").asText(""))
+                    .put("end", p.path("end").asText(""))
+                    .put("author", p.path("author").asText(""))
             }
             val steps = n.putArray("steps")
             t.steps.forEach { s ->

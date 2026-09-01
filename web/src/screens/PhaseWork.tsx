@@ -10,7 +10,9 @@ import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import type { PhaseWorkView, PhaseWorkTask } from '../api/types'
 import { Tooltip } from '../ui/Tooltip'
+import { useSession } from '../ui/session'
 import { PhaseFlow } from './PhaseFlow'
+import { PhaseGanttChart } from './PhaseGantt'
 
 const STATUS_LABEL: Record<string, string> = {
   in_progress: 'В работе',
@@ -61,8 +63,8 @@ export function PhaseWork({ onGo, onLead, here }: {
         </span>
         <div className="grow" style={{ flex: 1 }} />
         <button className={`tab${tab === 'lane' ? ' tab--primary' : ''}`} onClick={() => setTab('lane')}
-          title="лента: окна задач вычислены от дат вех и зависимостей">
-          Лента
+          title="Гант: полосы по плану руководителя, стрелки зависимостей, вехи ромбами">
+          Гант
         </button>
         <button className={`tab${tab === 'list' ? ' tab--primary' : ''}`} onClick={() => setTab('list')}
           title="список: та же работа группами статуса">
@@ -73,131 +75,14 @@ export function PhaseWork({ onGo, onLead, here }: {
           Схема
         </button>
       </div>
-      {tab === 'lane' ? <Lane view={view} onOpen={setOpen} />
+      {tab === 'lane' ? <PhaseGanttChart onOpen={setOpen} onLead={onLead} />
         : tab === 'list' ? <List view={view} onOpen={setOpen} />
           : <PhaseFlow here={here} onOpenTask={onLead} onGo={onGo} />}
     </>
   )
 }
 
-/**
- * Лента (лёгкий Гант). Окна — ТОЛЬКО производные: старт от дедлайна
- * предшественника, конец — дата точки выхода. Ручных длительностей нет, и
- * ввести их некуда по построению.
- */
-function Lane({ view, onOpen }: { view: PhaseWorkView; onOpen: (id: string) => void }) {
-  if (!view.lane_from || !view.lane_to) {
-    return (
-      <div className="card">
-        <p className="secondary" style={{ margin: 0 }}>
-          Дат вех в паспорте нет — окна считать не из чего. Задайте даты точек на
-          экране жизненного цикла, и лента появится сама.
-        </p>
-      </div>
-    )
-  }
-  return (
-    <div className="card">
-      {/* Круг 2: шкала дат сверху — вехи ◆ именами и линия «сегодня».
-          Положения посчитал сервер; здесь только рисование. */}
-      <div className="pw-scale">
-        <span className="pw-scale__edge">{view.lane_from}</span>
-        <div className="pw-scale__track">
-          {/* Подсказка здесь — атрибутом, а не обёрткой: обёртка Tooltip
-              становится родителем позиционирования, и метки вех слипались
-              в левом углу вместо своих долей шкалы. */}
-          {(view.scale ?? []).map((m) => (
-            <span key={m.gate}
-              className={`pw-scale__gate${m.at_pct > 90 ? ' pw-scale__gate--right' : ''}`}
-              style={{ left: `${m.at_pct}%` }}
-              title={`${m.gate}: ${m.date}`}>
-              ◆ {m.gate}
-            </span>
-          ))}
-          {view.today_pct != null && (
-            <span className="pw-scale__today" style={{ left: `${view.today_pct}%` }}
-              title={`сегодня: ${view.today}`} />
-          )}
-        </div>
-        <span className="pw-scale__edge">{view.lane_to}</span>
-      </div>
-
-      <table className="grid pw-lane">
-        <tbody>
-          {view.items.map((t) => (
-            /* Правило Т-1: цель клика — вся строка, синее оставлено действиям */
-            <tr key={t.id} className="pw-row" onClick={() => onOpen(t.id)} title={t.why}>
-              <td style={{ width: 300 }}>
-                <div>{t.order} · {t.name}</div>
-                <div className="secondary pw-row__status">{statusText(t)}</div>
-              </td>
-              <td>
-                <LaneBar task={t} />
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      {/* Круг 2: легенда — короткой строкой ПОД лентой, не абзацем над ней */}
-      <div className="secondary pw-legend">
-        окна — расчётные доли интервала до точки по порядку зависимостей, не обещание сроков;
-        красное — до точки меньше недели при неготовом выходе
-      </div>
-    </div>
-  )
-}
-
-/** Статус — текстом второй строкой имени (эталон списка), не пилюлей. */
-function statusText(task: PhaseWorkTask): string {
-  if (task.status === 'waiting') return `ждёт: ${task.waits_on ?? task.input_why}`
-  if (task.status === 'done') return 'выполнена'
-  if (task.status === 'in_progress') {
-    const done = task.steps.filter((s) => s.done).length
-    return `в работе · шаг ${done + 1} из ${task.steps.length}`
-  }
-  return 'доступна'
-}
-
-/** Полоса окна: доли посчитал сервер, здесь показ и подпись внутри. */
-function LaneBar({ task }: { task: PhaseWorkTask }) {
-  if (!task.end || task.lane_width_pct == null) {
-    return <Muted why="у выхода задачи не назначена точка — окно считать не от чего" />
-  }
-  const подписьВнутри = task.status === 'waiting'
-    ? `ждёт ${task.waits_on?.split(' · ')[0] ?? ''}`.trim()
-    : task.gaps.length > 0
-      ? `${statusShort(task)} · разрывы ${task.gaps.length}`
-      : statusShort(task)
-  const подсказка = [
-    `окно ${task.lane_start ?? task.start ?? 'сейчас'} — ${task.lane_end ?? task.end}`,
-    `ярус ${task.tier ?? 1} из ${task.tiers ?? 1} до точки ${task.gate ?? '—'}`,
-    task.waits_on ? `ждёт: ${task.waits_on}` : 'вход готов',
-    task.tight ? 'окно сжато: до точки меньше недели, а выход не готов' : '',
-  ].filter(Boolean).join('\n')
-  return (
-    <Tooltip text={подсказка}>
-      <span className="pw-bar__track">
-        <span
-          className={`pw-bar${task.tight ? ' pw-bar--tight' : ''}` +
-            (task.status === 'waiting' ? ' pw-bar--waiting' : '') +
-            (task.status === 'done' ? ' pw-bar--done' : '')}
-          style={{ marginLeft: `${task.lane_offset_pct ?? 0}%`, width: `${task.lane_width_pct}%` }}
-        >
-          <span className="pw-bar__label">{подписьВнутри}</span>
-        </span>
-      </span>
-    </Tooltip>
-  )
-}
-
-/** Короткий статус для подписи внутри полосы. */
-function statusShort(task: PhaseWorkTask): string {
-  if (task.status === 'done') return 'выполнена'
-  if (task.status === 'in_progress') return 'в работе'
-  return 'доступна'
-}
-
+/** Пустое место экрана: подсказка вместо голого прочерка. */
 function Muted({ why }: { why: string }) {
   return (
     <Tooltip text={why}>
@@ -276,6 +161,8 @@ function TaskCard({ task, onBack, onGo, onLead }: {
         )}
       </div>
 
+      <PlanCard task={task} />
+
       <div className="card">
         <p style={{ marginTop: 0 }}>{task.why}</p>
         <div className="secondary">
@@ -329,6 +216,50 @@ function TaskCard({ task, onBack, onGo, onLead }: {
         </div>
       </div>
     </>
+  )
+}
+
+/**
+ * Круг 5: план задачи в карточке. Ставится он перетаскиванием полосы на
+ * Ганте — здесь он ВИДЕН и здесь же снимается: иначе снять поставленное
+ * было бы нечем. План — намерение руководителя, статуса он не касается.
+ */
+function PlanCard({ task }: { task: PhaseWorkTask }) {
+  const { author } = useSession()
+  const [busy, setBusy] = useState(false)
+  const [notice, setNotice] = useState<string | null>(null)
+  const [plan, setPlan] = useState(task.plan)
+
+  return (
+    <div className="card">
+      <h3>План работ</h3>
+      {plan
+        ? <div>
+            {plan.start} — {plan.end}
+            <span className="secondary"> · поставил {plan.author}</span>
+          </div>
+        : <p className="secondary" style={{ margin: 0 }}>
+            План не задан: на Ганте полоса задачи — расчётная сетка интервала до
+            точки по порядку зависимостей, а не обещание сроков. Задать план —
+            потянуть полосу на вкладке «Гант».
+          </p>}
+      {notice && <div className="secondary" style={{ marginTop: 6 }}>{notice}</div>}
+      {plan && (
+        <button className="rr-assign" style={{ marginTop: 8 }} disabled={busy || !author}
+          title={author
+            ? 'снять план: полоса вернётся в расчётную сетку'
+            : 'представьтесь в шапке: правка плана подписывается автором'}
+          onClick={() => {
+            setBusy(true)
+            api.phaseWorkPlan({ task: task.id, clear: true, author: author || '' })
+              .then(() => { setPlan(undefined); setNotice('план снят') })
+              .catch((e) => setNotice(String(e)))
+              .finally(() => setBusy(false))
+          }}>
+          снять план
+        </button>
+      )}
+    </div>
   )
 }
 

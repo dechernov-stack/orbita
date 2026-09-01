@@ -957,14 +957,11 @@ export interface PhaseWorkTask {
   output_done: boolean
   start?: string
   end?: string
-  tight: boolean
-  lane_offset_pct?: number
-  lane_width_pct?: number
-  /** Ярус зависимостей внутри интервала точки и границы доли датами. */
+  /** Ярус зависимостей внутри интервала точки — порядок работ, не срок. */
   tier?: number
   tiers?: number
-  lane_start?: string
-  lane_end?: string
+  /** Круг 5: план задачи — намерение руководителя; на статус не влияет. */
+  plan?: { start: string; end: string; author: string }
   steps: Array<{
     title: string; hint?: string; screen?: string; kind?: string
     /** Шаблон документа: переход открывает место уже настроенным на него. */
@@ -980,6 +977,40 @@ export interface PhaseWorkTask {
     out: { artifact: string; document_code?: string; gate?: string; maturity?: string; ready: boolean; state: string }
     consumers: Array<{ kind: 'task' | 'gate'; id?: string; order?: number; name: string; gate?: string }>
   }
+}
+
+/**
+ * Круг 5: полотно Ганта. Рисует библиотека frappe-gantt — строки приходят в
+ * её форме (id · name · start · end · dependencies · custom_class · progress),
+ * а наши поля рядом кормят попап. Геометрии здесь нет ни с той, ни с другой
+ * стороны: даты — план руководителя либо расчётная сетка, всё остальное —
+ * дело библиотеки.
+ */
+export interface PhaseGanttView {
+  empty_why?: string
+  can_plan: boolean
+  right: string
+  planned?: number
+  total?: number
+  tasks: Array<{
+    id: string
+    name: string
+    start: string
+    end: string
+    progress: number
+    dependencies: string
+    custom_class: string
+    kind: 'task' | 'gate'
+    /** задача */
+    order?: number; title?: string; status?: string; status_text?: string
+    why?: string; planned?: boolean; plan_author?: string
+    gaps?: number; steps_done?: number; steps_total?: number
+    tier?: number; tiers?: number; gate?: string; waits_on?: string
+    artifact?: string; alarm?: string; conflict?: boolean
+    /** точка */
+    held?: boolean
+    window_why: string
+  }>
 }
 
 /**
@@ -1016,14 +1047,8 @@ export interface PhaseFlowView {
 }
 
 export interface PhaseWorkView {
-  /** Круг 2: шкала ленты — вехи ◆ и линия «сегодня», положения считает сервер. */
-  scale?: Array<{ gate: string; date: string; at_pct: number }>
-  today?: string
-  today_pct?: number
   phase?: string
   empty_why?: string
-  lane_from?: string
-  lane_to?: string
   tasks: number
   in_progress: number
   available: number

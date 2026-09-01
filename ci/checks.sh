@@ -18,6 +18,7 @@ echo "== идентификаторы =="   ; python3 ci/literals.py
 echo "== подсказки =="        ; python3 tools/validate_tooltips.py
 echo "== рамка ведения =="    ; python3 tools/validate_task_frame.py
 echo "== схема потока =="     ; python3 tools/validate_flow_computed.py
+echo "== Гант библиотекой ==" ; python3 tools/validate_gantt_library.py
 # Справочник единиц (решение ранга ADR): unit-строки ∈ справочнику
 echo "== единицы =="          ; python3 tools/validate_units.py && python3 tools/validate_units.py --selftest
 

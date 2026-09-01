@@ -5,8 +5,12 @@
 # репозиторий монтируется, кэш gradle живёт в томе (иначе каждый прогон качает
 # зависимости заново). База тестов — контейнер orbita-testdb.
 #
-#   ops/test-local.sh                     весь набор с --rerun-tasks
-#   ops/test-local.sh --tests '*PhaseFlowTest*'   один класс
+#   ops/test-local.sh                                     весь набор с --rerun-tasks
+#   ops/test-local.sh :core:com:test --tests '*PhaseGanttTest*'   один класс
+#
+# Фильтр --tests действует на КАЖДЫЙ модуль, поэтому один класс запускается
+# только вместе с задачей своего модуля — иначе соседний модуль падает
+# «No tests found».
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -17,6 +21,8 @@ if ! docker ps --format '{{.Names}}' | grep -qx "$DB"; then
   exit 1
 fi
 
+task=test
+if [ $# -gt 0 ] && [ "$1" != "${1#:}" ]; then task="$1"; shift; fi
 args=("$@")
 [ ${#args[@]} -eq 0 ] && args=(--rerun-tasks)
 
@@ -25,4 +31,4 @@ docker run --rm --link "$DB":testdb \
   -e ORBITA_TEST_DB_USER=orbita -e ORBITA_TEST_DB_PASSWORD=orbita \
   -e ORBITA_FILES_DIR=/tmp/orbita-files \
   -v "$PWD":/workspace -v orbita-gradle-cache:/home/gradle/.gradle \
-  -w /workspace gradle:8.10-jdk21 gradle --no-daemon test "${args[@]}"
+  -w /workspace gradle:8.10-jdk21 gradle --no-daemon "$task" "${args[@]}"

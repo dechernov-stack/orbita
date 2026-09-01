@@ -3798,6 +3798,28 @@ class HttpApi(private val boundary: Boundary) {
             method == "GET" && path == "/views/phase-work" ->
                 respond(ex, 200, PhaseWork.toJson(boundary, requireProject(project)))
 
+            // Круг 5: полотно Ганта. Источник дат — ПЛАН руководителя; где
+            // плана нет, полоса остаётся расчётной сеткой, серой и подписанной.
+            // Раскрытые задачи приходят параметром: раскрытие меняет геометрию,
+            // а геометрию считает сервер.
+            method == "GET" && path == "/views/phase-gantt" ->
+                respond(ex, 200, PhaseGantt.toJson(boundary, requireProject(project), currentAuthorLogin.get()))
+
+            // План работ фазы (О1): даты ставит руководитель — полями карточки
+            // либо перетаскиванием полосы (доли полотна переводит в даты сервер).
+            // План — намерение: статусы задач его не читают.
+            method == "POST" && path == "/views/phase-work/plan" -> {
+                val req = mapper.readTree(body(ex))
+                val ctx = requireProject(project)
+                try {
+                    respond(ex, 200, PhaseGantt.plan(boundary, ctx, req, author(req), currentAuthorLogin.get()))
+                } catch (e: PhaseGantt.RightDeniedException) {
+                    // Отказ обязан называть право: «нельзя» без имени права
+                    // инженеру ничего не говорит и чинить его нечем.
+                    respond(ex, 403, mapper.createObjectNode().put("error", e.message))
+                }
+            }
+
             // Круг 4: схема — карта потока фазы. Узлы-задачи, рёбра-артефакты,
             // точки ромбами с процентом ИЗ готовности. Раскладка вычисляется
             // каждый раз: сохранённых координат у схемы нет.

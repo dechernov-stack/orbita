@@ -1538,35 +1538,52 @@ details.np-dates[open] summary::before { transform: rotate(90deg); }
 
 /* Круг 2 «Работы»: лента читается — шкала с вехами, полосы с подписью
    внутри, статус текстом. Ширина полосы не меньше подписи: обрезков нет. */
-.pw-scale { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; }
-.pw-scale__edge { font: 400 11px/14px var(--font-mono); color: var(--text-secondary); }
-.pw-scale__track {
-  position: relative; flex: 1; height: 18px;
-  border-bottom: 1px solid var(--hairline);
+/* Круг 5: Гант рисует библиотека frappe-gantt — здесь только наши цвета и
+   правила поверх. Свои полосы, стрелки и шкалу мы больше не рисуем. */
+.pw-gt { width: 100%; overflow: hidden; }
+.pw-gt .gantt-container { border: 0; font-family: var(--font); }
+.pw-gt .bar-label { font: 500 11.5px/16px var(--font); }
+/* Процентов выполнения у задач не существует: полоса прогресса и её ручка
+   убраны совсем, а не «поставлены в ноль» (ловушка 4 задания). */
+.pw-gt .bar-progress, .pw-gt .handle.progress, .pw-gt .bar-expected-progress { display: none; }
+
+.pw-gt .pw-available .bar { fill: #cfe0f8; stroke: var(--accent); }
+.pw-gt .pw-in_progress .bar { fill: var(--accent); }
+.pw-gt .pw-in_progress .bar-label { fill: #fff; }
+.pw-gt .pw-waiting .bar { fill: var(--container-3); stroke: var(--hairline); }
+.pw-gt .pw-done .bar { fill: #cfe9d6; stroke: var(--status-baseline); }
+
+/* План не задан — расчётная сетка: серая, штриховая, за план себя не выдаёт */
+.pw-gt .pw-grid .bar, .pw-gt .pw-grid-alarm .bar {
+  fill: var(--container-2); stroke: var(--hairline); stroke-dasharray: 5 3;
 }
-.pw-scale__gate {
-  position: absolute; top: 0; transform: translateX(-50%);
-  font: 500 11px/14px var(--font); color: var(--text-secondary); white-space: nowrap;
+.pw-gt .pw-grid .bar-label, .pw-gt .pw-grid-alarm .bar-label { fill: var(--text-secondary); }
+
+/* Красное — только окантовка и только по делу: выход не готов к плановому
+   концу либо к близкой точке. Заливкой тревога больше не кричит. */
+.pw-gt .pw-grid-alarm .bar,
+.pw-gt .pw-available-alarm .bar,
+.pw-gt .pw-in_progress-alarm .bar,
+.pw-gt .pw-waiting-alarm .bar { stroke: var(--status-error); stroke-width: 2; }
+.pw-gt .pw-available-alarm .bar { fill: #cfe0f8; }
+.pw-gt .pw-in_progress-alarm .bar { fill: var(--accent); }
+.pw-gt .pw-waiting-alarm .bar { fill: var(--container-3); }
+
+/* Конфликт плана со стрелкой: подсвечены обе стороны, двигает человек */
+.pw-gt .pw-conflict .bar {
+  fill: var(--container-2); stroke: var(--status-approved); stroke-width: 2; stroke-dasharray: 6 3;
 }
-.pw-scale__gate--right { transform: translateX(-100%); }
-.pw-scale__today {
-  position: absolute; top: -2px; bottom: -4px; width: 2px;
-  background: var(--accent); border-radius: 1px;
+
+/* Точка фазы — ромбом: полоса нулевой длины, повёрнутый квадрат */
+.pw-gt .pw-ms .bar {
+  width: 15px; height: 15px; fill: var(--rail); stroke: none;
+  transform: translate(-7px, 3px) rotate(45deg); transform-box: fill-box; transform-origin: center;
 }
-.pw-lane tr.pw-row { cursor: pointer; }
-.pw-lane tr.pw-row:hover { background: var(--selection); }
-.pw-row__status { font-size: 11px; }
-.pw-bar__track { display: block; width: 100%; }
-.pw-bar {
-  display: inline-flex; align-items: center; min-width: 90px; height: 20px;
-  padding: 0 8px; border-radius: 10px; background: var(--accent); color: #fff;
-  font: 500 11px/20px var(--font); white-space: nowrap; overflow: visible;
-}
-.pw-bar--waiting { background: var(--container); color: var(--text-secondary); border: 1px dashed var(--hairline); }
-.pw-bar--done { opacity: 0.45; }
-.pw-bar--tight { background: var(--status-cancelled, #b3261e); color: #fff; }
-.pw-bar__label { overflow: visible; }
-.pw-legend { margin-top: 8px; font-size: 11px; }
+.pw-gt .pw-ms .handle-group { display: none; }
+.pw-gt .pw-ms .bar-label { fill: var(--text); font-weight: 600; }
+
+.pw-gt__legend { margin-top: 8px; font-size: 11px; }
+.pw-gt__notice { margin-bottom: 6px; font-size: 11.5px; }
 
 /* Круг 4: схема потока фазы. Вся геометрия приходит с сервера — здесь
    только вид: узлы, ромбы точек, рёбра и приглушение фильтром живости.

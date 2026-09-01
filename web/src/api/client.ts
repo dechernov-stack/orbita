@@ -47,6 +47,7 @@ import type {
   LinkMappingView,
   ReviewChecklistView,
   PhaseWorkView,
+  PhaseGanttView,
   PhaseFlowView,
   StakeholderCoverageView,
 } from './types'
@@ -723,6 +724,11 @@ export const api = {
   phaseWork: () => get<PhaseWorkView>('/views/phase-work'),
   /** Круг 4: схема потока фазы — узлы, рёбра-артефакты и точки с готовностью. */
   phaseFlow: () => get<PhaseFlowView>('/views/phase-flow'),
+  /** Круг 5: строки полотна Ганта — план руководителя либо расчётная сетка. */
+  phaseGantt: () => get<PhaseGanttView>('/views/phase-gantt'),
+  /** План задачи: даты ставит руководитель — перетаскиванием либо полями. */
+  phaseWorkPlan: (body: { task: string; start?: string; end?: string; clear?: boolean; author: string }) =>
+    post<PhaseGanttView>('/views/phase-work/plan', body),
   /** Инспекция обзора: чек-листы полки с состоянием пунктов. */
   reviewChecklist: (gate?: string) =>
     get<ReviewChecklistView>(`/views/review-checklist${gate ? `?gate=${encodeURIComponent(gate)}` : ''}`),

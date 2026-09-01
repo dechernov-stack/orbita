@@ -128,7 +128,9 @@ function TaskNode({ n, here, onOpenTask }: {
         <span className="secondary">
           {n.status === 'waiting' ? 'ожидает'
             : n.status === 'done' ? 'выполнена'
-              : `шаг ${(n.steps_done ?? 0) + 1} из ${n.steps_total ?? 0}`}
+              : (n.steps_done ?? 0) < (n.steps_total ?? 0)
+                ? `шаг ${(n.steps_done ?? 0) + 1} из ${n.steps_total ?? 0}`
+                : 'шаги пройдены'}
         </span>
         {(n.gaps ?? 0) > 0 && <span className="fl-chip fl-chip--warn">разрывы · {n.gaps}</span>}
         {here && <span className="fl-chip fl-chip--here">вы здесь</span>}

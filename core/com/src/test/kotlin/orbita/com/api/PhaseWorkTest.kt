@@ -138,65 +138,18 @@ class PhaseWorkTest {
     }
 
     /**
-     * Круг 2 (правка модели владельца): у задач ОДНОЙ точки дедлайн входа
-     * совпадал с дедлайном выхода, и окно вырождалось в чёрточку. Интервал
-     * делится по порядку зависимостей: ярус 1 — первая доля, ярус 2 —
-     * вторая. Длительностей у задач по-прежнему нет.
+     * Круг 2 (порядок работ) и круг 5 (Гант на библиотеке): доли интервала
+     * ушли в полотно Ганта, а ЯРУС остался — он и есть порядок работ, по
+     * которому чертится сетка задач без плана. Длительностей у задач нет.
      */
     @Test
-    fun `окна не вырождаются — интервал делится по ярусам зависимостей`() {
-        val view = PhaseWork.toJson(boundary, "PJ-1908")
-        val items = view.path("items").associateBy { it.path("id").asText() }
-        val первая = items.getValue("PW-9001")
-        val вторая = items.getValue("PW-9002")
-
-        assertEquals(1, первая.path("tier").asInt()) { "вход готов сам — первый ярус" }
-        assertEquals(2, вторая.path("tier").asInt()) { "ждёт первую — второй ярус" }
-        assertEquals(2, первая.path("tiers").asInt()) { "в интервале точки два яруса" }
-
-        // полосы не вырождены и не наложены друг на друга
-        val ш1 = первая.path("lane_width_pct").asDouble()
-        val ш2 = вторая.path("lane_width_pct").asDouble()
-        assertTrue(ш1 > 10.0 && ш2 > 10.0) { "полоса-чёрточка — дефект модели: $ш1 / $ш2" }
-        assertTrue(первая.path("lane_offset_pct").asDouble() < вторая.path("lane_offset_pct").asDouble()) {
-            "второй ярус начинается позже первого: каскад виден глазами"
-        }
-    }
-
-    @Test
-    fun `сдвиг даты точки растягивает все ярусы, а не один`() {
-        val было = PhaseWork.toJson(boundary, "PJ-1908").path("items")
-            .associate { it.path("id").asText() to it.path("lane_end").asText() }
-        val passport = boundary.objects.current("PJ-1908")!!
-        val changes = com.fasterxml.jackson.databind.ObjectMapper().readTree("""{"milestones":[{"gate":"MCR","due":"2027-06-01"}]}""")
-        boundary.editing.update(
-            CoreType.Project, "PJ-1908",
-            changes as com.fasterxml.jackson.databind.node.ObjectNode,
-            passport.version, "test", changeRef = "сдвиг точки — проверка геометрии",
-        )
-        val стало = PhaseWork.toJson(boundary, "PJ-1908").path("items")
-            .associate { it.path("id").asText() to it.path("lane_end").asText() }
-        // доли считаются от интервала до точки: сдвиг даты двигает обе границы
-        // (в процентах лента нормирована — растяжение видно именно в датах)
-        assertTrue(стало.getValue("PW-9001") != было.getValue("PW-9001")) {
-            "первый ярус обязан отозваться на сдвиг точки"
-        }
-        assertTrue(стало.getValue("PW-9002") != было.getValue("PW-9002")) {
-            "второй ярус — тоже: растягивается вся сетка, а не одна полоса"
-        }
-    }
-
-    @Test
-    fun `шкала несёт вехи именами и линию сегодня`() {
-        val view = PhaseWork.toJson(boundary, "PJ-1908")
-        val шкала = view.path("scale")
-        assertTrue(шкала.any { it.path("gate").asText() == "MCR" }) {
-            "веха обязана быть на шкале именем: $шкала"
-        }
-        шкала.forEach {
-            val at = it.path("at_pct").asDouble()
-            assertTrue(at in 0.0..100.0) { "положение вехи — доля шкалы: $at" }
+    fun `ярус зависимостей считается — он и есть порядок работ`() {
+        val items = PhaseWork.toJson(boundary, "PJ-1908").path("items").associateBy { it.path("id").asText() }
+        assertEquals(1, items.getValue("PW-9001").path("tier").asInt()) { "вход готов сам — первый ярус" }
+        assertEquals(2, items.getValue("PW-9002").path("tier").asInt()) { "ждёт первую — второй ярус" }
+        assertEquals(2, items.getValue("PW-9001").path("tiers").asInt()) { "в интервале точки два яруса" }
+        assertFalse(items.getValue("PW-9001").has("lane_width_pct")) {
+            "долей интервала в «Работе фазы» больше нет: полотно рисует библиотека Ганта по плану"
         }
     }
 }
-
