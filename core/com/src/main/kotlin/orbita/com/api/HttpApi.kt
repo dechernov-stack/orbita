@@ -3832,6 +3832,24 @@ class HttpApi(private val boundary: Boundary) {
                 }
             }
 
+            // Круг 8: ответственный за работу фазы — поле проекта, назначает
+            // руководитель. На вычисленные статусы он не влияет.
+            method == "POST" && path == "/views/phase-work/assignee" -> {
+                val req = mapper.readTree(body(ex))
+                val ctx = requireProject(project)
+                try {
+                    respond(
+                        ex, 200,
+                        PhaseGantt.assign(
+                            boundary, ctx, req, author(req), currentAuthorLogin.get(),
+                            (query(ex)["collapse"] ?: "").split(",").filter { it.isNotBlank() }.toSet(),
+                        ),
+                    )
+                } catch (e: PhaseGantt.RightDeniedException) {
+                    respond(ex, 403, mapper.createObjectNode().put("error", e.message))
+                }
+            }
+
             // Круг 4: схема — карта потока фазы. Узлы-задачи, рёбра-артефакты,
             // точки ромбами с процентом ИЗ готовности. Раскладка вычисляется
             // каждый раз: сохранённых координат у схемы нет.

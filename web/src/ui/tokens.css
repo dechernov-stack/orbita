@@ -736,7 +736,10 @@ tbody td {
 .status-Baseline { background: var(--status-baseline); }
 .status-Cancelled { background: var(--status-error); }
 
-.bar {
+/* Полоска показателя (ui/parts). Селектор сужен до span НАМЕРЕННО: голый
+   `.bar` совпадал с классом полос библиотеки Ганта и перебивал их геометрию —
+   все полосы полотна рисовались шириной 90 px независимо от дат. */
+span.bar {
   display: inline-block;
   position: relative;
   width: 90px;
@@ -1540,12 +1543,45 @@ details.np-dates[open] summary::before { transform: rotate(90deg); }
    внутри, статус текстом. Ширина полосы не меньше подписи: обрезков нет. */
 /* Круг 5: Гант рисует библиотека frappe-gantt — здесь только наши цвета и
    правила поверх. Свои полосы, стрелки и шкалу мы больше не рисуем. */
-.pw-gt { width: 100%; overflow: hidden; }
+/* Круг 8: слева — таблица строк, справа — полотно библиотеки. Таблица СОСЕД,
+   а не графика поверх канвы: выравнивается по высоте строки и шапки, которые
+   заданы опциями библиотеки. Горизонтальная прокрутка — только у полотна. */
+.pw-gt-wrap { display: flex; align-items: flex-start; gap: 0; width: 100%; }
+.pw-gt { flex: 1; min-width: 0; overflow: hidden; }
+
+.pw-gt-side {
+  flex: 0 0 auto; width: 540px; border-right: 1px solid var(--hairline);
+  font: 400 12px/16px var(--font);
+}
+.pw-gt-side__head, .pw-gt-side__row {
+  display: grid; grid-template-columns: 1fr 124px 40px 128px; gap: 8px;
+  align-items: center; padding: 0 10px 0 2px;
+}
+.pw-gt-side__head {
+  height: var(--pw-head-h); align-content: end; padding-bottom: 8px;
+  font: 500 11px/14px var(--font); color: var(--text-secondary);
+  border-bottom: 1px solid var(--hairline); box-sizing: border-box;
+}
+.pw-gt-side__row { height: var(--pw-row-h); box-sizing: border-box; }
+.pw-gt-side__row--step .pw-gt-side__name { padding-left: 18px; color: var(--text-secondary); }
+.pw-gt-side__name {
+  display: flex; align-items: center; gap: 4px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.pw-gt-side__chev { padding: 0 2px; font-size: 13px; line-height: 1; }
+.pw-gt-side__cell { text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pw-gt-side__status { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }
+.pw-gt-side__edit { width: 100%; box-sizing: border-box; font: 400 12px/16px var(--font); }
+
+/* Круг 8: прогресс задачи ВЫЧИСЛЕН — заливку показываем. Ручку правки прячем:
+   ручного процента не существует, двигать его нечем и не надо. */
+.pw-gt .handle.progress, .pw-gt .bar-expected-progress { display: none; }
+.pw-gt .pw-step .bar-progress, .pw-gt .pw-step-done .bar-progress,
+.pw-gt .pw-step-plan .bar-progress, .pw-gt .pw-ms .bar-progress,
+.pw-gt .pw-ms-conflict .bar-progress { display: none; }
+.pw-gt .bar-progress { fill: var(--accent); opacity: 0.35; }
 .pw-gt .gantt-container { border: 0; font-family: var(--font); }
 .pw-gt .bar-label { font: 500 11.5px/16px var(--font); }
-/* Процентов выполнения у задач не существует: полоса прогресса и её ручка
-   убраны совсем, а не «поставлены в ноль» (ловушка 4 задания). */
-.pw-gt .bar-progress, .pw-gt .handle.progress, .pw-gt .bar-expected-progress { display: none; }
 
 .pw-gt .pw-available .bar { fill: #cfe0f8; stroke: var(--accent); }
 .pw-gt .pw-in_progress .bar { fill: var(--accent); }
@@ -1581,9 +1617,10 @@ details.np-dates[open] summary::before { transform: rotate(90deg); }
    Её не тянут: план ставится шагам, а она из них вычисляется. */
 .pw-gt .pw-summary .bar, .pw-gt .pw-summary-alarm .bar, .pw-gt .pw-summary-conflict .bar {
   /* сдвиг — ОТНОСИТЕЛЬНЫЙ: абсолютная координата y собрала бы все сводные
-     полосы в одну строку у верхнего края полотна */
+     полосы в одну строку у верхнего края полотна. Полоса тоньше строки, и
+     сдвиг возвращает её на середину: (22 − 9) / 2 */
   fill: var(--rail); stroke: none; height: 9px;
-  transform: translateY(6px); transform-box: fill-box;
+  transform: translateY(6.5px); transform-box: fill-box;
 }
 .pw-gt .pw-summary-alarm .bar { fill: var(--status-error); }
 .pw-gt .pw-summary-conflict .bar { fill: var(--status-approved); }
@@ -1607,6 +1644,10 @@ details.np-dates[open] summary::before { transform: rotate(90deg); }
 
 /* Круг 6: шаги подзадачами — тонкие серые полосы. Это ПОРЯДОК, а не сроки,
    и выглядеть они обязаны иначе, чем полосы задач с планом. */
+.pw-gt .pw-step .bar, .pw-gt .pw-step-done .bar, .pw-gt .pw-step-plan .bar {
+  /* тоньше строки — и на её середине: (22 − 10) / 2 */
+  height: 10px; transform: translateY(6px); transform-box: fill-box;
+}
 .pw-gt .pw-step .bar, .pw-gt .pw-step-done .bar {
   fill: var(--container-2); stroke: var(--hairline); stroke-dasharray: 3 3;
 }

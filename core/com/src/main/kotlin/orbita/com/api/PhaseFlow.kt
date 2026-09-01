@@ -71,19 +71,26 @@ object PhaseFlow {
         val milestoneOrder = passport.path("milestones").map { it.path("gate").asText() }
         val gates = tasks.mapNotNull { it.gate }.distinct()
             .sortedBy { g -> milestoneOrder.indexOf(g).let { if (it < 0) Int.MAX_VALUE else it } }
-        val lastTierOf = gates.associateWith { g -> tasks.filter { it.gate == g }.maxOf { it.tier } }
 
-        // ---- колонки: ярус за ярусом, точка — сразу за своим последним ярусом
+        // ---- колонки идут ПО ТОЧКАМ: сперва работы, зреющие к первой точке
+        // (внутри — по ярусу зависимостей), затем сама точка, затем работы
+        // следующей. Круг 8: связь FF не двигает ярус, и без разреза по точкам
+        // работа к SDR оказывалась ЛЕВЕЕ ворот SRR — поток читался неверно.
         val columns = mutableListOf<Column>()
-        tasks.map { it.tier }.distinct().sorted().forEach { tier ->
-            columns += Column("task", tasks.filter { it.tier == tier }.sortedBy { it.order }.map { it.id }, NODE_W, NODE_H)
-            gates.filter { lastTierOf[it] == tier }.forEach { g ->
-                columns += Column("gate", listOf(g), GATE_W, GATE_H)
+        gates.forEach { gate ->
+            val свои = tasks.filter { it.gate == gate }
+            свои.map { it.tier }.distinct().sorted().forEach { tier ->
+                columns += Column(
+                    "task", свои.filter { it.tier == tier }.sortedBy { it.order }.map { it.id }, NODE_W, NODE_H,
+                )
             }
+            columns += Column("gate", listOf(gate), GATE_W, GATE_H)
         }
-        // точка без задач этой фазы — в конец, чтобы не пропала из потока
-        gates.filterNot { g -> columns.any { it.kind == "gate" && it.items.first() == g } }
-            .forEach { columns += Column("gate", listOf(it), GATE_W, GATE_H) }
+        // работа без точки выхода в поток всё равно входит — колонкой в конец
+        val безТочки = tasks.filter { it.gate == null }
+        if (безТочки.isNotEmpty()) {
+            columns += Column("task", безТочки.sortedBy { it.order }.map { it.id }, NODE_W, NODE_H)
+        }
 
         // за воротами — следующая фаза свёрнутым облаком: ИС ведёт проект до
         // конца Формулирования, дальше показывает, а не проводит

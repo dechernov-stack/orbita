@@ -144,7 +144,7 @@ def present(view, packet):
     return rows
 
 
-def obsolete(type_: str, rows: list) -> bool:
+def obsolete(type_: str, rows: list, packet: dict | None = None) -> bool:
     """Полка старее сида по СОСТАВУ полей, а не по версии: поля добавляются
     пачками (написания единиц — Д1, умолчание промпта — Ф-08.1, точки
     зрелости — Ф-06 п.5, метки источников в шаблоне — правка пачки-2), и
@@ -188,6 +188,21 @@ def obsolete(type_: str, rows: list) -> bool:
                     return True
             if len(d.get("steps", [])) > 1 and not any(s.get("after") for s in d.get("steps", [])):
                 return True
+        # Круг 8: разметка связей пересматривается ПО СМЫСЛУ, и признака-маркера
+        # для этого не придумаешь — сверяем состав связей с сидом напрямую.
+        # Так полка обновляется всякий раз, когда порядок работ переосмыслен.
+        if packet:
+            по_id = {o["id"]: o for o in packet["objects"]}
+            for d in rows:
+                сид = по_id.get(d.get("id"))
+                if not сид:
+                    continue
+                if d.get("depends_on", []) != сид.get("depends_on", []):
+                    return True
+                шаги_полки = [s.get("after", []) for s in d.get("steps", [])]
+                шаги_сида = [s.get("after", []) for s in сид.get("steps", [])]
+                if шаги_полки != шаги_сида:
+                    return True
         return not any(len(d.get("steps", [])) >= 4 for d in rows)
     if type_ == "document_template":
         # полка устарела, если раздел «Обозначения источников» не несёт
@@ -235,7 +250,7 @@ for type_, view, fname in SEEDS:
                 print(f"  · {термин}")
                 print(f"      наше:  {прежнее[:90]}")
                 print(f"      SEH:   {чужое[:90]}")
-    if rows and not obsolete(type_, rows):
+    if rows and not obsolete(type_, rows, packet):
         print(f"{type_}: уже на полке — пропуск")
         continue
     if rows:

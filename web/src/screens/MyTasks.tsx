@@ -91,11 +91,12 @@ export function MyTasks({ onGo }: { onGo: (screen: string) => void }) {
   return (
     <>
       <div className="toolbar">
-        <h2>Мои задания</h2>
+        <h2>Моя работа</h2>
         <span className="secondary">
           активных {view.counts.active}
           {view.counts.overdue > 0 && <b className="warn"> · просрочено {view.counts.overdue}</b>}
           {view.counts.waiting > 0 && <> · ожидают {view.counts.waiting}</>}
+          {view.counts.works > 0 && <> · работ фазы {view.counts.works}</>}
         </span>
         <div className="grow" />
         {canAll && (
@@ -107,10 +108,42 @@ export function MyTasks({ onGo }: { onGo: (screen: string) => void }) {
       </div>
       <div className="workarea" style={{ padding: '10px 16px', overflow: 'auto' }}>
         {notice && <div className="warn" style={{ padding: '6px 10px', marginBottom: 8 }}>{notice}</div>}
-        {view.tasks.length === 0 && (
+        {/* Круг 8: «моё» — это и задания с разрывов, и работы фазы, где я
+            ответственный. Два списка на одном экране, а не два экрана. */}
+        {view.works.length > 0 && (
+          <div className="gr-grp">
+            <div className="gr-gh" style={{ cursor: 'default' }}>
+              Работы фазы<span className="gr-n okc">· {view.works.length}</span>
+            </div>
+            <table className="grid">
+              <tbody>
+                {view.works.map((w) => (
+                  <tr key={w.id}>
+                    <td style={{ width: 340 }}>{w.name}</td>
+                    <td className="secondary">
+                      {w.kind === 'step'
+                        ? (w.done ? 'шаг сделан' : 'шаг не сделан')
+                        : (w.next_step ? `дальше: ${w.next_step}` : 'шаги пройдены')}
+                      {(w.gaps ?? 0) > 0 && <span className="warn"> · разрывы {w.gaps}</span>}
+                    </td>
+                    <td style={{ width: 120 }} className="secondary">{w.gate ? `к ${w.gate}` : ''}</td>
+                    <td style={{ width: 130 }}>
+                      <button className="rr-assign" onClick={() => onGo(w.place ?? 'phasework')}
+                        title={w.place ? 'открыть место работы' : 'открыть работу фазы'}>
+                        {w.place ? 'к месту →' : 'к работе →'}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {view.tasks.length === 0 && view.works.length === 0 && (
           <div className="empty">
-            Заданий нет. Назначение — с экрана «Готовность»: на любом открытом
-            разрыве «назначить…», по группе — массово.
+            Ни заданий, ни работ на вас нет. Задания назначаются с экрана
+            «Готовность» (на разрыве «назначить…»), ответственный за работу
+            фазы — в таблице Ганта на вкладке «Работа».
           </div>
         )}
         {groups.filter((g) => g.rows.length > 0).map((g) => (

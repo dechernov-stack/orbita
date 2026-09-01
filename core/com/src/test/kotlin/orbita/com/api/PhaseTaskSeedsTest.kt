@@ -78,6 +78,22 @@ class PhaseTaskSeedsTest {
         }
         assertTrue(голые.isEmpty()) { "связь без типа читается как INPUT и врёт о регламенте: $голые" }
         assertTrue(чужие.isEmpty()) { "тип связи вне набора FS · SS · FF · INPUT: $чужие" }
+
+        // Круг 8, ловушка 4: SS по умолчанию — такая же выдумка, как FS по
+        // умолчанию. Тип ставится по критерию, и критерий записан в note.
+        val безОснования = mutableListOf<String>()
+        пакеты.forEach { (имя, пакет) ->
+            пакет.path("objects").forEach { задача ->
+                задача.path("depends_on").forEach { d ->
+                    if (!d.isTextual && d.path("note").asText("").isBlank()) {
+                        безОснования += "$имя · ${задача.path("id").asText()} → ${d.path("task").asText()}"
+                    }
+                }
+            }
+        }
+        assertTrue(безОснования.isEmpty()) {
+            "тип связи без обоснования в note — разметка на глаз: $безОснования"
+        }
     }
 
     /**
@@ -98,8 +114,17 @@ class PhaseTaskSeedsTest {
                     шаг.path("after").forEach { a ->
                         val n = a.path("step").asInt(0)
                         val тип = a.path("type").asText("")
+                        val чужая = a.path("task").asText("").ifBlank { null }
                         val кто = "$имя · ${задача.path("id").asText()} шаг ${i + 1}"
-                        if (n < 1 || n > шагов || n - 1 == i) битые += "$кто → шаг $n"
+                        // круг 8: связь может уходить в ЧУЖУЮ задачу — тогда
+                        // проверяем её по числу шагов той задачи, а не своей
+                        val предел = if (чужая == null) шагов
+                        else пакет.path("objects").firstOrNull { it.path("id").asText() == чужая }
+                            ?.path("steps")?.size() ?: 0
+                        if (чужая != null && предел == 0) битые += "$кто → чужая задача $чужая не найдена"
+                        if (n < 1 || n > предел || (чужая == null && n - 1 == i)) {
+                            битые += "$кто → ${чужая ?: ""} шаг $n"
+                        }
                         if (тип !in setOf("FS", "SS")) битые += "$кто: тип «$тип»"
                     }
                 }

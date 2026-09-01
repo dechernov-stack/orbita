@@ -12,8 +12,9 @@
      делается вовсе;
   2. библиотека не форкнута: её исходников в репозитории нет, зависимость
      стоит версией в package.json;
-  3. процентов выполнения не существует: сервер шлёт progress = 0, а полоса
-     прогресса скрыта стилем (ловушка 4 задания).
+  3. РУЧНОГО процента не существует: правка прогресса мышью выключена, ручка
+     скрыта стилем, а сервер процент не принимает — он его вычисляет.
+     (Круг 8 снял запрет на сам показ процента, но только на вычисленный.)
 """
 import json
 import re
@@ -56,14 +57,22 @@ def main() -> int:
             "ссылка на форк или архив запрещена"
         )
 
-    # 3. процентов выполнения не существует
+    # 3. ручного процента не существует: правят его только вычислением
     server = SERVER.read_text(encoding="utf-8")
-    if 'put("progress", 0)' not in server:
+    if 'request.path("progress")' in server or 'path("progress")' in server:
         problems.append(
-            f"{SERVER.relative_to(ROOT)}: progress обязан быть нулём — процентов выполнения у задач нет"
+            f"{SERVER.relative_to(ROOT)}: сервер читает progress извне — процент обязан вычисляться, "
+            "а не приходить оценкой"
         )
-    if ".bar-progress" not in CSS.read_text(encoding="utf-8"):
-        problems.append("web/src/ui/tokens.css: полоса прогресса библиотеки не скрыта — проценты полезут на экран")
+    if "readonly_progress: true" not in wrap:
+        problems.append(
+            "web/src/screens/PhaseGantt.tsx: правка прогресса мышью не выключена "
+            "(readonly_progress) — появился бы ручной процент"
+        )
+    if ".handle.progress" not in CSS.read_text(encoding="utf-8"):
+        problems.append(
+            "web/src/ui/tokens.css: ручка правки прогресса не скрыта — за неё будут тянуть"
+        )
 
     if problems:
         print("Гант: рисует библиотека, самострой и форк запрещены", file=sys.stderr)

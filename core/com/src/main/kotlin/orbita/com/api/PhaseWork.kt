@@ -46,8 +46,12 @@ object PhaseWork {
         val tiers: Int,
     )
 
-    /** Связь шага с соседним шагом той же задачи. */
-    data class StepDep(val step: Int, val type: String)
+    /**
+     * Связь шага с соседним шагом: своей задачи либо чужой (круг 8). Точная
+     * правда о порядке живёт на уровне шагов: «2.3 Базировать ConOps» ждёт
+     * «1.3 Базировать SEMP», хотя «2.1 Дорастить сценарии» идёт параллельно.
+     */
+    data class StepDep(val step: Int, val type: String, val task: String? = null)
 
     /**
      * Круг 6: связь задачи с предшественником вместе с ТИПОМ. Регламент
@@ -66,7 +70,7 @@ object PhaseWork {
         val inputReady: Boolean,
         val inputWhy: String,
         val steps: List<StepState>,
-        val gaps: List<String>,
+        val gaps: List<Gap>,
         val artifact: String,
         val gate: String?,
         val outputDone: Boolean,
@@ -104,6 +108,19 @@ object PhaseWork {
 
     /** Условие входа задачи: как называется человеку и выполнено ли оно. */
     data class InputState(val label: String, val ready: Boolean)
+
+    /**
+     * Разрыв задачи — тот же разрыв готовности к точке, взятый разрезом. Круг 8:
+     * он приходит АДРЕСОМ, а не строкой, — иначе с него нельзя назначить
+     * задание ответственному за эту задачу.
+     */
+    data class Gap(
+        val id: String,
+        val title: String,
+        val note: String,
+        val place: String?,
+        val gate: String,
+    )
 
     /**
      * Условие полки → да/нет по состоянию проекта. Набор закрытый: система
@@ -278,7 +295,13 @@ object PhaseWork {
             val inputs = doc.path("input").toList()
             val unmet = inputs.filterNot { holds(it, own, passport, gateChecks, issued) }
             val stepDeps = doc.path("steps").map { st ->
-                st.path("after").map { a -> StepDep(a.path("step").asInt(), a.path("type").asText("FS")) }
+                st.path("after").map { a ->
+                    StepDep(
+                        a.path("step").asInt(),
+                        a.path("type").asText("FS"),
+                        a.path("task").asText("").ifBlank { null },
+                    )
+                }
             }
             val stepTiers = stepTiers(stepDeps)
             val stepsTotal = stepTiers.maxOrNull() ?: 1
@@ -327,7 +350,7 @@ object PhaseWork {
             val gaps = checks
                 .filter { it.state == "open" }
                 .filter { it.id in namedChecks || (it.place != null && it.place in screens) }
-                .map { "${it.title}: ${it.note}" }
+                .map { Gap(it.id, it.title, it.note, it.place, gate) }
             val status = when {
                 outputDone -> "done"
                 waiting != null -> "waiting"
@@ -436,7 +459,10 @@ object PhaseWork {
         fun ярус(i: Int, глубина: Int = 0): Int {
             if (ярусы[i] != 0) return ярусы[i]
             if (глубина > deps.size) return 1
+            // межзадачные связи ярусов НЕ двигают: окно шага делит окно своей
+            // задачи, а чужой порядок показывается стрелкой и словами
             val свой = deps[i]
+                .filter { it.task == null }
                 .filter { it.step - 1 in deps.indices && it.step - 1 != i }
                 .maxOfOrNull { d -> ярус(d.step - 1, глубина + 1) + (if (d.type == "FS") 1 else 0) }
                 ?: 1
@@ -598,11 +624,17 @@ object PhaseWork {
                 sn.put("tiers", s.tiers)
                 val after = sn.putArray("after")
                 s.after.forEach { a ->
-                    val имя = t.steps.getOrNull(a.step - 1)?.title ?: "шаг ${a.step}"
-                    after.addObject()
+                    // связь может уходить в чужую задачу — тогда и называем её чужой
+                    val чужая = a.task?.let { id -> tasks.firstOrNull { it.id == id } }
+                    val имя = if (a.task == null) t.steps.getOrNull(a.step - 1)?.title ?: "шаг ${a.step}"
+                    else чужая?.let { задача ->
+                        "${задача.order}.${a.step} · ${задача.steps.getOrNull(a.step - 1)?.title ?: "шаг ${a.step}"}"
+                    } ?: "${a.task} шаг ${a.step}"
+                    val узел = after.addObject()
                         .put("step", a.step - 1)
                         .put("type", a.type)
                         .put("words", linkWords(a.type, "«$имя»"))
+                    a.task?.let { узел.put("task", it) }
                 }
                 sn.put("title", s.title)
                 s.hint?.let { sn.put("hint", it) }
@@ -614,7 +646,14 @@ object PhaseWork {
                 sn.put("why", s.why)
             }
             val gaps = n.putArray("gaps")
-            t.gaps.forEach { gaps.add(it) }
+            t.gaps.forEach { g ->
+                val узел = gaps.addObject()
+                    .put("id", g.id)
+                    .put("title", g.title)
+                    .put("note", g.note)
+                    .put("gate", g.gate)
+                g.place?.let { узел.put("place", it) }
+            }
             n.set<ObjectNode>("flow", flowOf(t, byId))
         }
         return out

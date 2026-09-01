@@ -27,6 +27,8 @@ declare module 'frappe-gantt' {
     language?: string
     bar_height?: number
     padding?: number
+    upper_header_height?: number
+    lower_header_height?: number
     column_width?: number
     readonly?: boolean
     readonly_dates?: boolean

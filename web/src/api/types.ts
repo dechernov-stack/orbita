@@ -970,7 +970,8 @@ export interface PhaseWorkTask {
     tally?: string
     done: boolean; why: string
   }>
-  gaps: string[]
+  /** Круг 8: разрыв приходит адресом — с него назначают задание. */
+  gaps: Array<{ id: string; title: string; note: string; gate: string; place?: string }>
   /** Круг 4: нить потока — вход, выход и потребители задачи. */
   flow?: {
     in: Array<{ kind: 'task' | 'condition'; id?: string; order?: number; name: string; artifact?: string; ready: boolean }>
@@ -1023,6 +1024,9 @@ export interface PhaseGanttView {
     summary?: boolean; collapsed?: boolean; gate_overrun?: string
     /** точка */
     held?: boolean
+    /** Круг 8: ответственный, длительность рабочими днями, расшифровка процента */
+    assignee?: string; assignee_own?: boolean
+    duration_days?: number; duration_planned?: boolean; progress_why?: string
     /** шаг (круг 6–7): полноправная строка «N.M», план ставится ей */
     parent?: string; step_index?: number; done?: boolean; hint?: string; tally?: string
     number?: string

@@ -149,10 +149,54 @@ class ProcessTasks(
             r.place?.let { n.put("place", it) }
             if (r.overdue) n.put("overdue", true)
         }
+        // Круг 8: «моя работа» — это не только задания с разрывов, но и работы
+        // фазы, где я ответственный. Один экран отвечает на вопрос «что на
+        // мне», а не два: иначе половина работы человека живёт вне его списка.
+        val works = out.putArray("works")
+        if (assignee != null) {
+            val назначено = project.doc.path("work_assignees")
+                .filter { it.path("who").asText() == assignee }
+                .map { it.path("task").asText() }
+                .toSet()
+            if (назначено.isNotEmpty()) {
+                PhaseWork.of(boundary, projectId).forEach { t ->
+                    if (t.id in назначено) {
+                        val шаг = t.steps.firstOrNull { !it.done }
+                        val n = works.addObject()
+                        n.put("id", t.id)
+                        n.put("kind", "task")
+                        n.put("name", "${t.order} · ${t.name}")
+                        n.put("status", t.status)
+                        n.put("gaps", t.gaps.size)
+                        t.gate?.let { n.put("gate", it) }
+                        шаг?.let { s ->
+                            n.put("next_step", s.title)
+                            s.screen?.let { экран -> n.put("place", экран) }
+                        }
+                    }
+                    t.steps.forEachIndexed { i, s ->
+                        if ("${t.id}#$i" in назначено) {
+                            val n = works.addObject()
+                            n.put("id", "${t.id}#$i")
+                            n.put("kind", "step")
+                            n.put("task", t.id)
+                            n.put("step_index", i)
+                            n.put("name", "${t.order}.${i + 1} · ${s.title}")
+                            n.put("status", if (s.done) "done" else t.status)
+                            n.put("done", s.done)
+                            t.gate?.let { g -> n.put("gate", g) }
+                            s.screen?.let { экран -> n.put("place", экран) }
+                        }
+                    }
+                }
+            }
+        }
+
         val counts = out.putObject("counts")
         counts.put("active", rows.count { it.state == "active" })
         counts.put("overdue", rows.count { it.overdue })
         counts.put("waiting", rows.count { it.state == "waiting" })
+        counts.put("works", works.size())
         return out
     }
 }

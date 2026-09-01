@@ -313,6 +313,103 @@ class PhaseGanttTest {
         assertEquals("pw-step", шаг.path("custom_class").asText())
     }
 
+    // ---- круг 8: прогресс вычислен, ответственный, длительность ----------
+
+    @Test
+    fun `прогресс задачи вычислен из закрытых шагов и растёт сам`() {
+        TestDb.truncateAll()
+        проект()
+        boundary.ingest(CoreType.PhaseTask, задачаСТремяШагами(), "test", ObjectStore.LIBRARY_PROJECT)
+        val пусто = строки(полотно()).getValue("PW-9001")
+        assertEquals(0, пусто.path("progress").asInt())
+        assertTrue("0 из 3" in пусто.path("progress_why").asText()) { пусто.path("progress_why").asText() }
+
+        // закрыт первый шаг — процент двигается САМ, руками его не ставят
+        boundary.ingest(
+            CoreType.Stakeholder,
+            """{"id":"SK-9001","name":"ГКРЧ","role":"regulator",
+                "lifecycle":{"status":"Draft","version":"1"}}""",
+            "test", "PJ-2101",
+        )
+        val после = строки(полотно()).getValue("PW-9001")
+        assertEquals(33, после.path("progress").asInt()) { "1 из 3 закрыт — 33%" }
+        assertTrue("1 из 3" in после.path("progress_why").asText()) {
+            "процент не бывает голым числом: ${после.path("progress_why").asText()}"
+        }
+    }
+
+    @Test
+    fun `ответственного назначает руководитель, шаг наследует задачу`() {
+        TestDb.truncateAll()
+        проект()
+        boundary.ingest(CoreType.PhaseTask, задачаСТремяШагами(), "test", ObjectStore.LIBRARY_PROJECT)
+        val v = PhaseGantt.assign(
+            boundary, "PJ-2101",
+            mapper.readTree("""{"task":"PW-9001","who":"Чернов Д."}"""), "Чернов", null,
+        )
+        assertEquals("Чернов Д.", строки(v).getValue("PW-9001").path("assignee").asText())
+        val шаг = строки(v).getValue("PW-9001#1")
+        assertEquals("Чернов Д.", шаг.path("assignee").asText()) { "шаг наследует ответственного задачи" }
+        assertFalse(шаг.path("assignee_own").asBoolean()) { "и это видно: своя запись у него не заведена" }
+
+        val свой = PhaseGantt.assign(
+            boundary, "PJ-2101",
+            mapper.readTree("""{"task":"PW-9001#1","who":"Иванов И."}"""), "Чернов", null,
+        )
+        assertEquals("Иванов И.", строки(свой).getValue("PW-9001#1").path("assignee").asText())
+        assertTrue(строки(свой).getValue("PW-9001#1").path("assignee_own").asBoolean())
+        assertEquals("Чернов Д.", строки(свой).getValue("PW-9001#0").path("assignee").asText()) {
+            "соседний шаг остался на наследовании"
+        }
+
+        // «Моя работа» ловит ответственного, а не только задания
+        val моё = boundary.processTasks.myTasks("PJ-2101", "Иванов И.")
+        assertEquals(1, моё.path("works").size())
+        assertEquals("PW-9001#1", моё.path("works")[0].path("id").asText())
+        assertEquals(1, моё.path("counts").path("works").asInt())
+
+        // право: назначает руководитель
+        boundary.auth.createUser("petr", "парольпетра", "Петров П.")
+        boundary.auth.setRole("PJ-2101", "petr", "specialist")
+        val e = assertThrows<PhaseGantt.RightDeniedException> {
+            PhaseGantt.assign(
+                boundary, "PJ-2101",
+                mapper.readTree("""{"task":"PW-9001","who":"Петров"}"""), "Петров", "petr",
+            )
+        }
+        assertTrue("руководитель" in e.message!!) { e.message!! }
+    }
+
+    @Test
+    fun `длительность считается рабочими днями, а число двигает конец плана`() {
+        TestDb.truncateAll()
+        проект()
+        boundary.ingest(CoreType.PhaseTask, задачаСТремяШагами(), "test", ObjectStore.LIBRARY_PROJECT)
+        // понедельник 2027-05-03 … пятница 2027-05-07 — пять рабочих дней
+        val v = поставить("PW-9001#0", "2027-05-03", "2027-05-07")
+        assertEquals(5, строки(v).getValue("PW-9001#0").path("duration_days").asInt())
+        assertTrue(строки(v).getValue("PW-9001#0").path("duration_planned").asBoolean())
+
+        // ввод длительности числом — тот же план другими руками
+        val трое = PhaseGantt.plan(
+            boundary, "PJ-2101",
+            mapper.readTree("""{"task":"PW-9001#0","start":"2027-05-03","duration_days":3}"""),
+            "Чернов", null,
+        )
+        val шаг = строки(трое).getValue("PW-9001#0")
+        assertEquals("2027-05-05", шаг.path("end").asText()) { "три рабочих дня от понедельника — среда" }
+        assertEquals(3, шаг.path("duration_days").asInt())
+        // выходные в счёт не идут: пятница + 3 рабочих дня — вторник
+        val через = PhaseGantt.plan(
+            boundary, "PJ-2101",
+            mapper.readTree("""{"task":"PW-9001#0","start":"2027-05-07","duration_days":3}"""),
+            "Чернов", null,
+        )
+        assertEquals("2027-05-11", строки(через).getValue("PW-9001#0").path("end").asText()) {
+            "суббота и воскресенье рабочими днями не бывают"
+        }
+    }
+
     // ---- фикстуры --------------------------------------------------------
 
     private fun проект() = boundary.ingest(

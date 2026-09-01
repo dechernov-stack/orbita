@@ -124,7 +124,7 @@ function List({ view, onOpen }: { view: PhaseWorkView; onOpen: (id: string) => v
                     </td>
                     <td style={{ width: 140 }}>
                       {t.gaps.length > 0
-                        ? <Tooltip text={t.gaps.join('; ')}>
+                        ? <Tooltip text={t.gaps.map((g) => `${g.title}: ${g.note}`).join('; ')}>
                             <span className="warn">разрывы · {t.gaps.length}</span>
                           </Tooltip>
                         : <Muted why="открытых разрывов готовности по местам этой задачи нет" />}
@@ -197,17 +197,7 @@ function TaskCard({ task, onBack, onGo, onLead }: {
         ))}
       </div>
 
-      <div className="card">
-        <h3>Разрывы задачи · {task.gaps.length}</h3>
-        {task.gaps.length === 0
-          ? <p className="secondary" style={{ margin: 0 }}>
-              По местам этой задачи открытых разрывов готовности нет. Разрывы здесь —
-              те же, что в готовности к точке: второго списка не существует.
-            </p>
-          : <ul style={{ margin: 0, paddingLeft: 18 }}>
-              {task.gaps.map((g) => <li key={g}>{g}</li>)}
-            </ul>}
-      </div>
+      <GapsCard task={task} />
 
       <div className="card">
         <h3>Выход</h3>
@@ -219,6 +209,69 @@ function TaskCard({ task, onBack, onGo, onLead }: {
         </div>
       </div>
     </>
+  )
+}
+
+/**
+ * Круг 8: разрывы задачи с назначением. Адресат по умолчанию — ответственный
+ * за эту задачу: он и так её ведёт, и заново вспоминать имя незачем.
+ */
+function GapsCard({ task }: { task: PhaseWorkTask }) {
+  const { author } = useSession()
+  const [кому, setКому] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [notice, setNotice] = useState<string | null>(null)
+
+  useEffect(() => {
+    api.phaseGantt()
+      .then((v) => {
+        const строка = v.tasks.find((r) => r.id === task.id)
+        if (строка?.assignee) setКому(строка.assignee)
+      })
+      .catch(() => undefined)
+  }, [task.id])
+
+  return (
+    <div className="card">
+      <h3>Разрывы задачи · {task.gaps.length}</h3>
+      {task.gaps.length === 0
+        ? <p className="secondary" style={{ margin: 0 }}>
+            По местам этой задачи открытых разрывов готовности нет. Разрывы здесь —
+            те же, что в готовности к точке: второго списка не существует.
+          </p>
+        : <>
+            <ul style={{ margin: 0, paddingLeft: 18 }}>
+              {task.gaps.map((g) => <li key={g.id}>{g.title}: {g.note}</li>)}
+            </ul>
+            <div className="toolbar" style={{ gap: 8, marginTop: 10 }}>
+              <label className="secondary">кому:</label>
+              <input value={кому} onChange={(e) => setКому(e.target.value)}
+                placeholder="ответственный за задачу" style={{ width: 200 }} />
+              <button className="rr-assign" disabled={busy || !author || !кому.trim()}
+                title={!author ? 'представьтесь в шапке: назначение подписывается автором'
+                  : !кому.trim() ? 'назовите адресата — по умолчанию это ответственный за задачу'
+                  : 'назначить задания по всем разрывам этой задачи'}
+                onClick={() => {
+                  setBusy(true)
+                  api.tasksAssign({
+                    gate: task.gaps[0].gate,
+                    gaps: task.gaps.map((g) => ({ id: g.id, title: g.title, place: g.place ?? null })),
+                    assignee: кому.trim(),
+                    author: author || '',
+                  })
+                    .then((r) => setNotice(
+                      `заданий создано: ${r.created.length}` +
+                      (r.existing.length > 0 ? `, уже было: ${r.existing.length}` : ''),
+                    ))
+                    .catch((e) => setNotice(String(e)))
+                    .finally(() => setBusy(false))
+                }}>
+                назначить ({task.gaps.length}) →
+              </button>
+              {notice && <span className="secondary">{notice}</span>}
+            </div>
+          </>}
+    </div>
   )
 }
 

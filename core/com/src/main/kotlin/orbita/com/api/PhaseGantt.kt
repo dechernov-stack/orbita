@@ -16,9 +16,14 @@
 //   · задача, чьё окно уходит за свою точку, — конфликт: подсвечены обе,
 //     двигает человек.
 //
+// Круг 8 снял запрет на проценты — но только для ВЫЧИСЛЕННЫХ: progress задачи
+// это доля закрытых шагов, руками его не двигают. И добавил ответственного за
+// работу (поле проекта, назначает руководитель) и длительность рабочими днями,
+// которая считается из плана, а не вводится оценкой.
+//
 // Что не изменилось: план не влияет на статусы (ловушка 1), автосдвига
 // соседей нет (ловушка 2), расчётная сетка не выдаётся за план (ловушка 3),
-// процентов выполнения не существует (ловушка 4).
+// ручного процента не существует (ловушка 1 круга 8).
 package orbita.com.api
 
 import com.fasterxml.jackson.databind.JsonNode
@@ -42,6 +47,44 @@ object PhaseGantt {
     private data class Plan(val start: LocalDate, val end: LocalDate, val author: String)
 
     private data class Window(val start: LocalDate, val end: LocalDate, val planned: Boolean)
+
+    /** Ответственный за работу: кто ведёт задачу либо её шаг. */
+    private data class Assignee(val who: String, val author: String)
+
+    private fun assigneesOf(passport: JsonNode): Map<String, Assignee> =
+        passport.path("work_assignees").mapNotNull { a ->
+            val task = a.path("task").asText("")
+            val who = a.path("who").asText("")
+            if (task.isBlank() || who.isBlank()) null
+            else task to Assignee(who, a.path("author").asText(""))
+        }.toMap()
+
+    /**
+     * Длительность — РАБОЧИМИ днями и только из окна: это не оценка, а мера
+     * того, что уже стоит на полотне. Считаем включительно: план на один день
+     * длится один день.
+     */
+    private fun рабочихДней(окно: Window): Int {
+        var d = окно.start
+        var n = 0
+        while (!d.isAfter(окно.end)) {
+            if (d.dayOfWeek.value <= 5) n += 1
+            d = d.plusDays(1)
+        }
+        return n
+    }
+
+    /** Конец плана по длительности: N рабочих дней от старта включительно. */
+    private fun концаПоДлительности(start: LocalDate, дней: Int): LocalDate {
+        var d = start
+        var осталось = дней.coerceAtLeast(1)
+        if (d.dayOfWeek.value <= 5) осталось -= 1
+        while (осталось > 0) {
+            d = d.plusDays(1)
+            if (d.dayOfWeek.value <= 5) осталось -= 1
+        }
+        return d
+    }
 
     private fun plansOf(passport: JsonNode): Map<String, Plan> =
         passport.path("work_plan").mapNotNull { p ->
@@ -85,6 +128,7 @@ object PhaseGantt {
             return out
         }
         val plans = plansOf(passport)
+        val assignees = assigneesOf(passport)
         val milestones = milestonesOf(passport)
         val today = LocalDate.now()
         val byId = tasks.associateBy { it.id }
@@ -175,7 +219,20 @@ object PhaseGantt {
             n.put("name", "${t.order} · ${t.name}")
             n.put("start", окно.start.toString())
             n.put("end", окно.end.toString())
-            n.put("progress", 0)
+            // Круг 8: прогресс ВЫЧИСЛЯЕТСЯ — доля закрытых шагов, а у задачи
+            // без шагов 0 или 100 по вычисленному статусу. Руками его не
+            // двигают: ручного процента не существует по-прежнему.
+            val сделано = t.steps.count { it.done }
+            n.put(
+                "progress",
+                if (естьШаги) сделано * 100 / t.steps.size else if (t.outputDone) 100 else 0,
+            )
+            n.put(
+                "progress_why",
+                if (естьШаги) "шагов закрыто: $сделано из ${t.steps.size} — процент вычислен, не выставлен"
+                else if (t.outputDone) "выход готов — 100% по вычисленному статусу"
+                else "выход не готов — 0% по вычисленному статусу",
+            )
             n.put("dependencies", t.dependsOn.joinToString(",") { it.task })
             n.put("custom_class", cssClass(t, окно.planned, alarm != null, конфликт, естьШаги))
             n.put("kind", "task")
@@ -206,15 +263,20 @@ object PhaseGantt {
                 )
             }
             n.put("window_why", windowWhy(t, окно, планЗадачи, естьШаги, intervals))
+            n.put("duration_days", рабочихДней(окно))
+            n.put("duration_planned", окно.planned)
+            assignees[t.id]?.let {
+                n.put("assignee", it.who)
+                n.put("assignee_own", true)
+            }
 
             if (естьШаги && t.id !in collapse) {
                 t.steps.forEachIndexed { i, шаг ->
                     val w = окнаШагов.getValue(t.id)[i]
                     val планШага = plans["${t.id}#$i"]
                     // связи шагов рисуются ВСЕ: параллельность видна глазами
-                    val предки = шаг.after.mapNotNull { a ->
-                        t.steps.getOrNull(a.step - 1)?.let { "${t.id}#${a.step - 1}" }
-                    }
+                    // связь может уходить в чужую задачу — стрелку рисуем и туда
+                    val предки = шаг.after.map { a -> "${a.task ?: t.id}#${a.step - 1}" }
                     val sn = arr.addObject()
                     sn.put("id", "${t.id}#$i")
                     sn.put("name", "${t.order}.${i + 1} · ${шаг.title}")
@@ -222,6 +284,12 @@ object PhaseGantt {
                     sn.put("end", if (w.end.isAfter(w.start)) w.end.toString() else w.start.plusDays(1).toString())
                     sn.put("progress", 0)
                     sn.put("dependencies", предки.joinToString(","))
+                    sn.put("duration_days", рабочихДней(w))
+                    sn.put("duration_planned", w.planned)
+                    (assignees["${t.id}#$i"] ?: assignees[t.id])?.let { кто ->
+                        sn.put("assignee", кто.who)
+                        sn.put("assignee_own", assignees.containsKey("${t.id}#$i"))
+                    }
                     sn.put(
                         "custom_class",
                         when {
@@ -507,7 +575,12 @@ object PhaseGantt {
         val снять = request.path("clear").asBoolean(false)
         if (!снять) {
             val start = LocalDate.parse(request.path("start").asText())
-            val end = LocalDate.parse(request.path("end").asText())
+            // Ввод длительности числом — эквивалент правки плана: конец
+            // считается как N рабочих дней от старта. Это не оценка-статус,
+            // а тот же план другими руками.
+            val end = request.path("duration_days").takeIf { it.isNumber }
+                ?.let { концаПоДлительности(start, it.asInt()) }
+                ?: LocalDate.parse(request.path("end").asText())
             require(!end.isBefore(start)) { "плановый конец раньше начала: $start — $end" }
             остальные.addObject()
                 .put("task", цель)
@@ -523,6 +596,60 @@ object PhaseGantt {
             CoreType.Project, projectId, changes, passport.version, author,
             changeRef = if (снять) "план работ фазы: план $что снят"
             else "план работ фазы: $что поставлен план",
+        )
+        return toJson(boundary, projectId, login, collapse)
+    }
+
+    /**
+     * Назначение ответственного за работу (круг 8). Назначает руководитель
+     * проекта; шаг без своей записи наследует ответственного задачи.
+     * На вычисленные статусы ответственный не влияет — он адресат, не оценка.
+     */
+    fun assign(
+        boundary: Boundary,
+        projectId: String,
+        request: JsonNode,
+        author: String,
+        login: String? = null,
+        collapse: Set<String> = emptySet(),
+    ): ObjectNode {
+        require(author.isNotBlank()) { "TZ-COM-005: field 'author' is required for editing" }
+        val цель = request.path("task").asText("")
+        require(цель.isNotBlank()) { "нужно поле 'task' — кому назначается ответственный" }
+        val задача = цель.substringBefore('#')
+        val шаг = цель.substringAfter('#', "").toIntOrNull()
+        val t = PhaseWork.of(boundary, projectId).firstOrNull { it.id == задача }
+            ?: throw IllegalArgumentException("задача '$задача' не принадлежит работам текущей фазы")
+        if (шаг != null) require(шаг in t.steps.indices) { "у задачи ${t.order} нет шага №${шаг + 1}" }
+        if (login != null && boundary.auth.roleIn(projectId, login) != "lead") {
+            throw RightDeniedException(
+                "ответственных за работы назначает руководитель проекта (ваша роль — " +
+                    "${boundary.auth.roleIn(projectId, login) ?: "без роли в проекте"})",
+            )
+        }
+        val passport = boundary.objects.current(projectId)
+            ?: throw NoSuchElementException("project '$projectId' not found")
+        val текущие = (passport.doc.path("work_assignees").deepCopy<JsonNode>() as? ArrayNode)
+            ?: mapper.createArrayNode()
+        val остальные = mapper.createArrayNode()
+        текущие.forEach { a -> if (a.path("task").asText() != цель) остальные.add(a) }
+        val снять = request.path("clear").asBoolean(false)
+        val кто = request.path("who").asText("").trim()
+        if (!снять) {
+            require(кто.isNotBlank()) { "нужно поле 'who' — кто ведёт эту работу" }
+            остальные.addObject()
+                .put("task", цель)
+                .put("who", кто)
+                .put("author", author)
+                .put("at", java.time.OffsetDateTime.now().toString())
+        }
+        val changes = mapper.createObjectNode()
+        changes.set<ArrayNode>("work_assignees", остальные)
+        val что = if (шаг == null) "задачи ${t.order}" else "шага ${t.order}.${шаг + 1}"
+        boundary.editing.update(
+            CoreType.Project, projectId, changes, passport.version, author,
+            changeRef = if (снять) "работы фазы: ответственный $что снят"
+            else "работы фазы: ответственный $что — $кто",
         )
         return toJson(boundary, projectId, login, collapse)
     }

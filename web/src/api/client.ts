@@ -453,7 +453,13 @@ export const api = {
         due?: string; note?: string; state: 'active' | 'waiting' | 'done'
         waits_on?: string; place?: string; overdue?: boolean
       }>
-      counts: { active: number; overdue: number; waiting: number }
+      /** Круг 8: работы фазы, где я ответственный — «моё» не только задания. */
+      works: Array<{
+        id: string; kind: 'task' | 'step'; name: string; status: string
+        task?: string; step_index?: number; gate?: string; gaps?: number
+        next_step?: string; place?: string; done?: boolean
+      }>
+      counts: { active: number; overdue: number; waiting: number; works: number }
     }>(`/views/my-tasks${assignee ? `?assignee=${encodeURIComponent(assignee)}` : ''}`),
   /** Учётки поимённо — пикеру исполнителя. */
   authUsers: () => get<{ users: Array<{ login: string; display_name: string }> }>('/auth/users'),
@@ -728,8 +734,20 @@ export const api = {
   phaseGantt: (collapse: string[] = []) =>
     get<PhaseGanttView>('/views/phase-gantt' + (collapse.length ? `?collapse=${collapse.join(',')}` : '')),
   /** План задачи: даты ставит руководитель — перетаскиванием либо полями. */
+  /** Круг 8: ответственный за работу — назначает руководитель проекта. */
+  phaseWorkAssign: (
+    body: { task: string; who?: string; clear?: boolean; author: string },
+    collapse: string[] = [],
+  ) => post<PhaseGanttView>(
+    '/views/phase-work/assignee' + (collapse.length ? `?collapse=${collapse.join(',')}` : ''), body,
+  ),
   phaseWorkPlan: (
-    body: { task: string; start?: string; end?: string; clear?: boolean; author: string },
+    body: {
+      task: string; start?: string; end?: string
+      /** Длительность числом — тот же план другими руками: конец = старт + N. */
+      duration_days?: number
+      clear?: boolean; author: string
+    },
     collapse: string[] = [],
   ) => post<PhaseGanttView>(
     '/views/phase-work/plan' + (collapse.length ? `?collapse=${collapse.join(',')}` : ''), body,
