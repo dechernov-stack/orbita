@@ -14,7 +14,7 @@ import kotlin.math.abs
 /** Поля сценария, ведущие на хранимые входы, и требуемый тип каждого. */
 val SCENARIO_REF_FIELDS: Map<String, CoreType> = linkedMapOf(
     "constellation_ref" to CoreType.Constellation,
-    "spacecraft_ref" to CoreType.Spacecraft,
+    "carrier_ref" to CoreType.ComponentUsage,
     "demand_map_ref" to CoreType.DemandMap,
     "ground_stations_ref" to CoreType.GroundStations,
     "protocol_adapter_ref" to CoreType.ProtocolAdapter,

@@ -216,7 +216,7 @@ class CompareMetrics(
         vis["passes"].forEach { p ->
             if (!p.path("in_service_zone").asBoolean(false)) return@forEach
             byCell.getOrPut(p["target_ref"].asText()) { mutableListOf() } +=
-                p["spacecraft_ref"].asText() to (p["start_s"].asDouble() to p["end_s"].asDouble())
+                p["satellite"].asText() to (p["start_s"].asDouble() to p["end_s"].asDouble())
         }
         return byCell
     }
@@ -225,7 +225,7 @@ class CompareMetrics(
         if (vis == null) return emptyMap()
         val bySat = linkedMapOf<String, MutableList<Double>>()
         vis["passes"].forEach { p ->
-            bySat.getOrPut(p["spacecraft_ref"].asText()) { mutableListOf() } += p["start_s"].asDouble()
+            bySat.getOrPut(p["satellite"].asText()) { mutableListOf() } += p["start_s"].asDouble()
         }
         bySat.values.forEach { it.sort() }
         return bySat
@@ -342,7 +342,7 @@ class CompareMetrics(
         val perStation = linkedMapOf<String, MutableMap<String, MutableList<Double>>>()
         vis["passes"].forEach { p ->
             perStation.getOrPut(p["target_ref"].asText()) { linkedMapOf() }
-                .getOrPut(p["spacecraft_ref"].asText()) { mutableListOf() } += p["start_s"].asDouble()
+                .getOrPut(p["satellite"].asText()) { mutableListOf() } += p["start_s"].asDouble()
         }
         val cellVis = visibility.scheduleSlots(
             parsed.slots, epochIso, durationS, minElevDeg = 10.0,

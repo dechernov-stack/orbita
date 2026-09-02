@@ -253,4 +253,29 @@ class LibraryChannelTest {
         }
         assertTrue("code" in (refusal.message ?: "")) { "отказ называет поле: ${'$'}{refusal.message}" }
     }
+
+    @Test
+    @Order(6)
+    fun `каркас PBS ложится в то же дерево - родители переписаны, узел КА виден сборке`() {
+        // ADR-044 п.4: сегменты и элементы каркаса становятся узлами одного
+        // дерева состава, а не списком рядом с ним — profile и parent едут с пачкой
+        val doc = mapper.readTree(
+            """{"name":"Каркас PBS теста","shelf":"B5",
+                "payload":{"objects":[
+                  {"id":"CM-9101","name":"Космический сегмент","kind":"segment","segment":"space"},
+                  {"id":"CM-9102","name":"Космический аппарат","kind":"element","parent":"CM-9101",
+                   "profile":{"role":"spacecraft","preset":"cubesat_16u"}},
+                  {"id":"CM-9103","name":"Платформа","kind":"subsystem","parent":"CM-9102","profile":{"role":"platform"}}
+                ]}}""",
+        ) as com.fasterxml.jackson.databind.node.ObjectNode
+        val frag = boundary.editing.create(CoreType.LibraryFragment, doc, "test", ObjectStore.LIBRARY_PROJECT).id
+        val outcome = channel.apply(frag, "PJ-2102", "приёмник")
+        val byOld = outcome.created.toMap()
+        val ka = boundary.objects.current(byOld["CM-9102"]!!)!!
+        assertEquals(byOld["CM-9101"]!!, ka.doc.path("parent").asText())
+        assertEquals("spacecraft", ka.doc.path("profile").path("role").asText())
+        val platform = boundary.objects.current(byOld["CM-9103"]!!)!!
+        assertEquals(ka.id, platform.doc.path("parent").asText())
+        assertTrue(boundary.carriers.nodes("PJ-2102").any { it.id == ka.id }) { "узел КА из каркаса не виден сборке" }
+    }
 }

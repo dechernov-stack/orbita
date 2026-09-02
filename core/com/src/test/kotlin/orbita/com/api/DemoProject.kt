@@ -17,6 +17,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode
 import orbita.mod.DemoModel
 import orbita.mod.RepoPaths
 import orbita.mod.model.CoreType
+import orbita.mod.store.ObjectStore
 
 /** Пометка демо-объектов: по ней они отличимы от рабочих (STEP-7-9 §7.2). */
 const val DEMO_AUTHOR = "demo"
@@ -130,7 +131,10 @@ object DemoProject {
 
     /** Идентификаторы входов моделирования демо-проекта. */
     const val DEMO_CONSTELLATION = "CN-0001"
-    const val DEMO_SPACECRAFT = "SP-0001"
+    /** ADR-044: узел КА дерева состава — модель аппарата собирается из его поддерева. */
+    const val DEMO_SPACECRAFT = "CM-0901"
+    /** Вхождение КА ×N в построение демо — на него ссылается сценарий. */
+    const val DEMO_CARRIER_USAGE = "CU-0901"
     const val DEMO_DEMAND_MAP = "DM-0001"
     const val DEMO_TERMINAL_PROFILE = "TP-0001"
     const val DEMO_GROUND_STATIONS = "GS-0001"
@@ -147,7 +151,7 @@ object DemoProject {
         val demandMap = demandMapJson()
         val stations = groundStationsJson()
         boundary.ingest(CoreType.Constellation, constellationJson(), DEMO_AUTHOR, projectId)
-        boundary.ingest(CoreType.Spacecraft, spacecraftJson(maskFractions(demandMap, stations)), DEMO_AUTHOR, projectId)
+        seedCarrierTree(boundary, spacecraftJson(maskFractions(demandMap, stations)), projectId, parent = null)
         boundary.ingest(CoreType.DemandMap, demandMap, DEMO_AUTHOR, projectId)
         boundary.ingest(CoreType.TerminalProfile, terminalProfileJson(), DEMO_AUTHOR, projectId)
         boundary.ingest(CoreType.GroundStations, stations, DEMO_AUTHOR, projectId)
@@ -160,7 +164,8 @@ object DemoProject {
         val demandMap = demandMapJson()
         val stations = groundStationsJson()
         boundary.ingest(CoreType.Constellation, constellationJson(), DEMO_AUTHOR)
-        boundary.ingest(CoreType.Spacecraft, spacecraftJson(maskFractions(demandMap, stations)), DEMO_AUTHOR)
+        // узел КА встаёт под космический сегмент эталона: одно дерево, не два
+        seedCarrierTree(boundary, spacecraftJson(maskFractions(demandMap, stations)), ObjectStore.DEFAULT_PROJECT, parent = "CM-0010")
         boundary.ingest(CoreType.DemandMap, demandMap, DEMO_AUTHOR)
         boundary.ingest(CoreType.TerminalProfile, terminalProfileJson(), DEMO_AUTHOR)
         boundary.ingest(CoreType.GroundStations, stations, DEMO_AUTHOR)
@@ -327,7 +332,7 @@ object DemoProject {
             put("id", DEMO_SCENARIO)
             put("name", "Сравнение вариантов построения «Орбита-IoT»")
             put("constellation_ref", DEMO_CONSTELLATION)
-            put("spacecraft_ref", DEMO_SPACECRAFT)
+            put("carrier_ref", DEMO_CARRIER_USAGE)
             put("demand_map_ref", DEMO_DEMAND_MAP)
             put("ground_stations_ref", DEMO_GROUND_STATIONS)
             put("protocol_adapter_ref", DEMO_PROTOCOL_ADAPTER)
@@ -339,7 +344,7 @@ object DemoProject {
             // такой сценарий не примет (V008, scenario_input_versions).
             putObject("input_versions").apply {
                 put(DEMO_CONSTELLATION, "1")
-                put(DEMO_SPACECRAFT, "1")
+                put(DEMO_CARRIER_USAGE, "1")
                 put(DEMO_DEMAND_MAP, "1")
                 put(DEMO_GROUND_STATIONS, "1")
                 put(DEMO_PROTOCOL_ADAPTER, "1")
@@ -403,5 +408,80 @@ object DemoProject {
         c.path("owners").forEach { owners.add(it.asText()) }
         n.putObject("lifecycle").put("status", "Draft").put("version", "1")
         return mapper.writeValueAsString(n)
+    }
+
+    /**
+     * ADR-044: дерево КА из документа контракта — тем же разложением, что
+     * миграция V038: величины параметрами (имена анкет Ф-06), структура
+     * профилем, подсистемы ведомости масс — компонентами под платформой,
+     * строка ПН — сам узел ПН. Вхождение КА ×N — подгруппа построения.
+     */
+    fun seedCarrierTree(boundary: Boundary, spacecraftJson: String, projectId: String, parent: String?, usage: Boolean = true) {
+        val sp = mapper.readTree(spacecraftJson)
+        var n = 900
+        fun nextId() = "CM-%04d".format(++n)
+        fun quantity(value: com.fasterxml.jackson.databind.JsonNode, unit: String) =
+            mapper.createObjectNode().put("value", value.asDouble()).put("unit", unit)
+                .also { it.putObject("provenance").put("source", "imported").put("author", DEMO_AUTHOR) }
+        fun param(name: String, value: com.fasterxml.jackson.databind.JsonNode, unit: String) =
+            if (!value.isNumber) null else mapper.createObjectNode().put("name", name).set<com.fasterxml.jackson.databind.JsonNode>("quantity", quantity(value, unit))
+        fun node(id: String, name: String, kind: String, parentId: String?, profile: com.fasterxml.jackson.databind.node.ObjectNode, params: List<com.fasterxml.jackson.databind.JsonNode?>) {
+            val d = mapper.createObjectNode().put("id", id).put("name", name).put("kind", kind)
+            parentId?.let { d.put("parent", it) }
+            d.set<com.fasterxml.jackson.databind.JsonNode>("profile", profile)
+            val arr = d.putArray("parameters")
+            params.filterNotNull().forEach { arr.add(it) }
+            d.putObject("lifecycle").put("status", "Draft").put("version", "1")
+            boundary.req.ingestComponent(mapper.writeValueAsString(d), DEMO_AUTHOR, projectId)
+        }
+        val kaId = nextId()
+        val kaProfile = mapper.createObjectNode().put("role", "spacecraft")
+        sp.path("preset").asText("").takeIf { it.isNotBlank() }?.let { kaProfile.put("preset", it) }
+        sp.path("modes").takeIf { it.isArray }?.let { kaProfile.set<com.fasterxml.jackson.databind.JsonNode>("modes", it.deepCopy()) }
+        node(kaId, "Космический аппарат", "element", parent, kaProfile, emptyList())
+        val pl = sp.path("platform")
+        val pfId = nextId()
+        node(
+            pfId, "Платформа", "subsystem", kaId, mapper.createObjectNode().put("role", "platform"),
+            listOf(
+                param("dry_mass", pl.path("dry_mass_kg"), "kg"), param("wet_mass", pl.path("wet_mass_kg"), "kg"),
+                param("design_life", pl.path("design_life_years"), "a"),
+                param("sa_area", pl.path("power").path("sa_area_m2"), "m2"),
+                param("sa_efficiency", pl.path("power").path("sa_efficiency"), "1"),
+                param("battery_energy", pl.path("power").path("battery_wh"), "Wh"),
+                param("attitude_accuracy", pl.path("attitude").path("pointing_accuracy_deg"), "deg"),
+            ),
+        )
+        var payloadItem: com.fasterxml.jackson.databind.JsonNode? = null
+        pl.path("mel").forEach { item ->
+            if (item.path("subsystem").asText() == "payload") { payloadItem = item; return@forEach }
+            val profile = mapper.createObjectNode().put("role", "subsystem")
+                .put("subsystem", item.path("subsystem").asText()).put("maturity", item.path("maturity").asText("new"))
+            node(nextId(), item.path("name").asText(), "component", pfId, profile,
+                listOf(param("mass", item.path("mass_kg"), "kg"), param("quantity", item.path("quantity"), "pcs")))
+        }
+        val py = sp.path("payload")
+        val payloadProfile = mapper.createObjectNode().put("role", "payload")
+        payloadItem?.path("maturity")?.asText("")?.takeIf { it.isNotBlank() }?.let { payloadProfile.put("maturity", it) }
+        py.path("architecture").asText("").takeIf { it.isNotBlank() }?.let { payloadProfile.put("architecture", it) }
+        py.path("links").takeIf { it.isArray }?.let { payloadProfile.set<com.fasterxml.jackson.databind.JsonNode>("links", it.deepCopy()) }
+        py.path("onboard").takeIf { it.isObject }?.let { payloadProfile.set<com.fasterxml.jackson.databind.JsonNode>("onboard", it.deepCopy<com.fasterxml.jackson.databind.node.ObjectNode>().without("buffer_mb")) }
+        py.path("ephemeris_beacon").takeIf { it.isObject }?.let { payloadProfile.set<com.fasterxml.jackson.databind.JsonNode>("ephemeris_beacon", it.deepCopy()) }
+        node(
+            nextId(), payloadItem?.path("name")?.asText() ?: "Полезная нагрузка", "subsystem", kaId, payloadProfile,
+            listOf(
+                param("mass", payloadItem?.path("mass_kg") ?: mapper.nullNode(), "kg"),
+                param("buffer_size", py.path("onboard").path("buffer_mb"), "MB"),
+            ),
+        )
+        if (!usage) return
+        val total = mapper.readTree(constellationJson()).path("walker").path("total").asInt(1)
+        boundary.ingest(
+            CoreType.ComponentUsage,
+            """{"id":"$DEMO_CARRIER_USAGE","definition_ref":"$kaId","quantity":$total,
+                "constellation_ref":"$DEMO_CONSTELLATION","subgroup":"walker",
+                "lifecycle":{"status":"Draft","version":"1"}}""",
+            DEMO_AUTHOR, projectId,
+        )
     }
 }

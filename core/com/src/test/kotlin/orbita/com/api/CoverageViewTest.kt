@@ -63,7 +63,7 @@ class CoverageViewTest {
                 put("demand_map_ref", "DM-0900")
                 // БД требует все пять ссылок и версии входов (V008):
                 // сценарий без них невоспроизводим и не принимается
-                put("spacecraft_ref", "SP-0900")
+                put("carrier_ref", "CU-0900")
                 put("ground_stations_ref", "GS-0900")
                 put("protocol_adapter_ref", "PA-0900")
                 put("epoch", "2026-03-20T00:00:00.000Z")
@@ -71,7 +71,7 @@ class CoverageViewTest {
                 putObject("input_versions").apply {
                     put("CN-0900", "1")
                     put("DM-0900", "1")
-                    put("SP-0900", "1")
+                    put("CU-0900", "1")
                     put("GS-0900", "1")
                     put("PA-0900", "1")
                 }

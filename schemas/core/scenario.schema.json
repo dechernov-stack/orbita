@@ -15,7 +15,7 @@
     "name",
     "protocol_adapter_ref",
     "rng_seed",
-    "spacecraft_ref"
+    "carrier_ref"
   ],
   "additionalProperties": false,
   "properties": {
@@ -31,10 +31,10 @@
       "pattern": "^CN-[0-9]{4}$",
       "description": "Ссылка на хранимый объект: конфигурация группировки"
     },
-    "spacecraft_ref": {
+    "carrier_ref": {
       "type": "string",
-      "pattern": "^SP-[0-9]{4}$",
-      "description": "Ссылка на хранимый объект: модель аппарата"
+      "pattern": "^CU-[0-9]{4}$",
+      "description": "Вхождение КА-носителя в дереве состава (ADR-044): модель аппарата собирается из его определения"
     },
     "demand_map_ref": {
       "type": "string",

@@ -15,12 +15,12 @@
 """
 import sys, math
 
-PREFIX_TYPE = {'CN': 'constellation', 'SP': 'spacecraft', 'DM': 'demand_map',
+PREFIX_TYPE = {'CN': 'constellation', 'CU': 'component_usage', 'DM': 'demand_map',
                'GS': 'ground_stations', 'PA': 'protocol_adapter', 'TP': 'terminal_profile'}
 # Требуемый тип диктует ПОЛЕ, а не префикс ссылки: иначе подстановка объекта
 # другого вида в чужое поле проходит незамеченной — префикс и объект согласованы
 # между собой, а поле нет.
-FIELD_TYPE = {'constellation_ref': 'constellation', 'spacecraft_ref': 'spacecraft',
+FIELD_TYPE = {'constellation_ref': 'constellation', 'carrier_ref': 'component_usage',
               'demand_map_ref': 'demand_map', 'ground_stations_ref': 'ground_stations',
               'protocol_adapter_ref': 'protocol_adapter'}
 SCENARIO_REFS = list(FIELD_TYPE)
@@ -103,13 +103,13 @@ def _run_checks():
         if cond: ok += 1; print(f"  + {name}")
         else:    fail += 1; print(f"  - {name} {detail}")
 
-    STORE = {'CN-0001': {'type': 'constellation'}, 'SP-0001': {'type': 'spacecraft'},
+    STORE = {'CN-0001': {'type': 'constellation'}, 'CU-0001': {'type': 'component_usage'},
              'DM-0001': {'type': 'demand_map'},   'GS-0001': {'type': 'ground_stations'},
              'PA-0001': {'type': 'protocol_adapter'}}
-    SC = {'id': 'SC-0001', 'constellation_ref': 'CN-0001', 'spacecraft_ref': 'SP-0001',
+    SC = {'id': 'SC-0001', 'constellation_ref': 'CN-0001', 'carrier_ref': 'CU-0001',
           'demand_map_ref': 'DM-0001', 'ground_stations_ref': 'GS-0001',
           'protocol_adapter_ref': 'PA-0001', 'rng_seed': 42,
-          'input_versions': {'CN-0001': '1', 'SP-0001': '2', 'DM-0001': '1',
+          'input_versions': {'CN-0001': '1', 'CU-0001': '2', 'DM-0001': '1',
                              'GS-0001': '1', 'PA-0001': '3'},
           'module_versions': {'ballistics': '0.4.0'}}
 
@@ -118,12 +118,12 @@ def _run_checks():
     check("отсутствующий объект выявлен",
           any('отсутствует' in p for p in resolve_scenario({**SC, 'demand_map_ref': 'DM-9999'}, STORE)))
     check("ссылка неизвестного вида выявлена",
-          any('не соответствует' in p for p in resolve_scenario({**SC, 'spacecraft_ref': 'XX-0001'}, STORE)))
+          any('не соответствует' in p for p in resolve_scenario({**SC, 'carrier_ref': 'XX-0001'}, STORE)))
     check("незаданная ссылка выявлена",
           any('не задана' in p for p in resolve_scenario({**SC, 'ground_stations_ref': None}, STORE)))
     check("подмена объекта другого вида выявлена",
-          any('ожидался' in p for p in resolve_scenario({**SC, 'demand_map_ref': 'SP-0001'}, STORE)),
-          resolve_scenario({**SC, 'demand_map_ref': 'SP-0001'}, STORE))
+          any('ожидался' in p for p in resolve_scenario({**SC, 'demand_map_ref': 'CU-0001'}, STORE)),
+          resolve_scenario({**SC, 'demand_map_ref': 'CU-0001'}, STORE))
     check("объект с несоответствующим типом в хранилище выявлен",
           any('имеет тип' in p for p in resolve_scenario(SC, {**STORE, 'DM-0001': {'type': 'component'}})))
     check("все пять входов проверяются", len(SCENARIO_REFS) == 5)

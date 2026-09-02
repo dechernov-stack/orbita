@@ -65,6 +65,8 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
 
     /** Экран 5: бюджеты аппарата — масса, энергетика, линии, маяк (TZ-KA). */
     val spacecraft = SpacecraftViews()
+    /** ADR-044: узлы КА дерева состава и сборка контракта аппарата из них. */
+    val carriers: Carriers by lazy { Carriers(this) }
 
     /**
      * ИИ-контур (TZ-AI). Генерация происходит ВНЕ системы: инженер копирует
@@ -215,7 +217,13 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
         }
         // CR-005/ADR-021: входы моделирования. Прикладных правил связей у них
         // нет — только схема и статусная модель, поэтому общий путь сохранения.
-        CoreType.Constellation, CoreType.Spacecraft, CoreType.DemandMap,
+        // ADR-044: модель аппарата растворена в дереве состава — отдельный
+        // объект больше не заводится; старые читаются из истории.
+        CoreType.Spacecraft -> throw ModelViolationException(
+            "ADR-044: вид spacecraft растворён в дереве состава — заведите узел КА " +
+                "(component с profile.role = spacecraft) и его поддерево",
+        )
+        CoreType.Constellation, CoreType.DemandMap,
         CoreType.TerminalProfile, CoreType.GroundStations, CoreType.ProtocolAdapter -> {
             val doc = parse(json)
             registry.require(type.schemaName, doc)

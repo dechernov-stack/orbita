@@ -70,7 +70,7 @@ class GlobeViewTest {
                 put("constellation_ref", "CN-0901")
                 put("demand_map_ref", "DM-0901")
                 put("ground_stations_ref", "GS-0901")
-                put("spacecraft_ref", "SP-0901")
+                put("carrier_ref", "CU-0901")
                 put("protocol_adapter_ref", "PA-0901")
                 put("epoch", "2026-03-20T00:00:00.000Z")
                 // сутки, не пара часов: за 1,25 витка два аппарата одной плоскости
@@ -78,7 +78,7 @@ class GlobeViewTest {
                 put("duration_s", 86400.0)
                 putObject("input_versions").apply {
                     put("CN-0901", "1"); put("DM-0901", "1"); put("GS-0901", "1")
-                    put("SP-0901", "1"); put("PA-0901", "1")
+                    put("CU-0901", "1"); put("PA-0901", "1")
                 }
             },
         )
@@ -130,7 +130,7 @@ class GlobeViewTest {
         // обрезка не тихая: полное число объявлено
         assertEquals(body["passes_total"].asInt() > passes.size(), body["passes_truncated"].asBoolean())
         passes.forEach { p ->
-            assertTrue(p.hasNonNull("spacecraft_ref") && p.hasNonNull("target_ref"))
+            assertTrue(p.hasNonNull("satellite") && p.hasNonNull("target_ref"))
             assertTrue(p["start_utc"].asText().startsWith("2026-03-20T"))
             assertTrue(p["duration_s"].asDouble() > 0)
         }

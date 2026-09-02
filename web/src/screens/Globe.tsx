@@ -236,7 +236,7 @@ export function Globe() {
               <tbody>
                 {view?.passes.map((p, i) => (
                   <tr
-                    key={`${p.spacecraft_ref}-${p.target_ref}-${p.start_utc}`}
+                    key={`${p.satellite}-${p.target_ref}-${p.start_utc}`}
                     onClick={() => seekTo(p.start_utc)}
                     style={{
                       cursor: 'pointer',
@@ -246,7 +246,7 @@ export function Globe() {
                     }}
                     title={p.in_service_zone ? undefined : 'видимость есть, зона обслуживания не достигается'}
                   >
-                    <td className="mono">{p.spacecraft_ref}</td>
+                    <td className="mono">{p.satellite}</td>
                     <td className="mono">{p.target_ref}</td>
                     <td className="num">{fmtTime(p.start_utc)}</td>
                     <td className="num">{fmtTime(p.end_utc)}</td>

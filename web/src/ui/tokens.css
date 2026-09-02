@@ -1750,3 +1750,9 @@ details.np-dates[open] summary::before { transform: rotate(90deg); }
   font-size: 11.5px;
 }
 .fr-thread__arrow { color: var(--text-secondary); }
+
+/* Дерево состава (ADR-044): панель с заголовком и счётчиком, видимое
+   фокус-кольцо у строк — строки выбираются и с клавиатуры. */
+.pbs-head { font-size: 13px; margin: 10px 8px 4px; }
+.pbs-row { cursor: pointer; }
+.pbs-row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }

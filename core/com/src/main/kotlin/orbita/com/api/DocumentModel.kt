@@ -19,14 +19,19 @@ object DocumentModel {
     private val DESIGNATION = Regex("^[A-Z]{2,3}-[0-9]{4}(\\.\\s+|\\s+—\\s+)")
 
     fun model(boundary: Boundary, project: String?): JsonNode {
-        val budgets = boundary.objects.listCurrent(project).firstOrNull { it.type == "spacecraft" }?.let {
+        // ADR-044: аппарат собирается из узла КА дерева состава; без собранной
+        // модели бюджетов нет — и раздел так и скажет, а не покажет старое
+        val spacecraft = boundary.carriers.firstContract(project)
+        val budgets = spacecraft?.let {
             runCatching {
                 orbita.out.ModelSnapshot.budgetsOf(
-                    boundary.spacecraft.build(it.doc, orbita.out.SpacecraftConditions()), mapper,
+                    boundary.spacecraft.build(it, orbita.out.SpacecraftConditions()), mapper,
                 )
             }.getOrDefault(emptyList())
         } ?: emptyList()
-        val m = orbita.out.ModelSnapshot.of(boundary.objects, mapper, budgets = budgets, projectId = project) as ObjectNode
+        val m = orbita.out.ModelSnapshot.of(
+            boundary.objects, mapper, budgets = budgets, projectId = project, spacecraft = spacecraft,
+        ) as ObjectNode
         // МВП-М2 §3.5: последняя матрица сравнения построений — вставкой в
         // раздел AoA; выпуск зафиксирует снимок
         boundary.objects.listCurrent(project)

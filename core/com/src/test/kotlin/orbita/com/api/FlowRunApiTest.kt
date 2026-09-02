@@ -43,7 +43,7 @@ class FlowRunApiTest {
             """{"id":"SC-1601","name":"Мини-прогон","epoch":"2026-03-20T00:00:00Z",
                 "duration_s":21600,"rng_seed":7,"monte_carlo_runs":5,
                 "delivery_mode":"store_and_forward",
-                "constellation_ref":"CN-0001","spacecraft_ref":"SP-0001",
+                "constellation_ref":"CN-0001","carrier_ref":"CU-0901",
                 "demand_map_ref":"DM-0001","ground_stations_ref":"GS-0001",
                 "protocol_adapter_ref":"PA-0001",
                 "input_versions":{"CN-0001":"1","DM-0001":"1"}}""",

@@ -184,9 +184,11 @@
     },
     "component_kind": {
       "segment": "сегмент",
-      "system": "система",
+      "element": "элемент",
       "subsystem": "подсистема",
-      "assembly": "сборка"
+      "component": "компонент",
+      "system": "система (устар.)",
+      "assembly": "сборка (устар.)"
     },
     "verification_level": {
       "component": "элемент",

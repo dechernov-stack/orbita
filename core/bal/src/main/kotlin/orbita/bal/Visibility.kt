@@ -364,7 +364,7 @@ class VisibilityPrecompute(private val mapper: ObjectMapper = ObjectMapper()) {
         val arr = root.putArray("passes")
         passes.sortedWith(compareBy({ it.satId }, { it.targetId }, { it.startS })).forEach { p ->
             val n = arr.addObject()
-            n.put("spacecraft_ref", p.satId)
+            n.put("satellite", p.satId)
             n.put("target_type", "cell")
             n.put("target_ref", p.targetId)
             n.put("start_s", p.startS)

@@ -125,7 +125,7 @@ class OrekitConvergenceTest {
             coarse["start_s"].asDouble(), coarse["end_s"].asDouble(), coarse["max_elevation_deg"].asDouble(),
         )
         val refined = precompute.refinePass(
-            slot.copy(satId = coarse["spacecraft_ref"].asText()),
+            slot.copy(satId = coarse["satellite"].asText()),
             epochIso, target, coarsePass, elevDeg = 10.0,
         )
         assertTrue(refined != null) { "уточнение должно подтвердить грубый пролёт" }

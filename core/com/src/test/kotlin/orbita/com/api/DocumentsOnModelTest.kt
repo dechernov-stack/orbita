@@ -44,11 +44,13 @@ class DocumentsOnModelTest {
         options = boundary.results.activeForScenario(DEMO_SCENARIO, "kpi").map { it.payload },
         budgets = ModelSnapshot.budgetsOf(
             boundary.spacecraft.build(
-                boundary.objects.current(DemoProject.DEMO_SPACECRAFT)!!.doc,
+                boundary.carriers.contract(DemoProject.DEMO_SPACECRAFT),
                 SpacecraftConditions(altKm = 550.0),
             ),
             mapper,
         ),
+        // ADR-044: аппарат в срезе — собранный из узла КА, не хранимый объект
+        spacecraft = boundary.carriers.contract(DemoProject.DEMO_SPACECRAFT),
     )
 
     @Test
@@ -59,7 +61,9 @@ class DocumentsOnModelTest {
         assertEquals(DemoProject.DEMO_SPACECRAFT, m.path("spacecraft").path("id").asText())
         assertEquals(DemoProject.DEMO_GROUND_STATIONS, m.path("ground_stations").path("id").asText())
         assertEquals(9, m.path("requirements").size())
-        assertEquals(10, m.path("components").size())
+        // 10 узлов демо-состава + 8 узлов поддерева КА (ADR-044): КА, платформа,
+        // пять подсистем ведомости масс, полезная нагрузка
+        assertEquals(18, m.path("components").size())
     }
 
     /** Статус берётся из ХРАНИЛИЩА, а не из текста документа. */

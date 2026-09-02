@@ -39,14 +39,16 @@ class TransferPackageOnModelTest {
         val options = boundary.results.activeForScenario(DEMO_SCENARIO, "kpi").map { r ->
             (r.payload.deepCopy() as ObjectNode).put("stale", r.stale)
         }
-        val spacecraft = boundary.objects.listCurrent().first { it.type == "spacecraft" }
+        // ADR-044: аппарат собирается из узла КА дерева состава
+        val spacecraft = boundary.carriers.contract(DemoProject.DEMO_SPACECRAFT)
         val model = ModelSnapshot.of(
             boundary.objects, mapper,
             options = options,
             budgets = ModelSnapshot.budgetsOf(
-                boundary.spacecraft.build(spacecraft.doc, SpacecraftConditions()),
+                boundary.spacecraft.build(spacecraft, SpacecraftConditions()),
                 mapper,
             ),
+            spacecraft = spacecraft,
         )
         return TransferPackages.assemble(
             model = model,
@@ -81,7 +83,8 @@ class TransferPackageOnModelTest {
     @DisplayName("§11.3: архитектура несёт распределение, а не только дерево")
     fun `архитектура с распределением`() {
         val architecture = assemble().path("architecture")
-        assertEquals(10, architecture.path("components").size())
+        // 10 узлов демо-состава + 8 узлов поддерева КА (ADR-044)
+        assertEquals(18, architecture.path("components").size())
         assertTrue(architecture.path("allocations").size() > 0)
         assertTrue(
             architecture.path("allocations")

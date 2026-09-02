@@ -88,8 +88,11 @@ class DataRequestsTest {
 
     @Test
     fun `заполненное в модели поле спрошенным больше не считается`() {
-        boundary.ingest(
-            CoreType.Spacecraft,
+        // ADR-044: анкета платформы закрывается параметрами узла «Платформа»
+        // дерева состава — модель аппарата раскладывается в узлы тем же
+        // разложением, что миграция
+        DemoProject.seedCarrierTree(
+            boundary,
             """{"id":"SP-2001","preset":"cubesat_16u",
                 "platform":{"dry_mass_kg":42.0,
                   "power":{"sa_area_m2":0.3,"sa_efficiency":0.28,"battery_wh":120},
@@ -100,7 +103,7 @@ class DataRequestsTest {
                             "antenna":{"type":"patch","gain_dbi":6}}],
                   "onboard":{"buffer_mb":64,"priority_policy":["C_prime","B_prime","A_prime"]}},
                 "lifecycle":{"status":"Draft","version":"1"}}""",
-            "test", "PJ-2001",
+            "PJ-2001", parent = null, usage = false,
         )
         val platform = requests.of("PJ-2001").first { it.role == "platform" }
         val dry = platform.fields.first { it.key == "dry_mass" }

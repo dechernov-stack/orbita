@@ -1057,11 +1057,25 @@ class HttpApi(private val boundary: Boundary) {
             // Бюджеты аппарата по ХРАНИМОЙ модели КА (ADR-021). Модель берётся
             // из хранилища по ссылке, а не приходит телом запроса: до CR-005
             // экран жил в пределах сеанса и сохранить построенное было некуда.
+            // ADR-044: модель аппарата — вид узла КА дерева состава: контракт
+            // собирается из поддерева узла и проходит схему перед расчётом.
+            method == "GET" && Regex("^/views/spacecraft/(CM-[0-9]{4})$").matches(path) -> {
+                val id = path.removePrefix("/views/spacecraft/")
+                respond(ex, 200, mapper.valueToTree(boundary.carriers.view(id, conditions(query(ex)))))
+            }
             method == "GET" && Regex("^/views/spacecraft/(SP-[0-9]{4})$").matches(path) -> {
                 val id = path.removePrefix("/views/spacecraft/")
-                val stored = boundary.objects.current(id)
-                    ?: throw NoSuchElementException("модель аппарата $id в модели отсутствует")
-                respond(ex, 200, mapper.valueToTree(boundary.spacecraft.build(stored.doc, conditions(query(ex)))))
+                val into = boundary.objects.history(id).lastOrNull()?.doc?.path("dissolved_into")?.asText("")
+                throw NoSuchElementException(
+                    "модель аппарата $id растворена в дереве состава (ADR-044)" +
+                        (into?.takeIf { it.isNotBlank() }?.let { " — откройте узел КА $it" } ?: ""),
+                )
+            }
+            // Контракт, собранный из дерева, и претензии сборки — без расчёта:
+            // экран показывает, из каких узлов сложился аппарат и чего не хватает.
+            method == "GET" && Regex("^/views/spacecraft/(CM-[0-9]{4})/assembly$").matches(path) -> {
+                val id = path.removePrefix("/views/spacecraft/").removeSuffix("/assembly")
+                respond(ex, 200, boundary.carriers.toJson(boundary.carriers.assemble(id)))
             }
 
             // Расчёт по ещё не сохранённой модели: экран считает до записи.
@@ -1628,7 +1642,7 @@ class HttpApi(private val boundary: Boundary) {
                     val startS = p.path("start_s").asDouble()
                     val endS = p.path("end_s").asDouble()
                     passes.addObject()
-                        .put("spacecraft_ref", p.path("spacecraft_ref").asText())
+                        .put("satellite", p.path("satellite").asText())
                         .put("target_ref", p.path("target_ref").asText())
                         .put("start_utc", epochInstant.plusMillis((startS * 1000).toLong()).toString())
                         .put("end_utc", epochInstant.plusMillis((endS * 1000).toLong()).toString())
@@ -2213,7 +2227,7 @@ class HttpApi(private val boundary: Boundary) {
                     ?: throw NoSuchElementException("станции не заданы: маску сброса не из чего строить")
                 val constellation = current.firstOrNull { it.type == "constellation" }
                     ?: throw NoSuchElementException("группировка не задана: трассу не по чему считать")
-                val spacecraft = current.firstOrNull { it.type == "spacecraft" }
+                val spacecraft = boundary.carriers.firstContract(project)
 
                 val parsed = orbita.bal.parseConstellationDoc(constellation.doc)
                 val masks = orbita.ka.buildMasks(demandMap.doc, stations.doc, parsed.minAltKm)
@@ -2233,7 +2247,7 @@ class HttpApi(private val boundary: Boundary) {
                 out.put("downlink_cells", masks.downlinkCells.size)
                 val generated = out.putObject("generated_orbit_fractions")
                 fractions.forEach { (mode, f) -> generated.put(mode, f) }
-                spacecraft?.doc?.path("modes")?.takeIf { it.isArray }?.let { modes ->
+                spacecraft?.path("modes")?.takeIf { it.isArray }?.let { modes ->
                     val manual = out.putObject("model_orbit_fractions")
                     modes.forEach { m ->
                         manual.put(m.path("name").asText(), m.path("orbit_fraction").asDouble())
@@ -2581,15 +2595,16 @@ class HttpApi(private val boundary: Boundary) {
                             r.inputVersions.forEach { (k, v) -> iv.put(k, v) }
                         }
                 }
-                val spacecraft = boundary.objects.listCurrent(project).firstOrNull { it.type == "spacecraft" }
+                val spacecraft = boundary.carriers.firstContract(project)
                 val budgets = spacecraft?.let {
                     orbita.out.ModelSnapshot.budgetsOf(
-                        boundary.spacecraft.build(it.doc, orbita.out.SpacecraftConditions()),
+                        boundary.spacecraft.build(it, orbita.out.SpacecraftConditions()),
                         mapper,
                     )
                 } ?: emptyList()
                 val model = orbita.out.ModelSnapshot.of(
                     boundary.objects, mapper, options = options, budgets = budgets, projectId = project,
+                    spacecraft = spacecraft,
                 )
                 val pkg = orbita.out.TransferPackages.assemble(
                     model = model,
@@ -2796,6 +2811,12 @@ class HttpApi(private val boundary: Boundary) {
             // В2.1: свёртка бюджетов — по вхождениям с кратностью. Величина
             // узла = параметр определения × произведение quantity по пути от
             // корня. Считает сервер; расчётов в клиенте нет.
+            // ADR-044: дерево состава по вхождениям с кратностью, узлы КА с
+            // претензиями сборки и построения как вхождения ×N со свёрткой массы.
+            method == "GET" && path == "/views/composition/tree" -> {
+                respond(ex, 200, boundary.carriers.tree(requireProject(project)))
+            }
+
             method == "GET" && path == "/views/composition/budgets" -> {
                 val cur = boundary.objects.listCurrent(requireProject(project))
                 val usages = cur.filter { it.type == "component_usage" && it.status != Lifecycle.Cancelled }

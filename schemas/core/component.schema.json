@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://kis.local/schemas/core/component.schema.json",
   "title": "Component",
-  "description": "Узел дерева «Система — Компоненты» с параметрами и TPM (Ш4).",
+  "description": "Узел одного дерева носителей — состава системы (ADR-044): система → сегмент → элемент → подсистема → компонент. Величины узла — parameters (имя = ключ анкеты Ф-06, единица справочника); структурные не-величины — profile.",
   "type": "object",
   "required": [
     "id",
@@ -22,10 +22,13 @@
     "kind": {
       "enum": [
         "segment",
-        "system",
+        "element",
         "subsystem",
+        "component",
+        "system",
         "assembly"
-      ]
+      ],
+      "description": "Уровень дерева (ADR-044): segment → element → subsystem → component. system и assembly — устаревшие значения, читаются в истории; новые узлы их не получают."
     },
     "segment": {
       "enum": [
@@ -212,6 +215,115 @@
     "owner": {
       "type": "string",
       "description": "Владелец узла — логин учётки (В3): специалист работает в своих узлах; чужие для него закрыты на запись"
+    },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Структурные не-величины узла (ADR-044). Числа с единицами здесь запрещены — им место в parameters.",
+      "properties": {
+        "role": {
+          "enum": [
+            "spacecraft",
+            "platform",
+            "payload",
+            "subsystem",
+            "ground_station",
+            "terminal"
+          ],
+          "description": "Роль узла для сборки контрактов: spacecraft — узел КА (вид «Модель аппарата»), platform/payload — анкеты Ф-06 PF-9001/PF-9002, subsystem — строка ведомости масс."
+        },
+        "subsystem": {
+          "enum": [
+            "structure",
+            "power",
+            "adcs",
+            "propulsion",
+            "obc",
+            "comms",
+            "thermal",
+            "payload"
+          ]
+        },
+        "maturity": {
+          "enum": [
+            "new",
+            "modified",
+            "existing"
+          ]
+        },
+        "preset": {
+          "type": "string",
+          "description": "Пресет платформы (TZ-KA-001) у узла КА"
+        },
+        "mel_margin_policy": {
+          "type": "object"
+        },
+        "power": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "sa_mounting": {
+              "enum": [
+                "body_fixed",
+                "deployable_fixed",
+                "steerable"
+              ]
+            }
+          }
+        },
+        "attitude": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "modes": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "propulsion": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "present": {
+              "type": "boolean"
+            },
+            "type": {
+              "enum": [
+                "cold_gas",
+                "electric",
+                "chemical"
+              ]
+            }
+          }
+        },
+        "architecture": {
+          "type": "string",
+          "description": "Архитектура ПН (узел payload) — значение по контракту аппарата"
+        },
+        "links": {
+          "type": "array",
+          "items": {
+            "$ref": "https://kis.local/schemas/contracts/radio-link.schema.json"
+          }
+        },
+        "onboard": {
+          "type": "object",
+          "description": "Бортовая политика ПН без buffer_mb: объём буфера — параметр buffer_size"
+        },
+        "ephemeris_beacon": {
+          "type": "object"
+        },
+        "modes": {
+          "type": "array",
+          "description": "Режимы КА по контракту аппарата (узел spacecraft)",
+          "items": {
+            "type": "object"
+          }
+        }
+      }
     }
   }
 }

@@ -1,34 +1,49 @@
-// Экран «Состав системы» (шаг 16 §3.3): компоненты и интерфейсы хранятся
-// с шага 1, но выбрать их было негде — существовал один экран спецификации
-// с зашитым идентификатором. Образец — экран 3: список слева, карточка справа.
+// Экран «Дерево состава» — одно дерево носителей (ADR-044). Слева — вхождения
+// с уровнем и кратностью: система → сегмент → элемент → подсистема →
+// компонент; узел КА открывается как «Модель аппарата» — вид того же узла,
+// а не отдельная сущность. Построения — вхождения КА ×N: подгруппа даёт число
+// аппаратов, свёртку массы группировки считает сервер. Справа — спецификация
+// выбранного определения и карточка требования, распределённого на него.
 //
-// Из строки спецификации — переход к требованию, из карточки требования —
-// обратно к элементу, на который оно распределено.
+// Клиент ничего не складывает и не умножает: кратности, массы и претензии
+// сборки приходят готовыми (правило обхода кода клиента).
 import { useEffect, useState } from 'react'
-import { SortTh, useSort } from '../ui/sort'
 import { api } from '../api/client'
-import { edit, type StoredSummary } from '../api/edit'
-import type { RequirementCard } from '../api/types'
+import type { CompositionTree, RequirementCard } from '../api/types'
 import { ComponentSpec } from './ComponentSpec'
 
-export function SystemComposition() {
-  const [items, setItems] = useState<StoredSummary[]>([])
-  // П-Б: сортировка заголовком — общий компонент, клиентская
-  const { sorted: sortedItems, sort, toggle } = useSort(items, {
-    id: (r) => r.id,
-    title: (r) => r.title ?? '',
-  })
+const KIND_LABEL: Record<string, string> = {
+  system: 'система',
+  segment: 'сегмент',
+  element: 'элемент',
+  subsystem: 'подсистема',
+  component: 'компонент',
+  assembly: 'сборка',
+}
+
+const ROLE_LABEL: Record<string, string> = {
+  spacecraft: 'КА',
+  platform: 'платформа',
+  payload: 'полезная нагрузка',
+  subsystem: 'подсистема',
+  ground_station: 'станция',
+  terminal: 'терминал',
+}
+
+export function SystemComposition({ onGo }: { onGo?: (screen: string, kind?: string, target?: string) => void }) {
+  const [tree, setTree] = useState<CompositionTree | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
   const [reqId, setReqId] = useState<string | null>(null)
   const [card, setCard] = useState<RequirementCard | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    Promise.all([edit.list('component'), edit.list('interface')])
-      .then(([components, interfaces]) => {
-        const all = [...components, ...interfaces]
-        setItems(all)
-        if (all.length > 0) setSelected((cur) => cur ?? all[0].id)
+    api
+      .compositionTree()
+      .then((t) => {
+        setTree(t)
+        const first = t.rows[0]?.definition ?? t.definitions_without_usage[0]?.id
+        if (first) setSelected((cur) => cur ?? first)
       })
       .catch((e) => setError(String(e)))
   }, [])
@@ -42,58 +57,180 @@ export function SystemComposition() {
   }, [reqId])
 
   if (error) return <div className="empty">Ошибка обращения к API: {error}</div>
-  if (items.length === 0)
-    return (
-      <div className="empty">
-        Компонентов и интерфейсов в модели нет: заведите их на Ш4 «Состав и интерфейсы».
-      </div>
-    )
+  if (!tree) return <div className="empty">Загрузка дерева состава…</div>
+
+  const pick = (definition: string) => {
+    setSelected(definition)
+    setReqId(null)
+  }
+
+  const empty = tree.rows.length === 0 && tree.definitions_without_usage.length === 0
 
   return (
     <div
       style={{
         gridArea: 'main',
         display: 'grid',
-        gridTemplateColumns: '220px minmax(0, 1fr)',
+        gridTemplateColumns: '460px minmax(0, 1fr)',
         minHeight: 0,
         minWidth: 0,
       }}
     >
       <div className="pane" style={{ borderRight: '1px solid var(--border)' }}>
-        <h3 style={{ fontSize: 13, margin: '10px 8px 4px' }}>Состав системы</h3>
-        <table>
-          <thead>
-            <tr>
-              <SortTh label="ID" sortKey="id" sort={sort} onToggle={toggle} width={80} />
-              <SortTh label="Название" sortKey="title" sort={sort} onToggle={toggle} />
-            </tr>
-          </thead>
-          <tbody>
-            {sortedItems.map((item) => (
-              <tr
-                key={item.id}
-                onClick={() => {
-                  setSelected(item.id)
-                  setReqId(null)
-                }}
-                style={{
-                  cursor: 'pointer',
-                  background: item.id === selected ? 'rgba(11,95,255,0.08)' : undefined,
-                }}
-              >
-                <td className="mono" style={{ width: 80 }}>{item.id}</td>
-                <td className="truncate">{item.title ?? item.type}</td>
+        <h3 className="pbs-head">
+          Состав системы <span className="secondary">· вхождений: {tree.rows.length}</span>
+        </h3>
+        {empty ? (
+          <div className="empty">
+            Вхождений в дереве нет: заведите определения на Ш4 «Элементы и интерфейсы» и
+            вхождения к ним — состав строится по вхождениям, а не по списку определений.
+          </div>
+        ) : (
+          <table>
+            <thead>
+              <tr>
+                <th>Узел</th>
+                <th style={{ width: 92 }}>Уровень</th>
+                <th style={{ width: 44, textAlign: 'right' }}>×N</th>
+                <th style={{ width: 76, textAlign: 'right' }}>Масса, кг</th>
+                <th style={{ width: 62 }}>Вид</th>
               </tr>
+            </thead>
+            <tbody>
+              {tree.rows.map((r) => (
+                <tr
+                  key={r.usage || `def:${r.definition}`}
+                  className="pbs-row"
+                  tabIndex={0}
+                  onClick={() => pick(r.definition)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      pick(r.definition)
+                    }
+                  }}
+                  style={{ background: r.definition === selected ? 'rgba(11,95,255,0.08)' : undefined }}
+                >
+                  <td style={{ paddingLeft: 8 + r.level * 14, whiteSpace: 'normal' }}>
+                    <span className="mono secondary" style={{ marginRight: 6 }}>{r.definition}</span>
+                    {r.name}
+                    {r.role && (
+                      <span className="chip" style={{ marginLeft: 6 }}>{ROLE_LABEL[r.role] ?? r.role}</span>
+                    )}
+                    {r.by_definition && (
+                      <span className="secondary" style={{ marginLeft: 6 }} title="узел заведён определением, вхождение ему ещё не заведено">
+                        по определению
+                      </span>
+                    )}
+                  </td>
+                  <td className="secondary">{KIND_LABEL[r.kind] ?? r.kind}</td>
+                  <td className="mono" style={{ textAlign: 'right' }}>{r.multiplier}</td>
+                  <td className="mono" style={{ textAlign: 'right' }}>
+                    {r.mass_total_kg !== undefined ? r.mass_total_kg.toFixed(2) : '—'}
+                  </td>
+                  <td>
+                    {r.role === 'spacecraft' && onGo && (
+                      <button
+                        type="button"
+                        className="tab"
+                        title="Открыть модель аппарата — вид этого узла"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onGo('spacecraft', 'component', r.definition)
+                        }}
+                      >
+                        аппарат
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+
+        <h3 className="pbs-head">
+          Построения <span className="secondary">· вхождений КА: {tree.constellations.reduce((n, c) => n + c.subgroups.length, 0)}</span>
+        </h3>
+        {tree.constellations.length === 0 ? (
+          <div className="empty">Построений с вхождениями КА нет: подгруппа построения — вхождение узла КА ×N.</div>
+        ) : (
+          tree.constellations.map((c) => (
+            <div key={c.id} className="card" style={{ margin: '4px 8px' }}>
+              <div>
+                <span className="mono secondary">{c.id}</span> {c.name}
+                <span className="secondary"> · аппаратов: {c.satellites}</span>
+                {c.mass_total_kg !== undefined ? (
+                  <span className="secondary"> · масса группировки: {c.mass_total_kg.toFixed(1)} кг</span>
+                ) : (
+                  <span className="secondary"> · {c.mass_note}</span>
+                )}
+              </div>
+              <ul style={{ margin: '4px 0 0 16px', padding: 0 }}>
+                {c.subgroups.map((s) => (
+                  <li key={s.usage}>
+                    {s.subgroup}: <span className="mono">{s.usage}</span> → {s.name} ×{s.quantity}
+                    {s.mass_total_kg !== undefined && <span className="secondary"> · {s.mass_total_kg.toFixed(1)} кг</span>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))
+        )}
+
+        {tree.carriers.some((c) => c.problems.length > 0) && (
+          <>
+            <h3 className="pbs-head">
+              Сборка аппарата <span className="secondary">· претензий: {tree.carriers.reduce((n, c) => n + c.problems.length, 0)}</span>
+            </h3>
+            {tree.carriers.map((c) => (
+              c.problems.length > 0 && (
+                <div key={c.id} className="card" style={{ margin: '4px 8px' }}>
+                  <div><span className="mono secondary">{c.id}</span> {c.name}</div>
+                  <ul style={{ margin: '4px 0 0 16px', padding: 0 }}>
+                    {c.problems.map((p) => <li key={p}>{p}</li>)}
+                  </ul>
+                </div>
+              )
             ))}
-          </tbody>
-        </table>
+          </>
+        )}
+
+        {tree.definitions_without_usage.length > 0 && (
+          <>
+            <h3 className="pbs-head">
+              Определения без вхождений <span className="secondary">· {tree.definitions_without_usage.length}</span>
+            </h3>
+            <table>
+              <tbody>
+                {tree.definitions_without_usage.map((d) => (
+                  <tr
+                    key={d.id}
+                    className="pbs-row"
+                    tabIndex={0}
+                    onClick={() => pick(d.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        pick(d.id)
+                      }
+                    }}
+                    style={{ background: d.id === selected ? 'rgba(11,95,255,0.08)' : undefined }}
+                  >
+                    <td><span className="mono secondary" style={{ marginRight: 6 }}>{d.id}</span>{d.name}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
+        )}
       </div>
 
       <div style={{ minWidth: 0, minHeight: 0, display: 'grid' }}>
         {reqId && card ? (
           <div className="pane" style={{ padding: 16 }}>
             <button type="button" className="tab" onClick={() => setReqId(null)}>
-              ← к элементу {selected}
+              ← к узлу {selected}
             </button>
             <h2 style={{ fontSize: 15 }}>
               <span className="id">{card.row.id}</span> {card.row.statement}
@@ -116,17 +253,8 @@ export function SystemComposition() {
             </div>
             <div className="field">
               <label>Распределено на</label>
-              {/* обратно к элементу: распределение и есть обратная нить */}
               {card.allocatedTo.map((a) => (
-                <button
-                  key={a}
-                  type="button"
-                  className="tab"
-                  onClick={() => {
-                    setSelected(a)
-                    setReqId(null)
-                  }}
-                >
+                <button key={a} type="button" className="tab" onClick={() => pick(a)}>
                   {a}
                 </button>
               ))}

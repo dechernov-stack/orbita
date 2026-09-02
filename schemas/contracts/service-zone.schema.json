@@ -4,10 +4,10 @@
   "title": "ServiceZone",
   "description": "Зона обслуживания по линии — контракт «КА → баллистика». Зона обслуживания ≠ зона видимости: footprint сужается замыканием бюджета линии и наличием ёмкости.",
   "type": "object",
-  "required": ["spacecraft_ref", "link_ref", "terminal_profile_ref", "altitude_km", "min_elevation_deg", "boundary"],
+  "required": ["satellite", "link_ref", "terminal_profile_ref", "altitude_km", "min_elevation_deg", "boundary"],
   "additionalProperties": false,
   "properties": {
-    "spacecraft_ref": { "type": "string" },
+    "satellite": { "type": "string" },
     "link_ref": { "type": "string" },
     "terminal_profile_ref": { "type": "string", "description": "Зона зависит от терминала: для A' шире, для C' уже" },
     "altitude_km": { "type": "number", "exclusiveMinimum": 0 },

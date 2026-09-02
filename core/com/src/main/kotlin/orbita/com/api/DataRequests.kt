@@ -56,13 +56,16 @@ class DataRequests(private val boundary: Boundary) {
 
     private val mapper = ObjectMapper()
 
-    /** Роль анкеты → вид объекта модели, который её закрывает. */
+    /**
+     * Роль анкеты → чем она закрывается. Платформа и ПН — узлы одного дерева
+     * состава с той же ролью (ADR-044): анкета платформы = параметры узла
+     * «Платформа». Терминал и станция — пока объекты входов моделирования.
+     */
     private val holderTypes = mapOf(
-        "platform" to "spacecraft",
-        "payload" to "spacecraft",
         "terminal" to "terminal_profile",
         "ground_station" to "ground_stations",
     )
+    private val holderRoles = setOf("platform", "payload")
 
     /**
      * Запросы данных проекта: анкеты класса миссии, наложенные на то, что
@@ -91,12 +94,21 @@ class DataRequests(private val boundary: Boundary) {
             .sortedBy { it.id }
             .map { form ->
                 val role = form.doc.path("role").asText("")
-                val holder = holderTypes[role]?.let { t -> own.firstOrNull { it.type == t } }
+                val holder = if (role in holderRoles) {
+                    own.firstOrNull { it.type == "component" && orbita.out.CarrierAssembly.role(it.doc) == role }
+                } else {
+                    holderTypes[role]?.let { t -> own.firstOrNull { it.type == t } }
+                }
                 val fields = form.doc.path("fields").map { f ->
                     val key = f.path("key").asText()
                     val target = f.path("target").asText("")
+                    // узел дерева: поле анкеты закрыто параметром узла с тем же
+                    // именем; объект входов — значением по адресу поля
                     val inModel = holder?.doc?.let { doc ->
-                        if (target.isBlank()) null else doc.at(target).takeIf { !it.isMissingNode && !it.isNull }
+                        if (role in holderRoles) {
+                            doc.path("parameters").firstOrNull { it.path("name").asText("") == key }
+                                ?.path("quantity")?.path("value")?.takeIf { it.isNumber }
+                        } else if (target.isBlank()) null else doc.at(target).takeIf { !it.isMissingNode && !it.isNull }
                     }
                     val harvested = fromDatasheets[key]
                     val requiredBy = f.path("required_by").asText("").ifBlank { null }

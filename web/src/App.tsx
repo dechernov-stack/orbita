@@ -364,17 +364,19 @@ export function App() {
       case 'matrix': return <MatrixScreen />
       case 'aoa': return <KindRegistry key={screen} kinds={['alternative', 'decision']} title="Альтернативы и решения" />
       case 'wbs': return <KindRegistry key={screen} kinds={['component', 'interface']} title="Элементы и интерфейсы" />
-      case 'composition': return <ScreenFrame title="Дерево состава"><SystemComposition /></ScreenFrame>
+      case 'composition': return <ScreenFrame title="Дерево состава"><SystemComposition onGo={go} /></ScreenFrame>
       case 'wbstree': return <KindRegistry key={screen} kinds={['wbs_element']} title="Структура работ (WBS)" />
       case 'cost': return <KindRegistry key={screen} kinds={['cost_estimate']} title="Оценки стоимости и сроков" />
       case 'siminputs':
         return (
           <KindRegistry key={screen} title="Входы моделирования"
-            kinds={['scenario', 'constellation', 'spacecraft', 'demand_map', 'terminal_profile', 'ground_stations', 'protocol_adapter']}
+            kinds={['scenario', 'constellation', 'demand_map', 'terminal_profile', 'ground_stations', 'protocol_adapter']}
           />
         )
       case 'spacecraft':
-        return <ScreenFrame title="Модель аппарата"><Spacecraft onGo={go} /></ScreenFrame>
+        // ADR-044: модель аппарата — вид узла КА дерева состава; переход с
+        // дерева несёт идентификатор узла
+        return <ScreenFrame title="Модель аппарата"><Spacecraft spacecraftId={pendingKind === 'component' ? pendingDoc : undefined} onGo={go} /></ScreenFrame>
       case 'seeddemand': return <ScreenFrame title="Затравка спроса"><SeedDemand /></ScreenFrame>
       case 'demand': return <ScreenFrame title="Карта спроса"><Demand /></ScreenFrame>
       case 'ground': return <ScreenFrame title="Наземный сегмент"><GroundSegment /></ScreenFrame>

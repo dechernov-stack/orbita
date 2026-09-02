@@ -446,6 +446,61 @@ export interface SpacecraftView {
   issues: string[]
 }
 
+// ---------- одно дерево носителей (ADR-044) ----------
+
+export interface CompositionRow {
+  /** Пусто у строки, показанной по определению (вхождения ещё нет). */
+  usage: string
+  by_definition?: boolean
+  definition: string
+  name: string
+  kind: string
+  role: string
+  level: number
+  quantity: number
+  multiplier: number
+  constellation?: string
+  constellation_name?: string
+  subgroup?: string
+  parameters?: number
+  mass_kg?: number
+  mass_total_kg?: number
+}
+
+export interface CompositionSubgroup {
+  usage: string
+  subgroup: string
+  definition: string
+  name: string
+  quantity: number
+  mass_kg?: number
+  mass_total_kg?: number
+}
+
+export interface CompositionConstellation {
+  id: string
+  name: string
+  subgroups: CompositionSubgroup[]
+  satellites: number
+  mass_total_kg?: number
+  mass_note?: string
+}
+
+export interface CompositionCarrier {
+  id: string
+  name: string
+  problems: string[]
+  nodes: string[]
+  dry_mass_kg?: number
+}
+
+export interface CompositionTree {
+  rows: CompositionRow[]
+  constellations: CompositionConstellation[]
+  carriers: CompositionCarrier[]
+  definitions_without_usage: Array<{ id: string; name: string }>
+}
+
 // ---------- экран 8: предложение ИИ ----------
 
 export interface PromptPackage {
@@ -582,7 +637,7 @@ export interface GeoMasksView {
 
 /** Строка расписания пролётов (шаг 16 §2.3): времена в UTC посчитаны сервером. */
 export interface PassRow {
-  spacecraft_ref: string
+  satellite: string
   target_ref: string
   start_utc: string
   end_utc: string

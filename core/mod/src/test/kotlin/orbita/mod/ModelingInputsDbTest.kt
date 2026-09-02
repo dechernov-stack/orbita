@@ -36,8 +36,8 @@ class ModelingInputsDbTest {
     /** Полный сценарий: все пять ссылок типизированы, версии зафиксированы. */
     private fun scenarioJson(
         demandMapRef: String = "DM-0001",
-        inputVersions: String = """{"CN-0001":"1","SP-0001":"1","DM-0001":"1","GS-0001":"1","PA-0001":"1"}""",
-    ) = """{"id":"SC-0001","name":"проверка","constellation_ref":"CN-0001","spacecraft_ref":"SP-0001",
+        inputVersions: String = """{"CN-0001":"1","CU-0001":"1","DM-0001":"1","GS-0001":"1","PA-0001":"1"}""",
+    ) = """{"id":"SC-0001","name":"проверка","constellation_ref":"CN-0001","carrier_ref":"CU-0001",
             "demand_map_ref":"$demandMapRef","ground_stations_ref":"GS-0001",
             "protocol_adapter_ref":"PA-0001","delivery_mode":"store_and_forward",
             "epoch":"2026-03-20T00:00:00Z","duration_s":86400,"rng_seed":42,

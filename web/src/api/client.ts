@@ -52,6 +52,7 @@ import type {
   PhaseGanttView,
   PhaseFlowView,
   StakeholderCoverageView,
+  CompositionTree,
 } from './types'
 
 import { withProject } from './project'
@@ -427,6 +428,13 @@ export const api = {
     get<Record<string, string>>(`/auth/roles/${encodeURIComponent(project)}`),
   setRole: (project: string, login: string, role: string) =>
     post<{ ok: boolean }>('/auth/roles', { project, login, role }),
+  /** ADR-044: дерево состава по вхождениям, узлы КА и построения ×N — считает сервер. */
+  compositionTree: () => get<CompositionTree>('/views/composition/tree'),
+  /** ADR-044: из каких узлов собран контракт аппарата и чего не хватает. */
+  spacecraftAssembly: (nodeId: string) =>
+    get<{ spacecraft: Record<string, unknown>; problems: string[]; nodes: string[] }>(
+      `/views/spacecraft/${nodeId}/assembly`,
+    ),
   /** В2.1: свёртка бюджетов по вхождениям с кратностью — считает сервер. */
   compositionBudgets: () =>
     get<{ rows: Array<Record<string, unknown>>; totals: Record<string, { value: number; unit: string }> }>(

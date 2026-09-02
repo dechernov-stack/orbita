@@ -31,7 +31,7 @@ class ScenarioInputsTest {
 
     private val store: Map<String, CoreType> = mapOf(
         "CN-0001" to CoreType.Constellation,
-        "SP-0001" to CoreType.Spacecraft,
+        "CU-0001" to CoreType.ComponentUsage,
         "DM-0001" to CoreType.DemandMap,
         "GS-0001" to CoreType.GroundStations,
         "PA-0001" to CoreType.ProtocolAdapter,
@@ -40,10 +40,10 @@ class ScenarioInputsTest {
     private val lookup: (String) -> CoreType? = { store[it] }
 
     private val scenario: ObjectNode = mapper.readTree(
-        """{"id":"SC-0001","constellation_ref":"CN-0001","spacecraft_ref":"SP-0001",
+        """{"id":"SC-0001","constellation_ref":"CN-0001","carrier_ref":"CU-0001",
             "demand_map_ref":"DM-0001","ground_stations_ref":"GS-0001",
             "protocol_adapter_ref":"PA-0001","rng_seed":42,
-            "input_versions":{"CN-0001":"1","SP-0001":"2","DM-0001":"1",
+            "input_versions":{"CN-0001":"1","CU-0001":"2","DM-0001":"1",
                               "GS-0001":"1","PA-0001":"3"},
             "module_versions":{"ballistics":"0.4.0"}}"""
     ) as ObjectNode
@@ -68,7 +68,7 @@ class ScenarioInputsTest {
     @Test
     fun `ссылка неизвестного вида выявлена`() =
         assertTrue(
-            resolveScenario(withField("spacecraft_ref", "XX-0001"), lookup)
+            resolveScenario(withField("carrier_ref", "XX-0001"), lookup)
                 .any { "не соответствует" in it },
         )
 
@@ -83,7 +83,7 @@ class ScenarioInputsTest {
      */
     @Test
     fun `подмена объекта другого вида выявлена`() {
-        val problems = resolveScenario(withField("demand_map_ref", "SP-0001"), lookup)
+        val problems = resolveScenario(withField("demand_map_ref", "CU-0001"), lookup)
         assertTrue(problems.any { "ожидался" in it }, problems.toString())
     }
 

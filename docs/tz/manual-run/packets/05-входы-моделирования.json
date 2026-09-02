@@ -1,5 +1,5 @@
 {
-  "_comment": "Входы моделирования и сценарий для шага 13 ПМИ: формат загрузки пачкой (POST /import/objects). Данные — из эталонного демо-проекта: инструмент моделирования отдаёт их тем же форматом, второй копии чисел нет.",
+  "_comment": "Входы моделирования и сценарий для шага 13 ПМИ: формат загрузки пачкой (POST /import/objects). Данные — из эталонного демо-проекта: инструмент моделирования отдаёт их тем же форматом, второй копии чисел нет. ADR-044: модель аппарата растворена в дереве состава — узел КА с поддеревом и вхождение ×N вместо объекта SP.",
   "author": "Подготовка ПМИ",
   "objects": [
     {
@@ -17081,46 +17081,249 @@
       }
     },
     {
-      "id": "SC-9001",
-      "name": "Сравнение вариантов построения «Орбита-IoT»",
-      "epoch": "2026-03-20T00:00:00Z",
-      "rng_seed": 42,
-      "duration_s": 86400,
-      "delivery_mode": "store_and_forward",
-      "demand_map_ref": "DM-9001",
-      "input_versions": {
-        "CN-9001": "1",
-        "DM-9001": "1",
-        "GS-9001": "1",
-        "PA-9001": "1",
-        "SP-9001": "1"
+      "id": "CM-9001",
+      "name": "Космический аппарат",
+      "kind": "element",
+      "profile": {
+        "role": "spacecraft",
+        "preset": "cubesat_16u",
+        "modes": [
+          {
+            "name": "standby",
+            "power_w": 6.0,
+            "orbit_fraction": 0.4073560027758501
+          },
+          {
+            "name": "rx",
+            "power_w": 9.0,
+            "orbit_fraction": 0.5232477446217905
+          },
+          {
+            "name": "downlink",
+            "power_w": 14.0,
+            "orbit_fraction": 0.06939625260235947
+          }
+        ]
       },
-      "spacecraft_ref": "SP-9001",
-      "constellation_ref": "CN-9001",
-      "ground_stations_ref": "GS-9001",
-      "protocol_adapter_ref": "PA-9001"
+      "parameters": []
     },
     {
-      "id": "SP-9001",
-      "modes": [
+      "id": "CM-9002",
+      "name": "Платформа",
+      "kind": "subsystem",
+      "parent": "CM-9001",
+      "profile": {
+        "role": "platform"
+      },
+      "parameters": [
         {
-          "name": "standby",
-          "power_w": 6.0,
-          "orbit_fraction": 0.4073560027758501
+          "name": "dry_mass",
+          "quantity": {
+            "value": 30,
+            "unit": "kg",
+            "provenance": {
+              "source": "manual",
+              "author": "пакет 05"
+            }
+          }
         },
         {
-          "name": "rx",
-          "power_w": 9.0,
-          "orbit_fraction": 0.5232477446217905
+          "name": "design_life",
+          "quantity": {
+            "value": 5,
+            "unit": "a",
+            "provenance": {
+              "source": "manual",
+              "author": "пакет 05"
+            }
+          }
         },
         {
-          "name": "downlink",
-          "power_w": 14.0,
-          "orbit_fraction": 0.06939625260235947
+          "name": "sa_area",
+          "quantity": {
+            "value": 0.18,
+            "unit": "m2",
+            "provenance": {
+              "source": "manual",
+              "author": "пакет 05"
+            }
+          }
+        },
+        {
+          "name": "sa_efficiency",
+          "quantity": {
+            "value": 0.29,
+            "unit": "1",
+            "provenance": {
+              "source": "manual",
+              "author": "пакет 05"
+            }
+          }
+        },
+        {
+          "name": "battery_energy",
+          "quantity": {
+            "value": 120,
+            "unit": "Wh",
+            "provenance": {
+              "source": "manual",
+              "author": "пакет 05"
+            }
+          }
+        },
+        {
+          "name": "attitude_accuracy",
+          "quantity": {
+            "value": 1,
+            "unit": "deg",
+            "provenance": {
+              "source": "manual",
+              "author": "пакет 05"
+            }
+          }
         }
-      ],
-      "preset": "cubesat_16u",
-      "payload": {
+      ]
+    },
+    {
+      "id": "CM-9003",
+      "name": "Корпус и механизмы",
+      "kind": "component",
+      "parent": "CM-9002",
+      "profile": {
+        "role": "subsystem",
+        "subsystem": "structure",
+        "maturity": "existing"
+      },
+      "parameters": [
+        {
+          "name": "mass",
+          "quantity": {
+            "value": 8.0,
+            "unit": "kg",
+            "provenance": {
+              "source": "manual",
+              "author": "пакет 05"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "CM-9004",
+      "name": "СЭП с батареей",
+      "kind": "component",
+      "parent": "CM-9002",
+      "profile": {
+        "role": "subsystem",
+        "subsystem": "power",
+        "maturity": "modified"
+      },
+      "parameters": [
+        {
+          "name": "mass",
+          "quantity": {
+            "value": 6.0,
+            "unit": "kg",
+            "provenance": {
+              "source": "manual",
+              "author": "пакет 05"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "CM-9005",
+      "name": "Маховики",
+      "kind": "component",
+      "parent": "CM-9002",
+      "profile": {
+        "role": "subsystem",
+        "subsystem": "adcs",
+        "maturity": "existing"
+      },
+      "parameters": [
+        {
+          "name": "mass",
+          "quantity": {
+            "value": 1.2,
+            "unit": "kg",
+            "provenance": {
+              "source": "manual",
+              "author": "пакет 05"
+            }
+          }
+        },
+        {
+          "name": "quantity",
+          "quantity": {
+            "value": 3,
+            "unit": "pcs",
+            "provenance": {
+              "source": "manual",
+              "author": "пакет 05"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "CM-9006",
+      "name": "Бортовой компьютер",
+      "kind": "component",
+      "parent": "CM-9002",
+      "profile": {
+        "role": "subsystem",
+        "subsystem": "obc",
+        "maturity": "existing"
+      },
+      "parameters": [
+        {
+          "name": "mass",
+          "quantity": {
+            "value": 1.4,
+            "unit": "kg",
+            "provenance": {
+              "source": "manual",
+              "author": "пакет 05"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "CM-9007",
+      "name": "Приёмопередатчик абонентской линии",
+      "kind": "component",
+      "parent": "CM-9002",
+      "profile": {
+        "role": "subsystem",
+        "subsystem": "comms",
+        "maturity": "new"
+      },
+      "parameters": [
+        {
+          "name": "mass",
+          "quantity": {
+            "value": 2.2,
+            "unit": "kg",
+            "provenance": {
+              "source": "manual",
+              "author": "пакет 05"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "CM-9008",
+      "name": "Полезная нагрузка",
+      "kind": "subsystem",
+      "parent": "CM-9001",
+      "profile": {
+        "role": "payload",
+        "maturity": "new",
+        "architecture": "regenerative",
         "links": [
           {
             "id": "RL-UP",
@@ -17147,76 +17350,70 @@
             "required_margin_db": 3
           }
         ],
+        "ephemeris_beacon": {
+          "format": "orbit_model",
+          "enabled": true,
+          "period_s": 60
+        },
         "onboard": {
-          "buffer_mb": 64,
           "priority_policy": [
             "C_prime",
             "B_prime",
             "A_prime"
           ]
-        },
-        "architecture": "regenerative",
-        "ephemeris_beacon": {
-          "format": "orbit_model",
-          "enabled": true,
-          "period_s": 60
         }
       },
-      "platform": {
-        "mel": [
-          {
-            "name": "Корпус и механизмы",
-            "mass_kg": 8.0,
-            "maturity": "existing",
-            "subsystem": "structure"
-          },
-          {
-            "name": "СЭП с батареей",
-            "mass_kg": 6.0,
-            "maturity": "modified",
-            "subsystem": "power"
-          },
-          {
-            "name": "Маховики",
-            "mass_kg": 1.2,
-            "maturity": "existing",
-            "quantity": 3,
-            "subsystem": "adcs"
-          },
-          {
-            "name": "Бортовой компьютер",
-            "mass_kg": 1.4,
-            "maturity": "existing",
-            "subsystem": "obc"
-          },
-          {
-            "name": "Приёмопередатчик абонентской линии",
-            "mass_kg": 2.2,
-            "maturity": "new",
-            "subsystem": "comms"
-          },
-          {
-            "name": "Полезная нагрузка",
-            "mass_kg": 6.5,
-            "maturity": "new",
-            "subsystem": "payload"
+      "parameters": [
+        {
+          "name": "mass",
+          "quantity": {
+            "value": 6.5,
+            "unit": "kg",
+            "provenance": {
+              "source": "manual",
+              "author": "пакет 05"
+            }
           }
-        ],
-        "power": {
-          "battery_wh": 120,
-          "sa_area_m2": 0.18,
-          "sa_efficiency": 0.29
         },
-        "attitude": {
-          "pointing_accuracy_deg": 1
-        },
-        "dry_mass_kg": 30,
-        "design_life_years": 5
+        {
+          "name": "buffer_size",
+          "quantity": {
+            "value": 64,
+            "unit": "MB",
+            "provenance": {
+              "source": "manual",
+              "author": "пакет 05"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "CU-9001",
+      "definition_ref": "CM-9001",
+      "quantity": 40,
+      "constellation_ref": "CN-9001",
+      "subgroup": "walker"
+    },
+    {
+      "id": "SC-9001",
+      "name": "Сравнение вариантов построения «Орбита-IoT»",
+      "epoch": "2026-03-20T00:00:00Z",
+      "rng_seed": 42,
+      "duration_s": 86400,
+      "delivery_mode": "store_and_forward",
+      "demand_map_ref": "DM-9001",
+      "input_versions": {
+        "CN-9001": "1",
+        "DM-9001": "1",
+        "GS-9001": "1",
+        "PA-9001": "1",
+        "CU-9001": "1"
       },
-      "lifecycle": {
-        "status": "Draft",
-        "version": "1"
-      }
+      "constellation_ref": "CN-9001",
+      "ground_stations_ref": "GS-9001",
+      "protocol_adapter_ref": "PA-9001",
+      "carrier_ref": "CU-9001"
     },
     {
       "id": "TP-9001",

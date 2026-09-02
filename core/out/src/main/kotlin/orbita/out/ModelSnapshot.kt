@@ -60,7 +60,6 @@ private val SINGLETONS = linkedMapOf(
     // константы: `GroundStations` в базе — `ground_stations`, и вывод
     // приведением регистра дал бы `groundstations`, то есть тихую пустоту
     CoreType.Constellation.dbType to "constellation",
-    CoreType.Spacecraft.dbType to "spacecraft",
     CoreType.DemandMap.dbType to "demand_map",
     CoreType.TerminalProfile.dbType to "terminal_profile",
     CoreType.GroundStations.dbType to "ground_stations",
@@ -83,6 +82,8 @@ object ModelSnapshot {
         options: List<JsonNode> = emptyList(),
         budgets: List<JsonNode> = emptyList(),
         projectId: String? = null,
+        /** ADR-044: модель аппарата собирается из дерева состава снаружи и приходит готовой. */
+        spacecraft: JsonNode? = null,
     ): ObjectNode {
         val current = objects.listCurrent(projectId).filter { it.status != Lifecycle.Cancelled }
         val model = mapper.createObjectNode()
@@ -106,6 +107,7 @@ object ModelSnapshot {
         // Сам проект-контейнер (ADR-022): «Введение» документов и их шапки
         // читают его назначение, область и применимые документы. Без него
         // раздел §1 оставался пустым при любом действии инженера.
+        spacecraft?.let { model.set<JsonNode>("spacecraft", it.deepCopy()) }
         current.firstOrNull { it.type == CoreType.Project.dbType }
             ?.let { model.set<ObjectNode>("project", withLifecycle(it, mapper)) }
 

@@ -61,7 +61,7 @@ object ServiceZones {
     /** Сериализация в нормативный контракт contracts/service-zone. */
     fun toContractJson(zone: ServiceZone, mapper: ObjectMapper = ObjectMapper()): ObjectNode {
         val n = mapper.createObjectNode()
-        n.put("spacecraft_ref", zone.spacecraftRef)
+        n.put("satellite", zone.spacecraftRef)
         n.put("link_ref", zone.linkRef)
         n.put("terminal_profile_ref", zone.terminalProfileRef)
         n.put("altitude_km", zone.altKm)

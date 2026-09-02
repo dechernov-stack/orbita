@@ -19,11 +19,12 @@ fun main() {
         options = boundary.results.activeForScenario(DEMO_SCENARIO, "kpi").map { it.payload },
         budgets = ModelSnapshot.budgetsOf(
             boundary.spacecraft.build(
-                boundary.objects.current(DemoProject.DEMO_SPACECRAFT)!!.doc,
+                boundary.carriers.contract(DemoProject.DEMO_SPACECRAFT),
                 SpacecraftConditions(altKm = 550.0),
             ),
             mapper,
         ),
+        spacecraft = boundary.carriers.contract(DemoProject.DEMO_SPACECRAFT),
     )
     val g = DocumentGenerator(mapper)
     for (t in SeedTemplates.all) {

@@ -50,6 +50,8 @@ object PrintHumanizer {
 
     /** Поля записей вставок — по-русски. Ключ без подписи — брак печати. */
     val LABELS: Map<String, String> = mapOf(
+        // ADR-044: аппарат в срезе — собранный из узла КА дерева состава
+        "spacecraft" to "Модель аппарата",
         "id" to "обозначение", "statement" to "формулировка", "category" to "категория",
         "level" to "уровень", "source" to "источник", "rationale" to "обоснование",
         "mop" to "показатель", "verification_method" to "метод верификации", "status" to "статус",

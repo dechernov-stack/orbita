@@ -14,10 +14,10 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["spacecraft_ref", "target_type", "target_ref", "start_s", "end_s"],
+        "required": ["satellite", "target_type", "target_ref", "start_s", "end_s"],
         "additionalProperties": false,
         "properties": {
-          "spacecraft_ref": { "type": "string" },
+          "satellite": { "type": "string" },
           "target_type": { "enum": ["cell", "ground_station", "spacecraft"] },
           "target_ref": { "type": "string" },
           "start_s": { "type": "number", "minimum": 0 },
@@ -33,10 +33,10 @@
       "description": "Теневые участки для энергобаланса витка",
       "items": {
         "type": "object",
-        "required": ["spacecraft_ref", "start_s", "end_s"],
+        "required": ["satellite", "start_s", "end_s"],
         "additionalProperties": false,
         "properties": {
-          "spacecraft_ref": { "type": "string" },
+          "satellite": { "type": "string" },
           "start_s": { "type": "number" },
           "end_s": { "type": "number" }
         }

@@ -1,8 +1,8 @@
-// Экран 5 — модель космического аппарата (Ш4 мастера).
-//
-// Модель ХРАНИТСЯ (ADR-021): экран читает её по ссылке, а не собирает
-// в состоянии сеанса. До CR-005 уход с экрана терял построенное, и ссылка
-// сценария вела на объект, которого модель хранить не умела.
+// Экран 5 — модель космического аппарата: ВИД УЗЛА КА дерева состава
+// (ADR-044). Отдельной сущности «модель аппарата» больше нет: контракт
+// собирается сервером из поддерева узла (платформа · ПН · подсистемы),
+// величины — параметры узлов по анкетам Ф-06, и экран показывает, из каких
+// узлов сложился аппарат и чего дереву не хватает.
 //
 // Ведомость масс и циклограмма — часть модели (CR-006, CR-007), а не поля
 // экрана. Экран задаёт только УСЛОВИЯ ОЦЕНКИ: высоту, заявленную скважность
@@ -14,8 +14,7 @@
 import { useEffect, useState } from 'react'
 import { api, ApiError } from '../api/client'
 import { DataRequests } from './DataRequests'
-import { edit, type StoredSummary } from '../api/edit'
-import type { MaskScheduleView, ProtocolAdapterView, SpacecraftView } from '../api/types'
+import type { CompositionCarrier, MaskScheduleView, ProtocolAdapterView, SpacecraftView } from '../api/types'
 
 const ROLE_LABEL: Record<string, string> = {
   user_uplink: 'Абонентская вверх',
@@ -32,11 +31,11 @@ const MATURITY_LABEL: Record<string, string> = {
   existing: 'существующий',
 }
 
-// Зашитого идентификатора аппарата больше нет (шаг 16 §3.2): по умолчанию
-// берётся первый хранимый, выбор — из хранимых.
+// Зашитого идентификатора аппарата нет (шаг 16 §3.2): по умолчанию берётся
+// первый узел КА проекта, выбор — из узлов КА дерева состава.
 export function Spacecraft({ spacecraftId, onGo }: {
   spacecraftId?: string
-  onGo?: (screen: string) => void
+  onGo?: (screen: string, kind?: string, target?: string) => void
 }) {
   const [altKm, setAltKm] = useState(550)
   const [plannedDuty, setPlannedDuty] = useState(0.5)
@@ -45,18 +44,26 @@ export function Spacecraft({ spacecraftId, onGo }: {
   const [masks, setMasks] = useState<MaskScheduleView | null>(null)
   const [masksNotice, setMasksNotice] = useState<string | null>(null)
   const [adapter, setAdapter] = useState<ProtocolAdapterView | null>(null)
-  const [stored, setStored] = useState<StoredSummary[]>([])
+  const [carriers, setCarriers] = useState<CompositionCarrier[]>([])
   const [spId, setSpId] = useState<string | undefined>(spacecraftId)
+  const [assembly, setAssembly] = useState<{ problems: string[]; nodes: string[] } | null>(null)
 
   useEffect(() => {
-    edit
-      .list('spacecraft')
-      .then((rows) => {
-        setStored(rows)
-        if (!spacecraftId && rows.length > 0) setSpId((cur) => cur ?? rows[0].id)
+    api
+      .compositionTree()
+      .then((t) => {
+        setCarriers(t.carriers)
+        if (!spacecraftId && t.carriers.length > 0) setSpId((cur) => cur ?? t.carriers[0].id)
       })
       .catch((e) => setError(String(e)))
   }, [spacecraftId])
+
+  // из каких узлов собран контракт и чего не хватает — до расчёта: расчёт по
+  // несобранному невозможен, и экран называет причину, а не молчит
+  useEffect(() => {
+    if (!spId) return
+    api.spacecraftAssembly(spId).then(setAssembly).catch((e) => setError(String(e)))
+  }, [spId])
 
   // Циклограмма из масок и параметры канала (шаг 16 §2.4): считает сервер,
   // подстановка сгенерированных долей в модель — решение инженера, не автоматика
@@ -81,6 +88,13 @@ export function Spacecraft({ spacecraftId, onGo }: {
   }, [spId, altKm, plannedDuty])
 
   if (error) return <div className="empty">Ошибка обращения к API: {error}</div>
+  if (carriers.length === 0)
+    return (
+      <div className="empty">
+        Узлов КА в дереве состава нет: модель аппарата — вид узла с ролью «КА»; заведите его
+        на «Дереве состава» с платформой и полезной нагрузкой как поддеревом.
+      </div>
+    )
 
   return (
     <div className="split">
@@ -89,11 +103,17 @@ export function Spacecraft({ spacecraftId, onGo }: {
             инженер начнёт гадать, что вводить */}
         <DataRequests onGo={onGo} />
         <div className="tabs" style={{ marginBottom: 8, alignItems: 'center' }}>
+          <span className="secondary">узел КА</span>
           <select value={spId ?? ''} onChange={(e) => setSpId(e.target.value)}>
-            {stored.map((sp) => (
-              <option key={sp.id} value={sp.id}>{sp.id}</option>
+            {carriers.map((c) => (
+              <option key={c.id} value={c.id}>{c.id} · {c.name}</option>
             ))}
           </select>
+          {onGo && spId && (
+            <button type="button" className="tab" title="К узлу в дереве состава" onClick={() => onGo('composition', 'component', spId)}>
+              в дереве состава
+            </button>
+          )}
           {view?.preset && <span className="chip">{view.preset}</span>}
           <span className="secondary" style={{ marginLeft: 12 }}>
             высота, км
@@ -116,8 +136,22 @@ export function Spacecraft({ spacecraftId, onGo }: {
           />
         </div>
 
+        {assembly && (
+          <div className="card" style={{ marginBottom: 8 }}>
+            <div className="secondary">
+              Собрано из узлов: {assembly.nodes.map((n) => <span key={n} className="mono" style={{ marginRight: 6 }}>{n}</span>)}
+            </div>
+            {assembly.problems.length > 0 && (
+              <ul style={{ margin: '4px 0 0 16px', padding: 0 }}>
+                {assembly.problems.map((p) => <li key={p}>{p}</li>)}
+              </ul>
+            )}
+          </div>
+        )}
         {!view ? (
-          <div className="secondary">Загрузка…</div>
+          <div className="secondary">
+            {assembly && assembly.problems.length > 0 ? 'Расчёта нет: дерево не собирается в модель аппарата (см. претензии выше).' : 'Загрузка…'}
+          </div>
         ) : (
           <>
             <div className="card">
