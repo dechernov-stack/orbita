@@ -28,6 +28,10 @@ const KINDS: Array<{ id: string; title: string; generative: boolean }> = [
   { id: 'checklist_extraction', title: 'Прил. G → чек-листы обзоров (полка В3)', generative: true },
   { id: 'template_extraction', title: 'Документ-образец → шаблон документа (нитка Б)', generative: true },
   { id: 'section_editor', title: 'Редактор раздела: связный текст из модели (В1.3)', generative: true },
+  // Патч контента Phase A: шаг 2.2 «Написать связные разделы» открывает службу
+  // этим видом из рамки ведения — вид обязан быть в списке, иначе переход
+  // молча откатится на первый попавшийся
+  { id: 'semp_draft', title: 'SEMP: связные разделы из данных проекта (§3, §5, §10)', generative: true },
 ]
 
 export function AiService({ onGo, initialKind }: {

@@ -4,6 +4,7 @@
 // нет (окна — только от дат вех).
 package orbita.com.api
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import orbita.mod.RepoPaths
 import orbita.mod.TestDb
 import orbita.mod.model.CoreType
@@ -271,5 +272,72 @@ class PhaseWorkTest {
         assertFalse(items.getValue("PW-9001").has("lane_width_pct")) {
             "долей интервала в «Работе фазы» больше нет: полотно рисует библиотека Ганта по плану"
         }
+    }
+
+    /**
+     * Патч контента Phase A: шаг «Написать связные разделы» SEMP закрывается
+     * ТОЛЬКО текстами разделов шаблона semp. Авторский текст другого документа
+     * шаг не закрывает — иначе «связно написан SEMP» значило бы «кто-то
+     * что-то написал».
+     */
+    @Test
+    fun `условие objects с кодом считает только тексты своего документа`() {
+        boundary.ingest(
+            CoreType.PhaseTask,
+            """{"id":"PW-9007","phase":"pre_phase_a","order":7,"name":"Связный SEMP",
+                "why":"Проверка сужения условия кодом документа.",
+                "steps":[{"title":"Написать связные разделы","screen":"aiservice","kind":"semp_draft",
+                          "done_when":{"check":"objects","type":"section_text","code":"semp",
+                                       "label":"связные разделы SEMP написаны"}}],
+                "output":{"artifact":"Д2 · SEMP","gate":"MCR",
+                          "done_when":{"check":"objects","type":"section_text","code":"semp"}},
+                "lifecycle":{"status":"Draft","version":"1"}}""",
+            "test", ObjectStore.LIBRARY_PROJECT,
+        )
+        fun шаг() = PhaseWork.toJson(boundary, "PJ-1908").path("items")
+            .first { it.path("id").asText() == "PW-9007" }.path("steps").first()
+
+        // текст раздела ДРУГОГО документа шаг не закрывает
+        boundary.ingest(
+            CoreType.SectionText,
+            """{"id":"ST-9001","template_code":"conops","section":3,"text":"Сценарии эксплуатации связно.",
+                "lifecycle":{"status":"Draft","version":"1"}}""",
+            "test", "PJ-1908",
+        )
+        assertFalse(шаг().path("done").asBoolean()) { "чужой документ не закрывает шаг SEMP" }
+        // подпись условия названа полкой — она и стоит в «готово, когда»
+        assertEquals("связные разделы SEMP написаны", шаг().path("why").asText())
+
+        boundary.ingest(
+            CoreType.SectionText,
+            """{"id":"ST-9002","template_code":"semp","section":3,"text":"Техническое резюме связно.",
+                "lifecycle":{"status":"Draft","version":"1"}}""",
+            "test", "PJ-1908",
+        )
+        assertTrue(шаг().path("done").asBoolean()) { "текст раздела SEMP закрывает шаг" }
+        assertEquals("разделов написано: 1", шаг().path("tally").asText()) { "мини-итог считает только semp" }
+    }
+
+    /** Находка перезаливки полки: пустой work_plan давал мини-итог «задано» при шаге «не сделан». */
+    @Test
+    fun `мини-итог поля паспорта не врёт про пустой список`() {
+        boundary.ingest(
+            CoreType.PhaseTask,
+            """{"id":"PW-9008","phase":"pre_phase_a","order":8,"name":"План фазы",
+                "why":"Проверка мини-итога поля паспорта.",
+                "steps":[{"title":"План работ фазы","screen":"lifecycle",
+                          "done_when":{"check":"passport_field","field":"work_plan","label":"план задан"}}],
+                "output":{"artifact":"План","gate":"MCR",
+                          "done_when":{"check":"passport_field","field":"work_plan"}},
+                "lifecycle":{"status":"Draft","version":"1"}}""",
+            "test", ObjectStore.LIBRARY_PROJECT,
+        )
+        val проект = boundary.objects.current("PJ-1908")!!
+        val пусто = ObjectMapper().createObjectNode().also { it.putArray("work_plan") }
+        boundary.editing.update(CoreType.Project, "PJ-1908", пусто, проект.version, "test", changeRef = "пустой план")
+        val шаг = PhaseWork.toJson(boundary, "PJ-1908").path("items")
+            .first { it.path("id").asText() == "PW-9008" }.path("steps").first()
+        assertFalse(шаг.path("done").asBoolean())
+        assertFalse(шаг.has("tally")) { "пустой список — не «задано»: ${шаг.path("tally").asText()}" }
     }
 }

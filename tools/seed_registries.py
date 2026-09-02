@@ -193,6 +193,11 @@ def obsolete(type_: str, rows: list, packet: dict | None = None) -> bool:
         # Так полка обновляется всякий раз, когда порядок работ переосмыслен.
         if packet:
             по_id = {o["id"]: o for o in packet["objects"]}
+            # патч контента: в сиде появилась задача, которой на полке нет
+            # (разделение задачи 1 Phase A на «Развёртывание» и «SEMP»)
+            на_полке = {d.get("id") for d in rows}
+            if any(i not in на_полке for i in по_id):
+                return True
             for d in rows:
                 сид = по_id.get(d.get("id"))
                 if not сид:
@@ -256,7 +261,15 @@ for type_, view, fname in SEEDS:
     if rows:
         # правка полки — новой версией объекта, не пересозданием
         for obj in packet["objects"]:
-            cur = call("GET", f"/objects/{obj['id']}")
+            try:
+                cur = call("GET", f"/objects/{obj['id']}")
+            except urllib.error.HTTPError as e:
+                if e.code != 404:
+                    raise
+                # объекта на полке ещё нет — это новая задача патча, а не правка
+                out = call("POST", "/library/objects", {"type": type_, "doc": obj, "author": packet["author"]})
+                print(f"{type_}: залит {out['id']} — новый объект пакета")
+                continue
             changes = {k: v for k, v in obj.items() if k not in ("id", "lifecycle")}
             call("PATCH", f"/edit/{obj['id']}", {
                 "author": packet["author"], "base_version": cur["version"], "changes": changes,

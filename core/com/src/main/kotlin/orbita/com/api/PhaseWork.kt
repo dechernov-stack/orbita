@@ -143,7 +143,7 @@ object PhaseWork {
     ): String? = when (condition.path("check").asText()) {
         "objects" -> {
             val type = condition.path("type").asText("")
-            val n = own.count { it.type == type }
+            val n = own.count { it.type == type && codeMatches(condition, it) }
             if (n > 0) "${labelOfType(type)}: $n" else null
         }
         "taken_from_library" -> {
@@ -156,10 +156,31 @@ object PhaseWork {
             if (code in issued) "выпущен" else null
         }
         "passport_field" -> {
-            val field = condition.path("field").asText("")
-            if (passport.path(field).isMissingNode) null else "задано"
+            // мини-итог обязан совпадать со сделанностью: пустой список плана —
+            // это «не задано», а не «задано» (находка перезаливки полки)
+            val node = passport.path(condition.path("field").asText(""))
+            val есть = when {
+                node.isMissingNode || node.isNull -> false
+                node.isObject -> !node.isEmpty
+                node.isArray -> node.size() > 0
+                else -> node.asText("").isNotBlank()
+            }
+            if (есть) "задано" else null
         }
         else -> null
+    }
+
+    /**
+     * Патч контента Phase A: условие `objects` с полем `code` сужает вид до
+     * документа — «связные разделы SEMP написаны» считает только тексты
+     * разделов шаблона semp, а не любой авторский текст проекта. Без `code`
+     * поведение прежнее: считается весь вид.
+     */
+    private fun codeMatches(condition: JsonNode, o: StoredObject): Boolean {
+        val code = condition.path("code").asText("")
+        if (code.isBlank()) return true
+        val own = o.doc.path("template_code").asText("").ifBlank { o.doc.path("code").asText("") }
+        return own == code
     }
 
     /** Имя вида для мини-итога — человеку, а не машинное. */
@@ -178,6 +199,7 @@ object PhaseWork {
         "cost_estimate" -> "оценок"
         "oda" -> "оценок ОСЗ"
         "wbs_element" -> "элементов ВС"
+        "section_text" -> "разделов написано"
         else -> type
     }
 
@@ -192,7 +214,7 @@ object PhaseWork {
         "objects" -> {
             val type = condition.path("type").asText("")
             val min = condition.path("min").asInt(1)
-            own.count { it.type == type } >= min
+            own.count { it.type == type && codeMatches(condition, it) } >= min
         }
         "passport_field" -> {
             val field = condition.path("field").asText("")
@@ -216,7 +238,8 @@ object PhaseWork {
     private fun labelOf(condition: JsonNode): String =
         condition.path("label").asText("").ifBlank {
             when (condition.path("check").asText()) {
-                "objects" -> "нужны объекты вида «${condition.path("type").asText()}»"
+                "objects" -> "нужны объекты вида «${condition.path("type").asText()}»" +
+                    condition.path("code").asText("").ifBlank { null }?.let { " документа «$it»" }.orEmpty()
                 "passport_field" -> "нужно поле паспорта «${condition.path("field").asText()}»"
                 "taken_from_library" -> "нужен набор библиотеки «${condition.path("type").asText()}»"
                 "gate_check" -> "нужна закрытая проверка «${condition.path("gate_check_id").asText()}»"

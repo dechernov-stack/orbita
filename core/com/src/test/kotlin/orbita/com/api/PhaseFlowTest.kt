@@ -176,7 +176,7 @@ class PhaseFlowTest {
      * ловит: там нет ни ветвления, ни трёх точек.
      */
     @Test
-    fun `схема Phase A по настоящему сиду — 11 задач, три точки, Д-коды на рёбрах`() {
+    fun `схема Phase A по настоящему сиду — 12 задач, три точки, Д-коды на рёбрах`() {
         TestDb.truncateAll()
         boundary.ingest(
             CoreType.Project,
@@ -194,7 +194,8 @@ class PhaseFlowTest {
             boundary.ingest(CoreType.PhaseTask, it.toString(), "test", ObjectStore.LIBRARY_PROJECT)
         }
         val v = PhaseFlow.toJson(boundary, "PJ-2002")
-        assertEquals(11, v.path("nodes").count { it.path("kind").asText() == "task" })
+        // патч контента: задача 1 разделена на «Развёртывание фазы» и «SEMP»
+        assertEquals(12, v.path("nodes").count { it.path("kind").asText() == "task" })
         val точки = v.path("nodes").filter { it.path("kind").asText() == "gate" }.map { it.path("gate").asText() }
         assertEquals(listOf("SRR", "SDR", "KDP-B"), точки) {
             "точки идут порядком паспорта, а не порядком задач: $точки"
