@@ -34,9 +34,14 @@ REQUIREMENT_MAP = [
     ('mop.value.unit',     'MeasureUnit',          'string'),
     ('lifecycle.status',   'Status',               'enum'),
     ('owner',              'Owner',                'string'),
+    # ADR-045: полная структура требования — поле в поле
+    ('title',              'Title',                'string'),
+    ('priority',           'Priority',             'enum'),
+    ('acceptance_criteria','AcceptanceCriteria',   'xhtml'),
 ]
 ENUM_VALUES = {
     'Level': ['project', 'system', 'element'],
+    'Priority': ['high', 'medium', 'low'],
     'Category': ['functional', 'performance', 'interface', 'operational',
                  'reliability', 'safety', 'environmental', 'constraint'],
     'MeasureOperator': ['eq', 'le', 'ge', 'lt', 'gt', 'range', 'tolerance'],

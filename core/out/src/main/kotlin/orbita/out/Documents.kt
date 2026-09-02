@@ -132,6 +132,7 @@ private val INTRODUCTION_ATTRIBUTES = listOf(
 
 private val REQUIREMENT_ATTRIBUTES = listOf(
     "id" to "идентификатор",
+    "title" to "заголовок",
     "statement" to "формулировка",
     "category" to "категория",
     "source" to "источник (родительское требование)",
@@ -141,6 +142,11 @@ private val REQUIREMENT_ATTRIBUTES = listOf(
     "status" to "статус",
     "version" to "версия",
     "owner" to "владелец",
+    "priority" to "приоритет",
+    "acceptance_criteria" to "критерий приёмки",
+    "source_doc" to "документ-основание и якорь",
+    "normative_basis" to "нормативное основание",
+    "tags" to "теги",
 )
 
 class DocumentGenerator(private val mapper: ObjectMapper = ObjectMapper()) {
@@ -348,6 +354,18 @@ class DocumentGenerator(private val mapper: ObjectMapper = ObjectMapper()) {
         n.put("status", r.path("lifecycle").path("status").asText(""))
         n.put("version", r.path("lifecycle").path("version").asText(""))
         n.put("owner", r.path("owner").asText(""))
+        // ADR-045: полная структура — поле в поле; рабочий комментарий в
+        // печать не идёт по определению поля
+        r.path("title").asText("").takeIf { it.isNotBlank() }?.let { n.put("title", it) }
+        r.path("priority").asText("").takeIf { it.isNotBlank() }?.let { n.put("priority", it) }
+        r.path("acceptance_criteria").asText("").takeIf { it.isNotBlank() }?.let { n.put("acceptance_criteria", it) }
+        r.path("source").takeIf { it.isObject && it.path("doc").asText("").isNotBlank() }?.let { src ->
+            n.put("source_doc", listOfNotNull(src.path("doc").asText(), src.path("anchor").asText("").ifBlank { null }).joinToString(" · "))
+        }
+        r.path("normative_basis").takeIf { it.isObject && it.path("ref").asText("").isNotBlank() }?.let { nb ->
+            n.put("normative_basis", listOfNotNull(nb.path("ref").asText(), nb.path("clause").asText("").ifBlank { null }).joinToString(", п. "))
+        }
+        r.path("tags").takeIf { it.isArray && !it.isEmpty }?.let { t -> n.put("tags", t.joinToString(", ") { it.asText() }) }
 
         for ((field, label) in REQUIREMENT_ATTRIBUTES) {
             val value = n.path(field)

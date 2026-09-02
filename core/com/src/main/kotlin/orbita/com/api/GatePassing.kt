@@ -182,6 +182,28 @@ class GatePassing(
                 "trace", "blocking", "Трассировка без разрывов",
                 report.traceBreaks.size, "${report.traceBreaks.size} без входящей нити", "req", blocking = true,
             )
+            // ADR-045: связи с обоснованием, противоречия разрешены, критерий
+            // приёмки записан. Противоречие держит ворота; два других — пометы
+            // к базированию: разрыв виден, но ворот не держит
+            val reqRows = boundary.screens.requirementTree(projectId).rows.filter { it.status != "Cancelled" }
+            val conflicts = reqRows.filter { it.conflictOpen }
+            add(
+                "conflicts", "blocking", "Противоречия разрешены",
+                conflicts.size, "${conflicts.size} с неразрешённым противоречием: " + conflicts.take(4).joinToString(", ") { it.id },
+                "req", blocking = true, closedNote = "противоречий нет",
+            )
+            val noWhy = reqRows.filter { it.linkNoRationale }
+            add(
+                "link_rationale", "statement", "Связи декомпозиции с обоснованием",
+                noWhy.size, "${noWhy.size} связей без обоснования: " + noWhy.take(4).joinToString(", ") { it.id },
+                "req", blocking = false, closedNote = "у каждой связи есть обоснование",
+            )
+            val noAcc = reqRows.filter { it.noAcceptanceGap }
+            add(
+                "acceptance", "statement", "Критерий приёмки записан",
+                noAcc.size, "${noAcc.size} без критерия приёмки: " + noAcc.take(4).joinToString(", ") { it.id },
+                "req", blocking = false, closedNote = "критерии записаны",
+            )
         }
         val critical = boundary.objects.listCurrent(projectId)
             .filter { it.type == "review_item" }

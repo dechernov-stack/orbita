@@ -216,6 +216,18 @@ class ReqService(
                             "TZ-REQ-005 (ADR-017): derive from missing requirement ${parent.asText()}"
                         )
                 }
+                // ADR-045: связь требования — с обоснованием, к существующему
+                // требованию и не к себе; противоречие с самим собой — бессмыслица
+                val selfId = doc.path("id").asText("")
+                doc.path("relations").forEach { rel ->
+                    val ref = rel.path("ref").asText("")
+                    if (ref == selfId) throw ModelViolationException("ADR-045: связь ${rel.path("kind").asText()} требования $selfId на само себя")
+                    objects.current(ref)?.takeIf { it.type == "requirement" }
+                        ?: throw ModelViolationException("ADR-045: связь ${rel.path("kind").asText()} на отсутствующее требование $ref")
+                    if (rel.path("rationale").asText("").isBlank()) {
+                        throw ModelViolationException("ADR-045: связь ${rel.path("kind").asText()} $selfId → $ref без обоснования не принимается")
+                    }
+                }
             }
 
             "interface" -> {
@@ -412,6 +424,19 @@ class ReqService(
                         d.path("derives_from").forEach { parent ->
                             put(Triple(parent.asText(), objId, "derive"), Attrs(derivationKind = "allocated"))
                         }
+                        // ADR-045: связи с обоснованием. refines — уточнение
+                        // (derived, в свёртку не входит), derives — разбиение
+                        // (allocated, входит); противоречие — своим видом связи;
+                        // depends_on живёт в документе, в таблицу не кладётся
+                        d.path("relations").forEach { rel ->
+                            val ref = rel.path("ref").asText("")
+                            val why = rel.path("rationale").asText("").ifBlank { null }
+                            when (rel.path("kind").asText("")) {
+                                "refines" -> put(Triple(ref, objId, "derive"), Attrs(derivationKind = "derived", rationale = why))
+                                "derives" -> put(Triple(ref, objId, "derive"), Attrs(derivationKind = "allocated", rationale = why))
+                                "conflicts_with" -> put(Triple(objId, ref, "conflict"), Attrs(rationale = why))
+                            }
+                        }
                     }
                 }
             }
@@ -425,11 +450,16 @@ class ReqService(
         doc.path("wbs_refs").forEach { wb ->
             want[Triple(id, wb.asText(), "wbs")] = Attrs()
         }
-        doc.path("relations").forEach { r ->
-            val kindName = r.path("kind").asText("")
-            val ref = r.path("ref").asText("")
-            if (kindName.isNotBlank() && ref.isNotBlank()) {
-                want[Triple(id, ref, kindName)] = Attrs()
+        // связи вхождений (uses · hosted_on · evolves) — видом связи как есть;
+        // связи ТРЕБОВАНИЯ (ADR-045) разложены выше в desired: их виды —
+        // decompose с обоснованием и conflict, не имена из документа
+        if (type != "requirement") {
+            doc.path("relations").forEach { r ->
+                val kindName = r.path("kind").asText("")
+                val ref = r.path("ref").asText("")
+                if (kindName.isNotBlank() && ref.isNotBlank()) {
+                    want[Triple(id, ref, kindName)] = Attrs()
+                }
             }
         }
         doc.path("wbs_ref").asText("").takeIf { it.isNotBlank() }?.let { wb ->
@@ -445,7 +475,8 @@ class ReqService(
             "need" -> links.linksFrom(id, "trace")
             "service", "conops", "mission_goal" -> links.linksTo(id, "trace")
             "requirement" ->
-                links.linksTo(id, "trace") + links.linksFrom(id, "allocation") + links.linksTo(id, "derive")
+                links.linksTo(id, "trace") + links.linksFrom(id, "allocation") + links.linksTo(id, "derive") +
+                    links.linksFrom(id, "conflict")
             else -> emptyList()
         } + links.linksFrom(id, "applies") + links.linksTo(id, "evolves") +
             links.linksFrom(id, "wbs") + links.linksFrom(id, "uses") + links.linksFrom(id, "hosted_on")

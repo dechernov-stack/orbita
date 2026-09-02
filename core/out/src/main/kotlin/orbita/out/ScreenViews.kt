@@ -14,6 +14,7 @@ import orbita.req.VerificationState
 import orbita.req.registerSummary
 import orbita.req.UnitLabels
 import orbita.req.renderConstraint
+import orbita.req.hasOpenTbd
 import orbita.req.successCriterion
 import orbita.req.verificationPlanIssues
 import orbita.req.verificationState
@@ -71,6 +72,25 @@ data class RequirementRow(
     val recalcAfterBaseline: Boolean,
     /** Документ правился после первого утверждения (Approved/Baseline). */
     val changedAfterApproval: Boolean,
+    /** ADR-045: полная структура требования — в строке, чтобы дерево, граф и
+     * карточка вниз рисовались без догрузок. */
+    val title: String? = null,
+    val priority: String? = null,
+    val acceptanceCriteria: String? = null,
+    val sourceDoc: SourceRef? = null,
+    val normativeBasis: NormRef? = null,
+    val tags: List<String> = emptyList(),
+    /** Рабочая заметка: карточка показывает, печать и выгрузка — нет. */
+    val comment: String? = null,
+    val relations: List<RelationView> = emptyList(),
+    /** Помета к базированию: критерий приёмки не записан. */
+    val noAcceptanceGap: Boolean = false,
+    /** Разрыв: объявлено противоречие без разрешения. */
+    val conflictOpen: Boolean = false,
+    /** Разрыв к SRR: связь декомпозиции (derives_from) без обоснования в relations. */
+    val linkNoRationale: Boolean = false,
+    /** В формулировке есть открытые TBD/TBR — счётчик узлов дерева. */
+    val hasTbd: Boolean = false,
     /** Разрывы СТРАТИФИЦИРОВАНЫ по уровням (РЕШЕНИЕ-НОСИТЕЛЬ-УРОВНИ):
      * настоящий сирота — системное требование без элемента/интерфейса. */
     val noCarrierGap: Boolean,
@@ -98,7 +118,22 @@ data class RequirementTreeView(
     val systemRoot: SystemRootRef?,
     /** Сколько корней у дерева состава: 0 — состава нет, >1 — корень не определён. */
     val compositionRoots: Int,
+    /** ADR-045: второе дерево реестра — по документам-основаниям (source.doc → якорь). */
+    val documents: List<DocumentGroup> = emptyList(),
 )
+
+/** Документ-основание с якорем блока канона (ADR-045). */
+data class SourceRef(val doc: String, val anchor: String?, val name: String?)
+
+/** Норматив и пункт (ADR-045). */
+data class NormRef(val ref: String, val clause: String?, val name: String?)
+
+/** Связь требования с обоснованием (ADR-045). */
+data class RelationView(val ref: String, val kind: String, val rationale: String, val resolution: String?)
+
+/** Дерево «по документам-основаниям»: документ → раздел (якорь) → требования. */
+data class DocumentSection(val anchor: String, val count: Int, val ids: List<String>)
+data class DocumentGroup(val doc: String, val name: String, val count: Int, val sections: List<DocumentSection>)
 
 /** Событие верификации карточки требования (экран 3б). */
 data class EventView(
@@ -187,8 +222,23 @@ class ScreenViews(
             needsUncovered = uncoveredNeeds(projectId),
             systemRoot = usageRoots.singleOrNull()?.let { rootRef(it) },
             compositionRoots = usageRoots.size,
+            documents = documentGroups(rows),
         )
     }
+
+    /** Дерево по документам-основаниям: только требования с записанным источником. */
+    private fun documentGroups(rows: List<RequirementRow>): List<DocumentGroup> =
+        rows.filter { it.sourceDoc != null }
+            .groupBy { it.sourceDoc!!.doc }
+            .toSortedMap()
+            .map { (doc, list) ->
+                val sections = list.groupBy { it.sourceDoc?.anchor?.ifBlank { null } ?: "без якоря" }
+                    .toSortedMap()
+                    .map { (anchor, rs) -> DocumentSection(anchor, rs.size, rs.map { it.id }.sorted()) }
+                DocumentGroup(doc, list.first().sourceDoc?.name ?: doc, list.size, sections)
+            }
+
+    private fun refName(id: String): String? = req.objects.current(id)?.doc?.path("name")?.asText("")?.ifBlank { null }
 
     /** Нужда покрыта, когда на её нити стоит требование: НД→требование или
      * НД→сервис→требование (trace хранится от источника к потребителю). */
@@ -349,6 +399,12 @@ class ScreenViews(
                 req.objects.current(carrierId)?.doc?.path("name")?.asText("")?.ifBlank { null }
             }
         }
+        val relations = doc.path("relations").map {
+            RelationView(
+                it.path("ref").asText(""), it.path("kind").asText(""),
+                it.path("rationale").asText(""), it.path("resolution").asText("").ifBlank { null },
+            )
+        }
         return RequirementRow(
             id = id,
             depth = tree.depthOf(id),
@@ -379,6 +435,23 @@ class ScreenViews(
             noNeedGap = doc.path("level").asText("") == "project" &&
                 doc.path("traces_up").none { it.path("ref").asText().isNotBlank() },
             lint = lintControl.lint(doc),
+            title = doc.path("title").asText("").ifBlank { null },
+            priority = doc.path("priority").asText("").ifBlank { null },
+            acceptanceCriteria = doc.path("acceptance_criteria").asText("").ifBlank { null },
+            sourceDoc = doc.path("source").takeIf { it.isObject && it.path("doc").asText("").isNotBlank() }?.let {
+                SourceRef(it.path("doc").asText(), it.path("anchor").asText("").ifBlank { null }, refName(it.path("doc").asText()))
+            },
+            normativeBasis = doc.path("normative_basis").takeIf { it.isObject && it.path("ref").asText("").isNotBlank() }?.let {
+                NormRef(it.path("ref").asText(), it.path("clause").asText("").ifBlank { null }, refName(it.path("ref").asText()))
+            },
+            tags = doc.path("tags").map { it.asText() }.filter { it.isNotBlank() },
+            comment = doc.path("comment").asText("").ifBlank { null },
+            relations = relations,
+            noAcceptanceGap = doc.path("acceptance_criteria").asText("").isBlank(),
+            conflictOpen = relations.any { it.kind == "conflicts_with" && it.resolution.isNullOrBlank() },
+            linkNoRationale = doc.path("derives_from").map { it.asText() }
+                .any { parent -> relations.none { it.ref == parent && it.kind in setOf("refines", "derives") } },
+            hasTbd = hasOpenTbd(doc),
         )
     }
 

@@ -1756,3 +1756,20 @@ details.np-dates[open] summary::before { transform: rotate(90deg); }
 .pbs-head { font-size: 13px; margin: 10px 8px 4px; }
 .pbs-row { cursor: pointer; }
 .pbs-row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+/* Реестр требований (ADR-045): деревья слева (≈220 px) · список справа ·
+   карточка под строкой во всю ширину. Узлы дерева — с раскрытием, счётчиком
+   и видимым фокус-кольцом (выбор с клавиатуры). */
+.rr-body { display: flex; flex: 1; min-height: 0; }
+.rr-trees { width: 224px; flex: 0 0 224px; border-right: 1px solid var(--hairline); overflow: auto;
+  font-size: 12px; padding-bottom: 8px; }
+.rr-thead { display: flex; flex-direction: column; gap: 4px; padding: 6px 8px 4px; }
+.rr-tnode { display: flex; align-items: baseline; gap: 4px; padding: 3px 8px 3px 6px; cursor: pointer;
+  line-height: 16px; border-left: 2px solid transparent; }
+.rr-tnode:hover { background: rgba(11,95,255,0.05); }
+.rr-tnode.on { background: rgba(11,95,255,0.08); border-left-color: var(--accent); }
+.rr-tnode:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.rr-tchev { border: 0; background: none; padding: 0 2px; cursor: pointer; color: var(--muted); font-size: 11px; }
+.rr-ttitle { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rr-tcnt { color: var(--muted); font-size: 11px; white-space: nowrap; }
+.rr-expand > td .rr-pane { border-top: 1px solid var(--hairline); }

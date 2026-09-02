@@ -52,6 +52,9 @@ object PrintHumanizer {
     val LABELS: Map<String, String> = mapOf(
         // ADR-044: аппарат в срезе — собранный из узла КА дерева состава
         "spacecraft" to "Модель аппарата",
+        // ADR-045: полная структура требования
+        "title" to "заголовок", "priority" to "приоритет", "acceptance_criteria" to "критерий приёмки",
+        "source_doc" to "документ-основание", "normative_basis" to "нормативное основание", "tags" to "теги",
         "id" to "обозначение", "statement" to "формулировка", "category" to "категория",
         "level" to "уровень", "source" to "источник", "rationale" to "обоснование",
         "mop" to "показатель", "verification_method" to "метод верификации", "status" to "статус",
@@ -114,6 +117,8 @@ object PrintHumanizer {
         "Baseline" to "базирован", "Cancelled" to "отменён", "issued" to "выпущен",
         // уровни и категории требований
         "project" to "проектный", "system" to "системный", "element" to "элементный",
+        // ADR-045: приоритет требования
+        "high" to "высокий", "medium" to "средний", "low" to "низкий",
         "functional" to "функциональное", "performance" to "показатель", "interface" to "интерфейсное",
         "operational" to "эксплуатационное", "reliability" to "надёжность", "safety" to "безопасность",
         "environmental" to "среда", "constraint" to "ограничение",

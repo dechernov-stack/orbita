@@ -39,7 +39,9 @@ const PREFIX_SCREEN: Record<string, string> = {
   MG: 'goals', ND: 'goals', SV: 'services', CO: 'conops',
   RQ: 'req',
   AL: 'aoa', CM: 'wbs', IF: 'wbs', WB: 'wbstree', CE: 'cost',
-  SC: 'siminputs', CN: 'siminputs', SP: 'siminputs', DM: 'siminputs',
+  SC: 'siminputs', CN: 'siminputs', DM: 'siminputs',
+  // ADR-044: модель аппарата — вид узла КА; прежние SP живут только в истории
+  SP: 'spacecraft', CU: 'composition',
   TP: 'siminputs', GS: 'siminputs', PA: 'siminputs',
   PJ: 'projreg', RF: 'rfa', RSK: 'risks', TL: 'trl', OD: 'oda', SD: 'sourcedocs',
   EV: 'vv', VA: 'vv', DI: 'docs', AP: 'aiprofiles',

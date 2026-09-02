@@ -12,7 +12,6 @@ import { edit } from '../api/edit'
 import { requestObject, screenOfObject, takeObject } from '../api/intent'
 import type { RequirementCard, RequirementRow, RequirementTreeView, SavedViewDoc } from '../api/types'
 import { ObjectEditor } from '../ui/ObjectEditor'
-import { RefChip } from '../ui/RefChip'
 import { RefPicker } from '../ui/RefPicker'
 import { Select } from '../ui/Select'
 import { useSession } from '../ui/session'
@@ -70,6 +69,11 @@ export function Requirements({ onGo }: { onGo?: (screen: string) => void }) {
 
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [activeId, setActiveId] = useState<string | null>(null)
+  // ADR-045: два дерева слева — по иерархии и по документам-основаниям;
+  // выбор узла сужает список, счётчики узлов считает клиент по флагам сервера
+  const [treeMode, setTreeMode] = useState<'hierarchy' | 'documents'>('hierarchy')
+  const [treeFocus, setTreeFocus] = useState<{ key: string; ids: ReadonlySet<string> } | null>(null)
+  const [treeOpen, setTreeOpen] = useState<ReadonlySet<string>>(new Set())
   const dragKey = useRef<string | null>(null)
 
   const reload = useCallback(
@@ -94,9 +98,83 @@ export function Requirements({ onGo }: { onGo?: (screen: string) => void }) {
   if (error) return <div className="empty">Ошибка обращения к API: {error}</div>
   if (!tree) return <div className="empty">Загрузка…</div>
 
-  const items = buildItems(tree.rows, { form, grouping, collapsed, gap, search, sort })
+  const scopedRows = treeFocus ? tree.rows.filter((r) => treeFocus.ids.has(r.id)) : tree.rows
+  const items = buildItems(scopedRows, { form, grouping, collapsed, gap, search, sort })
   const seq = flatRows(items)
   const counters = gapCounters(tree.rows)
+  const subtreeIds = (id: string): Set<string> => {
+    const out = new Set<string>([id])
+    const walk = (x: string) => (tree.children[x] ?? []).forEach((k) => { out.add(k); walk(k) })
+    walk(id)
+    return out
+  }
+  const toggleTreeNode = (key: string) =>
+    setTreeOpen((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  const focusTree = (key: string, ids: Set<string>) =>
+    setTreeFocus((cur) => (cur?.key === key ? null : { key, ids }))
+  const nodeCounters = (ids: ReadonlySet<string>) => {
+    const rs = tree.rows.filter((r) => ids.has(r.id))
+    return { n: rs.length, noMop: rs.filter((r) => r.kind === 'text').length, tbd: rs.filter((r) => r.hasTbd).length }
+  }
+  const counterText = (c: { n: number; noMop: number; tbd: number }) =>
+    `${c.n}${c.noMop ? ` · ${c.noMop} без показателя` : ''}${c.tbd ? ` · ${c.tbd} TBD` : ''}`
+  const rowsById = new Map(tree.rows.map((r) => [r.id, r]))
+  const hierarchyNode = (id: string, depth: number): JSX.Element | null => {
+    const r = rowsById.get(id)
+    if (!r) return null
+    const kids = tree.children[id] ?? []
+    const ids = subtreeIds(id)
+    const open = treeOpen.has(id) || depth === 0
+    return (
+      <div key={id}>
+        <div
+          className={`rr-tnode${treeFocus?.key === id ? ' on' : ''}`}
+          style={{ paddingLeft: 6 + depth * 12 }}
+          tabIndex={0}
+          role="treeitem"
+          aria-expanded={kids.length > 0 ? open : undefined}
+          onClick={() => focusTree(id, ids)}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); focusTree(id, ids) } }}
+        >
+          {kids.length > 0 && (
+            <button
+              type="button"
+              className="rr-tchev"
+              title={open ? 'свернуть' : 'раскрыть'}
+              onClick={(e) => { e.stopPropagation(); toggleTreeNode(id) }}
+            >
+              {open ? '▾' : '▸'}
+            </button>
+          )}
+          <span className="mono">{id}</span> <span className="rr-ttitle">{r.title ?? r.statement}</span>
+          <span className="rr-tcnt">{counterText(nodeCounters(ids))}</span>
+        </div>
+        {open && kids.map((k) => hierarchyNode(k, depth + 1))}
+      </div>
+    )
+  }
+  const renderCard = (id: string) => (
+    <CardView
+      id={id}
+      seq={seq}
+      rows={tree.rows}
+      childrenMap={tree.children}
+      systemRoot={tree.systemRoot}
+      compositionRoots={tree.compositionRoots}
+      inline
+      onBack={() => setExpandedId(null)}
+      onOpen={(x) => { setActiveId(x); setExpandedId(x) }}
+      onEdit={() => setMode({ kind: 'edit', id })}
+      onCreate={(template) => setMode({ kind: 'create', template })}
+      onGo={onGo}
+      onChanged={() => void reload()}
+    />
+  )
 
   const applyView = (v: SavedViewDoc) => {
     setColumns(v.columns.length ? v.columns.map((c) => ({ ...c })) : defaultColumns())
@@ -200,7 +278,7 @@ export function Requirements({ onGo }: { onGo?: (screen: string) => void }) {
     <button
       key={g}
       type="button"
-      className={`rr-g${gap === g ? ' on' : ''}${g === 'no_carrier' || g === 'no_need' ? ' bad' : ''}${g === 'recalc' || g === 'changed' ? ' warnc' : ''}`}
+      className={`rr-g${gap === g ? ' on' : ''}${g === 'no_carrier' || g === 'no_need' || g === 'conflict' ? ' bad' : ''}${g === 'recalc' || g === 'changed' || g === 'no_acceptance' ? ' warnc' : ''}`}
       onClick={() => setGap((cur) => (cur === g ? null : g))}
     >
       {GAP_LABELS[g]} · <b>{counters[g]}</b>
@@ -322,7 +400,7 @@ export function Requirements({ onGo }: { onGo?: (screen: string) => void }) {
         >
           Нужда не покрыта · <b>{tree.needsUncovered.length}</b>
         </button>
-        {(['no_need', 'no_verification', 'recalc', 'changed'] as GapKey[]).map((g) => gapChip(g))}
+        {(['no_need', 'no_verification', 'no_acceptance', 'conflict', 'recalc', 'changed'] as GapKey[]).map((g) => gapChip(g))}
       </div>
 
       {notice && <div className="warn" style={{ padding: '4px 14px' }}>{notice}</div>}
@@ -360,6 +438,68 @@ export function Requirements({ onGo }: { onGo?: (screen: string) => void }) {
         </div>
       )}
 
+      <div className="rr-body">
+      <aside className="rr-trees" aria-label="Деревья требований">
+        <div className="rr-thead">
+          <span className="rr-xk">Дерево</span>
+          <span className="tabs" style={{ display: 'inline-flex' }}>
+            <button type="button" className={`tab${treeMode === 'hierarchy' ? ' on' : ''}`} aria-selected={treeMode === 'hierarchy'} onClick={() => setTreeMode('hierarchy')}>по иерархии</button>
+            <button type="button" className={`tab${treeMode === 'documents' ? ' on' : ''}`} aria-selected={treeMode === 'documents'} onClick={() => setTreeMode('documents')}>по документам</button>
+          </span>
+        </div>
+        {treeFocus && (
+          <button type="button" className="rr-assign" onClick={() => setTreeFocus(null)}>× снять выбор · показаны {scopedRows.length} из {tree.rows.length}</button>
+        )}
+        {treeMode === 'hierarchy' && (
+          tree.roots.length === 0
+            ? <div className="empty">Дерева нет: требования появятся здесь по связям decompose.</div>
+            : <div role="tree">{tree.roots.map((id) => hierarchyNode(id, 0))}</div>
+        )}
+        {treeMode === 'documents' && (
+          (tree.documents ?? []).length === 0
+            ? <div className="empty">Документов-оснований нет: заполните у требования источник (документ и якорь блока).</div>
+            : <div role="tree">
+                {(tree.documents ?? []).map((d) => {
+                  const docIds = new Set(d.sections.flatMap((sct) => sct.ids))
+                  const open = treeOpen.has(`doc:${d.doc}`)
+                  return (
+                    <div key={d.doc}>
+                      <div
+                        className={`rr-tnode${treeFocus?.key === `doc:${d.doc}` ? ' on' : ''}`}
+                        tabIndex={0}
+                        role="treeitem"
+                        aria-expanded={open}
+                        onClick={() => focusTree(`doc:${d.doc}`, docIds)}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); focusTree(`doc:${d.doc}`, docIds) } }}
+                      >
+                        <button type="button" className="rr-tchev" title={open ? 'свернуть' : 'раскрыть'} onClick={(e) => { e.stopPropagation(); toggleTreeNode(`doc:${d.doc}`) }}>{open ? '▾' : '▸'}</button>
+                        <span className="mono">{d.doc}</span> <span className="rr-ttitle">{d.name}</span>
+                        <span className="rr-tcnt">{counterText(nodeCounters(docIds))}</span>
+                      </div>
+                      {open && d.sections.map((sct) => {
+                        const key = `doc:${d.doc}:${sct.anchor}`
+                        const ids = new Set(sct.ids)
+                        return (
+                          <div
+                            key={key}
+                            className={`rr-tnode${treeFocus?.key === key ? ' on' : ''}`}
+                            style={{ paddingLeft: 22 }}
+                            tabIndex={0}
+                            role="treeitem"
+                            onClick={() => focusTree(key, ids)}
+                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); focusTree(key, ids) } }}
+                          >
+                            <span className="rr-ttitle">{sct.anchor}</span>
+                            <span className="rr-tcnt">{counterText(nodeCounters(ids))}</span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )
+                })}
+              </div>
+        )}
+      </aside>
       <div className="workarea" style={{ overflow: 'auto' }} tabIndex={0} onKeyDown={onKeys}>
         {tree.rows.length === 0 && (
           <div className="empty">
@@ -410,7 +550,6 @@ export function Requirements({ onGo }: { onGo?: (screen: string) => void }) {
                     selected={selection.has(item.row.id)}
                     active={activeId === item.row.id}
                     expanded={expandedId === item.row.id}
-                    childrenMap={tree.children}
                     systemRoot={tree.systemRoot}
                     onToggleSelect={(id) =>
                       setSelection((prev) => {
@@ -421,7 +560,7 @@ export function Requirements({ onGo }: { onGo?: (screen: string) => void }) {
                       })}
                     onActivate={(id) => { setActiveId(id); setExpandedId((cur) => (cur === id ? null : id)) }}
                     onOpenCard={(id) => setMode({ kind: 'card', id })}
-                    onGoRef={onGo}
+                    renderCard={renderCard}
                   />
                 ),
               )}
@@ -429,27 +568,28 @@ export function Requirements({ onGo }: { onGo?: (screen: string) => void }) {
           </table>
         )}
       </div>
+      </div>
     </div>
   )
 }
 
 /** Строка реестра + её раскрытие (суть без ухода с экрана). */
 function RegistryRow({
-  item, visible, label, selected, active, expanded, childrenMap, systemRoot,
-  onToggleSelect, onActivate, onOpenCard, onGoRef,
+  item, visible, label, selected, active, expanded, systemRoot,
+  onToggleSelect, onActivate, onOpenCard, renderCard,
 }: {
+  /** ADR-045: карточка раскрывается ВНИЗ, под строкой, во всю ширину списка. */
+  renderCard: (id: string) => JSX.Element
   item: Extract<RegistryItem, { type: 'row' }>
   visible: ColumnState[]
   label: (group: string, code: string | null | undefined) => string
   selected: boolean
   active: boolean
   expanded: boolean
-  childrenMap: Record<string, string[]>
   systemRoot: { id: string; name: string | null } | null
   onToggleSelect: (id: string) => void
   onActivate: (id: string) => void
   onOpenCard: (id: string) => void
-  onGoRef?: (screen: string) => void
 }) {
   const r = item.row
   const cell = (key: string) => {
@@ -516,7 +656,6 @@ function RegistryRow({
         return <td key={key} />
     }
   }
-  const kids = childrenMap[r.id] ?? []
   return (
     <>
       <tr
@@ -531,57 +670,8 @@ function RegistryRow({
       </tr>
       {expanded && (
         <tr className="rr-expand">
-          <td colSpan={visible.length + 1}>
-            <div className="rr-xgrid">
-              <div>
-                <div className="rr-xk">Показатель</div>
-                <div className="rr-xv mono">{r.condition?.rendered ?? '— текстовое требование'}</div>
-                <div className="rr-xk" style={{ marginTop: 8 }}>Обоснование</div>
-                <div className="rr-xv">{r.rationale ?? <span className="secondary">не записано</span>}</div>
-              </div>
-              <div>
-                <div className="rr-xk">Трассировка</div>
-                <div className="rr-xv">
-                  ↑ {[...(r.parentId ? [r.parentId] : []), ...r.sources].map((s) => (
-                    <RefChip key={s} id={s}
-                      onOpen={s.startsWith('RQ-') ? onOpenCard : undefined}
-                      onGo={onGoRef} />
-                  ))}
-                  <br />
-                  ↓ {kids.length === 0 ? 'детей нет' : kids.map((k) => (
-                    <RefChip key={k} id={k} onOpen={onOpenCard} />
-                  ))}
-                </div>
-                {(r.recalcAfterBaseline || r.changedAfterApproval) && (
-                  <>
-                    <div className="rr-xk" style={{ marginTop: 8 }}>Пометы</div>
-                    <div className="rr-xv">
-                      {r.recalcAfterBaseline && <div><span className="rr-mk rr-mk--recalc" /> Показатель пересчитан после базирования</div>}
-                      {r.changedAfterApproval && <div><span className="rr-mk rr-mk--chg" /> Изменено после утверждения</div>}
-                    </div>
-                  </>
-                )}
-              </div>
-              <div>
-                <div className="rr-xk">Носитель</div>
-                <div className="rr-xv">
-                  {r.allocatedTo.length > 0
-                    ? <><span className="mono">{r.allocatedTo[0]}</span> {r.carrierName}</>
-                    : r.level === 'project'
-                      ? <span className="secondary">носитель придёт с корнем</span>
-                      : <span className="secondary">не распределено</span>}
-                </div>
-                <div className="rr-xk" style={{ marginTop: 8 }}>Верификация</div>
-                <div className="rr-xv">
-                  {r.method ? `${label('verification_method', r.method)} · ${r.verificationState}` : <span className="secondary">событий нет</span>}
-                </div>
-              </div>
-            </div>
-            <div className="rr-xfoot">
-              <button type="button" className="rr-assign" onClick={() => onOpenCard(r.id)}>Открыть карточку →</button>
-              <span className="secondary">v{r.version}{r.owner ? ` · ${r.owner}` : ''}</span>
-              <span className="secondary">Esc — свернуть · ↑↓ — по строкам</span>
-            </div>
+          <td colSpan={visible.length + 1} style={{ padding: 0 }}>
+            {renderCard(r.id)}
           </td>
         </tr>
       )}
@@ -716,8 +806,10 @@ function ViewConfig({
 
 /** Карточка требования — вся рабочая область, листание по текущей выборке. */
 function CardView({
-  id, seq, rows, childrenMap, systemRoot, compositionRoots, onBack, onOpen, onEdit, onCreate, onGo, onChanged,
+  id, seq, rows, childrenMap, systemRoot, compositionRoots, onBack, onOpen, onEdit, onCreate, onGo, onChanged, inline = false,
 }: {
+  /** Встроена под строкой реестра (ADR-045): без шапки-возврата в реестр. */
+  inline?: boolean
   id: string
   seq: RequirementRow[]
   rows: RequirementRow[]
@@ -758,7 +850,7 @@ function CardView({
   return (
     <div className="pane rr-pane">
       <div className="rr-chead">
-        <button type="button" className="rr-back" onClick={onBack}>← Реестр требований</button>
+        <button type="button" className="rr-back" onClick={onBack}>{inline ? '▴ Свернуть карточку' : '← Реестр требований'}</button>
         <span className="mono secondary">{r.id}</span>
         <span className="chip"><span className={`dot status-${r.status}`} title={label('lifecycle', r.status)} />{label('lifecycle', r.status)} · v{r.version}</span>
         {(r.lint ?? []).map((n) => (
@@ -848,6 +940,56 @@ function CardView({
               {r.rationale ?? <span className="secondary">не записано</span>}
             </div>
           </div>
+          {/* ADR-045: полная структура требования — поле в поле */}
+          <div className="card">
+            <div className="rr-xk">Критерий приёмки</div>
+            <div style={{ fontSize: 12.5, lineHeight: '18px' }}>
+              {r.acceptanceCriteria ?? <span className="amber">△ нет критерия приёмки — помета к базированию</span>}
+            </div>
+          </div>
+          <div className="card">
+            <div className="rr-xk">Источник · документ и якорь</div>
+            <div style={{ fontSize: 12.5, lineHeight: '18px' }}>
+              {r.sourceDoc
+                ? <>
+                    <span className="mono">{r.sourceDoc.doc}</span>{r.sourceDoc.name ? ` ${r.sourceDoc.name}` : ''}
+                    {r.sourceDoc.anchor && <> · якорь <span className="mono">{r.sourceDoc.anchor}</span></>}
+                    {onGo && <button type="button" className="rr-assign" style={{ marginLeft: 8 }} onClick={() => onGo('docparse')}>к месту в разборе →</button>}
+                  </>
+                : <span className="secondary">документ-основание не записан</span>}
+            </div>
+            {r.normativeBasis && (
+              <div style={{ fontSize: 12.5, lineHeight: '18px', marginTop: 4 }}>
+                Норматив: <span className="mono">{r.normativeBasis.ref}</span>{r.normativeBasis.name ? ` ${r.normativeBasis.name}` : ''}{r.normativeBasis.clause ? `, п. ${r.normativeBasis.clause}` : ''}
+              </div>
+            )}
+            {(r.tags?.length ?? 0) > 0 && (
+              <div style={{ marginTop: 4 }}>{r.tags!.map((t) => <span key={t} className="chip">{t}</span>)}</div>
+            )}
+          </div>
+          {(r.relations?.length ?? 0) > 0 && (
+            <div className="card">
+              <div className="rr-xk">Связи с обоснованием</div>
+              {r.relations!.map((rel) => (
+                <div key={`${rel.kind}:${rel.ref}`} style={{ fontSize: 12.5, lineHeight: '18px' }}>
+                  <span className="chip">{label('requirement_relation_kind', rel.kind)}</span>{' '}
+                  <button type="button" className="rr-assign mono" onClick={() => onOpen(rel.ref)}>{rel.ref}</button>
+                  <span className="secondary"> — {rel.rationale}</span>
+                  {rel.kind === 'conflicts_with' && (
+                    rel.resolution
+                      ? <div className="secondary">разрешено: {rel.resolution}</div>
+                      : <div className="bad">противоречие не разрешено — разрыв готовности к базированию</div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+          {r.comment && (
+            <div className="card">
+              <div className="rr-xk">Комментарий · не печатается</div>
+              <div style={{ fontSize: 12.5, lineHeight: '18px' }}>{r.comment}</div>
+            </div>
+          )}
           <div className="card">
             <div className="rr-xk">{r.level === 'project' ? 'Распределение · механика' : 'Распределение'}</div>
             {r.level === 'project' && card.allocatedTo.length === 0 && (

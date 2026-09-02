@@ -426,6 +426,105 @@
           "rationale"
         ]
       }
+    },
+    "title": {
+      "type": "string",
+      "description": "Краткое имя — для дерева, графа и подсказок; формулировка остаётся полной в statement"
+    },
+    "priority": {
+      "enum": [
+        "high",
+        "medium",
+        "low"
+      ],
+      "description": "Приоритет — данными справочника; не путать с «должен/желательно» формулировки"
+    },
+    "acceptance_criteria": {
+      "type": "string",
+      "description": "Наблюдаемый результат, при котором требование считается выполненным; мягко обязателен к базированию (помета «нет критерия приёмки»)"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "doc"
+      ],
+      "description": "Документ-основание и якорь блока канона (Д1): первоклассное поле, не только происхождение пакета",
+      "properties": {
+        "doc": {
+          "type": "string",
+          "pattern": "^(SD|NR|DI)-[0-9]{4}$",
+          "description": "Исходный документ (SD), норматив (NR) или выпуск документа (DI)"
+        },
+        "anchor": {
+          "type": "string",
+          "description": "Якорь блока канона разбора (b7, s2, t1#15) либо раздел"
+        }
+      }
+    },
+    "normative_basis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ref"
+      ],
+      "description": "Норматив и пункт — лёгкая форма; полный механизм — пакет «граф»",
+      "properties": {
+        "ref": {
+          "type": "string",
+          "pattern": "^NR-[0-9]{4}$"
+        },
+        "clause": {
+          "type": "string"
+        }
+      }
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "Свободные метки — фильтр реестра и графа"
+    },
+    "comment": {
+      "type": "string",
+      "description": "Рабочая заметка; в печать и выгрузку не попадает"
+    },
+    "relations": {
+      "type": "array",
+      "description": "Связи с другими требованиями — у каждой обоснование (как note у связей задач). refines — уточняет родителя (derive/derived), derives — выведено разбиением (derive/allocated, участвует в свёртке), depends_on — зависит (только в документе), conflicts_with — противоречие; неразрешённое — разрыв готовности",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ref",
+          "kind",
+          "rationale"
+        ],
+        "properties": {
+          "ref": {
+            "type": "string",
+            "pattern": "^RQ-[0-9]{4}$"
+          },
+          "kind": {
+            "enum": [
+              "refines",
+              "derives",
+              "depends_on",
+              "conflicts_with"
+            ]
+          },
+          "rationale": {
+            "type": "string",
+            "minLength": 1
+          },
+          "resolution": {
+            "type": "string",
+            "description": "Как разрешено противоречие (только для conflicts_with); пусто — «противоречие не разрешено»"
+          }
+        }
+      }
     }
   }
 }

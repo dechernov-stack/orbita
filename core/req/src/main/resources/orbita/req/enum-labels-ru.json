@@ -182,6 +182,17 @@
       "safe": "безопасный режим",
       "maneuver": "манёвр"
     },
+    "requirement_priority": {
+      "high": "высокий",
+      "medium": "средний",
+      "low": "низкий"
+    },
+    "requirement_relation_kind": {
+      "refines": "уточняет",
+      "derives": "выводится из",
+      "depends_on": "зависит от",
+      "conflicts_with": "противоречит"
+    },
     "component_kind": {
       "segment": "сегмент",
       "element": "элемент",

@@ -53,10 +53,15 @@ val REQUIREMENT_MAP: List<ReqifField> = listOf(
     ReqifField("mop.value.unit", "MeasureUnit", "string"),
     ReqifField("lifecycle.status", "Status", "enum"),
     ReqifField("owner", "Owner", "string"),
+    // ADR-045: полная структура требования — поле в поле
+    ReqifField("title", "Title", "string"),
+    ReqifField("priority", "Priority", "enum"),
+    ReqifField("acceptance_criteria", "AcceptanceCriteria", "xhtml"),
 )
 
 val REQIF_ENUM_VALUES: Map<String, List<String>> = linkedMapOf(
     "Level" to listOf("project", "system", "element"),
+    "Priority" to listOf("high", "medium", "low"),
     "Category" to listOf(
         "functional", "performance", "interface", "operational",
         "reliability", "safety", "environmental", "constraint",

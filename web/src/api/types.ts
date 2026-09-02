@@ -74,6 +74,28 @@ export interface RequirementRow {
   /** Разрывы стратифицированы по уровням: сирота — только системное. */
   noCarrierGap: boolean
   noNeedGap: boolean
+  /** ADR-045: полная структура требования. */
+  title?: string | null
+  priority?: string | null
+  acceptanceCriteria?: string | null
+  sourceDoc?: { doc: string; anchor: string | null; name: string | null } | null
+  normativeBasis?: { ref: string; clause: string | null; name: string | null } | null
+  tags?: string[]
+  comment?: string | null
+  relations?: Array<{ ref: string; kind: string; rationale: string; resolution: string | null }>
+  noAcceptanceGap?: boolean
+  conflictOpen?: boolean
+  linkNoRationale?: boolean
+  /** Сервер считает: в формулировке есть открытые TBD/TBR. */
+  hasTbd?: boolean
+}
+
+/** Дерево «по документам-основаниям» (ADR-045). */
+export interface DocumentGroupView {
+  doc: string
+  name: string
+  count: number
+  sections: Array<{ anchor: string; count: number; ids: string[] }>
 }
 
 /** Сохранённый вид реестра (Т-1): серверный объект, не localStorage. */
@@ -100,6 +122,8 @@ export interface RequirementTreeView {
   /** Корень системы — носитель проектных требований; null — не определён. */
   systemRoot: { id: string; name: string | null } | null
   compositionRoots: number
+  /** ADR-045: второе дерево реестра — по документам-основаниям. */
+  documents?: DocumentGroupView[]
 }
 
 export interface EventView {
