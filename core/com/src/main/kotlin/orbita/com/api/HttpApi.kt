@@ -47,6 +47,45 @@ class HttpApi(private val boundary: Boundary) {
     private val mapper = ObjectMapper()
 
     /**
+     * ПМИ-4: режим приёмочного стенда — ORBITA_AUTH_MODE=stand. Учётки
+     * заведены, переключаются селектором в шапке, пароль не спрашивается.
+     * Права при этом настоящие: сервер проверяет роль выбранной учётки.
+     * Режим включается ФЛАГОМ только на стенде — прод его не видит.
+     */
+    private val standMode: Boolean = System.getenv("ORBITA_AUTH_MODE") == "stand"
+
+    /** Учётки стенда: логин · имя · роль по умолчанию в каждом проекте. */
+    private val standAccounts = listOf(
+        Triple("chernov", "Чернов Д.", "lead"),
+        Triple("ivanov", "Иванов И.", "lead_se"),
+        Triple("petrova", "Петрова М.", "specialist"),
+    )
+
+    /** Учётки стенда заводятся при старте, роли — во всех живых проектах. */
+    private fun ensureStand() {
+        if (!standMode) return
+        val existing = boundary.auth.listUsers().map { it.first }.toSet()
+        standAccounts.forEach { (login, name, _) ->
+            if (login !in existing) {
+                // пароль случайный и никому не нужен: вход на стенде — без пароля
+                boundary.auth.createUser(login, java.util.UUID.randomUUID().toString(), name)
+            }
+        }
+        boundary.objects.listCurrent()
+            .filter { it.type == "project" && it.status != Lifecycle.Cancelled }
+            .forEach { p -> ensureStandRoles(p.id) }
+    }
+
+    /** Роли учёток стенда в проекте — без перебивки уже назначенных. */
+    private fun ensureStandRoles(projectId: String) {
+        if (!standMode) return
+        val have = boundary.auth.listRoles(projectId)
+        standAccounts.forEach { (login, _, role) ->
+            if (login !in have) boundary.auth.setRole(projectId, login, role)
+        }
+    }
+
+    /**
      * Запуск на 127.0.0.1; port=0 — эфемерный порт (для тестов).
      *
      * Адрес привязки переопределяется ORBITA_HTTP_BIND. В контейнере петля
@@ -56,6 +95,7 @@ class HttpApi(private val boundary: Boundary) {
      * оказаться открытым в сеть без явного решения.
      */
     fun start(port: Int): HttpServer {
+        ensureStand()
         val bind = System.getenv("ORBITA_HTTP_BIND") ?: "127.0.0.1"
         val server = HttpServer.create(InetSocketAddress(bind, port), 0)
         server.createContext("/api/") { ex -> handle(ex) }
@@ -183,6 +223,7 @@ class HttpApi(private val boundary: Boundary) {
                 // В3: создатель проекта — его руководитель
                 if (type == CoreType.Project) {
                     currentAuthorLogin.get()?.let { boundary.auth.setRole(stored.id, it, "lead") }
+                    ensureStandRoles(stored.id)
                 }
                 respond(ex, 201, summary(stored))
             }
@@ -3076,6 +3117,7 @@ class HttpApi(private val boundary: Boundary) {
                 // В3: создатель проекта — его руководитель
                 if (type == CoreType.Project) {
                     currentAuthorLogin.get()?.let { boundary.auth.setRole(stored.id, it, "lead") }
+                    ensureStandRoles(stored.id)
                 }
                 respond(ex, 201, summary(stored).apply { set<ObjectNode>("doc", stored.doc) })
             }
@@ -4564,7 +4606,10 @@ class HttpApi(private val boundary: Boundary) {
         if (role == null) return "у ${user.login} нет роли в проекте ${project ?: "—"}: назначает руководитель"
         val rule = orbita.req.Permissions.default.ruleFor(method, path)
             ?: return "маршрут $method $path не покрыт реестром прав — запись закрыта (fail-closed)"
-        if (role !in rule.allow) return rule.why + "; ваша роль — " + role
+        // Режим стенда: руководитель проекта носит и обзорную роль (в ПМИ-4
+        // учётка «РП · DA» одна) — только под флагом, реестр прав не меняется
+        val effective = if (standMode && role == "lead" && "da_review" in rule.allow) "da_review" else role
+        if (effective !in rule.allow) return rule.why + "; ваша роль — " + role
         if (rule.ownerGuard && role == "specialist") {
             val id = editMatch?.groupValues?.get(1) ?: objectMatch?.groupValues?.get(1)
             if (id != null && (id.startsWith("CM-") || id.startsWith("CU-"))) {
@@ -4626,6 +4671,26 @@ class HttpApi(private val boundary: Boundary) {
                 )
             }
 
+            // ПМИ-4: вход учёткой стенда без пароля — только при ORBITA_AUTH_MODE=stand
+            method == "POST" && path == "/auth/stand-login" -> {
+                if (!standMode) {
+                    respond(ex, 404, mapper.createObjectNode().put("error", "режим стенда выключен"))
+                    return
+                }
+                val login = mapper.readTree(body(ex)).path("login").asText("")
+                val account = standAccounts.firstOrNull { it.first == login }
+                if (account == null) {
+                    respond(ex, 400, mapper.createObjectNode().put("error", "учётки стенда: " + standAccounts.joinToString { it.first }))
+                    return
+                }
+                val token = boundary.auth.createSession(login)
+                ex.responseHeaders.add(
+                    "Set-Cookie",
+                    "orbita_session=$token; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000",
+                )
+                respond(ex, 200, mapper.createObjectNode().put("login", login).put("display_name", account.second))
+            }
+
             method == "POST" && path == "/auth/logout" -> {
                 sessionToken(ex)?.let { boundary.auth.dropSession(it) }
                 ex.responseHeaders.add(
@@ -4637,6 +4702,15 @@ class HttpApi(private val boundary: Boundary) {
             method == "GET" && path == "/auth/whoami" -> {
                 val out = mapper.createObjectNode()
                 out.put("enabled", boundary.auth.enabled())
+                if (standMode) {
+                    out.put("mode", "stand")
+                    val arr = out.putArray("stand_users")
+                    standAccounts.forEach { (login, name, _) ->
+                        val u = arr.addObject().put("login", login).put("display_name", name)
+                        val roles = u.putObject("roles")
+                        boundary.auth.rolesOf(login).forEach { (pj, r) -> roles.put(pj, r) }
+                    }
+                }
                 if (user != null) {
                     val u = out.putObject("user")
                     u.put("login", user.login)

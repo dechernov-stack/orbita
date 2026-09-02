@@ -18,6 +18,8 @@ interface Session {
   authEnabled: boolean | null
   /** Вошедший пользователь; null при выключенном режиме или до входа. */
   user: { login: string; display_name: string; roles: Record<string, string> } | null
+  /** Режим приёмочного стенда: учётки заведены, пароль не спрашивается. */
+  standUsers: Array<{ login: string; display_name: string; roles: Record<string, string> }> | null
   refreshWho: () => void
   /** Подпись кода перечисления; неизвестный код возвращается как есть. */
   label: (group: string, code: string | null | undefined) => string
@@ -30,6 +32,7 @@ const SessionContext = createContext<Session>({
   setAuthor: () => {},
   authEnabled: null,
   user: null,
+  standUsers: null,
   refreshWho: () => {},
   label: (_group, code) => code ?? '',
   fieldLabel: (name) => name,
@@ -48,12 +51,21 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [fieldLabels, setFieldLabels] = useState<Record<string, string>>({})
   const [authEnabled, setAuthEnabled] = useState<boolean | null>(null)
   const [user, setUser] = useState<Session['user']>(null)
+  const [standUsers, setStandUsers] = useState<Session['standUsers']>(null)
 
   const refreshWho = useCallback(() => {
     api.whoami()
       .then((w) => {
         setAuthEnabled(w.enabled)
         setUser(w.user ?? null)
+        setStandUsers(w.mode === 'stand' ? (w.stand_users ?? []) : null)
+        // стенд без паролей: без сессии входим первой учёткой (руководитель)
+        if (w.mode === 'stand' && w.enabled && !w.user && (w.stand_users ?? []).length > 0) {
+          api.standLogin(w.stand_users![0].login).then(() => api.whoami()).then((w2) => {
+            setUser(w2.user ?? null)
+            if (w2.user) setAuthorState(w2.user.display_name)
+          }).catch(() => undefined)
+        }
         // автор из учётки — поле автора больше не источник правды
         if (w.enabled && w.user) setAuthorState(w.user.display_name)
       })
@@ -93,8 +105,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   )
 
   const value = useMemo(
-    () => ({ author, setAuthor, label, fieldLabel, authEnabled, user, refreshWho }),
-    [author, setAuthor, label, fieldLabel, authEnabled, user, refreshWho],
+    () => ({ author, setAuthor, label, fieldLabel, authEnabled, user, standUsers, refreshWho }),
+    [author, setAuthor, label, fieldLabel, authEnabled, user, standUsers, refreshWho],
   )
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>
 }
@@ -105,7 +117,32 @@ export function useSession(): Session {
 
 /** Поле имени в шапке: без него правка не отправляется, и это видно сразу. */
 export function AuthorField() {
-  const { author, setAuthor, authEnabled, user, refreshWho } = useSession()
+  const { author, setAuthor, authEnabled, user, standUsers, refreshWho } = useSession()
+  // Режим приёмочного стенда (ПМИ-4): учётка переключается селектором
+  // «имя · роль», пароль не спрашивается. Права при этом настоящие — их
+  // проверяет сервер по роли выбранной учётки.
+  if (authEnabled && user && standUsers) {
+    // роль — словами, как в реестре учёток, а не кодом
+    const ROLE_TITLE: Record<string, string> = {
+      lead: 'руководитель', lead_se: 'ведущий СИ', specialist: 'инженер',
+      sma: 'SMA', da_review: 'DA', reader: 'читатель',
+    }
+    const roleOf = (u: { roles: Record<string, string> }) => {
+      const roles = Object.values(u.roles)
+      return roles.length ? (ROLE_TITLE[roles[0]] ?? roles[0]) : 'без роли'
+    }
+    return (
+      <label className="author" title="учётка приёмочного стенда: переключение без пароля, права — по роли">
+        <span className="secondary">учётка</span>
+        <select value={user.login}
+          onChange={(e) => { api.standLogin(e.target.value).then(refreshWho).catch(() => undefined) }}>
+          {standUsers.map((u) => (
+            <option key={u.login} value={u.login}>{u.display_name} · {roleOf(u)}</option>
+          ))}
+        </select>
+      </label>
+    )
+  }
   // В3: при включённых учётках автор — из сессии; поле ввода уходит,
   // остаётся индикатор входа и выход
   if (authEnabled && user) {
@@ -133,12 +170,16 @@ export function AuthorField() {
 
 /** В3: ворота входа — при включённых учётках без сессии работа не идёт. */
 export function LoginGate({ children }: { children: ReactNode }) {
-  const { authEnabled, user, refreshWho } = useSession()
+  const { authEnabled, user, standUsers, refreshWho } = useSession()
   const [login, setLogin] = useState('')
   const [password, setPassword] = useState('')
   const [failure, setFailure] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   if (authEnabled !== true || user) return <>{children}</>
+  if (standUsers) {
+    // приёмочный стенд: сессия ставится сама первой учёткой — пароля нет
+    return <div className="empty">вход учёткой стенда…</div>
+  }
   const enter = () => {
     if (busy || !login || !password) return
     setBusy(true)

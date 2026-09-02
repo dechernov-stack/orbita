@@ -403,9 +403,17 @@ export const api = {
     }>(`/sd-parse/${encodeURIComponent(id)}/harvest/accept`, { selected, author }),
   /** В3: кто я — режим учёток, пользователь и его роли по проектам. */
   whoami: () =>
-    get<{ enabled: boolean; user?: { login: string; display_name: string; roles: Record<string, string> } }>(
+    get<{
+      enabled: boolean
+      /** stand — приёмочный стенд: учётки без паролей, переключение селектором */
+      mode?: string
+      user?: { login: string; display_name: string; roles: Record<string, string> }
+      stand_users?: Array<{ login: string; display_name: string; roles: Record<string, string> }>
+    }>(
       '/auth/whoami',
     ),
+  /** Режим приёмочного стенда: вход учёткой без пароля (ORBITA_AUTH_MODE=stand на сервере). */
+  standLogin: (login: string) => post<{ login: string; display_name: string }>('/auth/stand-login', { login }),
   login: (login: string, password: string) =>
     post<{ login: string; display_name: string }>('/auth/login', { login, password }),
   logout: () => post<{ ok: boolean }>('/auth/logout', {}),
