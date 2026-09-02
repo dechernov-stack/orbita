@@ -91,12 +91,12 @@ class PrintRenderer {
                 table.setWidth("100%")
                 table.rows.forEachIndexed { i, row ->
                     val item = items[i]
-                    val id = item.path("id").asText("")
-                    val rest = item.properties()
-                        .filter { (k, _) -> k != "id" }
-                        .joinToString("; ") { (k, v) -> "$k: ${flat(v)}" }
+                    // вставка печатается по-человечески: веха словами, узел
+                    // именем, поля по-русски (PrintHumanizer); id — только у
+                    // записей с обозначением (требование, нужда, риск)
+                    val id = designation(item)
                     row.getCell(0).apply { text = id; widthType = org.apache.poi.xwpf.usermodel.TableWidthType.DXA; setWidth("1600") }
-                    row.getCell(1).text = rest
+                    row.getCell(1).text = PrintHumanizer.line(item)
                 }
             }
             if (items.size() == 0 && s.path("text").asText("").isBlank()) {
@@ -137,11 +137,7 @@ class PrintRenderer {
                 writer.heading("${s.path("number").asInt()}. ${s.path("title").asText("")}")
                 s.path("text").asText("").takeIf { it.isNotBlank() }?.let { writer.paragraph(it) }
                 s.path("items").forEach { item ->
-                    val id = item.path("id").asText("")
-                    val rest = item.properties()
-                        .filter { (k, _) -> k != "id" }
-                        .joinToString("; ") { (k, v) -> "$k: ${flat(v)}" }
-                    writer.paragraph(if (id.isBlank()) rest else "$id — $rest", size = 9f, indent = 12f)
+                    writer.paragraph(PrintHumanizer.line(item), size = 9f, indent = 12f)
                 }
                 if (s.path("items").size() == 0 && s.path("text").asText("").isBlank()) {
                     writer.paragraph("— раздел пуст: ${s.path("expects").asText("")}", size = 9f, indent = 12f)
@@ -154,17 +150,29 @@ class PrintRenderer {
         }
     }
 
-    /** Значение записи одной строкой — печать чернового оформления. */
-    private fun flat(v: JsonNode): String = when {
-        v.isTextual -> v.asText()
-        v.isNumber || v.isBoolean -> v.asText()
-        v.isArray -> v.joinToString(", ") { flat(it) }
-        v.isObject && v.path("value").isNumber && v.path("unit").isTextual ->
-            "${v.path("value").asDouble()} ${v.path("unit").asText()}"
-        v.isObject -> v.properties()
-            .filter { (k, _) -> k != "provenance" }
-            .joinToString(", ") { (k, x) -> "$k=${flat(x)}" }
-        else -> ""
+    /**
+     * Обозначение в первой колонке — только у записей, где id и есть
+     * обозначение документа (требование, нужда, риск, решение). Узлы,
+     * стейкхолдеры и станции печатаются именем: их id — подсказка экрана.
+     */
+    private fun designation(item: JsonNode): String {
+        val id = item.path("id").asText("")
+        val record = item.has("statement") || item.has("question") || item.has("target") ||
+            item.has("trl_current") || item.has("deorbit_years") || item.has("basis")
+        return if (record) id else ""
+    }
+
+    /**
+     * Весь печатный текст документа строками — им пользуется сторож печати:
+     * латинский служебный ключ в любой строке — отказ выпуска.
+     */
+    fun lines(body: JsonNode): List<String> = buildList {
+        add(body.path("title").asText(""))
+        body.path("sections").forEach { s ->
+            add("${s.path("number").asInt()}. ${s.path("title").asText("")}")
+            s.path("text").asText("").takeIf { it.isNotBlank() }?.let { addAll(it.split("\n")) }
+            s.path("items").forEach { add(PrintHumanizer.line(it)) }
+        }
     }
 
     /** Постраничный писатель: перенос строк по ширине, колонтитул на каждой странице. */

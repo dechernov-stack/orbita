@@ -39,6 +39,13 @@ import java.sql.Connection
 class Boundary(private val registry: SchemaRegistry, private val conn: Connection) {
 
     val objects = ObjectStore(conn)
+
+    init {
+        // Печать подписывает единицы тем же справочником, что и экраны:
+        // «12 кг», а не «12 kg» — второй таблицы подписей не заводится.
+        orbita.out.PrintHumanizer.unitLabel = orbita.req.UnitLabels()::label
+        orbita.out.PrintHumanizer.enumLabel = orbita.req.EnumLabels()::label
+    }
     val auth = orbita.mod.store.AuthStore(conn)
     val links = LinkStore(conn)
     val params = ParamStore(conn)

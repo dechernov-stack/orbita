@@ -9,6 +9,7 @@ import { api, asBatchReport, type AiJournal, type AiRunReport, type BatchReport 
 import { edit, type StoredSummary } from '../api/edit'
 import { useSession } from '../ui/session'
 import type { LinkMappingView } from '../api/types'
+import { chosenRows } from './batchSelection'
 import { Muted } from '../ui/Tooltip'
 
 const KINDS: Array<{ id: string; title: string; generative: boolean }> = [
@@ -154,7 +155,7 @@ export function AiService({ onGo, initialKind }: {
 
   const enrichApply = () => {
     if (!report) return
-    const items = report.shown.filter((s) => !excluded.has(String(s.item.id ?? '')))
+    const items = chosenRows(report.shown, excluded)
     if (items.length === 0) return
     setBusy(true)
     setEnriched(null)
@@ -220,7 +221,7 @@ export function AiService({ onGo, initialKind }: {
 
   const acceptAll = () => {
     if (!report) return
-    const items = report.shown.filter((s) => !excluded.has(String(s.item.id ?? '')))
+    const items = chosenRows(report.shown, excluded)
     if (items.length === 0) return
     setBusy(true)
     const onRejected = (r: BatchReport) => {
@@ -689,9 +690,9 @@ export function AiService({ onGo, initialKind }: {
 
                   <button title="нечего принимать: представьтесь в шапке и оставьте хотя бы одно предложение невыключенным" className="btn btn--primary" onClick={acceptAll}
                     disabled={!author || busy
-                      || report.shown.every((s) => excluded.has(String(s.item.id ?? '')))}>
+                      || chosenRows(report.shown, excluded).length === 0}>
                     Принять пачкой (
-                    {report.shown.filter((s) => !excluded.has(String(s.item.id ?? ''))).length})
+                    {chosenRows(report.shown, excluded).length})
                   </button>
                 </>
               )}

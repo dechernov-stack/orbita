@@ -1989,6 +1989,21 @@ class HttpApi(private val boundary: Boundary) {
                     }
                 val generated = orbita.out.DocumentGenerator(mapper)
                     .render(model, template, sectionTexts(code, project))
+                // Сторож печати: служебный ключ латиницей в печатном тексте —
+                // отказ выпуска, а не косметика. Проверяется тот же текст, что
+                // уйдёт в docx и PDF.
+                val ключи = orbita.out.PrintHumanizer.serviceKeys(orbita.out.PrintRenderer().lines(generated.body))
+                if (ключи.isNotEmpty()) {
+                    respond(
+                        ex, 422,
+                        mapper.createObjectNode().put(
+                            "error",
+                            "выпуск отклонён: в печатном тексте служебные ключи латиницей — " +
+                                ключи.joinToString(", ") + ". Печать обязана быть человеческим текстом",
+                        ),
+                    )
+                    return
+                }
                 val issue = mapper.createObjectNode()
                 issue.put("template", template.code)
                 issue.put("digest", generated.digest)
