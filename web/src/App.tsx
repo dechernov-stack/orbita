@@ -163,6 +163,8 @@ export function App() {
   /** Первая установка: в портфеле нет проектов — форма с вводной строкой. */
   const [firstRun, setFirstRun] = useState(false)
   const [info, setInfo] = useState<HeaderInfo | null>(null)
+  /** Запомненный проект исчез со стенда — банер в портфеле объясняет, почему вы здесь. */
+  const [lostProject, setLostProject] = useState<string | null>(null)
   const project = currentProject()
   const section = sectionOf(screen)
 
@@ -183,7 +185,17 @@ export function App() {
         }
         setInfo({ name, phase: ops.phase, nextGate: ops.next_gate, unclosed, operations: ops.operations })
       })
-      .catch(() => setInfo(null))
+      .catch((e) => {
+        setInfo(null)
+        // Проект, запомненный браузером, удалён со стенда (перезапуск прогона):
+        // не показывать ошибку API поверх пустого экрана, а честно вернуть в
+        // портфель и сказать, что случилось (находка сброса стенда 2026-09-02)
+        if (/не найден/.test(String(e))) {
+          setLostProject(project)
+          selectProject(null)
+          setScreen('portfolio')
+        }
+      })
   }, [project])
 
   useEffect(loadHeader, [loadHeader, screen])
@@ -478,6 +490,12 @@ export function App() {
           </aside>
         )}
         <main className="shell__work">
+          {lostProject && (
+            <div className="notice" role="status" style={{ margin: '8px 12px 0' }}>
+              проект {lostProject} больше не существует на стенде — выберите проект в портфеле
+            </div>
+          )}
+
           {frame && frameTask && (
             <TaskFrameBar task={frameTask} step={frame.step} busy={frameBusy} author={session.author}
               onStep={(i) => открытьШаг(frameTask, i)}
