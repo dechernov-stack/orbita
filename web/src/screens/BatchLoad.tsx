@@ -6,6 +6,8 @@ import { useState } from 'react'
 import { api, asBatchReport, type BatchReport } from '../api/client'
 import { currentProject, withProject } from '../api/project'
 import { useSession } from '../ui/session'
+import { LinkMappingTable, chosenMapping } from '../ui/LinkMappingTable'
+import type { LinkMappingView } from '../api/types'
 
 export function BatchLoad() {
   const { author } = useSession()
@@ -14,11 +16,17 @@ export function BatchLoad() {
   const [report, setReport] = useState<BatchReport | null>(null)
   const [failure, setFailure] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  // Г-01: чужие ссылки пакета разбираются ДО записи — диалогом, не отказом
+  const [mapping, setMapping] = useState<LinkMappingView | null>(null)
+  const [mapChoice, setMapChoice] = useState<Record<string, string>>({})
 
   const pick = (file: File | null) => {
     if (!file) return
     setFileName(file.name)
     setReport(null)
+    // новый файл — новые ссылки: прежнее сопоставление к нему не относится
+    setMapping(null)
+    setMapChoice({})
     file.text().then(setPayload)
   }
 
@@ -43,7 +51,18 @@ export function BatchLoad() {
         throw new Error('Представьтесь в шапке: правка без автора не принимается (TZ-COM-005).')
       }
       if (!body.author) body.author = author
-      setReport(await api.importObjects(body))
+      // чужие ссылки: сначала сопоставление, запись — после решения инженера
+      if (!mapping) {
+        const m = await api.linkMapping(body.objects as unknown[])
+        if (m.foreign > 0) {
+          setMapping(m)
+          setMapChoice(Object.fromEntries(m.links.filter((l) => l.suggested).map((l) => [l.ref, l.suggested!.id])))
+          setFailure(`в пакете ссылки на другой проект: ${m.foreign}. Сопоставьте их ниже и нажмите ещё раз`)
+          return
+        }
+      }
+      const карта = chosenMapping(mapChoice)
+      setReport(await api.importObjects(карта ? { ...body, link_mapping: карта } : body))
     } catch (e) {
       // 422 несёт тот же BatchReport построчно, что и успех (written: 0,
       // problems) — общий post() на отказе его теряет; достаём назад, иначе
@@ -69,6 +88,10 @@ export function BatchLoad() {
         </button>
       </div>
       <div className="workarea" style={{ padding: 14, maxWidth: 860 }}>
+        {mapping && (
+          <LinkMappingTable mapping={mapping} choice={mapChoice}
+            onChoice={(ref, id) => setMapChoice((prev) => ({ ...prev, [ref]: id }))} />
+        )}
         <div className="field">
           <label>Файл пачки (формат /export/objects; порядок объектов не важен — его разрешает сервер)</label>
           <input type="file" accept="application/json,.json" onChange={(e) => pick(e.target.files?.[0] ?? null)} />

@@ -8,9 +8,9 @@ import { useCallback, useEffect, useState } from 'react'
 import { api, asBatchReport, type AiJournal, type AiRunReport, type BatchReport } from '../api/client'
 import { edit, type StoredSummary } from '../api/edit'
 import { useSession } from '../ui/session'
-import type { LinkMappingView } from '../api/types'
+import type { LinkMappingView, SectionProseInput } from '../api/types'
 import { chosenRows } from './batchSelection'
-import { Muted } from '../ui/Tooltip'
+import { LinkMappingTable, chosenMapping } from '../ui/LinkMappingTable'
 
 const KINDS: Array<{ id: string; title: string; generative: boolean }> = [
   { id: 'mission_to_goals', title: 'Постановка → цели миссии', generative: true },
@@ -33,12 +33,18 @@ const KINDS: Array<{ id: string; title: string; generative: boolean }> = [
   // этим видом из рамки ведения — вид обязан быть в списке, иначе переход
   // молча откатится на первый попавшийся
   { id: 'semp_draft', title: 'SEMP: связные разделы из данных проекта (§3, §5, §10)', generative: true },
+  // Шип 1 «трёх пакетов»: связный текст ЛЮБОГО [С]-раздела — вход собирает
+  // сервер из данных вставок раздела (и только их); черновик принимается
+  // правкой на экране документов, в документ сам не пишется
+  { id: 'section_prose', title: 'Связный текст раздела документа из данных его вставок', generative: true },
 ]
 
-export function AiService({ onGo, initialKind }: {
+export function AiService({ onGo, initialKind, initialContext }: {
   onGo?: (screen: string) => void
   /** Ф-12: проводник постановки открывает службу сразу нужным видом. */
   initialKind?: string
+  /** Шип 1: адрес раздела «код#номер» — вход берётся из данных его вставок. */
+  initialContext?: string
 }) {
   const { author } = useSession()
   const [profiles, setProfiles] = useState<StoredSummary[]>([])
@@ -50,6 +56,28 @@ export function AiService({ onGo, initialKind }: {
     ? initialKind
     : KINDS[0].id)
   const [statement, setStatement] = useState('')
+  // раздел документа, для которого пишется связный текст: код шаблона и номер
+  const sectionRef = (() => {
+    const m = initialContext?.match(/^([a-z_]+)#(\d+)$/)
+    return m ? { code: m[1], section: Number(m[2]) } : null
+  })()
+  const [sectionInput, setSectionInput] = useState<SectionProseInput | null>(null)
+  // «обобщить в образец» с карточки результата: вход — печатный текст выпуска
+  useEffect(() => {
+    const m = initialContext?.match(/^([a-z_]+)#issue:([A-Z]+-[0-9]+)$/)
+    if (!m) return
+    api.issueText(m[1], m[2])
+      .then((t) => setStatement(t.text))
+      .catch((e) => setError(String(e)))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialContext])
+  useEffect(() => {
+    if (!sectionRef) return
+    api.sectionProseInput(sectionRef.code, sectionRef.section)
+      .then((inp) => { setSectionInput(inp); setStatement(inp.statement) })
+      .catch((e) => setError(String(e)))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialContext])
   const [prompt, setPrompt] = useState<string | null>(null)
   /** Ф-05: состав промпта по источникам — счётчики и пустые строки. */
   const [sources, setSources] = useState<
@@ -242,12 +270,15 @@ export function AiService({ onGo, initialKind }: {
         })
       }
     }
-    const карта = Object.fromEntries(
-      Object.entries(mapChoice).filter(([, v]) => v),
-    )
+    const карта = chosenMapping(mapChoice)
+    // связный текст раздела принимается с адресом раздела: шаблон и номер —
+    // из контекста экрана, а не из ответа модели
+    const payload = items.map((s) => sectionRef
+      ? { template_code: sectionRef.code, section: sectionRef.section, ...s.item }
+      : s.item)
     api.acceptBatchOfCall(
-      report.call ?? null, 'служба', author, items.map((s) => s.item),
-      Object.keys(карта).length > 0 ? карта : undefined,
+      report.call ?? null, 'служба', author, payload,
+      карта,
     )
       .then(onRejected)
       .catch((e) => {
@@ -360,6 +391,13 @@ export function AiService({ onGo, initialKind }: {
 
         <div className="field">
           <label>Вход операции (постановка миссии либо иной материал инженера)</label>
+          {sectionInput && (
+            <div className="secondary" style={{ marginBottom: 4 }}
+              title="вход собран сервером из данных вставок раздела и только их; текст ниже можно уточнить">
+              вход — раздел §{sectionInput.section} «{sectionInput.title}» документа «{sectionInput.template_code}»:
+              записей {sectionInput.lines.length}; черновик принимается правкой на экране документов
+            </div>
+          )}
           <textarea rows={3} style={{ width: '100%' }} value={statement}
             onChange={(e) => setStatement(e.target.value)}
             placeholder="Национальная спутниковая платформа IoT: сбор телеметрии…" />
@@ -643,49 +681,8 @@ export function AiService({ onGo, initialKind }: {
                       Изоляция проектов не ослабляется: связь пишется только
                       на объект ЭТОГО проекта, выбранный инженером. */}
                   {mapping && (
-                    <div className="rr-expand" style={{ display: 'block', padding: '8px 10px', marginBottom: 8 }}>
-                      <div className="secondary" style={{ marginBottom: 6 }}>{mapping.summary}</div>
-                      <table className="grid">
-                        <thead>
-                          <tr>
-                            <th style={{ width: 110 }}>Ссылка пакета</th>
-                            <th>Что это в исходном проекте</th>
-                            <th style={{ width: 260 }}>Чем заменить здесь</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {mapping.links.map((l) => (
-                            <tr key={l.ref}>
-                              <td className="mono">
-                                {l.ref}
-                                {l.from_project && <div className="secondary">{l.from_project}</div>}
-                              </td>
-                              <td className="wrap">{l.text || <Muted why="объект исходного проекта недоступен — формулировку показать неоткуда" />}</td>
-                              <td>
-                                <select value={mapChoice[l.ref] ?? ''}
-                                  title="объект этого проекта, которым заменится чужая ссылка; «без связи» — строка ляжет с разрывом трассировки"
-                                  onChange={(e) => setMapChoice((prev) => ({ ...prev, [l.ref]: e.target.value }))}>
-                                  <option value="">— без связи (разрыв трассировки) —</option>
-                                  {l.candidates.map((c) => (
-                                    <option key={c.id} value={c.id}>
-                                      {c.id} · {c.text.slice(0, 46)}{c.percent > 0 ? ` (${c.percent}%)` : ''}
-                                    </option>
-                                  ))}
-                                </select>
-                                {l.suggested && mapChoice[l.ref] === l.suggested.id && (
-                                  <div className="secondary">предложено по совпадению формулировки</div>
-                                )}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                      <div className="secondary" style={{ marginTop: 6 }}>
-                        Связь запишется только на объект этого проекта. Оставленное «без связи»
-                        уйдёт в разрыв трассировки, а строка, которой связь обязательна по схеме,
-                        честно не пройдёт ворота.
-                      </div>
-                    </div>
+                    <LinkMappingTable mapping={mapping} choice={mapChoice}
+                      onChoice={(ref, id) => setMapChoice((prev) => ({ ...prev, [ref]: id }))} />
                   )}
 
                   <button title="нечего принимать: представьтесь в шапке и оставьте хотя бы одно предложение невыключенным" className="btn btn--primary" onClick={acceptAll}

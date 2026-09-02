@@ -50,10 +50,18 @@ class BatchImport(private val boundary: Boundary, private val mapper: ObjectMapp
      * остановки — отказ всей пачки с причинами поимённо.
      */
     fun import(payload: JsonNode, author: String, contextProject: String?): BatchReport {
-        val items = payload.path("objects")
-        require(items.isArray && items.size() > 0) {
+        val raw = payload.path("objects")
+        require(raw.isArray && raw.size() > 0) {
             "пачка пуста: тело должно содержать objects — список документов объектов"
         }
+        // Г-01: подтверждённое инженером сопоставление чужих ссылок — тем же
+        // применением, что у акцепта службы. Изоляция не ослабляется: ссылка
+        // становится ссылкой ЭТОГО проекта либо остаётся и даёт разрыв
+        val карта = mutableMapOf<String, String>()
+        payload.path("link_mapping").properties().forEach { (старый, новый) ->
+            новый.asText("").takeIf { it.isNotBlank() }?.let { карта[старый] = it }
+        }
+        val items = if (карта.isEmpty()) raw else LinkMapping.применить(raw.deepCopy(), карта)
 
         // разбор строк: идентификатор обязателен, вид выводится из префикса
         data class Row(val index: Int, val id: String, val type: CoreType, val doc: ObjectNode)

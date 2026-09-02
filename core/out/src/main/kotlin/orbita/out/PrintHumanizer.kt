@@ -93,6 +93,7 @@ object PrintHumanizer {
         "planes" to "плоскостей", "sats_per_plane" to "аппаратов в плоскости", "inclination_deg" to "наклонение, °",
         "altitude_km" to "высота, км", "phasing" to "фазирование", "total" to "всего",
         "template_code" to "шаблон", "section" to "раздел", "rows" to "строки",
+        "number" to "№", "tailoring" to "отклонение", "open" to "открыто", "closed" to "закрыто",
         "stale" to "устарел", "rng_seed" to "зерно ГПСЧ", "input_versions" to "версии входов",
         "retransmission_ratio" to "доля повторных передач", "variant" to "вариант",
         // варианты сравнения (KPI прогона): §6 описания архитектуры
@@ -137,6 +138,8 @@ object PrintHumanizer {
         "disposal" to "утилизация", "deployment" to "развёртывание", "commissioning" to "ввод в строй",
         "operations" to "эксплуатация", "decommissioning" to "вывод из эксплуатации",
         "constellation_compare_table" to "таблица сравнения построений",
+        "readiness_group" to "группа готовности", "review_trend" to "тренд замечаний",
+        "intent_boundaries" to "границы замысла", "mission_class" to "класс миссии", "role" to "роль",
         // риски и решения
         "technical" to "технический", "cost" to "стоимость", "schedule" to "сроки",
         "mitigate" to "снижать", "accept" to "принять", "transfer" to "передать", "avoid" to "избежать",

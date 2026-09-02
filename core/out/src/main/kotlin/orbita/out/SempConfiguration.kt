@@ -8,8 +8,17 @@ import com.fasterxml.jackson.databind.ObjectMapper
 
 object SempConfiguration {
 
-    /** Строка таблицы соответствия: процесс регламента → чем сделан → где живёт. */
-    data class Process(val process: String, val mechanism: String, val place: String)
+    /**
+     * Строка таблицы соответствия: процесс NPR 7123.1 → чем сделан → где живёт.
+     * Процесс вне области Формулирования несёт tailoring — отклонение названо.
+     */
+    data class Process(
+        val number: Int,
+        val process: String,
+        val mechanism: String,
+        val place: String,
+        val tailoring: String? = null,
+    )
 
     /** Строка перечня среды: область работ → чем ведётся. */
     data class Tool(val area: String, val tool: String)
@@ -25,9 +34,11 @@ object SempConfiguration {
 
     fun processes(): List<Process> = data.path("processes").map {
         Process(
+            it.path("number").asInt(0),
             it.path("process").asText(""),
             it.path("mechanism").asText(""),
             it.path("place").asText(""),
+            it.path("tailoring").asText("").ifBlank { null },
         )
     }
 

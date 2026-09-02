@@ -47,6 +47,8 @@ import type {
   LinkMappingView,
   ReviewChecklistView,
   PhaseWorkView,
+  SectionProseInput,
+  ResultsView,
   PhaseGanttView,
   PhaseFlowView,
   StakeholderCoverageView,
@@ -198,6 +200,19 @@ export function asBatchReport(e: unknown): BatchReport | null {
 async function post<T>(path: string, body: unknown): Promise<T> {
   const response = await fetch(`${BASE}${withProject(path)}`, {
     method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify(body),
+  })
+  if (!response.ok) {
+    throw new ApiError(response.status, path, await response.text())
+  }
+  return (await response.json()) as T
+}
+
+/** Замена значения целиком (авторский текст раздела): тот же контур, что post. */
+async function put<T>(path: string, body: unknown): Promise<T> {
+  const response = await fetch(`${BASE}${withProject(path)}`, {
+    method: 'PUT',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
     body: JSON.stringify(body),
   })
@@ -416,6 +431,19 @@ export const api = {
   printUrl: (code: string, fmt: 'docx' | 'pdf', issue?: string) =>
     withProject(`/api/export/documents/${code}/print.${fmt}${issue ? `?issue=${encodeURIComponent(issue)}` : ''}`),
   /** Ответ несёт и blocks — атрибуцию источников для предпросмотра (О-4). */
+  /** Печатный текст выпуска — вход для «обобщить в образец». */
+  issueText: (code: string, issue: string) =>
+    get<{ text: string; lines: string[] }>(`/export/documents/${code}/issues/${issue}/text`),
+  /** Библиотека → «Результаты»: выпуски документов карточками с авторством. */
+  results: () => get<ResultsView>('/views/results'),
+  /** Связный текст раздела: вход собирает сервер из данных вставок раздела (шип 1). */
+  sectionProseInput: (code: string, section: number) =>
+    get<SectionProseInput>(`/export/documents/${code}/sections/${section}/prose-input`),
+  /** В1.2: авторский текст раздела — правка инженера, принятие явное. */
+  saveSectionText: (code: string, section: number, text: string, author: string) =>
+    put<{ id: string; version: string; inserts_fingerprint: string }>(
+      `/export/documents/${code}/sections/${section}/text`, { text, author },
+    ),
   aiCompose: (kind: string, profile: string, statement: string) =>
     post<{
       profile: string; profile_version: string; transport: string

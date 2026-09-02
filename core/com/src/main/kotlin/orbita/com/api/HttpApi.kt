@@ -1833,6 +1833,35 @@ class HttpApi(private val boundary: Boundary) {
                 respondBinary(ex, java.nio.file.Files.readAllBytes(f), "application/octet-stream", fileName)
             }
 
+            // Шип 2.3 «трёх пакетов»: Библиотека → «Результаты» — выпуски
+            // документов карточками с авторством из истории текстов
+            method == "GET" && path == "/views/results" ->
+                respond(ex, 200, Results.toJson(boundary, requireProject(project)))
+
+            // Печатный текст выпуска строками — вход для «обобщить в образец»
+            method == "GET" && Regex("^/export/documents/[a-z_]+/issues/[A-Z]+-[0-9]+/text$").matches(path) -> {
+                val parts = path.removePrefix("/export/documents/").split("/")
+                val di = boundary.objects.current(parts[2])
+                    ?: throw NoSuchElementException("issue '${parts[2]}' not found")
+                require(di.type == "document_issue" && di.doc.path("template").asText() == parts[0]) {
+                    "'${parts[2]}' is not an issue of '${parts[0]}'"
+                }
+                val lines = orbita.out.PrintRenderer().lines(di.doc.path("snapshot"))
+                val out = mapper.createObjectNode()
+                out.put("text", lines.joinToString("\n"))
+                val arr = out.putArray("lines")
+                lines.forEach { arr.add(it) }
+                respond(ex, 200, out)
+            }
+
+            // Шип 1 «трёх пакетов»: вход для связного текста раздела — данные
+            // вставок человеческими строками и подсказка раздела; больше ничего
+            method == "GET" && Regex("^/export/documents/[a-z_]+/sections/[0-9]+/prose-input$").matches(path) -> {
+                val parts = path.removePrefix("/export/documents/").split("/")
+                val template = templateOf(parts[0])
+                respond(ex, 200, DocumentModel.proseInput(boundary, requireProject(project), template, parts[2].toInt()))
+            }
+
             // В1.2: сохранение авторского текста раздела. Отпечаток данных
             // вставок ставит СЕРВЕР на момент сохранения: по нему выпуск
             // узнаёт, что модель уехала из-под текста («текст устарел» —
@@ -1852,27 +1881,19 @@ class HttpApi(private val boundary: Boundary) {
                 val text = req.path("text").asText("")
                 require(text.isNotBlank()) { "field 'text' is required" }
                 val textProject = requireProject(project)
-                val model = orbita.out.ModelSnapshot.of(boundary.objects, mapper, projectId = project)
-                    .also { m ->
-                        // МВП-М2 §3.5: последняя матрица сравнения построений —
-                        // вставкой в раздел AoA; выпуск зафиксирует снимок
-                        boundary.objects.listCurrent(project)
-                            .filter { it.type == "scenario" }
-                            .flatMap { sc ->
-                                boundary.results.activeForScenario(sc.id, "constellation_compare")
-                            }
-                            .maxByOrNull { it.pk }
-                            ?.let { (m as ObjectNode).set<ObjectNode>("constellation_compare", it.payload.deepCopy()) }
-                    }
+                val model = DocumentModel.model(boundary, project)
                 val rendered = orbita.out.DocumentGenerator(mapper).render(model, template)
-                val fingerprint = rendered.body.path("sections")
+                val renderedSection = rendered.body.path("sections")
                     .first { it.path("number").asInt() == sectionNo }
-                    .path("inserts_fingerprint").asText("")
+                val fingerprint = renderedSection.path("inserts_fingerprint").asText("")
                 val doc = mapper.createObjectNode()
                 doc.put("template_code", code)
                 doc.put("section", sectionNo)
                 doc.put("text", text)
                 doc.put("inserts_fingerprint", fingerprint)
+                // снимок данных строками — по ним «текст устарел» назовёт, что разошлось
+                val linesNode = doc.putArray("inserts_lines")
+                renderedSection.path("items").forEach { linesNode.add(orbita.out.PrintHumanizer.line(it)) }
                 val existing = boundary.objects.listCurrent(textProject).firstOrNull {
                     it.type == "section_text" && it.status != Lifecycle.Cancelled &&
                         it.doc.path("template_code").asText() == code &&
@@ -1925,18 +1946,7 @@ class HttpApi(private val boundary: Boundary) {
                         author = di.createdBy,
                     )
                 } else {
-                    val model = orbita.out.ModelSnapshot.of(boundary.objects, mapper, projectId = project)
-                    .also { m ->
-                        // МВП-М2 §3.5: последняя матрица сравнения построений —
-                        // вставкой в раздел AoA; выпуск зафиксирует снимок
-                        boundary.objects.listCurrent(project)
-                            .filter { it.type == "scenario" }
-                            .flatMap { sc ->
-                                boundary.results.activeForScenario(sc.id, "constellation_compare")
-                            }
-                            .maxByOrNull { it.pk }
-                            ?.let { (m as ObjectNode).set<ObjectNode>("constellation_compare", it.payload.deepCopy()) }
-                    }
+                    val model = DocumentModel.model(boundary, project)
                     val generated = orbita.out.DocumentGenerator(mapper)
                         .render(model, template, sectionTexts(code, project))
                     generated.body to orbita.out.PrintMeta(
@@ -1975,18 +1985,7 @@ class HttpApi(private val boundary: Boundary) {
                 if (issuedAt.isBlank()) throw IllegalArgumentException("'issued_at' is required: дата выпуска — аргумент, не чтение часов")
                 val author = author(req.path("author").asText(""))
                 if (author.isBlank()) throw IllegalArgumentException("'author' is required (TZ-COM-005)")
-                val model = orbita.out.ModelSnapshot.of(boundary.objects, mapper, projectId = project)
-                    .also { m ->
-                        // МВП-М2 §3.5: последняя матрица сравнения построений —
-                        // вставкой в раздел AoA; выпуск зафиксирует снимок
-                        boundary.objects.listCurrent(project)
-                            .filter { it.type == "scenario" }
-                            .flatMap { sc ->
-                                boundary.results.activeForScenario(sc.id, "constellation_compare")
-                            }
-                            .maxByOrNull { it.pk }
-                            ?.let { (m as ObjectNode).set<ObjectNode>("constellation_compare", it.payload.deepCopy()) }
-                    }
+                val model = DocumentModel.model(boundary, project)
                 val generated = orbita.out.DocumentGenerator(mapper)
                     .render(model, template, sectionTexts(code, project))
                 // Сторож печати: служебный ключ латиницей в печатном тексте —
@@ -2022,18 +2021,7 @@ class HttpApi(private val boundary: Boundary) {
             method == "GET" && Regex("^/export/documents/[a-z_]+/issues$").matches(path) -> {
                 val code = path.removePrefix("/export/documents/").removeSuffix("/issues")
                 val template = templateOf(code)
-                val model = orbita.out.ModelSnapshot.of(boundary.objects, mapper, projectId = project)
-                    .also { m ->
-                        // МВП-М2 §3.5: последняя матрица сравнения построений —
-                        // вставкой в раздел AoA; выпуск зафиксирует снимок
-                        boundary.objects.listCurrent(project)
-                            .filter { it.type == "scenario" }
-                            .flatMap { sc ->
-                                boundary.results.activeForScenario(sc.id, "constellation_compare")
-                            }
-                            .maxByOrNull { it.pk }
-                            ?.let { (m as ObjectNode).set<ObjectNode>("constellation_compare", it.payload.deepCopy()) }
-                    }
+                val model = DocumentModel.model(boundary, project)
                 val currentDigest = orbita.out.DocumentGenerator(mapper)
                     .render(model, template, sectionTexts(code, project)).digest
                 val out = mapper.createObjectNode()
@@ -2069,18 +2057,7 @@ class HttpApi(private val boundary: Boundary) {
             method == "GET" && path.startsWith("/export/documents/") -> {
                 val code = path.removePrefix("/export/documents/")
                 val template = templateOf(code)
-                val model = orbita.out.ModelSnapshot.of(boundary.objects, mapper, projectId = project)
-                    .also { m ->
-                        // МВП-М2 §3.5: последняя матрица сравнения построений —
-                        // вставкой в раздел AoA; выпуск зафиксирует снимок
-                        boundary.objects.listCurrent(project)
-                            .filter { it.type == "scenario" }
-                            .flatMap { sc ->
-                                boundary.results.activeForScenario(sc.id, "constellation_compare")
-                            }
-                            .maxByOrNull { it.pk }
-                            ?.let { (m as ObjectNode).set<ObjectNode>("constellation_compare", it.payload.deepCopy()) }
-                    }
+                val model = DocumentModel.model(boundary, project)
                 val doc = orbita.out.DocumentGenerator(mapper)
                     .render(model, template, sectionTexts(code, project))
                 val out = mapper.createObjectNode()
@@ -2099,18 +2076,7 @@ class HttpApi(private val boundary: Boundary) {
             // валиден — терпит принимающий инструмент, поэтому предупреждение
             // показывается инженеру рядом с кнопкой выгрузки, а не прячется в лог.
             method == "GET" && path == "/export/reqif/check" -> {
-                val model = orbita.out.ModelSnapshot.of(boundary.objects, mapper, projectId = project)
-                    .also { m ->
-                        // МВП-М2 §3.5: последняя матрица сравнения построений —
-                        // вставкой в раздел AoA; выпуск зафиксирует снимок
-                        boundary.objects.listCurrent(project)
-                            .filter { it.type == "scenario" }
-                            .flatMap { sc ->
-                                boundary.results.activeForScenario(sc.id, "constellation_compare")
-                            }
-                            .maxByOrNull { it.pk }
-                            ?.let { (m as ObjectNode).set<ObjectNode>("constellation_compare", it.payload.deepCopy()) }
-                    }
+                val model = DocumentModel.model(boundary, project)
                 val flattened = model.path("requirements")
                     .map { orbita.out.toSpecObject(it) }
                     .filter { orbita.out.flattenedAsString(it).isNotEmpty() }
@@ -2137,18 +2103,7 @@ class HttpApi(private val boundary: Boundary) {
                 if (format !in setOf("csv", "json")) {
                     throw IllegalArgumentException("query parameter 'format' must be one of: csv, json")
                 }
-                val model = orbita.out.ModelSnapshot.of(boundary.objects, mapper, projectId = project)
-                    .also { m ->
-                        // МВП-М2 §3.5: последняя матрица сравнения построений —
-                        // вставкой в раздел AoA; выпуск зафиксирует снимок
-                        boundary.objects.listCurrent(project)
-                            .filter { it.type == "scenario" }
-                            .flatMap { sc ->
-                                boundary.results.activeForScenario(sc.id, "constellation_compare")
-                            }
-                            .maxByOrNull { it.pk }
-                            ?.let { (m as ObjectNode).set<ObjectNode>("constellation_compare", it.payload.deepCopy()) }
-                    }
+                val model = DocumentModel.model(boundary, project)
                 val requirements = model.path("requirements").map { r ->
                     orbita.out.ExchangeRequirement(
                         id = r.path("id").asText(),
@@ -2186,18 +2141,7 @@ class HttpApi(private val boundary: Boundary) {
                             .put("adr", "ADR-023"),
                     )
                 } else {
-                    val model = orbita.out.ModelSnapshot.of(boundary.objects, mapper, projectId = project)
-                    .also { m ->
-                        // МВП-М2 §3.5: последняя матрица сравнения построений —
-                        // вставкой в раздел AoA; выпуск зафиксирует снимок
-                        boundary.objects.listCurrent(project)
-                            .filter { it.type == "scenario" }
-                            .flatMap { sc ->
-                                boundary.results.activeForScenario(sc.id, "constellation_compare")
-                            }
-                            .maxByOrNull { it.pk }
-                            ?.let { (m as ObjectNode).set<ObjectNode>("constellation_compare", it.payload.deepCopy()) }
-                    }
+                    val model = DocumentModel.model(boundary, project)
                     val links = (boundary.links.list("trace", project) + boundary.links.list("derive", project))
                         .map { orbita.out.ExchangeLink(it.fromId, it.toId, it.kind) }
                     val exportedAt = query(ex)["exported_at"]
@@ -3372,7 +3316,11 @@ class HttpApi(private val boundary: Boundary) {
         val rows = boundary.objects
             .listCurrent(orbita.mod.store.ObjectStore.LIBRARY_PROJECT)
             .filter { it.type == "document_template" && it.status != Lifecycle.Cancelled }
-        return rows.firstOrNull { it.doc.path("code").asText() == code }
+        // на полке может лежать два шаблона одного кода — сид первой загрузки
+        // и редакция владельца; побеждает старшая редакция, при равной —
+        // позднейшая версия объекта
+        return rows.filter { it.doc.path("code").asText() == code }
+            .maxWithOrNull(compareBy({ it.doc.path("edition").asText("").toIntOrNull() ?: 0 }, { it.version.toIntOrNull() ?: 0 }))
             ?.let { orbita.out.TemplateData.of(it.doc) }
             ?: throw IllegalArgumentException(
                 "шаблон документа '$code' не заведён в библиотеке; заведены: " +
@@ -4565,22 +4513,18 @@ class HttpApi(private val boundary: Boundary) {
 
     /** Авторские тексты разделов документа (В1.2) — текущие объекты проекта. */
     private fun sectionTexts(code: String, projectId: String?): Map<Int, orbita.out.SectionAuthorText> =
-        boundary.objects.listCurrent(projectId)
-            .filter {
-                it.type == "section_text" && it.status != Lifecycle.Cancelled &&
-                    it.doc.path("template_code").asText() == code
-            }
-            .associate {
-                it.doc.path("section").asInt() to orbita.out.SectionAuthorText(
-                    text = it.doc.path("text").asText(""),
-                    insertsFingerprint = it.doc.path("inserts_fingerprint").asText(""),
-                )
-            }
+        DocumentModel.sectionTexts(boundary, code, projectId)
 
     private fun libraryTemplates(): List<orbita.out.TemplateData> =
         boundary.objects
             .listCurrent(orbita.mod.store.ObjectStore.LIBRARY_PROJECT)
             .filter { it.type == "document_template" && it.status != Lifecycle.Cancelled }
+            // один шаблон на код — старшая редакция (см. templateOf)
+            .groupBy { it.doc.path("code").asText() }
+            .values
+            .mapNotNull { same ->
+                same.maxWithOrNull(compareBy({ it.doc.path("edition").asText("").toIntOrNull() ?: 0 }, { it.version.toIntOrNull() ?: 0 }))
+            }
             .map { orbita.out.TemplateData.of(it.doc) }
             .sortedBy { it.code }
 

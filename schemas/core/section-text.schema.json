@@ -39,6 +39,13 @@
     },
     "provenance": {
       "$ref": "https://kis.local/schemas/common/provenance.schema.json"
+    },
+    "inserts_lines": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Данные вставок раздела человеческими строками на момент принятия текста: по ним «текст устарел» называет, что именно разошлось (шип 2 пачки SEMP). Отпечаток говорит «что-то ушло», строки — что"
     }
   }
 }

@@ -234,13 +234,105 @@ function SectionTable({ items, fieldLabel, onGo, expandAll }: {
 }
 
 /** Разрыв, разобранный для группировки: объект (если назван) и суть. */
+/**
+ * Шип 1 «трёх пакетов»: раздел с режимом [С] — связный текст. Действие
+ * «Написать связно» живёт У РАЗДЕЛА, не у шага задачи: любой шаблон полки с
+ * режимом prose на разделе получает его. Черновик пишет служба из данных
+ * вставок раздела (вид section_prose), инженер правит и принимает —
+ * черновик в документ сам не пишется. Режим — свойство шаблона (данными).
+ */
+function ProseSection({ code, section, author, onGo, onSaved }: {
+  code: string
+  section: GeneratedDocumentView['body']['sections'][number]
+  author: string
+  onGo?: (screen: string, kind?: string, target?: string) => void
+  onSaved: () => void
+}) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(section.text ?? '')
+  const [busy, setBusy] = useState(false)
+  const [notice, setNotice] = useState<string | null>(null)
+  const режим = section.mode === 'manual' ? 'рука'
+    : section.mode === 'prose_table' ? 'абзац связного текста и таблица данных'
+      : 'связный текст'
+
+  const save = () => {
+    setBusy(true)
+    api.saveSectionText(code, section.number, draft, author)
+      .then(() => { setNotice('текст принят'); setEditing(false); onSaved() })
+      .catch((e) => setNotice(String(e).slice(0, 200)))
+      .finally(() => setBusy(false))
+  }
+
+  return (
+    <div className="doc-prose">
+      <div className="secondary" style={{ marginBottom: 4 }}>
+        режим раздела: {режим}
+        {section.text_stale && (
+          <span className="warn"> · текст устарел: данные вставок изменились
+            {section.text_diff && section.text_diff.length > 0 && ` — разошлось: ${section.text_diff.join('; ')}`}
+          </span>
+        )}
+      </div>
+      {editing ? (
+        <div>
+          <textarea rows={8} style={{ width: '100%' }} value={draft}
+            onChange={(e) => setDraft(e.target.value)} />
+          <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+            <button type="button" className="btn btn--primary" disabled={busy || !author || !draft.trim()}
+              onClick={save}
+              title={!author ? 'представьтесь в шапке: текст подписывается автором'
+                : !draft.trim() ? 'пустой текст принимать нечего' : 'принять текст как авторский'}>
+              Принять
+            </button>
+            <button type="button" className="btn" onClick={() => { setEditing(false); setDraft(section.text ?? '') }}>
+              Отмена
+            </button>
+          </div>
+        </div>
+      ) : section.text
+        ? <div className="doc-prose__text" style={{ whiteSpace: 'pre-wrap' }}>{section.text}</div>
+        : <div className="empty" style={{ padding: 8 }}>
+            Связного текста нет. Регламент ожидает: {section.expects}
+          </div>}
+      {!editing && (
+        <div style={{ display: 'flex', gap: 8, marginTop: 6, alignItems: 'center' }}>
+          {section.mode !== 'manual' && onGo && (
+            <button type="button" className="btn"
+              onClick={() => onGo('aiservice', 'section_prose', `${code}#${section.number}`)}
+              title="черновик пишет служба из данных вставок этого раздела (и только их); принять — правкой здесь">
+              Написать связно
+            </button>
+          )}
+          <button type="button" className="btn" onClick={() => { setDraft(section.text ?? ''); setEditing(true) }}
+            title={section.text ? 'править принятый текст' : 'написать текст рукой'}>
+            {section.text ? 'Править' : 'Написать рукой'}
+          </button>
+          {notice && <span className="secondary">{notice}</span>}
+        </div>
+      )}
+      {section.items.length > 0 && section.mode === 'prose_table' && (
+        <div style={{ marginTop: 8 }}>
+          <SectionTable items={section.items} fieldLabel={() => ''} onGo={onGo} expandAll={false} />
+        </div>
+      )}
+      {section.items.length > 0 && section.mode !== 'prose_table' && (
+        <details style={{ marginTop: 6 }}>
+          <summary className="secondary">данные вставок раздела · {section.items.length}</summary>
+          <SectionTable items={section.items} fieldLabel={() => ''} onGo={onGo} expandAll={false} />
+        </details>
+      )}
+    </div>
+  )
+}
+
 function parseGap(g: { section: number; what: string; expected: string }) {
   const m = g.what.match(/^([A-Z]{2,3}-[0-9]{4}): (.+)$/)
   return { section: g.section, id: m?.[1] ?? null, what: m?.[2] ?? g.what, expected: g.expected }
 }
 
 export function Documents({ onGo, initialCode }: {
-  onGo?: (screen: string) => void
+  onGo?: (screen: string, kind?: string, target?: string) => void
   /** Шаг задачи фазы ведёт сюда УЖЕ настроенным на свой шаблон (SEMP, ConOps). */
   initialCode?: string
 }) {
@@ -485,7 +577,10 @@ export function Documents({ onGo, initialCode }: {
                 </h3>
                 <span className="secondary"> · записей: {s.items.length}</span>
               </summary>
-              {s.items.length === 0 ? (
+              {s.mode === 'prose' || s.mode === 'manual' || s.mode === 'prose_table' ? (
+                <ProseSection code={code} section={s} author={author} onGo={onGo}
+                  onSaved={() => api.document(code).then(setDoc).catch(() => undefined)} />
+              ) : s.items.length === 0 ? (
                 <div className="empty" style={{ padding: 8 }}>
                   Раздел пуст. Регламент ожидает: {s.expects}
                 </div>

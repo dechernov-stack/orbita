@@ -210,6 +210,17 @@ def obsolete(type_: str, rows: list, packet: dict | None = None) -> bool:
                     return True
         return not any(len(d.get("steps", [])) >= 4 for d in rows)
     if type_ == "document_template":
+        # ред. 2 SEMP (ШАБЛОН-SEMP v2): режим раздела — поле шаблона, разделов
+        # 11. Полка без режимов либо с восемью разделами — старее сида.
+        if packet is not None:
+            по_id = {o["id"]: o for o in packet["objects"]}
+            for d in rows:
+                сид = по_id.get(d.get("id"))
+                if сид and len(d.get("sections", [])) != len(сид.get("sections", [])):
+                    return True
+                if сид and any("mode" in s for s in сид.get("sections", [])) and \
+                        not any("mode" in s for s in d.get("sections", [])):
+                    return True
         # полка устарела, если раздел «Обозначения источников» не несёт
         # авторской семантики меток: проверяем НАЛИЧИЕ верной формулировки,
         # а не отсутствие прежней — так детектор не хранит старую ошибку

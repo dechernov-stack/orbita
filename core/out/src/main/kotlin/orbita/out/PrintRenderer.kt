@@ -4,6 +4,7 @@
 package orbita.out
 
 import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.node.JsonNodeFactory
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.pdmodel.PDPage
 import org.apache.pdfbox.pdmodel.PDPageContentStream
@@ -85,7 +86,7 @@ class PrintRenderer {
                     doc.createParagraph().createRun().apply { fontSize = 11; setText(line) }
                 }
             }
-            val items = s.path("items")
+            val items = printableItems(s)
             if (items.size() > 0) {
                 val table = doc.createTable(items.size(), 2)
                 table.setWidth("100%")
@@ -136,10 +137,10 @@ class PrintRenderer {
             body.path("sections").forEach { s ->
                 writer.heading("${s.path("number").asInt()}. ${s.path("title").asText("")}")
                 s.path("text").asText("").takeIf { it.isNotBlank() }?.let { writer.paragraph(it) }
-                s.path("items").forEach { item ->
+                printableItems(s).forEach { item ->
                     writer.paragraph(PrintHumanizer.line(item), size = 9f, indent = 12f)
                 }
-                if (s.path("items").size() == 0 && s.path("text").asText("").isBlank()) {
+                if (printableItems(s).size() == 0 && s.path("text").asText("").isBlank()) {
                     writer.paragraph("— раздел пуст: ${s.path("expects").asText("")}", size = 9f, indent = 12f)
                 }
             }
@@ -171,7 +172,24 @@ class PrintRenderer {
         body.path("sections").forEach { s ->
             add("${s.path("number").asInt()}. ${s.path("title").asText("")}")
             s.path("text").asText("").takeIf { it.isNotBlank() }?.let { addAll(it.split("\n")) }
-            s.path("items").forEach { add(PrintHumanizer.line(it)) }
+            printableItems(s).forEach { add(PrintHumanizer.line(it)) }
+        }
+    }
+
+    /**
+     * Печать берёт принятый текст и [Т]-таблицы (ШАБЛОН-SEMP, механика п. 5):
+     * у связного раздела с принятым текстом данные вставок в печать не идут —
+     * они уже пересказаны прозой; без текста печатаются данные, чтобы документ
+     * не остался с дырой (и разрыв «связного текста нет» стоит рядом).
+     * prose_table — и абзац, и таблица; manual — только рука.
+     */
+    private fun printableItems(s: JsonNode): JsonNode {
+        val mode = s.path("mode").asText("table")
+        val hasText = s.path("text").asText("").isNotBlank()
+        return when {
+            mode == "manual" && hasText -> JsonNodeFactory.instance.arrayNode()
+            mode == "prose" && hasText -> JsonNodeFactory.instance.arrayNode()
+            else -> s.path("items")
         }
     }
 

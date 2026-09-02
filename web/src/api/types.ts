@@ -719,10 +719,30 @@ export interface GeneratedDocumentView {
       title: string
       expects: string
       items: Array<Record<string, unknown>>
+      /** Режим раздела — свойство шаблона (полки): [Т] таблица · [С] связный текст · [Р] рука. */
+      mode?: 'table' | 'prose' | 'prose_table' | 'manual'
+      /** Принятый авторский текст раздела (В1.2) и признак, что данные ушли из-под него. */
+      text?: string
+      text_stale?: boolean
+      /** Диф: какие поля данных разошлись с принятым текстом (шип 2 пачки SEMP). */
+      text_diff?: string[]
+      inserts_fingerprint?: string
     }>
   }
   digest: string
   gaps: Array<{ section: number; what: string; expected: string }>
+}
+
+/** Вход для связного текста раздела: данные вставок человеческим текстом. */
+export interface SectionProseInput {
+  template_code: string
+  section: number
+  title: string
+  mode?: string
+  expects: string
+  statement: string
+  inserts_fingerprint: string
+  lines: string[]
 }
 
 /** Рекомендательное размещение станций (шаг 12.1): подбор поверх ручных. */
@@ -1143,3 +1163,26 @@ export interface ReviewChecklistView {
     }>
   }>
 }
+
+/**
+ * Библиотека → «Результаты»: карточки выпусков документов. Авторство —
+ * из истории правок текстов разделов плюс выпустивший; служба автором не
+ * бывает (ServiceAuthors — сторож на сервере).
+ */
+export interface ResultsView {
+  cards: Array<{
+    issue: string
+    template: string
+    title: string
+    version: string
+    issued_at: string
+    issued_by: string
+    digest: string
+    stale: boolean
+    gaps: number
+    sections_with_text: number
+    authors: Array<{ name: string; sections: number[] }>
+  }>
+  empty_why?: string
+}
+

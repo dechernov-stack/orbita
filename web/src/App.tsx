@@ -20,6 +20,7 @@ import { References } from './screens/References'
 import { StatementGuide } from './ui/StatementGuide'
 import { ReviewInspection } from './screens/ReviewInspection'
 import { TaskFrameBar } from './ui/TaskFrame'
+import { Results } from './screens/Results'
 import type { PhaseWorkView } from './api/types'
 import { PhaseWork, NextStepBadge } from './screens/PhaseWork'
 import { StakeholderCoverage } from './screens/StakeholderCoverage'
@@ -308,6 +309,7 @@ export function App() {
       case 'shelves': return <Shelves key={screen} />
       case 'inspection':
         return <ScreenFrame title="Инспекция обзора"><ReviewInspection onGo={go} /></ScreenFrame>
+      case 'results': return <ScreenFrame title="Результаты"><Results onGo={go} /></ScreenFrame>
       case 'references':
         return <ScreenFrame title="Справочники"><References /></ScreenFrame>
       case 'libknowledge':
@@ -385,7 +387,7 @@ export function App() {
         <ScreenFrame title="Документы"><Documents onGo={go} initialCode={pendingDoc} /></ScreenFrame>
       )
       case 'system': return <ScreenFrame title="Система в целом"><SystemOverview /></ScreenFrame>
-      case 'aiservice': return <AiService onGo={go} initialKind={pendingKind} />
+      case 'aiservice': return <AiService onGo={go} initialKind={pendingKind} initialContext={pendingDoc} />
       case 'aiprofiles': return <AiProfiles key={screen} onGo={go} />
       case 'ai': return <ScreenFrame title="Предложения ИИ"><AiProposal /></ScreenFrame>
       case 'importb': return <BatchLoad />

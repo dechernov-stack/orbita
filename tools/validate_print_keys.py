@@ -49,8 +49,10 @@ def main() -> int:
     for f in EMITTERS:
         emitted |= set(EMIT.findall(f.read_text(encoding="utf-8")))
     # поля, которые печать не показывает вовсе (служебные, не записи)
-    skipped = {"template", "title", "source", "number", "expects", "items", "inserts_fingerprint", "text",
-               "lifecycle", "id", "sections", "project", "options", "budgets", "constellation_compare"}
+    skipped = {"template", "title", "source", "expects", "items", "inserts_fingerprint", "text",
+               "lifecycle", "id", "sections", "project", "options", "budgets", "constellation_compare",
+               # поля РАЗДЕЛА, а не записи: режим, устаревание и диф печать не показывает как поля
+               "mode", "text_stale", "text_diff"}
     missing = sorted(k for k in emitted - skipped if k not in labels)
     if missing:
         problems.append("ключи записей без русской подписи в PrintHumanizer.LABELS: " + ", ".join(missing))

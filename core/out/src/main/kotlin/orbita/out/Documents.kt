@@ -25,7 +25,19 @@ import com.fasterxml.jackson.databind.node.ObjectNode
 import java.security.MessageDigest
 
 /** Раздел приложения регламента: номер, заголовок и что регламент требует в нём видеть. */
-data class SectionTemplate(val number: Int, val title: String, val expects: String)
+/**
+ * Раздел шаблона. Режим текста — свойство ШАБЛОНА (данными полки), не кода:
+ * table — [Т] таблица данных; prose — [С] связный текст из данных вставок;
+ * prose_table — [С] абзац + [Т] таблица; manual — [Р] рука с заготовкой.
+ */
+data class SectionTemplate(
+    val number: Int,
+    val title: String,
+    val expects: String,
+    val mode: String = "table",
+    /** Именованные вставки раздела (В1.2): по ним раздел «история выпусков» исключается из слепка. */
+    val inserts: List<String> = emptyList(),
+)
 
 /**
  * Шаблон документа — ДАННЫЕ из библиотечной области (нитка Б.1): структура
@@ -51,6 +63,8 @@ data class TemplateData(
                     number = sc.path("number").asInt(),
                     title = sc.path("title").asText(""),
                     expects = sc.path("expects").asText(""),
+                    mode = sc.path("mode").asText("").ifBlank { "table" },
+                    inserts = sc.path("inserts").map { it.asText() },
                 )
             },
         )
@@ -81,7 +95,16 @@ object DocumentKits {
 }
 
 /** Авторский текст раздела с отпечатком вставок на момент его сохранения. */
-data class SectionAuthorText(val text: String, val insertsFingerprint: String)
+/**
+ * Авторский текст раздела и снимок данных вставок на момент принятия:
+ * отпечаток говорит, что данные ушли, а строки — ЧТО именно разошлось
+ * (шип 2 пачки SEMP: «текст устарел» с дифом полей, а не голой пометой).
+ */
+data class SectionAuthorText(
+    val text: String,
+    val insertsFingerprint: String,
+    val insertsLines: List<String> = emptyList(),
+)
 
 /** Разрыв документа: раздел или запись, которую модель заполнить не может. */
 data class DocumentGap(val section: Int, val what: String, val expected: String)
@@ -149,6 +172,7 @@ class DocumentGenerator(private val mapper: ObjectMapper = ObjectMapper()) {
             node.put("number", s.number)
             node.put("title", s.title)
             node.put("expects", s.expects)
+            node.put("mode", s.mode)
             val items = node.putArray("items")
             fill(template, s.number, model, items, gaps)
             // отпечаток данных вставок раздела — по нему авторский текст
@@ -158,17 +182,31 @@ class DocumentGenerator(private val mapper: ObjectMapper = ObjectMapper()) {
             texts[s.number]?.let { t ->
                 node.put("text", t.text)
                 if (t.insertsFingerprint.isNotBlank() && t.insertsFingerprint != fingerprint) {
+                    node.put("text_stale", true)
+                    // диф — строками человеческого текста вставок: что исчезло
+                    // из данных и что появилось после принятия текста
+                    val было = t.insertsLines.toSet()
+                    val стало = items.map { PrintHumanizer.line(it) }.toSet()
+                    val diff = node.putArray("text_diff")
+                    (было - стало).forEach { diff.add("было: $it") }
+                    (стало - было).forEach { diff.add("стало: $it") }
+                    val словами = (было - стало).map { "было: $it" } + (стало - было).map { "стало: $it" }
                     gaps += DocumentGap(
                         s.number, "текст устарел",
-                        "данные вставок изменились после сохранения авторского текста — перечитайте и сохраните заново",
+                        "данные вставок изменились после принятия текста" +
+                            (if (словами.isEmpty()) "" else " — " + словами.joinToString("; ").take(400)) +
+                            ". Молча текст не переписывается: перечитайте и примите заново",
                     )
                 }
             }
             // Раздел без текста и записей остаётся в документе пустым, но не
             // молча: регламент сказал, что в нём должно быть, — это и
-            // записывается разрывом.
+            // записывается разрывом. Связный раздел с данными, но без текста —
+            // тоже разрыв: печать ждёт прозу, а не таблицу.
             if (items.isEmpty && texts[s.number] == null) {
                 gaps += DocumentGap(s.number, "раздел пуст", s.expects)
+            } else if ((s.mode == "prose" || s.mode == "manual") && texts[s.number] == null) {
+                gaps += DocumentGap(s.number, "связного текста нет", "напишите связно из данных вставок и примите правкой")
             }
         }
 
@@ -176,7 +214,18 @@ class DocumentGenerator(private val mapper: ObjectMapper = ObjectMapper()) {
         // с потребителями, читавшими документ до появления разделов.
         val items = body.putArray("items")
         sections.forEach { s -> s.path("items").forEach(items::add) }
-        return GeneratedDocument(template, body, digestOf(body), gaps.toList())
+        // Слепок — БЕЗ раздела истории выпусков: сам выпуск дописывает в него
+        // строку, и документ «уезжал» от собственного слепка в момент выпуска
+        // (находка теста «Результатов»). Слепок отвечает за содержание, а не
+        // за журнал своих же фиксаций.
+        val volatile = template.sections.filter { "issues_history" in it.inserts }.map { it.number }.toSet()
+        val forDigest = body.deepCopy().also { copy ->
+            val kept = mapper.createArrayNode()
+            copy.path("sections").filter { it.path("number").asInt() !in volatile }.forEach(kept::add)
+            copy.set<ArrayNode>("sections", kept)
+            copy.remove("items")
+        }
+        return GeneratedDocument(template, body, digestOf(forDigest), gaps.toList())
     }
 
     private fun fill(
@@ -757,15 +806,32 @@ class DocumentGenerator(private val mapper: ObjectMapper = ObjectMapper()) {
      * обоснованием; среда работ — перечнем инструментов. Инженер правит и
      * дополняет поверх, а расхождение со снимком помечается «текст устарел».
      */
+    /**
+     * SEMP ред. 2 (ШАБЛОН-SEMP v2 по NASA SEH App. J): 11 разделов. Данные —
+     * вставками из модели и конфигурации системы; связные разделы пишет
+     * инженер (черновик — служба) поверх этих данных.
+     */
     private fun fillSemp(section: Int, model: JsonNode, items: ArrayNode) {
+        val project = model.path("project")
         when (section) {
-            1 -> model.path("project").takeIf { it.isObject && !it.isEmpty }?.let { p ->
-                items.addObject()
-                    .put("project", p.path("name").asText(""))
-                    .put("phase", p.path("phase").asText(""))
+            1 -> project.takeIf { it.isObject && !it.isEmpty }?.let { p ->
+                val n = items.addObject()
+                n.put("project", p.path("name").asText(""))
+                n.put("phase", p.path("phase").asText(""))
+                p.path("purpose").asText("").takeIf { it.isNotBlank() }?.let { n.put("purpose", it) }
             }
-            2 -> {
-                model.path("project").path("mission_intent").takeIf { it.isObject }?.let { mi ->
+            // 2: применимые документы — из паспорта (нормативы применены
+            // классом миссии либо рукой); писать руками нечего
+            2 -> project.path("applicable_documents").forEach { d ->
+                val n = items.addObject()
+                n.put("code", d.path("code").asText(""))
+                n.put("name", d.path("title").asText(""))
+                d.path("revision").asText("").takeIf { it.isNotBlank() }?.let { n.put("version", it) }
+                n.put("basis", d.path("applied_by").asText("").ifBlank { "паспорт проекта" })
+            }
+            // 3: техническое резюме — замысел, класс, цели; главный связный раздел
+            3 -> {
+                project.path("mission_intent").takeIf { it.isObject && !it.isEmpty }?.let { mi ->
                     val n = items.addObject()
                     n.put("kind", "mission_intent")
                     listOf("for_whom", "what", "where", "horizon").forEach { f ->
@@ -773,48 +839,126 @@ class DocumentGenerator(private val mapper: ObjectMapper = ObjectMapper()) {
                     }
                     mi.path("text").asText("").takeIf { it.isNotBlank() }?.let { n.put("text", it) }
                 }
+                project.path("mission_class").asText("").takeIf { it.isNotBlank() }?.let { cls ->
+                    // имя класса — из полки (DocumentModel кладёт mission_class_name); без него — код
+                    items.addObject().put("kind", "mission_class")
+                        .put("name", project.path("mission_class_name").asText("").ifBlank { cls })
+                }
+                goalsRecords(model, items)
                 components(model).filter { it.second.path("kind").asText() == "system" }
-                    .forEach { (id, c) ->
-                        items.addObject().put("id", id).put("name", c.path("name").asText(""))
+                    .forEach { (id, c) -> items.addObject().put("id", id).put("name", c.path("name").asText("")) }
+            }
+            // 4: границы технического усилия — рука инженера; заготовка из замысла
+            4 -> project.path("mission_intent").takeIf { it.isObject && !it.isEmpty }?.let { mi ->
+                val n = items.addObject()
+                n.put("kind", "intent_boundaries")
+                mi.path("what").asText("").takeIf { it.isNotBlank() }?.let { n.put("what", it) }
+                mi.path("where").asText("").takeIf { it.isNotBlank() }?.let { n.put("where", it) }
+                n.put("note", "внутри контроля команды — то, что названо замыслом; что вне контроля — рукой инженера")
+            }
+            // 5: организация — роли проекта и стейкхолдеры; поставщик вместе
+            // с узлом, который он поставляет: ответственность без адреса пуста
+            5 -> {
+                model.path("roles").forEach { r ->
+                    items.addObject()
+                        .put("kind", "role")
+                        .put("name", r.path("name").asText(""))
+                        .put("role", r.path("role").asText(""))
+                }
+                model.path("stakeholders").sortedBy { it.path("id").asText() }.forEach { sh ->
+                    val n = items.addObject()
+                    n.put("id", sh.path("id").asText())
+                    n.put("name", sh.path("name").asText(""))
+                    n.put("role", sh.path("role").asText(""))
+                    sh.path("interest").asText("").takeIf { it.isNotBlank() }?.let { n.put("interest", it) }
+                    val supplies = sh.path("supplies").mapNotNull { it.asText().takeIf(String::isNotBlank) }
+                    if (supplies.isNotEmpty()) n.put("supplies", supplies.joinToString(", "))
+                }
+            }
+            // 6: 17 процессов NPR 7123.1 → механизм → место; реализация —
+            // с пометкой tailoring: отклонение названо, не умолчано
+            6 -> SempConfiguration.processes().forEach { p ->
+                val n = items.addObject()
+                n.put("number", p.number)
+                n.put("process", p.process)
+                n.put("mechanism", p.mechanism)
+                n.put("place", p.place)
+                p.tailoring?.let { n.put("tailoring", it) }
+            }
+            // 7: технические обзоры — вехи фазы словами и группы готовности точки
+            7 -> {
+                milestoneRecords(model, items)
+                model.path("readiness_groups").forEach { g ->
+                    items.addObject()
+                        .put("kind", "readiness_group")
+                        .put("gate", g.path("gate").asText(""))
+                        .put("name", g.path("title").asText(""))
+                        .put("open", g.path("open").asInt(0))
+                        .put("closed", g.path("closed").asInt(0))
+                }
+            }
+            // 8: TPM — запасы массы и мощности из свёрток бюджетов, тренды
+            // закрытия замечаний точек: числа из модели, не сочинение
+            8 -> {
+                model.path("budgets").forEach { b ->
+                    when (b.path("kind").asText("")) {
+                        "mass" -> items.addObject()
+                            .put("kind", "tpm").put("name", "запас массы")
+                            .put("reserve", b.path("reserve").asDouble(0.0))
+                            .put("nominal", b.path("nominal").asDouble(0.0))
+                            .put("dry", b.path("dry").asDouble(0.0))
+                            .put("unit", b.path("unit").asText(""))
+                            .put("ok", b.path("within_platform_range").asBoolean(false))
+                        "power" -> items.addObject()
+                            .put("kind", "tpm").put("name", "запас мощности")
+                            .put("reserve", b.path("reserve").asDouble(0.0))
+                            .put("generated", b.path("generated").asDouble(0.0))
+                            .put("consumed", b.path("consumed").asDouble(0.0))
+                            .put("unit", b.path("unit").asText(""))
+                            .put("ok", b.path("ok").asBoolean(false))
+                        else -> {}
+                    }
+                }
+                model.path("review_items").groupBy { it.path("review_gate").asText("") }
+                    .toSortedMap().forEach { (gate, rows) ->
+                        items.addObject()
+                            .put("kind", "review_trend")
+                            .put("gate", gate.ifBlank { "без точки" })
+                            .put("open", rows.count { it.path("status").asText() != "closed" })
+                            .put("closed", rows.count { it.path("status").asText() == "closed" })
+                            .put("total", rows.size)
                     }
             }
-            // 3: организация — кто отвечает. Поставщик показывается вместе с
-            // узлом, который он поставляет: ответственность без адреса пуста.
-            3 -> model.path("stakeholders").sortedBy { it.path("id").asText() }.forEach { sh ->
-                val n = items.addObject()
-                n.put("id", sh.path("id").asText())
-                n.put("name", sh.path("name").asText(""))
-                n.put("role", sh.path("role").asText(""))
-                sh.path("interest").asText("").takeIf { it.isNotBlank() }?.let { n.put("interest", it) }
-                val supplies = sh.path("supplies").mapNotNull { it.asText().takeIf(String::isNotBlank) }
-                if (supplies.isNotEmpty()) n.put("supplies", supplies.joinToString(", "))
+            // 9: tailoring — записи неприменимости со следом и пометки процессов §6
+            9 -> {
+                project.path("gate_tailoring").forEach { w ->
+                    items.addObject()
+                        .put("gate", w.path("gate").asText(""))
+                        .put("check", w.path("check").asText(""))
+                        .put("rationale", w.path("rationale").asText(""))
+                        .put("author", w.path("author").asText(""))
+                        .put("at", w.path("at").asText(""))
+                }
+                SempConfiguration.processes().filter { it.tailoring != null }.forEach { p ->
+                    items.addObject()
+                        .put("process", p.process)
+                        .put("tailoring", p.tailoring)
+                }
             }
-            // 4: соответствие процессов регламента механизмам системы —
-            // конфигурация, а не сочинение: таблица приходит данными.
-            4 -> SempConfiguration.processes().forEach { p ->
-                items.addObject()
-                    .put("process", p.process)
-                    .put("mechanism", p.mechanism)
-                    .put("place", p.place)
-            }
-            // 5: технические обзоры — вехи фазы с датами; критерии входа и
-            // выхода живут проверками готовности, поэтому здесь — адрес.
-            5 -> milestoneRecords(model, items)
-            // 6: tailoring — записи неприменимости с обоснованием. Их не
-            // сочиняют: каждая пришла решением инженера и несёт след.
-            6 -> model.path("project").path("gate_tailoring").forEach { w ->
-                items.addObject()
-                    .put("gate", w.path("gate").asText(""))
-                    .put("check", w.path("check").asText(""))
-                    .put("rationale", w.path("rationale").asText(""))
-                    .put("author", w.path("author").asText(""))
-                    .put("at", w.path("at").asText(""))
-            }
-            // 7: среда работ — тем же законом, что и процессы.
-            7 -> SempConfiguration.tools().forEach { t ->
+            // 10: среда работ — тем же законом, что и процессы
+            10 -> SempConfiguration.tools().forEach { t ->
                 items.addObject().put("area", t.area).put("tool", t.tool)
             }
-            else -> {}   // подписи и порядок актуализации — фиксациями историей
+            // 11: согласование — выпуски документа историей
+            11 -> model.path("document_issues").filter { it.path("template").asText() == "semp" }.forEach { di ->
+                items.addObject()
+                    .put("id", di.path("id").asText(""))
+                    .put("version", di.path("version").asText(""))
+                    .put("at", di.path("issued_at").asText(""))
+                    .put("author", di.path("author").asText(""))
+                    .put("status", di.path("status").asText(""))
+            }
+            else -> {}
         }
     }
 

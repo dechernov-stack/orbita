@@ -20,6 +20,8 @@ object TemplateSeed {
                         number = sc.path("number").asInt(),
                         title = sc.path("title").asText(),
                         expects = sc.path("expects").asText(""),
+                        mode = sc.path("mode").asText("").ifBlank { "table" },
+                        inserts = sc.path("inserts").map { it.asText() },
                     )
                 },
             )
