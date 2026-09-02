@@ -13,6 +13,8 @@
     "check:empty": "node check-empty-project.mjs"
   },
   "dependencies": {
+    "@dagrejs/dagre": "3.1.1",
+    "@xyflow/react": "12.11.6",
     "cesium": "^1.144.0",
     "frappe-gantt": "^1.2.2",
     "leaflet": "^1.9.4",

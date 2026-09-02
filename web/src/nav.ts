@@ -60,6 +60,7 @@ export const SECTIONS: NavSection[] = [
     screens: [
       { key: 'req', title: 'Реестр требований' },
       { key: 'matrix', title: 'Матрицы' },
+      { key: 'trace', title: 'Трассировка и impact' },
     ],
   },
   {

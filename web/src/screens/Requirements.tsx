@@ -851,6 +851,9 @@ function CardView({
     <div className="pane rr-pane">
       <div className="rr-chead">
         <button type="button" className="rr-back" onClick={onBack}>{inline ? '▴ Свернуть карточку' : '← Реестр требований'}</button>
+        {onGo && (
+          <button type="button" className="rr-btn" title="кого заденет изменение — граф трассировки с фокусом на этом требовании" onClick={() => { requestObject(id); onGo('trace') }}>что заденет →</button>
+        )}
         <span className="mono secondary">{r.id}</span>
         <span className="chip"><span className={`dot status-${r.status}`} title={label('lifecycle', r.status)} />{label('lifecycle', r.status)} · v{r.version}</span>
         {(r.lint ?? []).map((n) => (

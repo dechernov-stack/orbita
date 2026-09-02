@@ -470,6 +470,21 @@ export interface SpacecraftView {
   issues: string[]
 }
 
+// ---------- граф трассировки и impact (ADR-046) ----------
+
+export interface TraceGraphView {
+  nodes: Array<{ id: string; kind: string; title: string; status: string | null }>
+  edges: Array<{ from: string; to: string; kind: string }>
+  focus: string | null
+  depth: number
+  focus_note?: string
+  groups?: Record<string, string[]>
+  path?: string[]
+  path_note?: string
+  functions_note: string
+  counts_missing: number
+}
+
 // ---------- одно дерево носителей (ADR-044) ----------
 
 export interface CompositionRow {

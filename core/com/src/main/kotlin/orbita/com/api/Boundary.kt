@@ -67,6 +67,8 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
     val spacecraft = SpacecraftViews()
     /** ADR-044: узлы КА дерева состава и сборка контракта аппарата из них. */
     val carriers: Carriers by lazy { Carriers(this) }
+    /** ADR-046: граф трассировки и impact — проекция модели без хранимых координат. */
+    val traceGraph: TraceGraph by lazy { TraceGraph(this) }
 
     /**
      * ИИ-контур (TZ-AI). Генерация происходит ВНЕ системы: инженер копирует

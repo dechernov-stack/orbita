@@ -1773,3 +1773,14 @@ details.np-dates[open] summary::before { transform: rotate(90deg); }
 .rr-ttitle { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .rr-tcnt { color: var(--muted); font-size: 11px; white-space: nowrap; }
 .rr-expand > td .rr-pane { border-top: 1px solid var(--hairline); }
+
+/* Граф трассировки (ADR-046): рисует библиотека, здесь — только рамка,
+   легенда и вид узла внутри библиотечной карточки. */
+.tg-split { grid-template-columns: minmax(0, 1fr) 300px; }
+.tg-canvas { flex: 1; min-height: 0; }
+.tg-node { text-align: left; }
+.tg-kind { font-size: 9.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.tg-title { font-size: 11px; line-height: 14px; max-height: 28px; overflow: hidden; }
+.tg-legend { display: flex; flex-wrap: wrap; gap: 6px 12px; padding: 4px 12px; font-size: 11px; border-top: 1px solid var(--hairline); }
+.tg-lg { display: inline-flex; align-items: center; gap: 4px; }
+.tg-sw { display: inline-block; width: 12px; height: 10px; border: 1px solid var(--hairline); border-radius: 2px; }

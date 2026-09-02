@@ -47,6 +47,7 @@ import { Requirements } from './screens/Requirements'
 import { Risks } from './screens/Risks'
 import { Spacecraft } from './screens/Spacecraft'
 import { SystemComposition } from './screens/SystemComposition'
+import { TraceGraph } from './screens/TraceGraph'
 import { SystemOverview } from './screens/SystemOverview'
 import { AuthorField, LoginGate, useSession } from './ui/session'
 
@@ -362,6 +363,7 @@ export function App() {
       case 'conops': return <KindRegistry key={screen} kinds={['conops']} title="Сценарии ConOps" />
       case 'req': return <Requirements onGo={go} />
       case 'matrix': return <MatrixScreen />
+      case 'trace': return <ScreenFrame title="Трассировка и impact"><TraceGraph onGo={go} /></ScreenFrame>
       case 'aoa': return <KindRegistry key={screen} kinds={['alternative', 'decision']} title="Альтернативы и решения" />
       case 'wbs': return <KindRegistry key={screen} kinds={['component', 'interface']} title="Элементы и интерфейсы" />
       case 'composition': return <ScreenFrame title="Дерево состава"><SystemComposition onGo={go} /></ScreenFrame>

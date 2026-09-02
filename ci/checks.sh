@@ -21,6 +21,7 @@ echo "== схема потока =="     ; python3 tools/validate_flow_computed.
 echo "== Гант библиотекой ==" ; python3 tools/validate_gantt_library.py
 echo "== печать без ключей ==" ; python3 tools/validate_print_keys.py
 echo "== одно дерево носителей ==" ; python3 tools/validate_one_tree.py
+echo "== граф библиотекой ==" ; python3 tools/validate_graph_library.py
 echo "== реестр маршрутов ==" ; python3 tools/routes_registry.py --check
 # Справочник единиц (решение ранга ADR): unit-строки ∈ справочнику
 echo "== единицы =="          ; python3 tools/validate_units.py && python3 tools/validate_units.py --selftest

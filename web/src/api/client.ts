@@ -53,6 +53,7 @@ import type {
   PhaseFlowView,
   StakeholderCoverageView,
   CompositionTree,
+  TraceGraphView,
 } from './types'
 
 import { withProject } from './project'
@@ -428,6 +429,14 @@ export const api = {
     get<Record<string, string>>(`/auth/roles/${encodeURIComponent(project)}`),
   setRole: (project: string, login: string, role: string) =>
     post<{ ok: boolean }>('/auth/roles', { project, login, role }),
+  /** ADR-046: граф трассировки — узлы и рёбра без координат, impact группами, путь — считает сервер. */
+  traceGraph: (focus?: string, depth = 2, to?: string) => {
+    const q = new URLSearchParams()
+    if (focus) q.set('focus', focus)
+    q.set('depth', String(depth))
+    if (to) q.set('to', to)
+    return get<TraceGraphView>(`/views/trace-graph?${q.toString()}`)
+  },
   /** ADR-044: дерево состава по вхождениям, узлы КА и построения ×N — считает сервер. */
   compositionTree: () => get<CompositionTree>('/views/composition/tree'),
   /** ADR-044: из каких узлов собран контракт аппарата и чего не хватает. */

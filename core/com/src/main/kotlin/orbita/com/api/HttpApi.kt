@@ -490,6 +490,15 @@ class HttpApi(private val boundary: Boundary) {
                 respond(ex, 200, n)
             }
 
+            // ADR-046: граф трассировки и impact — узлы и рёбра без координат;
+            // фокус, глубина 1–4, кратчайший путь до второго объекта
+            method == "GET" && path == "/views/trace-graph" -> {
+                val q = query(ex)
+                respond(ex, 200, boundary.traceGraph.graph(
+                    requireProject(project), q["focus"]?.ifBlank { null }, q["depth"]?.toIntOrNull() ?: 2, q["to"],
+                ))
+            }
+
             method == "GET" && Regex("^/views/requirements/(RQ-[0-9]{4})$").matches(path) -> {
                 val id = path.removePrefix("/views/requirements/")
                 respond(ex, 200, mapper.valueToTree(boundary.screens.card(id)))
