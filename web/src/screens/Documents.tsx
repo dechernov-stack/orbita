@@ -241,12 +241,14 @@ function SectionTable({ items, fieldLabel, onGo, expandAll }: {
  * вставок раздела (вид section_prose), инженер правит и принимает —
  * черновик в документ сам не пишется. Режим — свойство шаблона (данными).
  */
-function ProseSection({ code, section, author, onGo, onSaved }: {
+function ProseSection({ code, section, author, onGo, onSaved, expandAll }: {
   code: string
   section: GeneratedDocumentView['body']['sections'][number]
   author: string
   onGo?: (screen: string, kind?: string, target?: string) => void
   onSaved: () => void
+  /** Таблица смешанного раздела — основная часть: раскрыта, как и остальные записи экрана. */
+  expandAll: boolean
 }) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(section.text ?? '')
@@ -313,7 +315,7 @@ function ProseSection({ code, section, author, onGo, onSaved }: {
       )}
       {section.items.length > 0 && section.mode === 'prose_table' && (
         <div style={{ marginTop: 8 }}>
-          <SectionTable items={section.items} fieldLabel={() => ''} onGo={onGo} expandAll={false} />
+          <SectionTable items={section.items} fieldLabel={() => ''} onGo={onGo} expandAll={expandAll || section.items.length <= 25} />
         </div>
       )}
       {section.items.length > 0 && section.mode !== 'prose_table' && (
@@ -578,7 +580,7 @@ export function Documents({ onGo, initialCode }: {
                 <span className="secondary"> · записей: {s.items.length}</span>
               </summary>
               {s.mode === 'prose' || s.mode === 'manual' || s.mode === 'prose_table' ? (
-                <ProseSection code={code} section={s} author={author} onGo={onGo}
+                <ProseSection code={code} section={s} author={author} onGo={onGo} expandAll={expandAll}
                   onSaved={() => api.document(code).then(setDoc).catch(() => undefined)} />
               ) : s.items.length === 0 ? (
                 <div className="empty" style={{ padding: 8 }}>

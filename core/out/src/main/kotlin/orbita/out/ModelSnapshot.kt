@@ -44,6 +44,10 @@ private val COLLECTIONS = linkedMapOf(
     CoreType.Oda.dbType to "oda_assessments",
     CoreType.ReviewItem.dbType to "review_items",
     CoreType.WbsElement.dbType to "wbs_elements",
+    // Ф-13 / SEMP §5: стейкхолдеры проекта — организация и подрядчики.
+    // Без них раздел «Организация» стоял пустым при 11 стейкхолдерах в проекте
+    // (находка проверки на стенде): генератор читал поле, которого срез не клал.
+    CoreType.Stakeholder.dbType to "stakeholders",
 )
 
 /**
