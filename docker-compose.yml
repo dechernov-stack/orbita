@@ -103,11 +103,6 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-volumes:
-  orbita-db:
-  # круг 2: файлы исходных документов; входит в резервную копию О-18
-  orbita-files:
-
   # ADR-048: адаптер Capella (capellambse, только чтение). Не стартует по
   # умолчанию: профиль capella + путь к модели; модель монтируется :ro.
   capella:
@@ -131,3 +126,8 @@ volumes:
       dockerfile: ops/strictdoc.Dockerfile
     ports:
       - "127.0.0.1:8093:8093"
+
+volumes:
+  orbita-db:
+  # круг 2: файлы исходных документов; входит в резервную копию О-18
+  orbita-files:
