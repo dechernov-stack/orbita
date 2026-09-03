@@ -4,34 +4,160 @@
   "title": "Function",
   "description": "Функция системы — слой логической декомпозиции (ADR-047, Прил. 4 §2): что система делает, выведено из нужд, сервисов и сценариев ConOps; распределяется на узлы дерева состава и интерфейсы. Матрица «функции × узлы» — четвёртая матрица.",
   "type": "object",
-  "required": ["id", "name", "traces_up", "lifecycle"],
+  "required": [
+    "id",
+    "name",
+    "traces_up",
+    "lifecycle"
+  ],
   "additionalProperties": false,
   "properties": {
-    "id": {"type": "string", "pattern": "^FN-[0-9]{4}$"},
-    "name": {"type": "string", "minLength": 1, "description": "Имя функции отглагольным существительным: «сбор телеметрии»"},
-    "statement": {"type": "string", "description": "Что делает система: «Система собирает телеметрию датчиков…»"},
-    "level": {"enum": ["operational", "system", "logical"], "description": "Слой: операционная (из ConOps) · системная · логическая"},
+    "id": {
+      "type": "string",
+      "pattern": "^FN-[0-9]{4}$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Имя функции отглагольным существительным: «сбор телеметрии»"
+    },
+    "statement": {
+      "type": "string",
+      "description": "Что делает система: «Система собирает телеметрию датчиков…»"
+    },
+    "level": {
+      "enum": [
+        "operational",
+        "system",
+        "logical"
+      ],
+      "description": "Слой: операционная (из ConOps) · системная · логическая"
+    },
     "traces_up": {
-      "type": "array", "minItems": 1,
-      "description": "Откуда функция следует: нужда (ND), сервис (SV), сценарий ConOps (CO) или родительская функция (FN)",
-      "items": {"type": "object", "required": ["ref"], "additionalProperties": false,
-        "properties": {"ref": {"type": "string", "pattern": "^(ND|SV|CO|FN)-[0-9]{4}$"}, "consumer_class": {"type": "string"}}}
+      "type": "array",
+      "minItems": 0,
+      "description": "Откуда функция следует: нужда (ND), сервис (SV), сценарий ConOps (CO), способность (OC) или родительская функция (FN). Пустая трассировка — разрыв готовности, а не запрет заводить функцию: архитектурная полка приносит функции раньше, чем инженер свяжет их с нуждами",
+      "items": {
+        "type": "object",
+        "required": [
+          "ref"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "ref": {
+            "type": "string",
+            "pattern": "^(ND|SV|CO|FN|OC)-[0-9]{4}$"
+          },
+          "consumer_class": {
+            "type": "string"
+          }
+        }
+      }
     },
     "allocated_to": {
       "type": "array",
       "description": "На какие узлы состава или интерфейсы распределена функция",
-      "items": {"type": "object", "additionalProperties": false, "oneOf": [{"required": ["component"]}, {"required": ["interface"]}],
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "oneOf": [
+          {
+            "required": [
+              "component"
+            ]
+          },
+          {
+            "required": [
+              "interface"
+            ]
+          }
+        ],
         "properties": {
-          "component": {"type": "string", "pattern": "^CM-[0-9]{4}$"},
-          "interface": {"type": "string", "pattern": "^IF-[0-9]{4}$"},
-          "kind": {"enum": ["full", "partial"], "default": "full"},
-          "rationale": {"type": "string"}}}
+          "component": {
+            "type": "string",
+            "pattern": "^CM-[0-9]{4}$"
+          },
+          "interface": {
+            "type": "string",
+            "pattern": "^IF-[0-9]{4}$"
+          },
+          "kind": {
+            "enum": [
+              "full",
+              "partial"
+            ],
+            "default": "full"
+          },
+          "rationale": {
+            "type": "string"
+          }
+        }
+      }
     },
-    "inputs": {"type": "array", "items": {"type": "string"}, "description": "Входы функции словами"},
-    "outputs": {"type": "array", "items": {"type": "string"}, "description": "Выходы функции словами"},
-    "owner": {"type": "string"},
-    "lifecycle": {"$ref": "https://kis.local/schemas/common/status.schema.json"},
-    "provenance": {"$ref": "https://kis.local/schemas/common/provenance.schema.json"},
-    "applies": {"type": "object"}
+    "inputs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Входы функции словами"
+    },
+    "outputs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Выходы функции словами"
+    },
+    "owner": {
+      "type": "string"
+    },
+    "lifecycle": {
+      "$ref": "https://kis.local/schemas/common/status.schema.json"
+    },
+    "provenance": {
+      "$ref": "https://kis.local/schemas/common/provenance.schema.json"
+    },
+    "applies": {
+      "type": "object"
+    },
+    "code": {
+      "type": "string",
+      "description": "Стабильный код функции архитектурной полки (F-01): переносится при взятии"
+    },
+    "exchanges": {
+      "type": "array",
+      "description": "Обмены функции (Arcadia FunctionalExchange): что функция передаёт, кому и ПО КАКОМУ СТЫКУ. Обмен принадлежит функции-источнику; интерфейс — ребро дерева состава, по которому обмен идёт",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "to"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "to": {
+            "type": "string",
+            "pattern": "^(FN|SK)-[0-9]{4}$",
+            "description": "Кому: функция-получатель (FN) либо стейкхолдер-актор (SK) — обмен с внешним участником заканчивается на нём, а не на функции системы"
+          },
+          "interface": {
+            "type": "string",
+            "pattern": "^IF-[0-9]{4}$",
+            "description": "Стык, по которому идёт обмен"
+          },
+          "to_activity": {
+            "type": "string",
+            "description": "Операционная активность актора-получателя (OA-03 «Получить данные и отреагировать»), если обмен уходит наружу"
+          }
+        }
+      }
+    }
   }
 }

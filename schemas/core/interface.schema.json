@@ -86,6 +86,161 @@
           "rationale"
         ]
       }
+    },
+    "code": {
+      "type": "string",
+      "description": "Стабильный код стыка полки интерфейсов (IF-S-USER, IF-PWR-BUS): переносится при взятии и служит для сопоставления"
+    },
+    "type": {
+      "enum": [
+        "RF",
+        "power",
+        "data",
+        "thermal",
+        "mech",
+        "env",
+        "hmi",
+        "org"
+      ],
+      "description": "Природа стыка (полка интерфейсов, 8 типов): радиолиния · питание · данные · тепло · механика · среда · человек-машина · организационный"
+    },
+    "direction": {
+      "type": "string",
+      "description": "Направление обмена словами: односторонняя (A→B) · двусторонняя"
+    },
+    "standard": {
+      "type": "string",
+      "description": "Стандарт или протокол стыка: CCSDS, CAN, LPWAN-протокол проекта"
+    },
+    "external": {
+      "type": "boolean",
+      "default": false,
+      "description": "Внешний стык (КА ↔ РН, регулятор): требования предъявляются к границе, чужая сторона не моделируется"
+    },
+    "expects": {
+      "type": "array",
+      "description": "Анкета интерфейса (полка интерфейсов): какие параметры стык обязан нести и к какой точке; значения живут в parameters",
+      "items": {
+        "type": "object",
+        "required": [
+          "key",
+          "name"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "unit": {
+            "type": "string"
+          },
+          "required_to": {
+            "type": "string",
+            "description": "Точка, к которой поле обязано быть заполнено (MCR, SRR, SDR…)"
+          },
+          "hint": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "parameters": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "quantity"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "quantity": {
+            "$ref": "https://kis.local/schemas/common/quantity.schema.json"
+          },
+          "formula": {
+            "type": "string",
+            "description": "Выражение через параметры других компонентов (параметрическая модель)"
+          },
+          "depends_on": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "is_tpm": {
+            "type": "boolean",
+            "default": false
+          },
+          "tpm": {
+            "type": "object",
+            "description": "Technical Performance Measure: цель, резерв, тренд к обзорам",
+            "additionalProperties": false,
+            "properties": {
+              "target": {
+                "$ref": "https://kis.local/schemas/common/quantity.schema.json"
+              },
+              "required_margin_pct": {
+                "type": "number"
+              },
+              "trend": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "at",
+                    "value"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "review": {
+                      "enum": [
+                        "SRR",
+                        "SDR",
+                        "MDR",
+                        "PDR"
+                      ]
+                    },
+                    "value": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "description": "Значения параметров стыка: заполняются по анкете expects"
+    },
+    "icd_section": {
+      "type": "string",
+      "description": "Раздел ICD, в который стык собирается (ICD-S, ICD-BUS): документ ICD строится из параметров и требований интерфейса"
+    },
+    "models": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Коды моделей системы, читающих параметры этого стыка (М2а, М3а)"
+    },
+    "requirement_classes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Классы требований, которые вешаются на этот стык (интерфейсные, ЭМС, регуляторные)"
     }
   }
 }

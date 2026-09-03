@@ -1,0 +1,626 @@
+{
+ "kind": "architecture_template",
+ "code": "ARC-9002",
+ "version": 1,
+ "title": "Архитектурный шаблон по Arcadia (OA · SA · LA · PA) — класс НОО-IoT",
+ "principle": "Орбита управляет требованиями; архитектура объясняет, как система их выполнит. Слои — Arcadia; узлы PA = PBS (ПОЛКА-PBS.json), физические связи = интерфейсы (ПОЛКА-ИНТЕРФЕЙСЫ.json).",
+ "OA": {
+  "actors": [
+   {
+    "code": "ACT-CARGO",
+    "name": "Перевозчик опасных грузов",
+    "stakeholder_role": "потребитель"
+   },
+   {
+    "code": "ACT-FLEET",
+    "name": "Оператор флота / подвижного состава",
+    "stakeholder_role": "потребитель"
+   },
+   {
+    "code": "ACT-SENSOR",
+    "name": "Владелец автономных датчиков",
+    "stakeholder_role": "потребитель"
+   },
+   {
+    "code": "ACT-CONSUMER",
+    "name": "Ведомственный потребитель данных",
+    "stakeholder_role": "заказчик/потребитель"
+   },
+   {
+    "code": "ACT-MCC",
+    "name": "Оператор ЦУП",
+    "stakeholder_role": "оператор"
+   },
+   {
+    "code": "ACT-NOC",
+    "name": "Оператор сети (ЦУС)",
+    "stakeholder_role": "оператор"
+   },
+   {
+    "code": "ACT-REG",
+    "name": "Регулятор радиочастот",
+    "stakeholder_role": "регулятор"
+   },
+   {
+    "code": "ACT-LAUNCH",
+    "name": "Поставщик пуска",
+    "stakeholder_role": "поставщик"
+   },
+   {
+    "code": "ACT-CRISIS",
+    "name": "Центр мониторинга логистических угроз (учреждаемый)",
+    "stakeholder_role": "учреждаемый"
+   }
+  ],
+  "capabilities": [
+   {
+    "code": "OC-01",
+    "name": "Контролировать критические грузы в движении",
+    "traced_to": "цели"
+   },
+   {
+    "code": "OC-02",
+    "name": "Гарантированно доставлять тревожные сообщения",
+    "traced_to": "нужды класса A′"
+   },
+   {
+    "code": "OC-03",
+    "name": "Собирать телеметрию удалённых объектов",
+    "traced_to": "нужды класса C′"
+   },
+   {
+    "code": "OC-04",
+    "name": "Управлять группировкой и сетью",
+    "traced_to": "ConOps"
+   },
+   {
+    "code": "OC-05",
+    "name": "Резервировать связь в кризисной ситуации",
+    "traced_to": "нужда центра мониторинга"
+   },
+   {
+    "code": "OC-06",
+    "name": "Соблюдать частотный и орбитальный режим",
+    "traced_to": "ограничения/нормативы"
+   }
+  ],
+  "activities": [
+   {
+    "code": "OA-01",
+    "name": "Зафиксировать событие на объекте",
+    "actor": "ACT-CARGO"
+   },
+   {
+    "code": "OA-02",
+    "name": "Получить подтверждение доставки",
+    "actor": "ACT-CARGO"
+   },
+   {
+    "code": "OA-03",
+    "name": "Получить данные и отреагировать",
+    "actor": "ACT-CONSUMER"
+   },
+   {
+    "code": "OA-04",
+    "name": "Планировать и вести сеансы",
+    "actor": "ACT-MCC"
+   },
+   {
+    "code": "OA-05",
+    "name": "Управлять абонентами и приоритетами",
+    "actor": "ACT-NOC"
+   }
+  ]
+ },
+ "SA": {
+  "functions": [
+   {
+    "code": "F-01",
+    "name": "Принять сообщение терминала",
+    "allocated_to": "PL-S",
+    "optional": false
+   },
+   {
+    "code": "F-02",
+    "name": "Подтвердить приём терминалу",
+    "allocated_to": "PL-S",
+    "optional": false
+   },
+   {
+    "code": "F-03",
+    "name": "Приоритизировать сообщения по классу",
+    "allocated_to": "PL-S-DSP",
+    "optional": false
+   },
+   {
+    "code": "F-04",
+    "name": "Хранить сообщения до сброса (S&F)",
+    "allocated_to": "PL-S-DSP",
+    "optional": false
+   },
+   {
+    "code": "F-05",
+    "name": "Сбросить данные на РСС",
+    "allocated_to": "PL-FEED",
+    "optional": false
+   },
+   {
+    "code": "F-06",
+    "name": "Маршрутизировать данные в ЦОД",
+    "allocated_to": "GW-GATE",
+    "optional": false
+   },
+   {
+    "code": "F-07",
+    "name": "Доставить данные потребителю",
+    "allocated_to": "DC-API",
+    "optional": false
+   },
+   {
+    "code": "F-08",
+    "name": "Передать эфемериды/альманах терминалам",
+    "allocated_to": "PL-S",
+    "optional": false
+   },
+   {
+    "code": "F-09",
+    "name": "Принять и исполнить команду ЦУП",
+    "allocated_to": "OBC",
+    "optional": false
+   },
+   {
+    "code": "F-10",
+    "name": "Сформировать и передать телеметрию",
+    "allocated_to": "TTC",
+    "optional": false
+   },
+   {
+    "code": "F-11",
+    "name": "Поддерживать ориентацию",
+    "allocated_to": "AOCS",
+    "optional": false
+   },
+   {
+    "code": "F-12",
+    "name": "Поддерживать орбиту (удержание, фазирование)",
+    "allocated_to": "PROP",
+    "optional": false
+   },
+   {
+    "code": "F-13",
+    "name": "Увести КА с орбиты",
+    "allocated_to": "PROP",
+    "optional": false
+   },
+   {
+    "code": "F-14",
+    "name": "Обеспечить электропитание",
+    "allocated_to": "EPS",
+    "optional": false
+   },
+   {
+    "code": "F-15",
+    "name": "Обеспечить тепловой режим",
+    "allocated_to": "TCS",
+    "optional": false
+   },
+   {
+    "code": "F-16",
+    "name": "Обнаруживать и парировать отказы (FDIR)",
+    "allocated_to": "OBC-SW",
+    "optional": false
+   },
+   {
+    "code": "F-17",
+    "name": "Рассчитывать эфемериды и планировать манёвры",
+    "allocated_to": "MCC-FD",
+    "optional": false
+   },
+   {
+    "code": "F-18",
+    "name": "Планировать сеансы станций",
+    "allocated_to": "MCC-PLAN",
+    "optional": false
+   },
+   {
+    "code": "F-19",
+    "name": "Контролировать состояние КА по ТМ",
+    "allocated_to": "MCC-TM",
+    "optional": false
+   },
+   {
+    "code": "F-20",
+    "name": "Управлять абонентами и приоритетами классов",
+    "allocated_to": "NOC-SUB",
+    "optional": false
+   },
+   {
+    "code": "F-21",
+    "name": "Мониторить QoS сети",
+    "allocated_to": "NOC-MON",
+    "optional": false
+   },
+   {
+    "code": "F-22",
+    "name": "Ретранслировать между КА (ISL)",
+    "allocated_to": "PL-ISL",
+    "optional": true
+   },
+   {
+    "code": "F-23",
+    "name": "Формировать навигационный сигнал (PNT)",
+    "allocated_to": "PL-PNT",
+    "optional": true
+   },
+   {
+    "code": "F-24",
+    "name": "Сформировать сообщение из показаний датчиков",
+    "allocated_to": "UT-SENS-IO",
+    "optional": false
+   },
+   {
+    "code": "F-25",
+    "name": "Передать сообщение по абонентской линии",
+    "allocated_to": "UT-SENS-MODEM",
+    "optional": false
+   }
+  ],
+  "exchanges": [
+   {
+    "code": "EX-MSG",
+    "name": "Сообщение терминала",
+    "src": "F-25",
+    "dst": "F-01",
+    "interface": "IF-S-USER"
+   },
+   {
+    "code": "EX-ACK",
+    "name": "Подтверждение",
+    "src": "F-02",
+    "dst": "F-25",
+    "interface": "IF-S-USER"
+   },
+   {
+    "code": "EX-FEED",
+    "name": "Пакет данных на РСС",
+    "src": "F-05",
+    "dst": "F-06",
+    "interface": "IF-C-FEED"
+   },
+   {
+    "code": "EX-DELIV",
+    "name": "Доставка потребителю",
+    "src": "F-07",
+    "dst": "OA-03",
+    "interface": "IF-DC-USER"
+   },
+   {
+    "code": "EX-TC",
+    "name": "Команда",
+    "src": "F-18",
+    "dst": "F-09",
+    "interface": "IF-TTC"
+   },
+   {
+    "code": "EX-TM",
+    "name": "Телеметрия",
+    "src": "F-10",
+    "dst": "F-19",
+    "interface": "IF-TTC"
+   },
+   {
+    "code": "EX-EPH",
+    "name": "Эфемериды/альманах",
+    "src": "F-17",
+    "dst": "F-08",
+    "interface": "IF-MCC-EPH"
+   },
+   {
+    "code": "EX-PLAN",
+    "name": "План сеансов",
+    "src": "F-18",
+    "dst": "F-20",
+    "interface": "IF-MCC-NOC"
+   },
+   {
+    "code": "EX-ISL",
+    "name": "Транзитный пакет",
+    "src": "F-22",
+    "dst": "F-22",
+    "interface": "IF-ISL",
+    "optional": true
+   },
+   {
+    "code": "EX-NAV",
+    "name": "Навигационный сигнал",
+    "src": "F-23",
+    "dst": "F-25",
+    "interface": "IF-PNT-USER",
+    "optional": true
+   }
+  ],
+  "functional_chains": [
+   {
+    "code": "FC-01",
+    "name": "Доставка тревоги опасного груза (класс A′)",
+    "steps": [
+     "F-24",
+     "F-25",
+     "F-01",
+     "F-03",
+     "F-05",
+     "F-06",
+     "F-07"
+    ],
+    "ack": [
+     "F-02"
+    ],
+    "capability": "OC-02",
+    "requirement_kinds": [
+     "сценарные: латентность сквозная, вероятность доставки"
+    ]
+   },
+   {
+    "code": "FC-02",
+    "name": "Сбор показаний автономных датчиков (класс C′, S&F)",
+    "steps": [
+     "F-24",
+     "F-25",
+     "F-01",
+     "F-04",
+     "F-05",
+     "F-06",
+     "F-07"
+    ],
+    "capability": "OC-03",
+    "requirement_kinds": [
+     "сценарные: время хранения, энергоцена сеанса"
+    ]
+   },
+   {
+    "code": "FC-03",
+    "name": "Управление КА: команда → исполнение → ТМ",
+    "steps": [
+     "F-18",
+     "F-09",
+     "F-10",
+     "F-19"
+    ],
+    "capability": "OC-04",
+    "requirement_kinds": [
+     "сценарные: сеансы в сутки, автономность"
+    ]
+   },
+   {
+    "code": "FC-04",
+    "name": "Обновление альманаха терминалов",
+    "steps": [
+     "F-17",
+     "F-09",
+     "F-08",
+     "F-25"
+    ],
+    "capability": "OC-04",
+    "requirement_kinds": [
+     "сценарные: период обновления"
+    ]
+   },
+   {
+    "code": "FC-05",
+    "name": "Увод КА с орбиты по окончании срока",
+    "steps": [
+     "F-17",
+     "F-09",
+     "F-13"
+    ],
+    "capability": "OC-06",
+    "requirement_kinds": [
+     "нормативные: срок увода"
+    ]
+   },
+   {
+    "code": "FC-06",
+    "name": "Транзит через ISL при отсутствии РСС в видимости",
+    "steps": [
+     "F-01",
+     "F-22",
+     "F-05"
+    ],
+    "capability": "OC-02",
+    "optional": true,
+    "requirement_kinds": [
+     "сценарные: латентность севера"
+    ]
+   }
+  ]
+ },
+ "LA": {
+  "logical_components": [
+   {
+    "code": "LC-PAYLOAD",
+    "name": "Бортовой абонентский комплекс",
+    "functions": [
+     "F-01",
+     "F-02",
+     "F-03",
+     "F-04",
+     "F-05",
+     "F-08"
+    ],
+    "deployed_to": [
+     "PL-S",
+     "PL-S-DSP",
+     "PL-FEED",
+     "PL-ANT"
+    ]
+   },
+   {
+    "code": "LC-BUS",
+    "name": "Бортовая платформа управления",
+    "functions": [
+     "F-09",
+     "F-10",
+     "F-16"
+    ],
+    "deployed_to": [
+     "OBC",
+     "TTC"
+    ]
+   },
+   {
+    "code": "LC-POWER",
+    "name": "Бортовая энергетика и тепло",
+    "functions": [
+     "F-14",
+     "F-15"
+    ],
+    "deployed_to": [
+     "EPS",
+     "TCS"
+    ]
+   },
+   {
+    "code": "LC-MOTION",
+    "name": "Бортовая ориентация и движение",
+    "functions": [
+     "F-11",
+     "F-12",
+     "F-13"
+    ],
+    "deployed_to": [
+     "AOCS",
+     "PROP"
+    ]
+   },
+   {
+    "code": "LC-ISL",
+    "name": "Бортовая ретрансляция",
+    "functions": [
+     "F-22"
+    ],
+    "deployed_to": [
+     "PL-ISL"
+    ],
+    "optional": true
+   },
+   {
+    "code": "LC-GATEWAY",
+    "name": "Шлюз РСС",
+    "functions": [
+     "F-06"
+    ],
+    "deployed_to": [
+     "GW"
+    ]
+   },
+   {
+    "code": "LC-CORE",
+    "name": "Ядро сети (ЦОД + ЦУС)",
+    "functions": [
+     "F-07",
+     "F-20",
+     "F-21"
+    ],
+    "deployed_to": [
+     "DC",
+     "NOC"
+    ]
+   },
+   {
+    "code": "LC-MCC",
+    "name": "Центр управления полётом",
+    "functions": [
+     "F-17",
+     "F-18",
+     "F-19"
+    ],
+    "deployed_to": [
+     "MCC",
+     "GCS"
+    ]
+   },
+   {
+    "code": "LC-TERMINAL",
+    "name": "Абонентский терминал",
+    "functions": [
+     "F-24",
+     "F-25"
+    ],
+    "deployed_to": [
+     "UT"
+    ]
+   }
+  ]
+ },
+ "PA": {
+  "physical_components": "узлы ПОЛКА-PBS.json (deployed_to выше)",
+  "physical_links": "ПОЛКА-ИНТЕРФЕЙСЫ.json (поле interface у обменов)",
+  "note": "PA не дублируется здесь: PBS и интерфейсы — единственная физическая правда"
+ },
+ "diagrams_for_reviews": [
+  {
+   "code": "OAB",
+   "name": "Operational Architecture Blank",
+   "review": "MCR",
+   "shows": [
+    "actors",
+    "capabilities",
+    "activities"
+   ]
+  },
+  {
+   "code": "SAB",
+   "name": "System Architecture Blank",
+   "review": "SRR",
+   "shows": [
+    "functions",
+    "exchanges",
+    "system boundary"
+   ]
+  },
+  {
+   "code": "FCD",
+   "name": "Functional Chain Descriptions (FC-01…FC-06)",
+   "review": "SRR",
+   "shows": [
+    "functional_chains"
+   ]
+  },
+  {
+   "code": "LAB",
+   "name": "Logical Architecture Blank",
+   "review": "SDR",
+   "shows": [
+    "logical_components",
+    "allocation"
+   ]
+  },
+  {
+   "code": "PAB",
+   "name": "Physical Architecture Blank",
+   "review": "SDR",
+   "shows": [
+    "PBS nodes",
+    "physical links"
+   ]
+  }
+ ],
+ "orbita_mapping": {
+  "actors": "стейкхолдеры (роль)",
+  "capabilities": "цели и сервисы (traced_to)",
+  "functions": "вид function (layer: SA)",
+  "exchanges": "элементы данных интерфейса (interface + data item)",
+  "functional_chains": "вид function_chain",
+  "logical_components": "группировка функций (layer: LA) с deployed_to узлами PBS",
+  "allocation": "матрица функции × узлы",
+  "diagrams": "model_element type Diagram, illustrated_by — не покрытие"
+ },
+ "summary": {
+  "actors": 9,
+  "capabilities": 6,
+  "functions": 25,
+  "exchanges": 10,
+  "chains": 6,
+  "logical_components": 9
+ }
+}

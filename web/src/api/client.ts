@@ -58,6 +58,7 @@ import type {
   ExternalModelView,
   SystemModelsView,
   CoverageMatrixView,
+  ArchitectureView,
 } from './types'
 
 import { withProject } from './project'
@@ -605,6 +606,8 @@ export const api = {
     get<SystemModelsView>(`/views/system-models${gate ? `?gate=${encodeURIComponent(gate)}` : ''}`),
   /** ADR-050: покрытие требований функциями и цепочками. */
   coverageMatrix: () => get<CoverageMatrixView>('/reports/requirement-coverage'),
+  /** ADR-052: слои Arcadia — OA · SA · LA · PA и цепочки. */
+  architecture: () => get<ArchitectureView>('/views/architecture'),
   /** ADR-048: внешняя модель и обновление снимков из адаптера (только чтение модели). */
   externalModel: () => get<ExternalModelView>('/views/external-model'),
   capellaRefresh: () => post<{ created: number; updated: number; model_id: string }>('/library/capella/refresh', {}),

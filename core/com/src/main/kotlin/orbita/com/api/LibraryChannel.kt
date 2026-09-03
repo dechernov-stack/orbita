@@ -406,10 +406,37 @@ class LibraryChannel(
             all.firstOrNull { it.path("code").asText("") == code }
                 ?.let { remap[it.path("id").asText("")] = existingId }
         }
+        // ADR-052: ссылка ПОЛКИ НА ПОЛКУ пишется кодом — «@PL-S», «@IF-S-USER».
+        // Идентификатора у неё быть не может: узел получает его в том проекте,
+        // куда каркас взят, и архитектурная полка обязана попасть в него же.
+        val byCode = boundary.objects.listCurrent(projectId)
+            .filter { it.status != orbita.mod.model.Lifecycle.Cancelled }
+            .mapNotNull { obj -> obj.doc.path("code").asText("").takeIf { it.isNotBlank() }?.let { it to obj.id } }
+            .toMap()
+        val codeRefs = Regex("@([A-Za-zА-Яа-я0-9_.\\-]+)")
+        val unresolved = linkedSetOf<String>()
+        // проверка ДО первой записи: полка, легшая наполовину, хуже отказа
+        list.forEach { o ->
+            codeRefs.findAll(mapper.writeValueAsString(o)).forEach { m ->
+                if (!byCode.containsKey(m.groupValues[1])) unresolved += m.groupValues[1]
+            }
+        }
+        if (unresolved.isNotEmpty()) {
+            throw IllegalArgumentException(
+                "полка «${frag.doc.path("name").asText(fragmentId)}» ссылается на коды, которых в проекте нет: " +
+                    unresolved.joinToString(", ") + ". Возьмите раньше полку, которая их заводит " +
+                    "(каркас PBS — узлы, полка интерфейсов — стыки)",
+            )
+        }
+
         list.forEach { o ->
             val oldId = o.path("id").asText("")
             var text = mapper.writeValueAsString(o)
             remap.forEach { (old, new) -> text = text.replace(Regex("\\b" + Regex.escape(old) + "\\b"), new) }
+            text = codeRefs.replace(text) { m ->
+                val code = m.groupValues[1]
+                byCode[code] ?: run { unresolved += code; m.value }
+            }
             val doc = mapper.readTree(text) as ObjectNode
             val type = CoreType.entries.first { remap[oldId]!!.startsWith(it.idPrefix + "-") }
             // связь «применяет» — видам, чья схема её несёт

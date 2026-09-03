@@ -1,0 +1,1135 @@
+{
+  "_comment": "ADR-052: архитектурная полка по Arcadia — способности (OA), акторы предложением в стейкхолдеры, 25 функций с распределением на узлы каркаса и обменами по стыкам, 6 цепочек, 9 логических компонентов с развёртыванием. PA не дублируется.",
+  "author": "поставка владельца 03.09: ПОЛКА-PBS.json · ПОЛКА-ИНТЕРФЕЙСЫ.json · ПОЛКА-АРХИТЕКТУРА-ARCADIA.json",
+  "objects": [
+    {
+      "id": "LF-9005",
+      "name": "Архитектурный шаблон по Arcadia (OA · SA · LA · PA) — класс НОО-IoT",
+      "shelf": "B9",
+      "mission_class_ref": "MC-0001",
+      "counters": {
+        "capability": 6,
+        "stakeholder": 9,
+        "function": 25,
+        "function_chain": 6,
+        "logical_component": 9
+      },
+      "origin": {
+        "project": "полка",
+        "author": "поставка владельца: ПОЛКА-АРХИТЕКТУРА-ARCADIA.json",
+        "date": "2026-09-03"
+      },
+      "anonymized": false,
+      "payload": {
+        "objects": [
+          {
+            "id": "OC-9301",
+            "code": "OC-01",
+            "name": "Контролировать критические грузы в движении",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "traced_to_hint": "цели"
+          },
+          {
+            "id": "OC-9302",
+            "code": "OC-02",
+            "name": "Гарантированно доставлять тревожные сообщения",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "traced_to_hint": "нужды класса A′"
+          },
+          {
+            "id": "OC-9303",
+            "code": "OC-03",
+            "name": "Собирать телеметрию удалённых объектов",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "traced_to_hint": "нужды класса C′"
+          },
+          {
+            "id": "OC-9304",
+            "code": "OC-04",
+            "name": "Управлять группировкой и сетью",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "traced_to_hint": "ConOps"
+          },
+          {
+            "id": "OC-9305",
+            "code": "OC-05",
+            "name": "Резервировать связь в кризисной ситуации",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "traced_to_hint": "нужда центра мониторинга"
+          },
+          {
+            "id": "OC-9306",
+            "code": "OC-06",
+            "name": "Соблюдать частотный и орбитальный режим",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "traced_to_hint": "ограничения/нормативы"
+          },
+          {
+            "id": "SK-9301",
+            "name": "Перевозчик опасных грузов",
+            "role": "consumer",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "note": "актор архитектурной полки ACT-CARGO; операционные активности: OA-01 Зафиксировать событие на объекте; OA-02 Получить подтверждение доставки"
+          },
+          {
+            "id": "SK-9302",
+            "name": "Оператор флота / подвижного состава",
+            "role": "consumer",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "note": "актор архитектурной полки ACT-FLEET"
+          },
+          {
+            "id": "SK-9303",
+            "name": "Владелец автономных датчиков",
+            "role": "consumer",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "note": "актор архитектурной полки ACT-SENSOR"
+          },
+          {
+            "id": "SK-9304",
+            "name": "Ведомственный потребитель данных",
+            "role": "customer",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "note": "актор архитектурной полки ACT-CONSUMER; операционные активности: OA-03 Получить данные и отреагировать"
+          },
+          {
+            "id": "SK-9305",
+            "name": "Оператор ЦУП",
+            "role": "operator",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "note": "актор архитектурной полки ACT-MCC; операционные активности: OA-04 Планировать и вести сеансы"
+          },
+          {
+            "id": "SK-9306",
+            "name": "Оператор сети (ЦУС)",
+            "role": "operator",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "note": "актор архитектурной полки ACT-NOC; операционные активности: OA-05 Управлять абонентами и приоритетами"
+          },
+          {
+            "id": "SK-9307",
+            "name": "Регулятор радиочастот",
+            "role": "regulator",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "note": "актор архитектурной полки ACT-REG"
+          },
+          {
+            "id": "SK-9308",
+            "name": "Поставщик пуска",
+            "role": "supplier",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "note": "актор архитектурной полки ACT-LAUNCH"
+          },
+          {
+            "id": "SK-9309",
+            "name": "Центр мониторинга логистических угроз (учреждаемый)",
+            "role": "established",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "note": "актор архитектурной полки ACT-CRISIS"
+          },
+          {
+            "id": "FN-9301",
+            "code": "F-01",
+            "name": "Принять сообщение терминала",
+            "level": "system",
+            "traces_up": [
+              {
+                "ref": "OC-9302"
+              }
+            ],
+            "allocated_to": [
+              {
+                "component": "@PL-S"
+              }
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            }
+          },
+          {
+            "id": "FN-9302",
+            "code": "F-02",
+            "name": "Подтвердить приём терминалу",
+            "level": "system",
+            "traces_up": [
+              {
+                "ref": "OC-9302"
+              }
+            ],
+            "allocated_to": [
+              {
+                "component": "@PL-S"
+              }
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "exchanges": [
+              {
+                "code": "EX-ACK",
+                "name": "Подтверждение",
+                "interface": "@IF-S-USER",
+                "to": "FN-9325"
+              }
+            ]
+          },
+          {
+            "id": "FN-9303",
+            "code": "F-03",
+            "name": "Приоритизировать сообщения по классу",
+            "level": "system",
+            "traces_up": [
+              {
+                "ref": "OC-9302"
+              }
+            ],
+            "allocated_to": [
+              {
+                "component": "@PL-S-DSP"
+              }
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            }
+          },
+          {
+            "id": "FN-9304",
+            "code": "F-04",
+            "name": "Хранить сообщения до сброса (S&F)",
+            "level": "system",
+            "traces_up": [
+              {
+                "ref": "OC-9303"
+              }
+            ],
+            "allocated_to": [
+              {
+                "component": "@PL-S-DSP"
+              }
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            }
+          },
+          {
+            "id": "FN-9305",
+            "code": "F-05",
+            "name": "Сбросить данные на РСС",
+            "level": "system",
+            "traces_up": [
+              {
+                "ref": "OC-9302"
+              }
+            ],
+            "allocated_to": [
+              {
+                "component": "@PL-FEED"
+              }
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "exchanges": [
+              {
+                "code": "EX-FEED",
+                "name": "Пакет данных на РСС",
+                "interface": "@IF-C-FEED",
+                "to": "FN-9306"
+              }
+            ]
+          },
+          {
+            "id": "FN-9306",
+            "code": "F-06",
+            "name": "Маршрутизировать данные в ЦОД",
+            "level": "system",
+            "traces_up": [
+              {
+                "ref": "OC-9302"
+              }
+            ],
+            "allocated_to": [
+              {
+                "component": "@GW-GATE"
+              }
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            }
+          },
+          {
+            "id": "FN-9307",
+            "code": "F-07",
+            "name": "Доставить данные потребителю",
+            "level": "system",
+            "traces_up": [
+              {
+                "ref": "OC-9302"
+              }
+            ],
+            "allocated_to": [
+              {
+                "component": "@DC-API"
+              }
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "exchanges": [
+              {
+                "code": "EX-DELIV",
+                "name": "Доставка потребителю",
+                "interface": "@IF-DC-USER",
+                "to": "SK-9304",
+                "to_activity": "OA-03"
+              }
+            ]
+          },
+          {
+            "id": "FN-9308",
+            "code": "F-08",
+            "name": "Передать эфемериды/альманах терминалам",
+            "level": "system",
+            "traces_up": [
+              {
+                "ref": "OC-9304"
+              }
+            ],
+            "allocated_to": [
+              {
+                "component": "@PL-S"
+              }
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            }
+          },
+          {
+            "id": "FN-9309",
+            "code": "F-09",
+            "name": "Принять и исполнить команду ЦУП",
+            "level": "system",
+            "traces_up": [
+              {
+                "ref": "OC-9304"
+              }
+            ],
+            "allocated_to": [
+              {
+                "component": "@OBC"
+              }
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            }
+          },
+          {
+            "id": "FN-9310",
+            "code": "F-10",
+            "name": "Сформировать и передать телеметрию",
+            "level": "system",
+            "traces_up": [
+              {
+                "ref": "OC-9304"
+              }
+            ],
+            "allocated_to": [
+              {
+                "component": "@TTC"
+              }
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "exchanges": [
+              {
+                "code": "EX-TM",
+                "name": "Телеметрия",
+                "interface": "@IF-TTC",
+                "to": "FN-9319"
+              }
+            ]
+          },
+          {
+            "id": "FN-9311",
+            "code": "F-11",
+            "name": "Поддерживать ориентацию",
+            "level": "system",
+            "traces_up": [],
+            "allocated_to": [
+              {
+                "component": "@AOCS"
+              }
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            }
+          },
+          {
+            "id": "FN-9312",
+            "code": "F-12",
+            "name": "Поддерживать орбиту (удержание, фазирование)",
+            "level": "system",
+            "traces_up": [],
+            "allocated_to": [
+              {
+                "component": "@PROP"
+              }
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            }
+          },
+          {
+            "id": "FN-9313",
+            "code": "F-13",
+            "name": "Увести КА с орбиты",
+            "level": "system",
+            "traces_up": [
+              {
+                "ref": "OC-9306"
+              }
+            ],
+            "allocated_to": [
+              {
+                "component": "@PROP"
+              }
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            }
+          },
+          {
+            "id": "FN-9314",
+            "code": "F-14",
+            "name": "Обеспечить электропитание",
+            "level": "system",
+            "traces_up": [],
+            "allocated_to": [
+              {
+                "component": "@EPS"
+              }
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            }
+          },
+          {
+            "id": "FN-9315",
+            "code": "F-15",
+            "name": "Обеспечить тепловой режим",
+            "level": "system",
+            "traces_up": [],
+            "allocated_to": [
+              {
+                "component": "@TCS"
+              }
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            }
+          },
+          {
+            "id": "FN-9316",
+            "code": "F-16",
+            "name": "Обнаруживать и парировать отказы (FDIR)",
+            "level": "system",
+            "traces_up": [],
+            "allocated_to": [
+              {
+                "component": "@OBC-SW"
+              }
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            }
+          },
+          {
+            "id": "FN-9317",
+            "code": "F-17",
+            "name": "Рассчитывать эфемериды и планировать манёвры",
+            "level": "system",
+            "traces_up": [
+              {
+                "ref": "OC-9304"
+              }
+            ],
+            "allocated_to": [
+              {
+                "component": "@MCC-FD"
+              }
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "exchanges": [
+              {
+                "code": "EX-EPH",
+                "name": "Эфемериды/альманах",
+                "interface": "@IF-MCC-EPH",
+                "to": "FN-9308"
+              }
+            ]
+          },
+          {
+            "id": "FN-9318",
+            "code": "F-18",
+            "name": "Планировать сеансы станций",
+            "level": "system",
+            "traces_up": [
+              {
+                "ref": "OC-9304"
+              }
+            ],
+            "allocated_to": [
+              {
+                "component": "@MCC-PLAN"
+              }
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "exchanges": [
+              {
+                "code": "EX-TC",
+                "name": "Команда",
+                "interface": "@IF-TTC",
+                "to": "FN-9309"
+              },
+              {
+                "code": "EX-PLAN",
+                "name": "План сеансов",
+                "interface": "@IF-MCC-NOC",
+                "to": "FN-9320"
+              }
+            ]
+          },
+          {
+            "id": "FN-9319",
+            "code": "F-19",
+            "name": "Контролировать состояние КА по ТМ",
+            "level": "system",
+            "traces_up": [
+              {
+                "ref": "OC-9304"
+              }
+            ],
+            "allocated_to": [
+              {
+                "component": "@MCC-TM"
+              }
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            }
+          },
+          {
+            "id": "FN-9320",
+            "code": "F-20",
+            "name": "Управлять абонентами и приоритетами классов",
+            "level": "system",
+            "traces_up": [],
+            "allocated_to": [
+              {
+                "component": "@NOC-SUB"
+              }
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            }
+          },
+          {
+            "id": "FN-9321",
+            "code": "F-21",
+            "name": "Мониторить QoS сети",
+            "level": "system",
+            "traces_up": [],
+            "allocated_to": [
+              {
+                "component": "@NOC-MON"
+              }
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            }
+          },
+          {
+            "id": "FN-9322",
+            "code": "F-22",
+            "name": "Ретранслировать между КА (ISL)",
+            "level": "system",
+            "traces_up": [
+              {
+                "ref": "OC-9302"
+              }
+            ],
+            "allocated_to": [
+              {
+                "component": "@PL-ISL"
+              }
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "statement": "функция берётся по классу миссии (ISL, PNT)",
+            "exchanges": [
+              {
+                "code": "EX-ISL",
+                "name": "Транзитный пакет",
+                "interface": "@IF-ISL",
+                "to": "FN-9322"
+              }
+            ]
+          },
+          {
+            "id": "FN-9323",
+            "code": "F-23",
+            "name": "Формировать навигационный сигнал (PNT)",
+            "level": "system",
+            "traces_up": [],
+            "allocated_to": [
+              {
+                "component": "@PL-PNT"
+              }
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "statement": "функция берётся по классу миссии (ISL, PNT)",
+            "exchanges": [
+              {
+                "code": "EX-NAV",
+                "name": "Навигационный сигнал",
+                "interface": "@IF-PNT-USER",
+                "to": "FN-9325"
+              }
+            ]
+          },
+          {
+            "id": "FN-9324",
+            "code": "F-24",
+            "name": "Сформировать сообщение из показаний датчиков",
+            "level": "system",
+            "traces_up": [
+              {
+                "ref": "OC-9302"
+              }
+            ],
+            "allocated_to": [
+              {
+                "component": "@UT-SENS-IO"
+              }
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            }
+          },
+          {
+            "id": "FN-9325",
+            "code": "F-25",
+            "name": "Передать сообщение по абонентской линии",
+            "level": "system",
+            "traces_up": [
+              {
+                "ref": "OC-9302"
+              }
+            ],
+            "allocated_to": [
+              {
+                "component": "@UT-SENS-MODEM"
+              }
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "exchanges": [
+              {
+                "code": "EX-MSG",
+                "name": "Сообщение терминала",
+                "interface": "@IF-S-USER",
+                "to": "FN-9301"
+              }
+            ]
+          },
+          {
+            "id": "FC-9301",
+            "code": "FC-01",
+            "name": "Доставка тревоги опасного груза (класс A′)",
+            "steps": [
+              {
+                "function": "FN-9324"
+              },
+              {
+                "function": "FN-9325"
+              },
+              {
+                "function": "FN-9301"
+              },
+              {
+                "function": "FN-9303"
+              },
+              {
+                "function": "FN-9305"
+              },
+              {
+                "function": "FN-9306"
+              },
+              {
+                "function": "FN-9307"
+              }
+            ],
+            "traces_up": [
+              "OC-9302"
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "capability": "OC-9302",
+            "ack": [
+              {
+                "function": "FN-9302"
+              }
+            ],
+            "requirement_kinds": [
+              "сценарные: латентность сквозная, вероятность доставки"
+            ]
+          },
+          {
+            "id": "FC-9302",
+            "code": "FC-02",
+            "name": "Сбор показаний автономных датчиков (класс C′, S&F)",
+            "steps": [
+              {
+                "function": "FN-9324"
+              },
+              {
+                "function": "FN-9325"
+              },
+              {
+                "function": "FN-9301"
+              },
+              {
+                "function": "FN-9304"
+              },
+              {
+                "function": "FN-9305"
+              },
+              {
+                "function": "FN-9306"
+              },
+              {
+                "function": "FN-9307"
+              }
+            ],
+            "traces_up": [
+              "OC-9303"
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "capability": "OC-9303",
+            "requirement_kinds": [
+              "сценарные: время хранения, энергоцена сеанса"
+            ]
+          },
+          {
+            "id": "FC-9303",
+            "code": "FC-03",
+            "name": "Управление КА: команда → исполнение → ТМ",
+            "steps": [
+              {
+                "function": "FN-9318"
+              },
+              {
+                "function": "FN-9309"
+              },
+              {
+                "function": "FN-9310"
+              },
+              {
+                "function": "FN-9319"
+              }
+            ],
+            "traces_up": [
+              "OC-9304"
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "capability": "OC-9304",
+            "requirement_kinds": [
+              "сценарные: сеансы в сутки, автономность"
+            ]
+          },
+          {
+            "id": "FC-9304",
+            "code": "FC-04",
+            "name": "Обновление альманаха терминалов",
+            "steps": [
+              {
+                "function": "FN-9317"
+              },
+              {
+                "function": "FN-9309"
+              },
+              {
+                "function": "FN-9308"
+              },
+              {
+                "function": "FN-9325"
+              }
+            ],
+            "traces_up": [
+              "OC-9304"
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "capability": "OC-9304",
+            "requirement_kinds": [
+              "сценарные: период обновления"
+            ]
+          },
+          {
+            "id": "FC-9305",
+            "code": "FC-05",
+            "name": "Увод КА с орбиты по окончании срока",
+            "steps": [
+              {
+                "function": "FN-9317"
+              },
+              {
+                "function": "FN-9309"
+              },
+              {
+                "function": "FN-9313"
+              }
+            ],
+            "traces_up": [
+              "OC-9306"
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "capability": "OC-9306",
+            "requirement_kinds": [
+              "нормативные: срок увода"
+            ]
+          },
+          {
+            "id": "FC-9306",
+            "code": "FC-06",
+            "name": "Транзит через ISL при отсутствии РСС в видимости",
+            "steps": [
+              {
+                "function": "FN-9301"
+              },
+              {
+                "function": "FN-9322"
+              },
+              {
+                "function": "FN-9305"
+              }
+            ],
+            "traces_up": [
+              "OC-9302"
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "capability": "OC-9302",
+            "requirement_kinds": [
+              "сценарные: латентность севера"
+            ]
+          },
+          {
+            "id": "LC-9301",
+            "code": "LC-PAYLOAD",
+            "name": "Бортовой абонентский комплекс",
+            "functions": [
+              "FN-9301",
+              "FN-9302",
+              "FN-9303",
+              "FN-9304",
+              "FN-9305",
+              "FN-9308"
+            ],
+            "deployed_to": [
+              "@PL-S",
+              "@PL-S-DSP",
+              "@PL-FEED",
+              "@PL-ANT"
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            }
+          },
+          {
+            "id": "LC-9302",
+            "code": "LC-BUS",
+            "name": "Бортовая платформа управления",
+            "functions": [
+              "FN-9309",
+              "FN-9310",
+              "FN-9316"
+            ],
+            "deployed_to": [
+              "@OBC",
+              "@TTC"
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            }
+          },
+          {
+            "id": "LC-9303",
+            "code": "LC-POWER",
+            "name": "Бортовая энергетика и тепло",
+            "functions": [
+              "FN-9314",
+              "FN-9315"
+            ],
+            "deployed_to": [
+              "@EPS",
+              "@TCS"
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            }
+          },
+          {
+            "id": "LC-9304",
+            "code": "LC-MOTION",
+            "name": "Бортовая ориентация и движение",
+            "functions": [
+              "FN-9311",
+              "FN-9312",
+              "FN-9313"
+            ],
+            "deployed_to": [
+              "@AOCS",
+              "@PROP"
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            }
+          },
+          {
+            "id": "LC-9305",
+            "code": "LC-ISL",
+            "name": "Бортовая ретрансляция",
+            "functions": [
+              "FN-9322"
+            ],
+            "deployed_to": [
+              "@PL-ISL"
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            }
+          },
+          {
+            "id": "LC-9306",
+            "code": "LC-GATEWAY",
+            "name": "Шлюз РСС",
+            "functions": [
+              "FN-9306"
+            ],
+            "deployed_to": [
+              "@GW"
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            }
+          },
+          {
+            "id": "LC-9307",
+            "code": "LC-CORE",
+            "name": "Ядро сети (ЦОД + ЦУС)",
+            "functions": [
+              "FN-9307",
+              "FN-9320",
+              "FN-9321"
+            ],
+            "deployed_to": [
+              "@DC",
+              "@NOC"
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            }
+          },
+          {
+            "id": "LC-9308",
+            "code": "LC-MCC",
+            "name": "Центр управления полётом",
+            "functions": [
+              "FN-9317",
+              "FN-9318",
+              "FN-9319"
+            ],
+            "deployed_to": [
+              "@MCC",
+              "@GCS"
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            }
+          },
+          {
+            "id": "LC-9309",
+            "code": "LC-TERMINAL",
+            "name": "Абонентский терминал",
+            "functions": [
+              "FN-9324",
+              "FN-9325"
+            ],
+            "deployed_to": [
+              "@UT"
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            }
+          }
+        ]
+      },
+      "lifecycle": {
+        "status": "Draft",
+        "version": "1"
+      },
+      "diagrams": [
+        {
+          "code": "OAB",
+          "name": "Operational Architecture Blank",
+          "review": "MCR",
+          "shows": [
+            "actors",
+            "capabilities",
+            "activities"
+          ]
+        },
+        {
+          "code": "SAB",
+          "name": "System Architecture Blank",
+          "review": "SRR",
+          "shows": [
+            "functions",
+            "exchanges",
+            "system boundary"
+          ]
+        },
+        {
+          "code": "FCD",
+          "name": "Functional Chain Descriptions (FC-01…FC-06)",
+          "review": "SRR",
+          "shows": [
+            "functional_chains"
+          ]
+        },
+        {
+          "code": "LAB",
+          "name": "Logical Architecture Blank",
+          "review": "SDR",
+          "shows": [
+            "logical_components",
+            "allocation"
+          ]
+        },
+        {
+          "code": "PAB",
+          "name": "Physical Architecture Blank",
+          "review": "SDR",
+          "shows": [
+            "PBS nodes",
+            "physical links"
+          ]
+        }
+      ]
+    }
+  ]
+}

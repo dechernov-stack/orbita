@@ -142,6 +142,9 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
         CoreType.ArchLink -> req.ingestArchLink(json, createdBy, projectId)
         CoreType.SystemModel -> req.ingestSystemModel(json, createdBy, projectId)
         CoreType.FunctionChain -> req.ingestFunctionChain(json, createdBy, projectId)
+        // ADR-052: слои Arcadia — способность (OA) и логический компонент (LA)
+        CoreType.Capability -> req.ingestCapability(json, createdBy, projectId)
+        CoreType.LogicalComponent -> req.ingestLogicalComponent(json, createdBy, projectId)
         CoreType.MissionGoal -> req.ingestMissionGoal(json, createdBy, projectId)
         // Блок C: замечание обзора несёт правило закрытия сверх схемы
         CoreType.ReviewItem -> {

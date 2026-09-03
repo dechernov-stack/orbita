@@ -1,0 +1,1152 @@
+{
+  "_comment": "ADR-052: полка интерфейсов — 26 стыков восьми типов, стороны названы КОДАМИ узлов каркаса («@PL-S»), анкета стыка в expects, раздел ICD и читающие модели. Интерфейс — ребро дерева состава и носитель интерфейсных требований.",
+  "author": "поставка владельца 03.09: ПОЛКА-PBS.json · ПОЛКА-ИНТЕРФЕЙСЫ.json · ПОЛКА-АРХИТЕКТУРА-ARCADIA.json",
+  "objects": [
+    {
+      "id": "LF-9004",
+      "name": "Типовые интерфейсы космической системы — класс НОО-IoT",
+      "shelf": "B7",
+      "mission_class_ref": "MC-0001",
+      "counters": {
+        "interface": 26
+      },
+      "origin": {
+        "project": "полка",
+        "author": "поставка владельца: ПОЛКА-ИНТЕРФЕЙСЫ.json",
+        "date": "2026-09-03"
+      },
+      "anonymized": false,
+      "payload": {
+        "objects": [
+          {
+            "id": "IF-9201",
+            "name": "Абонентская радиолиния S",
+            "code": "IF-S-USER",
+            "type": "RF",
+            "kind": "RF",
+            "owners": [
+              "@PL-S",
+              "@UT"
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "direction": "двусторонняя",
+            "standard": "LPWAN-протокол проекта (LR-FHSS/собственный)",
+            "icd_section": "ICD-S",
+            "expects": [
+              {
+                "key": "band",
+                "name": "диапазон",
+                "unit": "МГц",
+                "required_to": "MCR"
+              },
+              {
+                "key": "eirp_sc",
+                "name": "EIRP КА",
+                "unit": "дБВт",
+                "required_to": "SRR"
+              },
+              {
+                "key": "eirp_ut",
+                "name": "EIRP терминала",
+                "unit": "дБВт",
+                "required_to": "MCR"
+              },
+              {
+                "key": "g_t_sc",
+                "name": "G/T КА",
+                "unit": "дБ/К",
+                "required_to": "SRR"
+              },
+              {
+                "key": "margin",
+                "name": "запас линка",
+                "unit": "дБ",
+                "required_to": "MCR"
+              },
+              {
+                "key": "doppler",
+                "name": "доплер максимальный",
+                "unit": "кГц",
+                "required_to": "SRR"
+              },
+              {
+                "key": "msg_size",
+                "name": "размер сообщения",
+                "unit": "байт",
+                "required_to": "MCR"
+              },
+              {
+                "key": "access",
+                "name": "метод доступа",
+                "unit": "1",
+                "required_to": "SRR"
+              }
+            ],
+            "models": [
+              "М2а",
+              "М3а"
+            ],
+            "requirement_classes": [
+              "интерфейсные",
+              "функциональные",
+              "ЭМС",
+              "регуляторные"
+            ]
+          },
+          {
+            "id": "IF-9202",
+            "name": "Фидерная радиолиния C",
+            "code": "IF-C-FEED",
+            "type": "RF",
+            "kind": "RF",
+            "owners": [
+              "@PL-FEED",
+              "@GW"
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "direction": "двусторонняя",
+            "standard": "протокол фидера (DVB-S2-подобный/собственный)",
+            "icd_section": "ICD-C",
+            "expects": [
+              {
+                "key": "band",
+                "name": "диапазон",
+                "unit": "МГц",
+                "required_to": "MCR"
+              },
+              {
+                "key": "rate",
+                "name": "пропускная способность",
+                "unit": "бит/с",
+                "required_to": "SRR"
+              },
+              {
+                "key": "margin",
+                "name": "запас",
+                "unit": "дБ",
+                "required_to": "SRR"
+              },
+              {
+                "key": "g_t_gw",
+                "name": "G/T РСС",
+                "unit": "дБ/К",
+                "required_to": "SRR"
+              }
+            ],
+            "models": [
+              "М2б",
+              "М3в"
+            ],
+            "requirement_classes": [
+              "интерфейсные",
+              "регуляторные"
+            ]
+          },
+          {
+            "id": "IF-9203",
+            "name": "Командно-телеметрическая радиолиния",
+            "code": "IF-TTC",
+            "type": "RF",
+            "kind": "RF",
+            "owners": [
+              "@TTC",
+              "@GCS"
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "direction": "двусторонняя",
+            "standard": "CCSDS TM/TC, защита команд",
+            "icd_section": "ICD-TTC",
+            "expects": [
+              {
+                "key": "band",
+                "name": "диапазон",
+                "unit": "МГц",
+                "required_to": "MCR"
+              },
+              {
+                "key": "tm_rate",
+                "name": "скорость ТМ",
+                "unit": "бит/с",
+                "required_to": "SRR"
+              },
+              {
+                "key": "tc_rate",
+                "name": "скорость команд",
+                "unit": "бит/с",
+                "required_to": "SRR"
+              },
+              {
+                "key": "margin_nominal",
+                "name": "запас штатный",
+                "unit": "дБ",
+                "required_to": "SRR"
+              },
+              {
+                "key": "margin_safe",
+                "name": "запас аварийный (всенаправленная)",
+                "unit": "дБ",
+                "required_to": "SRR"
+              }
+            ],
+            "models": [
+              "М2в",
+              "М3г"
+            ],
+            "requirement_classes": [
+              "интерфейсные",
+              "ИБ",
+              "регуляторные"
+            ]
+          },
+          {
+            "id": "IF-9204",
+            "name": "Межспутниковая радиолиния",
+            "code": "IF-ISL",
+            "type": "RF",
+            "kind": "RF",
+            "owners": [
+              "@PL-ISL",
+              "@PL-ISL"
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "direction": "двусторонняя",
+            "standard": "протокол ISL",
+            "icd_section": "ICD-ISL",
+            "expects": [
+              {
+                "key": "band",
+                "name": "диапазон",
+                "unit": "МГц",
+                "required_to": "SDR"
+              },
+              {
+                "key": "rate",
+                "name": "пропускная способность",
+                "unit": "бит/с",
+                "required_to": "SDR"
+              },
+              {
+                "key": "range_max",
+                "name": "дальность максимальная",
+                "unit": "км",
+                "required_to": "SDR"
+              }
+            ],
+            "models": [
+              "М2г",
+              "М3д"
+            ],
+            "requirement_classes": [
+              "интерфейсные"
+            ]
+          },
+          {
+            "id": "IF-9205",
+            "name": "Навигационный сигнал → потребители",
+            "code": "IF-PNT-USER",
+            "type": "RF",
+            "kind": "RF",
+            "owners": [
+              "@PL-PNT",
+              "@UT"
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "direction": "односторонняя",
+            "standard": "формат навигационного сообщения",
+            "icd_section": "ICD-PNT",
+            "expects": [
+              {
+                "key": "band",
+                "name": "диапазон",
+                "unit": "МГц",
+                "required_to": "SDR"
+              },
+              {
+                "key": "accuracy",
+                "name": "точность",
+                "unit": "м",
+                "required_to": "SDR"
+              }
+            ],
+            "requirement_classes": [
+              "функциональные"
+            ]
+          },
+          {
+            "id": "IF-9206",
+            "name": "Шина питания СЭП → подсистемы",
+            "code": "IF-PWR-BUS",
+            "type": "power",
+            "kind": "power",
+            "owners": [
+              "@EPS",
+              "@SC-PLT"
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "direction": "односторонняя",
+            "standard": "шина постоянного тока",
+            "icd_section": "ICD-EPS",
+            "expects": [
+              {
+                "key": "voltage",
+                "name": "напряжение",
+                "unit": "В",
+                "required_to": "MCR"
+              },
+              {
+                "key": "ripple",
+                "name": "пульсации",
+                "unit": "1",
+                "required_to": "SDR"
+              },
+              {
+                "key": "inrush",
+                "name": "пусковой ток",
+                "unit": "А",
+                "required_to": "SDR"
+              },
+              {
+                "key": "protection",
+                "name": "защита каналов",
+                "unit": "1",
+                "required_to": "SDR"
+              }
+            ],
+            "models": [
+              "М4"
+            ],
+            "requirement_classes": [
+              "интерфейсные",
+              "качество питания"
+            ]
+          },
+          {
+            "id": "IF-9207",
+            "name": "Бортовая шина данных БКУ ↔ подсистемы",
+            "code": "IF-DATA-BUS",
+            "type": "data",
+            "kind": "data",
+            "owners": [
+              "@OBC",
+              "@SC-PLT"
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "direction": "двусторонняя",
+            "standard": "CAN / SpaceWire",
+            "icd_section": "ICD-OBC",
+            "expects": [
+              {
+                "key": "rate",
+                "name": "скорость",
+                "unit": "бит/с",
+                "required_to": "SRR"
+              },
+              {
+                "key": "protocol",
+                "name": "протокол",
+                "unit": "1",
+                "required_to": "SRR"
+              },
+              {
+                "key": "nodes",
+                "name": "число абонентов шины",
+                "unit": "шт",
+                "required_to": "SDR"
+              }
+            ],
+            "models": [
+              "М3б"
+            ],
+            "requirement_classes": [
+              "интерфейсные",
+              "ИБ"
+            ]
+          },
+          {
+            "id": "IF-9208",
+            "name": "ПН ↔ платформа: питание",
+            "code": "IF-PL-PWR",
+            "type": "power",
+            "kind": "power",
+            "owners": [
+              "@SC-PL",
+              "@EPS"
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "direction": "односторонняя",
+            "standard": "шина + отдельные линии",
+            "icd_section": "ICD-PL §питание",
+            "expects": [
+              {
+                "key": "power_avg",
+                "name": "среднее",
+                "unit": "Вт",
+                "required_to": "MCR"
+              },
+              {
+                "key": "power_peak",
+                "name": "пиковое",
+                "unit": "Вт",
+                "required_to": "SRR"
+              },
+              {
+                "key": "voltage",
+                "name": "напряжение",
+                "unit": "В",
+                "required_to": "MCR"
+              }
+            ],
+            "models": [
+              "М4"
+            ],
+            "requirement_classes": [
+              "интерфейсные"
+            ]
+          },
+          {
+            "id": "IF-9209",
+            "name": "ПН ↔ платформа: данные и команды",
+            "code": "IF-PL-DATA",
+            "type": "data",
+            "kind": "data",
+            "owners": [
+              "@SC-PL",
+              "@OBC"
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "direction": "двусторонняя",
+            "standard": "шина / выделенный канал",
+            "icd_section": "ICD-PL §данные",
+            "expects": [
+              {
+                "key": "rate",
+                "name": "скорость",
+                "unit": "бит/с",
+                "required_to": "SRR"
+              },
+              {
+                "key": "buffer_owner",
+                "name": "где буфер сообщений (ПН/БКУ)",
+                "unit": "1",
+                "required_to": "SRR"
+              }
+            ],
+            "models": [
+              "М3б"
+            ],
+            "requirement_classes": [
+              "интерфейсные"
+            ]
+          },
+          {
+            "id": "IF-9210",
+            "name": "ПН ↔ платформа: тепло",
+            "code": "IF-PL-THERM",
+            "type": "thermal",
+            "kind": "thermal",
+            "owners": [
+              "@SC-PL",
+              "@TCS"
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "direction": "двусторонняя",
+            "standard": "кондуктивный/радиационный",
+            "icd_section": "ICD-PL §тепло",
+            "expects": [
+              {
+                "key": "dissipation",
+                "name": "тепловыделение ПН",
+                "unit": "Вт",
+                "required_to": "SRR"
+              },
+              {
+                "key": "t_range",
+                "name": "диапазон на границе",
+                "unit": "°C",
+                "required_to": "SRR"
+              }
+            ],
+            "models": [
+              "М5"
+            ],
+            "requirement_classes": [
+              "тепловые"
+            ]
+          },
+          {
+            "id": "IF-9211",
+            "name": "ПН ↔ платформа: механика",
+            "code": "IF-PL-MECH",
+            "type": "mech",
+            "kind": "mech",
+            "owners": [
+              "@SC-PL",
+              "@STR"
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "direction": "статический",
+            "standard": "крепление, юстировка АФУ",
+            "icd_section": "ICD-PL §механика",
+            "expects": [
+              {
+                "key": "mass",
+                "name": "масса ПН",
+                "unit": "кг",
+                "required_to": "MCR"
+              },
+              {
+                "key": "cg",
+                "name": "положение ЦМ",
+                "unit": "м",
+                "required_to": "SDR"
+              },
+              {
+                "key": "align",
+                "name": "юстировка антенн",
+                "unit": "°",
+                "required_to": "SDR"
+              }
+            ],
+            "models": [
+              "М6"
+            ],
+            "requirement_classes": [
+              "прочностные",
+              "точностные"
+            ]
+          },
+          {
+            "id": "IF-9212",
+            "name": "СОС → ДУ",
+            "code": "IF-AOCS-PROP",
+            "type": "data",
+            "kind": "data",
+            "owners": [
+              "@AOCS",
+              "@PROP"
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "direction": "односторонняя",
+            "standard": "команды включения/вектор тяги",
+            "icd_section": "ICD-AOCS",
+            "expects": [
+              {
+                "key": "cmd_rate",
+                "name": "частота команд",
+                "unit": "Гц",
+                "required_to": "SDR"
+              }
+            ],
+            "models": [
+              "М7"
+            ],
+            "requirement_classes": [
+              "функциональные"
+            ]
+          },
+          {
+            "id": "IF-9213",
+            "name": "КТРЛ ↔ БКУ",
+            "code": "IF-TTC-OBC",
+            "type": "data",
+            "kind": "data",
+            "owners": [
+              "@TTC",
+              "@OBC"
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "direction": "двусторонняя",
+            "standard": "кадры TM/TC",
+            "icd_section": "ICD-TTC-OBC",
+            "expects": [
+              {
+                "key": "tm_buffer",
+                "name": "буфер ТМ",
+                "unit": "МБ",
+                "required_to": "SRR"
+              }
+            ],
+            "models": [
+              "М3г"
+            ],
+            "requirement_classes": [
+              "интерфейсные",
+              "ИБ"
+            ]
+          },
+          {
+            "id": "IF-9214",
+            "name": "СЭП ↔ СТР (обогрев АКБ, нагреватели)",
+            "code": "IF-EPS-TCS",
+            "type": "power",
+            "kind": "power",
+            "owners": [
+              "@EPS",
+              "@TCS"
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "direction": "односторонняя",
+            "icd_section": "ICD-EPS",
+            "expects": [
+              {
+                "key": "heater_power",
+                "name": "мощность обогрева",
+                "unit": "Вт",
+                "required_to": "SDR"
+              }
+            ],
+            "models": [
+              "М4",
+              "М5"
+            ],
+            "requirement_classes": [
+              "интерфейсные"
+            ]
+          },
+          {
+            "id": "IF-9215",
+            "name": "КА ↔ РН (адаптер)",
+            "code": "IF-SC-LV",
+            "type": "mech",
+            "kind": "mech",
+            "owners": [
+              "@SC-LVI",
+              "@LV-ADAPT"
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "direction": "статический",
+            "standard": "ICD носителя",
+            "icd_section": "ICD-LV",
+            "external": true,
+            "expects": [
+              {
+                "key": "mass_max",
+                "name": "масса максимальная",
+                "unit": "кг",
+                "required_to": "MCR"
+              },
+              {
+                "key": "envelope",
+                "name": "габарит под обтекатель",
+                "unit": "м",
+                "required_to": "SRR"
+              },
+              {
+                "key": "loads",
+                "name": "квазистатические нагрузки",
+                "unit": "1",
+                "required_to": "SRR"
+              },
+              {
+                "key": "sep",
+                "name": "условия отделения",
+                "unit": "1",
+                "required_to": "SRR"
+              },
+              {
+                "key": "umbilical",
+                "name": "электрический интерфейс до старта",
+                "unit": "1",
+                "required_to": "SDR"
+              }
+            ],
+            "models": [
+              "М6"
+            ],
+            "requirement_classes": [
+              "интерфейсные",
+              "прочностные"
+            ]
+          },
+          {
+            "id": "IF-9216",
+            "name": "КА ↔ космическая среда",
+            "code": "IF-SC-ENV",
+            "type": "env",
+            "kind": "env",
+            "owners": [
+              "@SC",
+              "@SYS"
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "direction": "воздействие",
+            "standard": "модели среды (радиация, атмосфера, АК)",
+            "icd_section": "спецификация среды",
+            "external": true,
+            "expects": [
+              {
+                "key": "tid",
+                "name": "доза за срок",
+                "unit": "крад",
+                "required_to": "SRR"
+              },
+              {
+                "key": "t_cycles",
+                "name": "тепловые циклы",
+                "unit": "шт",
+                "required_to": "SDR"
+              },
+              {
+                "key": "ao",
+                "name": "атомарный кислород",
+                "unit": "1",
+                "required_to": "SDR"
+              }
+            ],
+            "models": [
+              "М8",
+              "М5",
+              "М10"
+            ],
+            "requirement_classes": [
+              "стойкость"
+            ]
+          },
+          {
+            "id": "IF-9217",
+            "name": "Станции НКУ ↔ ЦУП",
+            "code": "IF-GCS-MCC",
+            "type": "data",
+            "kind": "data",
+            "owners": [
+              "@GCS",
+              "@MCC"
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "direction": "двусторонняя",
+            "standard": "IP, CCSDS SLE",
+            "icd_section": "ICD-GS",
+            "expects": [
+              {
+                "key": "latency",
+                "name": "латентность",
+                "unit": "мс",
+                "required_to": "SRR"
+              },
+              {
+                "key": "availability",
+                "name": "доступность",
+                "unit": "1",
+                "required_to": "SRR"
+              }
+            ],
+            "models": [
+              "М14"
+            ],
+            "requirement_classes": [
+              "интерфейсные",
+              "ИБ"
+            ]
+          },
+          {
+            "id": "IF-9218",
+            "name": "РСС ↔ ЦОД (ССПД)",
+            "code": "IF-GW-DC",
+            "type": "data",
+            "kind": "data",
+            "owners": [
+              "@GW",
+              "@DC"
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "direction": "двусторонняя",
+            "standard": "IP/VPN",
+            "icd_section": "ICD-NET",
+            "expects": [
+              {
+                "key": "latency",
+                "name": "латентность",
+                "unit": "мс",
+                "required_to": "SRR"
+              },
+              {
+                "key": "bandwidth",
+                "name": "полоса",
+                "unit": "бит/с",
+                "required_to": "SRR"
+              },
+              {
+                "key": "availability",
+                "name": "доступность",
+                "unit": "1",
+                "required_to": "SRR"
+              }
+            ],
+            "models": [
+              "М3е"
+            ],
+            "requirement_classes": [
+              "интерфейсные",
+              "ИБ"
+            ]
+          },
+          {
+            "id": "IF-9219",
+            "name": "ЦОД ↔ потребители (API, кабинеты)",
+            "code": "IF-DC-USER",
+            "type": "data",
+            "kind": "data",
+            "owners": [
+              "@DC-API",
+              "@USR-APP"
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "direction": "двусторонняя",
+            "standard": "REST/MQTT, форматы сообщений",
+            "icd_section": "ICD-API",
+            "expects": [
+              {
+                "key": "latency",
+                "name": "латентность доставки",
+                "unit": "с",
+                "required_to": "MCR"
+              },
+              {
+                "key": "sla",
+                "name": "SLA доступности",
+                "unit": "1",
+                "required_to": "SRR"
+              },
+              {
+                "key": "format",
+                "name": "формат данных",
+                "unit": "1",
+                "required_to": "SRR"
+              }
+            ],
+            "models": [
+              "М3е"
+            ],
+            "requirement_classes": [
+              "интерфейсные",
+              "договорные",
+              "ИБ"
+            ]
+          },
+          {
+            "id": "IF-9220",
+            "name": "ЦОД ↔ внешние госсистемы (ЭРА-ГЛОНАСС, ведомственные)",
+            "code": "IF-DC-EXT",
+            "type": "data",
+            "kind": "data",
+            "owners": [
+              "@DC",
+              "@SYS"
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "direction": "двусторонняя",
+            "standard": "по регламентам внешних систем",
+            "icd_section": "ICD-EXT",
+            "external": true,
+            "expects": [
+              {
+                "key": "format",
+                "name": "формат обмена",
+                "unit": "1",
+                "required_to": "SRR"
+              },
+              {
+                "key": "cert",
+                "name": "требования сертификации",
+                "unit": "1",
+                "required_to": "SRR"
+              }
+            ],
+            "models": [
+              "М3е"
+            ],
+            "requirement_classes": [
+              "интерфейсные",
+              "регуляторные",
+              "ИБ"
+            ]
+          },
+          {
+            "id": "IF-9221",
+            "name": "ЦУП ↔ ЦУС (план сеансов ↔ нагрузка сети)",
+            "code": "IF-MCC-NOC",
+            "type": "data",
+            "kind": "data",
+            "owners": [
+              "@MCC",
+              "@NOC"
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "direction": "двусторонняя",
+            "standard": "внутренний API",
+            "icd_section": "ICD-OPS",
+            "expects": [
+              {
+                "key": "plan_horizon",
+                "name": "горизонт планирования",
+                "unit": "сут",
+                "required_to": "SRR"
+              }
+            ],
+            "models": [
+              "М14"
+            ],
+            "requirement_classes": [
+              "функциональные"
+            ]
+          },
+          {
+            "id": "IF-9222",
+            "name": "ЦУП → терминалы: эфемериды/альманах",
+            "code": "IF-MCC-EPH",
+            "type": "data",
+            "kind": "data",
+            "owners": [
+              "@MCC-FD",
+              "@UT"
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "direction": "односторонняя",
+            "standard": "через КА (широковещательный маяк)",
+            "icd_section": "ICD-EPH",
+            "expects": [
+              {
+                "key": "update_period",
+                "name": "период обновления",
+                "unit": "сут",
+                "required_to": "SRR"
+              },
+              {
+                "key": "size",
+                "name": "размер альманаха",
+                "unit": "байт",
+                "required_to": "SRR"
+              }
+            ],
+            "models": [
+              "М14",
+              "М3а"
+            ],
+            "requirement_classes": [
+              "функциональные"
+            ]
+          },
+          {
+            "id": "IF-9223",
+            "name": "Терминал ↔ оборудование потребителя",
+            "code": "IF-UT-SENSOR",
+            "type": "data",
+            "kind": "data",
+            "owners": [
+              "@UT-SENS-IO",
+              "@SYS"
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "direction": "двусторонняя",
+            "standard": "RS-485/Modbus, GPIO, CAN",
+            "icd_section": "ICD-UT",
+            "external": true,
+            "expects": [
+              {
+                "key": "protocol",
+                "name": "протокол",
+                "unit": "1",
+                "required_to": "MCR"
+              },
+              {
+                "key": "power_out",
+                "name": "питание датчиков",
+                "unit": "Вт",
+                "required_to": "SRR"
+              }
+            ],
+            "requirement_classes": [
+              "интерфейсные"
+            ]
+          },
+          {
+            "id": "IF-9224",
+            "name": "Операторы ↔ ЦУП/ЦУС",
+            "code": "IF-OPS-HMI",
+            "type": "hmi",
+            "kind": "hmi",
+            "owners": [
+              "@MCC",
+              "@SYS"
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "direction": "двусторонняя",
+            "standard": "АРМ операторов",
+            "icd_section": "ConOps §6",
+            "expects": [
+              {
+                "key": "reaction",
+                "name": "время реакции на аварию",
+                "unit": "мин",
+                "required_to": "SRR"
+              },
+              {
+                "key": "automation",
+                "name": "доля автоматизированных операций",
+                "unit": "1",
+                "required_to": "SRR"
+              }
+            ],
+            "models": [
+              "М14"
+            ],
+            "requirement_classes": [
+              "эргономика",
+              "автоматизация"
+            ]
+          },
+          {
+            "id": "IF-9225",
+            "name": "Система ↔ регулятор радиочастот",
+            "code": "IF-REG",
+            "type": "org",
+            "kind": "org",
+            "owners": [
+              "@SYS",
+              "@SYS"
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "direction": "организационный",
+            "standard": "частотные присвоения, координация",
+            "icd_section": "—",
+            "expects": [
+              {
+                "key": "assignments",
+                "name": "присвоения по диапазонам",
+                "unit": "1",
+                "required_to": "MCR"
+              },
+              {
+                "key": "coordination",
+                "name": "международная координация",
+                "unit": "1",
+                "required_to": "SRR"
+              }
+            ],
+            "requirement_classes": [
+              "регуляторные"
+            ]
+          },
+          {
+            "id": "IF-9226",
+            "name": "Проект ↔ поставщик пуска",
+            "code": "IF-LAUNCH-ORG",
+            "type": "org",
+            "kind": "org",
+            "owners": [
+              "@SYS",
+              "@LV"
+            ],
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "direction": "организационный",
+            "standard": "контракт, попутная схема",
+            "icd_section": "—",
+            "external": true,
+            "expects": [
+              {
+                "key": "slots",
+                "name": "окна пусков",
+                "unit": "1",
+                "required_to": "SRR"
+              },
+              {
+                "key": "batches",
+                "name": "партии по наклонениям",
+                "unit": "шт",
+                "required_to": "SRR"
+              }
+            ],
+            "models": [
+              "М11"
+            ],
+            "requirement_classes": [
+              "договорные"
+            ]
+          }
+        ]
+      },
+      "lifecycle": {
+        "status": "Draft",
+        "version": "1"
+      }
+    }
+  ]
+}

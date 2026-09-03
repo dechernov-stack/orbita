@@ -15,6 +15,8 @@ const ROLE_LABEL: Record<string, string> = {
   payload: 'Полезная нагрузка',
   terminal: 'Терминал потребителя',
   ground_station: 'Наземная станция',
+  node: 'Узел состава',
+  interface: 'Стык',
 }
 
 export function DataRequests({ onGo }: { onGo?: (screen: string) => void }) {

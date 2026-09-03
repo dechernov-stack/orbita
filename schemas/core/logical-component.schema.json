@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/core/logical-component.schema.json",
+  "title": "LogicalComponent",
+  "description": "Логический компонент (Arcadia LA): группировка функций, которая РАЗВОРАЧИВАЕТСЯ на узлы дерева состава (deployed_to). Второго дерева носителей он не заводит (ADR-044): состав — один, PBS; логический компонент отвечает на вопрос «кто это делает логически», а узел — «на чём это стоит».",
+  "type": "object",
+  "required": [
+    "id",
+    "name",
+    "lifecycle"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^LC-[0-9]{4}$"
+    },
+    "code": {
+      "type": "string",
+      "description": "Стабильный код логического компонента полки (LC-PAYLOAD)"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "statement": {
+      "type": "string"
+    },
+    "functions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^FN-[0-9]{4}$"
+      },
+      "description": "Функции, которые компонент группирует"
+    },
+    "deployed_to": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^CM-[0-9]{4}$"
+      },
+      "description": "Узлы дерева состава, на которые компонент развёрнут"
+    },
+    "owner": {
+      "type": "string"
+    },
+    "lifecycle": {
+      "$ref": "https://kis.local/schemas/common/status.schema.json"
+    },
+    "provenance": {
+      "$ref": "https://kis.local/schemas/common/provenance.schema.json"
+    },
+    "applies": {
+      "type": "object",
+      "description": "Применение библиотечного фрагмента (tailoring): экземпляр помнит прототип; отклонение и неприменимость требуют обоснования",
+      "additionalProperties": false,
+      "required": [
+        "ref",
+        "status"
+      ],
+      "properties": {
+        "ref": {
+          "type": "string",
+          "pattern": "^LF-[0-9]{4}$"
+        },
+        "status": {
+          "enum": [
+            "applied",
+            "deviation",
+            "not_applicable"
+          ],
+          "description": "применено · с отклонением · неприменимо"
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 10
+        }
+      },
+      "if": {
+        "properties": {
+          "status": {
+            "enum": [
+              "deviation",
+              "not_applicable"
+            ]
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "ref",
+          "status",
+          "rationale"
+        ]
+      }
+    }
+  }
+}

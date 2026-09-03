@@ -422,6 +422,11 @@ class HttpApi(private val boundary: Boundary) {
                 val gate = query(ex)["gate"] ?: runCatching { boundary.gatePassing.nextGate(p) }.getOrNull()
                 respond(ex, 200, boundary.systemModels.view(p, gate))
             }
+            // ADR-052: экран «Архитектура» — четыре слоя Arcadia одним ответом
+            method == "GET" && path == "/views/architecture" -> {
+                val p = requireProject(project)
+                respond(ex, 200, ArchitectureView(boundary).view(p))
+            }
             // ADR-050: покрытие требований по категории — функции и цепочки
             method == "GET" && path == "/reports/requirement-coverage" -> {
                 val m = boundary.matrices.coverageMatrix(project)
@@ -4289,10 +4294,12 @@ class HttpApi(private val boundary: Boundary) {
             // Ф-06: запросы данных — анкеты характеристик, наложенные на
             // модель: что заполнено, чего не хватает и откуда это взять.
             method == "GET" && path == "/views/data-requests" -> {
-                // ADR-051: анкеты ролей и АНКЕТЫ УЗЛОВ каркаса — один список:
-                // инженер спрашивает «что от меня хотят», а не «чья это анкета»
+                // ADR-051, ADR-052: анкеты ролей, УЗЛОВ каркаса и СТЫКОВ — один
+                // список: инженер спрашивает «что от меня хотят», а не «чья это
+                // анкета»; поля стыка спрашиваются у ребра, а не у двух концов
                 val p = requireProject(project)
-                val requests = DataRequests(boundary).of(p) + DataRequests(boundary).ofNodes(p)
+                val requests = DataRequests(boundary).of(p) + DataRequests(boundary).ofNodes(p) +
+                    DataRequests(boundary).ofInterfaces(p)
                 val out = mapper.createObjectNode()
                 out.put("missing_total", requests.sumOf { it.missing.size })
                 out.set<ArrayNode>("requests", DataRequests(boundary).toJson(requests))

@@ -48,9 +48,9 @@
       "type": "array",
       "items": {
         "type": "string",
-        "pattern": "^(ND|SV|CO|MG)-[0-9]{4}$"
+        "pattern": "^(ND|SV|CO|MG|OC)-[0-9]{4}$"
       },
-      "description": "Откуда цепочка следует: сценарий ConOps, нужда, сервис, цель"
+      "description": "Откуда цепочка следует: сценарий ConOps, нужда, сервис, цель Способность (OC) — законный источник: цепочка реализует её, а способность уже привязана к целям и нуждам."
     },
     "owner": {
       "type": "string"
@@ -63,6 +63,39 @@
     },
     "applies": {
       "type": "object"
+    },
+    "code": {
+      "type": "string",
+      "description": "Стабильный код цепочки архитектурной полки (FC-01)"
+    },
+    "capability": {
+      "type": "string",
+      "pattern": "^OC-[0-9]{4}$",
+      "description": "Операционная способность, которую цепочка реализует"
+    },
+    "ack": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "function"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "function": {
+            "type": "string",
+            "pattern": "^FN-[0-9]{4}$"
+          }
+        }
+      },
+      "description": "Обратный ход сценария (подтверждение доставки): функции, идущие назад по цепочке"
+    },
+    "requirement_kinds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Какие требования вешаются на цепочку (сценарные: сквозная латентность, вероятность доставки)"
     }
   }
 }

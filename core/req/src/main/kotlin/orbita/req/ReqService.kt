@@ -445,6 +445,21 @@ class ReqService(
                             put(Triple(objId, step.path("function").asText(), "allocation"), Attrs(allocationKind = "full"))
                         }
                     }
+                    // ADR-052: способность (OA) привязана к целям, сервисам, нуждам и
+                    // сценариям; покрытия она не даёт — это слой «зачем»
+                    "capability" -> d.path("traced_to").forEach { t ->
+                        put(Triple(t.path("ref").asText(), objId, "trace"), Attrs(rationale = t.path("rationale").asText(null)))
+                    }
+                    // ADR-052: логический компонент (LA) группирует функции и
+                    // РАЗВОРАЧИВАЕТСЯ на узлы состава — второго дерева не заводит
+                    "logical_component" -> {
+                        d.path("functions").forEach { fn ->
+                            put(Triple(objId, fn.asText(), "allocation"), Attrs(allocationKind = "full"))
+                        }
+                        d.path("deployed_to").forEach { cm ->
+                            put(Triple(objId, cm.asText(), "hosted_on"), Attrs())
+                        }
+                    }
                     // ADR-047: функция — трассировка от источника, распределение на узлы
                     "function" -> {
                         d.path("traces_up").forEach { t ->
@@ -531,6 +546,8 @@ class ReqService(
                     links.linksFrom(id, "conflict")
             "function" -> links.linksTo(id, "trace") + links.linksFrom(id, "allocation")
             "function_chain" -> links.linksTo(id, "trace") + links.linksFrom(id, "allocation")
+            "capability" -> links.linksTo(id, "trace")
+            "logical_component" -> links.linksFrom(id, "allocation")
             "arch_link" -> links.linksFrom(doc.path("requirement").asText(""), "allocation")
                 .filter { it.toId == doc.path("element").asText("") }
             else -> emptyList()
@@ -716,6 +733,48 @@ class ReqService(
         return conn.tx {
             val stored = create(doc, "function_chain", createdBy, projectId)
             syncLinks("function_chain", stored.id, doc, projectId)
+            stored
+        }
+    }
+
+    /**
+     * ADR-052: способность слоя OA. Привязка ведёт на существующие цели,
+     * сервисы, нужды и сценарии — служба не заводит их за инженера; подсказка
+     * полки («нужды класса A′») остаётся текстом, пока связь не поставлена.
+     */
+    fun ingestCapability(json: String, createdBy: String = "api", projectId: String = ObjectStore.DEFAULT_PROJECT): StoredObject {
+        val doc = registry.parse(json)
+        registry.require("core/capability", doc)
+        doc.path("traced_to").forEach { t ->
+            val ref = t.path("ref").asText("")
+            objects.current(ref) ?: throw ModelViolationException("ADR-052: способность привязана к отсутствующему объекту $ref")
+        }
+        return conn.tx {
+            val stored = create(doc, "capability", createdBy, projectId)
+            syncLinks("capability", stored.id, doc, projectId)
+            stored
+        }
+    }
+
+    /**
+     * ADR-052: логический компонент слоя LA. Группирует существующие функции и
+     * разворачивается на узлы дерева состава: несуществующая функция или узел —
+     * отказ, потому что развёртывание в пустоту не объясняет ничего.
+     */
+    fun ingestLogicalComponent(json: String, createdBy: String = "api", projectId: String = ObjectStore.DEFAULT_PROJECT): StoredObject {
+        val doc = registry.parse(json)
+        registry.require("core/logical-component", doc)
+        doc.path("functions").forEach { fn ->
+            objects.current(fn.asText())?.takeIf { it.type == "function" }
+                ?: throw ModelViolationException("ADR-052: логический компонент группирует отсутствующую функцию ${fn.asText()}")
+        }
+        doc.path("deployed_to").forEach { cm ->
+            objects.current(cm.asText())?.takeIf { it.type == "component" }
+                ?: throw ModelViolationException("ADR-052: логический компонент развёрнут на отсутствующий узел ${cm.asText()}")
+        }
+        return conn.tx {
+            val stored = create(doc, "logical_component", createdBy, projectId)
+            syncLinks("logical_component", stored.id, doc, projectId)
             stored
         }
     }

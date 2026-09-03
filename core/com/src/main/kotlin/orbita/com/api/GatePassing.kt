@@ -216,6 +216,30 @@ class GatePassing(
                     )
                 }
             }
+            // ADR-052: архитектура объясняет, ЧЕМ требование выполнено, поэтому
+            // спрашивается и она сама: функция, не севшая на узел, ничего не
+            // объясняет, а цепочка без сценарного требования — рисунок сценария,
+            // за который никто не отвечает. К SDR это ворота.
+            if (gate == "SDR" || gate == "KDP-B") {
+                val матрица = boundary.matrices.functionMatrix(projectId)
+                add(
+                    "functions_allocated", "blocking", "Функции распределены на узлы",
+                    матрица.unallocated.size,
+                    "${матрица.unallocated.size} функций без узла: " + матрица.unallocated.take(4).joinToString(", "),
+                    "matrix", blocking = true, closedNote = "каждая функция на носителе",
+                )
+                val покрытие = boundary.matrices.coverageMatrix(projectId)
+                val цепочкиСТребованиями = покрытие.rows.flatMap { it.realizedBy }.toSet()
+                val пустыеЦепочки = boundary.objects.listCurrent(projectId)
+                    .filter { it.type == "function_chain" && it.status != orbita.mod.model.Lifecycle.Cancelled }
+                    .map { it.id }.filter { it !in цепочкиСТребованиями }
+                add(
+                    "chains_requirements", "blocking", "На цепочках висят сценарные требования",
+                    пустыеЦепочки.size,
+                    "${пустыеЦепочки.size} цепочек без требования: " + пустыеЦепочки.take(4).joinToString(", "),
+                    "matrix", blocking = true, closedNote = "у каждой цепочки есть требование",
+                )
+            }
             val noAcc = reqRows.filter { it.noAcceptanceGap }
             add(
                 "acceptance", "statement", "Критерий приёмки записан",

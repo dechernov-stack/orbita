@@ -1376,3 +1376,49 @@ export interface ResultsView {
   empty_why?: string
 }
 
+/** ADR-052: экран «Архитектура» — четыре слоя Arcadia. Разрывы считает сервер. */
+export type ArchitectureView = {
+  oa: {
+    capabilities: Array<{
+      id: string; code: string; name: string; hint: string; linked: boolean
+      traced_to: Array<{ ref: string; name: string }>
+    }>
+    actors: Array<{ id: string; name: string; role: string; note: string }>
+  }
+  sa: {
+    functions: Array<{
+      id: string; code: string; name: string; allocated: boolean
+      allocated_to: Array<{ ref: string; name: string }>
+      exchanges: Array<{
+        code: string; name: string; to: string; to_name: string
+        to_activity: string; interface: string; interface_name: string
+      }>
+      traces_up: string[]
+    }>
+    chains: Array<{
+      id: string; code: string; name: string; capability: string; has_requirement: boolean
+      steps: Array<{ ref: string; code: string; name: string }>
+      ack: Array<{ ref: string; name: string }>
+      requirement_kinds: string[]
+      requirements: string[]
+    }>
+  }
+  logical_components: Array<{
+    id: string; code: string; name: string
+    functions: Array<{ ref: string; name: string }>
+    deployed_to: Array<{ ref: string; name: string }>
+  }>
+  interfaces: Array<{
+    id: string; code: string; name: string; type: string; sides: string
+    fields: number; filled: number; icd_section: string
+    exchanges: Array<{ code: string; name: string; from: string }>
+    requirements: string[]
+  }>
+  gaps: Array<{ what: string; place: string }>
+  counts_functions: number
+  counts_chains: number
+  counts_capabilities: number
+  counts_logical: number
+  counts_interfaces: number
+  counts_nodes: number
+}

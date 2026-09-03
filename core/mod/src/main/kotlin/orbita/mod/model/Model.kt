@@ -48,6 +48,10 @@ enum class CoreType(val idPrefix: String, val dbType: String, val schemaName: St
     // ADR-050: запись модели системы и функциональная цепочка
     SystemModel("SM", "system_model", "core/system-model"),
     FunctionChain("FC", "function_chain", "core/function-chain"),
+    // ADR-052: слои Arcadia — способность (OA) и логический компонент (LA);
+    // PA не дублируется: физическая правда — дерево состава и интерфейсы
+    Capability("OC", "capability", "core/capability"),
+    LogicalComponent("LC", "logical_component", "core/logical-component"),
     ArchLink("AR", "arch_link", "core/arch-link"),
     Technology("TL", "technology", "core/technology"),
     Decision("DN", "decision", "core/decision"),

@@ -28,9 +28,10 @@
         "B6",
         "B7",
         "B8",
+        "B9",
         "G1"
       ],
-      "description": "типовые требования · шаблоны компонентов · PBS · WBS · интерфейсы · заготовки профилей · модели системы"
+      "description": "типовые требования · шаблоны компонентов · PBS · WBS · интерфейсы · заготовки профилей · модели системы · архитектура (Arcadia)"
     },
     "mission_class_ref": {
       "type": "string",
@@ -99,6 +100,31 @@
     },
     "provenance": {
       "$ref": "https://kis.local/schemas/common/provenance.schema.json"
+    },
+    "diagrams": {
+      "type": "array",
+      "description": "Диаграммы архитектуры к обзорам (OAB к MCR, SAB и FCD к SRR, LAB и PAB к SDR): ПЛАН иллюстраций, а не сами диаграммы — объект model_element заводится, когда появляется настоящая модель",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "review": {
+            "type": "string"
+          },
+          "shows": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
     }
   }
 }

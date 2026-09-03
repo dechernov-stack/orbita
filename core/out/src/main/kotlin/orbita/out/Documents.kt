@@ -257,6 +257,7 @@ class DocumentGenerator(private val mapper: ObjectMapper = ObjectMapper()) {
         "risk_plan" -> fillRiskPlan(section, model, items)
         "cost_ranges" -> fillCost(section, model, items, "range")
         "project_plan" -> fillProjectPlan(section, model, items, gaps)
+        "icd" -> fillIcd(section, model, items, gaps)
         // документ неизвестного кода: наполнения нет — честный разрыв раздела
         else -> gaps.add(DocumentGap(section, "содержимое", "наполнение для кода '" + template.code + "' не заведено"))
     }
@@ -502,6 +503,88 @@ class DocumentGenerator(private val mapper: ObjectMapper = ObjectMapper()) {
         }
     }
 
+
+    // ---------- ADR-052: ICD — документ по стыкам ----------
+
+    /**
+     * ICD собирается ИЗ ДАННЫХ стыка: перечень, анкета с точками зрелости,
+     * требования, распределённые на стык, и открытые вопросы. Набранный руками
+     * ICD разошёлся бы с моделью в первый же день — поэтому своего текста тут
+     * почти нет, а незаполненное поле честно называется незаполненным.
+     */
+    private fun fillIcd(section: Int, model: JsonNode, items: ArrayNode, gaps: MutableList<DocumentGap>) {
+        val стыки = components(model).filter { (_, c) -> c.path("owners").size() == 2 }
+        val имена = components(model).associate { (id, c) -> id to c.path("name").asText(id) }
+        if (стыки.isEmpty() && section in 2..5) {
+            gaps.add(DocumentGap(section, "стыки", "в проекте нет ни одного интерфейса — взять полку интерфейсов"))
+            return
+        }
+        when (section) {
+            2 -> стыки.forEach { (id, c) ->
+                val n = items.addObject()
+                n.put("id", id)
+                n.put("code", c.path("code").asText(""))
+                n.put("name", c.path("name").asText(""))
+                n.put("type", c.path("type").asText(c.path("kind").asText("")))
+                n.put("sides", c.path("owners").joinToString(" ↔ ") { имена[it.asText()] ?: it.asText() })
+                n.put("direction", c.path("direction").asText(""))
+                n.put("standard", c.path("standard").asText(""))
+                n.put("icd_section", c.path("icd_section").asText(""))
+            }
+            3 -> стыки.forEach { (id, c) ->
+                val значения = c.path("parameters").associate { p ->
+                    p.path("name").asText("") to p.path("quantity")
+                }
+                c.path("expects").forEach { f ->
+                    val ключ = f.path("key").asText()
+                    val q = значения[ключ]
+                    val n = items.addObject()
+                    n.put("interface", id)
+                    n.put("interface_name", c.path("name").asText(""))
+                    n.put("field", f.path("name").asText(ключ))
+                    n.put("unit", f.path("unit").asText(""))
+                    n.put("required_to", f.path("required_to").asText(""))
+                    if (q != null && !q.path("value").isMissingNode && !q.path("value").isNull) {
+                        n.set<ObjectNode>("value", q.path("value").deepCopy())
+                    } else {
+                        n.put("value_missing", true)
+                    }
+                }
+            }
+            4 -> model.path("requirements").sortedBy { it.path("id").asText() }.forEach { r ->
+                r.path("allocated_to").mapNotNull { it.path("interface").asText("").ifBlank { null } }
+                    .forEach { стык ->
+                        val n = items.addObject()
+                        n.put("interface", стык)
+                        n.put("interface_name", имена[стык] ?: стык)
+                        n.put("requirement", r.path("id").asText())
+                        n.put("statement", r.path("statement").asText(""))
+                        n.put("status", r.path("lifecycle").path("status").asText(""))
+                    }
+            }
+            5 -> {
+                val сТребованиями = model.path("requirements")
+                    .flatMap { r -> r.path("allocated_to").map { it.path("interface").asText("") } }.toSet()
+                стыки.forEach { (id, c) ->
+                    val незаданные = c.path("expects").count { f ->
+                        c.path("parameters").none { p ->
+                            p.path("name").asText("") == f.path("key").asText() &&
+                                !p.path("quantity").path("value").isMissingNode
+                        }
+                    }
+                    if (незаданные > 0) {
+                        items.addObject().put("interface", id).put("interface_name", c.path("name").asText(""))
+                            .put("issue", "не заполнено полей анкеты: $незаданные")
+                    }
+                    if (id !in сТребованиями) {
+                        items.addObject().put("interface", id).put("interface_name", c.path("name").asText(""))
+                            .put("issue", "на стык не распределено ни одного требования")
+                    }
+                }
+            }
+            else -> {}
+        }
+    }
 
     // ---------- Блок C: комплекты Д1–Д9 / Д1–Д10 ----------
 

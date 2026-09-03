@@ -1,15 +1,14 @@
 {
-  "_comment": "Каркас PBS ред. 2 (ADR-051, ШАБЛОН-PBS.md + ПОЛКА-PBS.json): 135 узлов до шестого уровня, 130 полей анкет узлов с точками зрелости, 10 интерфейсов с привязкой моделей М2/М3. Взятие разворачивает дерево носителей проекта: уровни 0–3 всегда, 4–5 по классу миссии; optional — по подтверждению; external — требования к интерфейсу, не к составу. Коды узлов стабильны и служат для сопоставления с уже заведёнными узлами.",
-  "author": "полка: каркас PBS",
+  "_comment": "ADR-051: каркас PBS ред. 3 — 135 узлов до шестого уровня с анкетами (expects), кодами, признаками «внешний» и «необязательный». Стыки ушли на полку интерфейсов (ADR-052): один стык в двух полках при взятии обеих завёлся бы дважды.",
+  "author": "поставка владельца 03.09: ПОЛКА-PBS.json · ПОЛКА-ИНТЕРФЕЙСЫ.json · ПОЛКА-АРХИТЕКТУРА-ARCADIA.json",
   "objects": [
     {
       "id": "LF-9002",
-      "name": "Каркас PBS космической системы (ред. 2)",
+      "name": "Типовой PBS космической системы — класс НОО-IoT (ред. 3 — узлы)",
       "shelf": "B5",
       "mission_class_ref": "MC-0001",
       "counters": {
-        "component": 135,
-        "interface": 10
+        "component": 135
       },
       "origin": {
         "project": "полка",
@@ -28,23 +27,21 @@
               "status": "Draft",
               "version": "1"
             },
+            "level": 0,
             "expects": [
               {
                 "key": "lifetime",
                 "name": "срок активного существования",
                 "unit": "год",
-                "required_to": "MCR",
-                "hint": "корень: проектные требования распределяются сюда"
+                "required_to": "MCR"
               },
               {
                 "key": "n_sat",
                 "name": "число КА в ОГ",
                 "unit": "шт",
-                "required_to": "MCR",
-                "hint": "корень: проектные требования распределяются сюда"
+                "required_to": "MCR"
               }
-            ],
-            "level": 0
+            ]
           },
           {
             "id": "CM-9102",
@@ -68,59 +65,52 @@
               "version": "1"
             },
             "parent": "CM-9102",
+            "level": 2,
             "default_quantity": 1,
             "expects": [
               {
                 "key": "mass_dry",
                 "name": "масса сухая",
                 "unit": "кг",
-                "required_to": "MCR",
-                "hint": "вхождение ×N по подгруппам построения; носитель для построений"
+                "required_to": "MCR"
               },
               {
                 "key": "mass_wet",
                 "name": "масса стартовая",
                 "unit": "кг",
-                "required_to": "SRR",
-                "hint": "вхождение ×N по подгруппам построения; носитель для построений"
+                "required_to": "SRR"
               },
               {
                 "key": "power_avg",
                 "name": "мощность средняя",
                 "unit": "Вт",
-                "required_to": "MCR",
-                "hint": "вхождение ×N по подгруппам построения; носитель для построений"
+                "required_to": "MCR"
               },
               {
                 "key": "power_peak",
                 "name": "мощность пиковая",
                 "unit": "Вт",
-                "required_to": "SRR",
-                "hint": "вхождение ×N по подгруппам построения; носитель для построений"
+                "required_to": "SRR"
               },
               {
                 "key": "cross_section",
                 "name": "площадь миделя",
                 "unit": "м²",
-                "required_to": "SRR",
-                "hint": "вхождение ×N по подгруппам построения; носитель для построений"
+                "required_to": "SRR"
               },
               {
                 "key": "drag_coeff",
                 "name": "коэффициент сопротивления Cd (прокси 2,2)",
                 "unit": "1",
-                "required_to": "SRR",
-                "hint": "вхождение ×N по подгруппам построения; носитель для построений"
+                "required_to": "SRR"
               },
               {
                 "key": "dims",
                 "name": "габариты под обтекатель",
                 "unit": "м",
-                "required_to": "SRR",
-                "hint": "вхождение ×N по подгруппам построения; носитель для построений"
+                "required_to": "SRR"
               }
-            ],
-            "level": 2
+            ]
           },
           {
             "id": "CM-9104",
@@ -144,23 +134,21 @@
               "version": "1"
             },
             "parent": "CM-9104",
+            "level": 4,
             "expects": [
               {
                 "key": "mass",
                 "name": "масса",
                 "unit": "кг",
-                "required_to": "SRR",
-                "hint": "силовая основа и раскрытия"
+                "required_to": "SRR"
               },
               {
                 "key": "first_mode",
                 "name": "первая собственная частота",
                 "unit": "Гц",
-                "required_to": "SDR",
-                "hint": "силовая основа и раскрытия"
+                "required_to": "SDR"
               }
-            ],
-            "level": 4
+            ]
           },
           {
             "id": "CM-9106",
@@ -184,6 +172,7 @@
               "version": "1"
             },
             "parent": "CM-9105",
+            "level": 5,
             "expects": [
               {
                 "key": "n_deploy",
@@ -191,8 +180,7 @@
                 "unit": "шт",
                 "required_to": "SDR"
               }
-            ],
-            "level": 5
+            ]
           },
           {
             "id": "CM-9108",
@@ -204,16 +192,15 @@
               "version": "1"
             },
             "parent": "CM-9105",
+            "level": 5,
             "expects": [
               {
                 "key": "sep_shock",
                 "name": "ударная нагрузка отделения",
                 "unit": "1",
-                "required_to": "SDR",
-                "hint": "интерфейс с сегментом выведения"
+                "required_to": "SDR"
               }
-            ],
-            "level": 5
+            ]
           },
           {
             "id": "CM-9109",
@@ -237,37 +224,33 @@
               "version": "1"
             },
             "parent": "CM-9104",
+            "level": 4,
             "expects": [
               {
                 "key": "bus_voltage",
                 "name": "напряжение шины",
                 "unit": "В",
-                "required_to": "MCR",
-                "hint": "первичный источник — СБ, вторичный — АКБ, преобразование и распределение"
+                "required_to": "MCR"
               },
               {
                 "key": "power_avg",
                 "name": "мощность средняя",
                 "unit": "Вт",
-                "required_to": "MCR",
-                "hint": "первичный источник — СБ, вторичный — АКБ, преобразование и распределение"
+                "required_to": "MCR"
               },
               {
                 "key": "power_peak",
                 "name": "мощность пиковая",
                 "unit": "Вт",
-                "required_to": "SRR",
-                "hint": "первичный источник — СБ, вторичный — АКБ, преобразование и распределение"
+                "required_to": "SRR"
               },
               {
                 "key": "eclipse_max",
                 "name": "тень максимальная на витке",
                 "unit": "мин",
-                "required_to": "SRR",
-                "hint": "первичный источник — СБ, вторичный — АКБ, преобразование и распределение"
+                "required_to": "SRR"
               }
-            ],
-            "level": 4
+            ]
           },
           {
             "id": "CM-9111",
@@ -279,6 +262,7 @@
               "version": "1"
             },
             "parent": "CM-9110",
+            "level": 5,
             "expects": [
               {
                 "key": "area",
@@ -310,8 +294,7 @@
                 "unit": "1",
                 "required_to": "MCR"
               }
-            ],
-            "level": 5
+            ]
           },
           {
             "id": "CM-9112",
@@ -323,6 +306,7 @@
               "version": "1"
             },
             "parent": "CM-9111",
+            "level": 6,
             "expects": [
               {
                 "key": "n",
@@ -330,8 +314,7 @@
                 "unit": "шт",
                 "required_to": "SRR"
               }
-            ],
-            "level": 6
+            ]
           },
           {
             "id": "CM-9113",
@@ -343,6 +326,7 @@
               "version": "1"
             },
             "parent": "CM-9111",
+            "level": 6,
             "expects": [
               {
                 "key": "type",
@@ -350,8 +334,7 @@
                 "unit": "1",
                 "required_to": "SRR"
               }
-            ],
-            "level": 6
+            ]
           },
           {
             "id": "CM-9114",
@@ -375,6 +358,7 @@
               "version": "1"
             },
             "parent": "CM-9110",
+            "level": 5,
             "expects": [
               {
                 "key": "capacity",
@@ -406,8 +390,7 @@
                 "unit": "шт",
                 "required_to": "SRR"
               }
-            ],
-            "level": 5
+            ]
           },
           {
             "id": "CM-9116",
@@ -419,6 +402,7 @@
               "version": "1"
             },
             "parent": "CM-9115",
+            "level": 6,
             "expects": [
               {
                 "key": "n",
@@ -426,8 +410,7 @@
                 "unit": "шт",
                 "required_to": "SRR"
               }
-            ],
-            "level": 6
+            ]
           },
           {
             "id": "CM-9117",
@@ -451,6 +434,7 @@
               "version": "1"
             },
             "parent": "CM-9110",
+            "level": 5,
             "expects": [
               {
                 "key": "eff",
@@ -458,8 +442,7 @@
                 "unit": "1",
                 "required_to": "SDR"
               }
-            ],
-            "level": 5
+            ]
           },
           {
             "id": "CM-9119",
@@ -471,6 +454,7 @@
               "version": "1"
             },
             "parent": "CM-9110",
+            "level": 5,
             "expects": [
               {
                 "key": "rails",
@@ -484,8 +468,7 @@
                 "unit": "1",
                 "required_to": "SDR"
               }
-            ],
-            "level": 5
+            ]
           },
           {
             "id": "CM-9120",
@@ -497,16 +480,15 @@
               "version": "1"
             },
             "parent": "CM-9110",
+            "level": 5,
             "expects": [
               {
                 "key": "n_channels",
                 "name": "число каналов",
                 "unit": "шт",
-                "required_to": "SDR",
-                "hint": "коммутация потребителей, защита по току"
+                "required_to": "SDR"
               }
-            ],
-            "level": 5
+            ]
           },
           {
             "id": "CM-9121",
@@ -530,6 +512,7 @@
               "version": "1"
             },
             "parent": "CM-9104",
+            "level": 4,
             "expects": [
               {
                 "key": "t_range_op",
@@ -543,8 +526,7 @@
                 "unit": "Вт",
                 "required_to": "SDR"
               }
-            ],
-            "level": 4
+            ]
           },
           {
             "id": "CM-9123",
@@ -580,6 +562,7 @@
               "version": "1"
             },
             "parent": "CM-9122",
+            "level": 5,
             "expects": [
               {
                 "key": "area",
@@ -587,8 +570,7 @@
                 "unit": "м²",
                 "required_to": "SDR"
               }
-            ],
-            "level": 5
+            ]
           },
           {
             "id": "CM-9126",
@@ -636,6 +618,7 @@
               "version": "1"
             },
             "parent": "CM-9104",
+            "level": 4,
             "expects": [
               {
                 "key": "pointing_acc",
@@ -661,8 +644,7 @@
                 "unit": "1",
                 "required_to": "SRR"
               }
-            ],
-            "level": 4
+            ]
           },
           {
             "id": "CM-9130",
@@ -674,6 +656,7 @@
               "version": "1"
             },
             "parent": "CM-9129",
+            "level": 5,
             "expects": [
               {
                 "key": "acc",
@@ -681,8 +664,7 @@
                 "unit": "°",
                 "required_to": "SRR"
               }
-            ],
-            "level": 5
+            ]
           },
           {
             "id": "CM-9131",
@@ -694,6 +676,7 @@
               "version": "1"
             },
             "parent": "CM-9129",
+            "level": 5,
             "expects": [
               {
                 "key": "n",
@@ -701,8 +684,7 @@
                 "unit": "шт",
                 "required_to": "SDR"
               }
-            ],
-            "level": 5
+            ]
           },
           {
             "id": "CM-9132",
@@ -738,6 +720,7 @@
               "version": "1"
             },
             "parent": "CM-9129",
+            "level": 5,
             "expects": [
               {
                 "key": "acc_pos",
@@ -745,8 +728,7 @@
                 "unit": "м",
                 "required_to": "SRR"
               }
-            ],
-            "level": 5
+            ]
           },
           {
             "id": "CM-9135",
@@ -758,6 +740,7 @@
               "version": "1"
             },
             "parent": "CM-9129",
+            "level": 5,
             "expects": [
               {
                 "key": "n",
@@ -777,8 +760,7 @@
                 "unit": "1",
                 "required_to": "SDR"
               }
-            ],
-            "level": 5
+            ]
           },
           {
             "id": "CM-9136",
@@ -790,7 +772,8 @@
               "version": "1"
             },
             "parent": "CM-9129",
-            "level": 5
+            "level": 5,
+            "expects": []
           },
           {
             "id": "CM-9137",
@@ -814,6 +797,7 @@
               "version": "1"
             },
             "parent": "CM-9104",
+            "level": 4,
             "expects": [
               {
                 "key": "cpu",
@@ -833,8 +817,7 @@
                 "unit": "сут",
                 "required_to": "SRR"
               }
-            ],
-            "level": 4
+            ]
           },
           {
             "id": "CM-9139",
@@ -846,6 +829,7 @@
               "version": "1"
             },
             "parent": "CM-9138",
+            "level": 5,
             "expects": [
               {
                 "key": "rad_tol",
@@ -853,8 +837,7 @@
                 "unit": "крад",
                 "required_to": "SRR"
               }
-            ],
-            "level": 5
+            ]
           },
           {
             "id": "CM-9140",
@@ -866,6 +849,7 @@
               "version": "1"
             },
             "parent": "CM-9138",
+            "level": 5,
             "expects": [
               {
                 "key": "size",
@@ -873,8 +857,7 @@
                 "unit": "МБ",
                 "required_to": "MCR"
               }
-            ],
-            "level": 5
+            ]
           },
           {
             "id": "CM-9141",
@@ -922,44 +905,39 @@
               "version": "1"
             },
             "parent": "CM-9104",
+            "level": 4,
             "expects": [
               {
                 "key": "delta_v_total",
                 "name": "Δv суммарный",
                 "unit": "м/с",
-                "required_to": "MCR",
-                "hint": "удержание, фазирование, увод"
+                "required_to": "MCR"
               },
               {
                 "key": "thrust",
                 "name": "тяга",
                 "unit": "мН",
-                "required_to": "SRR",
-                "hint": "удержание, фазирование, увод"
+                "required_to": "SRR"
               },
               {
                 "key": "isp",
                 "name": "удельный импульс",
                 "unit": "с",
-                "required_to": "SRR",
-                "hint": "удержание, фазирование, увод"
+                "required_to": "SRR"
               },
               {
                 "key": "propellant_mass",
                 "name": "масса топлива",
                 "unit": "кг",
-                "required_to": "SRR",
-                "hint": "удержание, фазирование, увод"
+                "required_to": "SRR"
               },
               {
                 "key": "type",
                 "name": "тип (ЭРД / газовая / химическая)",
                 "unit": "1",
-                "required_to": "MCR",
-                "hint": "удержание, фазирование, увод"
+                "required_to": "MCR"
               }
-            ],
-            "level": 4
+            ]
           },
           {
             "id": "CM-9145",
@@ -971,6 +949,7 @@
               "version": "1"
             },
             "parent": "CM-9144",
+            "level": 5,
             "expects": [
               {
                 "key": "n",
@@ -978,8 +957,7 @@
                 "unit": "шт",
                 "required_to": "SRR"
               }
-            ],
-            "level": 5
+            ]
           },
           {
             "id": "CM-9146",
@@ -991,6 +969,7 @@
               "version": "1"
             },
             "parent": "CM-9144",
+            "level": 5,
             "expects": [
               {
                 "key": "volume",
@@ -998,8 +977,7 @@
                 "unit": "л",
                 "required_to": "SRR"
               }
-            ],
-            "level": 5
+            ]
           },
           {
             "id": "CM-9147",
@@ -1023,6 +1001,7 @@
               "version": "1"
             },
             "parent": "CM-9144",
+            "level": 5,
             "expects": [
               {
                 "key": "power",
@@ -1030,8 +1009,7 @@
                 "unit": "Вт",
                 "required_to": "SRR"
               }
-            ],
-            "level": 5
+            ]
           },
           {
             "id": "CM-9149",
@@ -1043,51 +1021,45 @@
               "version": "1"
             },
             "parent": "CM-9104",
+            "level": 4,
             "expects": [
               {
                 "key": "band",
                 "name": "диапазон",
                 "unit": "МГц",
-                "required_to": "MCR",
-                "hint": "управление и ТМ с НКУ; аварийный режим через всенаправленные антенны"
+                "required_to": "MCR"
               },
               {
                 "key": "tx_power",
                 "name": "мощность передатчика",
                 "unit": "Вт",
-                "required_to": "SRR",
-                "hint": "управление и ТМ с НКУ; аварийный режим через всенаправленные антенны"
+                "required_to": "SRR"
               },
               {
                 "key": "sensitivity",
                 "name": "чувствительность приёмника",
                 "unit": "дБм",
-                "required_to": "SRR",
-                "hint": "управление и ТМ с НКУ; аварийный режим через всенаправленные антенны"
+                "required_to": "SRR"
               },
               {
                 "key": "tm_rate",
                 "name": "скорость ТМ",
                 "unit": "бит/с",
-                "required_to": "SRR",
-                "hint": "управление и ТМ с НКУ; аварийный режим через всенаправленные антенны"
+                "required_to": "SRR"
               },
               {
                 "key": "tc_rate",
                 "name": "скорость команд",
                 "unit": "бит/с",
-                "required_to": "SRR",
-                "hint": "управление и ТМ с НКУ; аварийный режим через всенаправленные антенны"
+                "required_to": "SRR"
               },
               {
                 "key": "crypto",
                 "name": "защита команд (да/нет)",
                 "unit": "1",
-                "required_to": "SRR",
-                "hint": "управление и ТМ с НКУ; аварийный режим через всенаправленные антенны"
+                "required_to": "SRR"
               }
-            ],
-            "level": 4
+            ]
           },
           {
             "id": "CM-9150",
@@ -1111,6 +1083,7 @@
               "version": "1"
             },
             "parent": "CM-9149",
+            "level": 5,
             "expects": [
               {
                 "key": "n",
@@ -1118,8 +1091,7 @@
                 "unit": "шт",
                 "required_to": "SRR"
               }
-            ],
-            "level": 5
+            ]
           },
           {
             "id": "CM-9152",
@@ -1155,6 +1127,7 @@
               "version": "1"
             },
             "parent": "CM-9104",
+            "level": 4,
             "expects": [
               {
                 "key": "mass",
@@ -1162,8 +1135,7 @@
                 "unit": "кг",
                 "required_to": "SDR"
               }
-            ],
-            "level": 4
+            ]
           },
           {
             "id": "CM-9155",
@@ -1211,6 +1183,7 @@
               "version": "1"
             },
             "parent": "CM-9103",
+            "level": 3,
             "expects": [
               {
                 "key": "mass",
@@ -1230,8 +1203,7 @@
                 "unit": "Вт",
                 "required_to": "SRR"
               }
-            ],
-            "level": 3
+            ]
           },
           {
             "id": "CM-9159",
@@ -1243,6 +1215,7 @@
               "version": "1"
             },
             "parent": "CM-9158",
+            "level": 4,
             "expects": [
               {
                 "key": "band",
@@ -1280,8 +1253,7 @@
                 "unit": "бит/с",
                 "required_to": "MCR"
               }
-            ],
-            "level": 4
+            ]
           },
           {
             "id": "CM-9160",
@@ -1317,6 +1289,7 @@
               "version": "1"
             },
             "parent": "CM-9159",
+            "level": 5,
             "expects": [
               {
                 "key": "buffer",
@@ -1324,8 +1297,7 @@
                 "unit": "МБ",
                 "required_to": "SRR"
               }
-            ],
-            "level": 5
+            ]
           },
           {
             "id": "CM-9163",
@@ -1337,6 +1309,7 @@
               "version": "1"
             },
             "parent": "CM-9159",
+            "level": 5,
             "expects": [
               {
                 "key": "stability",
@@ -1344,8 +1317,7 @@
                 "unit": "1",
                 "required_to": "SDR"
               }
-            ],
-            "level": 5
+            ]
           },
           {
             "id": "CM-9164",
@@ -1357,6 +1329,7 @@
               "version": "1"
             },
             "parent": "CM-9158",
+            "level": 4,
             "optional": true,
             "expects": [
               {
@@ -1365,8 +1338,7 @@
                 "unit": "МГц",
                 "required_to": "MCR"
               }
-            ],
-            "level": 4
+            ]
           },
           {
             "id": "CM-9165",
@@ -1378,6 +1350,7 @@
               "version": "1"
             },
             "parent": "CM-9158",
+            "level": 4,
             "expects": [
               {
                 "key": "band",
@@ -1397,8 +1370,7 @@
                 "unit": "дБВт",
                 "required_to": "SRR"
               }
-            ],
-            "level": 4
+            ]
           },
           {
             "id": "CM-9166",
@@ -1410,6 +1382,7 @@
               "version": "1"
             },
             "parent": "CM-9158",
+            "level": 4,
             "expects": [
               {
                 "key": "gain_s",
@@ -1429,8 +1402,7 @@
                 "unit": "°",
                 "required_to": "SRR"
               }
-            ],
-            "level": 4
+            ]
           },
           {
             "id": "CM-9167",
@@ -1478,6 +1450,7 @@
               "version": "1"
             },
             "parent": "CM-9158",
+            "level": 4,
             "optional": true,
             "expects": [
               {
@@ -1498,8 +1471,7 @@
                 "unit": "1",
                 "required_to": "SDR"
               }
-            ],
-            "level": 4
+            ]
           },
           {
             "id": "CM-9171",
@@ -1511,17 +1483,16 @@
               "version": "1"
             },
             "parent": "CM-9158",
+            "level": 4,
             "optional": true,
             "expects": [
               {
                 "key": "clock_stability",
                 "name": "стабильность опорного генератора",
                 "unit": "1",
-                "required_to": "SDR",
-                "hint": "навигационный сигнал, синхронизация времени"
+                "required_to": "SDR"
               }
-            ],
-            "level": 4
+            ]
           },
           {
             "id": "CM-9172",
@@ -1533,17 +1504,16 @@
               "version": "1"
             },
             "parent": "CM-9103",
+            "level": 3,
             "external": true,
             "expects": [
               {
                 "key": "adapter_type",
                 "name": "тип адаптера",
                 "unit": "1",
-                "required_to": "SRR",
-                "hint": "внешний интерфейс"
+                "required_to": "SRR"
               }
-            ],
-            "level": 3
+            ]
           },
           {
             "id": "CM-9173",
@@ -1555,8 +1525,9 @@
               "version": "1"
             },
             "parent": "CM-9102",
+            "level": 2,
             "optional": true,
-            "level": 2
+            "expects": []
           },
           {
             "id": "CM-9174",
@@ -1580,6 +1551,7 @@
               "version": "1"
             },
             "parent": "CM-9174",
+            "level": 2,
             "expects": [
               {
                 "key": "ops_shifts",
@@ -1593,8 +1565,7 @@
                 "unit": "шт",
                 "required_to": "SRR"
               }
-            ],
-            "level": 2
+            ]
           },
           {
             "id": "CM-9176",
@@ -1654,8 +1625,8 @@
               "version": "1"
             },
             "parent": "CM-9175",
-            "optional": true,
-            "level": 3
+            "level": 3,
+            "optional": true
           },
           {
             "id": "CM-9181",
@@ -1667,31 +1638,28 @@
               "version": "1"
             },
             "parent": "CM-9174",
+            "level": 2,
             "default_quantity": 2,
             "expects": [
               {
                 "key": "g_t",
                 "name": "добротность G/T",
                 "unit": "дБ/К",
-                "required_to": "SRR",
-                "hint": "вхождение ×N по площадкам"
+                "required_to": "SRR"
               },
               {
                 "key": "eirp",
                 "name": "EIRP",
                 "unit": "дБВт",
-                "required_to": "SRR",
-                "hint": "вхождение ×N по площадкам"
+                "required_to": "SRR"
               },
               {
                 "key": "elev_min",
                 "name": "минимальный угол места",
                 "unit": "°",
-                "required_to": "MCR",
-                "hint": "вхождение ×N по площадкам"
+                "required_to": "MCR"
               }
-            ],
-            "level": 2
+            ]
           },
           {
             "id": "CM-9182",
@@ -1703,6 +1671,7 @@
               "version": "1"
             },
             "parent": "CM-9181",
+            "level": 3,
             "expects": [
               {
                 "key": "diameter",
@@ -1710,8 +1679,7 @@
                 "unit": "м",
                 "required_to": "SRR"
               }
-            ],
-            "level": 3
+            ]
           },
           {
             "id": "CM-9183",
@@ -1771,7 +1739,8 @@
               "version": "1"
             },
             "parent": "CM-9101",
-            "level": 1
+            "level": 1,
+            "expects": []
           },
           {
             "id": "CM-9188",
@@ -1783,31 +1752,28 @@
               "version": "1"
             },
             "parent": "CM-9187",
+            "level": 2,
             "default_quantity": 3,
             "expects": [
               {
                 "key": "g_t",
                 "name": "G/T",
                 "unit": "дБ/К",
-                "required_to": "SRR",
-                "hint": "вхождение ×N; шлюз абонентского трафика"
+                "required_to": "SRR"
               },
               {
                 "key": "capacity",
                 "name": "пропускная способность",
                 "unit": "бит/с",
-                "required_to": "SRR",
-                "hint": "вхождение ×N; шлюз абонентского трафика"
+                "required_to": "SRR"
               },
               {
                 "key": "site",
                 "name": "площадка (широта, долгота)",
                 "unit": "°",
-                "required_to": "MCR",
-                "hint": "вхождение ×N; шлюз абонентского трафика"
+                "required_to": "MCR"
               }
-            ],
-            "level": 2
+            ]
           },
           {
             "id": "CM-9189",
@@ -1855,6 +1821,7 @@
               "version": "1"
             },
             "parent": "CM-9187",
+            "level": 2,
             "expects": [
               {
                 "key": "storage",
@@ -1868,8 +1835,7 @@
                 "unit": "1",
                 "required_to": "SRR"
               }
-            ],
-            "level": 2
+            ]
           },
           {
             "id": "CM-9193",
@@ -1965,6 +1931,7 @@
               "version": "1"
             },
             "parent": "CM-9187",
+            "level": 2,
             "expects": [
               {
                 "key": "latency",
@@ -1972,8 +1939,7 @@
                 "unit": "мс",
                 "required_to": "SRR"
               }
-            ],
-            "level": 2
+            ]
           },
           {
             "id": "CM-9201",
@@ -1997,7 +1963,8 @@
               "version": "1"
             },
             "parent": "CM-9201",
-            "level": 2
+            "level": 2,
+            "expects": []
           },
           {
             "id": "CM-9203",
@@ -2009,6 +1976,7 @@
               "version": "1"
             },
             "parent": "CM-9202",
+            "level": 3,
             "expects": [
               {
                 "key": "mass",
@@ -2040,8 +2008,7 @@
                 "unit": "млн ₽",
                 "required_to": "SRR"
               }
-            ],
-            "level": 3
+            ]
           },
           {
             "id": "CM-9204",
@@ -2113,6 +2080,7 @@
               "version": "1"
             },
             "parent": "CM-9202",
+            "level": 3,
             "expects": [
               {
                 "key": "mass",
@@ -2144,8 +2112,7 @@
                 "unit": "млн ₽",
                 "required_to": "SRR"
               }
-            ],
-            "level": 3
+            ]
           },
           {
             "id": "CM-9210",
@@ -2217,6 +2184,7 @@
               "version": "1"
             },
             "parent": "CM-9202",
+            "level": 3,
             "expects": [
               {
                 "key": "mass",
@@ -2248,8 +2216,7 @@
                 "unit": "млн ₽",
                 "required_to": "SRR"
               }
-            ],
-            "level": 3
+            ]
           },
           {
             "id": "CM-9216",
@@ -2321,6 +2288,7 @@
               "version": "1"
             },
             "parent": "CM-9202",
+            "level": 3,
             "expects": [
               {
                 "key": "mass",
@@ -2358,8 +2326,7 @@
                 "unit": "год",
                 "required_to": "MCR"
               }
-            ],
-            "level": 3
+            ]
           },
           {
             "id": "CM-9222",
@@ -2431,8 +2398,8 @@
               "version": "1"
             },
             "parent": "CM-9201",
-            "optional": true,
-            "level": 2
+            "level": 2,
+            "optional": true
           },
           {
             "id": "CM-9228",
@@ -2444,8 +2411,9 @@
               "version": "1"
             },
             "parent": "CM-9101",
+            "level": 1,
             "external": true,
-            "level": 1
+            "expects": []
           },
           {
             "id": "CM-9229",
@@ -2457,6 +2425,7 @@
               "version": "1"
             },
             "parent": "CM-9228",
+            "level": 2,
             "external": true,
             "expects": [
               {
@@ -2477,8 +2446,7 @@
                 "unit": "м",
                 "required_to": "SRR"
               }
-            ],
-            "level": 2
+            ]
           },
           {
             "id": "CM-9230",
@@ -2490,6 +2458,7 @@
               "version": "1"
             },
             "parent": "CM-9228",
+            "level": 2,
             "external": true,
             "expects": [
               {
@@ -2504,8 +2473,7 @@
                 "unit": "°",
                 "required_to": "MCR"
               }
-            ],
-            "level": 2
+            ]
           },
           {
             "id": "CM-9231",
@@ -2517,6 +2485,7 @@
               "version": "1"
             },
             "parent": "CM-9228",
+            "level": 2,
             "external": true,
             "expects": [
               {
@@ -2525,8 +2494,7 @@
                 "unit": "шт",
                 "required_to": "SRR"
               }
-            ],
-            "level": 2
+            ]
           },
           {
             "id": "CM-9232",
@@ -2575,146 +2543,6 @@
             },
             "parent": "CM-9232",
             "level": 2
-          },
-          {
-            "id": "IF-9101",
-            "name": "Абонентская радиолиния S",
-            "kind": "interface",
-            "owners": [
-              "CM-9159",
-              "CM-9202"
-            ],
-            "description": "код каркаса IF-S-USER; тип RF; модели: М2а, М3а",
-            "lifecycle": {
-              "status": "Draft",
-              "version": "1"
-            }
-          },
-          {
-            "id": "IF-9102",
-            "name": "Фидерная радиолиния C",
-            "kind": "interface",
-            "owners": [
-              "CM-9165",
-              "CM-9188"
-            ],
-            "description": "код каркаса IF-C-FEED; тип RF; модели: М2б, М3в",
-            "lifecycle": {
-              "status": "Draft",
-              "version": "1"
-            }
-          },
-          {
-            "id": "IF-9103",
-            "name": "Командно-телеметрическая радиолиния",
-            "kind": "interface",
-            "owners": [
-              "CM-9149",
-              "CM-9181"
-            ],
-            "description": "код каркаса IF-TTC; тип RF; модели: М2в, М3г",
-            "lifecycle": {
-              "status": "Draft",
-              "version": "1"
-            }
-          },
-          {
-            "id": "IF-9104",
-            "name": "Межспутниковая радиолиния",
-            "kind": "interface",
-            "owners": [
-              "CM-9170",
-              "CM-9170"
-            ],
-            "description": "код каркаса IF-ISL; тип RF; модели: М2г, М3д",
-            "lifecycle": {
-              "status": "Draft",
-              "version": "1"
-            }
-          },
-          {
-            "id": "IF-9105",
-            "name": "ПН ↔ платформа (питание, данные, тепло, механика)",
-            "kind": "interface",
-            "owners": [
-              "CM-9158",
-              "CM-9104"
-            ],
-            "description": "код каркаса IF-PL-PLT; тип power+data+thermal+mech; модели: М4, М5, М6",
-            "lifecycle": {
-              "status": "Draft",
-              "version": "1"
-            }
-          },
-          {
-            "id": "IF-9106",
-            "name": "КА ↔ РН (механический, электрический, среды)",
-            "kind": "interface",
-            "owners": [
-              "CM-9172",
-              "CM-9231"
-            ],
-            "description": "код каркаса IF-SC-LV; тип mech+elec+env; модели: М6",
-            "lifecycle": {
-              "status": "Draft",
-              "version": "1"
-            }
-          },
-          {
-            "id": "IF-9107",
-            "name": "РСС ↔ ЦОД (ССПД)",
-            "kind": "interface",
-            "owners": [
-              "CM-9188",
-              "CM-9192"
-            ],
-            "description": "код каркаса IF-GW-DC; тип data; модели: М3е",
-            "lifecycle": {
-              "status": "Draft",
-              "version": "1"
-            }
-          },
-          {
-            "id": "IF-9108",
-            "name": "ЦОД ↔ потребители (API)",
-            "kind": "interface",
-            "owners": [
-              "CM-9195",
-              "CM-9227"
-            ],
-            "description": "код каркаса IF-DC-USER; тип data; модели: М3е",
-            "lifecycle": {
-              "status": "Draft",
-              "version": "1"
-            }
-          },
-          {
-            "id": "IF-9109",
-            "name": "ЦУП ↔ станции НКУ",
-            "kind": "interface",
-            "owners": [
-              "CM-9175",
-              "CM-9181"
-            ],
-            "description": "код каркаса IF-MCC-GCS; тип data; модели: М14",
-            "lifecycle": {
-              "status": "Draft",
-              "version": "1"
-            }
-          },
-          {
-            "id": "IF-9110",
-            "name": "ЦУП ↔ ЦУС (планирование против нагрузки сети)",
-            "kind": "interface",
-            "owners": [
-              "CM-9175",
-              "CM-9196"
-            ],
-            "description": "код каркаса IF-MCC-NOC; тип data; модели: М14",
-            "lifecycle": {
-              "status": "Draft",
-              "version": "1"
-            }
           }
         ]
       },

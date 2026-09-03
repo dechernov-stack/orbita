@@ -229,8 +229,58 @@ class DataRequests(private val boundary: Boundary) {
             }
     }
 
+    /**
+     * ADR-052: анкета СТЫКА — те же поля с точками зрелости, что у узла, но
+     * спрашиваются они у ребра: запас линка принадлежит стыку, а не одному из
+     * его концов, и делить его между двумя узлами значило бы задать дважды.
+     */
+    fun ofInterfaces(projectId: String): List<DataRequest> {
+        val nextGate = runCatching { boundary.gatePassing.nextGate(projectId) }.getOrNull()
+        val nodes = boundary.objects.listCurrent(projectId)
+            .filter { it.type == "component" }.associateBy { it.id }
+        return boundary.objects.listCurrent(projectId)
+            .filter { it.type == "interface" && it.status.name != "Cancelled" && !it.doc.path("expects").isEmpty }
+            .sortedBy { it.id }
+            .map { iface ->
+                val values = iface.doc.path("parameters").associate { p ->
+                    p.path("name").asText("") to p.path("quantity").path("value")
+                }
+                val стороны = iface.doc.path("owners").mapNotNull { nodes[it.asText()]?.doc?.path("name")?.asText() }
+                DataRequest(
+                    form = iface.id,
+                    name = "${iface.doc.path("name").asText(iface.id)} · анкета стыка",
+                    role = "interface",
+                    note = listOfNotNull(
+                        iface.doc.path("code").asText("").ifBlank { null },
+                        стороны.takeIf { it.size == 2 }?.joinToString(" ↔ "),
+                    ).joinToString(" · ").ifBlank { null },
+                    target = iface.id,
+                    fields = iface.doc.path("expects").map { f ->
+                        val key = f.path("key").asText()
+                        val requiredBy = f.path("required_to").asText("").ifBlank { null }
+                        val value = values[key]
+                        DataRequestField(
+                            key = key,
+                            name = f.path("name").asText(key),
+                            unit = f.path("unit").asText("").ifBlank { null },
+                            required = requiredBy != null,
+                            requiredBy = requiredBy,
+                            dueNow = requiredBy != null && requiredBy == nextGate,
+                            hint = f.path("hint").asText("").ifBlank { null },
+                            kind = "number",
+                            options = emptyList(),
+                            filled = value != null && !value.isMissingNode && !value.isNull,
+                            value = value?.takeIf { !it.isMissingNode && !it.isNull }?.asText(),
+                            from = if (value != null && !value.isMissingNode) "model" else null,
+                        )
+                    },
+                )
+            }
+    }
+
     fun missingSummary(projectId: String): List<String> =
-        (of(projectId) + ofNodes(projectId)).flatMap { r -> r.missing.map { "${r.name}: ${it.name}" } }
+        (of(projectId) + ofNodes(projectId) + ofInterfaces(projectId))
+            .flatMap { r -> r.missing.map { "${r.name}: ${it.name}" } }
 
     fun toJson(requests: List<DataRequest>) = mapper.createArrayNode().apply {
         requests.forEach { r ->

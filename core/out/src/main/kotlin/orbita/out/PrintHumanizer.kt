@@ -52,6 +52,11 @@ object PrintHumanizer {
     val LABELS: Map<String, String> = mapOf(
         // ADR-044: аппарат в срезе — собранный из узла КА дерева состава
         "spacecraft" to "Модель аппарата",
+        // ADR-052: ICD — записи стыков печатаются человеческими подписями
+        "type" to "тип", "sides" to "стороны", "direction" to "направление",
+        "standard" to "стандарт", "icd_section" to "раздел ICD", "interface" to "стык",
+        "interface_name" to "стык", "field" to "поле анкеты", "required_to" to "нужно к",
+        "value_missing" to "значение не задано", "issue" to "вопрос",
         // ADR-045: полная структура требования
         "title" to "заголовок", "priority" to "приоритет", "acceptance_criteria" to "критерий приёмки",
         "source_doc" to "документ-основание", "normative_basis" to "нормативное основание", "tags" to "теги",

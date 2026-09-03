@@ -23,6 +23,8 @@ const KIND_TITLES: Record<string, string> = {
   function: 'Функции',
   function_chain: 'Функциональные цепочки',
   system_model: 'Модели системы',
+  capability: 'Операционные способности',
+  logical_component: 'Логические компоненты',
   model_element: 'Элементы внешней модели',
   arch_link: 'Связи с внешней моделью',
   alternative: 'Альтернативы',

@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/core/capability.schema.json",
+  "title": "Capability",
+  "description": "Операционная способность (Arcadia OA, OperationalCapability): ЧТО система умеет для стейкхолдера — «гарантированно доставлять тревожные сообщения». Способность трассируется к целям, сервисам, нуждам и сценариям ConOps; покрытия требований она не даёт (это слой «зачем», а не «чем выполнено»). Функциональная цепочка реализует способность.",
+  "type": "object",
+  "required": [
+    "id",
+    "name",
+    "lifecycle"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^OC-[0-9]{4}$"
+    },
+    "code": {
+      "type": "string",
+      "description": "Стабильный код способности архитектурной полки (OC-01)"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "statement": {
+      "type": "string",
+      "description": "Чем способность считается выполненной словами"
+    },
+    "traced_to": {
+      "type": "array",
+      "description": "К чему способность привязана: цель (MG), сервис (SV), нужда (ND), сценарий ConOps (CO)",
+      "items": {
+        "type": "object",
+        "required": [
+          "ref"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "ref": {
+            "type": "string",
+            "pattern": "^(MG|SV|ND|CO)-[0-9]{4}$"
+          },
+          "rationale": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "traced_to_hint": {
+      "type": "string",
+      "description": "Подсказка полки, к чему способность привязывать («нужды класса A′», «ConOps»): связь ставит инженер, служба не гадает"
+    },
+    "actors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Коды акторов полки, которых способность обслуживает"
+    },
+    "owner": {
+      "type": "string"
+    },
+    "lifecycle": {
+      "$ref": "https://kis.local/schemas/common/status.schema.json"
+    },
+    "provenance": {
+      "$ref": "https://kis.local/schemas/common/provenance.schema.json"
+    },
+    "applies": {
+      "type": "object",
+      "description": "Применение библиотечного фрагмента (tailoring): экземпляр помнит прототип; отклонение и неприменимость требуют обоснования",
+      "additionalProperties": false,
+      "required": [
+        "ref",
+        "status"
+      ],
+      "properties": {
+        "ref": {
+          "type": "string",
+          "pattern": "^LF-[0-9]{4}$"
+        },
+        "status": {
+          "enum": [
+            "applied",
+            "deviation",
+            "not_applicable"
+          ],
+          "description": "применено · с отклонением · неприменимо"
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 10
+        }
+      },
+      "if": {
+        "properties": {
+          "status": {
+            "enum": [
+              "deviation",
+              "not_applicable"
+            ]
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "ref",
+          "status",
+          "rationale"
+        ]
+      }
+    }
+  }
+}
