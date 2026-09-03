@@ -1,0 +1,345 @@
+{
+  "kind": "services_to_requirements",
+  "items": [
+    {
+      "id": "RQ-9201",
+      "level": "system",
+      "statement": "Цепочка доставки тревоги опасного груза должна обеспечивать P95 сквозной задержки «терминал → потребитель» не более 180 мин на этапе 1 и 15 мин на этапе 2.",
+      "category": "operational",
+      "traces_up": [
+        {
+          "ref": "SV-9001"
+        }
+      ],
+      "verification_events": [
+        {
+          "id": "VE-9201",
+          "method": "test",
+          "kind": "preliminary",
+          "level": "system",
+          "status": "planned",
+          "closes": false,
+          "approach": "на выборке пилота P95 ≤ 180 мин; на этапе 2 ≤ 15 мин",
+          "means": "стенд пилота: выборка сообщений и журнал доставки"
+        }
+      ],
+      "owner": "вед. СИ",
+      "lifecycle": {
+        "status": "Draft",
+        "version": "1"
+      },
+      "provenance": {
+        "source": "ai_proposed",
+        "ai": {
+          "prompt_package_id": "ПМИ-4",
+          "accepted": false
+        }
+      },
+      "title": "Сквозная задержка доставки тревоги",
+      "priority": "high",
+      "acceptance_criteria": "на выборке пилота P95 ≤ 180 мин; на этапе 2 ≤ 15 мин",
+      "mop": {
+        "name": "Сквозная задержка доставки тревоги",
+        "operator": "le",
+        "value": {
+          "value": 180,
+          "unit": "мин",
+          "provenance": {
+            "source": "imported",
+            "import": {
+              "dataset": "Записка миссии — Национальная спутниковая IoT-платформа, блок s4",
+              "dataset_version": "поставка ПМИ-4 от 03.09.2026",
+              "retrieved_at": "2026-09-03",
+              "terms": "материал владельца проекта"
+            }
+          }
+        }
+      },
+      "rationale": "§4 сервис 1; §5 цели этапов 1–2 · метка источника: И1, П; якоря: s4",
+      "tags": [
+        "код поставки: RQ-SC-01"
+      ],
+      "realized_by": [
+        "@FC-01"
+      ]
+    },
+    {
+      "id": "RQ-9202",
+      "level": "system",
+      "statement": "Цепочка должна доставлять сообщение класса A′/B′ потребителю с вероятностью не менее 0,99 за окно класса.",
+      "category": "operational",
+      "traces_up": [
+        {
+          "ref": "MG-9004"
+        }
+      ],
+      "verification_events": [
+        {
+          "id": "VE-9202",
+          "method": "test",
+          "kind": "preliminary",
+          "level": "system",
+          "status": "planned",
+          "closes": false,
+          "approach": "доля доставленных за окно ≥ 0,99",
+          "means": "стенд пилота: выборка сообщений и журнал доставки"
+        }
+      ],
+      "owner": "вед. СИ",
+      "lifecycle": {
+        "status": "Draft",
+        "version": "1"
+      },
+      "provenance": {
+        "source": "ai_proposed",
+        "ai": {
+          "prompt_package_id": "ПМИ-4",
+          "accepted": false
+        }
+      },
+      "title": "Вероятность доставки тревоги",
+      "priority": "high",
+      "acceptance_criteria": "доля доставленных за окно ≥ 0,99",
+      "mop": {
+        "name": "Вероятность доставки тревоги",
+        "operator": "ge",
+        "value": {
+          "value": 0.99,
+          "unit": "1",
+          "provenance": {
+            "source": "imported",
+            "import": {
+              "dataset": "Записка миссии — Национальная спутниковая IoT-платформа, блок s4",
+              "dataset_version": "поставка ПМИ-4 от 03.09.2026",
+              "retrieved_at": "2026-09-03",
+              "terms": "материал владельца проекта"
+            }
+          }
+        }
+      },
+      "rationale": "§4: обработка спутникового окна ≥99% · метка источника: И5; якоря: s4",
+      "tags": [
+        "код поставки: RQ-SC-02"
+      ],
+      "realized_by": [
+        "@FC-01"
+      ]
+    },
+    {
+      "id": "RQ-9203",
+      "level": "system",
+      "statement": "Цепочка сбора датчиков должна доставлять периодические показания класса C′ с P95 не более 6 ч на этапе 1 и 1 ч на этапе 2 без потерь при хранении на борту.",
+      "category": "operational",
+      "traces_up": [
+        {
+          "ref": "ND-9004"
+        }
+      ],
+      "verification_events": [
+        {
+          "id": "VE-9203",
+          "method": "test",
+          "kind": "preliminary",
+          "level": "system",
+          "status": "planned",
+          "closes": false,
+          "approach": "P95 ≤ 6 ч; потерь при хранении 0",
+          "means": "стенд пилота: выборка сообщений и журнал доставки"
+        }
+      ],
+      "owner": "вед. СИ",
+      "lifecycle": {
+        "status": "Draft",
+        "version": "1"
+      },
+      "provenance": {
+        "source": "ai_proposed",
+        "ai": {
+          "prompt_package_id": "ПМИ-4",
+          "accepted": false
+        }
+      },
+      "title": "Сохранность периодических данных",
+      "priority": "high",
+      "acceptance_criteria": "P95 ≤ 6 ч; потерь при хранении 0",
+      "mop": {
+        "name": "Сохранность периодических данных",
+        "operator": "le",
+        "value": {
+          "value": 6,
+          "unit": "ч",
+          "provenance": {
+            "source": "imported",
+            "import": {
+              "dataset": "Записка миссии — Национальная спутниковая IoT-платформа, блок s4",
+              "dataset_version": "поставка ПМИ-4 от 03.09.2026",
+              "retrieved_at": "2026-09-03",
+              "terms": "материал владельца проекта"
+            }
+          }
+        }
+      },
+      "rationale": "§4 агро-IoT; S&F · метка источника: П; якоря: s4",
+      "tags": [
+        "код поставки: RQ-SC-03"
+      ],
+      "realized_by": [
+        "@FC-02"
+      ]
+    },
+    {
+      "id": "RQ-9204",
+      "level": "system",
+      "statement": "Цепочка управления КА должна обеспечивать сеанс команд и приём телеметрии каждого аппарата не реже TBR раз в сутки при штатном числе станций НКУ.",
+      "category": "operational",
+      "traces_up": [
+        {
+          "ref": "SV-9001"
+        }
+      ],
+      "verification_events": [
+        {
+          "id": "VE-9204",
+          "method": "analysis",
+          "kind": "preliminary",
+          "level": "system",
+          "status": "planned",
+          "closes": false,
+          "approach": "М3г: покрытие ТМ окнами ≥ TBR/сут",
+          "means": "расчётная модель системы (М1–М3) и журнал прогона"
+        }
+      ],
+      "owner": "вед. СИ",
+      "lifecycle": {
+        "status": "Draft",
+        "version": "1"
+      },
+      "provenance": {
+        "source": "ai_proposed",
+        "ai": {
+          "prompt_package_id": "ПМИ-4",
+          "accepted": false
+        }
+      },
+      "title": "Управляемость группировки",
+      "priority": "high",
+      "acceptance_criteria": "М3г: покрытие ТМ окнами ≥ TBR/сут",
+      "rationale": "М14/М3г; значение TBR — до расчёта окон КТРЛ · метка источника: П; якоря: s4",
+      "tags": [
+        "TBR",
+        "код поставки: RQ-SC-04"
+      ],
+      "realized_by": [
+        "@FC-03"
+      ]
+    },
+    {
+      "id": "RQ-9205",
+      "level": "system",
+      "statement": "Цепочка обновления альманаха должна доставлять терминалам эфемериды не реже TBR раз в сутки, чтобы терминал планировал сеансы без наземной сети.",
+      "category": "operational",
+      "traces_up": [
+        {
+          "ref": "MG-9002"
+        }
+      ],
+      "verification_events": [
+        {
+          "id": "VE-9205",
+          "method": "analysis",
+          "kind": "preliminary",
+          "level": "system",
+          "status": "planned",
+          "closes": false,
+          "approach": "терминал без наземной сети выходит в сеанс по альманаху",
+          "means": "расчётная модель системы (М1–М3) и журнал прогона"
+        }
+      ],
+      "owner": "вед. СИ",
+      "lifecycle": {
+        "status": "Draft",
+        "version": "1"
+      },
+      "provenance": {
+        "source": "ai_proposed",
+        "ai": {
+          "prompt_package_id": "ПМИ-4",
+          "accepted": false
+        }
+      },
+      "title": "Актуальность альманаха терминалов",
+      "priority": "high",
+      "acceptance_criteria": "терминал без наземной сети выходит в сеанс по альманаху",
+      "rationale": "ограничение Р5 (терминалы знают эфемериды); значение — по М1/М14 · метка источника: П; якоря: s4",
+      "tags": [
+        "TBR",
+        "код поставки: RQ-SC-05"
+      ],
+      "realized_by": [
+        "@FC-04"
+      ]
+    },
+    {
+      "id": "RQ-9206",
+      "level": "system",
+      "statement": "Цепочка увода должна обеспечивать сведение аппарата с орбиты по окончании срока в срок, установленный нормативом полки Б1 (по умолчанию ≤ 5 лет), с Δv из бюджета ДУ.",
+      "category": "operational",
+      "traces_up": [
+        {
+          "ref": "SV-9001"
+        }
+      ],
+      "verification_events": [
+        {
+          "id": "VE-9206",
+          "method": "analysis",
+          "kind": "preliminary",
+          "level": "system",
+          "status": "planned",
+          "closes": false,
+          "approach": "М10: время существования после увода ≤ норматива; Δv в бюджете",
+          "means": "расчётная модель системы (М1–М3) и журнал прогона"
+        }
+      ],
+      "owner": "вед. СИ",
+      "lifecycle": {
+        "status": "Draft",
+        "version": "1"
+      },
+      "provenance": {
+        "source": "ai_proposed",
+        "ai": {
+          "prompt_package_id": "ПМИ-4",
+          "accepted": false
+        }
+      },
+      "title": "Увод с орбиты",
+      "priority": "high",
+      "acceptance_criteria": "М10: время существования после увода ≤ норматива; Δv в бюджете",
+      "mop": {
+        "name": "Увод с орбиты",
+        "operator": "le",
+        "value": {
+          "value": 5,
+          "unit": "год",
+          "provenance": {
+            "source": "imported",
+            "import": {
+              "dataset": "Записка миссии — Национальная спутниковая IoT-платформа, блок s4",
+              "dataset_version": "поставка ПМИ-4 от 03.09.2026",
+              "retrieved_at": "2026-09-03",
+              "terms": "материал владельца проекта"
+            }
+          }
+        }
+      },
+      "rationale": "норматив увода (полка Б1); М10 · метка источника: В; якоря: s4",
+      "tags": [
+        "код поставки: RQ-SC-06"
+      ],
+      "realized_by": [
+        "@FC-05"
+      ]
+    }
+  ]
+}

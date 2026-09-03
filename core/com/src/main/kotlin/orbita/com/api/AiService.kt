@@ -392,7 +392,7 @@ class AiService(
         )
         val p = profile(profileId, projectId)
         val prompt = compose(kind, profileId, projectId, "", enforceReady = false).second
-        val itemsJson = mapper.writeValueAsString(items)
+        val itemsJson = resolveShelfCodes(mapper.writeValueAsString(items), projectId)
         val screened = screen(completeImportProvenance(itemsJson, projectId), kind, p)
         val pk = calls.record(
             projectId = projectId, kind = kind, transport = "package", prompt = prompt,
@@ -454,6 +454,34 @@ class AiService(
      * который сослаться не удалось, не трогаем — такой ответ честно
      * отбраковывается.
      */
+    /**
+     * ADR-053: ссылка пакета на объект ПОЛКИ — кодом («@PL-S», «@FC-01»), как у
+     * фрагментов библиотеки: идентификатор узел получает в том проекте, куда
+     * полка взята, и внешний контур его знать не может. Код разрешается ДО
+     * проверки формы; неизвестный код — отказ с именем, а не молчаливый отсев
+     * всего элемента «не по схеме».
+     */
+    private fun resolveShelfCodes(raw: String, projectId: String): String {
+        val маркер = Regex("@([A-Za-zА-Яа-я0-9_.\\-]+)")
+        if (!маркер.containsMatchIn(raw)) return raw
+        val поКоду = boundary.objects.listCurrent(projectId)
+            .filter { it.status != orbita.mod.model.Lifecycle.Cancelled }
+            .mapNotNull { o -> o.doc.path("code").asText("").takeIf { it.isNotBlank() }?.let { it to o.id } }
+            .toMap()
+        val нераспознанные = linkedSetOf<String>()
+        val текст = маркер.replace(raw) { m ->
+            поКоду[m.groupValues[1]] ?: run { нераспознанные += m.groupValues[1]; m.value }
+        }
+        if (нераспознанные.isNotEmpty()) {
+            throw IllegalArgumentException(
+                "пакет ссылается на коды полок, которых в проекте нет: " +
+                    нераспознанные.joinToString(", ") +
+                    ". Возьмите полку, которая их заводит (каркас PBS · интерфейсы · архитектура)",
+            )
+        }
+        return текст
+    }
+
     private fun completeImportProvenance(raw: String, projectId: String): String {
         val cleaned = raw.trim().removePrefix("```json").removePrefix("```").removeSuffix("```").trim()
         val root = try {

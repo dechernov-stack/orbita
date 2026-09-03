@@ -2,352 +2,690 @@
   "kind": "services_to_requirements",
   "items": [
     {
-      "id": "RQ-0001",
-      "level": "system",
-      "statement": "Система должна обеспечивать передачу геопозиции транспортного средства с опасным грузом для потребителей класса C′ не реже одного раза в 30 секунд.",
+      "id": "RQ-9001",
+      "level": "project",
+      "statement": "Система должна обеспечивать отслеживаемость 100% объектов утверждённого перечня критических грузов и платформ в зоне сервиса к 2033 году.",
       "category": "performance",
-      "rationale": "Требование выведено из норматива NR-0001 (ПП РФ №2216, п.6) применительно к сервису регуляторного мониторинга опасных грузов (SV-0001) для класса потребителей C′ (оперативное управление).",
       "traces_up": [
         {
-          "ref": "SV-0001",
-          "consumer_class": "C_prime"
-        },
-        {
-          "ref": "NR-0001"
+          "ref": "MG-9007"
         }
       ],
+      "verification_events": [
+        {
+          "id": "VE-9001",
+          "method": "demonstration",
+          "kind": "preliminary",
+          "level": "system",
+          "status": "planned",
+          "closes": false,
+          "approach": "в отчёте мониторинга за квартал доля объектов перечня с актуальной позицией = 100% в зоне сервиса"
+        }
+      ],
+      "owner": "вед. СИ",
+      "lifecycle": {
+        "status": "Draft",
+        "version": "1"
+      },
+      "provenance": {
+        "source": "ai_proposed",
+        "ai": {
+          "prompt_package_id": "ПМИ-4",
+          "accepted": false
+        }
+      },
+      "title": "Отслеживаемость критических грузов",
+      "priority": "high",
+      "acceptance_criteria": "в отчёте мониторинга за квартал доля объектов перечня с актуальной позицией = 100% в зоне сервиса",
       "mop": {
-        "name": "Период обновления геопозиции",
-        "operator": "le",
+        "name": "Отслеживаемость критических грузов",
+        "operator": "eq",
         "value": {
-          "value": 30,
-          "unit": "s",
+          "value": 1.0,
+          "unit": "1",
           "provenance": {
             "source": "imported",
             "import": {
-              "dataset": "ПП РФ № 2216, п.6",
-              "dataset_version": "действующая редакция",
-              "retrieved_at": "2025-01-01",
-              "terms": "нормативный правовой акт РФ, открытый источник"
+              "dataset": "Записка миссии — Национальная спутниковая IoT-платформа, блок s5",
+              "dataset_version": "поставка ПМИ-4 от 03.09.2026",
+              "retrieved_at": "2026-09-03",
+              "terms": "материал владельца проекта"
             }
           }
         }
       },
-      "lifecycle": {
-        "status": "Draft",
-        "version": "1"
-      },
-      "owner": "Ведущий системный инженер",
-      "verification_events": [
-        {
-          "id": "VE-0001",
-          "method": "analysis",
-          "kind": "preliminary",
-          "phase": "PhaseA",
-          "level": "system",
-          "approach": "Расчётная проверка временного бюджета передачи по модели канала связи терминал–КА–НКУ для подтверждения достижимости заданного периода обновления.",
-          "means": "Модель канала связи (Link Budget, Phase A)",
-          "status": "planned",
-          "closes": false
-        },
-        {
-          "id": "VE-0002",
-          "method": "test",
-          "kind": "qualification",
-          "phase": "PhaseD",
-          "level": "system",
-          "approach": "Натурные испытания терминала класса C′ на стенде с имитацией орбитального сегмента: измерение фактического интервала между последовательными обновлениями геопозиции.",
-          "means": "Комплексный стенд «Спутник-Терминал»",
-          "success_criterion": "Измеренный интервал ≤30 с для не менее 95% сообщений тестовой выборки.",
-          "status": "planned",
-          "closes": true
-        }
-      ],
-      "provenance": {
-        "source": "ai_proposed"
-      }
+      "rationale": "стратегический эффект программы (записка §5) · метка источника: И1; якоря: s5#7",
+      "tags": [
+        "цель",
+        "мониторинг",
+        "код поставки: RQ-P-01"
+      ]
     },
     {
-      "id": "RQ-0002",
-      "level": "system",
-      "statement": "Система должна обеспечивать передачу подтверждённого сообщения о местоположении для потребителей класса B′ сервиса регуляторного мониторинга с периодичностью не более значения, подлежащего определению (TBD).",
-      "category": "performance",
-      "rationale": "QoS-профиль сервиса SV-0001 для класса B′ (с подтверждением) требует установления целевого периода, обоснованное значение которого в текущих материалах отсутствует.",
-      "traces_up": [
-        {
-          "ref": "SV-0001",
-          "consumer_class": "B_prime"
-        }
-      ],
-      "mop": {
-        "name": "Период передачи с подтверждением",
-        "operator": "le",
-        "value": {
-          "value": 0,
-          "unit": "s",
-          "provenance": {
-            "source": "manual"
-          }
-        },
-        "tbd": true
-      },
-      "lifecycle": {
-        "status": "Draft",
-        "version": "1"
-      },
-      "owner": "Ведущий системный инженер",
-      "verification_events": [
-        {
-          "id": "VE-0003",
-          "method": "analysis",
-          "kind": "preliminary",
-          "phase": "PhaseA",
-          "level": "system",
-          "approach": "Анализ карты спроса и консультации с заказчиком для определения целевого периода подтверждённой доставки для класса B′.",
-          "means": "Карта спроса, консультации с заказчиком",
-          "status": "planned",
-          "closes": false
-        }
-      ],
-      "provenance": {
-        "source": "ai_proposed"
-      }
-    },
-    {
-      "id": "RQ-0003",
-      "level": "system",
-      "statement": "Система должна обеспечивать одностороннюю передачу телеметрии для потребителей класса A′ сервиса регуляторного мониторинга с периодичностью не более значения, подлежащего определению (TBD).",
-      "category": "performance",
-      "rationale": "QoS-профиль сервиса SV-0001 для класса A′ (односторонний) требует установления целевого периода, обоснованное значение которого в текущих материалах отсутствует.",
-      "traces_up": [
-        {
-          "ref": "SV-0001",
-          "consumer_class": "A_prime"
-        }
-      ],
-      "mop": {
-        "name": "Период односторонней передачи телеметрии",
-        "operator": "le",
-        "value": {
-          "value": 0,
-          "unit": "s",
-          "provenance": {
-            "source": "manual"
-          }
-        },
-        "tbd": true
-      },
-      "lifecycle": {
-        "status": "Draft",
-        "version": "1"
-      },
-      "owner": "Ведущий системный инженер",
-      "verification_events": [
-        {
-          "id": "VE-0004",
-          "method": "analysis",
-          "kind": "preliminary",
-          "phase": "PhaseA",
-          "level": "system",
-          "approach": "Анализ карты спроса и профиля нагрузки терминалов класса A′ для определения приемлемого периода односторонней передачи.",
-          "means": "Карта спроса",
-          "status": "planned",
-          "closes": false
-        }
-      ],
-      "provenance": {
-        "source": "ai_proposed"
-      }
-    },
-    {
-      "id": "RQ-0004",
+      "id": "RQ-9002",
       "level": "project",
-      "statement": "Система должна обеспечивать отслеживаемость не менее 100% объектов утверждённого перечня критических грузов и платформ в зоне сервиса к 2033 году для потребителей классов B′ и C′ сервиса регуляторного мониторинга.",
-      "category": "performance",
-      "rationale": "Целевой показатель горизонта проекта (2033 год) для сервиса регуляторного мониторинга опасных грузов и критических платформ, заданный постановкой миссии.",
+      "statement": "Система должна принимать сообщения гибридного терминала и доставлять их в ГАИС «ЭРА-ГЛОНАСС» при отсутствии наземного покрытия, не заменяя наземный канал.",
+      "category": "functional",
       "traces_up": [
         {
-          "ref": "SV-0001",
-          "consumer_class": "B_prime"
-        },
-        {
-          "ref": "SV-0001",
-          "consumer_class": "C_prime"
+          "ref": "ND-9002"
         }
       ],
+      "verification_events": [
+        {
+          "id": "VE-9002",
+          "method": "demonstration",
+          "kind": "preliminary",
+          "level": "system",
+          "status": "planned",
+          "closes": false,
+          "approach": "в пилоте на трассе без сотового покрытия сообщения терминала доставлены в ГАИС через спутниковый сегмент"
+        }
+      ],
+      "owner": "вед. СИ",
+      "lifecycle": {
+        "status": "Draft",
+        "version": "1"
+      },
+      "provenance": {
+        "source": "ai_proposed",
+        "ai": {
+          "prompt_package_id": "ПМИ-4",
+          "accepted": false
+        }
+      },
+      "title": "Гибридная доставка регуляторной телематики",
+      "priority": "high",
+      "acceptance_criteria": "в пилоте на трассе без сотового покрытия сообщения терминала доставлены в ГАИС через спутниковый сегмент",
+      "rationale": "резервный канал в «белых пятнах» без смены прикладной системы (§2.1) · метка источника: В2, В6; якоря: s2#2.1 · нормативное основание: ПП РФ от 22.12.2020 №2216 · интервал ≤ 30 с; срок действия до 01.09.2027 · В6",
+      "tags": [
+        "регуляторика",
+        "интеграция",
+        "код поставки: RQ-P-02"
+      ]
+    },
+    {
+      "id": "RQ-9003",
+      "level": "project",
+      "statement": "Система должна доставлять приоритетное сообщение класса B′ с P95 не более 180 мин на этапе 1 (до 50 КА).",
+      "category": "performance",
+      "traces_up": [
+        {
+          "ref": "MG-9004"
+        }
+      ],
+      "verification_events": [
+        {
+          "id": "VE-9003",
+          "method": "test",
+          "kind": "preliminary",
+          "level": "system",
+          "status": "planned",
+          "closes": false,
+          "approach": "на выборке ≥10 000 сообщений пилота P95 задержки «терминал → потребитель» ≤ 180 мин",
+          "means": "стенд пилота: выборка сообщений и журнал доставки"
+        }
+      ],
+      "owner": "вед. СИ",
+      "lifecycle": {
+        "status": "Draft",
+        "version": "1"
+      },
+      "provenance": {
+        "source": "ai_proposed",
+        "ai": {
+          "prompt_package_id": "ПМИ-4",
+          "accepted": false
+        }
+      },
+      "title": "Латентность доставки приоритетного сообщения, этап 1",
+      "priority": "high",
+      "acceptance_criteria": "на выборке ≥10 000 сообщений пилота P95 задержки «терминал → потребитель» ≤ 180 мин",
       "mop": {
-        "name": "Доля отслеживаемых критических объектов перечня",
+        "name": "Латентность доставки приоритетного сообщения, этап 1",
+        "operator": "le",
+        "value": {
+          "value": 180,
+          "unit": "мин",
+          "provenance": {
+            "source": "imported",
+            "import": {
+              "dataset": "Записка миссии — Национальная спутниковая IoT-платформа, блок s4",
+              "dataset_version": "поставка ПМИ-4 от 03.09.2026",
+              "retrieved_at": "2026-09-03",
+              "terms": "материал владельца проекта"
+            }
+          }
+        }
+      },
+      "rationale": "целевой показатель этапа 1 (§4, §5) · метка источника: И1, П; якоря: s4#3",
+      "tags": [
+        "QoS",
+        "латентность",
+        "код поставки: RQ-P-03"
+      ]
+    },
+    {
+      "id": "RQ-9004",
+      "level": "project",
+      "statement": "Система должна доставлять сообщения класса B′ с P95 не более 15 мин на этапе 2 (до 150 КА) в приоритетных масках.",
+      "category": "performance",
+      "traces_up": [
+        {
+          "ref": "MG-9004"
+        }
+      ],
+      "verification_events": [
+        {
+          "id": "VE-9004",
+          "method": "test",
+          "kind": "preliminary",
+          "level": "system",
+          "status": "planned",
+          "closes": false,
+          "approach": "P95 ≤ 15 мин в приоритетных масках по данным эксплуатации",
+          "means": "стенд пилота: выборка сообщений и журнал доставки"
+        }
+      ],
+      "owner": "вед. СИ",
+      "lifecycle": {
+        "status": "Draft",
+        "version": "1"
+      },
+      "provenance": {
+        "source": "ai_proposed",
+        "ai": {
+          "prompt_package_id": "ПМИ-4",
+          "accepted": false
+        }
+      },
+      "title": "Латентность доставки, этап 2",
+      "priority": "high",
+      "acceptance_criteria": "P95 ≤ 15 мин в приоритетных масках по данным эксплуатации",
+      "mop": {
+        "name": "Латентность доставки, этап 2",
+        "operator": "le",
+        "value": {
+          "value": 15,
+          "unit": "мин",
+          "provenance": {
+            "source": "imported",
+            "import": {
+              "dataset": "Записка миссии — Национальная спутниковая IoT-платформа, блок s5",
+              "dataset_version": "поставка ПМИ-4 от 03.09.2026",
+              "retrieved_at": "2026-09-03",
+              "terms": "материал владельца проекта"
+            }
+          }
+        }
+      },
+      "rationale": "этап 2 (§5, §7) · метка источника: И1, П; якоря: s5#5",
+      "tags": [
+        "QoS",
+        "латентность",
+        "код поставки: RQ-P-04"
+      ]
+    },
+    {
+      "id": "RQ-9005",
+      "level": "project",
+      "statement": "Платформа связности должна обеспечивать доступность API не менее 99,9% и успешную обработку спутникового окна не менее 99%.",
+      "category": "performance",
+      "traces_up": [
+        {
+          "ref": "SV-9008"
+        }
+      ],
+      "verification_events": [
+        {
+          "id": "VE-9005",
+          "method": "analysis",
+          "kind": "preliminary",
+          "level": "system",
+          "status": "planned",
+          "closes": false,
+          "approach": "за отчётный месяц доступность API ≥ 99,9%, доля успешно обработанных окон ≥ 99%",
+          "means": "расчётная модель системы (М1–М3) и журнал прогона"
+        }
+      ],
+      "owner": "вед. СИ",
+      "lifecycle": {
+        "status": "Draft",
+        "version": "1"
+      },
+      "provenance": {
+        "source": "ai_proposed",
+        "ai": {
+          "prompt_package_id": "ПМИ-4",
+          "accepted": false
+        }
+      },
+      "title": "Доступность платформы",
+      "priority": "high",
+      "acceptance_criteria": "за отчётный месяц доступность API ≥ 99,9%, доля успешно обработанных окон ≥ 99%",
+      "mop": {
+        "name": "Доступность платформы",
         "operator": "ge",
         "value": {
-          "value": 100,
-          "unit": "%",
+          "value": 0.999,
+          "unit": "1",
           "provenance": {
             "source": "imported",
             "import": {
-              "dataset": "SD-0006 «Записка_миссии_Национальная_спутниковая_IoT_платформа», раздел 5 «Цели и показатели»",
-              "dataset_version": "1",
-              "retrieved_at": "2025-01-01",
-              "terms": "внутренний документ проекта"
+              "dataset": "Записка миссии — Национальная спутниковая IoT-платформа, блок s4",
+              "dataset_version": "поставка ПМИ-4 от 03.09.2026",
+              "retrieved_at": "2026-09-03",
+              "terms": "материал владельца проекта"
             }
           }
         }
       },
+      "rationale": "требование платформы Data-Driven IoT Enabler (§4) · метка источника: И5; якоря: s4#8",
+      "tags": [
+        "платформа",
+        "SLA",
+        "код поставки: RQ-P-05"
+      ]
+    },
+    {
+      "id": "RQ-9006",
+      "level": "project",
+      "statement": "Система должна хранить и обрабатывать чувствительные данные только на территории РФ с отечественной криптографией, HSM/KMS и аттестацией контура КИИ.",
+      "category": "safety",
+      "traces_up": [
+        {
+          "ref": "ND-9004"
+        }
+      ],
+      "verification_events": [
+        {
+          "id": "VE-9006",
+          "method": "inspection",
+          "kind": "preliminary",
+          "level": "system",
+          "status": "planned",
+          "closes": false,
+          "approach": "аттестат соответствия контура КИИ; ключи в HSM; журнал аудита"
+        }
+      ],
+      "owner": "вед. СИ",
       "lifecycle": {
         "status": "Draft",
         "version": "1"
       },
-      "owner": "Руководитель направления сервисов",
+      "provenance": {
+        "source": "ai_proposed",
+        "ai": {
+          "prompt_package_id": "ПМИ-4",
+          "accepted": false
+        }
+      },
+      "title": "Суверенное хранение и защита данных",
+      "priority": "high",
+      "acceptance_criteria": "аттестат соответствия контура КИИ; ключи в HSM; журнал аудита",
+      "rationale": "суверенитет данных (§2.1, §9) · метка источника: И1, В10; якоря: s9 · нормативное основание: Федеральный закон от 26.07.2017 №187-ФЗ · ред. от 07.04.2025 · В10",
+      "tags": [
+        "ИБ",
+        "КИИ",
+        "код поставки: RQ-P-06"
+      ]
+    },
+    {
+      "id": "RQ-9007",
+      "level": "project",
+      "statement": "Система должна передавать только короткие сообщения и телеметрию; видео, голос и широкополосный доступ исключаются.",
+      "category": "constraint",
+      "traces_up": [],
       "verification_events": [
         {
-          "id": "VE-0005",
-          "method": "analysis",
+          "id": "VE-9007",
+          "method": "inspection",
           "kind": "preliminary",
-          "phase": "PhaseA",
-          "level": "end_to_end",
-          "approach": "Расчёт по модели зоны обслуживания и карте спроса доли объектов утверждённого перечня, попадающих в зону обслуживания при целевой группировке КА.",
-          "means": "Модель зоны обслуживания (flows)",
+          "level": "system",
           "status": "planned",
-          "closes": false
-        },
+          "closes": false,
+          "approach": "профиль сообщений утверждён; иные типы трафика отклоняются терминалом и платформой"
+        }
+      ],
+      "owner": "вед. СИ",
+      "lifecycle": {
+        "status": "Draft",
+        "version": "1"
+      },
+      "provenance": {
+        "source": "ai_proposed",
+        "ai": {
+          "prompt_package_id": "ПМИ-4",
+          "accepted": false
+        }
+      },
+      "title": "Ограничение полезной нагрузки трафика",
+      "priority": "high",
+      "acceptance_criteria": "профиль сообщений утверждён; иные типы трафика отклоняются терминалом и платформой",
+      "rationale": "техническое ограничение (§9) · метка источника: П; якоря: s9",
+      "tags": [
+        "ограничение",
+        "код поставки: RQ-P-07"
+      ]
+    },
+    {
+      "id": "RQ-9008",
+      "level": "project",
+      "statement": "Платформа должна предоставлять открытые документированные API и форматы для интеграции с ГАИС, «ГосЛог», AIS/LRIT и отраслевыми системами.",
+      "category": "interface",
+      "traces_up": [],
+      "verification_events": [
         {
-          "id": "VE-0006",
+          "id": "VE-9008",
           "method": "demonstration",
-          "kind": "acceptance",
-          "phase": "PhaseE",
-          "level": "end_to_end",
-          "approach": "Периодическая сверка реестра отслеживаемых объектов критических грузов и платформ с утверждённым перечнем по данным эксплуатации системы.",
-          "means": "Отчёты мониторинга ГАИС «ЭРА-ГЛОНАСС» и «ГосЛог»",
-          "success_criterion": "Доля отслеживаемых объектов перечня ≥100% по данным отчётного периода.",
+          "kind": "preliminary",
+          "level": "system",
           "status": "planned",
-          "closes": true
+          "closes": false,
+          "approach": "опубликована спецификация API; интеграция с ГАИС продемонстрирована"
         }
       ],
-      "provenance": {
-        "source": "ai_proposed"
-      }
-    },
-    {
-      "id": "RQ-0090",
-      "level": "system",
-      "statement": "Система должна обеспечивать задержку доставки сообщения класса B′ не более 120 секунд.",
-      "category": "performance",
-      "rationale": "Оценка задержки для подтверждённой доставки команд; источник значения не приведён намеренно (ловушка приёмки).",
-      "traces_up": [
-        {
-          "ref": "SV-0001",
-          "consumer_class": "C_prime"
-        },
-        {
-          "ref": "NR-0001"
-        }
-      ],
-      "mop": {
-        "name": "Задержка доставки B′",
-        "operator": "le",
-        "value": {
-          "value": 120,
-          "unit": "s"
-        }
-      },
+      "owner": "вед. СИ",
       "lifecycle": {
         "status": "Draft",
         "version": "1"
       },
-      "owner": "Ведущий системный инженер",
-      "verification_events": [
-        {
-          "id": "VE-0001",
-          "method": "analysis",
-          "kind": "preliminary",
-          "phase": "PhaseA",
-          "level": "system",
-          "approach": "Расчётная проверка временного бюджета передачи по модели канала связи терминал–КА–НКУ для подтверждения достижимости заданного периода обновления.",
-          "means": "Модель канала связи (Link Budget, Phase A)",
-          "status": "planned",
-          "closes": false
-        },
-        {
-          "id": "VE-0002",
-          "method": "test",
-          "kind": "qualification",
-          "phase": "PhaseD",
-          "level": "system",
-          "approach": "Натурные испытания терминала класса C′ на стенде с имитацией орбитального сегмента: измерение фактического интервала между последовательными обновлениями геопозиции.",
-          "means": "Комплексный стенд «Спутник-Терминал»",
-          "success_criterion": "Измеренный интервал ≤30 с для не менее 95% сообщений тестовой выборки.",
-          "status": "planned",
-          "closes": true
-        }
-      ],
       "provenance": {
-        "source": "ai_proposed"
-      }
+        "source": "ai_proposed",
+        "ai": {
+          "prompt_package_id": "ПМИ-4",
+          "accepted": false
+        }
+      },
+      "title": "Открытые API и отсутствие vendor lock-in",
+      "priority": "high",
+      "acceptance_criteria": "опубликована спецификация API; интеграция с ГАИС продемонстрирована",
+      "rationale": "интеграция вместо параллельного реестра (§2.3, §9) · метка источника: В1, В2; якоря: s9",
+      "tags": [
+        "интеграция",
+        "API",
+        "код поставки: RQ-P-08"
+      ]
     },
     {
-      "id": "RQ-0091",
-      "level": "system",
-      "statement": "Система должна при необходимости повторять передачу сообщения класса A′ до трёх раз.",
+      "id": "RQ-9009",
+      "level": "project",
+      "statement": "Терминал датчикового класса должен обеспечивать автономную работу не менее срока, оправданного для десятков тысяч объектов, при стоимости, подтверждённой предложениями поставщиков.",
       "category": "performance",
-      "rationale": "Повтор передачи вслепую как деградированный режим (Р5); формулировка нарочно несёт неопределённое слово (ловушка приёмки, L-C2).",
       "traces_up": [
         {
-          "ref": "SV-0001",
-          "consumer_class": "C_prime"
-        },
-        {
-          "ref": "NR-0001"
+          "ref": "ND-9005"
         }
       ],
+      "verification_events": [
+        {
+          "id": "VE-9009",
+          "method": "test",
+          "kind": "preliminary",
+          "level": "system",
+          "status": "planned",
+          "closes": false,
+          "approach": "измерен энергобаланс прототипов; BOM и цена партии подтверждены до коммерческого обещания",
+          "means": "стенд пилота: выборка сообщений и журнал доставки"
+        }
+      ],
+      "owner": "вед. СИ",
+      "lifecycle": {
+        "status": "Draft",
+        "version": "1"
+      },
+      "provenance": {
+        "source": "ai_proposed",
+        "ai": {
+          "prompt_package_id": "ПМИ-4",
+          "accepted": false
+        }
+      },
+      "title": "Экономика терминала",
+      "priority": "high",
+      "acceptance_criteria": "измерен энергобаланс прототипов; BOM и цена партии подтверждены до коммерческого обещания",
+      "rationale": "массовая экономика (§2.1); значение TBR — прототипы в Арктике, на подвижных объектах и в агросреде (§10) · метка источника: П; якоря: s2#2.1",
+      "tags": [
+        "терминал",
+        "TBR",
+        "код поставки: RQ-P-09"
+      ]
+    },
+    {
+      "id": "RQ-9010",
+      "level": "project",
+      "statement": "Система должна развёртываться так, чтобы в одном пуске выводилось не более 25% штатной группировки, без зависимости от одного пускового оператора.",
+      "category": "constraint",
+      "traces_up": [],
+      "verification_events": [
+        {
+          "id": "VE-9010",
+          "method": "analysis",
+          "kind": "preliminary",
+          "level": "system",
+          "status": "planned",
+          "closes": false,
+          "approach": "план пусков: доля КА в любом пуске ≤ 25%; ≥2 пусковых оператора",
+          "means": "расчётная модель системы (М1–М3) и журнал прогона"
+        }
+      ],
+      "owner": "вед. СИ",
+      "lifecycle": {
+        "status": "Draft",
+        "version": "1"
+      },
+      "provenance": {
+        "source": "ai_proposed",
+        "ai": {
+          "prompt_package_id": "ПМИ-4",
+          "accepted": false
+        }
+      },
+      "title": "Распределение группировки по пускам",
+      "priority": "high",
+      "acceptance_criteria": "план пусков: доля КА в любом пуске ≤ 25%; ≥2 пусковых оператора",
       "mop": {
-        "name": "Период обновления геопозиции",
+        "name": "Распределение группировки по пускам",
         "operator": "le",
         "value": {
-          "value": 30,
-          "unit": "s",
+          "value": 0.25,
+          "unit": "1",
           "provenance": {
             "source": "imported",
             "import": {
-              "dataset": "ПП РФ № 2216, п.6",
-              "dataset_version": "действующая редакция",
-              "retrieved_at": "2025-01-01",
-              "terms": "нормативный правовой акт РФ, открытый источник"
+              "dataset": "Записка миссии — Национальная спутниковая IoT-платформа, блок s9",
+              "dataset_version": "поставка ПМИ-4 от 03.09.2026",
+              "retrieved_at": "2026-09-03",
+              "terms": "материал владельца проекта"
             }
           }
         }
       },
+      "rationale": "пусковое ограничение (§9) · метка источника: П; якоря: s9",
+      "tags": [
+        "пуск",
+        "живучесть",
+        "код поставки: RQ-P-10"
+      ]
+    },
+    {
+      "id": "RQ-9011",
+      "level": "project",
+      "statement": "Использование частот допускается только после решения ГКРЧ, разрешений и международной координации; запуск до этого исключается.",
+      "category": "constraint",
+      "traces_up": [
+        {
+          "ref": "MG-9009"
+        }
+      ],
+      "verification_events": [
+        {
+          "id": "VE-9011",
+          "method": "inspection",
+          "kind": "preliminary",
+          "level": "system",
+          "status": "planned",
+          "closes": false,
+          "approach": "решение ГКРЧ и комплект разрешений получены до отгрузки лётного образца"
+        }
+      ],
+      "owner": "вед. СИ",
       "lifecycle": {
         "status": "Draft",
         "version": "1"
       },
-      "owner": "Ведущий системный инженер",
-      "verification_events": [
+      "provenance": {
+        "source": "ai_proposed",
+        "ai": {
+          "prompt_package_id": "ПМИ-4",
+          "accepted": false
+        }
+      },
+      "title": "Частотное обеспечение до запуска",
+      "priority": "high",
+      "acceptance_criteria": "решение ГКРЧ и комплект разрешений получены до отгрузки лётного образца",
+      "rationale": "регуляторное ограничение (§9, §10) · метка источника: П; якоря: s9",
+      "tags": [
+        "частоты",
+        "регуляторика",
+        "код поставки: RQ-P-11"
+      ]
+    },
+    {
+      "id": "RQ-9012",
+      "level": "project",
+      "statement": "Система должна обеспечивать сервис в масках приоритета 1: территории РФ вне устойчивого наземного покрытия, Северный морской путь, Транссиб, беспилотные логистические коридоры.",
+      "category": "performance",
+      "traces_up": [
         {
-          "id": "VE-0001",
-          "method": "analysis",
-          "kind": "preliminary",
-          "phase": "PhaseA",
-          "level": "system",
-          "approach": "Расчётная проверка временного бюджета передачи по модели канала связи терминал–КА–НКУ для подтверждения достижимости заданного периода обновления.",
-          "means": "Модель канала связи (Link Budget, Phase A)",
-          "status": "planned",
-          "closes": false
-        },
-        {
-          "id": "VE-0002",
-          "method": "test",
-          "kind": "qualification",
-          "phase": "PhaseD",
-          "level": "system",
-          "approach": "Натурные испытания терминала класса C′ на стенде с имитацией орбитального сегмента: измерение фактического интервала между последовательными обновлениями геопозиции.",
-          "means": "Комплексный стенд «Спутник-Терминал»",
-          "success_criterion": "Измеренный интервал ≤30 с для не менее 95% сообщений тестовой выборки.",
-          "status": "planned",
-          "closes": true
+          "ref": "SV-9002"
         }
       ],
+      "verification_events": [
+        {
+          "id": "VE-9012",
+          "method": "analysis",
+          "kind": "preliminary",
+          "level": "system",
+          "status": "planned",
+          "closes": false,
+          "approach": "маски приоритета 1 покрыты с параметрами класса B′ по модели М1/М3",
+          "means": "расчётная модель системы (М1–М3) и журнал прогона"
+        }
+      ],
+      "owner": "вед. СИ",
+      "lifecycle": {
+        "status": "Draft",
+        "version": "1"
+      },
       "provenance": {
-        "source": "ai_proposed"
-      }
+        "source": "ai_proposed",
+        "ai": {
+          "prompt_package_id": "ПМИ-4",
+          "accepted": false
+        }
+      },
+      "title": "Покрытие приоритетных зон",
+      "priority": "high",
+      "acceptance_criteria": "маски приоритета 1 покрыты с параметрами класса B′ по модели М1/М3",
+      "rationale": "география (§6) · метка источника: И1, И4; якоря: s6",
+      "tags": [
+        "покрытие",
+        "маски",
+        "код поставки: RQ-P-12"
+      ]
+    },
+    {
+      "id": "RQ-9013",
+      "level": "project",
+      "statement": "Платформа должна обрабатывать не менее 4 200 сообщений в секунду в пике.",
+      "category": "performance",
+      "traces_up": [
+        {
+          "ref": "SV-9008"
+        }
+      ],
+      "verification_events": [
+        {
+          "id": "VE-9013",
+          "method": "analysis",
+          "kind": "preliminary",
+          "level": "system",
+          "status": "planned",
+          "closes": false,
+          "means": "расчётная модель системы (М1–М3) и журнал прогона"
+        }
+      ],
+      "owner": "вед. СИ",
+      "lifecycle": {
+        "status": "Draft",
+        "version": "1"
+      },
+      "provenance": {
+        "source": "ai_proposed",
+        "ai": {
+          "prompt_package_id": "ПМИ-4",
+          "accepted": false
+        }
+      },
+      "title": "Ёмкость обработки",
+      "priority": "high",
+      "mop": {
+        "name": "Ёмкость обработки",
+        "operator": "ge",
+        "value": {
+          "value": 4200,
+          "unit": "1/с"
+        }
+      },
+      "rationale": "метка источника: П",
+      "tags": [
+        "ловушка",
+        "код поставки: RQ-P-13"
+      ]
+    },
+    {
+      "id": "RQ-9014",
+      "level": "project",
+      "statement": "Система должна при необходимости резервировать канал доставки для критических потребителей.",
+      "category": "functional",
+      "traces_up": [
+        {
+          "ref": "SV-9001"
+        }
+      ],
+      "verification_events": [
+        {
+          "id": "VE-9014",
+          "method": "demonstration",
+          "kind": "preliminary",
+          "level": "system",
+          "status": "planned",
+          "closes": false,
+          "approach": "резервный канал активируется по сценарию кризиса"
+        }
+      ],
+      "owner": "вед. СИ",
+      "lifecycle": {
+        "status": "Draft",
+        "version": "1"
+      },
+      "provenance": {
+        "source": "ai_proposed",
+        "ai": {
+          "prompt_package_id": "ПМИ-4",
+          "accepted": false
+        }
+      },
+      "title": "Резервирование каналов",
+      "priority": "high",
+      "acceptance_criteria": "резервный канал активируется по сценарию кризиса",
+      "rationale": "резервный канал кризисных ситуаций (§3, центр мониторинга) · метка источника: П; якоря: s3",
+      "tags": [
+        "ловушка",
+        "L-C2",
+        "код поставки: RQ-P-14"
+      ]
     }
   ]
 }

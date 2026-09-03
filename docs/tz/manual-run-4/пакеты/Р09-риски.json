@@ -1,0 +1,313 @@
+{
+  "kind": "risk_register",
+  "items": [
+    {
+      "id": "RSK-9001",
+      "statement": "группировка до 50 КА не обеспечивает заявленные P95 — A′-сервисы не могут быть проданы как спутниковые — потеря якорных контрактов",
+      "category": "technical",
+      "probability": 4,
+      "impact": 5,
+      "owner": "ведущий СИ",
+      "status": "open",
+      "provenance": {
+        "source": "ai_proposed",
+        "ai": {
+          "prompt_package_id": "ПМИ-4",
+          "accepted": false
+        }
+      },
+      "strategy": "mitigate",
+      "actions": [
+        "A′ только гибридно; ЛИ до серийного заказа; SLA после доказательства",
+        "категория поставки: технический",
+        "метка источника: И; якоря: s10"
+      ]
+    },
+    {
+      "id": "RSK-9002",
+      "statement": "баллистика, линк и ёмкость не верифицированы независимо — архитектурные решения приняты на непроверенных числах — переделка на ЭТП",
+      "category": "technical",
+      "probability": 4,
+      "impact": 5,
+      "owner": "ведущий СИ",
+      "status": "open",
+      "provenance": {
+        "source": "ai_proposed",
+        "ai": {
+          "prompt_package_id": "ПМИ-4",
+          "accepted": false
+        }
+      },
+      "strategy": "mitigate",
+      "actions": [
+        "независимая модель и review; Monte Carlo; отказные сценарии; публикация допущений",
+        "категория поставки: технический",
+        "метка источника: И; якоря: s10"
+      ]
+    },
+    {
+      "id": "RSK-9003",
+      "statement": "решение ГКРЧ и координация не получены до лётного образца — запуск невозможен — срыв этапа 0",
+      "category": "technical",
+      "probability": 3,
+      "impact": 5,
+      "owner": "руководитель проекта",
+      "status": "open",
+      "provenance": {
+        "source": "ai_proposed",
+        "ai": {
+          "prompt_package_id": "ПМИ-4",
+          "accepted": false
+        }
+      },
+      "strategy": "mitigate",
+      "actions": [
+        "предварительное решение ГКРЧ и дорожная карта регуляторики",
+        "категория поставки: регуляторный",
+        "метка источника: И; якоря: s10"
+      ]
+    },
+    {
+      "id": "RSK-9004",
+      "statement": "оценки без bottom-up ТЭО — бюджет этапа 1 занижен — остановка финансирования",
+      "category": "cost",
+      "probability": 4,
+      "impact": 5,
+      "owner": "офис оценки стоимости",
+      "status": "open",
+      "provenance": {
+        "source": "ai_proposed",
+        "ai": {
+          "prompt_package_id": "ПМИ-4",
+          "accepted": false
+        }
+      },
+      "strategy": "mitigate",
+      "actions": [
+        "bottom-up ТЭО; 3 КП; резерв 20–30%; модель OPEX/renewal",
+        "категория поставки: стоимостной",
+        "метка источника: И; якоря: s10"
+      ]
+    },
+    {
+      "id": "RSK-9005",
+      "statement": "якорные контракты не подписаны до этапа 1 — unit economics не подтверждена — gate 2 не пройден",
+      "category": "cost",
+      "probability": 3,
+      "impact": 4,
+      "owner": "руководитель проекта",
+      "status": "open",
+      "provenance": {
+        "source": "ai_proposed",
+        "ai": {
+          "prompt_package_id": "ПМИ-4",
+          "accepted": false
+        }
+      },
+      "strategy": "mitigate",
+      "actions": [
+        "LOI/контракты до этапа 1; пилоты с измеримой выгодой",
+        "категория поставки: стоимостной",
+        "метка источника: И; якоря: s10"
+      ]
+    },
+    {
+      "id": "RSK-9006",
+      "statement": "система воспринимается как параллельный реестр — интеграция блокируется — потеря B2G",
+      "category": "technical",
+      "probability": 3,
+      "impact": 4,
+      "owner": "руководитель проекта",
+      "status": "open",
+      "provenance": {
+        "source": "ai_proposed",
+        "ai": {
+          "prompt_package_id": "ПМИ-4",
+          "accepted": false
+        }
+      },
+      "strategy": "avoid",
+      "actions": [
+        "позиционирование как канал; open API; интеграция",
+        "категория поставки: программный",
+        "метка источника: И; якоря: s10"
+      ]
+    },
+    {
+      "id": "RSK-9007",
+      "statement": "критические компоненты без второго источника — поставка срывается — сдвиг этапов",
+      "category": "technical",
+      "probability": 4,
+      "impact": 4,
+      "owner": "ведущий СИ",
+      "status": "open",
+      "provenance": {
+        "source": "ai_proposed",
+        "ai": {
+          "prompt_package_id": "ПМИ-4",
+          "accepted": false
+        }
+      },
+      "strategy": "mitigate",
+      "actions": [
+        "двухконтурная программа; локализация; второй источник; сертификация модулей",
+        "категория поставки: технический",
+        "метка источника: И; якоря: s10"
+      ]
+    },
+    {
+      "id": "RSK-9008",
+      "statement": "наследующие НПА не приняты к 01.09.2027 — регуляторный спрос не оформлен — падение выручки",
+      "category": "technical",
+      "probability": 4,
+      "impact": 3,
+      "owner": "руководитель проекта",
+      "status": "open",
+      "provenance": {
+        "source": "ai_proposed",
+        "ai": {
+          "prompt_package_id": "ПМИ-4",
+          "accepted": false
+        }
+      },
+      "strategy": "mitigate",
+      "actions": [
+        "workstream наследующих НПА; контроль дат 01.09.2027, 01.07.2027, 01.02.2028",
+        "категория поставки: регуляторный",
+        "метка источника: И; якоря: s10"
+      ]
+    },
+    {
+      "id": "RSK-9009",
+      "statement": "ключи скомпрометированы — канал управления и данные КИИ под угрозой — отзыв аттестации",
+      "category": "safety",
+      "probability": 3,
+      "impact": 5,
+      "owner": "служба ИБ",
+      "status": "open",
+      "provenance": {
+        "source": "ai_proposed",
+        "ai": {
+          "prompt_package_id": "ПМИ-4",
+          "accepted": false
+        }
+      },
+      "strategy": "mitigate",
+      "actions": [
+        "HSM/KMS; отечественная криптография; сегментация; ГосСОПКА; SOC; ротация",
+        "категория поставки: безопасность",
+        "метка источника: И; якоря: s10"
+      ]
+    },
+    {
+      "id": "RSK-9010",
+      "statement": "пуск задержан или КА отказал — развёртывание срывается — сдвиг этапа 1",
+      "category": "schedule",
+      "probability": 3,
+      "impact": 4,
+      "owner": "руководитель проекта",
+      "status": "open",
+      "provenance": {
+        "source": "ai_proposed",
+        "ai": {
+          "prompt_package_id": "ПМИ-4",
+          "accepted": false
+        }
+      },
+      "strategy": "mitigate",
+      "actions": [
+        "несколько пусков/операторов; резерв КА; план замещения; страхование; сведение",
+        "категория поставки: календарный",
+        "метка источника: И; якоря: s10"
+      ]
+    },
+    {
+      "id": "RSK-9011",
+      "statement": "прототип не достигает автономности и цены партии — массовый сегмент недостижим — цели 2033 не выполнены",
+      "category": "technical",
+      "probability": 4,
+      "impact": 4,
+      "owner": "ведущий СИ",
+      "status": "open",
+      "provenance": {
+        "source": "ai_proposed",
+        "ai": {
+          "prompt_package_id": "ПМИ-4",
+          "accepted": false
+        }
+      },
+      "strategy": "mitigate",
+      "actions": [
+        "прототипы в Арктике/на подвижных/в агро; энергобаланс; BOM и цена партии",
+        "категория поставки: технический",
+        "метка источника: И; якоря: s10"
+      ]
+    },
+    {
+      "id": "RSK-9012",
+      "statement": "владелец активов и оператор не определены до этапа 1 — SLA и права на данные не оформлены — контракты не подписаны",
+      "category": "technical",
+      "probability": 3,
+      "impact": 4,
+      "owner": "руководитель проекта",
+      "status": "open",
+      "provenance": {
+        "source": "ai_proposed",
+        "ai": {
+          "prompt_package_id": "ПМИ-4",
+          "accepted": false
+        }
+      },
+      "strategy": "mitigate",
+      "actions": [
+        "до этапа 1 утвердить владельца, оператора, тарифы, права, exit",
+        "категория поставки: программный",
+        "метка источника: И; якоря: s10"
+      ]
+    },
+    {
+      "id": "RSK-9013",
+      "statement": "единицы углов смешаны — построение неверно — ложное покрытие",
+      "category": "technical",
+      "probability": 2,
+      "impact": 4,
+      "owner": "ведущий СИ",
+      "status": "open",
+      "provenance": {
+        "source": "ai_proposed",
+        "ai": {
+          "prompt_package_id": "ПМИ-4",
+          "accepted": false
+        }
+      },
+      "strategy": "mitigate",
+      "actions": [
+        "типизация углов; инварианты узлов; сторож единиц",
+        "категория поставки: технический",
+        "якоря: типовой"
+      ]
+    },
+    {
+      "id": "RSK-9014",
+      "statement": "энергетика посчитана по среднему — в худшем β АКБ разряжается ниже допустимого — деградация ресурса",
+      "category": "technical",
+      "probability": 3,
+      "impact": 4,
+      "owner": "ведущий СИ",
+      "status": "open",
+      "provenance": {
+        "source": "ai_proposed",
+        "ai": {
+          "prompt_package_id": "ПМИ-4",
+          "accepted": false
+        }
+      },
+      "strategy": "mitigate",
+      "actions": [
+        "М4 худший случай по году; DoD с резервом",
+        "категория поставки: технический",
+        "якоря: типовой"
+      ]
+    }
+  ]
+}

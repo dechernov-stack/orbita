@@ -2,56 +2,31 @@
   "kind": "needs_to_services",
   "items": [
     {
-      "id": "SV-0101",
-      "name": "Агромониторинг посевов и почвы, подтверждённая доставка команд полива",
-      "description": "Односторонний сбор телеметрии состояния посевов и почвы (A') и подтверждённая доставка команд управления поливом и внесением (B') для агропредприятий.",
+      "id": "SV-9001",
+      "name": "Резервный канал мониторинга пассажирских и опасных перевозок",
       "traces_up": [
-        "ND-0101",
-        "ND-0102"
+        "ND-9002"
       ],
       "qos_profiles": [
         {
           "consumer_class": "A_prime",
           "moe": [
             {
-              "id": "MOE-0001",
-              "name": "delivery_probability_daily",
+              "id": "MOE-9101",
+              "name": "reaction_time_probability",
               "target": {
-                "value": 0.9,
-                "unit": "1",
+                "value": 180,
+                "unit": "мин",
                 "provenance": {
                   "source": "imported",
                   "import": {
-                    "dataset": "Постановка миссии «Национальная спутниковая платформа IoT»",
-                    "dataset_version": "1",
-                    "retrieved_at": "2026-08-23",
-                    "terms": "внутренний документ проекта"
+                    "dataset": "Записка миссии — Национальная спутниковая IoT-платформа, блок s4",
+                    "dataset_version": "поставка ПМИ-4 от 03.09.2026",
+                    "retrieved_at": "2026-09-03",
+                    "terms": "материал владельца проекта"
                   }
                 }
               }
-            }
-          ]
-        },
-        {
-          "consumer_class": "B_prime",
-          "moe": [
-            {
-              "id": "MOE-0002",
-              "name": "delivery_probability_n_attempts",
-              "target": {
-                "value": 0.99,
-                "unit": "1",
-                "provenance": {
-                  "source": "imported",
-                  "import": {
-                    "dataset": "Постановка миссии «Национальная спутниковая платформа IoT»",
-                    "dataset_version": "1",
-                    "retrieved_at": "2026-08-23",
-                    "terms": "внутренний документ проекта"
-                  }
-                }
-              },
-              "condition": "окно подтверждения двое суток (172800 с)"
             }
           ]
         }
@@ -61,37 +36,83 @@
         "version": "1"
       },
       "provenance": {
-        "source": "ai_proposed"
-      }
+        "source": "ai_proposed",
+        "ai": {
+          "prompt_package_id": "ПМИ-4",
+          "accepted": false
+        }
+      },
+      "description": "P95 доставки ≤180 мин (этап 1), ≤15 мин (этап 2); наземный канал — не реже 1/30 с по ПП №2216 · метка источника: П; якоря: s4#1"
     },
     {
-      "id": "SV-0102",
-      "name": "Оперативное управление ирригационными системами агропредприятия",
-      "description": "Доведение команд оперативного управления ирригационными и технологическими системами (C') для агропредприятий.",
+      "id": "SV-9002",
+      "name": "Удалённая идентификация БВС вне наземного покрытия",
+      "traces_up": [
+        "ND-0101"
+      ],
+      "qos_profiles": [
+        {
+          "consumer_class": "A_prime",
+          "moe": [
+            {
+              "id": "MOE-9102",
+              "name": "reaction_time_probability",
+              "target": {
+                "value": 1,
+                "unit": "с",
+                "provenance": {
+                  "source": "imported",
+                  "import": {
+                    "dataset": "Записка миссии — Национальная спутниковая IoT-платформа, блок s4",
+                    "dataset_version": "поставка ПМИ-4 от 03.09.2026",
+                    "retrieved_at": "2026-09-03",
+                    "terms": "материал владельца проекта"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "lifecycle": {
+        "status": "Draft",
+        "version": "1"
+      },
+      "provenance": {
+        "source": "ai_proposed",
+        "ai": {
+          "prompt_package_id": "ПМИ-4",
+          "accepted": false
+        }
+      },
+      "description": "формирование данных 1 раз/с; спутник обеспечивает непрерывность; C2 исключено · метка источника: П; якоря: s4#2"
+    },
+    {
+      "id": "SV-9003",
+      "name": "Трекинг вагонов, контейнеров, навигационных пломб и грузов",
       "traces_up": [
         "ND-0103"
       ],
       "qos_profiles": [
         {
-          "consumer_class": "C_prime",
+          "consumer_class": "B_prime",
           "moe": [
             {
-              "id": "MOE-0003",
+              "id": "MOE-9103",
               "name": "reaction_time_probability",
               "target": {
-                "value": 1800,
-                "unit": "s",
+                "value": 180,
+                "unit": "мин",
                 "provenance": {
                   "source": "imported",
                   "import": {
-                    "dataset": "Постановка миссии «Национальная спутниковая платформа IoT»",
-                    "dataset_version": "1",
-                    "retrieved_at": "2026-08-23",
-                    "terms": "внутренний документ проекта"
+                    "dataset": "Записка миссии — Национальная спутниковая IoT-платформа, блок s4",
+                    "dataset_version": "поставка ПМИ-4 от 03.09.2026",
+                    "retrieved_at": "2026-09-03",
+                    "terms": "материал владельца проекта"
                   }
                 }
-              },
-              "condition": "доведение команды C' за 30 минут"
+              }
             }
           ]
         }
@@ -101,60 +122,40 @@
         "version": "1"
       },
       "provenance": {
-        "source": "ai_proposed"
-      }
+        "source": "ai_proposed",
+        "ai": {
+          "prompt_package_id": "ПМИ-4",
+          "accepted": false
+        }
+      },
+      "description": "сообщение при движении не реже 1/5–15 мин, событие немедленно; P95 ≤180/≤15 мин · метка источника: П; якоря: s4#3"
     },
     {
-      "id": "SV-0103",
-      "name": "Мониторинг сети водоснабжения и подтверждение аварийных сообщений",
-      "description": "Односторонний сбор телеметрии уровня, давления и качества воды (A') и подтверждённая доставка аварийных сообщений о протечках и авариях (B') для водоканалов.",
+      "id": "SV-9004",
+      "name": "Телеметрия морского/речного флота и поддержка LRIT",
       "traces_up": [
-        "ND-0104",
-        "ND-0105"
+        "ND-9001"
       ],
       "qos_profiles": [
         {
           "consumer_class": "A_prime",
           "moe": [
             {
-              "id": "MOE-0004",
-              "name": "delivery_probability_daily",
+              "id": "MOE-9104",
+              "name": "age_of_information",
               "target": {
-                "value": 0.9,
-                "unit": "1",
+                "value": 6,
+                "unit": "ч",
                 "provenance": {
                   "source": "imported",
                   "import": {
-                    "dataset": "Постановка миссии «Национальная спутниковая платформа IoT»",
-                    "dataset_version": "1",
-                    "retrieved_at": "2026-08-23",
-                    "terms": "внутренний документ проекта"
+                    "dataset": "Записка миссии — Национальная спутниковая IoT-платформа, блок s4",
+                    "dataset_version": "поставка ПМИ-4 от 03.09.2026",
+                    "retrieved_at": "2026-09-03",
+                    "terms": "материал владельца проекта"
                   }
                 }
               }
-            }
-          ]
-        },
-        {
-          "consumer_class": "B_prime",
-          "moe": [
-            {
-              "id": "MOE-0005",
-              "name": "delivery_probability_n_attempts",
-              "target": {
-                "value": 0.99,
-                "unit": "1",
-                "provenance": {
-                  "source": "imported",
-                  "import": {
-                    "dataset": "Постановка миссии «Национальная спутниковая платформа IoT»",
-                    "dataset_version": "1",
-                    "retrieved_at": "2026-08-23",
-                    "terms": "внутренний документ проекта"
-                  }
-                }
-              },
-              "condition": "окно подтверждения двое суток (172800 с)"
             }
           ]
         }
@@ -164,13 +165,103 @@
         "version": "1"
       },
       "provenance": {
-        "source": "ai_proposed"
-      }
+        "source": "ai_proposed",
+        "ai": {
+          "prompt_package_id": "ПМИ-4",
+          "accepted": false
+        }
+      },
+      "description": "LRIT — не реже 1/6 ч; технологическая телеметрия 1/15–60 мин; AIS не заменяется · метка источника: П; якоря: s4#4"
     },
     {
-      "id": "SV-0104",
-      "name": "Оперативное управление задвижками и насосными станциями водоканала",
-      "description": "Доведение команд оперативного управления задвижками и насосными станциями (C') для водоканалов.",
+      "id": "SV-9005",
+      "name": "Датчики ЧС, гидрологии, лесных пожаров и ледовой обстановки",
+      "traces_up": [
+        "ND-0104"
+      ],
+      "qos_profiles": [
+        {
+          "consumer_class": "B_prime",
+          "moe": [
+            {
+              "id": "MOE-9105",
+              "name": "reaction_time_probability",
+              "target": {
+                "value": 180,
+                "unit": "мин",
+                "provenance": {
+                  "source": "imported",
+                  "import": {
+                    "dataset": "Записка миссии — Национальная спутниковая IoT-платформа, блок s4",
+                    "dataset_version": "поставка ПМИ-4 от 03.09.2026",
+                    "retrieved_at": "2026-09-03",
+                    "terms": "материал владельца проекта"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "lifecycle": {
+        "status": "Draft",
+        "version": "1"
+      },
+      "provenance": {
+        "source": "ai_proposed",
+        "ai": {
+          "prompt_package_id": "ПМИ-4",
+          "accepted": false
+        }
+      },
+      "description": "периодика 1/15–60 мин; тревога — P95 ≤180/≤15 мин · метка источника: П; якоря: s4#5"
+    },
+    {
+      "id": "SV-9006",
+      "name": "Мониторинг трубопроводов, ЛЭП, добычных и удалённых промышленных объектов",
+      "traces_up": [
+        "ND-9005"
+      ],
+      "qos_profiles": [
+        {
+          "consumer_class": "B_prime",
+          "moe": [
+            {
+              "id": "MOE-9106",
+              "name": "reaction_time_probability",
+              "target": {
+                "value": 15,
+                "unit": "мин",
+                "provenance": {
+                  "source": "imported",
+                  "import": {
+                    "dataset": "Записка миссии — Национальная спутниковая IoT-платформа, блок s4",
+                    "dataset_version": "поставка ПМИ-4 от 03.09.2026",
+                    "retrieved_at": "2026-09-03",
+                    "terms": "материал владельца проекта"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "lifecycle": {
+        "status": "Draft",
+        "version": "1"
+      },
+      "provenance": {
+        "source": "ai_proposed",
+        "ai": {
+          "prompt_package_id": "ПМИ-4",
+          "accepted": false
+        }
+      },
+      "description": "телеметрия 1/5–60 мин; аварийный пакет при событии; P95 ≤15 мин (этап 2) · метка источника: П; якоря: s4#6"
+    },
+    {
+      "id": "SV-9007",
+      "name": "Агро-IoT: почва, вода, техника, скот, метеоданные",
       "traces_up": [
         "ND-0106"
       ],
@@ -179,455 +270,18 @@
           "consumer_class": "C_prime",
           "moe": [
             {
-              "id": "MOE-0006",
-              "name": "reaction_time_probability",
+              "id": "MOE-9107",
+              "name": "age_of_information",
               "target": {
-                "value": 1800,
-                "unit": "s",
+                "value": 6,
+                "unit": "ч",
                 "provenance": {
                   "source": "imported",
                   "import": {
-                    "dataset": "Постановка миссии «Национальная спутниковая платформа IoT»",
-                    "dataset_version": "1",
-                    "retrieved_at": "2026-08-23",
-                    "terms": "внутренний документ проекта"
-                  }
-                }
-              },
-              "condition": "доведение команды C' за 30 минут"
-            }
-          ]
-        }
-      ],
-      "lifecycle": {
-        "status": "Draft",
-        "version": "1"
-      },
-      "provenance": {
-        "source": "ai_proposed"
-      }
-    },
-    {
-      "id": "SV-0105",
-      "name": "Подтверждённая телеметрия состояния линий и оперативное управление коммутационной аппаратурой",
-      "description": "Подтверждённая доставка сигналов о состоянии линий электропередачи (B') и доведение команд оперативного управления коммутационной аппаратурой (C') для энергосетевой компании.",
-      "traces_up": [
-        "ND-0107",
-        "ND-0108"
-      ],
-      "qos_profiles": [
-        {
-          "consumer_class": "B_prime",
-          "moe": [
-            {
-              "id": "MOE-0007",
-              "name": "delivery_probability_n_attempts",
-              "target": {
-                "value": 0.99,
-                "unit": "1",
-                "provenance": {
-                  "source": "imported",
-                  "import": {
-                    "dataset": "Постановка миссии «Национальная спутниковая платформа IoT»",
-                    "dataset_version": "1",
-                    "retrieved_at": "2026-08-23",
-                    "terms": "внутренний документ проекта"
-                  }
-                }
-              },
-              "condition": "окно подтверждения двое суток (172800 с)"
-            }
-          ]
-        },
-        {
-          "consumer_class": "C_prime",
-          "moe": [
-            {
-              "id": "MOE-0008",
-              "name": "reaction_time_probability",
-              "target": {
-                "value": 1800,
-                "unit": "s",
-                "provenance": {
-                  "source": "imported",
-                  "import": {
-                    "dataset": "Постановка миссии «Национальная спутниковая платформа IoT»",
-                    "dataset_version": "1",
-                    "retrieved_at": "2026-08-23",
-                    "terms": "внутренний документ проекта"
-                  }
-                }
-              },
-              "condition": "доведение команды C' за 30 минут"
-            }
-          ]
-        }
-      ],
-      "lifecycle": {
-        "status": "Draft",
-        "version": "1"
-      },
-      "provenance": {
-        "source": "ai_proposed"
-      }
-    },
-    {
-      "id": "SV-0106",
-      "name": "Трекинг местоположения и подтверждённые событийные сообщения логистики",
-      "description": "Односторонняя передача данных о местоположении и статусе грузового транспорта (A') и подтверждённая доставка событийных сообщений о состоянии груза (B') для логистических компаний.",
-      "traces_up": [
-        "ND-0201",
-        "ND-0202"
-      ],
-      "qos_profiles": [
-        {
-          "consumer_class": "A_prime",
-          "moe": [
-            {
-              "id": "MOE-0009",
-              "name": "delivery_probability_daily",
-              "target": {
-                "value": 0.9,
-                "unit": "1",
-                "provenance": {
-                  "source": "imported",
-                  "import": {
-                    "dataset": "Постановка миссии «Национальная спутниковая платформа IoT»",
-                    "dataset_version": "1",
-                    "retrieved_at": "2026-08-23",
-                    "terms": "внутренний документ проекта"
-                  }
-                }
-              }
-            }
-          ]
-        },
-        {
-          "consumer_class": "B_prime",
-          "moe": [
-            {
-              "id": "MOE-0010",
-              "name": "delivery_probability_n_attempts",
-              "target": {
-                "value": 0.99,
-                "unit": "1",
-                "provenance": {
-                  "source": "imported",
-                  "import": {
-                    "dataset": "Постановка миссии «Национальная спутниковая платформа IoT»",
-                    "dataset_version": "1",
-                    "retrieved_at": "2026-08-23",
-                    "terms": "внутренний документ проекта"
-                  }
-                }
-              },
-              "condition": "окно подтверждения двое суток (172800 с)"
-            }
-          ]
-        }
-      ],
-      "lifecycle": {
-        "status": "Draft",
-        "version": "1"
-      },
-      "provenance": {
-        "source": "ai_proposed"
-      }
-    },
-    {
-      "id": "SV-0107",
-      "name": "Оперативная блокировка транспортного средства",
-      "description": "Доведение команды оперативного управления блокировкой транспортного средства (C') для логистических компаний.",
-      "traces_up": [
-        "ND-0203"
-      ],
-      "qos_profiles": [
-        {
-          "consumer_class": "C_prime",
-          "moe": [
-            {
-              "id": "MOE-0011",
-              "name": "reaction_time_probability",
-              "target": {
-                "value": 1800,
-                "unit": "s",
-                "provenance": {
-                  "source": "imported",
-                  "import": {
-                    "dataset": "Постановка миссии «Национальная спутниковая платформа IoT»",
-                    "dataset_version": "1",
-                    "retrieved_at": "2026-08-23",
-                    "terms": "внутренний документ проекта"
-                  }
-                }
-              },
-              "condition": "доведение команды C' за 30 минут"
-            }
-          ]
-        }
-      ],
-      "lifecycle": {
-        "status": "Draft",
-        "version": "1"
-      },
-      "provenance": {
-        "source": "ai_proposed"
-      }
-    },
-    {
-      "id": "SV-0108",
-      "name": "Мониторинг координат промысловых операций и подтверждение данных об улове",
-      "description": "Односторонняя передача координат и параметров хода промысловых операций (A') и подтверждённая передача данных о суточном улове (B') для предприятий морского промысла.",
-      "traces_up": [
-        "ND-0204",
-        "ND-0205"
-      ],
-      "qos_profiles": [
-        {
-          "consumer_class": "A_prime",
-          "moe": [
-            {
-              "id": "MOE-0012",
-              "name": "delivery_probability_daily",
-              "target": {
-                "value": 0.9,
-                "unit": "1",
-                "provenance": {
-                  "source": "imported",
-                  "import": {
-                    "dataset": "Постановка миссии «Национальная спутниковая платформа IoT»",
-                    "dataset_version": "1",
-                    "retrieved_at": "2026-08-23",
-                    "terms": "внутренний документ проекта"
-                  }
-                }
-              }
-            }
-          ]
-        },
-        {
-          "consumer_class": "B_prime",
-          "moe": [
-            {
-              "id": "MOE-0013",
-              "name": "delivery_probability_n_attempts",
-              "target": {
-                "value": 0.99,
-                "unit": "1",
-                "provenance": {
-                  "source": "imported",
-                  "import": {
-                    "dataset": "Постановка миссии «Национальная спутниковая платформа IoT»",
-                    "dataset_version": "1",
-                    "retrieved_at": "2026-08-23",
-                    "terms": "внутренний документ проекта"
-                  }
-                }
-              },
-              "condition": "окно подтверждения двое суток (172800 с)"
-            }
-          ]
-        }
-      ],
-      "lifecycle": {
-        "status": "Draft",
-        "version": "1"
-      },
-      "provenance": {
-        "source": "ai_proposed"
-      }
-    },
-    {
-      "id": "SV-0109",
-      "name": "Оперативное изменение района промысла",
-      "description": "Доведение команды оперативного управления изменением района промысла (C') для предприятий морского промысла.",
-      "traces_up": [
-        "ND-0206"
-      ],
-      "qos_profiles": [
-        {
-          "consumer_class": "C_prime",
-          "moe": [
-            {
-              "id": "MOE-0014",
-              "name": "reaction_time_probability",
-              "target": {
-                "value": 1800,
-                "unit": "s",
-                "provenance": {
-                  "source": "imported",
-                  "import": {
-                    "dataset": "Постановка миссии «Национальная спутниковая платформа IoT»",
-                    "dataset_version": "1",
-                    "retrieved_at": "2026-08-23",
-                    "terms": "внутренний документ проекта"
-                  }
-                }
-              },
-              "condition": "доведение команды C' за 30 минут"
-            }
-          ]
-        }
-      ],
-      "lifecycle": {
-        "status": "Draft",
-        "version": "1"
-      },
-      "provenance": {
-        "source": "ai_proposed"
-      }
-    },
-    {
-      "id": "SV-0110",
-      "name": "Сбор показаний автономных геологоразведочных датчиков и подтверждение доставки измерений",
-      "description": "Односторонний сбор показаний автономных датчиков и станций (A') и подтверждённая доставка результатов измерений (B') для геологоразведочных организаций.",
-      "traces_up": [
-        "ND-0207",
-        "ND-0208"
-      ],
-      "qos_profiles": [
-        {
-          "consumer_class": "A_prime",
-          "moe": [
-            {
-              "id": "MOE-0015",
-              "name": "delivery_probability_daily",
-              "target": {
-                "value": 0.9,
-                "unit": "1",
-                "provenance": {
-                  "source": "imported",
-                  "import": {
-                    "dataset": "Постановка миссии «Национальная спутниковая платформа IoT»",
-                    "dataset_version": "1",
-                    "retrieved_at": "2026-08-23",
-                    "terms": "внутренний документ проекта"
-                  }
-                }
-              }
-            }
-          ]
-        },
-        {
-          "consumer_class": "B_prime",
-          "moe": [
-            {
-              "id": "MOE-0016",
-              "name": "delivery_probability_n_attempts",
-              "target": {
-                "value": 0.99,
-                "unit": "1",
-                "provenance": {
-                  "source": "imported",
-                  "import": {
-                    "dataset": "Постановка миссии «Национальная спутниковая платформа IoT»",
-                    "dataset_version": "1",
-                    "retrieved_at": "2026-08-23",
-                    "terms": "внутренний документ проекта"
-                  }
-                }
-              },
-              "condition": "окно подтверждения двое суток (172800 с)"
-            }
-          ]
-        }
-      ],
-      "lifecycle": {
-        "status": "Draft",
-        "version": "1"
-      },
-      "provenance": {
-        "source": "ai_proposed"
-      }
-    },
-    {
-      "id": "SV-0111",
-      "name": "Подтверждённая доставка критических сообщений и оперативное управление силами МЧС",
-      "description": "Подтверждённая доставка критических команд и сообщений (B') и гарантированное доведение команд оперативного управления (C') до территориальных подразделений МЧС.",
-      "traces_up": [
-        "ND-0301",
-        "ND-0302"
-      ],
-      "qos_profiles": [
-        {
-          "consumer_class": "B_prime",
-          "moe": [
-            {
-              "id": "MOE-0017",
-              "name": "delivery_probability_n_attempts",
-              "target": {
-                "value": 0.99,
-                "unit": "1",
-                "provenance": {
-                  "source": "imported",
-                  "import": {
-                    "dataset": "Постановка миссии «Национальная спутниковая платформа IoT»",
-                    "dataset_version": "1",
-                    "retrieved_at": "2026-08-23",
-                    "terms": "внутренний документ проекта"
-                  }
-                }
-              },
-              "condition": "окно подтверждения двое суток (172800 с)"
-            }
-          ]
-        },
-        {
-          "consumer_class": "C_prime",
-          "moe": [
-            {
-              "id": "MOE-0018",
-              "name": "reaction_time_probability",
-              "target": {
-                "value": 1800,
-                "unit": "s",
-                "provenance": {
-                  "source": "imported",
-                  "import": {
-                    "dataset": "Постановка миссии «Национальная спутниковая платформа IoT»",
-                    "dataset_version": "1",
-                    "retrieved_at": "2026-08-23",
-                    "terms": "внутренний документ проекта"
-                  }
-                }
-              },
-              "condition": "доведение команды C' за 30 минут"
-            }
-          ]
-        }
-      ],
-      "lifecycle": {
-        "status": "Draft",
-        "version": "1"
-      },
-      "provenance": {
-        "source": "ai_proposed"
-      }
-    },
-    {
-      "id": "SV-0112",
-      "name": "Регулярный сбор телеметрии автоматических метеостанций",
-      "description": "Односторонний регулярный сбор телеметрии с удалённых автоматических метеостанций (A') для метеослужбы.",
-      "traces_up": [
-        "ND-0303"
-      ],
-      "qos_profiles": [
-        {
-          "consumer_class": "A_prime",
-          "moe": [
-            {
-              "id": "MOE-0019",
-              "name": "delivery_probability_daily",
-              "target": {
-                "value": 0.9,
-                "unit": "1",
-                "provenance": {
-                  "source": "imported",
-                  "import": {
-                    "dataset": "Постановка миссии «Национальная спутниковая платформа IoT»",
-                    "dataset_version": "1",
-                    "retrieved_at": "2026-08-23",
-                    "terms": "внутренний документ проекта"
+                    "dataset": "Записка миссии — Национальная спутниковая IoT-платформа, блок s4",
+                    "dataset_version": "поставка ПМИ-4 от 03.09.2026",
+                    "retrieved_at": "2026-09-03",
+                    "terms": "материал владельца проекта"
                   }
                 }
               }
@@ -640,59 +294,40 @@
         "version": "1"
       },
       "provenance": {
-        "source": "ai_proposed"
-      }
+        "source": "ai_proposed",
+        "ai": {
+          "prompt_package_id": "ПМИ-4",
+          "accepted": false
+        }
+      },
+      "description": "периодичность 1/1–24 ч; P95 ≤6 ч (этап 1), ≤1 ч (этап 2) · метка источника: П; якоря: s4#7"
     },
     {
-      "id": "SV-0113",
-      "name": "Мониторинг ледовой обстановки для судов Севморпути",
-      "description": "Односторонний сбор координат и состояния ледовых буёв (A′) для судоходных компаний Северного морского пути.",
+      "id": "SV-9008",
+      "name": "Платформа связности, API, управление устройствами, биллинг и аналитика",
       "traces_up": [
-        "ND-0990"
+        "ND-9006"
       ],
       "qos_profiles": [
         {
           "consumer_class": "A_prime",
           "moe": [
             {
-              "id": "MOE-0001",
+              "id": "MOE-9108",
               "name": "delivery_probability_daily",
               "target": {
-                "value": 0.9,
+                "value": 0.999,
                 "unit": "1",
                 "provenance": {
                   "source": "imported",
                   "import": {
-                    "dataset": "Постановка миссии «Национальная спутниковая платформа IoT»",
-                    "dataset_version": "1",
-                    "retrieved_at": "2026-08-23",
-                    "terms": "внутренний документ проекта"
+                    "dataset": "Записка миссии — Национальная спутниковая IoT-платформа, блок s4",
+                    "dataset_version": "поставка ПМИ-4 от 03.09.2026",
+                    "retrieved_at": "2026-09-03",
+                    "terms": "материал владельца проекта"
                   }
                 }
               }
-            }
-          ]
-        },
-        {
-          "consumer_class": "B_prime",
-          "moe": [
-            {
-              "id": "MOE-0002",
-              "name": "delivery_probability_n_attempts",
-              "target": {
-                "value": 0.99,
-                "unit": "1",
-                "provenance": {
-                  "source": "imported",
-                  "import": {
-                    "dataset": "Постановка миссии «Национальная спутниковая платформа IoT»",
-                    "dataset_version": "1",
-                    "retrieved_at": "2026-08-23",
-                    "terms": "внутренний документ проекта"
-                  }
-                }
-              },
-              "condition": "окно подтверждения двое суток (172800 с)"
             }
           ]
         }
@@ -702,194 +337,13 @@
         "version": "1"
       },
       "provenance": {
-        "source": "ai_proposed"
-      }
-    },
-    {
-      "id": "SV-0114",
-      "name": "Телеметрия автономных метеостанций Арктики",
-      "description": "Периодический сбор показаний автономных метеостанций (A′) для гидрометеорологической службы.",
-      "traces_up": [
-        "ND-0991"
-      ],
-      "qos_profiles": [
-        {
-          "consumer_class": "A_prime",
-          "moe": [
-            {
-              "id": "MOE-0001",
-              "name": "delivery_probability_daily",
-              "target": {
-                "value": 0.9,
-                "unit": "1",
-                "provenance": {
-                  "source": "imported",
-                  "import": {
-                    "dataset": "Постановка миссии «Национальная спутниковая платформа IoT»",
-                    "dataset_version": "1",
-                    "retrieved_at": "2026-08-23",
-                    "terms": "внутренний документ проекта"
-                  }
-                }
-              }
-            }
-          ]
-        },
-        {
-          "consumer_class": "B_prime",
-          "moe": [
-            {
-              "id": "MOE-0002",
-              "name": "delivery_probability_n_attempts",
-              "target": {
-                "value": 0.99,
-                "unit": "1",
-                "provenance": {
-                  "source": "imported",
-                  "import": {
-                    "dataset": "Постановка миссии «Национальная спутниковая платформа IoT»",
-                    "dataset_version": "1",
-                    "retrieved_at": "2026-08-23",
-                    "terms": "внутренний документ проекта"
-                  }
-                }
-              },
-              "condition": "окно подтверждения двое суток (172800 с)"
-            }
-          ]
+        "source": "ai_proposed",
+        "ai": {
+          "prompt_package_id": "ПМИ-4",
+          "accepted": false
         }
-      ],
-      "lifecycle": {
-        "status": "Draft",
-        "version": "1"
       },
-      "provenance": {
-        "source": "ai_proposed"
-      }
-    },
-    {
-      "id": "SV-0115",
-      "name": "Контроль трубопроводов в зоне вечной мерзлоты",
-      "description": "Сбор показаний датчиков деформации трубопроводов с подтверждением (B′) для операторов магистралей.",
-      "traces_up": [
-        "ND-0992"
-      ],
-      "qos_profiles": [
-        {
-          "consumer_class": "A_prime",
-          "moe": [
-            {
-              "id": "MOE-0001",
-              "name": "delivery_probability_daily",
-              "target": {
-                "value": 0.9,
-                "unit": "1",
-                "provenance": {
-                  "source": "imported",
-                  "import": {
-                    "dataset": "Постановка миссии «Национальная спутниковая платформа IoT»",
-                    "dataset_version": "1",
-                    "retrieved_at": "2026-08-23",
-                    "terms": "внутренний документ проекта"
-                  }
-                }
-              }
-            }
-          ]
-        },
-        {
-          "consumer_class": "B_prime",
-          "moe": [
-            {
-              "id": "MOE-0002",
-              "name": "delivery_probability_n_attempts",
-              "target": {
-                "value": 0.99,
-                "unit": "1",
-                "provenance": {
-                  "source": "imported",
-                  "import": {
-                    "dataset": "Постановка миссии «Национальная спутниковая платформа IoT»",
-                    "dataset_version": "1",
-                    "retrieved_at": "2026-08-23",
-                    "terms": "внутренний документ проекта"
-                  }
-                }
-              },
-              "condition": "окно подтверждения двое суток (172800 с)"
-            }
-          ]
-        }
-      ],
-      "lifecycle": {
-        "status": "Draft",
-        "version": "1"
-      },
-      "provenance": {
-        "source": "ai_proposed"
-      }
-    },
-    {
-      "id": "SV-0116",
-      "name": "Оперативное управление ретрансляторами тайги",
-      "description": "Команды оперативного управления (C′) ретрансляторами лесопожарного мониторинга.",
-      "traces_up": [
-        "ND-0993"
-      ],
-      "qos_profiles": [
-        {
-          "consumer_class": "A_prime",
-          "moe": [
-            {
-              "id": "MOE-0001",
-              "name": "delivery_probability_daily",
-              "target": {
-                "value": 0.9,
-                "unit": "1",
-                "provenance": {
-                  "source": "imported",
-                  "import": {
-                    "dataset": "Постановка миссии «Национальная спутниковая платформа IoT»",
-                    "dataset_version": "1",
-                    "retrieved_at": "2026-08-23",
-                    "terms": "внутренний документ проекта"
-                  }
-                }
-              }
-            }
-          ]
-        },
-        {
-          "consumer_class": "B_prime",
-          "moe": [
-            {
-              "id": "MOE-0002",
-              "name": "delivery_probability_n_attempts",
-              "target": {
-                "value": 0.99,
-                "unit": "1",
-                "provenance": {
-                  "source": "imported",
-                  "import": {
-                    "dataset": "Постановка миссии «Национальная спутниковая платформа IoT»",
-                    "dataset_version": "1",
-                    "retrieved_at": "2026-08-23",
-                    "terms": "внутренний документ проекта"
-                  }
-                }
-              },
-              "condition": "окно подтверждения двое суток (172800 с)"
-            }
-          ]
-        }
-      ],
-      "lifecycle": {
-        "status": "Draft",
-        "version": "1"
-      },
-      "provenance": {
-        "source": "ai_proposed"
-      }
+      "description": "доступность API ≥99,9%; обработка спутникового окна ≥99%; корректность биллинга 100%; реакция на критический инцидент ≤15 мин · метка источника: И5; якоря: s4#8"
     }
   ]
 }
