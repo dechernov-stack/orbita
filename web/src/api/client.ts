@@ -286,6 +286,16 @@ export const api = {
   /** Применение фрагмента: экземпляры со связью «применяет» и родословной.
    * Идемпотентно: повторное нажатие возвращает existing, второй набор
    * не создаётся (круг 3 §1). */
+  /** Замечание Б3-01: подтвердить опциональные узлы каркаса по кодам — они
+   *  заводятся из уже взятого каркаса, родители разрешаются по коду. */
+  libraryConfirm: (fragment: string, author: string, codes: string[]) =>
+    post<TakeOutcome>(`/library/fragments/${encodeURIComponent(fragment)}/confirm`, { author, codes }),
+  /** Замечание Б3-01: добор — повторное взятие применённых полок создаёт только
+   *  теперь разрешимые записи; повтор без новых — ноль. */
+  libraryTopUp: (author: string) =>
+    post<{ fragments: Array<{ id: string; name: string; created: number; skipped: number }>; created: number }>(
+      '/library/topup', { author },
+    ),
   libraryApply: (
     fragment: string,
     author: string,
@@ -293,7 +303,7 @@ export const api = {
      *  подстановка уже заведённых узлов вместо дублей. */
     options: { depth?: number; with_optional?: boolean; mapping?: Record<string, string> } = {},
   ) =>
-    post<{ created: Array<{ from: string; id: string }>; existing: string[] }>(
+    post<TakeOutcome>(
       `/library/fragments/${encodeURIComponent(fragment)}/apply`, { author, ...options },
     ),
   /** ADR-051: что каркас уже нашёл в проекте — до взятия, чтобы не плодить дубли. */
@@ -893,4 +903,12 @@ export const api = {
       requirements: Array<{ id: string; statement: string; basis: string }>
       constraints: Array<{ code: string; text: string; source: string }>
     }>('/views/normative-candidates/accept', { packet, selected, author }),
+}
+
+/** Итог взятия полки: создано, уже было, пропущено с причиной (замечание Б3-01). */
+export type TakeOutcome = {
+  created: Array<{ from: string; id: string }>
+  existing: string[]
+  skipped: Array<{ from: string; code: string; name: string; on: string[]; reason: string }>
+  skipped_on: string[]
 }

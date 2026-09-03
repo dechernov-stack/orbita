@@ -201,6 +201,17 @@ def obsolete(type_: str, rows: list, packet: dict | None = None) -> bool:
             have_codes = {o.get("code") for o in payload}
             if codes ^ have_codes:
                 return True
+            # редакция может менять СОДЕРЖИМОЕ записи при том же коде (optional_on,
+            # анкета, стороны стыка — замечание Б3-01): сверяем пачки целиком, без
+            # служебных полей, которые полка получает при заливке
+            def суть(objs):
+                return sorted(
+                    json.dumps({k: v for k, v in o.items() if k not in ("lifecycle", "provenance")},
+                               ensure_ascii=False, sort_keys=True)
+                    for o in objs
+                )
+            if суть(frag.get("payload", {}).get("objects", [])) != суть(payload):
+                return True
         return False
     if type_ == "property_form":
         if not any(f.get("required_by") for d in rows for f in d.get("fields", [])):

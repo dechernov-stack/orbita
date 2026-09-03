@@ -214,6 +214,10 @@
             "parent": "WB-9405",
             "component_refs": [
               "@PL-P"
+            ],
+            "optional": true,
+            "optional_on": [
+              "PL-P"
             ]
           },
           {
@@ -253,6 +257,10 @@
             "parent": "WB-9405",
             "component_refs": [
               "@PL-ISL"
+            ],
+            "optional": true,
+            "optional_on": [
+              "PL-ISL"
             ]
           },
           {
@@ -266,6 +274,10 @@
             "parent": "WB-9405",
             "component_refs": [
               "@PL-PNT"
+            ],
+            "optional": true,
+            "optional_on": [
+              "PL-PNT"
             ]
           },
           {
@@ -448,6 +460,10 @@
             "parent": "WB-9407",
             "component_refs": [
               "@MCC-SIM"
+            ],
+            "optional": true,
+            "optional_on": [
+              "MCC-SIM"
             ]
           },
           {
@@ -595,6 +611,10 @@
             "parent": "WB-9410",
             "component_refs": [
               "@SC-EXP"
+            ],
+            "optional": true,
+            "optional_on": [
+              "SC-EXP"
             ]
           },
           {

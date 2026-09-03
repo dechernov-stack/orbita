@@ -244,13 +244,19 @@
     "code": "F-22",
     "name": "Ретранслировать между КА (ISL)",
     "allocated_to": "PL-ISL",
-    "optional": true
+    "optional": true,
+    "optional_on": [
+     "PL-ISL"
+    ]
    },
    {
     "code": "F-23",
     "name": "Формировать навигационный сигнал (PNT)",
     "allocated_to": "PL-PNT",
-    "optional": true
+    "optional": true,
+    "optional_on": [
+     "PL-PNT"
+    ]
    },
    {
     "code": "F-24",
@@ -328,7 +334,10 @@
     "src": "F-22",
     "dst": "F-22",
     "interface": "IF-ISL",
-    "optional": true
+    "optional": true,
+    "optional_on": [
+     "IF-ISL"
+    ]
    },
    {
     "code": "EX-NAV",
@@ -336,7 +345,10 @@
     "src": "F-23",
     "dst": "F-25",
     "interface": "IF-PNT-USER",
-    "optional": true
+    "optional": true,
+    "optional_on": [
+     "IF-PNT-USER"
+    ]
    }
   ],
   "functional_chains": [
@@ -430,6 +442,9 @@
     "optional": true,
     "requirement_kinds": [
      "сценарные: латентность севера"
+    ],
+    "optional_on": [
+     "PL-ISL"
     ]
    }
   ]
@@ -501,7 +516,10 @@
     "deployed_to": [
      "PL-ISL"
     ],
-    "optional": true
+    "optional": true,
+    "optional_on": [
+     "PL-ISL"
+    ]
    },
    {
     "code": "LC-GATEWAY",
@@ -622,5 +640,8 @@
   "exchanges": 10,
   "chains": 6,
   "logical_components": 9
- }
+ },
+ "rules": [
+  "optional_on: запись создаётся, только если подтверждены перечисленные узлы/стыки; иначе пропускается с пометой; полка берётся"
+ ]
 }

@@ -638,12 +638,19 @@
               "status": "Draft",
               "version": "1"
             },
+            "optional": true,
             "statement": "функция берётся по классу миссии (ISL, PNT)",
+            "optional_on": [
+              "PL-ISL"
+            ],
             "exchanges": [
               {
                 "code": "EX-ISL",
                 "name": "Транзитный пакет",
                 "interface": "@IF-ISL",
+                "optional_on": [
+                  "IF-ISL"
+                ],
                 "to": "FN-9322"
               }
             ]
@@ -663,12 +670,19 @@
               "status": "Draft",
               "version": "1"
             },
+            "optional": true,
             "statement": "функция берётся по классу миссии (ISL, PNT)",
+            "optional_on": [
+              "PL-PNT"
+            ],
             "exchanges": [
               {
                 "code": "EX-NAV",
                 "name": "Навигационный сигнал",
                 "interface": "@IF-PNT-USER",
+                "optional_on": [
+                  "IF-PNT-USER"
+                ],
                 "to": "FN-9325"
               }
             ]
@@ -916,6 +930,10 @@
             "capability": "OC-9302",
             "requirement_kinds": [
               "сценарные: латентность севера"
+            ],
+            "optional": true,
+            "optional_on": [
+              "PL-ISL"
             ]
           },
           {
@@ -1007,7 +1025,11 @@
             "lifecycle": {
               "status": "Draft",
               "version": "1"
-            }
+            },
+            "optional": true,
+            "optional_on": [
+              "PL-ISL"
+            ]
           },
           {
             "id": "LC-9306",

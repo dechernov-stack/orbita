@@ -222,6 +222,7 @@ class HttpApi(private val boundary: Boundary) {
 
         // поток документов вынесен отдельной функцией (предел метода JVM)
         if (routeDocuments(ex, method, path, projectRef)) return
+        if (routeLibraryTake(ex, method, path, projectRef)) return
 
         when {
             // Список видов выводится из состава типов, а не перечисляется руками:
@@ -2937,27 +2938,6 @@ class HttpApi(private val boundary: Boundary) {
                 respond(ex, 200, out)
             }
 
-            method == "POST" && path.matches(Regex("/library/fragments/LF-[0-9]{4}/apply")) -> {
-                val req = mapper.readTree(body(ex))
-                val applyAuthor = author(req.path("author").asText(""))
-                require(applyAuthor.isNotBlank()) { "field 'author' is required" }
-                val applyProject = requireProject(project)
-                val fragId = path.removePrefix("/library/fragments/").removeSuffix("/apply")
-                // ADR-051: каркас берётся с условиями — глубина, необязательные
-                // узлы, подстановка уже заведённых вместо дублей
-                val options = LibraryChannel.TakeOptions(
-                    depth = req.path("depth").takeIf { it.isInt }?.asInt(),
-                    withOptional = req.path("with_optional").asBoolean(false),
-                    mapping = req.path("mapping").properties().associate { (k, v) -> k to v.asText() },
-                )
-                val outcome = LibraryChannel(boundary).apply(fragId, applyProject, applyAuthor, options)
-                val out = mapper.createObjectNode()
-                val arr = out.putArray("created")
-                outcome.created.forEach { (from, id) -> arr.addObject().put("from", from).put("id", id) }
-                out.set<ArrayNode>("existing", mapper.valueToTree(outcome.existing))
-                // 200 на повтор: набор уже взят, второй не создан (идемпотентность)
-                respond(ex, if (outcome.created.isEmpty() && outcome.existing.isNotEmpty()) 200 else 201, out)
-            }
 
             // Круг 3 §1: отмена взятия — до конца пути; тронутое руками — отказ
             method == "POST" && path.matches(Regex("/library/fragments/LF-[0-9]{4}/revert")) -> {
@@ -4844,6 +4824,88 @@ class HttpApi(private val boundary: Boundary) {
     /** Авторские тексты разделов документа (В1.2) — текущие объекты проекта. */
     private fun sectionTexts(code: String, projectId: String?): Map<Int, orbita.out.SectionAuthorText> =
         DocumentModel.sectionTexts(boundary, code, projectId)
+
+
+    /**
+     * Взятие полок (apply · confirm · topup) — отдельной функцией: общий when
+     * маршрутизации снова перерос предел метода JVM (64 КБ байт-кода) после
+     * замечания Б3-01. Возвращает true, если запрос обработан здесь.
+     */
+    private fun routeLibraryTake(
+        ex: HttpExchange,
+        method: String,
+        path: String,
+        projectRef: Lazy<String?>,
+    ): Boolean {
+        val project: String? by projectRef
+        when {
+            method == "POST" && path.matches(Regex("/library/fragments/LF-[0-9]{4}/apply")) -> {
+                val req = mapper.readTree(body(ex))
+                val applyAuthor = author(req.path("author").asText(""))
+                require(applyAuthor.isNotBlank()) { "field 'author' is required" }
+                val applyProject = requireProject(project)
+                val fragId = path.removePrefix("/library/fragments/").removeSuffix("/apply")
+                // ADR-051: каркас берётся с условиями — глубина, необязательные
+                // узлы, подстановка уже заведённых вместо дублей
+                val options = LibraryChannel.TakeOptions(
+                    depth = req.path("depth").takeIf { it.isInt }?.asInt(),
+                    withOptional = req.path("with_optional").asBoolean(false),
+                    mapping = req.path("mapping").properties().associate { (k, v) -> k to v.asText() },
+                )
+                val outcome = LibraryChannel(boundary).apply(fragId, applyProject, applyAuthor, options)
+                respond(ex, if (outcome.created.isEmpty() && outcome.existing.isNotEmpty()) 200 else 201, applyOutcomeJson(outcome))
+            }
+
+            // Замечание Б3-01 п. 1: подтвердить опциональные узлы каркаса — по кодам
+            method == "POST" && path.matches(Regex("/library/fragments/LF-[0-9]{4}/confirm")) -> {
+                val req = mapper.readTree(body(ex))
+                val who = author(req.path("author").asText(""))
+                require(who.isNotBlank()) { "field 'author' is required" }
+                val fragId = path.removePrefix("/library/fragments/").removeSuffix("/confirm")
+                val codes = req.path("codes").map { it.asText() }.filter { it.isNotBlank() }.toSet()
+                val outcome = LibraryChannel(boundary).confirmOptional(fragId, requireProject(project), codes, who)
+                respond(ex, 201, applyOutcomeJson(outcome))
+            }
+
+            // Замечание Б3-01 п. 3: добор — повторное взятие всех применённых полок,
+            // создаются только теперь разрешимые записи; повтор без новых — ноль
+            method == "POST" && path == "/library/topup" -> {
+                val req = mapper.readTree(body(ex))
+                val who = author(req.path("author").asText(""))
+                require(who.isNotBlank()) { "field 'author' is required" }
+                val rows = LibraryChannel(boundary).topUp(requireProject(project), who)
+                val out = mapper.createObjectNode()
+                val arr = out.putArray("fragments")
+                rows.forEach { r ->
+                    val n = arr.addObject().put("id", r.fragment).put("name", r.name)
+                        .put("created", r.created).put("skipped", r.skipped)
+                    val ids = n.putArray("created_ids")
+                    r.createdIds.forEach { ids.add(it) }
+                }
+                out.put("created", rows.sumOf { it.created })
+                respond(ex, 200, out)
+            }
+            else -> return false
+        }
+        return true
+    }
+
+    /** Итог взятия полки: создано, уже было, пропущено с причиной (замечание Б3-01). */
+    private fun applyOutcomeJson(outcome: LibraryChannel.ApplyOutcome): ObjectNode {
+        val out = mapper.createObjectNode()
+        val arr = out.putArray("created")
+        outcome.created.forEach { (from, id) -> arr.addObject().put("from", from).put("id", id) }
+        out.set<ArrayNode>("existing", mapper.valueToTree(outcome.existing))
+        val sk = out.putArray("skipped")
+        outcome.skipped.forEach { x ->
+            val n = sk.addObject().put("from", x.from).put("code", x.code).put("name", x.name).put("reason", x.reason)
+            val on = n.putArray("on")
+            x.on.forEach { on.add(it) }
+        }
+        val codes = out.putArray("skipped_on")
+        outcome.skipped.flatMap { it.on }.distinct().sorted().forEach { codes.add(it) }
+        return out
+    }
 
     private fun libraryTemplates(): List<orbita.out.TemplateData> =
         boundary.objects

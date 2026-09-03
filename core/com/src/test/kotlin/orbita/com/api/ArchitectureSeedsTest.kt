@@ -179,6 +179,28 @@ class ArchitectureSeedsTest {
     }
 
     @Test
+    fun `ссылка на опциональный узел или стык несёт optional_on - зависимость от необязательного не блокирует`() {
+        // Замечание Б3-01: опциональность — данные полок, не догадка канала.
+        // Каждая запись, ссылающаяся кодом на опциональный узел каркаса или
+        // опциональный стык, обязана назвать его в optional_on — иначе при
+        // взятии без подтверждения она валила бы полку целиком.
+        val опциональные = (каркас + стыки)
+            .filter { it.path("optional").asBoolean(false) }
+            .map { it.path("code").asText() }.toSet()
+        assertTrue("PL-ISL" in опциональные && "PL-PNT" in опциональные && "IF-ISL" in опциональные) { "опциональные: $опциональные" }
+        assertTrue("USR-APP" !in опциональные) { "USR-APP стал обязательным: стык «ЦОД ↔ потребители» без него бессмыслен" }
+        val нарушения = (стыки + архитектура + работы).flatMap { o ->
+            // обмен несёт своё optional_on (каскад по стыку) — считается вместе с записью
+            val ждёт = (o.path("optional_on").map { it.asText() } +
+                o.path("exchanges").flatMap { ex -> ex.path("optional_on").map { it.asText() } }).toSet()
+            Regex("@([A-Za-zА-Яа-я0-9_.\\-]+)").findAll(mapper.writeValueAsString(o))
+                .map { it.groupValues[1] }.filter { it in опциональные && it !in ждёт }
+                .map { "${o.path("code").asText(o.path("id").asText())} → @$it" }.toList()
+        }
+        assertTrue(нарушения.isEmpty()) { "ссылки на опциональное без optional_on: $нарушения" }
+    }
+
+    @Test
     fun `сторож ловит выдуманный код - иначе проверка была бы украшением`() {
         val порченая = mapper.readTree(
             mapper.writeValueAsString(архитектура).replace("@PL-S", "@ВЫДУМАННЫЙ-УЗЕЛ"),

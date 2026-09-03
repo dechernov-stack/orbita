@@ -28,6 +28,12 @@ class LibraryChannel(
         val withOptional: Boolean = false,
         /** код узла каркаса → идентификатор уже заведённого узла проекта. */
         val mapping: Map<String, String> = emptyMap(),
+        /**
+         * Замечание Б3-01: подтверждение опциональных узлов — взятие ТОЛЬКО
+         * названных кодов (и их потомков) из уже взятого каркаса; родители
+         * разрешаются в узлы проекта по коду.
+         */
+        val onlyCodes: Set<String>? = null,
     )
 
     /**
@@ -278,7 +284,67 @@ class LibraryChannel(
      */
     /** Итог применения: created — пары «старый id → новый»; existing — живые
      * экземпляры прежнего взятия (идемпотентность: второй набор не создаётся). */
-    data class ApplyOutcome(val created: List<Pair<String, String>>, val existing: List<String>)
+    /** Пропущенная при взятии запись: чего ждёт и почему (замечание Б3-01). */
+    data class Skipped(val from: String, val code: String, val name: String, val on: List<String>, val reason: String)
+
+    data class ApplyOutcome(
+        val created: List<Pair<String, String>>,
+        val existing: List<String>,
+        val skipped: List<Skipped> = emptyList(),
+    )
+
+    /**
+     * Коды опциональных узлов и стыков ВСЕХ полок библиотеки: по ним канал
+     * отличает «узел не подтверждён» от «полки нет». Это данные полок, не догадка.
+     */
+    private fun optionalCodesOnShelves(): Set<String> =
+        boundary.objects.listCurrent(orbita.mod.store.ObjectStore.LIBRARY_PROJECT)
+            .filter { it.type == "library_fragment" && it.status != orbita.mod.model.Lifecycle.Cancelled }
+            .flatMap { f -> f.doc.path("payload").path("objects").toList() }
+            .filter { it.path("optional").asBoolean(false) }
+            .mapNotNull { it.path("code").asText("").ifBlank { null } }
+            .toSet()
+
+    /** Полка библиотеки, чья пачка заводит объект с этим кодом, — для текста отказа. */
+    private fun shelfOfCode(code: String): orbita.mod.store.StoredObject? =
+        boundary.objects.listCurrent(orbita.mod.store.ObjectStore.LIBRARY_PROJECT)
+            .filter { it.type == "library_fragment" && it.status != orbita.mod.model.Lifecycle.Cancelled }
+            .firstOrNull { f -> f.doc.path("payload").path("objects").any { it.path("code").asText("") == code } }
+
+    /**
+     * Замечание Б3-01 п. 1: подтвердить опциональные узлы каркаса — завести
+     * названные коды (с потомками) из уже взятого каркаса. Идёт тем же взятием
+     * с отбором по кодам: родители разрешаются в узлы проекта по коду, дубли не
+     * плодятся.
+     */
+    fun confirmOptional(fragmentId: String, projectId: String, codes: Set<String>, author: String): ApplyOutcome {
+        require(codes.isNotEmpty()) { "не названо ни одного кода узла для подтверждения" }
+        return apply(fragmentId, projectId, author, TakeOptions(withOptional = true, onlyCodes = codes))
+    }
+
+    /**
+     * Замечание Б3-01 п. 3: ДОБОР — после подтверждения узла повторное взятие
+     * всех полок, уже применённых к проекту, создаёт только теперь разрешимые
+     * записи; взятое остаётся на месте, повтор без новых — ноль.
+     */
+    data class TopUp(
+        val fragment: String, val name: String, val created: Int, val skipped: Int,
+        /** Что именно добрано — экран называет записи, а не число. */
+        val createdIds: List<String> = emptyList(),
+    )
+
+    fun topUp(projectId: String, author: String): List<TopUp> {
+        val applied = boundary.objects.listCurrent(projectId)
+            .filter { it.status != orbita.mod.model.Lifecycle.Cancelled }
+            .mapNotNull { it.doc.path("applies").path("ref").asText("").ifBlank { null } }
+            .distinct().sorted()
+        return applied.mapNotNull { ref ->
+            val frag = boundary.objects.current(ref) ?: return@mapNotNull null
+            val outcome = apply(ref, projectId, author, TakeOptions())
+            TopUp(ref, frag.doc.path("name").asText(ref), outcome.created.size, outcome.skipped.size,
+                outcome.created.map { it.second })
+        }
+    }
 
     /** Отмена заблокирована: созданное взятием уже тронуто руками. */
     class RevertBlockedException(val touched: List<String>) :
@@ -321,10 +387,20 @@ class LibraryChannel(
         val frag = boundary.objects.current(fragmentId)
             ?: throw NoSuchElementException("fragment '$fragmentId' not found")
         require(frag.type == "library_fragment") { "'$fragmentId' is not a library fragment" }
-        // идемпотентность по связи «применяет»: повторное нажатие не плодит набор
-        appliedInstances(fragmentId, projectId).takeIf { it.isNotEmpty() }?.let { alive ->
-            return ApplyOutcome(created = emptyList(), existing = alive.map { it.id })
-        }
+        // идемпотентность — ПО ЗАПИСЯМ, а не по полке целиком (замечание Б3-01):
+        // взятое раньше узнаётся по коду (без кода — по имени) и не создаётся
+        // заново, а ссылки на него разрешаются; новые записи — добор
+        val alive = appliedInstances(fragmentId, projectId)
+        val aliveByCode = alive.filter { it.doc.path("code").asText("").isNotBlank() }
+            .associateBy { it.doc.path("code").asText() }
+        // вид без поля applies (стейкхолдер-актор) связи «применяет» не несёт —
+        // взятое раньше узнаётся по виду и имени среди живых объектов проекта,
+        // иначе добор плодил бы акторов при каждом повторе
+        val aliveByName = (alive + boundary.objects.listCurrent(projectId)
+            .filter { it.status != orbita.mod.model.Lifecycle.Cancelled }
+            .filter { o -> CoreType.entries.firstOrNull { it.dbType == o.type }?.let { !boundary.schemaAllows(it, "applies") } ?: false })
+            .filter { it.doc.path("code").asText("").isBlank() }
+            .associateBy { it.type + "|" + it.doc.path("name").asText("").lowercase().trim() }
         val objects = frag.doc.path("payload").path("objects")
         require(objects.isArray && objects.size() > 0) { "fragment '$fragmentId' payload is empty" }
 
@@ -348,13 +424,52 @@ class LibraryChannel(
             return d
         }
         val dropped = mutableSetOf<String>()
+        val skipped = mutableListOf<Skipped>()
+        // уже взятое из этой полки: ссылки на него разрешаются, само не создаётся
+        val existingByPayloadId = mutableMapOf<String, String>()
         all.forEach { node ->
+            val code = node.path("code").asText("")
+            val hit = options.mapping[code]
+                ?: aliveByCode[code]?.id
+                ?: if (code.isBlank()) {
+                    val type = CoreType.entries.firstOrNull { node.path("id").asText("").startsWith(it.idPrefix + "-") }
+                    aliveByName[type?.dbType + "|" + node.path("name").asText("").lowercase().trim()]?.id
+                } else null
+            if (hit != null) existingByPayloadId[node.path("id").asText("")] = hit
+        }
+        // подтверждение опциональных: берутся только названные коды и их потомки
+        val chosen: Set<String>? = options.onlyCodes?.let { codes ->
+            val ids = mutableSetOf<String>()
+            all.filter { it.path("code").asText("") in codes }.forEach { ids += it.path("id").asText("") }
+            var grew = true
+            while (grew) {
+                grew = false
+                all.forEach { n ->
+                    val id = n.path("id").asText("")
+                    if (id !in ids && n.path("parent").asText("") in ids) { ids += id; grew = true }
+                }
+            }
+            ids
+        }
+        all.forEach { node ->
+            val id = node.path("id").asText("")
+            if (id in existingByPayloadId) { dropped += id; return@forEach }
+            if (chosen != null && id !in chosen) { dropped += id; return@forEach }
             // уровень каркаса — данные узла; без него меряем глубиной по дереву
             val level = node.path("level").takeIf { it.isInt }?.asInt() ?: depthOf(node)
             val tooDeep = options.depth != null && level > options.depth
-            val optionalOut = !options.withOptional && node.path("optional").asBoolean(false)
-            val alreadyThere = options.mapping.containsKey(node.path("code").asText(""))
-            if (tooDeep || optionalOut || alreadyThere) dropped += node.path("id").asText("")
+            // собственный флаг optional гасит ТОЛЬКО узел каркаса (у него нет
+            // optional_on): стык, функция, пакет работ с optional_on берутся,
+            // если их узлы подтверждены, и пропускаются резолвом, если нет
+            val optionalOut = !options.withOptional && chosen == null &&
+                node.path("optional").asBoolean(false) && node.path("optional_on").isEmpty
+            if (optionalOut) {
+                // необязательный узел каркаса: по подтверждению — не отказ и не
+                // молчание, а помета, из которой видно, что подтверждать
+                skipped += Skipped(id, node.path("code").asText(""), node.path("name").asText(""),
+                    listOf(node.path("code").asText("")), "необязательный узел: создаётся по подтверждению")
+            }
+            if (tooDeep || optionalOut) dropped += id
         }
         var changed = true
         while (changed) {
@@ -362,16 +477,18 @@ class LibraryChannel(
             all.forEach { node ->
                 val parent = node.path("parent").asText("")
                 val id = node.path("id").asText("")
-                val parentMapped = byPayloadId[parent]?.path("code")?.asText("")
-                    ?.let { options.mapping.containsKey(it) } ?: false
-                if (parent.isNotBlank() && parent in dropped && !parentMapped && id !in dropped) {
+                val parentPresent = parent in existingByPayloadId
+                if (parent.isNotBlank() && parent in dropped && !parentPresent && id !in dropped) {
                     dropped += id
                     changed = true
                 }
             }
         }
         val raw = all.filter { it.path("id").asText("") !in dropped }
-        require(raw.isNotEmpty()) { "по выбранным условиям из каркаса '$fragmentId' не берётся ни один узел" }
+        if (raw.isEmpty()) {
+            // всё уже взято либо всё ждёт подтверждения — это итог, а не отказ
+            return ApplyOutcome(created = emptyList(), existing = existingByPayloadId.values.distinct(), skipped = skipped)
+        }
         // родители раньше детей: parent должен существовать к моменту записи
         val ids = raw.map { it.path("id").asText("") }.toSet()
         val list = mutableListOf<ObjectNode>()
@@ -400,12 +517,9 @@ class LibraryChannel(
             remap[oldId] = "%s-%04d".format(type.idPrefix, n)
             created += oldId to remap[oldId]!!
         }
-        // код каркаса → уже заведённый узел проекта: ссылки детей ведут на него,
-        // а сам узел заново не создаётся (дубли запрещены)
-        options.mapping.forEach { (code, existingId) ->
-            all.firstOrNull { it.path("code").asText("") == code }
-                ?.let { remap[it.path("id").asText("")] = existingId }
-        }
+        // уже заведённое (по сопоставлению или прежним взятием): ссылки ведут
+        // на него, само заново не создаётся (дубли запрещены)
+        existingByPayloadId.forEach { (payloadId, existingId) -> remap[payloadId] = existingId }
         // ADR-052: ссылка ПОЛКИ НА ПОЛКУ пишется кодом — «@PL-S», «@IF-S-USER».
         // Идентификатора у неё быть не может: узел получает его в том проекте,
         // куда каркас взят, и архитектурная полка обязана попасть в него же.
@@ -415,21 +529,76 @@ class LibraryChannel(
             .toMap()
         val codeRefs = Regex("@([A-Za-zА-Яа-я0-9_.\\-]+)")
         val unresolved = linkedSetOf<String>()
-        // проверка ДО первой записи: полка, легшая наполовину, хуже отказа
-        list.forEach { o ->
+        // Замечание Б3-01: код отсутствует И запись ждёт опционального узла
+        // (свой optional_on либо узел помечен опциональным на полке) — запись
+        // ПРОПУСКАЕТСЯ с пометой, полка берётся. Отсутствует и не опционален —
+        // отказ до первой записи, с причиной: «полка не взята» или «узлы не
+        // подтверждены» — это разные починки. Пропущенная запись делает
+        // опциональными и тех, кто ссылается на её код (каскад по данным).
+        val optionalOnShelves = optionalCodesOnShelves()
+        val skippedCodes = mutableSetOf<String>()
+        // пачка ссылается на своих и по идентификатору (шаг цепочки → функция):
+        // пропущенная запись тянет за собой тех, кто на неё ссылается, — иначе
+        // цепочка ушла бы на запись с несуществующей функцией и уронила взятие
+        // посередине, чего проверка «до первой записи» и не допускает
+        val skippedPayloadIds = mutableSetOf<String>()
+        val toWrite = mutableListOf<ObjectNode>()
+        var pending = list.toList()
+        var again = true
+        while (again) {
+            again = false
+            val rest = mutableListOf<ObjectNode>()
+            pending.forEach { o ->
+                val text = mapper.writeValueAsString(o)
+                val missing = codeRefs.findAll(text).map { it.groupValues[1] }.filter { !byCode.containsKey(it) }.toSet()
+                // объявленная зависимость: узел из optional_on отсутствует — запись
+                // ждёт подтверждения, даже если кодом на него не ссылается
+                val waitsFor = o.path("optional_on").map { it.asText() }.toSet()
+                val waitsMissing = waitsFor.filter { !byCode.containsKey(it) && it !in skippedCodes }
+                val dependsOnSkipped = skippedPayloadIds.filter { sid -> Regex("\\b" + Regex.escape(sid) + "\\b").containsMatchIn(text) }
+                val optionalMissing = missing.filter { it in waitsFor || it in optionalOnShelves || it in skippedCodes }
+                when {
+                    missing.isEmpty() && waitsMissing.isEmpty() && dependsOnSkipped.isEmpty() -> toWrite += o
+                    optionalMissing.size == missing.size -> {
+                        val причины = (optionalMissing + waitsMissing).toSortedSet().toList()
+                        val ждёт = if (причины.isNotEmpty()) причины else
+                            dependsOnSkipped.mapNotNull { sid -> byPayloadId[sid]?.path("code")?.asText("")?.ifBlank { null } }
+                        skipped += Skipped(
+                            o.path("id").asText(""), o.path("code").asText(""), o.path("name").asText(""),
+                            ждёт, "пропущено: не подтверждён " + ждёт.joinToString(", "),
+                        )
+                        skippedPayloadIds += o.path("id").asText("")
+                        o.path("code").asText("").takeIf { it.isNotBlank() }?.let { skippedCodes.add(it) }
+                        again = true
+                    }
+                    else -> rest += o
+                }
+            }
+            pending = rest
+        }
+        pending.forEach { o ->
             codeRefs.findAll(mapper.writeValueAsString(o)).forEach { m ->
-                if (!byCode.containsKey(m.groupValues[1])) unresolved += m.groupValues[1]
+                if (!byCode.containsKey(m.groupValues[1]) && m.groupValues[1] !in skippedCodes) unresolved += m.groupValues[1]
             }
         }
         if (unresolved.isNotEmpty()) {
+            val shelves = unresolved.mapNotNull { shelfOfCode(it) }.distinctBy { it.id }
+            val notTaken = shelves.filter { appliedInstances(it.id, projectId).isEmpty() }
+            val cause = if (notTaken.isNotEmpty()) {
+                "полка не взята: " + notTaken.joinToString(", ") { "«${it.doc.path("name").asText(it.id)}»" } +
+                    " — возьмите её раньше"
+            } else {
+                "узлов с этими кодами в проекте нет и на полках они не помечены необязательными — проверьте состав"
+            }
             throw IllegalArgumentException(
                 "полка «${frag.doc.path("name").asText(fragmentId)}» ссылается на коды, которых в проекте нет: " +
-                    unresolved.joinToString(", ") + ". Возьмите раньше полку, которая их заводит " +
+                    unresolved.joinToString(", ") + ". Причина: $cause " +
                     "(каркас PBS — узлы, полка интерфейсов — стыки)",
             )
         }
+        val writable: List<ObjectNode> = toWrite
 
-        list.forEach { o ->
+        writable.forEach { o ->
             val oldId = o.path("id").asText("")
             var text = mapper.writeValueAsString(o)
             remap.forEach { (old, new) -> text = text.replace(Regex("\\b" + Regex.escape(old) + "\\b"), new) }
@@ -459,6 +628,11 @@ class LibraryChannel(
             val stored = boundary.ingest(type, mapper.writeValueAsString(doc), author, projectId)
             boundary.req.syncLinks(stored.type, stored.id, stored.doc, stored.projectId)
         }
-        return ApplyOutcome(created = created, existing = emptyList())
+        val writtenFrom = writable.map { it.path("id").asText("") }.toSet()
+        return ApplyOutcome(
+            created = created.filter { it.first in writtenFrom },
+            existing = existingByPayloadId.values.distinct(),
+            skipped = skipped,
+        )
     }
 }

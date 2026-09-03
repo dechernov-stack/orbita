@@ -163,6 +163,8 @@ export function StartPath({ project, onGo, onDone }: {
   const promptSeeded = useRef(false)
   /** Круг 3 §1: взятые фрагменты — из связей «применяет» и локальных взятий. */
   const [applied, setApplied] = useState<Record<string, { count: number; by_type: Record<string, number> }>>({})
+  /** Замечание Б3-01: пропущенное при взятии — чего ждёт (коды узлов). */
+  const [skippedOn, setSkippedOn] = useState<Record<string, string[]>>({})
   const [busyFrag, setBusyFrag] = useState<string | null>(null)
   const [takeDialog, setTakeDialog] = useState<{ id: string; name: string; matches: Array<{ code: string; name: string; existing: string }> } | null>(null)
   const [takeDepth, setTakeDepth] = useState(4)
@@ -294,6 +296,7 @@ export function StartPath({ project, onGo, onDone }: {
             ? { count: r.created.length, by_type: byType }
             : prev[id] ?? { count: r.existing.length, by_type: {} },
         }))
+        setSkippedOn((prev) => ({ ...prev, [id]: r.skipped_on ?? [] }))
       })
       .catch((e) => setFragErr({ id, msg: reasonOf(e) }))
       .finally(() => setBusyFrag(null))
@@ -854,7 +857,20 @@ return (
                         )}
                       </span>
                       {applied[f.id] && (
-                        <span className="sp-took">Взято ✓ создано <b>{applied[f.id].count}</b></span>
+                        <span className="sp-took">
+                          Взято ✓ создано <b>{applied[f.id].count}</b>
+                          {(skippedOn[f.id]?.length ?? 0) > 0 && (
+                            <span className="secondary" title="записи на этих узлах не созданы: узлы необязательные и не подтверждены; подтвердите их в дереве состава — и доберите зависимое">
+                              {' · '}пропущено: не подтверждены {skippedOn[f.id].join(', ')}
+                              {onGo && (
+                                <button type="button" className="np-linkish" style={{ marginLeft: 6 }}
+                                  onClick={() => onGo('composition')}>
+                                  подтвердить узлы →
+                                </button>
+                              )}
+                            </span>
+                          )}
+                        </span>
                       )}
                       <button className="sp-open"
                         onClick={() => setOpenManifest(openManifest === f.id ? null : f.id)}>

@@ -8,7 +8,8 @@
   "каждому узлу PBS L2/L3 — пакет работ (пара); L4/L5 наследуют пакет родителя",
   "пакет ссылается на узлы кодом @; резолв — при взятии, как у стыков",
   "сроки пакетов — только от вех и планов задач (длительностей нет)",
-  "свёртка стоимости и трудоёмкости — по дереву WBS; параметрика M11 читает пакеты"
+  "свёртка стоимости и трудоёмкости — по дереву WBS; параметрика M11 читает пакеты",
+  "optional=true: пакет создаётся, только если его узлы подтверждены; иначе пропускается с пометой"
  ],
  "packages": [
   {
@@ -177,7 +178,11 @@
     "PL-P"
    ],
    "phase_tasks": [],
-   "cross_cutting": false
+   "cross_cutting": false,
+   "optional": true,
+   "optional_on": [
+    "PL-P"
+   ]
   },
   {
    "code": "05.03",
@@ -210,7 +215,11 @@
     "PL-ISL"
    ],
    "phase_tasks": [],
-   "cross_cutting": false
+   "cross_cutting": false,
+   "optional": true,
+   "optional_on": [
+    "PL-ISL"
+   ]
   },
   {
    "code": "05.06",
@@ -221,7 +230,11 @@
     "PL-PNT"
    ],
    "phase_tasks": [],
-   "cross_cutting": false
+   "cross_cutting": false,
+   "optional": true,
+   "optional_on": [
+    "PL-PNT"
+   ]
   },
   {
    "code": "06.01",
@@ -375,7 +388,11 @@
     "MCC-SIM"
    ],
    "phase_tasks": [],
-   "cross_cutting": false
+   "cross_cutting": false,
+   "optional": true,
+   "optional_on": [
+    "MCC-SIM"
+   ]
   },
   {
    "code": "07.07",
@@ -499,7 +516,11 @@
     "SC-EXP"
    ],
    "phase_tasks": [],
-   "cross_cutting": false
+   "cross_cutting": false,
+   "optional": true,
+   "optional_on": [
+    "SC-EXP"
+   ]
   },
   {
    "code": "11.01",

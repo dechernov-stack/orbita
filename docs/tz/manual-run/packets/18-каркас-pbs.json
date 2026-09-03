@@ -2398,8 +2398,7 @@
               "version": "1"
             },
             "parent": "CM-9201",
-            "level": 2,
-            "optional": true
+            "level": 2
           },
           {
             "id": "CM-9228",
