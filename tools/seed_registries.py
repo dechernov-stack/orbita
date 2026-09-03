@@ -48,8 +48,9 @@ SEEDS = [
     ("review_checklist", None, "15-чек-обзора.json"),
     # Словарь линта формулировок: правится с экрана справочников
     ("quality_dictionary", None, "16-словарь-линта.json"),
-    # ADR-050: набор моделей системы — модель как ответ на вопрос, а не файл
-    ("system_model", None, "17-модели-системы.json"),
+    # ADR-050: набор моделей системы — фрагмент полки B8; модель живёт записью
+    # в проекте, поэтому набор берётся, а не лежит ответом на полке
+    ("library_fragment", None, "17-модели-системы.json"),
     # ADR-051: каркас PBS ред. 2 — 135 узлов, анкеты узлов, интерфейсы моделей
     ("library_fragment", None, "18-каркас-pbs.json"),
 ]
@@ -172,15 +173,22 @@ def obsolete(type_: str, rows: list, packet: dict | None = None) -> bool:
             e.get("prompt_default") for d in rows for e in ([d] if "term" in d else d.get("entries", []))
         )
     if type_ == "library_fragment":
-        # каркас растёт редакциями: полка без узлов с анкетами (ред. 2) устарела
-        return not any(
-            o.get("expects") for d in rows for o in d.get("payload", {}).get("objects", [])
-        )
-    if type_ == "system_model":
-        # набор моделей растёт поставками владельца: полка без кода из сида устарела
-        if packet:
-            wanted = {o.get("code") for o in packet.get("objects", [])}
-            if wanted - {d.get("code") for d in rows}:
+        # два разных пакета кладут фрагменты на разные полки: сверяем тот, что
+        # принёс пакет, а не «хоть что-то на полке» — иначе каркас гасит модели
+        want = [o for o in (packet or {}).get("objects", [])]
+        have = {d.get("id"): d for d in rows}
+        for frag in want:
+            cur = have.get(frag.get("id"))
+            if cur is None:
+                return True
+            payload = cur.get("payload", {}).get("objects", [])
+            # каркас растёт редакциями: фрагмент без узлов с анкетами устарел
+            if any(o.get("expects") for o in frag.get("payload", {}).get("objects", [])):
+                if not any(o.get("expects") for o in payload):
+                    return True
+            # набор моделей растёт поставками: недостающий код — повод перезалить
+            codes = {o.get("code") for o in frag.get("payload", {}).get("objects", [])}
+            if codes - {o.get("code") for o in payload}:
                 return True
         return False
     if type_ == "property_form":

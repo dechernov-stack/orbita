@@ -66,6 +66,13 @@ export function SystemModels({ onGo }: { onGo?: (screen: string, kind?: string, 
       <div className="empty">
         Записей моделей нет: возьмите набор «Модели системы» с полки — он заводит записи со
         статусом «не построена», и точка спрашивает с них ответ, а не файл.
+        {onGo && (
+          <div style={{ marginTop: 8 }}>
+            <button type="button" className="rr-assign" onClick={() => onGo('startpath')}>
+              к полкам «Начала пути» →
+            </button>
+          </div>
+        )}
       </div>
     )
 

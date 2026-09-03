@@ -27,6 +27,7 @@ class TemplatesTest {
     private val channel = LibraryChannel(boundary)
     private val project = "PJ-2901"
     private lateinit var fragment: String
+    private lateinit var models: String
 
     @BeforeAll
     fun setup() {
@@ -42,6 +43,11 @@ class TemplatesTest {
         ).path("objects")[0] as com.fasterxml.jackson.databind.node.ObjectNode
         skeleton.remove("id")
         fragment = boundary.editing.create(CoreType.LibraryFragment, skeleton, "test", ObjectStore.LIBRARY_PROJECT).id
+        val modelSet = mapper.readTree(
+            Files.readString(RepoPaths.repoRoot().resolve("docs/tz/manual-run/packets/17-модели-системы.json")),
+        ).path("objects")[0] as com.fasterxml.jackson.databind.node.ObjectNode
+        modelSet.remove("id")
+        models = boundary.editing.create(CoreType.LibraryFragment, modelSet, "test", ObjectStore.LIBRARY_PROJECT).id
     }
 
     @Test
@@ -160,5 +166,28 @@ class TemplatesTest {
         assertFalse(m.getValue("RQ-0002").covered, "иллюстрация покрытием не бывает")
         assertTrue(m.getValue("RQ-0003").covered)
         assertEquals(listOf("RQ-0002"), boundary.matrices.coverageMatrix(project).uncovered)
+    }
+
+    @Test
+    @org.junit.jupiter.api.Order(5)
+    fun `набор моделей берётся с полки в проект - четырнадцать записей, линки и потоки частями`() {
+        val outcome = channel.apply(models, project, "инженер")
+        assertEquals(14, outcome.created.size, "взято записей моделей: ${outcome.created.size}")
+        val records = boundary.objects.listCurrent(project)
+            .filter { it.type == "system_model" && it.doc.path("code").asText("").startsWith("М") }
+            .associateBy { it.doc.path("code").asText() }
+        assertTrue(records.keys.containsAll((1..14).map { "М$it" }), "коды набора: ${records.keys.sorted()}")
+        // ответ дают четыре расчёта, остальные честно «не построена» или «прокси»
+        assertEquals(4, records.values.count { it.doc.path("status").asText() == "computed" },
+            "расчётов: " + records.values.filter { it.doc.path("status").asText() == "computed" }.map { it.doc.path("code").asText() })
+        // линки М2а–г и потоки М3а–е живут частями записи, а не отдельными моделями
+        assertEquals(4, records.getValue("М2").doc.path("parts").size(), "линки М2")
+        assertEquals(6, records.getValue("М3").doc.path("parts").size(), "плечи М3")
+        // взятие идёт в проект: полка ответов не даёт, а экран проекта их спрашивает
+        val view = boundary.systemModels.view(project, "SRR")
+        assertTrue(view.path("total").asInt() >= 14, "на экране моделей: ${view.path("total").asInt()}")
+        // повторное взятие не плодит набор — идемпотентность связи «применяет»
+        val again = channel.apply(models, project, "инженер")
+        assertTrue(again.created.isEmpty() && again.existing.size == 14, "повтор: ${again.created.size}/${again.existing.size}")
     }
 }
