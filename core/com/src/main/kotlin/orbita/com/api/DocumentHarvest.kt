@@ -289,6 +289,14 @@ object DocumentHarvest {
             }
             else -> return null
         }
+        // ответ владельца 03.09 (п. 5): у требования документ-основание и
+        // якорь блока — первоклассное поле source, а не только происхождение;
+        // остаётся правимым руками
+        if (doc.path("statement").isTextual && doc.path("traces_up").isArray && !doc.has("source")) {
+            blocksOf(item).firstOrNull()?.let { anchor ->
+                doc.putObject("source").put("doc", sdId).put("anchor", anchor)
+            }
+        }
         // происхождение: документ-источник И координата блока — по ним
         // потом видно, из какого места какого документа выросла сущность
         val prov = doc.putObject("provenance")

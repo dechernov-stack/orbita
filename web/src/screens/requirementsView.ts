@@ -52,7 +52,7 @@ export function visibleColumns(columns: ColumnState[]): ColumnState[] {
 
 // Разрывы стратифицированы по уровням (РЕШЕНИЕ-НОСИТЕЛЬ-УРОВНИ): флаги
 // носителя и нужды приходят С СЕРВЕРА — клиент их семантику не вычисляет.
-export type GapKey = 'no_carrier' | 'no_need' | 'no_verification' | 'recalc' | 'changed' | 'no_acceptance' | 'conflict'
+export type GapKey = 'no_carrier' | 'no_need' | 'no_verification' | 'recalc' | 'changed' | 'no_acceptance' | 'conflict' | 'no_title'
 
 export const GAP_LABELS: Record<GapKey, string> = {
   no_carrier: 'Без носителя (системные)',
@@ -62,6 +62,7 @@ export const GAP_LABELS: Record<GapKey, string> = {
   changed: 'Изменено после утверждения',
   no_acceptance: 'Без критерия приёмки',
   conflict: 'Противоречие не разрешено',
+  no_title: 'Без заголовка',
 }
 
 export function hasGap(row: RequirementRow, gap: GapKey): boolean {
@@ -80,6 +81,8 @@ export function hasGap(row: RequirementRow, gap: GapKey): boolean {
       return row.noAcceptanceGap === true
     case 'conflict':
       return row.conflictOpen === true
+    case 'no_title':
+      return row.noTitleGap === true
   }
 }
 
@@ -92,6 +95,7 @@ export function gapCounters(rows: RequirementRow[]): Record<GapKey, number> {
     changed: 0,
     no_acceptance: 0,
     conflict: 0,
+    no_title: 0,
   }
   rows.forEach((r) => {
     (Object.keys(counters) as GapKey[]).forEach((g) => {

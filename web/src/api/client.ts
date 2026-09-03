@@ -441,7 +441,7 @@ export const api = {
   compositionTree: () => get<CompositionTree>('/views/composition/tree'),
   /** ADR-044: из каких узлов собран контракт аппарата и чего не хватает. */
   spacecraftAssembly: (nodeId: string) =>
-    get<{ spacecraft: Record<string, unknown>; problems: string[]; nodes: string[] }>(
+    get<{ spacecraft: Record<string, unknown>; problems: string[]; nodes: string[]; computed?: string[] }>(
       `/views/spacecraft/${nodeId}/assembly`,
     ),
   /** В2.1: свёртка бюджетов по вхождениям с кратностью — считает сервер. */

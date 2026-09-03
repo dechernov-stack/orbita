@@ -27,7 +27,7 @@ class OneTreeMigrationTest {
         Files.list(RepoPaths.migrationsDir()).use { s ->
             s.filter { it.fileName.toString().matches(Regex("V[0-9]+__.*\\.sql")) }
                 .sorted(compareBy { it.fileName.toString() })
-                .filter { !it.fileName.toString().startsWith("V038__") && !it.fileName.toString().startsWith("V039__") }
+                .filter { !it.fileName.toString().startsWith("V038__") && !it.fileName.toString().startsWith("V039__") && !it.fileName.toString().startsWith("V041__") }
                 .forEach { f -> conn.createStatement().use { it.execute(Files.readString(f)) } }
         }
         return conn
@@ -172,6 +172,25 @@ class OneTreeMigrationTest {
             assertTrue(ka.path("name").asText().contains("SP-0001"), "имя нового узла называет, откуда он: ${ka.path("name")}")
             val usage = query(conn, "SELECT doc::text FROM objects WHERE valid_to IS NULL AND type = 'component_usage' AND doc->>'definition_ref' = '${ka.path("id").asText()}'").single()
             assertEquals(1, usage.path("quantity").asInt())
+        }
+    }
+
+    @Test
+    fun `V041 - источник требования из происхождения урожая, новой версией, без якоря не трогается`() {
+        dbBeforeV038("orbita_source_retro").use { conn ->
+            insert(conn, "PJ-0003", "project", """{"id":"PJ-0003","name":"п","lifecycle":{"status":"Draft","version":"1"}}""", "PJ-0003")
+            insert(conn, "RQ-0001", "requirement", """{"id":"RQ-0001","level":"system","statement":"с","category":"functional","traces_up":[],"verification_events":[],"owner":"о",
+                "provenance":{"source":"imported","import":{"dataset":"SD-0001 «Записка»","dataset_version":"1","retrieved_at":"2026-09-01","item_ref":"s2, s3","terms":"внутренний"}},
+                "lifecycle":{"status":"Draft","version":"1"}}""", "PJ-0003")
+            insert(conn, "RQ-0002", "requirement", """{"id":"RQ-0002","level":"system","statement":"с","category":"functional","traces_up":[],"verification_events":[],"owner":"о",
+                "provenance":{"source":"imported","import":{"dataset":"SD-0001 «Записка»","dataset_version":"1","retrieved_at":"2026-09-01","terms":"внутренний"}},
+                "lifecycle":{"status":"Draft","version":"1"}}""", "PJ-0003")
+            conn.createStatement().use { it.execute(Files.readString(RepoPaths.migrationsDir().resolve("V041__requirement_source_from_provenance.sql"))) }
+            val r1 = current(conn, "RQ-0001")!!
+            assertEquals("SD-0001", r1.path("source").path("doc").asText())
+            assertEquals("s2", r1.path("source").path("anchor").asText())
+            assertEquals("2", r1.path("lifecycle").path("version").asText())
+            assertTrue(current(conn, "RQ-0002")!!.path("source").isMissingNode, "без якоря источник не выдумывается")
         }
     }
 }

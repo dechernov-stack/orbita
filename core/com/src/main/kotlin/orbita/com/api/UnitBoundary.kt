@@ -67,6 +67,19 @@ class UnitRegistryIndex(doc: JsonNode) {
     fun known(unit: String): Boolean = resolve(unit) != null
 
     /**
+     * Обратный перевод: из канона в единицу ввода/показа того же измерения
+     * (rad/s → deg/s для контракта аппарата). null — единица не вход канона
+     * либо перевода нет по определению.
+     */
+    fun fromCanon(value: Double, canon: String, unit: String): Double? {
+        val resolved = resolve(unit) ?: return null
+        if (resolved == canon) return value
+        val i = inputs[resolved] ?: return null
+        if (i.canon != canon || i.factor == null || i.rate) return null
+        return (value - (i.shift ?: 0.0)) / i.factor
+    }
+
+    /**
      * Единица значения → канон. null — уже канон либо конверсии нет по
      * определению (log/none: dBm, U — известные единицы без пересчёта).
      */

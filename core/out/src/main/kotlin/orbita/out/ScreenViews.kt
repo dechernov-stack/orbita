@@ -91,6 +91,8 @@ data class RequirementRow(
     val linkNoRationale: Boolean = false,
     /** В формулировке есть открытые TBD/TBR — счётчик узлов дерева. */
     val hasTbd: Boolean = false,
+    /** Помета к базированию: краткое имя не записано (автозаголовок не выдумывается). */
+    val noTitleGap: Boolean = false,
     /** Разрывы СТРАТИФИЦИРОВАНЫ по уровням (РЕШЕНИЕ-НОСИТЕЛЬ-УРОВНИ):
      * настоящий сирота — системное требование без элемента/интерфейса. */
     val noCarrierGap: Boolean,
@@ -452,6 +454,7 @@ class ScreenViews(
             linkNoRationale = doc.path("derives_from").map { it.asText() }
                 .any { parent -> relations.none { it.ref == parent && it.kind in setOf("refines", "derives") } },
             hasTbd = hasOpenTbd(doc),
+            noTitleGap = doc.path("title").asText("").isBlank(),
         )
     }
 

@@ -132,5 +132,10 @@ class RequirementFieldsTest {
         assertTrue(check("conflicts").path("blocking").asBoolean())
         assertEquals("open", check("acceptance").path("state").asText())
         assertFalse(check("acceptance").path("blocking").asBoolean())
+        // ответ владельца 03.09 (п. 4): заголовок — помета всегда, разрыв к базированию, не блокер
+        assertTrue(rows.getValue("RQ-0003").noTitleGap)
+        assertFalse(rows.getValue("RQ-0001").noTitleGap)
+        assertEquals("open", check("title").path("state").asText())
+        assertFalse(check("title").path("blocking").asBoolean())
     }
 }

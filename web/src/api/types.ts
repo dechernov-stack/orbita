@@ -88,6 +88,7 @@ export interface RequirementRow {
   linkNoRationale?: boolean
   /** Сервер считает: в формулировке есть открытые TBD/TBR. */
   hasTbd?: boolean
+  noTitleGap?: boolean
 }
 
 /** Дерево «по документам-основаниям» (ADR-045). */

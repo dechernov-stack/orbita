@@ -278,7 +278,7 @@ export function Requirements({ onGo }: { onGo?: (screen: string) => void }) {
     <button
       key={g}
       type="button"
-      className={`rr-g${gap === g ? ' on' : ''}${g === 'no_carrier' || g === 'no_need' || g === 'conflict' ? ' bad' : ''}${g === 'recalc' || g === 'changed' || g === 'no_acceptance' ? ' warnc' : ''}`}
+      className={`rr-g${gap === g ? ' on' : ''}${g === 'no_carrier' || g === 'no_need' || g === 'conflict' ? ' bad' : ''}${g === 'recalc' || g === 'changed' || g === 'no_acceptance' || g === 'no_title' ? ' warnc' : ''}`}
       onClick={() => setGap((cur) => (cur === g ? null : g))}
     >
       {GAP_LABELS[g]} · <b>{counters[g]}</b>
@@ -400,7 +400,7 @@ export function Requirements({ onGo }: { onGo?: (screen: string) => void }) {
         >
           Нужда не покрыта · <b>{tree.needsUncovered.length}</b>
         </button>
-        {(['no_need', 'no_verification', 'no_acceptance', 'conflict', 'recalc', 'changed'] as GapKey[]).map((g) => gapChip(g))}
+        {(['no_need', 'no_verification', 'no_acceptance', 'no_title', 'conflict', 'recalc', 'changed'] as GapKey[]).map((g) => gapChip(g))}
       </div>
 
       {notice && <div className="warn" style={{ padding: '4px 14px' }}>{notice}</div>}
@@ -882,6 +882,8 @@ function CardView({
         <div className="rr-ctitle">
           <h2>{r.statement}</h2>
           <div className="rr-cstate">
+            {r.title ? <span className="chip"><b>{r.title}</b></span> : <span className="chip amber" title="краткое имя не записано — помета к базированию; автозаголовок не выдумывается">△ без заголовка</span>}
+            {r.priority && <span className="chip">приоритет: {label('requirement_priority', r.priority)}</span>}
             {r.level && <span className="chip">{label('requirement_level', r.level)}</span>}
             <span className="chip">{r.kind === 'numeric' ? 'Числовое' : 'Текстовое'}</span>
             {r.category && <span className="chip">{label('requirement_category', r.category)}</span>}

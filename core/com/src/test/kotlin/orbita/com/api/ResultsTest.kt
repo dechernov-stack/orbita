@@ -61,7 +61,9 @@ class ResultsTest {
         )
         val issue = mapper.createObjectNode()
         issue.put("template", "semp"); issue.put("digest", generated.digest)
-        issue.put("issued_at", "2026-09-02T10:00:00Z"); issue.put("status", "issued"); issue.put("gaps", generated.gaps.size)
+        // выпуск — ПОСЛЕ принятия текстов: дата берётся от часов, а не зашивается —
+        // зашитая дата делала тест зависимым от календаря (упал 03.09)
+        issue.put("issued_at", java.time.OffsetDateTime.now(java.time.ZoneOffset.UTC).plusMinutes(1).toString()); issue.put("status", "issued"); issue.put("gaps", generated.gaps.size)
         issue.set<ObjectNode>("snapshot", generated.body)
         boundary.editing.create(CoreType.DocumentIssue, issue, "Иванов", "PJ-2301")
 

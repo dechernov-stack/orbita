@@ -65,6 +65,14 @@
           "required_by": "SDR"
         },
         {
+          "key": "battery_voltage",
+          "name": "Напряжение АКБ",
+          "unit": "V",
+          "required": true,
+          "required_by": "SDR",
+          "hint": "Вместе с зарядом (А·ч) даёт энергию АКБ (Вт·ч) — расчёт читает энергию; без напряжения — разрыв «нет напряжения для энергии»."
+        },
+        {
           "key": "attitude_accuracy",
           "name": "Точность ориентации",
           "unit": "deg",
@@ -72,6 +80,14 @@
           "target": "/platform/attitude/pointing_accuracy_deg",
           "hint": "Ошибка наведения: она входит в бюджет линии через потери наведения.",
           "required_by": "SDR"
+        },
+        {
+          "key": "slew_rate",
+          "name": "Скорость разворота",
+          "unit": "deg/s",
+          "required": false,
+          "required_by": "SDR",
+          "hint": "Ввод и показ в °/с, хранение — рад/с (канон угловой скорости)."
         },
         {
           "key": "design_life",
@@ -88,6 +104,14 @@
           "unit": "m/s",
           "required": false,
           "hint": "Δv на поддержание строя и увод с орбиты."
+        },
+        {
+          "key": "maneuvers",
+          "name": "Таблица манёвров (Δv-бюджет)",
+          "kind": "table",
+          "required": false,
+          "required_by": "SDR",
+          "hint": "Строки {название, Δv в м/с, примечание} на узле КА; свёртка — сумма в м/с. Категории контракта: phasing, maintenance, collision_avoidance, deorbit."
         },
         {
           "key": "temperature_range",

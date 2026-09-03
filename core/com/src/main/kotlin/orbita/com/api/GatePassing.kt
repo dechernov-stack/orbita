@@ -204,6 +204,13 @@ class GatePassing(
                 noAcc.size, "${noAcc.size} без критерия приёмки: " + noAcc.take(4).joinToString(", ") { it.id },
                 "req", blocking = false, closedNote = "критерии записаны",
             )
+            // ответ владельца 03.09 (п. 4): заголовок — помета всегда, к базированию — разрыв
+            val noTitle = reqRows.filter { it.noTitleGap }
+            add(
+                "title", "statement", "Заголовок требования записан",
+                noTitle.size, "${noTitle.size} без заголовка: " + noTitle.take(4).joinToString(", ") { it.id },
+                "req", blocking = false, closedNote = "заголовки записаны",
+            )
         }
         val critical = boundary.objects.listCurrent(projectId)
             .filter { it.type == "review_item" }

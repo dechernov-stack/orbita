@@ -50,7 +50,10 @@ SEEDS = [
     ("quality_dictionary", None, "16-словарь-линта.json"),
 ]
 
-TOKEN: str | None = None
+# Режим стенда (ORBITA_AUTH_MODE=stand): учётки без паролей — токен сессии
+# берётся снаружи (POST /auth/stand-login → кука orbita_session) и передаётся
+# переменной ORBITA_TOKEN; сервер принимает его заголовком Bearer.
+TOKEN: str | None = os.environ.get("ORBITA_TOKEN") or None
 
 
 def request(method: str, path: str, body=None):
@@ -150,13 +153,33 @@ def obsolete(type_: str, rows: list, packet: dict | None = None) -> bool:
     зрелости — Ф-06 п.5, метки источников в шаблоне — правка пачки-2), и
     объект надо обновить, а не пересоздать."""
     if type_ == "unit_registry":
-        return not any("spellings" in d for d in rows)
+        if not any("spellings" in d for d in rows):
+            return True
+        # размерности добавляются ответами владельца (угловая скорость,
+        # напряжение, ток — 03.09): полка без них устарела
+        if packet:
+            wanted = {x["name"] for o in packet.get("objects", []) for x in o.get("dimensions", [])}
+            have = {x.get("name") for d in rows for x in d.get("dimensions", [])}
+            if wanted - have:
+                return True
+        return False
     if type_ == "glossary":
         return not any(
             e.get("prompt_default") for d in rows for e in ([d] if "term" in d else d.get("entries", []))
         )
     if type_ == "property_form":
-        return not any(f.get("required_by") for d in rows for f in d.get("fields", []))
+        if not any(f.get("required_by") for d in rows for f in d.get("fields", [])):
+            return True
+        # поля анкет добавляются ответами владельца (напряжение АКБ, скорость
+        # разворота, таблица манёвров — 03.09): анкета без них устарела
+        if packet:
+            for o in packet.get("objects", []):
+                cur = next((d for d in rows if d.get("id") == o.get("id")), None)
+                if cur is None:
+                    continue
+                if {f["key"] for f in o.get("fields", [])} - {f.get("key") for f in cur.get("fields", [])}:
+                    return True
+        return False
     if type_ == "phase_task":
         # Задачи фазы обновляются, когда меняется их контент. Сверяем по
         # АДРЕСАМ условий: выдуманный идентификатор проверки готовности не

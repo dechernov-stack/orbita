@@ -132,7 +132,7 @@ export function TraceGraph({ onGo }: { onGo?: (screen: string, kind?: string, ta
           <input
             className="rr-search"
             style={{ width: 110 }}
-            placeholder="RQ-0001"
+            placeholder="RQ-…"
             value={focusInput}
             onChange={(e) => setFocusInput(e.target.value.trim())}
             onKeyDown={(e) => { if (e.key === 'Enter') setFocus(focusInput) }}

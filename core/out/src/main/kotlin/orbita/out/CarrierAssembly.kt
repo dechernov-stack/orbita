@@ -22,7 +22,12 @@ data class AssembledCarrier(
     val problems: List<String>,
     /** Узлы, вошедшие в сборку (для показа «из чего собрано»). */
     val nodes: List<String>,
+    /** Что сборка ВЫЧИСЛИЛА, а не прочитала: энергия АКБ из заряда и напряжения, Δv суммой — с происхождением словами. */
+    val computed: List<String> = emptyList(),
 )
+
+/** Перевод величины из канона справочника в единицу контракта; null — справочник конверсии не знает. */
+typealias UnitConverter = (value: Double, fromUnit: String, toUnit: String) -> Double?
 
 object CarrierAssembly {
     const val ROLE_SPACECRAFT = "spacecraft"
@@ -75,9 +80,17 @@ object CarrierAssembly {
      * документ даже при проблемах: вызывающий решает, годится ли он
      * (валидация схемой — на границе, здесь — только форма и претензии).
      */
-    fun assemble(root: JsonNode, all: List<JsonNode>, mapper: ObjectMapper = ObjectMapper()): AssembledCarrier {
+    private val DELTA_V_CATEGORIES = listOf("phasing", "maintenance", "collision_avoidance", "deorbit")
+
+    fun assemble(
+        root: JsonNode,
+        all: List<JsonNode>,
+        mapper: ObjectMapper = ObjectMapper(),
+        convert: UnitConverter? = null,
+    ): AssembledCarrier {
         val rootId = root.path("id").asText("")
         val problems = mutableListOf<String>()
+        val computed = mutableListOf<String>()
         val used = mutableListOf(rootId)
         val doc = mapper.createObjectNode()
         doc.put("id", rootId)
@@ -94,6 +107,35 @@ object CarrierAssembly {
         } else {
             used += platform.path("id").asText("")
             PLATFORM_FIELDS.forEach { f -> place(platform, f, doc, problems) }
+            val pid = platform.path("id").asText("")
+            // энергия АКБ: записана энергией (Вт·ч) либо ВЫЧИСЛЯЕТСЯ из заряда (А·ч)
+            // и напряжения (В) — разные величины, молча не подменяются
+            if (quantityOf(platform, "battery_energy") == null) {
+                val cap = quantityOf(platform, "battery_capacity")
+                val volt = quantityOf(platform, "battery_voltage")
+                when {
+                    cap == null -> Unit
+                    cap.second != "Ah" -> problems += "$pid: заряд АКБ в «${cap.second}», ожидалась Ah"
+                    volt == null -> problems += "$pid: нет напряжения для энергии — заряд АКБ (А·ч) без напряжения (В) в энергию не переводится"
+                    volt.second != "V" -> problems += "$pid: напряжение АКБ в «${volt.second}», ожидалась V"
+                    else -> {
+                        val wh = cap.first * volt.first // вычислено явно, с происхождением (А·ч × В)
+                        platformNode.with("power").put("battery_wh", wh)
+                        computed += "$pid: энергия АКБ $wh Wh = ${cap.first} Ah × ${volt.first} V (вычислено сборкой)"
+                    }
+                }
+            }
+            // скорость разворота: в узле — канон (rad/s), контракт ждёт °/с; перевод
+            // делает справочник единиц, а не сборщик — без справочника это претензия
+            quantityOf(platform, "slew_rate")?.let { (v, u) ->
+                val degS = when (u) {
+                    "deg/s" -> v
+                    "rad/s" -> convert?.invoke(v, "rad/s", "deg/s")
+                    else -> null
+                }
+                if (degS == null) problems += "$pid: скорость разворота в «$u» — нет перевода в deg/s по справочнику"
+                else platformNode.with("attitude").put("slew_rate_deg_s", degS)
+            }
             val pp = platform.path("profile")
             pp.path("mel_margin_policy").takeIf { it.isObject }?.let { platformNode.set<JsonNode>("mel_margin_policy", it.deepCopy()) }
             pp.path("power").path("sa_mounting").asText("").takeIf { it.isNotBlank() }
@@ -133,8 +175,36 @@ object CarrierAssembly {
         }
 
         root.path("profile").path("modes").takeIf { it.isArray }?.let { doc.set<JsonNode>("modes", it.deepCopy()) }
-        return AssembledCarrier(doc, problems, used.distinct())
+
+        // Δv-бюджет — таблица манёвров узла КА: категории контракта ложатся
+        // в него, прочие названия — претензия; свёртка — сумма в м/с
+        val maneuvers = root.path("maneuvers")
+        if (maneuvers.isArray && !maneuvers.isEmpty) {
+            var total = 0.0
+            val budget = platformNode.with("propulsion").with("delta_v_budget_ms")
+            maneuvers.forEach { m ->
+                val name = m.path("name").asText("")
+                val q = m.path("delta_v")
+                val unit = q.path("unit").asText("")
+                if (!q.path("value").isNumber || unit != "m/s") {
+                    problems += "$rootId: манёвр «$name» — Δv в «$unit», ожидалась m/s"
+                    return@forEach
+                }
+                val v = q.path("value").asDouble()
+                total += v // вычислено явно, с происхождением (сумма манёвров)
+                if (name in DELTA_V_CATEGORIES) budget.put(name, budget.path(name).asDouble(0.0) + v) // вычислено явно, с происхождением (сумма по категории)
+                else problems += "$rootId: манёвр «$name» не относится к категориям контракта (${DELTA_V_CATEGORIES.joinToString(", ")}) — в бюджет аппарата не вошёл"
+            }
+            computed += "$rootId: Δv-бюджет $total m/s — сумма ${maneuvers.size()} манёвров (вычислено сборкой)"
+            if (budget.isEmpty) platformNode.path("propulsion").let { (it as ObjectNode).remove("delta_v_budget_ms") }
+        }
+        return AssembledCarrier(doc, problems, used.distinct(), computed)
     }
+
+    /** Суммарный Δv по таблице манёвров узла КА, м/с — для показа и анкеты. */
+    fun deltaVTotal(root: JsonNode): Double? =
+        root.path("maneuvers").takeIf { it.isArray && !it.isEmpty }
+            ?.sumOf { m -> m.path("delta_v").takeIf { it.path("unit").asText("") == "m/s" }?.path("value")?.asDouble(0.0) ?: 0.0 }
 
     private fun place(node: JsonNode, f: Field, doc: ObjectNode, problems: MutableList<String>) {
         val id = node.path("id").asText("")

@@ -36,7 +36,10 @@ class Carriers(private val boundary: Boundary) {
             "узел $nodeId — не КА (profile.role ≠ spacecraft): модель аппарата собирается только из узла КА"
         }
         val all = definitions(node.projectId).map { it.doc }
-        return CarrierAssembly.assemble(node.doc, all, mapper)
+        // перевод единиц — справочником полки (rad/s → deg/s для контракта)
+        val registry = UnitBoundary.registryOf(boundary)
+        val convert: orbita.out.UnitConverter? = registry?.let { r -> { v, from, to -> r.fromCanon(v, from, to) } }
+        return CarrierAssembly.assemble(node.doc, all, mapper, convert)
     }
 
     /**
@@ -171,6 +174,7 @@ class Carriers(private val boundary: Boundary) {
             val nodesArr = c.putArray("nodes")
             a.nodes.forEach { nodesArr.add(it) }
             nodeMass(n.id)?.let { c.put("dry_mass_kg", it) }
+            CarrierAssembly.deltaVTotal(n.doc)?.let { c.put("delta_v_total_ms", it) }
         }
         // определения вне вхождений — чтобы узел не пропал из виду молча
         val orphans = out.putArray("definitions_without_usage")
@@ -186,7 +190,8 @@ class Carriers(private val boundary: Boundary) {
 
     fun toJson(a: AssembledCarrier): JsonNode = mapper.createObjectNode().apply {
         set<JsonNode>("spacecraft", a.doc)
-        putArray("problems").also { arr -> a.problems.forEach(arr::add) }
-        putArray("nodes").also { arr -> a.nodes.forEach(arr::add) }
+        putArray("problems").also { arr -> a.problems.forEach { arr.add(it) } }
+        putArray("nodes").also { arr -> a.nodes.forEach { arr.add(it) } }
+        putArray("computed").also { arr -> a.computed.forEach { arr.add(it) } }
     }
 }

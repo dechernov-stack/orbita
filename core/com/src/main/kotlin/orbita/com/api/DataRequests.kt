@@ -104,10 +104,21 @@ class DataRequests(private val boundary: Boundary) {
                     val target = f.path("target").asText("")
                     // узел дерева: поле анкеты закрыто параметром узла с тем же
                     // именем; объект входов — значением по адресу поля
+                    val fieldKind = f.path("kind").asText("number")
                     val inModel = holder?.doc?.let { doc ->
                         if (role in holderRoles) {
-                            doc.path("parameters").firstOrNull { it.path("name").asText("") == key }
-                                ?.path("quantity")?.path("value")?.takeIf { it.isNumber }
+                            if (fieldKind == "table") {
+                                // [Т]-поле: таблица живёт на узле (манёвры — на узле КА,
+                                // родителе платформы) — заполнено, если строки есть
+                                val parentDoc = doc.path("parent").asText("").ifBlank { null }
+                                    ?.let { pid -> own.firstOrNull { it.id == pid }?.doc }
+                                listOfNotNull(doc.path(key), parentDoc?.path(key))
+                                    .firstOrNull { it.isArray && !it.isEmpty }
+                                    ?.let { mapper.valueToTree<JsonNode>(it.size()) }
+                            } else {
+                                doc.path("parameters").firstOrNull { it.path("name").asText("") == key }
+                                    ?.path("quantity")?.path("value")?.takeIf { it.isNumber }
+                            }
                         } else if (target.isBlank()) null else doc.at(target).takeIf { !it.isMissingNode && !it.isNull }
                     }
                     val harvested = fromDatasheets[key]

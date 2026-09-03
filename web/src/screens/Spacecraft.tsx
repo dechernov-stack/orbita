@@ -46,7 +46,7 @@ export function Spacecraft({ spacecraftId, onGo }: {
   const [adapter, setAdapter] = useState<ProtocolAdapterView | null>(null)
   const [carriers, setCarriers] = useState<CompositionCarrier[]>([])
   const [spId, setSpId] = useState<string | undefined>(spacecraftId)
-  const [assembly, setAssembly] = useState<{ problems: string[]; nodes: string[] } | null>(null)
+  const [assembly, setAssembly] = useState<{ problems: string[]; nodes: string[]; computed?: string[] } | null>(null)
 
   useEffect(() => {
     api
@@ -141,6 +141,11 @@ export function Spacecraft({ spacecraftId, onGo }: {
             <div className="secondary">
               Собрано из узлов: {assembly.nodes.map((n) => <span key={n} className="mono" style={{ marginRight: 6 }}>{n}</span>)}
             </div>
+            {(assembly.computed?.length ?? 0) > 0 && (
+              <div className="secondary" style={{ marginTop: 4 }}>
+                Вычислено сборкой: {assembly.computed!.map((c) => <div key={c}>{c}</div>)}
+              </div>
+            )}
             {assembly.problems.length > 0 && (
               <ul style={{ margin: '4px 0 0 16px', padding: 0 }}>
                 {assembly.problems.map((p) => <li key={p}>{p}</li>)}

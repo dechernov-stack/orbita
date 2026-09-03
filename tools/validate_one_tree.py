@@ -48,10 +48,18 @@ def main() -> int:
                 line = text.count("\n", 0, m.start()) + 1
                 problems.append(f"{p.relative_to(ROOT)}:{line}: {why} — «{m.group(0)}»")
     # 3. сборщик не пересчитывает единицы: значение либо в ожидаемой единице, либо претензия
+    # Величина из величин допустима только ЯВНО: строка несёт маркер
+    # «вычислено явно, с происхождением» — и сборка обязана положить о ней
+    # запись в computed (энергия из заряда и напряжения, Δv суммой манёвров).
     asm = ASSEMBLY.read_text(encoding="utf-8")
-    for m in re.finditer(r"\.first\s*[*/]\s*|\bvalue\s*[*/]\s*[0-9.]", asm):
+    marker = "вычислено явно, с происхождением"
+    for m in re.finditer(r"\.first\s*[*/]\s*|\bvalue\s*[*/]\s*[0-9.]|\+=\s*v\b|\+\s*v\)", asm):
         line = asm.count("\n", 0, m.start()) + 1
-        problems.append(f"{ASSEMBLY.relative_to(ROOT)}:{line}: арифметика над значением параметра — единицы не пересчитываются молча")
+        text = asm.splitlines()[line - 1]
+        if marker not in text:
+            problems.append(f"{ASSEMBLY.relative_to(ROOT)}:{line}: арифметика над значением параметра без маркера «{marker}» — единицы не пересчитываются молча")
+    if marker in asm and "computed +=" not in asm:
+        problems.append(f"{ASSEMBLY.relative_to(ROOT)}: помеченные вычисления есть, а записи computed нет — происхождение обязано быть словами")
     if problems:
         print("ОДНО ДЕРЕВО НОСИТЕЛЕЙ НАРУШЕНО (ADR-044):")
         for pr in problems:
