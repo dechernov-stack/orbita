@@ -193,20 +193,32 @@ class Pmi4PacketsTest {
     }
 
     @Test
-    fun `Р08 системные — семнадцать, распределение кодами полок и связь с проектным требованием`() {
+    fun `Р08 системные — девятнадцать, распределение кодами полок и связь с проектным требованием`() {
         взятьПолки("PJ-2501")
         val r = report("Р08-системные.json")
         assertEquals(emptyList<String>(), сломанные(r)) { почему(r) }
-        assertEquals(17, r.path("proposed").asInt())
+        assertEquals(19, r.path("proposed").asInt())
         val items = mapper.readTree(raw("Р08-системные.json")).path("items")
         // канон TBR (L-C5): пять значений ждут расчёта — помета с владельцем,
         // точкой SRR и действием, а не число из воздуха
         val tbr = items.filter { it.path("mop").path("tbr").asBoolean(false) }
         assertEquals(5, tbr.size) { "помет TBR: ${tbr.size}" }
         assertTrue(tbr.all { it.path("mop").path("tbd_due").asText() == "SRR" && it.path("mop").path("tbd_owner").asText().isNotBlank() })
-        // RQ-S-13 разделено по П14 «одна мысль — одно требование»: 13 и 13a
+        // ред. 3 поставки: RQ-S-13 разделено ПО НОСИТЕЛЯМ — 13/13a полезная
+        // нагрузка, 13b/13c терминал; один носитель — одно требование, и
+        // словарь качества больше не видит составного подлежащего
         val метки = items.flatMap { it.path("tags").map { t -> t.asText() } }
-        assertTrue("код поставки: RQ-S-13a" in метки) { "разделённое требование обязано дойти: $метки" }
+        listOf("RQ-S-13", "RQ-S-13a", "RQ-S-13b", "RQ-S-13c").forEach { код ->
+            assertTrue("код поставки: $код" in метки) { "разделённое требование $код обязано дойти: $метки" }
+        }
+        val терминальные = items.filter { it.path("tags").any { t -> t.asText() in setOf("код поставки: RQ-S-13b", "код поставки: RQ-S-13c") } }
+        assertTrue(терминальные.all { it.path("allocated_to")[0].path("component").asText() == "@UT" }) {
+            "требования терминала сидят на узле терминала"
+        }
+        // RQ-S-03 — одна величина (чувствительность), угол места ушёл в RQ-S-11:
+        // расхождение слова и оператора снято поставкой, доработки у него нет
+        val доработки = r.path("rework").path("rework").map { it.path("item").path("id").asText() }
+        assertTrue("RQ-9103" !in доработки) { "RQ-S-03 после ред. 3 обязано проходить: $доработки" }
         val сУзлами = items.filter { it.path("allocated_to").size() > 0 }
         assertTrue(сУзлами.size >= 12) { "распределение на носители: ${сУзлами.size} из ${items.size()}" }
         // ссылка на узел полки — кодом «@»: её разрешает канал ДО проверки формы
