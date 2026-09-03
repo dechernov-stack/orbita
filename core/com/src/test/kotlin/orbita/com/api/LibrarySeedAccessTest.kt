@@ -21,6 +21,7 @@ import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@org.junit.jupiter.api.TestMethodOrder(org.junit.jupiter.api.MethodOrderer.OrderAnnotation::class)
 class LibrarySeedAccessTest {
 
     private val boundary = Boundary(SchemaRegistry(RepoPaths.schemasDir()), TestDb.conn)
@@ -45,6 +46,19 @@ class LibrarySeedAccessTest {
     fun stop() = server.stop(0)
 
     @Test
+    @org.junit.jupiter.api.Order(2)
+    fun `роль вне проекта берётся сильнейшая из имеющихся - иначе полка закрыта своему же руководителю`() {
+        // Роли живут по проектам, у области LIB ролей нет. Учётка с ролью
+        // руководителя в PJ-0001 правит полку: спрашивать её роль «в никаком
+        // проекте» значило бы отказывать владельцу на его же полке.
+        boundary.auth.createUser("chernov", "парольчернов", "Чернов Д.")
+        boundary.auth.setRole("PJ-0001", "chernov", "lead")
+        assertEquals(null, boundary.auth.roleIn(null, "chernov"))
+        assertEquals("lead", boundary.auth.rolesOf("chernov")["PJ-0001"])
+    }
+
+    @Test
+    @org.junit.jupiter.api.Order(1)
     fun `полка наполняется без указания проекта, а маршрут проекта говорит о нём сам`() {
         val ответ = client.send(
             HttpRequest.newBuilder(URI.create("$base/library/objects"))

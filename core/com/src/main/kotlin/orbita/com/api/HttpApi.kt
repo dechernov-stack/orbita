@@ -201,7 +201,15 @@ class HttpApi(private val boundary: Boundary) {
             val projectForRole =
                 if (path.startsWith("/objects/project") || path == "/edit/project") null
                 else runCatching { project }.getOrNull()
+            // Роль вне проекта — СИЛЬНЕЙШАЯ из имеющихся у учётки: наполнение
+            // полки идёт в область LIB, где ролей нет вовсе, и спрашивать роль
+            // «в никаком проекте» значило бы отказывать руководителю на его же
+            // полке. Проектные маршруты сюда не попадают: у них проект есть.
             val role = boundary.auth.roleIn(projectForRole, sessionUser.login)
+                ?: if (projectForRole == null) {
+                    val сила = listOf("lead", "lead_se", "specialist", "viewer")
+                    boundary.auth.rolesOf(sessionUser.login).values.minByOrNull { сила.indexOf(it).takeIf { i -> i >= 0 } ?: 99 }
+                } else null
             denyReason(method, path, role, sessionUser, projectForRole, objectMatch, editMatch)?.let { why ->
                 respond(ex, 403, mapper.createObjectNode().put("error", why))
                 return
