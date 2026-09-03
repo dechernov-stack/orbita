@@ -264,6 +264,45 @@ def architecture_fragment(src: dict) -> dict:
     }
 
 
+def wbs_fragment(src: dict) -> dict:
+    """Пакеты работ с ПАРАМИ к узлам состава: узел назван кодом («@PL-S»), как
+    у стыков. Сквозной пакет (управление, СИ, SMA) узлов не имеет по
+    построению — его стоимость идёт по задачам фазы, а не по составу."""
+    ids = {}
+    for n, pkg in enumerate(src["packages"], start=9401):
+        ids[pkg["code"]] = f"WB-{n}"
+    objects = []
+    for pkg in src["packages"]:
+        obj = {
+            "id": ids[pkg["code"]],
+            "code": pkg["code"],
+            "name": pkg["name"],
+            "lifecycle": dict(DRAFT),
+        }
+        if pkg.get("parent"):
+            obj["parent"] = ids[pkg["parent"]]
+        if pkg.get("scope"):
+            obj["scope"] = pkg["scope"]
+        if pkg.get("pbs_refs"):
+            obj["component_refs"] = [f"@{c}" for c in pkg["pbs_refs"]]
+        if pkg.get("phase_tasks"):
+            obj["phase_tasks"] = pkg["phase_tasks"]
+        if pkg.get("cross_cutting"):
+            obj["cross_cutting"] = True
+        objects.append(obj)
+    return {
+        "id": "LF-9006",
+        "name": src["title"],
+        "shelf": "B6",
+        "mission_class_ref": "MC-0001",
+        "counters": {"wbs_element": len(objects)},
+        "origin": {"project": "полка", "author": "поставка владельца: ПОЛКА-WBS.json", "date": "2026-09-03"},
+        "anonymized": False,
+        "payload": {"objects": objects},
+        "lifecycle": dict(DRAFT),
+    }
+
+
 def packet(comment: str, fragment: dict) -> dict:
     return {"_comment": comment, "author": AUTHOR, "objects": [fragment]}
 
@@ -292,6 +331,14 @@ BUILD = [
         "ADR-052: архитектурная полка по Arcadia — способности (OA), акторы предложением в "
         "стейкхолдеры, 25 функций с распределением на узлы каркаса и обменами по стыкам, "
         "6 цепочек, 9 логических компонентов с развёртыванием. PA не дублируется.",
+    ),
+    (
+        "22-wbs.json",
+        "ПОЛКА-WBS.json",
+        wbs_fragment,
+        "ADR-053: полка WBS — 54 пакета работ (NPR 7120.5 прил. G с адаптацией) и 44 пары "
+        "с узлами каркаса кодами («@PL-S»); сквозные пакеты узлов не имеют, их стоимость "
+        "идёт по задачам фазы. Узел L4/L5 наследует пакет родителя.",
     ),
 ]
 

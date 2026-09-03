@@ -26,6 +26,7 @@ class ArchitectureSeedsTest {
     private val каркас = пачка("18-каркас-pbs.json")
     private val стыки = пачка("19-интерфейсы.json")
     private val архитектура = пачка("20-архитектура-arcadia.json")
+    private val работы = пачка("22-wbs.json")
 
     private fun коды(объекты: List<JsonNode>): Set<String> =
         объекты.mapNotNull { it.path("code").asText("").ifBlank { null } }.toSet()
@@ -121,6 +122,60 @@ class ArchitectureSeedsTest {
             }
         }
         assertTrue(чужие.isEmpty(), "единицы вне справочника: $чужие")
+    }
+
+    @Test
+    fun `пары WBS ведут на узлы каркаса, а сквозной пакет узлов не имеет`() {
+        val узлы = коды(каркас)
+        assertEquals(54, работы.size, "пакетов работ: ${работы.size}")
+        val чужие = адреса(работы).filter { it.first !in узлы }
+        assertTrue(чужие.isEmpty(), "пары в пустоту: " + чужие.joinToString { "${it.second} → @${it.first}" })
+        val пар = работы.sumOf { it.path("component_refs").size() }
+        assertTrue(пар >= 44, "пар с узлами: $пар")
+        // Сквозной пакет живёт задачами фазы, а не составом: у 01–04 узлов нет
+        // по построению. Пакет 10 «Интеграция и испытания» помечен сквозным и
+        // при этом несёт испытательную базу SUP-TEST — расхождение ПОСТАВКИ с
+        // её же текстом («сквозные 01–04, 10, 12 узлов не имеют»); подгонять
+        // данные под текст служба не вправе, вопрос владельцу отдан отдельно.
+        listOf("01", "02", "03", "04").forEach { код ->
+            val пакет = работы.first { it.path("code").asText() == код }
+            assertEquals(0, пакет.path("component_refs").size(),
+                "$код: сквозной пакет узлов не имеет по построению")
+            assertTrue(пакет.path("cross_cutting").asBoolean(false), "$код: пакет обязан быть помечен сквозным")
+        }
+        работы.filter { it.path("cross_cutting").asBoolean(false) && it.path("component_refs").size() > 0 }
+            .forEach { пакет ->
+                assertEquals("10", пакет.path("code").asText(),
+                    "сквозной пакет с узлами известен ровно один (10, испытательная база): " +
+                        пакет.path("code").asText())
+            }
+    }
+
+    @Test
+    fun `каждый узел второго и третьего уровня получил пакет работ - сам или от родителя`() {
+        val поКоду = каркас.associateBy { it.path("code").asText() }
+        val родитель = каркас.associate { узел ->
+            val p = узел.path("parent").asText("")
+            узел.path("code").asText() to (каркас.firstOrNull { it.path("id").asText() == p }?.path("code")?.asText() ?: "")
+        }
+        val спарен = работы.flatMap { пакет ->
+            пакет.path("component_refs").map { it.asText().removePrefix("@") }
+        }.toSet()
+        fun покрыт(code: String): Boolean {
+            var c = code
+            var шаг = 0
+            while (c.isNotBlank() && шаг < 12) {
+                if (c in спарен) return true
+                c = родитель[c] ?: ""
+                шаг += 1
+            }
+            return false
+        }
+        val дыры = поКоду.values
+            .filter { it.path("level").asInt(-1) in 2..3 }
+            .map { it.path("code").asText() }
+            .filterNot { покрыт(it) }
+        assertTrue(дыры.isEmpty(), "узлы L2/L3 без пакета работ: $дыры")
     }
 
     @Test

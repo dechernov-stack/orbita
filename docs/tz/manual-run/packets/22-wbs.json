@@ -1,0 +1,743 @@
+{
+  "_comment": "ADR-053: полка WBS — 54 пакета работ (NPR 7120.5 прил. G с адаптацией) и 44 пары с узлами каркаса кодами («@PL-S»); сквозные пакеты узлов не имеют, их стоимость идёт по задачам фазы. Узел L4/L5 наследует пакет родителя.",
+  "author": "поставка владельца 03.09: ПОЛКА-PBS.json · ПОЛКА-ИНТЕРФЕЙСЫ.json · ПОЛКА-АРХИТЕКТУРА-ARCADIA.json",
+  "objects": [
+    {
+      "id": "LF-9006",
+      "name": "Типовой WBS космического проекта (NPR 7120.5 прил. G, адаптация) с парами к PBS",
+      "shelf": "B6",
+      "mission_class_ref": "MC-0001",
+      "counters": {
+        "wbs_element": 54
+      },
+      "origin": {
+        "project": "полка",
+        "author": "поставка владельца: ПОЛКА-WBS.json",
+        "date": "2026-09-03"
+      },
+      "anonymized": false,
+      "payload": {
+        "objects": [
+          {
+            "id": "WB-9401",
+            "code": "01",
+            "name": "Управление проектом",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "scope": "планирование, FA/Project Plan, риски, закупки, отчётность",
+            "phase_tasks": [
+              "Развёртывание фазы",
+              "Программатика",
+              "Project Plan и FA",
+              "Риски"
+            ],
+            "cross_cutting": true
+          },
+          {
+            "id": "WB-9402",
+            "code": "02",
+            "name": "Системная инженерия",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "scope": "требования, архитектура, интерфейсы, V&V-планы, конфигурация",
+            "phase_tasks": [
+              "SEMP",
+              "Иерархия требований",
+              "Архитектура системы",
+              "ConOps"
+            ],
+            "cross_cutting": true
+          },
+          {
+            "id": "WB-9403",
+            "code": "03",
+            "name": "Безопасность и гарантия миссии (SMA)",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "scope": "надёжность, ОСЗ, качество, ИБ-обеспечение",
+            "phase_tasks": [
+              "ОСЗ и планы обеспечения"
+            ],
+            "cross_cutting": true
+          },
+          {
+            "id": "WB-9404",
+            "code": "04",
+            "name": "Технологии и созревание",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "scope": "критические технологии, TRL, резервные решения",
+            "phase_tasks": [
+              "Созревание технологий"
+            ],
+            "cross_cutting": true
+          },
+          {
+            "id": "WB-9405",
+            "code": "05",
+            "name": "Полезная нагрузка",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "component_refs": [
+              "@SC-PL"
+            ]
+          },
+          {
+            "id": "WB-9406",
+            "code": "06",
+            "name": "Космический аппарат (платформа)",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "component_refs": [
+              "@SC-PLT",
+              "@SC-LVI"
+            ]
+          },
+          {
+            "id": "WB-9407",
+            "code": "07",
+            "name": "Эксплуатация миссии",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "scope": "операции ЦУП и ЦУС, смены, регламенты",
+            "component_refs": [
+              "@MCC",
+              "@NOC"
+            ]
+          },
+          {
+            "id": "WB-9408",
+            "code": "08",
+            "name": "Выведение",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "scope": "РН, космодром, адаптер/диспенсер, кампания пуска",
+            "component_refs": [
+              "@SEG-LV"
+            ]
+          },
+          {
+            "id": "WB-9409",
+            "code": "09",
+            "name": "Наземные системы",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "scope": "станции НКУ, РСС, ЦОД, сети",
+            "component_refs": [
+              "@GCS",
+              "@GC-NET",
+              "@GW",
+              "@DC",
+              "@NET-WAN"
+            ]
+          },
+          {
+            "id": "WB-9410",
+            "code": "10",
+            "name": "Интеграция и испытания системы",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "scope": "AIT КА, комплексные испытания, ЛИ",
+            "component_refs": [
+              "@SUP-TEST"
+            ],
+            "cross_cutting": true
+          },
+          {
+            "id": "WB-9411",
+            "code": "11",
+            "name": "Пользовательский сегмент",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "scope": "терминалы по классам, прикладные сервисы",
+            "component_refs": [
+              "@UT",
+              "@USR-APP"
+            ]
+          },
+          {
+            "id": "WB-9412",
+            "code": "12",
+            "name": "Обеспечение: ИТ, ИБ, документация, обучение",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "component_refs": [
+              "@SUP-IT",
+              "@SUP-DOC"
+            ]
+          },
+          {
+            "id": "WB-9413",
+            "code": "05.01",
+            "name": "БРТК-S — абонентский комплекс S-диапазона",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "WB-9405",
+            "component_refs": [
+              "@PL-S"
+            ]
+          },
+          {
+            "id": "WB-9414",
+            "code": "05.02",
+            "name": "БРТК-P — комплекс P-диапазона (если применимо, наследие)",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "WB-9405",
+            "component_refs": [
+              "@PL-P"
+            ]
+          },
+          {
+            "id": "WB-9415",
+            "code": "05.03",
+            "name": "Фидерная радиолиния C-диапазона (КА ↔ РСС)",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "WB-9405",
+            "component_refs": [
+              "@PL-FEED"
+            ]
+          },
+          {
+            "id": "WB-9416",
+            "code": "05.04",
+            "name": "АФУ ПН — антенно-фидерное устройство",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "WB-9405",
+            "component_refs": [
+              "@PL-ANT"
+            ]
+          },
+          {
+            "id": "WB-9417",
+            "code": "05.05",
+            "name": "МБРК — межспутниковая радиолиния (если применимо)",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "WB-9405",
+            "component_refs": [
+              "@PL-ISL"
+            ]
+          },
+          {
+            "id": "WB-9418",
+            "code": "05.06",
+            "name": "Модуль PNT (если применимо)",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "WB-9405",
+            "component_refs": [
+              "@PL-PNT"
+            ]
+          },
+          {
+            "id": "WB-9419",
+            "code": "06.01",
+            "name": "Конструкция и механизмы",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "WB-9406",
+            "component_refs": [
+              "@STR"
+            ]
+          },
+          {
+            "id": "WB-9420",
+            "code": "06.02",
+            "name": "СЭП — система электропитания",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "WB-9406",
+            "component_refs": [
+              "@EPS"
+            ]
+          },
+          {
+            "id": "WB-9421",
+            "code": "06.03",
+            "name": "СТР — терморегулирование",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "WB-9406",
+            "component_refs": [
+              "@TCS"
+            ]
+          },
+          {
+            "id": "WB-9422",
+            "code": "06.04",
+            "name": "СОС — ориентация и стабилизация",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "WB-9406",
+            "component_refs": [
+              "@AOCS"
+            ]
+          },
+          {
+            "id": "WB-9423",
+            "code": "06.05",
+            "name": "БКУ — бортовой комплекс управления",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "WB-9406",
+            "component_refs": [
+              "@OBC"
+            ]
+          },
+          {
+            "id": "WB-9424",
+            "code": "06.06",
+            "name": "ДУ — двигательная установка",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "WB-9406",
+            "component_refs": [
+              "@PROP"
+            ]
+          },
+          {
+            "id": "WB-9425",
+            "code": "06.07",
+            "name": "КТРЛ — командно-телеметрическая радиолиния",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "WB-9406",
+            "component_refs": [
+              "@TTC"
+            ]
+          },
+          {
+            "id": "WB-9426",
+            "code": "06.08",
+            "name": "БКС — бортовая кабельная сеть",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "WB-9406",
+            "component_refs": [
+              "@HARN"
+            ]
+          },
+          {
+            "id": "WB-9427",
+            "code": "06.09",
+            "name": "Интеграция КА и адаптер РН",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "WB-9406",
+            "component_refs": [
+              "@SC-LVI"
+            ]
+          },
+          {
+            "id": "WB-9428",
+            "code": "07.01",
+            "name": "Баллистический центр (эфемериды, планирование манёвров, альманах терминалам)",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "WB-9407",
+            "component_refs": [
+              "@MCC-FD"
+            ]
+          },
+          {
+            "id": "WB-9429",
+            "code": "07.02",
+            "name": "Планирование сеансов и ресурсов станций",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "WB-9407",
+            "component_refs": [
+              "@MCC-PLAN"
+            ]
+          },
+          {
+            "id": "WB-9430",
+            "code": "07.03",
+            "name": "Обработка телеметрии и контроль состояния",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "WB-9407",
+            "component_refs": [
+              "@MCC-TM"
+            ]
+          },
+          {
+            "id": "WB-9431",
+            "code": "07.04",
+            "name": "Командование и загрузка ПО",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "WB-9407",
+            "component_refs": [
+              "@MCC-TC"
+            ]
+          },
+          {
+            "id": "WB-9432",
+            "code": "07.05",
+            "name": "Наземный отладочный комплекс (симулятор борта)",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "WB-9407",
+            "component_refs": [
+              "@MCC-SIM"
+            ]
+          },
+          {
+            "id": "WB-9433",
+            "code": "07.07",
+            "name": "Операции сети (ЦУС)",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "WB-9407",
+            "component_refs": [
+              "@NOC"
+            ]
+          },
+          {
+            "id": "WB-9434",
+            "code": "08.01",
+            "name": "Контракт и попутная схема",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "WB-9408",
+            "component_refs": [
+              "@LV",
+              "@LV-ADAPT"
+            ]
+          },
+          {
+            "id": "WB-9435",
+            "code": "08.02",
+            "name": "Кампания пуска (космодром)",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "WB-9408",
+            "component_refs": [
+              "@LV-SITE"
+            ]
+          },
+          {
+            "id": "WB-9436",
+            "code": "09.01",
+            "name": "Станции НКУ",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "WB-9409",
+            "component_refs": [
+              "@GCS"
+            ]
+          },
+          {
+            "id": "WB-9437",
+            "code": "09.02",
+            "name": "Связь НКУ",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "WB-9409",
+            "component_refs": [
+              "@GC-NET"
+            ]
+          },
+          {
+            "id": "WB-9438",
+            "code": "09.03",
+            "name": "РСС",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "WB-9409",
+            "component_refs": [
+              "@GW"
+            ]
+          },
+          {
+            "id": "WB-9439",
+            "code": "09.04",
+            "name": "ЦОД",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "WB-9409",
+            "component_refs": [
+              "@DC"
+            ]
+          },
+          {
+            "id": "WB-9440",
+            "code": "09.05",
+            "name": "ССПД",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "WB-9409",
+            "component_refs": [
+              "@NET-WAN"
+            ]
+          },
+          {
+            "id": "WB-9441",
+            "code": "10.01",
+            "name": "AIT космического аппарата",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "WB-9410",
+            "scope": "сборка, испытания КА",
+            "component_refs": [
+              "@SC"
+            ]
+          },
+          {
+            "id": "WB-9442",
+            "code": "10.02",
+            "name": "Комплексные испытания «борт–земля»",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "WB-9410",
+            "component_refs": [
+              "@SC",
+              "@GCS",
+              "@GW"
+            ]
+          },
+          {
+            "id": "WB-9443",
+            "code": "10.03",
+            "name": "Лётные испытания",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "WB-9410",
+            "component_refs": [
+              "@SC-EXP"
+            ]
+          },
+          {
+            "id": "WB-9444",
+            "code": "11.01",
+            "name": "Терминал универсальный",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "WB-9411",
+            "component_refs": [
+              "@UT-UNI"
+            ]
+          },
+          {
+            "id": "WB-9445",
+            "code": "11.02",
+            "name": "Терминал стационарный",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "WB-9411",
+            "component_refs": [
+              "@UT-FIX"
+            ]
+          },
+          {
+            "id": "WB-9446",
+            "code": "11.03",
+            "name": "Терминал мобильный (транспорт)",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "WB-9411",
+            "component_refs": [
+              "@UT-MOB"
+            ]
+          },
+          {
+            "id": "WB-9447",
+            "code": "11.04",
+            "name": "Терминал датчиковый (батарейный)",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "WB-9411",
+            "component_refs": [
+              "@UT-SENS"
+            ]
+          },
+          {
+            "id": "WB-9448",
+            "code": "11.05",
+            "name": "Прикладные сервисы",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "WB-9411",
+            "component_refs": [
+              "@USR-APP"
+            ]
+          },
+          {
+            "id": "WB-9449",
+            "code": "12.01",
+            "name": "ИТ и ИБ",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "WB-9412",
+            "component_refs": [
+              "@SUP-IT"
+            ]
+          },
+          {
+            "id": "WB-9450",
+            "code": "12.02",
+            "name": "Документация и обучение",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "WB-9412",
+            "component_refs": [
+              "@SUP-DOC"
+            ]
+          },
+          {
+            "id": "WB-9451",
+            "code": "02.01",
+            "name": "Управление требованиями и трассировка",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "WB-9402",
+            "cross_cutting": true
+          },
+          {
+            "id": "WB-9452",
+            "code": "02.02",
+            "name": "Архитектура и интерфейсы (ICD)",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "WB-9402",
+            "cross_cutting": true
+          },
+          {
+            "id": "WB-9453",
+            "code": "02.03",
+            "name": "Верификация и валидация (планы, матрицы)",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "WB-9402",
+            "cross_cutting": true
+          },
+          {
+            "id": "WB-9454",
+            "code": "02.04",
+            "name": "Управление конфигурацией и данными",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "WB-9402",
+            "cross_cutting": true
+          }
+        ]
+      },
+      "lifecycle": {
+        "status": "Draft",
+        "version": "1"
+      }
+    }
+  ]
+}

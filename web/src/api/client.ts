@@ -59,6 +59,7 @@ import type {
   SystemModelsView,
   CoverageMatrixView,
   ArchitectureView,
+  CapabilityMatchesView,
 } from './types'
 
 import { withProject } from './project'
@@ -589,6 +590,8 @@ export const api = {
   portfolio: () =>
     get<{ projects: Array<{
       id: string; name: string; phase: string; owner: string
+      /** ADR-053: проект-пример — отдельной группой портфеля. */
+      example?: boolean
       gate: { name: string; label: string; open_count?: number } | null
       return: { reason: string } | null
       start_path: { status: string; step: number } | null
@@ -608,6 +611,12 @@ export const api = {
   coverageMatrix: () => get<CoverageMatrixView>('/reports/requirement-coverage'),
   /** ADR-052: слои Arcadia — OA · SA · LA · PA и цепочки. */
   architecture: () => get<ArchitectureView>('/views/architecture'),
+  /** ADR-053: предложения привязки способностей и принятие связи человеком. */
+  capabilityMatches: () => get<CapabilityMatchesView>('/views/capabilities/matches'),
+  capabilityTrace: (id: string, refs: Array<{ ref: string; rationale?: string }>, author: string) =>
+    post<{ id: string; version: string }>(
+      `/views/capabilities/${encodeURIComponent(id)}/trace`, { refs, author },
+    ),
   /** ADR-048: внешняя модель и обновление снимков из адаптера (только чтение модели). */
   externalModel: () => get<ExternalModelView>('/views/external-model'),
   capellaRefresh: () => post<{ created: number; updated: number; model_id: string }>('/library/capella/refresh', {}),

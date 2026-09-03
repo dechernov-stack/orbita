@@ -30,6 +30,7 @@ class ArchitectureShelvesTest {
     private lateinit var pbs: String
     private lateinit var interfaces: String
     private lateinit var architecture: String
+    private lateinit var wbs: String
 
     private fun полка(файл: String): String {
         val фрагмент = mapper.readTree(
@@ -52,6 +53,7 @@ class ArchitectureShelvesTest {
         pbs = полка("18-каркас-pbs.json")
         interfaces = полка("19-интерфейсы.json")
         architecture = полка("20-архитектура-arcadia.json")
+        wbs = полка("22-wbs.json")
     }
 
     @Test
@@ -153,6 +155,46 @@ class ArchitectureShelvesTest {
     }
 
     @Test
+    @org.junit.jupiter.api.Order(45)
+    fun `полка WBS ложится деревом работ и спаривается с узлами каркаса`() {
+        assertEquals(54, channel.apply(wbs, project, "инженер").created.size)
+        val пакеты = boundary.objects.listCurrent(project)
+            .filter { it.type == "wbs_element" }.associateBy { it.doc.path("code").asText("") }
+        assertEquals(54, пакеты.size)
+        val узлы = boundary.objects.listCurrent(project)
+            .filter { it.type == "component" }.associateBy { it.doc.path("code").asText("") }
+
+        // пара ведёт на узел ЭТОГО проекта, а не на код полки
+        val пн = пакеты.getValue("05")
+        assertEquals(listOf(узлы.getValue("SC-PL").id), пн.doc.path("component_refs").map { it.asText() })
+        // дерево работ целое: у подпакета родитель — пакет того же проекта
+        val брткS = пакеты.getValue("05.01")
+        assertEquals(пн.id, брткS.doc.path("parent").asText())
+        assertEquals(listOf(узлы.getValue("PL-S").id), брткS.doc.path("component_refs").map { it.asText() })
+        // сквозной пакет живёт задачами фазы, а не составом
+        val управление = пакеты.getValue("01")
+        assertTrue(управление.doc.path("cross_cutting").asBoolean(false))
+        assertEquals(0, управление.doc.path("component_refs").size())
+        assertTrue(управление.doc.path("phase_tasks").size() >= 4, "задачи фазы: ${управление.doc.path("phase_tasks")}")
+        // ни один узел L2/L3 не остался без пакета: сам или через родителя
+        val спарен = пакеты.values.flatMap { p -> p.doc.path("component_refs").map { it.asText() } }.toSet()
+        val поId = узлы.values.associateBy { it.id }
+        fun покрыт(id: String): Boolean {
+            var c: String? = id
+            var шаг = 0
+            while (c != null && c.isNotBlank() && шаг < 12) {
+                if (c in спарен) return true
+                c = поId[c]?.doc?.path("parent")?.asText("")
+                шаг += 1
+            }
+            return false
+        }
+        val дыры = узлы.values.filter { it.doc.path("level").asInt(-1) in 2..3 && !покрыт(it.id) }
+            .map { it.doc.path("code").asText() }
+        assertTrue(дыры.isEmpty(), "узлы L2/L3 без пакета работ: $дыры")
+    }
+
+    @Test
     @org.junit.jupiter.api.Order(5)
     fun `анкета стыка спрашивается у ребра и попадает в общий список запросов`() {
         val анкеты = DataRequests(boundary).ofInterfaces(project)
@@ -174,6 +216,45 @@ class ArchitectureShelvesTest {
         assertTrue(цепочки.blocking)
         assertEquals("open", цепочки.state, "требование есть только у FC-01: ${цепочки.note}")
         assertTrue(цепочки.note.startsWith("5 цепочек без требования"), цепочки.note)
+    }
+
+    @Test
+    @org.junit.jupiter.api.Order(65)
+    fun `служба предлагает привязку способности по тексту, связь ставит человек`() {
+        // нужда демо-проекта с той же лексикой, что у способности OC-02
+        boundary.ingest(
+            CoreType.Need,
+            """{"id":"ND-0002","statement":"Гарантированная доставка коротких тревожных сообщений при автономной работе датчиков",
+                "stakeholder":{"name":"Перевозчик","role":"end_user","priority":5},
+                "lifecycle":{"status":"Draft","version":"1"}}""",
+            "test", project,
+        )
+        val предложения = CapabilityMatches(boundary)
+        val вид = предложения.view(project)
+        val строка = вид.path("capabilities").first { it.path("code").asText() == "OC-02" }
+        assertFalse(строка.path("linked").asBoolean(), "способность приходит с полки без связи")
+        val кандидат = строка.path("matches").firstOrNull { it.path("ref").asText() == "ND-0002" }
+        assertTrue(кандидат != null, "нужда с той же лексикой обязана попасть в предложения: " +
+            строка.path("matches").map { it.path("ref").asText() })
+        assertTrue(кандидат!!.path("common").size() >= 2, "основание показано словами: ${кандидат.path("common")}")
+
+        // связь ставит ЧЕЛОВЕК — принятие идёт общим путём правки с автором
+        val id = строка.path("id").asText()
+        предложения.accept(project, id, listOf("ND-0002" to "сопоставление по тексту"), "инженер")
+        val после = boundary.objects.current(id)!!
+        assertEquals("ND-0002", после.doc.path("traced_to")[0].path("ref").asText())
+        assertTrue(предложения.view(project).path("capabilities")
+            .first { it.path("code").asText() == "OC-02" }.path("linked").asBoolean())
+    }
+
+    @Test
+    @org.junit.jupiter.api.Order(66)
+    fun `непривязанная способность держит MCR - предложение не должно жить вечно`() {
+        val проверки = boundary.gatePassing.readiness("MCR", project).associateBy { it.id }
+        val способности = проверки.getValue("capabilities_traced")
+        assertTrue(способности.blocking, "способность без основания — ворота MCR")
+        assertEquals("open", способности.state, способности.note)
+        assertTrue(способности.note.startsWith("5 способностей"), способности.note)
     }
 
     @Test

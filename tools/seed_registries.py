@@ -59,6 +59,8 @@ SEEDS = [
     ("library_fragment", None, "20-архитектура-arcadia.json"),
     # ADR-052: шаблон ICD — документ по стыкам, собирается из анкет и требований
     ("document_template", None, "21-шаблон-icd.json"),
+    # ADR-053: полка WBS — 54 пакета работ и 44 пары с узлами каркаса
+    ("library_fragment", None, "22-wbs.json"),
 ]
 
 # Режим стенда (ORBITA_AUTH_MODE=stand): учётки без паролей — токен сессии

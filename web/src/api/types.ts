@@ -1422,3 +1422,11 @@ export type ArchitectureView = {
   counts_interfaces: number
   counts_nodes: number
 }
+
+/** ADR-053: предложения привязки способности — служба сопоставляет, человек решает. */
+export type CapabilityMatchesView = {
+  capabilities: Array<{
+    id: string; code: string; name: string; hint: string; linked: boolean
+    matches: Array<{ ref: string; kind: string; text: string; score: number; common: string[] }>
+  }>
+}

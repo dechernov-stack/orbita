@@ -7,7 +7,7 @@
 //
 // Данные приходят ОДНИМ запросом /views/portfolio, собранным и
 // отсортированным сервером; клиент рисует.
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { api } from '../api/client'
 import { selectProject } from '../api/project'
 import { relTime } from '../ui/relTime'
@@ -64,18 +64,35 @@ export function Portfolio({ onOpen, onNew, onLoadFile, onStart }: {
 
   const open = (r: Row) => { selectProject(r.id); onOpen() }
 
+  // ADR-053: проект-пример живёт в портфеле отдельной группой — рабочий счёт
+  // не должен включать демонстрацию, иначе «в работе три проекта» врёт
+  const рабочие = rows.filter((r) => !r.example)
+  const примеры = rows.filter((r) => r.example)
+
   return (
     <>
       <div className="toolbar">
         <h2>Портфель</h2>
-        <span className="secondary">{rows.length} {projectsWord(rows.length)}</span>
+        <span className="secondary">
+          {рабочие.length} {projectsWord(рабочие.length)}
+          {примеры.length > 0 && ` · примеров: ${примеры.length}`}
+        </span>
         <div className="grow" />
         <button className="np-linkish" onClick={onLoadFile}>загрузить из файла</button>
         <button className="btn btn--primary" onClick={onNew}>Создать проект</button>
       </div>
       <div className="workarea">
-        {rows.map((r) => (
-          <button key={r.id} className="pf-row" onClick={() => open(r)}>
+        {примеры.length > 0 && рабочие.length > 0 && (
+          <div className="secondary" style={{ padding: '4px 8px 0' }}>В работе</div>
+        )}
+        {[...рабочие, ...примеры].map((r, i) => (
+          <Fragment key={r.id}>
+          {i === рабочие.length && примеры.length > 0 && (
+            <div className="secondary" style={{ padding: '8px 8px 0' }}>
+              Примеры · заведены показать работу системы, разработку не ведут
+            </div>
+          )}
+          <button className="pf-row" onClick={() => open(r)}>
             <span className="pf-nm">
               <span className="nm">{r.name}</span>
               <span className="own" style={{ display: 'block' }}>руководитель: {r.owner}</span>
@@ -126,6 +143,7 @@ export function Portfolio({ onOpen, onNew, onLoadFile, onStart }: {
                 )
             )}
           </button>
+          </Fragment>
         ))}
       </div>
     </>

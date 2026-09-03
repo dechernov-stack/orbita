@@ -9,7 +9,8 @@
 // заполненность анкет стыков и разрывы приходят готовыми.
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
-import type { ArchitectureView } from '../api/types'
+import { useSession } from '../ui/session'
+import type { ArchitectureView, CapabilityMatchesView } from '../api/types'
 
 const TABS: Array<[string, string]> = [
   ['oa', 'OA · зачем'],
@@ -33,10 +34,27 @@ export function Architecture({ onGo }: { onGo?: (screen: string, kind?: string, 
   const [view, setView] = useState<ArchitectureView | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [tab, setTab] = useState('sa')
+  /** ADR-053: предложения привязки способностей — отдельным запросом: они нужны
+   * только на вкладке OA и считаются сопоставлением по тексту. */
+  const [matches, setMatches] = useState<CapabilityMatchesView | null>(null)
+  const [busy, setBusy] = useState<string | null>(null)
+  const [note, setNote] = useState<string | null>(null)
+  const { author } = useSession()
 
-  useEffect(() => {
+  const load = () => {
     api.architecture().then(setView).catch((e) => setError(String(e)))
-  }, [])
+    api.capabilityMatches().then(setMatches).catch(() => setMatches(null))
+  }
+  useEffect(load, [])
+
+  const принять = (id: string, ref: string, основание: string) => {
+    setBusy(id)
+    setNote(null)
+    api.capabilityTrace(id, [{ ref, rationale: основание }], author)
+      .then(() => { setNote(`${id}: привязка к ${ref} записана`); load() })
+      .catch((e) => setNote(String(e)))
+      .finally(() => setBusy(null))
+  }
 
   if (error) return <div className="empty">Ошибка обращения к API: {error}</div>
   if (!view) return <div className="empty">Загрузка архитектуры…</div>
@@ -112,15 +130,36 @@ export function Architecture({ onGo }: { onGo?: (screen: string, kind?: string, 
                           <span key={t.ref} className="chip" title={t.name}>{t.ref}</span>
                         ))
                         : (
-                          <span className="amber" title="подсказка полки; связь ставит инженер — служба не гадает">
-                            △ не привязана · {c.hint || 'подсказки нет'}
-                          </span>
+                          <>
+                            <span className="amber" title="подсказка полки; связь ставит инженер — служба не гадает">
+                              △ не привязана · {c.hint || 'подсказки нет'}
+                            </span>
+                            {(matches?.capabilities.find((m) => m.id === c.id)?.matches ?? []).map((m) => (
+                              <div key={m.ref} style={{ fontSize: 12, marginTop: 4 }}>
+                                <span className="mono">{m.ref}</span> {m.text.slice(0, 70)}
+                                <span className="secondary" title={`совпали слова: ${m.common.join(', ')}`}>
+                                  {' · '}совпало {m.score}%
+                                </span>
+                                <button
+                                  type="button"
+                                  className="rr-assign"
+                                  style={{ marginLeft: 6 }}
+                                  disabled={busy === c.id}
+                                  title="связь ставит человек: служба лишь предложила кандидата по тексту"
+                                  onClick={() => принять(c.id, m.ref, `сопоставление по тексту: ${m.common.join(', ')}`)}
+                                >
+                                  привязать
+                                </button>
+                              </div>
+                            ))}
+                          </>
                         )}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            {note && <div className="secondary" style={{ padding: '4px 8px' }}>{note}</div>}
             <h3 style={{ padding: '8px 8px 0' }}>Акторы — предложение в стейкхолдеры</h3>
             <table>
               <thead>

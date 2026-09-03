@@ -173,6 +173,22 @@ class GatePassing(
                 gaps.size, "${gaps.size} ниже требуемого статуса", "req", blocking = true,
             )
         }
+        // ADR-053 (ответ владельца 03.09 §2): способность — слой «зачем», и
+        // непривязанная держит MCR: полка даёт подсказку, служба предлагает
+        // кандидатов по тексту, связь ставит инженер. Оставить её предложением
+        // навсегда значило бы иметь архитектуру без причины.
+        if (gate == "MCR") {
+            val ничьи = boundary.objects.listCurrent(projectId)
+                .filter { it.type == "capability" && it.status != orbita.mod.model.Lifecycle.Cancelled }
+                .filter { it.doc.path("traced_to").isEmpty }
+            add(
+                "capabilities_traced", "blocking", "Способности привязаны к целям и нуждам",
+                ничьи.size,
+                "${ничьи.size} способностей ни к чему не привязано: " +
+                    ничьи.take(4).joinToString(", ") { it.doc.path("code").asText(it.id) },
+                "architecture", blocking = true, closedNote = "у каждой способности есть основание",
+            )
+        }
         if (gate in BASELINE_GATES) {
             add(
                 "tbd", "blocking", "TBD/TBR закрыты",

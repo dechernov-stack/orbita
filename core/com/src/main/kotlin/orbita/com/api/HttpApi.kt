@@ -422,6 +422,25 @@ class HttpApi(private val boundary: Boundary) {
                 val gate = query(ex)["gate"] ?: runCatching { boundary.gatePassing.nextGate(p) }.getOrNull()
                 respond(ex, 200, boundary.systemModels.view(p, gate))
             }
+            // ADR-053: предложения привязки способностей — служба сопоставляет
+            // по тексту и показывает основание, связь ставит человек
+            method == "GET" && path == "/views/capabilities/matches" -> {
+                val p = requireProject(project)
+                respond(ex, 200, CapabilityMatches(boundary).view(p))
+            }
+            method == "POST" && Regex("^/views/capabilities/OC-[0-9]{4}/trace$").matches(path) -> {
+                val p = requireProject(project)
+                val id = path.removePrefix("/views/capabilities/").removeSuffix("/trace")
+                val req = mapper.readTree(body(ex))
+                val who = author(req.path("author").asText(""))
+                require(who.isNotBlank()) { "field 'author' is required" }
+                val refs = req.path("refs").map {
+                    it.path("ref").asText() to it.path("rationale").asText("")
+                }
+                require(refs.isNotEmpty()) { "field 'refs' is required" }
+                val stored = CapabilityMatches(boundary).accept(p, id, refs, who)
+                respond(ex, 200, mapper.createObjectNode().put("id", stored.id).put("version", stored.version))
+            }
             // ADR-052: экран «Архитектура» — четыре слоя Arcadia одним ответом
             method == "GET" && path == "/views/architecture" -> {
                 val p = requireProject(project)
@@ -638,6 +657,8 @@ class HttpApi(private val boundary: Boundary) {
                     row.put("id", p.id)
                     row.put("name", p.doc.path("name").asText(p.id))
                     row.put("phase", p.doc.path("phase").asText(""))
+                    // ADR-053: проект-пример идёт отдельной группой портфеля
+                    row.put("example", p.doc.path("example").asBoolean(false))
                     // руководитель: роль lead при учётках, иначе автор создания
                     val lead = boundary.auth.listRoles(p.id).entries.firstOrNull { it.value == "lead" }?.key
                     row.put("owner", lead ?: boundary.objects.history(p.id).firstOrNull()?.createdBy ?: "")
