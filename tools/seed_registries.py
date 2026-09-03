@@ -192,9 +192,12 @@ def obsolete(type_: str, rows: list, packet: dict | None = None) -> bool:
             if any(o.get("expects") for o in frag.get("payload", {}).get("objects", [])):
                 if not any(o.get("expects") for o in payload):
                     return True
-            # набор моделей растёт поставками: недостающий код — повод перезалить
+            # состав пачки сверяется В ОБЕ СТОРОНЫ: недостающий код — новая
+            # поставка, ЛИШНИЙ — редакция, из которой объект убран (ред. 3
+            # каркаса отдала стыки своей полке, и полка обязана это узнать)
             codes = {o.get("code") for o in frag.get("payload", {}).get("objects", [])}
-            if codes - {o.get("code") for o in payload}:
+            have_codes = {o.get("code") for o in payload}
+            if codes ^ have_codes:
                 return True
         return False
     if type_ == "property_form":
