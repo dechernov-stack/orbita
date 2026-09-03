@@ -230,6 +230,22 @@ class ReqService(
                 }
             }
 
+            // ADR-047: функция следует из существующих нужд/сервисов/ConOps/функций
+            // и распределяется на существующие узлы состава либо интерфейсы
+            "function" -> {
+                doc.path("traces_up").forEach { t ->
+                    val ref = t.path("ref").asText("")
+                    if (ref.isNotBlank() && objects.current(ref) == null) {
+                        throw ModelViolationException("ADR-047: функция следует из отсутствующего объекта $ref")
+                    }
+                }
+                doc.path("allocated_to").forEach { a ->
+                    val target = a.path("component").asText("").ifBlank { a.path("interface").asText("") }
+                    objects.current(target)
+                        ?: throw ModelViolationException("ADR-047: функция распределена на отсутствующий узел $target")
+                }
+            }
+
             "interface" -> {
                 val owners = doc.path("owners")
                 if (!owners.isArray || owners.size() != 2) {
@@ -404,6 +420,16 @@ class ReqService(
                     "mission_goal" -> d.path("traces_up").forEach { nd ->
                         put(Triple(nd.asText(), objId, "trace"), Attrs())
                     }
+                    // ADR-047: функция — трассировка от источника, распределение на узлы
+                    "function" -> {
+                        d.path("traces_up").forEach { t ->
+                            put(Triple(t.path("ref").asText(), objId, "trace"), Attrs(consumerClass = t.path("consumer_class").asText(null)))
+                        }
+                        d.path("allocated_to").forEach { a ->
+                            val target = a.path("component").asText("").ifBlank { a.path("interface").asText("") }
+                            put(Triple(objId, target, "allocation"), Attrs(allocationKind = a.path("kind").asText("full"), rationale = a.path("rationale").asText(null)))
+                        }
+                    }
                     "requirement" -> {
                         d.path("traces_up").forEach { t ->
                             put(
@@ -477,6 +503,7 @@ class ReqService(
             "requirement" ->
                 links.linksTo(id, "trace") + links.linksFrom(id, "allocation") + links.linksTo(id, "derive") +
                     links.linksFrom(id, "conflict")
+            "function" -> links.linksTo(id, "trace") + links.linksFrom(id, "allocation")
             else -> emptyList()
         } + links.linksFrom(id, "applies") + links.linksTo(id, "evolves") +
             links.linksFrom(id, "wbs") + links.linksFrom(id, "uses") + links.linksFrom(id, "hosted_on")
@@ -604,6 +631,22 @@ class ReqService(
         return conn.tx {
             val stored = create(doc, "conops", createdBy, projectId)
             syncLinks("conops", stored.id, doc, projectId)
+            stored
+        }
+    }
+
+    /** ADR-047: функция — слой между нуждами и узлами; связи выводятся из документа. */
+    fun ingestFunction(
+        json: String,
+        createdBy: String = "api",
+        projectId: String = ObjectStore.DEFAULT_PROJECT,
+    ): StoredObject {
+        val doc = registry.parse(json)
+        registry.require("core/function", doc)
+        requireApplicationRules("function", doc)
+        return conn.tx {
+            val stored = create(doc, "function", createdBy, projectId)
+            syncLinks("function", stored.id, doc, projectId)
             stored
         }
     }

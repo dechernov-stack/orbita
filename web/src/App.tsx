@@ -139,6 +139,7 @@ function MatrixScreen() {
     ['trace', 'Трассировка'],
     ['verification', 'Верификация'],
     ['validation', 'Валидация'],
+    ['functions', 'Функции × узлы'],
   ]
   return (
     <>
@@ -365,6 +366,7 @@ export function App() {
       case 'matrix': return <MatrixScreen />
       case 'trace': return <ScreenFrame title="Трассировка и impact"><TraceGraph onGo={go} /></ScreenFrame>
       case 'aoa': return <KindRegistry key={screen} kinds={['alternative', 'decision']} title="Альтернативы и решения" />
+      case 'functions': return <KindRegistry key={screen} kinds={['function']} title="Функции" />
       case 'wbs': return <KindRegistry key={screen} kinds={['component', 'interface']} title="Элементы и интерфейсы" />
       case 'composition': return <ScreenFrame title="Дерево состава"><SystemComposition onGo={go} /></ScreenFrame>
       case 'wbstree': return <KindRegistry key={screen} kinds={['wbs_element']} title="Структура работ (WBS)" />

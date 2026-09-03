@@ -29,6 +29,12 @@ data class TraceGapEntry(val requirementId: String, val missing: String)
 
 data class TraceMatrix(val rows: List<TraceMatrixRow>, val gaps: List<TraceGapEntry>)
 
+/** ADR-047: матрица «функции × узлы». */
+data class FunctionColumn(val id: String, val name: String, val type: String)
+data class FunctionCell(val id: String, val kind: String, val rationale: String?)
+data class FunctionRow(val functionId: String, val name: String, val level: String?, val sources: List<String>, val nodes: List<FunctionCell>)
+data class FunctionMatrix(val columns: List<FunctionColumn>, val rows: List<FunctionRow>, val unallocated: List<String>, val nodesWithoutFunctions: List<String>)
+
 /**
  * Строка матрицы верификации — ОДНО СОБЫТИЕ требования (CR-003/ADR-019):
  * «сначала расчёт по модели, потом испытание» больше не сворачивается в одну
@@ -165,6 +171,33 @@ class Matrices(
     fun unverifiedRequirements(projectId: String? = null): List<String> = currentRequirements(projectId)
         .filter { verificationState(it.doc) != VerificationState.Verified }
         .map { it.id }.sorted()
+
+    /**
+     * ADR-047: матрица «функции × узлы» — четвёртая матрица. Столбцы — все
+     * определения состава и интерфейсы проекта, строки — функции с узлами
+     * распределения; разрывы — функции без носителя и узлы без функций.
+     */
+    fun functionMatrix(projectId: String? = null): FunctionMatrix {
+        val current = req.objects.listCurrent(projectId).filter { it.status != orbita.mod.model.Lifecycle.Cancelled }
+        val columns = current.filter { it.type == "component" || it.type == "interface" }
+            .sortedBy { it.id }.map { FunctionColumn(it.id, it.doc.path("name").asText(""), it.type) }
+        val rows = current.filter { it.type == "function" }.sortedBy { it.id }.map { f ->
+            val nodes = f.doc.path("allocated_to").map { a ->
+                FunctionCell(
+                    a.path("component").asText("").ifBlank { a.path("interface").asText("") },
+                    a.path("kind").asText("full"), a.path("rationale").asText("").ifBlank { null },
+                )
+            }.sortedBy { it.id }
+            FunctionRow(f.id, f.doc.path("name").asText(""), f.doc.path("level").asText("").ifBlank { null },
+                f.doc.path("traces_up").map { it.path("ref").asText() }, nodes)
+        }
+        val covered = rows.flatMap { r -> r.nodes.map { it.id } }.toSet()
+        return FunctionMatrix(
+            columns, rows,
+            unallocated = rows.filter { it.nodes.isEmpty() }.map { it.functionId },
+            nodesWithoutFunctions = columns.map { it.id }.filter { it !in covered },
+        )
+    }
 
     private fun currentRequirements(projectId: String? = null) =
         req.objects.listCurrent(projectId).filter { it.type == "requirement" && it.status != Lifecycle.Cancelled }

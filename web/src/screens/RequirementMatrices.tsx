@@ -7,14 +7,15 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import { edit } from '../api/edit'
-import type { TraceMatrixView, ValidationRow, VerificationMatrixFlatView } from '../api/types'
+import type { FunctionMatrixView, TraceMatrixView, ValidationRow, VerificationMatrixFlatView } from '../api/types'
 
-export type MatrixKind = 'trace' | 'verification' | 'validation'
+export type MatrixKind = 'trace' | 'verification' | 'validation' | 'functions'
 
 export function RequirementMatrices({ kind }: { kind: MatrixKind }) {
   const [trace, setTrace] = useState<TraceMatrixView | null>(null)
   const [verification, setVerification] = useState<VerificationMatrixFlatView | null>(null)
   const [validation, setValidation] = useState<ValidationRow[] | null>(null)
+  const [functions, setFunctions] = useState<FunctionMatrixView | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [link, setLink] = useState({ from: '', to: '' })
   const [linkReport, setLinkReport] = useState<string | null>(null)
@@ -22,6 +23,7 @@ export function RequirementMatrices({ kind }: { kind: MatrixKind }) {
   useEffect(() => {
     setError(null)
     if (kind === 'trace') api.traceMatrix().then(setTrace).catch((e) => setError(String(e)))
+    if (kind === 'functions') api.functionMatrix().then(setFunctions).catch((e) => setError(String(e)))
     if (kind === 'verification')
       api.verificationMatrix().then(setVerification).catch((e) => setError(String(e)))
     if (kind === 'validation')
@@ -29,6 +31,52 @@ export function RequirementMatrices({ kind }: { kind: MatrixKind }) {
   }, [kind])
 
   if (error) return <div className="warn" style={{ padding: 8 }}>Ошибка: {error}</div>
+
+  if (kind === 'functions') {
+    if (!functions) return <div className="empty">Загрузка матрицы…</div>
+    if (functions.rows.length === 0)
+      return <div className="empty">Функций нет: заведите их на «Функциях» (из нужд и сценариев ConOps) и распределите на узлы состава.</div>
+    const allocated = new Map(functions.rows.map((r) => [r.function, new Map(r.nodes.map((n) => [n.id, n]))]))
+    return (
+      <div>
+        <div className="secondary" style={{ padding: '4px 0 6px' }}>
+          функций: {functions.rows.length} · узлов: {functions.columns.length}
+          {functions.unallocated.length > 0 && <> · <span className="bad">без носителя: {functions.unallocated.join(', ')}</span></>}
+          {functions.nodes_without_functions.length > 0 && <> · узлы без функций: {functions.nodes_without_functions.join(', ')}</>}
+        </div>
+        <div style={{ overflowX: 'auto' }}>
+          <table>
+            <thead>
+              <tr>
+                <th style={{ width: 90 }}>Функция</th>
+                <th style={{ width: 220 }}>Имя · источники</th>
+                {functions.columns.map((c) => (
+                  <th key={c.id} title={c.name} style={{ width: 64, textAlign: 'center' }}><span className="mono">{c.id}</span></th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {functions.rows.map((r) => (
+                <tr key={r.function}>
+                  <td className="mono">{r.function}</td>
+                  <td>{r.name}<span className="secondary"> · {r.sources.join(', ')}</span></td>
+                  {functions.columns.map((c) => {
+                    const cell = allocated.get(r.function)?.get(c.id)
+                    return (
+                      <td key={c.id} style={{ textAlign: 'center' }} title={cell?.rationale ?? undefined}>
+                        {cell ? (cell.kind === 'full' ? '●' : '◐') : ''}
+                      </td>
+                    )
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="secondary" style={{ paddingTop: 6 }}>● — полностью · ◐ — частично; подсказка ячейки — обоснование распределения</div>
+      </div>
+    )
+  }
 
   if (kind === 'trace') {
     if (!trace) return <div className="empty">Загрузка матрицы…</div>

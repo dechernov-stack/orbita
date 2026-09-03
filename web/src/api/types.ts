@@ -482,7 +482,7 @@ export interface TraceGraphView {
   groups?: Record<string, string[]>
   path?: string[]
   path_note?: string
-  functions_note: string
+  functions_note?: string
   counts_missing: number
 }
 
@@ -701,6 +701,14 @@ export interface GlobeView {
 }
 
 /** Матрица трассировки (TZ-OUT-004): строка на требование, разрывы отдельно. */
+/** ADR-047: матрица «функции × узлы». */
+export interface FunctionMatrixView {
+  columns: Array<{ id: string; name: string; type: string }>
+  rows: Array<{ function: string; name: string; level: string | null; sources: string[]; nodes: Array<{ id: string; kind: string; rationale: string | null }> }>
+  unallocated: string[]
+  nodes_without_functions: string[]
+}
+
 export interface TraceMatrixView {
   rows: Array<{
     requirement: string

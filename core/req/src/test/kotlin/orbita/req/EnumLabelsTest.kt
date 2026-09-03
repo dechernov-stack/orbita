@@ -33,6 +33,7 @@ class EnumLabelsTest {
         Binding("requirement_category", "core/requirement", "/properties/category"),
         Binding("requirement_level", "core/requirement", "/properties/level"),
         Binding("requirement_priority", "core/requirement", "/properties/priority"),
+        Binding("function_level", "core/function", "/properties/level"),
         Binding("requirement_relation_kind", "core/requirement", "/properties/relations/items/properties/kind"),
         Binding("verification_method", "core/requirement", "/properties/verification_events/items/properties/method"),
         Binding("verification_kind", "core/requirement", "/properties/verification_events/items/properties/kind"),

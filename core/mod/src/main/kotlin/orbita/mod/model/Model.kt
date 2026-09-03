@@ -41,6 +41,8 @@ enum class CoreType(val idPrefix: String, val dbType: String, val schemaName: St
     // Блок C (Шаг 17): виды, на которые модель уже ссылалась в пустоту —
     // conops_ref валидации, реестр ворот без проекта, документы без статуса.
     Conops("CO", "conops", "core/conops"),
+    // ADR-047: функция — слой логической декомпозиции между нуждами и узлами состава
+    Function("FN", "function", "core/function"),
     Technology("TL", "technology", "core/technology"),
     Decision("DN", "decision", "core/decision"),
     Project("PJ", "project", "core/project"),

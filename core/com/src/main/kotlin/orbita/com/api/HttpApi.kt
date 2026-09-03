@@ -416,6 +416,24 @@ class HttpApi(private val boundary: Boundary) {
                 respond(ex, 200, n)
             }
 
+            // ADR-047: матрица «функции × узлы» — четвёртая матрица
+            method == "GET" && path == "/reports/function-matrix" -> {
+                val m = boundary.matrices.functionMatrix(project)
+                val n = mapper.createObjectNode()
+                val cols = n.putArray("columns")
+                m.columns.forEach { cols.addObject().put("id", it.id).put("name", it.name).put("type", it.type) }
+                val rows = n.putArray("rows")
+                m.rows.forEach { r ->
+                    val row = rows.addObject().put("function", r.functionId).put("name", r.name).put("level", r.level)
+                    row.putArray("sources").also { a -> r.sources.forEach { a.add(it) } }
+                    val nodes = row.putArray("nodes")
+                    r.nodes.forEach { c -> nodes.addObject().put("id", c.id).put("kind", c.kind).put("rationale", c.rationale) }
+                }
+                n.putArray("unallocated").also { a -> m.unallocated.forEach { a.add(it) } }
+                n.putArray("nodes_without_functions").also { a -> m.nodesWithoutFunctions.forEach { a.add(it) } }
+                respond(ex, 200, n)
+            }
+
             method == "GET" && path == "/reports/trace-matrix" -> {
                 val m = boundary.matrices.traceMatrix(project)
                 val n = mapper.createObjectNode()

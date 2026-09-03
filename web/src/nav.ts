@@ -68,6 +68,7 @@ export const SECTIONS: NavSection[] = [
     label: 'Концепция',
     screens: [
       { key: 'aoa', title: 'Альтернативы и решения' },
+      { key: 'functions', title: 'Функции' },
       { key: 'wbs', title: 'Элементы и интерфейсы' },
       { key: 'composition', title: 'Дерево состава' },
       { key: 'wbstree', title: 'Структура работ (WBS)' },

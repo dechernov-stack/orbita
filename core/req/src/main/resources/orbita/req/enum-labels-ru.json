@@ -182,6 +182,11 @@
       "safe": "безопасный режим",
       "maneuver": "манёвр"
     },
+    "function_level": {
+      "operational": "операционная",
+      "system": "системная",
+      "logical": "логическая"
+    },
     "requirement_priority": {
       "high": "высокий",
       "medium": "средний",

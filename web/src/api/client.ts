@@ -54,6 +54,7 @@ import type {
   StakeholderCoverageView,
   CompositionTree,
   TraceGraphView,
+  FunctionMatrixView,
 } from './types'
 
 import { withProject } from './project'
@@ -585,6 +586,8 @@ export const api = {
     post<{ id: string }>('/views/req-views', { author, doc }),
   /** Матрицы живут на экране требований — там принимается решение (шаг 16 §2.4). */
   traceMatrix: () => get<TraceMatrixView>('/reports/trace-matrix'),
+  /** ADR-047: функции × узлы — считает сервер. */
+  functionMatrix: () => get<FunctionMatrixView>('/reports/function-matrix'),
   verificationMatrix: () => get<VerificationMatrixFlatView>('/reports/verification-matrix'),
   validationMatrix: () => get<ValidationRow[]>('/reports/validation-matrix'),
   requirementCard: (id: string) => get<RequirementCard>(`/views/requirements/${id}`),

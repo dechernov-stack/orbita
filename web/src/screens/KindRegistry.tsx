@@ -20,6 +20,7 @@ const KIND_TITLES: Record<string, string> = {
   service: 'Сервисы',
   requirement: 'Требования',
   conops: 'Сценарии ConOps',
+  function: 'Функции',
   alternative: 'Альтернативы',
   decision: 'Решения',
   wbs_element: 'Элементы WBS',

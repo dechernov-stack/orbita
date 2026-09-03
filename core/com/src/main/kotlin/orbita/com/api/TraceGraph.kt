@@ -9,8 +9,8 @@
 // носители · интерфейсы · документы со вставкой · битые ссылки), глубина
 // 1–4, кратчайший путь до второго объекта; циклы не зацикливают обход.
 //
-// Слой функций (шип 1b) не заведён — граф говорит об этом словами, а не
-// рисует пустую колонку как будто так и надо.
+// Функции (ADR-047) — узлы графа между нуждами и носителями; пока их в
+// проекте нет, граф говорит об этом словами, а не рисует пустую колонку.
 package orbita.com.api
 
 import com.fasterxml.jackson.databind.JsonNode
@@ -33,6 +33,7 @@ class TraceGraph(private val boundary: Boundary) {
     private val OBJECT_KINDS = mapOf(
         "need" to "need", "service" to "service", "mission_goal" to "goal", "conops" to "conops",
         "requirement" to "requirement", "component" to "node", "interface" to "interface", "evidence" to "evidence",
+        "function" to "function",
     )
     private val LINK_KINDS = setOf("trace", "derive", "allocation", "conflict")
 
@@ -185,6 +186,7 @@ class TraceGraph(private val boundary: Boundary) {
             group("conflicts", around.filter { it.kind == "conflict" }.map { if (it.from == f) it.to else it.from })
             group("events", around.filter { it.kind == "verifies" && it.to == f }.map { it.from })
             group("carriers", around.filter { it.kind == "allocation" && it.from == f }.map { it.to }.filter { built.nodes[it]?.kind == "node" })
+            group("functions", around.filter { it.kind == "allocation" || it.kind == "trace" }.map { if (it.from == f) it.to else it.from }.filter { built.nodes[it]?.kind == "function" })
             group("interfaces", around.filter { (it.kind == "allocation" && it.from == f && built.nodes[it.to]?.kind == "interface") || it.kind == "side" }.map { if (it.from == f) it.to else it.from })
             group("documents", around.filter { it.kind == "inserted_in" && it.from == f }.map { it.to })
             group("broken", around.map { if (it.from == f) it.to else it.from }.filter { built.nodes[it]?.kind == "missing" })
@@ -194,7 +196,9 @@ class TraceGraph(private val boundary: Boundary) {
             val p = out.putArray("path"); path.forEach { p.add(it) }
             if (path.isEmpty()) out.put("path_note", "пути от $focus до $target по связям нет")
         }
-        out.put("functions_note", "слой функций не заведён (шип 1b): распределение функций на узлы появится с видом function")
+        if (built.nodes.values.none { it.kind == "function" }) {
+            out.put("functions_note", "функций в проекте нет: заведите их на «Функциях» (из нужд и ConOps) и распределите на узлы")
+        }
         out.put("counts_missing", built.nodes.values.count { it.kind == "missing" })
         return out
     }

@@ -135,6 +135,7 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
         CoreType.Interface -> req.ingestInterface(json, createdBy, projectId)
         CoreType.Risk -> req.ingestRisk(json, createdBy, projectId)
         CoreType.Conops -> req.ingestConops(json, createdBy, projectId)
+        CoreType.Function -> req.ingestFunction(json, createdBy, projectId)
         CoreType.MissionGoal -> req.ingestMissionGoal(json, createdBy, projectId)
         // Блок C: замечание обзора несёт правило закрытия сверх схемы
         CoreType.ReviewItem -> {

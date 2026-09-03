@@ -48,7 +48,7 @@ class SchemaValidationTest {
         // 56-я — review-checklist (инспекция людей: единственное место,
         // где отметка ставится рукой, а не вычисляется)
         // 57-я — quality-dictionary (словарь линта данными полки)
-        assertEquals(57, registry.names.size, "нормативных схем должно быть 57: ${registry.names}")
+        assertEquals(58, registry.names.size, "нормативных схем должно быть 58: ${registry.names}")
     }
 
     @Test

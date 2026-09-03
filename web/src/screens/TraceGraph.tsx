@@ -16,13 +16,13 @@ import type { TraceGraphView } from '../api/types'
 
 const KIND_LABEL: Record<string, string> = {
   need: 'нужда', service: 'сервис', goal: 'цель', conops: 'сценарий ConOps',
-  requirement: 'требование', node: 'узел состава', interface: 'интерфейс',
+  requirement: 'требование', function: 'функция', node: 'узел состава', interface: 'интерфейс',
   event: 'событие верификации', evidence: 'свидетельство', document: 'документ', missing: 'битая ссылка',
 }
 
 const KIND_COLOR: Record<string, string> = {
   need: '#e8f1ff', service: '#eef7ee', goal: '#fff6e0', conops: '#f3f0ff',
-  requirement: '#ffffff', node: '#f1f5f9', interface: '#fdf2f8',
+  requirement: '#ffffff', function: '#fff1f2', node: '#f1f5f9', interface: '#fdf2f8',
   event: '#ecfeff', evidence: '#f0fdf4', document: '#fefce8', missing: '#fee2e2',
 }
 
@@ -34,7 +34,7 @@ const EDGE_LABEL: Record<string, string> = {
 
 const GROUP_LABEL: Record<string, string> = {
   needs: 'Нужды и источники', parents: 'Родители', children: 'Дети', dependents: 'Зависимые',
-  conflicts: 'Противоречия', events: 'События верификации', carriers: 'Носители (узлы)',
+  conflicts: 'Противоречия', events: 'События верификации', carriers: 'Носители (узлы)', functions: 'Функции',
   interfaces: 'Интерфейсы', documents: 'Документы со вставкой', broken: 'Битые ссылки',
 }
 
@@ -188,7 +188,7 @@ export function TraceGraph({ onGo }: { onGo?: (screen: string, kind?: string, ta
             <span key={k} className="tg-lg"><span className="tg-sw" style={{ background: KIND_COLOR[k] }} />{l}</span>
           ))}
           <span className="tg-lg">— — противоречие</span>
-          <span className="tg-lg">{view.functions_note}</span>
+          {view.functions_note && <span className="tg-lg">{view.functions_note}</span>}
         </div>
       </div>
 
