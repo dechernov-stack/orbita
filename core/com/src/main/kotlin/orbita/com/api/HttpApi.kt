@@ -3514,6 +3514,12 @@ class HttpApi(private val boundary: Boundary) {
             val arr = out.putArray(field)
             cur.filter { it.type == type }.sortedBy { it.id }.forEach { arr.add(it.doc) }
         }
+        // Связи — из таблицы связей, как у ReqIF-канала: часть нитей система
+        // выводит сама, и документ требования их не называет
+        val links = out.putArray("links")
+        (boundary.links.list("trace", projectId) + boundary.links.list("derive", projectId))
+            .sortedWith(compareBy({ it.fromId }, { it.toId }))
+            .forEach { links.addObject().put("from", it.fromId).put("to", it.toId).put("kind", it.kind) }
         return out
     }
 

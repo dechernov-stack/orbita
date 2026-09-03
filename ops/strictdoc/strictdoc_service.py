@@ -11,6 +11,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -30,7 +31,9 @@ REQUIREMENT_FIELDS = [
     ("OWNER", "owner", False), ("TAGS", "tags", False),
 ]
 NEED_FIELDS = [("UID", "id", True), ("STATEMENT", "statement", True), ("STAKEHOLDER", "stakeholder.name", False)]
-SERVICE_FIELDS = [("UID", "id", True), ("TITLE", "name", True)]
+# У сервиса имя — и заголовок, и текст: старый канал кладёт его в ReqIF.Text,
+# и без STATEMENT сравнение каналов показывало «текста нет»
+SERVICE_FIELDS = [("UID", "id", True), ("TITLE", "name", True), ("STATEMENT", "name", True)]
 RELATION_ROLES = ["Refines", "Derives", "DependsOn", "ConflictsWith", "Traces"]
 MULTILINE = {"STATEMENT", "RATIONALE", "ACCEPTANCE_CRITERIA"}
 
@@ -57,23 +60,69 @@ def _value(doc: dict, path: str) -> str | None:
 
 def grammar() -> str:
     """Грамматика Орбиты (.sgra): элементы NEED · SERVICE · REQUIREMENT, роли связей."""
+    # MID объявляется полем каждого элемента: без него ENABLE_MID отвергается
+    # семантической проверкой StrictDoc, а без ENABLE_MID идентификаторы узлов
+    # в ReqIF раздаются заново при каждом экспорте
+    mid_field = ["  - TITLE: MID", "    TYPE: String", "    REQUIRED: True"]
     lines = ["[GRAMMAR]", "ELEMENTS:",
              # раздел — составной узел (StrictDoc ≥ 0.29: [[SECTION]] вместо [SECTION])
              "- TAG: SECTION", "  PROPERTIES:", "    IS_COMPOSITE: True", "  FIELDS:",
+             *mid_field,
              "  - TITLE: TITLE", "    TYPE: String", "    REQUIRED: True"]
     for tag, fields in (("NEED", NEED_FIELDS), ("SERVICE", SERVICE_FIELDS), ("REQUIREMENT", REQUIREMENT_FIELDS)):
-        lines += [f"- TAG: {tag}", "  FIELDS:"]
+        lines += [f"- TAG: {tag}", "  FIELDS:", *mid_field]
         for name, _, required in fields:
             lines += [f"  - TITLE: {name}", "    TYPE: String", f"    REQUIRED: {'True' if required else 'False'}"]
-        if tag == "REQUIREMENT":
+        if tag in ("REQUIREMENT", "SERVICE"):
             lines.append("  RELATIONS:")
             for role in RELATION_ROLES:
                 lines += ["  - TYPE: Parent", f"    ROLE: {role}"]
     return "\n".join(lines) + "\n"
 
 
+# Пространство имён устойчивых MID: StrictDoc сам раздаёт узлам случайные
+# uuid4 при каждом экспорте, и файл ReqIF выходит каждый раз новым. MID,
+# выведенный из нашего идентификатора, делает идентичность узла нашей —
+# и повторный экспорт неизменённого проекта даёт те же SPEC-OBJECT.
+MID_NS = uuid.UUID("6f2b9a4e-0c4d-5f7a-9b1e-3d5c7a9f1b2d")
+
+
+def mid_of(key: str) -> str:
+    return uuid.uuid5(MID_NS, f"orbita:{key}").hex
+
+
+def _dedupe(pairs):
+    seen, out = set(), []
+    for pair in pairs:
+        if pair[0] and pair not in seen:
+            seen.add(pair)
+            out.append(pair)
+    return out
+
+
+def _link_parents(payload: dict, node_id, needs, services, requirements):
+    """Связи модели из ТАБЛИЦЫ СВЯЗЕЙ (trace · derive): документ объекта знает не
+    про все нити — часть система выводит сама (распределение на корень,
+    пересчёт), и без них .sdoc терял бы трассировку, которую нёс старый канал."""
+    if not node_id:
+        return []
+    known = {x.get("id") for x in (list(needs) + list(services) + list(requirements))}
+    out = []
+    for link in payload.get("links", []) or []:
+        if link.get("to") != node_id:
+            continue
+        ref = link.get("from", "")
+        if ref not in known:
+            continue
+        out.append((ref, {"trace": "Traces", "derive": "Derives"}.get(link.get("kind", ""), "Traces")))
+    return out
+
+
 def _element(tag: str, doc: dict, fields, relations=None) -> list[str]:
     out = [f"[{tag}]"]
+    key = _value(doc, "id")
+    if key:
+        out.append(f"MID: {mid_of(key)}")
     for name, path, required in fields:
         v = _value(doc, path)
         if v is None:
@@ -98,23 +147,29 @@ def build_sdoc(payload: dict) -> tuple[str, str]:
     Порядок — по идентификаторам: повторный экспорт того же проекта совпадает побайтно."""
     project = payload.get("project") or {}
     title = project.get("name") or project.get("id") or "Проект"
-    lines = ["[DOCUMENT]", f"TITLE: {title}", "", "[GRAMMAR]", "IMPORT_FROM_FILE: orbita.sgra", ""]
+    lines = ["[DOCUMENT]", f"MID: {mid_of(project.get('id') or title)}", f"TITLE: {title}",
+             "OPTIONS:", "  ENABLE_MID: True", "", "[GRAMMAR]", "IMPORT_FROM_FILE: orbita.sgra", ""]
     needs = sorted(payload.get("needs", []), key=lambda d: d.get("id", ""))
     services = sorted(payload.get("services", []), key=lambda d: d.get("id", ""))
     requirements = sorted(payload.get("requirements", []), key=lambda d: d.get("id", ""))
     if needs:
-        lines += ["[[SECTION]]", "TITLE: Нужды", ""]
+        lines += ["[[SECTION]]", f"MID: {mid_of('section:needs')}", "TITLE: Нужды", ""]
         for n in needs:
             lines += _element("NEED", n, NEED_FIELDS)
         lines += ["[[/SECTION]]", ""]
     if services:
-        lines += ["[[SECTION]]", "TITLE: Сервисы", ""]
-        for s in services:
-            lines += _element("SERVICE", s, SERVICE_FIELDS)
+        lines += ["[[SECTION]]", f"MID: {mid_of('section:services')}", "TITLE: Сервисы", ""]
+        for svc in services:
+            rels = [(ref, role) for ref, role in _link_parents(payload, svc.get("id"), needs, services, requirements)]
+            rels += [(nd, "Traces") for nd in (svc.get("traces_up") or []) if isinstance(nd, str)]
+            lines += _element("SERVICE", svc, SERVICE_FIELDS, _dedupe(rels))
         lines += ["[[/SECTION]]", ""]
-    lines += ["[[SECTION]]", "TITLE: Требования", ""]
+    lines += ["[[SECTION]]", f"MID: {mid_of('section:requirements')}", "TITLE: Требования", ""]
     for r in requirements:
         rels: list[tuple[str, str]] = []
+        # связь на объект, которого нет в документе, принимающий инструмент
+        # считает битой — такие в файл не идут
+        rels += _link_parents(payload, r.get("id"), needs, services, requirements)
         for parent in r.get("derives_from", []) or []:
             rels.append((parent, "Derives"))
         for rel in r.get("relations", []) or []:
@@ -124,11 +179,7 @@ def build_sdoc(payload: dict) -> tuple[str, str]:
             ref = t.get("ref", "")
             if ref:
                 rels.append((ref, "Traces"))
-        seen = set(); uniq = []
-        for v, role in rels:
-            if (v, role) not in seen:
-                seen.add((v, role)); uniq.append((v, role))
-        lines += _element("REQUIREMENT", r, REQUIREMENT_FIELDS, uniq)
+        lines += _element("REQUIREMENT", r, REQUIREMENT_FIELDS, _dedupe(rels))
     lines += ["[[/SECTION]]", ""]
     return grammar(), "\n".join(lines)
 
@@ -172,7 +223,8 @@ def export_formats(sgra: str, sdoc: str, formats: list[str]) -> dict:
         (root / "orbita.sgra").write_text(sgra, encoding="utf-8")
         (root / "project.sdoc").write_text(sdoc, encoding="utf-8")
         out = root / "out"
-        cmd = ["strictdoc", "export", "--formats", ",".join(formats), "--output-dir", str(out), str(root)]
+        cmd = ["strictdoc", "export", "--formats", ",".join(formats), "--reqif-enable-mid",
+               "--output-dir", str(out), str(root)]
         res = subprocess.run(cmd, capture_output=True, text=True)
         result = {"ok": res.returncode == 0, "stderr": res.stderr[-2000:], "files": {}}
         if out.exists():

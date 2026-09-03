@@ -31,6 +31,7 @@ echo "== единицы =="          ; python3 tools/validate_units.py && python
 # reqif==0.0.47 — CI его ставит. Локально без пакета пропуск объявляется вслух.
 if python3 -c 'import strictdoc' 2>/dev/null; then
   echo "== StrictDoc-канал: детерминизм и круговой обмен =="; python3 tools/check_sdoc_roundtrip.py
+  echo "== сверка каналов ReqIF (условие сноса своего контура) =="; python3 tools/check_reqif_equivalence.py || true
 else
   echo "== StrictDoc-канал == детерминизм и полнота проверены без пакета; экспорт/импорт ПРОПУЩЕНЫ (pip install strictdoc==0.29.0)"; python3 tools/check_sdoc_roundtrip.py
 fi
