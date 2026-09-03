@@ -193,12 +193,20 @@ class Pmi4PacketsTest {
     }
 
     @Test
-    fun `Р08 системные — шестнадцать, распределение кодами полок и связь с проектным требованием`() {
+    fun `Р08 системные — семнадцать, распределение кодами полок и связь с проектным требованием`() {
         взятьПолки("PJ-2501")
         val r = report("Р08-системные.json")
         assertEquals(emptyList<String>(), сломанные(r)) { почему(r) }
-        assertEquals(16, r.path("proposed").asInt())
+        assertEquals(17, r.path("proposed").asInt())
         val items = mapper.readTree(raw("Р08-системные.json")).path("items")
+        // канон TBR (L-C5): пять значений ждут расчёта — помета с владельцем,
+        // точкой SRR и действием, а не число из воздуха
+        val tbr = items.filter { it.path("mop").path("tbr").asBoolean(false) }
+        assertEquals(5, tbr.size) { "помет TBR: ${tbr.size}" }
+        assertTrue(tbr.all { it.path("mop").path("tbd_due").asText() == "SRR" && it.path("mop").path("tbd_owner").asText().isNotBlank() })
+        // RQ-S-13 разделено по П14 «одна мысль — одно требование»: 13 и 13a
+        val метки = items.flatMap { it.path("tags").map { t -> t.asText() } }
+        assertTrue("код поставки: RQ-S-13a" in метки) { "разделённое требование обязано дойти: $метки" }
         val сУзлами = items.filter { it.path("allocated_to").size() > 0 }
         assertTrue(сУзлами.size >= 12) { "распределение на носители: ${сУзлами.size} из ${items.size()}" }
         // ссылка на узел полки — кодом «@»: её разрешает канал ДО проверки формы

@@ -343,6 +343,28 @@ def требование(r: dict, n: int, уровень: str, начало: int
             "operator": ОПЕРАТОР.get(m["op"], "le"),
             "value": {"value": m["value"], "unit": m.get("unit") or "1"},
         }
+    elif "TBR" in (r.get("tags") or []) and m.get("op"):
+        # канон TBR (L-C5): значения нет ДО расчёта модели, и поставка так и
+        # говорит. Помета несёт владельца, точку и действие; заглушка величины
+        # честно назвает своё происхождение — поставку с пометой TBR, а не
+        # выдуманное число
+        item["mop"] = {
+            "name": (r.get("title") or r["statement"])[:60],
+            "operator": ОПЕРАТОР.get(m["op"], "le"),
+            "value": {
+                "value": 0, "unit": m.get("unit") or "1",
+                "provenance": {"source": "imported", "import": {
+                    "dataset": "поставка ПМИ-4: значение TBR до расчёта модели",
+                    "dataset_version": "поставка ПМИ-4 от 03.09.2026",
+                    "retrieved_at": "2026-09-03",
+                    "terms": "заглушка до закрытия TBR; в расчёты не идёт",
+                }},
+            },
+            "tbr": True,
+            "tbd_owner": "вед. СИ",
+            "tbd_due": "SRR",
+            "tbd_action": r.get("rationale") or "расчёт модели системы",
+        }
     if r.get("verification_method"):
         метод = МЕТОД.get(r["verification_method"], "analysis")
         событие = {
