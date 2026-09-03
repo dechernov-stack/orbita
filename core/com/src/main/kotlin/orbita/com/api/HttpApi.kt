@@ -193,11 +193,16 @@ class HttpApi(private val boundary: Boundary) {
         val project: String? by projectRef
 
         if (authOn && sessionUser != null && method != "GET" && method != "HEAD") {
-            val role = boundary.auth.roleIn(
-                if (path.startsWith("/objects/project") || path == "/edit/project") null else project,
-                sessionUser.login,
-            )
-            denyReason(method, path, role, sessionUser, project, objectMatch, editMatch)?.let { why ->
+            // Проект для проверки прав берётся МЯГКО: маршруту, которому проект
+            // не нужен (наполнение полки в LIB), отказ «в портфеле N проектов —
+            // укажите ?project» приходил ещё до маршрута — сид полок сломался,
+            // как только в портфеле появился второй проект. Маршрут, которому
+            // проект нужен, скажет это сам и внятно.
+            val projectForRole =
+                if (path.startsWith("/objects/project") || path == "/edit/project") null
+                else runCatching { project }.getOrNull()
+            val role = boundary.auth.roleIn(projectForRole, sessionUser.login)
+            denyReason(method, path, role, sessionUser, projectForRole, objectMatch, editMatch)?.let { why ->
                 respond(ex, 403, mapper.createObjectNode().put("error", why))
                 return
             }
