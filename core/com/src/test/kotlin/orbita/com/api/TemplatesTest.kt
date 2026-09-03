@@ -186,6 +186,11 @@ class TemplatesTest {
         // взятие идёт в проект: полка ответов не даёт, а экран проекта их спрашивает
         val view = boundary.systemModels.view(project, "SRR")
         assertTrue(view.path("total").asInt() >= 14, "на экране моделей: ${view.path("total").asInt()}")
+        // порядок — по номеру: «М10» ниже «М9», а не сразу за «М1»
+        val codes = view.path("models").map { it.path("code").asText() }.filter { it.startsWith("М") }
+        // в проекте уже лежит своя М4 из шага 3 — сверяем порядок, а не состав
+        assertEquals((1..14).map { "М$it" }, codes.filter { it.drop(1).toIntOrNull() != null }.distinct(),
+            "порядок кодов: $codes")
         // повторное взятие не плодит набор — идемпотентность связи «применяет»
         val again = channel.apply(models, project, "инженер")
         assertTrue(again.created.isEmpty() && again.existing.size == 14, "повтор: ${again.created.size}/${again.existing.size}")

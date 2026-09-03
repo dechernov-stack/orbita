@@ -21,10 +21,14 @@ class SystemModels(private val boundary: Boundary) {
 
     data class ModelGap(val model: String, val code: String, val what: String, val place: String)
 
+    /** Порядок — по номеру кода: «М10» после «М9», иначе список читается как М1, М10, М11. */
+    private fun codeOrder(code: String): Pair<Int, String> =
+        Regex("\\d+").find(code)?.value?.toIntOrNull()?.let { it to code } ?: (Int.MAX_VALUE to code)
+
     private fun records(projectId: String?): List<StoredObject> =
         boundary.objects.listCurrent(projectId)
             .filter { it.type == CoreType.SystemModel.dbType && it.status != Lifecycle.Cancelled }
-            .sortedBy { it.doc.path("code").asText(it.id) }
+            .sortedWith(compareBy({ codeOrder(it.doc.path("code").asText(it.id)).first }, { it.doc.path("code").asText(it.id) }))
 
     /** Ответ дан, когда есть выход С ДАТОЙ: без даты это намерение, не результат. */
     private fun answered(node: JsonNode): Boolean =
