@@ -29,6 +29,11 @@ echo "== единицы =="          ; python3 tools/validate_units.py && python
 
 # Круговой обмен ReqIF и сверка с XSD OMG (шаг 11.2, ADR-023). Требует пакета
 # reqif==0.0.47 — CI его ставит. Локально без пакета пропуск объявляется вслух.
+if python3 -c 'import strictdoc' 2>/dev/null; then
+  echo "== StrictDoc-канал: детерминизм и круговой обмен =="; python3 tools/check_sdoc_roundtrip.py
+else
+  echo "== StrictDoc-канал == детерминизм и полнота проверены без пакета; экспорт/импорт ПРОПУЩЕНЫ (pip install strictdoc==0.29.0)"; python3 tools/check_sdoc_roundtrip.py
+fi
 if python3 -c 'import reqif' 2>/dev/null; then
   echo "== ReqIF: круговой обмен и XSD OMG =="; python3 tools/check_reqif_roundtrip.py
 else

@@ -2221,6 +2221,73 @@ class HttpApi(private val boundary: Boundary) {
             // составное значение свёрнуто в строку. Файл при таких замечаниях
             // валиден — терпит принимающий инструмент, поэтому предупреждение
             // показывается инженеру рядом с кнопкой выгрузки, а не прячется в лог.
+            // ADR-049: StrictDoc-канал — .sdoc по грамматике Орбиты, штатный ReqIF от
+            // StrictDoc, снимок базирования, импорт кандидатами. Без службы — отказ.
+            method == "GET" && path == "/export/sdoc" -> {
+                val sdocUrl = System.getenv("ORBITA_STRICTDOC_URL")
+                if (sdocUrl.isNullOrBlank()) {
+                    return respond(ex, 503, mapper.createObjectNode().put("error", "служба StrictDoc не настроена: задайте ORBITA_STRICTDOC_URL").put("adr", "ADR-049"))
+                }
+                val p = requireProject(project)
+                val built = mapper.readTree(postToExchange("$sdocUrl/sdoc/build", sdocPayload(p).toString()))
+                val grammar = query(ex)["grammar"] == "1"
+                val text = built.path(if (grammar) "sgra" else "sdoc").asText("")
+                ex.responseHeaders.add("Content-Type", "text/plain; charset=utf-8")
+                ex.responseHeaders.add("Content-Disposition", "attachment; filename=\"" + (if (grammar) "orbita.sgra" else "$p.sdoc") + "\"")
+                val bytes = text.toByteArray()
+                ex.sendResponseHeaders(200, bytes.size.toLong())
+                ex.responseBody.use { it.write(bytes) }
+            }
+            method == "GET" && path == "/export/sdoc/reqif" -> {
+                val sdocUrl = System.getenv("ORBITA_STRICTDOC_URL")
+                if (sdocUrl.isNullOrBlank()) {
+                    return respond(ex, 503, mapper.createObjectNode().put("error", "служба StrictDoc не настроена: задайте ORBITA_STRICTDOC_URL").put("adr", "ADR-049"))
+                }
+                val p = requireProject(project)
+                val req = mapper.createObjectNode()
+                req.set<ObjectNode>("payload", sdocPayload(p))
+                req.putArray("formats").add("reqif-sdoc")
+                val r = mapper.readTree(postToExchange("$sdocUrl/sdoc/export", req.toString()))
+                val xml = r.path("files").properties().firstOrNull { it.key.endsWith(".reqif") }?.value?.asText("")
+                if (!r.path("ok").asBoolean(false) || xml.isNullOrBlank()) {
+                    return respond(ex, 502, mapper.createObjectNode().put("error", "StrictDoc не выдал ReqIF: " + r.path("stderr").asText("").take(400)))
+                }
+                ex.responseHeaders.add("Content-Type", "application/xml; charset=utf-8")
+                ex.responseHeaders.add("Content-Disposition", "attachment; filename=\"$p.strictdoc.reqif\"")
+                val bytes = xml.toByteArray()
+                ex.sendResponseHeaders(200, bytes.size.toLong())
+                ex.responseBody.use { it.write(bytes) }
+            }
+            // снимок базирования — файлы .sgra и .sdoc в каталоге файлов проекта:
+            // диф двух базирований — обычный diff, читаемый человеком
+            method == "POST" && path == "/export/sdoc/baseline" -> {
+                val sdocUrl = System.getenv("ORBITA_STRICTDOC_URL")
+                if (sdocUrl.isNullOrBlank()) {
+                    return respond(ex, 503, mapper.createObjectNode().put("error", "служба StrictDoc не настроена: задайте ORBITA_STRICTDOC_URL").put("adr", "ADR-049"))
+                }
+                val p = requireProject(project)
+                val built = mapper.readTree(postToExchange("$sdocUrl/sdoc/build", sdocPayload(p).toString()))
+                val stamp = java.time.OffsetDateTime.now(java.time.ZoneOffset.UTC).format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"))
+                val dir = java.nio.file.Path.of(filesDir(), "baselines", p, stamp)
+                java.nio.file.Files.createDirectories(dir)
+                java.nio.file.Files.writeString(dir.resolve("orbita.sgra"), built.path("sgra").asText(""))
+                java.nio.file.Files.writeString(dir.resolve("$p.sdoc"), built.path("sdoc").asText(""))
+                respond(ex, 200, mapper.createObjectNode().put("dir", dir.toString()).put("sdoc", "$p.sdoc").put("sgra", "orbita.sgra")
+                    .put("author", author("инженер")).put("at", stamp))
+            }
+            // импорт .sdoc — кандидаты; в модель канал сам не пишет
+            method == "POST" && path == "/import/sdoc" -> {
+                val sdocUrl = System.getenv("ORBITA_STRICTDOC_URL")
+                if (sdocUrl.isNullOrBlank()) {
+                    return respond(ex, 503, mapper.createObjectNode().put("error", "служба StrictDoc не настроена: задайте ORBITA_STRICTDOC_URL").put("adr", "ADR-049"))
+                }
+                val parsed = mapper.readTree(postToExchange("$sdocUrl/sdoc/import", body(ex)))
+                val out = mapper.createObjectNode()
+                out.set<ArrayNode>("drafts", mapper.valueToTree(parsed.path("requirements")))
+                out.put("count", parsed.path("requirements").size())
+                respond(ex, 200, out)
+            }
+
             method == "GET" && path == "/export/reqif/check" -> {
                 val model = DocumentModel.model(boundary, project)
                 val flattened = model.path("requirements")
@@ -3438,6 +3505,18 @@ class HttpApi(private val boundary: Boundary) {
     private fun body(ex: HttpExchange): String = ex.requestBody.readAllBytes().decodeToString()
 
     /** Вызов службы обмена (ADR-023). Отказ службы — отказ запроса, не заглушка. */
+    /** ADR-049: модель проекта для StrictDoc-канала — нужды, сервисы, требования как есть. */
+    private fun sdocPayload(projectId: String): ObjectNode {
+        val cur = boundary.objects.listCurrent(projectId).filter { it.status != Lifecycle.Cancelled }
+        val out = mapper.createObjectNode()
+        boundary.objects.current(projectId)?.let { out.set<ObjectNode>("project", mapper.createObjectNode().put("id", it.id).put("name", it.doc.path("name").asText(it.id))) }
+        for ((type, field) in listOf("need" to "needs", "service" to "services", "requirement" to "requirements")) {
+            val arr = out.putArray(field)
+            cur.filter { it.type == type }.sortedBy { it.id }.forEach { arr.add(it.doc) }
+        }
+        return out
+    }
+
     private fun postToExchange(url: String, json: String): String {
         val connection = java.net.URI(url).toURL().openConnection() as java.net.HttpURLConnection
         connection.requestMethod = "POST"

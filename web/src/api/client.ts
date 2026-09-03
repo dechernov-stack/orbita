@@ -678,9 +678,17 @@ export const api = {
   /** Адреса выгрузок (TZ-OUT-005): маршруты живут в слое API, не в разметке. */
   exportUrls: {
     reqif: `${BASE}/export/reqif`,
+    /** ADR-049: StrictDoc-канал — .sdoc по грамматике Орбиты и ReqIF от StrictDoc. */
+    sdoc: `${BASE}/export/sdoc`,
+    sdocGrammar: `${BASE}/export/sdoc?grammar=1`,
+    sdocReqif: `${BASE}/export/sdoc/reqif`,
     csv: `${BASE}/export/exchange?format=csv`,
     exchangeJson: `${BASE}/export/exchange?format=json`,
   },
+  /** ADR-049: снимок базирования .sdoc в каталоге файлов проекта. */
+  sdocBaseline: () => post<{ dir: string; sdoc: string; sgra: string; at: string }>('/export/sdoc/baseline', {}),
+  /** ADR-049: импорт .sdoc — кандидаты с чужими полями в foreign_attributes; в модель канал не пишет. */
+  importSdoc: (sdoc: string) => post<{ drafts: unknown[]; count: number }>('/import/sdoc', { sdoc }),
   /** Импорт ReqIF (ADR-024): файл разбирает служба обмена, назад — черновики. */
   importReqif: async (xml: string) => {
     const response = await fetch(`${BASE}/import/reqif`, { method: 'POST', body: xml })

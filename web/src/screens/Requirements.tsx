@@ -693,6 +693,40 @@ function DotsMenu({ onClose, onImported }: { onClose: () => void; onImported: (r
       <div className="rr-col"><a className="rr-assign" href={api.exportUrls.reqif} download>Выгрузить ReqIF</a></div>
       <div className="rr-col"><a className="rr-assign" href={api.exportUrls.csv} download>Выгрузить CSV</a></div>
       <div className="rr-col"><a className="rr-assign" href={api.exportUrls.exchangeJson} download>Выгрузить JSON (обмен)</a></div>
+      <div className="rr-col"><a className="rr-assign" href={api.exportUrls.sdoc} download title="StrictDoc-канал: документ по грамматике Орбиты (ADR-049)">Выгрузить .sdoc (StrictDoc)</a></div>
+      <div className="rr-col"><a className="rr-assign" href={api.exportUrls.sdocReqif} download title="ReqIF, собранный StrictDoc из .sdoc">Выгрузить ReqIF (StrictDoc)</a></div>
+      <div className="rr-col">
+        <button
+          type="button"
+          className="rr-assign"
+          title="снимок базирования: .sgra и .sdoc в каталоге файлов проекта — диф двух базирований читается diff'ом"
+          onClick={() => {
+            api.sdocBaseline()
+              .then((r) => onImported(`снимок базирования записан: ${r.dir}`))
+              .catch((e) => onImported(String(e)))
+          }}
+        >
+          Снимок базирования .sdoc
+        </button>
+      </div>
+      <div className="rr-col">
+        <label className="rr-assign" style={{ cursor: 'pointer' }} title="StrictDoc-канал (ADR-049): документ разбирает StrictDoc, назад — кандидаты с чужими полями; в модель импорт не пишет">
+          Загрузить .sdoc…
+          <input
+            type="file" accept=".sdoc" style={{ display: 'none' }}
+            onChange={(e) => {
+              const f = e.target.files?.[0]
+              if (f) {
+                void f.text().then((sdoc) => api.importSdoc(sdoc)).then((parsed) =>
+                  onImported(`разобрано кандидатов из .sdoc: ${parsed.count}`),
+                ).catch((err) => onImported(String(err)))
+              }
+              e.target.value = ''
+              onClose()
+            }}
+          />
+        </label>
+      </div>
       <div className="rr-col">
         <label className="rr-assign" style={{ cursor: 'pointer' }}>
           Загрузить ReqIF…

@@ -70,6 +70,8 @@ services:
       ORBITA_EXCHANGE_URL: http://exchange:8091
       # ADR-048: адаптер Capella включается флагом; без него — fixture с баннером
       ORBITA_CAPELLA_URL: ${ORBITA_CAPELLA_URL:-}
+      # ADR-049: StrictDoc-канал включается флагом; без него — отказ 503
+      ORBITA_STRICTDOC_URL: ${ORBITA_STRICTDOC_URL:-}
       # круг 2: файлы исходных документов — при стенде, в копии О-18
       ORBITA_FILES_DIR: /files
       # Служба ИИ (П5): прямой канал к провайдеру. Пустое значение — канал
@@ -119,3 +121,13 @@ volumes:
       - ${ORBITA_CAPELLA_DIR:-./ops/capella/model}:/model:ro
     ports:
       - "127.0.0.1:8092:8092"
+
+  # ADR-049: StrictDoc-канал (strictdoc 0.29.0, Apache-2.0). Не стартует по
+  # умолчанию: профиль strictdoc; ядро ходит по ORBITA_STRICTDOC_URL.
+  strictdoc:
+    profiles: ["strictdoc"]
+    build:
+      context: .
+      dockerfile: ops/strictdoc.Dockerfile
+    ports:
+      - "127.0.0.1:8093:8093"
