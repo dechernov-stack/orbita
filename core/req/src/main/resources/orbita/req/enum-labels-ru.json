@@ -182,6 +182,28 @@
       "safe": "безопасный режим",
       "maneuver": "манёвр"
     },
+    "model_element_type": {
+      "OperationalCapability": "операционная способность",
+      "SystemFunction": "системная функция",
+      "LogicalFunction": "логическая функция",
+      "LogicalComponent": "логический компонент",
+      "PhysicalComponent": "физический компонент",
+      "FunctionalExchange": "функциональный обмен",
+      "FunctionalChain": "функциональная цепочка",
+      "Diagram": "диаграмма"
+    },
+    "model_element_layer": {
+      "OA": "операционный (OA)",
+      "SA": "системный (SA)",
+      "LA": "логический (LA)",
+      "PA": "физический (PA)"
+    },
+    "arch_link_relation": {
+      "satisfied_by": "удовлетворяется",
+      "allocated_to": "распределено на",
+      "realized_by": "реализуется",
+      "traced_to": "прослеживается к"
+    },
     "function_level": {
       "operational": "операционная",
       "system": "системная",

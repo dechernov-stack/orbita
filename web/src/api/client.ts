@@ -55,6 +55,7 @@ import type {
   CompositionTree,
   TraceGraphView,
   FunctionMatrixView,
+  ExternalModelView,
 } from './types'
 
 import { withProject } from './project'
@@ -586,6 +587,9 @@ export const api = {
     post<{ id: string }>('/views/req-views', { author, doc }),
   /** Матрицы живут на экране требований — там принимается решение (шаг 16 §2.4). */
   traceMatrix: () => get<TraceMatrixView>('/reports/trace-matrix'),
+  /** ADR-048: внешняя модель и обновление снимков из адаптера (только чтение модели). */
+  externalModel: () => get<ExternalModelView>('/views/external-model'),
+  capellaRefresh: () => post<{ created: number; updated: number; model_id: string }>('/library/capella/refresh', {}),
   /** ADR-047: функции × узлы — считает сервер. */
   functionMatrix: () => get<FunctionMatrixView>('/reports/function-matrix'),
   verificationMatrix: () => get<VerificationMatrixFlatView>('/reports/verification-matrix'),

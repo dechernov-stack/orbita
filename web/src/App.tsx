@@ -48,6 +48,7 @@ import { Risks } from './screens/Risks'
 import { Spacecraft } from './screens/Spacecraft'
 import { SystemComposition } from './screens/SystemComposition'
 import { TraceGraph } from './screens/TraceGraph'
+import { ExternalModel } from './screens/ExternalModel'
 import { SystemOverview } from './screens/SystemOverview'
 import { AuthorField, LoginGate, useSession } from './ui/session'
 
@@ -367,6 +368,7 @@ export function App() {
       case 'trace': return <ScreenFrame title="Трассировка и impact"><TraceGraph onGo={go} /></ScreenFrame>
       case 'aoa': return <KindRegistry key={screen} kinds={['alternative', 'decision']} title="Альтернативы и решения" />
       case 'functions': return <KindRegistry key={screen} kinds={['function']} title="Функции" />
+      case 'external': return <ScreenFrame title="Внешняя модель"><ExternalModel onGo={go} /></ScreenFrame>
       case 'wbs': return <KindRegistry key={screen} kinds={['component', 'interface']} title="Элементы и интерфейсы" />
       case 'composition': return <ScreenFrame title="Дерево состава"><SystemComposition onGo={go} /></ScreenFrame>
       case 'wbstree': return <KindRegistry key={screen} kinds={['wbs_element']} title="Структура работ (WBS)" />

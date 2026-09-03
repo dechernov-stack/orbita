@@ -90,6 +90,11 @@
             "required": [
               "interface"
             ]
+          },
+          {
+            "required": [
+              "model_element"
+            ]
           }
         ],
         "properties": {
@@ -125,6 +130,11 @@
                 ]
               }
             }
+          },
+          "model_element": {
+            "type": "string",
+            "pattern": "^ME-[0-9]{4}$",
+            "description": "Внешний элемент модели (ME-NNNN, ADR-048) — носитель наравне с узлами состава; связь с обоснованием лучше вести объектом arch_link"
           }
         }
       }

@@ -508,6 +508,69 @@ class HttpApi(private val boundary: Boundary) {
                 respond(ex, 200, n)
             }
 
+            // ADR-048: внешняя модель — элементы-ссылки, связи с обоснованием, баннер fixture
+            method == "GET" && path == "/views/external-model" -> {
+                val p = requireProject(project)
+                val cur = boundary.objects.listCurrent(p).filter { it.status != Lifecycle.Cancelled }
+                val out = mapper.createObjectNode()
+                val elements = out.putArray("elements")
+                cur.filter { it.type == "model_element" }.sortedBy { it.id }.forEach { e ->
+                    elements.addObject().put("id", e.id).put("name", e.doc.path("name").asText(""))
+                        .put("type", e.doc.path("type").asText("")).put("layer", e.doc.path("layer").asText(""))
+                        .put("source_tool", e.doc.path("source_tool").asText("")).put("model_id", e.doc.path("model_id").asText(""))
+                        .put("uuid", e.doc.path("uuid").asText("")).put("refreshed_at", e.doc.path("refreshed_at").asText("").ifBlank { null })
+                        .put("fixture", e.doc.path("fixture").asBoolean(false))
+                }
+                val links = out.putArray("links")
+                cur.filter { it.type == "arch_link" }.sortedBy { it.id }.forEach { l ->
+                    links.addObject().put("id", l.id).put("requirement", l.doc.path("requirement").asText(""))
+                        .put("element", l.doc.path("element").asText("")).put("relation", l.doc.path("relation").asText(""))
+                        .put("rationale", l.doc.path("rationale").asText(""))
+                }
+                val adapter = System.getenv("ORBITA_CAPELLA_URL")?.takeIf { it.isNotBlank() }
+                out.put("adapter_enabled", adapter != null)
+                val anyFixture = cur.any { it.type == "model_element" && it.doc.path("fixture").asBoolean(false) }
+                out.put("fixture_banner", adapter == null || anyFixture)
+                out.put("banner", if (adapter == null) "модель: fixture, не доказательство интеграции — адаптер Capella не включён (ORBITA_CAPELLA_URL)"
+                    else if (anyFixture) "модель: среди элементов есть fixture — не доказательство интеграции" else "")
+                respond(ex, 200, out)
+            }
+            // ADR-048: обновление снимков из адаптера — только чтение модели; без флага — честный отказ
+            method == "POST" && path == "/library/capella/refresh" -> {
+                val p = requireProject(project)
+                val adapter = System.getenv("ORBITA_CAPELLA_URL")?.takeIf { it.isNotBlank() }
+                if (adapter == null) {
+                    return respond(ex, 409, mapper.createObjectNode().put("error", "адаптер Capella не включён: показан fixture, не интеграция — задайте ORBITA_CAPELLA_URL и модель в контейнере capella"))
+                }
+                val resp = java.net.http.HttpClient.newHttpClient().send(
+                    java.net.http.HttpRequest.newBuilder(java.net.URI.create("$adapter/elements")).GET().build(),
+                    java.net.http.HttpResponse.BodyHandlers.ofString(),
+                )
+                if (resp.statusCode() != 200) return respond(ex, 502, mapper.createObjectNode().put("error", "адаптер Capella: ${resp.statusCode()} ${resp.body().take(200)}"))
+                val payload = mapper.readTree(resp.body())
+                val modelId = payload.path("model_id").asText("model")
+                val who = author("capella")
+                val byUuid = boundary.objects.listCurrent(p).filter { it.type == "model_element" && it.status != Lifecycle.Cancelled }
+                    .associateBy { it.doc.path("uuid").asText("") }
+                val now = java.time.OffsetDateTime.now(java.time.ZoneOffset.UTC).toString()
+                var created = 0; var updated = 0
+                payload.path("elements").forEach { e ->
+                    val uuid = e.path("uuid").asText("")
+                    val existing = byUuid[uuid]
+                    if (existing == null) {
+                        val doc = mapper.createObjectNode().put("source_tool", "capella").put("model_id", modelId).put("uuid", uuid)
+                            .put("type", e.path("type").asText("")).put("layer", e.path("layer").asText("")).put("name", e.path("name").asText(uuid))
+                            .put("refreshed_at", now).put("fixture", false)
+                        e.path("parent_uuid").asText("").takeIf { it.isNotBlank() }?.let { doc.put("parent_uuid", it) }
+                        boundary.editing.create(CoreType.ModelElement, doc, who, p); created++
+                    } else {
+                        val changes = mapper.createObjectNode().put("name", e.path("name").asText(uuid)).put("refreshed_at", now).put("fixture", false)
+                        boundary.editing.update(CoreType.ModelElement, existing.id, changes, existing.version, who); updated++
+                    }
+                }
+                respond(ex, 200, mapper.createObjectNode().put("created", created).put("updated", updated).put("model_id", modelId))
+            }
+
             // ADR-046: граф трассировки и impact — узлы и рёбра без координат;
             // фокус, глубина 1–4, кратчайший путь до второго объекта
             method == "GET" && path == "/views/trace-graph" -> {

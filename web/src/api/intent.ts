@@ -37,7 +37,7 @@ export function takeDocTemplate(): string | null {
  */
 const PREFIX_SCREEN: Record<string, string> = {
   MG: 'goals', ND: 'goals', SV: 'services', CO: 'conops',
-  RQ: 'req', FN: 'functions',
+  RQ: 'req', FN: 'functions', ME: 'external', AR: 'external',
   AL: 'aoa', CM: 'wbs', IF: 'wbs', WB: 'wbstree', CE: 'cost',
   SC: 'siminputs', CN: 'siminputs', DM: 'siminputs',
   // ADR-044: модель аппарата — вид узла КА; прежние SP живут только в истории

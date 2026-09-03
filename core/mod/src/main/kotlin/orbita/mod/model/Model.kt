@@ -43,6 +43,9 @@ enum class CoreType(val idPrefix: String, val dbType: String, val schemaName: St
     Conops("CO", "conops", "core/conops"),
     // ADR-047: функция — слой логической декомпозиции между нуждами и узлами состава
     Function("FN", "function", "core/function"),
+    // ADR-048: внешний элемент модели (Capella) и связь требования с ним
+    ModelElement("ME", "model_element", "core/model-element"),
+    ArchLink("AR", "arch_link", "core/arch-link"),
     Technology("TL", "technology", "core/technology"),
     Decision("DN", "decision", "core/decision"),
     Project("PJ", "project", "core/project"),

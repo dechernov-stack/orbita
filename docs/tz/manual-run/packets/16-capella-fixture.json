@@ -1,0 +1,11 @@
+{
+  "_comment": "ADR-048: fixture внешней модели Capella — синтетические элементы без инструмента. Экран показывает баннер «модель: fixture, не доказательство интеграции». Загружается в проект пачкой (POST /import/objects) как данные, не сид полки.",
+  "author": "fixture",
+  "objects": [
+    {"id": "ME-9001", "source_tool": "capella", "model_id": "fixture", "uuid": "fixture-oa-collect-telemetry", "type": "OperationalCapability", "layer": "OA", "name": "Сбор телеметрии в районах без связи", "fixture": true, "lifecycle": {"status": "Draft", "version": "1"}},
+    {"id": "ME-9002", "source_tool": "capella", "model_id": "fixture", "uuid": "fixture-sa-receive-uplink", "type": "SystemFunction", "layer": "SA", "name": "Принять сообщение терминала", "fixture": true, "lifecycle": {"status": "Draft", "version": "1"}},
+    {"id": "ME-9003", "source_tool": "capella", "model_id": "fixture", "uuid": "fixture-la-onboard-router", "type": "LogicalComponent", "layer": "LA", "name": "Бортовой маршрутизатор сообщений", "fixture": true, "lifecycle": {"status": "Draft", "version": "1"}},
+    {"id": "ME-9004", "source_tool": "capella", "model_id": "fixture", "uuid": "fixture-pa-payload-unit", "type": "PhysicalComponent", "layer": "PA", "name": "Блок полезной нагрузки", "fixture": true, "parent_uuid": "fixture-la-onboard-router", "lifecycle": {"status": "Draft", "version": "1"}},
+    {"id": "ME-9005", "source_tool": "capella", "model_id": "fixture", "uuid": "fixture-la-exchange-downlink", "type": "FunctionalExchange", "layer": "LA", "name": "Сброс пакетов на станцию", "fixture": true, "lifecycle": {"status": "Draft", "version": "1"}}
+  ]
+}

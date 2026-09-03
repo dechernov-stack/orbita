@@ -16,13 +16,13 @@ import type { TraceGraphView } from '../api/types'
 
 const KIND_LABEL: Record<string, string> = {
   need: 'нужда', service: 'сервис', goal: 'цель', conops: 'сценарий ConOps',
-  requirement: 'требование', function: 'функция', node: 'узел состава', interface: 'интерфейс',
+  requirement: 'требование', function: 'функция', node: 'узел состава', interface: 'интерфейс', external: 'внешний элемент',
   event: 'событие верификации', evidence: 'свидетельство', document: 'документ', missing: 'битая ссылка',
 }
 
 const KIND_COLOR: Record<string, string> = {
   need: '#e8f1ff', service: '#eef7ee', goal: '#fff6e0', conops: '#f3f0ff',
-  requirement: '#ffffff', function: '#fff1f2', node: '#f1f5f9', interface: '#fdf2f8',
+  requirement: '#ffffff', function: '#fff1f2', node: '#f1f5f9', interface: '#fdf2f8', external: '#e5e7eb',
   event: '#ecfeff', evidence: '#f0fdf4', document: '#fefce8', missing: '#fee2e2',
 }
 
@@ -34,7 +34,7 @@ const EDGE_LABEL: Record<string, string> = {
 
 const GROUP_LABEL: Record<string, string> = {
   needs: 'Нужды и источники', parents: 'Родители', children: 'Дети', dependents: 'Зависимые',
-  conflicts: 'Противоречия', events: 'События верификации', carriers: 'Носители (узлы)', functions: 'Функции',
+  conflicts: 'Противоречия', events: 'События верификации', carriers: 'Носители (узлы)', functions: 'Функции', external: 'Внешние элементы модели',
   interfaces: 'Интерфейсы', documents: 'Документы со вставкой', broken: 'Битые ссылки',
 }
 

@@ -70,6 +70,7 @@ export const SECTIONS: NavSection[] = [
       { key: 'aoa', title: 'Альтернативы и решения' },
       { key: 'functions', title: 'Функции' },
       { key: 'wbs', title: 'Элементы и интерфейсы' },
+      { key: 'external', title: 'Внешняя модель' },
       { key: 'composition', title: 'Дерево состава' },
       { key: 'wbstree', title: 'Структура работ (WBS)' },
       { key: 'cost', title: 'Оценки стоимости' },

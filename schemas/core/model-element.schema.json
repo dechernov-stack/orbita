@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/core/model-element.schema.json",
+  "title": "ModelElement",
+  "description": "Внешний элемент модели (ADR-048): узел-ссылка на элемент MBSE-инструмента (Capella). Идентичность — UUID модели; имя — снимок только для показа; обновление явное (refreshed_at). Может быть носителем требования наравне с узлами дерева состава; в чужую модель система не пишет никогда.",
+  "type": "object",
+  "required": ["id", "source_tool", "model_id", "uuid", "type", "layer", "name", "lifecycle"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {"type": "string", "pattern": "^ME-[0-9]{4}$"},
+    "source_tool": {"enum": ["capella"], "description": "Инструмент-источник"},
+    "model_id": {"type": "string", "minLength": 1, "description": "Идентификатор модели (имя проекта Capella или путь); «fixture» — синтетическая модель без инструмента"},
+    "uuid": {"type": "string", "minLength": 8, "description": "UUID элемента в модели — истина идентичности"},
+    "type": {"enum": ["OperationalCapability", "SystemFunction", "LogicalFunction", "LogicalComponent", "PhysicalComponent", "FunctionalExchange", "FunctionalChain", "Diagram"]},
+    "layer": {"enum": ["OA", "SA", "LA", "PA"], "description": "Слой Capella: операционный · системный · логический · физический"},
+    "name": {"type": "string", "minLength": 1, "description": "Снимок имени на момент обновления (name_snapshot) — показ, не истина"},
+    "refreshed_at": {"type": "string", "format": "date-time", "description": "Когда снимок обновлялся из модели; пусто у fixture"},
+    "fixture": {"type": "boolean", "default": false, "description": "Синтетический элемент без живой модели: экран показывает баннер «не доказательство интеграции»"},
+    "parent_uuid": {"type": "string", "description": "UUID родителя в модели (для показа дерева)"},
+    "lifecycle": {"$ref": "https://kis.local/schemas/common/status.schema.json"},
+    "provenance": {"$ref": "https://kis.local/schemas/common/provenance.schema.json"},
+    "applies": {"type": "object"}
+  }
+}

@@ -294,10 +294,11 @@ class ScreenViews(
             row = tree.rows.first { it.id == requirementId },
             successCriterion = successCriterion(doc, unitLabels.asFunction()),
             sources = doc.path("traces_up").map { it.path("ref").asText() },
-            allocatedTo = doc.path("allocated_to").mapNotNull {
+            allocatedTo = (doc.path("allocated_to").mapNotNull {
                 it.path("component").asText("").ifBlank { null }
                     ?: it.path("interface").asText("").ifBlank { null }
-            },
+                    ?: it.path("model_element").asText("").ifBlank { null }
+            } + req.links.linksFrom(requirementId, "allocation").map { it.toId }.filter { it.startsWith("ME-") }).distinct(),
             events = events,
         )
     }
@@ -392,10 +393,14 @@ class ScreenViews(
         val event = closing ?: doc.path("verification_events").firstOrNull()
         val bar = budgetBarFor(id)
         val cond = condition(doc)
-        val allocated = doc.path("allocated_to").mapNotNull {
+        // ADR-048: носителем бывает и внешний элемент модели — по связи arch_link
+        // (таблица связей) либо по прямому allocated_to.model_element
+        val external = req.links.linksFrom(id, "allocation").map { it.toId }.filter { it.startsWith("ME-") }
+        val allocated = (doc.path("allocated_to").mapNotNull {
             it.path("component").asText("").ifBlank { null }
                 ?: it.path("interface").asText("").ifBlank { null }
-        }
+                ?: it.path("model_element").asText("").ifBlank { null }
+        } + external).distinct()
         val carrierName = allocated.firstOrNull()?.let { carrierId ->
             carrierNames.getOrPut(carrierId) {
                 req.objects.current(carrierId)?.doc?.path("name")?.asText("")?.ifBlank { null }

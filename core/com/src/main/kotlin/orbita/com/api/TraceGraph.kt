@@ -33,7 +33,7 @@ class TraceGraph(private val boundary: Boundary) {
     private val OBJECT_KINDS = mapOf(
         "need" to "need", "service" to "service", "mission_goal" to "goal", "conops" to "conops",
         "requirement" to "requirement", "component" to "node", "interface" to "interface", "evidence" to "evidence",
-        "function" to "function",
+        "function" to "function", "model_element" to "external",
     )
     private val LINK_KINDS = setOf("trace", "derive", "allocation", "conflict")
 
@@ -187,6 +187,7 @@ class TraceGraph(private val boundary: Boundary) {
             group("events", around.filter { it.kind == "verifies" && it.to == f }.map { it.from })
             group("carriers", around.filter { it.kind == "allocation" && it.from == f }.map { it.to }.filter { built.nodes[it]?.kind == "node" })
             group("functions", around.filter { it.kind == "allocation" || it.kind == "trace" }.map { if (it.from == f) it.to else it.from }.filter { built.nodes[it]?.kind == "function" })
+            group("external", around.filter { it.kind == "allocation" && it.from == f }.map { it.to }.filter { built.nodes[it]?.kind == "external" })
             group("interfaces", around.filter { (it.kind == "allocation" && it.from == f && built.nodes[it.to]?.kind == "interface") || it.kind == "side" }.map { if (it.from == f) it.to else it.from })
             group("documents", around.filter { it.kind == "inserted_in" && it.from == f }.map { it.to })
             group("broken", around.map { if (it.from == f) it.to else it.from }.filter { built.nodes[it]?.kind == "missing" })

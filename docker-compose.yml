@@ -68,6 +68,8 @@ services:
       # не открывает API в сеть хоста.
       ORBITA_HTTP_BIND: 0.0.0.0
       ORBITA_EXCHANGE_URL: http://exchange:8091
+      # ADR-048: адаптер Capella включается флагом; без него — fixture с баннером
+      ORBITA_CAPELLA_URL: ${ORBITA_CAPELLA_URL:-}
       # круг 2: файлы исходных документов — при стенде, в копии О-18
       ORBITA_FILES_DIR: /files
       # Служба ИИ (П5): прямой канал к провайдеру. Пустое значение — канал
@@ -103,3 +105,17 @@ volumes:
   orbita-db:
   # круг 2: файлы исходных документов; входит в резервную копию О-18
   orbita-files:
+
+  # ADR-048: адаптер Capella (capellambse, только чтение). Не стартует по
+  # умолчанию: профиль capella + путь к модели; модель монтируется :ro.
+  capella:
+    profiles: ["capella"]
+    build:
+      context: .
+      dockerfile: ops/capella.Dockerfile
+    environment:
+      ORBITA_CAPELLA_MODEL: /model/${ORBITA_CAPELLA_AIRD:-model.aird}
+    volumes:
+      - ${ORBITA_CAPELLA_DIR:-./ops/capella/model}:/model:ro
+    ports:
+      - "127.0.0.1:8092:8092"

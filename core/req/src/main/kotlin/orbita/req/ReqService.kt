@@ -202,6 +202,7 @@ class ReqService(
                 // CR-001/CR-003: распределение — объект {component|interface, kind, rationale}
                 doc.path("allocated_to").forEach { a ->
                     val target = a.path("component").asText("").ifBlank { a.path("interface").asText("") }
+                        .ifBlank { a.path("model_element").asText("") }
                     objects.current(target)
                         ?: throw ModelViolationException("TZ-REQ-005: allocation to missing element $target")
                 }
@@ -420,6 +421,12 @@ class ReqService(
                     "mission_goal" -> d.path("traces_up").forEach { nd ->
                         put(Triple(nd.asText(), objId, "trace"), Attrs())
                     }
+                    // ADR-048: связь требования с внешним элементом — распределение
+                    // с обоснованием «вид: почему»; матрицы и impact видят элемент носителем
+                    "arch_link" -> put(
+                        Triple(d.path("requirement").asText(), d.path("element").asText(), "allocation"),
+                        Attrs(allocationKind = "full", rationale = d.path("relation").asText("") + ": " + d.path("rationale").asText("")),
+                    )
                     // ADR-047: функция — трассировка от источника, распределение на узлы
                     "function" -> {
                         d.path("traces_up").forEach { t ->
@@ -439,6 +446,7 @@ class ReqService(
                         }
                         d.path("allocated_to").forEach { a ->
                             val target = a.path("component").asText("").ifBlank { a.path("interface").asText("") }
+                                .ifBlank { a.path("model_element").asText("") }
                             put(
                                 Triple(objId, target, "allocation"),
                                 Attrs(
@@ -504,6 +512,8 @@ class ReqService(
                 links.linksTo(id, "trace") + links.linksFrom(id, "allocation") + links.linksTo(id, "derive") +
                     links.linksFrom(id, "conflict")
             "function" -> links.linksTo(id, "trace") + links.linksFrom(id, "allocation")
+            "arch_link" -> links.linksFrom(doc.path("requirement").asText(""), "allocation")
+                .filter { it.toId == doc.path("element").asText("") }
             else -> emptyList()
         } + links.linksFrom(id, "applies") + links.linksTo(id, "evolves") +
             links.linksFrom(id, "wbs") + links.linksFrom(id, "uses") + links.linksFrom(id, "hosted_on")
@@ -631,6 +641,28 @@ class ReqService(
         return conn.tx {
             val stored = create(doc, "conops", createdBy, projectId)
             syncLinks("conops", stored.id, doc, projectId)
+            stored
+        }
+    }
+
+    /** ADR-048: внешний элемент модели — узел-ссылка, идентичность по UUID; связей сам не несёт. */
+    fun ingestModelElement(json: String, createdBy: String = "api", projectId: String = ObjectStore.DEFAULT_PROJECT): StoredObject {
+        val doc = registry.parse(json)
+        registry.require("core/model-element", doc)
+        return create(doc, "model_element", createdBy, projectId)
+    }
+
+    /** ADR-048: связь требования с внешним элементом — обоснование обязательно, стороны существуют. */
+    fun ingestArchLink(json: String, createdBy: String = "api", projectId: String = ObjectStore.DEFAULT_PROJECT): StoredObject {
+        val doc = registry.parse(json)
+        registry.require("core/arch-link", doc)
+        val rq = doc.path("requirement").asText(""); val me = doc.path("element").asText("")
+        objects.current(rq)?.takeIf { it.type == "requirement" } ?: throw ModelViolationException("ADR-048: связь на отсутствующее требование $rq")
+        objects.current(me)?.takeIf { it.type == "model_element" } ?: throw ModelViolationException("ADR-048: связь на отсутствующий элемент модели $me")
+        if (doc.path("rationale").asText("").isBlank()) throw ModelViolationException("ADR-048: связь $rq → $me без обоснования не принимается")
+        return conn.tx {
+            val stored = create(doc, "arch_link", createdBy, projectId)
+            syncLinks("arch_link", stored.id, doc, projectId)
             stored
         }
     }

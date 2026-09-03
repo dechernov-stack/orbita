@@ -701,6 +701,15 @@ export interface GlobeView {
 }
 
 /** Матрица трассировки (TZ-OUT-004): строка на требование, разрывы отдельно. */
+/** ADR-048: внешняя модель — элементы-ссылки и связи с обоснованием. */
+export interface ExternalModelView {
+  elements: Array<{ id: string; name: string; type: string; layer: string; source_tool: string; model_id: string; uuid: string; refreshed_at: string | null; fixture: boolean }>
+  links: Array<{ id: string; requirement: string; element: string; relation: string; rationale: string }>
+  adapter_enabled: boolean
+  fixture_banner: boolean
+  banner: string
+}
+
 /** ADR-047: матрица «функции × узлы». */
 export interface FunctionMatrixView {
   columns: Array<{ id: string; name: string; type: string }>
