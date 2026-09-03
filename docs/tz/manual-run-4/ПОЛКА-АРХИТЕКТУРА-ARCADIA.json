@@ -117,158 +117,129 @@
    {
     "code": "F-01",
     "name": "Принять сообщение терминала",
-    "allocated_to": "PL-S",
-    "optional": false
+    "allocated_to": "PL-S"
    },
    {
     "code": "F-02",
     "name": "Подтвердить приём терминалу",
-    "allocated_to": "PL-S",
-    "optional": false
+    "allocated_to": "PL-S"
    },
    {
     "code": "F-03",
     "name": "Приоритизировать сообщения по классу",
-    "allocated_to": "PL-S-DSP",
-    "optional": false
+    "allocated_to": "PL-S-DSP"
    },
    {
     "code": "F-04",
     "name": "Хранить сообщения до сброса (S&F)",
-    "allocated_to": "PL-S-DSP",
-    "optional": false
+    "allocated_to": "PL-S-DSP"
    },
    {
     "code": "F-05",
     "name": "Сбросить данные на РСС",
-    "allocated_to": "PL-FEED",
-    "optional": false
+    "allocated_to": "PL-FEED"
    },
    {
     "code": "F-06",
     "name": "Маршрутизировать данные в ЦОД",
-    "allocated_to": "GW-GATE",
-    "optional": false
+    "allocated_to": "GW-GATE"
    },
    {
     "code": "F-07",
     "name": "Доставить данные потребителю",
-    "allocated_to": "DC-API",
-    "optional": false
+    "allocated_to": "DC-API"
    },
    {
     "code": "F-08",
     "name": "Передать эфемериды/альманах терминалам",
-    "allocated_to": "PL-S",
-    "optional": false
+    "allocated_to": "PL-S"
    },
    {
     "code": "F-09",
     "name": "Принять и исполнить команду ЦУП",
-    "allocated_to": "OBC",
-    "optional": false
+    "allocated_to": "OBC"
    },
    {
     "code": "F-10",
     "name": "Сформировать и передать телеметрию",
-    "allocated_to": "TTC",
-    "optional": false
+    "allocated_to": "TTC"
    },
    {
     "code": "F-11",
     "name": "Поддерживать ориентацию",
-    "allocated_to": "AOCS",
-    "optional": false
+    "allocated_to": "AOCS"
    },
    {
     "code": "F-12",
     "name": "Поддерживать орбиту (удержание, фазирование)",
-    "allocated_to": "PROP",
-    "optional": false
+    "allocated_to": "PROP"
    },
    {
     "code": "F-13",
     "name": "Увести КА с орбиты",
-    "allocated_to": "PROP",
-    "optional": false
+    "allocated_to": "PROP"
    },
    {
     "code": "F-14",
     "name": "Обеспечить электропитание",
-    "allocated_to": "EPS",
-    "optional": false
+    "allocated_to": "EPS"
    },
    {
     "code": "F-15",
     "name": "Обеспечить тепловой режим",
-    "allocated_to": "TCS",
-    "optional": false
+    "allocated_to": "TCS"
    },
    {
     "code": "F-16",
     "name": "Обнаруживать и парировать отказы (FDIR)",
-    "allocated_to": "OBC-SW",
-    "optional": false
+    "allocated_to": "OBC-SW"
    },
    {
     "code": "F-17",
     "name": "Рассчитывать эфемериды и планировать манёвры",
-    "allocated_to": "MCC-FD",
-    "optional": false
+    "allocated_to": "MCC-FD"
    },
    {
     "code": "F-18",
     "name": "Планировать сеансы станций",
-    "allocated_to": "MCC-PLAN",
-    "optional": false
+    "allocated_to": "MCC-PLAN"
    },
    {
     "code": "F-19",
     "name": "Контролировать состояние КА по ТМ",
-    "allocated_to": "MCC-TM",
-    "optional": false
+    "allocated_to": "MCC-TM"
    },
    {
     "code": "F-20",
     "name": "Управлять абонентами и приоритетами классов",
-    "allocated_to": "NOC-SUB",
-    "optional": false
+    "allocated_to": "NOC-SUB"
    },
    {
     "code": "F-21",
     "name": "Мониторить QoS сети",
-    "allocated_to": "NOC-MON",
-    "optional": false
+    "allocated_to": "NOC-MON"
    },
    {
     "code": "F-22",
     "name": "Ретранслировать между КА (ISL)",
     "allocated_to": "PL-ISL",
-    "optional": true,
-    "optional_on": [
-     "PL-ISL"
-    ]
+    "default_take": false
    },
    {
     "code": "F-23",
     "name": "Формировать навигационный сигнал (PNT)",
     "allocated_to": "PL-PNT",
-    "optional": true,
-    "optional_on": [
-     "PL-PNT"
-    ]
+    "default_take": false
    },
    {
     "code": "F-24",
     "name": "Сформировать сообщение из показаний датчиков",
-    "allocated_to": "UT-SENS-IO",
-    "optional": false
+    "allocated_to": "UT-SENS-IO"
    },
    {
     "code": "F-25",
     "name": "Передать сообщение по абонентской линии",
-    "allocated_to": "UT-SENS-MODEM",
-    "optional": false
+    "allocated_to": "UT-SENS-MODEM"
    }
   ],
   "exchanges": [
@@ -334,10 +305,7 @@
     "src": "F-22",
     "dst": "F-22",
     "interface": "IF-ISL",
-    "optional": true,
-    "optional_on": [
-     "IF-ISL"
-    ]
+    "default_take": false
    },
    {
     "code": "EX-NAV",
@@ -345,10 +313,7 @@
     "src": "F-23",
     "dst": "F-25",
     "interface": "IF-PNT-USER",
-    "optional": true,
-    "optional_on": [
-     "IF-PNT-USER"
-    ]
+    "default_take": false
    }
   ],
   "functional_chains": [
@@ -439,13 +404,10 @@
      "F-05"
     ],
     "capability": "OC-02",
-    "optional": true,
     "requirement_kinds": [
      "сценарные: латентность севера"
     ],
-    "optional_on": [
-     "PL-ISL"
-    ]
+    "default_take": false
    }
   ]
  },
@@ -516,10 +478,7 @@
     "deployed_to": [
      "PL-ISL"
     ],
-    "optional": true,
-    "optional_on": [
-     "PL-ISL"
-    ]
+    "default_take": false
    },
    {
     "code": "LC-GATEWAY",
@@ -642,6 +601,6 @@
   "logical_components": 9
  },
  "rules": [
-  "optional_on: запись создаётся, только если подтверждены перечисленные узлы/стыки; иначе пропускается с пометой; полка берётся"
+  "данные полны; default_take=false — не в рекомендованном наборе класса по умолчанию, выбор — у инженера при взятии; зависимости между элементами вычисляются по ссылкам, не хранятся флагами"
  ]
 }

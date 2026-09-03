@@ -224,10 +224,7 @@
             "direction": "двусторонняя",
             "standard": "протокол ISL",
             "icd_section": "ICD-ISL",
-            "optional": true,
-            "optional_on": [
-              "PL-ISL"
-            ],
+            "default_take": false,
             "expects": [
               {
                 "key": "band",
@@ -273,10 +270,7 @@
             "direction": "односторонняя",
             "standard": "формат навигационного сообщения",
             "icd_section": "ICD-PNT",
-            "optional": true,
-            "optional_on": [
-              "PL-PNT"
-            ],
+            "default_take": false,
             "expects": [
               {
                 "key": "band",

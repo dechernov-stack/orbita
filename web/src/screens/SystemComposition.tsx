@@ -8,7 +8,6 @@
 // Клиент ничего не складывает и не умножает: кратности, массы и претензии
 // сборки приходят готовыми (правило обхода кода клиента).
 import { useEffect, useState } from 'react'
-import { useSession } from '../ui/session'
 import { api } from '../api/client'
 import type { CompositionTree, RequirementCard } from '../api/types'
 import { ComponentSpec } from './ComponentSpec'
@@ -37,13 +36,8 @@ export function SystemComposition({ onGo }: { onGo?: (screen: string, kind?: str
   const [reqId, setReqId] = useState<string | null>(null)
   const [card, setCard] = useState<RequirementCard | null>(null)
   const [error, setError] = useState<string | null>(null)
-  /** Замечание Б3-01: подтверждение опциональных узлов и добор зависимого. */
-  const [busyCode, setBusyCode] = useState<string | null>(null)
-  const [confirmNote, setConfirmNote] = useState<string | null>(null)
-  const [needTopUp, setNeedTopUp] = useState(false)
-  const { author } = useSession()
 
-  const loadTree = () =>
+  useEffect(() => {
     api
       .compositionTree()
       .then((t) => {
@@ -52,37 +46,7 @@ export function SystemComposition({ onGo }: { onGo?: (screen: string, kind?: str
         if (first) setSelected((cur) => cur ?? first)
       })
       .catch((e) => setError(String(e)))
-
-  useEffect(() => { void loadTree() }, [])
-
-  const confirmNode = (fragment: string, code: string) => {
-    if (busyCode) return
-    setBusyCode(code)
-    setConfirmNote(null)
-    api.libraryConfirm(fragment, author, [code])
-      .then((r) => {
-        setConfirmNote(`${code}: узел заведён (создано ${r.created.length}) — зависимые полки можно добрать`)
-        setNeedTopUp(true)
-        return loadTree()
-      })
-      .catch((e) => setConfirmNote(String(e)))
-      .finally(() => setBusyCode(null))
-  }
-
-  const topUp = () => {
-    if (busyCode) return
-    setBusyCode('topup')
-    api.libraryTopUp(author)
-      .then((r) => {
-        const строки = r.fragments.filter((f) => f.created > 0).map((f) => `${f.name}: +${f.created}`)
-        setConfirmNote(r.created > 0
-          ? `добор: создано ${r.created} — ${строки.join('; ')}`
-          : 'добор: новых записей нет — всё разрешимое уже взято')
-        setNeedTopUp(false)
-      })
-      .catch((e) => setConfirmNote(String(e)))
-      .finally(() => setBusyCode(null))
-  }
+  }, [])
 
   useEffect(() => {
     if (!reqId) {
@@ -115,37 +79,6 @@ export function SystemComposition({ onGo }: { onGo?: (screen: string, kind?: str
       <div className="pane" style={{ borderRight: '1px solid var(--border)' }}>
         <h3 className="pbs-head">
           Состав системы <span className="secondary">· вхождений: {tree.rows.length}</span>
-          {(tree.pending_optional?.length ?? 0) > 0 && (
-            <div className="warn" style={{ marginTop: 6, padding: 6, fontSize: 12 }}>
-              Не подтверждены необязательные узлы каркаса: {tree.pending_optional!.length}
-              <span className="secondary"> — зависимые стыки, функции и пакеты работ ждут их</span>
-              <div style={{ marginTop: 4 }}>
-                {tree.pending_optional!.map((n) => (
-                  <div key={n.code}>
-                    <span className="mono">{n.code}</span> {n.name}
-                    <button type="button" className="rr-assign" style={{ marginLeft: 6 }}
-                      disabled={busyCode !== null}
-                      title="заводит узел из уже взятого каркаса; родитель — по коду"
-                      onClick={() => confirmNode(n.fragment, n.code)}>
-                      {busyCode === n.code ? 'завожу…' : 'подтвердить'}
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          {(needTopUp || confirmNote) && (
-            <div className="secondary" style={{ marginTop: 4, fontSize: 12 }}>
-              {confirmNote}
-              {needTopUp && (
-                <button type="button" className="rr-assign" style={{ marginLeft: 6 }} disabled={busyCode !== null}
-                  title="повторное взятие применённых полок создаёт только теперь разрешимые записи"
-                  onClick={topUp}>
-                  {busyCode === 'topup' ? 'добираю…' : 'добрать зависимое из взятых полок →'}
-                </button>
-              )}
-            </div>
-          )}
         </h3>
         {empty ? (
           <div className="empty">

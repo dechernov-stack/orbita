@@ -215,10 +215,7 @@
             "component_refs": [
               "@PL-P"
             ],
-            "optional": true,
-            "optional_on": [
-              "PL-P"
-            ]
+            "default_take": false
           },
           {
             "id": "WB-9415",
@@ -258,10 +255,7 @@
             "component_refs": [
               "@PL-ISL"
             ],
-            "optional": true,
-            "optional_on": [
-              "PL-ISL"
-            ]
+            "default_take": false
           },
           {
             "id": "WB-9418",
@@ -275,10 +269,7 @@
             "component_refs": [
               "@PL-PNT"
             ],
-            "optional": true,
-            "optional_on": [
-              "PL-PNT"
-            ]
+            "default_take": false
           },
           {
             "id": "WB-9419",
@@ -461,10 +452,7 @@
             "component_refs": [
               "@MCC-SIM"
             ],
-            "optional": true,
-            "optional_on": [
-              "MCC-SIM"
-            ]
+            "default_take": false
           },
           {
             "id": "WB-9433",
@@ -612,10 +600,7 @@
             "component_refs": [
               "@SC-EXP"
             ],
-            "optional": true,
-            "optional_on": [
-              "SC-EXP"
-            ]
+            "default_take": false
           },
           {
             "id": "WB-9444",

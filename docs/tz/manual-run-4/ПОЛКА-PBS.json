@@ -14,9 +14,9 @@
  "rules": [
   "взятие создаёт уровни 0–3 всегда, 4–5 — по классу миссии (НОО-IoT: КА целиком)",
   "params узла = поля анкеты узла; required_to — точка зрелости (до неё — приглашение, после — разрыв)",
-  "optional=true — узел создаётся только при подтверждении (ISL, PNT, P-диапазон, Э-ОГ)",
   "external=true — требования к интерфейсу, не к составу",
-  "подгруппа построения = вхождение SC ×N"
+  "подгруппа построения = вхождение SC ×N",
+  "данные полны; default_take=false — не в рекомендованном наборе класса по умолчанию, выбор — у инженера при взятии; зависимости между элементами вычисляются по ссылкам, не хранятся флагами"
  ],
  "units_to_add": [
   "площадь: м² (ввод см²)",
@@ -1119,8 +1119,8 @@
      "required_to": "MCR"
     }
    ],
-   "optional": true,
-   "level": 4
+   "level": 4,
+   "default_take": false
   },
   {
    "code": "PL-FEED",
@@ -1231,8 +1231,8 @@
      "required_to": "SDR"
     }
    ],
-   "optional": true,
-   "level": 4
+   "level": 4,
+   "default_take": false
   },
   {
    "code": "PL-PNT",
@@ -1248,8 +1248,8 @@
      "required_to": "SDR"
     }
    ],
-   "optional": true,
-   "level": 4
+   "level": 4,
+   "default_take": false
   },
   {
    "code": "SC-LVI",
@@ -1275,8 +1275,8 @@
    "kind": "element",
    "desc": "вхождения экспериментальных КА",
    "params": [],
-   "optional": true,
-   "level": 2
+   "level": 2,
+   "default_take": false
   },
   {
    "code": "SEG-GC",
@@ -1352,8 +1352,8 @@
    "kind": "subsystem",
    "desc": "",
    "params": [],
-   "optional": true,
-   "level": 3
+   "level": 3,
+   "default_take": false
   },
   {
    "code": "GCS",

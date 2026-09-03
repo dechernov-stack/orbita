@@ -62,8 +62,9 @@ class ArchitectureShelvesTest {
         val e = assertThrows(IllegalArgumentException::class.java) {
             channel.apply(interfaces, project, "инженер")
         }
-        assertTrue(e.message!!.contains("которых в проекте нет"), e.message)
-        assertTrue(e.message!!.contains("каркас PBS"), "отказ обязан сказать, что брать раньше: ${e.message}")
+        // решение Б3-01 ред. 2: отказ называет элемент, недостающий узел и полку,
+        // с которой его взять тем же подтверждением
+        assertTrue(e.message!!.contains("требует «PL-S»") && e.message!!.contains("из полки «")) { "отказ обязан назвать узел и полку: ${e.message}" }
         assertEquals(0, boundary.objects.listCurrent(project).count { it.type == "interface" },
             "отказ не должен оставить в проекте половину стыков")
     }
@@ -71,9 +72,9 @@ class ArchitectureShelvesTest {
     @Test
     @org.junit.jupiter.api.Order(2)
     fun `каркас, стыки и архитектура ложатся друг на друга - мера задания`() {
-        assertEquals(135, channel.apply(pbs, project, "инженер", LibraryChannel.TakeOptions(withOptional = true)).created.size)
-        assertEquals(26, channel.apply(interfaces, project, "инженер").created.size)
-        assertEquals(55, channel.apply(architecture, project, "инженер").created.size)
+        assertEquals(135, channel.apply(pbs, project, "инженер", LibraryChannel.TakeOptions(selectAll = true)).created.size)
+        assertEquals(26, channel.apply(interfaces, project, "инженер", LibraryChannel.TakeOptions(selectAll = true)).created.size)
+        assertEquals(55, channel.apply(architecture, project, "инженер", LibraryChannel.TakeOptions(selectAll = true)).created.size)
 
         val объекты = boundary.objects.listCurrent(project).groupBy { it.type }
         assertEquals(135, объекты.getValue("component").size)
@@ -157,7 +158,7 @@ class ArchitectureShelvesTest {
     @Test
     @org.junit.jupiter.api.Order(45)
     fun `полка WBS ложится деревом работ и спаривается с узлами каркаса`() {
-        assertEquals(54, channel.apply(wbs, project, "инженер").created.size)
+        assertEquals(54, channel.apply(wbs, project, "инженер", LibraryChannel.TakeOptions(selectAll = true)).created.size)
         val пакеты = boundary.objects.listCurrent(project)
             .filter { it.type == "wbs_element" }.associateBy { it.doc.path("code").asText("") }
         assertEquals(54, пакеты.size)

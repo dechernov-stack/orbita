@@ -129,24 +129,6 @@ class Carriers(private val boundary: Boundary) {
             kids.forEach { walk(it, level + 1, m) }
             def?.let { walkDefinitions(it.id, level + 1, m, kids.map { k -> k.doc.path("definition_ref").asText("") }.toSet()) }
         }
-        // Замечание Б3-01: опциональные узлы взятых каркасов, которых в проекте
-        // нет, — не молчание, а список «подтвердить»: зависимые полки ждут их
-        val codesInProject = defs.values.mapNotNull { it.doc.path("code").asText("").ifBlank { null } }.toSet()
-        val pending = out.putArray("pending_optional")
-        defs.values.mapNotNull { it.doc.path("applies").path("ref").asText("").ifBlank { null } }
-            .distinct().sorted()
-            .forEach { ref ->
-                val frag = boundary.objects.current(ref) ?: return@forEach
-                frag.doc.path("payload").path("objects")
-                    .filter { it.path("id").asText("").startsWith("CM-") && it.path("optional").asBoolean(false) }
-                    .filter { it.path("code").asText("") !in codesInProject }
-                    .forEach { n ->
-                        pending.addObject()
-                            .put("fragment", ref).put("fragment_name", frag.doc.path("name").asText(ref))
-                            .put("code", n.path("code").asText("")).put("name", n.path("name").asText(""))
-                            .put("kind", n.path("kind").asText("")).put("level", n.path("level").asInt(0))
-                    }
-            }
         // корни — вхождения без родителя, не привязанные к построению;
         // подгруппы построений идут своей группой ниже
         usages.filter { it.doc.path("parent_usage").asText("").isBlank() && it.doc.path("constellation_ref").asText("").isBlank() }

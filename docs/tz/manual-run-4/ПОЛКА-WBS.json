@@ -9,7 +9,7 @@
   "пакет ссылается на узлы кодом @; резолв — при взятии, как у стыков",
   "сроки пакетов — только от вех и планов задач (длительностей нет)",
   "свёртка стоимости и трудоёмкости — по дереву WBS; параметрика M11 читает пакеты",
-  "optional=true: пакет создаётся, только если его узлы подтверждены; иначе пропускается с пометой"
+  "данные полны; default_take=false — не в рекомендованном наборе класса по умолчанию, выбор — у инженера при взятии; зависимости между элементами вычисляются по ссылкам, не хранятся флагами"
  ],
  "packages": [
   {
@@ -179,10 +179,7 @@
    ],
    "phase_tasks": [],
    "cross_cutting": false,
-   "optional": true,
-   "optional_on": [
-    "PL-P"
-   ]
+   "default_take": false
   },
   {
    "code": "05.03",
@@ -216,10 +213,7 @@
    ],
    "phase_tasks": [],
    "cross_cutting": false,
-   "optional": true,
-   "optional_on": [
-    "PL-ISL"
-   ]
+   "default_take": false
   },
   {
    "code": "05.06",
@@ -231,10 +225,7 @@
    ],
    "phase_tasks": [],
    "cross_cutting": false,
-   "optional": true,
-   "optional_on": [
-    "PL-PNT"
-   ]
+   "default_take": false
   },
   {
    "code": "06.01",
@@ -389,10 +380,7 @@
    ],
    "phase_tasks": [],
    "cross_cutting": false,
-   "optional": true,
-   "optional_on": [
-    "MCC-SIM"
-   ]
+   "default_take": false
   },
   {
    "code": "07.07",
@@ -517,10 +505,7 @@
    ],
    "phase_tasks": [],
    "cross_cutting": false,
-   "optional": true,
-   "optional_on": [
-    "SC-EXP"
-   ]
+   "default_take": false
   },
   {
    "code": "11.01",

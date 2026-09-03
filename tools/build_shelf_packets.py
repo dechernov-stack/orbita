@@ -70,8 +70,11 @@ def pbs_fragment(src: dict) -> dict:
             obj["level"] = node["level"]
         if node.get("external"):
             obj["external"] = True
-        if node.get("optional"):
-            obj["optional"] = True
+        # решение Б3-01 ред. 2: данные полны, флагов зависимости нет; элемент вне
+        # рекомендованного набора класса несёт default_take=false — выбор у
+        # инженера в окне взятия, канал снимает поле перед записью
+        if node.get("default_take") is False:
+            obj["default_take"] = False
         if node.get("default_quantity"):
             obj["default_quantity"] = node["default_quantity"]
         if node.get("params"):
@@ -112,13 +115,8 @@ def interfaces_fragment(src: dict) -> dict:
                 obj[field] = iface[field]
         if iface.get("external"):
             obj["external"] = True
-        # замечание Б3-01: стык на опциональных узлах не валит полку — он
-        # пропускается с пометой, пока узлы не подтверждены; список узлов —
-        # данные поставки, не догадка
-        if iface.get("optional"):
-            obj["optional"] = True
-        if iface.get("optional_on"):
-            obj["optional_on"] = sorted(set(iface["optional_on"]))
+        if iface.get("default_take") is False:
+            obj["default_take"] = False
         if iface.get("params"):
             obj["expects"] = expects(iface["params"])
         if iface.get("models"):
@@ -211,17 +209,13 @@ def architecture_fragment(src: dict) -> dict:
         cap = cap_of_function.get(fn["code"])
         if cap:
             obj["traces_up"] = [{"ref": caps[cap]}]
-        if fn.get("optional"):
-            obj["optional"] = True
-            obj["statement"] = "функция берётся по классу миссии (ISL, PNT)"
-        if fn.get("optional_on"):
-            obj["optional_on"] = sorted(set(fn["optional_on"]))
+        if fn.get("default_take") is False:
+            obj["default_take"] = False
         for ex in exchanges_by_src.get(fn["code"], []):
             dst = ex["dst"]
             обмен = {"code": ex["code"], "name": ex["name"], "interface": f"@{ex['interface']}"}
-            # каскад: обмен на опциональном стыке опционален по optional_on
-            if ex.get("optional_on"):
-                обмен["optional_on"] = sorted(set(ex["optional_on"]))
+            # обмен вне рекомендованного набора — зависимость видна по стыку,
+            # флага у него нет: окно взятия считает её по ссылке
             if dst in fns:
                 обмен["to"] = fns[dst]
             else:
@@ -246,10 +240,8 @@ def architecture_fragment(src: dict) -> dict:
             obj["ack"] = [{"function": fns[a]} for a in chain["ack"]]
         if chain.get("requirement_kinds"):
             obj["requirement_kinds"] = chain["requirement_kinds"]
-        if chain.get("optional"):
-            obj["optional"] = True
-        if chain.get("optional_on"):
-            obj["optional_on"] = sorted(set(chain["optional_on"]))
+        if chain.get("default_take") is False:
+            obj["default_take"] = False
         objects.append(obj)
 
     for n, lc in enumerate(src["LA"]["logical_components"], start=9301):
@@ -261,10 +253,8 @@ def architecture_fragment(src: dict) -> dict:
             "deployed_to": [f"@{c}" for c in lc["deployed_to"]],
             "lifecycle": dict(DRAFT),
         }
-        if lc.get("optional"):
-            lc_obj["optional"] = True
-        if lc.get("optional_on"):
-            lc_obj["optional_on"] = sorted(set(lc["optional_on"]))
+        if lc.get("default_take") is False:
+            lc_obj["default_take"] = False
         objects.append(lc_obj)
 
     counters = {}
@@ -311,10 +301,8 @@ def wbs_fragment(src: dict) -> dict:
             obj["phase_tasks"] = pkg["phase_tasks"]
         if pkg.get("cross_cutting"):
             obj["cross_cutting"] = True
-        if pkg.get("optional"):
-            obj["optional"] = True
-        if pkg.get("optional_on"):
-            obj["optional_on"] = sorted(set(pkg["optional_on"]))
+        if pkg.get("default_take") is False:
+            obj["default_take"] = False
         objects.append(obj)
     return {
         "id": "LF-9006",

@@ -286,22 +286,21 @@ export const api = {
   /** Применение фрагмента: экземпляры со связью «применяет» и родословной.
    * Идемпотентно: повторное нажатие возвращает existing, второй набор
    * не создаётся (круг 3 §1). */
-  /** Замечание Б3-01: подтвердить опциональные узлы каркаса по кодам — они
-   *  заводятся из уже взятого каркаса, родители разрешаются по коду. */
-  libraryConfirm: (fragment: string, author: string, codes: string[]) =>
-    post<TakeOutcome>(`/library/fragments/${encodeURIComponent(fragment)}/confirm`, { author, codes }),
-  /** Замечание Б3-01: добор — повторное взятие применённых полок создаёт только
-   *  теперь разрешимые записи; повтор без новых — ноль. */
-  libraryTopUp: (author: string) =>
-    post<{ fragments: Array<{ id: string; name: string; created: number; skipped: number }>; created: number }>(
-      '/library/topup', { author },
-    ),
+  /** Решение Б3-01 ред. 2: окно взятия — элементы полки, рекомендованный набор,
+   *  взятое, «зачем» и зависимости по ссылкам (не по флагам). */
+  libraryTakeWindow: (fragment: string) =>
+    get<TakeWindow>(`/library/fragments/${encodeURIComponent(fragment)}/take-window`),
   libraryApply: (
     fragment: string,
     author: string,
-    /** ADR-051: условия взятия каркаса — глубина уровней, необязательные узлы,
-     *  подстановка уже заведённых узлов вместо дублей. */
-    options: { depth?: number; with_optional?: boolean; mapping?: Record<string, string> } = {},
+    /** Выбор — у инженера: элементы пачки (select) либо вся полка (select_all);
+     *  без того и другого — рекомендованный набор класса. extras — довзятие из
+     *  других полок тем же подтверждением; unselect — снятие с историей. */
+    options: {
+      depth?: number; mapping?: Record<string, string>
+      select?: string[]; select_all?: boolean
+      extras?: Record<string, string[]>; unselect?: string[]
+    } = {},
   ) =>
     post<TakeOutcome>(
       `/library/fragments/${encodeURIComponent(fragment)}/apply`, { author, ...options },
@@ -909,6 +908,17 @@ export const api = {
 export type TakeOutcome = {
   created: Array<{ from: string; id: string }>
   existing: string[]
-  skipped: Array<{ from: string; code: string; name: string; on: string[]; reason: string }>
-  skipped_on: string[]
+  removed: string[]
+}
+
+/** Окно взятия полки (решение Б3-01 ред. 2). */
+export type TakeWindow = {
+  id: string; name: string; shelf: string
+  elements: Array<{
+    id: string; code: string; name: string; type: string; kind: string; level: number; parent: string
+    default_take: boolean; taken: string; why: string
+    needs: Array<{ code: string; in_project: boolean; internal: boolean; payload_id?: string; shelf?: string; shelf_name?: string; name?: string }>
+    needed_by: Array<{ fragment: string; fragment_name: string; code: string; name: string; same_shelf: boolean }>
+  }>
+  summary: { total: number; recommended: number; taken: number; by_type: Record<string, number> }
 }

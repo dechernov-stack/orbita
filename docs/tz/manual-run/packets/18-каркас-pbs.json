@@ -1330,7 +1330,7 @@
             },
             "parent": "CM-9158",
             "level": 4,
-            "optional": true,
+            "default_take": false,
             "expects": [
               {
                 "key": "band",
@@ -1451,7 +1451,7 @@
             },
             "parent": "CM-9158",
             "level": 4,
-            "optional": true,
+            "default_take": false,
             "expects": [
               {
                 "key": "band",
@@ -1484,7 +1484,7 @@
             },
             "parent": "CM-9158",
             "level": 4,
-            "optional": true,
+            "default_take": false,
             "expects": [
               {
                 "key": "clock_stability",
@@ -1526,7 +1526,7 @@
             },
             "parent": "CM-9102",
             "level": 2,
-            "optional": true,
+            "default_take": false,
             "expects": []
           },
           {
@@ -1626,7 +1626,7 @@
             },
             "parent": "CM-9175",
             "level": 3,
-            "optional": true
+            "default_take": false
           },
           {
             "id": "CM-9181",

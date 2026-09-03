@@ -49,7 +49,7 @@ class Pmi4PacketsTest {
             val id = boundary.editing.create(
                 CoreType.LibraryFragment, фрагмент, "test", orbita.mod.store.ObjectStore.LIBRARY_PROJECT,
             ).id
-            канал.apply(id, project, "инженер", LibraryChannel.TakeOptions(withOptional = true))
+            канал.apply(id, project, "инженер", LibraryChannel.TakeOptions(selectAll = true))
         }
     }
 

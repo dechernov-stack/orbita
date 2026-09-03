@@ -7,7 +7,7 @@
 // Путь, не клетка: «пропустить» всегда на виду, шаг сохраняется в паспорт,
 // брошенный путь живёт строкой на жизненном цикле.
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { api } from '../api/client'
+import { api, type TakeWindow } from '../api/client'
 import { edit } from '../api/edit'
 import { countPhrase } from '../ui/countPhrase'
 import { MissionIntent } from './MissionIntent'
@@ -163,13 +163,13 @@ export function StartPath({ project, onGo, onDone }: {
   const promptSeeded = useRef(false)
   /** Круг 3 §1: взятые фрагменты — из связей «применяет» и локальных взятий. */
   const [applied, setApplied] = useState<Record<string, { count: number; by_type: Record<string, number> }>>({})
-  /** Замечание Б3-01: пропущенное при взятии — чего ждёт (коды узлов). */
-  const [skippedOn, setSkippedOn] = useState<Record<string, string[]>>({})
   const [busyFrag, setBusyFrag] = useState<string | null>(null)
-  const [takeDialog, setTakeDialog] = useState<{ id: string; name: string; matches: Array<{ code: string; name: string; existing: string }> } | null>(null)
-  const [takeDepth, setTakeDepth] = useState(4)
-  const [takeOptional, setTakeOptional] = useState(false)
-  const [useExisting, setUseExisting] = useState(true)
+  /** Решение Б3-01 ред. 2: окно взятия — выбор элементов у инженера. */
+  const [takeWin, setTakeWin] = useState<TakeWindow | null>(null)
+  const [takePicked, setTakePicked] = useState<Set<string>>(new Set())
+  const [extras, setExtras] = useState<Record<string, Set<string>>>({})
+  const [takeSearch, setTakeSearch] = useState('')
+  const [takeDepth, setTakeDepth] = useState<number | null>(null)
   /** Отказ взятия виден у самой кнопки — низ экрана вне поля зрения. */
   const [fragErr, setFragErr] = useState<{ id: string; msg: string } | null>(null)
   const [dragOver, setDragOver] = useState(false)
@@ -279,7 +279,7 @@ export function StartPath({ project, onGo, onDone }: {
   /** Круг 3 §1: «взять» — немедленное действие с видимым результатом.
    * Идемпотентность — на сервере (по связи «применяет»). */
   /** ADR-051: каркас берётся с условиями — их спрашивает диалог перед взятием. */
-  const applyFragment = (id: string, options: { depth?: number; with_optional?: boolean; mapping?: Record<string, string> } = {}) => {
+  const applyFragment = (id: string, options: Parameters<typeof api.libraryApply>[2] = {}) => {
     if (busyFrag) return
     setBusyFrag(id)
     setFragErr(null)
@@ -296,10 +296,38 @@ export function StartPath({ project, onGo, onDone }: {
             ? { count: r.created.length, by_type: byType }
             : prev[id] ?? { count: r.existing.length, by_type: {} },
         }))
-        setSkippedOn((prev) => ({ ...prev, [id]: r.skipped_on ?? [] }))
       })
       .catch((e) => setFragErr({ id, msg: reasonOf(e) }))
       .finally(() => setBusyFrag(null))
+  }
+
+  const openTakeWindow = (id: string) => {
+    api.libraryTakeWindow(id)
+      .then((w) => {
+        setTakeWin(w)
+        setTakePicked(new Set(w.elements.filter((e) => e.default_take || e.taken).map((e) => e.id)))
+        setExtras({})
+        setTakeSearch('')
+        setTakeDepth(null)
+      })
+      .catch((e) => setFragErr({ id, msg: reasonOf(e) }))
+  }
+
+  /** Зависимость выбранного элемента, которой нет в проекте: серая строка с кнопкой довзять. */
+  const missingNeeds = (w: TakeWindow, sel: Set<string>) =>
+    w.elements.filter((e) => sel.has(e.id) && !e.taken).flatMap((e) =>
+      e.needs.filter((n) => !n.in_project && (n.internal ? !sel.has(n.payload_id ?? '') : true))
+        .map((n) => ({ element: e, need: n })))
+
+  const takeSelected = () => {
+    if (!takeWin) return
+    const w = takeWin
+    const select = w.elements.filter((e) => takePicked.has(e.id) && !e.taken).map((e) => e.id)
+    const unselect = w.elements.filter((e) => !takePicked.has(e.id) && e.taken).map((e) => e.id)
+    const mapping = Object.fromEntries(w.elements.filter((e) => e.taken && e.code).map((e) => [e.code, e.taken]))
+    const ex = Object.fromEntries(Object.entries(extras).map(([f, codes]) => [f, [...codes]]))
+    applyFragment(w.id, { select, unselect, extras: ex, mapping, ...(takeDepth ? { depth: takeDepth } : {}) })
+    setTakeWin(null)
   }
 
   /** Отмена взятия: удаляет созданное именно этим взятием; тронутое — отказ. */
@@ -651,65 +679,97 @@ export function StartPath({ project, onGo, onDone }: {
 
 return (
     <>
-    {takeDialog && (
-      <div className="rr-cfg" style={{ position: 'fixed', right: 24, top: 96, width: 380, zIndex: 20, background: 'var(--bg)', border: '1px solid var(--hairline)', padding: 12 }}>
+    {takeWin && (() => {
+      const w = takeWin
+      const q = takeSearch.trim().toLowerCase()
+      const visible = w.elements.filter((e) =>
+        (!q || `${e.code} ${e.name} ${e.why}`.toLowerCase().includes(q)) &&
+        (takeDepth == null || e.level < 0 || e.level <= takeDepth))
+      const groups = new Map<string, TakeWindow['elements']>()
+      visible.forEach((e) => { groups.set(e.type, [...(groups.get(e.type) ?? []), e]) })
+      const chosen = w.elements.filter((e) => takePicked.has(e.id))
+      const newOnes = chosen.filter((e) => !e.taken)
+      const missing = missingNeeds(w, takePicked)
+      const unlocks = new Set(chosen.flatMap((e) => e.needed_by.filter((d) => !d.same_shelf).map((d) => `${d.fragment}:${d.code}`)))
+      const byType = new Map<string, number>()
+      newOnes.forEach((e) => byType.set(e.type, (byType.get(e.type) ?? 0) + 1))
+      const toggle = (id: string) => setTakePicked((prev) => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n })
+      const addExtra = (fragment: string, code: string) =>
+        setExtras((prev) => ({ ...prev, [fragment]: new Set([...(prev[fragment] ?? []), code]) }))
+      return (
+      <div className="rr-cfg" style={{ position: 'fixed', right: 24, top: 96, width: 460, maxHeight: '80vh', overflow: 'auto', zIndex: 20, background: 'var(--bg)', border: '1px solid var(--hairline)', padding: 12 }}>
         <h4>
-          Взять каркас: {takeDialog.name}
-          <button type="button" className="rr-assign" style={{ float: 'right' }} onClick={() => setTakeDialog(null)}>закрыть</button>
+          Взять: {w.name}
+          <button type="button" className="rr-assign" style={{ float: 'right' }} onClick={() => setTakeWin(null)}>закрыть</button>
         </h4>
         <div className="sp-ds">
-          Уровни 0–3 берутся всегда; глубже — по классу миссии. Необязательные узлы (ISL, PNT,
-          экспериментальная ОГ) — только по подтверждению.
+          Данные полки полны, выбор — ваш: отмечен рекомендованный набор класса, взятое ранее — тоже
+          (снятие отметки отменит его с историей). Зависимости считаются по ссылкам.
         </div>
-        <div className="rr-col" style={{ marginTop: 6 }}>
-          <label>
-            глубина уровней:{' '}
-            <select value={takeDepth} onChange={(e) => setTakeDepth(Number(e.target.value))}>
-              <option value={3}>до подсистем (L3)</option>
-              <option value={4}>до подсистем платформы и ПН (L4)</option>
-              <option value={5}>до агрегатов (L5)</option>
-              <option value={6}>полностью (L6)</option>
+        <div className="rr-col" style={{ marginTop: 6, display: 'flex', gap: 6 }}>
+          <input placeholder="поиск по коду, имени, «зачем»" value={takeSearch} onChange={(e) => setTakeSearch(e.target.value)} style={{ flex: 1 }} />
+          {w.elements.some((e) => e.level > 1) && (
+            <select value={takeDepth ?? ''} onChange={(e) => setTakeDepth(e.target.value ? Number(e.target.value) : null)} title="фильтр уровней каркаса">
+              <option value="">все уровни</option>
+              <option value={3}>до L3</option><option value={4}>до L4</option><option value={5}>до L5</option>
             </select>
-          </label>
+          )}
+          <button type="button" className="np-linkish" onClick={() => setTakePicked(new Set(w.elements.map((e) => e.id)))}>все</button>
+          <button type="button" className="np-linkish" onClick={() => setTakePicked(new Set(w.elements.filter((e) => e.default_take || e.taken).map((e) => e.id)))}>рекомендованное</button>
         </div>
-        <div className="rr-col">
-          <label>
-            <input type="checkbox" checked={takeOptional} onChange={(e) => setTakeOptional(e.target.checked)} />{' '}
-            брать необязательные узлы
-          </label>
-        </div>
-        {takeDialog.matches.length > 0 && (
-          <div className="rr-col" style={{ marginTop: 6 }}>
-            <label title="узел с таким кодом или именем в проекте уже есть: дубль заводить нельзя">
-              <input type="checkbox" checked={useExisting} onChange={(e) => setUseExisting(e.target.checked)} />{' '}
-              использовать уже заведённые узлы ({takeDialog.matches.length})
-            </label>
-            <div className="sp-ds" style={{ maxHeight: 120, overflow: 'auto' }}>
-              {takeDialog.matches.slice(0, 12).map((m) => (
-                <div key={m.code}>
-                  <span className="mono">{m.code}</span> {m.name} → <span className="mono">{m.existing}</span>
-                </div>
-              ))}
-              {takeDialog.matches.length > 12 && <div>…и ещё {takeDialog.matches.length - 12}</div>}
+        <div style={{ maxHeight: '38vh', overflow: 'auto', marginTop: 6, fontSize: 12 }}>
+          {[...groups.entries()].map(([type, els]) => (
+            <div key={type}>
+              <div className="secondary" style={{ marginTop: 4 }}>{type} · {els.filter((e) => takePicked.has(e.id)).length} из {els.length}</div>
+              {els.map((e) => {
+                const miss = e.needs.filter((n) => !n.in_project && (n.internal ? !takePicked.has(n.payload_id ?? '') : true))
+                const grey = takePicked.has(e.id) && miss.length > 0
+                return (
+                  <div key={e.id} style={{ opacity: grey ? 0.6 : 1, padding: '1px 0' }} title={e.why}>
+                    <label>
+                      <input type="checkbox" checked={takePicked.has(e.id)} onChange={() => toggle(e.id)} />{' '}
+                      <span className="mono">{e.code || e.id}</span> {e.name}
+                      {e.taken && <span className="chip" title={`уже в проекте: ${e.taken}`}>взято</span>}
+                      {!e.default_take && !e.taken && <span className="secondary"> · вне рекомендованного</span>}
+                    </label>
+                    {e.needed_by.length > 0 && (
+                      <span className="secondary" title={e.needed_by.map((d) => `${d.fragment_name}: ${d.code} ${d.name}`).join('\n')}>
+                        {' '}· от него зависит: {e.needed_by.length}
+                      </span>
+                    )}
+                    {grey && miss.map((n) => (
+                      <div key={n.code} style={{ marginLeft: 22 }}>
+                        требует <span className="mono">{n.code}</span> {n.name ?? ''}
+                        {n.internal
+                          ? <button type="button" className="np-linkish" style={{ marginLeft: 6 }} onClick={() => n.payload_id && toggle(n.payload_id)}>выбрать тоже</button>
+                          : n.shelf
+                            ? (extras[n.shelf]?.has(n.code)
+                              ? <span className="chip">довзять из «{n.shelf_name}»</span>
+                              : <button type="button" className="np-linkish" style={{ marginLeft: 6 }} onClick={() => addExtra(n.shelf!, n.code)}>взять «{n.code}» из полки «{n.shelf_name}»</button>)
+                            : <span className="bad"> — нет ни в проекте, ни на полках</span>}
+                      </div>
+                    ))}
+                  </div>
+                )
+              })}
             </div>
-          </div>
-        )}
-        <button
-          type="button"
-          className="sp-take"
-          style={{ marginTop: 8 }}
-          onClick={() => {
-            const mapping = useExisting
-              ? Object.fromEntries(takeDialog.matches.map((m) => [m.code, m.existing]))
-              : {}
-            applyFragment(takeDialog.id, { depth: takeDepth, with_optional: takeOptional, mapping })
-            setTakeDialog(null)
-          }}
-        >
-          взять каркас
+          ))}
+        </div>
+        <div className="sp-ds" style={{ marginTop: 8 }}>
+          взять {newOnes.length}{[...byType.entries()].length > 0 && ` (${[...byType.entries()].map(([t, n]) => `${t}: ${n}`).join(' · ')})`}
+          {Object.values(extras).reduce((a, b) => a + b.size, 0) > 0 && ` · довзять из других полок: ${Object.values(extras).reduce((a, b) => a + b.size, 0)}`}
+          {unlocks.size > 0 && ` · станут доступны в других полках: ${unlocks.size}`}
+          {w.elements.some((e) => e.taken && !takePicked.has(e.id)) && ` · снять: ${w.elements.filter((e) => e.taken && !takePicked.has(e.id)).length}`}
+        </div>
+        <button type="button" className="sp-take" style={{ marginTop: 8 }}
+          disabled={busyFrag !== null || missing.some((m) => !m.need.internal && !(m.need.shelf && extras[m.need.shelf]?.has(m.need.code)))}
+          title={missing.length > 0 ? 'у выбранного есть зависимости без пары: довзьмите их или снимите элемент' : 'взять выбранное'}
+          onClick={takeSelected}>
+          взять выбранное
         </button>
       </div>
-    )}
+      )
+    })()}
 
     <div className="np-main">
       <div className="sp-work">
@@ -857,20 +917,7 @@ return (
                         )}
                       </span>
                       {applied[f.id] && (
-                        <span className="sp-took">
-                          Взято ✓ создано <b>{applied[f.id].count}</b>
-                          {(skippedOn[f.id]?.length ?? 0) > 0 && (
-                            <span className="secondary" title="записи на этих узлах не созданы: узлы необязательные и не подтверждены; подтвердите их в дереве состава — и доберите зависимое">
-                              {' · '}пропущено: не подтверждены {skippedOn[f.id].join(', ')}
-                              {onGo && (
-                                <button type="button" className="np-linkish" style={{ marginLeft: 6 }}
-                                  onClick={() => onGo('composition')}>
-                                  подтвердить узлы →
-                                </button>
-                              )}
-                            </span>
-                          )}
-                        </span>
+                        <span className="sp-took">Взято ✓ создано <b>{applied[f.id].count}</b></span>
                       )}
                       <button className="sp-open"
                         onClick={() => setOpenManifest(openManifest === f.id ? null : f.id)}>
@@ -878,22 +925,22 @@ return (
                       </button>
                       {applied[f.id]
                         ? (
-                          <button className="sp-undo" disabled={busyFrag !== null}
-                            title="удаляет созданное именно этим взятием; тронутое руками — отказ"
-                            onClick={() => revertFragment(f.id)}>
-                            {busyFrag === f.id ? 'отменяю…' : 'отменить'}
-                          </button>
+                          <>
+                            <button className="sp-open" disabled={busyFrag !== null}
+                              title="то же окно: взятое отмечено, невзятое — выбрать; снятие отметки — отмена с историей"
+                              onClick={() => openTakeWindow(f.id)}>
+                              открыть снова
+                            </button>
+                            <button className="sp-undo" disabled={busyFrag !== null}
+                              title="удаляет созданное именно этим взятием; тронутое руками — отказ"
+                              onClick={() => revertFragment(f.id)}>
+                              {busyFrag === f.id ? 'отменяю…' : 'отменить'}
+                            </button>
+                          </>
                         )
                         : (
                           <button title="идёт взятие другого набора — дождитесь его окончания" className="sp-take" disabled={busyFrag !== null}
-                            onClick={() => {
-                              // каркас с уровнями спрашивает условия: глубину,
-                              // необязательные узлы и что делать с уже заведёнными
-                              if (!f.name.toLowerCase().includes('каркас')) { applyFragment(f.id); return }
-                              api.libraryMatches(f.id)
-                                .then((m) => setTakeDialog({ id: f.id, name: f.name, matches: m.matches }))
-                                .catch(() => setTakeDialog({ id: f.id, name: f.name, matches: [] }))
-                            }}>
+                            onClick={() => openTakeWindow(f.id)}>
                             {busyFrag === f.id ? 'беру…' : 'взять'}
                           </button>
                         )}

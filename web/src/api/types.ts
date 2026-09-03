@@ -541,8 +541,6 @@ export interface CompositionCarrier {
 }
 
 export interface CompositionTree {
-  /** Замечание Б3-01: опциональные узлы взятых каркасов, которых в проекте нет. */
-  pending_optional?: Array<{ fragment: string; fragment_name: string; code: string; name: string; kind: string; level: number }>
   rows: CompositionRow[]
   constellations: CompositionConstellation[]
   carriers: CompositionCarrier[]

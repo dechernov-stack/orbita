@@ -179,25 +179,21 @@ class ArchitectureSeedsTest {
     }
 
     @Test
-    fun `ссылка на опциональный узел или стык несёт optional_on - зависимость от необязательного не блокирует`() {
-        // Замечание Б3-01: опциональность — данные полок, не догадка канала.
-        // Каждая запись, ссылающаяся кодом на опциональный узел каркаса или
-        // опциональный стык, обязана назвать его в optional_on — иначе при
-        // взятии без подтверждения она валила бы полку целиком.
-        val опциональные = (каркас + стыки)
-            .filter { it.path("optional").asBoolean(false) }
-            .map { it.path("code").asText() }.toSet()
-        assertTrue("PL-ISL" in опциональные && "PL-PNT" in опциональные && "IF-ISL" in опциональные) { "опциональные: $опциональные" }
-        assertTrue("USR-APP" !in опциональные) { "USR-APP стал обязательным: стык «ЦОД ↔ потребители» без него бессмыслен" }
-        val нарушения = (стыки + архитектура + работы).flatMap { o ->
-            // обмен несёт своё optional_on (каскад по стыку) — считается вместе с записью
-            val ждёт = (o.path("optional_on").map { it.asText() } +
-                o.path("exchanges").flatMap { ex -> ex.path("optional_on").map { it.asText() } }).toSet()
-            Regex("@([A-Za-zА-Яа-я0-9_.\\-]+)").findAll(mapper.writeValueAsString(o))
-                .map { it.groupValues[1] }.filter { it in опциональные && it !in ждёт }
-                .map { "${o.path("code").asText(o.path("id").asText())} → @$it" }.toList()
+    fun `данные полок полны - вне рекомендованного набора ровно то, что назвал владелец, флагов зависимости нет`() {
+        // Решение Б3-01 ред. 2: optional/optional_on отозваны — ошибка пряталась в
+        // данные. Элемент вне рекомендованного набора класса несёт default_take=false,
+        // выбор — у инженера в окне взятия, зависимости считаются по ссылкам.
+        val все = каркас + стыки + архитектура + работы
+        assertTrue(все.none { it.has("optional") || it.has("optional_on") || it.path("exchanges").any { ex -> ex.has("optional_on") } }) {
+            "флаги зависимости в данных полок недопустимы"
         }
-        assertTrue(нарушения.isEmpty()) { "ссылки на опциональное без optional_on: $нарушения" }
+        fun внеНабора(объекты: List<JsonNode>) =
+            объекты.filter { it.has("default_take") && !it.path("default_take").asBoolean(true) }.map { it.path("code").asText() }.toSet()
+        assertEquals(setOf("PL-ISL", "PL-PNT", "PL-P", "MCC-SIM", "SC-EXP"), внеНабора(каркас))
+        assertEquals(setOf("IF-ISL", "IF-PNT-USER"), внеНабора(стыки))
+        assertEquals(setOf("F-22", "F-23", "FC-06", "LC-ISL"), внеНабора(архитектура))
+        assertEquals(setOf("05.02", "05.05", "05.06", "07.05", "10.03"), внеНабора(работы))
+        assertTrue("USR-APP" !in внеНабора(каркас)) { "USR-APP — в рекомендованном наборе: стык «ЦОД ↔ потребители» без него бессмыслен" }
     }
 
     @Test

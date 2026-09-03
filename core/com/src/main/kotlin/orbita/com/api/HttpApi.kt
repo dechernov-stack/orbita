@@ -4827,9 +4827,9 @@ class HttpApi(private val boundary: Boundary) {
 
 
     /**
-     * Взятие полок (apply · confirm · topup) — отдельной функцией: общий when
-     * маршрутизации снова перерос предел метода JVM (64 КБ байт-кода) после
-     * замечания Б3-01. Возвращает true, если запрос обработан здесь.
+     * Взятие полок (окно взятия · apply с выбором) — отдельной функцией: общий
+     * when маршрутизации перерос предел метода JVM (64 КБ байт-кода).
+     * Возвращает true, если запрос обработан здесь.
      */
     private fun routeLibraryTake(
         ex: HttpExchange,
@@ -4839,71 +4839,46 @@ class HttpApi(private val boundary: Boundary) {
     ): Boolean {
         val project: String? by projectRef
         when {
+            // Решение Б3-01 ред. 2: окно взятия — элементы полки, рекомендованный
+            // набор, взятое, «зачем» и зависимости по ссылкам
+            method == "GET" && path.matches(Regex("/library/fragments/LF-[0-9]{4}/take-window")) -> {
+                val fragId = path.removePrefix("/library/fragments/").removeSuffix("/take-window")
+                respond(ex, 200, LibraryChannel(boundary).takeWindow(fragId, requireProject(project)))
+            }
+
             method == "POST" && path.matches(Regex("/library/fragments/LF-[0-9]{4}/apply")) -> {
                 val req = mapper.readTree(body(ex))
                 val applyAuthor = author(req.path("author").asText(""))
                 require(applyAuthor.isNotBlank()) { "field 'author' is required" }
                 val applyProject = requireProject(project)
                 val fragId = path.removePrefix("/library/fragments/").removeSuffix("/apply")
-                // ADR-051: каркас берётся с условиями — глубина, необязательные
-                // узлы, подстановка уже заведённых вместо дублей
+                // выбор — у инженера: названные элементы, вся полка либо
+                // рекомендованный набор; довзятие из других полок тем же
+                // подтверждением; снятие взятого — отмена с историей
                 val options = LibraryChannel.TakeOptions(
                     depth = req.path("depth").takeIf { it.isInt }?.asInt(),
-                    withOptional = req.path("with_optional").asBoolean(false),
                     mapping = req.path("mapping").properties().associate { (k, v) -> k to v.asText() },
+                    select = req.path("select").takeIf { it.isArray }?.map { it.asText() }?.toSet(),
+                    selectAll = req.path("select_all").asBoolean(false),
+                    extras = req.path("extras").properties().associate { (k, v) -> k to v.map { it.asText() }.toSet() },
+                    unselect = req.path("unselect").map { it.asText() }.toSet(),
                 )
                 val outcome = LibraryChannel(boundary).apply(fragId, applyProject, applyAuthor, options)
-                respond(ex, if (outcome.created.isEmpty() && outcome.existing.isNotEmpty()) 200 else 201, applyOutcomeJson(outcome))
-            }
-
-            // Замечание Б3-01 п. 1: подтвердить опциональные узлы каркаса — по кодам
-            method == "POST" && path.matches(Regex("/library/fragments/LF-[0-9]{4}/confirm")) -> {
-                val req = mapper.readTree(body(ex))
-                val who = author(req.path("author").asText(""))
-                require(who.isNotBlank()) { "field 'author' is required" }
-                val fragId = path.removePrefix("/library/fragments/").removeSuffix("/confirm")
-                val codes = req.path("codes").map { it.asText() }.filter { it.isNotBlank() }.toSet()
-                val outcome = LibraryChannel(boundary).confirmOptional(fragId, requireProject(project), codes, who)
-                respond(ex, 201, applyOutcomeJson(outcome))
-            }
-
-            // Замечание Б3-01 п. 3: добор — повторное взятие всех применённых полок,
-            // создаются только теперь разрешимые записи; повтор без новых — ноль
-            method == "POST" && path == "/library/topup" -> {
-                val req = mapper.readTree(body(ex))
-                val who = author(req.path("author").asText(""))
-                require(who.isNotBlank()) { "field 'author' is required" }
-                val rows = LibraryChannel(boundary).topUp(requireProject(project), who)
-                val out = mapper.createObjectNode()
-                val arr = out.putArray("fragments")
-                rows.forEach { r ->
-                    val n = arr.addObject().put("id", r.fragment).put("name", r.name)
-                        .put("created", r.created).put("skipped", r.skipped)
-                    val ids = n.putArray("created_ids")
-                    r.createdIds.forEach { ids.add(it) }
-                }
-                out.put("created", rows.sumOf { it.created })
-                respond(ex, 200, out)
+                val nothingNew = outcome.created.isEmpty() && outcome.removed.isEmpty() && outcome.existing.isNotEmpty()
+                respond(ex, if (nothingNew) 200 else 201, applyOutcomeJson(outcome))
             }
             else -> return false
         }
         return true
     }
 
-    /** Итог взятия полки: создано, уже было, пропущено с причиной (замечание Б3-01). */
+    /** Итог взятия полки: создано, уже было, снято (решение Б3-01 ред. 2). */
     private fun applyOutcomeJson(outcome: LibraryChannel.ApplyOutcome): ObjectNode {
         val out = mapper.createObjectNode()
         val arr = out.putArray("created")
         outcome.created.forEach { (from, id) -> arr.addObject().put("from", from).put("id", id) }
         out.set<ArrayNode>("existing", mapper.valueToTree(outcome.existing))
-        val sk = out.putArray("skipped")
-        outcome.skipped.forEach { x ->
-            val n = sk.addObject().put("from", x.from).put("code", x.code).put("name", x.name).put("reason", x.reason)
-            val on = n.putArray("on")
-            x.on.forEach { on.add(it) }
-        }
-        val codes = out.putArray("skipped_on")
-        outcome.skipped.flatMap { it.on }.distinct().sorted().forEach { codes.add(it) }
+        out.set<ArrayNode>("removed", mapper.valueToTree(outcome.removed))
         return out
     }
 
