@@ -45,6 +45,9 @@ enum class CoreType(val idPrefix: String, val dbType: String, val schemaName: St
     Function("FN", "function", "core/function"),
     // ADR-048: внешний элемент модели (Capella) и связь требования с ним
     ModelElement("ME", "model_element", "core/model-element"),
+    // ADR-050: запись модели системы и функциональная цепочка
+    SystemModel("SM", "system_model", "core/system-model"),
+    FunctionChain("FC", "function_chain", "core/function-chain"),
     ArchLink("AR", "arch_link", "core/arch-link"),
     Technology("TL", "technology", "core/technology"),
     Decision("DN", "decision", "core/decision"),

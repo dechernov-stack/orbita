@@ -37,6 +37,7 @@ class EnumLabelsTest {
         Binding("model_element_type", "core/model-element", "/properties/type"),
         Binding("model_element_layer", "core/model-element", "/properties/layer"),
         Binding("arch_link_relation", "core/arch-link", "/properties/relation"),
+        Binding("system_model_status", "core/system-model", "/properties/status"),
         Binding("requirement_relation_kind", "core/requirement", "/properties/relations/items/properties/kind"),
         Binding("verification_method", "core/requirement", "/properties/verification_events/items/properties/method"),
         Binding("verification_kind", "core/requirement", "/properties/verification_events/items/properties/kind"),

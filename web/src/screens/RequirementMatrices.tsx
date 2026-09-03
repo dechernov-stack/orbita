@@ -7,15 +7,16 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import { edit } from '../api/edit'
-import type { FunctionMatrixView, TraceMatrixView, ValidationRow, VerificationMatrixFlatView } from '../api/types'
+import type { CoverageMatrixView, FunctionMatrixView, TraceMatrixView, ValidationRow, VerificationMatrixFlatView } from '../api/types'
 
-export type MatrixKind = 'trace' | 'verification' | 'validation' | 'functions'
+export type MatrixKind = 'trace' | 'verification' | 'validation' | 'functions' | 'coverage'
 
 export function RequirementMatrices({ kind }: { kind: MatrixKind }) {
   const [trace, setTrace] = useState<TraceMatrixView | null>(null)
   const [verification, setVerification] = useState<VerificationMatrixFlatView | null>(null)
   const [validation, setValidation] = useState<ValidationRow[] | null>(null)
   const [functions, setFunctions] = useState<FunctionMatrixView | null>(null)
+  const [coverage, setCoverage] = useState<CoverageMatrixView | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [link, setLink] = useState({ from: '', to: '' })
   const [linkReport, setLinkReport] = useState<string | null>(null)
@@ -24,6 +25,7 @@ export function RequirementMatrices({ kind }: { kind: MatrixKind }) {
     setError(null)
     if (kind === 'trace') api.traceMatrix().then(setTrace).catch((e) => setError(String(e)))
     if (kind === 'functions') api.functionMatrix().then(setFunctions).catch((e) => setError(String(e)))
+    if (kind === 'coverage') api.coverageMatrix().then(setCoverage).catch((e) => setError(String(e)))
     if (kind === 'verification')
       api.verificationMatrix().then(setVerification).catch((e) => setError(String(e)))
     if (kind === 'validation')
@@ -31,6 +33,56 @@ export function RequirementMatrices({ kind }: { kind: MatrixKind }) {
   }, [kind])
 
   if (error) return <div className="warn" style={{ padding: 8 }}>Ошибка: {error}</div>
+
+  if (kind === 'coverage') {
+    if (!coverage) return <div className="empty">Загрузка матрицы…</div>
+    if (coverage.rows.length === 0)
+      return <div className="empty">Требований нет — покрывать нечего.</div>
+    const KIND_TITLE: Record<string, string> = { function: 'функцией', chain: 'цепочкой', carrier: 'носителем' }
+    return (
+      <div>
+        <div className="secondary" style={{ padding: '4px 0 6px' }}>
+          покрытие считается ПО КАТЕГОРИИ: функциональное — функцией, сценарное — цепочкой, остальные — носителем;
+          иллюстрация покрытием не считается
+          {coverage.uncovered.length > 0 && <> · <span className="bad">без покрытия: {coverage.uncovered.length}</span></>}
+        </div>
+        <div style={{ overflowX: 'auto' }}>
+          <table>
+            <thead>
+              <tr>
+                <th style={{ width: 90 }}>Требование</th>
+                <th style={{ width: 120 }}>Категория</th>
+                <th style={{ width: 110 }}>Покрывается</th>
+                <th>Функции · цепочки · носители</th>
+                <th style={{ width: 150 }}>Иллюстрации</th>
+                <th style={{ width: 90 }}>Покрыто</th>
+              </tr>
+            </thead>
+            <tbody>
+              {coverage.rows.map((r) => (
+                <tr key={r.requirement}>
+                  <td className="mono">{r.requirement}</td>
+                  <td className="secondary">{r.category}</td>
+                  <td className="secondary">{KIND_TITLE[r.kind] ?? r.kind}</td>
+                  <td>
+                    {r.satisfied_by.map((f) => <span key={f} className="chip">{f}</span>)}
+                    {r.realized_by.map((c) => <span key={c} className="chip">{c}</span>)}
+                    {r.carriers.map((c) => <span key={c} className="mono secondary" style={{ marginRight: 6 }}>{c}</span>)}
+                  </td>
+                  <td className="secondary">
+                    {r.illustrated_by.length === 0
+                      ? '—'
+                      : r.illustrated_by.map((d) => <span key={d} className="mono" title="иллюстрация: покрытием не считается">{d} </span>)}
+                  </td>
+                  <td>{r.covered ? 'да' : <span className="bad">нет</span>}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    )
+  }
 
   if (kind === 'functions') {
     if (!functions) return <div className="empty">Загрузка матрицы…</div>

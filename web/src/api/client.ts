@@ -56,6 +56,8 @@ import type {
   TraceGraphView,
   FunctionMatrixView,
   ExternalModelView,
+  SystemModelsView,
+  CoverageMatrixView,
 } from './types'
 
 import { withProject } from './project'
@@ -282,9 +284,20 @@ export const api = {
   /** Применение фрагмента: экземпляры со связью «применяет» и родословной.
    * Идемпотентно: повторное нажатие возвращает existing, второй набор
    * не создаётся (круг 3 §1). */
-  libraryApply: (fragment: string, author: string) =>
+  libraryApply: (
+    fragment: string,
+    author: string,
+    /** ADR-051: условия взятия каркаса — глубина уровней, необязательные узлы,
+     *  подстановка уже заведённых узлов вместо дублей. */
+    options: { depth?: number; with_optional?: boolean; mapping?: Record<string, string> } = {},
+  ) =>
     post<{ created: Array<{ from: string; id: string }>; existing: string[] }>(
-      `/library/fragments/${encodeURIComponent(fragment)}/apply`, { author },
+      `/library/fragments/${encodeURIComponent(fragment)}/apply`, { author, ...options },
+    ),
+  /** ADR-051: что каркас уже нашёл в проекте — до взятия, чтобы не плодить дубли. */
+  libraryMatches: (fragment: string) =>
+    get<{ matches: Array<{ code: string; name: string; existing: string }>; total: number }>(
+      `/library/fragments/${encodeURIComponent(fragment)}/matches`,
     ),
   /** Отмена взятия — до конца пути; тронутое руками — отказ с перечнем. */
   libraryRevert: (fragment: string, author: string) =>
@@ -587,6 +600,11 @@ export const api = {
     post<{ id: string }>('/views/req-views', { author, doc }),
   /** Матрицы живут на экране требований — там принимается решение (шаг 16 §2.4). */
   traceMatrix: () => get<TraceMatrixView>('/reports/trace-matrix'),
+  /** ADR-050: записи моделей системы с ответами и разрывами — считает сервер. */
+  systemModels: (gate?: string) =>
+    get<SystemModelsView>(`/views/system-models${gate ? `?gate=${encodeURIComponent(gate)}` : ''}`),
+  /** ADR-050: покрытие требований функциями и цепочками. */
+  coverageMatrix: () => get<CoverageMatrixView>('/reports/requirement-coverage'),
   /** ADR-048: внешняя модель и обновление снимков из адаптера (только чтение модели). */
   externalModel: () => get<ExternalModelView>('/views/external-model'),
   capellaRefresh: () => post<{ created: number; updated: number; model_id: string }>('/library/capella/refresh', {}),

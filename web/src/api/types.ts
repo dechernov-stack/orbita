@@ -83,6 +83,12 @@ export interface RequirementRow {
   tags?: string[]
   comment?: string | null
   relations?: Array<{ ref: string; kind: string; rationale: string; resolution: string | null }>
+  /** ADR-050: покрытие по категории — функция, цепочка или носитель. */
+  coverageKind?: string
+  covered?: boolean
+  satisfiedBy?: string[]
+  realizedBy?: string[]
+  illustratedBy?: string[]
   noAcceptanceGap?: boolean
   conflictOpen?: boolean
   linkNoRationale?: boolean
@@ -701,6 +707,78 @@ export interface GlobeView {
 }
 
 /** Матрица трассировки (TZ-OUT-004): строка на требование, разрывы отдельно. */
+/** ADR-050: записи моделей системы — ответ на вопрос, а не файл. */
+export interface SystemModelInput {
+  node?: string
+  node_name?: string
+  interface?: string
+  model?: string
+  param?: string
+  filled?: boolean
+  hint?: string
+}
+export interface SystemModelOutput {
+  name: string
+  at?: string
+  version?: string
+  proxy?: boolean
+  note?: string
+}
+export interface SystemModelPart {
+  code: string
+  name: string
+  question: string
+  status: string
+  due_gate: string
+  answered: boolean
+  interface?: string
+  interface_name?: string
+  interface_hint?: string
+  inputs: SystemModelInput[]
+  outputs: SystemModelOutput[]
+}
+export interface SystemModelRow {
+  id: string
+  code: string
+  name: string
+  question: string
+  status: string
+  tool: string
+  due_gate: string
+  answered: boolean
+  proxy_answer: boolean
+  interface?: string
+  interface_name?: string
+  inputs: SystemModelInput[]
+  outputs: SystemModelOutput[]
+  feeds: string[]
+  parts: SystemModelPart[]
+  gaps: Array<{ what: string; place: string; code: string }>
+}
+export interface SystemModelsView {
+  models: SystemModelRow[]
+  gate: string | null
+  total: number
+  answered: number
+}
+
+/** ADR-050: покрытие требований функциями и цепочками. */
+export interface CoverageMatrixView {
+  functions: Array<{ id: string; name: string }>
+  chains: Array<{ id: string; name: string }>
+  rows: Array<{
+    requirement: string
+    category: string
+    kind: string
+    covered: boolean
+    satisfied_by: string[]
+    realized_by: string[]
+    carriers: string[]
+    illustrated_by: string[]
+  }>
+  uncovered: string[]
+}
+
 /** ADR-048: внешняя модель — элементы-ссылки и связи с обоснованием. */
 export interface ExternalModelView {
   elements: Array<{ id: string; name: string; type: string; layer: string; source_tool: string; model_id: string; uuid: string; refreshed_at: string | null; fixture: boolean }>

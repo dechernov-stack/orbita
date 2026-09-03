@@ -93,6 +93,17 @@ object TransferPackages {
             }
         }
 
+        // ADR-050: диаграммы внешней модели — ПРИЛОЖЕНИЕ к пакету обзора, не
+        // доказательство покрытия: обзор смотрит на них, готовность — нет.
+        val illustrations = model.path("requirements")
+            .flatMap { r -> r.path("illustrated_by").map { r.path("id").asText() to it.asText() } }
+        if (illustrations.isNotEmpty()) {
+            val appendix = pkg.putArray("appendices")
+            illustrations.forEach { (rq, me) ->
+                appendix.addObject().put("kind", "diagram").put("requirement", rq).put("element", me)
+                    .put("note", "иллюстрация к обзору; покрытием не считается")
+            }
+        }
         // Параметры С РЕЗЕРВАМИ — реестр TPM из посчитанных бюджетов: текущее
         // значение, цель, запас и требуемый запас. Бюджетов нет — части нет.
         model.path("budgets").firstOrNull { it.path("kind").asText() == "tpm" }

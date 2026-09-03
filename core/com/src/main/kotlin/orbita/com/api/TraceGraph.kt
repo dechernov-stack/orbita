@@ -33,7 +33,7 @@ class TraceGraph(private val boundary: Boundary) {
     private val OBJECT_KINDS = mapOf(
         "need" to "need", "service" to "service", "mission_goal" to "goal", "conops" to "conops",
         "requirement" to "requirement", "component" to "node", "interface" to "interface", "evidence" to "evidence",
-        "function" to "function", "model_element" to "external",
+        "function" to "function", "model_element" to "external", "function_chain" to "chain",
     )
     private val LINK_KINDS = setOf("trace", "derive", "allocation", "conflict")
 
@@ -78,6 +78,15 @@ class TraceGraph(private val boundary: Boundary) {
             listOf(r.doc.path("source").path("doc"), r.doc.path("normative_basis").path("ref"))
                 .map { it.asText("") }.filter { it.isNotBlank() }
                 .forEach { ref -> if (boundary.objects.current(ref) == null) { missing(ref); edges += Edge(r.id, ref, "source") } }
+            // ADR-050: покрытие требования — рёбрами графа: функция, цепочка,
+            // иллюстрация (последняя покрытием не считается, но видна)
+            listOf("satisfied_by" to "satisfied_by", "realized_by" to "realized_by",
+                   "illustrated_by" to "illustrated_by").forEach { (field, kind) ->
+                r.doc.path(field).forEach { ref ->
+                    val id = ref.asText("")
+                    if (id.isNotBlank()) { missing(id); edges += Edge(r.id, id, kind) }
+                }
+            }
             r.doc.path("relations").forEach { rel ->
                 val ref = rel.path("ref").asText("")
                 if (rel.path("kind").asText("") == "depends_on" && ref.isNotBlank()) { missing(ref); edges += Edge(r.id, ref, "depends_on") }
@@ -188,6 +197,8 @@ class TraceGraph(private val boundary: Boundary) {
             group("carriers", around.filter { it.kind == "allocation" && it.from == f }.map { it.to }.filter { built.nodes[it]?.kind == "node" })
             group("functions", around.filter { it.kind == "allocation" || it.kind == "trace" }.map { if (it.from == f) it.to else it.from }.filter { built.nodes[it]?.kind == "function" })
             group("external", around.filter { it.kind == "allocation" && it.from == f }.map { it.to }.filter { built.nodes[it]?.kind == "external" })
+            group("covered_by", around.filter { it.kind == "satisfied_by" || it.kind == "realized_by" }.map { if (it.from == f) it.to else it.from })
+            group("illustrations", around.filter { it.kind == "illustrated_by" }.map { if (it.from == f) it.to else it.from })
             group("interfaces", around.filter { (it.kind == "allocation" && it.from == f && built.nodes[it.to]?.kind == "interface") || it.kind == "side" }.map { if (it.from == f) it.to else it.from })
             group("documents", around.filter { it.kind == "inserted_in" && it.from == f }.map { it.to })
             group("broken", around.map { if (it.from == f) it.to else it.from }.filter { built.nodes[it]?.kind == "missing" })

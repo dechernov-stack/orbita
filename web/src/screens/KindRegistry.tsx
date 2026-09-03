@@ -21,6 +21,8 @@ const KIND_TITLES: Record<string, string> = {
   requirement: 'Требования',
   conops: 'Сценарии ConOps',
   function: 'Функции',
+  function_chain: 'Функциональные цепочки',
+  system_model: 'Модели системы',
   model_element: 'Элементы внешней модели',
   arch_link: 'Связи с внешней моделью',
   alternative: 'Альтернативы',

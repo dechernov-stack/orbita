@@ -416,6 +416,33 @@ class HttpApi(private val boundary: Boundary) {
                 respond(ex, 200, n)
             }
 
+            // ADR-050: модели системы — записи с вопросом, входами и ответом
+            method == "GET" && path == "/views/system-models" -> {
+                val p = requireProject(project)
+                val gate = query(ex)["gate"] ?: runCatching { boundary.gatePassing.nextGate(p) }.getOrNull()
+                respond(ex, 200, boundary.systemModels.view(p, gate))
+            }
+            // ADR-050: покрытие требований по категории — функции и цепочки
+            method == "GET" && path == "/reports/requirement-coverage" -> {
+                val m = boundary.matrices.coverageMatrix(project)
+                val n = mapper.createObjectNode()
+                val fns = n.putArray("functions")
+                m.functions.forEach { fns.addObject().put("id", it.id).put("name", it.name) }
+                val chains = n.putArray("chains")
+                m.chains.forEach { chains.addObject().put("id", it.id).put("name", it.name) }
+                val rows = n.putArray("rows")
+                m.rows.forEach { r ->
+                    val row = rows.addObject().put("requirement", r.requirementId).put("category", r.category)
+                        .put("kind", r.kind).put("covered", r.covered)
+                    row.putArray("satisfied_by").also { a -> r.satisfiedBy.forEach { a.add(it) } }
+                    row.putArray("realized_by").also { a -> r.realizedBy.forEach { a.add(it) } }
+                    row.putArray("carriers").also { a -> r.carriers.forEach { a.add(it) } }
+                    row.putArray("illustrated_by").also { a -> r.illustratedBy.forEach { a.add(it) } }
+                }
+                n.putArray("uncovered").also { a -> m.uncovered.forEach { a.add(it) } }
+                respond(ex, 200, n)
+            }
+
             // ADR-047: матрица «функции × узлы» — четвёртая матрица
             method == "GET" && path == "/reports/function-matrix" -> {
                 val m = boundary.matrices.functionMatrix(project)
@@ -2858,13 +2885,33 @@ class HttpApi(private val boundary: Boundary) {
             }
 
             // Применение фрагмента (§3): экземпляры со связью «применяет»
+            // ADR-051: что каркас найдёт в проекте — до взятия: дубли заводить
+            // нельзя, и диалог обязан показать уже заведённые узлы
+            method == "GET" && path.matches(Regex("/library/fragments/LF-[0-9]{4}/matches")) -> {
+                val fragId = path.removePrefix("/library/fragments/").removeSuffix("/matches")
+                val out = mapper.createObjectNode()
+                val arr = out.putArray("matches")
+                LibraryChannel(boundary).matches(fragId, requireProject(project)).forEach { (code, name, existing) ->
+                    arr.addObject().put("code", code).put("name", name).put("existing", existing)
+                }
+                out.put("total", arr.size())
+                respond(ex, 200, out)
+            }
+
             method == "POST" && path.matches(Regex("/library/fragments/LF-[0-9]{4}/apply")) -> {
                 val req = mapper.readTree(body(ex))
                 val applyAuthor = author(req.path("author").asText(""))
                 require(applyAuthor.isNotBlank()) { "field 'author' is required" }
                 val applyProject = requireProject(project)
                 val fragId = path.removePrefix("/library/fragments/").removeSuffix("/apply")
-                val outcome = LibraryChannel(boundary).apply(fragId, applyProject, applyAuthor)
+                // ADR-051: каркас берётся с условиями — глубина, необязательные
+                // узлы, подстановка уже заведённых вместо дублей
+                val options = LibraryChannel.TakeOptions(
+                    depth = req.path("depth").takeIf { it.isInt }?.asInt(),
+                    withOptional = req.path("with_optional").asBoolean(false),
+                    mapping = req.path("mapping").properties().associate { (k, v) -> k to v.asText() },
+                )
+                val outcome = LibraryChannel(boundary).apply(fragId, applyProject, applyAuthor, options)
                 val out = mapper.createObjectNode()
                 val arr = out.putArray("created")
                 outcome.created.forEach { (from, id) -> arr.addObject().put("from", from).put("id", id) }
@@ -4242,7 +4289,10 @@ class HttpApi(private val boundary: Boundary) {
             // Ф-06: запросы данных — анкеты характеристик, наложенные на
             // модель: что заполнено, чего не хватает и откуда это взять.
             method == "GET" && path == "/views/data-requests" -> {
-                val requests = DataRequests(boundary).of(requireProject(project))
+                // ADR-051: анкеты ролей и АНКЕТЫ УЗЛОВ каркаса — один список:
+                // инженер спрашивает «что от меня хотят», а не «чья это анкета»
+                val p = requireProject(project)
+                val requests = DataRequests(boundary).of(p) + DataRequests(boundary).ofNodes(p)
                 val out = mapper.createObjectNode()
                 out.put("missing_total", requests.sumOf { it.missing.size })
                 out.set<ArrayNode>("requests", DataRequests(boundary).toJson(requests))

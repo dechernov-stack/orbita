@@ -278,7 +278,7 @@ export function Requirements({ onGo }: { onGo?: (screen: string) => void }) {
     <button
       key={g}
       type="button"
-      className={`rr-g${gap === g ? ' on' : ''}${g === 'no_carrier' || g === 'no_need' || g === 'conflict' ? ' bad' : ''}${g === 'recalc' || g === 'changed' || g === 'no_acceptance' || g === 'no_title' ? ' warnc' : ''}`}
+      className={`rr-g${gap === g ? ' on' : ''}${g === 'no_carrier' || g === 'no_need' || g === 'conflict' || g === 'no_coverage' ? ' bad' : ''}${g === 'recalc' || g === 'changed' || g === 'no_acceptance' || g === 'no_title' ? ' warnc' : ''}`}
       onClick={() => setGap((cur) => (cur === g ? null : g))}
     >
       {GAP_LABELS[g]} · <b>{counters[g]}</b>
@@ -400,7 +400,7 @@ export function Requirements({ onGo }: { onGo?: (screen: string) => void }) {
         >
           Нужда не покрыта · <b>{tree.needsUncovered.length}</b>
         </button>
-        {(['no_need', 'no_verification', 'no_acceptance', 'no_title', 'conflict', 'recalc', 'changed'] as GapKey[]).map((g) => gapChip(g))}
+        {(['no_need', 'no_verification', 'no_acceptance', 'no_title', 'no_coverage', 'conflict', 'recalc', 'changed'] as GapKey[]).map((g) => gapChip(g))}
       </div>
 
       {notice && <div className="warn" style={{ padding: '4px 14px' }}>{notice}</div>}
@@ -978,6 +978,31 @@ function CardView({
             <div style={{ fontSize: 12.5, lineHeight: '18px' }}>
               {r.rationale ?? <span className="secondary">не записано</span>}
             </div>
+          </div>
+          {/* ADR-050: покрытие по категории — функция, цепочка или носитель */}
+          <div className="card">
+            <div className="rr-xk">
+              Покрытие · {r.coverageKind === 'function' ? 'функцией' : r.coverageKind === 'chain' ? 'цепочкой' : 'носителем'}
+            </div>
+            <div style={{ fontSize: 12.5, lineHeight: '18px' }}>
+              {(r.satisfiedBy ?? []).map((f) => (
+                <button key={f} type="button" className="rr-assign mono" onClick={() => onGo?.('functions')}>{f}</button>
+              ))}
+              {(r.realizedBy ?? []).map((c) => (
+                <button key={c} type="button" className="rr-assign mono" onClick={() => onGo?.('functions')}>{c}</button>
+              ))}
+              {r.covered === false && (
+                <span className="bad">
+                  не покрыто: {r.coverageKind === 'function' ? 'функциональному требованию нужна функция'
+                    : r.coverageKind === 'chain' ? 'сценарному требованию нужна цепочка' : 'нужен носитель'}
+                </span>
+              )}
+            </div>
+            {(r.illustratedBy ?? []).length > 0 && (
+              <div className="secondary" style={{ fontSize: 12 }}>
+                иллюстрации (покрытием не считаются): {(r.illustratedBy ?? []).join(', ')}
+              </div>
+            )}
           </div>
           {/* ADR-045: полная структура требования — поле в поле */}
           <div className="card">

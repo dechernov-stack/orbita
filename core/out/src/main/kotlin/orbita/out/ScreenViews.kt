@@ -93,6 +93,13 @@ data class RequirementRow(
     val hasTbd: Boolean = false,
     /** Помета к базированию: краткое имя не записано (автозаголовок не выдумывается). */
     val noTitleGap: Boolean = false,
+    /** ADR-050: чем ДОЛЖНО покрываться требование этой категории: function · chain · carrier. */
+    val coverageKind: String = "carrier",
+    /** Покрыто ли требование по своей категории (иллюстрация покрытием не считается). */
+    val covered: Boolean = false,
+    val satisfiedBy: List<String> = emptyList(),
+    val realizedBy: List<String> = emptyList(),
+    val illustratedBy: List<String> = emptyList(),
     /** Разрывы СТРАТИФИЦИРОВАНЫ по уровням (РЕШЕНИЕ-НОСИТЕЛЬ-УРОВНИ):
      * настоящий сирота — системное требование без элемента/интерфейса. */
     val noCarrierGap: Boolean,
@@ -123,6 +130,17 @@ data class RequirementTreeView(
     /** ADR-045: второе дерево реестра — по документам-основаниям (source.doc → якорь). */
     val documents: List<DocumentGroup> = emptyList(),
 )
+
+/**
+ * ADR-050: чем покрывается требование — по его категории. Функциональное
+ * покрывается ФУНКЦИЕЙ, сценарное — ЦЕПОЧКОЙ, остальные (характеристики,
+ * интерфейсные, ограничения) — носителем. Иллюстрация покрытием не бывает.
+ */
+fun coverageKindOf(doc: com.fasterxml.jackson.databind.JsonNode): String = when (doc.path("category").asText("")) {
+    "functional" -> "function"
+    "operational" -> "chain"
+    else -> "carrier"
+}
 
 /** Документ-основание с якорем блока канона (ADR-045). */
 data class SourceRef(val doc: String, val anchor: String?, val name: String?)
@@ -460,6 +478,15 @@ class ScreenViews(
                 .any { parent -> relations.none { it.ref == parent && it.kind in setOf("refines", "derives") } },
             hasTbd = hasOpenTbd(doc),
             noTitleGap = doc.path("title").asText("").isBlank(),
+            coverageKind = coverageKindOf(doc),
+            covered = when (coverageKindOf(doc)) {
+                "function" -> doc.path("satisfied_by").any { it.asText().isNotBlank() }
+                "chain" -> doc.path("realized_by").any { it.asText().isNotBlank() }
+                else -> allocated.isNotEmpty()
+            },
+            satisfiedBy = doc.path("satisfied_by").map { it.asText() },
+            realizedBy = doc.path("realized_by").map { it.asText() },
+            illustratedBy = doc.path("illustrated_by").map { it.asText() },
         )
     }
 

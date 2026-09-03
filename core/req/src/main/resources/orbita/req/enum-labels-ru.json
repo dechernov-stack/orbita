@@ -199,15 +199,23 @@
       "PA": "физический (PA)"
     },
     "arch_link_relation": {
-      "satisfied_by": "удовлетворяется",
-      "allocated_to": "распределено на",
-      "realized_by": "реализуется",
+      "satisfied_by": "удовлетворяется функцией",
+      "allocated_to": "распределено на носителя",
+      "realized_by": "реализуется цепочкой",
+      "allocation": "выполняется узлом",
+      "illustrated_by": "показано на диаграмме (не покрытие)",
       "traced_to": "прослеживается к"
     },
     "function_level": {
       "operational": "операционная",
       "system": "системная",
       "logical": "логическая"
+    },
+    "system_model_status": {
+      "computed": "расчёт",
+      "proxy": "прокси",
+      "external": "внешний инструмент",
+      "not_built": "не построена"
     },
     "requirement_priority": {
       "high": "высокий",
@@ -221,12 +229,13 @@
       "conflicts_with": "противоречит"
     },
     "component_kind": {
+      "system": "система",
       "segment": "сегмент",
       "element": "элемент",
       "subsystem": "подсистема",
-      "component": "компонент",
-      "system": "система (устар.)",
-      "assembly": "сборка (устар.)"
+      "assembly": "агрегат",
+      "unit": "блок",
+      "component": "компонент"
     },
     "verification_level": {
       "component": "элемент",

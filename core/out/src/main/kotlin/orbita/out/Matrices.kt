@@ -29,6 +29,18 @@ data class TraceGapEntry(val requirementId: String, val missing: String)
 
 data class TraceMatrix(val rows: List<TraceMatrixRow>, val gaps: List<TraceGapEntry>)
 
+/** ADR-050: покрытие требований функциями и цепочками. */
+data class CoverageColumn(val id: String, val name: String)
+data class CoverageRow(
+    val requirementId: String, val category: String, val kind: String,
+    val satisfiedBy: List<String>, val realizedBy: List<String>, val carriers: List<String>,
+    val illustratedBy: List<String>, val covered: Boolean,
+)
+data class CoverageMatrix(
+    val functions: List<CoverageColumn>, val chains: List<CoverageColumn>,
+    val rows: List<CoverageRow>, val uncovered: List<String>,
+)
+
 /** ADR-047: матрица «функции × узлы». */
 data class FunctionColumn(val id: String, val name: String, val type: String)
 data class FunctionCell(val id: String, val kind: String, val rationale: String?)
@@ -197,6 +209,42 @@ class Matrices(
             unallocated = rows.filter { it.nodes.isEmpty() }.map { it.functionId },
             nodesWithoutFunctions = columns.map { it.id }.filter { it !in covered },
         )
+    }
+
+    /**
+     * ADR-050: покрытие требований по категории — матрицы «требования ×
+     * функции» и «требования × цепочки» одной выборкой: столбцы, строки и
+     * разрывы считает сервер, клиент рисует.
+     */
+    fun coverageMatrix(projectId: String? = null): CoverageMatrix {
+        val current = req.objects.listCurrent(projectId).filter { it.status != orbita.mod.model.Lifecycle.Cancelled }
+        val functions = current.filter { it.type == "function" }.sortedBy { it.id }
+            .map { CoverageColumn(it.id, it.doc.path("name").asText("")) }
+        val chains = current.filter { it.type == "function_chain" }.sortedBy { it.id }
+            .map { CoverageColumn(it.id, it.doc.path("name").asText("")) }
+        val rows = currentRequirements(projectId).map { r ->
+            val kind = coverageKindOf(r.doc)
+            val sat = r.doc.path("satisfied_by").map { it.asText() }
+            val real = r.doc.path("realized_by").map { it.asText() }
+            val carriers = r.doc.path("allocated_to").mapNotNull {
+                it.path("component").asText("").ifBlank { null }
+                    ?: it.path("interface").asText("").ifBlank { null }
+                    ?: it.path("model_element").asText("").ifBlank { null }
+            } + req.links.linksFrom(r.id, "allocation").map { it.toId }.filter { it.startsWith("ME-") }
+            CoverageRow(
+                requirementId = r.id,
+                category = r.doc.path("category").asText(""),
+                kind = kind,
+                satisfiedBy = sat, realizedBy = real, carriers = carriers.distinct(),
+                illustratedBy = r.doc.path("illustrated_by").map { it.asText() },
+                covered = when (kind) {
+                    "function" -> sat.isNotEmpty()
+                    "chain" -> real.isNotEmpty()
+                    else -> carriers.isNotEmpty()
+                },
+            )
+        }
+        return CoverageMatrix(functions, chains, rows, rows.filterNot { it.covered }.map { it.requirementId })
     }
 
     private fun currentRequirements(projectId: String? = null) =

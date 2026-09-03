@@ -48,6 +48,10 @@ SEEDS = [
     ("review_checklist", None, "15-чек-обзора.json"),
     # Словарь линта формулировок: правится с экрана справочников
     ("quality_dictionary", None, "16-словарь-линта.json"),
+    # ADR-050: набор моделей системы — модель как ответ на вопрос, а не файл
+    ("system_model", None, "17-модели-системы.json"),
+    # ADR-051: каркас PBS ред. 2 — 135 узлов, анкеты узлов, интерфейсы моделей
+    ("library_fragment", None, "18-каркас-pbs.json"),
 ]
 
 # Режим стенда (ORBITA_AUTH_MODE=stand): учётки без паролей — токен сессии
@@ -167,6 +171,18 @@ def obsolete(type_: str, rows: list, packet: dict | None = None) -> bool:
         return not any(
             e.get("prompt_default") for d in rows for e in ([d] if "term" in d else d.get("entries", []))
         )
+    if type_ == "library_fragment":
+        # каркас растёт редакциями: полка без узлов с анкетами (ред. 2) устарела
+        return not any(
+            o.get("expects") for d in rows for o in d.get("payload", {}).get("objects", [])
+        )
+    if type_ == "system_model":
+        # набор моделей растёт поставками владельца: полка без кода из сида устарела
+        if packet:
+            wanted = {o.get("code") for o in packet.get("objects", [])}
+            if wanted - {d.get("code") for d in rows}:
+                return True
+        return False
     if type_ == "property_form":
         if not any(f.get("required_by") for d in rows for f in d.get("fields", [])):
             return True

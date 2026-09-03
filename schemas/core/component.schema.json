@@ -21,14 +21,15 @@
     },
     "kind": {
       "enum": [
+        "system",
         "segment",
         "element",
         "subsystem",
-        "component",
-        "system",
-        "assembly"
+        "assembly",
+        "unit",
+        "component"
       ],
-      "description": "Уровень дерева (ADR-044): segment → element → subsystem → component. system и assembly — устаревшие значения, читаются в истории; новые узлы их не получают."
+      "description": "Уровень дерева (ADR-044, каркас PBS ред. 2): система → сегмент → элемент → подсистема → агрегат → блок. component — прежнее имя нижнего уровня, читается в истории."
     },
     "segment": {
       "enum": [
@@ -348,6 +349,63 @@
           }
         }
       }
+    },
+    "code": {
+      "type": "string",
+      "description": "Стабильный код узла каркаса полки (SC, PLT-EPS, UT-MOD…): переносится при взятии и служит для сопоставления с уже заведёнными узлами"
+    },
+    "external": {
+      "type": "boolean",
+      "default": false,
+      "description": "Внешний узел (РН, космодром): к нему предъявляются требования интерфейса, а не состава"
+    },
+    "optional": {
+      "type": "boolean",
+      "default": false,
+      "description": "Узел создаётся только по подтверждению (ISL, PNT, экспериментальная ОГ)"
+    },
+    "default_quantity": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Кратность вхождения по умолчанию при взятии каркаса"
+    },
+    "expects": {
+      "type": "array",
+      "description": "Анкета узла (Ф-06, каркас PBS ред. 2): какие параметры узел обязан нести и к какой точке. Поле анкеты — имя, единица справочника и точка зрелости; значения живут в parameters.",
+      "items": {
+        "type": "object",
+        "required": [
+          "key",
+          "name"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "unit": {
+            "type": "string"
+          },
+          "required_to": {
+            "type": "string",
+            "description": "Точка, к которой поле обязано быть заполнено (MCR, SRR, SDR…)"
+          },
+          "hint": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "level": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 8,
+      "description": "Уровень каркаса PBS (ADR-051): 0 система … 5 блок. Глубина взятия меряется им — имя уровня и глубина в дереве в каркасе расходятся."
     }
   }
 }

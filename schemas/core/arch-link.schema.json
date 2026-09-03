@@ -4,16 +4,52 @@
   "title": "ArchLink",
   "description": "Связь требования с внешним элементом модели (ADR-048): вид связи и обязательное обоснование — как trace-links.yaml workbench. Ложится в таблицу связей распределением, чтобы матрицы, impact и граф считали внешний элемент носителем наравне с узлами состава.",
   "type": "object",
-  "required": ["id", "requirement", "element", "relation", "rationale", "lifecycle"],
+  "required": [
+    "id",
+    "requirement",
+    "element",
+    "relation",
+    "rationale",
+    "lifecycle"
+  ],
   "additionalProperties": false,
   "properties": {
-    "id": {"type": "string", "pattern": "^AR-[0-9]{4}$"},
-    "requirement": {"type": "string", "pattern": "^RQ-[0-9]{4}$"},
-    "element": {"type": "string", "pattern": "^ME-[0-9]{4}$"},
-    "relation": {"enum": ["satisfied_by", "allocated_to", "realized_by", "traced_to"]},
-    "rationale": {"type": "string", "minLength": 1, "description": "Почему связь такая — обязательно"},
-    "author": {"type": "string"},
-    "lifecycle": {"$ref": "https://kis.local/schemas/common/status.schema.json"},
-    "provenance": {"$ref": "https://kis.local/schemas/common/provenance.schema.json"}
+    "id": {
+      "type": "string",
+      "pattern": "^AR-[0-9]{4}$"
+    },
+    "requirement": {
+      "type": "string",
+      "pattern": "^RQ-[0-9]{4}$"
+    },
+    "element": {
+      "type": "string",
+      "pattern": "^ME-[0-9]{4}$"
+    },
+    "relation": {
+      "enum": [
+        "satisfied_by",
+        "allocated_to",
+        "realized_by",
+        "allocation",
+        "illustrated_by",
+        "traced_to"
+      ],
+      "description": "Отношение (ADR-050): satisfied_by — функция реализует требование; allocated_to — носитель отвечает; realized_by — сценарий выполняется цепочкой; allocation — функция выполняется узлом; illustrated_by — где показано (покрытия не даёт); traced_to — прослеживается (OA-слой, покрытия не даёт)"
+    },
+    "rationale": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Почему связь такая — обязательно"
+    },
+    "author": {
+      "type": "string"
+    },
+    "lifecycle": {
+      "$ref": "https://kis.local/schemas/common/status.schema.json"
+    },
+    "provenance": {
+      "$ref": "https://kis.local/schemas/common/provenance.schema.json"
+    }
   }
 }

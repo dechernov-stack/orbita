@@ -217,6 +217,17 @@ class ReqService(
                             "TZ-REQ-005 (ADR-017): derive from missing requirement ${parent.asText()}"
                         )
                 }
+                // ADR-050: покрытие — функцией, цепочкой, иллюстрацией; ссылка
+                // на несуществующее не принимается, как и всякая другая
+                listOf("satisfied_by" to "function", "realized_by" to "function_chain",
+                       "illustrated_by" to "model_element").forEach { (field, type) ->
+                    doc.path(field).forEach { ref ->
+                        objects.current(ref.asText())?.takeIf { it.type == type }
+                            ?: throw ModelViolationException(
+                                "ADR-050: $field ведёт на отсутствующий $type ${ref.asText()}",
+                            )
+                    }
+                }
                 // ADR-045: связь требования — с обоснованием, к существующему
                 // требованию и не к себе; противоречие с самим собой — бессмыслица
                 val selfId = doc.path("id").asText("")
@@ -427,6 +438,13 @@ class ReqService(
                         Triple(d.path("requirement").asText(), d.path("element").asText(), "allocation"),
                         Attrs(allocationKind = "full", rationale = d.path("relation").asText("") + ": " + d.path("rationale").asText("")),
                     )
+                    // ADR-050: цепочка — трассировка от сценария и нити на функции шагов
+                    "function_chain" -> {
+                        d.path("traces_up").forEach { ref -> put(Triple(ref.asText(), objId, "trace"), Attrs()) }
+                        d.path("steps").forEach { step ->
+                            put(Triple(objId, step.path("function").asText(), "allocation"), Attrs(allocationKind = "full"))
+                        }
+                    }
                     // ADR-047: функция — трассировка от источника, распределение на узлы
                     "function" -> {
                         d.path("traces_up").forEach { t ->
@@ -512,6 +530,7 @@ class ReqService(
                 links.linksTo(id, "trace") + links.linksFrom(id, "allocation") + links.linksTo(id, "derive") +
                     links.linksFrom(id, "conflict")
             "function" -> links.linksTo(id, "trace") + links.linksFrom(id, "allocation")
+            "function_chain" -> links.linksTo(id, "trace") + links.linksFrom(id, "allocation")
             "arch_link" -> links.linksFrom(doc.path("requirement").asText(""), "allocation")
                 .filter { it.toId == doc.path("element").asText("") }
             else -> emptyList()
@@ -641,6 +660,62 @@ class ReqService(
         return conn.tx {
             val stored = create(doc, "conops", createdBy, projectId)
             syncLinks("conops", stored.id, doc, projectId)
+            stored
+        }
+    }
+
+    /**
+     * ADR-050: запись модели системы. Входы — параметры узлов дерева и выходы
+     * других моделей; ссылка на несуществующий узел или интерфейс не
+     * принимается (на полке узлов проекта нет — там вход описывается словами).
+     */
+    fun ingestSystemModel(json: String, createdBy: String = "api", projectId: String = ObjectStore.DEFAULT_PROJECT): StoredObject {
+        val doc = registry.parse(json)
+        registry.require("core/system-model", doc)
+        fun requireRefs(node: JsonNode) {
+            node.path("interface_ref").asText("").takeIf { it.isNotBlank() }?.let { iface ->
+                objects.current(iface)?.takeIf { it.type == "interface" }
+                    ?: throw ModelViolationException("ADR-050: модель привязана к отсутствующему интерфейсу $iface")
+            }
+            node.path("inputs").forEach { input ->
+                input.path("node").asText("").takeIf { it.isNotBlank() }?.let { cm ->
+                    objects.current(cm)?.takeIf { it.type == "component" }
+                        ?: throw ModelViolationException("ADR-050: вход модели ведёт на отсутствующий узел $cm")
+                }
+                input.path("interface").asText("").takeIf { it.isNotBlank() }?.let { iface ->
+                    objects.current(iface)?.takeIf { it.type == "interface" }
+                        ?: throw ModelViolationException("ADR-050: вход модели ведёт на отсутствующий интерфейс $iface")
+                }
+            }
+        }
+        requireRefs(doc)
+        doc.path("parts").forEach { requireRefs(it) }
+        // Прокси без пометки — витрина (ловушка 4): выход прокси-модели обязан
+        // называть себя прокси
+        if (doc.path("status").asText("") == "proxy" && doc.path("outputs").any { !it.path("proxy").asBoolean(false) }) {
+            throw ModelViolationException(
+                "ADR-050: модель ${doc.path("code").asText("")} объявлена прокси, а выход не помечен proxy — прокси без пометки это витрина",
+            )
+        }
+        return create(doc, "system_model", createdBy, projectId)
+    }
+
+    /** ADR-050: функциональная цепочка — шаги существующими функциями, источник — сценарий или нужда. */
+    fun ingestFunctionChain(json: String, createdBy: String = "api", projectId: String = ObjectStore.DEFAULT_PROJECT): StoredObject {
+        val doc = registry.parse(json)
+        registry.require("core/function-chain", doc)
+        doc.path("steps").forEach { step ->
+            val fn = step.path("function").asText("")
+            objects.current(fn)?.takeIf { it.type == "function" }
+                ?: throw ModelViolationException("ADR-050: шаг цепочки ведёт на отсутствующую функцию $fn")
+        }
+        doc.path("traces_up").forEach { ref ->
+            objects.current(ref.asText())
+                ?: throw ModelViolationException("ADR-050: цепочка следует из отсутствующего объекта ${ref.asText()}")
+        }
+        return conn.tx {
+            val stored = create(doc, "function_chain", createdBy, projectId)
+            syncLinks("function_chain", stored.id, doc, projectId)
             stored
         }
     }

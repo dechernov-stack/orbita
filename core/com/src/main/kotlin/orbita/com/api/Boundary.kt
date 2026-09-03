@@ -69,6 +69,8 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
     val carriers: Carriers by lazy { Carriers(this) }
     /** ADR-046: граф трассировки и impact — проекция модели без хранимых координат. */
     val traceGraph: TraceGraph by lazy { TraceGraph(this) }
+    /** ADR-050: модели системы — ответ на вопрос, а не файл. */
+    val systemModels: SystemModels by lazy { SystemModels(this) }
 
     /**
      * ИИ-контур (TZ-AI). Генерация происходит ВНЕ системы: инженер копирует
@@ -138,6 +140,8 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
         CoreType.Function -> req.ingestFunction(json, createdBy, projectId)
         CoreType.ModelElement -> req.ingestModelElement(json, createdBy, projectId)
         CoreType.ArchLink -> req.ingestArchLink(json, createdBy, projectId)
+        CoreType.SystemModel -> req.ingestSystemModel(json, createdBy, projectId)
+        CoreType.FunctionChain -> req.ingestFunctionChain(json, createdBy, projectId)
         CoreType.MissionGoal -> req.ingestMissionGoal(json, createdBy, projectId)
         // Блок C: замечание обзора несёт правило закрытия сверх схемы
         CoreType.ReviewItem -> {

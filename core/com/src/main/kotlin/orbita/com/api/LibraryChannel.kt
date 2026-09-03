@@ -17,6 +17,39 @@ class LibraryChannel(
     private val boundary: Boundary,
     private val mapper: ObjectMapper = ObjectMapper(),
 ) {
+    /**
+     * Каркас PBS ред. 2 (ADR-051): что именно берём. Уровни 0–3 обязательны,
+     * 4–5 — по классу миссии; необязательные узлы (ISL, PNT, экспериментальная
+     * ОГ) — только по подтверждению; узел, чей код уже есть в проекте, не
+     * дублируется — вместо него подставляется существующий.
+     */
+    data class TakeOptions(
+        val depth: Int? = null,
+        val withOptional: Boolean = false,
+        /** код узла каркаса → идентификатор уже заведённого узла проекта. */
+        val mapping: Map<String, String> = emptyMap(),
+    )
+
+    /**
+     * Что каркас найдёт в проекте: по коду узла, иначе по имени. Диалог взятия
+     * берёт список отсюда — заводить дубль там, где узел уже есть, нельзя.
+     */
+    fun matches(fragmentId: String, projectId: String): List<Triple<String, String, String>> {
+        val frag = boundary.objects.current(fragmentId)
+            ?: throw NoSuchElementException("fragment '$fragmentId' not found")
+        val existing = boundary.objects.listCurrent(projectId)
+            .filter { it.type == "component" && it.status != orbita.mod.model.Lifecycle.Cancelled }
+        val byCode = existing.filter { it.doc.path("code").asText("").isNotBlank() }
+            .associateBy { it.doc.path("code").asText() }
+        val byName = existing.associateBy { it.doc.path("name").asText("").lowercase().trim() }
+        return frag.doc.path("payload").path("objects").mapNotNull { o ->
+            val code = o.path("code").asText("")
+            val name = o.path("name").asText("")
+            val hit = byCode[code] ?: byName[name.lowercase().trim()]
+            hit?.let { Triple(code.ifBlank { o.path("id").asText() }, name, it.id) }
+        }
+    }
+
 
     /** Один рез: связь или ссылка, ведущая наружу фрагмента, — поимённо. */
     data class Cut(val from: String, val to: String, val what: String)
@@ -281,7 +314,10 @@ class LibraryChannel(
         return instances.map { it.id }
     }
 
-    fun apply(fragmentId: String, projectId: String, author: String): ApplyOutcome {
+    fun apply(fragmentId: String, projectId: String, author: String): ApplyOutcome =
+        apply(fragmentId, projectId, author, TakeOptions())
+
+    fun apply(fragmentId: String, projectId: String, author: String, options: TakeOptions): ApplyOutcome {
         val frag = boundary.objects.current(fragmentId)
             ?: throw NoSuchElementException("fragment '$fragmentId' not found")
         require(frag.type == "library_fragment") { "'$fragmentId' is not a library fragment" }
@@ -292,7 +328,50 @@ class LibraryChannel(
         val objects = frag.doc.path("payload").path("objects")
         require(objects.isArray && objects.size() > 0) { "fragment '$fragmentId' payload is empty" }
 
-        val raw = objects.map { it.deepCopy<ObjectNode>() }
+        // Отбор каркаса (ADR-051): глубина уровней, необязательные узлы и те,
+        // что в проекте уже есть. Потомок неберущегося узла не берётся тоже —
+        // иначе дерево порвётся на пустом родителе.
+        val all = objects.map { it.deepCopy<ObjectNode>() }
+        val byPayloadId = all.associateBy { it.path("id").asText("") }
+        // Глубина считается ПО ДЕРЕВУ, а не по имени уровня: в каркасе имя
+        // уровня и его глубина расходятся (подсистема платформы лежит на
+        // четвёртом уровне), и брать «до L4» надо по родителям.
+        fun depthOf(node: ObjectNode): Int {
+            var d = 0
+            var cur = node
+            while (true) {
+                val parent = byPayloadId[cur.path("parent").asText("")] ?: break
+                d += 1
+                cur = parent
+                if (d > 12) break
+            }
+            return d
+        }
+        val dropped = mutableSetOf<String>()
+        all.forEach { node ->
+            // уровень каркаса — данные узла; без него меряем глубиной по дереву
+            val level = node.path("level").takeIf { it.isInt }?.asInt() ?: depthOf(node)
+            val tooDeep = options.depth != null && level > options.depth
+            val optionalOut = !options.withOptional && node.path("optional").asBoolean(false)
+            val alreadyThere = options.mapping.containsKey(node.path("code").asText(""))
+            if (tooDeep || optionalOut || alreadyThere) dropped += node.path("id").asText("")
+        }
+        var changed = true
+        while (changed) {
+            changed = false
+            all.forEach { node ->
+                val parent = node.path("parent").asText("")
+                val id = node.path("id").asText("")
+                val parentMapped = byPayloadId[parent]?.path("code")?.asText("")
+                    ?.let { options.mapping.containsKey(it) } ?: false
+                if (parent.isNotBlank() && parent in dropped && !parentMapped && id !in dropped) {
+                    dropped += id
+                    changed = true
+                }
+            }
+        }
+        val raw = all.filter { it.path("id").asText("") !in dropped }
+        require(raw.isNotEmpty()) { "по выбранным условиям из каркаса '$fragmentId' не берётся ни один узел" }
         // родители раньше детей: parent должен существовать к моменту записи
         val ids = raw.map { it.path("id").asText("") }.toSet()
         val list = mutableListOf<ObjectNode>()
@@ -320,6 +399,12 @@ class LibraryChannel(
             counters[type] = n + 1
             remap[oldId] = "%s-%04d".format(type.idPrefix, n)
             created += oldId to remap[oldId]!!
+        }
+        // код каркаса → уже заведённый узел проекта: ссылки детей ведут на него,
+        // а сам узел заново не создаётся (дубли запрещены)
+        options.mapping.forEach { (code, existingId) ->
+            all.firstOrNull { it.path("code").asText("") == code }
+                ?.let { remap[it.path("id").asText("")] = existingId }
         }
         list.forEach { o ->
             val oldId = o.path("id").asText("")

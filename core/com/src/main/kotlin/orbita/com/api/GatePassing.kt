@@ -198,6 +198,24 @@ class GatePassing(
                 noWhy.size, "${noWhy.size} связей без обоснования: " + noWhy.take(4).joinToString(", ") { it.id },
                 "req", blocking = false, closedNote = "у каждой связи есть обоснование",
             )
+            // ADR-050: покрытие по категории — функциональное требование
+            // покрывается функцией, сценарное цепочкой; иллюстрация не в счёт.
+            // К SDR и дальше это ворота, до того — приглашение.
+            if (gate == "SDR" || gate == "KDP-B") {
+                val byKind = reqRows.filterNot { it.covered }.groupBy { it.coverageKind }
+                listOf(
+                    "function" to ("coverage_function" to "Функциональные требования покрыты функциями"),
+                    "chain" to ("coverage_chain" to "Сценарные требования покрыты цепочками"),
+                ).forEach { (kind, названия) ->
+                    val (id, title) = названия
+                    val holes = byKind[kind].orEmpty()
+                    add(
+                        id, "blocking", title,
+                        holes.size, "${holes.size} без покрытия: " + holes.take(4).joinToString(", ") { it.id },
+                        "matrix", blocking = true, closedNote = "покрытие полное",
+                    )
+                }
+            }
             val noAcc = reqRows.filter { it.noAcceptanceGap }
             add(
                 "acceptance", "statement", "Критерий приёмки записан",
@@ -298,6 +316,23 @@ class GatePassing(
                     dataMissing.take(4).joinToString("; ") +
                     (if (dataMissing.size > 4) " и ещё ${dataMissing.size - 4}" else ""),
                 "spacecraft", blocking = false, closedNote = "анкеты закрыты",
+            )
+        }
+        // ADR-050: модель обязана дать ОТВЕТ к своей точке; «файл есть» не
+        // считается. Незаданный вход чинится в анкете узла, а не здесь.
+        val modelGaps = boundary.systemModels.gaps(projectId, gate)
+        if (boundary.objects.listCurrent(projectId).any { it.type == "system_model" }) {
+            val noAnswer = modelGaps.filter { it.what.startsWith("модель не дала ответа") }
+            add(
+                "models_answer", "blocking", "Модели дали ответ к точке",
+                noAnswer.size, "${noAnswer.size} без ответа: " + noAnswer.take(4).joinToString(", ") { it.code },
+                "models", blocking = true, closedNote = "ответы получены",
+            )
+            val noInput = modelGaps.filter { it.what.startsWith("вход модели не задан") }
+            add(
+                "models_inputs", "statement", "Входы моделей заданы",
+                noInput.size, "${noInput.size} незаданных входов: " + noInput.take(3).joinToString("; ") { it.what },
+                "datarequests", blocking = false, closedNote = "входы заданы",
             )
         }
         // Ф-13: у нужды обязан быть носитель — стейкхолдер проекта. Разрыв

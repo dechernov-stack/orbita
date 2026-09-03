@@ -164,6 +164,10 @@ export function StartPath({ project, onGo, onDone }: {
   /** Круг 3 §1: взятые фрагменты — из связей «применяет» и локальных взятий. */
   const [applied, setApplied] = useState<Record<string, { count: number; by_type: Record<string, number> }>>({})
   const [busyFrag, setBusyFrag] = useState<string | null>(null)
+  const [takeDialog, setTakeDialog] = useState<{ id: string; name: string; matches: Array<{ code: string; name: string; existing: string }> } | null>(null)
+  const [takeDepth, setTakeDepth] = useState(4)
+  const [takeOptional, setTakeOptional] = useState(false)
+  const [useExisting, setUseExisting] = useState(true)
   /** Отказ взятия виден у самой кнопки — низ экрана вне поля зрения. */
   const [fragErr, setFragErr] = useState<{ id: string; msg: string } | null>(null)
   const [dragOver, setDragOver] = useState(false)
@@ -272,11 +276,12 @@ export function StartPath({ project, onGo, onDone }: {
 
   /** Круг 3 §1: «взять» — немедленное действие с видимым результатом.
    * Идемпотентность — на сервере (по связи «применяет»). */
-  const applyFragment = (id: string) => {
+  /** ADR-051: каркас берётся с условиями — их спрашивает диалог перед взятием. */
+  const applyFragment = (id: string, options: { depth?: number; with_optional?: boolean; mapping?: Record<string, string> } = {}) => {
     if (busyFrag) return
     setBusyFrag(id)
     setFragErr(null)
-    api.libraryApply(id, author)
+    api.libraryApply(id, author, options)
       .then((r) => {
         const byType: Record<string, number> = {}
         r.created.forEach((c) => {
@@ -641,7 +646,68 @@ export function StartPath({ project, onGo, onDone }: {
   const excludedDocs = withText.filter((d) => !promptDocs.has(d.id))
   const stepCounts = sumCounts(applied)
 
-  return (
+return (
+    <>
+    {takeDialog && (
+      <div className="rr-cfg" style={{ position: 'fixed', right: 24, top: 96, width: 380, zIndex: 20, background: 'var(--bg)', border: '1px solid var(--hairline)', padding: 12 }}>
+        <h4>
+          Взять каркас: {takeDialog.name}
+          <button type="button" className="rr-assign" style={{ float: 'right' }} onClick={() => setTakeDialog(null)}>закрыть</button>
+        </h4>
+        <div className="sp-ds">
+          Уровни 0–3 берутся всегда; глубже — по классу миссии. Необязательные узлы (ISL, PNT,
+          экспериментальная ОГ) — только по подтверждению.
+        </div>
+        <div className="rr-col" style={{ marginTop: 6 }}>
+          <label>
+            глубина уровней:{' '}
+            <select value={takeDepth} onChange={(e) => setTakeDepth(Number(e.target.value))}>
+              <option value={3}>до подсистем (L3)</option>
+              <option value={4}>до подсистем платформы и ПН (L4)</option>
+              <option value={5}>до агрегатов (L5)</option>
+              <option value={6}>полностью (L6)</option>
+            </select>
+          </label>
+        </div>
+        <div className="rr-col">
+          <label>
+            <input type="checkbox" checked={takeOptional} onChange={(e) => setTakeOptional(e.target.checked)} />{' '}
+            брать необязательные узлы
+          </label>
+        </div>
+        {takeDialog.matches.length > 0 && (
+          <div className="rr-col" style={{ marginTop: 6 }}>
+            <label title="узел с таким кодом или именем в проекте уже есть: дубль заводить нельзя">
+              <input type="checkbox" checked={useExisting} onChange={(e) => setUseExisting(e.target.checked)} />{' '}
+              использовать уже заведённые узлы ({takeDialog.matches.length})
+            </label>
+            <div className="sp-ds" style={{ maxHeight: 120, overflow: 'auto' }}>
+              {takeDialog.matches.slice(0, 12).map((m) => (
+                <div key={m.code}>
+                  <span className="mono">{m.code}</span> {m.name} → <span className="mono">{m.existing}</span>
+                </div>
+              ))}
+              {takeDialog.matches.length > 12 && <div>…и ещё {takeDialog.matches.length - 12}</div>}
+            </div>
+          </div>
+        )}
+        <button
+          type="button"
+          className="sp-take"
+          style={{ marginTop: 8 }}
+          onClick={() => {
+            const mapping = useExisting
+              ? Object.fromEntries(takeDialog.matches.map((m) => [m.code, m.existing]))
+              : {}
+            applyFragment(takeDialog.id, { depth: takeDepth, with_optional: takeOptional, mapping })
+            setTakeDialog(null)
+          }}
+        >
+          взять каркас
+        </button>
+      </div>
+    )}
+
     <div className="np-main">
       <div className="sp-work">
         <div className="sp-path">
@@ -804,7 +870,14 @@ export function StartPath({ project, onGo, onDone }: {
                         )
                         : (
                           <button title="идёт взятие другого набора — дождитесь его окончания" className="sp-take" disabled={busyFrag !== null}
-                            onClick={() => applyFragment(f.id)}>
+                            onClick={() => {
+                              // каркас с уровнями спрашивает условия: глубину,
+                              // необязательные узлы и что делать с уже заведёнными
+                              if (!f.name.toLowerCase().includes('каркас')) { applyFragment(f.id); return }
+                              api.libraryMatches(f.id)
+                                .then((m) => setTakeDialog({ id: f.id, name: f.name, matches: m.matches }))
+                                .catch(() => setTakeDialog({ id: f.id, name: f.name, matches: [] }))
+                            }}>
                             {busyFrag === f.id ? 'беру…' : 'взять'}
                           </button>
                         )}
@@ -1209,5 +1282,6 @@ export function StartPath({ project, onGo, onDone }: {
         {step === 4 && !profile && <div className="empty">Сборка профиля…</div>}
       </div>
     </div>
+    </>
   )
 }

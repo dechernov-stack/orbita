@@ -1,0 +1,207 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/core/system-model.schema.json",
+  "title": "SystemModel",
+  "description": "Запись модели системы (ADR-050, ШАБЛОН-МОДЕЛИ-СИСТЕМЫ): модель — ответ на инженерный вопрос, а не файл. Входы — параметры узлов дерева состава и выходы других моделей; выход с датой и версией и есть «модель дала ответ»; прокси помечен на выходе. Линки и потоки живут частями, привязанными к интерфейсу дерева.",
+  "type": "object",
+  "required": [
+    "id",
+    "code",
+    "name",
+    "question",
+    "status",
+    "lifecycle"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^SM-[0-9]{4}$"
+    },
+    "code": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Обозначение модели набора: М1, М2, М3…"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "question": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Инженерный вопрос, на который модель отвечает"
+    },
+    "status": {
+      "enum": [
+        "not_built",
+        "proxy",
+        "computed",
+        "external"
+      ],
+      "description": "не построена · прокси (помечен) · расчёт · внешний инструмент"
+    },
+    "tool": {
+      "type": "string",
+      "description": "Чем считается сегодня — честно, без обещаний"
+    },
+    "due_gate": {
+      "type": "string",
+      "description": "Точка, к которой модель обязана дать первый ответ (MCR, SRR, SDR, KDP-B)"
+    },
+    "interface_ref": {
+      "type": "string",
+      "pattern": "^IF-[0-9]{4}$",
+      "description": "Линк или поток привязан к интерфейсу дерева состава: модель читает параметры обоих концов"
+    },
+    "inputs": {
+      "type": "array",
+      "description": "Входы: параметр узла дерева, интерфейс или выход другой модели",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "node": {
+            "type": "string",
+            "pattern": "^CM-[0-9]{4}$"
+          },
+          "interface": {
+            "type": "string",
+            "pattern": "^IF-[0-9]{4}$"
+          },
+          "model": {
+            "type": "string",
+            "description": "Обозначение или идентификатор модели-поставщика"
+          },
+          "param": {
+            "type": "string",
+            "description": "Имя параметра узла (ключ анкеты Ф-06)"
+          },
+          "hint": {
+            "type": "string",
+            "description": "Что это за вход словами — на полке, где узлов проекта ещё нет"
+          }
+        }
+      }
+    },
+    "outputs": {
+      "type": "array",
+      "description": "Выходы: пусто — модель ответа не дала. Дата и версия обязательны у посчитанного",
+      "items": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "value": {
+            "$ref": "https://kis.local/schemas/common/quantity.schema.json"
+          },
+          "note": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string",
+            "description": "Дата расчёта: без неё выход не считается ответом"
+          },
+          "version": {
+            "type": "string"
+          },
+          "proxy": {
+            "type": "boolean",
+            "default": false,
+            "description": "Прокси всегда помечен на выходе"
+          }
+        }
+      }
+    },
+    "parts": {
+      "type": "array",
+      "description": "Части модели: линки М2а–г и потоки М3а–е — каждая со своим интерфейсом, входами и выходами",
+      "items": {
+        "type": "object",
+        "required": [
+          "code",
+          "name"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "question": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "not_built",
+              "proxy",
+              "computed",
+              "external"
+            ]
+          },
+          "due_gate": {
+            "type": "string"
+          },
+          "interface_ref": {
+            "type": "string",
+            "pattern": "^IF-[0-9]{4}$"
+          },
+          "interface_hint": {
+            "type": "string",
+            "description": "Какой стык имеется в виду, пока интерфейс в проекте не заведён"
+          },
+          "inputs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "outputs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "tool": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "feeds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Кого кормит эта модель: обозначения моделей набора"
+    },
+    "mission_class_ref": {
+      "type": "string",
+      "pattern": "^MC-[0-9]{4}$"
+    },
+    "required_for_class": {
+      "type": "boolean",
+      "default": false,
+      "description": "Модель обязательного поднабора класса миссии"
+    },
+    "lifecycle": {
+      "$ref": "https://kis.local/schemas/common/status.schema.json"
+    },
+    "provenance": {
+      "$ref": "https://kis.local/schemas/common/provenance.schema.json"
+    },
+    "applies": {
+      "type": "object"
+    }
+  }
+}

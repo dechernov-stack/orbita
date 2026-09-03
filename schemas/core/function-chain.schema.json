@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/core/function-chain.schema.json",
+  "title": "FunctionChain",
+  "description": "Функциональная цепочка (ADR-050): упорядоченный набор функций, которым выполняется сценарий. Сценарное требование покрывается цепочкой (realized_by), а не отдельной функцией; во внешней модели ей отвечает FunctionalChain Capella.",
+  "type": "object",
+  "required": [
+    "id",
+    "name",
+    "steps",
+    "lifecycle"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^FC-[0-9]{4}$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "statement": {
+      "type": "string"
+    },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Шаги цепочки по порядку: функция и что происходит",
+      "items": {
+        "type": "object",
+        "required": [
+          "function"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "function": {
+            "type": "string",
+            "pattern": "^FN-[0-9]{4}$"
+          },
+          "note": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "traces_up": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^(ND|SV|CO|MG)-[0-9]{4}$"
+      },
+      "description": "Откуда цепочка следует: сценарий ConOps, нужда, сервис, цель"
+    },
+    "owner": {
+      "type": "string"
+    },
+    "lifecycle": {
+      "$ref": "https://kis.local/schemas/common/status.schema.json"
+    },
+    "provenance": {
+      "$ref": "https://kis.local/schemas/common/provenance.schema.json"
+    },
+    "applies": {
+      "type": "object"
+    }
+  }
+}

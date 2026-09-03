@@ -68,7 +68,7 @@ export const SECTIONS: NavSection[] = [
     label: 'Концепция',
     screens: [
       { key: 'aoa', title: 'Альтернативы и решения' },
-      { key: 'functions', title: 'Функции' },
+      { key: 'functions', title: 'Функции и цепочки' },
       { key: 'wbs', title: 'Элементы и интерфейсы' },
       { key: 'external', title: 'Внешняя модель' },
       { key: 'composition', title: 'Дерево состава' },
@@ -80,6 +80,7 @@ export const SECTIONS: NavSection[] = [
     key: 'ballistics',
     label: 'Модели',
     screens: [
+      { key: 'sysmodels', title: 'Модели системы' },
       { key: 'siminputs', title: 'Входы моделирования' },
       { key: 'spacecraft', title: 'Модель аппарата' },
       { key: 'demand', title: 'Карта спроса' },

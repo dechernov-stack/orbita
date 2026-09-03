@@ -49,6 +49,7 @@ import { Spacecraft } from './screens/Spacecraft'
 import { SystemComposition } from './screens/SystemComposition'
 import { TraceGraph } from './screens/TraceGraph'
 import { ExternalModel } from './screens/ExternalModel'
+import { SystemModels } from './screens/SystemModels'
 import { SystemOverview } from './screens/SystemOverview'
 import { AuthorField, LoginGate, useSession } from './ui/session'
 
@@ -141,6 +142,7 @@ function MatrixScreen() {
     ['verification', 'Верификация'],
     ['validation', 'Валидация'],
     ['functions', 'Функции × узлы'],
+    ['coverage', 'Покрытие требований'],
   ]
   return (
     <>
@@ -367,8 +369,9 @@ export function App() {
       case 'matrix': return <MatrixScreen />
       case 'trace': return <ScreenFrame title="Трассировка и impact"><TraceGraph onGo={go} /></ScreenFrame>
       case 'aoa': return <KindRegistry key={screen} kinds={['alternative', 'decision']} title="Альтернативы и решения" />
-      case 'functions': return <KindRegistry key={screen} kinds={['function']} title="Функции" />
+      case 'functions': return <KindRegistry key={screen} kinds={['function', 'function_chain']} title="Функции и цепочки" />
       case 'external': return <ScreenFrame title="Внешняя модель"><ExternalModel onGo={go} /></ScreenFrame>
+      case 'sysmodels': return <ScreenFrame title="Модели системы"><SystemModels onGo={go} /></ScreenFrame>
       case 'wbs': return <KindRegistry key={screen} kinds={['component', 'interface']} title="Элементы и интерфейсы" />
       case 'composition': return <ScreenFrame title="Дерево состава"><SystemComposition onGo={go} /></ScreenFrame>
       case 'wbstree': return <KindRegistry key={screen} kinds={['wbs_element']} title="Структура работ (WBS)" />

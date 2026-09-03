@@ -186,8 +186,51 @@ class DataRequests(private val boundary: Boundary) {
             ?: "files"
 
     /** Незакрытые обязательные поля — строками для разрыва готовности. */
+    /**
+     * Каркас PBS ред. 2 (ADR-051): у узла своя анкета — поля, которые он обязан
+     * нести, и точка их зрелости. Она приходит с каркасом (expects) и живёт на
+     * узле: спрашивать характеристики «вообще» бессмысленно, спрашивают у узла.
+     */
+    fun ofNodes(projectId: String): List<DataRequest> {
+        val nextGate = runCatching { boundary.gatePassing.nextGate(projectId) }.getOrNull()
+        return boundary.objects.listCurrent(projectId)
+            .filter { it.type == "component" && it.status.name != "Cancelled" && !it.doc.path("expects").isEmpty }
+            .sortedBy { it.id }
+            .map { node ->
+                val values = node.doc.path("parameters").associate { p ->
+                    p.path("name").asText("") to p.path("quantity").path("value")
+                }
+                DataRequest(
+                    form = node.id,
+                    name = "${node.doc.path("name").asText(node.id)} · анкета узла",
+                    role = "node",
+                    note = node.doc.path("code").asText("").ifBlank { null },
+                    target = node.id,
+                    fields = node.doc.path("expects").map { f ->
+                        val key = f.path("key").asText()
+                        val requiredBy = f.path("required_to").asText("").ifBlank { null }
+                        val value = values[key]
+                        DataRequestField(
+                            key = key,
+                            name = f.path("name").asText(key),
+                            unit = f.path("unit").asText("").ifBlank { null },
+                            required = requiredBy != null,
+                            requiredBy = requiredBy,
+                            dueNow = requiredBy != null && requiredBy == nextGate,
+                            hint = f.path("hint").asText("").ifBlank { null },
+                            kind = "number",
+                            options = emptyList(),
+                            filled = value != null && !value.isMissingNode && !value.isNull,
+                            value = value?.takeIf { !it.isMissingNode && !it.isNull }?.asText(),
+                            from = if (value != null && !value.isMissingNode) "model" else null,
+                        )
+                    },
+                )
+            }
+    }
+
     fun missingSummary(projectId: String): List<String> =
-        of(projectId).flatMap { r -> r.missing.map { "${r.name}: ${it.name}" } }
+        (of(projectId) + ofNodes(projectId)).flatMap { r -> r.missing.map { "${r.name}: ${it.name}" } }
 
     fun toJson(requests: List<DataRequest>) = mapper.createArrayNode().apply {
         requests.forEach { r ->

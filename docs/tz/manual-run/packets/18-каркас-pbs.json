@@ -1,0 +1,2727 @@
+{
+  "_comment": "Каркас PBS ред. 2 (ADR-051, ШАБЛОН-PBS.md + ПОЛКА-PBS.json): 135 узлов до шестого уровня, 130 полей анкет узлов с точками зрелости, 10 интерфейсов с привязкой моделей М2/М3. Взятие разворачивает дерево носителей проекта: уровни 0–3 всегда, 4–5 по классу миссии; optional — по подтверждению; external — требования к интерфейсу, не к составу. Коды узлов стабильны и служат для сопоставления с уже заведёнными узлами.",
+  "author": "полка: каркас PBS",
+  "objects": [
+    {
+      "id": "LF-9002",
+      "name": "Каркас PBS космической системы (ред. 2)",
+      "shelf": "B5",
+      "mission_class_ref": "MC-0001",
+      "counters": {
+        "component": 135,
+        "interface": 10
+      },
+      "origin": {
+        "project": "полка",
+        "author": "поставка владельца: ШАБЛОН-PBS.md + ПОЛКА-PBS.json",
+        "date": "2026-09-03"
+      },
+      "anonymized": false,
+      "payload": {
+        "objects": [
+          {
+            "id": "CM-9101",
+            "name": "Система (миссия)",
+            "kind": "system",
+            "code": "SYS",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "expects": [
+              {
+                "key": "lifetime",
+                "name": "срок активного существования",
+                "unit": "год",
+                "required_to": "MCR",
+                "hint": "корень: проектные требования распределяются сюда"
+              },
+              {
+                "key": "n_sat",
+                "name": "число КА в ОГ",
+                "unit": "шт",
+                "required_to": "MCR",
+                "hint": "корень: проектные требования распределяются сюда"
+              }
+            ],
+            "level": 0
+          },
+          {
+            "id": "CM-9102",
+            "name": "Космический сегмент",
+            "kind": "segment",
+            "code": "SEG-SP",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9101",
+            "level": 1
+          },
+          {
+            "id": "CM-9103",
+            "name": "Космический аппарат (КА)",
+            "kind": "element",
+            "code": "SC",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9102",
+            "default_quantity": 1,
+            "expects": [
+              {
+                "key": "mass_dry",
+                "name": "масса сухая",
+                "unit": "кг",
+                "required_to": "MCR",
+                "hint": "вхождение ×N по подгруппам построения; носитель для построений"
+              },
+              {
+                "key": "mass_wet",
+                "name": "масса стартовая",
+                "unit": "кг",
+                "required_to": "SRR",
+                "hint": "вхождение ×N по подгруппам построения; носитель для построений"
+              },
+              {
+                "key": "power_avg",
+                "name": "мощность средняя",
+                "unit": "Вт",
+                "required_to": "MCR",
+                "hint": "вхождение ×N по подгруппам построения; носитель для построений"
+              },
+              {
+                "key": "power_peak",
+                "name": "мощность пиковая",
+                "unit": "Вт",
+                "required_to": "SRR",
+                "hint": "вхождение ×N по подгруппам построения; носитель для построений"
+              },
+              {
+                "key": "cross_section",
+                "name": "площадь миделя",
+                "unit": "м²",
+                "required_to": "SRR",
+                "hint": "вхождение ×N по подгруппам построения; носитель для построений"
+              },
+              {
+                "key": "drag_coeff",
+                "name": "коэффициент сопротивления Cd (прокси 2,2)",
+                "unit": "1",
+                "required_to": "SRR",
+                "hint": "вхождение ×N по подгруппам построения; носитель для построений"
+              },
+              {
+                "key": "dims",
+                "name": "габариты под обтекатель",
+                "unit": "м",
+                "required_to": "SRR",
+                "hint": "вхождение ×N по подгруппам построения; носитель для построений"
+              }
+            ],
+            "level": 2
+          },
+          {
+            "id": "CM-9104",
+            "name": "Платформа (служебный модуль)",
+            "kind": "subsystem",
+            "code": "SC-PLT",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9103",
+            "level": 3
+          },
+          {
+            "id": "CM-9105",
+            "name": "Конструкция и механизмы",
+            "kind": "subsystem",
+            "code": "STR",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9104",
+            "expects": [
+              {
+                "key": "mass",
+                "name": "масса",
+                "unit": "кг",
+                "required_to": "SRR",
+                "hint": "силовая основа и раскрытия"
+              },
+              {
+                "key": "first_mode",
+                "name": "первая собственная частота",
+                "unit": "Гц",
+                "required_to": "SDR",
+                "hint": "силовая основа и раскрытия"
+              }
+            ],
+            "level": 4
+          },
+          {
+            "id": "CM-9106",
+            "name": "Силовая конструкция (корпус, рама, панели)",
+            "kind": "assembly",
+            "code": "STR-BODY",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9105",
+            "level": 5
+          },
+          {
+            "id": "CM-9107",
+            "name": "Механизмы раскрытия (СБ, антенны)",
+            "kind": "assembly",
+            "code": "STR-DEPLOY",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9105",
+            "expects": [
+              {
+                "key": "n_deploy",
+                "name": "число раскрытий",
+                "unit": "шт",
+                "required_to": "SDR"
+              }
+            ],
+            "level": 5
+          },
+          {
+            "id": "CM-9108",
+            "name": "Система отделения и адаптер РН",
+            "kind": "assembly",
+            "code": "STR-SEP",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9105",
+            "expects": [
+              {
+                "key": "sep_shock",
+                "name": "ударная нагрузка отделения",
+                "unit": "1",
+                "required_to": "SDR",
+                "hint": "интерфейс с сегментом выведения"
+              }
+            ],
+            "level": 5
+          },
+          {
+            "id": "CM-9109",
+            "name": "Крепление полезной нагрузки",
+            "kind": "assembly",
+            "code": "STR-PLMOUNT",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9105",
+            "level": 5
+          },
+          {
+            "id": "CM-9110",
+            "name": "СЭП — система электропитания",
+            "kind": "subsystem",
+            "code": "EPS",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9104",
+            "expects": [
+              {
+                "key": "bus_voltage",
+                "name": "напряжение шины",
+                "unit": "В",
+                "required_to": "MCR",
+                "hint": "первичный источник — СБ, вторичный — АКБ, преобразование и распределение"
+              },
+              {
+                "key": "power_avg",
+                "name": "мощность средняя",
+                "unit": "Вт",
+                "required_to": "MCR",
+                "hint": "первичный источник — СБ, вторичный — АКБ, преобразование и распределение"
+              },
+              {
+                "key": "power_peak",
+                "name": "мощность пиковая",
+                "unit": "Вт",
+                "required_to": "SRR",
+                "hint": "первичный источник — СБ, вторичный — АКБ, преобразование и распределение"
+              },
+              {
+                "key": "eclipse_max",
+                "name": "тень максимальная на витке",
+                "unit": "мин",
+                "required_to": "SRR",
+                "hint": "первичный источник — СБ, вторичный — АКБ, преобразование и распределение"
+              }
+            ],
+            "level": 4
+          },
+          {
+            "id": "CM-9111",
+            "name": "СБ — солнечные батареи (первичный источник)",
+            "kind": "assembly",
+            "code": "EPS-SA",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9110",
+            "expects": [
+              {
+                "key": "area",
+                "name": "площадь",
+                "unit": "м²",
+                "required_to": "MCR"
+              },
+              {
+                "key": "eff",
+                "name": "КПД ФЭП",
+                "unit": "1",
+                "required_to": "SRR"
+              },
+              {
+                "key": "power_bol",
+                "name": "мощность в начале срока",
+                "unit": "Вт",
+                "required_to": "SRR"
+              },
+              {
+                "key": "power_eol",
+                "name": "мощность в конце срока",
+                "unit": "Вт",
+                "required_to": "SDR"
+              },
+              {
+                "key": "orient",
+                "name": "ориентируемые/фиксированные",
+                "unit": "1",
+                "required_to": "MCR"
+              }
+            ],
+            "level": 5
+          },
+          {
+            "id": "CM-9112",
+            "name": "Панели СБ",
+            "kind": "unit",
+            "code": "EPS-SA-PANEL",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9111",
+            "expects": [
+              {
+                "key": "n",
+                "name": "число панелей",
+                "unit": "шт",
+                "required_to": "SRR"
+              }
+            ],
+            "level": 6
+          },
+          {
+            "id": "CM-9113",
+            "name": "ФЭП — фотоэлектрические преобразователи",
+            "kind": "unit",
+            "code": "EPS-SA-CELL",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9111",
+            "expects": [
+              {
+                "key": "type",
+                "name": "тип (3J GaAs / Si)",
+                "unit": "1",
+                "required_to": "SRR"
+              }
+            ],
+            "level": 6
+          },
+          {
+            "id": "CM-9114",
+            "name": "Шунтовые регуляторы СБ",
+            "kind": "unit",
+            "code": "EPS-SA-SHUNT",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9111",
+            "level": 6
+          },
+          {
+            "id": "CM-9115",
+            "name": "АКБ — аккумуляторные батареи (вторичный источник)",
+            "kind": "assembly",
+            "code": "EPS-BAT",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9110",
+            "expects": [
+              {
+                "key": "capacity",
+                "name": "ёмкость",
+                "unit": "А·ч",
+                "required_to": "MCR"
+              },
+              {
+                "key": "voltage",
+                "name": "напряжение",
+                "unit": "В",
+                "required_to": "MCR"
+              },
+              {
+                "key": "energy",
+                "name": "энергия (вычисляется А·ч × В)",
+                "unit": "Вт·ч",
+                "required_to": "MCR"
+              },
+              {
+                "key": "dod",
+                "name": "глубина разряда допустимая",
+                "unit": "1",
+                "required_to": "SRR"
+              },
+              {
+                "key": "cycles",
+                "name": "ресурс, циклов",
+                "unit": "шт",
+                "required_to": "SRR"
+              }
+            ],
+            "level": 5
+          },
+          {
+            "id": "CM-9116",
+            "name": "Батарейные блоки (Li-ion)",
+            "kind": "unit",
+            "code": "EPS-BAT-PACK",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9115",
+            "expects": [
+              {
+                "key": "n",
+                "name": "число блоков",
+                "unit": "шт",
+                "required_to": "SRR"
+              }
+            ],
+            "level": 6
+          },
+          {
+            "id": "CM-9117",
+            "name": "Контроллер батареи (BMS: балансировка, защита, обогрев)",
+            "kind": "unit",
+            "code": "EPS-BAT-BMS",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9115",
+            "level": 6
+          },
+          {
+            "id": "CM-9118",
+            "name": "ПР — регулирование (зарядное устройство, регулятор шины)",
+            "kind": "assembly",
+            "code": "EPS-PCU",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9110",
+            "expects": [
+              {
+                "key": "eff",
+                "name": "КПД",
+                "unit": "1",
+                "required_to": "SDR"
+              }
+            ],
+            "level": 5
+          },
+          {
+            "id": "CM-9119",
+            "name": "ВИП — вторичные источники питания (DC/DC преобразователи)",
+            "kind": "assembly",
+            "code": "EPS-DCDC",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9110",
+            "expects": [
+              {
+                "key": "rails",
+                "name": "номиналы шин",
+                "unit": "В",
+                "required_to": "SRR"
+              },
+              {
+                "key": "eff",
+                "name": "КПД",
+                "unit": "1",
+                "required_to": "SDR"
+              }
+            ],
+            "level": 5
+          },
+          {
+            "id": "CM-9120",
+            "name": "Блок распределения и коммутации нагрузок",
+            "kind": "assembly",
+            "code": "EPS-PDU",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9110",
+            "expects": [
+              {
+                "key": "n_channels",
+                "name": "число каналов",
+                "unit": "шт",
+                "required_to": "SDR",
+                "hint": "коммутация потребителей, защита по току"
+              }
+            ],
+            "level": 5
+          },
+          {
+            "id": "CM-9121",
+            "name": "Датчики тока и напряжения",
+            "kind": "unit",
+            "code": "EPS-SENS",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9110",
+            "level": 5
+          },
+          {
+            "id": "CM-9122",
+            "name": "СТР — терморегулирование",
+            "kind": "subsystem",
+            "code": "TCS",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9104",
+            "expects": [
+              {
+                "key": "t_range_op",
+                "name": "рабочий диапазон температур",
+                "unit": "°C",
+                "required_to": "SRR"
+              },
+              {
+                "key": "heater_power",
+                "name": "мощность нагревателей",
+                "unit": "Вт",
+                "required_to": "SDR"
+              }
+            ],
+            "level": 4
+          },
+          {
+            "id": "CM-9123",
+            "name": "ЭВТИ — экранно-вакуумная теплоизоляция",
+            "kind": "unit",
+            "code": "TCS-MLI",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9122",
+            "level": 5
+          },
+          {
+            "id": "CM-9124",
+            "name": "Терморегулирующие покрытия",
+            "kind": "unit",
+            "code": "TCS-COAT",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9122",
+            "level": 5
+          },
+          {
+            "id": "CM-9125",
+            "name": "Радиаторы",
+            "kind": "unit",
+            "code": "TCS-RAD",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9122",
+            "expects": [
+              {
+                "key": "area",
+                "name": "площадь",
+                "unit": "м²",
+                "required_to": "SDR"
+              }
+            ],
+            "level": 5
+          },
+          {
+            "id": "CM-9126",
+            "name": "Тепловые трубы",
+            "kind": "unit",
+            "code": "TCS-HP",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9122",
+            "level": 5
+          },
+          {
+            "id": "CM-9127",
+            "name": "Нагреватели и термостаты",
+            "kind": "unit",
+            "code": "TCS-HEAT",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9122",
+            "level": 5
+          },
+          {
+            "id": "CM-9128",
+            "name": "Датчики температуры",
+            "kind": "unit",
+            "code": "TCS-SENS",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9122",
+            "level": 5
+          },
+          {
+            "id": "CM-9129",
+            "name": "СОС — ориентация и стабилизация",
+            "kind": "subsystem",
+            "code": "AOCS",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9104",
+            "expects": [
+              {
+                "key": "pointing_acc",
+                "name": "точность ориентации",
+                "unit": "°",
+                "required_to": "MCR"
+              },
+              {
+                "key": "slew_rate",
+                "name": "скорость разворота",
+                "unit": "°/с",
+                "required_to": "SRR"
+              },
+              {
+                "key": "stability",
+                "name": "стабилизация",
+                "unit": "°/с",
+                "required_to": "SDR"
+              },
+              {
+                "key": "modes",
+                "name": "режимы (демпфирование, солнечный, целевой, безопасный)",
+                "unit": "1",
+                "required_to": "SRR"
+              }
+            ],
+            "level": 4
+          },
+          {
+            "id": "CM-9130",
+            "name": "Звёздный датчик",
+            "kind": "unit",
+            "code": "AOCS-STR",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9129",
+            "expects": [
+              {
+                "key": "acc",
+                "name": "точность",
+                "unit": "°",
+                "required_to": "SRR"
+              }
+            ],
+            "level": 5
+          },
+          {
+            "id": "CM-9131",
+            "name": "Солнечные датчики",
+            "kind": "unit",
+            "code": "AOCS-SUN",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9129",
+            "expects": [
+              {
+                "key": "n",
+                "name": "число",
+                "unit": "шт",
+                "required_to": "SDR"
+              }
+            ],
+            "level": 5
+          },
+          {
+            "id": "CM-9132",
+            "name": "Магнитометр",
+            "kind": "unit",
+            "code": "AOCS-MAG",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9129",
+            "level": 5
+          },
+          {
+            "id": "CM-9133",
+            "name": "ДУС — датчик угловой скорости",
+            "kind": "unit",
+            "code": "AOCS-GYRO",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9129",
+            "level": 5
+          },
+          {
+            "id": "CM-9134",
+            "name": "Приёмник ГНСС (навигация КА)",
+            "kind": "unit",
+            "code": "AOCS-GNSS",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9129",
+            "expects": [
+              {
+                "key": "acc_pos",
+                "name": "точность положения",
+                "unit": "м",
+                "required_to": "SRR"
+              }
+            ],
+            "level": 5
+          },
+          {
+            "id": "CM-9135",
+            "name": "ДМ — двигатели-маховики",
+            "kind": "unit",
+            "code": "AOCS-RW",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9129",
+            "expects": [
+              {
+                "key": "n",
+                "name": "число",
+                "unit": "шт",
+                "required_to": "SRR"
+              },
+              {
+                "key": "torque",
+                "name": "момент",
+                "unit": "1",
+                "required_to": "SDR"
+              },
+              {
+                "key": "momentum",
+                "name": "кинетический момент",
+                "unit": "1",
+                "required_to": "SDR"
+              }
+            ],
+            "level": 5
+          },
+          {
+            "id": "CM-9136",
+            "name": "МИО — магнитные исполнительные органы",
+            "kind": "unit",
+            "code": "AOCS-MTQ",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9129",
+            "level": 5
+          },
+          {
+            "id": "CM-9137",
+            "name": "Алгоритмы и ПО СОС (в БКУ)",
+            "kind": "unit",
+            "code": "AOCS-SW",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9129",
+            "level": 5
+          },
+          {
+            "id": "CM-9138",
+            "name": "БКУ — бортовой комплекс управления",
+            "kind": "subsystem",
+            "code": "OBC",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9104",
+            "expects": [
+              {
+                "key": "cpu",
+                "name": "вычислительная мощность",
+                "unit": "1",
+                "required_to": "SRR"
+              },
+              {
+                "key": "storage",
+                "name": "ЗУ данных",
+                "unit": "МБ",
+                "required_to": "MCR"
+              },
+              {
+                "key": "autonomy",
+                "name": "автономность без НКУ",
+                "unit": "сут",
+                "required_to": "SRR"
+              }
+            ],
+            "level": 4
+          },
+          {
+            "id": "CM-9139",
+            "name": "БЦВМ — процессорный модуль",
+            "kind": "unit",
+            "code": "OBC-CPU",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9138",
+            "expects": [
+              {
+                "key": "rad_tol",
+                "name": "радстойкость TID",
+                "unit": "крад",
+                "required_to": "SRR"
+              }
+            ],
+            "level": 5
+          },
+          {
+            "id": "CM-9140",
+            "name": "Запоминающее устройство",
+            "kind": "unit",
+            "code": "OBC-MEM",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9138",
+            "expects": [
+              {
+                "key": "size",
+                "name": "объём",
+                "unit": "МБ",
+                "required_to": "MCR"
+              }
+            ],
+            "level": 5
+          },
+          {
+            "id": "CM-9141",
+            "name": "Бортовая шина данных (CAN / SpaceWire)",
+            "kind": "unit",
+            "code": "OBC-BUS",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9138",
+            "level": 5
+          },
+          {
+            "id": "CM-9142",
+            "name": "Бортовое время и синхронизация",
+            "kind": "unit",
+            "code": "OBC-TIME",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9138",
+            "level": 5
+          },
+          {
+            "id": "CM-9143",
+            "name": "ПО БКУ (управление, ТМ, автономные режимы, FDIR)",
+            "kind": "unit",
+            "code": "OBC-SW",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9138",
+            "level": 5
+          },
+          {
+            "id": "CM-9144",
+            "name": "ДУ — двигательная установка",
+            "kind": "subsystem",
+            "code": "PROP",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9104",
+            "expects": [
+              {
+                "key": "delta_v_total",
+                "name": "Δv суммарный",
+                "unit": "м/с",
+                "required_to": "MCR",
+                "hint": "удержание, фазирование, увод"
+              },
+              {
+                "key": "thrust",
+                "name": "тяга",
+                "unit": "мН",
+                "required_to": "SRR",
+                "hint": "удержание, фазирование, увод"
+              },
+              {
+                "key": "isp",
+                "name": "удельный импульс",
+                "unit": "с",
+                "required_to": "SRR",
+                "hint": "удержание, фазирование, увод"
+              },
+              {
+                "key": "propellant_mass",
+                "name": "масса топлива",
+                "unit": "кг",
+                "required_to": "SRR",
+                "hint": "удержание, фазирование, увод"
+              },
+              {
+                "key": "type",
+                "name": "тип (ЭРД / газовая / химическая)",
+                "unit": "1",
+                "required_to": "MCR",
+                "hint": "удержание, фазирование, увод"
+              }
+            ],
+            "level": 4
+          },
+          {
+            "id": "CM-9145",
+            "name": "Двигатели",
+            "kind": "unit",
+            "code": "PROP-THR",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9144",
+            "expects": [
+              {
+                "key": "n",
+                "name": "число",
+                "unit": "шт",
+                "required_to": "SRR"
+              }
+            ],
+            "level": 5
+          },
+          {
+            "id": "CM-9146",
+            "name": "Баки",
+            "kind": "unit",
+            "code": "PROP-TANK",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9144",
+            "expects": [
+              {
+                "key": "volume",
+                "name": "объём",
+                "unit": "л",
+                "required_to": "SRR"
+              }
+            ],
+            "level": 5
+          },
+          {
+            "id": "CM-9147",
+            "name": "Арматура и клапаны",
+            "kind": "unit",
+            "code": "PROP-VALVE",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9144",
+            "level": 5
+          },
+          {
+            "id": "CM-9148",
+            "name": "Контроллер ДУ (PPU для ЭРД)",
+            "kind": "unit",
+            "code": "PROP-PPU",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9144",
+            "expects": [
+              {
+                "key": "power",
+                "name": "потребление при работе",
+                "unit": "Вт",
+                "required_to": "SRR"
+              }
+            ],
+            "level": 5
+          },
+          {
+            "id": "CM-9149",
+            "name": "КТРЛ — командно-телеметрическая радиолиния",
+            "kind": "subsystem",
+            "code": "TTC",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9104",
+            "expects": [
+              {
+                "key": "band",
+                "name": "диапазон",
+                "unit": "МГц",
+                "required_to": "MCR",
+                "hint": "управление и ТМ с НКУ; аварийный режим через всенаправленные антенны"
+              },
+              {
+                "key": "tx_power",
+                "name": "мощность передатчика",
+                "unit": "Вт",
+                "required_to": "SRR",
+                "hint": "управление и ТМ с НКУ; аварийный режим через всенаправленные антенны"
+              },
+              {
+                "key": "sensitivity",
+                "name": "чувствительность приёмника",
+                "unit": "дБм",
+                "required_to": "SRR",
+                "hint": "управление и ТМ с НКУ; аварийный режим через всенаправленные антенны"
+              },
+              {
+                "key": "tm_rate",
+                "name": "скорость ТМ",
+                "unit": "бит/с",
+                "required_to": "SRR",
+                "hint": "управление и ТМ с НКУ; аварийный режим через всенаправленные антенны"
+              },
+              {
+                "key": "tc_rate",
+                "name": "скорость команд",
+                "unit": "бит/с",
+                "required_to": "SRR",
+                "hint": "управление и ТМ с НКУ; аварийный режим через всенаправленные антенны"
+              },
+              {
+                "key": "crypto",
+                "name": "защита команд (да/нет)",
+                "unit": "1",
+                "required_to": "SRR",
+                "hint": "управление и ТМ с НКУ; аварийный режим через всенаправленные антенны"
+              }
+            ],
+            "level": 4
+          },
+          {
+            "id": "CM-9150",
+            "name": "Приёмопередатчик КТРЛ",
+            "kind": "unit",
+            "code": "TTC-TRX",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9149",
+            "level": 5
+          },
+          {
+            "id": "CM-9151",
+            "name": "Антенны всенаправленные (аварийный режим)",
+            "kind": "unit",
+            "code": "TTC-ANT-OMNI",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9149",
+            "expects": [
+              {
+                "key": "n",
+                "name": "число",
+                "unit": "шт",
+                "required_to": "SRR"
+              }
+            ],
+            "level": 5
+          },
+          {
+            "id": "CM-9152",
+            "name": "Антенна направленная",
+            "kind": "unit",
+            "code": "TTC-ANT-DIR",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9149",
+            "level": 5
+          },
+          {
+            "id": "CM-9153",
+            "name": "Усилитель мощности",
+            "kind": "unit",
+            "code": "TTC-PA",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9149",
+            "level": 5
+          },
+          {
+            "id": "CM-9154",
+            "name": "БКС — бортовая кабельная сеть",
+            "kind": "subsystem",
+            "code": "HARN",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9104",
+            "expects": [
+              {
+                "key": "mass",
+                "name": "масса",
+                "unit": "кг",
+                "required_to": "SDR"
+              }
+            ],
+            "level": 4
+          },
+          {
+            "id": "CM-9155",
+            "name": "Кабели и жгуты",
+            "kind": "unit",
+            "code": "HARN-CABLE",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9154",
+            "level": 5
+          },
+          {
+            "id": "CM-9156",
+            "name": "Разъёмы",
+            "kind": "unit",
+            "code": "HARN-CONN",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9154",
+            "level": 5
+          },
+          {
+            "id": "CM-9157",
+            "name": "Заземление и элементы ЭМС",
+            "kind": "unit",
+            "code": "HARN-EMC",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9154",
+            "level": 5
+          },
+          {
+            "id": "CM-9158",
+            "name": "Полезная нагрузка (целевой модуль)",
+            "kind": "subsystem",
+            "code": "SC-PL",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9103",
+            "expects": [
+              {
+                "key": "mass",
+                "name": "масса",
+                "unit": "кг",
+                "required_to": "MCR"
+              },
+              {
+                "key": "power_avg",
+                "name": "потребление среднее",
+                "unit": "Вт",
+                "required_to": "MCR"
+              },
+              {
+                "key": "power_peak",
+                "name": "потребление пиковое",
+                "unit": "Вт",
+                "required_to": "SRR"
+              }
+            ],
+            "level": 3
+          },
+          {
+            "id": "CM-9159",
+            "name": "БРТК-S — абонентский комплекс S-диапазона",
+            "kind": "assembly",
+            "code": "PL-S",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9158",
+            "expects": [
+              {
+                "key": "band",
+                "name": "диапазон",
+                "unit": "МГц",
+                "required_to": "MCR"
+              },
+              {
+                "key": "sensitivity",
+                "name": "чувствительность",
+                "unit": "дБм",
+                "required_to": "MCR"
+              },
+              {
+                "key": "channels",
+                "name": "каналов одновременного приёма",
+                "unit": "шт",
+                "required_to": "MCR"
+              },
+              {
+                "key": "tx_power",
+                "name": "мощность передатчика",
+                "unit": "Вт",
+                "required_to": "SRR"
+              },
+              {
+                "key": "eirp",
+                "name": "EIRP",
+                "unit": "дБВт",
+                "required_to": "SRR"
+              },
+              {
+                "key": "rate",
+                "name": "скорость канала",
+                "unit": "бит/с",
+                "required_to": "MCR"
+              }
+            ],
+            "level": 4
+          },
+          {
+            "id": "CM-9160",
+            "name": "Многоканальный приёмник",
+            "kind": "unit",
+            "code": "PL-S-RX",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9159",
+            "level": 5
+          },
+          {
+            "id": "CM-9161",
+            "name": "Передатчик",
+            "kind": "unit",
+            "code": "PL-S-TX",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9159",
+            "level": 5
+          },
+          {
+            "id": "CM-9162",
+            "name": "Процессор ПН (цифровая обработка, SDR)",
+            "kind": "unit",
+            "code": "PL-S-DSP",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9159",
+            "expects": [
+              {
+                "key": "buffer",
+                "name": "буфер сообщений",
+                "unit": "МБ",
+                "required_to": "SRR"
+              }
+            ],
+            "level": 5
+          },
+          {
+            "id": "CM-9163",
+            "name": "Опорный генератор и синтезатор частот",
+            "kind": "unit",
+            "code": "PL-S-LO",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9159",
+            "expects": [
+              {
+                "key": "stability",
+                "name": "стабильность",
+                "unit": "1",
+                "required_to": "SDR"
+              }
+            ],
+            "level": 5
+          },
+          {
+            "id": "CM-9164",
+            "name": "БРТК-P — комплекс P-диапазона (если применимо, наследие)",
+            "kind": "assembly",
+            "code": "PL-P",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9158",
+            "optional": true,
+            "expects": [
+              {
+                "key": "band",
+                "name": "диапазон",
+                "unit": "МГц",
+                "required_to": "MCR"
+              }
+            ],
+            "level": 4
+          },
+          {
+            "id": "CM-9165",
+            "name": "Фидерная радиолиния C-диапазона (КА ↔ РСС)",
+            "kind": "assembly",
+            "code": "PL-FEED",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9158",
+            "expects": [
+              {
+                "key": "band",
+                "name": "диапазон",
+                "unit": "МГц",
+                "required_to": "MCR"
+              },
+              {
+                "key": "rate",
+                "name": "пропускная способность",
+                "unit": "бит/с",
+                "required_to": "SRR"
+              },
+              {
+                "key": "eirp",
+                "name": "EIRP",
+                "unit": "дБВт",
+                "required_to": "SRR"
+              }
+            ],
+            "level": 4
+          },
+          {
+            "id": "CM-9166",
+            "name": "АФУ ПН — антенно-фидерное устройство",
+            "kind": "assembly",
+            "code": "PL-ANT",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9158",
+            "expects": [
+              {
+                "key": "gain_s",
+                "name": "усиление S",
+                "unit": "дБи",
+                "required_to": "SRR"
+              },
+              {
+                "key": "gain_c",
+                "name": "усиление C",
+                "unit": "дБи",
+                "required_to": "SRR"
+              },
+              {
+                "key": "beam",
+                "name": "ширина луча",
+                "unit": "°",
+                "required_to": "SRR"
+              }
+            ],
+            "level": 4
+          },
+          {
+            "id": "CM-9167",
+            "name": "Антенна абонентская (S)",
+            "kind": "unit",
+            "code": "PL-ANT-S",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9166",
+            "level": 5
+          },
+          {
+            "id": "CM-9168",
+            "name": "Антенна фидерная (C)",
+            "kind": "unit",
+            "code": "PL-ANT-C",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9166",
+            "level": 5
+          },
+          {
+            "id": "CM-9169",
+            "name": "Диплексеры и фидерные тракты",
+            "kind": "unit",
+            "code": "PL-ANT-DPX",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9166",
+            "level": 5
+          },
+          {
+            "id": "CM-9170",
+            "name": "МБРК — межспутниковая радиолиния (если применимо)",
+            "kind": "assembly",
+            "code": "PL-ISL",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9158",
+            "optional": true,
+            "expects": [
+              {
+                "key": "band",
+                "name": "диапазон",
+                "unit": "МГц",
+                "required_to": "SDR"
+              },
+              {
+                "key": "rate",
+                "name": "пропускная способность",
+                "unit": "бит/с",
+                "required_to": "SDR"
+              },
+              {
+                "key": "pointing",
+                "name": "наведение (фиксированное/следящее)",
+                "unit": "1",
+                "required_to": "SDR"
+              }
+            ],
+            "level": 4
+          },
+          {
+            "id": "CM-9171",
+            "name": "Модуль PNT (если применимо)",
+            "kind": "assembly",
+            "code": "PL-PNT",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9158",
+            "optional": true,
+            "expects": [
+              {
+                "key": "clock_stability",
+                "name": "стабильность опорного генератора",
+                "unit": "1",
+                "required_to": "SDR",
+                "hint": "навигационный сигнал, синхронизация времени"
+              }
+            ],
+            "level": 4
+          },
+          {
+            "id": "CM-9172",
+            "name": "Интерфейс с РН (адаптер, замки, отделение)",
+            "kind": "subsystem",
+            "code": "SC-LVI",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9103",
+            "external": true,
+            "expects": [
+              {
+                "key": "adapter_type",
+                "name": "тип адаптера",
+                "unit": "1",
+                "required_to": "SRR",
+                "hint": "внешний интерфейс"
+              }
+            ],
+            "level": 3
+          },
+          {
+            "id": "CM-9173",
+            "name": "Экспериментальная ОГ (КА-Э, если предусмотрена)",
+            "kind": "element",
+            "code": "SC-EXP",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9102",
+            "optional": true,
+            "level": 2
+          },
+          {
+            "id": "CM-9174",
+            "name": "Наземный комплекс управления (НКУ)",
+            "kind": "segment",
+            "code": "SEG-GC",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9101",
+            "level": 1
+          },
+          {
+            "id": "CM-9175",
+            "name": "ЦУП — центр управления полётом",
+            "kind": "element",
+            "code": "MCC",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9174",
+            "expects": [
+              {
+                "key": "ops_shifts",
+                "name": "состав смен",
+                "unit": "1",
+                "required_to": "SRR"
+              },
+              {
+                "key": "sats_per_operator",
+                "name": "КА на оператора",
+                "unit": "шт",
+                "required_to": "SRR"
+              }
+            ],
+            "level": 2
+          },
+          {
+            "id": "CM-9176",
+            "name": "Баллистический центр (эфемериды, планирование манёвров, альманах терминалам)",
+            "kind": "subsystem",
+            "code": "MCC-FD",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9175",
+            "level": 3
+          },
+          {
+            "id": "CM-9177",
+            "name": "Планирование сеансов и ресурсов станций",
+            "kind": "subsystem",
+            "code": "MCC-PLAN",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9175",
+            "level": 3
+          },
+          {
+            "id": "CM-9178",
+            "name": "Обработка телеметрии и контроль состояния",
+            "kind": "subsystem",
+            "code": "MCC-TM",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9175",
+            "level": 3
+          },
+          {
+            "id": "CM-9179",
+            "name": "Командование и загрузка ПО",
+            "kind": "subsystem",
+            "code": "MCC-TC",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9175",
+            "level": 3
+          },
+          {
+            "id": "CM-9180",
+            "name": "Наземный отладочный комплекс (симулятор борта)",
+            "kind": "subsystem",
+            "code": "MCC-SIM",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9175",
+            "optional": true,
+            "level": 3
+          },
+          {
+            "id": "CM-9181",
+            "name": "Станции управления (НСКУ)",
+            "kind": "element",
+            "code": "GCS",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9174",
+            "default_quantity": 2,
+            "expects": [
+              {
+                "key": "g_t",
+                "name": "добротность G/T",
+                "unit": "дБ/К",
+                "required_to": "SRR",
+                "hint": "вхождение ×N по площадкам"
+              },
+              {
+                "key": "eirp",
+                "name": "EIRP",
+                "unit": "дБВт",
+                "required_to": "SRR",
+                "hint": "вхождение ×N по площадкам"
+              },
+              {
+                "key": "elev_min",
+                "name": "минимальный угол места",
+                "unit": "°",
+                "required_to": "MCR",
+                "hint": "вхождение ×N по площадкам"
+              }
+            ],
+            "level": 2
+          },
+          {
+            "id": "CM-9182",
+            "name": "Антенная система (опорно-поворотное устройство, зеркало)",
+            "kind": "subsystem",
+            "code": "GCS-ANT",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9181",
+            "expects": [
+              {
+                "key": "diameter",
+                "name": "диаметр",
+                "unit": "м",
+                "required_to": "SRR"
+              }
+            ],
+            "level": 3
+          },
+          {
+            "id": "CM-9183",
+            "name": "Приёмо-передающий тракт",
+            "kind": "subsystem",
+            "code": "GCS-RF",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9181",
+            "level": 3
+          },
+          {
+            "id": "CM-9184",
+            "name": "Модем и оборудование сеанса",
+            "kind": "subsystem",
+            "code": "GCS-MODEM",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9181",
+            "level": 3
+          },
+          {
+            "id": "CM-9185",
+            "name": "Серверы станции и связь с ЦУП",
+            "kind": "subsystem",
+            "code": "GCS-SRV",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9181",
+            "level": 3
+          },
+          {
+            "id": "CM-9186",
+            "name": "Средства связи и передачи данных НКУ",
+            "kind": "element",
+            "code": "GC-NET",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9174",
+            "level": 2
+          },
+          {
+            "id": "CM-9187",
+            "name": "Наземный связной сегмент (НСК)",
+            "kind": "segment",
+            "code": "SEG-NET",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9101",
+            "level": 1
+          },
+          {
+            "id": "CM-9188",
+            "name": "РСС — региональные станции сопряжения",
+            "kind": "element",
+            "code": "GW",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9187",
+            "default_quantity": 3,
+            "expects": [
+              {
+                "key": "g_t",
+                "name": "G/T",
+                "unit": "дБ/К",
+                "required_to": "SRR",
+                "hint": "вхождение ×N; шлюз абонентского трафика"
+              },
+              {
+                "key": "capacity",
+                "name": "пропускная способность",
+                "unit": "бит/с",
+                "required_to": "SRR",
+                "hint": "вхождение ×N; шлюз абонентского трафика"
+              },
+              {
+                "key": "site",
+                "name": "площадка (широта, долгота)",
+                "unit": "°",
+                "required_to": "MCR",
+                "hint": "вхождение ×N; шлюз абонентского трафика"
+              }
+            ],
+            "level": 2
+          },
+          {
+            "id": "CM-9189",
+            "name": "Антенна фидерная",
+            "kind": "subsystem",
+            "code": "GW-ANT",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9188",
+            "level": 3
+          },
+          {
+            "id": "CM-9190",
+            "name": "Приёмо-передающий тракт",
+            "kind": "subsystem",
+            "code": "GW-RF",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9188",
+            "level": 3
+          },
+          {
+            "id": "CM-9191",
+            "name": "Шлюз протоколов и буфер",
+            "kind": "subsystem",
+            "code": "GW-GATE",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9188",
+            "level": 3
+          },
+          {
+            "id": "CM-9192",
+            "name": "ЦОД — центр обработки данных",
+            "kind": "element",
+            "code": "DC",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9187",
+            "expects": [
+              {
+                "key": "storage",
+                "name": "объём хранения",
+                "unit": "ГБ",
+                "required_to": "SRR"
+              },
+              {
+                "key": "availability",
+                "name": "доступность",
+                "unit": "1",
+                "required_to": "SRR"
+              }
+            ],
+            "level": 2
+          },
+          {
+            "id": "CM-9193",
+            "name": "Хранение сообщений и истории",
+            "kind": "subsystem",
+            "code": "DC-STORE",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9192",
+            "level": 3
+          },
+          {
+            "id": "CM-9194",
+            "name": "Обработка и маршрутизация",
+            "kind": "subsystem",
+            "code": "DC-PROC",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9192",
+            "level": 3
+          },
+          {
+            "id": "CM-9195",
+            "name": "Доставка потребителям (API, кабинеты)",
+            "kind": "subsystem",
+            "code": "DC-API",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9192",
+            "level": 3
+          },
+          {
+            "id": "CM-9196",
+            "name": "ЦУС — центр управления сетью",
+            "kind": "element",
+            "code": "NOC",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9187",
+            "level": 2
+          },
+          {
+            "id": "CM-9197",
+            "name": "Абонентское управление и приоритеты классов",
+            "kind": "subsystem",
+            "code": "NOC-SUB",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9196",
+            "level": 3
+          },
+          {
+            "id": "CM-9198",
+            "name": "Тарификация и учёт",
+            "kind": "subsystem",
+            "code": "NOC-BILL",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9196",
+            "level": 3
+          },
+          {
+            "id": "CM-9199",
+            "name": "Мониторинг сети и QoS",
+            "kind": "subsystem",
+            "code": "NOC-MON",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9196",
+            "level": 3
+          },
+          {
+            "id": "CM-9200",
+            "name": "ССПД — сеть передачи данных (РСС ↔ ЦОД ↔ потребители)",
+            "kind": "element",
+            "code": "NET-WAN",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9187",
+            "expects": [
+              {
+                "key": "latency",
+                "name": "латентность плеча",
+                "unit": "мс",
+                "required_to": "SRR"
+              }
+            ],
+            "level": 2
+          },
+          {
+            "id": "CM-9201",
+            "name": "Пользовательский сегмент",
+            "kind": "segment",
+            "code": "SEG-USR",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9101",
+            "level": 1
+          },
+          {
+            "id": "CM-9202",
+            "name": "Абонентские терминалы",
+            "kind": "element",
+            "code": "UT",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9201",
+            "level": 2
+          },
+          {
+            "id": "CM-9203",
+            "name": "Терминал универсальный",
+            "kind": "subsystem",
+            "code": "UT-UNI",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9202",
+            "expects": [
+              {
+                "key": "mass",
+                "name": "масса",
+                "unit": "кг",
+                "required_to": "SRR"
+              },
+              {
+                "key": "battery",
+                "name": "ёмкость батареи",
+                "unit": "А·ч",
+                "required_to": "SRR"
+              },
+              {
+                "key": "eirp",
+                "name": "EIRP",
+                "unit": "дБВт",
+                "required_to": "MCR"
+              },
+              {
+                "key": "sensitivity",
+                "name": "чувствительность",
+                "unit": "дБм",
+                "required_to": "MCR"
+              },
+              {
+                "key": "cost",
+                "name": "стоимость",
+                "unit": "млн ₽",
+                "required_to": "SRR"
+              }
+            ],
+            "level": 3
+          },
+          {
+            "id": "CM-9204",
+            "name": "Модем (приёмопередатчик)",
+            "kind": "unit",
+            "code": "UT-UNI-MODEM",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9203",
+            "level": 4
+          },
+          {
+            "id": "CM-9205",
+            "name": "Антенна",
+            "kind": "unit",
+            "code": "UT-UNI-ANT",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9203",
+            "level": 4
+          },
+          {
+            "id": "CM-9206",
+            "name": "Питание (батарея / внешнее)",
+            "kind": "unit",
+            "code": "UT-UNI-PWR",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9203",
+            "level": 4
+          },
+          {
+            "id": "CM-9207",
+            "name": "Интерфейс датчиков и оборудования",
+            "kind": "unit",
+            "code": "UT-UNI-IO",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9203",
+            "level": 4
+          },
+          {
+            "id": "CM-9208",
+            "name": "Корпус и защита (IP, температура)",
+            "kind": "unit",
+            "code": "UT-UNI-CASE",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9203",
+            "level": 4
+          },
+          {
+            "id": "CM-9209",
+            "name": "Терминал стационарный",
+            "kind": "subsystem",
+            "code": "UT-FIX",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9202",
+            "expects": [
+              {
+                "key": "mass",
+                "name": "масса",
+                "unit": "кг",
+                "required_to": "SRR"
+              },
+              {
+                "key": "battery",
+                "name": "ёмкость батареи",
+                "unit": "А·ч",
+                "required_to": "SRR"
+              },
+              {
+                "key": "eirp",
+                "name": "EIRP",
+                "unit": "дБВт",
+                "required_to": "MCR"
+              },
+              {
+                "key": "sensitivity",
+                "name": "чувствительность",
+                "unit": "дБм",
+                "required_to": "MCR"
+              },
+              {
+                "key": "cost",
+                "name": "стоимость",
+                "unit": "млн ₽",
+                "required_to": "SRR"
+              }
+            ],
+            "level": 3
+          },
+          {
+            "id": "CM-9210",
+            "name": "Модем (приёмопередатчик)",
+            "kind": "unit",
+            "code": "UT-FIX-MODEM",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9209",
+            "level": 4
+          },
+          {
+            "id": "CM-9211",
+            "name": "Антенна",
+            "kind": "unit",
+            "code": "UT-FIX-ANT",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9209",
+            "level": 4
+          },
+          {
+            "id": "CM-9212",
+            "name": "Питание (батарея / внешнее)",
+            "kind": "unit",
+            "code": "UT-FIX-PWR",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9209",
+            "level": 4
+          },
+          {
+            "id": "CM-9213",
+            "name": "Интерфейс датчиков и оборудования",
+            "kind": "unit",
+            "code": "UT-FIX-IO",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9209",
+            "level": 4
+          },
+          {
+            "id": "CM-9214",
+            "name": "Корпус и защита (IP, температура)",
+            "kind": "unit",
+            "code": "UT-FIX-CASE",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9209",
+            "level": 4
+          },
+          {
+            "id": "CM-9215",
+            "name": "Терминал мобильный (транспорт)",
+            "kind": "subsystem",
+            "code": "UT-MOB",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9202",
+            "expects": [
+              {
+                "key": "mass",
+                "name": "масса",
+                "unit": "кг",
+                "required_to": "SRR"
+              },
+              {
+                "key": "battery",
+                "name": "ёмкость батареи",
+                "unit": "А·ч",
+                "required_to": "SRR"
+              },
+              {
+                "key": "eirp",
+                "name": "EIRP",
+                "unit": "дБВт",
+                "required_to": "MCR"
+              },
+              {
+                "key": "sensitivity",
+                "name": "чувствительность",
+                "unit": "дБм",
+                "required_to": "MCR"
+              },
+              {
+                "key": "cost",
+                "name": "стоимость",
+                "unit": "млн ₽",
+                "required_to": "SRR"
+              }
+            ],
+            "level": 3
+          },
+          {
+            "id": "CM-9216",
+            "name": "Модем (приёмопередатчик)",
+            "kind": "unit",
+            "code": "UT-MOB-MODEM",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9215",
+            "level": 4
+          },
+          {
+            "id": "CM-9217",
+            "name": "Антенна",
+            "kind": "unit",
+            "code": "UT-MOB-ANT",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9215",
+            "level": 4
+          },
+          {
+            "id": "CM-9218",
+            "name": "Питание (батарея / внешнее)",
+            "kind": "unit",
+            "code": "UT-MOB-PWR",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9215",
+            "level": 4
+          },
+          {
+            "id": "CM-9219",
+            "name": "Интерфейс датчиков и оборудования",
+            "kind": "unit",
+            "code": "UT-MOB-IO",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9215",
+            "level": 4
+          },
+          {
+            "id": "CM-9220",
+            "name": "Корпус и защита (IP, температура)",
+            "kind": "unit",
+            "code": "UT-MOB-CASE",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9215",
+            "level": 4
+          },
+          {
+            "id": "CM-9221",
+            "name": "Терминал датчиковый (батарейный)",
+            "kind": "subsystem",
+            "code": "UT-SENS",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9202",
+            "expects": [
+              {
+                "key": "mass",
+                "name": "масса",
+                "unit": "кг",
+                "required_to": "SRR"
+              },
+              {
+                "key": "battery",
+                "name": "ёмкость батареи",
+                "unit": "А·ч",
+                "required_to": "SRR"
+              },
+              {
+                "key": "eirp",
+                "name": "EIRP",
+                "unit": "дБВт",
+                "required_to": "MCR"
+              },
+              {
+                "key": "sensitivity",
+                "name": "чувствительность",
+                "unit": "дБм",
+                "required_to": "MCR"
+              },
+              {
+                "key": "cost",
+                "name": "стоимость",
+                "unit": "млн ₽",
+                "required_to": "SRR"
+              },
+              {
+                "key": "autonomy",
+                "name": "срок автономной работы",
+                "unit": "год",
+                "required_to": "MCR"
+              }
+            ],
+            "level": 3
+          },
+          {
+            "id": "CM-9222",
+            "name": "Модем (приёмопередатчик)",
+            "kind": "unit",
+            "code": "UT-SENS-MODEM",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9221",
+            "level": 4
+          },
+          {
+            "id": "CM-9223",
+            "name": "Антенна",
+            "kind": "unit",
+            "code": "UT-SENS-ANT",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9221",
+            "level": 4
+          },
+          {
+            "id": "CM-9224",
+            "name": "Питание (батарея / внешнее)",
+            "kind": "unit",
+            "code": "UT-SENS-PWR",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9221",
+            "level": 4
+          },
+          {
+            "id": "CM-9225",
+            "name": "Интерфейс датчиков и оборудования",
+            "kind": "unit",
+            "code": "UT-SENS-IO",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9221",
+            "level": 4
+          },
+          {
+            "id": "CM-9226",
+            "name": "Корпус и защита (IP, температура)",
+            "kind": "unit",
+            "code": "UT-SENS-CASE",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9221",
+            "level": 4
+          },
+          {
+            "id": "CM-9227",
+            "name": "Прикладные сервисы потребителей",
+            "kind": "element",
+            "code": "USR-APP",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9201",
+            "optional": true,
+            "level": 2
+          },
+          {
+            "id": "CM-9228",
+            "name": "Сегмент выведения",
+            "kind": "segment",
+            "code": "SEG-LV",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9101",
+            "external": true,
+            "level": 1
+          },
+          {
+            "id": "CM-9229",
+            "name": "Ракета-носитель (по ограничению проекта)",
+            "kind": "element",
+            "code": "LV",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9228",
+            "external": true,
+            "expects": [
+              {
+                "key": "type",
+                "name": "тип РН",
+                "unit": "1",
+                "required_to": "MCR"
+              },
+              {
+                "key": "payload_mass",
+                "name": "масса выводимая на орбиту",
+                "unit": "кг",
+                "required_to": "MCR"
+              },
+              {
+                "key": "fairing",
+                "name": "обтекатель (габарит)",
+                "unit": "м",
+                "required_to": "SRR"
+              }
+            ],
+            "level": 2
+          },
+          {
+            "id": "CM-9230",
+            "name": "Космодром",
+            "kind": "element",
+            "code": "LV-SITE",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9228",
+            "external": true,
+            "expects": [
+              {
+                "key": "lat",
+                "name": "широта",
+                "unit": "°",
+                "required_to": "MCR"
+              },
+              {
+                "key": "incl_range",
+                "name": "достижимые наклонения",
+                "unit": "°",
+                "required_to": "MCR"
+              }
+            ],
+            "level": 2
+          },
+          {
+            "id": "CM-9231",
+            "name": "Адаптер / попутная схема (диспенсер)",
+            "kind": "element",
+            "code": "LV-ADAPT",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9228",
+            "external": true,
+            "expects": [
+              {
+                "key": "n_sat_per_launch",
+                "name": "КА за пуск",
+                "unit": "шт",
+                "required_to": "SRR"
+              }
+            ],
+            "level": 2
+          },
+          {
+            "id": "CM-9232",
+            "name": "Обеспечение и эксплуатация",
+            "kind": "segment",
+            "code": "SEG-SUP",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9101",
+            "level": 1
+          },
+          {
+            "id": "CM-9233",
+            "name": "Наземная экспериментальная база (испытания, ЭТБ)",
+            "kind": "element",
+            "code": "SUP-TEST",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9232",
+            "level": 2
+          },
+          {
+            "id": "CM-9234",
+            "name": "ИТ-инфраструктура и информационная безопасность",
+            "kind": "element",
+            "code": "SUP-IT",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9232",
+            "level": 2
+          },
+          {
+            "id": "CM-9235",
+            "name": "Эксплуатационная документация и обучение",
+            "kind": "element",
+            "code": "SUP-DOC",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            },
+            "parent": "CM-9232",
+            "level": 2
+          },
+          {
+            "id": "IF-9101",
+            "name": "Абонентская радиолиния S",
+            "kind": "interface",
+            "owners": [
+              "CM-9159",
+              "CM-9202"
+            ],
+            "description": "код каркаса IF-S-USER; тип RF; модели: М2а, М3а",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            }
+          },
+          {
+            "id": "IF-9102",
+            "name": "Фидерная радиолиния C",
+            "kind": "interface",
+            "owners": [
+              "CM-9165",
+              "CM-9188"
+            ],
+            "description": "код каркаса IF-C-FEED; тип RF; модели: М2б, М3в",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            }
+          },
+          {
+            "id": "IF-9103",
+            "name": "Командно-телеметрическая радиолиния",
+            "kind": "interface",
+            "owners": [
+              "CM-9149",
+              "CM-9181"
+            ],
+            "description": "код каркаса IF-TTC; тип RF; модели: М2в, М3г",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            }
+          },
+          {
+            "id": "IF-9104",
+            "name": "Межспутниковая радиолиния",
+            "kind": "interface",
+            "owners": [
+              "CM-9170",
+              "CM-9170"
+            ],
+            "description": "код каркаса IF-ISL; тип RF; модели: М2г, М3д",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            }
+          },
+          {
+            "id": "IF-9105",
+            "name": "ПН ↔ платформа (питание, данные, тепло, механика)",
+            "kind": "interface",
+            "owners": [
+              "CM-9158",
+              "CM-9104"
+            ],
+            "description": "код каркаса IF-PL-PLT; тип power+data+thermal+mech; модели: М4, М5, М6",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            }
+          },
+          {
+            "id": "IF-9106",
+            "name": "КА ↔ РН (механический, электрический, среды)",
+            "kind": "interface",
+            "owners": [
+              "CM-9172",
+              "CM-9231"
+            ],
+            "description": "код каркаса IF-SC-LV; тип mech+elec+env; модели: М6",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            }
+          },
+          {
+            "id": "IF-9107",
+            "name": "РСС ↔ ЦОД (ССПД)",
+            "kind": "interface",
+            "owners": [
+              "CM-9188",
+              "CM-9192"
+            ],
+            "description": "код каркаса IF-GW-DC; тип data; модели: М3е",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            }
+          },
+          {
+            "id": "IF-9108",
+            "name": "ЦОД ↔ потребители (API)",
+            "kind": "interface",
+            "owners": [
+              "CM-9195",
+              "CM-9227"
+            ],
+            "description": "код каркаса IF-DC-USER; тип data; модели: М3е",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            }
+          },
+          {
+            "id": "IF-9109",
+            "name": "ЦУП ↔ станции НКУ",
+            "kind": "interface",
+            "owners": [
+              "CM-9175",
+              "CM-9181"
+            ],
+            "description": "код каркаса IF-MCC-GCS; тип data; модели: М14",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            }
+          },
+          {
+            "id": "IF-9110",
+            "name": "ЦУП ↔ ЦУС (планирование против нагрузки сети)",
+            "kind": "interface",
+            "owners": [
+              "CM-9175",
+              "CM-9196"
+            ],
+            "description": "код каркаса IF-MCC-NOC; тип data; модели: М14",
+            "lifecycle": {
+              "status": "Draft",
+              "version": "1"
+            }
+          }
+        ]
+      },
+      "lifecycle": {
+        "status": "Draft",
+        "version": "1"
+      }
+    }
+  ]
+}

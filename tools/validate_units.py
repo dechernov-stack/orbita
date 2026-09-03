@@ -15,12 +15,17 @@ SEED = ROOT / "docs/tz/manual-run/packets/07-справочник-единиц.j
 
 
 def registry_units() -> set[str]:
+    """Единица справочника — сама единица И её написания: пачки владельца
+    приходят по-русски («Вт», «А·ч», «сут»), и написание — часть словаря,
+    а не исключение из проверки."""
     doc = json.loads(SEED.read_text(encoding="utf-8"))
     units: set[str] = set()
     for dim in doc["objects"][0]["dimensions"]:
         units.add(dim["canon"])
+        units.update(dim.get("spellings", []))
         for i in dim.get("inputs", []):
             units.add(i["unit"])
+            units.update(i.get("spellings", []))
     return units
 
 
