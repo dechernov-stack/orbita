@@ -53,7 +53,10 @@ ReqIF — поле в поле. Шип 4 (ADR-046): граф трассиров�
 `tools/check_sdoc_roundtrip.py` (детерминизм, UID, `strictdoc export`,
 `reqif validate`, обратный разбор) — локально пройден на демо-проекте (7
 проверок). Свой ReqIF помечен deprecated (ADR-023) — снос после слова
-владельца. Очередь исчерпана; стенд ждёт починки прокси Docker Desktop.
+владельца. Очередь исчерпана. Стенд: демон Docker Desktop не достаёт
+реестр (внутренний прокси висит) — обход `ops/tools/pull_via_host.py` +
+`BUILDER=desktop-linux`; выкат — из чистого worktree `~/Projects/orbita-ship`
+(COMPOSE_PROJECT_NAME=orbita). Оркестратор с PATCH-слиянием выкачен 03.09.
 
 Пачка-1 передачи (`docs/tz/manual-run-2/пачка-1/`): шип 1 — фиксы Ф-01…Ф-03
 (тег mvp-fix-08) и шип 2 — Д1, разбор документа при загрузке (ADR-032:
