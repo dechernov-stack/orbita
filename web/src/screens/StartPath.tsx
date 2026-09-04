@@ -84,10 +84,16 @@ function statementOf(id: string, version: string, name: string, text: string): s
 /** Тип по префиксу id — для счётчиков создания (подписи TYPE_PLURALS). */
 function typeOfId(id: string): string {
   const prefix = id.split('-')[0]
+  // Полный разбор префикса: неизвестный возвращал сам себя, и в паспорте
+  // появлялись «3 AP · 5 FC · 23 FN» — служебные буквы вместо слов (04.09)
   const map: Record<string, string> = {
     RQ: 'requirement', DT: 'document_template', CM: 'component', CU: 'component_usage',
     IF: 'interface', TR: 'typical_risk', SH: 'stakeholder_profile', NR: 'normative_document',
-    WB: 'wbs_element', CE: 'cost_estimate',
+    WB: 'wbs_element', CE: 'cost_estimate', AP: 'ai_profile', FN: 'function',
+    FC: 'function_chain', LC: 'logical_component', OC: 'capability', SK: 'stakeholder',
+    SM: 'system_model', MG: 'mission_goal', ND: 'need', SV: 'service', CO: 'conops',
+    RSK: 'risk', SD: 'source_document', ME: 'model_element', AR: 'arch_link',
+    TL: 'technology', DN: 'decision', RF: 'review_item', OD: 'oda', AL: 'alternative',
   }
   return map[prefix] ?? prefix
 }

@@ -21,6 +21,8 @@ class GateNotReadyException(
     val operations: List<String>,
 ) : RuntimeException("gate '$gate' is not ready: ${issues.size} issue(s)")
 
+private val видПоРусски = orbita.req.EnumLabels()
+
 class GatePassing(
     private val boundary: Boundary,
     private val operations: Operations = Operations(),
@@ -155,7 +157,10 @@ class GatePassing(
             ) 1 else 0
             val note = when (r.state) {
                 orbita.req.OperationState.NotStarted ->
-                    "выход не создан (${r.operation.kinds.joinToString()})"
+                    // вид называется по-русски: служебное имя «conops» человеку
+                    // ничего не говорит (находка прогона 04.09, шип 3 п. 2)
+                    "выход не создан (" +
+                        r.operation.kinds.joinToString { видПоРусски.label("object_kind", it) } + ")"
                 orbita.req.OperationState.InProgress ->
                     "выход не достиг статуса ${r.operation.requiredStatus}"
                 else -> "выход готов"

@@ -19,6 +19,9 @@ echo "== подсказки =="        ; python3 tools/validate_tooltips.py
 # Блокер З-01 (прогон 04.09): нативные диалоги браузера подавляются во
 # встроенном контексте и молча отменяют действие — подтверждение своим окном
 echo "== диалоги =="          ; python3 tools/validate_no_native_dialogs.py
+# Шип 3 прогона 04.09: в тексте интерфейса нет служебных слов языка и имён
+# видов латиницей — вид называется по-русски из словаря
+echo "== текст интерфейса ==" ; python3 tools/validate_ui_text.py
 echo "== рамка ведения =="    ; python3 tools/validate_task_frame.py
 echo "== схема потока =="     ; python3 tools/validate_flow_computed.py
 echo "== Гант библиотекой ==" ; python3 tools/validate_gantt_library.py
