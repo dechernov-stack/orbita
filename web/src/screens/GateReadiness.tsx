@@ -12,9 +12,9 @@ import { useCallback, useEffect, useState } from 'react'
 import { api } from '../api/client'
 import { edit } from '../api/edit'
 import { DateInput } from '../ui/DateInput'
-import { Select } from '../ui/Select'
 import { ConfirmBox, useConfirm } from '../ui/Confirm'
 import { useSession } from '../ui/session'
+import { RefPicker } from '../ui/RefPicker'
 
 interface CheckRow {
   id: string
@@ -74,7 +74,7 @@ export function GateReadiness({ project, gate, onGo }: {
   const [asNote, setAsNote] = useState('')
 
   useEffect(() => {
-    if (authEnabled) api.authUsers().then((r) => setUsers(r.users)).catch(() => setUsers([]))
+    api.authUsers().then((r) => setUsers(r.users)).catch(() => setUsers([]))
   }, [authEnabled])
 
   const doAssign = (gaps: Array<{ id: string; title: string; place?: string | null }>) => {
@@ -113,13 +113,17 @@ export function GateReadiness({ project, gate, onGo }: {
 
   const assignForm = (gaps: Array<{ id: string; title: string; place?: string | null }>) => (
     <span style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-      {authEnabled && users.length > 0 ? (
-        <Select value={asWho} placeholder="исполнитель" width={170}
-          options={users.map((u) => ({ key: u.login, title: `${u.display_name} (${u.login})` }))}
+      {/* П-03: исполнитель выбирается из справочника учёток — несуществующее
+          имя ввести нельзя. Пустой справочник — честная помета, а не поле,
+          в которое можно написать что угодно */}
+      {users.length > 0 ? (
+        <RefPicker value={asWho} placeholder="исполнитель" width={190} clearable
+          options={users.map((u) => ({ id: u.login, title: `${u.display_name} (${u.login})` }))}
           onChange={setAsWho} />
       ) : (
-        <input placeholder="исполнитель" value={asWho} style={{ width: 150 }}
-          onChange={(e) => setAsWho(e.target.value)} />
+        <span className="secondary" title="учётки приходят из справочника проекта">
+          учётки не заведены — назначать некому
+        </span>
       )}
       <DateInput iso={asDue} name="Срок" width={128} onChange={setAsDue} />
       <input placeholder="комментарий" value={asNote} style={{ width: 150 }}

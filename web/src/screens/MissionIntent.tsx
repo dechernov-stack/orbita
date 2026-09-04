@@ -30,6 +30,8 @@ export function MissionIntent(
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [note, setNote] = useState<string | null>(null)
+  /** П-02: текст, каким он пришёл вставкой — для пометы «правлено». */
+  const [pasted, setPasted] = useState<Record<string, string>>({})
 
   useEffect(() => {
     api.missionIntentReadiness().then(setReadiness).catch((e) => setError(String(e)))
@@ -71,7 +73,18 @@ export function MissionIntent(
     setBusy(true)
     setError(null)
     api.missionIntentDraft(raw)
-      .then((d) => { setDraft(d); setRaw('') })
+      .then((d) => {
+        setDraft(d)
+        // П-02: снимок вставленного — по нему видно, что человек изменил
+        // после вставки: правленое поле помечается, остальное — как пришло
+        setPasted({
+          for_whom: d.intent.for_whom.text,
+          what: d.intent.what.text,
+          where: d.intent.where.text,
+          horizon: d.intent.horizon.text,
+        })
+        setRaw('')
+      })
       .catch((e) => setError(String(e)))
       .finally(() => setBusy(false))
   }
@@ -188,19 +201,26 @@ export function MissionIntent(
                   <span className="secondary mono" title="блоки канона — основание поля">
                     {(draft.intent[field].anchors ?? []).join(', ') || '—'}
                   </span>
+                  {pasted[field] !== undefined && pasted[field] !== draft.intent[field].text && (
+                    <span className="chip" title="поле правлено после вставки — примется ваш текст">
+                      правлено
+                    </span>
+                  )}
                 </label>
                 <textarea rows={2} style={{ width: '100%' }} value={draft.intent[field].text}
                   onChange={(e) => editField(field, e.target.value)} />
               </div>
             ))}
             <div className="toolbar" style={{ padding: '6px 0', gap: 6 }}>
-              <button className="tab tab--primary" onClick={accept} disabled={busy || !author}
+              {/* П-02: после вставки первичное действие ОДНО — акцепт; рядом
+                  вторичное «Отменить вставку», чтобы вернуться к прежнему */}
+              <button className="btn btn--primary" onClick={accept} disabled={busy || !author}
                 title={author ? 'принять замысел в паспорт проекта' : 'представьтесь в шапке'}>
                 {busy ? 'Принимаю…' : 'Принять замысел'}
               </button>
-              <button className="rr-assign" onClick={() => setDraft(null)}
-                title="отказаться от предложения — замысел останется прежним">
-                отклонить
+              <button className="np-linkish" onClick={() => { setDraft(null); setPasted({}) }}
+                title="отменить вставку — замысел проекта останется прежним">
+                Отменить вставку
               </button>
             </div>
           </div>

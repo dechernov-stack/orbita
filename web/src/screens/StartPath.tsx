@@ -165,7 +165,6 @@ export function StartPath({ project, onGo, onDone }: {
   /** Б5-01: имя, подставленное по файлу; правку руками не перетираем. */
   const autoName = useRef('')
   const [openCard, setOpenCard] = useState<string | null>(null)
-  const [parseNote, setParseNote] = useState<string | null>(null)
   /** Круг 3 §3: участие в промпте множественное — чекбоксы, не radio. */
   const [promptDocs, setPromptDocs] = useState<Set<string>>(new Set())
   const promptSeeded = useRef(false)
@@ -368,30 +367,6 @@ export function StartPath({ project, onGo, onDone }: {
         reloadOwn()
       })
       .catch((e) => setFailure(reasonOf(e)))
-      .finally(() => { busyRef.current = false; setBusy(false) })
-  }
-
-  /** Разбор карточки службой: результат придёт на акцепт (область LIB). */
-  const parse = (d: SourceDocRow, kind: string, label: string) => {
-    if (busyRef.current) return
-    busyRef.current = true
-    setBusy(true)
-    setParseNote(null)
-    Promise.all([edit.object(d.id), edit.list('ai_profile')])
-      .then(async ([o, profiles]) => {
-        const doc = o.doc as { name?: string; text?: string }
-        const statement = statementOf(d.id, o.version, doc.name ?? d.id, doc.text ?? '')
-        // профиль — тот, что разрешает вид разбора; промпт собирает служба
-        for (const pr of profiles) {
-          const pd = (await edit.object(pr.id)).doc as { kinds?: string[] }
-          if ((pd.kinds ?? []).includes(kind)) {
-            return api.aiAsk(kind, pr.id, statement, author)
-          }
-        }
-        throw new Error(`нет профиля службы, разрешающего вид «${kind}» — добавьте вид в профиль`)
-      })
-      .then((r) => setParseNote(`${label}: предложений ${(r as { proposed?: number }).proposed ?? '—'} — результат придёт на акцепт`))
-      .catch((e) => setParseNote(reasonOf(e)))
       .finally(() => { busyRef.current = false; setBusy(false) })
   }
 
@@ -666,6 +641,52 @@ export function StartPath({ project, onGo, onDone }: {
       setCopied(true)
       if (copyTimer.current) clearTimeout(copyTimer.current)
       copyTimer.current = setTimeout(() => setCopied(false), 2500)
+    } catch (e) {
+      setFailure(reasonOf(e))
+    }
+  }
+
+  /**
+   * П-01: промпт забирается ФАЙЛОМ. Шапка .md называет вид пакета, отпечаток
+   * знаний и схему ответа — внешний контур отвечает пакетом, который
+   * вставляется без правок.
+   */
+  const downloadPrompt = async () => {
+    if (!profile) return
+    setFailure(null)
+    try {
+      let text = promptFull
+      if (!text) {
+        const statement = await materialStatement()
+        const r = await api.aiCompose('mission_to_goals', profile.id, statement)
+        text = r.prompt
+        setPromptFull(text)
+      }
+      const шапка = [
+        '# Промпт службы · Орбита',
+        '',
+        `- вид пакета: mission_to_goals (цели миссии) и mission_to_needs (нужды стейкхолдеров)`,
+        `- профиль службы: ${profile.id} в. ${profile.version}`,
+        `- проект: ${project}`,
+        `- собран: ${new Date().toISOString().slice(0, 16).replace('T', ' ')}`,
+        '',
+        '## Схема ответа',
+        '',
+        'Ответ — JSON вида `{"kind": "<вид пакета>", "items": [<объекты вида>]}`;',
+        'объекты — по схеме вида из реестра `prompt-package-kinds`. Вставляется',
+        'на шаге «Запуск ИИ» кнопкой «Вставить пакет».',
+        '',
+        '## Промпт',
+        '',
+      ].join('\n')
+      const blob = new Blob([`${шапка}${text}`], { type: 'text/markdown;charset=utf-8' })
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(blob)
+      a.download = `промпт-${project}-${new Date().toISOString().slice(0, 10)}.md`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000)
     } catch (e) {
       setFailure(reasonOf(e))
     }
@@ -1045,17 +1066,31 @@ return (
                         </div>
                         {d.summary && <div className="sp-card__sum">{d.summary}</div>}
                         <div className="sp-card__acts">
-                          <button title="идёт запись в паспорт — дождитесь её окончания" className="np-btn" disabled={busy}
-                            onClick={() => parse(d, 'mission_to_stakeholders', 'профили стейкхолдеров')}>
-                            Разобрать: профили стейкхолдеров
-                          </button>
-                          <button title="идёт запись в паспорт — дождитесь её окончания" className="np-btn" disabled={busy}
-                            onClick={() => parse(d, 'mission_to_typical_risks', 'типовые риски')}>
-                            Разобрать: типовые риски
-                          </button>
-                          <span className="sp-ds">результат придёт на акцепт</span>
+                          {/* Б5-03: виды извлечения по типу заменены единым
+                              смысловым разбором (Д2) — прежние кнопки вели в
+                              отказ «нет профиля службы». Справка в промпте
+                              участвует, а извлечений не порождает. */}
+                          {d.kind === 'reference'
+                            ? (
+                              <span className="sp-ds">
+                                справка участвует в промпте, извлечений не порождает
+                              </span>
+                            )
+                            : (
+                              <>
+                                <button
+                                  className="np-btn"
+                                  disabled={busy}
+                                  title={busy
+                                    ? 'идёт запись в паспорт — дождитесь её окончания'
+                                    : 'смысловой разбор документа: кандидаты придут на акцепт во вкладку «Найдено в документе»'}
+                                  onClick={() => onGo('docparse')}>
+                                  Разобрать документ
+                                </button>
+                                <span className="sp-ds">кандидаты придут на акцепт</span>
+                              </>
+                            )}
                         </div>
-                        {parseNote && <div className="sp-ds" style={{ marginTop: 4 }}>{parseNote}</div>}
                       </div>
                     )}
                   </div>
@@ -1272,6 +1307,13 @@ return (
                   Промпт целиком
                   <button className="rr-assign" onClick={copyPrompt}>
                     {copied ? 'скопирован ✓' : 'скопировать'}
+                  </button>
+                  {/* П-01: выделять 44 тысячи знаков мышью — не путь; файл
+                      несёт шапку с видом пакета и схемой ответа, чтобы ответ
+                      внешнего контура вставлялся без правок */}
+                  <button className="rr-assign" onClick={downloadPrompt}
+                    title="файл .md с шапкой: вид пакета, отпечаток знаний, схема ответа">
+                    скачать .md
                   </button>
                 </div>
                 <pre>{promptFull}</pre>

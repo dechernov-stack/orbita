@@ -48,6 +48,12 @@ def видимый_текст(строка: str) -> list[str]:
     return куски
 
 
+# Б5-03: виды извлечения ПО ТИПУ заменены единым смысловым разбором (Д2) —
+# кнопки с ними на карточке документа ведут в отказ «нет профиля службы»
+ВИДЫ_ИЗВЛЕЧЕНИЯ = re.compile(r"mission_to_(stakeholders|typical_risks)")
+КАРТОЧКА_ДОКУМЕНТА = ("screens/StartPath.tsx", "screens/DocParse.tsx", "screens/LibraryKnowledge.tsx")
+
+
 def main() -> int:
     словарь = виды()
     if not словарь:
@@ -73,6 +79,18 @@ def main() -> int:
                     for префикс in ПРЕФИКС_ПОСЛЕ_ЧИСЛА.findall(текст):
                         if префикс in ПРЕФИКСЫ:
                             находки.append(f"{отн}:{n}: префикс вида «{префикс}» вместо слова — «{текст.strip()[:70]}»")
+    for имя in КАРТОЧКА_ДОКУМЕНТА:
+        путь = WEB / имя
+        if not путь.exists():
+            continue
+        for n, строка in enumerate(путь.read_text(encoding="utf-8").splitlines(), start=1):
+            if строка.strip().startswith(("//", "*", "/*")):
+                continue
+            if ВИДЫ_ИЗВЛЕЧЕНИЯ.search(строка):
+                находки.append(
+                    f"{имя}:{n}: вид извлечения по типу на карточке документа — "
+                    "разбор один («Разобрать документ», Д2)"
+                )
     if находки:
         print("текст интерфейса говорит служебными словами:", file=sys.stderr)
         for x in находки:

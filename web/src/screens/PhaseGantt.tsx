@@ -27,6 +27,7 @@ import 'frappe-gantt/css'
 import { api } from '../api/client'
 import type { PhaseGanttView } from '../api/types'
 import { useSession } from '../ui/session'
+import { RefPicker } from '../ui/RefPicker'
 
 /** Дата для сервера — местная, а не UTC: полночь по Москве в UTC — вчера. */
 function iso(d: Date): string {
@@ -314,6 +315,11 @@ function ТаблицаСтрок({ view, collapse, onToggle, onNotice, onReload
   author: string
 }) {
   const [правка, setПравка] = useState<{ row: string; поле: 'кто' | 'дни' } | null>(null)
+  /** П-03: исполнитель — из справочника учёток, а не строкой руками. */
+  const [учётки, setУчётки] = useState<Array<{ login: string; display_name: string }>>([])
+  useEffect(() => {
+    api.authUsers().then((r) => setУчётки(r.users)).catch(() => setУчётки([]))
+  }, [])
   const [значение, setЗначение] = useState('')
 
   const назначить = (id: string, кто: string) => {
@@ -361,10 +367,18 @@ function ТаблицаСтрок({ view, collapse, onToggle, onNotice, onReload
             </span>
 
             {точка ? <span className="secondary">—</span> : правка?.row === r.id && правка.поле === 'кто'
-              ? <input autoFocus className="pw-gt-side__edit" value={значение}
-                  onChange={(e) => setЗначение(e.target.value)}
-                  onBlur={() => назначить(r.id, значение)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') назначить(r.id, значение) }} />
+              ? (
+                /* П-03: имя не вводится строкой — выбирается из справочника
+                   учёток: несуществующего исполнителя назначить нельзя */
+                <RefPicker
+                  value={значение}
+                  options={учётки.map((u) => ({ id: u.login, title: `${u.display_name} (${u.login})` }))}
+                  placeholder="исполнитель"
+                  width={150}
+                  clearable
+                  onChange={(кто) => { setЗначение(кто); назначить(r.id, кто) }}
+                />
+              )
               : <button className="np-linkish pw-gt-side__cell" onClick={() => {
                   setПравка({ row: r.id, поле: 'кто' }); setЗначение(r.assignee ?? '')
                 }}
