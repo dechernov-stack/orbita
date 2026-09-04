@@ -115,6 +115,22 @@ class Editing(
                 id, "объект утверждён: изменение через процедуру с основанием",
             )
         }
+        // Замечание 0.3 прогона 04.09: фаза проекта — не поле формы. Меняет её
+        // только прохождение точки KDP-A уполномоченным (ADR-029): решение
+        // несёт основание, и его след виден в истории. Любой другой путь —
+        // правка паспорта, импорт, сид — фазу не двигает, иначе лента и
+        // комплекты фазы расходятся с тем, что человек выбрал при создании.
+        if (type == CoreType.Project && changes.has("phase")) {
+            val было = cur.doc.path("phase").asText("")
+            val стало = changes.path("phase").asText("")
+            val прохождение = changeRef?.contains("прохождение точки") == true
+            if (было.isNotBlank() && стало != было && !прохождение) {
+                throw IllegalArgumentException(
+                    "фаза проекта меняется только прохождением точки KDP-A: сейчас «$было», просили «$стало». " +
+                        "Проведите точку на жизненном цикле — решение запишет фазу с основанием",
+                )
+            }
+        }
         val merged = cur.doc.deepCopy<ObjectNode>()
         changes.properties().forEach { (k, v) -> merged.set<ObjectNode>(k, v) }
         val next = boundary.objects.bumpVersion(cur.version)

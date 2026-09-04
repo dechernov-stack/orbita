@@ -2002,7 +2002,13 @@ class HttpApi(private val boundary: Boundary) {
                 q["shelf"]?.let { doc.put("shelf", it) }
                 doc.put("rights", q["rights"] ?: "внутренний документ проекта")
                 orbita.out.TextExtractor.extract(fileName, bytes)?.let { doc.put("text", it) }
+                // Б5-01: карточка помнит ОТПЕЧАТОК своего файла. Без него
+                // «файл под чужой карточкой» нечем поймать: имя может совпасть,
+                // содержимое — нет, и наоборот
+                val отпечаток = java.security.MessageDigest.getInstance("SHA-256")
+                    .digest(bytes).joinToString("") { "%02x".format(it) }
                 doc.putObject("file").put("name", fileName).put("size", bytes.size)
+                    .put("sha256", отпечаток)
                 val stored = boundary.editing.create(
                     CoreType.SourceDocument, doc, fileAuthor, fileProject,
                 )

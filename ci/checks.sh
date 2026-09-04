@@ -16,6 +16,9 @@ echo "== подключённость =="  ; python3 ci/wiring.py
 echo "== идентификаторы =="   ; python3 ci/literals.py
 # МВП-П1 §2.3: маркерный элемент без текста обязан нести подсказку
 echo "== подсказки =="        ; python3 tools/validate_tooltips.py
+# Блокер З-01 (прогон 04.09): нативные диалоги браузера подавляются во
+# встроенном контексте и молча отменяют действие — подтверждение своим окном
+echo "== диалоги =="          ; python3 tools/validate_no_native_dialogs.py
 echo "== рамка ведения =="    ; python3 tools/validate_task_frame.py
 echo "== схема потока =="     ; python3 tools/validate_flow_computed.py
 echo "== Гант библиотекой ==" ; python3 tools/validate_gantt_library.py

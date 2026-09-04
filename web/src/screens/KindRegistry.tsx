@@ -12,6 +12,7 @@ import { ObjectEditor } from '../ui/ObjectEditor'
 import { SortTh, useSort } from '../ui/sort'
 import { basedOnTemplate } from '../ui/ObjectForm'
 import { useSession } from '../ui/session'
+import { ConfirmBox, useConfirm } from '../ui/Confirm'
 
 /** Подписи видов на экране; сервер отдаёт состав видов, имена — словарь экрана. */
 const KIND_TITLES: Record<string, string> = {
@@ -66,6 +67,8 @@ export function KindRegistry({ kinds, title, expandDown }: {
   const [massStatus, setMassStatus] = useState('Preliminary')
   const [massReport, setMassReport] = useState<string | null>(null)
   const [massBusy, setMassBusy] = useState(false)
+  /** Блокер З-01: подтверждение своим окном — нативное подавляется. */
+  const [ask, askConfirm, closeConfirm] = useConfirm()
   /** Загрузка пачкой прямо в реестре (§3.2 дизайна): вид материала приходит
    *  файлом, и уходить за ним на отдельный экран инженеру незачем. */
   const [batch, setBatch] = useState<BatchReport | null>(null)
@@ -162,14 +165,18 @@ export function KindRegistry({ kinds, title, expandDown }: {
   /** К отмене годно только живое: Cancelled второй раз не отменяется. */
   const pickedAlive = visible.filter((r) => picked.has(r.id) && r.status !== 'Cancelled')
 
-  const cancelPicked = async () => {
+  const cancelPicked = () => {
     if (pickedAlive.length === 0 || !author || massBusy) return
-    const ok = window.confirm(
-      `Отменить объектов: ${pickedAlive.length} (${pickedAlive.slice(0, 5).map((r) => r.id).join(', ')}` +
-      `${pickedAlive.length > 5 ? ', …' : ''})?\n\nОтмена мягкая: объект остаётся в истории со статусом ` +
-      '«отменён», трассировки на него честно покажут разрыв. Жёсткого удаления нет.',
-    )
-    if (!ok) return
+    askConfirm({
+      question: `Отменить объектов: ${pickedAlive.length} (${pickedAlive.slice(0, 5).map((r) => r.id).join(', ')}` +
+        `${pickedAlive.length > 5 ? ', …' : ''})? Отмена мягкая: объект остаётся в истории со статусом ` +
+        '«отменён», трассировки на него честно покажут разрыв. Жёсткого удаления нет.',
+      ok: `Отменить · ${pickedAlive.length}`,
+      onOk: () => { void отменитьВыбранные() },
+    })
+  }
+
+  const отменитьВыбранные = async () => {
     setMassBusy(true)
     setMassReport(null)
     const failed: string[] = []
@@ -439,6 +446,7 @@ export function KindRegistry({ kinds, title, expandDown }: {
           </aside>
         )}
       </div>
+      <ConfirmBox request={ask} onClose={closeConfirm} />
     </>
   )
 }

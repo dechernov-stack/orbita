@@ -19,6 +19,10 @@ export const SECTIONS: NavSection[] = [
     label: 'Работа',
     screens: [
       { key: 'phasework', title: 'Работа фазы' },
+      // Блокер З-01 (прогон 04.09): «Работа» — три разреза; задания искали
+      // здесь, а они лежали в «Контроле», и разрез считался несуществующим
+      { key: 'mytasks', title: 'Мои задания' },
+      { key: 'readiness', title: 'Готовность к точке' },
     ],
   },
   {
@@ -104,8 +108,6 @@ export const SECTIONS: NavSection[] = [
     label: 'Контроль',
     screens: [
       { key: 'lifecycle', title: 'Жизненный цикл' },
-      { key: 'readiness', title: 'Готовность к точке' },
-      { key: 'mytasks', title: 'Мои задания' },
       { key: 'operations', title: 'Порядок работы' },
       { key: 'projreg', title: 'Паспорт проекта' },
       { key: 'rfa', title: 'Замечания обзора' },

@@ -143,7 +143,9 @@ class PhaseWorkTest {
             CoreType.Project, "PJ-1908",
             com.fasterxml.jackson.databind.ObjectMapper().readTree("""{"phase":"phase_a"}""")
                 as com.fasterxml.jackson.databind.node.ObjectNode,
-            passport.version, "test", changeRef = "переход фазы",
+            // фазу двигает только прохождение точки (ADR-029, находка 0.3
+            // прогона 04.09) — тест идёт тем же путём, что живое решение
+            passport.version, "test", changeRef = "DN-0001: прохождение точки KDP-A",
         )
         val view = PhaseWork.toJson(boundary, "PJ-1908")
         assertEquals(0, view.path("tasks").asInt())

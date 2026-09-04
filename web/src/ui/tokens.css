@@ -1784,3 +1784,18 @@ details.np-dates[open] summary::before { transform: rotate(90deg); }
 .tg-legend { display: flex; flex-wrap: wrap; gap: 6px 12px; padding: 4px 12px; font-size: 11px; border-top: 1px solid var(--hairline); }
 .tg-lg { display: inline-flex; align-items: center; gap: 4px; }
 .tg-sw { display: inline-block; width: 12px; height: 10px; border: 1px solid var(--hairline); border-radius: 2px; }
+
+/* Подтверждение опасного действия — своим окном (блокер З-01 прогона 04.09):
+   нативные confirm/alert/prompt подавляются во встроенном контексте. */
+.cf-veil {
+  position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center;
+  background: rgba(15, 18, 24, 0.28);
+}
+.cf-box {
+  min-width: 320px; max-width: 460px; background: var(--bg); border: 1px solid var(--hairline);
+  border-radius: 10px; padding: 16px; box-shadow: 0 12px 32px rgba(15, 18, 24, 0.18);
+}
+.cf-q { font: 500 13.5px/20px var(--font); color: var(--text); }
+.cf-in { display: flex; flex-direction: column; gap: 4px; margin-top: 10px; font-size: 12px; }
+.cf-in input { padding: 6px 8px; border: 1px solid var(--hairline); border-radius: 6px; font: 400 13px/18px var(--font); }
+.cf-act { display: flex; gap: 8px; justify-content: flex-end; align-items: center; margin-top: 14px; }

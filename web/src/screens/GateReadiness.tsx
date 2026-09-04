@@ -13,6 +13,7 @@ import { api } from '../api/client'
 import { edit } from '../api/edit'
 import { DateInput } from '../ui/DateInput'
 import { Select } from '../ui/Select'
+import { ConfirmBox, useConfirm } from '../ui/Confirm'
 import { useSession } from '../ui/session'
 
 interface CheckRow {
@@ -64,6 +65,8 @@ export function GateReadiness({ project, gate, onGo }: {
   const [activeReturn, setActiveReturn] = useState<{ gate: string; reason: string } | null>(null)
   /** МВП-П1: назначение задания — с разрыва и по группе, с числом. */
   const { authEnabled } = useSession()
+  /** Блокер З-01: подтверждение — своим окном, нативное подавляется. */
+  const [ask, askConfirm, closeConfirm] = useConfirm()
   const [users, setUsers] = useState<Array<{ login: string; display_name: string }>>([])
   const [assignFor, setAssignFor] = useState<{ kind: 'check' | 'group'; key: string } | null>(null)
   const [asWho, setAsWho] = useState('')
@@ -76,18 +79,30 @@ export function GateReadiness({ project, gate, onGo }: {
 
   const doAssign = (gaps: Array<{ id: string; title: string; place?: string | null }>) => {
     if (!view || !asWho.trim() || gaps.length === 0) return
-    if (gaps.length > 1 && !window.confirm(
-      `Назначить разрывов: ${gaps.length} — на ${asWho.trim()}?`,
-    )) return
+    if (gaps.length > 1) {
+      askConfirm({
+        question: `Назначить разрывов: ${gaps.length} — на ${asWho.trim()}?`,
+        ok: `Назначить · ${gaps.length}`,
+        onOk: () => отправитьНазначение(gaps),
+      })
+      return
+    }
+    отправитьНазначение(gaps)
+  }
+
+  const отправитьНазначение = (gaps: Array<{ id: string; title: string; place?: string | null }>) => {
+    if (!view) return
     api.tasksAssign({
       gate: view.gate, gaps, assignee: asWho.trim(),
       due: asDue || undefined, note: asNote.trim() || undefined,
       author: author || 'инженер',
     })
       .then((r) => {
+        // отклик обязателен и ведёт к месту: «увидит в Моих заданиях» было
+        // текстом без перехода — мёртвой ссылкой (блокер З-01)
         setNotice(`назначено: ${r.created.length}` +
           (r.existing.length ? `; уже были: ${r.existing.length}` : '') +
-          ` — «${asWho.trim()}» увидит их в «Моих заданиях»`)
+          ` — «${asWho.trim()}» увидит их в разрезе «Мои задания»`)
         setAssignFor(null)
         setAsNote('')
         // бейдж «мои» в шапке узнаёт о назначении сразу, не дожидаясь смены экрана
@@ -203,7 +218,19 @@ export function GateReadiness({ project, gate, onGo }: {
             </button>
           </div>
         )}
-        {notice && <div className="warn" style={{ padding: '6px 10px', marginBottom: 10 }}>{notice}</div>}
+        {notice && (
+          <div className="warn" style={{ padding: '6px 10px', marginBottom: 10 }}>
+            {notice}
+            {/* «увидит в Моих заданиях» было текстом без перехода — мёртвой
+                ссылкой: отклик обязан вести к месту (блокер З-01) */}
+            {notice.startsWith('назначено') && (
+              <button type="button" className="rr-assign" style={{ marginLeft: 8 }}
+                onClick={() => onGo('mytasks')}>
+                к «Моим заданиям» →
+              </button>
+            )}
+          </div>
+        )}
 
         {view.groups.map((g) => {
           const isCollapsed = collapsed.has(g.key)
@@ -305,29 +332,36 @@ export function GateReadiness({ project, gate, onGo }: {
               <span className="secondary">
                 Действует возврат {activeReturn.gate}: {activeReturn.reason}
               </span>
-              <button className="rr-btn" onClick={() => {
-                const note = window.prompt('Как снята причина возврата:')
-                if (!note) return
-                api.gateReturnResolve(author || 'инженер', note)
-                  .then(() => { setNotice(null); load() })
-                  .catch((e) => setNotice(String(e)))
-              }}>
+              <button className="rr-btn" onClick={() => askConfirm({
+                question: `Снять возврат ${activeReturn.gate}: чем закрыта его причина?`,
+                ok: 'Снять возврат',
+                input: { label: 'как снята причина', placeholder: 'что сделано', required: true },
+                onOk: (note) => {
+                  api.gateReturnResolve(author || 'инженер', note)
+                    .then(() => { setNotice(null); load() })
+                    .catch((e) => setNotice(String(e)))
+                },
+              })}>
                 Снять возврат
               </button>
             </>
           ) : (
-            <button className="rr-assign" onClick={() => {
-              const reason = window.prompt('Причина возврата (заключение обзора):')
-              if (!reason) return
-              api.gateReturn(view.gate, author || 'инженер', reason, [])
-                .then(() => { setNotice(null); load() })
-                .catch((e) => setNotice(String(e)))
-            }}>
+            <button className="rr-assign" onClick={() => askConfirm({
+              question: `Вернуть точку ${view.gate} по заключению обзора?`,
+              ok: 'Оформить возврат',
+              input: { label: 'причина возврата', placeholder: 'заключение обзора', required: true },
+              onOk: (reason) => {
+                api.gateReturn(view.gate, author || 'инженер', reason, [])
+                  .then(() => { setNotice(null); load() })
+                  .catch((e) => setNotice(String(e)))
+              },
+            })}>
               возврат по заключению…
             </button>
           )}
         </div>
       </div>
+      <ConfirmBox request={ask} onClose={closeConfirm} />
     </>
   )
 }

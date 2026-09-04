@@ -156,6 +156,8 @@ export function StartPath({ project, onGo, onDone }: {
   const [upName, setUpName] = useState('')
   const [upOrg, setUpOrg] = useState('')
   const [upFile, setUpFile] = useState<File | null>(null)
+  /** Б5-01: имя, подставленное по файлу; правку руками не перетираем. */
+  const autoName = useRef('')
   const [openCard, setOpenCard] = useState<string | null>(null)
   const [parseNote, setParseNote] = useState<string | null>(null)
   /** Круг 3 §3: участие в промпте множественное — чекбоксы, не radio. */
@@ -1065,7 +1067,13 @@ return (
                       const f = e.dataTransfer.files?.[0] ?? null
                       if (f) {
                         setUpFile(f)
-                        if (!upName) setUpName(f.name.replace(/\.[^.]+$/, ''))
+                        // Б5-01: имя следует за ФАЙЛОМ, пока его не правили
+                        // руками — иначе карточка носит имя прежнего выбора
+                        if (!upName || upName === autoName.current) {
+                          const имя = f.name.replace(/\.[^.]+$/, '')
+                          autoName.current = имя
+                          setUpName(имя)
+                        }
                       }
                     }}
                   >
@@ -1075,7 +1083,11 @@ return (
                       <input type="file" style={{ display: 'none' }} onChange={(e) => {
                         const f = e.target.files?.[0] ?? null
                         setUpFile(f)
-                        if (f && !upName) setUpName(f.name.replace(/\.[^.]+$/, ''))
+                        if (f && (!upName || upName === autoName.current)) {
+                          const имя = f.name.replace(/\.[^.]+$/, '')
+                          autoName.current = имя
+                          setUpName(имя)
+                        }
                         e.target.value = ''
                       }} />
                     </label>{' '}
@@ -1109,6 +1121,7 @@ return (
                   )}
                   <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
                     <input placeholder="наименование карточки" value={upName}
+                      title={upFile ? `карточка для файла: ${upFile.name}` : 'сначала выберите файл'}
                       onChange={(e) => setUpName(e.target.value)} style={{ flex: 1 }} />
                     <input placeholder="источник (организация)" value={upOrg}
                       onChange={(e) => setUpOrg(e.target.value)} style={{ width: 160 }} />

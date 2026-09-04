@@ -18,6 +18,7 @@ import { ObjectForm, editableFields, emptyDoc, humanizeError, invalidateRefOptio
 import { useSession } from './session'
 
 import { STATUS_ACTION, STATUS_MEANING, STATUS_ORDER } from './maturity'
+import { ConfirmBox, useConfirm } from './Confirm'
 
 interface Props {
   /** Вид объекта в модели: `need`, `service`, `requirement`… */
@@ -65,6 +66,8 @@ export function ObjectEditor({ kind, schemaName, id, title, maturity, template, 
   /** Основание изменения базированного объекта (TZ-COM-003). */
   const [changeRef, setChangeRef] = useState('')
   const [failure, setFailure] = useState<string | null>(null)
+  /** Блокер З-01: обоснование спрашиваем своим окном — нативный prompt подавляется. */
+  const [ask, askConfirm, closeConfirm] = useConfirm()
   const [issues, setIssues] = useState<BaselineIssues | null>(null)
   const [history, setHistory] = useState<HistoryEntry[] | null>(null)
   const [busy, setBusy] = useState(false)
@@ -492,11 +495,15 @@ export function ObjectEditor({ kind, schemaName, id, title, maturity, template, 
                     {waivable && (
                       <button type="button" className="tab"
                         title="отвести правило с обоснованием: замечание перестанет блокировать этот объект"
-                        onClick={() => {
-                          const rationale = window.prompt(
-                            `Отвести правило:\n«${issue}»\n\nОбоснование (почему здесь оно неприменимо, не короче 10 символов):`,
-                          )?.trim()
-                          if (!rationale) return
+                        onClick={() => askConfirm({
+                          question: `Отвести правило «${issue}» для этого объекта?`,
+                          ok: 'Отвести правило',
+                          input: {
+                            label: 'обоснование: почему здесь правило неприменимо (не короче 10 знаков)',
+                            placeholder: 'почему неприменимо',
+                            required: true,
+                          },
+                          onOk: (rationale) => {
                           if (rationale.length < 10) {
                             setFailure('Обоснование отвода короче 10 символов — так не принимается.')
                             return
@@ -506,7 +513,8 @@ export function ObjectEditor({ kind, schemaName, id, title, maturity, template, 
                             : []
                           setDoc({ ...doc, quality_waivers: [...cur, { rule: issue, rationale }] })
                           setTab('form')
-                        }}>
+                          },
+                        })}>
                         Отвести…
                       </button>
                     )}
@@ -569,6 +577,7 @@ export function ObjectEditor({ kind, schemaName, id, title, maturity, template, 
           </div>
         </div>
       )}
+      <ConfirmBox request={ask} onClose={closeConfirm} />
     </div>
   )
 }

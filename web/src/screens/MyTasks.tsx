@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { api } from '../api/client'
 import { edit } from '../api/edit'
 import { useSession } from '../ui/session'
+import { ConfirmBox, useConfirm } from '../ui/Confirm'
 
 type TaskRow = Awaited<ReturnType<typeof api.myTasks>>['tasks'][number]
 
@@ -57,6 +58,8 @@ export function MyTasks({ onGo }: { onGo: (screen: string) => void }) {
   const [view, setView] = useState<Awaited<ReturnType<typeof api.myTasks>> | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  /** Блокер З-01: подтверждение своим окном — нативное подавляется. */
+  const [ask, askConfirm, closeConfirm] = useConfirm()
 
   const load = useCallback(() => {
     api.myTasks(all ? undefined : me || undefined)
@@ -81,12 +84,15 @@ export function MyTasks({ onGo }: { onGo: (screen: string) => void }) {
     { key: 'done', title: 'Закрытые', rows: view.tasks.filter((t) => t.state === 'done') },
   ]
 
-  const drop = (t: TaskRow) => {
-    if (!window.confirm(`Снять задание «${t.title}» с ${t.assignee}? Мягкая отмена, история сохраняется.`)) return
-    edit.cancel(t.id, author || 'инженер')
-      .then(() => { setNotice(null); load() })
-      .catch((e) => setNotice(String(e)))
-  }
+  const drop = (t: TaskRow) => askConfirm({
+    question: `Снять задание «${t.title}» с ${t.assignee}? Отмена мягкая — история сохраняется.`,
+    ok: 'Снять задание',
+    onOk: () => {
+      edit.cancel(t.id, author || 'инженер')
+        .then(() => { setNotice(null); load() })
+        .catch((e) => setNotice(String(e)))
+    },
+  })
 
   return (
     <>
@@ -186,6 +192,7 @@ export function MyTasks({ onGo }: { onGo: (screen: string) => void }) {
           </div>
         ))}
       </div>
+      <ConfirmBox request={ask} onClose={closeConfirm} />
     </>
   )
 }
