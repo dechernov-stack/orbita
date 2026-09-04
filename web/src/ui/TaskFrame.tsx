@@ -81,6 +81,32 @@ export function TaskFrameBar({
           {last && done ? 'Завершить →' : 'Дальше →'}
         </button>
       </div>
+      {/* Шип 1 прогона 04.09: серая «Дальше» без причины — загадка. Условие
+          шага, его мини-итог и место починки стоят ТЕКСТОМ рядом, а не в
+          подсказке: подсказку надо искать мышью, а причину надо видеть */}
+      <div className="fr-cond" style={{ marginTop: 6, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+        {task.steps.map((s, i) => (
+          <span key={s.title} className={i === step ? '' : 'secondary'}
+            style={{ fontSize: 12, display: 'inline-flex', gap: 4, alignItems: 'center' }}
+            title={s.done ? 'условие шага выполнено' : `шаг закроется сам: ${s.why}`}>
+            <span className={s.done ? 'ok' : 'amber'}>{s.done ? '✓' : '☐'}</span>
+            {i + 1} · {s.title}
+            {s.tally && <span className="chip">{s.tally}</span>}
+            {!s.done && s.screen && onGo && (
+              <button type="button" className="np-linkish"
+                title={`перейти туда, где закрывается условие: ${s.why}`}
+                onClick={() => onGo(s.screen!)}>
+                → к месту
+              </button>
+            )}
+          </span>
+        ))}
+      </div>
+      {!done && !manual && (
+        <div className="secondary" style={{ marginTop: 2, fontSize: 12 }}>
+          «Дальше» откроется само: {current?.why ?? 'условие шага ещё не выполнено'}
+        </div>
+      )}
       {current?.hint && (
         <div className="secondary" style={{ marginTop: 4 }}>{current.hint}</div>
       )}

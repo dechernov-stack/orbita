@@ -61,9 +61,13 @@ function shortDate(iso?: string | null): string | null {
   return m ? `${m[3]}.${m[2]}.${m[1]}` : null
 }
 
-export function Lifecycle({ project, onGo }: {
+export function Lifecycle({ project, onGo, inFrame }: {
   project: string
   onGo: (screen: string) => void
+  /** Шип 1 прогона 04.09: внутри рамки ведения экран показывается ФРАГМЕНТОМ —
+   *  чужие первичные действия скрыты. Фиксация точки — дело DA и своего шага
+   *  «Точки фазы», а не шага «План работ фазы», куда экран встроен. */
+  inFrame?: boolean
 }) {
   const { author } = useSession()
   const [view, setView] = useState<GatesView | null>(null)
@@ -179,7 +183,11 @@ export function Lifecycle({ project, onGo }: {
                       </div>
                     )}
                     <div className="lc2-fix">
-                      {fixOpen ? (
+                      {inFrame ? (
+                        <span className="secondary" title="фиксация точки — шаг «Точки фазы» и роль DA">
+                          фиксирует DA — на своём шаге
+                        </span>
+                      ) : fixOpen ? (
                         <span style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
                           <input
                             placeholder="основание решения"
@@ -197,7 +205,7 @@ export function Lifecycle({ project, onGo }: {
                           Зафиксировать прохождение
                         </button>
                       )}
-                      <div className="lc2-rolehint">фиксирует DA</div>
+                      {!inFrame && <div className="lc2-rolehint">фиксирует DA</div>}
                     </div>
                   </>
                 )}

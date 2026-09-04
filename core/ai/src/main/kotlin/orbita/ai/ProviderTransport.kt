@@ -30,6 +30,45 @@ fun interface ProviderTransport {
 }
 
 /**
+ * Ж-01 (прогон 04.09): перегрузка модели — состояние минуты, а не отказ
+ * работы. Живой вызов упал с «провайдер прервал поток: Overloaded», и человек
+ * остался ни с чем. Здесь запрос повторяется трижды с паузами 2 · 4 · 8
+ * секунд: он идемпотентен — в модель ничего не пишется до акцепта человеком,
+ * частичных записей нет по закону. Отказ по ключу, форме или запрету не
+ * повторяется: ждать там нечего. Число попыток названо в причине, чтобы по
+ * журналу было видно, что канал пробовали.
+ */
+class RetryingTransport(
+    private val inner: ProviderTransport,
+    private val паузыМс: LongArray = longArrayOf(2000, 4000, 8000),
+    private val спать: (Long) -> Unit = { Thread.sleep(it) },
+) : ProviderTransport {
+
+    override fun ask(prompt: String, modelHint: String?): ProviderAnswer {
+        val попыток = паузыМс.size
+        var последняя: ProviderUnavailableException? = null
+        for (попытка in 0 until попыток) {
+            try {
+                return inner.ask(prompt, modelHint)
+            } catch (e: ProviderUnavailableException) {
+                последняя = e
+                if (!стоитПовторить(e)) throw e
+                if (попытка < попыток - 1) спать(паузыМс[попытка])
+            }
+        }
+        val e = последняя!!
+        throw ProviderUnavailableException("${e.message} (попыток: $попыток)")
+    }
+
+    private fun стоитПовторить(e: ProviderUnavailableException): Boolean {
+        val текст = (e.message ?: "").lowercase()
+        return "overloaded" in текст || "529" in текст || "прервал поток" in текст ||
+            "обрыв связи" in текст || "поток провайдера не разбирается" in текст ||
+            Regex("ответил 5\\d\\d").containsMatchIn(текст)
+    }
+}
+
+/**
  * Messages API провайдера. Настраивается окружением:
  * ORBITA_AI_URL (по умолчанию api.anthropic.com), ORBITA_AI_KEY, ORBITA_AI_MODEL.
  * Без ключа канал недоступен — и это состояние, а не ошибка выполнения.
@@ -45,7 +84,9 @@ class HttpProviderTransport(
 
     val configured: Boolean get() = !key.isNullOrBlank()
 
-    override fun ask(prompt: String, modelHint: String?): ProviderAnswer {
+    override fun ask(prompt: String, modelHint: String?): ProviderAnswer = askOnce(prompt, modelHint)
+
+    private fun askOnce(prompt: String, modelHint: String?): ProviderAnswer {
         val apiKey = key?.takeIf { it.isNotBlank() }
             ?: throw ProviderUnavailableException(
                 "прямой канал не настроен: задайте ORBITA_AI_KEY (и при необходимости " +

@@ -302,7 +302,7 @@ export function App() {
               onStart={() => { setScreen('startpath'); loadHeader() }} />
       case 'lifecycle':
         return project
-          ? <Lifecycle project={project} onGo={go} />
+          ? <Lifecycle project={project} onGo={go} inFrame={Boolean(frame)} />
           : <Portfolio onOpen={() => setScreen('lifecycle')}
               onNew={() => { setFirstRun(false); setScreen('newproject') }}
               onLoadFile={() => { setFirstRun(false); setScreen('importb') }}

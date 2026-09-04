@@ -106,7 +106,11 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
     }
 
     /** Служба ИИ (П5): профиль → промпт → вызов → фильтр → журнал. */
-    val ai: AiService by lazy { AiService(this, orbita.ai.HttpProviderTransport()) }
+    // Ж-01: перегрузка модели повторяется трижды (2 · 4 · 8 с) — запрос
+    // идемпотентен, в модель до акцепта человеком ничего не пишется
+    val ai: AiService by lazy {
+        AiService(this, orbita.ai.RetryingTransport(orbita.ai.HttpProviderTransport()))
+    }
 
     /** Соединение — журналу вызовов и прочим служебным хранилищам. */
     val connection: Connection get() = conn

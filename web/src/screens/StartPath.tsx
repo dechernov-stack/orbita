@@ -76,6 +76,13 @@ function reasonOf(e: unknown): string {
   return raw
 }
 
+/** Ж-01: отказ канала — перегрузка модели, а не ошибка работы человека. */
+function перегрузка(текст: string): boolean {
+  const t = текст.toLowerCase()
+  return t.includes('overloaded') || t.includes('529') || t.includes('прервал поток') ||
+    t.includes('попыток:')
+}
+
 /** Материал запуска — тем же форматом, каким служба берёт документ. */
 function statementOf(id: string, version: string, name: string, text: string): string {
   return `Источник: ${id} в. ${version} «${name}»\n\n${text}`
@@ -1320,7 +1327,26 @@ return (
               </div>
             )}
 
-            {failure && <div className="np-err"><b>Не выполнено:</b> {failure}</div>}
+            {failure && (
+              /* Ж-01: перегрузка модели — человеческое сообщение с двумя
+                 действиями; техническая фраза уходит в подсказку, а не в
+                 основной текст */
+              перегрузка(failure)
+                ? (
+                  <div className="np-err" title={failure}>
+                    <b>Модель перегружена</b> — повторили трижды, не ответила.
+                    <button className="np-btn" style={{ marginLeft: 8 }} disabled={busy} onClick={run}>
+                      Повторить
+                    </button>
+                    <button className="np-linkish" style={{ marginLeft: 6 }}
+                      title="взять промпт файлом, ответить внешним контуром и вставить пакет"
+                      onClick={() => { setFailure(null); void downloadPrompt() }}>
+                      Вставить пакет
+                    </button>
+                  </div>
+                )
+                : <div className="np-err"><b>Не выполнено:</b> {failure}</div>
+            )}
             <div className="np-actions">
               <button className="np-btn" onClick={() => setStep(2)}>Назад</button>
               {/* Ф-05: без замысла кнопка заблокирована С ПРИЧИНОЙ —
