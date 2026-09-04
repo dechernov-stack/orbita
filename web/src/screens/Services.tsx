@@ -41,20 +41,24 @@ export function Services() {
     void reload()
   }, [reload])
 
-  if (error) return <div className="empty">Ошибка обращения к API: {error}</div>
-  if (!rows) return <div className="empty">Загрузка…</div>
 
-  // Без выбора показывается первый сервис: экран открывают, чтобы увидеть
-  // покрытие классов, и пустая панель прячет ровно это.
-  const service = rows.find((r) => r.id === selected) ?? rows[0]
+  // Хуки — ДО ранних возвратов (React #310): сортировка считается и на
+  // пустом списке, а «Загрузка…» отдаётся ниже
   // Сортировка заголовком (§2.4): классы и требования — числом позиций
-  const { sorted, sort, toggle } = useSort(rows, {
+  const { sorted, sort, toggle } = useSort(rows ?? [], {
     id: (r) => r.id,
     name: (r) => r.name,
     classes: (r) => r.profiles.length,
     requirements: (r) => r.requirements.length,
     status: (r) => r.status,
   })
+
+  if (error) return <div className="empty">Ошибка обращения к API: {error}</div>
+  if (!rows) return <div className="empty">Загрузка…</div>
+
+  // Без выбора показывается первый сервис: экран открывают, чтобы увидеть
+  // покрытие классов, и пустая панель прячет ровно это.
+  const service = rows.find((r) => r.id === selected) ?? rows[0]
 
   return (
     <div className="split">

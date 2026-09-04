@@ -30,13 +30,13 @@ export function Risks() {
     api.risks().then(setView).catch((e) => setError(String(e)))
   }, [])
 
-  if (error) return <div className="empty">Ошибка обращения к API: {error}</div>
-  if (!view) return <div className="empty">Загрузка…</div>
-
+  // Хуки — ДО ранних возвратов (React #310): хук, встающий после
+  // «Загрузка…», на первом приходе данных валит весь клиент
   const criticalityOf = (id: string) =>
-    view.matrix.find((c) => c.risks.includes(id))?.criticality ?? 'low'
+    view?.matrix.find((c) => c.risks.includes(id))?.criticality ?? 'low'
 
-  const rows = filter ? view.risks.filter((r) => criticalityOf(str(r, 'id')) === filter) : view.risks
+  const все = view?.risks ?? []
+  const rows = filter ? все.filter((r) => criticalityOf(str(r, 'id')) === filter) : все
   // Сортировка заголовком (§2.4): вероятность, влияние и критичность — числами
   const РАНГ: Record<string, number> = { low: 1, medium: 2, high: 3, extreme: 4 }
   const { sorted, sort, toggle } = useSort(rows, {
@@ -48,6 +48,9 @@ export function Risks() {
     severity: (r) => РАНГ[criticalityOf(str(r, 'id'))] ?? 0,
     state: (r) => str(r, 'status'),
   })
+
+  if (error) return <div className="empty">Ошибка обращения к API: {error}</div>
+  if (!view) return <div className="empty">Загрузка…</div>
   const risk = view.risks.find((r) => str(r, 'id') === selected)
 
   return (

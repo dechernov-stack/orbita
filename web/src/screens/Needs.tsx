@@ -49,12 +49,10 @@ export function Needs({ initialId }: {
     void reload()
   }, [reload])
 
-  if (error) return <div className="empty">Ошибка обращения к API: {error}</div>
-  if (!rows) return <div className="empty">Загрузка…</div>
-
-  const shown = onlyOrphans ? rows.filter((r) => r.services.length === 0) : rows
-
-  // Сортировка заголовком (§2.4): клиентская, по загруженному
+  // Хуки — ДО ранних возвратов: React считает их порядок, и хук, встающий
+  // после «Загрузка…», на первом же приходе данных валит весь клиент
+  // (ошибка React #310 — поймана сборкой проекта-примера).
+  const shown = rows ? (onlyOrphans ? rows.filter((r) => r.services.length === 0) : rows) : []
   const { sorted, sort, toggle } = useSort(shown, {
     id: (r) => r.id,
     statement: (r) => r.statement,
@@ -64,6 +62,9 @@ export function Needs({ initialId }: {
     services: (r) => r.services.length,
     status: (r) => r.status,
   })
+
+  if (error) return <div className="empty">Ошибка обращения к API: {error}</div>
+  if (!rows) return <div className="empty">Загрузка…</div>
 
   /** Редактор нужды — один узел: раскрывается ВНИЗ, как в прочих реестрах. */
   const editor = (

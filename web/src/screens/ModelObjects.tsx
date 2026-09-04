@@ -66,10 +66,7 @@ export function ModelObjects({ kinds }: { kinds: string[] }) {
     reload()
   }, [reload])
 
-  if (error) return <div className="empty">Ошибка обращения к API: {error}</div>
-  if (!available) return <div className="empty">Загрузка видов…</div>
-  if (!row) return <div className="empty">Вид «{kind}» ядру неизвестен</div>
-
+  // Хуки — ДО ранних возвратов (React #310)
   // Сортировка заголовком (§2.4): реестр объектов модели
   const { sorted, sort, toggle } = useSort(rows ?? [], {
     id: (o) => o.id,
@@ -77,6 +74,10 @@ export function ModelObjects({ kinds }: { kinds: string[] }) {
     status: (o) => o.status,
     title: (o) => o.title ?? '',
   })
+
+  if (error) return <div className="empty">Ошибка обращения к API: {error}</div>
+  if (!available) return <div className="empty">Загрузка видов…</div>
+  if (!row) return <div className="empty">Вид «{kind}» ядру неизвестен</div>
 
   return (
     <div className="split">

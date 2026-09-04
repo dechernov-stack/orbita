@@ -476,6 +476,28 @@ def р10(src: dict) -> dict:
 
 
 # ── Р05 · урожай записки ────────────────────────────────────────────────────
+# Подписи полей, уходящих в примечание строкой: печать не терпит латинских
+# служебных ключей (сторож `PrintHumanizer.serviceKeys` отказывает выпуску).
+ПОДПИСИ_ХВОСТА = {
+    "interest": "интерес",
+    "scale_text": "масштаб",
+    "designation": "обозначение",
+    "obligation": "обязанность",
+    "fleet": "парк",
+    "need_estimate": "оценка потребности",
+    "mitigation": "мероприятие",
+    "probability": "вероятность",
+    "impact": "последствия",
+    "result": "результат",
+    "status": "состояние",
+    "kind": "вид",
+    "see": "см.",
+    "for_whom": "для кого",
+    "what": "что",
+    "where": "где",
+    "horizon": "горизонт",
+}
+
 ПОЛЯ_УРОЖАЯ = {
     "class", "block", "name", "statement", "role", "establishes", "need_ref",
     "international", "priority", "measure", "fleet", "range", "span", "span_from",
@@ -509,9 +531,13 @@ def р05(src: dict) -> dict:
                 else:
                     item[k] = v
             else:
-                # поле вне схемы не теряется: уходит в note человеческой строкой
-                хвост.append(f"{k}: {v}" if not isinstance(v, (dict, list))
-                             else f"{k}: {json.dumps(v, ensure_ascii=False)}")
+                # Поле вне схемы не теряется: уходит в note ЧЕЛОВЕЧЕСКОЙ
+                # строкой. Латинский ключ здесь — брак: примечание попадает
+                # в карточку, оттуда во вставку документа, и выпуск отказывает
+                # печати со служебным ключом (поймано сборкой примера).
+                подпись = ПОДПИСИ_ХВОСТА.get(k, k)
+                хвост.append(f"{подпись}: {v}" if not isinstance(v, (dict, list))
+                             else f"{подпись}: {json.dumps(v, ensure_ascii=False)}")
         if якоря(эл):
             item["block"] = якоря(эл)
         if эл.get("source_mark"):

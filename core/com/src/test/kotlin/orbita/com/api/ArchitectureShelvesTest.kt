@@ -153,6 +153,18 @@ class ArchitectureShelvesTest {
         assertTrue(покрытие.getValue("RQ-0002").covered, "сценарное требование покрыто цепочкой")
         assertFalse(boundary.matrices.coverageMatrix(project).uncovered.contains("RQ-0001"),
             "стык — носитель: в «Без носителя» интерфейсное требование не висит")
+
+        // Сборка проекта-примера: шесть сценарных требований висели «без
+        // носителя», хотя каждое сидело на своей цепочке. Носитель
+        // сценарного требования — ЦЕПОЧКА (ADR-050), и реестр обязан это
+        // видеть так же, как матрица покрытия.
+        val строки = boundary.screens.requirementTree(project).rows.associateBy { it.id }
+        assertFalse(строки.getValue("RQ-0002").noCarrierGap) {
+            "сценарное требование на цепочке — не сирота: ${строки.getValue("RQ-0002")}"
+        }
+        assertFalse(строки.getValue("RQ-0001").noCarrierGap) {
+            "интерфейсное требование на стыке — не сирота"
+        }
     }
 
     @Test

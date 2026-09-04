@@ -1335,7 +1335,10 @@ return (
                 ? (
                   <div className="np-err" title={failure}>
                     <b>Модель перегружена</b> — повторили трижды, не ответила.
-                    <button className="np-btn" style={{ marginLeft: 8 }} disabled={busy} onClick={run}>
+                    <button className="np-btn" style={{ marginLeft: 8 }} disabled={busy}
+                      title={busy ? 'идёт вызов службы — дождитесь ответа'
+                        : 'повторить вызов службы тем же промптом'}
+                      onClick={run}>
                       Повторить
                     </button>
                     <button className="np-linkish" style={{ marginLeft: 6 }}

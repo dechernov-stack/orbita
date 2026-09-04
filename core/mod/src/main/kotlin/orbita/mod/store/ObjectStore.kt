@@ -128,10 +128,20 @@ class ObjectStore(private val conn: Connection, private val mapper: ObjectMapper
         }
 
     /** Идентификаторы проектов портфеля (ADR-022): контейнеры — объекты вида project. */
+    /**
+     * Проекты портфеля. Отменённый проект в портфеле НЕ ЧИСЛИТСЯ: он не
+     * показывается в списке и не может быть контекстом запроса. Пока
+     * счёт шёл по всем строкам, отмена проекта оставляла его в отказе
+     * «в портфеле N проектов — укажите ?project», и на стенде с историей
+     * пересборок примера клиент вставал: единственный живой проект
+     * переставал выбираться сам (находка сборки проекта-примера).
+     */
     fun projectIds(): List<String> =
         conn.createStatement().use { st ->
             st.executeQuery(
-                "SELECT id FROM objects WHERE type = 'project' AND valid_to IS NULL ORDER BY id"
+                """SELECT id FROM objects
+                   WHERE type = 'project' AND valid_to IS NULL AND status <> 'Cancelled'
+                   ORDER BY id"""
             ).use { rs -> buildList { while (rs.next()) add(rs.getString(1)) } }
         }
 

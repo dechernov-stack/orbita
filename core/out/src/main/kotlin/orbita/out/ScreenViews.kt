@@ -456,7 +456,13 @@ class ScreenViews(
             carrierName = carrierName,
             recalcAfterBaseline = marks?.recalcAfterBaseline == true,
             changedAfterApproval = marks?.changedAfterApproval == true,
-            noCarrierGap = doc.path("level").asText("") != "project" && allocated.isEmpty(),
+            // ADR-050: носитель сценарного требования — ЦЕПОЧКА, а не узел:
+            // «функциональное покрывается функцией, сценарное цепочкой». Пока
+            // realized_by здесь не читался, шесть сценарных требований примера
+            // висели «без носителя», хотя каждое сидело на своей цепочке.
+            noCarrierGap = doc.path("level").asText("") != "project" &&
+                allocated.isEmpty() &&
+                doc.path("realized_by").none { it.asText("").isNotBlank() },
             noNeedGap = doc.path("level").asText("") == "project" &&
                 doc.path("traces_up").none { it.path("ref").asText().isNotBlank() },
             lint = lintControl.lint(doc),
