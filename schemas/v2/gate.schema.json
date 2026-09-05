@@ -1,0 +1,144 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/v2/gate.schema.json",
+  "title": "gate",
+  "description": "точка / ворота — вид 22 слоя L1. Сцена рождения: 1. СГЕНЕРИРОВАНО tools/v2/gen_schemas.py из docs/tz/v2/СХЕМЫ-ПОЛЕЙ-V2.yaml — руками не править",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "стабильный внутренний"
+    },
+    "code": {
+      "type": "string",
+      "description": "человеческий, переименуемый"
+    },
+    "kind": {
+      "enum": [
+        "phase",
+        "technology"
+      ],
+      "description": "веха технологии «TRL n достигнут»"
+    },
+    "area": {
+      "enum": [
+        "library",
+        "project:id"
+      ]
+    },
+    "born_in": {
+      "type": "string",
+      "description": "ссылка на вид: scene проектная область; библиотека — null"
+    },
+    "status": {
+      "type": "string",
+      "description": "enum по статусной модели вида"
+    },
+    "version": {
+      "type": "integer",
+      "description": "битемпорально"
+    },
+    "provenance": {
+      "type": "object",
+      "description": "{channel*:enum[manual,package,service,shelf,import,example], author*:ref account, source?:ref, anchor?:str, fingerprint?:str}"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "notes": {
+      "type": "string",
+      "description": "не печатается"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "phase": {
+      "type": "string",
+      "description": "ссылка на вид: phase"
+    },
+    "key": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "planned_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "criteria": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "description": "ссылка на вид: criterion"
+      }
+    },
+    "decision": {
+      "type": "string",
+      "description": "ссылка на вид: decision"
+    },
+    "aliases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "standard": {
+            "type": [
+              "string",
+              "number",
+              "boolean",
+              "object",
+              "array",
+              "null"
+            ]
+          },
+          "name": {
+            "type": [
+              "string",
+              "number",
+              "boolean",
+              "object",
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "standard",
+          "name"
+        ]
+      }
+    },
+    "expertise": {
+      "type": "object",
+      "description": "{goal*,validation_questions*:str[],results*:str[],main_outcome*:str[],control_items*:[{artifact*,maturity*:enum[С,Р,F,U,Σ,Δ,x,°],our_ref?:ref document_template|kind}]} из ПОЛКА-ПРОЦЕССЫ-РОМАНОВ.expertises_full; коды зрелости — легенда владельца"
+    }
+  },
+  "required": [
+    "id",
+    "code",
+    "kind",
+    "area",
+    "born_in",
+    "status",
+    "version",
+    "provenance",
+    "created_at",
+    "updated_at",
+    "phase",
+    "key",
+    "title",
+    "planned_date",
+    "criteria",
+    "kind"
+  ]
+}

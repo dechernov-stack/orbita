@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/v2/package_kind.schema.json",
+  "title": "package_kind",
+  "description": "вид пакета службы — вид 16 слоя L0. Сцена рождения: —. СГЕНЕРИРОВАНО tools/v2/gen_schemas.py из docs/tz/v2/СХЕМЫ-ПОЛЕЙ-V2.yaml — руками не править",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "стабильный внутренний"
+    },
+    "code": {
+      "type": "string"
+    },
+    "kind": {
+      "type": "string",
+      "description": "ссылка на вид: kind"
+    },
+    "area": {
+      "enum": [
+        "library",
+        "project:id"
+      ]
+    },
+    "born_in": {
+      "type": "string",
+      "description": "ссылка на вид: scene проектная область; библиотека — null"
+    },
+    "status": {
+      "type": "string",
+      "description": "enum по статусной модели вида"
+    },
+    "version": {
+      "type": "integer"
+    },
+    "provenance": {
+      "type": "object",
+      "description": "{channel*:enum[manual,package,service,shelf,import,example], author*:ref account, source?:ref, anchor?:str, fingerprint?:str}"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "notes": {
+      "type": "string",
+      "description": "не печатается"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "schema": {
+      "description": "произвольная структура (json)"
+    },
+    "rules": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "sources": {
+      "enum": [
+        "intent",
+        "library",
+        "materials",
+        "accepted",
+        "constraints]["
+      ]
+    },
+    "accepted_classes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "id",
+    "code",
+    "kind",
+    "area",
+    "born_in",
+    "status",
+    "version",
+    "provenance",
+    "created_at",
+    "updated_at",
+    "code",
+    "schema",
+    "rules",
+    "sources",
+    "accepted_classes",
+    "version"
+  ]
+}

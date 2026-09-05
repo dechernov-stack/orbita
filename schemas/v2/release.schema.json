@@ -1,0 +1,165 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/v2/release.schema.json",
+  "title": "release",
+  "description": "выпуск — вид 68 слоя L5. Сцена рождения: 13, A12. СГЕНЕРИРОВАНО tools/v2/gen_schemas.py из docs/tz/v2/СХЕМЫ-ПОЛЕЙ-V2.yaml — руками не править",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "стабильный внутренний"
+    },
+    "code": {
+      "type": "string",
+      "description": "человеческий, переименуемый"
+    },
+    "kind": {
+      "type": "string",
+      "description": "ссылка на вид: kind"
+    },
+    "area": {
+      "enum": [
+        "library",
+        "project:id"
+      ]
+    },
+    "born_in": {
+      "type": "string",
+      "description": "ссылка на вид: scene проектная область; библиотека — null"
+    },
+    "status": {
+      "type": "string",
+      "description": "enum по статусной модели вида"
+    },
+    "version": {
+      "type": "integer"
+    },
+    "provenance": {
+      "type": "object",
+      "description": "{channel*:enum[manual,package,service,shelf,import,example], author*:ref account, source?:ref, anchor?:str, fingerprint?:str}"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "notes": {
+      "type": "string",
+      "description": "не печатается"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "document": {
+      "type": "string",
+      "description": "ссылка на вид: document"
+    },
+    "rendering": {
+      "type": "string",
+      "description": "ссылка на вид: rendering принятый"
+    },
+    "print_files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "format*:enum[docx": {
+            "type": [
+              "string",
+              "number",
+              "boolean",
+              "object",
+              "array",
+              "null"
+            ]
+          },
+          "pdf": {
+            "type": [
+              "string",
+              "number",
+              "boolean",
+              "object",
+              "array",
+              "null"
+            ]
+          },
+          "html]": {
+            "type": [
+              "string",
+              "number",
+              "boolean",
+              "object",
+              "array",
+              "null"
+            ]
+          },
+          "path": {
+            "type": [
+              "string",
+              "number",
+              "boolean",
+              "object",
+              "array",
+              "null"
+            ]
+          },
+          "hash": {
+            "type": [
+              "string",
+              "number",
+              "boolean",
+              "object",
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "path",
+          "hash"
+        ]
+      }
+    },
+    "authors": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "description": "ссылка на вид: account"
+      }
+    },
+    "released_by": {
+      "type": "string",
+      "description": "ссылка на вид: account"
+    },
+    "at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "id",
+    "code",
+    "kind",
+    "area",
+    "born_in",
+    "status",
+    "version",
+    "provenance",
+    "created_at",
+    "updated_at",
+    "document",
+    "rendering",
+    "version",
+    "print_files",
+    "authors",
+    "released_by",
+    "at"
+  ]
+}

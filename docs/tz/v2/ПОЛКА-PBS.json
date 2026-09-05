@@ -1,0 +1,2210 @@
+{
+ "kind": "pbs_template",
+ "code": "PBS-9002",
+ "version": 2,
+ "title": "Типовой PBS космической системы — класс НОО-IoT",
+ "levels": [
+  "система",
+  "сегмент",
+  "элемент",
+  "подсистема",
+  "агрегат",
+  "блок"
+ ],
+ "rules": [
+  "взятие создаёт уровни 0–3 всегда, 4–5 — по классу миссии (НОО-IoT: КА целиком)",
+  "params узла = поля анкеты узла; required_to — точка зрелости (до неё — приглашение, после — разрыв)",
+  "external=true — требования к интерфейсу, не к составу",
+  "подгруппа построения = вхождение SC ×N",
+  "данные полны; default_take=false — не в рекомендованном наборе класса по умолчанию, выбор — у инженера при взятии; зависимости между элементами вычисляются по ссылкам, не хранятся флагами"
+ ],
+ "units_to_add": [
+  "площадь: м² (ввод см²)",
+  "сила: Н (ввод мН)",
+  "удельный импульс: с",
+  "дБВт, дБи, дБ/К — логарифмические без конверсии",
+  "Гц (частота собственная)",
+  "л (объём, ввод мл)",
+  "сут"
+ ],
+ "nodes": [
+  {
+   "code": "SYS",
+   "parent": null,
+   "name": "Система (миссия)",
+   "kind": "system",
+   "desc": "корень: проектные требования распределяются сюда",
+   "params": [
+    {
+     "key": "lifetime",
+     "name": "срок активного существования",
+     "unit": "год",
+     "required_to": "MCR"
+    },
+    {
+     "key": "n_sat",
+     "name": "число КА в ОГ",
+     "unit": "шт",
+     "required_to": "MCR"
+    }
+   ],
+   "level": 0
+  },
+  {
+   "code": "SEG-SP",
+   "parent": "SYS",
+   "name": "Космический сегмент",
+   "kind": "segment",
+   "desc": "",
+   "params": [],
+   "level": 1
+  },
+  {
+   "code": "SC",
+   "parent": "SEG-SP",
+   "name": "Космический аппарат (КА)",
+   "kind": "element",
+   "desc": "вхождение ×N по подгруппам построения; носитель для построений",
+   "params": [
+    {
+     "key": "mass_dry",
+     "name": "масса сухая",
+     "unit": "кг",
+     "required_to": "MCR"
+    },
+    {
+     "key": "mass_wet",
+     "name": "масса стартовая",
+     "unit": "кг",
+     "required_to": "SRR"
+    },
+    {
+     "key": "power_avg",
+     "name": "мощность средняя",
+     "unit": "Вт",
+     "required_to": "MCR"
+    },
+    {
+     "key": "power_peak",
+     "name": "мощность пиковая",
+     "unit": "Вт",
+     "required_to": "SRR"
+    },
+    {
+     "key": "cross_section",
+     "name": "площадь миделя",
+     "unit": "м²",
+     "required_to": "SRR"
+    },
+    {
+     "key": "drag_coeff",
+     "name": "коэффициент сопротивления Cd (прокси 2,2)",
+     "unit": "1",
+     "required_to": "SRR"
+    },
+    {
+     "key": "dims",
+     "name": "габариты под обтекатель",
+     "unit": "м",
+     "required_to": "SRR"
+    }
+   ],
+   "default_quantity": 1,
+   "level": 2
+  },
+  {
+   "code": "SC-PLT",
+   "parent": "SC",
+   "name": "Платформа (служебный модуль)",
+   "kind": "subsystem",
+   "desc": "",
+   "params": [],
+   "level": 3
+  },
+  {
+   "code": "STR",
+   "parent": "SC-PLT",
+   "name": "Конструкция и механизмы",
+   "kind": "subsystem",
+   "desc": "силовая основа и раскрытия",
+   "params": [
+    {
+     "key": "mass",
+     "name": "масса",
+     "unit": "кг",
+     "required_to": "SRR"
+    },
+    {
+     "key": "first_mode",
+     "name": "первая собственная частота",
+     "unit": "Гц",
+     "required_to": "SDR"
+    }
+   ],
+   "level": 4
+  },
+  {
+   "code": "STR-BODY",
+   "parent": "STR",
+   "name": "Силовая конструкция (корпус, рама, панели)",
+   "kind": "assembly",
+   "desc": "",
+   "params": [],
+   "level": 5
+  },
+  {
+   "code": "STR-DEPLOY",
+   "parent": "STR",
+   "name": "Механизмы раскрытия (СБ, антенны)",
+   "kind": "assembly",
+   "desc": "",
+   "params": [
+    {
+     "key": "n_deploy",
+     "name": "число раскрытий",
+     "unit": "шт",
+     "required_to": "SDR"
+    }
+   ],
+   "level": 5
+  },
+  {
+   "code": "STR-SEP",
+   "parent": "STR",
+   "name": "Система отделения и адаптер РН",
+   "kind": "assembly",
+   "desc": "интерфейс с сегментом выведения",
+   "params": [
+    {
+     "key": "sep_shock",
+     "name": "ударная нагрузка отделения",
+     "unit": "1",
+     "required_to": "SDR"
+    }
+   ],
+   "level": 5
+  },
+  {
+   "code": "STR-PLMOUNT",
+   "parent": "STR",
+   "name": "Крепление полезной нагрузки",
+   "kind": "assembly",
+   "desc": "",
+   "params": [],
+   "level": 5
+  },
+  {
+   "code": "EPS",
+   "parent": "SC-PLT",
+   "name": "СЭП — система электропитания",
+   "kind": "subsystem",
+   "desc": "первичный источник — СБ, вторичный — АКБ, преобразование и распределение",
+   "params": [
+    {
+     "key": "bus_voltage",
+     "name": "напряжение шины",
+     "unit": "В",
+     "required_to": "MCR"
+    },
+    {
+     "key": "power_avg",
+     "name": "мощность средняя",
+     "unit": "Вт",
+     "required_to": "MCR"
+    },
+    {
+     "key": "power_peak",
+     "name": "мощность пиковая",
+     "unit": "Вт",
+     "required_to": "SRR"
+    },
+    {
+     "key": "eclipse_max",
+     "name": "тень максимальная на витке",
+     "unit": "мин",
+     "required_to": "SRR"
+    }
+   ],
+   "level": 4
+  },
+  {
+   "code": "EPS-SA",
+   "parent": "EPS",
+   "name": "СБ — солнечные батареи (первичный источник)",
+   "kind": "assembly",
+   "desc": "",
+   "params": [
+    {
+     "key": "area",
+     "name": "площадь",
+     "unit": "м²",
+     "required_to": "MCR"
+    },
+    {
+     "key": "eff",
+     "name": "КПД ФЭП",
+     "unit": "1",
+     "required_to": "SRR"
+    },
+    {
+     "key": "power_bol",
+     "name": "мощность в начале срока",
+     "unit": "Вт",
+     "required_to": "SRR"
+    },
+    {
+     "key": "power_eol",
+     "name": "мощность в конце срока",
+     "unit": "Вт",
+     "required_to": "SDR"
+    },
+    {
+     "key": "orient",
+     "name": "ориентируемые/фиксированные",
+     "unit": "1",
+     "required_to": "MCR"
+    }
+   ],
+   "level": 5
+  },
+  {
+   "code": "EPS-SA-PANEL",
+   "parent": "EPS-SA",
+   "name": "Панели СБ",
+   "kind": "unit",
+   "desc": "",
+   "params": [
+    {
+     "key": "n",
+     "name": "число панелей",
+     "unit": "шт",
+     "required_to": "SRR"
+    }
+   ],
+   "level": 6
+  },
+  {
+   "code": "EPS-SA-CELL",
+   "parent": "EPS-SA",
+   "name": "ФЭП — фотоэлектрические преобразователи",
+   "kind": "unit",
+   "desc": "",
+   "params": [
+    {
+     "key": "type",
+     "name": "тип (3J GaAs / Si)",
+     "unit": "1",
+     "required_to": "SRR"
+    }
+   ],
+   "level": 6
+  },
+  {
+   "code": "EPS-SA-SHUNT",
+   "parent": "EPS-SA",
+   "name": "Шунтовые регуляторы СБ",
+   "kind": "unit",
+   "desc": "",
+   "params": [],
+   "level": 6
+  },
+  {
+   "code": "EPS-BAT",
+   "parent": "EPS",
+   "name": "АКБ — аккумуляторные батареи (вторичный источник)",
+   "kind": "assembly",
+   "desc": "",
+   "params": [
+    {
+     "key": "capacity",
+     "name": "ёмкость",
+     "unit": "А·ч",
+     "required_to": "MCR"
+    },
+    {
+     "key": "voltage",
+     "name": "напряжение",
+     "unit": "В",
+     "required_to": "MCR"
+    },
+    {
+     "key": "energy",
+     "name": "энергия (вычисляется А·ч × В)",
+     "unit": "Вт·ч",
+     "required_to": "MCR"
+    },
+    {
+     "key": "dod",
+     "name": "глубина разряда допустимая",
+     "unit": "1",
+     "required_to": "SRR"
+    },
+    {
+     "key": "cycles",
+     "name": "ресурс, циклов",
+     "unit": "шт",
+     "required_to": "SRR"
+    }
+   ],
+   "level": 5
+  },
+  {
+   "code": "EPS-BAT-PACK",
+   "parent": "EPS-BAT",
+   "name": "Батарейные блоки (Li-ion)",
+   "kind": "unit",
+   "desc": "",
+   "params": [
+    {
+     "key": "n",
+     "name": "число блоков",
+     "unit": "шт",
+     "required_to": "SRR"
+    }
+   ],
+   "level": 6
+  },
+  {
+   "code": "EPS-BAT-BMS",
+   "parent": "EPS-BAT",
+   "name": "Контроллер батареи (BMS: балансировка, защита, обогрев)",
+   "kind": "unit",
+   "desc": "",
+   "params": [],
+   "level": 6
+  },
+  {
+   "code": "EPS-PCU",
+   "parent": "EPS",
+   "name": "ПР — регулирование (зарядное устройство, регулятор шины)",
+   "kind": "assembly",
+   "desc": "",
+   "params": [
+    {
+     "key": "eff",
+     "name": "КПД",
+     "unit": "1",
+     "required_to": "SDR"
+    }
+   ],
+   "level": 5
+  },
+  {
+   "code": "EPS-DCDC",
+   "parent": "EPS",
+   "name": "ВИП — вторичные источники питания (DC/DC преобразователи)",
+   "kind": "assembly",
+   "desc": "",
+   "params": [
+    {
+     "key": "rails",
+     "name": "номиналы шин",
+     "unit": "В",
+     "required_to": "SRR"
+    },
+    {
+     "key": "eff",
+     "name": "КПД",
+     "unit": "1",
+     "required_to": "SDR"
+    }
+   ],
+   "level": 5
+  },
+  {
+   "code": "EPS-PDU",
+   "parent": "EPS",
+   "name": "Блок распределения и коммутации нагрузок",
+   "kind": "assembly",
+   "desc": "коммутация потребителей, защита по току",
+   "params": [
+    {
+     "key": "n_channels",
+     "name": "число каналов",
+     "unit": "шт",
+     "required_to": "SDR"
+    }
+   ],
+   "level": 5
+  },
+  {
+   "code": "EPS-SENS",
+   "parent": "EPS",
+   "name": "Датчики тока и напряжения",
+   "kind": "unit",
+   "desc": "",
+   "params": [],
+   "level": 5
+  },
+  {
+   "code": "TCS",
+   "parent": "SC-PLT",
+   "name": "СТР — терморегулирование",
+   "kind": "subsystem",
+   "desc": "",
+   "params": [
+    {
+     "key": "t_range_op",
+     "name": "рабочий диапазон температур",
+     "unit": "°C",
+     "required_to": "SRR"
+    },
+    {
+     "key": "heater_power",
+     "name": "мощность нагревателей",
+     "unit": "Вт",
+     "required_to": "SDR"
+    }
+   ],
+   "level": 4
+  },
+  {
+   "code": "TCS-MLI",
+   "parent": "TCS",
+   "name": "ЭВТИ — экранно-вакуумная теплоизоляция",
+   "kind": "unit",
+   "desc": "",
+   "params": [],
+   "level": 5
+  },
+  {
+   "code": "TCS-COAT",
+   "parent": "TCS",
+   "name": "Терморегулирующие покрытия",
+   "kind": "unit",
+   "desc": "",
+   "params": [],
+   "level": 5
+  },
+  {
+   "code": "TCS-RAD",
+   "parent": "TCS",
+   "name": "Радиаторы",
+   "kind": "unit",
+   "desc": "",
+   "params": [
+    {
+     "key": "area",
+     "name": "площадь",
+     "unit": "м²",
+     "required_to": "SDR"
+    }
+   ],
+   "level": 5
+  },
+  {
+   "code": "TCS-HP",
+   "parent": "TCS",
+   "name": "Тепловые трубы",
+   "kind": "unit",
+   "desc": "",
+   "params": [],
+   "level": 5
+  },
+  {
+   "code": "TCS-HEAT",
+   "parent": "TCS",
+   "name": "Нагреватели и термостаты",
+   "kind": "unit",
+   "desc": "",
+   "params": [],
+   "level": 5
+  },
+  {
+   "code": "TCS-SENS",
+   "parent": "TCS",
+   "name": "Датчики температуры",
+   "kind": "unit",
+   "desc": "",
+   "params": [],
+   "level": 5
+  },
+  {
+   "code": "AOCS",
+   "parent": "SC-PLT",
+   "name": "СОС — ориентация и стабилизация",
+   "kind": "subsystem",
+   "desc": "",
+   "params": [
+    {
+     "key": "pointing_acc",
+     "name": "точность ориентации",
+     "unit": "°",
+     "required_to": "MCR"
+    },
+    {
+     "key": "slew_rate",
+     "name": "скорость разворота",
+     "unit": "°/с",
+     "required_to": "SRR"
+    },
+    {
+     "key": "stability",
+     "name": "стабилизация",
+     "unit": "°/с",
+     "required_to": "SDR"
+    },
+    {
+     "key": "modes",
+     "name": "режимы (демпфирование, солнечный, целевой, безопасный)",
+     "unit": "1",
+     "required_to": "SRR"
+    }
+   ],
+   "level": 4
+  },
+  {
+   "code": "AOCS-STR",
+   "parent": "AOCS",
+   "name": "Звёздный датчик",
+   "kind": "unit",
+   "desc": "",
+   "params": [
+    {
+     "key": "acc",
+     "name": "точность",
+     "unit": "°",
+     "required_to": "SRR"
+    }
+   ],
+   "level": 5
+  },
+  {
+   "code": "AOCS-SUN",
+   "parent": "AOCS",
+   "name": "Солнечные датчики",
+   "kind": "unit",
+   "desc": "",
+   "params": [
+    {
+     "key": "n",
+     "name": "число",
+     "unit": "шт",
+     "required_to": "SDR"
+    }
+   ],
+   "level": 5
+  },
+  {
+   "code": "AOCS-MAG",
+   "parent": "AOCS",
+   "name": "Магнитометр",
+   "kind": "unit",
+   "desc": "",
+   "params": [],
+   "level": 5
+  },
+  {
+   "code": "AOCS-GYRO",
+   "parent": "AOCS",
+   "name": "ДУС — датчик угловой скорости",
+   "kind": "unit",
+   "desc": "",
+   "params": [],
+   "level": 5
+  },
+  {
+   "code": "AOCS-GNSS",
+   "parent": "AOCS",
+   "name": "Приёмник ГНСС (навигация КА)",
+   "kind": "unit",
+   "desc": "",
+   "params": [
+    {
+     "key": "acc_pos",
+     "name": "точность положения",
+     "unit": "м",
+     "required_to": "SRR"
+    }
+   ],
+   "level": 5
+  },
+  {
+   "code": "AOCS-RW",
+   "parent": "AOCS",
+   "name": "ДМ — двигатели-маховики",
+   "kind": "unit",
+   "desc": "",
+   "params": [
+    {
+     "key": "n",
+     "name": "число",
+     "unit": "шт",
+     "required_to": "SRR"
+    },
+    {
+     "key": "torque",
+     "name": "момент",
+     "unit": "1",
+     "required_to": "SDR"
+    },
+    {
+     "key": "momentum",
+     "name": "кинетический момент",
+     "unit": "1",
+     "required_to": "SDR"
+    }
+   ],
+   "level": 5
+  },
+  {
+   "code": "AOCS-MTQ",
+   "parent": "AOCS",
+   "name": "МИО — магнитные исполнительные органы",
+   "kind": "unit",
+   "desc": "разгрузка маховиков",
+   "params": [],
+   "level": 5
+  },
+  {
+   "code": "AOCS-SW",
+   "parent": "AOCS",
+   "name": "Алгоритмы и ПО СОС (в БКУ)",
+   "kind": "unit",
+   "desc": "",
+   "params": [],
+   "level": 5
+  },
+  {
+   "code": "OBC",
+   "parent": "SC-PLT",
+   "name": "БКУ — бортовой комплекс управления",
+   "kind": "subsystem",
+   "desc": "",
+   "params": [
+    {
+     "key": "cpu",
+     "name": "вычислительная мощность",
+     "unit": "1",
+     "required_to": "SRR"
+    },
+    {
+     "key": "storage",
+     "name": "ЗУ данных",
+     "unit": "МБ",
+     "required_to": "MCR"
+    },
+    {
+     "key": "autonomy",
+     "name": "автономность без НКУ",
+     "unit": "сут",
+     "required_to": "SRR"
+    }
+   ],
+   "level": 4
+  },
+  {
+   "code": "OBC-CPU",
+   "parent": "OBC",
+   "name": "БЦВМ — процессорный модуль",
+   "kind": "unit",
+   "desc": "",
+   "params": [
+    {
+     "key": "rad_tol",
+     "name": "радстойкость TID",
+     "unit": "крад",
+     "required_to": "SRR"
+    }
+   ],
+   "level": 5
+  },
+  {
+   "code": "OBC-MEM",
+   "parent": "OBC",
+   "name": "Запоминающее устройство",
+   "kind": "unit",
+   "desc": "",
+   "params": [
+    {
+     "key": "size",
+     "name": "объём",
+     "unit": "МБ",
+     "required_to": "MCR"
+    }
+   ],
+   "level": 5
+  },
+  {
+   "code": "OBC-BUS",
+   "parent": "OBC",
+   "name": "Бортовая шина данных (CAN / SpaceWire)",
+   "kind": "unit",
+   "desc": "",
+   "params": [],
+   "level": 5
+  },
+  {
+   "code": "OBC-TIME",
+   "parent": "OBC",
+   "name": "Бортовое время и синхронизация",
+   "kind": "unit",
+   "desc": "",
+   "params": [],
+   "level": 5
+  },
+  {
+   "code": "OBC-SW",
+   "parent": "OBC",
+   "name": "ПО БКУ (управление, ТМ, автономные режимы, FDIR)",
+   "kind": "unit",
+   "desc": "",
+   "params": [],
+   "level": 5
+  },
+  {
+   "code": "PROP",
+   "parent": "SC-PLT",
+   "name": "ДУ — двигательная установка",
+   "kind": "subsystem",
+   "desc": "удержание, фазирование, увод",
+   "params": [
+    {
+     "key": "delta_v_total",
+     "name": "Δv суммарный",
+     "unit": "м/с",
+     "required_to": "MCR"
+    },
+    {
+     "key": "thrust",
+     "name": "тяга",
+     "unit": "мН",
+     "required_to": "SRR"
+    },
+    {
+     "key": "isp",
+     "name": "удельный импульс",
+     "unit": "с",
+     "required_to": "SRR"
+    },
+    {
+     "key": "propellant_mass",
+     "name": "масса топлива",
+     "unit": "кг",
+     "required_to": "SRR"
+    },
+    {
+     "key": "type",
+     "name": "тип (ЭРД / газовая / химическая)",
+     "unit": "1",
+     "required_to": "MCR"
+    }
+   ],
+   "level": 4
+  },
+  {
+   "code": "PROP-THR",
+   "parent": "PROP",
+   "name": "Двигатели",
+   "kind": "unit",
+   "desc": "",
+   "params": [
+    {
+     "key": "n",
+     "name": "число",
+     "unit": "шт",
+     "required_to": "SRR"
+    }
+   ],
+   "level": 5
+  },
+  {
+   "code": "PROP-TANK",
+   "parent": "PROP",
+   "name": "Баки",
+   "kind": "unit",
+   "desc": "",
+   "params": [
+    {
+     "key": "volume",
+     "name": "объём",
+     "unit": "л",
+     "required_to": "SRR"
+    }
+   ],
+   "level": 5
+  },
+  {
+   "code": "PROP-VALVE",
+   "parent": "PROP",
+   "name": "Арматура и клапаны",
+   "kind": "unit",
+   "desc": "",
+   "params": [],
+   "level": 5
+  },
+  {
+   "code": "PROP-PPU",
+   "parent": "PROP",
+   "name": "Контроллер ДУ (PPU для ЭРД)",
+   "kind": "unit",
+   "desc": "",
+   "params": [
+    {
+     "key": "power",
+     "name": "потребление при работе",
+     "unit": "Вт",
+     "required_to": "SRR"
+    }
+   ],
+   "level": 5
+  },
+  {
+   "code": "TTC",
+   "parent": "SC-PLT",
+   "name": "КТРЛ — командно-телеметрическая радиолиния",
+   "kind": "subsystem",
+   "desc": "управление и ТМ с НКУ; аварийный режим через всенаправленные антенны",
+   "params": [
+    {
+     "key": "band",
+     "name": "диапазон",
+     "unit": "МГц",
+     "required_to": "MCR"
+    },
+    {
+     "key": "tx_power",
+     "name": "мощность передатчика",
+     "unit": "Вт",
+     "required_to": "SRR"
+    },
+    {
+     "key": "sensitivity",
+     "name": "чувствительность приёмника",
+     "unit": "дБм",
+     "required_to": "SRR"
+    },
+    {
+     "key": "tm_rate",
+     "name": "скорость ТМ",
+     "unit": "бит/с",
+     "required_to": "SRR"
+    },
+    {
+     "key": "tc_rate",
+     "name": "скорость команд",
+     "unit": "бит/с",
+     "required_to": "SRR"
+    },
+    {
+     "key": "crypto",
+     "name": "защита команд (да/нет)",
+     "unit": "1",
+     "required_to": "SRR"
+    }
+   ],
+   "level": 4
+  },
+  {
+   "code": "TTC-TRX",
+   "parent": "TTC",
+   "name": "Приёмопередатчик КТРЛ",
+   "kind": "unit",
+   "desc": "",
+   "params": [],
+   "level": 5
+  },
+  {
+   "code": "TTC-ANT-OMNI",
+   "parent": "TTC",
+   "name": "Антенны всенаправленные (аварийный режим)",
+   "kind": "unit",
+   "desc": "",
+   "params": [
+    {
+     "key": "n",
+     "name": "число",
+     "unit": "шт",
+     "required_to": "SRR"
+    }
+   ],
+   "level": 5
+  },
+  {
+   "code": "TTC-ANT-DIR",
+   "parent": "TTC",
+   "name": "Антенна направленная",
+   "kind": "unit",
+   "desc": "",
+   "params": [],
+   "level": 5
+  },
+  {
+   "code": "TTC-PA",
+   "parent": "TTC",
+   "name": "Усилитель мощности",
+   "kind": "unit",
+   "desc": "",
+   "params": [],
+   "level": 5
+  },
+  {
+   "code": "HARN",
+   "parent": "SC-PLT",
+   "name": "БКС — бортовая кабельная сеть",
+   "kind": "subsystem",
+   "desc": "",
+   "params": [
+    {
+     "key": "mass",
+     "name": "масса",
+     "unit": "кг",
+     "required_to": "SDR"
+    }
+   ],
+   "level": 4
+  },
+  {
+   "code": "HARN-CABLE",
+   "parent": "HARN",
+   "name": "Кабели и жгуты",
+   "kind": "unit",
+   "desc": "",
+   "params": [],
+   "level": 5
+  },
+  {
+   "code": "HARN-CONN",
+   "parent": "HARN",
+   "name": "Разъёмы",
+   "kind": "unit",
+   "desc": "",
+   "params": [],
+   "level": 5
+  },
+  {
+   "code": "HARN-EMC",
+   "parent": "HARN",
+   "name": "Заземление и элементы ЭМС",
+   "kind": "unit",
+   "desc": "",
+   "params": [],
+   "level": 5
+  },
+  {
+   "code": "SC-PL",
+   "parent": "SC",
+   "name": "Полезная нагрузка (целевой модуль)",
+   "kind": "subsystem",
+   "desc": "",
+   "params": [
+    {
+     "key": "mass",
+     "name": "масса",
+     "unit": "кг",
+     "required_to": "MCR"
+    },
+    {
+     "key": "power_avg",
+     "name": "потребление среднее",
+     "unit": "Вт",
+     "required_to": "MCR"
+    },
+    {
+     "key": "power_peak",
+     "name": "потребление пиковое",
+     "unit": "Вт",
+     "required_to": "SRR"
+    }
+   ],
+   "level": 3
+  },
+  {
+   "code": "PL-S",
+   "parent": "SC-PL",
+   "name": "БРТК-S — абонентский комплекс S-диапазона",
+   "kind": "assembly",
+   "desc": "",
+   "params": [
+    {
+     "key": "band",
+     "name": "диапазон",
+     "unit": "МГц",
+     "required_to": "MCR"
+    },
+    {
+     "key": "sensitivity",
+     "name": "чувствительность",
+     "unit": "дБм",
+     "required_to": "MCR"
+    },
+    {
+     "key": "channels",
+     "name": "каналов одновременного приёма",
+     "unit": "шт",
+     "required_to": "MCR"
+    },
+    {
+     "key": "tx_power",
+     "name": "мощность передатчика",
+     "unit": "Вт",
+     "required_to": "SRR"
+    },
+    {
+     "key": "eirp",
+     "name": "EIRP",
+     "unit": "дБВт",
+     "required_to": "SRR"
+    },
+    {
+     "key": "rate",
+     "name": "скорость канала",
+     "unit": "бит/с",
+     "required_to": "MCR"
+    }
+   ],
+   "level": 4
+  },
+  {
+   "code": "PL-S-RX",
+   "parent": "PL-S",
+   "name": "Многоканальный приёмник",
+   "kind": "unit",
+   "desc": "",
+   "params": [],
+   "level": 5
+  },
+  {
+   "code": "PL-S-TX",
+   "parent": "PL-S",
+   "name": "Передатчик",
+   "kind": "unit",
+   "desc": "",
+   "params": [],
+   "level": 5
+  },
+  {
+   "code": "PL-S-DSP",
+   "parent": "PL-S",
+   "name": "Процессор ПН (цифровая обработка, SDR)",
+   "kind": "unit",
+   "desc": "",
+   "params": [
+    {
+     "key": "buffer",
+     "name": "буфер сообщений",
+     "unit": "МБ",
+     "required_to": "SRR"
+    }
+   ],
+   "level": 5
+  },
+  {
+   "code": "PL-S-LO",
+   "parent": "PL-S",
+   "name": "Опорный генератор и синтезатор частот",
+   "kind": "unit",
+   "desc": "",
+   "params": [
+    {
+     "key": "stability",
+     "name": "стабильность",
+     "unit": "1",
+     "required_to": "SDR"
+    }
+   ],
+   "level": 5
+  },
+  {
+   "code": "PL-P",
+   "parent": "SC-PL",
+   "name": "БРТК-P — комплекс P-диапазона (если применимо, наследие)",
+   "kind": "assembly",
+   "desc": "",
+   "params": [
+    {
+     "key": "band",
+     "name": "диапазон",
+     "unit": "МГц",
+     "required_to": "MCR"
+    }
+   ],
+   "level": 4,
+   "default_take": false
+  },
+  {
+   "code": "PL-FEED",
+   "parent": "SC-PL",
+   "name": "Фидерная радиолиния C-диапазона (КА ↔ РСС)",
+   "kind": "assembly",
+   "desc": "",
+   "params": [
+    {
+     "key": "band",
+     "name": "диапазон",
+     "unit": "МГц",
+     "required_to": "MCR"
+    },
+    {
+     "key": "rate",
+     "name": "пропускная способность",
+     "unit": "бит/с",
+     "required_to": "SRR"
+    },
+    {
+     "key": "eirp",
+     "name": "EIRP",
+     "unit": "дБВт",
+     "required_to": "SRR"
+    }
+   ],
+   "level": 4
+  },
+  {
+   "code": "PL-ANT",
+   "parent": "SC-PL",
+   "name": "АФУ ПН — антенно-фидерное устройство",
+   "kind": "assembly",
+   "desc": "",
+   "params": [
+    {
+     "key": "gain_s",
+     "name": "усиление S",
+     "unit": "дБи",
+     "required_to": "SRR"
+    },
+    {
+     "key": "gain_c",
+     "name": "усиление C",
+     "unit": "дБи",
+     "required_to": "SRR"
+    },
+    {
+     "key": "beam",
+     "name": "ширина луча",
+     "unit": "°",
+     "required_to": "SRR"
+    }
+   ],
+   "level": 4
+  },
+  {
+   "code": "PL-ANT-S",
+   "parent": "PL-ANT",
+   "name": "Антенна абонентская (S)",
+   "kind": "unit",
+   "desc": "",
+   "params": [],
+   "level": 5
+  },
+  {
+   "code": "PL-ANT-C",
+   "parent": "PL-ANT",
+   "name": "Антенна фидерная (C)",
+   "kind": "unit",
+   "desc": "",
+   "params": [],
+   "level": 5
+  },
+  {
+   "code": "PL-ANT-DPX",
+   "parent": "PL-ANT",
+   "name": "Диплексеры и фидерные тракты",
+   "kind": "unit",
+   "desc": "",
+   "params": [],
+   "level": 5
+  },
+  {
+   "code": "PL-ISL",
+   "parent": "SC-PL",
+   "name": "МБРК — межспутниковая радиолиния (если применимо)",
+   "kind": "assembly",
+   "desc": "",
+   "params": [
+    {
+     "key": "band",
+     "name": "диапазон",
+     "unit": "МГц",
+     "required_to": "SDR"
+    },
+    {
+     "key": "rate",
+     "name": "пропускная способность",
+     "unit": "бит/с",
+     "required_to": "SDR"
+    },
+    {
+     "key": "pointing",
+     "name": "наведение (фиксированное/следящее)",
+     "unit": "1",
+     "required_to": "SDR"
+    }
+   ],
+   "level": 4,
+   "default_take": false
+  },
+  {
+   "code": "PL-PNT",
+   "parent": "SC-PL",
+   "name": "Модуль PNT (если применимо)",
+   "kind": "assembly",
+   "desc": "навигационный сигнал, синхронизация времени",
+   "params": [
+    {
+     "key": "clock_stability",
+     "name": "стабильность опорного генератора",
+     "unit": "1",
+     "required_to": "SDR"
+    }
+   ],
+   "level": 4,
+   "default_take": false
+  },
+  {
+   "code": "SC-LVI",
+   "parent": "SC",
+   "name": "Интерфейс с РН (адаптер, замки, отделение)",
+   "kind": "subsystem",
+   "desc": "внешний интерфейс",
+   "params": [
+    {
+     "key": "adapter_type",
+     "name": "тип адаптера",
+     "unit": "1",
+     "required_to": "SRR"
+    }
+   ],
+   "external": true,
+   "level": 3
+  },
+  {
+   "code": "SC-EXP",
+   "parent": "SEG-SP",
+   "name": "Экспериментальная ОГ (КА-Э, если предусмотрена)",
+   "kind": "element",
+   "desc": "вхождения экспериментальных КА",
+   "params": [],
+   "level": 2,
+   "default_take": false
+  },
+  {
+   "code": "SEG-GC",
+   "parent": "SYS",
+   "name": "Наземный комплекс управления (НКУ)",
+   "kind": "segment",
+   "desc": "",
+   "params": [],
+   "level": 1
+  },
+  {
+   "code": "MCC",
+   "parent": "SEG-GC",
+   "name": "ЦУП — центр управления полётом",
+   "kind": "element",
+   "desc": "",
+   "params": [
+    {
+     "key": "ops_shifts",
+     "name": "состав смен",
+     "unit": "1",
+     "required_to": "SRR"
+    },
+    {
+     "key": "sats_per_operator",
+     "name": "КА на оператора",
+     "unit": "шт",
+     "required_to": "SRR"
+    }
+   ],
+   "level": 2
+  },
+  {
+   "code": "MCC-FD",
+   "parent": "MCC",
+   "name": "Баллистический центр (эфемериды, планирование манёвров, альманах терминалам)",
+   "kind": "subsystem",
+   "desc": "",
+   "params": [],
+   "level": 3
+  },
+  {
+   "code": "MCC-PLAN",
+   "parent": "MCC",
+   "name": "Планирование сеансов и ресурсов станций",
+   "kind": "subsystem",
+   "desc": "",
+   "params": [],
+   "level": 3
+  },
+  {
+   "code": "MCC-TM",
+   "parent": "MCC",
+   "name": "Обработка телеметрии и контроль состояния",
+   "kind": "subsystem",
+   "desc": "",
+   "params": [],
+   "level": 3
+  },
+  {
+   "code": "MCC-TC",
+   "parent": "MCC",
+   "name": "Командование и загрузка ПО",
+   "kind": "subsystem",
+   "desc": "",
+   "params": [],
+   "level": 3
+  },
+  {
+   "code": "MCC-SIM",
+   "parent": "MCC",
+   "name": "Наземный отладочный комплекс (симулятор борта)",
+   "kind": "subsystem",
+   "desc": "",
+   "params": [],
+   "level": 3,
+   "default_take": false
+  },
+  {
+   "code": "GCS",
+   "parent": "SEG-GC",
+   "name": "Станции управления (НСКУ)",
+   "kind": "element",
+   "desc": "вхождение ×N по площадкам",
+   "params": [
+    {
+     "key": "g_t",
+     "name": "добротность G/T",
+     "unit": "дБ/К",
+     "required_to": "SRR"
+    },
+    {
+     "key": "eirp",
+     "name": "EIRP",
+     "unit": "дБВт",
+     "required_to": "SRR"
+    },
+    {
+     "key": "elev_min",
+     "name": "минимальный угол места",
+     "unit": "°",
+     "required_to": "MCR"
+    }
+   ],
+   "default_quantity": 2,
+   "level": 2
+  },
+  {
+   "code": "GCS-ANT",
+   "parent": "GCS",
+   "name": "Антенная система (опорно-поворотное устройство, зеркало)",
+   "kind": "subsystem",
+   "desc": "",
+   "params": [
+    {
+     "key": "diameter",
+     "name": "диаметр",
+     "unit": "м",
+     "required_to": "SRR"
+    }
+   ],
+   "level": 3
+  },
+  {
+   "code": "GCS-RF",
+   "parent": "GCS",
+   "name": "Приёмо-передающий тракт",
+   "kind": "subsystem",
+   "desc": "",
+   "params": [],
+   "level": 3
+  },
+  {
+   "code": "GCS-MODEM",
+   "parent": "GCS",
+   "name": "Модем и оборудование сеанса",
+   "kind": "subsystem",
+   "desc": "",
+   "params": [],
+   "level": 3
+  },
+  {
+   "code": "GCS-SRV",
+   "parent": "GCS",
+   "name": "Серверы станции и связь с ЦУП",
+   "kind": "subsystem",
+   "desc": "",
+   "params": [],
+   "level": 3
+  },
+  {
+   "code": "GC-NET",
+   "parent": "SEG-GC",
+   "name": "Средства связи и передачи данных НКУ",
+   "kind": "element",
+   "desc": "",
+   "params": [],
+   "level": 2
+  },
+  {
+   "code": "SEG-NET",
+   "parent": "SYS",
+   "name": "Наземный связной сегмент (НСК)",
+   "kind": "segment",
+   "desc": "для связных миссий",
+   "params": [],
+   "level": 1
+  },
+  {
+   "code": "GW",
+   "parent": "SEG-NET",
+   "name": "РСС — региональные станции сопряжения",
+   "kind": "element",
+   "desc": "вхождение ×N; шлюз абонентского трафика",
+   "params": [
+    {
+     "key": "g_t",
+     "name": "G/T",
+     "unit": "дБ/К",
+     "required_to": "SRR"
+    },
+    {
+     "key": "capacity",
+     "name": "пропускная способность",
+     "unit": "бит/с",
+     "required_to": "SRR"
+    },
+    {
+     "key": "site",
+     "name": "площадка (широта, долгота)",
+     "unit": "°",
+     "required_to": "MCR"
+    }
+   ],
+   "default_quantity": 3,
+   "level": 2
+  },
+  {
+   "code": "GW-ANT",
+   "parent": "GW",
+   "name": "Антенна фидерная",
+   "kind": "subsystem",
+   "desc": "",
+   "params": [],
+   "level": 3
+  },
+  {
+   "code": "GW-RF",
+   "parent": "GW",
+   "name": "Приёмо-передающий тракт",
+   "kind": "subsystem",
+   "desc": "",
+   "params": [],
+   "level": 3
+  },
+  {
+   "code": "GW-GATE",
+   "parent": "GW",
+   "name": "Шлюз протоколов и буфер",
+   "kind": "subsystem",
+   "desc": "",
+   "params": [],
+   "level": 3
+  },
+  {
+   "code": "DC",
+   "parent": "SEG-NET",
+   "name": "ЦОД — центр обработки данных",
+   "kind": "element",
+   "desc": "",
+   "params": [
+    {
+     "key": "storage",
+     "name": "объём хранения",
+     "unit": "ГБ",
+     "required_to": "SRR"
+    },
+    {
+     "key": "availability",
+     "name": "доступность",
+     "unit": "1",
+     "required_to": "SRR"
+    }
+   ],
+   "level": 2
+  },
+  {
+   "code": "DC-STORE",
+   "parent": "DC",
+   "name": "Хранение сообщений и истории",
+   "kind": "subsystem",
+   "desc": "",
+   "params": [],
+   "level": 3
+  },
+  {
+   "code": "DC-PROC",
+   "parent": "DC",
+   "name": "Обработка и маршрутизация",
+   "kind": "subsystem",
+   "desc": "",
+   "params": [],
+   "level": 3
+  },
+  {
+   "code": "DC-API",
+   "parent": "DC",
+   "name": "Доставка потребителям (API, кабинеты)",
+   "kind": "subsystem",
+   "desc": "",
+   "params": [],
+   "level": 3
+  },
+  {
+   "code": "NOC",
+   "parent": "SEG-NET",
+   "name": "ЦУС — центр управления сетью",
+   "kind": "element",
+   "desc": "",
+   "params": [],
+   "level": 2
+  },
+  {
+   "code": "NOC-SUB",
+   "parent": "NOC",
+   "name": "Абонентское управление и приоритеты классов",
+   "kind": "subsystem",
+   "desc": "",
+   "params": [],
+   "level": 3
+  },
+  {
+   "code": "NOC-BILL",
+   "parent": "NOC",
+   "name": "Тарификация и учёт",
+   "kind": "subsystem",
+   "desc": "",
+   "params": [],
+   "level": 3
+  },
+  {
+   "code": "NOC-MON",
+   "parent": "NOC",
+   "name": "Мониторинг сети и QoS",
+   "kind": "subsystem",
+   "desc": "",
+   "params": [],
+   "level": 3
+  },
+  {
+   "code": "NET-WAN",
+   "parent": "SEG-NET",
+   "name": "ССПД — сеть передачи данных (РСС ↔ ЦОД ↔ потребители)",
+   "kind": "element",
+   "desc": "",
+   "params": [
+    {
+     "key": "latency",
+     "name": "латентность плеча",
+     "unit": "мс",
+     "required_to": "SRR"
+    }
+   ],
+   "level": 2
+  },
+  {
+   "code": "SEG-USR",
+   "parent": "SYS",
+   "name": "Пользовательский сегмент",
+   "kind": "segment",
+   "desc": "",
+   "params": [],
+   "level": 1
+  },
+  {
+   "code": "UT",
+   "parent": "SEG-USR",
+   "name": "Абонентские терминалы",
+   "kind": "element",
+   "desc": "классы по потребителям",
+   "params": [],
+   "level": 2
+  },
+  {
+   "code": "UT-UNI",
+   "parent": "UT",
+   "name": "Терминал универсальный",
+   "kind": "subsystem",
+   "desc": "",
+   "params": [
+    {
+     "key": "mass",
+     "name": "масса",
+     "unit": "кг",
+     "required_to": "SRR"
+    },
+    {
+     "key": "battery",
+     "name": "ёмкость батареи",
+     "unit": "А·ч",
+     "required_to": "SRR"
+    },
+    {
+     "key": "eirp",
+     "name": "EIRP",
+     "unit": "дБВт",
+     "required_to": "MCR"
+    },
+    {
+     "key": "sensitivity",
+     "name": "чувствительность",
+     "unit": "дБм",
+     "required_to": "MCR"
+    },
+    {
+     "key": "cost",
+     "name": "стоимость",
+     "unit": "млн ₽",
+     "required_to": "SRR"
+    }
+   ],
+   "level": 3
+  },
+  {
+   "code": "UT-UNI-MODEM",
+   "parent": "UT-UNI",
+   "name": "Модем (приёмопередатчик)",
+   "kind": "unit",
+   "desc": "",
+   "params": [],
+   "level": 4
+  },
+  {
+   "code": "UT-UNI-ANT",
+   "parent": "UT-UNI",
+   "name": "Антенна",
+   "kind": "unit",
+   "desc": "",
+   "params": [],
+   "level": 4
+  },
+  {
+   "code": "UT-UNI-PWR",
+   "parent": "UT-UNI",
+   "name": "Питание (батарея / внешнее)",
+   "kind": "unit",
+   "desc": "",
+   "params": [],
+   "level": 4
+  },
+  {
+   "code": "UT-UNI-IO",
+   "parent": "UT-UNI",
+   "name": "Интерфейс датчиков и оборудования",
+   "kind": "unit",
+   "desc": "",
+   "params": [],
+   "level": 4
+  },
+  {
+   "code": "UT-UNI-CASE",
+   "parent": "UT-UNI",
+   "name": "Корпус и защита (IP, температура)",
+   "kind": "unit",
+   "desc": "",
+   "params": [],
+   "level": 4
+  },
+  {
+   "code": "UT-FIX",
+   "parent": "UT",
+   "name": "Терминал стационарный",
+   "kind": "subsystem",
+   "desc": "",
+   "params": [
+    {
+     "key": "mass",
+     "name": "масса",
+     "unit": "кг",
+     "required_to": "SRR"
+    },
+    {
+     "key": "battery",
+     "name": "ёмкость батареи",
+     "unit": "А·ч",
+     "required_to": "SRR"
+    },
+    {
+     "key": "eirp",
+     "name": "EIRP",
+     "unit": "дБВт",
+     "required_to": "MCR"
+    },
+    {
+     "key": "sensitivity",
+     "name": "чувствительность",
+     "unit": "дБм",
+     "required_to": "MCR"
+    },
+    {
+     "key": "cost",
+     "name": "стоимость",
+     "unit": "млн ₽",
+     "required_to": "SRR"
+    }
+   ],
+   "level": 3
+  },
+  {
+   "code": "UT-FIX-MODEM",
+   "parent": "UT-FIX",
+   "name": "Модем (приёмопередатчик)",
+   "kind": "unit",
+   "desc": "",
+   "params": [],
+   "level": 4
+  },
+  {
+   "code": "UT-FIX-ANT",
+   "parent": "UT-FIX",
+   "name": "Антенна",
+   "kind": "unit",
+   "desc": "",
+   "params": [],
+   "level": 4
+  },
+  {
+   "code": "UT-FIX-PWR",
+   "parent": "UT-FIX",
+   "name": "Питание (батарея / внешнее)",
+   "kind": "unit",
+   "desc": "",
+   "params": [],
+   "level": 4
+  },
+  {
+   "code": "UT-FIX-IO",
+   "parent": "UT-FIX",
+   "name": "Интерфейс датчиков и оборудования",
+   "kind": "unit",
+   "desc": "",
+   "params": [],
+   "level": 4
+  },
+  {
+   "code": "UT-FIX-CASE",
+   "parent": "UT-FIX",
+   "name": "Корпус и защита (IP, температура)",
+   "kind": "unit",
+   "desc": "",
+   "params": [],
+   "level": 4
+  },
+  {
+   "code": "UT-MOB",
+   "parent": "UT",
+   "name": "Терминал мобильный (транспорт)",
+   "kind": "subsystem",
+   "desc": "",
+   "params": [
+    {
+     "key": "mass",
+     "name": "масса",
+     "unit": "кг",
+     "required_to": "SRR"
+    },
+    {
+     "key": "battery",
+     "name": "ёмкость батареи",
+     "unit": "А·ч",
+     "required_to": "SRR"
+    },
+    {
+     "key": "eirp",
+     "name": "EIRP",
+     "unit": "дБВт",
+     "required_to": "MCR"
+    },
+    {
+     "key": "sensitivity",
+     "name": "чувствительность",
+     "unit": "дБм",
+     "required_to": "MCR"
+    },
+    {
+     "key": "cost",
+     "name": "стоимость",
+     "unit": "млн ₽",
+     "required_to": "SRR"
+    }
+   ],
+   "level": 3
+  },
+  {
+   "code": "UT-MOB-MODEM",
+   "parent": "UT-MOB",
+   "name": "Модем (приёмопередатчик)",
+   "kind": "unit",
+   "desc": "",
+   "params": [],
+   "level": 4
+  },
+  {
+   "code": "UT-MOB-ANT",
+   "parent": "UT-MOB",
+   "name": "Антенна",
+   "kind": "unit",
+   "desc": "",
+   "params": [],
+   "level": 4
+  },
+  {
+   "code": "UT-MOB-PWR",
+   "parent": "UT-MOB",
+   "name": "Питание (батарея / внешнее)",
+   "kind": "unit",
+   "desc": "",
+   "params": [],
+   "level": 4
+  },
+  {
+   "code": "UT-MOB-IO",
+   "parent": "UT-MOB",
+   "name": "Интерфейс датчиков и оборудования",
+   "kind": "unit",
+   "desc": "",
+   "params": [],
+   "level": 4
+  },
+  {
+   "code": "UT-MOB-CASE",
+   "parent": "UT-MOB",
+   "name": "Корпус и защита (IP, температура)",
+   "kind": "unit",
+   "desc": "",
+   "params": [],
+   "level": 4
+  },
+  {
+   "code": "UT-SENS",
+   "parent": "UT",
+   "name": "Терминал датчиковый (батарейный)",
+   "kind": "subsystem",
+   "desc": "",
+   "params": [
+    {
+     "key": "mass",
+     "name": "масса",
+     "unit": "кг",
+     "required_to": "SRR"
+    },
+    {
+     "key": "battery",
+     "name": "ёмкость батареи",
+     "unit": "А·ч",
+     "required_to": "SRR"
+    },
+    {
+     "key": "eirp",
+     "name": "EIRP",
+     "unit": "дБВт",
+     "required_to": "MCR"
+    },
+    {
+     "key": "sensitivity",
+     "name": "чувствительность",
+     "unit": "дБм",
+     "required_to": "MCR"
+    },
+    {
+     "key": "cost",
+     "name": "стоимость",
+     "unit": "млн ₽",
+     "required_to": "SRR"
+    },
+    {
+     "key": "autonomy",
+     "name": "срок автономной работы",
+     "unit": "год",
+     "required_to": "MCR"
+    }
+   ],
+   "level": 3
+  },
+  {
+   "code": "UT-SENS-MODEM",
+   "parent": "UT-SENS",
+   "name": "Модем (приёмопередатчик)",
+   "kind": "unit",
+   "desc": "",
+   "params": [],
+   "level": 4
+  },
+  {
+   "code": "UT-SENS-ANT",
+   "parent": "UT-SENS",
+   "name": "Антенна",
+   "kind": "unit",
+   "desc": "",
+   "params": [],
+   "level": 4
+  },
+  {
+   "code": "UT-SENS-PWR",
+   "parent": "UT-SENS",
+   "name": "Питание (батарея / внешнее)",
+   "kind": "unit",
+   "desc": "",
+   "params": [],
+   "level": 4
+  },
+  {
+   "code": "UT-SENS-IO",
+   "parent": "UT-SENS",
+   "name": "Интерфейс датчиков и оборудования",
+   "kind": "unit",
+   "desc": "",
+   "params": [],
+   "level": 4
+  },
+  {
+   "code": "UT-SENS-CASE",
+   "parent": "UT-SENS",
+   "name": "Корпус и защита (IP, температура)",
+   "kind": "unit",
+   "desc": "",
+   "params": [],
+   "level": 4
+  },
+  {
+   "code": "USR-APP",
+   "parent": "SEG-USR",
+   "name": "Прикладные сервисы потребителей",
+   "kind": "element",
+   "desc": "",
+   "params": [],
+   "level": 2
+  },
+  {
+   "code": "SEG-LV",
+   "parent": "SYS",
+   "name": "Сегмент выведения",
+   "kind": "segment",
+   "desc": "внешний",
+   "params": [],
+   "external": true,
+   "level": 1
+  },
+  {
+   "code": "LV",
+   "parent": "SEG-LV",
+   "name": "Ракета-носитель (по ограничению проекта)",
+   "kind": "element",
+   "desc": "",
+   "params": [
+    {
+     "key": "type",
+     "name": "тип РН",
+     "unit": "1",
+     "required_to": "MCR"
+    },
+    {
+     "key": "payload_mass",
+     "name": "масса выводимая на орбиту",
+     "unit": "кг",
+     "required_to": "MCR"
+    },
+    {
+     "key": "fairing",
+     "name": "обтекатель (габарит)",
+     "unit": "м",
+     "required_to": "SRR"
+    }
+   ],
+   "external": true,
+   "level": 2
+  },
+  {
+   "code": "LV-SITE",
+   "parent": "SEG-LV",
+   "name": "Космодром",
+   "kind": "element",
+   "desc": "",
+   "params": [
+    {
+     "key": "lat",
+     "name": "широта",
+     "unit": "°",
+     "required_to": "MCR"
+    },
+    {
+     "key": "incl_range",
+     "name": "достижимые наклонения",
+     "unit": "°",
+     "required_to": "MCR"
+    }
+   ],
+   "external": true,
+   "level": 2
+  },
+  {
+   "code": "LV-ADAPT",
+   "parent": "SEG-LV",
+   "name": "Адаптер / попутная схема (диспенсер)",
+   "kind": "element",
+   "desc": "",
+   "params": [
+    {
+     "key": "n_sat_per_launch",
+     "name": "КА за пуск",
+     "unit": "шт",
+     "required_to": "SRR"
+    }
+   ],
+   "external": true,
+   "level": 2
+  },
+  {
+   "code": "SEG-SUP",
+   "parent": "SYS",
+   "name": "Обеспечение и эксплуатация",
+   "kind": "segment",
+   "desc": "",
+   "params": [],
+   "level": 1
+  },
+  {
+   "code": "SUP-TEST",
+   "parent": "SEG-SUP",
+   "name": "Наземная экспериментальная база (испытания, ЭТБ)",
+   "kind": "element",
+   "desc": "",
+   "params": [],
+   "level": 2
+  },
+  {
+   "code": "SUP-IT",
+   "parent": "SEG-SUP",
+   "name": "ИТ-инфраструктура и информационная безопасность",
+   "kind": "element",
+   "desc": "",
+   "params": [],
+   "level": 2
+  },
+  {
+   "code": "SUP-DOC",
+   "parent": "SEG-SUP",
+   "name": "Эксплуатационная документация и обучение",
+   "kind": "element",
+   "desc": "",
+   "params": [],
+   "level": 2
+  }
+ ],
+ "interfaces": [
+  {
+   "code": "IF-S-USER",
+   "name": "Абонентская радиолиния S",
+   "a": "PL-S",
+   "b": "UT",
+   "kind": "RF",
+   "models": [
+    "М2а",
+    "М3а"
+   ]
+  },
+  {
+   "code": "IF-C-FEED",
+   "name": "Фидерная радиолиния C",
+   "a": "PL-FEED",
+   "b": "GW",
+   "kind": "RF",
+   "models": [
+    "М2б",
+    "М3в"
+   ]
+  },
+  {
+   "code": "IF-TTC",
+   "name": "Командно-телеметрическая радиолиния",
+   "a": "TTC",
+   "b": "GCS",
+   "kind": "RF",
+   "models": [
+    "М2в",
+    "М3г"
+   ]
+  },
+  {
+   "code": "IF-ISL",
+   "name": "Межспутниковая радиолиния",
+   "a": "PL-ISL",
+   "b": "PL-ISL",
+   "kind": "RF",
+   "models": [
+    "М2г",
+    "М3д"
+   ],
+   "optional": true
+  },
+  {
+   "code": "IF-PL-PLT",
+   "name": "ПН ↔ платформа (питание, данные, тепло, механика)",
+   "a": "SC-PL",
+   "b": "SC-PLT",
+   "kind": "power+data+thermal+mech",
+   "models": [
+    "М4",
+    "М5",
+    "М6"
+   ]
+  },
+  {
+   "code": "IF-SC-LV",
+   "name": "КА ↔ РН (механический, электрический, среды)",
+   "a": "SC-LVI",
+   "b": "LV-ADAPT",
+   "kind": "mech+elec+env",
+   "models": [
+    "М6"
+   ]
+  },
+  {
+   "code": "IF-GW-DC",
+   "name": "РСС ↔ ЦОД (ССПД)",
+   "a": "GW",
+   "b": "DC",
+   "kind": "data",
+   "models": [
+    "М3е"
+   ]
+  },
+  {
+   "code": "IF-DC-USER",
+   "name": "ЦОД ↔ потребители (API)",
+   "a": "DC-API",
+   "b": "USR-APP",
+   "kind": "data",
+   "models": [
+    "М3е"
+   ]
+  },
+  {
+   "code": "IF-MCC-GCS",
+   "name": "ЦУП ↔ станции НКУ",
+   "a": "MCC",
+   "b": "GCS",
+   "kind": "data",
+   "models": [
+    "М14"
+   ]
+  },
+  {
+   "code": "IF-MCC-NOC",
+   "name": "ЦУП ↔ ЦУС (планирование против нагрузки сети)",
+   "a": "MCC",
+   "b": "NOC",
+   "kind": "data",
+   "models": [
+    "М14"
+   ]
+  }
+ ],
+ "summary": {
+  "nodes": 135,
+  "interfaces": 10,
+  "levels_max": 6,
+  "sc_nodes": 71,
+  "params": 130
+ }
+}

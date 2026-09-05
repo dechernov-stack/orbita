@@ -1,0 +1,3084 @@
+core_fields:
+- name: id
+  type: id
+  required: true
+  note: стабильный внутренний
+- name: code
+  type: str
+  required: true
+  note: человеческий, переименуемый
+- name: kind
+  type: ref kind
+  required: true
+  note: ''
+- name: area
+  type: enum[library,project:id]
+  required: true
+  note: ''
+- name: born_in
+  type: ref scene
+  required: true
+  note: проектная область; библиотека — null
+- name: status
+  type: enum по статусной модели вида
+  required: true
+  note: ''
+- name: version
+  type: int
+  required: true
+  note: битемпорально
+- name: provenance
+  type: '{channel*:enum[manual,package,service,shelf,import,example], author*:ref account, source?:ref, anchor?:str, fingerprint?:str}'
+  required: true
+  note: ''
+- name: created_at
+  type: ts
+  required: true
+  note: ''
+- name: updated_at
+  type: ts
+  required: true
+  note: ''
+- name: notes
+  type: text
+  required: false
+  note: не печатается
+- name: tags
+  type: str[]
+  required: false
+  note: ''
+kinds:
+- n: 1
+  code: unit
+  name: единица измерения
+  layer: L0
+  born_in: —
+  status_model: null
+  fields:
+  - name: dimension
+    type: str
+    required: true
+    note: ''
+  - name: symbol
+    type: str
+    required: true
+    note: ''
+  - name: name
+    type: str
+    required: true
+    note: ''
+  - name: canonical
+    type: bool
+    required: true
+    note: ''
+  - name: factor
+    type: num
+    required: false
+    note: обязателен, если не канон
+  - name: conversion_type
+    type: enum[linear,offset,log,rate]
+    required: true
+    note: ''
+  - name: offset
+    type: num
+    required: false
+    note: ''
+  - name: rate_date
+    type: date
+    required: false
+    note: для валют
+  - name: display_default
+    type: bool
+    required: false
+    note: ''
+  export: в каждом числе наружу
+  engine: есть
+- n: 2
+  code: glossary_term
+  name: термин глоссария
+  layer: L0
+  born_in: —
+  status_model: null
+  fields:
+  - name: term_ru
+    type: str
+    required: true
+    note: ''
+  - name: term_en
+    type: str
+    required: false
+    note: ''
+  - name: definition
+    type: text
+    required: true
+    note: ''
+  - name: source
+    type: str
+    required: false
+    note: ''
+  - name: doc_type_brief
+    type: text
+    required: false
+    note: для типов документов
+  - name: default_take_to_prompt
+    type: bool
+    required: false
+    note: умолчание «в промпт» типа
+  export: глоссарий пакета
+  engine: есть
+- n: 3
+  code: qos_class
+  name: класс обслуживания
+  layer: L0
+  born_in: —
+  status_model: null
+  fields:
+  - name: code
+    type: enum[A′,B′,C′]
+    required: true
+    note: ''
+  - name: name
+    type: str
+    required: true
+    note: ''
+  - name: latency_max
+    type: measure{op,value|min,max,unit→unit}
+    required: true
+    note: ''
+  - name: guarantee
+    type: text
+    required: true
+    note: ''
+  export: ConOps §5
+  engine: новый
+- n: 4
+  code: method_catalog
+  name: справочник методов и шкал
+  layer: L0
+  born_in: —
+  status_model: null
+  fields:
+  - name: catalog
+    type: enum[verification_method,trl_scale,risk_probability,risk_impact,status_model,priority]
+    required: true
+    note: ''
+  - name: items
+    type: '[{code*,name*,order*,description?}]'
+    required: true
+    note: ''
+  export: —
+  engine: менять
+- n: 5
+  code: normative_document
+  name: норматив с редакцией
+  layer: L0
+  born_in: —
+  status_model: null
+  fields:
+  - name: designation
+    type: str
+    required: true
+    note: ''
+  - name: title
+    type: str
+    required: true
+    note: ''
+  - name: edition
+    type: str
+    required: true
+    note: ''
+  - name: edition_date
+    type: date
+    required: true
+    note: ''
+  - name: valid_until
+    type: date
+    required: false
+    note: ''
+  - name: clauses
+    type: '[{clause*,text?}]'
+    required: false
+    note: ''
+  - name: source_mark
+    type: enum[И,В,П]
+    required: false
+    note: ''
+  export: SEMP §2; матрица соответствия
+  engine: есть
+- n: 6
+  code: mission_class
+  name: класс миссии
+  layer: L0
+  born_in: —
+  status_model: null
+  fields:
+  - name: code
+    type: str
+    required: true
+    note: ''
+  - name: name
+    type: str
+    required: true
+    note: ''
+  - name: recommended_shelves
+    type: ref[] shelf
+    required: true
+    note: ''
+  - name: mandatory_models
+    type: '[{model_code*,gate*}]'
+    required: true
+    note: ''
+  - name: default_constraints
+    type: ref[] typical_constraint
+    required: true
+    note: ''
+  - name: prompt_context
+    type: text
+    required: false
+    note: ''
+  export: —
+  engine: менять
+- n: 7
+  code: phase_template
+  name: шаблон фазы
+  layer: L0
+  born_in: —
+  status_model: null
+  fields:
+  - name: standard
+    type: enum[NASA-7120,RK-11KT,ISO-15288]
+    required: true
+    note: ''
+  - name: phase
+    type: str
+    required: true
+    note: ключ фазы в стандарте
+  - name: correspondence
+    type: '[{other_standard*,stage*,notes?}]'
+    required: true
+    note: карта соответствий стадий
+  - name: roles
+    type: '[{role*,involvement*}]'
+    required: true
+    note: задействованный персонал стадии
+  - name: scenes
+    type: '[{key*,title*,order*,track*:enum[design,modeling,management],instantiate_per?:enum[project,segment,element],operations*:str[],role*,inputs*:[{kind*,condition*}],output*:{kind|document_template*,maturity*},visibility*:kind[],links*:[{to*,type*:enum[FS,SS,FF,INPUT],rationale*}],steps*:[{key*,title*,hint*,target*:{route*,preset?},condition*}]}]'
+    required: true
+    note: дорожки и экземпляры на узлы — по схеме Романова
+  - name: points
+    type: '[{key*,title*,aliases*:[{standard*,name*}],order*,criteria*:[…],expertise*:{purpose*,inputs*,control_questions*:str[],outputs*}}]'
+    required: true
+    note: точка = экспертиза с содержанием
+  - name: stage_output_dataset
+    type: '{composition_depth*:int, requirement_levels*:str[], interfaces*:bool, models*:str[], documents*:str[], baseline_kind*:enum[functional,allocated,product]}'
+    required: true
+    note: исходные данные для следующей стадии
+  export: CMMN/BPMN/DMN для движка
+  engine: менять
+- n: 8
+  code: document_template
+  name: шаблон документа
+  layer: L0
+  born_in: —
+  status_model: null
+  fields:
+  - name: code
+    type: str
+    required: true
+    note: ''
+  - name: title
+    type: str
+    required: true
+    note: ''
+  - name: sections
+    type: '[{no*,title*,expects*:{gate:[{element_kind*,min*:int,filter?}]},style?:text,glossary?:ref[] glossary_term}]'
+    required: true
+    note: ожидания полноты по MCR/SRR/SDR/PDR
+  - name: nature
+    type: enum[narrative,registry_view,mixed]
+    required: true
+    note: документ-представление = разделы из запросов
+  export: docx/pdf
+  engine: есть
+- n: 9
+  code: pbs_template
+  name: каркас PBS
+  layer: L0
+  born_in: —
+  status_model: null
+  fields:
+  - name: nodes
+    type: '[{code*,parent?,name*,level*:0–5,kind*:enum[system,segment,element,subsystem,assembly,unit],params?:[{key*,name*,unit*→unit,required_to*→gate}],default_take*:bool,external?:bool,default_quantity?:int}]'
+    required: true
+    note: ''
+  export: —
+  engine: есть
+- n: 10
+  code: interface_template
+  name: типовые стыки
+  layer: L0
+  born_in: —
+  status_model: null
+  fields:
+  - name: interfaces
+    type: '[{code*,name*,type*:enum[RF,power,data,thermal,mech,env,hmi,org],a*,b*,direction*,standard?,params?:[…],requirement_classes*:str[],icd_section?,models?:str[],default_take*,external?}]'
+    required: true
+    note: ''
+  export: —
+  engine: есть
+- n: 11
+  code: architecture_template
+  name: шаблон Arcadia
+  layer: L0
+  born_in: —
+  status_model: null
+  fields:
+  - name: actors
+    type: '[{code*,name*,stakeholder_role*}]'
+    required: true
+    note: ''
+  - name: capabilities
+    type: '[{code*,name*,traced_to*}]'
+    required: true
+    note: ''
+  - name: activities
+    type: '[{code*,name*,actor*}]'
+    required: false
+    note: ''
+  - name: functions
+    type: '[{code*,name*,allocated_to*,layer*:enum[SA,LA],default_take*}]'
+    required: true
+    note: ''
+  - name: exchanges
+    type: '[{code*,name*,src*,dst*,interface*}]'
+    required: true
+    note: ''
+  - name: chains
+    type: '[{code*,name*,steps*:str[],capability?,requirement_kinds?}]'
+    required: true
+    note: ''
+  - name: logical_components
+    type: '[{code*,name*,functions*,deployed_to*}]'
+    required: false
+    note: ''
+  export: —
+  engine: есть
+- n: 12
+  code: wbs_template
+  name: типовой WBS
+  layer: L0
+  born_in: —
+  status_model: null
+  fields:
+  - name: packages
+    type: '[{code*,parent?,name*,scope?,pbs_refs?:str[],phase_tasks?:str[],cross_cutting*:bool,default_take*:bool}]'
+    required: true
+    note: ''
+  export: —
+  engine: есть
+- n: 13
+  code: model_template
+  name: набор моделей системы
+  layer: L0
+  born_in: —
+  status_model: null
+  fields:
+  - name: models
+    type: '[{code*,name*,question*,inputs*:str[],outputs*:str[],gate*,tool_status*:enum[calc,proxy,build],interface_bound?:bool}]'
+    required: true
+    note: ''
+  export: —
+  engine: есть
+- n: 14
+  code: typical_requirement · typical_risk · stakeholder_profile
+  name: типовые записи
+  layer: L0
+  born_in: —
+  status_model: null
+  fields:
+  - name: typical_requirement
+    type: '{code*,title*,statement*,category*,measure?,verification*,acceptance?,applicability*:class[],normative_basis?}'
+    required: true
+    note: ''
+  - name: typical_risk
+    type: '{code*,statement*,cec*,probability*,impact*,strategy*,applicability*}'
+    required: true
+    note: ''
+  - name: stakeholder_profile
+    type: '{code*,role*,name*,interests*,typical_needs?}'
+    required: true
+    note: ''
+  export: —
+  engine: есть
+- n: 15
+  code: questionnaire
+  name: анкета (шаблон запроса данных)
+  layer: L0
+  born_in: —
+  status_model: null
+  fields:
+  - name: code
+    type: str
+    required: true
+    note: ''
+  - name: target_kind
+    type: enum[component,interface]
+    required: true
+    note: ''
+  - name: fields
+    type: '[{key*,name*,unit*→unit,required_to*→gate,paths*:enum[manual,shelf,datasheet][]}]'
+    required: true
+    note: ''
+  - name: kind_presets
+    type: enum[platform,payload,terminal,station,software]
+    required: false
+    note: 'анкета «бортовое ПО»: cpu_load_avg/peak %, ram МБ, rom МБ, cycle_ms, modes, criticality, rtos, language, kloc, autonomy_days'
+  export: —
+  engine: есть
+- n: 16
+  code: package_kind
+  name: вид пакета службы
+  layer: L0
+  born_in: —
+  status_model: null
+  fields:
+  - name: code
+    type: str
+    required: true
+    note: ''
+  - name: schema
+    type: json-schema
+    required: true
+    note: ''
+  - name: rules
+    type: text[]
+    required: true
+    note: ''
+  - name: sources
+    type: enum[intent,library,materials,accepted,constraints][]
+    required: true
+    note: ''
+  - name: accepted_classes
+    type: str[]
+    required: true
+    note: ''
+  - name: version
+    type: int
+    required: true
+    note: ''
+  export: инструкция внешнего проекта
+  engine: есть
+- n: 17
+  code: site_catalog
+  name: каталог площадок
+  layer: L0
+  born_in: —
+  status_model: null
+  fields:
+  - name: sites
+    type: '[{code*,name*,lat*,lon*,type*:enum[gcs,gateway]}]'
+    required: true
+    note: ''
+  export: —
+  engine: есть
+- n: 18
+  code: project
+  name: проект
+  layer: L1
+  born_in: '1'
+  status_model: active|cancelled
+  fields:
+  - name: name
+    type: str
+    required: true
+    note: ''
+  - name: mission_class
+    type: ref mission_class
+    required: true
+    note: ''
+  - name: manager
+    type: ref account
+    required: true
+    note: ''
+  - name: phase_current
+    type: ref phase
+    required: true
+    note: ''
+  - name: group
+    type: enum[work,example]
+    required: true
+    note: ''
+  - name: example
+    type: bool
+    required: true
+    note: ''
+  export: —
+  engine: есть
+- n: 19
+  code: phase
+  name: фаза проекта
+  layer: L1
+  born_in: 1 / KDP
+  status_model: current|passed|returned
+  fields:
+  - name: project
+    type: ref project
+    required: true
+    note: ''
+  - name: template
+    type: ref phase_template
+    required: true
+    note: ''
+  - name: case_instance_id
+    type: str
+    required: true
+    note: Flowable
+  - name: points
+    type: ref[] gate
+    required: true
+    note: ''
+  - name: opened_by
+    type: ref decision | «creation»
+    required: true
+    note: ''
+  export: —
+  engine: новый
+- n: 20
+  code: scene
+  name: сцена
+  layer: L1
+  born_in: по шаблону
+  status_model: 'вычисляется: locked|available|active|done'
+  fields:
+  - name: phase
+    type: ref phase
+    required: true
+    note: ''
+  - name: template_key
+    type: str
+    required: true
+    note: ''
+  - name: responsible
+    type: ref account
+    required: false
+    note: ''
+  - name: plan
+    type: '{start,end}'
+    required: false
+    note: ''
+  - name: output_refs
+    type: ref[]
+    required: false
+    note: заполняется каналами
+  - name: node
+    type: ref component
+    required: false
+    note: для сцен instantiate_per segment|element
+  export: —
+  engine: менять
+- n: 21
+  code: step
+  name: шаг сцены
+  layer: L1
+  born_in: по шаблону
+  status_model: 'вычисляется: done по условию'
+  fields:
+  - name: scene
+    type: ref scene
+    required: true
+    note: ''
+  - name: key
+    type: str
+    required: true
+    note: ''
+  - name: responsible
+    type: ref account
+    required: false
+    note: ''
+  - name: plan
+    type: '{start,end}'
+    required: false
+    note: ''
+  export: —
+  engine: менять
+- n: 22
+  code: gate
+  name: точка / ворота
+  layer: L1
+  born_in: '1'
+  status_model: planned|passed|returned
+  fields:
+  - name: phase
+    type: ref phase
+    required: true
+    note: ''
+  - name: key
+    type: str
+    required: true
+    note: ''
+  - name: title
+    type: str
+    required: true
+    note: ''
+  - name: planned_date
+    type: date
+    required: true
+    note: ''
+  - name: criteria
+    type: ref[] criterion
+    required: true
+    note: ''
+  - name: decision
+    type: ref decision
+    required: false
+    note: ''
+  - name: kind
+    type: enum[phase,technology]
+    required: true
+    note: веха технологии «TRL n достигнут»
+  - name: aliases
+    type: '[{standard*,name*}]'
+    required: false
+    note: ''
+  - name: expertise
+    type: '{goal*,validation_questions*:str[],results*:str[],main_outcome*:str[],control_items*:[{artifact*,maturity*:enum[С,Р,F,U,Σ,Δ,x,°],our_ref?:ref document_template|kind}]}'
+    required: false
+    note: из ПОЛКА-ПРОЦЕССЫ-РОМАНОВ.expertises_full; коды зрелости — легенда владельца
+  export: решение в пакете точки
+  engine: есть · менять
+- n: 23
+  code: criterion
+  name: критерий ворот
+  layer: L1
+  born_in: по шаблону
+  status_model: 'вычисляется: satisfied+reason'
+  fields:
+  - name: gate
+    type: ref gate
+    required: true
+    note: ''
+  - name: check
+    type: str
+    required: true
+    note: id проверки из каталога готовности
+  - name: source_scene
+    type: ref scene
+    required: true
+    note: ''
+  - name: blocking
+    type: bool
+    required: true
+    note: ''
+  export: —
+  engine: есть
+- n: 24
+  code: decision
+  name: решение точки
+  layer: L1
+  born_in: 16, 18, A12
+  status_model: null
+  fields:
+  - name: gate
+    type: ref gate
+    required: true
+    note: ''
+  - name: by
+    type: ref account
+    required: true
+    note: DA
+  - name: at
+    type: ts
+    required: true
+    note: ''
+  - name: outcome
+    type: enum[approve,return,terminate,defer]
+    required: true
+    note: ''
+  - name: conditions
+    type: text
+    required: false
+    note: ''
+  export: пакет точки
+  engine: есть
+- n: 25
+  code: finding
+  name: замечание RFA/RID
+  layer: L1
+  born_in: 15–17, A12
+  status_model: open|closed
+  fields:
+  - name: gate
+    type: ref gate
+    required: true
+    note: ''
+  - name: text
+    type: text
+    required: true
+    note: ''
+  - name: returns_to_scene
+    type: ref scene
+    required: true
+    note: ''
+  - name: author
+    type: ref account
+    required: true
+    note: ''
+  - name: assignee
+    type: ref account
+    required: false
+    note: ''
+  - name: due_point
+    type: ref gate
+    required: false
+    note: ''
+  export: отчёт об устранении
+  engine: менять
+- n: 26
+  code: assignment
+  name: задание
+  layer: L1
+  born_in: любая
+  status_model: 'вычисляется: open|done (гаснет закрытием цели)'
+  fields:
+  - name: target
+    type: '{kind*:enum[gap,step],ref*}'
+    required: true
+    note: ''
+  - name: assignee
+    type: ref account
+    required: true
+    note: ''
+  - name: due_point
+    type: ref gate
+    required: true
+    note: ''
+  - name: assigned_by
+    type: ref account
+    required: true
+    note: ''
+  export: —
+  engine: есть
+- n: 27
+  code: plan
+  name: план дат
+  layer: L1
+  born_in: 1, A1
+  status_model: null
+  fields:
+  - name: phase
+    type: ref phase
+    required: true
+    note: ''
+  - name: gate_dates
+    type: '[{gate*,date*}]'
+    required: true
+    note: ''
+  - name: scene_windows
+    type: '[{scene*,start*,end*}]'
+    required: false
+    note: ''
+  - name: set_by
+    type: ref account
+    required: true
+    note: ''
+  export: FA §4
+  engine: есть
+- n: 28
+  code: account · role · right
+  name: учётка · роль · право
+  layer: L1
+  born_in: —
+  status_model: null
+  fields:
+  - name: account
+    type: '{login*,name*,roles*:ref[] role}'
+    required: true
+    note: ''
+  - name: role
+    type: '{code*,rights*:ref[] right}'
+    required: true
+    note: ''
+  - name: right
+    type: '{code*,description*}'
+    required: true
+    note: ''
+  export: —
+  engine: есть
+- n: 29
+  code: history
+  name: запись истории
+  layer: L1
+  born_in: всегда
+  status_model: null
+  fields:
+  - name: object_ref
+    type: ref
+    required: true
+    note: ''
+  - name: version
+    type: int
+    required: true
+    note: ''
+  - name: valid_from
+    type: ts
+    required: true
+    note: ''
+  - name: valid_to
+    type: ts
+    required: false
+    note: ''
+  - name: recorded_at
+    type: ts
+    required: true
+    note: ''
+  - name: actor
+    type: ref account
+    required: true
+    note: ''
+  - name: action
+    type: enum[create,update,cancel,baseline,fix]
+    required: true
+    note: ''
+  - name: basis
+    type: text
+    required: false
+    note: обязателен для правок Approved/Baseline
+  export: журнал
+  engine: есть
+- n: 30
+  code: intent
+  name: замысел
+  layer: L2
+  born_in: '2'
+  status_model: draft|accepted
+  fields:
+  - name: for_whom
+    type: text
+    required: true
+    note: ''
+  - name: what
+    type: text
+    required: true
+    note: ''
+  - name: where
+    type: text
+    required: true
+    note: ''
+  - name: horizon
+    type: text
+    required: true
+    note: ''
+  - name: anchors
+    type: '[{field*,material*,anchor*}]'
+    required: false
+    note: ''
+  - name: accepted_by
+    type: ref account
+    required: true
+    note: ''
+  - name: accepted_at
+    type: ts
+    required: true
+    note: ''
+  export: MCReport §1, SEMP §3
+  engine: есть
+- n: 31
+  code: material
+  name: входной документ (материал)
+  layer: L2
+  born_in: '2'
+  status_model: null
+  fields:
+  - name: type
+    type: enum[mission_memo,tor,directive,normative,datasheet,quote,external_icd,external_model,analysis,heritage,regulatory_decision,reference]
+    required: true
+    note: тип из глоссария с брифом
+  - name: title
+    type: str
+    required: true
+    note: ''
+  - name: file
+    type: '{name*,hash*,size*,format*}'
+    required: true
+    note: оригинал неизменяем
+  - name: origin
+    type: ref stakeholder | str
+    required: true
+    note: кто выпустил
+  - name: doc_version
+    type: str
+    required: true
+    note: версия самого документа
+  - name: doc_date
+    type: date
+    required: true
+    note: ''
+  - name: valid_until
+    type: date
+    required: false
+    note: НПА, КП, решения
+  - name: classification
+    type: enum[open,dsp,commercial,state_secret]
+    required: true
+    note: state_secret — только карточка-ссылка
+  - name: source_marks
+    type: bool
+    required: false
+    note: метки [И]/[В]/[П] в тексте
+  - name: language
+    type: enum[ru,en]
+    required: true
+    note: ''
+  - name: canon
+    type: path md
+    required: false
+    note: Д1; нет для гостайны/бинарных
+  - name: map
+    type: path json
+    required: false
+    note: ''
+  - name: harvest
+    type: ref proposal
+    required: false
+    note: 'Д2 по типу: full|registry|parametric|structural|none'
+  - name: supersedes
+    type: ref material
+    required: false
+    note: предыдущая версия входного
+  - name: in_prompt_blocks
+    type: str[]
+    required: false
+    note: умолчание по типу
+  export: приложения
+  engine: есть
+- n: 32
+  code: proposal
+  name: предложение службы / пакета
+  layer: L2
+  born_in: любая
+  status_model: pending|closed
+  fields:
+  - name: package_kind
+    type: ref package_kind
+    required: true
+    note: ''
+  - name: source
+    type: '{material?,prompt?,external?:bool}'
+    required: true
+    note: ''
+  - name: items
+    type: '[{class*,payload*,anchors?,source_mark?:enum[И,В,П],decision*:enum[pending,accepted,rejected,rework],reason?,target_ref?}]'
+    required: true
+    note: ''
+  - name: fingerprint
+    type: str
+    required: false
+    note: ''
+  export: журнал ИИ
+  engine: есть
+- n: 33
+  code: stakeholder
+  name: стейкхолдер / актор
+  layer: L2
+  born_in: '3'
+  status_model: null
+  fields:
+  - name: name
+    type: str
+    required: true
+    note: ''
+  - name: role
+    type: enum[customer,regulator,operator,consumer,supplier,partner,established]
+    required: true
+    note: ''
+  - name: interest
+    type: text
+    required: true
+    note: ''
+  - name: scale
+    type: measure{op,value|min,max,unit→unit}
+    required: false
+    note: ''
+  - name: establishes
+    type: bool
+    required: false
+    note: ''
+  export: MCReport, ConOps §1
+  engine: есть
+- n: 34
+  code: need
+  name: нужда
+  layer: L2
+  born_in: '3'
+  status_model: null
+  fields:
+  - name: statement
+    type: text
+    required: true
+    note: ''
+  - name: stakeholder
+    type: ref stakeholder
+    required: true
+    note: owns
+  - name: qos_class
+    type: ref qos_class
+    required: true
+    note: ''
+  - name: anchors
+    type: '[{material*,anchor*}]'
+    required: false
+    note: ''
+  export: матрица покрытия
+  engine: есть
+- n: 35
+  code: goal
+  name: цель
+  layer: L2
+  born_in: '4'
+  status_model: null
+  fields:
+  - name: statement
+    type: text
+    required: true
+    note: ''
+  - name: measure
+    type: measure{op,value|min,max,unit→unit}
+    required: true
+    note: ''
+  - name: year
+    type: int
+    required: true
+    note: ''
+  - name: needs
+    type: ref[] need ≥1
+    required: true
+    note: covers
+  export: MCReport §1
+  engine: есть
+- n: 36
+  code: constraint
+  name: ограничение Р
+  layer: L2
+  born_in: '5'
+  status_model: null
+  fields:
+  - name: code
+    type: str Р-N
+    required: true
+    note: ''
+  - name: type
+    type: enum[technical,programmatic,launch,regulatory,financial]
+    required: true
+    note: ''
+  - name: statement
+    type: text
+    required: true
+    note: ''
+  - name: cancelled
+    type: '{by*,at*,reason*}'
+    required: false
+    note: ''
+  export: FA §6
+  engine: есть
+- n: 37
+  code: service
+  name: сервис
+  layer: L2
+  born_in: '6'
+  status_model: null
+  fields:
+  - name: name
+    type: str
+    required: true
+    note: ''
+  - name: needs
+    type: ref[] need ≥1
+    required: true
+    note: covers
+  - name: qos_class
+    type: ref qos_class
+    required: true
+    note: ''
+  - name: target_measure
+    type: measure{op,value|min,max,unit→unit}
+    required: true
+    note: ''
+  export: ConOps §1, MCReport §3
+  engine: есть
+- n: 38
+  code: capability
+  name: способность (OC)
+  layer: L2
+  born_in: 6 / A
+  status_model: null
+  fields:
+  - name: code
+    type: str
+    required: true
+    note: ''
+  - name: name
+    type: str
+    required: true
+    note: ''
+  - name: traced_to
+    type: ref[] goal|need|scenario ≥1
+    required: true
+    note: ''
+  export: OAB
+  engine: есть
+- n: 39
+  code: operational_activity
+  name: операционная активность
+  layer: L2
+  born_in: '9'
+  status_model: null
+  fields:
+  - name: name
+    type: str
+    required: true
+    note: ''
+  - name: actor
+    type: ref stakeholder
+    required: true
+    note: ''
+  - name: description
+    type: text
+    required: false
+    note: ''
+  export: ConOps §3
+  engine: новый
+- n: 40
+  code: scenario
+  name: сценарий операций = цепочка
+  layer: L2
+  born_in: 9, A3
+  status_model: null
+  fields:
+  - name: name
+    type: str
+    required: true
+    note: ''
+  - name: layer
+    type: enum[OA,SA]
+    required: true
+    note: ''
+  - name: steps
+    type: ref[] function ≥1 (SA) | text (OA)
+    required: true
+    note: ''
+  - name: mode
+    type: str
+    required: false
+    note: ''
+  - name: capability
+    type: ref capability
+    required: false
+    note: ''
+  export: ConOps §3; FCD
+  engine: менять
+- n: 41
+  code: requirement
+  name: требование
+  layer: L3
+  born_in: 8, 9, A4, A5
+  status_model: Draft|Baseline
+  fields:
+  - name: level
+    type: enum[project,scenario,system,subsystem,interface]
+    required: true
+    note: ''
+  - name: code
+    type: str
+    required: true
+    note: ''
+  - name: title
+    type: str
+    required: true
+    note: ''
+  - name: statement
+    type: text
+    required: true
+    note: ''
+  - name: category
+    type: enum[functional,performance,interface,operational,constraint,safety,environment]
+    required: true
+    note: ''
+  - name: priority
+    type: ref method_catalog.priority
+    required: true
+    note: ''
+  - name: measure
+    type: measure{op,value|min,max,unit→unit} | tbr{owner*,gate*,action*}
+    required: false
+    note: обязателен для performance
+  - name: carrier
+    type: ref component|interface|scenario
+    required: true
+    note: тип по уровню; обязателен к базированию
+  - name: verification_method
+    type: ref method_catalog
+    required: true
+    note: TBD допустим до SRR
+  - name: source
+    type: '[{kind*:enum[goal,need,constraint,requirement,material],ref*,anchor?}] ≥1'
+    required: true
+    note: ''
+  - name: acceptance_criteria
+    type: text
+    required: false
+    note: обязателен к базированию
+  - name: normative_basis
+    type: '{normative_document*,clause*}'
+    required: false
+    note: ''
+  - name: ears_pattern
+    type: enum[ubiquitous,event,state,unwanted,optional]
+    required: true
+    note: шаблон формулировки EARS
+  - name: template_ref
+    type: ref typical_requirement
+    required: false
+    note: экземпляр типового
+  - name: applicability
+    type: enum[applied,applied_with_deviation,not_applicable]
+    required: false
+    note: обязательна при template_ref
+  - name: deviation_rationale
+    type: text
+    required: false
+    note: обязательна при deviation/not_applicable
+  - name: after_baseline_changed
+    type: bool (computed)
+    required: false
+    note: версия > версии в последнем baseline
+  export: .sdoc / ReqIF; Д3
+  engine: есть
+- n: 42
+  code: link
+  name: связь (объект)
+  layer: L3
+  born_in: любая
+  status_model: null
+  fields:
+  - name: type
+    type: enum[owns,covers,derives_from,allocated_to,satisfied_by,realized_by,allocation,flows_over,illustrated_by,traced_to,verifies,conflicts_with,snapshot_of,input_of,output_of,pairs_with,external_identity,deployed_on,uses_item,depends_on_technology,derived_from_fact,about,supports,contradicts,supersedes,confirms]
+    required: true
+    note: ''
+  - name: subtype
+    type: enum[decomposition,derivation,refinement]
+    required: false
+    note: для derives_from
+  - name: from
+    type: ref
+    required: true
+    note: ''
+  - name: to
+    type: ref
+    required: true
+    note: ''
+  - name: rationale
+    type: text
+    required: true
+    note: обязателен для derives_from,satisfied_by,realized_by,conflicts_with,external_identity
+  - name: created_by
+    type: ref account
+    required: true
+    note: ''
+  - name: suspect
+    type: bool (computed)
+    required: false
+    note: конец изменился после baseline
+  - name: confirmed_by
+    type: ref account
+    required: false
+    note: ''
+  - name: confirmed_at
+    type: ts
+    required: false
+    note: ''
+  - name: revision_expected
+    type: bool
+    required: false
+    note: для depends_on_technology
+  - name: sensitivity
+    type: text
+    required: false
+    note: что пересматривается после созревания
+  export: SPEC-RELATIONS ReqIF
+  engine: менять
+- n: 43
+  code: function
+  name: функция
+  layer: L3
+  born_in: 7, A5
+  status_model: null
+  fields:
+  - name: code
+    type: str
+    required: true
+    note: ''
+  - name: name
+    type: str
+    required: true
+    note: ''
+  - name: layer
+    type: enum[SA,LA]
+    required: true
+    note: ''
+  - name: allocated_to
+    type: ref[] component
+    required: true
+    note: ≥1 к SDR
+  export: SAB (справочно)
+  engine: есть
+- n: 44
+  code: exchange
+  name: обмен
+  layer: L3
+  born_in: A5
+  status_model: null
+  fields:
+  - name: code
+    type: str
+    required: true
+    note: ''
+  - name: name
+    type: str
+    required: true
+    note: ''
+  - name: source_function
+    type: ref function
+    required: true
+    note: ''
+  - name: target
+    type: ref function|stakeholder
+    required: true
+    note: ''
+  - name: interface
+    type: ref interface
+    required: true
+    note: flows_over
+  - name: payload
+    type: str
+    required: false
+    note: ''
+  export: ICD §данные
+  engine: есть
+- n: 45
+  code: functional_chain
+  name: функциональная цепочка
+  layer: L3
+  born_in: 9, A3
+  status_model: null
+  fields:
+  - name: code
+    type: str
+    required: true
+    note: ''
+  - name: name
+    type: str
+    required: true
+    note: ''
+  - name: steps
+    type: ref[] function ≥1 (ordered)
+    required: true
+    note: ''
+  - name: ack_steps
+    type: ref[] function
+    required: false
+    note: ''
+  - name: capability
+    type: ref capability
+    required: false
+    note: ''
+  export: FCD к SRR
+  engine: есть
+- n: 46
+  code: logical_component
+  name: логический компонент
+  layer: L3
+  born_in: A5
+  status_model: null
+  fields:
+  - name: code
+    type: str
+    required: true
+    note: ''
+  - name: name
+    type: str
+    required: true
+    note: ''
+  - name: functions
+    type: ref[] function ≥1
+    required: true
+    note: ''
+  - name: deployed_to
+    type: ref[] component ≥1
+    required: true
+    note: ''
+  export: LAB к SDR
+  engine: есть
+- n: 47
+  code: component
+  name: узел состава (определение)
+  layer: L3
+  born_in: 7, A5
+  status_model: null
+  fields:
+  - name: code
+    type: str
+    required: true
+    note: ''
+  - name: name
+    type: str
+    required: true
+    note: ''
+  - name: parent
+    type: ref component
+    required: false
+    note: корень — без
+  - name: level
+    type: int 0–5
+    required: true
+    note: ''
+  - name: nature
+    type: enum[node,behaviour]
+    required: true
+    note: behaviour обязан быть развёрнут на node
+  - name: kind
+    type: enum[system,segment,element,subsystem,assembly,unit]
+    required: true
+    note: ''
+  - name: external
+    type: bool
+    required: false
+    note: ''
+  - name: external_identity
+    type: ref model_element
+    required: false
+    note: ''
+  - name: wbs_pair
+    type: ref wbs_package
+    required: false
+    note: ''
+  - name: template_ref
+    type: ref pbs_template.node | typical_component
+    required: false
+    note: ''
+  - name: applicability
+    type: enum[applied,applied_with_deviation,not_applicable]
+    required: false
+    note: ''
+  - name: deviation_rationale
+    type: text
+    required: false
+    note: ''
+  - name: structure_readonly
+    type: bool (computed)
+    required: false
+    note: true, если external_identity задан и модель есть
+  - name: standards
+    type: ref[] normative_document
+    required: false
+    note: ''
+  - name: maturity_tailoring
+    type: '[{target*:facet|param, action*:enum[add,remove,shift], to_gate?, rationale*, by*}]'
+    required: false
+    note: отклонение от лестницы шаблона; hard-грани не снимаются
+  export: MEL, PAB, Capella PA
+  engine: есть
+- n: 48
+  code: component_usage
+  name: вхождение ×N
+  layer: L3
+  born_in: '7'
+  status_model: null
+  fields:
+  - name: definition
+    type: ref component
+    required: true
+    note: ''
+  - name: parent_usage
+    type: ref component_usage
+    required: false
+    note: ''
+  - name: quantity
+    type: int ≥1
+    required: true
+    note: ''
+  - name: role
+    type: str
+    required: false
+    note: ''
+  - name: orbit
+    type: '{altitude*,inclination|ltan*,planes*,per_plane*}'
+    required: false
+    note: для КА в подгруппе
+  export: MEL
+  engine: есть
+- n: 49
+  code: interface
+  name: стык
+  layer: L3
+  born_in: 7, A5
+  status_model: null
+  fields:
+  - name: code
+    type: str
+    required: true
+    note: ''
+  - name: name
+    type: str
+    required: true
+    note: ''
+  - name: type
+    type: enum[RF,power,data,thermal,mech,env,hmi,org]
+    required: true
+    note: ''
+  - name: a
+    type: ref component
+    required: true
+    note: ''
+  - name: b
+    type: ref component | external
+    required: true
+    note: ''
+  - name: direction
+    type: enum[uni,bi,static,org]
+    required: true
+    note: ''
+  - name: standard
+    type: str
+    required: false
+    note: ''
+  - name: params
+    type: '[{key*,measure*,required_to*}]'
+    required: false
+    note: ''
+  - name: icd_sections
+    type: str[]
+    required: false
+    note: ''
+  - name: requirement_classes
+    type: str[]
+    required: true
+    note: ''
+  export: ICD; physical links
+  engine: есть
+- n: 50
+  code: model_element
+  name: внешний элемент модели
+  layer: L3
+  born_in: A5
+  status_model: null
+  fields:
+  - name: tool
+    type: enum[capella]
+    required: true
+    note: ''
+  - name: model_id
+    type: str
+    required: true
+    note: ''
+  - name: uuid
+    type: str
+    required: true
+    note: истина идентичности
+  - name: type
+    type: enum[OperationalCapability,SystemFunction,LogicalFunction,LogicalComponent,PhysicalComponent,FunctionalExchange,FunctionalChain,Diagram]
+    required: true
+    note: ''
+  - name: layer
+    type: enum[OA,SA,LA,PA]
+    required: true
+    note: ''
+  - name: name_snapshot
+    type: str
+    required: true
+    note: ''
+  - name: refreshed_at
+    type: ts
+    required: true
+    note: ''
+  - name: fixture
+    type: bool
+    required: true
+    note: ''
+  export: Capella (чтение)
+  engine: есть
+- n: 51
+  code: constellation_variant
+  name: вариант построения
+  layer: L3
+  born_in: 7, A6
+  status_model: null
+  fields:
+  - name: name
+    type: str
+    required: true
+    note: ''
+  - name: subgroups
+    type: '[{usage*→component_usage(КА),pattern*:enum[walker_delta,walker_star,sso],altitude*,inclination|ltan*,planes*,per_plane*}] ≥1'
+    required: true
+    note: ''
+  - name: working
+    type: bool
+    required: true
+    note: ''
+  export: AoA
+  engine: есть
+- n: 52
+  code: baseline_concept
+  name: базовая концепция
+  layer: L3
+  born_in: '7'
+  status_model: null
+  fields:
+  - name: variant
+    type: ref constellation_variant
+    required: true
+    note: ''
+  - name: rationale
+    type: text
+    required: true
+    note: ''
+  - name: rejected
+    type: '[{variant*,reason*}]'
+    required: true
+    note: ''
+  - name: descopes
+    type: '[{text*,impact*}]'
+    required: true
+    note: ''
+  - name: decided_by
+    type: ref account
+    required: true
+    note: ''
+  - name: at
+    type: ts
+    required: true
+    note: ''
+  export: MCReport §3, §9
+  engine: новый
+- n: 53
+  code: technology
+  name: технология / TRL
+  layer: L3
+  born_in: 10, A7
+  status_model: null
+  fields:
+  - name: name
+    type: str
+    required: true
+    note: ''
+  - name: component
+    type: ref component
+    required: true
+    note: ''
+  - name: trl_current
+    type: int 1–9
+    required: true
+    note: ''
+  - name: trl_required
+    type: int 1–9
+    required: true
+    note: ''
+  - name: required_by
+    type: ref gate
+    required: true
+    note: ''
+  - name: gap_plan
+    type: text
+    required: false
+    note: ''
+  - name: fallback
+    type: text
+    required: false
+    note: ''
+  - name: maturation_package
+    type: ref wbs_package
+    required: false
+    note: обязателен при trl_current<trl_required к SDR
+  - name: milestone
+    type: ref gate (kind=technology)
+    required: false
+    note: ''
+  - name: fallback_component
+    type: ref component
+    required: false
+    note: узел-резерв
+  - name: decision_criteria
+    type: text
+    required: false
+    note: критерии перехода на резерв (Прил. 5)
+  export: Д5 / Д6
+  engine: есть
+- n: 54
+  code: risk
+  name: риск
+  layer: L3
+  born_in: 11, A8
+  status_model: open|closed
+  fields:
+  - name: statement
+    type: str
+    required: true
+    note: ''
+  - name: cec
+    type: '{condition*,event*,consequence*}'
+    required: true
+    note: ''
+  - name: category
+    type: enum[technical,cost,schedule,safety,regulatory,security,programmatic]
+    required: true
+    note: ''
+  - name: probability
+    type: int 1–5
+    required: true
+    note: ''
+  - name: impact
+    type: int 1–5
+    required: true
+    note: ''
+  - name: strategy
+    type: enum[mitigate,accept,transfer,avoid]
+    required: true
+    note: ''
+  - name: measures
+    type: text
+    required: true
+    note: ''
+  - name: owner
+    type: ref account
+    required: true
+    note: ''
+  - name: due_point
+    type: ref gate
+    required: true
+    note: ''
+  - name: refs
+    type: ref[] component|scene
+    required: false
+    note: ''
+  export: Д6 / Д7
+  engine: есть
+- n: 55
+  code: debris_assessment
+  name: оценка засорения (ODA)
+  layer: L3
+  born_in: 11, A9
+  status_model: null
+  fields:
+  - name: variant
+    type: ref constellation_variant
+    required: true
+    note: ''
+  - name: lifetime_years
+    type: num
+    required: true
+    note: ''
+  - name: deorbit_dv
+    type: measure{op,value|min,max,unit→unit}
+    required: true
+    note: ''
+  - name: normative
+    type: ref normative_document
+    required: true
+    note: ''
+  - name: compliant
+    type: bool
+    required: true
+    note: ''
+  - name: model_run
+    type: ref model_run
+    required: true
+    note: ''
+  export: Д7 / Д8
+  engine: новый
+- n: 56
+  code: system_model
+  name: запись модели
+  layer: L4
+  born_in: 7, A6
+  status_model: not_built|proxy|calc
+  fields:
+  - name: template_code
+    type: str
+    required: true
+    note: ''
+  - name: inputs
+    type: '[{param_ref*}]'
+    required: true
+    note: ''
+  - name: interface_ref
+    type: ref interface
+    required: false
+    note: ''
+  - name: last_run
+    type: ref model_run
+    required: false
+    note: ''
+  - name: verification_status
+    type: enum[unverified,verified,validated]
+    required: true
+    note: ''
+  - name: evaluation_criteria
+    type: ref[] metric | text
+    required: false
+    note: критерии оценки модели (мероприятие «критерии оценки моделей»)
+  export: отчёт моделей
+  engine: есть
+- n: 57
+  code: model_run
+  name: выход расчёта
+  layer: L4
+  born_in: при расчёте
+  status_model: null
+  fields:
+  - name: model
+    type: ref system_model
+    required: true
+    note: ''
+  - name: version
+    type: int
+    required: true
+    note: ''
+  - name: inputs_snapshot
+    type: json
+    required: true
+    note: ''
+  - name: outputs
+    type: '[{key*,measure*}] ≥1'
+    required: true
+    note: ''
+  - name: tool
+    type: str
+    required: true
+    note: ''
+  - name: proxy
+    type: bool
+    required: true
+    note: ''
+  - name: at
+    type: ts
+    required: true
+    note: ''
+  - name: by
+    type: ref account
+    required: true
+    note: ''
+  export: происхождение показателей
+  engine: менять
+- n: 58
+  code: metric
+  name: метрика сравнения
+  layer: L4
+  born_in: '7'
+  status_model: null
+  fields:
+  - name: variant
+    type: ref constellation_variant
+    required: true
+    note: ''
+  - name: code
+    type: str
+    required: true
+    note: ''
+  - name: measure
+    type: measure{op,value|min,max,unit→unit}
+    required: true
+    note: ''
+  - name: threshold
+    type: '{op*,value*}'
+    required: false
+    note: ''
+  - name: group
+    type: enum[A,B,V,G]
+    required: true
+    note: ''
+  - name: proxy
+    type: bool
+    required: false
+    note: ''
+  export: таблица AoA
+  engine: есть
+- n: 59
+  code: budget
+  name: бюджет / свёртка
+  layer: L4
+  born_in: 7, A5
+  status_model: null
+  fields:
+  - name: kind
+    type: enum[mass,power,energy,link,dv,data,compute]
+    required: true
+    note: ''
+  - name: root
+    type: ref component
+    required: true
+    note: ''
+  - name: reserve_policy
+    type: str
+    required: true
+    note: ''
+  export: Д5 §7; TPM
+  engine: есть
+- n: 60
+  code: verification_event
+  name: событие верификации
+  layer: L4
+  born_in: A4+
+  status_model: null
+  fields:
+  - name: requirement
+    type: ref requirement
+    required: true
+    note: ''
+  - name: method
+    type: ref method_catalog
+    required: true
+    note: ''
+  - name: result
+    type: enum[pass,fail,partial]
+    required: true
+    note: ''
+  - name: evidence
+    type: ref material | text
+    required: false
+    note: ''
+  - name: at
+    type: ts
+    required: true
+    note: ''
+  - name: by
+    type: ref account
+    required: true
+    note: ''
+  export: матрица верификации
+  engine: есть
+- n: 61
+  code: wbs_package
+  name: пакет работ
+  layer: L4
+  born_in: 7, 12, A10
+  status_model: null
+  fields:
+  - name: code
+    type: str
+    required: true
+    note: ''
+  - name: name
+    type: str
+    required: true
+    note: ''
+  - name: parent
+    type: ref wbs_package
+    required: false
+    note: ''
+  - name: cross_cutting
+    type: bool
+    required: true
+    note: ''
+  - name: pbs_refs
+    type: ref[] component
+    required: false
+    note: ''
+  - name: phase_scenes
+    type: ref[] scene
+    required: false
+    note: ''
+  - name: estimate
+    type: ref cost_estimate
+    required: false
+    note: ''
+  export: Д8/Д9; Project Plan §3
+  engine: есть
+- n: 62
+  code: cost_estimate
+  name: оценка стоимости / сроков
+  layer: L4
+  born_in: 12, A10
+  status_model: null
+  fields:
+  - name: scope
+    type: ref wbs_package|project
+    required: true
+    note: ''
+  - name: range
+    type: '{min*,max*,unit*=млн ₽}'
+    required: true
+    note: ''
+  - name: assumptions
+    type: text
+    required: true
+    note: ''
+  - name: method
+    type: enum[rom,parametric,bottom_up]
+    required: true
+    note: ''
+  - name: date
+    type: date
+    required: true
+    note: ''
+  - name: cadre
+    type: bool
+    required: false
+    note: ''
+  - name: includes_maturation
+    type: bool (computed)
+    required: false
+    note: все технологии с разрывом TRL имеют пакет в оценке
+  export: Д8/Д9
+  engine: менять
+- n: 63
+  code: data_request
+  name: запрос данных (экземпляр анкеты)
+  layer: L4
+  born_in: 7+
+  status_model: 'вычисляется: maturity{required_now,missing}'
+  fields:
+  - name: questionnaire
+    type: ref questionnaire
+    required: true
+    note: ''
+  - name: target
+    type: ref component|interface
+    required: true
+    note: ''
+  - name: fields
+    type: '[{key*,measure?,origin?,filled*:bool}]'
+    required: true
+    note: ''
+  export: —
+  engine: есть
+- n: 64
+  code: document
+  name: документ
+  layer: L5
+  born_in: 9, 13, 14, A2, A3, A11
+  status_model: Draft → Preliminary → Approved → Baseline (по baseline документа)
+  fields:
+  - name: template
+    type: ref document_template
+    required: true
+    note: ''
+  - name: code
+    type: str
+    required: true
+    note: ''
+  - name: title
+    type: str
+    required: true
+    note: ''
+  - name: sections
+    type: ref[] section
+    required: true
+    note: ''
+  - name: owner
+    type: ref account
+    required: true
+    note: ''
+  - name: nature
+    type: enum[narrative,registry_view,mixed]
+    required: true
+    note: ''
+  export: docx / pdf / html
+  engine: есть
+- n: 65
+  code: section
+  name: раздел
+  layer: L5
+  born_in: с документом
+  status_model: 'вычисляется: completeness{done,total,missing[]} · support_changed{flag,diff[]}'
+  fields:
+  - name: document
+    type: ref document
+    required: true
+    note: ''
+  - name: 'no'
+    type: str
+    required: true
+    note: ''
+  - name: title
+    type: str
+    required: true
+    note: ''
+  - name: elements
+    type: ref[] element
+    required: false
+    note: ''
+  - name: expects_snapshot
+    type: json
+    required: true
+    note: из шаблона на текущую ступень
+  export: —
+  engine: есть
+- n: 68
+  code: release
+  name: выпуск
+  layer: L5
+  born_in: 13, A12
+  status_model: null
+  fields:
+  - name: document
+    type: ref document
+    required: true
+    note: ''
+  - name: rendering
+    type: ref rendering
+    required: true
+    note: принятый
+  - name: version
+    type: int
+    required: true
+    note: ''
+  - name: print_files
+    type: '[{format*:enum[docx,pdf,html],path*,hash*}]'
+    required: true
+    note: ''
+  - name: authors
+    type: ref[] account
+    required: true
+    note: ''
+  - name: released_by
+    type: ref account
+    required: true
+    note: ''
+  - name: at
+    type: ts
+    required: true
+    note: ''
+  export: пакет точки
+  engine: есть
+- n: 69
+  code: result
+  name: результат в библиотеке
+  layer: L5
+  born_in: с выпуском
+  status_model: null
+  fields:
+  - name: release
+    type: ref release
+    required: true
+    note: ''
+  - name: authors
+    type: ref[] account
+    required: true
+    note: ''
+  - name: generalize_to
+    type: ref shelf
+    required: false
+    note: ''
+  export: —
+  engine: новый
+- n: 70
+  code: baseline_snapshot
+  name: снимок базирования
+  layer: L5
+  born_in: базирование
+  status_model: null
+  fields:
+  - name: project
+    type: ref project
+    required: true
+    note: ''
+  - name: sdoc_path
+    type: path
+    required: true
+    note: ''
+  - name: hash
+    type: str
+    required: true
+    note: ''
+  - name: by
+    type: ref account
+    required: true
+    note: ''
+  - name: at
+    type: ts
+    required: true
+    note: ''
+  - name: requirements_count
+    type: int
+    required: true
+    note: ''
+  export: git diff
+  engine: есть
+- n: 71
+  code: export
+  name: выгрузка
+  layer: L5
+  born_in: по запросу
+  status_model: null
+  fields:
+  - name: type
+    type: enum[reqif,sdoc,knowledge,gate_package]
+    required: true
+    note: ''
+  - name: scope
+    type: ref project|gate
+    required: true
+    note: ''
+  - name: fingerprint
+    type: str
+    required: true
+    note: ''
+  - name: files
+    type: '[{path*,hash*}]'
+    required: true
+    note: ''
+  - name: by
+    type: ref account
+    required: true
+    note: ''
+  - name: at
+    type: ts
+    required: true
+    note: ''
+  - name: reqif_profile
+    type: enum[ORBITA]
+    required: false
+    note: атрибуты ReqIF.ForeignID/Name/Text/ChapterName + ORBITA.Level/Category/Priority/MOP.*/Verification/Acceptance/Rationale/Source/Status/Version/Baseline/Carrier/Template/Applicability
+  export: наружу
+  engine: есть · менять
+- n: 72
+  code: import_batch
+  name: импорт
+  layer: L5
+  born_in: 2, A4
+  status_model: null
+  fields:
+  - name: type
+    type: enum[reqif,sdoc,package]
+    required: true
+    note: ''
+  - name: source_file
+    type: '{name*,hash*}'
+    required: true
+    note: ''
+  - name: proposal
+    type: ref proposal
+    required: true
+    note: ''
+  - name: foreign_attributes_kept
+    type: bool
+    required: true
+    note: ''
+  export: —
+  engine: есть
+- n: 73
+  code: ai_call
+  name: вызов службы (журнал)
+  layer: L5
+  born_in: любая
+  status_model: null
+  fields:
+  - name: package_kind
+    type: ref package_kind
+    required: true
+    note: ''
+  - name: model
+    type: str
+    required: false
+    note: ''
+  - name: tokens_in
+    type: int
+    required: false
+    note: ''
+  - name: tokens_out
+    type: int
+    required: false
+    note: ''
+  - name: outcome
+    type: enum[ok,error,aborted]
+    required: true
+    note: ''
+  - name: reason
+    type: str
+    required: false
+    note: ''
+  - name: fingerprint
+    type: str
+    required: false
+    note: ''
+  - name: at
+    type: ts
+    required: true
+    note: ''
+  - name: by
+    type: ref account
+    required: true
+    note: ''
+  export: журнал ИИ
+  engine: есть
+- n: 74
+  code: parameter
+  name: значение параметра узла
+  layer: L3
+  born_in: 7, A5+
+  status_model: 'вычисляется: filled|missing|tbr'
+  fields:
+  - name: target
+    type: ref component|interface
+    required: true
+    note: ''
+  - name: key
+    type: str
+    required: true
+    note: ключ анкеты
+  - name: measure
+    type: measure{op?,value|min,max,unit→unit} | tbr{owner*,gate*,action*}
+    required: true
+    note: ''
+  - name: origin
+    type: enum[manual,datasheet,shelf,computed,example]
+    required: true
+    note: ''
+  - name: source
+    type: '{material?,anchor?,model_run?}'
+    required: false
+    note: обязателен для datasheet и computed
+  - name: required_to
+    type: ref gate
+    required: true
+    note: ''
+  - name: basis
+    type: text
+    required: false
+    note: обязателен при правке после baseline
+  - name: maturity_class
+    type: enum[estimated,modified,off_the_shelf,measured]
+    required: true
+    note: резерв по классу
+  - name: uncertainty
+    type: num ±%
+    required: true
+    note: по ступени, если не задано
+  export: PVMT (Capella), MEL, входы моделей
+  engine: новый (было полем)
+- n: 75
+  code: baseline
+  name: именованный снимок набора
+  layer: L1
+  born_in: 8, A4, точки
+  status_model: immutable
+  fields:
+  - name: name
+    type: str
+    required: true
+    note: SRR · SDR · KDP-B · …
+  - name: kind
+    type: enum[functional,allocated,product]
+    required: true
+    note: класс базовой линии CM
+  - name: gate
+    type: ref gate
+    required: true
+    note: ''
+  - name: items
+    type: '[{ref*,version*,firmness*:enum[firm,conditional],conditional_on?:ref technology}]'
+    required: true
+    note: ''
+  - name: sdoc_path
+    type: path
+    required: true
+    note: ''
+  - name: hash
+    type: str
+    required: true
+    note: ''
+  - name: by
+    type: ref account
+    required: true
+    note: ''
+  - name: at
+    type: ts
+    required: true
+    note: ''
+  - name: diff_from
+    type: ref baseline
+    required: false
+    note: ''
+  export: .sdoc + отчёт дифа
+  engine: менять (baseline_snapshot → baseline)
+- n: 76
+  code: typical_component
+  name: типовой компонент (библиотека)
+  layer: L0
+  born_in: —
+  status_model: null
+  fields:
+  - name: code
+    type: str
+    required: true
+    note: ''
+  - name: name
+    type: str
+    required: true
+    note: ''
+  - name: kind
+    type: enum[system,segment,element,subsystem,assembly,unit]
+    required: true
+    note: ''
+  - name: applicability
+    type: class[]
+    required: true
+    note: ''
+  - name: typical_requirements
+    type: ref[] typical_requirement
+    required: false
+    note: ''
+  - name: nature
+    type: enum[node,behaviour]
+    required: true
+    note: ''
+  - name: role
+    type: enum[node,behaviour,facility,terminal,external]
+    required: true
+    note: шаблон рода по умолчанию
+  - name: ladder
+    type: '{gate: {facets*:str[], params*:[{key*,name*,unit*,required_to*,maturity_class*,uncertainty*}]}} для MCR/SRR/SDR/PDR'
+    required: true
+    note: ''
+  - name: typical_functions
+    type: ref[] function-code
+    required: false
+    note: ''
+  - name: typical_interfaces
+    type: ref[] interface-code
+    required: false
+    note: ''
+  - name: models
+    type: str[]
+    required: false
+    note: ''
+  - name: standards
+    type: ref[] normative_document
+    required: false
+    note: ''
+  - name: verification
+    type: str[]
+    required: false
+    note: ''
+  - name: typical_risks
+    type: str[]
+    required: false
+    note: ''
+  - name: hard_facets
+    type: str[]
+    required: false
+    note: грани, обязательные регламентом, не подлежат tailoring
+  export: —
+  engine: новый
+- n: 77
+  code: exchange_item
+  name: элемент обмена
+  layer: L3
+  born_in: A5
+  status_model: null
+  fields:
+  - name: code
+    type: str
+    required: true
+    note: ''
+  - name: name
+    type: str
+    required: true
+    note: ''
+  - name: type
+    type: enum[flow,operation,event,shared_data]
+    required: true
+    note: ''
+  - name: elements
+    type: '[{name*,data_type*→data_type,multiplicity?}]'
+    required: true
+    note: ''
+  - name: exchanges
+    type: ref[] exchange
+    required: false
+    note: где используется
+  export: ICD §данные; Capella ExchangeItem
+  engine: новый
+- n: 78
+  code: data_type
+  name: тип данных
+  layer: L0/L3
+  born_in: A5
+  status_model: null
+  fields:
+  - name: code
+    type: str
+    required: true
+    note: ''
+  - name: name
+    type: str
+    required: true
+    note: ''
+  - name: base
+    type: enum[int,float,bool,enum,string,bytes,struct]
+    required: true
+    note: ''
+  - name: unit
+    type: ref unit
+    required: false
+    note: обязателен для числовых величин
+  - name: range
+    type: '{min?,max?}'
+    required: false
+    note: ''
+  - name: enum_values
+    type: str[]
+    required: false
+    note: ''
+  - name: fields
+    type: '[{name*,data_type*}]'
+    required: false
+    note: для struct
+  export: Capella DataType/Class
+  engine: новый
+- n: 79
+  code: state_machine
+  name: режимы и состояния компонента
+  layer: L3
+  born_in: A5
+  status_model: null
+  fields:
+  - name: owner
+    type: ref component
+    required: true
+    note: ''
+  - name: states
+    type: '[{code*,name*,active_functions*:ref[] function,kind*:enum[mode,state]}] ≥1'
+    required: true
+    note: ''
+  - name: initial
+    type: str
+    required: true
+    note: ''
+  - name: transitions
+    type: '[{from*,to*,trigger*:{exchange|event|timer},guard?,action?}]'
+    required: true
+    note: ''
+  export: Capella State Machine
+  engine: новый
+- n: 80
+  code: configuration_item
+  name: конфигурационная единица
+  layer: L4
+  born_in: A5
+  status_model: null
+  fields:
+  - name: code
+    type: str
+    required: true
+    note: ''
+  - name: component
+    type: ref component
+    required: true
+    note: ''
+  - name: type
+    type: enum[HW,SW,FW,DOC]
+    required: true
+    note: ''
+  - name: responsible
+    type: ref account
+    required: true
+    note: ''
+  export: CM-план
+  engine: новый
+- n: 81
+  code: product_version
+  name: версия изделия (не записи)
+  layer: L4
+  born_in: A7+
+  status_model: mockup|flight_test|operations
+  fields:
+  - name: ci
+    type: ref configuration_item
+    required: true
+    note: ''
+  - name: version
+    type: str
+    required: true
+    note: семантическая версия изделия
+  - name: date
+    type: date
+    required: true
+    note: ''
+  - name: composition
+    type: '[{ref*,version*}] | ref baseline'
+    required: true
+    note: ссылается на baseline записей
+  - name: notes
+    type: text
+    required: false
+    note: ''
+  export: CM-план, ЛИ
+  engine: новый
+- n: 82
+  code: intake_task
+  name: задание загрузки
+  layer: L2
+  born_in: любая
+  status_model: planned|awaiting_accept|executed|rejected
+  fields:
+  - name: source
+    type: '{file?|url?|text?}'
+    required: true
+    note: ''
+  - name: snapshot
+    type: '{path*,date*,hash*}'
+    required: true
+    note: URL — рендер headless в PDF+MD
+  - name: intent
+    type: text
+    required: true
+    note: умолчание «разбери по сущностям»
+  - name: intent_kind
+    type: enum[harvest,shelve_typical,baseline_candidate,compare,update_params,register_normative,assess_tor,context_only,other]
+    required: true
+    note: ''
+  - name: context
+    type: '{project*,scene*,mission_class*}'
+    required: true
+    note: ''
+  - name: classification
+    type: '[{content_type*,blocks*:str[],share*}]'
+    required: false
+    note: Д2а
+  - name: plan
+    type: ref[] action
+    required: true
+    note: ''
+  - name: author
+    type: ref account
+    required: true
+    note: ''
+  export: журнал ИИ
+  engine: новый
+- n: 83
+  code: fact
+  name: атомарный факт
+  layer: L2
+  born_in: загрузка
+  status_model: 'disposition: free|noted|assumed|adopted|rejected|contested|superseded'
+  fields:
+  - name: kind
+    type: enum[quantity,capability,obligation,framing,event,relation,assessment,assumption]
+    required: true
+    note: ''
+  - name: subject
+    type: '{ref?:ref entity, topic?:ref topic}'
+    required: true
+    note: ровно одно из двух
+  - name: predicate
+    type: str
+    required: true
+    note: ''
+  - name: value
+    type: measure{…} | text
+    required: true
+    note: ''
+  - name: source
+    type: '{material*,anchor*}'
+    required: true
+    note: ''
+  - name: source_mark
+    type: enum[И,В,П]
+    required: true
+    note: ''
+  - name: evidence
+    type: enum[claimed,corroborated,measured,assumed]
+    required: true
+    note: ''
+  - name: confidence
+    type: num 0–1
+    required: true
+    note: ''
+  - name: as_of
+    type: date
+    required: true
+    note: ''
+  - name: valid_until
+    type: date
+    required: false
+    note: ''
+  - name: disposition
+    type: enum[free,noted,assumed,adopted,rejected,contested,superseded]
+    required: true
+    note: ''
+  - name: disposition_decision
+    type: '{by*,at*,reason*,gate?}'
+    required: false
+    note: обязателен при любой диспозиции кроме free
+  - name: assumption
+    type: '{owner*,confirm_by*:ref gate,validation*,impact_if_wrong*}'
+    required: false
+    note: обязателен при disposition=assumed
+  - name: classification
+    type: enum[open,dsp,commercial]
+    required: true
+    note: наследуется от источника
+  export: фактология проекта
+  engine: новый
+- n: 84
+  code: action
+  name: действие плана загрузки
+  layer: L2
+  born_in: с intake_task
+  status_model: proposed|accepted|rejected|done
+  fields:
+  - name: task
+    type: ref intake_task
+    required: true
+    note: ''
+  - name: kind
+    type: enum[create_typical,create_entity,update_params,compare,request_data,flag_conflict,create_decision,create_risk,attach_context]
+    required: true
+    note: ''
+  - name: target
+    type: '{kind*,ref?}'
+    required: true
+    note: ''
+  - name: preview
+    type: text
+    required: true
+    note: что создаст/изменит
+  - name: facts
+    type: ref[] fact
+    required: true
+    note: ''
+  - name: decision
+    type: enum[pending,accepted,rejected]
+    required: true
+    note: ''
+  export: —
+  engine: новый
+- n: 85
+  code: topic
+  name: тема (предмет фактов до разрешения в сущность)
+  layer: L2
+  born_in: загрузка
+  status_model: open|resolved
+  fields:
+  - name: label
+    type: str
+    required: true
+    note: ''
+  - name: resolved_to
+    type: ref entity
+    required: false
+    note: обязателен, если есть adopted факты к точке
+  - name: scene
+    type: ref scene
+    required: false
+    note: ''
+  export: MCReport §11 открытые вопросы
+  engine: новый
+- n: 86
+  code: element
+  name: элемент содержания раздела
+  layer: L5
+  born_in: по разделу
+  status_model: active|removed
+  fields:
+  - name: section
+    type: ref section
+    required: true
+    note: ''
+  - name: kind
+    type: enum[fact_ref,entity_ref,statement,query,figure,table]
+    required: true
+    note: ''
+  - name: ref
+    type: ref fact | ref entity | ref model_run
+    required: false
+    note: обязателен для fact_ref/entity_ref/figure
+  - name: ref_version
+    type: int
+    required: false
+    note: версия опоры на момент включения
+  - name: text
+    type: text
+    required: false
+    note: только для statement, 1–3 предложения
+  - name: supports
+    type: ref[] fact|entity
+    required: false
+    note: обязателен для statement с числами
+  - name: query
+    type: '{kind*,filter*,columns?}'
+    required: false
+    note: для query/table
+  - name: author
+    type: ref account
+    required: true
+    note: ''
+  - name: at
+    type: ts
+    required: true
+    note: ''
+  - name: order
+    type: int
+    required: true
+    note: ''
+  export: —
+  engine: новый
+- n: 87
+  code: rendering
+  name: порождённый читаемый текст версии документа
+  layer: L5
+  born_in: базирование/предпросмотр
+  status_model: draft|reviewed|accepted|superseded
+  fields:
+  - name: document
+    type: ref document
+    required: true
+    note: ''
+  - name: baseline
+    type: ref baseline
+    required: false
+    note: null для предпросмотра
+  - name: sections
+    type: '[{no*,text*,element_links*:[{span,element}]}]'
+    required: true
+    note: ''
+  - name: prompt_fingerprint
+    type: str
+    required: true
+    note: ''
+  - name: model
+    type: str
+    required: true
+    note: ''
+  - name: style_patches
+    type: '[{section,span,old,new,author,at}]'
+    required: false
+    note: правки изложения
+  - name: reviewer
+    type: ref account
+    required: false
+    note: ''
+  - name: accepted_at
+    type: ts
+    required: false
+    note: ''
+  export: release
+  engine: новый
+- n: 88
+  code: process_catalog
+  name: каталог процессов СИ (двухстандартный)
+  layer: L0
+  born_in: —
+  status_model: null
+  fields:
+  - name: code
+    type: str
+    required: true
+    note: ''
+  - name: name
+    type: str
+    required: true
+    note: ''
+  - name: npr_7123
+    type: str
+    required: false
+    note: один из 17 процессов
+  - name: romanov_activity
+    type: str
+    required: false
+    note: код мероприятия ROM-… из ПОЛКА-ПРОЦЕССЫ-РОМАНОВ
+  - name: iso_15288
+    type: str
+    required: false
+    note: процесс ГОСТ ISO 15288-2023
+  - name: group
+    type: enum[system_design,product_realization,technical_management,agreement,organizational,mbse]
+    required: true
+    note: ''
+  - name: orbita_mechanism
+    type: str
+    required: true
+    note: ''
+  - name: place
+    type: route
+    required: true
+    note: ''
+  - name: tailoring_allowed
+    type: bool
+    required: true
+    note: ''
+  export: SEMP §6, матрица соответствия
+  engine: новый
+versioning_rules:
+- правка поля → новая версия объекта (автор, valid_from); старая остаётся
+- правка после baseline → только с basis; помета after_baseline_changed; связи объекта → suspect
+- правка параметра → новая версия parameter; модели, читавшие старую, помечаются «вход изменился»
+- baseline → неизменяемый снимок items[{ref,version}] + .sdoc; перебазирование гасит пометы для вошедших версий
+- отмена → Cancelled с историей; из baseline не исчезает
+- диф baseline↔baseline → добавлено · изменено (поле в поле) · удалено
+capella_alignment:
+  requirement: Requirements Viewpoint Requirement (ReqIFIdentifier/LongName/Text/ChapterName + атрибуты ORBITA.*); владелец — Орбита
+  link req↔req: InternalRelation (тип = вид связи)
+  link req→element: CapellaOutgoingRelation/IncomingRelation, RelationType = вид связи; создаёт Орбита
+  component: PA PhysicalComponent (node/behaviour), иерархия ownedPhysicalComponents; при наличии модели — Capella владеет структурой
+  component_usage: PVMT property quantity
+  parameter: PVMT property values, группа ORBITA, единицы справочника
+  interface: PA PhysicalLink + ComponentPort
+  function: SystemFunction/LogicalFunction; allocation → ComponentFunctionalAllocation
+  functional_chain: FunctionalChain
+  capability: OperationalCapability/Capability
+  identity: UUID элемента Capella = external_identity; имя/тип/слой — снимок с датой
+  direction: требования → Capella (ReqIF); архитектура → Орбита (capellambse read-only); обратных записей нет
+  component.nature: PhysicalComponent nature Node|Behaviour; deployed_on → deployment
+  exchange_item: ExchangeItem (FLOW/OPERATION/EVENT/SHARED_DATA) + ExchangeItemElement, типы — Information layer
+  state_machine: State Machine на компоненте; Mode/State; функции «available in mode»
+  budget compute/data: PVMT-группа ORBITA.SW, свёртка по behaviour на node
+versioning_unit:
+  unit: атомарная сущность (запись-снимок), не поле; ветвлений нет
+  atomic_kinds:
+  - requirement
+  - link
+  - parameter
+  - component
+  - component_usage
+  - interface
+  - insertion
+  - prose
+  - section
+  - document
+  - decision
+  - constraint
+  - goal
+  - need
+  - stakeholder
+  - service
+  - risk
+  - technology
+  - baseline (immutable)
+  field_classes:
+    substantive: 'умолчание: новая версия; после baseline — basis обязателен; связи → suspect'
+    auxiliary: история без версии и без suspect
+    computed: не хранится
+  auxiliary_fields_default:
+  - notes
+  - tags
+  - comment
+  - name_snapshot
+  - refreshed_at
+  - display_*
+  version_record:
+    fields:
+    - version
+    - valid_from
+    - valid_to
+    - recorded_at
+    - actor
+    - basis?
+    - changed_fields[]
+    rule: changed_fields считается при записи по содержательным полям
+  concurrency: optimistic lock by version
+  baseline_reference: items[{ref, version}] — версии атомарных сущностей
+units_to_add:
+- тыс. строк (счётная)
+- Н·м (момент)
+- категория критичности ПО — шкала method_catalog
+maturity_ladder:
+  gates:
+  - MCR
+  - SRR
+  - SDR
+  - PDR
+  rule: required_to=N ⇒ обязательно на N и далее; готовность считает незакрытые грани текущей ступени разрывами, следующей — приглашениями
+  margins:
+    by_class:
+      estimated: 20
+      modified: 10
+      off_the_shelf: 5
+      measured: 2
+    system_by_gate:
+      MCR: 20
+      SRR: 15
+      SDR: 10
+      PDR: 5
+  source: ПОЛКА-ШАБЛОНЫ-КОМПОНЕНТОВ.json
+trl_gating:
+  SRR: условные элементы допустимы
+  SDR: условные — только с maturation_package и оценкой
+  PDR: 'условных нет: TRL≥6 или fallback'
+  rule: firm-базирование элемента с depends_on_technology при trl_current<trl_required — отказ
+input_document_pipeline:
+  parse_mode_by_type:
+    mission_memo: full
+    tor: full+assessment
+    directive: registry
+    normative: clauses
+    datasheet: parametric
+    quote: registry
+    external_icd: parametric
+    external_model: structural
+    analysis: full+derived
+    heritage: full
+    regulatory_decision: registry
+    reference: none
+  stale_rule: новая версия входного (supersedes) → диф канонов блоками → сущности с source в изменённых блоках получают помету «источник обновлён»
+  classification_rule: dsp/commercial — не уходят во внешний контур без явного разрешения; state_secret — не загружается
+intake_rules:
+- факт без якоря не существует; величина без единицы — не факт
+- внешний источник → [В] с датой снимка
+- конфликт фактов — показать оба, не выбирать
+- действия только после акцепта плана
+- задание вне каталога → вопрос
+- гриф источника наследуется фактами и действиями
+- повторная загрузка того же источника → диф снимков → пометы «источник обновлён»
+knowledge_field_rules:
+- adopted ⇒ существует объект с derived_from_fact (сторож)
+- assumed ⇒ owner, confirm_by, validation (сторож)
+- contested с участием adopted-факта — блокирующий разрыв точки
+- topic с adopted-фактами обязана разрешиться в сущность к точке
+- диспозицию меняет человек; ИИ предлагает
+- новая версия источника → superseded + пометы, диспозиции не трогаются
+- rejected не удаляется
+- к PDR принятые величины ≥ corroborated
+prompt_sources:
+  factology: факты с disposition adopted|assumed|noted (не rejected), с якорями
+document_rules:
+- в структуре нет свободного текста, кроме statement; statement с числом без supports — помета
+- полнота = ожидания шаблона на ступень; готовность читает полноту, не существование
+- rendering — только из элементов (вид document_render); число в тексте без элемента — отказ выпуска
+- правка сути в тексте запрещена; правка изложения — style_patch с автором
+- baseline документа фиксирует версии разделов, элементов и их опор; изменение опоры → support_changed с дифом
+- авторы выпуска = авторы элементов + рецензент + выпустивший
+standards_map:
+  stages:
+    Pre-A: РК-11КТ стадия 1 · НИР (в РК-11КТ отсутствует как обязательная)
+    Phase A: стадия 2 · аванпроект
+    Phase B: стадия 3 · эскизный проект
+    Phase C/D: стадии 4–5 · РД, изготовление, испытания; госиспытания
+    Phase E: стадия 6 · эксплуатация
+    Phase F: стадия 7 · утилизация
+  gates:
+    MCR: экспертиза замысла / облика миссии
+    SRR: экспертиза требований к миссии/системе
+    SDR/MDR: экспертиза облика системы
+    PDR: экспертиза аванпроекта
+    CDR: экспертиза эскизного проекта
+  source: romanov.png — процессы ЖЦ модельно-ориентированного инжиниринга; ГОСТ ISO 15288-2023; ГОСТ ISO 24641-2023
+  rule: модель без verification_status=verified не даёт выхода в baseline
+process_tracks:
+  design: требования → архитектура → оценка → синтез
+  modeling: модель пользователей → ЖЦ → функциональная → требований → критерии → верификация → системные/интегральные модели
+  management: планы стадии (SEMP, технологии, риски, информация, верификация, логистика…)
+  source: ПОЛКА-ПРОЦЕССЫ-РОМАНОВ.json
+artifact_maturity_ladder:
+  codes:
+  - С
+  - Р
+  - F
+  - U
+  - Σ
+  - Δ
+  - x
+  - °
+  rule: код зрелости артефакта к точке обязателен и монотонен по стадиям; DMN точки строится из control_items
+  source: ПОЛКА-ПРОЦЕССЫ-РОМАНОВ.maturity_matrix (113 артефактов × 5 экспертиз)

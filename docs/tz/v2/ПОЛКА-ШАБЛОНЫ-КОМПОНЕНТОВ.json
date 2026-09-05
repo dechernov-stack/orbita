@@ -1,0 +1,3768 @@
+{
+ "kind": "component_template_shelf",
+ "code": "TCS-9002",
+ "version": 1,
+ "title": "Шаблоны компонентов космической системы — класс НОО-IoT (лестница зрелости)",
+ "gates": [
+  "MCR",
+  "SRR",
+  "SDR",
+  "PDR"
+ ],
+ "facet_defaults": {
+  "node": {
+   "MCR": [
+    "identity",
+    "trl",
+    "models",
+    "risks"
+   ],
+   "SRR": [
+    "interfaces",
+    "functions",
+    "requirements",
+    "questionnaire",
+    "standards",
+    "supplier"
+   ],
+   "SDR": [
+    "exchange_items(data ifaces)",
+    "budgets",
+    "verification_methods",
+    "configuration_item"
+   ],
+   "PDR": [
+    "product_versions",
+    "test_plan",
+    "icd_signed"
+   ]
+  },
+  "behaviour": {
+   "MCR": [
+    "identity",
+    "functions(list)",
+    "criticality",
+    "trl"
+   ],
+   "SRR": [
+    "deployed_on",
+    "interfaces(data)",
+    "resources_params",
+    "standards",
+    "supplier"
+   ],
+   "SDR": [
+    "state_machine",
+    "exchange_items",
+    "budget_compute",
+    "verification(SIL/HIL)",
+    "configuration_item"
+   ],
+   "PDR": [
+    "product_versions",
+    "wcet",
+    "icd_signed"
+   ]
+  },
+  "facility": {
+   "MCR": [
+    "identity",
+    "site_or_count",
+    "capacity_rough"
+   ],
+   "SRR": [
+    "interfaces",
+    "functions",
+    "params",
+    "standards"
+   ],
+   "SDR": [
+    "availability",
+    "redundancy",
+    "staffing",
+    "exchange_items"
+   ],
+   "PDR": [
+    "procurement",
+    "acceptance_tests"
+   ]
+  },
+  "terminal": {
+   "MCR": [
+    "identity",
+    "class",
+    "link_params",
+    "battery",
+    "cost_target"
+   ],
+   "SRR": [
+    "interfaces(sensor)",
+    "protocol",
+    "autonomy",
+    "standards"
+   ],
+   "SDR": [
+    "session_energy(M13)",
+    "certification_path",
+    "exchange_items"
+   ],
+   "PDR": [
+    "bom_cost",
+    "measured_energy"
+   ]
+  },
+  "external": {
+   "MCR": [
+    "identity",
+    "constraint_refs"
+   ],
+   "SRR": [
+    "interfaces",
+    "icd_draft"
+   ],
+   "SDR": [
+    "icd",
+    "loads"
+   ],
+   "PDR": [
+    "contract"
+   ]
+  }
+ },
+ "maturity_classes": {
+  "estimated": 20,
+  "modified": 10,
+  "off_the_shelf": 5,
+  "measured": 2
+ },
+ "system_margin_by_gate": {
+  "MCR": 20,
+  "SRR": 15,
+  "SDR": 10,
+  "PDR": 5
+ },
+ "rules": [
+  "грань/параметр с required_to=N обязательны на N и всех последующих ступенях",
+  "uncertainty (±%) по умолчанию по ступени: MCR 30 · SRR 20 · SDR 10 · PDR 5; для справочных значений (off_the_shelf) — 0/5",
+  "свёртки применяют резерв по maturity_class параметра и системный резерв по ступени; печатают оба",
+  "узел без своего шаблона наследует шаблон рода (node/behaviour/facility/terminal/external)",
+  "экземпляр помнит template_ref и applicability; лестница правится только редакцией полки"
+ ],
+ "templates": [
+  {
+   "code": "TC-SC",
+   "name": "Космический аппарат (система)",
+   "applies_to_pbs": [
+    "SC"
+   ],
+   "nature": "node",
+   "ladder": {
+    "MCR": {
+     "facets": [
+      "identity",
+      "trl",
+      "models",
+      "risks"
+     ],
+     "params": [
+      {
+       "key": "mass_dry",
+       "name": "масса сухая",
+       "unit": "кг",
+       "required_to": "MCR",
+       "maturity_class": "estimated",
+       "uncertainty": 30
+      },
+      {
+       "key": "power_avg",
+       "name": "мощность средняя",
+       "unit": "Вт",
+       "required_to": "MCR",
+       "maturity_class": "estimated",
+       "uncertainty": 30
+      },
+      {
+       "key": "envelope",
+       "name": "габарит под обтекатель",
+       "unit": "м",
+       "required_to": "MCR",
+       "maturity_class": "estimated",
+       "uncertainty": 30
+      },
+      {
+       "key": "lifetime",
+       "name": "срок активного существования",
+       "unit": "год",
+       "required_to": "MCR",
+       "maturity_class": "estimated",
+       "uncertainty": 30
+      }
+     ]
+    },
+    "SRR": {
+     "facets": [
+      "interfaces",
+      "functions",
+      "requirements",
+      "questionnaire",
+      "standards",
+      "supplier"
+     ],
+     "params": [
+      {
+       "key": "mass_wet",
+       "name": "масса стартовая",
+       "unit": "кг",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      },
+      {
+       "key": "power_peak",
+       "name": "мощность пиковая",
+       "unit": "Вт",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      },
+      {
+       "key": "cross_section",
+       "name": "площадь миделя",
+       "unit": "м²",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      }
+     ]
+    },
+    "SDR": {
+     "facets": [
+      "exchange_items(data ifaces)",
+      "budgets",
+      "verification_methods",
+      "configuration_item"
+     ],
+     "params": [
+      {
+       "key": "cg",
+       "name": "положение ЦМ",
+       "unit": "м",
+       "required_to": "SDR",
+       "maturity_class": "estimated",
+       "uncertainty": 10
+      },
+      {
+       "key": "moi",
+       "name": "моменты инерции",
+       "unit": "1",
+       "required_to": "SDR",
+       "maturity_class": "estimated",
+       "uncertainty": 10
+      }
+     ]
+    },
+    "PDR": {
+     "facets": [
+      "product_versions",
+      "test_plan",
+      "icd_signed"
+     ],
+     "params": []
+    }
+   },
+   "typical_functions": [
+    "F-09",
+    "F-10",
+    "F-11",
+    "F-12",
+    "F-13",
+    "F-14",
+    "F-15",
+    "F-16"
+   ],
+   "typical_interfaces": [
+    "IF-SC-LV",
+    "IF-SC-ENV"
+   ],
+   "models": [
+    "М1",
+    "М4",
+    "М5",
+    "М6",
+    "М7",
+    "М8",
+    "М10"
+   ],
+   "standards": [
+    "ECSS-E-ST-10C",
+    "NASA-STD-8719.14"
+   ],
+   "verification": [
+    "анализ",
+    "испытание"
+   ],
+   "typical_risks": [
+    "недооценка массы к SRR",
+    "тень/β худший случай"
+   ]
+  },
+  {
+   "code": "TC-STR",
+   "name": "Конструкция и механизмы",
+   "applies_to_pbs": [
+    "STR",
+    "STR-BODY",
+    "STR-DEPLOY",
+    "STR-SEP",
+    "STR-PLMOUNT"
+   ],
+   "nature": "node",
+   "ladder": {
+    "MCR": {
+     "facets": [
+      "identity",
+      "trl",
+      "models",
+      "risks"
+     ],
+     "params": [
+      {
+       "key": "mass",
+       "name": "масса",
+       "unit": "кг",
+       "required_to": "MCR",
+       "maturity_class": "estimated",
+       "uncertainty": 30
+      }
+     ]
+    },
+    "SRR": {
+     "facets": [
+      "interfaces",
+      "functions",
+      "requirements",
+      "questionnaire",
+      "standards",
+      "supplier"
+     ],
+     "params": [
+      {
+       "key": "n_deploy",
+       "name": "число раскрытий",
+       "unit": "шт",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      }
+     ]
+    },
+    "SDR": {
+     "facets": [
+      "exchange_items(data ifaces)",
+      "budgets",
+      "verification_methods",
+      "configuration_item"
+     ],
+     "params": [
+      {
+       "key": "first_mode",
+       "name": "первая собственная частота",
+       "unit": "Гц",
+       "required_to": "SDR",
+       "maturity_class": "estimated",
+       "uncertainty": 10
+      },
+      {
+       "key": "loads",
+       "name": "квазистатические нагрузки",
+       "unit": "1",
+       "required_to": "SDR",
+       "maturity_class": "estimated",
+       "uncertainty": 10
+      },
+      {
+       "key": "sep_shock",
+       "name": "удар отделения",
+       "unit": "1",
+       "required_to": "SDR",
+       "maturity_class": "estimated",
+       "uncertainty": 10
+      }
+     ]
+    },
+    "PDR": {
+     "facets": [
+      "product_versions",
+      "test_plan",
+      "icd_signed"
+     ],
+     "params": []
+    }
+   },
+   "typical_functions": [],
+   "typical_interfaces": [
+    "IF-PL-MECH",
+    "IF-SC-LV"
+   ],
+   "models": [
+    "М6"
+   ],
+   "standards": [
+    "ECSS-E-ST-32C"
+   ],
+   "verification": [
+    "анализ",
+    "испытание"
+   ],
+   "typical_risks": [
+    "отказ раскрытия",
+    "резонанс с РН"
+   ]
+  },
+  {
+   "code": "TC-EPS",
+   "name": "СЭП — система электропитания",
+   "applies_to_pbs": [
+    "EPS",
+    "EPS-PCU",
+    "EPS-DCDC",
+    "EPS-PDU",
+    "EPS-SENS"
+   ],
+   "nature": "node",
+   "ladder": {
+    "MCR": {
+     "facets": [
+      "identity",
+      "trl",
+      "models",
+      "risks"
+     ],
+     "params": [
+      {
+       "key": "mass",
+       "name": "масса",
+       "unit": "кг",
+       "required_to": "MCR",
+       "maturity_class": "estimated",
+       "uncertainty": 30
+      },
+      {
+       "key": "bus_voltage",
+       "name": "напряжение шины",
+       "unit": "В",
+       "required_to": "MCR",
+       "maturity_class": "off_the_shelf",
+       "uncertainty": 30
+      },
+      {
+       "key": "power_avg",
+       "name": "мощность средняя",
+       "unit": "Вт",
+       "required_to": "MCR",
+       "maturity_class": "estimated",
+       "uncertainty": 30
+      }
+     ]
+    },
+    "SRR": {
+     "facets": [
+      "interfaces",
+      "functions",
+      "requirements",
+      "questionnaire",
+      "standards",
+      "supplier"
+     ],
+     "params": [
+      {
+       "key": "power_peak",
+       "name": "мощность пиковая",
+       "unit": "Вт",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      },
+      {
+       "key": "eclipse_max",
+       "name": "тень максимальная",
+       "unit": "мин",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      }
+     ]
+    },
+    "SDR": {
+     "facets": [
+      "exchange_items(data ifaces)",
+      "budgets",
+      "verification_methods",
+      "configuration_item"
+     ],
+     "params": [
+      {
+       "key": "eff_pcu",
+       "name": "КПД регулирования",
+       "unit": "1",
+       "required_to": "SDR",
+       "maturity_class": "estimated",
+       "uncertainty": 10
+      },
+      {
+       "key": "eff_dcdc",
+       "name": "КПД ВИП",
+       "unit": "1",
+       "required_to": "SDR",
+       "maturity_class": "estimated",
+       "uncertainty": 10
+      },
+      {
+       "key": "n_channels",
+       "name": "каналов распределения",
+       "unit": "шт",
+       "required_to": "SDR",
+       "maturity_class": "estimated",
+       "uncertainty": 10
+      }
+     ]
+    },
+    "PDR": {
+     "facets": [
+      "product_versions",
+      "test_plan",
+      "icd_signed"
+     ],
+     "params": []
+    }
+   },
+   "typical_functions": [
+    "F-14"
+   ],
+   "typical_interfaces": [
+    "IF-PWR-BUS",
+    "IF-PL-PWR",
+    "IF-EPS-TCS"
+   ],
+   "models": [
+    "М4"
+   ],
+   "standards": [
+    "ECSS-E-ST-20C"
+   ],
+   "verification": [
+    "анализ",
+    "испытание"
+   ],
+   "typical_risks": [
+    "DoD выше допустимого в худшем β",
+    "деградация СБ к EOL"
+   ]
+  },
+  {
+   "code": "TC-SA",
+   "name": "Солнечные батареи",
+   "applies_to_pbs": [
+    "EPS-SA",
+    "EPS-SA-PANEL",
+    "EPS-SA-CELL",
+    "EPS-SA-SHUNT"
+   ],
+   "nature": "node",
+   "ladder": {
+    "MCR": {
+     "facets": [
+      "identity",
+      "trl",
+      "models",
+      "risks"
+     ],
+     "params": [
+      {
+       "key": "area",
+       "name": "площадь",
+       "unit": "м²",
+       "required_to": "MCR",
+       "maturity_class": "estimated",
+       "uncertainty": 30
+      },
+      {
+       "key": "power_bol",
+       "name": "мощность BOL",
+       "unit": "Вт",
+       "required_to": "MCR",
+       "maturity_class": "estimated",
+       "uncertainty": 30
+      },
+      {
+       "key": "orient",
+       "name": "ориентируемые/фиксированные",
+       "unit": "1",
+       "required_to": "MCR",
+       "maturity_class": "estimated",
+       "uncertainty": 30
+      }
+     ]
+    },
+    "SRR": {
+     "facets": [
+      "interfaces",
+      "functions",
+      "requirements",
+      "questionnaire",
+      "standards",
+      "supplier"
+     ],
+     "params": [
+      {
+       "key": "eff",
+       "name": "КПД ФЭП",
+       "unit": "1",
+       "required_to": "SRR",
+       "maturity_class": "off_the_shelf",
+       "uncertainty": 20
+      },
+      {
+       "key": "mass",
+       "name": "масса",
+       "unit": "кг",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      }
+     ]
+    },
+    "SDR": {
+     "facets": [
+      "exchange_items(data ifaces)",
+      "budgets",
+      "verification_methods",
+      "configuration_item"
+     ],
+     "params": [
+      {
+       "key": "power_eol",
+       "name": "мощность EOL",
+       "unit": "Вт",
+       "required_to": "SDR",
+       "maturity_class": "estimated",
+       "uncertainty": 10
+      }
+     ]
+    },
+    "PDR": {
+     "facets": [
+      "product_versions",
+      "test_plan",
+      "icd_signed"
+     ],
+     "params": []
+    }
+   },
+   "typical_functions": [
+    "F-14"
+   ],
+   "typical_interfaces": [
+    "IF-PWR-BUS"
+   ],
+   "models": [
+    "М4",
+    "М6"
+   ],
+   "standards": [
+    "ECSS-E-ST-20-08C"
+   ],
+   "verification": [
+    "анализ",
+    "испытание"
+   ],
+   "typical_risks": [
+    "деградация под радиацией"
+   ]
+  },
+  {
+   "code": "TC-BAT",
+   "name": "Аккумуляторные батареи",
+   "applies_to_pbs": [
+    "EPS-BAT",
+    "EPS-BAT-PACK",
+    "EPS-BAT-BMS"
+   ],
+   "nature": "node",
+   "ladder": {
+    "MCR": {
+     "facets": [
+      "identity",
+      "trl",
+      "models",
+      "risks"
+     ],
+     "params": [
+      {
+       "key": "capacity",
+       "name": "ёмкость",
+       "unit": "А·ч",
+       "required_to": "MCR",
+       "maturity_class": "estimated",
+       "uncertainty": 30
+      },
+      {
+       "key": "voltage",
+       "name": "напряжение",
+       "unit": "В",
+       "required_to": "MCR",
+       "maturity_class": "off_the_shelf",
+       "uncertainty": 30
+      }
+     ]
+    },
+    "SRR": {
+     "facets": [
+      "interfaces",
+      "functions",
+      "requirements",
+      "questionnaire",
+      "standards",
+      "supplier"
+     ],
+     "params": [
+      {
+       "key": "dod",
+       "name": "глубина разряда",
+       "unit": "1",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      },
+      {
+       "key": "cycles",
+       "name": "ресурс, циклов",
+       "unit": "шт",
+       "required_to": "SRR",
+       "maturity_class": "off_the_shelf",
+       "uncertainty": 20
+      },
+      {
+       "key": "mass",
+       "name": "масса",
+       "unit": "кг",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      }
+     ]
+    },
+    "SDR": {
+     "facets": [
+      "exchange_items(data ifaces)",
+      "budgets",
+      "verification_methods",
+      "configuration_item"
+     ],
+     "params": [
+      {
+       "key": "t_range",
+       "name": "температуры хранения/работы",
+       "unit": "°C",
+       "required_to": "SDR",
+       "maturity_class": "estimated",
+       "uncertainty": 10
+      }
+     ]
+    },
+    "PDR": {
+     "facets": [
+      "product_versions",
+      "test_plan",
+      "icd_signed"
+     ],
+     "params": []
+    }
+   },
+   "typical_functions": [
+    "F-14"
+   ],
+   "typical_interfaces": [
+    "IF-EPS-TCS"
+   ],
+   "models": [
+    "М4",
+    "М5"
+   ],
+   "standards": [
+    "ECSS-E-ST-20-06C"
+   ],
+   "verification": [
+    "испытание"
+   ],
+   "typical_risks": [
+    "ресурс циклов на низких орбитах"
+   ]
+  },
+  {
+   "code": "TC-TCS",
+   "name": "СТР — терморегулирование",
+   "applies_to_pbs": [
+    "TCS",
+    "TCS-MLI",
+    "TCS-COAT",
+    "TCS-RAD",
+    "TCS-HP",
+    "TCS-HEAT",
+    "TCS-SENS"
+   ],
+   "nature": "node",
+   "ladder": {
+    "MCR": {
+     "facets": [
+      "identity",
+      "trl",
+      "models",
+      "risks"
+     ],
+     "params": [
+      {
+       "key": "t_range_op",
+       "name": "рабочий диапазон",
+       "unit": "°C",
+       "required_to": "MCR",
+       "maturity_class": "estimated",
+       "uncertainty": 30
+      }
+     ]
+    },
+    "SRR": {
+     "facets": [
+      "interfaces",
+      "functions",
+      "requirements",
+      "questionnaire",
+      "standards",
+      "supplier"
+     ],
+     "params": [
+      {
+       "key": "mass",
+       "name": "масса",
+       "unit": "кг",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      }
+     ]
+    },
+    "SDR": {
+     "facets": [
+      "exchange_items(data ifaces)",
+      "budgets",
+      "verification_methods",
+      "configuration_item"
+     ],
+     "params": [
+      {
+       "key": "heater_power",
+       "name": "мощность нагревателей",
+       "unit": "Вт",
+       "required_to": "SDR",
+       "maturity_class": "estimated",
+       "uncertainty": 10
+      },
+      {
+       "key": "rad_area",
+       "name": "площадь радиаторов",
+       "unit": "м²",
+       "required_to": "SDR",
+       "maturity_class": "estimated",
+       "uncertainty": 10
+      }
+     ]
+    },
+    "PDR": {
+     "facets": [
+      "product_versions",
+      "test_plan",
+      "icd_signed"
+     ],
+     "params": []
+    }
+   },
+   "typical_functions": [
+    "F-15"
+   ],
+   "typical_interfaces": [
+    "IF-PL-THERM",
+    "IF-EPS-TCS",
+    "IF-SC-ENV"
+   ],
+   "models": [
+    "М5"
+   ],
+   "standards": [
+    "ECSS-E-ST-31C"
+   ],
+   "verification": [
+    "анализ",
+    "испытание"
+   ],
+   "typical_risks": [
+    "горячий случай при β=0"
+   ]
+  },
+  {
+   "code": "TC-AOCS",
+   "name": "СОС — ориентация и стабилизация",
+   "applies_to_pbs": [
+    "AOCS",
+    "AOCS-STR",
+    "AOCS-SUN",
+    "AOCS-MAG",
+    "AOCS-GYRO",
+    "AOCS-GNSS",
+    "AOCS-RW",
+    "AOCS-MTQ"
+   ],
+   "nature": "node",
+   "ladder": {
+    "MCR": {
+     "facets": [
+      "identity",
+      "trl",
+      "models",
+      "risks"
+     ],
+     "params": [
+      {
+       "key": "pointing_acc",
+       "name": "точность ориентации",
+       "unit": "°",
+       "required_to": "MCR",
+       "maturity_class": "estimated",
+       "uncertainty": 30
+      }
+     ]
+    },
+    "SRR": {
+     "facets": [
+      "interfaces",
+      "functions",
+      "requirements",
+      "questionnaire",
+      "standards",
+      "supplier"
+     ],
+     "params": [
+      {
+       "key": "slew_rate",
+       "name": "скорость разворота",
+       "unit": "°/с",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      },
+      {
+       "key": "modes",
+       "name": "число режимов",
+       "unit": "шт",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      },
+      {
+       "key": "mass",
+       "name": "масса",
+       "unit": "кг",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      },
+      {
+       "key": "power_avg",
+       "name": "мощность",
+       "unit": "Вт",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      }
+     ]
+    },
+    "SDR": {
+     "facets": [
+      "exchange_items(data ifaces)",
+      "budgets",
+      "verification_methods",
+      "configuration_item"
+     ],
+     "params": [
+      {
+       "key": "stability",
+       "name": "стабилизация",
+       "unit": "°/с",
+       "required_to": "SDR",
+       "maturity_class": "estimated",
+       "uncertainty": 10
+      },
+      {
+       "key": "rw_torque",
+       "name": "момент маховиков",
+       "unit": "Н·м",
+       "required_to": "SDR",
+       "maturity_class": "estimated",
+       "uncertainty": 10
+      },
+      {
+       "key": "rw_momentum",
+       "name": "кинетический момент",
+       "unit": "1",
+       "required_to": "SDR",
+       "maturity_class": "estimated",
+       "uncertainty": 10
+      }
+     ]
+    },
+    "PDR": {
+     "facets": [
+      "product_versions",
+      "test_plan",
+      "icd_signed"
+     ],
+     "params": []
+    }
+   },
+   "typical_functions": [
+    "F-11"
+   ],
+   "typical_interfaces": [
+    "IF-DATA-BUS",
+    "IF-AOCS-PROP"
+   ],
+   "models": [
+    "М7"
+   ],
+   "standards": [
+    "ECSS-E-ST-60-10C"
+   ],
+   "verification": [
+    "анализ",
+    "испытание"
+   ],
+   "typical_risks": [
+    "насыщение маховиков",
+    "аномалия ГНСС на высоких широтах"
+   ]
+  },
+  {
+   "code": "TC-OBC",
+   "name": "БКУ — бортовой комплекс (железо)",
+   "applies_to_pbs": [
+    "OBC",
+    "OBC-CPU",
+    "OBC-MEM",
+    "OBC-BUS",
+    "OBC-TIME"
+   ],
+   "nature": "node",
+   "ladder": {
+    "MCR": {
+     "facets": [
+      "identity",
+      "trl",
+      "models",
+      "risks"
+     ],
+     "params": [
+      {
+       "key": "storage",
+       "name": "ЗУ данных",
+       "unit": "МБ",
+       "required_to": "MCR",
+       "maturity_class": "estimated",
+       "uncertainty": 30
+      }
+     ]
+    },
+    "SRR": {
+     "facets": [
+      "interfaces",
+      "functions",
+      "requirements",
+      "questionnaire",
+      "standards",
+      "supplier"
+     ],
+     "params": [
+      {
+       "key": "cpu",
+       "name": "вычислительная мощность",
+       "unit": "1",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      },
+      {
+       "key": "ram",
+       "name": "ОЗУ",
+       "unit": "МБ",
+       "required_to": "SRR",
+       "maturity_class": "off_the_shelf",
+       "uncertainty": 20
+      },
+      {
+       "key": "rad_tol",
+       "name": "радстойкость TID",
+       "unit": "крад",
+       "required_to": "SRR",
+       "maturity_class": "off_the_shelf",
+       "uncertainty": 20
+      },
+      {
+       "key": "bus",
+       "name": "тип шины",
+       "unit": "1",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      },
+      {
+       "key": "mass",
+       "name": "масса",
+       "unit": "кг",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      },
+      {
+       "key": "power",
+       "name": "мощность",
+       "unit": "Вт",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      }
+     ]
+    },
+    "SDR": {
+     "facets": [
+      "exchange_items(data ifaces)",
+      "budgets",
+      "verification_methods",
+      "configuration_item"
+     ],
+     "params": []
+    },
+    "PDR": {
+     "facets": [
+      "product_versions",
+      "test_plan",
+      "icd_signed"
+     ],
+     "params": []
+    }
+   },
+   "typical_functions": [],
+   "typical_interfaces": [
+    "IF-DATA-BUS",
+    "IF-TTC-OBC",
+    "IF-PL-DATA"
+   ],
+   "models": [
+    "М3б",
+    "М8"
+   ],
+   "standards": [
+    "ECSS-E-ST-50-12C"
+   ],
+   "verification": [
+    "испытание"
+   ],
+   "typical_risks": [
+    "SEU без ECC"
+   ]
+  },
+  {
+   "code": "TC-OBC-SW",
+   "name": "ПО управления КА",
+   "applies_to_pbs": [
+    "OBC-SW"
+   ],
+   "nature": "behaviour",
+   "ladder": {
+    "MCR": {
+     "facets": [
+      "identity",
+      "functions(list)",
+      "criticality",
+      "trl"
+     ],
+     "params": [
+      {
+       "key": "criticality",
+       "name": "категория критичности",
+       "unit": "1",
+       "required_to": "MCR",
+       "maturity_class": "estimated",
+       "uncertainty": 30
+      }
+     ]
+    },
+    "SRR": {
+     "facets": [
+      "deployed_on",
+      "interfaces(data)",
+      "resources_params",
+      "standards",
+      "supplier"
+     ],
+     "params": [
+      {
+       "key": "cpu_load_avg",
+       "name": "загрузка CPU средняя",
+       "unit": "1",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      },
+      {
+       "key": "ram",
+       "name": "ОЗУ",
+       "unit": "МБ",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      },
+      {
+       "key": "rom",
+       "name": "ПЗУ",
+       "unit": "МБ",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      },
+      {
+       "key": "modes",
+       "name": "число режимов",
+       "unit": "шт",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      },
+      {
+       "key": "autonomy_days",
+       "name": "автономность без НКУ",
+       "unit": "сут",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      }
+     ]
+    },
+    "SDR": {
+     "facets": [
+      "state_machine",
+      "exchange_items",
+      "budget_compute",
+      "verification(SIL/HIL)",
+      "configuration_item"
+     ],
+     "params": [
+      {
+       "key": "cpu_load_peak",
+       "name": "загрузка CPU пиковая",
+       "unit": "1",
+       "required_to": "SDR",
+       "maturity_class": "estimated",
+       "uncertainty": 10
+      },
+      {
+       "key": "cycle_ms",
+       "name": "цикл управления",
+       "unit": "мс",
+       "required_to": "SDR",
+       "maturity_class": "estimated",
+       "uncertainty": 10
+      },
+      {
+       "key": "kloc",
+       "name": "объём кода",
+       "unit": "тыс. строк",
+       "required_to": "SDR",
+       "maturity_class": "estimated",
+       "uncertainty": 10
+      }
+     ]
+    },
+    "PDR": {
+     "facets": [
+      "product_versions",
+      "wcet",
+      "icd_signed"
+     ],
+     "params": []
+    }
+   },
+   "typical_functions": [
+    "F-09",
+    "F-10",
+    "F-16",
+    "F-11",
+    "F-12",
+    "F-08"
+   ],
+   "typical_interfaces": [
+    "IF-DATA-BUS",
+    "IF-TTC-OBC",
+    "IF-PL-DATA",
+    "IF-AOCS-PROP"
+   ],
+   "models": [
+    "М7",
+    "М3г",
+    "М14"
+   ],
+   "standards": [
+    "ECSS-E-ST-40C",
+    "ECSS-Q-ST-80C",
+    "ГОСТ Р 51904"
+   ],
+   "verification": [
+    "инспекция",
+    "анализ(WCET)",
+    "испытание(SIL/HIL)"
+   ],
+   "typical_risks": [
+    "недооценка CPU в целевом режиме",
+    "SEU → зависание без watchdog"
+   ]
+  },
+  {
+   "code": "TC-PROP",
+   "name": "ДУ — двигательная установка",
+   "applies_to_pbs": [
+    "PROP",
+    "PROP-THR",
+    "PROP-TANK",
+    "PROP-VALVE",
+    "PROP-PPU"
+   ],
+   "nature": "node",
+   "ladder": {
+    "MCR": {
+     "facets": [
+      "identity",
+      "trl",
+      "models",
+      "risks"
+     ],
+     "params": [
+      {
+       "key": "type",
+       "name": "тип ДУ",
+       "unit": "1",
+       "required_to": "MCR",
+       "maturity_class": "estimated",
+       "uncertainty": 30
+      },
+      {
+       "key": "delta_v_total",
+       "name": "Δv суммарный",
+       "unit": "м/с",
+       "required_to": "MCR",
+       "maturity_class": "estimated",
+       "uncertainty": 30
+      }
+     ]
+    },
+    "SRR": {
+     "facets": [
+      "interfaces",
+      "functions",
+      "requirements",
+      "questionnaire",
+      "standards",
+      "supplier"
+     ],
+     "params": [
+      {
+       "key": "thrust",
+       "name": "тяга",
+       "unit": "мН",
+       "required_to": "SRR",
+       "maturity_class": "off_the_shelf",
+       "uncertainty": 20
+      },
+      {
+       "key": "isp",
+       "name": "удельный импульс",
+       "unit": "с",
+       "required_to": "SRR",
+       "maturity_class": "off_the_shelf",
+       "uncertainty": 20
+      },
+      {
+       "key": "propellant_mass",
+       "name": "масса топлива",
+       "unit": "кг",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      },
+      {
+       "key": "power_thrust",
+       "name": "потребление при работе",
+       "unit": "Вт",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      }
+     ]
+    },
+    "SDR": {
+     "facets": [
+      "exchange_items(data ifaces)",
+      "budgets",
+      "verification_methods",
+      "configuration_item"
+     ],
+     "params": [
+      {
+       "key": "tank_volume",
+       "name": "объём баков",
+       "unit": "л",
+       "required_to": "SDR",
+       "maturity_class": "estimated",
+       "uncertainty": 10
+      }
+     ]
+    },
+    "PDR": {
+     "facets": [
+      "product_versions",
+      "test_plan",
+      "icd_signed"
+     ],
+     "params": []
+    }
+   },
+   "typical_functions": [
+    "F-12",
+    "F-13"
+   ],
+   "typical_interfaces": [
+    "IF-AOCS-PROP",
+    "IF-PWR-BUS"
+   ],
+   "models": [
+    "М10",
+    "М6",
+    "М4"
+   ],
+   "standards": [
+    "ECSS-E-ST-35C"
+   ],
+   "verification": [
+    "анализ",
+    "испытание"
+   ],
+   "typical_risks": [
+    "Δv увода недостаточен",
+    "ЭРД и энергетика в тени"
+   ]
+  },
+  {
+   "code": "TC-TTC",
+   "name": "КТРЛ — командно-телеметрическая радиолиния",
+   "applies_to_pbs": [
+    "TTC",
+    "TTC-TRX",
+    "TTC-ANT-OMNI",
+    "TTC-ANT-DIR",
+    "TTC-PA"
+   ],
+   "nature": "node",
+   "ladder": {
+    "MCR": {
+     "facets": [
+      "identity",
+      "trl",
+      "models",
+      "risks"
+     ],
+     "params": [
+      {
+       "key": "band",
+       "name": "диапазон",
+       "unit": "МГц",
+       "required_to": "MCR",
+       "maturity_class": "off_the_shelf",
+       "uncertainty": 30
+      }
+     ]
+    },
+    "SRR": {
+     "facets": [
+      "interfaces",
+      "functions",
+      "requirements",
+      "questionnaire",
+      "standards",
+      "supplier"
+     ],
+     "params": [
+      {
+       "key": "tx_power",
+       "name": "мощность передатчика",
+       "unit": "Вт",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      },
+      {
+       "key": "sensitivity",
+       "name": "чувствительность",
+       "unit": "дБм",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      },
+      {
+       "key": "tm_rate",
+       "name": "скорость ТМ",
+       "unit": "бит/с",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      },
+      {
+       "key": "tc_rate",
+       "name": "скорость команд",
+       "unit": "бит/с",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      },
+      {
+       "key": "crypto",
+       "name": "защита команд",
+       "unit": "1",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      },
+      {
+       "key": "mass",
+       "name": "масса",
+       "unit": "кг",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      },
+      {
+       "key": "power",
+       "name": "мощность",
+       "unit": "Вт",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      }
+     ]
+    },
+    "SDR": {
+     "facets": [
+      "exchange_items(data ifaces)",
+      "budgets",
+      "verification_methods",
+      "configuration_item"
+     ],
+     "params": []
+    },
+    "PDR": {
+     "facets": [
+      "product_versions",
+      "test_plan",
+      "icd_signed"
+     ],
+     "params": []
+    }
+   },
+   "typical_functions": [
+    "F-09",
+    "F-10"
+   ],
+   "typical_interfaces": [
+    "IF-TTC",
+    "IF-TTC-OBC"
+   ],
+   "models": [
+    "М2в",
+    "М3г"
+   ],
+   "standards": [
+    "CCSDS TM/TC",
+    "ECSS-E-ST-50C"
+   ],
+   "verification": [
+    "испытание"
+   ],
+   "typical_risks": [
+    "аварийный линк без запаса"
+   ]
+  },
+  {
+   "code": "TC-HARN",
+   "name": "БКС — бортовая кабельная сеть",
+   "applies_to_pbs": [
+    "HARN",
+    "HARN-CABLE",
+    "HARN-CONN",
+    "HARN-EMC"
+   ],
+   "nature": "node",
+   "ladder": {
+    "MCR": {
+     "facets": [
+      "identity",
+      "trl",
+      "models",
+      "risks"
+     ],
+     "params": []
+    },
+    "SRR": {
+     "facets": [
+      "interfaces",
+      "functions",
+      "requirements",
+      "questionnaire",
+      "standards",
+      "supplier"
+     ],
+     "params": []
+    },
+    "SDR": {
+     "facets": [
+      "exchange_items(data ifaces)",
+      "budgets",
+      "verification_methods",
+      "configuration_item"
+     ],
+     "params": [
+      {
+       "key": "mass",
+       "name": "масса",
+       "unit": "кг",
+       "required_to": "SDR",
+       "maturity_class": "estimated",
+       "uncertainty": 10
+      }
+     ]
+    },
+    "PDR": {
+     "facets": [
+      "product_versions",
+      "test_plan",
+      "icd_signed"
+     ],
+     "params": []
+    }
+   },
+   "typical_functions": [],
+   "typical_interfaces": [
+    "IF-PWR-BUS",
+    "IF-DATA-BUS"
+   ],
+   "models": [
+    "М6"
+   ],
+   "standards": [
+    "ECSS-E-ST-20-07C (ЭМС)"
+   ],
+   "verification": [
+    "инспекция",
+    "испытание"
+   ],
+   "typical_risks": [
+    "ЭМС между ПН и платформой"
+   ]
+  },
+  {
+   "code": "TC-PL-S",
+   "name": "БРТК-S — абонентский комплекс",
+   "applies_to_pbs": [
+    "PL-S",
+    "PL-S-RX",
+    "PL-S-TX",
+    "PL-S-DSP",
+    "PL-S-LO"
+   ],
+   "nature": "node",
+   "ladder": {
+    "MCR": {
+     "facets": [
+      "identity",
+      "trl",
+      "models",
+      "risks"
+     ],
+     "params": [
+      {
+       "key": "band",
+       "name": "диапазон",
+       "unit": "МГц",
+       "required_to": "MCR",
+       "maturity_class": "off_the_shelf",
+       "uncertainty": 30
+      },
+      {
+       "key": "sensitivity",
+       "name": "чувствительность",
+       "unit": "дБм",
+       "required_to": "MCR",
+       "maturity_class": "estimated",
+       "uncertainty": 30
+      },
+      {
+       "key": "channels",
+       "name": "каналов приёма",
+       "unit": "шт",
+       "required_to": "MCR",
+       "maturity_class": "estimated",
+       "uncertainty": 30
+      },
+      {
+       "key": "rate",
+       "name": "скорость канала",
+       "unit": "бит/с",
+       "required_to": "MCR",
+       "maturity_class": "estimated",
+       "uncertainty": 30
+      },
+      {
+       "key": "mass",
+       "name": "масса",
+       "unit": "кг",
+       "required_to": "MCR",
+       "maturity_class": "estimated",
+       "uncertainty": 30
+      },
+      {
+       "key": "power_avg",
+       "name": "потребление среднее",
+       "unit": "Вт",
+       "required_to": "MCR",
+       "maturity_class": "estimated",
+       "uncertainty": 30
+      }
+     ]
+    },
+    "SRR": {
+     "facets": [
+      "interfaces",
+      "functions",
+      "requirements",
+      "questionnaire",
+      "standards",
+      "supplier"
+     ],
+     "params": [
+      {
+       "key": "eirp",
+       "name": "EIRP",
+       "unit": "дБВт",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      },
+      {
+       "key": "buffer",
+       "name": "буфер сообщений",
+       "unit": "МБ",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      },
+      {
+       "key": "power_peak",
+       "name": "потребление пиковое",
+       "unit": "Вт",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      }
+     ]
+    },
+    "SDR": {
+     "facets": [
+      "exchange_items(data ifaces)",
+      "budgets",
+      "verification_methods",
+      "configuration_item"
+     ],
+     "params": []
+    },
+    "PDR": {
+     "facets": [
+      "product_versions",
+      "test_plan",
+      "icd_signed"
+     ],
+     "params": []
+    }
+   },
+   "typical_functions": [
+    "F-01",
+    "F-02",
+    "F-03",
+    "F-04",
+    "F-08"
+   ],
+   "typical_interfaces": [
+    "IF-S-USER",
+    "IF-PL-PWR",
+    "IF-PL-DATA",
+    "IF-PL-THERM",
+    "IF-PL-MECH"
+   ],
+   "models": [
+    "М2а",
+    "М3а",
+    "М3б",
+    "М4",
+    "М6"
+   ],
+   "standards": [
+    "ГОСТ Р 71168-2023",
+    "ПНСТ 921-2024",
+    "ПНСТ 996-2024"
+   ],
+   "verification": [
+    "испытание",
+    "анализ"
+   ],
+   "typical_risks": [
+    "доплер на 550 км ломает LR-FHSS",
+    "ёмкость каналов в пиковых масках"
+   ]
+  },
+  {
+   "code": "TC-PL-SW",
+   "name": "ПО полезной нагрузки",
+   "applies_to_pbs": [
+    "PL-S-DSP"
+   ],
+   "nature": "behaviour",
+   "ladder": {
+    "MCR": {
+     "facets": [
+      "identity",
+      "functions(list)",
+      "criticality",
+      "trl"
+     ],
+     "params": [
+      {
+       "key": "criticality",
+       "name": "категория критичности",
+       "unit": "1",
+       "required_to": "MCR",
+       "maturity_class": "estimated",
+       "uncertainty": 30
+      }
+     ]
+    },
+    "SRR": {
+     "facets": [
+      "deployed_on",
+      "interfaces(data)",
+      "resources_params",
+      "standards",
+      "supplier"
+     ],
+     "params": [
+      {
+       "key": "ram",
+       "name": "ОЗУ",
+       "unit": "МБ",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      },
+      {
+       "key": "buffer",
+       "name": "буфер сообщений",
+       "unit": "МБ",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      },
+      {
+       "key": "modes",
+       "name": "число режимов",
+       "unit": "шт",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      }
+     ]
+    },
+    "SDR": {
+     "facets": [
+      "state_machine",
+      "exchange_items",
+      "budget_compute",
+      "verification(SIL/HIL)",
+      "configuration_item"
+     ],
+     "params": [
+      {
+       "key": "cpu_load_peak",
+       "name": "загрузка CPU пиковая",
+       "unit": "1",
+       "required_to": "SDR",
+       "maturity_class": "estimated",
+       "uncertainty": 10
+      }
+     ]
+    },
+    "PDR": {
+     "facets": [
+      "product_versions",
+      "wcet",
+      "icd_signed"
+     ],
+     "params": []
+    }
+   },
+   "typical_functions": [
+    "F-01",
+    "F-02",
+    "F-03",
+    "F-04",
+    "F-05",
+    "F-08"
+   ],
+   "typical_interfaces": [
+    "IF-PL-DATA",
+    "IF-S-USER",
+    "IF-C-FEED"
+   ],
+   "models": [
+    "М3а",
+    "М3б"
+   ],
+   "standards": [
+    "ECSS-E-ST-40C"
+   ],
+   "verification": [
+    "инспекция",
+    "испытание(SIL)"
+   ],
+   "typical_risks": [
+    "переполнение буфера при пиках класса C′"
+   ]
+  },
+  {
+   "code": "TC-PL-FEED",
+   "name": "Фидерная радиолиния C",
+   "applies_to_pbs": [
+    "PL-FEED"
+   ],
+   "nature": "node",
+   "ladder": {
+    "MCR": {
+     "facets": [
+      "identity",
+      "trl",
+      "models",
+      "risks"
+     ],
+     "params": [
+      {
+       "key": "band",
+       "name": "диапазон",
+       "unit": "МГц",
+       "required_to": "MCR",
+       "maturity_class": "off_the_shelf",
+       "uncertainty": 30
+      }
+     ]
+    },
+    "SRR": {
+     "facets": [
+      "interfaces",
+      "functions",
+      "requirements",
+      "questionnaire",
+      "standards",
+      "supplier"
+     ],
+     "params": [
+      {
+       "key": "rate",
+       "name": "пропускная способность",
+       "unit": "бит/с",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      },
+      {
+       "key": "eirp",
+       "name": "EIRP",
+       "unit": "дБВт",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      },
+      {
+       "key": "mass",
+       "name": "масса",
+       "unit": "кг",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      },
+      {
+       "key": "power",
+       "name": "мощность",
+       "unit": "Вт",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      }
+     ]
+    },
+    "SDR": {
+     "facets": [
+      "exchange_items(data ifaces)",
+      "budgets",
+      "verification_methods",
+      "configuration_item"
+     ],
+     "params": []
+    },
+    "PDR": {
+     "facets": [
+      "product_versions",
+      "test_plan",
+      "icd_signed"
+     ],
+     "params": []
+    }
+   },
+   "typical_functions": [
+    "F-05"
+   ],
+   "typical_interfaces": [
+    "IF-C-FEED"
+   ],
+   "models": [
+    "М2б",
+    "М3в"
+   ],
+   "standards": [],
+   "verification": [
+    "испытание"
+   ],
+   "typical_risks": [
+    "нехватка сеансов сброса в севере"
+   ]
+  },
+  {
+   "code": "TC-PL-ANT",
+   "name": "АФУ полезной нагрузки",
+   "applies_to_pbs": [
+    "PL-ANT",
+    "PL-ANT-S",
+    "PL-ANT-C",
+    "PL-ANT-DPX"
+   ],
+   "nature": "node",
+   "ladder": {
+    "MCR": {
+     "facets": [
+      "identity",
+      "trl",
+      "models",
+      "risks"
+     ],
+     "params": [
+      {
+       "key": "mass",
+       "name": "масса",
+       "unit": "кг",
+       "required_to": "MCR",
+       "maturity_class": "estimated",
+       "uncertainty": 30
+      },
+      {
+       "key": "deploy",
+       "name": "раскрываемая",
+       "unit": "1",
+       "required_to": "MCR",
+       "maturity_class": "estimated",
+       "uncertainty": 30
+      }
+     ]
+    },
+    "SRR": {
+     "facets": [
+      "interfaces",
+      "functions",
+      "requirements",
+      "questionnaire",
+      "standards",
+      "supplier"
+     ],
+     "params": [
+      {
+       "key": "gain_s",
+       "name": "усиление S",
+       "unit": "дБи",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      },
+      {
+       "key": "gain_c",
+       "name": "усиление C",
+       "unit": "дБи",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      },
+      {
+       "key": "beam",
+       "name": "ширина луча",
+       "unit": "°",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      }
+     ]
+    },
+    "SDR": {
+     "facets": [
+      "exchange_items(data ifaces)",
+      "budgets",
+      "verification_methods",
+      "configuration_item"
+     ],
+     "params": [
+      {
+       "key": "align",
+       "name": "юстировка",
+       "unit": "°",
+       "required_to": "SDR",
+       "maturity_class": "estimated",
+       "uncertainty": 10
+      }
+     ]
+    },
+    "PDR": {
+     "facets": [
+      "product_versions",
+      "test_plan",
+      "icd_signed"
+     ],
+     "params": []
+    }
+   },
+   "typical_functions": [],
+   "typical_interfaces": [
+    "IF-S-USER",
+    "IF-C-FEED",
+    "IF-PL-MECH"
+   ],
+   "models": [
+    "М2а",
+    "М2б",
+    "М6"
+   ],
+   "standards": [],
+   "verification": [
+    "испытание"
+   ],
+   "typical_risks": [
+    "раскрытие антенны"
+   ]
+  },
+  {
+   "code": "TC-PL-ISL",
+   "name": "МБРК — межспутниковая радиолиния",
+   "applies_to_pbs": [
+    "PL-ISL"
+   ],
+   "nature": "node",
+   "ladder": {
+    "MCR": {
+     "facets": [
+      "identity",
+      "trl",
+      "models",
+      "risks"
+     ],
+     "params": []
+    },
+    "SRR": {
+     "facets": [
+      "interfaces",
+      "functions",
+      "requirements",
+      "questionnaire",
+      "standards",
+      "supplier"
+     ],
+     "params": [
+      {
+       "key": "mass",
+       "name": "масса",
+       "unit": "кг",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      },
+      {
+       "key": "power",
+       "name": "мощность",
+       "unit": "Вт",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      }
+     ]
+    },
+    "SDR": {
+     "facets": [
+      "exchange_items(data ifaces)",
+      "budgets",
+      "verification_methods",
+      "configuration_item"
+     ],
+     "params": [
+      {
+       "key": "band",
+       "name": "диапазон",
+       "unit": "МГц",
+       "required_to": "SDR",
+       "maturity_class": "estimated",
+       "uncertainty": 10
+      },
+      {
+       "key": "rate",
+       "name": "пропускная способность",
+       "unit": "бит/с",
+       "required_to": "SDR",
+       "maturity_class": "estimated",
+       "uncertainty": 10
+      },
+      {
+       "key": "range_max",
+       "name": "дальность",
+       "unit": "км",
+       "required_to": "SDR",
+       "maturity_class": "estimated",
+       "uncertainty": 10
+      },
+      {
+       "key": "pointing",
+       "name": "наведение",
+       "unit": "1",
+       "required_to": "SDR",
+       "maturity_class": "estimated",
+       "uncertainty": 10
+      }
+     ]
+    },
+    "PDR": {
+     "facets": [
+      "product_versions",
+      "test_plan",
+      "icd_signed"
+     ],
+     "params": []
+    }
+   },
+   "typical_functions": [
+    "F-22"
+   ],
+   "typical_interfaces": [
+    "IF-ISL"
+   ],
+   "models": [
+    "М2г",
+    "М3д"
+   ],
+   "standards": [],
+   "verification": [
+    "испытание"
+   ],
+   "typical_risks": [
+    "наведение при относительном движении плоскостей"
+   ]
+  },
+  {
+   "code": "TC-PL-PNT",
+   "name": "Модуль PNT",
+   "applies_to_pbs": [
+    "PL-PNT"
+   ],
+   "nature": "node",
+   "ladder": {
+    "MCR": {
+     "facets": [
+      "identity",
+      "trl",
+      "models",
+      "risks"
+     ],
+     "params": []
+    },
+    "SRR": {
+     "facets": [
+      "interfaces",
+      "functions",
+      "requirements",
+      "questionnaire",
+      "standards",
+      "supplier"
+     ],
+     "params": [
+      {
+       "key": "mass",
+       "name": "масса",
+       "unit": "кг",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      },
+      {
+       "key": "power",
+       "name": "мощность",
+       "unit": "Вт",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      }
+     ]
+    },
+    "SDR": {
+     "facets": [
+      "exchange_items(data ifaces)",
+      "budgets",
+      "verification_methods",
+      "configuration_item"
+     ],
+     "params": [
+      {
+       "key": "clock_stability",
+       "name": "стабильность опорного генератора",
+       "unit": "1",
+       "required_to": "SDR",
+       "maturity_class": "estimated",
+       "uncertainty": 10
+      },
+      {
+       "key": "band",
+       "name": "диапазон",
+       "unit": "МГц",
+       "required_to": "SDR",
+       "maturity_class": "estimated",
+       "uncertainty": 10
+      }
+     ]
+    },
+    "PDR": {
+     "facets": [
+      "product_versions",
+      "test_plan",
+      "icd_signed"
+     ],
+     "params": []
+    }
+   },
+   "typical_functions": [
+    "F-23"
+   ],
+   "typical_interfaces": [
+    "IF-PNT-USER"
+   ],
+   "models": [],
+   "standards": [],
+   "verification": [
+    "испытание"
+   ],
+   "typical_risks": [
+    "конфликт с регуляторикой навигационных сигналов"
+   ]
+  },
+  {
+   "code": "TC-MCC",
+   "name": "ЦУП — центр управления полётом",
+   "applies_to_pbs": [
+    "MCC",
+    "MCC-FD",
+    "MCC-PLAN",
+    "MCC-TM",
+    "MCC-TC",
+    "MCC-SIM"
+   ],
+   "nature": "node",
+   "ladder": {
+    "MCR": {
+     "facets": [
+      "identity",
+      "site_or_count",
+      "capacity_rough"
+     ],
+     "params": [
+      {
+       "key": "sats_per_operator",
+       "name": "КА на оператора",
+       "unit": "шт",
+       "required_to": "MCR",
+       "maturity_class": "estimated",
+       "uncertainty": 30
+      }
+     ]
+    },
+    "SRR": {
+     "facets": [
+      "interfaces",
+      "functions",
+      "params",
+      "standards"
+     ],
+     "params": [
+      {
+       "key": "ops_shifts",
+       "name": "состав смен",
+       "unit": "1",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      },
+      {
+       "key": "plan_horizon",
+       "name": "горизонт планирования",
+       "unit": "сут",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      }
+     ]
+    },
+    "SDR": {
+     "facets": [
+      "availability",
+      "redundancy",
+      "staffing",
+      "exchange_items"
+     ],
+     "params": [
+      {
+       "key": "availability",
+       "name": "доступность",
+       "unit": "1",
+       "required_to": "SDR",
+       "maturity_class": "estimated",
+       "uncertainty": 10
+      }
+     ]
+    },
+    "PDR": {
+     "facets": [
+      "procurement",
+      "acceptance_tests"
+     ],
+     "params": []
+    }
+   },
+   "typical_functions": [
+    "F-17",
+    "F-18",
+    "F-19"
+   ],
+   "typical_interfaces": [
+    "IF-GCS-MCC",
+    "IF-MCC-NOC",
+    "IF-MCC-EPH",
+    "IF-OPS-HMI"
+   ],
+   "models": [
+    "М14",
+    "М1"
+   ],
+   "standards": [
+    "ECSS-E-ST-70C"
+   ],
+   "verification": [
+    "демонстрация",
+    "испытание"
+   ],
+   "typical_risks": [
+    "ручное управление 150 КА невозможно"
+   ]
+  },
+  {
+   "code": "TC-MCC-SW",
+   "name": "ПО ЦУП (планирование, ТМ, командование)",
+   "applies_to_pbs": [
+    "MCC-PLAN",
+    "MCC-TM",
+    "MCC-TC"
+   ],
+   "nature": "behaviour",
+   "ladder": {
+    "MCR": {
+     "facets": [
+      "identity",
+      "functions(list)",
+      "criticality",
+      "trl"
+     ],
+     "params": [
+      {
+       "key": "criticality",
+       "name": "категория критичности",
+       "unit": "1",
+       "required_to": "MCR",
+       "maturity_class": "estimated",
+       "uncertainty": 30
+      }
+     ]
+    },
+    "SRR": {
+     "facets": [
+      "deployed_on",
+      "interfaces(data)",
+      "resources_params",
+      "standards",
+      "supplier"
+     ],
+     "params": [
+      {
+       "key": "throughput_tm",
+       "name": "обработка ТМ",
+       "unit": "бит/с",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      },
+      {
+       "key": "modes",
+       "name": "режимы работы",
+       "unit": "шт",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      }
+     ]
+    },
+    "SDR": {
+     "facets": [
+      "state_machine",
+      "exchange_items",
+      "budget_compute",
+      "verification(SIL/HIL)",
+      "configuration_item"
+     ],
+     "params": [
+      {
+       "key": "availability",
+       "name": "доступность",
+       "unit": "1",
+       "required_to": "SDR",
+       "maturity_class": "estimated",
+       "uncertainty": 10
+      }
+     ]
+    },
+    "PDR": {
+     "facets": [
+      "product_versions",
+      "wcet",
+      "icd_signed"
+     ],
+     "params": []
+    }
+   },
+   "typical_functions": [
+    "F-17",
+    "F-18",
+    "F-19"
+   ],
+   "typical_interfaces": [
+    "IF-GCS-MCC",
+    "IF-MCC-NOC"
+   ],
+   "models": [
+    "М14",
+    "М3г"
+   ],
+   "standards": [
+    "ECSS-E-ST-40C"
+   ],
+   "verification": [
+    "испытание"
+   ],
+   "typical_risks": [
+    "ИБ контура командования"
+   ]
+  },
+  {
+   "code": "TC-GCS",
+   "name": "Станция НКУ",
+   "applies_to_pbs": [
+    "GCS",
+    "GCS-ANT",
+    "GCS-RF",
+    "GCS-MODEM",
+    "GCS-SRV"
+   ],
+   "nature": "node",
+   "ladder": {
+    "MCR": {
+     "facets": [
+      "identity",
+      "site_or_count",
+      "capacity_rough"
+     ],
+     "params": [
+      {
+       "key": "elev_min",
+       "name": "минимальный угол места",
+       "unit": "°",
+       "required_to": "MCR",
+       "maturity_class": "estimated",
+       "uncertainty": 30
+      },
+      {
+       "key": "count",
+       "name": "число станций",
+       "unit": "шт",
+       "required_to": "MCR",
+       "maturity_class": "estimated",
+       "uncertainty": 30
+      }
+     ]
+    },
+    "SRR": {
+     "facets": [
+      "interfaces",
+      "functions",
+      "params",
+      "standards"
+     ],
+     "params": [
+      {
+       "key": "g_t",
+       "name": "добротность G/T",
+       "unit": "дБ/К",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      },
+      {
+       "key": "eirp",
+       "name": "EIRP",
+       "unit": "дБВт",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      },
+      {
+       "key": "diameter",
+       "name": "диаметр антенны",
+       "unit": "м",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      }
+     ]
+    },
+    "SDR": {
+     "facets": [
+      "availability",
+      "redundancy",
+      "staffing",
+      "exchange_items"
+     ],
+     "params": [
+      {
+       "key": "availability",
+       "name": "доступность",
+       "unit": "1",
+       "required_to": "SDR",
+       "maturity_class": "estimated",
+       "uncertainty": 10
+      }
+     ]
+    },
+    "PDR": {
+     "facets": [
+      "procurement",
+      "acceptance_tests"
+     ],
+     "params": []
+    }
+   },
+   "typical_functions": [],
+   "typical_interfaces": [
+    "IF-TTC",
+    "IF-GCS-MCC"
+   ],
+   "models": [
+    "М2в",
+    "М12",
+    "М3г"
+   ],
+   "standards": [
+    "CCSDS SLE"
+   ],
+   "verification": [
+    "испытание"
+   ],
+   "typical_risks": [
+    "высокоширотные площадки и логистика"
+   ]
+  },
+  {
+   "code": "TC-GW",
+   "name": "РСС — станция сопряжения",
+   "applies_to_pbs": [
+    "GW",
+    "GW-ANT",
+    "GW-RF",
+    "GW-GATE"
+   ],
+   "nature": "node",
+   "ladder": {
+    "MCR": {
+     "facets": [
+      "identity",
+      "site_or_count",
+      "capacity_rough"
+     ],
+     "params": [
+      {
+       "key": "site",
+       "name": "площадка",
+       "unit": "°",
+       "required_to": "MCR",
+       "maturity_class": "estimated",
+       "uncertainty": 30
+      },
+      {
+       "key": "count",
+       "name": "число РСС",
+       "unit": "шт",
+       "required_to": "MCR",
+       "maturity_class": "estimated",
+       "uncertainty": 30
+      }
+     ]
+    },
+    "SRR": {
+     "facets": [
+      "interfaces",
+      "functions",
+      "params",
+      "standards"
+     ],
+     "params": [
+      {
+       "key": "g_t",
+       "name": "G/T",
+       "unit": "дБ/К",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      },
+      {
+       "key": "capacity",
+       "name": "пропускная способность",
+       "unit": "бит/с",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      }
+     ]
+    },
+    "SDR": {
+     "facets": [
+      "availability",
+      "redundancy",
+      "staffing",
+      "exchange_items"
+     ],
+     "params": [
+      {
+       "key": "availability",
+       "name": "доступность",
+       "unit": "1",
+       "required_to": "SDR",
+       "maturity_class": "estimated",
+       "uncertainty": 10
+      }
+     ]
+    },
+    "PDR": {
+     "facets": [
+      "procurement",
+      "acceptance_tests"
+     ],
+     "params": []
+    }
+   },
+   "typical_functions": [
+    "F-06"
+   ],
+   "typical_interfaces": [
+    "IF-C-FEED",
+    "IF-GW-DC"
+   ],
+   "models": [
+    "М2б",
+    "М3в",
+    "М12"
+   ],
+   "standards": [],
+   "verification": [
+    "испытание"
+   ],
+   "typical_risks": [
+    "латентность севера при малом числе РСС"
+   ]
+  },
+  {
+   "code": "TC-DC",
+   "name": "ЦОД и ядро сети",
+   "applies_to_pbs": [
+    "DC",
+    "DC-STORE",
+    "DC-PROC",
+    "DC-API",
+    "NOC",
+    "NOC-SUB",
+    "NOC-BILL",
+    "NOC-MON",
+    "NET-WAN"
+   ],
+   "nature": "node",
+   "ladder": {
+    "MCR": {
+     "facets": [
+      "identity",
+      "site_or_count",
+      "capacity_rough"
+     ],
+     "params": [
+      {
+       "key": "availability",
+       "name": "доступность",
+       "unit": "1",
+       "required_to": "MCR",
+       "maturity_class": "estimated",
+       "uncertainty": 30
+      },
+      {
+       "key": "subscribers",
+       "name": "абонентов",
+       "unit": "шт",
+       "required_to": "MCR",
+       "maturity_class": "estimated",
+       "uncertainty": 30
+      }
+     ]
+    },
+    "SRR": {
+     "facets": [
+      "interfaces",
+      "functions",
+      "params",
+      "standards"
+     ],
+     "params": [
+      {
+       "key": "storage",
+       "name": "объём хранения",
+       "unit": "ГБ",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      },
+      {
+       "key": "latency",
+       "name": "латентность плеча",
+       "unit": "мс",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      }
+     ]
+    },
+    "SDR": {
+     "facets": [
+      "availability",
+      "redundancy",
+      "staffing",
+      "exchange_items"
+     ],
+     "params": [
+      {
+       "key": "growth",
+       "name": "рост хранения в год",
+       "unit": "ГБ",
+       "required_to": "SDR",
+       "maturity_class": "estimated",
+       "uncertainty": 10
+      }
+     ]
+    },
+    "PDR": {
+     "facets": [
+      "procurement",
+      "acceptance_tests"
+     ],
+     "params": []
+    }
+   },
+   "typical_functions": [
+    "F-07",
+    "F-20",
+    "F-21"
+   ],
+   "typical_interfaces": [
+    "IF-GW-DC",
+    "IF-DC-USER",
+    "IF-DC-EXT",
+    "IF-MCC-NOC"
+   ],
+   "models": [
+    "М3е",
+    "М14"
+   ],
+   "standards": [
+    "187-ФЗ",
+    "ГОСТ Р 57580"
+   ],
+   "verification": [
+    "демонстрация",
+    "инспекция(ИБ)"
+   ],
+   "typical_risks": [
+    "компрометация ключей",
+    "отказ ССПД"
+   ]
+  },
+  {
+   "code": "TC-DC-SW",
+   "name": "ПО платформы связности (API, биллинг, маршрутизация)",
+   "applies_to_pbs": [
+    "DC-PROC",
+    "DC-API",
+    "NOC-SUB",
+    "NOC-BILL",
+    "NOC-MON"
+   ],
+   "nature": "behaviour",
+   "ladder": {
+    "MCR": {
+     "facets": [
+      "identity",
+      "functions(list)",
+      "criticality",
+      "trl"
+     ],
+     "params": [
+      {
+       "key": "criticality",
+       "name": "категория критичности",
+       "unit": "1",
+       "required_to": "MCR",
+       "maturity_class": "estimated",
+       "uncertainty": 30
+      },
+      {
+       "key": "api_availability",
+       "name": "доступность API",
+       "unit": "1",
+       "required_to": "MCR",
+       "maturity_class": "estimated",
+       "uncertainty": 30
+      }
+     ]
+    },
+    "SRR": {
+     "facets": [
+      "deployed_on",
+      "interfaces(data)",
+      "resources_params",
+      "standards",
+      "supplier"
+     ],
+     "params": [
+      {
+       "key": "tps",
+       "name": "обработка сообщений",
+       "unit": "1/с",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      },
+      {
+       "key": "modes",
+       "name": "режимы",
+       "unit": "шт",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      }
+     ]
+    },
+    "SDR": {
+     "facets": [
+      "state_machine",
+      "exchange_items",
+      "budget_compute",
+      "verification(SIL/HIL)",
+      "configuration_item"
+     ],
+     "params": []
+    },
+    "PDR": {
+     "facets": [
+      "product_versions",
+      "wcet",
+      "icd_signed"
+     ],
+     "params": []
+    }
+   },
+   "typical_functions": [
+    "F-07",
+    "F-20",
+    "F-21"
+   ],
+   "typical_interfaces": [
+    "IF-DC-USER",
+    "IF-DC-EXT",
+    "IF-GW-DC"
+   ],
+   "models": [
+    "М3е"
+   ],
+   "standards": [
+    "ГОСТ Р 57580",
+    "187-ФЗ"
+   ],
+   "verification": [
+    "испытание",
+    "инспекция(ИБ)"
+   ],
+   "typical_risks": [
+    "корректность биллинга",
+    "SLA API"
+   ]
+  },
+  {
+   "code": "TC-UT-SENS",
+   "name": "Терминал датчиковый (батарейный)",
+   "applies_to_pbs": [
+    "UT-SENS"
+   ],
+   "nature": "node",
+   "ladder": {
+    "MCR": {
+     "facets": [
+      "identity",
+      "class",
+      "link_params",
+      "battery",
+      "cost_target"
+     ],
+     "params": [
+      {
+       "key": "class",
+       "name": "класс терминала",
+       "unit": "1",
+       "required_to": "MCR",
+       "maturity_class": "estimated",
+       "uncertainty": 30
+      },
+      {
+       "key": "eirp",
+       "name": "EIRP",
+       "unit": "дБВт",
+       "required_to": "MCR",
+       "maturity_class": "estimated",
+       "uncertainty": 30
+      },
+      {
+       "key": "sensitivity",
+       "name": "чувствительность",
+       "unit": "дБм",
+       "required_to": "MCR",
+       "maturity_class": "estimated",
+       "uncertainty": 30
+      },
+      {
+       "key": "battery",
+       "name": "ёмкость батареи",
+       "unit": "А·ч",
+       "required_to": "MCR",
+       "maturity_class": "estimated",
+       "uncertainty": 30
+      },
+      {
+       "key": "cost",
+       "name": "стоимость в партии",
+       "unit": "млн ₽",
+       "required_to": "MCR",
+       "maturity_class": "estimated",
+       "uncertainty": 30
+      }
+     ]
+    },
+    "SRR": {
+     "facets": [
+      "interfaces(sensor)",
+      "protocol",
+      "autonomy",
+      "standards"
+     ],
+     "params": [
+      {
+       "key": "autonomy",
+       "name": "автономность",
+       "unit": "год",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      },
+      {
+       "key": "mass",
+       "name": "масса",
+       "unit": "кг",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      },
+      {
+       "key": "ip",
+       "name": "защита корпуса",
+       "unit": "1",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      },
+      {
+       "key": "t_range",
+       "name": "температуры",
+       "unit": "°C",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      }
+     ]
+    },
+    "SDR": {
+     "facets": [
+      "session_energy(M13)",
+      "certification_path",
+      "exchange_items"
+     ],
+     "params": []
+    },
+    "PDR": {
+     "facets": [
+      "bom_cost",
+      "measured_energy"
+     ],
+     "params": []
+    }
+   },
+   "typical_functions": [
+    "F-24",
+    "F-25"
+   ],
+   "typical_interfaces": [
+    "IF-S-USER",
+    "IF-UT-SENSOR"
+   ],
+   "models": [
+    "М13",
+    "М2а",
+    "М3а"
+   ],
+   "standards": [
+    "ТР ТС 018/2011",
+    "ГОСТ Р 71168-2023"
+   ],
+   "verification": [
+    "испытание",
+    "инспекция(сертификат)"
+   ],
+   "typical_risks": [
+    "не достигнута автономность/цена"
+   ]
+  },
+  {
+   "code": "TC-UT-MOB",
+   "name": "Терминал мобильный (транспорт)",
+   "applies_to_pbs": [
+    "UT-MOB",
+    "UT-UNI",
+    "UT-FIX"
+   ],
+   "nature": "node",
+   "ladder": {
+    "MCR": {
+     "facets": [
+      "identity",
+      "class",
+      "link_params",
+      "battery",
+      "cost_target"
+     ],
+     "params": [
+      {
+       "key": "class",
+       "name": "класс терминала",
+       "unit": "1",
+       "required_to": "MCR",
+       "maturity_class": "estimated",
+       "uncertainty": 30
+      },
+      {
+       "key": "eirp",
+       "name": "EIRP",
+       "unit": "дБВт",
+       "required_to": "MCR",
+       "maturity_class": "estimated",
+       "uncertainty": 30
+      },
+      {
+       "key": "sensitivity",
+       "name": "чувствительность",
+       "unit": "дБм",
+       "required_to": "MCR",
+       "maturity_class": "estimated",
+       "uncertainty": 30
+      },
+      {
+       "key": "cost",
+       "name": "стоимость",
+       "unit": "млн ₽",
+       "required_to": "MCR",
+       "maturity_class": "estimated",
+       "uncertainty": 30
+      }
+     ]
+    },
+    "SRR": {
+     "facets": [
+      "interfaces(sensor)",
+      "protocol",
+      "autonomy",
+      "standards"
+     ],
+     "params": [
+      {
+       "key": "power_ext",
+       "name": "внешнее питание",
+       "unit": "В",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      },
+      {
+       "key": "cert",
+       "name": "сертификация ТР ТС/ЭРА-ГЛОНАСС",
+       "unit": "1",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      }
+     ]
+    },
+    "SDR": {
+     "facets": [
+      "session_energy(M13)",
+      "certification_path",
+      "exchange_items"
+     ],
+     "params": []
+    },
+    "PDR": {
+     "facets": [
+      "bom_cost",
+      "measured_energy"
+     ],
+     "params": []
+    }
+   },
+   "typical_functions": [
+    "F-24",
+    "F-25"
+   ],
+   "typical_interfaces": [
+    "IF-S-USER",
+    "IF-UT-SENSOR"
+   ],
+   "models": [
+    "М2а",
+    "М3а"
+   ],
+   "standards": [
+    "ТР ТС 018/2011",
+    "ПП №2216"
+   ],
+   "verification": [
+    "испытание",
+    "инспекция"
+   ],
+   "typical_risks": [
+    "интеграция с ЭРА-ГЛОНАСС не сертифицируется"
+   ]
+  },
+  {
+   "code": "TC-UT-SW",
+   "name": "ПО терминала (модем, планировщик сеансов)",
+   "applies_to_pbs": [
+    "UT-SENS-MODEM",
+    "UT-MOB-MODEM"
+   ],
+   "nature": "behaviour",
+   "ladder": {
+    "MCR": {
+     "facets": [
+      "identity",
+      "functions(list)",
+      "criticality",
+      "trl"
+     ],
+     "params": [
+      {
+       "key": "criticality",
+       "name": "категория критичности",
+       "unit": "1",
+       "required_to": "MCR",
+       "maturity_class": "estimated",
+       "uncertainty": 30
+      }
+     ]
+    },
+    "SRR": {
+     "facets": [
+      "deployed_on",
+      "interfaces(data)",
+      "resources_params",
+      "standards",
+      "supplier"
+     ],
+     "params": [
+      {
+       "key": "almanac_size",
+       "name": "размер альманаха",
+       "unit": "байт",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      },
+      {
+       "key": "modes",
+       "name": "режимы",
+       "unit": "шт",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      }
+     ]
+    },
+    "SDR": {
+     "facets": [
+      "state_machine",
+      "exchange_items",
+      "budget_compute",
+      "verification(SIL/HIL)",
+      "configuration_item"
+     ],
+     "params": [
+      {
+       "key": "session_energy",
+       "name": "энергоцена сеанса",
+       "unit": "Вт·ч",
+       "required_to": "SDR",
+       "maturity_class": "estimated",
+       "uncertainty": 10
+      }
+     ]
+    },
+    "PDR": {
+     "facets": [
+      "product_versions",
+      "wcet",
+      "icd_signed"
+     ],
+     "params": []
+    }
+   },
+   "typical_functions": [
+    "F-24",
+    "F-25"
+   ],
+   "typical_interfaces": [
+    "IF-S-USER",
+    "IF-MCC-EPH"
+   ],
+   "models": [
+    "М13",
+    "М2а"
+   ],
+   "standards": [],
+   "verification": [
+    "испытание"
+   ],
+   "typical_risks": [
+    "планирование сеансов без альманаха"
+   ]
+  },
+  {
+   "code": "TC-LV",
+   "name": "Ракета-носитель (внешний)",
+   "applies_to_pbs": [
+    "LV"
+   ],
+   "nature": "node",
+   "ladder": {
+    "MCR": {
+     "facets": [
+      "identity",
+      "constraint_refs"
+     ],
+     "params": [
+      {
+       "key": "type",
+       "name": "тип РН",
+       "unit": "1",
+       "required_to": "MCR",
+       "maturity_class": "off_the_shelf",
+       "uncertainty": 30
+      },
+      {
+       "key": "payload_mass",
+       "name": "масса на орбиту",
+       "unit": "кг",
+       "required_to": "MCR",
+       "maturity_class": "off_the_shelf",
+       "uncertainty": 30
+      }
+     ]
+    },
+    "SRR": {
+     "facets": [
+      "interfaces",
+      "icd_draft"
+     ],
+     "params": [
+      {
+       "key": "fairing",
+       "name": "обтекатель",
+       "unit": "м",
+       "required_to": "SRR",
+       "maturity_class": "off_the_shelf",
+       "uncertainty": 20
+      }
+     ]
+    },
+    "SDR": {
+     "facets": [
+      "icd",
+      "loads"
+     ],
+     "params": [
+      {
+       "key": "loads",
+       "name": "нагрузки",
+       "unit": "1",
+       "required_to": "SDR",
+       "maturity_class": "off_the_shelf",
+       "uncertainty": 10
+      }
+     ]
+    },
+    "PDR": {
+     "facets": [
+      "contract"
+     ],
+     "params": []
+    }
+   },
+   "typical_functions": [],
+   "typical_interfaces": [
+    "IF-SC-LV",
+    "IF-LAUNCH-ORG"
+   ],
+   "models": [
+    "М6",
+    "М11"
+   ],
+   "standards": [
+    "ICD носителя"
+   ],
+   "verification": [
+    "инспекция"
+   ],
+   "typical_risks": [
+    "пусковые окна"
+   ]
+  },
+  {
+   "code": "TC-LV-ADAPT",
+   "name": "Адаптер / диспенсер",
+   "applies_to_pbs": [
+    "LV-ADAPT",
+    "STR-SEP"
+   ],
+   "nature": "node",
+   "ladder": {
+    "MCR": {
+     "facets": [
+      "identity",
+      "trl",
+      "models",
+      "risks"
+     ],
+     "params": []
+    },
+    "SRR": {
+     "facets": [
+      "interfaces",
+      "functions",
+      "requirements",
+      "questionnaire",
+      "standards",
+      "supplier"
+     ],
+     "params": [
+      {
+       "key": "n_sat_per_launch",
+       "name": "КА за пуск",
+       "unit": "шт",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      },
+      {
+       "key": "mass",
+       "name": "масса",
+       "unit": "кг",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      }
+     ]
+    },
+    "SDR": {
+     "facets": [
+      "exchange_items(data ifaces)",
+      "budgets",
+      "verification_methods",
+      "configuration_item"
+     ],
+     "params": [
+      {
+       "key": "sep_shock",
+       "name": "удар отделения",
+       "unit": "1",
+       "required_to": "SDR",
+       "maturity_class": "estimated",
+       "uncertainty": 10
+      }
+     ]
+    },
+    "PDR": {
+     "facets": [
+      "product_versions",
+      "test_plan",
+      "icd_signed"
+     ],
+     "params": []
+    }
+   },
+   "typical_functions": [],
+   "typical_interfaces": [
+    "IF-SC-LV"
+   ],
+   "models": [
+    "М6",
+    "М11"
+   ],
+   "standards": [],
+   "verification": [
+    "испытание"
+   ],
+   "typical_risks": [
+    "ударные нагрузки"
+   ]
+  },
+  {
+   "code": "TC-SUP-TEST",
+   "name": "Наземная экспериментальная база",
+   "applies_to_pbs": [
+    "SUP-TEST"
+   ],
+   "nature": "node",
+   "ladder": {
+    "MCR": {
+     "facets": [
+      "identity",
+      "site_or_count",
+      "capacity_rough"
+     ],
+     "params": []
+    },
+    "SRR": {
+     "facets": [
+      "interfaces",
+      "functions",
+      "params",
+      "standards"
+     ],
+     "params": [
+      {
+       "key": "capabilities",
+       "name": "виды испытаний",
+       "unit": "1",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      }
+     ]
+    },
+    "SDR": {
+     "facets": [
+      "availability",
+      "redundancy",
+      "staffing",
+      "exchange_items"
+     ],
+     "params": [
+      {
+       "key": "throughput",
+       "name": "КА в месяц",
+       "unit": "шт",
+       "required_to": "SDR",
+       "maturity_class": "estimated",
+       "uncertainty": 10
+      }
+     ]
+    },
+    "PDR": {
+     "facets": [
+      "procurement",
+      "acceptance_tests"
+     ],
+     "params": []
+    }
+   },
+   "typical_functions": [],
+   "typical_interfaces": [],
+   "models": [
+    "М11"
+   ],
+   "standards": [
+    "ECSS-E-ST-10-03C"
+   ],
+   "verification": [
+    "инспекция"
+   ],
+   "typical_risks": [
+    "пропускная способность AIT на серию"
+   ]
+  },
+  {
+   "code": "TC-SUP-IT",
+   "name": "ИТ-инфраструктура и ИБ",
+   "applies_to_pbs": [
+    "SUP-IT"
+   ],
+   "nature": "node",
+   "ladder": {
+    "MCR": {
+     "facets": [
+      "identity",
+      "site_or_count",
+      "capacity_rough"
+     ],
+     "params": []
+    },
+    "SRR": {
+     "facets": [
+      "interfaces",
+      "functions",
+      "params",
+      "standards"
+     ],
+     "params": [
+      {
+       "key": "availability",
+       "name": "доступность",
+       "unit": "1",
+       "required_to": "SRR",
+       "maturity_class": "estimated",
+       "uncertainty": 20
+      }
+     ]
+    },
+    "SDR": {
+     "facets": [
+      "availability",
+      "redundancy",
+      "staffing",
+      "exchange_items"
+     ],
+     "params": [
+      {
+       "key": "certification",
+       "name": "аттестация КИИ",
+       "unit": "1",
+       "required_to": "SDR",
+       "maturity_class": "estimated",
+       "uncertainty": 10
+      }
+     ]
+    },
+    "PDR": {
+     "facets": [
+      "procurement",
+      "acceptance_tests"
+     ],
+     "params": []
+    }
+   },
+   "typical_functions": [],
+   "typical_interfaces": [
+    "IF-DC-EXT"
+   ],
+   "models": [],
+   "standards": [
+    "187-ФЗ",
+    "ГОСТ Р 57580"
+   ],
+   "verification": [
+    "инспекция"
+   ],
+   "typical_risks": [
+    "аттестация не в срок"
+   ]
+  }
+ ],
+ "summary": {
+  "templates": 31,
+  "params": 171,
+  "by_role": {
+   "node": 26,
+   "behaviour": 5
+  }
+ }
+}

@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/v2/scene.schema.json",
+  "title": "scene",
+  "description": "сцена — вид 20 слоя L1. Сцена рождения: по шаблону. СГЕНЕРИРОВАНО tools/v2/gen_schemas.py из docs/tz/v2/СХЕМЫ-ПОЛЕЙ-V2.yaml — руками не править",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "стабильный внутренний"
+    },
+    "code": {
+      "type": "string",
+      "description": "человеческий, переименуемый"
+    },
+    "kind": {
+      "type": "string",
+      "description": "ссылка на вид: kind"
+    },
+    "area": {
+      "enum": [
+        "library",
+        "project:id"
+      ]
+    },
+    "born_in": {
+      "type": "string",
+      "description": "ссылка на вид: scene проектная область; библиотека — null"
+    },
+    "status": {
+      "type": "string",
+      "description": "enum по статусной модели вида"
+    },
+    "version": {
+      "type": "integer",
+      "description": "битемпорально"
+    },
+    "provenance": {
+      "type": "object",
+      "description": "{channel*:enum[manual,package,service,shelf,import,example], author*:ref account, source?:ref, anchor?:str, fingerprint?:str}"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "notes": {
+      "type": "string",
+      "description": "не печатается"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "phase": {
+      "type": "string",
+      "description": "ссылка на вид: phase"
+    },
+    "template_key": {
+      "type": "string"
+    },
+    "responsible": {
+      "type": "string",
+      "description": "ссылка на вид: account"
+    },
+    "plan": {
+      "type": "object",
+      "description": "{start,end}"
+    },
+    "output_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "заполняется каналами"
+    },
+    "node": {
+      "type": "string",
+      "description": "ссылка на вид: component для сцен instantiate_per segment|element"
+    }
+  },
+  "required": [
+    "id",
+    "code",
+    "kind",
+    "area",
+    "born_in",
+    "status",
+    "version",
+    "provenance",
+    "created_at",
+    "updated_at",
+    "phase",
+    "template_key"
+  ]
+}

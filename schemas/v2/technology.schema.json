@@ -1,0 +1,118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/v2/technology.schema.json",
+  "title": "technology",
+  "description": "технология / TRL — вид 53 слоя L3. Сцена рождения: 10, A7. СГЕНЕРИРОВАНО tools/v2/gen_schemas.py из docs/tz/v2/СХЕМЫ-ПОЛЕЙ-V2.yaml — руками не править",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "стабильный внутренний"
+    },
+    "code": {
+      "type": "string",
+      "description": "человеческий, переименуемый"
+    },
+    "kind": {
+      "type": "string",
+      "description": "ссылка на вид: kind"
+    },
+    "area": {
+      "enum": [
+        "library",
+        "project:id"
+      ]
+    },
+    "born_in": {
+      "type": "string",
+      "description": "ссылка на вид: scene проектная область; библиотека — null"
+    },
+    "status": {
+      "type": "string",
+      "description": "enum по статусной модели вида"
+    },
+    "version": {
+      "type": "integer",
+      "description": "битемпорально"
+    },
+    "provenance": {
+      "type": "object",
+      "description": "{channel*:enum[manual,package,service,shelf,import,example], author*:ref account, source?:ref, anchor?:str, fingerprint?:str}"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "notes": {
+      "type": "string",
+      "description": "не печатается"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "name": {
+      "type": "string"
+    },
+    "component": {
+      "type": "string",
+      "description": "ссылка на вид: component"
+    },
+    "trl_current": {
+      "description": "int 1–9"
+    },
+    "trl_required": {
+      "description": "int 1–9"
+    },
+    "required_by": {
+      "type": "string",
+      "description": "ссылка на вид: gate"
+    },
+    "gap_plan": {
+      "type": "string"
+    },
+    "fallback": {
+      "type": "string"
+    },
+    "maturation_package": {
+      "type": "string",
+      "description": "ссылка на вид: wbs_package обязателен при trl_current<trl_required к SDR"
+    },
+    "milestone": {
+      "type": "string",
+      "description": "ссылка на вид: gate (kind=technology)"
+    },
+    "fallback_component": {
+      "type": "string",
+      "description": "ссылка на вид: component узел-резерв"
+    },
+    "decision_criteria": {
+      "type": "string",
+      "description": "критерии перехода на резерв (Прил. 5)"
+    }
+  },
+  "required": [
+    "id",
+    "code",
+    "kind",
+    "area",
+    "born_in",
+    "status",
+    "version",
+    "provenance",
+    "created_at",
+    "updated_at",
+    "name",
+    "component",
+    "trl_current",
+    "trl_required",
+    "required_by"
+  ]
+}

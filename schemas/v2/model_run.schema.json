@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/v2/model_run.schema.json",
+  "title": "model_run",
+  "description": "выход расчёта — вид 57 слоя L4. Сцена рождения: при расчёте. СГЕНЕРИРОВАНО tools/v2/gen_schemas.py из docs/tz/v2/СХЕМЫ-ПОЛЕЙ-V2.yaml — руками не править",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "стабильный внутренний"
+    },
+    "code": {
+      "type": "string",
+      "description": "человеческий, переименуемый"
+    },
+    "kind": {
+      "type": "string",
+      "description": "ссылка на вид: kind"
+    },
+    "area": {
+      "enum": [
+        "library",
+        "project:id"
+      ]
+    },
+    "born_in": {
+      "type": "string",
+      "description": "ссылка на вид: scene проектная область; библиотека — null"
+    },
+    "status": {
+      "type": "string",
+      "description": "enum по статусной модели вида"
+    },
+    "version": {
+      "type": "integer"
+    },
+    "provenance": {
+      "type": "object",
+      "description": "{channel*:enum[manual,package,service,shelf,import,example], author*:ref account, source?:ref, anchor?:str, fingerprint?:str}"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "notes": {
+      "type": "string",
+      "description": "не печатается"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "model": {
+      "type": "string",
+      "description": "ссылка на вид: system_model"
+    },
+    "inputs_snapshot": {
+      "description": "произвольная структура (json)"
+    },
+    "outputs": {
+      "description": "[{key*,measure*}] ≥1"
+    },
+    "tool": {
+      "type": "string"
+    },
+    "proxy": {
+      "type": "boolean"
+    },
+    "at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "by": {
+      "type": "string",
+      "description": "ссылка на вид: account"
+    }
+  },
+  "required": [
+    "id",
+    "code",
+    "kind",
+    "area",
+    "born_in",
+    "status",
+    "version",
+    "provenance",
+    "created_at",
+    "updated_at",
+    "model",
+    "version",
+    "inputs_snapshot",
+    "outputs",
+    "tool",
+    "proxy",
+    "at",
+    "by"
+  ]
+}

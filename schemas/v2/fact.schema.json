@@ -1,0 +1,160 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/v2/fact.schema.json",
+  "title": "fact",
+  "description": "атомарный факт — вид 83 слоя L2. Сцена рождения: загрузка. СГЕНЕРИРОВАНО tools/v2/gen_schemas.py из docs/tz/v2/СХЕМЫ-ПОЛЕЙ-V2.yaml — руками не править",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "стабильный внутренний"
+    },
+    "code": {
+      "type": "string",
+      "description": "человеческий, переименуемый"
+    },
+    "kind": {
+      "enum": [
+        "quantity",
+        "capability",
+        "obligation",
+        "framing",
+        "event",
+        "relation",
+        "assessment",
+        "assumption"
+      ]
+    },
+    "area": {
+      "enum": [
+        "library",
+        "project:id"
+      ]
+    },
+    "born_in": {
+      "type": "string",
+      "description": "ссылка на вид: scene проектная область; библиотека — null"
+    },
+    "status": {
+      "type": "string",
+      "description": "enum по статусной модели вида"
+    },
+    "version": {
+      "type": "integer",
+      "description": "битемпорально"
+    },
+    "provenance": {
+      "type": "object",
+      "description": "{channel*:enum[manual,package,service,shelf,import,example], author*:ref account, source?:ref, anchor?:str, fingerprint?:str}"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "notes": {
+      "type": "string",
+      "description": "не печатается"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "subject": {
+      "type": "object",
+      "description": "{ref?:ref entity, topic?:ref topic} ровно одно из двух"
+    },
+    "predicate": {
+      "type": "string"
+    },
+    "value": {
+      "$ref": "https://kis.local/schemas/v2/_measure.schema.json"
+    },
+    "source": {
+      "type": "object",
+      "description": "{material*,anchor*}"
+    },
+    "source_mark": {
+      "enum": [
+        "И",
+        "В",
+        "П"
+      ]
+    },
+    "evidence": {
+      "enum": [
+        "claimed",
+        "corroborated",
+        "measured",
+        "assumed"
+      ]
+    },
+    "confidence": {
+      "description": "num 0–1"
+    },
+    "as_of": {
+      "type": "string",
+      "format": "date"
+    },
+    "valid_until": {
+      "type": "string",
+      "format": "date"
+    },
+    "disposition": {
+      "enum": [
+        "free",
+        "noted",
+        "assumed",
+        "adopted",
+        "rejected",
+        "contested",
+        "superseded"
+      ]
+    },
+    "disposition_decision": {
+      "type": "object",
+      "description": "{by*,at*,reason*,gate?} обязателен при любой диспозиции кроме free"
+    },
+    "assumption": {
+      "type": "object",
+      "description": "{owner*,confirm_by*:ref gate,validation*,impact_if_wrong*} обязателен при disposition=assumed"
+    },
+    "classification": {
+      "enum": [
+        "open",
+        "dsp",
+        "commercial"
+      ],
+      "description": "наследуется от источника"
+    }
+  },
+  "required": [
+    "id",
+    "code",
+    "kind",
+    "area",
+    "born_in",
+    "status",
+    "version",
+    "provenance",
+    "created_at",
+    "updated_at",
+    "kind",
+    "subject",
+    "predicate",
+    "value",
+    "source",
+    "source_mark",
+    "evidence",
+    "confidence",
+    "as_of",
+    "disposition",
+    "classification"
+  ]
+}

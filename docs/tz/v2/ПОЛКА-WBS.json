@@ -1,0 +1,675 @@
+{
+ "kind": "wbs_template",
+ "code": "WBS-9002",
+ "version": 1,
+ "title": "Типовой WBS космического проекта (NPR 7120.5 прил. G, адаптация) с парами к PBS",
+ "rules": [
+  "L1 — стандартные элементы; 01–04, 10, 12 — сквозные (без узлов PBS)",
+  "каждому узлу PBS L2/L3 — пакет работ (пара); L4/L5 наследуют пакет родителя",
+  "пакет ссылается на узлы кодом @; резолв — при взятии, как у стыков",
+  "сроки пакетов — только от вех и планов задач (длительностей нет)",
+  "свёртка стоимости и трудоёмкости — по дереву WBS; параметрика M11 читает пакеты",
+  "данные полны; default_take=false — не в рекомендованном наборе класса по умолчанию, выбор — у инженера при взятии; зависимости между элементами вычисляются по ссылкам, не хранятся флагами"
+ ],
+ "packages": [
+  {
+   "code": "01",
+   "parent": null,
+   "name": "Управление проектом",
+   "scope": "планирование, FA/Project Plan, риски, закупки, отчётность",
+   "pbs_refs": [],
+   "phase_tasks": [
+    "Развёртывание фазы",
+    "Программатика",
+    "Project Plan и FA",
+    "Риски"
+   ],
+   "cross_cutting": true
+  },
+  {
+   "code": "02",
+   "parent": null,
+   "name": "Системная инженерия",
+   "scope": "требования, архитектура, интерфейсы, V&V-планы, конфигурация",
+   "pbs_refs": [],
+   "phase_tasks": [
+    "SEMP",
+    "Иерархия требований",
+    "Архитектура системы",
+    "ConOps"
+   ],
+   "cross_cutting": true
+  },
+  {
+   "code": "03",
+   "parent": null,
+   "name": "Безопасность и гарантия миссии (SMA)",
+   "scope": "надёжность, ОСЗ, качество, ИБ-обеспечение",
+   "pbs_refs": [],
+   "phase_tasks": [
+    "ОСЗ и планы обеспечения"
+   ],
+   "cross_cutting": true
+  },
+  {
+   "code": "04",
+   "parent": null,
+   "name": "Технологии и созревание",
+   "scope": "критические технологии, TRL, резервные решения",
+   "pbs_refs": [],
+   "phase_tasks": [
+    "Созревание технологий"
+   ],
+   "cross_cutting": true
+  },
+  {
+   "code": "05",
+   "parent": null,
+   "name": "Полезная нагрузка",
+   "scope": "",
+   "pbs_refs": [
+    "SC-PL"
+   ],
+   "phase_tasks": [],
+   "cross_cutting": false
+  },
+  {
+   "code": "06",
+   "parent": null,
+   "name": "Космический аппарат (платформа)",
+   "scope": "",
+   "pbs_refs": [
+    "SC-PLT",
+    "SC-LVI"
+   ],
+   "phase_tasks": [],
+   "cross_cutting": false
+  },
+  {
+   "code": "07",
+   "parent": null,
+   "name": "Эксплуатация миссии",
+   "scope": "операции ЦУП и ЦУС, смены, регламенты",
+   "pbs_refs": [
+    "MCC",
+    "NOC"
+   ],
+   "phase_tasks": [],
+   "cross_cutting": false
+  },
+  {
+   "code": "08",
+   "parent": null,
+   "name": "Выведение",
+   "scope": "РН, космодром, адаптер/диспенсер, кампания пуска",
+   "pbs_refs": [
+    "SEG-LV"
+   ],
+   "phase_tasks": [],
+   "cross_cutting": false
+  },
+  {
+   "code": "09",
+   "parent": null,
+   "name": "Наземные системы",
+   "scope": "станции НКУ, РСС, ЦОД, сети",
+   "pbs_refs": [
+    "GCS",
+    "GC-NET",
+    "GW",
+    "DC",
+    "NET-WAN"
+   ],
+   "phase_tasks": [],
+   "cross_cutting": false
+  },
+  {
+   "code": "10",
+   "parent": null,
+   "name": "Интеграция и испытания системы",
+   "scope": "AIT КА, комплексные испытания, ЛИ",
+   "pbs_refs": [
+    "SUP-TEST"
+   ],
+   "phase_tasks": [],
+   "cross_cutting": true
+  },
+  {
+   "code": "11",
+   "parent": null,
+   "name": "Пользовательский сегмент",
+   "scope": "терминалы по классам, прикладные сервисы",
+   "pbs_refs": [
+    "UT",
+    "USR-APP"
+   ],
+   "phase_tasks": [],
+   "cross_cutting": false
+  },
+  {
+   "code": "12",
+   "parent": null,
+   "name": "Обеспечение: ИТ, ИБ, документация, обучение",
+   "scope": "",
+   "pbs_refs": [
+    "SUP-IT",
+    "SUP-DOC"
+   ],
+   "phase_tasks": [],
+   "cross_cutting": false
+  },
+  {
+   "code": "05.01",
+   "parent": "05",
+   "name": "БРТК-S — абонентский комплекс S-диапазона",
+   "scope": "",
+   "pbs_refs": [
+    "PL-S"
+   ],
+   "phase_tasks": [],
+   "cross_cutting": false
+  },
+  {
+   "code": "05.02",
+   "parent": "05",
+   "name": "БРТК-P — комплекс P-диапазона (если применимо, наследие)",
+   "scope": "",
+   "pbs_refs": [
+    "PL-P"
+   ],
+   "phase_tasks": [],
+   "cross_cutting": false,
+   "default_take": false
+  },
+  {
+   "code": "05.03",
+   "parent": "05",
+   "name": "Фидерная радиолиния C-диапазона (КА ↔ РСС)",
+   "scope": "",
+   "pbs_refs": [
+    "PL-FEED"
+   ],
+   "phase_tasks": [],
+   "cross_cutting": false
+  },
+  {
+   "code": "05.04",
+   "parent": "05",
+   "name": "АФУ ПН — антенно-фидерное устройство",
+   "scope": "",
+   "pbs_refs": [
+    "PL-ANT"
+   ],
+   "phase_tasks": [],
+   "cross_cutting": false
+  },
+  {
+   "code": "05.05",
+   "parent": "05",
+   "name": "МБРК — межспутниковая радиолиния (если применимо)",
+   "scope": "",
+   "pbs_refs": [
+    "PL-ISL"
+   ],
+   "phase_tasks": [],
+   "cross_cutting": false,
+   "default_take": false
+  },
+  {
+   "code": "05.06",
+   "parent": "05",
+   "name": "Модуль PNT (если применимо)",
+   "scope": "",
+   "pbs_refs": [
+    "PL-PNT"
+   ],
+   "phase_tasks": [],
+   "cross_cutting": false,
+   "default_take": false
+  },
+  {
+   "code": "06.01",
+   "parent": "06",
+   "name": "Конструкция и механизмы",
+   "scope": "",
+   "pbs_refs": [
+    "STR"
+   ],
+   "phase_tasks": [],
+   "cross_cutting": false
+  },
+  {
+   "code": "06.02",
+   "parent": "06",
+   "name": "СЭП — система электропитания",
+   "scope": "",
+   "pbs_refs": [
+    "EPS"
+   ],
+   "phase_tasks": [],
+   "cross_cutting": false
+  },
+  {
+   "code": "06.03",
+   "parent": "06",
+   "name": "СТР — терморегулирование",
+   "scope": "",
+   "pbs_refs": [
+    "TCS"
+   ],
+   "phase_tasks": [],
+   "cross_cutting": false
+  },
+  {
+   "code": "06.04",
+   "parent": "06",
+   "name": "СОС — ориентация и стабилизация",
+   "scope": "",
+   "pbs_refs": [
+    "AOCS"
+   ],
+   "phase_tasks": [],
+   "cross_cutting": false
+  },
+  {
+   "code": "06.05",
+   "parent": "06",
+   "name": "БКУ — бортовой комплекс управления",
+   "scope": "",
+   "pbs_refs": [
+    "OBC"
+   ],
+   "phase_tasks": [],
+   "cross_cutting": false
+  },
+  {
+   "code": "06.06",
+   "parent": "06",
+   "name": "ДУ — двигательная установка",
+   "scope": "",
+   "pbs_refs": [
+    "PROP"
+   ],
+   "phase_tasks": [],
+   "cross_cutting": false
+  },
+  {
+   "code": "06.07",
+   "parent": "06",
+   "name": "КТРЛ — командно-телеметрическая радиолиния",
+   "scope": "",
+   "pbs_refs": [
+    "TTC"
+   ],
+   "phase_tasks": [],
+   "cross_cutting": false
+  },
+  {
+   "code": "06.08",
+   "parent": "06",
+   "name": "БКС — бортовая кабельная сеть",
+   "scope": "",
+   "pbs_refs": [
+    "HARN"
+   ],
+   "phase_tasks": [],
+   "cross_cutting": false
+  },
+  {
+   "code": "06.09",
+   "parent": "06",
+   "name": "Интеграция КА и адаптер РН",
+   "scope": "",
+   "pbs_refs": [
+    "SC-LVI"
+   ],
+   "phase_tasks": [],
+   "cross_cutting": false
+  },
+  {
+   "code": "07.01",
+   "parent": "07",
+   "name": "Баллистический центр (эфемериды, планирование манёвров, альманах терминалам)",
+   "scope": "",
+   "pbs_refs": [
+    "MCC-FD"
+   ],
+   "phase_tasks": [],
+   "cross_cutting": false
+  },
+  {
+   "code": "07.02",
+   "parent": "07",
+   "name": "Планирование сеансов и ресурсов станций",
+   "scope": "",
+   "pbs_refs": [
+    "MCC-PLAN"
+   ],
+   "phase_tasks": [],
+   "cross_cutting": false
+  },
+  {
+   "code": "07.03",
+   "parent": "07",
+   "name": "Обработка телеметрии и контроль состояния",
+   "scope": "",
+   "pbs_refs": [
+    "MCC-TM"
+   ],
+   "phase_tasks": [],
+   "cross_cutting": false
+  },
+  {
+   "code": "07.04",
+   "parent": "07",
+   "name": "Командование и загрузка ПО",
+   "scope": "",
+   "pbs_refs": [
+    "MCC-TC"
+   ],
+   "phase_tasks": [],
+   "cross_cutting": false
+  },
+  {
+   "code": "07.05",
+   "parent": "07",
+   "name": "Наземный отладочный комплекс (симулятор борта)",
+   "scope": "",
+   "pbs_refs": [
+    "MCC-SIM"
+   ],
+   "phase_tasks": [],
+   "cross_cutting": false,
+   "default_take": false
+  },
+  {
+   "code": "07.07",
+   "parent": "07",
+   "name": "Операции сети (ЦУС)",
+   "scope": "",
+   "pbs_refs": [
+    "NOC"
+   ],
+   "phase_tasks": [],
+   "cross_cutting": false
+  },
+  {
+   "code": "08.01",
+   "parent": "08",
+   "name": "Контракт и попутная схема",
+   "scope": "",
+   "pbs_refs": [
+    "LV",
+    "LV-ADAPT"
+   ],
+   "phase_tasks": [],
+   "cross_cutting": false
+  },
+  {
+   "code": "08.02",
+   "parent": "08",
+   "name": "Кампания пуска (космодром)",
+   "scope": "",
+   "pbs_refs": [
+    "LV-SITE"
+   ],
+   "phase_tasks": [],
+   "cross_cutting": false
+  },
+  {
+   "code": "09.01",
+   "parent": "09",
+   "name": "Станции НКУ",
+   "scope": "",
+   "pbs_refs": [
+    "GCS"
+   ],
+   "phase_tasks": [],
+   "cross_cutting": false
+  },
+  {
+   "code": "09.02",
+   "parent": "09",
+   "name": "Связь НКУ",
+   "scope": "",
+   "pbs_refs": [
+    "GC-NET"
+   ],
+   "phase_tasks": [],
+   "cross_cutting": false
+  },
+  {
+   "code": "09.03",
+   "parent": "09",
+   "name": "РСС",
+   "scope": "",
+   "pbs_refs": [
+    "GW"
+   ],
+   "phase_tasks": [],
+   "cross_cutting": false
+  },
+  {
+   "code": "09.04",
+   "parent": "09",
+   "name": "ЦОД",
+   "scope": "",
+   "pbs_refs": [
+    "DC"
+   ],
+   "phase_tasks": [],
+   "cross_cutting": false
+  },
+  {
+   "code": "09.05",
+   "parent": "09",
+   "name": "ССПД",
+   "scope": "",
+   "pbs_refs": [
+    "NET-WAN"
+   ],
+   "phase_tasks": [],
+   "cross_cutting": false
+  },
+  {
+   "code": "10.01",
+   "parent": "10",
+   "name": "AIT космического аппарата",
+   "scope": "сборка, испытания КА",
+   "pbs_refs": [
+    "SC"
+   ],
+   "phase_tasks": [],
+   "cross_cutting": false
+  },
+  {
+   "code": "10.02",
+   "parent": "10",
+   "name": "Комплексные испытания «борт–земля»",
+   "scope": "",
+   "pbs_refs": [
+    "SC",
+    "GCS",
+    "GW"
+   ],
+   "phase_tasks": [],
+   "cross_cutting": false
+  },
+  {
+   "code": "10.03",
+   "parent": "10",
+   "name": "Лётные испытания",
+   "scope": "",
+   "pbs_refs": [
+    "SC-EXP"
+   ],
+   "phase_tasks": [],
+   "cross_cutting": false,
+   "default_take": false
+  },
+  {
+   "code": "11.01",
+   "parent": "11",
+   "name": "Терминал универсальный",
+   "scope": "",
+   "pbs_refs": [
+    "UT-UNI"
+   ],
+   "phase_tasks": [],
+   "cross_cutting": false
+  },
+  {
+   "code": "11.02",
+   "parent": "11",
+   "name": "Терминал стационарный",
+   "scope": "",
+   "pbs_refs": [
+    "UT-FIX"
+   ],
+   "phase_tasks": [],
+   "cross_cutting": false
+  },
+  {
+   "code": "11.03",
+   "parent": "11",
+   "name": "Терминал мобильный (транспорт)",
+   "scope": "",
+   "pbs_refs": [
+    "UT-MOB"
+   ],
+   "phase_tasks": [],
+   "cross_cutting": false
+  },
+  {
+   "code": "11.04",
+   "parent": "11",
+   "name": "Терминал датчиковый (батарейный)",
+   "scope": "",
+   "pbs_refs": [
+    "UT-SENS"
+   ],
+   "phase_tasks": [],
+   "cross_cutting": false
+  },
+  {
+   "code": "11.05",
+   "parent": "11",
+   "name": "Прикладные сервисы",
+   "scope": "",
+   "pbs_refs": [
+    "USR-APP"
+   ],
+   "phase_tasks": [],
+   "cross_cutting": false
+  },
+  {
+   "code": "12.01",
+   "parent": "12",
+   "name": "ИТ и ИБ",
+   "scope": "",
+   "pbs_refs": [
+    "SUP-IT"
+   ],
+   "phase_tasks": [],
+   "cross_cutting": false
+  },
+  {
+   "code": "12.02",
+   "parent": "12",
+   "name": "Документация и обучение",
+   "scope": "",
+   "pbs_refs": [
+    "SUP-DOC"
+   ],
+   "phase_tasks": [],
+   "cross_cutting": false
+  },
+  {
+   "code": "02.01",
+   "parent": "02",
+   "name": "Управление требованиями и трассировка",
+   "scope": "",
+   "pbs_refs": [],
+   "phase_tasks": [],
+   "cross_cutting": true
+  },
+  {
+   "code": "02.02",
+   "parent": "02",
+   "name": "Архитектура и интерфейсы (ICD)",
+   "scope": "",
+   "pbs_refs": [],
+   "phase_tasks": [],
+   "cross_cutting": true
+  },
+  {
+   "code": "02.03",
+   "parent": "02",
+   "name": "Верификация и валидация (планы, матрицы)",
+   "scope": "",
+   "pbs_refs": [],
+   "phase_tasks": [],
+   "cross_cutting": true
+  },
+  {
+   "code": "02.04",
+   "parent": "02",
+   "name": "Управление конфигурацией и данными",
+   "scope": "",
+   "pbs_refs": [],
+   "phase_tasks": [],
+   "cross_cutting": true
+  }
+ ],
+ "pbs_to_wbs": {
+  "SC-PL": "05",
+  "SC-PLT": "06",
+  "SC-LVI": "06",
+  "MCC": "07",
+  "NOC": "07",
+  "SEG-LV": "08",
+  "GCS": "09",
+  "GC-NET": "09",
+  "GW": "09",
+  "DC": "09",
+  "NET-WAN": "09",
+  "SUP-TEST": "10",
+  "UT": "11",
+  "USR-APP": "11",
+  "SUP-IT": "12",
+  "SUP-DOC": "12",
+  "PL-S": "05.01",
+  "PL-P": "05.02",
+  "PL-FEED": "05.03",
+  "PL-ANT": "05.04",
+  "PL-ISL": "05.05",
+  "PL-PNT": "05.06",
+  "STR": "06.01",
+  "EPS": "06.02",
+  "TCS": "06.03",
+  "AOCS": "06.04",
+  "OBC": "06.05",
+  "PROP": "06.06",
+  "TTC": "06.07",
+  "HARN": "06.08",
+  "MCC-FD": "07.01",
+  "MCC-PLAN": "07.02",
+  "MCC-TM": "07.03",
+  "MCC-TC": "07.04",
+  "MCC-SIM": "07.05",
+  "LV": "08.01",
+  "LV-ADAPT": "08.01",
+  "LV-SITE": "08.02",
+  "SC": "10.01",
+  "SC-EXP": "10.03",
+  "UT-UNI": "11.01",
+  "UT-FIX": "11.02",
+  "UT-MOB": "11.03",
+  "UT-SENS": "11.04"
+ },
+ "summary": {
+  "packages": 54,
+  "pairs": 44,
+  "uncovered_l2_l3": []
+ }
+}

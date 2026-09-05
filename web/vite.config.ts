@@ -18,6 +18,16 @@ export default defineConfig({
       ),
     },
   },
+  build: {
+    // Две точки входа: старый интерфейс по /, новый v2 — по /v2.html.
+    // Strangler: новое рядом со старым, пока волны не заменят его целиком.
+    rollupOptions: {
+      input: {
+        main: fileURLToPath(new URL('./index.html', import.meta.url)),
+        v2: fileURLToPath(new URL('./v2.html', import.meta.url)),
+      },
+    },
+  },
   server: {
     port: 5173,
     proxy: { '/api': { target: 'http://127.0.0.1:8080', changeOrigin: true } },

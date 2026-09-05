@@ -51,6 +51,10 @@ class SchemaRegistry(schemasDir: Path) {
     /** Имена схем: путь без суффикса .schema.json, напр. contracts/spacecraft, core/service. */
     val names: List<String> = Files.walk(schemasDir).use { paths ->
         paths.filter { it.fileName.toString().endsWith(".schema.json") }
+            // schemas/v2 — истина схем второй версии, у неё свой реестр
+            // (generated из YAML). Старому реестру она не принадлежит:
+            // иначе счёт схем поплывёт, а вид v2 попадёт в проверки v1.
+            .filter { !it.relativeTo(schemasDir).startsWith("v2") }
             .map { it.relativeTo(schemasDir).toString().removeSuffix(".schema.json") }
             .sorted()
             .toList()

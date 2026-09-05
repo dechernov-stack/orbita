@@ -1,0 +1,168 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/v2/typical_component.schema.json",
+  "title": "typical_component",
+  "description": "типовой компонент (библиотека) — вид 76 слоя L0. Сцена рождения: —. СГЕНЕРИРОВАНО tools/v2/gen_schemas.py из docs/tz/v2/СХЕМЫ-ПОЛЕЙ-V2.yaml — руками не править",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "стабильный внутренний"
+    },
+    "code": {
+      "type": "string"
+    },
+    "kind": {
+      "enum": [
+        "system",
+        "segment",
+        "element",
+        "subsystem",
+        "assembly",
+        "unit"
+      ]
+    },
+    "area": {
+      "enum": [
+        "library",
+        "project:id"
+      ]
+    },
+    "born_in": {
+      "type": "string",
+      "description": "ссылка на вид: scene проектная область; библиотека — null"
+    },
+    "status": {
+      "type": "string",
+      "description": "enum по статусной модели вида"
+    },
+    "version": {
+      "type": "integer",
+      "description": "битемпорально"
+    },
+    "provenance": {
+      "type": "object",
+      "description": "{channel*:enum[manual,package,service,shelf,import,example], author*:ref account, source?:ref, anchor?:str, fingerprint?:str}"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "notes": {
+      "type": "string",
+      "description": "не печатается"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "name": {
+      "type": "string"
+    },
+    "applicability": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "typical_requirements": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "description": "ссылка на вид: typical_requirement"
+      }
+    },
+    "nature": {
+      "enum": [
+        "node",
+        "behaviour"
+      ]
+    },
+    "role": {
+      "enum": [
+        "node",
+        "behaviour",
+        "facility",
+        "terminal",
+        "external"
+      ],
+      "description": "шаблон рода по умолчанию"
+    },
+    "ladder": {
+      "type": "object",
+      "description": "{gate: {facets*:str[], params*:[{key*,name*,unit*,required_to*,maturity_class*,uncertainty*}]}} для MCR/SRR/SDR/PDR"
+    },
+    "typical_functions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "description": "ссылка на вид: function-code"
+      }
+    },
+    "typical_interfaces": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "description": "ссылка на вид: interface-code"
+      }
+    },
+    "models": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "standards": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "description": "ссылка на вид: normative_document"
+      }
+    },
+    "verification": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "typical_risks": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "hard_facets": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "грани, обязательные регламентом, не подлежат tailoring"
+    }
+  },
+  "required": [
+    "id",
+    "code",
+    "kind",
+    "area",
+    "born_in",
+    "status",
+    "version",
+    "provenance",
+    "created_at",
+    "updated_at",
+    "code",
+    "name",
+    "kind",
+    "applicability",
+    "nature",
+    "role",
+    "ladder"
+  ]
+}

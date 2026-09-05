@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Хребет процесса волны 0: одна сцена, одни ворота, одна точка.
+
+  Это не модель фазы: настоящая порождается генератором из шаблона фазы
+  (полка) в волне 1, и XML руками не пишется. Здесь — минимальный случай,
+  на котором SpineTest проверяет, что движок встроен, поднимается на
+  своей БД и держит ворота: пока условие не выполнено, сцена не
+  завершается — отказ приходит от движка, а не от нашего кода.
+-->
+<definitions xmlns="http://www.omg.org/spec/CMMN/20151109/MODEL"
+             xmlns:flowable="http://flowable.org/cmmn"
+             targetNamespace="http://orbita/v2">
+  <case id="spine" name="Хребет процесса">
+    <casePlanModel id="planModel" name="Фаза">
+      <planItem id="planItemScene" definitionRef="sceneTask"/>
+      <planItem id="planItemGate" definitionRef="gateTask">
+        <entryCriterion id="gateEntry" sentryRef="sentryGate"/>
+      </planItem>
+      <sentry id="sentryGate">
+        <ifPart>
+          <condition><![CDATA[${sceneDone}]]></condition>
+        </ifPart>
+      </sentry>
+      <humanTask id="sceneTask" name="Сцена: замысел"/>
+      <humanTask id="gateTask" name="Точка: MCR"/>
+    </casePlanModel>
+  </case>
+</definitions>

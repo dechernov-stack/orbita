@@ -1,0 +1,80 @@
+/* Дизайн-токены v2 (ТЗ §4.1.8): одна гарнитура, 14 px, фокус-кольцо,
+   три сущности на экране — навигация, список, карточка. Ничего сверх.
+
+   Токены — единственный источник цвета и размера: правило «цвет не может
+   быть единственным носителем смысла» держится тем, что рядом с цветом
+   всегда стоит текст статуса. */
+:root {
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --size: 14px;
+
+  --ink: #16181d;
+  --ink-soft: #5c6270;
+  --ink-mute: #8b91a0;
+  --line: #e3e6ec;
+  --ground: #ffffff;
+  --ground-soft: #f6f7f9;
+  --accent: #2f6feb;
+  --accent-soft: #eaf1fe;
+
+  --ok: #1f7a45;
+  --wait: #8a6100;
+  --block: #b02a2a;
+
+  --radius: 7px;
+  --gap: 10px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font: var(--size)/1.45 var(--font);
+  color: var(--ink);
+  background: var(--ground-soft);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.v2-shell { display: grid; grid-template-columns: 208px 1fr; min-height: 100vh; }
+
+/* Рейка — навигация; разделы, чьи сцены не наступили, здесь не живут */
+.v2-rail { background: var(--ground); border-right: 1px solid var(--line); padding: 8px 0; }
+.v2-rail__group { padding: 10px 14px 4px; color: var(--ink-mute); font-size: 12px; }
+.v2-rail__item {
+  display: block; width: 100%; text-align: left; border: 0; background: none;
+  font: inherit; color: var(--ink); padding: 7px 14px; cursor: pointer;
+}
+.v2-rail__item:hover { background: var(--ground-soft); }
+.v2-rail__item[aria-current="page"] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+
+/* Шапка — где я нахожусь и что держит ближайшую точку */
+.v2-head {
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  background: var(--ground); border-bottom: 1px solid var(--line); padding: 9px 16px;
+}
+.v2-head__project { font-weight: 600; }
+.v2-head__scene { color: var(--ink-soft); }
+.v2-head__spacer { flex: 1; }
+.v2-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; background: var(--ground);
+  font: inherit; color: inherit; cursor: pointer;
+}
+.v2-chip--block { border-color: #f0c8c8; color: var(--block); }
+.v2-work { padding: 16px; }
+
+.v2-card {
+  background: var(--ground); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 12px 14px; margin-bottom: var(--gap);
+}
+.v2-card__head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+.v2-card__title { font-weight: 600; }
+.v2-card__count { color: var(--ink-mute); font-variant-numeric: tabular-nums; }
+.v2-empty { color: var(--ink-soft); }
+.v2-empty__why { display: block; margin-top: 4px; color: var(--ink-mute); }

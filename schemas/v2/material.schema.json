@@ -1,0 +1,165 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/v2/material.schema.json",
+  "title": "material",
+  "description": "входной документ (материал) — вид 31 слоя L2. Сцена рождения: 2. СГЕНЕРИРОВАНО tools/v2/gen_schemas.py из docs/tz/v2/СХЕМЫ-ПОЛЕЙ-V2.yaml — руками не править",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "стабильный внутренний"
+    },
+    "code": {
+      "type": "string",
+      "description": "человеческий, переименуемый"
+    },
+    "kind": {
+      "type": "string",
+      "description": "ссылка на вид: kind"
+    },
+    "area": {
+      "enum": [
+        "library",
+        "project:id"
+      ]
+    },
+    "born_in": {
+      "type": "string",
+      "description": "ссылка на вид: scene проектная область; библиотека — null"
+    },
+    "status": {
+      "type": "string",
+      "description": "enum по статусной модели вида"
+    },
+    "version": {
+      "type": "integer",
+      "description": "битемпорально"
+    },
+    "provenance": {
+      "type": "object",
+      "description": "{channel*:enum[manual,package,service,shelf,import,example], author*:ref account, source?:ref, anchor?:str, fingerprint?:str}"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "notes": {
+      "type": "string",
+      "description": "не печатается"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "type": {
+      "enum": [
+        "mission_memo",
+        "tor",
+        "directive",
+        "normative",
+        "datasheet",
+        "quote",
+        "external_icd",
+        "external_model",
+        "analysis",
+        "heritage",
+        "regulatory_decision",
+        "reference"
+      ],
+      "description": "тип из глоссария с брифом"
+    },
+    "title": {
+      "type": "string"
+    },
+    "file": {
+      "type": "object",
+      "description": "{name*,hash*,size*,format*} оригинал неизменяем"
+    },
+    "origin": {
+      "type": "string",
+      "description": "ссылка на вид: stakeholder | str кто выпустил"
+    },
+    "doc_version": {
+      "type": "string",
+      "description": "версия самого документа"
+    },
+    "doc_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "valid_until": {
+      "type": "string",
+      "format": "date",
+      "description": "НПА, КП, решения"
+    },
+    "classification": {
+      "enum": [
+        "open",
+        "dsp",
+        "commercial",
+        "state_secret"
+      ],
+      "description": "state_secret — только карточка-ссылка"
+    },
+    "source_marks": {
+      "type": "boolean",
+      "description": "метки [И]/[В]/[П] в тексте"
+    },
+    "language": {
+      "enum": [
+        "ru",
+        "en"
+      ]
+    },
+    "canon": {
+      "type": "string",
+      "description": "путь к файлу (path md) Д1; нет для гостайны/бинарных"
+    },
+    "map": {
+      "type": "string",
+      "description": "путь к файлу (path json)"
+    },
+    "harvest": {
+      "type": "string",
+      "description": "ссылка на вид: proposal Д2 по типу: full|registry|parametric|structural|none"
+    },
+    "supersedes": {
+      "type": "string",
+      "description": "ссылка на вид: material предыдущая версия входного"
+    },
+    "in_prompt_blocks": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "умолчание по типу"
+    }
+  },
+  "required": [
+    "id",
+    "code",
+    "kind",
+    "area",
+    "born_in",
+    "status",
+    "version",
+    "provenance",
+    "created_at",
+    "updated_at",
+    "type",
+    "title",
+    "file",
+    "origin",
+    "doc_version",
+    "doc_date",
+    "classification",
+    "language"
+  ]
+}

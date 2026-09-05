@@ -1,0 +1,165 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/v2/requirement.schema.json",
+  "title": "requirement",
+  "description": "требование — вид 41 слоя L3. Сцена рождения: 8, 9, A4, A5. СГЕНЕРИРОВАНО tools/v2/gen_schemas.py из docs/tz/v2/СХЕМЫ-ПОЛЕЙ-V2.yaml — руками не править",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "стабильный внутренний"
+    },
+    "code": {
+      "type": "string"
+    },
+    "kind": {
+      "type": "string",
+      "description": "ссылка на вид: kind"
+    },
+    "area": {
+      "enum": [
+        "library",
+        "project:id"
+      ]
+    },
+    "born_in": {
+      "type": "string",
+      "description": "ссылка на вид: scene проектная область; библиотека — null"
+    },
+    "status": {
+      "type": "string",
+      "description": "enum по статусной модели вида"
+    },
+    "version": {
+      "type": "integer",
+      "description": "битемпорально"
+    },
+    "provenance": {
+      "type": "object",
+      "description": "{channel*:enum[manual,package,service,shelf,import,example], author*:ref account, source?:ref, anchor?:str, fingerprint?:str}"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "notes": {
+      "type": "string",
+      "description": "не печатается"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "level": {
+      "enum": [
+        "project",
+        "scenario",
+        "system",
+        "subsystem",
+        "interface"
+      ]
+    },
+    "title": {
+      "type": "string"
+    },
+    "statement": {
+      "type": "string"
+    },
+    "category": {
+      "enum": [
+        "functional",
+        "performance",
+        "interface",
+        "operational",
+        "constraint",
+        "safety",
+        "environment"
+      ]
+    },
+    "priority": {
+      "type": "string",
+      "description": "ссылка на вид: method_catalog.priority"
+    },
+    "measure": {
+      "$ref": "https://kis.local/schemas/v2/_measure.schema.json",
+      "description": "обязателен для performance"
+    },
+    "carrier": {
+      "type": "string",
+      "description": "ссылка на вид: component|interface|scenario тип по уровню; обязателен к базированию"
+    },
+    "verification_method": {
+      "type": "string",
+      "description": "ссылка на вид: method_catalog TBD допустим до SRR"
+    },
+    "source": {
+      "description": "[{kind*:enum[goal,need,constraint,requirement,material],ref*,anchor?}] ≥1"
+    },
+    "acceptance_criteria": {
+      "type": "string",
+      "description": "обязателен к базированию"
+    },
+    "normative_basis": {
+      "type": "object",
+      "description": "{normative_document*,clause*}"
+    },
+    "ears_pattern": {
+      "enum": [
+        "ubiquitous",
+        "event",
+        "state",
+        "unwanted",
+        "optional"
+      ],
+      "description": "шаблон формулировки EARS"
+    },
+    "template_ref": {
+      "type": "string",
+      "description": "ссылка на вид: typical_requirement экземпляр типового"
+    },
+    "applicability": {
+      "enum": [
+        "applied",
+        "applied_with_deviation",
+        "not_applicable"
+      ],
+      "description": "обязательна при template_ref"
+    },
+    "deviation_rationale": {
+      "type": "string",
+      "description": "обязательна при deviation/not_applicable"
+    },
+    "after_baseline_changed": {
+      "description": "bool (computed) версия > версии в последнем baseline"
+    }
+  },
+  "required": [
+    "id",
+    "code",
+    "kind",
+    "area",
+    "born_in",
+    "status",
+    "version",
+    "provenance",
+    "created_at",
+    "updated_at",
+    "level",
+    "code",
+    "title",
+    "statement",
+    "category",
+    "priority",
+    "carrier",
+    "verification_method",
+    "source",
+    "ears_pattern"
+  ]
+}

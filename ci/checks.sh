@@ -5,6 +5,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+echo "== схемы v2 (истина YAML) ==" ; python3 tools/v2/gen_schemas.py --check
 echo "== схемы =="              ; python3 tools/validate_schemas.py
 echo "== трассировка ТЗ =="     ; python3 tools/validate_trace.py
 echo "== эталоны против схем ==" ; python3 tools/validate_spec_schema.py

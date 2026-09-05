@@ -1,0 +1,164 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/v2/intake_task.schema.json",
+  "title": "intake_task",
+  "description": "задание загрузки — вид 82 слоя L2. Сцена рождения: любая. СГЕНЕРИРОВАНО tools/v2/gen_schemas.py из docs/tz/v2/СХЕМЫ-ПОЛЕЙ-V2.yaml — руками не править",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "стабильный внутренний"
+    },
+    "code": {
+      "type": "string",
+      "description": "человеческий, переименуемый"
+    },
+    "kind": {
+      "type": "string",
+      "description": "ссылка на вид: kind"
+    },
+    "area": {
+      "enum": [
+        "library",
+        "project:id"
+      ]
+    },
+    "born_in": {
+      "type": "string",
+      "description": "ссылка на вид: scene проектная область; библиотека — null"
+    },
+    "status": {
+      "type": "string",
+      "description": "enum по статусной модели вида"
+    },
+    "version": {
+      "type": "integer",
+      "description": "битемпорально"
+    },
+    "provenance": {
+      "type": "object",
+      "description": "{channel*:enum[manual,package,service,shelf,import,example], author*:ref account, source?:ref, anchor?:str, fingerprint?:str}"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "notes": {
+      "type": "string",
+      "description": "не печатается"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "source": {
+      "type": "object",
+      "description": "{file?|url?|text?}"
+    },
+    "snapshot": {
+      "type": "object",
+      "description": "{path*,date*,hash*} URL — рендер headless в PDF+MD"
+    },
+    "intent": {
+      "type": "string",
+      "description": "умолчание «разбери по сущностям»"
+    },
+    "intent_kind": {
+      "enum": [
+        "harvest",
+        "shelve_typical",
+        "baseline_candidate",
+        "compare",
+        "update_params",
+        "register_normative",
+        "assess_tor",
+        "context_only",
+        "other"
+      ]
+    },
+    "context": {
+      "type": "object",
+      "description": "{project*,scene*,mission_class*}"
+    },
+    "classification": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "content_type": {
+            "type": [
+              "string",
+              "number",
+              "boolean",
+              "object",
+              "array",
+              "null"
+            ]
+          },
+          "blocks*:str[]": {
+            "type": [
+              "string",
+              "number",
+              "boolean",
+              "object",
+              "array",
+              "null"
+            ]
+          },
+          "share": {
+            "type": [
+              "string",
+              "number",
+              "boolean",
+              "object",
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "content_type",
+          "share"
+        ]
+      },
+      "description": "Д2а"
+    },
+    "plan": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "description": "ссылка на вид: action"
+      }
+    },
+    "author": {
+      "type": "string",
+      "description": "ссылка на вид: account"
+    }
+  },
+  "required": [
+    "id",
+    "code",
+    "kind",
+    "area",
+    "born_in",
+    "status",
+    "version",
+    "provenance",
+    "created_at",
+    "updated_at",
+    "source",
+    "snapshot",
+    "intent",
+    "intent_kind",
+    "context",
+    "plan",
+    "author"
+  ]
+}

@@ -1,0 +1,152 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/v2/link.schema.json",
+  "title": "link",
+  "description": "связь (объект) — вид 42 слоя L3. Сцена рождения: любая. СГЕНЕРИРОВАНО tools/v2/gen_schemas.py из docs/tz/v2/СХЕМЫ-ПОЛЕЙ-V2.yaml — руками не править",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "стабильный внутренний"
+    },
+    "code": {
+      "type": "string",
+      "description": "человеческий, переименуемый"
+    },
+    "kind": {
+      "type": "string",
+      "description": "ссылка на вид: kind"
+    },
+    "area": {
+      "enum": [
+        "library",
+        "project:id"
+      ]
+    },
+    "born_in": {
+      "type": "string",
+      "description": "ссылка на вид: scene проектная область; библиотека — null"
+    },
+    "status": {
+      "type": "string",
+      "description": "enum по статусной модели вида"
+    },
+    "version": {
+      "type": "integer",
+      "description": "битемпорально"
+    },
+    "provenance": {
+      "type": "object",
+      "description": "{channel*:enum[manual,package,service,shelf,import,example], author*:ref account, source?:ref, anchor?:str, fingerprint?:str}"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "notes": {
+      "type": "string",
+      "description": "не печатается"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "type": {
+      "enum": [
+        "owns",
+        "covers",
+        "derives_from",
+        "allocated_to",
+        "satisfied_by",
+        "realized_by",
+        "allocation",
+        "flows_over",
+        "illustrated_by",
+        "traced_to",
+        "verifies",
+        "conflicts_with",
+        "snapshot_of",
+        "input_of",
+        "output_of",
+        "pairs_with",
+        "external_identity",
+        "deployed_on",
+        "uses_item",
+        "depends_on_technology",
+        "derived_from_fact",
+        "about",
+        "supports",
+        "contradicts",
+        "supersedes",
+        "confirms"
+      ]
+    },
+    "subtype": {
+      "enum": [
+        "decomposition",
+        "derivation",
+        "refinement"
+      ],
+      "description": "для derives_from"
+    },
+    "from": {
+      "type": "string",
+      "description": "ссылка на сущность"
+    },
+    "to": {
+      "type": "string",
+      "description": "ссылка на сущность"
+    },
+    "rationale": {
+      "type": "string",
+      "description": "обязателен для derives_from,satisfied_by,realized_by,conflicts_with,external_identity"
+    },
+    "created_by": {
+      "type": "string",
+      "description": "ссылка на вид: account"
+    },
+    "suspect": {
+      "description": "bool (computed) конец изменился после baseline"
+    },
+    "confirmed_by": {
+      "type": "string",
+      "description": "ссылка на вид: account"
+    },
+    "confirmed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "revision_expected": {
+      "type": "boolean",
+      "description": "для depends_on_technology"
+    },
+    "sensitivity": {
+      "type": "string",
+      "description": "что пересматривается после созревания"
+    }
+  },
+  "required": [
+    "id",
+    "code",
+    "kind",
+    "area",
+    "born_in",
+    "status",
+    "version",
+    "provenance",
+    "created_at",
+    "updated_at",
+    "type",
+    "from",
+    "to",
+    "rationale",
+    "created_by"
+  ]
+}
