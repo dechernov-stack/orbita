@@ -6,7 +6,6 @@
 dependencies {
     api(project(":core:v2:kernel"))
     api(project(":core:v2:access"))
-    api(project(":core:v2:readiness"))
     // Движок процесса (РЕШЕНИЕ-ДВИЖОК-ПРОЦЕССА): Flowable 7, Apache-2.0.
     // CMMN — точное попадание в регламент: сцена = stage, ворота = sentry,
     // точка = milestone. Домена в движке нет, там только состояние процесса.

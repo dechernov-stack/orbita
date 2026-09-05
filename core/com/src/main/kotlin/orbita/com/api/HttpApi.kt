@@ -162,9 +162,28 @@ class HttpApi(private val boundary: Boundary) {
         }
     }
 
+    /**
+     * Фасад совместимости v2 (ТЗ-BACKEND §3). Пути под `/api/v2/` уходят
+     * роутеру второй версии со своим ядром и своим движком процесса; всё
+     * остальное обслуживает нынешний сервер, пока волны его не заменят.
+     * Эта нить — единственная связь старого с новым, и она исчезнет в
+     * волне 6 вместе с HttpApi.
+     */
+    private val v2 by lazy { boundary.v2Router() }
+
     private fun route(ex: HttpExchange) {
         val path = ex.requestURI.path.removePrefix("/api").trimEnd('/')
         val method = ex.requestMethod
+
+        if (path.startsWith("/v2/")) {
+            val ответ = v2.handle(method, path, query(ex), if (method == "GET") null else body(ex))
+            if (ответ == null) {
+                respond(ex, 404, mapper.createObjectNode().put("error", "нет маршрута v2: $method $path"))
+            } else {
+                respond(ex, ответ.code, ответ.body)
+            }
+            return
+        }
         val objectMatch = Regex("^/objects/([A-Z]{2,3}-[0-9]{4})(/.*)?$").find(path)
         val editMatch = Regex("^/edit/([A-Z]{2,3}-[0-9]{4})(/.*)?$").find(path)
 

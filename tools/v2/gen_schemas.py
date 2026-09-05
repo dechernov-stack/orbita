@@ -12,7 +12,7 @@
 Куда пишет:
   schemas/v2/<code>.schema.json      — по одной схеме на вид
   schemas/v2/_core.schema.json       — ядро сущности (12 полей)
-  core/kernel/src/main/kotlin/orbita/kernel/schema/GeneratedKinds.kt
+  core/v2/kernel/src/main/kotlin/orbita/kernel/schema/GeneratedKinds.kt
 """
 import argparse
 import json
@@ -25,7 +25,7 @@ import yaml
 КОРЕНЬ = pathlib.Path(__file__).resolve().parent.parent.parent
 ИСТОЧНИК = КОРЕНЬ / "docs/tz/v2/СХЕМЫ-ПОЛЕЙ-V2.yaml"
 СХЕМЫ = КОРЕНЬ / "schemas/v2"
-KOTLIN = КОРЕНЬ / "core/kernel/src/main/kotlin/orbita/kernel/schema/GeneratedKinds.kt"
+KOTLIN = КОРЕНЬ / "core/v2/kernel/src/main/kotlin/orbita/kernel/schema/GeneratedKinds.kt"
 
 ШАПКА = "СГЕНЕРИРОВАНО tools/v2/gen_schemas.py из docs/tz/v2/СХЕМЫ-ПОЛЕЙ-V2.yaml — руками не править"
 

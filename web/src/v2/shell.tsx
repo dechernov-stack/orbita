@@ -5,6 +5,7 @@
 // явно. Содержимое разделов приходит волнами 1–7 — до тех пор раздел честно
 // говорит, какой волной он открывается, вместо пустого экрана.
 import { useEffect, useState } from 'react'
+import { Work } from './work'
 
 /** Раздел рейки. `wave` — волна, в которой раздел оживает. */
 type Section = {
@@ -36,6 +37,7 @@ export function Shell() {
   const [section, setSection] = useState('work')
   const [expert, setExpert] = useState(false)
   const [users, setUsers] = useState<StandUser[]>([])
+  const [project, setProject] = useState<string | null>(null)
   const [me, setMe] = useState<string | null>(null)
   const [failure, setFailure] = useState<string | null>(null)
 
@@ -81,8 +83,10 @@ export function Shell() {
 
       <div>
         <header className="v2-head">
-          <span className="v2-head__project">Проект не выбран</span>
-          <span className="v2-head__scene">сцена появится с волной 1</span>
+          <span className="v2-head__project">{project ?? 'Проект не выбран'}</span>
+          <span className="v2-head__scene">
+            {project ? 'фаза Pre-A · стандарт NASA-7120' : 'откройте проект — это сцена 1'}
+          </span>
           <span className="v2-head__spacer" />
           <button type="button" className="v2-chip"
             aria-pressed={expert}
@@ -104,18 +108,22 @@ export function Shell() {
               <div className="v2-empty">{failure}</div>
             </div>
           )}
-          <div className="v2-card">
-            <div className="v2-card__head">
-              <span className="v2-card__title">{current.title}</span>
-              <span className="v2-card__count">волна {current.wave}</span>
+          {section === 'work' ? (
+            <Work project={project} onProject={setProject} />
+          ) : (
+            <div className="v2-card">
+              <div className="v2-card__head">
+                <span className="v2-card__title">{current.title}</span>
+                <span className="v2-card__count">волна {current.wave}</span>
+              </div>
+              <div className="v2-empty">
+                {current.hint}.
+                <span className="v2-empty__why">
+                  Раздел откроется волной {current.wave}; сейчас пройдены волны 0–1.
+                </span>
+              </div>
             </div>
-            <div className="v2-empty">
-              {current.hint}.
-              <span className="v2-empty__why">
-                Раздел откроется волной {current.wave}; сейчас идёт волна 0 — каркас.
-              </span>
-            </div>
-          </div>
+          )}
         </main>
       </div>
     </div>

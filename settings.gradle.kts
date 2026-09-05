@@ -14,4 +14,5 @@ include(
     ":core:v2:process", ":core:v2:knowledge", ":core:v2:formulation",
     ":core:v2:requirements", ":core:v2:architecture", ":core:v2:models",
     ":core:v2:programmatics", ":core:v2:documents", ":core:v2:ai", ":core:v2:exchange",
+    ":core:v2:api",
 )

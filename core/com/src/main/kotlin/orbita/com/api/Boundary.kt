@@ -115,6 +115,44 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
     /** Соединение — журналу вызовов и прочим служебным хранилищам. */
     val connection: Connection get() = conn
 
+    /**
+     * Роутер v2 (фасад совместимости, ТЗ-BACKEND §3).
+     *
+     * Собирается здесь, потому что здесь уже есть соединение с БД. Ядро v2
+     * работает со своей схемой `orbita_kernel` и ничего не знает о таблицах
+     * первой версии; движок процесса читает шаблон фазы с полки.
+     */
+    fun v2Router(): orbita.api.internal.V2Router {
+        val mapper = com.fasterxml.jackson.databind.ObjectMapper()
+        val store = orbita.kernel.internal.PgEntityStore(conn, mapper)
+        val links = orbita.kernel.internal.PgLinkRegistry(conn)
+        val корень = java.nio.file.Path.of(System.getenv("ORBITA_REPO_ROOT") ?: ".")
+        val шаблоны = корень.resolve("docs/tz/v2/полки-порождённые")
+        val пройденные = mutableMapOf<String, MutableSet<String>>()
+        val оценщик = orbita.readiness.internal.DomainGateEvaluator(
+            store, links,
+            сценыПройдены = { emptySet() },
+            воротаПройдены = { p -> пройденные.getOrPut(p) { mutableSetOf() } },
+        )
+        val движок = orbita.process.internal.TemplateProcessEngine(
+            шаблон = { код ->
+                val файл = шаблоны.resolve(
+                    if (код == "PHT-9001") "ШАБЛОН-ФАЗЫ-PRE-A-NASA.json" else "$код.json",
+                ).toFile()
+                require(файл.isFile) { "шаблона фазы «$код» нет на полке" }
+                mapper.readTree(файл)
+            },
+            оценщик = оценщик,
+            пройденныеТочки = { p -> пройденные.getOrPut(p) { mutableSetOf() } },
+            планТочек = { проект ->
+                store.list(orbita.kernel.api.Area.Project(проект), "gate")
+                    .associate { it.code to it.doc.path("planned_date").asText("") }
+                    .filterValues { it.isNotBlank() }
+            },
+        )
+        return orbita.api.internal.V2Router(store, links, движок, mapper)
+    }
+
     /** Реестр схем — службе ИИ: предложение проверяется схемой целевого вида. */
     val schemas: SchemaRegistry get() = registry
 

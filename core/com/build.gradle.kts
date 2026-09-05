@@ -1,6 +1,10 @@
 // core/com — общесистемное (TZ-COM): граница модуля, HTTP API, валидация входа.
 // HTTP — jdk.httpserver из состава JDK: на шаге 1 внешний веб-фреймворк не нужен.
 dependencies {
+    // Фасад совместимости v2 (ТЗ-BACKEND §3): нынешний сервер отдаёт пути
+    // /api/v2/** роутеру второй версии. Единственная нить между старым и
+    // новым — она же исчезнет в волне 6 вместе с HttpApi.
+    implementation(project(":core:v2:api"))
     implementation(project(":core:mod"))
     implementation(project(":core:req"))
     implementation(project(":core:flw"))
