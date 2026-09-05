@@ -40,6 +40,16 @@ export interface Phase {
   gates: Gate[]
 }
 
+/** Задание — адресованный разрыв сцены, а не отдельная сущность. */
+export interface TaskRow {
+  scene: string
+  scene_title: string
+  role: string
+  what: string
+  /** Сцена ещё закрыта: работать нельзя, ждём предыдущую. */
+  waiting: boolean
+}
+
 export interface EntityRow {
   id: string
   code: string
@@ -114,6 +124,11 @@ export const api = {
     вызов<{ id: string; code: string }>(
       `/goals?project=${encodeURIComponent(project)}`,
       { method: 'POST', body: JSON.stringify(тело) },
+    ),
+
+  myTasks: (project: string, role?: string) =>
+    вызов<{ project: string; items: TaskRow[]; note: string }>(
+      `/my-tasks?project=${encodeURIComponent(project)}${role ? `&role=${encodeURIComponent(role)}` : ''}`,
     ),
 
   passGate: (project: string, gate: string, author: string) =>

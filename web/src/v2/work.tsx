@@ -11,9 +11,12 @@ import {
   SceneServices, SceneStakeholders, Гейты,
 } from './scenes'
 
-export function Work({ project, onProject }: {
+export function Work({ project, onProject, wantScene, onScenePicked }: {
   project: string | null
   onProject: (p: string) => void
+  /** Сцена, на которую просили открыть работу (переход из заданий). */
+  wantScene?: string | null
+  onScenePicked?: () => void
 }) {
   const [фаза, setФаза] = useState<Phase | null>(null)
   const [сцена, setСцена] = useState<string | null>(null)
@@ -30,6 +33,13 @@ export function Work({ project, onProject }: {
   }, [project])
 
   useEffect(перечитать, [перечитать])
+
+  useEffect(() => {
+    if (wantScene) {
+      setСцена(wantScene)
+      onScenePicked?.()
+    }
+  }, [wantScene, onScenePicked])
 
   if (!project) {
     return (

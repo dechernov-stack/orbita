@@ -54,6 +54,12 @@ class V2Router(
 
         method == "GET" && path == "/v2/shelves" -> полка(требуется(query, "kind"))
 
+        // «Мои задания» (волна 1): задание — это адресованный разрыв, а не
+        // отдельная сущность со своим статусом. Разрывы берутся из условий
+        // сцен, адрес — из роли сцены: кто отвечает за сцену, тот и работает.
+        method == "GET" && path == "/v2/my-tasks" ->
+            задания(требуется(query, "project"), query["role"])
+
         method == "GET" && path == "/v2/entities" ->
             перечень(требуется(query, "project"), требуется(query, "kind"))
 
@@ -203,6 +209,34 @@ class V2Router(
             links.link("covers", ответ.body.path("id").asText(), нужда.id, Provenance(Channel.MANUAL, автор(тело)))
         }
         return ответ
+    }
+
+    private fun задания(проект: String, роль: String?): Ответ {
+        val фаза = engine.view(проект)
+        val массив = mapper.createArrayNode()
+        фаза.scenes
+            .filter { it.state != orbita.process.api.SceneState.DONE }
+            .filter { роль == null || it.role == роль }
+            .forEach { сцена ->
+                сцена.blockers.forEach { причина ->
+                    массив.addObject()
+                        .put("scene", сцена.key)
+                        .put("scene_title", сцена.title)
+                        .put("role", сцена.role)
+                        .put("what", причина)
+                        // Сцена закрыта — работать нельзя; открыта — это моя работа
+                        .put("waiting", сцена.state == orbita.process.api.SceneState.LOCKED)
+                }
+            }
+        val ответ = mapper.createObjectNode()
+        ответ.put("project", проект)
+        ответ.set<JsonNode>("items", массив)
+        ответ.put(
+            "note",
+            if (массив.isEmpty) "разрывов нет: все сцены фазы прожиты"
+            else "разрывы берутся из условий сцен; закрывается разрыв работой в своей сцене",
+        )
+        return Ответ(200, ответ)
     }
 
     private fun перечень(проект: String, вид: String): Ответ {

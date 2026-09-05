@@ -6,6 +6,7 @@
 // говорит, какой волной он открывается, вместо пустого экрана.
 import { useEffect, useState } from 'react'
 import { Work } from './work'
+import { MyTasks } from './tasks'
 
 /** Раздел рейки. `wave` — волна, в которой раздел оживает. */
 type Section = {
@@ -18,6 +19,7 @@ type Section = {
 
 const SECTIONS: Section[] = [
   { key: 'work', title: 'Работа', wave: 1, hint: 'лента сцен и точек фазы — вход в продукт' },
+  { key: 'tasks', title: 'Мои задания', wave: 1, hint: 'адресованные разрывы: что закрыть именно мне' },
   { key: 'formulation', title: 'Постановка', wave: 1, hint: 'замысел, стейкхолдеры, нужды, цели, ограничения, сервисы' },
   { key: 'concept', title: 'Концепция', wave: 3, hint: 'состав системы, варианты построения, сравнение' },
   { key: 'requirements', title: 'Требования', wave: 3, hint: 'реестр требований, два дерева, влияние правки' },
@@ -38,6 +40,8 @@ export function Shell() {
   const [expert, setExpert] = useState(false)
   const [users, setUsers] = useState<StandUser[]>([])
   const [project, setProject] = useState<string | null>(null)
+  /** Переход «к месту» из заданий: открыть работу на нужной сцене. */
+  const [wantScene, setWantScene] = useState<string | null>(null)
   const [me, setMe] = useState<string | null>(null)
   const [failure, setFailure] = useState<string | null>(null)
 
@@ -109,7 +113,9 @@ export function Shell() {
             </div>
           )}
           {section === 'work' ? (
-            <Work project={project} onProject={setProject} />
+            <Work project={project} onProject={setProject} wantScene={wantScene} onScenePicked={() => setWantScene(null)} />
+          ) : section === 'tasks' ? (
+            <MyTasks project={project} onGoScene={(сцена) => { setWantScene(сцена); setSection('work') }} />
           ) : (
             <div className="v2-card">
               <div className="v2-card__head">
