@@ -184,39 +184,16 @@ def загрузить() -> int:
         if not код:
             print(f"{вид}: в поставке нет поля code — пропуск ({имя})")
             continue
+        # Приёмник поставки — маршрут v2: полка идемпотентна, повторная
+        # выкладка того же содержимого версий не плодит.
         try:
-            текущий = вызов("GET", f"/objects/{код}")
-        except urllib.error.HTTPError as e:
-            if e.code != 404:
-                raise
-            текущий = None
-        if текущий is None:
-            try:
-                вызов("POST", "/library/objects", {"type": вид, "doc": документ, "author": "поставка v2"})
-            except urllib.error.HTTPError as e:
-                # Приёмник видов v2 — модуль library волны 1. Пока его нет,
-                # стенд честно отвечает «unknown type»: это состояние работ,
-                # а не сбой загрузчика, и молчать о нём нельзя.
-                if e.code == 400:
-                    подробность = e.read().decode(errors="replace")[:200]
-                    print(f"{вид}: стенд не принимает вид ({подробность.strip()})")
-                    непринято.append(вид)
-                    continue
-                raise
-            print(f"{вид}: залит {код}")
+            вызов("POST", "/v2/shelves", {"kind": вид, "code": код, "doc": документ, "author": "поставка v2"})
+            print(f"{вид}: выложен {код}")
             залито += 1
-        elif текущий["doc"] == документ:
-            print(f"{вид}: {код} совпадает с поставкой — пропуск")
-            пропущено += 1
-        else:
-            изменения = {k: v for k, v in документ.items() if k not in ("id", "lifecycle")}
-            вызов("PATCH", f"/edit/{код}", {
-                "author": "поставка v2",
-                "base_version": текущий["version"],
-                "changes": изменения,
-            })
-            print(f"{вид}: обновлён {код} — полка была старее поставки")
-            обновлено += 1
+        except urllib.error.HTTPError as e:
+            подробность = e.read().decode(errors="replace")[:200]
+            print(f"{вид}: стенд не принял ({e.code}: {подробность.strip()})")
+            непринято.append(вид)
     print(f"итог: залито {залито}, обновлено {обновлено}, без изменений {пропущено}")
     if непринято:
         print(

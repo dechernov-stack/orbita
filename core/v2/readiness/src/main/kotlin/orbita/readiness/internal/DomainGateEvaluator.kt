@@ -69,6 +69,23 @@ class DomainGateEvaluator(
                     без.take(3).joinToString("; ") { it.doc.path("statement").asText(it.code).take(60) }
             }
 
+            "constraints_min" -> {
+                val нужно = (аргумент ?: "1").toInt()
+                val есть = store.list(область, "constraint").count {
+                    !it.doc.path("removed").asBoolean(false)
+                }
+                if (есть >= нужно) null
+                else "ограничений $есть из $нужно: рамки проекта задаются здесь и дальше работают запретами"
+            }
+
+            "each_need_has_service" -> {
+                val без = store.list(область, "need")
+                    .filter { нужда -> links.to(нужда.id, "covers").none { it.from.startsWith("service") } }
+                if (без.isEmpty()) null
+                else "нужд без сервиса: ${без.size} — " +
+                    без.take(3).joinToString("; ") { it.doc.path("statement").asText(it.code).take(60) }
+            }
+
             "scene_done" -> {
                 val ключ = аргумент ?: return "условие «$check» не назвало сцену"
                 if (ключ in сценыПройдены(project)) null else "сцена $ключ ещё не прожита"

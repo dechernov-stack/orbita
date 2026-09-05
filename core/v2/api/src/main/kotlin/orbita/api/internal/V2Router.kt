@@ -13,6 +13,7 @@ import orbita.kernel.api.Channel
 import orbita.kernel.api.EntityStore
 import orbita.kernel.api.LinkRegistry
 import orbita.kernel.api.Provenance
+import orbita.library.internal.EntityShelves
 import orbita.process.api.PhaseView
 import orbita.process.api.ProcessEngine
 import java.time.LocalDate
@@ -21,6 +22,7 @@ class V2Router(
     private val store: EntityStore,
     private val links: LinkRegistry,
     private val engine: ProcessEngine,
+    private val shelves: EntityShelves,
     private val mapper: ObjectMapper = ObjectMapper(),
 ) {
 
@@ -41,6 +43,17 @@ class V2Router(
 
         method == "POST" && path == "/v2/goals" -> цель(требуется(query, "project"), разобрать(body))
 
+        method == "POST" && path == "/v2/constraints" ->
+            ограничение(требуется(query, "project"), разобрать(body))
+
+        method == "POST" && path == "/v2/services" -> сервис(требуется(query, "project"), разобрать(body))
+
+        // Полки: загрузка поставки и просмотр. Виды v2 приземляются сюда —
+        // это и есть приёмник, которого не хватало волне 0.
+        method == "POST" && path == "/v2/shelves" -> положитьНаПолку(разобрать(body))
+
+        method == "GET" && path == "/v2/shelves" -> полка(требуется(query, "kind"))
+
         method == "GET" && path == "/v2/entities" ->
             перечень(требуется(query, "project"), требуется(query, "kind"))
 
@@ -55,6 +68,25 @@ class V2Router(
     }
 
     private fun фаза(проект: String) = Ответ(200, вид(engine.view(проект)))
+
+    private fun положитьНаПолку(тело: JsonNode): Ответ {
+        val вид = тело.path("kind").asText("")
+        val код = тело.path("code").asText("")
+        require(вид.isNotBlank() && код.isNotBlank()) { "полке нужны вид и код записи" }
+        val запись = shelves.put(вид, код, тело.path("doc"), автор(тело))
+        return Ответ(201, mapper.createObjectNode().put("code", запись.code).put("kind", запись.kind))
+    }
+
+    private fun полка(вид: String): Ответ {
+        val массив = mapper.createArrayNode()
+        shelves.of(вид).forEach { запись ->
+            массив.addObject().put("code", запись.code).put("kind", запись.kind)
+                .set<JsonNode>("doc", запись.doc)
+        }
+        val ответ = mapper.createObjectNode()
+        ответ.set<JsonNode>("items", массив)
+        return Ответ(200, ответ)
+    }
 
     private fun открытьПроект(тело: JsonNode): Ответ {
         val код = тело.path("code").asText("").ifBlank { "PJ-" + LocalDate.now().toString().replace("-", "") }
@@ -149,6 +181,30 @@ class V2Router(
         return ответ
     }
 
+    /** Сцена 5: ограничение получает код Р-серии — он стабилен и на него ссылаются. */
+    private fun ограничение(проект: String, тело: JsonNode): Ответ {
+        val область = Area.Project(проект)
+        val занято = store.list(область, "constraint").mapNotNull {
+            Regex("^Р(\\d+)$").find(it.code)?.groupValues?.get(1)?.toIntOrNull()
+        }
+        val код = тело.path("code").asText("").ifBlank { "Р${(занято.maxOrNull() ?: 0) + 1}" }
+        val документ = тело.deepCopy<ObjectNode>().apply { remove(listOf("code", "author", "project")) }
+        val сущность = store.create(код, "constraint", область, "5", документ, Provenance(Channel.MANUAL, автор(тело)))
+        return Ответ(201, mapper.createObjectNode().put("id", сущность.id).put("code", сущность.code))
+    }
+
+    /** Сцена 6: сервис покрывает нужды — без этой связи он ничей. */
+    private fun сервис(проект: String, тело: JsonNode): Ответ {
+        val ответ = завести(проект, "service", "6", тело)
+        val область = Area.Project(проект)
+        тело.path("covers").forEach { ссылка ->
+            val нужда = store.byCode(область, ссылка.asText()) ?: store.byId(ссылка.asText())
+            requireNotNull(нужда) { "нужда «${ссылка.asText()}» не найдена" }
+            links.link("covers", ответ.body.path("id").asText(), нужда.id, Provenance(Channel.MANUAL, автор(тело)))
+        }
+        return ответ
+    }
+
     private fun перечень(проект: String, вид: String): Ответ {
         val область = Area.Project(проект)
         val массив = mapper.createArrayNode()
@@ -182,6 +238,7 @@ class V2Router(
             "stakeholder" -> "SK"
             "need" -> "ND"
             "goal" -> "MG"
+            "service" -> "SV"
             else -> вид.take(2).uppercase()
         }
         val занято = store.list(область, вид).mapNotNull {

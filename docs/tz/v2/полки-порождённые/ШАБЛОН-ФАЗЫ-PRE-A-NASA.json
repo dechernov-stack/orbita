@@ -6,14 +6,34 @@
   "title": "Формулирование: Pre-Phase A по NPR 7120.5",
   "note": "Волна 1 наполняет сцены 1–4 и три точки. Сцены 5–18 приходят волнами 2–6 тем же шаблоном: контент — данные полки, в коде его нет.",
   "correspondence": [
-    { "other_standard": "RK-11KT", "stage": "стадия 1 — НИР", "notes": "имена точек различаются: MCR ↔ экспертиза замысла" },
-    { "other_standard": "ISO-15288", "stage": "концепция", "notes": "процессы соглашений и технические" }
+    {
+      "other_standard": "RK-11KT",
+      "stage": "стадия 1 — НИР",
+      "notes": "имена точек различаются: MCR ↔ экспертиза замысла"
+    },
+    {
+      "other_standard": "ISO-15288",
+      "stage": "концепция",
+      "notes": "процессы соглашений и технические"
+    }
   ],
   "roles": [
-    { "role": "lead", "involvement": "руководитель проекта: решения, точки, план" },
-    { "role": "lead_se", "involvement": "ведущий системный инженер: постановка, требования" },
-    { "role": "specialist", "involvement": "инженер: расчёты, анкеты, документы" },
-    { "role": "da_review", "involvement": "фиксация решения на точке" }
+    {
+      "role": "lead",
+      "involvement": "руководитель проекта: решения, точки, план"
+    },
+    {
+      "role": "lead_se",
+      "involvement": "ведущий системный инженер: постановка, требования"
+    },
+    {
+      "role": "specialist",
+      "involvement": "инженер: расчёты, анкеты, документы"
+    },
+    {
+      "role": "da_review",
+      "involvement": "фиксация решения на точке"
+    }
   ],
   "scenes": [
     {
@@ -23,15 +43,33 @@
       "track": "management",
       "role": "lead",
       "question": "Что за проект и по какому стандарту его вести",
-      "opens_kinds": ["project", "phase", "gate"],
+      "opens_kinds": [
+        "project",
+        "phase",
+        "gate"
+      ],
       "entry": [],
       "exit": [
-        { "check": "project_exists", "title": "проект заведён с классом миссии и руководителем" },
-        { "check": "points_planned", "title": "три точки фазы получили даты" }
+        {
+          "check": "project_exists",
+          "title": "проект заведён с классом миссии и руководителем"
+        },
+        {
+          "check": "points_planned",
+          "title": "три точки фазы получили даты"
+        }
       ],
       "steps": [
-        { "title": "Назвать проект и класс миссии", "place": "scene:1", "hint": "класс определяет полки, которые подтянутся дальше" },
-        { "title": "Проверить даты точек", "place": "scene:1", "hint": "даты по умолчанию считаются от сегодняшнего дня и правятся" }
+        {
+          "title": "Назвать проект и класс миссии",
+          "place": "scene:1",
+          "hint": "класс определяет полки, которые подтянутся дальше"
+        },
+        {
+          "title": "Проверить даты точек",
+          "place": "scene:1",
+          "hint": "даты по умолчанию считаются от сегодняшнего дня и правятся"
+        }
       ]
     },
     {
@@ -41,16 +79,33 @@
       "track": "design",
       "role": "lead",
       "question": "Для кого система, что делает, где и на каком горизонте",
-      "opens_kinds": ["intent", "material"],
+      "opens_kinds": [
+        "intent",
+        "material"
+      ],
       "entry": [
-        { "check": "scene_done:1", "title": "проект открыт" }
+        {
+          "check": "scene_done:1",
+          "title": "проект открыт"
+        }
       ],
       "exit": [
-        { "check": "intent_accepted", "title": "замысел принят: четыре поля либо связный абзац" }
+        {
+          "check": "intent_accepted",
+          "title": "замысел принят: четыре поля либо связный абзац"
+        }
       ],
       "steps": [
-        { "title": "Положить записку миссии", "place": "scene:2#material", "hint": "из записки система предложит замысел" },
-        { "title": "Заполнить или принять четыре поля", "place": "scene:2#intent", "hint": "для кого · что делает · где · горизонт" }
+        {
+          "title": "Положить записку миссии",
+          "place": "scene:2#material",
+          "hint": "из записки система предложит замысел"
+        },
+        {
+          "title": "Заполнить или принять четыре поля",
+          "place": "scene:2#intent",
+          "hint": "для кого · что делает · где · горизонт"
+        }
       ]
     },
     {
@@ -60,17 +115,37 @@
       "track": "design",
       "role": "lead_se",
       "question": "Чьи интересы система обязана учесть и что этим людям нужно",
-      "opens_kinds": ["stakeholder", "need"],
+      "opens_kinds": [
+        "stakeholder",
+        "need"
+      ],
       "entry": [
-        { "check": "intent_accepted", "title": "замысел принят" }
+        {
+          "check": "intent_accepted",
+          "title": "замысел принят"
+        }
       ],
       "exit": [
-        { "check": "stakeholders_min:3", "title": "заведено не меньше трёх стейкхолдеров" },
-        { "check": "each_stakeholder_has_need", "title": "у каждого стейкхолдера есть хотя бы одна нужда" }
+        {
+          "check": "stakeholders_min:3",
+          "title": "заведено не меньше трёх стейкхолдеров"
+        },
+        {
+          "check": "each_stakeholder_has_need",
+          "title": "у каждого стейкхолдера есть хотя бы одна нужда"
+        }
       ],
       "steps": [
-        { "title": "Завести стейкхолдеров", "place": "scene:3#stakeholders", "hint": "круг шире потребителей: регуляторы, операторы, учреждаемые" },
-        { "title": "Назвать нужды и их носителей", "place": "scene:3#needs", "hint": "нужда без носителя — не нужда" }
+        {
+          "title": "Завести стейкхолдеров",
+          "place": "scene:3#stakeholders",
+          "hint": "круг шире потребителей: регуляторы, операторы, учреждаемые"
+        },
+        {
+          "title": "Назвать нужды и их носителей",
+          "place": "scene:3#needs",
+          "hint": "нужда без носителя — не нужда"
+        }
       ]
     },
     {
@@ -80,16 +155,102 @@
       "track": "design",
       "role": "lead_se",
       "question": "Какого измеримого результата система достигает и к какому году",
-      "opens_kinds": ["goal"],
+      "opens_kinds": [
+        "goal"
+      ],
       "entry": [
-        { "check": "scene_done:3", "title": "стейкхолдеры и нужды заведены" }
+        {
+          "check": "scene_done:3",
+          "title": "стейкхолдеры и нужды заведены"
+        }
       ],
       "exit": [
-        { "check": "each_need_has_goal", "title": "каждая нужда ведёт хотя бы к одной цели" }
+        {
+          "check": "each_need_has_goal",
+          "title": "каждая нужда ведёт хотя бы к одной цели"
+        }
       ],
       "steps": [
-        { "title": "Сформулировать цели с показателем и годом", "place": "scene:4#goals", "hint": "цель без показателя — лозунг" },
-        { "title": "Связать цели с нуждами", "place": "scene:4#coverage", "hint": "нужда без цели останется невыполненной" }
+        {
+          "title": "Сформулировать цели с показателем и годом",
+          "place": "scene:4#goals",
+          "hint": "цель без показателя — лозунг"
+        },
+        {
+          "title": "Связать цели с нуждами",
+          "place": "scene:4#coverage",
+          "hint": "нужда без цели останется невыполненной"
+        }
+      ]
+    },
+    {
+      "key": "5",
+      "title": "Ограничения",
+      "order": 5,
+      "track": "design",
+      "role": "lead",
+      "question": "Какие рамки система обязана соблюдать — и что из этого запрет, а не пожелание",
+      "opens_kinds": [
+        "constraint"
+      ],
+      "entry": [
+        {
+          "check": "scene_done:4",
+          "title": "цели связаны с нуждами"
+        }
+      ],
+      "exit": [
+        {
+          "check": "constraints_min:1",
+          "title": "заведено хотя бы одно ограничение проекта"
+        }
+      ],
+      "steps": [
+        {
+          "title": "Принять типовые ограничения класса",
+          "place": "scene:5#typical",
+          "hint": "класс миссии предлагает свои; принятое становится запретом"
+        },
+        {
+          "title": "Добавить свои ограничения",
+          "place": "scene:5#own",
+          "hint": "код Р-серии стабилен: на него ссылаются промпты и трассировки"
+        }
+      ]
+    },
+    {
+      "key": "6",
+      "title": "Сервисы",
+      "order": 6,
+      "track": "design",
+      "role": "lead_se",
+      "question": "Что система даёт кому и с каким качеством",
+      "opens_kinds": [
+        "service"
+      ],
+      "entry": [
+        {
+          "check": "scene_done:5",
+          "title": "ограничения заданы"
+        }
+      ],
+      "exit": [
+        {
+          "check": "each_need_has_service",
+          "title": "каждая нужда покрыта хотя бы одним сервисом"
+        }
+      ],
+      "steps": [
+        {
+          "title": "Назвать сервисы и их потребителей",
+          "place": "scene:6#services",
+          "hint": "сервис — ответ на нужду, а не список возможностей"
+        },
+        {
+          "title": "Задать класс обслуживания и показатель",
+          "place": "scene:6#qos",
+          "hint": "A′ односторонний · B′ с подтверждением · C′ оперативного управления"
+        }
       ]
     }
   ],
@@ -101,11 +262,22 @@
       "kind": "phase",
       "offset_days": 30,
       "aliases": [
-        { "standard": "NASA-7120", "name": "Internal Review" },
-        { "standard": "RK-11KT", "name": "внутренний обзор" }
+        {
+          "standard": "NASA-7120",
+          "name": "Internal Review"
+        },
+        {
+          "standard": "RK-11KT",
+          "name": "внутренний обзор"
+        }
       ],
       "criteria": [
-        { "check": "scene_done:2", "source_scene": "2", "blocking": true, "title": "замысел принят" }
+        {
+          "check": "scene_done:2",
+          "source_scene": "2",
+          "blocking": true,
+          "title": "замысел принят"
+        }
       ]
     },
     {
@@ -115,22 +287,51 @@
       "kind": "phase",
       "offset_days": 60,
       "aliases": [
-        { "standard": "NASA-7120", "name": "Mission Concept Review (MCR)" },
-        { "standard": "RK-11KT", "name": "экспертиза замысла" }
+        {
+          "standard": "NASA-7120",
+          "name": "Mission Concept Review (MCR)"
+        },
+        {
+          "standard": "RK-11KT",
+          "name": "экспертиза замысла"
+        }
       ],
       "expertise": {
         "goal": "Убедиться, что задача понята: замысел, нужды и цели согласованы между собой",
         "validation_questions": [
           "Названы ли все стороны, чьи интересы система обязана учесть?",
           "Каждая ли нужда ведёт к цели с измеримым показателем?",
-          "Есть ли нужда, за которую никто не отвечает?"
+          "Есть ли нужда, за которую никто не отвечает?",
+          "Есть ли нужда, которую не покрывает ни один сервис?"
         ],
-        "results": ["принятый замысел", "реестр стейкхолдеров и нужд", "цели с показателями"],
-        "main_outcome": ["решение о переходе к концепции"]
+        "results": [
+          "принятый замысел",
+          "реестр стейкхолдеров и нужд",
+          "цели с показателями"
+        ],
+        "main_outcome": [
+          "решение о переходе к концепции"
+        ]
       },
       "criteria": [
-        { "check": "scene_done:3", "source_scene": "3", "blocking": true, "title": "стейкхолдеры и нужды заведены" },
-        { "check": "scene_done:4", "source_scene": "4", "blocking": true, "title": "цели связаны с нуждами" }
+        {
+          "check": "scene_done:3",
+          "source_scene": "3",
+          "blocking": true,
+          "title": "стейкхолдеры и нужды заведены"
+        },
+        {
+          "check": "scene_done:4",
+          "source_scene": "4",
+          "blocking": true,
+          "title": "цели связаны с нуждами"
+        },
+        {
+          "check": "scene_done:6",
+          "source_scene": "6",
+          "blocking": true,
+          "title": "каждая нужда покрыта сервисом"
+        }
       ]
     },
     {
@@ -140,19 +341,36 @@
       "kind": "phase",
       "offset_days": 90,
       "aliases": [
-        { "standard": "NASA-7120", "name": "Key Decision Point A" },
-        { "standard": "RK-11KT", "name": "решение о начале аванпроекта" }
+        {
+          "standard": "NASA-7120",
+          "name": "Key Decision Point A"
+        },
+        {
+          "standard": "RK-11KT",
+          "name": "решение о начале аванпроекта"
+        }
       ],
       "criteria": [
-        { "check": "gate_passed:MCR", "source_scene": "4", "blocking": true, "title": "MCR пройден" }
+        {
+          "check": "gate_passed:MCR",
+          "source_scene": "4",
+          "blocking": true,
+          "title": "MCR пройден"
+        }
       ]
     }
   ],
   "stage_output_dataset": {
     "composition_depth": 2,
-    "requirement_levels": ["project"],
+    "requirement_levels": [
+      "project"
+    ],
     "interfaces": false,
-    "models": ["М1"],
-    "documents": ["MCReport"]
+    "models": [
+      "М1"
+    ],
+    "documents": [
+      "MCReport"
+    ]
   }
 }

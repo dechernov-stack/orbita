@@ -325,3 +325,151 @@ export function Гейты({ phase, onPassed }: { phase: Phase; onPassed: () => 
     </div>
   )
 }
+
+/** Сцена 5 — ограничения: коды Р-серии стабильны, отмена со следом. */
+export function SceneConstraints({ project, onChanged }: { project: string; onChanged: () => void }) {
+  const [ограничения, setОграничения] = useState<EntityRow[]>([])
+  const [текст, setТекст] = useState('')
+  const [категория, setКатегория] = useState('техническое')
+  const [отказ, setОтказ] = useState<string | null>(null)
+
+  const перечитать = () => {
+    api.entities(project, 'constraint').then((r) => setОграничения(r.items)).catch(() => undefined)
+  }
+  useEffect(перечитать, [project])
+
+  const добавить = () => {
+    setОтказ(null)
+    api.addConstraint(project, { text: текст, category: категория })
+      .then(() => { setТекст(''); перечитать(); onChanged() })
+      .catch((e) => setОтказ(String(e.message ?? e)))
+  }
+
+  return (
+    <div>
+      {отказ && <div className="v2-locked">{отказ}</div>}
+      <div className="v2-form v2-form--row">
+        <input value={текст} onChange={(e) => setТекст(e.target.value)}
+          placeholder="полезная нагрузка — только регенеративная" />
+        <select value={категория} onChange={(e) => setКатегория(e.target.value)}
+          title="группа ограничения — полем, а не буквой кода">
+          <option value="техническое">техническое</option>
+          <option value="программное">программное</option>
+          <option value="пусковое">пусковое</option>
+          <option value="регуляторное">регуляторное</option>
+        </select>
+        <button type="button" onClick={добавить} disabled={!текст.trim()}
+          title={текст.trim() ? 'завести ограничение с кодом Р-серии' : 'сформулируйте ограничение'}>
+          Добавить
+        </button>
+      </div>
+
+      <table className="v2-table">
+        <thead><tr><th>Код</th><th>Ограничение</th><th>Группа</th></tr></thead>
+        <tbody>
+          {ограничения.map((о) => (
+            <tr key={о.id}>
+              <td className="v2-mono" title="код стабилен: на него ссылаются промпты и трассировки">{о.code}</td>
+              <td>{String(о.doc.text ?? '')}</td>
+              <td>{String(о.doc.category ?? '')}</td>
+            </tr>
+          ))}
+          {ограничения.length === 0 && (
+            <tr><td colSpan={3} className="v2-empty">
+              Ограничений пока нет.
+              <span className="v2-empty__why">Рамки задаются здесь и дальше работают запретами для службы и проверок.</span>
+            </td></tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+/** Сцена 6 — сервисы: что система даёт кому и с каким качеством. */
+export function SceneServices({ project, onChanged }: { project: string; onChanged: () => void }) {
+  const [сервисы, setСервисы] = useState<EntityRow[]>([])
+  const [нужды, setНужды] = useState<EntityRow[]>([])
+  const [имя, setИмя] = useState('')
+  const [класс, setКласс] = useState('B′')
+  const [покрывает, setПокрывает] = useState<string[]>([])
+  const [отказ, setОтказ] = useState<string | null>(null)
+
+  const перечитать = () => {
+    api.entities(project, 'service').then((r) => setСервисы(r.items)).catch(() => undefined)
+    api.entities(project, 'need').then((r) => setНужды(r.items)).catch(() => undefined)
+  }
+  useEffect(перечитать, [project])
+
+  const добавить = () => {
+    setОтказ(null)
+    api.addService(project, { name: имя, qos_class: класс, covers: покрывает })
+      .then(() => { setИмя(''); setПокрывает([]); перечитать(); onChanged() })
+      .catch((e) => setОтказ(String(e.message ?? e)))
+  }
+
+  const безСервиса = нужды.filter((n) => (n.covered_by ?? []).every((c) => !c.startsWith('service')))
+
+  return (
+    <div>
+      {отказ && <div className="v2-locked">{отказ}</div>}
+      <div className="v2-form">
+        <label>Сервис
+          <input value={имя} onChange={(e) => setИмя(e.target.value)}
+            placeholder="передача коротких сообщений от датчиков" />
+        </label>
+        <label>Класс обслуживания
+          <select value={класс} onChange={(e) => setКласс(e.target.value)}>
+            <option value="A′">A′ — односторонний</option>
+            <option value="B′">B′ — с подтверждением</option>
+            <option value="C′">C′ — оперативного управления</option>
+          </select>
+        </label>
+        <div>
+          <div className="v2-empty__why">Какие нужды покрывает:</div>
+          {нужды.map((n) => (
+            <label key={n.id} className="v2-check">
+              <input type="checkbox" checked={покрывает.includes(n.code)}
+                onChange={(e) => setПокрывает(e.target.checked
+                  ? [...покрывает, n.code]
+                  : покрывает.filter((x) => x !== n.code))} />
+              {String(n.doc.statement ?? n.code)}
+            </label>
+          ))}
+        </div>
+        <div className="v2-form__actions">
+          <button type="button" className="v2-primary" onClick={добавить}
+            disabled={!имя.trim() || покрывает.length === 0}
+            title={покрывает.length === 0
+              ? 'сервис, не покрывающий ни одной нужды, никому не нужен'
+              : 'завести сервис'}>
+            Добавить сервис
+          </button>
+        </div>
+      </div>
+
+      <table className="v2-table">
+        <thead><tr><th>Код</th><th>Сервис</th><th>Класс</th><th>Покрывает нужд</th></tr></thead>
+        <tbody>
+          {сервисы.map((с) => (
+            <tr key={с.id}>
+              <td className="v2-mono">{с.code}</td>
+              <td>{String(с.doc.name ?? '')}</td>
+              <td>{String(с.doc.qos_class ?? '')}</td>
+              <td>{нужды.filter((n) => (n.covered_by ?? []).includes(с.id)).length}</td>
+            </tr>
+          ))}
+          {сервисы.length === 0 && (
+            <tr><td colSpan={4} className="v2-empty">Сервисов пока нет.</td></tr>
+          )}
+        </tbody>
+      </table>
+
+      {безСервиса.length > 0 && (
+        <div className="v2-warn">
+          Нужд без сервиса: {безСервиса.length} — пока они есть, сцена 6 не закроется.
+        </div>
+      )}
+    </div>
+  )
+}

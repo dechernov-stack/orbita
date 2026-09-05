@@ -11,6 +11,7 @@ import orbita.kernel.TestDbV2
 import orbita.kernel.api.Area
 import orbita.kernel.internal.PgEntityStore
 import orbita.kernel.internal.PgLinkRegistry
+import orbita.library.internal.EntityShelves
 import orbita.process.internal.TemplateProcessEngine
 import orbita.readiness.internal.DomainGateEvaluator
 import kotlin.test.BeforeTest
@@ -45,7 +46,7 @@ class SceneFlowTest {
                     .filterValues { it.isNotBlank() }
             },
         )
-        V2Router(store, links, движок, mapper)
+        V2Router(store, links, движок, EntityShelves(store) { шаблон }, mapper)
     }
 
     @BeforeTest
@@ -93,6 +94,56 @@ class SceneFlowTest {
     }
 
     @Test
+    fun `сцены 5-6 закрываются ограничением и покрытием нужд сервисами`() {
+        router.handle("POST", "/v2/projects", emptyMap(), """{"name":"Полный проход","code":"PJ-9104"}""")
+        val параметры = mapOf("project" to "PJ-9104")
+        router.handle("POST", "/v2/intent", параметры,
+            """{"for_whom":"перевозчики","what":"телеметрия","where":"СМП","horizon":"2033","accepted":true}""")
+        val коды = (1..3).map { n ->
+            router.handle("POST", "/v2/stakeholders", параметры, """{"name":"Сторона $n","role":"customer"}""")!!
+                .body.path("code").asText()
+        }
+        коды.forEachIndexed { i, код ->
+            router.handle("POST", "/v2/needs", параметры,
+                """{"statement":"нужда стороны ${i + 1} в связи","owner":"$код"}""")
+        }
+        val нужды = router.handle("GET", "/v2/entities", параметры + ("kind" to "need"), null)!!
+            .body.path("items").map { it.path("code").asText() }
+        router.handle("POST", "/v2/goals", параметры,
+            """{"statement":"отслеживаемость","year":2033,"covers":${mapper.writeValueAsString(нужды)}}""")
+
+        // сцена 5 закрыта, пока нет ни одного ограничения
+        val доОграничений = router.handle("GET", "/v2/phase", параметры, null)!!.body
+        assertEquals("open", сцена(доОграничений, "5").path("state").asText())
+        assertTrue(сцена(доОграничений, "5").path("blockers").toString().contains("ограничений 0"))
+        assertEquals("locked", сцена(доОграничений, "6").path("state").asText())
+
+        val ограничение = router.handle("POST", "/v2/constraints", параметры,
+            """{"text":"полезная нагрузка — только регенеративная","category":"техническое"}""")!!
+        assertEquals("Р1", ограничение.body.path("code").asText(), "код Р-серии присваивает система")
+
+        // сцена 6 открылась; без сервисов она не закроется
+        val доСервисов = router.handle("GET", "/v2/phase", параметры, null)!!.body
+        assertEquals("done", сцена(доСервисов, "5").path("state").asText())
+        assertEquals("open", сцена(доСервисов, "6").path("state").asText())
+        assertTrue(сцена(доСервисов, "6").path("blockers").toString().contains("без сервиса"))
+
+        router.handle("POST", "/v2/services", параметры,
+            """{"name":"передача коротких сообщений","qos_class":"B′","covers":${mapper.writeValueAsString(нужды)}}""")
+
+        val фаза = router.handle("GET", "/v2/phase", параметры, null)!!.body
+        assertEquals("done", сцена(фаза, "6").path("state").asText(), сцена(фаза, "6").path("blockers").toString())
+        val mcr = фаза.path("gates").single { it.path("key").asText() == "MCR" }
+        assertEquals(0, mcr.path("blocking").size(), "все шесть сцен прожиты — MCR открыт: ${mcr.path("blocking")}")
+
+        val пройдена = router.handle("POST", "/v2/gates/MCR/pass", параметры, """{"author":"Чернов Д."}""")!!
+        assertTrue(
+            пройдена.body.path("gates").single { it.path("key").asText() == "MCR" }.path("passed").asBoolean(),
+            "после выполнения всех условий точка фиксируется",
+        )
+    }
+
+    @Test
     fun `нужда без носителя не заводится`() {
         router.handle("POST", "/v2/projects", emptyMap(), """{"name":"П","code":"PJ-9102"}""")
         val параметры = mapOf("project" to "PJ-9102")
@@ -104,7 +155,7 @@ class SceneFlowTest {
     }
 
     @Test
-    fun `проход сцен 1-4 закрывает MCR, и точка фиксируется только после этого`() {
+    fun `сцены 1-4 прожиты, но MCR держится дальше - до покрытия нужд сервисами`() {
         router.handle("POST", "/v2/projects", emptyMap(), """{"name":"Полный проход","code":"PJ-9103"}""")
         val параметры = mapOf("project" to "PJ-9103")
         router.handle("POST", "/v2/intent", параметры,
@@ -136,13 +187,16 @@ class SceneFlowTest {
         assertEquals("done", сцена(фаза, "3").path("state").asText(), сцена(фаза, "3").path("blockers").toString())
         assertEquals("done", сцена(фаза, "4").path("state").asText(), сцена(фаза, "4").path("blockers").toString())
 
+        // Сцены 3 и 4 прожиты, но MCR ждёт ещё и сервисов (сцена 6): точка
+        // держится ровно до тех пор, пока держится хоть одно её условие.
         val mcr = фаза.path("gates").single { it.path("key").asText() == "MCR" }
-        assertEquals(0, mcr.path("blocking").size(), "условия MCR выполнены: ${mcr.path("blocking")}")
-
-        val пройдена = router.handle("POST", "/v2/gates/MCR/pass", параметры, """{"author":"Чернов Д."}""")!!
         assertTrue(
-            пройдена.body.path("gates").single { it.path("key").asText() == "MCR" }.path("passed").asBoolean(),
-            "после выполнения условий точка фиксируется",
+            mcr.path("blocking").toString().contains("сцена 6"),
+            "MCR обязан ждать покрытия нужд сервисами: ${mcr.path("blocking")}",
         )
+        val всёЕщёОтказ = runCatching {
+            router.handle("POST", "/v2/gates/MCR/pass", параметры, """{"author":"Чернов Д."}""")
+        }.exceptionOrNull()
+        assertNotNull(всёЕщёОтказ, "точку с невыполненным условием фиксировать нельзя")
     }
 }

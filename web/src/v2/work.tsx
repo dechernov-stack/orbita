@@ -6,7 +6,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api, type Phase } from './api'
 import { SceneFrame } from './SceneFrame'
-import { SceneGoals, SceneIntent, SceneOpenProject, SceneStakeholders, Гейты } from './scenes'
+import {
+  SceneConstraints, SceneGoals, SceneIntent, SceneOpenProject,
+  SceneServices, SceneStakeholders, Гейты,
+} from './scenes'
 
 export function Work({ project, onProject }: {
   project: string | null
@@ -57,6 +60,8 @@ export function Work({ project, onProject }: {
         {текущая.key === '2' && <SceneIntent project={project} onChanged={перечитать} />}
         {текущая.key === '3' && <SceneStakeholders project={project} onChanged={перечитать} />}
         {текущая.key === '4' && <SceneGoals project={project} onChanged={перечитать} />}
+        {текущая.key === '5' && <SceneConstraints project={project} onChanged={перечитать} />}
+        {текущая.key === '6' && <SceneServices project={project} onChanged={перечитать} />}
       </SceneFrame>
       <Гейты phase={фаза} onPassed={перечитать} />
     </>

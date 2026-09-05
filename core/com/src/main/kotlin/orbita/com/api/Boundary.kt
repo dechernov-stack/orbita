@@ -129,19 +129,21 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
         val корень = java.nio.file.Path.of(System.getenv("ORBITA_REPO_ROOT") ?: ".")
         val шаблоны = корень.resolve("docs/tz/v2/полки-порождённые")
         val пройденные = mutableMapOf<String, MutableSet<String>>()
+        val полки = orbita.library.internal.EntityShelves(store) { код ->
+            val файл = шаблоны.resolve(
+                if (код == "PHT-9001") "ШАБЛОН-ФАЗЫ-PRE-A-NASA.json" else "$код.json",
+            ).toFile()
+            if (файл.isFile) mapper.readTree(файл) else null
+        }
         val оценщик = orbita.readiness.internal.DomainGateEvaluator(
             store, links,
             сценыПройдены = { emptySet() },
             воротаПройдены = { p -> пройденные.getOrPut(p) { mutableSetOf() } },
         )
         val движок = orbita.process.internal.TemplateProcessEngine(
-            шаблон = { код ->
-                val файл = шаблоны.resolve(
-                    if (код == "PHT-9001") "ШАБЛОН-ФАЗЫ-PRE-A-NASA.json" else "$код.json",
-                ).toFile()
-                require(файл.isFile) { "шаблона фазы «$код» нет на полке" }
-                mapper.readTree(файл)
-            },
+            // Шаблон читается С ПОЛКИ; файл поставки — запасной путь, пока
+            // полка не загружена (см. EntityShelves.phaseTemplate).
+            шаблон = { код -> полки.phaseTemplate(код) },
             оценщик = оценщик,
             пройденныеТочки = { p -> пройденные.getOrPut(p) { mutableSetOf() } },
             планТочек = { проект ->
@@ -150,7 +152,7 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
                     .filterValues { it.isNotBlank() }
             },
         )
-        return orbita.api.internal.V2Router(store, links, движок, mapper)
+        return orbita.api.internal.V2Router(store, links, движок, полки, mapper)
     }
 
     /** Реестр схем — службе ИИ: предложение проверяется схемой целевого вида. */

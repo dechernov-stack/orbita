@@ -44,11 +44,30 @@ create_builder() {
 
 # Размер тома состояния в гигабайтах (целое, вниз). Том живёт внутри VM
 # Docker Desktop, поэтому меряем изнутри контейнера.
+#
+# Мерка НЕ должна останавливать выкат. Живой случай: образа alpine не
+# оказалось локально, docker run ушёл его тянуть по медленному каналу и
+# выкат простоял полчаса на измерении размера. Поэтому: берём образ,
+# который уже есть на машине, и ограничиваем ожидание.
 builder_state_gb() {
   local vol="buildx_buildkit_${BUILDER}0_state"
   docker volume inspect "$vol" > /dev/null 2>&1 || { echo 0; return; }
-  docker run --rm -v "$vol":/v alpine du -sm /v 2>/dev/null \
-    | awk '{print int($1/1024)}' || echo 0
+
+  local img=""
+  # имена переменных латиницей: bash не принимает кириллические идентификаторы
+  for candidate in alpine:latest busybox:latest postgres:16; do
+    if docker image inspect "$candidate" > /dev/null 2>&1; then img="$candidate"; break; fi
+  done
+  if [ -z "$img" ]; then
+    # Ни одного подходящего образа локально — измерять нечем, и это
+    # состояние, а не повод скачивать что-то посреди выката.
+    echo 0
+    return
+  fi
+
+  local out
+  out="$(docker run --rm --pull=never -v "$vol":/v "$img" du -sm /v 2>/dev/null | awk '{print int($1/1024)}')"
+  echo "${out:-0}"
 }
 
 # Есть ли связь с реестром образов. Пересоздание сборщика стирает его кэш

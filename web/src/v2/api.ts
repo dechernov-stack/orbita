@@ -98,6 +98,18 @@ export const api = {
       { method: 'POST', body: JSON.stringify(тело) },
     ),
 
+  addConstraint: (project: string, тело: Record<string, unknown>) =>
+    вызов<{ id: string; code: string }>(
+      `/constraints?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify(тело) },
+    ),
+
+  addService: (project: string, тело: Record<string, unknown>) =>
+    вызов<{ id: string; code: string }>(
+      `/services?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify(тело) },
+    ),
+
   addGoal: (project: string, тело: Record<string, unknown>) =>
     вызов<{ id: string; code: string }>(
       `/goals?project=${encodeURIComponent(project)}`,
