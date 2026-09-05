@@ -9,11 +9,11 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import orbita.api.internal.V2Router
 import orbita.kernel.TestDbV2
 import orbita.kernel.api.Area
-import orbita.kernel.internal.PgEntityStore
-import orbita.kernel.internal.PgLinkRegistry
-import orbita.library.internal.EntityShelves
-import orbita.process.internal.TemplateProcessEngine
-import orbita.readiness.internal.DomainGateEvaluator
+import orbita.kernel.api.KernelFactory
+import orbita.kernel.api.LinkRegistry
+import orbita.library.api.LibraryFactory
+import orbita.process.api.ProcessFactory
+import orbita.readiness.api.ReadinessFactory
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -23,8 +23,8 @@ import kotlin.test.assertTrue
 class SceneFlowTest {
 
     private val mapper = ObjectMapper()
-    private val store = PgEntityStore(TestDbV2.conn, mapper)
-    private val links = PgLinkRegistry(TestDbV2.conn)
+    private val store = KernelFactory.entityStore(TestDbV2.conn, mapper)
+    private val links: LinkRegistry = KernelFactory.linkRegistry(TestDbV2.conn)
     private val пройденные = mutableMapOf<String, MutableSet<String>>()
 
     private val шаблон = mapper.readTree(
@@ -32,21 +32,21 @@ class SceneFlowTest {
     )
 
     private val router: V2Router by lazy {
-        val движок = TemplateProcessEngine(
-            шаблон = { шаблон },
-            оценщик = DomainGateEvaluator(
+        val движок = ProcessFactory.engine(
+            template = { шаблон },
+            evaluator = ReadinessFactory.gateEvaluator(
                 store, links,
-                сценыПройдены = { emptySet() },
-                воротаПройдены = { p -> пройденные.getOrPut(p) { mutableSetOf() } },
+                scenesDone = { emptySet() },
+                gatesPassed = { p -> пройденные.getOrPut(p) { mutableSetOf() } },
             ),
-            пройденныеТочки = { p -> пройденные.getOrPut(p) { mutableSetOf() } },
-            планТочек = { проект ->
+            passedGates = { p -> пройденные.getOrPut(p) { mutableSetOf() } },
+            gatePlan = { проект ->
                 store.list(Area.Project(проект), "gate")
                     .associate { it.code to it.doc.path("planned_date").asText("") }
                     .filterValues { it.isNotBlank() }
             },
         )
-        V2Router(store, links, движок, EntityShelves(store) { шаблон }, mapper)
+        V2Router(store, links, движок, LibraryFactory.shelves(store) { шаблон }, mapper)
     }
 
     @BeforeTest

@@ -13,7 +13,7 @@ import orbita.kernel.api.Channel
 import orbita.kernel.api.EntityStore
 import orbita.kernel.api.LinkRegistry
 import orbita.kernel.api.Provenance
-import orbita.library.internal.EntityShelves
+import orbita.library.api.Shelves
 import orbita.process.api.PhaseView
 import orbita.process.api.ProcessEngine
 import java.time.LocalDate
@@ -22,7 +22,7 @@ class V2Router(
     private val store: EntityStore,
     private val links: LinkRegistry,
     private val engine: ProcessEngine,
-    private val shelves: EntityShelves,
+    private val shelves: Shelves,
     private val mapper: ObjectMapper = ObjectMapper(),
 ) {
 

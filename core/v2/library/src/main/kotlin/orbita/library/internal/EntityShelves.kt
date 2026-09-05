@@ -39,7 +39,7 @@ class EntityShelves(
      * содержимого ничего не меняет: полка идемпотентна, иначе каждая
      * выкладка плодила бы версии на пустом месте.
      */
-    fun put(kind: String, code: String, doc: JsonNode, author: String): ShelfItem {
+    override fun put(kind: String, code: String, doc: JsonNode, author: String): ShelfItem {
         val прежняя = store.byCode(Area.Library, code)
         val провенанс = Provenance(Channel.SHELF, author, source = "поставка v2")
         val сущность = when {

@@ -6,9 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import orbita.kernel.api.Area
 import orbita.kernel.api.Channel
 import orbita.kernel.api.Provenance
-import orbita.kernel.internal.GeneratedSchemaRegistry
-import orbita.kernel.internal.PgEntityStore
-import orbita.kernel.internal.PgLinkRegistry
+import orbita.kernel.api.KernelFactory
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -18,8 +16,8 @@ import kotlin.test.assertTrue
 class KernelTest {
 
     private val mapper = ObjectMapper()
-    private val store = PgEntityStore(TestDbV2.conn, mapper)
-    private val links = PgLinkRegistry(TestDbV2.conn)
+    private val store = KernelFactory.entityStore(TestDbV2.conn, mapper)
+    private val links = KernelFactory.linkRegistry(TestDbV2.conn)
     private val провенанс = Provenance(Channel.MANUAL, "Иванов И.")
 
     @BeforeTest
@@ -94,7 +92,7 @@ class KernelTest {
 
     @Test
     fun `схема вида проверяет документ, вид вне истины схем не существует`() {
-        val реестр = GeneratedSchemaRegistry(TestDbV2.repoRoot.resolve("schemas/v2"))
+        val реестр = KernelFactory.schemaRegistry(TestDbV2.repoRoot.resolve("schemas/v2"))
         assertTrue(реестр.kinds().size >= 86, "видов в реестре: ${реестр.kinds().size}")
         assertTrue("requirement" in реестр.kinds())
 

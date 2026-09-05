@@ -13,8 +13,8 @@ import orbita.kernel.api.Provenance
 import orbita.kernel.internal.PgEntityStore
 import orbita.kernel.internal.PgLinkRegistry
 import orbita.process.api.SceneState
-import orbita.process.internal.TemplateProcessEngine
-import orbita.readiness.internal.DomainGateEvaluator
+import orbita.process.api.ProcessFactory
+import orbita.readiness.api.ReadinessFactory
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -38,15 +38,15 @@ class SceneGateTest {
 
     private val движок by lazy {
         val прожитые = { p: String -> emptySet<String>() }
-        TemplateProcessEngine(
-            шаблон = { шаблон },
-            оценщик = DomainGateEvaluator(
+        ProcessFactory.engine(
+            template = { шаблон },
+            evaluator = ReadinessFactory.gateEvaluator(
                 store, links,
-                сценыПройдены = прожитые,
-                воротаПройдены = { p -> пройденные.getOrPut(p) { mutableSetOf() } },
+                scenesDone = прожитые,
+                gatesPassed = { p -> пройденные.getOrPut(p) { mutableSetOf() } },
             ),
-            пройденныеТочки = { p -> пройденные.getOrPut(p) { mutableSetOf() } },
-            планТочек = { emptyMap() },
+            passedGates = { p -> пройденные.getOrPut(p) { mutableSetOf() } },
+            gatePlan = { emptyMap() },
         )
     }
 

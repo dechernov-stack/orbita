@@ -124,29 +124,29 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
      */
     fun v2Router(): orbita.api.internal.V2Router {
         val mapper = com.fasterxml.jackson.databind.ObjectMapper()
-        val store = orbita.kernel.internal.PgEntityStore(conn, mapper)
-        val links = orbita.kernel.internal.PgLinkRegistry(conn)
+        val store = orbita.kernel.api.KernelFactory.entityStore(conn, mapper)
+        val links = orbita.kernel.api.KernelFactory.linkRegistry(conn)
         val корень = java.nio.file.Path.of(System.getenv("ORBITA_REPO_ROOT") ?: ".")
         val шаблоны = корень.resolve("docs/tz/v2/полки-порождённые")
         val пройденные = mutableMapOf<String, MutableSet<String>>()
-        val полки = orbita.library.internal.EntityShelves(store) { код ->
+        val полки = orbita.library.api.LibraryFactory.shelves(store) { код ->
             val файл = шаблоны.resolve(
                 if (код == "PHT-9001") "ШАБЛОН-ФАЗЫ-PRE-A-NASA.json" else "$код.json",
             ).toFile()
             if (файл.isFile) mapper.readTree(файл) else null
         }
-        val оценщик = orbita.readiness.internal.DomainGateEvaluator(
+        val оценщик = orbita.readiness.api.ReadinessFactory.gateEvaluator(
             store, links,
-            сценыПройдены = { emptySet() },
-            воротаПройдены = { p -> пройденные.getOrPut(p) { mutableSetOf() } },
+            scenesDone = { emptySet() },
+            gatesPassed = { p -> пройденные.getOrPut(p) { mutableSetOf() } },
         )
-        val движок = orbita.process.internal.TemplateProcessEngine(
+        val движок = orbita.process.api.ProcessFactory.engine(
             // Шаблон читается С ПОЛКИ; файл поставки — запасной путь, пока
             // полка не загружена (см. EntityShelves.phaseTemplate).
-            шаблон = { код -> полки.phaseTemplate(код) },
-            оценщик = оценщик,
-            пройденныеТочки = { p -> пройденные.getOrPut(p) { mutableSetOf() } },
-            планТочек = { проект ->
+            template = { код -> полки.phaseTemplate(код) },
+            evaluator = оценщик,
+            passedGates = { p -> пройденные.getOrPut(p) { mutableSetOf() } },
+            gatePlan = { проект ->
                 store.list(orbita.kernel.api.Area.Project(проект), "gate")
                     .associate { it.code to it.doc.path("planned_date").asText("") }
                     .filterValues { it.isNotBlank() }
