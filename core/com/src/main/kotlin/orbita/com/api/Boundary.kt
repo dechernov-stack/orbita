@@ -152,7 +152,9 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
                     .filterValues { it.isNotBlank() }
             },
         )
-        return orbita.api.internal.V2Router(store, links, движок, полки, mapper)
+        val знания = orbita.knowledge.api.KnowledgeFactory.intake(store, mapper)
+        val постановка = orbita.formulation.api.FormulationFactory.formulation(store, links)
+        return orbita.api.internal.V2Router(store, links, движок, полки, знания, постановка, mapper)
     }
 
     /** Реестр схем — службе ИИ: предложение проверяется схемой целевого вида. */

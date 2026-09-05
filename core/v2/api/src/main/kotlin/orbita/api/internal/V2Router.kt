@@ -13,6 +13,8 @@ import orbita.kernel.api.Channel
 import orbita.kernel.api.EntityStore
 import orbita.kernel.api.LinkRegistry
 import orbita.kernel.api.Provenance
+import orbita.formulation.api.Formulation
+import orbita.knowledge.api.Intake
 import orbita.library.api.Shelves
 import orbita.process.api.PhaseView
 import orbita.process.api.ProcessEngine
@@ -23,6 +25,8 @@ class V2Router(
     private val links: LinkRegistry,
     private val engine: ProcessEngine,
     private val shelves: Shelves,
+    private val intake: Intake,
+    private val formulation: Formulation,
     private val mapper: ObjectMapper = ObjectMapper(),
 ) {
 
@@ -57,6 +61,16 @@ class V2Router(
         // «Мои задания» (волна 1): задание — это адресованный разрыв, а не
         // отдельная сущность со своим статусом. Разрывы берутся из условий
         // сцен, адрес — из роли сцены: кто отвечает за сцену, тот и работает.
+        // Волна 2: материалы, задание загрузки и план действий.
+        method == "POST" && path == "/v2/materials" -> материал(требуется(query, "project"), разобрать(body))
+
+        method == "POST" && path == "/v2/intake" -> заданиеЗагрузки(требуется(query, "project"), разобрать(body))
+
+        method == "GET" && path == "/v2/facts" -> фактология(требуется(query, "project"))
+
+        // Матрица покрытия: не хранится, а считается по связям
+        method == "GET" && path == "/v2/coverage" -> покрытие(требуется(query, "project"))
+
         method == "GET" && path == "/v2/my-tasks" ->
             задания(требуется(query, "project"), query["role"])
 
@@ -209,6 +223,92 @@ class V2Router(
             links.link("covers", ответ.body.path("id").asText(), нужда.id, Provenance(Channel.MANUAL, автор(тело)))
         }
         return ответ
+    }
+
+    private fun материал(проект: String, тело: JsonNode): Ответ {
+        val код = intake.putMaterial(
+            проект,
+            тело.path("name").asText("материал"),
+            тело.path("kind").asText("reference"),
+            тело.path("text").asText(""),
+            автор(тело),
+        )
+        return Ответ(201, mapper.createObjectNode().put("code", код))
+    }
+
+    private fun заданиеЗагрузки(проект: String, тело: JsonNode): Ответ {
+        val задание = intake.plan(
+            проект,
+            тело.path("material").asText(""),
+            тело.path("intent").asText("разбери по сущностям"),
+            автор(тело),
+        )
+        val узел = mapper.createObjectNode()
+        узел.put("task", задание.id)
+        узел.put("material", задание.material)
+        узел.put("intent", задание.intent)
+        узел.put("note", задание.note)
+        val факты = узел.putArray("facts")
+        задание.facts.forEach { факт ->
+            факты.addObject()
+                .put("id", факт.id)
+                .put("subject", факт.subject)
+                .put("predicate", факт.predicate)
+                .put("value", факт.value)
+                .put("unit", факт.unit)
+                .put("anchor", факт.anchor)
+                .put("mark", факт.mark.name)
+        }
+        val план = узел.putArray("plan")
+        задание.plan.forEach { действие ->
+            план.addObject()
+                .put("kind", действие.kind)
+                .put("title", действие.title)
+                .put("effect", действие.effect)
+        }
+        return Ответ(200, узел)
+    }
+
+    private fun фактология(проект: String): Ответ {
+        val массив = mapper.createArrayNode()
+        intake.facts(проект).forEach { факт ->
+            массив.addObject()
+                .put("id", факт.id)
+                .put("subject", факт.subject)
+                .put("predicate", факт.predicate)
+                .put("value", факт.value)
+                .put("unit", факт.unit)
+                .put("anchor", факт.anchor)
+                .put("mark", факт.mark.name)
+                .put("material", факт.material)
+        }
+        val ответ = mapper.createObjectNode()
+        ответ.set<JsonNode>("items", массив)
+        return Ответ(200, ответ)
+    }
+
+    private fun покрытие(проект: String): Ответ {
+        val матрица = formulation.coverage(проект)
+        val ответ = mapper.createObjectNode()
+        ответ.put("total", матрица.total)
+        ответ.put("covered", матрица.covered)
+        ответ.put("summary", матрица.summary)
+        val строки = ответ.putArray("needs")
+        матрица.needs.forEach { нужда ->
+            val n = строки.addObject()
+            n.put("code", нужда.code)
+            n.put("statement", нужда.statement)
+            n.put("owner", нужда.ownerName)
+            n.put("covered", нужда.covered)
+            n.put("gap", нужда.gap)
+            val цели = n.putArray("goals")
+            нужда.goals.forEach { цели.add(it) }
+            val сервисы = n.putArray("services")
+            нужда.services.forEach { сервисы.add(it) }
+        }
+        val края = ответ.putArray("stakeholders_without_needs")
+        матрица.stakeholdersWithoutNeeds.forEach { края.add(it) }
+        return Ответ(200, ответ)
     }
 
     private fun задания(проект: String, роль: String?): Ответ {

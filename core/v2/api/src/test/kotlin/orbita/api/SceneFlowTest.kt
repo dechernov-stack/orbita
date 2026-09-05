@@ -46,7 +46,13 @@ class SceneFlowTest {
                     .filterValues { it.isNotBlank() }
             },
         )
-        V2Router(store, links, движок, LibraryFactory.shelves(store) { шаблон }, mapper)
+        V2Router(
+            store, links, движок,
+            LibraryFactory.shelves(store) { шаблон },
+            orbita.knowledge.api.KnowledgeFactory.intake(store, mapper),
+            orbita.formulation.api.FormulationFactory.formulation(store, links),
+            mapper,
+        )
     }
 
     @BeforeTest

@@ -7,6 +7,8 @@
 import { useEffect, useState } from 'react'
 import { Work } from './work'
 import { MyTasks } from './tasks'
+import { KnowledgeField } from './knowledge'
+import { Coverage } from './coverage'
 
 /** Раздел рейки. `wave` — волна, в которой раздел оживает. */
 type Section = {
@@ -21,6 +23,8 @@ const SECTIONS: Section[] = [
   { key: 'work', title: 'Работа', wave: 1, hint: 'лента сцен и точек фазы — вход в продукт' },
   { key: 'tasks', title: 'Мои задания', wave: 1, hint: 'адресованные разрывы: что закрыть именно мне' },
   { key: 'formulation', title: 'Постановка', wave: 1, hint: 'замысел, стейкхолдеры, нужды, цели, ограничения, сервисы' },
+  { key: 'knowledge', title: 'Поле знаний', wave: 2, hint: 'материалы, факты с якорями, загрузка с заданием' },
+  { key: 'coverage', title: 'Покрытие', wave: 2, hint: 'матрица нужд: чем закрыта каждая и чего не хватает' },
   { key: 'concept', title: 'Концепция', wave: 3, hint: 'состав системы, варианты построения, сравнение' },
   { key: 'requirements', title: 'Требования', wave: 3, hint: 'реестр требований, два дерева, влияние правки' },
   { key: 'architecture', title: 'Архитектура', wave: 3, hint: 'операционный, системный, логический и физический слои' },
@@ -114,6 +118,12 @@ export function Shell() {
           )}
           {section === 'work' ? (
             <Work project={project} onProject={setProject} wantScene={wantScene} onScenePicked={() => setWantScene(null)} />
+          ) : section === 'knowledge' ? (
+            <KnowledgeField project={project} />
+          ) : section === 'coverage' ? (
+            <Coverage project={project} />
+          ) : section === 'formulation' ? (
+            <Coverage project={project} />
           ) : section === 'tasks' ? (
             <MyTasks project={project} onGoScene={(сцена) => { setWantScene(сцена); setSection('work') }} />
           ) : (

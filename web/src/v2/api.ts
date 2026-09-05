@@ -50,6 +50,53 @@ export interface TaskRow {
   waiting: boolean
 }
 
+/** Факт — атом знания с якорем и меткой достоверности. */
+export interface FactRow {
+  id: string
+  subject: string
+  predicate: string
+  value: string
+  unit: string | null
+  anchor: string | null
+  /** И — наш документ · В — внешний, проверенный на дату · П — допущение. */
+  mark: 'И' | 'В' | 'П'
+  material: string
+}
+
+export interface PlanAction {
+  kind: string
+  title: string
+  /** Что появится в модели — словами, до нажатия. */
+  effect: string
+}
+
+export interface IntakeResult {
+  task: string
+  material: string
+  intent: string
+  note: string
+  facts: FactRow[]
+  plan: PlanAction[]
+}
+
+export interface CoverageNeed {
+  code: string
+  statement: string
+  owner: string | null
+  covered: boolean
+  gap: string | null
+  goals: string[]
+  services: string[]
+}
+
+export interface CoverageMatrix {
+  total: number
+  covered: number
+  summary: string
+  needs: CoverageNeed[]
+  stakeholders_without_needs: string[]
+}
+
 export interface EntityRow {
   id: string
   code: string
@@ -125,6 +172,18 @@ export const api = {
       `/goals?project=${encodeURIComponent(project)}`,
       { method: 'POST', body: JSON.stringify(тело) },
     ),
+
+  putMaterial: (project: string, тело: Record<string, unknown>) =>
+    вызов<{ code: string }>(`/materials?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify(тело) }),
+
+  intake: (project: string, material: string, intent: string) =>
+    вызов<IntakeResult>(`/intake?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ material, intent }) }),
+
+  facts: (project: string) => вызов<{ items: FactRow[] }>(`/facts?project=${encodeURIComponent(project)}`),
+
+  coverage: (project: string) => вызов<CoverageMatrix>(`/coverage?project=${encodeURIComponent(project)}`),
 
   myTasks: (project: string, role?: string) =>
     вызов<{ project: string; items: TaskRow[]; note: string }>(

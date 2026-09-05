@@ -9,6 +9,8 @@ dependencies {
     api(project(":core:v2:library"))
     api(project(":core:v2:process"))
     api(project(":core:v2:readiness"))
+    api(project(":core:v2:knowledge"))
+    api(project(":core:v2:formulation"))
     testImplementation(kotlin("test"))
     testImplementation(testFixtures(project(":core:v2:kernel")))
 }
