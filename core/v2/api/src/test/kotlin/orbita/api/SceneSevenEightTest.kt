@@ -145,15 +145,26 @@ class SceneSevenEightTest {
 
     /** Базовая концепция: вариант с обоснованием и отказами от объёма. */
     private fun концепция() {
-        store.create(
-            "BC-01", "baseline_concept", Area.Project(проект), "7",
-            mapper.readTree(
-                """{"variant":"V1","rationale":"единственный вариант, закрывающий все нужды в рамках Р2",
-                    "rejected":[{"variant":"V2","reason":"масса вне 12U…100 кг"}],
-                    "descopes":[{"text":"межспутниковая связь","impact":"задержка до 6 ч"}],
-                    "decided_by":"Чернов Д.","at":"2026-09-06T00:00:00Z"}""",
-            ),
-            orbita.kernel.api.Provenance(orbita.kernel.api.Channel.MANUAL, "Чернов Д."),
+        router.handle("POST", "/v2/concept", параметры,
+            """{"variant":"V1","rationale":"единственный вариант, закрывающий все нужды в рамках Р2",
+                "rejected":[{"variant":"V2","reason":"масса вне 12U…100 кг"}],
+                "descopes":[{"text":"межспутниковая связь","impact":"задержка до 6 ч"}],
+                "author":"Чернов Д."}""")
+    }
+
+    @Test
+    fun `базовый вариант без обоснования не записывается`() {
+        составБезКонцепции()
+        val отказ = runCatching {
+            router.handle("POST", "/v2/concept", параметры, """{"variant":"V1","author":"Чернов Д."}""")
+        }.exceptionOrNull()
+        assertTrue(
+            отказ?.message?.contains("обоснования") == true,
+            "выбор без причины — не решение: ${отказ?.message}",
+        )
+        assertTrue(
+            сцена("7").path("blockers").toString().contains("базовый вариант не назван"),
+            "сцена остаётся открытой: ${сцена("7").path("blockers")}",
         )
     }
 
@@ -270,11 +281,15 @@ class SceneSevenEightTest {
 
     /** Сцена 7 целиком: состав, развёртывание, базовая концепция. */
     private fun составИКонцепция() {
+        составБезКонцепции()
+        концепция()
+    }
+
+    private fun составБезКонцепции() {
         узел("SC", "Космический аппарат", "node", 1, "system")
         узел("OBC-CPU", "БЦВМ", "node", 4, "assembly")
         узел("OBC-SW", "ПО управления КА", "behaviour", 4, "assembly")
         router.handle("POST", "/v2/components/deploy", параметры,
             """{"behaviour":"OBC-SW","node":"OBC-CPU","rationale":"поведение исполняется на БЦВМ"}""")
-        концепция()
     }
 }

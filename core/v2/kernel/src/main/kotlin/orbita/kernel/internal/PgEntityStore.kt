@@ -106,6 +106,14 @@ class PgEntityStore(
             ) { it.setString(1, area.asText()); it.setString(2, kind) }
         }
 
+    override fun ofKind(kind: String): List<Entity> =
+        conn.prepareStatement(
+            "SELECT * FROM orbita_kernel.entity WHERE kind = ? AND valid_to IS NULL ORDER BY created_at",
+        ).use { st ->
+            st.setString(1, kind)
+            st.executeQuery().use { rs -> buildList { while (rs.next()) add(разобрать(rs)) } }
+        }
+
     override fun history(id: String): List<Entity> = выбрать(
         "SELECT * FROM orbita_kernel.entity WHERE id = ? ORDER BY version",
     ) { it.setString(1, id) }

@@ -5,17 +5,20 @@
 // миссии; поведенческий компонент без носителя — брак модели, и экран
 // говорит об этом до того, как ворота откажут.
 import { useCallback, useEffect, useState } from 'react'
-import { api, type ComponentRow } from './api'
+import { api, type ComponentRow, type ConceptRow } from './api'
 
 export function Concept({ project }: { project: string | null }) {
   const [узлы, setУзлы] = useState<ComponentRow[]>([])
   const [отказ, setОтказ] = useState<string | null>(null)
   const [новый, setНовый] = useState({ code: '', name: '', nature: 'node', level: 3, kind: 'subsystem' })
   const [развёртывание, setРазвёртывание] = useState({ behaviour: '', node: '', rationale: '' })
+  const [концепции, setКонцепции] = useState<ConceptRow[]>([])
+  const [вариант, setВариант] = useState({ variant: '', rationale: '', rejected: '', reason: '' })
 
   const перечитать = useCallback(() => {
     if (!project) return
     api.components(project).then((r) => setУзлы(r.items)).catch((e) => setОтказ(String(e.message ?? e)))
+    api.concept(project).then((r) => setКонцепции(r.items)).catch(() => undefined)
   }, [project])
 
   useEffect(перечитать, [перечитать])
@@ -67,6 +70,71 @@ export function Concept({ project }: { project: string | null }) {
               title="завести узел состава"
               onClick={() => api.addComponent(project, новый).then(перечитать).catch((e) => setОтказ(String(e.message ?? e)))}>
               Добавить узел
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="v2-card">
+        <div className="v2-card__head">
+          <span className="v2-card__title">Базовый вариант</span>
+          <span className="v2-card__count">{концепции.length}</span>
+        </div>
+        {концепции.length === 0 ? (
+          <div className="v2-empty">
+            Базовый вариант не назван — сцена 7 держится этим.
+            <span className="v2-empty__why">
+              Выбор без обоснования — не решение: отклонённые варианты остаются с причинами,
+              а отказы от объёма записываются списком, чтобы через год было видно, чем платили.
+            </span>
+          </div>
+        ) : (
+          концепции.map((к) => (
+            <div key={к.code} className="v2-note">
+              <span className="v2-note__rule">{к.code}</span>
+              <span>вариант {к.variant}: {к.rationale}</span>
+              <span className="v2-empty__why">
+                решил {к.decided_by}
+                {к.rejected?.length > 0 && ` · отклонены: ${к.rejected.map((о) => `${о.variant} (${о.reason})`).join('; ')}`}
+              </span>
+            </div>
+          ))
+        )}
+        <div className="v2-form">
+          <label>Вариант
+            <input value={вариант.variant} placeholder="V1 · 24 КА в трёх плоскостях"
+              onChange={(e) => setВариант({ ...вариант, variant: e.target.value })} />
+          </label>
+          <label>Обоснование выбора
+            <textarea rows={2} value={вариант.rationale}
+              placeholder="чем этот вариант лучше остальных по целям и ограничениям"
+              onChange={(e) => setВариант({ ...вариант, rationale: e.target.value })} />
+          </label>
+          <label>Отклонённый вариант
+            <input value={вариант.rejected} placeholder="V2"
+              onChange={(e) => setВариант({ ...вариант, rejected: e.target.value })} />
+          </label>
+          <label>Причина отклонения
+            <input value={вариант.reason} placeholder="масса вне 12U…100 кг (Р2)"
+              onChange={(e) => setВариант({ ...вариант, reason: e.target.value })} />
+          </label>
+          <div className="v2-form__actions">
+            <button type="button" className="v2-primary"
+              disabled={!вариант.variant.trim() || !вариант.rationale.trim()}
+              title={!вариант.rationale.trim()
+                ? 'обоснование обязательно: выбор без причины — не решение'
+                : 'записать базовый вариант'}
+              onClick={() => api.setConcept(project, {
+                variant: вариант.variant,
+                rationale: вариант.rationale,
+                rejected: вариант.rejected.trim()
+                  ? [{ variant: вариант.rejected, reason: вариант.reason }]
+                  : [],
+                descopes: [],
+              })
+                .then(() => { setВариант({ variant: '', rationale: '', rejected: '', reason: '' }); перечитать() })
+                .catch((e) => setОтказ(String(e.message ?? e)))}>
+              Назвать базовым
             </button>
           </div>
         </div>

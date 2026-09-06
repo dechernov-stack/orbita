@@ -37,6 +37,11 @@ class ArchRoutes(
 
         method == "GET" && path == "/v2/architecture" -> слои(требуется(query, "project"))
 
+        method == "POST" && path == "/v2/concept" ->
+            базоваяКонцепция(требуется(query, "project"), разобрать(body))
+
+        method == "GET" && path == "/v2/concept" -> концепция(требуется(query, "project"))
+
         method == "GET" && path == "/v2/parameters" ->
             параметры(требуется(query, "project"), query["component"])
 
@@ -91,6 +96,46 @@ class ArchRoutes(
             узел.put("title", слой.title)
             val строки = узел.putArray("lines")
             слой.lines.forEach { строки.addObject().put("what", it.what).put("ref", it.ref) }
+        }
+        return V2Router.Ответ(200, ответ)
+    }
+
+    /**
+     * Базовый вариант с обоснованием (сцена 7, О3 — AoA).
+     *
+     * Выбор без обоснования — не решение: отклонённые варианты остаются с
+     * причинами, отказы от объёма — списком. Поэтому обоснование обязательно
+     * на входе, а не «желательно».
+     */
+    private fun базоваяКонцепция(проект: String, тело: JsonNode): V2Router.Ответ {
+        val область = Area.Project(проект)
+        val обоснование = тело.path("rationale").asText("")
+        require(обоснование.isNotBlank()) {
+            "у базового варианта нет обоснования: выбор без причины — не решение"
+        }
+        val документ = тело.deepCopy<ObjectNode>()
+        документ.remove(listOf("code", "author", "project"))
+        документ.put("decided_by", тело.path("author").asText("стенд"))
+        документ.put("at", java.time.OffsetDateTime.now().toString())
+        val код = тело.path("code").asText("").ifBlank { следующийКод(область, "baseline_concept", "BC") }
+        val создано = store.create(
+            код, "baseline_concept", область, "7", документ,
+            Provenance(Channel.MANUAL, тело.path("author").asText("стенд")),
+        )
+        return V2Router.Ответ(201, mapper.createObjectNode().put("code", создано.code).put("id", создано.id))
+    }
+
+    private fun концепция(проект: String): V2Router.Ответ {
+        val ответ = mapper.createObjectNode()
+        val массив = ответ.putArray("items")
+        store.list(Area.Project(проект), "baseline_concept").forEach { к ->
+            массив.addObject()
+                .put("code", к.code)
+                .put("variant", к.doc.path("variant").asText(""))
+                .put("rationale", к.doc.path("rationale").asText(""))
+                .put("decided_by", к.doc.path("decided_by").asText(""))
+                .put("at", к.doc.path("at").asText(""))
+                .set<JsonNode>("rejected", к.doc.path("rejected"))
         }
         return V2Router.Ответ(200, ответ)
     }

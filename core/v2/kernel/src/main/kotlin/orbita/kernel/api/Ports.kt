@@ -24,6 +24,14 @@ interface EntityStore {
     fun byId(id: String): Entity?
     fun byCode(area: Area, code: String): Entity?
     fun list(area: Area, kind: String? = null): List<Entity>
+
+    /**
+     * Все сущности вида по ВСЕМ областям. Нужно ровно там, где области ещё
+     * не знают: портфель проектов — это список областей, и спросить его
+     * внутри области нельзя.
+     */
+    fun ofKind(kind: String): List<Entity>
+
     fun history(id: String): List<Entity>
 }
 

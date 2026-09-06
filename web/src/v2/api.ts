@@ -204,6 +204,16 @@ export interface ArchLayer {
   lines: FacetLine[]
 }
 
+/** Базовый вариант построения: выбор с обоснованием и отклонёнными. */
+export interface ConceptRow {
+  code: string
+  variant: string
+  rationale: string
+  decided_by: string
+  at: string
+  rejected: { variant: string; reason: string }[]
+}
+
 export interface ParameterRow {
   key: string
   name: string
@@ -246,8 +256,19 @@ async function вызов<T>(путь: string, настройки?: RequestInit)
   return текст ? (JSON.parse(текст) as T) : ({} as T)
 }
 
+/** Строка портфеля: проект, который можно открыть заново. */
+export interface ProjectRow {
+  code: string
+  name: string
+  standard: string
+  lead: string
+  phase: string
+}
+
 export const api = {
   phase: (project: string) => вызов<Phase>(`/phase?project=${encodeURIComponent(project)}`),
+
+  projects: () => вызов<{ items: ProjectRow[] }>('/projects'),
 
   openProject: (тело: Record<string, unknown>) =>
     вызов<Phase>('/projects', { method: 'POST', body: JSON.stringify(тело) }),
@@ -358,6 +379,13 @@ export const api = {
 
   deploy: (project: string, тело: Record<string, unknown>) =>
     вызов<{ behaviour: string; node: string }>(`/components/deploy?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify(тело) }),
+
+  concept: (project: string) =>
+    вызов<{ items: ConceptRow[] }>(`/concept?project=${encodeURIComponent(project)}`),
+
+  setConcept: (project: string, тело: Record<string, unknown>) =>
+    вызов<{ code: string }>(`/concept?project=${encodeURIComponent(project)}`,
       { method: 'POST', body: JSON.stringify(тело) }),
 
   architecture: (project: string) =>

@@ -153,6 +153,21 @@ class SceneFlowTest {
     }
 
     @Test
+    fun `портфель возвращает открытые проекты`() {
+        router.handle("POST", "/v2/projects", emptyMap(), """{"name":"Первый","code":"PJ-9110"}""")
+        router.handle("POST", "/v2/projects", emptyMap(), """{"name":"Второй","code":"PJ-9111"}""")
+
+        val портфель = router.handle("GET", "/v2/projects", emptyMap(), null)!!.body.path("items")
+        val коды = портфель.map { it.path("code").asText() }
+        assertTrue(коды.containsAll(listOf("PJ-9110", "PJ-9111")), "портфель обязан видеть оба проекта: $коды")
+        assertEquals(
+            "Второй",
+            портфель.single { it.path("code").asText() == "PJ-9111" }.path("name").asText(),
+            "имя проекта нужно, чтобы выбрать его глазами, а не по коду",
+        )
+    }
+
+    @Test
     fun `нужда без носителя не заводится`() {
         router.handle("POST", "/v2/projects", emptyMap(), """{"name":"П","code":"PJ-9102"}""")
         val параметры = mapOf("project" to "PJ-9102")

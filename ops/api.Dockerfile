@@ -30,7 +30,11 @@ COPY core/ka/build.gradle.kts  core/ka/
 COPY core/net/build.gradle.kts core/net/
 COPY core/flw/build.gradle.kts core/flw/
 COPY core/ai/build.gradle.kts  core/ai/
-RUN gradle --no-daemon :core:com:dependencies --configuration runtimeClasspath > /dev/null 2>&1 || true
+# Кэш зависимостей живёт МЕЖДУ сборками: канал до репозиториев бывает
+# медленным (наблюдение: 48 КБ/с — 158 МБ зависимостей качаются час), и
+# платить этот час на каждой сборке нечем.
+RUN --mount=type=cache,target=/home/gradle/.gradle \
+    gradle --no-daemon :core:com:dependencies --configuration runtimeClasspath > /dev/null 2>&1 || true
 
 COPY core core
 COPY schemas schemas
@@ -41,7 +45,8 @@ COPY spec spec
 COPY data data
 # apiJar — только main; seedJar — main + test. Собираются одной командой,
 # раскладываются по разным целевым образам ниже.
-RUN gradle --no-daemon :core:com:apiJar :core:com:seedJar
+RUN --mount=type=cache,target=/home/gradle/.gradle \
+    gradle --no-daemon :core:com:apiJar :core:com:seedJar
 
 # --------------------------------------------------------------------------
 # Изделие: API ядра. Фикстур нет, Python не нужен.

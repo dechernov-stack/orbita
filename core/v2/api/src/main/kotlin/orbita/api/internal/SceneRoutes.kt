@@ -32,6 +32,10 @@ class SceneRoutes(
 
         method == "POST" && path == "/v2/projects" -> открытьПроект(разобрать(body))
 
+        // Портфель: без него продукт теряет проект при перезагрузке страницы —
+        // открыть заново можно, вернуться к открытому было нельзя.
+        method == "GET" && path == "/v2/projects" -> портфель()
+
         method == "POST" && path == "/v2/intent" -> замысел(требуется(query, "project"), разобрать(body))
 
         method == "POST" && path == "/v2/stakeholders" ->
@@ -48,6 +52,20 @@ class SceneRoutes(
 
 
         else -> null
+    }
+
+    private fun портфель(): V2Router.Ответ {
+        val ответ = mapper.createObjectNode()
+        val массив = ответ.putArray("items")
+        store.ofKind("project").forEach { проект ->
+            массив.addObject()
+                .put("code", проект.code)
+                .put("name", проект.doc.path("name").asText(проект.code))
+                .put("standard", проект.doc.path("standard").asText(""))
+                .put("lead", проект.doc.path("lead").asText(""))
+                .put("phase", проект.doc.path("phase").asText("Pre-Phase A"))
+        }
+        return V2Router.Ответ(200, ответ)
     }
 
     private fun фаза(проект: String) = V2Router.Ответ(200, PhaseJson.вид(engine.view(проект), mapper))

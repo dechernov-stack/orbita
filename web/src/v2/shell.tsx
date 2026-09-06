@@ -5,6 +5,7 @@
 // явно. Содержимое разделов приходит волнами 1–7 — до тех пор раздел честно
 // говорит, какой волной он открывается, вместо пустого экрана.
 import { useEffect, useState } from 'react'
+import { api, type ProjectRow } from './api'
 import { Work } from './work'
 import { MyTasks } from './tasks'
 import { KnowledgeField } from './knowledge'
@@ -47,10 +48,29 @@ export function Shell() {
   const [expert, setExpert] = useState(false)
   const [users, setUsers] = useState<StandUser[]>([])
   const [project, setProject] = useState<string | null>(null)
+  /** Портфель: вернуться к открытому проекту после перезагрузки страницы. */
+  const [portfolio, setPortfolio] = useState<ProjectRow[]>([])
   /** Переход «к месту» из заданий: открыть работу на нужной сцене. */
   const [wantScene, setWantScene] = useState<string | null>(null)
   const [me, setMe] = useState<string | null>(null)
   const [failure, setFailure] = useState<string | null>(null)
+
+  useEffect(() => {
+    api.projects()
+      .then((r) => {
+        setPortfolio(r.items)
+        // Помним выбор: продукт открывают десятки раз в день, и каждый раз
+        // выбирать проект заново — работа, которой не должно быть.
+        const прежний = localStorage.getItem('orbita.v2.project')
+        setProject((текущий) =>
+          текущий ?? (r.items.some((п) => п.code === прежний) ? прежний : r.items[0]?.code ?? null))
+      })
+      .catch(() => undefined)
+  }, [])
+
+  useEffect(() => {
+    if (project) localStorage.setItem('orbita.v2.project', project)
+  }, [project])
 
   useEffect(() => {
     fetch('/api/auth/whoami')
@@ -94,7 +114,19 @@ export function Shell() {
 
       <div>
         <header className="v2-head">
-          <span className="v2-head__project">{project ?? 'Проект не выбран'}</span>
+          {portfolio.length > 0 ? (
+            <label className="v2-inline v2-head__project">
+              <select value={project ?? ''} onChange={(e) => setProject(e.target.value || null)}
+                title="проект портфеля: выбор помнится до следующей смены">
+                <option value="">— выберите проект —</option>
+                {portfolio.map((п) => (
+                  <option key={п.code} value={п.code}>{п.code} · {п.name}</option>
+                ))}
+              </select>
+            </label>
+          ) : (
+            <span className="v2-head__project">{project ?? 'Проект не выбран'}</span>
+          )}
           <span className="v2-head__scene">
             {project ? 'фаза Pre-A · стандарт NASA-7120' : 'откройте проект — это сцена 1'}
           </span>

@@ -14,6 +14,11 @@
 # этого дольше — это дешевле, чем кончившийся диск).
 set -euo pipefail
 
+# Сборщик. `orbita-mtu` — отдельный контейнер-сборщик в сети с MTU 1380
+# (спасает от обрывов TLS на VPN), но у него СВОЁ хранилище образов: базовые
+# слои он тянет заново, и по медленному каналу это часы. `default` собирает
+# в хранилище хоста — если базовые образы уже есть локально, выкат начинается
+# сразу. Выбор — за тем, что сейчас болит: обрывы или скорость.
 BUILDER="${BUILDER:-orbita-mtu}"
 NETWORK="${NETWORK:-orbita-mtu1380}"
 # Порог тома состояния, ГБ. Пересоздание НЕ бесплатно: следующая сборка
@@ -80,6 +85,11 @@ registry_reachable() {
 }
 
 builder_hygiene() {
+  # Сборщику хоста гигиена не нужна: у него нет своего тома состояния.
+  if [ "$BUILDER" = "default" ]; then
+    echo "==> Сборка хранилищем хоста (BUILDER=default): базовые образы берутся локальные"
+    return
+  fi
   ensure_network
   if ! docker buildx inspect "$BUILDER" > /dev/null 2>&1; then
     echo "==> Сборщик $BUILDER отсутствует — создаю"
@@ -112,9 +122,13 @@ builder_hygiene() {
 build_retry() {
   local tag="$1"; shift
   local attempt
+  # У сборщика хоста нет ни отдельной сети, ни прав network.host: эти ключи
+  # относятся к контейнерному драйверу и с `default` просто отказали бы.
+  local flags=(--builder "$BUILDER" --allow network.host --load)
+  [ "$BUILDER" = "default" ] && flags=(--load)
   for attempt in 1 2 3; do
-    if docker buildx build --builder "$BUILDER" \
-        --allow network.host --load "$@" > /tmp/orbita-build-"$tag".log 2>&1; then
+    if docker buildx build "${flags[@]}" \
+        "$@" > /tmp/orbita-build-"$tag".log 2>&1; then
       echo "==> $tag: собран"
       return 0
     fi

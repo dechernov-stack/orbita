@@ -8,7 +8,8 @@ FROM node:22-slim AS build
 WORKDIR /src
 
 COPY web/package.json web/package-lock.json ./
-RUN npm ci
+# Кэш пакетов между сборками: по медленному каналу их загрузка стоит часы.
+RUN --mount=type=cache,target=/root/.npm npm ci
 
 COPY web .
 # Сборка включает tsc --noEmit: расхождение типов клиента с формами ответов
