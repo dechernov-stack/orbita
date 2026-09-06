@@ -121,3 +121,42 @@ button:disabled { opacity: .55; cursor: default; }
 .v2-steps li { margin-bottom: 6px; }
 .v2-steps__done { color: var(--ink-mute); text-decoration: line-through; }
 .v2-check { display: flex; gap: 6px; align-items: baseline; color: var(--ink); }
+
+/* --- волна 3: реестр требований, деревья, грани компонента --- */
+
+/* Шесть колонок и не больше: формулировка забирает остаток ширины. */
+.v2-table--req td { cursor: pointer; }
+.v2-cell--statement { max-width: 40ch; }
+.v2-row--open { background: var(--accent-soft); }
+.v2-card-row td { background: var(--ground); }
+
+.v2-flag {
+  margin-left: 6px; padding: 1px 6px; border-radius: 999px;
+  font-size: 11px; background: var(--accent-soft); color: var(--ink-soft);
+}
+.v2-flag--warn { background: #fdf1ef; color: var(--block); }
+.v2-dim { color: var(--ink-mute); font-size: 12px; }
+.v2-inline { display: inline-flex; gap: 6px; align-items: center; }
+
+/* Карточка вниз: грани группами, а не простынёй полей. */
+.v2-facets { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; padding: 8px 0; }
+.v2-facet__title { font-weight: 600; color: var(--ink-soft); margin-bottom: 4px; }
+.v2-facet__body { color: var(--ink); display: grid; gap: 4px; }
+
+.v2-note { display: grid; gap: 2px; padding: 6px 0; border-bottom: 1px dashed var(--line); }
+.v2-note__rule { font-family: var(--font-mono); font-size: 11px; color: var(--ink-mute); }
+
+.v2-tree { margin: 6px 0; padding-left: 18px; }
+.v2-tree li { margin-bottom: 3px; }
+.v2-tree__node { font-family: var(--font-mono); font-size: 12px; color: var(--ink); background: none; border: 0; padding: 0; cursor: pointer; }
+.v2-tree__node[aria-current="true"] { color: var(--accent); font-weight: 600; }
+
+.v2-layers { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.v2-layer { border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 10px; }
+.v2-layer__head { display: flex; gap: 6px; align-items: baseline; color: var(--ink-soft); }
+.v2-layer__key { font-family: var(--font-mono); font-size: 11px; color: var(--accent); }
+
+/* Вкладки-грани: пустая вкладка честно показывает прочерк вместо нуля. */
+.v2-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.v2-tab { display: flex; gap: 5px; align-items: baseline; font-size: 13px; }
+.v2-tab[aria-selected="true"] { border-color: var(--accent); background: var(--accent-soft); }

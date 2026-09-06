@@ -15,5 +15,7 @@ object ReadinessFactory {
         links: LinkRegistry,
         scenesDone: (String) -> Set<String>,
         gatesPassed: (String) -> Set<String>,
-    ): GateEvaluator = DomainGateEvaluator(store, links, scenesDone, gatesPassed)
+        /** Условия, которые знают модули выше слоем; собирает их граница. */
+        extra: ExtraChecks? = null,
+    ): GateEvaluator = DomainGateEvaluator(store, links, scenesDone, gatesPassed, extra)
 }

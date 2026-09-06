@@ -135,10 +135,20 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
             ).toFile()
             if (файл.isFile) mapper.readTree(файл) else null
         }
+        // Контуры волны 3 собираются ДО оценщика: они приносят ему условия
+        // сцен 7–8, которые сам оценщик знать не может (он слоем ниже).
+        val требования = orbita.requirements.api.RequirementsFactory.requirements(store, links, mapper)
+        val снимки = orbita.requirements.api.RequirementsFactory.baselines(store, links, mapper)
+        val архитектура = orbita.architecture.api.ArchitectureFactory.architecture(store, links, mapper)
+        val проверкиТребований = orbita.requirements.api.RequirementsFactory.gateChecks(store, снимки)
+        val проверкиАрхитектуры = orbita.architecture.api.ArchitectureFactory.gateChecks(store, архитектура)
         val оценщик = orbita.readiness.api.ReadinessFactory.gateEvaluator(
             store, links,
             scenesDone = { emptySet() },
             gatesPassed = { p -> пройденные.getOrPut(p) { mutableSetOf() } },
+            extra = { проект, условие ->
+                проверкиТребований.of(проект, условие) ?: проверкиАрхитектуры.of(проект, условие)
+            },
         )
         val движок = orbita.process.api.ProcessFactory.engine(
             // Шаблон читается С ПОЛКИ; файл поставки — запасной путь, пока
@@ -154,7 +164,8 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
         )
         val знания = orbita.knowledge.api.KnowledgeFactory.intake(store, mapper)
         val постановка = orbita.formulation.api.FormulationFactory.formulation(store, links)
-        return orbita.api.internal.V2Router(store, links, движок, полки, знания, постановка, mapper)
+        val волна3 = orbita.api.internal.ReqArchRoutes(store, требования, снимки, архитектура, mapper)
+        return orbita.api.internal.V2Router(store, links, движок, полки, знания, постановка, mapper, волна3)
     }
 
     /** Реестр схем — службе ИИ: предложение проверяется схемой целевого вида. */

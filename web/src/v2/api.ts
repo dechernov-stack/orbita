@@ -97,6 +97,126 @@ export interface CoverageMatrix {
   stakeholders_without_needs: string[]
 }
 
+/** Помета линта: правило, что не так и почему это важно. */
+export interface LintNote {
+  rule: string
+  what: string
+  why: string
+}
+
+/** Строка реестра требований: шесть колонок наружу, остальное — в карточке. */
+export interface RequirementRow {
+  id: string
+  code: string
+  level: string
+  title: string
+  statement: string
+  category: string
+  ears: string
+  carrier: string | null
+  carrier_kind: string | null
+  measure: string | null
+  verification_method: string | null
+  status: string
+  version: number
+  template_ref: string | null
+  applicability: string | null
+  /** Версия выше зафиксированной снимком — «изменено после утверждения». */
+  after_baseline_changed: boolean
+  sources: string[]
+  notes: LintNote[]
+}
+
+/** Помеха базированию: объект, правило и что именно не так. */
+export interface Blocker {
+  code: string
+  rule: string
+  what: string
+}
+
+export interface BaselineItem {
+  ref: string
+  code: string
+  kind: string
+  version: number
+  firmness: 'firm' | 'conditional'
+  conditional_on: string | null
+  why: string | null
+}
+
+export interface BaselineRow {
+  name: string
+  kind: string
+  gate: string
+  by: string
+  at: string
+  firm: number
+  items: BaselineItem[]
+}
+
+export interface SuspectRow {
+  link: string
+  type: string
+  from: string
+  to: string
+  why: string
+}
+
+export interface ComponentRow {
+  id: string
+  code: string
+  name: string
+  level: number
+  nature: 'node' | 'behaviour'
+  kind: string
+  parent: string | null
+  external: boolean
+  version: number
+}
+
+export interface FacetLine {
+  what: string
+  ref: string | null
+}
+
+/** Грань карточки компонента; пустая говорит, чего ждут и к какой точке. */
+export interface Facet {
+  key: string
+  title: string
+  required_to: string | null
+  expected: string | null
+  lines: FacetLine[]
+}
+
+export interface ComponentCard {
+  code: string
+  name: string
+  nature: string
+  level: number
+  gate: string
+  facets: Facet[]
+  gaps: { facet: string; gate: string; what: string }[]
+}
+
+export interface ArchLayer {
+  key: string
+  title: string
+  lines: FacetLine[]
+}
+
+export interface ParameterRow {
+  key: string
+  name: string
+  target: string
+  origin: string
+  maturity_class: string
+  reserve_percent: number
+  uncertainty: number
+  required_to: string
+  version: number
+  measure: unknown
+}
+
 export interface EntityRow {
   id: string
   code: string
@@ -189,6 +309,69 @@ export const api = {
     вызов<{ project: string; items: TaskRow[]; note: string }>(
       `/my-tasks?project=${encodeURIComponent(project)}${role ? `&role=${encodeURIComponent(role)}` : ''}`,
     ),
+
+  // --- волна 3: требования, базирование, архитектура ---
+
+  requirements: (project: string) =>
+    вызов<{ items: RequirementRow[] }>(`/requirements?project=${encodeURIComponent(project)}`),
+
+  addRequirement: (project: string, тело: Record<string, unknown>) =>
+    вызов<RequirementRow>(`/requirements?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify(тело) }),
+
+  lint: (statement: string, ears: string) =>
+    вызов<{ notes: LintNote[]; clean: boolean }>('/requirements/lint',
+      { method: 'POST', body: JSON.stringify({ statement, ears }) }),
+
+  baselines: (project: string) =>
+    вызов<{ items: BaselineRow[] }>(`/baselines?project=${encodeURIComponent(project)}`),
+
+  baselineBlockers: (project: string, kind: string, gate: string) =>
+    вызов<{ items: Blocker[]; note: string }>(
+      `/baselines/blockers?project=${encodeURIComponent(project)}&kind=${kind}&gate=${encodeURIComponent(gate)}`,
+    ),
+
+  baseline: (project: string, тело: Record<string, unknown>) =>
+    вызов<BaselineRow>(`/baselines?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify(тело) }),
+
+  suspects: (project: string) =>
+    вызов<{ items: SuspectRow[] }>(`/suspects?project=${encodeURIComponent(project)}`),
+
+  confirmSuspect: (project: string, link: string, author: string) =>
+    вызов<{ confirmed: string }>(
+      `/suspects/${encodeURIComponent(link)}/confirm?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ author }) },
+    ),
+
+  components: (project: string) =>
+    вызов<{ items: ComponentRow[] }>(`/components?project=${encodeURIComponent(project)}`),
+
+  addComponent: (project: string, тело: Record<string, unknown>) =>
+    вызов<{ code: string; id: string }>(`/components?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify(тело) }),
+
+  componentCard: (project: string, code: string, gate: string) =>
+    вызов<ComponentCard>(
+      `/components/${encodeURIComponent(code)}?project=${encodeURIComponent(project)}&gate=${gate}`,
+    ),
+
+  deploy: (project: string, тело: Record<string, unknown>) =>
+    вызов<{ behaviour: string; node: string }>(`/components/deploy?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify(тело) }),
+
+  architecture: (project: string) =>
+    вызов<{ layers: ArchLayer[] }>(`/architecture?project=${encodeURIComponent(project)}`),
+
+  parameters: (project: string, component?: string) =>
+    вызов<{ items: ParameterRow[] }>(
+      `/parameters?project=${encodeURIComponent(project)}` +
+      (component ? `&component=${encodeURIComponent(component)}` : ''),
+    ),
+
+  addParameter: (project: string, тело: Record<string, unknown>) =>
+    вызов<{ code: string; id: string }>(`/parameters?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify(тело) }),
 
   passGate: (project: string, gate: string, author: string) =>
     вызов<Phase>(`/gates/${encodeURIComponent(gate)}/pass?project=${encodeURIComponent(project)}`,

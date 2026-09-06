@@ -9,6 +9,9 @@ import { Work } from './work'
 import { MyTasks } from './tasks'
 import { KnowledgeField } from './knowledge'
 import { Coverage } from './coverage'
+import { Concept } from './concept'
+import { Requirements } from './requirements'
+import { ArchitectureScreen } from './architecture'
 
 /** Раздел рейки. `wave` — волна, в которой раздел оживает. */
 type Section = {
@@ -124,6 +127,12 @@ export function Shell() {
             <Coverage project={project} />
           ) : section === 'formulation' ? (
             <Coverage project={project} />
+          ) : section === 'concept' ? (
+            <Concept project={project} />
+          ) : section === 'requirements' ? (
+            <Requirements project={project} />
+          ) : section === 'architecture' ? (
+            <ArchitectureScreen project={project} />
           ) : section === 'tasks' ? (
             <MyTasks project={project} onGoScene={(сцена) => { setWantScene(сцена); setSection('work') }} />
           ) : (
@@ -135,7 +144,7 @@ export function Shell() {
               <div className="v2-empty">
                 {current.hint}.
                 <span className="v2-empty__why">
-                  Раздел откроется волной {current.wave}; сейчас пройдены волны 0–1.
+                  Раздел откроется волной {current.wave}; сейчас пройдены волны 0–3.
                 </span>
               </div>
             </div>

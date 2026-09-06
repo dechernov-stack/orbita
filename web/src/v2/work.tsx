@@ -10,6 +10,8 @@ import {
   SceneConstraints, SceneGoals, SceneIntent, SceneOpenProject,
   SceneServices, SceneStakeholders, Гейты,
 } from './scenes'
+import { Concept } from './concept'
+import { Requirements } from './requirements'
 
 export function Work({ project, onProject, wantScene, onScenePicked }: {
   project: string | null
@@ -72,6 +74,10 @@ export function Work({ project, onProject, wantScene, onScenePicked }: {
         {текущая.key === '4' && <SceneGoals project={project} onChanged={перечитать} />}
         {текущая.key === '5' && <SceneConstraints project={project} onChanged={перечитать} />}
         {текущая.key === '6' && <SceneServices project={project} onChanged={перечитать} />}
+        {/* Сцена 7 — состав и развёртывание; сцена 8 — требования.
+            Экраны те же, что в разделах: сцена показывает их в рамке. */}
+        {текущая.key === '7' && <Concept project={project} />}
+        {текущая.key === '8' && <Requirements project={project} />}
       </SceneFrame>
       <Гейты phase={фаза} onPassed={перечитать} />
     </>

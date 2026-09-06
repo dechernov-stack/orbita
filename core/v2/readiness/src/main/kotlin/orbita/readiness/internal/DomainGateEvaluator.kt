@@ -10,6 +10,7 @@ import orbita.kernel.api.Area
 import orbita.kernel.api.EntityStore
 import orbita.kernel.api.LinkRegistry
 import orbita.process.api.GateEvaluator
+import orbita.readiness.api.ExtraChecks
 
 class DomainGateEvaluator(
     private val store: EntityStore,
@@ -17,6 +18,8 @@ class DomainGateEvaluator(
     /** Сцены, признанные пройденными: их считает движок и передаёт сюда. */
     private val сценыПройдены: (String) -> Set<String>,
     private val воротаПройдены: (String) -> Set<String>,
+    /** Условия, которые знают модули выше слоем (требования, архитектура). */
+    private val дополнительные: ExtraChecks? = null,
 ) : GateEvaluator {
 
     override fun why(project: String, check: String): String? {
@@ -98,8 +101,14 @@ class DomainGateEvaluator(
 
             // Условие, которого оценщик не знает, — не «выполнено по умолчанию»:
             // тихо пропустить ворота хуже, чем честно сказать, что правило не
-            // реализовано (ТЗ §6.2: не гадать).
-            else -> "условие «$check» ещё не реализовано в оценщике готовности"
+            // реализовано (ТЗ §6.2: не гадать). Сначала спрашиваем тех, кто
+            // вправе знать правило (требования, архитектура).
+            // Разбор именно `when`, а не `?.let ?: …`: у выполненного условия
+            // ответ — null, и элвис принял бы его за «никто не знает правила».
+            else -> when (val ответ = дополнительные?.of(project, check)) {
+                null -> "условие «$check» ещё не реализовано в оценщике готовности"
+                else -> if (ответ.passed) null else ответ.why ?: "условие «$check» не выполнено"
+            }
         }
     }
 }

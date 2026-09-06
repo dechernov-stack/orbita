@@ -11,6 +11,8 @@ dependencies {
     api(project(":core:v2:readiness"))
     api(project(":core:v2:knowledge"))
     api(project(":core:v2:formulation"))
+    api(project(":core:v2:requirements"))
+    api(project(":core:v2:architecture"))
     testImplementation(kotlin("test"))
     testImplementation(testFixtures(project(":core:v2:kernel")))
 }

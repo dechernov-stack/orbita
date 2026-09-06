@@ -1,4 +1,4 @@
-// Сквозной проход сцен 1–4 через маршруты v2 — ворота волны 1.
+// Сквозной проход сцен 1–6 через маршруты v2 — ворота волн 1 и 2.
 //
 // Проверяется не «форма отправилась», а то, ради чего строится продукт:
 // сцена 3 закрыта, пока замысел не принят; открывается сама; точка MCR
@@ -139,14 +139,17 @@ class SceneFlowTest {
 
         val фаза = router.handle("GET", "/v2/phase", параметры, null)!!.body
         assertEquals("done", сцена(фаза, "6").path("state").asText(), сцена(фаза, "6").path("blockers").toString())
-        val mcr = фаза.path("gates").single { it.path("key").asText() == "MCR" }
-        assertEquals(0, mcr.path("blocking").size(), "все шесть сцен прожиты — MCR открыт: ${mcr.path("blocking")}")
 
-        val пройдена = router.handle("POST", "/v2/gates/MCR/pass", параметры, """{"author":"Чернов Д."}""")!!
-        assertTrue(
-            пройдена.body.path("gates").single { it.path("key").asText() == "MCR" }.path("passed").asBoolean(),
-            "после выполнения всех условий точка фиксируется",
+        // Волна 3 добавила в фазу сцены 7 и 8: MCR теперь ждёт и их — и
+        // говорит об этом словами. Полный проход до фиксации точки проверяет
+        // SceneSevenEightTest: концепция, состав, требования, базирование.
+        val mcr = фаза.path("gates").single { it.path("key").asText() == "MCR" }
+        assertEquals(
+            listOf("сцена 7 ещё не прожита", "сцена 8 ещё не прожита"),
+            mcr.path("blocking").map { it.asText() },
+            "после сцены 6 точка держится концепцией и требованиями",
         )
+        assertEquals("open", сцена(фаза, "7").path("state").asText(), "сцена 7 открылась сама")
     }
 
     @Test

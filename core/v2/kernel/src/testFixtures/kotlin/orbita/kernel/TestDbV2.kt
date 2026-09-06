@@ -19,9 +19,13 @@ object TestDbV2 {
         DriverManager.getConnection(url, user, password).also { накатить(it) }
     }
 
+    // Накатываются ВСЕ миграции ядра v2 по порядку: тест, знающий только про
+    // первую, начинает врать, как только схема поехала дальше.
     private fun накатить(conn: Connection) {
-        val файл = repoRoot.resolve("db/migrations/V100__v2_kernel.sql")
-        conn.createStatement().use { it.execute(файл.toFile().readText()) }
+        repoRoot.resolve("db/migrations").toFile()
+            .listFiles { f -> f.name.startsWith("V1") && f.name.endsWith(".sql") }
+            .orEmpty().sortedBy { it.name }
+            .forEach { файл -> conn.createStatement().use { it.execute(файл.readText()) } }
     }
 
     fun очистить() {

@@ -40,14 +40,34 @@ data class Link(
     val to: String,
     val rationale: String?,
     val provenance: Provenance,
+    /** Вид уточнения: для `derives_from` — decomposition · derivation · refinement. */
+    val subtype: String? = null,
+    /** Кто подтвердил связь после того, как она стала подозрительной. */
+    val confirmedBy: String? = null,
+    val confirmedAt: String? = null,
 )
 
 /** Реестр связей: типы известны заранее, произвольных связей не бывает. */
 interface LinkRegistry {
-    fun link(type: String, from: String, to: String, provenance: Provenance, rationale: String? = null): Link
+    fun link(
+        type: String,
+        from: String,
+        to: String,
+        provenance: Provenance,
+        rationale: String? = null,
+        subtype: String? = null,
+    ): Link
+
     fun unlink(id: String, provenance: Provenance)
+    fun byId(id: String): Link?
     fun from(id: String, type: String? = null): List<Link>
     fun to(id: String, type: String? = null): List<Link>
+
+    /**
+     * Подтвердить связь: подозрение снимает ЧЕЛОВЕК, а не время и не
+     * перезапись снимка (снимок базирования неизменяем).
+     */
+    fun confirm(id: String, by: String): Link
 }
 
 /** Проверка документа по сгенерированной схеме вида. */
