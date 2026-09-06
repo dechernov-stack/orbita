@@ -186,7 +186,7 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
                     .orEmpty()
             },
         )
-        val знания = orbita.knowledge.api.KnowledgeFactory.intake(store, mapper)
+        val знания = orbita.knowledge.api.KnowledgeFactory.intake(store, links, mapper)
         val постановка = orbita.formulation.api.FormulationFactory.formulation(store, links)
         val волна3 = orbita.api.internal.ReqArchRoutes(store, требования, снимки, архитектура, mapper)
         val волна4 = orbita.api.internal.ModelRoutes(

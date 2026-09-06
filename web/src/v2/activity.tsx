@@ -10,7 +10,7 @@
 // Проект, фаза и сцена живут в ШАПКЕ оболочки и здесь не повторяются
 // (запрет §4: дублирование контекста).
 import { useEffect, useState, type ReactNode } from 'react'
-import { api, type Activity, type DocHint, type Phase, type Scene } from './api'
+import { api, type Activity, type DocHint, type Phase, type Scene, type SceneSuggestions } from './api'
 import { DocumentBody } from './documents'
 import { пунктыРейки, составЭкрана, type Блок, type Режим } from './density'
 
@@ -25,7 +25,7 @@ const РОЛЬ: Record<string, string> = {
 }
 
 export function ActivityScreen({
-  project, phase, scene, activity, режим, роль, onPickActivity, onPhaseMap, children,
+  project, phase, scene, activity, режим, роль, onPickActivity, onPhaseMap, onChanged, children,
 }: {
   project: string
   phase: Phase
@@ -36,18 +36,32 @@ export function ActivityScreen({
   роль: string | null
   onPickActivity: (code: string) => void
   onPhaseMap: () => void
+  /** Принятое из знаний меняет поверхность — её надо перечитать. */
+  onChanged?: () => void
   children: ReactNode
 }) {
   const [открыта, setОткрыта] = useState<string | null>(null)
   /** Куда попадает работа сцены: строка «в документ» (ЗАДАНИЕ-ДОКУМЕНТЫ §3). */
   const [вДокумент, setВДокумент] = useState<DocHint[]>([])
   const [разделОткрыт, setРазделОткрыт] = useState<DocHint | null>(null)
+  const [показать, setПоказать] = useState(false)
+
+  /** Предложения из записки: сцена начинается не с пустой формы. */
+  const [предложения, setПредложения] = useState<SceneSuggestions | null>(null)
+  const [берём, setБерём] = useState(false)
+
+  const перечитатьПредложения = () => {
+    api.suggestions(project, scene.key)
+      .then((r) => setПредложения(r.actions.length > 0 ? r : null))
+      .catch(() => setПредложения(null))
+  }
 
   useEffect(() => {
     setРазделОткрыт(null)
     api.docHints(project, scene.key)
       .then((r) => setВДокумент(r.items))
       .catch(() => setВДокумент([]))
+    перечитатьПредложения()
   }, [project, scene.key])
   const состав = составЭкрана(режим)
   const дела = scene.activities
@@ -97,6 +111,36 @@ export function ActivityScreen({
 
         <div className="v2-act2__surface" data-why={почему('поверхность')?.зачем}
           title={почему('поверхность')?.почему}>
+          {предложения && предложения.task && (
+            <div className="v2-prop" data-why="работа"
+              title="предложения поля знаний: принятое встанет в таблицу с провенансом">
+              <span>{предложения.summary}</span>
+              <button type="button" className="v2-prop__go" disabled={берём}
+                title={предложения.actions.map((д) => д.preview).join(' · ')}
+                onClick={() => {
+                  setБерём(true)
+                  api.acceptPlan(project, предложения.task!, предложения.indices, 'инженер')
+                    .then(() => { setБерём(false); перечитатьПредложения(); onChanged?.() })
+                    .catch(() => setБерём(false))
+                }}>
+                {берём ? 'принимаю…' : 'Принять'}
+              </button>
+              <button type="button" className="v2-link"
+                title="что именно появится — до нажатия"
+                onClick={() => setПоказать(!показать)}>
+                {показать ? 'свернуть' : 'посмотреть'}
+              </button>
+            </div>
+          )}
+          {показать && предложения && (
+            <ul className="v2-prop__list">
+              {предложения.actions.map((д) => (
+                <li key={д.index}>{д.preview}
+                  {д.facts.length > 0 && <span className="v2-dim"> · факты: {д.facts.join(', ')}</span>}
+                </li>
+              ))}
+            </ul>
+          )}
           {children}
         </div>
 

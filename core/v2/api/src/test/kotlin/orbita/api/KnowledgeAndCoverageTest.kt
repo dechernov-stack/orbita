@@ -50,7 +50,7 @@ class KnowledgeAndCoverageTest {
                 gatePlan = { emptyMap() },
             ),
             LibraryFactory.shelves(store) { шаблон },
-            KnowledgeFactory.intake(store, mapper),
+            KnowledgeFactory.intake(store, links, mapper),
             FormulationFactory.formulation(store, links),
             mapper,
         )

@@ -11,11 +11,14 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import orbita.kernel.api.Area
 import orbita.kernel.api.Channel
 import orbita.kernel.api.EntityStore
+import orbita.kernel.api.LinkRegistry
 import orbita.kernel.api.Provenance
 import orbita.knowledge.api.Fact
 import orbita.knowledge.api.Intake
 import orbita.knowledge.api.IntakeTask
+import orbita.knowledge.api.KnowledgeCoverage
 import orbita.knowledge.api.PlannedAction
+import orbita.knowledge.api.SceneSuggestions
 import orbita.knowledge.api.CanonBlock
 import orbita.knowledge.api.Disposition
 import orbita.knowledge.api.FactIntake
@@ -24,6 +27,8 @@ import orbita.knowledge.api.Topic
 
 class EntityIntake(
     private val store: EntityStore,
+    /** Реестр связей: `derived_from_fact` — нить от сущности к её факту. */
+    private val links: LinkRegistry? = null,
     private val mapper: ObjectMapper = ObjectMapper(),
 ) : Intake {
 
@@ -174,16 +179,190 @@ class EntityIntake(
     override fun accept(project: String, task: String, chosen: List<Int>, author: String): List<String> {
         val область = Area.Project(project)
         val задание = store.byCode(область, task) ?: error("задания «$task» нет")
-        // Выполнение действий штатными каналами — волна 2 продолжается; пока
-        // фиксируем решение человека, чтобы оно не потерялось.
+        val действия = задание.doc.path("actions")
+        require(!действия.isEmpty()) {
+            "у задания «$task» нет плана: принимать нечего. Сначала разбор материала"
+        }
+        val созданные = mutableListOf<String>()
+        val принятыеФакты = mutableSetOf<String>()
+
+        действия.forEachIndexed { i, действие ->
+            if (i !in chosen) return@forEachIndexed
+            val вид = действие.path("target_kind").asText("")
+            if (вид.isBlank()) return@forEachIndexed
+            val содержимое = действие.path("payload").deepCopy<JsonNode>() as
+                com.fasterxml.jackson.databind.node.ObjectNode
+            val якорь = действие.path("facts").firstOrNull()?.asText()
+                ?.let { код -> store.byCode(область, код)?.doc?.path("anchor")?.asText() }
+            // Замысел проекта один: повторное принятие обновляет его, а не
+            // плодит вторую версию замысла рядом с первой.
+            // Норматив — общий для всех проектов: он живёт на ПОЛКЕ, а не в
+            // проекте. Один и тот же ПП РФ не заводится в каждом проекте
+            // заново; проект ссылается на него основанием ограничения.
+            val куда = if (вид == "normative_document") Area.Library else область
+            val прежний = when {
+                вид == "intent" -> store.list(область, вид).firstOrNull()
+                вид == "normative_document" -> store.list(Area.Library, вид).firstOrNull { н ->
+                    н.doc.path("designation").asText() == содержимое.path("designation").asText()
+                }
+                else -> null
+            }
+            val сущность = if (прежний != null) {
+                store.update(прежний.id, содержимое, Provenance(
+                    Channel.SERVICE, author, source = задание.doc.path("material").asText(), anchor = якорь,
+                ), status = "accepted")
+            } else {
+                store.create(
+                    следующий(куда, вид, префикс(вид)), вид, куда,
+                    // Сцена рождения — только у проектных сущностей: у полки
+                    // сцены нет, и «polka» сценой не является.
+                    действие.path("scene").asText("").takeIf { it.matches(Regex("[0-9]+")) },
+                    содержимое,
+                    Provenance(
+                        Channel.SERVICE, author,
+                        source = задание.doc.path("material").asText(), anchor = якорь,
+                    ),
+                    status = if (вид == "intent") "accepted" else "draft",
+                )
+            }
+            // Нить от сущности к её факту: по ней считается доля знаний, и
+            // по ней же видно, откуда в проекте взялось это утверждение.
+            действие.path("facts").forEach { к ->
+                val факт = store.byCode(область, к.asText()) ?: return@forEach
+                links?.link(
+                    "derived_from_fact", сущность.id, факт.id,
+                    Provenance(Channel.SERVICE, author),
+                    rationale = "принято планом загрузки: " + действие.path("title").asText(""),
+                )
+                принятыеФакты += к.asText()
+            }
+            созданные += сущность.code
+        }
+
+        // Диспозиции: принятое — adopted, рассмотренное и не взятое — noted.
+        // Факт не исчезает от того, что его не взяли, — это тоже решение.
+        val всеФакты = действия.flatMap { it.path("facts").map { к -> к.asText() } }.toSet()
+        всеФакты.forEach { код ->
+            val решение = if (код in принятыеФакты) Disposition.ADOPTED else Disposition.NOTED
+            val причина = if (код in принятыеФакты) "принят планом загрузки «$task»"
+            else "рассмотрен планом «$task» и не взят"
+            runCatching { dispose(project, код, решение, причина, author) }
+        }
+
         store.update(
             задание.id,
             (задание.doc.deepCopy<JsonNode>() as com.fasterxml.jackson.databind.node.ObjectNode)
-                .put("accepted", chosen.joinToString(",")),
+                .put("accepted", chosen.joinToString(","))
+                .put("created", созданные.size),
             Provenance(Channel.MANUAL, author),
             status = "accepted",
         )
-        return chosen.map { "действие $it принято" }
+        return созданные
+    }
+
+    /** Префикс кода по виду: человеку он говорит, что перед ним. */
+    private fun префикс(вид: String): String = when (вид) {
+        "stakeholder" -> "SK"
+        "need" -> "ND"
+        "goal" -> "MG"
+        "constraint" -> "Р"
+        "service" -> "SV"
+        "normative_document" -> "NR"
+        "intent" -> "IN"
+        else -> вид.take(2).uppercase()
+    }
+
+    override fun task(project: String, task: String): IntakeTask {
+        val область = Area.Project(project)
+        val задание = store.byCode(область, task) ?: error("задания «$task» нет")
+        val материал = задание.doc.path("material").asText("")
+        val действия = задание.doc.path("actions").map { д ->
+            PlannedAction(
+                kind = д.path("kind").asText("create_entity"),
+                title = д.path("title").asText(""),
+                effect = д.path("preview").asText(""),
+                factIds = д.path("facts").map { it.asText() },
+                targetKind = д.path("target_kind").asText(""),
+                scene = д.path("scene").asText(""),
+                payload = д.path("payload").properties().associate { (к, в) -> к to в.asText() },
+            )
+        }
+        return IntakeTask(
+            задание.code, материал, задание.doc.path("intent").asText(""),
+            facts(project).filter { it.material == материал },
+            действия, задание.doc.path("note").asText(""),
+        )
+    }
+
+    override fun suggestions(project: String, scene: String): SceneSuggestions {
+        val область = Area.Project(project)
+        val задание = store.list(область, "intake_task")
+            .filter { it.doc.path("actions").size() > 0 }
+            .maxByOrNull { it.updatedAt }
+            ?: return SceneSuggestions(scene, null, emptyList(), emptyList(), "")
+        val принятые = задание.doc.path("accepted").asText("")
+            .split(",").mapNotNull { it.trim().toIntOrNull() }.toSet()
+        val действия = mutableListOf<PlannedAction>()
+        val номера = mutableListOf<Int>()
+        задание.doc.path("actions").forEachIndexed { i, д ->
+            if (i in принятые || д.path("scene").asText() != scene) return@forEachIndexed
+            действия += PlannedAction(
+                kind = д.path("kind").asText("create_entity"),
+                title = д.path("title").asText(""),
+                effect = д.path("preview").asText(""),
+                factIds = д.path("facts").map { it.asText() },
+                targetKind = д.path("target_kind").asText(""),
+                scene = scene,
+                payload = д.path("payload").properties().associate { (к, в) -> к to в.asText() },
+            )
+            номера += i
+        }
+        val материал = store.byCode(область, задание.doc.path("material").asText())
+        val откуда = материал?.doc?.path("name")?.asText("") ?: "материала"
+        val поВидам = действия.groupingBy { it.targetKind }.eachCount()
+        val словами = поВидам.entries.joinToString(" и ") { (вид, сколько) ->
+            "$сколько ${названиеВида(вид, сколько)}"
+        }
+        return SceneSuggestions(
+            scene, задание.code, действия, номера,
+            if (действия.isEmpty()) "" else "из «$откуда»: ещё $словами с якорями",
+        )
+    }
+
+    /** Вид по-русски и в числе: «5 сторон миссии», «3 потребности». */
+    private fun названиеВида(вид: String, сколько: Int): String = when (вид) {
+        "stakeholder" -> if (сколько == 1) "сторона миссии" else "сторон миссии"
+        "need" -> if (сколько == 1) "потребность" else "потребности"
+        "goal" -> if (сколько == 1) "цель" else "цели"
+        "constraint" -> if (сколько == 1) "ограничение" else "ограничения"
+        "service" -> if (сколько == 1) "сервис" else "сервиса"
+        "intent" -> "замысел"
+        "normative_document" -> if (сколько == 1) "норматив" else "норматива"
+        else -> вид
+    }
+
+    override fun coverage(project: String): KnowledgeCoverage {
+        val область = Area.Project(project)
+        // Считаются сущности ПОСТАНОВКИ: служебное (проект, точки, задания,
+        // сами факты и темы) знанием не выводится и долю не портит.
+        val виды = listOf("intent", "stakeholder", "need", "goal", "constraint", "service")
+        var всего = 0
+        var изЗнаний = 0
+        val поВидам = mutableMapOf<String, Pair<Int, Int>>()
+        виды.forEach { вид ->
+            val сущности = store.list(область, вид).filter { it.status != "cancelled" }
+            val сФактами = сущности.count { с ->
+                links?.from(с.id, "derived_from_fact")?.isNotEmpty() == true
+            }
+            всего += сущности.size
+            изЗнаний += сФактами
+            if (сущности.isNotEmpty()) поВидам[вид] = сущности.size to сФактами
+        }
+        return KnowledgeCoverage(
+            total = всего, fromFacts = изЗнаний, manual = всего - изЗнаний,
+            share = if (всего == 0) 0.0 else изЗнаний.toDouble() / всего,
+            byKind = поВидам,
+        )
     }
 
     override fun canon(project: String, material: String): List<CanonBlock> {
@@ -220,9 +399,13 @@ class EntityIntake(
         // (поймано живым прогоном: кэш ответа не спасал от дублей).
         val уже = store.list(область, "fact")
             .filter { it.doc.path("material").asText() == material }
-            .map { it.doc.path("anchor").asText() + "|" + it.doc.path("predicate").asText() }
-            .toSet()
+            .associateBy { it.doc.path("anchor").asText() + "|" + it.doc.path("predicate").asText() }
         var повторов = 0
+        // Номер факта в ответе → его код в проекте. План ссылается на факты
+        // НОМЕРАМИ, и при повторном приёме (факты уже есть) карта обязана
+        // указывать на существующие: иначе план схлопывается в одно
+        // действие — поймано на повторе разбора записки.
+        val поНомеру = mutableMapOf<Int, String>()
 
         корень.path("topics").forEach { т ->
             val метка = т.path("label").asText("").ifBlank { return@forEach }
@@ -243,7 +426,10 @@ class EntityIntake(
                 текстЗначения.isBlank() -> отказы += "факт $i «$предикат»: без значения"
                 ф.path("kind").asText("") == "quantity" && единица.isBlank() ->
                     отказы += "факт $i «$предикат»: величина без единицы — не факт"
-                якорь + "|" + предикат in уже -> повторов += 1
+                якорь + "|" + предикат in уже -> {
+                    повторов += 1
+                    уже[якорь + "|" + предикат]?.let { поНомеру[i] = it.code }
+                }
                 else -> {
                     val метка = ф.path("topic").asText("")
                     val документ = mapper.createObjectNode()
@@ -263,14 +449,52 @@ class EntityIntake(
                         код, "fact", область, ф.path("scene").asText("").ifBlank { null },
                         документ, Provenance(Channel.SERVICE, author, source = material, anchor = якорь),
                     )
+                    поНомеру[i] = сущность.code
                     принятые += факт(сущность.code, документ)
                 }
             }
         }
+        // Д2в: план приходит тем же ответом, что и факты, — один живой
+        // вызов на версию документа. Действие несёт СОДЕРЖИМОЕ будущей
+        // сущности: предпросмотр показывает, а не обещает.
+        val действия = mapper.createArrayNode()
+        корень.path("actions").forEach { д ->
+            val коды = д.path("facts").mapNotNull { н -> поНомеру[н.asInt(-1)] }
+            if (коды.isEmpty() && д.path("target_kind").asText() != "intent") return@forEach
+            val узел = действия.addObject()
+            узел.put("kind", д.path("kind").asText("create_entity"))
+            узел.put("target_kind", д.path("target_kind").asText(""))
+            узел.put("scene", д.path("scene").asText(""))
+            узел.put("title", д.path("title").asText(""))
+            узел.put("preview", д.path("preview").asText(""))
+            узел.set<com.fasterxml.jackson.databind.node.ObjectNode>("payload", д.path("payload").deepCopy())
+            узел.putArray("facts").also { а -> коды.forEach { к -> а.add(к) } }
+        }
+        if (!действия.isEmpty) {
+            val планЗадание = mapper.createObjectNode()
+            планЗадание.put("material", material)
+            планЗадание.put("intent", "разбери по сущностям")
+            планЗадание.put("facts", принятые.size)
+            планЗадание.set<com.fasterxml.jackson.databind.node.ObjectNode>("actions", действия)
+            планЗадание.put("note", "план собран разбором: действий ${действия.size()}")
+            val прежний = store.list(область, "intake_task").firstOrNull {
+                it.doc.path("material").asText() == material && it.doc.path("actions").size() > 0
+            }
+            if (прежний == null) {
+                store.create(
+                    свободныйКод(область), "intake_task", область, "2",
+                    планЗадание, Provenance(Channel.SERVICE, author, source = material),
+                )
+            } else {
+                store.update(прежний.id, планЗадание, Provenance(Channel.SERVICE, author))
+            }
+        }
+
         val примечание = "разбор материала «${карточка.doc.path("name").asText(material)}»: " +
             "принято фактов ${принятые.size}, тем ${темы.size}" +
             (if (отказы.isEmpty()) "" else ", отклонено ${отказы.size} (правила честности §6.1)") +
-            (if (повторов == 0) "" else ", уже было $повторов")
+            (if (повторов == 0) "" else ", уже было $повторов") +
+            (if (действия.isEmpty) "" else ", действий плана ${действия.size()}")
         return FactIntake(принятые, отказы, topics(project), примечание)
     }
 

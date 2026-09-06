@@ -60,7 +60,7 @@ class DocumentsTest {
         V2Router(
             store, links, движок,
             LibraryFactory.shelves(store) { шаблонФазы },
-            orbita.knowledge.api.KnowledgeFactory.intake(store, mapper),
+            orbita.knowledge.api.KnowledgeFactory.intake(store, links, mapper),
             orbita.formulation.api.FormulationFactory.formulation(store, links),
             mapper,
             docRoutes = DocRoutes(store, документы, mapper),

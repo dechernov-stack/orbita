@@ -32,7 +32,9 @@ class Atomizer(
                 "Приложите текст документа — канон строится из него"
         }
         val промпт = промпт(project, material, intent, блоки.joinToString("\n") { "[${it.anchor}] ${it.text}" })
-        val ответ = service.ask(project, KIND, промпт)
+        // Урожай в сотню фактов не помещается в бюджет короткого ответа:
+        // разбор просит свой потолок, а не полагается на общий.
+        val ответ = service.ask(project, KIND, промпт, maxTokens = БЮДЖЕТ_РАЗБОРА)
         val итог = intake.putFacts(project, material, ответ.text, author)
         return itogСПометой(итог, ответ.cached)
     }
@@ -88,9 +90,36 @@ obligation — обязанность из нормы или договора ·
 принцип · event — событие со сроком · relation — кто с кем связан ·
 assessment — оценка, суждение · assumption — допущение.
 
+## План действий (Д2в)
+После фактов предложи ПЛАН: что завести в проекте из этих фактов. Каждое
+действие несёт содержимое будущей записи — человек увидит его ДО нажатия
+и снимет ненужное. Виды целей и их поля:
+  · intent (сцена 2) — замысел: for_whom · what · where · horizon (ОДНО действие)
+  · stakeholder (сцена 3) — сторона миссии: name · role
+    (роль из: customer · operator · regulator · supplier · partner · consumer)
+  · need (сцена 3) — потребность: statement · owner (имя стороны)
+  · goal (сцена 4) — цель: statement · metric · year
+  · constraint (сцена 5) — ограничение: text · category
+    (normative_basis — обозначение НПА, если ограничение нормативное)
+  · service (сцена 6) — сервис: name · classes (A′/B′/C′)
+  · normative_document (полка) — норматив: designation · title · edition ·
+    edition_date · valid_until
+Ссылка на факты — НОМЕРАМИ в массиве facts (с нуля).
+
 ## Формат ответа — ТОЛЬКО JSON, без пояснений вокруг
 {
   "topics": [{"label": "короткое имя предмета фактов"}],
+  "actions": [
+    {
+      "kind": "create_entity",
+      "target_kind": "stakeholder",
+      "scene": "3",
+      "title": "завести сторону миссии «Минтранс России»",
+      "preview": "появится сторона «Минтранс России», роль «заказчик»",
+      "payload": {"name": "Минтранс России", "role": "customer"},
+      "facts": [0, 4]
+    }
+  ],
   "facts": [
     {
       "kind": "quantity|capability|obligation|framing|event|relation|assessment|assumption",
@@ -114,5 +143,8 @@ $выжимка
 
     companion object {
         const val KIND: String = "intake_atomize"
+
+        /** Потолок ответа разбора: сто фактов с якорями — это десятки тысяч токенов. */
+        const val БЮДЖЕТ_РАЗБОРА: Int = 64_000
     }
 }

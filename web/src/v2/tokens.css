@@ -336,3 +336,25 @@ button:disabled { opacity: .55; cursor: default; }
 
 /* Строка документа: имя, стандарт, полнота — код документа человеку не нужен. */
 .v2-row--doc { grid-template-columns: 1fr auto auto; gap: var(--pad-l); }
+
+/* Полоса предложений поля знаний (эталон reference-activity-engineer, .prop). */
+.v2-prop {
+  display: flex; gap: var(--pad-m); align-items: center; flex-wrap: wrap;
+  padding: var(--pad-s) var(--pad-m); margin-bottom: var(--pad-m);
+  background: var(--ground-soft); border-radius: var(--radius);
+}
+.v2-prop__go {
+  font: inherit; padding: 5px 12px; border: 1px solid var(--accent);
+  border-radius: 6px; background: var(--accent); color: var(--ground); cursor: pointer;
+}
+.v2-prop__go:disabled { opacity: .6; cursor: default; }
+.v2-prop__list { margin: 0 0 var(--pad-m); padding-left: var(--pad-l); font-size: var(--size-s); }
+
+/* Поле знаний: темы и фильтры чипами, причина решения — строкой в таблице. */
+.v2-kf__bar { display: flex; gap: var(--pad-s); align-items: center; flex-wrap: wrap; padding: var(--pad-s) var(--pad-m); }
+.v2-chip--on { border-color: var(--accent); background: var(--accent-soft); }
+.v2-kf__why { display: inline-flex; gap: 6px; align-items: center; }
+.v2-kf__why input, .v2-kf__why button {
+  font: inherit; font-size: var(--size-s); padding: 4px 8px;
+  border: 1px solid var(--line); border-radius: 6px; background: var(--ground);
+}

@@ -156,6 +156,11 @@ class AcrossRoutes(
                 .put("anchor", факт.anchor)
                 .put("mark", факт.mark.name)
                 .put("material", факт.material)
+                // Экран поля знаний живёт диспозициями и темами: без них
+                // список фактов — свалка, а не поле, с которым работают.
+                .put("kind", факт.kind)
+                .put("topic", факт.topic)
+                .put("disposition", факт.disposition.name.lowercase())
         }
         val ответ = mapper.createObjectNode()
         ответ.set<JsonNode>("items", массив)

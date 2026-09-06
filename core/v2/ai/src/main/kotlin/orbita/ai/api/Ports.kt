@@ -25,7 +25,12 @@ class ProviderUnavailable(reason: String) : RuntimeException(reason)
  * поведение службы (кэш, журнал, повтор) проверяется без неё.
  */
 fun interface Transport {
-    fun ask(prompt: String, model: String?): Answer
+    /**
+     * @param maxTokens потолок ответа. Разбору документа его задаёт вызов:
+     *   урожай в сто фактов не помещается в бюджет короткого ответа, а
+     *   обрыв на полуслове — не ответ (поймано на записке в 36 тыс. знаков)
+     */
+    fun ask(prompt: String, model: String?, maxTokens: Int?): Answer
 }
 
 /** Запись журнала вызовов: по ней видно, за что заплачено. */
@@ -44,7 +49,13 @@ interface AiService {
      * Ответ модели на промпт. Один вызов на отпечаток: повтор того же
      * промпта в том же проекте возвращает записанный ответ и НЕ звонит.
      */
-    fun ask(project: String, kind: String, prompt: String, model: String? = null): Answer
+    fun ask(
+        project: String,
+        kind: String,
+        prompt: String,
+        model: String? = null,
+        maxTokens: Int? = null,
+    ): Answer
 
     fun journal(project: String): List<CallRecord>
 }

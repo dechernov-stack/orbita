@@ -421,6 +421,39 @@ export interface DocHint {
   filled: number
 }
 
+/** Строка поля знаний: факт с якорем, меткой и решением человека. */
+export interface FactRow {
+  id: string
+  kind?: string
+  subject: string
+  predicate: string
+  value: string
+  unit: string | null
+  anchor: string | null
+  mark: 'И' | 'В' | 'П'
+  material: string
+  topic?: string | null
+  disposition?: string
+}
+
+/** Предложение сцены из поля знаний: что появится, если принять. */
+export interface Suggestion {
+  index: number
+  target_kind: string
+  title: string
+  preview: string
+  facts: string[]
+  payload: Record<string, string>
+}
+
+export interface SceneSuggestions {
+  scene: string
+  task: string | null
+  summary: string
+  indices: number[]
+  actions: Suggestion[]
+}
+
 export const api = {
   /** Документы проекта с полнотой к ступени. */
   documents: (project: string) =>
@@ -444,6 +477,29 @@ export const api = {
   /** Печать — файлом с сервера: ссылка, а не сборка PDF в браузере. */
   printUrl: (project: string, code: string) =>
     `/api/v2/documents/${code}/print?project=${encodeURIComponent(project)}`,
+
+  /** Темы поля знаний: предмет фактов до разрешения в сущность. */
+  topics: (project: string) =>
+    вызов<{ items: { id: string; label: string; scene: string | null; facts: number }[] }>(
+      `/topics?project=${encodeURIComponent(project)}`),
+
+  disposeFact: (project: string, fact: string, disposition: string, reason: string, author: string) =>
+    вызов<FactRow>(`/facts/${fact}/disposition?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ disposition, reason, author }) }),
+
+  /** Предложения сцены: она начинается не с пустой формы. */
+  suggestions: (project: string, scene: string) =>
+    вызов<SceneSuggestions>(
+      `/knowledge/suggestions?project=${encodeURIComponent(project)}&scene=${encodeURIComponent(scene)}`),
+
+  acceptPlan: (project: string, task: string, chosen: number[], author: string) =>
+    вызов<{ created: number; codes: string[]; coverage: number }>(
+      `/intake/${task}/accept?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ chosen, author }) }),
+
+  knowledgeCoverage: (project: string) =>
+    вызов<{ total: number; from_facts: number; manual: number; share_percent: number }>(
+      `/knowledge/coverage?project=${encodeURIComponent(project)}`),
 
   phase: (project: string) => вызов<Phase>(`/phase?project=${encodeURIComponent(project)}`),
 

@@ -42,7 +42,14 @@ data class Fact(
     val topic: String? = null,
 )
 
-/** Действие плана: что именно система создаст или изменит, если план принять. */
+/**
+ * Действие плана: что именно система создаст или изменит, если план принять.
+ *
+ * @property targetKind вид сущности, которая появится (stakeholder, need…)
+ * @property scene сцена, в которую действие кладёт свой результат
+ * @property payload содержимое будущей сущности — то самое, что видно в
+ *   предпросмотре ДО нажатия: план не обещает, а показывает
+ */
 data class PlannedAction(
     val kind: String,
     val title: String,
@@ -51,6 +58,31 @@ data class PlannedAction(
     val factIds: List<String>,
     /** Не выполняется само: план принимает человек. */
     val requiresDecision: Boolean = true,
+    val targetKind: String = "",
+    val scene: String = "",
+    val payload: Map<String, String> = emptyMap(),
+    /** Код созданной сущности после акцепта; пусто — ещё не выполнено. */
+    val created: String? = null,
+)
+
+/** Предложения сцены из поля знаний: что можно принять одним нажатием. */
+data class SceneSuggestions(
+    val scene: String,
+    val task: String?,
+    val actions: List<PlannedAction>,
+    /** Индексы действий в плане — их и принимает акцепт. */
+    val indices: List<Int>,
+    /** Одной строкой: «из записки: 5 сторон и 3 потребности с якорями». */
+    val summary: String,
+)
+
+/** Доля знаний в проекте: сколько сущностей выведено из фактов. */
+data class KnowledgeCoverage(
+    val total: Int,
+    val fromFacts: Int,
+    val manual: Int,
+    val share: Double,
+    val byKind: Map<String, Pair<Int, Int>>,
 )
 
 /**
@@ -85,8 +117,29 @@ interface Intake {
     /** Собрать задание: факты из материала и план действий из намерения. */
     fun plan(project: String, material: String, intent: String, author: String): IntakeTask
 
-    /** Принять план целиком: действия идут штатными каналами. */
+    /**
+     * Принять план: выбранные действия выполняются, снятые — нет.
+     *
+     * Выполнение заводит сущности со связью `derived_from_fact` и ставит
+     * их фактам диспозицию `adopted`; факты снятых действий остаются
+     * `noted` — их рассмотрели и не взяли, и это тоже решение.
+     */
     fun accept(project: String, task: String, chosen: List<Int>, author: String): List<String>
+
+    /** Задание загрузки с планом: предпросмотр до нажатия. */
+    fun task(project: String, task: String): IntakeTask
+
+    /** Доля сущностей проекта, выведенных из фактов, — мера поля знаний. */
+    fun coverage(project: String): KnowledgeCoverage
+
+    /**
+     * Предложения сцены: непринятые действия плана, адресованные ей.
+     *
+     * Сцена начинается НЕ с пустой формы: из записки уже известно, кто
+     * пользователи миссии и что им нужно. Ручной ввод остаётся вторым
+     * путём, а не единственным.
+     */
+    fun suggestions(project: String, scene: String): SceneSuggestions
 
     fun facts(project: String): List<Fact>
 

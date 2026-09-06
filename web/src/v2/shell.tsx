@@ -7,7 +7,8 @@ import { useEffect, useState } from 'react'
 import { api, type Phase, type ProjectRow } from './api'
 import { Work } from './work'
 import { MyTasks } from './tasks'
-import { KnowledgeField } from './knowledge'
+import { KnowledgeField as KnowledgeIntake } from './knowledge'
+import { KnowledgeField } from './knowledgefield'
 import { Coverage } from './coverage'
 import { Concept } from './concept'
 import { Requirements } from './requirements'
@@ -213,7 +214,10 @@ export function Shell() {
               onScenePicked={() => setWantScene(null)} onScene={setOpenScene}
               роль={роль} режим={режим} onРежим={setРежим} />
           ) : section === 'knowledge' ? (
-            <KnowledgeField project={project} />
+            <>
+              <KnowledgeField project={project} />
+              <KnowledgeIntake project={project} />
+            </>
           ) : section === 'formulation' ? (
             <Coverage project={project} />
           ) : section === 'concept' ? (

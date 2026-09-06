@@ -76,7 +76,7 @@ class SceneTenTwelveTest {
         V2Router(
             store, links, движок,
             LibraryFactory.shelves(store) { шаблон },
-            orbita.knowledge.api.KnowledgeFactory.intake(store, mapper),
+            orbita.knowledge.api.KnowledgeFactory.intake(store, links, mapper),
             orbita.formulation.api.FormulationFactory.formulation(store, links),
             mapper,
             ReqArchRoutes(store, требования, снимки, архитектура, mapper),

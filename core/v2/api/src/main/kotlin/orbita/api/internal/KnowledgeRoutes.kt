@@ -40,6 +40,24 @@ class KnowledgeRoutes(
                 разобрать(body),
             )
 
+        // Д2в: план задания — предпросмотр до нажатия
+        method == "GET" && path.matches(Regex("/v2/intake/[A-Z-]+[0-9]+")) ->
+            план(требуется(query, "project"), path.removePrefix("/v2/intake/"))
+
+        method == "POST" && path.matches(Regex("/v2/intake/[A-Z-]+[0-9]+/accept")) ->
+            принять(
+                требуется(query, "project"),
+                path.removePrefix("/v2/intake/").removeSuffix("/accept"),
+                разобрать(body),
+            )
+
+        // Предложения сцены: сцена начинается не с пустой формы
+        method == "GET" && path == "/v2/knowledge/suggestions" ->
+            предложения(требуется(query, "project"), требуется(query, "scene"))
+
+        // Мера поля знаний: доля сущностей, выведенных из фактов
+        method == "GET" && path == "/v2/knowledge/coverage" -> покрытие(требуется(query, "project"))
+
         method == "GET" && path == "/v2/ai/journal" -> журнал(требуется(query, "project"))
 
         else -> null
@@ -123,6 +141,74 @@ class KnowledgeRoutes(
             author = тело.path("author").asText("инженер"),
         )
         return V2Router.Ответ(200, фактВид(факт))
+    }
+
+    private fun план(project: String, task: String): V2Router.Ответ {
+        val задание = intake.task(project, task)
+        val узел = mapper.createObjectNode()
+        узел.put("task", задание.id)
+        узел.put("material", задание.material)
+        узел.put("note", задание.note)
+        val действия = узел.putArray("actions")
+        задание.plan.forEachIndexed { i, д ->
+            val у = действия.addObject()
+            у.put("index", i)
+            у.put("kind", д.kind)
+            у.put("target_kind", д.targetKind)
+            у.put("scene", д.scene)
+            у.put("title", д.title)
+            у.put("preview", д.effect)
+            у.putArray("facts").also { а -> д.factIds.forEach { ф -> а.add(ф) } }
+            val содержимое = у.putObject("payload")
+            д.payload.forEach { (к, в) -> содержимое.put(к, в) }
+        }
+        return V2Router.Ответ(200, узел)
+    }
+
+    private fun принять(project: String, task: String, тело: ObjectNode): V2Router.Ответ {
+        val выбраны = тело.path("chosen").map { it.asInt() }
+        val созданные = intake.accept(project, task, выбраны, тело.path("author").asText("инженер"))
+        val узел = mapper.createObjectNode()
+        узел.put("created", созданные.size)
+        узел.putArray("codes").also { а -> созданные.forEach { к -> а.add(к) } }
+        val п = intake.coverage(project)
+        узел.put("coverage", Math.round(п.share * 100).toInt())
+        return V2Router.Ответ(201, узел)
+    }
+
+    private fun предложения(project: String, scene: String): V2Router.Ответ {
+        val п = intake.suggestions(project, scene)
+        val узел = mapper.createObjectNode()
+        узел.put("scene", п.scene)
+        узел.put("task", п.task)
+        узел.put("summary", п.summary)
+        узел.putArray("indices").also { а -> п.indices.forEach { и -> а.add(и) } }
+        val действия = узел.putArray("actions")
+        п.actions.forEachIndexed { i, д ->
+            val у = действия.addObject()
+            у.put("index", п.indices.getOrElse(i) { -1 })
+            у.put("target_kind", д.targetKind)
+            у.put("title", д.title)
+            у.put("preview", д.effect)
+            у.putArray("facts").also { а -> д.factIds.forEach { ф -> а.add(ф) } }
+            val содержимое = у.putObject("payload")
+            д.payload.forEach { (к, в) -> содержимое.put(к, в) }
+        }
+        return V2Router.Ответ(200, узел)
+    }
+
+    private fun покрытие(project: String): V2Router.Ответ {
+        val п = intake.coverage(project)
+        val узел = mapper.createObjectNode()
+        узел.put("total", п.total)
+        узел.put("from_facts", п.fromFacts)
+        узел.put("manual", п.manual)
+        узел.put("share_percent", Math.round(п.share * 100).toInt())
+        val виды = узел.putObject("by_kind")
+        п.byKind.forEach { (вид, пара) ->
+            виды.putObject(вид).put("total", пара.first).put("from_facts", пара.second)
+        }
+        return V2Router.Ответ(200, узел)
     }
 
     private fun журнал(project: String): V2Router.Ответ {

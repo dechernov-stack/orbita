@@ -30,7 +30,7 @@ class KnowledgeIntakeTest {
     private val mapper = ObjectMapper()
     private val store = KernelFactory.entityStore(TestDbV2.conn, mapper)
     private val links: LinkRegistry = KernelFactory.linkRegistry(TestDbV2.conn)
-    private val знания = KnowledgeFactory.intake(store, mapper)
+    private val знания = KnowledgeFactory.intake(store, links, mapper)
     private val шаблонФазы = mapper.readTree(
         TestDbV2.repoRoot.resolve("docs/tz/v2/полки-порождённые/ШАБЛОН-ФАЗЫ-PRE-A-NASA.json").toFile(),
     )
@@ -40,6 +40,17 @@ class KnowledgeIntakeTest {
 
     private val ОТВЕТ = """
         {"topics":[{"label":"масса платформы"},{"label":"частотный режим"}],
+         "actions":[
+           {"kind":"create_entity","target_kind":"stakeholder","scene":"3",
+            "title":"завести сторону «Оператор»","preview":"появится сторона «Оператор», роль «оператор»",
+            "payload":{"name":"Оператор","role":"operator"},"facts":[1]},
+           {"kind":"create_entity","target_kind":"constraint","scene":"5",
+            "title":"ограничение по частотам","preview":"появится ограничение: частоты только после решения ГКРЧ",
+            "payload":{"text":"частоты только после решения ГКРЧ","category":"регуляторное"},"facts":[1]},
+           {"kind":"create_entity","target_kind":"goal","scene":"4",
+            "title":"цель по массе","preview":"появится цель с показателем массы",
+            "payload":{"statement":"уложиться в массу платформы","metric":"78 кг"},"facts":[0]}
+         ],
          "facts":[
            {"kind":"quantity","topic":"масса платформы","subject":"платформа","predicate":"масса сухая",
             "value":"78","unit":"кг","source":{"anchor":"s1#1"},"source_mark":"В","confidence":0.8},
@@ -53,7 +64,7 @@ class KnowledgeIntakeTest {
          ]}
     """.trimIndent()
 
-    private val транспорт = Transport { _, _ ->
+    private val транспорт = Transport { _, _, _ ->
         звонков += 1
         Answer(ОТВЕТ, "модель-проверки", 100, 200)
     }
@@ -147,6 +158,11 @@ class KnowledgeIntakeTest {
         // удваивать — факт узнаётся по месту в документе (живой прогон).
         assertEquals(0, второй.body.path("accepted").asInt(), "повтор новых фактов не создал")
         assertEquals(2, знания.facts(проект).size, "фактов в проекте столько же, сколько было")
+        // План при повторе не схлопывается: действия ссылаются на факты
+        // НОМЕРАМИ ответа, и номер обязан вести к уже существующему факту
+        val задание = store.list(Area.Project(проект), "intake_task")
+            .first { it.doc.path("actions").size() > 0 }
+        assertEquals(3, задание.doc.path("actions").size(), "план тот же, что и в первый раз")
     }
 
     @Test
@@ -192,6 +208,51 @@ class KnowledgeIntakeTest {
             setOf(первое.id, третье.id, четвёртое.id).size == 3,
             "коды заданий не сталкиваются: ${первое.id}, ${третье.id}, ${четвёртое.id}",
         )
+    }
+
+    @Test
+    fun `акцепт плана заводит сущности со связью к фактам и считает долю знаний`() {
+        val проект = "PJ-9306"
+        val код = материал(проект)
+        router.handle("POST", "/v2/intake/atomize", mapOf("project" to проект),
+            """{"material":"$код","intent":"разбери по сущностям","author":"Петрова М."}""")
+
+        val задание = store.list(Area.Project(проект), "intake_task")
+            .first { it.doc.path("actions").size() > 0 }
+        val план = router.handle("GET", "/v2/intake/${задание.code}", mapOf("project" to проект), null)!!.body
+        assertEquals(3, план.path("actions").size(), "план собран разбором")
+        val первое = план.path("actions")[0]
+        assertTrue(
+            первое.path("preview").asText().isNotBlank() && первое.path("payload").size() > 0,
+            "действие показывает, ЧТО появится, до нажатия: ${первое.path("preview").asText()}",
+        )
+
+        // Принимаем два действия из трёх: третье снято человеком
+        val итог = router.handle("POST", "/v2/intake/${задание.code}/accept", mapOf("project" to проект),
+            """{"chosen":[0,1],"author":"Иванов И."}""")!!
+        assertEquals(201, итог.code)
+        assertEquals(2, итог.body.path("created").asInt(), "создано ровно принятое")
+        assertEquals(1, store.list(Area.Project(проект), "stakeholder").size)
+        assertEquals(1, store.list(Area.Project(проект), "constraint").size)
+        assertEquals(0, store.list(Area.Project(проект), "goal").size, "снятое действие не выполняется")
+
+        // Связь к факту стоит — по ней и считается доля знаний
+        val сторона = store.list(Area.Project(проект), "stakeholder").first()
+        assertTrue(
+            links.from(сторона.id, "derived_from_fact").isNotEmpty(),
+            "сущность из знаний обязана помнить свой факт",
+        )
+        val покрытие = router.handle("GET", "/v2/knowledge/coverage", mapOf("project" to проект), null)!!.body
+        assertEquals(2, покрытие.path("total").asInt())
+        assertEquals(2, покрытие.path("from_facts").asInt())
+        assertEquals(100, покрытие.path("share_percent").asInt(), "всё заведённое пришло из фактов")
+
+        // Диспозиции: принятое — adopted, снятое — noted, а не пусто
+        val факты = знания.facts(проект).associateBy { it.id }
+        val принятые = факты.values.filter { it.disposition.name == "ADOPTED" }
+        val рассмотренные = факты.values.filter { it.disposition.name == "NOTED" }
+        assertTrue(принятые.isNotEmpty(), "принятый факт помечен adopted")
+        assertTrue(рассмотренные.isNotEmpty(), "снятый факт остаётся рассмотренным, а не исчезает")
     }
 
     @Test

@@ -24,7 +24,13 @@ class JournalService(
     private val mapper: ObjectMapper = ObjectMapper(),
 ) : AiService {
 
-    override fun ask(project: String, kind: String, prompt: String, model: String?): Answer {
+    override fun ask(
+        project: String,
+        kind: String,
+        prompt: String,
+        model: String?,
+        maxTokens: Int?,
+    ): Answer {
         val отпечаток = отпечатокПромпта(prompt)
         val записанный = store.list(Area.Project(project), "ai_call")
             .firstOrNull { it.doc.path("fingerprint").asText() == отпечаток }
@@ -37,7 +43,7 @@ class JournalService(
                 cached = true,
             )
         }
-        val ответ = transport.ask(prompt, model)
+        val ответ = transport.ask(prompt, model, maxTokens)
         val документ = mapper.createObjectNode()
         документ.put("kind", kind)
         документ.put("model", ответ.model)
