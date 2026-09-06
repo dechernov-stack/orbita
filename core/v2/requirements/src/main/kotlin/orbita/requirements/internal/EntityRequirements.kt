@@ -119,8 +119,20 @@ class EntityRequirements(
 
 /** Общее для требований и базирования: где лежит последний снимок. */
 internal object Snapshots {
+
+    /**
+     * Порядок снимков: сначала отметка базы, при равенстве — своя отметка
+     * из документа. База ставит `now()` на транзакцию, и два снимка,
+     * сделанные подряд, могут получить одно время — тогда «последний» стал бы
+     * делом случая.
+     */
+    private val порядок = compareBy<Entity>({ it.createdAt }, { it.doc.path("at").asText("") })
+
     fun последний(store: EntityStore, project: String): Entity? =
-        store.list(Area.Project(project), "baseline").maxByOrNull { it.createdAt }
+        store.list(Area.Project(project), "baseline").maxWithOrNull(порядок)
+
+    fun поПорядку(store: EntityStore, project: String): List<Entity> =
+        store.list(Area.Project(project), "baseline").sortedWith(порядок)
 
     fun версии(снимок: Entity?): Map<String, Int> =
         снимок?.doc?.path("items")?.associate { it.path("ref").asText() to it.path("version").asInt() }

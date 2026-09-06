@@ -192,8 +192,7 @@ class EntityBaselines(
     }
 
     override fun list(project: String): List<Baseline> =
-        store.list(Area.Project(project), "baseline")
-            .sortedBy { it.createdAt }
+        Snapshots.поПорядку(store, project)
             .map { снимок ->
                 Baseline(
                     name = снимок.code,
