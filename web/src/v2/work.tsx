@@ -35,6 +35,10 @@ export function Work({ project, onProject, wantScene, onScenePicked }: {
       .catch((e) => setОтказ(String(e.message ?? e)))
   }, [project])
 
+  // Смена проекта сбрасывает выбранную сцену: иначе рамка показывает сцену
+  // прежнего проекта — в новом она может быть ещё закрыта.
+  useEffect(() => { setСцена(null) }, [project])
+
   useEffect(перечитать, [перечитать])
 
   useEffect(() => {
