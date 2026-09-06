@@ -79,7 +79,18 @@ export function SceneFrame({ phase, scene, activity, onPick, children }: {
       </div>
 
       <div className="v2-body">
-        <div className="v2-frag">{children}</div>
+        <div className="v2-frag">
+          {scene.state === 'locked' && (
+            <div className="v2-locked">
+              Сцена закрыта: {scene.entry.filter((у) => !у.passed).map((у) => у.why ?? у.title).join('; ')}.
+              <span className="v2-empty__why">
+                Записывать сюда рано: работа этой сцены опирается на то, чего ещё нет.
+                Закройте предыдущую — сцена откроется сама.
+              </span>
+            </div>
+          )}
+          {children}
+        </div>
         <aside className="v2-cond">
           <h4>Условия выхода</h4>
           <ul>

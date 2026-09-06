@@ -6,6 +6,11 @@ package orbita.api.internal
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.node.ObjectNode
+import orbita.kernel.api.Area
+import orbita.kernel.api.Channel
+import orbita.kernel.api.EntityStore
+import orbita.kernel.api.Provenance
 import orbita.models.api.Impact
 import orbita.models.api.Models
 import orbita.models.api.Variants
@@ -13,6 +18,7 @@ import orbita.programmatics.api.EstimateMethod
 import orbita.programmatics.api.Programmatics
 
 class ModelRoutes(
+    private val store: EntityStore,
     private val models: Models,
     private val variants: Variants,
     private val impact: Impact,
@@ -48,6 +54,19 @@ class ModelRoutes(
         method == "POST" && path == "/v2/wbs/estimate" -> оценка(требуется(query, "project"), разобрать(body))
 
         method == "GET" && path == "/v2/maturation" -> созревание(требуется(query, "project"))
+
+        // Записи сцен 10–12: технология, риск, оценка засорения. Без них
+        // сцены видно, но работать в них нечем.
+        method == "GET" && path == "/v2/technologies" -> технологии(требуется(query, "project"))
+
+        method == "POST" && path == "/v2/technologies" ->
+            завестиТехнологию(требуется(query, "project"), разобрать(body))
+
+        method == "POST" && path == "/v2/risks" -> завестиРиск(требуется(query, "project"), разобрать(body))
+
+        method == "GET" && path == "/v2/oda" -> засорение(требуется(query, "project"))
+
+        method == "POST" && path == "/v2/oda" -> завестиОсз(требуется(query, "project"), разобрать(body))
 
         method == "GET" && path == "/v2/risks" -> риски(требуется(query, "project"))
 
@@ -220,6 +239,101 @@ class ModelRoutes(
                 .put("strategy", р.strategy).put("owner", р.owner).put("due_point", р.duePoint)
         }
         return V2Router.Ответ(200, ответ)
+    }
+
+    private fun технологии(проект: String): V2Router.Ответ {
+        val ответ = mapper.createObjectNode()
+        val массив = ответ.putArray("items")
+        store.list(Area.Project(проект), "technology").forEach { т ->
+            массив.addObject()
+                .put("code", т.code)
+                .put("name", т.doc.path("name").asText(т.code))
+                .put("component", store.byId(т.doc.path("component").asText())?.code)
+                .put("trl_current", т.doc.path("trl_current").asInt())
+                .put("trl_required", т.doc.path("trl_required").asInt())
+                .put("required_by", т.doc.path("required_by").asText(""))
+                .put("fallback", т.doc.path("fallback").asText("").ifBlank { null })
+        }
+        return V2Router.Ответ(200, ответ)
+    }
+
+    private fun завестиТехнологию(проект: String, тело: JsonNode): V2Router.Ответ {
+        val область = Area.Project(проект)
+        val узел = store.byCode(область, тело.path("component").asText(""))
+            ?: throw IllegalArgumentException(
+                "узла «${тело.path("component").asText()}» нет в проекте: " +
+                    "технология критична для КОНКРЕТНОГО узла, иначе её нечем закрывать",
+            )
+        val текущий = тело.path("trl_current").asInt(0)
+        val нужный = тело.path("trl_required").asInt(0)
+        require(текущий in 1..9 && нужный in 1..9) { "TRL — целое от 1 до 9 (шкала NASA)" }
+        val документ = mapper.createObjectNode()
+        документ.put("name", тело.path("name").asText(""))
+        документ.put("component", узел.id)
+        документ.put("trl_current", текущий)
+        документ.put("trl_required", нужный)
+        документ.put("required_by", тело.path("required_by").asText("PDR"))
+        тело.path("fallback").asText("").ifBlank { null }?.let { документ.put("fallback", it) }
+        val код = тело.path("code").asText("").ifBlank { следующийКод(область, "technology", "TECH") }
+        val создано = store.create(
+            код, "technology", область, "10", документ,
+            Provenance(Channel.MANUAL, тело.path("author").asText("стенд")),
+        )
+        // Разрыв TRL сразу рождает пакет созревания и веху — не отдельной кнопкой.
+        programmatics.maturation(проект, тело.path("author").asText("стенд"))
+        return V2Router.Ответ(201, mapper.createObjectNode().put("code", создано.code))
+    }
+
+    private fun завестиРиск(проект: String, тело: JsonNode): V2Router.Ответ {
+        val область = Area.Project(проект)
+        val формулировка = тело.path("statement").asText("")
+        require(формулировка.isNotBlank()) { "риск без формулировки — беспокойство, а не риск" }
+        val документ = тело.deepCopy<ObjectNode>()
+        документ.remove(listOf("code", "author", "project"))
+        // Срок — ТОЧКА: даты плывут, точки нет.
+        тело.path("due_point").asText("").ifBlank { null }?.let { ключ ->
+            store.byCode(область, ключ)?.let { документ.put("due_point", it.id) }
+        }
+        val код = тело.path("code").asText("").ifBlank { следующийКод(область, "risk", "RSK") }
+        val создано = store.create(
+            код, "risk", область, "11", документ,
+            Provenance(Channel.MANUAL, тело.path("author").asText("стенд")),
+        )
+        return V2Router.Ответ(201, mapper.createObjectNode().put("code", создано.code))
+    }
+
+    private fun засорение(проект: String): V2Router.Ответ {
+        val ответ = mapper.createObjectNode()
+        val массив = ответ.putArray("items")
+        store.list(Area.Project(проект), "debris_assessment").forEach { о ->
+            массив.addObject()
+                .put("code", о.code)
+                .put("variant", о.doc.path("variant").asText(""))
+                .put("lifetime_years", о.doc.path("lifetime_years").asDouble())
+                .put("dv_deorbit", о.doc.path("dv_deorbit").asText(""))
+                .put("compliant", о.doc.path("compliant").asBoolean(false))
+                .put("norm", о.doc.path("norm").asText("25 лет"))
+        }
+        return V2Router.Ответ(200, ответ)
+    }
+
+    private fun завестиОсз(проект: String, тело: JsonNode): V2Router.Ответ {
+        val область = Area.Project(проект)
+        val документ = тело.deepCopy<ObjectNode>()
+        документ.remove(listOf("code", "author", "project"))
+        val код = тело.path("code").asText("").ifBlank { следующийКод(область, "debris_assessment", "ODA") }
+        val создано = store.create(
+            код, "debris_assessment", область, "11", документ,
+            Provenance(Channel.MANUAL, тело.path("author").asText("стенд")),
+        )
+        return V2Router.Ответ(201, mapper.createObjectNode().put("code", создано.code))
+    }
+
+    private fun следующийКод(область: Area, вид: String, префикс: String): String {
+        val занято = store.list(область, вид).mapNotNull {
+            Regex("^$префикс-(\\d+)$").find(it.code)?.groupValues?.get(1)?.toIntOrNull()
+        }
+        return "%s-%04d".format(префикс, (занято.maxOrNull() ?: 0) + 1)
     }
 
     private fun разобрать(тело: String?): JsonNode =

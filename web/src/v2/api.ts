@@ -273,6 +273,59 @@ export interface ConceptRow {
   rejected: { variant: string; reason: string }[]
 }
 
+export interface TechnologyRow {
+  code: string
+  name: string
+  component: string | null
+  trl_current: number
+  trl_required: number
+  required_by: string
+  fallback: string | null
+}
+
+export interface MaturationRow {
+  technology: string
+  component: string | null
+  trl_current: number
+  trl_required: number
+  required_by: string
+  package: string | null
+  milestone: string | null
+  fallback: string | null
+  words: string
+}
+
+export interface RiskRow {
+  code: string
+  statement: string
+  category: string
+  probability: number
+  impact: number
+  level: number
+  strategy: string
+  owner: string
+  due_point: string
+}
+
+export interface OdaRow {
+  code: string
+  variant: string
+  lifetime_years: number
+  dv_deorbit: string
+  compliant: boolean
+  norm: string
+}
+
+export interface WbsRow {
+  code: string
+  name: string
+  parent: string | null
+  cross_cutting: boolean
+  pbs_refs: string[]
+  estimate?: { min: number; max: number; unit: string; method: string; assumptions: string; date: string }
+  gaps: string[]
+}
+
 export interface ParameterRow {
   key: string
   name: string
@@ -450,6 +503,41 @@ export const api = {
 
   deploy: (project: string, тело: Record<string, unknown>) =>
     вызов<{ behaviour: string; node: string }>(`/components/deploy?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify(тело) }),
+
+  technologies: (project: string) =>
+    вызов<{ items: TechnologyRow[] }>(`/technologies?project=${encodeURIComponent(project)}`),
+
+  addTechnology: (project: string, тело: Record<string, unknown>) =>
+    вызов<{ code: string }>(`/technologies?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify(тело) }),
+
+  maturation: (project: string) =>
+    вызов<{ items: MaturationRow[] }>(`/maturation?project=${encodeURIComponent(project)}`),
+
+  risks: (project: string) =>
+    вызов<{ items: RiskRow[] }>(`/risks?project=${encodeURIComponent(project)}`),
+
+  addRisk: (project: string, тело: Record<string, unknown>) =>
+    вызов<{ code: string }>(`/risks?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify(тело) }),
+
+  oda: (project: string) =>
+    вызов<{ items: OdaRow[] }>(`/oda?project=${encodeURIComponent(project)}`),
+
+  addOda: (project: string, тело: Record<string, unknown>) =>
+    вызов<{ code: string }>(`/oda?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify(тело) }),
+
+  wbs: (project: string) =>
+    вызов<{ items: WbsRow[] }>(`/wbs?project=${encodeURIComponent(project)}`),
+
+  takeWbs: (project: string) =>
+    вызов<{ taken: number }>(`/wbs/take?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ author: 'стенд' }) }),
+
+  estimate: (project: string, тело: Record<string, unknown>) =>
+    вызов<{ min: number; max: number }>(`/wbs/estimate?project=${encodeURIComponent(project)}`,
       { method: 'POST', body: JSON.stringify(тело) }),
 
   concept: (project: string) =>

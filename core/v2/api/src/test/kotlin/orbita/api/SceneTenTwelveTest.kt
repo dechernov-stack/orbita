@@ -81,6 +81,7 @@ class SceneTenTwelveTest {
             mapper,
             ReqArchRoutes(store, требования, снимки, архитектура, mapper),
             ModelRoutes(
+                store,
                 ModelsFactory.models(store, mapper),
                 ModelsFactory.variants(store),
                 ModelsFactory.impact(store, links),
@@ -176,6 +177,26 @@ class SceneTenTwelveTest {
         assertTrue(fdir.path("words").asText().contains("TRL 5 → 6"), fdir.path("words").asText())
 
         assertEquals("done", сцена("10").path("state").asText(), сцена("10").path("blockers").toString())
+    }
+
+    @Test
+    fun `веха технологии не считается точкой фазы и не открывает сцену 1 заново`() {
+        val доТехнологии = сцена("1").path("state").asText()
+        assertEquals("done", доТехнологии, "сцена 1 прожита: проект и точки с датами есть")
+
+        технологию()
+
+        // Веха «TRL достигнут» рождается без даты — её даёт план созревания,
+        // а не сцена 1. Считая её точкой фазы, мы открывали сцену 1 заново.
+        assertTrue(
+            store.list(область, "gate").any { it.doc.path("kind").asText() == "technology" },
+            "веха технологии заведена",
+        )
+        assertEquals(
+            "done",
+            сцена("1").path("state").asText(),
+            "сцена 1 остаётся прожитой: ${сцена("1").path("blockers")}",
+        )
     }
 
     @Test

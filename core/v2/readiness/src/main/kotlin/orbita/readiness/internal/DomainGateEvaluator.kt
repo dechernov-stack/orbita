@@ -35,7 +35,13 @@ class DomainGateEvaluator(
                 if (store.byCode(область, project) != null) null else "проект ещё не заведён"
 
             "points_planned" -> {
-                val точки = store.list(область, "gate")
+                // ТОЧКИ ФАЗЫ, а не все вехи: у технологии своя веха
+                // («TRL 6 достигнут»), и её дата приходит планом созревания,
+                // а не сценой 1. Считая её здесь, мы заново открывали сцену 1
+                // каждый раз, когда инженер заводил критическую технологию.
+                val точки = store.list(область, "gate").filter {
+                    it.doc.path("kind").asText("phase") != "technology"
+                }
                 if (точки.isEmpty()) "точки фазы не заведены"
                 else точки.firstOrNull { it.doc.path("planned_date").asText("").isBlank() }
                     ?.let { "у точки «${it.doc.path("title").asText(it.code)}» нет даты" }
@@ -109,7 +115,9 @@ class DomainGateEvaluator(
             "gate_dates_planned" -> {
                 val план = store.list(область, "plan").lastOrNull()
                 val даты = план?.doc?.path("gate_dates")?.count { it.path("date").asText("").isNotBlank() } ?: 0
-                val точек = store.list(область, "gate").size
+                val точек = store.list(область, "gate").count {
+                    it.doc.path("kind").asText("phase") != "technology"
+                }
                 if (точек > 0 && даты >= точек) null
                 else "даты точек в плане: $даты из $точек"
             }

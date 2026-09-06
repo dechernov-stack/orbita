@@ -15,6 +15,7 @@ import {
 } from './scenes'
 import { Concept } from './concept'
 import { Requirements } from './requirements'
+import { Costs, Risks, Technologies } from './programmatics'
 
 export function Work({ project, onProject, wantScene, onScenePicked, onScene }: {
   project: string | null
@@ -124,6 +125,9 @@ export function Work({ project, onProject, wantScene, onScenePicked, onScene }: 
           {текущая.key === '6' && <SceneServices project={project} onChanged={перечитать} />}
           {текущая.key === '7' && <Concept project={project} />}
           {текущая.key === '8' && <Requirements project={project} />}
+          {текущая.key === '10' && <Technologies project={project} />}
+          {текущая.key === '11' && <Risks project={project} />}
+          {текущая.key === '12' && <Costs project={project} />}
         </SceneFrame>
       </div>
     </>

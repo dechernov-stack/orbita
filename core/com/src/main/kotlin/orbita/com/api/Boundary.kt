@@ -190,6 +190,7 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
         val постановка = orbita.formulation.api.FormulationFactory.formulation(store, links)
         val волна3 = orbita.api.internal.ReqArchRoutes(store, требования, снимки, архитектура, mapper)
         val волна4 = orbita.api.internal.ModelRoutes(
+            store,
             orbita.models.api.ModelsFactory.models(store, mapper),
             orbita.models.api.ModelsFactory.variants(store),
             orbita.models.api.ModelsFactory.impact(store, links),
