@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><title>Эталон: процесс на экране — Орбита v2</title>
+<style>
+:root{--panel:#f7f7f8;--line:#e3e4e8;--ink:#1b1c1f;--muted:#6b6e76;--accent:#2f5fd9;--ok:#2d7a3e;--warn:#b26a00;--bad:#b3261e}
+*{box-sizing:border-box}body{margin:0;padding:20px;font:14px/1.45 Inter,system-ui,sans-serif;color:var(--ink);display:grid;gap:24px}
+h2{margin:0;font-size:15px}a{color:var(--accent);text-decoration:none}.hint{font-size:12px;color:var(--muted)}
+.lanes{border:1px solid var(--line);border-radius:8px;overflow:hidden}.lane{display:grid;grid-template-columns:150px 1fr;border-bottom:1px solid var(--line)}.lane:last-child{border-bottom:0}
+.lane .name{padding:10px 12px;background:var(--panel);font-size:12px;color:var(--muted);border-right:1px solid var(--line)}
+.track{display:flex;gap:26px;align-items:center;padding:12px 14px;overflow-x:auto;position:relative}
+.box{min-width:150px;padding:8px 10px;border:1.5px solid var(--line);border-radius:6px;background:#fff;font-size:12px;position:relative}
+.box b{display:block;font-weight:600;font-size:12.5px}.box .st{color:var(--muted)}.box.done{border-color:var(--ok);background:#f2f9f3}.box.cur{border-color:var(--accent);background:#eef3fd;box-shadow:0 0 0 2px #dfe7fb}.box.lock{opacity:.55}.box.blocked{border-color:var(--bad)}
+.box:after{content:"→";position:absolute;right:-22px;top:50%;transform:translateY(-50%);color:var(--muted)}.box.last:after{content:""}
+.gate{min-width:auto;padding:8px 10px;border:none;background:none;font-size:12px}.gate b{color:var(--ink)}.gate .bad{color:var(--bad)}
+.scene{border:1px solid var(--line);border-radius:8px;overflow:hidden}.scene .head{display:flex;gap:14px;align-items:center;padding:10px 14px;background:var(--panel);border-bottom:1px solid var(--line)}
+.flow{display:flex;gap:44px;align-items:flex-start;padding:16px 14px;border-bottom:1px solid var(--line);overflow-x:auto}
+.act{width:250px;border:1.5px solid var(--line);border-radius:8px;background:#fff;font-size:12px;position:relative}.act h4{margin:0;padding:8px 10px;font-size:13px;border-bottom:1px solid var(--line)}
+.act .io{padding:6px 10px}.act .io div{margin:2px 0}.act .io .k{color:var(--muted)}.act.done{border-color:var(--ok)}.act.cur{border-color:var(--accent);box-shadow:0 0 0 2px #dfe7fb}.act.lock{opacity:.55}
+.act:after{content:"";position:absolute;right:-44px;top:40px;width:44px;border-top:1.5px solid var(--muted)}.act.last:after{display:none}
+.edge{position:absolute;right:-42px;top:22px;width:40px;font-size:10px;color:var(--muted);text-align:center;line-height:1.1}
+.work{display:grid;grid-template-columns:1fr 300px}.surf{padding:14px}.side{border-left:1px solid var(--line);padding:12px 14px;font-size:13px}.side h4{margin:0 0 6px;font-size:13px}
+.panel{border:1px solid var(--line);border-radius:8px;background:#fff}.panel h3{margin:0;padding:8px 12px;border-bottom:1px solid var(--line);font-size:13px;display:flex;justify-content:space-between}.panel h3 span{color:var(--muted);font-weight:400}
+table{border-collapse:collapse;width:100%}td,th{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;font-size:13px}th{color:var(--muted);font-weight:500}
+.chip{display:inline-block;padding:1px 6px;border:1px solid var(--line);border-radius:10px;font-size:12px;background:#fff}.bad{color:var(--bad)}.ok-t{color:var(--ok)}.muted{color:var(--muted)}
+.btn{padding:6px 12px;border:1px solid var(--line);border-radius:6px;background:#fff;font:inherit}.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.side li{list-style:none;margin:4px 0}.side ul{padding:0;margin:0}.ok:before{content:"✓ ";color:var(--ok)}.no:before{content:"☐ ";color:var(--muted)}
+</style></head><body>
+
+<h2>Уровень фазы — «Работа» открывается схемой: три дорожки, сцены, точки</h2>
+<div class="lanes">
+ <div class="lane"><div class="name">Проектирование</div><div class="track">
+  <div class="box done"><b>1 · Открыть проект</b><span class="st">выполнена</span></div>
+  <div class="box done"><b>2 · Замысел</b><span class="st">выполнена · замысел принят</span></div>
+  <div class="box cur"><b>3 · Стейкхолдеры и нужды</b><span class="st">в работе · 0.1 из 0.2</span></div>
+  <div class="box lock"><b>4 · Цели и показатели</b><span class="st">ждёт: потребности</span></div>
+  <div class="box lock"><b>5 · Ограничения</b></div><div class="box lock"><b>6 · Сервисы</b></div>
+  <div class="box gate last"><b>◆ Внутренний обзор</b> · 06.10 · <span class="bad">блокирующих 2</span></div>
+ </div></div>
+ <div class="lane"><div class="name">Моделирование</div><div class="track">
+  <div class="box lock"><b>0.M1 · Модель пользователей миссии</b><span class="st">ждёт: пользователи миссии (3 → сцена 3)</span></div>
+  <div class="box lock"><b>0.M2 · Модель ЖЦ миссии</b></div><div class="box lock"><b>0.M3 · Функциональная модель миссии</b></div><div class="box lock last"><b>0.M4 · Модель требований к миссии</b></div>
+ </div></div>
+ <div class="lane"><div class="name">Планирование и управление</div><div class="track">
+  <div class="box cur last"><b>0.P · План управления проектом</b><span class="st">даты точек заданы · план сцен: 1 из 6</span></div>
+ </div></div>
+</div>
+<p class="hint">Схема порождена из того же CMMN, что исполняет движок; состояние блоков — из Flowable; стрелки между дорожками подписаны артефактами (например, «пользователи миссии» из 3 → в 0.M1). Клик по сцене — её схема мероприятий.</p>
+
+<h2>Уровень сцены — 3 · Стейкхолдеры и нужды: мероприятия Романова с потоками</h2>
+<div class="scene">
+ <div class="head"><a href="#">← фаза</a><b>3 · Стейкхолдеры и нужды</b><span class="muted">2 мероприятия · выходов 3 из 6 · роль: ведущий СИ</span><span style="margin-left:auto" class="muted">вход: замысел ✓ · руководство по разработке проектов ✓</span></div>
+ <div class="flow">
+  <div class="act cur"><h4>0.1 · Уточнение потребностей и задач пользователей</h4><div class="io"><div><span class="k">входы:</span> замысел ✓ · записка (канон) ✓</div><div><span class="k">выходы:</span> пользователи миссии <b>3</b> · потребности <b>5</b> · цели и задачи <span class="muted">0</span></div><div><span class="k">состояние:</span> в работе</div></div><div class="edge">пользователи · потребности</div></div>
+  <div class="act lock last"><h4>0.2 · Уточнение допущений и ограничений</h4><div class="io"><div><span class="k">входы:</span> потребности (5) · руководящие принципы</div><div><span class="k">выходы:</span> допущения <span class="muted">0</span> · ограничения <span class="muted">0 → сцена 5</span></div><div><span class="k">состояние:</span> доступно, когда потребности ≥ 1 у каждого пользователя</div></div></div>
+ </div>
+ <div class="work">
+  <div class="surf">
+   <div class="panel"><h3>0.1 · Рабочая поверхность <span>предложения из записки: 10 стейкхолдеров · 6 нужд</span></h3>
+    <table><tr><th>Пользователь миссии</th><th>Роль</th><th>Потребности</th><th></th></tr>
+     <tr><td>Минтранс России / Ространснадзор</td><td>заказчик</td><td>единое оперативное управление транспортом · непрерывность регуляторной телематики</td><td><a href="#">+ потребность</a></td></tr>
+     <tr><td>АО «ГЛОНАСС»</td><td>оператор</td><td>интеграция с ГАИС · суверенитет данных · резервный канал</td><td><a href="#">+ потребность</a></td></tr>
+     <tr><td>Регулятор РЧС</td><td>регулятор</td><td class="bad">потребностей нет</td><td><a href="#">+ потребность</a></td></tr></table>
+    <div style="padding:8px 12px;display:flex;gap:10px;align-items:center"><button class="btn primary">Принять 7 предложений из записки</button><span class="hint">каждое — с якорем и меткой [И]/[В]/[П]; акторы полки класса — сопоставить</span></div>
+   </div>
+   <p class="hint">Цели и задачи — тоже выход этого мероприятия по Романову; у нас они рождаются в сцене 4: выход помечен «→ сцена 4», не пустотой.</p>
+  </div>
+  <aside class="side"><h4>Завершение 0.1</h4><ul><li class="ok">пользователи миссии ≥ 3 (3)</li><li class="no">потребности у каждого (2 из 3) → <a href="#">Регулятор РЧС</a></li></ul>
+   <h4 style="margin-top:12px">Откроет</h4><ul><li class="muted">0.2 · допущения и ограничения</li><li class="muted">0.M1 · модель пользователей (дорожка моделирования)</li><li class="muted">4 · цели и показатели</li></ul>
+   <h4 style="margin-top:12px">История</h4><ul><li class="muted">Иванов И. · 3 стейкхолдера · сегодня</li><li class="muted">служба · 10 предложений · сегодня</li></ul></aside>
+ </div>
+</div>
+<p class="hint">Правила: единица работы — мероприятие с именем метода, входами и выходами-счётчиками; стрелки подписаны артефактами; завершение — по выходам, не кнопкой; «Дальше» — следующее доступное мероприятие по потоку; условия выхода сцены = выходы её мероприятий; плейсхолдеры полей — серым и явно подсказкой; шапка привязана к открытой сцене.</p>
+</body></html>

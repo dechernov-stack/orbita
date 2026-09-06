@@ -63,6 +63,10 @@ class SceneTenTwelveTest {
                 },
             ),
             passedGates = { p -> пройденные.getOrPut(p) { mutableSetOf() } },
+            outputCounter = { проект, вид ->
+                store.list(Area.Project(проект), вид)
+                    .count { вид != "intent" || it.status == "accepted" }
+            },
             gatePlan = { проект ->
                 store.list(Area.Project(проект), "gate")
                     .associate { it.code to it.doc.path("planned_date").asText("") }

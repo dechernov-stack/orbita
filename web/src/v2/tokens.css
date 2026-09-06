@@ -81,6 +81,25 @@ body {
 .v2-st--open { color: var(--accent); }
 .v2-st--locked { color: var(--ink-mute); }
 .v2-win { display: block; font-size: 11px; color: var(--ink-mute); }
+.v2-note-line { padding: 6px 12px; font-size: 12px; color: var(--wait); border-bottom: 1px solid var(--line); }
+
+/* Плейсхолдер обязан читаться подсказкой, а не содержимым поля. */
+.v2-form input::placeholder, .v2-form textarea::placeholder {
+  color: var(--ink-mute); font-style: italic; opacity: 1;
+}
+
+/* Схема процесса: блоки библиотеки, наши — только подписи внутри. */
+.v2-map { border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.v2-lane-name { font-size: 11px; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-mute); text-align: right; }
+.v2-node { display: grid; gap: 2px; text-align: left; line-height: 1.25; }
+.v2-node__st { font-size: 10px; color: var(--ink-soft); }
+
+/* Карточка мероприятия — цель, входы, выходы-счётчики. */
+.v2-act { border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; margin-bottom: 12px; background: var(--ground-soft); }
+.v2-act__head { display: flex; gap: 10px; align-items: baseline; }
+.v2-act__goal { color: var(--ink-soft); margin: 4px 0 6px; }
+.v2-act__io { display: grid; gap: 3px; font-size: 13px; }
+.v2-k { color: var(--ink-mute); }
 .v2-gate {
   padding: 6px 12px; margin: 4px 0; font-size: 13px;
   border-top: 1px dashed var(--line); border-bottom: 1px dashed var(--line);

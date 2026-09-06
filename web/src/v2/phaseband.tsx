@@ -2,13 +2,14 @@
 //
 // Точка стоит там, где она в жизни: между сценами. Так видно, какие сцены
 // закрывает ближайшая точка и что она держит — без отдельного экрана.
-import type { Phase } from './api'
+import type { Phase, Scene } from './api'
 
 export function PhaseBand({ phase, current, onPick }: {
   phase: Phase
   current: string
   onPick: (key: string) => void
 }) {
+  const безПлана = phase.scenes.filter((с) => !с.window).length
   const прожито = phase.scenes.filter((с) => с.state === 'done').length
   const вРаботе = phase.scenes.filter((с) => с.state === 'open').length
   const закрыто = phase.scenes.length - прожито - вРаботе
@@ -27,6 +28,11 @@ export function PhaseBand({ phase, current, onPick }: {
           {прожито} выполнены · {вРаботе} в работе · {закрыто} закрыты
         </span>
       </h3>
+      {безПлана > 0 && (
+        <div className="v2-note-line" title="план работ фазы задаётся мероприятием 0.P">
+          план не задан у {безПлана} сцен — к внутреннему обзору это разрыв
+        </div>
+      )}
       <div className="v2-list">
         {phase.scenes.map((с) => (
           <div key={с.key}>
@@ -42,13 +48,11 @@ export function PhaseBand({ phase, current, onPick }: {
                 {с.state === 'done' ? 'выполнена'
                   : с.state === 'open' ? `в работе${прогресс(с)}`
                     : `закрыта${ждёт(с)}`}
-                <span className="v2-win" title={с.window
-                  ? 'окно плана работ фазы'
-                  : 'план работ фазы для этой сцены не задан — к внутреннему обзору это разрыв'}>
-                  {с.window
-                    ? `${датаКратко(с.window.start)}–${датаКратко(с.window.end)}`
-                    : 'план не задан'}
-                </span>
+                {с.window && (
+                  <span className="v2-win" title="окно плана работ фазы">
+                    {датаКратко(с.window.start)}–{датаКратко(с.window.end)}
+                  </span>
+                )}
               </span>
             </button>
             {точкаПосле(с.key).map((т) => (
@@ -72,9 +76,12 @@ export function PhaseBand({ phase, current, onPick }: {
   )
 }
 
-function прогресс(с: { steps: { done: boolean }[] }): string {
-  const готово = с.steps.filter((ш) => ш.done).length
-  return с.steps.length > 0 ? ` · ${готово} из ${с.steps.length}` : ''
+/** Счёт идёт по МЕРОПРИЯТИЯМ: единица работы — блок метода, а не шаг формы. */
+function прогресс(с: Scene): string {
+  const дела = с.activities
+  if (дела.length === 0) return ''
+  const готово = дела.filter((д) => д.state === 'done').length
+  return ` · ${готово} из ${дела.length}`
 }
 
 function ждёт(с: { blockers: string[] }): string {

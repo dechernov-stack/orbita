@@ -18,6 +18,42 @@ export interface Condition {
   why: string | null
 }
 
+/** Выход мероприятия: артефакт со счётчиком из данных. */
+export interface ActivityOutput {
+  what: string
+  kind: string
+  min: number
+  count: number
+  /** Сцена, где артефакт рождается у нас, если это не текущая. */
+  produced_in: string | null
+  satisfied: boolean
+}
+
+export type ActivityState = 'not_started' | 'available' | 'in_progress' | 'done' | 'blocked'
+
+/** Мероприятие — единица работы: цель, входы, выходы, поверхность. */
+export interface Activity {
+  code: string
+  name: string
+  goal: string
+  role: string
+  track: string
+  method_group: string
+  surface: string
+  state: ActivityState
+  inputs: string[]
+  outputs: ActivityOutput[]
+  blocked_by: string[]
+}
+
+/** Дорожка схемы фазы: сцены либо мероприятия метода. */
+export interface Lane {
+  key: string
+  title: string
+  of: string
+  activities: Activity[]
+}
+
 export interface Scene {
   key: string
   title: string
@@ -39,6 +75,8 @@ export interface Scene {
   input_flows: string[]
   /** Окно плана работ фазы; нет — «план не задан». */
   window?: { start: string; end: string }
+  /** Мероприятия сцены: единицы работы метода. */
+  activities: Activity[]
 }
 
 export interface Gate {
@@ -57,6 +95,8 @@ export interface Phase {
   current_scene: string | null
   scenes: Scene[]
   gates: Gate[]
+  /** Дорожки схемы фазы: проектирование · моделирование · управление. */
+  lanes: Lane[]
 }
 
 /** Задание — адресованный разрыв сцены, а не отдельная сущность. */

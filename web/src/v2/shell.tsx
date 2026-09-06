@@ -56,6 +56,8 @@ export function Shell() {
   /** Переход «к месту» из заданий: открыть работу на нужной сцене. */
   const [wantScene, setWantScene] = useState<string | null>(null)
   const [tasks, setTasks] = useState<number>(0)
+  /** Сцена, открытая на экране: шапка обязана совпадать с ним. */
+  const [openScene, setOpenScene] = useState<string | null>(null)
   const [me, setMe] = useState<string | null>(null)
   const [failure, setFailure] = useState<string | null>(null)
 
@@ -91,7 +93,7 @@ export function Shell() {
 
   const visible = SECTIONS.filter((s) => expert || !s.expert)
   const current = SECTIONS.find((s) => s.key === section) ?? SECTIONS[0]
-  const сцена = phase?.scenes.find((с) => с.key === phase.current_scene)
+  const сцена = phase?.scenes.find((с) => с.key === (openScene ?? phase.current_scene))
   const точка = phase?.gates.find((т) => !т.passed)
 
   return (
@@ -174,7 +176,8 @@ export function Shell() {
             </div>
           )}
           {section === 'work' ? (
-            <Work project={project} onProject={setProject} wantScene={wantScene} onScenePicked={() => setWantScene(null)} />
+            <Work project={project} onProject={setProject} wantScene={wantScene}
+              onScenePicked={() => setWantScene(null)} onScene={setOpenScene} />
           ) : section === 'knowledge' ? (
             <KnowledgeField project={project} />
           ) : section === 'formulation' ? (

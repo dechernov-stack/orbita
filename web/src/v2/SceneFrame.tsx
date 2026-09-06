@@ -6,20 +6,23 @@
 //   · фрагмент — только своё действие, без чужих первичных кнопок;
 //   · панель условий — из чего сцена состоит: ✓ и ☐ со ссылкой к месту.
 import type { ReactNode } from 'react'
-import type { Condition, Phase, Scene } from './api'
+import type { Activity, Condition, Phase, Scene } from './api'
 
-export function SceneFrame({ phase, scene, onPick, children }: {
+export function SceneFrame({ phase, scene, activity, onPick, children }: {
   phase: Phase
   scene: Scene
+  /** Открытое мероприятие: степпер идёт по ним, а не по шагам-чекбоксам. */
+  activity?: Activity
   onPick: (key: string) => void
   children: ReactNode
 }) {
-  const шагов = scene.steps.length
-  const текущий = scene.steps.findIndex((ш) => !ш.done)
-  const номерШага = текущий === -1 ? шагов : текущий + 1
-  const имяШага = scene.steps[текущий === -1 ? шагов - 1 : текущий]?.title ?? ''
+  const дела = scene.activities
+  const шагов = дела.length || scene.steps.length
+  const индекс = activity ? дела.findIndex((д) => д.code === activity.code) : -1
+  const номерШага = индекс >= 0 ? индекс + 1 : Math.max(1, дела.filter((д) => д.state === 'done').length)
+  const имяШага = activity?.name ?? scene.steps.find((ш) => !ш.done)?.title ?? ''
   const дальшеМожно = scene.state === 'done'
-  const причина = scene.blockers[0]
+  const причина = activity?.blocked_by[0] ?? scene.blockers[0]
   const следующая = phase.scenes.find((с) => с.order === scene.order + 1)
   const ближайшая = phase.gates.find((т) => !т.passed)
 
@@ -30,12 +33,15 @@ export function SceneFrame({ phase, scene, onPick, children }: {
           onClick={() => onPick(phase.current_scene ?? scene.key)}>← обзор</button>
         <b>{scene.key} · {scene.title}</b>
         <span className="v2-dots" aria-hidden="true">
-          {scene.steps.map((ш, i) => (
-            <span key={i} className={ш.done ? 'v2-dot v2-dot--f' : 'v2-dot'} />
-          ))}
+          {(дела.length > 0 ? дела.map((д) => д.state === 'done') : scene.steps.map((ш) => ш.done))
+            .map((готово, i) => (
+              <span key={i} className={готово ? 'v2-dot v2-dot--f' : 'v2-dot'} />
+            ))}
         </span>
         <span className="v2-dim">
-          {шагов > 0 ? `шаг ${номерШага} из ${шагов}${имяШага ? ` · «${имяШага}»` : ''}` : scene.question}
+          {шагов > 0
+            ? `мероприятие ${номерШага} из ${шагов}${имяШага ? ` · «${имяШага}»` : ''}`
+            : scene.question}
         </span>
         <button type="button"
           className={дальшеМожно ? 'v2-next v2-next--on' : 'v2-next'}

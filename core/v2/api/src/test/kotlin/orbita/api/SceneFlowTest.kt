@@ -45,6 +45,10 @@ class SceneFlowTest {
                 gatesPassed = { p -> пройденные.getOrPut(p) { mutableSetOf() } },
             ),
             passedGates = { p -> пройденные.getOrPut(p) { mutableSetOf() } },
+            outputCounter = { проект, вид ->
+                store.list(Area.Project(проект), вид)
+                    .count { вид != "intent" || it.status == "accepted" }
+            },
             gatePlan = { проект ->
                 store.list(Area.Project(проект), "gate")
                     .associate { it.code to it.doc.path("planned_date").asText("") }
@@ -236,6 +240,64 @@ class SceneFlowTest {
         assertTrue(
             сцена(фаза, "3").path("window").isMissingNode,
             "у сцены без окна плана его и нет — лента покажет «план не задан»",
+        )
+    }
+
+    @Test
+    fun `сцена показывает мероприятия метода с выходами-счётчиками`() {
+        router.handle("POST", "/v2/projects", emptyMap(), """{"name":"Мероприятия","code":"PJ-9114"}""")
+        val параметры = mapOf("project" to "PJ-9114")
+        router.handle("POST", "/v2/intent", параметры,
+            """{"for_whom":"перевозчики","what":"телеметрия","where":"СМП","horizon":"2033","accepted":true}""")
+
+        val третья = сцена(router.handle("GET", "/v2/phase", параметры, null)!!.body, "3")
+        val дела = третья.path("activities")
+        assertEquals(2, дела.size(), "сцена 3 по методу — два мероприятия: 0.1 и 0.2")
+
+        val первое = дела.single { it.path("code").asText() == "0.1" }
+        assertEquals("Уточнение потребностей и задач пользователей", первое.path("name").asText())
+        assertEquals("available", первое.path("state").asText(), "вход выполнен — мероприятие доступно")
+
+        val пользователи = первое.path("outputs").single { it.path("kind").asText() == "stakeholder" }
+        assertEquals(0, пользователи.path("count").asInt(), "выход считается ПО ДАННЫМ")
+        assertEquals(3, пользователи.path("min").asInt())
+
+        // Цели рождаются у нас в сцене 4 — выход помечен стрелкой, не пустотой.
+        val цели = первое.path("outputs").single { it.path("kind").asText() == "goal" }
+        assertEquals("4", цели.path("produced_in").asText(), "выход другой сцены назван стрелкой")
+        assertTrue(цели.path("satisfied").asBoolean(), "чужой выход завершение мероприятия не держит")
+
+        // Добавили стейкхолдера — счётчик вырос сам, состояние поехало.
+        (1..3).forEach { n ->
+            router.handle("POST", "/v2/stakeholders", параметры, """{"name":"Сторона $n","role":"customer"}""")
+        }
+        val после = сцена(router.handle("GET", "/v2/phase", параметры, null)!!.body, "3")
+            .path("activities").single { it.path("code").asText() == "0.1" }
+        assertEquals(3, после.path("outputs").single { it.path("kind").asText() == "stakeholder" }.path("count").asInt())
+        assertEquals("in_progress", после.path("state").asText(), "выходы появляются — мероприятие в работе")
+    }
+
+    @Test
+    fun `схема фазы идёт дорожками метода`() {
+        router.handle("POST", "/v2/projects", emptyMap(), """{"name":"Дорожки","code":"PJ-9115"}""")
+        val фаза = router.handle("GET", "/v2/phase", mapOf("project" to "PJ-9115"), null)!!.body
+        val дорожки = фаза.path("lanes").associate { it.path("key").asText() to it }
+        assertEquals(setOf("design", "modeling", "management"), дорожки.keys)
+        assertTrue(
+            дорожки.getValue("modeling").path("activities").size() >= 12,
+            "дорожка моделирования показывает мероприятия метода: ${дорожки.getValue("modeling").path("activities").size()}",
+        )
+        assertEquals(
+            "Техническое планирование и управление",
+            дорожки.getValue("management").path("activities").first().path("name").asText(),
+        )
+        // Мероприятие метода, чьи выходы у нас ещё не заведены видами,
+        // не объявляется выполненным: считать его нечем.
+        assertTrue(
+            дорожки.getValue("modeling").path("activities").all {
+                it.path("state").asText() == "not_started"
+            },
+            "мероприятие без вида выхода остаётся «не начато», а не «выполнено»",
         )
     }
 

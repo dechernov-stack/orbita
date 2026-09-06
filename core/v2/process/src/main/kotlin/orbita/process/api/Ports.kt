@@ -49,9 +49,75 @@ data class SceneView(
     val inputFlows: List<String> = emptyList(),
     /** Окно плана работ фазы: начало и конец. Пусто — «план не задан». */
     val window: Pair<String, String>? = null,
+    /** Мероприятия сцены: единицы работы с входами и выходами. */
+    val activities: List<ActivityView> = emptyList(),
 )
 
 data class StepView(val title: String, val place: String, val hint: String, val done: Boolean)
+
+/** Состояние мероприятия — вычисляется, ручного «готово» нет. */
+enum class ActivityState {
+    /** Ещё не начиналось: выходов нет. */
+    NOT_STARTED,
+
+    /** Вход выполнен, работать можно. */
+    AVAILABLE,
+
+    /** Выходы появляются, но не все. */
+    IN_PROGRESS,
+
+    /** Все свои выходы есть и условие выполнено. */
+    DONE,
+
+    /** Вход не выполнен — с причиной. */
+    BLOCKED,
+}
+
+/**
+ * Выход мероприятия: именованный артефакт со счётчиком из ДАННЫХ.
+ *
+ * @property producedIn сцена, где артефакт рождается у нас, если это не
+ *   текущая: тогда выход показывается стрелкой «→ сцена N», а не пустотой,
+ *   и в условие завершения мероприятия не входит
+ */
+data class OutputView(
+    val what: String,
+    val kind: String,
+    val min: Int,
+    val count: Int,
+    val producedIn: String?,
+    val satisfied: Boolean,
+)
+
+/**
+ * Мероприятие — ЕДИНИЦА РАБОТЫ (РЕШЕНИЕ-ПРОЦЕСС-НА-ЭКРАНЕ).
+ *
+ * Не «форма с кнопкой», а блок метода: цель, входы, выходы-счётчики и
+ * рабочая поверхность. Сцена — группа мероприятий с потоками между ними.
+ */
+data class ActivityView(
+    val code: String,
+    val name: String,
+    val goal: String,
+    val role: String,
+    val track: String,
+    val methodGroup: String,
+    val inputs: List<String>,
+    val outputs: List<OutputView>,
+    /** Маршрут фрагмента: где эта работа делается. */
+    val surface: String,
+    val state: ActivityState,
+    /** Почему не начать — словами (когда BLOCKED). */
+    val blockedBy: List<String>,
+)
+
+/** Дорожка схемы фазы: сцены (проектирование) либо мероприятия метода. */
+data class LaneView(
+    val key: String,
+    val title: String,
+    val of: String,
+    val activities: List<ActivityView>,
+)
 
 data class GateView(
     val key: String,
@@ -70,6 +136,8 @@ data class PhaseView(
     val currentScene: String?,
     val scenes: List<SceneView>,
     val gates: List<GateView>,
+    /** Дорожки схемы фазы: проектирование · моделирование · управление. */
+    val lanes: List<LaneView> = emptyList(),
 )
 
 /**
@@ -82,6 +150,16 @@ data class PhaseView(
 interface GateEvaluator {
     /** @return null, если условие выполнено; иначе — причина словами. */
     fun why(project: String, check: String): String?
+}
+
+/**
+ * Счётчик выходов (порт): «сколько сущностей вида K в проекте P».
+ *
+ * Движку нужны ЧИСЛА из данных, а домена в нём нет — поэтому счёт
+ * спрашивается снаружи, как и условия ворот.
+ */
+fun interface OutputCounter {
+    fun count(project: String, kind: String): Int
 }
 
 interface ProcessEngine {

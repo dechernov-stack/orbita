@@ -14,6 +14,8 @@ object ProcessFactory {
         processReference: (() -> JsonNode?)? = null,
         /** Окна плана работ фазы: сцена → (начало, конец). */
         sceneWindows: ((String) -> Map<String, Pair<String, String>>)? = null,
+        /** Счёт выходов мероприятий по данным домена. */
+        outputCounter: OutputCounter? = null,
     ): ProcessEngine = TemplateProcessEngine(
         шаблон = template,
         оценщик = evaluator,
@@ -21,5 +23,6 @@ object ProcessFactory {
         планТочек = gatePlan,
         окнаСцен = sceneWindows,
         процессы = processReference,
+        счётВыходов = outputCounter,
     )
 }

@@ -10,8 +10,13 @@
 package orbita.process.internal
 
 import com.fasterxml.jackson.databind.JsonNode
+import orbita.process.api.ActivityState
+import orbita.process.api.ActivityView
 import orbita.process.api.ConditionView
 import orbita.process.api.GateEvaluator
+import orbita.process.api.LaneView
+import orbita.process.api.OutputCounter
+import orbita.process.api.OutputView
 import orbita.process.api.GateView
 import orbita.process.api.PhaseView
 import orbita.process.api.ProcessEngine
@@ -33,6 +38,11 @@ class TemplateProcessEngine(
      * внутреннего обзора — помета «план не задан», а не разрыв.
      */
     private val окнаСцен: ((String) -> Map<String, Pair<String, String>>)? = null,
+    /**
+     * Счёт выходов мероприятий: движок спрашивает числа у домена, а сам
+     * их не хранит — иначе состояние схемы разошлось бы с данными.
+     */
+    private val счётВыходов: OutputCounter? = null,
     /**
      * Справочник процессов ЖЦ (полка Романова): откуда берутся входные
      * потоки сцены. Методология приходит ДАННЫМИ — в интерфейсе её имена
@@ -130,6 +140,7 @@ class TemplateProcessEngine(
                 awaitedBy = ждут[ключ].orEmpty(),
                 inputFlows = сцена.path("process_ref").flatMap { потоки[it.asText()].orEmpty() },
                 window = окна[ключ],
+                activities = мероприятия(project, сцена, ключ, причиныВхода),
             )
         }
 
@@ -149,6 +160,19 @@ class TemplateProcessEngine(
             )
         }
 
+        val дорожки = док.path("lanes").map { дорожка ->
+            LaneView(
+                key = дорожка.path("key").asText(),
+                title = дорожка.path("title").asText(),
+                of = дорожка.path("of").asText("scenes"),
+                // Мероприятия дорожки без сцены (моделирование, управление):
+                // они ждут артефактов из сцен и показываются схемой фазы.
+                activities = дорожка.path("activities").map { дело ->
+                    вид(project, дело, сценаКлюч = null, причиныВхода = emptyList())
+                },
+            )
+        }
+
         return PhaseView(
             project = project,
             standard = док.path("standard").asText(""),
@@ -156,6 +180,7 @@ class TemplateProcessEngine(
             currentScene = сцены.firstOrNull { it.state == SceneState.OPEN }?.key,
             scenes = сцены,
             gates = точки,
+            lanes = дорожки,
         )
     }
 
@@ -170,6 +195,68 @@ class TemplateProcessEngine(
         }
         пройденныеТочки(project).add(gate)
         return view(project)
+    }
+
+    private fun мероприятия(
+        project: String,
+        сцена: JsonNode,
+        ключ: String,
+        причиныВхода: List<String>,
+    ): List<ActivityView> = сцена.path("activities").map { дело ->
+        вид(project, дело, ключ, причиныВхода)
+    }
+
+    /**
+     * Мероприятие в вид: выходы считаются ПО ДАННЫМ, состояние выводится из
+     * них. Ручного «готово» нет — блок закрывается, когда его выходы есть.
+     */
+    private fun вид(
+        project: String,
+        дело: JsonNode,
+        сценаКлюч: String?,
+        причиныВхода: List<String>,
+    ): ActivityView {
+        val выходы = дело.path("outputs").map { выход ->
+            val вид = выход.path("kind").asText("")
+            val рождаетсяВ = выход.path("produced_in").asText("").ifBlank { null }
+            val сколько = if (вид.isBlank()) 0 else счётВыходов?.count(project, вид) ?: 0
+            val минимум = выход.path("min").asInt(0)
+            OutputView(
+                what = выход.path("what").asText(""),
+                kind = вид,
+                min = минимум,
+                count = сколько,
+                producedIn = рождаетсяВ?.takeIf { it != сценаКлюч },
+                // Выход, рождающийся в другой сцене, в завершение не входит:
+                // он показывается стрелкой «→ сцена N», а не пустотой.
+                satisfied = рождаетсяВ != null && рождаетсяВ != сценаКлюч || сколько >= минимум,
+            )
+        }
+        val свои = выходы.filter { it.producedIn == null }
+        // Измеряется только тот выход, у которого назван ВИД сущности:
+        // мероприятие метода без вида нам считать нечем, и объявлять его
+        // выполненным — врать. Такое остаётся «не начато».
+        val измеримые = свои.filter { it.kind.isNotBlank() }
+        val состояние = when {
+            причиныВхода.isNotEmpty() -> ActivityState.BLOCKED
+            измеримые.isEmpty() -> ActivityState.NOT_STARTED
+            измеримые.all { it.satisfied } -> ActivityState.DONE
+            измеримые.any { it.count > 0 } -> ActivityState.IN_PROGRESS
+            else -> ActivityState.AVAILABLE
+        }
+        return ActivityView(
+            code = дело.path("code").asText(),
+            name = дело.path("name").asText(),
+            goal = дело.path("goal").asText(""),
+            role = дело.path("role").asText(""),
+            track = дело.path("track").asText("design"),
+            methodGroup = дело.path("method_group").asText(""),
+            inputs = дело.path("inputs").map { it.path("what").asText() },
+            outputs = выходы,
+            surface = дело.path("surface").asText(""),
+            state = состояние,
+            blockedBy = причиныВхода,
+        )
     }
 
     /**

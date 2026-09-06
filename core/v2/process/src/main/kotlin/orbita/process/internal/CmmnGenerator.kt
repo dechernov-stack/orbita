@@ -4,8 +4,10 @@
 // генератором; XML руками не правится». Поэтому здесь единственное место,
 // где рождается XML, и никакого файла с моделью в репозитории нет.
 //
-// Соответствие (РЕШЕНИЕ-ДВИЖОК, таблица): сцена → stage, шаг → human task,
-// точка → milestone, ворота → sentry с условием по данным Орбиты.
+// Соответствие (РЕШЕНИЕ-ДВИЖОК, таблица): сцена → stage, МЕРОПРИЯТИЕ →
+// human task, точка → milestone, ворота → sentry с условием по данным
+// Орбиты. Схема на экране и модель дела рождаются ЗДЕСЬ ЖЕ, из одного
+// шаблона: разойтись им не с чем (РЕШЕНИЕ-ПРОЦЕСС-НА-ЭКРАНЕ §1).
 package orbita.process.internal
 
 import com.fasterxml.jackson.databind.JsonNode
@@ -46,9 +48,32 @@ object CmmnGenerator {
       </sentry>""",
                 ).append('\n')
             }
-            определения.append(
-                """      <stage id="scene_$к" name="${экранировать(сцена.path("title").asText())}"/>""",
-            ).append('\n')
+            // Мероприятия сцены — human task внутри её stage: единица
+            // работы метода становится единицей работы движка.
+            val дела = сцена.path("activities").toList()
+            if (дела.isEmpty()) {
+                определения.append(
+                    """      <stage id="scene_$к" name="${экранировать(сцена.path("title").asText())}"/>""",
+                ).append('\n')
+            } else {
+                val внутри = StringBuilder()
+                дела.forEach { дело ->
+                    val код = идентификатор(дело.path("code").asText())
+                    внутри.append(
+                        """        <planItem id="pi_act_${к}_$код" definitionRef="act_${к}_$код"/>""",
+                    ).append('\n')
+                }
+                дела.forEach { дело ->
+                    val код = идентификатор(дело.path("code").asText())
+                    внутри.append(
+                        """        <humanTask id="act_${к}_$код" name="${экранировать(дело.path("name").asText())}"/>""",
+                    ).append('\n')
+                }
+                определения.append(
+                    """      <stage id="scene_$к" name="${экранировать(сцена.path("title").asText())}">
+$внутри      </stage>""",
+                ).append('\n')
+            }
         }
 
         точки.forEach { точка ->
