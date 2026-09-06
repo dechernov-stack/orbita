@@ -138,7 +138,6 @@
     "key",
     "title",
     "planned_date",
-    "criteria",
-    "kind"
+    "criteria"
   ]
 }

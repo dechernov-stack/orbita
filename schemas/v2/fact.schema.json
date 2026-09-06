@@ -145,7 +145,6 @@
     "provenance",
     "created_at",
     "updated_at",
-    "kind",
     "subject",
     "predicate",
     "value",

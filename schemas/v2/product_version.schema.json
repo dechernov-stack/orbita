@@ -81,7 +81,6 @@
     "created_at",
     "updated_at",
     "ci",
-    "version",
     "date",
     "composition"
   ]

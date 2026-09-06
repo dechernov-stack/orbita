@@ -104,7 +104,6 @@
     "provenance",
     "created_at",
     "updated_at",
-    "code",
     "name",
     "group",
     "orbita_mechanism",

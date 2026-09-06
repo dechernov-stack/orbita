@@ -152,7 +152,6 @@
     "created_at",
     "updated_at",
     "level",
-    "code",
     "title",
     "statement",
     "category",

@@ -101,7 +101,7 @@
               "null"
             ]
           },
-          "filled*:bool": {
+          "filled": {
             "type": [
               "string",
               "number",
@@ -113,7 +113,8 @@
           }
         },
         "required": [
-          "key"
+          "key",
+          "filled"
         ]
       }
     }

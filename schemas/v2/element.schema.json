@@ -116,7 +116,6 @@
     "created_at",
     "updated_at",
     "section",
-    "kind",
     "author",
     "at",
     "order"

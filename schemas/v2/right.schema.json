@@ -78,7 +78,6 @@
     "provenance",
     "created_at",
     "updated_at",
-    "code",
     "description",
     "scope"
   ]

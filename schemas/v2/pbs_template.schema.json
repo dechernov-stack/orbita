@@ -93,7 +93,7 @@
               "null"
             ]
           },
-          "level*:0–5": {
+          "level": {
             "type": [
               "string",
               "number",
@@ -103,7 +103,7 @@
               "null"
             ]
           },
-          "kind*:enum[system": {
+          "kind": {
             "type": [
               "string",
               "number",
@@ -113,7 +113,7 @@
               "null"
             ]
           },
-          "segment": {
+          "params": {
             "type": [
               "string",
               "number",
@@ -123,7 +123,7 @@
               "null"
             ]
           },
-          "element": {
+          "default_take": {
             "type": [
               "string",
               "number",
@@ -133,7 +133,7 @@
               "null"
             ]
           },
-          "subsystem": {
+          "external": {
             "type": [
               "string",
               "number",
@@ -143,77 +143,7 @@
               "null"
             ]
           },
-          "assembly": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
-          },
-          "unit]": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
-          },
-          "params?:[{key": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
-          },
-          "unit*→unit": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
-          },
-          "required_to*→gate}]": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
-          },
-          "default_take*:bool": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
-          },
-          "external?:bool": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
-          },
-          "default_quantity?:int": {
+          "default_quantity": {
             "type": [
               "string",
               "number",
@@ -227,8 +157,9 @@
         "required": [
           "code",
           "name",
-          "params?:[{key",
-          "name"
+          "level",
+          "kind",
+          "default_take"
         ]
       }
     }

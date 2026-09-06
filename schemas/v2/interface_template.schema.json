@@ -83,77 +83,7 @@
               "null"
             ]
           },
-          "type*:enum[RF": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
-          },
-          "power": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
-          },
-          "data": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
-          },
-          "thermal": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
-          },
-          "mech": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
-          },
-          "env": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
-          },
-          "hmi": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
-          },
-          "org]": {
+          "type": {
             "type": [
               "string",
               "number",
@@ -203,7 +133,7 @@
               "null"
             ]
           },
-          "params?:[…]": {
+          "params": {
             "type": [
               "string",
               "number",
@@ -213,7 +143,7 @@
               "null"
             ]
           },
-          "requirement_classes*:str[]": {
+          "requirement_classes": {
             "type": [
               "string",
               "number",
@@ -233,7 +163,7 @@
               "null"
             ]
           },
-          "models?:str[]": {
+          "models": {
             "type": [
               "string",
               "number",
@@ -267,9 +197,11 @@
         "required": [
           "code",
           "name",
+          "type",
           "a",
           "b",
           "direction",
+          "requirement_classes",
           "default_take"
         ]
       }

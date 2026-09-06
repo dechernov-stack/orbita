@@ -51,13 +51,14 @@ def разобрать_тип(сырой: str) -> dict:
     м = re.match(r"^\[\{(.+)\}\]$", t)
     if м:
         поля, обяз = {}, []
-        for кусок in м.group(1).split(","):
-            кусок = кусок.strip()
-            if not кусок:
+        for кусок in разделить_поля(м.group(1)):
+            имя = кусок.split(":")[0].strip().rstrip("*?")
+            if not имя:
                 continue
-            имя = кусок.rstrip("*?")
             поля[имя] = {"type": ["string", "number", "boolean", "object", "array", "null"]}
-            if кусок.endswith("*"):
+            # Имя может повториться: вложенный объект несёт своё «name».
+            # Второй раз в required оно не идёт — схема обязана быть валидной.
+            if кусок.split(":")[0].strip().endswith("*") and имя not in обяз:
                 обяз.append(имя)
         узел = {"type": "array", "items": {"type": "object", "properties": поля}}
         if обяз:
@@ -118,6 +119,28 @@ def разобрать_тип(сырой: str) -> dict:
     return {"description": t}
 
 
+def разделить_поля(строка: str) -> list[str]:
+    """Делит перечень полей запятыми ВЕРХНЕГО уровня.
+
+    Наивный split(",") резал вложенные структуры («params?:[{key*,name*}]»)
+    и порождал поля вроде «params?:[{key» — мусор в схеме и дубликаты имён.
+    """
+    куски, глубина, текущий = [], 0, ""
+    for символ in строка:
+        if символ in "[{(":
+            глубина += 1
+        elif символ in "]})":
+            глубина -= 1
+        if символ == "," and глубина == 0:
+            куски.append(текущий.strip())
+            текущий = ""
+        else:
+            текущий += символ
+    if текущий.strip():
+        куски.append(текущий.strip())
+    return [к for к in куски if к]
+
+
 def схема_вида(вид: dict, ядро: list) -> dict:
     свойства, обязательные = {}, []
     for f in ядро:
@@ -132,7 +155,11 @@ def схема_вида(вид: dict, ядро: list) -> dict:
         if f.get("note"):
             узел = dict(узел, description=(узел.get("description", "") + " " + f["note"]).strip())
         свойства[f["name"]] = узел
-        if f.get("required"):
+        # Вид переопределяет ядровое поле своим типом (component.kind — это
+        # вид узла состава, а не вид сущности): свойство перекрывается, а в
+        # `required` имя остаётся ОДНО. Дубликат делал схему невалидной по
+        # метасхеме («has non-unique elements») — и валил проверку схем.
+        if f.get("required") and f["name"] not in обязательные:
             обязательные.append(f["name"])
     схема = {
         "$schema": "https://json-schema.org/draft/2020-12/schema",

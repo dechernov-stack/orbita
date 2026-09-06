@@ -9,4 +9,6 @@ dependencies {
     api(project(":core:v2:architecture"))
     api(project(":core:v2:formulation"))
     testImplementation(kotlin("test"))
+    testImplementation(testFixtures(project(":core:v2:kernel")))
+    testImplementation("com.fasterxml.jackson.core:jackson-databind:2.18.2")
 }

@@ -91,17 +91,7 @@
               "null"
             ]
           },
-          "element_links*:[{span": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
-          },
-          "element}]": {
+          "element_links": {
             "type": [
               "string",
               "number",
@@ -114,7 +104,8 @@
         },
         "required": [
           "no",
-          "text"
+          "text",
+          "element_links"
         ]
       }
     },

@@ -416,6 +416,170 @@
         "0.6",
         "0.7"
       ]
+    },
+    {
+      "key": "10",
+      "title": "Технологии",
+      "order": 10,
+      "track": "design",
+      "role": "lead_se",
+      "question": "Что в проекте незрело и как это дозреет к точке",
+      "opens_kinds": [
+        "technology",
+        "wbs_package",
+        "gate"
+      ],
+      "output": "критические технологии с TRL и планом созревания",
+      "process_ref": [
+        "0.9"
+      ],
+      "entry": [
+        {
+          "check": "scene_done:8",
+          "title": "черновик требований готов"
+        }
+      ],
+      "exit": [
+        {
+          "check": "technologies_named:1",
+          "title": "критические технологии названы с текущим и требуемым TRL"
+        },
+        {
+          "check": "maturation_planned",
+          "title": "у каждого разрыва TRL есть пакет созревания и веха"
+        }
+      ],
+      "steps": [
+        {
+          "title": "Назвать критические технологии базового варианта",
+          "place": "scene:10#technologies",
+          "hint": "критическая — та, без которой миссия не состоится, а её зрелость ниже требуемой",
+          "check": "technologies_named:1"
+        },
+        {
+          "title": "Задать текущий и требуемый TRL с точкой",
+          "place": "scene:10#trl",
+          "hint": "требуемый TRL 6 к PDR — регламент, а не пожелание"
+        },
+        {
+          "title": "Принять пакеты созревания и вехи",
+          "place": "scene:10#maturation",
+          "hint": "разрыв TRL рождает пакет работ и веху сам — их остаётся принять",
+          "check": "maturation_planned"
+        }
+      ]
+    },
+    {
+      "key": "11",
+      "title": "Риски и засорение",
+      "order": 11,
+      "track": "management",
+      "role": "lead",
+      "question": "Что может пойти не так и чем мы за это заплатим",
+      "opens_kinds": [
+        "risk",
+        "debris_assessment"
+      ],
+      "output": "реестр рисков со сроками-точками и начальная ОСЗ",
+      "process_ref": [
+        "0.9"
+      ],
+      "entry": [
+        {
+          "check": "scene_done:10",
+          "title": "технологии и их зрелость названы"
+        }
+      ],
+      "exit": [
+        {
+          "check": "risks_min:3",
+          "title": "реестр рисков заведён"
+        },
+        {
+          "check": "each_risk_has_due_point",
+          "title": "у каждого риска срок-точка"
+        },
+        {
+          "check": "oda_started",
+          "title": "оценка засорения от базового варианта посчитана"
+        }
+      ],
+      "steps": [
+        {
+          "title": "Завести риски условием-событием-последствием",
+          "place": "scene:11#risks",
+          "hint": "риск без последствия — беспокойство, а не риск",
+          "check": "risks_min:3"
+        },
+        {
+          "title": "Назначить владельца и срок-точку",
+          "place": "scene:11#owners",
+          "hint": "срок без точки не наступает",
+          "check": "each_risk_has_due_point"
+        },
+        {
+          "title": "Посчитать ОСЗ от базового варианта",
+          "place": "scene:11#oda",
+          "hint": "время существования и Δv увода — против норматива полки",
+          "check": "oda_started"
+        }
+      ]
+    },
+    {
+      "key": "12",
+      "title": "Стоимость и сроки",
+      "order": 12,
+      "track": "management",
+      "role": "lead",
+      "question": "Во что это обойдётся и когда",
+      "opens_kinds": [
+        "wbs_package",
+        "cost_estimate"
+      ],
+      "output": "WBS с парами к узлам и ROM-оценка диапазоном",
+      "process_ref": [
+        "0.10"
+      ],
+      "entry": [
+        {
+          "check": "scene_done:11",
+          "title": "риски и ОСЗ заведены"
+        }
+      ],
+      "exit": [
+        {
+          "check": "wbs_paired",
+          "title": "пакеты работ парны узлам состава"
+        },
+        {
+          "check": "estimate_ranged",
+          "title": "оценка дана диапазоном с допущениями"
+        },
+        {
+          "check": "estimate_includes_maturation",
+          "title": "стоимость включает пакеты созревания технологий"
+        }
+      ],
+      "steps": [
+        {
+          "title": "Взять типовой WBS и сопоставить узлам",
+          "place": "scene:12#wbs",
+          "hint": "работа без предмета не защищается на обзоре",
+          "check": "wbs_paired"
+        },
+        {
+          "title": "Оценить диапазоном с допущениями",
+          "place": "scene:12#estimate",
+          "hint": "одно число на Pre-A читают как обязательство — давайте диапазон",
+          "check": "estimate_ranged"
+        },
+        {
+          "title": "Проверить, что созревание вошло в стоимость",
+          "place": "scene:12#maturation-cost",
+          "hint": "оценка без пакетов созревания при открытых TRL считает не тот объём работ",
+          "check": "estimate_includes_maturation"
+        }
+      ]
     }
   ],
   "points": [
@@ -541,6 +705,18 @@
           "source_scene": "4",
           "blocking": true,
           "title": "MCR пройден"
+        },
+        {
+          "check": "scene_done:11",
+          "source_scene": "11",
+          "blocking": true,
+          "title": "риски и оценка засорения заведены"
+        },
+        {
+          "check": "scene_done:12",
+          "source_scene": "12",
+          "blocking": true,
+          "title": "стоимость и сроки оценены"
         }
       ]
     }

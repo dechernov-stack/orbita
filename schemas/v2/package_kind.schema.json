@@ -92,11 +92,9 @@
     "provenance",
     "created_at",
     "updated_at",
-    "code",
     "schema",
     "rules",
     "sources",
-    "accepted_classes",
-    "version"
+    "accepted_classes"
   ]
 }

@@ -95,7 +95,6 @@
     "created_at",
     "updated_at",
     "template",
-    "code",
     "title",
     "sections",
     "owner",

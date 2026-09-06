@@ -85,7 +85,7 @@
               "null"
             ]
           },
-          "expects*:{gate:[{element_kind": {
+          "expects": {
             "type": [
               "string",
               "number",
@@ -95,7 +95,7 @@
               "null"
             ]
           },
-          "min*:int": {
+          "style": {
             "type": [
               "string",
               "number",
@@ -105,27 +105,7 @@
               "null"
             ]
           },
-          "filter?}]}": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
-          },
-          "style?:text": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
-          },
-          "glossary?:ref[] glossary_term": {
+          "glossary": {
             "type": [
               "string",
               "number",
@@ -139,7 +119,7 @@
         "required": [
           "no",
           "title",
-          "expects*:{gate:[{element_kind"
+          "expects"
         ]
       },
       "description": "ожидания полноты по MCR/SRR/SDR/PDR"
@@ -164,7 +144,6 @@
     "provenance",
     "created_at",
     "updated_at",
-    "code",
     "title",
     "sections",
     "nature"

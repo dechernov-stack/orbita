@@ -116,13 +116,11 @@
     "provenance",
     "created_at",
     "updated_at",
-    "code",
     "title",
     "ears_pattern",
     "statement_template",
     "category",
     "verification",
-    "applicability",
-    "version"
+    "applicability"
   ]
 }

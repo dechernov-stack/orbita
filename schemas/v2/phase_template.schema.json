@@ -180,7 +180,7 @@
               "null"
             ]
           },
-          "track*:enum[design": {
+          "track": {
             "type": [
               "string",
               "number",
@@ -190,7 +190,7 @@
               "null"
             ]
           },
-          "modeling": {
+          "instantiate_per": {
             "type": [
               "string",
               "number",
@@ -200,47 +200,7 @@
               "null"
             ]
           },
-          "management]": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
-          },
-          "instantiate_per?:enum[project": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
-          },
-          "segment": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
-          },
-          "element]": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
-          },
-          "operations*:str[]": {
+          "operations": {
             "type": [
               "string",
               "number",
@@ -260,7 +220,7 @@
               "null"
             ]
           },
-          "inputs*:[{kind": {
+          "inputs": {
             "type": [
               "string",
               "number",
@@ -270,7 +230,7 @@
               "null"
             ]
           },
-          "condition*}]": {
+          "output": {
             "type": [
               "string",
               "number",
@@ -280,7 +240,7 @@
               "null"
             ]
           },
-          "output*:{kind|document_template": {
+          "visibility": {
             "type": [
               "string",
               "number",
@@ -290,7 +250,7 @@
               "null"
             ]
           },
-          "maturity*}": {
+          "links": {
             "type": [
               "string",
               "number",
@@ -300,107 +260,7 @@
               "null"
             ]
           },
-          "visibility*:kind[]": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
-          },
-          "links*:[{to": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
-          },
-          "type*:enum[FS": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
-          },
-          "SS": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
-          },
-          "FF": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
-          },
-          "INPUT]": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
-          },
-          "rationale*}]": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
-          },
-          "steps*:[{key": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
-          },
-          "hint": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
-          },
-          "target*:{route": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
-          },
-          "preset?}": {
+          "steps": {
             "type": [
               "string",
               "number",
@@ -415,14 +275,14 @@
           "key",
           "title",
           "order",
+          "track",
+          "operations",
           "role",
-          "inputs*:[{kind",
-          "output*:{kind|document_template",
-          "links*:[{to",
-          "steps*:[{key",
-          "title",
-          "hint",
-          "target*:{route"
+          "inputs",
+          "output",
+          "visibility",
+          "links",
+          "steps"
         ]
       },
       "description": "дорожки и экземпляры на узлы — по схеме Романова"
@@ -452,17 +312,7 @@
               "null"
             ]
           },
-          "aliases*:[{standard": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
-          },
-          "name*}]": {
+          "aliases": {
             "type": [
               "string",
               "number",
@@ -482,7 +332,7 @@
               "null"
             ]
           },
-          "criteria*:[…]": {
+          "criteria": {
             "type": [
               "string",
               "number",
@@ -492,37 +342,7 @@
               "null"
             ]
           },
-          "expertise*:{purpose": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
-          },
-          "inputs": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
-          },
-          "control_questions*:str[]": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
-          },
-          "outputs*}": {
+          "expertise": {
             "type": [
               "string",
               "number",
@@ -536,10 +356,10 @@
         "required": [
           "key",
           "title",
-          "aliases*:[{standard",
+          "aliases",
           "order",
-          "expertise*:{purpose",
-          "inputs"
+          "criteria",
+          "expertise"
         ]
       },
       "description": "точка = экспертиза с содержанием"

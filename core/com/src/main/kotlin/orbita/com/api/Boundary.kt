@@ -140,14 +140,19 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
         val требования = orbita.requirements.api.RequirementsFactory.requirements(store, links, mapper)
         val снимки = orbita.requirements.api.RequirementsFactory.baselines(store, links, mapper)
         val архитектура = orbita.architecture.api.ArchitectureFactory.architecture(store, links, mapper)
+        val программатика = orbita.programmatics.api.ProgrammaticsFactory.programmatics(store, mapper)
         val проверкиТребований = orbita.requirements.api.RequirementsFactory.gateChecks(store, снимки)
         val проверкиАрхитектуры = orbita.architecture.api.ArchitectureFactory.gateChecks(store, архитектура)
+        val проверкиПрограмматики =
+            orbita.programmatics.api.ProgrammaticsFactory.gateChecks(store, программатика)
         val оценщик = orbita.readiness.api.ReadinessFactory.gateEvaluator(
             store, links,
             scenesDone = { emptySet() },
             gatesPassed = { p -> пройденные.getOrPut(p) { mutableSetOf() } },
             extra = { проект, условие ->
-                проверкиТребований.of(проект, условие) ?: проверкиАрхитектуры.of(проект, условие)
+                проверкиТребований.of(проект, условие)
+                    ?: проверкиАрхитектуры.of(проект, условие)
+                    ?: проверкиПрограмматики.of(проект, условие)
             },
         )
         val движок = orbita.process.api.ProcessFactory.engine(
@@ -178,7 +183,16 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
         val знания = orbita.knowledge.api.KnowledgeFactory.intake(store, mapper)
         val постановка = orbita.formulation.api.FormulationFactory.formulation(store, links)
         val волна3 = orbita.api.internal.ReqArchRoutes(store, требования, снимки, архитектура, mapper)
-        return orbita.api.internal.V2Router(store, links, движок, полки, знания, постановка, mapper, волна3)
+        val волна4 = orbita.api.internal.ModelRoutes(
+            orbita.models.api.ModelsFactory.models(store, mapper),
+            orbita.models.api.ModelsFactory.variants(store),
+            orbita.models.api.ModelsFactory.impact(store, links),
+            программатика,
+            mapper,
+        )
+        return orbita.api.internal.V2Router(
+            store, links, движок, полки, знания, постановка, mapper, волна3, волна4,
+        )
     }
 
     /** Реестр схем — службе ИИ: предложение проверяется схемой целевого вида. */

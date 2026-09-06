@@ -25,6 +25,8 @@ class V2Router(
     mapper: ObjectMapper = ObjectMapper(),
     /** Маршруты волны 3 (требования и архитектура) — отдельным файлом. */
     private val reqArch: ReqArchRoutes? = null,
+    /** Маршруты волны 4 (модели и программатика). */
+    private val modelRoutes: ModelRoutes? = null,
 ) {
 
     /** Ответ роутера: код и тело. HTTP-обвязка — снаружи. */
@@ -37,4 +39,5 @@ class V2Router(
         сцены.handle(method, path, query, body)
             ?: сквозные.handle(method, path, query, body)
             ?: reqArch?.handle(method, path, query, body)
+            ?: modelRoutes?.handle(method, path, query, body)
 }

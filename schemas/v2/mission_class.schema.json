@@ -121,7 +121,6 @@
     "provenance",
     "created_at",
     "updated_at",
-    "code",
     "name",
     "recommended_shelves",
     "mandatory_models",

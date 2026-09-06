@@ -102,7 +102,7 @@
               "null"
             ]
           },
-          "blocks*:str[]": {
+          "blocks": {
             "type": [
               "string",
               "number",
@@ -125,6 +125,7 @@
         },
         "required": [
           "content_type",
+          "blocks",
           "share"
         ]
       },

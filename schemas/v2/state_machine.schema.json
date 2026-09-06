@@ -93,7 +93,7 @@
               "null"
             ]
           },
-          "trigger*:{exchange|event|timer}": {
+          "trigger": {
             "type": [
               "string",
               "number",
@@ -126,7 +126,8 @@
         },
         "required": [
           "from",
-          "to"
+          "to",
+          "trigger"
         ]
       }
     }

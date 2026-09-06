@@ -93,7 +93,7 @@
               "null"
             ]
           },
-          "inputs*:str[]": {
+          "inputs": {
             "type": [
               "string",
               "number",
@@ -103,7 +103,7 @@
               "null"
             ]
           },
-          "outputs*:str[]": {
+          "outputs": {
             "type": [
               "string",
               "number",
@@ -123,7 +123,7 @@
               "null"
             ]
           },
-          "tool_status*:enum[calc": {
+          "tool_status": {
             "type": [
               "string",
               "number",
@@ -133,27 +133,7 @@
               "null"
             ]
           },
-          "proxy": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
-          },
-          "build]": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
-          },
-          "interface_bound?:bool": {
+          "interface_bound": {
             "type": [
               "string",
               "number",
@@ -168,7 +148,10 @@
           "code",
           "name",
           "question",
-          "gate"
+          "inputs",
+          "outputs",
+          "gate",
+          "tool_status"
         ]
       }
     }

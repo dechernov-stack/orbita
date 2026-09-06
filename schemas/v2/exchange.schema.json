@@ -87,7 +87,6 @@
     "provenance",
     "created_at",
     "updated_at",
-    "code",
     "name",
     "source_function",
     "target",

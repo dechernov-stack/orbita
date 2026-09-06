@@ -92,7 +92,6 @@
     "created_at",
     "updated_at",
     "variant",
-    "code",
     "measure",
     "group"
   ]

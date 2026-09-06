@@ -86,7 +86,6 @@
     "provenance",
     "created_at",
     "updated_at",
-    "code",
     "name",
     "layer",
     "allocated_to"

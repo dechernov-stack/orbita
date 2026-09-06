@@ -95,7 +95,7 @@
               "null"
             ]
           },
-          "firmness*:enum[firm": {
+          "firmness": {
             "type": [
               "string",
               "number",
@@ -105,17 +105,7 @@
               "null"
             ]
           },
-          "conditional]": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
-          },
-          "conditional_on?:ref technology": {
+          "conditional_on": {
             "type": [
               "string",
               "number",
@@ -128,7 +118,8 @@
         },
         "required": [
           "ref",
-          "version"
+          "version",
+          "firmness"
         ]
       }
     },
@@ -164,7 +155,6 @@
     "created_at",
     "updated_at",
     "name",
-    "kind",
     "gate",
     "items",
     "sdoc_path",

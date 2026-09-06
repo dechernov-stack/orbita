@@ -12,7 +12,9 @@
      считает клиентская библиотека при показе;
   3. маршрута записи графа нет: он отдаётся GET, принимать ему нечего;
   4. библиотеки стоят версией в package.json, форка в репозитории нет,
-     elkjs не подключён.
+     elkjs не подключён;
+  5. в экранах v2 (web/src/v2) нет ручной отрисовки связей — граф и impact
+     волны 4 идут той же библиотекой, что и трассировка v1.
 """
 import json
 import re
@@ -24,6 +26,7 @@ SCREEN = ROOT / "web/src/screens/TraceGraph.tsx"
 SERVER = ROOT / "core/com/src/main/kotlin/orbita/com/api/TraceGraph.kt"
 HTTP_API = ROOT / "core/com/src/main/kotlin/orbita/com/api/HttpApi.kt"
 PKG = ROOT / "web/package.json"
+V2 = ROOT / "web/src/v2"
 
 OWN_DRAWING = [
     (re.compile(r"<svg\b"), "своё полотно поверх библиотечного"),
@@ -59,6 +62,23 @@ def main() -> int:
     for path in sorted((ROOT / "web/src").rglob("*")):
         if path.is_file() and ("xyflow" in path.name or "dagre" in path.name):
             problems.append(f"{path.relative_to(ROOT)}: копия библиотеки в репозитории — форк запрещён")
+    # 5. Экраны v2: тот же запрет своей графики. Граф влияния (волна 4)
+    # рисуется библиотекой — самодельная раскладка не переживёт первого
+    # «переставьте узлы».
+    if V2.is_dir():
+        for файл in sorted(V2.rglob("*.tsx")):
+            текст = файл.read_text(encoding="utf-8")
+            графовый = "impact" in файл.name.lower() or "ImpactView" in текст or "api.impact" in текст
+            for совпадение in re.finditer(r"<(line|path|polyline|marker)\b", текст):
+                problems.append(
+                    f"{файл.relative_to(ROOT)}: ручная отрисовка <{совпадение.group(1)}> — "
+                    "рёбра рисует библиотека"
+                )
+            if графовый and "@xyflow/react" not in текст:
+                problems.append(
+                    f"{файл.relative_to(ROOT)}: экран графа не берёт @xyflow/react"
+                )
+
     if problems:
         print("ГРАФ ТРАССИРОВКИ НАРУШАЕТ ПРАВИЛА (ADR-046):")
         for p in problems:

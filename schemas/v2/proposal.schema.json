@@ -101,7 +101,7 @@
               "null"
             ]
           },
-          "source_mark?:enum[И": {
+          "source_mark": {
             "type": [
               "string",
               "number",
@@ -111,57 +111,7 @@
               "null"
             ]
           },
-          "В": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
-          },
-          "П]": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
-          },
-          "decision*:enum[pending": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
-          },
-          "accepted": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
-          },
-          "rejected": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
-          },
-          "rework]": {
+          "decision": {
             "type": [
               "string",
               "number",
@@ -194,7 +144,8 @@
         },
         "required": [
           "class",
-          "payload"
+          "payload",
+          "decision"
         ]
       }
     },

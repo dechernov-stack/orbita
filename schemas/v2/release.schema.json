@@ -70,27 +70,7 @@
       "items": {
         "type": "object",
         "properties": {
-          "format*:enum[docx": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
-          },
-          "pdf": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
-          },
-          "html]": {
+          "format": {
             "type": [
               "string",
               "number",
@@ -122,6 +102,7 @@
           }
         },
         "required": [
+          "format",
           "path",
           "hash"
         ]
@@ -156,7 +137,6 @@
     "updated_at",
     "document",
     "rendering",
-    "version",
     "print_files",
     "authors",
     "released_by",

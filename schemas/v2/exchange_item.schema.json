@@ -129,7 +129,6 @@
     "provenance",
     "created_at",
     "updated_at",
-    "code",
     "name",
     "type",
     "elements"

@@ -82,7 +82,6 @@
     "provenance",
     "created_at",
     "updated_at",
-    "code",
     "name",
     "latency_max",
     "guarantee"

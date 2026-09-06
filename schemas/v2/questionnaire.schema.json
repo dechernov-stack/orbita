@@ -108,27 +108,7 @@
               "null"
             ]
           },
-          "paths*:enum[manual": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
-          },
-          "shelf": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
-          },
-          "datasheet][]": {
+          "paths": {
             "type": [
               "string",
               "number",
@@ -141,7 +121,8 @@
         },
         "required": [
           "key",
-          "name"
+          "name",
+          "paths"
         ]
       }
     },
@@ -167,7 +148,6 @@
     "provenance",
     "created_at",
     "updated_at",
-    "code",
     "target_kind",
     "fields"
   ]

@@ -94,7 +94,6 @@
     "created_at",
     "updated_at",
     "model",
-    "version",
     "inputs_snapshot",
     "outputs",
     "tool",

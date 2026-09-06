@@ -110,7 +110,6 @@
     "provenance",
     "created_at",
     "updated_at",
-    "code",
     "statement",
     "cec",
     "category",

@@ -106,7 +106,6 @@
     "created_at",
     "updated_at",
     "task",
-    "kind",
     "target",
     "preview",
     "facts",

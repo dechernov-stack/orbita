@@ -120,7 +120,7 @@
       "items": {
         "type": "object",
         "properties": {
-          "target*:facet|param": {
+          "target": {
             "type": [
               "string",
               "number",
@@ -130,27 +130,7 @@
               "null"
             ]
           },
-          "action*:enum[add": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
-          },
-          "remove": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
-          },
-          "shift]": {
+          "action": {
             "type": [
               "string",
               "number",
@@ -192,6 +172,8 @@
           }
         },
         "required": [
+          "target",
+          "action",
           "rationale",
           "by"
         ]
@@ -210,10 +192,8 @@
     "provenance",
     "created_at",
     "updated_at",
-    "code",
     "name",
     "level",
-    "nature",
-    "kind"
+    "nature"
   ]
 }

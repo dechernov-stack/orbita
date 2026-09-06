@@ -103,17 +103,7 @@
               "null"
             ]
           },
-          "type*:enum[gcs": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
-          },
-          "gateway]": {
+          "type": {
             "type": [
               "string",
               "number",
@@ -128,7 +118,8 @@
           "code",
           "name",
           "lat",
-          "lon"
+          "lon",
+          "type"
         ]
       }
     }

@@ -222,17 +222,7 @@
               "null"
             ]
           },
-          "layer*:enum[SA": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
-          },
-          "LA]": {
+          "layer": {
             "type": [
               "string",
               "number",
@@ -257,6 +247,7 @@
           "code",
           "name",
           "allocated_to",
+          "layer",
           "default_take"
         ]
       }
@@ -351,7 +342,7 @@
               "null"
             ]
           },
-          "steps*:str[]": {
+          "steps": {
             "type": [
               "string",
               "number",
@@ -384,7 +375,8 @@
         },
         "required": [
           "code",
-          "name"
+          "name",
+          "steps"
         ]
       }
     },

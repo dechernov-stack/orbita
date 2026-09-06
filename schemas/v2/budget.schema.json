@@ -84,7 +84,6 @@
     "provenance",
     "created_at",
     "updated_at",
-    "kind",
     "root",
     "reserve_policy"
   ]

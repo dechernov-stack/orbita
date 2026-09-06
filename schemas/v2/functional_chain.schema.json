@@ -90,7 +90,6 @@
     "provenance",
     "created_at",
     "updated_at",
-    "code",
     "name",
     "steps"
   ]
