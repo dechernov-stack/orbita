@@ -43,17 +43,38 @@ function раскладка(узлы: Node[], рёбра: Edge[], направл
   return узлы.map((у) => ({ ...у, position: { x: g.node(у.id).x, y: g.node(у.id).y } }))
 }
 
-function блок(id: string, заголовок: string, подпись: string, состояние: string, текущий = false): Node {
+/**
+ * Блок схемы. Кликабельный — НАСТОЯЩАЯ КНОПКА внутри узла, а не обработчик
+ * на полотне: полотно съедает клик, стоит мыши дрогнуть (это уже панорама),
+ * и блок кажется мёртвым. Кнопка ловит клик сама и несёт курсор-указатель.
+ */
+function блок(
+  id: string,
+  заголовок: string,
+  подпись: string,
+  состояние: string,
+  текущий = false,
+  onClick?: () => void,
+  подсказка?: string,
+): Node {
+  const содержимое = (
+    <span className="v2-node">
+      <b>{заголовок}</b>
+      <span className="v2-node__st">{подпись}</span>
+    </span>
+  )
   return {
     id,
     position: { x: 0, y: 0 },
     data: {
-      label: (
-        <div className="v2-node">
-          <b>{заголовок}</b>
-          <span className="v2-node__st">{подпись}</span>
-        </div>
-      ),
+      label: onClick
+        ? (
+          <button type="button" className="v2-node__btn" title={подсказка ?? 'открыть'}
+            onClick={(e) => { e.stopPropagation(); onClick() }}>
+            {содержимое}
+          </button>
+        )
+        : <span className="v2-node__flat" title={подсказка}>{содержимое}</span>,
     },
     style: {
       width: W,
@@ -61,8 +82,9 @@ function блок(id: string, заголовок: string, подпись: string
       background: ЦВЕТ[состояние] ?? '#fff',
       border: текущий ? '2px solid #2f6feb' : '1px solid #e3e6ec',
       borderRadius: 8,
-      padding: 6,
+      padding: 0,
       fontSize: 12,
+      cursor: onClick ? 'pointer' : 'default',
     },
   }
 }
@@ -122,6 +144,10 @@ export function PhaseMap({ phase, onScene }: { phase: Phase; onScene: (key: stri
         подписьСцены(с),
         с.state === 'done' ? 'done' : с.state === 'open' ? 'in_progress' : 'blocked',
         с.key === phase.current_scene,
+        () => onScene(с.key),
+        с.state === 'locked'
+          ? `открыть сцену — закрыта: ${с.blockers[0] ?? 'ждёт предыдущую'}`
+          : 'открыть схему мероприятий сцены',
       ))
       if (предыдущийУзел) {
         связиПроектирования.push({
@@ -143,6 +169,9 @@ export function PhaseMap({ phase, onScene }: { phase: Phase; onScene: (key: stri
           `◆ ${т.title}`,
           т.passed ? 'пройдена' : т.blocking.length > 0 ? `блокирующих ${т.blocking.length}` : 'условия выполнены',
           'gate',
+          false,
+          undefined,
+          т.blocking.length > 0 ? `держат: ${т.blocking.join('; ')}` : 'условия точки выполнены',
         ))
         связиПроектирования.push({
           id: `e-${предыдущийУзел}-${идТочки}`,
@@ -170,6 +199,9 @@ export function PhaseMap({ phase, onScene }: { phase: Phase; onScene: (key: stri
               ? `ждёт: ${дело.inputs[0].slice(0, 34)}`
               : 'не начато',
           дело.state === 'done' ? 'done' : 'not_started',
+          false,
+          undefined,
+          `${дело.goal || дело.name}${дело.inputs.length > 0 ? ` · вход: ${дело.inputs.join(' · ')}` : ''}`,
         ))
         const предыдущее = дорожка.activities[i - 1]
         if (предыдущее) {
@@ -228,6 +260,8 @@ export function SceneMap({ scene, current, onPick }: {
       подписьМероприятия(дело),
       дело.state,
       дело.code === current,
+      () => onPick(дело.code),
+      дело.goal,
     ))
     const рёбра: Edge[] = scene.activities.slice(1).map((дело, i) => {
       const предыдущее = scene.activities[i]
