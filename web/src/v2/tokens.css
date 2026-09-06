@@ -319,3 +319,20 @@ button:disabled { opacity: .55; cursor: default; }
 /* Схема мероприятий сцены у ведущего СИ — компактно и сверху. */
 .v2-scenemap { border: 1px solid var(--line); border-radius: var(--radius); background: var(--ground); margin-bottom: var(--pad-m); }
 .v2-density { font: inherit; font-size: var(--size-s); padding: 2px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--ground); }
+
+/* Документы: строка «в документ» в мероприятии и разделы на экране. */
+.v2-act2__doc { padding: var(--pad-s) 0; font-size: var(--size-s); display: flex; gap: var(--pad-s); flex-wrap: wrap; }
+.v2-doc__sec { padding: var(--pad-m); border-top: 1px solid var(--line); }
+.v2-doc__h { display: flex; justify-content: space-between; gap: var(--pad-m); align-items: baseline; margin-bottom: var(--pad-s); }
+.v2-doc__el { margin: var(--pad-s) 0; }
+.v2-doc__st { margin: 0 0 4px; }
+.v2-doc__add { display: grid; grid-template-columns: 220px 1fr auto; gap: var(--pad-s); padding: var(--pad-m); border-top: 1px solid var(--line); }
+.v2-doc__add input, .v2-doc__add select, .v2-doc__add button {
+  font: inherit; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--ground);
+}
+.v2-tab2 { border-collapse: collapse; width: 100%; }
+.v2-tab2 th, .v2-tab2 td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+.v2-tab2 th { color: var(--ink-soft); font-weight: 500; font-size: var(--size-s); }
+
+/* Строка документа: имя, стандарт, полнота — код документа человеку не нужен. */
+.v2-row--doc { grid-template-columns: 1fr auto auto; gap: var(--pad-l); }

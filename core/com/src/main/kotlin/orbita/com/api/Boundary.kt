@@ -197,8 +197,23 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
             программатика,
             mapper,
         )
+        // Документы идут ПЕРЕД фронтом волны 4: без них выходы сцен висят
+        // в воздухе, и проход владельца проверять нечем.
+        val документы = orbita.documents.api.DocumentsFactory.documents(
+            store, links,
+            // Шаблон документа читается С ПОЛКИ: в образе стенда каталога
+            // поставки нет, и файл — только запасной путь разработчика.
+            template = { код ->
+                полки.item(код)?.doc
+                    ?: шаблоны.resolve("ШАБЛОН-" + код.uppercase() + ".json").toFile()
+                        .takeIf { it.isFile }?.let { mapper.readTree(it) }
+            },
+            mapper = mapper,
+        )
+        val документыМаршруты = orbita.api.internal.DocRoutes(store, документы, mapper)
         return orbita.api.internal.V2Router(
             store, links, движок, полки, знания, постановка, mapper, волна3, волна4,
+            документыМаршруты,
         )
     }
 

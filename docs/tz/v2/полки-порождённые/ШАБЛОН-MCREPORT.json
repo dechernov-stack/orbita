@@ -1,0 +1,633 @@
+{
+  "kind": "document_template",
+  "code": "mcreport",
+  "title": "Отчёт о концепции миссии",
+  "standard": "БП-PPA, приложение 3 (Mission Concept Report)",
+  "note": "Живой документ: раздел — запрос к выходам сцен плюс тезисы. Выполненная сцена даёт заполненный раздел; пустой раздел говорит, какой сцены ждёт.",
+  "style": {
+    "tone": "деловая инженерная проза без маркетинга",
+    "traceability": "каждое утверждение опирается на элемент раздела",
+    "numbers": "число в тексте обязано быть в данных названных опор"
+  },
+  "review": {
+    "qualifiers": [
+      "не менее",
+      "не более",
+      "не допускается",
+      "не должен",
+      "не должна",
+      "не может",
+      "не разрешается",
+      "не",
+      "без",
+      "только",
+      "кроме",
+      "запрещается",
+      "запрещено",
+      "обязан",
+      "обязана",
+      "обязательно"
+    ],
+    "number_exceptions": [
+      "даты вида ГГГГ-ММ-ДД",
+      "номера разделов после §",
+      "числа внутри кодов сущностей"
+    ]
+  },
+  "sections": [
+    {
+      "no": "§1",
+      "title": "Цели, задачи, стейкхолдеры",
+      "scenes": [
+        "2",
+        "3",
+        "4"
+      ],
+      "elements": [
+        {
+          "code": "1.1",
+          "kind": "query",
+          "title": "Замысел миссии",
+          "select": "intent",
+          "min_rows": 1,
+          "columns": [
+            {
+              "title": "Для кого",
+              "field": "for_whom"
+            },
+            {
+              "title": "Что делает",
+              "field": "what"
+            },
+            {
+              "title": "Где",
+              "field": "where"
+            },
+            {
+              "title": "Горизонт",
+              "field": "horizon"
+            }
+          ]
+        },
+        {
+          "code": "1.2",
+          "kind": "query",
+          "title": "Стейкхолдеры и их нужды",
+          "select": "stakeholder",
+          "min_rows": 3,
+          "columns": [
+            {
+              "title": "Код",
+              "field": "code"
+            },
+            {
+              "title": "Сторона",
+              "field": "name"
+            },
+            {
+              "title": "Роль",
+              "field": "role"
+            },
+            {
+              "title": "Нужды",
+              "field": "link:owns"
+            }
+          ]
+        },
+        {
+          "code": "1.3",
+          "kind": "query",
+          "title": "Цели с показателями",
+          "select": "goal",
+          "min_rows": 1,
+          "columns": [
+            {
+              "title": "Код",
+              "field": "code"
+            },
+            {
+              "title": "Цель",
+              "field": "statement"
+            },
+            {
+              "title": "Показатель",
+              "field": "metric"
+            },
+            {
+              "title": "Год",
+              "field": "year"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "no": "§2",
+      "title": "Анализ альтернатив",
+      "scenes": [
+        "7"
+      ],
+      "elements": [
+        {
+          "code": "2.1",
+          "kind": "query",
+          "title": "Варианты построения и их метрики",
+          "select": "variant",
+          "min_rows": 1,
+          "columns": [
+            {
+              "title": "Код",
+              "field": "code"
+            },
+            {
+              "title": "Вариант",
+              "field": "name"
+            },
+            {
+              "title": "Аппаратов",
+              "field": "satellites"
+            },
+            {
+              "title": "Ожидание, мин",
+              "field": "wait_min"
+            },
+            {
+              "title": "Покрытие, %",
+              "field": "coverage_pct"
+            },
+            {
+              "title": "Порог",
+              "field": "threshold"
+            }
+          ]
+        },
+        {
+          "code": "2.2",
+          "kind": "query",
+          "title": "Отклонённые варианты с причинами",
+          "select": "baseline_concept",
+          "expand": "rejected",
+          "min_rows": 1,
+          "columns": [
+            {
+              "title": "Вариант",
+              "field": "variant"
+            },
+            {
+              "title": "Причина отклонения",
+              "field": "reason"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "no": "§3",
+      "title": "Базовая концепция и сервисы",
+      "scenes": [
+        "6",
+        "7"
+      ],
+      "elements": [
+        {
+          "code": "3.1",
+          "kind": "query",
+          "title": "Сервисы с классами обслуживания",
+          "select": "service",
+          "min_rows": 1,
+          "columns": [
+            {
+              "title": "Код",
+              "field": "code"
+            },
+            {
+              "title": "Сервис",
+              "field": "name"
+            },
+            {
+              "title": "Классы",
+              "field": "classes"
+            },
+            {
+              "title": "Чью нужду закрывает",
+              "field": "link:covers"
+            }
+          ]
+        },
+        {
+          "code": "3.2",
+          "kind": "query",
+          "title": "Базовый вариант и обоснование",
+          "select": "baseline_concept",
+          "min_rows": 1,
+          "columns": [
+            {
+              "title": "Вариант",
+              "field": "variant"
+            },
+            {
+              "title": "Обоснование",
+              "field": "rationale"
+            },
+            {
+              "title": "Решил",
+              "field": "decided_by"
+            }
+          ]
+        },
+        {
+          "code": "3.3",
+          "kind": "query",
+          "title": "Состав системы до второго уровня",
+          "select": "component",
+          "where": {
+            "level_max": 2
+          },
+          "min_rows": 1,
+          "columns": [
+            {
+              "title": "Код",
+              "field": "code"
+            },
+            {
+              "title": "Узел",
+              "field": "name"
+            },
+            {
+              "title": "Уровень",
+              "field": "level"
+            },
+            {
+              "title": "Природа",
+              "field": "nature"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "no": "§4",
+      "title": "Требования уровня проекта",
+      "scenes": [
+        "8"
+      ],
+      "elements": [
+        {
+          "code": "4.1",
+          "kind": "query",
+          "title": "Реестр требований уровня проекта",
+          "select": "requirement",
+          "where": {
+            "level": "project"
+          },
+          "min_rows": 1,
+          "columns": [
+            {
+              "title": "Код",
+              "field": "code"
+            },
+            {
+              "title": "Заголовок",
+              "field": "title"
+            },
+            {
+              "title": "Формулировка",
+              "field": "statement"
+            },
+            {
+              "title": "Категория",
+              "field": "category"
+            },
+            {
+              "title": "Носитель",
+              "field": "carrier"
+            },
+            {
+              "title": "Критерий приёмки",
+              "field": "acceptance_criteria"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "no": "§5",
+      "title": "Технологии",
+      "scenes": [
+        "10"
+      ],
+      "elements": [
+        {
+          "code": "5.1",
+          "kind": "query",
+          "title": "Технологии и разрывы TRL",
+          "select": "technology",
+          "min_rows": 1,
+          "columns": [
+            {
+              "title": "Код",
+              "field": "code"
+            },
+            {
+              "title": "Технология",
+              "field": "name"
+            },
+            {
+              "title": "TRL сейчас",
+              "field": "trl_current"
+            },
+            {
+              "title": "TRL требуемый",
+              "field": "trl_required"
+            },
+            {
+              "title": "К точке",
+              "field": "required_by"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "no": "§6",
+      "title": "Риски",
+      "scenes": [
+        "11"
+      ],
+      "elements": [
+        {
+          "code": "6.1",
+          "kind": "query",
+          "title": "Реестр рисков",
+          "select": "risk",
+          "min_rows": 1,
+          "columns": [
+            {
+              "title": "Код",
+              "field": "code"
+            },
+            {
+              "title": "Риск",
+              "field": "statement"
+            },
+            {
+              "title": "В",
+              "field": "probability"
+            },
+            {
+              "title": "П",
+              "field": "impact"
+            },
+            {
+              "title": "Стратегия",
+              "field": "strategy"
+            },
+            {
+              "title": "Владелец",
+              "field": "owner"
+            },
+            {
+              "title": "Срок",
+              "field": "due_point"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "no": "§7",
+      "title": "Оценка орбитального засорения",
+      "scenes": [
+        "11"
+      ],
+      "elements": [
+        {
+          "code": "7.1",
+          "kind": "query",
+          "title": "ОЗ базового варианта",
+          "select": "debris_assessment",
+          "min_rows": 1,
+          "columns": [
+            {
+              "title": "Вариант",
+              "field": "variant"
+            },
+            {
+              "title": "Норма",
+              "field": "norm"
+            },
+            {
+              "title": "Срок схода, лет",
+              "field": "lifetime_years"
+            },
+            {
+              "title": "Δv увода",
+              "field": "dv_deorbit"
+            },
+            {
+              "title": "Соответствует",
+              "field": "compliant"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "no": "§8",
+      "title": "Стоимость и сроки",
+      "scenes": [
+        "12"
+      ],
+      "elements": [
+        {
+          "code": "8.1",
+          "kind": "query",
+          "title": "Оценка диапазоном",
+          "select": "cost_estimate",
+          "min_rows": 1,
+          "columns": [
+            {
+              "title": "Пакет",
+              "field": "package"
+            },
+            {
+              "title": "Не менее",
+              "field": "min"
+            },
+            {
+              "title": "Не более",
+              "field": "max"
+            },
+            {
+              "title": "Единица",
+              "field": "unit"
+            },
+            {
+              "title": "Метод",
+              "field": "method"
+            },
+            {
+              "title": "Допущения",
+              "field": "assumptions"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "no": "§9",
+      "title": "Отложенное содержание (descopes)",
+      "scenes": [
+        "7"
+      ],
+      "elements": [
+        {
+          "code": "9.1",
+          "kind": "query",
+          "title": "Что вынесено за границы первой очереди",
+          "select": "baseline_concept",
+          "expand": "descopes",
+          "min_rows": 1,
+          "columns": [
+            {
+              "title": "Что отложено",
+              "field": "what"
+            },
+            {
+              "title": "Почему",
+              "field": "why"
+            },
+            {
+              "title": "Куда",
+              "field": "to"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "no": "§10",
+      "title": "Допущения",
+      "scenes": [
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "10",
+        "11",
+        "12"
+      ],
+      "elements": [
+        {
+          "code": "10.1",
+          "kind": "query",
+          "title": "Реестр допущений поля знаний",
+          "select": "fact",
+          "where": {
+            "source_mark": "П"
+          },
+          "min_rows": 1,
+          "columns": [
+            {
+              "title": "Код",
+              "field": "code"
+            },
+            {
+              "title": "Предмет",
+              "field": "subject"
+            },
+            {
+              "title": "Утверждение",
+              "field": "predicate"
+            },
+            {
+              "title": "Величина",
+              "field": "value"
+            },
+            {
+              "title": "Якорь",
+              "field": "source.anchor"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "no": "§11",
+      "title": "Открытые вопросы",
+      "scenes": [
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "10",
+        "11",
+        "12"
+      ],
+      "elements": [
+        {
+          "code": "11.1",
+          "kind": "query",
+          "title": "Темы без разрешения",
+          "select": "topic",
+          "where": {
+            "unresolved": true
+          },
+          "min_rows": 1,
+          "columns": [
+            {
+              "title": "Код",
+              "field": "code"
+            },
+            {
+              "title": "Тема",
+              "field": "label"
+            },
+            {
+              "title": "Сцена",
+              "field": "scene"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "labels": {
+    "_note": "служебные значения по-русски: печать обязана быть человеческим текстом, а не перечнем ключей модели",
+    "functional": "функциональное",
+    "performance": "показатель",
+    "interface": "стыковое",
+    "operational": "операционное",
+    "constraint": "ограничение",
+    "safety": "безопасность",
+    "reliability": "надёжность",
+    "environmental": "средовое",
+    "node": "узел",
+    "behaviour": "поведение",
+    "data": "данные",
+    "human": "человек",
+    "customer": "заказчик",
+    "operator": "оператор",
+    "regulator": "регулятор",
+    "supplier": "поставщик",
+    "partner": "партнёр",
+    "consumer": "потребитель",
+    "established": "учреждаемая сторона",
+    "mitigate": "снижать",
+    "accept": "принять",
+    "avoid": "избегать",
+    "transfer": "передать",
+    "ROM": "порядок величины",
+    "PARAMETRIC": "параметрическая",
+    "BOTTOM_UP": "снизу вверх",
+    "draft": "черновик",
+    "accepted": "принято",
+    "baselined": "базировано"
+  }
+}

@@ -379,7 +379,72 @@ export interface ProjectRow {
   phase: string
 }
 
+/** Элемент раздела документа: запрос уже посчитан сервером. */
+export interface DocElement {
+  code: string
+  kind: 'query' | 'statement' | 'entity_ref' | 'fact_ref' | 'table' | 'figure'
+  title: string
+  min_rows: number
+  satisfied: boolean
+  text?: string
+  columns: string[]
+  rows: string[][]
+  supports: string[]
+  waiting_scenes: string[]
+  notes: string[]
+}
+
+export interface DocSection {
+  no: string
+  title: string
+  complete: boolean
+  scenes: string[]
+  waiting: string[]
+  elements: DocElement[]
+}
+
+export interface DocView {
+  code: string
+  title: string
+  standard: string
+  complete: number
+  total: number
+  sections: DocSection[]
+}
+
+/** Куда попадает работа мероприятия: строка «в документ». */
+export interface DocHint {
+  document: string
+  section: string
+  section_title: string
+  elements: number
+  filled: number
+}
+
 export const api = {
+  /** Документы проекта с полнотой к ступени. */
+  documents: (project: string) =>
+    вызов<{ items: DocView[] }>(`/documents?project=${encodeURIComponent(project)}`),
+
+  document: (project: string, code: string) =>
+    вызов<DocView>(`/documents/${code}?project=${encodeURIComponent(project)}`),
+
+  ensureDocument: (project: string, template: string, author: string) =>
+    вызов<DocView>(`/documents?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ template, author }) }),
+
+  addStatement: (project: string, code: string, тело: Record<string, unknown>) =>
+    вызов<DocSection>(`/documents/${code}/statement?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify(тело) }),
+
+  docHints: (project: string, scene: string) =>
+    вызов<{ items: DocHint[] }>(
+      `/documents/hints?project=${encodeURIComponent(project)}&scene=${encodeURIComponent(scene)}`),
+
+  /** Печать — файлом с сервера: ссылка, а не сборка PDF в браузере. */
+  printUrl: (project: string, code: string) =>
+    `/api/v2/documents/${code}/print?project=${encodeURIComponent(project)}`,
+
   phase: (project: string) => вызов<Phase>(`/phase?project=${encodeURIComponent(project)}`),
 
   projects: () => вызов<{ items: ProjectRow[] }>('/projects'),

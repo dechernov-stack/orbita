@@ -154,7 +154,7 @@ export function Work({ project, onProject, wantScene, onScenePicked, onScene, р
           <SceneMap scene={текущая} current={делоТекущее?.code ?? null} onPick={setМероприятие} />
         </div>
       )}
-      <ActivityScreen phase={фаза} scene={текущая} activity={делоТекущее}
+      <ActivityScreen project={project} phase={фаза} scene={текущая} activity={делоТекущее}
         режим={текущийРежим} роль={роль}
         onPickActivity={setМероприятие}
         onPhaseMap={() => onРежим?.('фаза')}>

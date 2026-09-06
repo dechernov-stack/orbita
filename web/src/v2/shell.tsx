@@ -12,6 +12,7 @@ import { Coverage } from './coverage'
 import { Concept } from './concept'
 import { Requirements } from './requirements'
 import { ArchitectureScreen } from './architecture'
+import { Documents } from './documents'
 import { ИМЯ_РЕЖИМА, режимПоРоли, type Режим } from './density'
 
 /** Раздел рейки. `wave` — волна, в которой раздел оживает. */
@@ -31,7 +32,7 @@ const SECTIONS: Section[] = [
   { key: 'requirements', title: 'Требования', wave: 3, hint: 'реестр требований, два дерева, влияние правки' },
   { key: 'architecture', title: 'Архитектура', wave: 3, hint: 'операционный, системный, логический и физический слои' },
   { key: 'models', title: 'Модели', wave: 4, hint: 'записи моделей, прогоны, резервы' },
-  { key: 'documents', title: 'Документы', wave: 5, hint: 'структура, рендеринг, рецензия, печать' },
+  { key: 'documents', title: 'Документы', wave: 4, hint: 'разделы документов с полнотой к ступени, тезисы, печать' },
   { key: 'points', title: 'Точки', wave: 6, hint: 'готовность по экспертизе, замечания, фиксация' },
   { key: 'library', title: 'Библиотека', wave: 2, expert: true, hint: 'полки, окно взятия, справочники' },
   { key: 'exchange', title: 'Обмен', wave: 5, expert: true, hint: 'StrictDoc и ReqIF, выгрузка знаний' },
@@ -221,6 +222,8 @@ export function Shell() {
             <Requirements project={project} />
           ) : section === 'architecture' ? (
             <ArchitectureScreen project={project} />
+          ) : section === 'documents' ? (
+            <Documents project={project} />
           ) : section === 'tasks' ? (
             <MyTasks project={project} onGoScene={(сцена) => { setWantScene(сцена); setSection('work') }} />
           ) : (

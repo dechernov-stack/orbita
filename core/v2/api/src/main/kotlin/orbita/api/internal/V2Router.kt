@@ -27,10 +27,23 @@ class V2Router(
     private val reqArch: ReqArchRoutes? = null,
     /** Маршруты волны 4 (модели и программатика). */
     private val modelRoutes: ModelRoutes? = null,
+    /** Документы: живой снимок сцен — идут перед фронтом волны 4. */
+    private val docRoutes: DocRoutes? = null,
 ) {
 
-    /** Ответ роутера: код и тело. HTTP-обвязка — снаружи. */
-    data class Ответ(val code: Int, val body: JsonNode)
+    /**
+     * Ответ роутера: код и тело. HTTP-обвязка — снаружи.
+     *
+     * @property binary печать: единственный ответ, который не JSON. Байты
+     *   объявлены отдельным полем, чтобы обвязка не гадала по телу
+     */
+    data class Ответ(
+        val code: Int,
+        val body: JsonNode,
+        val binary: ByteArray? = null,
+        val contentType: String? = null,
+        val fileName: String? = null,
+    )
 
     private val сцены = SceneRoutes(store, links, engine, mapper)
     private val сквозные = AcrossRoutes(store, links, engine, shelves, intake, formulation, mapper)
@@ -40,4 +53,5 @@ class V2Router(
             ?: сквозные.handle(method, path, query, body)
             ?: reqArch?.handle(method, path, query, body)
             ?: modelRoutes?.handle(method, path, query, body)
+            ?: docRoutes?.handle(method, path, query, body)
 }

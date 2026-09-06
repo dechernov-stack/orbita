@@ -11,5 +11,9 @@ dependencies {
     api(project(":core:v2:models"))
     api(project(":core:v2:formulation"))
     api(project(":core:v2:knowledge"))
+    // Печать: PDFBox рисует лист сам — внешнего конвертера в контуре нет.
+    implementation("org.apache.pdfbox:pdfbox:3.0.3")
     testImplementation(kotlin("test"))
+    testImplementation(testFixtures(project(":core:v2:kernel")))
+    testImplementation("com.fasterxml.jackson.core:jackson-databind:2.18.2")
 }

@@ -9,8 +9,9 @@
 //
 // Проект, фаза и сцена живут в ШАПКЕ оболочки и здесь не повторяются
 // (запрет §4: дублирование контекста).
-import { useState, type ReactNode } from 'react'
-import type { Activity, Phase, Scene } from './api'
+import { useEffect, useState, type ReactNode } from 'react'
+import { api, type Activity, type DocHint, type Phase, type Scene } from './api'
+import { DocumentBody } from './documents'
 import { пунктыРейки, составЭкрана, type Блок, type Режим } from './density'
 
 /** Роль мероприятия — по-русски: служебное имя роли инженеру не говорит. */
@@ -24,8 +25,9 @@ const РОЛЬ: Record<string, string> = {
 }
 
 export function ActivityScreen({
-  phase, scene, activity, режим, роль, onPickActivity, onPhaseMap, children,
+  project, phase, scene, activity, режим, роль, onPickActivity, onPhaseMap, children,
 }: {
+  project: string
   phase: Phase
   scene: Scene
   activity?: Activity
@@ -37,6 +39,16 @@ export function ActivityScreen({
   children: ReactNode
 }) {
   const [открыта, setОткрыта] = useState<string | null>(null)
+  /** Куда попадает работа сцены: строка «в документ» (ЗАДАНИЕ-ДОКУМЕНТЫ §3). */
+  const [вДокумент, setВДокумент] = useState<DocHint[]>([])
+  const [разделОткрыт, setРазделОткрыт] = useState<DocHint | null>(null)
+
+  useEffect(() => {
+    setРазделОткрыт(null)
+    api.docHints(project, scene.key)
+      .then((r) => setВДокумент(r.items))
+      .catch(() => setВДокумент([]))
+  }, [project, scene.key])
   const состав = составЭкрана(режим)
   const дела = scene.activities
   const индекс = activity ? дела.findIndex((д) => д.code === activity.code) : -1
@@ -106,6 +118,22 @@ export function ActivityScreen({
             ? <span className="v2-bad">не даёт завершить: {держит}</span>
             : <span className="v2-ok">условия выполнены</span>}
         </div>
+        {вДокумент.length > 0 && (
+          <div className="v2-act2__doc" data-why={почему('документ')?.зачем}
+            title={почему('документ')?.почему}>
+            <span className="v2-dim">в документ: </span>
+            {вДокумент.map((п) => (
+              <button key={п.section} type="button" className="v2-link"
+                title={`${п.document}, раздел ${п.section} «${п.section_title}» — открыть так, как он напечатается`}
+                onClick={() => setРазделОткрыт(разделОткрыт?.section === п.section ? null : п)}>
+                {п.document} {п.section} · {п.filled} из {п.elements} элементов · посмотреть
+              </button>
+            ))}
+          </div>
+        )}
+        {разделОткрыт && (
+          <DocumentBody project={project} code="mcreport" section={разделОткрыт.section} />
+        )}
       </div>
 
       <aside className="v2-act2__rail" aria-label="контекст мероприятия">

@@ -1,0 +1,146 @@
+{
+  "kind": "document_template",
+  "code": "conops",
+  "title": "Концепция применения (Draft ConOps)",
+  "standard": "БП-PPA, приложение 5 (Draft ConOps)",
+  "note": "Живой документ, как и MCReport: раздел — запрос к выходам сцен. Разделы 4 и 5 питаются сценой 9 «Концепция операций»; в шаблоне фазы этой сцены пока нет, и разделы честно говорят, чего ждут.",
+  "style": {
+    "tone": "деловая инженерная проза без маркетинга",
+    "traceability": "каждое утверждение опирается на элемент раздела",
+    "numbers": "число в тексте обязано быть в данных названных опор"
+  },
+  "review": {
+    "qualifiers": [
+      "не менее", "не более", "не допускается", "не должен", "не должна",
+      "не может", "не разрешается", "не", "без", "только", "кроме",
+      "запрещается", "запрещено", "обязан", "обязана", "обязательно"
+    ]
+  },
+  "labels": {
+    "_note": "служебные значения по-русски: печать обязана быть человеческим текстом",
+    "node": "узел", "behaviour": "поведение", "data": "данные", "human": "человек",
+    "customer": "заказчик", "operator": "оператор", "regulator": "регулятор",
+    "supplier": "поставщик", "partner": "партнёр", "consumer": "потребитель",
+    "established": "учреждаемая сторона",
+    "техническое": "техническое", "программное": "программное"
+  },
+  "sections": [
+    {
+      "no": "§1",
+      "title": "Назначение и область применения",
+      "scenes": ["2"],
+      "elements": [
+        {
+          "code": "1.1", "kind": "query", "title": "Замысел миссии",
+          "select": "intent", "min_rows": 1,
+          "columns": [
+            {"title": "Для кого", "field": "for_whom"},
+            {"title": "Что делает", "field": "what"},
+            {"title": "Где", "field": "where"},
+            {"title": "Горизонт", "field": "horizon"}
+          ]
+        }
+      ]
+    },
+    {
+      "no": "§2",
+      "title": "Заинтересованные стороны и их нужды",
+      "scenes": ["3"],
+      "elements": [
+        {
+          "code": "2.1", "kind": "query", "title": "Стороны миссии",
+          "select": "stakeholder", "min_rows": 3,
+          "columns": [
+            {"title": "Код", "field": "code"},
+            {"title": "Сторона", "field": "name"},
+            {"title": "Роль", "field": "role"},
+            {"title": "Нужды", "field": "link:owns"}
+          ]
+        }
+      ]
+    },
+    {
+      "no": "§3",
+      "title": "Среда применения и ограничения",
+      "scenes": ["5"],
+      "elements": [
+        {
+          "code": "3.1", "kind": "query", "title": "Ограничения проекта",
+          "select": "constraint", "min_rows": 1,
+          "columns": [
+            {"title": "Код", "field": "code"},
+            {"title": "Ограничение", "field": "text"},
+            {"title": "Категория", "field": "category"}
+          ]
+        }
+      ]
+    },
+    {
+      "no": "§4",
+      "title": "Режимы и состояния системы",
+      "scenes": ["9"],
+      "elements": [
+        {
+          "code": "4.1", "kind": "query", "title": "Режимы работы",
+          "select": "mode", "min_rows": 1,
+          "columns": [
+            {"title": "Код", "field": "code"},
+            {"title": "Режим", "field": "name"},
+            {"title": "Когда применяется", "field": "when"}
+          ]
+        }
+      ]
+    },
+    {
+      "no": "§5",
+      "title": "Операционные сценарии",
+      "scenes": ["9"],
+      "elements": [
+        {
+          "code": "5.1", "kind": "query", "title": "Сценарии применения",
+          "select": "operational_scenario", "min_rows": 1,
+          "columns": [
+            {"title": "Код", "field": "code"},
+            {"title": "Сценарий", "field": "name"},
+            {"title": "Кто участвует", "field": "actors"},
+            {"title": "Что происходит", "field": "summary"}
+          ]
+        }
+      ]
+    },
+    {
+      "no": "§6",
+      "title": "Предоставляемые сервисы",
+      "scenes": ["6"],
+      "elements": [
+        {
+          "code": "6.1", "kind": "query", "title": "Сервисы с классами обслуживания",
+          "select": "service", "min_rows": 1,
+          "columns": [
+            {"title": "Код", "field": "code"},
+            {"title": "Сервис", "field": "name"},
+            {"title": "Классы", "field": "classes"},
+            {"title": "Чью нужду закрывает", "field": "link:covers"}
+          ]
+        }
+      ]
+    },
+    {
+      "no": "§7",
+      "title": "Состав системы",
+      "scenes": ["7"],
+      "elements": [
+        {
+          "code": "7.1", "kind": "query", "title": "Узлы состава до второго уровня",
+          "select": "component", "where": {"level_max": 2}, "min_rows": 1,
+          "columns": [
+            {"title": "Код", "field": "code"},
+            {"title": "Узел", "field": "name"},
+            {"title": "Уровень", "field": "level"},
+            {"title": "Природа", "field": "nature"}
+          ]
+        }
+      ]
+    }
+  ]
+}

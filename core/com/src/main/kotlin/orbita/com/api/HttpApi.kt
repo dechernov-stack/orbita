@@ -179,6 +179,14 @@ class HttpApi(private val boundary: Boundary) {
             val ответ = v2.handle(method, path, query(ex), if (method == "GET") null else body(ex))
             if (ответ == null) {
                 respond(ex, 404, mapper.createObjectNode().put("error", "нет маршрута v2: $method $path"))
+            } else if (ответ.binary != null) {
+                // Печать — единственный ответ v2 не в JSON: он объявлен полем,
+                // а не угадывается по телу.
+                respondBinary(
+                    ex, ответ.binary!!,
+                    ответ.contentType ?: "application/octet-stream",
+                    ответ.fileName ?: "document",
+                )
             } else {
                 respond(ex, ответ.code, ответ.body)
             }

@@ -33,6 +33,8 @@ import urllib.request
     ("полки-порождённые/ШАБЛОН-ФАЗЫ-PRE-A-NASA.json", "phase_template"),
     ("сиды/СИД-ГЛОССАРИЙ-КРОСС.json", "glossary_cross_terms"),
     ("полки-порождённые/ПОЛКА-МОДЕЛИ-СИСТЕМЫ.json", "model_template"),
+    ("полки-порождённые/ШАБЛОН-MCREPORT.json", "document_template"),
+    ("полки-порождённые/ШАБЛОН-CONOPS.json", "document_template"),
 ]
 
 # файл поставки → вид полки; порядок = порядок загрузки (ссылки идут вниз)
