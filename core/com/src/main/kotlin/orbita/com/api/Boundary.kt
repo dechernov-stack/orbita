@@ -211,9 +211,18 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
             mapper = mapper,
         )
         val документыМаршруты = orbita.api.internal.DocRoutes(store, документы, mapper)
+        // Живой контур: разбор входного документа — один вызов на версию,
+        // ответ кэшируется отпечатком промпта (решение владельца 06.09).
+        val служба = orbita.ai.api.AiFactory.service(store, mapper = mapper)
+        val знанияМаршруты = orbita.api.internal.KnowledgeRoutes(
+            знания,
+            orbita.ai.api.AiFactory.atomize(store, знания, служба, mapper),
+            служба,
+            mapper,
+        )
         return orbita.api.internal.V2Router(
             store, links, движок, полки, знания, постановка, mapper, волна3, волна4,
-            документыМаршруты,
+            документыМаршруты, знанияМаршруты,
         )
     }
 

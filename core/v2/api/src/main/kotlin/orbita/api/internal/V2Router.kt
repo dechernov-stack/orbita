@@ -29,6 +29,8 @@ class V2Router(
     private val modelRoutes: ModelRoutes? = null,
     /** Документы: живой снимок сцен — идут перед фронтом волны 4. */
     private val docRoutes: DocRoutes? = null,
+    /** Поле знаний: канон, живой разбор, факты и диспозиции. */
+    private val knowledgeRoutes: KnowledgeRoutes? = null,
 ) {
 
     /**
@@ -54,4 +56,5 @@ class V2Router(
             ?: reqArch?.handle(method, path, query, body)
             ?: modelRoutes?.handle(method, path, query, body)
             ?: docRoutes?.handle(method, path, query, body)
+            ?: knowledgeRoutes?.handle(method, path, query, body)
 }

@@ -35,6 +35,11 @@ data class Fact(
     val mark: SourceMark,
     val confidence: Double?,
     val material: String,
+    /** Вид факта: величина · способность · обязательство · рамка · событие… */
+    val kind: String = "framing",
+    val disposition: Disposition = Disposition.FREE,
+    /** Тема факта: предмет до разрешения в сущность. */
+    val topic: String? = null,
 )
 
 /** Действие плана: что именно система создаст или изменит, если план принять. */
@@ -64,6 +69,15 @@ data class IntakeTask(
     val note: String,
 )
 
+/** Диспозиция факта: её меняет ЧЕЛОВЕК, служба только предлагает. */
+enum class Disposition { FREE, NOTED, ASSUMED, ADOPTED, REJECTED, CONTESTED, SUPERSEDED }
+
+/** Тема — предмет фактов до разрешения в сущность. */
+data class Topic(val id: String, val label: String, val scene: String?, val resolvedTo: String?, val facts: Int)
+
+/** Блок канона Д1: якорь и текст. Факт без якоря не существует. */
+data class CanonBlock(val anchor: String, val kind: String, val text: String)
+
 interface Intake {
     /** Положить материал: снимок и карточка. Разбор идёт следом. */
     fun putMaterial(project: String, name: String, kind: String, text: String, author: String): String
@@ -75,4 +89,34 @@ interface Intake {
     fun accept(project: String, task: String, chosen: List<Int>, author: String): List<String>
 
     fun facts(project: String): List<Fact>
+
+    /**
+     * Канон Д1 материала: блоки с якорями. Детерминированный разбор — одна
+     * и та же версия документа даёт те же якоря, иначе факт на них не
+     * сошлёшься.
+     */
+    fun canon(project: String, material: String): List<CanonBlock>
+
+    /** Отпечаток канона: по нему живой разбор делается ОДИН раз на версию. */
+    fun fingerprint(project: String, material: String): String
+
+    /**
+     * Положить факты разбора. Правило честности §6.1 держится здесь: факт
+     * без якоря и величина без единицы не принимаются — они не факты.
+     * Возвращает коды принятых и перечень отклонённых с причиной.
+     */
+    fun putFacts(project: String, material: String, raw: String, author: String): FactIntake
+
+    /** Диспозицию меняет человек: служба предлагает, решает инженер. */
+    fun dispose(project: String, fact: String, disposition: Disposition, reason: String, author: String): Fact
+
+    fun topics(project: String): List<Topic>
 }
+
+/** Итог приёма фактов: что принято, что отклонено и почему. */
+data class FactIntake(
+    val accepted: List<Fact>,
+    val refused: List<String>,
+    val topics: List<Topic>,
+    val note: String,
+)
