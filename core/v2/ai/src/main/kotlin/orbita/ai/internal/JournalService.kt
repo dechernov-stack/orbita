@@ -47,9 +47,13 @@ class JournalService(
         ответ.tokensIn?.let { документ.put("tokens_in", it) }
         ответ.tokensOut?.let { документ.put("tokens_out", it) }
         документ.put("at", OffsetDateTime.now().toString())
-        val занято = store.list(Area.Project(project), "ai_call").size
+        // Номер записи — MAX + 1: размер списка врёт после любой чистки, и
+        // код повторяется (та же ошибка, что поймана на заданиях загрузки).
+        val занято = store.list(Area.Project(project), "ai_call").mapNotNull {
+            Regex("^AI-(\\d+)$").find(it.code)?.groupValues?.get(1)?.toIntOrNull()
+        }
         store.create(
-            "AI-%04d".format(занято + 1), "ai_call", Area.Project(project), null,
+            "AI-%04d".format((занято.maxOrNull() ?: 0) + 1), "ai_call", Area.Project(project), null,
             документ, Provenance(Channel.SERVICE, "служба", fingerprint = отпечаток),
         )
         return ответ

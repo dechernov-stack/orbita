@@ -185,7 +185,7 @@ class EntityDocuments(
         doc.set<ObjectNode>("supports", mapper.valueToTree(supports))
         doc.put("author", author)
         store.create(
-            code = "$code-$section-т${тезисыПроекта(project, code)[section].orEmpty().size + 1}",
+            code = свободныйТезис(project, code, section),
             kind = "element",
             area = Area.Project(project),
             bornIn = раздел.path("scenes").firstOrNull()?.asText(),
@@ -228,6 +228,17 @@ class EntityDocuments(
 
     override fun print(project: String, code: String, projectName: String): ByteArray =
         PdfPrint.bytes(render(project, code), projectName)
+
+    /**
+     * Свободный код тезиса: MAX + 1 по разделу. Размер списка врёт после
+     * снятия тезиса, и следующий получил бы занятый код.
+     */
+    private fun свободныйТезис(project: String, code: String, section: String): String {
+        val занято = тезисыПроекта(project, code)[section].orEmpty().mapNotNull {
+            Regex("-т(\\d+)$").find(it.code)?.groupValues?.get(1)?.toIntOrNull()
+        }
+        return "$code-$section-т${(занято.maxOrNull() ?: 0) + 1}"
+    }
 
     private fun тезисыПроекта(project: String, code: String): Map<String, List<Entity>> =
         store.list(Area.Project(project), "element")

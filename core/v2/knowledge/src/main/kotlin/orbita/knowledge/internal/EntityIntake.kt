@@ -86,19 +86,47 @@ class EntityIntake(
             else -> "план собран из ${факты.size} фактов по заданию «${намерение.key}»: ${намерение.value}"
         }
 
-        val задание = store.create(
-            "IT-" + карточка.code.removePrefix("SD-"),
-            "intake_task", область, "2",
-            mapper.createObjectNode()
-                .put("material", material)
-                .put("intent", intent)
-                .put("facts", факты.size)
-                .put("note", примечание),
-            Provenance(Channel.MANUAL, author, source = material),
-        )
+        // Задание загрузки — ОДНО на пару «материал + намерение»: повторная
+        // загрузка того же материала с тем же заданием пересчитывает план по
+        // свежим фактам, а не падает дублем кода. Другое намерение по тому же
+        // материалу — новое задание со свободным номером (код выводился из
+        // кода материала, и второй заход по SD-0002 упирался в IT-0002).
+        val документЗадания = mapper.createObjectNode()
+            .put("material", material)
+            .put("intent", intent)
+            .put("facts", факты.size)
+            .put("note", примечание)
+        val прежнее = store.list(область, "intake_task").firstOrNull {
+            it.doc.path("material").asText() == material && it.doc.path("intent").asText() == intent
+        }
+        val задание = if (прежнее != null) {
+            store.update(прежнее.id, документЗадания, Provenance(Channel.MANUAL, author, source = material))
+        } else {
+            store.create(
+                свободныйКод(область), "intake_task", область, "2",
+                документЗадания, Provenance(Channel.MANUAL, author, source = material),
+            )
+        }
 
         return IntakeTask(задание.code, material, intent, факты, действия, примечание)
     }
+
+    /**
+     * Свободный номер вида: MAX + 1, а не «размер списка + 1».
+     *
+     * Размер врёт после любой отмены или чистки — номер повторяется, и
+     * запись падает на уникальности кода. Одна ошибка этого рода уже
+     * поймана владельцем на повторной загрузке материала.
+     */
+    private fun следующий(область: Area, вид: String, префикс: String): String {
+        val занято = store.list(область, вид).mapNotNull {
+            Regex("^$префикс-(\\d+)$").find(it.code)?.groupValues?.get(1)?.toIntOrNull()
+        }
+        return "$префикс-%04d".format((занято.maxOrNull() ?: 0) + 1)
+    }
+
+    /** Свободный номер задания: коды не переиспользуются и не сталкиваются. */
+    private fun свободныйКод(область: Area): String = следующий(область, "intake_task", "IT")
 
     private fun действияПоНамерению(намерение: String, факты: List<Fact>): List<PlannedAction> =
         when (намерение) {
@@ -230,7 +258,7 @@ class EntityIntake(
                     документ.put("confidence", ф.path("confidence").asDouble(0.5))
                     документ.put("disposition", "free")
                     if (метка.isNotBlank()) документ.put("topic", темы[метка] ?: темаКод(область, метка))
-                    val код = "F-%04d".format(store.list(область, "fact").size + 1)
+                    val код = следующий(область, "fact", "F")
                     val сущность = store.create(
                         код, "fact", область, ф.path("scene").asText("").ifBlank { null },
                         документ, Provenance(Channel.SERVICE, author, source = material, anchor = якорь),
@@ -249,7 +277,7 @@ class EntityIntake(
     private fun темаКод(область: Area, метка: String): String {
         val уже = store.list(область, "topic").firstOrNull { it.doc.path("label").asText() == метка }
         if (уже != null) return уже.code
-        val код = "TP-%04d".format(store.list(область, "topic").size + 1)
+        val код = следующий(область, "topic", "TP")
         store.create(
             код, "topic", область, null,
             mapper.createObjectNode().put("label", метка),
