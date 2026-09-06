@@ -278,6 +278,27 @@ class SceneFlowTest {
     }
 
     @Test
+    fun `мероприятие называет, что откроет — кто ждёт его выхода`() {
+        router.handle("POST", "/v2/projects", emptyMap(), """{"name":"Откроет","code":"PJ-9118"}""")
+        val параметры = mapOf("project" to "PJ-9118")
+        router.handle("POST", "/v2/intent", параметры,
+            """{"for_whom":"перевозчики","what":"телеметрия","where":"СМП","horizon":"2033","accepted":true}""")
+
+        val третья = сцена(router.handle("GET", "/v2/phase", параметры, null)!!.body, "3")
+        val первое = третья.path("activities").single { it.path("code").asText() == "0.1" }
+        val откроет = первое.path("opens").map { it.asText() }
+
+        // 0.2 ждёт вход «Уточнение потребностей и задач пользователей» —
+        // связь берётся из ШАБЛОНА, второй карты зависимостей нет.
+        assertTrue("0.2" in откроет, "мероприятие, ждущее выхода, названо: $откроет")
+        // Цели рождаются в сцене 4 — она тоже открывается этой работой.
+        assertTrue("сцена 4" in откроет, "сцена чужого выхода названа: $откроет")
+
+        // Рейка инженера показывает счётчик: «откроет 2» отвечает на «зачем».
+        assertEquals(2, откроет.size, "лишнего в «откроет» нет: $откроет")
+    }
+
+    @Test
     fun `схема фазы идёт дорожками метода`() {
         router.handle("POST", "/v2/projects", emptyMap(), """{"name":"Дорожки","code":"PJ-9115"}""")
         val фаза = router.handle("GET", "/v2/phase", mapOf("project" to "PJ-9115"), null)!!.body

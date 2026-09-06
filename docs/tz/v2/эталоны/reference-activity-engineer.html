@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><title>Эталон: мероприятие глазами инженера — Орбита v2</title>
+<style>
+:root{--panel:#f7f7f8;--line:#e3e4e8;--ink:#1b1c1f;--muted:#6b6e76;--accent:#2f5fd9;--ok:#2d7a3e;--bad:#b3261e}
+*{box-sizing:border-box}body{margin:0;font:14px/1.45 Inter,system-ui,sans-serif;color:var(--ink)}
+.top{display:flex;gap:16px;align-items:center;padding:8px 16px;border-bottom:1px solid var(--line);font-size:13px}.top .sp{flex:1}.top .me{color:var(--muted)}
+.ctx{display:flex;gap:10px;align-items:baseline;padding:14px 20px 6px;font-size:13px;color:var(--muted)}.ctx h1{margin:0;font-size:15px;color:var(--ink)}.ctx a{color:var(--accent);text-decoration:none}
+.wrap{display:grid;grid-template-columns:1fr 48px;min-height:calc(100vh - 42px)}
+.surface{padding:8px 20px 70px}
+table{border-collapse:collapse;width:100%}td,th{padding:8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{color:var(--muted);font-weight:500;font-size:12px}
+.bad{color:var(--bad)}.muted{color:var(--muted)}a{color:var(--accent);text-decoration:none}
+.add{display:grid;grid-template-columns:1fr 200px auto;gap:8px;margin-top:10px}input,select,button{font:inherit;padding:7px 9px;border:1px solid var(--line);border-radius:6px;background:#fff}input::placeholder{color:#a9acb4;font-style:italic}
+.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.rail{border-left:1px solid var(--line);display:flex;flex-direction:column;align-items:center;gap:14px;padding-top:14px}.rail button{width:36px;height:36px;border-radius:8px;border:1px solid var(--line);background:#fff;font-size:11px;line-height:1;color:var(--muted);padding:0}.rail button b{display:block;color:var(--ink);font-size:12px}
+.foot{position:fixed;left:0;right:48px;bottom:0;display:flex;gap:20px;align-items:center;padding:10px 20px;border-top:1px solid var(--line);background:#fff;font-size:13px}.foot .sp{flex:1}
+.prop{margin-top:14px;padding:10px 12px;background:var(--panel);border-radius:6px;font-size:13px;display:flex;gap:12px;align-items:center}
+</style></head><body>
+<div class="top"><b>IoT-платформа</b><span class="muted">Pre-A</span><span class="muted">сцена 3 · Стейкхолдеры и нужды</span><span class="sp"></span><a href="#">мои 1</a><span class="me">Петрова М. · инженер</span></div>
+<div class="wrap">
+ <div>
+  <div class="ctx"><a href="#">← 0.1 → 0.2 · вы здесь</a><h1>0.1 · Уточнение потребностей и задач пользователей</h1><span>ведущий СИ · вы исполняете</span></div>
+  <div class="surface">
+   <table><tr><th>Пользователь миссии</th><th>Роль</th><th>Потребности</th><th></th></tr>
+    <tr><td>Минтранс России / Ространснадзор</td><td>заказчик</td><td>единое оперативное управление транспортом · непрерывность регуляторной телематики</td><td><a href="#">+ потребность</a></td></tr>
+    <tr><td>АО «ГЛОНАСС»</td><td>оператор</td><td>интеграция с ГАИС · суверенитет данных · резервный канал</td><td><a href="#">+ потребность</a></td></tr>
+    <tr><td>Регулятор РЧС</td><td>регулятор</td><td class="bad">потребностей нет → добавить</td><td><a href="#">+ потребность</a></td></tr></table>
+   <div class="add"><input placeholder="новый пользователь миссии"><select><option>роль</option><option>заказчик</option><option>оператор</option><option>регулятор</option><option>поставщик</option></select><button>Добавить</button></div>
+   <div class="prop">Из записки: ещё <b>7 стейкхолдеров</b> и <b>4 потребности</b> с якорями <button class="btn primary">Принять</button><a href="#">посмотреть</a></div>
+  </div>
+ </div>
+ <aside class="rail" title="контекст — по клику">
+  <button title="условия завершения: 2 из 3">☐<b>2/3</b></button>
+  <button title="входы: замысел, записка">⇣<b>2</b></button>
+  <button title="откроет: 0.2, 0.M1, сцену 4">⇢<b>3</b></button>
+  <button title="история">≡</button>
+  <button title="схема фазы">▦</button>
+ </aside>
+</div>
+<div class="foot"><span>выходы: пользователи миссии <b>3</b>/3 · потребности <b>5</b> · цели и задачи → сцена 4</span><span class="sp"></span><span class="bad">не даёт завершить: у «Регулятор РЧС» нет потребностей</span></div>
+</body></html>

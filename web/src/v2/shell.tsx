@@ -12,6 +12,7 @@ import { Coverage } from './coverage'
 import { Concept } from './concept'
 import { Requirements } from './requirements'
 import { ArchitectureScreen } from './architecture'
+import { ИМЯ_РЕЖИМА, режимПоРоли, type Режим } from './density'
 
 /** Раздел рейки. `wave` — волна, в которой раздел оживает. */
 type Section = {
@@ -44,7 +45,7 @@ function датаКратко(дата: string): string {
 }
 
 /** Учётка стенда: вход селектором без пароля (ТЗ §4.2). */
-type StandUser = { login: string; display_name: string }
+type StandUser = { login: string; display_name: string; roles?: Record<string, string> }
 
 export function Shell() {
   const [section, setSection] = useState('work')
@@ -59,6 +60,10 @@ export function Shell() {
   /** Сцена, открытая на экране: шапка обязана совпадать с ним. */
   const [openScene, setOpenScene] = useState<string | null>(null)
   const [me, setMe] = useState<string | null>(null)
+  /** Моя учётка целиком: роль в проекте задаёт плотность экрана (§2). */
+  const [я, setЯ] = useState<StandUser | null>(null)
+  /** Плотность, выбранная руками; null — умолчание роли. */
+  const [режим, setРежим] = useState<Режим | null>(null)
   const [failure, setFailure] = useState<string | null>(null)
 
   useEffect(() => {
@@ -87,9 +92,25 @@ export function Shell() {
       .then((d) => {
         setUsers(d.stand_users ?? [])
         setMe(d.user?.display_name ?? null)
+        setЯ(d.user ?? null)
       })
       .catch((e) => setFailure(String(e)))
   }, [])
+
+  // Роль — из учётки и проекта: плотность её следствие, а не настройка.
+  //
+  // Проекты v2 живут своим счётом, и роли в них пока не заводятся (модуль
+  // access — волна 6). Пока их нет, берётся роль УЧЁТКИ: на стенде она одна
+  // и та же во всех проектах, и это факт, а не догадка. Роли разошлись, а
+  // проекта в карте нет — плотность самая узкая, без выдумывания.
+  const ролиУчётки = Object.values(я?.roles ?? {})
+  const однаРоль = ролиУчётки.length > 0 && new Set(ролиУчётки).size === 1
+    ? ролиУчётки[0] : null
+  const роль = (project && я?.roles?.[project]) || однаРоль
+  const текущийРежим: Режим = режим ?? режимПоРоли(роль)
+  // Смена проекта возвращает плотность к умолчанию роли: в другом проекте
+  // у того же человека может быть другая роль.
+  useEffect(() => { setРежим(null) }, [project])
 
   const visible = SECTIONS.filter((s) => expert || !s.expert)
   const current = SECTIONS.find((s) => s.key === section) ?? SECTIONS[0]
@@ -131,6 +152,17 @@ export function Shell() {
             onClick={() => setSection('tasks')}>
             мои <b>{tasks}</b>
           </button>
+          {section === 'work' && (
+            <label className="v2-inline" title={`плотность экрана: умолчание роли — ${ИМЯ_РЕЖИМА[режимПоРоли(роль)]}`}>
+              вид
+              <select className="v2-density" value={текущийРежим}
+                onChange={(e) => setРежим(e.target.value as Режим)}>
+                {(['мероприятие', 'сцена', 'фаза'] as Режим[]).map((р) => (
+                  <option key={р} value={р}>{ИМЯ_РЕЖИМА[р]}</option>
+                ))}
+              </select>
+            </label>
+          )}
           <label className="v2-inline" title={expert
             ? 'выключить эксперт-режим: останутся только разделы работы'
             : 'включить эксперт-режим: библиотека, обмен и журналы'}>
@@ -177,7 +209,8 @@ export function Shell() {
           )}
           {section === 'work' ? (
             <Work project={project} onProject={setProject} wantScene={wantScene}
-              onScenePicked={() => setWantScene(null)} onScene={setOpenScene} />
+              onScenePicked={() => setWantScene(null)} onScene={setOpenScene}
+              роль={роль} режим={режим} onРежим={setРежим} />
           ) : section === 'knowledge' ? (
             <KnowledgeField project={project} />
           ) : section === 'formulation' ? (

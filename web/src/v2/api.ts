@@ -44,6 +44,8 @@ export interface Activity {
   inputs: string[]
   outputs: ActivityOutput[]
   blocked_by: string[]
+  /** Что откроет эта работа: коды мероприятий и сцены — считает сервер. */
+  opens: string[]
 }
 
 /** Дорожка схемы фазы: сцены либо мероприятия метода. */

@@ -13,16 +13,20 @@ import dagre from '@dagrejs/dagre'
 import type { Activity, Phase, Scene } from './api'
 
 const W = 210
-const H = 64
+const H = 76
 
-/** Цвет несёт состояние вместе с текстом — цвет один смысла не несёт. */
+/**
+ * Цвет несёт состояние вместе с текстом — цвет один смысла не несёт.
+ * Значения — ТОКЕНАМИ: один цвет акцента на продукт (§5 дизайна v2),
+ * и второй его копии в коде схемы быть не должно.
+ */
 const ЦВЕТ: Record<string, string> = {
-  done: '#eef7ee',
-  in_progress: '#eaf1fe',
-  available: '#ffffff',
-  not_started: '#ffffff',
-  blocked: '#f5f6f8',
-  gate: '#fff6e0',
+  done: 'var(--v2-done)',
+  in_progress: 'var(--accent-soft)',
+  available: 'var(--ground)',
+  not_started: 'var(--ground)',
+  blocked: 'var(--ground-soft)',
+  gate: 'var(--v2-gate)',
 }
 
 const СОСТОЯНИЕ: Record<string, string> = {
@@ -79,8 +83,8 @@ function блок(
     style: {
       width: W,
       height: H,
-      background: ЦВЕТ[состояние] ?? '#fff',
-      border: текущий ? '2px solid #2f6feb' : '1px solid #e3e6ec',
+      background: ЦВЕТ[состояние] ?? 'var(--ground)',
+      border: текущий ? '2px solid var(--accent)' : '1px solid var(--line)',
       borderRadius: 8,
       padding: 0,
       fontSize: 12,
@@ -155,7 +159,7 @@ export function PhaseMap({ phase, onScene }: { phase: Phase; onScene: (key: stri
           source: предыдущийУзел,
           target: id,
           label: подписьПотока,
-          labelStyle: { fontSize: 10, fill: '#5c6270' },
+          labelStyle: { fontSize: 12, fill: 'var(--ink-soft)' },
           markerEnd: { type: MarkerType.ArrowClosed },
         })
       }
@@ -271,7 +275,7 @@ export function SceneMap({ scene, current, onPick }: {
         target: `a-${дело.code}`,
         // Стрелка подписана артефактами: это и есть поток метода.
         label: предыдущее.outputs.map((в) => в.what).slice(0, 2).join(' · '),
-        labelStyle: { fontSize: 10, fill: '#5c6270' },
+        labelStyle: { fontSize: 12, fill: 'var(--ink-soft)' },
         markerEnd: { type: MarkerType.ArrowClosed },
       }
     })
@@ -291,8 +295,8 @@ export function SceneMap({ scene, current, onPick }: {
   }
 
   return (
-    <div className="v2-map" style={{ height: 200 }}>
-      <ReactFlow nodes={nodes} edges={edges} nodeOrigin={[0.5, 0.5]} fitView
+    <div className="v2-map" style={{ height: 160 }}>
+      <ReactFlow nodes={nodes} edges={edges} nodeOrigin={[0.5, 0.5]} fitView fitViewOptions={{ maxZoom: 1, padding: 0.15 }}
         nodesDraggable={false} nodesConnectable={false} elementsSelectable
         onNodeClick={(_, узел) => onPick(узел.id.slice(2))}>
         <Background />
@@ -306,41 +310,4 @@ function подписьМероприятия(дело: Activity): string {
   const есть = свои.filter((в) => в.satisfied).length
   const счёт = свои.map((в) => `${в.what}: ${в.count}`).slice(0, 2).join(' · ')
   return `${СОСТОЯНИЕ[дело.state]}${свои.length > 0 ? ` · выходов ${есть} из ${свои.length}` : ''}${счёт ? ` · ${счёт}` : ''}`
-}
-
-/** Карточка мероприятия: цель, входы, выходы-счётчики, завершение. */
-export function ActivityCard({ activity }: { activity: Activity }) {
-  const свои = activity.outputs.filter((в) => !в.produced_in)
-  const чужие = activity.outputs.filter((в) => в.produced_in)
-  return (
-    <div className="v2-act">
-      <div className="v2-act__head">
-        <b>{activity.code} · {activity.name}</b>
-        <span className="v2-dim">{activity.method_group}</span>
-      </div>
-      <div className="v2-act__goal">{activity.goal}</div>
-      <div className="v2-act__io">
-        <div>
-          <span className="v2-k">входы:</span>{' '}
-          {activity.inputs.length > 0 ? activity.inputs.join(' · ') : '—'}
-        </div>
-        <div>
-          <span className="v2-k">выходы:</span>{' '}
-          {свои.map((в) => (
-            <span key={в.kind + в.what} className={в.satisfied ? 'v2-ok' : 'v2-warn'}>
-              {в.what} <b>{в.count}</b>{в.min > 0 && `/${в.min}`}{' '}
-            </span>
-          ))}
-          {чужие.map((в) => (
-            <span key={в.kind + в.what} className="v2-dim">
-              {в.what} → сцена {в.produced_in}{' '}
-            </span>
-          ))}
-        </div>
-        {activity.blocked_by.length > 0 && (
-          <div className="v2-warn">ждёт входа: {activity.blocked_by.join('; ')}</div>
-        )}
-      </div>
-    </div>
-  )
 }

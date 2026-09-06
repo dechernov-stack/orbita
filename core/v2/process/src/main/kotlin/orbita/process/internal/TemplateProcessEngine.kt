@@ -90,6 +90,18 @@ class TemplateProcessEngine(
             }
         }
 
+        // Кто ждёт мероприятие: вход одного назван выходом (именем) другого.
+        // Карта строится по шаблону целиком — и сцены, и дорожки.
+        val ждутМероприятие = mutableMapOf<String, MutableList<String>>()
+        fun собрать(дело: JsonNode) {
+            дело.path("inputs").forEach { вход ->
+                ждутМероприятие.getOrPut(вход.path("what").asText()) { mutableListOf() } +=
+                    дело.path("code").asText()
+            }
+        }
+        док.path("scenes").forEach { с -> с.path("activities").forEach { собрать(it) } }
+        док.path("lanes").forEach { д -> д.path("activities").forEach { собрать(it) } }
+
         val сцены = док.path("scenes").sortedBy { it.path("order").asInt() }.map { сцена ->
             val ключ = сцена.path("key").asText()
             val условияВхода = сцена.path("entry").map { условие ->
@@ -140,7 +152,7 @@ class TemplateProcessEngine(
                 awaitedBy = ждут[ключ].orEmpty(),
                 inputFlows = сцена.path("process_ref").flatMap { потоки[it.asText()].orEmpty() },
                 window = окна[ключ],
-                activities = мероприятия(project, сцена, ключ, причиныВхода),
+                activities = мероприятия(project, сцена, ключ, причиныВхода, ждутМероприятие),
             )
         }
 
@@ -168,7 +180,7 @@ class TemplateProcessEngine(
                 // Мероприятия дорожки без сцены (моделирование, управление):
                 // они ждут артефактов из сцен и показываются схемой фазы.
                 activities = дорожка.path("activities").map { дело ->
-                    вид(project, дело, сценаКлюч = null, причиныВхода = emptyList())
+                    вид(project, дело, сценаКлюч = null, причиныВхода = emptyList(), ждут = ждутМероприятие)
                 },
             )
         }
@@ -202,8 +214,9 @@ class TemplateProcessEngine(
         сцена: JsonNode,
         ключ: String,
         причиныВхода: List<String>,
+        ждут: Map<String, List<String>>,
     ): List<ActivityView> = сцена.path("activities").map { дело ->
-        вид(project, дело, ключ, причиныВхода)
+        вид(project, дело, ключ, причиныВхода, ждут)
     }
 
     /**
@@ -215,6 +228,7 @@ class TemplateProcessEngine(
         дело: JsonNode,
         сценаКлюч: String?,
         причиныВхода: List<String>,
+        ждут: Map<String, List<String>> = emptyMap(),
     ): ActivityView {
         val выходы = дело.path("outputs").map { выход ->
             val вид = выход.path("kind").asText("")
@@ -256,6 +270,10 @@ class TemplateProcessEngine(
             surface = дело.path("surface").asText(""),
             state = состояние,
             blockedBy = причиныВхода,
+            // «Откроет»: мероприятия, ждущие этой работы, и сцены, где
+            // рождаются её выходы. Без этого рейка не отвечает на «зачем».
+            opens = (ждут[дело.path("name").asText()].orEmpty() +
+                выходы.mapNotNull { it.producedIn?.let { с -> "сцена $с" } }).distinct(),
         )
     }
 

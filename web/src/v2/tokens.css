@@ -18,12 +18,28 @@
   --accent: #2f6feb;
   --accent-soft: #eaf1fe;
 
+  /* Заливки блоков схемы: состояние читается текстом, цвет — подсказка. */
+  --v2-done: #eef7ee;
+  --v2-gate: #fff6e0;
+
   --ok: #1f7a45;
   --wait: #8a6100;
   --block: #b02a2a;
 
   --radius: 7px;
   --gap: 10px;
+
+  /* §5 дизайна v2: ТРИ размера и ничего между ними.
+     15 — заголовок мероприятия, 14 — текст, 12 — служебное. */
+  --size-h: 15px;
+  --size-s: 12px;
+  /* Отступы 8/12/16 — третьего ряда чисел на экране не заводим. */
+  --pad-s: 8px;
+  --pad-m: 12px;
+  --pad-l: 16px;
+  /* Рейка: 48 свёрнута, 280 развёрнута. */
+  --rail-w: 48px;
+  --rail-open: 280px;
 }
 
 * { box-sizing: border-box; }
@@ -56,7 +72,7 @@ body {
 .v2-ctx { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
 .v2-me { display: flex; gap: 14px; align-items: center; color: var(--ink-soft); }
 .v2-project { font: inherit; font-weight: 600; padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--ground); }
-.v2-chip { padding: 2px 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--ground-soft); font-size: 13px; }
+.v2-chip { padding: 2px 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--ground-soft); font-size: 12px; }
 .v2-bad { color: var(--block); }
 .v2-link { border: 0; background: none; color: var(--accent); cursor: pointer; padding: 0; font: inherit; }
 
@@ -64,7 +80,7 @@ body {
 .v2-panel { border: 1px solid var(--line); border-radius: var(--radius); background: var(--ground); margin-bottom: 14px; }
 .v2-panel > h3 {
   margin: 0; padding: 10px 12px; border-bottom: 1px solid var(--line);
-  font-size: 13px; display: flex; justify-content: space-between; gap: 10px; align-items: baseline;
+  font-size: 12px; display: flex; justify-content: space-between; gap: 10px; align-items: baseline;
 }
 .v2-cnt { color: var(--ink-mute); font-weight: 400; }
 .v2-list { padding: 6px 0; }
@@ -80,7 +96,7 @@ body {
 .v2-st--done { color: var(--ok); }
 .v2-st--open { color: var(--accent); }
 .v2-st--locked { color: var(--ink-mute); }
-.v2-win { display: block; font-size: 11px; color: var(--ink-mute); }
+.v2-win { display: block; font-size: 12px; color: var(--ink-mute); }
 .v2-note-line { padding: 6px 12px; font-size: 12px; color: var(--wait); border-bottom: 1px solid var(--line); }
 
 /* Плейсхолдер обязан читаться подсказкой, а не содержимым поля. */
@@ -90,25 +106,31 @@ body {
 
 /* Схема процесса: блоки библиотеки, наши — только подписи внутри. */
 .v2-map { border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
-.v2-lane-name { font-size: 11px; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-mute); text-align: right; }
+.v2-lane-name { font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-mute); text-align: right; }
 /* Блок схемы: вся площадь — кнопка, иначе клик ловит полотно. */
 .v2-node__btn, .v2-node__flat {
   display: block; width: 100%; height: 100%; padding: 6px 8px;
   border: 0; background: none; font: inherit; color: inherit; text-align: left;
 }
 .v2-node__btn { cursor: pointer; }
-.v2-node__btn:hover { background: rgba(47, 111, 235, .07); border-radius: 8px; }
-.v2-node { display: grid; gap: 2px; text-align: left; line-height: 1.25; }
-.v2-node__st { font-size: 10px; color: var(--ink-soft); }
+.v2-node__btn:hover { background: var(--accent-soft); border-radius: 8px; }
+.v2-node { display: grid; gap: 2px; text-align: left; line-height: 1.25; overflow: hidden; }
+/* Обрезков и переносов статуса на схеме нет: подпись живёт в двух строках
+   и заканчивается многоточием, а не половиной слова за краем блока. */
+.v2-node > b, .v2-node__st {
+  display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden;
+}
+.v2-node > b { -webkit-line-clamp: 2; }
+.v2-node__st { font-size: 12px; color: var(--ink-soft); -webkit-line-clamp: 2; }
 
 /* Карточка мероприятия — цель, входы, выходы-счётчики. */
 .v2-act { border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; margin-bottom: 12px; background: var(--ground-soft); }
 .v2-act__head { display: flex; gap: 10px; align-items: baseline; }
 .v2-act__goal { color: var(--ink-soft); margin: 4px 0 6px; }
-.v2-act__io { display: grid; gap: 3px; font-size: 13px; }
+.v2-act__io { display: grid; gap: 3px; font-size: 12px; }
 .v2-k { color: var(--ink-mute); }
 .v2-gate {
-  padding: 6px 12px; margin: 4px 0; font-size: 13px;
+  padding: 6px 12px; margin: 4px 0; font-size: 12px;
   border-top: 1px dashed var(--line); border-bottom: 1px dashed var(--line);
 }
 
@@ -123,12 +145,12 @@ body {
 .v2-dot--f { background: var(--accent); }
 .v2-next { margin-left: auto; padding: 6px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--ground); color: var(--ink-mute); }
 .v2-next--on { background: var(--accent); color: #fff; border-color: var(--accent); }
-.v2-next__why { display: block; font-size: 11px; max-width: 32ch; }
-.v2-flow { padding: 8px 14px; font-size: 13px; border-bottom: 1px solid var(--line); }
+.v2-next__why { display: block; font-size: 12px; max-width: 32ch; }
+.v2-flow { padding: 8px 14px; font-size: 12px; border-bottom: 1px solid var(--line); }
 .v2-body { display: grid; grid-template-columns: 1fr 300px; }
 .v2-frag { padding: 14px; min-width: 0; }
 .v2-cond { border-left: 1px solid var(--line); padding: 12px 14px; }
-.v2-cond h4 { margin: 0 0 8px; font-size: 13px; }
+.v2-cond h4 { margin: 0 0 8px; font-size: 12px; }
 .v2-cond h4 + ul { margin: 0 0 14px; padding: 0; }
 /* Знак и текст условия — одной строкой; причина уходит под неё. */
 .v2-c { list-style: none; margin: 6px 0; }
@@ -181,7 +203,7 @@ body {
 }
 .v2-step:hover { border-color: var(--accent); }
 .v2-step[aria-selected="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--ink); }
-.v2-step__n { font-family: var(--font-mono); font-size: 11px; color: var(--ink-mute); }
+.v2-step__n { font-family: var(--font-mono); font-size: 12px; color: var(--ink-mute); }
 .v2-step__s { font-size: 12px; color: var(--ink-mute); }
 .v2-step--done .v2-step__s { color: var(--ok); }
 .v2-step--locked .v2-step__s { color: var(--ink-mute); }
@@ -225,7 +247,7 @@ button:disabled { opacity: .55; cursor: default; }
 
 .v2-flag {
   margin-left: 6px; padding: 1px 6px; border-radius: 999px;
-  font-size: 11px; background: var(--accent-soft); color: var(--ink-soft);
+  font-size: 12px; background: var(--accent-soft); color: var(--ink-soft);
 }
 .v2-flag--warn { background: #fdf1ef; color: var(--block); }
 .v2-dim { color: var(--ink-mute); font-size: 12px; }
@@ -237,7 +259,7 @@ button:disabled { opacity: .55; cursor: default; }
 .v2-facet__body { color: var(--ink); display: grid; gap: 4px; }
 
 .v2-note { display: grid; gap: 2px; padding: 6px 0; border-bottom: 1px dashed var(--line); }
-.v2-note__rule { font-family: var(--font-mono); font-size: 11px; color: var(--ink-mute); }
+.v2-note__rule { font-family: var(--font-mono); font-size: 12px; color: var(--ink-mute); }
 
 .v2-tree { margin: 6px 0; padding-left: 18px; }
 .v2-tree li { margin-bottom: 3px; }
@@ -247,9 +269,53 @@ button:disabled { opacity: .55; cursor: default; }
 .v2-layers { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
 .v2-layer { border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 10px; }
 .v2-layer__head { display: flex; gap: 6px; align-items: baseline; color: var(--ink-soft); }
-.v2-layer__key { font-family: var(--font-mono); font-size: 11px; color: var(--accent); }
+.v2-layer__key { font-family: var(--font-mono); font-size: 12px; color: var(--accent); }
 
 /* Вкладки-грани: пустая вкладка честно показывает прочерк вместо нуля. */
 .v2-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
-.v2-tab { display: flex; gap: 5px; align-items: baseline; font-size: 13px; }
+.v2-tab { display: flex; gap: 5px; align-items: baseline; font-size: 12px; }
 .v2-tab[aria-selected="true"] { border-color: var(--accent); background: var(--accent-soft); }
+
+
+/* ── Экран мероприятия (ДИЗАЙН-ПРИНЦИПЫ-V2, эталон reference-activity-engineer) ──
+   Поверхность во всю ширину, рейка справа, строка выходов внизу —
+   фиксирована. Третья колонка на экране инженера запрещена принципом §4:
+   развёрнутая рейка ложится ПОВЕРХ, а не рядом. */
+.v2-act2 { display: grid; grid-template-columns: 1fr var(--rail-w); position: relative; min-height: 60vh; }
+.v2-act2__col { min-width: 0; padding: 0 var(--pad-m) 48px 0; }
+
+.v2-act2__ctx { display: flex; gap: var(--pad-m); align-items: baseline; flex-wrap: wrap; padding: 0 0 var(--pad-s); }
+.v2-act2__h { margin: 0; font-size: var(--size-h); font-weight: 600; }
+
+.v2-act2__surface { min-width: 0; }
+
+.v2-act2__foot {
+  position: sticky; bottom: 0; display: flex; gap: var(--pad-l); align-items: baseline;
+  padding: var(--pad-s) 0; margin-top: var(--pad-m);
+  border-top: 1px solid var(--line); background: var(--ground);
+}
+.v2-act2__sp { flex: 1; }
+
+.v2-act2__rail {
+  border-left: 1px solid var(--line); display: flex; flex-direction: column;
+  align-items: center; gap: var(--pad-m); padding-top: var(--pad-m);
+}
+.v2-act2__r {
+  width: 36px; height: 36px; border-radius: var(--radius); border: 1px solid var(--line);
+  background: var(--ground); font: inherit; font-size: var(--size-s); line-height: 1;
+  color: var(--ink-soft); padding: 0; cursor: pointer;
+}
+.v2-act2__r b { display: block; color: var(--ink); font-size: var(--size-s); }
+.v2-act2__r--on { border-color: var(--accent); background: var(--accent-soft); }
+
+.v2-act2__panel {
+  position: absolute; top: 0; right: var(--rail-w); width: var(--rail-open);
+  border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--ground); padding: var(--pad-m); box-shadow: 0 6px 24px rgba(0, 0, 0, .08);
+}
+.v2-act2__ph { display: flex; justify-content: space-between; gap: var(--pad-s); margin-bottom: var(--pad-s); font-weight: 600; }
+.v2-act2__list { margin: 0; padding-left: var(--pad-l); display: grid; gap: 6px; }
+
+/* Схема мероприятий сцены у ведущего СИ — компактно и сверху. */
+.v2-scenemap { border: 1px solid var(--line); border-radius: var(--radius); background: var(--ground); margin-bottom: var(--pad-m); }
+.v2-density { font: inherit; font-size: var(--size-s); padding: 2px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--ground); }

@@ -34,6 +34,8 @@ internal object PhaseJson {
             }
             val держит = у.putArray("blocked_by")
             дело.blockedBy.forEach { держит.add(it) }
+            val откроет = у.putArray("opens")
+            дело.opens.forEach { откроет.add(it) }
         }
     }
 

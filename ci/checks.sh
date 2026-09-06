@@ -55,6 +55,9 @@ else
   echo "== ReqIF: круговой обмен == ПРОПУЩЕНО: нет пакета reqif (pip install reqif==0.0.47)"
 fi
 
+echo "== дизайн v2: три размера, один акцент, тест действия =="
+python3 tools/validate_v2_design.py
+
 echo "== исполняемые эталоны =="
 total=0
 for f in spec/*.py; do

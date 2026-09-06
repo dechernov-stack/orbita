@@ -1,14 +1,20 @@
 // Раздел «Работа» — поверхность работы есть СХЕМА ПРОЦЕССА
-// (РЕШЕНИЕ-ПРОЦЕСС-НА-ЭКРАНЕ).
+// (РЕШЕНИЕ-ПРОЦЕСС-НА-ЭКРАНЕ), но показывается она ПО РОЛИ
+// (ДИЗАЙН-ПРИНЦИПЫ-V2 §2).
 //
-// Сверху — схема фазы дорожками; выбрал сцену — её мероприятия схемой;
-// выбрал мероприятие — его рабочая поверхность снизу. Единица работы —
-// мероприятие метода, а не форма: у него цель, входы и выходы-счётчики.
+// Инженер видит одно мероприятие: рабочую поверхность во всю ширину,
+// строку выходов и рейку со счётчиками. Ведущий СИ — плюс компактную
+// схему мероприятий сцены сверху. Руководитель и DA — карту фазы
+// стартовым экраном, поверхности за кликом.
+//
+// Ничего из построенного не выброшено: схемы, лента и условия живут там
+// же, меняются умолчания видимости.
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { api, type Phase } from './api'
-import { SceneFrame } from './SceneFrame'
+import { ActivityScreen } from './activity'
 import { PhaseBand } from './phaseband'
-import { ActivityCard, PhaseMap, SceneMap } from './processmap'
+import { PhaseMap, SceneMap } from './processmap'
+import { режимПоРоли, составЭкрана, type Режим } from './density'
 import {
   SceneConstraints, SceneGoals, SceneIntent, SceneOpenProject,
   SceneServices, SceneStakeholders,
@@ -17,7 +23,7 @@ import { Concept } from './concept'
 import { Requirements } from './requirements'
 import { Costs, Risks, Technologies } from './programmatics'
 
-export function Work({ project, onProject, wantScene, onScenePicked, onScene }: {
+export function Work({ project, onProject, wantScene, onScenePicked, onScene, роль, режим, onРежим }: {
   project: string | null
   onProject: (p: string) => void
   /** Сцена, на которую просили открыть работу (переход из заданий). */
@@ -25,12 +31,18 @@ export function Work({ project, onProject, wantScene, onScenePicked, onScene }: 
   onScenePicked?: () => void
   /** Открытая сцена — шапке: контекст обязан совпадать с экраном. */
   onScene?: (key: string | null) => void
+  /** Моя роль в проекте: она задаёт плотность по умолчанию. */
+  роль: string | null
+  /** Плотность, выбранная руками; пусто — умолчание роли. */
+  режим?: Режим | null
+  onРежим?: (р: Режим) => void
 }) {
   const [фаза, setФаза] = useState<Phase | null>(null)
   const [сцена, setСцена] = useState<string | null>(null)
   const [мероприятие, setМероприятие] = useState<string | null>(null)
-  const [видСхемы, setВидСхемы] = useState<'phase' | 'scene'>('phase')
   const [отказ, setОтказ] = useState<string | null>(null)
+
+  const текущийРежим: Режим = режим ?? режимПоРоли(роль)
 
   const перечитать = useCallback(() => {
     if (!project) return
@@ -44,14 +56,14 @@ export function Work({ project, onProject, wantScene, onScenePicked, onScene }: 
 
   // Смена проекта сбрасывает выбранную сцену: иначе схема показывает сцену
   // прежнего проекта — в новом она может быть ещё закрыта.
-  useEffect(() => { setСцена(null); setМероприятие(null); setВидСхемы('phase') }, [project])
+  useEffect(() => { setСцена(null); setМероприятие(null) }, [project])
 
   useEffect(перечитать, [перечитать])
 
   useEffect(() => {
     if (wantScene) {
       setСцена(wantScene)
-      setВидСхемы('scene')
+      setМероприятие(null)
       onScenePicked?.()
     }
   }, [wantScene, onScenePicked])
@@ -79,57 +91,75 @@ export function Work({ project, onProject, wantScene, onScenePicked, onScene }: 
   if (отказ) return <div className="v2-panel"><div className="v2-locked">{отказ}</div></div>
   if (!фаза || !текущая) return <div className="v2-panel"><div className="v2-empty">Читаю фазу…</div></div>
 
+  const состав = составЭкрана(текущийРежим)
+  const картаФазы = состав.some((б) => б.key === 'карта-фазы')
+  const схемаСцены = состав.some((б) => б.key === 'схема-сцены')
+
+  // Карта фазы — стартовый экран руководителя: клик по сцене уводит на её
+  // работу, и плотность становится «сцена» (одна на выбранную работу).
+  if (картаФазы) {
+    return (
+      <div className="v2-panel" data-why="следующий-клик">
+        <h3>
+          Карта фазы
+          <span className="v2-cnt">
+            {фаза.scenes.length} сцен · {фаза.gates.length} точки · дорожек {фаза.lanes.length}
+          </span>
+        </h3>
+        <PhaseMap phase={фаза} onScene={(к) => {
+          setСцена(к); setМероприятие(null); onРежим?.('сцена')
+        }} />
+        <PhaseBand phase={фаза} current={текущая.key}
+          onPick={(к) => { setСцена(к); setМероприятие(null); onРежим?.('сцена') }} />
+      </div>
+    )
+  }
+
   const делоТекущее = текущая.activities.find((д) => д.code === мероприятие)
     ?? текущая.activities.find((д) => д.state === 'in_progress')
     ?? текущая.activities.find((д) => д.state === 'available')
     ?? текущая.activities[0]
 
+  const поверхность = (
+    <>
+      {текущая.state === 'locked' && (
+        <div className="v2-locked">
+          Сцена закрыта: {текущая.entry.filter((у) => !у.passed).map((у) => у.why ?? у.title).join('; ')}.
+        </div>
+      )}
+      {текущая.key === '1' && (
+        <div className="v2-empty">
+          Проект открыт: {фаза.project}, стандарт {фаза.standard}.
+          <span className="v2-empty__why">Даты точек задаются планом работ фазы — мероприятие 0.P.</span>
+        </div>
+      )}
+      {текущая.key === '2' && <SceneIntent project={project} onChanged={перечитать} />}
+      {текущая.key === '3' && <SceneStakeholders project={project} onChanged={перечитать} />}
+      {текущая.key === '4' && <SceneGoals project={project} onChanged={перечитать} />}
+      {текущая.key === '5' && <SceneConstraints project={project} onChanged={перечитать} />}
+      {текущая.key === '6' && <SceneServices project={project} onChanged={перечитать} />}
+      {текущая.key === '7' && <Concept project={project} />}
+      {текущая.key === '8' && <Requirements project={project} />}
+      {текущая.key === '10' && <Technologies project={project} />}
+      {текущая.key === '11' && <Risks project={project} />}
+      {текущая.key === '12' && <Costs project={project} />}
+    </>
+  )
+
   return (
     <>
-      <div className="v2-panel">
-        <h3>
-          {видСхемы === 'phase' ? 'Схема фазы' : `Схема сцены ${текущая.key} · ${текущая.title}`}
-          <span className="v2-cnt">
-            {видСхемы === 'phase'
-              ? `${фаза.scenes.length} сцен · ${фаза.gates.length} точки · дорожек ${фаза.lanes.length}`
-              : `${текущая.activities.length} мероприятий · роль: ${текущая.role}`}
-            {'  '}
-            <button type="button" className="v2-link"
-              title={видСхемы === 'phase' ? 'к схеме мероприятий сцены' : 'к схеме фазы дорожками'}
-              onClick={() => setВидСхемы(видСхемы === 'phase' ? 'scene' : 'phase')}>
-              {видСхемы === 'phase' ? 'сцена →' : '← фаза'}
-            </button>
-          </span>
-        </h3>
-        {видСхемы === 'phase'
-          ? <PhaseMap phase={фаза} onScene={(к) => { setСцена(к); setМероприятие(null); setВидСхемы('scene') }} />
-          : <SceneMap scene={текущая} current={делоТекущее?.code ?? null} onPick={setМероприятие} />}
-      </div>
-
-      <div className="v2-two-cols">
-        <PhaseBand phase={фаза} current={текущая.key}
-          onPick={(к) => { setСцена(к); setМероприятие(null); setВидСхемы('scene') }} />
-        <SceneFrame phase={фаза} scene={текущая} activity={делоТекущее}
-          onPick={(к) => { setСцена(к); setМероприятие(null) }}>
-          {делоТекущее && <ActivityCard activity={делоТекущее} />}
-          {текущая.key === '1' && (
-            <div className="v2-empty">
-              Проект открыт: {фаза.project}, стандарт {фаза.standard}.
-              <span className="v2-empty__why">Даты точек задаются планом работ фазы — мероприятие 0.P.</span>
-            </div>
-          )}
-          {текущая.key === '2' && <SceneIntent project={project} onChanged={перечитать} />}
-          {текущая.key === '3' && <SceneStakeholders project={project} onChanged={перечитать} />}
-          {текущая.key === '4' && <SceneGoals project={project} onChanged={перечитать} />}
-          {текущая.key === '5' && <SceneConstraints project={project} onChanged={перечитать} />}
-          {текущая.key === '6' && <SceneServices project={project} onChanged={перечитать} />}
-          {текущая.key === '7' && <Concept project={project} />}
-          {текущая.key === '8' && <Requirements project={project} />}
-          {текущая.key === '10' && <Technologies project={project} />}
-          {текущая.key === '11' && <Risks project={project} />}
-          {текущая.key === '12' && <Costs project={project} />}
-        </SceneFrame>
-      </div>
+      {схемаСцены && (
+        <div className="v2-scenemap" data-why="следующий-клик"
+          title="мероприятия сцены: клик открывает поверхность">
+          <SceneMap scene={текущая} current={делоТекущее?.code ?? null} onPick={setМероприятие} />
+        </div>
+      )}
+      <ActivityScreen phase={фаза} scene={текущая} activity={делоТекущее}
+        режим={текущийРежим} роль={роль}
+        onPickActivity={setМероприятие}
+        onPhaseMap={() => onРежим?.('фаза')}>
+        {поверхность}
+      </ActivityScreen>
     </>
   )
 }
