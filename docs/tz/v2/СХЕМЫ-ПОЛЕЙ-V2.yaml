@@ -390,24 +390,56 @@ kinds:
   export: —
   engine: есть
 - n: 14
-  code: typical_requirement · typical_risk · stakeholder_profile
-  name: типовые записи
+  code: typical_requirement
+  name: типовое требование (библиотека)
   layer: L0
   born_in: —
   status_model: null
   fields:
-  - name: typical_requirement
-    type: '{code*,title*,statement*,category*,measure?,verification*,acceptance?,applicability*:class[],normative_basis?}'
+  - name: code
+    type: str
     required: true
     note: ''
-  - name: typical_risk
-    type: '{code*,statement*,cec*,probability*,impact*,strategy*,applicability*}'
+  - name: title
+    type: str
     required: true
     note: ''
-  - name: stakeholder_profile
-    type: '{code*,role*,name*,interests*,typical_needs?}'
+  - name: ears_pattern
+    type: enum[ubiquitous,event,state,unwanted,optional]
     required: true
     note: ''
+  - name: statement_template
+    type: text
+    required: true
+    note: с плейсхолдерами {носитель}, {значение}
+  - name: category
+    type: enum[functional,performance,interface,operational,constraint,safety,environment]
+    required: true
+    note: ''
+  - name: measure
+    type: measure{…}
+    required: false
+    note: ''
+  - name: verification
+    type: ref method_catalog
+    required: true
+    note: ''
+  - name: acceptance_criteria
+    type: text
+    required: false
+    note: ''
+  - name: applicability
+    type: class[]
+    required: true
+    note: ''
+  - name: normative_basis
+    type: '{normative_document*,clause*}'
+    required: false
+    note: ''
+  - name: version
+    type: int
+    required: true
+    note: новая редакция подсвечивает экземпляры
   export: —
   engine: есть
 - n: 15
@@ -784,23 +816,27 @@ kinds:
   export: FA §4
   engine: есть
 - n: 28
-  code: account · role · right
-  name: учётка · роль · право
+  code: account
+  name: учётка
   layer: L1
   born_in: —
-  status_model: null
+  status_model: active|disabled
   fields:
-  - name: account
-    type: '{login*,name*,roles*:ref[] role}'
+  - name: login
+    type: str
     required: true
     note: ''
-  - name: role
-    type: '{code*,rights*:ref[] right}'
+  - name: name
+    type: str
     required: true
     note: ''
-  - name: right
-    type: '{code*,description*}'
+  - name: roles
+    type: ref[] role
     required: true
+    note: ''
+  - name: email
+    type: str
+    required: false
     note: ''
   export: —
   engine: есть
@@ -2910,6 +2946,130 @@ kinds:
     note: ''
   export: SEMP §6, матрица соответствия
   engine: новый
+- n: 141
+  code: typical_risk
+  name: типовой риск (библиотека)
+  layer: L0
+  born_in: —
+  status_model: null
+  fields:
+  - name: code
+    type: str
+    required: true
+    note: ''
+  - name: statement
+    type: str
+    required: true
+    note: ''
+  - name: cec
+    type: '{condition*,event*,consequence*}'
+    required: true
+    note: ''
+  - name: category
+    type: enum[technical,cost,schedule,safety,regulatory,security,programmatic]
+    required: true
+    note: ''
+  - name: probability
+    type: int 1–5
+    required: true
+    note: ''
+  - name: impact
+    type: int 1–5
+    required: true
+    note: ''
+  - name: strategy
+    type: enum[mitigate,accept,transfer,avoid]
+    required: true
+    note: ''
+  - name: measures
+    type: text
+    required: true
+    note: ''
+  - name: applicability
+    type: class[]
+    required: true
+    note: ''
+  export: —
+  engine: есть
+- n: 142
+  code: stakeholder_profile
+  name: профиль стейкхолдера (библиотека)
+  layer: L0
+  born_in: —
+  status_model: null
+  fields:
+  - name: code
+    type: str
+    required: true
+    note: ''
+  - name: role
+    type: enum[customer,regulator,operator,consumer,supplier,partner,established]
+    required: true
+    note: ''
+  - name: name
+    type: str
+    required: true
+    note: ''
+  - name: interests
+    type: text
+    required: true
+    note: ''
+  - name: typical_needs
+    type: '[{statement*,qos_class*}]'
+    required: false
+    note: ''
+  - name: applicability
+    type: class[]
+    required: true
+    note: ''
+  export: —
+  engine: есть
+- n: 281
+  code: role
+  name: роль
+  layer: L1
+  born_in: —
+  status_model: null
+  fields:
+  - name: code
+    type: str
+    required: true
+    note: ''
+  - name: name
+    type: str
+    required: true
+    note: ''
+  - name: rights
+    type: ref[] right
+    required: true
+    note: ''
+  - name: phase_involvement
+    type: '[{phase*,involvement*}]'
+    required: false
+    note: роли по стадиям из phase_template.roles
+  export: —
+  engine: есть
+- n: 282
+  code: right
+  name: право
+  layer: L1
+  born_in: —
+  status_model: null
+  fields:
+  - name: code
+    type: str
+    required: true
+    note: ''
+  - name: description
+    type: str
+    required: true
+    note: ''
+  - name: scope
+    type: enum[project,system]
+    required: true
+    note: ''
+  export: —
+  engine: есть
 versioning_rules:
 - правка поля → новая версия объекта (автор, valid_from); старая остаётся
 - правка после baseline → только с basis; помета after_baseline_changed; связи объекта → suspect
@@ -3082,3 +3242,4 @@ artifact_maturity_ladder:
   - °
   rule: код зрелости артефакта к точке обязателен и монотонен по стадиям; DMN точки строится из control_items
   source: ПОЛКА-ПРОЦЕССЫ-РОМАНОВ.maturity_matrix (113 артефактов × 5 экспертиз)
+note_wave0: группы «account · role · right» и «typical_*» разведены на шесть видов со своими полями (находка Code, волна 0)

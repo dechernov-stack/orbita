@@ -36,6 +36,13 @@ class SceneRoutes(
         // открыть заново можно, вернуться к открытому было нельзя.
         method == "GET" && path == "/v2/projects" -> портфель()
 
+        // План работ фазы: даты точек и окна сцен. Порог владельца — план у
+        // первой доступной сцены; остальные окна до обзора — пометы.
+        method == "GET" && path == "/v2/plan" -> план(требуется(query, "project"))
+
+
+        method == "POST" && path == "/v2/plan" -> задатьПлан(требуется(query, "project"), разобрать(body))
+
         method == "POST" && path == "/v2/intent" -> замысел(требуется(query, "project"), разобрать(body))
 
         method == "POST" && path == "/v2/stakeholders" ->
@@ -66,6 +73,43 @@ class SceneRoutes(
                 .put("phase", проект.doc.path("phase").asText("Pre-Phase A"))
         }
         return V2Router.Ответ(200, ответ)
+    }
+
+    private fun план(проект: String): V2Router.Ответ {
+        val запись = store.list(Area.Project(проект), "plan").lastOrNull()
+        val ответ = mapper.createObjectNode()
+        if (запись == null) {
+            ответ.put("planned", false)
+            ответ.put("note", "план работ фазы не задан: ленте нечего показывать")
+        } else {
+            ответ.put("planned", true)
+            ответ.put("set_by", запись.doc.path("set_by").asText(""))
+            ответ.set<JsonNode>("gate_dates", запись.doc.path("gate_dates"))
+            ответ.set<JsonNode>("scene_windows", запись.doc.path("scene_windows"))
+        }
+        return V2Router.Ответ(200, ответ)
+    }
+
+    private fun задатьПлан(проект: String, тело: JsonNode): V2Router.Ответ {
+        val область = Area.Project(проект)
+        val документ = mapper.createObjectNode()
+        документ.put("phase", тело.path("phase").asText("Pre-Phase A"))
+        документ.set<JsonNode>("gate_dates", тело.path("gate_dates"))
+        документ.set<JsonNode>("scene_windows", тело.path("scene_windows"))
+        документ.put("set_by", автор(тело))
+        val прежний = store.list(область, "plan").lastOrNull()
+        val запись = if (прежний == null) {
+            store.create("PLAN-$проект", "plan", область, "1", документ, Provenance(Channel.MANUAL, автор(тело)))
+        } else {
+            store.update(прежний.id, документ, Provenance(Channel.MANUAL, автор(тело)))
+        }
+        // Даты точек живут в самих точках: план их задаёт, а не дублирует.
+        тело.path("gate_dates").forEach { пара ->
+            val точка = store.byCode(область, пара.path("gate").asText()) ?: return@forEach
+            val док = точка.doc.deepCopy<ObjectNode>().put("planned_date", пара.path("date").asText(""))
+            store.update(точка.id, док, Provenance(Channel.MANUAL, автор(тело)))
+        }
+        return V2Router.Ответ(201, mapper.createObjectNode().put("code", запись.code).put("version", запись.version))
     }
 
     private fun фаза(проект: String) = V2Router.Ответ(200, PhaseJson.вид(engine.view(проект), mapper))

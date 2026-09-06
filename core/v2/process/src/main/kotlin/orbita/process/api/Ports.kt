@@ -17,6 +17,16 @@ enum class SceneState {
     DONE,
 }
 
+/**
+ * Условие сцены или точки: заголовок для человека, проверка для движка,
+ * состояние и причина отказа.
+ *
+ * Отдельный вид нужен интерфейсу: панель условий показывает ВСЕ условия
+ * (✓ выполненные и ☐ невыполненные), а не только то, чего не хватает —
+ * иначе не видно, из чего сцена состоит.
+ */
+data class ConditionView(val title: String, val check: String, val passed: Boolean, val why: String?)
+
 data class SceneView(
     val key: String,
     val title: String,
@@ -27,6 +37,18 @@ data class SceneView(
     /** Чего не хватает, чтобы сцена открылась либо закрылась — словами. */
     val blockers: List<String>,
     val steps: List<StepView>,
+    /** Условия входа целиком: чем сцена держится закрытой. */
+    val entry: List<ConditionView> = emptyList(),
+    /** Условия выхода целиком: что должно случиться, чтобы сцена прожилась. */
+    val exit: List<ConditionView> = emptyList(),
+    /** Что сцена даёт на выходе — словами (нить потока). */
+    val output: String = "",
+    /** Кто ждёт эту сцену: другие сцены и точки. */
+    val awaitedBy: List<String> = emptyList(),
+    /** Входные потоки процесса ЖЦ — данными полки, а не памятью. */
+    val inputFlows: List<String> = emptyList(),
+    /** Окно плана работ фазы: начало и конец. Пусто — «план не задан». */
+    val window: Pair<String, String>? = null,
 )
 
 data class StepView(val title: String, val place: String, val hint: String, val done: Boolean)

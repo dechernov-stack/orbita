@@ -1,0 +1,170 @@
+{
+ "kind": "glossary_cross_terms",
+ "code": "GL-9003",
+ "title": "Кросс-терминология: NASA ↔ РК-11КТ / ГОСТ ↔ Романов",
+ "rule": "интерфейс — в терминах NASA; соответствия — здесь; поиск в глоссарии по любому из имён",
+ "items": [
+  {
+   "term_nasa": "Pre-A",
+   "ru_equivalent": "Предпроект / НИР (стадии 0–1 РК-11КТ; в РК-11КТ отсутствуют)",
+   "en_full": "Concept studies",
+   "romanov": "Стадии 0–1: замысел и облик миссии"
+  },
+  {
+   "term_nasa": "Phase A",
+   "ru_equivalent": "Аванпроект (стадия 2)",
+   "en_full": "Concept & technology development",
+   "romanov": "Стадия 2: аванпроект сегментов и элементов"
+  },
+  {
+   "term_nasa": "Phase B",
+   "ru_equivalent": "Эскизный проект (стадия 3)",
+   "en_full": "Preliminary design",
+   "romanov": "Стадия 3"
+  },
+  {
+   "term_nasa": "Phase C/D",
+   "ru_equivalent": "Разработка РД, изготовление, испытания; госиспытания (стадии 4–5)",
+   "en_full": "Final design & fabrication; assembly, integration, test",
+   "romanov": "Стадии 4–5"
+  },
+  {
+   "term_nasa": "MCR",
+   "ru_equivalent": "Экспертиза замысла / концепции миссии",
+   "en_full": "Mission Concept Review",
+   "romanov": "EXP-0A/0B: валидация потребности в миссии и её задач"
+  },
+  {
+   "term_nasa": "SRR",
+   "ru_equivalent": "Экспертиза требований к миссии / к системе",
+   "en_full": "System Requirements Review",
+   "romanov": "EXP-1A / EXP-2A"
+  },
+  {
+   "term_nasa": "SDR/MDR",
+   "ru_equivalent": "Экспертиза облика миссии / облика системы",
+   "en_full": "System Definition / Mission Definition Review",
+   "romanov": "EXP-1B / EXP-2B: схема деления и перечень изделий"
+  },
+  {
+   "term_nasa": "PDR",
+   "ru_equivalent": "Экспертиза аванпроекта",
+   "en_full": "Preliminary Design Review",
+   "romanov": "EXP-3: проектирование по исходным данным"
+  },
+  {
+   "term_nasa": "KDP",
+   "ru_equivalent": "Ключевая точка решения; в РК-11КТ — решение по итогам экспертизы",
+   "en_full": "Key Decision Point",
+   "romanov": "решение о переходе стадии"
+  },
+  {
+   "term_nasa": "ConOps",
+   "ru_equivalent": "Концепция операций; в ГОСТ ISO 15288 — концепция эксплуатации",
+   "en_full": "Concept of Operations",
+   "romanov": "«эксплуатационная концепция системы» (0.8), «концепции миссии и эксплуатации» (1.3)"
+  },
+  {
+   "term_nasa": "SEMP",
+   "ru_equivalent": "План управления системной инженерией; у Романова — «программа инженерного управления системой»",
+   "en_full": "Systems Engineering Management Plan",
+   "romanov": "1.P: программа инженерного управления системой"
+  },
+  {
+   "term_nasa": "FA",
+   "ru_equivalent": "Соглашение о формулировании",
+   "en_full": "Formulation Agreement",
+   "romanov": "—"
+  },
+  {
+   "term_nasa": "Baseline (functional/allocated/product)",
+   "ru_equivalent": "Базовая линия: функциональная / исходные данные на проектирование / на производство",
+   "en_full": "Functional / Allocated / Product Baseline",
+   "romanov": "строка «готовность системы»: функциональные ИД → ИД на проектирование → ИД на производство"
+  },
+  {
+   "term_nasa": "Requirement",
+   "ru_equivalent": "Требование (ГОСТ Р 57193 — требование к системе)",
+   "en_full": "Requirement",
+   "romanov": "«требования к миссии/системе/сегментам/элементам»"
+  },
+  {
+   "term_nasa": "Stakeholder",
+   "ru_equivalent": "Заинтересованная сторона (ГОСТ ISO 15288)",
+   "en_full": "Stakeholder",
+   "romanov": "«пользователи миссии» (0.1, 0.M1)"
+  },
+  {
+   "term_nasa": "Need",
+   "ru_equivalent": "Потребность",
+   "en_full": "Need",
+   "romanov": "«потребности в миссии» (0.1)"
+  },
+  {
+   "term_nasa": "Verification / Validation",
+   "ru_equivalent": "Верификация / валидация (ГОСТ ISO 15288: процессы верификации и валидации)",
+   "en_full": "Verification / Validation",
+   "romanov": "«верификация моделей», «валидация моделей сегмента» (2.M7)"
+  },
+  {
+   "term_nasa": "TRL",
+   "ru_equivalent": "Уровень готовности технологии (ГОСТ Р 58048)",
+   "en_full": "Technology Readiness Level",
+   "romanov": "«разработка технологий» (2.T), план развития технологии"
+  },
+  {
+   "term_nasa": "PBS",
+   "ru_equivalent": "Схема деления системы / перечень разрабатываемых изделий",
+   "en_full": "Product Breakdown Structure",
+   "romanov": "«предварительная схема деления системы» (0.8), «схема деления» (EXP-2B)"
+  },
+  {
+   "term_nasa": "WBS",
+   "ru_equivalent": "Структура распределения работ / состав работ, ведомость исполнения",
+   "en_full": "Work Breakdown Structure",
+   "romanov": "«структура распределения работы» (EXP-1B), «состав выполняемых работ» (EXP-2B)"
+  },
+  {
+   "term_nasa": "ICD",
+   "ru_equivalent": "Интерфейсный контрольный документ",
+   "en_full": "Interface Control Document",
+   "romanov": "«интерфейсный контрольный документ» (EXP-2B)"
+  },
+  {
+   "term_nasa": "MEL",
+   "ru_equivalent": "Перечень оборудования и ПО",
+   "en_full": "Master Equipment List",
+   "romanov": "«перечень оборудования и ПО» (EXP-1B/2B)"
+  },
+  {
+   "term_nasa": "TPM",
+   "ru_equivalent": "Технические показатели (измеряемые характеристики)",
+   "en_full": "Technical Performance Measure",
+   "romanov": "«бюджет TPM», «план измерения технических характеристик»"
+  },
+  {
+   "term_nasa": "AoA",
+   "ru_equivalent": "Анализ альтернатив",
+   "en_full": "Analysis of Alternatives",
+   "romanov": "«анализ и оценка архитектур и концепций» (1.7), «синтез и уменьшение количества вариантов» (1.8)"
+  },
+  {
+   "term_nasa": "Tailoring",
+   "ru_equivalent": "Адаптация / отклонение от нормы с обоснованием",
+   "en_full": "Tailoring",
+   "romanov": "—"
+  },
+  {
+   "term_nasa": "Peer review",
+   "ru_equivalent": "Внутренняя (независимая) экспертиза коллег",
+   "en_full": "Peer Review",
+   "romanov": "«экспертиза» как контрольная точка"
+  },
+  {
+   "term_nasa": "MBSE",
+   "ru_equivalent": "Модельно-ориентированный системный инжиниринг (ГОСТ ISO 24641-2023)",
+   "en_full": "Model-Based Systems Engineering",
+   "romanov": "«процессы ЖЦ цифрового модельно-ориентированного инжиниринга»"
+  }
+ ]
+}

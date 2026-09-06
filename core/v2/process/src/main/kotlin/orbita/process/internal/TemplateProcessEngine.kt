@@ -10,6 +10,7 @@
 package orbita.process.internal
 
 import com.fasterxml.jackson.databind.JsonNode
+import orbita.process.api.ConditionView
 import orbita.process.api.GateEvaluator
 import orbita.process.api.GateView
 import orbita.process.api.PhaseView
@@ -26,6 +27,18 @@ class TemplateProcessEngine(
     /** Пройденные точки хранит вызывающий (kernel), движок их только читает. */
     private val пройденныеТочки: (String) -> MutableSet<String>,
     private val планТочек: (String) -> Map<String, String>,
+    /**
+     * Окна плана работ фазы: сцена → (начало, конец). Порог владельца:
+     * план обязателен у ПЕРВОЙ доступной сцены, остальные окна до
+     * внутреннего обзора — помета «план не задан», а не разрыв.
+     */
+    private val окнаСцен: ((String) -> Map<String, Pair<String, String>>)? = null,
+    /**
+     * Справочник процессов ЖЦ (полка Романова): откуда берутся входные
+     * потоки сцены. Методология приходит ДАННЫМИ — в интерфейсе её имена
+     * не показываются, только смысл потока.
+     */
+    private val процессы: (() -> JsonNode?)? = null,
 ) : ProcessEngine {
 
     private val шаблоныПроектов = mutableMapOf<String, String>()
@@ -42,14 +55,49 @@ class TemplateProcessEngine(
 
         // Сцены считаются по порядку: состояние следующей зависит от предыдущих
         val прожитые = mutableSetOf<String>()
+        val потоки = входныеПотоки()
+        val окна = окнаСцен?.invoke(project).orEmpty()
+
+        // Кто кого ждёт: считается по самому шаблону — второй карты связей
+        // между сценами нет, и разойтись ей не с чем.
+        val ждут = mutableMapOf<String, MutableList<String>>()
+        док.path("scenes").forEach { сцена ->
+            сцена.path("entry").forEach { условие ->
+                val ссылка = условие.path("check").asText().removePrefix("scene_done:")
+                if (условие.path("check").asText().startsWith("scene_done:")) {
+                    ждут.getOrPut(ссылка) { mutableListOf() } +=
+                        "${сцена.path("key").asText()} · ${сцена.path("title").asText()}"
+                }
+            }
+        }
+        док.path("points").forEach { точка ->
+            точка.path("criteria").forEach { условие ->
+                val проверка = условие.path("check").asText()
+                if (проверка.startsWith("scene_done:")) {
+                    ждут.getOrPut(проверка.removePrefix("scene_done:")) { mutableListOf() } +=
+                        "◆ ${точка.path("title").asText()}"
+                }
+            }
+        }
+
         val сцены = док.path("scenes").sortedBy { it.path("order").asInt() }.map { сцена ->
             val ключ = сцена.path("key").asText()
-            val причиныВхода = сцена.path("entry").mapNotNull { условие ->
-                проверить(project, условие.path("check").asText(), прожитые, пройдены)
+            val условияВхода = сцена.path("entry").map { условие ->
+                val причина = проверить(project, условие.path("check").asText(), прожитые, пройдены)
+                ConditionView(
+                    условие.path("title").asText(условие.path("check").asText()),
+                    условие.path("check").asText(), причина == null, причина,
+                )
             }
-            val причиныВыхода = сцена.path("exit").mapNotNull { условие ->
-                проверить(project, условие.path("check").asText(), прожитые, пройдены)
+            val условияВыхода = сцена.path("exit").map { условие ->
+                val причина = проверить(project, условие.path("check").asText(), прожитые, пройдены)
+                ConditionView(
+                    условие.path("title").asText(условие.path("check").asText()),
+                    условие.path("check").asText(), причина == null, причина,
+                )
             }
+            val причиныВхода = условияВхода.mapNotNull { it.why }
+            val причиныВыхода = условияВыхода.mapNotNull { it.why }
             val состояние = when {
                 причиныВхода.isNotEmpty() -> SceneState.LOCKED
                 причиныВыхода.isEmpty() -> SceneState.DONE
@@ -65,13 +113,23 @@ class TemplateProcessEngine(
                 state = состояние,
                 blockers = if (состояние == SceneState.LOCKED) причиныВхода else причиныВыхода,
                 steps = сцена.path("steps").map { шаг ->
+                    val проверка = шаг.path("check").asText("")
                     StepView(
                         title = шаг.path("title").asText(),
                         place = шаг.path("place").asText(""),
                         hint = шаг.path("hint").asText(""),
-                        done = состояние == SceneState.DONE,
+                        // Шаг закрыт своим условием, если оно названо; иначе —
+                        // вместе со сценой: врать про «сделано» шаг не должен.
+                        done = if (проверка.isBlank()) состояние == SceneState.DONE
+                        else проверить(project, проверка, прожитые, пройдены) == null,
                     )
                 },
+                entry = условияВхода,
+                exit = условияВыхода,
+                output = сцена.path("output").asText(""),
+                awaitedBy = ждут[ключ].orEmpty(),
+                inputFlows = сцена.path("process_ref").flatMap { потоки[it.asText()].orEmpty() },
+                window = окна[ключ],
             )
         }
 
@@ -112,6 +170,30 @@ class TemplateProcessEngine(
         }
         пройденныеТочки(project).add(gate)
         return view(project)
+    }
+
+    /**
+     * Входные потоки по коду мероприятия из полки процессов ЖЦ.
+     * Ссылка на другое мероприятие разворачивается в его НАЗВАНИЕ: инженеру
+     * нужен смысл потока, а не код методологии.
+     */
+    private fun входныеПотоки(): Map<String, List<String>> {
+        val полка = процессы?.invoke() ?: return emptyMap()
+        val названия = mutableMapOf<String, String>()
+        val входы = mutableMapOf<String, List<String>>()
+        полка.path("stages").forEach { стадия ->
+            стадия.path("tracks").fields().forEach { (_, группы) ->
+                группы.forEach { группа ->
+                    группа.path("activities").forEach { дело ->
+                        названия[дело.path("code").asText()] = дело.path("name").asText()
+                        входы[дело.path("code").asText()] = дело.path("inputs").map { it.asText() }
+                    }
+                }
+            }
+        }
+        return входы.mapValues { (_, список) ->
+            список.map { вход -> названия[вход.trim()] ?: вход }
+        }
     }
 
     private fun проверить(

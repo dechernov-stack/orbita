@@ -42,9 +42,7 @@ object GeneratedKinds {
         KindSpec("architecture_template", "шаблон Arcadia", Layer.L0, null, null, listOf("actors", "capabilities", "functions", "exchanges", "chains")),
         KindSpec("wbs_template", "типовой WBS", Layer.L0, null, null, listOf("packages")),
         KindSpec("model_template", "набор моделей системы", Layer.L0, null, null, listOf("models")),
-        KindSpec("typical_requirement", "типовые записи", Layer.L0, null, null, listOf("typical_requirement", "typical_risk", "stakeholder_profile")),
-        KindSpec("typical_risk", "типовые записи", Layer.L0, null, null, listOf("typical_requirement", "typical_risk", "stakeholder_profile")),
-        KindSpec("stakeholder_profile", "типовые записи", Layer.L0, null, null, listOf("typical_requirement", "typical_risk", "stakeholder_profile")),
+        KindSpec("typical_requirement", "типовое требование (библиотека)", Layer.L0, null, null, listOf("code", "title", "ears_pattern", "statement_template", "category", "verification", "applicability", "version")),
         KindSpec("questionnaire", "анкета (шаблон запроса данных)", Layer.L0, null, null, listOf("code", "target_kind", "fields")),
         KindSpec("package_kind", "вид пакета службы", Layer.L0, null, null, listOf("code", "schema", "rules", "sources", "accepted_classes", "version")),
         KindSpec("site_catalog", "каталог площадок", Layer.L0, null, null, listOf("sites")),
@@ -58,9 +56,7 @@ object GeneratedKinds {
         KindSpec("finding", "замечание RFA/RID", Layer.L1, "15–17, A12", "open|closed", listOf("gate", "text", "returns_to_scene", "author")),
         KindSpec("assignment", "задание", Layer.L1, "любая", "вычисляется: open|done (гаснет закрытием цели)", listOf("target", "assignee", "due_point", "assigned_by")),
         KindSpec("plan", "план дат", Layer.L1, "1, A1", null, listOf("phase", "gate_dates", "set_by")),
-        KindSpec("account", "учётка · роль · право", Layer.L1, null, null, listOf("account", "role", "right")),
-        KindSpec("role", "учётка · роль · право", Layer.L1, null, null, listOf("account", "role", "right")),
-        KindSpec("right", "учётка · роль · право", Layer.L1, null, null, listOf("account", "role", "right")),
+        KindSpec("account", "учётка", Layer.L1, null, "active|disabled", listOf("login", "name", "roles")),
         KindSpec("history", "запись истории", Layer.L1, "всегда", null, listOf("object_ref", "version", "valid_from", "recorded_at", "actor", "action")),
         KindSpec("intent", "замысел", Layer.L2, "2", "draft|accepted", listOf("for_whom", "what", "where", "horizon", "accepted_by", "accepted_at")),
         KindSpec("material", "входной документ (материал)", Layer.L2, "2", null, listOf("type", "title", "file", "origin", "doc_version", "doc_date", "classification", "language")),
@@ -119,6 +115,10 @@ object GeneratedKinds {
         KindSpec("element", "элемент содержания раздела", Layer.L5, "по разделу", "active|removed", listOf("section", "kind", "author", "at", "order")),
         KindSpec("rendering", "порождённый читаемый текст версии документа", Layer.L5, "базирование/предпросмотр", "draft|reviewed|accepted|superseded", listOf("document", "sections", "prompt_fingerprint", "model")),
         KindSpec("process_catalog", "каталог процессов СИ (двухстандартный)", Layer.L0, null, null, listOf("code", "name", "group", "orbita_mechanism", "place", "tailoring_allowed")),
+        KindSpec("typical_risk", "типовой риск (библиотека)", Layer.L0, null, null, listOf("code", "statement", "cec", "category", "probability", "impact", "strategy", "measures", "applicability")),
+        KindSpec("stakeholder_profile", "профиль стейкхолдера (библиотека)", Layer.L0, null, null, listOf("code", "role", "name", "interests", "applicability")),
+        KindSpec("role", "роль", Layer.L1, null, null, listOf("code", "name", "rights")),
+        KindSpec("right", "право", Layer.L1, null, null, listOf("code", "description", "scope")),
     )
 
     val byCode: Map<String, KindSpec> = all.associateBy { it.code }

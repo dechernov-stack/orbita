@@ -10,5 +10,16 @@ object ProcessFactory {
         evaluator: GateEvaluator,
         passedGates: (String) -> MutableSet<String>,
         gatePlan: (String) -> Map<String, String>,
-    ): ProcessEngine = TemplateProcessEngine(template, evaluator, passedGates, gatePlan)
+        /** Справочник процессов ЖЦ: входные потоки сцен приходят данными. */
+        processReference: (() -> JsonNode?)? = null,
+        /** Окна плана работ фазы: сцена → (начало, конец). */
+        sceneWindows: ((String) -> Map<String, Pair<String, String>>)? = null,
+    ): ProcessEngine = TemplateProcessEngine(
+        шаблон = template,
+        оценщик = evaluator,
+        пройденныеТочки = passedGates,
+        планТочек = gatePlan,
+        окнаСцен = sceneWindows,
+        процессы = processReference,
+    )
 }

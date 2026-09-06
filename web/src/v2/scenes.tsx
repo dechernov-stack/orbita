@@ -3,7 +3,7 @@
 // Ни одна сцена не решает, открыта ли она: это сказал сервер. Здесь только
 // формы и списки, встроенные в рамку.
 import { useEffect, useState } from 'react'
-import { api, type EntityRow, type Phase } from './api'
+import { api, type EntityRow } from './api'
 
 /** Сцена 1 — открыть проект. Точки заводятся сразу, с датами по умолчанию. */
 export function SceneOpenProject({ onOpened }: { onOpened: (project: string) => void }) {
@@ -279,54 +279,6 @@ export function SceneGoals({ project, onChanged }: { project: string; onChanged:
   )
 }
 
-export function Гейты({ phase, onPassed }: { phase: Phase; onPassed: () => void }) {
-  const [отказ, setОтказ] = useState<string | null>(null)
-  return (
-    <div className="v2-card">
-      <div className="v2-card__head">
-        <span className="v2-card__title">Точки фазы</span>
-        <span className="v2-card__count">{phase.gates.length}</span>
-      </div>
-      {отказ && <div className="v2-locked">{отказ}</div>}
-      <table className="v2-table">
-        <thead><tr><th>Точка</th><th>Дата</th><th>Состояние</th><th /></tr></thead>
-        <tbody>
-          {phase.gates.map((т) => (
-            <tr key={т.key}>
-              <td>{т.title}</td>
-              <td className="v2-mono">{т.planned_date ?? '—'}</td>
-              <td>
-                {т.passed
-                  ? <span className="v2-ok">пройдена</span>
-                  : т.blocking.length === 0
-                    ? <span>условия выполнены</span>
-                    : <span className="v2-warn">держат: {т.blocking.join('; ')}</span>}
-              </td>
-              <td>
-                <button type="button" disabled={т.passed || т.blocking.length > 0}
-                  title={т.passed
-                    ? 'точка уже зафиксирована'
-                    : т.blocking.length > 0
-                      ? `точку держат условия: ${т.blocking.join('; ')}`
-                      : 'зафиксировать прохождение точки'}
-                  onClick={() => {
-                    setОтказ(null)
-                    api.passGate(phase.project, т.key, 'стенд')
-                      .then(() => onPassed())
-                      .catch((e) => setОтказ(String(e.message ?? e)))
-                  }}>
-                  зафиксировать
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  )
-}
-
-/** Сцена 5 — ограничения: коды Р-серии стабильны, отмена со следом. */
 export function SceneConstraints({ project, onChanged }: { project: string; onChanged: () => void }) {
   const [ограничения, setОграничения] = useState<EntityRow[]>([])
   const [текст, setТекст] = useState('')

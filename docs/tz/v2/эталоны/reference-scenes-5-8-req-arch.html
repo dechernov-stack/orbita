@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><title>Эталон сцен 5–8 · требования · архитектура — Орбита v2</title>
+<style>
+:root{--panel:#f7f7f8;--line:#e3e4e8;--ink:#1b1c1f;--muted:#6b6e76;--accent:#2f5fd9;--ok:#2d7a3e;--warn:#b26a00;--bad:#b3261e;--focus:0 0 0 3px rgba(47,95,217,.35)}
+*{box-sizing:border-box}body{margin:0;padding:20px;font:14px/1.45 Inter,system-ui,sans-serif;color:var(--ink);display:grid;gap:28px}
+a{color:var(--accent);text-decoration:none}h2{margin:0;font-size:15px}input,select,button{font:inherit}
+.frame{border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.stepper{display:flex;gap:14px;align-items:center;padding:10px 14px;background:var(--panel);border-bottom:1px solid var(--line)}
+.next{margin-left:auto;padding:6px 12px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--muted)}.next.on{background:var(--accent);color:#fff;border-color:var(--accent)}.next[data-why]:after{content:attr(data-why);display:block;font-size:11px}
+.flow{padding:8px 14px;font-size:13px;border-bottom:1px solid var(--line)}
+.body{display:grid;grid-template-columns:1fr 300px}.frag{padding:14px}.cond{border-left:1px solid var(--line);padding:12px 14px}
+.cond h4{margin:0 0 8px;font-size:13px}.cond ul{padding:0;margin:0}.cond li{list-style:none;margin:4px 0}.ok:before{content:"✓ ";color:var(--ok)}.no:before{content:"☐ ";color:var(--muted)}
+.panel{border:1px solid var(--line);border-radius:8px;background:#fff}.panel h3{margin:0;padding:8px 12px;border-bottom:1px solid var(--line);font-size:13px;display:flex;justify-content:space-between}.panel h3 span{color:var(--muted);font-weight:400}
+table{border-collapse:collapse;width:100%}td,th{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;font-size:13px;vertical-align:top}th{color:var(--muted);font-weight:500}
+tr.open td{background:var(--panel)}.card{padding:12px 14px;background:var(--panel);border-bottom:1px solid var(--line)}
+.card .g{display:grid;grid-template-columns:1fr 1fr;gap:6px 18px;font-size:13px}.card .g b{color:var(--muted);font-weight:500}
+.muted{color:var(--muted)}.bad{color:var(--bad)}.warn{color:var(--warn)}.ok-t{color:var(--ok)}.chip{display:inline-block;padding:1px 6px;border:1px solid var(--line);border-radius:10px;font-size:12px;background:#fff}
+.btn{padding:6px 12px;border:1px solid var(--line);border-radius:6px;background:#fff}.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}.hint{font-size:12px;color:var(--muted)}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);padding:0 8px}.tabs span{padding:8px 10px;font-size:13px;color:var(--muted)}.tabs span.cur{color:var(--ink);border-bottom:2px solid var(--accent)}
+.two{display:grid;grid-template-columns:220px 1fr;gap:12px}.tree{font-size:13px;line-height:1.7}.tree .l1{padding-left:12px}.tree .l2{padding-left:24px}.tree .l3{padding-left:36px}
+.facets{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;font-size:12px}.facet{border:1px solid var(--line);border-radius:6px;padding:8px}.facet b{display:block;font-weight:600}.facet .st{color:var(--muted)}
+.lad{display:flex;gap:6px;font-size:12px}.lad span{padding:2px 8px;border:1px solid var(--line);border-radius:10px}.lad .done{background:#e8f3ea;border-color:#bfe0c6}.lad .cur{background:#e9effb;border-color:#bfd0f5}
+</style></head><body>
+
+<h2>Сцена 5 · Ограничения (РП)</h2>
+<div class="frame"><div class="stepper"><a href="#">← обзор</a><b>5 · Ограничения</b><span>шаг 1 из 1</span><span class="next on">Дальше →</span></div>
+<div class="flow">вход: замысел ✓ · класс ✓ → <b>5 · Ограничения</b> → выход: рамки Р-1…Р-9 → ждут: 7 · Концепция · 8 · Требования · промпты</div>
+<div class="body"><div class="frag"><div class="panel"><h3>Ограничения <span>типовых класса 7 · своих 2 · отменено 1</span></h3>
+<table><tr><th>Код</th><th>Формулировка</th><th>Тип</th><th></th></tr>
+<tr><td>Р1</td><td>Полезная нагрузка — только регенеративная; bent-pipe не рассматривается</td><td>техническое</td><td class="muted">типовое</td></tr>
+<tr><td>Р2</td><td>Платформы — диапазон 12U…100 кг</td><td>техническое</td><td class="muted">типовое</td></tr>
+<tr><td>Р4</td><td><s>Оптический ISL допускается</s> · отменено Чернов Д. 15.09 «противоречит Р3»</td><td>техническое</td><td><a href="#">вернуть</a></td></tr>
+<tr><td>Р8</td><td>Протокол передачи LoRa / LR-FHSS</td><td>техническое</td><td class="muted">своё</td></tr>
+<tr><td>Р9</td><td>Запуск российскими ракетоносителями</td><td>пусковое</td><td class="muted">своё</td></tr></table></div>
+<p class="hint">Код стабилен, дыры законны; отменённое остаётся с историей и не уходит в запреты промпта.</p></div>
+<aside class="cond"><h4>Условия выхода</h4><ul><li class="ok">у каждого код и тип</li><li class="ok">типовые класса рассмотрены (7 из 7)</li></ul></aside></div></div>
+
+<h2>Сцена 6 · Сервисы (ведущий СИ)</h2>
+<div class="frame"><div class="stepper"><a href="#">← обзор</a><b>6 · Сервисы</b><span>шаг 2 из 2 · «Покрытие нужд»</span><span class="next" data-why="нужда «резервный канал кризисных ситуаций» не покрыта сервисом">Дальше →</span></div>
+<div class="flow">вход: нужды ✓ · цели ✓ → <b>6 · Сервисы</b> → выход: 8 сервисов с классами → ждут: 7 · Концепция · 9 · ConOps · ◆ Внутренний обзор</div>
+<div class="body"><div class="frag"><div class="panel"><h3>Сервисы <span>8 · нужд покрыто 5 из 6</span></h3>
+<table><tr><th>Сервис</th><th>Нужды</th><th>Класс</th><th>Целевой показатель</th></tr>
+<tr><td>Резервный канал мониторинга пассажирских и опасных перевозок</td><td>непрерывность регуляторной телематики</td><td>A′</td><td>P95 ≤ 180 мин (этап 1)</td></tr>
+<tr><td>Трекинг вагонов, контейнеров, пломб</td><td>непрерывность телематики · единое управление</td><td>B′</td><td>P95 ≤ 180 / 15 мин</td></tr>
+<tr><td>Агро-IoT</td><td>массовая экономика</td><td>C′</td><td>P95 ≤ 6 ч</td></tr>
+<tr><td class="muted" colspan="4">… ещё 5</td></tr></table></div>
+<div class="panel" style="margin-top:12px"><h3>Матрица покрытия <span>стейкхолдер × нужды · покрыто 5 из 6</span></h3>
+<table><tr><th></th><th>заявлена</th><th>покрыта сервисом</th><th>ведёт к цели</th></tr>
+<tr><td>Минтранс · единое управление</td><td>✓</td><td>✓</td><td>✓</td></tr>
+<tr><td>Центр мониторинга · резервный канал кризисных ситуаций</td><td>✓</td><td class="bad">— → добавить сервис</td><td>✓</td></tr></table></div></div>
+<aside class="cond"><h4>Условия выхода</h4><ul><li class="ok">у каждого сервиса нужда и класс</li><li class="no">каждая нужда покрыта (5 из 6) → <a href="#">резервный канал</a></li></ul></aside></div></div>
+
+<h2>Сцена 7 · Концепция и альтернативы (ведущий СИ)</h2>
+<div class="frame"><div class="stepper"><a href="#">← обзор</a><b>7 · Концепция и альтернативы</b><span>шаг 4 из 4 · «Базовый вариант»</span><span class="next" data-why="базовый вариант не назван → обоснование">Дальше →</span></div>
+<div class="flow">вход: сервисы ✓ · ограничения ✓ → <b>7 · Концепция</b> → выход: базовая концепция + AoA → ждут: 8 · Требования · 9 · ConOps · 10–12</div>
+<div class="body"><div class="frag">
+<div class="two"><div class="panel"><h3>Состав <span>узлов 135 · ступень MCR</span></h3><div class="tree" style="padding:6px 10px">Система<div class="l1">Космический сегмент</div><div class="l2">КА ×36 <span class="chip">масса 78 кг · ±30 %</span></div><div class="l3">Платформа · ПН <span class="warn">анкета 2 из 5</span></div><div class="l1">НКУ · НСК · Пользовательский · Выведение · Обеспечение</div></div></div>
+<div class="panel"><h3>Варианты построения и сравнение <span>2 · критерии оценки 6 · пороги 2</span></h3>
+<table><tr><th>Вариант</th><th>Покрытие A′</th><th>P95, мин</th><th>Партии</th><th>Δmax gap −1 КА</th><th></th></tr>
+<tr><td>В1 · Walker 4×6 550 км + ССО 2×6</td><td>0,86</td><td>142</td><td>4</td><td>+18 мин</td><td class="ok-t">Парето</td></tr>
+<tr><td>В2 · Walker 6×8 550 км</td><td>0,91</td><td>96</td><td>6</td><td>+9 мин</td><td class="ok-t">Парето</td></tr>
+<tr><td>В3 · ССО 3×8 600 км</td><td>0,64</td><td><span class="bad">210 — порог</span></td><td>3</td><td>+31 мин</td><td class="muted">отсеян: P95 &gt; 180</td></tr></table>
+<p class="hint" style="padding:6px 10px">Итогового балла нет; выбор — решением с обоснованием.</p></div></div>
+<div class="panel" style="margin-top:12px"><h3>Базовая концепция</h3><div style="padding:10px 12px;font-size:13px">Базовый вариант: <select><option>— выберите</option><option>В1</option><option>В2</option></select> · обоснование (обязательно) · отклонённые с причинами · descopes <button class="btn primary" style="margin-left:8px">Назвать базовым</button></div></div>
+</div><aside class="cond"><h4>Условия выхода</h4><ul><li class="ok">состав взят каркасом</li><li class="ok">≥ 2 варианта · метрики посчитаны</li><li class="no">базовый вариант с обоснованием</li><li class="no">descopes ≥ 1</li></ul><h4 style="margin-top:14px">Ступень MCR</h4><ul><li class="no">анкеты КА: масса ✓ · мощность ✓ · объём ☐ · TRL ☐ · мидель ☐</li></ul></aside></div></div>
+
+<h2>Сцена 8 · Черновик требований — реестр 6 колонок, карточка вниз</h2>
+<div class="frame"><div class="stepper"><a href="#">← обзор</a><b>8 · Черновик требований</b><span>шаг 2 из 3 · «Носители»</span><span class="next" data-why="без носителя: 3 → распределить">Дальше →</span></div>
+<div class="flow">вход: цели ✓ · нужды ✓ · ограничения ✓ · базовая концепция ✓ → <b>8 · Требования</b> → выход: 14 проектных (Draft) → ждут: 9 · ConOps · 13 · MCReport · ◆ MCR</div>
+<div class="body"><div class="frag">
+<div class="two"><div class="panel"><h3>Дерево <span>по иерархии</span></h3><div class="tree" style="padding:6px 10px">Проектные · 14<div class="l1">характеристики · 6</div><div class="l1">функциональные · 3</div><div class="l1">ограничения · 3</div><div class="l1">безопасность · 2</div><div class="muted" style="margin-top:6px">по документам ▸</div></div></div>
+<div class="panel"><h3>Требования <span>14 · без носителя 3 · линт 2 · TBR 1</span></h3>
+<table><tr><th>Код</th><th>Заголовок</th><th>Формулировка</th><th>Показатель</th><th>Носитель</th><th>Статус</th></tr>
+<tr><td>RQ-P-03</td><td>Латентность, этап 1</td><td>Система должна доставлять сообщение класса B′ с P95 не более 180 мин на этапе 1.</td><td>≤ 180 мин</td><td>Система</td><td>Draft</td></tr>
+<tr class="open"><td>RQ-P-06</td><td>Суверенное хранение данных</td><td>Система должна хранить чувствительные данные только на территории РФ с отечественной криптографией.</td><td>—</td><td class="bad">без носителя</td><td>Draft · линт 1</td></tr>
+<tr><td colspan="6" class="card"><div class="g">
+<b>Категория · приоритет</b><span>безопасность · высокий</span><b>EARS</b><span>всегда</span>
+<b>Источник</b><span>Записка миссии · s9 · [И1, В10] <a href="#">↗</a></span><b>Нормативное основание</b><span>187-ФЗ, ред. 07.04.2025</span>
+<b>Метод верификации</b><span>инспекция</span><b>Критерий приёмки</b><span class="warn">не задан — к базированию</span>
+<b>Обоснование</b><span>суверенитет данных (§2.1, §9)</span><b>Носитель</b><span><select><option>— пикер узла/стыка/цепочки</option><option>@DC · ЦОД</option><option>@IF-DC-EXT</option></select></span>
+<b>Линт</b><span class="warn">П16: «чувствительные» — уточнить определение</span><b>Связи</b><span>derives_from → нужда «суверенитет данных» · обоснование ✓</span>
+<b>Что заденет →</b><span><a href="#">impact: 0 узлов · 1 документ (MCReport §7)</a></span><b>История</b><span>v2 · Иванов И. · 18.09</span>
+</div></td></tr>
+<tr><td>RQ-P-09</td><td>Экономика терминала</td><td>Терминал датчикового класса должен обеспечивать автономную работу не менее TBR лет…</td><td><span class="chip">TBR · вед. СИ · SRR</span></td><td class="bad">без носителя</td><td>Draft</td></tr>
+<tr><td class="muted" colspan="6">… ещё 11</td></tr></table></div></div></div>
+<aside class="cond"><h4>Условия выхода</h4><ul><li class="ok">каждая цель покрыта требованием</li><li class="no">без носителя — 0 (сейчас 3)</li><li class="ok">у каждого источник</li><li class="no">линт-замечаний 0 (сейчас 2) — мягко</li></ul><h4 style="margin-top:14px">К базированию (MCR)</h4><ul><li class="no">критерий приёмки у всех</li><li class="no">метод у всех (TBD допустим до SRR)</li></ul></aside></div></div>
+
+<h2>Архитектура · слои и карточка компонента</h2>
+<div class="frame"><div class="tabs"><span>OA · 6/9</span><span>SA · 25</span><span>Цепочки · 6</span><span>LA · 9</span><span class="cur">PA · 135 узлов · 26 стыков</span></div>
+<div class="body"><div class="frag"><div class="two"><div class="panel"><h3>Состав (PA)</h3><div class="tree" style="padding:6px 10px">КА<div class="l1">Платформа</div><div class="l2">БКУ</div><div class="l3">БЦВМ <span class="muted">node</span></div><div class="l3"><b>ПО управления КА</b> <span class="muted">behaviour</span></div><div class="l2">СЭП · СТР · СОС · ДУ · КТРЛ · БКС</div><div class="l1">Полезная нагрузка</div></div></div>
+<div class="panel"><h3>OBC-SW · ПО управления КА <span>behaviour · шаблон «бортовое ПО» · с отклонением</span></h3>
+<div style="padding:10px 12px"><div class="lad"><span class="done">Концепт · MCR</span><span class="cur">Определение · SRR — 3 из 5</span><span>Архитектура · SDR</span><span>Проект · PDR</span></div>
+<div class="facets" style="margin-top:10px">
+<div class="facet"><b>Функции</b>6 · F-09 F-10 F-16 F-11 F-12 F-08</div><div class="facet"><b>Развёртывание</b>→ БЦВМ ✓ · резерв ☐</div><div class="facet"><b>Стыки</b>4 · шина · КТРЛ · ПН · ДУ</div><div class="facet"><b>Элементы обмена</b><span class="st">к SDR · 0 из 4</span></div>
+<div class="facet"><b>Режимы</b><span class="st">к SDR · не заданы</span></div><div class="facet"><b>Параметры</b>CPU 45 % ±30 · RAM 64 МБ · крит. B</div><div class="facet"><b>Модели</b>М7 · М3г · М14 · бюджет compute</div><div class="facet"><b>Требования</b>3 · RQ-S-08 · …</div>
+<div class="facet"><b>Верификация</b>SIL/HIL · ревью · WCET</div><div class="facet"><b>Технологии</b>FDIR TRL 5→6 к PDR</div><div class="facet"><b>Риски</b>2</div><div class="facet"><b>Конфигурация</b><span class="st">CI к SDR</span></div>
+</div><p class="hint" style="margin-top:8px">Грани по ступеням: закрытые — зелёным, текущая — «нужно к SRR: 2», будущие — серым с точкой. Пустая грань показывает, что ожидается и к какой точке.</p></div></div></div></div>
+<aside class="cond"><h4>Разрывы ступени SRR</h4><ul><li class="no">стандарты применимости → ECSS-E-ST-40C</li><li class="no">поставщик/ответственный</li><li class="ok">функции распределены</li><li class="ok">стыки названы</li><li class="ok">ресурсы ±30 %</li></ul></aside></div></div>
+
+<p class="hint">Правила эталона: реестр — ровно шесть колонок, остальное в карточке под строкой группами; линт и TBR — чипами и счётчиками, не строками; носитель — пикер по природе (узел · стык · цепочка); сравнение вариантов — без итогового балла, отсеянный назван с порогом; карточка компонента — лестница ступеней сверху, грани сеткой, пустая грань — с точкой ожидания.</p>
+</body></html>

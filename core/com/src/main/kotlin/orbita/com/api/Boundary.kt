@@ -161,6 +161,19 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
                     .associate { it.code to it.doc.path("planned_date").asText("") }
                     .filterValues { it.isNotBlank() }
             },
+            // Методология ЖЦ — данными полки: входные потоки сцен берутся
+            // оттуда, имена стадий и экспертиз в интерфейс не идут.
+            processReference = { полки.of("lifecycle_process_reference").firstOrNull()?.doc },
+            sceneWindows = { проект ->
+                store.list(orbita.kernel.api.Area.Project(проект), "plan").lastOrNull()
+                    ?.doc?.path("scene_windows")
+                    ?.associate {
+                        it.path("scene").asText() to
+                            (it.path("start").asText("") to it.path("end").asText(""))
+                    }
+                    ?.filterValues { it.first.isNotBlank() }
+                    .orEmpty()
+            },
         )
         val знания = orbita.knowledge.api.KnowledgeFactory.intake(store, mapper)
         val постановка = orbita.formulation.api.FormulationFactory.formulation(store, links)

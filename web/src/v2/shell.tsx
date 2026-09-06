@@ -1,11 +1,10 @@
-// Оболочка v2 (ТЗ §4.2): рейка · шапка · эксперт-режим · портфель.
+// Оболочка v2 по эталону (`эталоны/reference-shell-v2.html`).
 //
-// Волна 0 строит именно каркас: рейка знает разделы, шапка знает, где
-// инженер и что держит ближайшую точку, эксперт-режим выключен и включается
-// явно. Содержимое разделов приходит волнами 1–7 — до тех пор раздел честно
-// говорит, какой волной он открывается, вместо пустого экрана.
+// Шапка отвечает на три вопроса разом: где я (проект · фаза · сцена), что
+// горит (ближайшая точка с блокирующими) и кто я (учётка, «мои»). Рейка —
+// разделы продукта; экспертные показываются переключателем, а не всегда.
 import { useEffect, useState } from 'react'
-import { api, type ProjectRow } from './api'
+import { api, type Phase, type ProjectRow } from './api'
 import { Work } from './work'
 import { MyTasks } from './tasks'
 import { KnowledgeField } from './knowledge'
@@ -25,11 +24,9 @@ type Section = {
 
 const SECTIONS: Section[] = [
   { key: 'work', title: 'Работа', wave: 1, hint: 'лента сцен и точек фазы — вход в продукт' },
-  { key: 'tasks', title: 'Мои задания', wave: 1, hint: 'адресованные разрывы: что закрыть именно мне' },
-  { key: 'formulation', title: 'Постановка', wave: 1, hint: 'замысел, стейкхолдеры, нужды, цели, ограничения, сервисы' },
+  { key: 'formulation', title: 'Постановка', wave: 1, hint: 'стейкхолдеры, нужды, цели, ограничения, сервисы и покрытие' },
   { key: 'knowledge', title: 'Поле знаний', wave: 2, hint: 'материалы, факты с якорями, загрузка с заданием' },
-  { key: 'coverage', title: 'Покрытие', wave: 2, hint: 'матрица нужд: чем закрыта каждая и чего не хватает' },
-  { key: 'concept', title: 'Концепция', wave: 3, hint: 'состав системы, варианты построения, сравнение' },
+  { key: 'concept', title: 'Концепция', wave: 3, hint: 'состав системы, варианты построения, базовый вариант' },
   { key: 'requirements', title: 'Требования', wave: 3, hint: 'реестр требований, два дерева, влияние правки' },
   { key: 'architecture', title: 'Архитектура', wave: 3, hint: 'операционный, системный, логический и физический слои' },
   { key: 'models', title: 'Модели', wave: 4, hint: 'записи моделей, прогоны, резервы' },
@@ -40,6 +37,12 @@ const SECTIONS: Section[] = [
   { key: 'journal', title: 'Журналы', wave: 5, expert: true, hint: 'журнал службы, история правок' },
 ]
 
+/** Дата в шапке — днём и месяцем: год в ленте фазы и так один. */
+function датаКратко(дата: string): string {
+  const [, м, д] = дата.split('-')
+  return д && м ? `${д}.${м}` : дата
+}
+
 /** Учётка стенда: вход селектором без пароля (ТЗ §4.2). */
 type StandUser = { login: string; display_name: string }
 
@@ -48,10 +51,11 @@ export function Shell() {
   const [expert, setExpert] = useState(false)
   const [users, setUsers] = useState<StandUser[]>([])
   const [project, setProject] = useState<string | null>(null)
-  /** Портфель: вернуться к открытому проекту после перезагрузки страницы. */
   const [portfolio, setPortfolio] = useState<ProjectRow[]>([])
+  const [phase, setPhase] = useState<Phase | null>(null)
   /** Переход «к месту» из заданий: открыть работу на нужной сцене. */
   const [wantScene, setWantScene] = useState<string | null>(null)
+  const [tasks, setTasks] = useState<number>(0)
   const [me, setMe] = useState<string | null>(null)
   const [failure, setFailure] = useState<string | null>(null)
 
@@ -59,8 +63,8 @@ export function Shell() {
     api.projects()
       .then((r) => {
         setPortfolio(r.items)
-        // Помним выбор: продукт открывают десятки раз в день, и каждый раз
-        // выбирать проект заново — работа, которой не должно быть.
+        // Помним выбор: продукт открывают десятки раз в день, и выбирать
+        // проект заново каждый раз — работа, которой не должно быть.
         const прежний = localStorage.getItem('orbita.v2.project')
         setProject((текущий) =>
           текущий ?? (r.items.some((п) => п.code === прежний) ? прежний : r.items[0]?.code ?? null))
@@ -69,8 +73,11 @@ export function Shell() {
   }, [])
 
   useEffect(() => {
-    if (project) localStorage.setItem('orbita.v2.project', project)
-  }, [project])
+    if (!project) { setPhase(null); return }
+    localStorage.setItem('orbita.v2.project', project)
+    api.phase(project).then(setPhase).catch(() => setPhase(null))
+    api.myTasks(project).then((r) => setTasks(r.items.filter((з) => !з.waiting).length)).catch(() => undefined)
+  }, [project, section])
 
   useEffect(() => {
     fetch('/api/auth/whoami')
@@ -84,70 +91,85 @@ export function Shell() {
 
   const visible = SECTIONS.filter((s) => expert || !s.expert)
   const current = SECTIONS.find((s) => s.key === section) ?? SECTIONS[0]
+  const сцена = phase?.scenes.find((с) => с.key === phase.current_scene)
+  const точка = phase?.gates.find((т) => !т.passed)
 
   return (
     <div className="v2-shell">
-      <nav className="v2-rail" aria-label="разделы">
-        <div className="v2-rail__group">Проект</div>
-        {visible.filter((s) => !s.expert).map((s) => (
-          <button key={s.key} className="v2-rail__item" type="button"
-            aria-current={s.key === section ? 'page' : undefined}
-            title={s.hint}
-            onClick={() => setSection(s.key)}>
-            {s.title}
-          </button>
-        ))}
-        {expert && (
-          <>
-            <div className="v2-rail__group">Эксперт</div>
-            {visible.filter((s) => s.expert).map((s) => (
-              <button key={s.key} className="v2-rail__item" type="button"
-                aria-current={s.key === section ? 'page' : undefined}
-                title={s.hint}
-                onClick={() => setSection(s.key)}>
-                {s.title}
-              </button>
-            ))}
-          </>
-        )}
-      </nav>
-
-      <div>
-        <header className="v2-head">
+      <header className="v2-top">
+        <div className="v2-ctx">
           {portfolio.length > 0 ? (
-            <label className="v2-inline v2-head__project">
-              <select value={project ?? ''} onChange={(e) => setProject(e.target.value || null)}
-                title="проект портфеля: выбор помнится до следующей смены">
-                <option value="">— выберите проект —</option>
-                {portfolio.map((п) => (
-                  <option key={п.code} value={п.code}>{п.code} · {п.name}</option>
-                ))}
-              </select>
-            </label>
+            <select className="v2-project" value={project ?? ''} title="проект портфеля: выбор помнится"
+              onChange={(e) => setProject(e.target.value || null)}>
+              <option value="">— выберите проект —</option>
+              {portfolio.map((п) => <option key={п.code} value={п.code}>{п.name}</option>)}
+            </select>
           ) : (
-            <span className="v2-head__project">{project ?? 'Проект не выбран'}</span>
+            <b>Проект не выбран</b>
           )}
-          <span className="v2-head__scene">
-            {project ? 'фаза Pre-A · стандарт NASA-7120' : 'откройте проект — это сцена 1'}
-          </span>
-          <span className="v2-head__spacer" />
-          <button type="button" className="v2-chip"
-            aria-pressed={expert}
-            title={expert
-              ? 'выключить эксперт-режим: останутся только разделы текущей сцены'
-              : 'включить эксперт-режим: библиотека, обмен и журналы'}
-            onClick={() => setExpert(!expert)}>
-            эксперт-режим: {expert ? 'включён' : 'выключен'}
+          {phase && <span className="v2-dim">{phase.phase} · {phase.standard}</span>}
+          {сцена && (
+            <span className="v2-chip" title={сцена.question}>
+              сцена <b>{сцена.key} · {сцена.title}</b>
+            </span>
+          )}
+          {точка && (
+            <span className="v2-chip" title={точка.blocking.join('; ') || 'условия точки выполнены'}>
+              ближайшая точка <b>{точка.title}</b>
+              {точка.planned_date && ` · ${датаКратко(точка.planned_date)}`}
+              {' · '}
+              {точка.blocking.length > 0
+                ? <span className="v2-bad">блокирующих {точка.blocking.length}</span>
+                : <span className="v2-ok">условия выполнены</span>}
+            </span>
+          )}
+        </div>
+        <div className="v2-me">
+          <button type="button" className="v2-link" title="адресованные разрывы: что закрыть именно мне"
+            onClick={() => setSection('tasks')}>
+            мои <b>{tasks}</b>
           </button>
+          <label className="v2-inline" title={expert
+            ? 'выключить эксперт-режим: останутся только разделы работы'
+            : 'включить эксперт-режим: библиотека, обмен и журналы'}>
+            <input type="checkbox" checked={expert} onChange={(e) => setExpert(e.target.checked)} />
+            эксперт-режим
+          </label>
           <span title="учётка стенда: вход селектором, пароля у витринных учёток нет">
             {me ?? (users.length > 0 ? `учётки стенда: ${users.length}` : 'учётка не выбрана')}
           </span>
-        </header>
+        </div>
+      </header>
 
-        <main className="v2-work">
+      <div className="v2-layout">
+        <nav className="v2-rail" aria-label="разделы">
+          {visible.filter((s) => !s.expert).map((s) => (
+            <button key={s.key} className="v2-rail__item" type="button"
+              aria-current={s.key === section ? 'page' : undefined}
+              title={s.hint}
+              onClick={() => setSection(s.key)}>
+              {s.title}
+            </button>
+          ))}
+          {expert && (
+            <>
+              <div className="v2-rail__group">эксперт</div>
+              {visible.filter((s) => s.expert).map((s) => (
+                <button key={s.key} className="v2-rail__item v2-rail__item--exp" type="button"
+                  aria-current={s.key === section ? 'page' : undefined}
+                  title={s.hint}
+                  onClick={() => setSection(s.key)}>
+                  {s.title}
+                </button>
+              ))}
+            </>
+          )}
+        </nav>
+
+        <main className="v2-main">
           {failure && (
-            <div className="v2-card">
-              <div className="v2-card__head"><span className="v2-card__title">Стенд не ответил</span></div>
+            <div className="v2-panel">
+              <h3>Стенд не ответил</h3>
               <div className="v2-empty">{failure}</div>
             </div>
           )}
@@ -155,8 +177,6 @@ export function Shell() {
             <Work project={project} onProject={setProject} wantScene={wantScene} onScenePicked={() => setWantScene(null)} />
           ) : section === 'knowledge' ? (
             <KnowledgeField project={project} />
-          ) : section === 'coverage' ? (
-            <Coverage project={project} />
           ) : section === 'formulation' ? (
             <Coverage project={project} />
           ) : section === 'concept' ? (
@@ -168,11 +188,11 @@ export function Shell() {
           ) : section === 'tasks' ? (
             <MyTasks project={project} onGoScene={(сцена) => { setWantScene(сцена); setSection('work') }} />
           ) : (
-            <div className="v2-card">
-              <div className="v2-card__head">
-                <span className="v2-card__title">{current.title}</span>
-                <span className="v2-card__count">волна {current.wave}</span>
-              </div>
+            <div className="v2-panel">
+              <h3>
+                {current.title}
+                <span className="v2-cnt">волна {current.wave}</span>
+              </h3>
               <div className="v2-empty">
                 {current.hint}.
                 <span className="v2-empty__why">

@@ -31,6 +31,10 @@ class AcrossRoutes(
 
         method == "GET" && path == "/v2/shelves" -> полка(требуется(query, "kind"))
 
+        // Глоссарий: интерфейс говорит терминами NASA, соответствия — здесь.
+        // Поиск идёт по ЛЮБОМУ из имён: инженер помнит своё.
+        method == "GET" && path == "/v2/glossary" -> глоссарий(query["q"])
+
         // Волна 2: материалы, задание загрузки и план действий.
         method == "POST" && path == "/v2/materials" -> материал(требуется(query, "project"), разобрать(body))
 
@@ -62,6 +66,26 @@ class AcrossRoutes(
         require(вид.isNotBlank() && код.isNotBlank()) { "полке нужны вид и код записи" }
         val запись = shelves.put(вид, код, тело.path("doc"), автор(тело))
         return V2Router.Ответ(201, mapper.createObjectNode().put("code", запись.code).put("kind", запись.kind))
+    }
+
+    private fun глоссарий(запрос: String?): V2Router.Ответ {
+        val полка = shelves.of("glossary_cross_terms").firstOrNull()
+        val ответ = mapper.createObjectNode()
+        val массив = ответ.putArray("items")
+        val игла = запрос?.trim()?.lowercase().orEmpty()
+        полка?.doc?.path("items")?.forEach { термин ->
+            val строки = listOf("term_nasa", "ru_equivalent", "en_full", "romanov")
+                .map { термин.path(it).asText("") }
+            if (игла.isEmpty() || строки.any { it.lowercase().contains(игла) }) {
+                массив.add(термин)
+            }
+        }
+        ответ.put(
+            "note",
+            if (полка == null) "глоссарий не загружен: python3 tools/v2/load_shelves.py"
+            else "интерфейс — в терминах NASA; здесь соответствия РК-11КТ и схемы Романова",
+        )
+        return V2Router.Ответ(200, ответ)
     }
 
     private fun полка(вид: String): V2Router.Ответ {

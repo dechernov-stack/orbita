@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><title>Эталон оболочки v2 — Орбита</title>
+<style>
+:root{--bg:#fff;--panel:#f7f7f8;--line:#e3e4e8;--ink:#1b1c1f;--muted:#6b6e76;--accent:#2f5fd9;--ok:#2d7a3e;--warn:#b26a00;--bad:#b3261e;--focus:0 0 0 3px rgba(47,95,217,.35)}
+*{box-sizing:border-box}body{margin:0;font:14px/1.45 Inter,system-ui,sans-serif;color:var(--ink);background:var(--bg)}
+a{color:var(--accent);text-decoration:none}a:focus,button:focus,select:focus{outline:none;box-shadow:var(--focus)}
+.top{display:grid;grid-template-columns:auto 1fr auto;gap:16px;align-items:center;padding:8px 16px;border-bottom:1px solid var(--line)}
+.top .ctx{display:flex;gap:18px;align-items:center}.chip{padding:2px 8px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+.chip b{font-weight:600}.bad{color:var(--bad)}.ok{color:var(--ok)}.muted{color:var(--muted)}
+.top .me{display:flex;gap:12px;align-items:center}select{font:inherit;padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:#fff}
+.layout{display:grid;grid-template-columns:200px 1fr;min-height:calc(100vh - 42px)}
+.rail{border-right:1px solid var(--line);padding:12px 0}.rail a{display:block;padding:8px 16px;color:var(--ink)}.rail a.cur{background:var(--panel);font-weight:600}
+.rail .grp{padding:14px 16px 4px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}.rail a.exp{color:var(--muted)}
+.main{padding:16px 20px;display:grid;grid-template-columns:320px 1fr;gap:20px}
+.panel{border:1px solid var(--line);border-radius:8px;background:#fff}.panel h3{margin:0;padding:10px 12px;border-bottom:1px solid var(--line);font-size:13px;display:flex;justify-content:space-between}
+.panel h3 .cnt{color:var(--muted);font-weight:400}.list{padding:6px 0}.row{display:grid;grid-template-columns:28px 1fr auto;gap:8px;padding:6px 12px;align-items:baseline}
+.row.cur{background:var(--panel)}.row .st{font-size:12px}.row .st.done{color:var(--ok)}.row .st.lock{color:var(--muted)}.row .st.act{color:var(--accent)}
+.gate{padding:6px 12px;border-top:1px dashed var(--line);border-bottom:1px dashed var(--line);margin:4px 0;font-size:13px}
+.frame{border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.stepper{display:flex;gap:14px;align-items:center;padding:10px 14px;background:var(--panel);border-bottom:1px solid var(--line)}
+.dots{display:flex;gap:6px}.dot{width:10px;height:10px;border-radius:50%;border:2px solid var(--accent)}.dot.f{background:var(--accent)}
+.next{margin-left:auto;padding:6px 12px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--muted)}.next[data-why]:after{content:attr(data-why);display:block;font-size:11px}
+.flow{padding:8px 14px;font-size:13px;border-bottom:1px solid var(--line)}.flow b{font-weight:600}
+.body{display:grid;grid-template-columns:1fr 300px;gap:0}.frag{padding:14px}.cond{border-left:1px solid var(--line);padding:12px 14px;background:#fff}
+.cond h4{margin:0 0 8px;font-size:13px}.cond li{margin:4px 0;list-style:none}.cond .ok:before{content:"✓ ";color:var(--ok)}.cond .no:before{content:"☐ ";color:var(--muted)}
+.empty{padding:14px;color:var(--muted);border:1px dashed var(--line);border-radius:6px}
+table{border-collapse:collapse;width:100%}td,th{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;font-size:13px}th{color:var(--muted);font-weight:500}
+.note{position:fixed;right:12px;bottom:12px;font-size:11px;color:var(--muted);max-width:360px;background:#fff;border:1px solid var(--line);padding:8px;border-radius:6px}
+</style></head><body>
+<div class="top">
+  <div class="ctx"><b>IoT-платформа · Pre-A</b><span class="chip">сцена <b>3 · Стейкхолдеры и нужды</b></span><span class="chip">ближайшая точка <b>Внутренний обзор</b> · 14.09 · <span class="bad">блокирующих 4</span></span></div>
+  <div></div>
+  <div class="me"><a href="#my">мои <b>7</b></a><label><input type="checkbox"> эксперт-режим</label><select><option>Чернов Д. · руководитель проекта</option><option>Иванов И. · ведущий СИ</option><option>Петрова М. · инженер</option></select></div>
+</div>
+<div class="layout">
+  <nav class="rail">
+    <a class="cur" href="#">Работа</a><a href="#">Постановка</a><a href="#">Концепция</a><a href="#">Требования</a><a href="#">Архитектура</a><a href="#">Модели</a><a href="#">Документы</a><a href="#">Точки</a>
+    <div class="grp">эксперт</div><a class="exp" href="#">Библиотека</a><a class="exp" href="#">Обмен</a><a class="exp" href="#">Журналы</a>
+  </nav>
+  <div class="main">
+    <div class="panel"><h3>Сцены фазы <span class="cnt">2 выполнены · 1 в работе · 15 закрыты</span></h3>
+      <div class="list">
+        <div class="row"><span>1</span><span>Открыть проект</span><span class="st done">выполнена</span></div>
+        <div class="row"><span>2</span><span>Замысел</span><span class="st done">выполнена</span></div>
+        <div class="row cur"><span>3</span><span>Стейкхолдеры и нужды</span><span class="st act">в работе · 2 из 3</span></div>
+        <div class="row"><span>4</span><span>Цели и показатели</span><span class="st lock">закрыта · ждёт 3</span></div>
+        <div class="row"><span>5</span><span>Ограничения</span><span class="st lock">закрыта</span></div>
+        <div class="row"><span>6</span><span>Сервисы</span><span class="st lock">закрыта</span></div>
+        <div class="gate">◆ Внутренний обзор · 14.09 · <span class="bad">4 блокирующих</span></div>
+        <div class="row"><span>7</span><span>Концепция и альтернативы</span><span class="st lock">закрыта</span></div>
+        <div class="row"><span>8</span><span>Черновик требований</span><span class="st lock">закрыта</span></div>
+        <div class="row"><span>9</span><span>Draft ConOps</span><span class="st lock">закрыта</span></div>
+        <div class="row"><span>…</span><span class="muted">10–14</span><span class="st lock">закрыты</span></div>
+        <div class="gate">◆ MCR · 30.09</div>
+        <div class="row"><span>…</span><span class="muted">15–18</span><span class="st lock">закрыты</span></div>
+        <div class="gate">◆ KDP-A · 15.10</div>
+      </div>
+    </div>
+    <div class="frame">
+      <div class="stepper"><a href="#">← обзор</a><b>3 · Стейкхолдеры и нужды</b><div class="dots"><span class="dot f"></span><span class="dot f"></span><span class="dot"></span></div><span>шаг 3 из 3 · «Нужды у каждого»</span><span class="next" data-why="условие не выполнено: у «Регулятор РЧС» нет нужд → добавить">Дальше →</span></div>
+      <div class="flow">вход: замысел ✓ → <b>3 · Стейкхолдеры и нужды</b> → выход: реестр стейкхолдеров и нужд (2 из 3) → ждут: 4 · Цели · 6 · Сервисы · ◆ Внутренний обзор</div>
+      <div class="body">
+        <div class="frag">
+          <div class="panel"><h3>Стейкхолдеры <span class="cnt">3 · нужд 5</span></h3>
+            <table><tr><th>Стейкхолдер</th><th>Роль</th><th>Нужды</th></tr>
+              <tr><td>Минтранс России</td><td>заказчик</td><td>2</td></tr>
+              <tr><td>АО «ГЛОНАСС»</td><td>оператор</td><td>3</td></tr>
+              <tr><td>Регулятор РЧС</td><td>регулятор</td><td><span class="bad">0 — добавить</span></td></tr></table>
+          </div>
+          <p class="muted" style="font-size:12px">Предложения из записки: 10 кандидатов → <a href="#">принять / отклонить</a></p>
+        </div>
+        <aside class="cond"><h4>Условия выхода</h4><ul>
+          <li class="ok">≥ 3 стейкхолдера (3)</li>
+          <li class="no">у каждого ≥ 1 нужда (2 из 3) → <a href="#">Регулятор РЧС</a></li>
+          <li class="ok">нужда без стейкхолдера — 0</li></ul>
+          <h4 style="margin-top:14px">К ближайшей точке</h4><ul><li class="no">матрица покрытия непуста → сцена 6</li></ul>
+        </aside>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="note">Эталон оболочки v2: рейка (эксперт-разделы серым, показываются переключателем), шапка (проект · сцена · точка с блокирующими · «мои» · учётка), лента сцен с точками, рамка сцены (степпер, нить потока, встроенный фрагмент, панель условий с переходами; «Дальше» серая — с причиной). Статус — текст + цвет; карточки раскрываются вниз; disabled — только с причиной.</div>
+</body></html>

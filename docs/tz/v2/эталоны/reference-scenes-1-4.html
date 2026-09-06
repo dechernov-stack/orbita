@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><title>Эталон сцен 1–4 — Орбита v2</title>
+<style>
+:root{--panel:#f7f7f8;--line:#e3e4e8;--ink:#1b1c1f;--muted:#6b6e76;--accent:#2f5fd9;--ok:#2d7a3e;--bad:#b3261e;--focus:0 0 0 3px rgba(47,95,217,.35)}
+*{box-sizing:border-box}body{margin:0;padding:20px;font:14px/1.45 Inter,system-ui,sans-serif;color:var(--ink);background:#fff;display:grid;gap:28px}
+a{color:var(--accent);text-decoration:none}input,select,textarea,button{font:inherit}input,select,textarea{padding:6px 8px;border:1px solid var(--line);border-radius:6px;width:100%}
+input:focus,select:focus,textarea:focus,button:focus{outline:none;box-shadow:var(--focus)}
+.frame{border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.stepper{display:flex;gap:14px;align-items:center;padding:10px 14px;background:var(--panel);border-bottom:1px solid var(--line)}
+.dots{display:flex;gap:6px}.dot{width:10px;height:10px;border-radius:50%;border:2px solid var(--accent)}.dot.f{background:var(--accent)}
+.next{margin-left:auto;padding:6px 12px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--muted)}.next.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.next[data-why]:after{content:attr(data-why);display:block;font-size:11px}
+.flow{padding:8px 14px;font-size:13px;border-bottom:1px solid var(--line)}
+.body{display:grid;grid-template-columns:1fr 300px}.frag{padding:14px}.cond{border-left:1px solid var(--line);padding:12px 14px}
+.cond h4{margin:0 0 8px;font-size:13px}.cond ul{padding:0;margin:0}.cond li{list-style:none;margin:4px 0}.ok:before{content:"✓ ";color:var(--ok)}.no:before{content:"☐ ";color:var(--muted)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.field label{display:block;font-size:12px;color:var(--muted);margin-bottom:3px}
+.panel{border:1px solid var(--line);border-radius:8px}.panel h3{margin:0;padding:8px 12px;border-bottom:1px solid var(--line);font-size:13px;display:flex;justify-content:space-between}.panel h3 span{color:var(--muted);font-weight:400}
+table{border-collapse:collapse;width:100%}td,th{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;font-size:13px;vertical-align:top}th{color:var(--muted);font-weight:500}
+.card{background:var(--panel);padding:10px 12px;font-size:13px}.muted{color:var(--muted)}.bad{color:var(--bad)}.chip{display:inline-block;padding:1px 6px;border:1px solid var(--line);border-radius:10px;font-size:12px;background:#fff}
+.btn{padding:6px 12px;border:1px solid var(--line);border-radius:6px;background:#fff}.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.hint{font-size:12px;color:var(--muted)}.empty{padding:12px;border:1px dashed var(--line);border-radius:6px;color:var(--muted)}
+h2{margin:0;font-size:15px}
+</style></head><body>
+
+<h2>Сцена 1 · Открыть проект (РП)</h2>
+<div class="frame">
+ <div class="stepper"><a href="#">← обзор</a><b>1 · Открыть проект</b><div class="dots"><span class="dot f"></span><span class="dot"></span></div><span>шаг 1 из 2 · «Паспорт»</span><span class="next" data-why="не заполнено: класс миссии">Дальше →</span></div>
+ <div class="flow">вход: — → <b>1 · Открыть проект</b> → выход: проект с фазой и точками → ждут: 2 · Замысел</div>
+ <div class="body"><div class="frag">
+  <div class="grid">
+   <div class="field"><label>Имя проекта</label><input value="Национальная спутниковая IoT-платформа"></div>
+   <div class="field"><label>Класс миссии</label><select><option>— выберите</option><option>НОО · связь и IoT</option><option>НОО · ДЗЗ</option></select></div>
+   <div class="field"><label>Руководитель проекта</label><select><option>Чернов Д. · руководитель проекта</option></select></div>
+   <div class="field"><label>Стандарт имён</label><select><option>NASA-7120 (Pre-A · MCR · KDP-A)</option><option>РК-11КТ (НИР · экспертиза концепции миссии)</option></select></div>
+  </div>
+  <p class="hint">Точки фазы получат даты по умолчанию от сегодняшнего дня: внутренний обзор +10 дн · MCR +30 · KDP-A +45 — правятся на шаге 2.</p>
+ </div><aside class="cond"><h4>Условия выхода</h4><ul><li class="ok">имя задано</li><li class="no">класс миссии выбран</li><li class="ok">руководитель назначен</li><li class="no">даты точек подтверждены → шаг 2</li></ul></aside></div>
+</div>
+
+<h2>Сцена 2 · Замысел (РП)</h2>
+<div class="frame">
+ <div class="stepper"><a href="#">← обзор</a><b>2 · Замысел</b><div class="dots"><span class="dot f"></span><span class="dot f"></span></div><span>шаг 2 из 2 · «Принять замысел»</span><span class="next" data-why="замысел не принят">Дальше →</span></div>
+ <div class="flow">вход: проект ✓ → <b>2 · Замысел</b> → выход: замысел (черновик) → ждут: 3 · Стейкхолдеры · 4 · Цели · 13 · MCReport §1</div>
+ <div class="body"><div class="frag">
+  <div class="card" style="margin-bottom:12px">Предложение из <b>Записка_миссии.md</b> — 4 поля с якорями · <a href="#">источник</a> · <span class="chip">И1</span> <span class="chip">В2</span> <span class="chip">П</span></div>
+  <div class="grid">
+   <div class="field"><label>Для кого <span class="muted">· якорь s1</span></label><textarea rows="3">Минтранс России и Ространснадзор как якорный заказчик; АО «ГЛОНАСС» как интеграционный оператор; владельцы ТС и БВС…</textarea></div>
+   <div class="field"><label>Что делает <span class="muted">· якорь s1</span></label><textarea rows="3">Единый защищённый транспорт коротких сообщений через гибрид наземных сетей и НОО-сегмента…</textarea></div>
+   <div class="field"><label>Где <span class="muted">· якоря s1, s6</span></label><textarea rows="3">Территория РФ с приоритетом Арктики, СМП, Транссиба…</textarea></div>
+   <div class="field"><label>Горизонт <span class="muted">· якоря s5, s7 · [П]</span></label><textarea rows="3">К 2033 — 100 % объектов перечня критических грузов; до 150 КА; ≥ 1 000 000 терминалов при подтверждённой экономике…</textarea></div>
+  </div>
+  <p style="display:flex;gap:10px;align-items:center;margin-top:14px"><button class="btn primary">Принять замысел</button><button class="btn">Отменить вставку</button><span class="hint">после принятия генерация постановки разблокирована</span></p>
+ </div><aside class="cond"><h4>Условия выхода</h4><ul><li class="ok">4 поля заполнены</li><li class="ok">якоря у 4 из 4</li><li class="no">замысел принят руководителем</li></ul><h4 style="margin-top:14px">Источники</h4><ul><li class="muted">Записка_миссии.md · канон Д1 · 12 разделов</li></ul></aside></div>
+</div>
+
+<h2>Сцена 3 · Стейкхолдеры и нужды (ведущий СИ)</h2>
+<div class="frame">
+ <div class="stepper"><a href="#">← обзор</a><b>3 · Стейкхолдеры и нужды</b><div class="dots"><span class="dot f"></span><span class="dot f"></span><span class="dot"></span></div><span>шаг 3 из 3 · «Нужды у каждого»</span><span class="next" data-why="у «Регулятор РЧС» нет нужд → добавить">Дальше →</span></div>
+ <div class="flow">вход: замысел ✓ → <b>3 · Стейкхолдеры и нужды</b> → выход: реестр (3 стейкхолдера · 5 нужд) → ждут: 4 · Цели · 6 · Сервисы · ◆ Внутренний обзор</div>
+ <div class="body"><div class="frag">
+  <div class="panel"><h3>Стейкхолдеры и их нужды <span>3 · нужд 5 · кандидатов из записки 10</span></h3>
+   <table><tr><th>Стейкхолдер</th><th>Роль</th><th>Нужды</th><th></th></tr>
+    <tr><td>Минтранс России / Ространснадзор</td><td>заказчик</td><td>единое оперативное управление транспортом · непрерывность регуляторной телематики</td><td><a href="#">+ нужда</a></td></tr>
+    <tr><td>АО «ГЛОНАСС»</td><td>оператор</td><td>интеграция с ГАИС · суверенитет данных · резервный канал</td><td><a href="#">+ нужда</a></td></tr>
+    <tr><td>Регулятор РЧС</td><td>регулятор</td><td><span class="bad">нужд нет</span></td><td><a href="#">+ нужда</a></td></tr></table>
+  </div>
+  <div class="card" style="margin-top:12px">Кандидаты из записки: <b>10 стейкхолдеров</b> с масштабами и метками · <a href="#">принять выбранных</a> · акторы полки класса: 9 → <a href="#">сопоставить</a></div>
+  <p class="hint" style="margin-top:8px">Нужда создаётся только у стейкхолдера (пикер); класс обслуживания A′/B′/C′ — обязателен.</p>
+ </div><aside class="cond"><h4>Условия выхода</h4><ul><li class="ok">≥ 3 стейкхолдера (3)</li><li class="no">у каждого ≥ 1 нужда (2 из 3) → <a href="#">Регулятор РЧС</a></li><li class="ok">нужда без стейкхолдера — 0</li></ul><h4 style="margin-top:14px">Матрица покрытия</h4><p class="empty">пуста до сцен 4 и 6 — так и должно быть</p></aside></div>
+</div>
+
+<h2>Сцена 4 · Цели и показатели (РП + ведущий СИ)</h2>
+<div class="frame">
+ <div class="stepper"><a href="#">← обзор</a><b>4 · Цели и показатели</b><div class="dots"><span class="dot f"></span><span class="dot f"></span></div><span>шаг 2 из 2 · «Каждая нужда ведёт к цели»</span><span class="next on">Дальше →</span></div>
+ <div class="flow">вход: нужды ✓ → <b>4 · Цели и показатели</b> → выход: 9 целей с показателями → ждут: 8 · Требования · 13 · MCReport §1 · ◆ Внутренний обзор</div>
+ <div class="body"><div class="frag">
+  <div class="panel"><h3>Цели <span>9 · с показателем 9 · нужды покрыты 5 из 5</span></h3>
+   <table><tr><th>Цель</th><th>Показатель</th><th>Год</th><th>Нужды</th></tr>
+    <tr><td>Базовый национальный контур: покрытие приоритетных зон в S&F</td><td>≤ 50 КА · P95 ≤ 180 мин</td><td>2030</td><td>2</td></tr>
+    <tr><td>Отслеживаемость критических грузов</td><td>= 100 % объектов перечня</td><td>2033</td><td>1</td></tr>
+    <tr><td>Подтвердить коммерческий спрос</td><td>≥ 250 000 терминалов <span class="chip">П</span></td><td>2031</td><td>2</td></tr>
+    <tr><td class="muted" colspan="4">… ещё 6</td></tr></table>
+  </div>
+  <p class="hint" style="margin-top:8px">Цель без показателя и года не сохраняется; единица — из справочника; показатель [П] помечен как предлагаемый.</p>
+ </div><aside class="cond"><h4>Условия выхода</h4><ul><li class="ok">≥ 1 цель</li><li class="ok">у каждой показатель и год</li><li class="ok">каждая нужда → ≥ 1 цель (5 из 5)</li></ul><h4 style="margin-top:14px">К ближайшей точке</h4><ul><li class="no">ограничения заданы → сцена 5</li></ul></aside></div>
+</div>
+
+<p class="hint">Общие правила эталона: рамка одна для всех сцен; встроенный фрагмент — только своё; «Дальше» серая с причиной или синяя; условия выхода — вычислены, каждая строка ведёт к месту; после вставки предложения первичная кнопка одна — «Принять …»; ссылки на объекты — пикерами; пустое состояние — с причиной («пуста до сцен 4 и 6»).</p>
+</body></html>

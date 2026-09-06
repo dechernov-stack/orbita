@@ -31,6 +31,11 @@ class SceneFlowTest {
         TestDbV2.repoRoot.resolve("docs/tz/v2/полки-порождённые/ШАБЛОН-ФАЗЫ-PRE-A-NASA.json").toFile(),
     )
 
+    /** Полка процессов ЖЦ: входные потоки сцен приходят оттуда. */
+    private val процессы = mapper.readTree(
+        TestDbV2.repoRoot.resolve("docs/tz/v2/ПОЛКА-ПРОЦЕССЫ-РОМАНОВ.json").toFile(),
+    )
+
     private val router: V2Router by lazy {
         val движок = ProcessFactory.engine(
             template = { шаблон },
@@ -44,6 +49,16 @@ class SceneFlowTest {
                 store.list(Area.Project(проект), "gate")
                     .associate { it.code to it.doc.path("planned_date").asText("") }
                     .filterValues { it.isNotBlank() }
+            },
+            processReference = { процессы },
+            sceneWindows = { проект ->
+                store.list(Area.Project(проект), "plan").lastOrNull()
+                    ?.doc?.path("scene_windows")
+                    ?.associate {
+                        it.path("scene").asText() to (it.path("start").asText("") to it.path("end").asText(""))
+                    }
+                    ?.filterValues { it.first.isNotBlank() }
+                    .orEmpty()
             },
         )
         V2Router(
@@ -150,6 +165,78 @@ class SceneFlowTest {
             "после сцены 6 точка держится концепцией и требованиями",
         )
         assertEquals("open", сцена(фаза, "7").path("state").asText(), "сцена 7 открылась сама")
+    }
+
+    @Test
+    fun `сцена несёт нить потока - вход, выход и кто её ждёт`() {
+        router.handle("POST", "/v2/projects", emptyMap(), """{"name":"Нить","code":"PJ-9112"}""")
+        val параметры = mapOf("project" to "PJ-9112")
+        val фаза = router.handle("GET", "/v2/phase", параметры, null)!!.body
+        val третья = сцена(фаза, "3")
+
+        assertEquals("реестр стейкхолдеров и их нужд", третья.path("output").asText())
+        assertTrue(
+            третья.path("awaited_by").map { it.asText() }.any { it.contains("4 · Цели") },
+            "сцена обязана знать, кто её ждёт: ${третья.path("awaited_by")}",
+        )
+        assertTrue(
+            третья.path("awaited_by").map { it.asText() }.any { it.startsWith("◆") },
+            "точки тоже ждут сцену: ${третья.path("awaited_by")}",
+        )
+        assertTrue(
+            третья.path("input_flows").map { it.asText() }.any { it.contains("потребности") },
+            "входные потоки приходят с полки процессов, а не из кода: ${третья.path("input_flows")}",
+        )
+        // Панель условий показывает ВСЕ условия — и выполненные, и нет.
+        // «У каждого стейкхолдера есть нужда» в пустом проекте выполнено
+        // честно: нарушителя нет, потому что нет и стейкхолдеров.
+        val условия = третья.path("exit").map { it.path("title").asText() to it.path("passed").asBoolean() }
+        assertTrue(условия.size >= 2, "условий выхода должно быть видно несколько: $условия")
+        assertTrue(условия.any { !it.second }, "в пустом проекте есть невыполненное условие: $условия")
+        assertTrue(
+            третья.path("exit").any { !it.path("passed").asBoolean() && !it.path("why").isNull },
+            "у невыполненного условия обязана быть причина словами",
+        )
+    }
+
+    @Test
+    fun `внутренний обзор держится планом работ фазы, а план ставит даты точкам`() {
+        router.handle("POST", "/v2/projects", emptyMap(), """{"name":"План","code":"PJ-9113"}""")
+        val параметры = mapOf("project" to "PJ-9113")
+
+        val обзорДо = router.handle("GET", "/v2/phase", параметры, null)!!
+            .body.path("gates").single { it.path("key").asText() == "internal_review" }
+        assertTrue(
+            обзорДо.path("blocking").map { it.asText() }.any { it.contains("план работ фазы не задан") },
+            "без плана лента пуста, и точка это говорит: ${обзорДо.path("blocking")}",
+        )
+
+        router.handle("POST", "/v2/plan", параметры,
+            """{"gate_dates":[{"gate":"internal_review","date":"2026-10-08"},{"gate":"MCR","date":"2026-11-25"}],
+                "scene_windows":[{"scene":"1","start":"2026-09-14","end":"2026-09-15"},
+                                 {"scene":"2","start":"2026-09-15","end":"2026-09-18"}],
+                "author":"Чернов Д."}""")
+
+        val фаза = router.handle("GET", "/v2/phase", параметры, null)!!.body
+        assertTrue(
+            фаза.path("gates").single { it.path("key").asText() == "internal_review" }
+                .path("blocking").map { it.asText() }.none { it.contains("план работ фазы") },
+            "порог владельца: план у первой доступной сцены снимает разрыв",
+        )
+        assertEquals(
+            "2026-10-08",
+            фаза.path("gates").single { it.path("key").asText() == "internal_review" }.path("planned_date").asText(),
+            "план задаёт даты точкам, а не дублирует их",
+        )
+        assertEquals(
+            "2026-09-14",
+            сцена(фаза, "1").path("window").path("start").asText(),
+            "окно сцены видно ленте",
+        )
+        assertTrue(
+            сцена(фаза, "3").path("window").isMissingNode,
+            "у сцены без окна плана его и нет — лента покажет «план не задан»",
+        )
     }
 
     @Test

@@ -1,11 +1,12 @@
-// Рамка сцены (ТЗ §4.1.1): степпер, вопрос сцены, шаги и панель условий
-// выхода. Внутрь рамки встраивается фрагмент экрана — только тот, что нужен
-// шагу, без чужих первичных действий.
+// Рамка сцены по эталону (`эталоны/reference-shell-v2.html`).
 //
-// Панель условий — главное место рамки: она объясняет, ЧЕМ сцена держится,
-// и делает это словами сервера, а не общим «нельзя».
+// Четыре части, и каждая отвечает на свой вопрос:
+//   · степпер — где я в сцене и почему «Дальше» пока серая;
+//   · нить потока — откуда пришло, что даёт, кто ждёт;
+//   · фрагмент — только своё действие, без чужих первичных кнопок;
+//   · панель условий — из чего сцена состоит: ✓ и ☐ со ссылкой к месту.
 import type { ReactNode } from 'react'
-import type { Phase, Scene } from './api'
+import type { Condition, Phase, Scene } from './api'
 
 export function SceneFrame({ phase, scene, onPick, children }: {
   phase: Phase
@@ -13,86 +14,95 @@ export function SceneFrame({ phase, scene, onPick, children }: {
   onPick: (key: string) => void
   children: ReactNode
 }) {
+  const шагов = scene.steps.length
+  const текущий = scene.steps.findIndex((ш) => !ш.done)
+  const номерШага = текущий === -1 ? шагов : текущий + 1
+  const имяШага = scene.steps[текущий === -1 ? шагов - 1 : текущий]?.title ?? ''
+  const дальшеМожно = scene.state === 'done'
+  const причина = scene.blockers[0]
+  const следующая = phase.scenes.find((с) => с.order === scene.order + 1)
+  const ближайшая = phase.gates.find((т) => !т.passed)
+
   return (
-    <>
-      <div className="v2-stepper" role="tablist" aria-label="сцены фазы">
-        {phase.scenes.map((s) => (
-          <button key={s.key} type="button" role="tab"
-            className={`v2-step v2-step--${s.state}`}
-            aria-selected={s.key === scene.key}
-            aria-current={s.key === phase.current_scene ? 'step' : undefined}
-            disabled={false}
-            title={
-              s.state === 'locked'
-                ? `сцена закрыта: ${s.blockers.join('; ')}`
-                : s.state === 'done'
-                  ? 'сцена прожита — можно вернуться и поправить'
-                  : 'текущая сцена'
-            }
-            onClick={() => onPick(s.key)}>
-            <span className="v2-step__n">{s.key}</span>
-            <span className="v2-step__t">{s.title}</span>
-            <span className="v2-step__s">
-              {s.state === 'done' ? 'прожита' : s.state === 'open' ? 'идёт' : 'закрыта'}
-            </span>
-          </button>
-        ))}
+    <div className="v2-frame">
+      <div className="v2-stepper">
+        <button type="button" className="v2-link" title="к ленте сцен фазы"
+          onClick={() => onPick(phase.current_scene ?? scene.key)}>← обзор</button>
+        <b>{scene.key} · {scene.title}</b>
+        <span className="v2-dots" aria-hidden="true">
+          {scene.steps.map((ш, i) => (
+            <span key={i} className={ш.done ? 'v2-dot v2-dot--f' : 'v2-dot'} />
+          ))}
+        </span>
+        <span className="v2-dim">
+          {шагов > 0 ? `шаг ${номерШага} из ${шагов}${имяШага ? ` · «${имяШага}»` : ''}` : scene.question}
+        </span>
+        <button type="button"
+          className={дальшеМожно ? 'v2-next v2-next--on' : 'v2-next'}
+          disabled={!дальшеМожно || !следующая}
+          title={дальшеМожно
+            ? (следующая ? `перейти к сцене ${следующая.key} · ${следующая.title}` : 'это последняя сцена фазы')
+            : `условие не выполнено: ${причина ?? 'сцена ещё в работе'}`}
+          onClick={() => следующая && onPick(следующая.key)}>
+          Дальше →
+          {!дальшеМожно && причина && <span className="v2-next__why">{причина}</span>}
+        </button>
       </div>
 
-      <div className="v2-card">
-        <div className="v2-card__head">
-          <span className="v2-card__title">{scene.title}</span>
-          <span className="v2-card__count">{scene.role === 'lead' ? 'руководитель' : scene.role === 'lead_se' ? 'ведущий СИ' : scene.role}</span>
-        </div>
-        <p className="v2-question">{scene.question}</p>
-
-        {scene.state === 'locked' ? (
-          <div className="v2-locked">
-            <b>Сцена закрыта.</b>
-            <ul className="v2-why">
-              {scene.blockers.map((b) => <li key={b}>{b}</li>)}
-            </ul>
-            <span className="v2-empty__why">
-              Условие держит движок процесса: пока оно не выполнено, шаги этой сцены не начинаются.
-            </span>
-          </div>
-        ) : (
-          children
+      <div className="v2-flow">
+        <span className="v2-dim">вход: </span>
+        {scene.entry.length === 0 && scene.input_flows.length === 0 ? '—' : (
+          <>
+            {scene.entry.map((у) => (
+              <span key={у.check} className={у.passed ? 'v2-ok' : 'v2-warn'}>
+                {у.title}{у.passed ? ' ✓' : ' ☐'}{' '}
+              </span>
+            ))}
+            {scene.input_flows.length > 0 && (
+              <span className="v2-dim" title="входные потоки процесса ЖЦ — данными полки">
+                · {scene.input_flows.join(' · ')}
+              </span>
+            )}
+          </>
+        )}
+        {' → '}<b>{scene.key} · {scene.title}</b>
+        {' → '}<span className="v2-dim">выход: </span>{scene.output || '—'}
+        {scene.awaited_by.length > 0 && (
+          <>{' → '}<span className="v2-dim">ждут: </span>{scene.awaited_by.join(' · ')}</>
         )}
       </div>
 
-      {scene.state !== 'locked' && (
-        <div className="v2-card">
-          <div className="v2-card__head">
-            <span className="v2-card__title">Условия выхода</span>
-            <span className="v2-card__count">
-              {scene.blockers.length === 0 ? 'выполнены' : `осталось ${scene.blockers.length}`}
-            </span>
-          </div>
-          {scene.blockers.length === 0 ? (
-            <div className="v2-ok">Сцена прожита: выход закрыт, следующая открылась сама.</div>
-          ) : (
-            <ul className="v2-why">
-              {scene.blockers.map((b) => <li key={b}>{b}</li>)}
-            </ul>
+      <div className="v2-body">
+        <div className="v2-frag">{children}</div>
+        <aside className="v2-cond">
+          <h4>Условия выхода</h4>
+          <ul>
+            {scene.exit.map((у) => <Условие key={у.check} у={у} />)}
+          </ul>
+          {ближайшая && (
+            <>
+              <h4>К ближайшей точке</h4>
+              <ul>
+                {ближайшая.blocking.length === 0
+                  ? <li className="v2-c v2-c--ok">{ближайшая.title}: условия выполнены</li>
+                  : ближайшая.blocking.map((б, i) => (
+                    <li key={i} className="v2-c v2-c--no">{б}</li>
+                  ))}
+              </ul>
+            </>
           )}
-        </div>
-      )}
-
-      <div className="v2-card">
-        <div className="v2-card__head">
-          <span className="v2-card__title">Шаги сцены</span>
-          <span className="v2-card__count">{scene.steps.length}</span>
-        </div>
-        <ol className="v2-steps">
-          {scene.steps.map((шаг) => (
-            <li key={шаг.title} className={шаг.done ? 'v2-steps__done' : undefined}>
-              <b>{шаг.title}</b>
-              <span className="v2-empty__why">{шаг.hint}</span>
-            </li>
-          ))}
-        </ol>
+        </aside>
       </div>
-    </>
+    </div>
+  )
+}
+
+function Условие({ у }: { у: Condition }) {
+  return (
+    <li className={у.passed ? 'v2-c v2-c--ok' : 'v2-c v2-c--no'}
+      title={у.passed ? 'условие выполнено' : (у.why ?? 'условие не выполнено')}>
+      {у.title}
+      {!у.passed && у.why && <span className="v2-empty__why">{у.why}</span>}
+    </li>
   )
 }

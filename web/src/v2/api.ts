@@ -10,6 +10,14 @@ export interface Step {
   done: boolean
 }
 
+/** Условие сцены: заголовок для человека, состояние и причина отказа. */
+export interface Condition {
+  title: string
+  check: string
+  passed: boolean
+  why: string | null
+}
+
 export interface Scene {
   key: string
   title: string
@@ -20,6 +28,17 @@ export interface Scene {
   /** Чего не хватает — словами, с именами объектов. */
   blockers: string[]
   steps: Step[]
+  /** Условия входа и выхода целиком: панель показывает и ✓, и ☐. */
+  entry: Condition[]
+  exit: Condition[]
+  /** Что сцена даёт — для нити потока. */
+  output: string
+  /** Кто ждёт эту сцену: сцены и точки. */
+  awaited_by: string[]
+  /** Входные потоки процесса ЖЦ — данными полки. */
+  input_flows: string[]
+  /** Окно плана работ фазы; нет — «план не задан». */
+  window?: { start: string; end: string }
 }
 
 export interface Gate {
@@ -269,6 +288,18 @@ export const api = {
   phase: (project: string) => вызов<Phase>(`/phase?project=${encodeURIComponent(project)}`),
 
   projects: () => вызов<{ items: ProjectRow[] }>('/projects'),
+
+  plan: (project: string) =>
+    вызов<{ planned: boolean; note?: string; gate_dates?: { gate: string; date: string }[]; scene_windows?: { scene: string; start: string; end: string }[] }>(
+      `/plan?project=${encodeURIComponent(project)}`),
+
+  setPlan: (project: string, тело: Record<string, unknown>) =>
+    вызов<{ code: string; version: number }>(`/plan?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify(тело) }),
+
+  glossary: (q?: string) =>
+    вызов<{ items: { term_nasa: string; ru_equivalent: string; en_full: string; romanov: string }[] }>(
+      `/glossary${q ? `?q=${encodeURIComponent(q)}` : ''}`),
 
   openProject: (тело: Record<string, unknown>) =>
     вызов<Phase>('/projects', { method: 'POST', body: JSON.stringify(тело) }),

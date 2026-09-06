@@ -89,6 +89,31 @@ class DomainGateEvaluator(
                     без.take(3).joinToString("; ") { it.doc.path("statement").asText(it.code).take(60) }
             }
 
+            // Порог владельца (ВОЛНА-0-ПРИНЯТА §2): план обязателен у ПЕРВОЙ
+            // доступной сцены. Строгий порог «у всех» делает сцену
+            // непроходимой в первый день фазы, а мягкий «хоть где-нибудь» —
+            // бессмысленным.
+            "phase_plan_started" -> {
+                val план = store.list(область, "plan").lastOrNull()
+                val окна = план?.doc?.path("scene_windows")?.map { it.path("scene").asText() }.orEmpty()
+                val нужнаСцена = аргумент
+                when {
+                    план == null -> "план работ фазы не задан: ленте нечего показывать"
+                    окна.isEmpty() -> "в плане нет ни одного окна сцены"
+                    нужнаСцена != null && нужнаСцена !in окна ->
+                        "у сцены $нужнаСцена нет окна в плане работ фазы"
+                    else -> null
+                }
+            }
+
+            "gate_dates_planned" -> {
+                val план = store.list(область, "plan").lastOrNull()
+                val даты = план?.doc?.path("gate_dates")?.count { it.path("date").asText("").isNotBlank() } ?: 0
+                val точек = store.list(область, "gate").size
+                if (точек > 0 && даты >= точек) null
+                else "даты точек в плане: $даты из $точек"
+            }
+
             "scene_done" -> {
                 val ключ = аргумент ?: return "условие «$check» не назвало сцену"
                 if (ключ in сценыПройдены(project)) null else "сцена $ключ ещё не прожита"

@@ -36,6 +36,11 @@ class SceneSevenEightTest {
         TestDbV2.repoRoot.resolve("docs/tz/v2/полки-порождённые/ШАБЛОН-ФАЗЫ-PRE-A-NASA.json").toFile(),
     )
 
+    /** Полка процессов ЖЦ: входные потоки сцен приходят оттуда. */
+    private val процессы = mapper.readTree(
+        TestDbV2.repoRoot.resolve("docs/tz/v2/ПОЛКА-ПРОЦЕССЫ-РОМАНОВ.json").toFile(),
+    )
+
     private val router: V2Router by lazy {
         val требования = RequirementsFactory.requirements(store, links, mapper)
         val снимки = RequirementsFactory.baselines(store, links, mapper)
@@ -55,6 +60,16 @@ class SceneSevenEightTest {
                 store.list(Area.Project(проект), "gate")
                     .associate { it.code to it.doc.path("planned_date").asText("") }
                     .filterValues { it.isNotBlank() }
+            },
+            processReference = { процессы },
+            sceneWindows = { проект ->
+                store.list(Area.Project(проект), "plan").lastOrNull()
+                    ?.doc?.path("scene_windows")
+                    ?.associate {
+                        it.path("scene").asText() to (it.path("start").asText("") to it.path("end").asText(""))
+                    }
+                    ?.filterValues { it.first.isNotBlank() }
+                    .orEmpty()
             },
         )
         V2Router(

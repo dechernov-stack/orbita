@@ -41,7 +41,74 @@ body {
   border-radius: 4px;
 }
 
-.v2-shell { display: grid; grid-template-columns: 208px 1fr; min-height: 100vh; }
+/* Эталон: шапка во всю ширину, под ней рейка 200px и главное поле. */
+.v2-shell { min-height: 100vh; }
+.v2-layout { display: grid; grid-template-columns: 200px 1fr; min-height: calc(100vh - 42px); }
+.v2-main { padding: 16px 20px; }
+
+/* Работа: лента сцен слева, рамка сцены справа. */
+.v2-two-cols { display: grid; grid-template-columns: 320px 1fr; gap: 20px; align-items: start; }
+
+.v2-top {
+  display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center;
+  padding: 8px 16px; border-bottom: 1px solid var(--line); background: var(--ground);
+}
+.v2-ctx { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+.v2-me { display: flex; gap: 14px; align-items: center; color: var(--ink-soft); }
+.v2-project { font: inherit; font-weight: 600; padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--ground); }
+.v2-chip { padding: 2px 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--ground-soft); font-size: 13px; }
+.v2-bad { color: var(--block); }
+.v2-link { border: 0; background: none; color: var(--accent); cursor: pointer; padding: 0; font: inherit; }
+
+/* Панель — общий контейнер списка (эталон: заголовок со счётчиком). */
+.v2-panel { border: 1px solid var(--line); border-radius: var(--radius); background: var(--ground); margin-bottom: 14px; }
+.v2-panel > h3 {
+  margin: 0; padding: 10px 12px; border-bottom: 1px solid var(--line);
+  font-size: 13px; display: flex; justify-content: space-between; gap: 10px; align-items: baseline;
+}
+.v2-cnt { color: var(--ink-mute); font-weight: 400; }
+.v2-list { padding: 6px 0; }
+.v2-row {
+  display: grid; grid-template-columns: 28px 1fr auto; gap: 8px; width: 100%;
+  padding: 6px 12px; align-items: baseline; border: 0; background: none;
+  font: inherit; text-align: left; cursor: pointer; color: var(--ink);
+}
+.v2-row:hover { background: var(--ground-soft); }
+.v2-row--cur { background: var(--accent-soft); }
+.v2-row__n { font-family: var(--font-mono); font-size: 12px; color: var(--ink-mute); }
+.v2-st { font-size: 12px; }
+.v2-st--done { color: var(--ok); }
+.v2-st--open { color: var(--accent); }
+.v2-st--locked { color: var(--ink-mute); }
+.v2-win { display: block; font-size: 11px; color: var(--ink-mute); }
+.v2-gate {
+  padding: 6px 12px; margin: 4px 0; font-size: 13px;
+  border-top: 1px dashed var(--line); border-bottom: 1px dashed var(--line);
+}
+
+/* Рамка сцены: степпер, нить потока, тело с панелью условий. */
+.v2-frame { border: 1px solid var(--line); border-radius: var(--radius); background: var(--ground); overflow: hidden; }
+.v2-stepper {
+  display: flex; gap: 14px; align-items: center; padding: 10px 14px;
+  background: var(--ground-soft); border-bottom: 1px solid var(--line);
+}
+.v2-dots { display: flex; gap: 6px; }
+.v2-dot { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--accent); }
+.v2-dot--f { background: var(--accent); }
+.v2-next { margin-left: auto; padding: 6px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--ground); color: var(--ink-mute); }
+.v2-next--on { background: var(--accent); color: #fff; border-color: var(--accent); }
+.v2-next__why { display: block; font-size: 11px; max-width: 32ch; }
+.v2-flow { padding: 8px 14px; font-size: 13px; border-bottom: 1px solid var(--line); }
+.v2-body { display: grid; grid-template-columns: 1fr 300px; }
+.v2-frag { padding: 14px; min-width: 0; }
+.v2-cond { border-left: 1px solid var(--line); padding: 12px 14px; }
+.v2-cond h4 { margin: 0 0 8px; font-size: 13px; }
+.v2-cond h4 + ul { margin: 0 0 14px; padding: 0; }
+/* Знак и текст условия — одной строкой; причина уходит под неё. */
+.v2-c { list-style: none; margin: 6px 0; }
+.v2-c--ok:before { content: "✓ "; color: var(--ok); }
+.v2-c--no:before { content: "☐ "; color: var(--ink-mute); }
+.v2-c .v2-empty__why { display: block; padding-left: 16px; }
 
 /* Рейка — навигация; разделы, чьи сцены не наступили, здесь не живут */
 .v2-rail { background: var(--ground); border-right: 1px solid var(--line); padding: 8px 0; }
