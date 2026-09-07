@@ -197,6 +197,9 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
             программатика,
             mapper,
         )
+        // Живой контур: разбор входного документа — один вызов на версию,
+        // ответ кэшируется отпечатком промпта (решение владельца 06.09).
+        val служба = orbita.ai.api.AiFactory.service(store, mapper = mapper)
         // Документы идут ПЕРЕД фронтом волны 4: без них выходы сцен висят
         // в воздухе, и проход владельца проверять нечем.
         val документы = orbita.documents.api.DocumentsFactory.documents(
@@ -209,11 +212,14 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
                         .takeIf { it.isFile }?.let { mapper.readTree(it) }
             },
             mapper = mapper,
+            // «Написать связно» идёт тем же контуром, что разбор: журнал
+            // вызовов один, и видно, за что заплачено.
+            writer = { проект, промпт ->
+                val ответ = служба.ask(проект, "document_render", промпт)
+                ответ.text to ответ.model
+            },
         )
         val документыМаршруты = orbita.api.internal.DocRoutes(store, документы, mapper) { полки.phaseTemplate("PHT-9001") }
-        // Живой контур: разбор входного документа — один вызов на версию,
-        // ответ кэшируется отпечатком промпта (решение владельца 06.09).
-        val служба = orbita.ai.api.AiFactory.service(store, mapper = mapper)
         val знанияМаршруты = orbita.api.internal.KnowledgeRoutes(
             знания,
             orbita.ai.api.AiFactory.atomize(store, знания, служба, mapper),

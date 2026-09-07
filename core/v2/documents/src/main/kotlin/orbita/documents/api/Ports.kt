@@ -121,6 +121,27 @@ data class DocumentBaseline(
     val note: String = "",
 )
 
+/**
+ * Связный текст раздела, написанный живой моделью из его элементов.
+ *
+ * Модель НЕ источник сведений: она излагает то, что уже есть в разделе.
+ * Поэтому у рендеринга две проверки — числа и квалификаторы, — и обе
+ * атомарны: раздел принимается целиком либо не принимается вовсе.
+ * Полупринятый текст хуже отсутствующего: в нём не видно, где враньё.
+ */
+data class RenderedSection(
+    val section: String,
+    val title: String,
+    val text: String,
+    val model: String,
+    /** Пусто — текст принят. Иначе текст ОТКЛОНЁН и причины названы. */
+    val refusals: List<String>,
+    /** Сказано, но не отклонено: человек смотрит и решает сам. */
+    val notes: List<String> = emptyList(),
+) {
+    val accepted: Boolean get() = refusals.isEmpty()
+}
+
 /** Расхождение одного поля одного элемента. */
 data class FieldChange(
     val mid: String,
@@ -180,4 +201,17 @@ interface Documents {
      * @param to имя второй линии; пусто — сравнение с текущим состоянием
      */
     fun diff(project: String, code: String, from: String, to: String? = null): List<FieldChange>
+
+    /**
+     * «Написать связно»: раздел прозой из его же элементов.
+     *
+     * Число, которого нет ни в одном элементе, — отказ: документ не место,
+     * где числа появляются. Пропавший или добавленный квалификатор
+     * («не менее», «только») — тоже отказ: он меняет смысл требования, а
+     * не изложение.
+     */
+    fun write(project: String, code: String, section: String, author: String): RenderedSection
+
+    /** Принятые связные тексты разделов документа. */
+    fun renderings(project: String, code: String): List<RenderedSection>
 }

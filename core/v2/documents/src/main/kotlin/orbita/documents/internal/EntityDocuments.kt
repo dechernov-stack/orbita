@@ -20,6 +20,7 @@ import orbita.documents.api.ElementKind
 import orbita.documents.api.ElementView
 import orbita.documents.api.FieldChange
 import orbita.documents.api.PrintSection
+import orbita.documents.api.RenderedSection
 import orbita.documents.api.PrintView
 import orbita.documents.api.SectionView
 import orbita.kernel.api.Area
@@ -42,6 +43,15 @@ class EntityDocuments(
      */
     private val baselineRoot: java.io.File =
         java.io.File(System.getenv("ORBITA_BASELINES_DIR") ?: "/files/basirovaniya"),
+    /**
+     * Живая модель для «Написать связно»: промпт → текст и имя модели.
+     *
+     * Приходит ФУНКЦИЕЙ, а не модулем: документам не нужно знать ни про
+     * транспорт, ни про журнал вызовов — им нужен текст. Пусто — связного
+     * текста в проекте не будет, и маршрут скажет об этом прямо, а не
+     * подсунет stub-склейку под видом прозы.
+     */
+    private val writer: ((project: String, prompt: String) -> Pair<String, String>)? = null,
 ) : Documents {
 
     private val книга = BaselineBook(baselineRoot)
@@ -464,4 +474,67 @@ class EntityDocuments(
         }
         return "%s-%04d".format(префикс, (занято.maxOrNull() ?: 0) + 1)
     }
+
+    // --- связный текст -----------------------------------------------------
+
+    override fun write(
+        project: String,
+        code: String,
+        section: String,
+        author: String,
+    ): RenderedSection {
+        val писать = writer ?: throw IllegalStateException(
+            "живая модель не подключена: связный текст писать нечем — " +
+                "проверьте ORBITA_AI_KEY у службы",
+        )
+        val шаблон = шаблонИли(code)
+        val вид = document(project, code)
+        val раздел = вид.sections.firstOrNull { it.no == section }
+            ?: throw NoSuchElementException("раздела «$section» в документе «$code» нет")
+        val квалификаторы = шаблон.path("review").path("qualifiers").map { it.asText() }
+
+        val сведения = LiveRender.facts(раздел)
+        val обороты = NumberGuard.qualifiers(сведения, квалификаторы)
+        val промпт = LiveRender.prompt(вид.title, раздел, сведения, обороты)
+        val (текст, модель) = писать(project, промпт)
+        val чистый = текст.trim()
+        val отказы = LiveRender.refusals(чистый, раздел, квалификаторы)
+        val пометы = LiveRender.notes(чистый, раздел, квалификаторы)
+
+        // Принятый текст хранится, отклонённый — нет. Хранить отклонённое
+        // значит однажды его напечатать.
+        if (отказы.isEmpty()) {
+            val область = Area.Project(project)
+            val код = "RND-$code-${section.replace(Regex("[^0-9]"), "")}"
+            val документ = mapper.createObjectNode()
+            документ.put("document", code)
+            документ.put("section", section)
+            документ.put("text", чистый)
+            документ.put("model", модель)
+            документ.put("at", java.time.OffsetDateTime.now().toString())
+            val прежний = store.byCode(область, код)
+            if (прежний == null) {
+                store.create(код, "rendering", область, null, документ,
+                    Provenance(Channel.SERVICE, author), status = "draft")
+            } else {
+                store.update(прежний.id, документ, Provenance(Channel.SERVICE, author))
+            }
+        }
+        return RenderedSection(section, раздел.title, чистый, модель, отказы, пометы)
+    }
+
+    override fun renderings(project: String, code: String): List<RenderedSection> =
+        store.list(Area.Project(project), "rendering")
+            .filter { it.doc.path("document").asText() == code }
+            .map { з ->
+                RenderedSection(
+                    section = з.doc.path("section").asText(""),
+                    title = document(project, code).sections
+                        .firstOrNull { it.no == з.doc.path("section").asText() }?.title ?: "",
+                    text = з.doc.path("text").asText(""),
+                    model = з.doc.path("model").asText(""),
+                    refusals = emptyList(),
+                )
+            }
+            .sortedBy { it.section }
 }

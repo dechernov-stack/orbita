@@ -24,5 +24,7 @@ object DocumentsFactory {
         mapper: ObjectMapper = ObjectMapper(),
         baselineRoot: java.io.File =
             java.io.File(System.getenv("ORBITA_BASELINES_DIR") ?: "/files/basirovaniya"),
-    ): Documents = EntityDocuments(store, links, template, mapper, baselineRoot)
+        /** Живая модель: промпт → (текст, имя модели). Пусто — связного текста нет. */
+        writer: ((project: String, prompt: String) -> Pair<String, String>)? = null,
+    ): Documents = EntityDocuments(store, links, template, mapper, baselineRoot, writer)
 }

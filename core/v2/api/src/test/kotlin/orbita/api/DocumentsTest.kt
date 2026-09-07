@@ -21,6 +21,7 @@ import orbita.readiness.api.ReadinessFactory
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class DocumentsTest {
@@ -45,7 +46,13 @@ class DocumentsTest {
         },
         mapper = mapper,
         baselineRoot = домБазирований,
+        // Модель подменена: проверяется поведение СИСТЕМЫ на её ответ, а
+        // не сама модель. Что «напишет» подстановка, задаёт тест.
+        writer = { _, промпт -> напишет(промпт) to "модель-проверки" },
     )
+
+    /** Ответ подменённой модели: тест ставит его перед вызовом. */
+    private var напишет: (String) -> String = { "Текст без чисел и без квалификаторов." }
 
     private val router: V2Router by lazy {
         val движок = ProcessFactory.engine(
@@ -267,5 +274,62 @@ class DocumentsTest {
         val изменение = диф.path("items")[0]
         assertEquals("added", изменение.path("change").asText(), "новый тезис — добавленный узел")
         assertTrue("30 минут" in изменение.path("now").asText(), "видно, что стало")
+    }
+
+    @Test
+    fun `связный текст пишется живой моделью из элементов раздела`() {
+        постановка("PJ-9212")
+        val п = mapOf("project" to "PJ-9212")
+        router.handle("GET", "/v2/documents", п, null)
+        // Модель излагает то, что есть: имена сторон из раздела, без новых чисел.
+        напишет = { промпт ->
+            assertTrue("Сторона 1" in промпт, "модель получила сведения раздела")
+            assertTrue("НЕ ДОБАВЛЯЙ ЧИСЕЛ" in промпт, "и правила честности")
+            "Замысел обращён к перевозчикам. Стороны миссии — Сторона 1, Сторона 2 и Сторона 3."
+        }
+        val ответ = router.handle("POST", "/v2/documents/mcreport/write", п,
+            """{"section":"§1","author":"Иванов И."}""")!!
+        assertEquals(201, ответ.code, ответ.body.path("refusals").toString())
+        assertTrue(ответ.body.path("accepted").asBoolean(), ответ.body.path("refusals").toString())
+        assertEquals("модель-проверки", ответ.body.path("model").asText())
+
+        val сохранённые = router.handle("GET", "/v2/documents/mcreport/renderings", п, null)!!.body
+        assertEquals(1, сохранённые.path("items").size(), "принятый текст сохранён")
+    }
+
+    @Test
+    fun `число, которого нет в элементах, отклоняет текст целиком`() {
+        постановка("PJ-9213")
+        val п = mapOf("project" to "PJ-9213")
+        router.handle("GET", "/v2/documents", п, null)
+        напишет = { "Стороны миссии — три организации; охват достигает 98 % территории." }
+
+        val ответ = router.handle("POST", "/v2/documents/mcreport/write", п,
+            """{"section":"§1","author":"Иванов И."}""")!!
+        assertEquals(422, ответ.code, "текст с выдуманным числом не принимается")
+        assertFalse(ответ.body.path("accepted").asBoolean())
+        val причины = ответ.body.path("refusals").joinToString("; ") { it.asText() }
+        assertTrue("98" in причины, "названо само число: $причины")
+
+        // Отказ АТОМАРНЫЙ: отклонённый текст не сохраняется — хранить его
+        // значит однажды напечатать.
+        val сохранённые = router.handle("GET", "/v2/documents/mcreport/renderings", п, null)!!.body
+        assertEquals(0, сохранённые.path("items").size(), "отклонённое не хранится")
+    }
+
+    @Test
+    fun `пропавший квалификатор отклоняет текст - меняется смысл`() {
+        постановка("PJ-9214")
+        val п = mapOf("project" to "PJ-9214")
+        router.handle("GET", "/v2/documents", п, null)
+        router.handle("POST", "/v2/documents/mcreport/statement", п,
+            """{"section":"§10","text":"Связь доступна не менее 20 минут в сутки.","author":"Иванов И."}""")
+
+        напишет = { "Связь доступна 20 минут в сутки." }
+        val ответ = router.handle("POST", "/v2/documents/mcreport/write", п,
+            """{"section":"§10","author":"Иванов И."}""")!!
+        assertEquals(422, ответ.code)
+        val причины = ответ.body.path("refusals").joinToString("; ") { it.asText() }
+        assertTrue("не менее" in причины, "назван пропавший квалификатор: $причины")
     }
 }

@@ -65,6 +65,17 @@ class DocRoutes(
         method == "GET" && path.matches(Regex("/v2/documents/[a-z_]+/baselines")) ->
             линии(требуется(query, "project"), path.removePrefix("/v2/documents/").removeSuffix("/baselines"))
 
+        // «Написать связно»: раздел прозой живой модели.
+        method == "POST" && path.matches(Regex("/v2/documents/[a-z_]+/write")) ->
+            написать(
+                требуется(query, "project"),
+                path.removePrefix("/v2/documents/").removeSuffix("/write"),
+                разобрать(body),
+            )
+
+        method == "GET" && path.matches(Regex("/v2/documents/[a-z_]+/renderings")) ->
+            тексты(требуется(query, "project"), path.removePrefix("/v2/documents/").removeSuffix("/renderings"))
+
         method == "GET" && path.matches(Regex("/v2/documents/[a-z_]+/diff")) ->
             расхождение(
                 требуется(query, "project"),
@@ -162,6 +173,41 @@ class DocRoutes(
         val разделы = узел.putArray("sections")
         вид.sections.forEach { разделы.add(разделВид(it)) }
         return узел
+    }
+
+    private fun написать(project: String, code: String, тело: ObjectNode): V2Router.Ответ {
+        val текст = documents.write(
+            project, code,
+            section = тело.path("section").asText(""),
+            author = тело.path("author").asText("Иванов И."),
+        )
+        // Отклонённый текст возвращается вместе с причинами — но кодом 422,
+        // а не 201: принять его нельзя, а показать человеку нужно, иначе
+        // непонятно, что именно модель сочинила.
+        return V2Router.Ответ(
+            if (текст.accepted) 201 else 422,
+            mapper.createObjectNode()
+                .put("section", текст.section)
+                .put("title", текст.title)
+                .put("text", текст.text)
+                .put("model", текст.model)
+                .put("accepted", текст.accepted)
+                .also { у ->
+                    у.putArray("refusals").also { а -> текст.refusals.forEach { а.add(it) } }
+                    у.putArray("notes").also { а -> текст.notes.forEach { а.add(it) } }
+                },
+        )
+    }
+
+    private fun тексты(project: String, code: String): V2Router.Ответ {
+        val узел = mapper.createObjectNode()
+        val массив = узел.putArray("items")
+        documents.renderings(project, code).forEach { т ->
+            массив.addObject()
+                .put("section", т.section).put("title", т.title)
+                .put("text", т.text).put("model", т.model)
+        }
+        return V2Router.Ответ(200, узел)
     }
 
     private fun базировать(project: String, code: String, тело: ObjectNode): V2Router.Ответ {
