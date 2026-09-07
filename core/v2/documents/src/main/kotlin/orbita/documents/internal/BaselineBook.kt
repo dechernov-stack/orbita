@@ -46,7 +46,7 @@ internal class BaselineBook(private val корень: File) {
             Files.createDirectories(файл.parentFile.toPath())
             файл.writeText(text, Charsets.UTF_8)
 
-            val тег = имяТега(name)
+            val тег = имяТега(document, name)
             if (it.tagList().call().any { ссылка -> ссылка.name == "refs/tags/$тег" }) {
                 return Отметка("", "", "тег «$тег» уже стоит: базовая линия неизменяема")
             }
@@ -72,7 +72,7 @@ internal class BaselineBook(private val корень: File) {
         val репозиторий = корень.resolve(безопасно(project))
         if (!репозиторий.resolve(".git").isDirectory) return null
         Git.open(репозиторий).use { git ->
-            val тег = имяТега(name)
+            val тег = имяТега(document, name)
             val ссылка = git.repository.findRef("refs/tags/$тег") ?: return null
             val объект = git.repository.refDatabase.peel(ссылка).peeledObjectId ?: ссылка.objectId
             org.eclipse.jgit.revwalk.RevWalk(git.repository).use { walk ->
@@ -93,12 +93,19 @@ internal class BaselineBook(private val корень: File) {
     }
 
     /**
-     * Имя тега из человеческого имени линии. Пробелы и косые в ссылку git
-     * не годятся, но узнаваемость сохраняется: «внутренний обзор» →
-     * `базирование/внутренний-обзор`.
+     * Имя тега из документа и человеческого имени линии.
+     *
+     * Документ в имени обязателен: репозиторий один на ПРОЕКТ, и без него
+     * «внутренний обзор» отчёта и «внутренний обзор» концепции применения
+     * оказывались одним тегом — вторая линия молча не ставилась (поймано
+     * живой печатью ConOps).
      */
-    private fun имяТега(name: String): String =
-        "базирование/" + name.trim().lowercase()
+    private fun имяТега(document: String, name: String): String =
+        "базирование/${ссылкой(document)}/${ссылкой(name)}"
+
+    /** Строка, годная в имя ссылки git: пробелов и служебных знаков в ней нет. */
+    private fun ссылкой(значение: String): String =
+        значение.trim().lowercase()
             .replace(Regex("[\\s/\\\\~^:?*\\[\\]]+"), "-")
             .trim('-')
             .ifBlank { "без-имени" }

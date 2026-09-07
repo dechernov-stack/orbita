@@ -88,6 +88,17 @@ data class PrintView(
     val title: String,
     val subtitle: String,
     val sections: List<PrintSection>,
+    /**
+     * Авторы — ИЗ ЭЛЕМЕНТОВ, а не из подписи под печатью: документ пишут
+     * те, кто завёл его содержание, и титул обязан называть именно их.
+     */
+    val authors: List<String> = emptyList(),
+    /**
+     * Базовая линия на момент печати: имя и тег. Лист без неё не отвечает
+     * на главный вопрос читателя — «это зафиксированное состояние или
+     * черновик, который завтра другой».
+     */
+    val baseline: String = "",
 )
 
 data class PrintSection(val no: String, val title: String, val lines: List<String>)

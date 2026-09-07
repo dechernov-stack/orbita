@@ -264,13 +264,45 @@ class EntityDocuments(
 
     override fun render(project: String, code: String): PrintView {
         val вид = document(project, code)
+        // Принятый связный текст печатается ВМЕСТО структуры раздела:
+        // читателю нужен документ, а список строк — рабочая поверхность.
+        val связные = renderings(project, code).associate { it.section to it.text }
+        val линия = baselines(project, code).lastOrNull()
         return PrintView(
             title = вид.title,
-            subtitle = "${вид.standard} · полнота ${вид.complete} из ${вид.total} разделов",
+            subtitle = "${вид.standard} · полнота ${вид.complete} из ${вид.total} разделов " +
+                "к ступени ${вид.gate}",
             sections = вид.sections.map { раздел ->
-                PrintSection(раздел.no, раздел.title, StubRender.lines(раздел))
+                val текст = связные[раздел.no]
+                PrintSection(
+                    раздел.no, раздел.title,
+                    if (текст.isNullOrBlank()) StubRender.lines(раздел) else listOf(текст),
+                )
             },
+            authors = авторы(project, code),
+            baseline = линия?.let { л ->
+                "базовая линия «${л.name}»" + (if (л.tag.isNotBlank()) " · тег ${л.tag}" else "") +
+                    (if (л.commit.isNotBlank()) " · коммит ${л.commit.take(7)}" else "")
+            } ?: "базовой линии нет: документ в работе",
         )
+    }
+
+    /**
+     * Авторы документа — те, кто завёл его содержание.
+     *
+     * Тезисы несут автора полем; выходы сцен — провенансом сущностей, из
+     * которых собраны строки. Порядок — по первому появлению: так титул
+     * читается как список работавших, а не как алфавитный указатель.
+     */
+    private fun авторы(project: String, code: String): List<String> {
+        val область = Area.Project(project)
+        val имена = linkedSetOf<String>()
+        тезисыПроекта(project, code).values.flatten().sortedBy { it.code }
+            .forEach { т -> т.doc.path("author").asText("").ifBlank { null }?.let { имена += it } }
+        store.list(область, "rendering")
+            .filter { it.doc.path("document").asText() == code }
+            .forEach { имена += "связный текст: " + it.doc.path("model").asText("модель") }
+        return имена.toList()
     }
 
     override fun print(project: String, code: String, projectName: String): ByteArray =

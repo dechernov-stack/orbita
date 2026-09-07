@@ -228,7 +228,7 @@ class DocumentsTest {
         assertEquals("внутренний обзор", линия.body.path("name").asText())
         assertTrue(линия.body.path("elements").asInt() > 0, "снимок непуст")
         assertEquals(
-            "базирование/внутренний-обзор", линия.body.path("tag").asText(),
+            "базирование/mcreport/внутренний-обзор", линия.body.path("tag").asText(),
             "имя линии узнаётся в теге: ${линия.body.path("note").asText()}",
         )
         assertTrue(линия.body.path("commit").asText().length >= 7, "тег стоит на коммите")
@@ -331,5 +331,41 @@ class DocumentsTest {
         assertEquals(422, ответ.code)
         val причины = ответ.body.path("refusals").joinToString("; ") { it.asText() }
         assertTrue("не менее" in причины, "назван пропавший квалификатор: $причины")
+    }
+
+    @Test
+    fun `титул печати называет авторов и базовую линию`() {
+        постановка("PJ-9215")
+        val п = mapOf("project" to "PJ-9215")
+        router.handle("GET", "/v2/documents", п, null)
+        router.handle("POST", "/v2/documents/mcreport/statement", п,
+            """{"section":"§10","text":"Допущение проверено по паспорту платформы.","author":"Петрова М."}""")
+        router.handle("POST", "/v2/documents/mcreport/baseline", п,
+            """{"name":"внутренний обзор","author":"Иванов И."}""")
+
+        val вид = документы.render("PJ-9215", "mcreport")
+        assertTrue("Петрова М." in вид.authors, "автор тезиса назван: ${вид.authors}")
+        assertTrue("внутренний обзор" in вид.baseline, "линия названа: ${вид.baseline}")
+        assertTrue("базирование/mcreport/внутренний-обзор" in вид.baseline, "и тег: ${вид.baseline}")
+
+        val байты = router.handle("GET", "/v2/documents/mcreport/print", п, null)!!.binary
+        assertTrue(байты != null && байты.size > 1000, "печать даёт файл")
+        assertEquals("%PDF", байты!!.copyOfRange(0, 4).decodeToString())
+    }
+
+    @Test
+    fun `принятый связный текст печатается вместо структуры раздела`() {
+        постановка("PJ-9216")
+        val п = mapOf("project" to "PJ-9216")
+        router.handle("GET", "/v2/documents", п, null)
+        напишет = { "Замысел миссии обращён к перевозчикам телеметрии груза." }
+        router.handle("POST", "/v2/documents/mcreport/write", п, """{"section":"§1","author":"Иванов И."}""")
+
+        val вид = документы.render("PJ-9216", "mcreport")
+        val первый = вид.sections.first { it.no == "§1" }
+        assertEquals(
+            listOf("Замысел миссии обращён к перевозчикам телеметрии груза."), первый.lines,
+            "читателю идёт документ, а не рабочая поверхность",
+        )
     }
 }
