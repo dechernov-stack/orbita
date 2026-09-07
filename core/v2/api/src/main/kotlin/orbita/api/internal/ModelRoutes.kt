@@ -44,6 +44,15 @@ class ModelRoutes(
 
         method == "GET" && path == "/v2/variants" -> сравнение(требуется(query, "project"))
 
+        // Варианты и пороги заводятся каналом: сравнение читало их с
+        // первого дня волны 4, а завести было нечем — сцене 7 нечего было
+        // сравнивать, и §2 отчёта наполниться не мог.
+        method == "POST" && path == "/v2/variants" ->
+            завестиВариант(требуется(query, "project"), разобрать(body))
+
+        method == "POST" && path == "/v2/criteria" ->
+            завестиПорог(требуется(query, "project"), разобрать(body))
+
         method == "GET" && path == "/v2/impact" ->
             влияние(требуется(query, "project"), требуется(query, "code"), query["depth"]?.toIntOrNull() ?: 2)
 
@@ -131,7 +140,73 @@ class ModelRoutes(
                 .put("component", с.component).put("value", с.value).put("unit", с.unit)
                 .put("maturity", с.maturity).put("class_reserve", с.classReserve).put("origin", с.origin)
         }
+        // Рамка проекта — рядом со свёрткой: перебор виден там же, где сумма.
+        val рамка = ответ.putArray("frame")
+        бюджет.frame.forEach { р ->
+            рамка.addObject()
+                .put("constraint", р.constraint).put("statement", р.statement)
+                .put("op", р.op).put("limit", р.limit).put("unit", р.unit)
+                .put("actual", р.actual).put("within", р.within).put("words", р.words)
+        }
         return V2Router.Ответ(200, ответ)
+    }
+
+    /**
+     * Завести вариант построения с его показателями.
+     *
+     * Показатели лежат В ВАРИАНТЕ, а не отдельными сущностями: они не
+     * живут без него и правятся вместе с ним одной версией. Порог —
+     * наоборот, общий для всех вариантов, поэтому он отдельно.
+     */
+    private fun завестиВариант(проект: String, тело: JsonNode): V2Router.Ответ {
+        val область = Area.Project(проект)
+        val имя = тело.path("name").asText("")
+        require(имя.isNotBlank()) { "у варианта построения нет имени" }
+        val показатели = тело.path("metrics")
+        require(показатели.isArray && показатели.size() > 0) {
+            "вариант без показателей сравнивать не с чем: назовите хотя бы один"
+        }
+        показатели.forEach { м ->
+            require(м.path("key").asText("").isNotBlank() && м.path("value").isNumber) {
+                "у показателя нужен ключ и числовое значение: ${м.toString().take(120)}"
+            }
+        }
+        val документ = тело.deepCopy<ObjectNode>()
+        документ.remove(listOf("code", "author", "project"))
+        val код = тело.path("code").asText("")
+            .ifBlank { следующийКод(область, "constellation_variant", "VAR") }
+        val создано = store.create(
+            код, "constellation_variant", область, "7", документ,
+            Provenance(Channel.MANUAL, тело.path("author").asText("стенд")),
+        )
+        return V2Router.Ответ(201, mapper.createObjectNode().put("code", создано.code))
+    }
+
+    /** Порог показателя: чем именно вариант отсеивается. */
+    private fun завестиПорог(проект: String, тело: JsonNode): V2Router.Ответ {
+        val область = Area.Project(проект)
+        val ключ = тело.path("key").asText("")
+        require(ключ.isNotBlank()) { "порогу нужен ключ показателя" }
+        require(тело.path("threshold").isNumber) { "порог — число, иначе сравнивать нечем" }
+        val хуже = тело.path("worse_if").asText("greater")
+        require(хуже in setOf("greater", "less")) {
+            "«хуже если» — greater или less: без этого не видно, в какую сторону порог"
+        }
+        val документ = тело.deepCopy<ObjectNode>()
+        документ.remove(listOf("code", "author", "project"))
+        val прежний = store.list(область, "criterion").firstOrNull {
+            it.doc.path("key").asText() == ключ
+        }
+        val создано = if (прежний != null) {
+            store.update(прежний.id, документ, Provenance(Channel.MANUAL, тело.path("author").asText("стенд")))
+        } else {
+            store.create(
+                тело.path("code").asText("").ifBlank { следующийКод(область, "criterion", "CRIT") },
+                "criterion", область, "7", документ,
+                Provenance(Channel.MANUAL, тело.path("author").asText("стенд")),
+            )
+        }
+        return V2Router.Ответ(201, mapper.createObjectNode().put("code", создано.code))
     }
 
     private fun сравнение(проект: String): V2Router.Ответ {

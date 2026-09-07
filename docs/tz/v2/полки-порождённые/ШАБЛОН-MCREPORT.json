@@ -132,7 +132,7 @@
           "code": "2.1",
           "kind": "query",
           "title": "Варианты построения и их метрики",
-          "select": "variant",
+          "select": "constellation_variant",
           "min_rows": 1,
           "columns": [
             {
@@ -144,22 +144,15 @@
               "field": "name"
             },
             {
-              "title": "Аппаратов",
-              "field": "satellites"
+              "title": "Показатели",
+              "field": "metrics"
             },
             {
-              "title": "Ожидание, мин",
-              "field": "wait_min"
-            },
-            {
-              "title": "Покрытие, %",
-              "field": "coverage_pct"
-            },
-            {
-              "title": "Порог",
-              "field": "threshold"
+              "title": "Отсеян порогом",
+              "field": "rejected_by"
             }
-          ]
+          ],
+          "note": "Балла у варианта нет: показатели печатаются как есть, а отсеянный вариант называет порог, которым отсеян."
         },
         {
           "code": "2.2",

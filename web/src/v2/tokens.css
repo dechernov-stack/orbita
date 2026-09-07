@@ -358,3 +358,15 @@ button:disabled { opacity: .55; cursor: default; }
   font: inherit; font-size: var(--size-s); padding: 4px 8px;
   border: 1px solid var(--line); border-radius: 6px; background: var(--ground);
 }
+
+/* Свёртка: три строки итога читаются столбиком, а не абзацем — резерв
+   класса и системный запас не должны сливаться в одну сумму глазом. */
+.v2-rollup { margin: 0; padding-left: var(--pad-l); display: grid; gap: 4px; font-size: var(--size-s); }
+.v2-rollup b { color: var(--ink); }
+
+/* Граф влияния в карточке требования: шаги строками, задетые — метками.
+   Рисовать полотно внутри карточки нельзя (это была бы третья колонка у
+   инженера), поэтому граф читается списком по шагам. */
+.v2-imp__canvas { height: 260px; border: 1px solid var(--line); border-radius: var(--radius); margin: var(--pad-s) 0; }
+.v2-imp__node { padding: 2px 4px; text-align: left; }
+.v2-imp__kind { color: var(--ink-soft); font-size: var(--size-s); }

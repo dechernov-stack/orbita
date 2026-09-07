@@ -14,6 +14,7 @@ import { Concept } from './concept'
 import { Requirements } from './requirements'
 import { ArchitectureScreen } from './architecture'
 import { Documents } from './documents'
+import { Models } from './models'
 import { ИМЯ_РЕЖИМА, режимПоРоли, type Режим } from './density'
 
 /** Раздел рейки. `wave` — волна, в которой раздел оживает. */
@@ -226,6 +227,8 @@ export function Shell() {
             <Requirements project={project} />
           ) : section === 'architecture' ? (
             <ArchitectureScreen project={project} />
+          ) : section === 'models' ? (
+            <Models project={project} />
           ) : section === 'documents' ? (
             <Documents project={project} />
           ) : section === 'tasks' ? (

@@ -87,6 +87,29 @@ data class BudgetView(
     val systemMarginPercent: Int,
     val withSystemMargin: Double,
     val note: String,
+    /**
+     * Проверка рамок проекта: по одной строке на ограничение с числовой
+     * границей, к которой относится эта величина.
+     *
+     * Свёртка не подгоняет сумму под рамку и не молчит о переборе —
+     * она печатает «106 кг > Р2 (100 кг)» и оставляет решение человеку.
+     */
+    val frame: List<FrameCheck> = emptyList(),
+)
+
+/** Сверка свёртки с числовой границей ограничения проекта. */
+data class FrameCheck(
+    /** Код ограничения: Р2 — это имя рамки у людей. */
+    val constraint: String,
+    val statement: String,
+    val op: String,
+    val limit: Double,
+    val unit: String,
+    /** Что именно сравнивали: сумма с резервами, а не голая сумма. */
+    val actual: Double,
+    val within: Boolean,
+    /** Готовая фраза: «106 кг > Р2 (100 кг)» либо «78 кг ≤ Р2 (100 кг)». */
+    val words: String,
 )
 
 /** Метрика варианта построения: значение, порог и вердикт словами. */

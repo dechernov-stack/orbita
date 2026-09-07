@@ -12,6 +12,7 @@ import orbita.kernel.api.Entity
 import orbita.kernel.api.EntityStore
 import orbita.models.api.BudgetLine
 import orbita.models.api.BudgetView
+import orbita.models.api.FrameCheck
 
 internal class Budgets(
     private val store: EntityStore,
@@ -68,6 +69,13 @@ internal class Budgets(
         val системныйПроцент = системный(gate)
         val сСистемным = сКлассом * (1 + системныйПроцент / 100.0)
 
+        // Сверка с рамкой идёт по сумме С РЕЗЕРВОМ КЛАССА: это столько
+        // весит изделие при нынешней зрелости данных — с этим числом и
+        // сравнивают рамку. Системный запас держат против будущего роста
+        // и снимают к PDR; включать его в рамку значило бы объявить
+        // перебор там, где его ещё нет.
+        val рамка = рамки(область, kind, округлить(сКлассом))
+
         return BudgetView(
             kind = kind,
             gate = gate.uppercase(),
@@ -77,13 +85,63 @@ internal class Budgets(
             withClassReserve = округлить(сКлассом),
             systemMarginPercent = системныйПроцент,
             withSystemMargin = округлить(сСистемным),
+            frame = рамка,
             note = if (строки.isEmpty()) {
                 "свёртка пуста: параметров вида «$kind» в проекте нет — заполните анкеты узлов"
             } else {
-                "резерв по классам зрелости и системный резерв ступени ${gate.uppercase()} " +
-                    "($системныйПроцент %) печатаются раздельно: это разные вещи"
+                val перебор = рамка.filter { !it.within }
+                if (перебор.isEmpty()) {
+                    "резерв по классам зрелости и системный резерв ступени ${gate.uppercase()} " +
+                        "($системныйПроцент %) печатаются раздельно: это разные вещи"
+                } else {
+                    // Перебор — первое, что человек обязан увидеть.
+                    перебор.joinToString("; ") { it.words } +
+                        " — свёртка не подгоняется под рамку: решение за инженером"
+                }
             },
         )
+    }
+
+    /**
+     * Ограничения проекта, задающие ЧИСЛОВУЮ границу этой величине.
+     *
+     * Ограничение без поля `bound` остаётся текстом и ничего не сторожит:
+     * «платформа 12U…100 кг» словами не даёт свёртке ни величины, ни числа.
+     * Поэтому сверяются только те рамки, что названы машинно.
+     */
+    private fun рамки(область: Area, kind: String, факт: Double): List<FrameCheck> =
+        store.list(область, "constraint").mapNotNull { ограничение ->
+            val граница = ограничение.doc.path("bound")
+            if (граница.isMissingNode || граница.path("key").asText("") != kind) return@mapNotNull null
+            val предел = граница.path("value").let { if (it.isNumber) it.asDouble() else return@mapNotNull null }
+            val оператор = граница.path("op").asText("le")
+            val единица = граница.path("unit").asText("")
+            val вРамке = when (оператор) {
+                "le" -> факт <= предел
+                "lt" -> факт < предел
+                "ge" -> факт >= предел
+                "gt" -> факт > предел
+                else -> return@mapNotNull null
+            }
+            FrameCheck(
+                constraint = ограничение.code,
+                statement = ограничение.doc.path("text").asText("")
+                    .ifBlank { ограничение.doc.path("statement").asText("") },
+                op = оператор,
+                limit = предел,
+                unit = единица,
+                actual = факт,
+                within = вРамке,
+                words = "$факт $единица ${знак(оператор, вРамке)} ${ограничение.code} ($предел $единица)",
+            )
+        }
+
+    /** Знак печатается по ФАКТУ сравнения, а не по оператору рамки. */
+    private fun знак(оператор: String, вРамке: Boolean): String = when {
+        оператор in setOf("le", "lt") && вРамке -> "≤"
+        оператор in setOf("le", "lt") -> ">"
+        вРамке -> "≥"
+        else -> "<"
     }
 
     private fun округлить(x: Double) = Math.round(x * 1000.0) / 1000.0

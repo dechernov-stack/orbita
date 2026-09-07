@@ -1114,6 +1114,15 @@ kinds:
     type: '{by*,at*,reason*}'
     required: false
     note: ''
+  - name: bound
+    type: '{key*,op*,value*,unit*}'
+    required: false
+    note: >-
+      Числовая граница рамки, если ограничение её задаёт: `key` — что
+      меряем (mass, power, data), `op` — оператор (le, ge, lt, gt),
+      `value` и `unit` — сама граница. Без этого поля ограничение
+      остаётся текстом и НИЧЕГО не сторожит: свёртка не может сказать
+      «106 кг > Р2», потому что не знает, что Р2 — про массу и про 100.
   export: FA §6
   engine: есть
 - n: 37

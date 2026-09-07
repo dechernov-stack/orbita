@@ -318,6 +318,114 @@ export interface OdaRow {
   norm: string
 }
 
+/** Запись модели: чем считаем, на чём и когда считали в последний раз. */
+export interface ModelRow {
+  code: string
+  name: string
+  question: string
+  required_to: string
+  tool: string
+  verification: string
+  interface: string
+  inputs: string[]
+  /** Чего модели не хватает, чтобы считать: разрыв, а не ноль. */
+  gaps: string[]
+  last_run?: {
+    code: string
+    at: string
+    by: string
+    /** Считано прокси-моделью: число правдоподобно, но не измерено. */
+    proxy: boolean
+    /** Входы, изменившиеся ПОСЛЕ прогона: результат устарел. */
+    stale_inputs: string[]
+  }
+}
+
+/** Строка свёртки: вклад узла с его зрелостью и резервом класса. */
+export interface BudgetLine {
+  component: string
+  value: number
+  unit: string
+  maturity: string
+  class_reserve: number
+  origin: string
+}
+
+/**
+ * Свёртка величины к точке: сумма, сумма с резервом класса и она же с
+ * системным запасом. Два резерва — не украшение: резерв класса ставится
+ * ПО ЗРЕЛОСТИ каждой строки, системный запас — один на свёртку.
+ */
+/** Сверка свёртки с числовой границей ограничения проекта (рамка Р). */
+export interface FrameCheck {
+  constraint: string
+  statement: string
+  op: string
+  limit: number
+  unit: string
+  actual: number
+  within: boolean
+  /** Готовая фраза: «106 кг > Р2 (100 кг)». */
+  words: string
+}
+
+export interface Budget {
+  kind: string
+  gate: string
+  sum: number
+  unit: string
+  with_class_reserve: number
+  system_margin_percent: number
+  with_system_margin: number
+  note: string
+  lines: BudgetLine[]
+  frame: FrameCheck[]
+}
+
+/** Показатель варианта: значение против порога, без балла. */
+export interface VariantMetric {
+  key: string
+  title: string
+  value: number
+  unit: string
+  threshold: string
+  worse_if: string
+  passed: boolean
+  group: string
+}
+
+export interface VariantRow {
+  code: string
+  name: string
+  /** Чем отклонён: пустое — вариант в рассмотрении. */
+  rejected_by: string
+  /** На фронте Парето: никакой другой вариант не лучше по всем показателям. */
+  pareto: boolean
+  metrics: VariantMetric[]
+}
+
+export interface ImpactNode {
+  id: string
+  code: string
+  kind: string
+  title: string
+  depth: number
+}
+
+export interface ImpactEdge {
+  from: string
+  to: string
+  type: string
+  why: string
+}
+
+export interface ImpactGraph {
+  root: string
+  summary: string
+  nodes: ImpactNode[]
+  edges: ImpactEdge[]
+}
+
 export interface WbsRow {
   code: string
   name: string
@@ -682,6 +790,29 @@ export const api = {
   addParameter: (project: string, тело: Record<string, unknown>) =>
     вызов<{ code: string; id: string }>(`/parameters?project=${encodeURIComponent(project)}`,
       { method: 'POST', body: JSON.stringify(тело) }),
+
+  models: (project: string) =>
+    вызов<{ items: ModelRow[] }>(`/models?project=${encodeURIComponent(project)}`),
+
+  takeModels: (project: string, author: string) =>
+    вызов<{ taken: number }>(`/models/take?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ author }) }),
+
+  runModel: (project: string, model: string, outputs: Record<string, string>, author: string) =>
+    вызов<{ code: string; at: string; proxy: boolean }>(
+      `/models/${encodeURIComponent(model)}/run?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ outputs, author }) }),
+
+  budget: (project: string, kind: string, gate: string) =>
+    вызов<Budget>(`/budget?project=${encodeURIComponent(project)}` +
+      `&kind=${encodeURIComponent(kind)}&gate=${encodeURIComponent(gate)}`),
+
+  variants: (project: string) =>
+    вызов<{ note: string; items: VariantRow[] }>(`/variants?project=${encodeURIComponent(project)}`),
+
+  impact: (project: string, code: string, depth = 2) =>
+    вызов<ImpactGraph>(`/impact?project=${encodeURIComponent(project)}` +
+      `&code=${encodeURIComponent(code)}&depth=${depth}`),
 
   passGate: (project: string, gate: string, author: string) =>
     вызов<Phase>(`/gates/${encodeURIComponent(gate)}/pass?project=${encodeURIComponent(project)}`,

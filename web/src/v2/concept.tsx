@@ -6,6 +6,9 @@
 // говорит об этом до того, как ворота откажут.
 import { useCallback, useEffect, useState } from 'react'
 import { api, type ComponentRow, type ConceptRow } from './api'
+// Сравнение вариантов живёт одним местом с разделом моделей: у сцены 7 и
+// у раздела «Модели» это ОДНА таблица показателей, а не две похожие.
+import { Variants } from './models'
 
 export function Concept({ project }: { project: string | null }) {
   const [узлы, setУзлы] = useState<ComponentRow[]>([])
@@ -182,6 +185,10 @@ export function Concept({ project }: { project: string | null }) {
           </div>
         </div>
       </div>
+
+      {/* Сравнение — рядом с выбором: решение принимают, ГЛЯДЯ на показатели,
+          а не вспоминая их. Балла у варианта нет намеренно. */}
+      <Variants project={project} />
     </>
   )
 }

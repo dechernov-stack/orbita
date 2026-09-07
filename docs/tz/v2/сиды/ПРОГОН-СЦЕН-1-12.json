@@ -1,0 +1,385 @@
+{
+  "code": "PJ-V2-W4",
+  "name": "Прогон Code · волна 4 (не для прохода)",
+  "note": "Содержание прогона волны 4. Числа взяты из записки миссии IoT и из рамки проекта (Р1–Р9): свёртка обязана упереться в Р2 (12U…100 кг) и сказать об этом, а не подогнать сумму. Это ПРОГОН, а не проект владельца: он существует, чтобы разделы §5–§8 отчёта наполнялись выходами сцен, и помечен «не для прохода».",
+  "intent": {
+    "for_whom": "перевозчики опасных грузов, судовладельцы, операторы БАС",
+    "what": "передача коротких сообщений телеметрии вне зон наземного покрытия",
+    "where": "территория РФ, приоритет Арктика и Севморпуть",
+    "horizon": "2033",
+    "accepted": true
+  },
+  "stakeholders": [
+    {
+      "name": "Минтранс России",
+      "role": "regulator"
+    },
+    {
+      "name": "Ространснадзор",
+      "role": "regulator"
+    },
+    {
+      "name": "АО «ГЛОНАСС»",
+      "role": "operator"
+    }
+  ],
+  "needs": [
+    {
+      "statement": "непрерывное поступление данных мониторинга вне наземного покрытия",
+      "owner": "Минтранс России"
+    },
+    {
+      "statement": "подтверждаемая доставка сообщений для контроля перевозок",
+      "owner": "Ространснадзор"
+    },
+    {
+      "statement": "единый оператор приёма телеметрии без внешней зависимости",
+      "owner": "АО «ГЛОНАСС»"
+    }
+  ],
+  "goals": [
+    {
+      "statement": "отслеживаемость перевозок доведена до утверждённого перечня",
+      "year": 2033
+    }
+  ],
+  "constraints": [
+    {
+      "text": "полезная нагрузка — только регенеративная (обработка на борту)",
+      "category": "техническое"
+    },
+    {
+      "text": "платформа в диапазоне 12U…100 кг",
+      "category": "техническое",
+      "bound": {
+        "key": "mass",
+        "op": "le",
+        "value": 100,
+        "unit": "кг"
+      }
+    }
+  ],
+  "services": [
+    {
+      "name": "короткие сообщения с подтверждением",
+      "qos_class": "B′"
+    }
+  ],
+  "components": [
+    {
+      "code": "SC",
+      "name": "Космический аппарат",
+      "nature": "node",
+      "level": 1,
+      "kind": "system"
+    },
+    {
+      "code": "PL-RX",
+      "name": "Полезная нагрузка приёма",
+      "nature": "node",
+      "level": 3,
+      "kind": "subsystem"
+    },
+    {
+      "code": "OBC-CPU",
+      "name": "БЦВМ",
+      "nature": "node",
+      "level": 4,
+      "kind": "assembly"
+    },
+    {
+      "code": "EPS",
+      "name": "Система электропитания",
+      "nature": "node",
+      "level": 3,
+      "kind": "subsystem"
+    },
+    {
+      "code": "OBC-SW",
+      "name": "ПО управления КА",
+      "nature": "behaviour",
+      "level": 4,
+      "kind": "assembly"
+    },
+    {
+      "code": "STR",
+      "name": "Конструкция и механизмы",
+      "nature": "node",
+      "level": 3,
+      "kind": "subsystem"
+    }
+  ],
+  "deploy": [
+    {
+      "behaviour": "OBC-SW",
+      "node": "OBC-CPU",
+      "rationale": "поведение исполняется на бортовой вычислительной машине"
+    }
+  ],
+  "concept": {
+    "variant": "V1 · 24 КА в трёх плоскостях",
+    "rationale": "покрытие Арктики при регенеративной нагрузке в рамке 12U…100 кг",
+    "rejected": [
+      {
+        "variant": "V2 · 12 КА в одной плоскости",
+        "reason": "разрыв покрытия СМП свыше 90 мин"
+      }
+    ],
+    "descopes": [
+      {
+        "what": "межспутниковая линия связи",
+        "why": "не нужна для store-and-forward первой очереди, а тракт не достигает TRL 6 к PDR",
+        "to": "вторая очередь"
+      },
+      {
+        "what": "оперативное управление классом C′",
+        "why": "требует непрерывного покрытия и удваивает число аппаратов — выходит за рамку стоимости",
+        "to": "вторая очередь"
+      }
+    ]
+  },
+  "requirements": [
+    {
+      "code": "RQ-P-01",
+      "level": "project",
+      "carrier": "SC",
+      "title": "Периодичность передачи телеметрии",
+      "statement": "Космический аппарат должен передавать сообщения не реже одного раза в сутки.",
+      "category": "functional",
+      "verification_method": "test",
+      "ears_pattern": "ubiquitous",
+      "acceptance_criteria": "по протоколу приёмо-сдаточных испытаний"
+    },
+    {
+      "code": "RQ-S-01",
+      "level": "system",
+      "carrier": "OBC-CPU",
+      "title": "Обработка на борту",
+      "statement": "БЦВМ должна обрабатывать принятые пакеты на борту без ретрансляции.",
+      "category": "functional",
+      "verification_method": "test",
+      "ears_pattern": "ubiquitous",
+      "acceptance_criteria": "проверено испытанием"
+    },
+    {
+      "code": "RQ-S-02",
+      "level": "system",
+      "carrier": "OBC-SW",
+      "title": "Отказоустойчивость управления",
+      "statement": "ПО управления должно восстанавливать работу после единичного сбоя.",
+      "category": "functional",
+      "verification_method": "analysis",
+      "ears_pattern": "event",
+      "acceptance_criteria": "по результатам анализа FDIR"
+    }
+  ],
+  "parameters": [
+    {
+      "component": "PL-RX",
+      "key": "mass_dry",
+      "value": 34,
+      "unit": "кг",
+      "maturity": "estimated"
+    },
+    {
+      "component": "OBC-CPU",
+      "key": "mass_dry",
+      "value": 6,
+      "unit": "кг",
+      "maturity": "measured"
+    },
+    {
+      "component": "EPS",
+      "key": "mass_dry",
+      "value": 22,
+      "unit": "кг",
+      "maturity": "modified"
+    },
+    {
+      "component": "STR",
+      "key": "mass_dry",
+      "value": 26,
+      "unit": "кг",
+      "maturity": "estimated"
+    }
+  ],
+  "technologies": [
+    {
+      "name": "алгоритмы FDIR бортового ПО",
+      "component": "OBC-SW",
+      "trl_current": 5,
+      "trl_required": 6,
+      "required_by": "PDR",
+      "fallback": "покупной модуль FDIR"
+    },
+    {
+      "name": "приёмный тракт регенеративной ПН",
+      "component": "PL-RX",
+      "trl_current": 4,
+      "trl_required": 6,
+      "required_by": "PDR",
+      "fallback": "закупка зарубежного тракта исключена"
+    }
+  ],
+  "risks": [
+    {
+      "statement": "Частоты не выделены к сроку развёртывания",
+      "category": "регуляторное",
+      "probability": 3,
+      "impact": 5,
+      "strategy": "mitigate",
+      "owner": "Минтранс России",
+      "due_point": "SRR",
+      "measures": "заявка в ГКРЧ до внутреннего обзора, резервный частотный план"
+    },
+    {
+      "statement": "Приёмный тракт не достигает TRL 6 к PDR",
+      "category": "техническое",
+      "probability": 3,
+      "impact": 4,
+      "strategy": "mitigate",
+      "owner": "АО «ГЛОНАСС»",
+      "due_point": "SDR",
+      "measures": "пакет созревания с макетом тракта"
+    },
+    {
+      "statement": "Масса платформы выходит за 100 кг",
+      "category": "техническое",
+      "probability": 4,
+      "impact": 5,
+      "strategy": "mitigate",
+      "owner": "АО «ГЛОНАСС»",
+      "due_point": "MCR",
+      "measures": "снижение массы ПН, пересмотр резерва системы"
+    }
+  ],
+  "oda": [
+    {
+      "variant": "V1 · 24 КА в трёх плоскостях",
+      "norm": "25 лет (IADC)",
+      "lifetime_years": 5,
+      "dv_deorbit": "30 м/с",
+      "compliant": true,
+      "assumptions": "высота 550 км, площадь миделя 0.6 м², пассивный увод"
+    }
+  ],
+  "estimates": [
+    {
+      "package": "05",
+      "min": 1800,
+      "max": 2600,
+      "unit": "млн ₽",
+      "method": "rom",
+      "assumptions": "аналог по цене за килограмм полезной нагрузки класса 34 кг, курс на 2026"
+    },
+    {
+      "package": "06",
+      "min": 900,
+      "max": 1500,
+      "unit": "млн ₽",
+      "method": "rom",
+      "assumptions": "платформа 100 кг по аналогу, две кампании изготовления"
+    }
+  ],
+  "parameters_note": "Масса стоит на подсистемах, а не на узле КА: свёртка складывает все параметры вида, и значение на родителе удвоило бы вклад детей. Классы зрелости — из шкалы полки шаблонов (measured 2 %, off_the_shelf 5 %, modified 10 %, остальное 20 %): сумма 88 кг с резервами класса даёт 102.3 кг и выходит за Р2 — это и должно быть сказано вслух.",
+  "criteria": [
+    {
+      "key": "wait_min",
+      "title": "ожидание сообщения",
+      "threshold": 90,
+      "worse_if": "greater",
+      "unit": "мин",
+      "group": "сервис"
+    },
+    {
+      "key": "coverage_pct",
+      "title": "покрытие СМП",
+      "threshold": 95,
+      "worse_if": "less",
+      "unit": "%",
+      "group": "сервис"
+    },
+    {
+      "key": "satellites",
+      "title": "аппаратов в группировке",
+      "threshold": 30,
+      "worse_if": "greater",
+      "unit": "шт",
+      "group": "стоимость"
+    }
+  ],
+  "variants": [
+    {
+      "code": "VAR-01",
+      "name": "24 КА в трёх плоскостях",
+      "metrics": [
+        {
+          "key": "wait_min",
+          "value": 42,
+          "unit": "мин"
+        },
+        {
+          "key": "coverage_pct",
+          "value": 98,
+          "unit": "%"
+        },
+        {
+          "key": "satellites",
+          "value": 24,
+          "unit": "шт"
+        }
+      ]
+    },
+    {
+      "code": "VAR-02",
+      "name": "12 КА в одной плоскости",
+      "metrics": [
+        {
+          "key": "wait_min",
+          "value": 128,
+          "unit": "мин"
+        },
+        {
+          "key": "coverage_pct",
+          "value": 71,
+          "unit": "%"
+        },
+        {
+          "key": "satellites",
+          "value": 12,
+          "unit": "шт"
+        }
+      ]
+    },
+    {
+      "code": "VAR-03",
+      "name": "36 КА в четырёх плоскостях",
+      "metrics": [
+        {
+          "key": "wait_min",
+          "value": 28,
+          "unit": "мин"
+        },
+        {
+          "key": "coverage_pct",
+          "value": 99,
+          "unit": "%"
+        },
+        {
+          "key": "satellites",
+          "value": 36,
+          "unit": "шт"
+        }
+      ]
+    }
+  ],
+  "variants_note": "Три варианта нарочно разные по исходу: VAR-01 проходит все пороги, VAR-02 отсеивается ожиданием и покрытием, VAR-03 — числом аппаратов. Балла нет: видно, КАКОЙ порог не выдержан, а не «вариант набрал 0.62».",
+  "maturation_estimate": {
+    "min": 120,
+    "max": 260,
+    "unit": "млн ₽",
+    "method": "rom",
+    "assumptions": "макет и испытания до TRL 6 по аналогу; без учёта закупки стенда",
+    "note": "Пакеты созревания порождаются разрывом TRL, а не сидом, поэтому их коды заранее неизвестны — оценка ставится по правилу на все, какие родила сцена 10. Без этого выход сцены 12 честно держит проект: стоимость без созревания считает не тот объём работ."
+  }
+}

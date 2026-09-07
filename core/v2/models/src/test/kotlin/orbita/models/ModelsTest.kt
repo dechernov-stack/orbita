@@ -157,6 +157,53 @@ class ModelsTest {
     }
 
     @Test
+    fun `свёртка печатает перебор рамки честно, а не подгоняет сумму`() {
+        узел("SC"); узел("EPS")
+        параметр("SC", "mass_dry", 78.0, "estimated")
+        параметр("EPS", "mass_dry", 12.0, "off_the_shelf")
+        // Р2 названа МАШИННО: без числовой границы ограничение остаётся
+        // текстом и свёртке сторожить нечего.
+        store.create(
+            "Р2", "constraint", область, "5",
+            mapper.readTree(
+                """{"text":"платформа в диапазоне 12U…100 кг","type":"technical",
+                    "bound":{"key":"mass","op":"le","value":100,"unit":"кг"}}""",
+            ),
+            провенанс,
+        )
+
+        val бюджет = модели.budget(проект, "mass", "MCR")
+        val рамка = бюджет.frame.single()
+        assertEquals("Р2", рамка.constraint)
+        assertEquals(false, рамка.within, "106.2 кг в рамку 100 кг не укладывается")
+        assertTrue(
+            рамка.words.startsWith("106.2 кг > Р2 (100.0 кг)"),
+            "перебор назван числом и рамкой: ${рамка.words}",
+        )
+        assertTrue(
+            бюджет.note.contains("не подгоняется"),
+            "свёртка говорит, что не подгоняет сумму: ${бюджет.note}",
+        )
+        assertEquals(90.0, бюджет.sum, "сумма при этом осталась суммой")
+    }
+
+    @Test
+    fun `ограничение без числовой границы ничего не сторожит`() {
+        узел("SC")
+        параметр("SC", "mass_dry", 78.0, "estimated")
+        store.create(
+            "Р1", "constraint", область, "5",
+            mapper.readTree("""{"text":"полезная нагрузка — только регенеративная","type":"technical"}"""),
+            провенанс,
+        )
+        val бюджет = модели.budget(проект, "mass", "MCR")
+        assertTrue(
+            бюджет.frame.isEmpty(),
+            "текстовое ограничение в сверку не идёт: сторожить в нём нечего",
+        )
+    }
+
+    @Test
     fun `сравнение вариантов - без итогового балла, отсеянный назван порогом`() {
         listOf(
             """{"key":"p95_latency","title":"P95 задержки","threshold":180,"worse_if":"greater","group":"служба"}""",
@@ -225,6 +272,11 @@ class ModelsTest {
         assertTrue("verification_event" in виды, "и событие верификации: $виды")
         assertTrue("document" in виды, "и документ, где это напечатано: $виды")
         assertTrue(граф.summary.contains("заденет"), граф.summary)
+        // Сводка идёт человеку: латинского имени вида в ней быть не должно.
+        assertTrue(
+            граф.summary.contains("узел состава") && "component" !in граф.summary,
+            "вид назван по-русски: ${граф.summary}",
+        )
         assertTrue(граф.edges.any { it.type == "carrier" }, "ребро носителя названо полем: ${граф.edges}")
     }
 
