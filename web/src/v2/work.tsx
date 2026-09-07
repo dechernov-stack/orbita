@@ -78,7 +78,7 @@ export function Work({ project, onProject, wantScene, onScenePicked, onScene, р
 
   if (!project) {
     return (
-      <div className="v2-panel">
+      <div className="v2-panel" data-why="работа">
         <h3>Сцена 1 · Открыть проект</h3>
         <div className="v2-frag">
           <p className="v2-question">Что за проект и по какому стандарту его вести</p>
@@ -88,8 +88,8 @@ export function Work({ project, onProject, wantScene, onScenePicked, onScene, р
     )
   }
 
-  if (отказ) return <div className="v2-panel"><div className="v2-locked">{отказ}</div></div>
-  if (!фаза || !текущая) return <div className="v2-panel"><div className="v2-empty">Читаю фазу…</div></div>
+  if (отказ) return <div className="v2-panel" data-why="почему-нельзя"><div className="v2-locked">{отказ}</div></div>
+  if (!фаза || !текущая) return <div className="v2-panel" data-why="работа"><div className="v2-empty">Читаю фазу…</div></div>
 
   const состав = составЭкрана(текущийРежим)
   const картаФазы = состав.some((б) => б.key === 'карта-фазы')

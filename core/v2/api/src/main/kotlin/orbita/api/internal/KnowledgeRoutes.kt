@@ -167,10 +167,13 @@ class KnowledgeRoutes(
 
     private fun принять(project: String, task: String, тело: ObjectNode): V2Router.Ответ {
         val выбраны = тело.path("chosen").map { it.asInt() }
-        val созданные = intake.accept(project, task, выбраны, тело.path("author").asText("инженер"))
+        val итог = intake.accept(project, task, выбраны, тело.path("author").asText("инженер"))
         val узел = mapper.createObjectNode()
-        узел.put("created", созданные.size)
-        узел.putArray("codes").also { а -> созданные.forEach { к -> а.add(к) } }
+        узел.put("created", итог.codes.size)
+        узел.putArray("codes").also { а -> итог.codes.forEach { к -> а.add(к) } }
+        // О незакрытом система говорит при приёме: имя соседа, которого в
+        // проекте нет, связью не станет — и человек узнаёт это здесь.
+        узел.putArray("notes").also { а -> итог.notes.forEach { з -> а.add(з) } }
         val п = intake.coverage(project)
         узел.put("coverage", Math.round(п.share * 100).toInt())
         return V2Router.Ответ(201, узел)

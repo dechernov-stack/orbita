@@ -44,7 +44,7 @@ export function Technologies({ project }: { project: string }) {
     <>
       {отказ && <div className="v2-locked">{отказ}</div>}
 
-      <div className="v2-panel">
+      <div className="v2-panel" data-why="работа">
         <h3>Критические технологии<span className="v2-cnt">{строки.length}</span></h3>
         {строки.length === 0 ? (
           <div className="v2-empty">
@@ -80,7 +80,7 @@ export function Technologies({ project }: { project: string }) {
         )}
       </div>
 
-      <div className="v2-panel">
+      <div className="v2-panel" data-why="следующий-клик">
         <h3>План созревания<span className="v2-cnt">{созревание.filter((с) => с.package).length}</span></h3>
         <div className="v2-empty__why">
           Разрыв TRL рождает пакет работ и веху сам — их остаётся принять, а не заводить руками.
@@ -93,7 +93,7 @@ export function Technologies({ project }: { project: string }) {
         ))}
       </div>
 
-      <div className="v2-panel">
+      <div className="v2-panel" data-why="работа">
         <h3>Новая технология</h3>
         <div className="v2-form">
           <label>Название
@@ -161,7 +161,7 @@ export function Risks({ project }: { project: string }) {
     <>
       {отказ && <div className="v2-locked">{отказ}</div>}
 
-      <div className="v2-panel">
+      <div className="v2-panel" data-why="работа">
         <h3>Реестр рисков<span className="v2-cnt">{риски.length}</span></h3>
         {риски.length === 0 ? (
           <div className="v2-empty">
@@ -225,7 +225,7 @@ export function Risks({ project }: { project: string }) {
         </div>
       </div>
 
-      <div className="v2-panel">
+      <div className="v2-panel" data-why="работа">
         <h3>Оценка засорения (ОСЗ)<span className="v2-cnt">{осз.length}</span></h3>
         {осз.length === 0 ? (
           <div className="v2-empty">
@@ -303,7 +303,7 @@ export function Costs({ project }: { project: string }) {
     <>
       {отказ && <div className="v2-locked">{отказ}</div>}
 
-      <div className="v2-panel">
+      <div className="v2-panel" data-why="работа">
         <h3>
           Пакеты работ (WBS)
           <span className="v2-cnt">
@@ -355,7 +355,7 @@ export function Costs({ project }: { project: string }) {
       </div>
 
       {пакеты.length > 0 && (
-        <div className="v2-panel">
+        <div className="v2-panel" data-why="работа">
           <h3>Оценка пакета</h3>
           <div className="v2-empty__why">
             Одно число на Pre-A читают как обязательство — принимается только диапазон с допущениями.

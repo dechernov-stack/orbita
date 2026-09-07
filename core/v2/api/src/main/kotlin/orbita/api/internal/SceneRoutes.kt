@@ -50,6 +50,17 @@ class SceneRoutes(
 
         method == "POST" && path == "/v2/needs" -> нужда(требуется(query, "project"), разобрать(body))
 
+        // Носитель уже заведённой нужды. Нужен там, где нужда пришла
+        // разбором, а названного носителя в проекте не оказалось: система
+        // говорит об этом при приёме, и чинить это надо здесь, а не
+        // заводить нужду заново.
+        method == "POST" && path.matches(Regex("/v2/needs/[A-Za-zА-Яа-я0-9-]+/owner")) ->
+            носитель(
+                требуется(query, "project"),
+                path.removePrefix("/v2/needs/").removeSuffix("/owner"),
+                разобрать(body),
+            )
+
         method == "POST" && path == "/v2/goals" -> цель(требуется(query, "project"), разобрать(body))
 
         method == "POST" && path == "/v2/constraints" ->
@@ -192,6 +203,31 @@ class SceneRoutes(
             links.link("owns", стейкхолдер.id, ответ.body.path("id").asText(), Provenance(Channel.MANUAL, автор(тело)))
         }
         return ответ
+    }
+
+    /**
+     * Назначить носителя уже заведённой нужде.
+     *
+     * Нужда без носителя не проходит выход сцены 3 — за неё никто не
+     * отвечает. Прежняя связь снимается: носитель у нужды один, и «ещё
+     * один владелец» означает не двух ответственных, а смену.
+     */
+    private fun носитель(проект: String, код: String, тело: JsonNode): V2Router.Ответ {
+        val область = Area.Project(проект)
+        val нужда = store.byCode(область, код) ?: error("нужды «$код» нет в проекте")
+        require(нужда.kind == "need") { "«$код» — не нужда, а ${нужда.kind}" }
+        val имя = тело.path("owner").asText("").trim()
+        require(имя.isNotBlank()) { "нужде нужен носитель: назовите сторону" }
+        val сторона = store.byCode(область, имя)
+            ?: store.list(область, "stakeholder").firstOrNull {
+                it.doc.path("name").asText("").trim().equals(имя, ignoreCase = true)
+            }
+        requireNotNull(сторона) { "стороны «$имя» нет в проекте: заведите её в сцене 3" }
+        links.to(нужда.id, "owns").forEach { links.unlink(it.id, Provenance(Channel.MANUAL, автор(тело))) }
+        links.link("owns", сторона.id, нужда.id, Provenance(Channel.MANUAL, автор(тело)),
+            rationale = тело.path("rationale").asText("").ifBlank { null })
+        return V2Router.Ответ(200, mapper.createObjectNode()
+            .put("need", нужда.code).put("owner", сторона.code))
     }
 
     private fun цель(проект: String, тело: JsonNode): V2Router.Ответ {

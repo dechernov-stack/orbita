@@ -64,8 +64,13 @@ class AcrossRoutes(
         val вид = тело.path("kind").asText("")
         val код = тело.path("code").asText("")
         require(вид.isNotBlank() && код.isNotBlank()) { "полке нужны вид и код записи" }
-        val запись = shelves.put(вид, код, тело.path("doc"), автор(тело))
-        return V2Router.Ответ(201, mapper.createObjectNode().put("code", запись.code).put("kind", запись.kind))
+        // Состояние выкладки и КОД, в который она легла, — часть ответа:
+        // поставщик обязан видеть, что повтор ничего не переписал и что акт
+        // ушёл в уже лежащую карточку, а не верить своему счётчику.
+        val итог = shelves.put(вид, код, тело.path("doc"), автор(тело))
+        return V2Router.Ответ(201, mapper.createObjectNode()
+            .put("code", итог.item.code).put("kind", итог.item.kind)
+            .put("state", итог.state.name.lowercase()))
     }
 
     private fun глоссарий(запрос: String?): V2Router.Ответ {

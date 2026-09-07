@@ -7,4 +7,5 @@ dependencies {
     api(project(":core:v2:kernel"))
     api(project(":core:v2:access"))
     testImplementation(kotlin("test"))
+    testImplementation(testFixtures(project(":core:v2:kernel")))
 }

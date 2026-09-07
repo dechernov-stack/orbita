@@ -50,8 +50,8 @@ export function KnowledgeField({ project }: { project: string | null }) {
 
   useEffect(перечитать, [project])
 
-  if (!project) return <div className="v2-panel"><div className="v2-empty">Проект не выбран.</div></div>
-  if (отказ) return <div className="v2-panel"><div className="v2-locked">{отказ}</div></div>
+  if (!project) return <div className="v2-panel" data-why="следующий-клик"><div className="v2-empty">Проект не выбран.</div></div>
+  if (отказ) return <div className="v2-panel" data-why="почему-нельзя"><div className="v2-locked">{отказ}</div></div>
 
   const все = факты ?? []
   const видно = все
@@ -71,7 +71,7 @@ export function KnowledgeField({ project }: { project: string | null }) {
   }
 
   return (
-    <div className="v2-panel">
+    <div className="v2-panel" data-why="работа">
       <h3>
         Поле знаний
         <span className="v2-cnt">

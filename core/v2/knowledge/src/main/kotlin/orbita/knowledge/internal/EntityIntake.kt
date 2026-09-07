@@ -30,6 +30,15 @@ class EntityIntake(
     /** Реестр связей: `derived_from_fact` — нить от сущности к её факту. */
     private val links: LinkRegistry? = null,
     private val mapper: ObjectMapper = ObjectMapper(),
+    /**
+     * Полка: по ней принятый норматив узнаёт СВОЮ карточку.
+     *
+     * Правило «один акт — одна карточка» живёт в полке: она знает, что
+     * «№2216» и «№ 2216» — один и тот же ПП РФ. Здесь оно только
+     * применяется — записью со своим провенансом (канал службы, автор,
+     * якорь факта), которого у поставки нет.
+     */
+    private val shelves: orbita.library.api.Shelves? = null,
 ) : Intake {
 
     /** Каталог заданий (поставка §3): семантика, не свобода. */
@@ -176,7 +185,7 @@ class EntityIntake(
             )
         }
 
-    override fun accept(project: String, task: String, chosen: List<Int>, author: String): List<String> {
+    override fun accept(project: String, task: String, chosen: List<Int>, author: String): Intake.Accepted {
         val область = Area.Project(project)
         val задание = store.byCode(область, task) ?: error("задания «$task» нет")
         val действия = задание.doc.path("actions")
@@ -184,6 +193,7 @@ class EntityIntake(
             "у задания «$task» нет плана: принимать нечего. Сначала разбор материала"
         }
         val созданные = mutableListOf<String>()
+        val заметки = mutableListOf<String>()
         val принятыеФакты = mutableSetOf<String>()
 
         действия.forEachIndexed { i, действие ->
@@ -192,6 +202,12 @@ class EntityIntake(
             if (вид.isBlank()) return@forEachIndexed
             val содержимое = действие.path("payload").deepCopy<JsonNode>() as
                 com.fasterxml.jackson.databind.node.ObjectNode
+            // Имя соседа снимается с документа до записи: его место — связь.
+            val ссылка = ссылкиПлана[вид]
+            val названныйСосед = ссылка?.let { с ->
+                содержимое.path(с.поле).asText("").trim().ifBlank { null }
+                    .also { содержимое.remove(с.поле) }
+            }
             val якорь = действие.path("facts").firstOrNull()?.asText()
                 ?.let { код -> store.byCode(область, код)?.doc?.path("anchor")?.asText() }
             // Замысел проекта один: повторное принятие обновляет его, а не
@@ -202,9 +218,11 @@ class EntityIntake(
             val куда = if (вид == "normative_document") Area.Library else область
             val прежний = when {
                 вид == "intent" -> store.list(область, вид).firstOrNull()
-                вид == "normative_document" -> store.list(Area.Library, вид).firstOrNull { н ->
-                    н.doc.path("designation").asText() == содержимое.path("designation").asText()
-                }
+                вид == "normative_document" ->
+                    shelves?.matching(вид, содержимое)?.let { store.byCode(Area.Library, it.code) }
+                        ?: store.list(Area.Library, вид).firstOrNull { н ->
+                            н.doc.path("designation").asText() == содержимое.path("designation").asText()
+                        }
                 else -> null
             }
             val сущность = if (прежний != null) {
@@ -224,6 +242,21 @@ class EntityIntake(
                     ),
                     status = if (вид == "intent") "accepted" else "draft",
                 )
+            }
+            // Названный сосед — связью. Не нашёлся — система говорит об
+            // этом при приёме, а не оставляет нужду висеть до ворот.
+            if (ссылка != null && названныйСосед != null) {
+                val сосед = поИмени(область, ссылка.вид, названныйСосед)
+                if (сосед == null) {
+                    заметки += "${сущность.code}: носитель «$названныйСосед» не найден " +
+                        "среди сторон проекта — назначьте его в сцене 3"
+                } else {
+                    links?.link(
+                        ссылка.связь, сосед.id, сущность.id,
+                        Provenance(Channel.SERVICE, author),
+                        rationale = "носитель назван разбором: «$названныйСосед»",
+                    )
+                }
             }
             // Нить от сущности к её факту: по ней считается доля знаний, и
             // по ней же видно, откуда в проекте взялось это утверждение.
@@ -257,8 +290,35 @@ class EntityIntake(
             Provenance(Channel.MANUAL, author),
             status = "accepted",
         )
-        return созданные
+        return Intake.Accepted(созданные, заметки)
     }
+
+    /**
+     * Поле плана, которое называет ДРУГУЮ сущность.
+     *
+     * @param поле имя поля в `payload` разбора
+     * @param вид вид сущности, среди которых имя ищется
+     * @param связь тип связи; она идёт ОТ найденной сущности К заведённой
+     *   («сторона владеет нуждой»), как её ставит ручной ввод сцены 3
+     */
+    private data class СсылкаПлана(val поле: String, val вид: String, val связь: String)
+
+    /**
+     * Ссылки плана: имя соседа — это связь, а не строка в документе.
+     *
+     * Разбор называет носителя нужды по-человечески («Минтранс России»),
+     * а система держит его связью `owns`: нужда без связи повисает и на
+     * выходе сцены 3, и в матрице покрытия, сколько бы имён ни лежало у
+     * неё в документе. Ручной ввод сцены 3 поступает так же — поле
+     * `owner` там тоже уходит в связь, а не в документ.
+     */
+    private val ссылкиПлана = mapOf("need" to СсылкаПлана("owner", "stakeholder", "owns"))
+
+    /** Сущность вида, названная именем или кодом; null — такой нет. */
+    private fun поИмени(область: Area, вид: String, имя: String) =
+        store.list(область, вид).firstOrNull {
+            it.doc.path("name").asText("").trim().equals(имя, ignoreCase = true)
+        } ?: store.byCode(область, имя)
 
     /** Префикс кода по виду: человеку он говорит, что перед ним. */
     private fun префикс(вид: String): String = when (вид) {

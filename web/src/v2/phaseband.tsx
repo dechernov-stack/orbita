@@ -21,7 +21,7 @@ export function PhaseBand({ phase, current, onPick }: {
       последняяСценаТочки(phase, т.key) === ключ)
 
   return (
-    <div className="v2-panel">
+    <div className="v2-panel" data-why="следующий-клик">
       <h3>
         Сцены фазы
         <span className="v2-cnt">

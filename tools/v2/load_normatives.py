@@ -78,27 +78,32 @@ def main() -> int:
         return 0
 
     вызов(args.base, "POST", "/auth/stand-login", {"login": args.login})
-    залито = обновлено = совпало = 0
+    ИТОГ = {"created": "залито", "updated": "обновлено", "unchanged": "без изменений"}
+    счёт = {"created": 0, "updated": 0, "unchanged": 0}
     for акт in акты:
         документ = {к: в for к, в in акт.items() if к != "code"}
+        просим = код(акт["designation"])
         try:
             ответ = вызов(args.base, "POST", "/v2/shelves", {
-                "kind": "normative_document", "code": код(акт["designation"]),
+                "kind": "normative_document", "code": просим,
                 "doc": документ, "author": "поставка v2",
             })
         except urllib.error.HTTPError as e:
             print(f"  {акт['designation']}: отказ {e.code} — {e.read().decode()[:200]}", file=sys.stderr)
             return 1
-        состояние = ответ.get("state", "выложен")
-        if состояние == "unchanged":
-            совпало += 1
-        elif состояние == "updated":
-            обновлено += 1
-        else:
-            залито += 1
-        print(f"  {акт['designation']}")
-    print(f"нормативы на полке: {len(акты)} (залито {залито}, обновлено {обновлено}, "
-          f"без изменений {совпало})")
+        # Полка отвечает состоянием и КОДОМ, в который легла карточка: акт,
+        # уже заведённый живым разбором, лежит под своим кодом (NR-000N), и
+        # поставка попадает в него, а не заводит двойника.
+        состояние = ответ.get("state")
+        if состояние not in счёт:
+            print(f"  {акт['designation']}: полка не сказала состояние — старый сервер?", file=sys.stderr)
+            return 1
+        счёт[состояние] += 1
+        лёг = ответ.get("code", просим)
+        куда = f" → {лёг}" if лёг != просим else ""
+        print(f"  {акт['designation']}: {ИТОГ[состояние]}{куда}")
+    сводка = ", ".join(f"{ИТОГ[к]} {в}" for к, в in счёт.items())
+    print(f"нормативы на полке: {len(акты)} ({сводка})")
     return 0
 
 

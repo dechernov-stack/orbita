@@ -118,13 +118,26 @@ interface Intake {
     fun plan(project: String, material: String, intent: String, author: String): IntakeTask
 
     /**
+     * Итог приёма плана: что заведено и о чём система обязана сказать.
+     *
+     * `notes` — не украшение: разбор называет соседнюю сущность ИМЕНЕМ, и
+     * если такого имени в проекте нет, связь не встанет. Молча оставить
+     * нужду без носителя нельзя — она повиснет на выходе сцены, и человек
+     * узнает об этом на воротах, а не при приёме.
+     */
+    data class Accepted(val codes: List<String>, val notes: List<String>)
+
+    /**
      * Принять план: выбранные действия выполняются, снятые — нет.
      *
      * Выполнение заводит сущности со связью `derived_from_fact` и ставит
      * их фактам диспозицию `adopted`; факты снятых действий остаются
      * `noted` — их рассмотрели и не взяли, и это тоже решение.
+     *
+     * Поля плана, называющие другую сущность (носитель нужды), уходят в
+     * СВЯЗЬ, а не в документ: имя в документе связью не является.
      */
-    fun accept(project: String, task: String, chosen: List<Int>, author: String): List<String>
+    fun accept(project: String, task: String, chosen: List<Int>, author: String): Accepted
 
     /** Задание загрузки с планом: предпросмотр до нажатия. */
     fun task(project: String, task: String): IntakeTask

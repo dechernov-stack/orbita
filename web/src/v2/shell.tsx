@@ -204,7 +204,7 @@ export function Shell() {
 
         <main className="v2-main">
           {failure && (
-            <div className="v2-panel">
+            <div className="v2-panel" data-why="почему-нельзя">
               <h3>Стенд не ответил</h3>
               <div className="v2-empty">{failure}</div>
             </div>
@@ -231,7 +231,7 @@ export function Shell() {
           ) : section === 'tasks' ? (
             <MyTasks project={project} onGoScene={(сцена) => { setWantScene(сцена); setSection('work') }} />
           ) : (
-            <div className="v2-panel">
+            <div className="v2-panel" data-why="работа">
               <h3>
                 {current.title}
                 <span className="v2-cnt">волна {current.wave}</span>
