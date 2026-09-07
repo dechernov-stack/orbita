@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 # Полный набор проверок. Запускается в CI и локально перед коммитом.
+#
+# Питоновские зависимости — ci/requirements.txt:
+#   python3 -m venv .venv && .venv/bin/pip install -r ci/requirements.txt
+#   PATH="$PWD/.venv/bin:$PATH" bash ci/checks.sh
 # Числа проверок НЕ задаются в скрипте: они берутся из вывода эталонов.
 # Захардкоженное число однажды скрыло эталон, который не выполнялся вовсе.
 set -euo pipefail

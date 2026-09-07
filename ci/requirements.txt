@@ -1,0 +1,14 @@
+# Зависимости сторожей ci/checks.sh. Держатся здесь, а не в голове:
+# `python3` на машине разработчика меняется обновлением homebrew, и суита
+# однажды уже умерла на `ModuleNotFoundError: yaml` — при том, что в CI
+# всё было зелено (там пакеты ставит workflow).
+#
+#   python3 -m venv .venv && .venv/bin/pip install -r ci/requirements.txt
+#   PATH="$PWD/.venv/bin:$PATH" bash ci/checks.sh
+#
+# Версия reqif закреплена: обмен сверяется с XSD OMG поле в поле, и
+# «свежая» библиотека меняет разбор молча.
+jsonschema
+referencing
+reqif==0.0.47
+pyyaml
