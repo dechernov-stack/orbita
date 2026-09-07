@@ -220,6 +220,24 @@ class Прогон:
                     }),
             )
 
+    def сцена_9_режимы_и_сценарии(self) -> None:
+        режимы = self.сид.get("modes")
+        if режимы:
+            есть = вызов(self.base, "GET", f"/v2/modes?project={self.проект}").get("items", [])
+            self.шаг(
+                "сцена 9: режимы аппарата", bool(есть),
+                lambda: вызов(self.base, "POST", f"/v2/modes?project={self.проект}",
+                              {**режимы, "author": "Иванов И."}),
+            )
+        имеются = {с["code"] for с in вызов(
+            self.base, "GET", f"/v2/scenarios?project={self.проект}").get("items", [])}
+        for с in self.сид.get("scenarios", []):
+            self.шаг(
+                f"сцена 9: сценарий «{с['name'][:35]}…»", с["code"] in имеются,
+                lambda х=с: вызов(self.base, "POST", f"/v2/scenarios?project={self.проект}",
+                                  {**х, "author": "Иванов И."}),
+            )
+
     def сцена_10_технологии(self) -> None:
         имеются = {т["name"] for т in вызов(
             self.base, "GET", f"/v2/technologies?project={self.проект}").get("items", [])}
@@ -295,6 +313,7 @@ class Прогон:
         self.сцена_6_сервисы()
         self.сцена_7_состав_и_вариант()
         self.сцена_8_требования_и_анкеты()
+        self.сцена_9_режимы_и_сценарии()
         self.сцена_10_технологии()
         self.сцена_11_риски_и_засорение()
         self.войти("chernov")
@@ -315,11 +334,14 @@ def состояние(base: str, проект: str) -> None:
     документы = вызов(base, "GET", f"/v2/documents?project={проект}").get("items", [])
     for д in документы:
         вид = вызов(base, "GET", f"/v2/documents/{д['code']}?project={проект}")
-        print(f"  {вид['title']}:")
+        print(f"  {вид['title']}: полнота к {вид.get('gate','MCR')} — "
+              f"{вид['complete']} из {вид['total']}"
+              + (f", не ждут ещё {вид['not_due_yet']}" if вид.get("not_due_yet") else ""))
         for раздел in вид["sections"]:
             строк = sum(len(э.get("rows", [])) for э in раздел.get("elements", []))
             полон = "полон" if раздел.get("complete") else "неполон"
-            print(f"    §{раздел['no']:<4} {раздел['title'][:38]:<40} {полон:<8} строк {строк}")
+            ждут = "" if раздел.get("due_now", True) else f"  (ждут к {раздел.get('expected_by')})"
+            print(f"    §{раздел['no']:<4} {раздел['title'][:38]:<40} {полон:<8} строк {строк}{ждут}")
 
 
 def main() -> int:

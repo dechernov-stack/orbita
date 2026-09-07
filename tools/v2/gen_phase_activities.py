@@ -99,6 +99,16 @@ import sys
                       "condition": "carrier_nature_ok"}],
          "surface": "scene:8#carrier"},
     ],
+    "9": [
+        {"code": "0.8", "role": "lead_se",
+         "goal": "режимы аппарата названы: в каком состоянии система ведёт себя иначе",
+         "outputs": [{"what": "машина режимов", "kind": "state_machine", "min": 1}],
+         "surface": "scene:9#modes"},
+        {"code": "0.9", "role": "lead_se",
+         "goal": "операционные сценарии: кто участвует и что происходит по шагам",
+         "outputs": [{"what": "операционные сценарии", "kind": "functional_chain", "min": 2}],
+         "surface": "scene:9#scenarios"},
+    ],
     "10": [
         {"code": "1.7", "role": "lead_se",
          "goal": "критические технологии названы, разрывы TRL закрыты планом",

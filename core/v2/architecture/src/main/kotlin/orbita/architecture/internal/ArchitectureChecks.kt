@@ -62,7 +62,55 @@ class ArchitectureChecks(
                 )
             }
 
+            // --- сцена 9: режимы и операционные сценарии -------------------
+            // Живут здесь, а не в отдельном модуле: и режимы, и цепочки —
+            // прочтение СОСТАВА со стороны применения, и знает его архитектура.
+
+            "modes_defined" -> {
+                val машины = store.list(область, "state_machine")
+                val сСостояниями = машины.filter { it.doc.path("states").size() >= 2 }
+                when {
+                    машины.isEmpty() -> CheckResult.no(
+                        "машины режимов нет: ConOps §4 нечем наполнить — " +
+                            "назовите режимы аппарата в сцене 9",
+                    )
+                    сСостояниями.isEmpty() -> CheckResult.no(
+                        "у машины режимов меньше двух состояний: одно состояние — это не режим, " +
+                            "а постоянное поведение",
+                    )
+                    else -> CheckResult.ok
+                }
+            }
+
+            "scenarios_min" -> {
+                val нужно = (аргумент ?: "1").toIntOrNull() ?: 1
+                val цепочки = store.list(область, "functional_chain")
+                if (цепочки.size >= нужно) CheckResult.ok
+                else CheckResult.no(
+                    "операционных сценариев ${цепочки.size} из $нужно: сценарий — путь по составу, " +
+                        "им наполняется ConOps §5",
+                )
+            }
+
+            "each_scenario_has_steps" -> {
+                val без = store.list(область, "functional_chain").filter { цепочка ->
+                    val шаги = цепочка.doc.path("steps")
+                    shagiPusty(шаги)
+                }
+                if (без.isEmpty()) CheckResult.ok
+                else CheckResult.no(
+                    "сценарии без шагов с участником: " + без.joinToString(", ") { it.code } +
+                        " — шаг без участника не проверить: непонятно, кто это делает",
+                )
+            }
+
             else -> null
         }
     }
+
+    /** Пусто, если шагов нет или хотя бы один шаг не называет участника. */
+    private fun shagiPusty(шаги: com.fasterxml.jackson.databind.JsonNode): Boolean =
+        шаги.isEmpty || шаги.any { шаг ->
+            шаг.path("actor").asText("").isBlank() && шаг.path("component").asText("").isBlank()
+        }
 }

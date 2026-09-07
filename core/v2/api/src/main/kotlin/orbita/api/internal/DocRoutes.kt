@@ -5,6 +5,7 @@
 // ответ роутера, который не JSON, и он объявлен явно.
 package orbita.api.internal
 
+import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ObjectNode
 import orbita.documents.api.DocumentView
@@ -17,6 +18,12 @@ class DocRoutes(
     private val store: EntityStore,
     private val documents: Documents,
     private val mapper: ObjectMapper = ObjectMapper(),
+    /**
+     * Шаблон фазы: в нём объявлены обязательные документы. Без него
+     * маршрут завёл бы только отчёт о концепции, и Draft ConOps, который
+     * питает сцена 9, не появился бы в проекте никогда.
+     */
+    private val phaseTemplate: () -> JsonNode = { mapper.createObjectNode() },
 ) {
 
     fun handle(method: String, path: String, query: Map<String, String>, body: String?): V2Router.Ответ? = when {
@@ -30,7 +37,11 @@ class DocRoutes(
             подсказки(требуется(query, "project"), требуется(query, "scene"))
 
         method == "GET" && path.matches(Regex("/v2/documents/[a-z_]+")) ->
-            один(требуется(query, "project"), path.removePrefix("/v2/documents/"))
+            один(
+                требуется(query, "project"),
+                path.removePrefix("/v2/documents/"),
+                query["gate"] ?: "MCR",
+            )
 
         method == "POST" && path.matches(Regex("/v2/documents/[a-z_]+/statement")) ->
             тезис(
@@ -52,7 +63,15 @@ class DocRoutes(
      * создаёт: `ensure` идемпотентен.
      */
     private fun обеспечить(project: String) {
-        if (documents.list(project).isEmpty()) documents.ensure(project, "mcreport", "система")
+        val есть = documents.list(project).map { it.template }.toSet()
+        // Список обязательных документов — ДАННЫМИ шаблона фазы: добавить
+        // документ должно быть можно поставкой, а не правкой продукта.
+        val обязательные = phaseTemplate().path("documents")
+            .map { it.path("template").asText("") }
+            .filter { it.isNotBlank() }
+            .ifEmpty { listOf("mcreport") }
+        обязательные.filterNot { it in есть }
+            .forEach { documents.ensure(project, it, "система") }
     }
 
     private fun список(project: String): V2Router.Ответ {
@@ -69,8 +88,8 @@ class DocRoutes(
         return V2Router.Ответ(201, полностью(documents.ensure(project, шаблон, автор)))
     }
 
-    private fun один(project: String, code: String): V2Router.Ответ =
-        V2Router.Ответ(200, полностью(documents.document(project, code)))
+    private fun один(project: String, code: String, gate: String): V2Router.Ответ =
+        V2Router.Ответ(200, полностью(documents.document(project, code, gate)))
 
     private fun тезис(project: String, code: String, тело: ObjectNode): V2Router.Ответ {
         val раздел = documents.addStatement(
@@ -115,6 +134,8 @@ class DocRoutes(
         .put("standard", вид.standard)
         .put("complete", вид.complete)
         .put("total", вид.total)
+        .put("gate", вид.gate)
+        .put("not_due_yet", вид.notDueYet)
 
     private fun полностью(вид: DocumentView): ObjectNode {
         val узел = кратко(вид)
@@ -128,6 +149,8 @@ class DocRoutes(
         узел.put("no", раздел.no)
         узел.put("title", раздел.title)
         узел.put("complete", раздел.complete)
+        узел.put("expected_by", раздел.expectedBy ?: "")
+        узел.put("due_now", раздел.dueNow)
         узел.putArray("scenes").also { а -> раздел.scenes.forEach { а.add(it) } }
         узел.putArray("waiting").also { а -> раздел.waiting.forEach { а.add(it) } }
         val элементы = узел.putArray("elements")

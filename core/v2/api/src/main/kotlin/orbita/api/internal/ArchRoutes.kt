@@ -37,6 +37,19 @@ class ArchRoutes(
 
         method == "GET" && path == "/v2/architecture" -> слои(требуется(query, "project"))
 
+        // Сцена 9: режимы и операционные сценарии. Оба вида читались
+        // гранями компонента и запросами ConOps с волны 3, а завести их
+        // было нечем — §4 и §5 документа не наполнялись никогда.
+        method == "GET" && path == "/v2/modes" -> режимы(требуется(query, "project"))
+
+        method == "POST" && path == "/v2/modes" ->
+            завестиРежимы(требуется(query, "project"), разобрать(body))
+
+        method == "GET" && path == "/v2/scenarios" -> сценарии(требуется(query, "project"))
+
+        method == "POST" && path == "/v2/scenarios" ->
+            завестиСценарий(требуется(query, "project"), разобрать(body))
+
         method == "POST" && path == "/v2/concept" ->
             базоваяКонцепция(требуется(query, "project"), разобрать(body))
 
@@ -123,6 +136,108 @@ class ArchRoutes(
             Provenance(Channel.MANUAL, тело.path("author").asText("стенд")),
         )
         return V2Router.Ответ(201, mapper.createObjectNode().put("code", создано.code).put("id", создано.id))
+    }
+
+    /**
+     * Машина режимов узла: состояния и переходы между ними.
+     *
+     * Режим — это состояние, в котором система ведёт себя ИНАЧЕ. Одно
+     * состояние режимом не является: это постоянное поведение, и ConOps
+     * §4 из него не собрать.
+     */
+    private fun завестиРежимы(проект: String, тело: JsonNode): V2Router.Ответ {
+        val область = Area.Project(проект)
+        val владелец = store.byCode(область, тело.path("owner").asText(""))
+            ?: throw IllegalArgumentException(
+                "узла «${тело.path("owner").asText()}» нет в проекте: режимы принадлежат носителю",
+            )
+        val состояния = тело.path("states")
+        require(состояния.isArray && состояния.size() >= 2) {
+            "режимов меньше двух: одно состояние — не режим, а постоянное поведение"
+        }
+        состояния.forEach { с ->
+            require(с.path("code").asText("").isNotBlank() && с.path("name").asText("").isNotBlank()) {
+                "у режима нужен код и имя: ${с.toString().take(120)}"
+            }
+        }
+        // Переход называет СОБЫТИЕ: «из дежурного в передачу» без причины
+        // читается как самопроизвольная смена режима.
+        тело.path("transitions").forEach { п ->
+            require(п.path("on").asText("").isNotBlank()) {
+                "у перехода ${п.path("from").asText()}→${п.path("to").asText()} нет события: " +
+                    "режим не меняется сам по себе"
+            }
+        }
+        val документ = тело.deepCopy<ObjectNode>()
+        документ.remove(listOf("code", "author", "project"))
+        документ.put("owner", владелец.id)
+        val код = тело.path("code").asText("").ifBlank { "SM-${владелец.code}" }
+        val прежняя = store.byCode(область, код)
+        val запись = if (прежняя == null) {
+            store.create(код, "state_machine", область, "9", документ,
+                Provenance(Channel.MANUAL, тело.path("author").asText("стенд")))
+        } else {
+            store.update(прежняя.id, документ, Provenance(Channel.MANUAL, тело.path("author").asText("стенд")))
+        }
+        return V2Router.Ответ(201, mapper.createObjectNode().put("code", запись.code))
+    }
+
+    private fun режимы(проект: String): V2Router.Ответ {
+        val ответ = mapper.createObjectNode()
+        val массив = ответ.putArray("items")
+        store.list(Area.Project(проект), "state_machine").forEach { м ->
+            val узел = массив.addObject()
+            узел.put("code", м.code)
+            узел.put("owner", store.byId(м.doc.path("owner").asText())?.code ?: "—")
+            узел.put("initial", м.doc.path("initial").asText(""))
+            узел.set<JsonNode>("states", м.doc.path("states"))
+            узел.set<JsonNode>("transitions", м.doc.path("transitions"))
+        }
+        return V2Router.Ответ(200, ответ)
+    }
+
+    /**
+     * Операционный сценарий — цепочка по составу: кто участвует и что
+     * происходит по шагам. Шаг без участника не проверить.
+     */
+    private fun завестиСценарий(проект: String, тело: JsonNode): V2Router.Ответ {
+        val область = Area.Project(проект)
+        val имя = тело.path("name").asText("")
+        require(имя.isNotBlank()) { "у сценария нет имени" }
+        val шаги = тело.path("steps")
+        require(шаги.isArray && шаги.size() > 0) { "сценарий без шагов — это название, а не сценарий" }
+        val документ = тело.deepCopy<ObjectNode>()
+        документ.remove(listOf("code", "author", "project"))
+        // Участник шага записывается кодом узла, если такой узел есть:
+        // тогда сценарий держится состава, а не пересказывает его словами.
+        val проверенные = mapper.createArrayNode()
+        шаги.forEach { шаг ->
+            val участник = шаг.path("actor").asText("")
+            require(участник.isNotBlank()) {
+                "шаг «${шаг.path("what").asText()}» не называет участника: непонятно, кто это делает"
+            }
+            val узел = проверенные.addObject()
+            узел.put("what", шаг.path("what").asText(""))
+            узел.put("actor", участник)
+            store.byCode(область, участник)?.let { узел.put("component", it.code) }
+        }
+        документ.set<JsonNode>("steps", проверенные)
+        val код = тело.path("code").asText("").ifBlank { следующийКод(область, "functional_chain", "SCN") }
+        val создано = store.create(код, "functional_chain", область, "9", документ,
+            Provenance(Channel.MANUAL, тело.path("author").asText("стенд")))
+        return V2Router.Ответ(201, mapper.createObjectNode().put("code", создано.code))
+    }
+
+    private fun сценарии(проект: String): V2Router.Ответ {
+        val ответ = mapper.createObjectNode()
+        val массив = ответ.putArray("items")
+        store.list(Area.Project(проект), "functional_chain").forEach { ц ->
+            массив.addObject()
+                .put("code", ц.code)
+                .put("name", ц.doc.path("name").asText(""))
+                .set<JsonNode>("steps", ц.doc.path("steps"))
+        }
+        return V2Router.Ответ(200, ответ)
     }
 
     private fun концепция(проект: String): V2Router.Ответ {

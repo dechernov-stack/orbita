@@ -210,7 +210,7 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
             },
             mapper = mapper,
         )
-        val документыМаршруты = orbita.api.internal.DocRoutes(store, документы, mapper)
+        val документыМаршруты = orbita.api.internal.DocRoutes(store, документы, mapper) { полки.phaseTemplate("PHT-9001") }
         // Живой контур: разбор входного документа — один вызов на версию,
         // ответ кэшируется отпечатком промпта (решение владельца 06.09).
         val служба = orbita.ai.api.AiFactory.service(store, mapper = mapper)

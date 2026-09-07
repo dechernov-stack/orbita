@@ -111,10 +111,17 @@ internal class Queries(
         узел.isArray -> узел.joinToString(" · ") { человечно(it) }
         узел.isObject -> {
             val величина = узел.path("value")
-            if (!величина.isMissingNode) {
-                listOf(человечно(величина), узел.path("unit").asText("")).filter { it.isNotBlank() }.joinToString(" ")
-            } else {
-                узел.properties().joinToString(" · ") { (_, v) -> человечно(v) }
+            val участник = узел.path("actor").asText("")
+            val что = узел.path("what").asText("")
+            when {
+                !величина.isMissingNode ->
+                    listOf(человечно(величина), узел.path("unit").asText(""))
+                        .filter { it.isNotBlank() }.joinToString(" ")
+                // Шаг сценария читается как «участник: что». Общее склеивание
+                // полей дало бы «принять пакет · терминал · TERM» — набор
+                // слов вместо шага, да ещё с кодом узла в печатном тексте.
+                участник.isNotBlank() && что.isNotBlank() -> "$участник: $что"
+                else -> узел.properties().joinToString(" · ") { (_, v) -> человечно(v) }
             }
         }
         else -> узел.asText("")

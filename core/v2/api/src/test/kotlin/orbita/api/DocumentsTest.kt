@@ -63,7 +63,7 @@ class DocumentsTest {
             orbita.knowledge.api.KnowledgeFactory.intake(store, links, mapper),
             orbita.formulation.api.FormulationFactory.formulation(store, links),
             mapper,
-            docRoutes = DocRoutes(store, документы, mapper),
+            docRoutes = DocRoutes(store, документы, mapper) { шаблонФазы },
         )
     }
 
@@ -189,9 +189,18 @@ class DocumentsTest {
         router.handle("POST", "/v2/documents", п, """{"template":"mcreport","author":"Иванов И."}""")
         val подсказки = router.handle("GET", "/v2/documents/hints", п + ("scene" to "3"), null)!!.body
         val строки = подсказки.path("items")
-        assertTrue(строки.size() >= 1, "сцена 3 наполняет §1 — подсказка обязана быть")
-        val первая = строки[0]
-        assertEquals("§1", первая.path("section").asText())
-        assertTrue(первая.path("elements").asInt() >= 3, "в §1 три запроса")
+        // Сцена 3 питает ОБА документа фазы: §1 отчёта и §2 ConOps. Порядок
+        // подсказок держать тестом нельзя — их даёт список документов; важно,
+        // что мероприятие видит каждое место, куда уходит его работа.
+        val места = строки.associate {
+            "${it.path("document").asText()}${it.path("section").asText()}" to it
+        }
+        val отчёт = места["Отчёт о концепции миссии§1"]
+        assertTrue(отчёт != null, "сцена 3 наполняет §1 отчёта: ${места.keys}")
+        assertTrue(отчёт!!.path("elements").asInt() >= 3, "в §1 три запроса")
+        assertTrue(
+            места.keys.any { it.startsWith("Концепция применения") && it.endsWith("§2") },
+            "и §2 концепции применения: ${места.keys}",
+        )
     }
 }

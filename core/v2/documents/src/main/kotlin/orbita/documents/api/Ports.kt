@@ -46,6 +46,17 @@ data class SectionView(
     val complete: Boolean,
     /** Чего ждёт раздел — словами, с именами сцен. */
     val waiting: List<String>,
+    /**
+     * Ступень, к которой раздел обязан быть полон (`expects` шаблона).
+     * Пусто — шаблон не назвал ступень, и раздел спрашивают всегда.
+     */
+    val expectedBy: String? = null,
+    /**
+     * Ждут ли этот раздел К УКАЗАННОЙ ступени. Раздел, которого ступень
+     * ещё не ждёт, документ не держит: незаполненность и незрелость —
+     * разные вещи, и валить их в одну цифру значит врать о готовности.
+     */
+    val dueNow: Boolean = true,
 )
 
 data class DocumentView(
@@ -54,9 +65,13 @@ data class DocumentView(
     val template: String,
     val standard: String,
     val sections: List<SectionView>,
-    /** Полнота к ступени: сколько разделов полны из скольких. */
+    /** Полнота к ступени: сколько разделов полны из скольких ОЖИДАЕМЫХ. */
     val complete: Int,
     val total: Int,
+    /** Ступень, к которой считалась полнота. */
+    val gate: String = "MCR",
+    /** Разделы, которых эта ступень ещё не ждёт. */
+    val notDueYet: Int = 0,
 )
 
 /** Строка «в документ» для мероприятия: куда попадает его работа. */
@@ -84,7 +99,7 @@ interface Documents {
     fun list(project: String): List<DocumentView>
 
     /** Документ целиком: запросы посчитаны, полнота — к названной ступени. */
-    fun document(project: String, code: String): DocumentView
+    fun document(project: String, code: String, gate: String = "MCR"): DocumentView
 
     /** Тезис — единственный свободный текст документа. */
     fun addStatement(

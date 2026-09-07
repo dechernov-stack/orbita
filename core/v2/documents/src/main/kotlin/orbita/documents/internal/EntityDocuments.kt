@@ -62,23 +62,48 @@ class EntityDocuments(
         store.list(Area.Project(project), "document")
             .map { document(project, it.doc.path("template").asText(it.code)) }
 
-    override fun document(project: String, code: String): DocumentView {
+    /**
+     * Лестница ступеней: раздел, которого ступень ещё не ждёт, документ
+     * не держит. Порядок — из шаблона фазы Pre-Phase A / Phase A.
+     */
+    private val лестница = listOf("MCR", "SRR", "SDR", "PDR", "CDR")
+
+    /** Ждёт ли ступень `gate` раздел, обязанный быть полным к `expects`. */
+    private fun ждётСейчас(expects: String?, gate: String): Boolean {
+        if (expects.isNullOrBlank()) return true
+        val когда = лестница.indexOf(expects.uppercase())
+        val сейчас = лестница.indexOf(gate.uppercase())
+        // Ступень вне лестницы — спрашиваем: молчать о разделе опаснее,
+        // чем спросить лишний раз.
+        if (когда < 0 || сейчас < 0) return true
+        return когда <= сейчас
+    }
+
+    override fun document(project: String, code: String, gate: String): DocumentView {
         val шаблон = шаблонИли(code)
         val тезисы = тезисыПроекта(project, code)
         val подписи = шаблон.path("labels").properties()
             .filterNot { it.key.startsWith("_") }
             .associate { (к, в) -> к to в.asText() }
         val разделы = шаблон.path("sections").map { раздел ->
+            val ждёт = раздел.path("expects").asText("").ifBlank { null }
             собратьРаздел(project, раздел, тезисы[раздел.path("no").asText()].orEmpty(), подписи)
+                .copy(expectedBy = ждёт, dueNow = ждётСейчас(ждёт, gate))
         }
+        val ожидаемые = разделы.filter { it.dueNow }
         return DocumentView(
             code = code,
             title = шаблон.path("title").asText(code),
             template = code,
             standard = шаблон.path("standard").asText(""),
             sections = разделы,
-            complete = разделы.count { it.complete },
-            total = разделы.size,
+            // Полнота считается по ОЖИДАЕМЫМ разделам: делить полные на все
+            // значило бы вечно показывать недоделанным документ, который к
+            // своей ступени полон.
+            complete = ожидаемые.count { it.complete },
+            total = ожидаемые.size,
+            gate = gate.uppercase(),
+            notDueYet = разделы.size - ожидаемые.size,
         )
     }
 
