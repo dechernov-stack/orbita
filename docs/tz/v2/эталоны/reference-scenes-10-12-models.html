@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><title>Эталон сцен 10–12 · модели — Орбита v2</title>
+<style>
+:root{--panel:#f7f7f8;--line:#e3e4e8;--ink:#1b1c1f;--muted:#6b6e76;--accent:#2f5fd9;--ok:#2d7a3e;--warn:#b26a00;--bad:#b3261e;--focus:0 0 0 3px rgba(47,95,217,.35)}
+*{box-sizing:border-box}body{margin:0;padding:20px;font:14px/1.45 Inter,system-ui,sans-serif;color:var(--ink);display:grid;gap:28px}
+a{color:var(--accent);text-decoration:none}h2{margin:0;font-size:15px}select,button,input{font:inherit}
+.frame{border:1px solid var(--line);border-radius:8px;overflow:hidden}.stepper{display:flex;gap:14px;align-items:center;padding:10px 14px;background:var(--panel);border-bottom:1px solid var(--line)}
+.next{margin-left:auto;padding:6px 12px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--muted)}.next.on{background:var(--accent);color:#fff;border-color:var(--accent)}.next[data-why]:after{content:attr(data-why);display:block;font-size:11px}
+.flow{padding:8px 14px;font-size:13px;border-bottom:1px solid var(--line)}.body{display:grid;grid-template-columns:1fr 300px}.frag{padding:14px}.cond{border-left:1px solid var(--line);padding:12px 14px}
+.cond h4{margin:0 0 8px;font-size:13px}.cond ul{padding:0;margin:0}.cond li{list-style:none;margin:4px 0}.ok:before{content:"✓ ";color:var(--ok)}.no:before{content:"☐ ";color:var(--muted)}
+.panel{border:1px solid var(--line);border-radius:8px;background:#fff}.panel h3{margin:0;padding:8px 12px;border-bottom:1px solid var(--line);font-size:13px;display:flex;justify-content:space-between}.panel h3 span{color:var(--muted);font-weight:400}
+table{border-collapse:collapse;width:100%}td,th{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;font-size:13px;vertical-align:top}th{color:var(--muted);font-weight:500}
+.muted{color:var(--muted)}.bad{color:var(--bad)}.warn{color:var(--warn)}.ok-t{color:var(--ok)}.chip{display:inline-block;padding:1px 6px;border:1px solid var(--line);border-radius:10px;font-size:12px;background:#fff}
+.hint{font-size:12px;color:var(--muted)}.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}.btn{padding:6px 12px;border:1px solid var(--line);border-radius:6px;background:#fff}.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.bar{height:8px;background:var(--panel);border-radius:4px;overflow:hidden}.bar i{display:block;height:100%;background:var(--accent)}
+</style></head><body>
+
+<h2>Сцена 10 · Технологии (ведущий СИ)</h2>
+<div class="frame"><div class="stepper"><a href="#">← обзор</a><b>10 · Технологии</b><span>шаг 2 из 2 · «План созревания»</span><span class="next" data-why="у «LR-FHSS с компенсацией доплера» нет плана созревания">Дальше →</span></div>
+<div class="flow">вход: базовая концепция ✓ · состав ✓ → <b>10 · Технологии</b> → выход: перечень TRL + план созревания (Д5) → ждут: 11 · Риски · 12 · Стоимость · 13 · MCReport §5</div>
+<div class="body"><div class="frag"><div class="panel"><h3>Критические технологии <span>5 · разрыв TRL у 3 · пакетов созревания 2 из 3</span></h3>
+<table><tr><th>Технология</th><th>Узел</th><th>TRL тек. → треб.</th><th>К точке</th><th>Пакет WBS · веха</th><th>Резерв</th></tr>
+<tr><td>LR-FHSS с компенсацией доплера на 550 км</td><td>БРТК-S</td><td>4 → 6</td><td>PDR</td><td class="bad">нет → создать 04.01 · «TRL 6 достигнут»</td><td>узкополосный FSK</td></tr>
+<tr><td>FDIR-алгоритмы автономности 7 сут</td><td>ПО управления КА</td><td>5 → 6</td><td>PDR</td><td>04.02 · веха 30.03.2027</td><td>—</td></tr>
+<tr><td>ЭРД малой тяги 10 мН</td><td>ДУ</td><td>6 → 6</td><td>—</td><td class="muted">не требуется</td><td>—</td></tr>
+<tr><td>Батарейный терминал ≥ 3 лет</td><td>Терминал датчиковый</td><td>3 → 6</td><td>PDR</td><td>04.03 · веха 15.06.2027</td><td>внешнее питание</td></tr></table></div>
+<p class="hint">Разрыв TRL сам предлагает пакет созревания и веху; параметры, зависящие от технологии, базируются условно до её вехи (RQ-S-03, RQ-S-12 — помечены).</p></div>
+<aside class="cond"><h4>Условия выхода</h4><ul><li class="ok">у каждой TRL текущий и требуемый</li><li class="no">у каждого разрыва — пакет созревания и веха (2 из 3)</li><li class="ok">резерв назван там, где TRL ≤ 4</li></ul><h4 style="margin-top:14px">Условные элементы</h4><ul><li class="muted">2 требования · 4 параметра — зависят от технологий</li></ul></aside></div></div>
+
+<h2>Сцена 11 · Риски и начальная ОСЗ (РП + ведущий СИ)</h2>
+<div class="frame"><div class="stepper"><a href="#">← обзор</a><b>11 · Риски и ОСЗ</b><span>шаг 2 из 2 · «ОСЗ базового варианта»</span><span class="next on">Дальше →</span></div>
+<div class="flow">вход: базовая концепция ✓ · технологии ✓ → <b>11 · Риски и ОСЗ</b> → выход: реестр рисков (Д6) · оценка засорения (Д7) → ждут: 13 · MCReport §6–7 · ◆ MCR</div>
+<div class="body"><div class="frag"><div class="two">
+<div class="panel"><h3>Риски <span>14 · критичность ≥ 12: 4 · без срока 0</span></h3>
+<table><tr><th>Риск</th><th>В × П</th><th>Владелец</th><th>Срок</th></tr>
+<tr><td>Несоответствие заявленного QoS группировке</td><td>4 × 5 = <b>20</b></td><td>вед. СИ</td><td>к SRR</td></tr>
+<tr><td>Занижение CAPEX/OPEX</td><td>4 × 5 = <b>20</b></td><td>РП</td><td>к MCR</td></tr>
+<tr><td>Терминал вне автономности/цены</td><td>4 × 4 = 16</td><td>вед. СИ</td><td>к веха TRL 04.03</td></tr>
+<tr><td class="muted" colspan="4">… ещё 11 · из них типовых полки 2</td></tr></table></div>
+<div class="panel"><h3>Оценка засорения (ODA) <span>вариант В2 · норматив Б1: увод ≤ 5 лет</span></h3>
+<table><tr><th>Показатель</th><th>Значение</th><th>Норма</th><th></th></tr>
+<tr><td>Время существования после увода (550 км, Cd 2,2 прокси)</td><td>3,8 года</td><td>≤ 5 лет</td><td class="ok-t">соответствует</td></tr>
+<tr><td>Δv увода в бюджете ДУ</td><td>50 из 120 м/с</td><td>—</td><td class="ok-t">есть</td></tr>
+<tr><td>Пассивный сход без ДУ (отказ)</td><td>11,4 года</td><td>≤ 25 лет</td><td class="ok-t">соответствует</td></tr></table>
+<p class="hint" style="padding:6px 10px">Расчёт М10 v2 · 20.09 · прокси атмосферы помечен</p></div></div></div>
+<aside class="cond"><h4>Условия выхода</h4><ul><li class="ok">у каждого риска владелец и срок-точка</li><li class="ok">критичность 1–5 × 1–5</li><li class="ok">ОСЗ базового варианта по нормативу</li></ul></aside></div></div>
+
+<h2>Сцена 12 · Стоимость и сроки (РП)</h2>
+<div class="frame"><div class="stepper"><a href="#">← обзор</a><b>12 · Стоимость и сроки</b><span>шаг 1 из 2 · «ROM по WBS»</span><span class="next" data-why="оценка не содержит пакет созревания 04.01">Дальше →</span></div>
+<div class="flow">вход: WBS ✓ · технологии ✓ · MEL ✓ → <b>12 · Стоимость и сроки</b> → выход: ROM диапазоном (Д8) → ждут: 13 · MCReport §8 · 14 · FA · ◆ MCR</div>
+<div class="body"><div class="frag"><div class="panel"><h3>ROM по WBS <span>54 пакета · пары к узлам 44 · сквозных 10</span></h3>
+<table><tr><th>Пакет</th><th>Узлы</th><th>Диапазон, млн ₽</th><th>Допущения</th></tr>
+<tr><td>05 · Полезная нагрузка</td><td>PL-S, PL-FEED, PL-ANT</td><td>900 – 1 400</td><td>2 КП, серия 36</td></tr>
+<tr><td>06 · Космический аппарат</td><td>SC-PLT…</td><td>2 200 – 3 100</td><td>платформа кандидата, ±30 %</td></tr>
+<tr><td>04 · Технологии и созревание</td><td>—</td><td class="bad">04.01 не включён → добавить</td><td>по плану созревания</td></tr>
+<tr><td>08 · Выведение</td><td>LV, LV-ADAPT</td><td>1 500 – 2 000</td><td>4 пуска, попутно</td></tr>
+<tr><td class="muted" colspan="4">… итого 7 000 – 9 000 (сценарий до 50 КА, записка §8)</td></tr></table></div>
+<p class="hint">Оценка — только диапазоном с допущениями; число без диапазона не сохраняется. Сроки — свёртка WBS против дат точек: расхождение — разрыв, не поле ввода.</p></div>
+<aside class="cond"><h4>Условия выхода</h4><ul><li class="ok">все пакеты с узлами оценены</li><li class="no">пакеты созревания включены (2 из 3)</li><li class="ok">допущения у каждого диапазона</li></ul></aside></div></div>
+
+<h2>Модели (экран сцен 7, 10–12)</h2>
+<div class="frame"><div class="body"><div class="frag"><div class="panel"><h3>Модели системы <span>24 · расчёт 6 · прокси 5 · не построена 13 · к SRR обязательных 9</span></h3>
+<table><tr><th>Модель</th><th>Вопрос</th><th>Входы</th><th>Статус</th><th>Последний ответ</th><th>К точке</th></tr>
+<tr><td>М1 · Баллистика и построение</td><td>какие орбиты и сколько КА</td><td>КА (масса, мидель) · подгруппы</td><td class="ok-t">расчёт · верифицирована</td><td>v3 · 19.09 · покрытие A′ 0,86</td><td>MCR ✓</td></tr>
+<tr><td>М2а · Абонентская радиолиния</td><td>доходит ли сигнал</td><td>стык IF-S-USER · БРТК · терминал</td><td class="ok-t">расчёт</td><td>v1 · 20.09 · запас +3,1 дБ на 300 бит/с</td><td>MCR ✓</td></tr>
+<tr><td>М4 · Энергетика</td><td>хватает ли энергии на витке</td><td>СЭП · орбита (тень, β)</td><td class="warn">прокси · вход изменился</td><td>v2 · 18.09 · DoD 0,27 <span class="chip">устарел: АКБ v3</span></td><td>SRR</td></tr>
+<tr><td>М13 · Терминал</td><td>проживёт ли терминал срок</td><td>класс · батарея · энергоцена (М2а)</td><td class="bad">не построена</td><td>—</td><td>SRR · <span class="bad">разрыв</span></td></tr>
+<tr><td class="muted" colspan="6">… ещё 20</td></tr></table></div>
+<div class="two" style="margin-top:12px"><div class="panel"><h3>М6 · Свёртка массы <span>вариант В2 · ступень MCR</span></h3><table><tr><th>Узел</th><th>Значение</th><th>Класс</th><th>Резерв класса</th><th>С резервом</th></tr>
+<tr><td>Платформа</td><td>52 кг</td><td>modified</td><td>10 %</td><td>57,2</td></tr><tr><td>ПН</td><td>18 кг</td><td>estimated</td><td>20 %</td><td>21,6</td></tr><tr><td>Прочее</td><td>8 кг</td><td>estimated</td><td>20 %</td><td>9,6</td></tr>
+<tr><td><b>Итого</b></td><td>78</td><td></td><td>по классам</td><td>88,4</td></tr><tr><td colspan="4">системный резерв MCR 20 %</td><td><b>106,1 кг</b> <span class="bad">&gt; Р2 100 кг</span></td></tr></table></div>
+<div class="panel"><h3>Бюджет compute · БЦВМ <span>behaviour ×2</span></h3><table><tr><th>ПО</th><th>CPU пик</th><th>RAM</th></tr><tr><td>ПО управления КА</td><td>80 %</td><td>64 МБ</td></tr><tr><td>ПО ПН</td><td>35 %</td><td>48 МБ</td></tr><tr><td><b>Итого</b></td><td class="bad">115 % — перегрузка</td><td>112 МБ</td></tr></table><p class="hint" style="padding:6px 10px">Пиковые режимы не совмещены — модель режимов к SDR</p></div></div>
+<div class="bar" style="margin-top:12px"><i style="width:37%"></i></div><p class="hint">модели, давшие ответ к ближайшей точке: 9 из 24 — обязательных к SRR: 6 из 9</p>
+</div><aside class="cond"><h4>Модели к SRR</h4><ul><li class="ok">М1 · М2а · М3а · М6</li><li class="no">М4 · вход изменился → пересчитать</li><li class="no">М8 · М10 · М12 · М13 · М14 — не построены</li></ul><h4 style="margin-top:14px">Правила</h4><ul><li class="muted">«модель дала ответ» = прогон, не запись</li><li class="muted">оба резерва печатаются</li><li class="muted">прокси — подписан</li></ul></aside></div></div>
+
+<p class="hint">Правила эталона: разрыв TRL сам предлагает пакет и веху; риск без срока-точки не сохраняется; оценка только диапазоном; свёртка показывает резерв класса и системный отдельно и результат против рамки Р; статус модели — расчёт / прокси / не построена, устаревание входа — чипом с именем параметра.</p>
+</body></html>

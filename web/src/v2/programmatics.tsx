@@ -8,7 +8,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
   api, type ComponentRow, type MaturationRow, type OdaRow,
-  type RiskRow, type TechnologyRow, type WbsRow,
+  type RiskRow, type TechnologyRow, type WbsOffer, type WbsRow,
 } from './api'
 
 const ТОЧКИ = ['MCR', 'SRR', 'SDR', 'PDR']
@@ -57,11 +57,19 @@ export function Technologies({ project }: { project: string }) {
         ) : (
           <table className="v2-table">
             <thead>
-              <tr><th>Код</th><th>Технология</th><th>Узел</th><th>TRL</th><th>К точке</th><th>Резерв</th></tr>
+              <tr>
+                <th>Код</th><th>Технология</th><th>Узел</th><th>TRL тек. → треб.</th>
+                <th>К точке</th><th>Пакет · веха</th><th>Резерв</th>
+              </tr>
             </thead>
             <tbody>
               {строки.map((т) => {
                 const разрыв = т.trl_current < т.trl_required
+                // План созревания читается В СТРОКЕ технологии, а не в
+                // отдельной таблице ниже: разрыв TRL и то, чем он закрыт, —
+                // один вопрос, и разводить их по двум таблицам значит
+                // заставлять сверять глазами (эталон сцен 10–12).
+                const план = созревание.find((с) => с.technology === т.code)
                 return (
                   <tr key={т.code}>
                     <td className="v2-mono">{т.code}</td>
@@ -71,6 +79,21 @@ export function Technologies({ project }: { project: string }) {
                       {т.trl_current} → {т.trl_required}{разрыв ? ' · разрыв' : ' · закрыт'}
                     </td>
                     <td>{т.required_by}</td>
+                    <td>
+                      {!разрыв ? (
+                        <span className="v2-dim" title="TRL достаточен — созревать нечего">не требуется</span>
+                      ) : план?.package ? (
+                        <>
+                          <span className="v2-mono">{план.package}</span>
+                          {план.milestone && <span className="v2-dim"> · веха {план.milestone}</span>}
+                        </>
+                      ) : (
+                        <span className="v2-warn"
+                          title="разрыв TRL сам рождает пакет созревания и веху при заведении технологии">
+                          нет пакета — сцена 12 не закроется
+                        </span>
+                      )}
+                    </td>
                     <td>{т.fallback ?? <span className="v2-dim">не назначен</span>}</td>
                   </tr>
                 )
@@ -284,6 +307,8 @@ export function Risks({ project }: { project: string }) {
 /** Сцена 12 — WBS с парами к узлам и оценка диапазоном. */
 export function Costs({ project }: { project: string }) {
   const [пакеты, setПакеты] = useState<WbsRow[]>([])
+  const [окно, setОкно] = useState<WbsOffer[]>([])
+  const [показатьОкно, setПоказатьОкно] = useState(false)
   const [отказ, setОтказ] = useState<string | null>(null)
   const [занято, setЗанято] = useState(false)
   const [оценка, setОценка] = useState({
@@ -292,12 +317,21 @@ export function Costs({ project }: { project: string }) {
 
   const перечитать = useCallback(() => {
     api.wbs(project).then((r) => setПакеты(r.items)).catch((e) => setОтказ(String(e.message ?? e)))
+    api.wbsOffer(project).then((r) => setОкно(r.items)).catch(() => setОкно([]))
   }, [project])
 
   useEffect(перечитать, [перечитать])
 
   const безОценки = пакеты.filter((п) => !п.estimate)
   const безПары = пакеты.filter((п) => !п.cross_cutting && п.pbs_refs.length === 0)
+  const невзятые = окно.filter((п) => !п.taken)
+
+  const взять = (коды: string[]) => {
+    setЗанято(true)
+    api.takeWbs(project, коды).then(перечитать)
+      .catch((e) => setОтказ(String(e.message ?? e)))
+      .finally(() => setЗанято(false))
+  }
 
   return (
     <>
@@ -309,7 +343,13 @@ export function Costs({ project }: { project: string }) {
           <span className="v2-cnt">
             {пакеты.length}
             {пакеты.length > 0 && ` · без пары ${безПары.length} · без оценки ${безОценки.length}`}
+            {невзятые.length > 0 && ` · на полке ещё ${невзятые.length}`}
           </span>
+          <span className="v2-head__spacer" />
+          <button type="button" className="v2-chip" onClick={() => setПоказатьОкно(!показатьОкно)}
+            title="окно взятия: что предлагает полка и почему">
+            {показатьОкно ? 'скрыть окно' : 'окно взятия'}
+          </button>
         </h3>
         {пакеты.length === 0 ? (
           <div className="v2-empty">
@@ -319,14 +359,12 @@ export function Costs({ project }: { project: string }) {
             </span>
             <div className="v2-form__actions">
               <button type="button" className="v2-primary" disabled={занято}
-                title="взять типовой WBS с полки и сопоставить пакеты узлам"
-                onClick={() => {
-                  setЗанято(true)
-                  api.takeWbs(project).then(перечитать)
-                    .catch((e) => setОтказ(String(e.message ?? e)))
-                    .finally(() => setЗанято(false))
-                }}>
-                {занято ? 'Беру…' : 'Взять типовой WBS'}
+                title="взять пакеты, которым есть с чем быть парными, плюс сквозные"
+                onClick={() => взять([])}>
+                {занято ? 'Беру…' : `Взять рекомендованные (${окно.filter((п) => п.recommended).length})`}
+              </button>
+              <button type="button" className="v2-link" onClick={() => setПоказатьОкно(!показатьОкно)}>
+                {показатьОкно ? 'скрыть окно взятия' : `показать всё с полки (${окно.length})`}
               </button>
             </div>
           </div>
@@ -353,6 +391,51 @@ export function Costs({ project }: { project: string }) {
           </table>
         )}
       </div>
+
+      {показатьОкно && (
+        <div className="v2-panel" data-why="следующий-клик">
+          <h3>
+            Окно взятия WBS
+            <span className="v2-cnt">
+              на полке {окно.length} · рекомендовано {окно.filter((п) => п.recommended).length}
+              {невзятые.length > 0 && ` · не взято ${невзятые.length}`}
+            </span>
+          </h3>
+          <div className="v2-empty__why">
+            Рекомендованы пакеты, которым есть с чем быть парными в составе, и сквозные —
+            у них пары нет по определению. Остальное берётся руками: пакет без пары
+            держит выход сцены 12 и ничего не даёт взамен.
+          </div>
+          <table className="v2-table">
+            <thead>
+              <tr><th>Код</th><th>Пакет</th><th>Почему</th><th>Состояние</th><th /></tr>
+            </thead>
+            <tbody>
+              {окно.map((п) => (
+                <tr key={п.code} className={п.recommended ? '' : 'v2-dim'}>
+                  <td className="v2-mono">{п.code}</td>
+                  <td>{п.name}</td>
+                  <td>{п.why}</td>
+                  <td>
+                    {п.taken ? <span className="v2-ok">взят</span>
+                      : п.recommended ? 'рекомендован' : <span className="v2-dim">не взят</span>}
+                  </td>
+                  <td>
+                    {!п.taken && (
+                      <button type="button" className="v2-link" disabled={занято}
+                        title={п.recommended ? 'взять пакет в проект'
+                          : 'взять пакет, у которого нет пары к узлу: выход сцены 12 его спросит'}
+                        onClick={() => взять([п.code])}>
+                        взять
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {пакеты.length > 0 && (
         <div className="v2-panel" data-why="работа">

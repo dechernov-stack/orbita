@@ -12,6 +12,7 @@ import orbita.programmatics.api.EstimateMethod
 import orbita.programmatics.api.EstimateView
 import orbita.programmatics.api.MaturationView
 import orbita.programmatics.api.PackageView
+import orbita.programmatics.api.WbsOffer
 import orbita.programmatics.api.Programmatics
 import orbita.programmatics.api.RiskView
 import java.time.LocalDate
@@ -24,14 +25,52 @@ class EntityProgrammatics(
     private fun полкаWbs(): Entity? =
         store.list(Area.Library, "wbs_template").maxByOrNull { it.version }
 
-    override fun takeWbs(project: String, author: String): List<PackageView> {
+    override fun wbsOffer(project: String): List<WbsOffer> {
         val область = Area.Project(project)
         val полка = полкаWbs() ?: error("полки WBS нет: загрузите полки (tools/v2/load_shelves.py)")
         val узлыПоКоду = store.list(область, "component").associateBy { it.code }
+        val взятые = store.list(область, "wbs_package").map { it.code }.toSet()
+
+        return полка.doc.path("packages").mapNotNull { пакет ->
+            val код = пакет.path("code").asText("")
+            if (код.isBlank()) return@mapNotNull null
+            val сквозной = пакет.path("cross_cutting").asBoolean(false)
+            val названы = пакет.path("pbs_refs").map { it.asText().removePrefix("@") }
+            val есть = названы.filter { it in узлыПоКоду }
+            val нет = названы.filterNot { it in узлыПоКоду }
+            // Рекомендован: сквозной (пары нет по определению) либо есть
+            // хотя бы один узел состава, которому пакет парен.
+            val рекомендован = сквозной || есть.isNotEmpty()
+            WbsOffer(
+                code = код,
+                name = пакет.path("name").asText(""),
+                crossCutting = сквозной,
+                nodes = есть,
+                missingNodes = нет,
+                recommended = рекомендован,
+                taken = код in взятые,
+                why = when {
+                    сквозной -> "сквозной пакет: пары к узлу у него нет по определению"
+                    есть.isNotEmpty() -> "парен узлам: " + есть.joinToString(", ")
+                    названы.isEmpty() -> "полка не назвала узлов, и пакет не сквозной"
+                    else -> "узлов нет в составе: " + нет.joinToString(", ")
+                },
+            )
+        }
+    }
+
+    override fun takeWbs(project: String, author: String, codes: List<String>): List<PackageView> {
+        val область = Area.Project(project)
+        val полка = полкаWbs() ?: error("полки WBS нет: загрузите полки (tools/v2/load_shelves.py)")
+        val узлыПоКоду = store.list(область, "component").associateBy { it.code }
+        // Пусто — рекомендованный набор: пакеты, которым есть с чем быть
+        // парными, плюс сквозные. Всё подряд не берётся: 41 пакет без пары
+        // держал бы выход сцены 12 без всякой пользы.
+        val брать = codes.ifEmpty { wbsOffer(project).filter { it.recommended }.map { it.code } }.toSet()
 
         полка.doc.path("packages").forEach { пакет ->
             val код = пакет.path("code").asText()
-            if (код.isBlank() || store.byCode(область, код) != null) return@forEach
+            if (код.isBlank() || код !in брать || store.byCode(область, код) != null) return@forEach
             val документ = mapper.createObjectNode()
             документ.put("name", пакет.path("name").asText())
             документ.put("cross_cutting", пакет.path("cross_cutting").asBoolean(false))

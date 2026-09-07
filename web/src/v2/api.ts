@@ -356,16 +356,29 @@ export interface BudgetLine {
  * системным запасом. Два резерва — не украшение: резерв класса ставится
  * ПО ЗРЕЛОСТИ каждой строки, системный запас — один на свёртку.
  */
-/** Сверка свёртки с числовой границей ограничения проекта (рамка Р). */
+/**
+ * Сверка свёртки с числовой границей ограничения проекта (рамка Р).
+ *
+ * Решает `actual` — сумма С СИСТЕМНЫМ РЕЗЕРВОМ ступени: резерв и есть
+ * ожидаемый рост, и рамка обязана выдерживать его сейчас. Число по
+ * классам печатается тоже — по нему видно, упирается ли изделие в рамку
+ * уже сегодня.
+ */
 export interface FrameCheck {
   constraint: string
   statement: string
   op: string
   limit: number
   unit: string
+  with_class_reserve: number
+  within_by_class: boolean
   actual: number
   within: boolean
-  /** Готовая фраза: «106 кг > Р2 (100 кг)». */
+  /** Насколько превышена рамка; 0 — превышения нет. */
+  excess: number
+  gate: string
+  system_margin_percent: number
+  /** Обязательный вывод: «с системным 20 % — 122.8 кг, превышение 22.8 кг». */
   words: string
 }
 
@@ -424,6 +437,18 @@ export interface ImpactGraph {
   summary: string
   nodes: ImpactNode[]
   edges: ImpactEdge[]
+}
+
+/** Строка окна взятия WBS: пакет полки и что с ним. */
+export interface WbsOffer {
+  code: string
+  name: string
+  cross_cutting: boolean
+  nodes: string[]
+  missing_nodes: string[]
+  recommended: boolean
+  taken: boolean
+  why: string
 }
 
 export interface WbsRow {
@@ -763,9 +788,15 @@ export const api = {
   wbs: (project: string) =>
     вызов<{ items: WbsRow[] }>(`/wbs?project=${encodeURIComponent(project)}`),
 
-  takeWbs: (project: string) =>
-    вызов<{ taken: number }>(`/wbs/take?project=${encodeURIComponent(project)}`,
-      { method: 'POST', body: JSON.stringify({ author: 'стенд' }) }),
+  wbsOffer: (project: string) =>
+    вызов<{ items: WbsOffer[]; total: number; recommended: number; taken: number }>(
+      `/wbs/offer?project=${encodeURIComponent(project)}`),
+
+  /** Пусто в codes — рекомендованный набор: пакеты с парой плюс сквозные. */
+  takeWbs: (project: string, codes: string[] = []) =>
+    вызов<{ taken: number; already: number; total: number }>(
+      `/wbs/take?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ codes, author: 'стенд' }) }),
 
   estimate: (project: string, тело: Record<string, unknown>) =>
     вызов<{ min: number; max: number }>(`/wbs/estimate?project=${encodeURIComponent(project)}`,

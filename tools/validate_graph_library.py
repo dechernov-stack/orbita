@@ -14,7 +14,12 @@
   4. библиотеки стоят версией в package.json, форка в репозитории нет,
      elkjs не подключён;
   5. в экранах v2 (web/src/v2) нет ручной отрисовки связей — граф и impact
-     волны 4 идут той же библиотекой, что и трассировка v1.
+     волны 4 идут той же библиотекой, что и трассировка v1;
+  6. e2e-проверка графа идёт в ВИДИМОЙ вкладке. Библиотека обмеряет узлы
+     наблюдателем размеров, а браузер не рисует фоновую вкладку — узлы
+     остаются скрытыми, рёбра не появляются, и тест «граф пуст» выглядит
+     дефектом кода. Полчаса живой проверки шипа B ушли на этот след;
+     правило записано сюда, чтобы след не повторился.
 """
 import json
 import re
@@ -37,8 +42,29 @@ OWN_DRAWING = [
 ]
 
 
+# Правило e2e: снимок графа берут только в видимой вкладке. Проверяется
+# по тексту e2e-сценариев — там, где они появятся.
+E2E = [ROOT / "tools/shoot_v2_design.mjs"]
+ВИДИМОСТЬ = re.compile(r"bringToFront|tabs_select|setViewport|foreground|видим")
+
+
+def e2e_видимость(problems: list[str]) -> None:
+    for файл in E2E:
+        if not файл.exists():
+            continue
+        текст = файл.read_text(encoding="utf-8")
+        if "react-flow" not in текст and "impact" not in текст.lower():
+            continue
+        if not ВИДИМОСТЬ.search(текст):
+            problems.append(
+                f"{файл.relative_to(ROOT)}: снимок графа без вывода вкладки на передний план — "
+                "в фоновой вкладке узлы скрыты, а рёбра не рисуются",
+            )
+
+
 def main() -> int:
     problems: list[str] = []
+    e2e_видимость(problems)
     screen = SCREEN.read_text(encoding="utf-8")
     for pattern, why in OWN_DRAWING:
         for m in pattern.finditer(screen):

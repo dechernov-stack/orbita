@@ -58,6 +58,8 @@ class ModelRoutes(
 
         method == "GET" && path == "/v2/wbs" -> пакеты(требуется(query, "project"))
 
+        method == "GET" && path == "/v2/wbs/offer" -> окноWbs(требуется(query, "project"))
+
         method == "POST" && path == "/v2/wbs/take" -> взятьWbs(требуется(query, "project"), разобрать(body))
 
         method == "POST" && path == "/v2/wbs/estimate" -> оценка(требуется(query, "project"), разобрать(body))
@@ -146,7 +148,12 @@ class ModelRoutes(
             рамка.addObject()
                 .put("constraint", р.constraint).put("statement", р.statement)
                 .put("op", р.op).put("limit", р.limit).put("unit", р.unit)
-                .put("actual", р.actual).put("within", р.within).put("words", р.words)
+                .put("with_class_reserve", р.withClassReserve)
+                .put("within_by_class", р.withinByClass)
+                .put("actual", р.actual).put("within", р.within)
+                .put("excess", р.excess)
+                .put("gate", р.gate).put("system_margin_percent", р.systemMarginPercent)
+                .put("words", р.words)
         }
         return V2Router.Ответ(200, ответ)
     }
@@ -266,9 +273,38 @@ class ModelRoutes(
         return V2Router.Ответ(200, ответ)
     }
 
+    private fun окноWbs(проект: String): V2Router.Ответ {
+        val ответ = mapper.createObjectNode()
+        val массив = ответ.putArray("items")
+        val окно = programmatics.wbsOffer(проект)
+        окно.forEach { п ->
+            массив.addObject()
+                .put("code", п.code).put("name", п.name)
+                .put("cross_cutting", п.crossCutting)
+                .put("recommended", п.recommended).put("taken", п.taken)
+                .put("why", п.why)
+                .also { у ->
+                    у.putArray("nodes").also { а -> п.nodes.forEach { а.add(it) } }
+                    у.putArray("missing_nodes").also { а -> п.missingNodes.forEach { а.add(it) } }
+                }
+        }
+        ответ.put("total", окно.size)
+        ответ.put("recommended", окно.count { it.recommended })
+        ответ.put("taken", окно.count { it.taken })
+        return V2Router.Ответ(200, ответ)
+    }
+
     private fun взятьWbs(проект: String, тело: JsonNode): V2Router.Ответ {
-        val пакеты = programmatics.takeWbs(проект, тело.path("author").asText("стенд"))
-        return V2Router.Ответ(201, mapper.createObjectNode().put("taken", пакеты.size))
+        val коды = тело.path("codes").map { it.asText() }.filter { it.isNotBlank() }
+        val было = programmatics.packages(проект).size
+        val пакеты = programmatics.takeWbs(проект, тело.path("author").asText("стенд"), коды)
+        return V2Router.Ответ(
+            201,
+            mapper.createObjectNode()
+                .put("taken", пакеты.size - было)
+                .put("already", было)
+                .put("total", пакеты.size),
+        )
     }
 
     private fun оценка(проект: String, тело: JsonNode): V2Router.Ответ {

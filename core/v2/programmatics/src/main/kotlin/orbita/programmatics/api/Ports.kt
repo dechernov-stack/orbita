@@ -24,6 +24,23 @@ data class PackageView(
     val gaps: List<String>,
 )
 
+/** Строка окна взятия WBS: пакет полки и что с ним. */
+data class WbsOffer(
+    val code: String,
+    val name: String,
+    val crossCutting: Boolean,
+    /** Узлы состава, которые нашлись в проекте по ссылкам полки. */
+    val nodes: List<String>,
+    /** Узлы, названные полкой, но отсутствующие в проекте. */
+    val missingNodes: List<String>,
+    /** Входит ли в рекомендованный набор. */
+    val recommended: Boolean,
+    /** Уже взят в проект. */
+    val taken: Boolean,
+    /** Почему рекомендован или нет — словами. */
+    val why: String,
+)
+
 data class EstimateView(
     val min: Double,
     val max: Double,
@@ -61,7 +78,23 @@ data class RiskView(
 
 interface Programmatics {
     /** Взять типовой WBS с полки и сопоставить пакеты узлам состава. */
-    fun takeWbs(project: String, author: String): List<PackageView>
+    /**
+     * Окно взятия WBS: что полка предлагает и что взято.
+     *
+     * Полка знает 54 пакета, а состав проекта — шесть узлов: брать всё
+     * значило заводить 41 пакет, которому не с чем быть парным, и держать
+     * ими выход сцены 12. Тем же механизмом, что полки Arcadia (ADR-054):
+     * рекомендованное — пакеты, чьи узлы ЕСТЬ в составе, плюс сквозные;
+     * остальное видно в окне и берётся руками.
+     */
+    fun wbsOffer(project: String): List<WbsOffer>
+
+    /**
+     * Взять пакеты работ с полки.
+     *
+     * @param codes что брать; пусто — рекомендованный набор
+     */
+    fun takeWbs(project: String, author: String, codes: List<String> = emptyList()): List<PackageView>
 
     fun packages(project: String): List<PackageView>
 

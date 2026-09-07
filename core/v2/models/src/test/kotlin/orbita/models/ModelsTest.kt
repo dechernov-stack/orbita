@@ -175,16 +175,48 @@ class ModelsTest {
         val бюджет = модели.budget(проект, "mass", "MCR")
         val рамка = бюджет.frame.single()
         assertEquals("Р2", рамка.constraint)
-        assertEquals(false, рамка.within, "106.2 кг в рамку 100 кг не укладывается")
+        // Рамка сверяется с суммой С СИСТЕМНЫМ РЕЗЕРВОМ: 106.2 × 1.2 = 127.44.
+        assertEquals(false, рамка.within, "127.44 кг в рамку 100 кг не укладывается")
+        assertEquals(false, рамка.withinByClass, "и по классам 106.2 уже за рамкой")
+        assertTrue(abs(рамка.withClassReserve - 106.2) < 0.01, "число по классам: ${рамка.withClassReserve}")
+        assertTrue(abs(рамка.excess - 27.44) < 0.01, "превышение названо числом: ${рамка.excess}")
         assertTrue(
-            рамка.words.startsWith("106.2 кг > Р2 (100.0 кг)"),
-            "перебор назван числом и рамкой: ${рамка.words}",
+            рамка.words.startsWith("с системным 20 % — 127.44 кг > Р2 (100.0 кг), превышение 27.44 кг"),
+            "обязательный вывод целиком: ${рамка.words}",
         )
         assertTrue(
             бюджет.note.contains("не подгоняется"),
             "свёртка говорит, что не подгоняет сумму: ${бюджет.note}",
         )
+        assertTrue(
+            бюджет.note.contains("тает по мере зрелости"),
+            "и что резерв ступени снижается: ${бюджет.note}",
+        )
         assertEquals(90.0, бюджет.sum, "сумма при этом осталась суммой")
+    }
+
+    @Test
+    fun `превышение тает со ступенью - резерв PDR ниже резерва MCR`() {
+        узел("SC"); узел("EPS")
+        параметр("SC", "mass_dry", 78.0, "estimated")
+        параметр("EPS", "mass_dry", 12.0, "off_the_shelf")
+        store.create(
+            "Р2", "constraint", область, "5",
+            mapper.readTree(
+                """{"text":"платформа в диапазоне 12U…100 кг","type":"technical",
+                    "bound":{"key":"mass","op":"le","value":100,"unit":"кг"}}""",
+            ),
+            провенанс,
+        )
+        // 106.2 × 1.20 = 127.44 (MCR) против 106.2 × 1.05 = 111.51 (PDR).
+        val наMCR = модели.budget(проект, "mass", "MCR").frame.single()
+        val наPDR = модели.budget(проект, "mass", "PDR").frame.single()
+        assertEquals(20, наMCR.systemMarginPercent)
+        assertEquals(5, наPDR.systemMarginPercent)
+        assertTrue(
+            наPDR.excess < наMCR.excess,
+            "превышение тает по мере зрелости: MCR ${наMCR.excess} → PDR ${наPDR.excess}",
+        )
     }
 
     @Test

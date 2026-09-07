@@ -370,3 +370,7 @@ button:disabled { opacity: .55; cursor: default; }
 .v2-imp__canvas { height: 260px; border: 1px solid var(--line); border-radius: var(--radius); margin: var(--pad-s) 0; }
 .v2-imp__node { padding: 2px 4px; text-align: left; }
 .v2-imp__kind { color: var(--ink-soft); font-size: var(--size-s); }
+
+/* Чип помехи: имя стоит в самом чипе, а не в подсказке — по подсказке
+   не видно, что именно чинить, пока не наведёшь. */
+.v2-chip--warn { border-color: var(--wait); color: var(--wait); }
