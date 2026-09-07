@@ -92,6 +92,46 @@ data class PrintView(
 
 data class PrintSection(val no: String, val title: String, val lines: List<String>)
 
+/**
+ * Элемент снимка: единица, по которой считается расхождение.
+ *
+ * `mid` — устойчивое имя элемента в документе (код тезиса, код запроса с
+ * номером строки). Именно по нему идёт диф: без устойчивого имени любая
+ * правка выглядит как «документ изменился целиком».
+ */
+data class BaselineElement(
+    val mid: String,
+    val kind: String,
+    val section: String,
+    val fields: Map<String, String>,
+)
+
+/** Базовая линия документа: снимок плюс отметка в репозитории базирований. */
+data class DocumentBaseline(
+    val name: String,
+    val document: String,
+    val elements: List<BaselineElement>,
+    val by: String,
+    val at: String,
+    /** Имя аннотированного тега; пусто — репозиторий недоступен. */
+    val tag: String,
+    /** Коммит тега; пусто — отметка не поставлена, и это сказано вслух. */
+    val commit: String,
+    /** Почему отметки нет, если её нет. */
+    val note: String = "",
+)
+
+/** Расхождение одного поля одного элемента. */
+data class FieldChange(
+    val mid: String,
+    val section: String,
+    /** `added` · `removed` · `changed` — что случилось с элементом. */
+    val change: String,
+    val field: String,
+    val was: String,
+    val now: String,
+)
+
 interface Documents {
     /** Завести документ проекта по шаблону полки; повтор — тот же документ. */
     fun ensure(project: String, templateCode: String, author: String): DocumentView
@@ -122,4 +162,22 @@ interface Documents {
      * нет шрифта — нет файла, запасного «похожего» вывода не бывает.
      */
     fun print(project: String, code: String, projectName: String): ByteArray
+
+    /**
+     * Зафиксировать документ базовой линией.
+     *
+     * Имя базовой линии — человеческое («внутренний обзор»): им её и
+     * зовут на точке. Повторное имя отклоняется: базовая линия
+     * неизменяема, перебазирование заводит новое имя.
+     */
+    fun baseline(project: String, code: String, name: String, author: String): DocumentBaseline
+
+    fun baselines(project: String, code: String): List<DocumentBaseline>
+
+    /**
+     * Расхождение документа с базовой линией — ПОЛЕВОЕ, по mid.
+     *
+     * @param to имя второй линии; пусто — сравнение с текущим состоянием
+     */
+    fun diff(project: String, code: String, from: String, to: String? = null): List<FieldChange>
 }

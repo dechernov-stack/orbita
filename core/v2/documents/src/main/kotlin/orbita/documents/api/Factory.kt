@@ -12,10 +12,17 @@ object DocumentsFactory {
      * @param template шаблон документа С ПОЛКИ по коду: содержания в коде нет,
      *   и второй копии структуры документа не существует
      */
+    /**
+     * @param baselineRoot каталог репозиториев базирования; по умолчанию —
+     *   том стенда. Отдельно от репозитория изделия: документы проектов —
+     *   содержание владельца, и в публичный репозиторий они не попадают.
+     */
     fun documents(
         store: EntityStore,
         links: LinkRegistry,
         template: (String) -> JsonNode?,
         mapper: ObjectMapper = ObjectMapper(),
-    ): Documents = EntityDocuments(store, links, template, mapper)
+        baselineRoot: java.io.File =
+            java.io.File(System.getenv("ORBITA_BASELINES_DIR") ?: "/files/basirovaniya"),
+    ): Documents = EntityDocuments(store, links, template, mapper, baselineRoot)
 }

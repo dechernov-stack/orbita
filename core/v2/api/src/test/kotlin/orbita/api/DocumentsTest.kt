@@ -33,6 +33,10 @@ class DocumentsTest {
     private val полки = TestDbV2.repoRoot.resolve("docs/tz/v2/полки-порождённые")
     private val шаблонФазы = mapper.readTree(полки.resolve("ШАБЛОН-ФАЗЫ-PRE-A-NASA.json").toFile())
 
+    /** Репозиторий базирований во времянке: тест не пишет в /files. */
+    private val домБазирований: java.io.File =
+        java.nio.file.Files.createTempDirectory("orbita-baselines").toFile().also { it.deleteOnExit() }
+
     private val документы = DocumentsFactory.documents(
         store, links,
         template = { код ->
@@ -40,6 +44,7 @@ class DocumentsTest {
             if (файл.isFile) mapper.readTree(файл) else null
         },
         mapper = mapper,
+        baselineRoot = домБазирований,
     )
 
     private val router: V2Router by lazy {
@@ -202,5 +207,65 @@ class DocumentsTest {
             места.keys.any { it.startsWith("Концепция применения") && it.endsWith("§2") },
             "и §2 концепции применения: ${места.keys}",
         )
+    }
+
+    @Test
+    fun `документ базируется именем и получает аннотированный тег`() {
+        постановка("PJ-9210")
+        val п = mapOf("project" to "PJ-9210")
+        router.handle("GET", "/v2/documents", п, null)
+
+        val линия = router.handle("POST", "/v2/documents/mcreport/baseline", п,
+            """{"name":"внутренний обзор","author":"Иванов И."}""")!!
+        assertEquals(201, линия.code)
+        assertEquals("внутренний обзор", линия.body.path("name").asText())
+        assertTrue(линия.body.path("elements").asInt() > 0, "снимок непуст")
+        assertEquals(
+            "базирование/внутренний-обзор", линия.body.path("tag").asText(),
+            "имя линии узнаётся в теге: ${линия.body.path("note").asText()}",
+        )
+        assertTrue(линия.body.path("commit").asText().length >= 7, "тег стоит на коммите")
+
+        // Базовая линия неизменяема: то же имя во второй раз — отказ.
+        val ошибка = runCatching {
+            router.handle("POST", "/v2/documents/mcreport/baseline", п,
+                """{"name":"внутренний обзор","author":"Иванов И."}""")
+        }.exceptionOrNull()
+        assertTrue(
+            ошибка?.message?.contains("неизменяема") == true,
+            "перебазирование заводит новое имя: ${ошибка?.message}",
+        )
+    }
+
+    @Test
+    fun `правка одного тезиса даёт расхождение в одном узле`() {
+        постановка("PJ-9211")
+        val п = mapOf("project" to "PJ-9211")
+        router.handle("GET", "/v2/documents", п, null)
+        router.handle("POST", "/v2/documents/mcreport/statement", п,
+            """{"section":"§10","text":"Допущение: связь доступна не менее 20 минут в сутки.",
+                "author":"Иванов И."}""")
+        router.handle("POST", "/v2/documents/mcreport/baseline", п,
+            """{"name":"внутренний обзор","author":"Иванов И."}""")
+
+        // Ничего не трогали — расхождения нет.
+        val пусто = router.handle("GET", "/v2/documents/mcreport/diff",
+            п + ("from" to "внутренний обзор"), null)!!.body
+        assertEquals(0, пусто.path("nodes").asInt(), "снимок совпадает с собой: ${пусто.path("items")}")
+
+        // Правим ОДИН тезис.
+        router.handle("POST", "/v2/documents/mcreport/statement", п,
+            """{"section":"§10","text":"Допущение: связь доступна не менее 30 минут в сутки.",
+                "author":"Иванов И."}""")
+
+        val диф = router.handle("GET", "/v2/documents/mcreport/diff",
+            п + ("from" to "внутренний обзор"), null)!!.body
+        assertEquals(
+            1, диф.path("nodes").asInt(),
+            "правка одного тезиса задевает один узел: ${диф.path("items")}",
+        )
+        val изменение = диф.path("items")[0]
+        assertEquals("added", изменение.path("change").asText(), "новый тезис — добавленный узел")
+        assertTrue("30 минут" in изменение.path("now").asText(), "видно, что стало")
     }
 }

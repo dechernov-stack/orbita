@@ -8,6 +8,7 @@ package orbita.api.internal
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ObjectNode
+import orbita.documents.api.DocumentBaseline
 import orbita.documents.api.DocumentView
 import orbita.documents.api.Documents
 import orbita.documents.api.SectionView
@@ -52,6 +53,25 @@ class DocRoutes(
 
         method == "GET" && path.matches(Regex("/v2/documents/[a-z_]+/print")) ->
             печать(требуется(query, "project"), path.removePrefix("/v2/documents/").removeSuffix("/print"))
+
+        // Базирование документа и расхождение с базовой линией.
+        method == "POST" && path.matches(Regex("/v2/documents/[a-z_]+/baseline")) ->
+            базировать(
+                требуется(query, "project"),
+                path.removePrefix("/v2/documents/").removeSuffix("/baseline"),
+                разобрать(body),
+            )
+
+        method == "GET" && path.matches(Regex("/v2/documents/[a-z_]+/baselines")) ->
+            линии(требуется(query, "project"), path.removePrefix("/v2/documents/").removeSuffix("/baselines"))
+
+        method == "GET" && path.matches(Regex("/v2/documents/[a-z_]+/diff")) ->
+            расхождение(
+                требуется(query, "project"),
+                path.removePrefix("/v2/documents/").removeSuffix("/diff"),
+                требуется(query, "from"),
+                query["to"],
+            )
 
         else -> null
     }
@@ -142,6 +162,56 @@ class DocRoutes(
         val разделы = узел.putArray("sections")
         вид.sections.forEach { разделы.add(разделВид(it)) }
         return узел
+    }
+
+    private fun базировать(project: String, code: String, тело: ObjectNode): V2Router.Ответ {
+        val линия = documents.baseline(
+            project, code,
+            name = тело.path("name").asText(""),
+            author = тело.path("author").asText("Иванов И."),
+        )
+        return V2Router.Ответ(201, линияВид(линия))
+    }
+
+    private fun линии(project: String, code: String): V2Router.Ответ {
+        val узел = mapper.createObjectNode()
+        val массив = узел.putArray("items")
+        documents.baselines(project, code).forEach { массив.add(линияВид(it)) }
+        return V2Router.Ответ(200, узел)
+    }
+
+    private fun линияВид(линия: DocumentBaseline): ObjectNode = mapper.createObjectNode()
+        .put("name", линия.name)
+        .put("document", линия.document)
+        .put("elements", линия.elements.size)
+        .put("by", линия.by)
+        .put("at", линия.at)
+        .put("tag", линия.tag)
+        .put("commit", линия.commit)
+        // Отметки может не быть, и об этом говорится вслух: снимок
+        // состоялся, а тег — нет, и человек обязан это видеть.
+        .put("note", линия.note)
+
+    private fun расхождение(
+        project: String,
+        code: String,
+        from: String,
+        to: String?,
+    ): V2Router.Ответ {
+        val изменения = documents.diff(project, code, from, to)
+        val узел = mapper.createObjectNode()
+        узел.put("from", from)
+        узел.put("to", to ?: "текущее состояние")
+        // Узлов, а не строк: «правка одного тезиса — расхождение в одном
+        // узле» проверяется этим числом.
+        узел.put("nodes", изменения.map { it.mid }.distinct().size)
+        val массив = узел.putArray("items")
+        изменения.forEach { и ->
+            массив.addObject()
+                .put("mid", и.mid).put("section", и.section).put("change", и.change)
+                .put("field", и.field).put("was", и.was).put("now", и.now)
+        }
+        return V2Router.Ответ(200, узел)
     }
 
     private fun разделВид(раздел: SectionView): ObjectNode {

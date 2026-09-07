@@ -10,12 +10,15 @@ package orbita.documents.internal
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ObjectNode
+import orbita.documents.api.BaselineElement
 import orbita.documents.api.ColumnView
+import orbita.documents.api.DocumentBaseline
 import orbita.documents.api.DocumentHint
 import orbita.documents.api.DocumentView
 import orbita.documents.api.Documents
 import orbita.documents.api.ElementKind
 import orbita.documents.api.ElementView
+import orbita.documents.api.FieldChange
 import orbita.documents.api.PrintSection
 import orbita.documents.api.PrintView
 import orbita.documents.api.SectionView
@@ -32,7 +35,16 @@ class EntityDocuments(
     /** Шаблон документа читается С ПОЛКИ: содержания в коде нет. */
     private val template: (String) -> JsonNode?,
     private val mapper: ObjectMapper = ObjectMapper(),
+    /**
+     * Каталог репозиториев базирования. Отдельно от репозитория изделия:
+     * документы проектов — содержание владельца, и в публичный репозиторий
+     * продукта они не попадают.
+     */
+    private val baselineRoot: java.io.File =
+        java.io.File(System.getenv("ORBITA_BASELINES_DIR") ?: "/files/basirovaniya"),
 ) : Documents {
+
+    private val книга = BaselineBook(baselineRoot)
 
     private val запросы = Queries(store, links)
 
@@ -274,4 +286,182 @@ class EntityDocuments(
         ?: throw NoSuchElementException(
             "шаблона документа «$code» нет на полке: положите его в полку шаблонов",
         )
+
+    // --- базирование -------------------------------------------------------
+
+    /**
+     * Снимок документа поэлементно.
+     *
+     * MID строки запроса — код элемента с НОМЕРОМ СТРОКИ, а не с её
+     * содержимым: иначе правка ячейки читалась бы как «строку удалили и
+     * завели другую», и диф раздувался бы вдвое на каждую опечатку.
+     */
+    private fun снимок(project: String, code: String): List<BaselineElement> =
+        document(project, code).sections.flatMap { раздел ->
+            раздел.elements.flatMap { элемент ->
+                when (элемент.kind) {
+                    ElementKind.STATEMENT -> listOf(
+                        BaselineElement(
+                            mid = элемент.code,
+                            kind = "тезис",
+                            section = раздел.no,
+                            fields = mapOf(
+                                "текст" to (элемент.text ?: ""),
+                                "опоры" to элемент.supports.joinToString(", "),
+                            ),
+                        ),
+                    )
+                    ElementKind.QUERY -> элемент.rows.mapIndexed { н, строка ->
+                        BaselineElement(
+                            mid = "${элемент.code}#${н + 1}",
+                            kind = "строка",
+                            section = раздел.no,
+                            fields = элемент.columns.mapIndexed { к, колонка ->
+                                колонка.title to (строка.getOrNull(к) ?: "")
+                            }.toMap(),
+                        )
+                    }
+                    // Виды элементов, которых документ пока не заводит, в
+                    // снимок не идут: снимать нечего, а домысливать нельзя.
+                    else -> emptyList()
+                }
+            }
+        }
+
+    override fun baseline(
+        project: String,
+        code: String,
+        name: String,
+        author: String,
+    ): DocumentBaseline {
+        val область = Area.Project(project)
+        require(name.isNotBlank()) { "у базовой линии нет имени: ею зовут состояние на точке" }
+        val прежние = store.list(область, "baseline_snapshot")
+            .filter { it.doc.path("document").asText() == code }
+        require(прежние.none { it.doc.path("name").asText() == name }) {
+            "базовая линия «$name» документа «$code» уже есть: линия неизменяема, " +
+                "перебазирование заводит новое имя"
+        }
+        val элементы = снимок(project, code)
+        require(элементы.isNotEmpty()) {
+            "документ «$code» пуст: базировать нечего — сначала прожить сцены"
+        }
+
+        val когда = java.time.OffsetDateTime.now().toString()
+        val отметка = книга.отметить(project, code, name, текстСнимка(project, code, элементы), author)
+
+        val документ = mapper.createObjectNode()
+        документ.put("project", project)
+        документ.put("document", code)
+        документ.put("name", name)
+        документ.put("by", author)
+        документ.put("at", когда)
+        документ.put("tag", отметка.tag)
+        документ.put("commit", отметка.commit)
+        val список = документ.putArray("elements")
+        элементы.forEach { э ->
+            val узел = список.addObject()
+            узел.put("mid", э.mid).put("kind", э.kind).put("section", э.section)
+            val поля = узел.putObject("fields")
+            э.fields.forEach { (к, в) -> поля.put(к, в) }
+        }
+        val код = следующийКод(область, "baseline_snapshot", "BL")
+        store.create(код, "baseline_snapshot", область, null, документ,
+            Provenance(Channel.MANUAL, author), status = "immutable")
+
+        return DocumentBaseline(
+            name = name, document = code, elements = элементы,
+            by = author, at = когда,
+            tag = отметка.tag, commit = отметка.commit, note = отметка.note,
+        )
+    }
+
+    override fun baselines(project: String, code: String): List<DocumentBaseline> =
+        store.list(Area.Project(project), "baseline_snapshot")
+            .filter { it.doc.path("document").asText() == code }
+            .map { запись ->
+                DocumentBaseline(
+                    name = запись.doc.path("name").asText(""),
+                    document = code,
+                    elements = элементыСнимка(запись.doc),
+                    by = запись.doc.path("by").asText(""),
+                    at = запись.doc.path("at").asText(""),
+                    tag = запись.doc.path("tag").asText(""),
+                    commit = запись.doc.path("commit").asText(""),
+                )
+            }
+            .sortedBy { it.at }
+
+    private fun элементыСнимка(документ: JsonNode): List<BaselineElement> =
+        документ.path("elements").map { э ->
+            BaselineElement(
+                mid = э.path("mid").asText(""),
+                kind = э.path("kind").asText(""),
+                section = э.path("section").asText(""),
+                fields = э.path("fields").properties().associate { (к, в) -> к to в.asText("") },
+            )
+        }
+
+    override fun diff(project: String, code: String, from: String, to: String?): List<FieldChange> {
+        val линии = baselines(project, code).associateBy { it.name }
+        val было = линии[from]
+            ?: throw NoSuchElementException(
+                "базовой линии «$from» у документа «$code» нет: есть ${линии.keys.joinToString(", ")}",
+            )
+        val стало = if (to.isNullOrBlank()) снимок(project, code) else (
+            линии[to] ?: throw NoSuchElementException("базовой линии «$to» нет")
+            ).elements
+
+        val слева = было.elements.associateBy { it.mid }
+        val справа = стало.associateBy { it.mid }
+        val расхождения = mutableListOf<FieldChange>()
+
+        // Порядок обхода — по mid: отчёт о расхождении обязан читаться
+        // одинаково при каждом запуске, иначе его нельзя сравнить с прошлым.
+        (слева.keys + справа.keys).sorted().forEach { mid ->
+            val б = слева[mid]
+            val с = справа[mid]
+            when {
+                б == null && с != null -> с.fields.forEach { (поле, значение) ->
+                    расхождения += FieldChange(mid, с.section, "added", поле, "", значение)
+                }
+                б != null && с == null -> б.fields.forEach { (поле, значение) ->
+                    расхождения += FieldChange(mid, б.section, "removed", поле, значение, "")
+                }
+                б != null && с != null -> (б.fields.keys + с.fields.keys).sorted().forEach { поле ->
+                    val было1 = б.fields[поле] ?: ""
+                    val стало1 = с.fields[поле] ?: ""
+                    if (было1 != стало1) {
+                        расхождения += FieldChange(mid, с.section, "changed", поле, было1, стало1)
+                    }
+                }
+            }
+        }
+        return расхождения
+    }
+
+    /** Читаемый текст снимка: он и ложится в репозиторий базирований. */
+    private fun текстСнимка(project: String, code: String, элементы: List<BaselineElement>): String {
+        val вид = document(project, code)
+        val строки = StringBuilder()
+        строки.append("# ${вид.title}\n\n")
+        строки.append("Проект: $project · стандарт: ${вид.standard}\n\n")
+        вид.sections.forEach { раздел ->
+            строки.append("## ${раздел.no} ${раздел.title}\n\n")
+            элементы.filter { it.section == раздел.no }.forEach { э ->
+                строки.append("- [${э.mid}] ")
+                строки.append(э.fields.entries.joinToString(" · ") { (к, в) -> "$к: $в" })
+                строки.append("\n")
+            }
+            строки.append("\n")
+        }
+        return строки.toString()
+    }
+
+    private fun следующийКод(область: Area, вид: String, префикс: String): String {
+        val занято = store.list(область, вид).mapNotNull {
+            Regex("^$префикс-(\\d+)$").find(it.code)?.groupValues?.get(1)?.toIntOrNull()
+        }
+        return "%s-%04d".format(префикс, (занято.maxOrNull() ?: 0) + 1)
+    }
 }

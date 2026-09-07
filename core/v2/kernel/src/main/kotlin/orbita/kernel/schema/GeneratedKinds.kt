@@ -96,7 +96,7 @@ object GeneratedKinds {
         KindSpec("section", "раздел", Layer.L5, "с документом", "вычисляется: completeness{done,total,missing[]} · support_changed{flag,diff[]}", listOf("document", "no", "title", "expects_snapshot")),
         KindSpec("release", "выпуск", Layer.L5, "13, A12", null, listOf("document", "rendering", "version", "print_files", "authors", "released_by", "at")),
         KindSpec("result", "результат в библиотеке", Layer.L5, "с выпуском", null, listOf("release", "authors")),
-        KindSpec("baseline_snapshot", "снимок базирования", Layer.L5, "базирование", null, listOf("project", "sdoc_path", "hash", "by", "at", "requirements_count")),
+        KindSpec("baseline_snapshot", "снимок базирования", Layer.L5, "базирование", null, listOf("project", "sdoc_path", "hash", "by", "at")),
         KindSpec("export", "выгрузка", Layer.L5, "по запросу", null, listOf("type", "scope", "fingerprint", "files", "by", "at")),
         KindSpec("import_batch", "импорт", Layer.L5, "2, A4", null, listOf("type", "source_file", "proposal", "foreign_attributes_kept")),
         KindSpec("ai_call", "вызов службы (журнал)", Layer.L5, "любая", null, listOf("package_kind", "outcome", "at", "by")),

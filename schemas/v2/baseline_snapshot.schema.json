@@ -78,7 +78,75 @@
       "format": "date-time"
     },
     "requirements_count": {
-      "type": "integer"
+      "type": "integer",
+      "description": "Снимок набора требований. У снимка ДОКУМЕНТА этого поля нет: вид один, а базируют им и набор требований, и документ."
+    },
+    "document": {
+      "type": "string",
+      "description": "ссылка на вид: document Снимок документа: код шаблона, чей текст зафиксирован."
+    },
+    "tag": {
+      "type": "string",
+      "description": "Имя аннотированного тега в репозитории базирований. Тег и есть имя базовой линии для человека: «внутренний обзор»."
+    },
+    "commit": {
+      "type": "string",
+      "description": "Коммит, на который встал тег: внешняя проверяемая отметка."
+    },
+    "elements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "mid": {
+            "type": [
+              "string",
+              "number",
+              "boolean",
+              "object",
+              "array",
+              "null"
+            ]
+          },
+          "kind": {
+            "type": [
+              "string",
+              "number",
+              "boolean",
+              "object",
+              "array",
+              "null"
+            ]
+          },
+          "section": {
+            "type": [
+              "string",
+              "number",
+              "boolean",
+              "object",
+              "array",
+              "null"
+            ]
+          },
+          "fields": {
+            "type": [
+              "string",
+              "number",
+              "boolean",
+              "object",
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "mid",
+          "kind",
+          "section",
+          "fields"
+        ]
+      },
+      "description": "Содержание снимка поэлементно. Диф считается ПО MID и по полям: правка одного тезиса обязана давать расхождение в одном узле, а не «документ изменился»."
     }
   },
   "required": [
@@ -96,7 +164,6 @@
     "sdoc_path",
     "hash",
     "by",
-    "at",
-    "requirements_count"
+    "at"
   ]
 }

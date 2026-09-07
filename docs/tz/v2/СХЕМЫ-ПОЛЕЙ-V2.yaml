@@ -2245,8 +2245,31 @@ kinds:
     note: ''
   - name: requirements_count
     type: int
-    required: true
-    note: ''
+    required: false
+    note: >-
+      Снимок набора требований. У снимка ДОКУМЕНТА этого поля нет: вид
+      один, а базируют им и набор требований, и документ.
+  - name: document
+    type: ref document
+    required: false
+    note: 'Снимок документа: код шаблона, чей текст зафиксирован.'
+  - name: tag
+    type: str
+    required: false
+    note: >-
+      Имя аннотированного тега в репозитории базирований. Тег и есть
+      имя базовой линии для человека: «внутренний обзор».
+  - name: commit
+    type: str
+    required: false
+    note: 'Коммит, на который встал тег: внешняя проверяемая отметка.'
+  - name: elements
+    type: '[{mid*,kind*,section*,fields*}]'
+    required: false
+    note: >-
+      Содержание снимка поэлементно. Диф считается ПО MID и по полям:
+      правка одного тезиса обязана давать расхождение в одном узле, а
+      не «документ изменился».
   export: git diff
   engine: есть
 - n: 71
