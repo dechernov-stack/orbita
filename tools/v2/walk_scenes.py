@@ -61,8 +61,9 @@ def вызов(base: str, метод: str, путь: str, тело=None):
 
 
 class Прогон:
-    def __init__(self, base: str, проект: str, сид: dict, точки: bool = False):
+    def __init__(self, base: str, проект: str, сид: dict, точки: bool = False, знания: bool = False):
         self.точки = точки
+        self.знания = знания
         self.base = base
         self.проект = проект
         self.сид = сид
@@ -101,7 +102,10 @@ class Прогон:
         self.шаг(
             f"сцена 1: проект {self.проект}", есть,
             lambda: вызов(self.base, "POST", "/v2/projects",
-                          {"name": self.сид["name"], "code": self.проект}),
+                          # Имя с кодом, если проект не из сида: два прогона с одним
+                          # именем не различить в портфеле (поймано на E1).
+                          {"name": self.сид["name"] if self.проект == self.сид["code"] else f"{self.сид['name']} · {self.проект}",
+                           "code": self.проект}),
         )
 
     def сцена_2_замысел(self) -> None:
@@ -316,6 +320,115 @@ class Прогон:
                 оценены.add(код)
                 self.сделано.append(f"сцена 12: оценка созревания {код}")
 
+    # --- знания 2: три типа входных (шип E) -----------------------------
+
+    def знания_2(self) -> None:
+        """ТЗ · даташит · норматив — каждый своим режимом живой моделью; план
+        даташита принимается (параметры в анкету, риск по рамке); допущение
+        держит MCR до подтверждения."""
+        настройки = self.сид.get("knowledge2", {})
+        материалы = {м.get("name"): м for м in вызов(self.base, "GET", f"/v2/materials?project={self.проект}").get("items", [])}
+        итоги = {}
+        for тип in ("tor", "datasheet", "normative"):
+            вход = настройки.get(тип)
+            if not вход:
+                continue
+            имя = вход["name"]
+            if имя in материалы:
+                код = материалы[имя]["code"]
+                self.пропущено.append(f"знания 2: материал «{имя}» уже есть ({код})")
+            else:
+                код = вызов(self.base, "POST", f"/v2/materials?project={self.проект}",
+                            {"name": имя, "kind": тип, "text": вход["text"], "author": "Иванов И."})["code"]
+                self.сделано.append(f"знания 2: материал «{имя}» ({тип}) положен — {код}")
+            разбор = вызов(self.base, "POST", f"/v2/intake/atomize?project={self.проект}",
+                           {"material": код, "intent": вход["intent"], "author": "Иванов И."})
+            итоги[тип] = разбор
+            self.сделано.append(f"знания 2: {тип} разобран — {разбор.get('note', '')[:110]}")
+            задание = разбор.get("task")
+            if not задание:
+                continue
+            план = вызов(self.base, "GET", f"/v2/intake/{задание}?project={self.проект}")
+            if тип == "tor":
+                оценка = план.get("assessment") or {}
+                if not оценка:
+                    raise Отказ("ТЗ разобрано без оценки против нужд — режим tor не сработал")
+                self.сделано.append(f"знания 2: ТЗ оценено — строк {len(оценка.get('lines', []))}, непокрытых нужд "
+                                    f"{len(оценка.get('uncovered_needs', []))}, требований без нужды {len(оценка.get('orphan_requirements', []))}")
+            if тип == "datasheet":
+                виды = [(д["kind"], д["target_kind"]) for д in план.get("actions", [])]
+                if ("update_params", "parameter") not in виды:
+                    raise Отказ(f"даташит не дал параметров анкеты: план {виды}")
+                if "рассмотрим как базовую" in вход["intent"] and ("create_entity", "component") not in виды:
+                    raise Отказ(f"задание «рассмотрим как базовую» не дало узла-кандидата: план {виды}")
+                параметры = вызов(self.base, "GET", f"/v2/parameters?project={self.проект}").get("items", [])
+                if any(п.get("origin") == "datasheet" for п in параметры) or any((у.get("doc") or {}).get("candidate") for у in self.сущности("component")):
+                    self.пропущено.append("знания 2: параметры даташита уже приняты")
+                else:
+                    выбраны = [д["index"] for д in план["actions"] if д["target_kind"] in ("component", "parameter", "risk", "data_request")]
+                    принято = вызов(self.base, "POST", f"/v2/intake/{задание}/accept?project={self.проект}",
+                                    {"chosen": выбраны, "author": "Иванов И."})
+                    self.сделано.append(f"знания 2: даташит принят — создано {принято.get('created')}: {', '.join(принято.get('codes', [])[:6])}")
+            if тип == "normative":
+                выбраны = [д["index"] for д in план.get("actions", []) if д["target_kind"] == "normative_document"]
+                if выбраны:
+                    принято = вызов(self.base, "POST", f"/v2/intake/{задание}/accept?project={self.проект}",
+                                    {"chosen": выбраны, "author": "Иванов И."})
+                    self.сделано.append(f"знания 2: норматив на полке — {', '.join(принято.get('codes', []))}")
+        # риски, рождённые сверкой даташита с рамками, закрываются РЕШЕНИЕМ
+        # словами (репетиция: настоящее решение — за РП); темы с принятыми
+        # фактами разрешаются в сущность — иначе MCR держится ими честно.
+        решения = настройки.get("risk_resolutions_by_constraint", {})
+        for р in self.сущности("risk"):
+            док = р.get("doc") or {}
+            рамка = док.get("constraint")
+            if р.get("status") != "closed" and рамка in решения:
+                вызов(self.base, "POST", f"/v2/risks/{р['code']}/close?project={self.проект}",
+                      {"resolution": решения[рамка], "author": "Чернов Д."})
+                self.сделано.append(f"знания 2: риск {р['code']} ({рамка}) закрыт решением")
+        адреса = настройки.get("topic_resolutions", [])
+        норматив = next((к for к in (итоги.get("normative") or {}).get("codes", [])), None)
+        полка = [н for н in вызов(self.base, "GET", "/v2/shelves?kind=normative_document").get("items", [])]
+        for т in вызов(self.base, "GET", f"/v2/topics?project={self.проект}").get("items", []):
+            if т.get("resolved_to") or not т.get("facts"):
+                continue
+            for а in адреса:
+                if а["contains"] in т["label"]:
+                    адрес = а.get("entity")
+                    if а.get("entity_from") == "candidate":
+                        адрес = next((у["code"] for у in self.сущности("component") if (у.get("doc") or {}).get("candidate")), None)
+                    if а.get("entity_from") == "normative":
+                        адрес = next((н["code"] for н in полка
+                                      if а["contains"] in ((н.get("doc") or {}).get("designation") or (н.get("doc") or {}).get("title") or "")), None)
+                    if адрес:
+                        вызов(self.base, "POST", f"/v2/topics/{т['id']}/resolve?project={self.проект}",
+                              {"entity": адрес, "author": "Иванов И."})
+                        self.сделано.append(f"знания 2: тема {т['id']} «{т['label'][:40]}» → {адрес}")
+                    break
+        # допущение к MCR: держит точку, подтверждение отпускает
+        д = настройки.get("assumption")
+        if д:
+            факты = вызов(self.base, "GET", f"/v2/facts?project={self.проект}").get("items", [])
+            факт = next((ф for ф in факты if ф.get("predicate") == д["predicate"] and ф.get("manual")), None)
+            if факт is None:
+                факт = вызов(self.base, "POST", f"/v2/facts?project={self.проект}",
+                             {"subject": д["subject"], "predicate": д["predicate"], "value": д["value"], "unit": д["unit"],
+                              "kind": "quantity", "author": д["owner"]})
+                self.сделано.append(f"знания 2: факт {факт['id']} заведён руками")
+            if факт.get("disposition") not in ("assumed", "adopted"):
+                вызов(self.base, "POST", f"/v2/facts/{факт['id']}/disposition?project={self.проект}",
+                      {"disposition": "assumed", "reason": "пока не измерено", "author": д["owner"],
+                       "assumption": {"owner": д["owner"], "confirm_by": д["confirm_by"],
+                                      "validation": д["validation"], "impact_if_wrong": д["impact_if_wrong"]}})
+                self.сделано.append(f"знания 2: {факт['id']} — допущение к {д['confirm_by']} (владелец {д['owner']})")
+                точка = self.точка(д["confirm_by"])
+                if not any("допущен" in б for б in точка["blocking"]):
+                    raise Отказ(f"допущение не держит {д['confirm_by']}: {точка['blocking']}")
+                self.сделано.append(f"знания 2: {д['confirm_by']} держится допущением — как и должно")
+                вызов(self.base, "POST", f"/v2/facts/{факт['id']}/disposition?project={self.проект}",
+                      {"disposition": "adopted", "reason": "замерено на стенде: 11,6 с", "author": д["owner"]})
+                self.сделано.append(f"знания 2: допущение {факт['id']} подтверждено — точка отпущена")
+
     # --- точки: сцены 15–18 (шип D) --------------------------------------
 
     def точка(self, ключ: str) -> dict:
@@ -325,6 +438,10 @@ class Прогон:
     def подготовка_к_точкам(self) -> None:
         """Чего сценам 1–12 не хватало для точек: план фазы, решение по
         риску со сроком к MCR, допущение и открытый вопрос для §10–§11."""
+        # Документы фазы заводит открытие раздела «Документы» (как у человека):
+        # без этого матрица KDP-A честно говорит «документа нет».
+        документы = вызов(self.base, "GET", f"/v2/documents?project={self.проект}").get("items", [])
+        self.сделано.append(f"документы фазы: {', '.join(д['code'] for д in документы)}")
         план = вызов(self.base, "GET", f"/v2/plan?project={self.проект}")
         if not план.get("planned"):
             точки = {т["key"]: т for т in вызов(self.base, "GET", f"/v2/points?project={self.проект}")["items"]}
@@ -418,6 +535,30 @@ class Прогон:
         if not открытые:
             self.пропущено.append("сцена 17: открытых замечаний нет")
 
+    def сцена_14_fad_fa(self) -> None:
+        """FAD и FA (Прил. 1–2): разделы-запросы наполняются реестром, разделы
+        с тезисом ждут слова руководителя; к KDP-A оба базируются."""
+        тезисы = self.сид.get("points", {}).get("statements", {})
+        for код in ("fad", "fa"):
+            вызов(self.base, "POST", f"/v2/documents?project={self.проект}", {"template": код, "author": "Чернов Д."})
+            документ = вызов(self.base, "GET", f"/v2/documents/{код}?project={self.проект}&gate=KDP-A")
+            for раздел in документ["sections"]:
+                ждёт = " ".join(раздел.get("waiting", []))
+                текст = тезисы.get(код, {}).get(раздел["no"])
+                if "тезис:" in ждёт and текст:
+                    вызов(self.base, "POST", f"/v2/documents/{код}/statement?project={self.проект}",
+                          {"section": раздел["no"], "text": текст, "author": "Чернов Д."})
+                    self.сделано.append(f"сцена 14: {код.upper()} {раздел['no']} — тезис")
+            документ = вызов(self.base, "GET", f"/v2/documents/{код}?project={self.проект}&gate=KDP-A")
+            if документ["complete"] < документ["total"]:
+                неполные = [f"{р['no']} ({'; '.join(р.get('waiting', []))[:80]})" for р in документ["sections"] if not р.get("complete")]
+                raise Отказ(f"{код.upper()} к KDP-A неполон: " + ", ".join(неполные))
+            линии = вызов(self.base, "GET", f"/v2/documents/{код}/baselines?project={self.проект}").get("items", [])
+            if not линии:
+                вызов(self.base, "POST", f"/v2/documents/{код}/baseline?project={self.проект}",
+                      {"name": "KDP-A", "author": "Чернов Д."})
+                self.сделано.append(f"сцена 14: {код.upper()} базирован линией «KDP-A»")
+
     def сцена_18_kdp_a(self) -> None:
         точка = self.точка("KDP-A")
         if точка["passed"]:
@@ -448,11 +589,14 @@ class Прогон:
         self.вехи_созревания()
         self.войти("chernov")
         self.сцена_12_стоимость()
+        if self.знания:
+            self.знания_2()
         if self.точки:
             self.подготовка_к_точкам()
             self.сцена_15_внутренний_обзор()
             self.сцена_16_mcr()
             self.сцена_17_замечания()
+            self.сцена_14_fad_fa()
             self.сцена_18_kdp_a()
 
 
@@ -493,6 +637,7 @@ def main() -> int:
     ap.add_argument("--project", default=None, help="код проекта; по умолчанию — из сида")
     ap.add_argument("--report", action="store_true", help="ничего не делать, показать состояние")
     ap.add_argument("--points", action="store_true", help="после сцен 1–12 пройти точки: сцены 15–18 до KDP-A")
+    ap.add_argument("--knowledge", action="store_true", help="знания 2: ТЗ · даташит · норматив живой моделью, допущение к точке")
     args = ap.parse_args()
 
     сид = json.loads(СИД.read_text(encoding="utf-8"))
@@ -500,7 +645,7 @@ def main() -> int:
 
     вызов(args.base, "POST", "/auth/stand-login", {"login": "chernov"})
     if not args.report:
-        прогон = Прогон(args.base, проект, сид, точки=args.points)
+        прогон = Прогон(args.base, проект, сид, точки=args.points, знания=args.knowledge)
         try:
             прогон.пройти()
         except Отказ as о:

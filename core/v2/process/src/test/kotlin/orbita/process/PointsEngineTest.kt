@@ -84,7 +84,9 @@ class PointsEngineTest {
         val kdp = точки.first { it.key == "KDP-A" }
         assertEquals("Phase A", kdp.opensPhase)
         assertEquals(9, kdp.matrix.size, "матрица Д1–Д9")
-        assertTrue(kdp.matrix.any { it.artifact.startsWith("Д1") && it.passed == null }, "FAD без шаблона — не проверяется, и это видно")
+        val fad = kdp.matrix.first { it.artifact.startsWith("Д1") }
+        assertEquals("document_baselined:fad", fad.check, "FAD из поставки 09.09 держит KDP-A кодом F — базированием")
+        assertTrue(fad.blocking && fad.codes["KDP-A"] == "F")
         assertEquals("MCR", точки.first { it.key == "internal_review" }.checklistOf)
         assertNotNull(mcr.legendNote, "легенда кодов — предположительно, и это сказано")
     }

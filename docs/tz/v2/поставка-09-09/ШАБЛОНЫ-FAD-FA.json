@@ -1,0 +1,301 @@
+{
+ "kind": "document_template_shelf",
+ "templates": [
+  {
+   "kind": "document_template",
+   "code": "DT-9101",
+   "title": "FAD — Formulation Authorization Document (Прил. 1 БП-PPA)",
+   "nature": "mixed",
+   "scenes": [
+    14
+   ],
+   "sections": [
+    {
+     "no": "1",
+     "title": "Назначение и обоснование",
+     "expects": {
+      "MCR": [
+       {
+        "element_kind": "entity_ref",
+        "kind": "intent",
+        "min": 1
+       },
+       {
+        "element_kind": "statement",
+        "min": 1,
+        "hint": "связь с целями дирекции; основание инициирования"
+       }
+      ]
+     },
+     "source": "замысел · записка (основание)"
+    },
+    {
+     "no": "2",
+     "title": "Полномочия и назначения",
+     "expects": {
+      "MCR": [
+       {
+        "element_kind": "entity_ref",
+        "kind": "account",
+        "min": 1,
+        "hint": "руководитель проекта"
+       },
+       {
+        "element_kind": "entity_ref",
+        "kind": "stakeholder",
+        "min": 1,
+        "hint": "ведущий центр · участвующие организации"
+       }
+      ]
+     },
+     "source": "учётки · стейкхолдеры ролей поставщик/партнёр"
+    },
+    {
+     "no": "3",
+     "title": "Рамки и исходные требования",
+     "expects": {
+      "MCR": [
+       {
+        "element_kind": "query",
+        "kind": "constraint",
+        "min": 1
+       },
+       {
+        "element_kind": "statement",
+        "min": 1,
+        "hint": "границы санкционируемых работ; категория проекта; интерфейсы с программой"
+       }
+      ]
+     },
+     "source": "ограничения Р · класс миссии"
+    },
+    {
+     "no": "4",
+     "title": "Финансирование",
+     "expects": {
+      "MCR": [
+       {
+        "element_kind": "query",
+        "kind": "cost_estimate",
+        "min": 1,
+        "hint": "ресурсы Формулирования по годам · источник"
+       }
+      ]
+     },
+     "source": "оценка ROM · план"
+    },
+    {
+     "no": "5",
+     "title": "Сроки и контрольные события",
+     "expects": {
+      "MCR": [
+       {
+        "element_kind": "query",
+        "kind": "gate",
+        "min": 3,
+        "hint": "горизонт Формулирования; жизнециклические обзоры; независимые проверки"
+       }
+      ]
+     },
+     "source": "точки фазы · план"
+    },
+    {
+     "no": "6",
+     "title": "Согласование и утверждение",
+     "expects": {
+      "KDP-A": [
+       {
+        "element_kind": "query",
+        "kind": "decision",
+        "min": 1,
+        "hint": "подписи MDAA; согласующие; дата; версия"
+       }
+      ]
+     },
+     "source": "решения точек · выпуск"
+    }
+   ],
+   "rules": [
+    "FAD — документ санкционирования: держит KDP-A вместе с FA (Д1/Д9 в матрице зрелости: к KDP-A — Baseline)",
+    "подписи — из решений и выпуска, не рукой"
+   ]
+  },
+  {
+   "kind": "document_template",
+   "code": "DT-9102",
+   "title": "Formulation Agreement (Прил. 2 БП-PPA)",
+   "nature": "mixed",
+   "scenes": [
+    14
+   ],
+   "sections": [
+    {
+     "no": "1",
+     "title": "Общие сведения",
+     "expects": {
+      "MCR": [
+       {
+        "element_kind": "entity_ref",
+        "kind": "project",
+        "min": 1
+       },
+       {
+        "element_kind": "entity_ref",
+        "kind": "document",
+        "min": 1,
+        "hint": "ссылка на FAD"
+       },
+       {
+        "element_kind": "statement",
+        "min": 1,
+        "hint": "период действия; стороны"
+       }
+      ]
+     },
+     "source": "проект · FAD · стейкхолдеры"
+    },
+    {
+     "no": "2",
+     "title": "Состав работ Phase A",
+     "expects": {
+      "MCR": [
+       {
+        "element_kind": "query",
+        "kind": "scene",
+        "min": 1,
+        "filter": "phase=A",
+        "hint": "технические и закупочные работы"
+       },
+       {
+        "element_kind": "query",
+        "kind": "wbs_package",
+        "min": 1,
+        "filter": "group=04",
+        "hint": "работы по созреванию технологий"
+       },
+       {
+        "element_kind": "query",
+        "kind": "risk",
+        "min": 1,
+        "filter": "criticality>=12",
+        "hint": "работы по снятию ключевых рисков"
+       }
+      ]
+     },
+     "source": "шаблон Phase A · пакеты созревания · риски"
+    },
+    {
+     "no": "3",
+     "title": "Состав работ Phase B (предварительно)",
+     "expects": {
+      "KDP-A": [
+       {
+        "element_kind": "statement",
+        "min": 1,
+        "hint": "укрупнённый перечень; допущения"
+       }
+      ]
+     },
+     "source": "тезисы · допущения"
+    },
+    {
+     "no": "4",
+     "title": "График и вехи",
+     "expects": {
+      "MCR": [
+       {
+        "element_kind": "query",
+        "kind": "plan",
+        "min": 1,
+        "hint": "календарный план Phase A–B; SRR, SDR/MDR, PDR"
+       },
+       {
+        "element_kind": "table",
+        "kind": "maturity_matrix",
+        "min": 1,
+        "hint": "продукты и зрелости к точкам"
+       },
+       {
+        "element_kind": "query",
+        "kind": "cost_estimate",
+        "min": 1,
+        "hint": "диапазоны стоимости и сроков к KDP B"
+       }
+      ]
+     },
+     "source": "план Phase A (SRR/SDR/KDP-B) · матрица зрелости · ROM"
+    },
+    {
+     "no": "5",
+     "title": "Ресурсы",
+     "expects": {
+      "KDP-A": [
+       {
+        "element_kind": "query",
+        "kind": "cost_estimate",
+        "min": 1,
+        "hint": "финансирование Phase A–B по годам"
+       },
+       {
+        "element_kind": "statement",
+        "min": 1,
+        "hint": "трудовые ресурсы; инфраструктура"
+       }
+      ]
+     },
+     "source": "оценки · тезисы"
+    },
+    {
+     "no": "6",
+     "title": "Отклонения (tailoring)",
+     "expects": {
+      "KDP-A": [
+       {
+        "element_kind": "query",
+        "kind": "tailoring",
+        "min": 0,
+        "hint": "согласованные отклонения от зрелостей с обоснованием каждого"
+       }
+      ]
+     },
+     "source": "записи tailoring (неприменимо · лестница · шаблоны)"
+    },
+    {
+     "no": "7",
+     "title": "Ведущие индикаторы",
+     "expects": {
+      "KDP-A": [
+       {
+        "element_kind": "query",
+        "kind": "metric",
+        "min": 1,
+        "hint": "программные и технические индикаторы; порядок представления на обзорах"
+       }
+      ]
+     },
+     "source": "TPM · метрики · готовность"
+    },
+    {
+     "no": "8",
+     "title": "Согласование и утверждение",
+     "expects": {
+      "KDP-A": [
+       {
+        "element_kind": "query",
+        "kind": "decision",
+        "min": 1,
+        "hint": "DA · MDAA · руководитель; дата; версия"
+       }
+      ]
+     },
+     "source": "решения · выпуск"
+    }
+   ],
+   "rules": [
+    "FA несёт план Phase A: даты SRR · SDR/MDR · KDP-B — из плана проекта, не из текста",
+    "§6 — tailoring из записей системы (неприменимо у критериев, отклонения лестницы, шаблонов), не рукописный список",
+    "обновляется к KDP-B новой версией"
+   ]
+  }
+ ]
+}

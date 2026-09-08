@@ -637,6 +637,30 @@ export interface FactRow {
   material: string
   topic?: string | null
   disposition?: string
+  /** Ключ анкеты узла — факт-параметр из даташита. */
+  param_key?: string | null
+  /** Факты с тем же утверждением и иным значением: показаны оба. */
+  conflicts?: string[]
+  /** Допущение: владелец · точка подтверждения · способ проверки · цена ошибки. */
+  assumption?: { owner: string; confirm_by: string; validation: string; impact_if_wrong: string } | null
+  /** Источник получил новую версию, и блок факта изменился. */
+  source_updated?: string | null
+  manual?: boolean
+}
+
+/** Оценка ТЗ против нужд проекта: строка на требование ТЗ. */
+export interface TorAssessment {
+  lines: { fact: string; requirement: string; needs: string[]; verdict: string }[]
+  uncovered_needs: string[]
+  orphan_requirements: string[]
+}
+
+export interface MaterialRow {
+  code: string
+  name: string
+  kind: string
+  chars: number
+  supersedes: string | null
 }
 
 /** Предложение сцены из поля знаний: что появится, если принять. */
@@ -683,12 +707,22 @@ export const api = {
 
   /** Темы поля знаний: предмет фактов до разрешения в сущность. */
   topics: (project: string) =>
-    вызов<{ items: { id: string; label: string; scene: string | null; facts: number }[] }>(
+    вызов<{ items: { id: string; label: string; scene: string | null; facts: number; resolved_to?: string | null }[] }>(
       `/topics?project=${encodeURIComponent(project)}`),
 
-  disposeFact: (project: string, fact: string, disposition: string, reason: string, author: string) =>
+  disposeFact: (project: string, fact: string, disposition: string, reason: string, author: string,
+    assumption?: { owner: string; confirm_by: string; validation: string; impact_if_wrong: string }) =>
     вызов<FactRow>(`/facts/${fact}/disposition?project=${encodeURIComponent(project)}`,
-      { method: 'POST', body: JSON.stringify({ disposition, reason, author }) }),
+      { method: 'POST', body: JSON.stringify({ disposition, reason, author, assumption }) }),
+
+  /** Тема разрешается в сущность проекта: к точке принятые факты обязаны найти адрес. */
+  resolveTopic: (project: string, topic: string, entity: string, author: string) =>
+    вызов<{ id: string; label: string; resolved_to: string | null; facts: number }>(
+      `/topics/${encodeURIComponent(topic)}/resolve?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ entity, author }) }),
+
+  materials: (project: string) =>
+    вызов<{ items: MaterialRow[] }>(`/materials?project=${encodeURIComponent(project)}`),
 
   /** Предложения сцены: она начинается не с пустой формы. */
   suggestions: (project: string, scene: string) =>
@@ -714,7 +748,7 @@ export const api = {
   taskPlan: (project: string, task: string) =>
     вызов<{ task: string; note: string; actions: {
       index: number; target_kind: string; scene: string; title: string; preview: string; facts: string[]
-    }[] }>(`/intake/${encodeURIComponent(task)}?project=${encodeURIComponent(project)}`),
+    }[]; assessment?: TorAssessment }>(`/intake/${encodeURIComponent(task)}?project=${encodeURIComponent(project)}`),
 
   addTopic: (project: string, label: string, author: string) =>
     вызов<{ id: string; label: string; facts: number }>(`/topics?project=${encodeURIComponent(project)}`,

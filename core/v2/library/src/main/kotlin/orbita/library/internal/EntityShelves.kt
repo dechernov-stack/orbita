@@ -61,13 +61,45 @@ class EntityShelves(
      * регистр, пробелы, точки и скобочные уточнения; цифры, номера и даты
      * остаются — на них акт и держится.
      */
-    private fun имяАкта(значение: String): String =
-        значение.replace(Regex("\\([^)]*\\)"), "").lowercase().replace(Regex("[\\s.,]+"), "")
+    /**
+     * Имя акта для сравнения: РОД акта + НОМЕР. «ПП РФ от 22.12.2020 № 2216»,
+     * «ПП РФ № 2216» и «Постановление Правительства РФ от 22.12.2020 № 2216»
+     * — один акт (поймано живым прогоном: разбор норматива дважды завёл
+     * вторую карточку рядом с первой). Дата и полное/краткое имя органа
+     * в ключ не входят; у акта без номера ключ — всё обозначение целиком.
+     */
+    private fun имяАкта(значение: String): String {
+        val безСкобок = значение.replace(Regex("\\([^)]*\\)"), "").trim()
+        val номер = Regex("[№N]\\s*([0-9][0-9A-Za-zА-Яа-я./-]*)").find(безСкобок)?.groupValues?.get(1)?.lowercase()
+        if (номер == null) return безСкобок.lowercase().replace(Regex("[\\s.,]+"), "")
+        val текст = безСкобок.lowercase()
+        val род = when {
+            Regex("постановлени|\\bпп\\b|пп рф|правительств").containsMatchIn(текст) -> "пп"
+            Regex("приказ").containsMatchIn(текст) -> "приказ"
+            Regex("федеральн\\w* закон|\\bфз\\b|-фз").containsMatchIn(текст) -> "фз"
+            Regex("\\bгост\\b").containsMatchIn(текст) -> "гост"
+            Regex("\\bпнст\\b").containsMatchIn(текст) -> "пнст"
+            Regex("тр тс|техническ\\w* регламент").containsMatchIn(текст) -> "тртс"
+            Regex("распоряжени").containsMatchIn(текст) -> "распоряжение"
+            // Род не назван («№ 2216» из текста самого акта): ключ по номеру с
+            // пометой «?», и поиск по нему — по номеру среди любых родов.
+            else -> "?"
+        }
+        return "$род№$номер"
+    }
 
     private fun поКлючу(kind: String, doc: JsonNode): orbita.kernel.api.Entity? {
         val поле = естественныйКлюч[kind] ?: return null
         val имя = doc.path(поле).asText("").let(::имяАкта).takeIf { it.isNotBlank() } ?: return null
-        return store.list(Area.Library, kind).firstOrNull { имяАкта(it.doc.path(поле).asText()) == имя }
+        val карточки = store.list(Area.Library, kind)
+        карточки.firstOrNull { имяАкта(it.doc.path(поле).asText()) == имя }?.let { return it }
+        // Обозначение только номером: акт с тем же номером любого рода —
+        // лучше одна карточка, чем двойник; род уточнит следующая поставка.
+        if (имя.startsWith("?№")) {
+            val номер = имя.removePrefix("?")
+            return карточки.firstOrNull { имяАкта(it.doc.path(поле).asText()).endsWith(номер) }
+        }
+        return null
     }
 
     /**

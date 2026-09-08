@@ -146,6 +146,51 @@ class DomainGateEvaluator(
                 else "нет ни одной записи «${имяВида(вид)}»"
             }
 
+            // Поле знаний к точке (шип E п. 5, правила поля знаний YAML):
+            // допущение без подтверждения к точке — разрыв; тема с принятыми
+            // фактами обязана разрешиться в сущность; противоречие с участием
+            // принятого факта — блокирующий разрыв.
+            "assumptions_confirmed" -> {
+                val точка = аргумент ?: return "условие «$check» не назвало точку"
+                val открытые = store.list(область, "fact").filter {
+                    it.doc.path("disposition").asText("") == "assumed" &&
+                        it.doc.path("assumption").path("confirm_by").asText("") == точка
+                }
+                if (открытые.isEmpty()) null
+                else "допущений без подтверждения к $точка: ${открытые.size} — " + открытые.take(3).joinToString("; ") {
+                    "${it.code} «${it.doc.path("predicate").asText().take(50)}» (владелец ${it.doc.path("assumption").path("owner").asText("—")})"
+                }
+            }
+
+            "topics_resolved" -> {
+                val факты = store.list(область, "fact")
+                val сПринятыми = факты.filter { it.doc.path("disposition").asText("") == "adopted" }
+                    .map { it.doc.path("topic").asText("") }.filter { it.isNotBlank() }.toSet()
+                val неразрешённые = store.list(область, "topic").filter {
+                    it.code in сПринятыми && it.doc.path("resolved_to").asText("").isBlank()
+                }
+                if (неразрешённые.isEmpty()) null
+                else "тем с принятыми фактами без сущности: ${неразрешённые.size} — " +
+                    неразрешённые.take(3).joinToString("; ") { "${it.code} «${it.doc.path("label").asText().take(50)}»" }
+            }
+
+            "facts_consistent" -> {
+                val факты = store.list(область, "fact").associateBy { it.code }
+                val споры = факты.values.filter { ф ->
+                    ф.doc.path("disposition").asText("") == "adopted" &&
+                        ф.doc.path("conflicts").any { к ->
+                            val другой = факты[к.asText()] ?: return@any false
+                            другой.doc.path("disposition").asText("") !in setOf("rejected", "superseded") &&
+                                !другой.doc.path("superseded").asBoolean(false)
+                        }
+                }
+                if (споры.isEmpty()) null
+                else "принятых фактов с неразрешённым противоречием: ${споры.size} — " + споры.take(3).joinToString("; ") { ф ->
+                    "${ф.code} «${ф.doc.path("predicate").asText().take(40)} = ${ф.doc.path("value").asText()}» против " +
+                        ф.doc.path("conflicts").joinToString(", ") { it.asText() } + " — решите диспозицией"
+                }
+            }
+
             "scene_done" -> {
                 val ключ = аргумент ?: return "условие «$check» не назвало сцену"
                 if (ключ in сценыПройдены(project)) null else "сцена $ключ ещё не прожита"

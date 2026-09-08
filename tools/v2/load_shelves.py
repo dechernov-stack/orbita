@@ -35,6 +35,8 @@ import urllib.request
     ("полки-порождённые/ПОЛКА-МОДЕЛИ-СИСТЕМЫ.json", "model_template"),
     ("полки-порождённые/ШАБЛОН-MCREPORT.json", "document_template"),
     ("полки-порождённые/ШАБЛОН-CONOPS.json", "document_template"),
+    ("полки-порождённые/ШАБЛОН-FAD.json", "document_template"),
+    ("полки-порождённые/ШАБЛОН-FA.json", "document_template"),
 ]
 
 # файл поставки → вид полки; порядок = порядок загрузки (ссылки идут вниз)

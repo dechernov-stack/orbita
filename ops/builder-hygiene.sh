@@ -34,6 +34,9 @@ BUILDER_STATE_HARD_GB="${BUILDER_STATE_HARD_GB:-6}"
 # выкатом, а следующая сборка тянула базовые слои по медленному каналу
 # (наблюдение: два подряд выката по 25+ минут вместо трёх).
 DISK_FREE_MIN_GB="${DISK_FREE_MIN_GB:-5}"
+# Диск хоста: ниже HARD выкат отказывает, ниже WARN — предупреждает (08.09 Docker упал на нуле).
+HOST_FREE_HARD_GB="${HOST_FREE_HARD_GB:-4}"
+HOST_FREE_WARN_GB="${HOST_FREE_WARN_GB:-12}"
 
 ensure_network() {
   docker network inspect "$NETWORK" > /dev/null 2>&1 \
@@ -85,9 +88,22 @@ registry_reachable() {
 }
 
 builder_hygiene() {
-  # Сборщику хоста гигиена не нужна: у него нет своего тома состояния.
+  # Сборщик хоста: тома состояния нет, но его кэш живёт в ВМ Docker, а ВМ —
+  # разреженный файл на диске Mac. 08.09 три выката подряд (15 → 0,9 ГБ в
+  # ВМ) добили диск хоста, и Docker Desktop упал «no space left on device»
+  # вместе со стендом. Поэтому: свободного места на ХОСТЕ должно хватать
+  # до сборки, а кэш сборщика хоста подрезается после каждого выката.
   if [ "$BUILDER" = "default" ]; then
-    echo "==> Сборка хранилищем хоста (BUILDER=default): базовые образы берутся локальные"
+    local host_free
+    host_free="$(df -g / | awk 'NR==2 {print $4}')"
+    if [ "${host_free:-0}" -lt "$HOST_FREE_HARD_GB" ]; then
+      echo "!!! на диске хоста свободно ${host_free} ГБ (< ${HOST_FREE_HARD_GB}) — сборка уронит Docker Desktop; освободите место" >&2
+      return 1
+    fi
+    if [ "${host_free:-0}" -lt "$HOST_FREE_WARN_GB" ]; then
+      echo "!!! на диске хоста свободно ${host_free} ГБ (< ${HOST_FREE_WARN_GB}): Docker Desktop живёт на этом диске — впритык"
+    fi
+    echo "==> Сборка хранилищем хоста (BUILDER=default): базовые образы локальные, свободно на хосте ${host_free} ГБ"
     return
   fi
   ensure_network

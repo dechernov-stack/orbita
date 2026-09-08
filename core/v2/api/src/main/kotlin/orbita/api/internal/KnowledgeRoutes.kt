@@ -42,6 +42,13 @@ class KnowledgeRoutes(
         method == "POST" && path == "/v2/facts" ->
             ручнойФакт(требуется(query, "project"), разобрать(body))
 
+        method == "POST" && path.matches(Regex("/v2/topics/[A-Za-z0-9-]+/resolve")) ->
+            разрешитьТему(
+                требуется(query, "project"),
+                path.removePrefix("/v2/topics/").removeSuffix("/resolve"),
+                разобрать(body),
+            )
+
         method == "POST" && path.matches(Regex("/v2/facts/[A-ZА-Я0-9-]+/disposition")) ->
             диспозиция(
                 требуется(query, "project"),
@@ -148,23 +155,31 @@ class KnowledgeRoutes(
     private fun темы(project: String): V2Router.Ответ {
         val узел = mapper.createObjectNode()
         val массив = узел.putArray("items")
-        intake.topics(project).forEach { т ->
-            массив.addObject()
-                .put("id", т.id).put("label", т.label)
-                .put("scene", т.scene).put("resolved_to", т.resolvedTo)
-                .put("facts", т.facts)
-        }
+        intake.topics(project).forEach { массив.add(KindJson.тема(mapper, it)) }
         return V2Router.Ответ(200, узел)
     }
 
     private fun диспозиция(project: String, fact: String, тело: ObjectNode): V2Router.Ответ {
         val решение = Disposition.valueOf(тело.path("disposition").asText("noted").uppercase())
+        val допущение = тело.path("assumption").takeIf { it.isObject }?.let {
+            orbita.knowledge.api.Assumption(
+                it.path("owner").asText(""), it.path("confirm_by").asText(""),
+                it.path("validation").asText(""), it.path("impact_if_wrong").asText(""),
+            )
+        }
         val факт = intake.dispose(
             project, fact, решение,
             reason = тело.path("reason").asText(""),
             author = тело.path("author").asText("инженер"),
+            assumption = допущение,
         )
         return V2Router.Ответ(200, фактВид(факт))
+    }
+
+    /** Тема разрешается в сущность: к точке принятые факты обязаны найти адрес. */
+    private fun разрешитьТему(project: String, topic: String, тело: ObjectNode): V2Router.Ответ {
+        val тема = intake.resolveTopic(project, topic, тело.path("entity").asText(""), тело.path("author").asText("инженер"))
+        return V2Router.Ответ(200, KindJson.тема(mapper, тема))
     }
 
     private fun план(project: String, task: String): V2Router.Ответ {
@@ -185,6 +200,17 @@ class KnowledgeRoutes(
             у.putArray("facts").also { а -> д.factIds.forEach { ф -> а.add(ф) } }
             val содержимое = у.putObject("payload")
             д.payload.forEach { (к, в) -> содержимое.put(к, в) }
+        }
+        // Оценка ТЗ против нужд — матрицей (шип E п. 1); есть только у ТЗ.
+        задание.assessment?.let { о ->
+            val оценка = узел.putObject("assessment")
+            val строки = оценка.putArray("lines")
+            о.lines.forEach { л ->
+                val с = строки.addObject().put("fact", л.fact).put("requirement", л.requirement).put("verdict", л.verdict)
+                с.putArray("needs").also { а -> л.needs.forEach { а.add(it) } }
+            }
+            оценка.putArray("uncovered_needs").also { а -> о.uncoveredNeeds.forEach { а.add(it) } }
+            оценка.putArray("orphan_requirements").also { а -> о.orphanRequirements.forEach { а.add(it) } }
         }
         return V2Router.Ответ(200, узел)
     }

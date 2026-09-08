@@ -14,6 +14,7 @@ import orbita.kernel.api.Channel
 import orbita.kernel.api.EntityStore
 import orbita.kernel.api.LinkRegistry
 import orbita.kernel.api.Provenance
+import orbita.knowledge.api.Assumption
 import orbita.knowledge.api.Fact
 import orbita.knowledge.api.Intake
 import orbita.knowledge.api.IntakeTask
@@ -53,14 +54,21 @@ class EntityIntake(
         "просто в контекст" to "без действий: блоки в промпт, фактов не создаём",
     )
 
+    private val режимы = IntakeModes(store, links, mapper)
+
     override fun putMaterial(
         project: String,
         name: String,
         kind: String,
         text: String,
         author: String,
+        supersedes: String?,
     ): String {
         val область = Area.Project(project)
+        val прежний = supersedes?.takeIf { it.isNotBlank() }?.let { код ->
+            store.byCode(область, код)?.takeIf { it.kind == "material" }
+                ?: throw IllegalArgumentException("прежней версии «$код» среди материалов проекта нет")
+        }
         val занято = store.list(область, "material").mapNotNull {
             Regex("^SD-(\\d+)$").find(it.code)?.groupValues?.get(1)?.toIntOrNull()
         }
@@ -68,12 +76,18 @@ class EntityIntake(
         val документ = mapper.createObjectNode()
         документ.put("name", name)
         документ.put("kind", kind)
+        // Истина схем зовёт тип материала `type`; плоское `kind` остаётся до DTO из YAML.
+        документ.put("type", kind)
         документ.put("text", text)
         документ.put("chars", text.length)
+        прежний?.let { документ.put("supersedes", it.code) }
         val материал = store.create(
             код, "material", область, "2", документ,
             Provenance(Channel.MANUAL, author, source = name),
         )
+        // Новая версия входного: факты прежней в изменённых блоках получают
+        // «источник обновлён», диспозиции не трогаются (правило поля знаний).
+        прежний?.let { режимы.supersede(область, it, материал, author) }
         return материал.code
     }
 
@@ -224,15 +238,80 @@ class EntityIntake(
                         ?: store.list(Area.Library, вид).firstOrNull { н ->
                             н.doc.path("designation").asText() == содержимое.path("designation").asText()
                         }
+                // Риск и замечание узнаются по формулировке: повторный приём того
+                // же плана обновляет запись, а не плодит RI-0003 рядом с RI-0001
+                // (поймано повторным прогоном E1).
+                вид == "risk" -> store.list(область, вид).firstOrNull { р ->
+                    р.doc.path("statement").asText() == содержимое.path("statement").asText()
+                }
+                вид == "finding" -> store.list(область, вид).firstOrNull { з ->
+                    з.doc.path("text").asText() == содержимое.path("text").asText()
+                }
                 else -> null
+            }
+            // Адресные виды (шип E): параметр узла и запрос данных ссылаются на
+            // узел кодом — здесь код становится идентификатором; замечание
+            // (RFA заказчику) рождается в сцене обзора.
+            var кодЗаписи: String? = null
+            var статусЗаписи = if (вид == "intent") "accepted" else "draft"
+            when (вид) {
+                "parameter", "data_request" -> {
+                    val узел = store.byCode(область, содержимое.path("target").asText(""))
+                        ?: run {
+                            заметки += "${действие.path("title").asText()}: узла «${содержимое.path("target").asText()}» в проекте нет — примите сначала узел"
+                            return@forEachIndexed
+                        }
+                    содержимое.put("target", узел.id)
+                    if (вид == "parameter") {
+                        val ключ = содержимое.path("key").asText("")
+                        кодЗаписи = "${узел.code}.$ключ"
+                        val величина = содержимое.putObject("measure")
+                        содержимое.path("value").asText("").replace(",", ".").toDoubleOrNull()?.let { величина.put("value", it) }
+                            ?: величина.put("value", содержимое.path("value").asText(""))
+                        величина.put("unit", содержимое.path("unit").asText(""))
+                        содержимое.putObject("source")
+                            .put("material", содержимое.path("material").asText(""))
+                            .put("anchor", содержимое.path("anchor").asText(""))
+                        содержимое.remove(listOf("value", "unit", "anchor"))
+                    } else {
+                        кодЗаписи = "DR-" + узел.code
+                    }
+                }
+                "finding" -> статусЗаписи = "open"
+                "component" -> {
+                    содержимое.path("code").asText("").takeIf { it.isNotBlank() }?.let { кодЗаписи = it }
+                    содержимое.remove("code")
+                }
+            }
+            // Карточка полки ДОПОЛНЯЕТСЯ, а не переписывается: разбор текста акта
+            // не знает даты и редакции, и «ПП РФ от 22.12.2020 № 2216» терял дату,
+            // становясь «ПП РФ № 2216» (поймано прогоном E1). Пустое новое поле
+            // не стирает заполненное старое; обозначение — то, что полнее.
+            if (прежний != null && вид == "normative_document") {
+                val старое = прежний.doc
+                старое.properties().forEach { (поле, значение) ->
+                    val новое = содержимое.path(поле)
+                    val пусто = новое.isMissingNode || новое.isNull || (новое.isTextual && новое.asText().isBlank()) ||
+                        (новое.isArray && новое.isEmpty)
+                    if (пусто) содержимое.set<JsonNode>(поле, значение.deepCopy())
+                }
+                val прежнееОбозначение = старое.path("designation").asText("")
+                if (прежнееОбозначение.length > содержимое.path("designation").asText("").length) {
+                    содержимое.put("designation", прежнееОбозначение)
+                }
             }
             val сущность = if (прежний != null) {
                 store.update(прежний.id, содержимое, Provenance(
                     Channel.SERVICE, author, source = задание.doc.path("material").asText(), anchor = якорь,
-                ), status = "accepted")
+                ), status = if (вид in setOf("risk", "finding")) null else "accepted")
+            } else if (кодЗаписи != null && store.byCode(куда, кодЗаписи!!) != null) {
+                val существующая = store.byCode(куда, кодЗаписи!!)!!
+                store.update(существующая.id, содержимое, Provenance(
+                    Channel.SERVICE, author, source = задание.doc.path("material").asText(), anchor = якорь,
+                ))
             } else {
                 store.create(
-                    следующий(куда, вид, префикс(вид)), вид, куда,
+                    кодЗаписи ?: следующий(куда, вид, префикс(вид)), вид, куда,
                     // Сцена рождения — только у проектных сущностей: у полки
                     // сцены нет, и «polka» сценой не является.
                     действие.path("scene").asText("").takeIf { it.matches(Regex("[0-9]+")) },
@@ -241,7 +320,7 @@ class EntityIntake(
                         Channel.SERVICE, author,
                         source = задание.doc.path("material").asText(), anchor = якорь,
                     ),
-                    status = if (вид == "intent") "accepted" else "draft",
+                    status = статусЗаписи,
                 )
             }
             // Названный сосед — связью. Не нашёлся — система говорит об
@@ -345,13 +424,14 @@ class EntityIntake(
                 factIds = д.path("facts").map { it.asText() },
                 targetKind = д.path("target_kind").asText(""),
                 scene = д.path("scene").asText(""),
-                payload = д.path("payload").properties().associate { (к, в) -> к to в.asText() },
+                payload = д.path("payload").properties().associate { (к, в) -> к to (if (в.isValueNode) в.asText() else в.toString()) },
             )
         }
         return IntakeTask(
             задание.code, материал, задание.doc.path("intent").asText(""),
             facts(project).filter { it.material == материал },
             действия, задание.doc.path("note").asText(""),
+            assessment = режимы.assessmentView(задание.doc.path("assessment")),
         )
     }
 
@@ -461,7 +541,10 @@ class EntityIntake(
      * не существует, величина без единицы — не факт. Отклонённое называется
      * поимённо: разбор чинится, а не подчищается молча.
      */
-    override fun putFacts(project: String, material: String, raw: String, author: String): FactIntake {
+    override fun questionnaireKeys(project: String, intent: String): List<Pair<String, String>> =
+        режимы.анкетаДляПромпта(Area.Project(project), intent)
+
+    override fun putFacts(project: String, material: String, raw: String, author: String, intent: String): FactIntake {
         val область = Area.Project(project)
         val карточка = store.byCode(область, material)
             ?: error("материала «$material» нет в проекте")
@@ -520,6 +603,10 @@ class EntityIntake(
                     документ.put("material", material)
                     документ.put("mark", ф.path("source_mark").asText("И"))
                     поСхеме(документ)
+                    // Даташит: ключ анкеты узла; норматив: порог нормы полем; конфликт с рамкой — кодом.
+                    ф.path("param_key").asText("").takeIf { it.isNotBlank() }?.let { документ.put("param_key", it) }
+                    if (ф.path("limit").isObject) документ.set<JsonNode>("limit", ф.path("limit").deepCopy())
+                    ф.path("conflict").asText("").takeIf { it.isNotBlank() }?.let { документ.put("conflict_constraint", it) }
                     документ.put("confidence", ф.path("confidence").asDouble(0.5))
                     документ.put("disposition", "free")
                     if (метка.isNotBlank()) документ.put("topic", темы[метка] ?: темаКод(область, метка))
@@ -549,15 +636,24 @@ class EntityIntake(
             узел.set<com.fasterxml.jackson.databind.node.ObjectNode>("payload", д.path("payload").deepCopy())
             узел.putArray("facts").also { а -> коды.forEach { к -> а.add(к) } }
         }
-        if (!действия.isEmpty) {
+        // Конфликт фактов — показать оба, не выбирать: ссылки ставятся по данным.
+        режимы.markConflicts(область, author)
+        // Режим по типу входного: оценка ТЗ против нужд, параметры даташита в
+        // анкету, сверка с рамками, запрос поставщику — считаются по данным.
+        val оценка = режимы.assessment(корень, поНомеру, область)
+        val фактыСНомерами = поНомеру.mapNotNull { (н, код) -> store.byCode(область, код)?.let { н to it } }
+        режимы.typeActions(область, карточка, intent, фактыСНомерами, оценка, действия)
+        if (!действия.isEmpty || оценка != null) {
             val планЗадание = mapper.createObjectNode()
             планЗадание.put("material", material)
             планЗадание.put("intent", "разбери по сущностям")
             планЗадание.put("facts", принятые.size)
             планЗадание.set<com.fasterxml.jackson.databind.node.ObjectNode>("actions", действия)
-            планЗадание.put("note", "план собран разбором: действий ${действия.size()}")
+            оценка?.let { планЗадание.set<JsonNode>("assessment", it) }
+            планЗадание.put("note", "план собран разбором: действий ${действия.size()}" +
+                (оценка?.let { "; оценка ТЗ: непокрытых нужд ${it.path("uncovered_needs").size()}, требований без нужды ${it.path("orphan_requirements").size()}" } ?: ""))
             val прежний = store.list(область, "intake_task").firstOrNull {
-                it.doc.path("material").asText() == material && it.doc.path("actions").size() > 0
+                it.doc.path("material").asText() == material && (it.doc.path("actions").size() > 0 || it.doc.path("assessment").isObject)
             }
             if (прежний == null) {
                 store.create(
@@ -573,9 +669,10 @@ class EntityIntake(
             "принято фактов ${принятые.size}, тем ${темы.size}" +
             (if (отказы.isEmpty()) "" else ", отклонено ${отказы.size} (правила честности §6.1)") +
             (if (повторов == 0) "" else ", уже было $повторов") +
-            (if (действия.isEmpty) "" else ", действий плана ${действия.size()}")
-        val задание = if (действия.isEmpty) null else store.list(область, "intake_task")
-            .firstOrNull { it.doc.path("material").asText() == material && it.doc.path("actions").size() > 0 }
+            (if (действия.isEmpty) "" else ", действий плана ${действия.size()}") +
+            (оценка?.let { "; ТЗ оценено против нужд" } ?: "")
+        val задание = if (действия.isEmpty && оценка == null) null else store.list(область, "intake_task")
+            .firstOrNull { it.doc.path("material").asText() == material && (it.doc.path("actions").size() > 0 || it.doc.path("assessment").isObject) }
             ?.code
         return FactIntake(принятые, отказы, topics(project), примечание, задание)
     }
@@ -628,6 +725,7 @@ class EntityIntake(
         disposition: Disposition,
         reason: String,
         author: String,
+        assumption: Assumption?,
     ): Fact {
         val область = Area.Project(project)
         val сущность = store.byCode(область, fact) ?: error("факта «$fact» нет в проекте")
@@ -636,12 +734,42 @@ class EntityIntake(
             поводЗачем(прежняя, disposition)
         }
         val документ = сущность.doc.deepCopy<JsonNode>() as com.fasterxml.jackson.databind.node.ObjectNode
+        // Допущение без владельца, точки и способа проверки — не допущение,
+        // а надежда (истина схем: assumption обязателен при assumed).
+        if (disposition == Disposition.ASSUMED) {
+            require(assumption != null && assumption.owner.isNotBlank() && assumption.confirmBy.isNotBlank() &&
+                assumption.validation.isNotBlank()) {
+                "допущение ставится с владельцем, точкой подтверждения и способом проверки — иначе к точке его никто не подтвердит"
+            }
+            документ.putObject("assumption")
+                .put("owner", assumption.owner).put("confirm_by", assumption.confirmBy)
+                .put("validation", assumption.validation).put("impact_if_wrong", assumption.impactIfWrong)
+            документ.put("mark", "П")
+            документ.put("source_mark", "П")
+        }
+        if (прежняя == Disposition.ASSUMED && disposition == Disposition.ADOPTED) {
+            документ.put("confirmed_by", author)
+        }
         документ.put("disposition", disposition.name.lowercase())
         документ.putObject("disposition_decision")
             .put("by", author).put("at", java.time.OffsetDateTime.now().toString())
             .put("reason", reason)
         val обновлена = store.update(сущность.id, документ, Provenance(Channel.MANUAL, author))
         return факт(обновлена.code, документ)
+    }
+
+    override fun resolveTopic(project: String, topic: String, entity: String, author: String): Topic {
+        val область = Area.Project(project)
+        val тема = store.byCode(область, topic)?.takeIf { it.kind == "topic" } ?: error("темы «$topic» нет в проекте")
+        // Адрес — запись проекта либо карточка полки (норматив живёт в библиотеке).
+        val адрес = store.byCode(область, entity) ?: store.byCode(Area.Library, entity)
+            ?: throw IllegalArgumentException("сущности «$entity» нет ни в проекте, ни на полке: тема разрешается в существующую запись")
+        store.update(
+            тема.id,
+            (тема.doc.deepCopy() as ObjectNode).put("resolved_to", адрес.code).put("resolved_kind", адрес.kind),
+            Provenance(Channel.MANUAL, author), status = "resolved",
+        )
+        return topics(project).first { it.id == тема.code }
     }
 
     override fun topics(project: String): List<Topic> {
@@ -674,6 +802,15 @@ class EntityIntake(
         }.getOrDefault(Disposition.FREE),
         topic = документ.path("topic").asText("").ifBlank { null },
         manual = документ.path("manual").asBoolean(false),
+        paramKey = документ.path("param_key").asText("").ifBlank { null },
+        conflicts = документ.path("conflicts").map { it.asText() },
+        assumption = документ.path("assumption").takeIf { it.isObject }?.let {
+            Assumption(
+                it.path("owner").asText(""), it.path("confirm_by").asText(""),
+                it.path("validation").asText(""), it.path("impact_if_wrong").asText(""),
+            )
+        },
+        sourceUpdated = документ.path("source_note").asText("").ifBlank { null },
     )
 
     // Один построитель на оба пути: две копии однажды разошлись бы на поле.

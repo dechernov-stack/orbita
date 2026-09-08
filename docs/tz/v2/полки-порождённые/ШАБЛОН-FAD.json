@@ -1,0 +1,300 @@
+{
+  "kind": "document_template",
+  "code": "fad",
+  "delivery_code": "DT-9101",
+  "title": "FAD — Formulation Authorization Document (Прил. 1 БП-PPA)",
+  "standard": "БП-PPA, приложение 1 (FAD)",
+  "note": "Порождён из поставки ШАБЛОНЫ-FAD-FA.json генератором tools/v2/gen_document_templates.py; правки — в поставку или в таблицу сопоставления, не сюда.",
+  "rules": [
+    "FAD — документ санкционирования: держит KDP-A вместе с FA (Д1/Д9 в матрице зрелости: к KDP-A — Baseline)",
+    "подписи — из решений и выпуска, не рукой"
+  ],
+  "style": {
+    "tone": "деловая инженерная проза без маркетинга",
+    "traceability": "каждое утверждение опирается на элемент раздела",
+    "numbers": "число в тексте обязано быть в данных названных опор"
+  },
+  "review": {
+    "qualifiers": [
+      "не менее",
+      "не более",
+      "не допускается",
+      "не должен",
+      "не должна",
+      "не может",
+      "не разрешается",
+      "не",
+      "без",
+      "только",
+      "кроме",
+      "запрещается",
+      "запрещено",
+      "обязан",
+      "обязана",
+      "обязательно"
+    ],
+    "number_exceptions": [
+      "даты вида ГГГГ-ММ-ДД",
+      "номера разделов после §",
+      "числа внутри кодов сущностей"
+    ]
+  },
+  "labels": {
+    "_note": "служебные значения по-русски: печать обязана быть человеческим текстом, а не перечнем ключей модели",
+    "functional": "функциональное",
+    "performance": "показатель",
+    "interface": "стыковое",
+    "operational": "операционное",
+    "constraint": "ограничение",
+    "safety": "безопасность",
+    "reliability": "надёжность",
+    "environmental": "средовое",
+    "node": "узел",
+    "behaviour": "поведение",
+    "data": "данные",
+    "human": "человек",
+    "customer": "заказчик",
+    "operator": "оператор",
+    "regulator": "регулятор",
+    "supplier": "поставщик",
+    "partner": "партнёр",
+    "consumer": "потребитель",
+    "established": "учреждаемая сторона",
+    "mitigate": "снижать",
+    "accept": "принять",
+    "avoid": "избегать",
+    "transfer": "передать",
+    "ROM": "порядок величины",
+    "PARAMETRIC": "параметрическая",
+    "BOTTOM_UP": "снизу вверх",
+    "draft": "черновик",
+    "accepted": "принято",
+    "baselined": "базировано"
+  },
+  "sections": [
+    {
+      "no": "§1",
+      "title": "Назначение и обоснование",
+      "scenes": [
+        "2"
+      ],
+      "elements": [
+        {
+          "code": "1.1",
+          "kind": "query",
+          "title": "Замысел миссии",
+          "select": "intent",
+          "min_rows": 1,
+          "columns": [
+            {
+              "title": "Для кого",
+              "field": "for_whom"
+            },
+            {
+              "title": "Что делает",
+              "field": "what"
+            },
+            {
+              "title": "Где",
+              "field": "where"
+            },
+            {
+              "title": "Горизонт",
+              "field": "horizon"
+            }
+          ]
+        }
+      ],
+      "expects": "MCR",
+      "source": "замысел · записка (основание)",
+      "min_statements": 1,
+      "statement_hint": "связь с целями дирекции; основание инициирования"
+    },
+    {
+      "no": "§2",
+      "title": "Полномочия и назначения",
+      "scenes": [
+        "1",
+        "3"
+      ],
+      "elements": [
+        {
+          "code": "2.1",
+          "kind": "query",
+          "title": "Руководитель проекта",
+          "select": "project",
+          "min_rows": 1,
+          "columns": [
+            {
+              "title": "Проект",
+              "field": "name"
+            },
+            {
+              "title": "Руководитель",
+              "field": "lead"
+            },
+            {
+              "title": "Стандарт",
+              "field": "standard"
+            }
+          ]
+        },
+        {
+          "code": "2.2",
+          "kind": "query",
+          "title": "Ведущий центр и участвующие организации",
+          "select": "stakeholder",
+          "min_rows": 1,
+          "columns": [
+            {
+              "title": "Сторона",
+              "field": "name"
+            },
+            {
+              "title": "Роль",
+              "field": "role"
+            }
+          ]
+        }
+      ],
+      "expects": "MCR",
+      "source": "учётки · стейкхолдеры ролей поставщик/партнёр"
+    },
+    {
+      "no": "§3",
+      "title": "Рамки и исходные требования",
+      "scenes": [
+        "5"
+      ],
+      "elements": [
+        {
+          "code": "3.1",
+          "kind": "query",
+          "title": "Ограничения и исходные требования",
+          "select": "constraint",
+          "min_rows": 1,
+          "columns": [
+            {
+              "title": "Код",
+              "field": "code"
+            },
+            {
+              "title": "Ограничение",
+              "field": "text"
+            },
+            {
+              "title": "Категория",
+              "field": "category"
+            }
+          ]
+        }
+      ],
+      "expects": "MCR",
+      "source": "ограничения Р · класс миссии",
+      "min_statements": 1,
+      "statement_hint": "границы санкционируемых работ; категория проекта; интерфейсы с программой"
+    },
+    {
+      "no": "§4",
+      "title": "Финансирование",
+      "scenes": [
+        "12"
+      ],
+      "elements": [
+        {
+          "code": "4.1",
+          "kind": "query",
+          "title": "Ресурсы Формулирования",
+          "select": "cost_estimate",
+          "min_rows": 1,
+          "columns": [
+            {
+              "title": "Пакет",
+              "field": "package"
+            },
+            {
+              "title": "От",
+              "field": "min"
+            },
+            {
+              "title": "До",
+              "field": "max"
+            },
+            {
+              "title": "Ед.",
+              "field": "unit"
+            }
+          ]
+        }
+      ],
+      "expects": "MCR",
+      "source": "оценка ROM · план"
+    },
+    {
+      "no": "§5",
+      "title": "Сроки и контрольные события",
+      "scenes": [
+        "1"
+      ],
+      "elements": [
+        {
+          "code": "5.1",
+          "kind": "query",
+          "title": "Контрольные события Формулирования",
+          "select": "gate",
+          "min_rows": 3,
+          "columns": [
+            {
+              "title": "Точка",
+              "field": "title"
+            },
+            {
+              "title": "Дата",
+              "field": "planned_date"
+            },
+            {
+              "title": "Состояние",
+              "field": "status"
+            }
+          ]
+        }
+      ],
+      "expects": "MCR",
+      "source": "точки фазы · план"
+    },
+    {
+      "no": "§6",
+      "title": "Согласование и утверждение",
+      "scenes": [],
+      "elements": [
+        {
+          "code": "6.1",
+          "kind": "query",
+          "title": "Решения точек (подписи)",
+          "select": "decision",
+          "min_rows": 1,
+          "columns": [
+            {
+              "title": "Точка",
+              "field": "gate"
+            },
+            {
+              "title": "Кем",
+              "field": "by"
+            },
+            {
+              "title": "Когда",
+              "field": "at"
+            },
+            {
+              "title": "Исход",
+              "field": "outcome"
+            }
+          ]
+        }
+      ],
+      "expects": "KDP-A",
+      "source": "решения точек · выпуск"
+    }
+  ]
+}

@@ -12,7 +12,7 @@
 //   2. Загрузка во вкладке: текст, файл или ссылка + задание → разбор.
 //   3. Ручные темы и факты — полноправные; ручное видно отдельно.
 import { useCallback, useEffect, useState } from 'react'
-import { api, type FactRow } from './api'
+import { api, type TorAssessment, type FactRow } from './api'
 
 /** Диспозиции по-русски: служебное имя инженеру ничего не говорит. */
 const РЕШЕНИЕ: Record<string, string> = {
@@ -54,7 +54,7 @@ function нуженПовод(было: string, стало: string): boolean {
   return было !== 'free' && было !== стало
 }
 
-type Тема = { id: string; label: string; facts: number }
+type Тема = { id: string; label: string; facts: number; resolved_to?: string | null }
 type Покрытие = { total: number; from_facts: number; from_manual_facts: number; manual: number; share_percent: number }
 type Действие = { index: number; target_kind: string; scene: string; title: string; preview: string; facts: string[] }
 
@@ -70,9 +70,13 @@ export function KnowledgeField({ project }: { project: string | null }) {
   const [причина, setПричина] = useState('')
   const [вход, setВход] = useState(false)
   const [рукой, setРукой] = useState(false)
-  const [план, setПлан] = useState<{ task: string; note: string; actions: Действие[] } | null>(null)
+  const [план, setПлан] = useState<{ task: string; note: string; actions: Действие[]; assessment?: TorAssessment } | null>(null)
   const [выбраны, setВыбраны] = useState<number[]>([])
   const [занято, setЗанято] = useState(false)
+  // Допущение ставится с владельцем, точкой и способом проверки — иначе к
+  // точке его никто не подтвердит (истина схем: assumption при assumed).
+  const [допущение, setДопущение] = useState<{ факт: string; owner: string; confirm_by: string; validation: string; impact: string } | null>(null)
+  const [адресТемы, setАдресТемы] = useState('')
 
   const перечитать = useCallback(() => {
     if (!project) return
@@ -123,6 +127,23 @@ export function KnowledgeField({ project }: { project: string | null }) {
     if (!решаем || !причина.trim()) return
     api.disposeFact(project, решаем.факт, решаем.решение, причина.trim(), 'инженер')
       .then(() => { setРешаем(null); setПричина(''); перечитать() })
+      .catch((e) => setОтказ(String(e.message ?? e)))
+  }
+
+  const записатьДопущение = () => {
+    if (!допущение || !допущение.owner.trim() || !допущение.validation.trim()) return
+    api.disposeFact(project, допущение.факт, 'assumed', 'принято допущением до подтверждения', 'инженер', {
+      owner: допущение.owner.trim(), confirm_by: допущение.confirm_by,
+      validation: допущение.validation.trim(), impact_if_wrong: допущение.impact.trim(),
+    })
+      .then(() => { setДопущение(null); перечитать() })
+      .catch((e) => setОтказ(String(e.message ?? e)))
+  }
+
+  const разрешитьТему = () => {
+    if (!тема || !адресТемы.trim()) return
+    api.resolveTopic(project, тема, адресТемы.trim(), 'инженер')
+      .then(() => { setАдресТемы(''); перечитать() })
       .catch((e) => setОтказ(String(e.message ?? e)))
   }
 
@@ -179,6 +200,29 @@ export function KnowledgeField({ project }: { project: string | null }) {
             План из разбора: {план.actions.length} действий. {план.note}
             {' '}Снятое действие остаётся рассмотренным — факт не исчезает.
           </div>
+          {план.assessment && (
+            <div className="v2-scroll">
+              <table className="v2-tab2">
+                <thead><tr><th>Требование ТЗ</th><th>Покрывает нужды</th><th>Вердикт</th></tr></thead>
+                <tbody>
+                  {план.assessment.lines.map((л) => (
+                    <tr key={л.fact}>
+                      <td><span className="v2-mono">{л.fact}</span> {л.requirement}</td>
+                      <td className="v2-mono">{л.needs.join(', ') || '—'}</td>
+                      <td className={л.verdict === 'none' ? 'v2-bad' : л.verdict === 'partial' ? 'v2-warn' : 'v2-ok'}>
+                        {л.verdict === 'covers' ? 'покрывает' : л.verdict === 'partial' ? 'частично' : 'без нужды'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div className="v2-note-line">
+                непокрытых нужд: {план.assessment.uncovered_needs.length}
+                {план.assessment.uncovered_needs.length > 0 && ` (${план.assessment.uncovered_needs.join(', ')}) — RFA заказчику в плане`}
+                {' · '}требований без нужды: {план.assessment.orphan_requirements.length}
+              </div>
+            </div>
+          )}
           <table className="v2-tab2">
             <thead><tr><th /><th>Действие</th><th>Что появится</th><th>Сцена</th></tr></thead>
             <tbody>
@@ -218,6 +262,27 @@ export function KnowledgeField({ project }: { project: string | null }) {
           </button>
         ))}
       </div>
+
+      {тема && (() => {
+        const т = темы.find((x) => x.id === тема)
+        if (!т) return null
+        return (
+          <div className="v2-kf__bar" data-why="работа">
+            <span className="v2-dim">тема «{т.label}»:</span>
+            {т.resolved_to
+              ? <span>разрешена в <span className="v2-mono">{т.resolved_to}</span></span>
+              : (
+                <>
+                  <input value={адресТемы} placeholder="код сущности проекта (узел, сторона, требование…)"
+                    onChange={(e) => setАдресТемы(e.target.value)} />
+                  <button type="button" className="v2-link" disabled={!адресТемы.trim()}
+                    title="к точке принятые факты темы обязаны найти адрес — сущность проекта"
+                    onClick={разрешитьТему}>разрешить в сущность</button>
+                </>
+              )}
+          </div>
+        )
+      })()}
 
       <div className="v2-kf__bar">
         <span className="v2-dim">показать:</span>
@@ -267,6 +332,16 @@ export function KnowledgeField({ project }: { project: string | null }) {
                   <td title={МЕТКА[ф.mark] ?? ф.mark}>{МЕТКА[ф.mark] ?? ф.mark}</td>
                   <td className="v2-mono" title={ф.material}>
                     {ф.manual ? <span className="v2-kf__manual">{ф.material}</span> : (ф.anchor ?? '—')}
+                    {ф.param_key && <span className="v2-dim"> · анкета: {ф.param_key}</span>}
+                    {ф.conflicts && ф.conflicts.length > 0 && (
+                      <span className="v2-bad" title="то же утверждение с иным значением: показаны оба, ИИ не выбирает"> · против {ф.conflicts.join(', ')}</span>
+                    )}
+                    {ф.source_updated && <span className="v2-warn" title={ф.source_updated}> · источник обновлён</span>}
+                    {ф.assumption && (
+                      <span className="v2-dim" title={`проверка: ${ф.assumption.validation}; если неверно: ${ф.assumption.impact_if_wrong}`}>
+                        {' '}· допущение · {ф.assumption.owner} · к {ф.assumption.confirm_by}
+                      </span>
+                    )}
                   </td>
                   <td className={было === 'adopted' ? 'v2-ok' : было === 'rejected' ? 'v2-warn' : ''}>
                     {РЕШЕНИЕ[было] ?? было}
@@ -295,7 +370,35 @@ export function KnowledgeField({ project }: { project: string | null }) {
                               onClick={() => решить(ф, 'rejected')}>отклонить</button>
                           </>
                         )}
+                        {было !== 'assumed' && было !== 'adopted' && (
+                          <>
+                            {' · '}
+                            <button type="button" className="v2-link"
+                              title="принять допущением: владелец, точка подтверждения и способ проверки обязательны — к точке допущение держит её"
+                              onClick={() => setДопущение({ факт: ф.id, owner: '', confirm_by: 'MCR', validation: '', impact: '' })}>допущение</button>
+                          </>
+                        )}
                       </>
+                    )}
+                    {допущение?.факт === ф.id && (
+                      <div className="v2-kf__why" data-why="работа">
+                        <input value={допущение.owner} placeholder="владелец допущения"
+                          onChange={(e) => setДопущение({ ...допущение, owner: e.target.value })} />
+                        <select value={допущение.confirm_by} onChange={(e) => setДопущение({ ...допущение, confirm_by: e.target.value })}>
+                          <option value="internal_review">к внутреннему обзору</option>
+                          <option value="MCR">к MCR</option>
+                          <option value="KDP-A">к KDP-A</option>
+                        </select>
+                        <input value={допущение.validation} placeholder="чем подтвердить (замер, расчёт, запрос)"
+                          onChange={(e) => setДопущение({ ...допущение, validation: e.target.value })} />
+                        <input value={допущение.impact} placeholder="что будет, если неверно"
+                          onChange={(e) => setДопущение({ ...допущение, impact: e.target.value })} />
+                        <div className="v2-form__actions">
+                          <button type="button" className="v2-primary" disabled={!допущение.owner.trim() || !допущение.validation.trim()}
+                            title="поставить допущение: до подтверждения точка держится им" onClick={записатьДопущение}>Допустить</button>
+                          <button type="button" className="v2-link" onClick={() => setДопущение(null)}>отмена</button>
+                        </div>
+                      </div>
                     )}
                     {решаем?.факт === ф.id && (
                       <span className="v2-kf__why">
@@ -337,6 +440,24 @@ function Source({ project, onParsed, onError }: {
   const [задание, setЗадание] = useState('разбери по сущностям')
   const [занято, setЗанято] = useState(false)
   const [итог, setИтог] = useState<string | null>(null)
+  const [прежние, setПрежние] = useState<{ code: string; name: string }[]>([])
+  const [прежний, setПрежний] = useState('')
+
+  useEffect(() => {
+    api.materials(project).then((r) => setПрежние(r.items)).catch(() => setПрежние([]))
+  }, [project])
+
+  // Задание — по типу входного (каталог заданий, ИНТЕЛЛЕКТУАЛЬНАЯ-ЗАГРУЗКА §3);
+  // строка остаётся редактируемой: узел или намерение инженер уточняет сам.
+  const заданиеПоТипу: Record<string, string> = {
+    mission_memo: 'разбери по сущностям',
+    tor: 'это ТЗ — оцени против нужд',
+    datasheet: 'обнови параметры ‹код узла›',
+    normative: 'это норматив — заведи',
+    analysis: 'разбери по сущностям',
+    reference: 'просто в контекст',
+  }
+  const сменитьТип = (т: string) => { setВид(т); setЗадание(заданиеПоТипу[т] ?? 'разбери по сущностям') }
 
   // Файл читается В БРАУЗЕРЕ и уходит текстом: серверу не нужен ещё один
   // канал ради того, что уже умеет вкладка. Двоичные (pdf, docx) — хвост.
@@ -348,7 +469,7 @@ function Source({ project, onParsed, onError }: {
 
   const разобрать = () => {
     setЗанято(true); setИтог(null)
-    api.putMaterial(project, { name: имя, kind: вид, text: текст, url: ссылка, author: 'инженер' })
+    api.putMaterial(project, { name: имя, kind: вид, text: текст, url: ссылка, author: 'инженер', supersedes: прежний || undefined })
       .then((м) => api.atomize(project, м.code, задание, 'инженер'))
       .then((р) => {
         setИтог(`${р.note}${р.refusals.length ? ` · отклонено: ${р.refusals.slice(0, 3).join('; ')}` : ''}`)
@@ -367,7 +488,7 @@ function Source({ project, onParsed, onError }: {
           <input value={имя} onChange={(e) => setИмя(e.target.value)} placeholder="Записка миссии" />
         </label>
         <label>тип
-          <select value={вид} onChange={(e) => setВид(e.target.value)}>
+          <select value={вид} onChange={(e) => сменитьТип(e.target.value)}>
             <option value="mission_memo">записка миссии</option>
             <option value="tor">техническое задание</option>
             <option value="normative">норматив</option>
@@ -390,10 +511,19 @@ function Source({ project, onParsed, onError }: {
           <input value={ссылка} onChange={(e) => setСсылка(e.target.value)} placeholder="https://…" />
         </label>
       </div>
-      <label>задание
-        <input value={задание} onChange={(e) => setЗадание(e.target.value)}
-          placeholder="разбери по сущностям · это норматив — заведи · сравни с нашим" />
-      </label>
+      <div className="v2-kf__row" style={{ gridTemplateColumns: '2fr 1fr' }}>
+        <label>задание
+          <input value={задание} onChange={(e) => setЗадание(e.target.value)}
+            placeholder="разбери по сущностям · это норматив — заведи · сравни с нашим" />
+        </label>
+        <label>новая версия материала
+          <select value={прежний} onChange={(e) => setПрежний(e.target.value)}
+            title="прежняя версия того же входного: изменённые блоки пометят свои факты и сущности «источник обновлён»">
+            <option value="">— нет, новый источник —</option>
+            {прежние.map((м) => <option key={м.code} value={м.code}>{м.code} · {м.name}</option>)}
+          </select>
+        </label>
+      </div>
       <div className="v2-form__actions">
         <button type="button" className="v2-primary" disabled={занято || !есть || !имя.trim()}
           title={!имя.trim() ? 'дайте источнику название'

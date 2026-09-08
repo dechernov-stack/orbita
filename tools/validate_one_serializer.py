@@ -160,6 +160,10 @@ def selftest(classes: dict[str, set[str]]) -> int:
         .put("unit", ф.unit)
         .put("anchor", ф.anchor)
         .put("mark", ф.mark.name)
+        .put("material", ф.material)
+        .put("topic", ф.topic)
+        .put("disposition", ф.disposition.name)
+        .put("confidence", ф.confidence)
         .put("manual", ф.manual)
 
     private fun список(): V2Router.Ответ {
@@ -173,6 +177,10 @@ def selftest(classes: dict[str, set[str]]) -> int:
                 .put("unit", факт.unit)
                 .put("anchor", факт.anchor)
                 .put("mark", факт.mark.name)
+                .put("material", факт.material)
+                .put("topic", факт.topic)
+                .put("disposition", факт.disposition.name)
+                .put("confidence", факт.confidence)
         }
     }
 '''

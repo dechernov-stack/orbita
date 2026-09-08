@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ObjectNode
 import orbita.documents.api.RenderedSection
 import orbita.knowledge.api.Fact
+import orbita.knowledge.api.Topic
 import orbita.programmatics.api.EstimateView
 
 internal object KindJson {
@@ -29,6 +30,20 @@ internal object KindJson {
         .put("material", ф.material)
         .put("topic", ф.topic)
         .put("disposition", ф.disposition.name.lowercase())
+        .put("param_key", ф.paramKey)
+        .put("source_updated", ф.sourceUpdated)
+        .also { у ->
+            у.putArray("conflicts").also { а -> ф.conflicts.forEach { а.add(it) } }
+            ф.assumption?.let { д ->
+                у.putObject("assumption").put("owner", д.owner).put("confirm_by", д.confirmBy)
+                    .put("validation", д.validation).put("impact_if_wrong", д.impactIfWrong)
+            }
+        }
+
+    fun тема(mapper: ObjectMapper, т: Topic): ObjectNode = mapper.createObjectNode()
+        .put("id", т.id).put("label", т.label)
+        .put("scene", т.scene).put("resolved_to", т.resolvedTo)
+        .put("facts", т.facts)
 
     fun оценка(mapper: ObjectMapper, о: EstimateView): ObjectNode = mapper.createObjectNode()
         .put("min", о.min).put("max", о.max).put("unit", о.unit)

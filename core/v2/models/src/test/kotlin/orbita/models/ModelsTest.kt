@@ -157,6 +157,22 @@ class ModelsTest {
     }
 
     @Test
+    fun `у узла в свёртке одно значение, кандидат в свёртку не входит`() {
+        узел("SC"); узел("EPS")
+        // Даташит дал и сухую, и заправленную массу: складывать обе значит
+        // считать узел дважды (поймано прогоном E1: 374 кг против 100).
+        параметр("SC", "mass_dry", 78.0, "estimated")
+        параметр("SC", "mass_wet", 84.0, "estimated")
+        параметр("EPS", "mass_dry", 12.0, "off_the_shelf")
+        store.create("CAND-1", "component", область, "7",
+            mapper.readTree("""{"name":"Платформа-кандидат","level":2,"nature":"node","kind":"subsystem","candidate":true}"""), провенанс)
+        параметр("CAND-1", "mass_dry", 96.0, "off_the_shelf")
+        val бюджет = модели.budget(проект, "mass", "MCR")
+        assertEquals(90.0, бюджет.sum, "SC один раз (сухая), кандидат не считается: ${бюджет.lines}")
+        assertTrue(бюджет.lines.none { it.component == "CAND-1" })
+    }
+
+    @Test
     fun `свёртка печатает перебор рамки честно, а не подгоняет сумму`() {
         узел("SC"); узел("EPS")
         параметр("SC", "mass_dry", 78.0, "estimated")

@@ -46,6 +46,29 @@ data class Fact(
      * считается без него: ручное видно отдельно (замечание прохода 08.09).
      */
     val manual: Boolean = false,
+    /** Ключ анкеты узла, если факт — параметр из даташита (шип E). */
+    val paramKey: String? = null,
+    /** Коды фактов с тем же субъектом и утверждением, но иным значением: показать оба, не выбирать. */
+    val conflicts: List<String> = emptyList(),
+    /** Допущение: без владельца, точки подтверждения и способа проверки допущение не ставится. */
+    val assumption: Assumption? = null,
+    /** Источник получил новую версию, и блок факта в ней изменился. */
+    val sourceUpdated: String? = null,
+)
+
+/** Допущение (истина схем `fact.assumption`): кто, к какой точке, чем проверит, что будет, если неверно. */
+data class Assumption(val owner: String, val confirmBy: String, val validation: String, val impactIfWrong: String)
+
+/** Строка оценки ТЗ: требование ТЗ (факт) против нужд проекта. */
+data class TorLine(val fact: String, val requirement: String, val needs: List<String>, val verdict: String)
+
+/** Оценка ТЗ против нужд: матрица «нужды × требования ТЗ» (шип E п. 1). */
+data class TorAssessment(
+    val lines: List<TorLine>,
+    /** Нужды, которых ни одно требование ТЗ не покрывает, — RFA заказчику. */
+    val uncoveredNeeds: List<String>,
+    /** Требования ТЗ без нужды — вопрос заказчику или новая нужда. */
+    val orphanRequirements: List<String>,
 )
 
 /**
@@ -109,6 +132,8 @@ data class IntakeTask(
     val plan: List<PlannedAction>,
     /** Почему план такой — и что осталось непонятным. */
     val note: String,
+    /** Оценка ТЗ против нужд — у задания по материалу типа `tor`. */
+    val assessment: TorAssessment? = null,
 )
 
 /** Диспозиция факта: её меняет ЧЕЛОВЕК, служба только предлагает. */
@@ -131,7 +156,15 @@ data class CanonBlock(val anchor: String, val kind: String, val text: String)
 
 interface Intake {
     /** Положить материал: снимок и карточка. Разбор идёт следом. */
-    fun putMaterial(project: String, name: String, kind: String, text: String, author: String): String
+    fun putMaterial(
+        project: String,
+        name: String,
+        kind: String,
+        text: String,
+        author: String,
+        /** Код прежней версии того же входного: диф канонов блоками, пометы «источник обновлён». */
+        supersedes: String? = null,
+    ): String
 
     /** Собрать задание: факты из материала и план действий из намерения. */
     fun plan(project: String, material: String, intent: String, author: String): IntakeTask
@@ -190,10 +223,31 @@ interface Intake {
      * без якоря и величина без единицы не принимаются — они не факты.
      * Возвращает коды принятых и перечень отклонённых с причиной.
      */
-    fun putFacts(project: String, material: String, raw: String, author: String): FactIntake
+    fun putFacts(
+        project: String,
+        material: String,
+        raw: String,
+        author: String,
+        /** Задание инженера — режим даташита выбирает по нему узел и кандидата. */
+        intent: String = "",
+    ): FactIntake
+
+    /** Анкета узла из задания («обнови параметры SC-PLT»): ключ · единица — для промпта даташита. */
+    fun questionnaireKeys(project: String, intent: String): List<Pair<String, String>>
 
     /** Диспозицию меняет человек: служба предлагает, решает инженер. */
-    fun dispose(project: String, fact: String, disposition: Disposition, reason: String, author: String): Fact
+    fun dispose(
+        project: String,
+        fact: String,
+        disposition: Disposition,
+        reason: String,
+        author: String,
+        /** Обязательно при `assumed` (истина схем): владелец · точка · способ проверки · цена ошибки. */
+        assumption: Assumption? = null,
+    ): Fact
+
+    /** Тема разрешается в сущность: принятые факты темы обязаны найти адрес к точке. */
+    fun resolveTopic(project: String, topic: String, entity: String, author: String): Topic
 
     fun topics(project: String): List<Topic>
 

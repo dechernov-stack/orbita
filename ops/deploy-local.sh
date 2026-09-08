@@ -52,6 +52,11 @@ for svc in "${SERVICES[@]}"; do
   esac
 done
 
+# Кэш сборщика хоста — не больше двух гигабайт после выката (см. builder_hygiene).
+if [ "${BUILDER:-orbita-mtu}" = "default" ]; then
+  docker builder prune -f --keep-storage 2GB > /dev/null 2>&1 || true
+fi
+
 echo "==> Пересоздание контейнеров: ${SERVICES[*]}"
 ( cd "$ROOT" && docker compose up -d --no-build --force-recreate "${SERVICES[@]}" )
 

@@ -45,6 +45,16 @@
       "template": "conops",
       "title": "Концепция применения (Draft ConOps)",
       "due": "MCR"
+    },
+    {
+      "template": "fad",
+      "title": "Документ санкционирования Формулирования (FAD)",
+      "due": "KDP-A"
+    },
+    {
+      "template": "fa",
+      "title": "Соглашение о Формулировании (FA)",
+      "due": "KDP-A"
     }
   ],
   "scenes": [
@@ -1280,6 +1290,21 @@
           "check": "findings_closed:internal_review",
           "blocking": true,
           "title": "замечания внутреннего обзора закрыты"
+        },
+        {
+          "check": "assumptions_confirmed:MCR",
+          "blocking": true,
+          "title": "допущения к MCR подтверждены или сняты"
+        },
+        {
+          "check": "topics_resolved",
+          "blocking": true,
+          "title": "темы с принятыми фактами разрешены в сущности"
+        },
+        {
+          "check": "facts_consistent",
+          "blocking": true,
+          "title": "противоречий среди принятых фактов нет"
         }
       ],
       "role": "da_review"
@@ -1328,6 +1353,21 @@
           "check": "findings_closed:MCR",
           "blocking": true,
           "title": "RFA и RID обзора MCR закрыты"
+        },
+        {
+          "check": "assumptions_confirmed:KDP-A",
+          "blocking": true,
+          "title": "допущения к KDP-A подтверждены или сняты"
+        },
+        {
+          "check": "topics_resolved",
+          "blocking": true,
+          "title": "темы с принятыми фактами разрешены в сущности"
+        },
+        {
+          "check": "facts_consistent",
+          "blocking": true,
+          "title": "противоречий среди принятых фактов нет"
         }
       ],
       "role": "da_review",
@@ -1357,7 +1397,7 @@
             "MCR": "°",
             "KDP-A": "F"
           },
-          "note": "шаблона FAD нет — придёт шипом C п. 2; не проверяется"
+          "our_ref": "document_template:fad"
         },
         {
           "artifact": "Д2 · Отчёт о концепции миссии (MCReport)",
@@ -1429,7 +1469,7 @@
             "MCR": "°",
             "KDP-A": "F"
           },
-          "note": "шаблона FA нет — придёт шипом C п. 2; не проверяется"
+          "our_ref": "document_template:fa"
         }
       ]
     }
@@ -1669,5 +1709,5 @@
       ]
     }
   ],
-  "maturity_note": "коды зрелости позиций (С · Р · F · U · Σ · Δ · x · °) — предположительно, до легенды владельца (ПОЛКА-ПРОЦЕССЫ-РОМАНОВ.maturity_matrix.legend); экспертиза EXP-0B в полке не транскрибирована, MCR сопоставлен с EXP-0A по псевдониму «экспертиза замысла»"
+  "maturity_note": "коды зрелости позиций (С · Р · F · U · Σ · Δ · x · °) — предположительно, до легенды владельца (ПОЛКА-ПРОЦЕССЫ-РОМАНОВ.maturity_matrix.legend); MCR сопоставлен с EXP-0A предварительно — EXP-0B (экспертиза концепции миссии) в полке не транскрибирована"
 }

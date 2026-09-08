@@ -55,6 +55,11 @@ internal class Queries(
                 // а не все сто тридцать пять узлов.
                 "level_max" -> сущность.doc.path("level").asInt(Int.MAX_VALUE) <= ожидание.asInt()
                 "unresolved" -> сущность.doc.path("resolved_to").asText("").isBlank() == ожидание.asBoolean(true)
+                // Пакеты одной группы WBS: «04.» — созревание технологий (FA §2).
+                "code_prefix" -> сущность.code.startsWith(ожидание.asText())
+                // Ключевые риски: критичность = вероятность × влияние (шкала 1–5).
+                "criticality_min" ->
+                    сущность.doc.path("probability").asInt(0) * сущность.doc.path("impact").asInt(0) >= ожидание.asInt()
                 else -> путём(сущность.doc, поле).asText("") == ожидание.asText()
             }
         }

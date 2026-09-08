@@ -19,16 +19,22 @@ internal class Budgets(
     private val полкаМоделей: Entity?,
 ) {
 
-    /** Какой ключ анкеты сворачивается каким видом бюджета. */
+    /**
+     * Какой ключ анкеты сворачивается каким видом бюджета — В ПОРЯДКЕ
+     * ПРЕДПОЧТЕНИЯ: у одного узла в свёртку идёт ОДНО значение. Узел с
+     * `mass_dry` и `mass_wet` из даташита складывался дважды (96 + 104 кг),
+     * и свёртка печатала 374 кг против рамки 100 — поймано прогоном E1.
+     * Пик мощности в сумму средней не входит: рамка Р4 — о средней.
+     */
     private val ключиБюджета = mapOf(
-        "mass" to setOf("mass_dry", "mass", "mass_wet"),
-        "power" to setOf("power_avg", "power_peak", "power"),
-        "compute" to setOf("cpu_load", "ram", "rom"),
-        "data" to setOf("tm_rate", "tc_rate", "data_rate"),
+        "mass" to listOf("mass_dry", "mass", "mass_wet"),
+        "power" to listOf("power_avg", "power"),
+        "compute" to listOf("cpu_load", "ram", "rom"),
+        "data" to listOf("tm_rate", "tc_rate", "data_rate"),
         // Высота — не свёртка (её не складывают), но рамка орбит
         // проверяется тем же механизмом: величина против границы.
-        "altitude" to setOf("altitude", "orbit_altitude", "h"),
-        "energy" to setOf("energy", "battery_wh"),
+        "altitude" to listOf("altitude", "orbit_altitude", "h"),
+        "energy" to listOf("energy", "battery_wh"),
     )
 
     /** Системный резерв по ступени — данные полки шаблонов компонентов. */
@@ -50,9 +56,17 @@ internal class Budgets(
 
     fun свёртка(project: String, kind: String, gate: String): BudgetView {
         val область = Area.Project(project)
-        val ключи = ключиБюджета[kind] ?: emptySet()
+        val ключи = ключиБюджета[kind] ?: emptyList()
+        // Узел-кандидат («рассмотрим как базовую») — не выбор: в свёртку
+        // состава он не входит, пока не стал узлом состава.
+        val кандидаты = store.list(область, "component").filter { it.doc.path("candidate").asBoolean(false) }.map { it.id }.toSet()
         val строки = store.list(область, "parameter")
             .filter { ключи.isEmpty() || it.doc.path("key").asText() in ключи }
+            .filter { it.doc.path("target").asText() !in кандидаты }
+            // Одно значение на узел: первый ключ по порядку предпочтения.
+            .groupBy { it.doc.path("target").asText() }
+            .values
+            .mapNotNull { свои -> ключи.firstNotNullOfOrNull { к -> свои.firstOrNull { it.doc.path("key").asText() == к } } ?: свои.firstOrNull() }
             .mapNotNull { параметр ->
                 val значение = параметр.doc.path("measure").path("value")
                 if (!значение.isNumber) return@mapNotNull null

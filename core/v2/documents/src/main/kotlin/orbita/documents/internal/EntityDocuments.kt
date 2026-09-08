@@ -88,7 +88,7 @@ class EntityDocuments(
      * Лестница ступеней: раздел, которого ступень ещё не ждёт, документ
      * не держит. Порядок — из шаблона фазы Pre-Phase A / Phase A.
      */
-    private val лестница = listOf("MCR", "SRR", "SDR", "PDR", "CDR")
+    private val лестница = listOf("MCR", "KDP-A", "SRR", "SDR", "PDR", "CDR")
 
     /** Ждёт ли ступень `gate` раздел, обязанный быть полным к `expects`. */
     private fun ждётСейчас(expects: String?, gate: String): Boolean {
@@ -185,7 +185,7 @@ class EntityDocuments(
         }
         val ждёт = элементы.filterNot { it.satisfied }.map { э ->
             "«${э.title}»: ${э.rows.size} из ${э.minRows}" + чегоЖдёт(э.waitingScenes)
-        }
+        } + минимумТезисов(раздел, тезисы.size)
         return SectionView(
             no = раздел.path("no").asText(""),
             title = раздел.path("title").asText(""),
@@ -194,6 +194,18 @@ class EntityDocuments(
             complete = ждёт.isEmpty(),
             waiting = ждёт,
         )
+    }
+
+    /**
+     * Раздел, который ждёт ТЕЗИСА человека (FAD/FA по Прил. 1–2: «основание
+     * инициирования», «период действия; стороны»): запросом его не
+     * наполнить, и без тезиса раздел неполон — с подсказкой, о чём тезис.
+     */
+    private fun минимумТезисов(раздел: JsonNode, есть: Int): List<String> {
+        val нужно = раздел.path("min_statements").asInt(0)
+        if (есть >= нужно) return emptyList()
+        val подсказка = раздел.path("statement_hint").asText("").ifBlank { null }
+        return listOf("тезис: $есть из $нужно" + (подсказка?.let { " — $it" } ?: ""))
     }
 
     /**

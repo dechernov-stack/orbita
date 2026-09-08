@@ -35,7 +35,7 @@ class Atomizer(
         // Урожай в сотню фактов не помещается в бюджет короткого ответа:
         // разбор просит свой потолок, а не полагается на общий.
         val ответ = service.ask(project, KIND, промпт, maxTokens = БЮДЖЕТ_РАЗБОРА)
-        val итог = intake.putFacts(project, material, ответ.text, author)
+        val итог = intake.putFacts(project, material, ответ.text, author, intent)
         return itogСПометой(итог, ответ.cached)
     }
 
@@ -57,6 +57,7 @@ class Atomizer(
         val карточка = store.byCode(область, material)
         val имя = карточка?.doc?.path("name")?.asText(material) ?: material
         val тип = карточка?.doc?.path("kind")?.asText("") ?: ""
+        val режим = режимПоТипу(project, тип, intent)
 
         return """
 Ты разбираешь входной документ инженерного проекта на АТОМАРНЫЕ ФАКТЫ.
@@ -69,6 +70,8 @@ $ограничения
 ## Документ
 Наименование: «$имя»${if (тип.isNotBlank()) ", тип: $тип" else ""}
 Задание инженера: «$intent»
+
+$режим
 
 ## Правила честности — нарушение делает ответ непригодным
 1. Факт без ЯКОРЯ не существует. Якорь — это метка блока в квадратных
@@ -131,14 +134,70 @@ assessment — оценка, суждение · assumption — допущени
       "source": {"anchor": "якорь из текста"},
       "source_mark": "И|В|П",
       "confidence": 0.0,
-      "conflict": "код ограничения, если противоречит (иначе поле опустить)"
+      "conflict": "код ограничения, если противоречит (иначе поле опустить)",
+      "param_key": "ключ анкеты узла — только для даташита (иначе опустить)",
+      "limit": {"key": "…", "op": "le|ge|lt|gt|eq", "value": 0, "unit": "…"}
     }
-  ]
+  ],
+  "assessment": {"lines": [{"fact": 0, "requirement": "п. ТЗ", "needs": ["ND-0001"], "verdict": "covers|partial|none"}]}
 }
+(поля `limit` и `assessment` — только в режимах норматива и ТЗ, иначе опустить)
 
 ## Текст документа с якорями
 $выжимка
 """.trimIndent()
+    }
+
+    /**
+     * Режим по типу входного (ДОКУМЕНТЫ-1-ВХОДНЫЕ §3): ТЗ — полный разбор и
+     * ОЦЕНКА против нужд проекта; даташит — параметры в поля АНКЕТЫ узла;
+     * норматив — пункты обязательствами с порогом ПОЛЕМ. Записка и прочее —
+     * общий режим.
+     */
+    private fun режимПоТипу(project: String, тип: String, intent: String): String = when (тип) {
+        "tor" -> {
+            val нужды = store.list(Area.Project(project), "need")
+                .joinToString("\n") { "  · ${it.code}: ${it.doc.path("statement").asText("")}" }
+                .ifBlank { "  (нужд в проекте пока нет — оценка невозможна, верни assessment с пустыми lines)" }
+            """
+## Режим: техническое задание заказчика (полный разбор + оценка против нужд)
+Каждое требование ТЗ — факт вида obligation: subject — «ТЗ п. N», predicate —
+формулировка требования, value — «требование». Предложи действия
+create_entity с target_kind requirement (сцена 8): statement · level = "project" ·
+category (functional|performance|interface|operational|constraint) · rationale
+= пункт ТЗ. Требования ТЗ по составу, стыкам и срокам — тоже факты.
+ОЦЕНКА: для КАЖДОГО факта-требования назови, какие нужды проекта оно
+покрывает (коды из списка), и вердикт covers|partial|none. Нужды проекта:
+$нужды
+Верни блок "assessment" с lines по всем требованиям.""".trimIndent()
+        }
+        "datasheet" -> {
+            val анкета = intake.questionnaireKeys(project, intent)
+                .joinToString("\n") { (ключ, ед) -> "  · $ключ (${ед.ifBlank { "—" }})" }
+                .ifBlank { "  (анкета узла не найдена — параметры без param_key)" }
+            """
+## Режим: даташит изделия (параметрический разбор в анкету узла)
+Задание: «$intent». Каждый параметр изделия — факт вида quantity с единицей;
+если параметр — поле анкеты узла ниже, поставь ему `param_key` (ключ из
+списка, единица — как в анкете, пересчитай при нужде и скажи об этом в
+predicate). Параметры вне анкеты — факты без param_key. Условия среды,
+стыки, комплект поставки, ограничения поставщика (санкции, сроки) — факты
+своих видов. Анкета узла (ключ · единица):
+$анкета
+Действия плана по параметрам НЕ предлагай — их соберёт система по анкете и
+рамкам проекта; предложи только стейкхолдера-поставщика и риски, если они
+видны из документа.""".trimIndent()
+        }
+        "normative" -> """
+## Режим: нормативный акт (пункты — обязательствами)
+Каждый пункт-обязательство — факт вида obligation: subject — кто обязан,
+predicate — что обязан, value — «обязанность» либо величина порога с
+единицей. Порог нормы — ПОЛЕМ `limit {key, op, value, unit}` у факта, не
+числом в тексте (например «увод не более 5 лет» → limit{active_lifetime,
+le, 5, год}). Предложи ОДНО действие create_entity с target_kind
+normative_document (полка): designation · title · edition · edition_date ·
+valid_until · clauses[{clause, text, who, limit?}] — пункты из фактов.""".trimIndent()
+        else -> ""
     }
 
     companion object {

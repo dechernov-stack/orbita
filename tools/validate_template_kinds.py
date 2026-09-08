@@ -32,7 +32,7 @@ from pathlib import Path
 ВИДЫ = КОРЕНЬ / "core/v2/kernel/src/main/kotlin/orbita/kernel/schema/GeneratedKinds.kt"
 ШАБЛОН_ФАЗЫ = ПОЛКИ / "ШАБЛОН-ФАЗЫ-PRE-A-NASA.json"
 СХЕМЫ = КОРЕНЬ / "docs/tz/v2/СХЕМЫ-ПОЛЕЙ-V2.yaml"
-СЛУЖЕБНЫЕ_ПОЛЯ = {"code", "status", "id", "version", "level_max", "unresolved"}
+СЛУЖЕБНЫЕ_ПОЛЯ = {"code", "status", "id", "version", "level_max", "unresolved", "code_prefix", "criticality_min"}
 
 
 def поля_видов() -> dict[str, set[str]]:

@@ -1,0 +1,373 @@
+{
+  "kind": "document_template",
+  "code": "fa",
+  "delivery_code": "DT-9102",
+  "title": "Formulation Agreement (Прил. 2 БП-PPA)",
+  "standard": "БП-PPA, приложение 2 (Formulation Agreement)",
+  "note": "Порождён из поставки ШАБЛОНЫ-FAD-FA.json генератором tools/v2/gen_document_templates.py; правки — в поставку или в таблицу сопоставления, не сюда.",
+  "rules": [
+    "FA несёт план Phase A: даты SRR · SDR/MDR · KDP-B — из плана проекта, не из текста",
+    "§6 — tailoring из записей системы (неприменимо у критериев, отклонения лестницы, шаблонов), не рукописный список",
+    "обновляется к KDP-B новой версией"
+  ],
+  "style": {
+    "tone": "деловая инженерная проза без маркетинга",
+    "traceability": "каждое утверждение опирается на элемент раздела",
+    "numbers": "число в тексте обязано быть в данных названных опор"
+  },
+  "review": {
+    "qualifiers": [
+      "не менее",
+      "не более",
+      "не допускается",
+      "не должен",
+      "не должна",
+      "не может",
+      "не разрешается",
+      "не",
+      "без",
+      "только",
+      "кроме",
+      "запрещается",
+      "запрещено",
+      "обязан",
+      "обязана",
+      "обязательно"
+    ],
+    "number_exceptions": [
+      "даты вида ГГГГ-ММ-ДД",
+      "номера разделов после §",
+      "числа внутри кодов сущностей"
+    ]
+  },
+  "labels": {
+    "_note": "служебные значения по-русски: печать обязана быть человеческим текстом, а не перечнем ключей модели",
+    "functional": "функциональное",
+    "performance": "показатель",
+    "interface": "стыковое",
+    "operational": "операционное",
+    "constraint": "ограничение",
+    "safety": "безопасность",
+    "reliability": "надёжность",
+    "environmental": "средовое",
+    "node": "узел",
+    "behaviour": "поведение",
+    "data": "данные",
+    "human": "человек",
+    "customer": "заказчик",
+    "operator": "оператор",
+    "regulator": "регулятор",
+    "supplier": "поставщик",
+    "partner": "партнёр",
+    "consumer": "потребитель",
+    "established": "учреждаемая сторона",
+    "mitigate": "снижать",
+    "accept": "принять",
+    "avoid": "избегать",
+    "transfer": "передать",
+    "ROM": "порядок величины",
+    "PARAMETRIC": "параметрическая",
+    "BOTTOM_UP": "снизу вверх",
+    "draft": "черновик",
+    "accepted": "принято",
+    "baselined": "базировано"
+  },
+  "sections": [
+    {
+      "no": "§1",
+      "title": "Общие сведения",
+      "scenes": [
+        "1"
+      ],
+      "elements": [
+        {
+          "code": "1.1",
+          "kind": "query",
+          "title": "Проект",
+          "select": "project",
+          "min_rows": 1,
+          "columns": [
+            {
+              "title": "Проект",
+              "field": "name"
+            },
+            {
+              "title": "Стандарт",
+              "field": "standard"
+            },
+            {
+              "title": "Класс миссии",
+              "field": "mission_class"
+            }
+          ]
+        },
+        {
+          "code": "1.2",
+          "kind": "query",
+          "title": "Документ санкционирования (FAD)",
+          "select": "document",
+          "where": {
+            "template": "fad"
+          },
+          "min_rows": 1,
+          "columns": [
+            {
+              "title": "Документ",
+              "field": "title"
+            },
+            {
+              "title": "Состояние",
+              "field": "status"
+            }
+          ]
+        }
+      ],
+      "expects": "MCR",
+      "source": "проект · FAD · стейкхолдеры",
+      "min_statements": 1,
+      "statement_hint": "период действия; стороны"
+    },
+    {
+      "no": "§2",
+      "title": "Состав работ Phase A",
+      "scenes": [
+        "10",
+        "11"
+      ],
+      "elements": [
+        {
+          "code": "2.1",
+          "kind": "query",
+          "title": "Работы по созреванию технологий",
+          "select": "wbs_package",
+          "where": {
+            "code_prefix": "04."
+          },
+          "min_rows": 1,
+          "columns": [
+            {
+              "title": "Пакет",
+              "field": "code"
+            },
+            {
+              "title": "Название",
+              "field": "name"
+            }
+          ]
+        },
+        {
+          "code": "2.2",
+          "kind": "query",
+          "title": "Ключевые риски (критичность ≥ 12)",
+          "select": "risk",
+          "where": {
+            "criticality_min": 12
+          },
+          "min_rows": 1,
+          "columns": [
+            {
+              "title": "Код",
+              "field": "code"
+            },
+            {
+              "title": "Риск",
+              "field": "statement"
+            },
+            {
+              "title": "Вероятность",
+              "field": "probability"
+            },
+            {
+              "title": "Влияние",
+              "field": "impact"
+            }
+          ]
+        }
+      ],
+      "expects": "MCR",
+      "source": "шаблон Phase A · пакеты созревания · риски",
+      "min_statements": 1,
+      "statement_hint": "технические и закупочные работы Phase A",
+      "note": "Работы Phase A сценами придут с шаблоном Phase A (шип G); до него состав работ — тезисом, созревание технологий и снятие ключевых рисков — запросами."
+    },
+    {
+      "no": "§3",
+      "title": "Состав работ Phase B (предварительно)",
+      "scenes": [],
+      "elements": [],
+      "expects": "KDP-A",
+      "source": "тезисы · допущения",
+      "min_statements": 1,
+      "statement_hint": "укрупнённый перечень работ Phase B; допущения"
+    },
+    {
+      "no": "§4",
+      "title": "График и вехи",
+      "scenes": [
+        "1",
+        "12"
+      ],
+      "elements": [
+        {
+          "code": "4.1",
+          "kind": "query",
+          "title": "Календарный план: даты точек",
+          "select": "plan",
+          "expand": "gate_dates",
+          "min_rows": 1,
+          "columns": [
+            {
+              "title": "Точка",
+              "field": "gate"
+            },
+            {
+              "title": "Дата",
+              "field": "date"
+            }
+          ]
+        },
+        {
+          "code": "4.2",
+          "kind": "query",
+          "title": "Диапазоны стоимости и сроков",
+          "select": "cost_estimate",
+          "min_rows": 1,
+          "columns": [
+            {
+              "title": "Пакет",
+              "field": "package"
+            },
+            {
+              "title": "От",
+              "field": "min"
+            },
+            {
+              "title": "До",
+              "field": "max"
+            },
+            {
+              "title": "Ед.",
+              "field": "unit"
+            }
+          ]
+        }
+      ],
+      "expects": "MCR",
+      "source": "план Phase A (SRR/SDR/KDP-B) · матрица зрелости · ROM",
+      "note": "Матрица зрелости продуктов к точкам живёт у точки KDP-A (экран «Точки»); в документ идёт план и оценки."
+    },
+    {
+      "no": "§5",
+      "title": "Ресурсы",
+      "scenes": [
+        "12"
+      ],
+      "elements": [
+        {
+          "code": "5.1",
+          "kind": "query",
+          "title": "Финансирование Phase A–B",
+          "select": "cost_estimate",
+          "min_rows": 1,
+          "columns": [
+            {
+              "title": "Пакет",
+              "field": "package"
+            },
+            {
+              "title": "От",
+              "field": "min"
+            },
+            {
+              "title": "До",
+              "field": "max"
+            },
+            {
+              "title": "Ед.",
+              "field": "unit"
+            }
+          ]
+        }
+      ],
+      "expects": "KDP-A",
+      "source": "оценки · тезисы",
+      "min_statements": 1,
+      "statement_hint": "трудовые ресурсы; инфраструктура"
+    },
+    {
+      "no": "§6",
+      "title": "Отклонения (tailoring)",
+      "scenes": [],
+      "elements": [],
+      "expects": "KDP-A",
+      "source": "записи tailoring (неприменимо · лестница · шаблоны)",
+      "note": "Записей tailoring (неприменимо у критериев, отклонения лестницы, шаблонов) в реестре пока нет — раздел не держит документ; появятся записи — появится запрос."
+    },
+    {
+      "no": "§7",
+      "title": "Ведущие индикаторы",
+      "scenes": [
+        "4"
+      ],
+      "elements": [
+        {
+          "code": "7.1",
+          "kind": "query",
+          "title": "Ведущие индикаторы: показатели целей",
+          "select": "goal",
+          "min_rows": 1,
+          "columns": [
+            {
+              "title": "Цель",
+              "field": "statement"
+            },
+            {
+              "title": "Показатель",
+              "field": "metric"
+            },
+            {
+              "title": "Год",
+              "field": "year"
+            }
+          ]
+        }
+      ],
+      "expects": "KDP-A",
+      "source": "TPM · метрики · готовность"
+    },
+    {
+      "no": "§8",
+      "title": "Согласование и утверждение",
+      "scenes": [],
+      "elements": [
+        {
+          "code": "8.1",
+          "kind": "query",
+          "title": "Решения точек (согласование)",
+          "select": "decision",
+          "min_rows": 1,
+          "columns": [
+            {
+              "title": "Точка",
+              "field": "gate"
+            },
+            {
+              "title": "Кем",
+              "field": "by"
+            },
+            {
+              "title": "Когда",
+              "field": "at"
+            },
+            {
+              "title": "Исход",
+              "field": "outcome"
+            }
+          ]
+        }
+      ],
+      "expects": "KDP-A",
+      "source": "решения · выпуск"
+    }
+  ]
+}

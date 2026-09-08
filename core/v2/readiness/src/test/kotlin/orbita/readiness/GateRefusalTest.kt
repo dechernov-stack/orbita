@@ -91,6 +91,44 @@ class GateRefusalTest {
     }
 
     @Test
+    fun `допущение без подтверждения к точке — отказ с владельцем`() {
+        проект()
+        store.create("F-0001", "fact", область, null,
+            mapper.readTree("""{"subject":"терминал","predicate":"сеанс 12 с","value":"12","unit":"с","disposition":"assumed","assumption":{"owner":"Иванов И.","confirm_by":"MCR","validation":"замер на стенде","impact_if_wrong":"бюджет мощности"}}"""),
+            провенанс)
+        val почему = причина("assumptions_confirmed:MCR")
+        assertTrue("Иванов И." in почему && "F-0001" in почему, почему)
+        assertNull(оценщик.why(проект, "assumptions_confirmed:KDP-A"), "к другой точке допущений нет")
+    }
+
+    @Test
+    fun `тема с принятыми фактами без сущности — отказ, разрешённая — нет`() {
+        проект()
+        store.create("TP-0001", "topic", область, null, mapper.readTree("""{"label":"Платформа Спутникс"}"""), провенанс)
+        store.create("F-0002", "fact", область, null,
+            mapper.readTree("""{"subject":"платформа","predicate":"масса","value":"96","unit":"кг","disposition":"adopted","topic":"TP-0001"}"""), провенанс)
+        val почему = причина("topics_resolved")
+        assertTrue("TP-0001" in почему, почему)
+        val тема = store.byCode(область, "TP-0001")!!
+        store.update(тема.id, (тема.doc.deepCopy() as com.fasterxml.jackson.databind.node.ObjectNode).put("resolved_to", "SC-PLT"), провенанс)
+        assertNull(оценщик.why(проект, "topics_resolved"))
+    }
+
+    @Test
+    fun `принятый факт с живым противоречием — отказ, отклонённый спорщик снимает`() {
+        проект()
+        store.create("F-0003", "fact", область, null,
+            mapper.readTree("""{"subject":"платформа","predicate":"масса","value":"96","unit":"кг","disposition":"adopted","conflicts":["F-0004"]}"""), провенанс)
+        store.create("F-0004", "fact", область, null,
+            mapper.readTree("""{"subject":"платформа","predicate":"масса","value":"120","unit":"кг","disposition":"free","conflicts":["F-0003"]}"""), провенанс)
+        val почему = причина("facts_consistent")
+        assertTrue("F-0003" in почему && "F-0004" in почему, почему)
+        val спорщик = store.byCode(область, "F-0004")!!
+        store.update(спорщик.id, (спорщик.doc.deepCopy() as com.fasterxml.jackson.databind.node.ObjectNode).put("disposition", "rejected"), провенанс)
+        assertNull(оценщик.why(проект, "facts_consistent"))
+    }
+
+    @Test
     fun `непринятый замысел — отказ`() {
         проект()
         store.create("IN-0001", "intent", область, "2", mapper.createObjectNode(), провенанс, status = "draft")
