@@ -42,6 +42,10 @@ echo "== одно дерево носителей ==" ; python3 tools/validate_o
 echo "== граф библиотекой ==" ; python3 tools/validate_graph_library.py
 echo "== Capella только чтение ==" ; python3 tools/validate_capella_readonly.py
 echo "== реестр маршрутов ==" ; python3 tools/routes_registry.py --check
+# Правила владельца 08.09 (ПРИЁМКА-KNOWLEDGE-REMARKS): критерий готовности
+# только читает; у вида реестра один сериализатор.
+echo "== критерий только читает ==" ; python3 tools/validate_checks_readonly.py --selftest && python3 tools/validate_checks_readonly.py
+echo "== один сериализатор на вид ==" ; python3 tools/validate_one_serializer.py --selftest && python3 tools/validate_one_serializer.py
 # Справочник единиц (решение ранга ADR): unit-строки ∈ справочнику
 echo "== единицы =="          ; python3 tools/validate_units.py && python3 tools/validate_units.py --selftest
 

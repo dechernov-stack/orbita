@@ -142,20 +142,7 @@ class KnowledgeRoutes(
         return узел
     }
 
-    private fun фактВид(ф: Fact): ObjectNode = mapper.createObjectNode()
-        .put("id", ф.id)
-        .put("manual", ф.manual)
-        .put("kind", ф.kind)
-        .put("subject", ф.subject)
-        .put("predicate", ф.predicate)
-        .put("value", ф.value)
-        .put("unit", ф.unit)
-        .put("anchor", ф.anchor)
-        .put("mark", ф.mark.name)
-        .put("confidence", ф.confidence)
-        .put("material", ф.material)
-        .put("topic", ф.topic)
-        .put("disposition", ф.disposition.name.lowercase())
+    private fun фактВид(ф: Fact): ObjectNode = KindJson.факт(mapper, ф)
 
     private fun темы(project: String): V2Router.Ответ {
         val узел = mapper.createObjectNode()

@@ -184,29 +184,13 @@ class DocRoutes(
         // Отклонённый текст возвращается вместе с причинами — но кодом 422,
         // а не 201: принять его нельзя, а показать человеку нужно, иначе
         // непонятно, что именно модель сочинила.
-        return V2Router.Ответ(
-            if (текст.accepted) 201 else 422,
-            mapper.createObjectNode()
-                .put("section", текст.section)
-                .put("title", текст.title)
-                .put("text", текст.text)
-                .put("model", текст.model)
-                .put("accepted", текст.accepted)
-                .also { у ->
-                    у.putArray("refusals").also { а -> текст.refusals.forEach { а.add(it) } }
-                    у.putArray("notes").also { а -> текст.notes.forEach { а.add(it) } }
-                },
-        )
+        return V2Router.Ответ(if (текст.accepted) 201 else 422, KindJson.текст(mapper, текст))
     }
 
     private fun тексты(project: String, code: String): V2Router.Ответ {
         val узел = mapper.createObjectNode()
         val массив = узел.putArray("items")
-        documents.renderings(project, code).forEach { т ->
-            массив.addObject()
-                .put("section", т.section).put("title", т.title)
-                .put("text", т.text).put("model", т.model)
-        }
+        documents.renderings(project, code).forEach { массив.add(KindJson.текст(mapper, it)) }
         return V2Router.Ответ(200, узел)
     }
 

@@ -9,7 +9,17 @@ data class DbConfig(
     val user: String,
     val password: String,
 ) {
-    fun open(): Connection = DriverManager.getConnection(url, user, password)
+    /**
+     * Соединение ядра. Не голое DriverManager, а прокси поверх пула с
+     * проверкой и переподключением: одно соединение без переподключения
+     * превращало любой обрыв (пересоздание контейнера, recovery базы) в
+     * мёртвый стенд до docker restart — процесс жив, healthcheck красный,
+     * вход отвечает «This connection has been closed» (08.09, семь раз).
+     */
+    fun open(): Connection = ReconnectingSource(url, user, password).connection()
+
+    /** Голое соединение без пула — для миграций и разовых утилит. */
+    fun openPlain(): Connection = DriverManager.getConnection(url, user, password)
 
     companion object {
         fun fromEnv(): DbConfig = DbConfig(
@@ -34,7 +44,10 @@ fun <T> Connection.tx(block: () -> T): T {
         commit()
         return r
     } catch (e: Throwable) {
-        rollback()
+        // Откат на мёртвом соединении сам падает; наружу важна ПРИЧИНА
+        // (обрыв базы), а не «cannot rollback» поверх неё — по причине
+        // HttpApi решает, повторять ли запрос.
+        runCatching { rollback() }
         throw e
     } finally {
         autoCommit = prev

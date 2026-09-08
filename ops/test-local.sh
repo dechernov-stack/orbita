@@ -12,6 +12,14 @@
 # только вместе с задачей своего модуля — иначе соседний модуль падает
 # «No tests found».
 set -euo pipefail
+
+# Во время прохода владельца хост стенда не занят ничем, кроме стенда
+# (ops/walkthrough.sh): тесты ядра делили процессор с api, а выкаты
+# роняли backend базы (08.09).
+if [ -f "$(dirname "$0")/.проход-владельца" ]; then
+  echo "!!! идёт проход владельца (с $(cat "$(dirname "$0")/.проход-владельца")) — не сейчас; снять: ops/walkthrough.sh off" >&2
+  exit 3
+fi
 cd "$(dirname "$0")/.."
 
 DB="${ORBITA_TEST_DB_CONTAINER:-orbita-testdb}"

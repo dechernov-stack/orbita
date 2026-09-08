@@ -183,16 +183,7 @@ class AcrossRoutes(
         узел.put("intent", задание.intent)
         узел.put("note", задание.note)
         val факты = узел.putArray("facts")
-        задание.facts.forEach { факт ->
-            факты.addObject()
-                .put("id", факт.id)
-                .put("subject", факт.subject)
-                .put("predicate", факт.predicate)
-                .put("value", факт.value)
-                .put("unit", факт.unit)
-                .put("anchor", факт.anchor)
-                .put("mark", факт.mark.name)
-        }
+        задание.facts.forEach { факты.add(KindJson.факт(mapper, it)) }
         val план = узел.putArray("plan")
         задание.plan.forEach { действие ->
             план.addObject()
@@ -205,27 +196,9 @@ class AcrossRoutes(
 
     private fun фактология(проект: String): V2Router.Ответ {
         val массив = mapper.createArrayNode()
-        intake.facts(проект).forEach { факт ->
-            массив.addObject()
-                .put("id", факт.id)
-                .put("subject", факт.subject)
-                .put("predicate", факт.predicate)
-                .put("value", факт.value)
-                .put("unit", факт.unit)
-                .put("anchor", факт.anchor)
-                .put("mark", факт.mark.name)
-                .put("material", факт.material)
-                // Экран поля знаний живёт диспозициями и темами: без них
-                // список фактов — свалка, а не поле, с которым работают.
-                .put("kind", факт.kind)
-                .put("topic", факт.topic)
-                .put("disposition", факт.disposition.name.lowercase())
-                // Ручной факт виден отдельно — и в списке, а не только в
-                // ответе на заведение. Список и заведение сериализуются
-                // разным кодом; поймано отбором «заведены руками», который
-                // показывал пусто при живом ручном факте.
-                .put("manual", факт.manual)
-        }
+        // Тем же построителем, что и заведение: список и заведение писались
+        // разным кодом, и `manual` был в одном, но не в другом (правило 2).
+        intake.facts(проект).forEach { массив.add(KindJson.факт(mapper, it)) }
         val ответ = mapper.createObjectNode()
         ответ.set<JsonNode>("items", массив)
         return V2Router.Ответ(200, ответ)

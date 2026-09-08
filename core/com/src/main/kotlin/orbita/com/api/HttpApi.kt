@@ -103,9 +103,30 @@ class HttpApi(private val boundary: Boundary) {
         return server
     }
 
-    private fun handle(ex: HttpExchange) {
+    /**
+     * Повтор запроса при мёртвом соединении с базой (ПРИЁМКА-KNOWLEDGE-REMARKS
+     * §Стенд). Прокси-соединение уже сбросило мёртвый сокет и возьмёт свежий;
+     * GET повторяется один раз здесь же — у него нет тела, повторять
+     * безопасно. Запрос с телом повторять нельзя: тело прочитано, и
+     * повторить его — значит выдумать; такой запрос получает 503 с ясным
+     * словом «повторите», а не «Internal Server Error».
+     */
+    private fun сПовтором(ex: HttpExchange) {
         try {
             route(ex)
+        } catch (e: java.sql.SQLException) {
+            if (!orbita.mod.store.ReconnectingSource.умерло(e)) throw e
+            if (ex.requestMethod == "GET") {
+                route(ex)
+            } else {
+                throw DbReconnectedException("соединение с базой было потеряно и восстановлено — повторите запрос")
+            }
+        }
+    }
+
+    private fun handle(ex: HttpExchange) {
+        try {
+            сПовтором(ex)
         } catch (e: ProcessTasks.AssignForbiddenException) {
             respond(ex, 403, errJson(e))
         } catch (e: SchemaValidationException) {
@@ -145,6 +166,8 @@ class HttpApi(private val boundary: Boundary) {
             val yours = body.putObject("your_values")
             e.yourValues.forEach { (field, value) -> yours.set<ObjectNode>(field, value) }
             respond(ex, 409, body)
+        } catch (e: DbReconnectedException) {
+            respond(ex, 503, errJson(e).put("retry", true))
         } catch (e: IdReuseException) {
             respond(ex, 409, errJson(e))
         } catch (e: CycleException) {
@@ -5277,3 +5300,6 @@ class HttpApi(private val boundary: Boundary) {
         ex.responseBody.use { it.write(bytes) }
     }
 }
+
+/** База переподключена посреди запроса с телом: повторить обязан клиент. */
+class DbReconnectedException(message: String) : RuntimeException(message)

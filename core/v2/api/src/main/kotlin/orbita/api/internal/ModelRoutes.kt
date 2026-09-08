@@ -274,12 +274,7 @@ class ModelRoutes(
             узел.put("cross_cutting", п.crossCutting)
             val пары = узел.putArray("pbs_refs")
             п.pbsRefs.forEach { пары.add(it) }
-            п.estimate?.let { о ->
-                узел.putObject("estimate")
-                    .put("min", о.min).put("max", о.max).put("unit", о.unit)
-                    .put("method", о.method.name.lowercase()).put("assumptions", о.assumptions)
-                    .put("date", о.date)
-            }
+            п.estimate?.let { о -> узел.set<JsonNode>("estimate", KindJson.оценка(mapper, о)) }
             val разрывы = узел.putArray("gaps")
             п.gaps.forEach { разрывы.add(it) }
         }
@@ -332,11 +327,7 @@ class ModelRoutes(
             тело.path("assumptions").asText(""),
             тело.path("author").asText("стенд"),
         )
-        return V2Router.Ответ(
-            201,
-            mapper.createObjectNode().put("min", оценка.min).put("max", оценка.max)
-                .put("unit", оценка.unit).put("method", оценка.method.name.lowercase()),
-        )
+        return V2Router.Ответ(201, KindJson.оценка(mapper, оценка))
     }
 
     private fun созревание(проект: String): V2Router.Ответ {

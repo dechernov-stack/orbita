@@ -10,6 +10,13 @@ dependencies {
     implementation("com.fasterxml.jackson.core:jackson-databind:2.18.2")
     // Хранилище (ADR-011)
     implementation("org.postgresql:postgresql:42.7.7")
+    // Пул с проверкой и переподключением (ПРИЁМКА-KNOWLEDGE-REMARKS): одно
+    // JDBC-соединение без переподключения превращало любой чих базы в
+    // мёртвый стенд до docker restart. Лицензия Apache-2.0.
+    implementation("com.zaxxer:HikariCP:6.2.1")
+    // Журнал пула в stderr контейнера: «Failed to validate connection» и
+    // переподключения видны в docker logs, а не глотаются NOP-логгером.
+    runtimeOnly("org.slf4j:slf4j-simple:2.0.16")
 
     // Обвязка тестов: выгрузка демо-проекта из эталона (DemoModel) отдаёт JsonNode,
     // и тип виден потребителям — потому api, а не implementation

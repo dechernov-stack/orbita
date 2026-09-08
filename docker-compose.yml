@@ -15,6 +15,23 @@ services:
       POSTGRES_USER: orbita
       POSTGRES_PASSWORD: ${ORBITA_DB_PASSWORD:-orbita}
       POSTGRES_DB: orbita
+    # Падения 08.09 (отчёт docs/tz/v2/отчёты/СТЕНД-ПАДЕНИЯ-PG-08-09.md):
+    # backend умирал с exit code 2 в секунду остановки api, OOM исключён
+    # фактами. Журнал теперь называет клиента (%a@%h) и фиксирует
+    # подключения — следующий обрыв будет читаться, а не гадаться.
+    # shared_buffers и лимит памяти — явные числа вместо умолчаний, чтобы
+    # память базы не зависела от размера ВМ; это гигиена, не лечение.
+    command:
+      - postgres
+      - -c
+      - log_line_prefix=%m [%p] %a@%h
+      - -c
+      - log_connections=on
+      - -c
+      - log_disconnections=on
+      - -c
+      - shared_buffers=256MB
+    mem_limit: 1g
     volumes:
       - orbita-db:/var/lib/postgresql/data
     healthcheck:
@@ -54,6 +71,9 @@ services:
     restart: unless-stopped
 
   api:
+    # Время закрыть соединение с базой по SIGTERM до SIGKILL: обрыв
+    # сокета на полуслове ронял backend Postgres (08.09).
+    stop_grace_period: 20s
     build:
       context: .
       dockerfile: ops/api.Dockerfile

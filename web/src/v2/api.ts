@@ -485,12 +485,18 @@ export interface EntityRow {
   covered_by?: string[]
 }
 
-async function вызов<T>(путь: string, настройки?: RequestInit): Promise<T> {
+async function вызов<T>(путь: string, настройки?: RequestInit, повтор = true): Promise<T> {
   const ответ = await fetch(`/api/v2${путь}`, {
     headers: { 'Content-Type': 'application/json' },
     ...настройки,
   })
   const текст = await ответ.text()
+  // Сервер потерял и восстановил соединение с базой посреди запроса с
+  // телом (503 с `retry`): сам он тело повторить не вправе — тело есть
+  // только здесь. Один повтор, дальше — отказ словами сервера.
+  if (ответ.status === 503 && повтор && /"retry"\s*:\s*true/.test(текст)) {
+    return вызов<T>(путь, настройки, false)
+  }
   if (!ответ.ok) {
     // Отказ сервера — не «что-то пошло не так»: причина приходит словами
     // и показывается инженеру как есть.
