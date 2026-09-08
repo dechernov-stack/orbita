@@ -8,6 +8,7 @@ package orbita.knowledge.internal
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.node.ObjectNode
 import orbita.kernel.api.Area
 import orbita.kernel.api.Channel
 import orbita.kernel.api.EntityStore
@@ -518,6 +519,7 @@ class EntityIntake(
                     документ.put("anchor", якорь)
                     документ.put("material", material)
                     документ.put("mark", ф.path("source_mark").asText("И"))
+                    поСхеме(документ)
                     документ.put("confidence", ф.path("confidence").asDouble(0.5))
                     документ.put("disposition", "free")
                     if (метка.isNotBlank()) документ.put("topic", темы[метка] ?: темаКод(область, метка))
@@ -691,6 +693,19 @@ class EntityIntake(
         return topics(project).first { it.id == сущность.code }
     }
 
+    /**
+     * Поля факта по ИСТИНЕ СХЕМ рядом с плоскими: `source_mark` и
+     * `source{material, anchor}`. Шаблон отчёта отбирает допущения по
+     * `source_mark` (как в YAML), а запись хранила только `mark` — §10 не
+     * наполнялся никогда (шип D). Плоские поля остаются до DTO из YAML.
+     */
+    private fun поСхеме(документ: ObjectNode) {
+        документ.put("source_mark", документ.path("mark").asText("И"))
+        val источник = документ.putObject("source")
+        источник.put("material", документ.path("material").asText(""))
+        документ.path("anchor").asText("").takeIf { it.isNotBlank() }?.let { источник.put("anchor", it) }
+    }
+
     override fun addFact(
         project: String,
         subject: String,
@@ -701,9 +716,13 @@ class EntityIntake(
         topic: String?,
         material: String?,
         author: String,
+        mark: String,
     ): Fact {
         val область = Area.Project(project)
         require(predicate.isNotBlank()) { "факт без утверждения — не факт" }
+        // Помета — из перечня владельца: допущение (П) идёт в §10 отчёта
+        // как допущение, а не как наш проверенный материал.
+        require(mark in setOf("И", "В", "П")) { "помета достоверности: И · В · П, получено «$mark»" }
         require(value.isNotBlank()) { "факт без значения — не факт" }
         // Правило честности то же, что у разбора: величина без единицы —
         // не факт, кто бы её ни заводил.
@@ -724,8 +743,9 @@ class EntityIntake(
         val источник = material?.takeIf { it.isNotBlank() }
             ?: "инженер, ${java.time.LocalDate.now()}"
         документ.put("material", источник)
-        документ.put("mark", "И")
-        документ.put("confidence", 1.0)
+        документ.put("mark", mark)
+        поСхеме(документ)
+        документ.put("confidence", if (mark == "П") 0.5 else 1.0)
         документ.put("disposition", "free")
         документ.put("manual", true)
         topic?.takeIf { it.isNotBlank() }?.let { документ.put("topic", темаКод(область, it.trim())) }

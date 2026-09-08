@@ -383,3 +383,14 @@ button:disabled { opacity: .55; cursor: default; }
 .v2-kf__src { display: grid; gap: 6px; padding: var(--pad-s) var(--pad-m); max-width: 760px; }
 .v2-kf__src textarea, .v2-kf__src input { font: inherit; font-size: var(--size-s); width: 100%; }
 .v2-kf__manual { color: var(--ink-mute); font-size: var(--size-s); }
+
+/* Точки (шип D): подзаголовки карточки, условия списком, матрица прокруткой */
+.v2-h4 { margin: 14px 0 6px; font-size: 14px; font-weight: 600; }
+.v2-checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.v2-check { display: flex; gap: 8px; align-items: baseline; font-size: 14px; }
+.v2-check--no { color: var(--ink); }
+.v2-check--no > span:first-child { color: var(--block); }
+.v2-check--note { color: var(--ink-soft); }
+.v2-check__t { flex: 1; min-width: 0; }
+.v2-scroll { overflow-x: auto; }
+.v2-row__t { flex: 1; min-width: 0; }

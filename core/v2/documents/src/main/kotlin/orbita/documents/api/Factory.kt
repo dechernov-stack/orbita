@@ -3,6 +3,7 @@ package orbita.documents.api
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
+import orbita.documents.internal.DocumentChecks
 import orbita.documents.internal.EntityDocuments
 import orbita.kernel.api.EntityStore
 import orbita.kernel.api.LinkRegistry
@@ -27,4 +28,7 @@ object DocumentsFactory {
         /** Живая модель: промпт → (текст, имя модели). Пусто — связного текста нет. */
         writer: ((project: String, prompt: String) -> Pair<String, String>)? = null,
     ): Documents = EntityDocuments(store, links, template, mapper, baselineRoot, writer)
+
+    /** Условия ворот про документы: начат · полон к ступени · базирован (только чтение). */
+    fun gateChecks(documents: Documents): orbita.readiness.api.ExtraChecks = DocumentChecks(documents)
 }

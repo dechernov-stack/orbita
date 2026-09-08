@@ -168,6 +168,12 @@ class HttpApi(private val boundary: Boundary) {
             respond(ex, 409, body)
         } catch (e: DbReconnectedException) {
             respond(ex, 503, errJson(e).put("retry", true))
+        } catch (e: orbita.process.api.RoleRefusedException) {
+            // Роль решает сервер (шип D): отказ с именами, а не спрятанная кнопка.
+            respond(ex, 403, errJson(e))
+        } catch (e: orbita.process.api.GateHeldException) {
+            // Точка держится блокирующим условием — отказ движка с критерием.
+            respond(ex, 409, errJson(e).put("held", true))
         } catch (e: IdReuseException) {
             respond(ex, 409, errJson(e))
         } catch (e: CycleException) {
@@ -199,7 +205,32 @@ class HttpApi(private val boundary: Boundary) {
         val method = ex.requestMethod
 
         if (path.startsWith("/v2/")) {
-            val ответ = v2.handle(method, path, query(ex), if (method == "GET") null else body(ex))
+            // Учётка и роли — в маршруты v2 (шип D): роль решает сервер.
+            // Запись без сессии при включённом входе — 401, как и у первой
+            // версии; чтение остаётся открытым, как было.
+            val вход = boundary.auth.enabled()
+            val учётка = sessionToken(ex)?.let { boundary.auth.sessionUser(it) }
+            if (вход && учётка == null && method != "GET" && method != "HEAD") {
+                respond(ex, 401, mapper.createObjectNode().put("error", "войдите: сессия не найдена или истекла"))
+                return
+            }
+            val actor = учётка?.let { u ->
+                val проект = query(ex)["project"]
+                // Роль в проекте; у проектов v2 ролей ещё не заводят (access —
+                // волна 6), тогда — единственная роль учётки, если она одна.
+                val роль = boundary.auth.roleIn(проект, u.login)
+                    ?: boundary.auth.rolesOf(u.login).values.toSet().singleOrNull()
+                val роли = buildSet {
+                    роль?.let { add(it) }
+                    // Стенд: руководитель проекта носит и обзорную роль
+                    // (учётка «РП · DA» одна) — то же правило, что в реестре прав.
+                    if (standMode && роль == "lead") add("da_review")
+                }
+                orbita.api.api.Actor(u.login, u.displayName, роли)
+            }
+            currentAuthor.set(учётка?.displayName)
+            currentAuthorLogin.set(учётка?.login)
+            val ответ = v2.handle(method, path, query(ex), if (method == "GET") null else body(ex), actor)
             if (ответ == null) {
                 respond(ex, 404, mapper.createObjectNode().put("error", "нет маршрута v2: $method $path"))
             } else if (ответ.binary != null) {

@@ -7,6 +7,8 @@ dependencies {
     api(project(":core:v2:kernel"))
     api(project(":core:v2:access"))
     api(project(":core:v2:requirements"))
+    // Условия ворот про документы реализуют порт readiness (как требования и программатика).
+    api(project(":core:v2:readiness"))
     api(project(":core:v2:architecture"))
     api(project(":core:v2:models"))
     api(project(":core:v2:formulation"))

@@ -7,6 +7,9 @@ package orbita.api.internal
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ObjectNode
 import orbita.process.api.ActivityView
+import orbita.process.api.ConditionView
+import orbita.process.api.FindingView
+import orbita.process.api.GateView
 import orbita.process.api.PhaseView
 
 internal object PhaseJson {
@@ -64,16 +67,8 @@ internal object PhaseJson {
             сцена.awaitedBy.forEach { ждут.add(it) }
             val потоки = с.putArray("input_flows")
             сцена.inputFlows.forEach { потоки.add(it) }
-            fun условия(имя: String, список: List<orbita.process.api.ConditionView>) {
-                val массив = с.putArray(имя)
-                список.forEach { у ->
-                    массив.addObject()
-                        .put("title", у.title).put("check", у.check)
-                        .put("passed", у.passed).put("why", у.why)
-                }
-            }
-            условия("entry", сцена.entry)
-            условия("exit", сцена.exit)
+            условия(с.putArray("entry"), сцена.entry)
+            условия(с.putArray("exit"), сцена.exit)
             мероприятия(с.putArray("activities"), сцена.activities)
             val шаги = с.putArray("steps")
             сцена.steps.forEach { шаг ->
@@ -94,17 +89,80 @@ internal object PhaseJson {
         }
 
         val точки = узел.putArray("gates")
-        фаза.gates.forEach { точка ->
-            val т = точки.addObject()
-            т.put("key", точка.key)
-            т.put("title", точка.title)
-            т.put("order", точка.order)
-            т.put("planned_date", точка.plannedDate)
-            т.put("passed", точка.passed)
-            val блок = т.putArray("blocking")
-            точка.blocking.forEach { блок.add(it) }
+        фаза.gates.forEach { точки.add(точка(it, mapper)) }
+        return узел
+    }
+
+    private fun условия(массив: com.fasterxml.jackson.databind.node.ArrayNode, список: List<ConditionView>) {
+        список.forEach { у ->
+            массив.addObject()
+                .put("title", у.title).put("check", у.check)
+                .put("passed", у.passed).put("why", у.why)
+                .put("blocking", у.blocking)
+        }
+    }
+
+    /** Точка целиком: критерии, экспертиза с позициями, замечания, решение, матрица. */
+    fun точка(т: GateView, mapper: ObjectMapper): ObjectNode {
+        val узел = mapper.createObjectNode()
+        узел.put("key", т.key)
+        узел.put("title", т.title)
+        узел.put("order", т.order)
+        узел.put("planned_date", т.plannedDate)
+        узел.put("passed", т.passed)
+        узел.put("role", т.role)
+        узел.put("opens_phase", т.opensPhase)
+        узел.put("checklist_of", т.checklistOf)
+        узел.put("legend_note", т.legendNote)
+        val блок = узел.putArray("blocking")
+        т.blocking.forEach { блок.add(it) }
+        условия(узел.putArray("criteria"), т.criteria)
+        т.expertise?.let { э ->
+            val у = узел.putObject("expertise")
+            у.put("goal", э.goal)
+            у.put("source", э.source)
+            val вопросы = у.putArray("questions")
+            э.questions.forEach { вопросы.add(it) }
+            val результаты = у.putArray("results")
+            э.results.forEach { результаты.add(it) }
+            val итог = у.putArray("main_outcome")
+            э.mainOutcome.forEach { итог.add(it) }
+            val позиции = у.putArray("positions")
+            э.positions.forEach { позиции.add(позиция(it, mapper)) }
+        }
+        val замечания = узел.putArray("findings")
+        т.findings.forEach { замечания.add(замечание(it, mapper)) }
+        т.decision?.let { д ->
+            узел.putObject("decision")
+                .put("by", д.by).put("at", д.at).put("outcome", д.outcome).put("note", д.note)
+        }
+        val матрица = узел.putArray("matrix")
+        т.matrix.forEach { матрица.add(позиция(it, mapper)) }
+        return узел
+    }
+
+    /** Позиция зрелости — одна развёртка и для экспертизы, и для матрицы. */
+    private fun позиция(п: orbita.process.api.PositionView, mapper: ObjectMapper): ObjectNode {
+        val узел = mapper.createObjectNode()
+            .put("artifact", п.artifact).put("maturity", п.maturity)
+            .put("our_ref", п.ourRef).put("check", п.check)
+            .put("passed", п.passed).put("why", п.why).put("blocking", п.blocking)
+        if (п.codes.isNotEmpty()) {
+            val коды = узел.putObject("codes")
+            п.codes.forEach { (к, в) -> коды.put(к, в) }
         }
         return узел
     }
+
+    fun замечание(з: FindingView, mapper: ObjectMapper): ObjectNode = mapper.createObjectNode()
+        .put("code", з.code)
+        .put("text", з.text)
+        .put("scene", з.scene)
+        .put("gate", з.gate)
+        .put("status", з.status)
+        .put("author", з.author)
+        .put("kind", з.kind)
+        .put("question", з.question)
+        .put("closed_by", з.closedBy)
 
 }

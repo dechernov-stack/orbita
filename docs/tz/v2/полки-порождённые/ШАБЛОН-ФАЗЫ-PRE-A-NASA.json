@@ -1116,7 +1116,21 @@
           "blocking": true,
           "title": "замысел принят"
         }
-      ]
+      ],
+      "role": "lead",
+      "checklist_of": "MCR",
+      "expertise": {
+        "goal": "Самопроверка команды перед MCR: чек-лист по критериям и вопросам MCR; каждое «нет» — замечание с возвратом в сцену",
+        "validation_questions": [],
+        "results": [
+          "замечания с возвратом в сцены",
+          "отчёт о концепции миссии базирован линией «внутренний обзор»"
+        ],
+        "main_outcome": [
+          "решение руководителя проекта: к MCR готовы"
+        ],
+        "source": "БП-PPA 7.1"
+      }
     },
     {
       "key": "MCR",
@@ -1153,6 +1167,77 @@
         ],
         "main_outcome": [
           "решение о переходе к концепции"
+        ],
+        "source": "EXP-0A",
+        "control_items": [
+          {
+            "artifact": "цели задания и задачи",
+            "maturity": "С",
+            "our_ref": "kind:goal"
+          },
+          {
+            "artifact": "потребности задания",
+            "maturity": "С",
+            "our_ref": "kind:need"
+          },
+          {
+            "artifact": "научные требования",
+            "maturity": "С",
+            "our_ref": "kind:requirement"
+          },
+          {
+            "artifact": "системные спецификации",
+            "maturity": "С"
+          },
+          {
+            "artifact": "предположения, правила и ограничения",
+            "maturity": "С",
+            "our_ref": "kind:constraint"
+          },
+          {
+            "artifact": "технология развития требований",
+            "maturity": "С"
+          },
+          {
+            "artifact": "проверка планов",
+            "maturity": "С",
+            "our_ref": "kind:plan"
+          },
+          {
+            "artifact": "понятие системы и архитектуры",
+            "maturity": "С",
+            "our_ref": "kind:baseline_concept"
+          },
+          {
+            "artifact": "функциональное понятие системы",
+            "maturity": "С",
+            "our_ref": "kind:functional_chain"
+          },
+          {
+            "artifact": "понятие операций",
+            "maturity": "°",
+            "our_ref": "document_template:conops"
+          },
+          {
+            "artifact": "понятие / критерии оценки дизайна",
+            "maturity": "С",
+            "our_ref": "kind:criterion"
+          },
+          {
+            "artifact": "оценка осуществимости",
+            "maturity": "°",
+            "our_ref": "kind:constellation_variant"
+          },
+          {
+            "artifact": "оценка стоимости жизненного цикла",
+            "maturity": "°",
+            "our_ref": "kind:cost_estimate"
+          },
+          {
+            "artifact": "результаты анализа компромиссов",
+            "maturity": "°",
+            "our_ref": "kind:constellation_variant"
+          }
         ]
       },
       "criteria": [
@@ -1190,8 +1275,14 @@
           "check": "risks_due_closed:MCR",
           "title": "риски и TBR со сроком к этой точке закрыты",
           "blocking": true
+        },
+        {
+          "check": "findings_closed:internal_review",
+          "blocking": true,
+          "title": "замечания внутреннего обзора закрыты"
         }
-      ]
+      ],
+      "role": "da_review"
     },
     {
       "key": "KDP-A",
@@ -1232,6 +1323,113 @@
           "check": "risks_due_closed:KDP-A",
           "title": "риски и TBR со сроком к этой точке закрыты",
           "blocking": true
+        },
+        {
+          "check": "findings_closed:MCR",
+          "blocking": true,
+          "title": "RFA и RID обзора MCR закрыты"
+        }
+      ],
+      "role": "da_review",
+      "opens_phase": "Phase A",
+      "expertise": {
+        "goal": "Решение о переходе к Phase A: заключение MCR, закрытые замечания, комплект Д1–Д9 в требуемых зрелостях",
+        "validation_questions": [
+          "Закрыты ли все RFA и RID обзора MCR?",
+          "Комплект Д1–Д9 — в зрелостях, требуемых к KDP-A?",
+          "Есть ли Formulation Agreement с планом Phase A и датами SRR/SDR?",
+          "Закрыты ли риски и TBR со сроком к этой точке?"
+        ],
+        "results": [
+          "решение DA",
+          "фаза проекта — Phase A"
+        ],
+        "main_outcome": [
+          "переход в Phase A"
+        ],
+        "source": "БП-PPA 7.3"
+      },
+      "maturity_matrix": [
+        {
+          "artifact": "Д1 · Formulation Authorization Document (FAD)",
+          "codes": {
+            "internal_review": "°",
+            "MCR": "°",
+            "KDP-A": "F"
+          },
+          "note": "шаблона FAD нет — придёт шипом C п. 2; не проверяется"
+        },
+        {
+          "artifact": "Д2 · Отчёт о концепции миссии (MCReport)",
+          "our_ref": "document_template:mcreport",
+          "codes": {
+            "internal_review": "С",
+            "MCR": "Р",
+            "KDP-A": "Р"
+          }
+        },
+        {
+          "artifact": "Д3 · Черновик требований уровня проекта",
+          "our_ref": "kind:requirement",
+          "codes": {
+            "internal_review": "С",
+            "MCR": "Р",
+            "KDP-A": "Р"
+          }
+        },
+        {
+          "artifact": "Д4 · Draft ConOps",
+          "our_ref": "document_template:conops",
+          "codes": {
+            "internal_review": "С",
+            "MCR": "Р",
+            "KDP-A": "Р"
+          }
+        },
+        {
+          "artifact": "Д5 · План критических технологий",
+          "our_ref": "kind:technology",
+          "codes": {
+            "internal_review": "С",
+            "MCR": "Р",
+            "KDP-A": "Р"
+          }
+        },
+        {
+          "artifact": "Д6 · Реестр рисков",
+          "our_ref": "kind:risk",
+          "codes": {
+            "internal_review": "С",
+            "MCR": "Р",
+            "KDP-A": "Р"
+          }
+        },
+        {
+          "artifact": "Д7 · Начальная оценка засорения (ОСЗ)",
+          "our_ref": "kind:debris_assessment",
+          "codes": {
+            "internal_review": "°",
+            "MCR": "Р",
+            "KDP-A": "Р"
+          }
+        },
+        {
+          "artifact": "Д8 · Оценка стоимости и сроков (ROM)",
+          "our_ref": "kind:cost_estimate",
+          "codes": {
+            "internal_review": "°",
+            "MCR": "С",
+            "KDP-A": "Р"
+          }
+        },
+        {
+          "artifact": "Д9 · Formulation Agreement (FA) с планом Phase A",
+          "codes": {
+            "internal_review": "°",
+            "MCR": "°",
+            "KDP-A": "F"
+          },
+          "note": "шаблона FA нет — придёт шипом C п. 2; не проверяется"
         }
       ]
     }
@@ -1470,5 +1668,6 @@
         }
       ]
     }
-  ]
+  ],
+  "maturity_note": "коды зрелости позиций (С · Р · F · U · Σ · Δ · x · °) — предположительно, до легенды владельца (ПОЛКА-ПРОЦЕССЫ-РОМАНОВ.maturity_matrix.legend); экспертиза EXP-0B в полке не транскрибирована, MCR сопоставлен с EXP-0A по псевдониму «экспертиза замысла»"
 }

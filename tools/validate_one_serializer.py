@@ -61,7 +61,14 @@ def chains(path: Path) -> list[tuple[int, list[str], bool]]:
     cur: list[str] = []
     start = 0
     registry = False
-    for n, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+    lines = path.read_text(encoding="utf-8").splitlines()
+
+    def в_реестр(после: int) -> bool:
+        """Документ уходит в хранилище: это построитель ЗАПИСИ, не сериализатор вида."""
+        хвост = "\n".join(lines[после:после + 12])
+        return "store.create(" in хвост or "store.update(" in хвост
+
+    for n, line in enumerate(lines, 1):
         s = line.strip()
         puts = re.findall(r'\.put\("(\w+)"', line)
         if puts:
@@ -69,16 +76,16 @@ def chains(path: Path) -> list[tuple[int, list[str], bool]]:
                 start = n
                 registry = False
             cur += puts
-            # Значения из `.doc.path(…)` (документ → ответ) или из
-            # `тело.path(…)` (запрос → документ) — это рукописный построитель
-            # ВИДА РЕЕСТРА (следующий шаг правила: DTO из YAML генерацией),
-            # а не сериализатор порта.
+            # Значения из `.doc.path(…)` (документ → ответ), из `тело.path(…)`
+            # (запрос → документ) или документ, уходящий в `store.create` —
+            # это рукописный построитель ВИДА РЕЕСТРА (следующий шаг правила:
+            # DTO из YAML генерацией), а не сериализатор порта.
             registry = registry or any(k in line for k in (".doc.path(", ".doc[", "тело.path(", "body.path("))
         elif s.startswith("//") or not s or s.startswith("."):
             continue
         else:
             if cur:
-                out.append((start, cur, registry))
+                out.append((start, cur, registry or в_реестр(n - 1)))
             cur = []
     if cur:
         out.append((start, cur, registry))

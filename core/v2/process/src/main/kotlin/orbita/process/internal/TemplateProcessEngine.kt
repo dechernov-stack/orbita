@@ -13,7 +13,13 @@ import com.fasterxml.jackson.databind.JsonNode
 import orbita.process.api.ActivityState
 import orbita.process.api.ActivityView
 import orbita.process.api.ConditionView
+import orbita.process.api.DecisionView
+import orbita.process.api.ExpertiseView
+import orbita.process.api.FindingView
 import orbita.process.api.GateEvaluator
+import orbita.process.api.GateHeldException
+import orbita.process.api.PositionView
+import orbita.process.api.RoleRefusedException
 import orbita.process.api.LaneView
 import orbita.process.api.OutputCounter
 import orbita.process.api.OutputView
@@ -49,6 +55,17 @@ class TemplateProcessEngine(
      * не показываются, только смысл потока.
      */
     private val процессы: (() -> JsonNode?)? = null,
+    /** Замечания обзора: движок читает их как события возврата в сцену. */
+    private val замечания: ((String) -> List<FindingView>)? = null,
+    /** Решения точек — последнее по каждой. */
+    private val решения: ((String) -> Map<String, DecisionView>)? = null,
+    /** Фаза проекта по данным (после KDP-A — «Phase A»); пусто — из шаблона. */
+    private val фазаПроекта: ((String) -> String?)? = null,
+    /**
+     * Запись решения: проект, точка, кем, исход, помета, открываемая фаза.
+     * Пусто — решение живёт только в памяти (тесты).
+     */
+    private val наРешение: ((String, String, String, String, String?, String?) -> Unit)? = null,
 ) : ProcessEngine {
 
     private val шаблоныПроектов = mutableMapOf<String, String>()
@@ -62,6 +79,8 @@ class TemplateProcessEngine(
         val код = шаблоныПроектов[project] ?: "PHT-9001"
         val док = шаблон(код)
         val пройдены = пройденныеТочки(project)
+        val всеЗамечания = замечания?.invoke(project).orEmpty()
+        val открытые = всеЗамечания.filter { it.status == "open" }
 
         // Сцены считаются по порядку: состояние следующей зависит от предыдущих
         val прожитые = mutableSetOf<String>()
@@ -111,13 +130,22 @@ class TemplateProcessEngine(
                     условие.path("check").asText(), причина == null, причина,
                 )
             }
+            // Замечание обзора с возвратом сюда — СОБЫТИЕ, не флаг: пока оно
+            // открыто, выход сцены держится им, и прожитая сцена снова в
+            // работе; закрыли — условие исчезает, сцена прожита вновь.
+            val возвраты = открытые.filter { it.scene == ключ }.map { з ->
+                ConditionView(
+                    "замечание ${з.code}: ${з.text}", "finding_closed:${з.code}", false,
+                    "замечание «${з.text}» (${з.gate}) открыто — закройте его работой в этой сцене",
+                )
+            }
             val условияВыхода = сцена.path("exit").map { условие ->
                 val причина = проверить(project, условие.path("check").asText(), прожитые, пройдены)
                 ConditionView(
                     условие.path("title").asText(условие.path("check").asText()),
                     условие.path("check").asText(), причина == null, причина,
                 )
-            }
+            } + возвраты
             val причиныВхода = условияВхода.mapNotNull { it.why }
             val причиныВыхода = условияВыхода.mapNotNull { it.why }
             val состояние = when {
@@ -157,18 +185,84 @@ class TemplateProcessEngine(
         }
 
         val план = планТочек(project)
+        val решенияТочек = решения?.invoke(project).orEmpty()
+        val помета = док.path("maturity_note").asText("").ifBlank { null }
         val точки = док.path("points").sortedBy { it.path("order").asInt() }.map { точка ->
             val ключ = точка.path("key").asText()
-            val блокирующие = точка.path("criteria")
-                .filter { it.path("blocking").asBoolean(true) }
-                .mapNotNull { проверить(project, it.path("check").asText(), прожитые, пройдены) }
+            // Критерии целиком — ✓ и ☐ с причиной: точка показывает, из чего
+            // она состоит, а не только чего не хватает.
+            val критерии = точка.path("criteria").map { у ->
+                val причина = проверить(project, у.path("check").asText(), прожитые, пройдены)
+                ConditionView(
+                    у.path("title").asText(у.path("check").asText()),
+                    у.path("check").asText(), причина == null, причина,
+                    blocking = у.path("blocking").asBoolean(true),
+                )
+            }
+            val экспертиза = точка.path("expertise").takeIf { it.isObject }?.let { э ->
+                ExpertiseView(
+                    goal = э.path("goal").asText(""),
+                    questions = э.path("validation_questions").map { it.asText() },
+                    results = э.path("results").map { it.asText() },
+                    mainOutcome = э.path("main_outcome").map { it.asText() },
+                    positions = э.path("control_items").map { п ->
+                        val код = п.path("maturity").asText("")
+                        val ссылка = п.path("our_ref").asText("").ifBlank { null }
+                        val проверка = MaturityTable.check(код, ссылка, ключ)
+                        val причина = проверка?.let { проверить(project, it, прожитые, пройдены) }
+                        PositionView(
+                            artifact = п.path("artifact").asText(""),
+                            maturity = код,
+                            ourRef = ссылка,
+                            check = проверка,
+                            passed = проверка?.let { причина == null },
+                            why = причина ?: MaturityTable.words(код, ссылка),
+                            blocking = проверка != null && MaturityTable.blocking(код, ссылка),
+                        )
+                    },
+                    source = э.path("source").asText("").ifBlank { null },
+                )
+            }
+            // Матрица зрелости комплекта: код к ЭТОЙ точке решает, что проверять.
+            val матрица = точка.path("maturity_matrix").map { строка ->
+                val коды = строка.path("codes").fields().asSequence().associate { (к, в) -> к to в.asText() }
+                val код = коды[ключ] ?: "x"
+                val ссылка = строка.path("our_ref").asText("").ifBlank { null }
+                val проверка = MaturityTable.check(код, ссылка, ключ)
+                val причина = проверка?.let { проверить(project, it, прожитые, пройдены) }
+                PositionView(
+                    artifact = строка.path("artifact").asText(""),
+                    maturity = код,
+                    ourRef = ссылка,
+                    check = проверка,
+                    passed = проверка?.let { причина == null },
+                    why = причина ?: MaturityTable.words(код, ссылка),
+                    blocking = проверка != null && MaturityTable.blocking(код, ссылка),
+                    codes = коды,
+                )
+            }
+            val держат = критерии.filter { it.blocking && !it.passed }.mapNotNull { it.why } +
+                экспертиза?.positions.orEmpty()
+                    .filter { it.blocking && it.passed == false }
+                    .map { "позиция экспертизы «${it.artifact}» (${it.maturity}): ${it.why}" } +
+                матрица.filter { it.blocking && it.passed == false }
+                    .map { "комплект: «${it.artifact}» — ${it.why}" }
             GateView(
                 key = ключ,
                 title = точка.path("title").asText(),
                 order = точка.path("order").asInt(),
                 plannedDate = план[ключ] ?: LocalDate.now().plusDays(точка.path("offset_days").asLong(30)).toString(),
                 passed = ключ in пройдены,
-                blocking = блокирующие,
+                blocking = держат,
+                role = точка.path("role").asText(""),
+                criteria = критерии,
+                expertise = экспертиза,
+                findings = всеЗамечания.filter { it.gate == ключ },
+                decision = решенияТочек[ключ],
+                matrix = матрица,
+                opensPhase = точка.path("opens_phase").asText("").ifBlank { null },
+                checklistOf = точка.path("checklist_of").asText("").ifBlank { null },
+                legendNote = помета,
             )
         }
 
@@ -188,7 +282,9 @@ class TemplateProcessEngine(
         return PhaseView(
             project = project,
             standard = док.path("standard").asText(""),
-            phase = док.path("phase").asText(""),
+            // После решения KDP-A фаза проекта — из данных, а не из шаблона
+            // Pre-A: шаблон Phase A придёт шипом G, переход же случился здесь.
+            phase = фазаПроекта?.invoke(project)?.takeIf { it.isNotBlank() } ?: док.path("phase").asText(""),
             currentScene = сцены.firstOrNull { it.state == SceneState.OPEN }?.key,
             scenes = сцены,
             gates = точки,
@@ -197,16 +293,62 @@ class TemplateProcessEngine(
     }
 
     override fun passGate(project: String, gate: String, decidedBy: String): PhaseView {
+        val роль = view(project).gates.firstOrNull { it.key == gate }?.role
+            ?: throw NoSuchElementException("точки «$gate» нет в фазе проекта")
+        return decide(project, gate, decidedBy, setOf(роль), "approve", null)
+    }
+
+    override fun decide(
+        project: String,
+        gate: String,
+        by: String,
+        roles: Set<String>,
+        outcome: String,
+        note: String?,
+    ): PhaseView {
         val вид = view(project)
         val точка = вид.gates.firstOrNull { it.key == gate }
-            ?: error("точки «$gate» нет в фазе проекта")
-        // Отказ приходит от движка, а не от интерфейса: блокирующее
-        // невыполненное условие не даёт зафиксировать точку.
-        require(точка.blocking.isEmpty()) {
-            "точка «${точка.title}» держится: " + точка.blocking.joinToString("; ")
+            ?: throw NoSuchElementException("точки «$gate» нет в фазе проекта")
+        // Роль решает не интерфейс: спрятанная кнопка правом не является.
+        val роль = точка.role
+        if (роль.isNotBlank() && роль !in roles) {
+            throw RoleRefusedException(
+                "решение по точке «${точка.title}» принимает ${имяРоли(project, роль)}; " +
+                    "ваша роль — ${roles.joinToString(", ") { имяРоли(project, it) }.ifBlank { "нет" }} ($by)",
+            )
         }
-        пройденныеТочки(project).add(gate)
+        when (outcome) {
+            "approve" -> {
+                if (точка.passed) throw IllegalArgumentException("точка «${точка.title}» уже пройдена")
+                // Отказ приходит от движка, а не от интерфейса: блокирующее
+                // невыполненное условие не даёт зафиксировать точку.
+                if (точка.blocking.isNotEmpty()) {
+                    throw GateHeldException("точка «${точка.title}» держится: " + точка.blocking.joinToString("; "))
+                }
+            }
+            "return" -> if (точка.findings.none { it.status == "open" }) {
+                throw IllegalArgumentException(
+                    "вернуть точку «${точка.title}» можно только с открытыми замечаниями: " +
+                        "заведите замечание с возвратом в сцену",
+                )
+            }
+            "defer" -> Unit
+            else -> throw IllegalArgumentException("исход решения: approve · return · defer, получено «$outcome»")
+        }
+        val запись = наРешение
+        if (запись != null) {
+            запись(project, gate, by, outcome, note, точка.opensPhase.takeIf { outcome == "approve" })
+        } else if (outcome == "approve") {
+            пройденныеТочки(project).add(gate)
+        }
         return view(project)
+    }
+
+    /** Имя роли — из шаблона фазы (`roles[].involvement` до двоеточия), не из кода. */
+    private fun имяРоли(project: String, роль: String): String {
+        val код = шаблоныПроектов[project] ?: "PHT-9001"
+        return шаблон(код).path("roles").firstOrNull { it.path("role").asText() == роль }
+            ?.path("involvement")?.asText()?.substringBefore(":")?.trim()?.ifBlank { null } ?: роль
     }
 
     private fun мероприятия(

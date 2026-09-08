@@ -94,6 +94,15 @@ class ModelRoutes(
 
         method == "GET" && path == "/v2/risks" -> риски(требуется(query, "project"))
 
+        // Сцена 17: риск со сроком к точке закрывается РЕШЕНИЕМ словами, а
+        // не исчезновением из реестра — точка ждёт именно закрытия.
+        method == "POST" && path.matches(Regex("/v2/risks/[A-Za-z0-9-]+/close")) ->
+            закрытьРиск(
+                требуется(query, "project"),
+                path.removePrefix("/v2/risks/").removeSuffix("/close"),
+                разобрать(body),
+            )
+
         else -> null
     }
 
@@ -415,6 +424,18 @@ class ModelRoutes(
             Provenance(Channel.MANUAL, тело.path("author").asText("стенд")),
         )
         return V2Router.Ответ(201, mapper.createObjectNode().put("code", создано.code))
+    }
+
+    private fun закрытьРиск(проект: String, код: String, тело: JsonNode): V2Router.Ответ {
+        val область = Area.Project(проект)
+        val риск = store.byCode(область, код)?.takeIf { it.kind == "risk" }
+            ?: throw NoSuchElementException("риска «$код» в проекте нет")
+        val решение = тело.path("resolution").asText("").trim()
+        require(решение.isNotBlank()) { "риск закрывается решением словами: чем он снят или почему принят" }
+        val автор = тело.path("author").asText("стенд")
+        val документ = риск.doc.deepCopy<ObjectNode>().put("resolution", решение).put("closed_by", автор)
+        val закрыт = store.update(риск.id, документ, Provenance(Channel.MANUAL, автор), status = "closed")
+        return V2Router.Ответ(200, mapper.createObjectNode().put("code", закрыт.code).put("status", закрыт.status))
     }
 
     private fun планПакета(проект: String, тело: JsonNode): V2Router.Ответ {

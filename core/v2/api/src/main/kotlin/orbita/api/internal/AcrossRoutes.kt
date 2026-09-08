@@ -50,13 +50,6 @@ class AcrossRoutes(
         method == "GET" && path == "/v2/entities" ->
             перечень(требуется(query, "project"), требуется(query, "kind"))
 
-        method == "POST" && path.startsWith("/v2/gates/") && path.endsWith("/pass") ->
-            фиксировать(
-                требуется(query, "project"),
-                path.removePrefix("/v2/gates/").removeSuffix("/pass"),
-                разобрать(body),
-            )
-
         else -> null
     }
 
@@ -290,8 +283,4 @@ class AcrossRoutes(
 
     private fun требуется(query: Map<String, String>, имя: String): String =
         query[имя] ?: throw IllegalArgumentException("нужен параметр «$имя»")
-
-    /** Фиксация точки: решение принимает движок, здесь только перевод. */
-    private fun фиксировать(проект: String, точка: String, тело: JsonNode): V2Router.Ответ =
-        V2Router.Ответ(200, PhaseJson.вид(engine.passGate(проект, точка, автор(тело)), mapper))
 }

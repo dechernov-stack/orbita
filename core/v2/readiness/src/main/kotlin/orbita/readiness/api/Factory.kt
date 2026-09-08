@@ -17,5 +17,7 @@ object ReadinessFactory {
         gatesPassed: (String) -> Set<String>,
         /** Условия, которые знают модули выше слоем; собирает их граница. */
         extra: ExtraChecks? = null,
-    ): GateEvaluator = DomainGateEvaluator(store, links, scenesDone, gatesPassed, extra)
+        /** Русское имя вида для причин отказа: реестр схем живёт выше, readiness его не знает. */
+        kindTitle: (String) -> String = { it },
+    ): GateEvaluator = DomainGateEvaluator(store, links, scenesDone, gatesPassed, extra, kindTitle)
 }

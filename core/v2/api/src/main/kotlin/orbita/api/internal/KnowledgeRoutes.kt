@@ -120,6 +120,7 @@ class KnowledgeRoutes(
             topic = тело.path("topic").asText("").ifBlank { null },
             material = тело.path("material").asText("").ifBlank { null },
             author = тело.path("author").asText("инженер"),
+            mark = тело.path("mark").asText("").ifBlank { "И" },
         )
         return V2Router.Ответ(201, фактВид(ф))
     }

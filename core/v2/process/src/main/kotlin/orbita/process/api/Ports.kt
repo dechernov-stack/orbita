@@ -25,7 +25,14 @@ enum class SceneState {
  * (✓ выполненные и ☐ невыполненные), а не только то, чего не хватает —
  * иначе не видно, из чего сцена состоит.
  */
-data class ConditionView(val title: String, val check: String, val passed: Boolean, val why: String?)
+data class ConditionView(
+    val title: String,
+    val check: String,
+    val passed: Boolean,
+    val why: String?,
+    /** Блокирующее условие держит точку; остальные — помета. */
+    val blocking: Boolean = true,
+)
 
 data class SceneView(
     val key: String,
@@ -136,6 +143,22 @@ data class GateView(
     val passed: Boolean,
     /** Блокирующие критерии, не выполненные сейчас. */
     val blocking: List<String>,
+    /** Роль, которая принимает решение по точке (из шаблона фазы). */
+    val role: String = "",
+    /** Критерии целиком — ✓ и ☐ с причиной, как условия сцены. */
+    val criteria: List<ConditionView> = emptyList(),
+    val expertise: ExpertiseView? = null,
+    /** Замечания обзора этой точки — открытые и закрытые. */
+    val findings: List<FindingView> = emptyList(),
+    val decision: DecisionView? = null,
+    /** Матрица зрелости комплекта (артефакт × точки) — у точки решения. */
+    val matrix: List<PositionView> = emptyList(),
+    /** Фаза, которую открывает решение «approve» (KDP-A → Phase A). */
+    val opensPhase: String? = null,
+    /** Чек-лист — по критериям и вопросам ДРУГОЙ точки (внутренний обзор → MCR). */
+    val checklistOf: String? = null,
+    /** Помета о легенде кодов зрелости, пока её нет от владельца. */
+    val legendNote: String? = null,
 )
 
 data class PhaseView(
@@ -180,4 +203,21 @@ interface ProcessEngine {
 
     /** Пройти точку. Блокирующее невыполненное условие — отказ движка. */
     fun passGate(project: String, gate: String, decidedBy: String): PhaseView
+
+    /**
+     * Решение по точке с исходом approve · return · defer.
+     *
+     * Роль решающего обязана быть ролью точки из шаблона — иначе
+     * [RoleRefusedException] с именами; approve при блокирующем условии —
+     * [GateHeldException] с критерием; return — только при открытых
+     * замечаниях: вернуть без слов «куда и почему» нельзя.
+     */
+    fun decide(
+        project: String,
+        gate: String,
+        by: String,
+        roles: Set<String>,
+        outcome: String,
+        note: String?,
+    ): PhaseView
 }

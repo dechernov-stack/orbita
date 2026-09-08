@@ -69,6 +69,28 @@ class GateRefusalTest {
     }
 
     @Test
+    fun `открытое замечание точки — отказ с текстом и сценой возврата`() {
+        проект()
+        store.create(
+            "RFA-0001", "finding", область, "16",
+            mapper.readTree("""{"gate":"MCR","text":"нет владельца у нужды N-3","returns_to_scene":"3","author":"Чернов Д."}"""),
+            провенанс, status = "open",
+        )
+        val почему = причина("findings_closed:MCR")
+        assertTrue("нет владельца" in почему && "сцена 3" in почему, почему)
+        assertNull(оценщик.why(проект, "findings_closed:internal_review"), "у другой точки замечаний нет")
+    }
+
+    @Test
+    fun `нет записей вида — отказ по-русски, запись снимает`() {
+        проект()
+        val почему = причина("exists:goal")
+        assertTrue("нет ни одной записи" in почему, почему)
+        store.create("G-1", "goal", область, "4", mapper.createObjectNode(), провенанс)
+        assertNull(оценщик.why(проект, "exists:goal"))
+    }
+
+    @Test
     fun `непринятый замысел — отказ`() {
         проект()
         store.create("IN-0001", "intent", область, "2", mapper.createObjectNode(), провенанс, status = "draft")

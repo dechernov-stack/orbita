@@ -14,6 +14,7 @@ import { Requirements } from './requirements'
 import { ArchitectureScreen } from './architecture'
 import { Documents } from './documents'
 import { Models } from './models'
+import { Points } from './points'
 import { ИМЯ_РЕЖИМА, режимПоРоли, type Режим } from './density'
 
 /** Раздел рейки. `wave` — волна, в которой раздел оживает. */
@@ -56,6 +57,8 @@ export function Shell() {
   const [project, setProject] = useState<string | null>(null)
   const [portfolio, setPortfolio] = useState<ProjectRow[]>([])
   const [phase, setPhase] = useState<Phase | null>(null)
+  /** Счётчик перечитывания фазы: решение точки меняет шапку и ленту. */
+  const [phaseTick, setPhaseTick] = useState(0)
   /** Переход «к месту» из заданий: открыть работу на нужной сцене. */
   const [wantScene, setWantScene] = useState<string | null>(null)
   const [tasks, setTasks] = useState<number>(0)
@@ -86,7 +89,7 @@ export function Shell() {
     localStorage.setItem('orbita.v2.project', project)
     api.phase(project).then(setPhase).catch(() => setPhase(null))
     api.myTasks(project).then((r) => setTasks(r.items.filter((з) => !з.waiting).length)).catch(() => undefined)
-  }, [project, section])
+  }, [project, section, phaseTick])
 
   useEffect(() => {
     fetch('/api/auth/whoami')
@@ -227,6 +230,8 @@ export function Shell() {
             <Models project={project} />
           ) : section === 'documents' ? (
             <Documents project={project} />
+          ) : section === 'points' ? (
+            <Points project={project} phase={phase} onChanged={() => setPhaseTick((t) => t + 1)} />
           ) : section === 'tasks' ? (
             <MyTasks project={project} onGoScene={(сцена) => { setWantScene(сцена); setSection('work') }} />
           ) : (

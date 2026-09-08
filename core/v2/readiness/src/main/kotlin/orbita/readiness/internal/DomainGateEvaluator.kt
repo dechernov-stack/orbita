@@ -20,6 +20,8 @@ class DomainGateEvaluator(
     private val воротаПройдены: (String) -> Set<String>,
     /** Условия, которые знают модули выше слоем (требования, архитектура). */
     private val дополнительные: ExtraChecks? = null,
+    /** Русское имя вида для причины отказа; по умолчанию — код вида. */
+    private val имяВида: (String) -> String = { it },
 ) : GateEvaluator {
 
     override fun why(project: String, check: String): String? {
@@ -120,6 +122,28 @@ class DomainGateEvaluator(
                 }
                 if (точек > 0 && даты >= точек) null
                 else "даты точек в плане: $даты из $точек"
+            }
+
+            // Замечания обзора — событие: пока хоть одно открыто, точка
+            // держится, а сцена возврата снова в работе (шип D).
+            "findings_closed" -> {
+                val точка = аргумент ?: return "условие «$check» не назвало точку"
+                val открытые = store.list(область, "finding").filter {
+                    it.status == "open" && it.doc.path("gate").asText() == точка
+                }
+                if (открытые.isEmpty()) null
+                else "открыто замечаний ${точка}: ${открытые.size} — " + открытые.take(3).joinToString("; ") {
+                    "«${it.doc.path("text").asText().take(60)}» → сцена ${it.doc.path("returns_to_scene").asText("?")}"
+                }
+            }
+
+            // Позиция экспертизы с кодом «требуется» для записи реестра:
+            // проверяется наличие хотя бы одной записи вида. Зрелость
+            // реестра к точке считать нечем — и это не выдумывается.
+            "exists" -> {
+                val вид = аргумент ?: return "условие «$check» не назвало вид"
+                if (store.list(область, вид).any { it.status != "cancelled" }) null
+                else "нет ни одной записи «${имяВида(вид)}»"
             }
 
             "scene_done" -> {

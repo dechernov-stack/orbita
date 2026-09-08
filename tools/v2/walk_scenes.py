@@ -61,7 +61,8 @@ def вызов(base: str, метод: str, путь: str, тело=None):
 
 
 class Прогон:
-    def __init__(self, base: str, проект: str, сид: dict):
+    def __init__(self, base: str, проект: str, сид: dict, точки: bool = False):
+        self.точки = точки
         self.base = base
         self.проект = проект
         self.сид = сид
@@ -315,6 +316,121 @@ class Прогон:
                 оценены.add(код)
                 self.сделано.append(f"сцена 12: оценка созревания {код}")
 
+    # --- точки: сцены 15–18 (шип D) --------------------------------------
+
+    def точка(self, ключ: str) -> dict:
+        точки = вызов(self.base, "GET", f"/v2/points?project={self.проект}")["items"]
+        return next(т for т in точки if т["key"] == ключ)
+
+    def подготовка_к_точкам(self) -> None:
+        """Чего сценам 1–12 не хватало для точек: план фазы, решение по
+        риску со сроком к MCR, допущение и открытый вопрос для §10–§11."""
+        план = вызов(self.base, "GET", f"/v2/plan?project={self.проект}")
+        if not план.get("planned"):
+            точки = {т["key"]: т for т in вызов(self.base, "GET", f"/v2/points?project={self.проект}")["items"]}
+            import datetime
+            сегодня = datetime.date.today()
+            окна = []
+            for i in range(1, 13):
+                начало = сегодня + datetime.timedelta(days=(i - 1) * 5)
+                окна.append({"scene": str(i), "start": начало.isoformat(),
+                             "end": (начало + datetime.timedelta(days=4)).isoformat()})
+            вызов(self.base, "POST", f"/v2/plan?project={self.проект}", {
+                "gate_dates": [{"gate": к, "date": т["planned_date"]} for к, т in точки.items() if т.get("planned_date")],
+                "scene_windows": окна, "author": "Чернов Д.",
+            })
+            self.сделано.append("сцена 1: план работ фазы задан (окна сцен 1–12)")
+        настройки = self.сид.get("points", {})
+        риски = {(р.get("doc") or {}).get("statement"): р for р in self.сущности("risk")}
+        for р in настройки.get("risk_resolutions", []):
+            риск = риски.get(р["statement"])
+            if риск and риск.get("status") != "closed":
+                вызов(self.base, "POST", f"/v2/risks/{риск['code']}/close?project={self.проект}",
+                      {"resolution": р["resolution"], "author": "Чернов Д."})
+                self.сделано.append(f"сцена 17: риск {риск['code']} закрыт решением")
+        # §10 наполняется допущениями по истине схем (source_mark = П):
+        # смотрим на сам раздел, а не на список фактов.
+        отчёт = вызов(self.base, "GET", f"/v2/documents/mcreport?project={self.проект}&gate=KDP-A")
+        строк10 = sum(len(э.get("rows", [])) for р in отчёт.get("sections", []) if р.get("no") == "§10"
+                      for э in р.get("elements", []))
+        допущение = настройки.get("assumption")
+        if допущение and строк10 == 0:
+            вызов(self.base, "POST", f"/v2/facts?project={self.проект}", {**допущение, "author": "Иванов И."})
+            self.сделано.append("§10: допущение заведено руками (помета П)")
+        тема = настройки.get("open_topic")
+        if тема:
+            темы = вызов(self.base, "GET", f"/v2/topics?project={self.проект}").get("items", [])
+            if not any(т.get("label") == тема for т in темы):
+                вызов(self.base, "POST", f"/v2/topics?project={self.проект}", {"label": тема, "author": "Иванов И."})
+                self.сделано.append("§11: открытый вопрос заведён темой")
+
+    def сцена_15_внутренний_обзор(self) -> None:
+        """Чек с галками РП: одно «нет» — замечание с возвратом; сцена
+        возврата снова в работе; закрыли — решение РП."""
+        точка = self.точка("internal_review")
+        if точка["passed"]:
+            self.пропущено.append("сцена 15: внутренний обзор пройден")
+            return
+        вопросы = self.точка("MCR").get("expertise", {}).get("questions", [])
+        вопрос = вопросы[0] if вопросы else "Названы ли все стороны?"
+        if not точка["findings"]:
+            замечание = вызов(self.base, "POST", f"/v2/points/internal_review/findings?project={self.проект}",
+                              {"text": f"Нет: {вопрос} — проверить реестр сторон", "returns_to_scene": "3",
+                               "question": вопрос})
+            фаза = вызов(self.base, "GET", f"/v2/phase?project={self.проект}")
+            сцена3 = next(с for с in фаза["scenes"] if с["key"] == "3")
+            if сцена3["state"] != "open":
+                raise Отказ(f"замечание не вернуло сцену 3 в работу: состояние {сцена3['state']}")
+            self.сделано.append(f"сцена 15: замечание {замечание['code']} вернуло сцену 3 в работу")
+            вызов(self.base, "POST", f"/v2/findings/{замечание['code']}/close?project={self.проект}",
+                  {"note": "стороны проверены — реестр полон"})
+            self.сделано.append(f"сцена 15: замечание {замечание['code']} закрыто, сцена 3 прожита вновь")
+        # фиксация инженером — отказ ролью: это мера шипа, а не помеха
+        self.войти("petrova")
+        try:
+            вызов(self.base, "POST", f"/v2/points/internal_review/decide?project={self.проект}", {"outcome": "approve"})
+            raise Отказ("инженер зафиксировал внутренний обзор — роль не проверена")
+        except Отказ as о:
+            if "роль" not in str(о) and "принимает" not in str(о):
+                raise
+            self.сделано.append(f"сцена 15: инженеру отказано ролью — {str(о)[:80]}")
+        self.войти("chernov")
+        вызов(self.base, "POST", f"/v2/points/internal_review/decide?project={self.проект}",
+              {"outcome": "approve", "note": "к MCR готовы"})
+        self.сделано.append("сцена 15: внутренний обзор зафиксирован РП")
+
+    def сцена_16_mcr(self) -> None:
+        точка = self.точка("MCR")
+        if точка["passed"]:
+            self.пропущено.append("сцена 16: MCR пройден")
+            return
+        if точка["blocking"]:
+            raise Отказ("MCR держится: " + "; ".join(точка["blocking"]))
+        вызов(self.base, "POST", f"/v2/points/MCR/decide?project={self.проект}",
+              {"outcome": "approve", "note": "экспертиза: замысел понят"})
+        self.сделано.append("сцена 16: MCR зафиксирован DA")
+
+    def сцена_17_замечания(self) -> None:
+        открытые = вызов(self.base, "GET", f"/v2/findings?project={self.проект}&status=open")["items"]
+        for з in открытые:
+            вызов(self.base, "POST", f"/v2/findings/{з['code']}/close?project={self.проект}", {"note": "устранено"})
+            self.сделано.append(f"сцена 17: замечание {з['code']} закрыто")
+        if not открытые:
+            self.пропущено.append("сцена 17: открытых замечаний нет")
+
+    def сцена_18_kdp_a(self) -> None:
+        точка = self.точка("KDP-A")
+        if точка["passed"]:
+            self.пропущено.append("сцена 18: KDP-A пройдена")
+            return
+        if точка["blocking"]:
+            raise Отказ("KDP-A держится: " + "; ".join(точка["blocking"]))
+        ответ = вызов(self.base, "POST", f"/v2/points/KDP-A/decide?project={self.проект}",
+                      {"outcome": "approve", "note": "переход в Phase A"})
+        if ответ.get("phase") != "Phase A":
+            raise Отказ(f"после KDP-A фаза {ответ.get('phase')!r}, а не Phase A")
+        self.сделано.append("сцена 18: решение DA — проект в Phase A")
+
     def пройти(self) -> None:
         self.войти("chernov")
         self.сцена_1_проект()
@@ -332,12 +448,25 @@ class Прогон:
         self.вехи_созревания()
         self.войти("chernov")
         self.сцена_12_стоимость()
+        if self.точки:
+            self.подготовка_к_точкам()
+            self.сцена_15_внутренний_обзор()
+            self.сцена_16_mcr()
+            self.сцена_17_замечания()
+            self.сцена_18_kdp_a()
 
 
 def состояние(base: str, проект: str) -> None:
     """Что получилось: сцены, свёртка с рамкой и полнота разделов отчёта."""
     фаза = вызов(base, "GET", f"/v2/phase?project={проект}")
+    print("  фаза:", фаза.get("phase"))
     print("  сцены:", " ".join(f"{с['key']}:{с['state'][:4]}" for с in фаза["scenes"]))
+    for т in вызов(base, "GET", f"/v2/points?project={проект}")["items"]:
+        состояние_точки = "пройдена" if т["passed"] else (f"держится ({len(т['blocking'])})" if т["blocking"] else "условия выполнены")
+        открытых = sum(1 for з in т["findings"] if з["status"] == "open")
+        print(f"  ◆ {т['title'][:40]:<42} {состояние_точки:<22} замечаний открыто {открытых}")
+        for б in т["blocking"][:4]:
+            print(f"      ← {б[:110]}")
 
     свёртка = вызов(base, "GET", f"/v2/budget?project={проект}&kind=mass&gate=MCR")
     print(f"  свёртка массы: сумма {свёртка['sum']} {свёртка['unit']}, "
@@ -363,6 +492,7 @@ def main() -> int:
     ap.add_argument("--base", default="http://localhost:8080/api")
     ap.add_argument("--project", default=None, help="код проекта; по умолчанию — из сида")
     ap.add_argument("--report", action="store_true", help="ничего не делать, показать состояние")
+    ap.add_argument("--points", action="store_true", help="после сцен 1–12 пройти точки: сцены 15–18 до KDP-A")
     args = ap.parse_args()
 
     сид = json.loads(СИД.read_text(encoding="utf-8"))
@@ -370,7 +500,7 @@ def main() -> int:
 
     вызов(args.base, "POST", "/auth/stand-login", {"login": "chernov"})
     if not args.report:
-        прогон = Прогон(args.base, проект, сид)
+        прогон = Прогон(args.base, проект, сид, точки=args.points)
         try:
             прогон.пройти()
         except Отказ as о:

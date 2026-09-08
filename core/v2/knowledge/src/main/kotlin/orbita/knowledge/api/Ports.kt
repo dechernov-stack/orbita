@@ -220,6 +220,8 @@ interface Intake {
         topic: String?,
         material: String?,
         author: String,
+        /** Помета достоверности: И — наш материал, В — внешний, П — допущение (семантика владельца). */
+        mark: String = "И",
     ): Fact
 }
 

@@ -8,6 +8,7 @@ package orbita.api.internal
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
+import orbita.api.api.Actor
 import orbita.formulation.api.Formulation
 import orbita.kernel.api.EntityStore
 import orbita.kernel.api.LinkRegistry
@@ -31,6 +32,8 @@ class V2Router(
     private val docRoutes: DocRoutes? = null,
     /** Поле знаний: канон, живой разбор, факты и диспозиции. */
     private val knowledgeRoutes: KnowledgeRoutes? = null,
+    /** Точки (шип D): чек обзора, замечания, решения, переход фазы. */
+    private val pointRoutes: PointRoutes? = null,
 ) {
 
     /**
@@ -49,9 +52,15 @@ class V2Router(
 
     private val сцены = SceneRoutes(store, links, engine, mapper)
     private val сквозные = AcrossRoutes(store, links, engine, shelves, intake, formulation, mapper)
+    // Точки есть у любого роутера: фиксация точки — часть хребта, а не
+    // отдельной волны; сборка без явных записей берёт записи над тем же
+    // хранилищем.
+    private val точки: PointRoutes = pointRoutes ?: PointRoutes(engine, GateRecords(store, mapper), mapper)
 
-    fun handle(method: String, path: String, query: Map<String, String>, body: String?): Ответ? =
-        сцены.handle(method, path, query, body)
+    /** @param actor учётка и роли — для маршрутов, где решает роль; null — вход не включён */
+    fun handle(method: String, path: String, query: Map<String, String>, body: String?, actor: Actor? = null): Ответ? =
+        точки.handle(method, path, query, body, actor)
+            ?: сцены.handle(method, path, query, body)
             ?: сквозные.handle(method, path, query, body)
             ?: reqArch?.handle(method, path, query, body)
             ?: modelRoutes?.handle(method, path, query, body)

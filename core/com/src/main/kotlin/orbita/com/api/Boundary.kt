@@ -128,7 +128,6 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
         val links = orbita.kernel.api.KernelFactory.linkRegistry(conn)
         val корень = java.nio.file.Path.of(System.getenv("ORBITA_REPO_ROOT") ?: ".")
         val шаблоны = корень.resolve("docs/tz/v2/полки-порождённые")
-        val пройденные = mutableMapOf<String, MutableSet<String>>()
         val полки = orbita.library.api.LibraryFactory.shelves(store) { код ->
             val файл = шаблоны.resolve(
                 if (код == "PHT-9001") "ШАБЛОН-ФАЗЫ-PRE-A-NASA.json" else "$код.json",
@@ -145,22 +144,34 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
         val проверкиАрхитектуры = orbita.architecture.api.ArchitectureFactory.gateChecks(store, архитектура)
         val проверкиПрограмматики =
             orbita.programmatics.api.ProgrammaticsFactory.gateChecks(store, программатика)
+        // Записи точек (шип D): пройденность, решения и замечания — в реестре,
+        // а не в памяти api: зафиксированный MCR переживает перезапуск.
+        val записиТочек = orbita.api.internal.GateRecords(store, mapper)
+        // Условия про документы заводятся ниже, когда есть сам порт документов;
+        // оценщик спрашивает их при вызове, а не при сборке.
+        var проверкиДокументов: orbita.readiness.api.ExtraChecks? = null
         val оценщик = orbita.readiness.api.ReadinessFactory.gateEvaluator(
             store, links,
             scenesDone = { emptySet() },
-            gatesPassed = { p -> пройденные.getOrPut(p) { mutableSetOf() } },
+            gatesPassed = { p -> записиТочек.passed(p) },
             extra = { проект, условие ->
                 проверкиТребований.of(проект, условие)
                     ?: проверкиАрхитектуры.of(проект, условие)
                     ?: проверкиПрограмматики.of(проект, условие)
+                    ?: проверкиДокументов?.of(проект, условие)
             },
+            kindTitle = { вид -> runCatching { orbita.kernel.schema.GeneratedKinds.of(вид).title }.getOrDefault(вид) },
         )
         val движок = orbita.process.api.ProcessFactory.engine(
             // Шаблон читается С ПОЛКИ; файл поставки — запасной путь, пока
             // полка не загружена (см. EntityShelves.phaseTemplate).
             template = { код -> полки.phaseTemplate(код) },
             evaluator = оценщик,
-            passedGates = { p -> пройденные.getOrPut(p) { mutableSetOf() } },
+            passedGates = { p -> записиТочек.passed(p) },
+            findings = { p -> записиТочек.findings(p) },
+            decisions = { p -> записиТочек.decisions(p) },
+            phaseOf = { p -> записиТочек.phaseOf(p) },
+            onDecision = { p, точка, кем, исход, помета, фаза -> записиТочек.record(p, точка, кем, исход, помета, фаза) },
             gatePlan = { проект ->
                 store.list(orbita.kernel.api.Area.Project(проект), "gate")
                     .associate { it.code to it.doc.path("planned_date").asText("") }
@@ -219,7 +230,9 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
                 ответ.text to ответ.model
             },
         )
+        проверкиДокументов = orbita.documents.api.DocumentsFactory.gateChecks(документы)
         val документыМаршруты = orbita.api.internal.DocRoutes(store, документы, mapper) { полки.phaseTemplate("PHT-9001") }
+        val точки = orbita.api.internal.PointRoutes(движок, записиТочек, mapper)
         val знанияМаршруты = orbita.api.internal.KnowledgeRoutes(
             знания,
             orbita.ai.api.AiFactory.atomize(store, знания, служба, mapper),
@@ -228,7 +241,7 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
         )
         return orbita.api.internal.V2Router(
             store, links, движок, полки, знания, постановка, mapper, волна3, волна4,
-            документыМаршруты, знанияМаршруты,
+            документыМаршруты, знанияМаршруты, точки,
         )
     }
 

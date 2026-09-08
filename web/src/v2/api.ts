@@ -16,6 +16,8 @@ export interface Condition {
   check: string
   passed: boolean
   why: string | null
+  /** Блокирующее держит точку; остальное — помета. */
+  blocking?: boolean
 }
 
 /** Выход мероприятия: артефакт со счётчиком из данных. */
@@ -81,6 +83,49 @@ export interface Scene {
   activities: Activity[]
 }
 
+/** Замечание обзора (RFA/RID) с возвратом в сцену — событие движка. */
+export interface Finding {
+  code: string
+  text: string
+  scene: string
+  gate: string
+  status: string
+  author: string
+  kind: string
+  question: string | null
+  closed_by: string | null
+}
+
+/** Контрольная позиция экспертизы: код зрелости и наша проверка. */
+export interface Position {
+  artifact: string
+  maturity: string
+  our_ref: string | null
+  check: string | null
+  /** null — не сопоставлена, не проверяется. */
+  passed: boolean | null
+  why: string | null
+  blocking: boolean
+  /** Коды зрелости по всем точкам — у строки матрицы комплекта. */
+  codes?: Record<string, string>
+}
+
+export interface Expertise {
+  goal: string
+  source: string | null
+  questions: string[]
+  results: string[]
+  main_outcome: string[]
+  positions: Position[]
+}
+
+export interface Decision {
+  by: string
+  at: string
+  outcome: string
+  note: string | null
+}
+
 export interface Gate {
   key: string
   title: string
@@ -88,6 +133,23 @@ export interface Gate {
   planned_date: string | null
   passed: boolean
   blocking: string[]
+  /** Роль, которая решает по точке. */
+  role: string
+  opens_phase: string | null
+  checklist_of: string | null
+  legend_note: string | null
+  criteria: Condition[]
+  expertise?: Expertise
+  findings: Finding[]
+  decision?: Decision
+  matrix: Position[]
+}
+
+export interface PointsView {
+  project: string
+  phase: string
+  current_scene: string | null
+  items: Gate[]
 }
 
 export interface Phase {
@@ -876,4 +938,17 @@ export const api = {
   passGate: (project: string, gate: string, author: string) =>
     вызов<Phase>(`/gates/${encodeURIComponent(gate)}/pass?project=${encodeURIComponent(project)}`,
       { method: 'POST', body: JSON.stringify({ author }) }),
+
+  /** Точки фазы: критерии, экспертиза, замечания, решение, матрица. */
+  points: (project: string) => вызов<PointsView>(`/points?project=${encodeURIComponent(project)}`),
+  addFinding: (project: string, gate: string, тело: { text: string; returns_to_scene: string; question?: string; kind?: string }) =>
+    вызов<Finding>(`/points/${encodeURIComponent(gate)}/findings?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify(тело) }),
+  closeFinding: (project: string, code: string, note: string) =>
+    вызов<Finding>(`/findings/${encodeURIComponent(code)}/close?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ note }) }),
+  /** Решение по точке: approve · return · defer — роль и блокирующие проверяет сервер. */
+  decide: (project: string, gate: string, outcome: string, note: string) =>
+    вызов<Phase & { point: Gate }>(`/points/${encodeURIComponent(gate)}/decide?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ outcome, note }) }),
 }
