@@ -122,6 +122,8 @@ export interface FactRow {
   /** И — наш документ · В — внешний, проверенный на дату · П — допущение. */
   mark: 'И' | 'В' | 'П'
   material: string
+  /** Заведён инженером руками, а не разбором источника. */
+  manual?: boolean
 }
 
 export interface PlanAction {
@@ -631,8 +633,28 @@ export const api = {
       { method: 'POST', body: JSON.stringify({ chosen, author }) }),
 
   knowledgeCoverage: (project: string) =>
-    вызов<{ total: number; from_facts: number; manual: number; share_percent: number }>(
+    вызов<{ total: number; from_facts: number; from_manual_facts: number; manual: number; share_percent: number }>(
       `/knowledge/coverage?project=${encodeURIComponent(project)}`),
+
+  /** Живой разбор материала: факты, темы и задание с планом одним ответом. */
+  atomize: (project: string, material: string, intent: string, author: string) =>
+    вызов<{ task: string; note: string; accepted: number; refused: number; refusals: string[] }>(
+      `/intake/atomize?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ material, intent, author }) }),
+
+  /** План задания — предпросмотр до нажатия. */
+  taskPlan: (project: string, task: string) =>
+    вызов<{ task: string; note: string; actions: {
+      index: number; target_kind: string; scene: string; title: string; preview: string; facts: string[]
+    }[] }>(`/intake/${encodeURIComponent(task)}?project=${encodeURIComponent(project)}`),
+
+  addTopic: (project: string, label: string, author: string) =>
+    вызов<{ id: string; label: string; facts: number }>(`/topics?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ label, author }) }),
+
+  addFact: (project: string, тело: Record<string, unknown>) =>
+    вызов<FactRow>(`/facts?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify(тело) }),
 
   phase: (project: string) => вызов<Phase>(`/phase?project=${encodeURIComponent(project)}`),
 

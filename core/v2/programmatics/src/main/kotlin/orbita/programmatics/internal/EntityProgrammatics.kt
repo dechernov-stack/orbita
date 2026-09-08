@@ -101,6 +101,8 @@ class EntityProgrammatics(
                 name = пакет.doc.path("name").asText(пакет.code),
                 parent = пакет.doc.path("parent_code").asText("").ifBlank { null },
                 crossCutting = сквозной,
+                planStart = пакет.doc.path("plan").path("start").asText("").ifBlank { null },
+                planEnd = пакет.doc.path("plan").path("end").asText("").ifBlank { null },
                 pbsRefs = пары,
                 estimate = оценка?.let { вид(it) },
                 gaps = buildList {
@@ -159,7 +161,55 @@ class EntityProgrammatics(
         return вид(запись)
     }
 
-    override fun maturation(project: String, author: String): List<MaturationView> {
+    override fun planPackage(
+        project: String,
+        packageCode: String,
+        start: String,
+        end: String,
+        author: String,
+    ): String? {
+        val область = Area.Project(project)
+        val пакет = store.byCode(область, packageCode)
+            ?: throw IllegalArgumentException("пакета «$packageCode» нет в проекте")
+        require(пакет.kind == "wbs_package") { "«$packageCode» — не пакет работ, а ${пакет.kind}" }
+        val дата = Regex("""\d{4}-\d{2}-\d{2}""")
+        require(дата.matches(start) && дата.matches(end)) { "даты плана — ГГГГ-ММ-ДД" }
+        require(start <= end) { "конец работ раньше начала: $start … $end" }
+
+        val обновлён = store.update(
+            пакет.id,
+            пакет.doc.deepCopy<ObjectNode>().apply {
+                putObject("plan").put("start", start).put("end", end)
+            },
+            Provenance(Channel.MANUAL, author),
+        )
+
+        // Пакет созревания ведёт свою веху: её дата — плановый конец работ,
+        // а не отдельно введённое число. Иначе они разъезжаются, и никто не
+        // замечает, пока срок не наступит.
+        val технология = обновлён.doc.path("maturation_for").asText("").ifBlank { null }
+            ?: return null
+        val веха = store.list(область, "gate")
+            .firstOrNull { it.doc.path("technology").asText("") == технология }
+            ?: return null
+        store.update(
+            веха.id,
+            веха.doc.deepCopy<ObjectNode>()
+                .put("planned_date", end)
+                .put("date_source", "пакет ${обновлён.code}"),
+            Provenance(Channel.SERVICE, author, source = обновлён.code),
+        )
+        return веха.code
+    }
+
+    override fun maturationState(project: String): List<MaturationView> =
+        созревание(project, author = null)
+
+    override fun maturation(project: String, author: String): List<MaturationView> =
+        созревание(project, author)
+
+    /** @param author null — только читать: ничего не заводить. */
+    private fun созревание(project: String, author: String?): List<MaturationView> {
         val область = Area.Project(project)
         return store.list(область, "technology").map { технология ->
             val текущий = технология.doc.path("trl_current").asInt(9)
@@ -176,8 +226,12 @@ class EntityProgrammatics(
             }
 
             // Разрыв TRL рождает пакет работ и веху — молча он не остаётся.
+            // Но ТОЛЬКО когда назван автор: чтение состояния (ворота)
+            // ничего не заводит, иначе критерий закрывает разрыв, который
+            // проверяет, и отказать не может никогда.
             val кодПакета = "04.${технология.code}"
-            val пакет = store.byCode(область, кодПакета) ?: store.create(
+            val пакет = store.byCode(область, кодПакета) ?: author?.let {
+                store.create(
                 кодПакета, "wbs_package", область, "12",
                 mapper.createObjectNode().apply {
                     put("name", "созревание: ${технология.doc.path("name").asText(технология.code)}")
@@ -186,10 +240,12 @@ class EntityProgrammatics(
                     val пары = putArray("pbs_refs")
                     технология.doc.path("component").asText("").ifBlank { null }?.let { пары.add(it) }
                 },
-                Provenance(Channel.SERVICE, author, source = технология.code),
-            )
+                Provenance(Channel.SERVICE, it, source = технология.code),
+                )
+            }
             val кодВехи = "TRL-${технология.code}"
-            val веха = store.byCode(область, кодВехи) ?: store.create(
+            val веха = store.byCode(область, кодВехи) ?: author?.let {
+                store.create(
                 кодВехи, "gate", область, "10",
                 mapper.createObjectNode().apply {
                     put("title", "TRL $нужный достигнут: ${технология.doc.path("name").asText(технология.code)}")
@@ -197,9 +253,12 @@ class EntityProgrammatics(
                     put("planned_date", "")
                     put("technology", технология.id)
                 },
-                Provenance(Channel.SERVICE, author, source = технология.code),
-            )
-            if (технология.doc.path("maturation_package").asText("").isBlank()) {
+                Provenance(Channel.SERVICE, it, source = технология.code),
+                )
+            }
+            if (author != null && пакет != null && веха != null &&
+                технология.doc.path("maturation_package").asText("").isBlank()
+            ) {
                 store.update(
                     технология.id,
                     технология.doc.deepCopy<ObjectNode>()
@@ -208,12 +267,16 @@ class EntityProgrammatics(
                     Provenance(Channel.SERVICE, author),
                 )
             }
+            val резерв = технология.doc.path("fallback").asText("").ifBlank { null }
             MaturationView(
-                технология.code, узел, текущий, нужный, точка, пакет.code, веха.code,
-                технология.doc.path("fallback").asText("").ifBlank { null },
-                "разрыв TRL $текущий → $нужный к точке $точка: заведён пакет ${пакет.code} и веха ${веха.code}" +
-                    (технология.doc.path("fallback").asText("").ifBlank { null }
-                        ?.let { "; резервное решение: $it" } ?: "; резервного решения нет"),
+                технология.code, узел, текущий, нужный, точка, пакет?.code, веха?.code, резерв,
+                if (пакет == null || веха == null) {
+                    "разрыв TRL $текущий → $нужный к точке $точка: плана созревания нет"
+                } else {
+                    "разрыв TRL $текущий → $нужный к точке $точка: " +
+                        "заведён пакет ${пакет.code} и веха ${веха.code}" +
+                        (резерв?.let { "; резервное решение: $it" } ?: "; резервного решения нет")
+                },
             )
         }
     }

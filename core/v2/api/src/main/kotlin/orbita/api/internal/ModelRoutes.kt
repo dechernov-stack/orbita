@@ -64,6 +64,9 @@ class ModelRoutes(
 
         method == "POST" && path == "/v2/wbs/estimate" -> оценка(требуется(query, "project"), разобрать(body))
 
+        // План пакета: для пакета созревания он ведёт дату вехи.
+        method == "POST" && path == "/v2/wbs/plan" -> планПакета(требуется(query, "project"), разобрать(body))
+
         method == "GET" && path == "/v2/maturation" -> созревание(требуется(query, "project"))
 
         // Записи сцен 10–12: технология, риск, оценка засорения. Без них
@@ -423,6 +426,25 @@ class ModelRoutes(
         return V2Router.Ответ(201, mapper.createObjectNode().put("code", создано.code))
     }
 
+    private fun планПакета(проект: String, тело: JsonNode): V2Router.Ответ {
+        val веха = programmatics.planPackage(
+            проект,
+            тело.path("package").asText(""),
+            тело.path("start").asText(""),
+            тело.path("end").asText(""),
+            тело.path("author").asText("стенд"),
+        )
+        return V2Router.Ответ(
+            200,
+            mapper.createObjectNode()
+                .put("package", тело.path("package").asText(""))
+                .put("start", тело.path("start").asText(""))
+                .put("end", тело.path("end").asText(""))
+                // Веха, чья дата поехала следом: связь плана и срока видна.
+                .put("milestone", веха ?: ""),
+        )
+    }
+
     private fun датаВехи(проект: String, ключ: String, тело: JsonNode): V2Router.Ответ {
         val область = Area.Project(проект)
         val веха = store.byCode(область, ключ) ?: throw IllegalArgumentException("вехи «$ключ» нет в проекте")
@@ -434,14 +456,31 @@ class ModelRoutes(
         require(Regex("""\d{4}-\d{2}-\d{2}""").matches(дата)) {
             "дата вехи — ГГГГ-ММ-ДД; пришло «$дата»"
         }
+        // Источник даты — плановый конец пакета созревания. Рука допустима,
+        // ТОЛЬКО пока плана нет: иначе две даты разъезжаются, и никто не
+        // замечает, пока срок не наступит (решение владельца 08.09).
+        val технология = веха.doc.path("technology").asText("").ifBlank { null }
+        val пакет = технология?.let { т ->
+            store.list(область, "wbs_package").firstOrNull { it.doc.path("maturation_for").asText("") == т }
+        }
+        val планКонец = пакет?.doc?.path("plan")?.path("end")?.asText("")?.ifBlank { null }
+        require(планКонец == null) {
+            "у вехи есть пакет созревания ${пакет?.code} с планом до $планКонец: " +
+                "дата вехи идёт от плана пакета — правьте план, а не веху"
+        }
         val обновлён = store.update(
             веха.id,
-            веха.doc.deepCopy<ObjectNode>().put("planned_date", дата),
+            веха.doc.deepCopy<ObjectNode>()
+                .put("planned_date", дата)
+                // Помета источника: по ней видно, что дата поставлена рукой,
+                // а не посчитана планом, — и что план ещё предстоит.
+                .put("date_source", "вручную"),
             Provenance(Channel.MANUAL, тело.path("author").asText("стенд")),
         )
         return V2Router.Ответ(
             200,
-            mapper.createObjectNode().put("gate", обновлён.code).put("planned_date", дата),
+            mapper.createObjectNode().put("gate", обновлён.code).put("planned_date", дата)
+                .put("date_source", "вручную"),
         )
     }
 
@@ -490,8 +529,8 @@ class ModelRoutes(
         require(!тело.path("ballistic_coefficient").isMissingNode) {
             "баллистический коэффициент m/(Cd·A) не задан: сход считается по нему"
         }
-        val нормаА = нормаЛет(тело.path("normative_active").asText(""), 5.0)
-        val нормаП = нормаЛет(тело.path("normative_passive").asText(""), 25.0)
+        val нормаА = порогЛет(тело.path("normative_active").asText(""), "active_lifetime")
+        val нормаП = порогЛет(тело.path("normative_passive").asText(""), "passive_lifetime")
         документ.put("compliant_active", активный <= нормаА)
         документ.put("compliant_passive", пассивный <= нормаП)
 
@@ -515,18 +554,39 @@ class ModelRoutes(
     }
 
     /**
-     * Порог норматива в годах.
+     * Порог нормы — ПОЛЕ `limit` пункта норматива, а не число из прозы.
      *
-     * Число берётся ТОЛЬКО перед словом «лет»/«года»/«год»: первое число
-     * строки норматива годами не является — «Б1: увод не более 5 лет»
-     * давало порог 1 из обозначения норматива, и честный увод за 3,8 года
-     * объявлялся нарушением (поймано живой проверкой).
+     * Разбор строки был дефектом того же класса, что «проверка, которая
+     * молча проходит»: «Б1: увод не более 5 лет» давал порог 1 из
+     * ОБОЗНАЧЕНИЯ норматива, и честный увод за 3,8 года объявлялся
+     * нарушением. Правка «брать число перед словом лет» лечила случай, а
+     * не класс: это всё ещё разбор прозы. Правило владельца 08.09 —
+     * пороги только полями.
+     *
+     * Норматив называется ссылкой на карточку полки; порог берётся из
+     * пункта с нужным ключом. Нет карточки или нет поля — ОТКАЗ: сверять
+     * не с чем, и молча подставлять умолчание значит вернуть тот же класс
+     * дефекта с другой стороны.
      */
-    private fun нормаЛет(норматив: String, поумолчанию: Double): Double =
-        Regex("""(\d+(?:[.,]\d+)?)\s*(?:лет|года|год)""")
-            .find(норматив.lowercase())
-            ?.groupValues?.get(1)?.replace(",", ".")?.toDoubleOrNull()
-            ?: поумолчанию
+    private fun порогЛет(норматив: String, ключ: String): Double {
+        require(норматив.isNotBlank()) { "норматив не назван: сверять срок не с чем" }
+        val карточка = store.byCode(Area.Library, норматив)
+            ?: store.list(Area.Library, "normative_document").firstOrNull {
+                it.doc.path("designation").asText() == норматив
+            }
+            ?: throw IllegalArgumentException(
+                "норматива «$норматив» нет на полке: порог живёт полем `limit` его пункта, " +
+                    "а не числом в тексте",
+            )
+        val предел = карточка.doc.path("clauses").firstNotNullOfOrNull { пункт ->
+            пункт.path("limit").takeIf { it.path("key").asText("") == ключ }
+        } ?: throw IllegalArgumentException(
+            "у норматива «$норматив» нет пункта с порогом «$ключ»: " +
+                "добавьте limit{key,op,value,unit} в поставку норматива",
+        )
+        require(предел.path("value").isNumber) { "порог «$ключ» не число: ${предел.path("value")}" }
+        return предел.path("value").asDouble()
+    }
 
     private fun следующийКод(область: Area, вид: String, префикс: String): String {
         val занято = store.list(область, вид).mapNotNull {

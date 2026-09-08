@@ -41,7 +41,10 @@ class ProgrammaticsChecks(
             }
 
             "maturation_planned" -> {
-                val открытые = programmatics.maturation(project, "система")
+                // Ворота НАБЛЮДАЮТ: читающее состояние, а не генератор.
+                // Пока условие звало генератор, оно само закрывало разрыв,
+                // который проверяло, и отказать не могло никогда.
+                val открытые = programmatics.maturationState(project)
                     .filter { it.trlCurrent < it.trlRequired }
                 val без = открытые.filter { it.packageCode == null || it.milestoneGate == null }
                 if (без.isEmpty()) CheckResult.ok
@@ -147,7 +150,8 @@ class ProgrammaticsChecks(
             }
 
             "estimate_includes_maturation" -> {
-                val разрывы = programmatics.maturation(project, "система")
+                // Тоже наблюдение: ворота ничего не заводят.
+                val разрывы = programmatics.maturationState(project)
                     .filter { it.trlCurrent < it.trlRequired }
                 if (разрывы.isEmpty()) return CheckResult.ok
                 val сОценкой = programmatics.packages(project)

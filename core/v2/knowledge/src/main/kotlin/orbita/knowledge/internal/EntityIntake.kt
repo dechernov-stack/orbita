@@ -407,20 +407,37 @@ class EntityIntake(
         // сами факты и темы) знанием не выводится и долю не портит.
         val виды = listOf("intent", "stakeholder", "need", "goal", "constraint", "service")
         var всего = 0
-        var изЗнаний = 0
+        var изИсточников = 0
+        var изРучных = 0
         val поВидам = mutableMapOf<String, Pair<Int, Int>>()
+        // Ручной факт — полноправный, но доля знаний ИЗ ИСТОЧНИКОВ
+        // считается без него: иначе «100 % из знаний» можно набрать,
+        // заведя факты руками под каждую сущность.
+        val ручные = store.list(область, "fact")
+            .filter { it.doc.path("manual").asBoolean(false) }.map { it.id }.toSet()
         виды.forEach { вид ->
             val сущности = store.list(область, вид).filter { it.status != "cancelled" }
-            val сФактами = сущности.count { с ->
-                links?.from(с.id, "derived_from_fact")?.isNotEmpty() == true
+            var изИст = 0
+            var изРук = 0
+            сущности.forEach { с ->
+                val нити = links?.from(с.id, "derived_from_fact").orEmpty()
+                when {
+                    нити.isEmpty() -> Unit
+                    нити.all { it.to in ручные } -> изРук += 1
+                    else -> изИст += 1
+                }
             }
             всего += сущности.size
-            изЗнаний += сФактами
-            if (сущности.isNotEmpty()) поВидам[вид] = сущности.size to сФактами
+            изИсточников += изИст
+            изРучных += изРук
+            if (сущности.isNotEmpty()) поВидам[вид] = сущности.size to изИст
         }
         return KnowledgeCoverage(
-            total = всего, fromFacts = изЗнаний, manual = всего - изЗнаний,
-            share = if (всего == 0) 0.0 else изЗнаний.toDouble() / всего,
+            total = всего,
+            fromFacts = изИсточников,
+            fromManualFacts = изРучных,
+            manual = всего - изИсточников - изРучных,
+            share = if (всего == 0) 0.0 else изИсточников.toDouble() / всего,
             byKind = поВидам,
         )
     }
@@ -555,7 +572,10 @@ class EntityIntake(
             (if (отказы.isEmpty()) "" else ", отклонено ${отказы.size} (правила честности §6.1)") +
             (if (повторов == 0) "" else ", уже было $повторов") +
             (if (действия.isEmpty) "" else ", действий плана ${действия.size()}")
-        return FactIntake(принятые, отказы, topics(project), примечание)
+        val задание = if (действия.isEmpty) null else store.list(область, "intake_task")
+            .firstOrNull { it.doc.path("material").asText() == material && it.doc.path("actions").size() > 0 }
+            ?.code
+        return FactIntake(принятые, отказы, topics(project), примечание, задание)
     }
 
     private fun темаКод(область: Area, метка: String): String {
@@ -570,6 +590,36 @@ class EntityIntake(
         return код
     }
 
+    /**
+     * Нужен ли повод к решению.
+     *
+     * Замечание прохода 08.09: обоснование требовалось на КАЖДУЮ
+     * диспозицию, включая согласие. Поле на десяток символов, фразу
+     * придумать нечего — и человек пишет «ок», чтобы кнопка нажалась.
+     * Обоснование не должно быть налогом на согласие.
+     *
+     * Повод обязателен там, где он несёт смысл:
+     *   · `rejected` — почему не берём;
+     *   · разрешение `contested` — какой факт победил и почему;
+     *   · смена УЖЕ ПРИНЯТОГО решения — что изменилось.
+     * `adopted` и `noted` с чистого листа идут одним кликом.
+     */
+    private fun нуженПовод(было: Disposition, стало: Disposition): Boolean = when {
+        стало == Disposition.REJECTED -> true
+        было == Disposition.CONTESTED -> true
+        было != Disposition.FREE && было != стало -> true
+        else -> false
+    }
+
+    private fun поводЗачем(было: Disposition, стало: Disposition): String = when {
+        стало == Disposition.REJECTED ->
+            "отклонение без причины не ставится: через год «нет» без объяснения читается как забывчивость"
+        было == Disposition.CONTESTED ->
+            "разрешение спора без причины не ставится: назовите, какой факт победил и почему"
+        else ->
+            "смена принятого решения без причины не ставится: что изменилось с прошлого раза"
+    }
+
     override fun dispose(
         project: String,
         fact: String,
@@ -579,8 +629,9 @@ class EntityIntake(
     ): Fact {
         val область = Area.Project(project)
         val сущность = store.byCode(область, fact) ?: error("факта «$fact» нет в проекте")
-        require(reason.isNotBlank()) {
-            "диспозиция без причины не ставится: решение человека обязано быть объяснено"
+        val прежняя = Disposition.of(сущность.doc.path("disposition").asText("free"))
+        require(!нуженПовод(прежняя, disposition) || reason.isNotBlank()) {
+            поводЗачем(прежняя, disposition)
         }
         val документ = сущность.doc.deepCopy<JsonNode>() as com.fasterxml.jackson.databind.node.ObjectNode
         документ.put("disposition", disposition.name.lowercase())
@@ -620,27 +671,68 @@ class EntityIntake(
             Disposition.valueOf(документ.path("disposition").asText("free").uppercase())
         }.getOrDefault(Disposition.FREE),
         topic = документ.path("topic").asText("").ifBlank { null },
+        manual = документ.path("manual").asBoolean(false),
     )
 
+    // Один построитель на оба пути: две копии однажды разошлись бы на поле.
     override fun facts(project: String): List<Fact> =
-        store.list(Area.Project(project), "fact").map { сущность ->
-            Fact(
-                id = сущность.code,
-                subject = сущность.doc.path("subject").asText(""),
-                predicate = сущность.doc.path("predicate").asText(""),
-                value = сущность.doc.path("value").asText(""),
-                unit = сущность.doc.path("unit").asText("").ifBlank { null },
-                anchor = сущность.doc.path("anchor").asText("").ifBlank { null },
-                mark = runCatching {
-                    SourceMark.valueOf(сущность.doc.path("mark").asText("И"))
-                }.getOrDefault(SourceMark.И),
-                confidence = сущность.doc.path("confidence").takeIf { it.isNumber }?.asDouble(),
-                material = сущность.doc.path("material").asText(""),
-                kind = сущность.doc.path("kind").asText("framing"),
-                disposition = runCatching {
-                    Disposition.valueOf(сущность.doc.path("disposition").asText("free").uppercase())
-                }.getOrDefault(Disposition.FREE),
-                topic = сущность.doc.path("topic").asText("").ifBlank { null },
-            )
+        store.list(Area.Project(project), "fact").map { факт(it.code, it.doc) }
+
+    override fun addTopic(project: String, label: String, author: String): Topic {
+        val область = Area.Project(project)
+        val метка = label.trim()
+        require(метка.isNotBlank()) { "у темы нет названия" }
+        val уже = store.list(область, "topic").firstOrNull { it.doc.path("label").asText() == метка }
+        val сущность = уже ?: store.create(
+            следующий(область, "topic", "TP"), "topic", область, null,
+            mapper.createObjectNode().put("label", метка).put("manual", true),
+            Provenance(Channel.MANUAL, author, source = "инженер"),
+        )
+        return topics(project).first { it.id == сущность.code }
+    }
+
+    override fun addFact(
+        project: String,
+        subject: String,
+        predicate: String,
+        value: String,
+        unit: String?,
+        kind: String,
+        topic: String?,
+        material: String?,
+        author: String,
+    ): Fact {
+        val область = Area.Project(project)
+        require(predicate.isNotBlank()) { "факт без утверждения — не факт" }
+        require(value.isNotBlank()) { "факт без значения — не факт" }
+        // Правило честности то же, что у разбора: величина без единицы —
+        // не факт, кто бы её ни заводил.
+        require(kind != "quantity" || !unit.isNullOrBlank()) {
+            "величина без единицы — не факт: назовите единицу"
         }
+        material?.takeIf { it.isNotBlank() }?.let {
+            require(store.byCode(область, it) != null) { "материала «$it» нет в проекте" }
+        }
+        val документ = mapper.createObjectNode()
+        документ.put("kind", kind.ifBlank { "framing" })
+        документ.put("subject", subject.trim())
+        документ.put("predicate", predicate.trim())
+        документ.put("value", value.trim())
+        unit?.takeIf { it.isNotBlank() }?.let { документ.put("unit", it.trim()) }
+        // Источник — материал, если назван; иначе «инженер, дата»: у руки
+        // документа нет, а происхождение обязано быть у каждого факта.
+        val источник = material?.takeIf { it.isNotBlank() }
+            ?: "инженер, ${java.time.LocalDate.now()}"
+        документ.put("material", источник)
+        документ.put("mark", "И")
+        документ.put("confidence", 1.0)
+        документ.put("disposition", "free")
+        документ.put("manual", true)
+        topic?.takeIf { it.isNotBlank() }?.let { документ.put("topic", темаКод(область, it.trim())) }
+        val сущность = store.create(
+            следующий(область, "fact", "F"), "fact", область, null, документ,
+            Provenance(Channel.MANUAL, author, source = источник),
+        )
+        return факт(сущность.code, документ)
+    }
 }

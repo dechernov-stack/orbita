@@ -166,26 +166,45 @@ class KnowledgeIntakeTest {
     }
 
     @Test
-    fun `диспозицию ставит человек и обязан объяснить`() {
+    fun `повод нужен там, где он несёт смысл, а согласие идёт одним кликом`() {
         val проект = "PJ-9303"
         val код = материал(проект)
         router.handle("POST", "/v2/intake/atomize", mapOf("project" to проект),
             """{"material":"$код","intent":"разбери по сущностям","author":"Петрова М."}""")
-        val факт = знания.facts(проект).first()
-        assertEquals("FREE", факт.disposition.name, "свежий факт свободен")
+        val факты = знания.facts(проект)
+        val первый = факты[0]
+        val второй = факты[1]
+        assertEquals("FREE", первый.disposition.name, "свежий факт свободен")
 
-        val ошибка = runCatching {
-            router.handle("POST", "/v2/facts/${факт.id}/disposition", mapOf("project" to проект),
-                """{"disposition":"adopted","author":"Иванов И."}""")
+        // Замечание прохода 08.09: обоснование не должно быть налогом на
+        // согласие. `adopted` с чистого листа — одним кликом, без текста.
+        val принят = router.handle("POST", "/v2/facts/${первый.id}/disposition", mapOf("project" to проект),
+            """{"disposition":"adopted","author":"Иванов И."}""")!!
+        assertEquals("adopted", принят.body.path("disposition").asText(), "согласие без текста принято")
+
+        // Отклонение без причины — отказ: «нет» без объяснения через год
+        // читается как забывчивость.
+        val отказ = runCatching {
+            router.handle("POST", "/v2/facts/${второй.id}/disposition", mapOf("project" to проект),
+                """{"disposition":"rejected","author":"Иванов И."}""")
         }.exceptionOrNull()
         assertTrue(
-            ошибка?.message?.contains("причины") == true,
-            "диспозиция без причины не ставится: ${ошибка?.message}",
+            отказ?.message?.contains("причины") == true,
+            "отклонение без причины не ставится: ${отказ?.message}",
         )
 
-        val ответ = router.handle("POST", "/v2/facts/${факт.id}/disposition", mapOf("project" to проект),
-            """{"disposition":"adopted","reason":"величина подтверждена паспортом платформы","author":"Иванов И."}""")!!
-        assertEquals("adopted", ответ.body.path("disposition").asText())
+        // Смена УЖЕ ПРИНЯТОГО решения тоже требует повода: что изменилось.
+        val смена = runCatching {
+            router.handle("POST", "/v2/facts/${первый.id}/disposition", mapOf("project" to проект),
+                """{"disposition":"noted","author":"Иванов И."}""")
+        }.exceptionOrNull()
+        assertTrue(
+            смена?.message?.contains("что изменилось") == true,
+            "смена принятого без причины не ставится: ${смена?.message}",
+        )
+        val сПоводом = router.handle("POST", "/v2/facts/${первый.id}/disposition", mapOf("project" to проект),
+            """{"disposition":"noted","reason":"паспорт платформы пересмотрен","author":"Иванов И."}""")!!
+        assertEquals("noted", сПоводом.body.path("disposition").asText())
     }
 
     @Test
@@ -266,5 +285,69 @@ class KnowledgeIntakeTest {
         val запись = журнал.path("items")[0]
         assertEquals("intake_atomize", запись.path("kind").asText())
         assertEquals(100, запись.path("tokens_in").asInt())
+    }
+
+    @Test
+    fun `ручные тема и факт полноправны, но в долю знаний из источников не идут`() {
+        val проект = "PJ-9307"
+        router.handle("POST", "/v2/projects", emptyMap(), """{"name":"Руками","code":"$проект"}""")
+
+        // Тема руками; повтор метки — та же тема, не вторая.
+        val тема = router.handle("POST", "/v2/topics", mapOf("project" to проект),
+            """{"label":"Опыт ЛИ Гонец-Д1М","author":"Иванов И."}""")!!
+        assertEquals(201, тема.code)
+        val повтор = router.handle("POST", "/v2/topics", mapOf("project" to проект),
+            """{"label":"Опыт ЛИ Гонец-Д1М","author":"Иванов И."}""")!!
+        assertEquals(тема.body.path("id").asText(), повтор.body.path("id").asText(), "повтор метки не плодит тем")
+
+        // Факт руками: метка [И], источник «инженер, дата», без якоря.
+        val факт = router.handle("POST", "/v2/facts", mapOf("project" to проект),
+            """{"subject":"Гонец-Д1М","predicate":"срок активного существования по ЛИ","value":"7",
+                "unit":"лет","kind":"quantity","topic":"Опыт ЛИ Гонец-Д1М","author":"Иванов И."}""")!!
+        assertEquals(201, факт.code)
+        assertTrue(факт.body.path("manual").asBoolean(), "ручной факт помечен как ручной")
+        assertEquals("И", факт.body.path("mark").asText())
+        assertTrue(факт.body.path("material").asText().startsWith("инженер, "), факт.body.path("material").asText())
+
+        // Правило честности то же: величина без единицы — не факт.
+        val безЕдиницы = runCatching {
+            router.handle("POST", "/v2/facts", mapOf("project" to проект),
+                """{"subject":"Гонец-Д1М","predicate":"масса","value":"280","kind":"quantity","author":"Иванов И."}""")
+        }.exceptionOrNull()
+        assertTrue(безЕдиницы?.message?.contains("без единицы") == true, безЕдиницы?.message ?: "принято молча")
+
+        // Ручной факт полноправен: диспозиция ставится.
+        val код = факт.body.path("id").asText()
+        val принят = router.handle("POST", "/v2/facts/$код/disposition", mapOf("project" to проект),
+            """{"disposition":"adopted","author":"Иванов И."}""")!!
+        assertEquals("adopted", принят.body.path("disposition").asText())
+
+        // Сущность, выведенная из РУЧНОГО факта, в долю из источников не идёт —
+        // она видна отдельной цифрой.
+        val сторона = store.create(
+            "SK-0001", "stakeholder", orbita.kernel.api.Area.Project(проект), "3",
+            mapper.readTree("""{"name":"Гонец","role":"operator"}"""),
+            orbita.kernel.api.Provenance(orbita.kernel.api.Channel.MANUAL, "Иванов И."),
+        )
+        val фактСущность = store.byCode(orbita.kernel.api.Area.Project(проект), код)!!
+        links.link("derived_from_fact", сторона.id, фактСущность.id,
+            orbita.kernel.api.Provenance(orbita.kernel.api.Channel.MANUAL, "Иванов И."))
+        val покрытие = router.handle("GET", "/v2/knowledge/coverage", mapOf("project" to проект), null)!!.body
+        assertEquals(1, покрытие.path("total").asInt())
+        assertEquals(0, покрытие.path("from_facts").asInt(), "из источников — ноль")
+        assertEquals(1, покрытие.path("from_manual_facts").asInt(), "из ручного факта — один, отдельно")
+        assertEquals(0, покрытие.path("share_percent").asInt(), "доля из источников честная")
+    }
+
+    @Test
+    fun `разбор возвращает задание, и план ложится на акцепт тут же`() {
+        val проект = "PJ-9308"
+        val код = материал(проект)
+        val ответ = router.handle("POST", "/v2/intake/atomize", mapOf("project" to проект),
+            """{"material":"$код","intent":"разбери по сущностям","author":"Петрова М."}""")!!
+        val задание = ответ.body.path("task").asText()
+        assertTrue(задание.startsWith("IT-"), "разбор назвал своё задание: «$задание»")
+        val план = router.handle("GET", "/v2/intake/$задание", mapOf("project" to проект), null)!!.body
+        assertEquals(3, план.path("actions").size(), "по коду задания план читается целиком")
     }
 }

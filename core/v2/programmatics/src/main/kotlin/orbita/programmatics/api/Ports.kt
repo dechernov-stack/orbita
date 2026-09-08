@@ -20,6 +20,9 @@ data class PackageView(
     /** Узлы состава, которым пакет парен. */
     val pbsRefs: List<String>,
     val estimate: EstimateView?,
+    /** Плановые начало и конец работ; пусто — план не задан. */
+    val planStart: String? = null,
+    val planEnd: String? = null,
     /** Чего не хватает пакету, чтобы считаться готовым к KDP. */
     val gaps: List<String>,
 )
@@ -115,6 +118,26 @@ interface Programmatics {
      * и веха «TRL n достигнут» (`gate.kind = technology`).
      */
     fun maturation(project: String, author: String): List<MaturationView>
+
+    /**
+     * То же СОСТОЯНИЕ, но без заведения чего бы то ни было.
+     *
+     * Нужно воротам: критерий обязан НАБЛЮДАТЬ, а не действовать. Пока
+     * условие `maturation_planned` звало генератор, оно само закрывало
+     * разрыв, который проверяло, и не могло отказать никогда — ровно тот
+     * класс «проверки, которая молча проходит», ради которого заведено
+     * правило отрицательного теста (ответ владельца 08.09).
+     */
+    fun maturationState(project: String): List<MaturationView>
+
+    /**
+     * План пакета работ. Для пакета созревания это ИСТОЧНИК ДАТЫ ВЕХИ:
+     * веха «TRL n достигнут» рождается вместе с пакетом и дату получает от
+     * его плана, а не от чьей-то руки (решение владельца 08.09).
+     *
+     * @return код вехи, чья дата поехала следом; null — веха не тронута
+     */
+    fun planPackage(project: String, packageCode: String, start: String, end: String, author: String): String?
 
     fun risks(project: String): List<RiskView>
 

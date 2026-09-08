@@ -374,3 +374,12 @@ button:disabled { opacity: .55; cursor: default; }
 /* Чип помехи: имя стоит в самом чипе, а не в подсказке — по подсказке
    не видно, что именно чинить, пока не наведёшь. */
 .v2-chip--warn { border-color: var(--wait); color: var(--wait); }
+
+/* Повод к решению — нормальное многострочное поле, и оно появляется
+   только там, где повод несёт смысл (отклонение, спор, смена принятого). */
+.v2-kf__why textarea { font: inherit; font-size: var(--size-s); min-width: 260px; min-height: 52px; }
+.v2-kf__row { display: grid; grid-template-columns: 1fr 2fr 1fr 90px auto; gap: 6px; align-items: end; padding: var(--pad-s) var(--pad-m); }
+.v2-kf__row input, .v2-kf__row select { font: inherit; font-size: var(--size-s); width: 100%; }
+.v2-kf__src { display: grid; gap: 6px; padding: var(--pad-s) var(--pad-m); max-width: 760px; }
+.v2-kf__src textarea, .v2-kf__src input { font: inherit; font-size: var(--size-s); width: 100%; }
+.v2-kf__manual { color: var(--ink-mute); font-size: var(--size-s); }

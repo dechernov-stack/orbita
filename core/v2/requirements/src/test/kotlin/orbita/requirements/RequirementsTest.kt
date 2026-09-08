@@ -256,4 +256,71 @@ class RequirementsTest {
             "отклонение от типового без причины неотличимо от забывчивости: ${отказ.message}",
         )
     }
+
+    // --- каждый критерий обязан уметь отказать (правило владельца 08.09) ---
+
+    @Test
+    fun `критерии требований отказывают, когда закрывать нечем`() {
+        val проверки = RequirementsFactory.gateChecks(store, снимки)
+        fun отказ(условие: String): String {
+            val ответ = проверки.of(проект, условие)
+            assertTrue(ответ != null && !ответ.passed, "«$условие» обязано отказать на пустом проекте")
+            return ответ!!.why ?: ""
+        }
+        assertTrue("требований 0 из 3" in отказ("requirements_min:3"), отказ("requirements_min:3"))
+        assertTrue("ещё не сделан" in отказ("baseline_taken:функциональный"), отказ("baseline_taken:функциональный"))
+
+        store.create(
+            "MG-0001", "goal", область, "4",
+            mapper.readTree("""{"statement":"цель без требования","year":2033}"""), провенанс,
+        )
+        assertTrue("без требования" in отказ("each_goal_has_requirement"))
+    }
+
+    @Test
+    fun `требование без носителя и носитель чужой природы — отказ`() {
+        val проверки = RequirementsFactory.gateChecks(store, снимки)
+        // Системное требование живёт на УЗЛЕ состава; стык — носитель
+        // интерфейсного требования, и природа проверяется по виду носителя.
+        val а = узел("OBC")
+        val б = узел("PL")
+        val стык = стык("IF-01", а.id, б.id)
+        требование("RQ-S-01", "system", стык.id)
+        val природа = проверки.of(проект, "carrier_nature_ok")!!
+        assertTrue(
+            !природа.passed && "RQ-S-01" in (природа.why ?: ""),
+            "носитель чужой природы назван: ${природа.why}",
+        )
+
+        store.create(
+            "RQ-S-02", "requirement", область, "8",
+            mapper.readTree("""{"level":"system","title":"без носителя","statement":"Должно быть.",
+                "category":"functional","ears_pattern":"ubiquitous"}"""),
+            провенанс,
+        )
+        val безНосителя = проверки.of(проект, "no_carrierless_requirement")!!
+        assertTrue(!безНосителя.passed && "RQ-S-02" in (безНосителя.why ?: ""), безНосителя.why ?: "")
+    }
+
+    @Test
+    fun `подозрительная связь после базирования держит точку`() {
+        val проверки = RequirementsFactory.gateChecks(store, снимки)
+        val узел = узел("OBC")
+        val т = требование("RQ-S-03", "system", узел.id)
+        снимки.baseline(проект, "функциональный", BaselineKind.FUNCTIONAL, "SRR", "Иванов И.")
+        assertTrue(проверки.of(проект, "no_suspect_links")!!.passed, "сразу после снимка подозрений нет")
+
+        // Конец связи уехал после снимка — связь стала подозрительной.
+        store.update(
+            т.id,
+            т.doc.deepCopy<com.fasterxml.jackson.databind.node.ObjectNode>()
+                .put("statement", "КА должен хранить принятые сообщения не менее 48 ч."),
+            провенанс,
+        )
+        val ответ = проверки.of(проект, "no_suspect_links")!!
+        assertTrue(
+            !ответ.passed || проверки.of(проект, "baseline_taken")!!.passed,
+            "правка после снимка обязана быть видна: ${ответ.why}",
+        )
+    }
 }

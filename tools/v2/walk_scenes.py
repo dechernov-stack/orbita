@@ -266,13 +266,17 @@ class Прогон:
             )
 
     def вехи_созревания(self) -> None:
-        """Даты вех технологий: без них точка не учтёт сроки рисков."""
-        for в in self.сид.get("milestones", []):
-            self.шаг(
-                f"сцена 10: дата вехи {в['gate']}", False,
-                lambda х=в: вызов(self.base, "POST", f"/v2/gates/{х['gate']}/date?project={self.проект}",
-                                  {"date": х["date"], "author": "Иванов И."}),
-            )
+        """
+        План пакетов созревания. Дата вехи идёт ОТ НЕГО, а не ставится
+        рукой: иначе две даты разъезжаются, и никто не замечает, пока срок
+        не наступит (решение владельца 08.09).
+        """
+        for п in self.сид.get("maturation_plan", []):
+            ответ = вызов(self.base, "POST", f"/v2/wbs/plan?project={self.проект}",
+                          {**п, "author": "Иванов И."})
+            self.сделано.append(
+                f"сцена 10: план {п['package']} до {п['end']}"
+                + (f" → веха {ответ['milestone']}" if ответ.get("milestone") else ""))
 
     def сцена_12_стоимость(self) -> None:
         взято = вызов(self.base, "POST", f"/v2/wbs/take?project={self.проект}",

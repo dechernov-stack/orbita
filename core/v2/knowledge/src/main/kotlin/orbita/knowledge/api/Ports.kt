@@ -40,6 +40,12 @@ data class Fact(
     val disposition: Disposition = Disposition.FREE,
     /** Тема факта: предмет до разрешения в сущность. */
     val topic: String? = null,
+    /**
+     * Заведён инженером руками, а не разбором источника. Полноправный
+     * факт — диспозиции, связи, промпт, — но доля знаний ИЗ ИСТОЧНИКОВ
+     * считается без него: ручное видно отдельно (замечание прохода 08.09).
+     */
+    val manual: Boolean = false,
 )
 
 /**
@@ -79,7 +85,11 @@ data class SceneSuggestions(
 /** Доля знаний в проекте: сколько сущностей выведено из фактов. */
 data class KnowledgeCoverage(
     val total: Int,
+    /** Выведено из фактов ИСТОЧНИКОВ — это и есть доля знаний. */
     val fromFacts: Int,
+    /** Выведено из фактов, заведённых инженером руками: видно отдельно. */
+    val fromManualFacts: Int,
+    /** Заведено без всякого факта. */
     val manual: Int,
     val share: Double,
     val byKind: Map<String, Pair<Int, Int>>,
@@ -102,7 +112,16 @@ data class IntakeTask(
 )
 
 /** Диспозиция факта: её меняет ЧЕЛОВЕК, служба только предлагает. */
-enum class Disposition { FREE, NOTED, ASSUMED, ADOPTED, REJECTED, CONTESTED, SUPERSEDED }
+enum class Disposition {
+    FREE, NOTED, ASSUMED, ADOPTED, REJECTED, CONTESTED, SUPERSEDED,
+    ;
+
+    companion object {
+        /** Неизвестное значение читается как «решения нет», а не падает. */
+        fun of(текст: String?): Disposition =
+            entries.firstOrNull { it.name.equals(текст?.trim(), ignoreCase = true) } ?: FREE
+    }
+}
 
 /** Тема — предмет фактов до разрешения в сущность. */
 data class Topic(val id: String, val label: String, val scene: String?, val resolvedTo: String?, val facts: Int)
@@ -177,6 +196,31 @@ interface Intake {
     fun dispose(project: String, fact: String, disposition: Disposition, reason: String, author: String): Fact
 
     fun topics(project: String): List<Topic>
+
+    /**
+     * Тема руками: инженер называет предмет, о котором знания копятся
+     * («Опыт ЛИ Гонец-Д1М»), не дожидаясь разбора. Повтор метки — та же
+     * тема, не вторая.
+     */
+    fun addTopic(project: String, label: String, author: String): Topic
+
+    /**
+     * Факт руками. Полноправный: диспозиции, связи, промпт. Метка [И],
+     * провенанс manual, источник — «инженер, дата» либо материал, если он
+     * назван. Правило честности то же: величина без единицы — не факт.
+     * Якоря нет: якорь — место в документе, а у руки документа нет.
+     */
+    fun addFact(
+        project: String,
+        subject: String,
+        predicate: String,
+        value: String,
+        unit: String?,
+        kind: String,
+        topic: String?,
+        material: String?,
+        author: String,
+    ): Fact
 }
 
 /** Итог приёма фактов: что принято, что отклонено и почему. */
@@ -185,4 +229,10 @@ data class FactIntake(
     val refused: List<String>,
     val topics: List<Topic>,
     val note: String,
+    /**
+     * Задание с планом, собранным этим разбором; пусто — действий план не
+     * дал. По нему план ложится на акцепт ТУТ ЖЕ, в поле знаний, а не на
+     * другом экране (замечание прохода 08.09: загрузка во вкладке).
+     */
+    val task: String? = null,
 )

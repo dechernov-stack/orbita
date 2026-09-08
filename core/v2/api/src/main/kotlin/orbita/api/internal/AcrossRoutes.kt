@@ -106,14 +106,68 @@ class AcrossRoutes(
 
 
     private fun материал(проект: String, тело: JsonNode): V2Router.Ответ {
+        val ссылка = тело.path("url").asText("").trim()
+        // Ссылка — второй вход в поле знаний (замечание прохода 08.09):
+        // текст берётся по ней здесь и кладётся снимком, как и вставленный.
+        // Снимок, а не живая ссылка: страница завтра другая, а факт с
+        // якорем обязан оставаться проверяемым.
+        val текст = тело.path("text").asText("").ifBlank {
+            if (ссылка.isBlank()) "" else поСсылке(ссылка)
+        }
+        require(текст.isNotBlank()) { "у материала нет текста: вставьте текст, приложите файл либо дайте ссылку" }
         val код = intake.putMaterial(
             проект,
-            тело.path("name").asText("материал"),
+            тело.path("name").asText("").ifBlank { ссылка.ifBlank { "материал" } },
             тело.path("kind").asText("reference"),
-            тело.path("text").asText(""),
+            if (ссылка.isBlank()) текст else "Источник: $ссылка\n\n$текст",
             автор(тело),
         )
-        return V2Router.Ответ(201, mapper.createObjectNode().put("code", код))
+        return V2Router.Ответ(201, mapper.createObjectNode().put("code", код).put("from_url", ссылка.isNotBlank()))
+    }
+
+    /**
+     * Текст по ссылке. Только http(s), не больше двух мегабайт, разметка
+     * снята. Сбой — отказ словами, а не пустой материал: пустой материал
+     * выглядел бы как «по ссылке ничего нет».
+     */
+    private fun поСсылке(ссылка: String): String {
+        require(ссылка.startsWith("http://") || ссылка.startsWith("https://")) {
+            "ссылка должна начинаться с http:// или https://"
+        }
+        val клиент = java.net.http.HttpClient.newBuilder()
+            .connectTimeout(java.time.Duration.ofSeconds(10))
+            .followRedirects(java.net.http.HttpClient.Redirect.NORMAL)
+            .build()
+        val запрос = java.net.http.HttpRequest.newBuilder(java.net.URI.create(ссылка))
+            .timeout(java.time.Duration.ofSeconds(25))
+            // Заголовок — только ASCII: HttpClient отвергает кириллицу в нём
+            // («invalid header value»), и ссылка отказывала до всякого запроса.
+            // Поймано живой проверкой.
+            .header("User-Agent", "Orbita/2 knowledge-field")
+            .GET().build()
+        val ответ = try {
+            клиент.send(запрос, java.net.http.HttpResponse.BodyHandlers.ofByteArray())
+        } catch (e: Exception) {
+            throw IllegalArgumentException("по ссылке не дошли: ${e.message ?: e::class.simpleName}")
+        }
+        require(ответ.statusCode() in 200..299) { "по ссылке ответ ${ответ.statusCode()}" }
+        val тело = ответ.body()
+        require(тело.size <= 2_000_000) { "по ссылке больше двух мегабайт: приложите файл" }
+        val сырое = String(тело, Charsets.UTF_8)
+        val тип = ответ.headers().firstValue("content-type").orElse("")
+        val текст = if ("html" in тип || сырое.trimStart().startsWith("<")) {
+            сырое.replace(Regex("(?is)<(script|style)[^>]*>.*?</\\1>"), " ")
+                .replace(Regex("(?i)<br\\s*/?>|</p>|</div>|</h[1-6]>|</li>|</tr>"), "\n")
+                .replace(Regex("<[^>]+>"), " ")
+                .replace("&nbsp;", " ").replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">")
+                .replace(Regex("[ \\t]+"), " ")
+                .replace(Regex("\\n\\s*\\n\\s*\\n+"), "\n\n")
+                .trim()
+        } else {
+            сырое.trim()
+        }
+        require(текст.isNotBlank()) { "по ссылке нет текста: приложите файл либо вставьте текст" }
+        return текст
     }
 
     private fun заданиеЗагрузки(проект: String, тело: JsonNode): V2Router.Ответ {
@@ -166,6 +220,11 @@ class AcrossRoutes(
                 .put("kind", факт.kind)
                 .put("topic", факт.topic)
                 .put("disposition", факт.disposition.name.lowercase())
+                // Ручной факт виден отдельно — и в списке, а не только в
+                // ответе на заведение. Список и заведение сериализуются
+                // разным кодом; поймано отбором «заведены руками», который
+                // показывал пусто при живом ручном факте.
+                .put("manual", факт.manual)
         }
         val ответ = mapper.createObjectNode()
         ответ.set<JsonNode>("items", массив)

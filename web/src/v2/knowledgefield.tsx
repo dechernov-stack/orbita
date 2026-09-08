@@ -1,12 +1,17 @@
-// Экран «Поле знаний» (ЗАДАНИЕ-ПОЛЕ-ЗНАНИЙ §3, минимум по ДИЗАЙН-ПРИНЦИПЫ-V2).
+// Экран «Поле знаний» (ЗАДАНИЕ-ПОЛЕ-ЗНАНИЙ §3; замечания прохода 08.09).
 //
 // Поле знаний — не список фактов, а рабочая поверхность: ТЕМЫ (о чём
 // накопились утверждения), ДИСПОЗИЦИИ (что с ними решено) и ИСТОЧНИКИ
-// (откуда). Всё остальное — за фильтром, а не на экране одновременно.
+// (откуда). И оно же — дом для ВХОДА: источник загружается здесь, разбор
+// кладёт факты и темы на глазах, план действий ложится на акцепт тут же.
 //
-// Диспозицию ставит ЧЕЛОВЕК и обязан объяснить: кнопка без причины
-// отказывает на сервере, поэтому причина спрашивается здесь.
-import { useEffect, useState } from 'react'
+// Три правила прохода 08.09:
+//   1. Обоснование — только там, где оно несёт смысл: отклонение, спор,
+//      смена уже принятого. Согласие и «рассмотрен» — одним кликом.
+//      Обоснование не должно быть налогом на согласие.
+//   2. Загрузка во вкладке: текст, файл или ссылка + задание → разбор.
+//   3. Ручные темы и факты — полноправные; ручное видно отдельно.
+import { useCallback, useEffect, useState } from 'react'
 import { api, type FactRow } from './api'
 
 /** Диспозиции по-русски: служебное имя инженеру ничего не говорит. */
@@ -26,42 +31,93 @@ const МЕТКА: Record<string, string> = {
   П: 'допущение',
 }
 
-type Фильтр = 'все' | 'свободные' | 'допущения' | 'спорные'
+const ВИДЫ_ФАКТА: [string, string][] = [
+  ['framing', 'рамка'],
+  ['quantity', 'величина'],
+  ['capability', 'способность'],
+  ['obligation', 'обязательство'],
+  ['event', 'событие'],
+  ['assessment', 'оценка'],
+  ['relation', 'связь'],
+  ['assumption', 'допущение'],
+]
+
+type Фильтр = 'все' | 'свободные' | 'допущения' | 'спорные' | 'ручные'
+
+/**
+ * Нужен ли повод к решению. Правило то же, что на сервере: сервер
+ * откажет и без нас, но спрашивать текст там, где он не нужен, — налог.
+ */
+function нуженПовод(было: string, стало: string): boolean {
+  if (стало === 'rejected') return true
+  if (было === 'contested') return true
+  return было !== 'free' && было !== стало
+}
+
+type Тема = { id: string; label: string; facts: number }
+type Покрытие = { total: number; from_facts: number; from_manual_facts: number; manual: number; share_percent: number }
+type Действие = { index: number; target_kind: string; scene: string; title: string; preview: string; facts: string[] }
 
 export function KnowledgeField({ project }: { project: string | null }) {
   const [факты, setФакты] = useState<FactRow[] | null>(null)
-  const [темы, setТемы] = useState<{ id: string; label: string; facts: number }[]>([])
-  const [покрытие, setПокрытие] = useState<{ total: number; from_facts: number; share_percent: number } | null>(null)
+  const [темы, setТемы] = useState<Тема[]>([])
+  const [покрытие, setПокрытие] = useState<Покрытие | null>(null)
   const [тема, setТема] = useState<string | null>(null)
   const [фильтр, setФильтр] = useState<Фильтр>('все')
   const [отказ, setОтказ] = useState<string | null>(null)
-  // Решение без причины не ставится (сервер откажет), поэтому причина
-  // спрашивается СТРОКОЙ В ТАБЛИЦЕ: нативных диалогов в продукте нет.
   // Хуки — до любых возвратов: порядок хуков стережёт CI.
   const [решаем, setРешаем] = useState<{ факт: string; решение: string } | null>(null)
   const [причина, setПричина] = useState('')
+  const [вход, setВход] = useState(false)
+  const [рукой, setРукой] = useState(false)
+  const [план, setПлан] = useState<{ task: string; note: string; actions: Действие[] } | null>(null)
+  const [выбраны, setВыбраны] = useState<number[]>([])
+  const [занято, setЗанято] = useState(false)
 
-  const перечитать = () => {
+  const перечитать = useCallback(() => {
     if (!project) return
     api.facts(project).then((r) => setФакты(r.items)).catch((e) => setОтказ(String(e.message ?? e)))
     api.topics(project).then((r) => setТемы(r.items)).catch(() => setТемы([]))
     api.knowledgeCoverage(project).then(setПокрытие).catch(() => setПокрытие(null))
+  }, [project])
+
+  useEffect(перечитать, [перечитать])
+
+  if (!project) {
+    return <div className="v2-panel" data-why="следующий-клик"><div className="v2-empty">Проект не выбран.</div></div>
   }
-
-  useEffect(перечитать, [project])
-
-  if (!project) return <div className="v2-panel" data-why="следующий-клик"><div className="v2-empty">Проект не выбран.</div></div>
-  if (отказ) return <div className="v2-panel" data-why="почему-нельзя"><div className="v2-locked">{отказ}</div></div>
+  if (отказ) {
+    return (
+      <div className="v2-panel" data-why="почему-нельзя">
+        <div className="v2-locked">{отказ}</div>
+        <button type="button" className="v2-link" onClick={() => { setОтказ(null); перечитать() }}>ещё раз</button>
+      </div>
+    )
+  }
 
   const все = факты ?? []
   const видно = все
     .filter((ф) => (тема ? ф.topic === тема : true))
     .filter((ф) => {
-      if (фильтр === 'свободные') return ф.disposition === 'free'
+      if (фильтр === 'свободные') return (ф.disposition ?? 'free') === 'free'
       if (фильтр === 'допущения') return ф.mark === 'П' || ф.disposition === 'assumed'
       if (фильтр === 'спорные') return ф.disposition === 'contested'
+      if (фильтр === 'ручные') return ф.manual === true
       return true
     })
+  const ручных = все.filter((ф) => ф.manual).length
+
+  const решить = (ф: FactRow, решение: string) => {
+    const было = ф.disposition ?? 'free'
+    if (нуженПовод(было, решение)) {
+      // Повод спрашивается СТРОКОЙ В ТАБЛИЦЕ, нормальным многострочным
+      // полем — и только здесь. Нативных диалогов в продукте нет.
+      setРешаем({ факт: ф.id, решение }); setПричина('')
+      return
+    }
+    api.disposeFact(project, ф.id, решение, '', 'инженер')
+      .then(перечитать).catch((e) => setОтказ(String(e.message ?? e)))
+  }
 
   const записать = () => {
     if (!решаем || !причина.trim()) return
@@ -70,15 +126,86 @@ export function KnowledgeField({ project }: { project: string | null }) {
       .catch((e) => setОтказ(String(e.message ?? e)))
   }
 
+  const принятьПлан = () => {
+    if (!план || выбраны.length === 0) return
+    setЗанято(true)
+    api.acceptPlan(project, план.task, выбраны, 'инженер')
+      .then(() => { setПлан(null); setВыбраны([]); перечитать() })
+      .catch((e) => setОтказ(String(e.message ?? e)))
+      .finally(() => setЗанято(false))
+  }
+
   return (
     <div className="v2-panel" data-why="работа">
       <h3>
         Поле знаний
         <span className="v2-cnt">
           {факты === null ? 'читаю…' : `${все.length} фактов · ${темы.length} тем`}
-          {покрытие && ` · из знаний ${покрытие.share_percent}% сущностей`}
+          {ручных > 0 && ` · руками ${ручных}`}
+          {покрытие && ` · из источников ${покрытие.share_percent}% сущностей`}
+          {покрытие && покрытие.from_manual_facts > 0 && ` · из ручных ${покрытие.from_manual_facts}`}
         </span>
+        <span className="v2-head__spacer" />
+        <button type="button" className={вход ? 'v2-chip v2-chip--on' : 'v2-chip'}
+          title="текст, файл или ссылка + задание → разбор → факты и темы ложатся сюда"
+          onClick={() => { setВход(!вход); setРукой(false) }}>
+          Загрузить источник
+        </button>
+        <button type="button" className={рукой ? 'v2-chip v2-chip--on' : 'v2-chip'}
+          title="завести тему или факт руками: метка [И], источник — инженер и дата"
+          onClick={() => { setРукой(!рукой); setВход(false) }}>
+          Руками
+        </button>
       </h3>
+
+      {вход && (
+        <Source project={project}
+          onParsed={(итог) => {
+            перечитать()
+            if (итог.task) {
+              api.taskPlan(project, итог.task)
+                .then((п) => { setПлан(п); setВыбраны(п.actions.map((д) => д.index)) })
+                .catch(() => setПлан(null))
+            }
+          }}
+          onError={setОтказ} />
+      )}
+
+      {рукой && <Manual project={project} темы={темы} onDone={перечитать} onError={setОтказ} />}
+
+      {план && (
+        <div className="v2-kf__src" data-why="следующий-клик">
+          <div className="v2-empty__why">
+            План из разбора: {план.actions.length} действий. {план.note}
+            {' '}Снятое действие остаётся рассмотренным — факт не исчезает.
+          </div>
+          <table className="v2-tab2">
+            <thead><tr><th /><th>Действие</th><th>Что появится</th><th>Сцена</th></tr></thead>
+            <tbody>
+              {план.actions.map((д) => (
+                <tr key={д.index}>
+                  <td>
+                    <input type="checkbox" checked={выбраны.includes(д.index)}
+                      onChange={(e) => setВыбраны(e.target.checked
+                        ? [...выбраны, д.index] : выбраны.filter((i) => i !== д.index))} />
+                  </td>
+                  <td>{д.title}</td>
+                  <td>{д.preview}</td>
+                  <td className="v2-mono">{д.scene}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="v2-form__actions">
+            <button type="button" className="v2-primary" disabled={занято || выбраны.length === 0}
+              title="выполнить выбранные действия: сущности получат нить к своим фактам"
+              onClick={принятьПлан}>
+              {занято ? 'Принимаю…' : `Принять ${выбраны.length} из ${план.actions.length}`}
+            </button>
+            <button type="button" className="v2-link" onClick={() => setПлан(null)}>позже</button>
+          </div>
+        </div>
+      )}
 
       <div className="v2-kf__bar">
         <span className="v2-dim">темы:</span>
@@ -99,12 +226,14 @@ export function KnowledgeField({ project }: { project: string | null }) {
           ['свободные', 'не рассмотрены'],
           ['допущения', 'допущения к точке'],
           ['спорные', 'противоречия'],
+          ['ручные', 'заведены руками'],
         ] as [Фильтр, string][]).map(([ключ, имя]) => (
           <button key={ключ} type="button"
             className={фильтр === ключ ? 'v2-chip v2-chip--on' : 'v2-chip'}
             title={ключ === 'допущения'
               ? 'допущения [П] и принятые допущением — их подтверждают к ближайшей точке'
-              : ключ === 'свободные' ? 'факты, по которым решения ещё нет' : имя}
+              : ключ === 'свободные' ? 'факты, по которым решения ещё нет'
+                : ключ === 'ручные' ? 'факты без источника-документа: инженер и дата' : имя}
             onClick={() => setФильтр(ключ)}>
             {имя}
           </button>
@@ -115,7 +244,7 @@ export function KnowledgeField({ project }: { project: string | null }) {
         <div className="v2-empty">
           Фактов по этому отбору нет.
           <span className="v2-empty__why">
-            Поле знаний наполняется разбором материала: «Загрузка с заданием» в разделе материалов.
+            Поле наполняется разбором источника — «Загрузить источник» — либо руками.
           </span>
         </div>
       )}
@@ -125,54 +254,235 @@ export function KnowledgeField({ project }: { project: string | null }) {
           <thead>
             <tr>
               <th>Утверждение</th><th>Значение</th><th>Метка</th>
-              <th>Якорь</th><th>Решение</th><th />
+              <th>Откуда</th><th>Решение</th><th />
             </tr>
           </thead>
           <tbody>
-            {видно.map((ф) => (
-              <tr key={ф.id}>
-                <td>{ф.subject ? `${ф.subject}: ` : ''}{ф.predicate}</td>
-                <td>{ф.value}{ф.unit ? ` ${ф.unit}` : ''}</td>
-                <td title={МЕТКА[ф.mark] ?? ф.mark}>{МЕТКА[ф.mark] ?? ф.mark}</td>
-                <td className="v2-mono">{ф.anchor ?? '—'}</td>
-                <td className={ф.disposition === 'adopted' ? 'v2-ok' : ''}>
-                  {РЕШЕНИЕ[ф.disposition ?? 'free'] ?? ф.disposition}
-                </td>
-                <td>
-                  {ф.disposition === 'free' && решаем?.факт !== ф.id && (
-                    <>
-                      <button type="button" className="v2-link"
-                        title="принять факт: он станет основанием сущности"
-                        onClick={() => { setРешаем({ факт: ф.id, решение: 'adopted' }); setПричина('') }}>
-                        принять
-                      </button>
-                      {' · '}
-                      <button type="button" className="v2-link"
-                        title="рассмотрен и не взят — это тоже решение, факт не исчезает"
-                        onClick={() => { setРешаем({ факт: ф.id, решение: 'noted' }); setПричина('') }}>
-                        отложить
-                      </button>
-                    </>
-                  )}
-                  {решаем?.факт === ф.id && (
-                    <span className="v2-kf__why">
-                      <input value={причина} autoFocus
-                        onChange={(e) => setПричина(e.target.value)}
-                        onKeyDown={(e) => { if (e.key === 'Enter') записать() }}
-                        placeholder={`почему «${РЕШЕНИЕ[решаем.решение]}»`} />
-                      <button type="button" disabled={!причина.trim()}
-                        title={причина.trim() ? 'записать решение' : 'решение без причины не ставится'}
-                        onClick={записать}>Записать</button>
-                      <button type="button" className="v2-link" title="не менять решение"
-                        onClick={() => { setРешаем(null); setПричина('') }}>отмена</button>
-                    </span>
-                  )}
-                </td>
-              </tr>
-            ))}
+            {видно.map((ф) => {
+              const было = ф.disposition ?? 'free'
+              return (
+                <tr key={ф.id}>
+                  <td>{ф.subject ? `${ф.subject}: ` : ''}{ф.predicate}</td>
+                  <td>{ф.value}{ф.unit ? ` ${ф.unit}` : ''}</td>
+                  <td title={МЕТКА[ф.mark] ?? ф.mark}>{МЕТКА[ф.mark] ?? ф.mark}</td>
+                  <td className="v2-mono" title={ф.material}>
+                    {ф.manual ? <span className="v2-kf__manual">{ф.material}</span> : (ф.anchor ?? '—')}
+                  </td>
+                  <td className={было === 'adopted' ? 'v2-ok' : было === 'rejected' ? 'v2-warn' : ''}>
+                    {РЕШЕНИЕ[было] ?? было}
+                  </td>
+                  <td>
+                    {решаем?.факт !== ф.id && (
+                      <>
+                        {было !== 'adopted' && (
+                          <button type="button" className="v2-link"
+                            title="принять факт: он станет основанием сущности — одним кликом"
+                            onClick={() => решить(ф, 'adopted')}>принять</button>
+                        )}
+                        {было !== 'noted' && (
+                          <>
+                            {было !== 'adopted' && ' · '}
+                            <button type="button" className="v2-link"
+                              title="рассмотрен и не взят — это тоже решение, факт не исчезает"
+                              onClick={() => решить(ф, 'noted')}>отложить</button>
+                          </>
+                        )}
+                        {было !== 'rejected' && (
+                          <>
+                            {' · '}
+                            <button type="button" className="v2-link"
+                              title="отклонить — с причиной: «нет» без объяснения через год читается как забывчивость"
+                              onClick={() => решить(ф, 'rejected')}>отклонить</button>
+                          </>
+                        )}
+                      </>
+                    )}
+                    {решаем?.факт === ф.id && (
+                      <span className="v2-kf__why">
+                        <textarea value={причина} autoFocus rows={2}
+                          onChange={(e) => setПричина(e.target.value)}
+                          placeholder={
+                            решаем.решение === 'rejected' ? 'почему не берём'
+                              : было === 'contested' ? 'какой факт победил и почему'
+                                : 'что изменилось с прошлого решения'
+                          } />
+                        <button type="button" disabled={!причина.trim()}
+                          title={причина.trim() ? 'записать решение' : 'здесь повод обязателен'}
+                          onClick={записать}>Записать</button>
+                        <button type="button" className="v2-link" title="не менять решение"
+                          onClick={() => { setРешаем(null); setПричина('') }}>отмена</button>
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       )}
+    </div>
+  )
+}
+
+/** Вход в поле: текст, файл или ссылка + задание → разбор. */
+function Source({ project, onParsed, onError }: {
+  project: string
+  onParsed: (итог: { task: string; note: string; accepted: number; refused: number; refusals: string[] }) => void
+  onError: (e: string) => void
+}) {
+  const [имя, setИмя] = useState('')
+  const [текст, setТекст] = useState('')
+  const [ссылка, setСсылка] = useState('')
+  const [вид, setВид] = useState('mission_memo')
+  const [задание, setЗадание] = useState('разбери по сущностям')
+  const [занято, setЗанято] = useState(false)
+  const [итог, setИтог] = useState<string | null>(null)
+
+  // Файл читается В БРАУЗЕРЕ и уходит текстом: серверу не нужен ещё один
+  // канал ради того, что уже умеет вкладка. Двоичные (pdf, docx) — хвост.
+  const файл = (f: File | null) => {
+    if (!f) return
+    if (!имя.trim()) setИмя(f.name.replace(/\.[^.]+$/, ''))
+    f.text().then(setТекст).catch(() => onError('файл не прочитался: приложите текстовый'))
+  }
+
+  const разобрать = () => {
+    setЗанято(true); setИтог(null)
+    api.putMaterial(project, { name: имя, kind: вид, text: текст, url: ссылка, author: 'инженер' })
+      .then((м) => api.atomize(project, м.code, задание, 'инженер'))
+      .then((р) => {
+        setИтог(`${р.note}${р.refusals.length ? ` · отклонено: ${р.refusals.slice(0, 3).join('; ')}` : ''}`)
+        onParsed(р)
+      })
+      .catch((e) => onError(String(e.message ?? e)))
+      .finally(() => setЗанято(false))
+  }
+
+  const есть = текст.trim().length > 0 || ссылка.trim().length > 0
+
+  return (
+    <div className="v2-kf__src" data-why="работа">
+      <div className="v2-kf__row" style={{ gridTemplateColumns: '2fr 1fr' }}>
+        <label>название
+          <input value={имя} onChange={(e) => setИмя(e.target.value)} placeholder="Записка миссии" />
+        </label>
+        <label>тип
+          <select value={вид} onChange={(e) => setВид(e.target.value)}>
+            <option value="mission_memo">записка миссии</option>
+            <option value="tor">техническое задание</option>
+            <option value="normative">норматив</option>
+            <option value="datasheet">даташит</option>
+            <option value="analysis">анализ</option>
+            <option value="reference">справочный</option>
+          </select>
+        </label>
+      </div>
+      <label>текст
+        <textarea rows={4} value={текст} onChange={(e) => setТекст(e.target.value)}
+          placeholder="вставьте текст — либо приложите файл или дайте ссылку ниже" />
+      </label>
+      <div className="v2-kf__row" style={{ gridTemplateColumns: '1fr 2fr' }}>
+        <label>файл
+          <input type="file" accept=".txt,.md,.csv,text/plain,text/markdown"
+            onChange={(e) => файл(e.target.files?.[0] ?? null)} />
+        </label>
+        <label>ссылка
+          <input value={ссылка} onChange={(e) => setСсылка(e.target.value)} placeholder="https://…" />
+        </label>
+      </div>
+      <label>задание
+        <input value={задание} onChange={(e) => setЗадание(e.target.value)}
+          placeholder="разбери по сущностям · это норматив — заведи · сравни с нашим" />
+      </label>
+      <div className="v2-form__actions">
+        <button type="button" className="v2-primary" disabled={занято || !есть || !имя.trim()}
+          title={!имя.trim() ? 'дайте источнику название'
+            : !есть ? 'нужен текст, файл или ссылка'
+              : 'положить материал и разобрать: факты и темы лягут в поле'}
+          onClick={разобрать}>
+          {занято ? 'Разбираю…' : 'Разобрать'}
+        </button>
+        {итог && <span className="v2-dim">{итог}</span>}
+      </div>
+    </div>
+  )
+}
+
+/** Тема или факт руками: полноправно, но видно как ручное. */
+function Manual({ project, темы, onDone, onError }: {
+  project: string
+  темы: Тема[]
+  onDone: () => void
+  onError: (e: string) => void
+}) {
+  const [метка, setМетка] = useState('')
+  const [предмет, setПредмет] = useState('')
+  const [утверждение, setУтверждение] = useState('')
+  const [значение, setЗначение] = useState('')
+  const [единица, setЕдиница] = useState('')
+  const [вид, setВид] = useState('framing')
+  const [темаФакта, setТемаФакта] = useState('')
+
+  const завестиТему = () => {
+    api.addTopic(project, метка.trim(), 'инженер')
+      .then(() => { setМетка(''); onDone() }).catch((e) => onError(String(e.message ?? e)))
+  }
+  const завестиФакт = () => {
+    api.addFact(project, {
+      subject: предмет, predicate: утверждение, value: значение, unit: единица,
+      kind: вид, topic: темаФакта, author: 'инженер',
+    })
+      .then(() => { setУтверждение(''); setЗначение(''); onDone() })
+      .catch((e) => onError(String(e.message ?? e)))
+  }
+  const величина = вид === 'quantity'
+
+  return (
+    <div className="v2-kf__src" data-why="работа">
+      <div className="v2-kf__row" style={{ gridTemplateColumns: '2fr auto' }}>
+        <label>новая тема
+          <input value={метка} onChange={(e) => setМетка(e.target.value)} placeholder="Опыт ЛИ Гонец-Д1М" />
+        </label>
+        <button type="button" disabled={!метка.trim()} onClick={завестиТему}
+          title="тема руками: предмет, о котором знания копятся">Завести тему</button>
+      </div>
+      <div className="v2-kf__row" style={{ gridTemplateColumns: '1fr 2fr 1fr 80px 1fr' }}>
+        <label>предмет
+          <input value={предмет} onChange={(e) => setПредмет(e.target.value)} placeholder="Гонец-Д1М" />
+        </label>
+        <label>утверждение
+          <input value={утверждение} onChange={(e) => setУтверждение(e.target.value)}
+            placeholder="срок активного существования по ЛИ" />
+        </label>
+        <label>значение
+          <input value={значение} onChange={(e) => setЗначение(e.target.value)} placeholder="7" />
+        </label>
+        <label>единица
+          <input value={единица} onChange={(e) => setЕдиница(e.target.value)} placeholder={величина ? 'лет' : '—'}
+            title={величина ? 'величина без единицы — не факт' : 'у текста единицы нет'} />
+        </label>
+        <label>вид
+          <select value={вид} onChange={(e) => setВид(e.target.value)}>
+            {ВИДЫ_ФАКТА.map(([к, и]) => <option key={к} value={к}>{и}</option>)}
+          </select>
+        </label>
+      </div>
+      <div className="v2-kf__row" style={{ gridTemplateColumns: '2fr auto' }}>
+        <label>тема факта
+          <select value={темаФакта} onChange={(e) => setТемаФакта(e.target.value)}>
+            <option value="">— без темы —</option>
+            {темы.map((т) => <option key={т.id} value={т.label}>{т.label}</option>)}
+          </select>
+        </label>
+        <button type="button" className="v2-primary"
+          disabled={!утверждение.trim() || !значение.trim() || (величина && !единица.trim())}
+          title="факт руками: метка [И], источник — инженер и дата; полноправный, но виден как ручной"
+          onClick={завестиФакт}>Завести факт</button>
+      </div>
+      <div className="v2-empty__why">
+        Ручной факт полноправен — диспозиции, связи, промпт. Доля знаний из источников
+        считается без него: ручное видно отдельно.
+      </div>
     </div>
   )
 }

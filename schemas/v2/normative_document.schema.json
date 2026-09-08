@@ -99,12 +99,33 @@
               "array",
               "null"
             ]
+          },
+          "limit": {
+            "type": [
+              "string",
+              "number",
+              "boolean",
+              "object",
+              "array",
+              "null"
+            ]
+          },
+          "applies_to": {
+            "type": [
+              "string",
+              "number",
+              "boolean",
+              "object",
+              "array",
+              "null"
+            ]
           }
         },
         "required": [
           "clause"
         ]
-      }
+      },
+      "description": "порог нормы — поле limit, не число из текста; «Б1: увод ≤ 5 лет» → limit{key:active_lifetime,op:le,value:5,unit:год}"
     },
     "source_mark": {
       "enum": [

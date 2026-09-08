@@ -267,4 +267,66 @@ class ComponentFacetsTest {
         assertEquals("shelf", параметр.origin, "параметр без происхождения не принимается")
         assertEquals(по, store.byCode(область, "OBC-SW")!!.id)
     }
+
+    // --- каждый критерий обязан уметь отказать (правило владельца 08.09) ---
+
+    @Test
+    fun `критерии архитектуры отказывают, когда закрывать нечем`() {
+        val проверки = ArchitectureFactory.gateChecks(store, архитектура)
+        fun отказ(условие: String): String {
+            val ответ = проверки.of(проект, условие)
+            assertTrue(ответ != null && !ответ.passed, "«$условие» обязано отказать на пустом проекте")
+            return ответ!!.why ?: ""
+        }
+        assertTrue("узлов состава 0 из 3" in отказ("composition_min:3"), отказ("composition_min:3"))
+        assertTrue("машины режимов нет" in отказ("modes_defined"), отказ("modes_defined"))
+        assertTrue("операционных сценариев 0 из 2" in отказ("scenarios_min:2"), отказ("scenarios_min:2"))
+        assertTrue("базовый вариант не назван" in отказ("baseline_concept_chosen"))
+    }
+
+    @Test
+    fun `одно состояние режимом не считается`() {
+        val проверки = ArchitectureFactory.gateChecks(store, архитектура)
+        val ка = store.create(
+            "SC", "component", область, "7",
+            mapper.readTree("""{"name":"КА","level":1,"nature":"node","kind":"system"}"""), провенанс,
+        )
+        store.create(
+            "SM-SC", "state_machine", область, "9",
+            mapper.readTree("""{"owner":"${ка.id}","states":[{"code":"DUTY","name":"Дежурный"}]}"""),
+            провенанс,
+        )
+        val ответ = проверки.of(проект, "modes_defined")!!
+        assertTrue(
+            !ответ.passed && "меньше двух" in (ответ.why ?: ""),
+            "одно состояние — постоянное поведение, а не режим: ${ответ.why}",
+        )
+    }
+
+    @Test
+    fun `сценарий без участника в шаге — отказ с кодом`() {
+        val проверки = ArchitectureFactory.gateChecks(store, архитектура)
+        store.create(
+            "SCN-0001", "functional_chain", область, "9",
+            mapper.readTree("""{"name":"сценарий","steps":[{"what":"что-то происходит"}]}"""),
+            провенанс,
+        )
+        val ответ = проверки.of(проект, "each_scenario_has_steps")!!
+        assertTrue(!ответ.passed && "SCN-0001" in (ответ.why ?: ""), ответ.why ?: "")
+    }
+
+    @Test
+    fun `поведение без носителя и незакрытая ступень — отказ`() {
+        val проверки = ArchitectureFactory.gateChecks(store, архитектура)
+        store.create(
+            "OBC-SW", "component", область, "7",
+            mapper.readTree("""{"name":"ПО","level":4,"nature":"behaviour","kind":"assembly"}"""),
+            провенанс,
+        )
+        val носитель = проверки.of(проект, "each_behaviour_deployed")!!
+        assertTrue(!носитель.passed && "OBC-SW" in (носитель.why ?: ""), носитель.why ?: "")
+
+        val ступень = проверки.of(проект, "component_stage_closed:MCR")!!
+        assertTrue(!ступень.passed, "у узла без анкеты ступень MCR не закрыта: ${ступень.why}")
+    }
 }

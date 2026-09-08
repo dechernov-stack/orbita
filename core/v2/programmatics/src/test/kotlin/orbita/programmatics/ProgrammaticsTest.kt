@@ -224,4 +224,105 @@ class ProgrammaticsTest {
         ),
         провенанс,
     )
+
+    // --- каждый критерий обязан уметь отказать (правило владельца 08.09) ---
+
+    @Test
+    fun `критерии программатики отказывают на пустом проекте`() {
+        val проверки = ProgrammaticsFactory.gateChecks(store, программатика)
+        fun причина(условие: String): String {
+            val ответ = проверки.of(проект, условие)
+            assertTrue(ответ != null && !ответ.passed, "«$условие» обязано отказать на пустом проекте")
+            return ответ!!.why ?: ""
+        }
+        assertTrue("рисков 0 из 3" in причина("risks_min:3"), причина("risks_min:3"))
+        assertTrue("WBS не взят" in причина("wbs_paired"), причина("wbs_paired"))
+        assertTrue("засорения" in причина("oda_started"), причина("oda_started"))
+        assertTrue("технолог" in причина("technologies_named:1").lowercase())
+        assertTrue(причина("estimate_ranged").isNotBlank())
+    }
+
+    @Test
+    fun `разрыв TRL без пакета и стоимость без созревания — отказ`() {
+        val проверки = ProgrammaticsFactory.gateChecks(store, программатика)
+        val узел = узел("OBC")
+        store.create(
+            "TECH-0001", "technology", область, "10",
+            mapper.readTree(
+                """{"name":"алгоритмы FDIR","component":"${узел.id}",
+                    "trl_current":4,"trl_required":6,"required_by":"PDR"}""",
+            ),
+            провенанс,
+        )
+        // Пакет созревания ещё не порождён: план не составлен.
+        val планОтвет = проверки.of(проект, "maturation_planned")!!
+        assertTrue(!планОтвет.passed, "разрыв TRL без пакета обязан держать сцену")
+
+        программатика.maturation(проект, "Иванов И.")
+        val стоимость = проверки.of(проект, "estimate_includes_maturation")!!
+        assertTrue(
+            !стоимость.passed && "созревание" in (стоимость.why ?: ""),
+            "пакет созревания без оценки обязан держать сцену 12: ${стоимость.why}",
+        )
+    }
+
+    @Test
+    fun `риск без срока — отказ с кодом риска`() {
+        val проверки = ProgrammaticsFactory.gateChecks(store, программатика)
+        store.create(
+            "RSK-0009", "risk", область, "11",
+            mapper.readTree("""{"statement":"риск без срока","probability":3,"impact":3}"""),
+            провенанс,
+        )
+        val ответ = проверки.of(проект, "each_risk_has_due_point")!!
+        assertTrue(!ответ.passed && "RSK-0009" in (ответ.why ?: ""), ответ.why ?: "")
+    }
+
+    @Test
+    fun `план пакета созревания ведёт дату вехи`() {
+        val узел = узел("PL-RX")
+        store.create(
+            "TECH-0001", "technology", область, "10",
+            mapper.readTree(
+                """{"name":"приёмный тракт","component":"${узел.id}",
+                    "trl_current":4,"trl_required":6,"required_by":"PDR"}""",
+            ),
+            провенанс,
+        )
+        программатика.maturation(проект, "Иванов И.")
+        val веха = store.byCode(область, "TRL-TECH-0001")!!
+        assertTrue(веха.doc.path("planned_date").asText("").isBlank(), "веха рождается без даты")
+
+        val тронута = программатика.planPackage(
+            проект, "04.TECH-0001", "2026-10-01", "2027-03-30", "Иванов И.",
+        )
+        assertEquals("TRL-TECH-0001", тронута, "план пакета ведёт свою веху")
+        val после = store.byCode(область, "TRL-TECH-0001")!!
+        assertEquals("2027-03-30", после.doc.path("planned_date").asText(), "дата вехи — конец работ")
+        assertTrue(
+            "04.TECH-0001" in после.doc.path("date_source").asText(),
+            "источник даты назван: ${после.doc.path("date_source").asText()}",
+        )
+    }
+
+    @Test
+    fun `конец работ раньше начала не принимается`() {
+        val узел = узел("PL-RX")
+        store.create(
+            "TECH-0001", "technology", область, "10",
+            mapper.readTree(
+                """{"name":"тракт","component":"${узел.id}",
+                    "trl_current":4,"trl_required":6,"required_by":"PDR"}""",
+            ),
+            провенанс,
+        )
+        программатика.maturation(проект, "Иванов И.")
+        val ошибка = runCatching {
+            программатика.planPackage(проект, "04.TECH-0001", "2027-03-30", "2026-10-01", "Иванов И.")
+        }.exceptionOrNull()
+        assertTrue(
+            ошибка?.message?.contains("раньше начала") == true,
+            "план задом наперёд отклоняется: ${ошибка?.message}",
+        )
+    }
 }

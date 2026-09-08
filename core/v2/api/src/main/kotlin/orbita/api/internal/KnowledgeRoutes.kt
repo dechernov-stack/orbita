@@ -33,6 +33,15 @@ class KnowledgeRoutes(
 
         method == "GET" && path == "/v2/topics" -> темы(требуется(query, "project"))
 
+        // Ручные тема и факт (замечание прохода 08.09): инженер заводит
+        // предмет и утверждение, не дожидаясь разбора. Ручной факт —
+        // полноправный, но в доле знаний из источников он не участвует.
+        method == "POST" && path == "/v2/topics" ->
+            тема(требуется(query, "project"), разобрать(body))
+
+        method == "POST" && path == "/v2/facts" ->
+            ручнойФакт(требуется(query, "project"), разобрать(body))
+
         method == "POST" && path.matches(Regex("/v2/facts/[A-ZА-Я0-9-]+/disposition")) ->
             диспозиция(
                 требуется(query, "project"),
@@ -92,9 +101,35 @@ class KnowledgeRoutes(
         }
     }
 
+    private fun тема(project: String, тело: ObjectNode): V2Router.Ответ {
+        val т = intake.addTopic(project, тело.path("label").asText(""), тело.path("author").asText("инженер"))
+        return V2Router.Ответ(
+            201,
+            mapper.createObjectNode().put("id", т.id).put("label", т.label).put("facts", т.facts),
+        )
+    }
+
+    private fun ручнойФакт(project: String, тело: ObjectNode): V2Router.Ответ {
+        val ф = intake.addFact(
+            project,
+            subject = тело.path("subject").asText(""),
+            predicate = тело.path("predicate").asText(""),
+            value = тело.path("value").asText(""),
+            unit = тело.path("unit").asText("").ifBlank { null },
+            kind = тело.path("kind").asText("framing"),
+            topic = тело.path("topic").asText("").ifBlank { null },
+            material = тело.path("material").asText("").ifBlank { null },
+            author = тело.path("author").asText("инженер"),
+        )
+        return V2Router.Ответ(201, фактВид(ф))
+    }
+
     private fun итог(и: FactIntake): ObjectNode {
         val узел = mapper.createObjectNode()
         узел.put("note", и.note)
+        // Задание с планом — тем же ответом: план ложится на акцепт прямо
+        // в поле, а не за переходом на другой экран.
+        узел.put("task", и.task ?: "")
         узел.put("accepted", и.accepted.size)
         узел.put("refused", и.refused.size)
         val факты = узел.putArray("facts")
@@ -109,6 +144,7 @@ class KnowledgeRoutes(
 
     private fun фактВид(ф: Fact): ObjectNode = mapper.createObjectNode()
         .put("id", ф.id)
+        .put("manual", ф.manual)
         .put("kind", ф.kind)
         .put("subject", ф.subject)
         .put("predicate", ф.predicate)
@@ -204,7 +240,7 @@ class KnowledgeRoutes(
         val п = intake.coverage(project)
         val узел = mapper.createObjectNode()
         узел.put("total", п.total)
-        узел.put("from_facts", п.fromFacts)
+        узел.put("from_manual_facts", п.fromManualFacts).put("from_facts", п.fromFacts)
         узел.put("manual", п.manual)
         узел.put("share_percent", Math.round(п.share * 100).toInt())
         val виды = узел.putObject("by_kind")
