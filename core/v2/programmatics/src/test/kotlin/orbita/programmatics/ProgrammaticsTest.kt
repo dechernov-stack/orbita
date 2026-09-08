@@ -166,4 +166,62 @@ class ProgrammaticsTest {
             "срок без точки не наступает: ${программатика.gaps(проект, "MCR")}",
         )
     }
+
+    @Test
+    fun `точка считает сроки по дате, а не по виду вехи`() {
+        val проверки = ProgrammaticsFactory.gateChecks(store, программатика)
+        точка("MCR", "phase", "2026-11-06")
+        // Веха технологии — законный срок риска (решение владельца 08.09),
+        // и её дата раньше даты MCR.
+        точка("TRL-TECH-0001", "technology", "2026-10-15")
+        риск("RSK-0001", "TRL-TECH-0001")
+
+        // Срок хранится ИДЕНТИФИКАТОРОМ: так его кладёт маршрут заведения
+        // риска, и искать только по коду значило не найти ни одного срока.
+        val поId = store.create(
+            "RSK-0003", "risk", область, "11",
+            mapper.readTree(
+                """{"statement":"риск по id","category":"техническое","probability":2,"impact":2,
+                    "strategy":"accept","owner":"вед. СИ",
+                    "due_point":"${store.byCode(область, "TRL-TECH-0001")!!.id}"}""",
+            ),
+            провенанс,
+        )
+        assertTrue(поId.code == "RSK-0003")
+
+        val до = проверки.of(проект, "risks_due_closed:MCR")!!
+        assertTrue(!до.passed, "открытый риск со сроком раньше точки её держит")
+        assertTrue("RSK-0001" in (до.why ?: ""), "риск назван кодом: ${до.why}")
+        assertTrue("RSK-0003" in (до.why ?: ""), "срок идентификатором тоже найден: ${до.why}")
+
+        // Тот же риск со сроком ПОЗЖЕ точки её не держит: сравниваются даты.
+        точка("TRL-TECH-0002", "technology", "2027-03-30")
+        риск("RSK-0002", "TRL-TECH-0002")
+        val после = проверки.of(проект, "risks_due_closed:MCR")!!
+        assertTrue("RSK-0002" !in (после.why ?: ""), "срок позже точки её не держит: ${после.why}")
+    }
+
+    @Test
+    fun `веха без даты названа, а не пропущена молча`() {
+        val проверки = ProgrammaticsFactory.gateChecks(store, программатика)
+        точка("MCR", "phase", "")
+        val ответ = проверки.of(проект, "risks_due_closed:MCR")!!
+        assertTrue(!ответ.passed, "без даты сравнивать нечего — это состояние, а не «всё хорошо»")
+        assertTrue("нет даты" in (ответ.why ?: ""), ответ.why ?: "")
+    }
+
+    private fun точка(ключ: String, вид: String, дата: String) = store.create(
+        ключ, "gate", область, "1",
+        mapper.readTree("""{"title":"$ключ","kind":"$вид","planned_date":"$дата"}"""),
+        провенанс,
+    )
+
+    private fun риск(код: String, срок: String) = store.create(
+        код, "risk", область, "11",
+        mapper.readTree(
+            """{"statement":"риск $код","category":"техническое","probability":3,"impact":4,
+                "strategy":"mitigate","owner":"вед. СИ","due_point":"$срок"}""",
+        ),
+        провенанс,
+    )
 }

@@ -83,7 +83,7 @@ object GeneratedKinds {
         KindSpec("baseline_concept", "базовая концепция", Layer.L3, "7", null, listOf("variant", "rationale", "rejected", "descopes", "decided_by", "at")),
         KindSpec("technology", "технология / TRL", Layer.L3, "10, A7", null, listOf("name", "component", "trl_current", "trl_required", "required_by")),
         KindSpec("risk", "риск", Layer.L3, "11, A8", "open|closed", listOf("statement", "cec", "category", "probability", "impact", "strategy", "measures", "owner", "due_point")),
-        KindSpec("debris_assessment", "оценка засорения (ODA)", Layer.L3, "11, A9", null, listOf("variant", "lifetime_years", "deorbit_dv", "normative", "compliant", "model_run")),
+        KindSpec("debris_assessment", "оценка засорения (ODA): активный увод и пассивный сход", Layer.L3, "11, A9", null, listOf("variant", "active_lifetime_years", "deorbit_dv", "passive_lifetime_years", "normative_active", "normative_passive", "compliant_active", "compliant_passive", "atmosphere_model", "ballistic_coefficient", "model_run")),
         KindSpec("system_model", "запись модели", Layer.L4, "7, A6", "not_built|proxy|calc", listOf("template_code", "inputs", "verification_status")),
         KindSpec("model_run", "выход расчёта", Layer.L4, "при расчёте", null, listOf("model", "version", "inputs_snapshot", "outputs", "tool", "proxy", "at", "by")),
         KindSpec("metric", "метрика сравнения", Layer.L4, "7", null, listOf("variant", "code", "measure", "group")),

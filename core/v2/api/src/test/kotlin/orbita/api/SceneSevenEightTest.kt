@@ -46,6 +46,9 @@ class SceneSevenEightTest {
         val снимки = RequirementsFactory.baselines(store, links, mapper)
         val архитектура = ArchitectureFactory.architecture(store, links, mapper)
         val проверкиТ = RequirementsFactory.gateChecks(store, снимки)
+        val проверкиП = orbita.programmatics.api.ProgrammaticsFactory.gateChecks(
+            store, orbita.programmatics.api.ProgrammaticsFactory.programmatics(store, mapper),
+        )
         val проверкиА = ArchitectureFactory.gateChecks(store, архитектура)
         val движок = ProcessFactory.engine(
             template = { шаблон },
@@ -53,7 +56,14 @@ class SceneSevenEightTest {
                 store, links,
                 scenesDone = { emptySet() },
                 gatesPassed = { p -> пройденные.getOrPut(p) { mutableSetOf() } },
-                extra = { проект, условие -> проверкиТ.of(проект, условие) ?: проверкиА.of(проект, условие) },
+                // Проверки программатики тоже: точка MCR считает сроки
+                // рисков, и без них оценщик честно скажет «условие не
+                // реализовано» — тест увидит помеху, которой нет.
+                extra = { проект, условие ->
+                    проверкиТ.of(проект, условие)
+                        ?: проверкиА.of(проект, условие)
+                        ?: проверкиП.of(проект, условие)
+                },
             ),
             passedGates = { p -> пройденные.getOrPut(p) { mutableSetOf() } },
             outputCounter = { проект, вид ->

@@ -259,7 +259,7 @@
       "impact": 4,
       "strategy": "mitigate",
       "owner": "АО «ГЛОНАСС»",
-      "due_point": "SDR",
+      "due_point": "TRL-TECH-0002",
       "measures": "пакет созревания с макетом тракта"
     },
     {
@@ -276,11 +276,13 @@
   "oda": [
     {
       "variant": "V1 · 24 КА в трёх плоскостях",
-      "norm": "25 лет (IADC)",
-      "lifetime_years": 5,
-      "dv_deorbit": "30 м/с",
-      "compliant": true,
-      "assumptions": "высота 550 км, площадь миделя 0.6 м², пассивный увод"
+      "active_lifetime_years": 3.8,
+      "deorbit_dv": "30 м/с",
+      "passive_lifetime_years": 11.4,
+      "normative_active": "Б1: увод не более 5 лет",
+      "normative_passive": "не более 25 лет",
+      "atmosphere_model": "NRLMSISE-00, прокси по среднему солнечному потоку F10.7 = 140",
+      "ballistic_coefficient": "72 кг/м²"
     }
   ],
   "estimates": [
@@ -508,6 +510,17 @@
           "what": "возвращается в дежурный режим"
         }
       ]
+    }
+  ],
+  "oda_note": "Два случая на один вариант (поставка владельца 08.09): штатный увод ДУ и пассивный сход при её отказе. Без второго ОСЗ отвечает «уложимся, если всё сработает» и молчит о том, что будет при отказе, — а норматив там другой.",
+  "milestones": [
+    {
+      "gate": "TRL-TECH-0001",
+      "date": "2027-03-30"
+    },
+    {
+      "gate": "TRL-TECH-0002",
+      "date": "2027-06-15"
     }
   ]
 }

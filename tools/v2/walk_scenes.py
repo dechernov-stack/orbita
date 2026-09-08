@@ -265,6 +265,15 @@ class Прогон:
                                   {**х, "author": "Иванов И."}),
             )
 
+    def вехи_созревания(self) -> None:
+        """Даты вех технологий: без них точка не учтёт сроки рисков."""
+        for в in self.сид.get("milestones", []):
+            self.шаг(
+                f"сцена 10: дата вехи {в['gate']}", False,
+                lambda х=в: вызов(self.base, "POST", f"/v2/gates/{х['gate']}/date?project={self.проект}",
+                                  {"date": х["date"], "author": "Иванов И."}),
+            )
+
     def сцена_12_стоимость(self) -> None:
         взято = вызов(self.base, "POST", f"/v2/wbs/take?project={self.проект}",
                       {"author": "Чернов Д."}).get("taken", 0)
@@ -316,6 +325,7 @@ class Прогон:
         self.сцена_9_режимы_и_сценарии()
         self.сцена_10_технологии()
         self.сцена_11_риски_и_засорение()
+        self.вехи_созревания()
         self.войти("chernov")
         self.сцена_12_стоимость()
 

@@ -1800,7 +1800,7 @@ kinds:
   - name: due_point
     type: ref gate
     required: true
-    note: ''
+    note: срок — любая веха (gate.kind phase|technology); точка фазы считает сроки по дате ≤ своей
   - name: refs
     type: ref[] component|scene
     required: false
@@ -1809,7 +1809,7 @@ kinds:
   engine: есть
 - n: 55
   code: debris_assessment
-  name: оценка засорения (ODA)
+  name: 'оценка засорения (ODA): активный увод и пассивный сход'
   layer: L3
   born_in: 11, A9
   status_model: null
@@ -1818,22 +1818,42 @@ kinds:
     type: ref constellation_variant
     required: true
     note: ''
-  - name: lifetime_years
+  - name: active_lifetime_years
     type: num
     required: true
-    note: ''
+    note: время существования после увода ДУ
   - name: deorbit_dv
-    type: measure{op,value|min,max,unit→unit}
+    type: measure{value,unit:м/с}
     required: true
     note: ''
-  - name: normative
+  - name: passive_lifetime_years
+    type: num
+    required: true
+    note: пассивный сход при отказе ДУ
+  - name: normative_active
     type: ref normative_document
     required: true
-    note: ''
-  - name: compliant
-    type: bool
+    note: 'норма активного увода (Б1: ≤ 5 лет)'
+  - name: normative_passive
+    type: ref normative_document
+    required: true
+    note: норма пассивного схода (≤ 25 лет)
+  - name: compliant_active
+    type: bool (computed)
     required: true
     note: ''
+  - name: compliant_passive
+    type: bool (computed)
+    required: true
+    note: ''
+  - name: atmosphere_model
+    type: str
+    required: true
+    note: прокси/модель — подписан
+  - name: ballistic_coefficient
+    type: measure
+    required: true
+    note: m/(Cd·A)
   - name: model_run
     type: ref model_run
     required: true
@@ -2397,7 +2417,7 @@ kinds:
   - name: measure
     type: measure{op?,value|min,max,unit→unit} | tbr{owner*,gate*,action*}
     required: true
-    note: ''
+    note: срок — любая веха (gate.kind phase|technology); точка фазы считает сроки по дате ≤ своей
   - name: origin
     type: enum[manual,datasheet,shelf,computed,example]
     required: true

@@ -12,6 +12,19 @@ class ProgrammaticsChecks(
     private val programmatics: Programmatics,
 ) : ExtraChecks {
 
+    /**
+     * Дата вехи по её ключу ИЛИ идентификатору.
+     *
+     * Срок риска хранится идентификатором (маршрут разрешает ключ в id при
+     * заведении), а условия шаблона называют точку ключом. Искать только по
+     * коду значило молча не находить ни одного срока — и точка объявляла бы
+     * себя готовой, ничего не проверив.
+     */
+    private fun дата(область: Area, ключ: String): String? = ключ.takeIf { it.isNotBlank() }
+        ?.let { store.byCode(область, it) ?: store.byId(it) }
+        ?.doc?.path("planned_date")?.asText("")
+        ?.takeIf { it.isNotBlank() }
+
     override fun of(project: String, check: String): CheckResult? {
         val область = Area.Project(project)
         val (имя, аргумент) = check.split(":", limit = 2).let { it[0] to it.getOrNull(1) }
@@ -53,6 +66,51 @@ class ProgrammaticsChecks(
                     "без срока-точки: " + без.take(3).joinToString(", ") { it.code } +
                         " — срок без точки не наступает",
                 )
+            }
+
+            /**
+             * Риски и TBR, чей срок наступил К ЭТОЙ ТОЧКЕ.
+             *
+             * Правило владельца 08.09: точка фазы считает сроки ПО ДАТЕ, а
+             * не по виду вехи. Срок риска — любая веха: и точка фазы, и
+             * веха технологии («к вехе TRL 6 датчикового терминала» точнее,
+             * чем «к SRR»). Значит и сравнивать надо даты, иначе риск,
+             * привязанный к вехе технологии, тихо переживёт точку, к
+             * которой должен был закрыться.
+             */
+            "risks_due_closed" -> {
+                val точка = аргумент ?: return CheckResult.no("условию нужен ключ точки")
+                val датаТочки = дата(область, точка)
+                    ?: return CheckResult.no("у точки «$точка» нет даты: сроки не с чем сравнивать")
+                val просроченные = store.list(область, "risk")
+                    .filter { it.status != "closed" }
+                    .filter { риск ->
+                        val срок = дата(область, риск.doc.path("due_point").asText(""))
+                        срок != null && срок <= датаТочки
+                    }
+                val tbr = store.list(область, "parameter")
+                    .filter { !it.doc.path("measure").path("tbr").isMissingNode }
+                    .filter { п ->
+                        val срок = дата(область, п.doc.path("measure").path("tbr").path("gate").asText(""))
+                        срок != null && срок <= датаТочки
+                    }
+                when {
+                    просроченные.isEmpty() && tbr.isEmpty() -> CheckResult.ok
+                    else -> CheckResult.no(
+                        buildString {
+                            if (просроченные.isNotEmpty()) {
+                                append("открытых рисков со сроком к $точка: ")
+                                append(просроченные.take(3).joinToString(", ") { it.code })
+                            }
+                            if (tbr.isNotEmpty()) {
+                                if (isNotEmpty()) append("; ")
+                                append("неснятых TBR: ")
+                                append(tbr.take(3).joinToString(", ") { it.code })
+                            }
+                            append(" — срок наступил, а решения нет")
+                        },
+                    )
+                }
             }
 
             "oda_started" -> {

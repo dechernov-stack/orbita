@@ -67,7 +67,8 @@
       "description": "ключ анкеты"
     },
     "measure": {
-      "$ref": "https://kis.local/schemas/v2/_measure.schema.json"
+      "$ref": "https://kis.local/schemas/v2/_measure.schema.json",
+      "description": "срок — любая веха (gate.kind phase|technology); точка фазы считает сроки по дате ≤ своей"
     },
     "origin": {
       "enum": [

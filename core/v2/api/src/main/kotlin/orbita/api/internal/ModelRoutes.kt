@@ -77,6 +77,16 @@ class ModelRoutes(
 
         method == "GET" && path == "/v2/oda" -> засорение(требуется(query, "project"))
 
+        // Дата вехи технологии. Точки фазы получают даты планом работ, а
+        // веха созревания рождается разрывом TRL и даты не имеет — без неё
+        // точка не может учесть срок риска, привязанного к этой вехе.
+        method == "POST" && path.matches(Regex("/v2/gates/[A-Za-zА-Яа-я0-9-]+/date")) ->
+            датаВехи(
+                требуется(query, "project"),
+                path.removePrefix("/v2/gates/").removeSuffix("/date"),
+                разобрать(body),
+            )
+
         method == "POST" && path == "/v2/oda" -> завестиОсз(требуется(query, "project"), разобрать(body))
 
         method == "GET" && path == "/v2/risks" -> риски(требуется(query, "project"))
@@ -413,6 +423,28 @@ class ModelRoutes(
         return V2Router.Ответ(201, mapper.createObjectNode().put("code", создано.code))
     }
 
+    private fun датаВехи(проект: String, ключ: String, тело: JsonNode): V2Router.Ответ {
+        val область = Area.Project(проект)
+        val веха = store.byCode(область, ключ) ?: throw IllegalArgumentException("вехи «$ключ» нет в проекте")
+        require(веха.kind == "gate") { "«$ключ» — не веха, а ${веха.kind}" }
+        require(веха.doc.path("kind").asText("") == "technology") {
+            "даты точек фазы задаются планом работ, а не поштучно: правьте план"
+        }
+        val дата = тело.path("date").asText("")
+        require(Regex("""\d{4}-\d{2}-\d{2}""").matches(дата)) {
+            "дата вехи — ГГГГ-ММ-ДД; пришло «$дата»"
+        }
+        val обновлён = store.update(
+            веха.id,
+            веха.doc.deepCopy<ObjectNode>().put("planned_date", дата),
+            Provenance(Channel.MANUAL, тело.path("author").asText("стенд")),
+        )
+        return V2Router.Ответ(
+            200,
+            mapper.createObjectNode().put("gate", обновлён.code).put("planned_date", дата),
+        )
+    }
+
     private fun засорение(проект: String): V2Router.Ответ {
         val ответ = mapper.createObjectNode()
         val массив = ответ.putArray("items")
@@ -420,25 +452,81 @@ class ModelRoutes(
             массив.addObject()
                 .put("code", о.code)
                 .put("variant", о.doc.path("variant").asText(""))
-                .put("lifetime_years", о.doc.path("lifetime_years").asDouble())
-                .put("dv_deorbit", о.doc.path("dv_deorbit").asText(""))
-                .put("compliant", о.doc.path("compliant").asBoolean(false))
-                .put("norm", о.doc.path("norm").asText("25 лет"))
+                .put("active_lifetime_years", о.doc.path("active_lifetime_years").asDouble())
+                .put("deorbit_dv", о.doc.path("deorbit_dv").asText(""))
+                .put("passive_lifetime_years", о.doc.path("passive_lifetime_years").asDouble())
+                .put("normative_active", о.doc.path("normative_active").asText(""))
+                .put("normative_passive", о.doc.path("normative_passive").asText(""))
+                .put("compliant_active", о.doc.path("compliant_active").asBoolean(false))
+                .put("compliant_passive", о.doc.path("compliant_passive").asBoolean(false))
+                .put("atmosphere_model", о.doc.path("atmosphere_model").asText(""))
+                .put("ballistic_coefficient", о.doc.path("ballistic_coefficient").asText(""))
         }
         return V2Router.Ответ(200, ответ)
     }
 
+    /**
+     * Оценка засорения: ДВА случая на один вариант — штатный увод и
+     * отказ ДУ (поставка владельца 08.09).
+     *
+     * Без второго случая ОСЗ неполна: она отвечает «уложимся ли, если всё
+     * сработает», и молчит о том, что будет, если двигательная установка
+     * откажет, — а норматив на этот случай другой (25 лет против 5).
+     * Вердикты считаются, а не принимаются на слово: `compliant_*` в теле
+     * запроса игнорируется.
+     */
     private fun завестиОсз(проект: String, тело: JsonNode): V2Router.Ответ {
         val область = Area.Project(проект)
         val документ = тело.deepCopy<ObjectNode>()
-        документ.remove(listOf("code", "author", "project"))
+        документ.remove(listOf("code", "author", "project", "compliant_active", "compliant_passive"))
+
+        val активный = требуетсяЧисло(тело, "active_lifetime_years", "время существования после увода ДУ")
+        val пассивный = требуетсяЧисло(тело, "passive_lifetime_years", "пассивный сход при отказе ДУ")
+        // Модель атмосферы подписывается: срок схода без неё — не число, а
+        // мнение, и на обзоре его нечем защитить.
+        require(тело.path("atmosphere_model").asText("").isNotBlank()) {
+            "модель атмосферы не названа: срок схода без неё не проверить"
+        }
+        require(!тело.path("ballistic_coefficient").isMissingNode) {
+            "баллистический коэффициент m/(Cd·A) не задан: сход считается по нему"
+        }
+        val нормаА = нормаЛет(тело.path("normative_active").asText(""), 5.0)
+        val нормаП = нормаЛет(тело.path("normative_passive").asText(""), 25.0)
+        документ.put("compliant_active", активный <= нормаА)
+        документ.put("compliant_passive", пассивный <= нормаП)
+
         val код = тело.path("code").asText("").ifBlank { следующийКод(область, "debris_assessment", "ODA") }
         val создано = store.create(
             код, "debris_assessment", область, "11", документ,
             Provenance(Channel.MANUAL, тело.path("author").asText("стенд")),
         )
-        return V2Router.Ответ(201, mapper.createObjectNode().put("code", создано.code))
+        return V2Router.Ответ(
+            201,
+            mapper.createObjectNode().put("code", создано.code)
+                .put("compliant_active", активный <= нормаА)
+                .put("compliant_passive", пассивный <= нормаП),
+        )
     }
+
+    private fun требуетсяЧисло(тело: JsonNode, поле: String, что: String): Double {
+        val узел = тело.path(поле)
+        require(узел.isNumber) { "$что: поле «$поле» обязано быть числом лет" }
+        return узел.asDouble()
+    }
+
+    /**
+     * Порог норматива в годах.
+     *
+     * Число берётся ТОЛЬКО перед словом «лет»/«года»/«год»: первое число
+     * строки норматива годами не является — «Б1: увод не более 5 лет»
+     * давало порог 1 из обозначения норматива, и честный увод за 3,8 года
+     * объявлялся нарушением (поймано живой проверкой).
+     */
+    private fun нормаЛет(норматив: String, поумолчанию: Double): Double =
+        Regex("""(\d+(?:[.,]\d+)?)\s*(?:лет|года|год)""")
+            .find(норматив.lowercase())
+            ?.groupValues?.get(1)?.replace(",", ".")?.toDoubleOrNull()
+            ?: поумолчанию
 
     private fun следующийКод(область: Area, вид: String, префикс: String): String {
         val занято = store.list(область, вид).mapNotNull {

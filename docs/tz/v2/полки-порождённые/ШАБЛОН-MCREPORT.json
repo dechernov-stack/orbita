@@ -397,7 +397,7 @@
         {
           "code": "7.1",
           "kind": "query",
-          "title": "ОЗ базового варианта",
+          "title": "ОСЗ базового варианта: активный увод и пассивный сход",
           "select": "debris_assessment",
           "min_rows": 1,
           "columns": [
@@ -406,22 +406,31 @@
               "field": "variant"
             },
             {
-              "title": "Норма",
-              "field": "norm"
+              "title": "Увод ДУ, лет",
+              "field": "active_lifetime_years"
             },
             {
-              "title": "Срок схода, лет",
-              "field": "lifetime_years"
+              "title": "Норма увода",
+              "field": "normative_active"
             },
             {
               "title": "Δv увода",
-              "field": "dv_deorbit"
+              "field": "deorbit_dv"
             },
             {
-              "title": "Соответствует",
-              "field": "compliant"
+              "title": "Сход при отказе ДУ, лет",
+              "field": "passive_lifetime_years"
+            },
+            {
+              "title": "Норма схода",
+              "field": "normative_passive"
+            },
+            {
+              "title": "Модель атмосферы",
+              "field": "atmosphere_model"
             }
-          ]
+          ],
+          "note": "Два случая: штатный увод и отказ ДУ. Без второго ОСЗ отвечает «уложимся, если всё сработает» и молчит о том, что будет при отказе."
         }
       ]
     },

@@ -1185,6 +1185,11 @@
           "source_scene": "8",
           "blocking": true,
           "title": "черновик требований уровня проекта готов"
+        },
+        {
+          "check": "risks_due_closed:MCR",
+          "title": "риски и TBR со сроком к этой точке закрыты",
+          "blocking": true
         }
       ]
     },
@@ -1222,6 +1227,11 @@
           "source_scene": "12",
           "blocking": true,
           "title": "стоимость и сроки оценены"
+        },
+        {
+          "check": "risks_due_closed:KDP-A",
+          "title": "риски и TBR со сроком к этой точке закрыты",
+          "blocking": true
         }
       ]
     }

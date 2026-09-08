@@ -43,6 +43,15 @@ class SceneFlowTest {
                 store, links,
                 scenesDone = { emptySet() },
                 gatesPassed = { p -> пройденные.getOrPut(p) { mutableSetOf() } },
+                // Точка MCR считает сроки рисков (ADR-059); без проверок
+                // программатики оценщик честно скажет «условие не
+                // реализовано», и тест увидит помеху, которой нет.
+                extra = { проект, условие ->
+                    orbita.programmatics.api.ProgrammaticsFactory.gateChecks(
+                        store,
+                        orbita.programmatics.api.ProgrammaticsFactory.programmatics(store, mapper),
+                    ).of(проект, условие)
+                },
             ),
             passedGates = { p -> пройденные.getOrPut(p) { mutableSetOf() } },
             outputCounter = { проект, вид ->

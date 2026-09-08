@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://kis.local/schemas/v2/debris_assessment.schema.json",
   "title": "debris_assessment",
-  "description": "оценка засорения (ODA) — вид 55 слоя L3. Сцена рождения: 11, A9. СГЕНЕРИРОВАНО tools/v2/gen_schemas.py из docs/tz/v2/СХЕМЫ-ПОЛЕЙ-V2.yaml — руками не править",
+  "description": "оценка засорения (ODA): активный увод и пассивный сход — вид 55 слоя L3. Сцена рождения: 11, A9. СГЕНЕРИРОВАНО tools/v2/gen_schemas.py из docs/tz/v2/СХЕМЫ-ПОЛЕЙ-V2.yaml — руками не править",
   "type": "object",
   "additionalProperties": false,
   "properties": {
@@ -62,18 +62,38 @@
       "type": "string",
       "description": "ссылка на вид: constellation_variant"
     },
-    "lifetime_years": {
-      "type": "number"
+    "active_lifetime_years": {
+      "type": "number",
+      "description": "время существования после увода ДУ"
     },
     "deorbit_dv": {
       "$ref": "https://kis.local/schemas/v2/_measure.schema.json"
     },
-    "normative": {
-      "type": "string",
-      "description": "ссылка на вид: normative_document"
+    "passive_lifetime_years": {
+      "type": "number",
+      "description": "пассивный сход при отказе ДУ"
     },
-    "compliant": {
-      "type": "boolean"
+    "normative_active": {
+      "type": "string",
+      "description": "ссылка на вид: normative_document норма активного увода (Б1: ≤ 5 лет)"
+    },
+    "normative_passive": {
+      "type": "string",
+      "description": "ссылка на вид: normative_document норма пассивного схода (≤ 25 лет)"
+    },
+    "compliant_active": {
+      "description": "bool (computed)"
+    },
+    "compliant_passive": {
+      "description": "bool (computed)"
+    },
+    "atmosphere_model": {
+      "type": "string",
+      "description": "прокси/модель — подписан"
+    },
+    "ballistic_coefficient": {
+      "$ref": "https://kis.local/schemas/v2/_measure.schema.json",
+      "description": "m/(Cd·A)"
     },
     "model_run": {
       "type": "string",
@@ -92,10 +112,15 @@
     "created_at",
     "updated_at",
     "variant",
-    "lifetime_years",
+    "active_lifetime_years",
     "deorbit_dv",
-    "normative",
-    "compliant",
+    "passive_lifetime_years",
+    "normative_active",
+    "normative_passive",
+    "compliant_active",
+    "compliant_passive",
+    "atmosphere_model",
+    "ballistic_coefficient",
     "model_run"
   ]
 }

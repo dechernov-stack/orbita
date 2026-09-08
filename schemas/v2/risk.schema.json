@@ -99,7 +99,7 @@
     },
     "due_point": {
       "type": "string",
-      "description": "ссылка на вид: gate"
+      "description": "ссылка на вид: gate срок — любая веха (gate.kind phase|technology); точка фазы считает сроки по дате ≤ своей"
     },
     "refs": {
       "type": "array",
