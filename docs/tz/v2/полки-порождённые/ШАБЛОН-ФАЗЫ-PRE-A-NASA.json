@@ -1372,6 +1372,7 @@
       ],
       "role": "da_review",
       "opens_phase": "Phase A",
+      "opens_template": "PHT-9002",
       "expertise": {
         "goal": "Решение о переходе к Phase A: заключение MCR, закрытые замечания, комплект Д1–Д9 в требуемых зрелостях",
         "validation_questions": [

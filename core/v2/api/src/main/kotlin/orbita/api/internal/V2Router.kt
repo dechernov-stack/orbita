@@ -36,6 +36,8 @@ class V2Router(
     private val pointRoutes: PointRoutes? = null,
     /** Обмен (шип F): StrictDoc, выгрузка знаний с отпечатком, пакет точки. */
     private val exchangeRoutes: ExchangeRoutes? = null,
+    /** Внешняя модель (шип G): Capella либо fixture с баннером. */
+    private val externalModelRoutes: ExternalModelRoutes? = null,
 ) {
 
     /**
@@ -69,4 +71,5 @@ class V2Router(
             ?: docRoutes?.handle(method, path, query, body)
             ?: knowledgeRoutes?.handle(method, path, query, body)
             ?: exchangeRoutes?.handle(method, path, query, body)
+            ?: externalModelRoutes?.handle(method, path, query)
 }

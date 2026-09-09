@@ -17,7 +17,10 @@ interface Session {
   /** В3: режим учёток. null — ещё выясняется; false — прежний режим. */
   authEnabled: boolean | null
   /** Вошедший пользователь; null при выключенном режиме или до входа. */
-  user: { login: string; display_name: string; roles: Record<string, string> } | null
+  user: {
+    login: string; display_name: string; roles: Record<string, string>
+    author?: string; acting_role?: string | null; can_act_as?: boolean; acting_roles?: Record<string, string>
+  } | null
   /** Режим приёмочного стенда: учётки заведены, пароль не спрашивается. */
   standUsers: Array<{ login: string; display_name: string; roles: Record<string, string> }> | null
   /** Вход через Telegram включён на сервере (ADR-065). */
@@ -154,7 +157,17 @@ export function AuthorField() {
     return (
       <span className="author" title={`вы вошли как ${user.login}; автор изменений — из учётки`}>
         <span className="secondary">Инженер</span>{' '}
-        <b>{user.display_name}</b>{' '}
+        <b>{user.author ?? user.display_name}</b>{' '}
+        {user.can_act_as && (
+          <select value={user.acting_role ?? ''}
+            title="ADR-066: выступить от имени роли — только владельцу системы; каждое действие пишется автором «имя как роль»"
+            onChange={(e) => { api.actAs(e.target.value || null).then(refreshWho).catch(() => undefined) }}>
+            <option value="">своя роль</option>
+            {Object.entries(user.acting_roles ?? {}).map(([код, слово]) => (
+              <option key={код} value={код}>как {слово}</option>
+            ))}
+          </select>
+        )}{' '}
         <button className="btn" onClick={() => { api.logout().finally(refreshWho) }}>выйти</button>
       </span>
     )

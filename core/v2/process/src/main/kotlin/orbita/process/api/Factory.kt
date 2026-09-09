@@ -24,6 +24,12 @@ object ProcessFactory {
         phaseOf: ((String) -> String?)? = null,
         /** Запись решения: проект · точка · кем · исход · помета · открываемая фаза. */
         onDecision: ((String, String, String, String, String?, String?) -> Unit)? = null,
+        /** Шаблон фазы проекта по данным (после KDP-A — Phase A). */
+        phaseTemplateOf: ((String) -> String?)? = null,
+        /** Точка с `opens_template` записывает проекту шаблон следующей фазы. */
+        onTemplateOpened: ((String, String) -> Unit)? = null,
+        /** Экземпляры сцены на узлы состава: проект · вид узла → (код, имя). */
+        instances: ((String, String) -> List<Pair<String, String>>)? = null,
     ): ProcessEngine = TemplateProcessEngine(
         шаблон = template,
         оценщик = evaluator,
@@ -36,5 +42,8 @@ object ProcessFactory {
         решения = decisions,
         фазаПроекта = phaseOf,
         наРешение = onDecision,
+        шаблонФазыПроекта = phaseTemplateOf,
+        наОткрытиеШаблона = onTemplateOpened,
+        экземпляры = instances,
     )
 }

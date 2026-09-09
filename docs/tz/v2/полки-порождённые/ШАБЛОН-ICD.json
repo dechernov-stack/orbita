@@ -1,0 +1,253 @@
+{
+  "kind": "document_template",
+  "code": "icd",
+  "title": "Описание стыков (ICD)",
+  "standard": "ДОКУМЕНТЫ-2-ПРОМЕЖУТОЧНЫЕ §6 (DT-9003)",
+  "note": "ICD собирается из стыков, их параметров и требований с носителем-стыком; полнота к SDR. Порождён генератором tools/v2/gen_phase_a_documents.py; правки — в генератор, не сюда.",
+  "style": {
+    "tone": "деловая инженерная проза без маркетинга",
+    "traceability": "каждое утверждение опирается на элемент раздела",
+    "numbers": "число в тексте обязано быть в данных названных опор"
+  },
+  "review": {
+    "qualifiers": [
+      "не менее",
+      "не более",
+      "не допускается",
+      "не должен",
+      "не должна",
+      "не может",
+      "не разрешается",
+      "не",
+      "без",
+      "только",
+      "кроме",
+      "запрещается",
+      "запрещено",
+      "обязан",
+      "обязана",
+      "обязательно"
+    ],
+    "number_exceptions": [
+      "даты вида ГГГГ-ММ-ДД",
+      "номера разделов после §",
+      "числа внутри кодов сущностей"
+    ]
+  },
+  "labels": {
+    "_note": "служебные значения по-русски: печать обязана быть человеческим текстом, а не перечнем ключей модели",
+    "functional": "функциональное",
+    "performance": "показатель",
+    "interface": "стыковое",
+    "operational": "операционное",
+    "constraint": "ограничение",
+    "safety": "безопасность",
+    "reliability": "надёжность",
+    "environmental": "средовое",
+    "node": "узел",
+    "behaviour": "поведение",
+    "data": "данные",
+    "human": "человек",
+    "customer": "заказчик",
+    "operator": "оператор",
+    "regulator": "регулятор",
+    "supplier": "поставщик",
+    "partner": "партнёр",
+    "consumer": "потребитель",
+    "established": "учреждаемая сторона",
+    "mitigate": "снижать",
+    "accept": "принять",
+    "avoid": "избегать",
+    "transfer": "передать",
+    "ROM": "порядок величины",
+    "PARAMETRIC": "параметрическая",
+    "BOTTOM_UP": "снизу вверх",
+    "draft": "черновик",
+    "accepted": "принято",
+    "baselined": "базировано"
+  },
+  "sections": [
+    {
+      "no": "§1",
+      "title": "Реестр стыков",
+      "scenes": [
+        "7",
+        "A4"
+      ],
+      "elements": [
+        {
+          "code": "1.1",
+          "kind": "query",
+          "title": "Стыки",
+          "select": "interface",
+          "min_rows": 1,
+          "columns": [
+            {
+              "title": "Код",
+              "field": "code"
+            },
+            {
+              "title": "Стык",
+              "field": "name"
+            },
+            {
+              "title": "Тип",
+              "field": "type"
+            },
+            {
+              "title": "Сторона A",
+              "field": "a"
+            },
+            {
+              "title": "Сторона B",
+              "field": "b"
+            },
+            {
+              "title": "Направление",
+              "field": "direction"
+            },
+            {
+              "title": "Классы требований",
+              "field": "requirement_classes"
+            }
+          ]
+        }
+      ],
+      "expects": "SDR",
+      "source": "стыки",
+      "min_statements": 1,
+      "statement_hint": "назначение стыков и ответственность сторон"
+    },
+    {
+      "no": "§2",
+      "title": "Параметры стыков",
+      "scenes": [
+        "A4"
+      ],
+      "elements": [
+        {
+          "code": "2.1",
+          "kind": "query",
+          "title": "Параметры на стыках",
+          "select": "parameter",
+          "min_rows": 0,
+          "columns": [
+            {
+              "title": "Стык",
+              "field": "target"
+            },
+            {
+              "title": "Ключ",
+              "field": "key"
+            },
+            {
+              "title": "Значение",
+              "field": "measure"
+            },
+            {
+              "title": "Происхождение",
+              "field": "origin"
+            }
+          ],
+          "where": {
+            "target_kind": "interface"
+          }
+        }
+      ],
+      "expects": "SDR",
+      "source": "параметры стыков"
+    },
+    {
+      "no": "§3",
+      "title": "Требования к стыкам",
+      "scenes": [
+        "8",
+        "A4"
+      ],
+      "elements": [
+        {
+          "code": "3.1",
+          "kind": "query",
+          "title": "Требования с носителем-стыком",
+          "select": "requirement",
+          "min_rows": 1,
+          "columns": [
+            {
+              "title": "Код",
+              "field": "code"
+            },
+            {
+              "title": "Стык",
+              "field": "carrier"
+            },
+            {
+              "title": "Требование",
+              "field": "statement"
+            },
+            {
+              "title": "Уровень",
+              "field": "level"
+            },
+            {
+              "title": "Верификация",
+              "field": "verification_method"
+            }
+          ],
+          "where": {
+            "carrier_kind": "interface"
+          }
+        }
+      ],
+      "expects": "SDR",
+      "source": "требования"
+    },
+    {
+      "no": "§4",
+      "title": "Элементы обмена",
+      "scenes": [
+        "A4"
+      ],
+      "elements": [
+        {
+          "code": "4.1",
+          "kind": "query",
+          "title": "Элементы обмена",
+          "select": "exchange_item",
+          "min_rows": 0,
+          "columns": [
+            {
+              "title": "Код",
+              "field": "code"
+            },
+            {
+              "title": "Элемент",
+              "field": "name"
+            },
+            {
+              "title": "Тип",
+              "field": "type"
+            },
+            {
+              "title": "Состав",
+              "field": "elements"
+            }
+          ]
+        }
+      ],
+      "expects": "SDR",
+      "source": "элементы обмена"
+    },
+    {
+      "no": "§5",
+      "title": "Ответственность сторон",
+      "scenes": [
+        "A4"
+      ],
+      "elements": [],
+      "expects": "SDR",
+      "source": "тезисы",
+      "min_statements": 1,
+      "statement_hint": "кто отвечает за каждую сторону стыка и за изменение его параметров"
+    }
+  ]
+}

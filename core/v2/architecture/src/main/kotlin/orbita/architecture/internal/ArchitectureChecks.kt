@@ -25,6 +25,19 @@ class ArchitectureChecks(
                 else CheckResult.no("узлов состава ${узлы.size} из $нужно: состав берётся каркасом класса миссии")
             }
 
+            // Phase A (шип G): у элемента состава назван хотя бы один стык.
+            "node_interfaces_min" -> {
+                val (код, число) = (аргумент ?: "").split(":", limit = 2).let { it[0] to (it.getOrNull(1)?.toIntOrNull() ?: 1) }
+                val узел = store.byCode(область, код) ?: return CheckResult.no("узла «$код» в составе нет")
+                val стыки = store.list(область, "interface").filter { с ->
+                    с.status != "cancelled" && listOf("a", "b").any { к ->
+                        val конец = с.doc.path(к).asText("")
+                        конец == узел.id || конец == узел.code
+                    }
+                }
+                if (стыки.size >= число) CheckResult.ok
+                else CheckResult.no("у узла ${узел.code} стыков ${стыки.size} из $число — заведите стык в архитектуре (сцена 7 / A4)")
+            }
             "each_behaviour_deployed" -> {
                 val без = architecture.components(project)
                     .filter { it.nature == Nature.BEHAVIOUR }

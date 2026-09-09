@@ -195,6 +195,29 @@ interface Requirements {
         statement: String? = null,
         deviationRationale: String? = null,
     ): RequirementView
+
+    /**
+     * Системное требование из проектного (Phase A, задача О4): каждое
+     * системное несёт родителя связью `derives_from` с видом уточнения
+     * (decomposition · derivation · refinement) и основанием — деривация без
+     * «почему» не принимается.
+     *
+     * @param parent код проектного требования
+     * @param carrier код носителя (узел, стык, цепочка); пусто — «без носителя», как у черновика
+     * @param subtype decomposition · derivation · refinement
+     */
+    fun derive(
+        project: String,
+        parent: String,
+        statement: String,
+        rationale: String,
+        author: String,
+        code: String? = null,
+        carrier: String? = null,
+        subtype: String = "derivation",
+        category: String? = null,
+        verificationMethod: String? = null,
+    ): RequirementView
 }
 
 interface Baselines {

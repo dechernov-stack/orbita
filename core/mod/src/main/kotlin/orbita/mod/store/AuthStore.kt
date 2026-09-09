@@ -8,7 +8,8 @@ import java.time.OffsetDateTime
 import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.PBEKeySpec
 
-data class AuthUser(val login: String, val displayName: String)
+/** @property actingRole роль, от имени которой владелец системы работает в этой сессии (ADR-066); null — своя */
+data class AuthUser(val login: String, val displayName: String, val actingRole: String? = null)
 
 class AuthStore(private val conn: Connection) {
 
@@ -63,13 +64,24 @@ class AuthStore(private val conn: Connection) {
 
     fun sessionUser(token: String): AuthUser? =
         conn.prepareStatement(
-            """SELECT u.login, u.display_name FROM sessions s
+            """SELECT u.login, u.display_name, s.acting_role FROM sessions s
                JOIN users u ON u.login = s.login
                WHERE s.token = ? AND s.expires_at > now()"""
         ).use { ps ->
             ps.setString(1, token)
-            ps.executeQuery().use { rs -> if (rs.next()) AuthUser(rs.getString(1), rs.getString(2)) else null }
+            ps.executeQuery().use { rs ->
+                if (rs.next()) AuthUser(rs.getString(1), rs.getString(2), rs.getString(3)?.takeIf { it.isNotBlank() }) else null
+            }
         }
+
+    /** Роль «от имени» на эту сессию (ADR-066); null — снять. Кому можно — решает сервер выше. */
+    fun setActingRole(token: String, role: String?) {
+        conn.prepareStatement("UPDATE sessions SET acting_role = ? WHERE token = ?").use { ps ->
+            ps.setString(1, role)
+            ps.setString(2, token)
+            ps.executeUpdate()
+        }
+    }
 
     fun dropSession(token: String) {
         conn.prepareStatement("DELETE FROM sessions WHERE token = ?").use { ps ->

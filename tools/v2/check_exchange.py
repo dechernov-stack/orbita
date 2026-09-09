@@ -20,6 +20,9 @@ import pathlib
 import sys
 import urllib.error
 import urllib.request
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import stand_session  # noqa: E402
 import zipfile
 
 _opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
@@ -37,13 +40,9 @@ def вызов(base, метод, путь, тело=None, сырой=False):
 
 
 def войти(base, login):
-    """Учётка стенда — только в режиме stand; на стенде с входом через Telegram
-    запись без сессии открыта, пока учёток нет, и скрипт идёт без входа."""
-    try:
-        вызов(base, "POST", "/auth/stand-login", {"login": login})
-    except SystemExit as e:
-        if "404" not in str(e):
-            raise
+    """Учётка стенда — в режиме stand; на стенде за входом через Telegram —
+    одна учётка владельца через бота и роль «от имени» (stand_session)."""
+    stand_session.войти(base, _opener, login)
 
 
 def блоки_требований(sdoc: str) -> str:

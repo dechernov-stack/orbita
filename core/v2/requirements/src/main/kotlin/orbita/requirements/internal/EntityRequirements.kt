@@ -115,9 +115,60 @@ class EntityRequirements(
         )
         return вид(создано, Snapshots.последний(store, project))
     }
+
+    override fun derive(
+        project: String,
+        parent: String,
+        statement: String,
+        rationale: String,
+        author: String,
+        code: String?,
+        carrier: String?,
+        subtype: String,
+        category: String?,
+        verificationMethod: String?,
+    ): RequirementView {
+        val область = Area.Project(project)
+        val родитель = store.byCode(область, parent) ?: error("проектного требования «$parent» нет в проекте")
+        require(родитель.kind == "requirement") { "«$parent» — это ${родитель.kind}, а не требование" }
+        require(statement.isNotBlank()) { "формулировка системного требования пуста" }
+        require(rationale.isNotBlank()) { "деривация без основания не принимается: скажите, почему из «$parent» следует это требование" }
+        require(subtype in ВИДЫ_УТОЧНЕНИЯ) { "вид уточнения из: ${ВИДЫ_УТОЧНЕНИЯ.joinToString(" · ")}" }
+        val носитель = carrier?.takeIf { it.isNotBlank() }?.let { к ->
+            store.byCode(область, к) ?: error("носителя «$к» нет в проекте")
+        }
+        val документ = mapper.createObjectNode()
+            .put("level", "system")
+            .put("title", statement.take(60))
+            .put("statement", statement)
+            .put("rationale", rationale)
+            .put("category", category ?: родитель.doc.path("category").asText("functional"))
+        (verificationMethod ?: родитель.doc.path("verification_method").asText("").ifBlank { null })?.let { документ.put("verification_method", it) }
+        носитель?.let { документ.put("carrier", it.id) }
+        документ.putArray("source").addObject().put("kind", "requirement").put("ref", родитель.id).put("anchor", родитель.code)
+        val кодЗаписи = code?.takeIf { it.isNotBlank() } ?: следующий(область, "RQ-S")
+        val создано = store.create(
+            кодЗаписи, "requirement", область, "A4", документ,
+            Provenance(Channel.MANUAL, author, source = родитель.code),
+        )
+        // Родитель — связью с видом уточнения и основанием: по ней считается
+        // «каждое системное выведено», по ней же ReqIF/StrictDoc несут Derives.
+        links.link("derives_from", создано.id, родитель.id, Provenance(Channel.MANUAL, author), rationale = rationale, subtype = subtype)
+        return вид(создано, Snapshots.последний(store, project))
+    }
+
+    private fun следующий(область: Area, префикс: String): String {
+        val занято = store.list(область, "requirement").mapNotNull { т ->
+            Regex("^${Regex.escape(префикс)}-(\\d+)$").find(т.code)?.groupValues?.get(1)?.toIntOrNull()
+        }
+        return "%s-%04d".format(префикс, (занято.maxOrNull() ?: 0) + 1)
+    }
 }
 
 /** Общее для требований и базирования: где лежит последний снимок. */
+private val ВИДЫ_УТОЧНЕНИЯ = setOf("decomposition", "derivation", "refinement")
+
+
 internal object Snapshots {
 
     /**

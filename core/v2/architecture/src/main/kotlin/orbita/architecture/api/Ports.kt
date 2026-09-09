@@ -119,3 +119,27 @@ interface Architecture {
      */
     fun deploy(project: String, behaviour: String, node: String, author: String, rationale: String)
 }
+
+/** Элемент внешней модели (Capella): UUID — истина, имя — снимок. */
+data class ExternalElement(val uuid: String, val type: String, val layer: String, val name: String, val parentUuid: String?)
+
+/** Соответствие «узел состава ↔ элемент модели» по полю external_identity узла. */
+data class ExternalMapping(val uuid: String, val component: String, val name: String)
+
+/**
+ * Вид внешней модели (ADR-048, шип G): источник — адаптер Capella (только
+ * чтение) либо учебная fixture; баннер честности говорит, что именно
+ * показано. В модель система не пишет никогда.
+ */
+data class ExternalModelView(
+    val source: String,
+    val modelId: String,
+    val banner: String?,
+    val elements: List<ExternalElement>,
+    val mapping: List<ExternalMapping>,
+)
+
+interface ExternalModel {
+    fun view(project: String): ExternalModelView
+}
+

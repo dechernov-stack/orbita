@@ -1,0 +1,203 @@
+{
+ "model_id": "orbita-iot-fixture.aird",
+ "banner": "модель — учебная fixture, не доказательство интеграции: адаптер Capella не включён (ORBITA_CAPELLA_URL); в модель система не пишет никогда (ADR-048)",
+ "note": "Элементы в форме адаптера ops/capella (uuid · type · layer · name · parent_uuid); UUID устойчивы (uuid5 от ключа), имя — снимок.",
+ "elements": [
+  {
+   "uuid": "5b209a84-bf68-56f1-aa13-c83a6c81a6d5",
+   "type": "OperationalCapability",
+   "layer": "OA",
+   "name": "Сбор телеметрии вне наземного покрытия",
+   "parent_uuid": null
+  },
+  {
+   "uuid": "9f45ebfe-3e9c-5a46-ab22-cb8bc4dc92c0",
+   "type": "OperationalCapability",
+   "layer": "OA",
+   "name": "Гарантированная доставка коротких сообщений",
+   "parent_uuid": null
+  },
+  {
+   "uuid": "a71d7674-80dc-52b6-933e-4dff7afe0b23",
+   "type": "OperationalCapability",
+   "layer": "OA",
+   "name": "Покрытие Арктики и СМП",
+   "parent_uuid": null
+  },
+  {
+   "uuid": "8e98fcae-3de4-545a-915e-10318ea6b9e6",
+   "type": "SystemFunction",
+   "layer": "SA",
+   "name": "Принять сообщение терминала",
+   "parent_uuid": null
+  },
+  {
+   "uuid": "ae35890f-cf11-5db9-b2aa-42566c77d7dc",
+   "type": "SystemFunction",
+   "layer": "SA",
+   "name": "Хранить сообщение до сеанса",
+   "parent_uuid": null
+  },
+  {
+   "uuid": "56377e9e-99e6-5c67-a1ea-dbe6cb29be61",
+   "type": "SystemFunction",
+   "layer": "SA",
+   "name": "Сбросить кадры в НКУ",
+   "parent_uuid": null
+  },
+  {
+   "uuid": "53f9da41-e2d7-518e-9fb9-9be0d94e8af6",
+   "type": "SystemFunction",
+   "layer": "SA",
+   "name": "Вещать маяк альманаха",
+   "parent_uuid": null
+  },
+  {
+   "uuid": "0c14320d-ce2b-5014-a49c-48a2cc8b3900",
+   "type": "SystemFunction",
+   "layer": "SA",
+   "name": "Подтвердить доставку терминалу",
+   "parent_uuid": null
+  },
+  {
+   "uuid": "6ea21301-2c50-5628-9858-293cb22fa00d",
+   "type": "LogicalComponent",
+   "layer": "LA",
+   "name": "Космический аппарат",
+   "parent_uuid": null
+  },
+  {
+   "uuid": "51493236-24c5-5b78-9931-abefbe6ee5e2",
+   "type": "LogicalComponent",
+   "layer": "LA",
+   "name": "Наземный комплекс управления",
+   "parent_uuid": null
+  },
+  {
+   "uuid": "cfb8c894-18b3-54e6-bda4-a9556aa9dcd9",
+   "type": "LogicalComponent",
+   "layer": "LA",
+   "name": "Абонентский терминал",
+   "parent_uuid": null
+  },
+  {
+   "uuid": "8d3e9c5f-24c3-5131-a258-973d5c1a8477",
+   "type": "LogicalFunction",
+   "layer": "LA",
+   "name": "Приём пакета P-диапазона",
+   "parent_uuid": "6ea21301-2c50-5628-9858-293cb22fa00d"
+  },
+  {
+   "uuid": "9e45430b-911e-51ca-a320-35902ad8a2bd",
+   "type": "LogicalFunction",
+   "layer": "LA",
+   "name": "Регенеративная обработка",
+   "parent_uuid": "6ea21301-2c50-5628-9858-293cb22fa00d"
+  },
+  {
+   "uuid": "6c0a73ff-6fdb-5af9-b0e3-9d98ee20655d",
+   "type": "LogicalFunction",
+   "layer": "LA",
+   "name": "Буферизация кадров",
+   "parent_uuid": "6ea21301-2c50-5628-9858-293cb22fa00d"
+  },
+  {
+   "uuid": "21074937-10c2-5e30-8632-bea0305e4e97",
+   "type": "LogicalFunction",
+   "layer": "LA",
+   "name": "Передача в S-диапазоне",
+   "parent_uuid": "6ea21301-2c50-5628-9858-293cb22fa00d"
+  },
+  {
+   "uuid": "14bcc623-c46f-5cd3-8620-80db9e02a54e",
+   "type": "LogicalFunction",
+   "layer": "LA",
+   "name": "Приём кадров",
+   "parent_uuid": "51493236-24c5-5b78-9931-abefbe6ee5e2"
+  },
+  {
+   "uuid": "cf59ef05-0b13-516d-889a-1b0b6292fe68",
+   "type": "LogicalFunction",
+   "layer": "LA",
+   "name": "Маршрутизация сообщений",
+   "parent_uuid": "51493236-24c5-5b78-9931-abefbe6ee5e2"
+  },
+  {
+   "uuid": "22534547-e5af-570e-8c75-4b56efa373c9",
+   "type": "LogicalFunction",
+   "layer": "LA",
+   "name": "Отправка сообщения",
+   "parent_uuid": "cfb8c894-18b3-54e6-bda4-a9556aa9dcd9"
+  },
+  {
+   "uuid": "8fad29e9-77a0-5117-8e03-bd44b5822141",
+   "type": "FunctionalExchange",
+   "layer": "LA",
+   "name": "пакет терминала → КА",
+   "parent_uuid": null
+  },
+  {
+   "uuid": "9950825e-3069-5eb3-8f35-f93851328fd7",
+   "type": "FunctionalExchange",
+   "layer": "LA",
+   "name": "кадры КА → НКУ",
+   "parent_uuid": null
+  },
+  {
+   "uuid": "4649a9c5-3278-520a-94d0-d06c90bcde23",
+   "type": "FunctionalExchange",
+   "layer": "LA",
+   "name": "подтверждение НКУ → КА → терминал",
+   "parent_uuid": null
+  },
+  {
+   "uuid": "06345ff1-a52a-5754-ba92-75bb9367f2f3",
+   "type": "FunctionalChain",
+   "layer": "LA",
+   "name": "Сквозная доставка сообщения (терминал → КА → НКУ)",
+   "parent_uuid": null
+  },
+  {
+   "uuid": "48a9871e-51ed-5a32-93b3-14463c9a4903",
+   "type": "PhysicalComponent",
+   "layer": "PA",
+   "name": "КА (платформа 12U)",
+   "parent_uuid": null
+  },
+  {
+   "uuid": "ff174029-bf09-5356-986c-29953e3b8fcb",
+   "type": "PhysicalComponent",
+   "layer": "PA",
+   "name": "Платформа",
+   "parent_uuid": "48a9871e-51ed-5a32-93b3-14463c9a4903"
+  },
+  {
+   "uuid": "5bf995a0-242a-50e0-8710-fce6daabaa99",
+   "type": "PhysicalComponent",
+   "layer": "PA",
+   "name": "Полезная нагрузка приёма",
+   "parent_uuid": "48a9871e-51ed-5a32-93b3-14463c9a4903"
+  },
+  {
+   "uuid": "b98ae73b-efb2-582e-9c37-f48b3e34e742",
+   "type": "PhysicalComponent",
+   "layer": "PA",
+   "name": "Система электропитания",
+   "parent_uuid": "48a9871e-51ed-5a32-93b3-14463c9a4903"
+  },
+  {
+   "uuid": "39f75ed5-f229-5286-a4b0-c86f8eab2b89",
+   "type": "PhysicalComponent",
+   "layer": "PA",
+   "name": "Конструкция",
+   "parent_uuid": "48a9871e-51ed-5a32-93b3-14463c9a4903"
+  },
+  {
+   "uuid": "2c4bd48c-6b1e-5b57-ae2b-0d11199eb231",
+   "type": "PhysicalComponent",
+   "layer": "PA",
+   "name": "НКУ (станция S-диапазона)",
+   "parent_uuid": null
+  }
+ ]
+}

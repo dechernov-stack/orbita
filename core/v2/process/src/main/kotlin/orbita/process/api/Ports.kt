@@ -58,7 +58,20 @@ data class SceneView(
     val window: Pair<String, String>? = null,
     /** Мероприятия сцены: единицы работы с входами и выходами. */
     val activities: List<ActivityView> = emptyList(),
+    /** Чем сцена связана с другими (FS · SS · FF · INPUT) и почему — словами шаблона (шип G). */
+    val links: List<SceneLinkView> = emptyList(),
+    /** Ключ сцены шаблона, экземпляром которой является эта (аванпроект на узел); null — обычная сцена. */
+    val instanceOf: String? = null,
+    /** Код узла состава, на который развёрнут экземпляр. */
+    val node: String? = null,
 )
+
+/**
+ * Связь сцен из шаблона: FS — после конца, SS — после начала, FF — конец
+ * вместе с концом, INPUT — вход из выхода. Обоснование обязательно: связь
+ * без «почему» — произвол планировщика.
+ */
+data class SceneLinkView(val on: String, val type: String, val why: String)
 
 data class StepView(val title: String, val place: String, val hint: String, val done: Boolean)
 

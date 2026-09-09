@@ -27,7 +27,9 @@ internal class Queries(
     fun rows(project: String, элемент: JsonNode, подписи: Map<String, String> = emptyMap()): List<List<String>> {
         val вид = элемент.path("select").asText("")
         if (вид.isBlank()) return emptyList()
-        val область = Area.Project(project)
+        // Полка — законная область запроса (SEMP §2 нормативы, §6 каталог
+        // процессов): документ проекта читает общие знания, не копируя их.
+        val область = if (элемент.path("area").asText("") == "library") Area.Library else Area.Project(project)
         val все = store.list(область, вид).filter { it.status != "cancelled" }
         val колонки = элемент.path("columns").map { it.path("field").asText("") }
         val разворот = элемент.path("expand").asText("")
@@ -60,6 +62,10 @@ internal class Queries(
                 // Ключевые риски: критичность = вероятность × влияние (шкала 1–5).
                 "criticality_min" ->
                     сущность.doc.path("probability").asInt(0) * сущность.doc.path("impact").asInt(0) >= ожидание.asInt()
+                // Природа носителя / цели: ICD берёт требования на стыки и
+                // параметры стыков, не зная их кодов заранее.
+                "carrier_kind" -> store.byId(сущность.doc.path("carrier").asText(""))?.kind == ожидание.asText()
+                "target_kind" -> store.byId(сущность.doc.path("target").asText(""))?.kind == ожидание.asText()
                 else -> путём(сущность.doc, поле).asText("") == ожидание.asText()
             }
         }

@@ -23,6 +23,7 @@ object RequirementsFactory {
     ): Baselines = EntityBaselines(store, links, mapper)
 
     /** Условия ворот сцены 8: правило носителя знает тот, кто ведёт требования. */
-    fun gateChecks(store: EntityStore, baselines: Baselines): ExtraChecks =
-        RequirementChecks(store, baselines)
+    /** @param links реестр связей — условию «каждое системное выведено» нужны derives_from */
+    fun gateChecks(store: EntityStore, baselines: Baselines, links: LinkRegistry? = null): ExtraChecks =
+        RequirementChecks(store, baselines, links)
 }

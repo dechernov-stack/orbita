@@ -127,6 +127,12 @@ export function Work({ project, onProject, wantScene, onScenePicked, onScene, р
           Сцена закрыта: {текущая.entry.filter((у) => !у.passed).map((у) => у.why ?? у.title).join('; ')}.
         </div>
       )}
+      {(текущая.depends?.length ?? 0) > 0 && (
+        <div className="v2-note-line" title="связи сцен из шаблона фазы: FS — после конца, SS — после начала, FF — конец вместе с концом, INPUT — вход из выхода">
+          {текущая.instance_of ? `экземпляр сцены ${текущая.instance_of} на узел ${текущая.node} · ` : ''}
+          связи: {текущая.depends!.map((с) => `${с.on} (${с.type}) — ${с.why}`).join('; ')}
+        </div>
+      )}
       {текущая.key === '1' && (
         <div className="v2-empty">
           Проект открыт: {фаза.project}, стандарт {фаза.standard}.

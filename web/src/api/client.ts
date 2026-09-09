@@ -435,7 +435,11 @@ export const api = {
       enabled: boolean
       /** stand — приёмочный стенд: учётки без паролей, переключение селектором */
       mode?: string
-      user?: { login: string; display_name: string; roles: Record<string, string> }
+      user?: {
+        login: string; display_name: string; roles: Record<string, string>
+        /** ADR-066: автор журнала («Чернов Д. как инженер»), роль «от имени», право владельца выступать от имени роли */
+        author?: string; acting_role?: string | null; can_act_as?: boolean; acting_roles?: Record<string, string>
+      }
       stand_users?: Array<{ login: string; display_name: string; roles: Record<string, string> }>
       telegram_missing?: string
     }>(
@@ -443,6 +447,8 @@ export const api = {
     ),
   /** Режим приёмочного стенда: вход учёткой без пароля (ORBITA_AUTH_MODE=stand на сервере). */
   standLogin: (login: string) => post<{ login: string; display_name: string }>('/auth/stand-login', { login }),
+  /** ADR-066: владелец системы выступает от имени роли; пусто — своя роль. */
+  actAs: (role: string | null) => post<{ acting_role: string | null; author: string }>('/auth/act-as', { role: role ?? '' }),
   /** Вход через Telegram (ADR-065): ссылка на бота, затем опрос статуса до approved. */
   authStart: () => post<{ token: string; deep_link: string }>('/auth/start', {}),
   authStatus: (token: string) =>

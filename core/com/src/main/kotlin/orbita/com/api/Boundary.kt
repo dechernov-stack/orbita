@@ -130,7 +130,11 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
         val шаблоны = корень.resolve("docs/tz/v2/полки-порождённые")
         val полки = orbita.library.api.LibraryFactory.shelves(store) { код ->
             val файл = шаблоны.resolve(
-                if (код == "PHT-9001") "ШАБЛОН-ФАЗЫ-PRE-A-NASA.json" else "$код.json",
+                when (код) {
+                    "PHT-9001" -> "ШАБЛОН-ФАЗЫ-PRE-A-NASA.json"
+                    "PHT-9002" -> "ШАБЛОН-ФАЗЫ-PHASE-A-NASA.json"
+                    else -> "$код.json"
+                },
             ).toFile()
             if (файл.isFile) mapper.readTree(файл) else null
         }
@@ -140,7 +144,7 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
         val снимки = orbita.requirements.api.RequirementsFactory.baselines(store, links, mapper)
         val архитектура = orbita.architecture.api.ArchitectureFactory.architecture(store, links, mapper)
         val программатика = orbita.programmatics.api.ProgrammaticsFactory.programmatics(store, mapper)
-        val проверкиТребований = orbita.requirements.api.RequirementsFactory.gateChecks(store, снимки)
+        val проверкиТребований = orbita.requirements.api.RequirementsFactory.gateChecks(store, снимки, links)
         val проверкиАрхитектуры = orbita.architecture.api.ArchitectureFactory.gateChecks(store, архитектура)
         val проверкиПрограмматики =
             orbita.programmatics.api.ProgrammaticsFactory.gateChecks(store, программатика)
@@ -172,6 +176,32 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
             decisions = { p -> записиТочек.decisions(p) },
             phaseOf = { p -> записиТочек.phaseOf(p) },
             onDecision = { p, точка, кем, исход, помета, фаза -> записиТочек.record(p, точка, кем, исход, помета, фаза) },
+            // Шип G: после KDP-A проект живёт по шаблону Phase A — он записан в
+            // проекте решением точки, а экземпляры сцены аванпроекта — по
+            // узлам состава нужного вида.
+            phaseTemplateOf = { p ->
+                записиТочек.phaseTemplateOf(p) ?: run {
+                    // Проекты, прошедшие KDP-A до шипа G: шаблон фазы не записан —
+                    // берётся с полки по имени фазы и записывается один раз
+                    // вместе с точками (ADR-067 «Последствия»).
+                    val фаза = записиТочек.phaseOf(p)
+                    val шаблон = фаза?.let { ф -> полки.of("phase_template").firstOrNull { it.doc.path("phase").asText("") == ф }?.code }
+                    шаблон?.also { код ->
+                        записиТочек.setPhaseTemplate(p, код, "движок: шаблон фазы по имени фазы")
+                        записиТочек.ensureGates(p, полки.phaseTemplate(код))
+                    }
+                }
+            },
+            onTemplateOpened = { p, код ->
+                записиТочек.setPhaseTemplate(p, код)
+                записиТочек.ensureGates(p, полки.phaseTemplate(код))
+            },
+            instances = { p, вид ->
+                store.list(orbita.kernel.api.Area.Project(p), "component")
+                    .filter { it.status != "cancelled" && it.doc.path("kind").asText("") == вид }
+                    .sortedBy { it.code }
+                    .map { it.code to it.doc.path("name").asText(it.code) }
+            },
             gatePlan = { проект ->
                 store.list(orbita.kernel.api.Area.Project(проект), "gate")
                     .associate { it.code to it.doc.path("planned_date").asText("") }
@@ -246,9 +276,12 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
             orbita.exchange.api.ExchangeFactory.exchange(store, links, знания, mapper),
             движок, документы, mapper,
         )
+        val внешняяМодель = orbita.api.internal.ExternalModelRoutes(
+            orbita.architecture.api.ArchitectureFactory.externalModel(store, mapper), mapper,
+        )
         return orbita.api.internal.V2Router(
             store, links, движок, полки, знания, постановка, mapper, волна3, волна4,
-            документыМаршруты, знанияМаршруты, точки, обмен,
+            документыМаршруты, знанияМаршруты, точки, обмен, внешняяМодель,
         )
     }
 

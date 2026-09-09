@@ -75,6 +75,24 @@ class HttpApi(private val boundary: Boundary) {
      */
     private fun authOn(): Boolean = boundary.auth.enabled() || telegramMode
 
+    /**
+     * Владелец системы (ADR-066): учётка Telegram из ORBITA_ADMIN_TIDS либо
+     * учётка руководителя стенда. Только ему доступно действие «выступить
+     * от имени роли» — для прохода ролей без фиктивных учёток.
+     */
+    private fun systemOwner(user: orbita.mod.store.AuthUser): Boolean =
+        user.login.removePrefix("tg:").toLongOrNull()?.let { it in adminTids } == true ||
+            (standMode && user.login == "chernov")
+
+    /** Роли, от имени которых можно выступить, — словами журнала. */
+    private val actingRoles = linkedMapOf(
+        "lead" to "РП", "lead_se" to "ведущий СИ", "specialist" to "инженер", "da_review" to "DA",
+    )
+
+    /** Автор для журнала: «Чернов Д. как инженер», когда владелец выступает от имени роли. */
+    private fun authorOf(user: orbita.mod.store.AuthUser): String =
+        user.actingRole?.let { "${user.displayName} как ${actingRoles[it] ?: it}" } ?: user.displayName
+
     /** Cookie сессии: за TLS-прокси — с флагом Secure (X-Forwarded-Proto). */
     private fun sessionCookie(ex: HttpExchange, token: String): String =
         "orbita_session=$token; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000" +
@@ -246,17 +264,18 @@ class HttpApi(private val boundary: Boundary) {
                 val проект = query(ex)["project"]
                 // Роль в проекте; у проектов v2 ролей ещё не заводят (access —
                 // волна 6), тогда — единственная роль учётки, если она одна.
-                val роль = boundary.auth.roleIn(проект, u.login)
+                val роль = u.actingRole ?: boundary.auth.roleIn(проект, u.login)
                     ?: boundary.auth.rolesOf(u.login).values.toSet().singleOrNull()
                 val роли = buildSet {
                     роль?.let { add(it) }
                     // Стенд: руководитель проекта носит и обзорную роль
                     // (учётка «РП · DA» одна) — то же правило, что в реестре прав.
-                    if ((standMode || telegramMode) && роль == "lead") add("da_review")
+                    // Роль «от имени» — точная: выбрал РП — значит РП, не DA.
+                    if (u.actingRole == null && (standMode || telegramMode) && роль == "lead") add("da_review")
                 }
-                orbita.api.api.Actor(u.login, u.displayName, роли)
+                orbita.api.api.Actor(u.login, authorOf(u), роли)
             }
-            currentAuthor.set(учётка?.displayName)
+            currentAuthor.set(учётка?.let { authorOf(it) })
             currentAuthorLogin.set(учётка?.login)
             val ответ = v2.handle(method, path, query(ex), if (method == "GET") null else body(ex), actor)
             if (ответ == null) {
@@ -316,19 +335,19 @@ class HttpApi(private val boundary: Boundary) {
             // полки идёт в область LIB, где ролей нет вовсе, и спрашивать роль
             // «в никаком проекте» значило бы отказывать руководителю на его же
             // полке. Проектные маршруты сюда не попадают: у них проект есть.
-            val role = boundary.auth.roleIn(projectForRole, sessionUser.login)
+            val role = sessionUser.actingRole ?: boundary.auth.roleIn(projectForRole, sessionUser.login)
                 ?: if (projectForRole == null) {
                     val сила = listOf("lead", "lead_se", "specialist", "viewer")
                     boundary.auth.rolesOf(sessionUser.login).values.minByOrNull { сила.indexOf(it).takeIf { i -> i >= 0 } ?: 99 }
                 } else null
-            denyReason(method, path, role, sessionUser, projectForRole, objectMatch, editMatch)?.let { why ->
+            denyReason(method, path, role, sessionUser, projectForRole, objectMatch, editMatch, exact = sessionUser.actingRole != null)?.let { why ->
                 respond(ex, 403, mapper.createObjectNode().put("error", why))
                 return
             }
         }
         // автор — из учётки везде: тело может нести что угодно, провенанс
         // получает имя вошедшего
-        currentAuthor.set(sessionUser?.displayName)
+        currentAuthor.set(sessionUser?.let { authorOf(it) })
         currentAuthorLogin.set(sessionUser?.login)
 
         // поток документов вынесен отдельной функцией (предел метода JVM)
@@ -5020,6 +5039,8 @@ class HttpApi(private val boundary: Boundary) {
         project: String?,
         objectMatch: MatchResult?,
         editMatch: MatchResult?,
+        /** Роль выбрана «от имени» — точная, без добавки обзорной роли руководителю. */
+        exact: Boolean = false,
     ): String? {
         // создание проекта не должно запирать систему: без роли можно
         // только завести проект (создатель становится его руководителем)
@@ -5029,7 +5050,7 @@ class HttpApi(private val boundary: Boundary) {
             ?: return "маршрут $method $path не покрыт реестром прав — запись закрыта (fail-closed)"
         // Режим стенда: руководитель проекта носит и обзорную роль (в ПМИ-4
         // учётка «РП · DA» одна) — только под флагом, реестр прав не меняется
-        val effective = if ((standMode || telegramMode) && role == "lead" && "da_review" in rule.allow) "da_review" else role
+        val effective = if (!exact && (standMode || telegramMode) && role == "lead" && "da_review" in rule.allow) "da_review" else role
         if (effective !in rule.allow) return rule.why + "; ваша роль — " + role
         if (rule.ownerGuard && role == "specialist") {
             val id = editMatch?.groupValues?.get(1) ?: objectMatch?.groupValues?.get(1)
@@ -5159,6 +5180,21 @@ class HttpApi(private val boundary: Boundary) {
                 respond(ex, 200, out)
             }
 
+            // ADR-066: владелец системы выступает от имени роли — проход сцен с
+            // тремя ролями без фиктивных учёток. Выбор живёт в сессии, каждое
+            // действие журналируется автором «<имя> как <роль>».
+            method == "POST" && path == "/auth/act-as" -> {
+                requireNotNull(user) { "войдите" }
+                if (!systemOwner(user)) {
+                    respond(ex, 403, mapper.createObjectNode().put("error", "выступать от имени роли может только владелец системы"))
+                    return
+                }
+                val role = mapper.readTree(body(ex)).path("role").asText("").ifBlank { null }
+                require(role == null || role in actingRoles) { "роль из: " + actingRoles.keys.joinToString(" · ") }
+                boundary.auth.setActingRole(sessionToken(ex)!!, role)
+                respond(ex, 200, mapper.createObjectNode().put("acting_role", role).put("author", authorOf(user.copy(actingRole = role))))
+            }
+
             method == "POST" && path == "/auth/logout" -> {
                 sessionToken(ex)?.let { boundary.auth.dropSession(it) }
                 ex.responseHeaders.add(
@@ -5187,8 +5223,15 @@ class HttpApi(private val boundary: Boundary) {
                     val u = out.putObject("user")
                     u.put("login", user.login)
                     u.put("display_name", user.displayName)
+                    u.put("author", authorOf(user))
+                    u.put("acting_role", user.actingRole)
+                    u.put("can_act_as", systemOwner(user))
                     val roles = u.putObject("roles")
-                    boundary.auth.rolesOf(user.login).forEach { (pj, r) -> roles.put(pj, r) }
+                    // От имени роли — она и есть роль везде; иначе роли по проектам
+                    if (user.actingRole != null) roles.put("*", user.actingRole)
+                    else boundary.auth.rolesOf(user.login).forEach { (pj, r) -> roles.put(pj, r) }
+                    val можно = u.putObject("acting_roles")
+                    actingRoles.forEach { (код, слово) -> можно.put(код, слово) }
                 }
                 respond(ex, 200, out)
             }

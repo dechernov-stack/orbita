@@ -6,6 +6,7 @@
 // читает пройденность отсюда.
 package orbita.api.internal
 
+import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ObjectNode
 import orbita.kernel.api.Area
@@ -41,6 +42,39 @@ class GateRecords(private val store: EntityStore, private val mapper: ObjectMapp
 
     fun phaseOf(project: String): String? =
         store.byCode(Area.Project(project), project)?.doc?.path("phase")?.asText("")?.ifBlank { null }
+
+    /** Шаблон фазы проекта (шип G): записан решением точки с `opens_template`. */
+    fun phaseTemplateOf(project: String): String? =
+        store.byCode(Area.Project(project), project)?.doc?.path("phase_template")?.asText("")?.ifBlank { null }
+
+    fun setPhaseTemplate(project: String, template: String, by: String = "движок") {
+        val область = Area.Project(project)
+        store.byCode(область, project)?.let { проект ->
+            store.update(проект.id, (проект.doc.deepCopy() as ObjectNode).put("phase_template", template), Provenance(Channel.MANUAL, by))
+        }
+    }
+
+    /**
+     * Точки шаблона фазы — записями проекта (как при открытии проекта): без
+     * них решение по SRR или KDP-B некуда записать. Уже заведённые не трогаются.
+     */
+    fun ensureGates(project: String, template: JsonNode, by: String = "движок") {
+        val область = Area.Project(project)
+        val фаза = template.path("phase").asText("")
+        template.path("points").forEach { точка ->
+            val ключ = точка.path("key").asText()
+            if (store.byCode(область, ключ) != null) return@forEach
+            store.create(
+                ключ, "gate", область, "A1",
+                mapper.createObjectNode()
+                    .put("phase", фаза).put("key", ключ)
+                    .put("title", точка.path("title").asText(""))
+                    .put("kind", точка.path("kind").asText("review"))
+                    .put("planned_date", ""),
+                Provenance(Channel.MANUAL, by), status = "planned",
+            )
+        }
+    }
 
     /** Решение по точке: запись, статус точки, при approve с фазой — фаза проекта. */
     fun record(project: String, gate: String, by: String, outcome: String, note: String?, opensPhase: String?) {

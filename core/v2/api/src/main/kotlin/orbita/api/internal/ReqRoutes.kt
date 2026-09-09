@@ -35,6 +35,9 @@ class ReqRoutes(
             завестиТребование(требуется(query, "project"), разобрать(body))
 
         method == "POST" && path == "/v2/requirements/lint" -> линт(разобрать(body))
+        // Phase A (шип G): системное из проектного — с основанием и видом уточнения.
+        method == "POST" && path == "/v2/requirements/derive" ->
+            деривация(требуется(query, "project"), разобрать(body))
 
         method == "POST" && path == "/v2/requirements/from-typical" ->
             изТипового(требуется(query, "project"), разобрать(body))
@@ -123,6 +126,22 @@ class ReqRoutes(
             Provenance(Channel.MANUAL, тело.path("author").asText("стенд")),
         )
         return V2Router.Ответ(201, вид(requirements.byCode(проект, создано.code)!!))
+    }
+
+    private fun деривация(проект: String, тело: JsonNode): V2Router.Ответ {
+        val системное = requirements.derive(
+            project = проект,
+            parent = тело.path("parent").asText(""),
+            statement = тело.path("statement").asText(""),
+            rationale = тело.path("rationale").asText(""),
+            author = тело.path("author").asText("стенд"),
+            code = тело.path("code").asText("").ifBlank { null },
+            carrier = тело.path("carrier").asText("").ifBlank { null },
+            subtype = тело.path("subtype").asText("derivation"),
+            category = тело.path("category").asText("").ifBlank { null },
+            verificationMethod = тело.path("verification_method").asText("").ifBlank { null },
+        )
+        return V2Router.Ответ(201, вид(системное))
     }
 
     private fun изТипового(проект: String, тело: JsonNode): V2Router.Ответ {

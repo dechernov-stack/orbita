@@ -71,6 +71,10 @@ export interface Scene {
   /** Условия входа и выхода целиком: панель показывает и ✓, и ☐. */
   entry: Condition[]
   exit: Condition[]
+  /** Шип G: связи сцен с обоснованием (FS · SS · FF · INPUT); экземпляр сцены на узел состава. */
+  depends?: { on: string; type: string; why: string }[]
+  instance_of?: string | null
+  node?: string | null
   /** Что сцена даёт — для нити потока. */
   output: string
   /** Кто ждёт эту сцену: сцены и точки. */
@@ -659,6 +663,15 @@ export interface TorAssessment {
   orphan_requirements: string[]
 }
 
+/** Внешняя модель (ADR-048): элементы Capella либо fixture с баннером. */
+export interface ExternalModelView {
+  source: string
+  model_id: string
+  banner: string | null
+  elements: { uuid: string; type: string; layer: string; name: string; parent_uuid: string | null }[]
+  mapping: { uuid: string; component: string; name: string }[]
+}
+
 export interface MaterialRow {
   code: string
   name: string
@@ -705,6 +718,16 @@ export const api = {
     вызов<{ items: DocHint[] }>(
       `/documents/hints?project=${encodeURIComponent(project)}&scene=${encodeURIComponent(scene)}`),
 
+  /** Внешняя модель (ADR-048, шип G): только чтение. */
+  externalModel: (project: string) =>
+    вызов<ExternalModelView>(`/external-model?project=${encodeURIComponent(project)}`),
+
+  /** ADR-066: владелец системы выступает от имени роли; пусто — своя. */
+  actAs: async (role: string | null) => {
+    const r = await fetch('/api/auth/act-as', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role: role ?? '' }) })
+    if (!r.ok) throw new Error((await r.json().catch(() => ({})))?.error ?? `HTTP ${r.status}`)
+    return r.json() as Promise<{ acting_role: string | null; author: string }>
+  },
   /** Вход через Telegram (ADR-065): пути /api/auth/* — вне /api/v2, поэтому fetch напрямую. */
   authStart: async () => {
     const r = await fetch('/api/auth/start', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })

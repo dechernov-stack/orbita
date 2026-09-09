@@ -1,0 +1,507 @@
+{
+  "kind": "document_template",
+  "code": "semp",
+  "title": "План управления системной инженерией (SEMP)",
+  "standard": "БП-PA, приложение 1 (NPR 7123.1 App. J)",
+  "note": "11 разделов; §6 — 17 процессов с полки процессов СИ; §2 — полка нормативов; §8 — свёртки бюджетов. Baseline до SRR. Порождён генератором tools/v2/gen_phase_a_documents.py; правки — в генератор, не сюда.",
+  "style": {
+    "tone": "деловая инженерная проза без маркетинга",
+    "traceability": "каждое утверждение опирается на элемент раздела",
+    "numbers": "число в тексте обязано быть в данных названных опор"
+  },
+  "review": {
+    "qualifiers": [
+      "не менее",
+      "не более",
+      "не допускается",
+      "не должен",
+      "не должна",
+      "не может",
+      "не разрешается",
+      "не",
+      "без",
+      "только",
+      "кроме",
+      "запрещается",
+      "запрещено",
+      "обязан",
+      "обязана",
+      "обязательно"
+    ],
+    "number_exceptions": [
+      "даты вида ГГГГ-ММ-ДД",
+      "номера разделов после §",
+      "числа внутри кодов сущностей"
+    ]
+  },
+  "labels": {
+    "_note": "служебные значения по-русски: печать обязана быть человеческим текстом, а не перечнем ключей модели",
+    "functional": "функциональное",
+    "performance": "показатель",
+    "interface": "стыковое",
+    "operational": "операционное",
+    "constraint": "ограничение",
+    "safety": "безопасность",
+    "reliability": "надёжность",
+    "environmental": "средовое",
+    "node": "узел",
+    "behaviour": "поведение",
+    "data": "данные",
+    "human": "человек",
+    "customer": "заказчик",
+    "operator": "оператор",
+    "regulator": "регулятор",
+    "supplier": "поставщик",
+    "partner": "партнёр",
+    "consumer": "потребитель",
+    "established": "учреждаемая сторона",
+    "mitigate": "снижать",
+    "accept": "принять",
+    "avoid": "избегать",
+    "transfer": "передать",
+    "ROM": "порядок величины",
+    "PARAMETRIC": "параметрическая",
+    "BOTTOM_UP": "снизу вверх",
+    "draft": "черновик",
+    "accepted": "принято",
+    "baselined": "базировано"
+  },
+  "sections": [
+    {
+      "no": "§1",
+      "title": "Назначение и область применения",
+      "scenes": [
+        "A1"
+      ],
+      "elements": [
+        {
+          "code": "1.1",
+          "kind": "query",
+          "title": "Проект",
+          "select": "project",
+          "min_rows": 1,
+          "columns": [
+            {
+              "title": "Проект",
+              "field": "name"
+            },
+            {
+              "title": "Стандарт",
+              "field": "standard"
+            },
+            {
+              "title": "Класс миссии",
+              "field": "mission_class"
+            },
+            {
+              "title": "Фаза",
+              "field": "phase"
+            }
+          ]
+        }
+      ],
+      "expects": "SRR",
+      "source": "проект · FA",
+      "min_statements": 1,
+      "statement_hint": "зачем документ, к какой фазе относится, связь с FA"
+    },
+    {
+      "no": "§2",
+      "title": "Применимые документы",
+      "scenes": [
+        "5"
+      ],
+      "elements": [
+        {
+          "code": "2.1",
+          "kind": "query",
+          "title": "Нормативы полки",
+          "select": "normative_document",
+          "min_rows": 1,
+          "columns": [
+            {
+              "title": "Обозначение",
+              "field": "designation"
+            },
+            {
+              "title": "Название",
+              "field": "title"
+            },
+            {
+              "title": "Редакция",
+              "field": "edition_date"
+            },
+            {
+              "title": "Действует до",
+              "field": "valid_until"
+            }
+          ],
+          "area": "library"
+        }
+      ],
+      "expects": "SRR",
+      "source": "полка нормативов",
+      "min_statements": 1,
+      "statement_hint": "как применён каждый норматив: класс миссии или рука"
+    },
+    {
+      "no": "§3",
+      "title": "Техническое резюме",
+      "scenes": [
+        "2",
+        "4"
+      ],
+      "elements": [
+        {
+          "code": "3.1",
+          "kind": "query",
+          "title": "Замысел миссии",
+          "select": "intent",
+          "min_rows": 1,
+          "columns": [
+            {
+              "title": "Для кого",
+              "field": "for_whom"
+            },
+            {
+              "title": "Что делает",
+              "field": "what"
+            },
+            {
+              "title": "Где",
+              "field": "where"
+            },
+            {
+              "title": "Горизонт",
+              "field": "horizon"
+            }
+          ]
+        },
+        {
+          "code": "3.2",
+          "kind": "query",
+          "title": "Цели миссии",
+          "select": "goal",
+          "min_rows": 1,
+          "columns": [
+            {
+              "title": "Код",
+              "field": "code"
+            },
+            {
+              "title": "Цель",
+              "field": "statement"
+            },
+            {
+              "title": "Год",
+              "field": "year"
+            }
+          ]
+        }
+      ],
+      "expects": "SRR",
+      "source": "замысел · цели",
+      "min_statements": 1,
+      "statement_hint": "замысел и цели связным текстом — главный связный раздел"
+    },
+    {
+      "no": "§4",
+      "title": "Границы технического усилия",
+      "scenes": [
+        "2"
+      ],
+      "elements": [],
+      "expects": "SRR",
+      "source": "тезисы",
+      "min_statements": 1,
+      "statement_hint": "что внутри и вне контроля команды — заготовка из замысла, рука инженера"
+    },
+    {
+      "no": "§5",
+      "title": "Организация и подрядчики",
+      "scenes": [
+        "3",
+        "A1"
+      ],
+      "elements": [
+        {
+          "code": "5.1",
+          "kind": "query",
+          "title": "Стороны миссии",
+          "select": "stakeholder",
+          "min_rows": 1,
+          "columns": [
+            {
+              "title": "Код",
+              "field": "code"
+            },
+            {
+              "title": "Сторона",
+              "field": "name"
+            },
+            {
+              "title": "Роль",
+              "field": "role"
+            }
+          ]
+        }
+      ],
+      "expects": "SRR",
+      "source": "стейкхолдеры · роли",
+      "min_statements": 1,
+      "statement_hint": "роли команды и права (В3); поставщики со связями на узлы"
+    },
+    {
+      "no": "§6",
+      "title": "Технические процессы (NPR 7123.1)",
+      "scenes": [
+        "A1"
+      ],
+      "elements": [
+        {
+          "code": "6.1",
+          "kind": "query",
+          "title": "17 процессов: процесс → механизм «Орбиты» → место",
+          "select": "process_catalog",
+          "min_rows": 17,
+          "columns": [
+            {
+              "title": "Код",
+              "field": "code"
+            },
+            {
+              "title": "Процесс",
+              "field": "name"
+            },
+            {
+              "title": "Группа",
+              "field": "group"
+            },
+            {
+              "title": "Механизм «Орбиты»",
+              "field": "orbita_mechanism"
+            },
+            {
+              "title": "Место",
+              "field": "place"
+            },
+            {
+              "title": "Отклонение (tailoring)",
+              "field": "tailoring"
+            }
+          ],
+          "area": "library",
+          "expand": "processes"
+        }
+      ],
+      "expects": "SRR",
+      "source": "полка процессов СИ",
+      "min_statements": 1,
+      "statement_hint": "вводный абзац: процессы реализации — вне области Формулирования, к Phase C/D"
+    },
+    {
+      "no": "§7",
+      "title": "Технические обзоры",
+      "scenes": [
+        "A1"
+      ],
+      "elements": [
+        {
+          "code": "7.1",
+          "kind": "query",
+          "title": "Точки фазы",
+          "select": "gate",
+          "min_rows": 1,
+          "columns": [
+            {
+              "title": "Точка",
+              "field": "title"
+            },
+            {
+              "title": "Дата",
+              "field": "planned_date"
+            },
+            {
+              "title": "Состояние",
+              "field": "status"
+            }
+          ]
+        }
+      ],
+      "expects": "SRR",
+      "source": "точки фазы",
+      "min_statements": 1,
+      "statement_hint": "порядок обзоров: внутренний обзор → SRR → SDR/MDR → KDP-B"
+    },
+    {
+      "no": "§8",
+      "title": "Технические показатели (TPM)",
+      "scenes": [
+        "7",
+        "A4"
+      ],
+      "elements": [
+        {
+          "code": "8.1",
+          "kind": "query",
+          "title": "Свёртки бюджетов",
+          "select": "budget",
+          "min_rows": 1,
+          "columns": [
+            {
+              "title": "Бюджет",
+              "field": "kind"
+            },
+            {
+              "title": "Корень",
+              "field": "root"
+            },
+            {
+              "title": "Политика резерва",
+              "field": "reserve_policy"
+            }
+          ]
+        }
+      ],
+      "expects": "SDR",
+      "source": "бюджеты · замечания точек",
+      "min_statements": 1,
+      "statement_hint": "запас массы и мощности из свёрток; тренды закрытия замечаний — числа из модели"
+    },
+    {
+      "no": "§9",
+      "title": "Отклонения (tailoring)",
+      "scenes": [
+        "8"
+      ],
+      "elements": [
+        {
+          "code": "9.1",
+          "kind": "query",
+          "title": "Типовые требования, применённые с отклонением",
+          "select": "requirement",
+          "min_rows": 0,
+          "columns": [
+            {
+              "title": "Код",
+              "field": "code"
+            },
+            {
+              "title": "Требование",
+              "field": "statement"
+            },
+            {
+              "title": "Применимость",
+              "field": "applicability"
+            },
+            {
+              "title": "Обоснование",
+              "field": "deviation_rationale"
+            }
+          ],
+          "where": {
+            "applicability": "applied_with_deviation"
+          }
+        },
+        {
+          "code": "9.2",
+          "kind": "query",
+          "title": "Типовые требования, признанные неприменимыми",
+          "select": "requirement",
+          "min_rows": 0,
+          "columns": [
+            {
+              "title": "Код",
+              "field": "code"
+            },
+            {
+              "title": "Требование",
+              "field": "statement"
+            },
+            {
+              "title": "Обоснование",
+              "field": "deviation_rationale"
+            }
+          ],
+          "where": {
+            "applicability": "not_applicable"
+          }
+        }
+      ],
+      "expects": "SDR",
+      "source": "требования с отклонением · §6",
+      "min_statements": 1,
+      "statement_hint": "кто · когда · обоснование каждого отклонения; пометки процессов §6"
+    },
+    {
+      "no": "§10",
+      "title": "Инструменты и среда",
+      "scenes": [
+        "A1"
+      ],
+      "elements": [
+        {
+          "code": "10.1",
+          "kind": "query",
+          "title": "Среда инженерии",
+          "select": "process_catalog",
+          "min_rows": 1,
+          "columns": [
+            {
+              "title": "Область",
+              "field": "area"
+            },
+            {
+              "title": "Инструмент",
+              "field": "tool"
+            }
+          ],
+          "area": "library",
+          "expand": "tools"
+        }
+      ],
+      "expects": "SRR",
+      "source": "полка процессов СИ",
+      "min_statements": 1,
+      "statement_hint": "свои расчёты — фактом, Orekit — в резерве; без обещаний будущего"
+    },
+    {
+      "no": "§11",
+      "title": "Согласование и актуализация",
+      "scenes": [
+        "A1"
+      ],
+      "elements": [
+        {
+          "code": "11.1",
+          "kind": "query",
+          "title": "Решения точек",
+          "select": "decision",
+          "min_rows": 0,
+          "columns": [
+            {
+              "title": "Точка",
+              "field": "gate"
+            },
+            {
+              "title": "Кем",
+              "field": "by"
+            },
+            {
+              "title": "Когда",
+              "field": "at"
+            },
+            {
+              "title": "Исход",
+              "field": "outcome"
+            }
+          ]
+        }
+      ],
+      "expects": "SRR",
+      "source": "решения точек · базирования",
+      "min_statements": 1,
+      "statement_hint": "выпуски документа: версия · дата · выпустивший; актуализация — фиксациями переходов"
+    }
+  ]
+}

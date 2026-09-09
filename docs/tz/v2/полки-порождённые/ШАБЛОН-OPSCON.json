@@ -1,0 +1,237 @@
+{
+  "kind": "document_template",
+  "code": "opscon",
+  "title": "Концепция операций (OpsCon)",
+  "standard": "ДОКУМЕНТЫ-2-ПРОМЕЖУТОЧНЫЕ §6 (детализация ConOps для операторов, Phase A)",
+  "note": "Смены · процедуры · окна сеансов · нештатные регламенты — из режимов, сценариев, стыков и рисков; полнота к SDR. Порождён генератором tools/v2/gen_phase_a_documents.py; правки — в генератор, не сюда.",
+  "style": {
+    "tone": "деловая инженерная проза без маркетинга",
+    "traceability": "каждое утверждение опирается на элемент раздела",
+    "numbers": "число в тексте обязано быть в данных названных опор"
+  },
+  "review": {
+    "qualifiers": [
+      "не менее",
+      "не более",
+      "не допускается",
+      "не должен",
+      "не должна",
+      "не может",
+      "не разрешается",
+      "не",
+      "без",
+      "только",
+      "кроме",
+      "запрещается",
+      "запрещено",
+      "обязан",
+      "обязана",
+      "обязательно"
+    ],
+    "number_exceptions": [
+      "даты вида ГГГГ-ММ-ДД",
+      "номера разделов после §",
+      "числа внутри кодов сущностей"
+    ]
+  },
+  "labels": {
+    "_note": "служебные значения по-русски: печать обязана быть человеческим текстом, а не перечнем ключей модели",
+    "functional": "функциональное",
+    "performance": "показатель",
+    "interface": "стыковое",
+    "operational": "операционное",
+    "constraint": "ограничение",
+    "safety": "безопасность",
+    "reliability": "надёжность",
+    "environmental": "средовое",
+    "node": "узел",
+    "behaviour": "поведение",
+    "data": "данные",
+    "human": "человек",
+    "customer": "заказчик",
+    "operator": "оператор",
+    "regulator": "регулятор",
+    "supplier": "поставщик",
+    "partner": "партнёр",
+    "consumer": "потребитель",
+    "established": "учреждаемая сторона",
+    "mitigate": "снижать",
+    "accept": "принять",
+    "avoid": "избегать",
+    "transfer": "передать",
+    "ROM": "порядок величины",
+    "PARAMETRIC": "параметрическая",
+    "BOTTOM_UP": "снизу вверх",
+    "draft": "черновик",
+    "accepted": "принято",
+    "baselined": "базировано"
+  },
+  "sections": [
+    {
+      "no": "§1",
+      "title": "Назначение и режимы работы",
+      "scenes": [
+        "A2"
+      ],
+      "elements": [
+        {
+          "code": "1.1",
+          "kind": "query",
+          "title": "Режимы и состояния компонентов",
+          "select": "state_machine",
+          "min_rows": 1,
+          "columns": [
+            {
+              "title": "Компонент",
+              "field": "owner"
+            },
+            {
+              "title": "Состояния",
+              "field": "states"
+            },
+            {
+              "title": "Начальное",
+              "field": "initial"
+            }
+          ]
+        }
+      ],
+      "expects": "SDR",
+      "source": "режимы · сценарии",
+      "min_statements": 1,
+      "statement_hint": "режимы применения и переходы между ними — словами оператора"
+    },
+    {
+      "no": "§2",
+      "title": "Смены и процедуры",
+      "scenes": [
+        "9",
+        "A2"
+      ],
+      "elements": [
+        {
+          "code": "2.1",
+          "kind": "query",
+          "title": "Сценарии операций",
+          "select": "scenario",
+          "min_rows": 1,
+          "columns": [
+            {
+              "title": "Код",
+              "field": "code"
+            },
+            {
+              "title": "Сценарий",
+              "field": "name"
+            },
+            {
+              "title": "Слой",
+              "field": "layer"
+            },
+            {
+              "title": "Шаги",
+              "field": "steps"
+            }
+          ]
+        }
+      ],
+      "expects": "SDR",
+      "source": "сценарии-цепочки",
+      "min_statements": 1,
+      "statement_hint": "смены операторов и процедуры по каждому сценарию"
+    },
+    {
+      "no": "§3",
+      "title": "Окна сеансов",
+      "scenes": [
+        "A4"
+      ],
+      "elements": [
+        {
+          "code": "3.1",
+          "kind": "query",
+          "title": "Стыки радиолиний",
+          "select": "interface",
+          "min_rows": 0,
+          "columns": [
+            {
+              "title": "Код",
+              "field": "code"
+            },
+            {
+              "title": "Стык",
+              "field": "name"
+            },
+            {
+              "title": "Тип",
+              "field": "type"
+            },
+            {
+              "title": "Направление",
+              "field": "direction"
+            }
+          ],
+          "where": {
+            "type": "rf"
+          }
+        }
+      ],
+      "expects": "SDR",
+      "source": "стыки · модели",
+      "min_statements": 1,
+      "statement_hint": "окна сеансов связи из баллистики; что делает оператор между окнами"
+    },
+    {
+      "no": "§4",
+      "title": "Нештатные регламенты",
+      "scenes": [
+        "11",
+        "A7"
+      ],
+      "elements": [
+        {
+          "code": "4.1",
+          "kind": "query",
+          "title": "Риски операций",
+          "select": "risk",
+          "min_rows": 1,
+          "columns": [
+            {
+              "title": "Код",
+              "field": "code"
+            },
+            {
+              "title": "Риск",
+              "field": "statement"
+            },
+            {
+              "title": "Стратегия",
+              "field": "strategy"
+            },
+            {
+              "title": "Меры",
+              "field": "measures"
+            }
+          ]
+        }
+      ],
+      "expects": "SDR",
+      "source": "риски",
+      "min_statements": 1,
+      "statement_hint": "нештатные ситуации — из рисков: признак, действие оператора, эскалация"
+    },
+    {
+      "no": "§5",
+      "title": "Валидационные положения",
+      "scenes": [
+        "A2",
+        "A3"
+      ],
+      "elements": [],
+      "expects": "SDR",
+      "source": "тезисы · требования",
+      "min_statements": 1,
+      "statement_hint": "чем OpsCon проверяет требования: положение → требование → сценарий"
+    }
+  ]
+}

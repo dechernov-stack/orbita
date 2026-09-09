@@ -16,6 +16,9 @@ import pathlib
 import sys
 import urllib.error
 import urllib.request
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import stand_session  # noqa: E402
 from collections import Counter
 
 КОРЕНЬ = pathlib.Path(__file__).resolve().parent.parent.parent
@@ -46,14 +49,14 @@ def main() -> int:
     эталон = json.loads(ЭТАЛОН.read_text(encoding="utf-8"))
     текст = pathlib.Path(a.tz).read_text(encoding="utf-8")
 
-    вызов(a.base, "POST", "/auth/stand-login", {"login": "chernov"})
+    stand_session.войти(a.base, _opener, "chernov")
     портфель = вызов(a.base, "GET", "/v2/projects").get("items", [])
     if not any(п.get("code") == a.project for п in портфель):
         вызов(a.base, "POST", "/v2/projects", {"name": f"Проверка ТЗ МКУСС · {a.project}", "code": a.project})
         вызов(a.base, "POST", f"/v2/intent?project={a.project}",
               {"for_whom": "заказчик МКУСС", "what": "узкополосная связь и передача данных", "where": "РФ, Арктика, СМП",
                "horizon": "2030", "accepted": True, "author": "Чернов Д."})
-    вызов(a.base, "POST", "/auth/stand-login", {"login": "ivanov"})
+    stand_session.войти(a.base, _opener, "ivanov")
     стороны = {с["doc"].get("name"): с["code"] for с in вызов(a.base, "GET", f"/v2/entities?project={a.project}&kind=stakeholder").get("items", [])}
     if not стороны:
         for с in [i for i in записка["items"] if i["class"] == "stakeholder"][:6]:

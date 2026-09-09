@@ -27,6 +27,7 @@ import orbita.process.api.GateView
 import orbita.process.api.PhaseView
 import orbita.process.api.ProcessEngine
 import orbita.process.api.SceneState
+import orbita.process.api.SceneLinkView
 import orbita.process.api.SceneView
 import orbita.process.api.StepView
 import java.time.LocalDate
@@ -66,9 +67,26 @@ class TemplateProcessEngine(
      * Пусто — решение живёт только в памяти (тесты).
      */
     private val наРешение: ((String, String, String, String, String?, String?) -> Unit)? = null,
+    /**
+     * Шаблон фазы проекта по данным (шип G): после KDP-A проект живёт по
+     * шаблону Phase A, и это записано в проекте, а не в памяти движка.
+     */
+    private val шаблонФазыПроекта: ((String) -> String?)? = null,
+    /** Решение точки с `opens_template` записывает проекту новый шаблон фазы. */
+    private val наОткрытиеШаблона: ((String, String) -> Unit)? = null,
+    /**
+     * Экземпляры сцены на узлы состава (Романов, стадия 2: аванпроект
+     * рекурсивен): проект · вид узла (segment · element) → (код, имя).
+     * Пусто — сцена одна и держится словами «узлов нет».
+     */
+    private val экземпляры: ((String, String) -> List<Pair<String, String>>)? = null,
 ) : ProcessEngine {
 
     private val шаблоныПроектов = mutableMapOf<String, String>()
+
+    /** Шаблон фазы: открытый явно → записанный в проекте → Pre-A. */
+    private fun кодШаблона(project: String): String =
+        шаблоныПроектов[project] ?: шаблонФазыПроекта?.invoke(project)?.takeIf { it.isNotBlank() } ?: "PHT-9001"
 
     override fun openPhase(project: String, templateCode: String): PhaseView {
         шаблоныПроектов[project] = templateCode
@@ -76,7 +94,7 @@ class TemplateProcessEngine(
     }
 
     override fun view(project: String): PhaseView {
-        val код = шаблоныПроектов[project] ?: "PHT-9001"
+        val код = кодШаблона(project)
         val док = шаблон(код)
         val пройдены = пройденныеТочки(project)
         val всеЗамечания = замечания?.invoke(project).orEmpty()
@@ -92,10 +110,10 @@ class TemplateProcessEngine(
         val ждут = mutableMapOf<String, MutableList<String>>()
         док.path("scenes").forEach { сцена ->
             сцена.path("entry").forEach { условие ->
-                val ссылка = условие.path("check").asText().removePrefix("scene_done:")
-                if (условие.path("check").asText().startsWith("scene_done:")) {
-                    ждут.getOrPut(ссылка) { mutableListOf() } +=
-                        "${сцена.path("key").asText()} · ${сцена.path("title").asText()}"
+                val проверка = условие.path("check").asText()
+                if (проверка.startsWith("scene_done:") || проверка.startsWith("scene_started:")) {
+                    ждут.getOrPut(проверка.substringAfter(':')) { mutableListOf() } +=
+                        "${сцена.path("key").asText()} · ${сцена.path("title").asText().replace("{node}", "…")}"
                 }
             }
         }
@@ -121,14 +139,16 @@ class TemplateProcessEngine(
         док.path("scenes").forEach { с -> с.path("activities").forEach { собрать(it) } }
         док.path("lanes").forEach { д -> д.path("activities").forEach { собрать(it) } }
 
-        val сцены = док.path("scenes").sortedBy { it.path("order").asInt() }.map { сцена ->
-            val ключ = сцена.path("key").asText()
+        val начатые = mutableSetOf<String>()
+
+        /** Одна сцена шаблона в виде: ключ, подстановка `{node}` в условия и заголовки. */
+        fun вид(сцена: JsonNode, ключ: String, узелКод: String?, узелИмя: String?): SceneView {
+            fun усл(т: String) = if (узелКод == null) т else т.replace("{node}", узелКод)
+            fun имя(т: String) = if (узелИмя == null) т else т.replace("{node}", узелИмя)
             val условияВхода = сцена.path("entry").map { условие ->
-                val причина = проверить(project, условие.path("check").asText(), прожитые, пройдены)
-                ConditionView(
-                    условие.path("title").asText(условие.path("check").asText()),
-                    условие.path("check").asText(), причина == null, причина,
-                )
+                val проверка = усл(условие.path("check").asText())
+                val причина = проверить(project, проверка, прожитые, начатые, пройдены)
+                ConditionView(имя(условие.path("title").asText(проверка)), проверка, причина == null, причина)
             }
             // Замечание обзора с возвратом сюда — СОБЫТИЕ, не флаг: пока оно
             // открыто, выход сцены держится им, и прожитая сцена снова в
@@ -140,11 +160,9 @@ class TemplateProcessEngine(
                 )
             }
             val условияВыхода = сцена.path("exit").map { условие ->
-                val причина = проверить(project, условие.path("check").asText(), прожитые, пройдены)
-                ConditionView(
-                    условие.path("title").asText(условие.path("check").asText()),
-                    условие.path("check").asText(), причина == null, причина,
-                )
+                val проверка = усл(условие.path("check").asText())
+                val причина = проверить(project, проверка, прожитые, начатые, пройдены)
+                ConditionView(имя(условие.path("title").asText(проверка)), проверка, причина == null, причина)
             } + возвраты
             val причиныВхода = условияВхода.mapNotNull { it.why }
             val причиныВыхода = условияВыхода.mapNotNull { it.why }
@@ -154,34 +172,67 @@ class TemplateProcessEngine(
                 else -> SceneState.OPEN
             }
             if (состояние == SceneState.DONE) прожитые += ключ
-            SceneView(
+            if (состояние != SceneState.LOCKED) начатые += ключ
+            return SceneView(
                 key = ключ,
-                title = сцена.path("title").asText(),
+                title = имя(сцена.path("title").asText()),
                 order = сцена.path("order").asInt(),
                 role = сцена.path("role").asText(""),
-                question = сцена.path("question").asText(""),
+                question = имя(сцена.path("question").asText("")),
                 state = состояние,
                 blockers = if (состояние == SceneState.LOCKED) причиныВхода else причиныВыхода,
                 steps = сцена.path("steps").map { шаг ->
-                    val проверка = шаг.path("check").asText("")
+                    val проверка = усл(шаг.path("check").asText(""))
                     StepView(
-                        title = шаг.path("title").asText(),
+                        title = имя(шаг.path("title").asText()),
                         place = шаг.path("place").asText(""),
-                        hint = шаг.path("hint").asText(""),
+                        hint = имя(шаг.path("hint").asText("")),
                         // Шаг закрыт своим условием, если оно названо; иначе —
                         // вместе со сценой: врать про «сделано» шаг не должен.
                         done = if (проверка.isBlank()) состояние == SceneState.DONE
-                        else проверить(project, проверка, прожитые, пройдены) == null,
+                        else проверить(project, проверка, прожитые, начатые, пройдены) == null,
                     )
                 },
                 entry = условияВхода,
                 exit = условияВыхода,
-                output = сцена.path("output").asText(""),
-                awaitedBy = ждут[ключ].orEmpty(),
+                output = имя(сцена.path("output").asText("")),
+                awaitedBy = ждут[ключ.substringBefore(':')].orEmpty(),
                 inputFlows = сцена.path("process_ref").flatMap { потоки[it.asText()].orEmpty() },
-                window = окна[ключ],
+                window = окна[ключ] ?: окна[ключ.substringBefore(':')],
                 activities = мероприятия(project, сцена, ключ, причиныВхода, ждутМероприятие),
+                links = сцена.path("depends").map { д ->
+                    SceneLinkView(д.path("on").asText(""), д.path("type").asText("FS"), д.path("why").asText(""))
+                },
+                instanceOf = if (узелКод == null) null else ключ.substringBefore(':'),
+                node = узелКод,
             )
+        }
+
+        val сцены = док.path("scenes").sortedBy { it.path("order").asInt() }.flatMap { сцена ->
+            val ключ = сцена.path("key").asText()
+            val на = сцена.path("instantiate_per").asText("").ifBlank { null }
+                ?: return@flatMap listOf(вид(сцена, ключ, null, null))
+            // Аванпроект рекурсивен: экземпляр сцены на каждый узел нужного
+            // вида. Узлов нет — сцена одна и держится словами: где их завести.
+            val узлы = экземпляры?.invoke(project, на).orEmpty()
+            if (узлы.isEmpty()) {
+                val причина = "в составе нет ни одного узла вида «$на» — заведите сегменты и элементы состава (сцена 7, «Концепция»)"
+                val пустая = вид(сцена, ключ, "—", "—")
+                return@flatMap listOf(
+                    пустая.copy(
+                        title = сцена.path("title").asText().replace("{node}", "—"),
+                        state = SceneState.LOCKED,
+                        blockers = listOf(причина),
+                        entry = listOf(ConditionView("узлы вида «$на» в составе", "instances:$на", false, причина)) + пустая.entry,
+                        instanceOf = null, node = null,
+                    ),
+                )
+            }
+            val виды = узлы.map { (код, имя) -> вид(сцена, "$ключ:$код", код, имя) }
+            // Сцена шаблона прожита, когда прожиты все её экземпляры; начата — когда начат хотя бы один.
+            if (виды.all { it.state == SceneState.DONE }) прожитые += ключ
+            if (виды.any { it.state != SceneState.LOCKED }) начатые += ключ
+            виды
         }
 
         val план = планТочек(project)
@@ -192,7 +243,7 @@ class TemplateProcessEngine(
             // Критерии целиком — ✓ и ☐ с причиной: точка показывает, из чего
             // она состоит, а не только чего не хватает.
             val критерии = точка.path("criteria").map { у ->
-                val причина = проверить(project, у.path("check").asText(), прожитые, пройдены)
+                val причина = проверить(project, у.path("check").asText(), прожитые, начатые, пройдены)
                 ConditionView(
                     у.path("title").asText(у.path("check").asText()),
                     у.path("check").asText(), причина == null, причина,
@@ -209,7 +260,7 @@ class TemplateProcessEngine(
                         val код = п.path("maturity").asText("")
                         val ссылка = п.path("our_ref").asText("").ifBlank { null }
                         val проверка = MaturityTable.check(код, ссылка, ключ)
-                        val причина = проверка?.let { проверить(project, it, прожитые, пройдены) }
+                        val причина = проверка?.let { проверить(project, it, прожитые, начатые, пройдены) }
                         PositionView(
                             artifact = п.path("artifact").asText(""),
                             maturity = код,
@@ -229,7 +280,7 @@ class TemplateProcessEngine(
                 val код = коды[ключ] ?: "x"
                 val ссылка = строка.path("our_ref").asText("").ifBlank { null }
                 val проверка = MaturityTable.check(код, ссылка, ключ)
-                val причина = проверка?.let { проверить(project, it, прожитые, пройдены) }
+                val причина = проверка?.let { проверить(project, it, прожитые, начатые, пройдены) }
                 PositionView(
                     artifact = строка.path("artifact").asText(""),
                     maturity = код,
@@ -338,15 +389,23 @@ class TemplateProcessEngine(
         val запись = наРешение
         if (запись != null) {
             запись(project, gate, by, outcome, note, точка.opensPhase.takeIf { outcome == "approve" })
+            if (outcome == "approve") {
+                шаблонПоТочке(project, gate)?.let { наОткрытиеШаблона?.invoke(project, it) }
+            }
         } else if (outcome == "approve") {
             пройденныеТочки(project).add(gate)
         }
         return view(project)
     }
 
+    /** Шаблон следующей фазы у точки (`opens_template`), если она его открывает. */
+    private fun шаблонПоТочке(project: String, gate: String): String? =
+        шаблон(кодШаблона(project)).path("points").firstOrNull { it.path("key").asText() == gate }
+            ?.path("opens_template")?.asText("")?.ifBlank { null }
+
     /** Имя роли — из шаблона фазы (`roles[].involvement` до двоеточия), не из кода. */
     private fun имяРоли(project: String, роль: String): String {
-        val код = шаблоныПроектов[project] ?: "PHT-9001"
+        val код = кодШаблона(project)
         return шаблон(код).path("roles").firstOrNull { it.path("role").asText() == роль }
             ?.path("involvement")?.asText()?.substringBefore(":")?.trim()?.ifBlank { null } ?: роль
     }
@@ -447,11 +506,17 @@ class TemplateProcessEngine(
         project: String,
         check: String,
         прожитые: Set<String>,
+        начатые: Set<String>,
         пройдены: Set<String>,
     ): String? = when {
         check.startsWith("scene_done:") ->
             if (check.removePrefix("scene_done:") in прожитые) null
             else "сцена ${check.removePrefix("scene_done:")} ещё не прожита"
+
+        // Связь SS (start-to-start): сцена началась — вход открыт, ждать конца не надо.
+        check.startsWith("scene_started:") ->
+            if (check.removePrefix("scene_started:") in начатые) null
+            else "сцена ${check.removePrefix("scene_started:")} ещё не начата"
 
         check.startsWith("gate_passed:") ->
             if (check.removePrefix("gate_passed:") in пройдены) null

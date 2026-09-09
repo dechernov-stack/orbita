@@ -15,12 +15,16 @@
 import argparse
 import getpass
 import hashlib
+import http.cookiejar
 import json
 import os
 import pathlib
 import sys
 import urllib.error
 import urllib.request
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import stand_session  # noqa: E402
 
 КОРЕНЬ = pathlib.Path(__file__).resolve().parent.parent.parent
 ПОСТАВКА = КОРЕНЬ / "docs/tz/v2"
@@ -31,12 +35,17 @@ import urllib.request
 # неизменности значило бы запретить развитие продукта.
 ПОРОЖДЁННЫЕ = [
     ("полки-порождённые/ШАБЛОН-ФАЗЫ-PRE-A-NASA.json", "phase_template"),
+    ("полки-порождённые/ШАБЛОН-ФАЗЫ-PHASE-A-NASA.json", "phase_template"),
     ("сиды/СИД-ГЛОССАРИЙ-КРОСС.json", "glossary_cross_terms"),
     ("полки-порождённые/ПОЛКА-МОДЕЛИ-СИСТЕМЫ.json", "model_template"),
     ("полки-порождённые/ШАБЛОН-MCREPORT.json", "document_template"),
     ("полки-порождённые/ШАБЛОН-CONOPS.json", "document_template"),
     ("полки-порождённые/ШАБЛОН-FAD.json", "document_template"),
     ("полки-порождённые/ШАБЛОН-FA.json", "document_template"),
+    ("полки-порождённые/ШАБЛОН-SEMP.json", "document_template"),
+    ("полки-порождённые/ШАБЛОН-OPSCON.json", "document_template"),
+    ("полки-порождённые/ШАБЛОН-ICD.json", "document_template"),
+    ("полки-порождённые/ПОЛКА-ПРОЦЕССЫ-СИ.json", "process_catalog"),
 ]
 
 # файл поставки → вид полки; порядок = порядок загрузки (ссылки идут вниз)
@@ -142,8 +151,22 @@ def вход_стенда() -> str | None:
     return None
 
 
+def вход_telegram() -> str | None:
+    """Стенд за входом через Telegram (216): одна учётка владельца через бота,
+    сессия переиспользуется из ~/.config/orbita (stand_session)."""
+    try:
+        кто = запрос("GET", "/auth/whoami")
+    except Exception:
+        return None
+    if кто.get("mode") != "telegram":
+        return None
+    opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+    stand_session.войти(БАЗА, opener, "chernov")
+    return stand_session.токен(БАЗА, opener)
+
+
 def вход() -> str:
-    стендовая = вход_стенда()
+    стендовая = вход_стенда() or вход_telegram()
     if стендовая:
         return стендовая
     логин = os.environ.get("ORBITA_LOGIN")

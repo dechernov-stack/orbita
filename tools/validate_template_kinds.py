@@ -30,9 +30,11 @@ from pathlib import Path
 КОРЕНЬ = Path(__file__).resolve().parent.parent
 ПОЛКИ = КОРЕНЬ / "docs/tz/v2/полки-порождённые"
 ВИДЫ = КОРЕНЬ / "core/v2/kernel/src/main/kotlin/orbita/kernel/schema/GeneratedKinds.kt"
-ШАБЛОН_ФАЗЫ = ПОЛКИ / "ШАБЛОН-ФАЗЫ-PRE-A-NASA.json"
+ШАБЛОНЫ_ФАЗ = [ПОЛКИ / "ШАБЛОН-ФАЗЫ-PRE-A-NASA.json", ПОЛКИ / "ШАБЛОН-ФАЗЫ-PHASE-A-NASA.json"]
 СХЕМЫ = КОРЕНЬ / "docs/tz/v2/СХЕМЫ-ПОЛЕЙ-V2.yaml"
-СЛУЖЕБНЫЕ_ПОЛЯ = {"code", "status", "id", "version", "level_max", "unresolved", "code_prefix", "criticality_min"}
+СЛУЖЕБНЫЕ_ПОЛЯ = {"code", "status", "id", "version", "level_max", "unresolved", "code_prefix", "criticality_min",
+                  # природа носителя/цели по связанной записи — ICD (шип G)
+                  "carrier_kind", "target_kind"}
 
 
 def поля_видов() -> dict[str, set[str]]:
@@ -52,9 +54,13 @@ def виды_реестра() -> set[str]:
 
 
 def сцены_фазы() -> set[str]:
-    д = json.loads(ШАБЛОН_ФАЗЫ.read_text(encoding="utf-8"))
+    # Сцены обеих фаз (Pre-A и Phase A): раздел SEMP ждёт сцены A1.
     # «polka» сценой не является: так помечают выход на библиотечную полку.
-    return {с["key"] for с in д.get("scenes", [])} | {"polka"}
+    ключи: set[str] = {"polka"}
+    for ф in ШАБЛОНЫ_ФАЗ:
+        if ф.exists():
+            ключи |= {с["key"] for с in json.loads(ф.read_text(encoding="utf-8")).get("scenes", [])}
+    return ключи
 
 
 def main() -> int:

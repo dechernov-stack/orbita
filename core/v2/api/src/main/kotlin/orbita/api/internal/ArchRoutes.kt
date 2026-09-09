@@ -36,6 +36,9 @@ class ArchRoutes(
             )
 
         method == "GET" && path == "/v2/architecture" -> слои(требуется(query, "project"))
+        // Стыки (сцена 7 / A4, шип G): реестр и заведение; ICD собирается из них.
+        method == "GET" && path == "/v2/interfaces" -> стыки(требуется(query, "project"))
+        method == "POST" && path == "/v2/interfaces" -> завестиСтык(требуется(query, "project"), разобрать(body))
 
         // Сцена 9: режимы и операционные сценарии. Оба вида читались
         // гранями компонента и запросами ConOps с волны 3, а завести их
@@ -271,6 +274,39 @@ class ArchRoutes(
         val код = тело.path("code").asText("").ifBlank { следующийКод(область, "component", "CM") }
         val создано = store.create(
             код, "component", область, "8", документ,
+            Provenance(Channel.MANUAL, тело.path("author").asText("стенд")),
+        )
+        return V2Router.Ответ(201, mapper.createObjectNode().put("code", создано.code).put("id", создано.id))
+    }
+
+    private fun стыки(проект: String): V2Router.Ответ {
+        val область = Area.Project(проект)
+        val массив = mapper.createArrayNode()
+        store.list(область, "interface").filter { it.status != "cancelled" }.sortedBy { it.code }.forEach { с ->
+            fun конец(поле: String) = с.doc.path(поле).asText("").let { store.byId(it)?.code ?: it }
+            массив.addObject().put("code", с.code).put("name", с.doc.path("name").asText(""))
+                .put("type", с.doc.path("type").asText("")).put("a", конец("a")).put("b", конец("b"))
+                .put("direction", с.doc.path("direction").asText(""))
+                .also { у -> у.putArray("requirement_classes").also { к -> с.doc.path("requirement_classes").forEach { к.add(it.asText()) } } }
+        }
+        return V2Router.Ответ(200, mapper.createObjectNode().set("items", массив))
+    }
+
+    /** Стык — между двумя узлами состава кодами; концы хранятся ссылками. */
+    private fun завестиСтык(проект: String, тело: JsonNode): V2Router.Ответ {
+        val область = Area.Project(проект)
+        val документ = тело.deepCopy<ObjectNode>()
+        документ.remove(listOf("code", "author", "project"))
+        listOf("a", "b").forEach { поле ->
+            val код = тело.path(поле).asText("")
+            require(код.isNotBlank()) { "у стыка обязаны быть обе стороны: $поле" }
+            val узел = store.byCode(область, код) ?: throw IllegalArgumentException("стороны «$код» нет в составе проекта")
+            документ.put(поле, узел.id)
+        }
+        require(тело.path("name").asText("").isNotBlank()) { "у стыка нет имени" }
+        val код = тело.path("code").asText("").ifBlank { следующийКод(область, "interface", "IF") }
+        val создано = store.create(
+            код, "interface", область, "7", документ,
             Provenance(Channel.MANUAL, тело.path("author").asText("стенд")),
         )
         return V2Router.Ответ(201, mapper.createObjectNode().put("code", создано.code).put("id", создано.id))

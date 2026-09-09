@@ -29,6 +29,9 @@ import sys
 import urllib.error
 import urllib.request
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import stand_session  # noqa: E402  — вход учёткой стенда либо через Telegram с ролью «от имени»
+
 КОРЕНЬ = pathlib.Path(__file__).resolve().parent.parent.parent
 СИД = КОРЕНЬ / "docs/tz/v2/сиды/ПРОГОН-СЦЕН-1-12.json"
 
@@ -61,9 +64,10 @@ def вызов(base: str, метод: str, путь: str, тело=None):
 
 
 class Прогон:
-    def __init__(self, base: str, проект: str, сид: dict, точки: bool = False, знания: bool = False):
+    def __init__(self, base: str, проект: str, сид: dict, точки: bool = False, знания: bool = False, фазаA: bool = False):
         self.точки = точки
         self.знания = знания
+        self.фазаA = фазаA
         self.base = base
         self.проект = проект
         self.сид = сид
@@ -73,7 +77,8 @@ class Прогон:
     # --- служебное --------------------------------------------------------
 
     def войти(self, учётка: str) -> None:
-        вызов(self.base, "POST", "/auth/stand-login", {"login": учётка})
+        """Режим stand — учётка; режим telegram — одна учётка владельца, роль «от имени» (ADR-066)."""
+        stand_session.войти(self.base, _opener, учётка)
 
     def сущности(self, вид: str) -> list[dict]:
         ответ = вызов(self.base, "GET", f"/v2/entities?project={self.проект}&kind={вид}")
@@ -572,6 +577,84 @@ class Прогон:
             raise Отказ(f"после KDP-A фаза {ответ.get('phase')!r}, а не Phase A")
         self.сделано.append("сцена 18: решение DA — проект в Phase A")
 
+    # ── Phase A (шип G): переход, экземпляры аванпроекта, деривация, SEMP/OpsCon/ICD ──
+    def phase_a(self) -> None:
+        self.войти("chernov")
+        фаза = вызов(self.base, "GET", f"/v2/phase?project={self.проект}")
+        if фаза.get("phase") != "Phase A":
+            raise Отказ(f"проект в фазе {фаза.get('phase')!r}: сначала --points до KDP-A")
+        сцены = {с["key"]: с for с in фаза["scenes"]}
+        if "A1" not in сцены:
+            raise Отказ("после KDP-A лента осталась Pre-A: шаблон PHT-9002 не записан проекту (полки не загружены?)")
+        self.сделано.append(f"Phase A: лента из {len(фаза['scenes'])} сцен, точки {[т['key'] for т in фаза['gates']]}")
+        self.войти("ivanov")
+        # элементы состава: аванпроект — экземпляр на каждый
+        состав = {у["code"]: у for у in вызов(self.base, "GET", f"/v2/components?project={self.проект}").get("items", [])}
+        for код, имя, kind, level, parent in [
+            ("SEG-SP", "Космический сегмент", "segment", 1, None),
+            ("SEG-GS", "Наземный сегмент", "segment", 1, None),
+            ("SEG-US", "Пользовательский сегмент", "segment", 1, None),
+            ("EL-SC", "Космический аппарат (элемент)", "element", 2, "SEG-SP"),
+            ("EL-GS", "Наземный комплекс управления (элемент)", "element", 2, "SEG-GS"),
+            ("EL-UT", "Абонентский терминал (элемент)", "element", 2, "SEG-US"),
+        ]:
+            if код in состав:
+                continue
+            тело = {"code": код, "name": имя, "kind": kind, "level": level, "nature": "node", "author": "Иванов И."}
+            if parent:
+                тело["parent"] = parent
+            вызов(self.base, "POST", f"/v2/components?project={self.проект}", тело)
+            self.сделано.append(f"Phase A: узел {код} ({kind})")
+        # системные требования из проектных — деривация с основанием
+        требования = вызов(self.base, "GET", f"/v2/requirements?project={self.проект}").get("items", [])
+        проектные = [т for т in требования if т.get("level") == "project"]
+        системные = [т for т in требования if т.get("level") == "system"]
+        if проектные and not системные:
+            родитель = проектные[0]["code"]
+            for код, формулировка, основание, носитель in [
+                ("RQ-S-0001", "КА должен передавать кадр телеметрии в НКУ не реже одного раза за виток.", "суточная норма проектного уровня делится на 16 витков", "EL-SC"),
+                ("RQ-S-0002", "НКУ должен принимать кадры телеметрии на каждом сеансе связи с КА.", "приём — зеркало передачи", "EL-GS"),
+                ("RQ-S-0003", "Абонентский терминал должен получать подтверждение доставки в течение двух суток.", "класс B′: подтверждённая доставка — нужда ND-0002", "EL-UT"),
+            ]:
+                вызов(self.base, "POST", f"/v2/requirements/derive?project={self.проект}",
+                      {"parent": родитель, "code": код, "statement": формулировка, "rationale": основание, "carrier": носитель, "subtype": "decomposition", "author": "Иванов И."})
+                self.сделано.append(f"Phase A: {код} выведено из {родитель} на {носитель}")
+        # стыки элементов: IF-S-USER — КА ↔ терминал; IF-S-G — КА ↔ НКУ
+        стыки = {с["code"] for с in вызов(self.base, "GET", f"/v2/interfaces?project={self.проект}").get("items", [])}
+        for код, имя, тип, a, b in [
+            ("IF-S-USER", "КА — абонентский терминал (P-диапазон, S-диапазон)", "rf", "EL-SC", "EL-UT"),
+            ("IF-S-G", "КА — НКУ (S-диапазон)", "rf", "EL-SC", "EL-GS"),
+        ]:
+            if код in стыки:
+                continue
+            вызов(self.base, "POST", f"/v2/interfaces?project={self.проект}",
+                  {"code": код, "name": имя, "type": тип, "a": a, "b": b, "direction": "both", "requirement_classes": ["interface"], "author": "Иванов И."})
+            self.сделано.append(f"Phase A: стык {код}")
+        # требование на стык — ICD собирается из него
+        if not any(т.get("code") == "RQ-S-0004" for т in требования) and проектные:
+            вызов(self.base, "POST", f"/v2/requirements/derive?project={self.проект}",
+                  {"parent": проектные[0]["code"], "code": "RQ-S-0004", "statement": "Стык КА — терминал должен обеспечивать передачу пакета 32 байта за один сеанс видимости.",
+                   "rationale": "короткое сообщение класса A′ — 32 байта", "carrier": "IF-S-USER", "subtype": "refinement", "category": "interface", "author": "Иванов И."})
+            self.сделано.append("Phase A: RQ-S-0004 на стык IF-S-USER")
+        # документы фазы: SEMP, OpsCon, ICD
+        self.войти("chernov")
+        документы = {д["code"] for д in вызов(self.base, "GET", f"/v2/documents?project={self.проект}").get("items", [])}
+        for код in ["semp", "opscon", "icd"]:
+            if код not in документы:
+                вызов(self.base, "POST", f"/v2/documents?project={self.проект}", {"template": код, "author": "Чернов Д."})
+                self.сделано.append(f"Phase A: документ {код} заведён")
+        semp = вызов(self.base, "GET", f"/v2/documents/semp?project={self.проект}&gate=SRR")
+        р6 = next((р for р in semp.get("sections", []) if р.get("no") == "§6"), {})
+        строк = sum(len(э.get("rows", [])) for э in р6.get("elements", []))
+        self.сделано.append(f"Phase A: SEMP §6 — {строк} строк процессов" + ("" if строк == 17 else " (ожидалось 17: полка процессов СИ не загружена?)"))
+        icd = вызов(self.base, "GET", f"/v2/documents/icd?project={self.проект}&gate=SDR")
+        строкиICD = [row for р in icd.get("sections", []) for э in р.get("elements", []) for row in э.get("rows", [])]
+        ifuser = [r for r in строкиICD if any("IF-S-USER" in str(x) for x in r)]
+        self.сделано.append(f"Phase A: ICD — строк {len(строкиICD)}, с IF-S-USER {len(ifuser)}")
+        фаза = вызов(self.base, "GET", f"/v2/phase?project={self.проект}")
+        экземпляры = [с for с in фаза["scenes"] if с.get("instance_of") == "A4"]
+        self.сделано.append("Phase A: экземпляры аванпроекта — " + ", ".join(f"{с['key']} [{с['state']}]" for с in экземпляры))
+
     def пройти(self) -> None:
         self.войти("chernov")
         self.сцена_1_проект()
@@ -598,6 +681,8 @@ class Прогон:
             self.сцена_17_замечания()
             self.сцена_14_fad_fa()
             self.сцена_18_kdp_a()
+        if self.фазаA:
+            self.phase_a()
 
 
 def состояние(base: str, проект: str) -> None:
@@ -638,6 +723,7 @@ def main() -> int:
     ap.add_argument("--report", action="store_true", help="ничего не делать, показать состояние")
     ap.add_argument("--points", action="store_true", help="после сцен 1–12 пройти точки: сцены 15–18 до KDP-A")
     ap.add_argument("--knowledge", action="store_true", help="знания 2: ТЗ · даташит · норматив живой моделью, допущение к точке")
+    ap.add_argument("--phase-a", action="store_true", help="шип G: после KDP-A — элементы состава, деривация, стыки, SEMP/OpsCon/ICD, экземпляры аванпроекта")
     args = ap.parse_args()
 
     сид = json.loads(СИД.read_text(encoding="utf-8"))
@@ -645,7 +731,7 @@ def main() -> int:
 
     вызов(args.base, "POST", "/auth/stand-login", {"login": "chernov"})
     if not args.report:
-        прогон = Прогон(args.base, проект, сид, точки=args.points, знания=args.knowledge)
+        прогон = Прогон(args.base, проект, сид, точки=args.points, знания=args.knowledge, фазаA=args.phase_a)
         try:
             прогон.пройти()
         except Отказ as о:

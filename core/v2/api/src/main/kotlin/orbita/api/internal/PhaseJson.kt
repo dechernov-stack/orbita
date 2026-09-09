@@ -63,6 +63,10 @@ internal object PhaseJson {
             }
             val причины = с.putArray("blockers")
             сцена.blockers.forEach { причины.add(it) }
+            с.put("instance_of", сцена.instanceOf)
+            с.put("node", сцена.node)
+            val связи = с.putArray("depends")
+            сцена.links.forEach { л -> связи.addObject().put("on", л.on).put("type", л.type).put("why", л.why) }
             val ждут = с.putArray("awaited_by")
             сцена.awaitedBy.forEach { ждут.add(it) }
             val потоки = с.putArray("input_flows")

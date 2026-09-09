@@ -15,6 +15,7 @@ import { ArchitectureScreen } from './architecture'
 import { Documents } from './documents'
 import { Models } from './models'
 import { Points } from './points'
+import { ExternalModelScreen } from './externalmodel'
 import { ИМЯ_РЕЖИМА, режимПоРоли, type Режим } from './density'
 
 /** Раздел рейки. `wave` — волна, в которой раздел оживает. */
@@ -38,6 +39,7 @@ const SECTIONS: Section[] = [
   { key: 'points', title: 'Точки', wave: 6, hint: 'готовность по экспертизе, замечания, фиксация' },
   { key: 'library', title: 'Библиотека', wave: 2, expert: true, hint: 'полки, окно взятия, справочники' },
   { key: 'exchange', title: 'Обмен', wave: 5, expert: true, hint: 'StrictDoc и ReqIF, выгрузка знаний' },
+  { key: 'external', title: 'Внешняя модель', wave: 7, expert: true, hint: 'элементы Capella по слоям либо fixture с баннером; только чтение' },
   { key: 'journal', title: 'Журналы', wave: 5, expert: true, hint: 'журнал службы, история правок' },
 ]
 
@@ -48,7 +50,11 @@ function датаКратко(дата: string): string {
 }
 
 /** Учётка стенда: вход селектором без пароля (ТЗ §4.2). */
-type StandUser = { login: string; display_name: string; roles?: Record<string, string> }
+type StandUser = {
+  login: string; display_name: string; roles?: Record<string, string>
+  /** ADR-066: автор журнала, роль «от имени», право владельца, роли словами */
+  author?: string; acting_role?: string | null; can_act_as?: boolean; acting_roles?: Record<string, string>
+}
 
 export function Shell() {
   const [section, setSection] = useState('work')
@@ -102,7 +108,7 @@ export function Shell() {
       .then((r) => r.json())
       .then((d) => {
         setUsers(d.stand_users ?? [])
-        setMe(d.user?.display_name ?? null)
+        setMe(d.user?.author ?? d.user?.display_name ?? null)
         setЯ(d.user ?? null)
         setВходTelegram(d.mode === 'telegram')
         setНуженВход(Boolean(d.enabled) && !d.user && d.mode === 'telegram')
@@ -203,6 +209,16 @@ export function Shell() {
               {me ?? (users.length > 0 ? `учётки стенда: ${users.length}` : 'учётка не выбрана')}
             </span>
           )}
+          {я?.can_act_as && (
+            <select className="v2-project" value={я.acting_role ?? ''}
+              title="ADR-066: выступить от имени роли (РП · ведущий СИ · инженер · DA) — только владельцу системы; каждое действие пишется автором «имя как роль»"
+              onChange={(e) => { api.actAs(e.target.value || null).then(() => setВходTick((t) => t + 1)).catch((err) => setFailure(String(err))) }}>
+              <option value="">своя роль</option>
+              {Object.entries(я.acting_roles ?? {}).map(([код, слово]) => (
+                <option key={код} value={код}>как {слово}</option>
+              ))}
+            </select>
+          )}
         </div>
       </header>
 
@@ -256,6 +272,8 @@ export function Shell() {
             <Models project={project} />
           ) : section === 'documents' ? (
             <Documents project={project} />
+          ) : section === 'external' ? (
+            <ExternalModelScreen project={project} />
           ) : section === 'points' ? (
             <Points project={project} phase={phase} onChanged={() => setPhaseTick((t) => t + 1)} />
           ) : section === 'tasks' ? (

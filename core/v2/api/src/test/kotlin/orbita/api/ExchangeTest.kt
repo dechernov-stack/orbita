@@ -237,13 +237,17 @@ class ExchangeTest {
 
     @Test
     fun `чужой файл обмена — каждый объект кандидат, атрибуты целиком в foreign, в модель ничего до приёма`() {
-        // Разбор ReqPilot (насосная станция, свой профиль атрибутов: UID · Title · Statement ·
-        // Rationale · Status …), снятый службой обмена; здесь — подставной разборщик.
+        // Разбор образца ReqPilot (насосная станция: 10 объектов шести типов, 9 связей,
+        // свой профиль атрибутов UID · Title · Statement · Rationale · Status …), снятый
+        // службой обмена; здесь — подставной разборщик. Правило владельца (ШИП-F-ЗАКРЫТ):
+        // тесты обмена обязаны включать ЧУЖОЙ файл — образец остаётся фикстурой навсегда.
         val разобрано = mapper.readTree(javaClass.getResource("/чужой-reqif-насосная-станция.json")!!)
         val разборщик = orbita.exchange.api.ReqifParser { разобрано }
         val обменЧужой = ExchangeFactory.exchange(store, links, intake, mapper, strictDoc = служба, reqif = разборщик)
         val итог = обменЧужой.importForeign(проект, "<xml/>", "Петрова М.")
-        assertEquals(3, итог.candidates.size)
+        assertEquals(10, итог.candidates.size, "каждый объект файла — кандидат, все шесть типов")
+        assertEquals(6, итог.candidates.map { it.type }.toSet().size)
+        assertTrue(итог.candidates.any { it.relations.isNotEmpty() }, "связи файла доехали до кандидатов ролью словами")
         val первый = итог.candidates.first()
         assertEquals("STK-001", первый.code, "код — из атрибута-идентификатора UID, не из identifier файла")
         assertEquals(mapOf("code" to "UID", "statement" to "Statement", "title" to "Title"), первый.used)
@@ -255,7 +259,7 @@ class ExchangeTest {
         assertTrue(store.list(область, "requirement").isEmpty(), "в модель до приёма ничего не записано")
         val задание = assertNotNull(итог.task)
         val план = intake.task(проект, задание)
-        assertEquals(3, план.plan.count { it.targetKind == "requirement" })
+        assertEquals(10, план.plan.count { it.targetKind == "requirement" })
         assertTrue(план.plan.first().effect.contains("код из «UID»"), план.plan.first().effect)
         intake.accept(проект, задание, план.plan.indices.toList(), "Петрова М.")
         val принято = store.byCode(область, "STK-001")
