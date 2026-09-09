@@ -681,16 +681,10 @@ function RegistryRow({
 
 /** Меню «⋯»: вторичные действия реестра — выгрузки и загрузка пачкой. */
 function DotsMenu({ onClose, onImported }: { onClose: () => void; onImported: (report: string) => void }) {
-  const [reqifIssues, setReqifIssues] = useState<string[]>([])
-  useEffect(() => {
-    api.reqifCheck()
-      .then((c) => setReqifIssues([...c.mapping_issues, ...c.flattened.map((f) => `${f}: составное значение свёрнуто в строку`)]))
-      .catch(() => setReqifIssues([]))
-  }, [])
   return (
     <div className="rr-cfg" style={{ width: 240 }}>
       <h4>Выгрузка и обмен <button type="button" className="rr-assign" onClick={onClose}>закрыть</button></h4>
-      <div className="rr-col"><a className="rr-assign" href={api.exportUrls.reqif} download>Выгрузить ReqIF</a></div>
+      <div className="rr-col"><a className="rr-assign" href={api.exportUrls.reqif} download title="ReqIF штатным экспортом StrictDoc из .sdoc (ADR-064)">Выгрузить ReqIF</a></div>
       <div className="rr-col"><a className="rr-assign" href={api.exportUrls.csv} download>Выгрузить CSV</a></div>
       <div className="rr-col"><a className="rr-assign" href={api.exportUrls.exchangeJson} download>Выгрузить JSON (обмен)</a></div>
       <div className="rr-col"><a className="rr-assign" href={api.exportUrls.sdoc} download title="StrictDoc-канал: документ по грамматике Орбиты (ADR-049)">Выгрузить .sdoc (StrictDoc)</a></div>
@@ -746,11 +740,6 @@ function DotsMenu({ onClose, onImported }: { onClose: () => void; onImported: (r
           />
         </label>
       </div>
-      {reqifIssues.length > 0 && (
-        <div className="secondary" style={{ fontSize: 11, marginTop: 6 }}>
-          Отображение ReqIF с замечаниями: {reqifIssues.join('; ')}
-        </div>
-      )}
     </div>
   )
 }

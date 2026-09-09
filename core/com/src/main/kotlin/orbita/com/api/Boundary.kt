@@ -239,9 +239,16 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
             служба,
             mapper,
         )
+        // Обмен (шип F): служба StrictDoc — по ORBITA_STRICTDOC_URL, снимки
+        // .sdoc — в томе файлов стенда рядом с базированиями документов.
+        val обмен = orbita.api.internal.ExchangeRoutes(
+            store,
+            orbita.exchange.api.ExchangeFactory.exchange(store, links, знания, mapper),
+            движок, документы, mapper,
+        )
         return orbita.api.internal.V2Router(
             store, links, движок, полки, знания, постановка, mapper, волна3, волна4,
-            документыМаршруты, знанияМаршруты, точки,
+            документыМаршруты, знанияМаршруты, точки, обмен,
         )
     }
 

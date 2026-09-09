@@ -148,8 +148,9 @@ def verification_matrix(reqs):
 
 # ---------- экспорт ----------
 # Только направление наружу. Обратное (`from_exchange`) убрано Шагом 16 §2.1:
-# ввод идёт настоящим ReqIF через службу обмена (ADR-023), и круговой обмен
-# проверяется на нём — tools/check_reqif_roundtrip.py, со сверкой по XSD OMG.
+# ввод идёт настоящим ReqIF через службу обмена (ADR-023, сторона разбора),
+# выгрузка — StrictDoc-каналом (ADR-064); круговой обмен и XSD OMG —
+# tools/check_sdoc_roundtrip.py.
 # Второй формат ввода означал бы вторую семантику приёма.
 def to_exchange(reqs, links):
     return {'requirements': [{'id': r['id'], 'attributes': dict(r.get('attributes', {}))} for r in reqs],

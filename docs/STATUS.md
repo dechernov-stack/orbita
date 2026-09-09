@@ -203,4 +203,4 @@
 | `bash ci/checks.sh` | схемы, трассировка, 602 проверки эталонов, тесты ядра, типы клиента |
 | `./gradlew :core:flw:fullScaleCheck` | полный масштаб TZ-COM-004 против бюджета 300 с |
 | `node web/check-shell.mjs` | приёмка оболочки блока D: портфель → цикл → готовность → реестр, замер плотности ≥30 строк (стенд + затравка data/pilot) |
-| `python3 tools/check_reqif_roundtrip.py` | круговой обмен ReqIF + строгая XSD OMG |
+| `python3 tools/check_sdoc_roundtrip.py` | StrictDoc-канал: детерминизм, ReqIF + строгая XSD OMG, разбор обратно (собственный ReqIF снесён, ADR-064) |

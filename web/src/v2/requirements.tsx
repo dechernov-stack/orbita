@@ -73,6 +73,10 @@ export function Requirements({ project }: { project: string | null }) {
           <button type="button" className="v2-chip" aria-pressed={дерево === 'source'}
             title="дерево по источнику: откуда требование выведено"
             onClick={() => setДерево('source')}>по источнику</button>
+          <a className="v2-chip" href={api.sdocUrl(project ?? '')} target="_blank" rel="noreferrer"
+            title="StrictDoc: нужды · сервисы · требования с показателем по грамматике Орбиты (служба профиля strictdoc)">.sdoc</a>
+          <a className="v2-chip" href={api.reqifUrl(project ?? '')} target="_blank" rel="noreferrer"
+            title="ReqIF штатным экспортом StrictDoc из того же .sdoc">ReqIF</a>
         </div>
 
         {строки.length === 0 ? (

@@ -34,6 +34,8 @@ class V2Router(
     private val knowledgeRoutes: KnowledgeRoutes? = null,
     /** Точки (шип D): чек обзора, замечания, решения, переход фазы. */
     private val pointRoutes: PointRoutes? = null,
+    /** Обмен (шип F): StrictDoc, выгрузка знаний с отпечатком, пакет точки. */
+    private val exchangeRoutes: ExchangeRoutes? = null,
 ) {
 
     /**
@@ -66,4 +68,5 @@ class V2Router(
             ?: modelRoutes?.handle(method, path, query, body)
             ?: docRoutes?.handle(method, path, query, body)
             ?: knowledgeRoutes?.handle(method, path, query, body)
+            ?: exchangeRoutes?.handle(method, path, query, body)
 }

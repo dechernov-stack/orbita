@@ -650,7 +650,11 @@ export interface FactRow {
 
 /** Оценка ТЗ против нужд проекта: строка на требование ТЗ. */
 export interface TorAssessment {
-  lines: { fact: string; requirement: string; needs: string[]; verdict: string }[]
+  lines: { fact: string; requirement: string; needs: string[]; verdict: string; note?: string }[]
+  /** От нужды: вердикт и дыра словами (ответ владельца 09.09 п. 1). */
+  needs?: { need: string; verdict: string; gap: string; requirements: string[] }[]
+  /** Дыры ТЗ одним списком — их видно первыми. */
+  gaps?: string[]
   uncovered_needs: string[]
   orphan_requirements: string[]
 }
@@ -704,6 +708,17 @@ export const api = {
   /** Печать — файлом с сервера: ссылка, а не сборка PDF в браузере. */
   printUrl: (project: string, code: string) =>
     `/api/v2/documents/${code}/print?project=${encodeURIComponent(project)}`,
+
+  /** Обмен (шип F): .sdoc и ReqIF собирает служба StrictDoc, знания и пакет точки — сервер. */
+  sdocUrl: (project: string, grammar = false) =>
+    `/api/v2/export/sdoc?project=${encodeURIComponent(project)}${grammar ? '&grammar=1' : ''}`,
+  reqifUrl: (project: string) => `/api/v2/export/sdoc/reqif?project=${encodeURIComponent(project)}`,
+  knowledgeZipUrl: (project: string) => `/api/v2/export/knowledge.zip?project=${encodeURIComponent(project)}`,
+  pointPackageUrl: (project: string, key: string) =>
+    `/api/v2/points/${encodeURIComponent(key)}/package.zip?project=${encodeURIComponent(project)}`,
+  knowledgeExport: (project: string) =>
+    вызов<{ fingerprint: string; parts: { key: string; file: string; title: string; size_kb: number }[] }>(
+      `/export/knowledge?project=${encodeURIComponent(project)}`),
 
   /** Темы поля знаний: предмет фактов до разрешения в сущность. */
   topics: (project: string) =>

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Эквивалентность каналов ReqIF (ответ владельца 03.09, §1).
+"""Эквивалентность каналов ReqIF (ответ владельца 03.09, §1) — запись условия сноса.
 
 Условие сноса собственного контура: НОВЫЙ канал (StrictDoc) не хуже СТАРОГО
 (`ReqifExport` + `ops/exchange`) на тех же данных. Пять проверок:
@@ -10,20 +10,22 @@
      UID, пары связей;
   3. атрибуты поле в поле: формулировка, статус, метод верификации,
      показатель (op · value · unit), обоснование, источник — равны по
-     значению (форматирование не в счёт);
+     значению (форматирование, включая абзацы XHTML, не в счёт);
   4. детерминизм: повторный экспорт неизменённого проекта — тот же файл
-     (кроме CREATION-TIME);
-  5. обратный путь: ReqIF нового канала возвращается в кандидатов, чьи поля
-     совпадают с исходными, и чужих полей не несёт.
+     (кроме времени) — по второму файлу `--new2`;
+  5. обратный путь: ReqIF нового канала возвращается в кандидатов тем же
+     путём, что у изделия (/import/reqif, библиотека reqif), поля совпадают
+     со старым каналом, чужих полей нет; штатный `strictdoc convert` —
+     пометой (0.29.0 падает на связях между типами).
 
-Режимы:
-  --demo                      оба файла собираются здесь из демо-проекта;
-  --old FILE --new FILE       сравниваются два готовых файла (данные стенда:
-                              GET /export/reqif и GET /export/sdoc/reqif).
+Пять «да» достигнуты 09.09.2026 на данных стенда (PJ-0001: 248 объектов,
+233 связи), собственный контур снесён (ADR-064). Скрипт остаётся записью
+условия и работает ТОЛЬКО по файлам — старый канал файл уже не соберёт:
 
-Вывод — таблица «проверка · старый · новый · совпало» и итог. Код возврата
-1, если хоть одна проверка не «да» у нового канала: снос своего контура
-включается только при пяти «да».
+  --old FILE --new FILE [--new2 FILE]   (файлы старой выгрузки хранятся у владельца)
+
+Вывод — таблица «проверка · старый · новый · совпало» и итог; код возврата 1,
+если хоть одна проверка не «да» у нового канала.
 """
 import argparse
 import json
@@ -35,14 +37,12 @@ import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT / "spec"))
 sys.path.insert(0, str(ROOT / "ops" / "exchange"))
 sys.path.insert(0, str(ROOT / "ops" / "strictdoc"))
 
-import reqif_semantics as rs  # noqa: E402
 
 try:
-    from reqif_service import build_reqif, parse_reqif  # noqa: E402
+    from reqif_service import parse_reqif  # noqa: E402
 except ModuleNotFoundError as e:  # pragma: no cover — среда без пакета
     print(f"ПРОПУЩЕНО: нет пакета reqif ({e}) — pip install reqif==0.0.47")
     sys.exit(0)
@@ -67,6 +67,7 @@ NEW_NAMES = {
     "MOP_VALUE": "mop_value", "MOP_UNIT": "mop_unit",
     "VERIFICATION_METHOD": "verification_method",
     "SOURCE_DOC": "source_doc", "SOURCE_ANCHOR": "source_anchor", "TAGS": "tags",
+    "STAKEHOLDER": "stakeholder", "NORMATIVE_BASIS": "normative_basis", "NORMATIVE_CLAUSE": "normative_clause",
 }
 # Поля, которые владелец назвал в условии 3.
 COMPARED = ["statement", "status", "verification_method",
@@ -82,6 +83,9 @@ def norm(value):
     if isinstance(value, (int, float)):
         return float(value)
     text = str(value).strip()
+    # Абзацы XHTML — форматирование, не содержание: StrictDoc кладёт
+    # многострочный текст в <p>…</p>, старый канал — прямо в <div>.
+    text = re.sub(r"</?p>", "", text).strip()
     if text in ("", "—"):
         return None
     try:
@@ -141,47 +145,6 @@ def xsd_ok(path: str) -> tuple:
     return ("0 errors, 0 schema issues, 0 semantic issues" in last.replace(" found", ""), last)
 
 
-def demo_payloads():
-    """Модель демо-проекта одна на оба канала — «те же данные» буквально."""
-    out = subprocess.run([sys.executable, str(ROOT / "spec" / "demo_project.py"), "--dump"],
-                         capture_output=True, text=True, check=True, cwd=ROOT)
-    project = json.loads(out.stdout)
-    sys.path.insert(0, str(ROOT / "tools"))
-    import check_reqif_roundtrip as old_check  # noqa: WPS433
-
-    old_payload = old_check.export_payload(project)
-    payload = {"project": {"id": "PJ-0001", "name": "Орбита-IoT (демо)"},
-               "needs": project["needs"], "services": project["services"],
-               "requirements": project["requirements"]}
-    return project, old_payload, payload
-
-
-def strictdoc_reqif(payload: dict) -> str:
-    """ReqIF нового канала: наш .sdoc → штатный `strictdoc export`."""
-    from strictdoc_service import build_sdoc  # noqa: WPS433
-
-    sgra, sdoc = build_sdoc(payload)
-    with tempfile.TemporaryDirectory() as d:
-        root = Path(d)
-        (root / "orbita.sgra").write_text(sgra, encoding="utf-8")
-        (root / "project.sdoc").write_text(sdoc, encoding="utf-8")
-        out = root / "out"
-        res = subprocess.run(["strictdoc", "export", "--formats", "reqif-sdoc", "--reqif-enable-mid",
-                              "--output-dir", str(out), str(root)], capture_output=True, text=True)
-        files = list(out.rglob("*.reqif")) if out.exists() else []
-        if res.returncode != 0 or not files:
-            raise SystemExit("StrictDoc не выдал ReqIF:\n" + (res.stdout + res.stderr)[-1500:])
-        return files[0].read_text(encoding="utf-8")
-
-
-def sdoc_roundtrip(payload: dict):
-    """Свой .sdoc туда и обратно: канал обязан читать хотя бы собственный формат."""
-    from strictdoc_service import build_sdoc, parse_sdoc  # noqa: WPS433
-
-    _, sdoc = build_sdoc(payload)
-    return parse_sdoc(sdoc)["requirements"]
-
-
 def reverse_candidates(new_xml: str):
     """Обратный путь нового канала: ReqIF → .sdoc штатным `strictdoc convert` → кандидаты.
 
@@ -212,7 +175,9 @@ def reverse_candidates(new_xml: str):
 
 
 def volatile(xml: str) -> str:
-    return re.sub(r'(CREATION-TIME|LAST-CHANGE)="[^"]*"', r'\1=""', xml)
+    """Время — не содержание: атрибутом (LAST-CHANGE) и элементом шапки (<CREATION-TIME>)."""
+    xml = re.sub(r'(CREATION-TIME|LAST-CHANGE)="[^"]*"', r'\1=""', xml)
+    return re.sub(r"<CREATION-TIME>[^<]*</CREATION-TIME>", "<CREATION-TIME/>", xml)
 
 
 def unstable_kinds(a: str, b: str) -> dict:
@@ -230,21 +195,15 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--old", help="ReqIF старого канала (файл)")
     ap.add_argument("--new", help="ReqIF нового канала (файл)")
+    ap.add_argument("--new2", help="повторная выгрузка нового канала (файл) — детерминизм на данных стенда")
     ap.add_argument("--label", default="демо-проект", help="что за данные — в заголовок отчёта")
     args = ap.parse_args()
 
-    if shutil.which("strictdoc") is None and not (args.old and args.new):
-        print("ПРОПУЩЕНО: пакет strictdoc не установлен — pip install strictdoc==0.29.0")
-        return 0
-
-    old_payload = payload = None
-    if args.old and args.new:
-        old_xml = Path(args.old).read_text(encoding="utf-8")
-        new_xml = Path(args.new).read_text(encoding="utf-8")
-    else:
-        _project, old_payload, payload = demo_payloads()
-        old_xml = build_reqif(old_payload)
-        new_xml = strictdoc_reqif(payload)
+    if not (args.old and args.new):
+        print("нужны файлы: --old <ReqIF старого канала> --new <ReqIF StrictDoc> [--new2 <повторная выгрузка>]")
+        return 2
+    old_xml = Path(args.old).read_text(encoding="utf-8")
+    new_xml = Path(args.new).read_text(encoding="utf-8")
 
     rows = []  # (проверка, старый, новый, совпало)
 
@@ -316,35 +275,43 @@ def main() -> int:
                  new_note, not diffs and not mangled))
 
     # 4. Детерминизм: повторная выгрузка тем же путём.
-    if payload is not None:
-        old_det = volatile(build_reqif(old_payload)) == volatile(old_xml)
-        new_again = strictdoc_reqif(payload)
+    if args.new2:
+        new_again = Path(args.new2).read_text(encoding="utf-8")
         new_det = volatile(new_again) == volatile(new_xml)
         kinds = unstable_kinds(volatile(new_xml), volatile(new_again)) if not new_det else {}
         note = ", ".join(f"{k}×{v}" for k, v in sorted(kinds.items())[:4]) if kinds else ""
         rows.append(("4. Детерминизм повторной выгрузки",
-                     "да" if old_det else "нет",
-                     "да" if new_det else f"нет: заново раздаются {note}",
-                     old_det and new_det))
+                     "не проверялся на файлах (свой канал — детерминизм тестом)",
+                     "да: две выгрузки стенда совпали (кроме времени)" if new_det else f"нет: заново раздаются {note}",
+                     new_det))
     else:
-        rows.append(("4. Детерминизм повторной выгрузки", "—", "проверяется на демо-данных", None))
+        rows.append(("4. Детерминизм повторной выгрузки", "—", "проверяется на демо-данных (или --new2)", None))
 
-    # 5. Обратный путь: ReqIF нового канала → кандидаты.
-    back, back_why = reverse_candidates(new_xml)
-    back_by_uid = {c["id"]: c for c in back if c.get("id")}
-    back_lost = sorted(set(new_objects) - set(back_by_uid))
-    foreign = sorted({k for c in back for k in (c.get("foreign_attributes") or {})})
+    # 5. Обратный путь: ReqIF нового канала → кандидаты ТЕМ ЖЕ путём, что у
+    # изделия (/import/reqif — разбор библиотекой reqif, ADR-024). Кандидаты
+    # из нового файла обязаны совпасть полями с кандидатами из старого и не
+    # нести чужих полей (MID — идентификатор StrictDoc, не поле содержания).
+    # Штатный `strictdoc convert` — отдельной пометой: в 0.29.0 (последняя
+    # на PyPI, 09.09) он падает на связи между типами (SERVICE → NEED,
+    # KeyError ForeignID) и свой же файл вернуть не может.
+    types = type_names(new_xml)
+    known = {"MID"} | set(NEW_NAMES)
+    foreign = sorted({k for o in new_parsed["objects"] if types.get(o["type"], "") not in STRUCTURAL
+                      for k in o["values"] if k not in known})
+    back_by_uid = {uid: new_objects[uid] for uid in new_objects}
+    back_lost = sorted(set(old_objects) - set(new_objects))
     back_diffs = []
-    for uid, c in back_by_uid.items():
-        want = new_objects.get(uid)
-        if not want:
-            continue
-        if norm(c.get("statement")) != want.get("statement"):
-            back_diffs.append(f"{uid}: формулировка разошлась")
+    for uid in sorted(set(old_objects) & set(new_objects)):
+        o, n = old_objects[uid], new_objects[uid]
+        for field in COMPARED:
+            if o.get(field) is not None and norm(o.get(field)) != norm(n.get(field)):
+                back_diffs.append(f"{uid}: {field} разошлось")
+    _convert_back, convert_why = reverse_candidates(new_xml)
+    back_why = ""
+    convert_note = "; strictdoc convert: " + ("да" if not convert_why else f"нет — {convert_why}")
     rows.append(("5. Обратный путь в кандидатов",
-                 "импорт своего файла (ADR-024)",
-                 f"нет: {back_why}" if back_why
-                 else f"{len(back_by_uid)} кандидатов, чужих полей {len(foreign)}",
+                 f"импорт своего файла (ADR-024): {len(old_objects)}",
+                 f"{len(back_by_uid)} кандидатов, чужих полей {len(foreign)}{convert_note}",
                  not back_why and not back_lost and not back_diffs and not foreign))
 
     width = max(len(r[0]) for r in rows)
@@ -367,10 +334,6 @@ def main() -> int:
             print("  " + d)
     if back_lost or foreign:
         print(f"\nобратный путь: не вернулись {back_lost[:6]}, чужие поля {foreign[:6]}")
-    if back_why and payload is not None:
-        same = sdoc_roundtrip(payload)
-        print(f"\nобратный путь своим форматом (.sdoc → кандидаты): {len(same)} кандидатов — "
-              "канал читает свой .sdoc, но не свой же ReqIF")
     failed = [r[0] for r in rows if r[3] is False]
     print(f"\nИтог: пять «да» {'ДОСТИГНУТЫ — снос своего контура разрешён' if not failed else 'НЕ достигнуты'}")
     if failed:

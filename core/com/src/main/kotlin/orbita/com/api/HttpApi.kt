@@ -2442,26 +2442,6 @@ class HttpApi(private val boundary: Boundary) {
                 respond(ex, 200, out)
             }
 
-            method == "GET" && path == "/export/reqif/check" -> {
-                val model = DocumentModel.model(boundary, project)
-                val flattened = model.path("requirements")
-                    .map { orbita.out.toSpecObject(it) }
-                    .filter { orbita.out.flattenedAsString(it).isNotEmpty() }
-                    .map { it.identifier }
-                val out = mapper.createObjectNode()
-                val issues = out.putArray("mapping_issues")
-                orbita.out.mappingIssues().forEach(issues::add)
-                val flat = out.putArray("flattened")
-                flattened.forEach(flat::add)
-                val dts = out.putObject("datatypes")
-                orbita.out.datatypeDefinitions().forEach { (name, d) ->
-                    val n = dts.putObject(name)
-                    n.put("type", d.type)
-                    d.values?.let { vs -> n.putArray("values").also { a -> vs.forEach(a::add) } }
-                }
-                respond(ex, 200, out)
-            }
-
             // Выгрузка в форматы обмена помимо ReqIF (TZ-OUT-005: «в ReqIF и CSV»).
             // reqif-lite JSON — направление только наружу (Шаг 16 §2.1): ввод идёт
             // настоящим ReqIF через службу обмена.
@@ -2496,35 +2476,31 @@ class HttpApi(private val boundary: Boundary) {
                 }
             }
 
+            // ReqIF — штатным экспортом StrictDoc из .sdoc по грамматике Орбиты
+            // (ADR-064): собственный конвертер снесён 09.09.2026 по пяти «да»
+            // сверки каналов на данных стенда. Прежний адрес сохранён — клиенты
+            // и скрипты, знавшие /export/reqif, получают тот же файл, что
+            // /export/sdoc/reqif. Дата выгрузки — от StrictDoc; воспроизводимость
+            // держится устойчивыми идентификаторами (ops/strictdoc).
             method == "GET" && path == "/export/reqif" -> {
-                val exchangeUrl = System.getenv("ORBITA_EXCHANGE_URL")
-                if (exchangeUrl.isNullOrBlank()) {
-                    // Отказ, а не заглушка: файл без службы не собрать, и молчаливый
-                    // пустой ответ выглядел бы работающим экспортом
-                    respond(
-                        ex, 503,
-                        mapper.createObjectNode()
-                            .put("error", "служба обмена не настроена: задайте ORBITA_EXCHANGE_URL")
-                            .put("adr", "ADR-023"),
-                    )
-                } else {
-                    val model = DocumentModel.model(boundary, project)
-                    val links = (boundary.links.list("trace", project) + boundary.links.list("derive", project))
-                        .map { orbita.out.ExchangeLink(it.fromId, it.toId, it.kind) }
-                    val exportedAt = query(ex)["exported_at"]
-                        ?: java.time.OffsetDateTime.now(java.time.ZoneOffset.UTC)
-                            .format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME)
-                    val payload = orbita.out.ReqifExport.payload(model, links, exportedAt, mapper)
-                    val xml = postToExchange("$exchangeUrl/reqif/export", payload.toString())
-                    ex.responseHeaders.add("Content-Type", "application/xml; charset=utf-8")
-                    ex.responseHeaders.add(
-                        "Content-Disposition",
-                        "attachment; filename=\"orbita-requirements.reqif\"",
-                    )
-                    val bytes = xml.toByteArray()
-                    ex.sendResponseHeaders(200, bytes.size.toLong())
-                    ex.responseBody.use { it.write(bytes) }
+                val sdocUrl = System.getenv("ORBITA_STRICTDOC_URL")
+                if (sdocUrl.isNullOrBlank()) {
+                    return respond(ex, 503, mapper.createObjectNode().put("error", "служба StrictDoc не настроена: задайте ORBITA_STRICTDOC_URL").put("adr", "ADR-049"))
                 }
+                val p = requireProject(project)
+                val req = mapper.createObjectNode()
+                req.set<ObjectNode>("payload", sdocPayload(p))
+                req.putArray("formats").add("reqif-sdoc")
+                val r = mapper.readTree(postToExchange("$sdocUrl/sdoc/export", req.toString()))
+                val xml = r.path("files").properties().firstOrNull { it.key.endsWith(".reqif") }?.value?.asText("")
+                if (!r.path("ok").asBoolean(false) || xml.isNullOrBlank()) {
+                    return respond(ex, 502, mapper.createObjectNode().put("error", "StrictDoc не выдал ReqIF: " + r.path("stderr").asText("").take(400)))
+                }
+                ex.responseHeaders.add("Content-Type", "application/xml; charset=utf-8")
+                ex.responseHeaders.add("Content-Disposition", "attachment; filename=\"orbita-requirements.reqif\"")
+                val bytes = xml.toByteArray()
+                ex.sendResponseHeaders(200, bytes.size.toLong())
+                ex.responseBody.use { it.write(bytes) }
             }
 
             // Циклограмма из географических масок (TZ-KA-009, Р4/ADR-004):

@@ -20,6 +20,7 @@ import orbita.kernel.api.LinkRegistry
 import orbita.kernel.api.Provenance
 import orbita.knowledge.api.TorAssessment
 import orbita.knowledge.api.TorLine
+import orbita.knowledge.api.TorNeed
 
 internal class IntakeModes(
     private val store: EntityStore,
@@ -104,7 +105,14 @@ internal class IntakeModes(
         return помечено
     }
 
-    /** Оценка ТЗ из ответа модели: номера фактов → коды; нужды — кодами проекта. */
+    /**
+     * Оценка ТЗ из ответа модели: номера фактов → коды; нужды — кодами
+     * проекта. Строки — от требования; блок `needs` — ОТ НУЖДЫ, с дырой
+     * словами. Что можно посчитать по данным, считается по данным: нужда
+     * без единой строки — непокрыта, что бы ни сказала модель; нужда, у
+     * которой строки есть, берёт вердикт и дыру у модели, а без них — по
+     * лучшей строке.
+     */
     fun assessment(корень: JsonNode, поНомеру: Map<Int, String>, область: Area): ObjectNode? {
         val узел = корень.path("assessment")
         if (!узел.isObject) return null
@@ -117,15 +125,50 @@ internal class IntakeModes(
             с.put("fact", код)
             с.put("requirement", л.path("requirement").asText(""))
             с.put("verdict", л.path("verdict").asText("none"))
+            с.put("note", л.path("note").asText(""))
             val адреса = с.putArray("needs")
             л.path("needs").forEach { н -> if (н.asText() in нужды) адреса.add(н.asText()) }
         }
-        val покрытые = строки.flatMap { it.path("needs").map { н -> н.asText() } }.toSet()
-        val непокрытые = итог.putArray("uncovered_needs")
-        // Непокрытое считается ПО ДАННЫМ: список модели — подсказка, истина — реестр нужд.
-        нужды.sorted().filter { it !in покрытые }.forEach { непокрытые.add(it) }
         val сироты = итог.putArray("orphan_requirements")
         строки.filter { it.path("needs").isEmpty }.forEach { сироты.add(it.path("fact").asText()) }
+
+        // От нужды: вердикт и дыра модели — подсказка; наличие строк — истина.
+        val сказаноМоделью = узел.path("needs").filter { it.path("need").asText() in нужды }
+            .associateBy { it.path("need").asText() }
+        val поНужде = итог.putArray("needs")
+        val непокрытые = итог.putArray("uncovered_needs")
+        val дыры = итог.putArray("gaps")
+        нужды.sorted().forEach { код ->
+            val свои = строки.filter { л -> л.path("needs").any { it.asText() == код } }
+            val лучшая = when {
+                свои.any { it.path("verdict").asText() == "covers" } -> "covered"
+                свои.isNotEmpty() -> "partial"
+                else -> "uncovered"
+            }
+            val модель = сказаноМоделью[код]
+            val вердикт = when {
+                свои.isEmpty() -> "uncovered"
+                модель == null -> лучшая
+                модель.path("verdict").asText() in setOf("covered", "partial") -> модель.path("verdict").asText()
+                else -> лучшая
+            }
+            val дыра = модель?.path("gap")?.asText("")?.trim().orEmpty().ifBlank {
+                when (вердикт) {
+                    "uncovered" -> "ни одно требование ТЗ не ведёт к этой нужде"
+                    "partial" -> свои.mapNotNull { it.path("note").asText("").ifBlank { null } }.distinct().joinToString("; ")
+                        .ifBlank { "требования ТЗ касаются нужды частично — спецификации нет" }
+                    else -> ""
+                }
+            }
+            val н = поНужде.addObject().put("need", код).put("verdict", вердикт).put("gap", дыра)
+            н.putArray("requirements").also { а -> свои.forEach { а.add(it.path("fact").asText()) } }
+            if (вердикт == "uncovered") непокрытые.add(код)
+            if (вердикт != "covered") дыры.add("$код — $дыра")
+        }
+        строки.filter { it.path("needs").isEmpty }.forEach { л ->
+            val почему = л.path("note").asText("").ifBlank { "требование ТЗ без нужды проекта" }
+            дыры.add("${л.path("fact").asText()} — $почему")
+        }
         return итог
     }
 
@@ -133,19 +176,24 @@ internal class IntakeModes(
         if (узел == null || !узел.isObject) return null
         return TorAssessment(
             lines = узел.path("lines").map {
-                TorLine(it.path("fact").asText(), it.path("requirement").asText(""), it.path("needs").map { н -> н.asText() }, it.path("verdict").asText("none"))
+                TorLine(
+                    it.path("fact").asText(), it.path("requirement").asText(""),
+                    it.path("needs").map { н -> н.asText() }, it.path("verdict").asText("none"),
+                    it.path("note").asText(""),
+                )
             },
             uncoveredNeeds = узел.path("uncovered_needs").map { it.asText() },
             orphanRequirements = узел.path("orphan_requirements").map { it.asText() },
+            needs = узел.path("needs").map {
+                TorNeed(
+                    it.path("need").asText(), it.path("verdict").asText("uncovered"), it.path("gap").asText(""),
+                    it.path("requirements").map { р -> р.asText() },
+                )
+            },
+            gaps = узел.path("gaps").map { it.asText() },
         )
     }
 
-    /**
-     * Действия плана по ТИПУ входного — считаются по данным, не моделью:
-     * ТЗ — RFA заказчику на непокрытые нужды и вопрос по требованиям без
-     * нужды; даташит — параметры в анкету узла, сверка с рамками Р,
-     * запрос недостающих полей поставщику, кандидат узла по заданию.
-     */
     fun typeActions(
         область: Area,
         карточка: Entity,
@@ -162,25 +210,36 @@ internal class IntakeModes(
 
     private fun torActions(область: Area, оценка: JsonNode?, действия: ArrayNode) {
         if (оценка == null) return
-        оценка.path("uncovered_needs").forEach { код ->
-            val нужда = store.byCode(область, код.asText()) ?: return@forEach
-            val формулировка = нужда.doc.path("statement").asText(код.asText())
+        val строки = оценка.path("lines").associateBy { it.path("fact").asText() }
+        // От нужды: непокрытая и частично покрытая — обе RFA заказчику, с
+        // дырой словами; разница — в тексте, не в наличии запроса.
+        оценка.path("needs").filter { it.path("verdict").asText() != "covered" }.forEach { н ->
+            val код = н.path("need").asText()
+            val нужда = store.byCode(область, код) ?: return@forEach
+            val формулировка = нужда.doc.path("statement").asText(код)
+            val дыра = н.path("gap").asText("")
+            val частично = н.path("verdict").asText() == "partial"
             val д = действия.addObject()
             д.put("kind", "request_data").put("target_kind", "finding").put("scene", "3")
-            д.put("title", "RFA заказчику: нужда ${код.asText()} не покрыта ТЗ")
-            д.put("preview", "появится запрос действия (RFA) заказчику с возвратом в сцену 3: «$формулировка»")
+            д.put("title", if (частично) "RFA заказчику: нужда $код покрыта ТЗ частично" else "RFA заказчику: нужда $код не покрыта ТЗ")
+            д.put("preview", "появится запрос действия (RFA) заказчику с возвратом в сцену 3: «$формулировка» — $дыра")
             д.putObject("payload")
-                .put("text", "RFA заказчику: нужда ${код.asText()} «$формулировка» не покрыта ни одним требованием ТЗ")
+                .put(
+                    "text",
+                    if (частично) "RFA заказчику: нужда $код «$формулировка» покрыта ТЗ частично — $дыра"
+                    else "RFA заказчику: нужда $код «$формулировка» не покрыта ни одним требованием ТЗ — $дыра",
+                )
                 .put("returns_to_scene", "3").put("gate", "internal_review").put("kind", "rfa").put("addressee", "заказчик")
-            д.putArray("facts")
+            д.putArray("facts").also { а -> н.path("requirements").forEach { а.add(it.asText()) } }
         }
         оценка.path("orphan_requirements").forEach { код ->
+            val почему = строки[код.asText()]?.path("note")?.asText("").orEmpty()
             val д = действия.addObject()
             д.put("kind", "flag_conflict").put("target_kind", "finding").put("scene", "8")
             д.put("title", "требование ТЗ ${код.asText()} без нужды")
             д.put("preview", "появится расхождение (RID) с возвратом в сцену 8: требованию ТЗ нет нужды — завести нужду или спросить заказчика")
             д.putObject("payload")
-                .put("text", "требование ТЗ ${код.asText()} не ведёт ни к одной нужде проекта")
+                .put("text", "требование ТЗ ${код.asText()} не ведёт ни к одной нужде проекта" + (if (почему.isBlank()) "" else " — $почему"))
                 .put("returns_to_scene", "8").put("gate", "internal_review").put("kind", "rid").put("addressee", "заказчик")
             д.putArray("facts").add(код.asText())
         }

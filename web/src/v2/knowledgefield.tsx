@@ -177,6 +177,10 @@ export function KnowledgeField({ project }: { project: string | null }) {
           onClick={() => { setРукой(!рукой); setВход(false) }}>
           Руками
         </button>
+        <a className="v2-chip" href={api.knowledgeZipUrl(project ?? '')} target="_blank" rel="noreferrer"
+          title="пакет знаний внешнему контуру: MD-файлы с отпечатком в шапке — факты принятые · допущенные · замеченные с якорями">
+          Выгрузка знаний
+        </a>
       </h3>
 
       {вход && (
@@ -202,8 +206,33 @@ export function KnowledgeField({ project }: { project: string | null }) {
           </div>
           {план.assessment && (
             <div className="v2-scroll">
+              {(план.assessment.gaps?.length ?? 0) > 0 && (
+                <div className="v2-empty__why" data-why="почему-нельзя">
+                  Дыры ТЗ против нужд — {план.assessment.gaps!.length}:
+                  <ul className="v2-list">
+                    {план.assessment.gaps!.map((д) => <li key={д}>{д}</li>)}
+                  </ul>
+                </div>
+              )}
+              {(план.assessment.needs?.length ?? 0) > 0 && (
+                <table className="v2-tab2">
+                  <thead><tr><th>Нужда</th><th>Вердикт</th><th>Чего в ТЗ нет</th><th>Требования ТЗ</th></tr></thead>
+                  <tbody>
+                    {план.assessment.needs!.map((н) => (
+                      <tr key={н.need}>
+                        <td className="v2-mono">{н.need}</td>
+                        <td className={н.verdict === 'uncovered' ? 'v2-bad' : н.verdict === 'partial' ? 'v2-warn' : 'v2-ok'}>
+                          {н.verdict === 'covered' ? 'покрыта' : н.verdict === 'partial' ? 'частично' : 'не покрыта'}
+                        </td>
+                        <td>{н.gap || '—'}</td>
+                        <td className="v2-mono">{н.requirements.join(', ') || '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
               <table className="v2-tab2">
-                <thead><tr><th>Требование ТЗ</th><th>Покрывает нужды</th><th>Вердикт</th></tr></thead>
+                <thead><tr><th>Требование ТЗ</th><th>Покрывает нужды</th><th>Вердикт</th><th>Почему</th></tr></thead>
                 <tbody>
                   {план.assessment.lines.map((л) => (
                     <tr key={л.fact}>
@@ -212,6 +241,7 @@ export function KnowledgeField({ project }: { project: string | null }) {
                       <td className={л.verdict === 'none' ? 'v2-bad' : л.verdict === 'partial' ? 'v2-warn' : 'v2-ok'}>
                         {л.verdict === 'covers' ? 'покрывает' : л.verdict === 'partial' ? 'частично' : 'без нужды'}
                       </td>
+                      <td>{л.note || '—'}</td>
                     </tr>
                   ))}
                 </tbody>

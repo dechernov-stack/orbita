@@ -34,9 +34,10 @@ BUILDER_STATE_HARD_GB="${BUILDER_STATE_HARD_GB:-6}"
 # выкатом, а следующая сборка тянула базовые слои по медленному каналу
 # (наблюдение: два подряд выката по 25+ минут вместо трёх).
 DISK_FREE_MIN_GB="${DISK_FREE_MIN_GB:-5}"
-# Диск хоста: ниже HARD выкат отказывает, ниже WARN — предупреждает (08.09 Docker упал на нуле).
-HOST_FREE_HARD_GB="${HOST_FREE_HARD_GB:-4}"
-HOST_FREE_WARN_GB="${HOST_FREE_WARN_GB:-12}"
+# Диск хоста: ниже HARD выкат ОТКАЗЫВАЕТ (решение владельца 09.09: не предупреждать,
+# а отказывать при < 15 ГБ — Docker Desktop упал на нуле 08.09, и лечь ему больше нельзя).
+HOST_FREE_HARD_GB="${HOST_FREE_HARD_GB:-15}"
+HOST_FREE_WARN_GB="${HOST_FREE_WARN_GB:-25}"
 
 ensure_network() {
   docker network inspect "$NETWORK" > /dev/null 2>&1 \

@@ -87,13 +87,25 @@ class KnowledgeModesTest {
           "facts":[
             {"kind":"obligation","subject":"ТЗ п. 4.1","predicate":"приём телеметрии с интервалом не более 30 мин","value":"требование","source":{"anchor":"${я[0]}"},"source_mark":"И"},
             {"kind":"obligation","subject":"ТЗ п. 4.2","predicate":"срок службы не менее 5 лет","value":"требование","source":{"anchor":"${я[1]}"},"source_mark":"И"}],
-          "assessment":{"lines":[{"fact":0,"requirement":"п. 4.1","needs":["ND-0001"],"verdict":"covers"},{"fact":1,"requirement":"п. 4.2","needs":[],"verdict":"none"}]}}"""
+          "assessment":{"lines":[{"fact":0,"requirement":"п. 4.1","needs":["ND-0001"],"verdict":"partial","note":"интервал есть, а покрытия Арктики (широты выше 70°) требование не задаёт"},
+                               {"fact":1,"requirement":"п. 4.2","needs":[],"verdict":"none","note":"срок службы — ни к одной нужде не ведёт"}],
+                        "needs":[{"need":"ND-0001","verdict":"partial","gap":"нет требования на покрытие Арктики"},
+                                 {"need":"ND-0002","verdict":"covered","gap":""}]}}"""
         val итог = intake.putFacts(проект, материал, json, "Иванов И.", intent = "это ТЗ — оцени против нужд")
         val задание = intake.task(проект, assertNotNull(итог.task))
         val оценка = assertNotNull(задание.assessment)
-        assertEquals(listOf("ND-0002"), оценка.uncoveredNeeds, "непокрытое считается по реестру нужд")
+        assertEquals(listOf("ND-0002"), оценка.uncoveredNeeds, "непокрытое считается по реестру нужд: модель сказала «covered», строк нет — не покрыта")
         assertEquals(1, оценка.orphanRequirements.size, "п. 4.2 — требование без нужды")
+        // От нужды — с дырой словами: «Арктика без требования» видна как gap, а не как счётчик.
+        val арктика = оценка.needs.first { it.need == "ND-0001" }
+        assertEquals("partial", арктика.verdict)
+        assertTrue("Арктик" in арктика.gap, арктика.gap)
+        assertTrue(оценка.gaps.any { it.startsWith("ND-0001") && "Арктик" in it }, оценка.gaps.toString())
+        assertTrue(оценка.gaps.any { it.startsWith("ND-0002") }, "непокрытая нужда — тоже дыра: ${оценка.gaps}")
+        assertTrue(оценка.gaps.any { it.startsWith("F-") && "срок службы" in it }, "сирота с причиной: ${оценка.gaps}")
+        assertEquals("интервал есть, а покрытия Арктики (широты выше 70°) требование не задаёт", оценка.lines.first().note)
         assertTrue(задание.plan.any { it.kind == "request_data" && it.targetKind == "finding" && "ND-0002" in it.title }, задание.plan.map { it.title }.toString())
+        assertTrue(задание.plan.any { it.kind == "request_data" && "ND-0001" in it.title && "частично" in it.title }, "частично покрытая нужда — RFA с дырой: ${задание.plan.map { it.title }}")
         intake.accept(проект, задание.id, задание.plan.indices.toList(), "Чернов Д.")
         val rfa = store.list(область, "finding").firstOrNull { it.doc.path("kind").asText() == "rfa" }
         assertNotNull(rfa, "RFA заказчику записан замечанием")

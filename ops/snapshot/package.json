@@ -1,0 +1,8 @@
+{
+  "name": "orbita-snapshot",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Снимок страницы и печать HTML в PDF на Playwright/Chromium (Apache-2.0)",
+  "license": "Apache-2.0",
+  "dependencies": { "playwright": "1.63.0" }
+}

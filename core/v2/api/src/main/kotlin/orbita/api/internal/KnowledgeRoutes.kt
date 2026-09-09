@@ -206,9 +206,16 @@ class KnowledgeRoutes(
             val оценка = узел.putObject("assessment")
             val строки = оценка.putArray("lines")
             о.lines.forEach { л ->
-                val с = строки.addObject().put("fact", л.fact).put("requirement", л.requirement).put("verdict", л.verdict)
+                val с = строки.addObject().put("fact", л.fact).put("requirement", л.requirement).put("verdict", л.verdict).put("note", л.note)
                 с.putArray("needs").also { а -> л.needs.forEach { а.add(it) } }
             }
+            // От нужды — с дырой словами (ответ владельца 09.09 п. 1).
+            val нужды = оценка.putArray("needs")
+            о.needs.forEach { н ->
+                val с = нужды.addObject().put("need", н.need).put("verdict", н.verdict).put("gap", н.gap)
+                с.putArray("requirements").also { а -> н.requirements.forEach { а.add(it) } }
+            }
+            оценка.putArray("gaps").also { а -> о.gaps.forEach { а.add(it) } }
             оценка.putArray("uncovered_needs").also { а -> о.uncoveredNeeds.forEach { а.add(it) } }
             оценка.putArray("orphan_requirements").also { а -> о.orphanRequirements.forEach { а.add(it) } }
         }

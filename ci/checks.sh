@@ -50,18 +50,14 @@ echo "== один сериализатор на вид ==" ; python3 tools/valid
 # Справочник единиц (решение ранга ADR): unit-строки ∈ справочнику
 echo "== единицы =="          ; python3 tools/validate_units.py && python3 tools/validate_units.py --selftest
 
-# Круговой обмен ReqIF и сверка с XSD OMG (шаг 11.2, ADR-023). Требует пакета
-# reqif==0.0.47 — CI его ставит. Локально без пакета пропуск объявляется вслух.
+# StrictDoc-канал (ADR-049, ADR-064): детерминизм и круговой обмен. Собственный
+# ReqIF снесён 09.09.2026 по пяти «да» сверки каналов на данных стенда
+# (tools/check_reqif_equivalence.py --old --new --new2 — файлами, запись в
+# docs/tz/v2/отчёты/ШИП-F-ОТЧЁТ.md). Требует пакета strictdoc — CI его ставит.
 if python3 -c 'import strictdoc' 2>/dev/null; then
   echo "== StrictDoc-канал: детерминизм и круговой обмен =="; python3 tools/check_sdoc_roundtrip.py
-  echo "== сверка каналов ReqIF (условие сноса своего контура) =="; python3 tools/check_reqif_equivalence.py || true
 else
   echo "== StrictDoc-канал == детерминизм и полнота проверены без пакета; экспорт/импорт ПРОПУЩЕНЫ (pip install strictdoc==0.29.0)"; python3 tools/check_sdoc_roundtrip.py
-fi
-if python3 -c 'import reqif' 2>/dev/null; then
-  echo "== ReqIF: круговой обмен и XSD OMG =="; python3 tools/check_reqif_roundtrip.py
-else
-  echo "== ReqIF: круговой обмен == ПРОПУЩЕНО: нет пакета reqif (pip install reqif==0.0.47)"
 fi
 
 echo "== дизайн v2: три размера, один акцент, тест действия =="

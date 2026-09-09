@@ -120,6 +120,12 @@ function PointCard({ project, точка, все, phase, onChanged }: {
         </span>
       </h3>
       {точка.decision?.note && <div className="v2-note-line">{точка.decision.note}</div>}
+      <div className="v2-note-line">
+        <a className="v2-link" href={api.pointPackageUrl(project, точка.key)} target="_blank" rel="noreferrer"
+          title="один архив: точка JSON, печать документов фазы, .sdoc с грамматикой, пакет знаний с отпечатком, манифест">
+          пакет точки (zip)
+        </a>
+      </div>
       {точка.legend_note && экспертиза?.positions.length ? <div className="v2-note-line">{точка.legend_note}</div> : null}
 
       <h4 className="v2-h4">Готовность</h4>

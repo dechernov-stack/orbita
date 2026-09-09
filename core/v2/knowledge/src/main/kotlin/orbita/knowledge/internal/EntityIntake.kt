@@ -278,7 +278,10 @@ class EntityIntake(
                     }
                 }
                 "finding" -> статусЗаписи = "open"
-                "component" -> {
+                // Узел и требование приходят со своим кодом: узел — из полки,
+                // требование — UID из импорта .sdoc (шип F): экспорт → импорт →
+                // экспорт совпадает только при сохранённом коде.
+                "component", "requirement" -> {
                     содержимое.path("code").asText("").takeIf { it.isNotBlank() }?.let { кодЗаписи = it }
                     содержимое.remove("code")
                 }

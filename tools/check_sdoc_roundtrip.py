@@ -3,13 +3,12 @@
 
 Тот же путь, что у изделия: требования демо-проекта → служба канала
 (ops/strictdoc/strictdoc_service.py) → .sgra + .sdoc → штатный
-`strictdoc export --formats=reqif-sdoc` → `reqif validate` (та же проверка,
-что у собственного ReqIF-канала, tools/check_reqif_roundtrip.py) → разбор
-документа обратно самим StrictDoc и сверка UID.
+`strictdoc export --formats=reqif-sdoc` → `reqif validate` (строгая сверка
+с XSD OMG) → разбор документа обратно самим StrictDoc и сверка UID.
 
-Условие владельца (03.09, п. 8): собственный ReqIF-конвертер сносится только
-после того, как этот путь проходит на тех же данных. Без пакета strictdoc
-проверка честно пропускается (как ReqIF без пакета reqif).
+Условие владельца (03.09, п. 8) выполнено 09.09.2026: пять «да» сверки каналов
+на данных стенда (ADR-064), собственный ReqIF-конвертер снесён — этот путь
+теперь единственный. Без пакета strictdoc проверка честно пропускается.
 Запуск: python3 tools/check_sdoc_roundtrip.py
 """
 import json

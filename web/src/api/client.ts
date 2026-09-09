@@ -711,11 +711,9 @@ export const api = {
   /** Узкие места из сохранённого прогона потоков (шаг 16 §2.4). */
   bottlenecks: (scenario: string) =>
     get<BottlenecksReport>(`/views/bottlenecks?scenario=${encodeURIComponent(scenario)}`),
-  /** Проверка отображения перед выгрузкой ReqIF (ADR-023). */
-  reqifCheck: () =>
-    get<{ mapping_issues: string[]; flattened: string[] }>('/export/reqif/check'),
   /** Адреса выгрузок (TZ-OUT-005): маршруты живут в слое API, не в разметке. */
   exportUrls: {
+    /** ADR-064: тот же файл, что sdocReqif — собственный конвертер снесён. */
     reqif: `${BASE}/export/reqif`,
     /** ADR-049: StrictDoc-канал — .sdoc по грамматике Орбиты и ReqIF от StrictDoc. */
     sdoc: `${BASE}/export/sdoc`,

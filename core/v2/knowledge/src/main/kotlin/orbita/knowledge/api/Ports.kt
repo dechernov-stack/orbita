@@ -59,8 +59,29 @@ data class Fact(
 /** Допущение (истина схем `fact.assumption`): кто, к какой точке, чем проверит, что будет, если неверно. */
 data class Assumption(val owner: String, val confirmBy: String, val validation: String, val impactIfWrong: String)
 
-/** Строка оценки ТЗ: требование ТЗ (факт) против нужд проекта. */
-data class TorLine(val fact: String, val requirement: String, val needs: List<String>, val verdict: String)
+/**
+ * Строка оценки ТЗ: требование ТЗ (факт) против нужд проекта.
+ *
+ * @property note почему вердикт такой: чего требованию не хватает до нужды
+ *   (нет спецификации, число без обоснования) либо почему нужды нет
+ */
+data class TorLine(
+    val fact: String,
+    val requirement: String,
+    val needs: List<String>,
+    val verdict: String,
+    val note: String = "",
+)
+
+/**
+ * Нужда против ТЗ — взгляд ОТ НУЖДЫ (ответ владельца 09.09 п. 1): какие
+ * требования её закрывают и чего в ТЗ нет. Дыра называется словами, а не
+ * выводится из счётчиков: «Арктика без требования» — это gap, не «0 строк».
+ *
+ * @property verdict covered · partial · uncovered
+ * @property gap чего в ТЗ нет для этой нужды; пусто у покрытой
+ */
+data class TorNeed(val need: String, val verdict: String, val gap: String, val requirements: List<String>)
 
 /** Оценка ТЗ против нужд: матрица «нужды × требования ТЗ» (шип E п. 1). */
 data class TorAssessment(
@@ -69,6 +90,14 @@ data class TorAssessment(
     val uncoveredNeeds: List<String>,
     /** Требования ТЗ без нужды — вопрос заказчику или новая нужда. */
     val orphanRequirements: List<String>,
+    /** Строка по каждой нужде проекта — с названной дырой. */
+    val needs: List<TorNeed> = emptyList(),
+    /**
+     * Дыры ТЗ одним списком — то, что должно быть видно первым: нужда без
+     * требования, нужда с требованием без спецификации, требование без
+     * нужды, число без привязки.
+     */
+    val gaps: List<String> = emptyList(),
 )
 
 /**

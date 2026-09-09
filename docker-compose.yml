@@ -41,16 +41,17 @@ services:
       retries: 12
     restart: unless-stopped
 
-  # Снимок страницы по ссылке в Chromium (шип E п. 4): страницы на JS без
-  # рендера пусты. Профиль — не по умолчанию: образ тяжёлый, а диск стенда
-  # тесен (08.09 Docker упал на нуле места). Поднять:
-  #   ORBITA_SNAPSHOT_URL=http://snapshot:3000 docker compose --profile snapshot up -d
+  # Снимок страницы по ссылке и печать HTML → PDF одним образом (шип E п. 4,
+  # ответ владельца 09.09): Playwright (Apache-2.0) со своим Chromium, как в
+  # образе DocPilot; browserless снят — SSPL не открытая лицензия. Профиль
+  # не по умолчанию: образ тяжёлый, а диск стенда тесен. Поднять:
+  #   ORBITA_SNAPSHOT_URL=http://snapshot:3000 docker compose --profile snapshot up -d --build snapshot
   snapshot:
-    image: ghcr.io/browserless/chromium:latest
+    build:
+      context: ops/snapshot
+      dockerfile: Dockerfile
+    image: orbita-snapshot:latest
     profiles: ["snapshot"]
-    environment:
-      TIMEOUT: "60000"
-      MAX_CONCURRENT_SESSIONS: "2"
     restart: unless-stopped
 
   # Разовое заполнение демо-проектом «Орбита-IoT». Отдельный образ: фикстуры

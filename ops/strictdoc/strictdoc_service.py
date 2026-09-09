@@ -8,6 +8,7 @@
 # текст побайтно (детерминизм — тестом).
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -88,7 +89,10 @@ MID_NS = uuid.UUID("6f2b9a4e-0c4d-5f7a-9b1e-3d5c7a9f1b2d")
 
 
 def mid_of(key: str) -> str:
-    return uuid.uuid5(MID_NS, f"orbita:{key}").hex
+    # Буква впереди: MID становится IDENTIFIER в ReqIF, а XSD OMG требует от
+    # xsd:ID начала с буквы — hex с цифрой впереди валидацию не проходил
+    # (сверка каналов на данных стенда, 09.09).
+    return "o" + uuid.uuid5(MID_NS, f"orbita:{key}").hex
 
 
 def _dedupe(pairs):
@@ -216,6 +220,52 @@ def parse_sdoc(sdoc: str, sgra: str | None = None) -> dict:
     return {"requirements": out}
 
 
+_ESCAPED = re.compile(r"\\u([0-9a-fA-F]{4})")
+
+
+def _plain_strings(reqif_xml: str) -> str:
+    """Значения ATTRIBUTE-VALUE-STRING обратно в текст: StrictDoc пишет их
+    через unicode_escape (\\u0410…), и любой инструмент, кроме него самого,
+    читал бы кириллицу как шестнадцатеричные коды."""
+    def _attr(m: re.Match) -> str:
+        return 'THE-VALUE="' + _ESCAPED.sub(lambda e: chr(int(e.group(1), 16)), m.group(1)) + '"'
+    return re.sub(r'THE-VALUE="([^"]*)"', _attr, reqif_xml)
+
+
+def _stable_ids(reqif_xml: str) -> str:
+    """Идентификаторы структуры StrictDoc раздаёт заново при каждом экспорте:
+    шапка REQ-IF-HEADER, типы объектов (<TAG>_<hex>), типы связей
+    (<Role>-<uuid>), сами связи (SPEC-RELATION-<uuid>) и узлы иерархии
+    (SPEC-IDENTIFIER-<uuid>). Содержания в них нет, а диф двух выгрузок
+    неизменённого проекта они превращали в «файл другой» (сверка каналов
+    09.09, проверка 4). Здесь они выводятся из того, что устойчиво: MID
+    документа, тег, роль, ссылки узлов. Повторная выгрузка — тот же файл."""
+    doc = re.search(r'<SPECIFICATION IDENTIFIER="([^"]+)"', reqif_xml)
+    seed = doc.group(1) if doc else "orbita"
+    out = re.sub(r"REQ-IF-HEADER-[0-9a-f-]{36}", f"REQ-IF-HEADER-{seed}", reqif_xml)
+    # типы объектов: один тег — один тип; второй тип того же тега получает номер
+    for tag in ("DOCUMENT", "SECTION", "TEXT", "NEED", "SERVICE", "REQUIREMENT"):
+        ids = sorted(set(re.findall(rf'"({tag}_[0-9a-f]{{32}})', out)))
+        for i, tid in enumerate(ids):
+            out = out.replace(tid, f"{tag}_{seed}" + (f"_{i}" if i else ""))
+    for role in ("Parent", *RELATION_ROLES):
+        out = re.sub(rf"{role}-[0-9a-f-]{{36}}", f"{role}-{seed}", out)
+
+    def _relation(m: re.Match) -> str:
+        block = m.group(0)
+        ref = re.search(r"<SPEC-RELATION-TYPE-REF>([^<]+)<", block)
+        src = re.search(r"<SOURCE>\s*<SPEC-OBJECT-REF>([^<]+)<", block)
+        tgt = re.search(r"<TARGET>\s*<SPEC-OBJECT-REF>([^<]+)<", block)
+        key = f"{ref.group(1) if ref else ''}|{src.group(1) if src else ''}|{tgt.group(1) if tgt else ''}"
+        return block.replace(m.group(1), "SPEC-RELATION-" + uuid.uuid5(MID_NS, key).hex, 1)
+    out = re.sub(r'<SPEC-RELATION IDENTIFIER="(SPEC-RELATION-[0-9a-f-]{36})".*?</SPEC-RELATION>', _relation, out, flags=re.S)
+
+    # узел иерархии держит ровно один объект — его ссылка и есть имя узла
+    out = re.sub(r'<SPEC-HIERARCHY IDENTIFIER="SPEC-IDENTIFIER-[0-9a-f-]{36}"([^>]*>\s*<OBJECT>\s*)<SPEC-OBJECT-REF>([^<]+)<',
+                 lambda m: f'<SPEC-HIERARCHY IDENTIFIER="SPEC-IDENTIFIER-{m.group(2)}"{m.group(1)}<SPEC-OBJECT-REF>{m.group(2)}<', out)
+    return out
+
+
 def export_formats(sgra: str, sdoc: str, formats: list[str]) -> dict:
     """Штатный strictdoc export: ReqIF/HTML/PDF/XLSX — самим StrictDoc."""
     with tempfile.TemporaryDirectory() as d:
@@ -223,14 +273,19 @@ def export_formats(sgra: str, sdoc: str, formats: list[str]) -> dict:
         (root / "orbita.sgra").write_text(sgra, encoding="utf-8")
         (root / "project.sdoc").write_text(sdoc, encoding="utf-8")
         out = root / "out"
+        # Многострочные поля — XHTML: строкой StrictDoc 0.29 пишет текст через
+        # unicode_escape, и кириллица уходила в ReqIF как \uXXXX (сверка
+        # каналов 09.09, проверка 3). Однострочные поля он экранирует так же —
+        # их разэкранирует _plain_strings ниже: ReqIF читают чужие
+        # инструменты, и текст в нём обязан быть текстом.
         cmd = ["strictdoc", "export", "--formats", ",".join(formats), "--reqif-enable-mid",
-               "--output-dir", str(out), str(root)]
+               "--reqif-multiline-is-xhtml", "--output-dir", str(out), str(root)]
         res = subprocess.run(cmd, capture_output=True, text=True)
         result = {"ok": res.returncode == 0, "stderr": res.stderr[-2000:], "files": {}}
         if out.exists():
             for f in out.rglob("*"):
                 if f.is_file() and f.suffix in {".reqif", ".xlsx", ".pdf"}:
-                    result["files"][f.name] = f.read_text(encoding="utf-8") if f.suffix == ".reqif" else None
+                    result["files"][f.name] = _stable_ids(_plain_strings(f.read_text(encoding="utf-8"))) if f.suffix == ".reqif" else None
         return result
 
 
