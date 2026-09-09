@@ -675,12 +675,16 @@ class Прогон:
         if self.знания:
             self.знания_2()
         if self.точки:
-            self.подготовка_к_точкам()
-            self.сцена_15_внутренний_обзор()
-            self.сцена_16_mcr()
-            self.сцена_17_замечания()
-            self.сцена_14_fad_fa()
-            self.сцена_18_kdp_a()
+            # после KDP-A лента — Phase A, точек Pre-A в ней нет: повторный прогон их не ищет
+            if вызов(self.base, "GET", f"/v2/phase?project={self.проект}").get("phase") == "Phase A":
+                self.пропущено.append("сцены 15–18: точки Pre-A пройдены — проект уже в Phase A")
+            else:
+                self.подготовка_к_точкам()
+                self.сцена_15_внутренний_обзор()
+                self.сцена_16_mcr()
+                self.сцена_17_замечания()
+                self.сцена_14_fad_fa()
+                self.сцена_18_kdp_a()
         if self.фазаA:
             self.phase_a()
 

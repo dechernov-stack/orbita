@@ -84,9 +84,16 @@ class TemplateProcessEngine(
 
     private val шаблоныПроектов = mutableMapOf<String, String>()
 
-    /** Шаблон фазы: открытый явно → записанный в проекте → Pre-A. */
+    /**
+     * Шаблон фазы: записанный в проекте → открытый явно → Pre-A. Записанный
+     * первее: движок живёт долго, а открытие при заведении проекта (Pre-A)
+     * не должно перекрывать переход, записанный решением точки — на стенде
+     * после KDP-A лента оставалась Pre-A именно из-за этого порядка.
+     */
     private fun кодШаблона(project: String): String =
-        шаблоныПроектов[project] ?: шаблонФазыПроекта?.invoke(project)?.takeIf { it.isNotBlank() } ?: "PHT-9001"
+        шаблонФазыПроекта?.invoke(project)?.takeIf { it.isNotBlank() }
+            ?: шаблоныПроектов[project]
+            ?: "PHT-9001"
 
     override fun openPhase(project: String, templateCode: String): PhaseView {
         шаблоныПроектов[project] = templateCode
@@ -390,7 +397,10 @@ class TemplateProcessEngine(
         if (запись != null) {
             запись(project, gate, by, outcome, note, точка.opensPhase.takeIf { outcome == "approve" })
             if (outcome == "approve") {
-                шаблонПоТочке(project, gate)?.let { наОткрытиеШаблона?.invoke(project, it) }
+                шаблонПоТочке(project, gate)?.let {
+                    наОткрытиеШаблона?.invoke(project, it)
+                    шаблоныПроектов[project] = it
+                }
             }
         } else if (outcome == "approve") {
             пройденныеТочки(project).add(gate)

@@ -167,5 +167,17 @@ class PhaseATest {
         assertEquals("Pre-Phase A", фаза.path("phase").asText(), "до KDP-A — Pre-A")
     }
 
+    /** Стенд 10.09: движок живёт долго, шаблон, открытый при заведении проекта, перекрывал записанный решением. */
+    @Test
+    fun `в одном движке записанный шаблон фазы первее открытого при заведении проекта`() {
+        val движок = движок()
+        движок.openPhase(проект, "PHT-9001") // как делает POST /v2/projects
+        assertEquals("Pre-Phase A", движок.view(проект).phase)
+        открытьPhaseA() // записи решения и шаблона — то, что делает onTemplateOpened
+        val фаза = движок.view(проект)
+        assertEquals("Phase A", фаза.phase)
+        assertEquals("A1", фаза.scenes.first().key, "лента сменилась на Phase A без перезапуска движка")
+    }
+
     private fun JsonNode.первая(ключ: String) = path("scenes").first { it.path("key").asText() == ключ }
 }
