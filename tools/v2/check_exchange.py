@@ -36,6 +36,16 @@ def вызов(base, метод, путь, тело=None, сырой=False):
         raise SystemExit(f"{метод} {путь} → {e.code}: {e.read().decode()[:400]}")
 
 
+def войти(base, login):
+    """Учётка стенда — только в режиме stand; на стенде с входом через Telegram
+    запись без сессии открыта, пока учёток нет, и скрипт идёт без входа."""
+    try:
+        вызов(base, "POST", "/auth/stand-login", {"login": login})
+    except SystemExit as e:
+        if "404" not in str(e):
+            raise
+
+
 def блоки_требований(sdoc: str) -> str:
     return sdoc[sdoc.find("[REQUIREMENT]"):] if "[REQUIREMENT]" in sdoc else ""
 
@@ -48,7 +58,7 @@ def main() -> int:
     ap.add_argument("--reqif", default=None, help="чужой ReqIF (например, образец ReqPilot): импорт кандидатами, ничего не теряя")
     a = ap.parse_args()
     into = a.into or (a.project + "-IMP")
-    вызов(a.base, "POST", "/auth/stand-login", {"login": "chernov"})
+    войти(a.base, "chernov")
     ошибки = []
 
     # 1. экспорт → импорт → экспорт
@@ -58,7 +68,7 @@ def main() -> int:
     портфель = вызов(a.base, "GET", "/v2/projects").get("items", [])
     if not any(п.get("code") == into for п in портфель):
         вызов(a.base, "POST", "/v2/projects", {"name": f"Импорт .sdoc из {a.project}", "code": into})
-    вызов(a.base, "POST", "/auth/stand-login", {"login": "ivanov"})
+    войти(a.base, "ivanov")
     импорт = вызов(a.base, "POST", f"/v2/import/sdoc?project={into}", {"sdoc": sdoc, "sgra": sgra, "author": "Иванов И."})
     print(f"импорт в {into}: кандидатов {импорт['count']}, задание {импорт.get('task')}, материал {импорт.get('material')}")
     if импорт.get("task"):
@@ -79,7 +89,7 @@ def main() -> int:
             print(f"  !!! строк {len(a1)} ≠ {len(a2)}")
 
     # 2. отпечаток
-    вызов(a.base, "POST", "/auth/stand-login", {"login": "chernov"})
+    войти(a.base, "chernov")
     знания = вызов(a.base, "GET", f"/v2/export/knowledge?project={a.project}")
     отпечаток = знания["fingerprint"]
     print(f"знания: отпечаток {отпечаток}, частей {len(знания['parts'])}: " + ", ".join(f"{ч['file']} {ч['size_kb']} КБ" for ч in знания["parts"]))
@@ -121,7 +131,7 @@ def main() -> int:
     # 4. чужой ReqIF — кандидаты со всеми атрибутами, в модель ничего до приёма
     if a.reqif:
         xml = pathlib.Path(a.reqif).read_text(encoding="utf-8")
-        вызов(a.base, "POST", "/auth/stand-login", {"login": "ivanov"})
+        войти(a.base, "ivanov")
         было = len(вызов(a.base, "GET", f"/v2/entities?project={into}&kind=requirement").get("items", []))
         чужой = вызов(a.base, "POST", f"/v2/import/reqif?project={into}", {"xml": xml, "author": "Иванов И."})
         стало = len(вызов(a.base, "GET", f"/v2/entities?project={into}&kind=requirement").get("items", []))
