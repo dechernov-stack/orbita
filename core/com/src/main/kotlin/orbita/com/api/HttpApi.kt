@@ -2846,6 +2846,11 @@ class HttpApi(private val boundary: Boundary) {
             // Импорт требований из ReqIF (шаг 14, канал «требования»). Файл
             // разбирает служба обмена; сюда возвращаются черновики — хранение
             // идёт обычным каналом, тем же фильтром, что рукописный ввод.
+            // Импорт чужого файла обмена (ADR-023 сторона разбора, ADR-064):
+            // формат знает служба обмена, ядро получает объекты с атрибутами
+            // как есть. Кандидат — каждый объект файла, а не только «наш» тип;
+            // что легло в код и формулировку, названо в used, остальное — в
+            // foreign_attributes без потерь. В модель канал не пишет.
             method == "POST" && path == "/import/reqif" -> {
                 val exchangeUrl = System.getenv("ORBITA_EXCHANGE_URL")
                 if (exchangeUrl.isNullOrBlank()) {
@@ -2859,17 +2864,15 @@ class HttpApi(private val boundary: Boundary) {
                     val parsed = mapper.readTree(postToExchange("$exchangeUrl/reqif/parse", body(ex)))
                     val out = mapper.createObjectNode()
                     val drafts = out.putArray("drafts")
-                    parsed.path("objects")
-                        .filter { it.path("type").asText() == "ST-REQUIREMENT" }
-                        .forEach { so ->
-                            val spec = orbita.out.SpecObject(
-                                identifier = so.path("identifier").asText(),
-                                type = so.path("type").asText(),
-                                values = so.path("values").properties()
-                                    .associate { (k, v) -> k to v },
-                            )
-                            drafts.add(orbita.out.fromSpecObject(spec, mapper = mapper))
-                        }
+                    orbita.exchange.api.ForeignCandidates.of(parsed).forEach { к ->
+                        val у = drafts.addObject().put("identifier", к.identifier).put("id", к.code)
+                            .put("statement", к.statement).put("title", к.title).put("type", к.type)
+                        val used = у.putObject("used")
+                        к.used.forEach { (поле, имя) -> used.put(поле, имя) }
+                        val чужие = у.putObject("foreign_attributes")
+                        к.foreign.forEach { (имя, значение) -> чужие.put(имя, значение) }
+                    }
+                    out.put("count", drafts.size())
                     out.put("source_title", parsed.path("title").asText(""))
                     out.put("relations", parsed.path("relations").size())
                     respond(ex, 200, out)

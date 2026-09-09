@@ -3,6 +3,7 @@ package orbita.exchange.api
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import orbita.exchange.internal.EntityExchange
+import orbita.exchange.internal.HttpReqifParser
 import orbita.exchange.internal.HttpStrictDoc
 import orbita.kernel.api.EntityStore
 import orbita.kernel.api.LinkRegistry
@@ -22,7 +23,12 @@ object ExchangeFactory {
         strictDoc: StrictDocService? = fromEnv(mapper),
         baselineRoot: java.io.File =
             java.io.File(System.getenv("ORBITA_FILES_DIR") ?: "/files").resolve("sdoc-baselines"),
-    ): Exchange = EntityExchange(store, links, intake, mapper, strictDoc, baselineRoot)
+        /** Служба обмена для чужих файлов; null — импорт отказывает словами (ORBITA_EXCHANGE_URL). */
+        reqif: ReqifParser? = parserFromEnv(mapper),
+    ): Exchange = EntityExchange(store, links, intake, mapper, strictDoc, baselineRoot, reqif)
+
+    fun parserFromEnv(mapper: ObjectMapper = ObjectMapper()): ReqifParser? =
+        System.getenv("ORBITA_EXCHANGE_URL")?.takeIf { it.isNotBlank() }?.let { HttpReqifParser(it, mapper) }
 
     /** Служба по переменной окружения; пусто — канала нет. */
     fun fromEnv(mapper: ObjectMapper = ObjectMapper()): StrictDocService? =

@@ -19,6 +19,7 @@ import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from reqif.models.reqif_spec_object_type import ReqIFSpecObjectType
+from reqif.models.reqif_spec_relation_type import ReqIFSpecRelationType
 from reqif.models.reqif_types import SpecObjectAttributeType
 from reqif.parser import ReqIFParser
 
@@ -77,21 +78,35 @@ def parse_reqif(path):
             return attr.value == 'true'
         return attr.value
 
-    objects = [
-        {'identifier': so.identifier, 'type': so.spec_object_type,
-         'values': {attr_names.get(a.definition_ref, a.definition_ref): value_of(a)
-                    for a in so.attributes}}
-        for so in content.spec_objects or []
-    ]
+    # Стандартные атрибуты OMG ReqIF (ForeignID · Text · Name · ChapterName)
+    # опознаются ЗДЕСЬ, на границе библиотеки: ядро формата не знает и
+    # получает объект с полями id/text/name, если файл их несёт, и со всеми
+    # атрибутами как есть — чужой профиль атрибутов не теряется и не
+    # переименовывается (ADR-064, остаток сноса).
+    STD = {'ReqIF.ForeignID': 'id', 'ReqIF.Text': 'text', 'ReqIF.Name': 'name', 'ReqIF.ChapterName': 'chapter'}
+
+    def std_of(values):
+        return {STD[k]: v for k, v in values.items() if k in STD and v not in (None, '')}
+
+    objects = []
+    for so in content.spec_objects or []:
+        values = {attr_names.get(a.definition_ref, a.definition_ref): value_of(a) for a in so.attributes}
+        objects.append({'identifier': so.identifier, 'type': so.spec_object_type,
+                        'type_name': type_names.get(so.spec_object_type, so.spec_object_type),
+                        'values': values, 'std': std_of(values)})
     relations = [
         {'identifier': r.identifier, 'type': r.relation_type_ref,
          'source': r.source, 'target': r.target}
         for r in content.spec_relations or []
     ]
+    # Типы связей — их именами: ядро показывает роль словами файла, не идентификатором
+    relation_types = {st.identifier: (st.long_name or st.identifier)
+                      for st in content.spec_types or [] if isinstance(st, ReqIFSpecRelationType)}
     return {
         'title': bundle.req_if_header.title if bundle.req_if_header else None,
         'exported_at': bundle.req_if_header.creation_time if bundle.req_if_header else None,
         'object_types': object_types,
+        'relation_types': relation_types,
         'objects': objects,
         'relations': relations,
     }

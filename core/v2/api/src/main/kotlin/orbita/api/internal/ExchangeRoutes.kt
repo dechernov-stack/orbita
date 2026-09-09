@@ -27,6 +27,7 @@ class ExchangeRoutes(
             method == "GET" && path == "/v2/export/sdoc/reqif" -> reqif(требуется(query, "project"))
             method == "POST" && path == "/v2/export/sdoc/baseline" -> базирование(требуется(query, "project"), разобрать(body))
             method == "POST" && path == "/v2/import/sdoc" -> импорт(требуется(query, "project"), разобрать(body))
+            method == "POST" && path == "/v2/import/reqif" -> импортЧужого(требуется(query, "project"), разобрать(body))
             method == "GET" && path == "/v2/export/knowledge" -> знания(требуется(query, "project"), части(query))
             method == "GET" && path == "/v2/export/knowledge.zip" -> знанияАрхивом(требуется(query, "project"), части(query))
             method == "POST" && path == "/v2/export/knowledge/verify" -> сверка(требуется(query, "project"), разобрать(body))
@@ -84,6 +85,28 @@ class ExchangeRoutes(
             к.mop.forEach { (ключ, значение) -> mop.put(ключ, значение) }
             val чужие = у.putObject("foreign_attributes")
             к.foreign.forEach { (ключ, значение) -> чужие.put(ключ, значение) }
+            val связи = у.putArray("relations")
+            к.relations.forEach { (ссылка, роль) -> связи.addObject().put("ref", ссылка).put("role", роль) }
+        }
+        return V2Router.Ответ(200, узел)
+    }
+
+    /** Чужой файл обмена: кандидаты со всеми атрибутами, план — в поле знаний; в модель канал не пишет. */
+    private fun импортЧужого(project: String, тело: JsonNode): V2Router.Ответ {
+        val итог = exchange.importForeign(project, тело.path("xml").asText(""), тело.path("author").asText("инженер"))
+        val узел = mapper.createObjectNode()
+        узел.put("count", итог.candidates.size)
+        узел.put("task", итог.task)
+        узел.put("material", итог.material)
+        узел.put("note", итог.note)
+        val кандидаты = узел.putArray("candidates")
+        итог.candidates.forEach { к ->
+            val у = кандидаты.addObject().put("identifier", к.identifier).put("code", к.code).put("statement", к.statement)
+                .put("title", к.title).put("type", к.type)
+            val used = у.putObject("used")
+            к.used.forEach { (поле, имя) -> used.put(поле, имя) }
+            val чужие = у.putObject("foreign_attributes")
+            к.foreign.forEach { (имя, значение) -> чужие.put(имя, значение) }
             val связи = у.putArray("relations")
             к.relations.forEach { (ссылка, роль) -> связи.addObject().put("ref", ссылка).put("role", роль) }
         }

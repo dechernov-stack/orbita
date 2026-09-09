@@ -236,6 +236,37 @@ class ExchangeTest {
     }
 
     @Test
+    fun `чужой файл обмена — каждый объект кандидат, атрибуты целиком в foreign, в модель ничего до приёма`() {
+        // Разбор ReqPilot (насосная станция, свой профиль атрибутов: UID · Title · Statement ·
+        // Rationale · Status …), снятый службой обмена; здесь — подставной разборщик.
+        val разобрано = mapper.readTree(javaClass.getResource("/чужой-reqif-насосная-станция.json")!!)
+        val разборщик = orbita.exchange.api.ReqifParser { разобрано }
+        val обменЧужой = ExchangeFactory.exchange(store, links, intake, mapper, strictDoc = служба, reqif = разборщик)
+        val итог = обменЧужой.importForeign(проект, "<xml/>", "Петрова М.")
+        assertEquals(3, итог.candidates.size)
+        val первый = итог.candidates.first()
+        assertEquals("STK-001", первый.code, "код — из атрибута-идентификатора UID, не из identifier файла")
+        assertEquals(mapOf("code" to "UID", "statement" to "Statement", "title" to "Title"), первый.used)
+        assertTrue(первый.statement.startsWith("Оператор должен видеть текущее состояние"), первый.statement)
+        assertEquals("Требование заинтересованной стороны", первый.type, "тип — словами файла")
+        assertTrue("Owner" in первый.foreign && "Rationale" in первый.foreign && "Status" in первый.foreign, первый.foreign.keys.toString())
+        assertFalse("Statement" in первый.foreign, "что легло в формулировку, в чужих не дублируется")
+        assertEquals(12, первый.attributes.size, "ни один атрибут не потерян")
+        assertTrue(store.list(область, "requirement").isEmpty(), "в модель до приёма ничего не записано")
+        val задание = assertNotNull(итог.task)
+        val план = intake.task(проект, задание)
+        assertEquals(3, план.plan.count { it.targetKind == "requirement" })
+        assertTrue(план.plan.first().effect.contains("код из «UID»"), план.plan.first().effect)
+        intake.accept(проект, задание, план.plan.indices.toList(), "Петрова М.")
+        val принято = store.byCode(область, "STK-001")
+        assertNotNull(принято)
+        assertEquals("И. Петров", принято!!.doc.path("foreign_attributes").path("Owner").asText(), "чужие атрибуты доехали до записи")
+        assertEquals("Требование заинтересованной стороны", принято.doc.path("source_type").asText())
+        val материал = store.byCode(область, assertNotNull(итог.material))
+        assertEquals("reqif", материал!!.doc.path("kind").asText())
+    }
+
+    @Test
     fun `без службы StrictDoc экспорт отказывает словами, а знания и пакет точки живут`() {
         реестр()
         val безСлужбы = ExchangeFactory.exchange(store, links, intake, mapper, strictDoc = null)
@@ -258,6 +289,9 @@ class ExchangeTest {
         val отказ = assertNotNull(маршруты.handle("GET", "/v2/export/sdoc", п, null))
         assertEquals(503, отказ.code); assertTrue("ORBITA_STRICTDOC_URL" in отказ.body.path("error").asText())
         assertEquals(503, маршруты.handle("GET", "/v2/export/sdoc/reqif", п, null)!!.code)
+        val безОбмена = ExchangeFactory.exchange(store, links, intake, mapper, strictDoc = null, reqif = null)
+        val отказОбмена = assertNotNull(ExchangeRoutes(store, безОбмена, движок, документы, mapper).handle("POST", "/v2/import/reqif", п, """{"xml":"<x/>"}"""))
+        assertEquals(503, отказОбмена.code); assertTrue("ORBITA_EXCHANGE_URL" in отказОбмена.body.path("error").asText())
         val знания = assertNotNull(маршруты.handle("GET", "/v2/export/knowledge", п, null))
         assertEquals(200, знания.code)
         assertEquals(обмен.knowledgeParts().size, знания.body.path("parts").size())

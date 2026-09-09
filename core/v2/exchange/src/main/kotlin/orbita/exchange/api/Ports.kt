@@ -84,6 +84,21 @@ data class FingerprintCheck(val current: String, val said: String, val ok: Boole
 /** Пакет точки одним архивом. */
 data class PointPackage(val fileName: String, val bytes: ByteArray, val entries: List<String>, val fingerprint: String)
 
+/**
+ * Итог импорта чужого файла обмена: кандидаты со всеми атрибутами и задание
+ * загрузки с планом — в модель канал сам не пишет.
+ */
+data class ForeignImport(val candidates: List<ForeignCandidate>, val task: String?, val material: String?, val note: String)
+
+/**
+ * Служба обмена (ops/exchange): разбор файла обмена библиотекой. Ответ —
+ * `{title, objects[{identifier, type, type_name, values, std}], relations}`;
+ * формат знает служба, ядро — нет.
+ */
+fun interface ReqifParser {
+    fun parse(xml: String): JsonNode
+}
+
 /** Служба StrictDoc не настроена или не отвечает: отказ словами, не пустой файл. */
 class ExchangeUnavailable(message: String) : IllegalStateException(message)
 
@@ -110,6 +125,9 @@ interface Exchange {
 
     /** Импорт .sdoc: кандидаты и задание загрузки; в модель не пишет. */
     fun importSdoc(project: String, sdoc: String, sgra: String?, author: String): SdocImport
+
+    /** Импорт чужого файла обмена: кандидаты со всеми атрибутами и план; в модель не пишет. */
+    fun importForeign(project: String, xml: String, author: String): ForeignImport
 
     fun knowledgeParts(): List<KnowledgePart>
 

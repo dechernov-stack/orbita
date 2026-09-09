@@ -16,6 +16,7 @@ import argparse
 import http.cookiejar
 import io
 import json
+import pathlib
 import sys
 import urllib.error
 import urllib.request
@@ -44,6 +45,7 @@ def main() -> int:
     ap.add_argument("--base", default="http://localhost:8080/api")
     ap.add_argument("--project", default="PJ-V2-E2")
     ap.add_argument("--into", default=None, help="код свежего проекта для импорта (по умолчанию <project>-IMP)")
+    ap.add_argument("--reqif", default=None, help="чужой ReqIF (например, образец ReqPilot): импорт кандидатами, ничего не теряя")
     a = ap.parse_args()
     into = a.into or (a.project + "-IMP")
     вызов(a.base, "POST", "/auth/stand-login", {"login": "chernov"})
@@ -116,6 +118,21 @@ def main() -> int:
     if отпечаток not in манифест:
         ошибки.append("манифест пакета без отпечатка знаний")
 
+    # 4. чужой ReqIF — кандидаты со всеми атрибутами, в модель ничего до приёма
+    if a.reqif:
+        xml = pathlib.Path(a.reqif).read_text(encoding="utf-8")
+        вызов(a.base, "POST", "/auth/stand-login", {"login": "ivanov"})
+        было = len(вызов(a.base, "GET", f"/v2/entities?project={into}&kind=requirement").get("items", []))
+        чужой = вызов(a.base, "POST", f"/v2/import/reqif?project={into}", {"xml": xml, "author": "Иванов И."})
+        стало = len(вызов(a.base, "GET", f"/v2/entities?project={into}&kind=requirement").get("items", []))
+        к = чужой.get("candidates", [])
+        print(f"чужой ReqIF {pathlib.Path(a.reqif).name}: кандидатов {чужой.get('count')}, задание {чужой.get('task')}")
+        for c in к[:4]:
+            print(f"   - {c['code']} [{c['type']}] «{c['statement'][:60]}» · код из {c['used'].get('code')}, формулировка из {c['used'].get('statement')}, чужих полей {len(c['foreign_attributes'])}")
+        if стало != было:
+            ошибки.append("импорт чужого ReqIF записал в модель до приёма")
+        if not к or any(not c["foreign_attributes"] for c in к):
+            ошибки.append("кандидаты без чужих атрибутов — что-то потеряно")
     print("\nитог:", "всё сошлось" if not ошибки else "; ".join(ошибки))
     return 1 if ошибки else 0
 

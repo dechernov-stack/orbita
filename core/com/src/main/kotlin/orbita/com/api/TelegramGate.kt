@@ -27,7 +27,12 @@ class TelegramGate(
     private val product: String = env("AUTHGW_PRODUCT") ?: "orbita",
     private val secret: String? = env("ORBITA_SESSION_SECRET"),
     private val mapper: ObjectMapper = ObjectMapper(),
-    private val client: HttpClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build(),
+    // Только HTTP/1.1: по умолчанию Java-клиент пробует h2c (Upgrade), а uvicorn
+    // шлюза такой запрос читает без тела и отвечает 422 «body required»
+    // (поймано включением режима на 216, 09.09).
+    private val client: HttpClient = HttpClient.newBuilder()
+        .version(HttpClient.Version.HTTP_1_1)
+        .connectTimeout(Duration.ofSeconds(10)).build(),
     /** Часы — параметром: срок сессии проверяется тестом, а не ожиданием. */
     private val now: () -> Long = { System.currentTimeMillis() / 1000 },
 ) {

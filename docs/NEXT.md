@@ -695,6 +695,14 @@ Telegram — тонкий клиент `tg-authgw` (`TelegramGate`, `/auth/start
 шлюза с секретом из `.env` сервера → `ORBITA_AUTH_MODE=telegram` → `up -d api`;
 ключ модели в `.env` сервера.
 
+## Приёмка шипа F (ШИП-F-ПРИНЯТ 09.09) исполнена
+
+Issue strictdoc-project #3192 (минимальный репро связи между типами); остаток
+сноса снесён после проверки образцом ReqPilot: `ReqifImport.kt` и словари
+имён ушли, кандидат строится без знания формата (`ForeignCandidates`, `used`,
+`foreign_attributes` целиком), `POST /v2/import/reqif` путём материала, сторож
+«формат обмена вне ядра» в CI. Маршрут прохода 1–18 заморожен в поставке.
+
 ## Открытые вопросы
 
 * **Стенд: причина `exit code 2` у backend Postgres не установлена**
