@@ -70,11 +70,14 @@ export function Shell() {
   /** Вход через Telegram включён на сервере (ADR-065) — в шапке кнопка входа. */
   const [входTelegram, setВходTelegram] = useState(false)
   const [входTick, setВходTick] = useState(0)
+  /** Вход обязателен, а сессии нет: оболочка не трогает реестр — только карточка входа. */
+  const [нуженВход, setНуженВход] = useState<boolean | null>(null)
   /** Плотность, выбранная руками; null — умолчание роли. */
   const [режим, setРежим] = useState<Режим | null>(null)
   const [failure, setFailure] = useState<string | null>(null)
 
   useEffect(() => {
+    if (нуженВход !== false) return
     api.projects()
       .then((r) => {
         setPortfolio(r.items)
@@ -85,7 +88,7 @@ export function Shell() {
           текущий ?? (r.items.some((п) => п.code === прежний) ? прежний : r.items[0]?.code ?? null))
       })
       .catch(() => undefined)
-  }, [])
+  }, [нуженВход])
 
   useEffect(() => {
     if (!project) { setPhase(null); return }
@@ -102,6 +105,7 @@ export function Shell() {
         setMe(d.user?.display_name ?? null)
         setЯ(d.user ?? null)
         setВходTelegram(d.mode === 'telegram')
+        setНуженВход(Boolean(d.enabled) && !d.user && d.mode === 'telegram')
       })
       .catch((e) => setFailure(String(e)))
   }, [входTick])
@@ -120,6 +124,20 @@ export function Shell() {
   // Смена проекта возвращает плотность к умолчанию роли: в другом проекте
   // у того же человека может быть другая роль.
   useEffect(() => { setРежим(null) }, [project])
+
+  if (нуженВход) {
+    return (
+      <div className="v2-shell">
+        <main className="v2-main">
+          <div className="v2-panel" data-why="почему-нельзя">
+            <h3>Вход в «Орбиту»</h3>
+            <div className="v2-empty__why">Стенд закрыт входом: пропуск даёт членство в группе Telegram проекта.</div>
+            <TelegramВход onDone={() => setВходTick((t) => t + 1)} />
+          </div>
+        </main>
+      </div>
+    )
+  }
 
   const visible = SECTIONS.filter((s) => expert || !s.expert)
   const current = SECTIONS.find((s) => s.key === section) ?? SECTIONS[0]

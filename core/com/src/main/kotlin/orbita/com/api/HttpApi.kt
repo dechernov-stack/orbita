@@ -67,6 +67,19 @@ class HttpApi(private val boundary: Boundary) {
     private val adminTids: Set<Long> = System.getenv("ORBITA_ADMIN_TIDS").orEmpty()
         .split(',').mapNotNull { it.trim().toLongOrNull() }.toSet()
 
+    /**
+     * Вход включён: есть учётки ЛИБО стенд в режиме telegram — пропуск даёт
+     * группа, и до первой учётки дверь тоже закрыта (стенд публикуется
+     * наружу за входом, ADR-065). Без этого до первого входа владельца всё
+     * было бы открыто любому.
+     */
+    private fun authOn(): Boolean = boundary.auth.enabled() || telegramMode
+
+    /** Cookie сессии: за TLS-прокси — с флагом Secure (X-Forwarded-Proto). */
+    private fun sessionCookie(ex: HttpExchange, token: String): String =
+        "orbita_session=$token; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000" +
+            (if (ex.requestHeaders.getFirst("X-Forwarded-Proto") == "https") "; Secure" else "")
+
     /** Учётки стенда: логин · имя · роль по умолчанию в каждом проекте. */
     private val standAccounts = listOf(
         Triple("chernov", "Чернов Д.", "lead"),
@@ -221,9 +234,11 @@ class HttpApi(private val boundary: Boundary) {
             // Учётка и роли — в маршруты v2 (шип D): роль решает сервер.
             // Запись без сессии при включённом входе — 401, как и у первой
             // версии; чтение остаётся открытым, как было.
-            val вход = boundary.auth.enabled()
+            val вход = authOn()
             val учётка = sessionToken(ex)?.let { boundary.auth.sessionUser(it) }
-            if (вход && учётка == null && method != "GET" && method != "HEAD") {
+            // Стенд за входом закрыт целиком, чтение тоже: наружу он
+            // публикуется (ADR-065), и реестр проекта без сессии не отдаётся.
+            if (вход && учётка == null) {
                 respond(ex, 401, mapper.createObjectNode().put("error", "войдите: сессия не найдена или истекла"))
                 return
             }
@@ -266,13 +281,15 @@ class HttpApi(private val boundary: Boundary) {
         // режим (мягкое включение: владелец сам решает, когда завести первую).
         // Проверка прав — ЗДЕСЬ, на сервере: спрятанная кнопка правом не
         // является (ловушка 5).
-        val authOn = boundary.auth.enabled()
+        val authOn = authOn()
         val sessionUser = sessionToken(ex)?.let { boundary.auth.sessionUser(it) }
         if (path.startsWith("/auth/")) {
             authRoutes(ex, method, path, sessionUser)
             return
         }
-        if (authOn && sessionUser == null) {
+        // /kinds — перечень видов схемы без данных проекта: по нему выкат
+        // проверяет здоровье стенда ещё до входа.
+        if (authOn && sessionUser == null && !(method == "GET" && path == "/kinds")) {
             respond(ex, 401, mapper.createObjectNode().put("error", "войдите: сессия не найдена или истекла"))
             return
         }
@@ -5063,10 +5080,7 @@ class HttpApi(private val boundary: Boundary) {
                     return
                 }
                 val token = boundary.auth.createSession(verified.login)
-                ex.responseHeaders.add(
-                    "Set-Cookie",
-                    "orbita_session=$token; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000",
-                )
+                ex.responseHeaders.add("Set-Cookie", sessionCookie(ex, token))
                 respond(
                     ex, 200,
                     mapper.createObjectNode()
@@ -5088,10 +5102,7 @@ class HttpApi(private val boundary: Boundary) {
                     return
                 }
                 val token = boundary.auth.createSession(login)
-                ex.responseHeaders.add(
-                    "Set-Cookie",
-                    "orbita_session=$token; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000",
-                )
+                ex.responseHeaders.add("Set-Cookie", sessionCookie(ex, token))
                 respond(ex, 200, mapper.createObjectNode().put("login", login).put("display_name", account.second))
             }
 
@@ -5142,10 +5153,7 @@ class HttpApi(private val boundary: Boundary) {
                             .forEach { boundary.auth.setRole(it.id, login, "lead") }
                     }
                     val token = boundary.auth.createSession(login)
-                    ex.responseHeaders.add(
-                        "Set-Cookie",
-                        "orbita_session=$token; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000",
-                    )
+                    ex.responseHeaders.add("Set-Cookie", sessionCookie(ex, token))
                     out.put("login", login).put("display_name", имя)
                 }
                 respond(ex, 200, out)
@@ -5161,7 +5169,7 @@ class HttpApi(private val boundary: Boundary) {
 
             method == "GET" && path == "/auth/whoami" -> {
                 val out = mapper.createObjectNode()
-                out.put("enabled", boundary.auth.enabled())
+                out.put("enabled", authOn())
                 if (telegramMode) {
                     out.put("mode", "telegram")
                     if (!telegram.enabled()) out.put("telegram_missing", telegram.missing().joinToString(", "))
