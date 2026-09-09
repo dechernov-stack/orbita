@@ -35,8 +35,9 @@ Telegram; пароль случайный и никому не нужен. Вл�
 и v2 (шапка): кнопка «Войти через Telegram» открывает бота и опрашивает
 статус раз в две секунды до пяти минут; отказ и истечение названы словами.
 
-**4. Что на сервере.** `/opt/orbita/.env`: `AUTHGW_URL=http://172.17.0.1:8091`,
-`AUTHGW_PRODUCT=orbita`, `ORBITA_SESSION_SECRET`, `ORBITA_ADMIN_TIDS`;
+**4. Что на сервере.** `/opt/orbita/.env`: `ORBITA_AUTHGW_URL=http://172.17.0.1:8091`,
+`ORBITA_AUTHGW_PRODUCT=orbita` (с префиксом: воркер оркестратора держит свои
+`AUTHGW_*` в окружении, и compose подставлял их вместо `.env`), `ORBITA_SESSION_SECRET`, `ORBITA_ADMIN_TIDS`;
 `ORBITA_AUTH_MODE=telegram` включается, когда продукт `orbita` заведён в
 `AUTHGW_PRODUCTS` шлюза с группой и тем же секретом (новый продукт = группа +
 строка в конфиге шлюза, нового бота не надо). Compose передаёт эти переменные

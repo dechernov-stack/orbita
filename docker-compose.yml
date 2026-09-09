@@ -106,11 +106,14 @@ services:
       # ADR-049: StrictDoc-канал включается флагом; без него — отказ 503
       ORBITA_STRICTDOC_URL: ${ORBITA_STRICTDOC_URL:-}
       # Вход (ADR-065): stand — учётки стенда без пароля; telegram — через
-      # центральный шлюз tg-authgw (AUTHGW_URL, секрет продукта в
-      # ORBITA_SESSION_SECRET, владельцы — ORBITA_ADMIN_TIDS через запятую).
+      # центральный шлюз tg-authgw (секрет продукта в ORBITA_SESSION_SECRET,
+      # владельцы — ORBITA_ADMIN_TIDS через запятую). Переменные подстановки
+      # с префиксом ORBITA_: на сервере compose запускает воркер оркестратора,
+      # у которого свои AUTHGW_URL/AUTHGW_PRODUCT=conductor в окружении, и они
+      # перебивали .env стенда (выкат 09.09: api получил продукт conductor).
       ORBITA_AUTH_MODE: ${ORBITA_AUTH_MODE:-}
-      AUTHGW_URL: ${AUTHGW_URL:-}
-      AUTHGW_PRODUCT: ${AUTHGW_PRODUCT:-orbita}
+      AUTHGW_URL: ${ORBITA_AUTHGW_URL:-}
+      AUTHGW_PRODUCT: ${ORBITA_AUTHGW_PRODUCT:-orbita}
       ORBITA_SESSION_SECRET: ${ORBITA_SESSION_SECRET:-}
       ORBITA_ADMIN_TIDS: ${ORBITA_ADMIN_TIDS:-}
       # круг 2: файлы исходных документов — при стенде, в копии О-18
