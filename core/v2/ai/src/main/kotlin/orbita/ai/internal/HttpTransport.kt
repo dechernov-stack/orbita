@@ -16,17 +16,25 @@ import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.time.Duration
 
+/**
+ * Переменная окружения, заданная ПУСТОЙ, — то же, что не заданная: compose
+ * стенда передаёт `${ORBITA_AI_MAX_TOKENS:-}`, и на сервере без ключа модели
+ * пустая строка роняла весь v2 на первом же запросе («For input string: ""»,
+ * выкат 216 09.09).
+ */
+private fun env(имя: String): String? = System.getenv(имя)?.takeIf { it.isNotBlank() }
+
 class HttpTransport(
     private val mapper: ObjectMapper = ObjectMapper(),
-    private val key: String? = System.getenv("ORBITA_AI_KEY"),
+    private val key: String? = env("ORBITA_AI_KEY"),
     // В окружении стенда задан БАЗОВЫЙ адрес провайдера; путь дописывается
     // здесь — иначе запрос уходит в корень и возвращает 404 (поймано живым
     // прогоном).
-    private val url: String = (System.getenv("ORBITA_AI_URL") ?: "https://api.anthropic.com")
+    private val url: String = (env("ORBITA_AI_URL") ?: "https://api.anthropic.com")
         .trimEnd('/')
         .let { if (it.contains("/v1/")) it else "$it/v1/messages" },
-    private val defaultModel: String = System.getenv("ORBITA_AI_MODEL") ?: "claude-sonnet-5",
-    private val maxTokens: Int = (System.getenv("ORBITA_AI_MAX_TOKENS") ?: "16000").toInt(),
+    private val defaultModel: String = env("ORBITA_AI_MODEL") ?: "claude-sonnet-5",
+    private val maxTokens: Int = env("ORBITA_AI_MAX_TOKENS")?.toIntOrNull() ?: 16000,
     private val client: HttpClient = HttpClient.newBuilder()
         .connectTimeout(Duration.ofSeconds(20)).build(),
 ) : Transport {
