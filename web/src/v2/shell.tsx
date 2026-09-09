@@ -67,6 +67,9 @@ export function Shell() {
   const [me, setMe] = useState<string | null>(null)
   /** Моя учётка целиком: роль в проекте задаёт плотность экрана (§2). */
   const [я, setЯ] = useState<StandUser | null>(null)
+  /** Вход через Telegram включён на сервере (ADR-065) — в шапке кнопка входа. */
+  const [входTelegram, setВходTelegram] = useState(false)
+  const [входTick, setВходTick] = useState(0)
   /** Плотность, выбранная руками; null — умолчание роли. */
   const [режим, setРежим] = useState<Режим | null>(null)
   const [failure, setFailure] = useState<string | null>(null)
@@ -98,9 +101,10 @@ export function Shell() {
         setUsers(d.stand_users ?? [])
         setMe(d.user?.display_name ?? null)
         setЯ(d.user ?? null)
+        setВходTelegram(d.mode === 'telegram')
       })
       .catch((e) => setFailure(String(e)))
-  }, [])
+  }, [входTick])
 
   // Роль — из учётки и проекта: плотность её следствие, а не настройка.
   //
@@ -174,9 +178,13 @@ export function Shell() {
             <input type="checkbox" checked={expert} onChange={(e) => setExpert(e.target.checked)} />
             эксперт-режим
           </label>
-          <span title="учётка стенда: вход селектором, пароля у витринных учёток нет">
-            {me ?? (users.length > 0 ? `учётки стенда: ${users.length}` : 'учётка не выбрана')}
-          </span>
+          {входTelegram && !me ? (
+            <TelegramВход onDone={() => setВходTick((t) => t + 1)} />
+          ) : (
+            <span title={входTelegram ? 'вы вошли через Telegram' : 'учётка стенда: вход селектором, пароля у витринных учёток нет'}>
+              {me ?? (users.length > 0 ? `учётки стенда: ${users.length}` : 'учётка не выбрана')}
+            </span>
+          )}
         </div>
       </header>
 
@@ -253,3 +261,51 @@ export function Shell() {
     </div>
   )
 }
+
+/**
+ * Кнопка входа через Telegram в шапке v2 (ADR-065): сервер даёт ссылку на
+ * общего бота, клиент ждёт approved опросом раз в две секунды; сессию ставит
+ * сервер cookie, после чего шапка перечитывает whoami.
+ */
+function TelegramВход({ onDone }: { onDone: () => void }) {
+  const [ссылка, setСсылка] = useState<string | null>(null)
+  const [состояние, setСостояние] = useState<'idle' | 'waiting' | 'denied' | 'expired' | 'error'>('idle')
+  const [почему, setПочему] = useState<string | null>(null)
+  const начать = () => {
+    setПочему(null)
+    api.authStart()
+      .then((s) => {
+        setСсылка(s.deep_link)
+        setСостояние('waiting')
+        window.open(s.deep_link, '_blank', 'noopener')
+        const t0 = Date.now()
+        const шаг = () => {
+          api.authStatus(s.token)
+            .then((r) => {
+              if (r.status === 'approved') { onDone(); return }
+              if (r.status === 'denied' || r.status === 'expired') { setСостояние(r.status); return }
+              if (Date.now() - t0 > 5 * 60 * 1000) { setСостояние('expired'); return }
+              window.setTimeout(шаг, 2000)
+            })
+            .catch((e) => { setСостояние('error'); setПочему(String(e)) })
+        }
+        window.setTimeout(шаг, 2000)
+      })
+      .catch((e) => { setСостояние('error'); setПочему(String(e)) })
+  }
+  return (
+    <span className="v2-inline" title="общий бот входа: нажмите в нём Start — членство в группе проекта и есть пропуск">
+      <button type="button" className="v2-chip" onClick={начать} disabled={состояние === 'waiting'}
+        title={состояние === 'waiting'
+          ? 'ждём, пока вы нажмёте Start в боте; не дождётесь за пять минут — кнопка оживёт сама'
+          : 'откроется общий бот входа; нажмите в нём Start — членство в группе проекта и есть пропуск'}>
+        {состояние === 'waiting' ? 'ждём Telegram…' : 'Войти через Telegram'}
+      </button>
+      {ссылка && состояние === 'waiting' && <a className="v2-link" href={ссылка} target="_blank" rel="noreferrer">ссылка</a>}
+      {состояние === 'denied' && <span className="v2-bad">вас нет в группе проекта</span>}
+      {состояние === 'expired' && <span className="v2-warn">время вышло — ещё раз</span>}
+      {состояние === 'error' && <span className="v2-bad">{почему}</span>}
+    </span>
+  )
+}
+

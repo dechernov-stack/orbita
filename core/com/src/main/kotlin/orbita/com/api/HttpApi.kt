@@ -54,6 +54,19 @@ class HttpApi(private val boundary: Boundary) {
      */
     private val standMode: Boolean = System.getenv("ORBITA_AUTH_MODE") == "stand"
 
+    /**
+     * Вход через Telegram (ADR-065): ORBITA_AUTH_MODE=telegram, шлюз tg-authgw —
+     * та же схема, что у afisha. Учётка Орбиты заводится при первом входе
+     * (`tg:<id>`), дальше — обычная сессия и роли. Владельцы из
+     * ORBITA_ADMIN_TIDS получают роль руководителя во всех проектах — в том
+     * числе запись `*`, по которой роль видят проекты v2 (роли в них ещё не
+     * заводятся, и единственная роль учётки считается её ролью везде).
+     */
+    private val telegramMode: Boolean = System.getenv("ORBITA_AUTH_MODE") == "telegram"
+    private val telegram: TelegramGate by lazy { TelegramGate() }
+    private val adminTids: Set<Long> = System.getenv("ORBITA_ADMIN_TIDS").orEmpty()
+        .split(',').mapNotNull { it.trim().toLongOrNull() }.toSet()
+
     /** Учётки стенда: логин · имя · роль по умолчанию в каждом проекте. */
     private val standAccounts = listOf(
         Triple("chernov", "Чернов Д.", "lead"),
@@ -224,7 +237,7 @@ class HttpApi(private val boundary: Boundary) {
                     роль?.let { add(it) }
                     // Стенд: руководитель проекта носит и обзорную роль
                     // (учётка «РП · DA» одна) — то же правило, что в реестре прав.
-                    if (standMode && роль == "lead") add("da_review")
+                    if ((standMode || telegramMode) && роль == "lead") add("da_review")
                 }
                 orbita.api.api.Actor(u.login, u.displayName, роли)
             }
@@ -4996,7 +5009,7 @@ class HttpApi(private val boundary: Boundary) {
             ?: return "маршрут $method $path не покрыт реестром прав — запись закрыта (fail-closed)"
         // Режим стенда: руководитель проекта носит и обзорную роль (в ПМИ-4
         // учётка «РП · DA» одна) — только под флагом, реестр прав не меняется
-        val effective = if (standMode && role == "lead" && "da_review" in rule.allow) "da_review" else role
+        val effective = if ((standMode || telegramMode) && role == "lead" && "da_review" in rule.allow) "da_review" else role
         if (effective !in rule.allow) return rule.why + "; ваша роль — " + role
         if (rule.ownerGuard && role == "specialist") {
             val id = editMatch?.groupValues?.get(1) ?: objectMatch?.groupValues?.get(1)
@@ -5079,6 +5092,62 @@ class HttpApi(private val boundary: Boundary) {
                 respond(ex, 200, mapper.createObjectNode().put("login", login).put("display_name", account.second))
             }
 
+            // Вход через Telegram (ADR-065): шлюз выдаёт ссылку на бота, клиент
+            // опрашивает статус; на approved сессия шлюза проверяется здесь
+            // локально, и человек получает обычную сессию Орбиты.
+            method == "POST" && path == "/auth/start" -> {
+                if (!telegramMode) {
+                    respond(ex, 404, mapper.createObjectNode().put("error", "вход через Telegram выключен (ORBITA_AUTH_MODE)"))
+                    return
+                }
+                if (!telegram.enabled()) {
+                    respond(ex, 503, mapper.createObjectNode().put("error", "вход через Telegram не настроен: нет " + telegram.missing().joinToString(", ")))
+                    return
+                }
+                val начало = telegram.start()
+                respond(ex, 200, mapper.createObjectNode()
+                    .put("token", начало.path("token").asText(""))
+                    .put("deep_link", начало.path("deep_link").asText("")))
+            }
+
+            method == "GET" && path == "/auth/status" -> {
+                if (!telegramMode || !telegram.enabled()) {
+                    respond(ex, 404, mapper.createObjectNode().put("error", "вход через Telegram выключен"))
+                    return
+                }
+                val токен = query(ex)["token"].orEmpty()
+                require(токен.isNotBlank()) { "нужен параметр token" }
+                val статус = telegram.status(токен)
+                val out = mapper.createObjectNode().put("status", статус.path("status").asText("pending"))
+                if (статус.path("status").asText() == "approved") {
+                    val кто = telegram.verify(статус.path("session").asText(""))
+                    if (кто == null) {
+                        respond(ex, 502, mapper.createObjectNode().put("error", "шлюз выдал сессию, которую секрет продукта не подтверждает — проверьте ORBITA_SESSION_SECRET"))
+                        return
+                    }
+                    val login = "tg:${кто.tid}"
+                    val имя = кто.name.ifBlank { login }
+                    if (boundary.auth.displayNameOf(login) == null) {
+                        // пароль случайный и никому не нужен: вход — только через Telegram
+                        boundary.auth.createUser(login, java.util.UUID.randomUUID().toString(), имя)
+                    }
+                    if (кто.tid in adminTids) {
+                        val есть = boundary.auth.rolesOf(login)
+                        if ("*" !in есть) boundary.auth.setRole("*", login, "lead")
+                        boundary.objects.listCurrent()
+                            .filter { it.type == "project" && it.status != Lifecycle.Cancelled && it.id !in есть }
+                            .forEach { boundary.auth.setRole(it.id, login, "lead") }
+                    }
+                    val token = boundary.auth.createSession(login)
+                    ex.responseHeaders.add(
+                        "Set-Cookie",
+                        "orbita_session=$token; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000",
+                    )
+                    out.put("login", login).put("display_name", имя)
+                }
+                respond(ex, 200, out)
+            }
+
             method == "POST" && path == "/auth/logout" -> {
                 sessionToken(ex)?.let { boundary.auth.dropSession(it) }
                 ex.responseHeaders.add(
@@ -5090,6 +5159,10 @@ class HttpApi(private val boundary: Boundary) {
             method == "GET" && path == "/auth/whoami" -> {
                 val out = mapper.createObjectNode()
                 out.put("enabled", boundary.auth.enabled())
+                if (telegramMode) {
+                    out.put("mode", "telegram")
+                    if (!telegram.enabled()) out.put("telegram_missing", telegram.missing().joinToString(", "))
+                }
                 if (standMode) {
                     out.put("mode", "stand")
                     val arr = out.putArray("stand_users")

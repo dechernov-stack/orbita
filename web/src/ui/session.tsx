@@ -20,6 +20,8 @@ interface Session {
   user: { login: string; display_name: string; roles: Record<string, string> } | null
   /** Режим приёмочного стенда: учётки заведены, пароль не спрашивается. */
   standUsers: Array<{ login: string; display_name: string; roles: Record<string, string> }> | null
+  /** Вход через Telegram включён на сервере (ADR-065). */
+  telegram: boolean
   refreshWho: () => void
   /** Подпись кода перечисления; неизвестный код возвращается как есть. */
   label: (group: string, code: string | null | undefined) => string
@@ -33,6 +35,7 @@ const SessionContext = createContext<Session>({
   authEnabled: null,
   user: null,
   standUsers: null,
+  telegram: false,
   refreshWho: () => {},
   label: (_group, code) => code ?? '',
   fieldLabel: (name) => name,
@@ -52,6 +55,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [authEnabled, setAuthEnabled] = useState<boolean | null>(null)
   const [user, setUser] = useState<Session['user']>(null)
   const [standUsers, setStandUsers] = useState<Session['standUsers']>(null)
+  const [telegram, setTelegram] = useState(false)
 
   const refreshWho = useCallback(() => {
     api.whoami()
@@ -59,6 +63,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         setAuthEnabled(w.enabled)
         setUser(w.user ?? null)
         setStandUsers(w.mode === 'stand' ? (w.stand_users ?? []) : null)
+        setTelegram(w.mode === 'telegram')
         // стенд без паролей: без сессии входим первой учёткой (руководитель)
         if (w.mode === 'stand' && w.enabled && !w.user && (w.stand_users ?? []).length > 0) {
           api.standLogin(w.stand_users![0].login).then(() => api.whoami()).then((w2) => {
@@ -105,8 +110,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   )
 
   const value = useMemo(
-    () => ({ author, setAuthor, label, fieldLabel, authEnabled, user, standUsers, refreshWho }),
-    [author, setAuthor, label, fieldLabel, authEnabled, user, standUsers, refreshWho],
+    () => ({ author, setAuthor, label, fieldLabel, authEnabled, user, standUsers, telegram, refreshWho }),
+    [author, setAuthor, label, fieldLabel, authEnabled, user, standUsers, telegram, refreshWho],
   )
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>
 }
@@ -170,7 +175,7 @@ export function AuthorField() {
 
 /** В3: ворота входа — при включённых учётках без сессии работа не идёт. */
 export function LoginGate({ children }: { children: ReactNode }) {
-  const { authEnabled, user, standUsers, refreshWho } = useSession()
+  const { authEnabled, user, standUsers, telegram, refreshWho } = useSession()
   const [login, setLogin] = useState('')
   const [password, setPassword] = useState('')
   const [failure, setFailure] = useState<string | null>(null)
@@ -179,6 +184,17 @@ export function LoginGate({ children }: { children: ReactNode }) {
   if (standUsers) {
     // приёмочный стенд: сессия ставится сама первой учёткой — пароля нет
     return <div className="empty">вход учёткой стенда…</div>
+  }
+  if (telegram) {
+    return (
+      <div className="login-gate">
+        <div className="login-card">
+          <h2>Вход в «Орбиту»</h2>
+          <p className="secondary">Вход через Telegram: членство в группе проекта и есть пропуск.</p>
+          <TelegramLogin onDone={refreshWho} />
+        </div>
+      </div>
+    )
   }
   const enter = () => {
     if (busy || !login || !password) return
@@ -212,3 +228,51 @@ export function LoginGate({ children }: { children: ReactNode }) {
     </div>
   )
 }
+
+/**
+ * Кнопка входа через Telegram (ADR-065): сервер выдаёт ссылку на общего бота,
+ * человек жмёт Start, клиент опрашивает статус раз в две секунды до approved —
+ * сессия ставится сервером в cookie, дальше обычная работа.
+ */
+export function TelegramLogin({ onDone }: { onDone: () => void }) {
+  const [link, setLink] = useState<string | null>(null)
+  const [state, setState] = useState<'idle' | 'waiting' | 'denied' | 'expired' | 'error'>('idle')
+  const [why, setWhy] = useState<string | null>(null)
+  const begin = () => {
+    setWhy(null)
+    api.authStart()
+      .then((s) => {
+        setLink(s.deep_link)
+        setState('waiting')
+        window.open(s.deep_link, '_blank', 'noopener')
+        const t0 = Date.now()
+        const tick = () => {
+          api.authStatus(s.token)
+            .then((r) => {
+              if (r.status === 'approved') { onDone(); return }
+              if (r.status === 'denied' || r.status === 'expired') { setState(r.status); return }
+              if (Date.now() - t0 > 5 * 60 * 1000) { setState('expired'); return }
+              window.setTimeout(tick, 2000)
+            })
+            .catch((e) => { setState('error'); setWhy(String(e)) })
+        }
+        window.setTimeout(tick, 2000)
+      })
+      .catch((e) => { setState('error'); setWhy(String(e)) })
+  }
+  return (
+    <div className="np-actions" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 8 }}>
+      <button type="button" className="np-btn np-pri" onClick={begin} disabled={state === 'waiting'}
+        title="откроется общий бот входа; нажмите в нём Start">
+        {state === 'waiting' ? 'ждём подтверждения в Telegram…' : 'Войти через Telegram'}
+      </button>
+      {link && state === 'waiting' && (
+        <span className="secondary">Бот не открылся? <a href={link} target="_blank" rel="noreferrer">открыть ссылку</a></span>
+      )}
+      {state === 'denied' && <div className="np-err">вас нет в группе проекта — попросите руководителя добавить</div>}
+      {state === 'expired' && <div className="np-err">время входа вышло — нажмите ещё раз</div>}
+      {state === 'error' && <div className="np-err">вход не удался: {why}</div>}
+    </div>
+  )
+}
+

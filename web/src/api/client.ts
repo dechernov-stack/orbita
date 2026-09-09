@@ -437,11 +437,16 @@ export const api = {
       mode?: string
       user?: { login: string; display_name: string; roles: Record<string, string> }
       stand_users?: Array<{ login: string; display_name: string; roles: Record<string, string> }>
+      telegram_missing?: string
     }>(
       '/auth/whoami',
     ),
   /** Режим приёмочного стенда: вход учёткой без пароля (ORBITA_AUTH_MODE=stand на сервере). */
   standLogin: (login: string) => post<{ login: string; display_name: string }>('/auth/stand-login', { login }),
+  /** Вход через Telegram (ADR-065): ссылка на бота, затем опрос статуса до approved. */
+  authStart: () => post<{ token: string; deep_link: string }>('/auth/start', {}),
+  authStatus: (token: string) =>
+    get<{ status: string; login?: string; display_name?: string }>(`/auth/status?token=${encodeURIComponent(token)}`),
   login: (login: string, password: string) =>
     post<{ login: string; display_name: string }>('/auth/login', { login, password }),
   logout: () => post<{ ok: boolean }>('/auth/logout', {}),

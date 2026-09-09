@@ -30,6 +30,10 @@ docker buildx build --builder "$BUILDER" --platform linux/amd64 --load \
   -t orbita-exchange:latest -f "$ROOT/ops/exchange.Dockerfile" "$ROOT"
 docker buildx build --builder "$BUILDER" --platform linux/amd64 --load \
   -t orbita-web:latest      -f "$ROOT/ops/web.Dockerfile" "$ROOT"
+# StrictDoc-канал (ADR-049/064): профиль strictdoc на сервере включается
+# COMPOSE_PROFILES=strictdoc в /opt/orbita/.env — образ обязан быть на месте.
+docker buildx build --builder "$BUILDER" --platform linux/amd64 --load \
+  -t orbita-strictdoc:latest -f "$ROOT/ops/strictdoc.Dockerfile" "$ROOT"
 
 echo "==> Перенос кода на $SERVER:$DEST"
 $SSH "mkdir -p $DEST"
@@ -40,7 +44,7 @@ rsync -az --delete \
   -e "ssh -i $SSH_KEY -o BatchMode=yes" "$ROOT/" "root@$SERVER:$DEST/"
 
 echo "==> Перенос образов (docker save | load)"
-docker save orbita-api:latest orbita-seed:latest orbita-exchange:latest orbita-web:latest \
+docker save orbita-api:latest orbita-seed:latest orbita-exchange:latest orbita-web:latest orbita-strictdoc:latest \
   | gzip | $SSH 'gunzip | docker load'
 
 echo "==> build-and-ship завершён"

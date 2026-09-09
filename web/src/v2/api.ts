@@ -705,6 +705,18 @@ export const api = {
     вызов<{ items: DocHint[] }>(
       `/documents/hints?project=${encodeURIComponent(project)}&scene=${encodeURIComponent(scene)}`),
 
+  /** Вход через Telegram (ADR-065): пути /api/auth/* — вне /api/v2, поэтому fetch напрямую. */
+  authStart: async () => {
+    const r = await fetch('/api/auth/start', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
+    if (!r.ok) throw new Error((await r.json().catch(() => ({})))?.error ?? `HTTP ${r.status}`)
+    return r.json() as Promise<{ token: string; deep_link: string }>
+  },
+  authStatus: async (token: string) => {
+    const r = await fetch(`/api/auth/status?token=${encodeURIComponent(token)}`)
+    if (!r.ok) throw new Error((await r.json().catch(() => ({})))?.error ?? `HTTP ${r.status}`)
+    return r.json() as Promise<{ status: string; login?: string; display_name?: string }>
+  },
+
   /** Печать — файлом с сервера: ссылка, а не сборка PDF в браузере. */
   printUrl: (project: string, code: string) =>
     `/api/v2/documents/${code}/print?project=${encodeURIComponent(project)}`,
