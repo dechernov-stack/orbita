@@ -40,6 +40,37 @@ class ArchRoutes(
         method == "GET" && path == "/v2/interfaces" -> стыки(требуется(query, "project"))
         method == "POST" && path == "/v2/interfaces" -> завестиСтык(требуется(query, "project"), разобрать(body))
 
+        // Phase A (ПМИ-5, условия A4/A5): функции SA/LA, обмены и элементы обмена,
+        // бюджеты, логические компоненты — записями реестра, ссылки кодами.
+        method == "GET" && path == "/v2/functions" -> список(требуется(query, "project"), "function", listOf("name", "layer", "allocated_to"))
+        method == "POST" && path == "/v2/functions" -> завестиЗапись(
+            требуется(query, "project"), разобрать(body), "function", "FN", "A5",
+            обязательные = listOf("name"), ссылки = mapOf("allocated_to" to "component"),
+            умолчания = mapOf("layer" to "SA"),
+        )
+        method == "GET" && path == "/v2/exchanges" -> список(требуется(query, "project"), "exchange", listOf("name", "interface", "source_function", "target", "payload"))
+        method == "POST" && path == "/v2/exchanges" -> завестиЗапись(
+            требуется(query, "project"), разобрать(body), "exchange", "EX", "A4",
+            обязательные = listOf("name", "interface"), ссылки = mapOf("interface" to "interface", "source_function" to "function", "target" to null),
+        )
+        method == "GET" && path == "/v2/exchange-items" -> список(требуется(query, "project"), "exchange_item", listOf("name", "type", "elements", "exchanges"))
+        method == "POST" && path == "/v2/exchange-items" -> завестиЗапись(
+            требуется(query, "project"), разобрать(body), "exchange_item", "EI", "A4",
+            обязательные = listOf("name", "type"), ссылки = mapOf("exchanges" to "exchange"),
+            умолчания = mapOf("elements" to "[]"),
+        )
+        method == "GET" && path == "/v2/budgets" -> список(требуется(query, "project"), "budget", listOf("kind", "root", "reserve_policy"))
+        method == "POST" && path == "/v2/budgets" -> завестиЗапись(
+            требуется(query, "project"), разобрать(body), "budget", "BGT", "A5",
+            обязательные = listOf("kind", "root", "reserve_policy"), ссылки = mapOf("root" to "component"),
+        )
+        method == "GET" && path == "/v2/logical-components" -> список(требуется(query, "project"), "logical_component", listOf("name", "functions", "deployed_to"))
+        method == "POST" && path == "/v2/logical-components" -> завестиЗапись(
+            требуется(query, "project"), разобрать(body), "logical_component", "LC", "A5",
+            обязательные = listOf("name"), ссылки = mapOf("functions" to "function", "deployed_to" to "component"),
+            умолчания = mapOf("functions" to "[]", "deployed_to" to "[]"),
+        )
+
         // Сцена 9: режимы и операционные сценарии. Оба вида читались
         // гранями компонента и запросами ConOps с волны 3, а завести их
         // было нечем — §4 и §5 документа не наполнялись никогда.
@@ -290,6 +321,71 @@ class ArchRoutes(
                 .also { у -> у.putArray("requirement_classes").also { к -> с.doc.path("requirement_classes").forEach { к.add(it.asText()) } } }
         }
         return V2Router.Ответ(200, mapper.createObjectNode().set("items", массив))
+    }
+
+    /** Записи реестра одним видом: код, имя и поля из документа, ссылки — кодами. */
+    private fun список(проект: String, вид: String, поля: List<String>): V2Router.Ответ {
+        val область = Area.Project(проект)
+        val массив = mapper.createArrayNode()
+        store.list(область, вид).filter { it.status != "cancelled" }.sortedBy { it.code }.forEach { з ->
+            val у = массив.addObject().put("code", з.code).put("id", з.id)
+            поля.forEach { поле ->
+                val значение = з.doc.path(поле)
+                when {
+                    значение.isMissingNode || значение.isNull -> Unit
+                    значение.isArray -> у.putArray(поле).also { а -> значение.forEach { а.add(store.byId(it.asText())?.code ?: it.asText()) } }
+                    значение.isTextual -> у.put(поле, store.byId(значение.asText())?.code ?: значение.asText())
+                    else -> у.set<JsonNode>(поле, значение)
+                }
+            }
+        }
+        return V2Router.Ответ(200, mapper.createObjectNode().set("items", массив))
+    }
+
+    /**
+     * Запись вида по телу запроса: обязательные поля названы, ссылки (коды →
+     * id) проверены по реестру — ссылка в пустоту отказывает до записи.
+     * `ссылки`: поле → вид (null — любой вид проекта).
+     */
+    private fun завестиЗапись(
+        проект: String,
+        тело: JsonNode,
+        вид: String,
+        префикс: String,
+        сцена: String,
+        обязательные: List<String>,
+        ссылки: Map<String, String?> = emptyMap(),
+        умолчания: Map<String, String> = emptyMap(),
+    ): V2Router.Ответ {
+        val область = Area.Project(проект)
+        val документ = тело.deepCopy<ObjectNode>()
+        документ.remove(listOf("code", "author", "project"))
+        обязательные.forEach { поле ->
+            val значение = тело.path(поле)
+            require(!(значение.isMissingNode || значение.isNull || (значение.isTextual && значение.asText().isBlank()))) { "у записи вида «$вид» обязано быть поле «$поле»" }
+        }
+        умолчания.forEach { (поле, значение) ->
+            if (документ.path(поле).isMissingNode) {
+                if (значение == "[]") документ.putArray(поле) else документ.put(поле, значение)
+            }
+        }
+        fun разрешить(код: String, ожидаемыйВид: String?): String {
+            val запись = store.byCode(область, код) ?: store.byId(код)
+                ?: throw IllegalArgumentException("ссылка «$код» никуда не ведёт: такой записи в проекте нет")
+            require(ожидаемыйВид == null || запись.kind == ожидаемыйВид) { "«$код» — это ${запись.kind}, а поле ждёт $ожидаемыйВид" }
+            return запись.id
+        }
+        ссылки.forEach { (поле, ожидаемыйВид) ->
+            val значение = тело.path(поле)
+            when {
+                значение.isArray -> документ.putArray(поле).also { а -> значение.forEach { а.add(разрешить(it.asText(), ожидаемыйВид)) } }
+                значение.isTextual && значение.asText().isNotBlank() -> документ.put(поле, разрешить(значение.asText(), ожидаемыйВид))
+                else -> Unit
+            }
+        }
+        val код = тело.path("code").asText("").ifBlank { следующийКод(область, вид, префикс) }
+        val создано = store.create(код, вид, область, сцена, документ, Provenance(Channel.MANUAL, тело.path("author").asText("стенд")))
+        return V2Router.Ответ(201, mapper.createObjectNode().put("code", создано.code).put("id", создано.id))
     }
 
     /** Стык — между двумя узлами состава кодами; концы хранятся ссылками. */

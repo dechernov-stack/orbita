@@ -2018,7 +2018,8 @@
             "kind": "expertise.positions",
             "min": "reviewed",
             "where": "EXP-2A/2B"
-          }
+          },
+          "blocking": false
         },
         {
           "check": "expertise_positions_reviewed:SDR",

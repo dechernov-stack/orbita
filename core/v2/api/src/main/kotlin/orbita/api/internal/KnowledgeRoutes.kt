@@ -19,6 +19,8 @@ class KnowledgeRoutes(
     private val atomize: Atomize,
     private val service: AiService,
     private val mapper: ObjectMapper = ObjectMapper(),
+    /** Разбор фоновой задачей (ADR-069); null — только синхронный разбор. */
+    private val jobs: orbita.ai.api.AtomizeJobs? = null,
 ) {
 
     fun handle(method: String, path: String, query: Map<String, String>, body: String?): V2Router.Ответ? = when {
@@ -28,6 +30,9 @@ class KnowledgeRoutes(
 
         // Д2б: живой разбор. Один вызов на версию документа — повтор той же
         // версии возвращает записанный ответ и не звонит.
+        method == "GET" && path == "/v2/intake/jobs" -> задания(требуется(query, "project"))
+        method == "GET" && path.matches(Regex("/v2/intake/jobs/JOB-[0-9]+")) ->
+            задание(требуется(query, "project"), path.removePrefix("/v2/intake/jobs/"))
         method == "POST" && path == "/v2/intake/atomize" ->
             разбор(требуется(query, "project"), разобрать(body))
 
@@ -94,6 +99,12 @@ class KnowledgeRoutes(
         require(материал.isNotBlank()) { "нужен материал: что разбираем" }
         val намерение = тело.path("intent").asText("разбери по сущностям")
         val автор = тело.path("author").asText("инженер")
+        // Фоновой задачей (ПМИ-5, ADR-069): ответ сразу — задание со статусом;
+        // готовый ответ из журнала применяется тут же.
+        if (тело.path("background").asBoolean(false) && jobs != null) {
+            val з = jobs.start(project, материал, намерение, автор)
+            return V2Router.Ответ(if (з.status == "running") 202 else 201, заданиеВид(з))
+        }
         return try {
             V2Router.Ответ(201, итог(atomize.atomize(project, материал, намерение, автор)))
         } catch (e: ProviderUnavailable) {
@@ -130,6 +141,30 @@ class KnowledgeRoutes(
             mark = тело.path("mark").asText("").ifBlank { "И" },
         )
         return V2Router.Ответ(201, фактВид(ф))
+    }
+
+    private fun задания(project: String): V2Router.Ответ {
+        val массив = mapper.createArrayNode()
+        jobs?.list(project)?.forEach { массив.add(заданиеВид(it)) }
+        return V2Router.Ответ(200, mapper.createObjectNode().set("items", массив))
+    }
+
+    private fun задание(project: String, id: String): V2Router.Ответ {
+        val з = jobs?.poll(project, id)
+            ?: return V2Router.Ответ(404, mapper.createObjectNode().put("error", "задания разбора «$id» нет: стенд перезапускался — повторите разбор"))
+        return V2Router.Ответ(200, заданиеВид(з))
+    }
+
+    private fun заданиеВид(з: orbita.ai.api.AtomizeJob): ObjectNode {
+        val узел = mapper.createObjectNode()
+        узел.put("job", з.id).put("status", з.status).put("material", з.material)
+            .put("started_at", з.startedAt).put("elapsed_seconds", з.elapsedSeconds)
+        з.task?.let { узел.put("task", it) }
+        з.note?.let { узел.put("note", it) }
+        узел.put("accepted", з.accepted).put("refused", з.refused)
+        узел.putArray("refusals").also { а -> з.refusals.forEach { а.add(it) } }
+        з.error?.let { узел.put("error", it) }
+        return узел
     }
 
     private fun итог(и: FactIntake): ObjectNode {

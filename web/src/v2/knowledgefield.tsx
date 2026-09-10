@@ -497,16 +497,30 @@ function Source({ project, onParsed, onError }: {
     f.text().then(setТекст).catch(() => onError('файл не прочитался: приложите текстовый'))
   }
 
+  // Разбор — фоновой задачей (ADR-069): стенд отвечает, пока модель думает;
+  // статус опрашивается раз в три секунды, готовый ответ применяется при опросе.
   const разобрать = () => {
     setЗанято(true); setИтог(null)
+    const готово = (р: { task: string; note: string; accepted: number; refused: number; refusals: string[] }) => {
+      setИтог(`${р.note}${р.refusals.length ? ` · отклонено: ${р.refusals.slice(0, 3).join('; ')}` : ''}`)
+      onParsed(р)
+      setЗанято(false)
+    }
+    const опрос = (job: string) => {
+      api.atomizeJobStatus(project, job).then((з) => {
+        if (з.status === 'done') готово({ task: з.task ?? '', note: з.note ?? '', accepted: з.accepted, refused: з.refused, refusals: з.refusals })
+        else if (з.status === 'failed') { onError(з.error ?? 'разбор не удался'); setЗанято(false) }
+        else { setИтог(`разбор идёт фоновой задачей ${з.job}: ${з.elapsed_seconds} с — стенд отвечает, страницу можно не держать`); window.setTimeout(() => опрос(job), 3000) }
+      }).catch((e) => { onError(String(e.message ?? e)); setЗанято(false) })
+    }
     api.putMaterial(project, { name: имя, kind: вид, text: текст, url: ссылка, author: 'инженер', supersedes: прежний || undefined })
-      .then((м) => api.atomize(project, м.code, задание, 'инженер'))
-      .then((р) => {
-        setИтог(`${р.note}${р.refusals.length ? ` · отклонено: ${р.refusals.slice(0, 3).join('; ')}` : ''}`)
-        onParsed(р)
+      .then((м) => api.atomizeJob(project, м.code, задание, 'инженер'))
+      .then((з) => {
+        if (з.status === 'done') готово({ task: з.task ?? '', note: з.note ?? '', accepted: з.accepted, refused: з.refused, refusals: з.refusals })
+        else if (з.status === 'failed') { onError(з.error ?? 'разбор не удался'); setЗанято(false) }
+        else { setИтог(`разбор идёт фоновой задачей ${з.job} — стенд отвечает`); window.setTimeout(() => опрос(з.job), 3000) }
       })
-      .catch((e) => onError(String(e.message ?? e)))
-      .finally(() => setЗанято(false))
+      .catch((e) => { onError(String(e.message ?? e)); setЗанято(false) })
   }
 
   const есть = текст.trim().length > 0 || ссылка.trim().length > 0

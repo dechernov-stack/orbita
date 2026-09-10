@@ -31,30 +31,40 @@ class JournalService(
         model: String?,
         maxTokens: Int?,
     ): Answer {
+        cached(project, prompt)?.let { return it }
+        val ответ = askDetached(prompt, model, maxTokens)
+        record(project, kind, prompt, ответ)
+        return ответ
+    }
+
+    override fun cached(project: String, prompt: String): Answer? {
         val отпечаток = отпечатокПромпта(prompt)
         val записанный = store.list(Area.Project(project), "ai_call")
-            .firstOrNull { it.doc.path("fingerprint").asText() == отпечаток }
-        if (записанный != null) {
-            return Answer(
-                text = записанный.doc.path("response").asText(""),
-                model = записанный.doc.path("model").asText(""),
-                tokensIn = записанный.doc.path("tokens_in").takeIf { it.isNumber }?.asInt(),
-                tokensOut = записанный.doc.path("tokens_out").takeIf { it.isNumber }?.asInt(),
-                cached = true,
-            )
-        }
-        val ответ = transport.ask(prompt, model, maxTokens)
+            .firstOrNull { it.doc.path("fingerprint").asText() == отпечаток } ?: return null
+        return Answer(
+            text = записанный.doc.path("response").asText(""),
+            model = записанный.doc.path("model").asText(""),
+            tokensIn = записанный.doc.path("tokens_in").takeIf { it.isNumber }?.asInt(),
+            tokensOut = записанный.doc.path("tokens_out").takeIf { it.isNumber }?.asInt(),
+            cached = true,
+        )
+    }
+
+    /** Только сеть: ни чтения, ни записи базы — годится для фонового потока. */
+    override fun askDetached(prompt: String, model: String?, maxTokens: Int?): Answer =
+        transport.ask(prompt, model, maxTokens)
+
+    override fun record(project: String, kind: String, prompt: String, answer: Answer) {
+        val отпечаток = отпечатокПромпта(prompt)
         val документ = mapper.createObjectNode()
         документ.put("kind", kind)
-        документ.put("model", ответ.model)
+        документ.put("model", answer.model)
         документ.put("fingerprint", отпечаток)
         документ.put("prompt_chars", prompt.length)
-        документ.put("response", ответ.text)
-        ответ.tokensIn?.let { документ.put("tokens_in", it) }
-        ответ.tokensOut?.let { документ.put("tokens_out", it) }
+        документ.put("response", answer.text)
+        answer.tokensIn?.let { документ.put("tokens_in", it) }
+        answer.tokensOut?.let { документ.put("tokens_out", it) }
         документ.put("at", OffsetDateTime.now().toString())
-        // Номер записи — MAX + 1: размер списка врёт после любой чистки, и
-        // код повторяется (та же ошибка, что поймана на заданиях загрузки).
         val занято = store.list(Area.Project(project), "ai_call").mapNotNull {
             Regex("^AI-(\\d+)$").find(it.code)?.groupValues?.get(1)?.toIntOrNull()
         }
@@ -62,7 +72,6 @@ class JournalService(
             "AI-%04d".format((занято.maxOrNull() ?: 0) + 1), "ai_call", Area.Project(project), null,
             документ, Provenance(Channel.SERVICE, "служба", fingerprint = отпечаток),
         )
-        return ответ
     }
 
     override fun journal(project: String): List<CallRecord> =

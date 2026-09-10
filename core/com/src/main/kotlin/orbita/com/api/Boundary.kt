@@ -275,6 +275,8 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
             orbita.ai.api.AiFactory.atomize(store, знания, служба, mapper),
             служба,
             mapper,
+            // Разбор фоновой задачей (ADR-069): сеть в фоне, база — на потоке запросов.
+            jobs = orbita.ai.api.AiFactory.atomizeJobs(store, знания, служба, mapper),
         )
         // Обмен (шип F): служба StrictDoc — по ORBITA_STRICTDOC_URL, снимки
         // .sdoc — в томе файлов стенда рядом с базированиями документов.

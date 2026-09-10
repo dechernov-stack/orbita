@@ -3,6 +3,7 @@ package orbita.ai.api
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import orbita.ai.internal.Atomizer
+import orbita.ai.internal.BackgroundAtomizer
 import orbita.ai.internal.HttpTransport
 import orbita.ai.internal.JournalService
 import orbita.ai.internal.RetryingTransport
@@ -38,4 +39,12 @@ object AiFactory {
             работник.atomize(project, material, intent, author)
         }
     }
+
+    /** Разбор фоновой задачей (ADR-069): сеть в фоне, база на потоке запросов. */
+    fun atomizeJobs(
+        store: EntityStore,
+        intake: Intake,
+        service: AiService,
+        mapper: ObjectMapper = ObjectMapper(),
+    ): AtomizeJobs = BackgroundAtomizer(Atomizer(store, intake, service, mapper), service)
 }

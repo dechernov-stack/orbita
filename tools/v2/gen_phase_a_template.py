@@ -79,7 +79,9 @@ import sys
     "A11": ["document_started:projectplan", "document_version_min:fa:2", "document_section_started:fa:§6"],
     "A12": [
         "baseline_taken:functional", "baseline_taken:allocated",
-        ["expertise_positions_reviewed:SRR", "expertise_positions_reviewed:SDR"], "maturity_matrix_complete:KDP-B",
+        # EXP-2A на полке без позиций (ПМИ-5): помета, точку не держит; EXP-2B — держит
+        [{"check": "expertise_positions_reviewed:SRR", "blocking": False}, "expertise_positions_reviewed:SDR"],
+        "maturity_matrix_complete:KDP-B",
     ],
 }
 

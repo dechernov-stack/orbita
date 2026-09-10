@@ -653,6 +653,19 @@ export interface FactRow {
 }
 
 /** Оценка ТЗ против нужд проекта: строка на требование ТЗ. */
+export interface AtomizeJob {
+  job: string
+  status: 'running' | 'done' | 'failed'
+  material: string
+  elapsed_seconds: number
+  task?: string
+  note?: string
+  accepted: number
+  refused: number
+  refusals: string[]
+  error?: string
+}
+
 export interface TorAssessment {
   lines: { fact: string; requirement: string; needs: string[]; verdict: string; note?: string }[]
   /** От нужды: вердикт и дыра словами (ответ владельца 09.09 п. 1). */
@@ -793,6 +806,16 @@ export const api = {
     вызов<{ task: string; note: string; accepted: number; refused: number; refusals: string[] }>(
       `/intake/atomize?project=${encodeURIComponent(project)}`,
       { method: 'POST', body: JSON.stringify({ material, intent, author }) }),
+
+  /** Разбор фоновой задачей (ADR-069): ответ сразу — задание со статусом; готовое из журнала — сразу done. */
+  atomizeJob: (project: string, material: string, intent: string, author: string) =>
+    вызов<AtomizeJob>(
+      `/intake/atomize?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ material, intent, author, background: true }) }),
+
+  /** Опрос фонового разбора: готовый ответ применяется при этом обращении. */
+  atomizeJobStatus: (project: string, job: string) =>
+    вызов<AtomizeJob>(`/intake/jobs/${encodeURIComponent(job)}?project=${encodeURIComponent(project)}`),
 
   /** План задания — предпросмотр до нажатия. */
   taskPlan: (project: string, task: string) =>

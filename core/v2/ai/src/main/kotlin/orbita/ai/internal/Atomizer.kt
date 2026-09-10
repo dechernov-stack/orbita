@@ -26,17 +26,31 @@ class Atomizer(
 
     /** Разбор материала живым вызовом. Повтор той же версии — из журнала. */
     fun atomize(project: String, material: String, intent: String, author: String): FactIntake {
+        val промпт = prepare(project, material, intent)
+        // Урожай в сотню фактов не помещается в бюджет короткого ответа:
+        // разбор просит свой потолок, а не полагается на общий.
+        val ответ = service.ask(project, KIND, промпт, maxTokens = БЮДЖЕТ_РАЗБОРА)
+        return apply(project, material, intent, author, ответ, journaled = true)
+    }
+
+    /**
+     * Промпт разбора — читается из базы на потоке запросов; дальше он
+     * самодостаточен, и сетевой вызов можно делать где угодно (ADR-069).
+     */
+    fun prepare(project: String, material: String, intent: String): String {
         val блоки = intake.canon(project, material)
         require(блоки.isNotEmpty()) {
             "у материала «$material» нет текста: разбирать нечего. " +
                 "Приложите текст документа — канон строится из него"
         }
-        val промпт = промпт(project, material, intent, блоки.joinToString("\n") { "[${it.anchor}] ${it.text}" })
-        // Урожай в сотню фактов не помещается в бюджет короткого ответа:
-        // разбор просит свой потолок, а не полагается на общий.
-        val ответ = service.ask(project, KIND, промпт, maxTokens = БЮДЖЕТ_РАЗБОРА)
-        val итог = intake.putFacts(project, material, ответ.text, author, intent)
-        return itogСПометой(итог, ответ.cached)
+        return промпт(project, material, intent, блоки.joinToString("\n") { "[${it.anchor}] ${it.text}" })
+    }
+
+    /** Применить ответ модели: журнал (если ещё не записан) и приём фактов — на потоке запросов. */
+    fun apply(project: String, material: String, intent: String, author: String, answer: orbita.ai.api.Answer, journaled: Boolean = false, prompt: String? = null): FactIntake {
+        if (!journaled && prompt != null && !answer.cached) service.record(project, KIND, prompt, answer)
+        val итог = intake.putFacts(project, material, answer.text, author, intent)
+        return itogСПометой(итог, answer.cached)
     }
 
     private fun itogСПометой(итог: FactIntake, изЖурнала: Boolean): FactIntake =
