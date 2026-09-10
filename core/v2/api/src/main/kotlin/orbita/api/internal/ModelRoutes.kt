@@ -32,6 +32,16 @@ class ModelRoutes(
         method == "POST" && path == "/v2/models/take" ->
             взять(требуется(query, "project"), разобрать(body))
 
+        method == "POST" && path.startsWith("/v2/models/") && path.endsWith("/verify") -> {
+            val тело = разобрать(body)
+            val статус = runCatching { orbita.models.api.Verification.valueOf(тело.path("status").asText("verified").uppercase()) }
+                .getOrElse { throw IllegalArgumentException("статус верификации: unverified · verified · validated") }
+            val м = models.verify(
+                требуется(query, "project"), path.removePrefix("/v2/models/").removeSuffix("/verify"),
+                статус, тело.path("author").asText("стенд"), тело.path("note").asText(""),
+            )
+            V2Router.Ответ(200, mapper.createObjectNode().put("code", м.code).put("verification", м.verification.name.lowercase()))
+        }
         method == "POST" && path.startsWith("/v2/models/") && path.endsWith("/run") ->
             прогон(
                 требуется(query, "project"),

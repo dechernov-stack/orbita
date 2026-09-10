@@ -126,6 +126,10 @@ class EntityDocuments(
             total = ожидаемые.size,
             gate = gate.uppercase(),
             notDueYet = разделы.size - ожидаемые.size,
+            // Версия документа: версия записи плюс тезисы — каждый тезис живёт
+            // своей записью, и без него «обновлён» было бы не измерить.
+            version = (store.list(Area.Project(project), "document").firstOrNull { it.doc.path("template").asText(it.code) == code }?.version ?: 1) +
+                тезисы.values.sumOf { it.size },
         )
     }
 

@@ -140,6 +140,8 @@ class ReqRoutes(
             subtype = тело.path("subtype").asText("derivation"),
             category = тело.path("category").asText("").ifBlank { null },
             verificationMethod = тело.path("verification_method").asText("").ifBlank { null },
+            level = тело.path("level").asText("").ifBlank { null }?.let { orbita.requirements.api.Level.of(it) } ?: orbita.requirements.api.Level.SYSTEM,
+            acceptanceCriteria = тело.path("acceptance_criteria").asText("").ifBlank { null },
         )
         return V2Router.Ответ(201, вид(системное))
     }

@@ -154,6 +154,9 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
         // Условия про документы заводятся ниже, когда есть сам порт документов;
         // оценщик спрашивает их при вызове, а не при сборке.
         var проверкиДокументов: orbita.readiness.api.ExtraChecks? = null
+        // Условия про точки (позиции экспертиз, матрица зрелости, даты точек
+        // фазы) — слой над контурами: им нужен шаблон фазы и записи точек.
+        var проверкиТочек: orbita.readiness.api.ExtraChecks? = null
         val оценщик = orbita.readiness.api.ReadinessFactory.gateEvaluator(
             store, links,
             scenesDone = { emptySet() },
@@ -163,6 +166,7 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
                     ?: проверкиАрхитектуры.of(проект, условие)
                     ?: проверкиПрограмматики.of(проект, условие)
                     ?: проверкиДокументов?.of(проект, условие)
+                    ?: проверкиТочек?.of(проект, условие)
             },
             kindTitle = { вид -> runCatching { orbita.kernel.schema.GeneratedKinds.of(вид).title }.getOrDefault(вид) },
         )
@@ -261,6 +265,9 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
             },
         )
         проверкиДокументов = orbita.documents.api.DocumentsFactory.gateChecks(документы)
+        проверкиТочек = orbita.api.internal.PointChecks(store, записиТочек, документы) { p ->
+            runCatching { полки.phaseTemplate(записиТочек.phaseTemplateOf(p) ?: "PHT-9001") }.getOrNull()
+        }
         val документыМаршруты = orbita.api.internal.DocRoutes(store, документы, mapper) { полки.phaseTemplate("PHT-9001") }
         val точки = orbita.api.internal.PointRoutes(движок, записиТочек, mapper)
         val знанияМаршруты = orbita.api.internal.KnowledgeRoutes(

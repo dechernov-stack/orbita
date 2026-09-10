@@ -136,6 +136,7 @@ assessment — оценка, суждение · assumption — допущени
       "confidence": 0.0,
       "conflict": "код ограничения, если противоречит (иначе поле опустить)",
       "param_key": "ключ анкеты узла — только для даташита (иначе опустить)",
+      "entity_class": "requirement|function|service|composition_node|stakeholder|constraint|milestone|normative_ref — только для ТЗ (иначе опустить)",
       "limit": {"key": "…", "op": "le|ge|lt|gt|eq", "value": 0, "unit": "…"}
     }
   ],
@@ -164,17 +165,35 @@ $выжимка
                 .ifBlank { "  (нужд в проекте пока нет — оценка невозможна, верни assessment с пустыми lines)" }
             """
 ## Режим: техническое задание заказчика (полный разбор + оценка против нужд)
-Каждое требование ТЗ — факт вида obligation: subject — «ТЗ п. N», predicate —
-формулировка требования, value — «требование». Предложи действия
-create_entity с target_kind requirement (сцена 8): statement · level = "project" ·
-category (functional|performance|interface|operational|constraint) · rationale
-= пункт ТЗ. Требования ТЗ по составу, стыкам и срокам — тоже факты.
-ОЦЕНКА — в две стороны. От требования: для КАЖДОГО факта-требования
-назови, какие нужды проекта оно покрывает (коды из списка), вердикт
+ПРАВИЛО АТОМИЗАЦИИ (ШИП-G-ПРИНЯТ): каждое требование, каждая функция и
+каждый сервис (услуга) ТЗ — ОТДЕЛЬНЫЙ факт; ничего не объединяй: «услуги
+связи, телеметрии и навигации (PNT)» — три факта, не один. Так же отдельными
+фактами — каждая сторона, каждый узел состава, каждое ограничение, каждая веха
+и каждый нормативный акт, на который ТЗ ссылается. У каждого факта ТЗ —
+поле `entity_class` из: requirement · function · service · composition_node ·
+stakeholder · constraint · milestone · normative_ref.
+Требование ТЗ — факт вида obligation: subject — «ТЗ п. N», predicate —
+формулировка требования, value — «требование». Функция — capability, сервис —
+capability с value «услуга», узел состава — framing с value «узел», веха —
+event с датой, норматив — framing с обозначением акта.
+Действия плана — по классу факта: requirement и function → create_entity
+requirement (сцена 8): statement · level = "project" · category
+(functional|performance|interface|operational|constraint) · rationale = пункт
+ТЗ; service → create_entity service (сцена 6): name · classes; composition_node
+→ create_entity component (сцена 7): name · kind (segment|element|subsystem) ·
+level (1 сегмент, 2 элемент, 3 подсистема) · parent (имя родителя); stakeholder →
+create_entity stakeholder (сцена 3): name · role; constraint → create_entity
+constraint (сцена 5): text · category; normative_ref → create_entity
+normative_document (полка). Вехи (milestone) — факты без действия: даты точек
+задаёт план фазы.
+ОЦЕНКА — в две стороны. От требования: для КАЖДОГО факта класса requirement,
+function и service назови, какие нужды проекта он покрывает (коды из списка), вердикт
 covers|partial|none и `note` — почему: partial — чего не хватает до нужды
 (нет спецификации: числа, условия, способа проверки; число названо без
 обоснования нуждой); none — требование ни к одной нужде не ведёт (новая
-услуга или функция, которой заказчик не просил, — назови её). От нужды:
+услуга или функция, которой заказчик не просил, либо величина облика —
+число КА, орбита, диапазон — заданная без нужды: назови её вместе с числом
+как в ТЗ). От нужды:
 для КАЖДОЙ нужды проекта строка в `needs` — вердикт covered|partial|
 uncovered и `gap` словами: чего в ТЗ нет, чтобы нужду считать закрытой
 (нет требования на регион/условия, нет спецификации гарантии, нет

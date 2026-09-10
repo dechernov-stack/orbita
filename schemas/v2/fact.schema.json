@@ -66,6 +66,19 @@
         "type": "string"
       }
     },
+    "entity_class": {
+      "enum": [
+        "requirement",
+        "function",
+        "service",
+        "composition_node",
+        "stakeholder",
+        "constraint",
+        "milestone",
+        "normative_ref"
+      ],
+      "description": "класс сущности ТЗ (правило атомизации ШИП-G-ПРИНЯТ) — сверка разбора с пакетом по классам"
+    },
     "subject": {
       "type": "object",
       "description": "{ref?:ref entity, topic?:ref topic} ровно одно из двух"

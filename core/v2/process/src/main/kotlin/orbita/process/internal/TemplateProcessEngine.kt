@@ -169,10 +169,14 @@ class TemplateProcessEngine(
             val условияВыхода = сцена.path("exit").map { условие ->
                 val проверка = усл(условие.path("check").asText())
                 val причина = проверить(project, проверка, прожитые, начатые, пройдены)
-                ConditionView(имя(условие.path("title").asText(проверка)), проверка, причина == null, причина)
+                // Условие «желательно» (blocking: false) видно, но сцену не держит.
+                ConditionView(
+                    имя(условие.path("title").asText(проверка)), проверка, причина == null, причина,
+                    blocking = условие.path("blocking").asBoolean(true),
+                )
             } + возвраты
             val причиныВхода = условияВхода.mapNotNull { it.why }
-            val причиныВыхода = условияВыхода.mapNotNull { it.why }
+            val причиныВыхода = условияВыхода.filter { it.blocking }.mapNotNull { it.why }
             val состояние = when {
                 причиныВхода.isNotEmpty() -> SceneState.LOCKED
                 причиныВыхода.isEmpty() -> SceneState.DONE

@@ -217,6 +217,10 @@ interface Requirements {
         subtype: String = "derivation",
         category: String? = null,
         verificationMethod: String? = null,
+        /** Уровень выведенного требования: system (по умолчанию) · interface · subsystem · scenario — носитель той же природы. */
+        level: Level = Level.SYSTEM,
+        /** Критерий приёмки; пусто — наследуется от родителя (без него базовая линия откажет, И1). */
+        acceptanceCriteria: String? = null,
     ): RequirementView
 }
 

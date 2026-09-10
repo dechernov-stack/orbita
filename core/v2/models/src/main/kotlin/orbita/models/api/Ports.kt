@@ -170,6 +170,12 @@ interface Models {
     /** Прогон: снимок входов и выходы. Отсутствующий вход — отказ с адресом. */
     fun run(project: String, model: String, author: String, outputs: Map<String, String> = emptyMap()): RunView
 
+    /**
+     * Верификация модели — решение человека с основанием (условие A6: модель
+     * «дала ответ и верифицирована»). Без прогона верифицировать нечего — отказ.
+     */
+    fun verify(project: String, model: String, status: Verification, author: String, note: String): ModelView
+
     /** Свёртка вида (mass · power · energy · link · dv · data · compute). */
     fun budget(project: String, kind: String, gate: String): BudgetView
 

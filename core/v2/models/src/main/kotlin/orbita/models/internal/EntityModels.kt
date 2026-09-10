@@ -51,6 +51,21 @@ class EntityModels(
         return list(project)
     }
 
+    override fun verify(project: String, model: String, status: Verification, author: String, note: String): ModelView {
+        val область = Area.Project(project)
+        val запись = store.byCode(область, model) ?: throw NoSuchElementException("модели «$model» в проекте нет")
+        require(запись.kind == "system_model") { "«$model» — не модель, а ${запись.kind}" }
+        if (status != Verification.UNVERIFIED) {
+            require(запись.doc.path("last_run").asText("").isNotBlank()) { "модель «$model» ещё не дала ответа: верифицировать нечего — сначала прогон" }
+            require(note.isNotBlank()) { "верификация без основания не решение: скажите, с чем сверено" }
+        }
+        val документ = запись.doc.deepCopy<ObjectNode>()
+            .put("verification_status", status.name.lowercase())
+            .put("verification_note", note)
+        store.update(запись.id, документ, Provenance(Channel.MANUAL, author))
+        return вид(project, store.byId(запись.id) ?: запись)
+    }
+
     override fun list(project: String): List<ModelView> =
         store.list(Area.Project(project), "system_model")
             .sortedBy { it.code }

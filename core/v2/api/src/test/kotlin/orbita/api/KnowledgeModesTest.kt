@@ -80,22 +80,30 @@ class KnowledgeModesTest {
         store.create("ND-0001", "need", область, "3", mapper.readTree("""{"statement":"непрерывное поступление телеметрии"}"""), провенанс)
         store.create("ND-0002", "need", область, "3", mapper.readTree("""{"statement":"подтверждаемая доставка сообщений"}"""), провенанс)
         val материал = intake.putMaterial(проект, "ТЗ заказчика", "tor",
-            "п. 4.1 Система обязана обеспечивать приём телеметрии с интервалом не более 30 мин.\n\nп. 4.2 Срок службы не менее 5 лет.", "Иванов И.")
+            "п. 4.1 Система обязана обеспечивать приём телеметрии с интервалом не более 30 мин.\n\nп. 4.2 Срок службы не менее 5 лет.\n\nп. 3.2 Услуги: связь, телеметрия, позиционирование и навигация (LEO-PNT).", "Иванов И.")
         val я = якоря(материал)
+        // Правило атомизации: услуга ТЗ — отдельный факт своего класса; без нужды — сирота, названная словами.
         val json = """{"topics":[],"actions":[
-            {"kind":"create_entity","target_kind":"requirement","scene":"8","title":"требование из п. 4.1","preview":"…","payload":{"statement":"приём телеметрии не реже 30 мин","level":"project","category":"performance"},"facts":[0]}],
+            {"kind":"create_entity","target_kind":"requirement","scene":"8","title":"требование из п. 4.1","preview":"…","payload":{"statement":"приём телеметрии не реже 30 мин","level":"project","category":"performance"},"facts":[0]},
+            {"kind":"create_entity","target_kind":"service","scene":"6","title":"сервис LEO-PNT","preview":"…","payload":{"name":"Позиционирование и навигация (LEO-PNT)","classes":["A′"]},"facts":[2]}],
           "facts":[
-            {"kind":"obligation","subject":"ТЗ п. 4.1","predicate":"приём телеметрии с интервалом не более 30 мин","value":"требование","source":{"anchor":"${я[0]}"},"source_mark":"И"},
-            {"kind":"obligation","subject":"ТЗ п. 4.2","predicate":"срок службы не менее 5 лет","value":"требование","source":{"anchor":"${я[1]}"},"source_mark":"И"}],
+            {"kind":"obligation","entity_class":"requirement","subject":"ТЗ п. 4.1","predicate":"приём телеметрии с интервалом не более 30 мин","value":"требование","source":{"anchor":"${я[0]}"},"source_mark":"И"},
+            {"kind":"obligation","entity_class":"requirement","subject":"ТЗ п. 4.2","predicate":"срок службы не менее 5 лет","value":"требование","source":{"anchor":"${я[1]}"},"source_mark":"И"},
+            {"kind":"capability","entity_class":"service","subject":"ТЗ п. 3.2","predicate":"услуга позиционирования и навигации LEO-PNT","value":"услуга","source":{"anchor":"${я[2]}"},"source_mark":"И"}],
           "assessment":{"lines":[{"fact":0,"requirement":"п. 4.1","needs":["ND-0001"],"verdict":"partial","note":"интервал есть, а покрытия Арктики (широты выше 70°) требование не задаёт"},
-                               {"fact":1,"requirement":"п. 4.2","needs":[],"verdict":"none","note":"срок службы — ни к одной нужде не ведёт"}],
+                               {"fact":1,"requirement":"п. 4.2","needs":[],"verdict":"none","note":"срок службы — ни к одной нужде не ведёт"},
+                               {"fact":2,"requirement":"п. 3.2","needs":[],"verdict":"none","note":"навигации заказчик не просил"}],
                         "needs":[{"need":"ND-0001","verdict":"partial","gap":"нет требования на покрытие Арктики"},
                                  {"need":"ND-0002","verdict":"covered","gap":""}]}}"""
         val итог = intake.putFacts(проект, материал, json, "Иванов И.", intent = "это ТЗ — оцени против нужд")
         val задание = intake.task(проект, assertNotNull(итог.task))
         val оценка = assertNotNull(задание.assessment)
         assertEquals(listOf("ND-0002"), оценка.uncoveredNeeds, "непокрытое считается по реестру нужд: модель сказала «covered», строк нет — не покрыта")
-        assertEquals(1, оценка.orphanRequirements.size, "п. 4.2 — требование без нужды")
+        assertEquals(2, оценка.orphanRequirements.size, "п. 4.2 и услуга LEO-PNT — без нужды")
+        // Дыра названа словами факта, не кодом: «PNT» видно в самой дыре и в RID (ШИП-G-ПРИНЯТ: 3 из 4 — дефект атомизации).
+        assertTrue(оценка.gaps.any { "PNT" in it && "[service]" in it }, оценка.gaps.toString())
+        assertTrue(задание.plan.any { it.kind == "flag_conflict" && it.title.startsWith("услуга ТЗ") && "PNT" in it.title }, задание.plan.map { it.title }.toString())
+        assertEquals("service", store.list(область, "fact").first { "PNT" in it.doc.path("predicate").asText() }.doc.path("entity_class").asText(), "класс факта сохранён")
         // От нужды — с дырой словами: «Арктика без требования» видна как gap, а не как счётчик.
         val арктика = оценка.needs.first { it.need == "ND-0001" }
         assertEquals("partial", арктика.verdict)

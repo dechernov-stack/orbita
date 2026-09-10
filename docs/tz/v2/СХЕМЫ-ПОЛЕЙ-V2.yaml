@@ -2757,6 +2757,10 @@ kinds:
     type: enum[quantity,capability,obligation,framing,event,relation,assessment,assumption]
     required: true
     note: ''
+  - name: entity_class
+    type: enum[requirement,function,service,composition_node,stakeholder,constraint,milestone,normative_ref]
+    required: false
+    note: класс сущности ТЗ (правило атомизации ШИП-G-ПРИНЯТ) — сверка разбора с пакетом по классам
   - name: subject
     type: '{ref?:ref entity, topic?:ref topic}'
     required: true

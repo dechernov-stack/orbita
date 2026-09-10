@@ -1,0 +1,467 @@
+{
+ "kind": "phase_scene_conditions",
+ "code": "PHC-9002",
+ "phase": "A",
+ "title": "Условия выхода сцен Phase A — содержание к шаблону PHT-9002",
+ "rules": [
+  "условие — читает данные, не пишет",
+  "условие с where — запрос к реестру видов по YAML",
+  "min='all'/'100%' — квантор по выборке",
+  "сцена A4 — экземпляр на элемент состава; условия считаются по узлу экземпляра",
+  "ступени лестницы — из ПОЛКА-ШАБЛОНЫ-КОМПОНЕНТОВ",
+  "у каждого условия — тест на отказ"
+ ],
+ "scenes": [
+  {
+   "key": "A1",
+   "title": "Развёртывание фазы",
+   "gate": "SRR",
+   "romanov": [
+    "1.P"
+   ],
+   "exit_conditions": [
+    {
+     "kind": "plan",
+     "min": 1,
+     "where": "phase=A",
+     "note": "даты SRR·SDR·KDP-B заданы"
+    },
+    {
+     "kind": "account_role",
+     "min": 1,
+     "where": "role in (rp,si)",
+     "note": "ответственные сцен назначены ≥ 1"
+    },
+    {
+     "kind": "scene_plan",
+     "min": 1,
+     "where": "phase=A",
+     "note": "план хотя бы у первой доступной сцены"
+    }
+   ],
+   "writes_to": [
+    "FA §4"
+   ],
+   "instantiate_per": null
+  },
+  {
+   "key": "A2",
+   "title": "SEMP",
+   "gate": "SRR",
+   "romanov": [
+    "1.P"
+   ],
+   "exit_conditions": [
+    {
+     "kind": "document",
+     "min": 1,
+     "where": "template=DT-9002 status>=Preliminary",
+     "note": "11 разделов, §6 = 17 строк process_catalog, §2 из полки нормативов"
+    },
+    {
+     "kind": "section_complete",
+     "min": "all",
+     "where": "document=SEMP gate=SRR",
+     "note": "полнота к SRR по expects"
+    }
+   ],
+   "writes_to": [
+    "SEMP"
+   ],
+   "instantiate_per": null
+  },
+  {
+   "key": "A3",
+   "title": "ConOps — базирование",
+   "gate": "SRR",
+   "romanov": [
+    "1.3",
+    "2.M1"
+   ],
+   "exit_conditions": [
+    {
+     "kind": "document",
+     "min": 1,
+     "where": "template=ConOps status=Baseline",
+     "note": "базирован после SEMP (2.3→3.3)"
+    },
+    {
+     "kind": "scenario",
+     "min": 3,
+     "where": "layer=SA",
+     "note": "≥ 1 номинальный + 2 нештатных + завершение миссии"
+    },
+    {
+     "kind": "state_machine",
+     "min": 1,
+     "where": "owner=SC",
+     "note": "режимы КА заданы"
+    }
+   ],
+   "writes_to": [
+    "ConOps §2–§4"
+   ],
+   "instantiate_per": null
+  },
+  {
+   "key": "A4",
+   "title": "Аванпроект элемента (сегмент/элемент)",
+   "gate": "SDR",
+   "romanov": [
+    "2.E1",
+    "2.E2",
+    "2.E3",
+    "2.E4",
+    "2.E5",
+    "2.E6"
+   ],
+   "exit_conditions": [
+    {
+     "kind": "requirement",
+     "min": 1,
+     "where": "level=system carrier=node",
+     "note": "системные требования элемента распределены"
+    },
+    {
+     "kind": "function",
+     "min": 1,
+     "where": "allocated_to=node",
+     "note": "функции элемента распределены 100 %"
+    },
+    {
+     "kind": "interface",
+     "min": 1,
+     "where": "a=node or b=node",
+     "note": "стыки элемента с параметрами ступени SRR"
+    },
+    {
+     "kind": "component.maturity",
+     "min": "SDR",
+     "where": "node",
+     "note": "лестница: ступень «архитектура» закрыта"
+    },
+    {
+     "kind": "exchange_item",
+     "min": 1,
+     "where": "interfaces of node",
+     "note": "элементы обмена на стыках данных к SDR"
+    }
+   ],
+   "writes_to": [
+    "Д5 архитектура · ICD стыков"
+   ],
+   "instantiate_per": "element"
+  },
+  {
+   "key": "A5",
+   "title": "Архитектура системы",
+   "gate": "SDR",
+   "romanov": [
+    "1.4",
+    "1.5",
+    "1.6",
+    "2.4"
+   ],
+   "exit_conditions": [
+    {
+     "kind": "requirement",
+     "min": 1,
+     "where": "level=system",
+     "note": "≥ 1 системное на каждый сегмент"
+    },
+    {
+     "kind": "link.allocated_to",
+     "min": "100%",
+     "where": "level=system",
+     "note": "«без носителя (системные)» = 0"
+    },
+    {
+     "kind": "link.derives_from",
+     "min": "100%",
+     "where": "level=system rationale!=null",
+     "note": "у каждого системного — родитель с обоснованием"
+    },
+    {
+     "kind": "function",
+     "min": "100%",
+     "where": "layer=SA allocated",
+     "note": "функций без узла = 0"
+    },
+    {
+     "kind": "functional_chain",
+     "min": "100%",
+     "where": "realized_by>=1",
+     "note": "у каждой цепочки сценарное требование"
+    },
+    {
+     "kind": "budget",
+     "min": 3,
+     "where": "kind in (mass,power,link)",
+     "note": "бюджеты с двумя резервами против рамок"
+    },
+    {
+     "kind": "logical_component",
+     "min": 1,
+     "where": "deployed_to>=1",
+     "note": "LA развёрнут (желательно)"
+    }
+   ],
+   "writes_to": [
+    "Д5 архитектура · MCReport→SDR-пакет"
+   ],
+   "instantiate_per": null
+  },
+  {
+   "key": "A6",
+   "title": "Анализы и trade studies",
+   "gate": "SDR",
+   "romanov": [
+    "1.7",
+    "2.6",
+    "2.7"
+   ],
+   "exit_conditions": [
+    {
+     "kind": "constellation_variant",
+     "min": 2,
+     "where": null,
+     "note": "≥ 2 варианта с метриками"
+    },
+    {
+     "kind": "baseline_concept",
+     "min": 1,
+     "where": "rejected>=1 rationale",
+     "note": "базовый с отклонёнными и обоснованием"
+    },
+    {
+     "kind": "model_run",
+     "min": 4,
+     "where": "model in (М1,М2а,М3а,М6) verified",
+     "note": "четыре обязательных модели дали ответ и верифицированы"
+    },
+    {
+     "kind": "document_section",
+     "min": 1,
+     "where": "Д5 §6 протокол trade study",
+     "note": "протокол решения вставкой сравнения"
+    }
+   ],
+   "writes_to": [
+    "Д5 §6 · AoA"
+   ],
+   "instantiate_per": null
+  },
+  {
+   "key": "A7",
+   "title": "Созревание технологий",
+   "gate": "SDR",
+   "romanov": [
+    "2.T"
+   ],
+   "exit_conditions": [
+    {
+     "kind": "technology",
+     "min": "all",
+     "where": "trl_current<trl_required → maturation_package&milestone",
+     "note": "у каждого разрыва пакет и веха с датой"
+    },
+    {
+     "kind": "requirement.conditional",
+     "min": "listed",
+     "where": null,
+     "note": "условные элементы перечислены к SDR"
+    },
+    {
+     "kind": "technology.fallback",
+     "min": "all",
+     "where": "trl_current<=4",
+     "note": "резерв назван"
+    }
+   ],
+   "writes_to": [
+    "Д6 план технологий"
+   ],
+   "instantiate_per": null
+  },
+  {
+   "key": "A8",
+   "title": "Риски",
+   "gate": "SDR",
+   "romanov": [
+    "2.6"
+   ],
+   "exit_conditions": [
+    {
+     "kind": "risk",
+     "min": "all",
+     "where": "owner&due_point",
+     "note": "владелец и срок у каждого"
+    },
+    {
+     "kind": "risk",
+     "min": 1,
+     "where": "criticality>=12 measures",
+     "note": "мера у каждого критического"
+    },
+    {
+     "kind": "risk.closed",
+     "min": "reviewed",
+     "where": "due<=SRR",
+     "note": "просроченных к SRR = 0"
+    }
+   ],
+   "writes_to": [
+    "Д7 реестр рисков"
+   ],
+   "instantiate_per": null
+  },
+  {
+   "key": "A9",
+   "title": "ОСЗ и планы обеспечения (SMA)",
+   "gate": "SDR",
+   "romanov": [
+    "2.6"
+   ],
+   "exit_conditions": [
+    {
+     "kind": "debris_assessment",
+     "min": 1,
+     "where": "variant=baseline compliant_active&passive",
+     "note": "оба случая по нормативу"
+    },
+    {
+     "kind": "document",
+     "min": 1,
+     "where": "template=SMA-plan status>=Draft",
+     "note": "план обеспечения (надёжность · безопасность · EMI/EMC) — полка Phase B заведена"
+    },
+    {
+     "kind": "normative_basis",
+     "min": 1,
+     "where": "debris",
+     "note": "норматив увода привязан"
+    }
+   ],
+   "writes_to": [
+    "Д8 ОСЗ · Д9 планы обеспечения"
+   ],
+   "instantiate_per": null
+  },
+  {
+   "key": "A10",
+   "title": "Программатика: стоимость и сроки",
+   "gate": "KDP-B",
+   "romanov": [
+    "2.6",
+    "0.9"
+   ],
+   "exit_conditions": [
+    {
+     "kind": "cost_estimate",
+     "min": 1,
+     "where": "method in (parametric,bottom_up) range",
+     "note": "диапазон по WBS с допущениями"
+    },
+    {
+     "kind": "wbs_package",
+     "min": "all",
+     "where": "pbs_refs→pair",
+     "note": "пар нет только у сквозных"
+    },
+    {
+     "kind": "cost_estimate.includes_maturation",
+     "min": true,
+     "where": null,
+     "note": "пакеты созревания в оценке"
+    },
+    {
+     "kind": "plan.consistency",
+     "min": true,
+     "where": "WBS vs gates",
+     "note": "свёртка сроков против дат точек — расхождение разрывом"
+    }
+   ],
+   "writes_to": [
+    "Д9 оценка · Project Plan §3"
+   ],
+   "instantiate_per": null
+  },
+  {
+   "key": "A11",
+   "title": "Project Plan и обновление FA",
+   "gate": "KDP-B",
+   "romanov": [
+    "1.P",
+    "2.P"
+   ],
+   "exit_conditions": [
+    {
+     "kind": "document",
+     "min": 1,
+     "where": "template=ProjectPlan status>=Preliminary",
+     "note": "Д10 Preliminary"
+    },
+    {
+     "kind": "document",
+     "min": 1,
+     "where": "template=DT-9102 version>1",
+     "note": "FA обновлён: план Phase B вехами"
+    },
+    {
+     "kind": "tailoring",
+     "min": "listed",
+     "where": "FA §6",
+     "note": "отклонения перечислены"
+    }
+   ],
+   "writes_to": [
+    "Д10 · FA"
+   ],
+   "instantiate_per": null
+  },
+  {
+   "key": "A12",
+   "title": "Точки фазы: SRR · SDR/MDR · KDP-B",
+   "gate": "KDP-B",
+   "romanov": [
+    "EXP-2A",
+    "EXP-2B",
+    "EXP-3"
+   ],
+   "exit_conditions": [
+    {
+     "kind": "requirement.baseline",
+     "min": "functional",
+     "where": "gate=SRR",
+     "note": "функциональная базовая линия к SRR"
+    },
+    {
+     "kind": "baseline",
+     "min": "allocated",
+     "where": "gate=SDR",
+     "note": "allocated к SDR"
+    },
+    {
+     "kind": "expertise.positions",
+     "min": "reviewed",
+     "where": "EXP-2A/2B",
+     "note": "позиции с кодами зрелости"
+    },
+    {
+     "kind": "maturity_matrix",
+     "min": "complete",
+     "where": "Д1–Д10 gate=KDP-B",
+     "note": "матрица зрелости без дыр"
+    }
+   ],
+   "writes_to": [
+    "пакет точки"
+   ],
+   "instantiate_per": null
+  }
+ ],
+ "summary": {
+  "scenes": 12,
+  "conditions": 44
+ }
+}

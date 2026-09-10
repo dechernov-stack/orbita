@@ -24,7 +24,9 @@ from collections import Counter
 КОРЕНЬ = pathlib.Path(__file__).resolve().parent.parent.parent
 ЗАПИСКА = КОРЕНЬ / "docs/tz/manual-run-2/пачка-1/ПАКЕТ-РАЗБОР-ЗАПИСКИ.json"
 ЭТАЛОН = КОРЕНЬ / "docs/tz/v2/поставка-09-09/ПАКЕТ-РАЗБОР-ТЗ.json"
-ОЖИДАЕМЫЕ_ДЫРЫ = ["Арктик", "гарантирован", "PNT", "180"]
+# Дыры владельца — по СМЫСЛУ, а не по словоформе: «нет гарантии доставки» и
+# «гарантированная доставка не задана» — одна дыра. Слово владельца → основы.
+ОЖИДАЕМЫЕ_ДЫРЫ = {"Арктик": ["арктик"], "гарантирован": ["гарантир", "гарант"], "PNT": ["pnt"], "180": ["180"]}
 
 _opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(__import__("http.cookiejar", fromlist=["CookieJar"]).CookieJar()))
 
@@ -104,30 +106,52 @@ def main() -> int:
         ф = по_коду.get(к, {})
         print("     ←", к, (ф.get("subject", "") + ": " + ф.get("predicate", ""))[:110])
     частичные = [л for л in строки if л.get("verdict") == "partial"]
-    for л in частичные[:6]:
-        print("  частично:", л.get("requirement", "")[:70], "→", ", ".join(л.get("needs", [])), "·", л.get("note", "")[:90])
+    for л in частичные[:8]:
+        print("  частично:", (л.get("text") or л.get("requirement", ""))[:80], "→", ", ".join(л.get("needs", [])), "·", л.get("note", "")[:90])
+    формулировки = {н["code"]: н["doc"].get("statement", "") for н in нужды}
     print("\nот нужды (вердикт · дыра словами):")
     for н in оценка.get("needs", []):
+        print(f"   {н.get('need')} «{формулировки.get(н.get('need'), '')[:60]}»")
         print(f"   {н['need']} {н.get('verdict'):<10} {н.get('gap','')[:110]}")
     дыры = оценка.get("gaps", [])
     print(f"\nдыры ТЗ ({len(дыры)}):")
     for д in дыры[:30]:
         print("   -", д[:140])
 
-    print("\nсверка с эталонным пакетом (классы → наши виды):")
+    # Правило атомизации (ШИП-G-ПРИНЯТ): каждое требование, функция и сервис ТЗ —
+    # отдельный факт; сверка живого разбора с пакетом — ПО КЛАССАМ (42 сущности):
+    # классы фактов и действия плана против классов пакета. Вехи действий не дают
+    # (даты точек задаёт план фазы) — сравниваются фактами.
+    print(f"\nсверка с эталонным пакетом по классам ({len(эталон['items'])} сущностей; факты [класс] · действия плана):")
     эт = Counter(i["class"] for i in эталон["items"])
     наши = Counter(д.get("target_kind") for д in план["actions"])
+    классы = Counter(ф.get("entity_class") or "" for ф in факты)
     соответствие = {"requirement": "requirement", "stakeholder": "stakeholder", "service": "service", "constraint": "constraint",
-                    "composition_node": "component", "milestone": "gate", "normative_ref": "normative_document"}
-    for кл, n in эт.items():
+                    "composition_node": "component", "milestone": "gate", "normative_ref": "normative_document", "function": "requirement"}
+    пусто = []
+    for кл, n in sorted(эт.items(), key=lambda x: -x[1]):
         вид = соответствие.get(кл, кл)
-        print(f"   {кл:<18} эталон {n:>2} · у нас действий {вид}: {наши.get(вид, 0)}")
+        фактов = классы.get(кл, 0)
+        действий = наши.get(вид, 0)
+        помета = ""
+        if фактов == 0 and n > 0:
+            помета = "  !!! фактов этого класса нет"
+            пусто.append(кл)
+        elif действий == 0 and кл != "milestone":
+            помета = "  ! действий плана нет"
+        print(f"   {кл:<18} пакет {n:>2} · фактов [{кл}] {фактов:>2} · действий {вид}: {действий}{помета}")
+    print("   фактов без класса:", классы.get("", 0))
+    if пусто:
+        print(f"!!! классы пакета без единого факта: {', '.join(пусто)} — разбор не атомизировал ТЗ по правилу")
     print("\nожидаемые дыры владельца (по словам в дырах и причинах строк):")
+    # Дыра — это и слова самого факта, если он не покрывает нужду полностью:
+    # «состав ОГ — не менее 180 МКА» частично без обоснования нуждой = дыра «180 МКА».
     текст_дыр = "\n".join(дыры) + "\n" + "\n".join(л.get("note", "") for л in строки) + "\n" + \
-        "\n".join(н.get("gap", "") for н in оценка.get("needs", []))
+        "\n".join(н.get("gap", "") for н in оценка.get("needs", [])) + "\n" + \
+        "\n".join(л.get("text", "") for л in строки if л.get("verdict") != "covers")
     не_видно = 0
-    for слово in ОЖИДАЕМЫЕ_ДЫРЫ:
-        есть = слово.lower() in текст_дыр.lower()
+    for слово, основы in ОЖИДАЕМЫЕ_ДЫРЫ.items():
+        есть = any(о in текст_дыр.lower() for о in основы)
         не_видно += 0 if есть else 1
         print(f"   «{слово}»: {'есть' if есть else 'НЕТ'}")
     if не_видно:

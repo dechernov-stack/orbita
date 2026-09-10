@@ -1,9 +1,9 @@
 {
   "kind": "document_template",
   "code": "icd",
-  "title": "Описание стыков (ICD)",
+  "title": "Описание стыков и архитектуры (ICD, Д5)",
   "standard": "ДОКУМЕНТЫ-2-ПРОМЕЖУТОЧНЫЕ §6 (DT-9003)",
-  "note": "ICD собирается из стыков, их параметров и требований с носителем-стыком; полнота к SDR. Порождён генератором tools/v2/gen_phase_a_documents.py; правки — в генератор, не сюда.",
+  "note": "ICD собирается из стыков, их параметров и требований с носителем-стыком; §6 — протоколы trade studies (Д5 §6); полнота к SDR. Порождён генератором tools/v2/gen_phase_a_documents.py; правки — в генератор, не сюда.",
   "style": {
     "tone": "деловая инженерная проза без маркетинга",
     "traceability": "каждое утверждение опирается на элемент раздела",
@@ -248,6 +248,70 @@
       "source": "тезисы",
       "min_statements": 1,
       "statement_hint": "кто отвечает за каждую сторону стыка и за изменение его параметров"
+    },
+    {
+      "no": "§6",
+      "title": "Протоколы решений (trade studies)",
+      "scenes": [
+        "7",
+        "A6"
+      ],
+      "elements": [
+        {
+          "code": "6.1",
+          "kind": "query",
+          "title": "Базовый вариант и отклонённые",
+          "select": "baseline_concept",
+          "min_rows": 0,
+          "columns": [
+            {
+              "title": "Вариант",
+              "field": "variant"
+            },
+            {
+              "title": "Обоснование",
+              "field": "rationale"
+            },
+            {
+              "title": "Отклонённые",
+              "field": "rejected"
+            },
+            {
+              "title": "Кем",
+              "field": "decided_by"
+            },
+            {
+              "title": "Когда",
+              "field": "at"
+            }
+          ]
+        },
+        {
+          "code": "6.2",
+          "kind": "query",
+          "title": "Сравниваемые варианты",
+          "select": "constellation_variant",
+          "min_rows": 0,
+          "columns": [
+            {
+              "title": "Код",
+              "field": "code"
+            },
+            {
+              "title": "Вариант",
+              "field": "name"
+            },
+            {
+              "title": "Подгруппы",
+              "field": "subgroups"
+            }
+          ]
+        }
+      ],
+      "expects": "SDR",
+      "source": "варианты · базовый вариант",
+      "min_statements": 1,
+      "statement_hint": "протокол решения: что сравнивали, по каким метрикам, почему отклонённые отклонены"
     }
   ]
 }

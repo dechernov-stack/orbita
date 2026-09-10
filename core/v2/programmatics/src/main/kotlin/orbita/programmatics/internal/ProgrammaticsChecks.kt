@@ -164,6 +164,82 @@ class ProgrammaticsChecks(
                 )
             }
 
+            // --- Phase A, условия владельца 10.09 (УСЛОВИЯ-СЦЕН-PHASE-A) ----------
+
+            // A8: владелец у каждого риска.
+            "each_risk_has_owner" -> {
+                val без = store.list(область, "risk").filter { it.status != "closed" && it.doc.path("owner").asText("").isBlank() }
+                if (без.isEmpty()) CheckResult.ok
+                else CheckResult.no("рисков без владельца: " + без.take(3).joinToString(", ") { it.code } + " — риск без владельца никто не ведёт")
+            }
+            // A8: мера у каждого критического (вероятность × влияние ≥ порога).
+            "critical_risks_have_measures" -> {
+                val порог = (аргумент ?: "12").toIntOrNull() ?: 12
+                val критические = store.list(область, "risk").filter { р ->
+                    р.status != "closed" && р.doc.path("probability").asInt(0) * р.doc.path("impact").asInt(0) >= порог
+                }
+                val без = критические.filter { р -> р.doc.path("measures").let { м -> м.isMissingNode || м.isNull || (м.isTextual && м.asText().isBlank()) || (м.isArray && м.isEmpty) } }
+                if (без.isEmpty()) CheckResult.ok
+                else CheckResult.no("критических рисков без меры: " + без.take(3).joinToString(", ") { it.code } + " (критичность ≥ $порог требует меры)")
+            }
+            // A7: у технологии низкого TRL назван резерв.
+            "technology_fallback_named" -> {
+                val порог = (аргумент ?: "4").toIntOrNull() ?: 4
+                val без = store.list(область, "technology").filter { т ->
+                    т.doc.path("trl_current").asInt(9) <= порог &&
+                        т.doc.path("fallback").asText("").isBlank() && т.doc.path("fallback_component").asText("").isBlank()
+                }
+                if (без.isEmpty()) CheckResult.ok
+                else CheckResult.no("технологии TRL ≤ $порог без резерва: " + без.take(3).joinToString(", ") { it.doc.path("name").asText(it.code) } + " — резерв называется до SDR")
+            }
+            // A9: ОСЗ базового варианта — оба случая по нормативу.
+            "oda_compliant" -> {
+                val оценка = store.list(область, "debris_assessment").lastOrNull()
+                    ?: return CheckResult.no("оценки засорения нет: ОСЗ считается от базового варианта")
+                val активный = оценка.doc.path("compliant_active").asBoolean(false)
+                val пассивный = оценка.doc.path("compliant_passive").asBoolean(false)
+                when {
+                    активный && пассивный -> CheckResult.ok
+                    else -> CheckResult.no(
+                        "ОСЗ ${оценка.code}: " + listOfNotNull(
+                            if (!активный) "активный увод вне норматива" else null,
+                            if (!пассивный) "пассивный сход вне норматива" else null,
+                        ).joinToString(", "),
+                    )
+                }
+            }
+            // A9: норматив увода привязан к оценке.
+            "oda_normative_bound" -> {
+                val оценка = store.list(область, "debris_assessment").lastOrNull()
+                    ?: return CheckResult.no("оценки засорения нет: привязывать норматив не к чему")
+                val нет = listOf("normative_active", "normative_passive").filter { оценка.doc.path(it).asText("").isBlank() }
+                if (нет.isEmpty()) CheckResult.ok
+                else CheckResult.no("у ОСЗ ${оценка.code} не привязан норматив: " + нет.joinToString(", ") + " — норма увода берётся с полки нормативов")
+            }
+            // A10: метод оценки к KDP-B — параметрика или снизу вверх, не ROM.
+            "estimate_method" -> {
+                val методы = (аргумент ?: "parametric,bottom_up").split(",").map { it.trim() }.filter { it.isNotBlank() }.toSet()
+                val оценки = store.list(область, "cost_estimate")
+                when {
+                    оценки.isEmpty() -> CheckResult.no("оценки нет")
+                    оценки.any { it.doc.path("method").asText("") in методы } -> CheckResult.ok
+                    else -> CheckResult.no("оценка только методом " + оценки.map { it.doc.path("method").asText("—") }.distinct().joinToString("/") + " — к KDP-B нужна " + методы.joinToString(" либо "))
+                }
+            }
+            // A10: свёртка сроков WBS против дат точек — расхождение разрывом.
+            "plan_consistent_with_gates" -> {
+                val пакеты = programmatics.packages(project)
+                val сПланом = пакеты.filter { it.planEnd != null }
+                if (пакеты.isEmpty()) return CheckResult.no("WBS не взят: сверять сроки не с чем")
+                if (сПланом.isEmpty()) return CheckResult.no("ни у одного пакета работ нет сроков: свёртка сроков пуста")
+                val точки = store.list(область, "gate").filter { it.doc.path("kind").asText("phase") != "technology" }
+                val последняя = точки.mapNotNull { it.doc.path("planned_date").asText("").ifBlank { null } }.maxOrNull()
+                    ?: return CheckResult.no("у точек фазы нет дат: сроки пакетов не с чем сверять")
+                val позже = сПланом.filter { it.planEnd!! > последняя }
+                if (позже.isEmpty()) CheckResult.ok
+                else CheckResult.no("пакеты заканчиваются позже последней точки ($последняя): " + позже.take(3).joinToString(", ") { "${it.code} → ${it.planEnd}" })
+            }
+
             else -> null
         }
     }

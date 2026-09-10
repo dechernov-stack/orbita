@@ -27,6 +27,7 @@ import json
 import pathlib
 import sys
 import urllib.error
+import urllib.parse
 import urllib.request
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
@@ -608,8 +609,8 @@ class Прогон:
         # системные требования из проектных — деривация с основанием
         требования = вызов(self.base, "GET", f"/v2/requirements?project={self.проект}").get("items", [])
         проектные = [т for т in требования if т.get("level") == "project"]
-        системные = [т for т in требования if т.get("level") == "system"]
-        if проектные and not системные:
+        выведенные = {т.get("code") for т in требования if str(т.get("code", "")).startswith("RQ-S-000")}
+        if проектные and "RQ-S-0001" not in выведенные:
             родитель = проектные[0]["code"]
             for код, формулировка, основание, носитель in [
                 ("RQ-S-0001", "КА должен передавать кадр телеметрии в НКУ не реже одного раза за виток.", "суточная норма проектного уровня делится на 16 витков", "EL-SC"),
@@ -617,7 +618,8 @@ class Прогон:
                 ("RQ-S-0003", "Абонентский терминал должен получать подтверждение доставки в течение двух суток.", "класс B′: подтверждённая доставка — нужда ND-0002", "EL-UT"),
             ]:
                 вызов(self.base, "POST", f"/v2/requirements/derive?project={self.проект}",
-                      {"parent": родитель, "code": код, "statement": формулировка, "rationale": основание, "carrier": носитель, "subtype": "decomposition", "author": "Иванов И."})
+                      {"parent": родитель, "code": код, "statement": формулировка, "rationale": основание, "carrier": носитель, "subtype": "decomposition",
+                       "verification_method": "test", "acceptance_criteria": "в журнале приёмного тракта есть кадр за каждый виток сеанса", "author": "Иванов И."})
                 self.сделано.append(f"Phase A: {код} выведено из {родитель} на {носитель}")
         # стыки элементов: IF-S-USER — КА ↔ терминал; IF-S-G — КА ↔ НКУ
         стыки = {с["code"] for с in вызов(self.base, "GET", f"/v2/interfaces?project={self.проект}").get("items", [])}
@@ -634,7 +636,8 @@ class Прогон:
         if not any(т.get("code") == "RQ-S-0004" for т in требования) and проектные:
             вызов(self.base, "POST", f"/v2/requirements/derive?project={self.проект}",
                   {"parent": проектные[0]["code"], "code": "RQ-S-0004", "statement": "Стык КА — терминал должен обеспечивать передачу пакета 32 байта за один сеанс видимости.",
-                   "rationale": "короткое сообщение класса A′ — 32 байта", "carrier": "IF-S-USER", "subtype": "refinement", "category": "interface", "author": "Иванов И."})
+                   "rationale": "короткое сообщение класса A′ — 32 байта", "carrier": "IF-S-USER", "subtype": "refinement", "category": "interface", "level": "interface",
+                   "verification_method": "test", "acceptance_criteria": "пакет 32 байта принят за один сеанс на стенде стыка", "author": "Иванов И."})
             self.сделано.append("Phase A: RQ-S-0004 на стык IF-S-USER")
         # документы фазы: SEMP, OpsCon, ICD
         self.войти("chernov")
@@ -654,6 +657,142 @@ class Прогон:
         фаза = вызов(self.base, "GET", f"/v2/phase?project={self.проект}")
         экземпляры = [с for с in фаза["scenes"] if с.get("instance_of") == "A4"]
         self.сделано.append("Phase A: экземпляры аванпроекта — " + ", ".join(f"{с['key']} [{с['state']}]" for с in экземпляры))
+        self.phase_a_условия(фаза)
+
+    # ── Условия сцен Phase A (поставка 10.09): кормим то, для чего есть дорога ──
+    def phase_a_условия(self, фаза: dict) -> None:
+        """A1 план фазы · A2/A3 SEMP и ConOps до базирования · A6 модели и
+        протокол · A9 SMA · A10 оценка параметрикой · A11 Project Plan и FA ·
+        A12 базовые линии и позиции экспертиз. Чего кормить нечем (функции,
+        цепочки, бюджеты, элементы обмена, ступень SDR) — остаётся разрывом
+        и печатается честно."""
+        self.войти("chernov")
+        # A1: даты точек фазы, ответственные сцен, окно первой сцены
+        точки = {т["key"]: т for т in фаза["gates"]}
+        даты = {"internal_review": "2026-10-01", "MCR": "2026-11-01", "KDP-A": "2026-12-01",
+                "internal_review_a": "2027-03-01", "SRR": "2027-05-01", "SDR": "2027-09-01", "KDP-B": "2027-11-01"}
+        план = вызов(self.base, "GET", f"/v2/plan?project={self.проект}")
+        if (план or {}).get("phase") != "Phase A":
+            вызов(self.base, "POST", f"/v2/plan?project={self.проект}", {
+                "phase": "Phase A", "set_by": "Чернов Д.",
+                "gate_dates": [{"gate": к, "date": д} for к, д in даты.items()],
+                "scene_windows": [
+                    {"scene": "A1", "start": "2027-01-10", "end": "2027-01-31", "responsible": "chernov"},
+                    {"scene": "A2", "start": "2027-01-15", "end": "2027-03-01", "responsible": "chernov"},
+                    {"scene": "A3", "start": "2027-01-20", "end": "2027-04-01", "responsible": "ivanov"},
+                ],
+            })
+            self.сделано.append("A1: план фазы — даты точек, ответственные сцен, окна A1–A3")
+        # A2/A3/A9/A11: документы фазы с тезисами там, где раздел ждёт слова
+        for код in ["sma", "projectplan"]:
+            if код not in {д["code"] for д in вызов(self.base, "GET", f"/v2/documents?project={self.проект}").get("items", [])}:
+                вызов(self.base, "POST", f"/v2/documents?project={self.проект}", {"template": код, "author": "Чернов Д."})
+                self.сделано.append(f"Phase A: документ {код} заведён")
+        тезис = {
+            "semp": "по SEMP: {title} — по шаблону БП-PA, отклонения названы в §9",
+            "conops": "по ConOps: {title} — режимы и сценарии из сцен 9 и A3",
+            "icd": "по ICD: {title} — стыки и протоколы решений сцен A4 и A6",
+            "sma": "план обеспечения: {title} — из ОСЗ, рисков и радиостыков",
+            "projectplan": "Project Plan: {title} — ссылкой на документ-источник, не копией",
+            "fa": "FA, план Phase B: {title} — вехи SRR · SDR · KDP-B и отклонения",
+        }
+        for код, ступень in [("semp", "SRR"), ("conops", "SRR"), ("icd", "SDR"), ("sma", "SDR"), ("projectplan", "KDP-B"), ("fa", "KDP-B")]:
+            документ = вызов(self.base, "GET", f"/v2/documents/{код}?project={self.проект}&gate={ступень}")
+            for раздел in документ.get("sections", []):
+                ждёт = " ".join(раздел.get("waiting", []))
+                пусто = not any(э.get("rows") or э.get("text") for э in раздел.get("elements", []))
+                if "тезис:" in ждёт or (код == "fa" and раздел["no"] == "§6" and пусто):
+                    вызов(self.base, "POST", f"/v2/documents/{код}/statement?project={self.проект}",
+                          {"section": раздел["no"], "text": тезис[код].format(title=раздел["title"]), "author": "Чернов Д."})
+                    self.сделано.append(f"Phase A: {код} {раздел['no']} — тезис")
+            if ступень == "SRR":
+                линии = вызов(self.base, "GET", f"/v2/documents/{код}/baselines?project={self.проект}").get("items", [])
+                if not линии:
+                    try:
+                        вызов(self.base, "POST", f"/v2/documents/{код}/baseline?project={self.проект}", {"name": "SRR", "author": "Чернов Д."})
+                        self.сделано.append(f"Phase A: {код} базирован линией «SRR»")
+                    except Отказ as о:
+                        self.пропущено.append(f"Phase A: {код} не базирован — {str(о)[:120]}")
+        # A3: третий сценарий и завершение миссии
+        self.войти("ivanov")
+        сценарии = {с["name"] for с in вызов(self.base, "GET", f"/v2/scenarios?project={self.проект}").get("items", [])}
+        for имя, шаги in [
+            ("Нештатный: потеря ориентации КА", [{"actor": "КА", "action": "переход в безопасный режим"}, {"actor": "НКУ", "action": "восстановление ориентации по телеметрии"}]),
+            ("Завершение миссии: увод КА", [{"actor": "НКУ", "action": "команда на увод"}, {"actor": "КА", "action": "манёвр увода и пассивация"}]),
+        ]:
+            if имя in сценарии:
+                continue
+            try:
+                вызов(self.base, "POST", f"/v2/scenarios?project={self.проект}", {"name": имя, "layer": "SA", "steps": шаги, "author": "Иванов И."})
+                self.сделано.append(f"A3: сценарий «{имя[:40]}»")
+            except Отказ as о:
+                self.пропущено.append(f"A3: сценарий «{имя[:40]}» — {str(о)[:100]}")
+        # A6: четыре модели — взять, прогнать, верифицировать
+        модели = {м["code"]: м for м in вызов(self.base, "GET", f"/v2/models?project={self.проект}").get("items", [])}
+        if not модели:
+            try:
+                вызов(self.base, "POST", f"/v2/models/take?project={self.проект}", {"author": "Иванов И."})
+                модели = {м["code"]: м for м in вызов(self.base, "GET", f"/v2/models?project={self.проект}").get("items", [])}
+                self.сделано.append(f"A6: модели взяты с полки ({len(модели)})")
+            except Отказ as о:
+                self.пропущено.append(f"A6: модели не взяты — {str(о)[:100]}")
+        for код in ["М1", "М2а", "М3а", "М6"]:
+            if код not in модели:
+                self.пропущено.append(f"A6: модели {код} в проекте нет")
+                continue
+            try:
+                if not модели[код].get("last_run"):
+                    вызов(self.base, "POST", f"/v2/models/{urllib.parse.quote(код)}/run?project={self.проект}", {"author": "Иванов И.", "outputs": {"result": "прогон волны Phase A"}})
+                if модели[код].get("verification") not in ("verified", "validated"):
+                    вызов(self.base, "POST", f"/v2/models/{urllib.parse.quote(код)}/verify?project={self.проект}", {"status": "verified", "note": "сверено с эталоном spec/reference", "author": "Иванов И."})
+                self.сделано.append(f"A6: модель {код} — прогон и верификация")
+            except Отказ as о:
+                self.пропущено.append(f"A6: модель {код} — {str(о)[:110]}")
+        # A8: риски со сроком к SRR — решением словами (как сцена 17 к KDP-A)
+        self.войти("chernov")
+        for р in вызов(self.base, "GET", f"/v2/risks?project={self.проект}").get("items", []):
+            if р.get("status") != "closed" and р.get("due_point") in ("SRR", "internal_review_a"):
+                try:
+                    вызов(self.base, "POST", f"/v2/risks/{р['code']}/close?project={self.проект}",
+                          {"resolution": "к SRR: мера исполнена, риск снят решением РП", "author": "Чернов Д."})
+                    self.сделано.append(f"A8: риск {р['code']} закрыт решением к SRR")
+                except Отказ as о:
+                    self.пропущено.append(f"A8: риск {р['code']} — {str(о)[:100]}")
+        # A10: оценка параметрикой к KDP-B
+        пакеты = вызов(self.base, "GET", f"/v2/wbs?project={self.проект}").get("items", [])
+        if пакеты:
+            первый = пакеты[0]["code"]
+            try:
+                вызов(self.base, "POST", f"/v2/wbs/estimate?project={self.проект}",
+                      {"package": первый, "min": 1900, "max": 2500, "unit": "млн ₽", "method": "parametric",
+                       "assumptions": "параметрика по массе ПН класса 34 кг, курс 2026; к KDP-B", "author": "Чернов Д."})
+                self.сделано.append(f"A10: оценка {первый} параметрикой")
+            except Отказ as о:
+                self.пропущено.append(f"A10: оценка параметрикой — {str(о)[:100]}")
+        # A12: базовые линии и позиции экспертиз
+        снимки = {с.get("kind"): с for с in вызов(self.base, "GET", f"/v2/baselines?project={self.проект}").get("items", [])}
+        for вид, точка in [("functional", "SRR"), ("allocated", "SDR")]:
+            if вид in снимки:
+                continue
+            try:
+                вызов(self.base, "POST", f"/v2/baselines?project={self.проект}", {"name": f"{вид}-{точка}", "kind": вид, "gate": точка, "author": "Чернов Д."})
+                self.сделано.append(f"A12: базовая линия {вид} к {точка}")
+            except Отказ as о:
+                self.пропущено.append(f"A12: снимок {вид} отвергнут — {str(о)[:220]}")
+        for ключ in ["SRR", "SDR"]:
+            экспертиза = точки.get(ключ, {}).get("expertise") or {}
+            позиции = [п.get("artifact") for п in (экспертиза.get("positions") or экспертиза.get("control_items") or []) if п.get("artifact")]
+            if not позиции:
+                self.пропущено.append(f"A12: у точки {ключ} нет позиций экспертизы на полке")
+                continue
+            вызов(self.base, "POST", f"/v2/points/{ключ}/positions?project={self.проект}",
+                  {"positions": [{"artifact": а, "verdict": "принято", "note": "по данным проекта"} for а in позиции], "author": "Чернов Д."})
+            self.сделано.append(f"A12: {ключ} — вердикты по {len(позиции)} позициям")
+        # итог: что держит сцены Phase A
+        фаза = вызов(self.base, "GET", f"/v2/phase?project={self.проект}")
+        for с in фаза["scenes"]:
+            if с["state"] != "done" and с.get("blockers"):
+                self.пропущено.append(f"{с['key']} держится: " + "; ".join(с["blockers"])[:200])
 
     def пройти(self) -> None:
         self.войти("chernov")
@@ -747,6 +886,10 @@ def main() -> int:
               f"уже было {len(прогон.пропущено)}")
         for ш in прогон.сделано:
             print("  +", ш)
+        # Phase A: что пропущено и что держит сцены — печатается, а не глотается
+        for п in прогон.пропущено:
+            if not п.startswith("сцена ") and not п.startswith("знания"):
+                print(f"  · {п}")
 
     print(f"состояние {проект}:")
     состояние(args.base, проект)

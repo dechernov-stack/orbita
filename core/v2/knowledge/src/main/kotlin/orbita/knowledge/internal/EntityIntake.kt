@@ -608,6 +608,8 @@ class EntityIntake(
                     поСхеме(документ)
                     // Даташит: ключ анкеты узла; норматив: порог нормы полем; конфликт с рамкой — кодом.
                     ф.path("param_key").asText("").takeIf { it.isNotBlank() }?.let { документ.put("param_key", it) }
+                    // ТЗ: класс сущности факта — сверка разбора с пакетом по классам (ШИП-G-ПРИНЯТ).
+                    ф.path("entity_class").asText("").takeIf { it.isNotBlank() }?.let { документ.put("entity_class", it) }
                     if (ф.path("limit").isObject) документ.set<JsonNode>("limit", ф.path("limit").deepCopy())
                     ф.path("conflict").asText("").takeIf { it.isNotBlank() }?.let { документ.put("conflict_constraint", it) }
                     документ.put("confidence", ф.path("confidence").asDouble(0.5))
@@ -804,6 +806,7 @@ class EntityIntake(
             Disposition.valueOf(документ.path("disposition").asText("free").uppercase())
         }.getOrDefault(Disposition.FREE),
         topic = документ.path("topic").asText("").ifBlank { null },
+        entityClass = документ.path("entity_class").asText("").ifBlank { null },
         manual = документ.path("manual").asBoolean(false),
         paramKey = документ.path("param_key").asText("").ifBlank { null },
         conflicts = документ.path("conflicts").map { it.asText() },

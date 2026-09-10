@@ -4,7 +4,18 @@
   "standard": "NASA-7120",
   "phase": "Phase A",
   "title": "Phase A — концептуальная и технологическая проработка (аванпроект)",
-  "note": "Сцены A1–A10 — задачи 1–10 БП-PA (О1–О12); точки — задача 11 строгой цепочкой. Мероприятия — стадия 2 схемы Романова (аванпроект сегмента и элемента); сцена A4 разворачивается в экземпляр на каждый элемент состава (instantiate_per).",
+  "note": "Сцены A1–A12 и 44 условия выхода — содержание владельца (УСЛОВИЯ-СЦЕН-PHASE-A, 10.09): каждое условие читает реестр (kind · min · where — поле reads), привязано к мероприятиям Романова и к точке фазы. Точки — цепочка внутренний обзор → SRR → SDR/MDR → KDP-B; сцена A4 разворачивается в экземпляр на каждый элемент состава (instantiate_per).",
+  "source": {
+    "conditions": "PHC-9002",
+    "rules": [
+      "условие — читает данные, не пишет",
+      "условие с where — запрос к реестру видов по YAML",
+      "min='all'/'100%' — квантор по выборке",
+      "сцена A4 — экземпляр на элемент состава; условия считаются по узлу экземпляра",
+      "ступени лестницы — из ПОЛКА-ШАБЛОНЫ-КОМПОНЕНТОВ",
+      "у каждого условия — тест на отказ"
+    ]
+  },
   "correspondence": {
     "rk11kt": "стадия 2",
     "nasa": "Phase A / B",
@@ -12,17 +23,43 @@
       "per": "segment|element",
       "note": "один и тот же контур повторяется для каждого сегмента (A, B, C) и каждого элемента (A, B, C) — экземпляр сцены на узел состава"
     },
-    "tasks": {
-      "A1": "О1–О2",
-      "A2": "О3",
-      "A3": "О4",
-      "A4": "О5",
-      "A5": "О6",
-      "A6": "О7",
-      "A7": "О8",
-      "A8": "О9",
-      "A9": "О10",
-      "A10": "О11–О12"
+    "writes_to": {
+      "A1": [
+        "FA §4"
+      ],
+      "A2": [
+        "SEMP"
+      ],
+      "A3": [
+        "ConOps §2–§4"
+      ],
+      "A4": [
+        "Д5 архитектура · ICD стыков"
+      ],
+      "A5": [
+        "Д5 архитектура · MCReport→SDR-пакет"
+      ],
+      "A6": [
+        "Д5 §6 · AoA"
+      ],
+      "A7": [
+        "Д6 план технологий"
+      ],
+      "A8": [
+        "Д7 реестр рисков"
+      ],
+      "A9": [
+        "Д8 ОСЗ · Д9 планы обеспечения"
+      ],
+      "A10": [
+        "Д9 оценка · Project Plan §3"
+      ],
+      "A11": [
+        "Д10 · FA"
+      ],
+      "A12": [
+        "пакет точки"
+      ]
     }
   },
   "roles": [
@@ -61,8 +98,18 @@
     },
     {
       "template": "icd",
-      "title": "Описание стыков (ICD)",
+      "title": "Описание стыков и архитектуры (ICD, Д5)",
       "due": "SDR"
+    },
+    {
+      "template": "sma",
+      "title": "План обеспечения (SMA: надёжность · безопасность · EMI/EMC)",
+      "due": "SDR"
+    },
+    {
+      "template": "projectplan",
+      "title": "Project Plan (Д10)",
+      "due": "KDP-B"
     },
     {
       "template": "fa",
@@ -73,12 +120,15 @@
   "scenes": [
     {
       "key": "A1",
-      "title": "Развёртывание фазы и SEMP",
+      "title": "Развёртывание фазы",
       "order": 1,
-      "track": "design",
+      "track": "management",
       "role": "lead",
-      "task": "О1–О2",
-      "question": "Кто и как ведёт фазу: роли, план работ, SEMP по шаблону",
+      "gate": "SRR",
+      "writes_to": [
+        "FA §4"
+      ],
+      "question": "Кто и в какие сроки ведёт фазу: даты точек, ответственные сцен, окна работ",
       "opens_kinds": [
         "plan",
         "gate"
@@ -91,35 +141,54 @@
       ],
       "exit": [
         {
-          "check": "points_planned",
-          "title": "точки фазы с датами"
+          "check": "phase_points_dated",
+          "title": "даты SRR·SDR·KDP-B заданы",
+          "reads": {
+            "kind": "plan",
+            "min": 1,
+            "where": "phase=A"
+          }
         },
         {
-          "check": "document_started:semp",
-          "title": "SEMP начат по шаблону"
+          "check": "scene_responsible_min:1",
+          "title": "ответственные сцен назначены ≥ 1",
+          "reads": {
+            "kind": "account_role",
+            "min": 1,
+            "where": "role in (rp,si)"
+          }
+        },
+        {
+          "check": "phase_plan_started",
+          "title": "план хотя бы у первой доступной сцены",
+          "reads": {
+            "kind": "scene_plan",
+            "min": 1,
+            "where": "phase=A"
+          }
         }
       ],
       "steps": [
         {
-          "title": "Орг-структура и план работ",
+          "title": "Даты точек фазы",
           "place": "scene:A1#plan",
-          "hint": "роли по FA; реестр прав В3 — паспорт",
-          "check": "points_planned"
+          "hint": "SRR · SDR · KDP-B — по FA",
+          "check": "phase_points_dated"
         },
         {
-          "title": "SEMP по шаблону",
-          "place": "documents:semp",
-          "hint": "11 разделов, tailoring с обоснованием — след обязателен",
-          "check": "document_started:semp"
+          "title": "Ответственные сцен",
+          "place": "scene:A1#plan",
+          "hint": "РП и ведущий СИ — за каждой сценой лицо",
+          "check": "scene_responsible_min:1"
         },
         {
-          "title": "Базировать до SRR",
-          "place": "documents:semp#baseline",
-          "hint": "переходом, DA не требуется",
-          "check": "document_baselined:semp"
+          "title": "Окна сцен",
+          "place": "scene:A1#plan",
+          "hint": "план хотя бы у первой доступной сцены",
+          "check": "phase_plan_started"
         }
       ],
-      "output": "план фазы и SEMP",
+      "output": "план фазы: даты точек, ответственные, окна сцен",
       "depends": [
         {
           "on": "KDP-A",
@@ -128,74 +197,31 @@
         }
       ],
       "process_ref": [
-        "ROM-2.P"
+        "ROM-1.P"
       ],
       "activities": [
         {
-          "code": "2.P",
-          "name": "Техническое руководство и планирование (сегмент)",
-          "goal": "Техническое руководство и планирование (сегмент)",
+          "code": "1.P",
+          "name": "Техническое планирование и управление",
+          "goal": "Техническое планирование и управление",
           "role": "lead",
           "track": "management",
           "method_group": "",
           "inputs": [],
           "outputs": [
             {
-              "what": "планы управления программой/проектом",
-              "kind": "plan",
+              "what": "программа инженерного управления системой (SEMP)"
+            },
+            {
+              "what": "инженерный генеральный план / технологические процессы"
+            },
+            {
+              "what": "план развития технологии",
+              "kind": "technology",
               "min": 1
             },
             {
-              "what": "план управления процессами системного инжиниринга",
-              "document": "semp"
-            },
-            {
-              "what": "сетевой график разработки"
-            },
-            {
-              "what": "планы верификации"
-            },
-            {
-              "what": "логистические планы"
-            },
-            {
-              "what": "планы интеграции и сборки"
-            },
-            {
-              "what": "план изготовления"
-            },
-            {
-              "what": "план обеспечения качества"
-            },
-            {
-              "what": "план управления EMI/EMC"
-            },
-            {
-              "what": "план установки полезной нагрузки на КА"
-            },
-            {
-              "what": "план обеспечения безопасности системы"
-            },
-            {
-              "what": "план разработки технологий"
-            },
-            {
-              "what": "план программы интегрированной логистической поддержки"
-            },
-            {
-              "what": "программа обеспечения надёжности"
-            },
-            {
-              "what": "план управления информацией"
-            },
-            {
-              "what": "дерево документации"
-            },
-            {
-              "what": "спецификации КД / рабочих чертежей"
-            },
-            {
-              "what": "дерево спецификаций"
+              "what": "программа материально-технического обеспечения"
             },
             {
               "what": "план управления рисками",
@@ -203,7 +229,7 @@
               "min": 1
             },
             {
-              "what": "состав работ / ведомость исполнения"
+              "what": "план управления информацией"
             }
           ],
           "surface": "scene:A1"
@@ -212,12 +238,123 @@
     },
     {
       "key": "A2",
-      "title": "ConOps — базирование",
+      "title": "SEMP",
       "order": 2,
+      "track": "management",
+      "role": "lead",
+      "gate": "SRR",
+      "writes_to": [
+        "SEMP"
+      ],
+      "question": "Как ведётся системная инженерия фазы: процессы, обзоры, инструменты, отклонения",
+      "opens_kinds": [
+        "document"
+      ],
+      "entry": [
+        {
+          "check": "scene_started:A1",
+          "title": "фаза развёрнута"
+        }
+      ],
+      "exit": [
+        {
+          "check": "document_started:semp",
+          "title": "11 разделов, §6 = 17 строк process_catalog, §2 из полки нормативов",
+          "reads": {
+            "kind": "document",
+            "min": 1,
+            "where": "template=DT-9002 status>=Preliminary"
+          }
+        },
+        {
+          "check": "document_complete:semp:SRR",
+          "title": "полнота к SRR по expects",
+          "reads": {
+            "kind": "section_complete",
+            "min": "all",
+            "where": "document=SEMP gate=SRR"
+          }
+        }
+      ],
+      "steps": [
+        {
+          "title": "SEMP по шаблону",
+          "place": "documents:semp",
+          "hint": "11 разделов; §6 — 17 процессов с полки, §2 — нормативы полки",
+          "check": "document_started:semp"
+        },
+        {
+          "title": "Полнота к SRR",
+          "place": "documents:semp",
+          "hint": "каждый раздел, ожидаемый к SRR, полон",
+          "check": "document_complete:semp:SRR"
+        },
+        {
+          "title": "Базировать до SRR",
+          "place": "documents:semp#baseline",
+          "hint": "переходом, DA не требуется",
+          "check": "document_baselined:semp"
+        }
+      ],
+      "output": "SEMP (Preliminary → Baseline к SRR)",
+      "depends": [
+        {
+          "on": "A1",
+          "type": "SS",
+          "why": "SEMP пишется с первого дня фазы — ждать окончания развёртывания незачем"
+        }
+      ],
+      "process_ref": [
+        "ROM-1.P"
+      ],
+      "activities": [
+        {
+          "code": "1.P",
+          "name": "Техническое планирование и управление",
+          "goal": "Техническое планирование и управление",
+          "role": "lead",
+          "track": "management",
+          "method_group": "",
+          "inputs": [],
+          "outputs": [
+            {
+              "what": "программа инженерного управления системой (SEMP)"
+            },
+            {
+              "what": "инженерный генеральный план / технологические процессы"
+            },
+            {
+              "what": "план развития технологии",
+              "kind": "technology",
+              "min": 1
+            },
+            {
+              "what": "программа материально-технического обеспечения"
+            },
+            {
+              "what": "план управления рисками",
+              "kind": "risk",
+              "min": 1
+            },
+            {
+              "what": "план управления информацией"
+            }
+          ],
+          "surface": "scene:A2"
+        }
+      ]
+    },
+    {
+      "key": "A3",
+      "title": "ConOps — базирование",
+      "order": 3,
       "track": "design",
       "role": "lead_se",
-      "task": "О3",
-      "question": "Как система применяется: режимы, переходы, нештатные — и чем ConOps проверяет требования",
+      "gate": "SRR",
+      "writes_to": [
+        "ConOps §2–§4"
+      ],
+      "question": "Как система применяется: режимы, номинальные и нештатные сценарии, завершение миссии — и чем ConOps проверяет требования",
       "opens_kinds": [
         "scenario",
         "state_machine"
@@ -230,30 +367,50 @@
       ],
       "exit": [
         {
-          "check": "scenarios_min:1",
-          "title": "сценарии-цепочки доращены"
+          "check": "document_baselined:conops",
+          "title": "базирован после SEMP (2.3→3.3)",
+          "reads": {
+            "kind": "document",
+            "min": 1,
+            "where": "template=ConOps status=Baseline"
+          }
         },
         {
-          "check": "document_complete:conops:SRR",
-          "title": "ConOps полон к SRR"
+          "check": "scenarios_min:3",
+          "title": "≥ 1 номинальный + 2 нештатных + завершение миссии",
+          "reads": {
+            "kind": "scenario",
+            "min": 3,
+            "where": "layer=SA"
+          }
+        },
+        {
+          "check": "modes_defined",
+          "title": "режимы КА заданы",
+          "reads": {
+            "kind": "state_machine",
+            "min": 1,
+            "where": "owner=SC"
+          }
         }
       ],
       "steps": [
         {
           "title": "Дорастить сценарии",
           "place": "documents:conops",
-          "hint": "режимы и переходы; нештатные — из рисков",
-          "check": "scenarios_min:1"
+          "hint": "номинальный · два нештатных · завершение миссии",
+          "check": "scenarios_min:3"
         },
         {
-          "title": "Валидационные положения",
-          "place": "documents:conops#7",
-          "hint": "§7: чем ConOps проверяет требования"
+          "title": "Режимы аппарата",
+          "place": "concept#modes",
+          "hint": "машина режимов КА с переходами",
+          "check": "modes_defined"
         },
         {
           "title": "Базировать",
           "place": "documents:conops#baseline",
-          "hint": "Baseline к SRR",
+          "hint": "после SEMP (2.3 → 3.3); Baseline к SRR",
           "check": "document_baselined:conops"
         }
       ],
@@ -262,158 +419,55 @@
         {
           "on": "A1",
           "type": "SS",
-          "why": "ConOps дорастает параллельно развёртыванию; ждать SEMP незачем"
-        }
-      ],
-      "process_ref": [
-        "ROM-2.2"
-      ],
-      "activities": [
-        {
-          "code": "2.2",
-          "name": "Разработка критериев оценки системы",
-          "goal": "Анализ требований к системе (сегмент)",
-          "role": "lead_se",
-          "track": "design",
-          "method_group": "Анализ требований к системе (сегмент)",
-          "inputs": [
-            {
-              "what": "2.1"
-            }
-          ],
-          "outputs": [
-            {
-              "what": "критерии оценки",
-              "kind": "model_evaluation_criteria",
-              "min": 1
-            },
-            {
-              "what": "системы для сравнения"
-            },
-            {
-              "what": "критерии приемлемости"
-            }
-          ],
-          "surface": "scene:A2"
-        }
-      ]
-    },
-    {
-      "key": "A3",
-      "title": "Иерархия требований",
-      "order": 3,
-      "track": "design",
-      "role": "lead_se",
-      "task": "О4",
-      "question": "Какие системные требования выведены из проектных и чем каждое обосновано",
-      "opens_kinds": [
-        "requirement",
-        "baseline"
-      ],
-      "entry": [
-        {
-          "check": "scene_started:A2",
-          "title": "ConOps в работе — есть чем проверять требования"
-        }
-      ],
-      "exit": [
-        {
-          "check": "system_requirements_min:1",
-          "title": "системные требования заведены"
+          "why": "сценарии дорастают параллельно развёртыванию"
         },
-        {
-          "check": "each_system_requirement_derived",
-          "title": "каждое системное несёт родителя (деривация с основанием)"
-        },
-        {
-          "check": "no_suspect_links",
-          "title": "подозрительных связей после правок нет"
-        }
-      ],
-      "steps": [
-        {
-          "title": "Базировать проектный уровень",
-          "place": "requirements#baseline",
-          "hint": "TBD закрыть или обосновать",
-          "check": "baseline_taken"
-        },
-        {
-          "title": "Системные из проектных",
-          "place": "requirements#derive",
-          "hint": "каждое системное несёт родителя — деривация, вывод или уточнение с основанием",
-          "check": "each_system_requirement_derived"
-        },
-        {
-          "title": "Матрицы",
-          "place": "requirements#matrices",
-          "hint": "трассировка и верификация без дыр",
-          "check": "no_suspect_links"
-        }
-      ],
-      "output": "проектные и системные требования, Baseline на SRR",
-      "depends": [
         {
           "on": "A2",
-          "type": "SS",
-          "why": "требования и ConOps растут вместе: сценарий рождает требование, требование проверяется сценарием"
+          "type": "FF",
+          "why": "ConOps базируется после SEMP (2.3 → 3.3): порядок работы фазы задан планом СИ"
         }
       ],
       "process_ref": [
-        "ROM-2.1",
-        "ROM-2.3"
+        "ROM-1.3",
+        "ROM-2.M1"
       ],
       "activities": [
         {
-          "code": "2.1",
-          "name": "Анализ требований к системе",
-          "goal": "Анализ требований к системе (сегмент)",
+          "code": "1.3",
+          "name": "Уточнение концепций миссии и эксплуатации",
+          "goal": "Анализ требований к миссии",
           "role": "lead_se",
           "track": "design",
-          "method_group": "Анализ требований к системе (сегмент)",
-          "inputs": [],
+          "method_group": "Анализ требований к миссии",
+          "inputs": [
+            {
+              "what": "1.1"
+            },
+            {
+              "what": "1.2"
+            }
+          ],
           "outputs": [
             {
-              "what": "обновлённые требования к системе",
-              "kind": "requirement",
-              "min": 1
+              "what": "концепция миссии"
             },
             {
-              "what": "системные требования",
-              "kind": "requirement",
-              "min": 1
-            },
-            {
-              "what": "требования к верификации"
-            },
-            {
-              "what": "стандарты проекта"
+              "what": "концепции процессов"
             }
           ],
           "surface": "scene:A3"
         },
         {
-          "code": "2.3",
-          "name": "Формирование и уточнение ниспадающего потока требований",
-          "goal": "Создание оптимального проекта системы (сегмент)",
+          "code": "2.M1",
+          "name": "Уточнение модели требований к сегменту",
+          "goal": "Анализ требований к инженерной модели сегмента системы",
           "role": "lead_se",
-          "track": "design",
-          "method_group": "Создание оптимального проекта системы (сегмент)",
-          "inputs": [
-            {
-              "what": "EXP-2A"
-            }
-          ],
+          "track": "modeling",
+          "method_group": "Анализ требований к инженерной модели сегмента системы",
+          "inputs": [],
           "outputs": [
             {
-              "what": "требования более низкого уровня",
-              "kind": "requirement",
-              "min": 1
-            },
-            {
-              "what": "матрица требований к верификации"
-            },
-            {
-              "what": "предположения, рекомендации и ограничения"
+              "what": "уточнённая модель требований к сегменту"
             }
           ],
           "surface": "scene:A3"
@@ -426,8 +480,11 @@
       "order": 4,
       "track": "design",
       "role": "specialist",
-      "task": "О5",
-      "question": "Из чего состоит элемент, какие системные требования на него легли и какими стыками он живёт",
+      "gate": "SDR",
+      "writes_to": [
+        "Д5 архитектура · ICD стыков"
+      ],
+      "question": "Из чего состоит элемент, какие системные требования и функции на него легли, какими стыками и обменами он живёт",
       "opens_kinds": [
         "component",
         "component_usage",
@@ -439,6 +496,10 @@
       "instantiate_per": "element",
       "entry": [
         {
+          "check": "scene_started:A3",
+          "title": "ConOps в работе — есть чем проверять требования элемента"
+        },
+        {
           "check": "system_requirements_min:1",
           "title": "есть системные требования, которые нужно распределить"
         }
@@ -446,24 +507,51 @@
       "exit": [
         {
           "check": "node_requirements_min:{node}:1",
-          "title": "на элемент {node} распределено хотя бы одно системное требование"
+          "title": "системные требования элемента распределены",
+          "reads": {
+            "kind": "requirement",
+            "min": 1,
+            "where": "level=system carrier=node"
+          }
+        },
+        {
+          "check": "node_functions_min:{node}:1",
+          "title": "функции элемента распределены 100 %",
+          "reads": {
+            "kind": "function",
+            "min": 1,
+            "where": "allocated_to=node"
+          }
         },
         {
           "check": "node_interfaces_min:{node}:1",
-          "title": "у элемента {node} назван хотя бы один стык"
+          "title": "стыки элемента с параметрами ступени SRR",
+          "reads": {
+            "kind": "interface",
+            "min": 1,
+            "where": "a=node or b=node"
+          }
         },
         {
-          "check": "carrier_nature_ok",
-          "title": "носитель каждого требования той природы, что требует уровень"
+          "check": "node_stage_closed:{node}:SDR",
+          "title": "лестница: ступень «архитектура» закрыта",
+          "reads": {
+            "kind": "component.maturity",
+            "min": "SDR",
+            "where": "node"
+          }
+        },
+        {
+          "check": "node_exchange_items_min:{node}:1",
+          "title": "элементы обмена на стыках данных к SDR",
+          "reads": {
+            "kind": "exchange_item",
+            "min": 1,
+            "where": "interfaces of node"
+          }
         }
       ],
       "steps": [
-        {
-          "title": "Декомпозиция на подсистемы",
-          "place": "concept#composition",
-          "hint": "дерево носителей; вхождения ×N",
-          "check": "composition_min:3"
-        },
         {
           "title": "Распределение системных требований",
           "place": "requirements#carrier",
@@ -471,26 +559,33 @@
           "check": "node_requirements_min:{node}:1"
         },
         {
-          "title": "Интерфейсы",
+          "title": "Функции элемента",
+          "place": "architecture#functions",
+          "hint": "функции SA распределены на узел 100 %",
+          "check": "node_functions_min:{node}:1"
+        },
+        {
+          "title": "Стыки и элементы обмена",
           "place": "architecture#interfaces",
-          "hint": "реестр внутренних/внешних, ответственность сторон",
+          "hint": "реестр стыков с параметрами ступени SRR; элементы обмена на стыках данных",
           "check": "node_interfaces_min:{node}:1"
         },
         {
-          "title": "Бюджеты",
-          "place": "models#budgets",
-          "hint": "масса/энергия/линк с резервами — свёртки"
+          "title": "Ступень «архитектура»",
+          "place": "concept#ladder",
+          "hint": "анкета узла закрыта до SDR",
+          "check": "node_stage_closed:{node}:SDR"
         }
       ],
-      "output": "аванпроект элемента: состав, требования, стыки, бюджеты",
+      "output": "аванпроект элемента: состав, требования, функции, стыки, обмены",
       "depends": [
         {
-          "on": "A3",
+          "on": "A5",
           "type": "INPUT",
-          "why": "системные требования — вход распределения по элементам"
+          "why": "системные требования и функции — вход распределения по элементам"
         },
         {
-          "on": "A3",
+          "on": "A5",
           "type": "SS",
           "why": "распределение начинается, как только появились первые системные требования"
         }
@@ -500,7 +595,8 @@
         "ROM-2.E2",
         "ROM-2.E3",
         "ROM-2.E4",
-        "ROM-2.E5"
+        "ROM-2.E5",
+        "ROM-2.E6"
       ],
       "activities": [
         {
@@ -619,20 +715,333 @@
             }
           ],
           "surface": "scene:A4"
+        },
+        {
+          "code": "2.E6",
+          "name": "Анализ решений, верификация и валидация аванпроекта",
+          "goal": "Аванпроект элемента",
+          "role": "specialist",
+          "track": "design",
+          "method_group": "Аванпроект элемента",
+          "inputs": [
+            {
+              "what": "2.E5"
+            }
+          ],
+          "outputs": [
+            {
+              "what": "стоимость/эффективность",
+              "kind": "cost_estimate",
+              "min": 1
+            },
+            {
+              "what": "окружающая среда"
+            },
+            {
+              "what": "режимы отказов"
+            },
+            {
+              "what": "материально-техническая поддержка"
+            },
+            {
+              "what": "радиационная стойкость"
+            },
+            {
+              "what": "продуктивность/технологичность"
+            },
+            {
+              "what": "надёжность"
+            },
+            {
+              "what": "безопасность/риски"
+            },
+            {
+              "what": "инженерная специализация"
+            }
+          ],
+          "surface": "scene:A4"
         }
       ]
     },
     {
       "key": "A5",
-      "title": "Анализы и trade studies",
+      "title": "Архитектура системы",
       "order": 5,
       "track": "design",
       "role": "lead_se",
-      "task": "О6",
-      "question": "Какой вариант принят и почему отклонённые отклонены",
+      "gate": "SDR",
+      "writes_to": [
+        "Д5 архитектура · MCReport→SDR-пакет"
+      ],
+      "question": "Какие системные требования выведены из проектных, на что распределены функции и цепочки, сходятся ли бюджеты",
+      "opens_kinds": [
+        "requirement",
+        "function",
+        "functional_chain",
+        "budget",
+        "logical_component"
+      ],
+      "entry": [
+        {
+          "check": "scene_started:A3",
+          "title": "ConOps в работе — сценарии рождают требования"
+        }
+      ],
+      "exit": [
+        {
+          "check": "each_segment_has_requirement",
+          "title": "≥ 1 системное на каждый сегмент",
+          "reads": {
+            "kind": "requirement",
+            "min": 1,
+            "where": "level=system"
+          }
+        },
+        {
+          "check": "no_carrierless_requirement:system",
+          "title": "«без носителя (системные)» = 0",
+          "reads": {
+            "kind": "link.allocated_to",
+            "min": "100%",
+            "where": "level=system"
+          }
+        },
+        {
+          "check": "each_system_requirement_derived",
+          "title": "у каждого системного — родитель с обоснованием",
+          "reads": {
+            "kind": "link.derives_from",
+            "min": "100%",
+            "where": "level=system rationale!=null"
+          }
+        },
+        {
+          "check": "functions_allocated",
+          "title": "функций без узла = 0",
+          "reads": {
+            "kind": "function",
+            "min": "100%",
+            "where": "layer=SA allocated"
+          }
+        },
+        {
+          "check": "chains_realized",
+          "title": "у каждой цепочки сценарное требование",
+          "reads": {
+            "kind": "functional_chain",
+            "min": "100%",
+            "where": "realized_by>=1"
+          }
+        },
+        {
+          "check": "budgets_min:mass,power,link",
+          "title": "бюджеты с двумя резервами против рамок",
+          "reads": {
+            "kind": "budget",
+            "min": 3,
+            "where": "kind in (mass,power,link)"
+          }
+        },
+        {
+          "check": "logical_components_deployed",
+          "title": "LA развёрнут (желательно)",
+          "reads": {
+            "kind": "logical_component",
+            "min": 1,
+            "where": "deployed_to>=1"
+          },
+          "blocking": false
+        }
+      ],
+      "steps": [
+        {
+          "title": "Системные из проектных",
+          "place": "requirements#derive",
+          "hint": "каждое системное несёт родителя с обоснованием; ≥ 1 на сегмент",
+          "check": "each_system_requirement_derived"
+        },
+        {
+          "title": "Носители",
+          "place": "requirements#carrier",
+          "hint": "«без носителя (системные)» = 0",
+          "check": "no_carrierless_requirement:system"
+        },
+        {
+          "title": "Функции и цепочки",
+          "place": "architecture#layers",
+          "hint": "функций без узла = 0; у каждой цепочки сценарное требование",
+          "check": "functions_allocated"
+        },
+        {
+          "title": "Бюджеты",
+          "place": "models#budgets",
+          "hint": "масса · энергия · линк с двумя резервами против рамок",
+          "check": "budgets_min:mass,power,link"
+        }
+      ],
+      "output": "Д5 архитектура: требования, функции, цепочки, бюджеты; MCReport → SDR-пакет",
+      "depends": [
+        {
+          "on": "A3",
+          "type": "SS",
+          "why": "требования и ConOps растут вместе: сценарий рождает требование, требование проверяется сценарием"
+        },
+        {
+          "on": "A4",
+          "type": "FF",
+          "why": "архитектура закрывается вместе с аванпроектами: последний элемент меняет свёртку"
+        }
+      ],
+      "process_ref": [
+        "ROM-1.4",
+        "ROM-1.5",
+        "ROM-1.6",
+        "ROM-2.4"
+      ],
+      "activities": [
+        {
+          "code": "1.4",
+          "name": "Задание и уточнение системных требований",
+          "goal": "Создание оптимальной архитектуры системы",
+          "role": "lead_se",
+          "track": "design",
+          "method_group": "Создание оптимальной архитектуры системы",
+          "inputs": [
+            {
+              "what": "EXP-1A"
+            }
+          ],
+          "outputs": [
+            {
+              "what": "системные требования",
+              "kind": "requirement",
+              "min": 1
+            },
+            {
+              "what": "научные требования"
+            },
+            {
+              "what": "требования по утилизации"
+            },
+            {
+              "what": "проверочные требования"
+            }
+          ],
+          "surface": "scene:A5"
+        },
+        {
+          "code": "1.5",
+          "name": "Назначение требований к сегментам/элементам",
+          "goal": "Создание оптимальной архитектуры системы",
+          "role": "lead_se",
+          "track": "design",
+          "method_group": "Создание оптимальной архитектуры системы",
+          "inputs": [
+            {
+              "what": "1.4"
+            }
+          ],
+          "outputs": [
+            {
+              "what": "требования к сегментам/элементам"
+            }
+          ],
+          "surface": "scene:A5"
+        },
+        {
+          "code": "1.6",
+          "name": "Разработка альтернативных архитектур и концепций системы",
+          "goal": "Создание оптимальной архитектуры системы",
+          "role": "lead_se",
+          "track": "design",
+          "method_group": "Создание оптимальной архитектуры системы",
+          "inputs": [
+            {
+              "what": "1.4"
+            }
+          ],
+          "outputs": [
+            {
+              "what": "концепция и архитектура системы"
+            },
+            {
+              "what": "предварительная схема деления системы"
+            },
+            {
+              "what": "концепция процессов инжиниринга"
+            }
+          ],
+          "surface": "scene:A5"
+        },
+        {
+          "code": "2.4",
+          "name": "Назначение требований к конечным элементам",
+          "goal": "Создание оптимального проекта системы (сегмент)",
+          "role": "lead_se",
+          "track": "design",
+          "method_group": "Создание оптимального проекта системы (сегмент)",
+          "inputs": [
+            {
+              "what": "2.3"
+            }
+          ],
+          "outputs": [
+            {
+              "what": "спецификация системы",
+              "kind": "requirement",
+              "min": 1
+            },
+            {
+              "what": "спецификации проекта"
+            },
+            {
+              "what": "матрица верификации"
+            },
+            {
+              "what": "требования к интерфейсам",
+              "kind": "interface",
+              "min": 1
+            },
+            {
+              "what": "бюджет TPM",
+              "kind": "budget",
+              "min": 1
+            },
+            {
+              "what": "суть проекта"
+            },
+            {
+              "what": "документация управления интерфейсом"
+            },
+            {
+              "what": "объединение и сборка"
+            },
+            {
+              "what": "производство"
+            },
+            {
+              "what": "операции запуска"
+            }
+          ],
+          "surface": "scene:A5"
+        }
+      ]
+    },
+    {
+      "key": "A6",
+      "title": "Анализы и trade studies",
+      "order": 6,
+      "track": "design",
+      "role": "lead_se",
+      "gate": "SDR",
+      "writes_to": [
+        "Д5 §6 · AoA"
+      ],
+      "question": "Какой вариант принят, почему отклонённые отклонены и какими моделями это показано",
       "opens_kinds": [
         "constellation_variant",
-        "baseline_concept"
+        "baseline_concept",
+        "model_run"
       ],
       "entry": [
         {
@@ -642,24 +1051,63 @@
       ],
       "exit": [
         {
-          "check": "baseline_concept_chosen",
-          "title": "базовый вариант назван с обоснованием и протоколом отклонённых"
+          "check": "variants_min:2",
+          "title": "≥ 2 варианта с метриками",
+          "reads": {
+            "kind": "constellation_variant",
+            "min": 2,
+            "where": null
+          }
+        },
+        {
+          "check": "baseline_concept_with_rejected",
+          "title": "базовый с отклонёнными и обоснованием",
+          "reads": {
+            "kind": "baseline_concept",
+            "min": 1,
+            "where": "rejected>=1 rationale"
+          }
+        },
+        {
+          "check": "model_runs_verified:М1,М2а,М3а,М6",
+          "title": "четыре обязательных модели дали ответ и верифицированы",
+          "reads": {
+            "kind": "model_run",
+            "min": 4,
+            "where": "model in (М1,М2а,М3а,М6) verified"
+          }
+        },
+        {
+          "check": "document_section_started:icd:§6",
+          "title": "протокол решения вставкой сравнения",
+          "reads": {
+            "kind": "document_section",
+            "min": 1,
+            "where": "Д5 §6 протокол trade study"
+          }
         }
       ],
       "steps": [
         {
-          "title": "Сравнение вариантов",
+          "title": "Варианты с метриками",
           "place": "models#compare",
-          "hint": "метрики без скрытого балла; Парето"
+          "hint": "≥ 2 варианта; метрики без скрытого балла",
+          "check": "variants_min:2"
         },
         {
-          "title": "Протоколы решений",
-          "place": "concept#baseline",
-          "hint": "отклонённое с причиной — в архитектурное обоснование",
-          "check": "baseline_concept_chosen"
+          "title": "Четыре модели",
+          "place": "models",
+          "hint": "М1 · М2а · М3а · М6 дали ответ и верифицированы",
+          "check": "model_runs_verified:М1,М2а,М3а,М6"
+        },
+        {
+          "title": "Протокол решения",
+          "place": "documents:icd#6",
+          "hint": "базовый с отклонёнными и обоснованием; протокол — вставкой сравнения",
+          "check": "baseline_concept_with_rejected"
         }
       ],
-      "output": "протоколы trade studies (Д5 §6)",
+      "output": "протоколы trade studies (Д5 §6), AoA",
       "depends": [
         {
           "on": "A4",
@@ -668,10 +1116,42 @@
         }
       ],
       "process_ref": [
+        "ROM-1.7",
         "ROM-2.6",
         "ROM-2.7"
       ],
       "activities": [
+        {
+          "code": "1.7",
+          "name": "Анализ и оценка архитектур и концепций системы",
+          "goal": "Создание оптимальной архитектуры системы",
+          "role": "lead_se",
+          "track": "design",
+          "method_group": "Создание оптимальной архитектуры системы",
+          "inputs": [
+            {
+              "what": "1.5"
+            },
+            {
+              "what": "1.6"
+            }
+          ],
+          "outputs": [
+            {
+              "what": "оценки стоимости жизненного цикла"
+            },
+            {
+              "what": "оценки эффективности"
+            },
+            {
+              "what": "специализированные инженерные исследования"
+            },
+            {
+              "what": "результаты анализа коммерциализации"
+            }
+          ],
+          "surface": "scene:A6"
+        },
         {
           "code": "2.6",
           "name": "Оценка и анализ концепций вариантов системы",
@@ -715,7 +1195,7 @@
               "what": "анализ продаж"
             }
           ],
-          "surface": "scene:A5"
+          "surface": "scene:A6"
         },
         {
           "code": "2.7",
@@ -736,18 +1216,21 @@
               "min": 1
             }
           ],
-          "surface": "scene:A5"
+          "surface": "scene:A6"
         }
       ]
     },
     {
-      "key": "A6",
+      "key": "A7",
       "title": "Созревание технологий",
-      "order": 6,
+      "order": 7,
       "track": "design",
       "role": "specialist",
-      "task": "О7",
-      "question": "Что ниже TRL 6 к PDR и как это дозреет",
+      "gate": "SDR",
+      "writes_to": [
+        "Д6 план технологий"
+      ],
+      "question": "Что ниже требуемого TRL, как дозреет, что при этом условно и чем заменяется",
       "opens_kinds": [
         "technology"
       ],
@@ -759,34 +1242,54 @@
       ],
       "exit": [
         {
-          "check": "technologies_named",
-          "title": "критические технологии названы с TRL"
+          "check": "maturation_planned",
+          "title": "у каждого разрыва пакет и веха с датой",
+          "reads": {
+            "kind": "technology",
+            "min": "all",
+            "where": "trl_current<trl_required → maturation_package&milestone"
+          }
         },
         {
-          "check": "maturation_planned",
-          "title": "планы созревания с вехами"
+          "check": "conditional_requirements_listed",
+          "title": "условные элементы перечислены к SDR",
+          "reads": {
+            "kind": "requirement.conditional",
+            "min": "listed",
+            "where": null
+          }
+        },
+        {
+          "check": "technology_fallback_named:4",
+          "title": "резерв назван",
+          "reads": {
+            "kind": "technology.fallback",
+            "min": "all",
+            "where": "trl_current<=4"
+          }
         }
       ],
       "steps": [
         {
-          "title": "Актуализовать перечень",
-          "place": "library#trl",
-          "hint": "критическое = ниже TRL 6 к PDR",
-          "check": "technologies_named"
-        },
-        {
-          "title": "Планы созревания",
+          "title": "Пакет и веха на каждый разрыв",
           "place": "programmatics#maturation",
-          "hint": "вехи и критерии достижения; резервные решения",
+          "hint": "разрыв TRL требует пакета работ и вехи с датой",
           "check": "maturation_planned"
         },
         {
-          "title": "Переоценка TRL",
+          "title": "Условные элементы",
+          "place": "requirements#baseline",
+          "hint": "перечислены снимком: условно то, что стоит на незрелой технологии",
+          "check": "conditional_requirements_listed"
+        },
+        {
+          "title": "Резервы",
           "place": "library#trl",
-          "hint": "периодичность по плану; отчёт к точкам"
+          "hint": "у технологии TRL ≤ 4 назван резерв",
+          "check": "technology_fallback_named:4"
         }
       ],
-      "output": "Д6 план созревания (Approved), отчёты TRL",
+      "output": "Д6 план созревания, перечень условных элементов, резервы",
       "depends": [
         {
           "on": "A4",
@@ -817,18 +1320,21 @@
               "what": "помещения и оборудование для проведения испытаний"
             }
           ],
-          "surface": "scene:A6"
+          "surface": "scene:A7"
         }
       ]
     },
     {
-      "key": "A7",
+      "key": "A8",
       "title": "Риски",
-      "order": 7,
+      "order": 8,
       "track": "management",
       "role": "lead",
-      "task": "О8",
-      "question": "Какие риски актуальны, у кого владелец и к какой точке срок",
+      "gate": "SDR",
+      "writes_to": [
+        "Д7 реестр рисков"
+      ],
+      "question": "Какие риски актуальны, у кого владелец, к какой точке срок и чем отвечают на критические",
       "opens_kinds": [
         "risk"
       ],
@@ -840,28 +1346,63 @@
       ],
       "exit": [
         {
-          "check": "risks_min:1",
-          "title": "реестр актуален"
+          "check": "each_risk_has_owner",
+          "title": "владелец и срок у каждого",
+          "reads": {
+            "kind": "risk",
+            "min": "all",
+            "where": "owner&due_point"
+          }
         },
         {
           "check": "each_risk_has_due_point",
-          "title": "у каждого риска — срок-точка"
+          "title": "владелец и срок у каждого",
+          "reads": {
+            "kind": "risk",
+            "min": "all",
+            "where": "owner&due_point"
+          }
+        },
+        {
+          "check": "critical_risks_have_measures:12",
+          "title": "мера у каждого критического",
+          "reads": {
+            "kind": "risk",
+            "min": 1,
+            "where": "criticality>=12 measures"
+          }
+        },
+        {
+          "check": "risks_due_closed:SRR",
+          "title": "просроченных к SRR = 0",
+          "reads": {
+            "kind": "risk.closed",
+            "min": "reviewed",
+            "where": "due<=SRR"
+          }
         }
       ],
       "steps": [
         {
-          "title": "План управления",
-          "place": "risks#plan",
-          "hint": "шкалы 1–5, пороги эскалации"
+          "title": "Владелец и срок",
+          "place": "risks",
+          "hint": "у каждого риска — владелец и срок-точка",
+          "check": "each_risk_has_owner"
         },
         {
-          "title": "Реестр актуален",
+          "title": "Меры по критическим",
           "place": "risks",
-          "hint": "условие—событие—последствие; владелец у каждого",
-          "check": "each_risk_has_due_point"
+          "hint": "критичность ≥ 12 — мера обязательна",
+          "check": "critical_risks_have_measures:12"
+        },
+        {
+          "title": "Сроки к SRR",
+          "place": "risks",
+          "hint": "просроченных к SRR — 0",
+          "check": "risks_due_closed:SRR"
         }
       ],
-      "output": "Д7 план (Preliminary) + живой реестр",
+      "output": "Д7 реестр рисков",
       "depends": [
         {
           "on": "A4",
@@ -870,98 +1411,70 @@
         }
       ],
       "process_ref": [
-        "ROM-2.P"
+        "ROM-2.6"
       ],
       "activities": [
         {
-          "code": "2.P",
-          "name": "Техническое руководство и планирование (сегмент)",
-          "goal": "Техническое руководство и планирование (сегмент)",
+          "code": "2.6",
+          "name": "Оценка и анализ концепций вариантов системы",
+          "goal": "Создание оптимального проекта системы (сегмент)",
           "role": "lead",
-          "track": "management",
-          "method_group": "",
-          "inputs": [],
-          "outputs": [
+          "track": "design",
+          "method_group": "Создание оптимального проекта системы (сегмент)",
+          "inputs": [
             {
-              "what": "планы управления программой/проектом",
-              "kind": "plan",
-              "min": 1
+              "what": "2.4"
             },
             {
-              "what": "план управления процессами системного инжиниринга",
-              "document": "semp"
-            },
-            {
-              "what": "сетевой график разработки"
-            },
-            {
-              "what": "планы верификации"
-            },
-            {
-              "what": "логистические планы"
-            },
-            {
-              "what": "планы интеграции и сборки"
-            },
-            {
-              "what": "план изготовления"
-            },
-            {
-              "what": "план обеспечения качества"
-            },
-            {
-              "what": "план управления EMI/EMC"
-            },
-            {
-              "what": "план установки полезной нагрузки на КА"
-            },
-            {
-              "what": "план обеспечения безопасности системы"
-            },
-            {
-              "what": "план разработки технологий"
-            },
-            {
-              "what": "план программы интегрированной логистической поддержки"
-            },
-            {
-              "what": "программа обеспечения надёжности"
-            },
-            {
-              "what": "план управления информацией"
-            },
-            {
-              "what": "дерево документации"
-            },
-            {
-              "what": "спецификации КД / рабочих чертежей"
-            },
-            {
-              "what": "дерево спецификаций"
-            },
-            {
-              "what": "план управления рисками",
-              "kind": "risk",
-              "min": 1
-            },
-            {
-              "what": "состав работ / ведомость исполнения"
+              "what": "2.5"
             }
           ],
-          "surface": "scene:A7"
+          "outputs": [
+            {
+              "what": "стоимость/эффективность",
+              "kind": "cost_estimate",
+              "min": 1
+            },
+            {
+              "what": "материально-техническая поддержка"
+            },
+            {
+              "what": "продуктивность/технологичность"
+            },
+            {
+              "what": "надёжность"
+            },
+            {
+              "what": "безопасность/анализ рисков"
+            },
+            {
+              "what": "инженерная специализация"
+            },
+            {
+              "what": "стоимость жизненного цикла"
+            },
+            {
+              "what": "анализ продаж"
+            }
+          ],
+          "surface": "scene:A8"
         }
       ]
     },
     {
-      "key": "A8",
-      "title": "ОСЗ и планы SMA",
-      "order": 8,
+      "key": "A9",
+      "title": "ОСЗ и планы обеспечения (SMA)",
+      "order": 9,
       "track": "design",
       "role": "specialist",
-      "task": "О9",
-      "question": "Актуальна ли оценка засорения и как классифицирована ПН",
+      "gate": "SDR",
+      "writes_to": [
+        "Д8 ОСЗ · Д9 планы обеспечения"
+      ],
+      "question": "Соблюдён ли норматив увода в обоих случаях и заведены ли планы обеспечения",
       "opens_kinds": [
-        "debris_assessment"
+        "debris_assessment",
+        "document"
       ],
       "entry": [
         {
@@ -971,29 +1484,64 @@
       ],
       "exit": [
         {
-          "check": "oda_started",
-          "title": "ОСЗ актуализована по нормативу полки"
+          "check": "oda_compliant",
+          "title": "оба случая по нормативу",
+          "reads": {
+            "kind": "debris_assessment",
+            "min": 1,
+            "where": "variant=baseline compliant_active&passive"
+          }
+        },
+        {
+          "check": "document_started:sma",
+          "title": "план обеспечения (надёжность · безопасность · EMI/EMC) — полка Phase B заведена",
+          "reads": {
+            "kind": "document",
+            "min": 1,
+            "where": "template=SMA-plan status>=Draft"
+          }
+        },
+        {
+          "check": "oda_normative_bound",
+          "title": "норматив увода привязан",
+          "reads": {
+            "kind": "normative_basis",
+            "min": 1,
+            "where": "debris"
+          }
         }
       ],
       "steps": [
         {
-          "title": "Актуализовать ОСЗ",
+          "title": "ОСЗ базового варианта",
           "place": "models#debris",
-          "hint": "увод по нормативу полки Б1; Δv в бюджете",
-          "check": "oda_started"
+          "hint": "активный увод и пассивный сход — оба по нормативу",
+          "check": "oda_compliant"
         },
         {
-          "title": "Предварительные планы SMA",
-          "place": "documents",
-          "hint": "классификация ПН"
+          "title": "Норматив привязан",
+          "place": "models#debris",
+          "hint": "норма увода — ссылка на полку нормативов",
+          "check": "oda_normative_bound"
+        },
+        {
+          "title": "План обеспечения",
+          "place": "documents:sma",
+          "hint": "надёжность · безопасность · EMI/EMC — черновик",
+          "check": "document_started:sma"
         }
       ],
-      "output": "Д8 (Updated / Preliminary)",
+      "output": "Д8 ОСЗ · Д9 планы обеспечения (SMA)",
       "depends": [
         {
           "on": "A4",
           "type": "INPUT",
           "why": "масса и орбита элементов — вход увода"
+        },
+        {
+          "on": "A6",
+          "type": "INPUT",
+          "why": "ОСЗ считается от базового варианта"
         }
       ],
       "process_ref": [
@@ -1043,18 +1591,21 @@
               "what": "анализ продаж"
             }
           ],
-          "surface": "scene:A8"
+          "surface": "scene:A9"
         }
       ]
     },
     {
-      "key": "A9",
-      "title": "Программатика",
-      "order": 9,
+      "key": "A10",
+      "title": "Программатика: стоимость и сроки",
+      "order": 10,
       "track": "management",
       "role": "lead",
-      "task": "О10",
-      "question": "Диапазоны стоимости и сроков к KDP-B и что в них не вошло",
+      "gate": "KDP-B",
+      "writes_to": [
+        "Д9 оценка · Project Plan §3"
+      ],
+      "question": "Диапазоны стоимости и сроков к KDP-B, что в них вошло и сходятся ли сроки с точками",
       "opens_kinds": [
         "wbs_package",
         "cost_estimate"
@@ -1068,38 +1619,280 @@
       "exit": [
         {
           "check": "estimate_ranged",
-          "title": "диапазоны high/low с допущениями"
+          "title": "диапазон по WBS с допущениями",
+          "reads": {
+            "kind": "cost_estimate",
+            "min": 1,
+            "where": "method in (parametric,bottom_up) range"
+          }
+        },
+        {
+          "check": "estimate_method:parametric,bottom_up",
+          "title": "диапазон по WBS с допущениями",
+          "reads": {
+            "kind": "cost_estimate",
+            "min": 1,
+            "where": "method in (parametric,bottom_up) range"
+          }
+        },
+        {
+          "check": "wbs_paired",
+          "title": "пар нет только у сквозных",
+          "reads": {
+            "kind": "wbs_package",
+            "min": "all",
+            "where": "pbs_refs→pair"
+          }
         },
         {
           "check": "estimate_includes_maturation",
-          "title": "пакеты созревания включены"
+          "title": "пакеты созревания в оценке",
+          "reads": {
+            "kind": "cost_estimate.includes_maturation",
+            "min": true,
+            "where": null
+          }
+        },
+        {
+          "check": "plan_consistent_with_gates",
+          "title": "свёртка сроков против дат точек — расхождение разрывом",
+          "reads": {
+            "kind": "plan.consistency",
+            "min": true,
+            "where": "WBS vs gates"
+          }
         }
       ],
       "steps": [
         {
-          "title": "Диапазоны стоимости и сроков",
+          "title": "Диапазон по WBS",
           "place": "programmatics#estimate",
-          "hint": "high/low, допущения явно",
+          "hint": "параметрика или снизу вверх; допущения явно",
           "check": "estimate_ranged"
         },
         {
-          "title": "CADRe и закупки",
-          "place": "programmatics#procurement",
-          "hint": "партнёрства и длинные позиции"
+          "title": "Пары пакетов",
+          "place": "programmatics#wbs",
+          "hint": "пар нет только у сквозных",
+          "check": "wbs_paired"
+        },
+        {
+          "title": "Созревание в оценке",
+          "place": "programmatics#estimate",
+          "hint": "пакеты созревания — строки оценки",
+          "check": "estimate_includes_maturation"
+        },
+        {
+          "title": "Сроки против точек",
+          "place": "programmatics#plan",
+          "hint": "свёртка сроков WBS не выходит за даты точек",
+          "check": "plan_consistent_with_gates"
         }
       ],
-      "output": "Д9 диапазоны к KDP-B, CADRe, материалы закупок",
+      "output": "Д9 оценка · Project Plan §3",
       "depends": [
         {
-          "on": "A6",
+          "on": "A7",
           "type": "INPUT",
           "why": "пакеты созревания — строки оценки"
         }
       ],
       "process_ref": [
+        "ROM-2.6",
+        "ROM-0.9"
+      ],
+      "activities": [
+        {
+          "code": "2.6",
+          "name": "Оценка и анализ концепций вариантов системы",
+          "goal": "Создание оптимального проекта системы (сегмент)",
+          "role": "lead",
+          "track": "design",
+          "method_group": "Создание оптимального проекта системы (сегмент)",
+          "inputs": [
+            {
+              "what": "2.4"
+            },
+            {
+              "what": "2.5"
+            }
+          ],
+          "outputs": [
+            {
+              "what": "стоимость/эффективность",
+              "kind": "cost_estimate",
+              "min": 1
+            },
+            {
+              "what": "материально-техническая поддержка"
+            },
+            {
+              "what": "продуктивность/технологичность"
+            },
+            {
+              "what": "надёжность"
+            },
+            {
+              "what": "безопасность/анализ рисков"
+            },
+            {
+              "what": "инженерная специализация"
+            },
+            {
+              "what": "стоимость жизненного цикла"
+            },
+            {
+              "what": "анализ продаж"
+            }
+          ],
+          "surface": "scene:A10"
+        },
+        {
+          "code": "0.9",
+          "name": "Анализ и оценка системы",
+          "goal": "Идентификация реализуемых альтернатив системы",
+          "role": "lead",
+          "track": "design",
+          "method_group": "Идентификация реализуемых альтернатив системы",
+          "inputs": [
+            {
+              "what": "0.7"
+            },
+            {
+              "what": "0.8"
+            }
+          ],
+          "outputs": [
+            {
+              "what": "оценки стоимости жизненного цикла системы"
+            },
+            {
+              "what": "специализированные инженерные исследования"
+            },
+            {
+              "what": "результаты анализа коммерциализации"
+            }
+          ],
+          "surface": "scene:A10"
+        }
+      ]
+    },
+    {
+      "key": "A11",
+      "title": "Project Plan и обновление FA",
+      "order": 11,
+      "track": "management",
+      "role": "lead",
+      "gate": "KDP-B",
+      "writes_to": [
+        "Д10 · FA"
+      ],
+      "question": "Собран ли план проекта из Д2–Д9 и обновлено ли FA планом Phase B с отклонениями",
+      "opens_kinds": [
+        "document"
+      ],
+      "entry": [
+        {
+          "check": "scene_done:A10",
+          "title": "оценки готовы — план собирается из них"
+        }
+      ],
+      "exit": [
+        {
+          "check": "document_started:projectplan",
+          "title": "Д10 Preliminary",
+          "reads": {
+            "kind": "document",
+            "min": 1,
+            "where": "template=ProjectPlan status>=Preliminary"
+          }
+        },
+        {
+          "check": "document_version_min:fa:2",
+          "title": "FA обновлён: план Phase B вехами",
+          "reads": {
+            "kind": "document",
+            "min": 1,
+            "where": "template=DT-9102 version>1"
+          }
+        },
+        {
+          "check": "document_section_started:fa:§6",
+          "title": "отклонения перечислены",
+          "reads": {
+            "kind": "tailoring",
+            "min": "listed",
+            "where": "FA §6"
+          }
+        }
+      ],
+      "steps": [
+        {
+          "title": "Project Plan по шаблону",
+          "place": "documents:projectplan",
+          "hint": "ссылки на Д2–Д9, не копии",
+          "check": "document_started:projectplan"
+        },
+        {
+          "title": "FA: план Phase B",
+          "place": "documents:fa#4",
+          "hint": "вехи и зрелости по прил. I — новая версия FA",
+          "check": "document_version_min:fa:2"
+        },
+        {
+          "title": "Отклонения",
+          "place": "documents:fa#6",
+          "hint": "tailoring перечислен с обоснованием",
+          "check": "document_section_started:fa:§6"
+        }
+      ],
+      "output": "Д10 Project Plan (Preliminary), FA обновлённое",
+      "depends": [
+        {
+          "on": "A10",
+          "type": "FS",
+          "why": "план проекта не собирается раньше оценок"
+        }
+      ],
+      "process_ref": [
+        "ROM-1.P",
         "ROM-2.P"
       ],
       "activities": [
+        {
+          "code": "1.P",
+          "name": "Техническое планирование и управление",
+          "goal": "Техническое планирование и управление",
+          "role": "lead",
+          "track": "management",
+          "method_group": "",
+          "inputs": [],
+          "outputs": [
+            {
+              "what": "программа инженерного управления системой (SEMP)"
+            },
+            {
+              "what": "инженерный генеральный план / технологические процессы"
+            },
+            {
+              "what": "план развития технологии",
+              "kind": "technology",
+              "min": 1
+            },
+            {
+              "what": "программа материально-технического обеспечения"
+            },
+            {
+              "what": "план управления рисками",
+              "kind": "risk",
+              "min": 1
+            },
+            {
+              "what": "план управления информацией"
+            }
+          ],
+          "surface": "scene:A11"
+        },
         {
           "code": "2.P",
           "name": "Техническое руководство и планирование (сегмент)",
@@ -1175,123 +1968,122 @@
               "what": "состав работ / ведомость исполнения"
             }
           ],
-          "surface": "scene:A9"
+          "surface": "scene:A11"
         }
       ]
     },
     {
-      "key": "A10",
-      "title": "Project Plan и обновление FA",
-      "order": 10,
+      "key": "A12",
+      "title": "Точки фазы: SRR · SDR/MDR · KDP-B",
+      "order": 12,
       "track": "management",
       "role": "lead",
-      "task": "О11–О12",
-      "question": "Собран ли план проекта из Д2–Д9 и обновлено ли FA планом Phase B",
-      "opens_kinds": [],
+      "gate": "KDP-B",
+      "writes_to": [
+        "пакет точки"
+      ],
+      "question": "Готовы ли базовые линии и позиции экспертиз к точкам и полна ли матрица зрелости",
+      "opens_kinds": [
+        "baseline"
+      ],
       "entry": [
         {
-          "check": "scene_done:A9",
-          "title": "оценки готовы — план собирается из них"
+          "check": "scene_started:A5",
+          "title": "системные требования есть — есть что базировать"
         }
       ],
       "exit": [
         {
-          "check": "document_started:fa",
-          "title": "FA обновлено планом Phase B"
+          "check": "baseline_taken:functional",
+          "title": "функциональная базовая линия к SRR",
+          "reads": {
+            "kind": "requirement.baseline",
+            "min": "functional",
+            "where": "gate=SRR"
+          }
+        },
+        {
+          "check": "baseline_taken:allocated",
+          "title": "allocated к SDR",
+          "reads": {
+            "kind": "baseline",
+            "min": "allocated",
+            "where": "gate=SDR"
+          }
+        },
+        {
+          "check": "expertise_positions_reviewed:SRR",
+          "title": "позиции с кодами зрелости",
+          "reads": {
+            "kind": "expertise.positions",
+            "min": "reviewed",
+            "where": "EXP-2A/2B"
+          }
+        },
+        {
+          "check": "expertise_positions_reviewed:SDR",
+          "title": "позиции с кодами зрелости",
+          "reads": {
+            "kind": "expertise.positions",
+            "min": "reviewed",
+            "where": "EXP-2A/2B"
+          }
+        },
+        {
+          "check": "maturity_matrix_complete:KDP-B",
+          "title": "матрица зрелости без дыр",
+          "reads": {
+            "kind": "maturity_matrix",
+            "min": "complete",
+            "where": "Д1–Д10 gate=KDP-B"
+          }
         }
       ],
       "steps": [
         {
-          "title": "Project Plan по шаблону",
-          "place": "documents",
-          "hint": "10 разделов; ссылки, не копии"
+          "title": "Функциональная базовая линия",
+          "place": "requirements#baseline",
+          "hint": "снимок к SRR",
+          "check": "baseline_taken:functional"
         },
         {
-          "title": "FA: план Phase B",
-          "place": "documents:fa#4",
-          "hint": "вехи и зрелости по прил. I",
-          "check": "document_started:fa"
+          "title": "Распределённая базовая линия",
+          "place": "requirements#baseline",
+          "hint": "снимок к SDR",
+          "check": "baseline_taken:allocated"
+        },
+        {
+          "title": "Позиции экспертиз",
+          "place": "points",
+          "hint": "EXP-2A / EXP-2B — вердикт по каждой позиции",
+          "check": "expertise_positions_reviewed:SRR"
+        },
+        {
+          "title": "Матрица зрелости",
+          "place": "points#KDP-B",
+          "hint": "Д1–Д10 без дыр",
+          "check": "maturity_matrix_complete:KDP-B"
         }
       ],
-      "output": "Д10 (Preliminary), Д1 проект обновлённого FA",
+      "output": "пакеты точек SRR · SDR/MDR · KDP-B",
       "depends": [
         {
-          "on": "A9",
-          "type": "FS",
-          "why": "план проекта не собирается раньше оценок"
+          "on": "A5",
+          "type": "SS",
+          "why": "функциональная линия берётся с первых системных требований"
+        },
+        {
+          "on": "A11",
+          "type": "FF",
+          "why": "пакет KDP-B закрывается вместе с планом проекта"
         }
       ],
       "process_ref": [
-        "ROM-2.PE"
+        "EXP-2A",
+        "EXP-2B",
+        "EXP-3"
       ],
-      "activities": [
-        {
-          "code": "2.PE",
-          "name": "Техническое руководство и планирование (элемент)",
-          "goal": "Техническое руководство и планирование (элемент)",
-          "role": "lead",
-          "track": "management",
-          "method_group": "",
-          "inputs": [],
-          "outputs": [
-            {
-              "what": "схема управления программой"
-            },
-            {
-              "what": "схема управления инженерной системой"
-            },
-            {
-              "what": "инженерный генеральный план / технологический процесс"
-            },
-            {
-              "what": "план верификации"
-            },
-            {
-              "what": "схема логистики"
-            },
-            {
-              "what": "план интеграции и комплексирования"
-            },
-            {
-              "what": "план управления производством и MRL"
-            },
-            {
-              "what": "план производства"
-            },
-            {
-              "what": "программа обеспечения качества"
-            },
-            {
-              "what": "схема управления EMI/EMC"
-            },
-            {
-              "what": "план интеграции РН и ПН"
-            },
-            {
-              "what": "план обеспечения безопасности"
-            },
-            {
-              "what": "программа обеспечения надёжности"
-            },
-            {
-              "what": "схема управления настройками"
-            },
-            {
-              "what": "перечень рабочей документации"
-            },
-            {
-              "what": "план управления информацией"
-            },
-            {
-              "what": "программа управления рисками"
-            },
-            {
-              "what": "состав выполняемых работ"
-            }
-          ],
-          "surface": "scene:A10"
-        }
-      ]
+      "activities": []
     }
   ],
   "points": [
@@ -1312,13 +2104,13 @@
       "criteria": [
         {
           "check": "document_started:semp",
-          "source_scene": "A1",
+          "source_scene": "A2",
           "blocking": true,
           "title": "SEMP начат"
         },
         {
           "check": "system_requirements_min:1",
-          "source_scene": "A3",
+          "source_scene": "A5",
           "blocking": true,
           "title": "системные требования есть"
         },
@@ -1353,37 +2145,50 @@
           "title": "внутренний обзор пройден"
         },
         {
-          "check": "document_baselined:semp",
+          "check": "scene_done:A1",
           "source_scene": "A1",
           "blocking": true,
-          "title": "SEMP базирован"
+          "title": "сцена A1 «Развёртывание фазы» прожита"
         },
         {
-          "check": "document_complete:conops:SRR",
+          "check": "scene_done:A2",
           "source_scene": "A2",
           "blocking": true,
-          "title": "ConOps полон к SRR"
+          "title": "сцена A2 «SEMP» прожита"
+        },
+        {
+          "check": "scene_done:A3",
+          "source_scene": "A3",
+          "blocking": true,
+          "title": "сцена A3 «ConOps — базирование» прожита"
         },
         {
           "check": "system_requirements_min:3",
-          "source_scene": "A3",
+          "source_scene": "A5",
           "blocking": true,
           "title": "системных требований не меньше трёх"
         },
         {
           "check": "each_system_requirement_derived",
-          "source_scene": "A3",
+          "source_scene": "A5",
           "blocking": true,
-          "title": "каждое системное выведено из проектного"
+          "title": "каждое системное выведено из проектного с обоснованием"
         },
         {
           "check": "no_suspect_links",
-          "source_scene": "A3",
+          "source_scene": "A5",
           "blocking": true,
           "title": "подозрительных связей нет"
         },
         {
+          "check": "baseline_taken:functional",
+          "source_scene": "A12",
+          "blocking": true,
+          "title": "функциональная базовая линия взята"
+        },
+        {
           "check": "risks_due_closed:SRR",
+          "source_scene": "A8",
           "blocking": true,
           "title": "риски и TBR со сроком к SRR закрыты"
         },
@@ -1434,13 +2239,43 @@
           "check": "scene_done:A4",
           "source_scene": "A4",
           "blocking": true,
-          "title": "аванпроекты всех элементов прожиты"
+          "title": "сцена A4 «Аванпроект элемента (сегмент/элемент)» прожита"
         },
         {
-          "check": "no_carrierless_requirement",
-          "source_scene": "A4",
+          "check": "scene_done:A5",
+          "source_scene": "A5",
           "blocking": true,
-          "title": "требований без носителя — 0"
+          "title": "сцена A5 «Архитектура системы» прожита"
+        },
+        {
+          "check": "scene_done:A6",
+          "source_scene": "A6",
+          "blocking": true,
+          "title": "сцена A6 «Анализы и trade studies» прожита"
+        },
+        {
+          "check": "scene_done:A7",
+          "source_scene": "A7",
+          "blocking": true,
+          "title": "сцена A7 «Созревание технологий» прожита"
+        },
+        {
+          "check": "scene_done:A8",
+          "source_scene": "A8",
+          "blocking": true,
+          "title": "сцена A8 «Риски» прожита"
+        },
+        {
+          "check": "scene_done:A9",
+          "source_scene": "A9",
+          "blocking": true,
+          "title": "сцена A9 «ОСЗ и планы обеспечения (SMA)» прожита"
+        },
+        {
+          "check": "no_carrierless_requirement:system",
+          "source_scene": "A5",
+          "blocking": true,
+          "title": "системных требований без носителя — 0"
         },
         {
           "check": "document_complete:icd:SDR",
@@ -1450,15 +2285,15 @@
         },
         {
           "check": "document_complete:opscon:SDR",
-          "source_scene": "A2",
+          "source_scene": "A3",
           "blocking": true,
           "title": "OpsCon полон к SDR"
         },
         {
-          "check": "baseline_concept_chosen",
-          "source_scene": "A5",
+          "check": "baseline_taken:allocated",
+          "source_scene": "A12",
           "blocking": true,
-          "title": "базовый вариант выбран"
+          "title": "распределённая базовая линия взята"
         },
         {
           "check": "findings_closed:SDR",
@@ -1532,7 +2367,8 @@
           },
           {
             "artifact": "интерфейсный контрольный документ",
-            "maturity": "Р"
+            "maturity": "Р",
+            "our_ref": "document_template:icd"
           },
           {
             "artifact": "план интеграции и сборки",
@@ -1608,7 +2444,8 @@
           },
           {
             "artifact": "план контроля EMI/EMC",
-            "maturity": "Р"
+            "maturity": "Р",
+            "our_ref": "document_template:sma"
           },
           {
             "artifact": "план интеграции полезной нагрузки на КА",
@@ -1620,7 +2457,8 @@
           },
           {
             "artifact": "план обеспечения безопасности системы",
-            "maturity": "F"
+            "maturity": "F",
+            "our_ref": "document_template:sma"
           },
           {
             "artifact": "план разработки технологии",
@@ -1632,7 +2470,8 @@
           },
           {
             "artifact": "план обеспечения надёжности",
-            "maturity": "Р"
+            "maturity": "Р",
+            "our_ref": "document_template:sma"
           },
           {
             "artifact": "отчёты об измерении технических показателей",
@@ -1692,19 +2531,32 @@
           "title": "SDR пройден"
         },
         {
-          "check": "scene_done:A9",
-          "source_scene": "A9",
-          "blocking": true,
-          "title": "стоимость и сроки оценены диапазонами"
-        },
-        {
           "check": "scene_done:A10",
           "source_scene": "A10",
           "blocking": true,
-          "title": "план проекта и FA обновлены"
+          "title": "сцена A10 «Программатика: стоимость и сроки» прожита"
+        },
+        {
+          "check": "scene_done:A11",
+          "source_scene": "A11",
+          "blocking": true,
+          "title": "сцена A11 «Project Plan и обновление FA» прожита"
+        },
+        {
+          "check": "scene_done:A12",
+          "source_scene": "A12",
+          "blocking": true,
+          "title": "сцена A12 «Точки фазы: SRR · SDR/MDR · KDP-B» прожита"
+        },
+        {
+          "check": "maturity_matrix_complete:KDP-B",
+          "source_scene": "A12",
+          "blocking": true,
+          "title": "матрица зрелости Д1–Д10 без дыр"
         },
         {
           "check": "risks_due_closed:KDP-B",
+          "source_scene": "A8",
           "blocking": true,
           "title": "риски со сроком к KDP-B закрыты"
         },
@@ -1814,6 +2666,16 @@
             "SDR": "С",
             "KDP-B": "Р"
           }
+        },
+        {
+          "artifact": "Д10 · Project Plan",
+          "our_ref": "document_template:projectplan",
+          "codes": {
+            "internal_review_a": "°",
+            "SRR": "°",
+            "SDR": "°",
+            "KDP-B": "Р"
+          }
         }
       ]
     }
@@ -1827,14 +2689,17 @@
     "interfaces": true,
     "models": [
       "М1",
-      "М3",
-      "М4"
+      "М2а",
+      "М3а",
+      "М6"
     ],
     "documents": [
       "SEMP",
       "ConOps",
       "OpsCon",
       "ICD",
+      "SMA",
+      "Project Plan",
       "FA"
     ],
     "plans_per_element": [

@@ -45,6 +45,8 @@ import stand_session  # noqa: E402
     ("полки-порождённые/ШАБЛОН-SEMP.json", "document_template"),
     ("полки-порождённые/ШАБЛОН-OPSCON.json", "document_template"),
     ("полки-порождённые/ШАБЛОН-ICD.json", "document_template"),
+    ("полки-порождённые/ШАБЛОН-SMA.json", "document_template"),
+    ("полки-порождённые/ШАБЛОН-PROJECTPLAN.json", "document_template"),
     ("полки-порождённые/ПОЛКА-ПРОЦЕССЫ-СИ.json", "process_catalog"),
 ]
 

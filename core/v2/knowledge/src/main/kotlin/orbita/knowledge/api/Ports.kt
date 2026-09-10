@@ -40,6 +40,8 @@ data class Fact(
     val disposition: Disposition = Disposition.FREE,
     /** Тема факта: предмет до разрешения в сущность. */
     val topic: String? = null,
+    /** Класс сущности ТЗ (правило атомизации): requirement · function · service · composition_node · stakeholder · constraint · milestone · normative_ref. */
+    val entityClass: String? = null,
     /**
      * Заведён инженером руками, а не разбором источника. Полноправный
      * факт — диспозиции, связи, промпт, — но доля знаний ИЗ ИСТОЧНИКОВ
@@ -71,6 +73,8 @@ data class TorLine(
     val needs: List<String>,
     val verdict: String,
     val note: String = "",
+    /** Слова самого факта («ТЗ п. 2.3.1: состав ОГ — не менее 180 МКА» [requirement]) — дыра читается без реестра. */
+    val text: String = "",
 )
 
 /**

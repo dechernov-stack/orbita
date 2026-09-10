@@ -206,7 +206,7 @@ class KnowledgeRoutes(
             val оценка = узел.putObject("assessment")
             val строки = оценка.putArray("lines")
             о.lines.forEach { л ->
-                val с = строки.addObject().put("fact", л.fact).put("requirement", л.requirement).put("verdict", л.verdict).put("note", л.note)
+                val с = строки.addObject().put("fact", л.fact).put("requirement", л.requirement).put("verdict", л.verdict).put("note", л.note).put("text", л.text)
                 с.putArray("needs").also { а -> л.needs.forEach { а.add(it) } }
             }
             // От нужды — с дырой словами (ответ владельца 09.09 п. 1).

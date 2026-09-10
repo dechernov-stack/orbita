@@ -76,6 +76,32 @@ class GateRecords(private val store: EntityStore, private val mapper: ObjectMapp
         }
     }
 
+    /** Вердикты по позициям экспертизы точки (A12): артефакт → {verdict, note, by, at}. */
+    fun positions(project: String, gate: String): JsonNode =
+        store.byCode(Area.Project(project), gate)?.doc?.path("positions")?.takeIf { it.isObject } ?: mapper.createObjectNode()
+
+    /** Записать вердикты по позициям: сливаются с прежними, пустой вердикт снимает запись. */
+    fun recordPositions(project: String, gate: String, positions: JsonNode, by: String): JsonNode {
+        val область = Area.Project(project)
+        val точка = store.byCode(область, gate) ?: throw NoSuchElementException("точки «$gate» в проекте $project нет")
+        val док = точка.doc.deepCopy() as ObjectNode
+        val было = (док.path("positions").takeIf { it.isObject } as? ObjectNode) ?: mapper.createObjectNode()
+        positions.forEach { п ->
+            val артефакт = п.path("artifact").asText("").trim()
+            require(артефакт.isNotBlank()) { "у позиции нужен artifact" }
+            val вердикт = п.path("verdict").asText("").trim()
+            if (вердикт.isBlank()) { было.remove(артефакт); return@forEach }
+            было.set<JsonNode>(
+                артефакт,
+                mapper.createObjectNode().put("verdict", вердикт).put("note", п.path("note").asText("")).put("by", by)
+                    .put("at", OffsetDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)),
+            )
+        }
+        док.set<JsonNode>("positions", было)
+        store.update(точка.id, док, Provenance(Channel.MANUAL, by))
+        return было
+    }
+
     /** Решение по точке: запись, статус точки, при approve с фазой — фаза проекта. */
     fun record(project: String, gate: String, by: String, outcome: String, note: String?, opensPhase: String?) {
         val область = Area.Project(project)

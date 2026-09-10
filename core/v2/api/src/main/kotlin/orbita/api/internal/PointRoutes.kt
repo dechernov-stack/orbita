@@ -17,7 +17,7 @@ class PointRoutes(
     private val records: GateRecords,
     private val mapper: ObjectMapper,
 ) {
-    private val точка = Regex("/v2/points/([A-Za-z0-9_-]+)/(findings|decide)")
+    private val точка = Regex("/v2/points/([A-Za-z0-9_-]+)/(findings|decide|positions)")
     private val ворота = Regex("/v2/gates/([A-Za-z0-9_-]+)/pass")
     private val замечаниеПуть = Regex("/v2/findings/([A-Za-z0-9_-]+)/close")
 
@@ -31,8 +31,11 @@ class PointRoutes(
             method == "GET" && path == "/v2/findings" -> замечания(требуется(проект), query["gate"], query["status"])
             method == "POST" && точка.matches(path) -> {
                 val (ключ, действие) = точка.matchEntire(path)!!.destructured
-                if (действие == "findings") завестиЗамечание(требуется(проект), ключ, разобрать(body), actor)
-                else решение(требуется(проект), ключ, разобрать(body), actor)
+                when (действие) {
+                    "findings" -> завестиЗамечание(требуется(проект), ключ, разобрать(body), actor)
+                    "positions" -> позиции(требуется(проект), ключ, разобрать(body), actor)
+                    else -> решение(требуется(проект), ключ, разобрать(body), actor)
+                }
             }
             method == "POST" && ворота.matches(path) ->
                 решение(требуется(проект), ворота.matchEntire(path)!!.groupValues[1], разобрать(body), actor)
@@ -49,7 +52,22 @@ class PointRoutes(
         ответ.put("phase", фаза.phase)
         ответ.put("current_scene", фаза.currentScene)
         val массив = ответ.putArray("items")
-        фаза.gates.forEach { массив.add(PhaseJson.точка(it, mapper)) }
+        фаза.gates.forEach { массив.add((PhaseJson.точка(it, mapper) as com.fasterxml.jackson.databind.node.ObjectNode).set<JsonNode>("positions", records.positions(проект, it.key))) }
+        return V2Router.Ответ(200, ответ)
+    }
+
+    /** A12: вердикты по позициям экспертизы точки — те же роли, что ведут обзор. */
+    private fun позиции(проект: String, ключ: String, тело: JsonNode, actor: Actor?): V2Router.Ответ {
+        val роли = роли(actor)
+        if (роли.none { it in обзор }) {
+            throw RoleRefusedException("вердикт по позиции экспертизы даёт руководитель проекта, ведущий системный инженер или DA; ваша роль — ${роли.joinToString(", ").ifBlank { "нет" }}")
+        }
+        val список = тело.path("positions")
+        require(список.isArray && !список.isEmpty) { "нужен массив positions [{artifact, verdict, note?}]" }
+        val кто = actor?.name ?: тело.path("author").asText("").ifBlank { "аноним" }
+        val итог = records.recordPositions(проект, ключ, список, кто)
+        val ответ = mapper.createObjectNode().put("gate", ключ).put("reviewed", итог.size())
+        ответ.set<JsonNode>("positions", итог)
         return V2Router.Ответ(200, ответ)
     }
 

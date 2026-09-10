@@ -100,9 +100,10 @@ class PhaseATest {
         открытьPhaseA()
         val фаза = движок().view(проект)
         assertEquals("Phase A", фаза.phase)
-        assertEquals(listOf("A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8", "A9", "A10"), фаза.scenes.map { it.key })
+        assertEquals((1..12).map { "A$it" }, фаза.scenes.map { it.key }, "двенадцать сцен поставки 10.09")
         assertEquals(listOf("internal_review_a", "SRR", "SDR", "KDP-B"), фаза.gates.map { it.key })
         assertNotNull(store.byCode(область, "SRR"), "точки новой фазы заведены записями — решению есть куда лечь")
+        assertEquals(47, фаза.scenes.sumOf { it.exit.size }, "44 условия поставки → 47 проверок выхода")
         val a4 = фаза.scenes.first { it.key == "A4" }
         assertEquals(SceneState.LOCKED, a4.state)
         assertTrue(a4.blockers.any { "нет ни одного узла вида «element»" in it }, a4.blockers.toString())
@@ -110,6 +111,11 @@ class PhaseATest {
         // A1 открыта решением KDP-A (FS), A2 — началом A1 (SS)
         assertEquals(SceneState.OPEN, фаза.scenes.first { it.key == "A1" }.state)
         assertEquals(SceneState.OPEN, фаза.scenes.first { it.key == "A2" }.state, "SS: A2 открыта, как только A1 начата")
+        // условие «желательно» видно, но сцену не держит: A5 без логических компонентов держится другими условиями, не этим
+        val a5 = фаза.scenes.first { it.key == "A5" }
+        val желательно = a5.exit.first { it.check == "logical_components_deployed" }
+        assertTrue(!желательно.blocking && !желательно.passed, "не блокирует и не выполнено")
+        assertTrue(a5.blockers.none { "логических компонентов нет" in it }, a5.blockers.toString())
     }
 
     @Test
@@ -147,9 +153,13 @@ class PhaseATest {
         val sdr = фаза.gates.first { it.key == "SDR" }
         assertTrue(sdr.criteria.first { it.check == "scene_done:A4" }.passed.not(), "SDR ждёт всех экземпляров")
 
-        // стык у обоих элементов и требование на НКУ → оба экземпляра прожиты → A4 прожита
-        store.create("IF-S-G", "interface", область, "7", mapper.readTree("""{"name":"КА — НКУ (радиолиния)","type":"rf","a":"${ка.id}","b":"${нку.id}","direction":"both"}"""), провенанс)
+        // стык у обоих элементов, требование на НКУ, функции и элемент обмена на стыке → оба экземпляра прожиты → A4 прожита
+        val стык = store.create("IF-S-G", "interface", область, "7", mapper.readTree("""{"name":"КА — НКУ (радиолиния)","type":"rf","a":"${ка.id}","b":"${нку.id}","direction":"both"}"""), провенанс)
         требования.derive(проект, "RQ-P-01", "НКУ должен принимать кадры телеметрии на каждом сеансе.", "приём — зеркало передачи", "Иванов И.", carrier = "GS")
+        store.create("FN-TX", "function", область, "A4", mapper.readTree("""{"name":"передать кадр","layer":"SA","allocated_to":["${ка.id}"]}"""), провенанс)
+        store.create("FN-RX", "function", область, "A4", mapper.readTree("""{"name":"принять кадр","layer":"SA","allocated_to":["${нку.id}"]}"""), провенанс)
+        val обмен = store.create("EX-TM", "exchange", область, "A4", mapper.readTree("""{"name":"кадр телеметрии","interface":"${стык.id}"}"""), провенанс)
+        store.create("EI-TM", "exchange_item", область, "A4", mapper.readTree("""{"name":"кадр ТМ","type":"flow","elements":[{"name":"crc","data_type":"u16"}],"exchanges":["${обмен.id}"]}"""), провенанс)
         val после = движок().view(проект)
         assertTrue(после.scenes.filter { it.instanceOf == "A4" }.all { it.state == SceneState.DONE }, после.scenes.filter { it.instanceOf == "A4" }.map { it.blockers }.toString())
         assertTrue(после.gates.first { it.key == "SDR" }.criteria.first { it.check == "scene_done:A4" }.passed, "все экземпляры прожиты — A4 прожита")

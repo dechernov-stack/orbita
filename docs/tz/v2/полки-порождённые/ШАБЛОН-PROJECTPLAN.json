@@ -1,0 +1,466 @@
+{
+  "kind": "document_template",
+  "code": "projectplan",
+  "title": "Project Plan (Д10)",
+  "standard": "УСЛОВИЯ-СЦЕН-PHASE-A A11 (10.09); NPR 7120.5 Project Plan",
+  "note": "Собирается ссылками на Д2–Д9, не копиями; Preliminary к KDP-B. Порождён генератором tools/v2/gen_phase_a_documents.py; правки — в генератор, не сюда.",
+  "style": {
+    "tone": "деловая инженерная проза без маркетинга",
+    "traceability": "каждое утверждение опирается на элемент раздела",
+    "numbers": "число в тексте обязано быть в данных названных опор"
+  },
+  "review": {
+    "qualifiers": [
+      "не менее",
+      "не более",
+      "не допускается",
+      "не должен",
+      "не должна",
+      "не может",
+      "не разрешается",
+      "не",
+      "без",
+      "только",
+      "кроме",
+      "запрещается",
+      "запрещено",
+      "обязан",
+      "обязана",
+      "обязательно"
+    ],
+    "number_exceptions": [
+      "даты вида ГГГГ-ММ-ДД",
+      "номера разделов после §",
+      "числа внутри кодов сущностей"
+    ]
+  },
+  "labels": {
+    "_note": "служебные значения по-русски: печать обязана быть человеческим текстом, а не перечнем ключей модели",
+    "functional": "функциональное",
+    "performance": "показатель",
+    "interface": "стыковое",
+    "operational": "операционное",
+    "constraint": "ограничение",
+    "safety": "безопасность",
+    "reliability": "надёжность",
+    "environmental": "средовое",
+    "node": "узел",
+    "behaviour": "поведение",
+    "data": "данные",
+    "human": "человек",
+    "customer": "заказчик",
+    "operator": "оператор",
+    "regulator": "регулятор",
+    "supplier": "поставщик",
+    "partner": "партнёр",
+    "consumer": "потребитель",
+    "established": "учреждаемая сторона",
+    "mitigate": "снижать",
+    "accept": "принять",
+    "avoid": "избегать",
+    "transfer": "передать",
+    "ROM": "порядок величины",
+    "PARAMETRIC": "параметрическая",
+    "BOTTOM_UP": "снизу вверх",
+    "draft": "черновик",
+    "accepted": "принято",
+    "baselined": "базировано"
+  },
+  "sections": [
+    {
+      "no": "§1",
+      "title": "Проект и его цели",
+      "scenes": [
+        "1",
+        "4"
+      ],
+      "elements": [
+        {
+          "code": "1.1",
+          "kind": "query",
+          "title": "Проект",
+          "select": "project",
+          "min_rows": 1,
+          "columns": [
+            {
+              "title": "Проект",
+              "field": "name"
+            },
+            {
+              "title": "Стандарт",
+              "field": "standard"
+            },
+            {
+              "title": "Фаза",
+              "field": "phase"
+            }
+          ]
+        },
+        {
+          "code": "1.2",
+          "kind": "query",
+          "title": "Цели миссии",
+          "select": "goal",
+          "min_rows": 1,
+          "columns": [
+            {
+              "title": "Код",
+              "field": "code"
+            },
+            {
+              "title": "Цель",
+              "field": "statement"
+            },
+            {
+              "title": "Год",
+              "field": "year"
+            }
+          ]
+        }
+      ],
+      "expects": "KDP-B",
+      "source": "проект · цели",
+      "min_statements": 1,
+      "statement_hint": "назначение плана; ссылка на FA (Д1)"
+    },
+    {
+      "no": "§2",
+      "title": "Организация и управление (→ SEMP, Д2)",
+      "scenes": [
+        "3",
+        "A2"
+      ],
+      "elements": [
+        {
+          "code": "2.1",
+          "kind": "query",
+          "title": "Стороны и роли",
+          "select": "stakeholder",
+          "min_rows": 1,
+          "columns": [
+            {
+              "title": "Код",
+              "field": "code"
+            },
+            {
+              "title": "Сторона",
+              "field": "name"
+            },
+            {
+              "title": "Роль",
+              "field": "role"
+            }
+          ]
+        }
+      ],
+      "expects": "KDP-B",
+      "source": "стейкхолдеры · SEMP",
+      "min_statements": 1,
+      "statement_hint": "ссылка на SEMP: процессы и обзоры не переписываются"
+    },
+    {
+      "no": "§3",
+      "title": "Стоимость и сроки (→ Д9)",
+      "scenes": [
+        "A10",
+        "A1"
+      ],
+      "elements": [
+        {
+          "code": "3.1",
+          "kind": "query",
+          "title": "Оценки",
+          "select": "cost_estimate",
+          "min_rows": 1,
+          "columns": [
+            {
+              "title": "Код",
+              "field": "code"
+            },
+            {
+              "title": "Метод",
+              "field": "method"
+            },
+            {
+              "title": "Диапазон",
+              "field": "range"
+            },
+            {
+              "title": "Допущения",
+              "field": "assumptions"
+            }
+          ]
+        },
+        {
+          "code": "3.2",
+          "kind": "query",
+          "title": "Точки фазы",
+          "select": "gate",
+          "min_rows": 1,
+          "columns": [
+            {
+              "title": "Точка",
+              "field": "title"
+            },
+            {
+              "title": "Дата",
+              "field": "planned_date"
+            },
+            {
+              "title": "Состояние",
+              "field": "status"
+            }
+          ]
+        }
+      ],
+      "expects": "KDP-B",
+      "source": "оценки · точки",
+      "min_statements": 1,
+      "statement_hint": "диапазон стоимости и вехи — ссылками на оценку и план фазы"
+    },
+    {
+      "no": "§4",
+      "title": "Технические требования и архитектура (→ Д3, Д5)",
+      "scenes": [
+        "A5"
+      ],
+      "elements": [
+        {
+          "code": "4.1",
+          "kind": "query",
+          "title": "Системные требования",
+          "select": "requirement",
+          "min_rows": 0,
+          "columns": [
+            {
+              "title": "Код",
+              "field": "code"
+            },
+            {
+              "title": "Требование",
+              "field": "statement"
+            },
+            {
+              "title": "Носитель",
+              "field": "carrier"
+            }
+          ],
+          "where": {
+            "level": "system"
+          }
+        }
+      ],
+      "expects": "KDP-B",
+      "source": "требования",
+      "min_statements": 1,
+      "statement_hint": "ссылка на реестр требований и ICD; здесь — только объём"
+    },
+    {
+      "no": "§5",
+      "title": "Технологии (→ Д6)",
+      "scenes": [
+        "A7"
+      ],
+      "elements": [
+        {
+          "code": "5.1",
+          "kind": "query",
+          "title": "Критические технологии",
+          "select": "technology",
+          "min_rows": 1,
+          "columns": [
+            {
+              "title": "Код",
+              "field": "code"
+            },
+            {
+              "title": "Технология",
+              "field": "name"
+            },
+            {
+              "title": "TRL",
+              "field": "trl_current"
+            },
+            {
+              "title": "Нужен TRL",
+              "field": "trl_required"
+            },
+            {
+              "title": "Резерв",
+              "field": "fallback"
+            }
+          ]
+        }
+      ],
+      "expects": "KDP-B",
+      "source": "технологии",
+      "min_statements": 1,
+      "statement_hint": "план созревания — ссылкой; здесь итог и резервы"
+    },
+    {
+      "no": "§6",
+      "title": "Риски (→ Д7)",
+      "scenes": [
+        "A8"
+      ],
+      "elements": [
+        {
+          "code": "6.1",
+          "kind": "query",
+          "title": "Реестр рисков",
+          "select": "risk",
+          "min_rows": 1,
+          "columns": [
+            {
+              "title": "Код",
+              "field": "code"
+            },
+            {
+              "title": "Риск",
+              "field": "statement"
+            },
+            {
+              "title": "Владелец",
+              "field": "owner"
+            },
+            {
+              "title": "Срок",
+              "field": "due_point"
+            }
+          ]
+        }
+      ],
+      "expects": "KDP-B",
+      "source": "риски",
+      "min_statements": 1,
+      "statement_hint": "ссылка на реестр; здесь — верхние риски проекта"
+    },
+    {
+      "no": "§7",
+      "title": "Обеспечение и ОСЗ (→ Д8, SMA)",
+      "scenes": [
+        "A9"
+      ],
+      "elements": [
+        {
+          "code": "7.1",
+          "kind": "query",
+          "title": "Оценка засорения",
+          "select": "debris_assessment",
+          "min_rows": 1,
+          "columns": [
+            {
+              "title": "Код",
+              "field": "code"
+            },
+            {
+              "title": "Вариант",
+              "field": "variant"
+            },
+            {
+              "title": "Активный увод",
+              "field": "compliant_active"
+            },
+            {
+              "title": "Пассивный сход",
+              "field": "compliant_passive"
+            }
+          ]
+        }
+      ],
+      "expects": "KDP-B",
+      "source": "ОСЗ · SMA",
+      "min_statements": 1,
+      "statement_hint": "ссылка на ОСЗ и план обеспечения"
+    },
+    {
+      "no": "§8",
+      "title": "Работы и WBS",
+      "scenes": [
+        "12",
+        "A10"
+      ],
+      "elements": [
+        {
+          "code": "8.1",
+          "kind": "query",
+          "title": "Пакеты работ",
+          "select": "wbs_package",
+          "min_rows": 1,
+          "columns": [
+            {
+              "title": "Код",
+              "field": "code"
+            },
+            {
+              "title": "Пакет",
+              "field": "name"
+            },
+            {
+              "title": "Узлы",
+              "field": "pbs_refs"
+            },
+            {
+              "title": "Сквозной",
+              "field": "cross_cutting"
+            }
+          ]
+        }
+      ],
+      "expects": "KDP-B",
+      "source": "WBS",
+      "min_statements": 1,
+      "statement_hint": "состав работ Phase B — пакетами; сроки — из плана пакетов"
+    },
+    {
+      "no": "§9",
+      "title": "Решения и допущения",
+      "scenes": [
+        "A12"
+      ],
+      "elements": [
+        {
+          "code": "9.1",
+          "kind": "query",
+          "title": "Решения точек",
+          "select": "decision",
+          "min_rows": 0,
+          "columns": [
+            {
+              "title": "Точка",
+              "field": "gate"
+            },
+            {
+              "title": "Кем",
+              "field": "by"
+            },
+            {
+              "title": "Когда",
+              "field": "at"
+            },
+            {
+              "title": "Исход",
+              "field": "outcome"
+            }
+          ]
+        }
+      ],
+      "expects": "KDP-B",
+      "source": "решения точек · допущения",
+      "min_statements": 1,
+      "statement_hint": "решения точек фазы и допущения, на которых стоит план"
+    },
+    {
+      "no": "§10",
+      "title": "Согласование",
+      "scenes": [
+        "A11"
+      ],
+      "elements": [],
+      "expects": "KDP-B",
+      "source": "тезисы",
+      "min_statements": 1,
+      "statement_hint": "кто утверждает план и когда он актуализируется"
+    }
+  ]
+}

@@ -22,6 +22,7 @@ internal object KindJson {
         .put("kind", ф.kind)
         .put("subject", ф.subject)
         .put("predicate", ф.predicate)
+        .put("entity_class", ф.entityClass)
         .put("value", ф.value)
         .put("unit", ф.unit)
         .put("anchor", ф.anchor)

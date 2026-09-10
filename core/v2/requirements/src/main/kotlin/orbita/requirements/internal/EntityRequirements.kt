@@ -127,6 +127,8 @@ class EntityRequirements(
         subtype: String,
         category: String?,
         verificationMethod: String?,
+        level: Level,
+        acceptanceCriteria: String?,
     ): RequirementView {
         val область = Area.Project(project)
         val родитель = store.byCode(область, parent) ?: error("проектного требования «$parent» нет в проекте")
@@ -138,15 +140,20 @@ class EntityRequirements(
             store.byCode(область, к) ?: error("носителя «$к» нет в проекте")
         }
         val документ = mapper.createObjectNode()
-            .put("level", "system")
+            .put("level", level.name.lowercase())
             .put("title", statement.take(60))
             .put("statement", statement)
             .put("rationale", rationale)
             .put("category", category ?: родитель.doc.path("category").asText("functional"))
         (verificationMethod ?: родитель.doc.path("verification_method").asText("").ifBlank { null })?.let { документ.put("verification_method", it) }
+        // Критерий приёмки, шаблон EARS и приоритет наследуются от родителя: выведенное
+        // требование должно быть пригодно к базированию так же, как проектное.
+        (acceptanceCriteria?.ifBlank { null } ?: родитель.doc.path("acceptance_criteria").asText("").ifBlank { null })?.let { документ.put("acceptance_criteria", it) }
+        документ.put("ears_pattern", родитель.doc.path("ears_pattern").asText("").ifBlank { "ubiquitous" })
+        родитель.doc.path("priority").asText("").ifBlank { null }?.let { документ.put("priority", it) }
         носитель?.let { документ.put("carrier", it.id) }
         документ.putArray("source").addObject().put("kind", "requirement").put("ref", родитель.id).put("anchor", родитель.code)
-        val кодЗаписи = code?.takeIf { it.isNotBlank() } ?: следующий(область, "RQ-S")
+        val кодЗаписи = code?.takeIf { it.isNotBlank() } ?: следующий(область, when (level) { Level.INTERFACE -> "RQ-I"; Level.SUBSYSTEM -> "RQ-SS"; Level.SCENARIO -> "RQ-SC"; else -> "RQ-S" })
         val создано = store.create(
             кодЗаписи, "requirement", область, "A4", документ,
             Provenance(Channel.MANUAL, author, source = родитель.code),

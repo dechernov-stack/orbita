@@ -1,9 +1,9 @@
 {
   "kind": "document_template",
-  "code": "opscon",
-  "title": "Концепция операций (OpsCon)",
-  "standard": "ДОКУМЕНТЫ-2-ПРОМЕЖУТОЧНЫЕ §6 (детализация ConOps для операторов, Phase A)",
-  "note": "Смены · процедуры · окна сеансов · нештатные регламенты — из режимов, сценариев, стыков и рисков; полнота к SDR. Порождён генератором tools/v2/gen_phase_a_documents.py; правки — в генератор, не сюда.",
+  "code": "sma",
+  "title": "План обеспечения (SMA: надёжность · безопасность · EMI/EMC)",
+  "standard": "УСЛОВИЯ-СЦЕН-PHASE-A A9 (10.09); NPR 7120.5 App. I, Д9 планы обеспечения",
+  "note": "Черновик к SDR из ОСЗ, рисков и радиостыков; полка Phase B. Порождён генератором tools/v2/gen_phase_a_documents.py; правки — в генератор, не сюда.",
   "style": {
     "tone": "деловая инженерная проза без маркетинга",
     "traceability": "каждое утверждение опирается на элемент раздела",
@@ -69,51 +69,17 @@
   "sections": [
     {
       "no": "§1",
-      "title": "Назначение и режимы работы",
+      "title": "Классификация полезной нагрузки и ОСЗ",
       "scenes": [
-        "A3"
+        "11",
+        "A9"
       ],
       "elements": [
         {
           "code": "1.1",
           "kind": "query",
-          "title": "Режимы и состояния компонентов",
-          "select": "state_machine",
-          "min_rows": 1,
-          "columns": [
-            {
-              "title": "Компонент",
-              "field": "owner"
-            },
-            {
-              "title": "Состояния",
-              "field": "states"
-            },
-            {
-              "title": "Начальное",
-              "field": "initial"
-            }
-          ]
-        }
-      ],
-      "expects": "SDR",
-      "source": "режимы · сценарии",
-      "min_statements": 1,
-      "statement_hint": "режимы применения и переходы между ними — словами оператора"
-    },
-    {
-      "no": "§2",
-      "title": "Смены и процедуры",
-      "scenes": [
-        "9",
-        "A3"
-      ],
-      "elements": [
-        {
-          "code": "2.1",
-          "kind": "query",
-          "title": "Сценарии операций",
-          "select": "scenario",
+          "title": "Оценка засорения",
+          "select": "debris_assessment",
           "min_rows": 1,
           "columns": [
             {
@@ -121,37 +87,46 @@
               "field": "code"
             },
             {
-              "title": "Сценарий",
-              "field": "name"
+              "title": "Вариант",
+              "field": "variant"
             },
             {
-              "title": "Слой",
-              "field": "layer"
+              "title": "Активный увод, лет",
+              "field": "active_lifetime_years"
             },
             {
-              "title": "Шаги",
-              "field": "steps"
+              "title": "Пассивный сход, лет",
+              "field": "passive_lifetime_years"
+            },
+            {
+              "title": "Норма активного",
+              "field": "normative_active"
+            },
+            {
+              "title": "Норма пассивного",
+              "field": "normative_passive"
             }
           ]
         }
       ],
       "expects": "SDR",
-      "source": "сценарии-цепочки",
+      "source": "ОСЗ",
       "min_statements": 1,
-      "statement_hint": "смены операторов и процедуры по каждому сценарию"
+      "statement_hint": "класс ПН по нормативу полки; что следует из ОСЗ для обеспечения"
     },
     {
-      "no": "§3",
-      "title": "Окна сеансов",
+      "no": "§2",
+      "title": "Обеспечение надёжности",
       "scenes": [
-        "A4"
+        "A8",
+        "A9"
       ],
       "elements": [
         {
-          "code": "3.1",
+          "code": "2.1",
           "kind": "query",
-          "title": "Стыки радиолиний",
-          "select": "interface",
+          "title": "Риски технические и безопасности",
+          "select": "risk",
           "min_rows": 0,
           "columns": [
             {
@@ -159,42 +134,46 @@
               "field": "code"
             },
             {
-              "title": "Стык",
-              "field": "name"
+              "title": "Риск",
+              "field": "statement"
             },
             {
-              "title": "Тип",
-              "field": "type"
+              "title": "Категория",
+              "field": "category"
             },
             {
-              "title": "Направление",
-              "field": "direction"
+              "title": "Меры",
+              "field": "measures"
+            },
+            {
+              "title": "Владелец",
+              "field": "owner"
             }
           ],
           "where": {
-            "type": "rf"
+            "category": "technical"
           }
         }
       ],
       "expects": "SDR",
-      "source": "стыки · модели",
+      "source": "риски",
       "min_statements": 1,
-      "statement_hint": "окна сеансов связи из баллистики; что делает оператор между окнами"
+      "statement_hint": "программа надёжности: резервирование, FDIR, испытания — по рискам"
     },
     {
-      "no": "§4",
-      "title": "Нештатные регламенты",
+      "no": "§3",
+      "title": "Безопасность системы",
       "scenes": [
-        "11",
-        "A8"
+        "A8",
+        "A9"
       ],
       "elements": [
         {
-          "code": "4.1",
+          "code": "3.1",
           "kind": "query",
-          "title": "Риски операций",
+          "title": "Риски безопасности",
           "select": "risk",
-          "min_rows": 1,
+          "min_rows": 0,
           "columns": [
             {
               "title": "Код",
@@ -212,26 +191,58 @@
               "title": "Меры",
               "field": "measures"
             }
-          ]
+          ],
+          "where": {
+            "category": "safety"
+          }
         }
       ],
       "expects": "SDR",
       "source": "риски",
       "min_statements": 1,
-      "statement_hint": "нештатные ситуации — из рисков: признак, действие оператора, эскалация"
+      "statement_hint": "опасности и меры: увод, пассивация, наземная безопасность"
     },
     {
-      "no": "§5",
-      "title": "Валидационные положения",
+      "no": "§4",
+      "title": "EMI/EMC и стыки",
       "scenes": [
-        "A3",
-        "A5"
+        "A4",
+        "A9"
       ],
-      "elements": [],
+      "elements": [
+        {
+          "code": "4.1",
+          "kind": "query",
+          "title": "Радиостыки",
+          "select": "interface",
+          "min_rows": 0,
+          "columns": [
+            {
+              "title": "Код",
+              "field": "code"
+            },
+            {
+              "title": "Стык",
+              "field": "name"
+            },
+            {
+              "title": "Тип",
+              "field": "type"
+            },
+            {
+              "title": "Стандарт",
+              "field": "standard"
+            }
+          ],
+          "where": {
+            "type": "rf"
+          }
+        }
+      ],
       "expects": "SDR",
-      "source": "тезисы · требования",
+      "source": "стыки",
       "min_statements": 1,
-      "statement_hint": "чем OpsCon проверяет требования: положение → требование → сценарий"
+      "statement_hint": "план контроля ЭМС по радиостыкам: диапазоны, совместимость, испытания"
     }
   ]
 }

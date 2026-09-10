@@ -172,7 +172,7 @@
     },
     {
       "code": "RQ-S-01",
-      "level": "system",
+      "level": "subsystem",
       "carrier": "OBC-CPU",
       "title": "Обработка на борту",
       "statement": "БЦВМ должна обрабатывать принятые пакеты на борту без ретрансляции.",
@@ -183,10 +183,10 @@
     },
     {
       "code": "RQ-S-02",
-      "level": "system",
+      "level": "subsystem",
       "carrier": "OBC-SW",
       "title": "Отказоустойчивость управления",
-      "statement": "ПО управления должно восстанавливать работу после единичного сбоя.",
+      "statement": "Когда происходит единичный сбой, ПО управления должно восстанавливать работу без вмешательства НКУ.",
       "category": "functional",
       "verification_method": "analysis",
       "ears_pattern": "event",

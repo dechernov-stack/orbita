@@ -126,6 +126,9 @@ internal class IntakeModes(
             с.put("requirement", л.path("requirement").asText(""))
             с.put("verdict", л.path("verdict").asText("none"))
             с.put("note", л.path("note").asText(""))
+            // Строка несёт слова факта: «частично» про «состав ОГ — не менее 180 МКА»
+            // читается как дыра с числом, а не как код.
+            с.put("text", имяФакта(область, код).trim())
             val адреса = с.putArray("needs")
             л.path("needs").forEach { н -> if (н.asText() in нужды) адреса.add(н.asText()) }
         }
@@ -165,11 +168,22 @@ internal class IntakeModes(
             if (вердикт == "uncovered") непокрытые.add(код)
             if (вердикт != "covered") дыры.add("$код — $дыра")
         }
+        // Сирота называется САМА — предметом и утверждением факта: «F-0061 —
+        // без нужды» не скажет, что это LEO-PNT, а дыра обязана быть названа
+        // словами (ШИП-G-ПРИНЯТ: 3 из 4 — дефект атомизации, не оценки).
         строки.filter { it.path("needs").isEmpty }.forEach { л ->
             val почему = л.path("note").asText("").ifBlank { "требование ТЗ без нужды проекта" }
-            дыры.add("${л.path("fact").asText()} — $почему")
+            дыры.add("${л.path("fact").asText()} ${имяФакта(область, л.path("fact").asText())}— $почему")
         }
         return итог
+    }
+
+    /** «предмет: утверждение» факта в кавычках, либо пусто, если факта нет. */
+    private fun имяФакта(область: Area, код: String): String {
+        val факт = store.byCode(область, код) ?: return ""
+        val класс = факт.doc.path("entity_class").asText("").ifBlank { null }
+        val текст = (факт.doc.path("subject").asText("") + ": " + факт.doc.path("predicate").asText("")).trim(':', ' ').take(90)
+        return "«$текст»" + (класс?.let { " [$it]" } ?: "") + " "
     }
 
     fun assessmentView(узел: JsonNode?): TorAssessment? {
@@ -179,7 +193,7 @@ internal class IntakeModes(
                 TorLine(
                     it.path("fact").asText(), it.path("requirement").asText(""),
                     it.path("needs").map { н -> н.asText() }, it.path("verdict").asText("none"),
-                    it.path("note").asText(""),
+                    it.path("note").asText(""), it.path("text").asText(""),
                 )
             },
             uncoveredNeeds = узел.path("uncovered_needs").map { it.asText() },
@@ -234,12 +248,15 @@ internal class IntakeModes(
         }
         оценка.path("orphan_requirements").forEach { код ->
             val почему = строки[код.asText()]?.path("note")?.asText("").orEmpty()
+            val имя = имяФакта(область, код.asText()).trim()
+            val класс = store.byCode(область, код.asText())?.doc?.path("entity_class")?.asText("").orEmpty()
+            val что = when (класс) { "service" -> "услуга"; "function" -> "функция"; else -> "требование" }
             val д = действия.addObject()
             д.put("kind", "flag_conflict").put("target_kind", "finding").put("scene", "8")
-            д.put("title", "требование ТЗ ${код.asText()} без нужды")
-            д.put("preview", "появится расхождение (RID) с возвратом в сцену 8: требованию ТЗ нет нужды — завести нужду или спросить заказчика")
+            д.put("title", "$что ТЗ ${код.asText()} без нужды" + (if (имя.isBlank()) "" else ": $имя"))
+            д.put("preview", "появится расхождение (RID) с возвратом в сцену 8: ${что} ТЗ нет нужды — завести нужду или спросить заказчика")
             д.putObject("payload")
-                .put("text", "требование ТЗ ${код.asText()} не ведёт ни к одной нужде проекта" + (if (почему.isBlank()) "" else " — $почему"))
+                .put("text", "$что ТЗ ${код.asText()} $имя не ведёт ни к одной нужде проекта".replace("  ", " ") + (if (почему.isBlank()) "" else " — $почему"))
                 .put("returns_to_scene", "8").put("gate", "internal_review").put("kind", "rid").put("addressee", "заказчик")
             д.putArray("facts").add(код.asText())
         }
