@@ -50,6 +50,10 @@ def _jar(opener) -> http.cookiejar.CookieJar | None:
 
 
 def _положить_куки(opener, base: str, токен: str) -> None:
+    # Сохранённый токен идёт заголовком Bearer: кука для «localhost» (домен без
+    # точки) политикой CookieJar не отправляется, и восстановленная сессия
+    # выглядела бы отсутствующей — инструмент просил бы тап заново.
+    opener.addheaders = [(к, з) for к, з in opener.addheaders if к.lower() != "authorization"] + [("Authorization", "Bearer " + токен)]
     jar = _jar(opener)
     if jar is None:
         return

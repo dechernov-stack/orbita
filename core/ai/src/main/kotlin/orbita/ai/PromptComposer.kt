@@ -233,9 +233,15 @@ class PromptComposer(private val kinds: PackageKinds = PackageKinds.default()) {
                         "Ответ — массив объектов строго по схеме ниже. Схема исполняется",
                 )
                 appendLine("буквально: поля вне схемы запрещены (additionalProperties: false),")
-                appendLine("обязательные поля обязательны. В частности, статусная модель —")
-                appendLine("\"lifecycle\": {\"status\": \"Draft\", \"version\": \"1\"}, а происхождение")
-                appendLine("предложения — \"provenance\": {\"source\": \"ai_proposed\"}.")
+                appendLine("обязательные поля обязательны.")
+                // Статусная модель и происхождение — атрибуты ОБЪЕКТОВ модели;
+                // однодокументный пакет (черновик замысла, оценка) их не несёт,
+                // и просить их здесь — значит получить поля вне схемы (ПМИ-5, 11.09).
+                if (!k.singleDocument) {
+                    appendLine("В частности, статусная модель —")
+                    appendLine("\"lifecycle\": {\"status\": \"Draft\", \"version\": \"1\"}, а происхождение")
+                    appendLine("предложения — \"provenance\": {\"source\": \"ai_proposed\"}.")
+                }
                 appendLine()
                 appendLine("ФОРМА ВЕЛИЧИНЫ. Величина — это ровно три поля:")
                 appendLine("  {\"value\": 0.9, \"unit\": \"1\", \"provenance\": {…}}")

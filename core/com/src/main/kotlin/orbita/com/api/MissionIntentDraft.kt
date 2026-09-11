@@ -123,6 +123,25 @@ object MissionIntentDraft {
     fun problems(boundary: Boundary, draft: JsonNode): List<String> =
         boundary.schemaProblems("core/mission-intent-draft", draft).map { "${it.path}: ${it.message}" }
 
+    /** Служебные поля объектов, которые модель дописывает по общей форме ответа; черновику замысла они не нужны. */
+    private val СЛУЖЕБНЫЕ = listOf("lifecycle", "provenance", "id", "type", "status", "version")
+
+    /**
+     * Ответ службы к схеме черновика: модель, следуя общей форме объектов
+     * («каждый объект несёт lifecycle и provenance»), дописывает служебные
+     * поля в корень и в сам замысел — они снимаются до проверки схемой,
+     * а содержательные поля не трогаются. Массив из одного документа
+     * разворачивается. Живой отказ ПМИ-5 11.09: «property 'lifecycle' is not
+     * defined in the schema».
+     */
+    fun normalize(raw: JsonNode): JsonNode {
+        val узел = (if (raw.isArray && raw.size() == 1) raw[0] else raw) as? ObjectNode ?: return raw
+        val копия = узел.deepCopy()
+        копия.remove(СЛУЖЕБНЫЕ)
+        (копия.path("intent") as? ObjectNode)?.remove(СЛУЖЕБНЫЕ)
+        return копия
+    }
+
     fun toJson(intent: ObjectNode): ObjectNode = intent.deepCopy()
 
     fun anchorsOf(draft: JsonNode): ArrayNode {

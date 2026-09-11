@@ -23,6 +23,9 @@ import sys
 import urllib.error
 import urllib.request
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import stand_session  # noqa: E402  — учётка стенда либо вход через Telegram с ролью «от имени»
+
 КОРЕНЬ = pathlib.Path(__file__).resolve().parent.parent.parent
 ПОЛКА = КОРЕНЬ / "docs/tz/v2/полки-порождённые/ПОЛКА-НОРМАТИВЫ.json"
 
@@ -77,7 +80,7 @@ def main() -> int:
         print(f"полка нормативов: {len(акты)} карточек, у каждой реквизиты и обязанность")
         return 0
 
-    вызов(args.base, "POST", "/auth/stand-login", {"login": args.login})
+    stand_session.войти(args.base, _opener, args.login)
     ИТОГ = {"created": "залито", "updated": "обновлено", "unchanged": "без изменений"}
     счёт = {"created": 0, "updated": 0, "unchanged": 0}
     for акт in акты:

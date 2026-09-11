@@ -151,4 +151,23 @@ class MissionIntentDraftTest {
         // текст блока метку сохраняет — канон ничего не теряет
         assertTrue("[П] Цель — 1 млн терминалов" in DocumentParseStore.canonOf(files.toString(), "SD-2201")!!)
     }
+
+    /** Живой отказ ПМИ-5 (11.09): модель по общей форме дописала lifecycle и provenance — схема черновика их не пускала. */
+    @Test
+    fun `служебные поля объектов в ответе службы снимаются до проверки схемой, содержание цело`() {
+        val ответ = mapper.readTree(
+            """[{"kind":"mission_intent_from_docs","source_document":"SD-2201","note":"из записки",
+                "intent":{"for_whom":{"text":"перевозчики","anchors":["b1"]},"what":{"text":"канал коротких сообщений","anchors":["b2"]},
+                          "where":{"text":"РФ, Арктика","anchors":["b3"]},"horizon":{"text":"2033","anchors":["b4"]},
+                          "lifecycle":{"status":"Draft","version":"1"}},
+                "lifecycle":{"status":"Draft","version":"1"},"provenance":{"source":"ai_proposed"}}]""",
+        )
+        assertTrue(MissionIntentDraft.problems(boundary, ответ[0]).isNotEmpty(), "как есть — не по схеме")
+        val чистый = MissionIntentDraft.normalize(ответ)
+        assertEquals(emptyList<String>(), MissionIntentDraft.problems(boundary, чистый), "после снятия служебных полей — по схеме")
+        assertEquals("перевозчики", чистый.path("intent").path("for_whom").path("text").asText())
+        assertEquals("из записки", чистый.path("note").asText(), "содержательные поля не тронуты")
+        assertNull(чистый.get("lifecycle"))
+        assertNull(чистый.path("intent").get("lifecycle"))
+    }
 }

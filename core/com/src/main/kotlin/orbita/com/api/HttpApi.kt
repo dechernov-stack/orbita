@@ -3816,11 +3816,11 @@ class HttpApi(private val boundary: Boundary) {
                 val cleaned = answer.text.trim()
                     .removePrefix("```json").removePrefix("```").removeSuffix("```").trim()
                 val draft = try {
-                    val parsed = mapper.readTree(cleaned)
-                    // терпимость к обёртке: общая форма ответа — массив, и
-                    // модель иногда заворачивает документ в него. Рабочий
-                    // ответ из-за обёртки терять нельзя — разворачиваем.
-                    if (parsed.isArray && parsed.size() == 1) parsed[0] else parsed
+                    // терпимость к обёртке и к служебным полям: общая форма
+                    // ответа — массив объектов с lifecycle/provenance, и модель
+                    // иногда следует ей и здесь. Рабочий ответ из-за этого
+                    // терять нельзя — разворачиваем и снимаем служебное.
+                    MissionIntentDraft.normalize(mapper.readTree(cleaned))
                 } catch (e: Exception) {
                     respond(
                         ex, 422,
@@ -3853,11 +3853,11 @@ class HttpApi(private val boundary: Boundary) {
             method == "POST" && path == "/views/mission-intent/draft" -> {
                 val req = mapper.readTree(body(ex))
                 val raw = req.path("raw").takeIf { it.isTextual }?.asText()
-                val draft = (
+                val draft = MissionIntentDraft.normalize(
                     if (raw != null) mapper.readTree(
                         raw.trim().removePrefix("```json").removePrefix("```").removeSuffix("```").trim(),
-                    ) else req.path("draft")
-                    ) as? ObjectNode ?: throw IllegalArgumentException(
+                    ) else req.path("draft"),
+                ) as? ObjectNode ?: throw IllegalArgumentException(
                     "тело: {\"raw\": \"<JSON пакета>\"} либо {\"draft\": {…}}",
                 )
                 val problems = MissionIntentDraft.problems(boundary, draft)
