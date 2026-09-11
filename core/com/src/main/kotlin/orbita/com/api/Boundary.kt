@@ -108,6 +108,9 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
     /** Служба ИИ (П5): профиль → промпт → вызов → фильтр → журнал. */
     // Ж-01: перегрузка модели повторяется трижды (2 · 4 · 8 с) — запрос
     // идемпотентен, в модель до акцепта человеком ничего не пишется
+    /** Вызовы службы фоновой задачей (ADR-069): сеть в фоне, база на потоке запросов. */
+    val aiJobs: AiJobs by lazy { AiJobs(ai) }
+
     val ai: AiService by lazy {
         AiService(this, orbita.ai.RetryingTransport(orbita.ai.HttpProviderTransport()))
     }

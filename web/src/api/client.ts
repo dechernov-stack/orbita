@@ -205,6 +205,30 @@ export function asBatchReport(e: unknown): BatchReport | null {
   return null
 }
 
+/** Фоновое задание службы: статус, отчёт (ask) либо сырой ответ и черновик (compose). */
+export interface AiJob {
+  job: string
+  status: 'running' | 'done' | 'failed'
+  kind: string
+  mode: 'ask' | 'raw'
+  elapsed_seconds: number
+  report?: AiRunReport & { reason?: string }
+  raw?: { call: number; text?: string; model?: string; failure?: string }
+  compose?: Record<string, unknown>
+  compose_status?: number
+  error?: string
+}
+
+/** Опрос задания раз в три секунды до готовности; стенд перезапустился — 404 словами. */
+async function waitAiJob(job: AiJob): Promise<AiJob> {
+  let текущее = job
+  while (текущее.status === 'running') {
+    await new Promise((r) => window.setTimeout(r, 3000))
+    текущее = await get<AiJob>(`/ai/jobs/${encodeURIComponent(job.job)}`)
+  }
+  return текущее
+}
+
 async function post<T>(path: string, body: unknown): Promise<T> {
   const response = await fetch(`${BASE}${withProject(path)}`, {
     method: 'POST',
@@ -388,10 +412,16 @@ export const api = {
     get<{ profile: string; kind: string; text: string }>('/views/mission-intent/prompt'),
   /** Ф-07: предложение замысла пакетом — проверяется схемой, в паспорт не пишется. */
   /** Ф-07 + живой канал: система САМА спрашивает службу и приносит замысел. */
-  missionIntentCompose: (author?: string) =>
-    post<{ call: number; model?: string; profile: string; draft: MissionIntentDraftView }>(
-      '/views/mission-intent/compose', author ? { author } : {},
-    ),
+  missionIntentCompose: async (author?: string): Promise<{ call: number; model?: string; profile: string; draft: MissionIntentDraftView }> => {
+    // Фоновой задачей (ADR-069): вызов идёт минуту, соединение его не держит.
+    const job = await post<AiJob>('/views/mission-intent/compose', { ...(author ? { author } : {}), background: true })
+    const done = await waitAiJob(job)
+    if (done.status === 'failed' || !done.compose) throw new ApiError(503, '/views/mission-intent/compose', done.error ?? done.raw?.failure ?? 'служба не ответила')
+    if (done.compose_status && done.compose_status >= 400) {
+      throw new ApiError(done.compose_status, '/views/mission-intent/compose', JSON.stringify(done.compose))
+    }
+    return done.compose as unknown as { call: number; model?: string; profile: string; draft: MissionIntentDraftView }
+  },
   missionIntentDraft: (raw: string) => post<MissionIntentDraftView>('/views/mission-intent/draft', { raw }),
   /** Ф-07: акцепт замысла — правкой паспорта, с якорями происхождения. */
   missionIntentAccept: (draft: MissionIntentDraftView, author: string) =>
@@ -514,9 +544,15 @@ export const api = {
       /** Ф-05: состав промпта по источникам — со счётчиками и пустыми. */
       sources?: Array<{ key: string; title: string; count: number; empty: boolean; note?: string }>
     }>('/ai/compose', { kind, profile, statement }),
-  /** Прямой вызов провайдера — основной транспорт. */
-  aiAsk: (kind: string, profile: string, statement: string, author: string) =>
-    post<AiRunReport>('/ai/ask', { kind, profile, statement, author }),
+  /** Прямой вызов провайдера — основной транспорт. Идёт фоновой задачей
+   * (ADR-069): сервер отвечает заданием сразу, ответ забирается опросом —
+   * долгий вызов не держит соединение, которое путь до стенда рвёт на 60-й секунде. */
+  aiAsk: async (kind: string, profile: string, statement: string, author: string): Promise<AiRunReport> => {
+    const job = await post<AiJob>('/ai/ask', { kind, profile, statement, author, background: true })
+    const done = await waitAiJob(job)
+    if (done.status === 'failed' || !done.report) throw new ApiError(503, '/ai/ask', done.error ?? done.report?.reason ?? 'вызов не удался')
+    return done.report
+  },
   /** Закрытый контур: ответ владельца файлом — тем же разбором и журналом. */
   aiSubmit: (kind: string, profile: string, statement: string, raw: string, author: string) =>
     post<AiRunReport>('/ai/submit', { kind, profile, statement, raw, author }),

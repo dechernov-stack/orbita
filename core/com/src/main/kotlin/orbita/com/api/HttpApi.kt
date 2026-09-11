@@ -1005,11 +1005,45 @@ class HttpApi(private val boundary: Boundary) {
             // Прямой вызов провайдера — основной транспорт службы
             method == "POST" && path == "/ai/ask" -> {
                 val req = mapper.readTree(body(ex))
+                // Фоновой задачей (ADR-069): ответ сразу — задание со статусом,
+                // сеть в фоне; иначе браузерный путь рвал соединение на 60-й секунде.
+                if (req.path("background").asBoolean(false)) {
+                    val job = boundary.aiJobs.start(
+                        req.path("kind").asText(), req.path("profile").asText(),
+                        requireProject(project), req.path("statement").asText(""), author(req), AiJobs.Mode.ASK,
+                    )
+                    respond(ex, 202, boundary.aiJobs.view(job))
+                    return
+                }
                 val run = boundary.ai.ask(
                     req.path("kind").asText(), req.path("profile").asText(),
                     requireProject(project), req.path("statement").asText(""), author(req),
                 )
                 respond(ex, if (run.report.path("failed").asBoolean()) 503 else 200, run.report)
+            }
+
+            // Опрос фонового вызова: готовый ответ применяется здесь (фильтр, журнал);
+            // для черновика замысла — теми же воротами, что синхронный маршрут.
+            method == "GET" && path.matches(Regex("/ai/jobs/AJ-[0-9]+")) -> {
+                val job = boundary.aiJobs.poll(requireProject(project), path.removePrefix("/ai/jobs/"))
+                if (job == null) {
+                    respond(ex, 404, mapper.createObjectNode().put("error", "задания «${path.removePrefix("/ai/jobs/")}» нет: стенд перезапускался — повторите вызов"))
+                    return
+                }
+                val out = boundary.aiJobs.view(job)
+                if (job.status == "done" && job.mode == AiJobs.Mode.RAW && job.kind == MissionIntentDraft.KIND) {
+                    val raw = job.raw!!
+                    val (code, draft) = composeDraft(raw.text ?: "", raw.call, job.prepared.profile.id)
+                    out.set<JsonNode>("compose", draft)
+                    out.put("compose_status", code)
+                }
+                respond(ex, 200, out)
+            }
+
+            method == "GET" && path == "/ai/jobs" -> {
+                val arr = mapper.createArrayNode()
+                boundary.aiJobs.list(requireProject(project)).forEach { arr.add(boundary.aiJobs.view(it)) }
+                respond(ex, 200, mapper.createObjectNode().set<JsonNode>("items", arr))
             }
 
             // Закрытый контур: ответ владельца, полученный файлом, — тем же
@@ -3802,6 +3836,11 @@ class HttpApi(private val boundary: Boundary) {
                     profileFor(MissionIntentDraft.KIND, ctx, by)
                 }
                 val statement = MissionIntentDraft.statementOf(boundary, filesDir(), ctx)
+                if (req.path("background").asBoolean(false)) {
+                    val job = boundary.aiJobs.start(MissionIntentDraft.KIND, profileId, ctx, statement, by, AiJobs.Mode.RAW)
+                    respond(ex, 202, boundary.aiJobs.view(job))
+                    return true
+                }
                 val answer = boundary.ai.askRaw(MissionIntentDraft.KIND, profileId, ctx, statement, by)
                 if (answer.failure != null || answer.text == null) {
                     respond(
@@ -3813,41 +3852,8 @@ class HttpApi(private val boundary: Boundary) {
                     )
                     return true
                 }
-                val cleaned = answer.text.trim()
-                    .removePrefix("```json").removePrefix("```").removeSuffix("```").trim()
-                val draft = try {
-                    // терпимость к обёртке и к служебным полям: общая форма
-                    // ответа — массив объектов с lifecycle/provenance, и модель
-                    // иногда следует ей и здесь. Рабочий ответ из-за этого
-                    // терять нельзя — разворачиваем и снимаем служебное.
-                    MissionIntentDraft.normalize(mapper.readTree(cleaned))
-                } catch (e: Exception) {
-                    respond(
-                        ex, 422,
-                        mapper.createObjectNode()
-                            .put("error", "ответ службы не разобрался как JSON: ${e.message}")
-                            .put("raw", answer.text.take(2000))
-                            .put("call", answer.call),
-                    )
-                    return true
-                }
-                val problems = MissionIntentDraft.problems(boundary, draft)
-                if (problems.isNotEmpty()) {
-                    respond(
-                        ex, 422,
-                        mapper.createObjectNode()
-                            .put("error", "ответ службы не по схеме замысла: ${problems.take(3)}")
-                            .put("raw", answer.text.take(2000))
-                            .put("call", answer.call),
-                    )
-                    return true
-                }
-                val out = mapper.createObjectNode()
-                out.put("call", answer.call)
-                answer.model?.let { out.put("model", it) }
-                out.put("profile", profileId)
-                out.set<JsonNode>("draft", draft)
-                respond(ex, 200, out)
+                val (code, out) = composeDraft(answer.text, answer.call, profileId, answer.model)
+                respond(ex, code, out)
             }
 
             method == "POST" && path == "/views/mission-intent/draft" -> {
@@ -5420,6 +5426,34 @@ class HttpApi(private val boundary: Boundary) {
      * Пустое состояние модели — рабочее, а не отказ (шаг 16 §2.2): 409 с текстом,
      * адресованным инженеру, и шагом мастера, где заводится недостающее.
      */
+    /**
+     * Ответ службы → черновик замысла: снятие служебных полей, разбор, проверка
+     * схемой. Одна и та же дорога для синхронного вызова и фонового задания.
+     * Возвращает код ответа и тело.
+     */
+    private fun composeDraft(text: String, call: Long, profileId: String, model: String? = null): Pair<Int, ObjectNode> {
+        val cleaned = text.trim().removePrefix("```json").removePrefix("```").removeSuffix("```").trim()
+        val draft = try {
+            MissionIntentDraft.normalize(mapper.readTree(cleaned))
+        } catch (e: Exception) {
+            return 422 to mapper.createObjectNode()
+                .put("error", "ответ службы не разобрался как JSON: ${e.message}")
+                .put("raw", text.take(2000)).put("call", call)
+        }
+        val problems = MissionIntentDraft.problems(boundary, draft)
+        if (problems.isNotEmpty()) {
+            return 422 to mapper.createObjectNode()
+                .put("error", "ответ службы не по схеме замысла: ${problems.take(3)}")
+                .put("raw", text.take(2000)).put("call", call)
+        }
+        val out = mapper.createObjectNode()
+        out.put("call", call)
+        model?.let { out.put("model", it) }
+        out.put("profile", profileId)
+        out.set<JsonNode>("draft", draft)
+        return 200 to out
+    }
+
     private fun respondMissing(ex: HttpExchange, text: String, step: Int) =
         respond(ex, 409, mapper.createObjectNode().put("error", text).put("wizard_step", step))
 

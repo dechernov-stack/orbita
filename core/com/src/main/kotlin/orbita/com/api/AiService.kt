@@ -236,28 +236,42 @@ class AiService(
      * Прямой вызов (основной транспорт). Отказ провайдера — не ошибка модели:
      * он записывается в журнал и возвращается инженеру как состояние.
      */
-    fun ask(
-        kind: String,
-        profileId: String,
-        projectId: String,
-        statement: String,
-        author: String,
-    ): AiServiceRun {
+    /**
+     * Вызов разрезан по границе базы (ADR-069): `prepare` — промпт из
+     * базы на потоке запросов; `call` — только сеть, годится для фонового
+     * потока; `finishAsk`/`finishRaw` — фильтр и журнал снова на потоке
+     * запросов. `ask`/`askRaw` — те же три шага подряд.
+     */
+    data class Prepared(
+        val kind: String,
+        val projectId: String,
+        val author: String,
+        val profile: AiProfile,
+        val prompt: String,
+    )
+
+    fun prepare(kind: String, profileId: String, projectId: String, statement: String, author: String): Prepared {
         val (p, prompt) = compose(kind, profileId, projectId, statement)
         require(p.transport != "package") {
             "профиль ${p.id} работает режимом закрытого контура: соберите пакет и внесите ответ"
         }
-        val answer = try {
-            provider.ask(prompt, p.modelHint)
-        } catch (e: ProviderUnavailableException) {
+        return Prepared(kind, projectId, author, p, prompt)
+    }
+
+    /** Только сеть: ни чтения, ни записи базы. Отказ провайдера — исключением. */
+    fun call(prepared: Prepared): orbita.ai.ProviderAnswer = provider.ask(prepared.prompt, prepared.profile.modelHint)
+
+    fun finishAsk(prepared: Prepared, answer: orbita.ai.ProviderAnswer?, failure: String?): AiServiceRun {
+        val (kind, projectId, author, p, prompt) = prepared
+        if (answer == null) {
             val pk = calls.record(
                 projectId = projectId, kind = kind, transport = "direct", prompt = prompt,
                 createdBy = author, profileId = p.id, profileVersion = p.version,
-                failure = e.message,
+                failure = failure ?: "служба не ответила",
             )
             val out = mapper.createObjectNode()
             out.put("failed", true)
-            out.put("reason", e.message)
+            out.put("reason", failure ?: "служба не ответила")
             return AiServiceRun(pk, prompt, "direct", null, out)
         }
         val screened = screen(completeImportProvenance(answer.text, projectId), kind, p)
@@ -274,6 +288,45 @@ class AiService(
         screened.put("call", pk)
         screened.put("model", answer.model)
         return AiServiceRun(pk, prompt, "direct", answer.model, screened)
+    }
+
+    fun finishRaw(prepared: Prepared, answer: orbita.ai.ProviderAnswer?, failure: String?): RawAnswer {
+        val (kind, projectId, author, p, prompt) = prepared
+        if (answer == null) {
+            val pk = calls.record(
+                projectId = projectId, kind = kind, transport = "direct", prompt = prompt,
+                createdBy = author, profileId = p.id, profileVersion = p.version,
+                failure = failure ?: "служба не ответила",
+            )
+            return RawAnswer(pk, null, null, failure ?: "служба не ответила")
+        }
+        val pk = calls.record(
+            projectId = projectId, kind = kind, transport = "direct", prompt = prompt,
+            createdBy = author, profileId = p.id, profileVersion = p.version,
+            model = answer.model, response = answer.text,
+            tokensIn = answer.tokensIn, tokensOut = answer.tokensOut,
+            costUsd = cost(answer.tokensIn, answer.tokensOut),
+        )
+        return RawAnswer(pk, answer.text, answer.model, null)
+    }
+
+    /**
+     * Прямой вызов (основной транспорт). Отказ провайдера — не ошибка модели:
+     * он записывается в журнал и возвращается инженеру как состояние.
+     */
+    fun ask(
+        kind: String,
+        profileId: String,
+        projectId: String,
+        statement: String,
+        author: String,
+    ): AiServiceRun {
+        val prepared = prepare(kind, profileId, projectId, statement, author)
+        return try {
+            finishAsk(prepared, call(prepared), null)
+        } catch (e: ProviderUnavailableException) {
+            finishAsk(prepared, null, e.message)
+        }
     }
 
     /** Сырой ответ службы: текст как пришёл, плюс запись в журнал. */
@@ -298,28 +351,12 @@ class AiService(
         statement: String,
         author: String,
     ): RawAnswer {
-        val (p, prompt) = compose(kind, profileId, projectId, statement)
-        require(p.transport != "package") {
-            "профиль ${p.id} работает режимом закрытого контура: соберите пакет и внесите ответ"
-        }
-        val answer = try {
-            provider.ask(prompt, p.modelHint)
+        val prepared = prepare(kind, profileId, projectId, statement, author)
+        return try {
+            finishRaw(prepared, call(prepared), null)
         } catch (e: ProviderUnavailableException) {
-            val pk = calls.record(
-                projectId = projectId, kind = kind, transport = "direct", prompt = prompt,
-                createdBy = author, profileId = p.id, profileVersion = p.version,
-                failure = e.message,
-            )
-            return RawAnswer(pk, null, null, e.message)
+            finishRaw(prepared, null, e.message)
         }
-        val pk = calls.record(
-            projectId = projectId, kind = kind, transport = "direct", prompt = prompt,
-            createdBy = author, profileId = p.id, profileVersion = p.version,
-            model = answer.model, response = answer.text,
-            tokensIn = answer.tokensIn, tokensOut = answer.tokensOut,
-            costUsd = cost(answer.tokensIn, answer.tokensOut),
-        )
-        return RawAnswer(pk, answer.text, answer.model, null)
     }
 
     /**
