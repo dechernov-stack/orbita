@@ -207,8 +207,9 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
                     .map { it.code to it.doc.path("name").asText(it.code) }
             },
             gatePlan = { проект ->
+                // Пройденная точка — днём решения, остальные — плановой датой.
                 store.list(orbita.kernel.api.Area.Project(проект), "gate")
-                    .associate { it.code to it.doc.path("planned_date").asText("") }
+                    .associate { it.code to (it.doc.path("decided_at").asText("").ifBlank { it.doc.path("planned_date").asText("") }) }
                     .filterValues { it.isNotBlank() }
             },
             // Методология ЖЦ — данными полки: входные потоки сцен берутся

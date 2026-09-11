@@ -103,8 +103,27 @@ class SceneRoutes(
 
     private fun задатьПлан(проект: String, тело: JsonNode): V2Router.Ответ {
         val область = Area.Project(проект)
+        val фазаПлана = тело.path("phase").asText("Pre-Phase A")
+        // Фаза не может начаться раньше, чем закрылась предыдущая (замечание
+        // владельца 11.09): даты точек и окна сцен Phase A — не раньше KDP-A
+        // (даты решения, а если его ещё нет — плановой даты точки).
+        if (фазаПлана != "Pre-Phase A") {
+            val kdpA = store.byCode(область, "KDP-A")
+            val решение = kdpA?.doc?.path("decision")?.asText("")?.ifBlank { null }?.let { store.byId(it) }
+            val началоФазы = решение?.doc?.path("at")?.asText("")?.take(10)?.ifBlank { null }
+                ?: kdpA?.doc?.path("planned_date")?.asText("")?.ifBlank { null }
+            if (началоФазы != null) {
+                val даты = тело.path("gate_dates").map { it.path("gate").asText() to it.path("date").asText("") } +
+                    тело.path("scene_windows").map { it.path("scene").asText() to it.path("start").asText("") }
+                val раньше = даты.filter { (_, д) -> д.isNotBlank() && д < началоФазы }
+                require(раньше.isEmpty()) {
+                    "фаза «$фазаПлана» не может начаться до окончания Pre-Phase A: KDP-A — $началоФазы, а раньше него стоят " +
+                        раньше.joinToString(", ") { (к, д) -> "$к ($д)" }
+                }
+            }
+        }
         val документ = mapper.createObjectNode()
-        документ.put("phase", тело.path("phase").asText("Pre-Phase A"))
+        документ.put("phase", фазаПлана)
         документ.set<JsonNode>("gate_dates", тело.path("gate_dates"))
         документ.set<JsonNode>("scene_windows", тело.path("scene_windows"))
         документ.put("set_by", автор(тело))
@@ -150,7 +169,37 @@ class SceneRoutes(
                 Provenance(Channel.MANUAL, автор),
             )
         }
-        return V2Router.Ответ(201, PhaseJson.вид(engine.view(код), mapper))
+        val ответ = PhaseJson.вид(engine.view(код), mapper)
+        ответ.set<JsonNode>("prefilled", предзаполнитьРамки(код, тело.path("mission_class").asText(""), автор))
+        return V2Router.Ответ(201, ответ)
+    }
+
+    /**
+     * Рамки класса миссии — в сцену 5 при заведении проекта (ПМИ-5, замечание
+     * владельца 11.09 «в ограничениях пусто»): класс миссии с полки
+     * (`mission_class`, по коду или имени) называет `default_constraints` —
+     * коды записей `constraint` на полке; они копируются ограничениями проекта
+     * с происхождением «полка класса миссии». Класса на полке нет — ответ
+     * говорит об этом словами, а не молчит.
+     */
+    private fun предзаполнитьРамки(проект: String, классМиссии: String, автор: String): ObjectNode {
+        val итог = mapper.createObjectNode().put("constraints", 0)
+        if (классМиссии.isBlank()) return итог.put("note", "класс миссии не указан — рамки не предзаполнены")
+        val класс = store.list(Area.Library, "mission_class")
+            .firstOrNull { it.code == классМиссии || it.doc.path("name").asText("") == классМиссии }
+            ?: return итог.put("note", "класса миссии «$классМиссии» на полке нет — рамки не предзаполнены (tools/v2/load_shelves.py)")
+        val область = Area.Project(проект)
+        val есть = store.list(область, "constraint").map { it.code }.toSet()
+        var скопировано = 0
+        класс.doc.path("default_constraints").forEach { ссылка ->
+            val код = ссылка.asText()
+            if (код in есть) return@forEach
+            val рамка = store.byCode(Area.Library, код)?.takeIf { it.kind == "constraint" } ?: return@forEach
+            val документ = рамка.doc.deepCopy<ObjectNode>()
+            store.create(код, "constraint", область, "5", документ, Provenance(Channel.SHELF, "полка класса миссии ${класс.code} ($автор)"))
+            скопировано += 1
+        }
+        return итог.put("constraints", скопировано).put("mission_class", класс.code)
     }
 
     private fun замысел(проект: String, тело: JsonNode): V2Router.Ответ {

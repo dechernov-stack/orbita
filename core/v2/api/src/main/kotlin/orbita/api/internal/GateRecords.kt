@@ -119,6 +119,9 @@ class GateRecords(private val store: EntityStore, private val mapper: ObjectMapp
             if (gate == "KDP-A") "18" else "16", документ, провенанс, status = "made",
         )
         val докТочки = (точка.doc.deepCopy() as ObjectNode).put("decision", решение.id)
+        // День решения — в самой точке: пройденная точка живёт этой датой, а не
+        // плановой, которую обогнала (иначе Pre-A «кончается» позже начала Phase A).
+        if (outcome == "approve") докТочки.put("decided_at", java.time.LocalDate.now().toString())
         when (outcome) {
             "approve" -> {
                 store.update(точка.id, докТочки, провенанс, status = "passed")

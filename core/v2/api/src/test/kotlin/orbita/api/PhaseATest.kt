@@ -189,5 +189,58 @@ class PhaseATest {
         assertEquals("A1", фаза.scenes.first().key, "лента сменилась на Phase A без перезапуска движка")
     }
 
+    /** Замечание владельца 11.09: Phase A не может начаться до окончания Pre-A. */
+    @Test
+    fun `даты Phase A отсчитываются от решения KDP-A, пройденная точка живёт датой решения, план раньше KDP-A — отказ`() {
+        val r = router()
+        // KDP-A запланирован через полгода, а решён сегодня: Pre-A закончилась сегодня
+        val kdpA = store.byCode(область, "KDP-A")!!
+        val черезПолгода = java.time.LocalDate.now().plusDays(180).toString()
+        store.update(kdpA.id, (kdpA.doc.deepCopy() as com.fasterxml.jackson.databind.node.ObjectNode).put("planned_date", черезПолгода), провенанс)
+        открытьPhaseA()
+        val движок = движок()
+        val фаза = движок.view(проект)
+        val сегодня = java.time.LocalDate.now()
+        val srr = фаза.gates.first { it.key == "SRR" }
+        assertTrue(java.time.LocalDate.parse(srr.plannedDate) >= сегодня, "SRR не раньше дня решения KDP-A: ${srr.plannedDate}")
+        assertEquals(сегодня.plusDays(120).toString(), srr.plannedDate, "по умолчанию — смещение шаблона от начала фазы, не от «сегодня» создания")
+        val kdp = r.handle("GET", "/v2/points", п, null, da)!!.body.path("items").firstOrNull { it.path("key").asText() == "KDP-A" }
+        // план Phase A с датой SRR раньше решения KDP-A — отказ словами
+        val вчера = сегодня.minusDays(1).toString()
+        val е = assertFailsWith<IllegalArgumentException> {
+            r.handle("POST", "/v2/plan", п, """{"phase":"Phase A","gate_dates":[{"gate":"SRR","date":"$вчера"}],"scene_windows":[],"author":"Чернов Д."}""", da)
+        }
+        assertTrue("не может начаться до окончания Pre-Phase A" in е.message!!, е.message)
+        assertTrue("SRR ($вчера)" in е.message!!, е.message)
+        // тот же план датой не раньше решения — принимается
+        val ок = r.handle("POST", "/v2/plan", п, """{"phase":"Phase A","gate_dates":[{"gate":"SRR","date":"${сегодня.plusDays(90)}"}],"scene_windows":[],"author":"Чернов Д."}""", da)!!
+        assertEquals(201, ок.code, ок.body.toString())
+        assertEquals(null, kdp?.takeIf { false }, "")
+    }
+
+    /** Замечание владельца 11.09: «в ограничениях пусто» — рамки класса миссии ложатся в сцену 5 при заведении. */
+    @Test
+    fun `заведение проекта с классом миссии копирует рамки Р с полки в сцену 5`() {
+        store.create("Р2", "constraint", Area.Library, null,
+            mapper.readTree("""{"code":"Р2","type":"technical","statement":"Платформы — 12U…100 кг.","bound":{"key":"mass","op":"le","value":100,"unit":"кг"}}"""), провенанс)
+        store.create("Р3", "constraint", Area.Library, null,
+            mapper.readTree("""{"code":"Р3","type":"technical","statement":"Межспутниковая связь — только РЧ."}"""), провенанс)
+        store.create("MC-9001", "mission_class", Area.Library, null,
+            mapper.readTree("""{"name":"НОО · связь и IoT","recommended_shelves":["PBS-9002"],"mandatory_models":[{"model_code":"М1","gate":"MCR"}],"default_constraints":["Р2","Р3","Р9"]}"""), провенанс)
+        val r = router()
+        val ответ = r.handle("POST", "/v2/projects", emptyMap(), """{"name":"С рамками","code":"PJ-9806","mission_class":"НОО · связь и IoT","author":"Чернов Д."}""")!!
+        assertEquals(201, ответ.code)
+        assertEquals(2, ответ.body.path("prefilled").path("constraints").asInt(), "Р2 и Р3 скопированы, Р9 на полке нет — пропущена без выдумки")
+        val рамки = store.list(Area.Project("PJ-9806"), "constraint").sortedBy { it.code }
+        assertEquals(listOf("Р2", "Р3"), рамки.map { it.code })
+        assertEquals(100.0, рамки.first().doc.path("bound").path("value").asDouble(), "граница пришла с полки")
+        assertEquals("5", рамки.first().bornIn, "ограничение родом из сцены 5")
+        assertTrue(рамки.first().provenance.author.contains("полка класса миссии MC-9001"), рамки.first().provenance.author)
+        // без класса миссии — ничего не копируется, и это сказано
+        val без = r.handle("POST", "/v2/projects", emptyMap(), """{"name":"Без класса","code":"PJ-9807","author":"Чернов Д."}""")!!
+        assertEquals(0, без.body.path("prefilled").path("constraints").asInt())
+        assertTrue(без.body.path("prefilled").path("note").asText().contains("не указан"))
+    }
+
     private fun JsonNode.первая(ключ: String) = path("scenes").first { it.path("key").asText() == ключ }
 }

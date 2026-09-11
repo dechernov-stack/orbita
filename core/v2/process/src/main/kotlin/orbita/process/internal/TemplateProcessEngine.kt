@@ -248,6 +248,15 @@ class TemplateProcessEngine(
 
         val план = планТочек(project)
         val решенияТочек = решения?.invoke(project).orEmpty()
+        // Начало фазы — день закрытия предыдущей: решение по точке, которой в
+        // этом шаблоне нет (для Phase A — KDP-A). Даты точек по умолчанию
+        // отсчитываются от него, а не от «сегодня» — иначе Phase A начиналась
+        // до конца Pre-A (замечание владельца 11.09). Первая фаза — от сегодня.
+        val ключиТочек = док.path("points").map { it.path("key").asText() }.toSet()
+        val началоФазы = решенияТочек
+            .filter { (ключ, р) -> ключ !in ключиТочек && р.outcome == "approve" && р.at.length >= 10 }
+            .mapNotNull { (_, р) -> runCatching { LocalDate.parse(р.at.take(10)) }.getOrNull() }
+            .maxOrNull() ?: LocalDate.now()
         val помета = док.path("maturity_note").asText("").ifBlank { null }
         val точки = док.path("points").sortedBy { it.path("order").asInt() }.map { точка ->
             val ключ = точка.path("key").asText()
@@ -313,7 +322,11 @@ class TemplateProcessEngine(
                 key = ключ,
                 title = точка.path("title").asText(),
                 order = точка.path("order").asInt(),
-                plannedDate = план[ключ] ?: LocalDate.now().plusDays(точка.path("offset_days").asLong(30)).toString(),
+                // Пройденная точка живёт датой решения: Pre-A закончилась в день
+                // KDP-A, а не в плановый срок, который она обогнала.
+                plannedDate = решенияТочек[ключ]?.takeIf { ключ in пройдены && it.at.length >= 10 }?.at?.take(10)
+                    ?: план[ключ]
+                    ?: началоФазы.plusDays(точка.path("offset_days").asLong(30)).toString(),
                 passed = ключ in пройдены,
                 blocking = держат,
                 role = точка.path("role").asText(""),

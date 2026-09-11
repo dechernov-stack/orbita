@@ -16,6 +16,7 @@ import { Documents } from './documents'
 import { Models } from './models'
 import { Points } from './points'
 import { ExternalModelScreen } from './externalmodel'
+import { Library } from './library'
 import { ИМЯ_РЕЖИМА, режимПоРоли, type Режим } from './density'
 
 /** Раздел рейки. `wave` — волна, в которой раздел оживает. */
@@ -272,6 +273,8 @@ export function Shell() {
             <Models project={project} />
           ) : section === 'documents' ? (
             <Documents project={project} />
+          ) : section === 'library' ? (
+            <Library />
           ) : section === 'external' ? (
             <ExternalModelScreen project={project} />
           ) : section === 'points' ? (

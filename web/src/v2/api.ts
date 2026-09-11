@@ -801,6 +801,10 @@ export const api = {
     вызов<{ total: number; from_facts: number; from_manual_facts: number; manual: number; share_percent: number }>(
       `/knowledge/coverage?project=${encodeURIComponent(project)}`),
 
+  /** Полка v2 одного вида: записи с документом (экран «Библиотека»). */
+  shelves: (kind: string) =>
+    вызов<{ items: { code: string; kind: string; doc: Record<string, unknown> }[] }>(`/shelves?kind=${encodeURIComponent(kind)}`),
+
   /** Живой разбор материала: факты, темы и задание с планом одним ответом. */
   atomize: (project: string, material: string, intent: string, author: string) =>
     вызов<{ task: string; note: string; accepted: number; refused: number; refusals: string[] }>(
