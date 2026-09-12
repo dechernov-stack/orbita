@@ -211,6 +211,8 @@ def котлин(kinds: list) -> str:
         "    val bornIn: String?,",
         "    val statusModel: String?,",
         "    val requiredFields: List<String>,",
+        "    /** Все поля вида по истине YAML — правка на месте отбивает поле вне схемы (З-03). */",
+        "    val fields: List<String> = emptyList(),",
         ")",
         "",
         "object GeneratedKinds {",
@@ -225,11 +227,12 @@ def котлин(kinds: list) -> str:
         модель = None if модель in (None, "—", "-", "") else str(модель)
         обяз = [f["name"] for f in (k.get("fields") or []) if f.get("required")]
         перечень = ", ".join(f'"{x}"' for x in обяз)
+        все_поля = ", ".join(f'"{f["name"]}"' for f in (k.get("fields") or []))
         сцена_kt = f'"{сцена}"' if сцена else "null"
         модель_kt = f'"{модель}"' if модель else "null"
         строки.append(
             f'        KindSpec("{k["code"]}", "{k.get("name", "")}", Layer.{слой}, '
-            f'{сцена_kt}, {модель_kt}, listOf({перечень})),'
+            f'{сцена_kt}, {модель_kt}, listOf({перечень}), listOf({все_поля})),'
         )
     строки += [
         "    )",

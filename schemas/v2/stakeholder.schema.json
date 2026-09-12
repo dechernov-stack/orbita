@@ -80,6 +80,37 @@
     },
     "establishes": {
       "type": "boolean"
+    },
+    "influence": {
+      "enum": [
+        "decides",
+        "influences",
+        "informed"
+      ],
+      "description": "решает · влияет · информируется — по точкам (кто фиксирует, кто согласует); предлагает разбор, правит инженер (ЗАМЕЧАНИЯ-ПМИ5-СЦЕНА-3, З-04)"
+    },
+    "power": {
+      "description": "int 1–5 сила влияния 1–5"
+    },
+    "attitude": {
+      "enum": [
+        "supports",
+        "neutral",
+        "resists"
+      ],
+      "description": "поддерживает · нейтрален · сопротивляется"
+    },
+    "liaison": {
+      "type": "string",
+      "description": "ссылка на вид: account ответственный за взаимодействие (учётка)"
+    },
+    "normatives": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "description": "ссылка на вид: normative_document"
+      },
+      "description": "для регуляторов — какие акты несёт"
     }
   },
   "required": [

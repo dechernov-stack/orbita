@@ -860,6 +860,12 @@ export const api = {
       { method: 'POST', body: JSON.stringify(тело) },
     ),
 
+  /** З-03: правка принятой сущности на месте — новая версия, провенанс «правка инженера»; пустое значение снимает поле. */
+  patchEntity: (project: string, code: string, fields: Record<string, unknown>, author = 'инженер', reason?: string) =>
+    вызов<{ id: string; code: string; version: number; changed: number }>(
+      `/entities/${encodeURIComponent(code)}?project=${encodeURIComponent(project)}`,
+      { method: 'PATCH', body: JSON.stringify({ fields, author, reason }) }),
+
   entities: (project: string, kind: string) =>
     вызов<{ items: EntityRow[] }>(
       `/entities?project=${encodeURIComponent(project)}&kind=${encodeURIComponent(kind)}`,

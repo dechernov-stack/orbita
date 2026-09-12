@@ -1041,6 +1041,26 @@ kinds:
     type: bool
     required: false
     note: ''
+  - name: influence
+    type: enum[decides,influences,informed]
+    required: false
+    note: решает · влияет · информируется — по точкам (кто фиксирует, кто согласует); предлагает разбор, правит инженер (ЗАМЕЧАНИЯ-ПМИ5-СЦЕНА-3, З-04)
+  - name: power
+    type: int 1–5
+    required: false
+    note: сила влияния 1–5
+  - name: attitude
+    type: enum[supports,neutral,resists]
+    required: false
+    note: поддерживает · нейтрален · сопротивляется
+  - name: liaison
+    type: ref account
+    required: false
+    note: ответственный за взаимодействие (учётка)
+  - name: normatives
+    type: ref[] normative_document
+    required: false
+    note: для регуляторов — какие акты несёт
   export: MCReport, ConOps §1
   engine: есть
 - n: 34

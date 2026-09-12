@@ -97,7 +97,7 @@ export function Requirements({ project }: { project: string | null }) {
             </thead>
             <tbody>
               {строки.map((т) => (
-                <TableRow key={т.code} т={т}
+                <TableRow key={т.code} т={т} project={project} onChanged={перечитать}
                   открыта={открыта === т.code}
                   onToggle={() => setОткрыта(открыта === т.code ? null : т.code)} />
               ))}
@@ -120,8 +120,33 @@ export function Requirements({ project }: { project: string | null }) {
 }
 
 /** Строка таблицы плюс карточка ВНИЗ: контекст строки не теряется. */
-function TableRow({ т, открыта, onToggle }: {
-  т: RequirementRow; открыта: boolean; onToggle: () => void
+/** З-03: правка требования на месте — заголовок и формулировка новой версией; связи после базирования станут подозрительными и потребуют подтверждения. */
+function ПравкаТребования({ project, т, onSaved }: { project: string; т: RequirementRow; onSaved: () => void }) {
+  const [заголовок, setЗаголовок] = useState(т.title ?? '')
+  const [формулировка, setФормулировка] = useState(т.statement ?? '')
+  const [занято, setЗанято] = useState(false)
+  const [отказ, setОтказ] = useState<string | null>(null)
+  const сохранить = () => {
+    setЗанято(true); setОтказ(null)
+    api.patchEntity(project, т.code, { title: заголовок, statement: формулировка }, 'инженер')
+      .then(() => { setЗанято(false); onSaved() })
+      .catch((e) => { setЗанято(false); setОтказ(String(e.message ?? e)) })
+  }
+  return (
+    <Группа title="Правка на месте">
+      <div className="v2-form" data-why="работа">
+        <label>заголовок<input value={заголовок} onChange={(e) => setЗаголовок(e.target.value)} /></label>
+        <label>формулировка<textarea value={формулировка} onChange={(e) => setФормулировка(e.target.value)} rows={3} /></label>
+        <button type="button" className="v2-primary" onClick={сохранить} disabled={занято || !формулировка.trim()}
+          title={!формулировка.trim() ? 'формулировка пустой быть не может' : 'сохранить новой версией — провенанс «правка инженера»'}>Сохранить</button>
+        {отказ && <span className="v2-locked">{отказ}</span>}
+      </div>
+    </Группа>
+  )
+}
+
+function TableRow({ т, открыта, onToggle, project, onChanged }: {
+  т: RequirementRow; открыта: boolean; onToggle: () => void; project: string; onChanged: () => void
 }) {
   const показатель = т.measure ? кратко(т.measure) : '—'
   return (
@@ -155,6 +180,7 @@ function TableRow({ т, открыта, onToggle }: {
         <tr className="v2-card-row">
           <td colSpan={6}>
             <div className="v2-facets">
+              <ПравкаТребования project={project} т={т} onSaved={onChanged} />
               <Группа title="Происхождение">
                 <div>уровень: {УРОВНИ.find((у) => у.key === т.level)?.title ?? т.level}</div>
                 <div>категория: {т.category}</div>

@@ -32,6 +32,11 @@ class SceneRoutes(
 
         method == "POST" && path == "/v2/projects" -> открытьПроект(разобрать(body))
 
+        // З-03 (ПМИ-5, 12.09): любая принятая сущность правится на месте — новой
+        // версией с провенансом «правка инженера»; факт-источник остаётся связью.
+        method == "PATCH" && path.matches(Regex("/v2/entities/[A-Za-zА-Яа-я0-9._-]+")) ->
+            править(требуется(query, "project"), path.removePrefix("/v2/entities/"), разобрать(body))
+
         // Портфель: без него продукт теряет проект при перезагрузке страницы —
         // открыть заново можно, вернуться к открытому было нельзя.
         method == "GET" && path == "/v2/projects" -> портфель()
@@ -332,6 +337,46 @@ class SceneRoutes(
 
     private fun разобрать(тело: String?): JsonNode =
         if (тело.isNullOrBlank()) mapper.createObjectNode() else mapper.readTree(тело)
+
+    /** Виды, которые правятся на месте: содержание сцен 2–8; служебные (проект, точки, решения, план) — нет. */
+    private val правимые = setOf(
+        "stakeholder", "need", "goal", "service", "constraint", "requirement", "component", "interface",
+        "scenario", "state_machine", "technology", "risk", "assumption", "parameter", "function",
+        "exchange", "exchange_item", "budget", "logical_component", "cost_estimate", "debris_assessment",
+    )
+
+    /**
+     * Правка на месте: поля из `fields` ложатся поверх текущего документа
+     * (пустое значение снимает поле), запись получает новую версию и
+     * провенанс «правка инженера: кто», связи и код не трогаются. Поле вне
+     * схемы вида отбивает хранилище — отказ словами, версия не плодится.
+     */
+    private fun править(проект: String, код: String, тело: JsonNode): V2Router.Ответ {
+        val область = Area.Project(проект)
+        val запись = store.byCode(область, код) ?: throw NoSuchElementException("записи «$код» в проекте нет")
+        require(запись.kind in правимые) { "«$код» — это ${запись.kind}: такие записи на месте не правятся" }
+        val поля = тело.path("fields")
+        require(поля.isObject && poleCount(поля) > 0) { "нужно fields: {поле: значение}; пустое значение снимает поле" }
+        val схема = runCatching { orbita.kernel.schema.GeneratedKinds.of(запись.kind).fields }.getOrDefault(emptyList())
+        val документ = запись.doc.deepCopy<ObjectNode>()
+        var изменено = 0
+        поля.fields().forEach { (имя, значение) ->
+            require(имя !in setOf("code", "kind", "id")) { "поле «$имя» не правится: код и вид стабильны" }
+            require(схема.isEmpty() || имя in схема || имя in setOf("notes", "tags")) {
+                "поля «$имя» у вида ${запись.kind} нет: схема знает " + (схема + listOf("notes", "tags")).joinToString(" · ")
+            }
+            val было = документ.get(имя)
+            if (значение.isNull || (значение.isTextual && значение.asText().isBlank())) документ.remove(имя) else документ.set<JsonNode>(имя, значение)
+            if (было != документ.get(имя)) изменено += 1
+        }
+        if (изменено == 0) return V2Router.Ответ(200, mapper.createObjectNode().put("code", код).put("version", запись.version).put("changed", 0))
+        val причина = тело.path("reason").asText("").ifBlank { null }
+        val кем = "правка инженера: " + автор(тело) + (причина?.let { " — $it" } ?: "")
+        val новая = store.update(запись.id, документ, Provenance(Channel.MANUAL, кем))
+        return V2Router.Ответ(200, mapper.createObjectNode().put("id", новая.id).put("code", новая.code).put("version", новая.version).put("changed", изменено))
+    }
+
+    private fun poleCount(узел: JsonNode): Int = узел.fields().asSequence().count()
 
     private fun автор(тело: JsonNode): String =
         тело.path("author").asText("").ifBlank { "стенд" }
