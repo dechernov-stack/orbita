@@ -198,9 +198,7 @@ kinds:
   - name: clauses
     type: '[{clause*,text?,limit?:{key*,op*,value*,unit*},applies_to?:enum[node,interface,scene][]}]'
     required: false
-    note: >-
-      порог нормы — поле limit, не число из текста; «Б1: увод ≤ 5 лет» →
-      limit{key:active_lifetime,op:le,value:5,unit:год}
+    note: 'порог нормы — поле limit, не число из текста; «Б1: увод ≤ 5 лет» → limit{key:active_lifetime,op:le,value:5,unit:год}'
   - name: source_mark
     type: enum[И,В,П]
     required: false
@@ -546,10 +544,6 @@ kinds:
     type: bool
     required: true
     note: ''
-  - name: knowledge_v2
-    type: bool
-    required: false
-    note: поле знаний v2 — синтез, сверка, ранг доверия; на прежних проектах выключено, новым ставится умолчанием стенда (ORBITA_KNOWLEDGE_V2_DEFAULT)
   export: —
   engine: есть
 - n: 19
@@ -934,11 +928,7 @@ kinds:
   - name: authority
     type: enum[mandatory,expert,reference,doubtful]
     required: true
-    note: ранг доверия источника — обязательный · экспертный · справочный · сомнительный; наследуется фактами; в противоречии подсказывает, решает человек
-  - name: type
-    type: enum[mission_memo,tor,directive,normative,datasheet,quote,external_icd,external_model,analysis,heritage,regulatory_decision,reference]
-    required: false
-    note: режим разбора (tor · datasheet · normative) выводится заданием и профилем, НЕ поле ввода; доверие — в authority
+    note: ранг доверия вместо типа; профиль содержимого вычисляется разбором
   - name: title
     type: str
     required: true
@@ -996,9 +986,9 @@ kinds:
     required: false
     note: умолчание по типу
   - name: profile
-    type: '{statement?,params?,norms?,assessments?} (computed)'
+    type: '{postановка?,params?,norms?,assessments?} (computed)'
     required: false
-    note: доли по блокам — постановка · параметры · нормы · оценки (Д2а); ставит разбор, не инженер; режим атомизации выбирается по профилю блока
+    note: доли по блокам, Д2а
   export: приложения
   engine: есть
 - n: 32
@@ -1151,12 +1141,8 @@ kinds:
   - name: bound
     type: '{key*,op*,value*,unit*}'
     required: false
-    note: >-
-      Числовая граница рамки, если ограничение её задаёт: `key` — что
-      меряем (mass, power, data), `op` — оператор (le, ge, lt, gt),
-      `value` и `unit` — сама граница. Без этого поля ограничение
-      остаётся текстом и НИЧЕГО не сторожит: свёртка не может сказать
-      «106 кг > Р2», потому что не знает, что Р2 — про массу и про 100.
+    note: 'Числовая граница рамки, если ограничение её задаёт: `key` — что меряем (mass, power, data), `op` — оператор (le, ge, lt, gt), `value` и `unit` — сама граница. Без этого поля ограничение остаётся
+      текстом и НИЧЕГО не сторожит: свёртка не может сказать «106 кг > Р2», потому что не знает, что Р2 — про массу и про 100.'
   export: FA §6
   engine: есть
 - n: 37
@@ -1340,7 +1326,7 @@ kinds:
   status_model: null
   fields:
   - name: type
-    type: enum[owns,covers,derives_from,allocated_to,satisfied_by,realized_by,allocation,flows_over,illustrated_by,traced_to,verifies,conflicts_with,snapshot_of,input_of,output_of,pairs_with,external_identity,deployed_on,uses_item,depends_on_technology,derived_from_fact,about,supports,contradicts,supersedes,confirms,same_as,refines]
+    type: enum[owns,covers,derives_from,allocated_to,satisfied_by,realized_by,allocation,flows_over,illustrated_by,traced_to,verifies,conflicts_with,snapshot_of,input_of,output_of,pairs_with,external_identity,deployed_on,uses_item,depends_on_technology,derived_from_fact,about,supports,contradicts,supersedes,confirms]
     required: true
     note: ''
   - name: subtype
@@ -2300,9 +2286,7 @@ kinds:
   - name: requirements_count
     type: int
     required: false
-    note: >-
-      Снимок набора требований. У снимка ДОКУМЕНТА этого поля нет: вид
-      один, а базируют им и набор требований, и документ.
+    note: 'Снимок набора требований. У снимка ДОКУМЕНТА этого поля нет: вид один, а базируют им и набор требований, и документ.'
   - name: document
     type: ref document
     required: false
@@ -2310,9 +2294,7 @@ kinds:
   - name: tag
     type: str
     required: false
-    note: >-
-      Имя аннотированного тега в репозитории базирований. Тег и есть
-      имя базовой линии для человека: «внутренний обзор».
+    note: 'Имя аннотированного тега в репозитории базирований. Тег и есть имя базовой линии для человека: «внутренний обзор».'
   - name: commit
     type: str
     required: false
@@ -2320,10 +2302,7 @@ kinds:
   - name: elements
     type: '[{mid*,kind*,section*,fields*}]'
     required: false
-    note: >-
-      Содержание снимка поэлементно. Диф считается ПО MID и по полям:
-      правка одного тезиса обязана давать расхождение в одном узле, а
-      не «документ изменился».
+    note: 'Содержание снимка поэлементно. Диф считается ПО MID и по полям: правка одного тезиса обязана давать расхождение в одном узле, а не «документ изменился».'
   export: git diff
   engine: есть
 - n: 71
@@ -2808,7 +2787,7 @@ kinds:
   - name: source
     type: '{material?,anchor?} | {account*,role*,at*}'
     required: true
-    note: 'документ с якорем — или эксперт без якоря (учётка · роль · дата); ровно одно из двух, стережёт Kotlin'
+    note: документ с якорем — или эксперт без якоря
   - name: source_mark
     type: enum[И,В,П]
     required: true
@@ -2848,7 +2827,7 @@ kinds:
   - name: authority
     type: enum[mandatory,expert,reference,doubtful]
     required: true
-    note: наследуется от документа; expert — ручной ввод; ранг подсказывает в противоречии, не выбирает победителя
+    note: наследуется от документа; expert — ручной ввод
   export: фактология проекта
   engine: новый
 - n: 84
@@ -2906,7 +2885,7 @@ kinds:
   - name: merged_into
     type: ref topic
     required: false
-    note: слияние тем по same_as с подтверждением человека; ИИ предлагает, сливает клик
+    note: слияние тем по same_as с подтверждением
   export: MCReport §11 открытые вопросы
   engine: новый
 - n: 86
@@ -3178,35 +3157,23 @@ kinds:
   - name: trigger
     type: enum[manual,new_material,new_facts,manual_edit]
     required: true
-    note: по команде «Сформировать постановку из поля» либо событием поля с задержкой-накоплением
+    note: ''
   - name: slice_fingerprint
     type: str
     required: true
-    note: отпечаток среза поля — тот же срез даёт кэш, живого вызова нет
-  - name: slice_size
-    type: int
-    required: false
-    note: сколько фактов и сущностей вошло в срез (потолок 50); урезание называется словами
+    note: срез поля
   - name: proposals
     type: ref[] proposal
     required: true
-    note: предложения понятий с происхождением n:m и рангами оснований
+    note: ''
   - name: diff
     type: '{new*,augment*,contradict*,confirm*}'
     required: true
-    note: диф «поле → постановка» четырьмя группами; принятое не меняется молча
+    note: ''
   - name: ontology_version
     type: str
     required: true
-    note: отпечаток ОНТОЛОГИЯ-ФОРМИРОВАНИЯ.yaml — правила образования, по которым собран запуск
-  - name: cached
-    type: bool
-    required: false
-    note: ответ взят из журнала по отпечатку среза
-  - name: error
-    type: str
-    required: false
-    note: причина отказа при status=error
+    note: ''
   export: журнал ИИ
   engine: новый
 - n: 284
@@ -3217,33 +3184,33 @@ kinds:
   status_model: formulated|launched|received|parsed
   fields:
   - name: trigger_scene
-    type: '{scene?:ref scene, gate?:ref gate}'
+    type: ref scene | ref gate
     required: true
-    note: ровно одно из двух — сцена либо точка, откуда запущено исследование
+    note: ''
   - name: questions
-    type: str[]
+    type: str[] ≥1
     required: true
-    note: вопросы из рамки и онтологии; не менее одного; инженер снимает и дописывает
+    note: из рамки и онтологии
   - name: slice_fingerprint
     type: str
     required: true
-    note: срез поля, из которого собран промпт
+    note: ''
   - name: prompt_version
     type: str
     required: true
-    note: версия сборки промпта — по ней воспроизводится запуск
+    note: ''
   - name: iteration
     type: int
     required: true
-    note: номер цикла исследования по тому же месту
+    note: ''
   - name: result_material
     type: ref material
     required: false
-    note: authority=doubtful до подтверждения источников человеком
+    note: authority=doubtful до подтверждения источников
   - name: accepted_summary
     type: '{stakeholders,programs,norms,applications,analogs}'
     required: false
-    note: что принято из результата по классам
+    note: ''
   export: промпт .md; журнал
   engine: новый
 - n: 285
@@ -3260,11 +3227,11 @@ kinds:
   - name: baseline
     type: ref baseline
     required: false
-    note: снимок, против которого проверяли
+    note: ''
   - name: items
     type: '[{element*,issue*:enum[no_basis,number_vs_fact,contradiction,stale],detail*,proposal?}]'
     required: true
-    note: 'находки — тезис без основания · число против факта · противоречие · устарело; правок молча не бывает'
+    note: ''
   - name: at
     type: ts
     required: true
@@ -3401,11 +3368,6 @@ knowledge_field_rules:
 - новая версия источника → superseded + пометы, диспозиции не трогаются
 - rejected не удаляется
 - к PDR принятые величины ≥ corroborated
-- 'authority факта наследуется от материала; ручной ввод эксперта — expert (источник — учётка, роль, дата; якоря нет)'
-- 'противоречие показывает ОБА значения с рангами; ранг подсказывает, победителя выбирает человек'
-- 'синтез не переписывает принятое: только предложение с происхождением n:m и основаниями'
-- 'результат исследования — материал doubtful; reference только после подтверждения источников человеком'
-- 'темы корпусные: общие для всех документов, слияние по same_as — предложением, сливает клик'
 prompt_sources:
   factology: факты с disposition adopted|assumed|noted (не rejected), с якорями
 document_rules:
@@ -3449,18 +3411,7 @@ artifact_maturity_ladder:
   rule: код зрелости артефакта к точке обязателен и монотонен по стадиям; DMN точки строится из control_items
   source: ПОЛКА-ПРОЦЕССЫ-РОМАНОВ.maturity_matrix (113 артефактов × 5 экспертиз)
 note_wave0: группы «account · role · right» и «typical_*» разведены на шесть видов со своими полями (находка Code, волна 0)
-
-thresholds_rule: 'числовые пороги — только полями (constraint.bound, normative_document.clauses.limit, metric.threshold); парсить числа из названий и строк запрещено (сторож: расчёт, читающий порог regex-ом,
-  — отказ ревью)'
-
-readiness_negative_test_rule: 'у каждого критерия готовности — тест на отказ: фикстура, при которой критерий обязан вернуть «не выполнено» с причиной; критерий без отрицательного теста не регистрируется'
-
-technology_gate_date_rule: дата вехи технологии = плановый конец пакета созревания (WBS); ручной POST даты — только пока пакета нет, с пометой
-
-edit_rule: 'любая принятая сущность редактируется на месте: новая версия, provenance «правка инженера», derived_from_fact сохраняется'
-
 synthesis_rule: постановка формируется из всего поля по ОНТОЛОГИЯ-ФОРМИРОВАНИЯ; повтор при изменении поля; принятое не меняется молча; derived_from_fact — n:m с рангами
-
 manual_input_rule: ручной ввод — кандидат-факт expert → сверка (дубль · противоречие · соединение · нехватка) → решение человека; см. СВЕРКА-РУЧНОГО-ВВОДА
-
 research_rule: исследование выполняется вне продукта; результат — материал doubtful→reference после подтверждения источников; в модель — только через атомизацию, синтез и сверку; цикл останавливает эксперт
+edit_rule: 'любая принятая сущность редактируется на месте: новая версия, provenance «правка инженера», derived_from_fact сохраняется'
