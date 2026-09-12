@@ -104,7 +104,7 @@ export function TaskFrameBar({
       </div>
       {!done && !manual && (
         <div className="secondary" style={{ marginTop: 2, fontSize: 12 }}>
-          «Дальше» откроется само: {current?.why ?? 'условие шага ещё не выполнено'}
+          «Дальше» откроется само, как только: {current?.why ?? 'условие шага ещё не выполнено'}
         </div>
       )}
       {current?.hint && (
