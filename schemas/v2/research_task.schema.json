@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/v2/research_task.schema.json",
+  "title": "research_task",
+  "description": "исследование полноты (внешний контур) — вид 92 слоя L2. Сцена рождения: 3,4,5,7,12,точки. СГЕНЕРИРОВАНО tools/v2/gen_schemas.py из docs/tz/v2/СХЕМЫ-ПОЛЕЙ-V2.yaml — руками не править",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "стабильный внутренний"
+    },
+    "code": {
+      "type": "string",
+      "description": "человеческий, переименуемый"
+    },
+    "kind": {
+      "type": "string",
+      "description": "ссылка на вид: kind"
+    },
+    "area": {
+      "enum": [
+        "library",
+        "project:id"
+      ]
+    },
+    "born_in": {
+      "type": "string",
+      "description": "ссылка на вид: scene проектная область; библиотека — null"
+    },
+    "status": {
+      "type": "string",
+      "description": "enum по статусной модели вида"
+    },
+    "version": {
+      "type": "integer",
+      "description": "битемпорально"
+    },
+    "provenance": {
+      "type": "object",
+      "description": "{channel*:enum[manual,package,service,shelf,import,example], author*:ref account, source?:ref, anchor?:str, fingerprint?:str}"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "notes": {
+      "type": "string",
+      "description": "не печатается"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "trigger_scene": {
+      "type": "object",
+      "description": "{scene?:ref scene, gate?:ref gate} ровно одно из двух — сцена либо точка, откуда запущено исследование"
+    },
+    "questions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "вопросы из рамки и онтологии; не менее одного; инженер снимает и дописывает"
+    },
+    "slice_fingerprint": {
+      "type": "string",
+      "description": "срез поля, из которого собран промпт"
+    },
+    "prompt_version": {
+      "type": "string",
+      "description": "версия сборки промпта — по ней воспроизводится запуск"
+    },
+    "iteration": {
+      "type": "integer",
+      "description": "номер цикла исследования по тому же месту"
+    },
+    "result_material": {
+      "type": "string",
+      "description": "ссылка на вид: material authority=doubtful до подтверждения источников человеком"
+    },
+    "accepted_summary": {
+      "type": "object",
+      "description": "{stakeholders,programs,norms,applications,analogs} что принято из результата по классам"
+    }
+  },
+  "required": [
+    "id",
+    "code",
+    "kind",
+    "area",
+    "born_in",
+    "status",
+    "version",
+    "provenance",
+    "created_at",
+    "updated_at",
+    "trigger_scene",
+    "questions",
+    "slice_fingerprint",
+    "prompt_version",
+    "iteration"
+  ]
+}

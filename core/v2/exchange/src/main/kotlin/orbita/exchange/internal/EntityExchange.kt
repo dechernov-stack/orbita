@@ -25,6 +25,7 @@ import orbita.exchange.api.SdocImport
 import orbita.exchange.api.StrictDocService
 import orbita.kernel.api.EntityStore
 import orbita.kernel.api.LinkRegistry
+import orbita.knowledge.api.Authority
 import orbita.knowledge.api.Intake
 import java.io.ByteArrayOutputStream
 import java.time.OffsetDateTime
@@ -72,7 +73,14 @@ internal class EntityExchange(
         if (кандидаты.isEmpty()) return SdocImport(emptyList(), null, null, "в документе нет ни одного [REQUIREMENT]")
         // Файл — входной документ проекта: у требования будет источник и якорь.
         val отметка = OffsetDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
-        val материал = intake.putMaterial(project, "Импорт .sdoc $отметка", "sdoc", sdoc, author)
+        // Ранг доверия — справочный: импорт ЧУЖОГО файла свидетельство, а не
+        // обязательный документ заказчика. Назван здесь явно, потому что
+        // спрашивать некого: у канала обмена формы нет, а на проекте поля
+        // знаний v2 ядро без ранга материал не примет.
+        val материал = intake.putMaterial(
+            project, "Импорт .sdoc $отметка", "sdoc", sdoc, author,
+            authority = Authority.REFERENCE,
+        )
         val якоря = intake.canon(project, материал)
         val ответ = mapper.createObjectNode()
         ответ.putArray("topics")
@@ -158,7 +166,12 @@ internal class EntityExchange(
                 appendLine()
             }
         }
-        val материал = intake.putMaterial(project, "Импорт обмена «$заголовок» $отметка", "reqif", текст, author)
+        // Тот же ранг и по той же причине: чужой файл обмена — справочный
+        // источник, доверие к нему поднимает человек, а не канал.
+        val материал = intake.putMaterial(
+            project, "Импорт обмена «$заголовок» $отметка", "reqif", текст, author,
+            authority = Authority.REFERENCE,
+        )
         val якоря = intake.canon(project, материал)
         val ответ = mapper.createObjectNode()
         ответ.putArray("topics")

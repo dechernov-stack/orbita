@@ -15,6 +15,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode
 import orbita.kernel.api.Area
 import orbita.kernel.api.Channel
 import orbita.kernel.api.EntityStore
+import orbita.kernel.api.KnowledgeFlag
 import orbita.kernel.api.LinkRegistry
 import orbita.kernel.api.Provenance
 import orbita.process.api.ProcessEngine
@@ -51,7 +52,7 @@ class SceneRoutes(
         method == "POST" && path == "/v2/intent" -> замысел(требуется(query, "project"), разобрать(body))
 
         method == "POST" && path == "/v2/stakeholders" ->
-            завести(требуется(query, "project"), "stakeholder", "3", разобрать(body))
+            сторона(требуется(query, "project"), разобрать(body))
 
         method == "POST" && path == "/v2/needs" -> нужда(требуется(query, "project"), разобрать(body))
 
@@ -87,6 +88,10 @@ class SceneRoutes(
                 .put("standard", проект.doc.path("standard").asText(""))
                 .put("lead", проект.doc.path("lead").asText(""))
                 .put("phase", проект.doc.path("phase").asText("Pre-Phase A"))
+                // Карточка проекта несёт признак поля знаний: без него экран
+                // не знает, показывать ли постановку из поля и ранг доверия.
+                // Поля нет — выключено: прежние проекты остаются на прежнем.
+                .put("knowledge_v2", проект.doc.path("knowledge_v2").asBoolean(false))
         }
         return V2Router.Ответ(200, ответ)
     }
@@ -153,13 +158,21 @@ class SceneRoutes(
         val код = тело.path("code").asText("").ifBlank { "PJ-" + LocalDate.now().toString().replace("-", "") }
         val область = Area.Project(код)
         val автор = автор(тело)
+        // Поле знаний v2 — признак проекта: один стенд держит проект прохода
+        // ПМИ-5 (прежнее поведение) и новый проект одновременно. Явный выбор
+        // в теле сильнее умолчания стенда — иначе новый порядок нельзя
+        // проверить на отдельном проекте, пока умолчание выключено.
+        val знанияV2 =
+            if (тело.has("knowledge_v2")) тело.path("knowledge_v2").asBoolean(false)
+            else KnowledgeFlag.newProjectsDefault
         store.create(
             код, "project", область, "1",
             mapper.createObjectNode()
                 .put("name", тело.path("name").asText(код))
                 .put("standard", тело.path("standard").asText("NASA-7120"))
                 .put("mission_class", тело.path("mission_class").asText(""))
-                .put("lead", тело.path("lead").asText(автор)),
+                .put("lead", тело.path("lead").asText(автор))
+                .put("knowledge_v2", знанияV2),
             Provenance(Channel.MANUAL, автор),
         )
         // Точки фазы заводятся сразу с датами по умолчанию от сегодняшнего дня:
@@ -176,6 +189,9 @@ class SceneRoutes(
         }
         val ответ = PhaseJson.вид(engine.view(код), mapper)
         ответ.set<JsonNode>("prefilled", предзаполнитьРамки(код, тело.path("mission_class").asText(""), автор))
+        // Признак поля знаний возвращается сразу: экран решает по ответу
+        // сервера, какой вид сцен показывать, и не гадает по стенду.
+        ответ.put("knowledge_v2", знанияV2)
         return V2Router.Ответ(201, ответ)
     }
 
@@ -236,16 +252,49 @@ class SceneRoutes(
         val автор = автор(тело)
         val код = тело.path("code").asText("").ifBlank { следующийКод(область, вид) }
         val документ = тело.deepCopy<ObjectNode>().apply {
-            remove(listOf("code", "author", "project", "owner", "covers"))
+            // «reconcile» и «decision» — поля ВОРОТ, а не содержания: в
+            // документе вида их нет по истине схем, и правка на месте потом
+            // отбила бы их словами «поля нет». След решения остаётся там,
+            // где ему место, — в провенансе записи.
+            remove(listOf("code", "author", "project", "owner", "covers", "reconcile", "decision"))
         }
-        val сущность = store.create(код, вид, область, сцена, документ, Provenance(Channel.MANUAL, автор))
+        val сущность = store.create(
+            код, вид, область, сцена, документ,
+            Provenance(Channel.MANUAL, автор, source = сверка(тело)),
+        )
         val ответ = mapper.createObjectNode()
         ответ.put("id", сущность.id)
         ответ.put("code", сущность.code)
         return V2Router.Ответ(201, ответ)
     }
 
+    /**
+     * Ворота сохранения на проекте поля знаний v2: введённое проходит сверку,
+     * и обязательная связь понятия обязана быть закрыта. Правило одно на все
+     * сцены и на ручной факт, поэтому живёт отдельным файлом; здесь маршрут
+     * называет только СВОИ поля запроса, которыми связь закрывается.
+     *
+     * На проекте без флага возвращает `null` — ввод сохраняется как до
+     * перестройки, и тела прежних запросов не меняются ни на букву.
+     */
+    private fun ворота(
+        проект: String,
+        понятие: String,
+        тело: JsonNode,
+        закрывают: Map<String, List<String>> = emptyMap(),
+    ): V2Router.Ответ? = ReconcileGate.ворота(store, mapper, проект, понятие, тело, закрывают)
+
+    /** Сцена 3: сторона. Обязательных связей у стороны нет — сторона без нужды лишь помета к воротам. */
+    private fun сторона(проект: String, тело: JsonNode): V2Router.Ответ {
+        ворота(проект, "stakeholder", тело)?.let { return it }
+        return завести(проект, "stakeholder", "3", тело)
+    }
+
     private fun нужда(проект: String, тело: JsonNode): V2Router.Ответ {
+        // Носителя нужда называет полем «owner» — им и закрывается связь
+        // онтологии «owns→stakeholder»; «stakeholder» принимается как имя
+        // того же поля из истины схем.
+        ворота(проект, "need", тело, mapOf("owns" to listOf("owner", "stakeholder")))?.let { return it }
         val ответ = завести(проект, "need", "3", тело)
         // Носитель нужды — обязательная связь: нужда без стейкхолдера повиснет
         // и на выходе сцены 3, и в матрице покрытия.
@@ -285,6 +334,8 @@ class SceneRoutes(
     }
 
     private fun цель(проект: String, тело: JsonNode): V2Router.Ответ {
+        // Цель покрывает нужды полем «covers» — им закрывается «covers→need>=1».
+        ворота(проект, "goal", тело, mapOf("covers" to listOf("covers", "needs")))?.let { return it }
         val ответ = завести(проект, "goal", "4", тело)
         val область = Area.Project(проект)
         // Цель покрывает нужды: без этой связи нужда останется невыполненной,
@@ -299,18 +350,29 @@ class SceneRoutes(
 
     /** Сцена 5: ограничение получает код Р-серии — он стабилен и на него ссылаются. */
     private fun ограничение(проект: String, тело: JsonNode): V2Router.Ответ {
+        // У рамки связь условная — «normative_basis if obligation»: основание
+        // спрашивается только у регуляторной, и условие читает сами ворота.
+        ворота(проект, "constraint", тело)?.let { return it }
         val область = Area.Project(проект)
         val занято = store.list(область, "constraint").mapNotNull {
             Regex("^Р(\\d+)$").find(it.code)?.groupValues?.get(1)?.toIntOrNull()
         }
         val код = тело.path("code").asText("").ifBlank { "Р${(занято.maxOrNull() ?: 0) + 1}" }
-        val документ = тело.deepCopy<ObjectNode>().apply { remove(listOf("code", "author", "project")) }
-        val сущность = store.create(код, "constraint", область, "5", документ, Provenance(Channel.MANUAL, автор(тело)))
+        val документ = тело.deepCopy<ObjectNode>().apply {
+            remove(listOf("code", "author", "project", "reconcile", "decision"))
+        }
+        val сущность = store.create(
+            код, "constraint", область, "5", документ,
+            Provenance(Channel.MANUAL, автор(тело), source = сверка(тело)),
+        )
         return V2Router.Ответ(201, mapper.createObjectNode().put("id", сущность.id).put("code", сущность.code))
     }
 
     /** Сцена 6: сервис покрывает нужды — без этой связи он ничей. */
     private fun сервис(проект: String, тело: JsonNode): V2Router.Ответ {
+        // У сервиса связей две: покрытые нужды и класс качества (Р9) — без
+        // класса сервис не различает виды потребителей, и MOP не порождаются.
+        ворота(проект, "service", тело, mapOf("covers" to listOf("covers", "needs")))?.let { return it }
         val ответ = завести(проект, "service", "6", тело)
         val область = Area.Project(проект)
         тело.path("covers").forEach { ссылка ->
@@ -380,6 +442,14 @@ class SceneRoutes(
 
     private fun автор(тело: JsonNode): String =
         тело.path("author").asText("").ifBlank { "стенд" }
+
+    /**
+     * След сверки для провенанса: «SR-12#c1» — по нему видно, через какую
+     * сверку прошёл этот ввод. Пусто на проекте прохода: там сверки нет, и
+     * происхождение записи остаётся прежним до буквы.
+     */
+    private fun сверка(тело: JsonNode): String? =
+        тело.path("reconcile").asText("").trim().ifBlank { null }
 
     private fun требуется(query: Map<String, String>, имя: String): String =
         query[имя] ?: throw IllegalArgumentException("нужен параметр «$имя»")

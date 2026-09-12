@@ -11,6 +11,8 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ObjectNode
 import orbita.documents.api.RenderedSection
 import orbita.knowledge.api.Fact
+import orbita.knowledge.api.FactLink
+import orbita.knowledge.api.FactSource
 import orbita.knowledge.api.Topic
 import orbita.programmatics.api.EstimateView
 
@@ -33,14 +35,47 @@ internal object KindJson {
         .put("disposition", ф.disposition.name.lowercase())
         .put("param_key", ф.paramKey)
         .put("source_updated", ф.sourceUpdated)
+        // Ранг доверия: наследуется от материала, у руки эксперта — expert.
+        // Пусто — факт заведён до перестройки, и ранг здесь не выдумывается:
+        // выдуманное доверие хуже отсутствующего.
+        .put("authority", ф.authority)
+        // Свидетельство поднимает сверка: без него мера «после подтверждения источников — corroborated» снаружи не читается.
+        .put("evidence", ф.evidence)
         .also { у ->
             у.putArray("conflicts").also { а -> ф.conflicts.forEach { а.add(it) } }
+            // Источник союзом (истина схем `fact.source`): документ с якорем
+            // ЛИБО эксперт с учёткой, ролью и датой. Плоские `material` и
+            // `anchor` остаются рядом до DTO из YAML — на них смотрит экспорт.
+            ф.source?.let { и -> у.set<ObjectNode>("source", источник(mapper, и)) }
+            // Связи фактов обоими концами: конфликт между документами живёт
+            // связью, а `conflicts` остаётся вычисляемым представлением.
+            у.putArray("links").also { а -> ф.links.forEach { с -> а.add(связь(mapper, с)) } }
             ф.assumption?.let { д ->
                 у.putObject("assumption").put("owner", д.owner).put("confirm_by", д.confirmBy)
                     .put("validation", д.validation).put("impact_if_wrong", д.impactIfWrong)
             }
         }
 
+    /** Источник факта — ровно одна ветка союза: документ с якорем либо эксперт. */
+    fun источник(mapper: ObjectMapper, и: FactSource): ObjectNode = when (и) {
+        is FactSource.FromMaterial -> mapper.createObjectNode().put("material", и.material).put("anchor", и.anchor)
+        is FactSource.FromExpert ->
+            mapper.createObjectNode().put("account", и.account).put("role", и.role).put("at", и.at)
+    }
+
+    /** Связь факта с фактом: оба конца и причина — связь без причины неотличима от случайной. */
+    private fun связь(mapper: ObjectMapper, с: FactLink): ObjectNode = mapper.createObjectNode()
+        .put("type", с.type).put("from", с.from).put("to", с.to).put("rationale", с.rationale)
+
+    /**
+     * Тема наружу.
+     *
+     * Поля `merged_into` здесь нет намеренно: порт отдаёт только ГОЛОВЫ
+     * цепочек слияния (`EntityIntake.topics`), а у головы это поле пусто по
+     * определению — писать его значило бы отдавать экрану всегда `null`.
+     * Слияние видно там, где оно происходит: ответ POST /v2/topics/{код}/merge
+     * возвращает голову и называет, что во что слито.
+     */
     fun тема(mapper: ObjectMapper, т: Topic): ObjectNode = mapper.createObjectNode()
         .put("id", т.id).put("label", т.label)
         .put("scene", т.scene).put("resolved_to", т.resolvedTo)

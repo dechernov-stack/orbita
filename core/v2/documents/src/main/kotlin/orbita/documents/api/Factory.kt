@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import orbita.documents.internal.DocumentChecks
 import orbita.documents.internal.EntityDocuments
+import orbita.documents.internal.FieldVerification
 import orbita.kernel.api.EntityStore
 import orbita.kernel.api.LinkRegistry
 
@@ -31,4 +32,22 @@ object DocumentsFactory {
 
     /** Условия ворот про документы: начат · полон к ступени · базирован (только чтение). */
     fun gateChecks(documents: Documents): orbita.readiness.api.ExtraChecks = DocumentChecks(documents)
+
+    /**
+     * Верификация документа против поля знаний.
+     *
+     * @param documents тот же порт документов, что отдан наружу: проверка
+     *   читает документ его же глазами. Второй сборки документа не
+     *   существует — иначе отчёт однажды сослался бы на элемент, которого на
+     *   экране нет
+     * @param links реестр связей: `derived_from_fact` — нить от сущности к её
+     *   факту, `contradicts` — спор двух фактов. Без реестра проверка не
+     *   отличит сущность без основания от сущности, чьё основание не видно
+     */
+    fun verification(
+        store: EntityStore,
+        links: LinkRegistry,
+        documents: Documents,
+        mapper: ObjectMapper = ObjectMapper(),
+    ): Verification = FieldVerification(store, links, documents, mapper)
 }

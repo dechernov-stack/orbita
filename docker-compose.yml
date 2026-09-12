@@ -103,6 +103,9 @@ services:
       ORBITA_EXCHANGE_URL: http://exchange:8091
       # ADR-048: адаптер Capella включается флагом; без него — fixture с баннером
       ORBITA_CAPELLA_URL: ${ORBITA_CAPELLA_URL:-}
+      # Знания v2 (ADR-070): умолчание флага для НОВЫХ проектов; у прежних
+      # проектов поле knowledge_v2 остаётся выключенным — флаг признак проекта.
+      ORBITA_KNOWLEDGE_V2_DEFAULT: ${ORBITA_KNOWLEDGE_V2_DEFAULT:-}
       # ADR-049: StrictDoc-канал включается флагом; без него — отказ 503
       ORBITA_STRICTDOC_URL: ${ORBITA_STRICTDOC_URL:-}
       # Вход (ADR-065): stand — учётки стенда без пароля; telegram — через

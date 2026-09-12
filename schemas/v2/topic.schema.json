@@ -68,6 +68,10 @@
     "scene": {
       "type": "string",
       "description": "ссылка на вид: scene"
+    },
+    "merged_into": {
+      "type": "string",
+      "description": "ссылка на вид: topic слияние тем по same_as с подтверждением человека; ИИ предлагает, сливает клик"
     }
   },
   "required": [

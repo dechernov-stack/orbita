@@ -118,6 +118,14 @@ class AcrossRoutes(
                 .put("chars", м.doc.path("chars").asInt(0))
                 .put("supersedes", м.doc.path("supersedes").asText("").ifBlank { null })
                 .put("created_at", м.createdAt.toString())
+                // Ранг доверия — отдельное поле рядом с типом: тип остаётся
+                // режимом разбора, доверие называет человек. Профиль
+                // содержимого (Д2а) ставит разбор — по нему экран показывает
+                // доли блоков, а не гадает по расширению файла.
+                .put("authority", м.doc.path("authority").asText("").ifBlank { null })
+                .also { у ->
+                    м.doc.path("profile").takeIf { it.isObject }?.let { у.set<JsonNode>("profile", it) }
+                }
         }
         val ответ = mapper.createObjectNode()
         ответ.set<JsonNode>("items", массив)
@@ -160,8 +168,19 @@ class AcrossRoutes(
             шапка + текст,
             автор(тело),
             supersedes = тело.path("supersedes").asText("").ifBlank { null },
+            // Ранг доверия приходит С ФОРМЫ и передаётся как есть: пустое —
+            // решение ядра, а не умолчание маршрута. На проекте поля знаний
+            // v2 ядро отвечает отказом «ранг доверия материала обязателен»,
+            // на проекте прохода выводит ранг по прежнему типу входного.
+            authority = тело.path("authority").asText("").trim().ifBlank { null },
         )
         val ответ = mapper.createObjectNode().put("code", код).put("from_url", ссылка.isNotBlank()).put("chars", текст.length)
+        // Ранг возвращается тот, который ПОСТАВИЛО ядро: форма показывает не
+        // то, что отправила, а то, с чем материал теперь живёт.
+        store.byCode(Area.Project(проект), код)?.doc?.let { карточка ->
+            ответ.put("authority", карточка.path("authority").asText(""))
+            карточка.path("notes").asText("").takeIf { it.isNotBlank() }?.let { ответ.put("authority_note", it) }
+        }
         извлечённый?.let { ответ.put("extracted_from", имяФайла) }
         снятый?.let { ответ.put("snapshot_renderer", it.renderer).put("snapshot_date", it.date) }
         тело.path("supersedes").asText("").takeIf { it.isNotBlank() }?.let { ответ.put("supersedes", it) }

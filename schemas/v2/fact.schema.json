@@ -91,7 +91,7 @@
     },
     "source": {
       "type": "object",
-      "description": "{material*,anchor*}"
+      "description": "{material?,anchor?} | {account*,role*,at*} документ с якорем — или эксперт без якоря (учётка · роль · дата); ровно одно из двух, стережёт Kotlin"
     },
     "source_mark": {
       "enum": [
@@ -145,6 +145,15 @@
         "commercial"
       ],
       "description": "наследуется от источника"
+    },
+    "authority": {
+      "enum": [
+        "mandatory",
+        "expert",
+        "reference",
+        "doubtful"
+      ],
+      "description": "наследуется от material.authority; у ручного факта эксперта — expert; ранг подсказывает в противоречии, не выбирает победителя"
     }
   },
   "required": [
@@ -167,6 +176,7 @@
     "confidence",
     "as_of",
     "disposition",
-    "classification"
+    "classification",
+    "authority"
   ]
 }

@@ -1,0 +1,195 @@
+ontology: формирование постановки из поля знаний — правила образования понятий Pre-A (Phase A — тем же файлом позже)
+authority_ranks:
+  mandatory: заказчик · регулятор · директива — вес нормы; конфликт по умолчанию за ним
+  expert: 'ручной ввод эксперта проекта: автор · роль · дата; выше справки, ниже документа заказчика; без якоря'
+  reference: аналитика · наследие · даташит — свидетельство
+  doubtful: непроверенный — принимается только явно
+concepts:
+  stakeholder:
+    from_facts:
+    - kind: relation
+      predicate_in:
+      - является заказчиком
+      - является оператором
+      - регулирует
+      - поставляет
+      - учреждается
+      - потребляет
+    - kind: capability
+      subject: организация
+    fields:
+      name: subject
+      role: по предикату
+      interest: из facts kind=assessment|framing о subject
+      scale: quantity о subject
+      influence: 'по предикату: заказчик/регулятор → decides; оператор/партнёр → influences; потребитель → informed'
+    must_link: []
+    conflict_on:
+    - role
+    note: сторона без нужды — помета к воротам, не отказ
+    identity:
+      key:
+      - name_normalized|synonyms
+      semantic: имя организации/группы, роль
+      threshold: 0.85
+  need:
+    from_facts:
+    - kind: framing
+      predicate_in:
+      - нуждается в
+      - требует
+      - не хватает
+    - kind: assessment
+      subject_is: stakeholder
+      mark: П
+    - section_hint: §2.1 общие нужды → привязка к сторонам по субъекту/смыслу
+    fields:
+      statement: предикат+объект
+      stakeholder: subject (owns) — обязательно
+      qos_class: из facts о задержке/гарантии; иначе TBR
+    must_link:
+    - owns→stakeholder
+    conflict_on:
+    - statement contradicts
+    note: интерес стороны → нужда [П], не [И]
+    identity:
+      key:
+      - stakeholder
+      - statement_core
+      semantic: та же потребность иными словами; отличие — охват, число, класс
+      threshold: 0.8
+  goal:
+    from_facts:
+    - kind: quantity
+      with: horizon/year
+    - kind: framing
+      predicate_in:
+      - к году
+      - достичь
+      - развернуть
+    fields:
+      statement: предикат
+      measure: quantity с единицей — обязательно
+      year: horizon — обязательно
+      needs: covers ≥1 по субъекту/теме
+    must_link:
+    - covers→need>=1
+    conflict_on:
+    - measure
+    - year
+    note: разные годы у одного результата в документах разного ранга — contested, не выбор
+    identity:
+      key:
+      - statement_core
+      - measure.key
+      semantic: тот же результат; отличия — значение, год, единица (нормализовать)
+      threshold: 0.8
+  service:
+    from_facts:
+    - kind: capability
+      subject: система
+    - section_hint: §4 сервисы
+    fields:
+      name: capability
+      needs: covers ≥1
+      qos_class: из фактов о классе/задержке
+      target_measure: quantity
+    must_link:
+    - covers→need>=1
+    - qos_class
+    conflict_on:
+    - qos_class
+    - target_measure
+    identity:
+      key:
+      - name_core
+      semantic: та же услуга тем же потребителям
+      threshold: 0.8
+  constraint:
+    from_facts:
+    - kind: obligation
+    - kind: framing
+      predicate_in:
+      - только
+      - не рассматривается
+      - исключается
+      - не более
+      - не менее
+    fields:
+      code: Р-N выдаётся при акцепте
+      type: 'по источнику: obligation→regulatory; framing→technical|programmatic|launch|financial'
+      bound: из quantity в факте, если есть
+    must_link:
+    - normative_basis if obligation
+    conflict_on:
+    - bound
+    - statement
+    note: ограничение из справочного документа — предложение [П], из обязательного — [И]
+    identity:
+      key:
+      - bound.key|statement_core
+      semantic: та же рамка; отличие — граница или тип
+      threshold: 0.85
+  assumption:
+    from_facts:
+    - mark: П
+    - kind: assumption
+    fields:
+      statement: факт
+      owner: обязателен при acceptance
+      confirm_by: gate — обязателен
+    must_link: []
+    conflict_on: []
+    identity:
+      key:
+      - statement_core
+      semantic: то же допущение
+      threshold: 0.8
+  milestone:
+    from_facts:
+    - kind: event
+      with: date|year
+    - section_hint: §7 этапы
+    fields:
+      name: событие
+      date: из факта
+      fleet: quantity если есть
+    must_link: []
+    conflict_on:
+    - date
+    identity:
+      key:
+      - name_core
+      semantic: тот же этап/событие; отличие — дата
+      threshold: 0.85
+  normative_document:
+    from_facts:
+    - kind: obligation
+      with: designation
+    fields:
+      designation: natural key
+      edition: из факта
+      clauses: пункты фактами; limit — полем
+    must_link: []
+    conflict_on:
+    - edition
+    identity:
+      key:
+      - designation_natural
+      semantic: —
+      threshold: 1.0
+reconciliation:
+  new: понятие без совпадения по ключу и смыслу
+  augment: совпадение по ключу; новые поля/связи → предложение «дополнить»
+  contradict: совпадение по ключу; различие в conflict_on → contested с рангами обоих
+  confirm: совпадение полностью из независимого документа → evidence=corroborated
+  manual_edit: правка принятого без факта → предложить ручной факт [И] или помету «без основания»
+  manual_input: 'ручной ввод → кандидат-факт authority=expert → та же сверка: дубль (ключ, затем семантика по срезу понятия) · противоречие (conflict_on после нормализации) · соединение (supports/refines,
+    must_link) · нехватка (must_link) — предложения с уверенностью и полем отличия; выполняет только человек'
+  batching: несколько ручных вводов — один вызов сверки с задержкой; срез ≤ 50 фактов и сущностей
+  rights: ИИ не сливает, не переписывает принятое, не выбирает победителя; «похоже» без «чем именно» — брак
+invariants:
+- принятое не меняется синтезом молча
+- понятие с must_link незакрытым — предложение с пометой, не сущность
+- ранг документа не решает за человека — подсказывает
+- каждое предложение несёт факты-основания (≥1) с якорями и рангами

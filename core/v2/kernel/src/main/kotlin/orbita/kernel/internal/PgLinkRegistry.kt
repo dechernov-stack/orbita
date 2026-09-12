@@ -12,21 +12,39 @@ import java.util.UUID
 
 class PgLinkRegistry(private val conn: Connection) : LinkRegistry {
 
+    internal companion object {
+
+        // Перечень enum `type` вида `link` из СХЕМЫ-ПОЛЕЙ-V2 — порядок и
+        // состав дословно, чтобы расхождение с истиной схем читалось глазом,
+        // а не искалось по всему множеству (сторож — LinkTypesTest).
+        val изСхемы = setOf(
+            "owns", "covers", "derives_from", "allocated_to", "satisfied_by",
+            "realized_by", "allocation", "flows_over", "illustrated_by", "traced_to",
+            "verifies", "conflicts_with", "snapshot_of", "input_of", "output_of",
+            "pairs_with", "external_identity", "deployed_on", "uses_item",
+            "depends_on_technology", "derived_from_fact", "about", "supports",
+            "contradicts", "supersedes", "confirms", "same_as", "refines",
+        )
+
+        // Типы, живущие в коде раньше истины схем: `instantiates` пишет
+        // EntityRequirements при взятии типового требования, `verified_by` и
+        // `constrains` перечислены реестром связей модели данных. В enum
+        // link.type их нет — это дыра YAML, закрывать её владельцу файла схем.
+        // Пока дыра открыта, отказывать в них нельзя: иначе взятие типового
+        // требования падает на ровном месте.
+        val внеСхемы = setOf("verified_by", "constrains", "instantiates")
+
+        /**
+         * Реестр типов связи. Произвольных связей не бывает: чего нет в
+         * перечне — того нет и в модели.
+         */
+        val известные = изСхемы + внеСхемы
+    }
+
     /** Типы связей и требование обоснования — из реестра связей модели данных. */
     private val требуютОбоснования = setOf(
         "derives_from", "satisfied_by", "realized_by", "verified_by", "conflicts_with",
         "external_identity", "deployed_on",
-    )
-
-    // Реестр типов из СХЕМЫ-ПОЛЕЙ-V2 (вид `link`). Произвольных связей не
-    // бывает: чего нет в списке — того нет и в модели.
-    private val известные = setOf(
-        "owns", "covers", "derives_from", "allocated_to", "satisfied_by",
-        "realized_by", "verified_by", "constrains", "refines", "instantiates",
-        "allocation", "flows_over", "illustrated_by", "traced_to", "verifies",
-        "conflicts_with", "snapshot_of", "input_of", "output_of", "pairs_with",
-        "external_identity", "deployed_on", "uses_item", "depends_on_technology",
-        "derived_from_fact", "about", "supports", "contradicts", "supersedes", "confirms",
     )
 
     /** Виды уточнения `derives_from`: декомпозиция, вывод, уточнение. */

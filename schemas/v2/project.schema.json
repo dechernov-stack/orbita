@@ -81,6 +81,10 @@
     },
     "example": {
       "type": "boolean"
+    },
+    "knowledge_v2": {
+      "type": "boolean",
+      "description": "поле знаний v2 — синтез, сверка, ранг доверия; на прежних проектах выключено, новым ставится умолчанием стенда (ORBITA_KNOWLEDGE_V2_DEFAULT)"
     }
   },
   "required": [

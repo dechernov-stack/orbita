@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode
 import orbita.ai.api.AiService
 import orbita.ai.api.Atomize
 import orbita.ai.api.ProviderUnavailable
+import orbita.kernel.api.EntityStore
 import orbita.knowledge.api.Disposition
 import orbita.knowledge.api.Fact
 import orbita.knowledge.api.FactIntake
@@ -21,6 +22,12 @@ class KnowledgeRoutes(
     private val mapper: ObjectMapper = ObjectMapper(),
     /** Разбор фоновой задачей (ADR-069); null — только синхронный разбор. */
     private val jobs: orbita.ai.api.AtomizeJobs? = null,
+    /**
+     * Хранилище — ровно за флагом проекта (`knowledge_v2`): ворота сверки
+     * ставятся только там, где поле знаний v2 включено. `null` — прежняя
+     * сборка: ворот нет вовсе, и ручной факт сохраняется как до перестройки.
+     */
+    private val store: EntityStore? = null,
 ) {
 
     fun handle(method: String, path: String, query: Map<String, String>, body: String?): V2Router.Ответ? = when {
@@ -46,6 +53,16 @@ class KnowledgeRoutes(
 
         method == "POST" && path == "/v2/facts" ->
             ручнойФакт(требуется(query, "project"), разобрать(body))
+
+        // Слияние тем: один предмет — одна тема, как бы его ни звали
+        // документы. ИИ видит тождество и предлагает его связью `same_as`,
+        // но щелчок делает инженер — поэтому автор обязателен.
+        method == "POST" && path.matches(Regex("/v2/topics/[A-Za-z0-9-]+/merge")) ->
+            слитьТему(
+                требуется(query, "project"),
+                path.removePrefix("/v2/topics/").removeSuffix("/merge"),
+                разобрать(body),
+            )
 
         method == "POST" && path.matches(Regex("/v2/topics/[A-Za-z0-9-]+/resolve")) ->
             разрешитьТему(
@@ -127,7 +144,21 @@ class KnowledgeRoutes(
         )
     }
 
+    /**
+     * Факт руками — кандидат-факт ЭКСПЕРТА (manual_input_rule).
+     *
+     * Источник у него не документ, а человек: учётка · роль · дата. Учётка и
+     * роль приходят либо полями верхнего уровня, либо ветвью союза
+     * `source{account,role,at}` — экран называет их так же, как истина схем;
+     * дату ставит приём, и это дата ввода, а не выдуманная.
+     */
     private fun ручнойФакт(project: String, тело: ObjectNode): V2Router.Ответ {
+        // На проекте поля знаний v2 ручной ввод идёт через сверку: введённое
+        // не попадает в модель напрямую. Понятия у факта нет — нехватку
+        // обязательных связей ворота здесь не проверяют.
+        ReconcileGate.ворота(store, mapper, project, concept = null, тело = тело)?.let { return it }
+        val источник = тело.path("source")
+        val роль = тело.path("role").asText("").ifBlank { источник.path("role").asText("") }.trim()
         val ф = intake.addFact(
             project,
             subject = тело.path("subject").asText(""),
@@ -137,10 +168,47 @@ class KnowledgeRoutes(
             kind = тело.path("kind").asText("framing"),
             topic = тело.path("topic").asText("").ifBlank { null },
             material = тело.path("material").asText("").ifBlank { null },
-            author = тело.path("author").asText("инженер"),
+            author = тело.path("author").asText("").ifBlank { источник.path("account").asText("") }
+                .ifBlank { "инженер" },
             mark = тело.path("mark").asText("").ifBlank { "И" },
+            role = роль.ifBlank { null },
+            // Ранг не выдумывается маршрутом: умолчание ручного факта —
+            // экспертный, и ставит его приём знаний.
+            authority = тело.path("authority").asText("").trim().ifBlank { null },
         )
         return V2Router.Ответ(201, фактВид(ф))
+    }
+
+    /**
+     * Слить тему в другую. В ответе — ГОЛОВА цепочки: тот адрес, по которому
+     * теперь читаются факты обеих.
+     *
+     * Автор спрашивается здесь же, а не только приёмом: отказ обязан
+     * доходить до экрана ответом 400, а не падением обвязки, — иначе человек
+     * прочтёт «внутренняя ошибка» вместо того, чего от него ждут.
+     */
+    private fun слитьТему(project: String, topic: String, тело: ObjectNode): V2Router.Ответ {
+        val автор = тело.path("author").asText("").trim()
+        if (автор.isBlank()) {
+            return V2Router.Ответ(
+                400,
+                mapper.createObjectNode()
+                    .put("error", "слияние тем без автора не ставится: ИИ предлагает — сливает человек")
+                    .put("what_to_do", "назовите «author» — кто сливает"),
+            )
+        }
+        val голова = intake.mergeTopic(
+            project, topic,
+            into = тело.path("into").asText("").trim(),
+            author = автор,
+            reason = тело.path("reason").asText(""),
+        )
+        return V2Router.Ответ(
+            200,
+            KindJson.тема(mapper, голова)
+                .put("merged", topic)
+                .put("merged_into", голова.id),
+        )
     }
 
     private fun задания(project: String): V2Router.Ответ {
@@ -303,6 +371,10 @@ class KnowledgeRoutes(
         п.byKind.forEach { (вид, пара) ->
             виды.putObject(вид).put("total", пара.first).put("from_facts", пара.second)
         }
+        // Доля знаний с РАНГАМИ оснований (мера ПМИ-6 п. 1.8): без этого «80 %»
+        // не отличает опору на записку заказчика от опоры на непроверенную справку.
+        val ранги = узел.putObject("by_authority")
+        п.byAuthority.forEach { (ранг, сколько) -> ранги.put(ранг, сколько) }
         return V2Router.Ответ(200, узел)
     }
 

@@ -130,6 +130,15 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
         val store = orbita.kernel.api.KernelFactory.entityStore(conn, mapper)
         val links = orbita.kernel.api.KernelFactory.linkRegistry(conn)
         val корень = java.nio.file.Path.of(System.getenv("ORBITA_REPO_ROOT") ?: ".")
+        // Умолчание стенда для НОВЫХ проектов: поле знаний v2 (синтез, сверка,
+        // ранг доверия). Переменную среды читает только граница — маршруты
+        // спрашивают KnowledgeFlag, иначе правило размазывается по коду.
+        // До зелёной меры ПМИ-6 переменная не выставлена, и умолчание
+        // выключено: проект прохода живёт по-прежнему.
+        orbita.kernel.api.KnowledgeFlag.newProjectsDefault =
+            orbita.kernel.api.KnowledgeFlag.defaultFrom(
+                System.getenv(orbita.kernel.api.KnowledgeFlag.DEFAULT_ENV),
+            )
         val шаблоны = корень.resolve("docs/tz/v2/полки-порождённые")
         val полки = orbita.library.api.LibraryFactory.shelves(store) { код ->
             val файл = шаблоны.resolve(
@@ -281,6 +290,9 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
             mapper,
             // Разбор фоновой задачей (ADR-069): сеть в фоне, база — на потоке запросов.
             jobs = orbita.ai.api.AiFactory.atomizeJobs(store, знания, служба, mapper),
+            // Ворота сверки (знания v2): без реестра маршрут не знает флага проекта
+            // и пускал бы несверенный ввод — на стенде ворота были бы выключены.
+            store = store,
         )
         // Обмен (шип F): служба StrictDoc — по ORBITA_STRICTDOC_URL, снимки
         // .sdoc — в томе файлов стенда рядом с базированиями документов.
@@ -292,9 +304,38 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
         val внешняяМодель = orbita.api.internal.ExternalModelRoutes(
             orbita.architecture.api.ArchitectureFactory.externalModel(store, mapper), mapper,
         )
+        // ——— Поле знаний v2 (флаг проекта knowledge_v2) ———
+        //
+        // Контур собирается ЦЕЛИКОМ и всегда: развилку держит флаг проекта, а
+        // не сборка стенда. Один стенд держит проект прохода ПМИ-5 (прежний
+        // порядок) и новый проект одновременно, поэтому «не собирать на
+        // старом стенде» тут не годится — собирать пришлось бы дважды.
+        //
+        // Ступень 1 сверки (ключ идентичности, без токенов) собирается ОДИН
+        // раз и отдаётся семантике как `deterministic`: собери её служба
+        // заново — и кандидат-факты разошлись бы по двум сверкам.
+        val сверкаПоКлючу = orbita.knowledge.api.KnowledgeFactory.reconcile(
+            store, links, mapper, полки, intake = знания,
+        )
+        val сверка = orbita.ai.api.AiFactory.reconcile(store, сверкаПоКлючу, служба, mapper)
+        // Синтез — фоновой задачей (ADR-069): он идёт по всему полю и считается
+        // минутами, а однопоточный стенд на прямом вызове замолчал бы весь срок.
+        val синтез = orbita.ai.api.AiFactory.synthesisJobs(store, знания, служба, mapper)
+        // Исследование службы ИИ не получает ВОВСЕ: внешний контур на то и
+        // внешний — мера «журнал ИИ после формулирования и запуска не
+        // прирастает» держится сборкой, а не обещанием.
+        val исследование = orbita.knowledge.api.KnowledgeFactory.research(
+            store, links, mapper, полки, intake = знания,
+        )
+        val проверка = orbita.documents.api.DocumentsFactory.verification(store, links, документы, mapper)
+        val синтезМаршруты = orbita.api.internal.SynthesisRoutes(store, синтез, сверка, mapper)
+        val сверкаМаршруты = orbita.api.internal.ReconcileRoutes(store, сверка, знания, mapper)
+        val исследованиеМаршруты = orbita.api.internal.ResearchRoutes(store, исследование, mapper)
+        val проверкаМаршруты = orbita.api.internal.VerifyRoutes(store, документы, проверка, mapper)
         return orbita.api.internal.V2Router(
             store, links, движок, полки, знания, постановка, mapper, волна3, волна4,
             документыМаршруты, знанияМаршруты, точки, обмен, внешняяМодель,
+            синтезМаршруты, сверкаМаршруты, исследованиеМаршруты, проверкаМаршруты,
             // Материал файлом (docx · pdf · xlsx · pptx): текст извлекает тот же
             // разбор, что у документов v1 — канон в markdown; формат — на границе.
             extract = { имя, байты ->

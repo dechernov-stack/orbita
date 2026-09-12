@@ -2,9 +2,14 @@
 //
 // Ни одна сцена не решает, открыта ли она: это сказал сервер. Здесь только
 // формы и списки, встроенные в рамку.
-import React, { useEffect, useState } from 'react'
-import { api, type EntityRow } from './api'
+import React, { useEffect, useRef, useState } from 'react'
+import { ConfirmBox, useConfirm } from '../ui/Confirm'
+import {
+  api, ServerRefusal,
+  type EntityRow, type ReconcileAction, type ReconcileCandidate, type ReconcileItem, type ReconcileRun,
+} from './api'
 import { Source } from './knowledgefield'
+import { запомнитьАвтора, запомнитьРоль, отказСловами, прочитатьАвтора, прочитатьРоль } from './research'
 
 /**
  * З-03: правка принятой сущности на месте — карандаш в строке, поля в той же
@@ -198,6 +203,239 @@ export function SceneIntent({ project, onChanged }: { project: string; onChanged
   )
 }
 
+/**
+ * Действие по находке словами. Перечень предлагает сервер кодами, а слово
+ * нужно человеку: вторых вердиктов здесь нет — вердикт и вопрос приходят с
+ * сервера готовыми словами и печатаются как есть.
+ */
+const ДЕЙСТВИЕ: Record<ReconcileAction, string> = {
+  accept_new: 'завести новым',
+  merge_into: 'слить в принятое',
+  refine: 'уточнить принятое',
+  generalize: 'обобщить принятое',
+  link_basis: 'привязать основание',
+  mark_contested: 'пометить спорным',
+  fix_input: 'поправить ввод',
+  dismiss: 'отклонить находку',
+}
+
+/** Дата провенанса по-человечески: 12.09.2026, а не машинная запись. */
+function датаКратко(когда: string): string {
+  const [г, м, д] = когда.slice(0, 10).split('-')
+  return д && м && г ? `${д}.${м}.${г}` : когда
+}
+
+/** Провенанс кандидата: у руки эксперта якоря нет — есть учётка, роль и дата. */
+function провенанс(источник: ReconcileItem['source']): string {
+  return 'account' in источник
+    ? `эксперт: ${источник.account}, ${источник.role}, ${датаКратко(источник.at)}`
+    : `документ ${источник.material}, якорь ${источник.anchor}`
+}
+
+/**
+ * Ручной ввод идёт через сверку (СВЕРКА-РУЧНОГО-ВВОДА, manual_input_rule).
+ *
+ * Очередь кандидатов копится, пока человек печатает, и уходит ОДНИМ запросом:
+ * молчание 1200 мс, уход из поля либо нажатие «Сверить». Десять строк ввода —
+ * один запуск и одна запись в журнале ИИ; окно накопления тут и есть цена
+ * токенов.
+ *
+ * Сверка ничего не меняет: она заводит кандидат-факты и запуск. Модель
+ * меняется только решением человека по находке.
+ */
+function useСверка(project: string) {
+  const [run, setRun] = useState<ReconcileRun | null>(null)
+  const [ждущие, setЖдущие] = useState<string[]>([])
+  const [сверяю, setСверяю] = useState(false)
+  const [отказ, setОтказ] = useState<string | null>(null)
+  /** Чего сверке не хватает от человека: подсказка, а не отказ. */
+  const [подсказка, setПодсказка] = useState<string | null>(null)
+  /** Поле знаний v2 на проекте выключено: ввод идёт прежним порядком. */
+  const [выключена, setВыключена] = useState(false)
+  const [автор, setАвтор] = useState(прочитатьАвтора)
+  const [роль, setРоль] = useState(прочитатьРоль)
+  const [поСмыслу, setПоСмыслу] = useState(true)
+  const очередь = useRef<Record<string, ReconcileCandidate>>({})
+  const таймер = useRef<number | null>(null)
+  const свежее = useRef({ автор, роль, поСмыслу, выключена })
+  свежее.current = { автор, роль, поСмыслу, выключена }
+
+  useEffect(() => () => { if (таймер.current !== null) window.clearTimeout(таймер.current) }, [])
+
+  /** Карточку сверки забывает ИЗМЕНЁННЫЙ ввод: прежняя находка была о другом. */
+  const забыть = (localId: string) =>
+    setRun((р) => (р ? { ...р, items: р.items.filter((п) => п.local_id !== localId) } : р))
+
+  const сверить = () => {
+    if (таймер.current !== null) { window.clearTimeout(таймер.current); таймер.current = null }
+    const пакет = Object.values(очередь.current)
+    const { автор: кто, роль: чем, поСмыслу: смысл, выключена: нет } = свежее.current
+    if (пакет.length === 0 || нет) return
+    // Без имени и роли сверки не бывает: ручной ввод — это факт эксперта, а
+    // у него есть учётка, роль и дата. Это подсказка, а не отказ: на проекте
+    // без поля знаний v2 ввод и так сохраняется прежним порядком.
+    if (!кто.trim() || !чем.trim()) {
+      setПодсказка('назовите себя и роль — тогда ввод пойдёт через сверку')
+      return
+    }
+    очередь.current = {}
+    setЖдущие([])
+    setСверяю(true)
+    setОтказ(null)
+    setПодсказка(null)
+    api.reconcile(project, пакет, кто, чем, смысл)
+      .then(setRun)
+      .catch((e) => {
+        if (e instanceof ServerRefusal && e.status === 409) setВыключена(true)
+        else setОтказ(отказСловами(e))
+      })
+      .finally(() => setСверяю(false))
+  }
+
+  const поставить = (кандидат: ReconcileCandidate) => {
+    if (свежее.current.выключена) return
+    очередь.current = { ...очередь.current, [кандидат.local_id]: кандидат }
+    setЖдущие(Object.keys(очередь.current))
+    забыть(кандидат.local_id)
+    if (таймер.current !== null) window.clearTimeout(таймер.current)
+    таймер.current = window.setTimeout(сверить, 1200)
+  }
+
+  const убрать = (localId: string) => {
+    const оставшиеся = { ...очередь.current }
+    delete оставшиеся[localId]
+    очередь.current = оставшиеся
+    setЖдущие(Object.keys(оставшиеся))
+  }
+
+  /** Карточка кандидата по местному номеру строки ввода: находки вернулись в неё. */
+  const предмет = (localId: string): ReconcileItem | null =>
+    run?.items.find((п) => п.local_id === localId) ?? null
+
+  /** Ссылка на сверку для ворот сохранения: запуск и местный номер строки. */
+  const ссылка = (localId: string): string | null =>
+    run && предмет(localId) ? `${run.run}#${localId}` : null
+
+  return {
+    run, setRun, ждущие, сверяю, отказ, подсказка, выключена, автор, setАвтор, роль, setРоль,
+    поСмыслу, setПоСмыслу, поставить, убрать, забыть, сверить, предмет, ссылка,
+  }
+}
+
+/** Кто вводит: без имени и роли ручной факт эксперта не заводится. */
+function КтоВводит({ автор, роль, onАвтор, onРоль }: {
+  автор: string
+  роль: string
+  onАвтор: (имя: string) => void
+  onРоль: (роль: string) => void
+}) {
+  return (
+    <>
+      <label title="учётка автора: у ручного факта эксперта нет якоря — есть человек">кто вводит
+        <input value={автор} placeholder="Иванов"
+          onChange={(e) => { const имя = e.target.value; onАвтор(имя); запомнитьАвтора(имя) }} />
+      </label>
+      <label title="роль в проекте: она уходит в провенанс ручного факта">роль
+        <input value={роль} placeholder="ведущий СИ"
+          onChange={(e) => { const что = e.target.value; onРоль(что); запомнитьРоль(что) }} />
+      </label>
+    </>
+  )
+}
+
+/**
+ * Находки сверки под формой ввода: что нашли, чем сравнивали и что
+ * предлагается сделать. Одно действие на карточку, и делает его человек —
+ * ни одного слияния и ни одной правки без нажатия.
+ */
+function ПанельСверки({ project, run, автор, onApplied }: {
+  project: string
+  run: ReconcileRun
+  автор: string
+  onApplied: (итог: string) => void
+}) {
+  const [занято, setЗанято] = useState(false)
+  const [отказ, setОтказ] = useState<string | null>(null)
+  const [ask, askConfirm, closeConfirm] = useConfirm()
+
+  const решить = (item: ReconcileItem, номер: number, действие: ReconcileAction, цель: string | null) => {
+    askConfirm({
+      question: `${ДЕЙСТВИЕ[действие]}: кандидат «${item.local_id}»`
+        + `${цель ? ` и принятое ${цель}` : ''}. Решение меняет модель — отменить его нельзя.`,
+      ok: ДЕЙСТВИЕ[действие],
+      input: { label: 'почему так решили', placeholder: 'та же нужда другими словами', required: true },
+      onOk: (причина) => {
+        setЗанято(true)
+        setОтказ(null)
+        api.reconcileApply(project, run.run, {
+          local_id: item.local_id, finding: номер, action: действие,
+          target: цель ?? undefined, reason: причина, author: автор,
+        })
+          .then((и) => onApplied(`${и.note} · доля знаний ${и.coverage}%`))
+          .catch((e) => setОтказ(отказСловами(e)))
+          .finally(() => setЗанято(false))
+      },
+    })
+  }
+
+  return (
+    <div className="v2-form" data-why="почему-нельзя">
+      <div className="v2-note-line">
+        Сверка {run.run} · {run.note}
+        {run.ai_called ? ' · служба спрошена по смыслу' : ' · по ключу, без вызова службы'}
+      </div>
+      {отказ && <div className="v2-locked">{отказ}</div>}
+      {run.items.map((п) => (
+        <div key={п.local_id} className="v2-card__body">
+          <div>
+            <span className="v2-mono">{п.local_id}</span> · {п.verdict_word} · {п.note}
+          </div>
+          <div className="v2-dim">{провенанс(п.source)} · кандидат-факт {п.candidate_fact}</div>
+          {п.blocking.length > 0 && (
+            <div className="v2-warn">не закрыто обязательное: {п.blocking.join(' · ')}</div>
+          )}
+          {п.decided && <div className="v2-dim">решение принято: {ДЕЙСТВИЕ[п.decided]}</div>}
+          {п.findings.length === 0 && <div className="v2-dim">находок нет: сверять было не с чем</div>}
+          <ul className="v2-checks">
+            {п.findings.map((н, номер) => (
+              <li key={`${п.local_id}-${номер}`} className={н.blocking ? 'v2-check v2-check--no' : 'v2-check'}>
+                <span>{н.blocking ? '☐' : '·'}</span>
+                <span className="v2-check__t">
+                  <b>{н.question_word}</b>
+                  {н.target && <span className="v2-mono"> {н.target}</span>}
+                  <span className="v2-dim"> · нашли {н.match} · уверенность {н.confidence}</span>
+                  {н.missing && <span className="v2-warn"> · не закрыто: {н.missing}</span>}
+                  {н.difference && (
+                    <div>
+                      {н.difference.field}: у вас «{н.difference.mine}», в принятом «{н.difference.theirs}»
+                      {' — '}{н.difference.comparison}
+                      {н.difference.reason && <span className="v2-dim"> ({н.difference.reason})</span>}
+                    </div>
+                  )}
+                  {н.compared_fields.length > 0 && (
+                    <div className="v2-dim">сравнивали по полям: {н.compared_fields.join(' · ')}</div>
+                  )}
+                  {н.basis.length > 0 && <div className="v2-dim">основания: {н.basis.join(' · ')}</div>}
+                </span>
+                {!п.decided && н.offers.map((д) => (
+                  <button key={д} type="button" className="v2-link" disabled={занято || !автор.trim()}
+                    title={!автор.trim()
+                      ? 'назовите себя: решение по находке ставит человек'
+                      : `${ДЕЙСТВИЕ[д]} — спросит причину и изменит модель`}
+                    onClick={() => решить(п, номер, д, н.target)}>
+                    {ДЕЙСТВИЕ[д]}
+                  </button>
+                ))}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+      <ConfirmBox request={ask} onClose={closeConfirm} />
+    </div>
+  )
+}
+
 /** Сцена 3 — стейкхолдеры и их нужды: у каждой нужды есть носитель. */
 export function SceneStakeholders({ project, onChanged }: { project: string; onChanged: () => void }) {
   const [стороны, setСтороны] = useState<EntityRow[]>([])
@@ -207,6 +445,9 @@ export function SceneStakeholders({ project, onChanged }: { project: string; onC
   const [нужда, setНужда] = useState('')
   const [носитель, setНоситель] = useState('')
   const [отказ, setОтказ] = useState<string | null>(null)
+  /** Что сказала сверка о сохранённом: провенанс ручного факта эксперта. */
+  const [след, setСлед] = useState<string | null>(null)
+  const сверка = useСверка(project)
 
   const перечитать = () => {
     api.entities(project, 'stakeholder').then((r) => setСтороны(r.items)).catch(() => undefined)
@@ -214,19 +455,69 @@ export function SceneStakeholders({ project, onChanged }: { project: string; onC
   }
   useEffect(перечитать, [project])
 
+  // Ворота поля знаний v2: введённое попадает в модель только со ссылкой на
+  // сверку и решением человека. На проекте без флага полей в теле просто нет
+  // — сервер их и не спрашивает, и прежний путь сохранения не меняется.
+  const черезСверку = (localId: string, решение: string) => {
+    const ссылка = сверка.ссылка(localId)
+    return ссылка ? { reconcile: ссылка, decision: решение } : {}
+  }
+
   const добавитьСторону = () => {
     setОтказ(null)
-    api.addStakeholder(project, { name: имя, role: роль })
-      .then(() => { setИмя(''); перечитать(); onChanged() })
-      .catch((e) => setОтказ(String(e.message ?? e)))
+    const карточка = сверка.предмет('c2')
+    api.addStakeholder(project, {
+      name: имя, role: роль, author: сверка.автор || undefined,
+      ...черезСверку('c2', 'завести новой стороной'),
+    })
+      .then(() => {
+        setИмя('')
+        сверка.убрать('c2')
+        сверка.забыть('c2')
+        setСлед(карточка ? `сторона заведена · ${провенанс(карточка.source)}` : null)
+        перечитать()
+        onChanged()
+      })
+      .catch((e) => setОтказ(отказСловами(e)))
   }
 
   const добавитьНужду = () => {
     setОтказ(null)
-    api.addNeed(project, { statement: нужда, owner: носитель })
-      .then(() => { setНужда(''); перечитать(); onChanged() })
-      .catch((e) => setОтказ(String(e.message ?? e)))
+    const карточка = сверка.предмет('c1')
+    api.addNeed(project, {
+      statement: нужда, owner: носитель, author: сверка.автор || undefined,
+      ...черезСверку('c1', 'завести новой нуждой'),
+    })
+      .then(() => {
+        setНужда('')
+        сверка.убрать('c1')
+        сверка.забыть('c1')
+        setСлед(карточка ? `нужда заведена · ${провенанс(карточка.source)}` : null)
+        перечитать()
+        onChanged()
+      })
+      .catch((e) => setОтказ(отказСловами(e)))
   }
+
+  /** Кандидат нужды в очередь: сверка уйдёт одним запросом со всем пакетом. */
+  const вОчередьНужды = (текст: string, владелец: string) => {
+    if (!текст.trim() || !владелец) { сверка.убрать('c1'); return }
+    сверка.поставить({
+      local_id: 'c1', concept: 'need', origin: 'manual',
+      payload: { statement: текст.trim(), owner: владелец },
+    })
+  }
+
+  const вОчередьСтороны = (текст: string, чем: string) => {
+    if (!текст.trim()) { сверка.убрать('c2'); return }
+    сверка.поставить({
+      local_id: 'c2', concept: 'stakeholder', origin: 'manual',
+      payload: { name: текст.trim(), role: чем },
+    })
+  }
+
+  const карточкаНужды = сверка.предмет('c1')
+  const держит = карточкаНужды?.blocking ?? []
 
   const нуждыСтороны = (id: string) => нужды.filter((n) => (n.owned_by ?? []).includes(id))
   const [правка, setПравка] = useState<string | null>(null)
@@ -235,9 +526,38 @@ export function SceneStakeholders({ project, onChanged }: { project: string; onC
   return (
     <div>
       {отказ && <div className="v2-locked">{отказ}</div>}
+      {сверка.отказ && <div className="v2-locked">{сверка.отказ}</div>}
+      {след && <div className="v2-note-line">{след}</div>}
+      {!сверка.выключена && (
+        <div className="v2-form v2-form--row">
+          <КтоВводит автор={сверка.автор} роль={сверка.роль}
+            onАвтор={сверка.setАвтор} onРоль={сверка.setРоль} />
+          <label className="v2-check" title="вторая ступень сверки: там, где ключ не совпал, службу спрашивают по смыслу — это токены">
+            <input type="checkbox" checked={сверка.поСмыслу}
+              onChange={(e) => сверка.setПоСмыслу(e.target.checked)} />
+            спрашивать по смыслу
+          </label>
+          <button type="button" disabled={сверка.сверяю || сверка.ждущие.length === 0}
+            title={сверка.ждущие.length === 0
+              ? 'очередь пуста: сверять нечего — наберите строку ввода'
+              : `сверить не дожидаясь паузы: в очереди строк ${сверка.ждущие.length}`}
+            onClick={сверка.сверить}>
+            {сверка.сверяю ? 'Сверяю…' : 'Сверить'}
+          </button>
+          <span className="v2-dim">
+            {сверка.подсказка
+              ?? (сверка.ждущие.length > 0
+                ? `в очереди: ${сверка.ждущие.join(' · ')} — уйдут одним запросом`
+                : 'ввод уходит на сверку одним запросом')}
+          </span>
+        </div>
+      )}
       <div className="v2-form v2-form--row">
-        <input value={имя} onChange={(e) => setИмя(e.target.value)} placeholder="Минтранс России" />
-        <select value={роль} onChange={(e) => setРоль(e.target.value)} title="роль стороны в проекте">
+        <input value={имя} placeholder="Минтранс России"
+          onChange={(e) => { const текст = e.target.value; setИмя(текст); вОчередьСтороны(текст, роль) }}
+          onBlur={сверка.сверить} />
+        <select value={роль} title="роль стороны в проекте"
+          onChange={(e) => { const что = e.target.value; setРоль(что); вОчередьСтороны(имя, что) }}>
           <option value="customer">заказчик</option>
           <option value="regulator">регулятор</option>
           <option value="operator">оператор</option>
@@ -314,17 +634,35 @@ export function SceneStakeholders({ project, onChanged }: { project: string; onC
       </table>
 
       <div className="v2-form v2-form--row">
-        <input value={нужда} onChange={(e) => setНужда(e.target.value)}
-          placeholder="перевозчику нужна телеметрия груза в пути" />
-        <select value={носитель} onChange={(e) => setНоситель(e.target.value)} title="носитель нужды">
+        <input value={нужда} placeholder="перевозчику нужна телеметрия груза в пути"
+          onChange={(e) => { const текст = e.target.value; setНужда(текст); вОчередьНужды(текст, носитель) }}
+          onBlur={сверка.сверить} />
+        <select value={носитель} title="носитель нужды"
+          onChange={(e) => { const кто = e.target.value; setНоситель(кто); вОчередьНужды(нужда, кто) }}>
           <option value="">— чья нужда —</option>
           {стороны.map((с) => <option key={с.id} value={с.code}>{String(с.doc.name ?? с.code)}</option>)}
         </select>
-        <button type="button" onClick={добавитьНужду} disabled={!нужда.trim() || !носитель}
-          title={!носитель ? 'у нужды обязан быть носитель — иначе за неё никто не отвечает' : 'завести нужду'}>
+        <button type="button" onClick={добавитьНужду}
+          disabled={!нужда.trim() || !носитель || держит.length > 0}
+          title={!носитель ? 'у нужды обязан быть носитель — иначе за неё никто не отвечает'
+            : держит.length > 0
+              ? `сверка держит: ${держит.join(' · ')} — закройте это решением по находке, и кнопка оживёт`
+              : 'завести нужду'}>
           Добавить нужду
         </button>
       </div>
+
+      {/* Находки сверки — под формой ввода, а не поверх неё: подсказка
+          показывается там, где человек печатает, и решает он сам. */}
+      {сверка.run && (
+        <ПанельСверки project={project} run={сверка.run} автор={сверка.автор}
+          onApplied={(итог) => {
+            setСлед(итог)
+            api.reconcileRun(project, сверка.run!.run).then(сверка.setRun).catch(() => undefined)
+            перечитать()
+            onChanged()
+          }} />
+      )}
     </div>
   )
 }

@@ -6,6 +6,14 @@
 // словами — они и показываются, как есть.
 import { useEffect, useState } from 'react'
 import { api, type Condition, type Finding, type Gate, type Phase, type Position, type PointsView } from './api'
+import { ResearchPanel } from './research'
+
+/**
+ * Точки, перед которыми спрашивают полноту у внешнего контура: внутренний
+ * обзор и MCR. Перед воротами вопрос ставится по всем пяти классам сразу —
+ * дальше комплект уходит на решение, и добирать будет поздно.
+ */
+const ТОЧКИ_ИССЛЕДОВАНИЯ = ['internal_review', 'MCR']
 
 const ИСХОД: Record<string, string> = {
   approve: 'зафиксирована',
@@ -127,6 +135,10 @@ function PointCard({ project, точка, все, phase, onChanged }: {
         </a>
       </div>
       {точка.legend_note && экспертиза?.positions.length ? <div className="v2-note-line">{точка.legend_note}</div> : null}
+
+      {ТОЧКИ_ИССЛЕДОВАНИЯ.includes(точка.key) && (
+        <ResearchPanel project={project} trigger={{ gate: точка.key }} onChanged={onChanged} />
+      )}
 
       <h4 className="v2-h4">Готовность</h4>
       <ul className="v2-checks">

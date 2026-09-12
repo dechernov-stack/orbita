@@ -85,7 +85,9 @@
         "supports",
         "contradicts",
         "supersedes",
-        "confirms"
+        "confirms",
+        "same_as",
+        "refines"
       ]
     },
     "subtype": {

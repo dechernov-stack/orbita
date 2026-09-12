@@ -281,6 +281,12 @@ export interface BaselineRow {
   at: string
   firm: number
   items: BaselineItem[]
+  /**
+   * Автоотчёт верификации после базирования: документ зафиксирован — самое
+   * время спросить, сходится ли он с полем. Нет вовсе — поле знаний v2 на
+   * проекте выключено, и базирование не приросло ни одной записью.
+   */
+  verification?: VerificationReport
 }
 
 export interface SuspectRow {
@@ -551,6 +557,33 @@ export interface EntityRow {
   covered_by?: string[]
 }
 
+/** Тело отказа сервера: причина словами, что делать и что не закрыто. */
+export interface RefusalBody {
+  error?: string
+  what_to_do?: string
+  /** Имя незакрытой обязательной связи: «owns→stakeholder». */
+  missing?: string
+  proposals?: string[]
+  run?: string
+}
+
+/**
+ * Отказ сервера как есть. `message` прежний — причина словами; рядом едут код
+ * ответа и тело, чтобы экран показал «что делать» и имя незакрытой связи, не
+ * выдумывая их сам.
+ */
+export class ServerRefusal extends Error {
+  readonly status: number
+  readonly body: RefusalBody
+
+  constructor(message: string, status: number, body: RefusalBody = {}) {
+    super(message)
+    this.name = 'ServerRefusal'
+    this.status = status
+    this.body = body
+  }
+}
+
 async function вызов<T>(путь: string, настройки?: RequestInit, повтор = true): Promise<T> {
   const ответ = await fetch(`/api/v2${путь}`, {
     headers: { 'Content-Type': 'application/json' },
@@ -567,12 +600,21 @@ async function вызов<T>(путь: string, настройки?: RequestInit,
     // Отказ сервера — не «что-то пошло не так»: причина приходит словами
     // и показывается инженеру как есть.
     let причина = текст
+    let тело: RefusalBody = {}
     try {
-      причина = (JSON.parse(текст) as { error?: string }).error ?? текст
+      // Тело JSON, но не объект («null», строка, число), — это не отказ
+      // словами: такой ответ показывается как есть, а `body` остаётся пустым.
+      const разобрано: unknown = JSON.parse(текст)
+      if (разобрано !== null && typeof разобрано === 'object') тело = разобрано as RefusalBody
+      причина = тело.error ?? текст
     } catch {
       /* тело не JSON — покажем как есть */
     }
-    throw new Error(причина)
+    // Рядом с причиной сервер кладёт «что делать» и имя незакрытой
+    // обязательной связи (422 сверки: missing=owns→stakeholder). Экран обязан
+    // показать их словами сервера — поэтому тело отказа доезжает целиком, а
+    // не одной строкой.
+    throw new ServerRefusal(причина, ответ.status, тело)
   }
   return текст ? (JSON.parse(текст) as T) : ({} as T)
 }
@@ -650,6 +692,17 @@ export interface FactRow {
   /** Источник получил новую версию, и блок факта изменился. */
   source_updated?: string | null
   manual?: boolean
+  /**
+   * Ранг доверия: наследуется от материала, у руки эксперта — expert. Пусто —
+   * факт заведён до перестройки: выдуманный ранг хуже отсутствующего.
+   */
+  authority?: Authority | null
+  /** Свидетельство: claimed · corroborated · measured · assumed; поднимает сверка. */
+  evidence?: string | null
+  /** Источник союзом: документ с якорем ЛИБО эксперт с учёткой, ролью и датой. */
+  source?: FactSourceView | null
+  /** Связи с другими фактами обоими концами: противоречие живёт между документами. */
+  links?: FactLinkView[]
 }
 
 /** Оценка ТЗ против нужд проекта: строка на требование ТЗ. */
@@ -688,9 +741,15 @@ export interface ExternalModelView {
 export interface MaterialRow {
   code: string
   name: string
+  /** Режим разбора (mission_memo · tor · datasheet …), не доверие. */
   kind: string
   chars: number
   supersedes: string | null
+  created_at?: string
+  /** Ранг доверия — отдельное поле рядом с типом: доверие называет человек. */
+  authority?: Authority | null
+  /** Доли блоков (Д2а): ставит разбор, не инженер. */
+  profile?: ContentProfile | null
 }
 
 /** Предложение сцены из поля знаний: что появится, если принять. */
@@ -709,6 +768,380 @@ export interface SceneSuggestions {
   summary: string
   indices: number[]
   actions: Suggestion[]
+}
+
+// --- Знания v2: ранг доверия, синтез, сверка, исследование, верификация ---
+//
+// Клиент здесь ничего не решает и ничего не считает: счётчики групп дифа,
+// доля знаний, вердикты находок и «поле изменилось: N» приходят с сервера
+// готовыми (tools/validate_web_no_math.py). Имена полей — те, которые
+// действительно кладут SynthesisRoutes · ReconcileRoutes · ResearchRoutes ·
+// VerifyRoutes · KindJson; выдуманных полей в этом блоке нет.
+
+/** Ранг доверия источника: обязательный · экспертный · справочный · сомнительный. */
+export type Authority = 'mandatory' | 'expert' | 'reference' | 'doubtful'
+
+/** Метка достоверности: И — наш документ · В — внешний · П — допущение. */
+export type SourceMark = 'И' | 'В' | 'П'
+
+/**
+ * Источник факта — ровно одна ветка союза (истина схем `fact.source`):
+ * документ с якорем либо эксперт с учёткой, ролью и датой.
+ */
+export type FactSourceView =
+  | { material: string; anchor: string }
+  | { account: string; role: string; at: string }
+
+/** Связь факта с фактом обоими концами; без причины связь случайна. */
+export interface FactLinkView {
+  type: string
+  from: string
+  to: string
+  rationale: string
+}
+
+/** Профиль содержимого материала (Д2а): доли блоков ставит разбор, не инженер. */
+export interface ContentProfile {
+  statement: number
+  params: number
+  norms: number
+  assessments: number
+}
+
+/** Вердикт предложения — группа дифа «поле → постановка». */
+export type SynthesisVerdict = 'new' | 'augment' | 'contradict' | 'confirm'
+
+/** Основание предложения: факт, его ранг и место в каноне либо эксперт. */
+export interface ProposalBasis {
+  fact: string
+  material?: string
+  anchor?: string
+  authority?: Authority
+  /** Ранг словами — ими он и называется человеку. */
+  authority_word?: string
+  mark?: SourceMark
+  account?: string
+  role?: string
+  at?: string
+}
+
+/** Предложение постановки: что синтез предлагает сделать с полем. */
+export interface FormationProposal {
+  /** Код карточки: им предложение отмечается в дифе и уходит обратно в accept. */
+  proposal: string
+  concept: string
+  verdict: SynthesisVerdict
+  source_mark: SourceMark
+  /** Принятое понятие, о котором вердикт; пусто только у «новое». */
+  target_ref?: string
+  /** ЧЕМ именно отличается от принятого — поле, а не «похоже». */
+  diff_field?: string
+  confidence?: number
+  /** Подсказка рангов в противоречии словами; победителя не выбирает. */
+  rank_hint?: string
+  payload: Record<string, string>
+  /** Незакрытые обязательные связи: с ними предложение сущностью не станет. */
+  missing: string[]
+  basis: ProposalBasis[]
+}
+
+/** Диф четырьмя группами: предложение лежит только в своей. */
+export interface SynthesisDiff {
+  new: FormationProposal[]
+  augment: FormationProposal[]
+  contradict: FormationProposal[]
+  confirm: FormationProposal[]
+}
+
+export type SynthesisStatus = 'queued' | 'running' | 'done' | 'error'
+
+/** Запуск синтеза: чем вызван, по какому срезу и что вышло. */
+export interface SynthesisRun {
+  id: string
+  trigger: string
+  status: SynthesisStatus
+  slice_fingerprint: string
+  /** Сколько элементов поля вошло в срез; «срез урезан: N из M» — в note. */
+  slice_size: number
+  ontology_version: string
+  /** Ответ взят из журнала по отпечатку среза — живого вызова не было. */
+  cached: boolean
+  note: string
+  error: string
+  /** Счётчики групп считает сервер. */
+  counts: Record<SynthesisVerdict, number>
+  /** В списке запусков дифа нет: он раскрывается по одному запуску. */
+  diff?: SynthesisDiff
+}
+
+/** Синтеза на проекте ещё не было: диф пуст и объяснён словами. */
+export interface NoSynthesis {
+  run: string
+  note: string
+}
+
+/** Ответ дифа: запуск либо объяснение, почему его нет (различать по `id`). */
+export type SynthesisDiffView = SynthesisRun | NoSynthesis
+
+/** «Поле изменилось: N» — считает сервер. */
+export interface FieldDrift {
+  changed: number
+  /** Запуск, с которым сравнивается поле; пусто — синтеза ещё не было. */
+  since: string
+  fingerprint: string
+}
+
+/** Итог принятия предложений: заведённое и то, что ждёт решения человека. */
+export interface SynthesisAccepted {
+  /** Запуск сверки, через который прошло принятие. */
+  run: string
+  /** Запуск синтеза, из которого взяты предложения. */
+  from: string
+  created: string[]
+  links: string[]
+  facts: string[]
+  /** Узнанное принятое: слить · уточнить · оспорить решает человек в сверке. */
+  pending: { proposal: string; verdict: string }[]
+  accepted: number
+  note: string
+}
+
+/** Понятие онтологии формирования: им экран объясняет, откуда взялось предложение. */
+export interface FormationConcept {
+  code: string
+  note: string
+  fields: Record<string, string>
+  must_link: string[]
+  conflict_on: string[]
+  identity: { key: string[]; semantic: string; threshold: number }
+}
+
+export interface FormationOntology {
+  version: string
+  concepts: FormationConcept[]
+}
+
+/** Четыре вопроса сверки — больше служба задавать не вправе. */
+export type ReconcileQuestion = 'duplicate' | 'contradiction' | 'connection' | 'gap'
+
+/** Вердикт кандидата — та же четвёрка групп, что и у дифа синтеза. */
+export type ReconcileVerdict = SynthesisVerdict
+
+/** Что человек может сделать с находкой. Одно действие на карточку. */
+export type ReconcileAction =
+  | 'accept_new'
+  | 'merge_into'
+  | 'refine'
+  | 'generalize'
+  | 'link_basis'
+  | 'mark_contested'
+  | 'fix_input'
+  | 'dismiss'
+
+/** Отличие словами: находку без него сервер отбрасывает как брак. */
+export interface FieldDifference {
+  /** Как соотносятся значения словами: совпало · расходится · не сравнимо. */
+  comparison: string
+  field: string
+  /** Значение кандидата — его собственными словами. */
+  mine: string
+  /** Значение принятого — его собственными словами. */
+  theirs: string
+  reason: string
+}
+
+/** Находка сверки: что нашли, чем сравнивали и что предлагается сделать. */
+export interface ReconcileFinding {
+  question: ReconcileQuestion
+  question_word: string
+  verdict: ReconcileVerdict
+  target: string | null
+  /** Чем нашли, словами: «по ключу» (без токенов) либо «по смыслу». */
+  match: string
+  confidence: number
+  /** Пока не закрыто — сущности не будет. */
+  blocking: boolean
+  /** Имя незакрытой обязательной связи («owns→stakeholder»). */
+  missing: string | null
+  compared_fields: string[]
+  basis: string[]
+  /** Предложения, а не план: выбирает человек. */
+  offers: ReconcileAction[]
+  difference?: FieldDifference
+}
+
+/** Кандидат после сверки: его факт, его находки и то, что мешает принять. */
+export interface ReconcileItem {
+  local_id: string
+  concept: string
+  /** Кандидат-факт: ручной ввод — источник, равный документу по механике. */
+  candidate_fact: string
+  authority: Authority
+  source: FactSourceView
+  verdict: ReconcileVerdict
+  verdict_word: string
+  /** Действие, уже применённое человеком; пусто — решение не принято. */
+  decided: ReconcileAction | null
+  note: string
+  blocking: string[]
+  findings: ReconcileFinding[]
+}
+
+/** Запуск сверки. Живёт видом `synthesis_run`: механизм один на руку и синтез. */
+export interface ReconcileRun {
+  run: string
+  status: string
+  slice_fingerprint: string
+  ontology_version: string
+  /** Был ли живой вызов службы: по нему мера сверяется с журналом ИИ. */
+  ai_called: boolean
+  open: boolean
+  note: string
+  items: ReconcileItem[]
+}
+
+/** Кандидат на сверку: понятие онтологии плюс то, что внесли. */
+export interface ReconcileCandidate {
+  /** Местный номер строки ввода («c1») — им находка вернётся в ту же строку. */
+  local_id: string
+  concept: string
+  payload: Record<string, unknown>
+  origin?: 'manual' | 'synthesis'
+}
+
+/** Решение по находке — единственный путь изменения модели. */
+export interface ReconcileDecision {
+  local_id: string
+  /** Номер находки в карточке кандидата: решение относится к находке. */
+  finding: number
+  action: ReconcileAction
+  target?: string
+  /** Почему так решили — без причины сервер решение не ставит. */
+  reason: string
+  author: string
+}
+
+/** Что изменилось в модели после решения человека. */
+export interface ReconcileApplied {
+  created: string[]
+  updated: string[]
+  links: string[]
+  facts: string[]
+  note: string
+  /** Доля знаний в процентах — считает сервер. */
+  coverage: number
+}
+
+export type ResearchStatus = 'formulated' | 'launched' | 'received' | 'parsed'
+
+/** Что принято из результата по пяти классам — считает сервер. */
+export interface ResearchAccepted {
+  stakeholders: number
+  programs: number
+  norms: number
+  applications: number
+  analogs: number
+}
+
+/**
+ * Место входа исследования. Ровно одно из двух: сцена либо точка — обе
+ * названные или ни одной сервер отбивает словами, и выбирать за него нечего.
+ */
+export interface ResearchPlace {
+  scene?: string
+  gate?: string
+}
+
+/** Задача исследования полноты: вопросы, промпт, результат, цикл. */
+export interface ResearchTask {
+  id: string
+  /** Место словами: «сцена 3» · «точка MCR». */
+  place: string
+  trigger: ResearchPlace
+  questions: string[]
+  slice_fingerprint: string
+  prompt_version: string
+  iteration: number
+  status: ResearchStatus
+  /** Материал результата; ранг doubtful до подтверждения источников человеком. */
+  result_material: string
+  note: string
+  accepted: ResearchAccepted
+  accepted_total: number
+  /** Классы, по которым не принято ничего, — словами; ими идёт следующий цикл. */
+  open: string[]
+}
+
+export type VerificationIssue = 'no_basis' | 'number_vs_fact' | 'contradiction' | 'stale'
+
+/** Находка верификации: место в документе, род расхождения и объяснение. */
+export interface VerificationItem {
+  /** Номер находки в отчёте — им она переносится в замечание обзора. */
+  n: number
+  /** Адрес места (`mid`), а не документ вообще. */
+  element: string
+  issue: VerificationIssue
+  issue_word: string
+  /** Словами, с ОБОИМИ значениями и их рангами. */
+  detail: string
+  /** Предложение, а не действие: кнопки «исправить» у находки нет. */
+  proposal: string
+}
+
+/** Отчёт верификации: снимок расхождений документа с полем на момент `at`. */
+export interface VerificationReport {
+  code: string
+  document: string
+  baseline: string
+  baseline_name: string
+  at: string
+  status: 'open' | 'closed'
+  open: boolean
+  /** Сводка словами: «проверять нечего» либо счёт находок по родам. */
+  summary: string
+  total: number
+  by_issue: Partial<Record<VerificationIssue, number>>
+  items: VerificationItem[]
+}
+
+/** Тело материала при загрузке: текст, ссылка либо файл — и ранг доверия. */
+export interface MaterialBody {
+  name?: string
+  /** Режим разбора (mission_memo · tor · datasheet …), не доверие. */
+  kind?: string
+  text?: string
+  url?: string
+  filename?: string
+  file_base64?: string
+  supersedes?: string | null
+  author?: string
+  /**
+   * Ранг доверия источника — его называет человек при загрузке. Пусто:
+   * на проекте поля знаний v2 ядро отвечает отказом «ранг доверия материала
+   * обязателен», на проекте прохода выводит ранг по прежнему типу входного.
+   */
+  authority?: Authority
+}
+
+/** Тело ручного факта: кандидат-факт эксперта — учётка · роль · дата. */
+export interface FactBody {
+  subject?: string
+  predicate?: string
+  value?: string
+  unit?: string | null
+  kind?: string
+  topic?: string | null
+  material?: string | null
+  author?: string
+  mark?: SourceMark
+  /** Роль автора в проекте: у руки эксперта якоря нет, есть роль. */
+  role?: string
+  /** Умолчание ставит приём знаний (`expert`), а не экран. */
+  authority?: Authority
+  /** Ворота поля знаний v2: ввод идёт через сверку — «SR-7#c1». */
+  reconcile?: string
+  /** Решение сверки, с которым ввод сохраняется. */
+  decision?: string
 }
 
 export const api = {
@@ -831,7 +1264,13 @@ export const api = {
     вызов<{ id: string; label: string; facts: number }>(`/topics?project=${encodeURIComponent(project)}`,
       { method: 'POST', body: JSON.stringify({ label, author }) }),
 
-  addFact: (project: string, тело: Record<string, unknown>) =>
+  /**
+   * Факт руками — кандидат-факт ЭКСПЕРТА: источник у него не документ, а
+   * человек (учётка · роль · дата). На проекте поля знаний v2 ввод идёт через
+   * сверку: без `reconcile` сервер отвечает 409 «ввод не сверен» и называет
+   * адрес сверки.
+   */
+  addFact: (project: string, тело: FactBody) =>
     вызов<FactRow>(`/facts?project=${encodeURIComponent(project)}`,
       { method: 'POST', body: JSON.stringify(тело) }),
 
@@ -901,8 +1340,18 @@ export const api = {
       { method: 'POST', body: JSON.stringify(тело) },
     ),
 
-  putMaterial: (project: string, тело: Record<string, unknown>) =>
-    вызов<{ code: string }>(`/materials?project=${encodeURIComponent(project)}`,
+  /**
+   * Положить материал. Ранг доверия идёт с формы полем `authority`; в ответе
+   * тот ранг, который ПОСТАВИЛО ядро, — форма показывает не то, что отправила,
+   * а то, с чем материал теперь живёт.
+   */
+  putMaterial: (project: string, тело: MaterialBody) =>
+    вызов<{
+      code: string; chars: number; from_url: boolean
+      authority?: Authority; authority_note?: string
+      extracted_from?: string; snapshot_renderer?: string; snapshot_date?: string
+      supersedes?: string
+    }>(`/materials?project=${encodeURIComponent(project)}`,
       { method: 'POST', body: JSON.stringify(тело) }),
 
   intake: (project: string, material: string, intent: string) =>
@@ -1068,4 +1517,217 @@ export const api = {
   decide: (project: string, gate: string, outcome: string, note: string) =>
     вызов<Phase & { point: Gate }>(`/points/${encodeURIComponent(gate)}/decide?project=${encodeURIComponent(project)}`,
       { method: 'POST', body: JSON.stringify({ outcome, note }) }),
+
+  // --- Знания v2: синтез · сверка · исследование · верификация -------------
+  //
+  // Все адреса под флагом проекта `knowledge_v2`: на проекте прохода ПМИ-5
+  // сервер отвечает 409 и словами «что делать» — экран показывает их как есть
+  // (текст отказа доезжает в ServerRefusal.body.what_to_do).
+
+  /**
+   * Сформировать постановку из поля. Сервер отвечает ЗАДАНИЕМ (202 queued |
+   * running), экран опрашивает synthesisState — как atomizeJob (ADR-069).
+   * Готовый ответ из журнала по тому же отпечатку среза приходит сразу
+   * `done` с `cached: true`, и второго живого вызова не случается.
+   */
+  synthesize: (project: string, trigger = 'manual', author = 'инженер') =>
+    вызов<SynthesisRun>(`/synthesis/runs?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ trigger, author }) }),
+
+  /** Опрос запуска: готовый ответ службы применяется при этом обращении. */
+  synthesisState: (project: string, run: string) =>
+    вызов<SynthesisRun>(
+      `/synthesis/runs/${encodeURIComponent(run)}?project=${encodeURIComponent(project)}`),
+
+  /** Журнал запусков без предложений: диф раскрывается по одному запуску. */
+  synthesisRuns: (project: string) =>
+    вызов<{ items: SynthesisRun[] }>(`/synthesis/runs?project=${encodeURIComponent(project)}`),
+
+  /** Диф последнего доведённого запуска — то, что показывает вкладка постановки. */
+  synthesisDiff: (project: string) =>
+    вызов<SynthesisDiffView>(`/synthesis/diff?project=${encodeURIComponent(project)}`),
+
+  /** «Поле изменилось: N» — число считает сервер, экран его показывает. */
+  synthesisPending: (project: string) =>
+    вызов<FieldDrift>(`/synthesis/pending?project=${encodeURIComponent(project)}`),
+
+  /**
+   * Принять отмеченные предложения — через сверку, теми же четырьмя
+   * вопросами, что и ручной ввод. Заводится только названное «новым»:
+   * узнанное принятое остаётся в `pending` и решается человеком.
+   * Незакрытая обязательная связь — 422 с именем связи в `body.missing`.
+   */
+  acceptSynthesis: (
+    project: string,
+    run: string,
+    chosen: string[],
+    author: string,
+    reason?: string,
+    role?: string,
+  ) =>
+    вызов<SynthesisAccepted>(
+      `/synthesis/runs/${encodeURIComponent(run)}/accept?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ chosen, author, reason, role }) }),
+
+  /** Истина онтологии наружу: по ней экран объясняет, откуда взялось понятие. */
+  formationOntology: (project: string) =>
+    вызов<FormationOntology>(`/ontology/formation?project=${encodeURIComponent(project)}`),
+
+  /**
+   * Сверить ввод. Модель НЕ меняется: заводятся только кандидаты-факты и
+   * запись запуска. Батч идёт ОДНИМ запросом — десять строк ввода дают один
+   * запуск и одну запись в журнале ИИ.
+   *
+   * @param semantic звать ли вторую ступень (смысл) там, где ключ не совпал
+   */
+  reconcile: (
+    project: string,
+    candidates: ReconcileCandidate[],
+    author: string,
+    role: string,
+    semantic = false,
+  ) =>
+    вызов<ReconcileRun>(`/reconcile?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ candidates, author, role, semantic }) }),
+
+  /** Решение человека по находке — единственный путь изменения модели. */
+  reconcileApply: (project: string, run: string, решение: ReconcileDecision) =>
+    вызов<ReconcileApplied>(
+      `/reconcile/${encodeURIComponent(run)}/apply?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify(решение) }),
+
+  /** Запуски с нерешёнными кандидатами: что ждёт человека. */
+  reconcileOpen: (project: string) =>
+    вызов<{ items: ReconcileRun[]; count: number }>(
+      `/reconcile?project=${encodeURIComponent(project)}&status=open`),
+
+  /** Повторное чтение запуска: идемпотентно, живого вызова не делает. */
+  reconcileRun: (project: string, run: string) =>
+    вызов<ReconcileRun>(
+      `/reconcile/${encodeURIComponent(run)}?project=${encodeURIComponent(project)}`),
+
+  /** Задачи исследования полноты проекта. */
+  research: (project: string) =>
+    вызов<{ items: ResearchTask[] }>(`/research?project=${encodeURIComponent(project)}`),
+
+  researchTask: (project: string, task: string) =>
+    вызов<ResearchTask>(
+      `/research/${encodeURIComponent(task)}?project=${encodeURIComponent(project)}`),
+
+  /**
+   * Сформулировать вопросы для места входа. Пустые `questions` — сервер
+   * соберёт их по пяти классам из среза поля; снять и дописать может
+   * человек, придумать шестой класс не может.
+   */
+  formulateResearch: (
+    project: string,
+    place: ResearchPlace,
+    author: string,
+    questions: string[] = [],
+  ) =>
+    вызов<ResearchTask>(`/research?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ ...place, author, questions }) }),
+
+  /** Промпт — файлом с сервера: ссылка, а не сборка .md в браузере. */
+  researchPromptUrl: (project: string, task: string) =>
+    `/api/v2/research/${encodeURIComponent(task)}/prompt.md?project=${encodeURIComponent(project)}`,
+
+  /** Запущено вне продукта: задача ждёт результата. Вызова модели здесь нет. */
+  launchResearch: (project: string, task: string, author: string, note = '') =>
+    вызов<ResearchTask>(
+      `/research/${encodeURIComponent(task)}/launch?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ author, note }) }),
+
+  /** Принять результат внешнего контура материалом; ранг ему ставит сервер. */
+  researchResult: (project: string, task: string, name: string, text: string, author: string) =>
+    вызов<ResearchTask>(
+      `/research/${encodeURIComponent(task)}/result?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ name, text, author }) }),
+
+  /**
+   * Разобрать результат исследования.
+   *
+   * Отдельного разбора у исследования нет: на `/v2/research/{RT}/parse`
+   * сервер отвечает отказом и называет ОБЩИЙ путь загрузки — им материал и
+   * разбирается, фоновой задачей (ADR-069, опрос через atomizeJobStatus).
+   * Статус «разобрано» задача исследования выводит по фактам своего
+   * материала сама — второго нажатия не нужно.
+   */
+  parseResearch: (
+    project: string,
+    material: string,
+    intent = 'разбери по сущностям',
+    author = 'инженер',
+  ) =>
+    вызов<AtomizeJob>(`/intake/atomize?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ material, intent, author, background: true }) }),
+
+  /**
+   * Подтвердить источники названных фактов результата. До подтверждения
+   * материал сомнителен, а факты не приняты: поднимает их сервер.
+   */
+  confirmSources: (project: string, task: string, facts: string[], author: string) =>
+    вызов<ResearchTask>(
+      `/research/${encodeURIComponent(task)}/sources?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ facts, author }) }),
+
+  /** Следующий цикл по тому же месту: вопросы по классам, где пусто. */
+  nextResearch: (project: string, task: string, author: string, questions: string[] = []) =>
+    вызов<ResearchTask>(
+      `/research/${encodeURIComponent(task)}/next?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ author, questions }) }),
+
+  /**
+   * Проверить документ против поля. Не правит НИЧЕГО: версии документа,
+   * версии сущностей и диспозиции фактов остаются прежними, а каждая
+   * проверка заводит свой отчёт.
+   */
+  verifyDocument: (project: string, document: string, author: string, baseline?: string) =>
+    вызов<VerificationReport>(
+      `/documents/${encodeURIComponent(document)}/verify?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ author, baseline }) }),
+
+  /** Отчёты документа: история расхождения, а не последний снимок. */
+  verification: (project: string, document: string) =>
+    вызов<{ document: string; items: VerificationReport[] }>(
+      `/documents/${encodeURIComponent(document)}/verification?project=${encodeURIComponent(project)}`),
+
+  verificationReport: (project: string, code: string) =>
+    вызов<VerificationReport>(
+      `/verification/${encodeURIComponent(code)}?project=${encodeURIComponent(project)}`),
+
+  /** Закрытие — решение человека, а не срок давности: причина обязательна. */
+  closeVerification: (project: string, code: string, author: string, reason: string) =>
+    вызов<VerificationReport>(
+      `/verification/${encodeURIComponent(code)}/close?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ author, reason }) }),
+
+  /**
+   * Находка → замечание обзора: возврат идёт в сцену РАЗДЕЛА, где находка
+   * сидит. Сцену, точку и род замечания сервер выводит сам, если их не
+   * назвали.
+   */
+  verificationFinding: (
+    project: string,
+    code: string,
+    n: number,
+    тело: { author: string; returns_to_scene?: string; gate?: string; kind?: string },
+  ) =>
+    вызов<Finding & { verification: string; item: number }>(
+      `/verification/${encodeURIComponent(code)}/items/${n}/finding` +
+      `?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify(тело) }),
+
+  /**
+   * Слить тему в другую: ИИ предлагает тождество связью `same_as`, сливает
+   * человек — поэтому автор обязателен. В ответе ГОЛОВА цепочки: адрес, по
+   * которому теперь читаются факты обеих.
+   */
+  mergeTopic: (project: string, topic: string, into: string, author: string, reason = '') =>
+    вызов<{
+      id: string; label: string; scene: string | null; resolved_to: string | null; facts: number
+      merged: string; merged_into: string
+    }>(
+      `/topics/${encodeURIComponent(topic)}/merge?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ into, author, reason }) }),
 }

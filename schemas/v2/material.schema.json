@@ -58,6 +58,15 @@
         "type": "string"
       }
     },
+    "authority": {
+      "enum": [
+        "mandatory",
+        "expert",
+        "reference",
+        "doubtful"
+      ],
+      "description": "ранг доверия источника — обязательный · экспертный · справочный · сомнительный; наследуется фактами; в противоречии подсказывает, решает человек"
+    },
     "type": {
       "enum": [
         "mission_memo",
@@ -73,7 +82,7 @@
         "regulatory_decision",
         "reference"
       ],
-      "description": "тип из глоссария с брифом"
+      "description": "режим разбора (tor · datasheet · normative) выводится заданием и профилем, НЕ поле ввода; доверие — в authority"
     },
     "title": {
       "type": "string"
@@ -140,6 +149,10 @@
         "type": "string"
       },
       "description": "умолчание по типу"
+    },
+    "profile": {
+      "type": "object",
+      "description": "{statement?,params?,norms?,assessments?} (computed) доли по блокам — постановка · параметры · нормы · оценки (Д2а); ставит разбор, не инженер; режим атомизации выбирается по профилю блока"
     }
   },
   "required": [
@@ -153,7 +166,7 @@
     "provenance",
     "created_at",
     "updated_at",
-    "type",
+    "authority",
     "title",
     "file",
     "origin",

@@ -12,10 +12,15 @@ import com.fasterxml.jackson.databind.node.ObjectNode
 import orbita.kernel.api.Area
 import orbita.kernel.api.Channel
 import orbita.kernel.api.EntityStore
+import orbita.kernel.api.KnowledgeFlag
 import orbita.kernel.api.LinkRegistry
 import orbita.kernel.api.Provenance
 import orbita.knowledge.api.Assumption
+import orbita.knowledge.api.Authority
+import orbita.knowledge.api.ContentProfile
 import orbita.knowledge.api.Fact
+import orbita.knowledge.api.FactLink
+import orbita.knowledge.api.FactSource
 import orbita.knowledge.api.Intake
 import orbita.knowledge.api.IntakeTask
 import orbita.knowledge.api.KnowledgeCoverage
@@ -56,6 +61,11 @@ class EntityIntake(
 
     private val режимы = IntakeModes(store, links, mapper)
 
+    // Корпусная часть поля знаний вынесена файлами рядом: этот и так на
+    // тысячу строк, а темы и связи фактов — своя забота (ТЗ-BACKEND §2.1).
+    private val темыПоля = Topics(store, links)
+    private val связиФактов = FactLinks(store, links)
+
     override fun putMaterial(
         project: String,
         name: String,
@@ -63,6 +73,8 @@ class EntityIntake(
         text: String,
         author: String,
         supersedes: String?,
+        authority: String?,
+        profile: ContentProfile?,
     ): String {
         val область = Area.Project(project)
         val прежний = supersedes?.takeIf { it.isNotBlank() }?.let { код ->
@@ -80,6 +92,16 @@ class EntityIntake(
         документ.put("type", kind)
         документ.put("text", text)
         документ.put("chars", text.length)
+        // Ранг доверия — ОТДЕЛЬНОЕ поле: тип входного остаётся режимом разбора
+        // и полем ввода доверия не бывает. Записывается он всегда, в том числе
+        // на проекте прохода: без ранга у материала фактам нечего наследовать,
+        // а прежние поля (kind/type) при этом не трогаются.
+        val ранг = рангВхода(project, kind, authority)
+        документ.put("authority", ранг.value)
+        ранг.note?.let { документ.put("notes", it) }
+        // Профиль ставит разбор; при загрузке он известен редко — например,
+        // когда материал приходит вместе с готовым разбором.
+        profile?.let { документ.set<JsonNode>("profile", профильУзел(it)) }
         прежний?.let { документ.put("supersedes", it.code) }
         val материал = store.create(
             код, "material", область, "2", документ,
@@ -90,6 +112,39 @@ class EntityIntake(
         прежний?.let { режимы.supersede(область, it, материал, author) }
         return материал.code
     }
+
+    /** Ранг входного и помета, если ранг пришлось выводить. */
+    private data class Ранг(val value: String, val note: String? = null)
+
+    /**
+     * Ранг доверия материала.
+     *
+     * На проекте поля знаний v2 ранг обязателен и приходит с формы: доверие —
+     * решение человека, а не вывод из расширения файла. На проекте прохода
+     * спрашивать некого, поэтому ранг выводится по прежнему типу входного тем
+     * же правилом, что и миграция стенда. Тип вне перечня истины схем даёт
+     * `doubtful` С ПОМЕТОЙ: правдоподобный ранг здесь не выдумывается —
+     * выдуманное доверие хуже отсутствующего.
+     */
+    private fun рангВхода(project: String, kind: String, authority: String?): Ранг {
+        authority?.takeIf { it.isNotBlank() }?.let { return Ранг(Authority.of(it)) }
+        require(!KnowledgeFlag.on(store, project)) {
+            "ранг доверия материала обязателен: ${Authority.words()} — " +
+                "доверие не выводится из типа файла, его называет человек"
+        }
+        Authority.ofMaterialKind(kind)?.let { return Ранг(it) }
+        return Ранг(
+            Authority.DOUBTFUL,
+            "ранг доверия выведен по типу входного «$kind»: такого типа в истине схем нет, " +
+                "поставлен ${Authority.word(Authority.DOUBTFUL)} — назовите ранг",
+        )
+    }
+
+    private fun профильУзел(профиль: ContentProfile): ObjectNode = mapper.createObjectNode()
+        .put("statement", профиль.statement)
+        .put("params", профиль.params)
+        .put("norms", профиль.norms)
+        .put("assessments", профиль.assessments)
 
     override fun plan(project: String, material: String, intent: String, author: String): IntakeTask {
         val область = Area.Project(project)
@@ -440,8 +495,20 @@ class EntityIntake(
 
     override fun suggestions(project: String, scene: String): SceneSuggestions {
         val область = Area.Project(project)
+        // Непроверенное в сцену не предлагается. Результат внешнего
+        // исследования приходит материалом ранга «сомнительный», и до того,
+        // как человек подтвердил источники, его разбор живёт отдельной
+        // группой поля знаний, а не строкой «принять одним нажатием» (мера §6
+        // задания). Разбор материалов выше рангом при этом не пропадает:
+        // берётся последнее задание, которое предлагать ПОЗВОЛЕНО.
+        //
+        // Только на проекте поля знаний v2: на проекте прохода ранга у части
+        // материалов нет вовсе, и фильтровать по нему значило бы убрать с
+        // экрана предложения, которые владелец уже видел.
+        val флаг = KnowledgeFlag.on(store, project)
         val задание = store.list(область, "intake_task")
             .filter { it.doc.path("actions").size() > 0 }
+            .filter { !флаг || !сомнительный(область, it.doc.path("material").asText("")) }
             .maxByOrNull { it.updatedAt }
             ?: return SceneSuggestions(scene, null, emptyList(), emptyList(), "")
         val принятые = задание.doc.path("accepted").asText("")
@@ -473,6 +540,11 @@ class EntityIntake(
         )
     }
 
+    /** Материал ранга «сомнительный»: свидетельством он ещё не стал. */
+    private fun сомнительный(область: Area, материал: String): Boolean =
+        материал.isNotBlank() &&
+            store.byCode(область, материал)?.doc?.path("authority")?.asText("") == Authority.DOUBTFUL
+
     /** Вид по-русски и в числе: «5 сторон миссии», «3 потребности». */
     private fun названиеВида(вид: String, сколько: Int): String = when (вид) {
         "stakeholder" -> if (сколько == 1) "сторона миссии" else "сторон миссии"
@@ -494,20 +566,45 @@ class EntityIntake(
         var изИсточников = 0
         var изРучных = 0
         val поВидам = mutableMapOf<String, Pair<Int, Int>>()
+        val факты = store.list(область, "fact")
         // Ручной факт — полноправный, но доля знаний ИЗ ИСТОЧНИКОВ
         // считается без него: иначе «100 % из знаний» можно набрать,
         // заведя факты руками под каждую сущность.
-        val ручные = store.list(область, "fact")
-            .filter { it.doc.path("manual").asBoolean(false) }.map { it.id }.toSet()
+        val ручные = факты.filter { it.doc.path("manual").asBoolean(false) }.map { it.id }.toSet()
+        // Ранг основания: сомнительное свидетельством ещё не стало. Результат
+        // исследования приходит материалом `doubtful` и до подтверждения
+        // источников человеком в долю знаний не идёт — иначе непроверенное
+        // само себя и зачло бы (мера §6 задания).
+        //
+        // Только на проекте поля знаний v2: на проекте прохода ранга у части
+        // фактов нет вовсе, и считать по нему значило бы задним числом
+        // пересчитать уже показанную владельцу долю. Пустой ранг — факт,
+        // заведённый до перестройки; выдуманный ранг хуже отсутствующего.
+        val сомнительные = if (!KnowledgeFlag.on(store, project)) emptySet() else факты
+            .filter { it.doc.path("authority").asText("") == Authority.DOUBTFUL }
+            .map { it.id }.toSet()
+        // Ранг основания наружу: доля знаний без рангов не отличает
+        // «80 % из обязательных документов» от «80 % из справок» (мера ПМИ-6
+        // п. 1.8). Считается ОДНА нить — одно основание; факт без ранга
+        // (заведён до перестройки) не приписывается ни одному рангу.
+        val рангФакта = факты.associate { it.id to it.doc.path("authority").asText("") }
+        val поРангам = mutableMapOf<String, Int>()
         виды.forEach { вид ->
             val сущности = store.list(область, вид).filter { it.status != "cancelled" }
             var изИст = 0
             var изРук = 0
             сущности.forEach { с ->
                 val нити = links?.from(с.id, "derived_from_fact").orEmpty()
+                нити.forEach { нить ->
+                    val ранг = рангФакта[нить.to].orEmpty()
+                    if (Authority.known(ранг)) поРангам[ранг] = (поРангам[ранг] ?: 0) + 1
+                }
                 when {
                     нити.isEmpty() -> Unit
-                    нити.all { it.to in ручные } -> изРук += 1
+                    // Долю знаний держит хотя бы одно основание из источника,
+                    // ранг которого выше сомнительного; всё прочее видно
+                    // отдельной строкой, а не в общей доле.
+                    нити.all { it.to in ручные || it.to in сомнительные } -> изРук += 1
                     else -> изИст += 1
                 }
             }
@@ -523,6 +620,9 @@ class EntityIntake(
             manual = всего - изИсточников - изРучных,
             share = if (всего == 0) 0.0 else изИсточников.toDouble() / всего,
             byKind = поВидам,
+            // Порядок — весом ранга, а не алфавитом: человек читает
+            // «обязательный · экспертный · справочный · сомнительный».
+            byAuthority = поРангам.toList().sortedBy { (ранг, _) -> Authority.weight(ранг) }.toMap(),
         )
     }
 
@@ -549,7 +649,10 @@ class EntityIntake(
 
     override fun putFacts(project: String, material: String, raw: String, author: String, intent: String): FactIntake {
         val область = Area.Project(project)
-        val карточка = store.byCode(область, material)
+        // Карточка перечитывается после записи профиля: режим разбора этого же
+        // ответа выбирается ПО ПРОФИЛЮ БЛОКА, и со старым снимком он падал бы
+        // обратно на тип входного — профиль вступал бы в силу со следующего раза.
+        var карточка = store.byCode(область, material)
             ?: error("материала «$material» нет в проекте")
         val якоря = Canon.of(карточка.doc.path("text").asText("")).blocks.map { it.anchor }.toSet()
         val корень = mapper.readTree(
@@ -558,12 +661,34 @@ class EntityIntake(
         val принятые = mutableListOf<Fact>()
         val отказы = mutableListOf<String>()
         val темы = mutableMapOf<String, String>()
+        // Ранг факта НАСЛЕДУЕТСЯ от материала (knowledge_field_rules) — не
+        // приходит из ответа модели: доверие назначает человек загрузкой, а не
+        // разбор своим мнением. У материала, загруженного до перестройки, поля
+        // ещё нет — ранг выводится по типу входного тем же правилом миграции.
+        val рангМатериала = карточка.doc.path("authority").asText("").ifBlank {
+            Authority.ofMaterialKind(карточка.doc.path("kind").asText("")) ?: Authority.DOUBTFUL
+        }
+        // Профиль содержимого ставит РАЗБОР: доли блоков приходят тем же
+        // ответом, что и факты, и по ним выбирается режим атомизации блока.
+        // Брак профиля не отменяет фактов — он называется отказом поимённо.
+        if (корень.path("profile").isObject) {
+            runCatching { профильИзРазбора(корень.path("profile")) }
+                .onSuccess { профиль ->
+                    карточка = store.update(
+                        карточка.id,
+                        (карточка.doc.deepCopy() as ObjectNode).set<JsonNode>("profile", профильУзел(профиль)),
+                        Provenance(Channel.SERVICE, author, source = material),
+                    )
+                }
+                .onFailure { отказы += "профиль содержимого не принят: ${it.message}" }
+        }
         // Повторный приём того же разбора фактов НЕ удваивает: факт узнаётся
-        // по своему месту в документе — материал, якорь и утверждение
-        // (поймано живым прогоном: кэш ответа не спасал от дублей).
+        // по своему месту в источнике — якорь блока (а у экспертного факта
+        // учётка автора) и утверждение (поймано живым прогоном: кэш ответа не
+        // спасал от дублей).
         val уже = store.list(область, "fact")
             .filter { it.doc.path("material").asText() == material }
-            .associateBy { it.doc.path("anchor").asText() + "|" + it.doc.path("predicate").asText() }
+            .associateBy { ключФакта(it.doc) }
         var повторов = 0
         // Номер факта в ответе → его код в проекте. План ссылается на факты
         // НОМЕРАМИ, и при повторном приёме (факты уже есть) карта обязана
@@ -578,21 +703,37 @@ class EntityIntake(
         }
 
         корень.path("facts").forEachIndexed { i, ф ->
-            val якорь = ф.path("source").path("anchor").asText("").ifBlank { ф.path("anchor").asText("") }
+            val источник = ф.path("source")
+            val якорь = источник.path("anchor").asText("").ifBlank { ф.path("anchor").asText("") }
+            // Вторая ветка союза `fact.source` — эксперт без якоря: учётка ·
+            // роль · дата. Схема союз не стережёт (генератор сворачивает его в
+            // бестиповый object), поэтому «ровно одно из двух» проверяется
+            // здесь. Ослаблять сторож якоря целиком нельзя — только ветвить:
+            // документальный факт без якоря по-прежнему не существует.
+            val учётка = источник.path("account").asText("")
+            val роль = источник.path("role").asText("")
+            val когда = источник.path("at").asText("")
+            val экспертный = учётка.isNotBlank() || роль.isNotBlank() || когда.isNotBlank()
             val предикат = ф.path("predicate").asText("")
             val величина = ф.path("value")
             val единица = ф.path("unit").asText("").ifBlank { величина.path("unit").asText("") }
             val текстЗначения = if (величина.isObject) величина.path("value").asText("") else величина.asText("")
+            val ключ = (if (якорь.isNotBlank()) якорь else "эксперт:$учётка") + "|" + предикат
             when {
-                якорь.isBlank() -> отказы += "факт $i «$предикат»: без якоря — факта не существует"
-                якорь !in якоря -> отказы += "факт $i «$предикат»: якорь «$якорь» не найден в каноне"
+                экспертный && якорь.isNotBlank() ->
+                    отказы += "факт $i «$предикат»: источник разом документом и экспертом не бывает — " +
+                        "либо якорь, либо учётка с ролью и датой"
+                экспертный && (учётка.isBlank() || роль.isBlank() || когда.isBlank()) ->
+                    отказы += "факт $i «$предикат»: экспертный источник без учётки, роли или даты — происхождения нет"
+                !экспертный && якорь.isBlank() -> отказы += "факт $i «$предикат»: без якоря — факта не существует"
+                !экспертный && якорь !in якоря -> отказы += "факт $i «$предикат»: якорь «$якорь» не найден в каноне"
                 предикат.isBlank() -> отказы += "факт $i: без утверждения"
                 текстЗначения.isBlank() -> отказы += "факт $i «$предикат»: без значения"
                 ф.path("kind").asText("") == "quantity" && единица.isBlank() ->
                     отказы += "факт $i «$предикат»: величина без единицы — не факт"
-                якорь + "|" + предикат in уже -> {
+                ключ in уже -> {
                     повторов += 1
-                    уже[якорь + "|" + предикат]?.let { поНомеру[i] = it.code }
+                    уже[ключ]?.let { поНомеру[i] = it.code }
                 }
                 else -> {
                     val метка = ф.path("topic").asText("")
@@ -602,10 +743,18 @@ class EntityIntake(
                     документ.put("predicate", предикат)
                     документ.put("value", текстЗначения)
                     if (единица.isNotBlank()) документ.put("unit", единица)
-                    документ.put("anchor", якорь)
+                    if (якорь.isNotBlank()) документ.put("anchor", якорь)
                     документ.put("material", material)
                     документ.put("mark", ф.path("source_mark").asText("И"))
-                    поСхеме(документ)
+                    // Ранг: документальный факт наследует ранг материала,
+                    // экспертный — expert (рука эксперта, а не документ).
+                    if (экспертный) {
+                        поСхеме(документ, FactSource.FromExpert(учётка, роль, когда))
+                        документ.put("authority", Authority.EXPERT)
+                    } else {
+                        поСхеме(документ)
+                        документ.put("authority", рангМатериала)
+                    }
                     // Даташит: ключ анкеты узла; норматив: порог нормы полем; конфликт с рамкой — кодом.
                     ф.path("param_key").asText("").takeIf { it.isNotBlank() }?.let { документ.put("param_key", it) }
                     // ТЗ: класс сущности факта — сверка разбора с пакетом по классам (ШИП-G-ПРИНЯТ).
@@ -618,13 +767,25 @@ class EntityIntake(
                     val код = следующий(область, "fact", "F")
                     val сущность = store.create(
                         код, "fact", область, ф.path("scene").asText("").ifBlank { null },
-                        документ, Provenance(Channel.SERVICE, author, source = material, anchor = якорь),
+                        документ,
+                        Provenance(
+                            Channel.SERVICE, author, source = material,
+                            anchor = якорь.ifBlank { null },
+                        ),
                     )
                     поНомеру[i] = сущность.code
-                    принятые += факт(сущность.code, документ)
+                    принятые += факт(область, сущность.code, документ)
                 }
             }
         }
+        // Связи между фактами приходят ТЕМ ЖЕ ответом: разбор говорит не
+        // только, какие атомы нашёл, но и чем они друг другу приходятся.
+        // Концы названы номерами фактов — теми же, которыми ссылается план, —
+        // поэтому карта `поНомеру` берётся готовой: при повторном приёме она
+        // указывает на уже заведённые факты, и связь не ставится второй раз.
+        val связи = связиФактов.relate(область, корень.path("links"), поНомеру, author)
+        отказы += связи.refused
+
         // Д2в: план приходит тем же ответом, что и факты, — один живой
         // вызов на версию документа. Действие несёт СОДЕРЖИМОЕ будущей
         // сущности: предпросмотр показывает, а не обещает.
@@ -674,6 +835,7 @@ class EntityIntake(
             "принято фактов ${принятые.size}, тем ${темы.size}" +
             (if (отказы.isEmpty()) "" else ", отклонено ${отказы.size} (правила честности §6.1)") +
             (if (повторов == 0) "" else ", уже было $повторов") +
+            (if (связи.accepted == 0) "" else ", связей между фактами ${связи.accepted}") +
             (if (действия.isEmpty) "" else ", действий плана ${действия.size()}") +
             (оценка?.let { "; ТЗ оценено против нужд" } ?: "")
         val задание = if (действия.isEmpty && оценка == null) null else store.list(область, "intake_task")
@@ -682,9 +844,32 @@ class EntityIntake(
         return FactIntake(принятые, отказы, topics(project), примечание, задание)
     }
 
+    /**
+     * Место факта в источнике: якорь блока — а у экспертного факта учётка
+     * автора, потому что якоря у руки нет. По нему повторный приём того же
+     * разбора узнаёт факт и не заводит его вторым.
+     */
+    private fun ключФакта(документ: JsonNode): String {
+        val якорь = документ.path("anchor").asText("")
+        val учётка = документ.path("source").path("account").asText("")
+        return (if (якорь.isNotBlank()) якорь else "эксперт:$учётка") + "|" +
+            документ.path("predicate").asText()
+    }
+
+    /** Профиль из ответа разбора; доли проверяет сам вид (брак — отказ, а не тихий ноль). */
+    private fun профильИзРазбора(узел: JsonNode): ContentProfile = ContentProfile(
+        statement = узел.path("statement").asDouble(0.0),
+        params = узел.path("params").asDouble(0.0),
+        norms = узел.path("norms").asDouble(0.0),
+        assessments = узел.path("assessments").asDouble(0.0),
+    )
+
     private fun темаКод(область: Area, метка: String): String {
-        val уже = store.list(область, "topic").firstOrNull { it.doc.path("label").asText() == метка }
-        if (уже != null) return уже.code
+        val темы = темыПоля.all(область)
+        // Метка слитой темы — второе имя ТОГО ЖЕ предмета: новые факты идут на
+        // голову цепочки, а не воскрешают тему, которую человек уже слил.
+        val уже = темы.firstOrNull { it.doc.path("label").asText() == метка }
+        if (уже != null) return темыПоля.head(темы, уже).code
         val код = следующий(область, "topic", "TP")
         store.create(
             код, "topic", область, null,
@@ -760,7 +945,7 @@ class EntityIntake(
             .put("by", author).put("at", java.time.OffsetDateTime.now().toString())
             .put("reason", reason)
         val обновлена = store.update(сущность.id, документ, Provenance(Channel.MANUAL, author))
-        return факт(обновлена.code, документ)
+        return факт(область, обновлена.code, документ)
     }
 
     override fun resolveTopic(project: String, topic: String, entity: String, author: String): Topic {
@@ -769,28 +954,61 @@ class EntityIntake(
         // Адрес — запись проекта либо карточка полки (норматив живёт в библиотеке).
         val адрес = store.byCode(область, entity) ?: store.byCode(Area.Library, entity)
             ?: throw IllegalArgumentException("сущности «$entity» нет ни в проекте, ни на полке: тема разрешается в существующую запись")
+        // Слитая тема своего адреса не имеет: разрешается ГОЛОВА цепочки.
+        // Иначе факты обеих тем читались бы по голове, а сущность нашлась бы
+        // только у одной из них — и разрыв точки требовал бы разрешить тему,
+        // которой на экране уже нет.
+        val голова = темыПоля.head(темыПоля.all(область), тема)
         store.update(
-            тема.id,
-            (тема.doc.deepCopy() as ObjectNode).put("resolved_to", адрес.code).put("resolved_kind", адрес.kind),
+            голова.id,
+            (голова.doc.deepCopy() as ObjectNode).put("resolved_to", адрес.code).put("resolved_kind", адрес.kind),
             Provenance(Channel.MANUAL, author), status = "resolved",
         )
-        return topics(project).first { it.id == тема.code }
+        return topics(project).first { it.id == голова.code }
+    }
+
+    /**
+     * Слить тему в другую: один предмет — одна тема.
+     *
+     * Сливает ЧЕЛОВЕК — служба только предлагает (ИИ не сливает, правило прав
+     * онтологии). Факты при этом не переписываются: они остаются при своих
+     * темах, а читаются по цепочке `merged_into` до головы.
+     */
+    override fun mergeTopic(project: String, topic: String, into: String, author: String, reason: String): Topic {
+        val голова = темыПоля.merge(Area.Project(project), topic, into, author, reason)
+        return topics(project).first { it.id == голова.code }
     }
 
     override fun topics(project: String): List<Topic> {
-        val факты = store.list(Area.Project(project), "fact")
-        return store.list(Area.Project(project), "topic").map { т ->
+        val область = Area.Project(project)
+        val факты = store.list(область, "fact")
+        val темы = темыПоля.all(область)
+        val цепочки = темыПоля.chains(темы)
+        // Слитая тема с экрана уходит: адрес среза один — голова цепочки. Счёт
+        // фактов при этом складывается по ВСЕЙ цепочке: факты остались при
+        // своих темах, и пересчитывать их по головам значило бы переписывать
+        // принятое ради вида на экране.
+        return темыПоля.heads(темы).map { т ->
+            val цепочка = цепочки[т.code] ?: setOf(т.code)
             Topic(
                 id = т.code,
                 label = т.doc.path("label").asText(""),
                 scene = т.doc.path("scene").asText("").ifBlank { null },
                 resolvedTo = т.doc.path("resolved_to").asText("").ifBlank { null },
-                facts = факты.count { it.doc.path("topic").asText() == т.code },
+                facts = факты.count { it.doc.path("topic").asText() in цепочка },
             )
         }
     }
 
-    private fun факт(код: String, документ: JsonNode): Fact = Fact(
+    /**
+     * Факт наружу.
+     *
+     * Связи читаются ЗДЕСЬ, а не в маршруте: сериализатор вида один
+     * (`tools/validate_one_serializer.py`), и связь, добытая мимо порта, была
+     * бы вторым источником правды о том же знании. Область нужна именно для
+     * них — без реестра связей перечень пуст, и факт от этого не портится.
+     */
+    private fun факт(область: Area, код: String, документ: JsonNode): Fact = Fact(
         id = код,
         subject = документ.path("subject").asText(""),
         predicate = документ.path("predicate").asText(""),
@@ -817,36 +1035,74 @@ class EntityIntake(
             )
         },
         sourceUpdated = документ.path("source_note").asText("").ifBlank { null },
+        // Пусто — факт заведён до перестройки: ранг проставит миграция стенда,
+        // а здесь он не выдумывается.
+        authority = документ.path("authority").asText("").ifBlank { null },
+        evidence = документ.path("evidence").asText("").ifBlank { null },
+        source = источникФакта(документ),
+        links = связиФактов.factLinks(область, код)
+            .map { FactLink(it.type, it.from, it.to, it.rationale) },
     )
 
     // Один построитель на оба пути: две копии однажды разошлись бы на поле.
     override fun facts(project: String): List<Fact> =
-        store.list(Area.Project(project), "fact").map { факт(it.code, it.doc) }
+        Area.Project(project).let { область -> store.list(область, "fact").map { факт(область, it.code, it.doc) } }
 
     override fun addTopic(project: String, label: String, author: String): Topic {
         val область = Area.Project(project)
         val метка = label.trim()
         require(метка.isNotBlank()) { "у темы нет названия" }
-        val уже = store.list(область, "topic").firstOrNull { it.doc.path("label").asText() == метка }
-        val сущность = уже ?: store.create(
+        val темы = темыПоля.all(область)
+        val уже = темы.firstOrNull { it.doc.path("label").asText() == метка }
+        // Повтор метки — та же тема, не вторая; а если ту тему уже слили, то
+        // и голова её цепочки: тем с экрана не бывает двух на один предмет.
+        val код = уже?.let { темыПоля.head(темы, it).code } ?: store.create(
             следующий(область, "topic", "TP"), "topic", область, null,
             mapper.createObjectNode().put("label", метка).put("manual", true),
             Provenance(Channel.MANUAL, author, source = "инженер"),
-        )
-        return topics(project).first { it.id == сущность.code }
+        ).code
+        return topics(project).first { it.id == код }
     }
 
     /**
-     * Поля факта по ИСТИНЕ СХЕМ рядом с плоскими: `source_mark` и
-     * `source{material, anchor}`. Шаблон отчёта отбирает допущения по
-     * `source_mark` (как в YAML), а запись хранила только `mark` — §10 не
-     * наполнялся никогда (шип D). Плоские поля остаются до DTO из YAML.
+     * Поля факта по ИСТИНЕ СХЕМ рядом с плоскими: `source_mark` и союзный
+     * `source`. Шаблон отчёта отбирает допущения по `source_mark` (как в
+     * YAML), а запись хранила только `mark` — §10 не наполнялся никогда (шип
+     * D). Плоские поля остаются до DTO из YAML.
+     *
+     * Союз пишется РОВНО одной веткой: документ с якорем либо эксперт с
+     * учёткой, ролью и датой. Обе ветки разом — не источник, а два источника
+     * у одного факта, и сверка тогда не знает, что с чем сличать.
      */
-    private fun поСхеме(документ: ObjectNode) {
+    private fun поСхеме(документ: ObjectNode, эксперт: FactSource.FromExpert? = null) {
         документ.put("source_mark", документ.path("mark").asText("И"))
         val источник = документ.putObject("source")
+        if (эксперт != null) {
+            источник.put("account", эксперт.account).put("role", эксперт.role).put("at", эксперт.at)
+            // Якорь — место в документе; у руки документа нет, и пустой якорь
+            // ради прохода под прежнюю схему не подставляется.
+            документ.remove("anchor")
+            return
+        }
         источник.put("material", документ.path("material").asText(""))
         документ.path("anchor").asText("").takeIf { it.isNotBlank() }?.let { источник.put("anchor", it) }
+    }
+
+    /** Источник факта из документа: ровно одна ветка союза — по тому, чем он записан. */
+    private fun источникФакта(документ: JsonNode): FactSource {
+        val источник = документ.path("source")
+        val учётка = источник.path("account").asText("")
+        if (учётка.isNotBlank()) {
+            return FactSource.FromExpert(
+                учётка,
+                источник.path("role").asText(""),
+                источник.path("at").asText(""),
+            )
+        }
+        return FactSource.FromMaterial(
+            источник.path("material").asText("").ifBlank { документ.path("material").asText("") },
+            документ.path("anchor").asText("").ifBlank { null },
+        )
     }
 
     override fun addFact(
@@ -860,9 +1116,19 @@ class EntityIntake(
         material: String?,
         author: String,
         mark: String,
+        role: String?,
+        authority: String?,
     ): Fact {
         val область = Area.Project(project)
         require(predicate.isNotBlank()) { "факт без утверждения — не факт" }
+        // Ручной ввод — кандидат-факт ЭКСПЕРТА (manual_input_rule): источник у
+        // него не документ, а человек, и назвать его обязаны трое — учётка,
+        // роль и дата. На проекте поля знаний роль обязательна; на проекте
+        // прохода её не спрашивают, и источником остаётся прежнее «инженер, дата».
+        val ролью = role?.trim().orEmpty()
+        require(ролью.isNotBlank() || !KnowledgeFlag.on(store, project)) {
+            "роль автора обязательна: у ручного факта источник — учётка · роль · дата, якоря у руки нет"
+        }
         // Помета — из перечня владельца: допущение (П) идёт в §10 отчёта
         // как допущение, а не как наш проверенный материал.
         require(mark in setOf("И", "В", "П")) { "помета достоверности: И · В · П, получено «$mark»" }
@@ -887,7 +1153,20 @@ class EntityIntake(
             ?: "инженер, ${java.time.LocalDate.now()}"
         документ.put("material", источник)
         документ.put("mark", mark)
-        поСхеме(документ)
+        // Материал, если он назван, остаётся ПОМЕТОЙ «на что ссылался»: без
+        // якоря ссылка на документ не проверяется (правило честности §6.1), и
+        // источником у названной роли остаётся эксперт.
+        поСхеме(
+            документ,
+            ролью.takeIf { it.isNotBlank() }
+                ?.let { FactSource.FromExpert(author, it, java.time.LocalDate.now().toString()) },
+        )
+        // Ранг ручного факта — экспертный: рука эксперта выше справки и ниже
+        // документа заказчика (ОНТОЛОГИЯ-ФОРМИРОВАНИЯ, authority_notes).
+        документ.put(
+            "authority",
+            authority?.takeIf { it.isNotBlank() }?.let { Authority.of(it) } ?: Authority.EXPERT,
+        )
         документ.put("confidence", if (mark == "П") 0.5 else 1.0)
         документ.put("disposition", "free")
         документ.put("manual", true)
@@ -896,6 +1175,6 @@ class EntityIntake(
             следующий(область, "fact", "F"), "fact", область, null, документ,
             Provenance(Channel.MANUAL, author, source = источник),
         )
-        return факт(сущность.code, документ)
+        return факт(область, сущность.code, документ)
     }
 }

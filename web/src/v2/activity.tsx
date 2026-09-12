@@ -12,7 +12,15 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { api, type Activity, type DocHint, type Phase, type Scene, type SceneSuggestions } from './api'
 import { DocumentBody } from './documents'
+import { ResearchPanel } from './research'
 import { пунктыРейки, составЭкрана, type Блок, type Режим } from './density'
+
+/**
+ * Сцены, у которых есть внешний контур полноты: 3 стороны · 4 повестка ·
+ * 5 нормы · 7 аналоги · 12 бенчмарки. Перечень тот же, что у сервера, —
+ * на прочих сценах адрес исследования отказывает, и звать его незачем.
+ */
+const СЦЕНЫ_ИССЛЕДОВАНИЯ = ['3', '4', '5', '7', '12']
 
 /** Роль мероприятия — по-русски: служебное имя роли инженеру не говорит. */
 const РОЛЬ: Record<string, string> = {
@@ -140,6 +148,12 @@ export function ActivityScreen({
                 </li>
               ))}
             </ul>
+          )}
+          {/* Полнота: чего в поле нет — спрашивается у внешнего контура, рядом
+              с предложениями поля. Панель одна на сцену и на точку. */}
+          {СЦЕНЫ_ИССЛЕДОВАНИЯ.includes(scene.key) && (
+            <ResearchPanel project={project} trigger={{ scene: scene.key }}
+              onChanged={() => { перечитатьПредложения(); onChanged?.() }} />
           )}
           {children}
         </div>

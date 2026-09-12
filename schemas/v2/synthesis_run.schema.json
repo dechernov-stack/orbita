@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/v2/synthesis_run.schema.json",
+  "title": "synthesis_run",
+  "description": "запуск синтеза постановки из поля — вид 91 слоя L2. Сцена рождения: любая. СГЕНЕРИРОВАНО tools/v2/gen_schemas.py из docs/tz/v2/СХЕМЫ-ПОЛЕЙ-V2.yaml — руками не править",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "стабильный внутренний"
+    },
+    "code": {
+      "type": "string",
+      "description": "человеческий, переименуемый"
+    },
+    "kind": {
+      "type": "string",
+      "description": "ссылка на вид: kind"
+    },
+    "area": {
+      "enum": [
+        "library",
+        "project:id"
+      ]
+    },
+    "born_in": {
+      "type": "string",
+      "description": "ссылка на вид: scene проектная область; библиотека — null"
+    },
+    "status": {
+      "type": "string",
+      "description": "enum по статусной модели вида"
+    },
+    "version": {
+      "type": "integer",
+      "description": "битемпорально"
+    },
+    "provenance": {
+      "type": "object",
+      "description": "{channel*:enum[manual,package,service,shelf,import,example], author*:ref account, source?:ref, anchor?:str, fingerprint?:str}"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "notes": {
+      "type": "string",
+      "description": "не печатается"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "trigger": {
+      "enum": [
+        "manual",
+        "new_material",
+        "new_facts",
+        "manual_edit"
+      ],
+      "description": "по команде «Сформировать постановку из поля» либо событием поля с задержкой-накоплением"
+    },
+    "slice_fingerprint": {
+      "type": "string",
+      "description": "отпечаток среза поля — тот же срез даёт кэш, живого вызова нет"
+    },
+    "slice_size": {
+      "type": "integer",
+      "description": "сколько фактов и сущностей вошло в срез (потолок 50); урезание называется словами"
+    },
+    "proposals": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "description": "ссылка на вид: proposal"
+      },
+      "description": "предложения понятий с происхождением n:m и рангами оснований"
+    },
+    "diff": {
+      "type": "object",
+      "description": "{new*,augment*,contradict*,confirm*} диф «поле → постановка» четырьмя группами; принятое не меняется молча"
+    },
+    "ontology_version": {
+      "type": "string",
+      "description": "отпечаток ОНТОЛОГИЯ-ФОРМИРОВАНИЯ.yaml — правила образования, по которым собран запуск"
+    },
+    "cached": {
+      "type": "boolean",
+      "description": "ответ взят из журнала по отпечатку среза"
+    },
+    "error": {
+      "type": "string",
+      "description": "причина отказа при status=error"
+    }
+  },
+  "required": [
+    "id",
+    "code",
+    "kind",
+    "area",
+    "born_in",
+    "status",
+    "version",
+    "provenance",
+    "created_at",
+    "updated_at",
+    "trigger",
+    "slice_fingerprint",
+    "proposals",
+    "diff",
+    "ontology_version"
+  ]
+}
