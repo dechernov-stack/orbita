@@ -19,12 +19,12 @@ export default defineConfig({
     },
   },
   build: {
-    // Две точки входа: старый интерфейс по /, новый v2 — по /v2.html.
-    // Strangler: новое рядом со старым, пока волны не заменят его целиком.
+    // Две точки входа: корень стенда — v2 (З-01, ПМИ-5 12.09), старый
+    // интерфейс — по явному адресу /v1.html с баннером.
     rollupOptions: {
       input: {
         main: fileURLToPath(new URL('./index.html', import.meta.url)),
-        v2: fileURLToPath(new URL('./v2.html', import.meta.url)),
+        v1: fileURLToPath(new URL('./v1.html', import.meta.url)),
       },
     },
   },

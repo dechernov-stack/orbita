@@ -457,8 +457,8 @@ export function KnowledgeField({ project }: { project: string | null }) {
   )
 }
 
-/** Вход в поле: текст, файл или ссылка + задание → разбор. */
-function Source({ project, onParsed, onError }: {
+/** Вход в поле: текст, файл или ссылка + задание → разбор. Экспорт — сцена 2 зовёт его на пустом проекте (З-02). */
+export function Source({ project, onParsed, onError }: {
   project: string
   onParsed: (итог: { task: string; note: string; accepted: number; refused: number; refusals: string[] }) => void
   onError: (e: string) => void

@@ -2,8 +2,9 @@
 //
 // Ни одна сцена не решает, открыта ли она: это сказал сервер. Здесь только
 // формы и списки, встроенные в рамку.
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { api, type EntityRow } from './api'
+import { Source } from './knowledgefield'
 
 /**
  * З-03: правка принятой сущности на месте — карандаш в строке, поля в той же
@@ -113,6 +114,15 @@ export function SceneOpenProject({ onOpened }: { onOpened: (project: string) => 
 
 /** Сцена 2 — замысел: четыре поля либо связный абзац; принять явно. */
 export function SceneIntent({ project, onChanged }: { project: string; onChanged: () => void }) {
+  // З-02 (ПМИ-5, 12.09): на пустом проекте первое действие — загрузить
+  // записку миссии: замысел, стороны и нужды предложит разбор; форма руками —
+  // второй путь. Как только материал есть, приглашение уступает место форме.
+  const [материалов, setМатериалов] = useState<number | null>(null)
+  const [разобрано, setРазобрано] = useState<string | null>(null)
+  const [отказЗагрузки, setОтказЗагрузки] = useState<string | null>(null)
+  useEffect(() => {
+    api.entities(project, 'material').then((r) => setМатериалов(r.items.length)).catch(() => setМатериалов(0))
+  }, [project, разобрано])
   const [поля, setПоля] = useState({ for_whom: '', what: '', where: '', horizon: '' })
   const [занято, setЗанято] = useState(false)
   const [отказ, setОтказ] = useState<string | null>(null)
@@ -142,6 +152,21 @@ export function SceneIntent({ project, onChanged }: { project: string; onChanged
   }
 
   return (
+    <div>
+      {материалов === 0 && !разобрано && (
+        <div className="v2-panel" data-why="следующий-клик">
+          <h3>Загрузите записку миссии</h3>
+          <div className="v2-hint">
+            Замысел, стороны и нужды предложит разбор — принять их можно в поле знаний.
+            Заполнить форму руками — второй путь, ниже.
+          </div>
+          {отказЗагрузки && <div className="v2-locked">{отказЗагрузки}</div>}
+          <Source project={project}
+            onParsed={(итог) => { setРазобрано(`${итог.note} · план из поля знаний: ${итог.task}`); onChanged() }}
+            onError={setОтказЗагрузки} />
+        </div>
+      )}
+      {разобрано && <div className="v2-hint" data-why="следующий-клик">{разобрано} — план действий ждёт акцепта в поле знаний.</div>}
     <div className="v2-form">
       {отказ && <div className="v2-locked">{отказ}</div>}
       {([
@@ -168,6 +193,7 @@ export function SceneIntent({ project, onChanged }: { project: string; onChanged
           сохранить черновик
         </button>
       </div>
+    </div>
     </div>
   )
 }
@@ -204,6 +230,7 @@ export function SceneStakeholders({ project, onChanged }: { project: string; onC
 
   const нуждыСтороны = (id: string) => нужды.filter((n) => (n.owned_by ?? []).includes(id))
   const [правка, setПравка] = useState<string | null>(null)
+  const [открыта, setОткрыта] = useState<string | null>(null)
 
   return (
     <div>
@@ -225,7 +252,29 @@ export function SceneStakeholders({ project, onChanged }: { project: string; onC
       <table className="v2-table">
         <thead><tr><th>Код</th><th>Сторона</th><th>Роль · влияние</th><th>Нужды</th></tr></thead>
         <tbody>
-          {стороны.map((с) => правка === с.code ? (
+          {стороны.map((с) => открыта === с.code && правка !== с.code ? (
+            <React.Fragment key={с.id}>
+              <tr className="v2-card-row">
+                <td className="v2-mono">{с.code} <Карандаш onClick={() => setПравка(с.code)} /> <button type="button" className="v2-link" onClick={() => setОткрыта(null)} title="свернуть карточку">▴</button></td>
+                <td colSpan={3}>
+                  <div className="v2-card__body" data-why="работа">
+                    <div><b>{String(с.doc.name ?? '')}</b> · роль {РОЛИ_СТОРОН.find(([v]) => v === с.doc.role)?.[1] ?? String(с.doc.role ?? '')}
+                      {с.doc.scale ? <span> · масштаб {String(с.doc.scale)}</span> : null}</div>
+                    <div>влияние: {ВЛИЯНИЕ.find(([v]) => v === с.doc.influence)?.[1] ?? <span className="v2-warn">не задано — карандаш</span>}
+                      {с.doc.power ? <span> · сила {String(с.doc.power)} из 5</span> : null}
+                      {с.doc.attitude ? <span> · {ОТНОШЕНИЕ.find(([v]) => v === с.doc.attitude)?.[1]}</span> : null}</div>
+                    {с.doc.interest ? <div>интерес: {String(с.doc.interest)}</div> : null}
+                    <div>нужды ({нуждыСтороны(с.id).length}):
+                      {нуждыСтороны(с.id).length === 0 ? <span className="v2-warn"> нет — сцена не закроется</span> : null}
+                      <ul>{нуждыСтороны(с.id).map((n) => <li key={n.id}>{String(n.doc.statement ?? '')}{n.doc.notes ? <span className="v2-muted"> · {String(n.doc.notes)}</span> : null}</li>)}</ul>
+                    </div>
+                    {с.doc.notes ? <div className="v2-muted">основания: {String(с.doc.notes)}</div> : null}
+                    <div className="v2-muted">версия {String((с as unknown as { version?: number }).version ?? '')} · статус {с.status}</div>
+                  </div>
+                </td>
+              </tr>
+            </React.Fragment>
+          ) : правка === с.code ? (
             <ПравкаСтроки key={с.id} project={project} row={с} colSpan={4}
               поля={[
                 { key: 'name', label: 'имя' }, { key: 'role', label: 'роль', kind: 'select', options: РОЛИ_СТОРОН },
@@ -236,7 +285,7 @@ export function SceneStakeholders({ project, onChanged }: { project: string; onC
               onSaved={() => { setПравка(null); перечитать(); onChanged() }} onCancel={() => setПравка(null)} />
           ) : (
             <tr key={с.id}>
-              <td className="v2-mono">{с.code} <Карандаш onClick={() => setПравка(с.code)} /></td>
+              <td className="v2-mono">{с.code} <Карандаш onClick={() => setПравка(с.code)} /> <button type="button" className="v2-link" onClick={() => setОткрыта(с.code)} title="карточка стороны: кто и какой, влияние, нужды, основания">▾</button></td>
               <td>{String(с.doc.name ?? '')}</td>
               <td>
                 {String(с.doc.role ?? '')}
