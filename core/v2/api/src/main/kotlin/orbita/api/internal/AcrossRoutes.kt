@@ -23,6 +23,12 @@ class AcrossRoutes(
     private val intake: Intake,
     private val formulation: Formulation,
     private val mapper: ObjectMapper = ObjectMapper(),
+    /**
+     * Текст из двоичного файла (docx · pdf · xlsx · pptx) — извлекатель
+     * подставляет граница; null — материал принимается только текстом и
+     * ссылкой. Формат живёт вне ядра v2 (ADR-064: форматы — на границе).
+     */
+    private val extract: ((fileName: String, bytes: ByteArray) -> String?)? = null,
 ) {
 
     fun handle(method: String, path: String, query: Map<String, String>, body: String?): V2Router.Ответ? = when {
@@ -125,19 +131,38 @@ class AcrossRoutes(
         // Снимок, а не живая ссылка: страница завтра другая, а факт с
         // якорем обязан оставаться проверяемым. Страница без рендера —
         // отказ словами (шип E п. 4), не пустой материал.
-        val снятый = if (тело.path("text").asText("").isBlank() && ссылка.isNotBlank()) снимок.fetch(ссылка) else null
-        val текст = тело.path("text").asText("").ifBlank { снятый?.text ?: "" }
+        // Двоичный файл (ПМИ-5, замечание 12.09 «только md»): docx · pdf · xlsx ·
+        // pptx приходят base64, текст извлекает сервер — тем же извлекателем,
+        // что у документов v1; формат не читается — отказ словами, не пустой материал.
+        val имяФайла = тело.path("filename").asText("").trim()
+        val файлBase64 = тело.path("file_base64").asText("")
+        val извлечённый = if (файлBase64.isNotBlank()) {
+            val извлекатель = extract ?: throw IllegalArgumentException("файлы на этом стенде не читаются: вставьте текст")
+            val байты = try { java.util.Base64.getDecoder().decode(файлBase64.substringAfter(",")) } catch (e: IllegalArgumentException) {
+                throw IllegalArgumentException("файл не разобрался как base64")
+            }
+            require(имяФайла.isNotBlank()) { "у файла нет имени — по расширению узнаётся формат" }
+            извлекатель(имяФайла, байты)?.takeIf { it.isNotBlank() }
+                ?: throw IllegalArgumentException(
+                    "файл «$имяФайла» не прочитался: читаются docx · pdf · xlsx · pptx · txt · md; " +
+                        "скан без текстового слоя тоже не читается — приложите текст",
+                )
+        } else null
+        val снятый = if (тело.path("text").asText("").isBlank() && извлечённый == null && ссылка.isNotBlank()) снимок.fetch(ссылка) else null
+        val текст = тело.path("text").asText("").ifBlank { извлечённый ?: снятый?.text ?: "" }
         require(текст.isNotBlank()) { "у материала нет текста: вставьте текст, приложите файл либо дайте ссылку" }
-        val шапка = снятый?.let { "Источник: $ссылка · снимок ${it.date} · ${it.renderer}\n\n" } ?: ""
+        val шапка = снятый?.let { "Источник: $ссылка · снимок ${it.date} · ${it.renderer}\n\n" }
+            ?: извлечённый?.let { "Источник: файл $имяФайла · текст извлечён сервером\n\n" } ?: ""
         val код = intake.putMaterial(
             проект,
-            тело.path("name").asText("").ifBlank { ссылка.ifBlank { "материал" } },
+            тело.path("name").asText("").ifBlank { имяФайла.substringBeforeLast('.').ifBlank { ссылка.ifBlank { "материал" } } },
             тело.path("kind").asText("").ifBlank { тело.path("type").asText("reference") },
             шапка + текст,
             автор(тело),
             supersedes = тело.path("supersedes").asText("").ifBlank { null },
         )
-        val ответ = mapper.createObjectNode().put("code", код).put("from_url", ссылка.isNotBlank())
+        val ответ = mapper.createObjectNode().put("code", код).put("from_url", ссылка.isNotBlank()).put("chars", текст.length)
+        извлечённый?.let { ответ.put("extracted_from", имяФайла) }
         снятый?.let { ответ.put("snapshot_renderer", it.renderer).put("snapshot_date", it.date) }
         тело.path("supersedes").asText("").takeIf { it.isNotBlank() }?.let { ответ.put("supersedes", it) }
         return V2Router.Ответ(201, ответ)

@@ -295,6 +295,12 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
         return orbita.api.internal.V2Router(
             store, links, движок, полки, знания, постановка, mapper, волна3, волна4,
             документыМаршруты, знанияМаршруты, точки, обмен, внешняяМодель,
+            // Материал файлом (docx · pdf · xlsx · pptx): текст извлекает тот же
+            // разбор, что у документов v1 — канон в markdown; формат — на границе.
+            extract = { имя, байты ->
+                orbita.out.DocumentParse.parse(имя, байты)?.canonMd?.takeIf { it.isNotBlank() }
+                    ?: orbita.out.TextExtractor.extract(имя, байты)
+            },
         )
     }
 

@@ -38,6 +38,8 @@ class V2Router(
     private val exchangeRoutes: ExchangeRoutes? = null,
     /** Внешняя модель (шип G): Capella либо fixture с баннером. */
     private val externalModelRoutes: ExternalModelRoutes? = null,
+    /** Текст из двоичного файла материала (docx · pdf · xlsx · pptx) — подставляет граница. */
+    private val extract: ((fileName: String, bytes: ByteArray) -> String?)? = null,
 ) {
 
     /**
@@ -55,7 +57,7 @@ class V2Router(
     )
 
     private val сцены = SceneRoutes(store, links, engine, mapper)
-    private val сквозные = AcrossRoutes(store, links, engine, shelves, intake, formulation, mapper)
+    private val сквозные = AcrossRoutes(store, links, engine, shelves, intake, formulation, mapper, extract = extract)
     // Точки есть у любого роутера: фиксация точки — часть хребта, а не
     // отдельной волны; сборка без явных записей берёт записи над тем же
     // хранилищем.

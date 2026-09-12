@@ -489,12 +489,27 @@ function Source({ project, onParsed, onError }: {
   }
   const сменитьТип = (т: string) => { setВид(т); setЗадание(заданиеПоТипу[т] ?? 'разбери по сущностям') }
 
-  // Файл читается В БРАУЗЕРЕ и уходит текстом: серверу не нужен ещё один
-  // канал ради того, что уже умеет вкладка. Двоичные (pdf, docx) — хвост.
+  // Текстовый файл читается В БРАУЗЕРЕ и уходит текстом; двоичный (docx ·
+  // pdf · xlsx · pptx) уходит base64, текст извлекает сервер тем же
+  // извлекателем, что у документов v1 (замечание ПМИ-5, 12.09).
+  const [двоичный, setДвоичный] = useState<{ name: string; base64: string } | null>(null)
   const файл = (f: File | null) => {
-    if (!f) return
+    if (!f) { setДвоичный(null); return }
     if (!имя.trim()) setИмя(f.name.replace(/\.[^.]+$/, ''))
-    f.text().then(setТекст).catch(() => onError('файл не прочитался: приложите текстовый'))
+    const текстовый = /\.(txt|md|csv|markdown)$/i.test(f.name) || f.type.startsWith('text/')
+    if (текстовый) {
+      setДвоичный(null)
+      f.text().then(setТекст).catch(() => onError('файл не прочитался: приложите текстовый'))
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = () => {
+      const url = String(reader.result ?? '')
+      setДвоичный({ name: f.name, base64: url.substring(url.indexOf(',') + 1) })
+      setТекст('')
+    }
+    reader.onerror = () => onError('файл не прочитался')
+    reader.readAsDataURL(f)
   }
 
   // Разбор — фоновой задачей (ADR-069): стенд отвечает, пока модель думает;
@@ -513,7 +528,10 @@ function Source({ project, onParsed, onError }: {
         else { setИтог(`разбор идёт фоновой задачей ${з.job}: ${з.elapsed_seconds} с — стенд отвечает, страницу можно не держать`); window.setTimeout(() => опрос(job), 3000) }
       }).catch((e) => { onError(String(e.message ?? e)); setЗанято(false) })
     }
-    api.putMaterial(project, { name: имя, kind: вид, text: текст, url: ссылка, author: 'инженер', supersedes: прежний || undefined })
+    api.putMaterial(project, {
+      name: имя, kind: вид, text: текст, url: ссылка, author: 'инженер', supersedes: прежний || undefined,
+      ...(двоичный ? { filename: двоичный.name, file_base64: двоичный.base64 } : {}),
+    })
       .then((м) => api.atomizeJob(project, м.code, задание, 'инженер'))
       .then((з) => {
         if (з.status === 'done') готово({ task: з.task ?? '', note: з.note ?? '', accepted: з.accepted, refused: з.refused, refusals: з.refusals })
@@ -523,7 +541,7 @@ function Source({ project, onParsed, onError }: {
       .catch((e) => { onError(String(e.message ?? e)); setЗанято(false) })
   }
 
-  const есть = текст.trim().length > 0 || ссылка.trim().length > 0
+  const есть = текст.trim().length > 0 || ссылка.trim().length > 0 || двоичный !== null
 
   return (
     <div className="v2-kf__src" data-why="работа">
@@ -548,8 +566,10 @@ function Source({ project, onParsed, onError }: {
       </label>
       <div className="v2-kf__row" style={{ gridTemplateColumns: '1fr 2fr' }}>
         <label>файл
-          <input type="file" accept=".txt,.md,.csv,text/plain,text/markdown"
+          <input type="file" accept=".txt,.md,.csv,.docx,.pdf,.xlsx,.pptx,text/plain,text/markdown,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.openxmlformats-officedocument.presentationml.presentation"
+            title="txt · md · csv читаются в браузере; docx · pdf · xlsx · pptx — текст извлекает сервер"
             onChange={(e) => файл(e.target.files?.[0] ?? null)} />
+          {двоичный && <span className="v2-muted"> {двоичный.name}: текст извлечёт сервер</span>}
         </label>
         <label>ссылка
           <input value={ссылка} onChange={(e) => setСсылка(e.target.value)} placeholder="https://…" />
