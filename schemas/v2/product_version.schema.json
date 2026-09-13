@@ -66,7 +66,45 @@
       "format": "date"
     },
     "composition": {
-      "description": "[{ref*,version*}] | ref baseline ссылается на baseline записей"
+      "anyOf": [
+        {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "ref": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "object",
+                  "array",
+                  "null"
+                ]
+              },
+              "version": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "object",
+                  "array",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "ref",
+              "version"
+            ]
+          }
+        },
+        {
+          "type": "string",
+          "description": "ссылка на вид: baseline"
+        }
+      ],
+      "description": "ссылается на baseline записей"
     }
   },
   "required": [

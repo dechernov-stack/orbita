@@ -92,8 +92,16 @@
       "description": "{name*,hash*,size*,format*} оригинал неизменяем"
     },
     "origin": {
-      "type": "string",
-      "description": "ссылка на вид: stakeholder | str кто выпустил"
+      "anyOf": [
+        {
+          "type": "string",
+          "description": "ссылка на вид: stakeholder"
+        },
+        {
+          "type": "string"
+        }
+      ],
+      "description": "кто выпустил"
     },
     "doc_version": {
       "type": "string",

@@ -56,7 +56,7 @@ KOTLIN = КОРЕНЬ / "core/v2/knowledge/src/main/kotlin/orbita/knowledge/sche
 СПИСОЧНЫЕ_ОТБОРА = {"predicate_in"}
 
 ОБЯЗАТЕЛЬНЫЕ_КЛЮЧИ = ("from_facts", "fields", "must_link", "conflict_on", "identity")
-ИЗВЕСТНЫЕ_КЛЮЧИ = set(ОБЯЗАТЕЛЬНЫЕ_КЛЮЧИ) | {"note"}
+ИЗВЕСТНЫЕ_КЛЮЧИ = set(ОБЯЗАТЕЛЬНЫЕ_КЛЮЧИ) | {"note", "target_kind"}
 
 # Разделы истины. Раздел, которого генератор не знает, пропадёт молча —
 # а поставка правит этот файл целиком, и потеря раздела не видна глазом.
@@ -207,7 +207,17 @@ def котлин(истина: dict, версия: str) -> str:
         "    val conflictOn: List<String>,",
         "    val identity: ConceptIdentity,",
         "    val note: String? = null,",
-        ")",
+        "    /** Вид сущности, которым понятие становится при акцепте, словами истины. */",
+        "    val targetKind: String? = null,",
+        ") {",
+        "",
+        "    /**",
+        "     * Код вида из [targetKind]: «milestone (L1); вехи технологий — gate» → milestone.",
+        "     * Пусто — понятие вида не имеет и ложится на факт (допущение).",
+        "     */",
+        "    val targetKindCode: String? =",
+        "        targetKind?.takeWhile { it.isLetterOrDigit() || it == \'_\' }?.ifBlank { null }",
+        "}",
         "",
         "object GeneratedOntology {",
         "",
@@ -255,6 +265,8 @@ def котлин(истина: dict, версия: str) -> str:
         строки.append("            ),")
         if понятие.get("note"):
             строки.append(f"            note = {строка(понятие['note'])},")
+        if понятие.get("target_kind"):
+            строки.append(f"            targetKind = {строка(понятие['target_kind'])},")
         строки.append("        ),")
     строки += [
         "    )",

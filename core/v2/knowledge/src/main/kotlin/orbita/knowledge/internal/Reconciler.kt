@@ -30,6 +30,7 @@ import orbita.kernel.api.Entity
 import orbita.kernel.api.EntityStore
 import orbita.kernel.api.LinkRegistry
 import orbita.kernel.api.Provenance
+import orbita.kernel.api.QosClass
 import orbita.kernel.schema.GeneratedKinds
 import orbita.knowledge.api.Action
 import orbita.knowledge.api.Applied
@@ -266,6 +267,9 @@ internal class Reconciler(
             Channel.MANUAL
         }
         val кандидат = факт(область, запись) ?: error("кандидат-факт «${запись.path("candidate_fact").asText()}» потерян")
+        основание(вид, документ, кандидат)
+        классОбслуживанияTBR(вид, документ, author)
+        неполнота(вид, понятие, документ)
         val сущность = store.create(
             код, вид, областьЗаписи, сцена(вид), документ,
             Provenance(канал, author, source = кандидат.code),
@@ -984,8 +988,66 @@ internal class Reconciler(
         GeneratedKinds.byCode[вид]?.bornIn?.split(",", "/")?.firstOrNull()?.trim()
             ?.takeIf { it.matches(Regex("[0-9]+")) }
 
-    /** Вид сущности понятия; null — вида в истине схем нет (допущение, этап). */
-    private fun видПонятия(понятие: String): String? = GeneratedKinds.byCode[понятие]?.code
+    /**
+     * Вид сущности понятия; null — вида в истине схем нет (допущение ложится
+     * на факт с диспозицией «assumed»).
+     *
+     * Вид называет ОНТОЛОГИЯ (`target_kind`), когда имя понятия и имя вида
+     * расходятся; по умолчанию они совпадают. Второго перечня соответствий в
+     * коде нет: придумывать вид понятию запрещено.
+     */
+    private fun видПонятия(понятие: String): String? {
+        val названный = GeneratedOntology.byCode[понятие]?.targetKindCode
+        return GeneratedKinds.byCode[названный ?: понятие]?.code
+    }
+
+    /**
+     * Обязательное поле вида, которого онтология НЕ называет и система взять
+     * неоткуда: род вехи (программный этап · внешнее событие · контракт) —
+     * ровно то, ради чего вид отделён от точки. Записать сущность без него
+     * значило бы сделать запись, не отвечающую собственной схеме, и молча.
+     *
+     * Поля, которые онтология называет, сюда не попадают: их спрашивают у
+     * предложения и у человека обычным порядком, и правило не ужесточается.
+     */
+    private fun неполнота(вид: String, понятие: Concept, документ: ObjectNode) {
+        val спец = GeneratedKinds.byCode[вид] ?: return
+        val нет = спец.requiredFields.filter { поле ->
+            поле !in понятие.fields && поле !in спец.factRefFields &&
+                документ.path(поле).asText("").isBlank() && !документ.path(поле).isObject
+        }
+        if (нет.isEmpty()) return
+        throw IllegalArgumentException(
+            "${словоПонятия(понятие.code)}: не задано обязательное поле " +
+                нет.joinToString(" · ") { "«$it»" } +
+                " — истина схем требует его у вида «$вид»; задайте значение и повторите",
+        )
+    }
+
+    /**
+     * Основание сущности — тот факт, из которого она выведена. Поля, которые по
+     * истине схем суть ОДНА ссылка на факт (`milestone.source`), система
+     * заполняет сама: спрашивать у человека то, что она только что показала,
+     * незачем. Составной источник (перечень ссылок у требования, файл у задания
+     * разбора) сюда не попадает — перечень видов ведёт истина, а не код.
+     */
+    private fun основание(вид: String, документ: ObjectNode, кандидат: Entity) {
+        val спец = GeneratedKinds.byCode[вид] ?: return
+        спец.factRefFields.forEach { поле ->
+            if (документ.path(поле).asText("").isBlank()) документ.put(поле, кандидат.code)
+        }
+    }
+
+    /**
+     * Класс обслуживания нужды: обязателен, но до сцены сервисов допустимо
+     * значение TBR с ответственным (правило — [QosClass], решение владельца
+     * 12.09). Нужда заводится и без класса, но несёт TBR, и выход сцены
+     * сервисов её не пропустит.
+     */
+    private fun классОбслуживанияTBR(вид: String, документ: ObjectNode, author: String) {
+        if (вид != "need") return
+        QosClass.fillIfMissing(mapper, документ, author)
+    }
 
     private fun сущностьПоИмени(область: Area, вид: String?, имя: String): Entity? {
         val искомое = имя.trim()

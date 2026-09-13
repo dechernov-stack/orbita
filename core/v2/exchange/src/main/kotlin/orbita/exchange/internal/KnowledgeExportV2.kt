@@ -14,6 +14,7 @@ import orbita.exchange.api.KnowledgePart
 import orbita.kernel.api.Area
 import orbita.kernel.api.Entity
 import orbita.kernel.api.EntityStore
+import orbita.kernel.api.QosClass
 import orbita.knowledge.api.Disposition
 import orbita.knowledge.api.Fact
 import orbita.knowledge.api.Intake
@@ -160,7 +161,7 @@ internal class KnowledgeExportV2(
                 val текст = listOf("statement", "name").firstNotNullOfOrNull { о.doc.path(it).asText("").ifBlank { null } } ?: ""
                 val хвост = buildList {
                     о.doc.path("year").asText("").takeIf { it.isNotBlank() }?.let { add("год $it") }
-                    о.doc.path("qos_class").asText("").takeIf { it.isNotBlank() }?.let { add("класс $it") }
+                    QosClass.words(о.doc.path(QosClass.FIELD))?.let { add(it) }
                 }
                 appendLine("- `${о.code}` $текст" + (if (хвост.isEmpty()) "" else " _(${хвост.joinToString(", ")})_"))
             }

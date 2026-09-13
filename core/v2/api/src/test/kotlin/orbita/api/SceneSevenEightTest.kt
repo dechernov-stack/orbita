@@ -133,6 +133,12 @@ class SceneSevenEightTest {
             """{"text":"полезная нагрузка — только регенеративная","category":"техническое"}""")
         router.handle("POST", "/v2/services", параметры,
             """{"name":"передача коротких сообщений","qos_class":"B′","covers":${mapper.writeValueAsString(нужды)}}""")
+        // Класс обслуживания покрытой нужды — выход сцены 6 (решение владельца
+        // 12.09): до неё нужда несёт TBR, здесь класс назначает человек.
+        нужды.forEach { код ->
+            router.handle("PATCH", "/v2/entities/$код", параметры,
+                """{"fields":{"qos_class":"B′"},"author":"Иванов И.","reason":"класс назначен на сцене сервисов"}""")
+        }
     }
 
     private fun фаза(): JsonNode = router.handle("GET", "/v2/phase", параметры, null)!!.body

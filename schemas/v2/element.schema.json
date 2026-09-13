@@ -69,8 +69,21 @@
       "description": "ссылка на вид: section"
     },
     "ref": {
-      "type": "string",
-      "description": "ссылка на вид: fact | ref entity | ref model_run обязателен для fact_ref/entity_ref/figure"
+      "anyOf": [
+        {
+          "type": "string",
+          "description": "ссылка на вид: fact"
+        },
+        {
+          "type": "string",
+          "description": "ссылка на вид: entity"
+        },
+        {
+          "type": "string",
+          "description": "ссылка на вид: model_run"
+        }
+      ],
+      "description": "обязателен для fact_ref/entity_ref/figure"
     },
     "ref_version": {
       "type": "integer",

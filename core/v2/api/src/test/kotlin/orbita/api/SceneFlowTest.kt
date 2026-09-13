@@ -165,6 +165,21 @@ class SceneFlowTest {
         router.handle("POST", "/v2/services", параметры,
             """{"name":"передача коротких сообщений","qos_class":"B′","covers":${mapper.writeValueAsString(нужды)}}""")
 
+        // Решение владельца 12.09 («ЗНАНИЯ-V2-ПРИНЯТЫ» §1): класс обслуживания
+        // у нужды обязателен, но до этой сцены допустим TBR. Сервис нужду
+        // покрыл — значит класс обязан появиться, и сцена держится, пока его
+        // нет. Класс ставит человек: сервис не назначает его нужде молча.
+        val сСервисом = router.handle("GET", "/v2/phase", параметры, null)!!.body
+        assertEquals("open", сцена(сСервисом, "6").path("state").asText())
+        assertTrue(
+            сцена(сСервисом, "6").path("blockers").toString().contains("TBR"),
+            "выход сцены 6 обязан назвать нужды с классом TBR: ${сцена(сСервисом, "6").path("blockers")}",
+        )
+        нужды.forEach { код ->
+            router.handle("PATCH", "/v2/entities/$код", параметры,
+                """{"fields":{"qos_class":"B′"},"author":"Иванов И.","reason":"класс назначен на сцене сервисов"}""")
+        }
+
         val фаза = router.handle("GET", "/v2/phase", параметры, null)!!.body
         assertEquals("done", сцена(фаза, "6").path("state").asText(), сцена(фаза, "6").path("blockers").toString())
 

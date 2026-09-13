@@ -18,6 +18,7 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class EditInPlaceTest {
@@ -60,18 +61,32 @@ class EditInPlaceTest {
         assertEquals(1, сторона.version)
 
         val ответ = r.handle("PATCH", "/v2/entities/SK-0001", п,
-            """{"fields":{"name":"Минтранс России / Ространснадзор","influence":"decides","power":5,"interest":""},"author":"Иванов И.","reason":"по пакету сцены 3"}""", си)!!
+            """{"fields":{"name":"Минтранс России / Ространснадзор","influence":"decides","power":5,"attitude":"neutral"},"author":"Иванов И.","reason":"по пакету сцены 3"}""", си)!!
         assertEquals(200, ответ.code, ответ.body.toString())
         assertEquals(2, ответ.body.path("version").asInt())
-        assertEquals(4, ответ.body.path("changed").asInt(), "имя, влияние, сила; интерес снят — тоже правка")
+        assertEquals(4, ответ.body.path("changed").asInt(), "имя, влияние, сила, отношение")
+        // Провенанс — у той версии, которую эта правка и создала.
+        val послеПравки = store.byCode(область, "SK-0001")!!
+        assertTrue(послеПравки.provenance.author.startsWith("правка инженера: Иванов И."), послеПравки.provenance.author)
+        assertTrue(послеПравки.provenance.author.contains("по пакету сцены 3"))
+        // Необязательное поле пустым снимается: отношение стороны знают не всегда.
+        val безОтношения = r.handle("PATCH", "/v2/entities/SK-0001", п,
+            """{"fields":{"attitude":""},"author":"Иванов И."}""", си)!!
+        assertEquals(1, безОтношения.body.path("changed").asInt(), "пустое значение снимает поле")
+        // Обязательное — не снимается: сторона без интереса не отвечала бы
+        // собственной схеме, а снять его молча значило бы потерять содержание.
+        val снятие = runCatching {
+            r.handle("PATCH", "/v2/entities/SK-0001", п, """{"fields":{"interest":""},"author":"Иванов И."}""", си)
+        }.exceptionOrNull()
+        assertNotNull(снятие, "снятие обязательного поля обязано отказать")
+        assertTrue("interest" in (снятие.message ?: ""), снятие.message ?: "")
         val после = store.byCode(область, "SK-0001")!!
         assertEquals("Минтранс России / Ространснадзор", после.doc.path("name").asText())
         assertEquals("decides", после.doc.path("influence").asText())
         assertEquals(5, после.doc.path("power").asInt())
-        assertTrue(после.doc.get("interest") == null, "пустое значение снимает поле")
+        assertEquals("телематика", после.doc.path("interest").asText(), "обязательное поле цело")
+        assertTrue(после.doc.get("attitude") == null, "необязательное снято")
         assertEquals(сторона.id, после.id, "id стабилен — связи живут")
-        assertTrue(после.provenance.author.startsWith("правка инженера: Иванов И."), после.provenance.author)
-        assertTrue(после.provenance.author.contains("по пакету сцены 3"))
         val нужда = store.byCode(область, "ND-0001")!!
         assertEquals(listOf(после.id), links.to(нужда.id, "owns").map { it.from }, "носитель нужды остался")
 

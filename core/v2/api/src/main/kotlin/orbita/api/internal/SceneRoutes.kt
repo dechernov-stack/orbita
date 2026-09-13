@@ -18,6 +18,7 @@ import orbita.kernel.api.EntityStore
 import orbita.kernel.api.KnowledgeFlag
 import orbita.kernel.api.LinkRegistry
 import orbita.kernel.api.Provenance
+import orbita.kernel.api.QosClass
 import orbita.process.api.ProcessEngine
 import java.time.LocalDate
 
@@ -258,6 +259,11 @@ class SceneRoutes(
             // где ему место, — в провенансе записи.
             remove(listOf("code", "author", "project", "owner", "covers", "reconcile", "decision"))
         }
+        // Класс обслуживания нужды: обязателен, но до сцены сервисов допустимо
+        // TBR с ответственным (правило — QosClass, решение владельца 12.09).
+        // Инженер заводит нужду словами заказчика; класса в этих словах может
+        // не быть, и требовать его здесь значило бы просить выдумать.
+        if (вид == "need") QosClass.fillIfMissing(mapper, документ, автор)
         val сущность = store.create(
             код, вид, область, сцена, документ,
             Provenance(Channel.MANUAL, автор, source = сверка(тело)),
@@ -419,7 +425,9 @@ class SceneRoutes(
         require(запись.kind in правимые) { "«$код» — это ${запись.kind}: такие записи на месте не правятся" }
         val поля = тело.path("fields")
         require(поля.isObject && poleCount(поля) > 0) { "нужно fields: {поле: значение}; пустое значение снимает поле" }
-        val схема = runCatching { orbita.kernel.schema.GeneratedKinds.of(запись.kind).fields }.getOrDefault(emptyList())
+        val спец = runCatching { orbita.kernel.schema.GeneratedKinds.of(запись.kind) }.getOrNull()
+        val схема = спец?.fields.orEmpty()
+        val обязательные = спец?.requiredFields.orEmpty()
         val документ = запись.doc.deepCopy<ObjectNode>()
         var изменено = 0
         поля.fields().forEach { (имя, значение) ->
@@ -427,8 +435,18 @@ class SceneRoutes(
             require(схема.isEmpty() || имя in схема || имя in setOf("notes", "tags")) {
                 "поля «$имя» у вида ${запись.kind} нет: схема знает " + (схема + listOf("notes", "tags")).joinToString(" · ")
             }
+            val снимают = значение.isNull || (значение.isTextual && значение.asText().isBlank())
+            // Обязательное поле правкой НЕ снимается: его меняют. Пустое
+            // значение здесь означало бы «у нужды больше нет класса
+            // обслуживания» — а по истине схем нужды без класса не бывает,
+            // и снять его молча значило бы потерять и самого ответственного
+            // за TBR. Необязательное поле пустым по-прежнему снимается.
+            require(!(снимают && имя in обязательные)) {
+                "поле «$имя» у вида ${запись.kind} обязательно — его меняют, а не снимают: " +
+                    "пришлите значение вместо пустого"
+            }
             val было = документ.get(имя)
-            if (значение.isNull || (значение.isTextual && значение.asText().isBlank())) документ.remove(имя) else документ.set<JsonNode>(имя, значение)
+            if (снимают) документ.remove(имя) else документ.set<JsonNode>(имя, значение)
             if (было != документ.get(имя)) изменено += 1
         }
         if (изменено == 0) return V2Router.Ответ(200, mapper.createObjectNode().put("code", код).put("version", запись.version).put("changed", 0))

@@ -66,8 +66,43 @@
       "description": "ссылка на вид: stakeholder owns"
     },
     "qos_class": {
-      "type": "string",
-      "description": "ссылка на вид: qos_class"
+      "anyOf": [
+        {
+          "type": "string",
+          "description": "ссылка на вид: qos_class"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "owner": {
+              "type": [
+                "string",
+                "number",
+                "boolean",
+                "object",
+                "array",
+                "null"
+              ]
+            },
+            "gate": {
+              "type": [
+                "string",
+                "number",
+                "boolean",
+                "object",
+                "array",
+                "null"
+              ]
+            }
+          },
+          "description": "форма «tbr»",
+          "required": [
+            "owner",
+            "gate"
+          ]
+        }
+      ],
+      "description": "обязателен; значение TBR допустимо до сцены 6 (сервисы): выход сцены 6 требует класса у каждой нужды, покрытой сервисом"
     },
     "anchors": {
       "type": "array",

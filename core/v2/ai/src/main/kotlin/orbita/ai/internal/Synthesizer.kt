@@ -44,6 +44,8 @@ import orbita.kernel.api.Entity
 import orbita.kernel.api.EntityStore
 import orbita.kernel.api.KnowledgeFlag
 import orbita.kernel.api.Provenance
+import orbita.kernel.schema.GeneratedKinds
+import orbita.kernel.schema.KindSpec
 import orbita.knowledge.api.Authority
 import orbita.knowledge.api.Disposition
 import orbita.knowledge.api.Fact
@@ -661,6 +663,16 @@ $ФОРМАТ
             понятие.note?.let { append(" — $it") }
             append("\n    поля: ")
             append(понятие.fields.entries.joinToString(" · ") { "${it.key} ← ${it.value}" })
+            видПонятия(понятие)?.let { вид ->
+                // Поля вида, которых онтология не назвала: у вехи это «kind»
+                // (этап программы · внешнее событие · контракт). Без них
+                // предложение приходит неполным, и человеку приходится
+                // дописывать руками то, что видно в самом факте.
+                val ещё = вид.requiredFields.filterNot { it in понятие.fields.keys || it in СЛУЖЕБНЫЕ }
+                if (ещё.isNotEmpty()) {
+                    append("\n    ещё обязательные поля вида «${вид.code}»: ${ещё.joinToString(", ")}")
+                }
+            }
             append("\n    узнаётся по: ${понятие.identity.key.joinToString(", ")}")
             append("; по смыслу: ${понятие.identity.semantic}")
             if (понятие.conflictOn.isNotEmpty()) {
@@ -671,6 +683,10 @@ $ФОРМАТ
             }
         }
     }
+
+    /** Вид, которым понятие становится при акцепте; null — вида у понятия нет. */
+    private fun видПонятия(понятие: Concept): KindSpec? =
+        GeneratedKinds.byCode[понятие.targetKindCode ?: понятие.code]
 
     private fun строкаФакта(факт: Fact, темы: Map<String, String>): String {
         val величина = listOfNotNull(факт.value.ifBlank { null }, факт.unit).joinToString(" ")
@@ -793,8 +809,21 @@ $ФОРМАТ
         /** Состояния, в которых запись из поля выбыла. */
         val СНЯТЫЕ: Set<String> = setOf("cancelled", "rejected")
 
-        /** Виды принятых понятий постановки — те, о которых выносится вердикт. */
-        val ВИДЫ_ПОНЯТИЙ: List<String> = listOf("stakeholder", "need", "goal", "service", "constraint")
+        /**
+         * Виды принятых понятий постановки — те, о которых выносится вердикт.
+         * Берутся у ОНТОЛОГИИ: понятие, у которого есть вид в проектной
+         * области, попадает в срез само, без второго перечня в коде. Норматив
+         * отсюда исключён — он живёт на полке, общей для всех проектов.
+         */
+        val ВИДЫ_ПОНЯТИЙ: List<String> = GeneratedOntology.concepts
+            .mapNotNull { GeneratedKinds.byCode[it.targetKindCode ?: it.code]?.code }
+            .filterNot { it == "normative_document" }
+
+        /** Поля ядра сущности: их предлагает не модель, а система. */
+        val СЛУЖЕБНЫЕ: Set<String> = setOf(
+            "id", "code", "area", "born_in", "status", "version",
+            "provenance", "created_at", "updated_at", "source",
+        )
 
         /** Чем понятие называется на экране — первое непустое. */
         val ИМЕНА: List<String> = listOf("name", "statement", "text", "label", "designation")

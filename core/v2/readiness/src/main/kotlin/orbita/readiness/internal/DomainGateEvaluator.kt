@@ -9,6 +9,7 @@ package orbita.readiness.internal
 import orbita.kernel.api.Area
 import orbita.kernel.api.EntityStore
 import orbita.kernel.api.LinkRegistry
+import orbita.kernel.api.QosClass
 import orbita.process.api.GateEvaluator
 import orbita.readiness.api.ExtraChecks
 
@@ -95,6 +96,25 @@ class DomainGateEvaluator(
                 if (без.isEmpty()) null
                 else "нужд без сервиса: ${без.size} — " +
                     без.take(3).joinToString("; ") { it.doc.path("statement").asText(it.code).take(60) }
+            }
+
+            // Решение владельца 12.09 («ЗНАНИЯ-V2-ПРИНЯТЫ» §1): класс
+            // обслуживания у нужды обязателен, но значение TBR допустимо — до
+            // ЭТОЙ сцены. Здесь TBR и закрывается: нужда, которую сервис уже
+            // покрывает, обязана нести класс, иначе сервис не с чем сверить.
+            // Нужда без сервиса сюда не попадает — о ней говорит соседнее
+            // условие, и повторять его второй фразой ни к чему.
+            "covered_need_has_qos_class" -> {
+                val без = store.list(область, "need")
+                    .filter { нужда -> links.to(нужда.id, "covers").any { it.from.startsWith("service") } }
+                    .filter { нужда -> !QosClass.assigned(нужда.doc.path(QosClass.FIELD)) }
+                if (без.isEmpty()) null
+                else "нужд с классом ${QosClass.TBR}: ${без.size} — " +
+                    без.take(3).joinToString("; ") { нужда ->
+                        val кто = нужда.doc.path(QosClass.FIELD).path("owner").asText("")
+                        нужда.doc.path("statement").asText(нужда.code).take(50) +
+                            (if (кто.isBlank()) "" else " (ждёт: $кто)")
+                    }
             }
 
             // Порог владельца (ВОЛНА-0-ПРИНЯТА §2): план обязателен у ПЕРВОЙ
@@ -213,4 +233,5 @@ class DomainGateEvaluator(
             }
         }
     }
+
 }

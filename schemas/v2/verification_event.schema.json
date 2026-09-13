@@ -74,8 +74,15 @@
       ]
     },
     "evidence": {
-      "type": "string",
-      "description": "ссылка на вид: material | text"
+      "anyOf": [
+        {
+          "type": "string",
+          "description": "ссылка на вид: material"
+        },
+        {
+          "type": "string"
+        }
+      ]
     },
     "at": {
       "type": "string",

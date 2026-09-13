@@ -427,8 +427,9 @@ requirement (сцена 8): statement · level = "project" · category
 level (1 сегмент, 2 элемент, 3 подсистема) · parent (имя родителя); stakeholder →
 create_entity stakeholder (сцена 3): name · role; constraint → create_entity
 constraint (сцена 5): text · category; normative_ref → create_entity
-normative_document (полка). Вехи (milestone) — факты без действия: даты точек
-задаёт план фазы.
+normative_document (полка); milestone → create_entity milestone (сцена 2):
+name · kind (program_stage|external_event|contract) · date или range · fleet,
+если названо. Веха технологии сюда не идёт — она остаётся точкой (gate).
 ОЦЕНКА — в две стороны. От требования: для КАЖДОГО факта класса requirement,
 function и service назови, какие нужды проекта он покрывает (коды из списка), вердикт
 covers|partial|none и `note` — почему: partial — чего не хватает до нужды

@@ -15,6 +15,8 @@ import orbita.kernel.api.EntityStore
 import orbita.kernel.api.KnowledgeFlag
 import orbita.kernel.api.LinkRegistry
 import orbita.kernel.api.Provenance
+import orbita.kernel.api.QosClass
+import orbita.kernel.schema.GeneratedKinds
 import orbita.knowledge.api.Assumption
 import orbita.knowledge.api.Authority
 import orbita.knowledge.api.ContentProfile
@@ -358,6 +360,20 @@ class EntityIntake(
                     содержимое.put("designation", прежнееОбозначение)
                 }
             }
+            // Основание — тот факт, из которого действие выведено. Заполняются
+            // только поля-ОДНА-ссылка-на-факт истины схем (`milestone.source`):
+            // перечень ведёт истина, и составной источник требования сюда не
+            // попадает. Спрашивать у человека то, что система показала, незачем.
+            val основание = действие.path("facts").firstOrNull()?.asText().orEmpty()
+            if (основание.isNotBlank()) {
+                GeneratedKinds.byCode[вид]?.factRefFields.orEmpty().forEach { поле ->
+                    if (содержимое.path(поле).asText("").isBlank()) содержимое.put(поле, основание)
+                }
+            }
+            // Класс обслуживания нужды: правило одно на все входы (QosClass).
+            // План загрузки — третий вход наряду с ручным вводом и сверкой:
+            // нужда и отсюда обязана уйти с TBR, у которого есть ответственный.
+            if (вид == "need") QosClass.fillIfMissing(mapper, содержимое, author)
             val сущность = if (прежний != null) {
                 store.update(прежний.id, содержимое, Provenance(
                     Channel.SERVICE, author, source = задание.doc.path("material").asText(), anchor = якорь,

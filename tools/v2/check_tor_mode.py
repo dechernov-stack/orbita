@@ -120,14 +120,15 @@ def main() -> int:
 
     # Правило атомизации (ШИП-G-ПРИНЯТ): каждое требование, функция и сервис ТЗ —
     # отдельный факт; сверка живого разбора с пакетом — ПО КЛАССАМ (42 сущности):
-    # классы фактов и действия плана против классов пакета. Вехи действий не дают
-    # (даты точек задаёт план фазы) — сравниваются фактами.
+    # классы фактов и действия плана против классов пакета. С 12.09 у вехи есть
+    # свой вид (решение владельца, ЗНАНИЯ-V2-ПРИНЯТЫ §2): она даёт действие
+    # `create_entity milestone`, и особого случая «действий не бывает» больше нет.
     print(f"\nсверка с эталонным пакетом по классам ({len(эталон['items'])} сущностей; факты [класс] · действия плана):")
     эт = Counter(i["class"] for i in эталон["items"])
     наши = Counter(д.get("target_kind") for д in план["actions"])
     классы = Counter(ф.get("entity_class") or "" for ф in факты)
     соответствие = {"requirement": "requirement", "stakeholder": "stakeholder", "service": "service", "constraint": "constraint",
-                    "composition_node": "component", "milestone": "gate", "normative_ref": "normative_document", "function": "requirement"}
+                    "composition_node": "component", "milestone": "milestone", "normative_ref": "normative_document", "function": "requirement"}
     пусто = []
     for кл, n in sorted(эт.items(), key=lambda x: -x[1]):
         вид = соответствие.get(кл, кл)
@@ -137,7 +138,7 @@ def main() -> int:
         if фактов == 0 and n > 0:
             помета = "  !!! фактов этого класса нет"
             пусто.append(кл)
-        elif действий == 0 and кл != "milestone":
+        elif действий == 0:
             помета = "  ! действий плана нет"
         print(f"   {кл:<18} пакет {n:>2} · фактов [{кл}] {фактов:>2} · действий {вид}: {действий}{помета}")
     print("   фактов без класса:", классы.get("", 0))

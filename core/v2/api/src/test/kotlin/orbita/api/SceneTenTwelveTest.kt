@@ -133,6 +133,12 @@ class SceneTenTwelveTest {
             """{"text":"полезная нагрузка — только регенеративная","category":"техническое"}""")
         router.handle("POST", "/v2/services", параметры,
             """{"name":"короткие сообщения","qos_class":"B′","covers":${mapper.writeValueAsString(нужды)}}""")
+        // Класс обслуживания покрытой нужды — выход сцены 6 (решение владельца
+        // 12.09): до неё нужда несёт TBR, здесь класс назначает человек.
+        нужды.forEach { код ->
+            router.handle("PATCH", "/v2/entities/$код", параметры,
+                """{"fields":{"qos_class":"B′"},"author":"Иванов И.","reason":"класс назначен на сцене сервисов"}""")
+        }
         listOf(
             """{"code":"SC","name":"Космический аппарат","nature":"node","level":1,"kind":"system"}""",
             """{"code":"OBC-CPU","name":"БЦВМ","nature":"node","level":4,"kind":"assembly"}""",

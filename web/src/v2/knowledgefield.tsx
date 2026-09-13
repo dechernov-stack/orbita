@@ -148,6 +148,8 @@ const ДЕЙСТВИЕ: Record<string, string> = {
  */
 const ПОЛЯ_ПОНЯТИЯ: Record<string, {
   текст: string; изПредмета?: boolean; величина?: string; ссылка?: string
+  /** Обязательное перечисление вида: род вехи — поле `kind` схемы вида 286. */
+  род?: { поле: string; подпись: string; значения: [string, string][] }
 }> = {
   stakeholder: { текст: 'name', изПредмета: true },
   need: { текст: 'statement', ссылка: 'stakeholder' },
@@ -155,7 +157,19 @@ const ПОЛЯ_ПОНЯТИЯ: Record<string, {
   service: { текст: 'name', изПредмета: true, величина: 'target_measure' },
   constraint: { текст: 'statement', величина: 'bound' },
   assumption: { текст: 'statement' },
-  milestone: { текст: 'name', изПредмета: true },
+  milestone: {
+    текст: 'name', изПредмета: true,
+    // Перечисление — из истины схем (вид 286, поле kind). Веха технологии
+    // сюда не идёт: она остаётся точкой.
+    род: {
+      поле: 'kind', подпись: 'род вехи',
+      значения: [
+        ['program_stage', 'программный этап'],
+        ['external_event', 'внешнее событие'],
+        ['contract', 'контракт'],
+      ],
+    },
+  },
   normative_document: { текст: 'designation', изПредмета: true },
 }
 
@@ -174,11 +188,13 @@ function формулировкаКандидата(понятие: string, пр
 /** Содержимое кандидата: только поля онтологии — выдуманных полей не бывает. */
 function содержимоеКандидата(
   понятие: string, предмет: string, утверждение: string, значение: string, единица: string,
+  род = '',
 ): Record<string, unknown> {
   const поля = ПОЛЯ_ПОНЯТИЯ[понятие] ?? { текст: 'statement' }
   const содержимое: Record<string, unknown> = {
     [поля.текст]: формулировкаКандидата(понятие, предмет, утверждение),
   }
+  if (поля.род && род.trim() !== '') содержимое[поля.род.поле] = род.trim()
   if (поля.ссылка && предмет.trim() !== '') содержимое[поля.ссылка] = предмет.trim()
   // Величина без единицы — не факт: пара идёт целиком либо не идёт вовсе.
   if (поля.величина && значение.trim() !== '' && единица.trim() !== '') {
@@ -959,6 +975,7 @@ function Manual({ project, темы, знанияV2, onDone, onError }: {
   const [вид, setВид] = useState('framing')
   const [темаФакта, setТемаФакта] = useState('')
   const [понятие, setПонятие] = useState('need')
+  const [род, setРод] = useState('')
   const [роль, setРоль] = useState('')
   const [сверка, setСверка] = useState<ReconcileRun | null>(null)
   const [смысл, setСмысл] = useState(false)
@@ -987,7 +1004,7 @@ function Manual({ project, темы, знанияV2, onDone, onError }: {
       [{
         local_id: 'c1',
         concept: понятие,
-        payload: содержимоеКандидата(понятие, предмет, утверждение, значение, единица),
+        payload: содержимоеКандидата(понятие, предмет, утверждение, значение, единица, род),
         origin: 'manual',
       }],
       'инженер',
@@ -1047,6 +1064,18 @@ function Manual({ project, темы, знанияV2, onDone, onError }: {
           </label>
         )}
       </div>
+      {знанияV2 && ПОЛЯ_ПОНЯТИЯ[понятие]?.род && (
+        <div className="v2-kf__row" style={{ gridTemplateColumns: '2fr auto' }}>
+          <label>{ПОЛЯ_ПОНЯТИЯ[понятие]!.род!.подпись}
+            <select value={род} onChange={(e) => setРод(e.target.value)}
+              title="обязательное поле вида: без него запись не отвечала бы собственной схеме, и сервер её не примет">
+              <option value="">— выбрать —</option>
+              {ПОЛЯ_ПОНЯТИЯ[понятие]!.род!.значения.map(([к, и]) => <option key={к} value={к}>{и}</option>)}
+            </select>
+          </label>
+          <span className="v2-empty__why">Вехи технологий сюда не идут: они остаются точкой.</span>
+        </div>
+      )}
       {знанияV2 && (
         <div className="v2-empty__why">
           {ПОЛЯ_ПОНЯТИЯ[понятие]?.ссылка

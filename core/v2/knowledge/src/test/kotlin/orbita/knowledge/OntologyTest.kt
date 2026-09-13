@@ -11,6 +11,10 @@
 // здесь, а не всплывать предложением, сделанным по устаревшим правилам.
 package orbita.knowledge
 
+import com.fasterxml.jackson.databind.node.TextNode
+import orbita.kernel.api.QosClass
+import orbita.kernel.schema.GeneratedKinds
+import orbita.kernel.schema.Layer
 import orbita.knowledge.schema.GeneratedOntology
 import java.io.File
 import java.security.MessageDigest
@@ -111,6 +115,44 @@ class OntologyTest {
             GeneratedOntology.reconciliation.containsKey("contradict"),
             "вердикты сверки берутся из истины, а не выдумываются маршрутом",
         )
+    }
+
+    /**
+     * Решение владельца 12.09 («ЗНАНИЯ-V2-ПРИНЯТЫ» §2): у вехи появился свой
+     * вид. Онтология называет его сама — `target_kind`; код соответствий не
+     * держит, и вид, названный онтологией, обязан быть в истине схем.
+     */
+    @Test
+    fun `веха называет свой вид, и вид этот в истине схем есть`() {
+        val веха = GeneratedOntology.of("milestone")
+        assertEquals("milestone", веха.targetKindCode, "онтология называет вид вехи: ${веха.targetKind}")
+        val спец = GeneratedKinds.of("milestone")
+        assertEquals(Layer.L1, спец.layer, "веха — слой L1 по истине схем")
+        assertTrue(
+            listOf("name", "kind", "source").all { it in спец.requiredFields },
+            "у вехи обязательны имя, род и основание: ${спец.requiredFields}",
+        )
+        assertTrue(
+            веха.targetKind.orEmpty().contains("gate"),
+            "истина обязана сказать, что вехи технологий остаются точкой: ${веха.targetKind}",
+        )
+    }
+
+    /**
+     * Решение владельца 12.09 §1: класс обслуживания нужды обязателен, но
+     * значение TBR допустимо до сцены сервисов. Онтология и схема обязаны
+     * говорить одно — иначе сверка потребует того, чего схема не требует.
+     */
+    @Test
+    fun `класс обслуживания нужды допускает TBR с владельцем и воротами`() {
+        assertTrue(
+            нужда.fields["qos_class"].orEmpty().contains("TBR"),
+            "онтология обязана назвать TBR допустимым: ${нужда.fields["qos_class"]}",
+        )
+        assertTrue("qos_class" in GeneratedKinds.of("need").requiredFields, "поле обязательно по истине схем")
+        assertEquals("6", QosClass.GATE, "ворота TBR — сцена, в которой заводятся сервисы")
+        assertTrue(!QosClass.assigned(TextNode.valueOf("TBR")), "слово TBR классом не считается")
+        assertTrue(QosClass.assigned(TextNode.valueOf("B′")), "ссылка на класс справочника — назначенный класс")
     }
 
     // --- отказы ---

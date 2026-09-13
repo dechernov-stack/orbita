@@ -16,20 +16,31 @@ import { запомнитьАвтора, запомнитьРоль, отказ�
  * строке, новая версия с провенансом «правка инженера». Пустое значение
  * снимает поле. Что править — задаёт вызывающая сцена списком полей.
  */
-type Поле = { key: string; label: string; kind?: 'text' | 'number' | 'select'; options?: [string, string][] }
+type Поле = {
+  key: string; label: string; kind?: 'text' | 'number' | 'select'; options?: [string, string][]
+  /** Обязательное по истине схем: пустого варианта у него нет — снять его нельзя. */
+  обязательное?: boolean
+}
 
 function ПравкаСтроки({ project, row, поля, colSpan, onSaved, onCancel }: {
   project: string; row: EntityRow; поля: Поле[]; colSpan: number; onSaved: () => void; onCancel: () => void
 }) {
-  const [значения, setЗначения] = useState<Record<string, string>>(
-    Object.fromEntries(поля.map((п) => [п.key, row.doc[п.key] == null ? '' : String(row.doc[п.key])])),
-  )
+  // Составное значение (TBR у класса нужды: {owner, gate}) строкой не
+  // показывается: поле начинается пустым, а не с «[object Object]».
+  const начальное = (значение: unknown): string =>
+    значение == null || typeof значение === 'object' ? '' : String(значение)
+  const исходные = Object.fromEntries(поля.map((п) => [п.key, начальное(row.doc[п.key])]))
+  const [значения, setЗначения] = useState<Record<string, string>>(исходные)
   const [занято, setЗанято] = useState(false)
   const [отказ, setОтказ] = useState<string | null>(null)
+  // Правится то, что ТРОНУЛИ. Поле, которого инженер не касался, в запрос не
+  // идёт: иначе правка формулировки снимала бы соседнее поле пустым значением
+  // (класс обслуживания нужды с его ответственным за TBR — ровно этот случай).
+  const тронутые = поля.filter((п) => значения[п.key] !== исходные[п.key])
   const сохранить = () => {
     setЗанято(true); setОтказ(null)
     const fields: Record<string, unknown> = {}
-    поля.forEach((п) => {
+    тронутые.forEach((п) => {
       const v = значения[п.key]
       fields[п.key] = п.kind === 'number' ? (v === '' ? '' : Number(v)) : v
     })
@@ -47,7 +58,17 @@ function ПравкаСтроки({ project, row, поля, colSpan, onSaved, on
               {п.label}
               {п.kind === 'select' ? (
                 <select value={значения[п.key]} onChange={(e) => setЗначения({ ...значения, [п.key]: e.target.value })}>
-                  <option value="">—</option>
+                  {/* Обязательное поле пустым не становится: снять его нельзя,
+                      можно только заменить — сервер отвечает тем же. */}
+                  {п.обязательное ? null : <option value="">—</option>}
+                  {/* Значение вне перечня показывается как есть: «—» на месте
+                      настоящего класса означало бы, что его нет. */}
+                  {значения[п.key] !== '' && !(п.options ?? []).some(([v]) => v === значения[п.key])
+                    ? <option value={значения[п.key]}>{значения[п.key]}</option>
+                    : null}
+                  {п.обязательное && значения[п.key] === ''
+                    ? <option value="">— не назначен —</option>
+                    : null}
                   {(п.options ?? []).map(([v, t]) => <option key={v} value={v}>{t}</option>)}
                 </select>
               ) : (
@@ -56,8 +77,11 @@ function ПравкаСтроки({ project, row, поля, colSpan, onSaved, on
               )}
             </label>
           ))}
-          <button type="button" className="v2-primary" onClick={сохранить} disabled={занято}
-            title={занято ? 'сохраняю' : 'сохранить новой версией — провенанс «правка инженера»'}>Сохранить</button>
+          <button type="button" className="v2-primary" onClick={сохранить}
+            disabled={занято || тронутые.length === 0}
+            title={занято ? 'сохраняю'
+              : тронутые.length === 0 ? 'ничего не изменено — править нечего'
+                : 'сохранить новой версией — провенанс «правка инженера»'}>Сохранить</button>
           <button type="button" onClick={onCancel} title="отменить правку, ничего не менять">Отмена</button>
           {отказ && <span className="v2-locked">{отказ}</span>}
         </div>
@@ -616,10 +640,21 @@ export function SceneStakeholders({ project, onChanged }: { project: string; onC
                   ? <span className="v2-warn">нужд нет — сцена не закроется</span>
                   : нуждыСтороны(с.id).map((n) => правка === n.code ? (
                     <ПравкаСтроки key={n.id} project={project} row={n} colSpan={1}
-                      поля={[{ key: 'statement', label: 'формулировка' }]}
+                      поля={[
+                        { key: 'statement', label: 'формулировка' },
+                        { key: 'qos_class', label: 'класс', kind: 'select', options: КЛАССЫ, обязательное: true },
+                      ]}
                       onSaved={() => { setПравка(null); перечитать(); onChanged() }} onCancel={() => setПравка(null)} />
                   ) : (
-                    <div key={n.id}>{String(n.doc.statement ?? '')} <Карандаш onClick={() => setПравка(n.code)} /></div>
+                    <div key={n.id}>
+                      {String(n.doc.statement ?? '')}
+                      {классНазначен(n.doc.qos_class)
+                        ? <span className="v2-muted"> · класс {классСловами(n.doc.qos_class)}</span>
+                        : <span className="v2-muted" title="класс обслуживания назначается на сцене сервисов; здесь он ещё TBR">
+                            {' '}· класс {классСловами(n.doc.qos_class) || 'TBR'}
+                          </span>}
+                      {' '}<Карандаш onClick={() => setПравка(n.code)} />
+                    </div>
                   ))}
               </td>
             </tr>
@@ -820,6 +855,33 @@ export function SceneConstraints({ project, onChanged }: { project: string; onCh
   )
 }
 
+/**
+ * Класс обслуживания словами. У нужды до сцены 6 допустимо значение TBR с
+ * ответственным (решение владельца 12.09): оно показывается словом «TBR», а
+ * не пустотой — инженер обязан видеть, что класса ещё нет.
+ */
+function классСловами(значение: unknown): string {
+  if (значение && typeof значение === 'object') {
+    const кто = String((значение as Record<string, unknown>).owner ?? '')
+    return кто ? `TBR — за ${кто}` : 'TBR'
+  }
+  return значение == null ? '' : String(значение)
+}
+
+/** Назначен ли класс: TBR и пусто — нет. */
+function классНазначен(значение: unknown): boolean {
+  if (значение && typeof значение === 'object') return false
+  const текст = значение == null ? '' : String(значение).trim()
+  return текст !== '' && текст.toUpperCase() !== 'TBR'
+}
+
+/** Классы обслуживания справочника — те же три, что и у сервиса. */
+const КЛАССЫ: [string, string][] = [
+  ['A′', 'A′ — односторонний'],
+  ['B′', 'B′ — с подтверждением'],
+  ['C′', 'C′ — оперативного управления'],
+]
+
 /** Сцена 6 — сервисы: что система даёт кому и с каким качеством. */
 export function SceneServices({ project, onChanged }: { project: string; onChanged: () => void }) {
   const [сервисы, setСервисы] = useState<EntityRow[]>([])
@@ -844,6 +906,18 @@ export function SceneServices({ project, onChanged }: { project: string; onChang
   }
 
   const безСервиса = нужды.filter((n) => (n.covered_by ?? []).every((c) => !c.startsWith('service')))
+  // Нужда, которую сервис уже покрывает, обязана нести класс: до этой сцены
+  // он мог стоять TBR, здесь он закрывается — иначе сервис не с чем сверить.
+  const безКласса = нужды
+    .filter((n) => (n.covered_by ?? []).some((c) => c.startsWith('service')))
+    .filter((n) => !классНазначен(n.doc.qos_class))
+
+  const назначитьКласс = (код: string, класс: string) => {
+    setОтказ(null)
+    api.patchEntity(project, код, { qos_class: класс }, 'инженер', 'класс назначен на сцене сервисов')
+      .then(() => { перечитать(); onChanged() })
+      .catch((e) => setОтказ(String(e.message ?? e)))
+  }
 
   return (
     <div>
@@ -855,9 +929,7 @@ export function SceneServices({ project, onChanged }: { project: string; onChang
         </label>
         <label>Класс обслуживания
           <select value={класс} onChange={(e) => setКласс(e.target.value)}>
-            <option value="A′">A′ — односторонний</option>
-            <option value="B′">B′ — с подтверждением</option>
-            <option value="C′">C′ — оперативного управления</option>
+            {КЛАССЫ.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
           </select>
         </label>
         <div>
@@ -888,7 +960,10 @@ export function SceneServices({ project, onChanged }: { project: string; onChang
         <tbody>
           {сервисы.map((с) => правка === с.code ? (
             <ПравкаСтроки key={с.id} project={project} row={с} colSpan={4}
-              поля={[{ key: 'name', label: 'сервис' }, { key: 'qos_class', label: 'класс' }]}
+              поля={[
+                { key: 'name', label: 'сервис' },
+                { key: 'qos_class', label: 'класс', kind: 'select', options: КЛАССЫ, обязательное: true },
+              ]}
               onSaved={() => { setПравка(null); перечитать(); onChanged() }} onCancel={() => setПравка(null)} />
           ) : (
             <tr key={с.id}>
@@ -907,6 +982,33 @@ export function SceneServices({ project, onChanged }: { project: string; onChang
       {безСервиса.length > 0 && (
         <div className="v2-warn">
           Нужд без сервиса: {безСервиса.length} — пока они есть, сцена 6 не закроется.
+        </div>
+      )}
+
+      {безКласса.length > 0 && (
+        <div className="v2-form" data-why="работа">
+          <div className="v2-empty__why">
+            Класс обслуживания у покрытых нужд ({безКласса.length}) — здесь закрывается TBR:
+          </div>
+          <table className="v2-table">
+            <thead><tr><th>Код</th><th>Нужда</th><th>Сейчас</th><th>Назначить</th></tr></thead>
+            <tbody>
+              {безКласса.map((n) => (
+                <tr key={n.id}>
+                  <td className="v2-mono">{n.code}</td>
+                  <td>{String(n.doc.statement ?? '')}</td>
+                  <td className="v2-muted">{классСловами(n.doc.qos_class) || '—'}</td>
+                  <td>
+                    <select value="" title="класс обслуживания нужды — из тех же трёх, что у сервиса"
+                      onChange={(e) => e.target.value && назначитьКласс(n.code, e.target.value)}>
+                      <option value="">— выбрать —</option>
+                      {КЛАССЫ.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
+                    </select>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

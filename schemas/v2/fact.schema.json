@@ -87,11 +87,27 @@
       "type": "string"
     },
     "value": {
-      "$ref": "https://kis.local/schemas/v2/_measure.schema.json"
+      "anyOf": [
+        {
+          "$ref": "https://kis.local/schemas/v2/_measure.schema.json"
+        },
+        {
+          "type": "string"
+        }
+      ]
     },
     "source": {
-      "type": "object",
-      "description": "{material?,anchor?} | {account*,role*,at*} документ с якорем — или эксперт без якоря (учётка · роль · дата); ровно одно из двух, стережёт Kotlin"
+      "anyOf": [
+        {
+          "type": "object",
+          "description": "{material?,anchor?}"
+        },
+        {
+          "type": "object",
+          "description": "{account*,role*,at*}"
+        }
+      ],
+      "description": "документ с якорем — или эксперт без якоря (учётка · роль · дата); ровно одно из двух, стережёт Kotlin"
     },
     "source_mark": {
       "enum": [

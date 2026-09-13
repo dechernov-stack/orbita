@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://kis.local/schemas/v2/system_model.schema.json",
-  "title": "system_model",
-  "description": "запись модели — вид 56 слоя L4. Сцена рождения: 7, A6. СГЕНЕРИРОВАНО tools/v2/gen_schemas.py из docs/tz/v2/СХЕМЫ-ПОЛЕЙ-V2.yaml — руками не править",
+  "$id": "https://kis.local/schemas/v2/milestone.schema.json",
+  "title": "milestone",
+  "description": "программный этап / внешняя веха (из документов и плана) — вид 286 слоя L1. Сцена рождения: 2, 12, 14. СГЕНЕРИРОВАНО tools/v2/gen_schemas.py из docs/tz/v2/СХЕМЫ-ПОЛЕЙ-V2.yaml — руками не править",
   "type": "object",
   "additionalProperties": false,
   "properties": {
@@ -15,8 +15,12 @@
       "description": "человеческий, переименуемый"
     },
     "kind": {
-      "type": "string",
-      "description": "ссылка на вид: kind"
+      "enum": [
+        "program_stage",
+        "external_event",
+        "contract"
+      ],
+      "description": "вехи технологий — gate.kind=technology, не здесь"
     },
     "area": {
       "enum": [
@@ -58,59 +62,31 @@
         "type": "string"
       }
     },
-    "template_code": {
+    "name": {
       "type": "string"
     },
-    "inputs": {
+    "date": {
+      "type": "string",
+      "format": "date"
+    },
+    "range": {
+      "type": "object",
+      "description": "{start*,end*,unit*} этап записки: 0–1,5 года"
+    },
+    "fleet": {
+      "$ref": "https://kis.local/schemas/v2/_measure.schema.json"
+    },
+    "source": {
+      "type": "string",
+      "description": "ссылка на вид: fact derived_from_fact"
+    },
+    "feeds": {
       "type": "array",
       "items": {
-        "type": "object",
-        "properties": {
-          "param_ref": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
-          }
-        },
-        "required": [
-          "param_ref"
-        ]
-      }
-    },
-    "interface_ref": {
-      "type": "string",
-      "description": "ссылка на вид: interface"
-    },
-    "last_run": {
-      "type": "string",
-      "description": "ссылка на вид: model_run"
-    },
-    "verification_status": {
-      "enum": [
-        "unverified",
-        "verified",
-        "validated"
-      ]
-    },
-    "evaluation_criteria": {
-      "anyOf": [
-        {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "description": "ссылка на вид: metric"
-          }
-        },
-        {
-          "type": "string"
-        }
-      ],
-      "description": "критерии оценки модели (мероприятие «критерии оценки моделей»)"
+        "type": "string",
+        "description": "ссылка на вид: gate | plan"
+      },
+      "description": "что от неё зависит: даты точек, FA §4"
     }
   },
   "required": [
@@ -124,8 +100,7 @@
     "provenance",
     "created_at",
     "updated_at",
-    "template_code",
-    "inputs",
-    "verification_status"
+    "name",
+    "source"
   ]
 }

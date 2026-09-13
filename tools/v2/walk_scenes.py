@@ -45,6 +45,18 @@ class Отказ(Exception):
     """Отказ стенда: он несёт причину словами — её и показываем."""
 
 
+def назначен_класс(значение) -> bool:
+    """Назначен ли класс обслуживания: TBR и пусто — нет.
+
+    То же правило, что у ядра (`orbita.kernel.api.QosClass`): значение-объект —
+    это TBR с ответственным и воротами, а не класс.
+    """
+    if isinstance(значение, dict):
+        return False
+    текст = "" if значение is None else str(значение).strip()
+    return текст != "" and текст.upper() != "TBR"
+
+
 def вызов(base: str, метод: str, путь: str, тело=None):
     данные = json.dumps(тело, ensure_ascii=False).encode() if тело is not None else None
     запрос = urllib.request.Request(
@@ -168,6 +180,21 @@ class Прогон:
                 self.код_по_имени("service", с["name"]) is not None,
                 lambda в=с: вызов(self.base, "POST", f"/v2/services?project={self.проект}",
                                   {**в, "covers": нужды, "author": "Иванов И."}),
+            )
+        # Класс обслуживания покрытой нужды — выход ЭТОЙ сцены (решение
+        # владельца 12.09): до неё нужда несёт TBR, здесь класс назначается.
+        # Без этого шага сцена 6 не закрывается и лента дальше не идёт.
+        класс = (self.сид["services"][0].get("qos_class") if self.сид.get("services") else None) or "B′"
+        for н in self.сущности("need"):
+            if назначен_класс(н.get("doc", {}).get("qos_class")):
+                continue
+            self.шаг(
+                f"сцена 6: класс обслуживания нужде {н['code']}", False,
+                lambda к=н["code"]: вызов(
+                    self.base, "PATCH", f"/v2/entities/{к}?project={self.проект}",
+                    {"fields": {"qos_class": класс}, "author": "Иванов И.",
+                     "reason": "класс назначен на сцене сервисов"},
+                ),
             )
 
     def сцена_7_состав_и_вариант(self) -> None:

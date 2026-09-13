@@ -51,7 +51,17 @@ data class Concept(
     val conflictOn: List<String>,
     val identity: ConceptIdentity,
     val note: String? = null,
-)
+    /** Вид сущности, которым понятие становится при акцепте, словами истины. */
+    val targetKind: String? = null,
+) {
+
+    /**
+     * Код вида из [targetKind]: «milestone (L1); вехи технологий — gate» → milestone.
+     * Пусто — понятие вида не имеет и ложится на факт (допущение).
+     */
+    val targetKindCode: String? =
+        targetKind?.takeWhile { it.isLetterOrDigit() || it == '_' }?.ifBlank { null }
+}
 
 object GeneratedOntology {
 
@@ -59,7 +69,7 @@ object GeneratedOntology {
      * Отпечаток истины онтологии (sha256 файла). Им помечается каждый запуск
      * синтеза: по нему видно, по каким правилам сделано предложение.
      */
-    const val ontologyVersion: String = "2506643e678678b5c75f64c4b6afaf0244975abfe2b1afa3b3af31b34df48954"
+    const val ontologyVersion: String = "74600d3534c27ba2fcc3bca6db3560afb4c97f28a531d9370cf60ab8aa734b88"
 
     /** Ранги доверия по убыванию веса — ранг подсказывает, решает человек. */
     val authorityRanks: List<String> = listOf("mandatory", "expert", "reference", "doubtful")
@@ -105,7 +115,7 @@ object GeneratedOntology {
             fields = mapOf(
                 "statement" to "предикат+объект",
                 "stakeholder" to "subject (owns) — обязательно",
-                "qos_class" to "из facts о задержке/гарантии; иначе TBR",
+                "qos_class" to "из фактов о задержке/гарантии; иначе TBR{owner,gate=сцена 6}",
             ),
             mustLink = listOf("owns→stakeholder"),
             conflictOn = listOf("statement contradicts"),
@@ -214,6 +224,7 @@ object GeneratedOntology {
                 semantic = "тот же этап/событие; отличие — дата",
                 threshold = 0.85,
             ),
+            targetKind = "milestone (L1); вехи технологий — gate",
         ),
         Concept(
             code = "normative_document",

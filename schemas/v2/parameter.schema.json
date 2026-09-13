@@ -67,7 +67,52 @@
       "description": "ключ анкеты"
     },
     "measure": {
-      "$ref": "https://kis.local/schemas/v2/_measure.schema.json",
+      "anyOf": [
+        {
+          "$ref": "https://kis.local/schemas/v2/_measure.schema.json"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "owner": {
+              "type": [
+                "string",
+                "number",
+                "boolean",
+                "object",
+                "array",
+                "null"
+              ]
+            },
+            "gate": {
+              "type": [
+                "string",
+                "number",
+                "boolean",
+                "object",
+                "array",
+                "null"
+              ]
+            },
+            "action": {
+              "type": [
+                "string",
+                "number",
+                "boolean",
+                "object",
+                "array",
+                "null"
+              ]
+            }
+          },
+          "description": "форма «tbr»",
+          "required": [
+            "owner",
+            "gate",
+            "action"
+          ]
+        }
+      ],
       "description": "срок — любая веха (gate.kind phase|technology); точка фазы считает сроки по дате ≤ своей"
     },
     "origin": {

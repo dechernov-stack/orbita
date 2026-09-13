@@ -19,6 +19,7 @@ import orbita.kernel.api.EntityStore
 import orbita.kernel.api.Link
 import orbita.kernel.api.LinkRegistry
 import orbita.kernel.api.Provenance
+import orbita.kernel.api.QosClass
 import orbita.knowledge.api.Action
 import orbita.knowledge.api.Authority
 import orbita.knowledge.api.Candidate
@@ -217,6 +218,74 @@ class ReconcileManualInputTest {
             Disposition.ADOPTED.name.lowercase(), кандидатФакт.doc.path("disposition").asText(),
             "принятый кандидат-факт получает диспозицию решения",
         )
+    }
+
+    /**
+     * Решение владельца 12.09 §1: класс обслуживания у нужды обязателен, но
+     * до сцены сервисов допустимо значение TBR. Нужда заводится и без класса —
+     * и уносит с собой ответственного и ворота, где класс обязан появиться.
+     */
+    @Test
+    fun `нужда без класса обслуживания заводится с TBR — ответственный и ворота названы`() {
+        val минтранс = сторона("SK-0001", "Минтранс России")
+        val запуск = сверка.preview(проект, listOf(кандидатНужды("В Арктике требуется связь")), автор, роль)
+
+        сверка.apply(
+            проект, запуск.id, "c1", finding = 0, action = Action.ACCEPT_NEW,
+            target = минтранс.code, reason = "сторона выбрана инженером", author = автор,
+        )
+
+        val класс = store.list(область, "need").single().doc.path("qos_class")
+        assertFalse(QosClass.assigned(класс), "класса ещё нет — значение TBR")
+        assertEquals(автор, класс.path("owner").asText(), "TBR без ответственного был бы вечным")
+        assertEquals(QosClass.GATE, класс.path("gate").asText(), "ворота TBR — сцена сервисов")
+    }
+
+    /**
+     * Решение владельца 12.09 §2: у вехи свой вид. Понятие «этап» перестало
+     * ложиться на факт и заводит сущность — с основанием, которое система
+     * знает сама.
+     */
+    @Test
+    fun `этап заводится видом вехи, и основанием ему встаёт кандидат-факт`() {
+        val содержимое = mapper.createObjectNode()
+            .put("name", "этап 1: до 50 КА")
+            .put("kind", "program_stage")
+            .put("date", "2028-12-31")
+        val запуск = сверка.preview(проект, listOf(Candidate("c1", "milestone", содержимое)), автор, роль)
+
+        сверка.apply(
+            проект, запуск.id, "c1", finding = 0, action = Action.ACCEPT_NEW,
+            target = null, reason = "этап записки", author = автор,
+        )
+
+        val веха = store.list(область, "milestone").single()
+        assertEquals("этап 1: до 50 КА", веха.doc.path("name").asText())
+        val кандидатФакт = store.byCode(область, запуск.items.single().candidateFact)!!
+        assertEquals(
+            кандидатФакт.code, веха.doc.path("source").asText(),
+            "основание вехи — тот факт, из которого она выведена: спрашивать его у человека незачем",
+        )
+    }
+
+    /**
+     * Род вехи — то единственное, ради чего вид отделён от точки. Онтология его
+     * не называет, взять системе неоткуда: запись без него не отвечала бы
+     * собственной схеме, и молча её быть не должно.
+     */
+    @Test
+    fun `этап без рода не заводится — отказ называет поле`() {
+        val содержимое = mapper.createObjectNode().put("name", "этап 1: до 50 КА")
+        val запуск = сверка.preview(проект, listOf(Candidate("c1", "milestone", содержимое)), автор, роль)
+
+        val отказ = assertFailsWith<IllegalArgumentException> {
+            сверка.apply(
+                проект, запуск.id, "c1", finding = 0, action = Action.ACCEPT_NEW,
+                target = null, reason = "этап записки", author = автор,
+            )
+        }
+        assertTrue("kind" in отказ.message.orEmpty(), "отказ обязан назвать поле: ${отказ.message}")
+        assertTrue(store.list(область, "milestone").isEmpty(), "неполной записи быть не должно")
     }
 
     @Test
