@@ -9,7 +9,10 @@ import com.fasterxml.jackson.databind.node.ObjectNode
 import orbita.ai.api.AiService
 import orbita.ai.api.Atomize
 import orbita.ai.api.ProviderUnavailable
+import orbita.kernel.api.Area
 import orbita.kernel.api.EntityStore
+import orbita.kernel.api.KnowledgeFlag
+import orbita.knowledge.api.Authority
 import orbita.knowledge.api.Disposition
 import orbita.knowledge.api.Fact
 import orbita.knowledge.api.FactIntake
@@ -291,6 +294,7 @@ class KnowledgeRoutes(
         узел.put("task", задание.id)
         узел.put("material", задание.material)
         узел.put("note", задание.note)
+        рангМатериала(project, задание.material, узел)
         val действия = узел.putArray("actions")
         задание.plan.forEachIndexed { i, д ->
             val у = действия.addObject()
@@ -323,6 +327,47 @@ class KnowledgeRoutes(
             оценка.putArray("orphan_requirements").also { а -> о.orphanRequirements.forEach { а.add(it) } }
         }
         return V2Router.Ответ(200, узел)
+    }
+
+    /**
+     * Ранг материала задания — и судьба пакетного приёма — в ответ плана.
+     *
+     * Остановка ПМИ-6 (14.09): владелец нажал «принять всё» на плане
+     * СОМНИТЕЛЬНОГО материала, не имея на экране ни одного знака, что
+     * источник не подтверждён. Ранг живёт на карточке материала, и план его
+     * не отдавал вовсе — экран не мог показать того, чего ему не сказали.
+     *
+     * Ранга нет ни у хранилища (прежняя сборка), ни у карточки (материал
+     * заведён до перестройки) — маршрут молчит, а не выдумывает ранг:
+     * правдоподобный «справочный» здесь хуже отсутствующего.
+     */
+    private fun рангМатериала(project: String, material: String, узел: ObjectNode) {
+        val хранилище = store ?: return
+        val карточка = хранилище.byCode(Area.Project(project), material)?.doc ?: return
+        val ранг = карточка.path("authority").asText("").trim()
+        if (Authority.known(ранг)) узел.put("authority", ранг).put("authority_word", Authority.word(ранг))
+        // Ворота приёма стоят ровно там, где включено поле знаний v2: на
+        // проекте прохода их нет, и гасить кнопку было бы неправдой об этом
+        // проекте — экран обязан обещать то, чем ответит приём.
+        val заперто = ранг == Authority.DOUBTFUL && KnowledgeFlag.on(хранилище, project)
+        узел.put("batch_accept", !заперто)
+        if (заперто) узел.put("batch_refusal", ОТКАЗ_СОМНИТЕЛЬНОГО)
+    }
+
+    private companion object {
+
+        /**
+         * Отказ ворот приёма плана сомнительного материала — ДОСЛОВНО те же
+         * слова, которыми отвечает `EntityIntake.отказПлана`.
+         *
+         * Вторая формулировка того же отказа здесь не сочиняется: кнопка на
+         * экране обязана называть причину теми же словами, что и приём, —
+         * иначе человек услышит от кнопки одно, а от сервера другое.
+         * Слово ранга берётся у `Authority`, а не переписывается.
+         */
+        val ОТКАЗ_СОМНИТЕЛЬНОГО: String =
+            "источник не подтверждён (материал ранга «${Authority.word(Authority.DOUBTFUL)}») — " +
+                "подтвердите источники, и строки станут предложениями"
     }
 
     private fun принять(project: String, task: String, тело: ObjectNode): V2Router.Ответ {

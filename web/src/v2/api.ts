@@ -729,6 +729,33 @@ export interface TorAssessment {
   orphan_requirements: string[]
 }
 
+/**
+ * План задания — предпросмотр до нажатия.
+ *
+ * Ранг материала здесь не украшение (остановка ПМИ-6, 14.09): план собран ИЗ
+ * материала, и пока источник не подтверждён, его строки пакетом не
+ * принимаются. Признак ставит сервер, экран его только показывает — второго
+ * правила о ранге в клиенте нет.
+ */
+export interface TaskPlan {
+  task: string
+  material: string
+  /** Почему план такой — и что осталось непонятным. */
+  note: string
+  /** Ранг доверия материала; пусто — ранга у материала нет, и сервер его не выдумывает. */
+  authority?: Authority
+  /** Ранг словами — теми же, какими его называет сервер. */
+  authority_word?: string
+  /** Принимается ли план пакетом: ворота приёма стоят на сервере. */
+  batch_accept?: boolean
+  /** Отказ ворот словами — ровно тот, которым ответит приём на нажатие. */
+  batch_refusal?: string
+  actions: {
+    index: number; target_kind: string; scene: string; title: string; preview: string; facts: string[]
+  }[]
+  assessment?: TorAssessment
+}
+
 /** Внешняя модель (ADR-048): элементы Capella либо fixture с баннером. */
 export interface ExternalModelView {
   source: string
@@ -1225,8 +1252,12 @@ export const api = {
     вызов<SceneSuggestions>(
       `/knowledge/suggestions?project=${encodeURIComponent(project)}&scene=${encodeURIComponent(scene)}`),
 
+  /**
+   * Принять выбранные действия плана. `notes` — то, что ворота приёма НЕ
+   * пропустили, поимённо: без них экран промолчал бы о несозданном.
+   */
   acceptPlan: (project: string, task: string, chosen: number[], author: string) =>
-    вызов<{ created: number; codes: string[]; coverage: number }>(
+    вызов<{ created: number; codes: string[]; notes: string[]; coverage: number }>(
       `/intake/${task}/accept?project=${encodeURIComponent(project)}`,
       { method: 'POST', body: JSON.stringify({ chosen, author }) }),
 
@@ -1254,11 +1285,9 @@ export const api = {
   atomizeJobStatus: (project: string, job: string) =>
     вызов<AtomizeJob>(`/intake/jobs/${encodeURIComponent(job)}?project=${encodeURIComponent(project)}`),
 
-  /** План задания — предпросмотр до нажатия. */
+  /** План задания — предпросмотр до нажатия: действия, ранг материала и судьба пакетного приёма. */
   taskPlan: (project: string, task: string) =>
-    вызов<{ task: string; note: string; actions: {
-      index: number; target_kind: string; scene: string; title: string; preview: string; facts: string[]
-    }[]; assessment?: TorAssessment }>(`/intake/${encodeURIComponent(task)}?project=${encodeURIComponent(project)}`),
+    вызов<TaskPlan>(`/intake/${encodeURIComponent(task)}?project=${encodeURIComponent(project)}`),
 
   addTopic: (project: string, label: string, author: string) =>
     вызов<{ id: string; label: string; facts: number }>(`/topics?project=${encodeURIComponent(project)}`,

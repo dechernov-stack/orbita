@@ -259,6 +259,12 @@ def котлин(kinds: list) -> str:
         "     * разбора) сюда не входят — туда код факта писать нельзя.",
         "     */",
         "    val factRefFields: List<String> = emptyList(),",
+        "    /**",
+        "     * Перечни вида по истине схем: поле → допустимые значения.",
+        "     * Ими проверяется ввод и ответ службы; девятой копии перечня в",
+        "     * коде быть не должно — она разойдётся с истиной молча.",
+        "     */",
+        "    val enums: Map<String, List<String>> = emptyMap(),",
         ")",
         "",
         "object GeneratedKinds {",
@@ -280,12 +286,21 @@ def котлин(kinds: list) -> str:
             f'"{f["name"]}"' for f in (k.get("fields") or [])
             if (f.get("type") or "").strip() == "ref fact"
         )
+        # Перечни поля: enum[a,b,c] — закрытый список значений из истины.
+        перечни = []
+        for f in (k.get("fields") or []):
+            м = re.match(r"^enum\[(.+)\]$", (f.get("type") or "").strip())
+            if not м:
+                continue
+            значения = ", ".join(f'"{x.strip()}"' for x in м.group(1).split(",") if x.strip())
+            перечни.append(f'"{f["name"]}" to listOf({значения})')
+        перечни_kt = "mapOf(" + ", ".join(перечни) + ")" if перечни else "emptyMap()"
         сцена_kt = f'"{сцена}"' if сцена else "null"
         модель_kt = f'"{модель}"' if модель else "null"
         строки.append(
             f'        KindSpec("{k["code"]}", "{k.get("name", "")}", Layer.{слой}, '
             f'{сцена_kt}, {модель_kt}, listOf({перечень}), listOf({все_поля}), '
-            f'listOf({ссылки_на_факт})),'
+            f'listOf({ссылки_на_факт}), {перечни_kt}),'
         )
     строки += [
         "    )",

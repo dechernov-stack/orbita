@@ -31,7 +31,7 @@ import {
   type FormationOntology, type FormationProposal, type ReconcileAction,
   type ReconcileFinding, type ReconcileItem, type ReconcileRun, type ResearchTask,
   type SynthesisAccepted, type SynthesisDiff, type SynthesisDiffView, type SynthesisRun,
-  type TorAssessment,
+  type TaskPlan,
 } from './api'
 
 /** Диспозиции по-русски: служебное имя инженеру ничего не говорит. */
@@ -241,7 +241,6 @@ function нуженПовод(было: string, стало: string): boolean {
 
 type Тема = { id: string; label: string; facts: number; resolved_to?: string | null }
 type Покрытие = { total: number; from_facts: number; from_manual_facts: number; manual: number; share_percent: number }
-type Действие = { index: number; target_kind: string; scene: string; title: string; preview: string; facts: string[] }
 
 export function KnowledgeField({ project }: { project: string | null }) {
   const [факты, setФакты] = useState<FactRow[] | null>(null)
@@ -255,8 +254,12 @@ export function KnowledgeField({ project }: { project: string | null }) {
   const [причина, setПричина] = useState('')
   const [вход, setВход] = useState(false)
   const [рукой, setРукой] = useState(false)
-  const [план, setПлан] = useState<{ task: string; note: string; actions: Действие[]; assessment?: TorAssessment } | null>(null)
+  const [план, setПлан] = useState<TaskPlan | null>(null)
   const [выбраны, setВыбраны] = useState<number[]>([])
+  // Что ворота приёма НЕ пропустили: сервер называет каждое непринятое
+  // действие причиной, и экран обязан показать это, а не молча создать
+  // меньше, чем человек отметил (остановка ПМИ-6).
+  const [заметкиПриёма, setЗаметкиПриёма] = useState<string[]>([])
   const [занято, setЗанято] = useState(false)
   // Допущение ставится с владельцем, точкой и способом проверки — иначе к
   // точке его никто не подтвердит (истина схем: assumption при assumed).
@@ -364,14 +367,28 @@ export function KnowledgeField({ project }: { project: string | null }) {
       .catch((e) => setОтказ(String(e.message ?? e)))
   }
 
+  // Пакетный приём заперт там же, где его запирает сервер: план материала,
+  // источник которого не подтверждён, не принимается ни целиком, ни частью.
+  const пакетЗаперт = план?.batch_accept === false
   const принятьПлан = () => {
-    if (!план || выбраны.length === 0) return
+    if (!план || выбраны.length === 0 || пакетЗаперт) return
     setЗанято(true)
+    setЗаметкиПриёма([])
     api.acceptPlan(project, план.task, выбраны, 'инженер')
-      .then(() => { setПлан(null); setВыбраны([]); перечитать() })
+      .then((итог) => { setПлан(null); setВыбраны([]); setЗаметкиПриёма(итог.notes ?? []); перечитать() })
       .catch((e) => setОтказ(String(e.message ?? e)))
       .finally(() => setЗанято(false))
   }
+
+  /**
+   * Подсказка кнопки приёма: серая кнопка обязана назвать причину И путь
+   * оживления (правило Ф-11). Причина запрета — серверная, слово в слово.
+   */
+  const подсказкаПриёма = план?.batch_refusal
+    ? `${план.batch_refusal}. Источники подтверждаются в карточке исследования ниже`
+    : выбраны.length === 0
+      ? 'отметьте действия, которые принимаете: снятое остаётся рассмотренным'
+      : 'выполнить выбранные действия: сущности получат нить к своим фактам'
 
   return (
     <div className="v2-panel" data-why="работа">
@@ -437,7 +454,9 @@ export function KnowledgeField({ project }: { project: string | null }) {
             перечитать()
             if (итог.task) {
               api.taskPlan(project, итог.task)
-                .then((п) => { setПлан(п); setВыбраны(п.actions.map((д) => д.index)) })
+                // Заметки прошлого приёма гаснут вместе со своим планом: они
+                // говорят о ТОМ задании, и рядом с новым были бы неправдой.
+                .then((п) => { setПлан(п); setВыбраны(п.actions.map((д) => д.index)); setЗаметкиПриёма([]) })
                 .catch(() => setПлан(null))
             }
           }}
@@ -455,6 +474,25 @@ export function KnowledgeField({ project }: { project: string | null }) {
             План из разбора: {план.actions.length} действий. {план.note}
             {' '}Снятое действие остаётся рассмотренным — факт не исчезает.
           </div>
+          {/*
+            Ранг материала — НАД планом и словами: до 14.09 экран показывал
+            галочки и «Принять N из M», не сказав, откуда план собран.
+            Сомнительный ранг гасит пакетный приём — теми же словами, какими
+            отказывают ворота приёма на сервере.
+          */}
+          {пакетЗаперт ? (
+            <div className="v2-locked" data-why="почему-нельзя">
+              Ранг доверия материала: {план.authority_word}
+              <span className="v2-empty__why">{план.batch_refusal}</span>
+              <span className="v2-empty__why">
+                Источники подтверждаются в карточке исследования ниже: отметьте факты,
+                источники которых проверили, — материал поднимется до справочного, и план
+                станет приниматься. Факты плана из поля не исчезают: они ждут подтверждения.
+              </span>
+            </div>
+          ) : план.authority_word ? (
+            <div className="v2-note-line">Ранг доверия материала: {план.authority_word}</div>
+          ) : null}
           {план.assessment && (
             <div className="v2-scroll">
               {(план.assessment.gaps?.length ?? 0) > 0 && (
@@ -522,13 +560,31 @@ export function KnowledgeField({ project }: { project: string | null }) {
             </tbody>
           </table>
           <div className="v2-form__actions">
-            <button type="button" className="v2-primary" disabled={занято || выбраны.length === 0}
-              title="выполнить выбранные действия: сущности получат нить к своим фактам"
+            <button type="button" className="v2-primary"
+              disabled={занято || выбраны.length === 0 || пакетЗаперт}
+              title={подсказкаПриёма}
               onClick={принятьПлан}>
               {занято ? 'Принимаю…' : `Принять ${выбраны.length} из ${план.actions.length}`}
             </button>
             <button type="button" className="v2-link" onClick={() => setПлан(null)}>позже</button>
           </div>
+        </div>
+      )}
+
+      {поле && заметкиПриёма.length > 0 && (
+        <div className="v2-kf__src" data-why="почему-нельзя">
+          <div className="v2-card__head">
+            <span className="v2-card__title">Принято не всё</span>
+            <span className="v2-card__count">{заметкиПриёма.length}</span>
+          </div>
+          <div className="v2-empty__why">
+            Ворота приёма назвали каждое непринятое действие причиной. Факты остались
+            в поле: решайте их по одному либо примите план заново, поправив основания.
+          </div>
+          <ul className="v2-list">
+            {заметкиПриёма.map((з) => <li key={з}>{з}</li>)}
+          </ul>
+          <button type="button" className="v2-link" onClick={() => setЗаметкиПриёма([])}>скрыть</button>
         </div>
       )}
 

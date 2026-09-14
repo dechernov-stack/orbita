@@ -49,10 +49,12 @@ import orbita.kernel.schema.KindSpec
 import orbita.knowledge.api.Authority
 import orbita.knowledge.api.Disposition
 import orbita.knowledge.api.Fact
+import orbita.knowledge.api.FormationRules
 import orbita.knowledge.api.FactSource
 import orbita.knowledge.api.Intake
 import orbita.knowledge.api.SourceMark
 import orbita.knowledge.schema.Concept
+import orbita.knowledge.schema.FactRule
 import orbita.knowledge.schema.GeneratedOntology
 import java.security.MessageDigest
 
@@ -352,6 +354,14 @@ class Synthesizer(
         }
         require(факты.isNotEmpty()) {
             "понятие «$код» без факта-основания — предложений без оснований не бывает"
+        }
+        // Ворота правила образования: то же правило, что ушло в промпт, здесь
+        // проверяет ОТВЕТ. Модель предлагает, онтология решает — иначе текст
+        // роли стороны опять приедет нуждой (остановка ПМИ-6, 14.09).
+        if (FormationRules.проверяемо(правило)) {
+            require(факты.any { FormationRules.подходит(правило, it) }) {
+                FormationRules.почемуНе(правило, факты.first())
+            }
         }
         val вердикт = вердиктПоКоду(узел.path("verdict").asText(""))
         val мишень = узел.path("target").asText("").trim().ifBlank { null }
@@ -673,6 +683,13 @@ $ФОРМАТ
                     append("\n    ещё обязательные поля вида «${вид.code}»: ${ещё.joinToString(", ")}")
                 }
             }
+            // ГЛАВНОЕ правило — из каких фактов понятие вообще образуется.
+            // До 14.09 его в промпте не было, и модель лепила понятия по
+            // догадке: текст роли стороны приезжал нуждой (остановка ПМИ-6).
+            val изФактов = понятие.fromFacts.mapNotNull { правилоСловами(it) }
+            if (изФактов.isNotEmpty()) {
+                append("\n    образуется ТОЛЬКО из фактов: ${изФактов.joinToString(" ЛИБО ")}")
+            }
             append("\n    узнаётся по: ${понятие.identity.key.joinToString(", ")}")
             append("; по смыслу: ${понятие.identity.semantic}")
             if (понятие.conflictOn.isNotEmpty()) {
@@ -682,6 +699,26 @@ $ФОРМАТ
                 append("\n    без этих связей не принимается: ${понятие.mustLink.joinToString(", ")}")
             }
         }
+    }
+
+    /**
+     * Правило отбора фактов словами. Признак, которого правило не назвало, не
+     * упоминается: домысливать за истину нельзя. Правило-подсказка (только
+     * раздел документа) в промпт идёт как подсказка, а воротами не служит.
+     */
+    private fun правилоСловами(правило: FactRule): String? {
+        val части = buildList {
+            правило.kind?.let { add("вид [$it]") }
+            if (правило.predicateIn.isNotEmpty()) {
+                add("предикат из «${правило.predicateIn.joinToString(" · ")}»")
+            }
+            правило.subject?.let { add("субъект «$it»") }
+            правило.subjectIs?.let { add("субъект — $it") }
+            правило.mark?.let { add("метка [$it]") }
+            правило.with?.let { add("несёт «$it»") }
+            правило.sectionHint?.let { add("подсказка: $it") }
+        }
+        return части.takeIf { it.isNotEmpty() }?.joinToString(", ")
     }
 
     /** Вид, которым понятие становится при акцепте; null — вида у понятия нет. */

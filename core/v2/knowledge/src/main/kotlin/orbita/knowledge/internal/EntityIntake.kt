@@ -17,10 +17,13 @@ import orbita.kernel.api.LinkRegistry
 import orbita.kernel.api.Provenance
 import orbita.kernel.api.QosClass
 import orbita.kernel.schema.GeneratedKinds
+import orbita.knowledge.schema.Concept
+import orbita.knowledge.schema.GeneratedOntology
 import orbita.knowledge.api.Assumption
 import orbita.knowledge.api.Authority
 import orbita.knowledge.api.ContentProfile
 import orbita.knowledge.api.Fact
+import orbita.knowledge.api.FormationRules
 import orbita.knowledge.api.FactLink
 import orbita.knowledge.api.FactSource
 import orbita.knowledge.api.Intake
@@ -33,6 +36,13 @@ import orbita.knowledge.api.Disposition
 import orbita.knowledge.api.FactIntake
 import orbita.knowledge.api.SourceMark
 import orbita.knowledge.api.Topic
+
+/**
+ * Виды факта — закрытый перечень истины схем (вид «fact», поле `kind`).
+ * Второй копии в коде нет: перечень берётся у сгенерированного KindSpec.
+ */
+internal val ВИДЫ_ФАКТА: List<String> =
+    GeneratedKinds.byCode["fact"]?.enums?.get("kind").orEmpty()
 
 class EntityIntake(
     private val store: EntityStore,
@@ -268,10 +278,27 @@ class EntityIntake(
         val заметки = mutableListOf<String>()
         val принятыеФакты = mutableSetOf<String>()
 
+        // Ранг материала задания: сомнительный источник пакетом не принимается.
+        val рангЗадания = store.byCode(область, задание.doc.path("material").asText())
+            ?.doc?.path("authority")?.asText("").orEmpty()
+
         действия.forEachIndexed { i, действие ->
             if (i !in chosen) return@forEachIndexed
             val вид = действие.path("target_kind").asText("")
             if (вид.isBlank()) return@forEachIndexed
+            val названиеДействия = действие.path("title").asText("действие $i")
+            // --- ворота приёма плана (остановка ПМИ-6, 14.09) -----------------
+            // До 14.09 план исполнялся как есть: онтологию он не спрашивал,
+            // обязательных связей не проверял, ранга не видел. Постановка
+            // набиралась из чего попало — строка РОЛИ стороны становилась
+            // нуждой, автор указа — стороной, а строки сомнительного
+            // источника — принятыми сущностями без единой пометы.
+            if (KnowledgeFlag.on(store, project)) {
+                отказПлана(область, вид, действие, основанияДействия(действие), рангЗадания)?.let { причина ->
+                    заметки += "«$названиеДействия» не принято: $причина"
+                    return@forEachIndexed
+                }
+            }
             val содержимое = действие.path("payload").deepCopy<JsonNode>() as
                 com.fasterxml.jackson.databind.node.ObjectNode
             // Имя соседа снимается с документа до записи: его место — связь.
@@ -467,6 +494,71 @@ class EntityIntake(
      * `owner` там тоже уходит в связь, а не в документ.
      */
     private val ссылкиПлана = mapOf("need" to СсылкаПлана("owner", "stakeholder", "owns"))
+
+    /** Коды фактов-оснований действия плана — те, на которые оно сослалось. */
+    private fun основанияДействия(действие: JsonNode): List<String> =
+        действие.path("facts").mapNotNull { к -> к.asText("").ifBlank { null } }
+
+    /**
+     * Ворота приёма плана: почему действие НЕ исполняется. `null` — исполняется.
+     *
+     * Три правила, по остановке ПМИ-6 (14.09):
+     *  1. Понятие образуется только из фактов, названных ОНТОЛОГИЕЙ. Строка
+     *     роли стороны — не нужда, автор указа — не сторона.
+     *  2. Обязательная связь понятия обязана быть закрыта: цель без нужд и
+     *     сервис без нужд не покрывают ничего, и матрица честно скажет «0 из N».
+     *  3. Материал ранга «сомнительный» пакетом не принимается: его строки
+     *     ждут подтверждения источников человеком.
+     */
+    private fun отказПлана(
+        область: Area,
+        вид: String,
+        действие: JsonNode,
+        основания: List<String>,
+        рангЗадания: String,
+    ): String? {
+        val понятие = GeneratedOntology.concepts.firstOrNull { (it.targetKindCode ?: it.code) == вид }
+            ?: return null
+        if (рангЗадания == Authority.DOUBTFUL) {
+            return "источник не подтверждён (материал ранга «${Authority.word(Authority.DOUBTFUL)}») — " +
+                "подтвердите источники, и строки станут предложениями"
+        }
+        if (FormationRules.проверяемо(понятие)) {
+            val факты = основания.mapNotNull { store.byCode(область, it) }.map { it.doc }
+            if (факты.isEmpty()) {
+                return "нет факта-основания — предложений без оснований не бывает"
+            }
+            val подошёл = факты.firstOrNull { FormationRules.подходит(понятие, it) }
+            if (подошёл == null) {
+                return FormationRules.почемуНе(понятие, факты.first())
+            }
+        }
+        val payload = действие.path("payload")
+        обязательства(понятие).forEach { (поле, чего) ->
+            if (payload.path(поле).asText("").isBlank() && payload.path(поле).isEmpty) {
+                return "не названо обязательное «$поле» ($чего) — без него понятие не принимается"
+            }
+        }
+        return null
+    }
+
+    /**
+     * Обязательные связи понятия полем: «owns→stakeholder» → поле, которым
+     * связь называется. Перечень ведёт онтология, второго списка в коде нет.
+     */
+    private fun обязательства(понятие: Concept): List<Pair<String, String>> =
+        понятие.mustLink.mapNotNull { токен ->
+            val голова = токен.substringBefore(" if ").trim()
+            if (!голова.contains("→")) {
+                return@mapNotNull понятие.fields.keys.firstOrNull { it == голова }?.let { it to голова }
+            }
+            val связь = голова.substringBefore("→").trim()
+            val цель = голова.substringAfter("→").substringBefore(">=").trim()
+            val поле = понятие.fields.entries.firstOrNull { it.value.contains(связь) }?.key
+                ?: понятие.fields.keys.firstOrNull { it == цель || it == "${цель}s" }
+                ?: цель
+            поле to голова
+        }
 
     /** Сущность вида, названная именем или кодом; null — такой нет. */
     private fun поИмени(область: Area, вид: String, имя: String) =
@@ -747,6 +839,15 @@ class EntityIntake(
                 текстЗначения.isBlank() -> отказы += "факт $i «$предикат»: без значения"
                 ф.path("kind").asText("") == "quantity" && единица.isBlank() ->
                     отказы += "факт $i «$предикат»: величина без единицы — не факт"
+                // Вид факта — не умолчание. Молчаливый «framing» ставил фактам
+                // ровно тот вид, из которого онтология образует НУЖДУ, и текст
+                // роли стороны приезжал нуждой (остановка ПМИ-6, 14.09).
+                ф.path("kind").asText("").isBlank() ->
+                    отказы += "факт $i «$предикат»: вид не назван — " +
+                        "виды: ${ВИДЫ_ФАКТА.joinToString(" · ")}"
+                ф.path("kind").asText("") !in ВИДЫ_ФАКТА ->
+                    отказы += "факт $i «$предикат»: вид «${ф.path("kind").asText("")}» не существует — " +
+                        "виды: ${ВИДЫ_ФАКТА.joinToString(" · ")}"
                 ключ in уже -> {
                     повторов += 1
                     уже[ключ]?.let { поНомеру[i] = it.code }
@@ -754,7 +855,7 @@ class EntityIntake(
                 else -> {
                     val метка = ф.path("topic").asText("")
                     val документ = mapper.createObjectNode()
-                    документ.put("kind", ф.path("kind").asText("framing"))
+                    документ.put("kind", ф.path("kind").asText())
                     документ.put("subject", ф.path("subject").asText(метка))
                     документ.put("predicate", предикат)
                     документ.put("value", текстЗначения)
