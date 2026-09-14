@@ -30,6 +30,7 @@ import orbita.knowledge.internal.ВИДЫ_ФАКТА
 import orbita.knowledge.schema.Concept
 import orbita.knowledge.schema.ConceptIdentity
 import orbita.knowledge.schema.FactRule
+import orbita.knowledge.schema.GeneratedOntology
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -366,6 +367,52 @@ class FormationGateTest {
                 "${случай.про}: правило «${FormationRules.словами(случай.правило)}» против факта ${случай.факт}",
             )
         }
+    }
+
+    /**
+     * Уточнение владельца 14.09: роль и интерес стороны — РАЗНОЕ. Из роли нужда
+     * не образуется никогда; из оценки об интересе стороны — образуется, и это
+     * то, ради чего правило писалось. Класс сущности разбор ставит не всегда,
+     * поэтому «субъект — сторона» узнаётся ещё и по реестру проекта.
+     */
+    @Test
+    fun `оценка об интересе известной стороны нуждой становится, роль — нет`() {
+        val нужда = GeneratedOntology.of("need")
+        val известна = { вид: String, имя: String -> вид == "stakeholder" && имя == "Минтранс России" }
+
+        val интерес = фактУзла(
+            kind = "assessment", subject = "Минтранс России",
+            predicate = "нужна непрерывность мониторинга на беспилотных коридорах", mark = "П",
+        )
+        assertTrue(
+            FormationRules.подходит(нужда, интерес, известна),
+            "оценка об интересе стороны — законное основание нужды",
+        )
+        assertFalse(
+            FormationRules.подходит(нужда, интерес),
+            "без опознавателя и без класса сторона не узнана — правило не судит наугад",
+        )
+        assertTrue(
+            FormationRules.подходит(
+                нужда,
+                фактУзла(kind = "assessment", subject = "Минтранс России", predicate = "интерес", mark = "П",
+                         entityClass = "stakeholder"),
+            ),
+            "класс сущности узнаёт сторону и без реестра",
+        )
+
+        val роль = фактУзла(
+            kind = "relation", subject = "Минтранс России",
+            predicate = "является заказчиком системы", mark = "И",
+        )
+        assertFalse(
+            FormationRules.подходит(нужда, роль, известна),
+            "роль стороны нуждой не становится никогда — её место поле стороны",
+        )
+        assertTrue(
+            FormationRules.подходит(GeneratedOntology.of("stakeholder"), роль, известна),
+            "та же роль — законное основание САМОЙ стороны",
+        )
     }
 
     @Test

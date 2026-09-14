@@ -528,7 +528,9 @@ class EntityIntake(
             if (факты.isEmpty()) {
                 return "нет факта-основания — предложений без оснований не бывает"
             }
-            val подошёл = факты.firstOrNull { FormationRules.подходит(понятие, it) }
+            val подошёл = факты.firstOrNull {
+                FormationRules.подходит(понятие, it) { вид, имя -> поИмени(область, вид, имя) != null }
+            }
             if (подошёл == null) {
                 return FormationRules.почемуНе(понятие, факты.first())
             }
