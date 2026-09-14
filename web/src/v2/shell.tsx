@@ -63,6 +63,13 @@ export function Shell() {
   const [users, setUsers] = useState<StandUser[]>([])
   const [project, setProject] = useState<string | null>(null)
   const [portfolio, setPortfolio] = useState<ProjectRow[]>([])
+  /**
+   * Счётчик перечитывания портфеля. Список читался ОДИН раз при входе, и
+   * заведённый после этого проект в него не попадал: шапка говорила «проект
+   * не выбран» при выбранном проекте, а выбора не появлялось вовсе — выйти из
+   * этого состояния было нечем (поймано владельцем на старте ПМИ-6, 14.09).
+   */
+  const [portfolioTick, setPortfolioTick] = useState(0)
   const [phase, setPhase] = useState<Phase | null>(null)
   /** Счётчик перечитывания фазы: решение точки меняет шапку и ленту. */
   const [phaseTick, setPhaseTick] = useState(0)
@@ -95,7 +102,7 @@ export function Shell() {
           текущий ?? (r.items.some((п) => п.code === прежний) ? прежний : r.items[0]?.code ?? null))
       })
       .catch(() => undefined)
-  }, [нуженВход])
+  }, [нуженВход, portfolioTick])
 
   useEffect(() => {
     if (!project) { setPhase(null); return }
@@ -161,8 +168,12 @@ export function Shell() {
               <option value="">— выберите проект —</option>
               {portfolio.map((п) => <option key={п.code} value={п.code}>{п.name}</option>)}
             </select>
+          ) : project ? (
+            // Портфель ещё не перечитан, а проект уже выбран: называть его
+            // «не выбранным» значило бы врать о том, что видно на экране.
+            <b title="портфель перечитывается">{project}</b>
           ) : (
-            <b>Проект не выбран</b>
+            <b title="портфеля нет: заведите проект сценой 1 — она открыта ниже">Портфель пуст</b>
           )}
           {phase && <span className="v2-dim">{phase.phase} · {phase.standard}</span>}
           {сцена && (
@@ -256,7 +267,8 @@ export function Shell() {
             </div>
           )}
           {section === 'work' ? (
-            <Work project={project} onProject={setProject} wantScene={wantScene}
+            <Work project={project} onProject={(п) => { setProject(п); setPortfolioTick((т) => т + 1) }}
+              wantScene={wantScene}
               onScenePicked={() => setWantScene(null)} onScene={setOpenScene}
               роль={роль} режим={режим} onРежим={setРежим} />
           ) : section === 'knowledge' ? (
