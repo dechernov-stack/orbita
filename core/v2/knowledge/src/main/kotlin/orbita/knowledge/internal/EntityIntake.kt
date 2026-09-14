@@ -495,6 +495,8 @@ class EntityIntake(
      */
     private val ссылкиПлана = mapOf("need" to СсылкаПлана("owner", "stakeholder", "owns"))
 
+    private fun payloadДействия(действие: JsonNode): JsonNode = действие.path("payload")
+
     /** Коды фактов-оснований действия плана — те, на которые оно сослалось. */
     private fun основанияДействия(действие: JsonNode): List<String> =
         действие.path("facts").mapNotNull { к -> к.asText("").ifBlank { null } }
@@ -528,14 +530,22 @@ class EntityIntake(
             if (факты.isEmpty()) {
                 return "нет факта-основания — предложений без оснований не бывает"
             }
+            // Признак правила мог приехать полем самого действия: обозначение
+            // акта стоит в payload.designation, год цели — в payload.year.
+            val названо: Set<String> = payloadДействия(действие).properties()
+                .filter { (_, з) -> з.asText("").isNotBlank() || !з.isEmpty }
+                .map { (имя, _) -> имя }
+                .toSet()
+            val знаетСубъекта: (String, String) -> Boolean =
+                { вид, имя -> поИмени(область, вид, имя) != null }
             val подошёл = факты.firstOrNull {
-                FormationRules.подходит(понятие, it) { вид, имя -> поИмени(область, вид, имя) != null }
+                FormationRules.подходит(понятие, it, знаетСубъекта, названо)
             }
             if (подошёл == null) {
                 return FormationRules.почемуНе(понятие, факты.first())
             }
         }
-        val payload = действие.path("payload")
+        val payload = payloadДействия(действие)
         обязательства(понятие).forEach { (поле, чего) ->
             // План называет соседа СВОИМ полем: у нужды это «owner», а поле
             // онтологии — «stakeholder». Связь одна, имён у неё два, и

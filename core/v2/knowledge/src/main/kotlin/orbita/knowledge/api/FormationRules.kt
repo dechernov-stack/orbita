@@ -50,21 +50,24 @@ object FormationRules {
         понятие: Concept,
         факт: Признаки,
         знаетСубъекта: ((String, String) -> Boolean)? = null,
+        дано: Set<String> = emptySet(),
     ): Boolean = понятие.fromFacts.any { правило ->
-        проверяемое(правило) && совпало(правило, факт, знаетСубъекта)
+        проверяемое(правило) && совпало(правило, факт, знаетСубъекта, дано)
     }
 
     fun подходит(
         понятие: Concept,
         факт: JsonNode,
         знаетСубъекта: ((String, String) -> Boolean)? = null,
-    ): Boolean = подходит(понятие, признаки(факт), знаетСубъекта)
+        дано: Set<String> = emptySet(),
+    ): Boolean = подходит(понятие, признаки(факт), знаетСубъекта, дано)
 
     fun подходит(
         понятие: Concept,
         факт: Fact,
         знаетСубъекта: ((String, String) -> Boolean)? = null,
-    ): Boolean = подходит(понятие, признаки(факт), знаетСубъекта)
+        дано: Set<String> = emptySet(),
+    ): Boolean = подходит(понятие, признаки(факт), знаетСубъекта, дано)
 
     /** Есть ли у понятия хоть одно проверяемое правило: иначе ворот нет. */
     fun проверяемо(понятие: Concept): Boolean = понятие.fromFacts.any { проверяемое(it) }
@@ -135,6 +138,7 @@ object FormationRules {
         правило: FactRule,
         факт: Признаки,
         знаетСубъекта: ((String, String) -> Boolean)? = null,
+        дано: Set<String> = emptySet(),
     ): Boolean {
         правило.kind?.let { если -> if (факт.kind != если) return false }
         if (правило.predicateIn.isNotEmpty()) {
@@ -155,7 +159,14 @@ object FormationRules {
             if (!поКлассу && !поРеестру) return false
         }
         правило.mark?.let { если -> if (факт.mark != если) return false }
-        правило.with?.let { если -> if (!несёт(факт, если)) return false }
+        // Признак («designation», «year», «date») мог приехать не текстом
+        // факта, а самим предложением: обозначение акта стоит полем
+        // `designation`, год цели — полем `year`. Искать его тогда в тексте
+        // значило бы отбивать названное прямо (поймано прогоном владельца).
+        правило.with?.let { если ->
+            val названо = если.split('|', '/').map { it.trim() }.any { it in дано }
+            if (!названо && !несёт(факт, если)) return false
+        }
         return true
     }
 
@@ -179,5 +190,10 @@ object FormationRules {
 
     private val ГОД = Regex("""\b(19|20)\d{2}\b""")
     private val ДАТА = Regex("""\b\d{1,2}[.\-/]\d{1,2}[.\-/](19|20)?\d{2}\b|\b(19|20)\d{2}-\d{2}-\d{2}\b""")
-    private val ОБОЗНАЧЕНИЕ = Regex("""[№N]\s?\d+|ГОСТ|ПНСТ|ПП\s?РФ|Указ|СП\s?\d|ТР\s?ТС""", RegexOption.IGNORE_CASE)
+    private val ОБОЗНАЧЕНИЕ = Regex(
+        """[№N]\s?\d+|\bГОСТ|\bПНСТ|\bОСТ|\bРД\b|\bСП\s?\d|\bТР\s?ТС|\bПП\s?РФ|\bУказ|\bФЗ\b|""" +
+            """\bSOLAS|\bIMO\b|\bISO\b|\bIEC\b|\bITU\b|\bIADC\b|\bприказ|\bраспоряжение|\bпостановление|""" +
+            """\bрегламент|\bдиректива|\b[A-ZА-Я]{2,}[\s-]?\d+[./-]\d+""",
+        RegexOption.IGNORE_CASE,
+    )
 }
