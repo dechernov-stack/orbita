@@ -24,6 +24,7 @@ import orbita.kernel.api.Area
 import orbita.kernel.api.Channel
 import orbita.kernel.api.KernelFactory
 import orbita.kernel.api.Provenance
+import orbita.knowledge.api.MustLinkMissing
 import orbita.knowledge.api.Action
 import orbita.knowledge.api.Applied
 import orbita.knowledge.api.Candidate
@@ -177,17 +178,27 @@ class SynthesisRoutesTest {
     }
 
     @Test
-    fun `акцепт с незакрытой обязательной связью отказывает и сущности не заводит`() {
+    fun `незакрытая связь оставляет строку ждущей, а пакет идёт дальше`() {
+        // Нехватка связи считается ДО заведения, то есть против проекта, каким
+        // он был до пакета: нужда, чья сторона предложена ЭТИМ ЖЕ пакетом,
+        // выглядит незакрытой. Отбивать из-за неё весь пакет нельзя — одна
+        // такая строка уводила в отказ тридцать годных (прогон владельца 15.09).
         сверка.блокирует = "owns→stakeholder"
         val предложение = доПредложения()
         val ответ = маршруты.handle(
             "POST", "/v2/synthesis/runs/${запуск()}/accept", п,
             """{"chosen":["$предложение"],"author":"Иванов И."}""",
         )!!
-        assertEquals(422, ответ.code, ответ.body.toString())
-        assertEquals(listOf("owns→stakeholder"), ответ.body.path("missing").map { it.asText() })
-        assertTrue(ответ.body.path("what_to_do").asText().contains("/v2/reconcile/"), ответ.body.toString())
-        assertTrue(сверка.решения.isEmpty(), "отказ идёт ДО первого заведения")
+
+        assertEquals(201, ответ.code, ответ.body.toString())
+        assertEquals(0, ответ.body.path("accepted").asInt(), "сущности из незакрытой строки не завелось")
+        val ждут = ответ.body.path("pending")
+        assertEquals(1, ждут.size(), "строка названа ждущей: $ждут")
+        assertEquals(предложение, ждут.first().path("proposal").asText())
+        assertTrue(
+            ждут.first().path("why").asText().contains("owns→stakeholder"),
+            "сказано, какая связь не закрыта: ${ждут.first()}",
+        )
     }
 
     @Test
@@ -378,6 +389,10 @@ private class СверкаПодмена : Reconcile {
         author: String,
     ): Applied {
         решения += "$localId|${action.name}|$reason"
+        // Живая сверка отказывает заведению, пока обязательная связь не
+        // закрыта, — подмена обязана вести себя так же, иначе тест охранял бы
+        // поведение, которого у изделия нет.
+        блокирует?.let { throw MustLinkMissing(it, "связь «$it» не закрыта: сущности не будет") }
         return Applied(listOf("N-0001"), emptyList(), listOf("derived_from_fact"), listOf("F-0900"), "заведено")
     }
 
