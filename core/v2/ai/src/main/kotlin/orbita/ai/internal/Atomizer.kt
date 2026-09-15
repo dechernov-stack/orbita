@@ -257,8 +257,12 @@ $стадияА
   · goal (сцена 4) — цель: statement · measure (величина с единицей) · year ·
     needs (имена нужд, которые цель закрывает, — covers ≥ 1; цель, не
     закрывающая ни одной нужды, ни к чему не ведёт)
-  · constraint (сцена 5) — ограничение: text · category
-    (normative_basis — обозначение НПА, если ограничение нормативное)
+  · constraint (сцена 5) — рамка-запрет: statement (формулировка запрета) ·
+    type (regulatory для нормы; technical · programmatic · launch · financial
+    для прочих); bound {key, op, value, unit}, если в факте есть число;
+    normative_basis — обозначение НПА, если рамка нормативная.
+    Поля «text» и «category» у этого вида НЕТ: рамка без statement не
+    заводится, и весь пакет упирается в неё (поймано прогоном 15.09).
   · service (сцена 6) — сервис: name · needs (имена нужд, которые сервис
     покрывает, — covers ≥ 1) · qos_class · target_measure
   · normative_document (полка) — норматив: designation · title · edition ·
