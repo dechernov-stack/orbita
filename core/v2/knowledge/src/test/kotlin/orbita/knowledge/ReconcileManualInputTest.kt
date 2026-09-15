@@ -184,6 +184,44 @@ class ReconcileManualInputTest {
     }
 
     @Test
+    fun `основание в документе не делает новую нужду узнанной`() {
+        val минтранс = сторона("SK-0001", "Минтранс России")
+        store.create(
+            "SD-0001", "material", область, "2",
+            mapper.createObjectNode().put("name", "Записка о миссии").put("authority", Authority.MANDATORY),
+            провенанс,
+        )
+        store.create(
+            "F-0001", "fact", область, null,
+            mapper.createObjectNode()
+                .put("kind", "framing").put("subject", минтранс.code).put("predicate", "нуждается в")
+                .put("value", "Необходимо обеспечить связь в Арктике").put("anchor", "b2")
+                .put("material", "SD-0001").put("authority", Authority.MANDATORY),
+            провенанс,
+        )
+
+        val запуск = сверка.preview(
+            проект, listOf(кандидатНужды("В Арктике требуется связь", "Минтранс России")), автор, роль,
+        )
+
+        val предмет = запуск.items.single()
+        assertEquals(
+            Verdict.CONFIRM,
+            предмет.findings.single { it.question == Question.CONNECTION }.verdict,
+            "соединение с фактом документа — по-прежнему подтверждение",
+        )
+        assertEquals(
+            Verdict.NEW,
+            предмет.verdict,
+            "вердикт о кандидате выносит тождество с ПРИНЯТЫМ понятием, а нужды такой в проекте нет",
+        )
+        assertTrue(
+            Action.ACCEPT_NEW in предмет.findings.single { it.question == Question.DUPLICATE }.offers,
+            "«завести новое» остаётся предложенным: иначе акцепт молча пройдёт мимо",
+        )
+    }
+
+    @Test
     fun `нужда без стороны даёт блокирующую нехватку с именем связи`() {
         val запуск = сверка.preview(проект, listOf(кандидатНужды("В Арктике требуется связь")), автор, роль)
 
@@ -192,6 +230,43 @@ class ReconcileManualInputTest {
         assertTrue(нехватка.blocking, "незакрытая обязательная связь останавливает принятие")
         assertEquals("owns→stakeholder", нехватка.missing)
         assertEquals(listOf("owns→stakeholder"), предмет.blocking)
+    }
+
+    @Test
+    fun `сторона пакета закрывает связь нужды того же пакета`() {
+        val сторонаКандидат = Candidate(
+            "c1", "stakeholder",
+            mapper.createObjectNode().put("name", "АО «ГЛОНАСС»").put("role", "operator"),
+        )
+        val нуждаКандидат = Candidate(
+            "c2", "need",
+            mapper.createObjectNode()
+                .put("statement", "телеметрия груза вне зоны покрытия")
+                .put("stakeholder", "АО «ГЛОНАСС»"),
+        )
+
+        val запуск = сверка.preview(проект, listOf(сторонаКандидат, нуждаКандидат), автор, роль)
+
+        // До заведения стороны связь нужды честно не закрыта — так и должно
+        // быть: нехватка считается против проекта, каким он был до пакета.
+        assertEquals(listOf("owns→stakeholder"), запуск.items.single { it.localId == "c2" }.blocking)
+
+        сверка.apply(
+            проект, запуск.id, "c1", finding = 0, action = Action.ACCEPT_NEW,
+            reason = "принято из пакета", author = автор,
+        )
+        сверка.apply(
+            проект, запуск.id, "c2", finding = 0, action = Action.ACCEPT_NEW,
+            reason = "принято из пакета", author = автор,
+        )
+
+        val сторонаЗаведена = store.list(область, "stakeholder").single()
+        val нуждаЗаведена = store.list(область, "need").single()
+        assertEquals("АО «ГЛОНАСС»", сторонаЗаведена.doc.path("name").asText())
+        assertTrue(
+            links.from(сторонаЗаведена.id, "owns").any { it.to == нуждаЗаведена.id },
+            "сторона, заведённая тем же пакетом, встала связью нужды",
+        )
     }
 
     // --- решения человека --------------------------------------------------

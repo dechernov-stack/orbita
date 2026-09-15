@@ -289,8 +289,14 @@ class Synthesizer(
         val отказы = mutableListOf<String>()
         val принятые = mutableListOf<ObjectNode>()
         val коды = mutableListOf<String>()
+        // Ссылка на соседа внутри ответа («сторона, которой ещё нет»)
+        // разрешается ДО разбора: `{"ref":"p1"}` становится именем того
+        // предложения, а `{"code":"SK-0001"}` — кодом принятого. Иначе нужда
+        // приезжает со стороной, названной как попало, и связь
+        // «owns→stakeholder» не закрывается ничем (прогон владельца 15.09).
+        val ссылки = именаПредложений(корень.path("proposals"))
         корень.path("proposals").forEachIndexed { номер, узел ->
-            runCatching { предложение(slice, узел) }.onSuccess { предмет ->
+            runCatching { предложение(slice, узел, ссылки) }.onSuccess { предмет ->
                 val код = карточка(область, author, slice, предмет)
                 коды += код
                 принятые += вЗапись(предмет, код)
@@ -375,7 +381,29 @@ class Synthesizer(
         }
     }
 
-    private fun предложение(slice: Slice, узел: JsonNode): FormationProposal {
+    /**
+     * Естественное имя каждого предложения ответа по его `id`: им называется
+     * сосед, которого в проекте ещё нет. Истина имени — те же поля, по которым
+     * понятие узнаётся в срезе (`ИМЕНА`), второго перечня не заводим.
+     */
+    private fun именаПредложений(предложения: JsonNode): Map<String, String> {
+        val карта = linkedMapOf<String, String>()
+        предложения.forEach { узел ->
+            val имя = узел.path("id").asText("").trim()
+            if (имя.isBlank()) return@forEach
+            val содержимое = узел.path("payload")
+            ИМЕНА.firstNotNullOfOrNull { поле ->
+                содержимое.path(поле).takeIf { it.isTextual }?.asText()?.trim()?.ifBlank { null }
+            }?.let { карта[имя] = it }
+        }
+        return карта
+    }
+
+    private fun предложение(
+        slice: Slice,
+        узел: JsonNode,
+        ссылки: Map<String, String> = emptyMap(),
+    ): FormationProposal {
         val код = узел.path("concept").asText("").trim()
         val правило = GeneratedOntology.byCode[код]
             ?: error(
@@ -424,7 +452,7 @@ class Synthesizer(
                 "вердикт «${вердикт.code}» назвал «${мишень ?: "ничего"}» — такого принятого понятия в срезе нет"
             }
         }
-        val содержимое = полезное(узел.path("payload"))
+        val содержимое = полезное(узел.path("payload"), ссылки)
         val опоры = факты.map { основание(it) }
         return FormationProposal(
             concept = код,
@@ -466,14 +494,37 @@ class Synthesizer(
                 "их четыре: ${Verdict.entries.joinToString(" · ") { it.code }}"
         )
 
-    private fun полезное(узел: JsonNode): Map<String, String> {
+    private fun полезное(узел: JsonNode, ссылки: Map<String, String> = emptyMap()): Map<String, String> {
         if (!узел.isObject) return emptyMap()
         val поля = linkedMapOf<String, String>()
         узел.fields().forEach { (имя, значение) ->
-            val текст = if (значение.isValueNode) значение.asText("") else значение.toString()
+            val текст = when {
+                значение.isValueNode -> значение.asText("")
+                else -> ссылкаСловами(значение, ссылки) ?: значение.toString()
+            }
             if (текст.isNotBlank()) поля[имя] = текст
         }
         return поля
+    }
+
+    /**
+     * Ссылка на соседнее понятие словами: `{"code":"SK-0001"}` — кодом
+     * принятого, `{"ref":"p1"}` — именем предложения из этого же ответа.
+     * Массив ссылок («covers ≥1») собирается через разделитель среза.
+     * Непонятый объект возвращает null: он уйдёт текстом, как и прежде,
+     * и будет виден человеку целиком, а не потеряется молча.
+     */
+    private fun ссылкаСловами(узел: JsonNode, ссылки: Map<String, String>): String? {
+        if (узел.isArray) {
+            val части = узел.mapNotNull { элемент ->
+                if (элемент.isTextual) элемент.asText().trim().ifBlank { null } else ссылкаСловами(элемент, ссылки)
+            }
+            return части.takeIf { it.isNotEmpty() }?.joinToString(" · ")
+        }
+        if (!узел.isObject) return null
+        узел.path("code").asText("").trim().ifBlank { null }?.let { return it }
+        узел.path("ref").asText("").trim().ifBlank { null }?.let { return ссылки[it] }
+        return null
     }
 
     private fun основание(факт: Fact): Basis = Basis(
@@ -745,7 +796,15 @@ $ФОРМАТ
                 // дописывать руками то, что видно в самом факте.
                 val ещё = вид.requiredFields.filterNot { it in понятие.fields.keys || it in СЛУЖЕБНЫЕ }
                 if (ещё.isNotEmpty()) {
-                    append("\n    ещё обязательные поля вида «${вид.code}»: ${ещё.joinToString(", ")}")
+                    append("\n    ещё обязательные поля вида «${вид.code}»: ")
+                    append(ещё.joinToString(", ") { поле -> поле + перечисление(вид, поле) })
+                }
+                // Перечень значений поля — из истины схем: «kind» вехи модель
+                // не заполняла, потому что не знала, чем его заполнять.
+                val сПеречнем = понятие.fields.keys.filter { вид.enums.containsKey(it) && it !in ещё }
+                if (сПеречнем.isNotEmpty()) {
+                    append("\n    значения полей: ")
+                    append(сПеречнем.joinToString(", ") { поле -> поле + перечисление(вид, поле) })
                 }
             }
             // ГЛАВНОЕ правило — из каких фактов понятие вообще образуется.
@@ -794,6 +853,10 @@ $ФОРМАТ
         }
         return части.takeIf { it.isNotEmpty() }?.joinToString(", ")
     }
+
+    /** Значения поля из истины схем в скобках; поле без перечня — пустая строка. */
+    private fun перечисление(вид: KindSpec, поле: String): String =
+        вид.enums[поле]?.takeIf { it.isNotEmpty() }?.joinToString(" | ", prefix = " ∈ ") ?: ""
 
     /** Вид, которым понятие становится при акцепте; null — вида у понятия нет. */
     private fun видПонятия(понятие: Concept): KindSpec? =
@@ -970,16 +1033,41 @@ $ФОРМАТ
         """.trimIndent()
 
         private val ФОРМАТ: String = """
+## Ссылка на соседнее понятие
+Сторона у нужды, нужды у цели, норма у рамки называются НЕ текстом, а ссылкой:
+`{"code": "SK-0001"}` — если понятие уже принято (код из раздела «Уже принятое»);
+`{"ref": "p1"}` — если оно предложено в ЭТОМ же ответе (по его `id`).
+Нужду без стороны не предлагай: сначала предложи сторону, потом сошлись на неё.
+
+## Перед ответом проверь себя
+- у каждого предложения `basis` — коды фактов среза;
+- у каждой нужды есть `stakeholder` ссылкой на принятое или на своё же предложение;
+- обязательные поля вида заполнены, значения — из перечня, если он назван;
+- у augment · contradict · confirm есть `target` и `diff_field`.
+Не прошедшее проверку удали из ответа, а не «исправь смыслом».
+
 ## Формат ответа — ТОЛЬКО JSON, без пояснений вокруг
 {
   "proposals": [
     {
+      "id": "p1",
+      "concept": "stakeholder",
+      "payload": {"name": "АО «ГЛОНАСС»", "role": "operator"},
+      "basis": ["F-0012"],
+      "verdict": "new",
+      "target": "",
+      "diff_field": "",
+      "confidence": 0.0,
+      "why": "одной строкой: почему именно так"
+    },
+    {
+      "id": "p2",
       "concept": "need",
-      "payload": {"statement": "связь в Арктике без наземной инфраструктуры", "stakeholder": "имя стороны"},
-      "basis": ["F-0007", "F-0012"],
-      "verdict": "new|augment|contradict|confirm",
-      "target": "код принятого понятия — пусто только у new",
-      "diff_field": "поле, о котором вердикт — обязательно, кроме new",
+      "payload": {"statement": "связь в Арктике без наземной инфраструктуры", "stakeholder": {"ref": "p1"}},
+      "basis": ["F-0007"],
+      "verdict": "new",
+      "target": "",
+      "diff_field": "",
       "confidence": 0.0,
       "why": "одной строкой: почему именно так"
     }

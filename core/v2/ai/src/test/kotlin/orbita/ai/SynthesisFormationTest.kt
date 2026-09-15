@@ -123,6 +123,54 @@ class SynthesisFormationTest {
     }
 
     @Test
+    fun `сторона названа ссылкой на предложение того же ответа, а не текстом`() {
+        паспорт(ПРОЕКТ, полеЗнаний = true)
+        факт("F-0001", "АО «ГЛОНАСС»", "является оператором", kind = "relation")
+        факт("F-0002", "перевозчик опасных грузов", "не хватает", material = "M-0002")
+        транспорт.ответ = ответ(
+            """
+            {"id":"p1","concept":"stakeholder",
+             "payload":{"name":"АО «ГЛОНАСС»","role":"operator"},
+             "basis":["F-0001"],"verdict":"new"}
+            """.trimIndent(),
+            """
+            {"id":"p2","concept":"need",
+             "payload":{"statement":"телеметрия груза вне зоны покрытия","stakeholder":{"ref":"p1"}},
+             "basis":["F-0002"],"verdict":"new"}
+            """.trimIndent(),
+        )
+
+        val нужда = синтез.synthesize(ПРОЕКТ, "manual", "инженер").diff.new
+            .single { it.concept == "need" }
+
+        assertEquals(
+            "АО «ГЛОНАСС»",
+            нужда.payload["stakeholder"],
+            "ссылка на соседа разворачивается его именем: иначе связь не закрыть ничем",
+        )
+        assertTrue(нужда.missing.isEmpty(), "сторона названа — обязательная связь закрыта: ${нужда.missing}")
+    }
+
+    @Test
+    fun `сторона названа кодом принятого — код и остаётся`() {
+        паспорт(ПРОЕКТ, полеЗнаний = true)
+        понятие("SK-0001", "stakeholder", mapOf("name" to "Минтранс России", "role" to "customer"))
+        факт("F-0001", "Минтранс России", "не хватает")
+        транспорт.ответ = ответ(
+            """
+            {"id":"p1","concept":"need",
+             "payload":{"statement":"единое оперативное управление транспортом","stakeholder":{"code":"SK-0001"}},
+             "basis":["F-0001"],"verdict":"new"}
+            """.trimIndent()
+        )
+
+        val нужда = синтез.synthesize(ПРОЕКТ, "manual", "инженер").diff.new.single()
+
+        assertEquals("SK-0001", нужда.payload["stakeholder"])
+        assertTrue(нужда.missing.isEmpty(), "код принятого закрывает связь: ${нужда.missing}")
+    }
+
+    @Test
     fun `цель с разными годами — противоречие с рангами обоих и без выбора победителя`() {
         паспорт(ПРОЕКТ, полеЗнаний = true)
         понятие("MG-0001", "goal", mapOf("statement" to "развернуть группировку", "year" to "2030"))

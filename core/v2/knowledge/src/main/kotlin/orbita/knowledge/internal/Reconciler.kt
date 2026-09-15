@@ -872,13 +872,23 @@ internal class Reconciler(
     private fun видФакта(понятие: Concept): String =
         понятие.fromFacts.firstNotNullOfOrNull { it.kind } ?: "framing"
 
+    /**
+     * Чем названа связь: текстом, перечнем текстов либо ссылкой-объектом
+     * `{"code": "SK-0001"}`. Ссылка приходит из ручного ввода экрана; из
+     * синтеза она уже разрешена именем при разборе ответа.
+     */
     private fun имена(снимок: JsonNode, поле: String): List<String> {
         val узел = снимок.path(поле)
         return when {
-            узел.isArray -> узел.map { it.asText("").trim() }.filter { it.isNotBlank() }
-            узел.isTextual -> listOf(узел.asText().trim()).filter { it.isNotBlank() }
-            else -> emptyList()
+            узел.isArray -> узел.mapNotNull { одноИмя(it) }
+            else -> listOfNotNull(одноИмя(узел))
         }
+    }
+
+    private fun одноИмя(узел: JsonNode): String? = when {
+        узел.isTextual -> узел.asText().trim().ifBlank { null }
+        узел.isObject -> узел.path("code").asText("").trim().ifBlank { null }
+        else -> null
     }
 
     private fun пусто(узел: JsonNode): Boolean =
@@ -1093,13 +1103,26 @@ internal class Reconciler(
 
     private fun группа(вердикт: Verdict): String = вердикт.name.lowercase()
 
-    private fun вердикт(находки: List<Finding>): Verdict = when {
-        // Противоречие важнее дополнения: оно останавливает человека, а
-        // дополнение только предлагает.
-        находки.any { it.verdict == Verdict.CONTRADICT } -> Verdict.CONTRADICT
-        находки.any { it.verdict == Verdict.AUGMENT } -> Verdict.AUGMENT
-        находки.any { it.verdict == Verdict.CONFIRM } -> Verdict.CONFIRM
-        else -> Verdict.NEW
+    /**
+     * Вердикт о кандидате выносят только вопросы ТОЖДЕСТВА — дубль и
+     * противоречие: четыре слова истины онтологии («new · augment ·
+     * contradict · confirm») говорят о совпадении с ПРИНЯТЫМ понятием.
+     * Соединение находит факт-основание, нехватка — незакрытую связь; ни то,
+     * ни другое принятым понятием не является. Пока они считались наравне,
+     * нужда, у которой нашлось основание в документе, получала «подтверждено»
+     * — и акцепт молча проходил мимо неё как мимо узнанного: шесть нужд из
+     * шести не заводились ничем (прогон владельца 15.09).
+     */
+    private fun вердикт(находки: List<Finding>): Verdict {
+        val тождество = находки.filter { it.question == Question.DUPLICATE || it.question == Question.CONTRADICTION }
+        return when {
+            // Противоречие важнее дополнения: оно останавливает человека, а
+            // дополнение только предлагает.
+            тождество.any { it.verdict == Verdict.CONTRADICT } -> Verdict.CONTRADICT
+            тождество.any { it.verdict == Verdict.AUGMENT } -> Verdict.AUGMENT
+            тождество.any { it.verdict == Verdict.CONFIRM } -> Verdict.CONFIRM
+            else -> Verdict.NEW
+        }
     }
 
     private fun примечание(записи: List<ObjectNode>, срез: Int): String {

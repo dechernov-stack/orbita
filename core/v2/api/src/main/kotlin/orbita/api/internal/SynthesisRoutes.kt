@@ -160,8 +160,12 @@ class SynthesisRoutes(
             val номер = кандидат.findings.indexOfFirst { Action.ACCEPT_NEW in it.offers }
             if (номер < 0 || кандидат.verdict != ReconcileVerdict.NEW) {
                 // Узнанное принятое решает человек: слить · уточнить · оспорить —
-                // действия сверки, а не автоматика акцепта.
-                ждут.addObject().put("proposal", кандидат.localId).put("verdict", кандидат.verdict.word)
+                // действия сверки, а не автоматика акцепта. Причина называется
+                // ВСЕГДА: строка без причины на экране выглядит отказом без
+                // объяснения (прогон владельца 15.09).
+                ждут.addObject().put("proposal", кандидат.localId)
+                    .put("verdict", кандидат.verdict.word)
+                    .put("why", почемуЖдёт(кандидат))
                 return@forEach
             }
             val сделано = runCatching {
@@ -187,14 +191,22 @@ class SynthesisRoutes(
         return узел.put("accepted", принято).put("note", сверка.note)
     }
 
-    private fun отказНехватки(сверка: ReconcileRun, нехватка: List<ReconcileItem>): ObjectNode {
-        val узел = mapper.createObjectNode()
-            .put("error", "у выбранного не закрыта обязательная связь — сущности не заведены")
-            .put("run", сверка.id)
-            .put("what_to_do", "выберите сторону и примените находку: POST /v2/reconcile/${сверка.id}/apply")
-        массив(узел, "missing", нехватка.flatMap { it.blocking }.distinct())
-        массив(узел, "proposals", нехватка.map { it.localId })
-        return узел
+    /**
+     * Почему строка осталась ждать человека. Узнанное принятое называется
+     * своим вердиктом и целью находки: «дополнить ПП РФ … № 2216» человеку
+     * понятно, а «дополнить» без цели — нет.
+     */
+    private fun почемуЖдёт(кандидат: ReconcileItem): String {
+        val цель = кандидат.findings.firstNotNullOfOrNull { it.target?.takeIf { код -> код.isNotBlank() } }
+        val связь = кандидат.blocking.firstOrNull()
+        return when {
+            кандидат.verdict != ReconcileVerdict.NEW && цель != null ->
+                "узнано принятое «$цель» — решение «${кандидат.verdict.word}» за человеком: слить · уточнить · оспорить"
+            кандидат.verdict != ReconcileVerdict.NEW ->
+                "вердикт «${кандидат.verdict.word}» — узнанное принятое сверка сама не сливает"
+            связь != null -> "обязательная связь «$связь» не закрыта — выберите цель и повторите"
+            else -> "сверка не предложила «завести новое»: решение за человеком"
+        }
     }
 
     /** Истина онтологии наружу: по ней экран объясняет, откуда взялось понятие. */
