@@ -104,7 +104,17 @@ class HttpTransport(
      * Берём приращения текста и учёт токенов; событие `error` — отказ
      * провайдера, а не пустой ответ.
      */
+    /** Чем блок содержательнее: длина без пробелов — пустой `{}` весит два знака. */
+    private fun содержательность(блок: StringBuilder): Int = блок.count { !it.isWhitespace() }
+
     internal fun собрать(поток: String, модель: String): Answer {
+        // Блоки содержимого собираются ПООТДЕЛЬНОСТИ. Провайдер вправе прислать
+        // их несколько — и присылает: живое чтение записки 15.09 вернуло два
+        // блока-инструмента подряд, полный и пустой. Склеенные в одну строку,
+        // они дают «Extra data» при разборе, а с ним — пустой ответ на исправном
+        // вызове: худший вид отказа, тихий.
+        val блоки = linkedMapOf<Int, StringBuilder>()
+        var текущий = 0
         val текст = StringBuilder()
         var вход: Int? = null
         var выход: Int? = null
@@ -120,14 +130,18 @@ class HttpTransport(
                     вход = узел.path("message").path("usage").path("input_tokens")
                         .takeIf { it.isNumber }?.asInt()
                 }
+                "content_block_start" -> текущий = узел.path("index").asInt(текущий)
                 // Ответ по схеме приходит не текстом, а входом инструмента:
                 // куски идут отдельным видом дельты. Сборщик один на оба вида.
-                "content_block_delta" -> текст.append(
-                    when (узел.path("delta").path("type").asText()) {
-                        "input_json_delta" -> узел.path("delta").path("partial_json").asText("")
-                        else -> узел.path("delta").path("text").asText("")
-                    },
-                )
+                "content_block_delta" -> {
+                    val номер = узел.path("index").asInt(текущий)
+                    блоки.getOrPut(номер) { StringBuilder() }.append(
+                        when (узел.path("delta").path("type").asText()) {
+                            "input_json_delta" -> узел.path("delta").path("partial_json").asText("")
+                            else -> узел.path("delta").path("text").asText("")
+                        },
+                    )
+                }
                 "message_delta" -> {
                     выход = узел.path("usage").path("output_tokens")
                         .takeIf { it.isNumber }?.asInt() ?: выход
@@ -138,6 +152,9 @@ class HttpTransport(
                 )
             }
         }
+        // Из нескольких блоков берётся САМЫЙ БОЛЬШОЙ: пустой хвостовой блок
+        // (второй вызов инструмента без содержимого) ответа не отменяет.
+        блоки.values.maxByOrNull { содержательность(it) }?.let { текст.append(it) }
         if (текст.isBlank()) throw ProviderUnavailable("провайдер вернул пустой ответ")
         // Обрыв по бюджету — НЕ ответ: половина JSON выглядит как поломка
         // разбора, а причина другая. Повторять бессмысленно, поэтому это

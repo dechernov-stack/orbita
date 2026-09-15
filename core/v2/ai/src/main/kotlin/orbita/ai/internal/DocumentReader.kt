@@ -105,7 +105,7 @@ class DocumentReader(
         val ответ = service.ask(
             project, KIND, prepare(project, material),
             maxTokens = БЮДЖЕТ,
-            schema = AnswerSchemas.чтение(mapper),
+            schema = AnswerSchemas.чтение(mapper, массивыРоли(роль(project, material))),
         )
         return apply(project, material, author, ответ)
     }
@@ -192,9 +192,16 @@ ${самопроверкаПоРоли(роль)}
         val принято = intake.putFacts(project, material, mapper.writeValueAsString(следы), author)
         отбито += принято.refused
 
+        // След ищется среди принятых ЭТИМ разбором, а если документ читается
+        // повторно — среди уже лежащих в поле: повтор не заводит фактов заново,
+        // и без этого второе чтение теряло основания у всех понятий разом.
         val свободные = принято.accepted.toMutableList()
-        val понятия = пункты.map { пункт ->
-            val след = свободные.firstOrNull { совпало(it, пункт) }?.also { свободные.remove(it) }
+        val вПоле = store.list(Area.Project(project), "fact")
+            .filter { it.status !in СНЯТЫЕ }
+            .toMutableList()
+        val понятия = пункты.filterNot { it.concept == ТОЛЬКО_ФАКТ }.map { пункт ->
+            val след = свободные.firstOrNull { совпало(it, пункт) }?.also { свободные.remove(it) }?.id
+                ?: вПоле.firstOrNull { совпалоСЗаписью(it, пункт) }?.also { вПоле.remove(it) }?.code
             ЧитанноеПонятие(
                 localId = пункт.localId,
                 concept = пункт.concept,
@@ -202,10 +209,11 @@ ${самопроверкаПоРоли(роль)}
                 quote = пункт.узел.path("quote").asText(""),
                 anchor = пункт.узел.path("anchor").asText(""),
                 confidence = пункт.узел.path("confidence").takeIf { it.isNumber }?.asDouble(),
-                fact = след?.id,
+                fact = след,
             )
         }
         val безСледа = понятия.count { it.fact == null }
+        val чужиеЦели = пункты.count { it.concept == ТОЛЬКО_ФАКТ }
         val счёт = понятия.groupingBy { it.concept }.eachCount().entries
             .joinToString(" · ") { (понятие, число) -> "${словоПонятия(понятие)} $число" }
         return Прочитанное(
@@ -215,6 +223,7 @@ ${самопроверкаПоРоли(роль)}
             refused = отбито,
             note = buildString {
                 append("прочитано: ").append(счёт.ifBlank { "ни одного понятия" })
+                if (чужиеЦели > 0) append("; чужих целей фактами ").append(чужиеЦели)
                 if (отбито.isNotEmpty()) append("; отбито воротами ").append(отбито.size)
                 if (безСледа > 0) append("; без следа-факта ").append(безСледа)
             },
@@ -266,6 +275,10 @@ ${самопроверкаПоРоли(роль)}
         узел.put("subject", субъект(пункт))
         узел.put("predicate", ПРЕДИКАТ[пункт.concept] ?: "назван документом")
         узел.put("value", утверждение(пункт))
+        // Единица идёт ОТДЕЛЬНЫМ полем от модели: величина без единицы фактом
+        // не становится (правило честности §6.1), а выковыривать единицу из
+        // строки запрещено (истина схем, thresholds_rule).
+        поля.path("unit").asText("").trim().ifBlank { null }?.let { узел.put("unit", it) }
         узел.put("anchor", поля.path("anchor").asText(""))
         узел.put("source_mark", если(пункт.concept == "assumption", "П", "И"))
         поля.path("confidence").takeIf { it.isNumber }?.let { узел.put("confidence", it.asDouble()) }
@@ -285,6 +298,12 @@ ${самопроверкаПоРоли(роль)}
     private fun утверждение(пункт: Пункт): String = ИМЕНА
         .firstNotNullOfOrNull { поле -> пункт.узел.path(поле).asText("").trim().ifBlank { null } }
         ?: пункт.узел.path("quote").asText("")
+
+    /** То же сравнение для записи поля: повторное чтение находит прежний след. */
+    private fun совпалоСЗаписью(запись: Entity, пункт: Пункт): Boolean =
+        запись.doc.path("anchor").asText("") == пункт.узел.path("anchor").asText("") &&
+            запись.doc.path("subject").asText("") == субъект(пункт) &&
+            запись.doc.path("value").asText("") == утверждение(пункт)
 
     /** След ли это того пункта: якорь, субъект и утверждение совпали. */
     private fun совпало(факт: orbita.knowledge.api.Fact, пункт: Пункт): Boolean =
@@ -422,6 +441,23 @@ ${рамки.ifBlank { "  (рамок ещё нет)" }}
         "- ни одна цель проекта отсюда не выписана: цели рождает только устав;"
     }
 
+    /**
+     * Массивы ответа, разрешённые ролью документа: они же обязательные.
+     * Пустой массив — законный ответ («сторон в нормативе нет»), а вот
+     * ОТСУТСТВИЕ массива уводит модель с формата на первом же заполненном.
+     */
+    private fun массивыРоли(роль: String): List<String> = ПОРЯДОК
+        .filter { (_, понятие) ->
+            понятие == ТОЛЬКО_ФАКТ && роль != УСТАВ ||
+                GeneratedOntology.byCode[понятие]?.let { п ->
+                    п.allowedRoles.isEmpty() || роль in п.allowedRoles
+                } == true
+        }
+        .map { (массив, _) -> массив }
+
+    private fun роль(project: String, material: String): String =
+        store.byCode(Area.Project(project), material)?.let { роль(it) } ?: ПО_УМОЛЧАНИЮ
+
     private fun роль(карточка: Entity): String =
         карточка.doc.path("role").asText("").trim().ifBlank { ПО_УМОЛЧАНИЮ }
 
@@ -452,13 +488,23 @@ ${рамки.ifBlank { "  (рамок ещё нет)" }}
             "stakeholders" to "stakeholder",
             "needs" to "need",
             "goals" to "goal",
-            "external_targets" to "external_target",
+            // Чужая цель понятием НЕ становится (истина, goal_hierarchy:
+            // «факт вида external_target — цель чужой программы; в реестр
+            // целей проекта не попадает»). Остаётся следом-фактом: по нему
+            // видно, чья это цель, и на него опирается применимость.
+            "external_targets" to ТОЛЬКО_ФАКТ,
             "constraints" to "constraint",
             "milestones" to "milestone",
             "assumptions" to "assumption",
             "applicabilities" to "opportunity",
             "services" to "service",
         )
+
+        /** Снятое с учёта в срез следов не идёт. */
+        val СНЯТЫЕ: Set<String> = setOf("cancelled", "superseded")
+
+        /** Понятием не становится — только следом-фактом. */
+        const val ТОЛЬКО_ФАКТ: String = "external_target"
 
         /** Служебные поля пункта: в понятие они не идут. */
         val СЛУЖЕБНЫЕ: Set<String> = setOf("id", "quote", "anchor", "confidence")
@@ -521,6 +567,9 @@ ${рамки.ifBlank { "  (рамок ещё нет)" }}
                 формулировка · чья (ссылка на сторону) · класс обслуживания, если назван.
                 Нужда без стороны не выписывается: если сторона очевидна из текста, выпиши и
                 её. Не нужда: роль стороны; свойство системы; обязанность из норматива.
+                ИНТЕРЕС СТОРОНЫ — ТОЖЕ НУЖДА: у каждой выписанной стороны, чей интерес назван
+                в тексте, выпиши нужду из этого интереса со ссылкой на неё. Раздел-перечень
+                нужд даёт нужду на КАЖДЫЙ пункт. Нужд обычно втрое больше, чем сторон.
             """.trimIndent(),
             "goal" to """
                 **Цели** (`goals`). Измеримый результат к сроку: формулировка · значение с

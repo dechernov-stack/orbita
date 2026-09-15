@@ -86,6 +86,7 @@ class EntityIntake(
         supersedes: String?,
         authority: String?,
         profile: ContentProfile?,
+        role: String?,
     ): String {
         val область = Area.Project(project)
         val прежний = supersedes?.takeIf { it.isNotBlank() }?.let { код ->
@@ -107,6 +108,17 @@ class EntityIntake(
         // и полем ввода доверия не бывает. Записывается он всегда, в том числе
         // на проекте прохода: без ранга у материала фактам нечего наследовать,
         // а прежние поля (kind/type) при этом не трогаются.
+        // Роль документа — из перечня истины схем; чужой роли не бывает, и
+        // подставлять умолчание молча нельзя: читатель сам скажет, что читает
+        // документ без роли как обстановку.
+        val роль = role?.trim().orEmpty()
+        if (роль.isNotBlank()) {
+            val перечень = orbita.kernel.schema.GeneratedKinds.byCode["material"]?.enums?.get("role").orEmpty()
+            require(роль in перечень) {
+                "роль документа «$роль» вне перечня истины схем: ${перечень.joinToString(" · ")}"
+            }
+            документ.put("role", роль)
+        }
         val ранг = рангВхода(project, kind, authority)
         документ.put("authority", ранг.value)
         ранг.note?.let { документ.put("notes", it) }

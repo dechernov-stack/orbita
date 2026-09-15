@@ -17,6 +17,43 @@ class StreamTest {
     private val транспорт = HttpTransport(key = "ключ-для-теста")
 
     @Test
+    fun `второй блок-инструмент не склеивается с первым`() {
+        // Живое чтение записки 15.09: провайдер прислал ДВА блока-инструмента
+        // подряд — полный и пустой. Склеенные в одну строку, они дают «Extra
+        // data» при разборе, и исправный ответ на 16 сторон читался как пустой.
+        val поток = """
+            event: message_start
+            data: {"type":"message_start","message":{"model":"claude-sonnet-5","usage":{"input_tokens":10}}}
+
+            event: content_block_start
+            data: {"type":"content_block_start","index":0,"content_block":{"type":"tool_use"}}
+
+            event: content_block_delta
+            data: {"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"{\"stakeholders\":"}}
+
+            event: content_block_delta
+            data: {"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"[{\"name\":\"Минтранс\"}]}"}}
+
+            event: content_block_start
+            data: {"type":"content_block_start","index":1,"content_block":{"type":"tool_use"}}
+
+            event: content_block_delta
+            data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"{\"stakeholders\": []}"}}
+
+            event: message_delta
+            data: {"type":"message_delta","delta":{"stop_reason":"tool_use"},"usage":{"output_tokens":42}}
+        """.trimIndent()
+
+        val ответ = транспорт.собрать(поток, "claude-sonnet-5")
+
+        assertEquals(
+            "{\"stakeholders\":[{\"name\":\"Минтранс\"}]}",
+            ответ.text,
+            "берётся содержательный блок, а не склейка двух",
+        )
+    }
+
+    @Test
     fun `приращения склеиваются, токены считаны`() {
         val поток = """
             event: message_start

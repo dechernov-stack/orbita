@@ -118,3 +118,48 @@ class CanonHeadingTest {
         assertEquals(3, канон.blocks.count { it.kind == "para" }, "три строки таблицы — три абзаца")
     }
 }
+
+/**
+ * Роль документа — истина схем (`material.role`), и ею решается, что из
+ * документа выписывается. Пока форма её не спрашивала, записка миссии
+ * читалась как «обстановка», и цели из устава не выписывались вовсе.
+ */
+class MaterialRoleTest {
+
+    private val mapper = com.fasterxml.jackson.databind.ObjectMapper()
+    private val store: orbita.kernel.api.EntityStore = ПамятьПоля()
+    private val знания = orbita.knowledge.api.KnowledgeFactory.intake(store, null, mapper)
+    private val проект = "PJ-ROLE"
+
+    @kotlin.test.BeforeTest
+    fun паспорт() {
+        store.create(
+            проект, "project", orbita.kernel.api.Area.Project(проект), "1",
+            mapper.createObjectNode().put("name", "Роль документа").put("knowledge_v2", true),
+            orbita.kernel.api.Provenance(orbita.kernel.api.Channel.MANUAL, "инженер"),
+        )
+    }
+
+    @Test
+    fun `роль документа ложится в карточку материала`() {
+        val код = знания.putMaterial(
+            проект, "Записка миссии", "mission_memo", "# Записка\nТекст.", "инженер",
+            authority = orbita.knowledge.api.Authority.MANDATORY, role = "charter",
+        )
+
+        val карточка = store.byCode(orbita.kernel.api.Area.Project(проект), код)!!
+        assertEquals("charter", карточка.doc.path("role").asText())
+    }
+
+    @Test
+    fun `роль вне перечня истины схем отвергается с перечнем`() {
+        val беда = kotlin.test.assertFailsWith<IllegalArgumentException> {
+            знания.putMaterial(
+                проект, "Непонятное", "reference", "# Текст\nТело.", "инженер",
+                authority = orbita.knowledge.api.Authority.REFERENCE, role = "устав",
+            )
+        }
+        assertTrue("вне перечня истины схем" in (беда.message ?: ""), беда.message ?: "")
+        assertTrue("charter" in (беда.message ?: ""), беда.message ?: "")
+    }
+}
