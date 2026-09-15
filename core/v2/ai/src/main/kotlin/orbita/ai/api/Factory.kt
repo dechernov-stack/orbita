@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import orbita.ai.internal.Atomizer
 import orbita.ai.internal.BackgroundAtomizer
 import orbita.ai.internal.BackgroundSynthesizer
+import orbita.ai.internal.DocumentReader
 import orbita.ai.internal.HttpTransport
 import orbita.ai.internal.JournalService
 import orbita.ai.internal.RetryingTransport
@@ -18,6 +19,15 @@ import orbita.knowledge.api.Reconcile
 /** Разбор материала живым вызовом: канон → факты с якорями. */
 fun interface Atomize {
     fun atomize(project: String, material: String, intent: String, author: String): FactIntake
+}
+
+/**
+ * Чтение документа в постановку одним вызовом (РЕШЕНИЕ-ЧИТАТЬ-СМЫСЛ, 15.09).
+ * Прочитанное ложится запуском постановки — тем же экраном и тем же акцептом,
+ * что и синтез из поля.
+ */
+fun interface ReadDocument {
+    fun read(project: String, material: String, author: String): SynthesisRun
 }
 
 object AiFactory {
@@ -41,6 +51,24 @@ object AiFactory {
         val работник = Atomizer(store, intake, service, mapper)
         return Atomize { project, material, intent, author ->
             работник.atomize(project, material, intent, author)
+        }
+    }
+
+    /**
+     * Чтение документа в постановку. Собирается из двух внутренних работников:
+     * читатель добывает понятия с цитатами, синтез кладёт их запуском — форма
+     * записи на экране одна, и второй её копии нет.
+     */
+    fun readDocument(
+        store: EntityStore,
+        intake: Intake,
+        service: AiService,
+        mapper: ObjectMapper = ObjectMapper(),
+    ): ReadDocument {
+        val читатель = DocumentReader(store, intake, service, mapper)
+        val синтез = Synthesizer(store, intake, service, mapper)
+        return ReadDocument { project, material, author ->
+            читатель.readInto(project, material, author, синтез)
         }
     }
 

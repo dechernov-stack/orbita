@@ -4,6 +4,7 @@
 // Здесь перевод HTTP в порты — и ни одного правила предметной области.
 package orbita.api.internal
 
+import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ObjectNode
 import orbita.ai.api.AiService
@@ -25,6 +26,8 @@ class KnowledgeRoutes(
     private val mapper: ObjectMapper = ObjectMapper(),
     /** Разбор фоновой задачей (ADR-069); null — только синхронный разбор. */
     private val jobs: orbita.ai.api.AtomizeJobs? = null,
+    /** Чтение документа в постановку; null — контур на стенде не включён. */
+    private val read: orbita.ai.api.ReadDocument? = null,
     /**
      * Хранилище — ровно за флагом проекта (`knowledge_v2`): ворота сверки
      * ставятся только там, где поле знаний v2 включено. `null` — прежняя
@@ -45,6 +48,12 @@ class KnowledgeRoutes(
             задание(требуется(query, "project"), path.removePrefix("/v2/intake/jobs/"))
         method == "POST" && path == "/v2/intake/atomize" ->
             разбор(требуется(query, "project"), разобрать(body))
+
+        // Чтение документа в постановку одним вызовом (РЕШЕНИЕ-ЧИТАТЬ-СМЫСЛ,
+        // 15.09). Прочитанное ложится запуском постановки: тот же экран и тот
+        // же акцепт, что у синтеза из поля.
+        method == "POST" && path == "/v2/intake/read" ->
+            чтение(требуется(query, "project"), разобрать(body))
 
         method == "GET" && path == "/v2/topics" -> темы(требуется(query, "project"))
 
@@ -224,6 +233,40 @@ class KnowledgeRoutes(
         val з = jobs?.poll(project, id)
             ?: return V2Router.Ответ(404, mapper.createObjectNode().put("error", "задания разбора «$id» нет: стенд перезапускался — повторите разбор"))
         return V2Router.Ответ(200, заданиеВид(з))
+    }
+
+    /**
+     * Прочитать документ в постановку. Канал недоступен — это состояние, а не
+     * пустая постановка: отказ называется словами.
+     */
+    private fun чтение(project: String, тело: JsonNode): V2Router.Ответ {
+        val читатель = read ?: return V2Router.Ответ(
+            501,
+            mapper.createObjectNode()
+                .put("error", "чтение документа в постановку на этом стенде не включено")
+                .put("what_to_do", "разберите документ на факты и соберите постановку из поля"),
+        )
+        val материал = тело.path("material").asText("").trim()
+        require(материал.isNotBlank()) { "укажите material — какой документ читать" }
+        val автор = тело.path("author").asText("инженер")
+        return try {
+            val запуск = читатель.read(project, материал, автор)
+            V2Router.Ответ(
+                201,
+                mapper.createObjectNode()
+                    .put("run", запуск.id)
+                    .put("material", материал)
+                    .put("note", запуск.note ?: "")
+                    .put("proposals", запуск.diff.size),
+            )
+        } catch (e: ProviderUnavailable) {
+            V2Router.Ответ(
+                503,
+                mapper.createObjectNode()
+                    .put("error", "канал службы недоступен: ${e.message}")
+                    .put("what_to_do", "повторите чтение позже — документ и его канон на месте"),
+            )
+        }
     }
 
     private fun заданиеВид(з: orbita.ai.api.AtomizeJob): ObjectNode {

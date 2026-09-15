@@ -584,7 +584,7 @@ private class КаналСинтеза : Transport {
  * Хранилище в памяти: правка заводит НОВУЮ версию, прежняя остаётся историей —
  * ровно как у хранилища ядра, иначе «принятое не тронуто» проверять нечем.
  */
-private class ПамятьПоля : EntityStore {
+internal class ПамятьПоля : EntityStore {
 
     private val записи = linkedMapOf<String, Entity>()
     private val история = mutableMapOf<String, MutableList<Entity>>()

@@ -290,6 +290,8 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
             mapper,
             // Разбор фоновой задачей (ADR-069): сеть в фоне, база — на потоке запросов.
             jobs = orbita.ai.api.AiFactory.atomizeJobs(store, знания, служба, mapper),
+            // Чтение документа в постановку одним вызовом (РЕШЕНИЕ-ЧИТАТЬ-СМЫСЛ, 15.09).
+            read = orbita.ai.api.AiFactory.readDocument(store, знания, служба, mapper),
             // Ворота сверки (знания v2): без реестра маршрут не знает флага проекта
             // и пускал бы несверенный ввод — на стенде ворота были бы выключены.
             store = store,

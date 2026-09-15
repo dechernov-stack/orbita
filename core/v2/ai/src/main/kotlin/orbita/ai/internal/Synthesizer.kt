@@ -297,7 +297,7 @@ class Synthesizer(
         val ссылки = именаПредложений(корень.path("proposals"))
         корень.path("proposals").forEachIndexed { номер, узел ->
             runCatching { предложение(slice, узел, ссылки) }.onSuccess { предмет ->
-                val код = карточка(область, author, slice, предмет)
+                val код = карточка(область, author, slice.fingerprint, предмет)
                 коды += код
                 принятые += вЗапись(предмет, код)
             }.onFailure { беда ->
@@ -326,6 +326,48 @@ class Synthesizer(
             status = "done",
         )
         return вид(готово)
+    }
+
+    /**
+     * Записать ГОТОВЫЕ предложения запуском постановки.
+     *
+     * Нужна второму контуру — чтению документа (РЕШЕНИЕ-ЧИТАТЬ-СМЫСЛ): понятия
+     * там рождаются не из среза поля, а прямо из текста, но ложатся на тот же
+     * экран и принимаются тем же акцептом. Второй записи дифа не заводим:
+     * форма записи — договор с экраном, и копия разошлась бы с ним молча.
+     */
+    fun record(
+        project: String,
+        author: String,
+        fingerprint: String,
+        note: String,
+        proposals: List<FormationProposal>,
+        refused: List<String> = emptyList(),
+    ): SynthesisRun {
+        val область = Area.Project(project)
+        val документ = mapper.createObjectNode()
+        документ.put("trigger", ЧТЕНИЕ)
+        документ.put("slice_fingerprint", fingerprint)
+        документ.put("slice_size", proposals.size)
+        документ.put("ontology_version", GeneratedOntology.ontologyVersion)
+        документ.put("cached", false)
+        документ.putArray("tags").add(МЕТКА)
+        val коды = документ.putArray("proposals")
+        val диф = пустойДиф(документ)
+        proposals.forEach { предложение ->
+            val код = карточка(область, author, fingerprint, предложение)
+            коды.add(код)
+            (диф.get(предложение.verdict.code) as ArrayNode).add(вЗапись(предложение, код))
+        }
+        документ.put(
+            "notes",
+            (listOf(note) + refused.map { "отбито: $it" }).filter { it.isNotBlank() }.joinToString(" · "),
+        )
+        val запуск = store.create(
+            следующий(область, "synthesis_run", "SR"), "synthesis_run", область, null, документ,
+            Provenance(Channel.SERVICE, author, fingerprint = fingerprint), status = "done",
+        )
+        return вид(запуск)
     }
 
     /**
@@ -595,10 +637,10 @@ class Synthesizer(
      * строкой на экране — по нему человек принимает решение, и решение видно
      * в самой карточке.
      */
-    private fun карточка(область: Area, author: String, slice: Slice, предложение: FormationProposal): String {
+    private fun карточка(область: Area, author: String, отпечаток: String, предложение: FormationProposal): String {
         val документ = mapper.createObjectNode()
         документ.put("package_kind", ПАКЕТ)
-        документ.putObject("source").put("prompt", slice.fingerprint)
+        документ.putObject("source").put("prompt", отпечаток)
         val предмет = документ.putArray("items").addObject()
         предмет.put("class", предложение.concept)
         val содержимое = предмет.putObject("payload")
@@ -612,10 +654,10 @@ class Synthesizer(
         предмет.put("decision", "pending")
         предмет.put("reason", причина(предложение))
         предложение.targetRef?.let { предмет.put("target_ref", it) }
-        документ.put("fingerprint", slice.fingerprint)
+        документ.put("fingerprint", отпечаток)
         return store.create(
             следующий(область, "proposal", "PR"), "proposal", область, null, документ,
-            Provenance(Channel.SERVICE, author, fingerprint = slice.fingerprint), status = "pending",
+            Provenance(Channel.SERVICE, author, fingerprint = отпечаток), status = "pending",
         ).code
     }
 
@@ -948,6 +990,9 @@ $ФОРМАТ
 
         /** Вид вызова в журнале ИИ: по нему видно, за что заплачено. */
         const val KIND: String = "synthesis"
+
+        /** Повод запуска, рождённого чтением документа, а не срезом поля. */
+        const val ЧТЕНИЕ: String = "reading"
 
         /** Отказ на проекте без поля знаний v2 — теми же словами, что в маршруте. */
         const val ВЫКЛЮЧЕН: String = "синтез выключен на этом проекте"
