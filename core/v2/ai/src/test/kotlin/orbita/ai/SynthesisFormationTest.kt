@@ -522,9 +522,11 @@ private class КаналСинтеза : Transport {
     var ответ: String = """{"proposals":[]}"""
     var беда: String? = null
     val промпты = mutableListOf<String>()
+    var схема: JsonNode? = null
 
-    override fun ask(prompt: String, model: String?, maxTokens: Int?): Answer {
+    override fun ask(prompt: String, model: String?, maxTokens: Int?, schema: JsonNode?): Answer {
         промпты += prompt
+        схема = schema
         беда?.let { throw ProviderUnavailable(it) }
         return Answer(text = ответ, model = "модель-теста", tokensIn = 100, tokensOut = 200)
     }

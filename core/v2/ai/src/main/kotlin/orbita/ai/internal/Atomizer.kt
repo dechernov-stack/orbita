@@ -49,7 +49,13 @@ class Atomizer(
         val промпт = prepare(project, material, intent)
         // Урожай в сотню фактов не помещается в бюджет короткого ответа:
         // разбор просит свой потолок, а не полагается на общий.
-        val ответ = service.ask(project, KIND, промпт, maxTokens = БЮДЖЕТ_РАЗБОРА)
+        // Формат держит схема, а не текст промпта: правка инструкций
+        // больше не уводит модель с формата (15.09, дважды).
+        val ответ = service.ask(
+            project, KIND, промпт,
+            maxTokens = БЮДЖЕТ_РАЗБОРА,
+            schema = AnswerSchemas.разбор(mapper),
+        )
         return apply(project, material, intent, author, ответ, journaled = true)
     }
 

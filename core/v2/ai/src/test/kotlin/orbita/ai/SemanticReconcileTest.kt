@@ -537,7 +537,7 @@ private class Канал(private val ответ: String, private val беда: P
     var вызовов: Int = 0
     var последний: String = ""
 
-    override fun ask(prompt: String, model: String?, maxTokens: Int?): Answer {
+    override fun ask(prompt: String, model: String?, maxTokens: Int?, schema: JsonNode?): Answer {
         вызовов += 1
         последний = prompt
         беда?.let { throw it }

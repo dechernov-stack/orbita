@@ -96,7 +96,11 @@ class Synthesizer(
         val срез = prepare(project)
         val запуск = open(project, trigger, author, срез)
         val ответ = try {
-            service.ask(project, KIND, срез.prompt, maxTokens = БЮДЖЕТ_СИНТЕЗА)
+            service.ask(
+                project, KIND, срез.prompt,
+                maxTokens = БЮДЖЕТ_СИНТЕЗА,
+                schema = AnswerSchemas.формирование(mapper),
+            )
         } catch (e: ProviderUnavailable) {
             // Отказ канала — состояние запуска, а не потерянный вызов: запись
             // остаётся в поле с названной причиной.

@@ -6,6 +6,7 @@
 // проекта — по журналу видно, за что заплачено и что пришло из кэша.
 package orbita.ai.internal
 
+import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import orbita.ai.api.Answer
 import orbita.ai.api.AiService
@@ -30,9 +31,10 @@ class JournalService(
         prompt: String,
         model: String?,
         maxTokens: Int?,
+        schema: JsonNode?,
     ): Answer {
         cached(project, prompt)?.let { return it }
-        val ответ = askDetached(prompt, model, maxTokens)
+        val ответ = askDetached(prompt, model, maxTokens, schema)
         record(project, kind, prompt, ответ)
         return ответ
     }
@@ -51,8 +53,8 @@ class JournalService(
     }
 
     /** Только сеть: ни чтения, ни записи базы — годится для фонового потока. */
-    override fun askDetached(prompt: String, model: String?, maxTokens: Int?): Answer =
-        transport.ask(prompt, model, maxTokens)
+    override fun askDetached(prompt: String, model: String?, maxTokens: Int?, schema: JsonNode?): Answer =
+        transport.ask(prompt, model, maxTokens, schema)
 
     override fun record(project: String, kind: String, prompt: String, answer: Answer) {
         val отпечаток = отпечатокПромпта(prompt)

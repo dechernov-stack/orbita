@@ -52,7 +52,7 @@ class ReconcileGateTest {
     private val шаблон = mapper.readTree(
         TestDbV2.repoRoot.resolve("docs/tz/v2/полки-порождённые/ШАБЛОН-ФАЗЫ-PRE-A-NASA.json").toFile(),
     )
-    private val служба = AiFactory.service(store, Transport { _, _, _ -> Answer("{}", "тест", 0, 0) }, mapper)
+    private val служба = AiFactory.service(store, Transport { _, _, _, _ -> Answer("{}", "тест", 0, 0) }, mapper)
 
     private val router: V2Router by lazy {
         V2Router(

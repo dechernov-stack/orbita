@@ -62,7 +62,7 @@ class PlanLinksTest {
          ]}
     """.trimIndent()
 
-    private val служба = AiFactory.service(store, Transport { _, _, _ ->
+    private val служба = AiFactory.service(store, Transport { _, _, _, _ ->
         Answer(ОТВЕТ, "модель-проверки", 100, 200)
     }, mapper)
 

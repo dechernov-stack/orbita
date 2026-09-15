@@ -6,6 +6,7 @@
 // который выглядит как «модель ничего не нашла».
 package orbita.ai.internal
 
+import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import orbita.ai.api.Answer
 import orbita.ai.api.ProviderUnavailable
@@ -39,7 +40,12 @@ class HttpTransport(
         .connectTimeout(Duration.ofSeconds(20)).build(),
 ) : Transport {
 
-    override fun ask(prompt: String, model: String?, maxTokens: Int?): Answer {
+    private companion object {
+        /** Имя инструмента ответа: одно на все контуры, им же держится формат. */
+        const val ИНСТРУМЕНТ = "orbita_result"
+    }
+
+    override fun ask(prompt: String, model: String?, maxTokens: Int?, schema: JsonNode?): Answer {
         val ключ = key?.takeIf { it.isNotBlank() }
             ?: throw ProviderUnavailable(
                 "прямой канал не настроен: нет ORBITA_AI_KEY. Живой разбор недоступен — " +
@@ -56,6 +62,17 @@ class HttpTransport(
         тело.put("stream", true)
         тело.putArray("messages").addObject()
             .put("role", "user").put("content", prompt)
+        // Формат ответа держит ПРОВАЙДЕР, а не уговор в тексте промпта:
+        // объявляем инструмент со схемой и обязываем им воспользоваться.
+        // Пока формат держался словами, любая правка инструкций уводила
+        // модель с него, и разбор возвращал пустой список фактов (15.09).
+        if (schema != null) {
+            val инструмент = тело.putArray("tools").addObject()
+            инструмент.put("name", ИНСТРУМЕНТ)
+            инструмент.put("description", "Вернуть результат строго по схеме")
+            инструмент.set<JsonNode>("input_schema", schema)
+            тело.putObject("tool_choice").put("type", "tool").put("name", ИНСТРУМЕНТ)
+        }
 
         val запрос = HttpRequest.newBuilder(URI.create(url))
             .header("content-type", "application/json")
@@ -103,7 +120,14 @@ class HttpTransport(
                     вход = узел.path("message").path("usage").path("input_tokens")
                         .takeIf { it.isNumber }?.asInt()
                 }
-                "content_block_delta" -> текст.append(узел.path("delta").path("text").asText(""))
+                // Ответ по схеме приходит не текстом, а входом инструмента:
+                // куски идут отдельным видом дельты. Сборщик один на оба вида.
+                "content_block_delta" -> текст.append(
+                    when (узел.path("delta").path("type").asText()) {
+                        "input_json_delta" -> узел.path("delta").path("partial_json").asText("")
+                        else -> узел.path("delta").path("text").asText("")
+                    },
+                )
                 "message_delta" -> {
                     выход = узел.path("usage").path("output_tokens")
                         .takeIf { it.isNumber }?.asInt() ?: выход
@@ -139,11 +163,11 @@ class RetryingTransport(
     private val спать: (Long) -> Unit = { Thread.sleep(it) },
 ) : Transport {
 
-    override fun ask(prompt: String, model: String?, maxTokens: Int?): Answer {
+    override fun ask(prompt: String, model: String?, maxTokens: Int?, schema: JsonNode?): Answer {
         var последняя: ProviderUnavailable? = null
         for (попытка in паузыМс.indices) {
             try {
-                return inner.ask(prompt, model, maxTokens)
+                return inner.ask(prompt, model, maxTokens, schema)
             } catch (e: ProviderUnavailable) {
                 последняя = e
                 if (попытка < паузыМс.size - 1) спать(паузыМс[попытка])

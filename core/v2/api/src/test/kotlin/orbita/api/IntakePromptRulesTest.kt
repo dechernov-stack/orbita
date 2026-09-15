@@ -71,7 +71,7 @@ class IntakePromptRulesTest {
         )
         val служба = AiFactory.service(
             store,
-            Transport { текст, _, _ ->
+            Transport { текст, _, _, _ ->
                 промпт = текст
                 Answer(ПУСТОЙ_ОТВЕТ, "тест", 1, 1)
             },

@@ -47,7 +47,7 @@ class BackgroundIntakeTest {
         val якорь = intake.canon(проект, материал).first().anchor
         val отпустить = CountDownLatch(1)
         val дошло = CountDownLatch(1)
-        val транспорт = Transport { _, _, _ ->
+        val транспорт = Transport { _, _, _, _ ->
             дошло.countDown()
             отпустить.await(10, TimeUnit.SECONDS)
             Answer(ответ(якорь), "тест", 10, 20)
@@ -81,7 +81,7 @@ class BackgroundIntakeTest {
     @Test
     fun `отказ провайдера — задание не удалось, причина названа, база не тронута`() {
         val материал = intake.putMaterial(проект, "ТЗ", "tor", "п. 4.1 Текст.", "Иванов И.")
-        val транспорт = Transport { _, _, _ -> throw ProviderUnavailable("нет ключа") }
+        val транспорт = Transport { _, _, _, _ -> throw ProviderUnavailable("нет ключа") }
         val задания = AiFactory.atomizeJobs(store, intake, AiFactory.service(store, транспорт, mapper), mapper)
         val старт = задания.start(проект, материал, "разбери", "Иванов И.")
         var з = задания.poll(проект, старт.id)!!

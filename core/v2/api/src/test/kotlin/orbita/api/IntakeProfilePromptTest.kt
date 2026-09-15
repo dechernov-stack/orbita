@@ -42,7 +42,7 @@ class IntakeProfilePromptTest {
     private var звонков = 0
     private var ответМодели = ОТВЕТ_ТЗ
 
-    private val транспорт = Transport { текст, _, _ ->
+    private val транспорт = Transport { текст, _, _, _ ->
         промпт = текст
         звонков += 1
         Answer(ответМодели, "модель-проверки", 100, 200)

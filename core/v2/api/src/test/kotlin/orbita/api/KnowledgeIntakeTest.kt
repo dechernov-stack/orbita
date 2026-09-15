@@ -64,7 +64,7 @@ class KnowledgeIntakeTest {
          ]}
     """.trimIndent()
 
-    private val транспорт = Transport { _, _, _ ->
+    private val транспорт = Transport { _, _, _, _ ->
         звонков += 1
         Answer(ОТВЕТ, "модель-проверки", 100, 200)
     }

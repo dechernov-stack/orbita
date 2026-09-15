@@ -63,7 +63,7 @@ class SynthesisEndToEndTest {
 
     // Канал модели подменён пустым ответом: ни один адрес этого теста модели
     // не зовёт, и «пусто» — самый честный признак того, что не позвал.
-    private val служба = AiFactory.service(store, Transport { _, _, _ -> Answer("[]", "тест", 0, 0) }, mapper)
+    private val служба = AiFactory.service(store, Transport { _, _, _, _ -> Answer("[]", "тест", 0, 0) }, mapper)
 
     private val документы = DocumentsFactory.documents(
         store, links,

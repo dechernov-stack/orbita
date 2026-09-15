@@ -7,6 +7,7 @@
 // повтор той же версии вызова не делает.
 package orbita.ai.api
 
+import com.fasterxml.jackson.databind.JsonNode
 import orbita.kernel.schema.GeneratedKinds
 import orbita.knowledge.api.Authority
 import orbita.knowledge.api.FactSource
@@ -35,8 +36,12 @@ fun interface Transport {
      * @param maxTokens потолок ответа. Разбору документа его задаёт вызов:
      *   урожай в сто фактов не помещается в бюджет короткого ответа, а
      *   обрыв на полуслове — не ответ (поймано на записке в 36 тыс. знаков)
+     * @param schema схема ответа. Задана — формат держит ПРОВАЙДЕР, а не
+     *   уговор в тексте: ответ приходит объектом по схеме. Без неё формат
+     *   держался словами промпта, и правка инструкций уводила модель с
+     *   формата — список фактов приходил пустым (15.09, дважды).
      */
-    fun ask(prompt: String, model: String?, maxTokens: Int?): Answer
+    fun ask(prompt: String, model: String?, maxTokens: Int?, schema: JsonNode?): Answer
 }
 
 /** Запись журнала вызовов: по ней видно, за что заплачено. */
@@ -61,6 +66,7 @@ interface AiService {
         prompt: String,
         model: String? = null,
         maxTokens: Int? = null,
+        schema: JsonNode? = null,
     ): Answer
 
     /** Ответ из журнала по отпечатку промпта — без вызова; null, если такого не было. */
@@ -70,7 +76,12 @@ interface AiService {
      * Чистый вызов провайдера — только сеть, без чтения и записи базы:
      * его можно выполнять в фоновом потоке (ADR-069: разбор фоновой задачей).
      */
-    fun askDetached(prompt: String, model: String? = null, maxTokens: Int? = null): Answer
+    fun askDetached(
+        prompt: String,
+        model: String? = null,
+        maxTokens: Int? = null,
+        schema: JsonNode? = null,
+    ): Answer
 
     /** Записать ответ в журнал вызовов (на потоке запросов; база — только здесь). */
     fun record(project: String, kind: String, prompt: String, answer: Answer)
