@@ -16,6 +16,7 @@
 // адреса этого теста считаются по данным и живого вызова не делают.
 package orbita.api
 
+import orbita.knowledge.schema.GeneratedOntology
 import com.fasterxml.jackson.databind.ObjectMapper
 import orbita.ai.api.AiFactory
 import orbita.ai.api.Answer
@@ -187,7 +188,14 @@ class SynthesisEndToEndTest {
             ответ.body.path("version").asText().isNotBlank(),
             "версия онтологии — отпечаток истины YAML: без неё запуск синтеза ссылается в пустоту",
         )
-        assertEquals(8, ответ.body.path("concepts").size(), "понятий восемь: ${ответ.body.path("concepts")}")
+        // Число понятий — из истины, а не из кода: владелец добавил девятое
+        // (возможность) 15.09, и пришитая к тесту восьмёрка повалила бы сборку
+        // на правке ЧУЖОГО файла.
+        assertEquals(
+            GeneratedOntology.concepts.size,
+            ответ.body.path("concepts").size(),
+            "понятий столько же, сколько в истине онтологии: ${ответ.body.path("concepts")}",
+        )
     }
 
     @Test

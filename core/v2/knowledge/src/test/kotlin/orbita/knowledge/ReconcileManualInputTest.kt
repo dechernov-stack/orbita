@@ -32,6 +32,7 @@ import orbita.knowledge.api.MustLinkMissing
 import orbita.knowledge.api.Question
 import orbita.knowledge.api.Verdict
 import orbita.knowledge.internal.Reconciler
+import orbita.knowledge.schema.GeneratedOntology
 import java.time.OffsetDateTime
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -267,6 +268,42 @@ class ReconcileManualInputTest {
             links.from(сторонаЗаведена.id, "owns").any { it.to == нуждаЗаведена.id },
             "сторона, заведённая тем же пакетом, встала связью нужды",
         )
+    }
+
+    @Test
+    fun `допущение ложится на факт пометой, а не заводит сущность`() {
+        // Истина 15.09: «target_kind: fact (disposition=assumed) — отдельного
+        // вида нет; реестр допущений — проекция фактов с диспозицией assumed».
+        val кандидат = Candidate(
+            "c1", "assumption",
+            mapper.createObjectNode().put("statement", "предполагается доступность ракеты-носителя к 2029"),
+        )
+
+        val запуск = сверка.preview(проект, listOf(кандидат), автор, роль)
+        val итог = сверка.apply(
+            проект, запуск.id, "c1", finding = 0, action = Action.ACCEPT_NEW,
+            reason = "принято инженером", author = автор,
+        )
+
+        assertTrue(итог.created.isEmpty(), "сущности допущение не заводит: ${итог.created}")
+        val помеченный = store.byCode(область, итог.updated.single())!!
+        assertEquals("fact", помеченный.kind, "помечен именно факт")
+        assertEquals("assumed", помеченный.doc.path("disposition").asText())
+        assertEquals(автор, помеченный.doc.path("disposition_decision").path("by").asText())
+        assertTrue(
+            "принято инженером" in помеченный.doc.path("disposition_decision").path("reason").asText(),
+            "решение о диспозиции названо причиной: ${помеченный.doc.path("disposition_decision")}",
+        )
+        assertTrue("владельца и точку подтверждения ставит человек" in итог.note, итог.note)
+    }
+
+    @Test
+    fun `понятие на факте не попадает в перечень принятых сущностей`() {
+        // Сторож удвоения среза: пока допущение считалось видом «fact», каждый
+        // факт поля приезжал в синтез ещё и «принятым понятием».
+        val наФакте = GeneratedOntology.concepts.filter { it.marksFact }
+        assertEquals(listOf("assumption"), наФакте.map { it.code }, "на факт ложится только допущение")
+        assertEquals("fact", наФакте.single().targetKindCode)
     }
 
     // --- решения человека --------------------------------------------------

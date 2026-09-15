@@ -33,11 +33,11 @@ class OntologyTest {
     private val норматив = GeneratedOntology.of("normative_document")
 
     @Test
-    fun `восемь понятий постановки — от стороны до норматива`() {
+    fun `понятия постановки — от стороны до возможности`() {
         assertEquals(
             listOf(
-                "stakeholder", "need", "goal", "service",
-                "constraint", "assumption", "milestone", "normative_document",
+                "stakeholder", "need", "goal", "service", "constraint",
+                "assumption", "milestone", "normative_document", "opportunity",
             ),
             GeneratedOntology.concepts.map { it.code },
             "перечень понятий и их порядок идут из истины онтологии",
@@ -45,31 +45,41 @@ class OntologyTest {
     }
 
     @Test
-    fun `у каждого понятия есть ключ дубля и порог близости`() {
-        GeneratedOntology.concepts.forEach { понятие ->
+    fun `понятие без ключа дубля отказывает поимённо, а не сверяет наугад`() {
+        val сКлючом = GeneratedOntology.concepts.filter { it.identity != null }
+        val безКлюча = GeneratedOntology.concepts.filter { it.identity == null }
+
+        сКлючом.forEach { понятие ->
             assertTrue(
-                понятие.identity.key.isNotEmpty(),
-                "у понятия «${понятие.code}» не назван ключ дубля — узнавать повтор нечем",
+                понятие.identityOrFail.key.isNotEmpty(),
+                "у понятия «${понятие.code}» нет ключа дубля — сверять нечем",
             )
+            val порог = понятие.identityOrFail.threshold
             assertTrue(
-                понятие.identity.threshold > 0 && понятие.identity.threshold <= 1,
-                "у понятия «${понятие.code}» порог близости ${понятие.identity.threshold} вне (0, 1]",
+                порог > 0 && порог <= 1,
+                "у понятия «${понятие.code}» порог близости $порог вне (0, 1]",
             )
-            assertTrue(
-                понятие.fromFacts.isNotEmpty(),
-                "понятие «${понятие.code}» не сказано, из каких фактов образуется",
-            )
+        }
+        // Ворота 6 истины — «дубль по ключу идентичности». Понятие, которому
+        // владелец ключа ещё не назвал, не сверяется наугад: отказ называет и
+        // понятие, и файл истины, в котором ключа не хватает.
+        безКлюча.forEach { понятие ->
+            val беда = assertFailsWith<IllegalStateException>("«${понятие.code}» сверился без ключа") {
+                понятие.identityOrFail
+            }
+            assertTrue(понятие.code in (беда.message ?: ""), беда.message ?: "")
+            assertTrue("ОНТОЛОГИЯ-ФОРМИРОВАНИЯ.yaml" in (беда.message ?: ""), беда.message ?: "")
         }
     }
 
     @Test
     fun `нужда узнаётся по стороне и сути, норматив — только по обозначению`() {
-        assertEquals(listOf("stakeholder", "statement_core"), нужда.identity.key)
-        assertEquals(0.8, нужда.identity.threshold, 1e-9, "та же потребность иными словами — дубль")
-        assertEquals(listOf("designation_natural"), норматив.identity.key)
+        assertEquals(listOf("stakeholder", "statement_core"), нужда.identityOrFail.key)
+        assertEquals(0.8, нужда.identityOrFail.threshold, 1e-9, "та же потребность иными словами — дубль")
+        assertEquals(listOf("designation_natural"), норматив.identityOrFail.key)
         // Порог 1.0 — это «только точное совпадение обозначения»: два разных
         // норматива с похожими названиями сливать нельзя ни при какой близости.
-        assertEquals(1.0, норматив.identity.threshold, 1e-9, "норматив по смыслу не сливается")
+        assertEquals(1.0, норматив.identityOrFail.threshold, 1e-9, "норматив по смыслу не сливается")
     }
 
     @Test

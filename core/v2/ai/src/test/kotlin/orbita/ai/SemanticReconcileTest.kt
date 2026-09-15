@@ -219,7 +219,7 @@ class SemanticReconcileTest {
     @Test
     fun `находка ниже порога близости понятия снимается`() {
         принятаяНужда()
-        val порог = GeneratedOntology.of("need").identity.threshold
+        val порог = GeneratedOntology.of("need").identityOrFail.threshold
         val канал = Канал(ответМодели(confidence = порог - 0.3))
         val (сверка, _) = собрать(канал)
 
@@ -347,7 +347,7 @@ class SemanticReconcileTest {
         assertTrue(текст.contains("## Требования к ответу"), текст)
         assertTrue(текст.contains("compared_fields"), "ворота ответа названы промпту")
         assertTrue(
-            текст.contains(GeneratedOntology.of("need").identity.threshold.toString()),
+            текст.contains(GeneratedOntology.of("need").identityOrFail.threshold.toString()),
             "порог близости берётся у онтологии, а не выдумывается промптом",
         )
         assertTrue(текст.contains(Authority.word(Authority.MANDATORY)), "ранг факта в срезе назван словами")

@@ -219,9 +219,12 @@ class SynthesisRoutes(
             понятие.fields.forEach { (имя, откуда) -> поля.put(имя, откуда) }
             массив(у, "must_link", понятие.mustLink)
             массив(у, "conflict_on", понятие.conflictOn)
+            // Ключа идентичности у понятия может ещё не быть: экран показывает
+            // это словами, а не падает на чтении онтологии.
             val узнаётся = у.putObject("identity")
-                .put("semantic", понятие.identity.semantic).put("threshold", понятие.identity.threshold)
-            массив(узнаётся, "key", понятие.identity.key)
+                .put("semantic", понятие.identity?.semantic ?: "")
+                .put("threshold", понятие.identity?.threshold ?: 0.0)
+            массив(узнаётся, "key", понятие.identity?.key ?: emptyList())
         }
         return V2Router.Ответ(200, узел)
     }

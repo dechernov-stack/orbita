@@ -23,7 +23,6 @@ import orbita.knowledge.api.Assumption
 import orbita.knowledge.api.Authority
 import orbita.knowledge.api.ContentProfile
 import orbita.knowledge.api.Fact
-import orbita.knowledge.api.FormationRules
 import orbita.knowledge.api.FactLink
 import orbita.knowledge.api.FactSource
 import orbita.knowledge.api.Intake
@@ -525,25 +524,13 @@ class EntityIntake(
             return "источник не подтверждён (материал ранга «${Authority.word(Authority.DOUBTFUL)}») — " +
                 "подтвердите источники, и строки станут предложениями"
         }
-        if (FormationRules.проверяемо(понятие)) {
-            val факты = основания.mapNotNull { store.byCode(область, it) }.map { it.doc }
-            if (факты.isEmpty()) {
-                return "нет факта-основания — предложений без оснований не бывает"
-            }
-            // Признак правила мог приехать полем самого действия: обозначение
-            // акта стоит в payload.designation, год цели — в payload.year.
-            val названо: Set<String> = payloadДействия(действие).properties()
-                .filter { (_, з) -> з.asText("").isNotBlank() || !з.isEmpty }
-                .map { (имя, _) -> имя }
-                .toSet()
-            val знаетСубъекта: (String, String) -> Boolean =
-                { вид, имя -> поИмени(область, вид, имя) != null }
-            val подошёл = факты.firstOrNull {
-                FormationRules.подходит(понятие, it, знаетСубъекта, названо)
-            }
-            if (подошёл == null) {
-                return FormationRules.почемуНе(понятие, факты.first())
-            }
+        // Ворота 4–5 истины: основание есть, обязательные поля и связи названы.
+        // Вида факта и предиката ворота НЕ судят (`gates.never`, 15.09): пока
+        // судили, очевидное отбивалось — «Минтранс России — заказчик» уходило
+        // в отказ, потому что факт оказался оценкой, а правило ждало связи.
+        val факты = основания.mapNotNull { store.byCode(область, it) }
+        if (факты.isEmpty()) {
+            return "нет факта-основания — предложений без оснований не бывает"
         }
         val payload = payloadДействия(действие)
         обязательства(понятие).forEach { (поле, чего) ->

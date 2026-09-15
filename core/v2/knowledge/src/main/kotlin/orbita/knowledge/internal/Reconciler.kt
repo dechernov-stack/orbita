@@ -251,6 +251,10 @@ internal class Reconciler(
         уточняет: String? = null,
         обобщает: String? = null,
     ): Applied {
+        // Понятие, которое ложится на ФАКТ, сущности не заводит. Истина 15.09:
+        // «предложение синтеза для допущения = пометить факт как допущение;
+        // реестр допущений — проекция фактов с диспозицией assumed».
+        if (понятие.marksFact) return пометитьФакт(область, запись, понятие, reason, author)
         val вид = видПонятия(понятие.code) ?: error(
             "понятие «${словоПонятия(понятие.code)}» вида в истине схем не имеет: " +
                 "заводить вид в коде запрещено — решение за владельцем файла схем",
@@ -679,7 +683,7 @@ internal class Reconciler(
                 // Совпали ОСНОВЫ формулировки, а не буква: уверенность — тот
                 // самый порог близости смысла, который назвала онтология
                 // понятию; своего числа здесь не заводится.
-                confidence = понятие.identity.threshold,
+                confidence = понятие.identityOrFail.threshold,
                 comparedFields = listOf("statement"),
                 difference = FieldDifference(
                     Comparison.EQUAL, "statement",
@@ -692,6 +696,58 @@ internal class Reconciler(
             ),
         )
     }
+
+    /**
+     * Пометить факт-основание: понятие ложится на него, а не заводит сущность.
+     *
+     * Диспозицию по-прежнему ставит ЧЕЛОВЕК — здесь его рука: он нажал
+     * «принять предложение». Владельца допущения, точку подтверждения и способ
+     * проверки истина велит спрашивать у человека («модель их не предлагает»),
+     * поэтому здесь они не выдумываются: факт получает диспозицию и решение о
+     * ней с автором и причиной, а недостающие поля называет `неполнота`.
+     */
+    private fun пометитьФакт(
+        область: Area,
+        запись: ObjectNode,
+        понятие: Concept,
+        reason: String,
+        author: String,
+    ): Applied {
+        val кандидат = факт(область, запись)
+            ?: error("кандидат-факт «${запись.path("candidate_fact").asText()}» потерян")
+        val документ = кандидат.doc.deepCopy<JsonNode>() as ObjectNode
+        val диспозиция = диспозицияПонятия(понятие)
+        if (документ.path("disposition").asText("") == диспозиция) {
+            return Applied(emptyList(), emptyList(), emptyList(), listOf(кандидат.code), "факт уже помечен «$диспозиция»")
+        }
+        документ.put("disposition", диспозиция)
+        документ.putObject("disposition_decision")
+            .put("by", author)
+            .put("at", OffsetDateTime.now().toLocalDate().toString())
+            .put("reason", reason)
+        store.update(кандидат.id, документ, Provenance(Channel.MANUAL, author, source = кандидат.code))
+        return Applied(
+            created = emptyList(),
+            updated = listOf(кандидат.code),
+            links = emptyList(),
+            facts = listOf(кандидат.code),
+            note = "факт «${кандидат.code}» помечен как ${словоПонятия(понятие.code)} " +
+                "(диспозиция «$диспозиция»); владельца и точку подтверждения ставит человек",
+        )
+    }
+
+    /**
+     * Диспозиция из истины: «fact (disposition=assumed) — отдельного вида нет».
+     * Слово берётся из самой строки владельца, второго перечня в коде нет.
+     */
+    private fun диспозицияПонятия(понятие: Concept): String =
+        понятие.targetKind.orEmpty().substringAfter("disposition=", "").takeWhile { it.isLetter() }
+            .ifBlank {
+                error(
+                    "понятие «${словоПонятия(понятие.code)}» ложится на факт, но истина не назвала " +
+                        "диспозицию: ожидается «target_kind: fact (disposition=…)»",
+                )
+            }
 
     /**
      * Нехватка: обязательная связь понятия (`must_link`) не закрыта. Пока она

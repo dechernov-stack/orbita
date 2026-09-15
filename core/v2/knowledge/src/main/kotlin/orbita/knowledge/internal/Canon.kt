@@ -14,6 +14,30 @@ import java.security.MessageDigest
 /** Блок канона: якорь, вид, текст. */
 data class Блок(val anchor: String, val kind: String, val text: String)
 
+/**
+ * Раздел канона глазами читателя: чем он является.
+ *
+ * РЕШЕНИЕ-ЧИТАТЬ-СМЫСЛ (владелец, 15.09): «если раздел — таблица (записка §3:
+ * сторона · роль · интерес · масштаб), её читают как таблицу: строка →
+ * сторона со всеми полями». Тип раздела определяется детерминированно, как и
+ * сам канон: по разметке строк, а не догадкой модели.
+ *
+ * @property columns колонки таблицы, если раздел — таблица; иначе пусто
+ */
+data class Раздел(
+    val anchor: String,
+    val title: String,
+    val type: String,
+    val columns: List<String> = emptyList(),
+    val blocks: Int = 0,
+) {
+    companion object {
+        const val ТАБЛИЦА: String = "таблица"
+        const val ПЕРЕЧЕНЬ: String = "перечень"
+        const val ПРОЗА: String = "проза"
+    }
+}
+
 data class КанонДок(val blocks: List<Блок>, val fingerprint: String) {
     /** Выжимка для промпта: якорь и текст блока, ничего сверх. */
     fun выжимка(предел: Int = 60_000): String {
@@ -25,6 +49,57 @@ data class КанонДок(val blocks: List<Блок>, val fingerprint: String)
         }
         return sb.toString()
     }
+
+    /**
+     * Карта разделов: якорь · заголовок · тип · колонки. Идёт в промпт перед
+     * текстом, чтобы таблица читалась построчно, перечень — по пунктам, а
+     * проза — прозой. Тип раздела — преобладающий среди его строк.
+     */
+    fun карта(): List<Раздел> {
+        val порядок = mutableListOf<String>()
+        val заголовки = linkedMapOf<String, String>()
+        val строки = linkedMapOf<String, MutableList<String>>()
+        blocks.forEach { блок ->
+            val раздел = блок.anchor.substringBefore('#')
+            if (раздел !in строки) {
+                строки[раздел] = mutableListOf()
+                порядок += раздел
+            }
+            if (блок.kind == "heading") заголовки[раздел] = блок.text else строки.getValue(раздел) += блок.text
+        }
+        return порядок.map { раздел ->
+            val тело = строки.getValue(раздел)
+            val таблица = тело.filter { строкаТаблицы(it) }
+            val перечень = тело.count { строкаПеречня(it) }
+            val тип = when {
+                таблица.size >= 2 -> Раздел.ТАБЛИЦА
+                перечень * 2 > тело.size && перечень >= 2 -> Раздел.ПЕРЕЧЕНЬ
+                else -> Раздел.ПРОЗА
+            }
+            Раздел(
+                anchor = раздел,
+                title = заголовки[раздел] ?: "",
+                type = тип,
+                columns = if (тип == Раздел.ТАБЛИЦА) колонки(таблица.first()) else emptyList(),
+                blocks = тело.size,
+            )
+        }
+    }
+
+    private fun строкаТаблицы(строка: String): Boolean =
+        строка.startsWith("|") && строка.endsWith("|") && строка.count { it == '|' } >= 3
+
+    private fun строкаПеречня(строка: String): Boolean =
+        строка.startsWith("- ") || строка.startsWith("* ") || НУМЕРОВАННЫЙ.containsMatchIn(строка)
+
+    private companion object {
+        /** «1. », «2) » в начале строки — пункт перечня. */
+        val НУМЕРОВАННЫЙ: Regex = Regex("^\\d{1,3}[.)]\\s")
+    }
+
+    /** Колонки — первая строка таблицы; разделительная строка «---» не в счёт. */
+    private fun колонки(шапка: String): List<String> =
+        шапка.trim('|').split('|').map { it.trim() }.filter { it.isNotBlank() && !it.all { з -> з == '-' || з == ':' } }
 }
 
 internal object Canon {
@@ -53,8 +128,32 @@ internal object Canon {
         return КанонДок(блоки, отпечаток)
     }
 
-    private fun заголовок(строка: String): Boolean =
-        строка.startsWith("#") ||
-            (строка.length <= 90 && !строка.endsWith(".") && !строка.endsWith(";") &&
-                строка.count { it == ' ' } <= 12 && строка.firstOrNull()?.isDigit() != true)
+    /**
+     * Заголовок ли строка.
+     *
+     * Строка таблицы и пункт перечня заголовком не бывают НИКОГДА, даже
+     * короткие. До 15.09 признак был только «коротко и без точки», и короткий
+     * пункт перечня («- российское хранение данных») становился заголовком:
+     * перечень нужд §2.1 рассыпался на шесть разделов, а мера владельца —
+     * «6 общих нужд из §2.1» — не собиралась ни при каком промпте.
+     *
+     * Правка меняет якоря у документов с перечнями и таблицами: разобранные
+     * прежде материалы надо перечитать, иначе их факты ссылаются на старые
+     * якоря. Разбор и так идёт заново — контур чтения сменился целиком.
+     */
+    private fun заголовок(строка: String): Boolean {
+        if (строка.startsWith("#")) return true
+        if (строкаРазметки(строка)) return false
+        return строка.length <= 90 && !строка.endsWith(".") && !строка.endsWith(";") &&
+            строка.count { it == ' ' } <= 12 && строка.firstOrNull()?.isDigit() != true
+    }
+
+    /** Строка таблицы или пункт перечня — содержание, а не заголовок. */
+    private fun строкаРазметки(строка: String): Boolean =
+        строка.startsWith("|") ||
+            строка.startsWith("- ") || строка.startsWith("* ") ||
+            НУМЕРОВАННЫЙ.containsMatchIn(строка)
+
+    /** «1. », «2) » в начале строки — пункт перечня. */
+    private val НУМЕРОВАННЫЙ: Regex = Regex("^\\d{1,3}[.)]\\s")
 }

@@ -303,7 +303,7 @@ class SemanticReconciler(
                 )
                 return@forEach
             }
-            when (val разбор = находка(область, узел, GeneratedOntology.of(понятие).identity.threshold)) {
+            when (val разбор = находка(область, узел, GeneratedOntology.of(понятие).identityOrFail.threshold)) {
                 is Разбор.Годная -> находки.getOrPut(localId) { mutableListOf() } += разбор.finding
                 is Разбор.Брак -> отказы += Отказ(localId, разбор.reason, обрезать(узел.toString()))
                 is Разбор.Ниже -> снятые += Отказ(localId, разбор.reason, обрезать(узел.toString()))

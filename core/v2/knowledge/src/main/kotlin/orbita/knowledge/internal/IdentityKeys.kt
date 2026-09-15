@@ -12,7 +12,7 @@
 // (ОНТОЛОГИЯ-ФОРМИРОВАНИЯ, reconciliation.rights).
 //
 // Какие поля образуют ключ понятия, здесь НЕ решается: перечень читается из
-// онтологии (`GeneratedOntology.of(понятие).identity.key`). Онтология —
+// онтологии (`GeneratedOntology.of(понятие).identityOrFail.key`). Онтология —
 // вторая истина пакета, и второй её копии в коде быть не должно. Как
 // сложить ключ из названных полей — забота этого файла; какие поля назвать
 // — забота онтологии.
@@ -150,7 +150,7 @@ internal class IdentityKeys(
      * вне онтологии ключа не получает вовсе — генератор отвечает отказом.
      */
     fun ofConcept(concept: String, payload: JsonNode): Ключ? =
-        of(GeneratedOntology.of(concept).identity.key, payload)
+        of(GeneratedOntology.of(concept).identityOrFail.key, payload)
 
     /** «a|b» в онтологии — альтернативы по порядку: берётся первая сложившаяся. */
     private fun поТокену(токен: String, payload: JsonNode): Ключ? {
