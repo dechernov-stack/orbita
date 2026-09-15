@@ -23,7 +23,9 @@
         "event",
         "relation",
         "assessment",
-        "assumption"
+        "assumption",
+        "external_target",
+        "external_need"
       ]
     },
     "area": {
@@ -170,6 +172,10 @@
         "doubtful"
       ],
       "description": "наследуется от документа; expert — ручной ввод; ранг подсказывает в противоречии, не выбирает победителя"
+    },
+    "parse_run": {
+      "type": "string",
+      "description": "ссылка на вид: parse_run обязателен с шипа 2 (изоляция вклада документа); у фактов, созданных до миграции, — null; обязательность обеспечивают ворота создания, не схема"
     }
   },
   "required": [

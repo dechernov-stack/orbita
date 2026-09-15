@@ -158,6 +158,42 @@
       },
       "description": "умолчание по типу"
     },
+    "role": {
+      "enum": [
+        "charter",
+        "tor",
+        "regulatory",
+        "context",
+        "supplier",
+        "heritage"
+      ],
+      "description": "что документу позволено порождать; charter в проекте один"
+    },
+    "summary": {
+      "type": "string",
+      "description": "3–5 строк, порождается при разборе: о чём, что полезного, чего нет"
+    },
+    "contribution": {
+      "type": "object",
+      "description": "{facts_by_kind,accepted,noted,rejected,unique,confirms,contradicts} (computed)"
+    },
+    "parse_run": {
+      "type": "string",
+      "description": "ссылка на вид: parse_run"
+    },
+    "accept_mode": {
+      "enum": [
+        "whole",
+        "sections",
+        "selective",
+        "context_only",
+        "rejected"
+      ]
+    },
+    "usefulness": {
+      "type": "object",
+      "description": "{computed:num, note?:text} вклад + оценка человека"
+    },
     "profile": {
       "type": "object",
       "description": "{statement?,params?,norms?,assessments?} (computed) доли по блокам — постановка · параметры · нормы · оценки (Д2а); ставит разбор, не инженер; режим атомизации выбирается по профилю блока"
@@ -181,6 +217,7 @@
     "doc_version",
     "doc_date",
     "classification",
-    "language"
+    "language",
+    "role"
   ]
 }
