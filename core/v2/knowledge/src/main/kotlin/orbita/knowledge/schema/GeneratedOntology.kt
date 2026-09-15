@@ -69,7 +69,7 @@ object GeneratedOntology {
      * Отпечаток истины онтологии (sha256 файла). Им помечается каждый запуск
      * синтеза: по нему видно, по каким правилам сделано предложение.
      */
-    const val ontologyVersion: String = "74600d3534c27ba2fcc3bca6db3560afb4c97f28a531d9370cf60ab8aa734b88"
+    const val ontologyVersion: String = "2bd98dba8c888b5128d8970622d431cc41da86615bd574c7d078c00dc01bbe5e"
 
     /** Ранги доверия по убыванию веса — ранг подсказывает, решает человек. */
     val authorityRanks: List<String> = listOf("mandatory", "expert", "reference", "doubtful")
@@ -86,12 +86,12 @@ object GeneratedOntology {
         Concept(
             code = "stakeholder",
             fromFacts = listOf(
-                FactRule(kind = "relation", predicateIn = listOf("является заказчиком", "является оператором", "регулирует", "поставляет", "учреждается", "потребляет")),
+                FactRule(kind = "relation", predicateIn = listOf("является заказчиком", "является оператором", "регулирует", "поставляет", "учреждается", "потребляет", "эксплуатирует", "принимает инвестиционное решение")),
                 FactRule(kind = "capability", subject = "организация"),
             ),
             fields = mapOf(
                 "name" to "subject",
-                "role" to "по предикату",
+                "role" to "по предикату: заказчик → customer; регулирует → regulator; является оператором · эксплуатирует → operator; поставляет → supplier; потребляет → consumer; учреждается → established; принимает инвестиционное решение → customer",
                 "interest" to "из facts kind=assessment|framing о subject",
                 "scale" to "quantity о subject",
                 "influence" to "по предикату: заказчик/регулятор → decides; оператор/партнёр → influences; потребитель → informed",

@@ -15,11 +15,13 @@ concepts:
       - поставляет
       - учреждается
       - потребляет
+      - эксплуатирует
+      - принимает инвестиционное решение
     - kind: capability
       subject: организация
     fields:
       name: subject
-      role: по предикату
+      role: 'по предикату: заказчик → customer; регулирует → regulator; является оператором · эксплуатирует → operator; поставляет → supplier; потребляет → consumer; учреждается → established; принимает инвестиционное решение → customer'
       interest: из facts kind=assessment|framing о subject
       scale: quantity о subject
       influence: 'по предикату: заказчик/регулятор → decides; оператор/партнёр → influences; потребитель → informed'
