@@ -132,6 +132,18 @@ class DocumentReadingTest {
             след.doc.path("subject").asText(),
             "субъект следа — сама сторона",
         )
+
+        // След НУЖДЫ обязан называть свою сторону, а не безличное «сторона
+        // проекта»: иначе все нужды документа оказываются про одну
+        // несуществующую сторону и происхождение теряется.
+        val нужда = итог.proposals.single { it.concept == "need" }
+        val следНужды = assertNotNull(store.byCode(Area.Project(ПРОЕКТ), нужда.fact!!))
+        assertEquals(
+            "Минтранс России / Ространснадзор",
+            следНужды.doc.path("subject").asText(),
+            "субъект следа нужды — её носитель",
+        )
+        assertEquals("Минтранс России / Ространснадзор", нужда.payload["stakeholder"])
     }
 
     @Test
