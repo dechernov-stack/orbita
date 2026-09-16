@@ -610,7 +610,22 @@ export function SceneStakeholders({ project, onChanged }: { project: string; onC
                     {с.doc.interest ? <div>интерес: {String(с.doc.interest)}</div> : null}
                     <div>нужды ({нуждыСтороны(с.id).length}):
                       {нуждыСтороны(с.id).length === 0 ? <span className="v2-warn"> нет — сцена не закроется</span> : null}
-                      <ul>{нуждыСтороны(с.id).map((n) => <li key={n.id}>{String(n.doc.statement ?? '')}{n.doc.notes ? <span className="v2-muted"> · {String(n.doc.notes)}</span> : null}</li>)}</ul>
+                      {/*
+                        Карандаш у нужды стоит и ЗДЕСЬ, в карточке, а не только
+                        в свёрнутой строке: владелец открывал карточку и видел
+                        нужды простым текстом — «редактируется влияние и всё
+                        остальное, а нужды нет» (16.09). Правит их тот же
+                        редактор строки, поэтому карточка сворачивается: второй
+                        формы правки не заводим, чтобы они не разошлись.
+                      */}
+                      <ul>{нуждыСтороны(с.id).map((n) => (
+                        <li key={n.id}>
+                          {String(n.doc.statement ?? '')}
+                          <span className="v2-muted"> · класс {классСловами(n.doc.qos_class) || 'TBR'}</span>
+                          {n.doc.notes ? <span className="v2-muted"> · {String(n.doc.notes)}</span> : null}
+                          {' '}<Карандаш onClick={() => { setОткрыта(null); setПравка(n.code) }} />
+                        </li>
+                      ))}</ul>
                     </div>
                     {с.doc.notes ? <div className="v2-muted">основания: {String(с.doc.notes)}</div> : null}
                     <div className="v2-muted">версия {String((с as unknown as { version?: number }).version ?? '')} · статус {с.status}</div>
