@@ -525,6 +525,16 @@ class Synthesizer(
                 "их четыре: ${Verdict.entries.joinToString(" · ") { it.code }}"
         )
 
+    /**
+     * Значение поля узлом: объект остаётся ОБЪЕКТОМ. Величина истиной схем —
+     * пара «значение · единица», и строкой она до сверки не доезжает.
+     */
+    private fun значениеУзлом(текст: String): JsonNode {
+        val обрезано = текст.trim()
+        if (!обрезано.startsWith("{") && !обрезано.startsWith("[")) return mapper.getNodeFactory().textNode(текст)
+        return runCatching { mapper.readTree(обрезано) }.getOrElse { mapper.getNodeFactory().textNode(текст) }
+    }
+
     private fun полезное(узел: JsonNode, ссылки: Map<String, String> = emptyMap()): Map<String, String> {
         if (!узел.isObject) return emptyMap()
         val поля = linkedMapOf<String, String>()
@@ -644,7 +654,7 @@ class Synthesizer(
         val предмет = документ.putArray("items").addObject()
         предмет.put("class", предложение.concept)
         val содержимое = предмет.putObject("payload")
-        предложение.payload.forEach { (имя, значение) -> содержимое.put(имя, значение) }
+        предложение.payload.forEach { (имя, значение) -> содержимое.set<JsonNode>(имя, значениеУзлом(значение)) }
         val якоря = предмет.putArray("anchors")
         предложение.basis.forEach { основание ->
             якоря.add(listOfNotNull(основание.factId, основание.material, основание.anchor).joinToString(" "))
@@ -683,7 +693,7 @@ class Synthesizer(
         узел.put("concept", предложение.concept)
         узел.put("verdict", предложение.verdict.code)
         val содержимое = узел.putObject("payload")
-        предложение.payload.forEach { (имя, значение) -> содержимое.put(имя, значение) }
+        предложение.payload.forEach { (имя, значение) -> содержимое.set<JsonNode>(имя, значениеУзлом(значение)) }
         val основания = узел.putArray("basis")
         предложение.basis.forEach { основание ->
             val запись = основания.addObject()

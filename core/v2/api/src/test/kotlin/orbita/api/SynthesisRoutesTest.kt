@@ -15,6 +15,7 @@ package orbita.api
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.node.ObjectNode
 import orbita.ai.api.AiFactory
 import orbita.ai.api.Answer
 import orbita.ai.api.Transport
@@ -69,6 +70,28 @@ class SynthesisRoutesTest {
     }
 
     // --- мера ------------------------------------------------------------
+
+    @Test
+    fun `величина уезжает в сверку парой, а не строкой`() {
+        // Порт предложения носит поля строками, а истина схем требует у цели
+        // пару «значение · единица». Пока пара ехала строкой, сверка видела
+        // величину без единицы и отбивала десять целей из десяти (16.09).
+        val факт = поле()
+        транспорт.ответ = """{"proposals":[{"concept":"need","payload":{
+            "statement":"связь в Арктике вне наземного покрытия","stakeholder":"Минтранс России",
+            "qos_class":{"value":"180","unit":"мин"}},
+            "basis":["$факт"],"verdict":"new"}]}"""
+        val код = довестиЗапуск()
+
+        маршруты.handle(
+            "POST", "/v2/synthesis/runs/$код/accept", п,
+            """{"chosen":["${первоеПредложение(код)}"],"author":"инженер"}""",
+        )
+
+        val величина = сверка.кандидаты.last().payload.path("qos_class")
+        assertTrue(величина.isObject, "величина пришла объектом, а не строкой: $величина")
+        assertEquals("мин", величина.path("unit").asText())
+    }
 
     @Test
     fun `отмена пакета снимает заведённое с учёта, а факты оставляет`() {

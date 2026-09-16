@@ -387,7 +387,23 @@ class SynthesisRoutes(
     }
 
     private fun содержимое(п: FormationProposal): ObjectNode =
-        mapper.createObjectNode().also { узел -> п.payload.forEach { (имя, значение) -> узел.put(имя, значение) } }
+        mapper.createObjectNode().also { узел ->
+            п.payload.forEach { (имя, значение) -> узел.set<JsonNode>(имя, значениеУзлом(значение)) }
+        }
+
+    /**
+     * Значение поля узлом: объект остаётся ОБЪЕКТОМ.
+     *
+     * Порт предложения носит поля строками, а величина истиной схем — пара
+     * «значение · единица» (`measure{…}`). Пока пара ехала строкой, сверка
+     * видела величину без единицы и отбивала десять целей из десяти (живое
+     * чтение записки 16.09). Непохожее на JSON остаётся текстом как было.
+     */
+    private fun значениеУзлом(текст: String): JsonNode {
+        val обрезано = текст.trim()
+        if (!обрезано.startsWith("{") && !обрезано.startsWith("[")) return mapper.getNodeFactory().textNode(текст)
+        return runCatching { mapper.readTree(обрезано) }.getOrElse { mapper.getNodeFactory().textNode(текст) }
+    }
 
     private fun массив(узел: ObjectNode, имя: String, строки: List<String>) =
         узел.putArray(имя).also { список -> строки.forEach { список.add(it) } }
