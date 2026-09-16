@@ -122,6 +122,11 @@ class DocumentReadingTest {
         assertEquals("fact", след.kind)
         assertEquals("s10#3", след.doc.path("anchor").asText(), "якорь следа — тот же, что у понятия")
         assertEquals(
+            "Якорный заказчик, требования к транспортной телематике",
+            след.doc.path("quote").asText(),
+            "цитата легла В ФАКТ полем: истина схем 15.09 сделала `quote` обязательным",
+        )
+        assertEquals(
             "Минтранс России / Ространснадзор",
             след.doc.path("subject").asText(),
             "субъект следа — сама сторона",

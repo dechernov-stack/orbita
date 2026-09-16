@@ -26,8 +26,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { ConfirmBox, useConfirm } from '../ui/Confirm'
 import { ResearchPanel, отказСловами } from './research'
 import {
-  ServerRefusal, api,
-  type Authority, type FactRow, type FactSourceView, type FieldDrift,
+  ServerRefusal, api, РОЛИ_ДОКУМЕНТА,
+  type Authority, type DocumentRole, type FactRow, type FactSourceView, type FieldDrift,
   type FormationOntology, type FormationProposal, type ReconcileAction,
   type ReconcileFinding, type ReconcileItem, type ReconcileRun, type ResearchTask,
   type SynthesisAccepted, type SynthesisDiff, type SynthesisDiffView, type SynthesisRun,
@@ -87,6 +87,20 @@ const ПОНЯТИЕ: Record<string, string> = {
   assumption: 'допущение',
   milestone: 'веха',
   normative_document: 'нормативный документ',
+  opportunity: 'применимость',
+}
+
+/** Те же понятия во множественном: ими написан предпросмотр пакета. */
+const ПОНЯТИЕ_МН: Record<string, string> = {
+  stakeholder: 'сторон',
+  need: 'нужд',
+  goal: 'целей',
+  service: 'сервисов',
+  constraint: 'ограничений',
+  assumption: 'допущений',
+  milestone: 'вех',
+  normative_document: 'нормативных документов',
+  opportunity: 'применимостей',
 }
 
 /** Поля понятий словами: отличие называется полем, а не «похоже». */
@@ -276,6 +290,8 @@ export function KnowledgeField({ project }: { project: string | null }) {
   // стережёт CI): вкладка, дрейф поля, онтология, задачи исследования и окно
   // подтверждения. Признак самого поля знаний v2 даёт сервер, а не догадка.
   const [вкладка, setВкладка] = useState<'поле' | 'постановка'>('поле')
+  /** Итог чтения документа: экран говорит, что прочитано, на вкладке постановки. */
+  const [прочитано, setПрочитано] = useState('')
   const [знанияV2, setЗнанияV2] = useState(false)
   const [дрейф, setДрейф] = useState<FieldDrift | null>(null)
   const [онтология, setОнтология] = useState<FormationOntology | null>(null)
@@ -506,7 +522,10 @@ export function KnowledgeField({ project }: { project: string | null }) {
       )}
 
       {!поле && (
-        <Постановка project={project} онтология={онтология} onChanged={перечитать} />
+        <>
+          {прочитано && <div className="v2-note-line" data-why="следующий-клик">{прочитано}</div>}
+          <Постановка project={project} онтология={онтология} onChanged={перечитать} />
+        </>
       )}
 
       {поле && вход && (
@@ -520,6 +539,15 @@ export function KnowledgeField({ project }: { project: string | null }) {
                 .then((п) => { setПлан(п); setВыбраны(п.actions.map((д) => д.index)); setЗаметкиПриёма([]) })
                 .catch(() => setПлан(null))
             }
+          }}
+          onRead={(run, note) => {
+            // Прочитанное ложится запуском постановки: экран переходит на
+            // вкладку предложений — человеку не надо догадываться, куда идти.
+            перечитать()
+            setВкладка('постановка')
+            setВход(false)
+            setОтказ(null)
+            setПрочитано(`документ прочитан: ${note} · запуск ${run}`)
           }}
           onError={setОтказ} />
       )}
@@ -951,10 +979,12 @@ function местаИсследований(задачи: ResearchTask[]): Resea
 }
 
 /** Вход в поле: текст, файл или ссылка + задание → разбор. Экспорт — сцена 2 зовёт его на пустом проекте (З-02). */
-export function Source({ project, onParsed, onError }: {
+export function Source({ project, onParsed, onError, onRead }: {
   project: string
   onParsed: (итог: { task: string; note: string; accepted: number; refused: number; refusals: string[] }) => void
   onError: (e: string) => void
+  /** Документ прочитан в постановку: экран переходит к предложениям. */
+  onRead?: (run: string, note: string) => void
 }) {
   const [имя, setИмя] = useState('')
   const [текст, setТекст] = useState('')
@@ -968,6 +998,8 @@ export function Source({ project, onParsed, onError }: {
   // Ранг доверия называет ЧЕЛОВЕК, режим разбора выводит разбор по профилю
   // содержимого: тип документа полем ввода на проекте поля знаний v2 не бывает.
   const [ранг, setРанг] = useState<Authority | ''>('')
+  const [рольДок, setРольДок] = useState<DocumentRole | ''>('')
+  const [читаю, setЧитаю] = useState(0)
   const [знанияV2, setЗнанияV2] = useState(false)
   const [поставлен, setПоставлен] = useState<string | null>(null)
 
@@ -1033,7 +1065,7 @@ export function Source({ project, onParsed, onError }: {
       name: имя, text: текст, url: ссылка, author: 'инженер', supersedes: прежний || undefined,
       // Ранг — с формы; тип входного остаётся только там, где поля знаний v2
       // нет: иначе режим разбора снова читался бы с типа файла.
-      ...(знанияV2 ? { authority: ранг || undefined } : { kind: вид }),
+      ...(знанияV2 ? { authority: ранг || undefined, role: рольДок || undefined } : { kind: вид }),
       ...(двоичный ? { filename: двоичный.name, file_base64: двоичный.base64 } : {}),
     })
       .then((м) => {
@@ -1050,6 +1082,35 @@ export function Source({ project, onParsed, onError }: {
         else { setИтог(`разбор идёт фоновой задачей ${з.job} — стенд отвечает`); window.setTimeout(() => опрос(з.job), 3000) }
       })
       .catch((e) => { onError(String(e.message ?? e)); setЗанято(false) })
+  }
+
+  /**
+   * Прочитать документ В ПОСТАНОВКУ — один вызов вместо связки «атомизация по
+   * предикатам → формирование по фильтрам» (РЕШЕНИЕ-ЧИТАТЬ-СМЫСЛ, 15.09).
+   * Модель читает смыслом и отдаёт понятия сразу, каждое с цитатой и якорем.
+   *
+   * Вызов идёт минуту и больше: экран считает секунды вслух, иначе ожидание
+   * читается как «ничего не происходит».
+   */
+  const прочитать = () => {
+    setЗанято(true); setИтог(''); setЧитаю(1)
+    const часы = window.setInterval(() => setЧитаю((с) => с + 1), 1000)
+    const кончить = () => { window.clearInterval(часы); setЧитаю(0); setЗанято(false) }
+    api.putMaterial(project, {
+      name: имя, text: текст, url: ссылка, author: 'инженер', supersedes: прежний || undefined,
+      authority: ранг || undefined, role: рольДок || undefined,
+      ...(двоичный ? { filename: двоичный.name, file_base64: двоичный.base64 } : {}),
+    })
+      .then((м) => {
+        if (м.authority) setПоставлен(`ранг источника: ${РАНГ[м.authority] ?? м.authority}`)
+        return api.readDocument(project, м.code, 'инженер')
+      })
+      .then((р) => {
+        кончить()
+        setИтог(`${р.note} · запуск ${р.run}`)
+        onRead?.(р.run, р.note)
+      })
+      .catch((e) => { кончить(); onError(String(e.message ?? e)) })
   }
 
   const есть = текст.trim().length > 0 || ссылка.trim().length > 0 || двоичный !== null
@@ -1096,6 +1157,22 @@ export function Source({ project, onParsed, onError }: {
           <input value={ссылка} onChange={(e) => setСсылка(e.target.value)} placeholder="https://…" />
         </label>
       </div>
+      {знанияV2 && (
+        <div className="v2-kf__row" style={{ gridTemplateColumns: '1fr 2fr' }}>
+          <label>роль документа
+            <select value={рольДок} onChange={(e) => setРольДок(e.target.value as DocumentRole | '')}
+              title="ролью решается, ЧТО из документа может образоваться: цели рождает только устав, издатель норматива стороной не бывает">
+              <option value="">— назовите роль —</option>
+              {РОЛИ_ДОКУМЕНТА.map((р) => <option key={р.code} value={р.code}>{р.word}</option>)}
+            </select>
+          </label>
+          <div className="v2-note-line">
+            {рольДок
+              ? РОЛИ_ДОКУМЕНТА.find((р) => р.code === рольДок)?.hint
+              : 'без роли документ читается как обстановка — она беднее всех правами: ни целей, ни сервисов'}
+          </div>
+        </div>
+      )}
       <div className="v2-kf__row" style={{ gridTemplateColumns: '2fr 1fr' }}>
         <label>задание
           <input value={задание} onChange={(e) => setЗадание(e.target.value)}
@@ -1119,6 +1196,18 @@ export function Source({ project, onParsed, onError }: {
           onClick={разобрать}>
           {занято ? 'Разбираю…' : 'Разобрать'}
         </button>
+        {знанияV2 && (
+          <button type="button" className="v2-primary"
+            disabled={занято || !есть || !имя.trim() || !ранг}
+            title={!имя.trim() ? 'дайте источнику название'
+              : !есть ? 'нужен текст, файл или ссылка'
+                : !ранг ? 'назовите ранг доверия'
+                  : !рольДок ? 'роль не названа: документ прочтётся как обстановка — ни целей, ни сервисов'
+                    : 'один вызов: документ читается смыслом и даёт постановку сразу — стороны, нужды, цели, рамки, вехи; у каждого пункта цитата и якорь'}
+            onClick={прочитать}>
+            {читаю > 0 ? `Читаю… ${читаю} с` : 'Прочитать документ'}
+          </button>
+        )}
         {поставлен && <span className="v2-dim">{поставлен}</span>}
         {итог && <span className="v2-dim">{итог}</span>}
       </div>
@@ -1459,6 +1548,13 @@ function Постановка({ project, онтология, onChanged }: {
   const [отмечены, setОтмечены] = useState<string[]>([])
   const [итог, setИтог] = useState<SynthesisAccepted | null>(null)
   const [ask, спросить, закрытьВопрос] = useConfirm()
+  /**
+   * Порог уверенности для «кроме требующих внимания». В истине его нет —
+   * значит, он не прячется в коде: число стоит на экране, человек его видит и
+   * меняет. Половина — отправная точка, а не правило.
+   */
+  const [порог, setПорог] = useState(0.5)
+
 
   const прочитать = useCallback(() => {
     api.synthesisDiff(project).then(setДиф).catch((e) => setОтказ(отказПодробно(e)))
@@ -1517,6 +1613,29 @@ function Постановка({ project, онтология, onChanged }: {
   // решаются по одной, в своей строке, — поэтому отметка «все» их не берёт.
   const пакетные = предложения.filter((п) => п.missing.length === 0).map((п) => п.proposal)
   const сПометой = предложения.filter((п) => п.missing.length > 0).length
+
+  /**
+   * Требует внимания — то, что человек обязан решить сам, а не отдать пакету.
+   *
+   * Два признака — из истины: незакрытая обязательная связь (`must_link`) и
+   * противоречие (сверка показывает ОБА значения, победителя выбирает
+   * человек). Третий — уверенность ниже порога; порога уверенности в истине
+   * нет, поэтому он ЗДЕСЬ, на экране, и его видно и правит человек: прятать
+   * выдуманное число в коде нельзя.
+   */
+  const требуетВнимания = (п: FormationProposal): boolean =>
+    п.missing.length > 0 || п.verdict === 'contradict'
+    || (typeof п.confidence === 'number' && п.confidence < порог)
+  const спокойные = предложения.filter((п) => !требуетВнимания(п))
+  const внимание = предложения.filter(требуетВнимания)
+  /** Предпросмотр одной строкой: что появится, если нажать сейчас. */
+  const появится = (коды: string[]): string => {
+    const счёт = new Map<string, number>()
+    предложения.filter((п) => коды.includes(п.proposal))
+      .forEach((п) => счёт.set(п.concept, (счёт.get(п.concept) ?? 0) + 1))
+    const части = [...счёт.entries()].map(([к, n]) => `${n} ${ПОНЯТИЕ_МН[к] ?? к}`)
+    return части.length === 0 ? 'ничего' : части.join(', ')
+  }
   const всеОтмечены = пакетные.length > 0 && пакетные.every((код) => отмечены.includes(код))
   // Ф-11: неактивная отметка обязана назвать причину И путь оживления —
   // серая галочка без объяснения оставляет человека гадать.
@@ -1529,6 +1648,39 @@ function Постановка({ project, онтология, onChanged }: {
       ? 'снять все отметки'
       : `отметить разом предложения с пустым «не закрыто»: ${пакетные.length}. `
         + 'Помеченные отметка не берёт и уже отмеченное с пометой снимает: сервер откажет пакету целиком'
+
+  /**
+   * Принять всё, кроме требующих внимания. 91 предложение по одному не
+   * принимается; а противоречия и незакрытые связи в пакет не идут и остаются
+   * человеку — отдельной группой сверху.
+   */
+  const принятьСпокойные = () => {
+    if (!запуск || спокойные.length === 0) return
+    const коды = спокойные.map((п) => п.proposal)
+    спросить({
+      question: `Выбрано ${коды.length} → появится ${появится(коды)}.`
+        + (внимание.length > 0 ? ` Требуют внимания: ${внимание.length} — они остаются вам.` : '')
+        + ' Приём обратим целиком: «Отменить пакет» вернёт всё.',
+      ok: 'Принять пакет',
+      input: { label: 'почему берём', placeholder: 'основание решения' },
+      onOk: (повод) => api.acceptSynthesis(project, запуск.id, коды, 'инженер', повод || undefined)
+        .then((и) => { setИтог(и); setОтмечены([]); onChanged(); прочитать() })
+        .catch((e) => setОтказ(отказПодробно(e))),
+    })
+  }
+
+  /** Отменить пакет: заведённое снимается с учёта, факты остаются. */
+  const отменитьПакет = () => {
+    if (!запуск) return
+    спросить({
+      question: `Отменить принятый пакет запуска ${запуск.id}: заведённое снимется с учёта.`
+        + ' Факты-основания останутся — они след документа, а не решение человека.',
+      ok: 'Отменить пакет',
+      onOk: () => api.undoSynthesis(project, запуск.id, 'инженер')
+        .then((о) => { setСостояние(о.note); setИтог(null); onChanged(); прочитать() })
+        .catch((e) => setОтказ(отказПодробно(e))),
+    })
+  }
 
   const принять = () => {
     if (!запуск) return
@@ -1555,8 +1707,38 @@ function Постановка({ project, онтология, onChanged }: {
           onClick={сформировать}>
           {занято ? 'Формирую…' : 'Сформировать постановку из поля'}
         </button>
+        {предложения.length > 0 && (
+          <>
+            <button type="button" className="v2-primary" disabled={занято || спокойные.length === 0}
+              title={спокойные.length === 0
+                ? 'спокойных предложений нет: каждое требует вашего решения — противоречие, незакрытая связь или низкая уверенность'
+                : `принять пакетом ${спокойные.length}; ${внимание.length} останутся вам`}
+              onClick={принятьСпокойные}>
+              Принять все, кроме требующих внимания
+            </button>
+            <label className="v2-dim" title="порога уверенности в истине нет — он здесь, на экране, и его правит человек">
+              порог уверенности
+              <input type="number" min={0} max={1} step={0.05} value={порог}
+                onChange={(e) => setПорог(Number(e.target.value))}
+                style={{ width: '4.5rem', marginLeft: '0.4rem' }} />
+            </label>
+            <button type="button" disabled={занято}
+              title="приём обратим целиком: заведённое снимется с учёта, факты-основания останутся"
+              onClick={отменитьПакет}>
+              Отменить пакет
+            </button>
+          </>
+        )}
         {состояние && <span className="v2-dim">{состояние}</span>}
       </div>
+
+      {предложения.length > 0 && (
+        <div className="v2-note-line" data-why="следующий-клик">
+          {`выбрано ${отмечены.length} → появится ${появится(отмечены)}`}
+          {внимание.length > 0 && `; требуют внимания ${внимание.length}`}
+          {` · спокойных ${спокойные.length} из ${предложения.length}`}
+        </div>
+      )}
 
       {отказ && <div className="v2-locked">{отказ}</div>}
 

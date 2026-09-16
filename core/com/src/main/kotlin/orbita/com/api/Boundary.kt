@@ -330,7 +330,7 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
             store, links, mapper, полки, intake = знания,
         )
         val проверка = orbita.documents.api.DocumentsFactory.verification(store, links, документы, mapper)
-        val синтезМаршруты = orbita.api.internal.SynthesisRoutes(store, синтез, сверка, mapper)
+        val синтезМаршруты = orbita.api.internal.SynthesisRoutes(store, синтез, сверка, mapper, links)
         val сверкаМаршруты = orbita.api.internal.ReconcileRoutes(store, сверка, знания, mapper)
         val исследованиеМаршруты = orbita.api.internal.ResearchRoutes(store, исследование, mapper)
         val проверкаМаршруты = orbita.api.internal.VerifyRoutes(store, документы, проверка, mapper)

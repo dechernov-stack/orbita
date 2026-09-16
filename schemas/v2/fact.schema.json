@@ -88,6 +88,9 @@
     "predicate": {
       "type": "string"
     },
+    "quote": {
+      "description": "str 10–200 дословный фрагмент источника, сверяется с каноном; у ручного факта эксперта — null"
+    },
     "value": {
       "anyOf": [
         {
@@ -154,7 +157,7 @@
     },
     "assumption": {
       "type": "object",
-      "description": "{owner*,confirm_by*:ref gate,validation*,impact_if_wrong*} обязателен при disposition=assumed"
+      "description": "{owner*,confirm_by*:ref gate,validation?,impact_if_wrong?} обязателен при disposition=assumed; owner и confirm_by спрашивает окно приёма, validation и impact — по желанию"
     },
     "classification": {
       "enum": [
@@ -191,6 +194,7 @@
     "updated_at",
     "subject",
     "predicate",
+    "quote",
     "value",
     "source",
     "source_mark",

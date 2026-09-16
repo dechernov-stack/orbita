@@ -1148,7 +1148,26 @@ export interface MaterialBody {
    * обязателен», на проекте прохода выводит ранг по прежнему типу входного.
    */
   authority?: Authority
+  /**
+   * Роль документа (истина схем, `material.role`): ею решается, ЧТО из него
+   * может образоваться. Цели рождает только устав; издатель норматива
+   * стороной не бывает. Пусто — документ читается как обстановка.
+   */
+  role?: DocumentRole
 }
+
+/** Роли документа — перечень истины схем `material.role`. */
+export type DocumentRole = 'charter' | 'tor' | 'regulatory' | 'context' | 'supplier' | 'heritage'
+
+/** Роли словами — ими подписан выбор на форме загрузки. */
+export const РОЛИ_ДОКУМЕНТА: { code: DocumentRole; word: string; hint: string }[] = [
+  { code: 'charter', word: 'устав', hint: 'записка миссии: единственный источник целей, сервисов и горизонтов' },
+  { code: 'tor', word: 'требования', hint: 'ТЗ заказчика: требования, ограничения, стороны и их нужды; целей проекта не порождает' },
+  { code: 'regulatory', word: 'норматив', hint: 'акт: нормы, ограничения, сроки; издатель стороной не становится' },
+  { code: 'context', word: 'обстановка', hint: 'исследование, аналитика: стороны-кандидаты, чужие цели, применимость' },
+  { code: 'supplier', word: 'поставщик', hint: 'даташит, КП: параметры, решения, стоимости, риски' },
+  { code: 'heritage', word: 'наследие', hint: 'уроки, типовые риски, параметры, обоснования' },
+]
 
 /** Тело ручного факта: кандидат-факт эксперта — учётка · роль · дата. */
 export interface FactBody {
@@ -1597,6 +1616,25 @@ export const api = {
     вызов<SynthesisAccepted>(
       `/synthesis/runs/${encodeURIComponent(run)}/accept?project=${encodeURIComponent(project)}`,
       { method: 'POST', body: JSON.stringify({ chosen, author, reason, role }) }),
+
+  /**
+   * Прочитать документ в постановку ОДНИМ вызовом (РЕШЕНИЕ-ЧИТАТЬ-СМЫСЛ).
+   * Возвращает код запуска: дальше экран показывает его диф тем же путём,
+   * что и синтез из поля.
+   */
+  readDocument: (project: string, material: string, author: string) =>
+    вызов<{ run: string; material: string; note: string; proposals: number }>(
+      `/intake/read?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ material, author }) }),
+
+  /**
+   * Отменить принятый пакет целиком: заведённое снимается с учёта, факты
+   * остаются. Приём обратим — иначе человек не решится нажать «принять всё».
+   */
+  undoSynthesis: (project: string, run: string, author: string) =>
+    вызов<{ run: string; undone: number; cancelled: string[]; already_gone: string[]; note: string }>(
+      `/synthesis/runs/${encodeURIComponent(run)}/undo?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ author }) }),
 
   /** Истина онтологии наружу: по ней экран объясняет, откуда взялось понятие. */
   formationOntology: (project: string) =>

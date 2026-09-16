@@ -287,9 +287,14 @@ def котлин(kinds: list) -> str:
             if (f.get("type") or "").strip() == "ref fact"
         )
         # Перечни поля: enum[a,b,c] — закрытый список значений из истины.
+        #
+        # За перечнем может стоять уточнение в скобках — «enum[…] (computed from
+        # role)» у влияния стороны. Уточнение говорит, КТО заполняет поле, а не
+        # меняет перечень: пока оно ломало разбор, перечень влияний пропадал из
+        # кода целиком (поставка 15.09).
         перечни = []
         for f in (k.get("fields") or []):
-            м = re.match(r"^enum\[(.+)\]$", (f.get("type") or "").strip())
+            м = re.match(r"^enum\[(.+?)\]\s*(?:\(.*\))?$", (f.get("type") or "").strip())
             if not м:
                 continue
             значения = ", ".join(f'"{x.strip()}"' for x in м.group(1).split(",") if x.strip())

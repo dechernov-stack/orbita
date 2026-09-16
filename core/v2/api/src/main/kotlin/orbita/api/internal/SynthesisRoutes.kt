@@ -21,6 +21,8 @@ import orbita.ai.api.SynthesisJobs
 import orbita.ai.api.SynthesisRun
 import orbita.ai.api.Verdict
 import orbita.kernel.api.Area
+import orbita.kernel.api.Channel
+import orbita.kernel.api.Provenance
 import orbita.kernel.api.EntityStore
 import orbita.kernel.api.KnowledgeFlag
 import orbita.knowledge.api.Action
@@ -44,13 +46,16 @@ class SynthesisRoutes(
     private val jobs: SynthesisJobs,
     private val reconcile: Reconcile,
     private val mapper: ObjectMapper = ObjectMapper(),
+    /** Реестр связей: нужен отмене пакета — заведённое снимается вместе со связями. */
+    private val links: orbita.kernel.api.LinkRegistry? = null,
 ) {
 
     private val запуск = Regex("/v2/synthesis/runs/(SR-[0-9]+)")
     private val акцепт = Regex("/v2/synthesis/runs/(SR-[0-9]+)/accept")
+    private val отмена = Regex("/v2/synthesis/runs/(SR-[0-9]+)/undo")
 
     fun handle(method: String, path: String, query: Map<String, String>, body: String?): V2Router.Ответ? {
-        if (path !in АДРЕСА && !запуск.matches(path) && !акцепт.matches(path)) return null
+        if (path !in АДРЕСА && !запуск.matches(path) && !акцепт.matches(path) && !отмена.matches(path)) return null
         val проект = требуется(query, "project")
         выключено(проект)?.let { return it }
         return try {
@@ -62,6 +67,8 @@ class SynthesisRoutes(
                 method == "GET" && path == "/v2/ontology/formation" -> онтология()
                 method == "POST" && акцепт.matches(path) ->
                     принять(проект, акцепт.matchEntire(path)!!.groupValues[1], разобрать(body))
+                method == "POST" && отмена.matches(path) ->
+                    отменить(проект, отмена.matchEntire(path)!!.groupValues[1], разобрать(body))
                 method == "GET" && запуск.matches(path) ->
                     опрос(проект, запуск.matchEntire(path)!!.groupValues[1])
                 else -> null
@@ -188,7 +195,80 @@ class SynthesisRoutes(
             сделано.links.forEach { связи.add(it) }
             сделано.facts.forEach { факты.add(it) }
         }
+        // Пакет записывается ЦЕЛИКОМ: без него «Отменить пакет» нечего
+        // отменять — человек принял 74 строки одним нажатием и должен иметь
+        // право вернуть их одним же.
+        запомнитьПакет(проект, синтез, автор, созданные)
         return узел.put("accepted", принято).put("note", сверка.note)
+    }
+
+    /** След пакета в запуске: что заведено, кем и когда. */
+    private fun запомнитьПакет(проект: String, синтез: String, автор: String, созданные: ArrayNode) {
+        if (созданные.isEmpty()) return
+        val область = Area.Project(проект)
+        val запись = store.byCode(область, синтез) ?: return
+        val документ = запись.doc.deepCopy<JsonNode>() as ObjectNode
+        val пакеты = документ.path(ПАКЕТЫ) as? ArrayNode ?: документ.putArray(ПАКЕТЫ)
+        val пакет = пакеты.addObject().put("by", автор).put("at", java.time.OffsetDateTime.now().toString())
+        val коды = пакет.putArray("created")
+        созданные.forEach { коды.add(it.asText()) }
+        store.update(запись.id, документ, запись.provenance, status = запись.status)
+    }
+
+    /**
+     * Отменить пакет: заведённое последним нажатием снимается с учёта.
+     *
+     * Приём обратим целиком — иначе человек не решится нажать «принять всё».
+     * Сущности переводятся в «снято», связи с ними снимаются; факты-основания
+     * остаются: они след документа, а не решение человека, и повторный приём
+     * обопрётся на них же.
+     */
+    private fun отменить(проект: String, код: String, тело: JsonNode): V2Router.Ответ {
+        val область = Area.Project(проект)
+        val запись = store.byCode(область, код)
+            ?: throw NoSuchElementException("запуска «$код» в проекте нет")
+        val документ = запись.doc.deepCopy<JsonNode>() as ObjectNode
+        val пакеты = документ.path(ПАКЕТЫ) as? ArrayNode
+        val последний = пакеты?.lastOrNull()
+            ?: return V2Router.Ответ(
+                409,
+                mapper.createObjectNode()
+                    .put("error", "у запуска «$код» нет принятого пакета — отменять нечего")
+                    .put("what_to_do", "примите предложения, и пакет станет обратимым"),
+            )
+        val автор = автор(тело)
+        val снято = mutableListOf<String>()
+        val неснято = mutableListOf<String>()
+        последний.path("created").forEach { имя ->
+            val сущность = store.byCode(область, имя.asText())
+            if (сущность == null || сущность.status == СНЯТО) {
+                неснято += имя.asText()
+                return@forEach
+            }
+            links?.let { реестр ->
+                (реестр.from(сущность.id) + реестр.to(сущность.id)).forEach { связь ->
+                    runCatching { реестр.unlink(связь.id, Provenance(Channel.MANUAL, автор)) }
+                }
+            }
+            store.update(
+                сущность.id, сущность.doc,
+                Provenance(Channel.MANUAL, автор, source = код), status = СНЯТО,
+            )
+            снято += сущность.code
+        }
+        (пакеты as ArrayNode).remove(пакеты.size() - 1)
+        store.update(запись.id, документ, запись.provenance, status = запись.status)
+
+        val ответ = mapper.createObjectNode().put("run", код).put("undone", снято.size)
+        массив(ответ, "cancelled", снято)
+        массив(ответ, "already_gone", неснято)
+        ответ.put(
+            "note",
+            "пакет отменён: снято с учёта ${снято.size}" +
+                (if (неснято.isEmpty()) "" else "; не найдено или уже снято ${неснято.size}") +
+                "; факты-основания остались — они след документа, а не решение человека",
+        )
+        return V2Router.Ответ(200, ответ)
     }
 
     /**
@@ -329,5 +409,11 @@ class SynthesisRoutes(
         val ИДЁТ: Set<String> = setOf("queued", "running")
 
         const val ГОТОВ: String = "done"
+
+        /** Принятые пакеты запуска: по ним «Отменить пакет» возвращает модель. */
+        const val ПАКЕТЫ: String = "accepted_batches"
+
+        /** Статус снятого с учёта: сущность остаётся в истории, из модели уходит. */
+        const val СНЯТО: String = "cancelled"
     }
 }

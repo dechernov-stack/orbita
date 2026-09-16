@@ -82,15 +82,11 @@
       "type": "boolean"
     },
     "influence": {
-      "enum": [
-        "decides",
-        "influences",
-        "informed"
-      ],
-      "description": "решает · влияет · информируется — по точкам (кто фиксирует, кто согласует); предлагает разбор, правит инженер (ЗАМЕЧАНИЯ-ПМИ5-СЦЕНА-3, З-04)"
+      "type": "string",
+      "description": "enum[decides,influences,informed] (computed from role) карта ОНТОЛОГИЯ-ФОРМИРОВАНИЯ.influence_map; значение модели снимается; инженер правит на месте"
     },
     "power": {
-      "description": "int 1–5 сила влияния 1–5"
+      "description": "int 1–5 оценка человека 1–5; пусто до сцены 3"
     },
     "attitude": {
       "enum": [

@@ -59,7 +59,7 @@ class SynthesisRoutesTest {
     private val служба = AiFactory.service(store, транспорт, mapper)
     private val сверка = СверкаПодмена()
     private val маршруты = SynthesisRoutes(
-        store, AiFactory.synthesisJobs(store, intake, служба, mapper), сверка, mapper,
+        store, AiFactory.synthesisJobs(store, intake, служба, mapper), сверка, mapper, links,
     )
     private val п = mapOf("project" to ПРОЕКТ)
 
@@ -69,6 +69,70 @@ class SynthesisRoutesTest {
     }
 
     // --- мера ------------------------------------------------------------
+
+    @Test
+    fun `отмена пакета снимает заведённое с учёта, а факты оставляет`() {
+        // 91 предложение принимается одним нажатием — значит, и возвращается
+        // одним. Иначе человек не решится нажать «принять всё».
+        val факт = поле()
+        val код = довестиЗапуск()
+        // Сверка-подмена отвечает кодом заведённого, но сущностей не создаёт:
+        // заводим её сами — отмена обязана снять именно ЭТУ запись.
+        store.create(
+            "N-0001", "need", Area.Project(ПРОЕКТ), "3",
+            mapper.createObjectNode().put("statement", "связь в Арктике"),
+            Provenance(Channel.SERVICE, "инженер"),
+        )
+        маршруты.handle(
+            "POST", "/v2/synthesis/runs/$код/accept", п,
+            """{"chosen":["${первоеПредложение(код)}"],"author":"инженер"}""",
+        )
+
+        val ответ = маршруты.handle("POST", "/v2/synthesis/runs/$код/undo", п, """{"author":"инженер"}""")
+
+        assertEquals(200, ответ?.code, ответ?.body.toString())
+        assertEquals(1, ответ?.body?.path("undone")?.asInt(), ответ?.body.toString())
+        assertEquals(
+            "cancelled",
+            store.byCode(Area.Project(ПРОЕКТ), "N-0001")?.status,
+            "заведённое снято с учёта",
+        )
+        assertTrue(
+            "факты-основания остались" in (ответ?.body?.path("note")?.asText() ?: ""),
+            "человеку сказано, что осталось: ${ответ?.body?.path("note")?.asText()}",
+        )
+        assertEquals(
+            "fact",
+            store.byCode(Area.Project(ПРОЕКТ), факт)?.kind,
+            "факт-основание на месте: он след документа, а не решение человека",
+        )
+    }
+
+    @Test
+    fun `отмена без принятого пакета отказывает словами`() {
+        поле()
+        val код = довестиЗапуск()
+
+        val ответ = маршруты.handle("POST", "/v2/synthesis/runs/$код/undo", п, """{"author":"инженер"}""")
+
+        assertEquals(409, ответ?.code)
+        assertTrue(
+            "отменять нечего" in (ответ?.body?.path("error")?.asText() ?: ""),
+            ответ?.body.toString(),
+        )
+    }
+
+    /** Запуск, доведённый до дифа: дальше по нему принимают и отменяют. */
+    private fun довестиЗапуск(): String {
+        val старт = маршруты.handle("POST", "/v2/synthesis/runs", п, """{"trigger":"manual","author":"инженер"}""")!!
+        val код = старт.body.path("id").asText()
+        довести(код)
+        return код
+    }
+
+    private fun первоеПредложение(код: String): String =
+        маршруты.handle("GET", "/v2/synthesis/runs/$код", п, null)!!
+            .body.path("diff").path("new").first().path("proposal").asText()
 
     @Test
     fun `запуск доводится опросом до дифа с кодом предложения и рангом основания`() {
