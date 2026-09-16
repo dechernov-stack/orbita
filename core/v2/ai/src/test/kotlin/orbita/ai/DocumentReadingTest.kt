@@ -14,6 +14,7 @@ import orbita.ai.api.Answer
 import orbita.ai.api.AiFactory
 import orbita.ai.api.Transport
 import orbita.ai.internal.DocumentReader
+import orbita.ai.internal.Synthesizer
 import orbita.kernel.api.Area
 import orbita.kernel.api.Channel
 import orbita.kernel.api.EntityStore
@@ -157,6 +158,30 @@ class DocumentReadingTest {
         )
         assertTrue("value" !in цель.payload, "плоской половинки наружу не идёт: ${цель.payload}")
         assertEquals("2025", цель.payload["year"])
+    }
+
+    @Test
+    fun `незакрытая связь названа сразу — по ней экран отделяет требующее внимания`() {
+        val материал = проект()
+        транспорт.ответ = """
+            {"stakeholders":[
+              {"id":"s1","name":"Минтранс России / Ространснадзор","role":"customer",
+               "quote":"Якорный заказчик, требования к транспортной телематике","anchor":"s10#3"}],
+             "goals":[
+              {"id":"g1","statement":"количество ТС, передающих данные",
+               "value":"270 653","unit":"ТС","year":"2025",
+               "quote":"Минтранс фиксирует фрагментарность цифровых инициатив","anchor":"s6#1"}]}
+        """.trimIndent()
+
+        val итог = читатель.readInto(ПРОЕКТ, материал, АВТОР, Synthesizer(store, знания, служба, mapper))
+
+        val цель = итог.diff.new.single { it.concept == "goal" }
+        assertTrue(
+            цель.missing.any { "covers" in it },
+            "цель без нужд названа незакрытой связью сразу: ${цель.missing}",
+        )
+        val сторона = итог.diff.new.single { it.concept == "stakeholder" }
+        assertTrue(сторона.missing.isEmpty(), "у стороны обязательных связей нет: ${сторона.missing}")
     }
 
     @Test

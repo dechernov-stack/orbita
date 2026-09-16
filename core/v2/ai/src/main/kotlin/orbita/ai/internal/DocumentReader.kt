@@ -35,6 +35,7 @@ import orbita.kernel.api.Entity
 import orbita.kernel.api.EntityStore
 import orbita.kernel.schema.GeneratedKinds
 import orbita.knowledge.api.CanonBlock
+import orbita.knowledge.api.FormationRules
 import orbita.knowledge.api.Intake
 import orbita.knowledge.schema.GeneratedOntology
 
@@ -94,6 +95,10 @@ class DocumentReader(
                 sourceMark = SourceMark.entries.firstOrNull { it.name == факт.doc.path("mark").asText("") }
                     ?: SourceMark.И,
                 confidence = понятие.confidence,
+                // Незакрытая обязательная связь называется СРАЗУ: по ней экран
+                // отделяет «требующее внимания» от того, что идёт пакетом.
+                missing = GeneratedOntology.byCode[понятие.concept]
+                    ?.let { FormationRules.нехватка(it, понятие.payload) }.orEmpty(),
             )
         }
         return synthesizer.record(

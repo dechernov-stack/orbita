@@ -604,36 +604,9 @@ class Synthesizer(
      * С ними предложение остаётся предложением С ПОМЕТОЙ и сущностью не
      * становится — это инвариант онтологии, а не совет.
      */
+    /** Незакрытые связи понятия — общим правилом: второй копии расчёта нет. */
     private fun нехватка(понятие: Concept, содержимое: Map<String, String>): List<String> =
-        понятие.mustLink.map { it.trim() }.filter { токен ->
-            токен.isNotBlank() && требуется(токен, содержимое) && содержимое[поле(понятие, токен)].isNullOrBlank()
-        }
-
-    /**
-     * Условие обязательности («normative_basis if obligation»): связь нужна
-     * только такому источнику. Онтология сама сопоставляет источник и тип —
-     * «obligation→regulatory».
-     */
-    private fun требуется(токен: String, содержимое: Map<String, String>): Boolean {
-        val условие = токен.substringAfter(" if ", "").trim()
-        if (условие.isBlank()) return true
-        return содержимое["kind"] == условие || (условие == "obligation" && содержимое["type"] == "regulatory")
-    }
-
-    /**
-     * Каким полем понятия называется связь. Истина — `fields` того же понятия:
-     * онтология сама говорит, что нужда несёт сторону полем `stakeholder`, а
-     * цель — нужды полем `needs`.
-     */
-    private fun поле(понятие: Concept, токен: String): String {
-        val голова = токен.substringBefore(" if ").trim()
-        if (!голова.contains("→")) return голова
-        val связь = голова.substringBefore("→").trim()
-        val вид = голова.substringAfter("→").substringBefore(">=").trim()
-        return понятие.fields.entries.firstOrNull { it.value.contains(связь) }?.key
-            ?: понятие.fields.keys.firstOrNull { it == вид || it == "${вид}s" }
-            ?: вид
-    }
+        FormationRules.нехватка(понятие, содержимое)
 
     /** Ответ модели деревом; не разобрался — запуск отказывает с причиной. */
     private fun разобрать(raw: String): JsonNode? = runCatching {
