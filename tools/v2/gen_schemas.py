@@ -265,6 +265,12 @@ def котлин(kinds: list) -> str:
         "     * коде быть не должно — она разойдётся с истиной молча.",
         "     */",
         "    val enums: Map<String, List<String>> = emptyMap(),",
+        "    /**",
+        "     * Поля-величины вида: им значение и единица приходят ПАРОЙ",
+        "     * («measure{op,value|min,max,unit→unit}»), а не двумя плоскими",
+        "     * полями. Имя поля знает истина схем — не код, который пару кладёт.",
+        "     */",
+        "    val measures: List<String> = emptyList(),",
         ")",
         "",
         "object GeneratedKinds {",
@@ -300,12 +306,19 @@ def котлин(kinds: list) -> str:
             значения = ", ".join(f'"{x.strip()}"' for x in м.group(1).split(",") if x.strip())
             перечни.append(f'"{f["name"]}" to listOf({значения})')
         перечни_kt = "mapOf(" + ", ".join(перечни) + ")" if перечни else "emptyMap()"
+        # Поля-величины: «measure{…}». Им значение и единица приходят ПАРОЙ, а
+        # не двумя плоскими полями: величина без единицы фактом не бывает, и
+        # сложить пару обязан тот, кто знает имя поля, — истина схем.
+        величины = ", ".join(
+            f'"{f["name"]}"' for f in (k.get("fields") or [])
+            if (f.get("type") or "").strip().startswith("measure")
+        )
         сцена_kt = f'"{сцена}"' if сцена else "null"
         модель_kt = f'"{модель}"' if модель else "null"
         строки.append(
             f'        KindSpec("{k["code"]}", "{k.get("name", "")}", Layer.{слой}, '
             f'{сцена_kt}, {модель_kt}, listOf({перечень}), listOf({все_поля}), '
-            f'listOf({ссылки_на_факт}), {перечни_kt}),'
+            f'listOf({ссылки_на_факт}), {перечни_kt}, listOf({величины})),'
         )
     строки += [
         "    )",

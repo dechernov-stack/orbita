@@ -33,6 +33,7 @@ import orbita.knowledge.api.SourceMark
 import orbita.kernel.api.Area
 import orbita.kernel.api.Entity
 import orbita.kernel.api.EntityStore
+import orbita.kernel.schema.GeneratedKinds
 import orbita.knowledge.api.CanonBlock
 import orbita.knowledge.api.Intake
 import orbita.knowledge.schema.GeneratedOntology
@@ -322,15 +323,36 @@ ${самопроверкаПоРоли(роль)}
     private fun поля(пункт: Пункт, имена: Map<String, String>): Map<String, String> {
         val поля = linkedMapOf<String, String>()
         пункт.узел.properties().forEach { (имя, значение) ->
-            if (имя in СЛУЖЕБНЫЕ) return@forEach
+            if (имя in СЛУЖЕБНЫЕ || имя in ВЕЛИЧИНА) return@forEach
             val текст = when {
                 значение.isValueNode -> значение.asText("")
                 else -> ссылкаТекстом(значение, имена)
             }
             if (текст.isNotBlank()) поля[имя] = текст
         }
+        величина(пункт)?.let { (имя, пара) -> поля[имя] = пара }
         return поля
     }
+
+    /**
+     * Величина понятия — ПАРОЙ «значение · единица» под именем, которое назвала
+     * истина схем (`measure{…}`): у цели это `measure`, у сервиса
+     * `target_measure`. Модель отдаёт их двумя плоскими полями, и пока пара не
+     * складывалась, десять целей отбивались «величина без единицы — не факт»
+     * (живое чтение записки 16.09). Имя поля берётся у истины, не у кода.
+     */
+    private fun величина(пункт: Пункт): Pair<String, String>? {
+        val вид = GeneratedKinds.byCode[видПонятия(пункт.concept)] ?: return null
+        val поле = вид.measures.firstOrNull() ?: return null
+        val значение = пункт.узел.path("value").asText("").trim()
+        val единица = пункт.узел.path("unit").asText("").trim()
+        if (значение.isBlank() || единица.isBlank()) return null
+        return поле to mapper.createObjectNode().put("value", значение).put("unit", единица).toString()
+    }
+
+    /** Вид, которым понятие становится: его называет сама онтология. */
+    private fun видПонятия(понятие: String): String =
+        GeneratedOntology.byCode[понятие]?.let { it.targetKindCode ?: it.code } ?: понятие
 
     /**
      * Ссылка словами: `{"code":"SK-0001"}` — кодом принятого, `{"ref":"s1"}` —
@@ -525,6 +547,9 @@ ${рамки.ifBlank { "  (рамок ещё нет)" }}
 
         /** Служебные поля пункта: в понятие они не идут. */
         val СЛУЖЕБНЫЕ: Set<String> = setOf("id", "quote", "anchor", "confidence")
+
+        /** Плоские половинки величины: наружу идут парой, а не порознь. */
+        val ВЕЛИЧИНА: Set<String> = setOf("value", "unit")
 
         /** Поля, в которых живёт естественное имя понятия. */
         val ИМЕНА: List<String> = listOf("name", "statement", "external_item", "designation")

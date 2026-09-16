@@ -1275,6 +1275,7 @@ internal class Reconciler(
             open = предметы.any { it.decided == null },
             items = предметы,
             note = запуск.doc.path("notes").asText(""),
+            refused = запуск.doc.path("refused").map { it.asText() },
         )
     }
 
@@ -1353,7 +1354,15 @@ internal class Reconciler(
          * все понятия: у рамки это `statement`, у стороны `name`, у норматива
          * `designation`.
          */
-        val ПОЛЯ_ФОРМУЛИРОВКИ: List<String> = listOf("statement", "name", "designation", "label", "text")
+        /**
+         * Поля, в которых живёт формулировка кандидата.
+         *
+         * `external_item` — у возможности: она говорит о ЧУЖОЙ нужде, и своей
+         * формулировки у неё нет. Пока поля здесь не было, пять применимостей
+         * из живого чтения записки отбивались «сверять нечего» (16.09).
+         */
+        val ПОЛЯ_ФОРМУЛИРОВКИ: List<String> =
+            listOf("statement", "name", "designation", "label", "text", "external_item")
 
         /** Метка запуска сверки: вид общий с синтезом, а списки — разные. */
         const val МЕТКА = "reconcile"
