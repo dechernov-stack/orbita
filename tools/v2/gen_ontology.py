@@ -83,6 +83,8 @@ KOTLIN = КОРЕНЬ / "core/v2/knowledge/src/main/kotlin/orbita/knowledge/sche
     "computed_fields",
     # Что могут с понятием документы прочих ролей, когда создать его не вправе.
     "change_by_others",
+    # Чем спорят два документа об одном понятии — словами, рядом с conflict_on.
+    "conflict_note",
 }
 
 # Разделы истины. Раздел, которого генератор не знает, пропадёт молча —
@@ -110,6 +112,8 @@ KOTLIN = КОРЕНЬ / "core/v2/knowledge/src/main/kotlin/orbita/knowledge/sche
     "gates",
     # Как читается документ: смыслом, структура раздела — как структура.
     "reading_mode",
+    # Роль стороны → её влияние. Поле вычисляет система, не модель.
+    "influence_map",
 }
 
 # Роли документов. Перечень закрыт и общий с истиной схем (material.role):
@@ -221,6 +225,13 @@ def проверить(истина: dict) -> None:
                 "computed_fields — либо его заполняет модель, либо считает система"
             )
 
+    # Перечни ролей и влияний живут в истине СХЕМ, а её этот генератор не
+    # читает: совпадение перечней стережёт тест онтологии. Здесь — только
+    # форма: у каждой названной роли влияние названо.
+    пустые = [р for р, з in (истина.get("influence_map") or {}).items() if not str(з).strip()]
+    if пустые:
+        raise Отказ(f"influence_map: у роли {sorted(пустые)} влияние не названо")
+
     роли = истина.get("document_roles") or {}
     неизвестные_роли = [р for р in роли if р not in РОЛИ_ДОКУМЕНТОВ]
     if неизвестные_роли:
@@ -311,6 +322,8 @@ def котлин(истина: dict, версия: str) -> str:
         "    val computedFields: Map<String, String> = emptyMap(),",
         "    /** Что вправе документ чужой роли, когда создать понятие он не может. */",
         "    val changeByOthers: String? = null,",
+        "    /** Чем спорят два документа об одном понятии — словами, рядом с conflictOn. */",
+        "    val conflictNote: String? = null,",
         "    /** Помета истины: подсказки — не фильтр. Идёт в промпт рядом с примерами. */",
         "    val predicateHintsNote: String? = null,",
         "    /** Помета истины: `fromFacts` — подсказка происхождения, а не ворота. */",
@@ -410,6 +423,8 @@ def котлин(истина: dict, версия: str) -> str:
             )
         if понятие.get("change_by_others"):
             строки.append(f"            changeByOthers = {строка(понятие['change_by_others'])},")
+        if понятие.get("conflict_note"):
+            строки.append(f"            conflictNote = {строка(понятие['conflict_note'])},")
         if понятие.get("predicate_hints_note"):
             строки.append(f"            predicateHintsNote = {строка(понятие['predicate_hints_note'])},")
         if понятие.get("from_facts_note"):
@@ -494,6 +509,19 @@ def котлин(истина: dict, версия: str) -> str:
         "     */",
     ]
     строки.append(f"    const val verdictRule: String = {строка(истина.get('verdict_rule') or '')}")
+    строки += [
+        "",
+        "    /**",
+        "     * Роль стороны → её влияние. Поле вычисляет СИСТЕМА, не модель",
+        "     * (`stakeholder.computed_fields.influence`): «модель поле не заполняет,",
+        "     * инженер правит на месте». Карта — истина владельца целиком; своего",
+        "     * правила в коде нет, и роль, которой здесь не названо, влияния не",
+        "     * получает.",
+        "     */",
+    ]
+    строки.append("    val influenceMap: Map<String, String> = " + карта(
+        истина.get("influence_map") or {}, "    "
+    ))
     ворота = истина.get("gates") or {}
     строки += [
         "",

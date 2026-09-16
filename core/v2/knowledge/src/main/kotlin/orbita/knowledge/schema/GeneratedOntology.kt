@@ -77,6 +77,8 @@ data class Concept(
     val computedFields: Map<String, String> = emptyMap(),
     /** Что вправе документ чужой роли, когда создать понятие он не может. */
     val changeByOthers: String? = null,
+    /** Чем спорят два документа об одном понятии — словами, рядом с conflictOn. */
+    val conflictNote: String? = null,
     /** Помета истины: подсказки — не фильтр. Идёт в промпт рядом с примерами. */
     val predicateHintsNote: String? = null,
     /** Помета истины: `fromFacts` — подсказка происхождения, а не ворота. */
@@ -119,7 +121,7 @@ object GeneratedOntology {
      * Отпечаток истины онтологии (sha256 файла). Им помечается каждый запуск
      * синтеза: по нему видно, по каким правилам сделано предложение.
      */
-    const val ontologyVersion: String = "877f03f1e2cc67f97cc8a316d9a9ec7499e8a7be342f4423079337681de9b698"
+    const val ontologyVersion: String = "0a08ed920408daf4d1d86c93a4c2602e2fbd441a8eb7955d403e418f225d792d"
 
     /** Ранги доверия по убыванию веса — ранг подсказывает, решает человек. */
     val authorityRanks: List<String> = listOf("mandatory", "expert", "reference", "doubtful")
@@ -157,8 +159,8 @@ object GeneratedOntology {
             notFrom = listOf("автор или подписант нормативного акта без предиката роли к проекту", "ведомство как издатель", "сама проектируемая система", "регион, порт, коридор — это объекты применения"),
             allowedRoles = listOf("charter", "tor", "context", "supplier", "heritage"),
             computedFields = mapOf(
-                "influence" to "вычисляется системой из предиката роли (заказчик/регулятор → decides; оператор/партнёр → influences; потребитель → informed) — модель это поле не заполняет",
-                "power" to "оценка человека 1–5 на сцене 3; по умолчанию пусто, матрица «влияние × сила» заполняется рукой — это её назначение",
+                "influence" to "вычисляется системой из role по карте: customer→decides · regulator→decides · established→decides · operator→influences · partner→influences · supplier→influences · consumer→informed; модель поле не заполняет, инженер правит на месте",
+                "power" to "оценка человека 1–5 на сцене 3; по умолчанию пусто",
             ),
             predicateHintsNote = "примеры формулировок для инструкции; НЕ фильтр — предложение не отбивается из-за отсутствия предиката в списке",
             fromFactsNote = "подсказка, откуда понятие обычно берётся; ворота на вид факта не ставятся",
@@ -187,7 +189,7 @@ object GeneratedOntology {
             notFrom = listOf("роль стороны (поле role)", "описание программы или акта", "свойство системы (цель или сервис)"),
             allowedRoles = listOf("charter", "tor", "context"),
             predicateHintsNote = "примеры формулировок для инструкции; НЕ фильтр — предложение не отбивается из-за отсутствия предиката в списке",
-            fromFactsNote = "подсказка, откуда понятие обычно берётся; ворота на вид факта не ставятся",
+            fromFactsNote = "подсказка: нужды берутся из (а) перечня общих нужд документа, (б) интереса каждой стороны — интерес это нужда-кандидат [П], (в) прямых формулировок нехватки в прозе",
         ),
         Concept(
             code = "goal",
@@ -349,9 +351,15 @@ object GeneratedOntology {
                 "proposal" to "предложение эксперту: расширить зону · добавить сервис · в descopes · отклонить",
             ),
             mustLink = listOf("external_item→fact"),
-            conflictOn = emptyList(),
+            conflictOn = listOf("verdict", "missing"),
+            identity = ConceptIdentity(
+                key = listOf("external_item.statement_core", "owner"),
+                semantic = "та же чужая нужда или цель того же владельца, сказанная иначе",
+                threshold = 0.8,
+            ),
             note = "возможность не становится целью; она обосновывает цель или порождает предложение эксперту; «не наш профиль» — законный и ценный вердикт, опирается на границы устава",
             targetKind = "opportunity (L2)",
+            conflictNote = "два документа дают разный вердикт применимости к одной чужой нужде — contested с обоими и их ролями",
             fromFactsNote = "подсказка, откуда понятие обычно берётся; ворота на вид факта не ставятся",
         ),
     )
@@ -441,6 +449,23 @@ object GeneratedOntology {
      * документе молча признавался узнанным (прогон владельца 15.09).
      */
     const val verdictRule: String = "вердикт о принятом выносят только вопросы тождества — дубль и противоречие; соединение и нехватка о принятом не говорят ничего (иначе кандидат молча признаётся узнанным)"
+
+    /**
+     * Роль стороны → её влияние. Поле вычисляет СИСТЕМА, не модель
+     * (`stakeholder.computed_fields.influence`): «модель поле не заполняет,
+     * инженер правит на месте». Карта — истина владельца целиком; своего
+     * правила в коде нет, и роль, которой здесь не названо, влияния не
+     * получает.
+     */
+    val influenceMap: Map<String, String> = mapOf(
+        "customer" to "decides",
+        "regulator" to "decides",
+        "established" to "decides",
+        "operator" to "influences",
+        "partner" to "influences",
+        "supplier" to "influences",
+        "consumer" to "informed",
+    )
 
     /**
      * Что ворота проверяют — и чего не делают никогда.

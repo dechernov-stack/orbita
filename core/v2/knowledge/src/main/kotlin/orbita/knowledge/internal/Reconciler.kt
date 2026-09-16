@@ -41,6 +41,7 @@ import orbita.knowledge.api.Comparison
 import orbita.knowledge.api.Disposition
 import orbita.knowledge.api.FactSource
 import orbita.knowledge.api.FieldDifference
+import orbita.knowledge.api.Influence
 import orbita.knowledge.api.Finding
 import orbita.knowledge.api.Intake
 import orbita.knowledge.api.Match
@@ -287,6 +288,7 @@ internal class Reconciler(
         val кандидат = факт(область, запись) ?: error("кандидат-факт «${запись.path("candidate_fact").asText()}» потерян")
         основание(вид, документ, кандидат)
         классОбслуживанияTBR(вид, документ, author)
+        вычисляемые(понятие, документ)
         неполнота(вид, понятие, документ)
         val сущность = store.create(
             код, вид, областьЗаписи, сцена(вид), документ,
@@ -748,6 +750,19 @@ internal class Reconciler(
                         "диспозицию: ожидается «target_kind: fact (disposition=…)»",
                 )
             }
+
+    /**
+     * Вычисляемые поля понятия: их ставит СИСТЕМА, а не модель.
+     *
+     * Названное моделью значение снимается («модель это поле не заполняет»), и
+     * на его место встаёт вычисленное по истине. Инженер правит на месте — это
+     * обычная правка принятого, а не исключение.
+     */
+    private fun вычисляемые(понятие: Concept, документ: ObjectNode) {
+        if (понятие.computedFields.isEmpty()) return
+        Influence.снять(понятие.code, документ)
+        if (понятие.code == Influence.CONCEPT) Influence.fillIfMissing(документ)
+    }
 
     /**
      * Нехватка: обязательная связь понятия (`must_link`) не закрыта. Пока она

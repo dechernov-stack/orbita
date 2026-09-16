@@ -25,6 +25,7 @@ import orbita.knowledge.api.Authority
 import orbita.knowledge.api.Candidate
 import orbita.knowledge.api.Disposition
 import orbita.knowledge.api.FieldDifference
+import orbita.knowledge.api.Influence
 import orbita.knowledge.api.Comparison
 import orbita.knowledge.api.Finding
 import orbita.knowledge.api.Match
@@ -304,6 +305,55 @@ class ReconcileManualInputTest {
         val наФакте = GeneratedOntology.concepts.filter { it.marksFact }
         assertEquals(listOf("assumption"), наФакте.map { it.code }, "на факт ложится только допущение")
         assertEquals("fact", наФакте.single().targetKindCode)
+    }
+
+    @Test
+    fun `влияние стороны считает система по карте истины, а не модель`() {
+        // Истина 15.09: «influence вычисляется системой из role по карте …
+        // модель поле не заполняет, инженер правит на месте». Карта живёт в
+        // ОНТОЛОГИЯ-ФОРМИРОВАНИЯ.influence_map, второй копии в коде нет.
+        val кандидат = Candidate(
+            "c1", "stakeholder",
+            mapper.createObjectNode()
+                .put("name", "ГКРЧ")
+                .put("role", "regulator")
+                // Модель назвала своё значение — и оно обязано быть снято.
+                .put("influence", "informed")
+                .put("power", 5),
+        )
+
+        val запуск = сверка.preview(проект, listOf(кандидат), автор, роль)
+        сверка.apply(
+            проект, запуск.id, "c1", finding = 0, action = Action.ACCEPT_NEW,
+            reason = "принято инженером", author = автор,
+        )
+
+        val сторона = store.list(область, "stakeholder").single()
+        assertEquals(
+            "decides",
+            сторона.doc.path("influence").asText(),
+            "регулятор решает — по карте истины, а не по слову модели",
+        )
+        assertTrue(
+            сторона.doc.path("power").isMissingNode,
+            "силу ставит человек на сцене 3: значение модели снято",
+        )
+    }
+
+    @Test
+    fun `карта влияния покрывает все роли истины схем`() {
+        // Сторож расхождения двух истин: роль, которую схемы знают, а карта
+        // влияния — нет, оставила бы сторону без вычисляемого поля молча.
+        val роли = orbita.kernel.schema.GeneratedKinds.byCode["stakeholder"]
+            ?.enums?.get("role").orEmpty()
+        val влияния = orbita.kernel.schema.GeneratedKinds.byCode["stakeholder"]
+            ?.enums?.get("influence").orEmpty()
+
+        assertTrue(роли.isNotEmpty(), "перечень ролей в истине схем есть")
+        val безВлияния = роли.filterNot { it in Influence.byRole }
+        assertTrue(безВлияния.isEmpty(), "роли без влияния в карте истины: $безВлияния")
+        val чужие = Influence.byRole.values.filterNot { it in влияния }
+        assertTrue(чужие.isEmpty(), "карта называет влияние вне перечня истины схем: $чужие")
     }
 
     // --- решения человека --------------------------------------------------
