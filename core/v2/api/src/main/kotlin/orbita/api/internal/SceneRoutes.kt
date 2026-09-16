@@ -411,6 +411,11 @@ class SceneRoutes(
         "stakeholder", "need", "goal", "service", "constraint", "requirement", "component", "interface",
         "scenario", "state_machine", "technology", "risk", "assumption", "parameter", "function",
         "exchange", "exchange_item", "budget", "logical_component", "cost_estimate", "debris_assessment",
+        // Материал правится РАДИ РОЛИ: документ, загруженный до появления
+        // ролей, иначе нельзя прочитать как устав — пришлось бы грузить его
+        // заново вторым экземпляром. Текст и канон правке не подлежат: их
+        // стережёт та же проверка полей по истине схем.
+        "material",
     )
 
     /**

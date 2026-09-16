@@ -19,6 +19,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode
 import orbita.ai.api.AiFactory
 import orbita.ai.api.Answer
 import orbita.ai.api.Transport
+import orbita.api.internal.SceneRoutes
 import orbita.api.internal.SynthesisRoutes
 import orbita.kernel.TestDbV2
 import orbita.kernel.api.Area
@@ -70,6 +71,33 @@ class SynthesisRoutesTest {
     }
 
     // --- мера ------------------------------------------------------------
+
+    @Test
+    fun `роль документа называется у лежащего материала, без перезагрузки`() {
+        // Документ, загруженный до появления ролей, иначе нельзя прочитать
+        // как устав: пришлось бы грузить его заново вторым экземпляром.
+        проект(ПРОЕКТ, полеЗнаний = true)
+        val материал = intake.putMaterial(
+            ПРОЕКТ, "Записка заказчика", "mission_memo", "п. 1 Текст записки.", "Иванов И.",
+            authority = "mandatory",
+        )
+        assertTrue(
+            store.byCode(Area.Project(ПРОЕКТ), материал)!!.doc.path("role").asText("").isBlank(),
+            "роли у прежнего материала нет",
+        )
+
+        val ответ = SceneRoutes(store, links, ДвижокНеНужен, mapper).handle(
+            "PATCH", "/v2/entities/$материал", п,
+            """{"fields":{"role":"charter"},"author":"инженер","reason":"роль названа"}""",
+        )
+
+        assertEquals(200, ответ?.code, ответ?.body.toString())
+        assertEquals(
+            "charter",
+            store.byCode(Area.Project(ПРОЕКТ), материал)!!.doc.path("role").asText(),
+            "роль легла в карточку документа",
+        )
+    }
 
     @Test
     fun `величина уезжает в сверку парой, а не строкой`() {
@@ -506,4 +534,23 @@ private class СверкаПодмена : Reconcile {
         }
         return listOfNotNull(дубль, нехватка)
     }
+}
+
+/**
+ * Движок процесса правке записи не нужен: маршрут сцен трогает его только
+ * при открытии фазы и прохождении точек. Заглушка отказывает громко — если
+ * правка вдруг пойдёт через движок, тест это увидит, а не пропустит.
+ */
+private object ДвижокНеНужен : orbita.process.api.ProcessEngine {
+    override fun openPhase(project: String, templateCode: String) = error("движок правке не нужен")
+    override fun view(project: String) = error("движок правке не нужен")
+    override fun passGate(project: String, gate: String, decidedBy: String) = error("движок правке не нужен")
+    override fun decide(
+        project: String,
+        gate: String,
+        by: String,
+        roles: Set<String>,
+        outcome: String,
+        note: String?,
+    ) = error("движок правке не нужен")
 }

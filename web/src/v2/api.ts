@@ -777,6 +777,8 @@ export interface MaterialRow {
   authority?: Authority | null
   /** Доли блоков (Д2а): ставит разбор, не инженер. */
   profile?: ContentProfile | null
+  /** Роль документа: ею решается, что из него может образоваться. */
+  role?: DocumentRole | null
 }
 
 /** Предложение сцены из поля знаний: что появится, если принять. */
@@ -1626,6 +1628,12 @@ export const api = {
     вызов<{ run: string; material: string; note: string; proposals: number }>(
       `/intake/read?project=${encodeURIComponent(project)}`,
       { method: 'POST', body: JSON.stringify({ material, author }) }),
+
+  /** Назначить документу роль, не перезагружая его. */
+  setMaterialRole: (project: string, code: string, role: DocumentRole, author = 'инженер') =>
+    вызов<{ id: string; code: string; version: number; changed: number }>(
+      `/entities/${encodeURIComponent(code)}?project=${encodeURIComponent(project)}`,
+      { method: 'PATCH', body: JSON.stringify({ fields: { role }, author, reason: 'роль документа названа инженером' }) }),
 
   /**
    * Отменить принятый пакет целиком: заведённое снимается с учёта, факты

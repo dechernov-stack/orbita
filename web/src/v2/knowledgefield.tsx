@@ -28,6 +28,7 @@ import { ResearchPanel, отказСловами } from './research'
 import {
   ServerRefusal, api, РОЛИ_ДОКУМЕНТА,
   type Authority, type DocumentRole, type FactRow, type FactSourceView, type FieldDrift,
+  type MaterialRow,
   type FormationOntology, type FormationProposal, type ReconcileAction,
   type ReconcileFinding, type ReconcileItem, type ReconcileRun, type ResearchTask,
   type SynthesisAccepted, type SynthesisDiff, type SynthesisDiffView, type SynthesisRun,
@@ -543,6 +544,18 @@ export function KnowledgeField({ project }: { project: string | null }) {
           onRead={(run, note) => {
             // Прочитанное ложится запуском постановки: экран переходит на
             // вкладку предложений — человеку не надо догадываться, куда идти.
+            перечитать()
+            setВкладка('постановка')
+            setВход(false)
+            setОтказ(null)
+            setПрочитано(`документ прочитан: ${note} · запуск ${run}`)
+          }}
+          onError={setОтказ} />
+      )}
+
+      {поле && (
+        <Документы project={project}
+          onRead={(run, note) => {
             перечитать()
             setВкладка('постановка')
             setВход(false)
@@ -1211,6 +1224,89 @@ export function Source({ project, onParsed, onError, onRead }: {
         {поставлен && <span className="v2-dim">{поставлен}</span>}
         {итог && <span className="v2-dim">{итог}</span>}
       </div>
+    </div>
+  )
+}
+
+/**
+ * Документы проекта: роль у каждого и «Прочитать документ» для УЖЕ лежащих.
+ *
+ * До 16.09 чтение начиналось только с формы загрузки — у документов, уже
+ * разобранных прежним порядком, кнопки не было вовсе, и владелец жал
+ * «Сформировать постановку из поля»: срез в 50 элементов из трёхсот давал
+ * двадцать шесть предложений, из них восемнадцать «узнанного принятого».
+ * Читать надо ДОКУМЕНТ, а не срез поля, — и теперь это можно сделать с
+ * любого лежащего.
+ */
+export function Документы({ project, onRead, onError }: {
+  project: string
+  onRead: (run: string, note: string) => void
+  onError: (e: string) => void
+}) {
+  const [список, setСписок] = useState<MaterialRow[]>([])
+  const [роли, setРоли] = useState<Record<string, DocumentRole | ''>>({})
+  const [читаю, setЧитаю] = useState<{ code: string; sec: number } | null>(null)
+
+  const перечитать = useCallback(() => {
+    api.materials(project).then((r) => {
+      setСписок(r.items)
+      setРоли(Object.fromEntries(r.items.map((м) => [м.code, (м.role ?? '') as DocumentRole | ''])))
+    }).catch(() => setСписок([]))
+  }, [project])
+  useEffect(перечитать, [перечитать])
+
+  const прочитать = (м: MaterialRow) => {
+    const роль = роли[м.code]
+    setЧитаю({ code: м.code, sec: 1 })
+    const часы = window.setInterval(
+      () => setЧитаю((т) => (т ? { ...т, sec: т.sec + 1 } : null)), 1000,
+    )
+    const кончить = () => { window.clearInterval(часы); setЧитаю(null) }
+    const роль_ = роль ? api.setMaterialRole(project, м.code, роль) : Promise.resolve(null)
+    роль_
+      .then(() => api.readDocument(project, м.code, 'инженер'))
+      .then((р) => { кончить(); перечитать(); onRead(р.run, р.note) })
+      .catch((e) => { кончить(); onError(String(e.message ?? e)) })
+  }
+
+  if (список.length === 0) return null
+  return (
+    <div className="v2-kf__src" data-why="работа">
+      <div className="v2-note-line">
+        Документы проекта. Чтение идёт по ДОКУМЕНТУ и даёт постановку сразу —
+        стороны, нужды, цели, рамки, вехи, у каждого пункта цитата и якорь.
+        «Сформировать постановку из поля» — другое: оно берёт срез поля под потолок.
+      </div>
+      <table className="v2-table">
+        <thead><tr><th>Код</th><th>Документ</th><th>Роль</th><th>Ранг</th><th /></tr></thead>
+        <tbody>
+          {список.map((м) => (
+            <tr key={м.code}>
+              <td className="v2-mono">{м.code}</td>
+              <td>{м.name}<span className="v2-muted"> · {м.chars} знаков</span></td>
+              <td>
+                <select value={роли[м.code] ?? ''}
+                  onChange={(e) => setРоли({ ...роли, [м.code]: e.target.value as DocumentRole | '' })}
+                  title="ролью решается, ЧТО из документа может образоваться: цели рождает только устав">
+                  <option value="">— роль не названа —</option>
+                  {РОЛИ_ДОКУМЕНТА.map((р) => <option key={р.code} value={р.code}>{р.word}</option>)}
+                </select>
+              </td>
+              <td>{м.authority ? (РАНГ[м.authority] ?? м.authority) : <span className="v2-warn">не назван</span>}</td>
+              <td>
+                <button type="button" className="v2-primary"
+                  disabled={читаю !== null}
+                  title={роли[м.code]
+                    ? 'один вызов: документ читается смыслом и даёт постановку сразу'
+                    : 'роль не названа — документ прочтётся как обстановка: ни целей, ни сервисов'}
+                  onClick={() => прочитать(м)}>
+                  {читаю?.code === м.code ? `Читаю… ${читаю.sec} с` : 'Прочитать документ'}
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   )
 }

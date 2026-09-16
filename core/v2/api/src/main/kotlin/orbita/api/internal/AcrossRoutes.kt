@@ -123,6 +123,10 @@ class AcrossRoutes(
                 // содержимого (Д2а) ставит разбор — по нему экран показывает
                 // доли блоков, а не гадает по расширению файла.
                 .put("authority", м.doc.path("authority").asText("").ifBlank { null })
+                // Роль документа: ею решается, ЧТО из него может образоваться.
+                // Экран показывает её у каждого документа и даёт прочитать
+                // уже лежащий — без роли документ читается как обстановка.
+                .put("role", м.doc.path("role").asText("").ifBlank { null })
                 .also { у ->
                     м.doc.path("profile").takeIf { it.isObject }?.let { у.set<JsonNode>("profile", it) }
                 }
