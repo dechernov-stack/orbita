@@ -82,8 +82,8 @@ class KnowledgeFieldRoutesTest {
         private val запуск = orbita.ai.api.DistributionRun(
             id = "SR-0007", status = "done", cached = false, note = "раздача: связей 2 (к целям 1 · к сервисам 1)",
             links = listOf(
-                orbita.ai.api.DistributionLink("L1", "ND-0001", "связь в Арктике", "GL-0001", "goal", "покрытие СМП", null, "по смыслу", exists = false, accepted = false),
-                orbita.ai.api.DistributionLink("L2", "ND-0001", "связь в Арктике", "SV-0001", "service", "резервный канал", "B′", "по смыслу", exists = true, accepted = false),
+                orbita.ai.api.DistributionLink("L1", "ND-0001", "связь в Арктике", "GL-0001", "goal", "покрытие СМП", null, "по смыслу", exists = false, classPending = false, accepted = false),
+                orbita.ai.api.DistributionLink("L2", "ND-0001", "связь в Арктике", "SV-0001", "service", "резервный канал", "B′", "по смыслу", exists = true, classPending = true, accepted = false),
             ),
             unassigned = listOf("ND-0002"), refused = listOf("цель «GL-0099» у нужды ND-0001: в проекте нет"),
         )

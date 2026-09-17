@@ -39,7 +39,7 @@ class NeedDistributionTest {
         store.create(ПРОЕКТ, "project", область, "1", mapper.createObjectNode().put("name", "ПМИ-7").put("knowledge_v2", true), провенанс)
         val сторона = store.create("SK-0001", "stakeholder", область, "3",
             mapper.createObjectNode().put("name", "Минтранс России").put("role", "customer"), провенанс)
-        listOf("ND-0001" to "единое оперативное управление транспортом", "ND-0002" to "резервный канал в белых пятнах", "ND-0003" to "суверенитет данных")
+        listOf("ND-0001" to "единое оперативное управление транспортом", "ND-0002" to "резервный канал в белых пятнах", "ND-0003" to "суверенитет данных", "ND-0004" to "серийность космического сегмента")
             .forEach { (код, текст) ->
                 val нужда = store.create(код, "need", область, "3", mapper.createObjectNode().put("statement", текст), провенанс)
                 links.link("owns", сторона.id, нужда.id, провенанс)
@@ -52,8 +52,10 @@ class NeedDistributionTest {
             mapper.createObjectNode().put("name", "резервный канал мониторинга").put("qos_class", "B′"), провенанс)
         store.create("SV-0002", "service", область, "6",
             mapper.createObjectNode().put("name", "платформа связности и API").put("qos_class", "A′/B′/C′"), провенанс)
-        // Одна связь уже есть: цель GL-0001 закрывает ND-0001.
+        // Одна связь уже есть: цель GL-0001 закрывает ND-0001. И сервис уже
+        // покрывает ND-0003, но класса у нужды нет — TBR ждёт сцены 6.
         links.link("covers", store.byCode(область, "GL-0001")!!.id, store.byCode(область, "ND-0001")!!.id, провенанс)
+        links.link("covers", store.byCode(область, "SV-0002")!!.id, store.byCode(область, "ND-0003")!!.id, провенанс)
     }
 
     @Test
@@ -82,11 +84,14 @@ class NeedDistributionTest {
 
         assertEquals("done", запуск.status)
         val поНужде = запуск.links.groupBy { it.need }
-        assertEquals(setOf("ND-0001", "ND-0002"), поНужде.keys, "связи по двум нуждам; третья — не раздана")
-        assertEquals(listOf("ND-0003"), запуск.unassigned, "нужда без связи названа поимённо")
+        assertEquals(setOf("ND-0001", "ND-0002", "ND-0003"), поНужде.keys, "связи по трём нуждам")
+        assertEquals(listOf("ND-0004"), запуск.unassigned, "нужда без связи названа поимённо")
         assertTrue(запуск.refused.any { "GL-0099" in it }, "код вне проекта отбит поимённо: ${запуск.refused}")
         val существующая = запуск.links.single { it.need == "ND-0001" && it.target == "GL-0001" }
         assertTrue(существующая.exists, "уже лежащая связь помечена «уже есть»")
+        assertTrue(!существующая.classPending, "у связи с целью класса нет")
+        val покрытаяБезКласса = запуск.links.single { it.need == "ND-0003" && it.target == "SV-0002" }
+        assertTrue(покрытаяБезКласса.exists && покрытаяБезКласса.classPending, "покрытая сервисом нужда без класса: класс ждёт приёма")
         assertEquals("B′", запуск.links.single { it.target == "SV-0001" }.qosClass, "класс сервиса едет со связью")
         assertTrue(запуск.links.all { it.reason.isNotBlank() }, "у каждой связи есть причина")
         // Запуск лежит своей меткой и в перечень синтеза не попадает.
@@ -103,19 +108,22 @@ class NeedDistributionTest {
         канал.ответ = ОТВЕТ
         val запуск = раздача.distribute(ПРОЕКТ, АВТОР)
         val новые = запуск.links.filter { !it.exists }.map { it.id }
+        val существующие = запуск.links.filter { it.exists }.map { it.id }
 
-        val итог = раздача.accept(ПРОЕКТ, запуск.id, новые + listOf(запуск.links.single { it.exists }.id), АВТОР, "по смыслу")
+        val итог = раздача.accept(ПРОЕКТ, запуск.id, новые + существующие, АВТОР, "по смыслу")
 
         assertEquals(новые.size, итог.linked, "заведены только новые связи: ${итог.skipped}")
-        assertTrue(итог.skipped.any { "уже есть" in it }, "существующая связь названа пропущенной")
+        assertTrue(итог.skipped.any { "уже есть" in it }, "существующая связь с целью названа пропущенной")
+        assertEquals("A′/B′/C′", store.byCode(область, "ND-0003")!!.doc.path("qos_class").asText(), "покрытой нужде без класса класс дан и без новой связи")
         val нужда2 = store.byCode(область, "ND-0002")!!
         assertTrue(links.to(нужда2.id, "covers").any { store.byId(it.from)!!.code == "GL-0001" }, "цель закрывает нужду связью covers")
         assertTrue(links.to(нужда2.id, "covers").any { store.byId(it.from)!!.code == "SV-0001" }, "сервис покрывает нужду")
         assertEquals("B′", нужда2.doc.path("qos_class").asText(), "класс нужды — от покрывшего сервиса")
-        // ND-0001 тоже получила класс — от платформы (SV-0002): связи с ней не было.
-        assertEquals(2, итог.classes)
+        // ND-0001 тоже получила класс — от платформы (SV-0002): связи с ней не было; ND-0003 — по лежащей связи.
+        assertEquals(3, итог.classes)
         assertEquals("A′/B′/C′", store.byCode(область, "ND-0001")!!.doc.path("qos_class").asText())
-        assertTrue(раздача.view(ПРОЕКТ, запуск.id).links.count { it.accepted } == новые.size)
+        // Принятыми числятся новые связи и лежащая связь сервиса, по которой дан класс.
+        assertEquals(новые.size + 1, раздача.view(ПРОЕКТ, запуск.id).links.count { it.accepted })
 
         val отмена = раздача.undo(ПРОЕКТ, запуск.id, АВТОР)
 
@@ -125,6 +133,8 @@ class NeedDistributionTest {
         assertTrue(после.doc.path("qos_class").isMissingNode, "класс возвращён как был — его не было")
         assertTrue(раздача.view(ПРОЕКТ, запуск.id).links.none { it.accepted })
         assertTrue(links.to(store.byCode(область, "ND-0001")!!.id, "covers").size == 1, "чужая, прежняя связь не тронута")
+        assertTrue(links.to(store.byCode(область, "ND-0003")!!.id, "covers").size == 1, "лежащая связь сервиса не тронута")
+        assertTrue(store.byCode(область, "ND-0003")!!.doc.path("qos_class").isMissingNode, "класс, данный по лежащей связи, возвращён")
     }
 
     @Test
@@ -141,7 +151,8 @@ class NeedDistributionTest {
         val ОТВЕТ: String = """{"needs":[
             {"need":"ND-0001","goals":["GL-0001","GL-0099"],"services":["SV-0002"],"reason":"единый поток данных — это платформа и базовый контур"},
             {"need":"ND-0002","goals":["GL-0001"],"services":["SV-0001"],"reason":"резервный канал — сервис резервного канала, контур покрытия"},
-            {"need":"ND-0003","goals":[],"services":[],"reason":"не к чему"}
+            {"need":"ND-0003","goals":["GL-0002"],"services":["SV-0002"],"reason":"суверенитет данных — контур и платформа"},
+            {"need":"ND-0004","goals":[],"services":[],"reason":"не к чему"}
         ]}"""
     }
 }

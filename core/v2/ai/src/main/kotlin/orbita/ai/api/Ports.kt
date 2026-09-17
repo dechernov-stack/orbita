@@ -403,6 +403,8 @@ data class DistributionLink(
     val reason: String,
     /** Связь уже есть в модели: второй раз не заводится. */
     val exists: Boolean,
+    /** Нужда покрыта, но класса не несёт: приём даст ей класс сервиса и без новой связи. */
+    val classPending: Boolean,
     val accepted: Boolean,
 )
 

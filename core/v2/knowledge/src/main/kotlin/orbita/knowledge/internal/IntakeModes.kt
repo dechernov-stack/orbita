@@ -48,7 +48,7 @@ internal class IntakeModes(
             val значения = группа.map { it.doc.path("value").asText("").trim().lowercase() + "|" + it.doc.path("unit").asText("") }.toSet()
             if (значения.size < 2) return@forEach
             группа.forEach { ф ->
-                val другие = группа.filter { it.code != ф.code && значениеИное(it, ф) }.map { it.code }.sorted()
+                val другие = группа.filter { it.code != ф.code && спорны(it, ф) }.map { it.code }.sorted()
                 val было = ф.doc.path("conflicts").map { it.asText() }.sorted()
                 if (другие != было) {
                     val документ = (ф.doc.deepCopy() as ObjectNode)
@@ -58,6 +58,38 @@ internal class IntakeModes(
                 }
             }
             связатьПротиворечия(область, пары(группа), author)
+            снятьСвоиВнутриДокумента(группа, author)
+        }
+    }
+
+    /**
+     * Спорны ли два факта: разные значения И разные источники. Один документ
+     * себе не противоречит — девять целей одного раздела под одним
+     * предикатом («проект · достичь») суть перечень, а не спор, и до 17.09
+     * они держали MCR («принятых фактов с неразрешённым противоречием: 51»).
+     * Мера §3 задания — связи фактов МЕЖДУ документами; экспертный факт —
+     * свой источник (учётка).
+     */
+    private fun спорны(а: Entity, б: Entity): Boolean = значениеИное(а, б) && источник(а) != источник(б)
+
+    private fun источник(ф: Entity): String =
+        ф.doc.path("material").asText("").trim().ifBlank { "эксперт:" + ф.doc.path("source").path("account").asText("") }
+
+    /**
+     * Связь `contradicts`, которую служба поставила между фактами ОДНОГО
+     * источника по прежнему правилу, снимается службой же: человеческие
+     * связи и связи из разбора (другой канал) не трогаются.
+     */
+    private fun снятьСвоиВнутриДокумента(группа: List<Entity>, author: String) {
+        val реестр = links ?: return
+        val поId = группа.associateBy { it.id }
+        группа.forEach { ф ->
+            реестр.from(ф.id, "contradicts").forEach { связь ->
+                val другой = поId[связь.to] ?: return@forEach
+                if (связь.provenance.channel == Channel.SERVICE && источник(ф) == источник(другой)) {
+                    runCatching { реестр.unlink(связь.id, Provenance(Channel.SERVICE, author)) }
+                }
+            }
         }
     }
 
@@ -71,7 +103,7 @@ internal class IntakeModes(
         val упорядоченные = группа.sortedBy { it.code }
         return упорядоченные.indices.flatMap { i ->
             (i + 1 until упорядоченные.size)
-                .filter { j -> значениеИное(упорядоченные[i], упорядоченные[j]) }
+                .filter { j -> спорны(упорядоченные[i], упорядоченные[j]) }
                 .map { j -> упорядоченные[i] to упорядоченные[j] }
         }
     }

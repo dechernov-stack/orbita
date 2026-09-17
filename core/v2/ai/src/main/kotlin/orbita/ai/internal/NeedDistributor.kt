@@ -80,6 +80,7 @@ class NeedDistributor(
                     if (связи.any { it.path("need").asText() == нужда.code && it.path("target").asText() == цель.code }) return@forEach
                     номер += 1
                     раздано += нужда.code
+                    val класс = if (вид == "service") цель.doc.path(QosClass.FIELD).asText("").ifBlank { null } else null
                     связи += mapper.createObjectNode()
                         .put("id", "L$номер")
                         .put("need", нужда.code)
@@ -87,9 +88,13 @@ class NeedDistributor(
                         .put("target", цель.code)
                         .put("kind", вид)
                         .put("target_text", формулировка(цель))
-                        .put("qos_class", if (вид == "service") цель.doc.path(QosClass.FIELD).asText("").ifBlank { null } else null)
+                        .put("qos_class", класс)
                         .put("reason", причина)
                         .put("exists", естьСвязь(цель, нужда))
+                        // Покрытая сервисом нужда без класса: TBR закрывается на
+                        // сцене 6 — приём даст класс и без новой связи (8 нужд
+                        // на PJ-ПМИ7 остались с TBR, потому что их связи «уже есть»).
+                        .put("class_pending", класс != null && !QosClass.assigned(нужда.doc.path(QosClass.FIELD)))
                 }
             }
         }
@@ -149,19 +154,25 @@ class NeedDistributor(
                 пропущено += "$id: нужда или её цель снята с учёта"
                 return@forEach
             }
-            if (связь.path("exists").asBoolean(false) || естьСвязь(цель, нужда)) {
+            val класс = связь.path("qos_class").asText("").trim()
+            val классЖдёт = связь.path("kind").asText() == "service" && класс.isNotBlank() &&
+                !QosClass.assigned(нужда.doc.path(QosClass.FIELD))
+            val естьУже = связь.path("exists").asBoolean(false) || естьСвязь(цель, нужда)
+            if (естьУже && !классЖдёт) {
                 пропущено += "$id: связь уже есть"
                 return@forEach
             }
-            val обоснование = "раздача нужд $run: ${reason.ifBlank { "принято инженером" }}" +
-                связь.path("reason").asText("").trim().ifBlank { null }?.let { " — $it" }.orEmpty()
-            val сделано = реестр.link("covers", цель.id, нужда.id, Provenance(Channel.SERVICE, author, source = run), rationale = обоснование)
-            связей += 1
-            val запись = принятые.addObject().put("id", id).put("link", сделано.id)
+            val запись = принятые.addObject().put("id", id)
+            if (!естьУже) {
+                val обоснование = "раздача нужд $run: ${reason.ifBlank { "принято инженером" }}" +
+                    связь.path("reason").asText("").trim().ifBlank { null }?.let { " — $it" }.orEmpty()
+                val сделано = реестр.link("covers", цель.id, нужда.id, Provenance(Channel.SERVICE, author, source = run), rationale = обоснование)
+                связей += 1
+                запись.put("link", сделано.id)
+            }
             // Класс — от покрывшего сервиса, и только если у нужды его ещё нет:
             // назначенное человеком раздача не переписывает.
-            val класс = связь.path("qos_class").asText("").trim()
-            if (связь.path("kind").asText() == "service" && класс.isNotBlank() && !QosClass.assigned(нужда.doc.path(QosClass.FIELD))) {
+            if (классЖдёт) {
                 val прежний = нужда.doc.path(QosClass.FIELD)
                 val док = нужда.doc.deepCopy<JsonNode>() as ObjectNode
                 док.put(QosClass.FIELD, класс)
@@ -189,8 +200,11 @@ class NeedDistributor(
         }
         var снято = 0
         принятые.forEach { запись ->
-            runCatching { реестр.unlink(запись.path("link").asText(), Provenance(Channel.MANUAL, author, source = run)) }
-                .onSuccess { снято += 1 }
+            val связь = запись.path("link").asText("")
+            if (связь.isNotBlank()) {
+                runCatching { реестр.unlink(связь, Provenance(Channel.MANUAL, author, source = run)) }
+                    .onSuccess { снято += 1 }
+            }
             val кодНужды = запись.path("qos_on").asText("")
             if (кодНужды.isNotBlank()) {
                 store.byCode(область, кодНужды)?.let { нужда ->
@@ -336,6 +350,7 @@ class NeedDistributor(
                     qosClass = с.path("qos_class").asText("").ifBlank { null },
                     reason = с.path("reason").asText(""),
                     exists = с.path("exists").asBoolean(false),
+                    classPending = с.path("class_pending").asBoolean(false),
                     accepted = с.path("id").asText() in принятые,
                 )
             },

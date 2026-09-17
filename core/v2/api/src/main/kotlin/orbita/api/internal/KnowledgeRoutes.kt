@@ -326,7 +326,8 @@ class KnowledgeRoutes(
         р.links.forEach { с ->
             связи.addObject().put("id", с.id).put("need", с.need).put("need_text", с.needText)
                 .put("target", с.target).put("kind", с.targetKind).put("target_text", с.targetText)
-                .put("qos_class", с.qosClass).put("reason", с.reason).put("exists", с.exists).put("accepted", с.accepted)
+                .put("qos_class", с.qosClass).put("reason", с.reason).put("exists", с.exists)
+                .put("class_pending", с.classPending).put("accepted", с.accepted)
         }
         узел.putArray("unassigned").also { м -> р.unassigned.forEach { м.add(it) } }
         узел.putArray("refused").also { м -> р.refused.forEach { м.add(it) } }

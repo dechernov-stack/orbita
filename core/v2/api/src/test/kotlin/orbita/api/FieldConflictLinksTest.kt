@@ -98,6 +98,26 @@ class FieldConflictLinksTest {
     }
 
     @Test
+    fun `один документ себе не противоречит — перечень под одним предикатом не спор`() {
+        // Девять целей записки под «проект · достичь» держали MCR как 51
+        // неразрешённое противоречие (216, 17.09). Спор — только между
+        // источниками; внутри одного документа разные значения — перечень.
+        val записка = intake.putMaterial(проект, "Записка", "mission_memo", "п. 1 Цели программы.\n\nп. 2 Ещё цели.", "Иванов И.", authority = "mandatory")
+        val я = якоря(записка)
+        intake.putFacts(проект, записка, """{"topics":[],"actions":[],"facts":[
+            {"kind":"quantity","subject":"проект","predicate":"достичь","value":"развернуть 50 КА","unit":"КА","source":{"anchor":"${я[0]}"},"source_mark":"И"},
+            {"kind":"quantity","subject":"проект","predicate":"достичь","value":"развернуть 150 КА","unit":"КА","source":{"anchor":"${я[0]}"},"source_mark":"И"}]}""", "Иванов И.")
+
+        val факты = intake.facts(проект).filter { it.material == записка }
+        assertEquals(2, факты.size)
+        assertTrue(факты.all { it.conflicts.isEmpty() }, "внутри документа противоречий нет: ${факты.map { it.conflicts }}")
+        факты.forEach { ф ->
+            val сущность = store.byCode(область, ф.id)!!
+            assertTrue(links.from(сущность.id, "contradicts").isEmpty() && links.to(сущность.id, "contradicts").isEmpty(), "связи contradicts нет")
+        }
+    }
+
+    @Test
     fun `совпадающие значения связи не рождают, а повторный разбор её не удваивает`() {
         val записка = intake.putMaterial(
             проект, "Записка", "mission_memo", "Масса платформы 80 кг.", "Иванов И.",

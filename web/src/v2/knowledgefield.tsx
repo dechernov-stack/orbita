@@ -1655,7 +1655,7 @@ function РаздачаНужд({ project, onChanged }: { project: string; onCha
       .then((р) => {
         if ('links' in р) {
           setРаздача(р)
-          setОтмечены(р.links.filter((с) => !с.exists && !с.accepted).map((с) => с.id))
+          setОтмечены(р.links.filter((с) => кПриёмуЛи(с)).map((с) => с.id))
         } else {
           setРаздача(null)
         }
@@ -1672,13 +1672,13 @@ function РаздачаНужд({ project, onChanged }: { project: string; onCha
       .then((р) => {
         кончить()
         setРаздача(р)
-        setОтмечены(р.links.filter((с) => !с.exists && !с.accepted).map((с) => с.id))
+        setОтмечены(р.links.filter((с) => кПриёмуЛи(с)).map((с) => с.id))
         setИтог(р.note)
       })
       .catch((e) => { кончить(); setОтказ(отказПодробно(e)) })
   }
 
-  const кПриёму = раздача ? раздача.links.filter((с) => !с.exists && !с.accepted) : []
+  const кПриёму = раздача ? раздача.links.filter(кПриёмуЛи) : []
   const принятые = раздача ? раздача.links.filter((с) => с.accepted) : []
   const выбрано = отмечены.filter((id) => кПриёму.some((с) => с.id === id))
 
@@ -1710,9 +1710,9 @@ function РаздачаНужд({ project, onChanged }: { project: string; onCha
   }
 
   const строка = (с: DistributionLink) => (
-    <tr key={с.id} className={с.exists || с.accepted ? 'v2-dim' : undefined}>
+    <tr key={с.id} className={!кПриёмуЛи(с) ? 'v2-dim' : undefined}>
       <td>
-        {с.exists || с.accepted ? (
+        {!кПриёмуЛи(с) ? (
           <span title={с.accepted ? 'связь принята этой раздачей' : 'связь уже есть в модели — второй раз не заводится'}
             data-why="почему-нельзя">{с.accepted ? 'принята' : 'уже есть'}</span>
         ) : (
@@ -1728,7 +1728,14 @@ function РаздачаНужд({ project, onChanged }: { project: string; onCha
         <span className="v2-mono">{с.target}</span>
         <div>{с.kind === 'goal' ? 'цель' : 'сервис'}: {с.target_text}</div>
       </td>
-      <td>{с.kind === 'service' ? (с.qos_class ?? '—') : ''}</td>
+      <td>
+        {с.kind === 'service' ? (с.qos_class ?? '—') : ''}
+        {с.exists && с.class_pending && !с.accepted && (
+          <div className="v2-dim" title="связь уже есть, а класса у нужды нет: приём даст ей класс сервиса">
+            связь есть · класс ждёт
+          </div>
+        )}
+      </td>
       <td>{с.reason}</td>
     </tr>
   )
@@ -1793,6 +1800,11 @@ function РаздачаНужд({ project, onChanged }: { project: string; onCha
       <ConfirmBox request={ask} onClose={закрытьВопрос} />
     </div>
   )
+}
+
+/** К приёму — новая связь либо лежащая связь сервиса у нужды без класса. */
+function кПриёмуЛи(с: DistributionLink): boolean {
+  return !с.accepted && (!с.exists || с.class_pending)
 }
 
 function раздачаСловами(р: DistributionRun): string {

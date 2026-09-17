@@ -916,6 +916,8 @@ export interface DistributionLink {
   reason: string
   /** Связь уже есть в модели: второй раз не заводится. */
   exists: boolean
+  /** Нужда покрыта, но класса не несёт: приём даст ей класс сервиса и без новой связи. */
+  class_pending: boolean
   accepted: boolean
 }
 
