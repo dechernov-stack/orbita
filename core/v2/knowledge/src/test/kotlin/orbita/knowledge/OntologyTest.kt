@@ -33,11 +33,14 @@ class OntologyTest {
     private val норматив = GeneratedOntology.of("normative_document")
 
     @Test
-    fun `понятия постановки — от стороны до возможности`() {
+    fun `понятия постановки — от стороны до риска`() {
         assertEquals(
             listOf(
                 "stakeholder", "need", "goal", "service", "constraint",
                 "assumption", "milestone", "normative_document", "opportunity",
+                // 17.09: владелец ответил истиной на вопрос «читать ли замысел,
+                // требования и риски» — да, понятиями со своим `from`.
+                "intent", "requirement", "risk",
             ),
             GeneratedOntology.concepts.map { it.code },
             "перечень понятий и их порядок идут из истины онтологии",
@@ -152,12 +155,18 @@ class OntologyTest {
      * Решение владельца 12.09 §1: класс обслуживания нужды обязателен, но
      * значение TBR допустимо до сцены сервисов. Онтология и схема обязаны
      * говорить одно — иначе сверка потребует того, чего схема не требует.
+     *
+     * С 17.09 про TBR говорит истина СХЕМ (`need.qos_class`), а онтология —
+     * про множественность: «один или несколько классов из текста; сервис
+     * уточняет один». Обе читаются здесь: правило одно, названо в двух местах.
      */
     @Test
-    fun `класс обслуживания нужды допускает TBR с владельцем и воротами`() {
+    fun `класс обслуживания нужды допускает TBR и множество классов`() {
+        val поСхеме = orbita.kernel.schema.GeneratedKinds.of("need")
+        assertTrue("qos_class" in поСхеме.requiredFields, "класс обслуживания обязателен")
         assertTrue(
-            нужда.fields["qos_class"].orEmpty().contains("TBR"),
-            "онтология обязана назвать TBR допустимым: ${нужда.fields["qos_class"]}",
+            нужда.fields["qos_class"].orEmpty().contains("несколько"),
+            "онтология называет множественность классов: ${нужда.fields["qos_class"]}",
         )
         assertTrue("qos_class" in GeneratedKinds.of("need").requiredFields, "поле обязательно по истине схем")
         assertEquals("6", QosClass.GATE, "ворота TBR — сцена, в которой заводятся сервисы")

@@ -1113,9 +1113,9 @@ kinds:
     required: true
     note: owns
   - name: qos_class
-    type: ref qos_class | tbr{owner*,gate*}
+    type: ref[] qos_class (≥1) | tbr{owner*,gate*}
     required: true
-    note: 'обязателен; значение TBR допустимо до сцены 6 (сервисы): выход сцены 6 требует класса у каждой нужды, покрытой сервисом'
+    note: один или несколько классов из текста; сервис уточняет один; TBR допустим до сцены 6
   - name: anchors
     type: '[{material*,anchor*}]'
     required: false
@@ -2828,6 +2828,10 @@ kinds:
     type: enum[И,В,П]
     required: true
     note: ''
+  - name: source_mark_no
+    type: str
+    required: false
+    note: 'номер источника из списка документа: И1, В10'
   - name: evidence
     type: enum[claimed,corroborated,measured,assumed]
     required: true
@@ -3598,3 +3602,4 @@ charter_prism_rule: 'устав — призма: его замысел, гра�
 fixtures_rule: 'фикстуры мер живут в репозитории (docs/tz/v2/фикстуры/), не на стенде: тест должен воспроизводиться без проекта владельца'
 assumption_accept_rule: 'приём предложения-допущения открывает короткий диалог: владелец (учётка) и точка подтверждения — обязательны; чем подтвердится и цена ошибки — по желанию; без владельца и точки
   диспозиция assumed не ставится'
+normalization_rule: штрих — канон ′ (U+2032), апостроф нормализуется; величины — объектом {value|min,max,unit}; метка источника с номером

@@ -154,6 +154,7 @@ ${чтоВыписать(роль)}
 5. Нужды ссылки на сторону НЕ несут: они лежат внутри своей стороны полем
    `needs`, и носитель у них тем самым уже назван.
 6. Не оценивай и не решай — ты предлагаешь, решает инженер.
+${канонНаписания()}
 
 ## Перед ответом проверь
 - у каждого пункта есть цитата и якорь;
@@ -206,6 +207,13 @@ ${самопроверкаПоРоли(роль)}
                 }
             }
         }
+        // Замысел приходит объектом, а не списком: он один на проект (истина
+        // `intent.note` — «один на проект; правится только решением»).
+        корень.path(ЗАМЫСЕЛ).takeIf { it.isObject && !it.isEmpty }?.let { узел ->
+            val беда = воротаПункта(узел, блоки)
+            if (беда != null) отбито += "$ЗАМЫСЕЛ ($ЗАМЫСЕЛ): $беда" else пункты += Пункт("i1", ЗАМЫСЕЛ, узел)
+        }
+
         // Ссылки внутри ответа разрешаются ДО фактов: нужда, назвавшая сторону
         // `ref`-ом, обязана получить её имя — иначе связь «owns→stakeholder»
         // не закроется ничем (прогон владельца 15.09).
@@ -338,6 +346,11 @@ ${самопроверкаПоРоли(роль)}
         узел.put("quote", поля.path("quote").asText(""))
         узел.put("anchor", поля.path("anchor").asText(""))
         узел.put("source_mark", если(пункт.concept == "assumption", "П", "И"))
+        // Номер источника из списка документа (И1 · В10): истина схем завела
+        // под него отдельное поле 17.09 — метка одной буквой номер теряла.
+        поля.path("source_mark_no").asText("").trim().ifBlank { null }?.let {
+            узел.put("source_mark_no", it)
+        }
         поля.path("confidence").takeIf { it.isNumber }?.let { узел.put("confidence", it.asDouble()) }
         return узел
     }
@@ -382,8 +395,17 @@ ${самопроверкаПоРоли(роль)}
             if (текст.isNotBlank()) поля[имя] = текст
         }
         величина(пункт)?.let { (имя, пара) -> поля[имя] = пара }
-        return поля
+        return поля.mapValues { (_, значение) -> штрихКаноном(значение) }
     }
+
+    /**
+     * Штрих — канон ′ (U+2032); апостроф и акцент нормализуются (истина,
+     * `normalization.prime`). Записка и эталон владельца пишут «A'», истина
+     * схем — «A′», и без приведения класс обслуживания не совпадает ни с чем.
+     */
+    private fun штрихКаноном(текст: String): String =
+        if (АПОСТРОФЫ.none { it in текст }) текст
+        else АПОСТРОФЫ.fold(текст) { итог, знак -> итог.replace(знак, ШТРИХ) }
 
     /**
      * Величина понятия — ПАРОЙ «значение · единица» под именем, которое назвала
@@ -395,10 +417,25 @@ ${самопроверкаПоРоли(роль)}
     private fun величина(пункт: Пункт): Pair<String, String>? {
         val вид = GeneratedKinds.byCode[видПонятия(пункт.concept)] ?: return null
         val поле = вид.measures.firstOrNull() ?: return null
-        val значение = пункт.узел.path("value").asText("").trim()
-        val единица = пункт.узел.path("unit").asText("").trim()
-        if (значение.isBlank() || единица.isBlank()) return null
-        return поле to mapper.createObjectNode().put("value", значение).put("unit", единица).toString()
+        // Величина приходит либо своим объектом (`measure`), либо плоскими
+        // полями рядом — истина велит объект, но модель обе формы даёт.
+        val источник = пункт.узел.path("measure").takeIf { it.isObject } ?: пункт.узел
+        val единица = источник.path("unit").asText("").trim()
+        if (единица.isBlank()) return null
+        val пара = mapper.createObjectNode()
+        val значение = источник.path("value").asText("").trim()
+        val снизу = источник.path("min").asText("").trim()
+        val сверху = источник.path("max").asText("").trim()
+        when {
+            значение.isNotBlank() -> пара.put("value", значение)
+            снизу.isNotBlank() || сверху.isNotBlank() -> {
+                if (снизу.isNotBlank()) пара.put("min", снизу)
+                if (сверху.isNotBlank()) пара.put("max", сверху)
+            }
+            else -> return null
+        }
+        пара.put("unit", единица)
+        return поле to пара.toString()
     }
 
     /** Вид, которым понятие становится: его называет сама онтология. */
@@ -514,12 +551,33 @@ ${рамки.ifBlank { "  (рамок ещё нет)" }}
                 понятие?.fromFacts?.mapNotNull { it.sectionHint }?.takeIf { it.isNotEmpty() }?.let {
                     append("\nГде в документе: ").append(it.joinToString("; ")).append(".")
                 }
+                понятие?.from?.let { append("\nОткуда: ").append(it).append(".") }
+                понятие?.fromHint?.let { append("\nГде искать в тексте: ").append(it).append(".") }
+                // Правило раздачи общей нужды — истина владельца, не догадка
+                // кода: кому общая нужда достаётся, а кому нет.
+                понятие?.distributionRule?.let { append("\nКак раздавать: ").append(it).append(".") }
+                понятие?.answerShape?.let { append("\nФорма ответа: ").append(it).append(".") }
                 понятие?.notFrom?.takeIf { it.isNotEmpty() }?.let {
                     append("\nНе ").append(словоПонятия(код).trimEnd('ы', 'и')).append(": ")
                     append(it.joinToString("; ")).append(".")
                 }
                 append("\n\n")
             }
+            // Понятие, у которого своего блока в перечне нет (замысел,
+            // требование, риск — пришли 17.09), описывается ИСТИНОЙ: её `from`
+            // и `fields` говорят всё нужное, и второй прозы для них не пишем.
+            можно.filterNot { код -> ЧТО_ВЫПИСАТЬ.any { (к, _) -> к == код } }
+                .mapNotNull { GeneratedOntology.byCode[it] }
+                .forEach { п ->
+                    append("**").append(словоПонятия(п.code).replaceFirstChar { it.uppercase() })
+                    append("** (`").append(МАССИВ[п.code] ?: п.code).append("`). ")
+                    п.from?.let { append(it).append(". ") }
+                    append("Поля: ").append(п.fields.entries.joinToString(" · ") { (имя, откуда) ->
+                        if (откуда.isBlank()) имя else "$имя — $откуда"
+                    })
+                    п.note?.let { append(". ").append(it) }
+                    append("\n\n")
+                }
             if (роль != УСТАВ) {
                 append(
                     "**Чужие цели.** Цель, найденная не в уставе, — ЧУЖАЯ: выписывай её в " +
@@ -528,6 +586,11 @@ ${рамки.ifBlank { "  (рамок ещё нет)" }}
             }
         }.trim()
     }
+
+    /** Канон написания и форм — дословно из истины (`normalization`). */
+    private fun канонНаписания(): String = GeneratedOntology.normalization.entries
+        .mapIndexed { номер, (_, правило) -> "${номер + 7}. $правило." }
+        .joinToString("\n")
 
     private fun самопроверкаПоРоли(роль: String): String = if (роль == УСТАВ) {
         "- ни одна цель не осталась без значения и года;"
@@ -597,7 +660,15 @@ ${рамки.ifBlank { "  (рамок ещё нет)" }}
             "assumptions" to "assumption",
             "applicabilities" to "opportunity",
             "services" to "service",
+            "requirements" to "requirement",
+            "risks" to "risk",
         )
+
+        /** Понятие → имя массива ответа: им промпт называет, куда класть. */
+        val МАССИВ: Map<String, String> = ПОРЯДОК.associate { (массив, понятие) -> понятие to массив }
+
+        /** Замысел приходит ОДНИМ объектом, а не списком: он один на проект. */
+        const val ЗАМЫСЕЛ: String = "intent"
 
         /** Снятое с учёта в срез следов не идёт. */
         val СНЯТЫЕ: Set<String> = setOf("cancelled", "superseded")
@@ -606,7 +677,11 @@ ${рамки.ifBlank { "  (рамок ещё нет)" }}
         const val ТОЛЬКО_ФАКТ: String = "external_target"
 
         /** Служебные поля пункта: в понятие они не идут. */
-        val СЛУЖЕБНЫЕ: Set<String> = setOf("id", "quote", "anchor", "confidence")
+        val СЛУЖЕБНЫЕ: Set<String> = setOf("id", "quote", "anchor", "confidence", "source_mark_no")
+
+        /** Канон штриха (истина, `normalization.prime`) и что в него приводится. */
+        const val ШТРИХ: String = "\u2032"
+        val АПОСТРОФЫ: List<String> = listOf("'", "\u00b4", "\u2019")
 
         /** Плоские половинки величины: наружу идут парой, а не порознь. */
         val ВЕЛИЧИНА: Set<String> = setOf("value", "unit")
@@ -628,6 +703,9 @@ ${рамки.ifBlank { "  (рамок ещё нет)" }}
             "assumption" to "assumption",
             "opportunity" to "external_need",
             "service" to "capability",
+            "intent" to "framing",
+            "requirement" to "obligation",
+            "risk" to "assessment",
         )
 
         /** Предикат следа — тоже производная классификация, не поиск слова в тексте. */
@@ -641,6 +719,9 @@ ${рамки.ifBlank { "  (рамок ещё нет)" }}
             "assumption" to "принимается на веру",
             "opportunity" to "нуждается в",
             "service" to "даёт",
+            "intent" to "замышляется как",
+            "requirement" to "требуется",
+            "risk" to "рискует",
         )
 
         val СЛОВА: Map<String, String> = mapOf(
@@ -653,6 +734,9 @@ ${рамки.ifBlank { "  (рамок ещё нет)" }}
             "assumption" to "допущения",
             "opportunity" to "применимости",
             "service" to "сервисы",
+            "intent" to "замысел",
+            "requirement" to "требования",
+            "risk" to "риски",
         )
 
         val ЧТО_ВЫПИСАТЬ: List<Pair<String, String>> = listOf(

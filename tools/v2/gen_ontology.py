@@ -61,8 +61,12 @@ KOTLIN = КОРЕНЬ / "core/v2/knowledge/src/main/kotlin/orbita/knowledge/sche
 # поставку в отказе из-за двух строк нельзя. Потеряться молча им это не даёт —
 # понятие без ключа идентичности сверка отвергает поимённо (ворота 6 истины:
 # «дубль по ключу идентичности»), и об этом есть тест.
-ОБЯЗАТЕЛЬНЫЕ_КЛЮЧИ = ("from_facts", "fields", "must_link")
+# `from_facts` сюда НЕ входит с 17.09: замысел, требование и риск читаются
+# разделом документа (`from`), а не отбором по видам факта. Онтология про них
+# говорит прозой — и это законно: ворота на вид факта не ставятся вовсе.
+ОБЯЗАТЕЛЬНЫЕ_КЛЮЧИ = ("fields", "must_link")
 ИЗВЕСТНЫЕ_КЛЮЧИ = set(ОБЯЗАТЕЛЬНЫЕ_КЛЮЧИ) | {
+    "from_facts",
     "conflict_on",
     "identity",
     "note",
@@ -85,6 +89,15 @@ KOTLIN = КОРЕНЬ / "core/v2/knowledge/src/main/kotlin/orbita/knowledge/sche
     "change_by_others",
     # Чем спорят два документа об одном понятии — словами, рядом с conflict_on.
     "conflict_note",
+    # Откуда понятие берётся — словами, когда правил по видам факта нет вовсе
+    # (замысел, требование, риск: они читаются из раздела, а не из предикатов).
+    "from",
+    # Подсказка места в документе рядом с `from`.
+    "from_hint",
+    # Как общая нужда раздаётся сторонам: правило владельца, не догадка кода.
+    "distribution_rule",
+    # Какой формы ждать ответ по этому понятию (нужды внутри стороны).
+    "answer_shape",
 }
 
 # Разделы истины. Раздел, которого генератор не знает, пропадёт молча —
@@ -108,6 +121,8 @@ KOTLIN = КОРЕНЬ / "core/v2/knowledge/src/main/kotlin/orbita/knowledge/sche
     "reading_questions",
     # Кто выносит вердикт о принятом: только вопросы тождества.
     "verdict_rule",
+    # Канон написания и формы: штрих, величины объектом, метка с номером.
+    "normalization",
     # Что ворота проверяют и чего не делают никогда (РЕШЕНИЕ-ЧИТАТЬ-СМЫСЛ).
     "gates",
     # Как читается документ: смыслом, структура раздела — как структура.
@@ -328,6 +343,17 @@ def котлин(истина: dict, версия: str) -> str:
         "    val predicateHintsNote: String? = null,",
         "    /** Помета истины: `fromFacts` — подсказка происхождения, а не ворота. */",
         "    val fromFactsNote: String? = null,",
+        "    /**",
+        "     * Откуда понятие берётся — словами. У замысла, требования и риска",
+        "     * правил по видам факта нет вовсе: они читаются РАЗДЕЛОМ документа.",
+        "     */",
+        "    val from: String? = null,",
+        "    /** Подсказка места в документе рядом с [from]. */",
+        "    val fromHint: String? = null,",
+        "    /** Как общая нужда раздаётся сторонам — правило владельца. */",
+        "    val distributionRule: String? = null,",
+        "    /** Какой формы ждать ответ по этому понятию. */",
+        "    val answerShape: String? = null,",
         ") {",
         "",
         "    /**",
@@ -386,7 +412,7 @@ def котлин(истина: dict, версия: str) -> str:
     for код, понятие in истина["concepts"].items():
         строки.append("        Concept(")
         строки.append(f"            code = {строка(код)},")
-        отборы = понятие["from_facts"] or []
+        отборы = понятие.get("from_facts") or []
         if отборы:
             строки.append("            fromFacts = listOf(")
             for правило in отборы:
@@ -425,6 +451,14 @@ def котлин(истина: dict, версия: str) -> str:
             строки.append(f"            changeByOthers = {строка(понятие['change_by_others'])},")
         if понятие.get("conflict_note"):
             строки.append(f"            conflictNote = {строка(понятие['conflict_note'])},")
+        for ключ, имя in (
+            ("from", "from"),
+            ("from_hint", "fromHint"),
+            ("distribution_rule", "distributionRule"),
+            ("answer_shape", "answerShape"),
+        ):
+            if понятие.get(ключ):
+                строки.append(f"            {имя} = {строка(понятие[ключ])},")
         if понятие.get("predicate_hints_note"):
             строки.append(f"            predicateHintsNote = {строка(понятие['predicate_hints_note'])},")
         if понятие.get("from_facts_note"):
@@ -484,6 +518,16 @@ def котлин(истина: dict, версия: str) -> str:
     строки.append("    val charterPrismFields: List<String> = " + список(призма.get("fields") or []))
     строки.append("    val charterPrism: Map<String, String> = " + карта(
         {к: v for к, v in призма.items() if к != "fields"}, "    "
+    ))
+    строки += [
+        "",
+        "    /**",
+        "     * Канон написания и формы (17.09): штрих ′ вместо апострофа, величины",
+        "     * объектом, метка источника с номером. Идёт в промпт и в приведение.",
+        "     */",
+    ]
+    строки.append("    val normalization: Map<String, String> = " + карта(
+        истина.get("normalization") or {}, "    "
     ))
     строки += [
         "",

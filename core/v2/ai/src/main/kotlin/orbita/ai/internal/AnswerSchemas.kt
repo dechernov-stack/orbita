@@ -39,6 +39,7 @@ internal object AnswerSchemas {
     private val ТИПЫ_РАМКИ: List<String> = перечисление("constraint", "type")
     private val РОДЫ_ВЕХИ: List<String> = перечисление("milestone", "kind")
     private val ВЕРДИКТЫ_ПРИМЕНИМОСТИ: List<String> = перечисление("opportunity", "verdict")
+    private val КЛАССЫ_РИСКА: List<String> = перечисление("risk", "category")
 
     /**
      * Ответ разбора: факты, темы, профиль, связи и план действий.
@@ -174,7 +175,65 @@ internal object AnswerSchemas {
         поле(корень, "assumptions", массив(mapper, допущение(mapper)))
         поле(корень, "applicabilities", массив(mapper, применимость(mapper)))
         поле(корень, "services", массив(mapper, сервис(mapper)))
+        поле(корень, "intent", замысел(mapper))
+        поле(корень, "requirements", массив(mapper, требование(mapper)))
+        поле(корень, "risks", массив(mapper, риск(mapper)))
         return корень
+    }
+
+    /** Замысел устава: четыре поля цитатами. Один на проект (истина, `intent`). */
+    private fun замысел(mapper: ObjectMapper): ObjectNode {
+        val узел = объект(mapper, обязательные = listOf("for_whom", "what", "where", "horizon", "anchor"))
+        поле(узел, "for_whom", строка(mapper, "для кого — словами устава"))
+        поле(узел, "what", строка(mapper, "что делает система; и чего НЕ делает, если сказано"))
+        поле(узел, "where", строка(mapper, "где: география и приоритеты"))
+        поле(узел, "horizon", строка(mapper, "горизонт: к какому году и с какими числами"))
+        поле(узел, "quote", строка(mapper, "дословный фрагмент §1"))
+        поле(узел, "anchor", строка(mapper, "якорь блока §1"))
+        return узел
+    }
+
+    /**
+     * Требование из документа. Носитель и метод верификации НЕ выписываются:
+     * истина говорит — их ставит инженер на сцене 8.
+     */
+    private fun требование(mapper: ObjectMapper): ObjectNode {
+        val узел = пункт(mapper, обязательные = listOf("title", "statement"))
+        поле(узел, "title", строка(mapper, "коротко, о чём требование"))
+        поле(узел, "statement", строка(mapper, "формулировка как в тексте"))
+        поле(узел, "measure", величина(mapper, "числовой показатель требования, если назван"))
+        поле(узел, "normative_basis", строка(mapper, "обозначение норматива-основания, если назван"))
+        return узел
+    }
+
+    /**
+     * Риск из документа. Вероятность и последствия 1–5 НЕ выписываются:
+     * истина говорит — их ставит человек.
+     */
+    private fun риск(mapper: ObjectMapper): ObjectNode {
+        val узел = пункт(mapper, обязательные = listOf("statement"))
+        поле(узел, "statement", строка(mapper, "формулировка риска"))
+        поле(узел, "category", перечень(mapper, КЛАССЫ_РИСКА, "класс риска"))
+        val cec = объект(mapper, обязательные = emptyList())
+        поле(cec, "condition", строка(mapper, "при каком условии"))
+        поле(cec, "event", строка(mapper, "что происходит"))
+        поле(cec, "consequence", строка(mapper, "чем это кончится"))
+        поле(узел, "cec", cec)
+        return узел
+    }
+
+    /**
+     * Величина — ОБЪЕКТОМ, никогда строкой (истина, `normalization.measures`):
+     * значение либо диапазон, и единица отдельным полем.
+     */
+    private fun величина(mapper: ObjectMapper, пояснение: String): ObjectNode {
+        val узел = объект(mapper, обязательные = listOf("unit"))
+        поле(узел, "value", строка(mapper, "значение числом, если оно одно"))
+        поле(узел, "min", строка(mapper, "нижняя граница диапазона"))
+        поле(узел, "max", строка(mapper, "верхняя граница диапазона"))
+        поле(узел, "unit", строка(mapper, "единица величины"))
+        узел.put("description", пояснение)
+        return узел
     }
 
     /** Общие поля всякого пункта чтения: свой номер, цитата, якорь, уверенность. */

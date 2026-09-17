@@ -90,23 +90,44 @@ class StatementMeasureTest {
     }
 
     @Test
-    fun `три раздела эталона онтологией не описаны — это вопрос владельцу, не работа`() {
+    fun `замысел, требование и риск — понятия истины, и чтение обязано их давать`() {
         val понятия = GeneratedOntology.concepts.map { it.code }.toSet()
 
-        // Виды под них в истине СХЕМ есть, а понятий в онтологии формирования
-        // нет: заводить понятие в коде запрещено, и чтение их не производит.
-        listOf("intent", "requirement", "risk").forEach { вид ->
+        // Владелец ответил истиной 17.09: три раздела эталона стали понятиями
+        // онтологии со своим `from`, `allowed_roles` и ключом идентичности.
+        listOf("intent", "requirement", "risk").forEach { код ->
+            val понятие = GeneratedOntology.byCode[код]
+            assertTrue(код in понятия, "понятие «$код» описано онтологией")
             assertTrue(
-                вид !in понятия,
-                "понятие «$вид» появилось в онтологии — тогда чтение обязано его давать, и этот тест пора менять",
+                !понятие?.from.isNullOrBlank(),
+                "у «$код» названо, ОТКУДА он берётся: правил по видам факта у него нет",
             )
             assertTrue(
-                orbita.kernel.schema.GeneratedKinds.byCode.containsKey(вид),
-                "вид «$вид» в истине схем есть — значит не хватает только понятия",
+                orbita.kernel.schema.GeneratedKinds.byCode.containsKey(код),
+                "вид «$код» есть и в истине схем",
             )
         }
+        // Устав — единственный источник замысла (истина, `allowed_roles`).
+        assertEquals(listOf("charter"), GeneratedOntology.of("intent").allowedRoles)
         assertTrue(эталон.has("intent"), "эталон замысел содержит")
         assertTrue(эталон.path("requirements").size() > 0, "эталон требования содержит")
         assertTrue(эталон.path("risks").size() > 0, "эталон риски содержит")
+    }
+
+    @Test
+    fun `правило раздачи общих нужд названо истиной, а не кодом`() {
+        val нужда = GeneratedOntology.of("need")
+
+        val правило = нужда.distributionRule.orEmpty()
+        assertTrue(правило.isNotBlank(), "правило раздачи общих нужд в истине есть")
+        // Мера эталона держится ровно на этом: поставщику и регулятору общие
+        // нужды не достаются — у них только свои, из интереса.
+        listOf("поставщик", "регулятор").forEach { кто ->
+            assertTrue(кто in правило, "правило называет, кому общие нужды НЕ достаются: «$кто»")
+        }
+        assertTrue(
+            !нужда.answerShape.isNullOrBlank(),
+            "форма ответа названа истиной: нужды внутри стороны",
+        )
     }
 }

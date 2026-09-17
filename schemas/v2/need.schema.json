@@ -68,8 +68,11 @@
     "qos_class": {
       "anyOf": [
         {
-          "type": "string",
-          "description": "ссылка на вид: qos_class"
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "ссылка на вид: qos_class (≥1)"
+          }
         },
         {
           "type": "object",
@@ -102,7 +105,7 @@
           ]
         }
       ],
-      "description": "обязателен; значение TBR допустимо до сцены 6 (сервисы): выход сцены 6 требует класса у каждой нужды, покрытой сервисом"
+      "description": "один или несколько классов из текста; сервис уточняет один; TBR допустим до сцены 6"
     },
     "anchors": {
       "type": "array",

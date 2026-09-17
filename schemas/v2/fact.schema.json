@@ -121,6 +121,10 @@
         "П"
       ]
     },
+    "source_mark_no": {
+      "type": "string",
+      "description": "номер источника из списка документа: И1, В10"
+    },
     "evidence": {
       "enum": [
         "claimed",

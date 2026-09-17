@@ -70,7 +70,7 @@ concepts:
     fields:
       statement: предикат+объект
       stakeholder: subject (owns) — обязательно
-      qos_class: из фактов о задержке/гарантии; иначе TBR{owner,gate=сцена 6}
+      qos_class: множество классов из текста (A′ · B′ · C′, один или несколько); сервис уточняет один
     must_link:
     - owns→stakeholder
     conflict_on:
@@ -97,6 +97,9 @@ concepts:
     - вынужден
     predicate_hints_note: примеры формулировок для инструкции; НЕ фильтр — предложение не отбивается из-за отсутствия предиката в списке
     from_facts_note: 'подсказка: нужды берутся из (а) перечня общих нужд документа, (б) интереса каждой стороны — интерес это нужда-кандидат [П], (в) прямых формулировок нехватки в прозе'
+    distribution_rule: общая нужда (перечень §2.1) раздаётся сторонам с ролями заказчик · оператор · потребитель · учреждаемый, чей интерес или сфера о том же предмете; поставщикам и регуляторам общие нужды
+      не достаются — их нужды только из собственного интереса
+    answer_shape: нужды живут внутри стороны (stakeholders[].needs[]), у каждой свой id (p1.n2) — на него ссылаются цели и сервисы
   goal:
     from_facts:
     - kind: quantity
@@ -252,6 +255,7 @@ concepts:
     - regulatory
     - context
     from_facts_note: подсказка, откуда понятие обычно берётся; ворота на вид факта не ставятся
+    note: веха из устава — только этап проекта (program_stage) с горизонтом или диапазоном; срок действия документа, дата акта, событие рынка — не веха, а факт event или valid_until норматива
   normative_document:
     from_facts:
     - kind: obligation
@@ -273,6 +277,7 @@ concepts:
     - charter
     - tor
     from_facts_note: подсказка, откуда понятие обычно берётся; ворота на вид факта не ставятся
+    from_hint: 'перечень НПА в уставе (§2.2) и ссылки в тексте: обозначение · номер · дата · редакция; пункты — при наличии текста'
   opportunity:
     target_kind: opportunity (L2)
     from_facts:
@@ -306,6 +311,68 @@ concepts:
     - verdict
     - missing
     conflict_note: два документа дают разный вердикт применимости к одной чужой нужде — contested с обоими и их ролями
+  intent:
+    target_kind: intent
+    allowed_roles:
+    - charter
+    from: '§1 устава: для кого · что делает · где · горизонт — четыре поля цитатами'
+    fields:
+      for_whom: ''
+      what: ''
+      where: ''
+      horizon: ''
+    must_link: []
+    identity:
+      key:
+      - project
+      semantic: —
+      threshold: 1.0
+    note: один на проект; правится только решением
+  requirement:
+    target_kind: requirement
+    allowed_roles:
+    - charter
+    - tor
+    from: 'устав: раздел требований/ожиданий к миссии → level=project; ТЗ: требования заказчика → level по ТЗ, источник tor'
+    fields:
+      code: выдаёт система
+      title: ''
+      statement: формулировка как в тексте
+      measure: '{value|min,max,unit} если есть'
+      carrier: пусто — ставит инженер на сцене 8
+      source: цитата + якорь
+    must_link: []
+    identity:
+      key:
+      - statement_core
+      semantic: то же требование иными словами
+      threshold: 0.85
+    conflict_on:
+    - measure
+    note: из устава — требования уровня проекта; носитель и метод верификации — не выписывать, их ставит инженер
+  risk:
+    target_kind: risk
+    allowed_roles:
+    - charter
+    - tor
+    - context
+    - supplier
+    - heritage
+    from: раздел рисков документа или оценка с последствием («если … то …»)
+    fields:
+      statement: ''
+      cec: '{condition,event,consequence} если в тексте так'
+      category: technical|cost|schedule|safety|regulatory|security|programmatic
+      owner: пусто — ставит человек
+      due_point: пусто — ставит человек
+    must_link: []
+    identity:
+      key:
+      - statement_core
+      semantic: тот же риск
+      threshold: 0.8
+    conflict_on: []
+    note: вероятность и последствия 1–5 — ставит человек; из документа только формулировка и класс
 reconciliation:
   new: понятие без совпадения по ключу и смыслу
   augment: совпадение по ключу; новые поля/связи → предложение «дополнить»
@@ -382,3 +449,7 @@ influence_map:
   partner: influences
   supplier: influences
   consumer: informed
+normalization:
+  prime: канон — типографский штрих ′ (U+2032); апостроф ' и акцент ´ при чтении нормализуются в ′
+  measures: величины в ответе — объектом {value|min,max,unit}, никогда строкой; диапазон — min/max
+  source_marks: метка И/В/П + номер источника из списка документа (И1, В10) — оба поля

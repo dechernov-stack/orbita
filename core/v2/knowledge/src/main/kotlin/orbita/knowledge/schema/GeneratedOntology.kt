@@ -83,6 +83,17 @@ data class Concept(
     val predicateHintsNote: String? = null,
     /** Помета истины: `fromFacts` — подсказка происхождения, а не ворота. */
     val fromFactsNote: String? = null,
+    /**
+     * Откуда понятие берётся — словами. У замысла, требования и риска
+     * правил по видам факта нет вовсе: они читаются РАЗДЕЛОМ документа.
+     */
+    val from: String? = null,
+    /** Подсказка места в документе рядом с [from]. */
+    val fromHint: String? = null,
+    /** Как общая нужда раздаётся сторонам — правило владельца. */
+    val distributionRule: String? = null,
+    /** Какой формы ждать ответ по этому понятию. */
+    val answerShape: String? = null,
 ) {
 
     /**
@@ -121,7 +132,7 @@ object GeneratedOntology {
      * Отпечаток истины онтологии (sha256 файла). Им помечается каждый запуск
      * синтеза: по нему видно, по каким правилам сделано предложение.
      */
-    const val ontologyVersion: String = "0a08ed920408daf4d1d86c93a4c2602e2fbd441a8eb7955d403e418f225d792d"
+    const val ontologyVersion: String = "9c48ebf51cb499fcfba4d141ba6b078a84f9a72827ec18c65cae482e8e2aa810"
 
     /** Ранги доверия по убыванию веса — ранг подсказывает, решает человек. */
     val authorityRanks: List<String> = listOf("mandatory", "expert", "reference", "doubtful")
@@ -175,7 +186,7 @@ object GeneratedOntology {
             fields = mapOf(
                 "statement" to "предикат+объект",
                 "stakeholder" to "subject (owns) — обязательно",
-                "qos_class" to "из фактов о задержке/гарантии; иначе TBR{owner,gate=сцена 6}",
+                "qos_class" to "множество классов из текста (A′ · B′ · C′, один или несколько); сервис уточняет один",
             ),
             mustLink = listOf("owns→stakeholder"),
             conflictOn = listOf("statement contradicts"),
@@ -188,6 +199,8 @@ object GeneratedOntology {
             predicateHints = listOf("нуждается в", "требует", "не хватает", "вынужден"),
             notFrom = listOf("роль стороны (поле role)", "описание программы или акта", "свойство системы (цель или сервис)"),
             allowedRoles = listOf("charter", "tor", "context"),
+            distributionRule = "общая нужда (перечень §2.1) раздаётся сторонам с ролями заказчик · оператор · потребитель · учреждаемый, чей интерес или сфера о том же предмете; поставщикам и регуляторам общие нужды не достаются — их нужды только из собственного интереса",
+            answerShape = "нужды живут внутри стороны (stakeholders[].needs[]), у каждой свой id (p1.n2) — на него ссылаются цели и сервисы",
             predicateHintsNote = "примеры формулировок для инструкции; НЕ фильтр — предложение не отбивается из-за отсутствия предиката в списке",
             fromFactsNote = "подсказка: нужды берутся из (а) перечня общих нужд документа, (б) интереса каждой стороны — интерес это нужда-кандидат [П], (в) прямых формулировок нехватки в прозе",
         ),
@@ -310,6 +323,7 @@ object GeneratedOntology {
                 semantic = "тот же этап/событие; отличие — дата",
                 threshold = 0.85,
             ),
+            note = "веха из устава — только этап проекта (program_stage) с горизонтом или диапазоном; срок действия документа, дата акта, событие рынка — не веха, а факт event или valid_until норматива",
             targetKind = "milestone (L1); вехи технологий — gate",
             allowedRoles = listOf("charter", "regulatory", "context"),
             fromFactsNote = "подсказка, откуда понятие обычно берётся; ворота на вид факта не ставятся",
@@ -332,6 +346,7 @@ object GeneratedOntology {
                 threshold = 1.0,
             ),
             allowedRoles = listOf("regulatory", "charter", "tor"),
+            fromHint = "перечень НПА в уставе (§2.2) и ссылки в тексте: обозначение · номер · дата · редакция; пункты — при наличии текста",
             fromFactsNote = "подсказка, откуда понятие обычно берётся; ворота на вид факта не ставятся",
         ),
         Concept(
@@ -361,6 +376,72 @@ object GeneratedOntology {
             targetKind = "opportunity (L2)",
             conflictNote = "два документа дают разный вердикт применимости к одной чужой нужде — contested с обоими и их ролями",
             fromFactsNote = "подсказка, откуда понятие обычно берётся; ворота на вид факта не ставятся",
+        ),
+        Concept(
+            code = "intent",
+            fromFacts = emptyList(),
+            fields = mapOf(
+                "for_whom" to "",
+                "what" to "",
+                "where" to "",
+                "horizon" to "",
+            ),
+            mustLink = emptyList(),
+            conflictOn = emptyList(),
+            identity = ConceptIdentity(
+                key = listOf("project"),
+                semantic = "—",
+                threshold = 1.0,
+            ),
+            note = "один на проект; правится только решением",
+            targetKind = "intent",
+            allowedRoles = listOf("charter"),
+            from = "§1 устава: для кого · что делает · где · горизонт — четыре поля цитатами",
+        ),
+        Concept(
+            code = "requirement",
+            fromFacts = emptyList(),
+            fields = mapOf(
+                "code" to "выдаёт система",
+                "title" to "",
+                "statement" to "формулировка как в тексте",
+                "measure" to "{value|min,max,unit} если есть",
+                "carrier" to "пусто — ставит инженер на сцене 8",
+                "source" to "цитата + якорь",
+            ),
+            mustLink = emptyList(),
+            conflictOn = listOf("measure"),
+            identity = ConceptIdentity(
+                key = listOf("statement_core"),
+                semantic = "то же требование иными словами",
+                threshold = 0.85,
+            ),
+            note = "из устава — требования уровня проекта; носитель и метод верификации — не выписывать, их ставит инженер",
+            targetKind = "requirement",
+            allowedRoles = listOf("charter", "tor"),
+            from = "устав: раздел требований/ожиданий к миссии → level=project; ТЗ: требования заказчика → level по ТЗ, источник tor",
+        ),
+        Concept(
+            code = "risk",
+            fromFacts = emptyList(),
+            fields = mapOf(
+                "statement" to "",
+                "cec" to "{condition,event,consequence} если в тексте так",
+                "category" to "technical|cost|schedule|safety|regulatory|security|programmatic",
+                "owner" to "пусто — ставит человек",
+                "due_point" to "пусто — ставит человек",
+            ),
+            mustLink = emptyList(),
+            conflictOn = emptyList(),
+            identity = ConceptIdentity(
+                key = listOf("statement_core"),
+                semantic = "тот же риск",
+                threshold = 0.8,
+            ),
+            note = "вероятность и последствия 1–5 — ставит человек; из документа только формулировка и класс",
+            targetKind = "risk",
+            allowedRoles = listOf("charter", "tor", "context", "supplier", "heritage"),
+            from = "раздел рисков документа или оценка с последствием («если … то …»)",
         ),
     )
 
@@ -421,6 +502,16 @@ object GeneratedOntology {
         "source" to "документ роли charter",
         "use" to "подставляется в промпт разбора и синтеза любого другого документа как точка отсчёта",
         "requirements" to "ТРЕБОВАНИЯ-К-ЗАПИСКЕ-МИССИИ — 12 пунктов минимума, полнота проверяется при загрузке",
+    )
+
+    /**
+     * Канон написания и формы (17.09): штрих ′ вместо апострофа, величины
+     * объектом, метка источника с номером. Идёт в промпт и в приведение.
+     */
+    val normalization: Map<String, String> = mapOf(
+        "prime" to "канон — типографский штрих ′ (U+2032); апостроф ' и акцент ´ при чтении нормализуются в ′",
+        "measures" to "величины в ответе — объектом {value|min,max,unit}, никогда строкой; диапазон — min/max",
+        "source_marks" to "метка И/В/П + номер источника из списка документа (И1, В10) — оба поля",
     )
 
     /** Как промпт собирается из истины: факты, принятое, сцена, ссылки, примеры. */
