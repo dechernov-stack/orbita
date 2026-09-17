@@ -6,6 +6,7 @@ import orbita.ai.internal.Atomizer
 import orbita.ai.internal.BackgroundAtomizer
 import orbita.ai.internal.BackgroundSynthesizer
 import orbita.ai.internal.DocumentReader
+import orbita.ai.internal.StatementImporter
 import orbita.ai.internal.HttpTransport
 import orbita.ai.internal.JournalService
 import orbita.ai.internal.RetryingTransport
@@ -28,6 +29,14 @@ fun interface Atomize {
  */
 fun interface ReadDocument {
     fun read(project: String, material: String, author: String): SynthesisRun
+}
+
+/**
+ * Эталон постановки → предложения (ПМИ-7): чего чтение не добрало против
+ * эталона, добирается пакетом тем же экраном и тем же акцептом.
+ */
+fun interface ImportStatement {
+    fun import(project: String, material: String, statement: com.fasterxml.jackson.databind.JsonNode, author: String): SynthesisRun
 }
 
 object AiFactory {
@@ -69,6 +78,20 @@ object AiFactory {
         val синтез = Synthesizer(store, intake, service, mapper)
         return ReadDocument { project, material, author ->
             читатель.readInto(project, material, author, синтез)
+        }
+    }
+
+    /** Эталон постановки предложениями — той же записью запуска, что и чтение. */
+    fun importStatement(
+        store: EntityStore,
+        intake: Intake,
+        service: AiService,
+        mapper: ObjectMapper = ObjectMapper(),
+    ): ImportStatement {
+        val импорт = StatementImporter(store, intake, mapper)
+        val синтез = Synthesizer(store, intake, service, mapper)
+        return ImportStatement { project, material, statement, author ->
+            импорт.import(project, material, statement, author, синтез)
         }
     }
 

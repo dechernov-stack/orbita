@@ -196,7 +196,16 @@ ${самопроверкаПоРоли(роль)}
                 // дальше они идут обычными пунктами со своей цитатой и якорем.
                 if (понятие == "stakeholder") {
                     узел.path("needs").forEachIndexed { н, нужда ->
-                        val имяНужды = "$имя.n${н + 1}"
+                        // Свой `id` у нужды ОБЯЗАТЕЛЕН (истина, `answer_shape`:
+                        // «p1.n2 — на него ссылаются цели и сервисы; ответ без
+                        // id у нужды недействителен»). Без него нужда отбивается
+                        // поимённо — сервис иначе никогда не найдёт, что закрывает.
+                        val свойId = нужда.path("id").asText("").trim()
+                        val имяНужды = свойId.ifBlank { "$имя.n${н + 1}" }
+                        if (свойId.isBlank()) {
+                            отбито += "$имяНужды (need): у нужды нет своего id — ответ без него недействителен"
+                            return@forEachIndexed
+                        }
                         val бедаНужды = воротаПункта(нужда, блоки)
                         if (бедаНужды != null) {
                             отбито += "$имяНужды (need): $бедаНужды"
@@ -386,16 +395,28 @@ ${самопроверкаПоРоли(роль)}
     /** Поля понятия из пункта: служебное (цитата, якорь, id) наружу не идёт. */
     private fun поля(пункт: Пункт, имена: Map<String, String>): Map<String, String> {
         val поля = linkedMapOf<String, String>()
+        val величины = GeneratedKinds.byCode[видПонятия(пункт.concept)]?.measures.orEmpty()
         пункт.узел.properties().forEach { (имя, значение) ->
-            if (имя in СЛУЖЕБНЫЕ || имя in ВЕЛИЧИНА) return@forEach
+            if (имя in СЛУЖЕБНЫЕ || имя in ВЕЛИЧИНА || имя in величины) return@forEach
             val текст = when {
                 значение.isValueNode -> значение.asText("")
-                else -> ссылкаТекстом(значение, имена)
+                ссылка(значение) -> ссылкаТекстом(значение, имена)
+                // Объект, который не ссылка, — граница рамки, диапазон этапа:
+                // едет как есть (истина, `normalization.measures` — «любая
+                // величина объектом»). До 17.09 такие объекты терялись молча.
+                else -> значение.toString()
             }
             if (текст.isNotBlank()) поля[имя] = текст
         }
-        величина(пункт)?.let { (имя, пара) -> поля[имя] = пара }
+        величины.forEach { поле -> величина(пункт, поле)?.let { поля[поле] = it } }
         return поля.mapValues { (_, значение) -> штрихКаноном(значение) }
+    }
+
+    /** Ссылка ли это: объект с `code`/`ref` либо перечень таких. */
+    private fun ссылка(узел: JsonNode): Boolean = when {
+        узел.isArray -> узел.all { it.isTextual || ссылка(it) }
+        узел.isObject -> узел.has("code") || узел.has("ref")
+        else -> false
     }
 
     /**
@@ -414,12 +435,10 @@ ${самопроверкаПоРоли(роль)}
      * складывалась, десять целей отбивались «величина без единицы — не факт»
      * (живое чтение записки 16.09). Имя поля берётся у истины, не у кода.
      */
-    private fun величина(пункт: Пункт): Pair<String, String>? {
-        val вид = GeneratedKinds.byCode[видПонятия(пункт.concept)] ?: return null
-        val поле = вид.measures.firstOrNull() ?: return null
-        // Величина приходит либо своим объектом (`measure`), либо плоскими
+    private fun величина(пункт: Пункт, поле: String): String? {
+        // Величина приходит либо своим объектом под именем поля, либо плоскими
         // полями рядом — истина велит объект, но модель обе формы даёт.
-        val источник = пункт.узел.path("measure").takeIf { it.isObject } ?: пункт.узел
+        val источник = пункт.узел.path(поле).takeIf { it.isObject } ?: пункт.узел
         val единица = источник.path("unit").asText("").trim()
         if (единица.isBlank()) return null
         val пара = mapper.createObjectNode()
@@ -435,7 +454,7 @@ ${самопроверкаПоРоли(роль)}
             else -> return null
         }
         пара.put("unit", единица)
-        return поле to пара.toString()
+        return пара.toString()
     }
 
     /** Вид, которым понятие становится: его называет сама онтология. */
@@ -662,6 +681,7 @@ ${рамки.ifBlank { "  (рамок ещё нет)" }}
             "services" to "service",
             "requirements" to "requirement",
             "risks" to "risk",
+            "normative_documents" to "normative_document",
         )
 
         /** Понятие → имя массива ответа: им промпт называет, куда класть. */
@@ -706,6 +726,7 @@ ${рамки.ifBlank { "  (рамок ещё нет)" }}
             "intent" to "framing",
             "requirement" to "obligation",
             "risk" to "assessment",
+            "normative_document" to "obligation",
         )
 
         /** Предикат следа — тоже производная классификация, не поиск слова в тексте. */
@@ -722,6 +743,7 @@ ${рамки.ifBlank { "  (рамок ещё нет)" }}
             "intent" to "замышляется как",
             "requirement" to "требуется",
             "risk" to "рискует",
+            "normative_document" to "действует",
         )
 
         val СЛОВА: Map<String, String> = mapOf(
@@ -737,6 +759,7 @@ ${рамки.ifBlank { "  (рамок ещё нет)" }}
             "intent" to "замысел",
             "requirement" to "требования",
             "risk" to "риски",
+            "normative_document" to "нормативы",
         )
 
         val ЧТО_ВЫПИСАТЬ: List<Pair<String, String>> = listOf(

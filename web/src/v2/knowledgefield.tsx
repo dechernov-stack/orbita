@@ -257,7 +257,7 @@ function нуженПовод(было: string, стало: string): boolean {
 type Тема = { id: string; label: string; facts: number; resolved_to?: string | null }
 type Покрытие = { total: number; from_facts: number; from_manual_facts: number; manual: number; share_percent: number }
 
-export function KnowledgeField({ project }: { project: string | null }) {
+export function KnowledgeField({ project, expert = false }: { project: string | null; expert?: boolean }) {
   const [факты, setФакты] = useState<FactRow[] | null>(null)
   const [темы, setТемы] = useState<Тема[]>([])
   const [покрытие, setПокрытие] = useState<Покрытие | null>(null)
@@ -525,7 +525,7 @@ export function KnowledgeField({ project }: { project: string | null }) {
       {!поле && (
         <>
           {прочитано && <div className="v2-note-line" data-why="следующий-клик">{прочитано}</div>}
-          <Постановка project={project} онтология={онтология} onChanged={перечитать} />
+          <Постановка project={project} онтология={онтология} onChanged={перечитать} expert={expert} />
         </>
       )}
 
@@ -1632,10 +1632,12 @@ function Находки({ project, сверка, onDone, onError }: {
  * бы в отказ и все здоровые. Сколько их и почему они мимо пакета, сказано
  * рядом словами; решаются они по одной, в своей строке.
  */
-function Постановка({ project, онтология, onChanged }: {
+function Постановка({ project, онтология, onChanged, expert = false }: {
   project: string
   онтология: FormationOntology | null
   onChanged: () => void
+  /** Эксперт-режим: старый синтез из среза поля показывается только в нём. */
+  expert?: boolean
 }) {
   const [диф, setДиф] = useState<SynthesisDiffView | null>(null)
   const [занято, setЗанято] = useState(false)
@@ -1796,13 +1798,21 @@ function Постановка({ project, онтология, onChanged }: {
   return (
     <div className="v2-kf__src" data-why="работа">
       <div className="v2-form__actions">
-        <button type="button" className="v2-primary" disabled={занято}
-          title={занято
-            ? 'синтез уже идёт: второй запуск того же среза даст тот же ответ'
-            : 'пройти по всему полю и предложить постановку: четыре группы с основаниями и рангами; без вашего клика не заведётся ничего'}
-          onClick={сформировать}>
-          {занято ? 'Формирую…' : 'Сформировать постановку из поля'}
-        </button>
+        {/*
+          Старый синтез из СРЕЗА поля — только в эксперт-режиме (ПМИ-7,
+          предусловия): владелец жал его вместо чтения документа и получал
+          26 предложений из 50 элементов среза. Путь по умолчанию —
+          «Прочитать документ» в поле знаний.
+        */}
+        {expert && (
+          <button type="button" disabled={занято}
+            title={занято
+              ? 'синтез уже идёт: второй запуск того же среза даст тот же ответ'
+              : 'эксперт-режим: пройти по СРЕЗУ поля (потолок 50 элементов) и предложить постановку. Обычный путь — «Прочитать документ» на вкладке поля'}
+            onClick={сформировать}>
+            {занято ? 'Формирую…' : 'Сформировать постановку из среза поля (эксперт)'}
+          </button>
+        )}
         {предложения.length > 0 && (
           <>
             <button type="button" className="v2-primary" disabled={занято || спокойные.length === 0}

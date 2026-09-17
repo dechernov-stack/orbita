@@ -886,6 +886,10 @@ class EntityIntake(
                     if (якорь.isNotBlank()) документ.put("anchor", якорь)
                     документ.put("material", material)
                     документ.put("mark", ф.path("source_mark").asText("И"))
+                    // Номер источника (И1 · В10) — отдельным полем истины схем
+                    // 17.09: метка одной буквой номер теряла.
+                    ф.path("source_mark_no").asText("").trim().ifBlank { null }
+                        ?.let { документ.put("source_mark_no", it) }
                     // Ранг: документальный факт наследует ранг материала,
                     // экспертный — expert (рука эксперта, а не документ).
                     if (экспертный) {

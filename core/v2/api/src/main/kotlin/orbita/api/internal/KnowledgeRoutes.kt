@@ -28,6 +28,8 @@ class KnowledgeRoutes(
     private val jobs: orbita.ai.api.AtomizeJobs? = null,
     /** Чтение документа в постановку; null — контур на стенде не включён. */
     private val read: orbita.ai.api.ReadDocument? = null,
+    /** Эталон постановки предложениями; null — не включён. */
+    private val importStatement: orbita.ai.api.ImportStatement? = null,
     /**
      * Хранилище — ровно за флагом проекта (`knowledge_v2`): ворота сверки
      * ставятся только там, где поле знаний v2 включено. `null` — прежняя
@@ -54,6 +56,11 @@ class KnowledgeRoutes(
         // же акцепт, что у синтеза из поля.
         method == "POST" && path == "/v2/intake/read" ->
             чтение(требуется(query, "project"), разобрать(body))
+
+        // Эталон постановки предложениями (ПМИ-7): добор того, чего чтение
+        // не дало, — тем же экраном и тем же акцептом.
+        method == "POST" && path == "/v2/intake/import-statement" ->
+            эталон(требуется(query, "project"), разобрать(body))
 
         method == "GET" && path == "/v2/topics" -> темы(требуется(query, "project"))
 
@@ -239,6 +246,23 @@ class KnowledgeRoutes(
      * Прочитать документ в постановку. Канал недоступен — это состояние, а не
      * пустая постановка: отказ называется словами.
      */
+    /** Эталон постановки → предложения. Тело: material · statement (JSON эталона) · author. */
+    private fun эталон(project: String, тело: JsonNode): V2Router.Ответ {
+        val импорт = importStatement ?: return V2Router.Ответ(
+            501, mapper.createObjectNode().put("error", "импорт эталона на этом стенде не включён"),
+        )
+        val материал = тело.path("material").asText("").trim()
+        require(материал.isNotBlank()) { "укажите material — документ, чьи якоря несёт эталон" }
+        val эталон = тело.path("statement")
+        require(эталон.isObject) { "нужно statement: объект эталона ПОСТАНОВКА-ИЗ-ЗАПИСКИ" }
+        val запуск = импорт.import(project, материал, эталон, тело.path("author").asText("внешний контур"))
+        return V2Router.Ответ(
+            201,
+            mapper.createObjectNode().put("run", запуск.id).put("material", материал)
+                .put("note", запуск.note ?: "").put("proposals", запуск.diff.size),
+        )
+    }
+
     private fun чтение(project: String, тело: JsonNode): V2Router.Ответ {
         val читатель = read ?: return V2Router.Ответ(
             501,
