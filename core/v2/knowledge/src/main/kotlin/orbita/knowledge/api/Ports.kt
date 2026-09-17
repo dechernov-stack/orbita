@@ -619,6 +619,13 @@ data class Candidate(
     val concept: String,
     val payload: JsonNode,
     val origin: CandidateOrigin = CandidateOrigin.MANUAL,
+    /**
+     * Факт-основание предложения (код факта документа). Кандидат с основанием
+     * сверяется ЭТИМ фактом: утверждение уже лежит в поле, и заводить ему
+     * второй, «экспертный» экземпляр значило бы спорить документу с самим
+     * собой (27 ложных противоречий держали MCR на ПМИ-7, 17.09).
+     */
+    val basis: String? = null,
 ) {
     init {
         require(localId.isNotBlank()) { "у кандидата нет местного номера: находке некуда вернуться" }

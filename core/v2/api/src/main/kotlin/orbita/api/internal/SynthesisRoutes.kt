@@ -134,7 +134,11 @@ class SynthesisRoutes(
         val кандидаты = выбранные.map { имя ->
             val предложение = карта[имя]
                 ?: throw IllegalArgumentException("предложения «$имя» в «${итог.id}» нет: обновите диф")
-            Candidate(имя, предложение.concept, содержимое(предложение), CandidateOrigin.SYNTHESIS)
+            Candidate(
+                имя, предложение.concept, содержимое(предложение), CandidateOrigin.SYNTHESIS,
+                // Основание предложения — факт документа: им кандидат и сверяется.
+                basis = предложение.basis.firstOrNull()?.factId,
+            )
         }
         val сверка = reconcile.preview(проект, кандидаты, автор, тело.path("role").asText("").ifBlank { "инженер" })
         // Нехватка связи СЧИТАЕТСЯ ДО заведения, то есть против проекта, каким

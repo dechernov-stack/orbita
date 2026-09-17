@@ -434,6 +434,37 @@ class ReconcileManualInputTest {
     }
 
     @Test
+    fun `предложение с основанием сверяется фактом документа, второго факта не заводит`() {
+        // Кандидат из чтения нёс кандидат-факт «эксперта» поверх факта документа:
+        // два источника одного утверждения — и 27 ложных споров держали MCR.
+        store.create("SD-0001", "material", область, "2",
+            mapper.createObjectNode().put("name", "Записка").put("authority", "mandatory"), провенанс)
+        val документ = mapper.createObjectNode()
+            .put("kind", "framing").put("subject", "Минтранс России").put("predicate", "нуждается в")
+            .put("value", "единое оперативное управление транспортом").put("material", "SD-0001")
+            .put("anchor", "s3#1").put("disposition", "free").put("authority", "mandatory").put("source_mark", "И")
+        документ.putObject("source").put("material", "SD-0001").put("anchor", "s3#1")
+        store.create("F-0001", "fact", область, "2", документ, провенанс)
+        сторона("SK-0001", "Минтранс России")
+        val былоФактов = store.list(область, "fact").size
+
+        val кандидат = Candidate(
+            "c1", "need",
+            mapper.createObjectNode().put("statement", "единое оперативное управление транспортом").put("stakeholder", "Минтранс России"),
+            origin = orbita.knowledge.api.CandidateOrigin.SYNTHESIS, basis = "F-0001",
+        )
+        val запуск = сверка.preview(проект, listOf(кандидат), автор, роль)
+
+        val строка = запуск.items.single()
+        assertEquals("F-0001", строка.candidateFact, "кандидат-факт — сам факт документа")
+        assertEquals(былоФактов, store.list(область, "fact").size, "второго экземпляра утверждения нет")
+        val номер = строка.findings.indexOfFirst { Action.ACCEPT_NEW in it.offers }
+        val итог = сверка.apply(проект, запуск.id, "c1", номер, Action.ACCEPT_NEW, reason = "принято", author = автор)
+        assertEquals("need", store.byCode(область, итог.created.single())!!.kind)
+        assertEquals("adopted", store.byCode(область, "F-0001")!!.doc.path("disposition").asText(), "принят сам факт документа")
+    }
+
+    @Test
     fun `понятие на факте не попадает в перечень принятых сущностей`() {
         // Сторож удвоения среза: пока допущение считалось видом «fact», каждый
         // факт поля приезжал в синтез ещё и «принятым понятием».

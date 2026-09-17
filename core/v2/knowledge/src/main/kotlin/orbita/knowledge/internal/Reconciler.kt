@@ -39,6 +39,7 @@ import orbita.knowledge.api.Candidate
 import orbita.knowledge.api.CandidateOrigin
 import orbita.knowledge.api.Comparison
 import orbita.knowledge.api.Disposition
+import orbita.knowledge.api.Fact
 import orbita.knowledge.api.FactSource
 import orbita.knowledge.api.FieldDifference
 import orbita.knowledge.api.Influence
@@ -97,6 +98,12 @@ internal class Reconciler(
         // Ключ ищется по ВСЕМУ полю: он бесплатен, и урезать его срезом значит
         // терять дубли молча. Потолок в 50 записей — у среза второй ступени.
         val факты = store.list(область, "fact").filter { it.status != "cancelled" }
+        // Факты-основания предложений — одним списком на сверку, а не по факту на кандидата.
+        val основания: Map<String, Fact> = if (candidates.any { it.basis != null }) {
+            intake.facts(project).associateBy { it.id }
+        } else {
+            emptyMap()
+        }
 
         // Брак ОДНОГО кандидата не роняет пакет: до 15.09 одна рамка без
         // формулировки уводила в отказ всю сверку, и человек видел ошибку
@@ -105,7 +112,7 @@ internal class Reconciler(
         val брак = mutableListOf<String>()
         val записи = candidates.mapNotNull { кандидат ->
             runCatching {
-                сверить(project, область, кандидат, author, role, semantic, ключи, нормализация, факты)
+                сверить(project, область, кандидат, author, role, semantic, ключи, нормализация, факты, основания)
             }.getOrElse { беда ->
                 брак += "${кандидат.localId}: ${беда.message ?: "кандидат не разобран"}"
                 null
@@ -468,10 +475,13 @@ internal class Reconciler(
         ключи: IdentityKeys,
         нормализация: Normalize,
         факты: List<Entity>,
+        основания: Map<String, Fact> = emptyMap(),
     ): ObjectNode {
         val понятие = GeneratedOntology.of(кандидат.concept)
         val снимок = снимокКандидата(область, понятие, кандидат.payload)
-        val кандФакт = кандидатФакт(project, понятие, снимок, author, role)
+        // Предложение с основанием сверяется своим фактом документа; кандидат
+        // без основания (рука эксперта) получает кандидат-факт эксперта.
+        val кандФакт = кандидат.basis?.let { основания[it] } ?: кандидатФакт(project, понятие, снимок, author, role)
         val пометы = mutableListOf<String>()
 
         val ключ = ключи.ofConcept(кандидат.concept, снимок)
