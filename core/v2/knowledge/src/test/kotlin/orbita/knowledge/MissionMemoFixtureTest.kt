@@ -27,6 +27,7 @@ import orbita.knowledge.schema.GeneratedOntology
 import java.io.File
 import kotlin.test.BeforeTest
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class MissionMemoFixtureTest {
@@ -110,6 +111,30 @@ class MissionMemoFixtureTest {
             факты.size >= 110,
             "приём не отбил ничего по форме: фактов в поле ${факты.size}",
         )
+    }
+
+    @Test
+    fun `разные утверждения одного раздела — разные факты, а повтор утверждения — тот же`() {
+        // Ключ повтора — место в источнике И утверждение. Пока он состоял из
+        // якоря и предиката, девять целей таблицы §5 («достичь» в одном блоке)
+        // при повторном чтении схлопывались в первую (216, 17.09).
+        val факты = принять()
+        val образец = факты.first { it.path("anchor").asText().isNotBlank() }
+        val якорь = образец.path("anchor").asText()
+        val материал = store.list(область, "material").first().code
+        fun пакет(вторая: String): String = """{"facts":[
+            {"kind":"quantity","subject":"проект","predicate":"достичь","value":"первая цель раздела","unit":"шт",
+             "quote":null,"anchor":"$якорь","source":{"material":"$материал","anchor":"$якорь"}},
+            {"kind":"quantity","subject":"проект","predicate":"достичь","value":"$вторая","unit":"шт",
+             "quote":null,"anchor":"$якорь","source":{"material":"$материал","anchor":"$якорь"}}]}"""
+
+        val первый = знания.putFacts(проект, материал, пакет("вторая цель раздела"), автор)
+        assertTrue(первый.refused.isEmpty(), "ворота формы пройдены: ${первый.refused}")
+        assertEquals(2, первый.accepted.size, "два утверждения одного блока — два факта")
+
+        val повтор = знания.putFacts(проект, материал, пакет("третья цель раздела"), автор)
+        assertEquals(1, повтор.accepted.size, "повтор первого утверждения не удваивается, новое — принимается")
+        assertEquals("третья цель раздела", повтор.accepted.single().value)
     }
 
     @Test

@@ -842,7 +842,7 @@ class EntityIntake(
             val величина = ф.path("value")
             val единица = ф.path("unit").asText("").ifBlank { величина.path("unit").asText("") }
             val текстЗначения = if (величина.isObject) величина.path("value").asText("") else величина.asText("")
-            val ключ = (if (якорь.isNotBlank()) якорь else "эксперт:$учётка") + "|" + предикат
+            val ключ = ключФакта(якорь, учётка, предикат, ф.path("subject").asText(""), текстЗначения)
             when {
                 экспертный && якорь.isNotBlank() ->
                     отказы += "факт $i «$предикат»: источник разом документом и экспертом не бывает — " +
@@ -993,12 +993,22 @@ class EntityIntake(
      * автора, потому что якоря у руки нет. По нему повторный приём того же
      * разбора узнаёт факт и не заводит его вторым.
      */
-    private fun ключФакта(документ: JsonNode): String {
-        val якорь = документ.path("anchor").asText("")
-        val учётка = документ.path("source").path("account").asText("")
-        return (if (якорь.isNotBlank()) якорь else "эксперт:$учётка") + "|" +
-            документ.path("predicate").asText()
-    }
+    /**
+     * Ключ повтора: место в источнике И само утверждение — якорь · предикат ·
+     * субъект · значение. Пока ключом были только якорь и предикат, девять
+     * целей одного раздела («достичь» в s12#3) при повторном чтении
+     * схлопывались в первую, и у восьми понятий не оставалось следа (216, 17.09).
+     */
+    private fun ключФакта(документ: JsonNode): String =
+        ключФакта(
+            документ.path("anchor").asText(""), документ.path("source").path("account").asText(""),
+            документ.path("predicate").asText(""), документ.path("subject").asText(""),
+            документ.path("value").let { if (it.isObject) it.path("value").asText("") else it.asText("") },
+        )
+
+    private fun ключФакта(якорь: String, учётка: String, предикат: String, субъект: String, значение: String): String =
+        (if (якорь.isNotBlank()) якорь else "эксперт:$учётка") + "|" + предикат + "|" +
+            субъект.trim().lowercase() + "|" + значение.trim().lowercase()
 
     /** Профиль из ответа разбора; доли проверяет сам вид (брак — отказ, а не тихий ноль). */
     private fun профильИзРазбора(узел: JsonNode): ContentProfile = ContentProfile(

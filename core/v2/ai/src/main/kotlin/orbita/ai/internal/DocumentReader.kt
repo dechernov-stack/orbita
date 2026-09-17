@@ -108,10 +108,15 @@ class DocumentReader(
 
     /** Прочитать материал живым вызовом. Повтор той же версии — из журнала. */
     fun read(project: String, material: String, author: String): Прочитанное {
+        val роль = роль(project, material)
+        // Замысел — не массив, а объект; у устава он обязателен так же, как
+        // стороны: без требования модель его опускала (216, второе чтение).
+        val обязательные = массивыРоли(роль) +
+            listOfNotNull(ЗАМЫСЕЛ.takeIf { роль in GeneratedOntology.of(ЗАМЫСЕЛ).allowedRoles })
         val ответ = service.ask(
             project, KIND, prepare(project, material),
             maxTokens = БЮДЖЕТ,
-            schema = AnswerSchemas.чтение(mapper, массивыРоли(роль(project, material))),
+            schema = AnswerSchemas.чтение(mapper, обязательные),
         )
         return apply(project, material, author, ответ)
     }
