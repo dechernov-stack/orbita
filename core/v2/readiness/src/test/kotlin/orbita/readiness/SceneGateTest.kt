@@ -19,6 +19,7 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class SceneGateTest {
@@ -36,6 +37,19 @@ class SceneGateTest {
         TestDbV2.repoRoot.resolve("docs/tz/v2/полки-порождённые/ШАБЛОН-ФАЗЫ-PRE-A-NASA.json").toFile(),
     )
 
+    /** Чем закрывается нужда: в жизни правило приходит из истины онтологии. */
+    private val покрытие = mutableMapOf<String, String>()
+
+    /** Оценщик отдельно от движка: правило выхода проверяется вопросом к данным. */
+    private val оценщик by lazy {
+        ReadinessFactory.gateEvaluator(
+            store, links,
+            scenesDone = { emptySet() },
+            gatesPassed = { p -> пройденные.getOrPut(p) { mutableSetOf() } },
+            needCoverage = { нужда -> покрытие[нужда.code] ?: "service" },
+        )
+    }
+
     private val движок by lazy {
         val прожитые = { p: String -> emptySet<String>() }
         ProcessFactory.engine(
@@ -44,6 +58,7 @@ class SceneGateTest {
                 store, links,
                 scenesDone = прожитые,
                 gatesPassed = { p -> пройденные.getOrPut(p) { mutableSetOf() } },
+                needCoverage = { нужда -> покрытие[нужда.code] ?: "service" },
             ),
             passedGates = { p -> пройденные.getOrPut(p) { mutableSetOf() } },
             gatePlan = { emptyMap() },
@@ -54,6 +69,7 @@ class SceneGateTest {
     fun чисто() {
         TestDbV2.очистить()
         пройденные.clear()
+        покрытие.clear()
         // сцена 1: проект и точки заведены
         store.create("PJ-9001", "project", область, "1",
             mapper.readTree("""{"name":"Проверка ворот","standard":"NASA-7120"}"""), провенанс)
@@ -112,6 +128,34 @@ class SceneGateTest {
         val отказ = runCatching { движок.passGate(id, "MCR", "Чернов Д.") }.exceptionOrNull()
         assertNotNull(отказ, "фиксация точки с невыполненными условиями обязана отказать")
         assertTrue("держится" in (отказ.message ?: ""), отказ.message ?: "")
+    }
+
+    @Test
+    fun `нужда, которую закрывает не сервис, выход сцены 6 не держит`() {
+        // Истина 17.09 (`need.coverage_rule`): выход сцены 6 считает только
+        // нужды с coverage_expected=service. Четыре нужды Роскосмоса и ГКРЧ
+        // держали сцену навсегда — сервисами они не закрываются по смыслу.
+        val сторона = store.create("SK-0001", "stakeholder", область, "3",
+            mapper.readTree("""{"name":"ГКРЧ","role":"regulator"}"""), провенанс)
+        val нужда = store.create("ND-0001", "need", область, "3",
+            mapper.readTree("""{"statement":"частотные присвоения до запуска","qos_class":"B′"}"""), провенанс)
+        links.link("owns", сторона.id, нужда.id, провенанс)
+        покрытие["ND-0001"] = "constraint"
+
+        assertNull(оценщик.why(проект, "each_need_has_service"), "нужда регулятора сцену не держит")
+        assertNull(оценщик.why(проект, "covered_need_has_qos_class"), "и класса у неё не спрашивают")
+
+        // Нужда, которую закрывает сервис, держит по-прежнему — а рядом
+        // счётчиком назван тот, кто ждёт иного покрытия.
+        val заказчик = store.create("SK-0002", "stakeholder", область, "3",
+            mapper.readTree("""{"name":"Минтранс","role":"customer"}"""), провенанс)
+        val своя = store.create("ND-0002", "need", область, "3",
+            mapper.readTree("""{"statement":"связь в Арктике","qos_class":"B′"}"""), провенанс)
+        links.link("owns", заказчик.id, своя.id, провенанс)
+
+        val причина = assertNotNull(оценщик.why(проект, "each_need_has_service"))
+        assertTrue("нужд без сервиса: 1" in причина, причина)
+        assertTrue("constraint 1" in причина, "прочее покрытие названо счётчиком: $причина")
     }
 
     @Test

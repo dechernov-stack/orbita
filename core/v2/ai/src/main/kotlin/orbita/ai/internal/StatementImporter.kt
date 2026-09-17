@@ -126,9 +126,10 @@ class StatementImporter(
                     поля.remove("span")
                 }
             }
-            // Мера снижения эталона — поле «measures» схемы; вероятность и
-            // последствия эталон пишет словами, а схема ждёт 1–5 от человека.
-            if (concept == "risk") поля.remove("mitigation")?.let { поля["measures"] = it }
+            // Мера снижения, вероятность и последствия эталона не едут: истина
+            // 17.09 — «probability · impact · strategy · measures ставит человек
+            // (сцена 11)»; из документа только формулировка и класс.
+            if (concept == "risk") поля.remove("mitigation")
             if (concept == "service" && поля["need_ref"] != null) {
                 поля["needs"] = поля.remove("need_ref")!!
             }
@@ -232,7 +233,7 @@ class StatementImporter(
         val СЛУЖЕБНЫЕ: Set<String> = setOf(
             "anchors", "source", "source_mark", "mark", "shared", "class", "measure_text", "target_text",
             "note", "code", "priority", "verification_method", "rationale", "acceptance_criteria", "tags",
-            "probability", "impact", "result",
+            "probability", "impact", "mitigation", "result",
         )
         val РОЛИ: Map<String, String> = mapOf(
             "заказчик" to "customer", "регулятор" to "regulator", "оператор" to "operator",

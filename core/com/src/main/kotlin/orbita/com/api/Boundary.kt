@@ -181,6 +181,9 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
                     ?: проверкиТочек?.of(проект, условие)
             },
             kindTitle = { вид -> runCatching { orbita.kernel.schema.GeneratedKinds.of(вид).title }.getOrDefault(вид) },
+            // Чем закрывается нужда — истина онтологии (`need.coverage_expected`):
+            // сцена 6 считает только нужды, которые закрываются сервисом.
+            needCoverage = orbita.knowledge.api.Coverage.resolver(store, links),
         )
         val движок = orbita.process.api.ProcessFactory.engine(
             // Шаблон читается С ПОЛКИ; файл поставки — запасной путь, пока

@@ -96,6 +96,10 @@ data class Concept(
     val distributionRule: String? = null,
     /** Какой формы ждать ответ по этому понятию. */
     val answerShape: String? = null,
+    /** Чем считается закрытой нужда на воротах сцены 6 — правило владельца. */
+    val coverageRule: String? = null,
+    /** Как предлагается связь цель→нужды и что остаётся человеку. */
+    val coverageNote: String? = null,
 ) {
 
     /**
@@ -134,7 +138,7 @@ object GeneratedOntology {
      * Отпечаток истины онтологии (sha256 файла). Им помечается каждый запуск
      * синтеза: по нему видно, по каким правилам сделано предложение.
      */
-    const val ontologyVersion: String = "6917db14c8d6052f06da263e2e0b39d0b2c9c381c6434c4a35fd9eb0ea351ff1"
+    const val ontologyVersion: String = "abf65e054b7751e282de5af507930bb27175ebfa27ff4565263c337c071c8559"
 
     /** Ранги доверия по убыванию веса — ранг подсказывает, решает человек. */
     val authorityRanks: List<String> = listOf("mandatory", "expert", "reference", "doubtful")
@@ -189,6 +193,7 @@ object GeneratedOntology {
                 "statement" to "предикат+объект",
                 "stakeholder" to "subject (owns) — обязательно",
                 "qos_class" to "множество классов из текста (A′ · B′ · C′, один или несколько); сервис уточняет один",
+                "coverage_expected" to "чем нужда закрывается: service · constraint · programme · requirement; по умолчанию из роли носителя (заказчик/оператор/потребитель/учреждаемый → service; регулятор → constraint; поставщик/партнёр → programme); инженер правит",
             ),
             mustLink = listOf("owns→stakeholder"),
             conflictOn = listOf("statement contradicts"),
@@ -203,6 +208,7 @@ object GeneratedOntology {
             allowedRoles = listOf("charter", "tor", "context"),
             distributionRule = "общая нужда (перечень §2.1) раздаётся сторонам с ролями заказчик · оператор · потребитель · учреждаемый, чей интерес или сфера о том же предмете; поставщикам и регуляторам общие нужды не достаются — их нужды только из собственного интереса",
             answerShape = "нужды живут внутри стороны (stakeholders[].needs[]), у каждой ОБЯЗАТЕЛЬНЫЙ свой id вида p1.n2 — на него ссылаются цели и сервисы; ответ без id у нужды — недействителен",
+            coverageRule = "выход сцены 6 «каждая нужда покрыта сервисом» считает только нужды с coverage_expected=service; нужды регуляторов закрываются ограничениями и нормативными основаниями (сцена 5/8), нужды поставщиков и партнёров — пакетами WBS и оценками (сцена 12); непокрытая нужда любого вида — помета к MCR, блокирует только service к сцене 6",
             predicateHintsNote = "примеры формулировок для инструкции; НЕ фильтр — предложение не отбивается из-за отсутствия предиката в списке",
             fromFactsNote = "подсказка: нужды берутся из (а) перечня общих нужд документа, (б) интереса каждой стороны — интерес это нужда-кандидат [П], (в) прямых формулировок нехватки в прозе",
         ),
@@ -230,6 +236,7 @@ object GeneratedOntology {
             notFrom = listOf("обязательство норматива (constraint)", "описание услуги (service)"),
             allowedRoles = listOf("charter"),
             changeByOthers = "только предложение augment/contradict с обоснованием; решает человек",
+            coverageNote = "связь цель→нужды: модель предлагает по совпадению стороны и предмета; недостающее — сцена 4, решение инженера (матрица покрытия), сверка «соединение» предлагает кандидатов",
             predicateHintsNote = "примеры формулировок для инструкции; НЕ фильтр — предложение не отбивается из-за отсутствия предиката в списке",
             fromFactsNote = "подсказка, откуда понятие обычно берётся; ворота на вид факта не ставятся",
         ),
@@ -387,8 +394,8 @@ object GeneratedOntology {
                 "what" to "",
                 "where" to "",
                 "horizon" to "",
-                "accepted_by" to "ставит система при принятии решением",
-                "accepted_at" to "ставит система при принятии решением",
+                "accepted_by" to "ставит система при принятии",
+                "accepted_at" to "ставит система при принятии",
             ),
             mustLink = emptyList(),
             conflictOn = emptyList(),
@@ -437,10 +444,10 @@ object GeneratedOntology {
                 "category" to "technical|cost|schedule|safety|regulatory|security|programmatic",
                 "owner" to "пусто — ставит человек",
                 "due_point" to "пусто — ставит человек",
-                "probability" to "пусто — ставит человек (1–5, сцена 11)",
-                "impact" to "пусто — ставит человек (1–5, сцена 11)",
-                "strategy" to "пусто — ставит человек (сцена 11)",
-                "measures" to "мера снижения из документа, если названа; иначе пусто — ставит человек",
+                "probability" to "ставит человек (1–5, сцена 11)",
+                "impact" to "ставит человек (1–5, сцена 11)",
+                "strategy" to "ставит человек (сцена 11)",
+                "measures" to "ставит человек (сцена 11)",
             ),
             mustLink = emptyList(),
             conflictOn = emptyList(),
@@ -567,6 +574,36 @@ object GeneratedOntology {
         "partner" to "influences",
         "supplier" to "influences",
         "consumer" to "informed",
+    )
+
+    /**
+     * Роль носителя нужды → чем её нужда закрывается (`need.coverage_expected`).
+     *
+     * Истина владельца 17.09: выход сцены 6 «каждая нужда покрыта сервисом»
+     * считает ТОЛЬКО нужды с `service`; нужда регулятора закрывается
+     * ограничением (сцены 5/8), нужда поставщика и партнёра — пакетом WBS
+     * и оценкой (сцена 12). Своего правила в коде нет.
+     */
+    val coverageByRole: Map<String, String> = mapOf(
+        "customer" to "service",
+        "operator" to "service",
+        "consumer" to "service",
+        "established" to "service",
+        "regulator" to "constraint",
+        "supplier" to "programme",
+        "partner" to "programme",
+    )
+
+    /** Чем считается пройденным выход сцены по нуждам: сцены 6, 8 и 12. */
+    val sceneExitNotes: Map<String, String> = mapOf(
+        "scene_6" to "covered(service) для coverage_expected=service = 100 %; остальные виды покрытия — счётчиком, не блокером",
+        "scene_8" to "нужды coverage_expected=constraint|requirement имеют ограничение или требование с derives_from",
+        "scene_12" to "нужды coverage_expected=programme имеют пакет WBS или оценку",
+    )
+
+    /** Правки истины, подтверждённые владельцем: не догадка кода. */
+    val confirmedEdits: List<String> = listOf(
+        "17.09: risk.probability/impact/strategy/measures — ставит человек (сцена 11); intent.accepted_by/at — ставит система (подтверждено)",
     )
 
     /**

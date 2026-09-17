@@ -24,6 +24,12 @@ class DomainGateEvaluator(
     private val дополнительные: ExtraChecks? = null,
     /** Русское имя вида для причины отказа; по умолчанию — код вида. */
     private val имяВида: (String) -> String = { it },
+    /**
+     * Чем закрывается нужда (`service` · `constraint` · `programme` ·
+     * `requirement`). Правило живёт в истине онтологии, а она слоем выше —
+     * поэтому приходит функцией; по умолчанию сервис, как было до 17.09.
+     */
+    private val видПокрытия: (Entity) -> String? = { СЕРВИС },
 ) : GateEvaluator {
 
     /**
@@ -31,8 +37,26 @@ class DomainGateEvaluator(
      * проверки сцен считали такие записи живыми — «нужд без цели: 60» при 33
      * живых (216, 17.09).
      */
+    /**
+     * Непокрытые нужды прочих видов — счётчиком рядом с причиной: они сцену не
+     * держат, но и молчать о них нельзя (истина: «помета к MCR»).
+     */
+    private fun прочееПокрытие(непокрытые: List<Entity>): String {
+        val прочие = непокрытые.filter { видПокрытия(it) != СЕРВИС }
+            .groupingBy { видПокрытия(it) ?: "не названо" }
+            .eachCount()
+        if (прочие.isEmpty()) return ""
+        return "; сверх того ждут иного покрытия (сцену не держат): " +
+            прочие.entries.sortedBy { it.key }.joinToString(", ") { (вид, n) -> "$вид $n" }
+    }
+
     private fun живые(область: Area, вид: String): List<Entity> =
         store.list(область, вид).filter { it.status != "cancelled" }
+
+    private companion object {
+        /** Вид покрытия, который считает выход сцены 6 (истина онтологии). */
+        const val СЕРВИС: String = "service"
+    }
 
     override fun why(project: String, check: String): String? {
         val область = Area.Project(project)
@@ -99,12 +123,19 @@ class DomainGateEvaluator(
                 else "ограничений $есть из $нужно: рамки проекта задаются здесь и дальше работают запретами"
             }
 
+            // Истина 17.09 (`need.coverage_rule`): выход считает ТОЛЬКО нужды,
+            // которые закрываются сервисом. Нужда регулятора закрывается
+            // ограничением, нужда поставщика — пакетом WBS; они шли сюда и
+            // держали сцену 6 навсегда (ПМИ-7: четыре нужды Роскосмоса и ГКРЧ).
+            // Остальные виды покрытия — счётчиком, не блокером.
             "each_need_has_service" -> {
-                val без = живые(область, "need")
+                val непокрытые = живые(область, "need")
                     .filter { нужда -> links.to(нужда.id, "covers").none { it.from.startsWith("service") } }
+                val без = непокрытые.filter { видПокрытия(it) == СЕРВИС }
                 if (без.isEmpty()) null
                 else "нужд без сервиса: ${без.size} — " +
-                    без.take(3).joinToString("; ") { it.doc.path("statement").asText(it.code).take(60) }
+                    без.take(3).joinToString("; ") { it.doc.path("statement").asText(it.code).take(60) } +
+                    прочееПокрытие(непокрытые)
             }
 
             // Решение владельца 12.09 («ЗНАНИЯ-V2-ПРИНЯТЫ» §1): класс
@@ -115,6 +146,7 @@ class DomainGateEvaluator(
             // условие, и повторять его второй фразой ни к чему.
             "covered_need_has_qos_class" -> {
                 val без = живые(область, "need")
+                    .filter { видПокрытия(it) == СЕРВИС }
                     .filter { нужда -> links.to(нужда.id, "covers").any { it.from.startsWith("service") } }
                     .filter { нужда -> !QosClass.assigned(нужда.doc.path(QosClass.FIELD)) }
                 if (без.isEmpty()) null

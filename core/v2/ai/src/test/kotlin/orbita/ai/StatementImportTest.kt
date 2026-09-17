@@ -70,7 +70,7 @@ class StatementImportTest {
     }
 
     @Test
-    fun `замысел плоско, этап с родом и диапазоном, риск с мерой — полями схемы`() {
+    fun `замысел плоско, этап с родом и диапазоном, риск без оценки человека`() {
         // На копии ПМИ-7 (216, 17.09) из эталона не завелись замысел, четыре этапа
         // и двенадцать рисков: грань замысла ехала JSON-объектом, у этапа не было
         // рода, мера снижения не ложилась в «measures».
@@ -85,8 +85,13 @@ class StatementImportTest {
         assertTrue(этап.getValue("range").contains("\"unit\""), "span эталона — range схемы: ${этап["range"]}")
         assertTrue("span" !in этап, "поля вне схемы вида нет")
         val риск = всё.first { it.concept == "risk" }.payload
-        assertTrue(риск.getValue("measures").isNotBlank(), "мера снижения — полем measures")
-        assertTrue("probability" !in риск && "mitigation" !in риск, "слова эталона о вероятности схеме не подходят: ставит человек")
+        // Истина 17.09: probability · impact · strategy · measures ставит человек
+        // на сцене 11 — из документа едут только формулировка и класс.
+        assertTrue(
+            listOf("probability", "impact", "strategy", "measures", "mitigation").none { it in риск },
+            "оценку и меру снижения эталон не приносит: $риск",
+        )
+        assertTrue(риск.getValue("statement").isNotBlank(), "формулировка риска едет")
     }
 
     @Test

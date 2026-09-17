@@ -19,5 +19,12 @@ object ReadinessFactory {
         extra: ExtraChecks? = null,
         /** Русское имя вида для причин отказа: реестр схем живёт выше, readiness его не знает. */
         kindTitle: (String) -> String = { it },
-    ): GateEvaluator = DomainGateEvaluator(store, links, scenesDone, gatesPassed, extra, kindTitle)
+        /**
+         * Чем закрывается нужда (истина `need.coverage_expected`): выход сцены 6
+         * считает только нужды с `service`. Правило живёт в онтологии — слоем
+         * выше, — поэтому приходит функцией.
+         */
+        needCoverage: (orbita.kernel.api.Entity) -> String? = { "service" },
+    ): GateEvaluator =
+        DomainGateEvaluator(store, links, scenesDone, gatesPassed, extra, kindTitle, needCoverage)
 }

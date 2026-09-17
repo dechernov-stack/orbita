@@ -34,6 +34,7 @@ import orbita.kernel.api.EntityStore
 import orbita.kernel.api.LinkRegistry
 import orbita.kernel.api.Provenance
 import orbita.kernel.api.QosClass
+import orbita.knowledge.api.Coverage
 import orbita.knowledge.schema.GeneratedOntology
 
 class NeedDistributor(
@@ -239,10 +240,14 @@ class NeedDistributor(
             appendLine("- сервис · `qos_class`: ${сервис?.fields?.get("qos_class").orEmpty()}")
             appendLine("- нужда · `qos_class`: ${нужда?.fields?.get("qos_class").orEmpty()}")
             нужда?.distributionRule?.takeIf { it.isNotBlank() }?.let { appendLine("- правило раздачи общих нужд: $it") }
+            Coverage.rule.takeIf { it.isNotBlank() }?.let { appendLine("- чем закрывается нужда: $it") }
             appendLine()
             appendLine("## Задача")
             appendLine("Для КАЖДОЙ нужды назови цели, к которым она ведёт (не меньше одной), и сервисы,")
-            appendLine("которые её закрывают (не меньше одного) — по смыслу формулировок, а не по слову.")
+            appendLine("которые её закрывают, — по смыслу формулировок, а не по слову.")
+            appendLine("Сервис нужен только нужде, помеченной в перечне «ждёт: service»: нужда регулятора")
+            appendLine("закрывается ограничением, нужда поставщика и партнёра — пакетом работ и оценкой,")
+            appendLine("и сервиса им не придумывай — у таких `services` оставляй пустым.")
             appendLine("Одна нужда может вести к нескольким целям и закрываться несколькими сервисами.")
             appendLine("Причина — одной строкой: чем нужда связана с названными целями и сервисами.")
             appendLine("Нужду, которую честно не к чему отнести, назови с пустыми списками и причиной «не к чему».")
@@ -251,6 +256,9 @@ class NeedDistributor(
             appendLine("## Нужды (${нужды.size})")
             нужды.forEach { н ->
                 append("- ${н.code} · «${формулировка(н)}» · сторона: ${носитель(н)}")
+                // Чем нужда закрывается (истина `need.coverage_expected`): сервис
+                // ждёт не всякая, и выход сцены 6 считает только таких.
+                Coverage.expected(н.doc, рольНосителя(н))?.let { append(" · ждёт: $it") }
                 val ведёт = покрывающие(н, "goal")
                 val покрыта = покрывающие(н, "service")
                 if (ведёт.isNotEmpty()) append(" · уже ведёт к: ${ведёт.joinToString(", ")}")
@@ -309,6 +317,8 @@ class NeedDistributor(
     private fun формулировка(запись: Entity): String =
         listOf("statement", "name", "text", "designation")
             .firstNotNullOfOrNull { запись.doc.path(it).asText("").trim().ifBlank { null } } ?: запись.code
+
+    private fun рольНосителя(нужда: Entity): String? = Coverage.рольНосителя(store, links, нужда)
 
     /** Сторона нужды: связью `owns`, а если её нет — полем документа. */
     private fun носитель(нужда: Entity): String {
