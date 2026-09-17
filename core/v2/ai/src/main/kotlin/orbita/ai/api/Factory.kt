@@ -6,6 +6,7 @@ import orbita.ai.internal.Atomizer
 import orbita.ai.internal.BackgroundAtomizer
 import orbita.ai.internal.BackgroundSynthesizer
 import orbita.ai.internal.DocumentReader
+import orbita.ai.internal.NeedDistributor
 import orbita.ai.internal.StatementImporter
 import orbita.ai.internal.HttpTransport
 import orbita.ai.internal.JournalService
@@ -37,6 +38,19 @@ fun interface ReadDocument {
  */
 fun interface ImportStatement {
     fun import(project: String, material: String, statement: com.fasterxml.jackson.databind.JsonNode, author: String): SynthesisRun
+}
+
+/**
+ * Раздача нужд по целям и сервисам одним вызовом (решение владельца 17.09):
+ * полные перечни проекта → карта связей предложениями; приём массовый и
+ * обратимый.
+ */
+interface DistributeNeeds {
+    fun distribute(project: String, author: String): DistributionRun
+    fun latest(project: String): DistributionRun?
+    fun view(project: String, run: String): DistributionRun
+    fun accept(project: String, run: String, chosen: List<String>, author: String, reason: String): DistributionAccepted
+    fun undo(project: String, run: String, author: String): DistributionUndone
 }
 
 object AiFactory {
@@ -92,6 +106,24 @@ object AiFactory {
         val синтез = Synthesizer(store, intake, service, mapper)
         return ImportStatement { project, material, statement, author ->
             импорт.import(project, material, statement, author, синтез)
+        }
+    }
+
+    /** Раздача нужд по целям и сервисам — один вызов, приём обратимый. */
+    fun distributeNeeds(
+        store: EntityStore,
+        links: orbita.kernel.api.LinkRegistry?,
+        service: AiService,
+        mapper: ObjectMapper = ObjectMapper(),
+    ): DistributeNeeds {
+        val раздача = NeedDistributor(store, links, service, mapper)
+        return object : DistributeNeeds {
+            override fun distribute(project: String, author: String) = раздача.distribute(project, author)
+            override fun latest(project: String) = раздача.latest(project)
+            override fun view(project: String, run: String) = раздача.view(project, run)
+            override fun accept(project: String, run: String, chosen: List<String>, author: String, reason: String) =
+                раздача.accept(project, run, chosen, author, reason)
+            override fun undo(project: String, run: String, author: String) = раздача.undo(project, run, author)
         }
     }
 

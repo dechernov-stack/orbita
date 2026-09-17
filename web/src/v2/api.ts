@@ -903,6 +903,47 @@ export interface SynthesisRun {
   diff?: SynthesisDiff
 }
 
+/** Одна связь раздачи нужд: нужда → цель или сервис, с причиной модели. */
+export interface DistributionLink {
+  id: string
+  need: string
+  need_text: string
+  target: string
+  kind: 'goal' | 'service'
+  target_text: string
+  /** Класс покрывшего сервиса — достанется нужде без класса при приёме. */
+  qos_class: string | null
+  reason: string
+  /** Связь уже есть в модели: второй раз не заводится. */
+  exists: boolean
+  accepted: boolean
+}
+
+/** Запуск раздачи: связи предложениями; не раздано и отбито — поимённо. */
+export interface DistributionRun {
+  run: string
+  status: string
+  cached: boolean
+  note: string
+  links: DistributionLink[]
+  unassigned: string[]
+  refused: string[]
+  accepted: number
+}
+
+export interface NoDistribution {
+  run: ''
+  note: string
+}
+
+export interface DistributionAccepted {
+  run: string
+  linked: number
+  classes: number
+  skipped: string[]
+  note: string
+}
+
 /** Синтеза на проекте ещё не было: диф пуст и объяснён словами. */
 export interface NoSynthesis {
   run: string
@@ -1642,6 +1683,29 @@ export const api = {
   undoSynthesis: (project: string, run: string, author: string) =>
     вызов<{ run: string; undone: number; cancelled: string[]; already_gone: string[]; note: string }>(
       `/synthesis/runs/${encodeURIComponent(run)}/undo?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ author }) }),
+
+  /**
+   * Раздача нужд по целям и сервисам одним вызовом (решение владельца 17.09):
+   * полные перечни проекта → карта связей предложениями. Ничего не заводится
+   * само — приём отдельным кликом, обратимый.
+   */
+  distributeNeeds: (project: string, author = 'инженер') =>
+    вызов<DistributionRun>(`/intake/distribute?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ author }) }),
+
+  /** Последняя раздача проекта; без раздачи — объяснение словами (различать по `links`). */
+  distribution: (project: string) =>
+    вызов<DistributionRun | NoDistribution>(`/intake/distribute?project=${encodeURIComponent(project)}`),
+
+  acceptDistribution: (project: string, run: string, chosen: string[], author = 'инженер', reason?: string) =>
+    вызов<DistributionAccepted>(
+      `/intake/distribute/${encodeURIComponent(run)}/accept?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ chosen, author, reason }) }),
+
+  undoDistribution: (project: string, run: string, author = 'инженер') =>
+    вызов<{ run: string; unlinked: number; note: string }>(
+      `/intake/distribute/${encodeURIComponent(run)}/undo?project=${encodeURIComponent(project)}`,
       { method: 'POST', body: JSON.stringify({ author }) }),
 
   /** Истина онтологии наружу: по ней экран объясняет, откуда взялось понятие. */

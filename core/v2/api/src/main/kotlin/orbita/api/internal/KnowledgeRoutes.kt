@@ -30,6 +30,8 @@ class KnowledgeRoutes(
     private val read: orbita.ai.api.ReadDocument? = null,
     /** Эталон постановки предложениями; null — не включён. */
     private val importStatement: orbita.ai.api.ImportStatement? = null,
+    /** Раздача нужд по целям и сервисам (решение владельца 17.09); null — не включена. */
+    private val distribute: orbita.ai.api.DistributeNeeds? = null,
     /**
      * Хранилище — ровно за флагом проекта (`knowledge_v2`): ворота сверки
      * ставятся только там, где поле знаний v2 включено. `null` — прежняя
@@ -61,6 +63,18 @@ class KnowledgeRoutes(
         // не дало, — тем же экраном и тем же акцептом.
         method == "POST" && path == "/v2/intake/import-statement" ->
             эталон(требуется(query, "project"), разобрать(body))
+
+        // Раздача нужд по целям и сервисам одним вызовом (решение владельца
+        // 17.09): карта связей предложениями, приём массовый и обратимый.
+        method == "POST" && path == "/v2/intake/distribute" ->
+            раздать(требуется(query, "project"), разобрать(body))
+        method == "GET" && path == "/v2/intake/distribute" -> последняяРаздача(требуется(query, "project"))
+        method == "GET" && РАЗДАЧА.matches(path) ->
+            V2Router.Ответ(200, видРаздачи(раздача().view(требуется(query, "project"), РАЗДАЧА.matchEntire(path)!!.groupValues[1])))
+        method == "POST" && ПРИЁМ_РАЗДАЧИ.matches(path) ->
+            принятьРаздачу(требуется(query, "project"), ПРИЁМ_РАЗДАЧИ.matchEntire(path)!!.groupValues[1], разобрать(body))
+        method == "POST" && ОТМЕНА_РАЗДАЧИ.matches(path) ->
+            отменитьРаздачу(требуется(query, "project"), ОТМЕНА_РАЗДАЧИ.matchEntire(path)!!.groupValues[1], разобрать(body))
 
         method == "GET" && path == "/v2/topics" -> темы(требуется(query, "project"))
 
@@ -263,6 +277,62 @@ class KnowledgeRoutes(
         )
     }
 
+    // --- раздача нужд ------------------------------------------------------
+
+    private fun раздача(): orbita.ai.api.DistributeNeeds =
+        distribute ?: throw IllegalStateException("раздача нужд на этом стенде не включена")
+
+    private fun раздать(project: String, тело: JsonNode): V2Router.Ответ {
+        val автор = тело.path("author").asText("инженер")
+        return try {
+            V2Router.Ответ(201, видРаздачи(раздача().distribute(project, автор)))
+        } catch (e: ProviderUnavailable) {
+            V2Router.Ответ(
+                503,
+                mapper.createObjectNode()
+                    .put("error", "канал службы недоступен: ${e.message}")
+                    .put("what_to_do", "повторите раздачу позже — нужды, цели и сервисы на месте"),
+            )
+        }
+    }
+
+    private fun последняяРаздача(project: String): V2Router.Ответ {
+        val последняя = раздача().latest(project)
+            ?: return V2Router.Ответ(200, mapper.createObjectNode().put("run", "")
+                .put("note", "раздачи нужд на проекте ещё не было — нажмите «Раздать нужды по целям и сервисам»"))
+        return V2Router.Ответ(200, видРаздачи(последняя))
+    }
+
+    private fun принятьРаздачу(project: String, run: String, тело: JsonNode): V2Router.Ответ {
+        val выбранные = тело.path("chosen").map { it.asText() }
+        val итог = раздача().accept(
+            project, run, выбранные, тело.path("author").asText("инженер"), тело.path("reason").asText(""),
+        )
+        val узел = mapper.createObjectNode().put("run", итог.run).put("linked", итог.linked)
+            .put("classes", итог.classes).put("note", итог.note)
+        узел.putArray("skipped").also { м -> итог.skipped.forEach { м.add(it) } }
+        return V2Router.Ответ(201, узел)
+    }
+
+    private fun отменитьРаздачу(project: String, run: String, тело: JsonNode): V2Router.Ответ {
+        val итог = раздача().undo(project, run, тело.path("author").asText("инженер"))
+        return V2Router.Ответ(200, mapper.createObjectNode().put("run", итог.run).put("unlinked", итог.unlinked).put("note", итог.note))
+    }
+
+    private fun видРаздачи(р: orbita.ai.api.DistributionRun): ObjectNode {
+        val узел = mapper.createObjectNode().put("run", р.id).put("status", р.status)
+            .put("cached", р.cached).put("note", р.note).put("accepted", р.links.count { it.accepted })
+        val связи = узел.putArray("links")
+        р.links.forEach { с ->
+            связи.addObject().put("id", с.id).put("need", с.need).put("need_text", с.needText)
+                .put("target", с.target).put("kind", с.targetKind).put("target_text", с.targetText)
+                .put("qos_class", с.qosClass).put("reason", с.reason).put("exists", с.exists).put("accepted", с.accepted)
+        }
+        узел.putArray("unassigned").also { м -> р.unassigned.forEach { м.add(it) } }
+        узел.putArray("refused").also { м -> р.refused.forEach { м.add(it) } }
+        return узел
+    }
+
     private fun чтение(project: String, тело: JsonNode): V2Router.Ответ {
         val читатель = read ?: return V2Router.Ответ(
             501,
@@ -422,6 +492,10 @@ class KnowledgeRoutes(
     }
 
     private companion object {
+        val РАЗДАЧА: Regex = Regex("/v2/intake/distribute/(SR-[0-9]+)")
+        val ПРИЁМ_РАЗДАЧИ: Regex = Regex("/v2/intake/distribute/(SR-[0-9]+)/accept")
+        val ОТМЕНА_РАЗДАЧИ: Regex = Regex("/v2/intake/distribute/(SR-[0-9]+)/undo")
+
 
         /**
          * Отказ ворот приёма плана сомнительного материала — ДОСЛОВНО те же

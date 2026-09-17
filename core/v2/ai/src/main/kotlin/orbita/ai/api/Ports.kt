@@ -386,3 +386,37 @@ interface SynthesisJobs {
      */
     fun pending(project: String): FieldDrift
 }
+
+// --- Раздача нужд по целям и сервисам (решение владельца 17.09) ------------
+
+/** Одна связь раздачи: нужда → цель или сервис, с причиной модели. */
+data class DistributionLink(
+    val id: String,
+    val need: String,
+    val needText: String,
+    val target: String,
+    /** goal · service */
+    val targetKind: String,
+    val targetText: String,
+    /** Класс покрывшего сервиса — достаётся нужде без класса при приёме. */
+    val qosClass: String?,
+    val reason: String,
+    /** Связь уже есть в модели: второй раз не заводится. */
+    val exists: Boolean,
+    val accepted: Boolean,
+)
+
+/** Запуск раздачи: карта связей предложениями, не раздано и отбито — поимённо. */
+data class DistributionRun(
+    val id: String,
+    val status: String,
+    val cached: Boolean,
+    val note: String,
+    val links: List<DistributionLink>,
+    val unassigned: List<String>,
+    val refused: List<String>,
+)
+
+data class DistributionAccepted(val run: String, val linked: Int, val classes: Int, val skipped: List<String>, val note: String)
+
+data class DistributionUndone(val run: String, val unlinked: Int, val note: String)

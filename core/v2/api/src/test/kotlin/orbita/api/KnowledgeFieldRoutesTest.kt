@@ -73,7 +73,28 @@ class KnowledgeFieldRoutesTest {
     }
 
     private val знанияМаршруты: KnowledgeRoutes by lazy {
-        KnowledgeRoutes(знания, AiFactory.atomize(store, знания, служба, mapper), служба, mapper, store = store)
+        KnowledgeRoutes(знания, AiFactory.atomize(store, знания, служба, mapper), служба, mapper, store = store, distribute = раздачаПодмена)
+    }
+
+    /** Порт раздачи — подменой: маршрут проверяется на форму ответа, не на модель. */
+    private val раздачаПодмена = object : orbita.ai.api.DistributeNeeds {
+        var принято: List<String> = emptyList()
+        private val запуск = orbita.ai.api.DistributionRun(
+            id = "SR-0007", status = "done", cached = false, note = "раздача: связей 2 (к целям 1 · к сервисам 1)",
+            links = listOf(
+                orbita.ai.api.DistributionLink("L1", "ND-0001", "связь в Арктике", "GL-0001", "goal", "покрытие СМП", null, "по смыслу", exists = false, accepted = false),
+                orbita.ai.api.DistributionLink("L2", "ND-0001", "связь в Арктике", "SV-0001", "service", "резервный канал", "B′", "по смыслу", exists = true, accepted = false),
+            ),
+            unassigned = listOf("ND-0002"), refused = listOf("цель «GL-0099» у нужды ND-0001: в проекте нет"),
+        )
+        override fun distribute(project: String, author: String) = запуск
+        override fun latest(project: String) = запуск
+        override fun view(project: String, run: String) = запуск
+        override fun accept(project: String, run: String, chosen: List<String>, author: String, reason: String): orbita.ai.api.DistributionAccepted {
+            принято = chosen
+            return orbita.ai.api.DistributionAccepted(run, chosen.size, 1, emptyList(), "принято связей ${chosen.size}")
+        }
+        override fun undo(project: String, run: String, author: String) = orbita.ai.api.DistributionUndone(run, 1, "раздача отменена")
     }
 
     @BeforeTest
@@ -99,6 +120,35 @@ class KnowledgeFieldRoutesTest {
 
         assertEquals(200, ответ.code, ответ.body.toString())
         assertEquals(listOf("ND-0001"), ответ.body.path("items").map { it.path("code").asText() })
+    }
+
+    @Test
+    fun `раздача нужд отвечает картой связей, приём принимает отмеченные`() {
+        // Решение владельца 17.09: связи «нужда → цель · сервис» предложениями,
+        // существующая связь — «уже есть», не раздано и отбито — поимённо.
+        val ответ = assertNotNull(знанияМаршруты.handle("POST", "/v2/intake/distribute", mapOf("project" to сПолем), """{"author":"инженер"}"""))
+        assertEquals(201, ответ.code, ответ.body.toString())
+        assertEquals("SR-0007", ответ.body.path("run").asText())
+        assertEquals(2, ответ.body.path("links").size())
+        assertTrue(ответ.body.path("links")[1].path("exists").asBoolean(), "существующая связь помечена")
+        assertEquals("B′", ответ.body.path("links")[1].path("qos_class").asText())
+        assertEquals(listOf("ND-0002"), ответ.body.path("unassigned").map { it.asText() })
+        assertEquals(1, ответ.body.path("refused").size())
+
+        val последняя = assertNotNull(знанияМаршруты.handle("GET", "/v2/intake/distribute", mapOf("project" to сПолем), null))
+        assertEquals("SR-0007", последняя.body.path("run").asText())
+
+        val приём = assertNotNull(знанияМаршруты.handle(
+            "POST", "/v2/intake/distribute/SR-0007/accept", mapOf("project" to сПолем),
+            """{"chosen":["L1"],"author":"инженер","reason":"по смыслу"}""",
+        ))
+        assertEquals(201, приём.code, приём.body.toString())
+        assertEquals(1, приём.body.path("linked").asInt())
+        assertEquals(listOf("L1"), раздачаПодмена.принято)
+
+        val отмена = assertNotNull(знанияМаршруты.handle("POST", "/v2/intake/distribute/SR-0007/undo", mapOf("project" to сПолем), """{"author":"инженер"}"""))
+        assertEquals(200, отмена.code)
+        assertEquals(1, отмена.body.path("unlinked").asInt())
     }
 
     private fun проект(код: String, имя: String, поле: Boolean) {

@@ -293,6 +293,8 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
             // Чтение документа в постановку одним вызовом (РЕШЕНИЕ-ЧИТАТЬ-СМЫСЛ, 15.09).
             read = orbita.ai.api.AiFactory.readDocument(store, знания, служба, mapper),
             importStatement = orbita.ai.api.AiFactory.importStatement(store, знания, служба, mapper),
+            // Раздача нужд по целям и сервисам (решение владельца 17.09).
+            distribute = orbita.ai.api.AiFactory.distributeNeeds(store, links, служба, mapper),
             // Ворота сверки (знания v2): без реестра маршрут не знает флага проекта
             // и пускал бы несверенный ввод — на стенде ворота были бы выключены.
             store = store,
