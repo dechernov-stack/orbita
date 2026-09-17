@@ -246,8 +246,11 @@ ${самопроверкаПоРоли(роль)}
         val вПоле = store.list(Area.Project(project), "fact")
             .filter { it.status !in СНЯТЫЕ }
             .toMutableList()
-        val понятия = пункты.filterNot { it.concept == ТОЛЬКО_ФАКТ }.map { пункт ->
+        val понятия = пункты.withIndex().filterNot { it.value.concept == ТОЛЬКО_ФАКТ }.map { (номер, пункт) ->
+            // Повтор приём называет сам, по номеру факта во входе: сравнение
+            // строк здесь лишь запасной путь, и на 216 он терял 16 из 117.
             val след = свободные.firstOrNull { совпало(it, пункт) }?.also { свободные.remove(it) }?.id
+                ?: принято.repeated[номер]
                 ?: вПоле.firstOrNull { совпалоСЗаписью(it, пункт) }?.also { вПоле.remove(it) }?.code
             ЧитанноеПонятие(
                 localId = пункт.localId,

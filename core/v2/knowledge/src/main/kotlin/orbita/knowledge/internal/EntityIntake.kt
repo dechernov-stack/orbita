@@ -814,6 +814,7 @@ class EntityIntake(
             .filter { it.doc.path("material").asText() == material }
             .associateBy { ключФакта(it.doc) }
         var повторов = 0
+        val повторы = mutableMapOf<Int, String>()
         // Номер факта в ответе → его код в проекте. План ссылается на факты
         // НОМЕРАМИ, и при повторном приёме (факты уже есть) карта обязана
         // указывать на существующие: иначе план схлопывается в одно
@@ -866,7 +867,7 @@ class EntityIntake(
                         "виды: ${ВИДЫ_ФАКТА.joinToString(" · ")}"
                 ключ in уже -> {
                     повторов += 1
-                    уже[ключ]?.let { поНомеру[i] = it.code }
+                    уже[ключ]?.let { поНомеру[i] = it.code; повторы[i] = it.code }
                 }
                 else -> {
                     val метка = ф.path("topic").asText("")
@@ -985,7 +986,7 @@ class EntityIntake(
         val задание = if (действия.isEmpty && оценка == null) null else store.list(область, "intake_task")
             .firstOrNull { it.doc.path("material").asText() == material && (it.doc.path("actions").size() > 0 || it.doc.path("assessment").isObject) }
             ?.code
-        return FactIntake(принятые, отказы, topics(project), примечание, задание)
+        return FactIntake(принятые, отказы, topics(project), примечание, задание, повторы)
     }
 
     /**
