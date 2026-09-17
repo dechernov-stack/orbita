@@ -1212,10 +1212,14 @@ internal class Reconciler(
         val искомое = имя.trim()
         if (искомое.isBlank()) return null
         val где = вид?.let { куда(область, it) } ?: область
-        val поКоду = store.byCode(где, искомое) ?: store.byCode(область, искомое)
-            ?: store.byCode(Area.Library, искомое)
+        val поКоду = (store.byCode(где, искомое) ?: store.byCode(область, искомое)
+            ?: store.byCode(Area.Library, искомое))?.takeIf { it.status != СНЯТО }
         if (поКоду != null && (вид == null || поКоду.kind == вид)) return поКоду
-        val список = if (вид == null) store.list(область) else store.list(где, вид)
+        // Снятое с учёта именем не находится: после «Отменить пакет» в поле
+        // лежат и снятая сторона, и заведённая заново, а связь `owns` уезжала
+        // на снятую — и сцена 3 видела восемнадцать сторон без нужд (216, 17.09).
+        val список = (if (вид == null) store.list(область) else store.list(где, вид))
+            .filter { it.status != СНЯТО }
         // Имя — любое поле формулировки, а не только `name`: нужда названа
         // `statement`, и сервис ссылается на неё формулировкой. До 17.09 такая
         // связь не закрывалась никогда — «сервис без нужды» на каждом приёме.
@@ -1425,6 +1429,8 @@ internal class Reconciler(
          * формулировки у неё нет. Пока поля здесь не было, пять применимостей
          * из живого чтения записки отбивались «сверять нечего» (16.09).
          */
+        const val СНЯТО: String = "cancelled"
+
         const val ПРИНЯТ_КЕМ: String = "accepted_by"
         const val ПРИНЯТ_КОГДА: String = "accepted_at"
         const val ПРИНЯТО: String = "accepted"
