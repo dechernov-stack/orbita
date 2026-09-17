@@ -59,8 +59,10 @@ def назначен_класс(значение) -> bool:
 
 def вызов(base: str, метод: str, путь: str, тело=None):
     данные = json.dumps(тело, ensure_ascii=False).encode() if тело is not None else None
+    # Код проекта бывает кириллицей (PJ-ПМИ7): в адресе он обязан быть
+    # процентно закодирован, иначе http.client роняет запрос на ascii.
     запрос = urllib.request.Request(
-        base + путь, data=данные,
+        base + urllib.parse.quote(путь, safe="/?=&%:+,;@!$'()*[]"), data=данные,
         headers={"Content-Type": "application/json; charset=utf-8"}, method=метод,
     )
     try:

@@ -930,9 +930,25 @@ internal class Reconciler(
             .map { снимок.path(it) }
             .firstOrNull { it.isObject && it.path("unit").asText("").isNotBlank() }
 
-    private fun значениеВеличины(величина: JsonNode): String =
-        if (величина.path("value").isNumber) величина.path("value").asText()
-        else величина.path("value").asText("").trim()
+    /**
+     * Значение величины словами факта: число — как есть; граница или диапазон
+     * («не более 180 мин», «0–1,5 года») — из min/max. Истина: «ЛЮБАЯ величина
+     * объектом {value | min, max, unit}». Пока бралось только `value`, сервис
+     * с целевым «≤ 180 мин» отбивался как «факт без значения» (216, 17.09).
+     */
+    private fun значениеВеличины(величина: JsonNode): String {
+        val значение = величина.path("value")
+        if (значение.isNumber) return значение.asText()
+        значение.asText("").trim().ifBlank { null }?.let { return it }
+        val от = величина.path("min").asText("").trim()
+        val до = величина.path("max").asText("").trim()
+        return when {
+            от.isNotBlank() && до.isNotBlank() -> "$от–$до"
+            до.isNotBlank() -> "≤$до"
+            от.isNotBlank() -> "≥$от"
+            else -> ""
+        }
+    }
 
     /** Значение ссылочного поля понятия (нужда → сторона); null — ссылки нет. */
     private fun ссылочноеЗначение(понятие: Concept, снимок: JsonNode): String? =

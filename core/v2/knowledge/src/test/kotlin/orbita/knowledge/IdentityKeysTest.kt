@@ -15,6 +15,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -114,12 +115,19 @@ class IdentityKeysTest {
     }
 
     @Test
-    fun `цель с единицей вне справочника ключа не даёт`() {
+    fun `цель с единицей вне справочника получает показателем саму единицу`() {
+        // Не догадка, а сама единица: «180 МКА» и «200 МКА» — об одном результате,
+        // «180 МКА» и «2 сценария» — о разных. Пока ключа не было вовсе, повторный
+        // приём заводил восемь целей вторым экземпляром (216, 17.09).
         val цель = mapper.createObjectNode().put("statement", "развернуть группировку")
         цель.putObject("measure").put("value", 180).put("unit", "МКА")
-        assertNull(
-            ключи.of(listOf("statement_core", "measure.key"), цель),
-            "единица вне справочника — показателя нет, и ключ на догадке не строится",
-        )
+        val таЖе = mapper.createObjectNode().put("statement", "развернуть группировку")
+        таЖе.putObject("measure").put("value", 200).put("unit", "мка")
+        val другая = mapper.createObjectNode().put("statement", "развернуть группировку")
+        другая.putObject("measure").put("value", 2).put("unit", "сценария")
+
+        val ключ = assertNotNull(ключи.of(listOf("statement_core", "measure.key"), цель))
+        assertEquals(ключ.value, ключи.of(listOf("statement_core", "measure.key"), таЖе)!!.value)
+        assertTrue(ключ.value != ключи.of(listOf("statement_core", "measure.key"), другая)!!.value)
     }
 }

@@ -376,6 +376,43 @@ class ReconcileManualInputTest {
     }
 
     @Test
+    fun `сервис с целевой границей без точного значения принимается`() {
+        // «не более 180 мин» — величина {max, unit} без `value`; кандидат-факт
+        // получал пустое значение и отбивался («факт без значения», 216, 17.09).
+        сторона("SK-0001", "МЧС России")
+        нужда("ND-0001", "датчики паводков и пожаров", "МЧС России")
+        val содержимое = mapper.createObjectNode()
+            .put("name", "Датчики ЧС и гидрологии")
+            .put("needs", "датчики паводков и пожаров")
+            .put("qos_class", "B′")
+        содержимое.putObject("target_measure").put("max", "180").put("unit", "мин")
+        val кандидат = Candidate("c1", "service", содержимое)
+
+        val запуск = сверка.preview(проект, listOf(кандидат), автор, роль)
+        assertTrue(запуск.refused.isEmpty(), "кандидат разобран: ${запуск.refused}")
+        val строка = запуск.items.single()
+        val номер = строка.findings.indexOfFirst { Action.ACCEPT_NEW in it.offers }
+        val итог = сверка.apply(проект, запуск.id, "c1", номер, Action.ACCEPT_NEW, reason = "принято", author = автор)
+
+        assertEquals("service", store.byCode(область, итог.created.single())!!.kind)
+    }
+
+    @Test
+    fun `повтор цели с единицей вне справочника узнаётся дублем`() {
+        // Ключ цели — формулировка и показатель величины; у единицы «сценария»
+        // размерности в справочнике нет, и ключ не складывался вовсе.
+        val документ = mapper.createObjectNode().put("statement", "подтвердить реализуемость").put("year", 2027)
+        документ.putObject("measure").put("value", 2).put("unit", "сценария")
+        store.create("GL-0001", "goal", область, "4", документ, провенанс)
+        val содержимое = mapper.createObjectNode().put("statement", "подтвердить реализуемость").put("year", "2027")
+        содержимое.putObject("measure").put("value", "2").put("unit", "сценария")
+
+        val запуск = сверка.preview(проект, listOf(Candidate("c1", "goal", содержимое)), автор, роль)
+
+        assertTrue(запуск.items.single().verdict != Verdict.NEW, "повтор цели узнан: ${запуск.items.single().verdict}")
+    }
+
+    @Test
     fun `понятие на факте не попадает в перечень принятых сущностей`() {
         // Сторож удвоения среза: пока допущение считалось видом «fact», каждый
         // факт поля приезжал в синтез ещё и «принятым понятием».
