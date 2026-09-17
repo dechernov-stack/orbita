@@ -2,6 +2,7 @@
 package orbita.programmatics.internal
 
 import orbita.kernel.api.Area
+import orbita.kernel.api.Entity
 import orbita.kernel.api.EntityStore
 import orbita.programmatics.api.Programmatics
 import orbita.readiness.api.CheckResult
@@ -20,6 +21,15 @@ class ProgrammaticsChecks(
      * коду значило молча не находить ни одного срока — и точка объявляла бы
      * себя готовой, ничего не проверив.
      */
+
+    /**
+     * Записи вида без снятых с учёта: «Отменить пакет» ставит cancelled, а
+     * условия ворот считали такие записи живыми — сцена 8 говорила «целей без
+     * требования: 48» при восьми живых целях (ПМИ-7, 216, 17.09).
+     */
+    private fun живые(область: Area, вид: String): List<Entity> =
+        store.list(область, вид).filter { it.status != "cancelled" }
+
     private fun дата(область: Area, ключ: String): String? = ключ.takeIf { it.isNotBlank() }
         ?.let { store.byCode(область, it) ?: store.byId(it) }
         ?.doc?.path("planned_date")?.asText("")
@@ -32,7 +42,7 @@ class ProgrammaticsChecks(
         return when (имя) {
             "technologies_named" -> {
                 val нужно = (аргумент ?: "1").toIntOrNull() ?: 1
-                val есть = store.list(область, "technology").size
+                val есть = живые(область, "technology").size
                 if (есть >= нужно) CheckResult.ok
                 else CheckResult.no(
                     "критических технологий названо $есть из $нужно: " +
@@ -56,13 +66,13 @@ class ProgrammaticsChecks(
 
             "risks_min" -> {
                 val нужно = (аргумент ?: "3").toIntOrNull() ?: 3
-                val есть = store.list(область, "risk").size
+                val есть = живые(область, "risk").size
                 if (есть >= нужно) CheckResult.ok
                 else CheckResult.no("рисков $есть из $нужно: пустой реестр рисков означает, что их не искали")
             }
 
             "each_risk_has_due_point" -> {
-                val без = store.list(область, "risk")
+                val без = живые(область, "risk")
                     .filter { it.doc.path("due_point").asText("").isBlank() }
                 if (без.isEmpty()) CheckResult.ok
                 else CheckResult.no(
@@ -85,13 +95,13 @@ class ProgrammaticsChecks(
                 val точка = аргумент ?: return CheckResult.no("условию нужен ключ точки")
                 val датаТочки = дата(область, точка)
                     ?: return CheckResult.no("у точки «$точка» нет даты: сроки не с чем сравнивать")
-                val просроченные = store.list(область, "risk")
+                val просроченные = живые(область, "risk")
                     .filter { it.status != "closed" }
                     .filter { риск ->
                         val срок = дата(область, риск.doc.path("due_point").asText(""))
                         срок != null && срок <= датаТочки
                     }
-                val tbr = store.list(область, "parameter")
+                val tbr = живые(область, "parameter")
                     .filter { !it.doc.path("measure").path("tbr").isMissingNode }
                     .filter { п ->
                         val срок = дата(область, п.doc.path("measure").path("tbr").path("gate").asText(""))
@@ -117,7 +127,7 @@ class ProgrammaticsChecks(
             }
 
             "oda_started" -> {
-                val оценка = store.list(область, "debris_assessment").lastOrNull()
+                val оценка = живые(область, "debris_assessment").lastOrNull()
                 if (оценка != null) CheckResult.ok
                 else CheckResult.no("оценки засорения нет: ODA к MCR считается от базового варианта")
             }
@@ -135,7 +145,7 @@ class ProgrammaticsChecks(
             }
 
             "estimate_ranged" -> {
-                val оценки = store.list(область, "cost_estimate")
+                val оценки = живые(область, "cost_estimate")
                 val плохие = оценки.filter {
                     it.doc.path("range").path("max").asDouble() <= it.doc.path("range").path("min").asDouble() ||
                         it.doc.path("assumptions").asText("").isBlank()
@@ -168,14 +178,14 @@ class ProgrammaticsChecks(
 
             // A8: владелец у каждого риска.
             "each_risk_has_owner" -> {
-                val без = store.list(область, "risk").filter { it.status != "closed" && it.doc.path("owner").asText("").isBlank() }
+                val без = живые(область, "risk").filter { it.status != "closed" && it.doc.path("owner").asText("").isBlank() }
                 if (без.isEmpty()) CheckResult.ok
                 else CheckResult.no("рисков без владельца: " + без.take(3).joinToString(", ") { it.code } + " — риск без владельца никто не ведёт")
             }
             // A8: мера у каждого критического (вероятность × влияние ≥ порога).
             "critical_risks_have_measures" -> {
                 val порог = (аргумент ?: "12").toIntOrNull() ?: 12
-                val критические = store.list(область, "risk").filter { р ->
+                val критические = живые(область, "risk").filter { р ->
                     р.status != "closed" && р.doc.path("probability").asInt(0) * р.doc.path("impact").asInt(0) >= порог
                 }
                 val без = критические.filter { р -> р.doc.path("measures").let { м -> м.isMissingNode || м.isNull || (м.isTextual && м.asText().isBlank()) || (м.isArray && м.isEmpty) } }
@@ -185,7 +195,7 @@ class ProgrammaticsChecks(
             // A7: у технологии низкого TRL назван резерв.
             "technology_fallback_named" -> {
                 val порог = (аргумент ?: "4").toIntOrNull() ?: 4
-                val без = store.list(область, "technology").filter { т ->
+                val без = живые(область, "technology").filter { т ->
                     т.doc.path("trl_current").asInt(9) <= порог &&
                         т.doc.path("fallback").asText("").isBlank() && т.doc.path("fallback_component").asText("").isBlank()
                 }
@@ -194,7 +204,7 @@ class ProgrammaticsChecks(
             }
             // A9: ОСЗ базового варианта — оба случая по нормативу.
             "oda_compliant" -> {
-                val оценка = store.list(область, "debris_assessment").lastOrNull()
+                val оценка = живые(область, "debris_assessment").lastOrNull()
                     ?: return CheckResult.no("оценки засорения нет: ОСЗ считается от базового варианта")
                 val активный = оценка.doc.path("compliant_active").asBoolean(false)
                 val пассивный = оценка.doc.path("compliant_passive").asBoolean(false)
@@ -210,7 +220,7 @@ class ProgrammaticsChecks(
             }
             // A9: норматив увода привязан к оценке.
             "oda_normative_bound" -> {
-                val оценка = store.list(область, "debris_assessment").lastOrNull()
+                val оценка = живые(область, "debris_assessment").lastOrNull()
                     ?: return CheckResult.no("оценки засорения нет: привязывать норматив не к чему")
                 val нет = listOf("normative_active", "normative_passive").filter { оценка.doc.path(it).asText("").isBlank() }
                 if (нет.isEmpty()) CheckResult.ok
@@ -219,7 +229,7 @@ class ProgrammaticsChecks(
             // A10: метод оценки к KDP-B — параметрика или снизу вверх, не ROM.
             "estimate_method" -> {
                 val методы = (аргумент ?: "parametric,bottom_up").split(",").map { it.trim() }.filter { it.isNotBlank() }.toSet()
-                val оценки = store.list(область, "cost_estimate")
+                val оценки = живые(область, "cost_estimate")
                 when {
                     оценки.isEmpty() -> CheckResult.no("оценки нет")
                     оценки.any { it.doc.path("method").asText("") in методы } -> CheckResult.ok
@@ -232,7 +242,7 @@ class ProgrammaticsChecks(
                 val сПланом = пакеты.filter { it.planEnd != null }
                 if (пакеты.isEmpty()) return CheckResult.no("WBS не взят: сверять сроки не с чем")
                 if (сПланом.isEmpty()) return CheckResult.no("ни у одного пакета работ нет сроков: свёртка сроков пуста")
-                val точки = store.list(область, "gate").filter { it.doc.path("kind").asText("phase") != "technology" }
+                val точки = живые(область, "gate").filter { it.doc.path("kind").asText("phase") != "technology" }
                 val последняя = точки.mapNotNull { it.doc.path("planned_date").asText("").ifBlank { null } }.maxOrNull()
                     ?: return CheckResult.no("у точек фазы нет дат: сроки пакетов не с чем сверять")
                 val позже = сПланом.filter { it.planEnd!! > последняя }

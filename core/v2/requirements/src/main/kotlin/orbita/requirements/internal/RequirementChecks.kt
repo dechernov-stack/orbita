@@ -6,6 +6,7 @@
 package orbita.requirements.internal
 
 import orbita.kernel.api.Area
+import orbita.kernel.api.Entity
 import orbita.kernel.api.EntityStore
 import orbita.readiness.api.CheckResult
 import orbita.readiness.api.ExtraChecks
@@ -22,7 +23,7 @@ class RequirementChecks(
     override fun of(project: String, check: String): CheckResult? {
         val область = Area.Project(project)
         val (имя, аргумент) = check.split(":", limit = 2).let { it[0] to it.getOrNull(1) }
-        val требования = store.list(область, "requirement")
+        val требования = живые(область, "requirement")
 
         return when (имя) {
             "requirements_min" -> {
@@ -33,7 +34,7 @@ class RequirementChecks(
 
             "each_goal_has_requirement" -> {
                 val покрыты = требования.flatMap { т -> т.doc.path("source").map { it.path("ref").asText() } }.toSet()
-                val без = store.list(область, "goal").filter { it.id !in покрыты }
+                val без = живые(область, "goal").filter { it.id !in покрыты }
                 if (без.isEmpty()) CheckResult.ok
                 else CheckResult.no(
                     "целей без требования: ${без.size} — " +
@@ -74,7 +75,7 @@ class RequirementChecks(
             // Условие A5 (10.09): «≥ 1 системное на каждый сегмент» — носитель
             // на самом сегменте либо на его элементе.
             "each_segment_has_requirement" -> {
-                val узлы = store.list(область, "component").filter { it.status != "cancelled" }
+                val узлы = живые(область, "component")
                 val сегменты = узлы.filter { it.doc.path("kind").asText("") == "segment" }
                 if (сегменты.isEmpty()) return CheckResult.no("сегментов в составе нет: на что распределять системные требования?")
                 fun родитель(у: orbita.kernel.api.Entity): orbita.kernel.api.Entity? =
@@ -100,10 +101,10 @@ class RequirementChecks(
             // Условие A7 (10.09): условные элементы перечислены — снимком базовой
             // линии, где всё, что стоит на незрелой технологии, помечено условным.
             "conditional_requirements_listed" -> {
-                val незрелые = store.list(область, "technology")
+                val незрелые = живые(область, "technology")
                     .filter { it.doc.path("trl_current").asInt(9) < it.doc.path("trl_required").asInt(0) }
                     .map { it.doc.path("component").asText("") }.filter { it.isNotBlank() }
-                val узлы = store.list(область, "component")
+                val узлы = живые(область, "component")
                 val незрелыеУзлы = незрелые.flatMap { к -> узлы.filter { it.id == к || it.code == к }.map { it.id } + к }.toSet()
                 val условные = требования.filter { it.doc.path("carrier").asText("") in незрелыеУзлы }
                 if (условные.isEmpty()) return CheckResult.ok
@@ -179,4 +180,12 @@ class RequirementChecks(
             else -> null
         }
     }
+
+    /**
+     * Записи вида без снятых с учёта: «Отменить пакет» ставит cancelled, а
+     * условия ворот считали такие записи живыми — сцена 8 говорила «целей без
+     * требования: 48» при восьми живых целях (ПМИ-7, 216, 17.09).
+     */
+    private fun живые(область: Area, вид: String): List<Entity> =
+        store.list(область, вид).filter { it.status != "cancelled" }
 }

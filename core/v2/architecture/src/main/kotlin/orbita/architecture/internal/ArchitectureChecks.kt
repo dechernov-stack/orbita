@@ -4,6 +4,7 @@ package orbita.architecture.internal
 import orbita.architecture.api.Architecture
 import orbita.architecture.api.Nature
 import orbita.kernel.api.Area
+import orbita.kernel.api.Entity
 import orbita.kernel.api.EntityStore
 import orbita.readiness.api.CheckResult
 import orbita.readiness.api.ExtraChecks
@@ -29,8 +30,8 @@ class ArchitectureChecks(
             "node_interfaces_min" -> {
                 val (код, число) = (аргумент ?: "").split(":", limit = 2).let { it[0] to (it.getOrNull(1)?.toIntOrNull() ?: 1) }
                 val узел = store.byCode(область, код) ?: return CheckResult.no("узла «$код» в составе нет")
-                val стыки = store.list(область, "interface").filter { с ->
-                    с.status != "cancelled" && listOf("a", "b").any { к ->
+                val стыки = живые(область, "interface").filter { с ->
+                    listOf("a", "b").any { к ->
                         val конец = с.doc.path(к).asText("")
                         конец == узел.id || конец == узел.code
                     }
@@ -53,7 +54,7 @@ class ArchitectureChecks(
             }
 
             "baseline_concept_chosen" -> {
-                val концепция = store.list(область, "baseline_concept").lastOrNull()
+                val концепция = живые(область, "baseline_concept").lastOrNull()
                 when {
                     концепция == null -> CheckResult.no(
                         "базовый вариант не назван: выбор без обоснования не решение",
@@ -80,7 +81,7 @@ class ArchitectureChecks(
             // прочтение СОСТАВА со стороны применения, и знает его архитектура.
 
             "modes_defined" -> {
-                val машины = store.list(область, "state_machine")
+                val машины = живые(область, "state_machine")
                 val сСостояниями = машины.filter { it.doc.path("states").size() >= 2 }
                 when {
                     машины.isEmpty() -> CheckResult.no(
@@ -97,7 +98,7 @@ class ArchitectureChecks(
 
             "scenarios_min" -> {
                 val нужно = (аргумент ?: "1").toIntOrNull() ?: 1
-                val цепочки = store.list(область, "functional_chain")
+                val цепочки = живые(область, "functional_chain")
                 if (цепочки.size >= нужно) CheckResult.ok
                 else CheckResult.no(
                     "операционных сценариев ${цепочки.size} из $нужно: сценарий — путь по составу, " +
@@ -106,7 +107,7 @@ class ArchitectureChecks(
             }
 
             "each_scenario_has_steps" -> {
-                val без = store.list(область, "functional_chain").filter { цепочка ->
+                val без = живые(область, "functional_chain").filter { цепочка ->
                     val шаги = цепочка.doc.path("steps")
                     shagiPusty(шаги)
                 }
@@ -123,7 +124,7 @@ class ArchitectureChecks(
             "node_functions_min" -> {
                 val (код, число) = узелИЧисло(аргумент)
                 val узел = store.byCode(область, код) ?: return CheckResult.no("узла «$код» в составе нет")
-                val свои = store.list(область, "function").filter { ф -> ссылается(ф.doc.path("allocated_to"), узел) }
+                val свои = живые(область, "function").filter { ф -> ссылается(ф.doc.path("allocated_to"), узел) }
                 if (свои.size >= число) CheckResult.ok
                 else CheckResult.no("на узел ${узел.code} распределено ${свои.size} функций из $число — функции SA распределяются на узлы 100 %")
             }
@@ -139,12 +140,12 @@ class ArchitectureChecks(
             "node_exchange_items_min" -> {
                 val (код, число) = узелИЧисло(аргумент)
                 val узел = store.byCode(область, код) ?: return CheckResult.no("узла «$код» в составе нет")
-                val стыкиУзла = store.list(область, "interface")
+                val стыкиУзла = живые(область, "interface")
                     .filter { с -> listOf("a", "b").any { к -> ссылается(с.doc.path(к), узел) } }
                     .flatMap { listOf(it.id, it.code) }.toSet()
-                val обмены = store.list(область, "exchange").filter { it.doc.path("interface").asText("") in стыкиУзла }
+                val обмены = живые(область, "exchange").filter { it.doc.path("interface").asText("") in стыкиУзла }
                     .flatMap { listOf(it.id, it.code) }.toSet()
-                val элементы = store.list(область, "exchange_item").filter { э ->
+                val элементы = живые(область, "exchange_item").filter { э ->
                     э.doc.path("exchanges").any { it.asText() in обмены } ||
                         э.doc.path("interface").asText("") in стыкиУзла || ссылается(э.doc.path("node"), узел)
                 }
@@ -153,7 +154,7 @@ class ArchitectureChecks(
             }
             // A5: функций без узла = 0.
             "functions_allocated" -> {
-                val функции = store.list(область, "function").filter { it.status != "cancelled" && it.doc.path("layer").asText("SA") == "SA" }
+                val функции = живые(область, "function").filter { it.doc.path("layer").asText("SA") == "SA" }
                 val без = функции.filter { it.doc.path("allocated_to").let { а -> а.isMissingNode || а.isNull || (а.isArray && а.isEmpty) || (а.isTextual && а.asText().isBlank()) } }
                 when {
                     функции.isEmpty() -> CheckResult.no("функций слоя SA нет: распределять нечего — возьмите полку архитектуры или заведите функции")
@@ -163,8 +164,8 @@ class ArchitectureChecks(
             }
             // A5: у каждой цепочки сценарное требование (realized_by ≥ 1).
             "chains_realized" -> {
-                val цепочки = store.list(область, "functional_chain").filter { it.status != "cancelled" }
-                val требования = store.list(область, "requirement")
+                val цепочки = живые(область, "functional_chain")
+                val требования = живые(область, "requirement")
                 val без = цепочки.filter { ц -> требования.none { т -> т.doc.path("carrier").asText("").let { it == ц.id || it == ц.code } } }
                 when {
                     цепочки.isEmpty() -> CheckResult.no("цепочек нет: сценарное требование не на что вешать")
@@ -175,7 +176,7 @@ class ArchitectureChecks(
             // A5: бюджеты названных видов с политикой резервов.
             "budgets_min" -> {
                 val виды = (аргумент ?: "mass,power,link").split(",").map { it.trim() }.filter { it.isNotBlank() }
-                val бюджеты = store.list(область, "budget").filter { it.status != "cancelled" }
+                val бюджеты = живые(область, "budget")
                 val нет = виды.filter { в -> бюджеты.none { it.doc.path("kind").asText("") == в } }
                 val безРезерва = бюджеты.filter { it.doc.path("kind").asText("") in виды && it.doc.path("reserve_policy").asText("").isBlank() }
                 when {
@@ -186,7 +187,7 @@ class ArchitectureChecks(
             }
             // A5: логические компоненты развёрнуты (желательно — сцену не держит).
             "logical_components_deployed" -> {
-                val лк = store.list(область, "logical_component").filter { it.status != "cancelled" }
+                val лк = живые(область, "logical_component")
                 val без = лк.filter { it.doc.path("deployed_to").let { д -> !д.isArray || д.isEmpty } }
                 when {
                     лк.isEmpty() -> CheckResult.no("логических компонентов нет: слой LA не развёрнут")
@@ -197,13 +198,13 @@ class ArchitectureChecks(
             // A6: варианты построения с метриками.
             "variants_min" -> {
                 val нужно = (аргумент ?: "2").toIntOrNull() ?: 2
-                val варианты = store.list(область, "constellation_variant").filter { it.status != "cancelled" }
+                val варианты = живые(область, "constellation_variant")
                 if (варианты.size >= нужно) CheckResult.ok
                 else CheckResult.no("вариантов построения ${варианты.size} из $нужно: сравнивать один вариант не с чем")
             }
             // A6: базовый вариант — с отклонёнными и их причинами.
             "baseline_concept_with_rejected" -> {
-                val концепция = store.list(область, "baseline_concept").lastOrNull()
+                val концепция = живые(область, "baseline_concept").lastOrNull()
                 val отклонённые = концепция?.doc?.path("rejected")
                 when {
                     концепция == null -> CheckResult.no("базовый вариант не назван: выбор без обоснования не решение")
@@ -219,8 +220,8 @@ class ArchitectureChecks(
             "model_runs_verified" -> {
                 val коды = (аргумент ?: "").split(",").map { it.trim() }.filter { it.isNotBlank() }
                 if (коды.isEmpty()) return CheckResult.no("условию нужен перечень моделей")
-                val модели = store.list(область, "system_model")
-                val прогоны = store.list(область, "model_run")
+                val модели = живые(область, "system_model")
+                val прогоны = живые(область, "model_run")
                 val причины = коды.mapNotNull { код ->
                     val модель = модели.firstOrNull { it.code == код || it.doc.path("template_code").asText("") == код }
                         ?: return@mapNotNull "$код — модели в проекте нет"
@@ -241,6 +242,15 @@ class ArchitectureChecks(
             else -> null
         }
     }
+
+
+    /**
+     * Записи вида без снятых с учёта: «Отменить пакет» ставит cancelled, а
+     * условия ворот считали такие записи живыми — сцена 8 говорила «целей без
+     * требования: 48» при восьми живых целях (ПМИ-7, 216, 17.09).
+     */
+    private fun живые(область: Area, вид: String): List<Entity> =
+        store.list(область, вид).filter { it.status != "cancelled" }
 
     private fun узелИЧисло(аргумент: String?): Pair<String, Int> =
         (аргумент ?: "").split(":", limit = 2).let { it[0] to (it.getOrNull(1)?.toIntOrNull() ?: 1) }

@@ -275,6 +275,19 @@ class RequirementsTest {
             mapper.readTree("""{"statement":"цель без требования","year":2033}"""), провенанс,
         )
         assertTrue("без требования" in отказ("each_goal_has_requirement"))
+
+        // Снятая с учёта цель условие не держит: «Отменить пакет» ставит
+        // cancelled, а сцена 8 говорила «целей без требования: 48» при восьми
+        // живых (ПМИ-7, 216, 17.09).
+        val снятая = store.create(
+            "MG-0009", "goal", область, "4",
+            mapper.readTree("""{"statement":"снятая цель","year":2033}"""), провенанс,
+        )
+        store.update(снятая.id, снятая.doc, провенанс, status = "cancelled")
+        assertTrue(
+            "целей без требования: 1" in отказ("each_goal_has_requirement"),
+            "считается только живая цель: ${отказ("each_goal_has_requirement")}",
+        )
     }
 
     @Test
