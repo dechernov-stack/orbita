@@ -218,6 +218,9 @@ class ReconcileRoutes(
         .put("open", з.open)
         .put("note", з.note)
         .also { у -> у.putArray("items").also { а -> з.items.forEach { а.add(предмет(it)) } } }
+        // Непрошедший кандидат назван поимённо: без этого поля он исчезал между
+        // вводом и ответом молча — «кандидатов 0» и ни слова почему (216, 17.09).
+        .also { у -> у.putArray("refused").also { а -> з.refused.forEach { а.add(it) } } }
 
     private fun предмет(п: ReconcileItem): ObjectNode = mapper.createObjectNode()
         .put("local_id", п.localId)

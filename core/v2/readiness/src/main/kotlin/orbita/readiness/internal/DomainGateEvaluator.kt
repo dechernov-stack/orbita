@@ -7,6 +7,7 @@
 package orbita.readiness.internal
 
 import orbita.kernel.api.Area
+import orbita.kernel.api.Entity
 import orbita.kernel.api.EntityStore
 import orbita.kernel.api.LinkRegistry
 import orbita.kernel.api.QosClass
@@ -25,6 +26,14 @@ class DomainGateEvaluator(
     private val имяВида: (String) -> String = { it },
 ) : GateEvaluator {
 
+    /**
+     * Записи вида без снятых с учёта: «Отменить пакет» ставит cancelled, а
+     * проверки сцен считали такие записи живыми — «нужд без цели: 60» при 33
+     * живых (216, 17.09).
+     */
+    private fun живые(область: Area, вид: String): List<Entity> =
+        store.list(область, вид).filter { it.status != "cancelled" }
+
     override fun why(project: String, check: String): String? {
         val область = Area.Project(project)
         val (имя, аргумент) = check.split(":", limit = 2).let {
@@ -42,7 +51,7 @@ class DomainGateEvaluator(
                 // («TRL 6 достигнут»), и её дата приходит планом созревания,
                 // а не сценой 1. Считая её здесь, мы заново открывали сцену 1
                 // каждый раз, когда инженер заводил критическую технологию.
-                val точки = store.list(область, "gate").filter {
+                val точки = живые(область, "gate").filter {
                     it.doc.path("kind").asText("phase") != "technology"
                 }
                 if (точки.isEmpty()) "точки фазы не заведены"
@@ -51,7 +60,7 @@ class DomainGateEvaluator(
             }
 
             "intent_accepted" -> {
-                val замысел = store.list(область, "intent").firstOrNull()
+                val замысел = живые(область, "intent").firstOrNull()
                 when {
                     замысел == null -> "замысел не задан: без него сцена 3 закрыта"
                     замысел.status != "accepted" -> "замысел ещё не принят — примите его на сцене 2"
@@ -61,20 +70,20 @@ class DomainGateEvaluator(
 
             "stakeholders_min" -> {
                 val нужно = (аргумент ?: "3").toInt()
-                val есть = store.list(область, "stakeholder").size
+                val есть = живые(область, "stakeholder").size
                 if (есть >= нужно) null
                 else "стейкхолдеров $есть из $нужно: круг шире потребителей — регуляторы, операторы, учреждаемые"
             }
 
             "each_stakeholder_has_need" -> {
-                val без = store.list(область, "stakeholder")
+                val без = живые(область, "stakeholder")
                     .filter { links.from(it.id, "owns").isEmpty() }
                 if (без.isEmpty()) null
                 else "без нужд: " + без.joinToString(", ") { it.doc.path("name").asText(it.code) }
             }
 
             "each_need_has_goal" -> {
-                val без = store.list(область, "need")
+                val без = живые(область, "need")
                     .filter { нужда -> links.to(нужда.id, "covers").none { it.from.startsWith("goal") } }
                 if (без.isEmpty()) null
                 else "нужд без цели: ${без.size} — " +
@@ -83,7 +92,7 @@ class DomainGateEvaluator(
 
             "constraints_min" -> {
                 val нужно = (аргумент ?: "1").toInt()
-                val есть = store.list(область, "constraint").count {
+                val есть = живые(область, "constraint").count {
                     !it.doc.path("removed").asBoolean(false)
                 }
                 if (есть >= нужно) null
@@ -91,7 +100,7 @@ class DomainGateEvaluator(
             }
 
             "each_need_has_service" -> {
-                val без = store.list(область, "need")
+                val без = живые(область, "need")
                     .filter { нужда -> links.to(нужда.id, "covers").none { it.from.startsWith("service") } }
                 if (без.isEmpty()) null
                 else "нужд без сервиса: ${без.size} — " +
@@ -105,7 +114,7 @@ class DomainGateEvaluator(
             // Нужда без сервиса сюда не попадает — о ней говорит соседнее
             // условие, и повторять его второй фразой ни к чему.
             "covered_need_has_qos_class" -> {
-                val без = store.list(область, "need")
+                val без = живые(область, "need")
                     .filter { нужда -> links.to(нужда.id, "covers").any { it.from.startsWith("service") } }
                     .filter { нужда -> !QosClass.assigned(нужда.doc.path(QosClass.FIELD)) }
                 if (без.isEmpty()) null
@@ -122,7 +131,7 @@ class DomainGateEvaluator(
             // непроходимой в первый день фазы, а мягкий «хоть где-нибудь» —
             // бессмысленным.
             "phase_plan_started" -> {
-                val план = store.list(область, "plan").lastOrNull()
+                val план = живые(область, "plan").lastOrNull()
                 val окна = план?.doc?.path("scene_windows")?.map { it.path("scene").asText() }.orEmpty()
                 val нужнаСцена = аргумент
                 when {
@@ -135,9 +144,9 @@ class DomainGateEvaluator(
             }
 
             "gate_dates_planned" -> {
-                val план = store.list(область, "plan").lastOrNull()
+                val план = живые(область, "plan").lastOrNull()
                 val даты = план?.doc?.path("gate_dates")?.count { it.path("date").asText("").isNotBlank() } ?: 0
-                val точек = store.list(область, "gate").count {
+                val точек = живые(область, "gate").count {
                     it.doc.path("kind").asText("phase") != "technology"
                 }
                 if (точек > 0 && даты >= точек) null
@@ -148,7 +157,7 @@ class DomainGateEvaluator(
             // держится, а сцена возврата снова в работе (шип D).
             "findings_closed" -> {
                 val точка = аргумент ?: return "условие «$check» не назвало точку"
-                val открытые = store.list(область, "finding").filter {
+                val открытые = живые(область, "finding").filter {
                     it.status == "open" && it.doc.path("gate").asText() == точка
                 }
                 if (открытые.isEmpty()) null
@@ -162,7 +171,7 @@ class DomainGateEvaluator(
             // реестра к точке считать нечем — и это не выдумывается.
             "exists" -> {
                 val вид = аргумент ?: return "условие «$check» не назвало вид"
-                if (store.list(область, вид).any { it.status != "cancelled" }) null
+                if (живые(область, вид).any { it.status != "cancelled" }) null
                 else "нет ни одной записи «${имяВида(вид)}»"
             }
 
@@ -172,7 +181,7 @@ class DomainGateEvaluator(
             // принятого факта — блокирующий разрыв.
             "assumptions_confirmed" -> {
                 val точка = аргумент ?: return "условие «$check» не назвало точку"
-                val открытые = store.list(область, "fact").filter {
+                val открытые = живые(область, "fact").filter {
                     it.doc.path("disposition").asText("") == "assumed" &&
                         it.doc.path("assumption").path("confirm_by").asText("") == точка
                 }
@@ -183,10 +192,10 @@ class DomainGateEvaluator(
             }
 
             "topics_resolved" -> {
-                val факты = store.list(область, "fact")
+                val факты = живые(область, "fact")
                 val сПринятыми = факты.filter { it.doc.path("disposition").asText("") == "adopted" }
                     .map { it.doc.path("topic").asText("") }.filter { it.isNotBlank() }.toSet()
-                val неразрешённые = store.list(область, "topic").filter {
+                val неразрешённые = живые(область, "topic").filter {
                     it.code in сПринятыми && it.doc.path("resolved_to").asText("").isBlank()
                 }
                 if (неразрешённые.isEmpty()) null
@@ -195,7 +204,7 @@ class DomainGateEvaluator(
             }
 
             "facts_consistent" -> {
-                val факты = store.list(область, "fact").associateBy { it.code }
+                val факты = живые(область, "fact").associateBy { it.code }
                 val споры = факты.values.filter { ф ->
                     ф.doc.path("disposition").asText("") == "adopted" &&
                         ф.doc.path("conflicts").any { к ->

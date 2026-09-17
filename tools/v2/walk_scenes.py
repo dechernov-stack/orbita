@@ -135,13 +135,44 @@ class Прогон:
                           {**self.сид["intent"], "author": "Чернов Д."}),
         )
 
+    def внести(self, понятие: str, путь: str, тело: dict) -> dict:
+        """Ввод сцен 3–6. На проекте поля знаний он идёт через сверку — те же
+        ворота «ввод не сверен», что и у руки инженера на экране: кандидат
+        сверяется, новое заводится со ссылкой на сверку и решением, узнанное
+        принятое второй раз не заводится."""
+        try:
+            return вызов(self.base, "POST", путь, тело)
+        except Отказ as о:
+            if "не сверен" not in str(о):
+                raise
+        содержимое = {k: v for k, v in тело.items() if k not in ("author", "reconcile", "decision")}
+        if понятие == "need" and "owner" in содержимое:
+            содержимое["stakeholder"] = содержимое.pop("owner")
+        if понятие in ("goal", "service") and "covers" in содержимое:
+            содержимое["needs"] = содержимое.pop("covers")
+        сверка = вызов(self.base, "POST", f"/v2/reconcile?project={self.проект}", {
+            "candidates": [{"local_id": "c1", "concept": понятие, "payload": содержимое}],
+            "author": тело.get("author", "Иванов И."), "role": "ведущий СИ",
+        })
+        строки = сверка.get("items") or []
+        if not строки:
+            raise Отказ(f"сверка не разобрала ввод «{понятие}»: {'; '.join(сверка.get('refused') or ['причина не названа'])}")
+        строка = строки[0]
+        if строка.get("verdict") != "new":
+            # Узнано принятое: заводить второй раз нечего — это и есть ответ ворот.
+            цель = next((н.get("target") for н in строка.get("findings", []) if н.get("target")), None)
+            return {"code": цель, "verdict": строка.get("verdict")}
+        return вызов(self.base, "POST", путь, {
+            **тело, "reconcile": f"{сверка['run']}#c1", "decision": "новое — принято прогоном сцен",
+        })
+
     def сцена_3_стороны_и_нужды(self) -> None:
         for сторона in self.сид["stakeholders"]:
             self.шаг(
                 f"сцена 3: сторона «{сторона['name']}»",
                 self.код_по_имени("stakeholder", сторона["name"]) is not None,
-                lambda с=сторона: вызов(self.base, "POST", f"/v2/stakeholders?project={self.проект}",
-                                        {**с, "author": "Иванов И."}),
+                lambda с=сторона: self.внести("stakeholder", f"/v2/stakeholders?project={self.проект}",
+                                              {**с, "author": "Иванов И."}),
             )
         for нужда in self.сид["needs"]:
             носитель = self.код_по_имени("stakeholder", нужда["owner"])
@@ -150,8 +181,8 @@ class Прогон:
             self.шаг(
                 f"сцена 3: нужда «{нужда['statement'][:40]}…»",
                 self.код_по_имени("need", нужда["statement"]) is not None,
-                lambda н=нужда, к=носитель: вызов(
-                    self.base, "POST", f"/v2/needs?project={self.проект}",
+                lambda н=нужда, к=носитель: self.внести(
+                    "need", f"/v2/needs?project={self.проект}",
                     {"statement": н["statement"], "owner": к, "author": "Иванов И."}),
             )
 
@@ -161,8 +192,8 @@ class Прогон:
             self.шаг(
                 f"сцена 4: цель «{цель['statement'][:40]}…»",
                 self.код_по_имени("goal", цель["statement"]) is not None,
-                lambda ц=цель: вызов(self.base, "POST", f"/v2/goals?project={self.проект}",
-                                     {**ц, "covers": нужды, "author": "Иванов И."}),
+                lambda ц=цель: self.внести("goal", f"/v2/goals?project={self.проект}",
+                                           {**ц, "covers": нужды, "author": "Иванов И."}),
             )
 
     def сцена_5_ограничения(self) -> None:
@@ -170,8 +201,8 @@ class Прогон:
             self.шаг(
                 f"сцена 5: ограничение «{о['text'][:40]}…»",
                 self.код_по_имени("constraint", о["text"]) is not None,
-                lambda г=о: вызов(self.base, "POST", f"/v2/constraints?project={self.проект}",
-                                  {**г, "author": "Иванов И."}),
+                lambda г=о: self.внести("constraint", f"/v2/constraints?project={self.проект}",
+                                        {**г, "author": "Иванов И."}),
             )
 
     def сцена_6_сервисы(self) -> None:
@@ -180,8 +211,8 @@ class Прогон:
             self.шаг(
                 f"сцена 6: сервис «{с['name']}»",
                 self.код_по_имени("service", с["name"]) is not None,
-                lambda в=с: вызов(self.base, "POST", f"/v2/services?project={self.проект}",
-                                  {**в, "covers": нужды, "author": "Иванов И."}),
+                lambda в=с: self.внести("service", f"/v2/services?project={self.проект}",
+                                     {**в, "covers": нужды, "author": "Иванов И."}),
             )
         # Класс обслуживания покрытой нужды — выход ЭТОЙ сцены (решение
         # владельца 12.09): до неё нужда несёт TBR, здесь класс назначается.

@@ -355,6 +355,12 @@ class ReconcileManualInputTest {
 
         val виды = заведено.map { store.byCode(область, it)!!.kind }.sorted()
         assertEquals(listOf("intent", "risk"), виды)
+        // Приём сверкой — и есть решение о замысле: запись рождается принятой,
+        // со штампом; иначе сцена 2 остаётся открытой, а 3–12 — запертыми.
+        val замыселЗапись = store.byCode(область, заведено.first())!!
+        assertEquals("accepted", замыселЗапись.status, "замысел принят решением")
+        assertEquals(автор, замыселЗапись.doc.path("accepted_by").asText())
+        assertTrue(замыселЗапись.doc.path("accepted_at").asText().isNotBlank())
         val записьРиска = store.byCode(область, заведено.last())!!.doc
         assertTrue(записьРиска.path("probability").isMissingNode, "вероятность пуста — её ставит человек на сцене 11")
     }
@@ -410,6 +416,21 @@ class ReconcileManualInputTest {
         val запуск = сверка.preview(проект, listOf(Candidate("c1", "goal", содержимое)), автор, роль)
 
         assertTrue(запуск.items.single().verdict != Verdict.NEW, "повтор цели узнан: ${запуск.items.single().verdict}")
+    }
+
+    @Test
+    fun `цель без показателя сверяется как утверждение, а не отбивается`() {
+        // Цель без величины — не «величина без единицы»: кандидат-факт у неё
+        // утверждение. Прежде такой ввод исчезал из сверки («кандидатов 0»).
+        val кандидат = Candidate(
+            "c1", "goal",
+            mapper.createObjectNode().put("statement", "отслеживаемость перевозок доведена до перечня").put("year", "2033"),
+        )
+
+        val запуск = сверка.preview(проект, listOf(кандидат), автор, роль)
+
+        assertTrue(запуск.refused.isEmpty(), "цель без показателя разобрана: ${запуск.refused}")
+        assertEquals(1, запуск.items.size)
     }
 
     @Test

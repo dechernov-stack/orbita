@@ -26,7 +26,9 @@ import urllib.request
 
 КУКИ = "orbita_session"
 # учётка стенда → роль «от имени» на стенде с одной учёткой владельца
-РОЛИ = {"chernov": None, "ivanov": "lead_se", "petrova": "specialist"}
+# chernov — руководитель проекта: точки (обзор, замечания, KDP) отвечают 403
+# учётке без роли «от имени» (216, 17.09).
+РОЛИ = {"chernov": "lead", "ivanov": "lead_se", "petrova": "specialist"}
 
 
 def _файл_сессии(base: str) -> pathlib.Path:

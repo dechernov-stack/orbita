@@ -115,6 +115,31 @@ class SceneGateTest {
     }
 
     @Test
+    fun `снятая с учёта сторона сцену 3 не держит`() {
+        // «Отменить пакет» ставит cancelled; проверка выхода считала такие
+        // записи живыми — «нужд без цели: 60» при 33 живых (216, 17.09).
+        val id = идПроекта()
+        store.create("INT-0004", "intent", область, "2",
+            mapper.readTree("""{"for_whom":"перевозчики"}"""), провенанс, status = "accepted")
+        (1..3).forEach { n ->
+            val сторона = store.create("SK-000$n", "stakeholder", область, "3",
+                mapper.readTree("""{"name":"Сторона $n","role":"customer"}"""), провенанс)
+            val нужда = store.create("ND-000$n", "need", область, "3",
+                mapper.readTree("""{"statement":"нужда $n"}"""), провенанс)
+            links.link("owns", сторона.id, нужда.id, провенанс)
+        }
+        val призрак = store.create("SK-0009", "stakeholder", область, "3",
+            mapper.readTree("""{"name":"Снятая сторона","role":"customer"}"""), провенанс)
+        store.update(призрак.id, призрак.doc, провенанс, status = "cancelled")
+
+        val сцена3 = движок.view(id).scenes.single { it.key == "3" }
+        assertTrue(
+            сцена3.blockers.none { "Снятая сторона" in it },
+            "снятое с учёта в проверке выхода не участвует: ${сцена3.blockers}",
+        )
+    }
+
+    @Test
     fun `стейкхолдер без нужды держит сцену 3 закрытой на выходе`() {
         val id = идПроекта()
         store.create("INT-0003", "intent", область, "2",

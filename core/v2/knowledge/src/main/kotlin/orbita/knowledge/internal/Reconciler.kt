@@ -290,9 +290,10 @@ internal class Reconciler(
         классОбслуживанияTBR(вид, документ, author)
         вычисляемые(понятие, документ)
         неполнота(вид, понятие, документ)
+        val статус = принятиеРешением(вид, понятие, документ, author)
         val сущность = store.create(
             код, вид, областьЗаписи, сцена(вид), документ,
-            Provenance(канал, author, source = кандидат.code),
+            Provenance(канал, author, source = кандидат.code), status = статус ?: "draft",
         )
 
         val связи = mutableListOf<String>()
@@ -578,7 +579,14 @@ internal class Reconciler(
             predicate = предикатПонятия(понятие),
             value = if (единица != null) значениеВеличины(величина!!) else текст,
             unit = единица,
-            kind = if (единица != null) "quantity" else видФакта(понятие),
+            // Величина без единицы фактом не бывает; понятие без величины
+            // (цель, у которой показатель ещё не назван) — утверждение, а не
+            // число: иначе сверка отбивала такую цель молча (216, 17.09).
+            kind = when {
+                единица != null -> "quantity"
+                видФакта(понятие) == "quantity" -> "framing"
+                else -> видФакта(понятие)
+            },
             topic = null,
             material = null,
             author = author,
@@ -916,6 +924,23 @@ internal class Reconciler(
             }
         }
         return снимок
+    }
+
+    /**
+     * Принятие решением: у понятия, чьи поля `accepted_by` · `accepted_at`
+     * онтология называет («ставит система при принятии решением»), приём
+     * сверкой И ЕСТЬ это решение — штамп ставится здесь, и запись рождается
+     * принятой. Иначе замысел из чтения оставался черновиком, сцена 2 —
+     * открытой, а сцены 3–12 — запертыми (копия ПМИ-7, 216, 17.09).
+     * Возвращает статус записи; null — статус по умолчанию вида.
+     */
+    private fun принятиеРешением(вид: String, понятие: Concept, документ: ObjectNode, author: String): String? {
+        if (ПРИНЯТ_КЕМ !in понятие.fields || ПРИНЯТ_КОГДА !in понятие.fields) return null
+        val модель = GeneratedKinds.byCode[вид]?.statusModel.orEmpty()
+        if (ПРИНЯТО !in модель.split("|").map { it.trim() }) return null
+        документ.put(ПРИНЯТ_КЕМ, author)
+        документ.put(ПРИНЯТ_КОГДА, java.time.OffsetDateTime.now().toString())
+        return ПРИНЯТО
     }
 
     /** Формулировка кандидата — то, что написал человек, дословно. */
@@ -1390,6 +1415,10 @@ internal class Reconciler(
          * формулировки у неё нет. Пока поля здесь не было, пять применимостей
          * из живого чтения записки отбивались «сверять нечего» (16.09).
          */
+        const val ПРИНЯТ_КЕМ: String = "accepted_by"
+        const val ПРИНЯТ_КОГДА: String = "accepted_at"
+        const val ПРИНЯТО: String = "accepted"
+
         val ПОЛЯ_ФОРМУЛИРОВКИ: List<String> =
             listOf("statement", "name", "designation", "label", "text", "external_item", "what")
 

@@ -97,6 +97,21 @@ class ReconcileRoutesTest {
     // --- батч одним вызовом ------------------------------------------------
 
     @Test
+    fun `непрошедший кандидат назван в ответе поимённо`() {
+        // «кандидатов 0» и ни слова почему: отказ сверки терялся между вводом
+        // и ответом, и прогон считал цель заведённой (216, 17.09).
+        порт.отказы = listOf("c1: величина без единицы — не факт: назовите единицу")
+
+        val ответ = маршруты.handle("POST", "/v2/reconcile", mapOf("project" to сПолем), тело(1))!!
+
+        assertEquals(201, ответ.code, ответ.body.toString())
+        assertEquals(
+            listOf("c1: величина без единицы — не факт: назовите единицу"),
+            ответ.body.path("refused").map { it.asText() },
+        )
+    }
+
+    @Test
     fun `десять кандидатов одним запросом дают один запуск и один вызов сверки`() {
         val ответ = маршруты.handle("POST", "/v2/reconcile", mapOf("project" to сПолем), тело(10))!!
 
@@ -371,10 +386,13 @@ class ReconcileRoutesTest {
             return итог
         }
 
+        /** Непрошедшие кандидаты — поимённо, как их называет сверка. */
+        var отказы: List<String> = emptyList()
+
         private fun запуск(предметы: List<ReconcileItem>) = ReconcileRun(
             id = "SR-0001", status = "done", sliceFingerprint = "f1a2",
             ontologyVersion = "0ab9", aiCalled = false, open = true, items = предметы,
-            note = "сверка ступени 1 без вызова службы",
+            note = "сверка ступени 1 без вызова службы", refused = отказы,
         )
 
         private fun предмет(номер: String) = ReconcileItem(
