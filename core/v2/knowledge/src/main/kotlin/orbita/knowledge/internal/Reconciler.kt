@@ -867,8 +867,16 @@ internal class Reconciler(
      * идентичности нужды держится на её коде: без приведения тот же ввод
      * второй раз не узнал бы сам себя.
      */
-    private fun снимокКандидата(область: Area, понятие: Concept, payload: JsonNode): ObjectNode {
-        val снимок = payload.deepCopy<JsonNode>() as ObjectNode
+    private fun снимокКандидата(область: Area, понятие: Concept, payload: JsonNode): ObjectNode =
+        ссылкиКодами(область, понятие, payload.deepCopy<JsonNode>() as ObjectNode)
+
+    /**
+     * Поля-ссылки — кодами, с ОБЕИХ сторон сравнения. Принятая нужда хранит
+     * носителя именем, кандидат называет его именем же, а ключ идентичности
+     * сравнивает коды: пока кодами становилась только сторона кандидата,
+     * повторный приём заводил тридцать три нужды вторым экземпляром (216, 17.09).
+     */
+    private fun ссылкиКодами(область: Area, понятие: Concept, снимок: ObjectNode): ObjectNode {
         обязательства(понятие).forEach { обязательство ->
             val вид = обязательство.вид ?: return@forEach
             val названные = имена(снимок, обязательство.поле)
@@ -890,7 +898,7 @@ internal class Reconciler(
      * дополнения её ключ не сложился бы вовсе.
      */
     private fun снимокСущности(область: Area, понятие: Concept, сущность: Entity): ObjectNode {
-        val снимок = сущность.doc.deepCopy<JsonNode>() as ObjectNode
+        val снимок = ссылкиКодами(область, понятие, сущность.doc.deepCopy<JsonNode>() as ObjectNode)
         обязательства(понятие).forEach { обязательство ->
             val связь = обязательство.связь ?: return@forEach
             if (имена(снимок, обязательство.поле).isNotEmpty()) return@forEach

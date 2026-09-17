@@ -55,18 +55,22 @@ class StatementImporter(
         val принято = intake.putFacts(project, material, mapper.writeValueAsString(следы), author)
         val свободные = принято.accepted.toMutableList()
 
-        val предложения = пункты.mapNotNull { пункт ->
-            val след = свободные.firstOrNull { ф ->
+        val предложения = пункты.withIndex().mapNotNull { (номер, пункт) ->
+            // Повторный импорт: факты уже лежат, приём называет их по номеру —
+            // иначе второй импорт эталона давал ноль предложений (216, 17.09).
+            val код = свободные.firstOrNull { ф ->
                 ф.anchor == пункт.anchor && ф.subject == пункт.субъект && ф.value == пункт.имя
-            }?.also { свободные.remove(it) } ?: return@mapNotNull null
-            val факт = store.byCode(область, след.id) ?: return@mapNotNull null
+            }?.also { свободные.remove(it) }?.id
+                ?: принято.repeated[номер]
+                ?: return@mapNotNull null
+            val факт = store.byCode(область, код) ?: return@mapNotNull null
             val поля = пункт.поля()
             FormationProposal(
                 concept = пункт.concept,
                 payload = поля,
                 basis = listOf(
                     Basis(
-                        factId = след.id, material = material, anchor = пункт.anchor,
+                        factId = код, material = material, anchor = пункт.anchor,
                         authority = факт.doc.path("authority").asText("").ifBlank { null },
                         mark = пункт.метка,
                     ),
