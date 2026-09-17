@@ -28,7 +28,9 @@ import urllib.request
 # учётка стенда → роль «от имени» на стенде с одной учёткой владельца
 # chernov — руководитель проекта: точки (обзор, замечания, KDP) отвечают 403
 # учётке без роли «от имени» (216, 17.09).
-РОЛИ = {"chernov": "lead", "ivanov": "lead_se", "petrova": "specialist"}
+РОЛИ = {"chernov": "lead", "ivanov": "lead_se", "petrova": "specialist", "da": "da_review"}
+# На стенде с учётками DA отдельной нет — точки решает учётка владельца.
+УЧЁТКИ_СТЕНДА = {"da": "chernov"}
 
 
 def _файл_сессии(base: str) -> pathlib.Path:
@@ -89,7 +91,7 @@ def войти(base: str, opener, учётка: str) -> str:
     """Вход учёткой стенда либо через Telegram с ролью «от имени». Возвращает режим."""
     кто = _кто(opener, base)
     if кто.get("mode") == "stand":
-        _вызов(opener, base, "POST", "/auth/stand-login", {"login": учётка})
+        _вызов(opener, base, "POST", "/auth/stand-login", {"login": УЧЁТКИ_СТЕНДА.get(учётка, учётка)})
         return "stand"
     if кто.get("mode") != "telegram":
         return "open" if not кто.get("enabled") else "unknown"

@@ -328,6 +328,28 @@ class Прогон:
                 lambda х=р: вызов(self.base, "POST", f"/v2/risks?project={self.проект}",
                                   {**х, "author": "Иванов И."}),
             )
+        # Риски, пришедшие из документа (чтение · эталон), несут только
+        # формулировку и класс — оценку и срок-точку ставит человек на этой
+        # сцене (истина: «вероятность и последствия 1–5 — ставит человек»).
+        # Прогон делает это за него значениями сида: без срока-точки сцена
+        # 11 не закрывается, и KDP-A не наступает (копия ПМИ-7, 216, 17.09).
+        образец = self.сид["risks"][0] if self.сид.get("risks") else {}
+        # Перечень рисков показывает пустое поле прочерком, а число — нулём.
+        пусто = lambda з: з in (None, "", "—", 0)  # noqa: E731
+        for р in вызов(self.base, "GET", f"/v2/risks?project={self.проект}").get("items", []):
+            if not пусто(р.get("due_point")):
+                continue
+            поля = {к: образец[к] for к in ("probability", "impact", "strategy", "owner", "due_point")
+                    if к in образец and пусто(р.get(к))}
+            if not р.get("measures") and образец.get("measures"):
+                поля["measures"] = образец["measures"]
+            self.шаг(
+                f"сцена 11: оценка и срок-точка риску {р['code']}", False,
+                lambda к=р["code"], п=поля: вызов(
+                    self.base, "PATCH", f"/v2/entities/{к}?project={self.проект}",
+                    {"fields": п, "author": "Иванов И.", "reason": "оценка риска и срок-точка поставлены на сцене 11"},
+                ),
+            )
         осз = вызов(self.base, "GET", f"/v2/oda?project={self.проект}").get("items", [])
         for о in self.сид["oda"]:
             self.шаг(
@@ -589,8 +611,12 @@ class Прогон:
             return
         if точка["blocking"]:
             raise Отказ("MCR держится: " + "; ".join(точка["blocking"]))
+        # Решение по точке — роль из шаблона фазы (MCR · KDP-A — DA): на стенде
+        # с одной учёткой владельца это роль «от имени», а не сама учётка.
+        self.войти("da")
         вызов(self.base, "POST", f"/v2/points/MCR/decide?project={self.проект}",
               {"outcome": "approve", "note": "экспертиза: замысел понят"})
+        self.войти("chernov")
         self.сделано.append("сцена 16: MCR зафиксирован DA")
 
     def сцена_17_замечания(self) -> None:
@@ -632,6 +658,7 @@ class Прогон:
             return
         if точка["blocking"]:
             raise Отказ("KDP-A держится: " + "; ".join(точка["blocking"]))
+        self.войти("da")
         ответ = вызов(self.base, "POST", f"/v2/points/KDP-A/decide?project={self.проект}",
                       {"outcome": "approve", "note": "переход в Phase A"})
         if ответ.get("phase") != "Phase A":
