@@ -83,6 +83,24 @@ class KnowledgeFieldRoutesTest {
         проект(безПоля, "Проход ПМИ-5", поле = false)
     }
 
+    @Test
+    fun `снятое с учёта в перечне сцены не живёт`() {
+        // «Отменить пакет» ставит заведённому статус cancelled, а перечень
+        // сцены брал всё подряд: после отмены на экране оставались 33
+        // нужды-призрака (216, 17.09).
+        val область = Area.Project(сПолем)
+        store.create("ND-0001", "need", область, "3",
+            mapper.createObjectNode().put("statement", "связь в Арктике"), провенанс)
+        val снятая = store.create("ND-0002", "need", область, "3",
+            mapper.createObjectNode().put("statement", "связь на Севморпути"), провенанс)
+        store.update(снятая.id, снятая.doc, провенанс, status = "cancelled")
+
+        val ответ = assertNotNull(сквозные.handle("GET", "/v2/entities", mapOf("project" to сПолем, "kind" to "need"), null))
+
+        assertEquals(200, ответ.code, ответ.body.toString())
+        assertEquals(listOf("ND-0001"), ответ.body.path("items").map { it.path("code").asText() })
+    }
+
     private fun проект(код: String, имя: String, поле: Boolean) {
         val документ = mapper.createObjectNode().put("name", имя)
         if (поле) документ.put("knowledge_v2", true)

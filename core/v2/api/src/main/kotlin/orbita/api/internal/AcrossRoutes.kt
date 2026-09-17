@@ -284,7 +284,9 @@ class AcrossRoutes(
     private fun перечень(проект: String, вид: String): V2Router.Ответ {
         val область = Area.Project(проект)
         val массив = mapper.createArrayNode()
-        store.list(область, вид).forEach { сущность ->
+        // Снятое с учёта («Отменить пакет») в перечне сцены не живёт: иначе
+        // после отмены на экране оставались 33 нужды-призрака (216, 17.09).
+        store.list(область, вид).filter { it.status != СНЯТО }.forEach { сущность ->
             val узел = массив.addObject()
             узел.put("id", сущность.id)
             узел.put("code", сущность.code)
@@ -316,3 +318,6 @@ class AcrossRoutes(
     private fun требуется(query: Map<String, String>, имя: String): String =
         query[имя] ?: throw IllegalArgumentException("нужен параметр «$имя»")
 }
+
+/** Статус снятого с учёта — тот же, что ставит отмена пакета. */
+private const val СНЯТО: String = "cancelled"

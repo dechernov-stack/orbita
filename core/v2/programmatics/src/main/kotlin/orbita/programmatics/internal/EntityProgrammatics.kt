@@ -282,7 +282,7 @@ class EntityProgrammatics(
     }
 
     override fun risks(project: String): List<RiskView> =
-        store.list(Area.Project(project), "risk").map { риск ->
+        store.list(Area.Project(project), "risk").filter { it.status != "cancelled" }.map { риск ->
             RiskView(
                 code = риск.code,
                 statement = риск.doc.path("statement").asText(риск.code),
