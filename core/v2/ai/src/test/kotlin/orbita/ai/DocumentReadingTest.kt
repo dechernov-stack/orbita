@@ -30,6 +30,21 @@ import kotlin.test.assertTrue
 class DocumentReadingTest {
 
     private val mapper = ObjectMapper()
+
+    @Test
+    fun `схема чтения требует связи с нуждами у целей и сервисов и цитату у замысла`() {
+        // ПМИ-7 на 216: 0 из 9 целей пришли с `needs`, замысел — без цитаты; всё
+        // это ворота отбивают ПОСЛЕ ответа. Схема обязана требовать сразу:
+        // истина «covers→need>=1» у цели и сервиса, цитата у каждого пункта.
+        val схема = orbita.ai.internal.AnswerSchemas.чтение(mapper, listOf("stakeholders", "goals", "services"))
+        val свойства = схема.path("properties")
+        fun обязательные(путь: String): List<String> =
+            свойства.path(путь).path("items").path("required").map { it.asText() }
+        assertTrue("needs" in обязательные("goals"), "цель: needs обязателен, а не подсказка")
+        assertTrue("needs" in обязательные("services"), "сервис: needs обязателен")
+        val замысел = свойства.path("intent").path("required").map { it.asText() }
+        assertTrue("quote" in замысел, "замысел: цитата обязательна — без неё пункт не выписывается")
+    }
     private val store: EntityStore = ПамятьПоля()
     private val знания = KnowledgeFactory.intake(store, null, mapper)
     private val транспорт = КаналЧтения()

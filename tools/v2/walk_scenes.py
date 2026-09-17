@@ -979,7 +979,9 @@ def main() -> int:
     сид = json.loads(СИД.read_text(encoding="utf-8"))
     проект = args.project or сид["code"]
 
-    вызов(args.base, "POST", "/auth/stand-login", {"login": "chernov"})
+    # Вход тем же путём, что и внутри сцен: учётка стенда либо Telegram с ролью
+    # «от имени» (ORBITA_SESSION) — прямой stand-login на стенде 216 отвечает 404.
+    stand_session.войти(args.base, _opener, "chernov")
     if not args.report:
         прогон = Прогон(args.base, проект, сид, точки=args.points, знания=args.knowledge, фазаA=args.phase_a)
         try:

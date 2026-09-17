@@ -219,7 +219,8 @@ internal object AnswerSchemas {
 
     /** Замысел устава: четыре поля цитатами. Один на проект (истина, `intent`). */
     private fun замысел(mapper: ObjectMapper): ObjectNode {
-        val узел = объект(mapper, обязательные = listOf("for_whom", "what", "where", "horizon", "anchor"))
+        // Цитата обязательна: замысел без цитаты ворота не пропускают (216: «цитаты нет»).
+        val узел = объект(mapper, обязательные = listOf("for_whom", "what", "where", "horizon", "quote", "anchor"))
         поле(узел, "for_whom", строка(mapper, "для кого — словами устава"))
         поле(узел, "what", строка(mapper, "что делает система; и чего НЕ делает, если сказано"))
         поле(узел, "where", строка(mapper, "где: география и приоритеты"))
@@ -333,7 +334,9 @@ internal object AnswerSchemas {
     }
 
     private fun цель(mapper: ObjectMapper): ObjectNode {
-        val узел = пункт(mapper, обязательные = listOf("statement", "value", "unit", "year"))
+        // `needs` обязателен: истина «covers→need>=1» — цель без нужды не ставится
+        // в постановку, а ждёт связи; модель обязана назвать её сразу (ПМИ-7, 216: 0 из 9).
+        val узел = пункт(mapper, обязательные = listOf("statement", "value", "unit", "year", "needs"))
         поле(узел, "statement", строка(mapper, "измеримый результат"))
         поле(узел, "value", строка(mapper, "ЧИСЛО без единицы, как в тексте; диапазон — как диапазон"))
         поле(
@@ -398,7 +401,7 @@ internal object AnswerSchemas {
     }
 
     private fun сервис(mapper: ObjectMapper): ObjectNode {
-        val узел = пункт(mapper, обязательные = listOf("name"))
+        val узел = пункт(mapper, обязательные = listOf("name", "needs"))
         поле(узел, "name", строка(mapper, "что система даёт"))
         поле(узел, "needs", массив(mapper, ссылка(mapper, "нужда, которую сервис закрывает")))
         поле(узел, "qos_class", строка(mapper, "класс обслуживания, если назван"))
