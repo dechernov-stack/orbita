@@ -134,7 +134,7 @@ object GeneratedOntology {
      * Отпечаток истины онтологии (sha256 файла). Им помечается каждый запуск
      * синтеза: по нему видно, по каким правилам сделано предложение.
      */
-    const val ontologyVersion: String = "0a31414520d244245bd17d6bb08c63c4bd44139fc481e85c67565384e6ab74c5"
+    const val ontologyVersion: String = "6917db14c8d6052f06da263e2e0b39d0b2c9c381c6434c4a35fd9eb0ea351ff1"
 
     /** Ранги доверия по убыванию веса — ранг подсказывает, решает человек. */
     val authorityRanks: List<String> = listOf("mandatory", "expert", "reference", "doubtful")
@@ -387,6 +387,8 @@ object GeneratedOntology {
                 "what" to "",
                 "where" to "",
                 "horizon" to "",
+                "accepted_by" to "ставит система при принятии решением",
+                "accepted_at" to "ставит система при принятии решением",
             ),
             mustLink = emptyList(),
             conflictOn = emptyList(),
@@ -435,6 +437,10 @@ object GeneratedOntology {
                 "category" to "technical|cost|schedule|safety|regulatory|security|programmatic",
                 "owner" to "пусто — ставит человек",
                 "due_point" to "пусто — ставит человек",
+                "probability" to "пусто — ставит человек (1–5, сцена 11)",
+                "impact" to "пусто — ставит человек (1–5, сцена 11)",
+                "strategy" to "пусто — ставит человек (сцена 11)",
+                "measures" to "мера снижения из документа, если названа; иначе пусто — ставит человек",
             ),
             mustLink = emptyList(),
             conflictOn = emptyList(),

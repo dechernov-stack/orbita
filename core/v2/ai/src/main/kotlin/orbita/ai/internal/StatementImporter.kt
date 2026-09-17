@@ -104,11 +104,27 @@ class StatementImporter(
                     значение.isValueNode -> значение.asText("")
                     // Ссылка эталона на нужду — формулировкой (need_ref.statement).
                     ключ == "need_ref" -> значение.path("statement").asText("")
+                    // Грань замысла в эталоне — {text, anchors}: в поле идёт текст.
+                    concept == "intent" && значение.has("text") -> значение.path("text").asText("")
                     значение.isArray && ключ == "interest" -> значение.joinToString("; ") { it.asText("") }
                     else -> значение.toString()
                 }
                 if (текст.isNotBlank()) поля[ключ] = текст
             }
+            if (concept == "milestone") {
+                // Этап записки — программный этап (истина: «веха из устава — только
+                // этап проекта (program_stage)»); «span» эталона — «range» схемы.
+                поля.putIfAbsent("kind", "program_stage")
+                узел.path("span").takeIf { it.isObject }?.let { п ->
+                    поля["range"] = mapOf(
+                        "start" to п.path("min").asText(""), "end" to п.path("max").asText(""), "unit" to п.path("unit").asText(""),
+                    ).let { д -> "{" + д.entries.joinToString(",") { "\"${it.key}\":\"${it.value}\"" } + "}" }
+                    поля.remove("span")
+                }
+            }
+            // Мера снижения эталона — поле «measures» схемы; вероятность и
+            // последствия эталон пишет словами, а схема ждёт 1–5 от человека.
+            if (concept == "risk") поля.remove("mitigation")?.let { поля["measures"] = it }
             if (concept == "service" && поля["need_ref"] != null) {
                 поля["needs"] = поля.remove("need_ref")!!
             }
@@ -212,7 +228,7 @@ class StatementImporter(
         val СЛУЖЕБНЫЕ: Set<String> = setOf(
             "anchors", "source", "source_mark", "mark", "shared", "class", "measure_text", "target_text",
             "note", "code", "priority", "verification_method", "rationale", "acceptance_criteria", "tags",
-            "probability", "impact", "mitigation", "result", "kind",
+            "probability", "impact", "result",
         )
         val РОЛИ: Map<String, String> = mapOf(
             "заказчик" to "customer", "регулятор" to "regulator", "оператор" to "operator",

@@ -1157,7 +1157,12 @@ internal class Reconciler(
             ?: store.byCode(Area.Library, искомое)
         if (поКоду != null && (вид == null || поКоду.kind == вид)) return поКоду
         val список = if (вид == null) store.list(область) else store.list(где, вид)
-        return список.firstOrNull { it.doc.path("name").asText("").trim().equals(искомое, ignoreCase = true) }
+        // Имя — любое поле формулировки, а не только `name`: нужда названа
+        // `statement`, и сервис ссылается на неё формулировкой. До 17.09 такая
+        // связь не закрывалась никогда — «сервис без нужды» на каждом приёме.
+        return список.firstOrNull { запись ->
+            ПОЛЯ_ФОРМУЛИРОВКИ.any { поле -> запись.doc.path(поле).asText("").trim().equals(искомое, ignoreCase = true) }
+        }
     }
 
     private fun факт(область: Area, запись: JsonNode): Entity? =
@@ -1362,7 +1367,7 @@ internal class Reconciler(
          * из живого чтения записки отбивались «сверять нечего» (16.09).
          */
         val ПОЛЯ_ФОРМУЛИРОВКИ: List<String> =
-            listOf("statement", "name", "designation", "label", "text", "external_item")
+            listOf("statement", "name", "designation", "label", "text", "external_item", "what")
 
         /** Метка запуска сверки: вид общий с синтезом, а списки — разные. */
         const val МЕТКА = "reconcile"

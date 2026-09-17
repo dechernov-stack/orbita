@@ -256,6 +256,7 @@ internal object AnswerSchemas {
         поле(cec, "event", строка(mapper, "что происходит"))
         поле(cec, "consequence", строка(mapper, "чем это кончится"))
         поле(узел, "cec", cec)
+        поле(узел, "measures", строка(mapper, "мера снижения, если названа в тексте (колонка «мера снижения»)"))
         return узел
     }
 

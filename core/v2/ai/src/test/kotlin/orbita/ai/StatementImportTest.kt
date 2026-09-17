@@ -70,6 +70,26 @@ class StatementImportTest {
     }
 
     @Test
+    fun `замысел плоско, этап с родом и диапазоном, риск с мерой — полями схемы`() {
+        // На копии ПМИ-7 (216, 17.09) из эталона не завелись замысел, четыре этапа
+        // и двенадцать рисков: грань замысла ехала JSON-объектом, у этапа не было
+        // рода, мера снижения не ложилась в «measures».
+        val материал = проект()
+        val запуск = импорт.import(ПРОЕКТ, материал, mapper.readTree(эталон), АВТОР, синтез)
+        val всё = запуск.diff.new
+
+        val замысел = всё.single { it.concept == "intent" }.payload
+        assertTrue(!замысел.getValue("what").startsWith("{"), "грань замысла — текст, не объект: ${замысел["what"]}")
+        val этап = всё.first { it.concept == "milestone" }.payload
+        assertEquals("program_stage", этап["kind"], "этап записки — программный этап")
+        assertTrue(этап.getValue("range").contains("\"unit\""), "span эталона — range схемы: ${этап["range"]}")
+        assertTrue("span" !in этап, "поля вне схемы вида нет")
+        val риск = всё.first { it.concept == "risk" }.payload
+        assertTrue(риск.getValue("measures").isNotBlank(), "мера снижения — полем measures")
+        assertTrue("probability" !in риск && "mitigation" !in риск, "слова эталона о вероятности схеме не подходят: ставит человек")
+    }
+
+    @Test
     fun `якорь эталона ремапится на канон стенда по номеру раздела`() {
         val материал = проект()
 

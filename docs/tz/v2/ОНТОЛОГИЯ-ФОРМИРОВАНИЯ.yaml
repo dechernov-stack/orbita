@@ -321,6 +321,8 @@ concepts:
       what: ''
       where: ''
       horizon: ''
+      accepted_by: ставит система при принятии решением
+      accepted_at: ставит система при принятии решением
     must_link: []
     identity:
       key:
@@ -366,6 +368,10 @@ concepts:
       category: technical|cost|schedule|safety|regulatory|security|programmatic
       owner: пусто — ставит человек
       due_point: пусто — ставит человек
+      probability: пусто — ставит человек (1–5, сцена 11)
+      impact: пусто — ставит человек (1–5, сцена 11)
+      strategy: пусто — ставит человек (сцена 11)
+      measures: мера снижения из документа, если названа; иначе пусто — ставит человек
     must_link: []
     identity:
       key:
