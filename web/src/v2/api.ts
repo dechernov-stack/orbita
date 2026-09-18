@@ -985,6 +985,17 @@ export interface SynthesisAccepted {
 }
 
 /** Понятие онтологии формирования: им экран объясняет, откуда взялось предложение. */
+/** Истина СХЕМ о виде понятия: чем правку предложения и наполняет экран. */
+export interface FormationKind {
+  code: string
+  title: string
+  fields: string[]
+  required: string[]
+  measures: string[]
+  fact_refs: string[]
+  enums: Record<string, string[]>
+}
+
 export interface FormationConcept {
   code: string
   note: string
@@ -992,6 +1003,8 @@ export interface FormationConcept {
   must_link: string[]
   conflict_on: string[]
   identity: { key: string[]; semantic: string; threshold: number }
+  /** Пусто — у понятия своего вида нет (допущение ложится на факт). */
+  kind?: FormationKind
 }
 
 export interface FormationOntology {
@@ -1674,10 +1687,16 @@ export const api = {
     author: string,
     reason?: string,
     role?: string,
+    /**
+     * Правки полей предложений до приёма: {предложение: {поле: значение}}.
+     * Проверяет их сервер истиной схем — поле вне вида и значение вне
+     * перечня отбиваются словами.
+     */
+    edits?: Record<string, Record<string, string>>,
   ) =>
     вызов<SynthesisAccepted>(
       `/synthesis/runs/${encodeURIComponent(run)}/accept?project=${encodeURIComponent(project)}`,
-      { method: 'POST', body: JSON.stringify({ chosen, author, reason, role }) }),
+      { method: 'POST', body: JSON.stringify({ chosen, author, reason, role, edits }) }),
 
   /**
    * Прочитать документ в постановку ОДНИМ вызовом (РЕШЕНИЕ-ЧИТАТЬ-СМЫСЛ).

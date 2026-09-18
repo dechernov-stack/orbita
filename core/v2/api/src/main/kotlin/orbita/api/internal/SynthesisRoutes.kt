@@ -131,11 +131,13 @@ class SynthesisRoutes(
         require(выбранные.isNotEmpty()) {
             "не выбрано ни одного предложения: отметьте строки дифа — синтез сам ничего не заводит"
         }
+        val правки = тело.path("edits").takeIf { it.isObject }
         val кандидаты = выбранные.map { имя ->
             val предложение = карта[имя]
                 ?: throw IllegalArgumentException("предложения «$имя» в «${итог.id}» нет: обновите диф")
             Candidate(
-                имя, предложение.concept, содержимое(предложение), CandidateOrigin.SYNTHESIS,
+                имя, предложение.concept,
+                сПравкой(предложение, правки?.path(имя)), CandidateOrigin.SYNTHESIS,
                 // Основание предложения — факт документа: им кандидат и сверяется.
                 basis = предложение.basis.firstOrNull()?.factId,
             )
@@ -159,7 +161,10 @@ class SynthesisRoutes(
         val связи = узел.putArray("links")
         val факты = узел.putArray("facts")
         val ждут = узел.putArray("pending")
-        val причина = тело.path("reason").asText("").ifBlank { "принято из синтеза $синтез" }
+        val сПравками: List<String> = тело.path("edits").takeIf { it.isObject }
+            ?.properties()?.map { it.key }.orEmpty()
+        val причина = тело.path("reason").asText("").ifBlank { "принято из синтеза $синтез" } +
+            (if (сПравками.isEmpty()) "" else "; с правкой инженера: ${сПравками.joinToString(" · ")}")
         // Кандидат, которого сверка не разобрала, обязан быть НАЗВАН. До 16.09
         // такие исчезали между выбором человека и ответом сервера: из 82
         // выбранных до сверки доходили 68, и на экране это выглядело как
@@ -319,6 +324,21 @@ class SynthesisRoutes(
                 .put("semantic", понятие.identity?.semantic ?: "")
                 .put("threshold", понятие.identity?.threshold ?: 0.0)
             массив(узнаётся, "key", понятие.identity?.key ?: emptyList())
+            // Истина СХЕМ о виде: какие поля у него есть, какие обязательны,
+            // какие значения перечислены. Без этого экран не мог дать правку
+            // предложения — «нет редактируемых полей» (проход владельца 18.09).
+            понятие.targetKindCode?.let { код ->
+                orbita.kernel.schema.GeneratedKinds.byCode[код]?.let { вид ->
+                    val спец = у.putObject("kind")
+                    спец.put("code", вид.code).put("title", вид.title)
+                    массив(спец, "fields", вид.fields)
+                    массив(спец, "required", вид.requiredFields)
+                    массив(спец, "measures", вид.measures)
+                    массив(спец, "fact_refs", вид.factRefFields)
+                    val перечни = спец.putObject("enums")
+                    вид.enums.forEach { (поле, значения) -> массив(перечни, поле, значения) }
+                }
+            }
         }
         return V2Router.Ответ(200, узел)
     }
@@ -388,6 +408,42 @@ class SynthesisRoutes(
             }
         }
         return карта
+    }
+
+    /**
+     * Содержимое предложения С ПРАВКОЙ ИНЖЕНЕРА, если он её сделал.
+     *
+     * Предложение — не приговор: до приёма человек правит поля прямо в дифе
+     * (проход владельца 18.09: «во вкладке Постановка нет редактируемых
+     * полей»). Правка проверяется истиной СХЕМ, а не доверием: поля вне вида
+     * и значения вне перечня отбиваются словами. Пустое значение снимает
+     * поле — кроме обязательного, его меняют, а не снимают.
+     */
+    private fun сПравкой(п: FormationProposal, правка: JsonNode?): ObjectNode {
+        val содержимое = содержимое(п)
+        if (правка == null || !правка.isObject || правка.isEmpty) return содержимое
+        val вид = GeneratedOntology.byCode[п.concept]?.targetKindCode
+            ?.let { orbita.kernel.schema.GeneratedKinds.byCode[it] }
+        val известные = (вид?.fields.orEmpty() + GeneratedOntology.byCode[п.concept]?.fields?.keys.orEmpty()).toSortedSet()
+        правка.properties().forEach { (поле, значение) ->
+            require(известные.isEmpty() || поле in известные) {
+                "поля «$поле» у понятия «${п.concept}» нет: истина знает ${известные.joinToString(" · ")}"
+            }
+            val перечень = вид?.enums?.get(поле).orEmpty()
+            val текст = if (значение.isValueNode) значение.asText("").trim() else ""
+            require(перечень.isEmpty() || значение.isObject || текст.isBlank() || текст in перечень) {
+                "значение «$текст» полю «$поле» не подходит: перечень истины — ${перечень.joinToString(" · ")}"
+            }
+            if (значение.isNull || (значение.isValueNode && текст.isBlank())) {
+                require(вид == null || поле !in вид.requiredFields) {
+                    "поле «$поле» обязательно у вида «${вид?.code}» — его меняют, а не снимают"
+                }
+                содержимое.remove(поле)
+            } else {
+                содержимое.set<JsonNode>(поле, if (значение.isValueNode) значениеУзлом(текст) else значение)
+            }
+        }
+        return содержимое
     }
 
     private fun содержимое(п: FormationProposal): ObjectNode =

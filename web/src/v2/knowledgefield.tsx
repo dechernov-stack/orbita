@@ -1833,6 +1833,13 @@ function Постановка({ project, онтология, onChanged, expert =
    * меняет. Половина — отправная точка, а не правило.
    */
   const [порог, setПорог] = useState(0.5)
+  /**
+   * Правки предложений до приёма: {предложение: {поле: значение}}. Владелец
+   * 18.09: «во вкладке Постановка нет редактируемых полей» — предложение не
+   * приговор, поля правятся здесь и уезжают вместе с приёмом. Что можно
+   * править и какие значения перечислены, говорит истина схем (`kind`).
+   */
+  const [правки, setПравки] = useState<Record<string, Record<string, string>>>({})
 
 
   const прочитать = useCallback(() => {
@@ -1942,8 +1949,8 @@ function Постановка({ project, онтология, onChanged, expert =
         + ' Приём обратим целиком: «Отменить пакет» вернёт всё.',
       ok: 'Принять пакет',
       input: { label: 'почему берём', placeholder: 'основание решения' },
-      onOk: (повод) => api.acceptSynthesis(project, запуск.id, коды, 'инженер', повод || undefined)
-        .then((и) => { setИтог(и); setОтмечены([]); onChanged(); прочитать() })
+      onOk: (повод) => api.acceptSynthesis(project, запуск.id, коды, 'инженер', повод || undefined, undefined, правкиДля(коды))
+        .then((и) => { setИтог(и); setОтмечены([]); setПравки({}); onChanged(); прочитать() })
         .catch((e) => setОтказ(отказПодробно(e))),
     })
   }
@@ -1961,6 +1968,35 @@ function Постановка({ project, онтология, onChanged, expert =
     })
   }
 
+  /** Истина схем о виде понятия: поля, обязательные и перечни значений. */
+  const видПонятия = (понятие: string) => онтология?.concepts.find((к) => к.code === понятие)?.kind
+
+  /** Правки только выбранных строк: чужих в приём не отправляем. */
+  const правкиДля = (коды: string[]): Record<string, Record<string, string>> | undefined => {
+    const свои = Object.fromEntries(
+      Object.entries(правки).filter(([код, поля]) => коды.includes(код) && Object.keys(поля).length > 0),
+    )
+    return Object.keys(свои).length === 0 ? undefined : свои
+  }
+
+  const правитьПоле = (предложение: string, поле: string, значение: string) => {
+    setПравки((было) => ({ ...было, [предложение]: { ...(было[предложение] ?? {}), [поле]: значение } }))
+    setОтмечены((было) => (было.includes(предложение) ? было : [...было, предложение]))
+  }
+
+  /**
+   * Поля строки правки: что предложение уже несёт плюс обязательные поля
+   * вида, которых у него нет (их и спрашивает своя сцена). Величины и
+   * поля-ссылки правятся не здесь — у них своя форма на сцене.
+   */
+  const поляПравки = (п: FormationProposal): string[] => {
+    const вид = видПонятия(п.concept)
+    const свои = Object.keys(п.payload)
+    const надо = (вид?.required ?? []).filter((поле) => !свои.includes(поле)
+      && !(вид?.measures ?? []).includes(поле) && !(вид?.fact_refs ?? []).includes(поле))
+    return [...свои, ...надо]
+  }
+
   const принять = () => {
     if (!запуск) return
     спросить({
@@ -1970,8 +2006,8 @@ function Постановка({ project, онтология, onChanged, expert =
         + 'новым — узнанное принятое останется решением человека в сверке.',
       ok: 'Принять',
       input: { label: 'почему берём', placeholder: 'основание решения' },
-      onOk: (повод) => api.acceptSynthesis(project, запуск.id, отмечены, 'инженер', повод || undefined)
-        .then((и) => { setИтог(и); setОтмечены([]); onChanged(); прочитать() })
+      onOk: (повод) => api.acceptSynthesis(project, запуск.id, отмечены, 'инженер', повод || undefined, undefined, правкиДля(отмечены))
+        .then((и) => { setИтог(и); setОтмечены([]); setПравки({}); onChanged(); прочитать() })
         .catch((e) => setОтказ(отказПодробно(e))),
     })
   }
@@ -2108,7 +2144,36 @@ function Постановка({ project, онтология, onChanged, expert =
                           </td>
                           <td>
                             <span title={нота(п.concept)}>{ПОНЯТИЕ[п.concept] ?? п.concept}</span>
-                            <div>{содержимоеСловами(п.payload)}</div>
+                            <div className="v2-dim">{содержимоеСловами(п.payload)}</div>
+                            {/*
+                              Поля предложения — правимые до приёма (владелец
+                              18.09). Перечень значений и обязательность берутся
+                              из истины схем, а не из догадки экрана; правка
+                              уезжает вместе с приёмом и проверяется сервером.
+                            */}
+                            <div className="v2-form">
+                              {поляПравки(п).map((поле) => {
+                                const вид = видПонятия(п.concept)
+                                const перечень = вид?.enums?.[поле] ?? []
+                                const текущее = правки[п.proposal]?.[поле] ?? п.payload[поле] ?? ''
+                                const обязательно = (вид?.required ?? []).includes(поле)
+                                return (
+                                  <label key={поле} className="v2-dim">
+                                    {ПОЛЕ[поле] ?? поле}{обязательно && !текущее ? ' · обязательно' : ''}
+                                    {перечень.length > 0 ? (
+                                      <select value={текущее}
+                                        onChange={(e) => правитьПоле(п.proposal, поле, e.target.value)}>
+                                        <option value="">— не задано —</option>
+                                        {перечень.map((з) => <option key={з} value={з}>{з}</option>)}
+                                      </select>
+                                    ) : (
+                                      <input value={текущее}
+                                        onChange={(e) => правитьПоле(п.proposal, поле, e.target.value)} />
+                                    )}
+                                  </label>
+                                )
+                              })}
+                            </div>
                             {п.target_ref && (
                               <div className="v2-dim">
                                 о принятом <span className="v2-mono">{п.target_ref}</span>

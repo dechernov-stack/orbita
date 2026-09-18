@@ -100,6 +100,50 @@ class SynthesisRoutesTest {
     }
 
     @Test
+    fun `правка предложения до приёма едет в сверку, а поле вне истины отбивается`() {
+        // Проход владельца 18.09: «во вкладке Постановка нет редактируемых
+        // полей» — требование входило черновиком, но дополнить его при приёме
+        // было нечем. Правка проверяется истиной схем, а не доверием.
+        val факт = поле()
+        транспорт.ответ = """{"proposals":[{"concept":"requirement","payload":{
+            "title":"Отслеживаемость грузов",
+            "statement":"Система должна обеспечивать отслеживаемость 100% объектов перечня"},
+            "basis":["$факт"],"verdict":"new"}]}"""
+        val код = довестиЗапуск()
+        val предложение = первоеПредложение(код)
+
+        val ответ = маршруты.handle(
+            "POST", "/v2/synthesis/runs/$код/accept", п,
+            """{"chosen":["$предложение"],"author":"инженер","reason":"сцена 8",
+                "edits":{"$предложение":{"level":"project","category":"performance","priority":"высокий"}}}""",
+        )
+
+        assertEquals(201, ответ?.code, ответ?.body.toString())
+        val содержимое = сверка.содержимоеКандидата
+        assertEquals("project", содержимое?.path("level")?.asText(), "правка доехала до сверки: $содержимое")
+        assertEquals("performance", содержимое?.path("category")?.asText())
+        assertTrue("с правкой инженера" in сверка.причина, "причина называет правку: ${сверка.причина}")
+
+        // Поле вне истины и значение вне перечня — отказ словами (маршрутизатор
+        // отвечает на него 400; здесь маршрут вызывается напрямую).
+        val чужое = assertFailsWith<IllegalArgumentException> {
+            маршруты.handle(
+                "POST", "/v2/synthesis/runs/$код/accept", п,
+                """{"chosen":["$предложение"],"author":"инженер","edits":{"$предложение":{"выдумка":"да"}}}""",
+            )
+        }
+        assertTrue("«выдумка»" in чужое.message.orEmpty() && "истина знает" in чужое.message.orEmpty(), чужое.message.orEmpty())
+
+        val внеПеречня = assertFailsWith<IllegalArgumentException> {
+            маршруты.handle(
+                "POST", "/v2/synthesis/runs/$код/accept", п,
+                """{"chosen":["$предложение"],"author":"инженер","edits":{"$предложение":{"category":"выдуманная"}}}""",
+            )
+        }
+        assertTrue("перечень истины" in внеПеречня.message.orEmpty(), внеПеречня.message.orEmpty())
+    }
+
+    @Test
     fun `величина уезжает в сверку парой, а не строкой`() {
         // Порт предложения носит поля строками, а истина схем требует у цели
         // пару «значение · единица». Пока пара ехала строкой, сверка видела
@@ -467,6 +511,10 @@ private class СверкаПодмена : Reconcile {
     val кандидаты = mutableListOf<Candidate>()
     val решения = mutableListOf<String>()
 
+    /** Содержимое последнего кандидата и причина решения — ими видно правку инженера. */
+    val содержимоеКандидата: com.fasterxml.jackson.databind.JsonNode? get() = кандидаты.lastOrNull()?.payload
+    var причина: String = ""
+
     override fun preview(
         project: String,
         candidates: List<Candidate>,
@@ -503,6 +551,7 @@ private class СверкаПодмена : Reconcile {
         reason: String,
         author: String,
     ): Applied {
+        причина = reason
         решения += "$localId|${action.name}|$reason"
         // Живая сверка отказывает заведению, пока обязательная связь не
         // закрыта, — подмена обязана вести себя так же, иначе тест охранял бы
