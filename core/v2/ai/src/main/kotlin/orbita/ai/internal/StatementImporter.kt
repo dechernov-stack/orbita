@@ -130,6 +130,16 @@ class StatementImporter(
             // 17.09 — «probability · impact · strategy · measures ставит человек
             // (сцена 11)»; из документа только формулировка и класс.
             if (concept == "risk") поля.remove("mitigation")
+            if (concept == "requirement") {
+                // Показатель требования в схеме зовётся `measure`; «mop» —
+                // слово эталона. Остальное (уровень, природа, приоритет, метод
+                // верификации, шаблон EARS) ставит инженер на сцене 8: класс
+                // эталона назван по-русски и в перечень схемы не ложится, а
+                // придумывать перевод за истину нельзя.
+                поля.remove("mop")?.let { поля["measure"] = it }
+                поля.remove("category")
+                поля.remove("normative_basis")
+            }
             if (concept == "service" && поля["need_ref"] != null) {
                 поля["needs"] = поля.remove("need_ref")!!
             }

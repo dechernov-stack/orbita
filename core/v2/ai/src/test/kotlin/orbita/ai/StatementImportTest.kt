@@ -111,6 +111,24 @@ class StatementImportTest {
     }
 
     @Test
+    fun `требование эталона едет полями схемы, а не словами эталона`() {
+        // На стенде в записи требования оказались «mop» (слово эталона) и
+        // «category: проектное» — перечня схемы такой класс не знает
+        // (18.09). Показатель зовётся `measure`; класс, уровень и метод
+        // верификации ставит инженер на сцене 8.
+        val материал = проект()
+        val запуск = импорт.import(ПРОЕКТ, материал, mapper.readTree(эталон), АВТОР, синтез)
+
+        val требование = запуск.diff.new.first { it.concept == "requirement" }.payload
+        assertTrue("mop" !in требование, "слова эталона в полях нет: $требование")
+        assertTrue(требование.getValue("measure").contains("unit"), "показатель — полем measure: ${требование["measure"]}")
+        listOf("category", "normative_basis", "priority", "verification_method").forEach {
+            assertTrue(it !in требование, "«$it» ставит инженер на сцене 8, из эталона не едет")
+        }
+        assertTrue(требование.getValue("statement").isNotBlank() && требование.getValue("title").isNotBlank())
+    }
+
+    @Test
     fun `якорь эталона ремапится на канон стенда по номеру раздела`() {
         val материал = проект()
 
