@@ -297,7 +297,8 @@ internal class Reconciler(
         классОбслуживанияTBR(вид, документ, author)
         вычисляемые(понятие, документ)
         неполнота(вид, понятие, документ)
-        val статус = принятиеРешением(вид, понятие, документ, author)
+        val черновик = черновикВида(вид, понятие, документ)
+        val статус = принятиеРешением(вид, понятие, документ, author) ?: черновик?.first
         val сущность = store.create(
             код, вид, областьЗаписи, сцена(вид), документ,
             Provenance(канал, author, source = кандидат.code), status = статус ?: "draft",
@@ -336,7 +337,10 @@ internal class Reconciler(
             updated = emptyList(),
             links = связи,
             facts = listOf(кандидат.code),
-            note = "заведено: ${сущность.code} (${словоПонятия(понятие.code)}), основание — ${кандидат.code}",
+            note = "заведено: ${сущность.code} (${словоПонятия(понятие.code)}), основание — ${кандидат.code}" +
+                черновик?.let { (ступень, нет) ->
+                    " — черновиком ($ступень): на своей сцене назовите " + нет.joinToString(" · ") { "«$it»" }
+                }.orEmpty(),
         )
     }
 
@@ -1170,17 +1174,44 @@ internal class Reconciler(
      * предложения и у человека обычным порядком, и правило не ужесточается.
      */
     private fun неполнота(вид: String, понятие: Concept, документ: ObjectNode) {
-        val спец = GeneratedKinds.byCode[вид] ?: return
-        val нет = спец.requiredFields.filter { поле ->
-            поле !in понятие.fields && поле !in спец.factRefFields &&
-                документ.path(поле).asText("").isBlank() && !документ.path(поле).isObject
-        }
-        if (нет.isEmpty()) return
+        val нет = недостающие(вид, понятие, документ)
+        if (нет.isEmpty() || черновикВида(вид, понятие, документ) != null) return
         throw IllegalArgumentException(
             "${словоПонятия(понятие.code)}: не задано обязательное поле " +
                 нет.joinToString(" · ") { "«$it»" } +
                 " — истина схем требует его у вида «$вид»; задайте значение и повторите",
         )
+    }
+
+    /** Обязательные поля вида, которых ни истина понятия, ни содержимое не дали. */
+    private fun недостающие(вид: String, понятие: Concept, документ: ObjectNode): List<String> {
+        val спец = GeneratedKinds.byCode[вид] ?: return emptyList()
+        return спец.requiredFields.filter { поле ->
+            поле !in понятие.fields && поле !in спец.factRefFields &&
+                документ.path(поле).asText("").isBlank() && !документ.path(поле).isObject
+        }
+    }
+
+    /**
+     * Вид с черновой ступенью принимается НЕПОЛНЫМ — черновиком.
+     *
+     * Истина схем даёт таким видам модель состояний «Draft|Baseline»
+     * (требование), а истина онтологии говорит, где запись дозревает:
+     * «требования уровня проекта ОБРАЗУЮТСЯ на сцене 8 решением инженера»,
+     * «carrier: пусто — ставит инженер на сцене 8». Ворота той сцены и
+     * спрашивают недостающее — носителя, природу, метод верификации.
+     *
+     * До 18.09 приём таких предложений отбивался целиком: двенадцать
+     * требований записки не входили в проект НИКАК (проход владельца).
+     * Возвращает ступень черновика и недостающие поля — ими объясняется,
+     * что осталось сделать на сцене.
+     */
+    private fun черновикВида(вид: String, понятие: Concept, документ: ObjectNode): Pair<String, List<String>>? {
+        val спец = GeneratedKinds.byCode[вид] ?: return null
+        val ступени = спец.statusModel.orEmpty().split("|").map { it.trim() }.filter { it.isNotBlank() }
+        val черновая = ступени.firstOrNull()?.takeIf { it.equals(ЧЕРНОВИК, ignoreCase = true) } ?: return null
+        val нет = недостающие(вид, понятие, документ)
+        return if (нет.isEmpty()) null else черновая to нет
     }
 
     /**
@@ -1430,6 +1461,9 @@ internal class Reconciler(
          * из живого чтения записки отбивались «сверять нечего» (16.09).
          */
         const val СНЯТО: String = "cancelled"
+
+        /** Черновая ступень модели состояний: запись дозревает на своей сцене. */
+        const val ЧЕРНОВИК: String = "Draft"
 
         const val ПРИНЯТ_КЕМ: String = "accepted_by"
         const val ПРИНЯТ_КОГДА: String = "accepted_at"

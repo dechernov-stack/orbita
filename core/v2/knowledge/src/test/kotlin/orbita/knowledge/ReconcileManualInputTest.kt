@@ -507,6 +507,33 @@ class ReconcileManualInputTest {
     }
 
     @Test
+    fun `требование входит черновиком, а недостающее называется для своей сцены`() {
+        // Проход владельца 18.09: двенадцать требований записки не входили в
+        // проект НИКАК — приём отбивался «не задано обязательное поле «level» ·
+        // «category» · «priority» · «verification_method» · «ears_pattern»».
+        // Истина схем даёт виду ступень Draft, истина онтологии говорит, что
+        // требование уровня проекта дозревает на сцене 8 решением инженера.
+        val кандидат = Candidate(
+            "c1", "requirement",
+            mapper.createObjectNode()
+                .put("title", "Отслеживаемость критических грузов")
+                .put("statement", "Система должна обеспечивать отслеживаемость 100% объектов перечня к 2033 году"),
+        )
+
+        val запуск = сверка.preview(проект, listOf(кандидат), автор, роль)
+        val номер = запуск.items.single().findings.indexOfFirst { Action.ACCEPT_NEW in it.offers }
+        val итог = сверка.apply(проект, запуск.id, "c1", номер, Action.ACCEPT_NEW, reason = "принято", author = автор)
+
+        val требование = store.byCode(область, итог.created.single())!!
+        assertEquals("requirement", требование.kind)
+        assertEquals("Draft", требование.status, "запись вошла черновиком, а не отказом")
+        assertTrue("черновиком" in итог.note && "«carrier»" !in итог.note, итог.note)
+        listOf("level", "category", "priority", "verification_method", "ears_pattern").forEach {
+            assertTrue("«$it»" in итог.note, "недостающее названо для сцены: ${итог.note}")
+        }
+    }
+
+    @Test
     fun `понятие на факте не попадает в перечень принятых сущностей`() {
         // Сторож удвоения среза: пока допущение считалось видом «fact», каждый
         // факт поля приезжал в синтез ещё и «принятым понятием».
