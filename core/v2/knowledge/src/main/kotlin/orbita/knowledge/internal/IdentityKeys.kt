@@ -51,6 +51,12 @@ internal class IdentityKeys(
     private val словарь: Map<String, String> = emptyMap(),
     private val shelves: Shelves? = null,
     private val mapper: ObjectMapper = ObjectMapper(),
+    /**
+     * Область, в которой считается ключ. Нужна понятию, чья идентичность —
+     * сам проект (`intent.identity.key: [project]`, «один на проект»): в
+     * содержимом кандидата такого поля нет и быть не может.
+     */
+    private val область: Area? = null,
 ) {
 
     /** Многословные термины словаря — заменяются до разбиения на слова. */
@@ -174,6 +180,9 @@ internal class IdentityKeys(
         "measure.key" -> показательВеличины(payload.path("measure"), "measure")
         "bound.key" -> показательВеличины(payload.path("bound"), "bound")
         "designation_natural" -> designationNatural(payload.path("designation").asText(""))
+        // «Один на проект» (замысел): ключ — сам проект. До 17.09 он не
+        // складывался вовсе, и каждый приём заводил ВТОРОЙ замысел.
+        "project" -> (область as? Area.Project)?.let { Ключ("проект:${it.id}", listOf("project")) }
         // Поле-ссылка (нужда: сторона) — код как есть: коды не нормализуются.
         else -> payload.path(токен).asText("").trim()
             .takeIf { it.isNotBlank() }?.let { Ключ(it, listOf(токен)) }
@@ -229,7 +238,7 @@ internal class IdentityKeys(
                         if (ключ.isNotBlank()) словарь[ключ] = канон
                     }
             }
-            return IdentityKeys(Normalize.of(store, area), словарь, shelves)
+            return IdentityKeys(Normalize.of(store, area), словарь, shelves, область = area)
         }
 
         /**

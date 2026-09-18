@@ -484,6 +484,29 @@ class ReconcileManualInputTest {
     }
 
     @Test
+    fun `второй замысел не заводится — он один на проект`() {
+        // Истина: intent.identity.key = [project], «один на проект; правится
+        // только решением». Ключ не складывался (поля `project` в содержимом
+        // нет), и каждый приём предложения заводил ВТОРОЙ замысел (216, 17.09).
+        val содержимое = {
+            mapper.createObjectNode()
+                .put("for_whom", "перевозчики и операторы БАС")
+                .put("what", "короткие сообщения телеметрии вне наземного покрытия")
+                .put("where", "территория РФ")
+                .put("horizon", "2033")
+        }
+        val первый = сверка.preview(проект, listOf(Candidate("c1", "intent", содержимое())), автор, роль)
+        val номер = первый.items.single().findings.indexOfFirst { Action.ACCEPT_NEW in it.offers }
+        сверка.apply(проект, первый.id, "c1", номер, Action.ACCEPT_NEW, reason = "принято", author = автор)
+
+        val второй = сверка.preview(проект, listOf(Candidate("c1", "intent", содержимое())), автор, роль)
+
+        val строка = второй.items.single()
+        assertTrue(строка.verdict != Verdict.NEW, "замысел узнан принятым, а не заведён вторым: ${строка.verdict}")
+        assertEquals(1, store.list(область, "intent").count { it.status != "cancelled" }, "замысел на проекте один")
+    }
+
+    @Test
     fun `понятие на факте не попадает в перечень принятых сущностей`() {
         // Сторож удвоения среза: пока допущение считалось видом «fact», каждый
         // факт поля приезжал в синтез ещё и «принятым понятием».
