@@ -1500,6 +1500,17 @@ export const api = {
       { method: 'POST', body: JSON.stringify({ author }) },
     ),
 
+  /** Что даст взятие каркаса: полка, правило и сколько узлов придёт. */
+  frame: (project: string) =>
+    вызов<{ shelf: string; rule?: string; levels?: number; nodes?: number; already?: number; note: string }>(
+      `/components/frame?project=${encodeURIComponent(project)}`),
+
+  /** Взять каркас состава с полки класса миссии (сцена 7). */
+  takeFrame: (project: string, author = 'инженер') =>
+    вызов<{ shelf: string; created: number; already: number; levels: number; note: string }>(
+      `/components/frame?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ author }) }),
+
   components: (project: string) =>
     вызов<{ items: ComponentRow[] }>(`/components?project=${encodeURIComponent(project)}`),
 

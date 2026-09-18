@@ -18,11 +18,30 @@ export function Concept({ project }: { project: string | null }) {
   const [концепции, setКонцепции] = useState<ConceptRow[]>([])
   const [вариант, setВариант] = useState({ variant: '', rationale: '', rejected: '', reason: '' })
 
+  const [каркас, setКаркас] = useState<{ shelf: string; nodes?: number; already?: number; levels?: number; rule?: string; note: string } | null>(null)
+  const [беру, setБеру] = useState(false)
+  const [итог, setИтог] = useState<string | null>(null)
+
   const перечитать = useCallback(() => {
     if (!project) return
     api.components(project).then((r) => setУзлы(r.items)).catch((e) => setОтказ(String(e.message ?? e)))
     api.concept(project).then((r) => setКонцепции(r.items)).catch(() => undefined)
+    api.frame(project).then(setКаркас).catch(() => undefined)
   }, [project])
+
+  /**
+   * Взять каркас состава с полки класса миссии. Правило взятия — в самой
+   * полке («уровни 0–3 всегда»), и экран его показывает: инженер видит, что
+   * придёт, до нажатия. Глубже — узлом, когда понадобится.
+   */
+  const взять = () => {
+    if (!project) return
+    setБеру(true); setОтказ(null); setИтог(null)
+    api.takeFrame(project)
+      .then((р) => { setИтог(р.note); перечитать() })
+      .catch((e) => setОтказ(String(e.message ?? e)))
+      .finally(() => setБеру(false))
+  }
 
   useEffect(перечитать, [перечитать])
 
@@ -42,10 +61,29 @@ export function Concept({ project }: { project: string | null }) {
           <span className="v2-card__title">Состав системы</span>
           <span className="v2-card__count">{узлы.length}</span>
         </div>
+        {итог && <div className="v2-note-line">{итог}</div>}
+        {каркас && (каркас.nodes ?? 0) > (каркас.already ?? 0) && (
+          <div className="v2-form__actions">
+            <button type="button" className="v2-primary" disabled={беру}
+              title={каркас.rule
+                ? `правило полки ${каркас.shelf}: ${каркас.rule}`
+                : `каркас с полки ${каркас.shelf}`}
+              onClick={взять}>
+              {беру
+                ? 'Беру каркас…'
+                : `Взять каркас состава (${(каркас.nodes ?? 0) - (каркас.already ?? 0)} узлов с полки ${каркас.shelf})`}
+            </button>
+            <span className="v2-dim">{каркас.note}</span>
+          </div>
+        )}
         {узлы.length === 0 ? (
           <div className="v2-empty">
             Состав пуст — сцена 7 держится этим.
-            <span className="v2-empty__why">Нужно не менее трёх узлов: система, её элементы и то, что ими управляет.</span>
+            <span className="v2-empty__why">
+              {каркас?.shelf
+                ? 'Состав берётся каркасом класса миссии — кнопкой выше; узлы глубже уровня каркаса заводятся по одному, когда понадобятся.'
+                : 'Нужно не менее трёх узлов: система, её элементы и то, что ими управляет.'}
+            </span>
           </div>
         ) : (
           <ul className="v2-tree">

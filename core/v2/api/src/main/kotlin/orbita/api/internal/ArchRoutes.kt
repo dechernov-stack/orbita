@@ -28,6 +28,13 @@ class ArchRoutes(
         method == "POST" && path == "/v2/components/deploy" ->
             развернуть(требуется(query, "project"), разобрать(body))
 
+        // Каркас состава с полки (сцена 7): «состав берётся каркасом класса
+        // миссии» — до 18.09 этой дороги не было вовсе, и узлы приходилось
+        // набивать руками по одному (проход владельца).
+        method == "GET" && path == "/v2/components/frame" -> каркас(требуется(query, "project"))
+        method == "POST" && path == "/v2/components/frame" ->
+            взятьКаркас(требуется(query, "project"), разобрать(body))
+
         method == "GET" && path.startsWith("/v2/components/") ->
             карточка(
                 требуется(query, "project"),
@@ -310,6 +317,107 @@ class ArchRoutes(
         return V2Router.Ответ(201, mapper.createObjectNode().put("code", создано.code).put("id", создано.id))
     }
 
+    // --- каркас состава с полки ------------------------------------------
+    //
+    // Правило взятия — в самой полке (`pbs_template.rules`): «взятие создаёт
+    // уровни 0–3 всегда, 4–5 — по классу миссии». Своего правила здесь нет:
+    // полка без него взятия не получает, и отказ называет, чего не хватает.
+
+    /** Что даст взятие: полка, правило, сколько узлов придёт и сколько уже есть. */
+    private fun каркас(проект: String): V2Router.Ответ {
+        val полка = полкаКаркаса(проект)
+            ?: return V2Router.Ответ(200, mapper.createObjectNode()
+                .put("shelf", "")
+                .put("note", "каркаса состава на полке нет: загрузите полку PBS класса миссии"))
+        val глубина = глубинаВзятия(полка)
+            ?: return V2Router.Ответ(200, mapper.createObjectNode()
+                .put("shelf", полка.code)
+                .put("note", "полка «${полка.code}» не называет правила взятия («уровни 0–3 всегда») — брать по догадке нельзя"))
+        val область = Area.Project(проект)
+        val есть = store.list(область, "component").filter { it.status != СНЯТО }.map { it.code }.toSet()
+        val узлы = узлыПолки(полка, глубина)
+        val ответ = mapper.createObjectNode()
+            .put("shelf", полка.code)
+            .put("rule", правилоВзятия(полка).orEmpty())
+            .put("levels", глубина)
+            .put("nodes", узлы.size)
+            .put("already", узлы.count { it.path("code").asText() in есть })
+        ответ.put("note", "каркас «${полка.code}»: узлов уровней 0–$глубина — ${узлы.size}, из них уже в проекте ${ответ.path("already").asInt()}")
+        return V2Router.Ответ(200, ответ)
+    }
+
+    /** Взять каркас: узлы полки становятся составом проекта, родители — связями. */
+    private fun взятьКаркас(проект: String, тело: JsonNode): V2Router.Ответ {
+        val полка = полкаКаркаса(проект)
+            ?: throw NoSuchElementException("каркаса состава на полке нет: загрузите полку PBS класса миссии")
+        val глубина = глубинаВзятия(полка)
+            ?: throw IllegalStateException("полка «${полка.code}» не называет правила взятия — брать по догадке нельзя")
+        val область = Area.Project(проект)
+        val автор = тело.path("author").asText("инженер")
+        val было = store.list(область, "component").filter { it.status != СНЯТО }.associateBy { it.code }
+        val созданные = linkedMapOf<String, String>()
+        var пропущено = 0
+        узлыПолки(полка, глубина).forEach { узел ->
+            val код = узел.path("code").asText("").trim()
+            if (код.isBlank()) return@forEach
+            if (код in было || код in созданные) { пропущено += 1; return@forEach }
+            val документ = mapper.createObjectNode()
+            документ.put("name", узел.path("name").asText(код))
+            документ.put("level", узел.path("level").asInt(0))
+            // Каркас PBS — физическая правда: узлы его носители, поведение
+            // (ПО) инженер заводит сам и разворачивает на носителе.
+            документ.put("nature", "node")
+            документ.put("kind", узел.path("kind").asText("subsystem"))
+            документ.put("template_ref", "${полка.code}:$код")
+            узел.path("parent").asText("").trim().ifBlank { null }?.let { родитель ->
+                (созданные[родитель] ?: было[родитель]?.id)?.let { документ.put("parent", it) }
+            }
+            val создано = store.create(
+                код, "component", область, "7", документ,
+                Provenance(Channel.SHELF, автор, source = полка.code),
+            )
+            созданные[код] = создано.id
+        }
+        val ответ = mapper.createObjectNode()
+            .put("shelf", полка.code)
+            .put("created", созданные.size)
+            .put("already", пропущено)
+            .put("levels", глубина)
+        ответ.put(
+            "note",
+            "каркас «${полка.code}» взят: узлов ${созданные.size}" +
+                (if (пропущено > 0) ", уже было $пропущено" else "") +
+                "; уровни 4–5 берутся по классу миссии — заводите их узлом, когда понадобятся",
+        )
+        return V2Router.Ответ(201, ответ)
+    }
+
+    /** Полка каркаса: рекомендованная классом миссии проекта, иначе единственная. */
+    private fun полкаКаркаса(проект: String): orbita.kernel.api.Entity? {
+        val полки = store.list(Area.Library, "pbs_template").filter { it.status != СНЯТО }
+        if (полки.isEmpty()) return null
+        val проектЗапись = store.byCode(Area.Project(проект), проект)
+        val классИмя = проектЗапись?.doc?.path("mission_class")?.asText("").orEmpty().trim()
+        val класс = store.list(Area.Library, "mission_class").firstOrNull {
+            it.code.equals(классИмя, ignoreCase = true) || it.doc.path("name").asText("").equals(классИмя, ignoreCase = true)
+        }
+        val названные = класс?.doc?.path("recommended_shelves")?.map { it.asText() }.orEmpty()
+        return полки.firstOrNull { it.code in названные } ?: полки.singleOrNull()
+    }
+
+    /** Правило взятия — строка полки; своего у кода нет. */
+    private fun правилоВзятия(полка: orbita.kernel.api.Entity): String? =
+        полка.doc.path("rules").map { it.asText() }.firstOrNull { ГЛУБИНА.containsMatchIn(it) }
+
+    /** «уровни 0–3 всегда» → 3. Нет правила — нет и взятия. */
+    private fun глубинаВзятия(полка: orbita.kernel.api.Entity): Int? =
+        правилоВзятия(полка)?.let { ГЛУБИНА.find(it)?.groupValues?.get(2)?.toIntOrNull() }
+
+    /** Узлы полки до названной глубины, родители раньше детей. */
+    private fun узлыПолки(полка: orbita.kernel.api.Entity, глубина: Int): List<JsonNode> =
+        полка.doc.path("nodes").filter { it.path("level").asInt(99) <= глубина }
+            .sortedBy { it.path("level").asInt(0) }
+
     private fun стыки(проект: String): V2Router.Ответ {
         val область = Area.Project(проект)
         val массив = mapper.createArrayNode()
@@ -473,3 +581,7 @@ class ArchRoutes(
     private fun требуется(query: Map<String, String>, имя: String): String =
         query[имя] ?: throw IllegalArgumentException("нужен параметр «$имя»")
 }
+
+/** «уровни 0–3 всегда» в правилах полки: вторая цифра — глубина взятия. */
+private val ГЛУБИНА: Regex = Regex("уровни\\s+(\\d+)\\s*[–-]\\s*(\\d+)\\s+всегда")
+private const val СНЯТО: String = "cancelled"
