@@ -243,11 +243,15 @@ class AcrossRoutes(
             n.put("owner", нужда.ownerName)
             n.put("covered", нужда.covered)
             n.put("gap", нужда.gap)
+            n.put("expected", нужда.expected)
+            n.put("note", нужда.note)
             val цели = n.putArray("goals")
             нужда.goals.forEach { цели.add(it) }
             val сервисы = n.putArray("services")
             нужда.services.forEach { сервисы.add(it) }
         }
+        val прочее = ответ.putObject("other_coverage")
+        матрица.otherCoverage.forEach { (вид, число) -> прочее.put(вид, число) }
         val края = ответ.putArray("stakeholders_without_needs")
         матрица.stakeholdersWithoutNeeds.forEach { края.add(it) }
         return V2Router.Ответ(200, ответ)

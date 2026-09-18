@@ -248,7 +248,12 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
             },
         )
         val знания = orbita.knowledge.api.KnowledgeFactory.intake(store, links, mapper, полки)
-        val постановка = orbita.formulation.api.FormulationFactory.formulation(store, links)
+        val постановка = orbita.formulation.api.FormulationFactory.formulation(
+            store, links,
+            // Чем закрывается нужда — истина онтологии: матрица не спрашивает
+            // сервиса у нужды регулятора или поставщика.
+            needCoverage = orbita.knowledge.api.Coverage.resolver(store, links),
+        )
         val волна3 = orbita.api.internal.ReqArchRoutes(store, требования, снимки, архитектура, mapper)
         val волна4 = orbita.api.internal.ModelRoutes(
             store,

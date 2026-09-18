@@ -8,4 +8,5 @@ dependencies {
     api(project(":core:v2:access"))
     api(project(":core:v2:library"))
     testImplementation(kotlin("test"))
+    testImplementation(testFixtures(project(":core:v2:kernel")))
 }

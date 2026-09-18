@@ -216,6 +216,10 @@ export interface CoverageNeed {
   gap: string | null
   goals: string[]
   services: string[]
+  /** Чем нужда закрывается по истине: service · constraint · programme · requirement. */
+  expected: string | null
+  /** Помета «сервис не нужен», когда нужда закрывается не им. */
+  note: string | null
 }
 
 export interface CoverageMatrix {
@@ -224,6 +228,8 @@ export interface CoverageMatrix {
   summary: string
   needs: CoverageNeed[]
   stakeholders_without_needs: string[]
+  /** Сколько нужд закрывается не сервисом — и чем именно. */
+  other_coverage: Record<string, number>
 }
 
 /** Помета линта: правило, что не так и почему это важно. */

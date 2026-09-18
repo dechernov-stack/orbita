@@ -92,11 +92,16 @@ export function Coverage({ project }: { project: string | null }) {
                   </td>
                   <td>{н.owner ?? <span className="v2-warn">ничья</span>}</td>
                   <td>{н.goals.length === 0 ? '—' : н.goals.join('; ')}</td>
-                  <td>{н.services.length === 0 ? '—' : н.services.join('; ')}</td>
+                  <td>
+                    {н.services.length === 0
+                      ? (н.expected === 'service' ? '—' : <span className="v2-dim" title="истина: сервиса ждёт не всякая нужда">не ждёт</span>)
+                      : н.services.join('; ')}
+                  </td>
                   <td>
                     {н.covered
                       ? <span className="v2-ok">покрыта</span>
                       : <span className="v2-warn">{н.gap}</span>}
+                    {н.note && <div className="v2-dim">{н.note}</div>}
                   </td>
                 </tr>
               ))}
