@@ -227,7 +227,7 @@ function PointCard({ project, точка, все, phase, onChanged }: {
       {форма && (
         <div className="v2-form" data-why="работа">
           <label>текст замечания
-            <textarea rows={2} value={форма.text} onChange={(e) => setФорма({ ...форма, text: e.target.value })} />
+            <textarea rows={2} value={форма.text} autoComplete="off" onChange={(e) => setФорма({ ...форма, text: e.target.value })} />
           </label>
           <label>возврат в сцену
             <select value={форма.scene} onChange={(e) => setФорма({ ...форма, scene: e.target.value })}>

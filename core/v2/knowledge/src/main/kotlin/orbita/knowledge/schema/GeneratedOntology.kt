@@ -98,6 +98,14 @@ data class Concept(
     val answerShape: String? = null,
     /** Чем считается закрытой нужда на воротах сцены 6 — правило владельца. */
     val coverageRule: String? = null,
+    /**
+     * Поля, которые ставит СИСТЕМА, — словами самой истины («ставит
+     * система при принятии»). Их не спрашивают у человека и не
+     * предлагают к правке: подставит их сама система в свой момент.
+     */
+    val systemFields: List<String> = emptyList(),
+    /** Поля, которые ставит ЧЕЛОВЕК на своей сцене («ставит человек (1–5, сцена 11)»). */
+    val humanFields: List<String> = emptyList(),
     /** Как предлагается связь цель→нужды и что остаётся человеку. */
     val coverageNote: String? = null,
 ) {
@@ -408,6 +416,7 @@ object GeneratedOntology {
             targetKind = "intent",
             allowedRoles = listOf("charter"),
             from = "§1 устава: для кого · что делает · где · горизонт — четыре поля цитатами",
+            systemFields = listOf("accepted_by", "accepted_at"),
         ),
         Concept(
             code = "requirement",
@@ -460,6 +469,7 @@ object GeneratedOntology {
             targetKind = "risk",
             allowedRoles = listOf("charter", "tor", "context", "supplier", "heritage"),
             from = "раздел рисков документа или оценка с последствием («если … то …»)",
+            humanFields = listOf("owner", "due_point", "probability", "impact", "strategy", "measures"),
         ),
     )
 

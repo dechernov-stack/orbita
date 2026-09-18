@@ -1003,6 +1003,10 @@ export interface FormationConcept {
   must_link: string[]
   conflict_on: string[]
   identity: { key: string[]; semantic: string; threshold: number }
+  /** Поля, которые ставит система в свой момент: к правке не предлагаются. */
+  system_fields: string[]
+  /** Поля, которые ставит человек на своей сцене. */
+  human_fields: string[]
   /** Пусто — у понятия своего вида нет (допущение ложится на факт). */
   kind?: FormationKind
 }

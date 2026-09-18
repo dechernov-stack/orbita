@@ -136,7 +136,7 @@ function ПравкаТребования({ project, т, onSaved }: { project: s
     <Группа title="Правка на месте">
       <div className="v2-form" data-why="работа">
         <label>заголовок<input value={заголовок} onChange={(e) => setЗаголовок(e.target.value)} /></label>
-        <label>формулировка<textarea value={формулировка} onChange={(e) => setФормулировка(e.target.value)} rows={3} /></label>
+        <label>формулировка<textarea value={формулировка} autoComplete="off" onChange={(e) => setФормулировка(e.target.value)} rows={3} /></label>
         <button type="button" className="v2-primary" onClick={сохранить} disabled={занято || !формулировка.trim()}
           title={!формулировка.trim() ? 'формулировка пустой быть не может' : 'сохранить новой версией — провенанс «правка инженера»'}>Сохранить</button>
         {отказ && <span className="v2-locked">{отказ}</span>}
@@ -639,7 +639,7 @@ function Форма({ project, onAdded }: { project: string; onAdded: () => void
         </label>
         <label>Формулировка
           <textarea rows={2} value={поля.statement} placeholder={форма.форма}
-            onChange={(e) => setПоля({ ...поля, statement: e.target.value })} />
+            autoComplete="off" onChange={(e) => setПоля({ ...поля, statement: e.target.value })} />
         </label>
         <span className="v2-empty__why">Форма: {форма.форма}</span>
         {пометы.map((n) => <Помета key={n.rule + n.what} note={n} />)}

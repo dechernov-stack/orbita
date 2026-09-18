@@ -231,14 +231,6 @@ function отказПодробно(e: unknown): string {
   return `${отказСловами(e)}${нет}`
 }
 
-/** Содержимое предложения словами: поля по-русски, значения — как пришли. */
-function содержимоеСловами(payload: Record<string, string>): string {
-  return Object.entries(payload)
-    .filter(([, з]) => String(з).trim() !== '')
-    .map(([к, з]) => `${ПОЛЕ[к] ?? к}: ${з}`)
-    .join(' · ')
-}
-
 /** Источник кандидата: документ с якорем ЛИБО эксперт с учёткой, ролью и датой. */
 function источникСловами(и: FactSourceView): string {
   return 'material' in и ? `${и.material} · ${и.anchor}` : `эксперт: ${и.account}, ${и.role}, ${и.at}`
@@ -941,7 +933,7 @@ export function KnowledgeField({ project, expert = false }: { project: string | 
                     {решаем?.факт === ф.id && (
                       <span className="v2-kf__why">
                         <textarea value={причина} autoFocus rows={2}
-                          onChange={(e) => setПричина(e.target.value)}
+                          autoComplete="off" onChange={(e) => setПричина(e.target.value)}
                           placeholder={
                             решаем.решение === 'rejected' ? 'почему не берём'
                               : было === 'contested' ? 'какой факт победил и почему'
@@ -1158,7 +1150,7 @@ export function Source({ project, onParsed, onError, onRead }: {
         )}
       </div>
       <label>текст
-        <textarea rows={4} value={текст} onChange={(e) => setТекст(e.target.value)}
+        <textarea rows={4} value={текст} autoComplete="off" onChange={(e) => setТекст(e.target.value)}
           placeholder="вставьте текст — либо приложите файл или дайте ссылку ниже" />
       </label>
       <div className="v2-kf__row" style={{ gridTemplateColumns: '1fr 2fr' }}>
@@ -1990,9 +1982,15 @@ function Постановка({ project, онтология, onChanged, expert =
    * поля-ссылки правятся не здесь — у них своя форма на сцене.
    */
   const поляПравки = (п: FormationProposal): string[] => {
-    const вид = видПонятия(п.concept)
-    const свои = Object.keys(п.payload)
+    const понятие = онтология?.concepts.find((к) => к.code === п.concept)
+    const вид = понятие?.kind
+    // Поля, которые ставит СИСТЕМА, человеку не предлагаются: истина говорит
+    // «ставит система при принятии», и пустая строка для них — приглашение
+    // заполнить то, что заполнять не надо (владелец 18.09).
+    const системные = понятие?.system_fields ?? []
+    const свои = Object.keys(п.payload).filter((поле) => !системные.includes(поле))
     const надо = (вид?.required ?? []).filter((поле) => !свои.includes(поле)
+      && !системные.includes(поле)
       && !(вид?.measures ?? []).includes(поле) && !(вид?.fact_refs ?? []).includes(поле))
     return [...свои, ...надо]
   }
@@ -2144,7 +2142,6 @@ function Постановка({ project, онтология, onChanged, expert =
                           </td>
                           <td>
                             <span title={нота(п.concept)}>{ПОНЯТИЕ[п.concept] ?? п.concept}</span>
-                            <div className="v2-dim">{содержимоеСловами(п.payload)}</div>
                             {/*
                               Поля предложения — правимые до приёма (владелец
                               18.09). Перечень значений и обязательность берутся
@@ -2161,13 +2158,25 @@ function Постановка({ project, онтология, onChanged, expert =
                                   <label key={поле} className="v2-dim">
                                     {ПОЛЕ[поле] ?? поле}{обязательно && !текущее ? ' · обязательно' : ''}
                                     {перечень.length > 0 ? (
-                                      <select value={текущее}
+                                      <select value={текущее} name={`${п.proposal}.${поле}`}
                                         onChange={(e) => правитьПоле(п.proposal, поле, e.target.value)}>
                                         <option value="">— не задано —</option>
                                         {перечень.map((з) => <option key={з} value={з}>{з}</option>)}
                                       </select>
+                                    ) : текущее.length > 90 ? (
+                                      /*
+                                        Длинное значение — в поле на несколько строк: замысел
+                                        несёт четыре абзаца, и одной строкой они слипались в
+                                        стену (владелец 18.09). autoComplete выключен у всех:
+                                        браузер подставлял в безымянные поля телефон из своей
+                                        памяти — «система подставила номер куда только смогла».
+                                      */
+                                      <textarea rows={3} value={текущее} name={`${п.proposal}.${поле}`}
+                                        autoComplete="off" spellCheck={false}
+                                        onChange={(e) => правитьПоле(п.proposal, поле, e.target.value)} />
                                     ) : (
-                                      <input value={текущее}
+                                      <input value={текущее} name={`${п.proposal}.${поле}`}
+                                        autoComplete="off" spellCheck={false}
                                         onChange={(e) => правитьПоле(п.proposal, поле, e.target.value)} />
                                     )}
                                   </label>

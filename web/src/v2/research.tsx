@@ -355,7 +355,7 @@ export function ResearchPanel({ project, trigger, onChanged }: {
                   </div>
                   <label>текст результата
                     <textarea rows={4} value={текстРезультата}
-                      onChange={(e) => setТекстРезультата(e.target.value)}
+                      autoComplete="off" onChange={(e) => setТекстРезультата(e.target.value)}
                       placeholder="вставьте ответ внешнего контура — со ссылками на источники" />
                   </label>
                   <div className="v2-form__actions">

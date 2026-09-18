@@ -149,6 +149,7 @@ export function Concept({ project }: { project: string | null }) {
           <label>Обоснование выбора
             <textarea rows={2} value={вариант.rationale}
               placeholder="чем этот вариант лучше остальных по целям и ограничениям"
+              autoComplete="off"
               onChange={(e) => setВариант({ ...вариант, rationale: e.target.value })} />
           </label>
           <label>Отклонённый вариант

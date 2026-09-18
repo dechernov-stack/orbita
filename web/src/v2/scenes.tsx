@@ -206,7 +206,7 @@ export function SceneIntent({ project, onChanged }: { project: string; onChanged
       ] as const).map(([поле, подпись, подсказка]) => (
         <label key={поле}>{подпись}
           <textarea rows={поля[поле].length > 90 ? 3 : 1} value={поля[поле]} placeholder={подсказка}
-            onChange={(e) => setПоля({ ...поля, [поле]: e.target.value })} />
+            autoComplete="off" onChange={(e) => setПоля({ ...поля, [поле]: e.target.value })} />
         </label>
       ))}
       <div className="v2-form__actions">
