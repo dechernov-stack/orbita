@@ -208,6 +208,7 @@ class EditInPlaceTest {
         assertEquals("проектное", вид.path("enum_labels").path("level").path("project").asText(), вид.toString())
         assertEquals("черновик", вид.path("enum_labels").path("status").path("Draft").asText(), "статус тоже назван по-русски")
         assertTrue(вид.path("measures").any { it.asText() == "measure" }, "показатель — величина, а не строка: $вид")
+        assertEquals("всегда", вид.path("enum_labels").path("ears_pattern").path("ubiquitous").asText(), вид.toString())
         val нет = assertFailsWith<NoSuchElementException> {
             router().handle("GET", "/v2/kinds/nonexistent", emptyMap(), null)
         }

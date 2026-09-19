@@ -80,7 +80,11 @@ class ReqRoutes(
         узел.put("title", т.title)
         узел.put("statement", т.statement)
         узел.put("category", т.category)
-        узел.put("ears", т.ears.name.lowercase())
+        // Шаблон отдаётся ИМЕНЕМ ИСТИНЫ схем (`ubiquitous`), а не имени
+        // перечисления Kotlin: экран берёт русское значение по коду истины, и
+        // «always» не совпадало ни с чем — в карточке стоял код (проверено на
+        // стенде 19.09).
+        узел.put("ears", т.ears.schemaName)
         узел.put("carrier", т.carrier)
         узел.put("carrier_kind", т.carrierKind)
         узел.put("measure", т.measure)
