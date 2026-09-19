@@ -106,12 +106,19 @@ class DomainGateEvaluator(
                 else "без нужд: " + без.joinToString(", ") { it.doc.path("name").asText(it.code) }
             }
 
+            // Журнал ПМИ-7, З-07 (истина владельца 18.09): «условие сцены 4
+            // сужается как сцена 6 — только нужды с coverage_expected=service
+            // обязаны иметь цель; остальные счётчиком». Цель покрывает нужды
+            // получателей, а не поставщиков: нужда Роскосмоса о серийности
+            // закрывается пакетом работ, а не целью проекта.
             "each_need_has_goal" -> {
-                val без = живые(область, "need")
+                val непокрытые = живые(область, "need")
                     .filter { нужда -> links.to(нужда.id, "covers").none { it.from.startsWith("goal") } }
+                val без = непокрытые.filter { видПокрытия(it) == СЕРВИС }
                 if (без.isEmpty()) null
                 else "нужд без цели: ${без.size} — " +
-                    без.take(3).joinToString("; ") { it.doc.path("statement").asText(it.code).take(60) }
+                    без.take(3).joinToString("; ") { it.doc.path("statement").asText(it.code).take(60) } +
+                    прочееПокрытие(непокрытые)
             }
 
             "constraints_min" -> {

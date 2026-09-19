@@ -271,6 +271,21 @@ def котлин(kinds: list) -> str:
         "     * полями. Имя поля знает истина схем — не код, который пару кладёт.",
         "     */",
         "    val measures: List<String> = emptyList(),",
+        "    /**",
+        "     * Русское имя поля (`label` истины схем). Экран показывает ТОЛЬКО",
+        "     * его: код поля на экране запрещён правилом владельца",
+        "     * (`field_rules.label`, 18.09) — человек не обязан знать наши коды.",
+        "     */",
+        "    val labels: Map<String, String> = emptyMap(),",
+        "    /**",
+        "     * Стадия, к которой поле обязано быть заполнено (`required_at`):",
+        "     * `accept` — при приёме предложения, `baseline` — к базированию,",
+        "     * `SRR` и прочие — к точке. Суффиксы говорят, кто и чем заполняет:",
+        "     * `system` · `default(x)` · `from_basis` · `auto` · `tbd_allowed` ·",
+        "     * `proposed`. Форма приёма спрашивает ровно то, что названо `accept`",
+        "     * и не подставляется само (журнал ПМИ-7, З-09).",
+        "     */",
+        "    val requiredAt: Map<String, String> = emptyMap(),",
         ")",
         "",
         "object GeneratedKinds {",
@@ -313,12 +328,24 @@ def котлин(kinds: list) -> str:
             f'"{f["name"]}"' for f in (k.get("fields") or [])
             if (f.get("type") or "").strip().startswith("measure")
         )
+        # Русское имя поля и стадия обязательности — истина владельца 18.09
+        # (`field_rules`): экран показывает label, форма приёма спрашивает то,
+        # что названо `accept`. Кода поля на экране быть не должно.
+        подписи = ", ".join(
+            f'"{f["name"]}" to {строка_kt(f["label"])}' for f in (k.get("fields") or []) if f.get("label")
+        )
+        подписи_kt = f"mapOf({подписи})" if подписи else "emptyMap()"
+        стадии = ", ".join(
+            f'"{f["name"]}" to {строка_kt(f["required_at"])}' for f in (k.get("fields") or []) if f.get("required_at")
+        )
+        стадии_kt = f"mapOf({стадии})" if стадии else "emptyMap()"
         сцена_kt = f'"{сцена}"' if сцена else "null"
         модель_kt = f'"{модель}"' if модель else "null"
         строки.append(
             f'        KindSpec("{k["code"]}", "{k.get("name", "")}", Layer.{слой}, '
             f'{сцена_kt}, {модель_kt}, listOf({перечень}), listOf({все_поля}), '
-            f'listOf({ссылки_на_факт}), {перечни_kt}, listOf({величины})),'
+            f'listOf({ссылки_на_факт}), {перечни_kt}, listOf({величины}), '
+            f'{подписи_kt}, {стадии_kt}),'
         )
     строки += [
         "    )",
@@ -332,6 +359,12 @@ def котлин(kinds: list) -> str:
         "",
     ]
     return "\n".join(строки)
+
+
+def строка_kt(значение) -> str:
+    """Строка Kotlin из значения истины: кавычки и доллары экранируются."""
+    текст = str(значение).replace("\\", "\\\\").replace('"', '\\"').replace("$", "\\$")
+    return f'"{текст}"'
 
 
 def мера_схема() -> dict:

@@ -23,6 +23,8 @@ class EntityRequirements(
 
     override fun lint(statement: String, ears: Ears): List<LintNote> = EarsLint.check(statement, ears)
 
+    override fun detectEars(statement: String): Ears = EarsLint.detect(statement)
+
     override fun list(project: String): List<RequirementView> {
         val снимок = Snapshots.последний(store, project)
         return store.list(Area.Project(project), "requirement").map { вид(it, снимок) }

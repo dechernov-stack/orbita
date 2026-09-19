@@ -1284,70 +1284,100 @@ kinds:
     type: enum[project,scenario,system,subsystem,interface]
     required: true
     note: ''
+    label: Уровень
+    required_at: accept:default(project на сцене 8)
   - name: code
     type: str
     required: true
     note: ''
+    label: Код
+    required_at: accept:system
   - name: title
     type: str
     required: true
     note: ''
+    label: Заголовок
+    required_at: accept
   - name: statement
     type: text
     required: true
     note: ''
+    label: Формулировка
+    required_at: accept
   - name: category
     type: enum[functional,performance,interface,operational,constraint,safety,environment]
     required: true
     note: ''
+    label: Категория
+    required_at: baseline:proposed
   - name: priority
     type: ref method_catalog.priority
     required: true
     note: ''
+    label: Приоритет
+    required_at: baseline:default(medium)
   - name: measure
     type: measure{op,value|min,max,unit→unit} | tbr{owner*,gate*,action*}
     required: false
     note: обязателен для performance
+    label: Показатель
+    required_at: baseline|tbr
   - name: carrier
     type: ref component|interface|scenario
     required: true
     note: тип по уровню; обязателен к базированию
+    label: Носитель
+    required_at: baseline
   - name: verification_method
     type: ref method_catalog
     required: true
     note: TBD допустим до SRR
+    label: Метод верификации
+    required_at: SRR:tbd_allowed
   - name: source
     type: '[{kind*:enum[goal,need,constraint,requirement,material],ref*,anchor?}] ≥1'
     required: true
     note: ''
+    label: Источник
+    required_at: accept:from_basis
   - name: acceptance_criteria
     type: text
     required: false
     note: обязателен к базированию
+    label: Критерий приёмки
+    required_at: baseline
   - name: normative_basis
     type: '{normative_document*,clause*}'
     required: false
     note: ''
+    label: Нормативное основание
+    required_at: if_regulatory
   - name: ears_pattern
     type: enum[ubiquitous,event,state,unwanted,optional]
     required: true
     note: шаблон формулировки EARS
+    label: Шаблон EARS
+    required_at: accept:auto
   - name: template_ref
     type: ref typical_requirement
     required: false
     note: экземпляр типового
+    label: Типовое требование
   - name: applicability
     type: enum[applied,applied_with_deviation,not_applicable]
     required: false
     note: обязательна при template_ref
+    label: Применимость
   - name: deviation_rationale
     type: text
     required: false
     note: обязательна при deviation/not_applicable
+    label: Обоснование отклонения
   - name: after_baseline_changed
     type: bool (computed)
     required: false
     note: версия > версии в последнем baseline
+    label: Изменено после базирования
   export: .sdoc / ReqIF; Д3
   engine: есть
 - n: 42
@@ -3603,3 +3633,8 @@ fixtures_rule: 'фикстуры мер живут в репозитории (do
 assumption_accept_rule: 'приём предложения-допущения открывает короткий диалог: владелец (учётка) и точка подтверждения — обязательны; чем подтвердится и цена ошибки — по желанию; без владельца и точки
   диспозиция assumed не ставится'
 normalization_rule: штрих — канон ′ (U+2032), апостроф нормализуется; величины — объектом {value|min,max,unit}; метка источника с номером
+field_rules:
+  label: у каждого поля вида — label (русское имя); клиент показывает только label, код поля на экране запрещён (сторож)
+  required_at: 'обязательность по стадии: accept (при приёме предложения) · baseline (к базированию) · SRR/… (к точке); суффиксы: system (ставит система) · default(x) (умолчание) · from_basis (из оснований)
+    · auto (автоопределение) · tbd_allowed · proposed (предложение из текста). Форма приёма требует только accept'
+  widgets: measure → оператор · значение · единица; ref → пикер; ref[] → мультипикер; enum → селект русскими значениями; text → поле на всю ширину с автовысотой; объект без виджета на экране — сторож

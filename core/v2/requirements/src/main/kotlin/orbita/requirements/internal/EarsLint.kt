@@ -41,6 +41,19 @@ object EarsLint {
         Ears.OPTIONAL to "Где предусмотрен ‹элемент›, ‹носитель› должен ….",
     )
 
+    /**
+     * Шаблон формулировки по её форме (истина схем: `ears_pattern` —
+     * `accept:auto`, автоопределение при приёме). Правило одно с линтом: та же
+     * таблица форм, второй копии нет. Не опознано — «всегда», самый общий
+     * шаблон; линт потом скажет, если форма ему не отвечает.
+     */
+    fun detect(statement: String): Ears {
+        val текст = statement.trim()
+        return формы.entries
+            .firstOrNull { (шаблон, форма) -> шаблон != Ears.ALWAYS && форма.containsMatchIn(текст) }
+            ?.key ?: Ears.ALWAYS
+    }
+
     fun check(statement: String, ears: Ears): List<LintNote> {
         val замечания = mutableListOf<LintNote>()
         val текст = statement.trim()

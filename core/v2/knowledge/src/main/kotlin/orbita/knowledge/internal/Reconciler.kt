@@ -298,7 +298,9 @@ internal class Reconciler(
         вычисляемые(понятие, документ)
         неполнота(вид, понятие, документ)
         val черновик = черновикВида(вид, понятие, документ)
-        val статус = принятиеРешением(вид, понятие, документ, author) ?: черновик?.first
+        // Ступень записи — из модели состояний вида: у требования это Draft,
+        // у риска open, у вехи planned. Модели нет — общий «draft» хранилища.
+        val статус = принятиеРешением(вид, понятие, документ, author) ?: перваяСтупень(вид)
         val сущность = store.create(
             код, вид, областьЗаписи, сцена(вид), документ,
             Provenance(канал, author, source = кандидат.code), status = статус ?: "draft",
@@ -338,9 +340,11 @@ internal class Reconciler(
             links = связи,
             facts = listOf(кандидат.code),
             note = "заведено: ${сущность.code} (${словоПонятия(понятие.code)}), основание — ${кандидат.code}" +
-                черновик?.let { (ступень, нет) ->
-                    " — черновиком ($ступень): на своей сцене назовите " + нет.joinToString(" · ") { "«$it»" }
-                }.orEmpty(),
+                (черновик?.second ?: кБазированию(вид, понятие, документ)).takeIf { it.isNotEmpty() }
+                    ?.let { нет ->
+                        " — ${статус ?: "черновиком"}: на своей сцене назовите " +
+                            нет.joinToString(" · ") { поле -> "«${имяПоля(вид, поле)}»" }
+                    }.orEmpty(),
         )
     }
 
@@ -1183,13 +1187,30 @@ internal class Reconciler(
         )
     }
 
-    /** Обязательные поля вида, которых ни истина понятия, ни содержимое не дали. */
+    /**
+     * Обязательные поля вида, которых ни истина понятия, ни содержимое не дали.
+     *
+     * Истина схем 18.09 говорит не только «обязательно», но и КОГДА
+     * (`required_at`): при приёме спрашивается лишь то, что названо `accept` и
+     * не подставляется само (`system` · `from_basis` · `auto` · `default`).
+     * Остальное — к базированию и точкам, там его и спросят: «все поля
+     * обязательны» на приёме означало «работать нельзя» (журнал ПМИ-7, З-09).
+     */
     private fun недостающие(вид: String, понятие: Concept, документ: ObjectNode): List<String> {
         val спец = GeneratedKinds.byCode[вид] ?: return emptyList()
         return спец.requiredFields.filter { поле ->
             поле !in понятие.fields && поле !in спец.factRefFields &&
-                документ.path(поле).asText("").isBlank() && !документ.path(поле).isObject
+                документ.path(поле).asText("").isBlank() && !документ.path(поле).isObject &&
+                спрашиваетсяНаПриёме(спец, поле)
         }
+    }
+
+    /** Спрашивается ли поле при приёме — по стадии истины схем. */
+    private fun спрашиваетсяНаПриёме(спец: orbita.kernel.schema.KindSpec, поле: String): Boolean {
+        val правило = спец.requiredAt[поле] ?: return true
+        val стадия = правило.substringBefore(":").trim()
+        val чем = правило.substringAfter(":", "").trim()
+        return стадия == ПРИЁМ && чем.isEmpty()
     }
 
     /**
@@ -1207,11 +1228,34 @@ internal class Reconciler(
      * что осталось сделать на сцене.
      */
     private fun черновикВида(вид: String, понятие: Concept, документ: ObjectNode): Pair<String, List<String>>? {
-        val спец = GeneratedKinds.byCode[вид] ?: return null
-        val ступени = спец.statusModel.orEmpty().split("|").map { it.trim() }.filter { it.isNotBlank() }
-        val черновая = ступени.firstOrNull()?.takeIf { it.equals(ЧЕРНОВИК, ignoreCase = true) } ?: return null
+        val черновая = перваяСтупень(вид)?.takeIf { it.equals(ЧЕРНОВИК, ignoreCase = true) } ?: return null
         val нет = недостающие(вид, понятие, документ)
         return if (нет.isEmpty()) null else черновая to нет
+    }
+
+    /** Русское имя поля (`label` истины схем): кода поля человеку не показываем. */
+    private fun имяПоля(вид: String, поле: String): String =
+        GeneratedKinds.byCode[вид]?.labels?.get(поле) ?: поле
+
+    /** Первая ступень модели состояний вида; null — модели у вида нет. */
+    private fun перваяСтупень(вид: String): String? =
+        GeneratedKinds.byCode[вид]?.statusModel.orEmpty()
+            .split("|").map { it.trim() }.firstOrNull { it.isNotBlank() }
+
+    /**
+     * Что останется доделать на своей сцене: поля, обязательные к базированию
+     * и точкам. Ими объясняется, почему запись — черновик, а не готовое.
+     */
+    private fun кБазированию(вид: String, понятие: Concept, документ: ObjectNode): List<String> {
+        val спец = GeneratedKinds.byCode[вид] ?: return emptyList()
+        return спец.requiredFields.filter { поле ->
+            // Поля, которые ставит СИСТЕМА, человеку не поручаем; названные
+            // истиной как его («carrier: пусто — ставит инженер на сцене 8») —
+            // наоборот, ровно то, что он и должен доделать.
+            поле !in понятие.systemFields && документ.path(поле).asText("").isBlank() &&
+                !документ.path(поле).isArray && !документ.path(поле).isObject &&
+                (спец.requiredAt[поле]?.substringBefore(":")?.trim() ?: ПРИЁМ) != ПРИЁМ
+        }
     }
 
     /**
@@ -1464,6 +1508,9 @@ internal class Reconciler(
 
         /** Черновая ступень модели состояний: запись дозревает на своей сцене. */
         const val ЧЕРНОВИК: String = "Draft"
+
+        /** Стадия «при приёме предложения» (`required_at` истины схем). */
+        const val ПРИЁМ: String = "accept"
 
         const val ПРИНЯТ_КЕМ: String = "accepted_by"
         const val ПРИНЯТ_КОГДА: String = "accepted_at"

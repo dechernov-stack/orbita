@@ -1981,18 +1981,47 @@ function Постановка({ project, онтология, onChanged, expert =
    * вида, которых у него нет (их и спрашивает своя сцена). Величины и
    * поля-ссылки правятся не здесь — у них своя форма на сцене.
    */
+  /**
+   * Что спрашивается НА ПРИЁМЕ. Истина схем 18.09 (`required_at`) называет
+   * стадию и того, кто заполняет: `accept` — человек здесь, `accept:system ·
+   * from_basis · auto · default(x)` — подставит система, `baseline` и точки —
+   * своя сцена. Форма приёма из всей схемы (журнал ПМИ-7, З-09: «все поля
+   * обязательны… работать нельзя») кончилась: спрашиваем ровно своё.
+   */
   const поляПравки = (п: FormationProposal): string[] => {
     const понятие = онтология?.concepts.find((к) => к.code === п.concept)
     const вид = понятие?.kind
-    // Поля, которые ставит СИСТЕМА, человеку не предлагаются: истина говорит
-    // «ставит система при принятии», и пустая строка для них — приглашение
-    // заполнить то, что заполнять не надо (владелец 18.09).
     const системные = понятие?.system_fields ?? []
-    const свои = Object.keys(п.payload).filter((поле) => !системные.includes(поле))
+    const стадия = вид?.required_at ?? {}
+    const наПриёме = (поле: string) => {
+      const правило = стадия[поле]
+      if (!правило) return true
+      const [когда, чем] = [правило.split(':')[0].trim(), (правило.split(':')[1] ?? '').trim()]
+      return когда === 'accept' && чем === ''
+    }
+    const свои = Object.keys(п.payload).filter((поле) => !системные.includes(поле) && наПриёме(поле))
     const надо = (вид?.required ?? []).filter((поле) => !свои.includes(поле)
-      && !системные.includes(поле)
+      && !системные.includes(поле) && наПриёме(поле)
       && !(вид?.measures ?? []).includes(поле) && !(вид?.fact_refs ?? []).includes(поле))
     return [...свои, ...надо]
+  }
+
+  /** Что доделается позже и где — строкой под полями приёма, именами истины. */
+  const позже = (п: FormationProposal): string => {
+    const понятие = онтология?.concepts.find((к) => к.code === п.concept)
+    const вид = понятие?.kind
+    if (!вид) return ''
+    const поСтадиям = new Map<string, string[]>()
+    Object.entries(вид.required_at ?? {}).forEach(([поле, правило]) => {
+      const когда = правило.split(':')[0].trim()
+      const чем = (правило.split(':')[1] ?? '').trim()
+      if (когда === 'accept' && чем === '') return
+      const где = когда === 'accept'
+        ? 'подставит система'
+        : когда === 'baseline' ? 'к базированию' : `к точке ${когда}`
+      поСтадиям.set(где, [...(поСтадиям.get(где) ?? []), вид.labels?.[поле] ?? поле])
+    })
+    return [...поСтадиям.entries()].map(([где, поля]) => `${где}: ${поля.join(' · ')}`).join(' · ')
   }
 
   const принять = () => {
@@ -2156,7 +2185,7 @@ function Постановка({ project, онтология, onChanged, expert =
                                 const обязательно = (вид?.required ?? []).includes(поле)
                                 return (
                                   <label key={поле} className="v2-dim">
-                                    {ПОЛЕ[поле] ?? поле}{обязательно && !текущее ? ' · обязательно' : ''}
+                                    {вид?.labels?.[поле] ?? ПОЛЕ[поле] ?? поле}{обязательно && !текущее ? ' · обязательно' : ''}
                                     {перечень.length > 0 ? (
                                       <select value={текущее} name={`${п.proposal}.${поле}`}
                                         onChange={(e) => правитьПоле(п.proposal, поле, e.target.value)}>
@@ -2182,6 +2211,7 @@ function Постановка({ project, онтология, onChanged, expert =
                                   </label>
                                 )
                               })}
+                              {позже(п) && <div className="v2-dim">{позже(п)}</div>}
                             </div>
                             {п.target_ref && (
                               <div className="v2-dim">

@@ -57,6 +57,9 @@ enum class Ears {
     OPTIONAL,
     ;
 
+    /** Имя шаблона в истине схем (`ears_pattern`): «всегда» там зовётся `ubiquitous`. */
+    val schemaName: String get() = if (this == ALWAYS) "ubiquitous" else name.lowercase()
+
     companion object {
         /** В схеме шаблон «всегда» зовётся `ubiquitous` — принимаем оба имени. */
         fun of(text: String?): Ears = when (text?.trim()?.lowercase()) {
@@ -178,6 +181,9 @@ class BaselineRefused(val blockers: List<Blocker>) : RuntimeException(
 
 interface Requirements {
     fun lint(statement: String, ears: Ears): List<LintNote>
+
+    /** Шаблон EARS по форме самой формулировки: истина схем зовёт это `accept:auto`. */
+    fun detectEars(statement: String): Ears
     fun list(project: String): List<RequirementView>
     fun byCode(project: String, code: String): RequirementView?
 

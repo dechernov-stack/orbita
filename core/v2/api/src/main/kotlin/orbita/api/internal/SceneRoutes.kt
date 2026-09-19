@@ -454,6 +454,18 @@ class SceneRoutes(
             if (снимают) документ.remove(имя) else документ.set<JsonNode>(имя, значение)
             if (было != документ.get(имя)) изменено += 1
         }
+        // Вычисляемое поле пересчитывается при правке его источника: влияние
+        // стороны считает СИСТЕМА из роли, и после смены роли оно обязано
+        // сойтись само (журнал ПМИ-7, З-01). Названное человеком не трогаем:
+        // истина говорит «инженер правит на месте».
+        if (запись.kind == orbita.knowledge.api.Influence.CONCEPT && поля.has(orbita.knowledge.api.Influence.FROM)) {
+            val прежнее = запись.doc.path(orbita.knowledge.api.Influence.FIELD).asText("")
+            val былоПоРоли = orbita.knowledge.api.Influence.of(запись.doc.path(orbita.knowledge.api.Influence.FROM).asText(""))
+            if (прежнее.isBlank() || прежнее == былоПоРоли) {
+                документ.remove(orbita.knowledge.api.Influence.FIELD)
+                if (orbita.knowledge.api.Influence.fillIfMissing(документ)) изменено += 1
+            }
+        }
         if (изменено == 0) return V2Router.Ответ(200, mapper.createObjectNode().put("code", код).put("version", запись.version).put("changed", 0))
         val причина = тело.path("reason").asText("").ifBlank { null }
         val кем = "правка инженера: " + автор(тело) + (причина?.let { " — $it" } ?: "")

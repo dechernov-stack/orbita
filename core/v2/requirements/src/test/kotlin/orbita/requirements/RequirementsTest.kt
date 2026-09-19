@@ -82,6 +82,17 @@ class RequirementsTest {
     )
 
     @Test
+    fun `шаблон EARS определяется по форме формулировки`() {
+        // Истина схем 18.09: `ears_pattern: accept:auto` — при приёме шаблон
+        // определяется сам, по той же таблице форм, что и линт.
+        assertEquals(Ears.EVENT, требования.detectEars("Когда сообщение поставлено в очередь, система должна доставить его"))
+        assertEquals(Ears.STATE, требования.detectEars("Пока канал занят, система должна копить сообщения"))
+        assertEquals(Ears.UNWANTED, требования.detectEars("Если связь потеряна, то система должна повторить передачу"))
+        assertEquals(Ears.ALWAYS, требования.detectEars("Система должна хранить данные на территории РФ"))
+        assertEquals("ubiquitous", Ears.ALWAYS.schemaName, "в истине схем «всегда» зовётся ubiquitous")
+    }
+
+    @Test
     fun `линт видит форму шаблона и запрещённые слова`() {
         assertTrue(
             требования.lint("КА должен хранить сообщения не менее 24 ч.", Ears.ALWAYS).isEmpty(),

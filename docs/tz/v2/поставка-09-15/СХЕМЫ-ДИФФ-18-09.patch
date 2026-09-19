@@ -1,0 +1,55 @@
+--- repo
++++ new
+@@ -1286,0 +1287,2 @@
++    label: Уровень
++    required_at: accept:default(project на сцене 8)
+@@ -1290,0 +1293,2 @@
++    label: Код
++    required_at: accept:system
+@@ -1294,0 +1299,2 @@
++    label: Заголовок
++    required_at: accept
+@@ -1298,0 +1305,2 @@
++    label: Формулировка
++    required_at: accept
+@@ -1302,0 +1311,2 @@
++    label: Категория
++    required_at: baseline:proposed
+@@ -1306,0 +1317,2 @@
++    label: Приоритет
++    required_at: baseline:default(medium)
+@@ -1310,0 +1323,2 @@
++    label: Показатель
++    required_at: baseline|tbr
+@@ -1314,0 +1329,2 @@
++    label: Носитель
++    required_at: baseline
+@@ -1318,0 +1335,2 @@
++    label: Метод верификации
++    required_at: SRR:tbd_allowed
+@@ -1322,0 +1341,2 @@
++    label: Источник
++    required_at: accept:from_basis
+@@ -1326,0 +1347,2 @@
++    label: Критерий приёмки
++    required_at: baseline
+@@ -1330,0 +1353,2 @@
++    label: Нормативное основание
++    required_at: if_regulatory
+@@ -1334,0 +1359,2 @@
++    label: Шаблон EARS
++    required_at: accept:auto
+@@ -1338,0 +1365 @@
++    label: Типовое требование
+@@ -1342,0 +1370 @@
++    label: Применимость
+@@ -1346,0 +1375 @@
++    label: Обоснование отклонения
+@@ -1350,0 +1380 @@
++    label: Изменено после базирования
+@@ -3605,0 +3636,5 @@
++field_rules:
++  label: у каждого поля вида — label (русское имя); клиент показывает только label, код поля на экране запрещён (сторож)
++  required_at: 'обязательность по стадии: accept (при приёме предложения) · baseline (к базированию) · SRR/… (к точке); суффиксы: system (ставит система) · default(x) (умолчание) · from_basis (из оснований)
++    · auto (автоопределение) · tbd_allowed · proposed (предложение из текста). Форма приёма требует только accept'
++  widgets: measure → оператор · значение · единица; ref → пикер; ref[] → мультипикер; enum → селект русскими значениями; text → поле на всю ширину с автовысотой; объект без виджета на экране — сторож

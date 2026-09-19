@@ -62,6 +62,8 @@ class SynthesisRoutesTest {
     private val сверка = СверкаПодмена()
     private val маршруты = SynthesisRoutes(
         store, AiFactory.synthesisJobs(store, intake, служба, mapper), сверка, mapper, links,
+        // Шаблон EARS по форме формулировки — как в жизни его даёт модуль требований.
+        ears = { формулировка -> if (формулировка.trimStart().startsWith("Когда")) "event" else "ubiquitous" },
     )
     private val п = mapOf("project" to ПРОЕКТ)
 
@@ -97,6 +99,33 @@ class SynthesisRoutesTest {
             store.byCode(Area.Project(ПРОЕКТ), материал)!!.doc.path("role").asText(),
             "роль легла в карточку документа",
         )
+    }
+
+    @Test
+    fun `на приёме система подставляет по стадии — уровень, источник, шаблон EARS`() {
+        // Журнал ПМИ-7, З-09: форма спрашивала всё подряд. Истина схем 18.09
+        // (`required_at`) говорит, кто заполняет: код — система, источник — из
+        // оснований, шаблон EARS — автоопределением, уровень — умолчанием.
+        val факт = поле()
+        транспорт.ответ = """{"proposals":[{"concept":"requirement","payload":{
+            "title":"Латентность доставки",
+            "statement":"Когда сообщение поставлено в очередь, система должна доставить его за 180 мин"},
+            "basis":["$факт"],"verdict":"new"}]}"""
+        val код = довестиЗапуск()
+
+        val ответ = маршруты.handle(
+            "POST", "/v2/synthesis/runs/$код/accept", п,
+            """{"chosen":["${первоеПредложение(код)}"],"author":"инженер","reason":"сцена 8"}""",
+        )
+
+        assertEquals(201, ответ?.code, ответ?.body.toString())
+        val содержимое = сверка.содержимоеКандидата
+        assertTrue(содержимое != null, "кандидат доехал до сверки")
+        assertEquals("project", содержимое!!.path("level").asText(""), "уровень — умолчание стадии: $содержимое")
+        assertEquals("event", содержимое.path("ears_pattern").asText(""), "шаблон EARS определён по форме")
+        assertEquals("material", содержимое.path("source")[0].path("kind").asText(""), "источник — из оснований")
+        assertTrue(содержимое.path("source")[0].path("ref").asText().isNotBlank(), содержимое.toString())
+        assertTrue(содержимое.path("code").asText("").isBlank(), "код даёт хранилище, а не приём")
     }
 
     @Test

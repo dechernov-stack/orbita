@@ -99,6 +99,35 @@ class EditInPlaceTest {
     }
 
     @Test
+    fun `смена роли стороны пересчитывает влияние, а названное человеком — нет`() {
+        // Журнал ПМИ-7, З-01: влияние считает система из роли — «не только при
+        // синтезе». После правки роли оно обязано сойтись само.
+        val r = router()
+        val сторона = store.create(
+            "SK-0007", "stakeholder", область, "3",
+            mapper.readTree("""{"name":"ГКРЧ","role":"consumer","influence":"informed"}"""), провенанс,
+        )
+
+        r.handle(
+            "PATCH", "/v2/entities/${сторона.code}", п,
+            """{"fields":{"role":"regulator"},"author":"инженер","reason":"это регулятор"}""",
+        )
+
+        assertEquals("decides", store.byCode(область, "SK-0007")!!.doc.path("influence").asText(), "влияние пересчитано по новой роли")
+
+        // Названное человеком не трогаем: истина — «инженер правит на месте».
+        r.handle(
+            "PATCH", "/v2/entities/${сторона.code}", п,
+            """{"fields":{"influence":"informed"},"author":"инженер","reason":"решил инженер"}""",
+        )
+        r.handle(
+            "PATCH", "/v2/entities/${сторона.code}", п,
+            """{"fields":{"role":"customer"},"author":"инженер","reason":"на деле заказчик"}""",
+        )
+        assertEquals("informed", store.byCode(область, "SK-0007")!!.doc.path("influence").asText(), "решение человека держится")
+    }
+
+    @Test
     fun `поле вне схемы, служебный вид и смена кода — отказ словами, версия не плодится`() {
         val r = router()
         r.handle("POST", "/v2/stakeholders", п, """{"name":"ГКРЧ","role":"regulator","interest":"частоты","author":"Иванов И."}""", си)

@@ -526,10 +526,15 @@ class ReconcileManualInputTest {
 
         val требование = store.byCode(область, итог.created.single())!!
         assertEquals("requirement", требование.kind)
-        assertEquals("Draft", требование.status, "запись вошла черновиком, а не отказом")
-        assertTrue("черновиком" in итог.note && "«carrier»" !in итог.note, итог.note)
-        listOf("level", "category", "priority", "verification_method", "ears_pattern").forEach {
-            assertTrue("«$it»" in итог.note, "недостающее названо для сцены: ${итог.note}")
+        assertEquals("Draft", требование.status, "ступень записи — из модели состояний вида")
+        // Истина схем 18.09 (`required_at`): на приёме спрашивается только
+        // названное `accept` — заголовок и формулировка; остальное к
+        // базированию и точкам, и названо ИМЕНАМИ полей по-русски.
+        listOf("Носитель", "Категория", "Приоритет", "Метод верификации").forEach {
+            assertTrue("«$it»" in итог.note, "к базированию названо по-русски: ${итог.note}")
+        }
+        listOf("carrier", "category", "ears_pattern").forEach {
+            assertTrue("«$it»" !in итог.note, "кода поля человеку не показываем: ${итог.note}")
         }
     }
 

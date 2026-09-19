@@ -994,6 +994,14 @@ export interface FormationKind {
   measures: string[]
   fact_refs: string[]
   enums: Record<string, string[]>
+  /** Русское имя поля: экран показывает только его, код поля — запрещён. */
+  labels: Record<string, string>
+  /**
+   * Стадия обязательности: `accept` (при приёме) · `baseline` · `SRR` …
+   * с суффиксом, кто заполняет: `system` · `default(x)` · `from_basis` ·
+   * `auto` · `tbd_allowed` · `proposed`.
+   */
+  required_at: Record<string, string>
 }
 
 export interface FormationConcept {

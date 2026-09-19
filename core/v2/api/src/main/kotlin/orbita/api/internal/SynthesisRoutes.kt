@@ -48,6 +48,11 @@ class SynthesisRoutes(
     private val mapper: ObjectMapper = ObjectMapper(),
     /** Реестр связей: нужен отмене пакета — заведённое снимается вместе со связями. */
     private val links: orbita.kernel.api.LinkRegistry? = null,
+    /**
+     * Шаблон EARS по формулировке (`ears_pattern: accept:auto`). Правило живёт
+     * в модуле требований — сюда приходит функцией.
+     */
+    private val ears: ((String) -> String)? = null,
 ) {
 
     private val запуск = Regex("/v2/synthesis/runs/(SR-[0-9]+)")
@@ -340,6 +345,13 @@ class SynthesisRoutes(
                     массив(спец, "required", вид.requiredFields)
                     массив(спец, "measures", вид.measures)
                     массив(спец, "fact_refs", вид.factRefFields)
+                    // Русское имя поля и стадия обязательности — истина схем
+                    // 18.09: экран показывает label, а спрашивает только то,
+                    // что названо `accept` и само не подставляется.
+                    val подписи = спец.putObject("labels")
+                    вид.labels.forEach { (поле, имя) -> подписи.put(поле, имя) }
+                    val стадии = спец.putObject("required_at")
+                    вид.requiredAt.forEach { (поле, правило) -> стадии.put(поле, правило) }
                     val перечни = спец.putObject("enums")
                     вид.enums.forEach { (поле, значения) -> массив(перечни, поле, значения) }
                 }
@@ -424,8 +436,60 @@ class SynthesisRoutes(
      * и значения вне перечня отбиваются словами. Пустое значение снимает
      * поле — кроме обязательного, его меняют, а не снимают.
      */
+    /**
+     * Подстановка по стадии (`required_at` истины схем, 18.09).
+     *
+     * Истина называет не только «обязательно», но и КОГДА и ЧЕМ: `accept:system`
+     * — ставит система, `accept:from_basis` — берётся из оснований,
+     * `accept:auto` — определяется само, `accept:default(x)` — умолчание.
+     * Форма приёма спрашивает у человека только то, что названо `accept` и
+     * само не подставляется (журнал ПМИ-7, З-09: «все поля обязательны» —
+     * работать нельзя).
+     */
+    private fun поСтадии(п: FormationProposal, содержимое: ObjectNode): ObjectNode {
+        val вид = GeneratedOntology.byCode[п.concept]?.targetKindCode
+            ?.let { orbita.kernel.schema.GeneratedKinds.byCode[it] } ?: return содержимое
+        вид.requiredAt.forEach { (поле, правило) ->
+            val стадия = правило.substringBefore(":").trim()
+            val чем = правило.substringAfter(":", "").trim()
+            if (стадия != ПРИЁМ || чем.isBlank()) return@forEach
+            if (содержимое.path(поле).asText("").isNotBlank() || содержимое.path(поле).isArray) return@forEach
+            when {
+                // Код даёт хранилище при заведении — здесь его не выдумывают.
+                чем == "system" -> Unit
+                чем == "from_basis" -> основанияПолем(п)?.let { содержимое.set<JsonNode>(поле, it) }
+                чем == "auto" -> авто(поле, содержимое)?.let { содержимое.put(поле, it) }
+                чем.startsWith("default(") -> умолчание(чем)?.let { содержимое.put(поле, it) }
+            }
+        }
+        return содержимое
+    }
+
+    /** Источник требования — из оснований предложения: документ и якорь. */
+    private fun основанияПолем(п: FormationProposal): JsonNode? {
+        if (п.basis.isEmpty()) return null
+        val массив = mapper.createArrayNode()
+        п.basis.forEach { основание ->
+            val узел = массив.addObject().put("kind", "material")
+            узел.put("ref", основание.material ?: основание.factId)
+            основание.anchor?.takeIf { it.isNotBlank() }?.let { узел.put("anchor", it) }
+        }
+        return массив
+    }
+
+    /** Автоопределение: шаблон EARS — по форме самой формулировки. */
+    private fun авто(поле: String, содержимое: ObjectNode): String? {
+        if (поле != ШАБЛОН_EARS) return null
+        val формулировка = содержимое.path("statement").asText("").trim().ifBlank { return null }
+        return ears?.invoke(формулировка)
+    }
+
+    /** «default(project на сцене 8)» → project: первое слово — значение. */
+    private fun умолчание(чем: String): String? =
+        чем.substringAfter("(").substringBeforeLast(")").trim().substringBefore(" ").trim().ifBlank { null }
+
     private fun сПравкой(п: FormationProposal, правка: JsonNode?): ObjectNode {
-        val содержимое = содержимое(п)
+        val содержимое = поСтадии(п, содержимое(п))
         if (правка == null || !правка.isObject || правка.isEmpty) return содержимое
         val вид = GeneratedOntology.byCode[п.concept]?.targetKindCode
             ?.let { orbita.kernel.schema.GeneratedKinds.byCode[it] }
@@ -492,6 +556,10 @@ class SynthesisRoutes(
         if (body.isNullOrBlank()) mapper.createObjectNode() else mapper.readTree(body)
 
     private companion object {
+        /** Стадия «при приёме предложения» из истины схем (`required_at`). */
+        const val ПРИЁМ: String = "accept"
+        const val ШАБЛОН_EARS: String = "ears_pattern"
+
         val АДРЕСА: Set<String> = setOf(
             "/v2/synthesis/runs", "/v2/synthesis/diff", "/v2/synthesis/pending", "/v2/ontology/formation",
         )
