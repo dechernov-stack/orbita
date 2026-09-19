@@ -40,12 +40,20 @@ class EntityBaselines(
     /** Лестница точек: до SRR метод верификации может быть TBD, после — нет. */
     private val лестница = listOf("MCR", "SRR", "SDR", "PDR", "CDR")
 
+    /**
+     * Требования без снятых с учёта: отменённое пакетом требование числилось
+     * помехой базирования — «9255007678 · И1 — нет носителя» (проход
+     * владельца, 18.09).
+     */
+    private fun живыеТребования(область: Area): List<Entity> =
+        store.list(область, "requirement").filter { it.status != "cancelled" }
+
     override fun blockers(project: String, kind: BaselineKind, gate: String): List<Blocker> {
         val область = Area.Project(project)
         val помехи = mutableListOf<Blocker>()
         val строгоКМетоду = лестница.indexOf(gate.uppercase().substringBefore("-")) >= лестница.indexOf("SRR")
 
-        store.list(область, "requirement")
+        живыеТребования(область)
             .filter { Level.of(it.doc.path("level").asText(null)) in kind.levels() }
             .forEach { требование ->
                 val код = требование.code

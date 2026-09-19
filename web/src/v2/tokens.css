@@ -239,16 +239,20 @@ button:disabled { opacity: .55; cursor: default; }
 
 /* --- волна 3: реестр требований, деревья, грани компонента --- */
 
-/* Шесть колонок и не больше: формулировка забирает остаток ширины.
-   Ширины заданы явно — иначе длинный код или заголовок распирают таблицу, и
-   колонки съезжают друг на друга (проход владельца 18.09: «в дизайне каша»). */
-.v2-table--req { table-layout: fixed; }
+/* Шесть колонок и не больше: формулировка забирает самую широкую долю.
+   Доли — в процентах и в сумме сто: ширины в ch съедали всю строку, и
+   «Формулировке» доставался НОЛЬ — текст лез на соседние клетки (проход
+   владельца 18.09: «в дизайне каша», замерено в браузере на стенде). */
+.v2-table--req { table-layout: fixed; width: 100%; }
 .v2-table--req td { cursor: pointer; overflow-wrap: anywhere; }
-.v2-table--req th:nth-child(1), .v2-table--req td:nth-child(1) { width: 11ch; }
-.v2-table--req th:nth-child(2), .v2-table--req td:nth-child(2) { width: 22ch; }
-.v2-table--req th:nth-child(4), .v2-table--req td:nth-child(4) { width: 14ch; }
-.v2-table--req th:nth-child(5), .v2-table--req td:nth-child(5) { width: 16ch; }
-.v2-table--req th:nth-child(6), .v2-table--req td:nth-child(6) { width: 10ch; }
+.v2-table--req th:nth-child(1), .v2-table--req td:nth-child(1) { width: 10%; }
+.v2-table--req th:nth-child(2), .v2-table--req td:nth-child(2) { width: 18%; }
+.v2-table--req th:nth-child(3), .v2-table--req td:nth-child(3) { width: 42%; }
+.v2-table--req th:nth-child(4), .v2-table--req td:nth-child(4) { width: 10%; }
+.v2-table--req th:nth-child(5), .v2-table--req td:nth-child(5) { width: 12%; }
+.v2-table--req th:nth-child(6), .v2-table--req td:nth-child(6) { width: 8%; }
+/* Карточка вниз занимает всю строку — доли колонок её не режут. */
+.v2-table--req .v2-card-row td { width: auto; }
 .v2-cell--statement { max-width: none; }
 .v2-row--open { background: var(--accent-soft); }
 .v2-card-row td { background: var(--ground); }
