@@ -163,6 +163,26 @@ class EditInPlaceTest {
             "русское имя значения ложится КОДОМ истины",
         )
 
+        // Прежнее русское значение в записи лечится тем же PATCH, даже если
+        // «новое» значение то же самое: приведение — правка, и она сохраняется.
+        store.update(
+            store.byCode(область, "SK-0001")!!.id,
+            store.byCode(область, "SK-0001")!!.doc.deepCopy<com.fasterxml.jackson.databind.node.ObjectNode>()
+                .put("attitude", "нейтрален"),
+            Provenance(Channel.MANUAL, "прежний приём"),
+        )
+        val лечение = router().handle(
+            "PATCH", "/v2/entities/SK-0001", п,
+            """{"fields":{"attitude":"нейтрален"},"author":"инженер"}""", си,
+        )
+        assertEquals("neutral", store.byCode(область, "SK-0001")!!.doc.path("attitude").asText(), лечение?.body.toString())
+        assertTrue(
+            лечение!!.body.path("changed").asInt() > 0 &&
+                "нейтрален" in лечение.body.path("note").asText() &&
+                "neutral" in лечение.body.path("note").asText(),
+            "приведение сохранено и названо словами: ${лечение.body}",
+        )
+
         val чужое = assertFailsWith<IllegalArgumentException> {
             r.handle(
                 "PATCH", "/v2/entities/SK-0001", п,
