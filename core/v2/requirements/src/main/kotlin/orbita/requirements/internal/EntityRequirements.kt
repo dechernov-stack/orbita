@@ -27,7 +27,12 @@ class EntityRequirements(
 
     override fun list(project: String): List<RequirementView> {
         val снимок = Snapshots.последний(store, project)
-        return store.list(Area.Project(project), "requirement").map { вид(it, снимок) }
+        // Снятое с учёта в реестре не живёт: после «Отменить пакет» требование
+        // осталось в списке и в дереве по носителю, а счётчики разошлись —
+        // «1/3» сверху и «0 из 3» снизу (проход владельца, 18.09).
+        return store.list(Area.Project(project), "requirement")
+            .filter { it.status != СНЯТО }
+            .map { вид(it, снимок) }
     }
 
     override fun byCode(project: String, code: String): RequirementView? =
@@ -36,6 +41,9 @@ class EntityRequirements(
             ?.let { вид(it, Snapshots.последний(store, project)) }
 
     /** Собирает карточку требования; носитель разворачивается в код и вид. */
+    /** Статус снятого с учёта — тот же, что ставит отмена пакета. */
+    private val СНЯТО: String = "cancelled"
+
     private fun вид(требование: Entity, снимок: Entity?): RequirementView {
         val шаблон = Ears.of(требование.doc.path("ears_pattern").asText(null))
         val формулировка = требование.doc.path("statement").asText("")

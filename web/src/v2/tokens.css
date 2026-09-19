@@ -239,9 +239,17 @@ button:disabled { opacity: .55; cursor: default; }
 
 /* --- волна 3: реестр требований, деревья, грани компонента --- */
 
-/* Шесть колонок и не больше: формулировка забирает остаток ширины. */
-.v2-table--req td { cursor: pointer; }
-.v2-cell--statement { max-width: 40ch; }
+/* Шесть колонок и не больше: формулировка забирает остаток ширины.
+   Ширины заданы явно — иначе длинный код или заголовок распирают таблицу, и
+   колонки съезжают друг на друга (проход владельца 18.09: «в дизайне каша»). */
+.v2-table--req { table-layout: fixed; }
+.v2-table--req td { cursor: pointer; overflow-wrap: anywhere; }
+.v2-table--req th:nth-child(1), .v2-table--req td:nth-child(1) { width: 11ch; }
+.v2-table--req th:nth-child(2), .v2-table--req td:nth-child(2) { width: 22ch; }
+.v2-table--req th:nth-child(4), .v2-table--req td:nth-child(4) { width: 14ch; }
+.v2-table--req th:nth-child(5), .v2-table--req td:nth-child(5) { width: 16ch; }
+.v2-table--req th:nth-child(6), .v2-table--req td:nth-child(6) { width: 10ch; }
+.v2-cell--statement { max-width: none; }
 .v2-row--open { background: var(--accent-soft); }
 .v2-card-row td { background: var(--ground); }
 

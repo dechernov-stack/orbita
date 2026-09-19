@@ -234,6 +234,10 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
             // состояния движка — иначе схема разойдётся с моделью.
             outputCounter = { проект, вид ->
                 store.list(orbita.kernel.api.Area.Project(проект), вид)
+                    // Снятое с учёта выходом не считается: «требования к
+                    // системе 1/3» сверху при «0 из 3» снизу — это счёт
+                    // отменённой записи (проход владельца, 18.09).
+                    .filter { it.status != "cancelled" }
                     .count { вид != "intent" || it.status == "accepted" }
             },
             sceneWindows = { проект ->

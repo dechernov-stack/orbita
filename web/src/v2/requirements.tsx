@@ -11,7 +11,7 @@ import {
 import '@xyflow/react/dist/style.css'
 import dagre from '@dagrejs/dagre'
 import {
-  api, type BaselineRow, type Blocker, type ImpactGraph, type LintNote,
+  api, type BaselineRow, type Blocker, type FormationProposal, type ImpactGraph, type LintNote,
   type RequirementRow, type SuspectRow,
 } from './api'
 
@@ -30,6 +30,93 @@ const УРОВНИ = [
   { key: 'subsystem', title: 'подсистемное', носитель: 'узел состава' },
   { key: 'interface', title: 'интерфейсное', носитель: 'стык' },
 ]
+
+/**
+ * Предложения требований из постановки — прямо на сцене 8.
+ *
+ * Маршрут владельца: «Сцена 8: принять 12 требований, распределить по
+ * природе». До 18.09 предложения лежали на другом экране (поле знаний), и на
+ * сцене 8 было пусто: «ничего в требованиях верхнего уровня не изменилось».
+ * Приём тот же самый — те же ворота сверки и та же обратимость пакета.
+ */
+function ПредложенияТребований({ project, onAccepted }: { project: string; onAccepted: () => void }) {
+  const [запуск, setЗапуск] = useState<string>('')
+  const [строки, setСтроки] = useState<FormationProposal[]>([])
+  const [отмечены, setОтмечены] = useState<string[]>([])
+  const [занято, setЗанято] = useState(false)
+  const [итог, setИтог] = useState<string | null>(null)
+  const [отказ, setОтказ] = useState<string | null>(null)
+
+  const перечитать = useCallback(() => {
+    api.synthesisDiff(project)
+      .then((д) => {
+        if (!('id' in д) || !д.diff) { setСтроки([]); return }
+        const свои = (['new', 'augment', 'contradict', 'confirm'] as const)
+          .flatMap((к) => д.diff?.[к] ?? [])
+          .filter((п) => п.concept === 'requirement')
+        setЗапуск(д.id)
+        setСтроки(свои)
+        setОтмечены(свои.filter((п) => п.missing.length === 0 && п.verdict === 'new').map((п) => п.proposal))
+      })
+      .catch(() => setСтроки([]))
+  }, [project])
+  useEffect(перечитать, [перечитать])
+
+  if (строки.length === 0) return null
+
+  const принять = () => {
+    if (отмечены.length === 0) return
+    setЗанято(true); setОтказ(null)
+    api.acceptSynthesis(project, запуск, отмечены, 'инженер', 'сцена 8: требования из постановки')
+      .then((и) => {
+        setИтог(`заведено ${и.created.length}${и.pending.length > 0 ? `, ждёт решения ${и.pending.length}` : ''}`)
+        onAccepted(); перечитать()
+      })
+      .catch((e) => setОтказ(String(e.message ?? e)))
+      .finally(() => setЗанято(false))
+  }
+
+  return (
+    <div className="v2-card" data-why="работа">
+      <div className="v2-card__head">
+        <span className="v2-card__title">Предложения требований из постановки</span>
+        <span className="v2-card__count">{строки.length}</span>
+      </div>
+      <div className="v2-empty__why">
+        Требования уровня проекта образуются здесь, решением инженера: приём заводит их
+        черновиком, а природу и носителя вы назначаете в карточке. Приём обратим пакетом.
+      </div>
+      {отказ && <div className="v2-locked">{отказ}</div>}
+      {итог && <div className="v2-note-line">{итог}</div>}
+      <table className="v2-table">
+        <thead><tr><th /><th>Заголовок</th><th>Формулировка</th><th>Основания</th></tr></thead>
+        <tbody>
+          {строки.map((п) => (
+            <tr key={п.proposal}>
+              <td>
+                <input type="checkbox" checked={отмечены.includes(п.proposal)}
+                  aria-label={`отметить ${п.proposal}`} autoComplete="off"
+                  onChange={(e) => setОтмечены(e.target.checked
+                    ? [...отмечены, п.proposal]
+                    : отмечены.filter((к) => к !== п.proposal))} />
+              </td>
+              <td>{п.payload.title ?? '—'}</td>
+              <td>{п.payload.statement ?? ''}</td>
+              <td className="v2-dim">{п.basis.map((о) => `${о.material ?? о.fact}${о.anchor ? ` · ${о.anchor}` : ''}`).join(' · ')}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div className="v2-form__actions">
+        <button type="button" className="v2-primary" disabled={занято || отмечены.length === 0}
+          title={отмечены.length === 0 ? 'отметьте предложения — сами они ничего не заводят' : `принять ${отмечены.length} черновиками`}
+          onClick={принять}>
+          {занято ? 'Принимаю…' : `Принять в черновик (${отмечены.length})`}
+        </button>
+      </div>
+    </div>
+  )
+}
 
 export function Requirements({ project }: { project: string | null }) {
   const [строки, setСтроки] = useState<RequirementRow[]>([])
@@ -61,6 +148,8 @@ export function Requirements({ project }: { project: string | null }) {
   return (
     <>
       {отказ && <div className="v2-card"><div className="v2-locked">{отказ}</div></div>}
+
+      <ПредложенияТребований project={project} onAccepted={перечитать} />
 
       <div className="v2-card">
         <div className="v2-card__head">
