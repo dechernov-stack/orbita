@@ -316,15 +316,20 @@ function ПравкаТребования({ project, т, onSaved, схема }: 
   }, [project, т.level])
 
   const сохранить = () => {
-    if (неполна) { setОтказ(неполна); return }
+    // Половина величины НЕ держит карточку: показатель по истине необязателен
+    // (`required: false`), а держал он всю работу — час прохода владельца ушёл
+    // на запертую кнопку (19.09). Неполное поле просто не уезжает, и это
+    // сказано словами рядом.
+    const кПравке = Object.fromEntries(Object.entries(правки).filter(([, з]) => з !== null))
     setЗанято(true); setОтказ(null); setИтог(null)
-    api.patchEntity(project, т.code, { title: заголовок, statement: формулировка, ...правки }, 'инженер')
+    api.patchEntity(project, т.code, { title: заголовок, statement: формулировка, ...кПравке }, 'инженер')
       .then((р) => {
         setЗанято(false); setПравки({})
         // «Изменено 0» говорится словами: молчание человек читает как «сохранилось».
-        setИтог(р.note?.trim()
+        const наполовину = неполна ? ` · ${неполна} — это поле не сохранено` : ''
+        setИтог((р.note?.trim()
           ? р.note
-          : (р.changed > 0 ? `сохранено, версия ${р.version}` : 'ничего не изменилось — поля те же'))
+          : (р.changed > 0 ? `сохранено, версия ${р.version}` : 'ничего не изменилось — поля те же')) + наполовину)
         onSaved()
       })
       .catch((e) => { setЗанято(false); setОтказ(String(e.message ?? e)) })
@@ -368,6 +373,25 @@ function ПравкаТребования({ project, т, onSaved, схема }: 
             )
           }
           if (схема.вид?.measures.includes(поле)) {
+            // Показатель нужен НЕ ВСЕМ: истина говорит «обязателен для
+            // performance», и у функционального требования его ставить неоткуда
+            // (владелец 19.09: «что ставить в показатели неведомо»). Поэтому
+            // поле стоит там, где оно значит, а не висит вопросом всегда.
+            const категория = String(правки.category ?? т.category ?? '')
+            const ждёт = примечание.includes('performance')
+              ? категория === 'performance'
+              : true
+            if (!ждёт && !т.measure && правки[поле] === undefined) {
+              return (
+                <span key={поле} className="v2-empty__why">
+                  {схема.имя(поле)}: у категории «{схема.метка('category', категория) || 'не задана'}»
+                  не требуется — {примечание || схема.стадия(поле)}.{' '}
+                  <button type="button" className="v2-chip"
+                    title="показатель можно поставить и здесь — истина этого не запрещает"
+                    onClick={() => setПравки({ ...правки, [поле]: null })}>всё равно задать</button>
+                </span>
+              )
+            }
             return (
               <Величина key={поле} подпись={подпись} код={т.code} было={т.measure}
                 единицы={схема.единицы} почемуБезЕдиниц={схема.почемуБезЕдиниц}
@@ -396,10 +420,11 @@ function ПравкаТребования({ project, т, onSaved, схема }: 
           )
         })}
         <button type="button" className="v2-primary" onClick={сохранить}
-          disabled={занято || !формулировка.trim() || неполна !== null}
+          disabled={занято || !формулировка.trim()}
           title={!формулировка.trim()
             ? 'формулировка пустой быть не может'
-            : (неполна ?? 'сохранить новой версией — провенанс «правка инженера»')}>Сохранить</button>
+            : 'сохранить новой версией — провенанс «правка инженера»'}>Сохранить</button>
+        {неполна && <span className="v2-empty__why">{неполна} — остальное сохранится</span>}
         {итог && <span className="v2-empty__why">{итог}</span>}
         {отказ && <span className="v2-locked">{отказ}</span>}
       </div>
@@ -926,6 +951,11 @@ function Форма({ project, onAdded, схема }: {
     carrier: '', verification_method: 'test', acceptance_criteria: '',
   })
   const [шаблон, setШаблон] = useState('ubiquitous')
+  // Показатель и здесь ставится ПАРОЙ с единицей справочника: в форме нового
+  // требования поля величины не было вовсе — владелец 19.09 искал, где ввести
+  // показатель, и «единиц измерения нет» было буквально так.
+  const [показатель, setПоказатель] = useState<Record<string, unknown> | null>(null)
+  const [неполна, setНеполна] = useState<string | null>(null)
   const [пометы, setПометы] = useState<LintNote[]>([])
   const [отказ, setОтказ] = useState<string | null>(null)
   const [занято, setЗанято] = useState(false)
@@ -967,6 +997,7 @@ function Форма({ project, onAdded, схема }: {
     api.addRequirement(project, {
       ...поля,
       ears_pattern: шаблон,
+      ...(показатель ? { measure: показатель } : {}),
       source: выбран ? [{ kind: выбран.kind, ref: выбран.id }] : [],
     })
       .then(() => { setПоля({ ...поля, code: '', title: '', statement: '' }); onAdded() })
@@ -1008,6 +1039,17 @@ function Форма({ project, onAdded, схема }: {
             {источники.map((и) => <option key={и.id} value={и.id}>{и.подпись}</option>)}
           </select>
         </label>
+        <label>{схема.имя('category')}
+          <select name="новое.category" value={поля.category}
+            onChange={(e) => setПоля({ ...поля, category: e.target.value })}>
+            {схема.значения('category').map((з) => <option key={з.код} value={з.код}>{з.имя}</option>)}
+          </select>
+        </label>
+        <Величина подпись={`${схема.имя('measure')}${схема.примечание('measure') ? ` · ${схема.примечание('measure')}` : ''}`}
+          код="новое" было={null} единицы={схема.единицы} почемуБезЕдиниц={схема.почемуБезЕдиниц}
+          операторы={схема.вид?.measure_ops ?? {}}
+          onChange={setПоказатель} onНеполна={setНеполна} />
+        {неполна && <span className="v2-empty__why">{неполна} — показатель не запишется, остальное запишется</span>}
         <label>Критерий приёмки
           <input value={поля.acceptance_criteria}
             onChange={(e) => setПоля({ ...поля, acceptance_criteria: e.target.value })}
