@@ -66,7 +66,9 @@ object EarsLint {
             if (!форма.containsMatchIn(текст)) {
                 замечания += LintNote(
                     "L-E1",
-                    "формулировка не по шаблону ${ears.name}",
+                    // Шаблон назван ПО-РУССКИ из истины схем: «не по шаблону
+                    // ALWAYS» — код на экране, а он запрещён (field_rules.label).
+                    "формулировка не по шаблону «${словом(ears)}»",
                     "ожидается форма: ${подсказки[ears]}",
                 )
             }
@@ -117,6 +119,10 @@ object EarsLint {
 
         return замечания
     }
+
+    /** Шаблон словами человека: русское значение перечисления из истины схем. */
+    private fun словом(ears: Ears): String =
+        orbita.kernel.schema.Enums.метка("requirement", "ears_pattern", ears.schemaName) ?: ears.schemaName
 
     /** Инфинитив: кириллическое слово на «-ть»/«-ться». */
     private val инфинитив = Regex("""(?<![а-яё])[а-яё]{3,}(?:ться|ть)(?![а-яё])""", RegexOption.IGNORE_CASE)
