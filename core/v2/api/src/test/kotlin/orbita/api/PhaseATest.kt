@@ -43,7 +43,10 @@ class PhaseATest {
     private val провенанс = Provenance(Channel.MANUAL, "Чернов Д.")
     private val записи = GateRecords(store, mapper)
     private val требования = RequirementsFactory.requirements(store, links, mapper)
-    private val снимки = RequirementsFactory.baselines(store, links, mapper)
+    private val снимки = RequirementsFactory.baselines(
+        store, links, mapper,
+        hardGates = orbita.knowledge.schema.GeneratedOntology.hardGatesOnly,
+    )
     private val архитектура = ArchitectureFactory.architecture(store, links, mapper)
 
     private fun движок() = ProcessFactory.engine(

@@ -1,0 +1,161 @@
+--- repo
++++ new
+@@ -1308 +1308 @@
+-    type: enum[functional,performance,interface,operational,constraint,safety,environment]
++    type: enum[functional,performance,interface,operational,constraint,safety,environment,regulatory,security,data]
+@@ -3640,0 +3641,155 @@
++  enum_labels: русские значения перечислений — только из enum_labels; значение без метки на экране — сторож
++enum_labels:
++  requirement.level:
++    project: проектное
++    scenario: сценарное
++    system: системное
++    subsystem: подсистемное
++    interface: интерфейсное
++  requirement.category:
++    functional: функциональное
++    performance: характеристика
++    interface: интерфейсное
++    operational: эксплуатационное
++    constraint: ограничение
++    safety: безопасность
++    environment: среда
++    regulatory: регуляторное
++    security: защита информации
++    data: данные
++  requirement.priority:
++    high: высокий
++    medium: средний
++    low: низкий
++  requirement.ears_pattern:
++    ubiquitous: всегда
++    event: по событию
++    state: в состоянии
++    unwanted: нежелательное
++    optional: опциональное
++  requirement.status:
++    Draft: черновик
++    Preliminary: предварительное
++    Approved: утверждено
++    Baseline: базировано
++    Cancelled: отменено
++  requirement.verification_method:
++    test: испытание
++    analysis: анализ
++    inspection: инспекция
++    demonstration: демонстрация
++    simulation: моделирование
++    TBD: TBD
++  stakeholder.role:
++    customer: заказчик
++    regulator: регулятор
++    operator: оператор
++    consumer: потребитель
++    supplier: поставщик
++    partner: партнёр
++    established: учреждаемый
++  stakeholder.influence:
++    decides: решает
++    influences: влияет
++    informed: информируется
++  stakeholder.attitude:
++    supports: поддерживает
++    neutral: нейтрален
++    resists: сопротивляется
++  need.coverage_expected:
++    service: сервисом
++    constraint: ограничением
++    programme: программой
++    requirement: требованием
++  material.role:
++    charter: устав
++    tor: источник требований
++    regulatory: норматив
++    context: обстановка
++    supplier: поставщик
++    heritage: наследие
++  material.authority:
++    mandatory: обязательный
++    expert: экспертный
++    reference: справочный
++    doubtful: сомнительный
++  fact.disposition:
++    free: не рассмотрен
++    noted: учтён
++    assumed: допущение
++    adopted: принят
++    rejected: отклонён
++    contested: оспорен
++    superseded: устарел
++  fact.source_mark:
++    И: внутреннее
++    В: внешнее
++    П: предположение
++  fact.evidence:
++    claimed: заявлено
++    corroborated: подтверждено
++    measured: измерено
++    assumed: допущение
++  proposal.verdict:
++    new: новое
++    augment: дополнить
++    contradict: противоречие
++    confirm: подтверждение
++  opportunity.verdict:
++    covered: закрываем
++    partial: частично
++    not_our_profile: не наш профиль
++    needs_work: нужна доработка
++  component.nature:
++    node: узел (железо)
++    behaviour: поведение (ПО)
++  parameter.maturity_class:
++    estimated: оценка
++    modified: модификация
++    off_the_shelf: серийное
++    measured: измерено
++  risk.category:
++    technical: техническая
++    cost: стоимость
++    schedule: сроки
++    safety: безопасность
++    regulatory: регуляторный
++    security: защита
++    programmatic: программный
++  risk.strategy:
++    mitigate: снизить
++    accept: принять
++    transfer: передать
++    avoid: избежать
++  gate.kind:
++    phase: точка фазы
++    technology: веха технологии
++  baseline.kind:
++    functional: функциональная
++    allocated: исходные данные на проектирование
++    product: на производство
++  constraint.type:
++    technical: техническое
++    programmatic: программное
++    launch: пусковое
++    regulatory: регуляторное
++    financial: финансовое
++  link.type:
++    derives_from: выведено из
++    allocated_to: распределено на
++    satisfied_by: удовлетворяется
++    realized_by: реализуется
++    conflicts_with: противоречит
++    traced_to: трассируется к
++    owns: владеет
++    covers: покрывает
++    supports: поддерживает
++    contradicts: противоречит (факты)
++    refines: уточняет
++    same_as: то же самое
++    derived_from_fact: основание
++    verified_by: верифицируется
++    depends_on_technology: зависит от технологии
++    illustrated_by: иллюстрируется
++    flows_over: идёт по стыку
++    allocation: распределение

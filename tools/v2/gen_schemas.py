@@ -222,7 +222,7 @@ def схема_вида(вид: dict, ядро: list) -> dict:
     return схема
 
 
-def котлин(kinds: list) -> str:
+def котлин(kinds: list, метки: dict | None = None) -> str:
     строки = [
         "// " + ШАПКА,
         "//",
@@ -350,6 +350,23 @@ def котлин(kinds: list) -> str:
     строки += [
         "    )",
         "",
+        "    /**",
+        "     * Русские значения перечислений (`enum_labels` истины схем, 19.09).",
+        "     *",
+        "     * Ключ — «вид.поле» СЛОВАМИ ИСТИНЫ: там названы и поля-перечни",
+        "     * (`requirement.level`), и поля-ссылки в справочник",
+        "     * (`requirement.priority`), и статус записи (`requirement.status`),",
+        "     * и вердикт предложения. Экран берёт значение ТОЛЬКО отсюда:",
+        "     * «значение без метки на экране — сторож» (field_rules.enum_labels).",
+        "     */",
+        "    val enumLabels: Map<String, Map<String, String>> = mapOf(",
+    ]
+    for ключ, значения in sorted((метки or {}).items()):
+        пары = ", ".join(f"{строка_kt(к)} to {строка_kt(з)}" for к, з in значения.items())
+        строки.append(f"        {строка_kt(ключ)} to mapOf({пары}),")
+    строки += [
+        "    )",
+        "",
         "    val byCode: Map<String, KindSpec> = all.associateBy { it.code }",
         "",
         "    /** Вид вне перечня не существует: отказ вместо тихого пропуска. */",
@@ -421,7 +438,7 @@ def развернуть_группы(kinds: list) -> list:
     return развёрнутые
 
 
-def собрать() -> dict:
+def собрать() -> tuple[dict, list, dict]:
     истина = yaml.safe_load(ИСТОЧНИК.read_text(encoding="utf-8"))
     истина["kinds"] = развернуть_группы(истина["kinds"])
     файлы = {"_core.schema.json": {
@@ -435,7 +452,7 @@ def собрать() -> dict:
     }, "_measure.schema.json": мера_схема()}
     for вид in истина["kinds"]:
         файлы[f"{вид['code']}.schema.json"] = схема_вида(вид, истина["core_fields"])
-    return файлы, истина["kinds"]
+    return файлы, истина["kinds"], истина.get("enum_labels") or {}
 
 
 def текст(схема: dict) -> str:
@@ -447,8 +464,8 @@ def main() -> int:
     разбор.add_argument("--check", action="store_true", help="сторож: расхождение с YAML — отказ")
     аргументы = разбор.parse_args()
 
-    файлы, kinds = собрать()
-    код = котлин(kinds)
+    файлы, kinds, метки = собрать()
+    код = котлин(kinds, метки)
 
     if аргументы.check:
         расхождения = []

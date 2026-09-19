@@ -539,6 +539,44 @@ class ReconcileManualInputTest {
     }
 
     @Test
+    fun `русское значение перечисления ложится кодом, значение чужого поля переезжает`() {
+        // Журнал ПМИ-7, З-11: категория пришла ПО-РУССКИ («характеристика»), а у
+        // RE-0001 в категории оказалось значение УРОВНЯ — «проектное». Сторожа
+        // перечислений на записи не было; истина 19.09 (`enum_labels`) даёт
+        // карту русских значений — ею и узнаётся сказанное моделью.
+        val перечнем = Candidate(
+            "c1", "requirement",
+            mapper.createObjectNode()
+                .put("title", "Латентность доставки")
+                .put("statement", "Система должна доставлять сообщение не более 180 мин")
+                .put("category", "характеристика"),
+        )
+        val запуск = сверка.preview(проект, listOf(перечнем), автор, роль)
+        val номер = запуск.items.single().findings.indexOfFirst { Action.ACCEPT_NEW in it.offers }
+        val итог = сверка.apply(проект, запуск.id, "c1", номер, Action.ACCEPT_NEW, reason = "принято", author = автор)
+        val первое = store.byCode(область, итог.created.single())!!
+        assertEquals("performance", первое.doc.path("category").asText(), "русское имя ложится кодом истины")
+        assertTrue("Категория" in итог.note, "правка названа словами: ${итог.note}")
+
+        // «проектное» — значение УРОВНЯ: оно переезжает в своё поле, а категория
+        // остаётся пустой до базирования («категория — из предложения или пусто»).
+        val чужим = Candidate(
+            "c2", "requirement",
+            mapper.createObjectNode()
+                .put("title", "Отслеживаемость грузов")
+                .put("statement", "Система должна отслеживать перечень объектов")
+                .put("category", "проектное"),
+        )
+        val второй = сверка.preview(проект, listOf(чужим), автор, роль)
+        val н2 = второй.items.single().findings.indexOfFirst { Action.ACCEPT_NEW in it.offers }
+        val итог2 = сверка.apply(проект, второй.id, "c2", н2, Action.ACCEPT_NEW, reason = "принято", author = автор)
+        val второе = store.byCode(область, итог2.created.single())!!
+        assertEquals("project", второе.doc.path("level").asText(), "значение уровня уехало в уровень: ${второе.doc}")
+        assertTrue(второе.doc.path("category").asText("").isBlank(), "категория пуста до базирования: ${второе.doc}")
+        assertTrue("Уровень" in итог2.note && "Категория" in итог2.note, "перенос назван словами: ${итог2.note}")
+    }
+
+    @Test
     fun `понятие на факте не попадает в перечень принятых сущностей`() {
         // Сторож удвоения среза: пока допущение считалось видом «fact», каждый
         // факт поля приезжал в синтез ещё и «принятым понятием».

@@ -43,7 +43,10 @@ class SceneSevenEightTest {
 
     private val router: V2Router by lazy {
         val требования = RequirementsFactory.requirements(store, links, mapper)
-        val снимки = RequirementsFactory.baselines(store, links, mapper)
+        val снимки = RequirementsFactory.baselines(
+        store, links, mapper,
+        hardGates = orbita.knowledge.schema.GeneratedOntology.hardGatesOnly,
+    )
         val архитектура = ArchitectureFactory.architecture(store, links, mapper)
         val проверкиТ = RequirementsFactory.gateChecks(store, снимки)
         val проверкиП = orbita.programmatics.api.ProgrammaticsFactory.gateChecks(
@@ -270,25 +273,38 @@ class SceneSevenEightTest {
         составИКонцепция()
         val цель = store.list(Area.Project(проект), "goal").single()
 
-        // Требование с пометой линта: базирование его не переживёт.
+        // Требование с ЧИСЛОМ БЕЗ ЕДИНИЦЫ: это ворота базирования словами
+        // истины (`lint_rules.hard_gates_only`, 19.09). Помета линта воротами
+        // больше не считается — «слово цели» базирование не держит (З-15).
         router.handle("POST", "/v2/requirements", параметры,
             """{"code":"RQ-P-09","level":"project","title":"плохое","statement":"Необходимо обеспечить связь.",
                 "category":"functional","carrier":"SC","verification_method":"test","ears_pattern":"ubiquitous",
                 "acceptance_criteria":"—","source":[{"kind":"goal","ref":"${цель.id}"}]}""")
+        val безЕдиницы = store.byCode(Area.Project(проект), "RQ-P-09")!!
+        store.update(
+            безЕдиницы.id,
+            безЕдиницы.doc.deepCopy<com.fasterxml.jackson.databind.node.ObjectNode>().apply {
+                putObject("measure").put("value", 100)
+            },
+            orbita.kernel.api.Provenance(orbita.kernel.api.Channel.MANUAL, "Чернов Д."),
+        )
 
         val отказ = router.handle("POST", "/v2/baselines", параметры,
             """{"name":"SRR","kind":"functional","gate":"SRR","author":"Чернов Д."}""")!!
         assertEquals(409, отказ.code, "набор с помехами не базируется")
         val причины = отказ.body.path("blockers").toString()
         assertTrue(причины.contains("RQ-P-09"), "отказ называет объект: $причины")
-        assertTrue(причины.contains("слово цели") || причины.contains("не по шаблону"), причины)
+        assertTrue(причины.contains("без единицы"), "ворота истины названы словами: $причины")
+        assertTrue(!причины.contains("слово цели"), "помета линта воротами не считается: $причины")
 
-        // Правим формулировку и добавляем незрелую технологию на узел.
+        // Правим формулировку и величину, добавляем незрелую технологию на узел.
         val плохое = store.byCode(Area.Project(проект), "RQ-P-09")!!
         store.update(
             плохое.id,
             плохое.doc.deepCopy<com.fasterxml.jackson.databind.node.ObjectNode>()
-                .put("statement", "КА должен передавать сообщения не реже раза в сутки."),
+                .put("statement", "КА должен передавать сообщения не реже раза в сутки.").apply {
+                    putObject("measure").put("value", 1).put("unit", "сут")
+                },
             orbita.kernel.api.Provenance(orbita.kernel.api.Channel.MANUAL, "Чернов Д."),
         )
         store.create(

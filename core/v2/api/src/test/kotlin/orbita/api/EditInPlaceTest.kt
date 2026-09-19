@@ -144,4 +144,54 @@ class EditInPlaceTest {
         }
         assertTrue("на месте не правятся" in е2.message!!, е2.message)
     }
+
+    @Test
+    fun `правка берёт русское значение перечисления, чужое отбивает словами`() {
+        // Журнал ПМИ-7, З-11: категория требования пришла ПО-РУССКИ, а сторожа
+        // перечислений на записи не было вовсе. Истина 19.09 (`enum_labels`)
+        // даёт русские значения — экран ими показывает, ими же и возвращает.
+        val r = router()
+        r.handle("POST", "/v2/stakeholders", п, """{"name":"Минтранс","role":"customer","interest":"телематика","author":"Иванов И."}""", си)
+
+        r.handle(
+            "PATCH", "/v2/entities/SK-0001", п,
+            """{"fields":{"attitude":"поддерживает"},"author":"инженер","reason":"по русскому имени"}""",
+            си,
+        )
+        assertEquals(
+            "supports", store.byCode(область, "SK-0001")!!.doc.path("attitude").asText(),
+            "русское имя значения ложится КОДОМ истины",
+        )
+
+        val чужое = assertFailsWith<IllegalArgumentException> {
+            r.handle(
+                "PATCH", "/v2/entities/SK-0001", п,
+                """{"fields":{"attitude":"сочувствует"},"author":"инженер"}""", си,
+            )
+        }
+        assertTrue(
+            "в перечне истины нет" in чужое.message.orEmpty() && "поддерживает" in чужое.message.orEmpty(),
+            "отказ обязан назвать перечень русскими словами: ${чужое.message}",
+        )
+    }
+
+    @Test
+    fun `вид для экрана несёт русские имена полей и значений`() {
+        // Истина 19.09: «клиент показывает только label», «русские значения
+        // перечислений — только из enum_labels». У экрана своих списков нет.
+        val ответ = router().handle("GET", "/v2/kinds/requirement", emptyMap(), null)
+        assertEquals(200, ответ?.code, ответ?.body.toString())
+        val вид = assertNotNull(ответ?.body)
+        assertEquals("Формулировка", вид.path("labels").path("statement").asText(), вид.toString())
+        assertEquals("accept", вид.path("required_at").path("statement").asText(), вид.toString())
+        assertEquals("характеристика", вид.path("enum_labels").path("category").path("performance").asText(), вид.toString())
+        assertEquals("проектное", вид.path("enum_labels").path("level").path("project").asText(), вид.toString())
+        assertEquals("черновик", вид.path("enum_labels").path("status").path("Draft").asText(), "статус тоже назван по-русски")
+        assertTrue(вид.path("measures").any { it.asText() == "measure" }, "показатель — величина, а не строка: $вид")
+        val нет = assertFailsWith<NoSuchElementException> {
+            router().handle("GET", "/v2/kinds/nonexistent", emptyMap(), null)
+        }
+        assertTrue("истине схем" in нет.message.orEmpty(), нет.message)
+    }
+
 }

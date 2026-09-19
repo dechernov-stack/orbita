@@ -80,7 +80,10 @@
         "operational",
         "constraint",
         "safety",
-        "environment"
+        "environment",
+        "regulatory",
+        "security",
+        "data"
       ]
     },
     "priority": {

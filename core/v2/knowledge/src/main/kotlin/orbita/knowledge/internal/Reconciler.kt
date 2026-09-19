@@ -31,6 +31,7 @@ import orbita.kernel.api.EntityStore
 import orbita.kernel.api.LinkRegistry
 import orbita.kernel.api.Provenance
 import orbita.kernel.api.QosClass
+import orbita.kernel.schema.Enums
 import orbita.kernel.schema.GeneratedKinds
 import orbita.knowledge.api.Action
 import orbita.knowledge.api.Applied
@@ -296,6 +297,12 @@ internal class Reconciler(
         основание(вид, документ, кандидат)
         классОбслуживанияTBR(вид, документ, author)
         вычисляемые(понятие, документ)
+        // Сторож перечислений (журнал ПМИ-7, З-11): модель называет значения
+        // ПО-РУССКИ («характеристика», «безопасность»), а иногда кладёт
+        // значение чужого поля («проектное» — уровень, а пришло категорией).
+        // Русское имя узнаётся картой владельца и ложится кодом; чужое едет в
+        // своё поле; неузнанное снимается — и всякая правка названа словами.
+        val перечни = Enums.нормализовать(вид, документ)
         неполнота(вид, понятие, документ)
         val черновик = черновикВида(вид, понятие, документ)
         // Ступень записи — из модели состояний вида: у требования это Draft,
@@ -340,6 +347,7 @@ internal class Reconciler(
             links = связи,
             facts = listOf(кандидат.code),
             note = "заведено: ${сущность.code} (${словоПонятия(понятие.code)}), основание — ${кандидат.code}" +
+                перечни.takeIf { it.isNotEmpty() }?.joinToString("; ", prefix = " — ") { it.словами }.orEmpty() +
                 (черновик?.second ?: кБазированию(вид, понятие, документ)).takeIf { it.isNotEmpty() }
                     ?.let { нет ->
                         " — ${статус ?: "черновиком"}: на своей сцене назовите " +

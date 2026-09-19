@@ -85,6 +85,8 @@ class ReqRoutes(
         узел.put("carrier_kind", т.carrierKind)
         узел.put("measure", т.measure)
         узел.put("verification_method", т.verificationMethod)
+        узел.put("priority", т.priority)
+        узел.put("acceptance_criteria", т.acceptanceCriteria)
         узел.put("status", т.status)
         узел.put("version", т.version)
         узел.put("template_ref", т.templateRef)

@@ -256,6 +256,10 @@ button:disabled { opacity: .55; cursor: default; }
 /* Карточка вниз занимает всю строку — доли колонок её не режут. */
 .v2-table--req .v2-card-row td { width: auto; }
 .v2-cell--statement { max-width: none; }
+
+/* Величина — тройкой: оператор · значение · единица (field_rules.widgets). */
+.v2-measure { display: grid; grid-template-columns: 56px 1fr 88px; gap: 6px; }
+.v2-measure select, .v2-measure input { min-width: 0; }
 .v2-row--open { background: var(--accent-soft); }
 .v2-card-row td { background: var(--ground); }
 

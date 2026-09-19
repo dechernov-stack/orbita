@@ -39,6 +39,13 @@ class SceneRoutes(
         method == "PATCH" && path.matches(Regex("/v2/entities/[A-Za-zА-Яа-я0-9._-]+")) ->
             править(требуется(query, "project"), path.removePrefix("/v2/entities/"), разобрать(body))
 
+        // Истина СХЕМ о виде — для экрана: поля, русские имена полей, стадии
+        // обязательности, перечни и РУССКИЕ ЗНАЧЕНИЯ перечислений (истина
+        // 19.09, `enum_labels`). Ни имён полей, ни значений у экрана своих нет:
+        // «клиент показывает только label», «значение без метки — сторож».
+        method == "GET" && path.matches(Regex("/v2/kinds/[a-z_]+")) ->
+            видДляЭкрана(path.removePrefix("/v2/kinds/"))
+
         // Портфель: без него продукт теряет проект при перезагрузке страницы —
         // открыть заново можно, вернуться к открытому было нельзя.
         method == "GET" && path == "/v2/projects" -> портфель()
@@ -454,6 +461,20 @@ class SceneRoutes(
             if (снимают) документ.remove(имя) else документ.set<JsonNode>(имя, значение)
             if (было != документ.get(имя)) изменено += 1
         }
+        // Сторож перечислений (журнал ПМИ-7, З-11): значение вне перечня истины
+        // не записывается. Экран показывает русские значения (`enum_labels`,
+        // 19.09) и ими же возвращает — русское имя узнаётся и ложится кодом;
+        // неузнанное отбивается словами, а не чистится молча: правка пришла от
+        // человека, и молчание он прочтёт как «сохранилось».
+        // Сначала ОТКАЗ, потом приведение: чистка вперёд проверки съедала бы
+        // неузнанное значение молча, и человек прочёл бы это как «сохранилось».
+        val правимыеПоля = поля.properties().map { it.key }.toSet()
+        orbita.kernel.schema.Enums.проверить(запись.kind, документ, правимыеПоля).let { отказы ->
+            require(отказы.isEmpty()) { отказы.joinToString("; ") }
+        }
+        val перечни = orbita.kernel.schema.Enums.нормализовать(запись.kind, документ)
+        val словаПеречней = перечни.joinToString("; ") { it.словами }
+
         // Вычисляемое поле пересчитывается при правке его источника: влияние
         // стороны считает СИСТЕМА из роли, и после смены роли оно обязано
         // сойтись само (журнал ПМИ-7, З-01). Названное человеком не трогаем:
@@ -470,7 +491,46 @@ class SceneRoutes(
         val причина = тело.path("reason").asText("").ifBlank { null }
         val кем = "правка инженера: " + автор(тело) + (причина?.let { " — $it" } ?: "")
         val новая = store.update(запись.id, документ, Provenance(Channel.MANUAL, кем))
-        return V2Router.Ответ(200, mapper.createObjectNode().put("id", новая.id).put("code", новая.code).put("version", новая.version).put("changed", изменено))
+        return V2Router.Ответ(
+            200,
+            mapper.createObjectNode().put("id", новая.id).put("code", новая.code)
+                .put("version", новая.version).put("changed", изменено)
+                .put("note", словаПеречней),
+        )
+    }
+
+    /**
+     * Вид для экрана: поля с русскими именами, стадии, перечни со значениями.
+     *
+     * Один ответ на весь экран: реестр показывает уровень, категорию, статус и
+     * шаблон EARS человеческими словами, а форма правки собирается по стадиям
+     * (`required_at`) — не списком в коде клиента.
+     */
+    private fun видДляЭкрана(код: String): V2Router.Ответ {
+        val вид = orbita.kernel.schema.GeneratedKinds.byCode[код]
+            ?: throw NoSuchElementException("вида «$код» в истине схем нет")
+        val узел = mapper.createObjectNode().put("code", вид.code).put("title", вид.title)
+            .put("status_model", вид.statusModel ?: "")
+        fun массив(имя: String, значения: List<String>) = узел.putArray(имя).also { м -> значения.forEach(м::add) }
+        массив("fields", вид.fields)
+        массив("required", вид.requiredFields)
+        массив("measures", вид.measures)
+        val подписи = узел.putObject("labels")
+        вид.labels.forEach { (поле, имя) -> подписи.put(поле, имя) }
+        val стадии = узел.putObject("required_at")
+        вид.requiredAt.forEach { (поле, правило) -> стадии.put(поле, правило) }
+        val перечни = узел.putObject("enums")
+        вид.enums.forEach { (поле, значения) -> перечни.putArray(поле).also { м -> значения.forEach(м::add) } }
+        val значения = узел.putObject("enum_labels")
+        // Статус записи среди перечислений истины назван наравне с полями —
+        // реестр показывает «черновик», а не Draft.
+        (вид.fields + "status").forEach { поле ->
+            val метки = orbita.kernel.schema.Enums.значения(вид.code, поле)
+            if (метки.isEmpty()) return@forEach
+            val узелПоля = значения.putObject(поле)
+            метки.forEach { (значение, имя) -> узелПоля.put(значение, имя) }
+        }
+        return V2Router.Ответ(200, узел)
     }
 
     private fun poleCount(узел: JsonNode): Int = узел.fields().asSequence().count()

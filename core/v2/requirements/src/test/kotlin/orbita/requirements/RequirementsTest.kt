@@ -33,7 +33,12 @@ class RequirementsTest {
     private val store = KernelFactory.entityStore(TestDbV2.conn, mapper)
     private val links = KernelFactory.linkRegistry(TestDbV2.conn)
     private val требования = RequirementsFactory.requirements(store, links, mapper)
-    private val снимки = RequirementsFactory.baselines(store, links, mapper)
+    // Ворота базирования модуль требований получает списком: здесь он задан
+    // фикстурой теста — истину онтологии этот модуль не видит (слой ниже).
+    private val снимки = RequirementsFactory.baselines(
+        store, links, mapper,
+        hardGates = listOf("пустая формулировка", "число без единицы справочника (к базированию)", "нет носителя", "нет источника"),
+    )
     private val провенанс = Provenance(Channel.MANUAL, "Ведущий СИ")
     private val проект = "PJ-R01"
     private val область = Area.Project(проект)
@@ -151,7 +156,14 @@ class RequirementsTest {
         assertTrue(про02.any { it.what.contains("нет источника") }, "$про02")
         assertTrue(про02.any { it.what.contains("нет метода") }, "$про02")
         assertTrue(про02.any { it.what.contains("критерия приёмки") }, "$про02")
-        assertTrue(про02.any { it.rule == "И7" }, "формулировка вне шаблона обязана быть помехой: $про02")
+        // Истина 19.09 (`lint_rules`): правила формулировок — пометы, а не
+        // ворота. «Необходимо обеспечить связь» линт помечает (пассив, слово
+        // цели), но базирование это не держит: держат только названные истиной
+        // ворота — пустая формулировка, число без единицы, носитель, источник.
+        assertTrue(
+            про02.none { it.rule == "И7" },
+            "помета линта помехой базирования быть не должна (журнал ПМИ-7, З-15): $про02",
+        )
         assertTrue(отказ.blockers.none { it.code == "RQ-P-01" }, "годное требование помехой не считается")
         assertEquals(emptyList(), снимки.list(проект), "отказ не оставляет полуснимков")
     }
@@ -347,4 +359,69 @@ class RequirementsTest {
             "правка после снимка обязана быть видна: ${ответ.why}",
         )
     }
+
+    @Test
+    fun `базирование держат только ворота истины, линт остаётся пометой`() {
+        val ка = узел("SC")
+        // Формулировка пуста — это ворота истины («пустая формулировка»).
+        store.create(
+            "RQ-P-10", "requirement", область, "8",
+            mapper.readTree(
+                """{"level":"project","title":"пустое","statement":"","category":"functional",
+                    "carrier":"${ка.id}","verification_method":"test","acceptance_criteria":"есть",
+                    "ears_pattern":"ubiquitous","source":[{"kind":"goal","ref":"G-1"}]}""",
+            ),
+            провенанс,
+        )
+        // Число без единицы — второе ворота истины; сама формулировка помечена
+        // линтом (слово цели), но это помехой не становится.
+        store.create(
+            "RQ-P-11", "requirement", область, "8",
+            mapper.readTree(
+                """{"level":"project","title":"без единицы","statement":"Система должна обеспечить приём.",
+                    "category":"performance","carrier":"${ка.id}","verification_method":"test",
+                    "acceptance_criteria":"есть","ears_pattern":"ubiquitous",
+                    "measure":{"value":100},"source":[{"kind":"goal","ref":"G-1"}]}""",
+            ),
+            провенанс,
+        )
+
+        val помехи = снимки.blockers(проект, BaselineKind.FUNCTIONAL, "SRR")
+        assertTrue(
+            помехи.any { it.code == "RQ-P-10" && it.what.contains("формулировка пуста") },
+            "пустая формулировка названа истиной жёсткими воротами: $помехи",
+        )
+        assertTrue(
+            помехи.any { it.code == "RQ-P-11" && it.what.contains("без единицы") },
+            "число без единицы справочника — ворота истины: $помехи",
+        )
+        assertTrue(
+            помехи.none { it.code == "RQ-P-11" && it.what.contains("цели") },
+            "слово цели — помета линта, не помеха: $помехи",
+        )
+    }
+
+    @Test
+    fun `два глагола — ещё не два действия`() {
+        // Истина 19.09 (`lint_rules.P14_atomicity`), журнал ПМИ-7, З-16.
+        assertTrue(
+            требования.lint("Система должна обеспечивать отслеживаемость грузов и платформ.", Ears.ALWAYS)
+                .none { it.rule == "L-C2" },
+            "союз связывает ОБЪЕКТЫ одного действия — пометы быть не должно",
+        )
+        assertTrue(
+            требования.lint("Система должна принимать сообщения и доставлять их.", Ears.ALWAYS)
+                .none { it.rule == "L-C2" },
+            "объект назван местоимением — действие одно",
+        )
+        val два = требования.lint(
+            "Система должна принимать сообщения и формировать отчёт.", Ears.ALWAYS,
+        ).filter { it.rule == "L-C2" }
+        assertTrue(два.isNotEmpty(), "разные объекты и разные исходы — два действия")
+        assertTrue(
+            два.single().why.contains("принимать сообщения") && два.single().why.contains("формировать отчёт"),
+            "помета обязана нести предложение разбиения текстом: ${два.single().why}",
+        )
+    }
+
 }

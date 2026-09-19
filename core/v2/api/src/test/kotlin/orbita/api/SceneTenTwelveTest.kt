@@ -44,7 +44,10 @@ class SceneTenTwelveTest {
 
     private val router: V2Router by lazy {
         val требования = RequirementsFactory.requirements(store, links, mapper)
-        val снимки = RequirementsFactory.baselines(store, links, mapper)
+        val снимки = RequirementsFactory.baselines(
+        store, links, mapper,
+        hardGates = orbita.knowledge.schema.GeneratedOntology.hardGatesOnly,
+    )
         val архитектура = ArchitectureFactory.architecture(store, links, mapper)
         val программатика = ProgrammaticsFactory.programmatics(store, mapper)
         val проверкиТ = RequirementsFactory.gateChecks(store, снимки)

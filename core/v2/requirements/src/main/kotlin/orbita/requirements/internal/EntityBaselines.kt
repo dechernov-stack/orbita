@@ -9,6 +9,7 @@
 //      «нельзя базировать».
 package orbita.requirements.internal
 
+import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ObjectNode
 import orbita.kernel.api.Area
@@ -24,7 +25,6 @@ import orbita.requirements.api.BaselineKind
 import orbita.requirements.api.BaselineRefused
 import orbita.requirements.api.Baselines
 import orbita.requirements.api.Blocker
-import orbita.requirements.api.Ears
 import orbita.requirements.api.Firmness
 import orbita.requirements.api.Level
 import orbita.requirements.api.SuspectLink
@@ -35,10 +35,53 @@ class EntityBaselines(
     private val store: EntityStore,
     private val links: LinkRegistry,
     private val mapper: ObjectMapper = ObjectMapper(),
+    /**
+     * Что из формулировки ДЕРЖИТ базирование — словами истины онтологии
+     * (`lint_rules.hard_gates_only`, 19.09). Прочие правила П13–П20 —
+     * рекомендательные пометы: они висят в карточке и ничего не запирают.
+     *
+     * Журнал ПМИ-7, З-15: линт отбивал требование целиком («L-C2 … (П14)»), и
+     * помехой базирования числилось «два действия в одном требовании» —
+     * суждение, а не машинная проверка. Список приходит сверху: своего у кода
+     * нет, а фраза, которой код не знает, — отказ сборки, не тихий пропуск.
+     */
+    private val hardGates: List<String>,
 ) : Baselines {
+
+    /** Ворота истины, разобранные до проверок: фраза без проверки — отказ. */
+    private enum class Ворота { ФОРМУЛИРОВКА, ЕДИНИЦА, НОСИТЕЛЬ, ИСТОЧНИК }
+
+    private val ворота: Set<Ворота> = hardGates.map { фраза ->
+        val суть = фраза.substringBefore("(").trim().lowercase()
+        ФРАЗЫ[суть] ?: error(
+            "истина онтологии называет жёсткими воротами базирования «$фраза», " +
+                "а проверки под этой фразой в коде нет: добавьте проверку или поправьте " +
+                "`lint_rules.hard_gates_only` — догадываться о смысле ворот код не вправе",
+        )
+    }.toSet()
 
     /** Лестница точек: до SRR метод верификации может быть TBD, после — нет. */
     private val лестница = listOf("MCR", "SRR", "SDR", "PDR", "CDR")
+
+    /**
+     * Единица величины — из справочника единиц, иначе число ничего не значит.
+     * Истина зовёт эти ворота «число без единицы справочника (к базированию)».
+     */
+    private fun единицаБезСправочника(величина: JsonNode): String? {
+        if (величина.isMissingNode || величина.isNull) return null
+        val естьЧисло = величина.path("value").isNumber || величина.path("min").isNumber ||
+            величина.path("max").isNumber
+        if (!естьЧисло) return null
+        val единица = величина.path("unit").asText("").trim()
+        if (единица.isBlank()) {
+            return "число без единицы: «${величина.path("value").asText("")}» — величина без единицы не проверяется"
+        }
+        val справочник = store.list(Area.Library, "unit")
+            .flatMap { listOf(it.doc.path("symbol").asText(""), it.doc.path("name").asText(""), it.code) }
+            .filter { it.isNotBlank() }.toSet()
+        if (справочник.isEmpty() || единица in справочник) return null
+        return "единицы «$единица» в справочнике единиц нет: сверять величину будет не с чем"
+    }
 
     /**
      * Требования без снятых с учёта: отменённое пакетом требование числилось
@@ -107,9 +150,14 @@ class EntityBaselines(
                     }
                 }
 
-                // Инвариант 7: формулировка вне шаблонов EARS — разрыв к точке.
-                EarsLint.check(док.path("statement").asText(""), Ears.of(док.path("ears_pattern").asText(null)))
-                    .forEach { помехи += Blocker(код, "И7", "${it.what} (${it.why})") }
+                // Инвариант 7: из формулировки базирование держит только то, что
+                // названо истиной (`hard_gates_only`). Пометы линта — в карточке.
+                if (Ворота.ФОРМУЛИРОВКА in ворота && док.path("statement").asText("").isBlank()) {
+                    помехи += Blocker(код, "И7", "формулировка пуста: проверять нечего")
+                }
+                if (Ворота.ЕДИНИЦА in ворота) {
+                    единицаБезСправочника(док.path("measure"))?.let { помехи += Blocker(код, "И7", it) }
+                }
             }
 
         // Инвариант 5: подозрительная связь — разрыв к следующей точке.
@@ -262,5 +310,19 @@ class EntityBaselines(
             "связь «$linkId» не из проекта $project"
         }
         links.confirm(linkId, author)
+    }
+
+    private companion object {
+        /**
+         * Фразы истины → ворота кода. Ключ — начало фразы до скобки, в нижнем
+         * регистре: истина пишет «нет носителя (к базированию)», код узнаёт
+         * «нет носителя». Новая фраза без пары здесь останавливает сборку.
+         */
+        val ФРАЗЫ: Map<String, Ворота> = mapOf(
+            "пустая формулировка" to Ворота.ФОРМУЛИРОВКА,
+            "число без единицы справочника" to Ворота.ЕДИНИЦА,
+            "нет носителя" to Ворота.НОСИТЕЛЬ,
+            "нет источника" to Ворота.ИСТОЧНИК,
+        )
     }
 }

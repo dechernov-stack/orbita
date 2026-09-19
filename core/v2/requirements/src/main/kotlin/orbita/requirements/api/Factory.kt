@@ -16,11 +16,17 @@ object RequirementsFactory {
         mapper: ObjectMapper = ObjectMapper(),
     ): Requirements = EntityRequirements(store, links, mapper)
 
+    /**
+     * @param hardGates что из формулировки держит базирование — словами истины
+     *   онтологии (`lint_rules.hard_gates_only`). Список обязателен: модуль
+     *   требований онтологию не видит, а выдумывать ворота не вправе.
+     */
     fun baselines(
         store: EntityStore,
         links: LinkRegistry,
         mapper: ObjectMapper = ObjectMapper(),
-    ): Baselines = EntityBaselines(store, links, mapper)
+        hardGates: List<String>,
+    ): Baselines = EntityBaselines(store, links, mapper, hardGates)
 
     /** Условия ворот сцены 8: правило носителя знает тот, кто ведёт требования. */
     /** @param links реестр связей — условию «каждое системное выведено» нужны derives_from */

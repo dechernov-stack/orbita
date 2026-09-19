@@ -129,6 +129,13 @@ data class RequirementView(
     val carrierKind: String?,
     val measure: String?,
     val verificationMethod: String?,
+    /**
+     * Приоритет и критерий приёмки: их истина требует к базированию, и правка
+     * в карточке ими работает — значит карточка обязана ПОКАЗЫВАТЬ уже
+     * заполненное, иначе поле выглядит пустым после сохранения.
+     */
+    val priority: String?,
+    val acceptanceCriteria: String?,
     val sources: List<String>,
     val templateRef: String?,
     val applicability: Applicability?,

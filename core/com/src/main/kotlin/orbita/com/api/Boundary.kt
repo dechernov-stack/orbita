@@ -153,7 +153,12 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
         // Контуры волны 3 собираются ДО оценщика: они приносят ему условия
         // сцен 7–8, которые сам оценщик знать не может (он слоем ниже).
         val требования = orbita.requirements.api.RequirementsFactory.requirements(store, links, mapper)
-        val снимки = orbita.requirements.api.RequirementsFactory.baselines(store, links, mapper)
+        // Что из формулировки держит базирование — истина онтологии, не код
+        // требований: правила П13–П20 остались пометами (журнал ПМИ-7, З-15).
+        val снимки = orbita.requirements.api.RequirementsFactory.baselines(
+            store, links, mapper,
+            hardGates = orbita.knowledge.schema.GeneratedOntology.hardGatesOnly,
+        )
         val архитектура = orbita.architecture.api.ArchitectureFactory.architecture(store, links, mapper)
         val программатика = orbita.programmatics.api.ProgrammaticsFactory.programmatics(store, mapper)
         val проверкиТребований = orbita.requirements.api.RequirementsFactory.gateChecks(store, снимки, links)

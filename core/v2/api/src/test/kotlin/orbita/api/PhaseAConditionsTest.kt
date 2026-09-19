@@ -35,7 +35,10 @@ class PhaseAConditionsTest {
     private val шаблон: JsonNode = mapper.readTree(полки.resolve("ШАБЛОН-ФАЗЫ-PHASE-A-NASA.json").toFile())
     private val записи = GateRecords(store, mapper)
     private val требования = RequirementsFactory.requirements(store, links, mapper)
-    private val снимки = RequirementsFactory.baselines(store, links, mapper)
+    private val снимки = RequirementsFactory.baselines(
+        store, links, mapper,
+        hardGates = orbita.knowledge.schema.GeneratedOntology.hardGatesOnly,
+    )
     private val архитектура = ArchitectureFactory.architecture(store, links, mapper)
     private val программатика = ProgrammaticsFactory.programmatics(store, mapper)
     private val документы = DocumentsFactory.documents(

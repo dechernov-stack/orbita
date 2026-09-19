@@ -62,6 +62,8 @@ class EntityRequirements(
             carrierKind = носитель?.kind,
             measure = требование.doc.path("measure").takeIf { !it.isMissingNode && !it.isNull }?.toString(),
             verificationMethod = требование.doc.path("verification_method").asText("").ifBlank { null },
+            priority = требование.doc.path("priority").asText("").ifBlank { null },
+            acceptanceCriteria = требование.doc.path("acceptance_criteria").asText("").ifBlank { null },
             sources = требование.doc.path("source").map { it.path("ref").asText() },
             templateRef = требование.doc.path("template_ref").asText("").ifBlank { null },
             applicability = требование.doc.path("applicability").asText("").ifBlank { null }

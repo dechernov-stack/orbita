@@ -11,25 +11,64 @@ import {
 import '@xyflow/react/dist/style.css'
 import dagre from '@dagrejs/dagre'
 import {
-  api, type BaselineRow, type Blocker, type FormationProposal, type ImpactGraph, type LintNote,
-  type RequirementRow, type SuspectRow,
+  api, type BaselineRow, type Blocker, type FormationProposal, type ImpactGraph, type KindSpec,
+  type LintNote, type RequirementRow, type SuspectRow,
 } from './api'
 
-const ШАБЛОНЫ: { key: string; title: string; форма: string }[] = [
-  { key: 'always', title: 'Всегда', форма: '‹Носитель› должен ‹действие› ‹объект› [‹показатель›].' },
-  { key: 'event', title: 'По событию', форма: 'Когда ‹событие›, ‹носитель› должен ‹действие› [в течение ‹T›].' },
-  { key: 'state', title: 'В состоянии', форма: 'Пока ‹состояние›, ‹носитель› должен ‹действие›.' },
-  { key: 'unwanted', title: 'Нежелательное', форма: 'Если ‹условие›, то ‹носитель› должен ‹парирование›.' },
-  { key: 'optional', title: 'Опциональное', форма: 'Где предусмотрен ‹элемент›, ‹носитель› должен ….' },
-]
+/**
+ * Формы шаблонов EARS: подсказка ввода, не перечень значений.
+ *
+ * Значения перечисления и их русские имена приходят истиной (`enum_labels`,
+ * 19.09) — здесь только форма фразы, которую ждёт линт. Ключи — коды истины:
+ * прежнее «always» не совпадало ни с чем («ubiquitous» в записи), и карточка
+ * показывала код вместо слова.
+ */
+const ФОРМЫ: Record<string, string> = {
+  ubiquitous: '‹Носитель› должен ‹действие› ‹объект› [‹показатель›].',
+  event: 'Когда ‹событие›, ‹носитель› должен ‹действие› [в течение ‹T›].',
+  state: 'Пока ‹состояние›, ‹носитель› должен ‹действие›.',
+  unwanted: 'Если ‹условие›, то ‹носитель› должен ‹парирование›.',
+  optional: 'Где предусмотрен ‹элемент›, ‹носитель› должен ….',
+}
 
-const УРОВНИ = [
-  { key: 'project', title: 'проектное', носитель: 'узел состава' },
-  { key: 'scenario', title: 'сценарное', носитель: 'цепочка или сценарий' },
-  { key: 'system', title: 'системное', носитель: 'узел состава' },
-  { key: 'subsystem', title: 'подсистемное', носитель: 'узел состава' },
-  { key: 'interface', title: 'интерфейсное', носитель: 'стык' },
-]
+/** Природа носителя по уровню — правило носителя (истина уровней сцены 8). */
+const НОСИТЕЛЬ: Record<string, { слова: string; виды: string[] }> = {
+  project: { слова: 'узел состава', виды: ['component'] },
+  scenario: { слова: 'цепочка или сценарий', виды: ['scenario', 'chain'] },
+  system: { слова: 'узел состава', виды: ['component'] },
+  subsystem: { слова: 'узел состава', виды: ['component'] },
+  interface: { слова: 'стык', виды: ['interface'] },
+}
+
+/**
+ * Истина схем о виде требования — один запрос на экран.
+ *
+ * Русские имена полей и значений экран не придумывает: `label` и `enum_labels`
+ * приходят с сервера (истина 19.09). Пока ответа нет — показывается код, но
+ * ненадолго: запрос уходит при открытии экрана.
+ */
+function useВидТребования(): {
+  вид: KindSpec | null
+  имя: (поле: string) => string
+  метка: (поле: string, значение: string | null | undefined) => string
+  значения: (поле: string) => { код: string; имя: string }[]
+  стадия: (поле: string) => string
+} {
+  const [вид, setВид] = useState<KindSpec | null>(null)
+  useEffect(() => { api.kind('requirement').then(setВид).catch(() => undefined) }, [])
+  const имя = useCallback((поле: string) => вид?.labels[поле] ?? поле, [вид])
+  const метка = useCallback((поле: string, значение: string | null | undefined) => {
+    if (!значение) return ''
+    return вид?.enum_labels[поле]?.[значение] ?? значение
+  }, [вид])
+  const значения = useCallback((поле: string) => {
+    const метки = вид?.enum_labels[поле]
+    if (метки) return Object.entries(метки).map(([код, имя]) => ({ код, имя }))
+    return (вид?.enums[поле] ?? []).map((код) => ({ код, имя: код }))
+  }, [вид])
+  const стадия = useCallback((поле: string) => вид?.required_at[поле] ?? '', [вид])
+  return { вид, имя, метка, значения, стадия }
+}
 
 /**
  * Предложения требований из постановки — прямо на сцене 8.
@@ -126,6 +165,8 @@ export function Requirements({ project }: { project: string | null }) {
   const [снимки, setСнимки] = useState<BaselineRow[]>([])
   const [помехи, setПомехи] = useState<Blocker[]>([])
   const [отказ, setОтказ] = useState<string | null>(null)
+  // Русские имена полей и значений — истиной схем, один запрос на экран.
+  const схема = useВидТребования()
 
   const перечитать = useCallback(() => {
     if (!project) return
@@ -186,7 +227,7 @@ export function Requirements({ project }: { project: string | null }) {
             </thead>
             <tbody>
               {строки.map((т) => (
-                <TableRow key={т.code} т={т} project={project} onChanged={перечитать}
+                <TableRow key={т.code} т={т} project={project} onChanged={перечитать} схема={схема}
                   открыта={открыта === т.code}
                   onToggle={() => setОткрыта(открыта === т.code ? null : т.code)} />
               ))}
@@ -203,39 +244,175 @@ export function Requirements({ project }: { project: string | null }) {
 
       <Базирование project={project} снимки={снимки} помехи={помехи} onDone={перечитать} />
 
-      <Форма project={project} onAdded={перечитать} />
+      <Форма project={project} onAdded={перечитать} схема={схема} />
     </>
   )
 }
 
 /** Строка таблицы плюс карточка ВНИЗ: контекст строки не теряется. */
 /** З-03: правка требования на месте — заголовок и формулировка новой версией; связи после базирования станут подозрительными и потребуют подтверждения. */
-function ПравкаТребования({ project, т, onSaved }: { project: string; т: RequirementRow; onSaved: () => void }) {
+/**
+ * Правка требования в карточке: заголовок, формулировка и поля СВОЕЙ стадии.
+ *
+ * Журнал ПМИ-7, З-10: «в карточке нет пикера носителя — а распределение по
+ * природе и есть работа сцены 8». Поля собираются не списком в коде, а по
+ * истине: всё, что она требует к базированию или к точке (`required_at`:
+ * baseline · SRR), показывается здесь — категория и метод селектами русских
+ * значений (`enum_labels`), показатель тройкой оператор · значение · единица,
+ * носитель — пикером по природе уровня (`field_rules.widgets`).
+ */
+function ПравкаТребования({ project, т, onSaved, схема }: {
+  project: string; т: RequirementRow; onSaved: () => void; схема: ReturnType<typeof useВидТребования>
+}) {
   const [заголовок, setЗаголовок] = useState(т.title ?? '')
   const [формулировка, setФормулировка] = useState(т.statement ?? '')
+  const [правки, setПравки] = useState<Record<string, unknown>>({})
+  const [носители, setНосители] = useState<{ id: string; code: string; kind: string; подпись: string }[]>([])
   const [занято, setЗанято] = useState(false)
   const [отказ, setОтказ] = useState<string | null>(null)
+  const [итог, setИтог] = useState<string | null>(null)
+
+  // Поля стадии базирования и точки: истина называет их сама.
+  const поляСтадии = useMemo(
+    () => (схема.вид?.fields ?? []).filter((поле) => {
+      const стадия = схема.стадия(поле)
+      return стадия.startsWith('baseline') || /^[A-Z]{3}/.test(стадия)
+    }),
+    [схема],
+  )
+
+  // Носители по природе уровня: узел состава · стык · сценарий.
+  useEffect(() => {
+    const виды = НОСИТЕЛЬ[т.level]?.виды ?? ['component']
+    Promise.all(виды.map((вид) => api.entities(project, вид).catch(() => ({ items: [] }))))
+      .then((ответы) => setНосители(ответы.flatMap((о, i) => о.items.map((с) => ({
+        id: с.id,
+        code: с.code,
+        kind: виды[i],
+        подпись: `${с.code} · ${String(с.doc.name ?? с.doc.title ?? с.doc.statement ?? '')}`.slice(0, 60),
+      })))))
+      .catch(() => undefined)
+  }, [project, т.level])
+
   const сохранить = () => {
-    setЗанято(true); setОтказ(null)
-    api.patchEntity(project, т.code, { title: заголовок, statement: формулировка }, 'инженер')
-      .then(() => { setЗанято(false); onSaved() })
+    setЗанято(true); setОтказ(null); setИтог(null)
+    api.patchEntity(project, т.code, { title: заголовок, statement: формулировка, ...правки }, 'инженер')
+      .then((р) => {
+        setЗанято(false); setПравки({})
+        setИтог(р.note?.trim() ? р.note : null)
+        onSaved()
+      })
       .catch((e) => { setЗанято(false); setОтказ(String(e.message ?? e)) })
   }
+
+  const значение = (поле: string): string => {
+    const правка = правки[поле]
+    if (typeof правка === 'string') return правка
+    if (поле === 'carrier') return ''
+    return String((т as unknown as Record<string, unknown>)[поле] ?? '')
+  }
+
   return (
     <Группа title="Правка на месте">
       <div className="v2-form" data-why="работа">
-        <label>заголовок<input value={заголовок} onChange={(e) => setЗаголовок(e.target.value)} /></label>
-        <label>формулировка<textarea value={формулировка} autoComplete="off" onChange={(e) => setФормулировка(e.target.value)} rows={3} /></label>
+        <label>{схема.имя('title')}
+          <input name={`${т.code}.title`} autoComplete="off" value={заголовок}
+            onChange={(e) => setЗаголовок(e.target.value)} />
+        </label>
+        <label>{схема.имя('statement')}
+          <textarea name={`${т.code}.statement`} value={формулировка} autoComplete="off"
+            onChange={(e) => setФормулировка(e.target.value)} rows={3} />
+        </label>
+        {поляСтадии.map((поле) => {
+          const подпись = `${схема.имя(поле)} (${схема.стадия(поле)})`
+          if (поле === 'carrier') {
+            return (
+              <label key={поле}>{подпись}
+                <select name={`${т.code}.carrier`} value={String(правки.carrier ?? '')}
+                  onChange={(e) => setПравки({ ...правки, carrier: e.target.value })}>
+                  <option value="">
+                    {т.carrier ? `оставить ${т.carrier}` : `— выберите ${НОСИТЕЛЬ[т.level]?.слова ?? 'носителя'} —`}
+                  </option>
+                  {носители.map((н) => <option key={н.id} value={н.id}>{н.подпись}</option>)}
+                </select>
+              </label>
+            )
+          }
+          if (схема.вид?.measures.includes(поле)) {
+            return <Величина key={поле} подпись={подпись} код={т.code} было={т.measure}
+              onChange={(в) => setПравки({ ...правки, [поле]: в })} />
+          }
+          const значения = схема.значения(поле)
+          if (значения.length > 0) {
+            return (
+              <label key={поле}>{подпись}
+                <select name={`${т.code}.${поле}`} value={значение(поле)}
+                  onChange={(e) => setПравки({ ...правки, [поле]: e.target.value })}>
+                  <option value="">— не задано —</option>
+                  {значения.map((з) => <option key={з.код} value={з.код}>{з.имя}</option>)}
+                </select>
+              </label>
+            )
+          }
+          return (
+            <label key={поле}>{подпись}
+              <input name={`${т.code}.${поле}`} autoComplete="off" value={значение(поле)}
+                onChange={(e) => setПравки({ ...правки, [поле]: e.target.value })} />
+            </label>
+          )
+        })}
         <button type="button" className="v2-primary" onClick={сохранить} disabled={занято || !формулировка.trim()}
           title={!формулировка.trim() ? 'формулировка пустой быть не может' : 'сохранить новой версией — провенанс «правка инженера»'}>Сохранить</button>
+        {итог && <span className="v2-empty__why">{итог}</span>}
         {отказ && <span className="v2-locked">{отказ}</span>}
       </div>
     </Группа>
   )
 }
 
-function TableRow({ т, открыта, onToggle, project, onChanged }: {
+/**
+ * Величина: оператор · значение · единица (`field_rules.widgets` истины 18.09).
+ *
+ * Плоским полем величину брать нельзя — «объект без виджета на экране — сторож»:
+ * в карточке показателя стоял `[object Object]` (журнал ПМИ-7, З-09).
+ */
+function Величина({ подпись, код, было, onChange }: {
+  подпись: string; код: string; было: string | null
+  onChange: (значение: Record<string, unknown> | null) => void
+}) {
+  const прежнее = useMemo(() => {
+    try { return было ? (JSON.parse(было) as Record<string, unknown>) : null } catch { return null }
+  }, [было])
+  const [оператор, setОператор] = useState(String(прежнее?.op ?? ''))
+  const [число, setЧисло] = useState(String(прежнее?.value ?? ''))
+  const [единица, setЕдиница] = useState(String(прежнее?.unit ?? ''))
+  const собрать = (оп: string, зн: string, ед: string) => {
+    if (!зн.trim() || !ед.trim()) { onChange(null); return }
+    const величина: Record<string, unknown> = { value: Number(зн.replace(',', '.')), unit: ед.trim() }
+    if (оп) величина.op = оп
+    onChange(величина)
+  }
+  return (
+    <label>{подпись}
+      <span className="v2-measure">
+        <select name={`${код}.measure.op`} value={оператор}
+          onChange={(e) => { setОператор(e.target.value); собрать(e.target.value, число, единица) }}>
+          <option value="">=</option>
+          <option value="≥">≥</option>
+          <option value="≤">≤</option>
+        </select>
+        <input name={`${код}.measure.value`} autoComplete="off" value={число} placeholder="значение"
+          onChange={(e) => { setЧисло(e.target.value); собрать(оператор, e.target.value, единица) }} />
+        <input name={`${код}.measure.unit`} autoComplete="off" value={единица} placeholder="единица"
+          onChange={(e) => { setЕдиница(e.target.value); собрать(оператор, число, e.target.value) }} />
+      </span>
+    </label>
+  )
+}
+
+function TableRow({ т, открыта, onToggle, project, onChanged, схема }: {
   т: RequirementRow; открыта: boolean; onToggle: () => void; project: string; onChanged: () => void
+  схема: ReturnType<typeof useВидТребования>
 }) {
   const показатель = т.measure ? кратко(т.measure) : '—'
   return (
@@ -258,9 +435,15 @@ function TableRow({ т, открыта, onToggle, project, onChanged }: {
         <td>{т.title}</td>
         <td className="v2-cell--statement">
           {т.statement}
+          {/*
+            Помета линта НАЗЫВАЕТ себя (журнал ПМИ-7, З-13): «линт: 1» без
+            текста не говорит ни правила, ни что исправить. Правило и фраза —
+            в строке, причина — подсказкой; полный разбор — в карточке.
+          */}
           {т.notes.length > 0 && (
             <span className="v2-flag v2-flag--warn" title={т.notes.map((n) => `${n.what}: ${n.why}`).join('\n')}>
-              линт: {т.notes.length}
+              {т.notes[0].rule} · {т.notes[0].what}
+              {т.notes.length > 1 && <span className="v2-dim"> и ещё {т.notes.length - 1}</span>}
             </span>
           )}
         </td>
@@ -269,22 +452,29 @@ function TableRow({ т, открыта, onToggle, project, onChanged }: {
           {т.carrier ?? <span className="v2-flag v2-flag--warn" title="без носителя — не требование">нет</span>}
           {т.carrier_kind && <span className="v2-dim"> · {т.carrier_kind}</span>}
         </td>
-        <td>{т.status}</td>
+        <td>{схема.метка('status', т.status) || т.status}</td>
       </tr>
       {открыта && (
         <tr className="v2-card-row">
           <td colSpan={6}>
             <div className="v2-facets">
-              <ПравкаТребования project={project} т={т} onSaved={onChanged} />
+              <ПравкаТребования project={project} т={т} onSaved={onChanged} схема={схема} />
               <Группа title="Происхождение">
-                <div>уровень: {УРОВНИ.find((у) => у.key === т.level)?.title ?? т.level}</div>
-                <div>категория: {т.category}</div>
+                <div>{схема.имя('level')}: {схема.метка('level', т.level) || '—'}</div>
+                <div>
+                  {схема.имя('category')}: {схема.метка('category', т.category) || (
+                    <span className="v2-dim">не задана — к базированию</span>
+                  )}
+                </div>
                 <div>источники: {т.sources.length > 0 ? т.sources.join(', ') : 'нет — требование ниоткуда не выводится'}</div>
-                {т.template_ref && <div>типовое: {т.template_ref} · применимость {т.applicability ?? '—'}</div>}
+                {т.template_ref && <div>типовое: {т.template_ref} · применимость {схема.метка('applicability', т.applicability) || '—'}</div>}
               </Группа>
               <Группа title="Проверка">
-                <div>шаблон EARS: {ШАБЛОНЫ.find((ш) => ш.key === т.ears)?.title ?? т.ears}</div>
-                <div>метод верификации: {т.verification_method ?? 'не выбран'}</div>
+                <div>{схема.имя('ears_pattern')}: {схема.метка('ears_pattern', т.ears) || т.ears}</div>
+                <div>
+                  {схема.имя('verification_method')}: {схема.метка('verification_method', т.verification_method)
+                    || <span className="v2-dim">не выбран</span>}
+                </div>
                 <div>версия: {т.version}</div>
               </Группа>
               <Группа title="Пометы линта">
@@ -656,12 +846,14 @@ function Базирование({ project, снимки, помехи, onDone }:
 }
 
 /** Форма требования: шаблон EARS в форме, линт — пометами по ходу. */
-function Форма({ project, onAdded }: { project: string; onAdded: () => void }) {
+function Форма({ project, onAdded, схема }: {
+  project: string; onAdded: () => void; схема: ReturnType<typeof useВидТребования>
+}) {
   const [поля, setПоля] = useState({
     code: '', level: 'system', title: '', statement: '', category: 'functional',
     carrier: '', verification_method: 'test', acceptance_criteria: '',
   })
-  const [шаблон, setШаблон] = useState('always')
+  const [шаблон, setШаблон] = useState('ubiquitous')
   const [пометы, setПометы] = useState<LintNote[]>([])
   const [отказ, setОтказ] = useState<string | null>(null)
   const [занято, setЗанято] = useState(false)
@@ -694,8 +886,8 @@ function Форма({ project, onAdded }: { project: string; onAdded: () => void
     return () => clearTimeout(таймер)
   }, [поля.statement, шаблон])
 
-  const форма = ШАБЛОНЫ.find((ш) => ш.key === шаблон)!
-  const уровень = УРОВНИ.find((у) => у.key === поля.level)!
+  const форма = ФОРМЫ[шаблон] ?? ФОРМЫ.ubiquitous
+  const уровень = НОСИТЕЛЬ[поля.level] ?? НОСИТЕЛЬ.system
 
   const завести = () => {
     setЗанято(true); setОтказ(null)
@@ -717,10 +909,10 @@ function Форма({ project, onAdded }: { project: string; onAdded: () => void
       <div className="v2-form">
         <label>Уровень
           <select value={поля.level} onChange={(e) => setПоля({ ...поля, level: e.target.value })}>
-            {УРОВНИ.map((у) => <option key={у.key} value={у.key}>{у.title}</option>)}
+            {схема.значения('level').map((з) => <option key={з.код} value={з.код}>{з.имя}</option>)}
           </select>
         </label>
-        <label>Носитель ({уровень.носитель})
+        <label>Носитель ({уровень.слова})
           <input value={поля.carrier} onChange={(e) => setПоля({ ...поля, carrier: e.target.value })}
             placeholder={поля.level === 'interface' ? 'IF-DATA-BUS' : 'OBC-CPU'} />
         </label>
@@ -729,14 +921,14 @@ function Форма({ project, onAdded }: { project: string; onAdded: () => void
         </label>
         <label>Шаблон формулировки
           <select value={шаблон} onChange={(e) => setШаблон(e.target.value)}>
-            {ШАБЛОНЫ.map((ш) => <option key={ш.key} value={ш.key}>{ш.title}</option>)}
+            {схема.значения('ears_pattern').map((з) => <option key={з.код} value={з.код}>{з.имя}</option>)}
           </select>
         </label>
         <label>Формулировка
-          <textarea rows={2} value={поля.statement} placeholder={форма.форма}
+          <textarea rows={2} value={поля.statement} placeholder={форма}
             autoComplete="off" onChange={(e) => setПоля({ ...поля, statement: e.target.value })} />
         </label>
-        <span className="v2-empty__why">Форма: {форма.форма}</span>
+        <span className="v2-empty__why">Форма: {форма}</span>
         {пометы.map((n) => <Помета key={n.rule + n.what} note={n} />)}
         <label>Источник (откуда выведено)
           <select value={источник} onChange={(e) => setИсточник(e.target.value)}>
@@ -753,7 +945,7 @@ function Форма({ project, onAdded }: { project: string; onAdded: () => void
           <button type="button" className="v2-primary"
             disabled={занято || !поля.statement.trim() || !поля.carrier.trim() || !источник}
             title={!поля.carrier.trim()
-              ? `укажите носителя: для уровня «${уровень.title}» это ${уровень.носитель}`
+              ? `укажите носителя: для этого уровня это ${уровень.слова}`
               : !источник
                 ? 'выберите источник: требование ниоткуда не выводится'
                 : 'завести требование; пометы линта не мешают черновику, но держат базирование'}

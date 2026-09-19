@@ -252,6 +252,9 @@ export interface RequirementRow {
   carrier_kind: string | null
   measure: string | null
   verification_method: string | null
+  /** Приоритет и критерий приёмки: их спрашивает базирование, правит карточка. */
+  priority: string | null
+  acceptance_criteria: string | null
   status: string
   version: number
   template_ref: string | null
@@ -260,6 +263,25 @@ export interface RequirementRow {
   after_baseline_changed: boolean
   sources: string[]
   notes: LintNote[]
+}
+
+/**
+ * Истина схем о виде — для экрана (19.09).
+ *
+ * Ни имён полей, ни русских значений перечислений у клиента своих нет: label
+ * и enum_labels приходят отсюда. Значение без метки на экране — сторож.
+ */
+export interface KindSpec {
+  code: string
+  title: string
+  status_model: string
+  fields: string[]
+  required: string[]
+  measures: string[]
+  labels: Record<string, string>
+  required_at: Record<string, string>
+  enums: Record<string, string[]>
+  enum_labels: Record<string, Record<string, string>>
 }
 
 /** Помеха базированию: объект, правило и что именно не так. */
@@ -994,6 +1016,11 @@ export interface FormationKind {
   measures: string[]
   fact_refs: string[]
   enums: Record<string, string[]>
+  /**
+   * Русские ЗНАЧЕНИЯ перечислений (истина 19.09, `enum_labels`): «enum → селект
+   * русскими значениями». Значение без метки на экране — сторож.
+   */
+  enum_labels: Record<string, Record<string, string>>
   /** Русское имя поля: экран показывает только его, код поля — запрещён. */
   labels: Record<string, string>
   /**
@@ -1425,9 +1452,12 @@ export const api = {
 
   /** З-03: правка принятой сущности на месте — новая версия, провенанс «правка инженера»; пустое значение снимает поле. */
   patchEntity: (project: string, code: string, fields: Record<string, unknown>, author = 'инженер', reason?: string) =>
-    вызов<{ id: string; code: string; version: number; changed: number }>(
+    вызов<{ id: string; code: string; version: number; changed: number; note?: string }>(
       `/entities/${encodeURIComponent(code)}?project=${encodeURIComponent(project)}`,
       { method: 'PATCH', body: JSON.stringify({ fields, author, reason }) }),
+
+  /** Вид для экрана: поля, русские имена, стадии, перечни со значениями. */
+  kind: (code: string) => вызов<KindSpec>(`/kinds/${encodeURIComponent(code)}`),
 
   entities: (project: string, kind: string) =>
     вызов<{ items: EntityRow[] }>(

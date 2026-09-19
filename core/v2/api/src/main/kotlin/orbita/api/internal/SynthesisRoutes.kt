@@ -354,6 +354,16 @@ class SynthesisRoutes(
                     вид.requiredAt.forEach { (поле, правило) -> стадии.put(поле, правило) }
                     val перечни = спец.putObject("enums")
                     вид.enums.forEach { (поле, значения) -> массив(перечни, поле, значения) }
+                    // Русские ЗНАЧЕНИЯ перечислений (истина 19.09,
+                    // `enum_labels`): «enum → селект русскими значениями».
+                    // Своих переводов у экрана нет и быть не может.
+                    val значенияПолей = спец.putObject("enum_labels")
+                    (вид.fields + "status").forEach { поле ->
+                        val метки = orbita.kernel.schema.Enums.значения(вид.code, поле)
+                        if (метки.isEmpty()) return@forEach
+                        val узел = значенияПолей.putObject(поле)
+                        метки.forEach { (значение, имя) -> узел.put(значение, имя) }
+                    }
                 }
             }
         }
@@ -462,6 +472,11 @@ class SynthesisRoutes(
                 чем.startsWith("default(") -> умолчание(чем)?.let { содержимое.put(поле, it) }
             }
         }
+        // Показатель истина требует к базированию, а ПРЕДЛОЖИТЬ его из
+        // формулировки можно сразу (журнал ПМИ-7, З-12) — как шаблон EARS.
+        вид.measures.forEach { поле ->
+            if (!содержимое.path(поле).isObject) показатель(содержимое)?.let { содержимое.set<JsonNode>(поле, it) }
+        }
         return содержимое
     }
 
@@ -484,6 +499,33 @@ class SynthesisRoutes(
         return ears?.invoke(формулировка)
     }
 
+    /**
+     * Показатель из формулировки (журнал ПМИ-7, З-12).
+     *
+     * «100 % объектов … к 2033 году» — мера в тексте есть, а поле показателя
+     * стояло прочерком: инженер перебивал руками то, что видно глазом. Число с
+     * единицей рядом становится ПРЕДЛОЖЕНИЕМ величины; оператор берётся из слов
+     * («не менее» → ≥, «не более» → ≤); год — горизонт, а не показатель, и в
+     * величину не идёт. Не нашлось — поле пустое: обязательность стоит стадией
+     * `baseline|tbr`, а выдумывать меру нельзя.
+     */
+    private fun показатель(содержимое: ObjectNode): ObjectNode? {
+        val формулировка = содержимое.path("statement").asText("").trim()
+        if (формулировка.isBlank()) return null
+        val найдено = ЧИСЛО_С_ЕДИНИЦЕЙ.findAll(формулировка)
+            .map { it.groupValues[1].replace(",", ".") to it.groupValues[2] }
+            .firstOrNull { (число, единица) -> единица !in ГОД && число.toDoubleOrNull() != null }
+            ?: return null
+        val величина = mapper.createObjectNode()
+        when {
+            НЕ_МЕНЕЕ.containsMatchIn(формулировка) -> величина.put("op", "≥")
+            НЕ_БОЛЕЕ.containsMatchIn(формулировка) -> величина.put("op", "≤")
+        }
+        величина.put("value", найдено.first.toDouble())
+        величина.put("unit", найдено.second)
+        return величина
+    }
+
     /** «default(project на сцене 8)» → project: первое слово — значение. */
     private fun умолчание(чем: String): String? =
         чем.substringAfter("(").substringBeforeLast(")").trim().substringBefore(" ").trim().ifBlank { null }
@@ -499,9 +541,17 @@ class SynthesisRoutes(
                 "поля «$поле» у понятия «${п.concept}» нет: истина знает ${известные.joinToString(" · ")}"
             }
             val перечень = вид?.enums?.get(поле).orEmpty()
-            val текст = if (значение.isValueNode) значение.asText("").trim() else ""
+            var текст = if (значение.isValueNode) значение.asText("").trim() else ""
+            // Экран показывает русские значения (истина 19.09) — значит и
+            // возвращает их: код узнаётся картой владельца, а не переводом в
+            // коде. Пришёл уже кодом — кодом и остаётся.
+            if (вид != null && текст.isNotBlank() && текст !in перечень) {
+                orbita.kernel.schema.Enums.код(вид.code, поле, текст)?.let { текст = it }
+            }
             require(перечень.isEmpty() || значение.isObject || текст.isBlank() || текст in перечень) {
-                "значение «$текст» полю «$поле» не подходит: перечень истины — ${перечень.joinToString(" · ")}"
+                "значение «$текст» полю «$поле» не подходит: перечень истины — ${
+                    перечень.joinToString(" · ") { orbita.kernel.schema.Enums.метка(вид?.code ?: "", поле, it) ?: it }
+                }"
             }
             if (значение.isNull || (значение.isValueNode && текст.isBlank())) {
                 require(вид == null || поле !in вид.requiredFields) {
@@ -556,6 +606,18 @@ class SynthesisRoutes(
         if (body.isNullOrBlank()) mapper.createObjectNode() else mapper.readTree(body)
 
     private companion object {
+        /**
+         * Число с единицей рядом: «100 %», «24 ч», «180 мин», «50 устройств».
+         * Единица — знак процента или слово сразу после числа.
+         */
+        private val ЧИСЛО_С_ЕДИНИЦЕЙ = Regex("(\\d+(?:[.,]\\d+)?)\\s*(%|[а-яёА-ЯЁ]{1,12}|[A-Za-z]{1,6})")
+
+        /** Год — горизонт, а не показатель: «к 2033 году» мерой не становится. */
+        private val ГОД = setOf("г", "год", "году", "года", "гг")
+
+        private val НЕ_МЕНЕЕ = Regex("не\\s+менее|не\\s+ниже|не\\s+меньше", RegexOption.IGNORE_CASE)
+        private val НЕ_БОЛЕЕ = Regex("не\\s+более|не\\s+позднее|не\\s+выше|не\\s+превыша", RegexOption.IGNORE_CASE)
+
         /** Стадия «при приёме предложения» из истины схем (`required_at`). */
         const val ПРИЁМ: String = "accept"
         const val ШАБЛОН_EARS: String = "ears_pattern"
