@@ -372,6 +372,9 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
                 orbita.out.DocumentParse.parse(имя, байты)?.canonMd?.takeIf { it.isNotBlank() }
                     ?: orbita.out.TextExtractor.extract(имя, байты)
             },
+            // Единицы для выбора — из СПРАВОЧНИКА (полка LIB): v2 его не читает,
+            // это дело границы. Справочник не засеян — экран скажет словами.
+            units = { UnitBoundary.registryOf(this)?.forScreen().orEmpty() },
         )
     }
 

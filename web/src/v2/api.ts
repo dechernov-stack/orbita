@@ -282,6 +282,16 @@ export interface KindSpec {
   required_at: Record<string, string>
   enums: Record<string, string[]>
   enum_labels: Record<string, Record<string, string>>
+  /** Примечание поля словами истины: «обязателен для performance» у показателя. */
+  notes: Record<string, string>
+  /** Операторы величины: код записи → знак для экрана («>=» → «≥»). */
+  measure_ops: Record<string, string>
+}
+
+/** Единица справочника: что пишется в запись и как её читать человеку. */
+export interface UnitRow {
+  code: string
+  label: string
 }
 
 /** Помеха базированию: объект, правило и что именно не так. */
@@ -1458,6 +1468,9 @@ export const api = {
 
   /** Вид для экрана: поля, русские имена, стадии, перечни со значениями. */
   kind: (code: string) => вызов<KindSpec>(`/kinds/${encodeURIComponent(code)}`),
+
+  /** Единицы справочника для выбора: величины без единицы не бывает. */
+  units: () => вызов<{ items: UnitRow[]; count: number; why?: string }>('/units'),
 
   entities: (project: string, kind: string) =>
     вызов<{ items: EntityRow[] }>(

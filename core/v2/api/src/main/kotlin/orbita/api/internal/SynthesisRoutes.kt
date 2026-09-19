@@ -527,9 +527,11 @@ class SynthesisRoutes(
             }
             ?: return null
         val величина = mapper.createObjectNode()
+        // Оператор — КОД истины («>=»), а не типографский знак: знак «≥» схема
+        // величины не знает, и запись стала бы невалидной (поймано 19.09).
         when {
-            НЕ_МЕНЕЕ.containsMatchIn(формулировка) -> величина.put("op", "≥")
-            НЕ_БОЛЕЕ.containsMatchIn(формулировка) -> величина.put("op", "≤")
+            НЕ_МЕНЕЕ.containsMatchIn(формулировка) -> величина.put("op", ">=")
+            НЕ_БОЛЕЕ.containsMatchIn(формулировка) -> величина.put("op", "<=")
         }
         величина.put("value", найдено.first.toDouble())
         величина.put("unit", найдено.second)

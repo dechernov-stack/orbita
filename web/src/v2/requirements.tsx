@@ -12,7 +12,7 @@ import '@xyflow/react/dist/style.css'
 import dagre from '@dagrejs/dagre'
 import {
   api, type BaselineRow, type Blocker, type FormationProposal, type ImpactGraph, type KindSpec,
-  type LintNote, type RequirementRow, type SuspectRow,
+  type LintNote, type RequirementRow, type SuspectRow, type UnitRow,
 } from './api'
 
 /**
@@ -53,9 +53,21 @@ function useВидТребования(): {
   метка: (поле: string, значение: string | null | undefined) => string
   значения: (поле: string) => { код: string; имя: string }[]
   стадия: (поле: string) => string
+  примечание: (поле: string) => string
+  единицы: UnitRow[]
+  почемуБезЕдиниц: string
 } {
   const [вид, setВид] = useState<KindSpec | null>(null)
+  const [единицы, setЕдиницы] = useState<UnitRow[]>([])
+  const [почемуБезЕдиниц, setПочему] = useState('')
   useEffect(() => { api.kind('requirement').then(setВид).catch(() => undefined) }, [])
+  // Единицы — из справочника (полка LIB). Владелец 19.09: «единиц измерения
+  // нет — блок»: единица набиралась руками, и величина не собиралась вовсе.
+  useEffect(() => {
+    api.units()
+      .then((r) => { setЕдиницы(r.items); setПочему(r.why ?? '') })
+      .catch(() => setПочему('справочник единиц не отвечает'))
+  }, [])
   const имя = useCallback((поле: string) => вид?.labels[поле] ?? поле, [вид])
   const метка = useCallback((поле: string, значение: string | null | undefined) => {
     if (!значение) return ''
@@ -67,7 +79,8 @@ function useВидТребования(): {
     return (вид?.enums[поле] ?? []).map((код) => ({ код, имя: код }))
   }, [вид])
   const стадия = useCallback((поле: string) => вид?.required_at[поле] ?? '', [вид])
-  return { вид, имя, метка, значения, стадия }
+  const примечание = useCallback((поле: string) => вид?.notes[поле] ?? '', [вид])
+  return { вид, имя, метка, значения, стадия, примечание, единицы, почемуБезЕдиниц }
 }
 
 /**
@@ -271,6 +284,14 @@ function ПравкаТребования({ project, т, onSaved, схема }: 
   const [занято, setЗанято] = useState(false)
   const [отказ, setОтказ] = useState<string | null>(null)
   const [итог, setИтог] = useState<string | null>(null)
+  /**
+   * Величина набрана наполовину: число есть, единицы нет.
+   *
+   * Прежде такая величина уходила ПУСТОЙ, сервер отвечал «изменено 0», и на
+   * экране не менялось ничего — владелец 19.09: «не могу ввести показатель ни
+   * в одно поле требований — он не сохраняется». Теперь это названо словами.
+   */
+  const [неполна, setНеполна] = useState<string | null>(null)
 
   // Поля стадии базирования и точки: истина называет их сама.
   const поляСтадии = useMemo(
@@ -295,11 +316,15 @@ function ПравкаТребования({ project, т, onSaved, схема }: 
   }, [project, т.level])
 
   const сохранить = () => {
+    if (неполна) { setОтказ(неполна); return }
     setЗанято(true); setОтказ(null); setИтог(null)
     api.patchEntity(project, т.code, { title: заголовок, statement: формулировка, ...правки }, 'инженер')
       .then((р) => {
         setЗанято(false); setПравки({})
-        setИтог(р.note?.trim() ? р.note : null)
+        // «Изменено 0» говорится словами: молчание человек читает как «сохранилось».
+        setИтог(р.note?.trim()
+          ? р.note
+          : (р.changed > 0 ? `сохранено, версия ${р.version}` : 'ничего не изменилось — поля те же'))
         onSaved()
       })
       .catch((e) => { setЗанято(false); setОтказ(String(e.message ?? e)) })
@@ -324,7 +349,11 @@ function ПравкаТребования({ project, т, onSaved, схема }: 
             onChange={(e) => setФормулировка(e.target.value)} rows={3} />
         </label>
         {поляСтадии.map((поле) => {
-          const подпись = `${схема.имя(поле)} (${схема.стадия(поле)})`
+          // Подпись несёт стадию и ПРИМЕЧАНИЕ истины: «обязателен для
+          // performance» у показателя — иначе необязательное поле выглядит
+          // долгом (владелец 19.09: «какой показатель тут можно поставить?»).
+          const примечание = схема.примечание(поле)
+          const подпись = `${схема.имя(поле)} · ${схема.стадия(поле)}${примечание ? ` · ${примечание}` : ''}`
           if (поле === 'carrier') {
             return (
               <label key={поле}>{подпись}
@@ -339,8 +368,13 @@ function ПравкаТребования({ project, т, onSaved, схема }: 
             )
           }
           if (схема.вид?.measures.includes(поле)) {
-            return <Величина key={поле} подпись={подпись} код={т.code} было={т.measure}
-              onChange={(в) => setПравки({ ...правки, [поле]: в })} />
+            return (
+              <Величина key={поле} подпись={подпись} код={т.code} было={т.measure}
+                единицы={схема.единицы} почемуБезЕдиниц={схема.почемуБезЕдиниц}
+                операторы={схема.вид.measure_ops}
+                onChange={(в) => setПравки({ ...правки, [поле]: в })}
+                onНеполна={setНеполна} />
+            )
           }
           const значения = схема.значения(поле)
           if (значения.length > 0) {
@@ -361,8 +395,11 @@ function ПравкаТребования({ project, т, onSaved, схема }: 
             </label>
           )
         })}
-        <button type="button" className="v2-primary" onClick={сохранить} disabled={занято || !формулировка.trim()}
-          title={!формулировка.trim() ? 'формулировка пустой быть не может' : 'сохранить новой версией — провенанс «правка инженера»'}>Сохранить</button>
+        <button type="button" className="v2-primary" onClick={сохранить}
+          disabled={занято || !формулировка.trim() || неполна !== null}
+          title={!формулировка.trim()
+            ? 'формулировка пустой быть не может'
+            : (неполна ?? 'сохранить новой версией — провенанс «правка инженера»')}>Сохранить</button>
         {итог && <span className="v2-empty__why">{итог}</span>}
         {отказ && <span className="v2-locked">{отказ}</span>}
       </div>
@@ -371,14 +408,23 @@ function ПравкаТребования({ project, т, onSaved, схема }: 
 }
 
 /**
- * Величина: оператор · значение · единица (`field_rules.widgets` истины 18.09).
+ * Величина: оператор · значение · ЕДИНИЦА СПРАВОЧНИКА (`field_rules.widgets`).
  *
- * Плоским полем величину брать нельзя — «объект без виджета на экране — сторож»:
- * в карточке показателя стоял `[object Object]` (журнал ПМИ-7, З-09).
+ * Плоским полем величину брать нельзя — «объект без виджета на экране —
+ * сторож». Единица ВЫБИРАЕТСЯ из справочника (полка LIB), а не набирается
+ * руками: владелец 19.09 — «единиц измерения нет — блок», и число без единицы
+ * уходило пустой величиной, отчего правка «не сохранялась» молча. Половина
+ * величины теперь названа словами и держит кнопку.
  */
-function Величина({ подпись, код, было, onChange }: {
-  подпись: string; код: string; было: string | null
+function Величина({ подпись, код, было, единицы, почемуБезЕдиниц, операторы, onChange, onНеполна }: {
+  подпись: string
+  код: string
+  было: string | null
+  единицы: UnitRow[]
+  почемуБезЕдиниц: string
+  операторы: Record<string, string>
   onChange: (значение: Record<string, unknown> | null) => void
+  onНеполна: (словами: string | null) => void
 }) {
   const прежнее = useMemo(() => {
     try { return было ? (JSON.parse(было) as Record<string, unknown>) : null } catch { return null }
@@ -386,26 +432,52 @@ function Величина({ подпись, код, было, onChange }: {
   const [оператор, setОператор] = useState(String(прежнее?.op ?? ''))
   const [число, setЧисло] = useState(String(прежнее?.value ?? ''))
   const [единица, setЕдиница] = useState(String(прежнее?.unit ?? ''))
+
   const собрать = (оп: string, зн: string, ед: string) => {
-    if (!зн.trim() || !ед.trim()) { onChange(null); return }
+    const естьЧисло = зн.trim() !== ''
+    const естьЕдиница = ед.trim() !== ''
+    if (!естьЧисло && !естьЕдиница) { onНеполна(null); onChange(null); return }
+    if (!естьЧисло || !естьЕдиница) {
+      onНеполна(естьЕдиница
+        ? `${подпись}: единица есть, а числа нет — величины без числа не бывает`
+        : `${подпись}: «${зн}» без единицы — выберите единицу справочника, иначе число ничего не значит`)
+      onChange(null)
+      return
+    }
+    if (Number.isNaN(Number(зн.replace(',', '.')))) {
+      onНеполна(`${подпись}: «${зн}» — не число`); onChange(null); return
+    }
+    onНеполна(null)
     const величина: Record<string, unknown> = { value: Number(зн.replace(',', '.')), unit: ед.trim() }
     if (оп) величина.op = оп
     onChange(величина)
   }
+
+  // Единица записи может быть вне справочника (её дало чтение документа): её не
+  // выбрасываем — показываем как есть и говорим, что она вне справочника.
+  const своя = единица !== '' && !единицы.some((е) => е.code === единица)
+
   return (
     <label>{подпись}
       <span className="v2-measure">
         <select name={`${код}.measure.op`} value={оператор}
           onChange={(e) => { setОператор(e.target.value); собрать(e.target.value, число, единица) }}>
-          <option value="">=</option>
-          <option value="≥">≥</option>
-          <option value="≤">≤</option>
+          {Object.entries(операторы).map(([кодОп, знак]) => (
+            <option key={кодОп} value={кодОп === '=' ? '' : кодОп}>{знак}</option>
+          ))}
         </select>
         <input name={`${код}.measure.value`} autoComplete="off" value={число} placeholder="значение"
           onChange={(e) => { setЧисло(e.target.value); собрать(оператор, e.target.value, единица) }} />
-        <input name={`${код}.measure.unit`} autoComplete="off" value={единица} placeholder="единица"
-          onChange={(e) => { setЕдиница(e.target.value); собрать(оператор, число, e.target.value) }} />
+        <select name={`${код}.measure.unit`} value={единица}
+          onChange={(e) => { setЕдиница(e.target.value); собрать(оператор, число, e.target.value) }}>
+          <option value="">— единица —</option>
+          {своя && <option value={единица}>{единица} · вне справочника</option>}
+          {единицы.map((е) => <option key={е.code} value={е.code}>{е.label}</option>)}
+        </select>
       </span>
+      {единицы.length === 0 && (
+        <span className="v2-locked">{почемуБезЕдиниц || 'справочник единиц пуст — выбрать единицу нечем'}</span>
+      )}
     </label>
   )
 }

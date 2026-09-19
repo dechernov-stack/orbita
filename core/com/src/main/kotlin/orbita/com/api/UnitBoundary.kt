@@ -21,7 +21,7 @@ class RateUnitException(val unit: String) : RuntimeException(
 )
 
 /** Индекс справочника: канон по единице, коэффициенты входов. */
-class UnitRegistryIndex(doc: JsonNode) {
+class UnitRegistryIndex(private val doc: JsonNode) {
 
     private data class Input(val canon: String, val factor: Double?, val shift: Double?, val rate: Boolean)
 
@@ -63,6 +63,30 @@ class UnitRegistryIndex(doc: JsonNode) {
     }
 
     val empty: Boolean get() = canons.isEmpty()
+
+    /**
+     * Единицы для ЭКРАНА: что пишется в запись → как это читать человеку.
+     *
+     * В записях v2 стоят русские написания («мин», «КА», «%»), а не каноны —
+     * так их дало чтение документа, и таким же выбором человек их и ставит.
+     * Метка несёт размерность: «мин · время» отличает минуты от метров глазом.
+     * Экран своего перечня единиц не держит — его ведёт справочник.
+     */
+    fun forScreen(): Map<String, String> {
+        val размерность = mutableMapOf<String, String>()
+        doc.path("dimensions").forEach { d ->
+            val имя = d.path("name").asText(d.path("canon").asText())
+            fun добавить(написание: String) {
+                if (написание.isNotBlank()) размерность.putIfAbsent(написание, "$написание · $имя")
+            }
+            d.path("spellings").forEach { добавить(it.asText()) }
+            d.path("inputs").forEach { i -> i.path("spellings").forEach { добавить(it.asText()) } }
+            if (d.path("spellings").isEmpty && d.path("inputs").none { !it.path("spellings").isEmpty }) {
+                добавить(d.path("canon").asText())
+            }
+        }
+        return размерность
+    }
 
     fun known(unit: String): Boolean = resolve(unit) != null
 

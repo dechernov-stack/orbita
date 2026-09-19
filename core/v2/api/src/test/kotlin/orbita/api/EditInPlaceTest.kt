@@ -209,10 +209,49 @@ class EditInPlaceTest {
         assertEquals("черновик", вид.path("enum_labels").path("status").path("Draft").asText(), "статус тоже назван по-русски")
         assertTrue(вид.path("measures").any { it.asText() == "measure" }, "показатель — величина, а не строка: $вид")
         assertEquals("всегда", вид.path("enum_labels").path("ears_pattern").path("ubiquitous").asText(), вид.toString())
+        // Примечание поля и операторы величины — тоже истина, а не догадка экрана.
+        assertEquals(
+            "обязателен для performance", вид.path("notes").path("measure").asText(),
+            "примечание поля идёт на экран: $вид",
+        )
+        assertEquals("≥", вид.path("measure_ops").path(">=").asText(), "знак для экрана, код в записи: $вид")
+
         val нет = assertFailsWith<NoSuchElementException> {
             router().handle("GET", "/v2/kinds/nonexistent", emptyMap(), null)
         }
         assertTrue("истине схем" in нет.message.orEmpty(), нет.message)
+    }
+
+
+    @Test
+    fun `единицы для выбора приходят из справочника, пустой справочник назван словами`() {
+        // Владелец 19.09: «единиц измерения нет — блок». Перечня единиц у кода
+        // нет: их ведёт справочник (полка LIB), и подставляет его граница.
+        val сСправочником = V2Router(
+            store, links,
+            ProcessFactory.engine(
+                template = { шаблон },
+                evaluator = ReadinessFactory.gateEvaluator(store, links, scenesDone = { emptySet() }, gatesPassed = { emptySet() }),
+                passedGates = { mutableSetOf() }, gatePlan = { emptyMap() },
+            ),
+            LibraryFactory.shelves(store) { шаблон },
+            orbita.knowledge.api.KnowledgeFactory.intake(store, links, mapper),
+            orbita.formulation.api.FormulationFactory.formulation(store, links), mapper,
+            units = { mapOf("мин" to "мин · время", "%" to "% · доля и вероятность") },
+        )
+        val есть = сСправочником.handle("GET", "/v2/units", emptyMap(), null)
+        assertEquals(200, есть?.code, есть?.body.toString())
+        assertEquals(2, есть!!.body.path("count").asInt(), есть.body.toString())
+        // Порядок — по коду единицы: список для выбора идёт предсказуемо.
+        assertTrue(
+            есть.body.path("items").any { it.path("code").asText() == "мин" && it.path("label").asText() == "мин · время" },
+            есть.body.toString(),
+        )
+
+        // Без справочника экран не молчит пустым списком, а говорит почему.
+        val пусто = router().handle("GET", "/v2/units", emptyMap(), null)
+        assertEquals(0, пусто!!.body.path("count").asInt())
+        assertTrue("справочник единиц" in пусто.body.path("why").asText(), пусто.body.toString())
     }
 
 }

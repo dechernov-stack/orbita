@@ -56,6 +56,14 @@ class V2Router(
     private val verifyRoutes: VerifyRoutes? = null,
     /** Текст из двоичного файла материала (docx · pdf · xlsx · pptx) — подставляет граница. */
     private val extract: ((fileName: String, bytes: ByteArray) -> String?)? = null,
+    /**
+     * Единицы СПРАВОЧНИКА для экрана: код записи → как показать человеку.
+     *
+     * Подставляет граница: справочник единиц живёт полкой LIB (решение ранга
+     * ADR), и v2 его сам не читает. Без него поле единицы было пустым вводом —
+     * владелец 19.09: «единиц измерения нет — блок».
+     */
+    private val units: (() -> Map<String, String>)? = null,
 ) {
 
     /**
@@ -72,7 +80,7 @@ class V2Router(
         val fileName: String? = null,
     )
 
-    private val сцены = SceneRoutes(store, links, engine, mapper)
+    private val сцены = SceneRoutes(store, links, engine, mapper, units = units)
     private val сквозные = AcrossRoutes(store, links, engine, shelves, intake, formulation, mapper, extract = extract)
     // Точки есть у любого роутера: фиксация точки — часть хребта, а не
     // отдельной волны; сборка без явных записей берёт записи над тем же

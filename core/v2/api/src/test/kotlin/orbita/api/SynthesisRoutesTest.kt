@@ -152,7 +152,7 @@ class SynthesisRoutesTest {
         assertTrue(величина != null && величина.isObject, "показатель предложен парой: ${сверка.содержимоеКандидата}")
         assertEquals(100.0, величина!!.path("value").asDouble(), 0.001, величина.toString())
         assertEquals("%", величина.path("unit").asText(), величина.toString())
-        assertEquals("≥", величина.path("op").asText(), "«не менее» — это ≥: ${величина}")
+        assertEquals(">=", величина.path("op").asText(), "оператор — код истины, а не знак: $величина")
     }
 
     @Test
@@ -175,7 +175,7 @@ class SynthesisRoutesTest {
         assertTrue(величина != null && величина.isObject, "показатель предложен: ${сверка.содержимоеКандидата}")
         assertEquals(180.0, величина!!.path("value").asDouble(), 0.001, величина.toString())
         assertEquals("мин", величина.path("unit").asText(), величина.toString())
-        assertEquals("≤", величина.path("op").asText(), "«не более» — это ≤: $величина")
+        assertEquals("<=", величина.path("op").asText(), "оператор — код истины, а не знак: $величина")
     }
 
     @Test

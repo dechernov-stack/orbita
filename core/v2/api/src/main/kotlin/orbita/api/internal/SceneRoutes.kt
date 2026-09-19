@@ -27,6 +27,8 @@ class SceneRoutes(
     private val links: LinkRegistry,
     private val engine: ProcessEngine,
     private val mapper: ObjectMapper = ObjectMapper(),
+    /** Единицы справочника для экрана: код записи → показ человеку. */
+    private val units: (() -> Map<String, String>)? = null,
 ) {
 
     fun handle(method: String, path: String, query: Map<String, String>, body: String?): V2Router.Ответ? = when {
@@ -45,6 +47,10 @@ class SceneRoutes(
         // «клиент показывает только label», «значение без метки — сторож».
         method == "GET" && path.matches(Regex("/v2/kinds/[a-z_]+")) ->
             видДляЭкрана(path.removePrefix("/v2/kinds/"))
+
+        // Единицы справочника: показатель без единицы не существует, а выбрать
+        // её было негде (владелец 19.09: «единиц измерения нет — блок»).
+        method == "GET" && path == "/v2/units" -> единицы()
 
         // Портфель: без него продукт теряет проект при перезагрузке страницы —
         // открыть заново можно, вернуться к открытому было нельзя.
@@ -523,6 +529,13 @@ class SceneRoutes(
         вид.labels.forEach { (поле, имя) -> подписи.put(поле, имя) }
         val стадии = узел.putObject("required_at")
         вид.requiredAt.forEach { (поле, правило) -> стадии.put(поле, правило) }
+        // Примечание поля словами истины: «обязателен для performance» у
+        // показателя. Без него необязательное поле выглядит долгом (владелец
+        // 19.09: «и какой показатель тут можно поставить?»).
+        val примечания = узел.putObject("notes")
+        вид.notes.forEach { (поле, слова) -> примечания.put(поле, слова) }
+        val операторы = узел.putObject("measure_ops")
+        orbita.kernel.schema.GeneratedKinds.measureOps.forEach { (код, знак) -> операторы.put(код, знак) }
         val перечни = узел.putObject("enums")
         вид.enums.forEach { (поле, значения) -> перечни.putArray(поле).also { м -> значения.forEach(м::add) } }
         val значения = узел.putObject("enum_labels")
@@ -533,6 +546,25 @@ class SceneRoutes(
             if (метки.isEmpty()) return@forEach
             val узелПоля = значения.putObject(поле)
             метки.forEach { (значение, имя) -> узелПоля.put(значение, имя) }
+        }
+        return V2Router.Ответ(200, узел)
+    }
+
+    /**
+     * Единицы справочника для выбора: код записи и как его читать человеку.
+     *
+     * Пусто — значит справочник на стенд не засеян; экран говорит это словами,
+     * а не молчит пустым списком. Своего перечня единиц у кода нет: единицы
+     * ведёт справочник (полка LIB).
+     */
+    private fun единицы(): V2Router.Ответ {
+        val все = units?.invoke().orEmpty()
+        val узел = mapper.createObjectNode()
+        val массив = узел.putArray("items")
+        все.toSortedMap().forEach { (код, показ) -> массив.addObject().put("code", код).put("label", показ) }
+        узел.put("count", все.size)
+        if (все.isEmpty()) {
+            узел.put("why", "справочник единиц пуст: внесите его на полку LIB — величина без единицы не бывает")
         }
         return V2Router.Ответ(200, узел)
     }
