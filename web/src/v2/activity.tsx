@@ -162,9 +162,19 @@ export function ActivityScreen({
           <span>
             <span className="v2-dim">выходы: </span>
             {свои.length === 0 && чужие.length === 0 && <span className="v2-dim">не заданы</span>}
+            {/*
+              Счётчик СЛОВАМИ (журнал ПМИ-7, З-08): «требования к системе 12/3»
+              не говорит ничего — владелец 19.09: «опять встали, непонятно на
+              чём». Теперь видно и сколько есть, и сколько ждут, и чего не
+              хватает.
+            */}
             {свои.map((в) => (
               <span key={в.kind + в.what} className={в.satisfied ? 'v2-ok' : 'v2-warn'}>
-                {в.what} <b>{в.count}</b>{в.min > 0 && `/${в.min}`}{'  '}
+                {в.what}: {в.count}
+                {в.min > 0 && (в.count >= в.min
+                  ? ` из ${в.min} — есть`
+                  : ` из ${в.min} — не хватает ${в.min - в.count}`)}
+                {'  '}
               </span>
             ))}
             {чужие.map((в) => (
