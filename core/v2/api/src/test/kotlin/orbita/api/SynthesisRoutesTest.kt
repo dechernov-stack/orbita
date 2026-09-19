@@ -64,6 +64,8 @@ class SynthesisRoutesTest {
         store, AiFactory.synthesisJobs(store, intake, служба, mapper), сверка, mapper, links,
         // Шаблон EARS по форме формулировки — как в жизни его даёт модуль требований.
         ears = { формулировка -> if (формулировка.trimStart().startsWith("Когда")) "event" else "ubiquitous" },
+        // Справочник единиц — как в жизни его даёт полка LIB: здесь фикстурой.
+        units = { единица -> единица in setOf("%", "мин", "ч", "сут", "КА") },
     )
     private val п = mapOf("project" to ПРОЕКТ)
 
@@ -151,6 +153,29 @@ class SynthesisRoutesTest {
         assertEquals(100.0, величина!!.path("value").asDouble(), 0.001, величина.toString())
         assertEquals("%", величина.path("unit").asText(), величина.toString())
         assertEquals("≥", величина.path("op").asText(), "«не менее» — это ≥: ${величина}")
+    }
+
+    @Test
+    fun `единицу показателя узнаёт справочник, а не слово за числом`() {
+        // «P95 не более 180 мин»: первое число — 95, а за ним стоит «не». Без
+        // справочника единиц показателем стало бы «95 не» — мусор в записи.
+        val факт = поле()
+        транспорт.ответ = """{"proposals":[{"concept":"requirement","payload":{
+            "title":"Латентность B′",
+            "statement":"Система должна доставлять приоритетное сообщение класса B′ с P95 не более 180 мин"},
+            "basis":["$факт"],"verdict":"new"}]}"""
+        val код = довестиЗапуск()
+
+        маршруты.handle(
+            "POST", "/v2/synthesis/runs/$код/accept", п,
+            """{"chosen":["${первоеПредложение(код)}"],"author":"инженер","reason":"сцена 8"}""",
+        )
+
+        val величина = сверка.содержимоеКандидата?.path("measure")
+        assertTrue(величина != null && величина.isObject, "показатель предложен: ${сверка.содержимоеКандидата}")
+        assertEquals(180.0, величина!!.path("value").asDouble(), 0.001, величина.toString())
+        assertEquals("мин", величина.path("unit").asText(), величина.toString())
+        assertEquals("≤", величина.path("op").asText(), "«не более» — это ≤: $величина")
     }
 
     @Test

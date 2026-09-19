@@ -355,6 +355,9 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
             // Шаблон EARS определяется по форме формулировки (истина схем:
             // `ears_pattern: accept:auto`) — правило живёт в модуле требований.
             ears = { формулировка -> требования.detectEars(формулировка).schemaName },
+            // Единицу узнаёт СПРАВОЧНИК (полка LIB, решение ранга ADR): без
+            // него «P95 не более 180 мин» дало бы показателем «95 не».
+            units = UnitBoundary.registryOf(this)?.let { реестр -> { е: String -> реестр.known(е) } },
         )
         val сверкаМаршруты = orbita.api.internal.ReconcileRoutes(store, сверка, знания, mapper)
         val исследованиеМаршруты = orbita.api.internal.ResearchRoutes(store, исследование, mapper)

@@ -53,6 +53,14 @@ class SynthesisRoutes(
      * в модуле требований — сюда приходит функцией.
      */
     private val ears: ((String) -> String)? = null,
+    /**
+     * Знает ли справочник единиц такое написание (граница справочника, ADR).
+     *
+     * Без него предложение показателя ловит мусор: в «P95 не более 180 мин»
+     * первое число — 95, а «единицей» за ним стоит слово «не». Перечня единиц
+     * в коде нет и быть не может — их ведёт справочник (полка LIB).
+     */
+    private val units: ((String) -> Boolean)? = null,
 ) {
 
     private val запуск = Regex("/v2/synthesis/runs/(SR-[0-9]+)")
@@ -514,7 +522,9 @@ class SynthesisRoutes(
         if (формулировка.isBlank()) return null
         val найдено = ЧИСЛО_С_ЕДИНИЦЕЙ.findAll(формулировка)
             .map { it.groupValues[1].replace(",", ".") to it.groupValues[2] }
-            .firstOrNull { (число, единица) -> единица !in ГОД && число.toDoubleOrNull() != null }
+            .firstOrNull { (число, единица) ->
+                единица !in ГОД && число.toDoubleOrNull() != null && units?.invoke(единица) == true
+            }
             ?: return null
         val величина = mapper.createObjectNode()
         when {
