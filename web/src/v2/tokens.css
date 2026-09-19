@@ -219,7 +219,13 @@ body {
 .v2-warn { color: var(--wait); }
 .v2-mono { font-family: var(--font-mono); font-size: 12px; }
 
-.v2-form { display: grid; gap: 8px; max-width: 720px; }
+/*
+  Колонка формы ЯВНО minmax(0, 1fr): иначе ширину задаёт самое длинное
+  содержимое — у селекта единиц это «MRUB/kg · удельная стоимость выведения», и
+  форма разъезжалась на 509 px в колонке шириной 363, налезая на соседнюю
+  (клик по единице попадал в неё — проход владельца 19.09).
+*/
+.v2-form { display: grid; gap: 8px; max-width: 720px; grid-template-columns: minmax(0, 1fr); }
 .v2-form--row { grid-auto-flow: column; grid-template-columns: 1fr auto auto; align-items: center; max-width: none; }
 .v2-form label { display: grid; gap: 3px; color: var(--ink-soft); }
 /*
@@ -234,6 +240,9 @@ body {
 .v2-form input, .v2-form select, .v2-form textarea {
   font: inherit; color: var(--ink); padding: 6px 9px;
   border: 1px solid var(--line); border-radius: 5px; background: var(--ground);
+  /* Длинный вариант списка не растягивает поле за колонку: селект носителя
+     («DC-PROC · Обработка и маршрутизация») выезжал на соседнюю колонку. */
+  max-width: 100%; min-width: 0;
 }
 .v2-form__actions { display: flex; gap: 8px; align-items: center; margin-top: 4px; }
 .v2-primary { background: var(--accent); color: #fff; border: 0; }
@@ -267,7 +276,8 @@ button:disabled { opacity: .55; cursor: default; }
 .v2-cell--statement { max-width: none; }
 
 /* Величина — тройкой: оператор · значение · единица (field_rules.widgets). */
-.v2-measure { display: grid; grid-template-columns: 64px 1fr minmax(150px, 220px); gap: 6px; }
+.v2-measure { display: grid; grid-template-columns: 58px minmax(0, 1fr) minmax(0, 1.3fr); gap: 6px; }
+.v2-measure > * { min-width: 0; width: 100%; text-overflow: ellipsis; }
 .v2-measure select, .v2-measure input { min-width: 0; }
 .v2-row--open { background: var(--accent-soft); }
 .v2-card-row td { background: var(--ground); }
@@ -281,7 +291,15 @@ button:disabled { opacity: .55; cursor: default; }
 .v2-inline { display: inline-flex; gap: 6px; align-items: center; }
 
 /* Карточка вниз: грани группами, а не простынёй полей. */
+/*
+  Колонки карточки не дают содержимому вылезать наружу: `minmax(0, 1fr)` вместо
+  `1fr` и `min-width: 0` у колонки. Без этого сетка величины (её третий столбец
+  был шире колонки) выезжала под СОСЕДНЮЮ колонку, и та перехватывала клик —
+  селект единицы был виден, но не открывался (проход владельца 19.09).
+*/
 .v2-facets { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; padding: 8px 0; }
+.v2-facet { min-width: 0; }
+.v2-facet * { max-width: 100%; }
 .v2-facet__title { font-weight: 600; color: var(--ink-soft); margin-bottom: 4px; }
 .v2-facet__body { color: var(--ink); display: grid; gap: 4px; }
 
