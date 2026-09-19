@@ -181,6 +181,28 @@ class EntityBaselines(
             "снимок «$name» уже есть: базовая линия неизменяема, перебазирование заводит новое имя"
         }
 
+        // Ступень записи меняется ДО снимка: иначе версия вырастет после него и
+        // всё, что базировано, тут же окажется «изменено после утверждения».
+        //
+        // Владелец 19.09: «кнопку базировать я нажимал, но всё осталось в
+        // статусе черновик». Снимок фиксировал версии, а сами записи оставались
+        // черновиками — при том что истина схем даёт требованию ровно две
+        // ступени: `Draft|Baseline`. Вид без ступени базирования свой статус
+        // сохраняет: придумывать ему ступень код не вправе.
+        val кБазированию = kind.kinds().flatMap { вид ->
+            store.list(область, вид)
+                .filter { вид != "requirement" || Level.of(it.doc.path("level").asText(null)) in kind.levels() }
+        }.filter { it.status != "cancelled" }
+        кБазированию.forEach { сущность ->
+            val ступень = ступеньБазирования(сущность.kind) ?: return@forEach
+            if (сущность.status == ступень) return@forEach
+            store.update(
+                сущность.id, сущность.doc,
+                Provenance(Channel.MANUAL, "базирование «$name» ($gate): $author"),
+                status = ступень,
+            )
+        }
+
         val незрелые = незрелыеТехнологии(область)
         val элементы = kind.kinds().flatMap { вид ->
             store.list(область, вид)
@@ -214,6 +236,17 @@ class EntityBaselines(
         )
         return Baseline(name, kind, gate, элементы, author, документ.path("at").asText())
     }
+
+    /**
+     * Ступень «базировано» у вида — по истине схем (`status_model`).
+     *
+     * У требования модель «Draft|Baseline», и ступень зовётся именно так, как
+     * её назвал владелец. Вида без такой ступени базирование не трогает.
+     */
+    private fun ступеньБазирования(вид: String): String? =
+        orbita.kernel.schema.GeneratedKinds.byCode[вид]?.statusModel
+            ?.split("|")?.map { it.trim() }
+            ?.firstOrNull { it.equals("baseline", ignoreCase = true) }
 
     /**
      * Технологии, не дотянувшие TRL до требуемого: они и делают элементы
