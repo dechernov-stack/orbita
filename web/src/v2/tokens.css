@@ -222,6 +222,15 @@ body {
 .v2-form { display: grid; gap: 8px; max-width: 720px; }
 .v2-form--row { grid-auto-flow: column; grid-template-columns: 1fr auto auto; align-items: center; max-width: none; }
 .v2-form label { display: grid; gap: 3px; color: var(--ink-soft); }
+/*
+  Поле из НЕСКОЛЬКИХ контролов (величина: оператор · значение · единица) не
+  может быть одним <label>: клик по второму и третьему контролу браузер
+  переадресует первому, и список единиц закрывался сразу («единицу выбрать
+  нельзя», проход владельца 19.09). Подпись — своей строкой, у каждого
+  контрола своё имя для чтения с экрана.
+*/
+.v2-form .v2-field { display: grid; gap: 3px; color: var(--ink-soft); }
+.v2-field__cap { color: var(--ink-soft); }
 .v2-form input, .v2-form select, .v2-form textarea {
   font: inherit; color: var(--ink); padding: 6px 9px;
   border: 1px solid var(--line); border-radius: 5px; background: var(--ground);
@@ -258,7 +267,7 @@ button:disabled { opacity: .55; cursor: default; }
 .v2-cell--statement { max-width: none; }
 
 /* Величина — тройкой: оператор · значение · единица (field_rules.widgets). */
-.v2-measure { display: grid; grid-template-columns: 56px 1fr 88px; gap: 6px; }
+.v2-measure { display: grid; grid-template-columns: 64px 1fr minmax(150px, 220px); gap: 6px; }
 .v2-measure select, .v2-measure input { min-width: 0; }
 .v2-row--open { background: var(--accent-soft); }
 .v2-card-row td { background: var(--ground); }

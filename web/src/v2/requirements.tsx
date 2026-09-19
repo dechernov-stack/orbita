@@ -482,18 +482,24 @@ function Величина({ подпись, код, было, единицы, п
   // выбрасываем — показываем как есть и говорим, что она вне справочника.
   const своя = единица !== '' && !единицы.some((е) => е.code === единица)
 
+  // Три контрола НЕ заворачиваются в один <label>: клик по второму и третьему
+  // браузер переадресует первому (label связан с первым контролом), и список
+  // единиц закрывался сразу — «единицу измерения выбрать нельзя» (проход
+  // владельца 19.09). Подпись — своей строкой, каждому контролу — своё имя.
   return (
-    <label>{подпись}
+    <span className="v2-field">
+      <span className="v2-field__cap">{подпись}</span>
       <span className="v2-measure">
-        <select name={`${код}.measure.op`} value={оператор}
+        <select name={`${код}.measure.op`} value={оператор} aria-label={`${подпись}: оператор`}
           onChange={(e) => { setОператор(e.target.value); собрать(e.target.value, число, единица) }}>
           {Object.entries(операторы).map(([кодОп, знак]) => (
             <option key={кодОп} value={кодОп === '=' ? '' : кодОп}>{знак}</option>
           ))}
         </select>
         <input name={`${код}.measure.value`} autoComplete="off" value={число} placeholder="значение"
+          aria-label={`${подпись}: значение`}
           onChange={(e) => { setЧисло(e.target.value); собрать(оператор, e.target.value, единица) }} />
-        <select name={`${код}.measure.unit`} value={единица}
+        <select name={`${код}.measure.unit`} value={единица} aria-label={`${подпись}: единица справочника`}
           onChange={(e) => { setЕдиница(e.target.value); собрать(оператор, число, e.target.value) }}>
           <option value="">— единица —</option>
           {своя && <option value={единица}>{единица} · вне справочника</option>}
@@ -503,7 +509,7 @@ function Величина({ подпись, код, было, единицы, п
       {единицы.length === 0 && (
         <span className="v2-locked">{почемуБезЕдиниц || 'справочник единиц пуст — выбрать единицу нечем'}</span>
       )}
-    </label>
+    </span>
   )
 }
 
