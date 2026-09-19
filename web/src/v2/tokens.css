@@ -84,6 +84,8 @@ body {
 }
 .v2-cnt { color: var(--ink-mute); font-weight: 400; }
 .v2-list { padding: 6px 0; }
+/* Сетка списка: три колонки. Строке ТАБЛИЦЫ этот класс не подходит —
+   она бы развалилась на блоки; таблицы подсвечивают строку `v2-row--open`. */
 .v2-row {
   display: grid; grid-template-columns: 28px 1fr auto; gap: 8px; width: 100%;
   padding: 6px 12px; align-items: baseline; border: 0; background: none;

@@ -240,7 +240,13 @@ function TableRow({ т, открыта, onToggle, project, onChanged }: {
   const показатель = т.measure ? кратко(т.measure) : '—'
   return (
     <>
-      <tr className={открыта ? 'v2-row v2-row--open' : 'v2-row'} onClick={onToggle}>
+      {/*
+        Класс `v2-row` здесь стоять не может: это СЕТКА из трёх колонок для
+        списков, и строка таблицы разваливалась на клетки по 16 px высотой в
+        2705 (замерено в браузере на стенде; владелец: «в дизайне каша»).
+        Подсветка открытой строки — своим классом, без раскладки.
+      */}
+      <tr className={открыта ? 'v2-row--open' : undefined} onClick={onToggle}>
         <td>
           {т.code}
           {т.after_baseline_changed && (
