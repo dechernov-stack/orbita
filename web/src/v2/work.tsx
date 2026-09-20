@@ -14,6 +14,7 @@ import { SceneModes } from './modes'
 import { api, type Phase } from './api'
 import { ActivityScreen } from './activity'
 import { PhaseBand } from './phaseband'
+import { PhasePlan } from './plan'
 import { PhaseMap, SceneMap } from './processmap'
 import { режимПоРоли, составЭкрана, type Режим } from './density'
 import {
@@ -110,6 +111,7 @@ export function Work({ project, onProject, wantScene, onScenePicked, onScene, р
         <PhaseMap phase={фаза} onScene={(к) => {
           setСцена(к); setМероприятие(null); onРежим?.('сцена')
         }} />
+        <PhasePlan phase={фаза} project={project} onChanged={перечитать} />
         <PhaseBand phase={фаза} current={текущая.key}
           onPick={(к) => { setСцена(к); setМероприятие(null); onРежим?.('сцена') }} />
       </div>
