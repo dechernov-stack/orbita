@@ -14,6 +14,13 @@ describe('срок-точка риска', () => {
     expect(экран).toContain("api.patchEntity(project, р.code, { due_point: e.target.value }")
   })
 
+  it('проставить разом можно, но только без точки и только выбранной вехой', () => {
+    expect(экран).toContain('Проставить всем без точки')
+    expect(экран).toContain("риски.filter((р) => р.due_point === '—')")
+    expect(экран).toContain('disabled={!всемВеха || занятоВсем}')
+    expect(экран).toContain('названные сроки не трогаются')
+  })
+
   it('вехи берутся из проекта, а не из списка в коде', () => {
     expect(экран).toContain('function useВехи')
     expect(экран).toContain("api.entities(project, 'gate')")

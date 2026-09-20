@@ -197,6 +197,8 @@ export function Risks({ project }: { project: string }) {
   })
   const [оценка, setОценка] = useState({ variant: '', lifetime_years: 18, dv_deorbit: '', compliant: true })
   const вехи = useВехи(project)
+  const [всемВеха, setВсемВеха] = useState('')
+  const [занятоВсем, setЗанятоВсем] = useState(false)
 
   const перечитать = useCallback(() => {
     api.risks(project).then((r) => setРиски(r.items)).catch((e) => setОтказ(String(e.message ?? e)))
@@ -253,6 +255,39 @@ export function Risks({ project }: { project: string }) {
             </tbody>
           </table>
         )}
+        {/*
+          Простановка разом: на проходе 20.09 без точки стояли ВСЕ двенадцать
+          рисков — по одному это двенадцать кликов. Веху выбирает человек,
+          проставляется она только тем, у кого точки нет: уже названный срок
+          массовое действие не трогает.
+        */}
+        {риски.some((р) => р.due_point === '—') && (
+          <div className="v2-form__actions" data-why="работа">
+            <span className="v2-empty__why">
+              без срока-точки: {риски.filter((р) => р.due_point === '—').length} из {риски.length}
+            </span>
+            <select name="всем.due_point" value={всемВеха} aria-label="веха для рисков без точки"
+              onChange={(e) => setВсемВеха(e.target.value)}>
+              <option value="">— веха проекта —</option>
+              {вехи.map((в) => <option key={в.код} value={в.код}>{в.подпись}</option>)}
+            </select>
+            <button type="button" disabled={!всемВеха || занятоВсем}
+              title={всемВеха
+                ? 'проставить выбранную веху всем рискам без точки; названные сроки не трогаются'
+                : 'сначала выберите веху'}
+              onClick={() => {
+                setЗанятоВсем(true); setОтказ(null)
+                const без = риски.filter((р) => р.due_point === '—')
+                Promise.all(без.map((р) => api.patchEntity(project, р.code, { due_point: всемВеха }, 'инженер',
+                  'срок-точка риска: проставлено разом')))
+                  .then(() => { setЗанятоВсем(false); перечитать() })
+                  .catch((ошибка) => { setЗанятоВсем(false); setОтказ(String(ошибка.message ?? ошибка)) })
+              }}>
+              {занятоВсем ? 'Ставлю…' : 'Проставить всем без точки'}
+            </button>
+          </div>
+        )}
+
         <div className="v2-form">
           <label>Формулировка
             <input value={поля.statement} placeholder="SEU в памяти без ECC → зависание борта"
