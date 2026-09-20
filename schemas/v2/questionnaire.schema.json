@@ -109,13 +109,10 @@
             ]
           },
           "paths": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
+            "enum": [
+              "manual",
+              "shelf",
+              "datasheet]["
             ]
           }
         },

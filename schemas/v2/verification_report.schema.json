@@ -82,13 +82,11 @@
             ]
           },
           "issue": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
+            "enum": [
+              "no_basis",
+              "number_vs_fact",
+              "contradiction",
+              "stale"
             ]
           },
           "detail": {

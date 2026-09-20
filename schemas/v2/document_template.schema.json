@@ -86,34 +86,18 @@
             ]
           },
           "expects": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
+            "type": "object",
+            "description": "{gate:[{element_kind*,min*:int,filter?}]}"
           },
           "style": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
+            "type": "string"
           },
           "glossary": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "ссылка на вид: glossary_term"
+            }
           }
         },
         "required": [

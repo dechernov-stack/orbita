@@ -63,7 +63,51 @@
       "description": "ссылка на вид: component"
     },
     "states": {
-      "description": "[{code*,name*,active_functions*:ref[] function,kind*:enum[mode,state]}] ≥1"
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": [
+              "string",
+              "number",
+              "boolean",
+              "object",
+              "array",
+              "null"
+            ]
+          },
+          "name": {
+            "type": [
+              "string",
+              "number",
+              "boolean",
+              "object",
+              "array",
+              "null"
+            ]
+          },
+          "active_functions": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "ссылка на вид: function"
+            }
+          },
+          "kind": {
+            "enum": [
+              "mode",
+              "state"
+            ]
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "active_functions",
+          "kind"
+        ]
+      }
     },
     "initial": {
       "type": "string"
@@ -94,14 +138,15 @@
             ]
           },
           "trigger": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
+            "type": "object",
+            "propertyNames": {
+              "enum": [
+                "exchange",
+                "event",
+                "timer"
+              ]
+            },
+            "description": "один из ключей: exchange · event · timer"
           },
           "guard": {
             "type": [

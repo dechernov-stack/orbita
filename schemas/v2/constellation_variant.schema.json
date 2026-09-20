@@ -62,7 +62,76 @@
       "type": "string"
     },
     "subgroups": {
-      "description": "[{usage*→component_usage(КА),pattern*:enum[walker_delta,walker_star,sso],altitude*,inclination|ltan*,planes*,per_plane*}] ≥1"
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "usage*→component_usage(КА)": {
+            "type": [
+              "string",
+              "number",
+              "boolean",
+              "object",
+              "array",
+              "null"
+            ]
+          },
+          "pattern": {
+            "enum": [
+              "walker_delta",
+              "walker_star",
+              "sso"
+            ]
+          },
+          "altitude": {
+            "type": [
+              "string",
+              "number",
+              "boolean",
+              "object",
+              "array",
+              "null"
+            ]
+          },
+          "inclination|ltan": {
+            "type": [
+              "string",
+              "number",
+              "boolean",
+              "object",
+              "array",
+              "null"
+            ]
+          },
+          "planes": {
+            "type": [
+              "string",
+              "number",
+              "boolean",
+              "object",
+              "array",
+              "null"
+            ]
+          },
+          "per_plane": {
+            "type": [
+              "string",
+              "number",
+              "boolean",
+              "object",
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "pattern",
+          "altitude",
+          "inclination|ltan",
+          "planes",
+          "per_plane"
+        ]
+      }
     },
     "working": {
       "type": "boolean"

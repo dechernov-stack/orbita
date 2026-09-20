@@ -131,13 +131,10 @@
             ]
           },
           "action": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
+            "enum": [
+              "add",
+              "remove",
+              "shift"
             ]
           },
           "to_gate": {

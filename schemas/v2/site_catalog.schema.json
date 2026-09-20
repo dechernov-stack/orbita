@@ -104,13 +104,9 @@
             ]
           },
           "type": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
+            "enum": [
+              "gcs",
+              "gateway"
             ]
           }
         },

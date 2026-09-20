@@ -72,7 +72,8 @@
       "items": {
         "type": "string",
         "description": "ссылка на вид: function ≥1 (SA) | text (OA)"
-      }
+      },
+      "description": "участник шага — узел состава, сторона (актор) или внешняя система"
     },
     "mode": {
       "type": "string"

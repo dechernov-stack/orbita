@@ -84,13 +84,15 @@
             ]
           },
           "type": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
+            "enum": [
+              "RF",
+              "power",
+              "data",
+              "thermal",
+              "mech",
+              "env",
+              "hmi",
+              "org"
             ]
           },
           "a": {
@@ -144,14 +146,10 @@
             ]
           },
           "requirement_classes": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "icd_section": {
             "type": [
@@ -164,14 +162,10 @@
             ]
           },
           "models": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "default_take": {
             "type": [

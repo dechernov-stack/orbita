@@ -101,23 +101,14 @@
             ]
           },
           "limit": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
+            "type": "object",
+            "description": "{key*,op*,value*,unit*}"
           },
           "applies_to": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
+            "enum": [
+              "node",
+              "interface",
+              "scene]["
             ]
           }
         },

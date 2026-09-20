@@ -7,30 +7,27 @@
 //
 // Устройство: две карточки по двум выходам сцены — машина режимов (ConOps §4)
 // и операционные сценарии (ConOps §5). Поля — из истины схем: у состояния код,
-// имя и род; у перехода — «откуда», «куда» и ПРИЧИНА (событие · обмен ·
-// таймер); у шага сценария — участник и что происходит. Ничего не заводится
+// имя и род; у перехода — «откуда», «куда» и причина (обмен · событие ·
+// таймер) значениями истины; у шага сценария — участник и что происходит. Ничего не заводится
 // само: и машину, и сценарий записывает человек.
 import { useCallback, useEffect, useState } from 'react'
-import { api, type ComponentRow, type ModeMachineRow, type ScenarioRow } from './api'
+import { api, type ComponentRow, type KindSpec, type ModeMachineRow, type ScenarioRow } from './api'
 
 /**
- * Род состояния — вложенный перечень истины
- * (`state_machine.states[].kind: enum[mode,state]`). Генератор вложенные
- * перечни наружу не отдаёт (даёт только перечни полей самого вида), поэтому
- * здесь стоят те же два значения с русскими именами — вопрос владельцу
- * записан в NEXT.md.
+ * Перечисления сцены 9 приходят С СЕРВЕРА вложенными путями истины:
+ * `states.kind` (режим · состояние) и `transitions.trigger` (обмен · событие ·
+ * таймер). Своей копии у экрана нет — правило владельца 20.09
+ * (`field_rules.nested_enums`): «копия перечисления на экране — сторож».
  */
-const РОД: { код: string; имя: string }[] = [
-  { код: 'mode', имя: 'режим' },
-  { код: 'state', имя: 'состояние' },
-]
-
-/** Причина перехода — тоже вложенный перечень истины (`trigger`). */
-const ПРИЧИНА: { код: string; имя: string }[] = [
-  { код: 'event', имя: 'событие' },
-  { код: 'exchange', имя: 'обмен' },
-  { код: 'timer', имя: 'таймер' },
-]
+function useВидМашины(): (путь: string) => { код: string; имя: string }[] {
+  const [вид, setВид] = useState<KindSpec | null>(null)
+  useEffect(() => { api.kind('state_machine').then(setВид).catch(() => undefined) }, [])
+  return useCallback((путь: string) => {
+    const метки = вид?.enum_labels[путь]
+    if (метки) return Object.entries(метки).map(([код, имя]) => ({ код, имя }))
+    return (вид?.enums[путь] ?? []).map((код) => ({ код, имя: код }))
+  }, [вид])
+}
 
 type Состояние = { code: string; name: string; kind: string }
 type Переход = { from: string; to: string; вид: string; чем: string }
@@ -49,14 +46,17 @@ function Режимы({ project, onChanged }: { project: string; onChanged: () =
   const [узлы, setУзлы] = useState<ComponentRow[]>([])
   const [владелец, setВладелец] = useState('')
   const [состояния, setСостояния] = useState<Состояние[]>([
-    { code: '', name: '', kind: 'mode' },
-    { code: '', name: '', kind: 'mode' },
+    { code: '', name: '', kind: '' },
+    { code: '', name: '', kind: '' },
   ])
   const [начальное, setНачальное] = useState('')
   const [переходы, setПереходы] = useState<Переход[]>([])
   const [занято, setЗанято] = useState(false)
   const [отказ, setОтказ] = useState<string | null>(null)
   const [итог, setИтог] = useState<string | null>(null)
+  const значения = useВидМашины()
+  const роды = значения('states.kind')
+  const причины = значения('transitions.trigger')
 
   const перечитать = useCallback(() => {
     api.modes(project).then((р) => setМашины(р.items)).catch(() => undefined)
@@ -72,7 +72,7 @@ function Режимы({ project, onChanged }: { project: string; onChanged: () =
     setЗанято(true); setОтказ(null); setИтог(null)
     api.saveModes(project, {
       owner: владелец,
-      states: годные.map((с) => ({ code: с.code.trim(), name: с.name.trim(), kind: с.kind })),
+      states: годные.map((с) => ({ code: с.code.trim(), name: с.name.trim(), kind: с.kind || роды[0]?.код })),
       initial: начальное || годные[0]?.code,
       transitions: переходы.map((п) => ({ from: п.from, to: п.to, trigger: { [п.вид]: п.чем.trim() } })),
       author: 'инженер',
@@ -128,20 +128,20 @@ function Режимы({ project, onChanged }: { project: string; onChanged: () =
                 onChange={(e) => setСостояния(состояния.map((э, j) => j === i ? { ...э, name: e.target.value } : э))} />
               <select name={`режим${i}.kind`} value={с.kind} aria-label={`род режима ${i + 1}`}
                 onChange={(e) => setСостояния(состояния.map((э, j) => j === i ? { ...э, kind: e.target.value } : э))}>
-                {РОД.map((р) => <option key={р.код} value={р.код}>{р.имя}</option>)}
+                {роды.map((р) => <option key={р.код} value={р.код}>{р.имя}</option>)}
               </select>
             </span>
           </span>
         ))}
         <div className="v2-form__actions">
           <button type="button" className="v2-chip"
-            onClick={() => setСостояния([...состояния, { code: '', name: '', kind: 'mode' }])}>
+            onClick={() => setСостояния([...состояния, { code: '', name: '', kind: '' }])}>
             ещё режим
           </button>
           <button type="button" className="v2-chip" disabled={годные.length < 2}
             title={годные.length < 2 ? 'сначала назовите хотя бы два режима' : 'переход между названными режимами'}
             onClick={() => setПереходы([...переходы, {
-              from: годные[0].code, to: годные[1].code, вид: 'event', чем: '',
+              from: годные[0].code, to: годные[1].code, вид: причины[0]?.код ?? '', чем: '',
             }])}>
             ещё переход
           </button>
@@ -170,7 +170,7 @@ function Режимы({ project, onChanged }: { project: string; onChanged: () =
               </select>
               <select name={`переход${i}.вид`} value={п.вид} aria-label={`переход ${i + 1}: чем вызван`}
                 onChange={(e) => setПереходы(переходы.map((э, j) => j === i ? { ...э, вид: e.target.value } : э))}>
-                {ПРИЧИНА.map((р) => <option key={р.код} value={р.код}>{р.имя}</option>)}
+                {причины.map((р) => <option key={р.код} value={р.код}>{р.имя}</option>)}
               </select>
             </span>
             <input name={`переход${i}.чем`} autoComplete="off" value={п.чем}

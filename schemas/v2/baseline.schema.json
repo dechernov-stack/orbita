@@ -96,24 +96,14 @@
             ]
           },
           "firmness": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
+            "enum": [
+              "firm",
+              "conditional"
             ]
           },
           "conditional_on": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
+            "type": "string",
+            "description": "ссылка на вид: technology"
           }
         },
         "required": [

@@ -55,6 +55,7 @@ echo "== критерий только читает ==" ; python3 tools/validate
 echo "== один сериализатор на вид ==" ; python3 tools/validate_one_serializer.py --selftest && python3 tools/validate_one_serializer.py
 # Справочник единиц (решение ранга ADR): unit-строки ∈ справочнику
 echo "== формат обмена вне ядра ==" ; python3 tools/validate_no_reqif_in_core.py
+echo "== поверхность у выхода сцены ==" ; python3 tools/validate_scene_surfaces.py
 echo "== единицы =="          ; python3 tools/validate_units.py && python3 tools/validate_units.py --selftest
 
 # StrictDoc-канал (ADR-049, ADR-064): детерминизм и круговой обмен. Собственный

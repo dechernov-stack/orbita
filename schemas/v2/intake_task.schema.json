@@ -103,14 +103,10 @@
             ]
           },
           "blocks": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "share": {
             "type": [

@@ -38,6 +38,18 @@ describe('поверхность сцены 9', () => {
     expect(апи).toContain("`/scenarios?project=")
   })
 
+  it('перечисления приходят с сервера вложенными путями истины (20.09)', () => {
+    // field_rules.nested_enums: «копия перечисления на экране — сторож».
+    expect(экран).toContain("api.kind('state_machine')")
+    expect(экран).toContain("значения('states.kind')")
+    expect(экран).toContain("значения('transitions.trigger')")
+    // Ни одного значения перечня в коде экрана быть не должно.
+    const код = экран.split('\n').filter((с) => !с.trim().startsWith('//') && !с.trim().startsWith('*')).join('\n')
+    expect(код).not.toContain("'mode'")
+    expect(код).not.toContain("'timer'")
+    expect(код).not.toContain("'exchange'")
+  })
+
   it('поля величины не заворачиваются в один label (сторож 19.09)', () => {
     // Те же грабли, что с единицей измерения: три контрола под одной подписью.
     const без = экран.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')

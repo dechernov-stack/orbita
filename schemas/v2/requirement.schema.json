@@ -148,7 +148,45 @@
       "description": "ссылка на вид: method_catalog TBD допустим до SRR"
     },
     "source": {
-      "description": "[{kind*:enum[goal,need,constraint,requirement,material],ref*,anchor?}] ≥1"
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "enum": [
+              "goal",
+              "need",
+              "constraint",
+              "requirement",
+              "material"
+            ]
+          },
+          "ref": {
+            "type": [
+              "string",
+              "number",
+              "boolean",
+              "object",
+              "array",
+              "null"
+            ]
+          },
+          "anchor": {
+            "type": [
+              "string",
+              "number",
+              "boolean",
+              "object",
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "kind",
+          "ref"
+        ]
+      }
     },
     "acceptance_criteria": {
       "type": "string",

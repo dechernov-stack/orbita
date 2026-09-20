@@ -104,54 +104,75 @@
             ]
           },
           "kind": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
+            "enum": [
+              "system",
+              "segment",
+              "element",
+              "subsystem",
+              "assembly",
+              "unit"
             ]
           },
           "params": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "object",
+                    "array",
+                    "null"
+                  ]
+                },
+                "name": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "object",
+                    "array",
+                    "null"
+                  ]
+                },
+                "unit*→unit": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "object",
+                    "array",
+                    "null"
+                  ]
+                },
+                "required_to*→gate": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "object",
+                    "array",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "key",
+                "name"
+              ]
+            }
           },
           "default_take": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
+            "type": "boolean"
           },
           "external": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
+            "type": "boolean"
           },
           "default_quantity": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
+            "type": "integer"
           }
         },
         "required": [

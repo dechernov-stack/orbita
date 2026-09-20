@@ -65,7 +65,36 @@
       "description": "произвольная структура (json)"
     },
     "outputs": {
-      "description": "[{key*,measure*}] ≥1"
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": [
+              "string",
+              "number",
+              "boolean",
+              "object",
+              "array",
+              "null"
+            ]
+          },
+          "measure": {
+            "type": [
+              "string",
+              "number",
+              "boolean",
+              "object",
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "key",
+          "measure"
+        ]
+      }
     },
     "tool": {
       "type": "string"

@@ -94,24 +94,16 @@
             ]
           },
           "inputs": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "outputs": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "gate": {
             "type": [
@@ -124,24 +116,14 @@
             ]
           },
           "tool_status": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
+            "enum": [
+              "calc",
+              "proxy",
+              "build"
             ]
           },
           "interface_bound": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
+            "type": "boolean"
           }
         },
         "required": [

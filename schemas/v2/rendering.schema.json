@@ -92,14 +92,32 @@
             ]
           },
           "element_links": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "span": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "object",
+                    "array",
+                    "null"
+                  ]
+                },
+                "element": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "object",
+                    "array",
+                    "null"
+                  ]
+                }
+              }
+            }
           }
         },
         "required": [

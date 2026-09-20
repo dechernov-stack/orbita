@@ -223,13 +223,9 @@
             ]
           },
           "layer": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
+            "enum": [
+              "SA",
+              "LA"
             ]
           },
           "default_take": {
@@ -343,14 +339,10 @@
             ]
           },
           "steps": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "capability": {
             "type": [

@@ -71,13 +71,10 @@
         "type": "object",
         "properties": {
           "format": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
+            "enum": [
+              "docx",
+              "pdf",
+              "html"
             ]
           },
           "path": {

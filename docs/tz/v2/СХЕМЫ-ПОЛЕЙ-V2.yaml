@@ -1262,7 +1262,7 @@ kinds:
   - name: steps
     type: ref[] function ≥1 (SA) | text (OA)
     required: true
-    note: ''
+    note: участник шага — узел состава, сторона (актор) или внешняя система
   - name: mode
     type: str
     required: false
@@ -3637,6 +3637,9 @@ field_rules:
   label: у каждого поля вида — label (русское имя); клиент показывает только label, код поля на экране запрещён (сторож)
   required_at: 'обязательность по стадии: accept (при приёме предложения) · baseline (к базированию) · SRR/… (к точке); суффиксы: system (ставит система) · default(x) (умолчание) · from_basis (из оснований)
     · auto (автоопределение) · tbd_allowed · proposed (предложение из текста). Форма приёма требует только accept'
+  nested_enums: генератор разворачивает перечисления на любой глубине структуры поля (путь вида.поле.подполе) и отдаёт их схеме JSON, Kotlin и экрану; enum_labels адресует вложенные перечисления тем же
+    путём; копия перечисления на экране — сторож
+  scene_surfaces: у каждого вида, названного выходом сцены в шаблоне фазы, есть поверхность на этой сцене; сцена с выходом без поверхности — отказ CI
   widgets: measure → оператор · значение · единица; ref → пикер; ref[] → мультипикер; enum → селект русскими значениями; text → поле на всю ширину с автовысотой; объект без виджета на экране — сторож
   enum_labels: русские значения перечислений — только из enum_labels; значение без метки на экране — сторож
 enum_labels:
@@ -3680,6 +3683,13 @@ enum_labels:
     demonstration: демонстрация
     simulation: моделирование
     TBD: TBD
+  state_machine.states.kind:
+    mode: режим
+    state: состояние
+  state_machine.transitions.trigger:
+    exchange: обмен
+    event: событие
+    timer: таймер
   stakeholder.role:
     customer: заказчик
     regulator: регулятор

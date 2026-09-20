@@ -102,14 +102,7 @@
             ]
           },
           "filled": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
+            "type": "boolean"
           }
         },
         "required": [

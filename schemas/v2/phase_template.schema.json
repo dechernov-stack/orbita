@@ -181,34 +181,24 @@
             ]
           },
           "track": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
+            "enum": [
+              "design",
+              "modeling",
+              "management"
             ]
           },
           "instantiate_per": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
+            "enum": [
+              "project",
+              "segment",
+              "element"
             ]
           },
           "operations": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "role": {
             "type": [
@@ -221,24 +211,46 @@
             ]
           },
           "inputs": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "object",
+                    "array",
+                    "null"
+                  ]
+                },
+                "condition": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "object",
+                    "array",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "kind",
+                "condition"
+              ]
+            }
           },
           "output": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
+            "type": "object",
+            "propertyNames": {
+              "enum": [
+                "kind",
+                "document_template*,maturity*"
+              ]
+            },
+            "description": "один из ключей: kind · document_template*,maturity*"
           },
           "visibility": {
             "type": [
@@ -251,24 +263,104 @@
             ]
           },
           "links": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "to": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "object",
+                    "array",
+                    "null"
+                  ]
+                },
+                "type": {
+                  "enum": [
+                    "FS",
+                    "SS",
+                    "FF",
+                    "INPUT"
+                  ]
+                },
+                "rationale": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "object",
+                    "array",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "to",
+                "type",
+                "rationale"
+              ]
+            }
           },
           "steps": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "object",
+                    "array",
+                    "null"
+                  ]
+                },
+                "title": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "object",
+                    "array",
+                    "null"
+                  ]
+                },
+                "hint": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "object",
+                    "array",
+                    "null"
+                  ]
+                },
+                "target": {
+                  "type": "object",
+                  "description": "{route*,preset?}"
+                },
+                "condition": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "object",
+                    "array",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "key",
+                "title",
+                "hint",
+                "target",
+                "condition"
+              ]
+            }
           }
         },
         "required": [
@@ -313,14 +405,36 @@
             ]
           },
           "aliases": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "standard": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "object",
+                    "array",
+                    "null"
+                  ]
+                },
+                "name": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "object",
+                    "array",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "standard",
+                "name"
+              ]
+            }
           },
           "order": {
             "type": [
@@ -343,14 +457,8 @@
             ]
           },
           "expertise": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
+            "type": "object",
+            "description": "{purpose*,inputs*,control_questions*:str[],outputs*}"
           }
         },
         "required": [
