@@ -57,6 +57,48 @@ type StandUser = {
   author?: string; acting_role?: string | null; can_act_as?: boolean; acting_roles?: Record<string, string>
 }
 
+/**
+ * Сборка сменилась под открытой вкладкой — сказать, а не зависнуть.
+ *
+ * Проход владельца 20.09: «завис сервер — не отвечает». Сервер был жив (все
+ * контейнеры здоровы, ответы за доли секунды): под открытой вкладкой сменили
+ * образ `web`, и страница осталась со СТАРОЙ сборкой — её чанки на новом
+ * контейнере уже не лежат, и приложение замирает молча. Теперь замечаем это
+ * сами: раз в минуту читаем точку входа и сравниваем имя главного скрипта
+ * (оно меняется с каждой сборкой). Изменилось — полоса «вышло обновление» с
+ * кнопкой; ничего не перезагружаем без человека, он может быть в середине
+ * ввода.
+ */
+function useОбновление(): boolean {
+  const [вышло, setВышло] = useState(false)
+  useEffect(() => {
+    const мой = [...document.querySelectorAll('script[src]')]
+      .map((с) => (с as HTMLScriptElement).src)
+      .find((с) => с.includes('/assets/'))
+    if (!мой) return undefined
+    const проверить = () => {
+      fetch(window.location.pathname, { cache: 'no-store' })
+        .then((о) => (о.ok ? о.text() : null))
+        .then((html) => {
+          if (!html) return
+          const свежий = html.match(/src="([^"]*\/assets\/[^"]+\.js)"/)?.[1]
+          if (свежий && !мой.endsWith(свежий.replace(/^\.?\//, ''))) setВышло(true)
+        })
+        .catch(() => undefined)
+    }
+    const часы = window.setInterval(проверить, 60000)
+    // Чанк, которого уже нет на сервере, роняет загрузку страницы молча:
+    // это тот же признак смены сборки.
+    const наОшибку = (е: Event) => {
+      const цель = е.target as HTMLElement | null
+      if (цель && 'src' in цель && String((цель as HTMLScriptElement).src).includes('/assets/')) setВышло(true)
+    }
+    window.addEventListener('error', наОшибку, true)
+    return () => { window.clearInterval(часы); window.removeEventListener('error', наОшибку, true) }
+  }, [])
+  return вышло
+}
+
 export function Shell() {
   const [section, setSection] = useState('work')
   const [expert, setExpert] = useState(false)
@@ -78,6 +120,8 @@ export function Shell() {
   const [tasks, setTasks] = useState<number>(0)
   /** Сцена, открытая на экране: шапка обязана совпадать с ним. */
   const [openScene, setOpenScene] = useState<string | null>(null)
+  /** Сборка сменилась под открытой вкладкой: сказать словами, а не зависнуть. */
+  const обновление = useОбновление()
   const [me, setMe] = useState<string | null>(null)
   /** Моя учётка целиком: роль в проекте задаёт плотность экрана (§2). */
   const [я, setЯ] = useState<StandUser | null>(null)
@@ -160,6 +204,16 @@ export function Shell() {
 
   return (
     <div className="v2-shell">
+      {обновление && (
+        <div className="v2-locked" role="status">
+          Вышло обновление интерфейса — страница держит прежнюю сборку и может перестать отвечать.
+          {' '}
+          <button type="button" className="v2-chip" onClick={() => window.location.reload()}
+            title="перезагрузить страницу: несохранённый ввод в формах пропадёт">
+            обновить страницу
+          </button>
+        </div>
+      )}
       <header className="v2-top">
         <div className="v2-ctx">
           {portfolio.length > 0 ? (
