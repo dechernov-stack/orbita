@@ -13,6 +13,7 @@
 import { describe, expect, it } from 'vitest'
 import требования from './requirements.tsx?raw'
 import поле from './knowledgefield.tsx?raw'
+import режимы from './modes.tsx?raw'
 
 /** Код без комментариев: слово «label» в объяснении — не разметка. */
 function безКомментариев(код: string): string {
@@ -28,15 +29,15 @@ function величинаВЛейбле(код: string): string[] {
     const до = чистый.indexOf('</label>', от)
     if (до < 0) break
     const фрагмент = чистый.slice(от, до)
-    if (фрагмент.includes('v2-measure')) плохие.push(фрагмент.replace(/\s+/g, ' ').slice(0, 120))
+    if (/v2-measure|v2-row3|v2-row2/.test(фрагмент)) плохие.push(фрагмент.replace(/\s+/g, ' ').slice(0, 120))
     от = чистый.indexOf('<label', до)
   }
   return плохие
 }
 
 describe('поле из нескольких контролов — не один label', () => {
-  it.each([['requirements', требования], ['knowledgefield', поле]] as [string, string][])(
-    '%s: сетка величины не стоит внутри label',
+  it.each([['requirements', требования], ['knowledgefield', поле], ['modes', режимы]] as [string, string][])(
+    '%s: ряд из нескольких контролов не стоит внутри label',
     (_имя, код) => { expect(величинаВЛейбле(код)).toEqual([]) },
   )
 

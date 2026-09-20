@@ -119,7 +119,7 @@ function Режимы({ project, onChanged }: { project: string; onChanged: () =
         {состояния.map((с, i) => (
           <span key={i} className="v2-field">
             <span className="v2-field__cap">Режим {i + 1}</span>
-            <span className="v2-measure">
+            <span className="v2-row3">
               <input name={`режим${i}.code`} autoComplete="off" value={с.code} placeholder="код (SAFE)"
                 aria-label={`код режима ${i + 1}`}
                 onChange={(e) => setСостояния(состояния.map((э, j) => j === i ? { ...э, code: e.target.value } : э))} />
@@ -159,7 +159,7 @@ function Режимы({ project, onChanged }: { project: string; onChanged: () =
         {переходы.map((п, i) => (
           <span key={i} className="v2-field">
             <span className="v2-field__cap">Переход {i + 1}</span>
-            <span className="v2-measure">
+            <span className="v2-row3">
               <select name={`переход${i}.from`} value={п.from} aria-label={`переход ${i + 1}: откуда`}
                 onChange={(e) => setПереходы(переходы.map((э, j) => j === i ? { ...э, from: e.target.value } : э))}>
                 {годные.map((с) => <option key={с.code} value={с.code}>{с.code}</option>)}
@@ -258,7 +258,7 @@ function Сценарии({ project, onChanged }: { project: string; onChanged: 
         {шаги.map((ш, i) => (
           <span key={i} className="v2-field">
             <span className="v2-field__cap">Шаг {i + 1}</span>
-            <span className="v2-measure">
+            <span className="v2-row2">
               <select name={`шаг${i}.actor`} value={ш.actor} aria-label={`участник шага ${i + 1}`}
                 onChange={(e) => setШаги(шаги.map((э, j) => j === i ? { ...э, actor: e.target.value } : э))}>
                 <option value="">— участник —</option>

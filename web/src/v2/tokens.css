@@ -278,6 +278,15 @@ button:disabled { opacity: .55; cursor: default; }
 /* Величина — тройкой: оператор · значение · единица (field_rules.widgets). */
 .v2-measure { display: grid; grid-template-columns: 58px minmax(0, 1fr) minmax(0, 1.3fr); gap: 6px; }
 .v2-measure > * { min-width: 0; width: 100%; text-overflow: ellipsis; }
+
+/*
+  Поля сцены 9 в ряд: у режима — код, имя и род; у перехода — откуда, куда и
+  чем вызван; у шага сценария — участник и что происходит. Сетку величины
+  (58 px под оператор) занимать нельзя: код режима выходил шириной 58 px.
+*/
+.v2-row3 { display: grid; grid-template-columns: minmax(90px, .6fr) minmax(0, 1.6fr) minmax(0, 1fr); gap: 6px; }
+.v2-row2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); gap: 6px; }
+.v2-row3 > *, .v2-row2 > * { min-width: 0; width: 100%; text-overflow: ellipsis; }
 .v2-measure select, .v2-measure input { min-width: 0; }
 .v2-row--open { background: var(--accent-soft); }
 .v2-card-row td { background: var(--ground); }
