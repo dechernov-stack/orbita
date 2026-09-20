@@ -312,6 +312,9 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
             importStatement = orbita.ai.api.AiFactory.importStatement(store, знания, служба, mapper),
             // Раздача нужд по целям и сервисам (решение владельца 17.09).
             distribute = orbita.ai.api.AiFactory.distributeNeeds(store, links, служба, mapper),
+            // Раздача ТРЕБОВАНИЙ по целям (просьба владельца 20.09): условие
+            // сцены 8 «каждая цель покрыта требованием» закрывается картой.
+            distributeGoals = orbita.ai.api.AiFactory.distributeGoals(store, служба, mapper),
             // Ворота сверки (знания v2): без реестра маршрут не знает флага проекта
             // и пускал бы несверенный ввод — на стенде ворота были бы выключены.
             store = store,

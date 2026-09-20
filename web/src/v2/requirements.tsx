@@ -11,8 +11,8 @@ import {
 import '@xyflow/react/dist/style.css'
 import dagre from '@dagrejs/dagre'
 import {
-  api, type BaselineRow, type Blocker, type FormationProposal, type ImpactGraph, type KindSpec,
-  type LintNote, type RequirementRow, type SuspectRow, type UnitRow,
+  api, type BaselineRow, type Blocker, type DistributionRun, type FormationProposal, type ImpactGraph,
+  type KindSpec, type LintNote, type RequirementRow, type SuspectRow, type UnitRow,
 } from './api'
 
 /**
@@ -97,6 +97,146 @@ function useВидТребования(): {
 }
 
 /**
+ * Раздача требований по целям — один вызов модели (просьба владельца 20.09).
+ *
+ * Тот же порядок, что у раздачи нужд: предложения с причиной, отметки, приём,
+ * «Отменить раздачу». Записывается ИСТОЧНИК требования — условие сцены 8
+ * смотрит на него, а не на связь. Ничего не заводится само.
+ */
+function РаздачаЦелей({ project, onChanged }: { project: string; onChanged: () => void }) {
+  const [раздача, setРаздача] = useState<DistributionRun | null>(null)
+  const [идёт, setИдёт] = useState(false)
+  const [секунды, setСекунды] = useState(0)
+  const [отмечены, setОтмечены] = useState<string[]>([])
+  const [отказ, setОтказ] = useState<string | null>(null)
+  const [итог, setИтог] = useState<string | null>(null)
+  const [открыта, setОткрыта] = useState(false)
+
+  const перечитать = useCallback(() => {
+    api.goalCoverage(project)
+      .then((р) => {
+        if ('links' in р) {
+          setРаздача(р)
+          setОтмечены(р.links.filter((с) => !с.accepted && !с.exists).map((с) => с.id))
+          setОткрыта(р.links.length > 0)
+        } else { setРаздача(null) }
+      })
+      .catch(() => undefined)
+  }, [project])
+  useEffect(перечитать, [перечитать])
+
+  const раздать = () => {
+    setИдёт(true); setОтказ(null); setИтог(null); setСекунды(1)
+    const часы = window.setInterval(() => setСекунды((с) => с + 1), 1000)
+    const кончить = () => { window.clearInterval(часы); setСекунды(0); setИдёт(false) }
+    api.distributeGoals(project)
+      .then((р) => {
+        кончить(); setРаздача(р); setОткрыта(true)
+        setОтмечены(р.links.filter((с) => !с.accepted && !с.exists).map((с) => с.id))
+        setИтог(р.note)
+      })
+      .catch((e) => { кончить(); setОтказ(String(e.message ?? e)) })
+  }
+
+  const кПриёму = раздача ? раздача.links.filter((с) => !с.accepted && !с.exists) : []
+  const принятые = раздача ? раздача.links.filter((с) => с.accepted) : []
+  const выбрано = отмечены.filter((id) => кПриёму.some((с) => с.id === id))
+
+  const принять = () => {
+    if (!раздача || выбрано.length === 0) return
+    api.acceptGoalCoverage(project, раздача.run, выбрано, 'инженер', 'раздача целей принята инженером')
+      .then((и) => { setИтог(и.note); перечитать(); onChanged() })
+      .catch((e) => setОтказ(String(e.message ?? e)))
+  }
+
+  const отменить = () => {
+    if (!раздача) return
+    api.undoGoalCoverage(project, раздача.run, 'инженер')
+      .then((о) => { setИтог(о.note); перечитать(); onChanged() })
+      .catch((e) => setОтказ(String(e.message ?? e)))
+  }
+
+  return (
+    <>
+      <button type="button" className="v2-chip" disabled={идёт}
+        title={идёт
+          ? 'раздача идёт: тот же перечень даст тот же ответ'
+          : 'один вызов модели по всем целям и требованиям проекта; связи заводит только приём'}
+        onClick={раздать}>
+        {идёт ? `Предлагаю… ${секунды} с` : 'Предложить моделью'}
+      </button>
+      {раздача && раздача.links.length > 0 && (
+        <button type="button" className="v2-chip" aria-pressed={открыта}
+          onClick={() => setОткрыта(!открыта)}
+          title="показать предложения раздачи">
+          предложений {раздача.links.length}
+        </button>
+      )}
+      {открыта && раздача && (
+        <div className="v2-card" data-why="работа">
+          <div className="v2-note-line">
+            <span className="v2-mono">{раздача.run}</span> {раздача.note}
+          </div>
+          {отказ && <div className="v2-locked">{отказ}</div>}
+          {итог && <div className="v2-empty__why">{итог}</div>}
+          {раздача.unassigned.length > 0 && (
+            <div className="v2-empty__why">
+              без требования осталось: {раздача.unassigned.join(', ')} — модели не к чему было отнести;
+              свяжите вручную строкой выше
+            </div>
+          )}
+          {раздача.refused.length > 0 && (
+            <ul className="v2-dim">{раздача.refused.map((р) => <li key={р}>{р}</li>)}</ul>
+          )}
+          <table className="v2-tab2">
+            <thead>
+              <tr><th /><th>Требование</th><th>Цель</th><th>Почему</th></tr>
+            </thead>
+            <tbody>
+              {раздача.links.map((с) => (
+                <tr key={с.id} className={с.accepted || с.exists ? 'v2-dim' : undefined}>
+                  <td>
+                    {с.accepted || с.exists ? (
+                      <span title={с.accepted ? 'принято этой раздачей' : 'цель уже стоит источником'}>
+                        {с.accepted ? 'принято' : 'уже есть'}
+                      </span>
+                    ) : (
+                      <input type="checkbox" checked={отмечены.includes(с.id)}
+                        aria-label={`отметить связь ${с.id}`}
+                        onChange={(e) => setОтмечены(e.target.checked
+                          ? [...отмечены, с.id]
+                          : отмечены.filter((к) => к !== с.id))} />
+                    )}
+                  </td>
+                  <td><span className="v2-mono">{с.need}</span><div>{с.need_text}</div></td>
+                  <td><span className="v2-mono">{с.target}</span><div>{с.target_text}</div></td>
+                  <td>{с.reason}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="v2-form__actions">
+            <button type="button" className="v2-primary" disabled={выбрано.length === 0}
+              title={выбрано.length === 0
+                ? 'отметьте связи — раздача сама ничего не заводит'
+                : `записать цель источником у ${выбрано.length} требований`}
+              onClick={принять}>
+              Принять связи ({выбрано.length})
+            </button>
+            {принятые.length > 0 && (
+              <button type="button" className="v2-link" onClick={отменить}
+                title="снять источники, дописанные этой раздачей; прежние основания целы">
+                Отменить раздачу
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
+/**
  * Цели без требования — рабочее место под условие сцены 8.
  *
  * Условие шаблона фазы — «каждая цель покрыта требованием»; оно смотрит на
@@ -163,6 +303,8 @@ function ЦелиБезТребования({ project, onChanged }: { project: s
       <div className="v2-card__head">
         <span className="v2-card__title">Цели без требования</span>
         <span className="v2-card__count">{без.length}</span>
+        <span className="v2-head__spacer" />
+        <РаздачаЦелей project={project} onChanged={() => { перечитать(); onChanged() }} />
       </div>
       {отказ && <div className="v2-locked">{отказ}</div>}
       {итог && <div className="v2-empty__why">{итог}</div>}

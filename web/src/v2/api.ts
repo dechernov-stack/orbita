@@ -1801,6 +1801,30 @@ export const api = {
       `/intake/distribute/${encodeURIComponent(run)}/undo?project=${encodeURIComponent(project)}`,
       { method: 'POST', body: JSON.stringify({ author }) }),
 
+  /**
+   * Раздача ТРЕБОВАНИЙ по целям (20.09): карта «требование → цели» с причиной.
+   *
+   * Тот же порядок, что у раздачи нужд, и те же типы ответа: слева то, что
+   * раздают (здесь — требование), справа цель. Записывается источник
+   * требования — условие сцены 8 смотрит на него.
+   */
+  distributeGoals: (project: string, author = 'инженер') =>
+    вызов<DistributionRun>(`/requirements/coverage?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ author }) }),
+
+  goalCoverage: (project: string) =>
+    вызов<DistributionRun | NoDistribution>(`/requirements/coverage?project=${encodeURIComponent(project)}`),
+
+  acceptGoalCoverage: (project: string, run: string, chosen: string[], author = 'инженер', reason?: string) =>
+    вызов<DistributionAccepted>(
+      `/requirements/coverage/${encodeURIComponent(run)}/accept?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ chosen, author, reason }) }),
+
+  undoGoalCoverage: (project: string, run: string, author = 'инженер') =>
+    вызов<{ run: string; unlinked: number; note: string }>(
+      `/requirements/coverage/${encodeURIComponent(run)}/undo?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ author }) }),
+
   /** Истина онтологии наружу: по ней экран объясняет, откуда взялось понятие. */
   formationOntology: (project: string) =>
     вызов<FormationOntology>(`/ontology/formation?project=${encodeURIComponent(project)}`),

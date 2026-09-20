@@ -33,6 +33,11 @@ class KnowledgeRoutes(
     /** Раздача нужд по целям и сервисам (решение владельца 17.09); null — не включена. */
     private val distribute: orbita.ai.api.DistributeNeeds? = null,
     /**
+     * Раздача ТРЕБОВАНИЙ по целям (20.09): тот же порядок, что у нужд, но
+     * записывается источник требования — на него смотрит условие сцены 8.
+     */
+    private val distributeGoals: orbita.ai.api.DistributeNeeds? = null,
+    /**
      * Хранилище — ровно за флагом проекта (`knowledge_v2`): ворота сверки
      * ставятся только там, где поле знаний v2 включено. `null` — прежняя
      * сборка: ворот нет вовсе, и ручной факт сохраняется как до перестройки.
@@ -75,6 +80,16 @@ class KnowledgeRoutes(
             принятьРаздачу(требуется(query, "project"), ПРИЁМ_РАЗДАЧИ.matchEntire(path)!!.groupValues[1], разобрать(body))
         method == "POST" && ОТМЕНА_РАЗДАЧИ.matches(path) ->
             отменитьРаздачу(требуется(query, "project"), ОТМЕНА_РАЗДАЧИ.matchEntire(path)!!.groupValues[1], разобрать(body))
+
+        // Раздача требований по целям (просьба владельца 20.09): «целей без
+        // требования: 8» закрывается картой «требование → цели» с причиной.
+        method == "POST" && path == "/v2/requirements/coverage" ->
+            раздатьЦели(требуется(query, "project"), разобрать(body))
+        method == "GET" && path == "/v2/requirements/coverage" -> последняяРаздачаЦелей(требуется(query, "project"))
+        method == "POST" && ПРИЁМ_ЦЕЛЕЙ.matches(path) ->
+            принятьРаздачуЦелей(требуется(query, "project"), ПРИЁМ_ЦЕЛЕЙ.matchEntire(path)!!.groupValues[1], разобрать(body))
+        method == "POST" && ОТМЕНА_ЦЕЛЕЙ.matches(path) ->
+            отменитьРаздачуЦелей(требуется(query, "project"), ОТМЕНА_ЦЕЛЕЙ.matchEntire(path)!!.groupValues[1], разобрать(body))
 
         method == "GET" && path == "/v2/topics" -> темы(требуется(query, "project"))
 
@@ -308,16 +323,63 @@ class KnowledgeRoutes(
         val итог = раздача().accept(
             project, run, выбранные, тело.path("author").asText("инженер"), тело.path("reason").asText(""),
         )
+        return V2Router.Ответ(201, видПриёмаРаздачи(итог))
+    }
+
+    /** Один сериализатор приёма на оба контура раздачи (правило 2 владельца). */
+    private fun видПриёмаРаздачи(итог: orbita.ai.api.DistributionAccepted): JsonNode {
         val узел = mapper.createObjectNode().put("run", итог.run).put("linked", итог.linked)
             .put("classes", итог.classes).put("note", итог.note)
         узел.putArray("skipped").also { м -> итог.skipped.forEach { м.add(it) } }
-        return V2Router.Ответ(201, узел)
+        return узел
     }
 
-    private fun отменитьРаздачу(project: String, run: String, тело: JsonNode): V2Router.Ответ {
-        val итог = раздача().undo(project, run, тело.path("author").asText("инженер"))
-        return V2Router.Ответ(200, mapper.createObjectNode().put("run", итог.run).put("unlinked", итог.unlinked).put("note", итог.note))
+    /** Один сериализатор отмены — на оба контура раздачи. */
+    private fun видОтменыРаздачи(итог: orbita.ai.api.DistributionUndone): JsonNode =
+        mapper.createObjectNode().put("run", итог.run).put("unlinked", итог.unlinked).put("note", итог.note)
+
+    private fun отменитьРаздачу(project: String, run: String, тело: JsonNode): V2Router.Ответ =
+        V2Router.Ответ(200, видОтменыРаздачи(раздача().undo(project, run, тело.path("author").asText("инженер"))))
+
+    // --- раздача требований по целям ---------------------------------------
+
+    private fun раздачаЦелей(): orbita.ai.api.DistributeNeeds =
+        distributeGoals ?: throw IllegalStateException("раздача требований по целям на этом стенде не включена")
+
+    private fun раздатьЦели(project: String, тело: JsonNode): V2Router.Ответ {
+        val автор = тело.path("author").asText("инженер")
+        return try {
+            V2Router.Ответ(201, видРаздачи(раздачаЦелей().distribute(project, автор)))
+        } catch (e: ProviderUnavailable) {
+            V2Router.Ответ(
+                503,
+                mapper.createObjectNode()
+                    .put("error", "канал службы недоступен: ${e.message}")
+                    .put("what_to_do", "повторите раздачу позже — цели и требования на месте"),
+            )
+        }
     }
+
+    private fun последняяРаздачаЦелей(project: String): V2Router.Ответ {
+        val последняя = раздачаЦелей().latest(project)
+            ?: return V2Router.Ответ(
+                200,
+                mapper.createObjectNode().put("run", "")
+                    .put("note", "раздачи целей на проекте ещё не было — нажмите «Предложить моделью»"),
+            )
+        return V2Router.Ответ(200, видРаздачи(последняя))
+    }
+
+    private fun принятьРаздачуЦелей(project: String, run: String, тело: JsonNode): V2Router.Ответ {
+        val выбранные = тело.path("chosen").map { it.asText() }
+        val итог = раздачаЦелей().accept(
+            project, run, выбранные, тело.path("author").asText("инженер"), тело.path("reason").asText(""),
+        )
+        return V2Router.Ответ(201, видПриёмаРаздачи(итог))
+    }
+
+    private fun отменитьРаздачуЦелей(project: String, run: String, тело: JsonNode): V2Router.Ответ =
+        V2Router.Ответ(200, видОтменыРаздачи(раздачаЦелей().undo(project, run, тело.path("author").asText("инженер"))))
 
     private fun видРаздачи(р: orbita.ai.api.DistributionRun): ObjectNode {
         val узел = mapper.createObjectNode().put("run", р.id).put("status", р.status)
@@ -496,6 +558,8 @@ class KnowledgeRoutes(
         val РАЗДАЧА: Regex = Regex("/v2/intake/distribute/(SR-[0-9]+)")
         val ПРИЁМ_РАЗДАЧИ: Regex = Regex("/v2/intake/distribute/(SR-[0-9]+)/accept")
         val ОТМЕНА_РАЗДАЧИ: Regex = Regex("/v2/intake/distribute/(SR-[0-9]+)/undo")
+        val ПРИЁМ_ЦЕЛЕЙ: Regex = Regex("/v2/requirements/coverage/(SR-[0-9]+)/accept")
+        val ОТМЕНА_ЦЕЛЕЙ: Regex = Regex("/v2/requirements/coverage/(SR-[0-9]+)/undo")
 
 
         /**

@@ -6,6 +6,7 @@ import orbita.ai.internal.Atomizer
 import orbita.ai.internal.BackgroundAtomizer
 import orbita.ai.internal.BackgroundSynthesizer
 import orbita.ai.internal.DocumentReader
+import orbita.ai.internal.GoalCoverageDistributor
 import orbita.ai.internal.NeedDistributor
 import orbita.ai.internal.StatementImporter
 import orbita.ai.internal.HttpTransport
@@ -117,6 +118,29 @@ object AiFactory {
         mapper: ObjectMapper = ObjectMapper(),
     ): DistributeNeeds {
         val раздача = NeedDistributor(store, links, service, mapper)
+        return object : DistributeNeeds {
+            override fun distribute(project: String, author: String) = раздача.distribute(project, author)
+            override fun latest(project: String) = раздача.latest(project)
+            override fun view(project: String, run: String) = раздача.view(project, run)
+            override fun accept(project: String, run: String, chosen: List<String>, author: String, reason: String) =
+                раздача.accept(project, run, chosen, author, reason)
+            override fun undo(project: String, run: String, author: String) = раздача.undo(project, run, author)
+        }
+    }
+
+    /**
+     * Раздача требований по целям — один вызов, приём обратимый (20.09).
+     *
+     * Порядок тот же, что у раздачи нужд: предложения, отметки, «Принять»,
+     * «Отменить». Разница в том, ЧТО записывается: не связь, а источник
+     * требования — условие сцены 8 смотрит на него.
+     */
+    fun distributeGoals(
+        store: EntityStore,
+        service: AiService,
+        mapper: ObjectMapper = ObjectMapper(),
+    ): DistributeNeeds {
+        val раздача = GoalCoverageDistributor(store, service, mapper)
         return object : DistributeNeeds {
             override fun distribute(project: String, author: String) = раздача.distribute(project, author)
             override fun latest(project: String) = раздача.latest(project)
