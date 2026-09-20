@@ -366,7 +366,7 @@ class SynthesisRoutes(
                     // `enum_labels`): «enum → селект русскими значениями».
                     // Своих переводов у экрана нет и быть не может.
                     val значенияПолей = спец.putObject("enum_labels")
-                    (вид.fields + "status").forEach { поле ->
+                    (вид.fields + вид.enums.keys + "status").distinct().forEach { поле ->
                         val метки = orbita.kernel.schema.Enums.значения(вид.code, поле)
                         if (метки.isEmpty()) return@forEach
                         val узел = значенияПолей.putObject(поле)

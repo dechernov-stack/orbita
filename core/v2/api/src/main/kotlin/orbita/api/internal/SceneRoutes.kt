@@ -541,7 +541,9 @@ class SceneRoutes(
         val значения = узел.putObject("enum_labels")
         // Статус записи среди перечислений истины назван наравне с полями —
         // реестр показывает «черновик», а не Draft.
-        (вид.fields + "status").forEach { поле ->
+        // Пути ВЛОЖЕННЫХ перечислений («states.kind») идут наравне с полями:
+        // истина 20.09 адресует их тем же путём, и метки у них свои.
+        (вид.fields + вид.enums.keys + "status").distinct().forEach { поле ->
             val метки = orbita.kernel.schema.Enums.значения(вид.code, поле)
             if (метки.isEmpty()) return@forEach
             val узелПоля = значения.putObject(поле)

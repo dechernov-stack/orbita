@@ -209,6 +209,19 @@ class EditInPlaceTest {
         assertEquals("черновик", вид.path("enum_labels").path("status").path("Draft").asText(), "статус тоже назван по-русски")
         assertTrue(вид.path("measures").any { it.asText() == "measure" }, "показатель — величина, а не строка: $вид")
         assertEquals("всегда", вид.path("enum_labels").path("ears_pattern").path("ubiquitous").asText(), вид.toString())
+
+        // Вложенные перечисления (истина 20.09) идут тем же путём и со своими
+        // метками: у экрана копии этих значений быть не может.
+        val машина = router().handle("GET", "/v2/kinds/state_machine", emptyMap(), null)!!.body
+        assertEquals(
+            listOf("mode", "state"), машина.path("enums").path("states.kind").map { it.asText() },
+            машина.toString(),
+        )
+        assertEquals("режим", машина.path("enum_labels").path("states.kind").path("mode").asText(), машина.toString())
+        assertEquals(
+            "таймер", машина.path("enum_labels").path("transitions.trigger").path("timer").asText(),
+            машина.toString(),
+        )
         // Примечание поля и операторы величины — тоже истина, а не догадка экрана.
         assertEquals(
             "обязателен для performance", вид.path("notes").path("measure").asText(),
