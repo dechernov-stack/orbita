@@ -126,4 +126,70 @@ class ArchFeedTest {
         }
         assertTrue("reserve_policy" in е3.message!!, е3.message)
     }
+
+    @Test
+    fun `машина режимов пишется причиной перехода из истины, а не полем on`() {
+        // Проход владельца 20.09: сцена 9 стояла — «машины режимов нет». Поля
+        // машины — истина схем `state_machine`: состояния {code, name, kind},
+        // начальное состояние и переходы {from, to, trigger{event|exchange|timer}}.
+        val ответ = маршруты.handle(
+            "POST", "/v2/modes", q,
+            """{"owner":"EL-SC","initial":"NOMINAL",
+                "states":[{"code":"NOMINAL","name":"штатный","kind":"mode"},
+                          {"code":"SAFE","name":"безопасный","kind":"mode"}],
+                "transitions":[{"from":"NOMINAL","to":"SAFE","trigger":{"event":"FDIR уровень ≥ 2"}}],
+                "author":"Чернов Д."}""",
+        )
+        assertEquals(201, ответ?.code, ответ?.body.toString())
+
+        val перечень = маршруты.handle("GET", "/v2/modes", q, null)!!
+        val машина = перечень.body.path("items").single()
+        assertEquals("EL-SC", машина.path("owner").asText(), машина.toString())
+        assertEquals("NOMINAL", машина.path("initial").asText(), машина.toString())
+        assertEquals(2, машина.path("states").size(), машина.toString())
+        assertEquals(
+            "FDIR уровень ≥ 2", машина.path("transitions")[0].path("trigger").path("event").asText(),
+            "причина перехода записана именем истины: $машина",
+        )
+
+        // Условие сцены 9 закрывается этой машиной.
+        assertTrue(
+            проверки.of(проект, "modes_defined")!!.passed,
+            "две названные ступени — это машина режимов: ${проверки.of(проект, "modes_defined")?.why}",
+        )
+    }
+
+    @Test
+    fun `переход без причины и одно состояние отбиты словами`() {
+        val безПричины = assertFailsWith<IllegalArgumentException> {
+            маршруты.handle(
+                "POST", "/v2/modes", q,
+                """{"owner":"EL-SC","initial":"NOMINAL",
+                    "states":[{"code":"NOMINAL","name":"штатный","kind":"mode"},
+                              {"code":"SAFE","name":"безопасный","kind":"mode"}],
+                    "transitions":[{"from":"NOMINAL","to":"SAFE","trigger":{}}]}""",
+            )
+        }
+        assertTrue("нет причины" in безПричины.message.orEmpty(), безПричины.message.orEmpty())
+
+        val одно = assertFailsWith<IllegalArgumentException> {
+            маршруты.handle(
+                "POST", "/v2/modes", q,
+                """{"owner":"EL-SC","initial":"NOMINAL",
+                    "states":[{"code":"NOMINAL","name":"штатный","kind":"mode"}],"transitions":[]}""",
+            )
+        }
+        assertTrue("не режим" in одно.message.orEmpty(), одно.message.orEmpty())
+
+        val чужоеНачальное = assertFailsWith<IllegalArgumentException> {
+            маршруты.handle(
+                "POST", "/v2/modes", q,
+                """{"owner":"EL-SC","initial":"ВЫДУМКА",
+                    "states":[{"code":"NOMINAL","name":"штатный","kind":"mode"},
+                              {"code":"SAFE","name":"безопасный","kind":"mode"}],"transitions":[]}""",
+            )
+        }
+        assertTrue("не из перечня режимов" in чужоеНачальное.message.orEmpty(), чужоеНачальное.message.orEmpty())
+    }
+
 }

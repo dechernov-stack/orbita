@@ -10,6 +10,7 @@
 // Ничего из построенного не выброшено: схемы, лента и условия живут там
 // же, меняются умолчания видимости.
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { SceneModes } from './modes'
 import { api, type Phase } from './api'
 import { ActivityScreen } from './activity'
 import { PhaseBand } from './phaseband'
@@ -146,6 +147,11 @@ export function Work({ project, onProject, wantScene, onScenePicked, onScene, р
       {текущая.key === '6' && <SceneServices project={project} onChanged={перечитать} />}
       {текущая.key === '7' && <Concept project={project} />}
       {текущая.key === '8' && <Requirements project={project} />}
+      {/*
+        Сцена 9 без поверхности стояла глухо: условие говорило «назовите режимы
+        аппарата в сцене 9», а называть их было негде (проход владельца 20.09).
+      */}
+      {текущая.key === '9' && <SceneModes project={project} onChanged={перечитать} />}
       {текущая.key === '10' && <Technologies project={project} />}
       {текущая.key === '11' && <Risks project={project} />}
       {текущая.key === '12' && <Costs project={project} />}

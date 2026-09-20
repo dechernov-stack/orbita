@@ -586,6 +586,22 @@ export interface ParameterRow {
   measure: unknown
 }
 
+/** Машина режимов узла: состояния и переходы между ними (истина `state_machine`). */
+export interface ModeMachineRow {
+  code: string
+  owner: string
+  initial: string
+  states: { code: string; name: string; kind?: string }[]
+  transitions: { from: string; to: string; trigger?: Record<string, string> }[]
+}
+
+/** Операционный сценарий: шаги с участниками (истина `functional_chain`). */
+export interface ScenarioRow {
+  code: string
+  name: string
+  steps: { what: string; actor: string; component?: string }[]
+}
+
 export interface EntityRow {
   id: string
   code: string
@@ -1578,6 +1594,27 @@ export const api = {
     вызов<{ shelf: string; created: number; already: number; levels: number; note: string }>(
       `/components/frame?project=${encodeURIComponent(project)}`,
       { method: 'POST', body: JSON.stringify({ author }) }),
+
+  /**
+   * Режимы аппарата (сцена 9, ConOps §4): машина состояний узла.
+   *
+   * Поля — истина схем `state_machine`: состояния `{code, name, kind}`,
+   * начальное состояние и переходы `{from, to, trigger}`.
+   */
+  modes: (project: string) =>
+    вызов<{ items: ModeMachineRow[] }>(`/modes?project=${encodeURIComponent(project)}`),
+
+  saveModes: (project: string, тело: Record<string, unknown>) =>
+    вызов<{ code: string }>(`/modes?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify(тело) }),
+
+  /** Операционные сценарии (сцена 9, ConOps §5): цепочка шагов с участниками. */
+  scenarios: (project: string) =>
+    вызов<{ items: ScenarioRow[] }>(`/scenarios?project=${encodeURIComponent(project)}`),
+
+  addScenario: (project: string, тело: Record<string, unknown>) =>
+    вызов<{ code: string }>(`/scenarios?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify(тело) }),
 
   components: (project: string) =>
     вызов<{ items: ComponentRow[] }>(`/components?project=${encodeURIComponent(project)}`),

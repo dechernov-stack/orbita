@@ -201,17 +201,30 @@ class ArchRoutes(
                 "у режима нужен код и имя: ${с.toString().take(120)}"
             }
         }
-        // Переход называет СОБЫТИЕ: «из дежурного в передачу» без причины
-        // читается как самопроизвольная смена режима.
+        // Переход называет ПРИЧИНУ: «из дежурного в передачу» без неё читается
+        // как самопроизвольная смена режима. Имя поля — из истины схем:
+        // `transitions[{from*,to*,trigger*:{exchange|event|timer},…}]`; прежде
+        // маршрут спрашивал `on`, которого истина не знает.
         тело.path("transitions").forEach { п ->
-            require(п.path("on").asText("").isNotBlank()) {
-                "у перехода ${п.path("from").asText()}→${п.path("to").asText()} нет события: " +
-                    "режим не меняется сам по себе"
+            val причина = п.path("trigger")
+            val названа = причина.isObject && причина.properties().any { (_, з) -> з.asText("").isNotBlank() } ||
+                причина.isTextual && причина.asText().isNotBlank()
+            require(названа) {
+                "у перехода ${п.path("from").asText()}→${п.path("to").asText()} нет причины: " +
+                    "режим не меняется сам по себе — назовите событие, обмен или таймер"
             }
         }
         val документ = тело.deepCopy<ObjectNode>()
         документ.remove(listOf("code", "author", "project"))
         документ.put("owner", владелец.id)
+        // Начальное состояние — из перечня состояний: истина требует `initial`,
+        // и указывать им можно только то, что названо тут же.
+        val коды = состояния.map { it.path("code").asText("") }
+        val начальное = тело.path("initial").asText("")
+        require(начальное.isBlank() || начальное in коды) {
+            "начальное состояние «$начальное» не из перечня режимов: ${коды.joinToString(" · ")}"
+        }
+        if (начальное.isBlank()) документ.put("initial", коды.first())
         val код = тело.path("code").asText("").ifBlank { "SM-${владелец.code}" }
         val прежняя = store.byCode(область, код)
         val запись = if (прежняя == null) {
