@@ -28,10 +28,12 @@ const РОЛЬ: Record<string, string> = {
   da_review: 'DA',
 }
 
-export function Points({ project, phase, onChanged }: {
+export function Points({ project, phase, onChanged, onGoScene }: {
   project: string | null
   phase: Phase | null
   onChanged: () => void
+  /** Переход «к месту»: открыть работу на сцене, где чинится условие. */
+  onGoScene?: (сцена: string) => void
 }) {
   const [вид, setВид] = useState<PointsView | null>(null)
   const [открыта, setОткрыта] = useState<string | null>(null)
@@ -79,18 +81,20 @@ export function Points({ project, phase, onChanged }: {
       </div>
       {точка && phase && (
         <PointCard project={project} точка={точка} все={вид.items} phase={phase}
-          onChanged={() => { перечитать(); onChanged() }} />
+          onChanged={() => { перечитать(); onChanged() }} onGoScene={onGoScene} />
       )}
     </>
   )
 }
 
-function PointCard({ project, точка, все, phase, onChanged }: {
+function PointCard({ project, точка, все, phase, onChanged, onGoScene }: {
   project: string
   точка: Gate
   все: Gate[]
   phase: Phase
   onChanged: () => void
+  /** «К месту»: открыть сцену, где чинится незакрытое условие. */
+  onGoScene?: (сцена: string) => void
 }) {
   const [ответ, setОтвет] = useState<string | null>(null)
   const [форма, setФорма] = useState<{ text: string; scene: string; question?: string; kind: string } | null>(null)
@@ -142,7 +146,9 @@ function PointCard({ project, точка, все, phase, onChanged }: {
 
       <h4 className="v2-h4">Готовность</h4>
       <ul className="v2-checks">
-        {точка.criteria.map((у) => <Условие key={у.check} у={у} />)}
+        {точка.criteria.map((у) => (
+          <Условие key={у.check} у={у} сцена={где(phase, у.check)} onGoScene={onGoScene} />
+        ))}
         {экспертиза?.positions.map((п) => <Позиция key={п.artifact} п={п} />)}
       </ul>
 
@@ -150,7 +156,9 @@ function PointCard({ project, точка, все, phase, onChanged }: {
         <>
           <h4 className="v2-h4">Чек-лист по критериям {чекЛист.title}</h4>
           <ul className="v2-checks">
-            {чекЛист.criteria.map((у) => <Условие key={у.check} у={у} />)}
+            {чекЛист.criteria.map((у) => (
+              <Условие key={у.check} у={у} сцена={где(phase, у.check)} onGoScene={onGoScene} />
+            ))}
             {чекЛист.expertise?.positions.map((п) => <Позиция key={п.artifact} п={п} />)}
           </ul>
         </>
@@ -275,14 +283,43 @@ function PointCard({ project, точка, все, phase, onChanged }: {
   )
 }
 
-function Условие({ у }: { у: Condition }) {
+function Условие({ у, сцена, onGoScene }: {
+  у: Condition
+  сцена?: { key: string; title: string }
+  onGoScene?: (сцена: string) => void
+}) {
   return (
     <li className={у.passed ? 'v2-check' : у.blocking === false ? 'v2-check v2-check--note' : 'v2-check v2-check--no'}>
       <span>{у.passed ? '✓' : '☐'}</span>
       <span className="v2-check__t">{у.title}</span>
       {!у.passed && у.why && <span className="v2-cnt"> — {у.why}</span>}
+      {/*
+        «И где же прячутся риски?» (владелец 20.09): точка называет условие, а
+        работать надо на СЦЕНЕ, где этот вид заводится. Сцена ищется по тому же
+        ключу проверки, что стоит в условии, — не по догадке экрана.
+      */}
+      {!у.passed && сцена && onGoScene && (
+        <button type="button" className="v2-link" onClick={() => onGoScene(сцена.key)}
+          title={`открыть сцену ${сцена.key} «${сцена.title}» — там это и чинится`}>
+          к месту: сцена {сцена.key}
+        </button>
+      )}
     </li>
   )
+}
+
+/**
+ * Где чинится условие точки: сцена, у которой в выходах стоит проверка того же
+ * корня. Корень — первое слово ключа («risks_due_closed» → «risks», и сцена 11
+ * с `risks_min` находится сама). Догадок в коде нет: ключи берутся из фазы.
+ */
+function где(phase: Phase | null, check: string): { key: string; title: string } | undefined {
+  if (!phase) return undefined
+  const корень = check.split(':')[0].split('_')[0]
+  if (корень.length < 3) return undefined
+  const сцена = phase.scenes.find((с) =>
+    с.exit.some((у) => у.check.split(':')[0].split('_')[0] === корень))
+  return сцена ? { key: сцена.key, title: сцена.title } : undefined
 }
 
 function Позиция({ п }: { п: Position }) {

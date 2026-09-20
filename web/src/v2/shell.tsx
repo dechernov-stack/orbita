@@ -344,7 +344,8 @@ export function Shell() {
           ) : section === 'external' ? (
             <ExternalModelScreen project={project} />
           ) : section === 'points' ? (
-            <Points project={project} phase={phase} onChanged={() => setPhaseTick((t) => t + 1)} />
+            <Points project={project} phase={phase} onChanged={() => setPhaseTick((t) => t + 1)}
+              onGoScene={(сцена) => { setWantScene(сцена); setSection('work') }} />
           ) : section === 'tasks' ? (
             <MyTasks project={project} onGoScene={(сцена) => { setWantScene(сцена); setSection('work') }} />
           ) : (
