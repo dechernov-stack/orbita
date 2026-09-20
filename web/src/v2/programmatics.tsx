@@ -195,7 +195,21 @@ export function Risks({ project }: { project: string }) {
     statement: '', category: 'technical', probability: 3, impact: 3,
     strategy: 'mitigate', measures: '', owner: 'Ведущий СИ', due_point: '',
   })
-  const [оценка, setОценка] = useState({ variant: '', lifetime_years: 18, dv_deorbit: '', compliant: true })
+  /**
+   * Поля ОСЗ — те, что спрашивает маршрут (и истина `debris_assessment`):
+   * два срока (штатный увод и пассивный сход при отказе ДУ), модель атмосферы,
+   * баллистический коэффициент и нормативы с ПОЛКИ. Прежняя форма посылала
+   * «lifetime_years · compliant · norm» — таких полей маршрут не знает, и
+   * запись молча не заводилась: владелец 20.09 видел «оценки засорения нет».
+   */
+  const [оценка, setОценка] = useState({
+    variant: '', active_lifetime_years: 18, passive_lifetime_years: 25,
+    deorbit_dv: '', atmosphere_model: 'NRLMSISE-00', ballistic_coefficient: '',
+    normative_active: '', normative_passive: '',
+  })
+  const [варианты, setВарианты] = useState<{ код: string; подпись: string }[]>([])
+  const [нормативы, setНормативы] = useState<{ код: string; подпись: string }[]>([])
+  const [занятоОсз, setЗанятоОсз] = useState(false)
   const вехи = useВехи(project)
   const [всемВеха, setВсемВеха] = useState('')
   const [занятоВсем, setЗанятоВсем] = useState(false)
@@ -203,6 +217,23 @@ export function Risks({ project }: { project: string }) {
   const перечитать = useCallback(() => {
     api.risks(project).then((r) => setРиски(r.items)).catch((e) => setОтказ(String(e.message ?? e)))
     api.oda(project).then((r) => setОсз(r.items)).catch(() => undefined)
+    // Вариант — из принятой базовой концепции (сцена 7): ОСЗ считается ОТ НЕЁ.
+    api.concept(project)
+      .then((р) => setВарианты(р.items.map((к) => ({
+        код: к.variant || к.code,
+        подпись: `${к.variant || к.code}${к.rationale ? ` · ${к.rationale.slice(0, 40)}` : ''}`,
+      }))))
+      .catch(() => undefined)
+    // Нормативы — с ПОЛКИ: порог живёт полем `limit` их пункта, и сервер берёт
+    // его оттуда; список показывает только те, у кого нужный порог есть.
+    api.shelves('normative_document')
+      .then((р) => setНормативы(р.items
+        .filter((н) => JSON.stringify(н.doc).includes('"limit"'))
+        .map((н) => ({
+          код: String((н.doc as { designation?: string }).designation ?? н.code),
+          подпись: String((н.doc as { designation?: string }).designation ?? н.code).slice(0, 60),
+        }))))
+      .catch(() => undefined)
   }, [project])
 
   useEffect(перечитать, [перечитать])
@@ -338,39 +369,80 @@ export function Risks({ project }: { project: string }) {
             <div key={о.code} className="v2-note">
               <span className="v2-note__rule">{о.code}</span>
               <span>
-                вариант {о.variant || '—'} · время существования {о.lifetime_years} лет ·
-                норматив {о.norm} · {о.compliant ? 'соответствует' : 'НЕ соответствует'}
+                вариант {о.variant || '—'} · штатный увод {о.active_lifetime_years} лет
+                {' '}({о.compliant_active ? 'в норме' : 'НЕ в норме'}, {о.normative_active}) ·
+                {' '}пассивный сход {о.passive_lifetime_years} лет
+                {' '}({о.compliant_passive ? 'в норме' : 'НЕ в норме'}, {о.normative_passive})
+                {о.deorbit_dv && ` · Δv увода ${о.deorbit_dv}`}
+                {о.atmosphere_model && ` · атмосфера ${о.atmosphere_model}`}
               </span>
             </div>
           ))
         )}
         <div className="v2-form">
-          <label>Вариант
-            <input value={оценка.variant} placeholder="V1"
-              onChange={(e) => setОценка({ ...оценка, variant: e.target.value })} />
+          <label>Вариант базовой концепции
+            <select name="осз.variant" value={оценка.variant}
+              onChange={(e) => setОценка({ ...оценка, variant: e.target.value })}>
+              <option value="">— вариант, от которого считаем —</option>
+              {варианты.map((в) => <option key={в.код} value={в.код}>{в.подпись}</option>)}
+            </select>
           </label>
-          <label>Время существования, лет
-            <input type="number" value={оценка.lifetime_years}
-              onChange={(e) => setОценка({ ...оценка, lifetime_years: Number(e.target.value) })} />
+          <label>Время существования после увода ДУ, лет
+            <input type="number" name="осз.active" value={оценка.active_lifetime_years}
+              onChange={(e) => setОценка({ ...оценка, active_lifetime_years: Number(e.target.value) })} />
+          </label>
+          <label>Пассивный сход при отказе ДУ, лет
+            <input type="number" name="осз.passive" value={оценка.passive_lifetime_years}
+              onChange={(e) => setОценка({ ...оценка, passive_lifetime_years: Number(e.target.value) })} />
           </label>
           <label>Δv увода
-            <input value={оценка.dv_deorbit} placeholder="12 м/с"
-              onChange={(e) => setОценка({ ...оценка, dv_deorbit: e.target.value })} />
+            <input name="осз.dv" autoComplete="off" value={оценка.deorbit_dv} placeholder="12 м/с"
+              onChange={(e) => setОценка({ ...оценка, deorbit_dv: e.target.value })} />
+          </label>
+          <label>Модель атмосферы
+            <input name="осз.atm" autoComplete="off" value={оценка.atmosphere_model} placeholder="NRLMSISE-00"
+              onChange={(e) => setОценка({ ...оценка, atmosphere_model: e.target.value })} />
+          </label>
+          <label>Баллистический коэффициент m/(Cd·A)
+            <input name="осз.bc" autoComplete="off" value={оценка.ballistic_coefficient} placeholder="120 кг/м²"
+              onChange={(e) => setОценка({ ...оценка, ballistic_coefficient: e.target.value })} />
+          </label>
+          <label>Норматив штатного увода
+            <select name="осз.norm_active" value={оценка.normative_active}
+              onChange={(e) => setОценка({ ...оценка, normative_active: e.target.value })}>
+              <option value="">— норматив с полки —</option>
+              {нормативы.map((н) => <option key={н.код} value={н.код}>{н.подпись}</option>)}
+            </select>
+          </label>
+          <label>Норматив пассивного схода
+            <select name="осз.norm_passive" value={оценка.normative_passive}
+              onChange={(e) => setОценка({ ...оценка, normative_passive: e.target.value })}>
+              <option value="">— норматив с полки —</option>
+              {нормативы.map((н) => <option key={н.код} value={н.код}>{н.подпись}</option>)}
+            </select>
           </label>
           <div className="v2-form__actions">
             <button type="button" className="v2-primary"
-              title="записать начальную оценку засорения от базового варианта"
-              onClick={() => api.addOda(project, {
-                ...оценка,
-                compliant: оценка.lifetime_years <= 25,
-                norm: '25 лет',
-              })
-                .then(перечитать)
-                .catch((e) => setОтказ(String(e.message ?? e)))}>
-              Записать ОСЗ
+              disabled={занятоОсз || !оценка.normative_active || !оценка.normative_passive
+                || !оценка.atmosphere_model.trim() || !оценка.ballistic_coefficient.trim()}
+              title={!оценка.normative_active || !оценка.normative_passive
+                ? 'норматив не назван: сверять срок не с чем'
+                : !оценка.atmosphere_model.trim()
+                  ? 'модель атмосферы не названа: срок схода без неё не проверить'
+                  : !оценка.ballistic_coefficient.trim()
+                    ? 'баллистический коэффициент не задан: сход считается по нему'
+                    : 'записать оценку засорения от базового варианта'}
+              onClick={() => {
+                setЗанятоОсз(true); setОтказ(null)
+                api.addOda(project, { ...оценка, author: 'инженер' })
+                  .then(() => { setЗанятоОсз(false); перечитать() })
+                  .catch((e) => { setЗанятоОсз(false); setОтказ(String(e.message ?? e)) })
+              }}>
+              {занятоОсз ? 'Записываю…' : 'Записать ОСЗ'}
             </button>
             <span className="v2-empty__why">
-              Соответствие нормативу считает система: 25 лет — предел.
+              Вердикты считает система: пороги берутся полем `limit` пункта норматива с полки,
+              а не числом в тексте. Случая два — штатный увод и отказ ДУ.
             </span>
           </div>
         </div>

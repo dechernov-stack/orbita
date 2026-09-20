@@ -421,13 +421,23 @@ export interface RiskRow {
   due_point: string
 }
 
+/**
+ * Оценка засорения (ОСЗ): ДВА случая на один вариант — штатный увод и
+ * пассивный сход при отказе ДУ. Вердикты считает сервер по порогам норматива
+ * с полки (`limit{key,op,value}`), а не принимает на слово.
+ */
 export interface OdaRow {
   code: string
   variant: string
-  lifetime_years: number
-  dv_deorbit: string
-  compliant: boolean
-  norm: string
+  active_lifetime_years: number
+  passive_lifetime_years: number
+  deorbit_dv: string
+  normative_active: string
+  normative_passive: string
+  compliant_active: boolean
+  compliant_passive: boolean
+  atmosphere_model: string
+  ballistic_coefficient: string
 }
 
 /** Запись модели: чем считаем, на чём и когда считали в последний раз. */

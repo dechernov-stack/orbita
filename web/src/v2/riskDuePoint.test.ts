@@ -30,3 +30,27 @@ describe('срок-точка риска', () => {
     expect(экран).not.toContain("required_by: 'PDR'")
   })
 })
+
+describe('оценка засорения', () => {
+  it('форма спрашивает то, что требует маршрут, а не прежние поля', () => {
+    // Проход владельца 20.09: «оценки засорения нет» — форма слала
+    // «lifetime_years · compliant · norm», а маршрут ждёт два срока, модель
+    // атмосферы, баллистический коэффициент и нормативы с полки.
+    expect(экран).toContain('active_lifetime_years')
+    expect(экран).toContain('passive_lifetime_years')
+    expect(экран).toContain('atmosphere_model')
+    expect(экран).toContain('ballistic_coefficient')
+    expect(экран).toContain('normative_active')
+    expect(экран).toContain('normative_passive')
+    expect(экран).not.toContain('lifetime_years: 18, dv_deorbit')
+  })
+
+  it('вариант — из принятой концепции, норматив — с полки, вердикт считает сервер', () => {
+    expect(экран).toContain('api.concept(project)')
+    expect(экран).toContain("api.shelves('normative_document')")
+    expect(экран).toContain('Вердикты считает система')
+    // Кнопка держится, пока не названо то, без чего маршрут откажет.
+    expect(экран).toContain('норматив не назван: сверять срок не с чем')
+    expect(экран).toContain('модель атмосферы не названа')
+  })
+})
