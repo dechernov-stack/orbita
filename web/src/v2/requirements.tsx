@@ -97,6 +97,114 @@ function useВидТребования(): {
 }
 
 /**
+ * Цели без требования — рабочее место под условие сцены 8.
+ *
+ * Условие шаблона фазы — «каждая цель покрыта требованием»; оно смотрит на
+ * `source[].ref` требования. Владелец 19.09 упирался в него третий раз:
+ * «не даёт завершить: целей без требования: 8» — при том что все двенадцать
+ * требований заполнены. Карточка позволяет добавить источник по одному, но
+ * работать надо с ПРОБЕЛОМ: вот цели, которых никто не несёт, вот требования,
+ * которыми их закрывают. Одна цель может закрываться несколькими требованиями,
+ * одно требование — служить нескольким целям.
+ */
+function ЦелиБезТребования({ project, onChanged }: { project: string; onChanged: () => void }) {
+  const [цели, setЦели] = useState<{ id: string; code: string; текст: string }[]>([])
+  const [требования, setТребования] = useState<{ id: string; code: string; текст: string; источники: { kind: string; ref: string }[] }[]>([])
+  const [выбор, setВыбор] = useState<Record<string, string>>({})
+  const [занято, setЗанято] = useState<string | null>(null)
+  const [отказ, setОтказ] = useState<string | null>(null)
+  const [итог, setИтог] = useState<string | null>(null)
+
+  const перечитать = useCallback(() => {
+    Promise.all([api.entities(project, 'goal'), api.entities(project, 'requirement')])
+      .then(([ц, т]) => {
+        setЦели(ц.items.filter((с) => с.status !== 'cancelled').map((с) => ({
+          id: с.id, code: с.code, текст: String(с.doc.statement ?? с.doc.title ?? '').slice(0, 90),
+        })))
+        setТребования(т.items.filter((с) => с.status !== 'cancelled').map((с) => ({
+          id: с.id,
+          code: с.code,
+          текст: String(с.doc.title ?? с.doc.statement ?? '').slice(0, 70),
+          источники: Array.isArray(с.doc.source)
+            ? (с.doc.source as { kind?: string; ref?: string }[])
+              .filter((и) => и && typeof и.ref === 'string')
+              .map((и) => ({ kind: String(и.kind ?? 'material'), ref: String(и.ref) }))
+            : [],
+        })))
+      })
+      .catch((e) => setОтказ(String(e.message ?? e)))
+  }, [project])
+
+  useEffect(перечитать, [перечитать])
+
+  const покрытые = new Set(требования.flatMap((т) => т.источники.map((и) => и.ref)))
+  const без = цели.filter((ц) => !покрытые.has(ц.id))
+
+  const связать = (цель: { id: string; code: string }) => {
+    const код = выбор[цель.id]
+    const т = требования.find((x) => x.code === код)
+    if (!т) { setОтказ(`выберите требование для ${цель.code}`); return }
+    setЗанято(цель.id); setОтказ(null); setИтог(null)
+    api.patchEntity(project, т.code, {
+      source: [...т.источники, { kind: 'goal', ref: цель.id }],
+    }, 'инженер', `цель ${цель.code} закрывается требованием ${т.code}`)
+      .then(() => {
+        setИтог(`${цель.code} → ${т.code}: источник записан`)
+        перечитать(); onChanged()
+      })
+      .catch((e) => setОтказ(String(e.message ?? e)))
+      .finally(() => setЗанято(null))
+  }
+
+  if (цели.length === 0) return null
+
+  return (
+    <div className="v2-card">
+      <div className="v2-card__head">
+        <span className="v2-card__title">Цели без требования</span>
+        <span className="v2-card__count">{без.length}</span>
+      </div>
+      {отказ && <div className="v2-locked">{отказ}</div>}
+      {итог && <div className="v2-empty__why">{итог}</div>}
+      {без.length === 0 ? (
+        <div className="v2-empty">
+          Каждая цель закрыта требованием.
+          <span className="v2-empty__why">Условие сцены 8 «каждая цель покрыта требованием» выполнено.</span>
+        </div>
+      ) : (
+        <>
+          <span className="v2-empty__why">
+            Условие сцены 8 смотрит на источник требования: цель закрыта, когда хотя бы одно
+            требование выведено ИЗ НЕЁ. Выберите требование — источник запишется ему.
+          </span>
+          {без.map((ц) => (
+            <div key={ц.id} className="v2-note">
+              <span className="v2-note__rule">{ц.code}</span>
+              <span>{ц.текст}</span>
+              <select name={`${ц.code}.покрыть`} value={выбор[ц.id] ?? ''}
+                aria-label={`требование, закрывающее цель ${ц.code}`}
+                onChange={(e) => setВыбор({ ...выбор, [ц.id]: e.target.value })}>
+                <option value="">— каким требованием закрыта —</option>
+                {требования.map((т) => (
+                  <option key={т.code} value={т.code}>{т.code} · {т.текст}</option>
+                ))}
+              </select>
+              <button type="button" className="v2-chip" disabled={занято === ц.id || !выбор[ц.id]}
+                title={выбор[ц.id]
+                  ? `записать цель ${ц.code} источником требования ${выбор[ц.id]}`
+                  : 'сначала выберите требование'}
+                onClick={() => связать(ц)}>
+                {занято === ц.id ? 'Связываю…' : 'Связать'}
+              </button>
+            </div>
+          ))}
+        </>
+      )}
+    </div>
+  )
+}
+
+/**
  * Предложения требований из постановки — прямо на сцене 8.
  *
  * Маршрут владельца: «Сцена 8: принять 12 требований, распределить по
@@ -217,6 +325,8 @@ export function Requirements({ project }: { project: string | null }) {
       {отказ && <div className="v2-card"><div className="v2-locked">{отказ}</div></div>}
 
       <ПредложенияТребований project={project} onAccepted={перечитать} />
+
+      <ЦелиБезТребования project={project} onChanged={перечитать} />
 
       <div className="v2-card">
         <div className="v2-card__head">
