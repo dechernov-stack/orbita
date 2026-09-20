@@ -11,7 +11,29 @@ import {
   type RiskRow, type TechnologyRow, type WbsOffer, type WbsRow,
 } from './api'
 
-const ТОЧКИ = ['MCR', 'SRR', 'SDR', 'PDR']
+/**
+ * Вехи проекта для срока риска.
+ *
+ * Истина: `risk.due_point: ref gate` — «срок — любая веха (gate.kind
+ * phase|technology)». Перечень в коде («MCR · SRR · SDR · PDR») был вторым
+ * списком мимо данных: у проекта свои точки и свои вехи технологий, и риск
+ * держится ими. Пусто — значит вех в проекте ещё нет, и это сказано словами.
+ */
+function useВехи(project: string): { код: string; подпись: string }[] {
+  const [вехи, setВехи] = useState<{ код: string; подпись: string }[]>([])
+  useEffect(() => {
+    api.entities(project, 'gate')
+      .then((р) => setВехи(р.items
+        .filter((в) => в.status !== 'cancelled')
+        .map((в) => ({
+          код: в.code,
+          подпись: `${в.code}${в.doc.name ? ` · ${String(в.doc.name)}` : ''}`
+            + (в.doc.planned_date ? ` · ${String(в.doc.planned_date)}` : ''),
+        }))))
+      .catch(() => undefined)
+  }, [project])
+  return вехи
+}
 
 /** Сцена 10 — технологии: TRL, разрыв, план созревания. */
 export function Technologies({ project }: { project: string }) {
@@ -21,8 +43,9 @@ export function Technologies({ project }: { project: string }) {
   const [отказ, setОтказ] = useState<string | null>(null)
   const [занято, setЗанято] = useState(false)
   const [поля, setПоля] = useState({
-    name: '', component: '', trl_current: 5, trl_required: 6, required_by: 'PDR', fallback: '',
+    name: '', component: '', trl_current: 5, trl_required: 6, required_by: '', fallback: '',
   })
+  const вехи = useВехи(project)
 
   const перечитать = useCallback(() => {
     api.technologies(project).then((r) => setСтроки(r.items)).catch((e) => setОтказ(String(e.message ?? e)))
@@ -139,7 +162,8 @@ export function Technologies({ project }: { project: string }) {
           </label>
           <label>К точке
             <select value={поля.required_by} onChange={(e) => setПоля({ ...поля, required_by: e.target.value })}>
-              {ТОЧКИ.map((т) => <option key={т} value={т}>{т}</option>)}
+              <option value="">— веха проекта —</option>
+              {вехи.map((в) => <option key={в.код} value={в.код}>{в.подпись}</option>)}
             </select>
           </label>
           <label>Резервное решение
@@ -169,9 +193,10 @@ export function Risks({ project }: { project: string }) {
   const [отказ, setОтказ] = useState<string | null>(null)
   const [поля, setПоля] = useState({
     statement: '', category: 'technical', probability: 3, impact: 3,
-    strategy: 'mitigate', measures: '', owner: 'Ведущий СИ', due_point: 'MCR',
+    strategy: 'mitigate', measures: '', owner: 'Ведущий СИ', due_point: '',
   })
   const [оценка, setОценка] = useState({ variant: '', lifetime_years: 18, dv_deorbit: '', compliant: true })
+  const вехи = useВехи(project)
 
   const перечитать = useCallback(() => {
     api.risks(project).then((r) => setРиски(r.items)).catch((e) => setОтказ(String(e.message ?? e)))
@@ -206,8 +231,22 @@ export function Risks({ project }: { project: string }) {
                   <td title="вероятность × влияние">{р.probability}×{р.impact} = {р.level}</td>
                   <td>{р.strategy}</td>
                   <td>{р.owner}</td>
-                  <td className={р.due_point === '—' ? 'v2-warn' : ''}>
-                    {р.due_point === '—' ? 'нет точки' : р.due_point}
+                  {/*
+                    Срок правится ЗДЕСЬ: условие сцены 11 «у каждого риска
+                    срок-точка» держало проход на RI-0025…0027, а поправить
+                    срок принятого риска было негде — только при заведении
+                    (проход владельца 20.09).
+                  */}
+                  <td className={р.due_point === '—' ? 'v2-warn' : undefined}>
+                    <select name={`${р.code}.due_point`} value={р.due_point === '—' ? '' : р.due_point}
+                      aria-label={`срок-точка риска ${р.code}`}
+                      onChange={(e) => api.patchEntity(project, р.code, { due_point: e.target.value }, 'инженер',
+                        'срок-точка риска')
+                        .then(перечитать)
+                        .catch((ошибка) => setОтказ(String(ошибка.message ?? ошибка)))}>
+                      <option value="">— нет точки —</option>
+                      {вехи.map((в) => <option key={в.код} value={в.код}>{в.подпись}</option>)}
+                    </select>
                   </td>
                 </tr>
               ))}
@@ -233,7 +272,8 @@ export function Risks({ project }: { project: string }) {
           </label>
           <label>Срок — точка
             <select value={поля.due_point} onChange={(e) => setПоля({ ...поля, due_point: e.target.value })}>
-              {ТОЧКИ.map((т) => <option key={т} value={т}>{т}</option>)}
+              <option value="">— веха проекта —</option>
+              {вехи.map((в) => <option key={в.код} value={в.код}>{в.подпись}</option>)}
             </select>
           </label>
           <div className="v2-form__actions">
