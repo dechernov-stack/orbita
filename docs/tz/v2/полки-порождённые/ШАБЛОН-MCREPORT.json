@@ -622,6 +622,21 @@
   "BOTTOM_UP": "снизу вверх",
   "draft": "черновик",
   "accepted": "принято",
-  "baselined": "базировано"
+  "baselined": "базировано",
+  "passed": "пройдена",
+  "pending": "ожидает",
+  "returned": "возвращена",
+  "made": "принято",
+  "cancelled": "отменено",
+  "proposed": "предложено",
+  "approve": "одобрить",
+  "return": "вернуть",
+  "terminate": "прекратить",
+  "defer": "отложить",
+  "rom": "ROM (порядок величины)",
+  "parametric": "параметрический",
+  "bottom_up": "снизу вверх",
+  "internal_review": "Внутренний обзор",
+  "internal_review_a": "Внутренний обзор Phase A"
  }
 }
