@@ -43,7 +43,7 @@ export function Documents({ project }: { project: string | null }) {
           {список === null ? 'читаю…' : `${список.length} в проекте`}
         </span>
       </h3>
-      <КомплектТочки project={project} onOpen={(код) => {
+      <КомплектТочки project={project} gate={(список ?? [])[0]?.gate ?? ''} onOpen={(код) => {
         const д = (список ?? []).find((х) => х.code === код)
         if (д) setОткрыт(д)
       }} />
@@ -97,17 +97,26 @@ export function Documents({ project }: { project: string | null }) {
  * Здесь та же матрица, но с её собственными словами: строки комплекта,
  * сведённые к нашим документам, с причиной у каждой незакрытой.
  */
-function КомплектТочки({ project, onOpen }: {
+function КомплектТочки({ project, gate, onOpen }: {
   project: string
+  /** Ступень, к которой считаются документы: её комплект и показываем. */
+  gate: string
   onOpen: (код: string) => void
 }) {
   const [точка, setТочка] = useState<Gate | null>(null)
 
   useEffect(() => {
     api.points(project)
-      .then((р) => setТочка(р.items.find((т) => !т.passed) ?? р.items[р.items.length - 1] ?? null))
+      .then((р) => setТочка(
+        // Та точка, к которой считаются документы. «Ближайшая непройденная»
+        // здесь не годится: внутренний обзор идёт первым, а комплекта у него
+        // нет вовсе — блок молчал бы ровно там, где вопрос и задан.
+        р.items.find((т) => т.key === gate)
+          ?? р.items.find((т) => !т.passed && (т.matrix ?? []).length > 0)
+          ?? null,
+      ))
       .catch(() => setТочка(null))
-  }, [project])
+  }, [project, gate])
 
   if (!точка) return null
   /** Строки комплекта, сведённые к документу: остальные — реестры и записи. */
@@ -135,11 +144,14 @@ function КомплектТочки({ project, onOpen }: {
             · {с.artifact}
             {с.why ? ` — ${с.why}` : ''}
             {(с.our_ref ?? '').startsWith('document_template:') && (
-              <button type="button" className="v2-link"
-                title="открыть документ и закрыть то, чего не хватает"
-                onClick={() => onOpen((с.our_ref ?? '').replace('document_template:', ''))}>
-                {' '}открыть
-              </button>
+              <>
+                {' '}
+                <button type="button" className="v2-link"
+                  title="открыть документ и закрыть то, чего не хватает"
+                  onClick={() => onOpen((с.our_ref ?? '').replace('document_template:', ''))}>
+                  открыть документ
+                </button>
+              </>
             )}
           </span>
         ))}
