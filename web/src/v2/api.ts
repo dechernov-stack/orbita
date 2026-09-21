@@ -385,6 +385,8 @@ export interface ConceptRow {
   decided_by: string
   at: string
   rejected: { variant: string; reason: string }[]
+  /** Отказы от объёма: §9 отчёта о концепции миссии читает их. */
+  descopes: { text: string; impact: string }[]
 }
 
 export interface TechnologyRow {
@@ -723,6 +725,23 @@ export interface DocView {
   complete: number
   total: number
   sections: DocSection[]
+}
+
+/**
+ * Базовая линия документа: состояние, которым документ пошёл на точку.
+ *
+ * Линия неизменяема — перебазирование заводит новое имя; отметка (`tag`)
+ * может не состояться, и тогда об этом сказано в `note`, а не умолчано.
+ */
+export interface DocBaseline {
+  name: string
+  document: string
+  elements: number
+  by: string
+  at: string
+  tag: string
+  commit: string
+  note: string
 }
 
 /** Куда попадает работа мероприятия: строка «в документ». */
@@ -1345,6 +1364,21 @@ export const api = {
     вызов<DocSection>(`/documents/${code}/statement?project=${encodeURIComponent(project)}`,
       { method: 'POST', body: JSON.stringify(тело) }),
 
+  /** Линии базирования документа: чем он уходил на точки. */
+  docBaselines: (project: string, code: string) =>
+    вызов<{ items: DocBaseline[] }>(
+      `/documents/${code}/baselines?project=${encodeURIComponent(project)}`),
+
+  /**
+   * Базировать документ: снимок состояния под именем точки. Ворота KDP-A
+   * держатся этим («документ не базирован: нет ни одной линии»), а кнопки
+   * не было вовсе — маршрут стоял с шипа C, звать его было нечем
+   * (владелец, 21.09).
+   */
+  baselineDocument: (project: string, code: string, тело: Record<string, unknown>) =>
+    вызов<DocBaseline>(`/documents/${code}/baseline?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify(тело) }),
+
   docHints: (project: string, scene: string) =>
     вызов<{ items: DocHint[] }>(
       `/documents/hints?project=${encodeURIComponent(project)}&scene=${encodeURIComponent(scene)}`),
@@ -1721,6 +1755,20 @@ export const api = {
 
   variants: (project: string) =>
     вызов<{ note: string; items: VariantRow[] }>(`/variants?project=${encodeURIComponent(project)}`),
+
+  /**
+   * Завести вариант построения. Маршрут стоит с волны 4, а экран вариантов
+   * только читал — §2 отчёта о концепции миссии наполниться не мог, и KDP-A
+   * держалась этим (владелец, 21.09).
+   */
+  addVariant: (project: string, тело: Record<string, unknown>) =>
+    вызов<{ code: string }>(`/variants?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify(тело) }),
+
+  /** Порог показателя: чем вариант отсеивается. Ключ тот же, что у показателя. */
+  setCriterion: (project: string, тело: Record<string, unknown>) =>
+    вызов<{ code: string }>(`/criteria?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify(тело) }),
 
   impact: (project: string, code: string, depth = 2) =>
     вызов<ImpactGraph>(`/impact?project=${encodeURIComponent(project)}` +

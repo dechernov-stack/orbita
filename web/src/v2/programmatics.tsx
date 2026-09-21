@@ -238,6 +238,17 @@ export function Risks({ project }: { project: string }) {
 
   useEffect(перечитать, [перечитать])
 
+  /**
+   * Правка оценки риска в строке реестра. Вид «риск» правится на месте, а
+   * пересчёт уровня (вероятность × влияние) делает сервер — экран лишь
+   * перечитывает реестр, чтобы «В×П» не разошлись с тем, что видят ворота.
+   */
+  const правитьРиск = (код: string, поля: Record<string, unknown>) => {
+    api.patchEntity(project, код, поля, 'инженер', 'оценка риска')
+      .then(перечитать)
+      .catch((ошибка) => setОтказ(String(ошибка.message ?? ошибка)))
+  }
+
   return (
     <>
       {отказ && <div className="v2-locked">{отказ}</div>}
@@ -261,9 +272,49 @@ export function Risks({ project }: { project: string }) {
                 <tr key={р.code}>
                   <td className="v2-mono">{р.code}</td>
                   <td>{р.statement}</td>
-                  <td title="вероятность × влияние">{р.probability}×{р.impact} = {р.level}</td>
-                  <td>{р.strategy}</td>
-                  <td>{р.owner}</td>
+                  {/*
+                    Вероятность, влияние, стратегия и владелец правятся В СТРОКЕ.
+                    Принятый из записки риск приходил с «0×0 = 0», и поправить
+                    оценку было нечем ни на одном экране: §6 отчёта о концепции
+                    миссии печатал четыре пустые колонки на все двенадцать
+                    рисков, а «ключевые риски» FA (критичность ≥ 12) не могли
+                    набраться никогда (владелец 20–21.09).
+                  */}
+                  <td title="вероятность × влияние: шкала 1–5">
+                    <select name={`${р.code}.probability`} value={р.probability || ''}
+                      aria-label={`вероятность риска ${р.code}`}
+                      onChange={(e) => правитьРиск(р.code, { probability: Number(e.target.value) })}>
+                      <option value="">—</option>
+                      {[1, 2, 3, 4, 5].map((з) => <option key={з} value={з}>{з}</option>)}
+                    </select>
+                    ×
+                    <select name={`${р.code}.impact`} value={р.impact || ''}
+                      aria-label={`влияние риска ${р.code}`}
+                      onChange={(e) => правитьРиск(р.code, { impact: Number(e.target.value) })}>
+                      <option value="">—</option>
+                      {[1, 2, 3, 4, 5].map((з) => <option key={з} value={з}>{з}</option>)}
+                    </select>
+                    {р.level > 0 ? ` = ${р.level}` : ''}
+                  </td>
+                  <td>
+                    <select name={`${р.code}.strategy`} value={р.strategy === '—' ? '' : р.strategy}
+                      aria-label={`стратегия риска ${р.code}`}
+                      onChange={(e) => правитьРиск(р.code, { strategy: e.target.value })}>
+                      <option value="">— стратегия —</option>
+                      <option value="mitigate">снижать</option>
+                      <option value="accept">принять</option>
+                      <option value="transfer">передать</option>
+                      <option value="avoid">избежать</option>
+                    </select>
+                  </td>
+                  <td>
+                    <input name={`${р.code}.owner`} defaultValue={р.owner === '—' ? '' : р.owner}
+                      placeholder="кто ведёт" aria-label={`владелец риска ${р.code}`}
+                      onBlur={(e) => {
+                        const имя = e.target.value.trim()
+                        if (имя && имя !== р.owner) правитьРиск(р.code, { owner: имя })
+                      }} />
+                  </td>
                   {/*
                     Срок правится ЗДЕСЬ: условие сцены 11 «у каждого риска
                     срок-точка» держало проход на RI-0025…0027, а поправить

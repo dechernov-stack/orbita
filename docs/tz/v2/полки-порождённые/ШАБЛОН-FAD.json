@@ -84,7 +84,10 @@
     "parametric": "параметрический",
     "bottom_up": "снизу вверх",
     "internal_review": "Внутренний обзор",
-    "internal_review_a": "Внутренний обзор Phase A"
+    "internal_review_a": "Внутренний обзор Phase A",
+    "walker_delta": "Walker-Delta",
+    "walker_star": "Walker-Star",
+    "sso": "ССО"
   },
   "sections": [
     {

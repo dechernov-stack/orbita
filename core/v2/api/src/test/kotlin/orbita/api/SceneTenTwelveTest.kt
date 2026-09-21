@@ -298,6 +298,35 @@ class SceneTenTwelveTest {
         )
     }
 
+    /**
+     * §2 отчёта о концепции миссии печатает вариант именем и подгруппами;
+     * показатель нужен СРАВНЕНИЮ. Маршрут требовал показатель всегда, и
+     * вариант, описанный строем, завести было нельзя — раздел оставался
+     * пустым, а KDP-A держалась им (владелец, 21.09).
+     */
+    @Test
+    fun `вариант построения заводится строем, показатель необязателен`() {
+        val строем = router.handle("POST", "/v2/variants", параметры,
+            """{"name":"V1 · 24 КА в трёх плоскостях","working":true,
+                "subgroups":[{"pattern":"walker_delta","altitude":550,"inclination":53,"planes":3,"per_plane":8}],
+                "author":"Чернов Д."}""")!!
+        assertEquals(201, строем.code)
+        val код = строем.body.path("code").asText()
+        assertEquals(
+            "walker_delta",
+            store.byCode(область, код)!!.doc.path("subgroups").first().path("pattern").asText(),
+            "строй записан как назван истиной",
+        )
+
+        val пустой = runCatching {
+            router.handle("POST", "/v2/variants", параметры, """{"name":"V2","author":"Чернов Д."}""")
+        }.exceptionOrNull()
+        assertTrue(
+            пустой?.message?.contains("вариант пуст") == true,
+            "имя без содержания не записывается: ${пустой?.message}",
+        )
+    }
+
     @Test
     fun `стоимость без пакета созревания при открытом TRL — разрыв`() {
         технологию()

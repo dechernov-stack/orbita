@@ -8,7 +8,7 @@
 // владелец проверяет проход, не открывая ни одной формы.
 import { useEffect, useState } from 'react'
 import { ConfirmBox, useConfirm } from '../ui/Confirm'
-import { api, ServerRefusal, type DocSection, type DocView, type VerificationReport } from './api'
+import { api, ServerRefusal, type DocBaseline, type DocSection, type DocView, type VerificationReport } from './api'
 import { запомнитьАвтора, отказСловами, прочитатьАвтора } from './research'
 
 export function Documents({ project }: { project: string | null }) {
@@ -116,6 +116,7 @@ export function DocumentBody({ project, code, section, onClose }: {
           )}
         </span>
       </h3>
+      {!section && <Baselines project={project} code={code} title={вид.title} />}
       {!section && (
         <FieldCheck project={project} code={code} вид={вид} onJump={(элемент) => {
           const адрес = элемент.split('#')[0]
@@ -196,6 +197,128 @@ function Section({ раздел, подсвечен }: { раздел: DocSectio
         </div>
       ))}
     </div>
+  )
+}
+
+/**
+ * Базирование документа: состояние, которым он уходит на точку.
+ *
+ * Ворота KDP-A держатся линией базирования («документ не базирован: нет ни
+ * одной линии базирования»), маршрут стоял с шипа C — а нажать было нечего:
+ * кнопки не существовало ни на одном экране (владелец, 21.09: «как базировать
+ * FAD — непонятно, в интерфейсе нет кнопок»).
+ *
+ * Имя линии — имя точки: им зовут состояние, с которым документ пришёл на
+ * обзор. Линия неизменяема; перебазирование заводит НОВОЕ имя, поэтому
+ * занятое имя экран не даёт нажать, а отказ сервера показывает словами.
+ */
+function Baselines({ project, code, title }: { project: string; code: string; title: string }) {
+  const [линии, setЛинии] = useState<DocBaseline[] | null>(null)
+  const [точки, setТочки] = useState<{ key: string; title: string; passed: boolean }[]>([])
+  const [раскрыт, setРаскрыт] = useState(false)
+  const [имя, setИмя] = useState('')
+  const [автор, setАвтор] = useState(прочитатьАвтора)
+  const [занято, setЗанято] = useState(false)
+  const [отказ, setОтказ] = useState<string | null>(null)
+  const [итог, setИтог] = useState<string | null>(null)
+
+  const перечитать = () => {
+    api.docBaselines(project, code).then((r) => setЛинии(r.items)).catch(() => setЛинии([]))
+  }
+  useEffect(перечитать, [project, code])
+  useEffect(() => {
+    api.points(project)
+      .then((r) => setТочки(r.items.map((т) => ({ key: т.key, title: т.title, passed: т.passed }))))
+      .catch(() => setТочки([]))
+  }, [project])
+
+  /** Имя по умолчанию — ближайшая непройденная точка: ею документ и идёт. */
+  const ближайшая = точки.find((т) => !т.passed)?.title ?? точки[точки.length - 1]?.title ?? ''
+  const выбрано = имя.trim() || ближайшая
+  const занятоИмя = (линии ?? []).some((л) => л.name === выбрано)
+  const безАвтора = !автор.trim()
+
+  const базировать = () => {
+    setЗанято(true); setОтказ(null); setИтог(null)
+    api.baselineDocument(project, code, { name: выбрано, author: автор })
+      .then((л) => {
+        setИмя('')
+        setИтог(`линия «${л.name}» записана: ${л.elements} элементов` + (л.note ? ` · ${л.note}` : ''))
+        перечитать()
+      })
+      .catch((e) => setОтказ(отказСловами(e)))
+      .finally(() => setЗанято(false))
+  }
+
+  return (
+    <>
+      <div className="v2-prop" data-why="почему-нельзя"
+        title="базирование: снимок состояния документа под именем точки; ворота смотрят на него">
+        <span>
+          Базирование
+          <span className="v2-cnt">
+            {линии === null
+              ? ' читаю…'
+              : линии.length === 0
+                ? ' линий нет'
+                : ` ${линии.length} · последняя «${линии[линии.length - 1].name}»`}
+          </span>
+        </span>
+        <button type="button" className="v2-link"
+          title={раскрыт ? 'свернуть' : 'записать состояние документа линией точки'}
+          onClick={() => setРаскрыт(!раскрыт)}>
+          {раскрыт ? 'свернуть' : 'Базировать →'}
+        </button>
+      </div>
+
+      {раскрыт && (
+        <div className="v2-form" data-why="почему-нельзя">
+          <div className="v2-empty__why">
+            Линия базирования — состояние «{title}», с которым он уходит на точку: ворота
+            KDP-A требуют её у документов зрелости F. Линия неизменяема: правка после неё
+            видна расхождением, а не переписыванием, — перебазирование заводит новое имя.
+          </div>
+          {(линии ?? []).map((л) => (
+            <div key={л.name} className="v2-note">
+              <span className="v2-note__rule">{л.name}</span>
+              <span className="v2-dim">
+                {л.elements} элементов · {л.by} · {л.at.slice(0, 10)}
+                {л.tag ? ` · отметка ${л.tag}` : ''}
+                {л.note ? ` · ${л.note}` : ''}
+              </span>
+            </div>
+          ))}
+          {отказ && <div className="v2-locked">{отказ}</div>}
+          {итог && <div className="v2-empty__why">{итог}</div>}
+          <div className="v2-form v2-form--row">
+            <label title="имя линии — имя точки, на которую идёт документ">имя линии
+              <input list={`v2-точки-${code}`} value={имя} placeholder={ближайшая}
+                aria-label={`имя базовой линии документа ${code}`}
+                onChange={(e) => setИмя(e.target.value)} />
+            </label>
+            <datalist id={`v2-точки-${code}`}>
+              {точки.map((т) => <option key={т.key} value={т.title} />)}
+            </datalist>
+            <label title="линию заводит названный человек: пустого автора сервер не принимает">кто базирует
+              <input value={автор} placeholder="Иванов"
+                onChange={(e) => { const н = e.target.value; setАвтор(н); запомнитьАвтора(н) }} />
+            </label>
+            <button type="button" className="v2-primary"
+              disabled={занято || безАвтора || !выбрано || занятоИмя}
+              title={безАвтора
+                ? 'назовите себя: линию заводит человек'
+                : !выбрано
+                  ? 'у линии нет имени: ею зовут состояние на точке'
+                  : занятоИмя
+                    ? `линия «${выбрано}» уже есть: линия неизменяема, назовите другое имя`
+                    : `записать состояние документа линией «${выбрано}»`}
+              onClick={базировать}>
+              {занято ? 'Базирую…' : 'Базировать'}
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   )
 }
 

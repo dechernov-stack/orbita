@@ -298,13 +298,18 @@ class ArchRoutes(
         val ответ = mapper.createObjectNode()
         val массив = ответ.putArray("items")
         store.list(Area.Project(проект), "baseline_concept").forEach { к ->
-            массив.addObject()
+            val узел = массив.addObject()
                 .put("code", к.code)
                 .put("variant", к.doc.path("variant").asText(""))
                 .put("rationale", к.doc.path("rationale").asText(""))
                 .put("decided_by", к.doc.path("decided_by").asText(""))
                 .put("at", к.doc.path("at").asText(""))
-                .set<JsonNode>("rejected", к.doc.path("rejected"))
+            узел.set<JsonNode>("rejected", к.doc.path("rejected"))
+            // Отказы от объёма — половина решения: §9 отчёта о концепции
+            // миссии читает именно их, а экран без них не мог ни показать
+            // записанное, ни дописать (владелец, 21.09: KDP-A держалась
+            // «полны 8 из 11 разделов»).
+            узел.set<JsonNode>("descopes", к.doc.path("descopes"))
         }
         return V2Router.Ответ(200, ответ)
     }
