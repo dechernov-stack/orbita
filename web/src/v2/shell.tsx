@@ -117,6 +117,8 @@ export function Shell() {
   const [phaseTick, setPhaseTick] = useState(0)
   /** Переход «к месту» из заданий: открыть работу на нужной сцене. */
   const [wantScene, setWantScene] = useState<string | null>(null)
+  /** Зачем нас сюда послали: словами раздела документа, а не «переход выполнен». */
+  const [wantReason, setWantReason] = useState<string | null>(null)
   const [tasks, setTasks] = useState<number>(0)
   /** Сцена, открытая на экране: шапка обязана совпадать с ним. */
   const [openScene, setOpenScene] = useState<string | null>(null)
@@ -323,6 +325,7 @@ export function Shell() {
           {section === 'work' ? (
             <Work project={project} onProject={(п) => { setProject(п); setPortfolioTick((т) => т + 1) }}
               wantScene={wantScene}
+              wantReason={wantReason}
               onScenePicked={() => setWantScene(null)} onScene={setOpenScene}
               роль={роль} режим={режим} onРежим={setРежим} />
           ) : section === 'knowledge' ? (
@@ -339,7 +342,9 @@ export function Shell() {
             <Models project={project} />
           ) : section === 'documents' ? (
             <Documents project={project}
-              onGoScene={(сцена) => { setWantScene(сцена); setSection('work') }} />
+              onGoScene={(сцена, зачем) => {
+                setWantScene(сцена); setWantReason(зачем ?? null); setSection('work')
+              }} />
           ) : section === 'library' ? (
             <Library />
           ) : section === 'external' ? (

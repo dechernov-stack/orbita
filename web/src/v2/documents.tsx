@@ -13,8 +13,8 @@ import { useАвтор, отказСловами } from './research'
 
 export function Documents({ project, onGoScene }: {
   project: string | null
-  /** Переход «к месту»: сцена, которой раздел наполняется. */
-  onGoScene?: (сцена: string) => void
+  /** Переход «к месту»: сцена, которой раздел наполняется, и зачем идём. */
+  onGoScene?: (сцена: string, зачем?: string) => void
 }) {
   const [список, setСписок] = useState<DocView[] | null>(null)
   const [открыт, setОткрыт] = useState<DocView | null>(null)
@@ -178,8 +178,8 @@ export function DocumentBody({ project, code, section, onClose, onGoScene }: {
   /** Открыть только один раздел — переход из мероприятия. */
   section?: string
   onClose?: () => void
-  /** Переход «к месту»: сцена, которой раздел наполняется. */
-  onGoScene?: (сцена: string) => void
+  /** Переход «к месту»: сцена, которой раздел наполняется, и зачем идём. */
+  onGoScene?: (сцена: string, зачем?: string) => void
 }) {
   const [вид, setВид] = useState<DocView | null>(null)
   const [отказ, setОтказ] = useState<string | null>(null)
@@ -270,8 +270,8 @@ export function DocumentBody({ project, code, section, onClose, onGoScene }: {
 function Section({ раздел, подсвечен, onGoScene }: {
   раздел: DocSection
   подсвечен?: string | null
-  /** Переход «к месту»: сцена, которой раздел и наполняется. */
-  onGoScene?: (сцена: string) => void
+  /** Переход «к месту»: сцена, которой раздел и наполняется, и зачем идём. */
+  onGoScene?: (сцена: string, зачем?: string) => void
 }) {
   /**
    * Сцены, которых ждёт раздел: названы в самом шаблоне, не в коде.
@@ -300,7 +300,10 @@ function Section({ раздел, подсвечен, onGoScene }: {
         {!раздел.complete && onGoScene && адресУзнан && сцены.map((с) => (
           <button key={с} type="button" className="v2-link"
             title={`открыть сцену ${с} — этим разделом она и кончается`}
-            onClick={() => onGoScene(с)}>
+            onClick={() => onGoScene(
+              с,
+              `${раздел.no} ${раздел.title} — ${раздел.waiting.join('; ')}`,
+            )}>
             к месту: сцена {с}
           </button>
         ))}

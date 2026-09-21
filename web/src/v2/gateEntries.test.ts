@@ -12,6 +12,8 @@ import клиент from './api.ts?raw'
 import реестр from './programmatics.tsx?raw'
 import клиентИсследования from './research.tsx?raw'
 import оболочка from './shell.tsx?raw'
+import модели from './models.tsx?raw'
+import работа from './work.tsx?raw'
 
 describe('базирование документа', () => {
   it('вход есть на экране документа, а не только в маршруте', () => {
@@ -49,22 +51,25 @@ describe('отказы от объёма и отклонённые вариан�
 })
 
 describe('варианты построения', () => {
-  it('заводятся с экрана сцены 7, а не только читаются', () => {
+  it('заводятся там же, где сравниваются: одна карточка, не две', () => {
     expect(клиент).toContain('addVariant:')
-    expect(концепция).toContain('<ВариантыПостроения project={project} />')
-    expect(концепция).toContain('api.addVariant(project, тело)')
+    expect(модели).toContain('function ФормаВарианта')
+    expect(модели).toContain('api.addVariant(project, тело)')
+    // Карточка «Варианты построения» одна на экран: дубль на сцене 7 и был
+    // половиной ответа «куда и что писать непонятно» (владелец, 21.09).
+    expect(концепция).not.toContain('ВариантыПостроения')
   })
 
   it('вариант описан строем, а показатель необязателен', () => {
-    expect(концепция).toContain("pattern: форма.pattern")
-    expect(концепция).toContain('per_plane: Number(форма.per_plane)')
-    expect(концепция).toContain('if (форма.metric.trim() && форма.value.trim())')
-    expect(концепция).toContain('показателей нет — сравнивать нечем, но в документ вариант идёт')
+    expect(модели).toContain("pattern: форма.pattern")
+    expect(модели).toContain('per_plane: Number(форма.per_plane)')
+    expect(модели).toContain('if (форма.metric.trim() && форма.value.trim())')
+    expect(модели).toContain('Им наполняется §2 отчёта о концепции миссии')
   })
 
   it('ССО задаётся временем прохождения узла, наклонённая орбита — наклонением', () => {
-    expect(концепция).toContain("const поВремени = форма.pattern === 'sso'")
-    expect(концепция).toContain("подгруппа[поВремени ? 'ltan' : 'inclination']")
+    expect(модели).toContain("const поВремени = форма.pattern === 'sso'")
+    expect(модели).toContain("подгруппа[поВремени ? 'ltan' : 'inclination']")
   })
 })
 
@@ -133,7 +138,11 @@ describe('дорога от раздела к сцене', () => {
     // без перехода человек читает его и не знает, куда идти (21.09).
     expect(документы).toContain('к месту: сцена {с}')
     expect(документы).toContain('onGoScene={onGoScene}')
-    expect(оболочка).toContain("<Documents project={project}\n              onGoScene={(сцена) => { setWantScene(сцена); setSection('work') }} />")
+    expect(оболочка).toContain('setWantReason(зачем ?? null)')
+    expect(работа).toContain('Сюда вас послал документ')
+    // Экран подводит к карточке, чьё имя названо в причине: соответствие
+    // сверяется двумя именами из данных, а не таблицей в коде.
+    expect(работа).toContain('зачем.toLowerCase().includes(имя.toLowerCase())')
   })
 
   it('десять сцен разом — не адрес: дорога предлагается, когда она одна-три', () => {

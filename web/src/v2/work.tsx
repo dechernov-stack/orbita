@@ -25,11 +25,20 @@ import { Concept } from './concept'
 import { Requirements } from './requirements'
 import { Costs, Risks, Technologies } from './programmatics'
 
-export function Work({ project, onProject, wantScene, onScenePicked, onScene, роль, режим, onРежим }: {
+export function Work({ project, onProject, wantScene, wantReason, onScenePicked, onScene, роль, режим, onРежим }: {
   project: string | null
   onProject: (p: string) => void
   /** Сцена, на которую просили открыть работу (переход из заданий). */
   wantScene?: string | null
+  /**
+   * Зачем нас сюда послали — словами того, кто послал: «§2 Анализ
+   * альтернатив — «Варианты построения и их метрики»: 0 из 1».
+   *
+   * Без этой строки переход «к месту» высаживает человека на экран сцены,
+   * где восемь карточек и две тысячи пикселей состава, и он спрашивает
+   * «куда и что писать» (владелец, 21.09).
+   */
+  wantReason?: string | null
   onScenePicked?: () => void
   /** Открытая сцена — шапке: контекст обязан совпадать с экраном. */
   onScene?: (key: string | null) => void
@@ -43,6 +52,30 @@ export function Work({ project, onProject, wantScene, onScenePicked, onScene, р
   const [сцена, setСцена] = useState<string | null>(null)
   const [мероприятие, setМероприятие] = useState<string | null>(null)
   const [отказ, setОтказ] = useState<string | null>(null)
+  /** Причина перехода держится, пока человек её не закроет: она и есть задание. */
+  const [зачем, setЗачем] = useState<string | null>(null)
+
+  /**
+   * Подвести к карточке, о которой речь: её ИМЯ есть в причине перехода
+   * («Варианты построения и их метрики» → карточка «Варианты построения»).
+   * Соответствие не выдумано в коде: сверяются два имени из данных, и, если
+   * ни одно не совпало, экран просто остаётся наверху.
+   */
+  useEffect(() => {
+    if (!зачем) return
+    const подвести = () => {
+      const карточки = [...document.querySelectorAll<HTMLElement>('.v2-card__title, .v2-panel > h3')]
+      const своя = карточки.find((э) => {
+        const имя = (э.childNodes[0]?.textContent ?? '').trim()
+        return имя.length > 3 && зачем.toLowerCase().includes(имя.toLowerCase())
+      })
+      своя?.scrollIntoView({ block: 'center' })
+    }
+    // Трижды: реестры сцены догружаются и сдвигают карточку вниз — один
+    // прокрут на 700 мс промахивался мимо (проверено на стенде 21.09).
+    const таймеры = [600, 1500, 2600].map((мс) => window.setTimeout(подвести, мс))
+    return () => { таймеры.forEach((т) => window.clearTimeout(т)) }
+  }, [зачем])
 
   const текущийРежим: Режим = режим ?? режимПоРоли(роль)
 
@@ -66,9 +99,10 @@ export function Work({ project, onProject, wantScene, onScenePicked, onScene, р
     if (wantScene) {
       setСцена(wantScene)
       setМероприятие(null)
+      if (wantReason) setЗачем(wantReason)
       onScenePicked?.()
     }
-  }, [wantScene, onScenePicked])
+  }, [wantScene, wantReason, onScenePicked])
 
   const текущая = useMemo(
     () => фаза?.scenes.find((s) => s.key === сцена) ?? фаза?.scenes[0] ?? null,
@@ -162,6 +196,22 @@ export function Work({ project, onProject, wantScene, onScenePicked, onScene, р
 
   return (
     <>
+      {/*
+        Зачем мы здесь — первой строкой. Переход «к месту» из документа
+        высаживает на сцену, где карточек много, а искомая — не первая;
+        строка говорит словами документа, что тут закрывать.
+      */}
+      {зачем && (
+        <div className="v2-prop" data-why="почему-нельзя"
+          title="вы пришли сюда из документа: здесь закрывается его раздел">
+          <span>
+            Сюда вас послал документ
+            <span className="v2-empty__why">{зачем}</span>
+          </span>
+          <button type="button" className="v2-link" title="убрать напоминание"
+            onClick={() => setЗачем(null)}>понятно</button>
+        </div>
+      )}
       {схемаСцены && (
         <div className="v2-scenemap" data-why="следующий-клик"
           title="мероприятия сцены: клик открывает поверхность">

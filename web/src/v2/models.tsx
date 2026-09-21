@@ -286,15 +286,129 @@ function Rollup({ свёртка, величина, точка, onВеличин
  * подменяется арифметикой. Здесь видно, чем именно вариант хуже: какой
  * показатель не прошёл порог и на сколько.
  */
+/**
+ * Форма варианта построения: строй, высота, плоскости — и показатели, если
+ * есть. Живёт ВНУТРИ карточки вариантов: двух карточек с одним именем на
+ * экране сцены 7 быть не должно (владелец 21.09: «куда и что писать
+ * непонятно» — их было две).
+ *
+ * Показатель необязателен: §2 отчёта печатает имя и подгруппы, а сравнение —
+ * другое дело. Выдумывать число ради строки документа не нужно.
+ */
+function ФормаВарианта({ project, onЗаведён }: { project: string; onЗаведён: () => void }) {
+  const [занято, setЗанято] = useState(false)
+  const [отказ, setОтказ] = useState<string | null>(null)
+  const [форма, setФорма] = useState({
+    name: '', pattern: 'walker_delta', altitude: '', inclination: '', planes: '', per_plane: '',
+    metric: '', value: '',
+  })
+
+  /** ССО задаётся временем прохождения узла, наклонённая орбита — наклонением. */
+  const поВремени = форма.pattern === 'sso'
+  const готов = форма.name.trim() !== '' && форма.altitude.trim() !== ''
+    && форма.planes.trim() !== '' && форма.per_plane.trim() !== ''
+
+  const завести = () => {
+    setЗанято(true); setОтказ(null)
+    const подгруппа: Record<string, unknown> = {
+      pattern: форма.pattern,
+      altitude: Number(форма.altitude),
+      planes: Number(форма.planes),
+      per_plane: Number(форма.per_plane),
+    }
+    if (форма.inclination.trim()) подгруппа[поВремени ? 'ltan' : 'inclination'] = форма.inclination.trim()
+    const тело: Record<string, unknown> = {
+      name: форма.name.trim(), working: true, subgroups: [подгруппа], author: 'инженер',
+    }
+    if (форма.metric.trim() && форма.value.trim()) {
+      тело.metrics = [{ key: форма.metric.trim(), value: Number(форма.value) }]
+    }
+    api.addVariant(project, тело)
+      .then(() => { setФорма({ ...форма, name: '', metric: '', value: '' }); onЗаведён() })
+      .catch((e) => setОтказ(String(e.message ?? e)))
+      .finally(() => setЗанято(false))
+  }
+
+  return (
+    <div className="v2-form">
+      {отказ && <div className="v2-locked">{отказ}</div>}
+      <div className="v2-form v2-form--row">
+        <label>Имя варианта
+          <input value={форма.name} placeholder="V1 · 24 КА в трёх плоскостях"
+            aria-label="имя варианта построения"
+            onChange={(e) => setФорма({ ...форма, name: e.target.value })} />
+        </label>
+        <label>Строй
+          <select value={форма.pattern} aria-label="строй группировки"
+            onChange={(e) => setФорма({ ...форма, pattern: e.target.value })}>
+            <option value="walker_delta">Walker-Delta</option>
+            <option value="walker_star">Walker-Star</option>
+            <option value="sso">ССО</option>
+          </select>
+        </label>
+      </div>
+      <div className="v2-form v2-form--row">
+        <label>Высота, км
+          <input value={форма.altitude} inputMode="numeric" placeholder="550"
+            aria-label="высота орбиты, км"
+            onChange={(e) => setФорма({ ...форма, altitude: e.target.value })} />
+        </label>
+        <label>{поВремени ? 'ЛВУ (время прохождения узла)' : 'Наклонение, °'}
+          <input value={форма.inclination} placeholder={поВремени ? '10:30' : '53'}
+            aria-label={поВремени ? 'ЛВУ' : 'наклонение орбиты'}
+            onChange={(e) => setФорма({ ...форма, inclination: e.target.value })} />
+        </label>
+        <label>Плоскостей
+          <input value={форма.planes} inputMode="numeric" placeholder="3"
+            aria-label="число плоскостей"
+            onChange={(e) => setФорма({ ...форма, planes: e.target.value })} />
+        </label>
+        <label>В плоскости
+          <input value={форма.per_plane} inputMode="numeric" placeholder="8"
+            aria-label="аппаратов в плоскости"
+            onChange={(e) => setФорма({ ...форма, per_plane: e.target.value })} />
+        </label>
+      </div>
+      <div className="v2-form v2-form--row">
+        <label title="показатель нужен сравнению вариантов, документу — нет">показатель (если есть)
+          <input value={форма.metric} placeholder="coverage"
+            aria-label="ключ показателя варианта"
+            onChange={(e) => setФорма({ ...форма, metric: e.target.value })} />
+        </label>
+        <label>значение
+          <input value={форма.value} inputMode="decimal" placeholder="0.92"
+            aria-label="значение показателя варианта"
+            onChange={(e) => setФорма({ ...форма, value: e.target.value })} />
+        </label>
+        <button type="button" className="v2-primary" disabled={занято || !готов}
+          title={готов
+            ? 'записать вариант построения'
+            : 'вариант описывается строем: имя, высота, плоскости и число аппаратов в плоскости'}
+          onClick={завести}>
+          {занято ? 'Завожу…' : 'Завести вариант'}
+        </button>
+      </div>
+      {!готов && (
+        <div className="v2-empty__why">
+          Нажать нельзя, пока не названы имя, высота, число плоскостей и аппаратов в плоскости:
+          вариант описывается строем, а не одним словом.
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function Variants({ project }: { project: string }) {
   const [строки, setСтроки] = useState<VariantRow[] | null>(null)
   const [пояснение, setПояснение] = useState('')
+  const [открыта, setОткрыта] = useState(false)
 
-  useEffect(() => {
+  const перечитать = useCallback(() => {
     api.variants(project)
       .then((r) => { setСтроки(r.items); setПояснение(r.note) })
       .catch(() => setСтроки([]))
   }, [project])
+  useEffect(перечитать, [перечитать])
 
   const все = строки ?? []
   const показатели = все[0]?.metrics ?? []
@@ -307,13 +421,27 @@ export function Variants({ project }: { project: string }) {
           {строки === null ? 'читаю…'
             : `${все.length} · на фронте Парето ${все.filter((в) => в.pareto).length}`}
         </span>
+        <span className="v2-head__spacer" />
+        <button type="button" className="v2-chip" aria-pressed={открыта}
+          title="завести вариант построения: строй группировки, высота, плоскости"
+          onClick={() => setОткрыта(!открыта)}>
+          {открыта ? 'свернуть' : 'Завести вариант'}
+        </button>
       </h3>
+
+      <div className="v2-empty__why">
+        Вариант построения — это СТРОЙ: сколько аппаратов, в скольких плоскостях, на какой
+        высоте. Им наполняется §2 отчёта о концепции миссии («Варианты построения и их
+        метрики»), а показатели нужны сравнению: без них вариант в документ всё равно идёт.
+      </div>
+
+      {открыта && <ФормаВарианта project={project} onЗаведён={() => { setОткрыта(false); перечитать() }} />}
 
       {строки !== null && все.length === 0 ? (
         <div className="v2-empty">
           Вариантов построения нет.
           <span className="v2-empty__why">
-            Сравнивать нечего, пока вариант один: альтернативы заводятся в сцене 7.
+            Сравнивать нечего, пока вариант один: заведите альтернативы кнопкой «Завести вариант».
           </span>
         </div>
       ) : (
