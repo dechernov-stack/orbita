@@ -338,7 +338,8 @@ export function Shell() {
           ) : section === 'models' ? (
             <Models project={project} />
           ) : section === 'documents' ? (
-            <Documents project={project} />
+            <Documents project={project}
+              onGoScene={(сцена) => { setWantScene(сцена); setSection('work') }} />
           ) : section === 'library' ? (
             <Library />
           ) : section === 'external' ? (

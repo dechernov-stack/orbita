@@ -11,6 +11,7 @@ import концепция from './concept.tsx?raw'
 import клиент from './api.ts?raw'
 import реестр from './programmatics.tsx?raw'
 import клиентИсследования from './research.tsx?raw'
+import оболочка from './shell.tsx?raw'
 
 describe('базирование документа', () => {
   it('вход есть на экране документа, а не только в маршруте', () => {
@@ -123,5 +124,19 @@ describe('где мы находимся', () => {
     expect(документы).toContain("?.find((с) => с.our_ref === `document_template:${code}`)")
     expect(документы).toContain('ждёт зрелость')
     expect(документы).toContain('Пока так — точка не пустит.')
+  })
+})
+
+describe('дорога от раздела к сцене', () => {
+  it('раздел, которого ждут, ведёт на свою сцену', () => {
+    // «§2 Анализ альтернатив … ждёт сцен 7» — это адрес, а не жалоба:
+    // без перехода человек читает его и не знает, куда идти (21.09).
+    expect(документы).toContain('к месту: сцена {с}')
+    expect(документы).toContain('onGoScene={onGoScene}')
+    expect(оболочка).toContain("<Documents project={project}\n              onGoScene={(сцена) => { setWantScene(сцена); setSection('work') }} />")
+  })
+
+  it('десять сцен разом — не адрес: дорога предлагается, когда она одна-три', () => {
+    expect(документы).toContain('const адресУзнан = сцены.length > 0 && сцены.length <= 3')
   })
 })

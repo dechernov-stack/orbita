@@ -11,7 +11,11 @@ import { ConfirmBox, useConfirm } from '../ui/Confirm'
 import { api, ServerRefusal, type DocBaseline, type DocSection, type DocView, type Gate, type VerificationReport } from './api'
 import { useАвтор, отказСловами } from './research'
 
-export function Documents({ project }: { project: string | null }) {
+export function Documents({ project, onGoScene }: {
+  project: string | null
+  /** Переход «к месту»: сцена, которой раздел наполняется. */
+  onGoScene?: (сцена: string) => void
+}) {
   const [список, setСписок] = useState<DocView[] | null>(null)
   const [открыт, setОткрыт] = useState<DocView | null>(null)
   const [отказ, setОтказ] = useState<string | null>(null)
@@ -30,7 +34,7 @@ export function Documents({ project }: { project: string | null }) {
 
   if (открыт) {
     return (
-      <DocumentBody project={project} code={открыт.code}
+      <DocumentBody project={project} code={открыт.code} onGoScene={onGoScene}
         onClose={() => { setОткрыт(null); перечитать() }} />
     )
   }
@@ -168,12 +172,14 @@ function склонение(сколько: number): string {
 }
 
 /** Документ целиком: разделы с элементами так, как они напечатаются. */
-export function DocumentBody({ project, code, section, onClose }: {
+export function DocumentBody({ project, code, section, onClose, onGoScene }: {
   project: string
   code: string
   /** Открыть только один раздел — переход из мероприятия. */
   section?: string
   onClose?: () => void
+  /** Переход «к месту»: сцена, которой раздел наполняется. */
+  onGoScene?: (сцена: string) => void
 }) {
   const [вид, setВид] = useState<DocView | null>(null)
   const [отказ, setОтказ] = useState<string | null>(null)
@@ -237,7 +243,9 @@ export function DocumentBody({ project, code, section, onClose }: {
           )
         }} />
       )}
-      {разделы.map((р) => <Section key={р.no} раздел={р} подсвечен={подсвечен} />)}
+      {разделы.map((р) => (
+        <Section key={р.no} раздел={р} подсвечен={подсвечен} onGoScene={onGoScene} />
+      ))}
       {!section && (
         <div className="v2-doc__add">
           <select value={куда} onChange={(e) => setКуда(e.target.value)}
@@ -259,7 +267,24 @@ export function DocumentBody({ project, code, section, onClose }: {
   )
 }
 
-function Section({ раздел, подсвечен }: { раздел: DocSection; подсвечен?: string | null }) {
+function Section({ раздел, подсвечен, onGoScene }: {
+  раздел: DocSection
+  подсвечен?: string | null
+  /** Переход «к месту»: сцена, которой раздел и наполняется. */
+  onGoScene?: (сцена: string) => void
+}) {
+  /**
+   * Сцены, которых ждёт раздел: названы в самом шаблоне, не в коде.
+   *
+   * Раздел, который «наполняется по ходу фазы», называет десять сцен разом
+   * (§11 отчёта — открытые вопросы): десять кнопок «к месту» — это не адрес,
+   * а шум, поэтому дорога предлагается, только когда она одна-две-три.
+   */
+  const сцены = [...new Set([
+    ...раздел.scenes,
+    ...раздел.elements.flatMap((э) => э.waiting_scenes),
+  ])].filter(Boolean)
+  const адресУзнан = сцены.length > 0 && сцены.length <= 3
   return (
     <div className="v2-doc__sec">
       <div className="v2-doc__h">
@@ -267,6 +292,18 @@ function Section({ раздел, подсвечен }: { раздел: DocSectio
         <span className={раздел.complete ? 'v2-st v2-st--done' : 'v2-st'}>
           {раздел.complete ? 'раздел полон' : раздел.waiting.join('; ')}
         </span>
+        {/*
+          «Ждёт сцен 7» — это адрес, а не жалоба: без перехода человек читает
+          его и не знает, куда идти (владелец, 21.09). Сцену называет шаблон
+          раздела, экран её не угадывает.
+        */}
+        {!раздел.complete && onGoScene && адресУзнан && сцены.map((с) => (
+          <button key={с} type="button" className="v2-link"
+            title={`открыть сцену ${с} — этим разделом она и кончается`}
+            onClick={() => onGoScene(с)}>
+            к месту: сцена {с}
+          </button>
+        ))}
       </div>
       {раздел.elements.map((э) => (
         <div key={э.code} id={`v2-el-${э.code}`}
