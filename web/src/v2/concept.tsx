@@ -10,6 +10,9 @@ import { api, type ComponentRow, type ConceptRow } from './api'
 // у раздела «Модели» это ОДНА таблица показателей, а не две похожие.
 import { Variants } from './models'
 
+/** Длинный состав: дальше перечень читают как справку, а не как экран работы. */
+const ДЛИННЫЙ = 12
+
 export function Concept({ project }: { project: string | null }) {
   const [узлы, setУзлы] = useState<ComponentRow[]>([])
   const [отказ, setОтказ] = useState<string | null>(null)
@@ -18,6 +21,7 @@ export function Concept({ project }: { project: string | null }) {
   const [концепции, setКонцепции] = useState<ConceptRow[]>([])
   const [вариант, setВариант] = useState({ variant: '', rationale: '', rejected: '', reason: '' })
 
+  const [развёрнут, setРазвёрнут] = useState(false)
   const [каркас, setКаркас] = useState<{ shelf: string; nodes?: number; already?: number; levels?: number; rule?: string; note: string } | null>(null)
   const [беру, setБеру] = useState(false)
   const [итог, setИтог] = useState<string | null>(null)
@@ -60,6 +64,19 @@ export function Concept({ project }: { project: string | null }) {
         <div className="v2-card__head">
           <span className="v2-card__title">Состав системы</span>
           <span className="v2-card__count">{узлы.length}</span>
+          {/*
+            Длинный состав — это СПРАВКА, а не работа: сорок девять узлов
+            занимали весь первый экран сцены, и карточки ниже человек просто
+            не находил (владелец, 21.09: «есть только базовый вариант»).
+            Свёрнут, пока не понадобится; короткий состав виден целиком.
+          */}
+          {узлы.length > ДЛИННЫЙ && (
+            <button type="button" className="v2-link" aria-pressed={развёрнут}
+              title={развёрнут ? 'свернуть перечень узлов' : 'показать все узлы состава'}
+              onClick={() => setРазвёрнут(!развёрнут)}>
+              {развёрнут ? 'свернуть' : `показать все ${узлы.length}`}
+            </button>
+          )}
         </div>
         {итог && <div className="v2-note-line">{итог}</div>}
         {каркас && (каркас.nodes ?? 0) > (каркас.already ?? 0) && (
@@ -87,12 +104,15 @@ export function Concept({ project }: { project: string | null }) {
           </div>
         ) : (
           <ul className="v2-tree">
-            {узлы.map((у) => (
+            {(развёрнут ? узлы : узлы.slice(0, ДЛИННЫЙ)).map((у) => (
               <li key={у.code}>
                 <span className="v2-tree__node">{у.code}</span> {у.name}
                 <span className="v2-dim"> · уровень {у.level} · {у.nature === 'behaviour' ? 'поведение' : 'носитель'}</span>
               </li>
             ))}
+            {!развёрнут && узлы.length > ДЛИННЫЙ && (
+              <li className="v2-dim">…и ещё {узлы.length - ДЛИННЫЙ}: «показать все» в шапке карточки</li>
+            )}
           </ul>
         )}
         <div className="v2-form">
@@ -116,6 +136,12 @@ export function Concept({ project }: { project: string | null }) {
         </div>
       </div>
 
+
+      {/* Варианты — ПЕРЕД выбором базового: выбирают из них, и карточка
+          стоит там, где человек и смотрит. Сравнение — рядом с выбором: решение принимают, ГЛЯДЯ на показатели,
+          а не вспоминая их. Балла у варианта нет намеренно. */}
+      <Variants project={project} />
+
       <div className="v2-card">
         <div className="v2-card__head">
           <span className="v2-card__title">Базовый вариант</span>
@@ -134,11 +160,7 @@ export function Concept({ project }: { project: string | null }) {
             <div key={к.code} className="v2-note">
               <span className="v2-note__rule">{к.code}</span>
               <span>вариант {к.variant}: {к.rationale}</span>
-              <span className="v2-empty__why">
-                решил {к.decided_by}
-                {к.rejected?.length > 0 && ` · отклонены: ${к.rejected.map((о) => `${о.variant} (${о.reason})`).join('; ')}`}
-                {к.descopes?.length > 0 && ` · отложено: ${к.descopes.length}`}
-              </span>
+              <span className="v2-empty__why">решил {к.decided_by}</span>
               <СпискиКонцепции project={project} концепция={к} onChanged={перечитать} />
             </div>
           ))
@@ -228,10 +250,6 @@ export function Concept({ project }: { project: string | null }) {
           </div>
         </div>
       </div>
-
-      {/* Сравнение — рядом с выбором: решение принимают, ГЛЯДЯ на показатели,
-          а не вспоминая их. Балла у варианта нет намеренно. */}
-      <Variants project={project} />
     </>
   )
 }
@@ -266,7 +284,6 @@ function СпискиКонцепции({ project, концепция, onChanged
 
   return (
     <div className="v2-note">
-      <span className="v2-note__rule">{концепция.code} · списки решения</span>
       {отказ && <div className="v2-locked">{отказ}</div>}
 
       <span className="v2-field__cap">
