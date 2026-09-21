@@ -86,16 +86,12 @@
               "field": "name"
             },
             {
-              "title": "Стандарт",
-              "field": "standard"
-            },
-            {
               "title": "Класс миссии",
               "field": "mission_class"
             },
             {
               "title": "Фаза",
-              "field": "phase"
+              "field": "phase_current"
             }
           ]
         }
@@ -286,12 +282,11 @@
               "field": "place"
             },
             {
-              "title": "Отклонение (tailoring)",
-              "field": "tailoring"
+              "title": "Отклонение разрешено",
+              "field": "tailoring_allowed"
             }
           ],
-          "area": "library",
-          "expand": "processes"
+          "area": "library"
         }
       ],
       "expects": "SRR",
@@ -449,16 +444,19 @@
           "min_rows": 1,
           "columns": [
             {
-              "title": "Область",
-              "field": "area"
+              "title": "Процесс",
+              "field": "name"
             },
             {
-              "title": "Инструмент",
-              "field": "tool"
+              "title": "Механизм «Орбиты»",
+              "field": "orbita_mechanism"
+            },
+            {
+              "title": "Место",
+              "field": "place"
             }
           ],
-          "area": "library",
-          "expand": "tools"
+          "area": "library"
         }
       ],
       "expects": "SRR",

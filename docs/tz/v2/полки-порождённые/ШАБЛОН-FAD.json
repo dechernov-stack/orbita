@@ -131,11 +131,7 @@
             },
             {
               "title": "Руководитель",
-              "field": "lead"
-            },
-            {
-              "title": "Стандарт",
-              "field": "standard"
+              "field": "manager"
             }
           ]
         },
@@ -180,11 +176,11 @@
             },
             {
               "title": "Ограничение",
-              "field": "text"
+              "field": "statement"
             },
             {
               "title": "Категория",
-              "field": "category"
+              "field": "type"
             }
           ]
         }
@@ -209,20 +205,20 @@
           "min_rows": 1,
           "columns": [
             {
-              "title": "Пакет",
-              "field": "package"
+              "title": "Пакет работ",
+              "field": "scope"
             },
             {
               "title": "От",
-              "field": "min"
+              "field": "range.min"
             },
             {
               "title": "До",
-              "field": "max"
+              "field": "range.max"
             },
             {
               "title": "Ед.",
-              "field": "unit"
+              "field": "range.unit"
             }
           ]
         }

@@ -92,10 +92,6 @@
               "field": "name"
             },
             {
-              "title": "Стандарт",
-              "field": "standard"
-            },
-            {
               "title": "Класс миссии",
               "field": "mission_class"
             }
@@ -234,20 +230,20 @@
           "min_rows": 1,
           "columns": [
             {
-              "title": "Пакет",
-              "field": "package"
+              "title": "Пакет работ",
+              "field": "scope"
             },
             {
               "title": "От",
-              "field": "min"
+              "field": "range.min"
             },
             {
               "title": "До",
-              "field": "max"
+              "field": "range.max"
             },
             {
               "title": "Ед.",
-              "field": "unit"
+              "field": "range.unit"
             }
           ]
         }
@@ -271,20 +267,20 @@
           "min_rows": 1,
           "columns": [
             {
-              "title": "Пакет",
-              "field": "package"
+              "title": "Пакет работ",
+              "field": "scope"
             },
             {
               "title": "От",
-              "field": "min"
+              "field": "range.min"
             },
             {
               "title": "До",
-              "field": "max"
+              "field": "range.max"
             },
             {
               "title": "Ед.",
-              "field": "unit"
+              "field": "range.unit"
             }
           ]
         }
@@ -323,7 +319,7 @@
             },
             {
               "title": "Показатель",
-              "field": "metric"
+              "field": "measure"
             },
             {
               "title": "Год",

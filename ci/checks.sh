@@ -56,6 +56,10 @@ echo "== один сериализатор на вид ==" ; python3 tools/valid
 # Справочник единиц (решение ранга ADR): unit-строки ∈ справочнику
 echo "== формат обмена вне ядра ==" ; python3 tools/validate_no_reqif_in_core.py
 echo "== поверхность у выхода сцены ==" ; python3 tools/validate_scene_surfaces.py
+# 21.09: §3 FAD напечатал одиннадцать прочерков — запрос просил у вида
+# «ограничение» поля «text»/«category», которых у него нет. Колонка не
+# кричит, она печатает прочерк, и документ уходит на точку пустым.
+echo "== печать просит поля вида ==" ; python3 tools/validate_document_queries.py
 echo "== единицы =="          ; python3 tools/validate_units.py && python3 tools/validate_units.py --selftest
 
 # StrictDoc-канал (ADR-049, ADR-064): детерминизм и круговой обмен. Собственный

@@ -27,6 +27,12 @@ import sys
 # Ожидание поставки → наш элемент. Ключ: (код шаблона, номер раздела).
 # Каждый раздел: сцены-источники, ожидание ступени, запросы, минимум тезисов,
 # помета о том, чего мы пока не умеем.
+# Имена полей в колонках — ИМЕНАМИ ИСТИНЫ схем (СХЕМЫ-ПОЛЕЙ-V2.yaml), а не
+# словами поставки: печать ищет поле в документе сущности по имени и молча
+# печатает прочерк, если имени нет. Владелец 21.09 увидел §3 FAD, где все
+# одиннадцать ограничений напечатались как «— —»: запрос просил `text`
+# и `category`, а у вида `constraint` поля зовутся `statement` и `type`.
+# Сторож tools/validate_document_queries.py теперь ловит такое до печати.
 РАЗДЕЛЫ = {
     ("fad", "1"): dict(scenes=["2"], expects="MCR", min_statements=1,
         statement_hint="связь с целями дирекции; основание инициирования",
@@ -34,16 +40,16 @@ import sys
             columns=[("Для кого", "for_whom"), ("Что делает", "what"), ("Где", "where"), ("Горизонт", "horizon")])]),
     ("fad", "2"): dict(scenes=["1", "3"], expects="MCR", elements=[
         dict(code="2.1", title="Руководитель проекта", select="project", min_rows=1,
-            columns=[("Проект", "name"), ("Руководитель", "lead"), ("Стандарт", "standard")]),
+            columns=[("Проект", "name"), ("Руководитель", "manager")]),
         dict(code="2.2", title="Ведущий центр и участвующие организации", select="stakeholder", min_rows=1,
             columns=[("Сторона", "name"), ("Роль", "role")])]),
     ("fad", "3"): dict(scenes=["5"], expects="MCR", min_statements=1,
         statement_hint="границы санкционируемых работ; категория проекта; интерфейсы с программой",
         elements=[dict(code="3.1", title="Ограничения и исходные требования", select="constraint", min_rows=1,
-            columns=[("Код", "code"), ("Ограничение", "text"), ("Категория", "category")])]),
+            columns=[("Код", "code"), ("Ограничение", "statement"), ("Категория", "type")])]),
     ("fad", "4"): dict(scenes=["12"], expects="MCR", elements=[
         dict(code="4.1", title="Ресурсы Формулирования", select="cost_estimate", min_rows=1,
-            columns=[("Пакет", "package"), ("От", "min"), ("До", "max"), ("Ед.", "unit")])]),
+            columns=[("Пакет работ", "scope"), ("От", "range.min"), ("До", "range.max"), ("Ед.", "range.unit")])]),
     ("fad", "5"): dict(scenes=["1"], expects="MCR", elements=[
         dict(code="5.1", title="Контрольные события Формулирования", select="gate", min_rows=3,
             columns=[("Точка", "title"), ("Дата", "planned_date"), ("Состояние", "status")])]),
@@ -54,7 +60,7 @@ import sys
         statement_hint="период действия; стороны",
         elements=[
             dict(code="1.1", title="Проект", select="project", min_rows=1,
-                columns=[("Проект", "name"), ("Стандарт", "standard"), ("Класс миссии", "mission_class")]),
+                columns=[("Проект", "name"), ("Класс миссии", "mission_class")]),
             dict(code="1.2", title="Документ санкционирования (FAD)", select="document", where={"template": "fad"}, min_rows=1,
                 columns=[("Документ", "title"), ("Состояние", "status")])]),
     ("fa", "2"): dict(scenes=["10", "11"], expects="MCR", min_statements=1,
@@ -74,17 +80,17 @@ import sys
             dict(code="4.1", title="Календарный план: даты точек", select="plan", expand="gate_dates", min_rows=1,
                 columns=[("Точка", "gate"), ("Дата", "date")]),
             dict(code="4.2", title="Диапазоны стоимости и сроков", select="cost_estimate", min_rows=1,
-                columns=[("Пакет", "package"), ("От", "min"), ("До", "max"), ("Ед.", "unit")])]),
+                columns=[("Пакет работ", "scope"), ("От", "range.min"), ("До", "range.max"), ("Ед.", "range.unit")])]),
     ("fa", "5"): dict(scenes=["12"], expects="KDP-A", min_statements=1,
         statement_hint="трудовые ресурсы; инфраструктура",
         elements=[dict(code="5.1", title="Финансирование Phase A–B", select="cost_estimate", min_rows=1,
-            columns=[("Пакет", "package"), ("От", "min"), ("До", "max"), ("Ед.", "unit")])]),
+            columns=[("Пакет работ", "scope"), ("От", "range.min"), ("До", "range.max"), ("Ед.", "range.unit")])]),
     ("fa", "6"): dict(scenes=[], expects="KDP-A", elements=[],
         note="Записей tailoring (неприменимо у критериев, отклонения лестницы, шаблонов) в реестре пока нет — "
              "раздел не держит документ; появятся записи — появится запрос."),
     ("fa", "7"): dict(scenes=["4"], expects="KDP-A", elements=[
         dict(code="7.1", title="Ведущие индикаторы: показатели целей", select="goal", min_rows=1,
-            columns=[("Цель", "statement"), ("Показатель", "metric"), ("Год", "year")])]),
+            columns=[("Цель", "statement"), ("Показатель", "measure"), ("Год", "year")])]),
     ("fa", "8"): dict(scenes=[], expects="KDP-A", elements=[
         dict(code="8.1", title="Решения точек (согласование)", select="decision", min_rows=1,
             columns=[("Точка", "gate"), ("Кем", "by"), ("Когда", "at"), ("Исход", "outcome")])]),
