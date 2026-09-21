@@ -388,8 +388,9 @@ button:disabled { opacity: .55; cursor: default; }
 .v2-tab2 th, .v2-tab2 td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
 .v2-tab2 th { color: var(--ink-soft); font-weight: 500; font-size: var(--size-s); }
 
-/* Строка документа: имя, стандарт, полнота — код документа человеку не нужен. */
-.v2-row--doc { grid-template-columns: 1fr auto auto; gap: var(--pad-l); }
+/* Строка документа: имя, стандарт, полнота и базирование — код документа
+   человеку не нужен, а состояние линии ворота спрашивают у каждого. */
+.v2-row--doc { grid-template-columns: 1fr auto auto auto; gap: var(--pad-l); }
 
 /* Полоса предложений поля знаний (эталон reference-activity-engineer, .prop). */
 .v2-prop {
