@@ -50,6 +50,30 @@ export function прочитатьАвтора(): string {
   }
 }
 
+/**
+ * Имя автора для форм: из памяти окна, а если её нет — ИЗ УЧЁТКИ.
+ *
+ * Пустое имя запирало кнопку, а подпись «назовите себя» жила в подсказке,
+ * которой не видно: владелец 21.09 нажал «Базировать» и «вернулся всё так
+ * же». Приложение знает, кто вошёл, — спрашивать его имя заново незачем.
+ */
+export function useАвтор(): [string, (имя: string) => void] {
+  const [автор, setАвтор] = useState(прочитатьАвтора)
+  useEffect(() => {
+    if (автор.trim()) return
+    let живо = true
+    fetch('/api/auth/whoami')
+      .then((о) => о.json())
+      .then((д) => {
+        const имя = String(д?.user?.author ?? д?.user?.display_name ?? '').trim()
+        if (живо && имя) { setАвтор(имя); запомнитьАвтора(имя) }
+      })
+      .catch(() => undefined)
+    return () => { живо = false }
+  }, [автор])
+  return [автор, (имя: string) => { setАвтор(имя); запомнитьАвтора(имя) }]
+}
+
 export function запомнитьАвтора(имя: string): void {
   try {
     localStorage.setItem(ИМЯ_АВТОРА, имя)

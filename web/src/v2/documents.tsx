@@ -9,7 +9,7 @@
 import { useEffect, useState } from 'react'
 import { ConfirmBox, useConfirm } from '../ui/Confirm'
 import { api, ServerRefusal, type DocBaseline, type DocSection, type DocView, type VerificationReport } from './api'
-import { запомнитьАвтора, отказСловами, прочитатьАвтора } from './research'
+import { useАвтор, отказСловами } from './research'
 
 export function Documents({ project }: { project: string | null }) {
   const [список, setСписок] = useState<DocView[] | null>(null)
@@ -71,6 +71,13 @@ export function Documents({ project }: { project: string | null }) {
   )
 }
 
+/** «не хватает 1 раздела · 2 разделов»: счёт в тексте читается словом. */
+function склонение(сколько: number): string {
+  const сто = сколько % 100
+  if (сто >= 11 && сто <= 14) return 'разделов'
+  return [5, 6, 7, 8, 9, 0].includes(сколько % 10) ? 'разделов' : сколько % 10 === 1 ? 'раздела' : 'разделов'
+}
+
 /** Документ целиком: разделы с элементами так, как они напечатаются. */
 export function DocumentBody({ project, code, section, onClose }: {
   project: string
@@ -97,13 +104,16 @@ export function DocumentBody({ project, code, section, onClose }: {
   if (!вид) return <div className="v2-panel" data-why="работа"><div className="v2-empty">Читаю документ…</div></div>
 
   const разделы = section ? вид.sections.filter((р) => р.no === section) : вид.sections
+  /** Разделы, которых ступень ждёт, а они не полны: из них и складывается счёт. */
+  const неполные = вид.sections.filter((р) => р.due_now && !р.complete)
 
   return (
     <div className="v2-panel" data-why="работа">
       <h3>
         {вид.title}
         <span className="v2-cnt">
-          {вид.standard} · полнота {вид.complete} из {вид.total}
+          {вид.standard} · полнота {вид.complete} из {вид.total} к {вид.gate}
+          {вид.not_due_yet > 0 && ` · ещё не ждут: ${вид.not_due_yet}`}
           {'  '}
           <a className="v2-link" href={api.printUrl(project, code)} target="_blank" rel="noreferrer"
             title="печать: файл собирает сервер теми же строками, что на экране">печать</a>
@@ -116,7 +126,16 @@ export function DocumentBody({ project, code, section, onClose }: {
           )}
         </span>
       </h3>
-      {!section && <Baselines project={project} code={code} title={вид.title} />}
+      {!section && (
+        <div className="v2-empty__why">
+          {неполные.length === 0
+            ? `Документ полон к ${вид.gate}: все разделы, которых ждёт эта ступень, заполнены.`
+            : `К ${вид.gate} не хватает ${неполные.length} ${склонение(неполные.length)}: `
+              + неполные.map((р) => `${р.no} ${р.title} (${(р.waiting[0] ?? 'нет строк').replace(/\s+/g, ' ').slice(0, 60)})`).join('; ')}
+          {вид.not_due_yet > 0 && ` Ещё ${вид.not_due_yet} — к следующим ступеням: их эта точка не ждёт.`}
+        </div>
+      )}
+      {!section && <Baselines project={project} code={code} title={вид.title} gate={вид.gate} />}
       {!section && (
         <FieldCheck project={project} code={code} вид={вид} onJump={(элемент) => {
           const адрес = элемент.split('#')[0]
@@ -212,12 +231,18 @@ function Section({ раздел, подсвечен }: { раздел: DocSectio
  * обзор. Линия неизменяема; перебазирование заводит НОВОЕ имя, поэтому
  * занятое имя экран не даёт нажать, а отказ сервера показывает словами.
  */
-function Baselines({ project, code, title }: { project: string; code: string; title: string }) {
+function Baselines({ project, code, title, gate }: {
+  project: string
+  code: string
+  title: string
+  /** Ступень, на которую документ идёт: её именем линию и зовут. */
+  gate: string
+}) {
   const [линии, setЛинии] = useState<DocBaseline[] | null>(null)
   const [точки, setТочки] = useState<{ key: string; title: string; passed: boolean }[]>([])
   const [раскрыт, setРаскрыт] = useState(false)
   const [имя, setИмя] = useState('')
-  const [автор, setАвтор] = useState(прочитатьАвтора)
+  const [автор, setАвтор] = useАвтор()
   const [занято, setЗанято] = useState(false)
   const [отказ, setОтказ] = useState<string | null>(null)
   const [итог, setИтог] = useState<string | null>(null)
@@ -232,11 +257,24 @@ function Baselines({ project, code, title }: { project: string; code: string; ti
       .catch(() => setТочки([]))
   }, [project])
 
-  /** Имя по умолчанию — ближайшая непройденная точка: ею документ и идёт. */
-  const ближайшая = точки.find((т) => !т.passed)?.title ?? точки[точки.length - 1]?.title ?? ''
+  /**
+   * Имя по умолчанию — ТА САМАЯ точка, к которой документ считается полным:
+   * им он и уходит на обзор. Внутренний обзор в лестницу документов не
+   * входит, поэтому «ближайшая непройденная» здесь была бы не та.
+   */
+  const ближайшая = точки.find((т) => т.key === gate)?.title
+    ?? точки.find((т) => !т.passed)?.title ?? ''
   const выбрано = имя.trim() || ближайшая
   const занятоИмя = (линии ?? []).some((л) => л.name === выбрано)
   const безАвтора = !автор.trim()
+  /** Почему кнопка заперта — словами на экране, а не подсказкой под курсором. */
+  const помеха = безАвтора
+    ? 'не названо, кто базирует. Приложение подставляет имя учётки; если поле пусто — впишите себя.'
+    : !выбрано
+      ? 'у линии нет имени: им зовут состояние, с которым документ идёт на точку.'
+      : занятоИмя
+        ? `линия «${выбрано}» уже есть. Линия неизменяема — назовите другое имя, например с датой.`
+        : null
 
   const базировать = () => {
     setЗанято(true); setОтказ(null); setИтог(null)
@@ -301,7 +339,7 @@ function Baselines({ project, code, title }: { project: string; code: string; ti
             </datalist>
             <label title="линию заводит названный человек: пустого автора сервер не принимает">кто базирует
               <input value={автор} placeholder="Иванов"
-                onChange={(e) => { const н = e.target.value; setАвтор(н); запомнитьАвтора(н) }} />
+                onChange={(e) => setАвтор(e.target.value)} />
             </label>
             <button type="button" className="v2-primary"
               disabled={занято || безАвтора || !выбрано || занятоИмя}
@@ -316,6 +354,7 @@ function Baselines({ project, code, title }: { project: string; code: string; ti
               {занято ? 'Базирую…' : 'Базировать'}
             </button>
           </div>
+          {помеха && <div className="v2-locked">Нажать нельзя: {помеха}</div>}
         </div>
       )}
     </>
@@ -350,7 +389,7 @@ function FieldCheck({ project, code, вид, onJump }: {
   /** Поле знаний v2 на проекте выключено: слова сервера показываются как есть. */
   const [выключено, setВыключено] = useState<string | null>(null)
   const [подпись, setПодпись] = useState<string | null>(null)
-  const [автор, setАвтор] = useState(прочитатьАвтора)
+  const [автор, setАвтор] = useАвтор()
   const [ask, askConfirm, closeConfirm] = useConfirm()
 
   const перечитать = () => {
@@ -441,7 +480,7 @@ function FieldCheck({ project, code, вид, onJump }: {
               <div className="v2-form v2-form--row">
                 <label title="проверку заводит названный человек: пустого автора сервер не принимает">кто проверяет
                   <input value={автор} placeholder="Иванов"
-                    onChange={(e) => { const имя = e.target.value; setАвтор(имя); запомнитьАвтора(имя) }} />
+                    onChange={(e) => setАвтор(e.target.value)} />
                 </label>
                 <button type="button" className="v2-primary" disabled={занято || безАвтора}
                   title={безАвтора

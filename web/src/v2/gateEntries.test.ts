@@ -10,6 +10,7 @@ import документы from './documents.tsx?raw'
 import концепция from './concept.tsx?raw'
 import клиент from './api.ts?raw'
 import реестр from './programmatics.tsx?raw'
+import клиентИсследования from './research.tsx?raw'
 
 describe('базирование документа', () => {
   it('вход есть на экране документа, а не только в маршруте', () => {
@@ -78,5 +79,26 @@ describe('оценка риска', () => {
   it('уровень считает сервер, а не экран', () => {
     expect(реестр).toContain('пересчёт уровня (вероятность × влияние) делает сервер')
     expect(реестр).not.toContain('probability * impact')
+  })
+})
+
+describe('полнота документа и запертая кнопка', () => {
+  it('полнота названа ступенью, а не голым числом', () => {
+    // Владелец 21.09: «и 3 из 5 — непонятно». Пять — это разделы, которых
+    // ждёт ТЕКУЩАЯ ступень, и без её имени число не значит ничего.
+    expect(документы).toContain('полнота {вид.complete} из {вид.total} к {вид.gate}')
+    expect(документы).toContain('вид.not_due_yet > 0')
+    expect(документы).toContain('const неполные = вид.sections.filter((р) => р.due_now && !р.complete)')
+  })
+
+  it('имя автора берётся из учётки, а не спрашивается заново', () => {
+    expect(документы).toContain('const [автор, setАвтор] = useАвтор()')
+    expect(клиентИсследования).toContain('export function useАвтор()')
+    expect(клиентИсследования).toContain("fetch('/api/auth/whoami')")
+  })
+
+  it('запертая кнопка говорит причину строкой, а не подсказкой под курсором', () => {
+    expect(документы).toContain('{помеха && <div className="v2-locked">Нажать нельзя: {помеха}</div>}')
+    expect(документы).toContain('не названо, кто базирует')
   })
 })

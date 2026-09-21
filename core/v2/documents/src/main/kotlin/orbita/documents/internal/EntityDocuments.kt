@@ -80,9 +80,22 @@ class EntityDocuments(
         return document(project, templateCode)
     }
 
-    override fun list(project: String): List<DocumentView> =
-        store.list(Area.Project(project), "document")
-            .map { document(project, it.doc.path("template").asText(it.code)) }
+    override fun list(project: String): List<DocumentView> {
+        // Ступень считается ОДИН раз на список: она у всех документов проекта
+        // одна и та же, а точки — это запрос в хранилище.
+        val ступень = gateAhead(project)
+        return store.list(Area.Project(project), "document")
+            .map { document(project, it.doc.path("template").asText(it.code), ступень) }
+    }
+
+    override fun gateAhead(project: String): String {
+        val точки = store.list(Area.Project(project), "gate")
+        val пройдены = точки.filter { it.status == "passed" }.map { it.code }.toSet()
+        val есть = точки.map { it.code }.toSet()
+        // Внутренний обзор в лестницу не входит: документы ждут ОБЗОРЫ и
+        // решения, а самопроверка команды полноты не требует.
+        return лестница.firstOrNull { it in есть && it !in пройдены } ?: лестница.first()
+    }
 
     /**
      * Лестница ступеней: раздел, которого ступень ещё не ждёт, документ

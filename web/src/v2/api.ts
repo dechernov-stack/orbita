@@ -713,6 +713,10 @@ export interface DocSection {
   no: string
   title: string
   complete: boolean
+  /** Ступень, к которой раздел обязан быть полным. */
+  expected_by: string
+  /** Ждёт ли раздел ТЕКУЩАЯ ступень: чего она не ждёт, то и не в счёте. */
+  due_now: boolean
   scenes: string[]
   waiting: string[]
   elements: DocElement[]
@@ -724,6 +728,10 @@ export interface DocView {
   standard: string
   complete: number
   total: number
+  /** Ступень, к которой считана полнота: «3 из 5» без неё ничего не значит. */
+  gate: string
+  /** Разделов, которых эта ступень ещё НЕ ждёт: они не в счёте полноты. */
+  not_due_yet: number
   sections: DocSection[]
 }
 
@@ -1353,8 +1361,9 @@ export const api = {
   documents: (project: string) =>
     вызов<{ items: DocView[] }>(`/documents?project=${encodeURIComponent(project)}`),
 
-  document: (project: string, code: string) =>
-    вызов<DocView>(`/documents/${code}?project=${encodeURIComponent(project)}`),
+  document: (project: string, code: string, gate?: string) =>
+    вызов<DocView>(`/documents/${code}?project=${encodeURIComponent(project)}` +
+      (gate ? `&gate=${encodeURIComponent(gate)}` : '')),
 
   ensureDocument: (project: string, template: string, author: string) =>
     вызов<DocView>(`/documents?project=${encodeURIComponent(project)}`,

@@ -172,6 +172,14 @@ interface Documents {
 
     fun list(project: String): List<DocumentView>
 
+    /**
+     * Ступень, к которой документ считают СЕЙЧАС: ближайшая непройденная
+     * точка лестницы проекта. Пройденную MCR считать «текущей» значило бы
+     * показывать полноту к обзору, который уже позади, — владелец 21.09
+     * увидел «полнота 3 из 5» и не понял, к чему это пять (KDP-A ждёт шесть).
+     */
+    fun gateAhead(project: String): String
+
     /** Документ целиком: запросы посчитаны, полнота — к названной ступени. */
     fun document(project: String, code: String, gate: String = "MCR"): DocumentView
 

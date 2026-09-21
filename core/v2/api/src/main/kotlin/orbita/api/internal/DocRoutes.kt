@@ -38,11 +38,12 @@ class DocRoutes(
             подсказки(требуется(query, "project"), требуется(query, "scene"))
 
         method == "GET" && path.matches(Regex("/v2/documents/[a-z_]+")) ->
-            один(
-                требуется(query, "project"),
-                path.removePrefix("/v2/documents/"),
-                query["gate"] ?: "MCR",
-            )
+            требуется(query, "project").let { проект ->
+                // Ступень по умолчанию — БЛИЖАЙШАЯ НЕПРОЙДЕННАЯ точка: считать
+                // полноту к пройденной MCR значило бы мерить документ обзором,
+                // который позади (владелец 21.09: «3 из 5 — непонятно»).
+                один(проект, path.removePrefix("/v2/documents/"), query["gate"] ?: documents.gateAhead(проект))
+            }
 
         method == "POST" && path.matches(Regex("/v2/documents/[a-z_]+/statement")) ->
             тезис(
