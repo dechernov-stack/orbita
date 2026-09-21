@@ -100,8 +100,16 @@ class SceneRoutes(
                 .put("code", проект.code)
                 .put("name", проект.doc.path("name").asText(проект.code))
                 .put("standard", проект.doc.path("standard").asText(""))
-                .put("lead", проект.doc.path("lead").asText(""))
-                .put("phase", проект.doc.path("phase").asText("Pre-Phase A"))
+                // Карточка портфеля читает имена истины, но заведённые прежде
+                // проекты несут старые (`lead`, `phase`) — читаем оба, пока они
+                // живы на стенде.
+                .put("lead", проект.doc.path("manager").asText("").ifBlank { проект.doc.path("lead").asText("") })
+                .put(
+                    "phase",
+                    проект.doc.path("phase_current").asText("")
+                        .ifBlank { проект.doc.path("phase").asText("") }
+                        .ifBlank { "Pre-Phase A" },
+                )
                 // Карточка проекта несёт признак поля знаний: без него экран
                 // не знает, показывать ли постановку из поля и ранг доверия.
                 // Поля нет — выключено: прежние проекты остаются на прежнем.
@@ -185,7 +193,14 @@ class SceneRoutes(
                 .put("name", тело.path("name").asText(код))
                 .put("standard", тело.path("standard").asText("NASA-7120"))
                 .put("mission_class", тело.path("mission_class").asText(""))
-                .put("lead", тело.path("lead").asText(автор))
+                // Руководитель зовётся `manager` — так он назван у вида «проект»
+                // в истине схем. Печать ищет поле по имени: документ с `lead`
+                // печатал в §2 FAD прочерк вместо фамилии (владелец, 21.09).
+                // Тело со старым именем принимается: экран сцены 1 не переучен.
+                .put(
+                    "manager",
+                    тело.path("manager").asText("").ifBlank { тело.path("lead").asText(автор) },
+                )
                 .put("knowledge_v2", знанияV2),
             Provenance(Channel.MANUAL, автор),
         )

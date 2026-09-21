@@ -5,6 +5,7 @@ package orbita.api
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import orbita.documents.api.DocumentsFactory
+import orbita.documents.api.ElementKind
 import orbita.kernel.TestDbV2
 import orbita.kernel.api.Area
 import orbita.kernel.api.Channel
@@ -37,7 +38,7 @@ class FadFaTest {
     fun чисто() {
         TestDbV2.очистить()
         store.create(проект, "project", область, "1",
-            mapper.createObjectNode().put("name", "Проверка FAD/FA").put("lead", "Чернов Д.").put("standard", "NASA-7120"), провенанс)
+            mapper.createObjectNode().put("name", "Проверка FAD/FA").put("manager", "Чернов Д.").put("standard", "NASA-7120"), провенанс)
     }
 
     private fun раздел(код: String, номер: String, ступень: String = "KDP-A") =
@@ -55,6 +56,27 @@ class FadFaTest {
             провенанс, status = "accepted")
         документы.addStatement(проект, "fad", "§1", "Проект инициирован по поручению Минтранса.", emptyList(), "Чернов Д.")
         assertTrue(раздел("fad", "§1").complete, "замысел есть и тезис написан — раздел полон: ${раздел("fad", "§1").waiting}")
+    }
+
+    /**
+     * §2 FAD печатает руководителя. Владелец 21.09 увидел в §3 одиннадцать
+     * прочерков: печать спрашивала у вида поля чужими именами. Здесь тот же
+     * случай в §2 — колонка берёт `manager`, как зовётся поле у вида «проект»
+     * в истине схем; документ с любым другим именем напечатает прочерк.
+     */
+    @Test
+    fun `колонки FAD печатают значения, а не прочерки`() {
+        документы.ensure(проект, "fad", "Чернов Д.")
+        store.create("Р-0001", "constraint", область, "1",
+            mapper.readTree("""{"statement":"только короткие сообщения","type":"technical"}"""),
+            провенанс, status = "accepted")
+        val строки = { номер: String ->
+            раздел("fad", номер).elements.first { it.kind == ElementKind.QUERY }.rows
+        }
+        assertEquals(listOf("Проверка FAD/FA", "Чернов Д."), строки("§2").first(),
+            "§2: проект и руководитель — из документа проекта")
+        assertTrue(строки("§3").first().drop(1).none { it.isBlank() },
+            "§3: ограничение и категория печатаются: ${строки("§3").first()}")
     }
 
     @Test

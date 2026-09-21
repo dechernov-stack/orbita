@@ -40,8 +40,11 @@ class GateRecords(private val store: EntityStore, private val mapper: ObjectMapp
     fun passed(project: String): MutableSet<String> =
         store.list(Area.Project(project), "gate").filter { it.status == "passed" }.map { it.code }.toMutableSet()
 
+    /** Текущая фаза проекта: `phase_current` — имя поля у вида «проект». */
     fun phaseOf(project: String): String? =
-        store.byCode(Area.Project(project), project)?.doc?.path("phase")?.asText("")?.ifBlank { null }
+        store.byCode(Area.Project(project), project)?.doc?.let { док ->
+            док.path("phase_current").asText("").ifBlank { док.path("phase").asText("") }
+        }?.ifBlank { null }
 
     /** Шаблон фазы проекта (шип G): записан решением точки с `opens_template`. */
     fun phaseTemplateOf(project: String): String? =
@@ -128,7 +131,11 @@ class GateRecords(private val store: EntityStore, private val mapper: ObjectMapp
                 // Переход фазы — только решением точки, которая его открывает.
                 opensPhase?.let { фаза ->
                     store.byCode(область, project)?.let { проект ->
-                        store.update(проект.id, (проект.doc.deepCopy() as ObjectNode).put("phase", фаза), провенанс)
+                        store.update(
+                            проект.id,
+                            (проект.doc.deepCopy() as ObjectNode).put("phase_current", фаза),
+                            провенанс,
+                        )
                     }
                 }
             }

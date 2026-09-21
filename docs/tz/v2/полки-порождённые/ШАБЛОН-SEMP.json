@@ -282,11 +282,12 @@
               "field": "place"
             },
             {
-              "title": "Отклонение разрешено",
-              "field": "tailoring_allowed"
+              "title": "Отклонение (tailoring)",
+              "field": "tailoring"
             }
           ],
-          "area": "library"
+          "area": "library",
+          "expand": "processes"
         }
       ],
       "expects": "SRR",
@@ -444,19 +445,16 @@
           "min_rows": 1,
           "columns": [
             {
-              "title": "Процесс",
-              "field": "name"
+              "title": "Область",
+              "field": "area"
             },
             {
-              "title": "Механизм «Орбиты»",
-              "field": "orbita_mechanism"
-            },
-            {
-              "title": "Место",
-              "field": "place"
+              "title": "Инструмент",
+              "field": "tool"
             }
           ],
-          "area": "library"
+          "area": "library",
+          "expand": "tools"
         }
       ],
       "expects": "SRR",
