@@ -251,7 +251,16 @@ function нуженПовод(было: string, стало: string): boolean {
 type Тема = { id: string; label: string; facts: number; resolved_to?: string | null }
 type Покрытие = { total: number; from_facts: number; from_manual_facts: number; manual: number; share_percent: number }
 
-export function KnowledgeField({ project, expert = false }: { project: string | null; expert?: boolean }) {
+export function KnowledgeField({ project, expert = false, ручной = false }: {
+  project: string | null
+  expert?: boolean
+  /**
+   * Открыть сразу ручной ввод: сюда приходят из §11 отчёта («Темы без
+   * разрешения»), и дорога обязана привести К ФОРМЕ, а не к экрану, где
+   * форму ещё надо найти (владелец 21.09).
+   */
+  ручной?: boolean
+}) {
   const [факты, setФакты] = useState<FactRow[] | null>(null)
   const [темы, setТемы] = useState<Тема[]>([])
   const [покрытие, setПокрытие] = useState<Покрытие | null>(null)
@@ -262,7 +271,7 @@ export function KnowledgeField({ project, expert = false }: { project: string | 
   const [решаем, setРешаем] = useState<{ факт: string; решение: string } | null>(null)
   const [причина, setПричина] = useState('')
   const [вход, setВход] = useState(false)
-  const [рукой, setРукой] = useState(false)
+  const [рукой, setРукой] = useState(ручной)
   const [план, setПлан] = useState<TaskPlan | null>(null)
   const [выбраны, setВыбраны] = useState<number[]>([])
   // Что ворота приёма НЕ пропустили: сервер называет каждое непринятое

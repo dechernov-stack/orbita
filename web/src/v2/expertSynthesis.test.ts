@@ -19,7 +19,7 @@ describe('старый синтез — только эксперт-режим',
   })
 
   it('оболочка передаёт эксперт-режим в поле знаний', () => {
-    expect(оболочка).toContain('<KnowledgeField project={project} expert={expert} />')
+    expect(оболочка).toContain('<KnowledgeField project={project} expert={expert}')
   })
 
   it('на экране по умолчанию нет «Сформировать постановку из поля»', () => {

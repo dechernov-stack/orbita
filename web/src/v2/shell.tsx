@@ -119,6 +119,9 @@ export function Shell() {
   const [wantScene, setWantScene] = useState<string | null>(null)
   /** Зачем нас сюда послали: словами раздела документа, а не «переход выполнен». */
   const [wantReason, setWantReason] = useState<string | null>(null)
+  /** Дорога из §11 ведёт к форме: поле знаний открывается ручным вводом. */
+  const [ручнойВвод, setРучнойВвод] = useState(false)
+  useEffect(() => { if (section !== 'knowledge') setРучнойВвод(false) }, [section])
   const [tasks, setTasks] = useState<number>(0)
   /** Сцена, открытая на экране: шапка обязана совпадать с ним. */
   const [openScene, setOpenScene] = useState<string | null>(null)
@@ -329,7 +332,7 @@ export function Shell() {
               onScenePicked={() => setWantScene(null)} onScene={setOpenScene}
               роль={роль} режим={режим} onРежим={setРежим} />
           ) : section === 'knowledge' ? (
-            <KnowledgeField project={project} expert={expert} />
+            <KnowledgeField project={project} expert={expert} ручной={ручнойВвод} />
           ) : section === 'formulation' ? (
             <Coverage project={project} />
           ) : section === 'concept' ? (
@@ -345,7 +348,7 @@ export function Shell() {
               onGoScene={(сцена, зачем) => {
                 setWantScene(сцена); setWantReason(зачем ?? null); setSection('work')
               }}
-              onGoField={() => setSection('knowledge')} />
+              onGoField={() => { setРучнойВвод(true); setSection('knowledge') }} />
           ) : section === 'library' ? (
             <Library />
           ) : section === 'external' ? (

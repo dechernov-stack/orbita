@@ -14,6 +14,7 @@ import клиентИсследования from './research.tsx?raw'
 import оболочка from './shell.tsx?raw'
 import модели from './models.tsx?raw'
 import работа from './work.tsx?raw'
+import поле from './knowledgefield.tsx?raw'
 
 describe('базирование документа', () => {
   it('вход есть на экране документа, а не только в маршруте', () => {
@@ -176,6 +177,9 @@ describe('тема — не выход сцены', () => {
   it('§11 ведёт в поле знаний по ВИДУ записи, а не по списку сцен', () => {
     expect(документы).toContain("э.select === 'topic' && onGoField")
     expect(документы).toContain('к месту: поле знаний → «Завести тему»')
-    expect(оболочка).toContain("onGoField={() => setSection('knowledge')}")
+    // Дорога ведёт К ФОРМЕ: поле знаний открывается сразу ручным вводом.
+    expect(оболочка).toContain("onGoField={() => { setРучнойВвод(true); setSection('knowledge') }}")
+    expect(оболочка).toContain('ручной={ручнойВвод}')
+    expect(поле).toContain('const [рукой, setРукой] = useState(ручной)')
   })
 })
