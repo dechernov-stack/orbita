@@ -8,7 +8,7 @@
 // владелец проверяет проход, не открывая ни одной формы.
 import { useEffect, useState } from 'react'
 import { ConfirmBox, useConfirm } from '../ui/Confirm'
-import { api, ServerRefusal, type DocBaseline, type DocSection, type DocView, type VerificationReport } from './api'
+import { api, ServerRefusal, type DocBaseline, type DocSection, type DocView, type Gate, type VerificationReport } from './api'
 import { useАвтор, отказСловами } from './research'
 
 export function Documents({ project }: { project: string | null }) {
@@ -43,6 +43,10 @@ export function Documents({ project }: { project: string | null }) {
           {список === null ? 'читаю…' : `${список.length} в проекте`}
         </span>
       </h3>
+      <КомплектТочки project={project} onOpen={(код) => {
+        const д = (список ?? []).find((х) => х.code === код)
+        if (д) setОткрыт(д)
+      }} />
       {список !== null && список.length === 0 && (
         <div className="v2-empty">
           Документов нет.
@@ -62,11 +66,84 @@ export function Documents({ project }: { project: string | null }) {
             <span>{д.title}</span>
             <span className="v2-dim">{д.standard}</span>
             <span className={д.complete === д.total ? 'v2-st v2-st--done' : 'v2-st'}>
-              {д.complete} из {д.total} разделов полны
+              {д.complete} из {д.total} разделов полны к {д.gate}
+            </span>
+            {/*
+              Базирование — состояние документа, а не подробность: ворота
+              зрелости F смотрят именно на него, и без этой строки список
+              молчал о том, что документ уже ушёл на точку (владелец, 21.09).
+            */}
+            <span className={д.baselines > 0 ? 'v2-st v2-st--done' : 'v2-st'}>
+              {д.baselines > 0
+                ? `базирован «${д.baseline_name}» · ${д.baseline_at}`
+                : 'не базирован'}
             </span>
           </button>
         ))}
       </div>
+    </div>
+  )
+}
+
+/**
+ * Комплект к точке: где мы и можно ли ехать дальше.
+ *
+ * Владелец 21.09: «базированные документы не видно, что они уже готовы. Где мы
+ * находимся — вообще непонятно… То ли можно ехать дальше — то ли нет». Экран
+ * документов показывал только полноту каждого документа по отдельности, а
+ * КОМПЛЕКТ — то, чего точка ждёт от документов вместе, — жил на экране точек
+ * матрицей зрелости, куда из документов дороги не было.
+ *
+ * Здесь та же матрица, но с её собственными словами: строки комплекта,
+ * сведённые к нашим документам, с причиной у каждой незакрытой.
+ */
+function КомплектТочки({ project, onOpen }: {
+  project: string
+  onOpen: (код: string) => void
+}) {
+  const [точка, setТочка] = useState<Gate | null>(null)
+
+  useEffect(() => {
+    api.points(project)
+      .then((р) => setТочка(р.items.find((т) => !т.passed) ?? р.items[р.items.length - 1] ?? null))
+      .catch(() => setТочка(null))
+  }, [project])
+
+  if (!точка) return null
+  /** Строки комплекта, сведённые к документу: остальные — реестры и записи. */
+  const документы = (точка.matrix ?? []).filter((с) => (с.our_ref ?? '').startsWith('document_template:'))
+  if (документы.length === 0) return null
+  const держат = документы.filter((с) => с.blocking && с.passed === false)
+  const готовы = документы.filter((с) => с.passed !== false)
+
+  return (
+    <div className="v2-prop" data-why="почему-нельзя"
+      title="комплект документов точки: то, что она ждёт от них вместе">
+      <span>
+        {точка.title}
+        <span className="v2-cnt">
+          {' '}комплект {готовы.length} из {документы.length}
+          {точка.planned_date ? ` · ${точка.planned_date}` : ''}
+        </span>
+        <span className="v2-empty__why">
+          {держат.length === 0
+            ? 'Комплект документов собран: точку держат её остальные условия, если держат.'
+            : `Ехать дальше нельзя: ${держат.length} из ${документы.length} не готовы.`}
+        </span>
+        {держат.map((с) => (
+          <span key={с.artifact} className="v2-dim">
+            · {с.artifact}
+            {с.why ? ` — ${с.why}` : ''}
+            {(с.our_ref ?? '').startsWith('document_template:') && (
+              <button type="button" className="v2-link"
+                title="открыть документ и закрыть то, чего не хватает"
+                onClick={() => onOpen((с.our_ref ?? '').replace('document_template:', ''))}>
+                {' '}открыть
+              </button>
+            )}
+          </span>
+        ))}
+      </span>
     </div>
   )
 }
@@ -239,7 +316,7 @@ function Baselines({ project, code, title, gate }: {
   gate: string
 }) {
   const [линии, setЛинии] = useState<DocBaseline[] | null>(null)
-  const [точки, setТочки] = useState<{ key: string; title: string; passed: boolean }[]>([])
+  const [точки, setТочки] = useState<Gate[]>([])
   const [раскрыт, setРаскрыт] = useState(false)
   const [имя, setИмя] = useState('')
   const [автор, setАвтор] = useАвтор()
@@ -252,10 +329,16 @@ function Baselines({ project, code, title, gate }: {
   }
   useEffect(перечитать, [project, code])
   useEffect(() => {
-    api.points(project)
-      .then((r) => setТочки(r.items.map((т) => ({ key: т.key, title: т.title, passed: т.passed }))))
-      .catch(() => setТочки([]))
+    api.points(project).then((r) => setТочки(r.items)).catch(() => setТочки([]))
   }, [project])
+
+  /**
+   * Что ждёт от ЭТОГО документа точка: строка комплекта из её матрицы
+   * зрелости. Без неё экран документа говорит только о себе, а человек
+   * спрашивает «можно ехать дальше?» — и ответа не находит.
+   */
+  const ждёт = точки.find((т) => т.key === gate)?.matrix
+    ?.find((с) => с.our_ref === `document_template:${code}`)
 
   /**
    * Имя по умолчанию — ТА САМАЯ точка, к которой документ считается полным:
@@ -264,6 +347,7 @@ function Baselines({ project, code, title, gate }: {
    */
   const ближайшая = точки.find((т) => т.key === gate)?.title
     ?? точки.find((т) => !т.passed)?.title ?? ''
+
   const выбрано = имя.trim() || ближайшая
   const занятоИмя = (линии ?? []).some((л) => л.name === выбрано)
   const безАвтора = !автор.trim()
@@ -311,6 +395,14 @@ function Baselines({ project, code, title, gate }: {
 
       {раскрыт && (
         <div className="v2-form" data-why="почему-нельзя">
+          {ждёт && (
+            <div className={ждёт.passed === false && ждёт.blocking ? 'v2-locked' : 'v2-empty__why'}>
+              {ждёт.artifact}: {gate} ждёт зрелость «{ждёт.maturity}» —{' '}
+              {ждёт.passed === false
+                ? `${ждёт.why ?? 'не готов'}${ждёт.blocking ? '. Пока так — точка не пустит.' : '. Точку это не держит.'}`
+                : 'условие закрыто.'}
+            </div>
+          )}
           <div className="v2-empty__why">
             Линия базирования — состояние «{title}», с которым он уходит на точку: ворота
             KDP-A требуют её у документов зрелости F. Линия неизменяема: правка после неё

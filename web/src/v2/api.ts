@@ -732,6 +732,10 @@ export interface DocView {
   gate: string
   /** Разделов, которых эта ступень ещё НЕ ждёт: они не в счёте полноты. */
   not_due_yet: number
+  /** Базовых линий: ноль — ворота зрелости F документ не пустят. */
+  baselines: number
+  baseline_name: string
+  baseline_at: string
   sections: DocSection[]
 }
 

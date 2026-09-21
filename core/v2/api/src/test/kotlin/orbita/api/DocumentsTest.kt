@@ -244,6 +244,29 @@ class DocumentsTest {
         )
     }
 
+    /**
+     * Список документов говорит, базирован ли документ и к какой ступени
+     * считана полнота. Владелец 21.09: «базированные документы не видно,
+     * что они уже готовы… Где мы находимся — вообще непонятно».
+     */
+    @Test
+    fun `список документов несёт линию базирования и ступень`() {
+        постановка("PJ-9212")
+        val п = mapOf("project" to "PJ-9212")
+        val до = router.handle("GET", "/v2/documents", п, null)!!.body.path("items")
+            .single { it.path("code").asText() == "mcreport" }
+        assertEquals(0, до.path("baselines").asInt(), "линий нет — и список это говорит")
+        assertTrue(до.path("gate").asText().isNotBlank(), "ступень названа: число без неё ничего не значит")
+
+        router.handle("POST", "/v2/documents/mcreport/baseline", п,
+            """{"name":"KDP-A","author":"Иванов И."}""")
+        val после = router.handle("GET", "/v2/documents", п, null)!!.body.path("items")
+            .single { it.path("code").asText() == "mcreport" }
+        assertEquals(1, после.path("baselines").asInt())
+        assertEquals("KDP-A", после.path("baseline_name").asText())
+        assertEquals(10, после.path("baseline_at").asText().length, "день линии, а не «когда-то»")
+    }
+
     @Test
     fun `правка одного тезиса даёт расхождение в одном узле`() {
         постановка("PJ-9211")

@@ -126,6 +126,9 @@ class EntityDocuments(
                 .copy(expectedBy = ждёт, dueNow = ждётСейчас(ждёт, gate))
         }
         val ожидаемые = разделы.filter { it.dueNow }
+        // Линии документа идут ВМЕСТЕ с ним: список документов иначе молчит о
+        // том, что документ уже базирован, и готовность видна только внутри.
+        val линии = baselines(project, code)
         return DocumentView(
             code = code,
             title = шаблон.path("title").asText(code),
@@ -143,6 +146,9 @@ class EntityDocuments(
             // своей записью, и без него «обновлён» было бы не измерить.
             version = (store.list(Area.Project(project), "document").firstOrNull { it.doc.path("template").asText(it.code) == code }?.version ?: 1) +
                 тезисы.values.sumOf { it.size },
+            baselines = линии.size,
+            baselineName = линии.lastOrNull()?.name.orEmpty(),
+            baselineAt = линии.lastOrNull()?.at?.take(10).orEmpty(),
         )
     }
 

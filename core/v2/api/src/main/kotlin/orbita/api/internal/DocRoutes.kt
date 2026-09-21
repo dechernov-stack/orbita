@@ -168,6 +168,9 @@ class DocRoutes(
         .put("total", вид.total)
         .put("gate", вид.gate)
         .put("not_due_yet", вид.notDueYet)
+        .put("baselines", вид.baselines)
+        .put("baseline_name", вид.baselineName)
+        .put("baseline_at", вид.baselineAt)
 
     private fun полностью(вид: DocumentView): ObjectNode {
         val узел = кратко(вид)
