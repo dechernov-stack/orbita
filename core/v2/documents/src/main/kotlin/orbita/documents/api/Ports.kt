@@ -25,6 +25,14 @@ data class ElementView(
     val code: String,
     val kind: ElementKind,
     val title: String,
+    /**
+     * Вид записей, который читает запрос («topic», «risk», «constraint»).
+     *
+     * Экран по нему называет место, где запись заводится: у раздела, который
+     * «наполняется по ходу фазы», сцен десять, а экран один — поле знаний
+     * (владелец 21.09: «куда и что писать непонятно»).
+     */
+    val select: String = "",
     val columns: List<ColumnView>,
     val rows: List<List<String>>,
     val text: String?,

@@ -11,10 +11,12 @@ import { ConfirmBox, useConfirm } from '../ui/Confirm'
 import { api, ServerRefusal, type DocBaseline, type DocSection, type DocView, type Gate, type VerificationReport } from './api'
 import { useАвтор, отказСловами } from './research'
 
-export function Documents({ project, onGoScene }: {
+export function Documents({ project, onGoScene, onGoField }: {
   project: string | null
   /** Переход «к месту»: сцена, которой раздел наполняется, и зачем идём. */
   onGoScene?: (сцена: string, зачем?: string) => void
+  /** Переход в поле знаний: там заводятся темы — открытые вопросы фазы. */
+  onGoField?: () => void
 }) {
   const [список, setСписок] = useState<DocView[] | null>(null)
   const [открыт, setОткрыт] = useState<DocView | null>(null)
@@ -34,7 +36,7 @@ export function Documents({ project, onGoScene }: {
 
   if (открыт) {
     return (
-      <DocumentBody project={project} code={открыт.code} onGoScene={onGoScene}
+      <DocumentBody project={project} code={открыт.code} onGoScene={onGoScene} onGoField={onGoField}
         onClose={() => { setОткрыт(null); перечитать() }} />
     )
   }
@@ -172,7 +174,7 @@ function склонение(сколько: number): string {
 }
 
 /** Документ целиком: разделы с элементами так, как они напечатаются. */
-export function DocumentBody({ project, code, section, onClose, onGoScene }: {
+export function DocumentBody({ project, code, section, onClose, onGoScene, onGoField }: {
   project: string
   code: string
   /** Открыть только один раздел — переход из мероприятия. */
@@ -180,6 +182,8 @@ export function DocumentBody({ project, code, section, onClose, onGoScene }: {
   onClose?: () => void
   /** Переход «к месту»: сцена, которой раздел наполняется, и зачем идём. */
   onGoScene?: (сцена: string, зачем?: string) => void
+  /** Переход в поле знаний: там заводятся темы — открытые вопросы фазы. */
+  onGoField?: () => void
 }) {
   const [вид, setВид] = useState<DocView | null>(null)
   const [отказ, setОтказ] = useState<string | null>(null)
@@ -244,7 +248,8 @@ export function DocumentBody({ project, code, section, onClose, onGoScene }: {
         }} />
       )}
       {разделы.map((р) => (
-        <Section key={р.no} раздел={р} подсвечен={подсвечен} onGoScene={onGoScene} />
+        <Section key={р.no} раздел={р} подсвечен={подсвечен}
+          onGoScene={onGoScene} onGoField={onGoField} />
       ))}
       {!section && (
         <div className="v2-doc__add">
@@ -267,11 +272,13 @@ export function DocumentBody({ project, code, section, onClose, onGoScene }: {
   )
 }
 
-function Section({ раздел, подсвечен, onGoScene }: {
+function Section({ раздел, подсвечен, onGoScene, onGoField }: {
   раздел: DocSection
   подсвечен?: string | null
   /** Переход «к месту»: сцена, которой раздел и наполняется, и зачем идём. */
   onGoScene?: (сцена: string, зачем?: string) => void
+  /** Переход в поле знаний: там заводятся темы — открытые вопросы фазы. */
+  onGoField?: () => void
 }) {
   /**
    * Сцены, которых ждёт раздел: названы в самом шаблоне, не в коде.
@@ -327,6 +334,19 @@ function Section({ раздел, подсвечен, onGoScene }: {
                       ? `Раздел ждёт сцен ${э.waiting_scenes.join(', ')}: пока они не прожиты, писать сюда нечего.`
                       : 'Запрос не дал строк.'}
                   </span>
+                  {/*
+                    Тема — не выход сцены: она заводится в поле знаний и
+                    может появиться на любой. Поэтому §11 «Открытые вопросы»
+                    называет десять сцен и ни одного адреса — экран называет
+                    его сам, по виду записи, которую просит запрос.
+                  */}
+                  {э.select === 'topic' && onGoField && (
+                    <button type="button" className="v2-link"
+                      title="открыть поле знаний: тема без разрешения и есть открытый вопрос"
+                      onClick={onGoField}>
+                      к месту: поле знаний → «Завести тему»
+                    </button>
+                  )}
                 </div>
               ) : (
                 <table className="v2-tab2">

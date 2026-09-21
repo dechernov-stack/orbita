@@ -344,7 +344,8 @@ export function Shell() {
             <Documents project={project}
               onGoScene={(сцена, зачем) => {
                 setWantScene(сцена); setWantReason(зачем ?? null); setSection('work')
-              }} />
+              }}
+              onGoField={() => setSection('knowledge')} />
           ) : section === 'library' ? (
             <Library />
           ) : section === 'external' ? (

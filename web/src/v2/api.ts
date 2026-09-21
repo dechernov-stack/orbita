@@ -707,6 +707,8 @@ export interface DocElement {
   supports: string[]
   waiting_scenes: string[]
   notes: string[]
+  /** Вид записей, который читает запрос: по нему экран называет их место. */
+  select: string
 }
 
 export interface DocSection {

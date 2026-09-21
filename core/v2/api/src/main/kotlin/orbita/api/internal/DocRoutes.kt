@@ -263,6 +263,7 @@ class DocRoutes(
             у.put("code", э.code)
             у.put("kind", э.kind.name.lowercase())
             у.put("title", э.title)
+            у.put("select", э.select)
             у.put("min_rows", э.minRows)
             у.put("satisfied", э.satisfied)
             э.text?.let { у.put("text", it) }

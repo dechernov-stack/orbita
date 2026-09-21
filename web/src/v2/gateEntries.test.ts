@@ -171,3 +171,11 @@ describe('экран сцены 7 читается', () => {
     expect(концепция).not.toContain('списки решения')
   })
 })
+
+describe('тема — не выход сцены', () => {
+  it('§11 ведёт в поле знаний по ВИДУ записи, а не по списку сцен', () => {
+    expect(документы).toContain("э.select === 'topic' && onGoField")
+    expect(документы).toContain('к месту: поле знаний → «Завести тему»')
+    expect(оболочка).toContain("onGoField={() => setSection('knowledge')}")
+  })
+})

@@ -172,6 +172,7 @@ class EntityDocuments(
                 code = элемент.path("code").asText(""),
                 kind = ElementKind.QUERY,
                 title = элемент.path("title").asText(""),
+                select = элемент.path("select").asText(""),
                 columns = элемент.path("columns").map {
                     ColumnView(it.path("title").asText(""), it.path("field").asText(""))
                 },
