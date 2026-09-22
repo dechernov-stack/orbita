@@ -97,7 +97,8 @@ export function PassportScreen({ project, учётка, onChanged }: {
         {поля.map((поле) => {
           const значение = черновик[поле] ?? паспорт[поле]
           const метка = паспорт.labels[поле] ?? поле
-          const поставить = (v: string) => setЧерновик((ч) => (v === паспорт[поле] ? без(ч, поле) : { ...ч, [поле]: v }))
+          // Черновик копит всё, что тронуто; неизменённое отсеет сервер (changed: 0).
+          const поставить = (v: string) => setЧерновик((ч) => ({ ...ч, [поле]: v }))
           return (
             <label key={поле} className="v2-field">
               <span className="v2-field__cap">{метка}</span>
@@ -155,7 +156,7 @@ export function PassportScreen({ project, учётка, onChanged }: {
             <span className="v2-field__cap">{т.title}</span>
             <input type="date" aria-label={`дата точки ${т.key}`} disabled={т.passed}
               value={даты[т.key] ?? т.planned_date}
-              onChange={(e) => setДаты((д) => (e.target.value === т.planned_date ? без(д, т.key) : { ...д, [т.key]: e.target.value }))} />
+              onChange={(e) => setДаты((д) => ({ ...д, [т.key]: e.target.value }))} />
           </label>
         ))}
       </div>
@@ -173,8 +174,3 @@ export function PassportScreen({ project, учётка, onChanged }: {
   )
 }
 
-function без<T extends Record<string, string>>(о: T, ключ: string): T {
-  const копия = { ...о }
-  delete копия[ключ]
-  return копия
-}

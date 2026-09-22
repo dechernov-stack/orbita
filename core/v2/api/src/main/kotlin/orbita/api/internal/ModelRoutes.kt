@@ -255,9 +255,11 @@ class ModelRoutes(
     private fun базовыеКритерии(): V2Router.Ответ {
         val массив = mapper.createArrayNode()
         orbita.knowledge.schema.GeneratedOntology.missionCriteriaBase.forEach { к ->
-            массив.addObject().put("key", к["key"]).put("title", к["title"]).put("direction", к["direction"]).put("group", к["group"])
-                // «хуже, если» — обратная сторона направления: больше лучше ⇒ хуже, если меньше.
-                .put("worse_if", if (к["direction"] == "max") "less" else "greater")
+            // Запись истины — как есть, плюс «хуже, если»: обратная сторона
+            // направления (больше лучше ⇒ хуже, если меньше). Это не метрика
+            // варианта, а её заготовка — сериализатор MetricView тут не при чём.
+            val заготовка = к + ("worse_if" to if (к["direction"] == "max") "less" else "greater")
+            массив.add(mapper.valueToTree<JsonNode>(заготовка))
         }
         return V2Router.Ответ(200, mapper.createObjectNode().set("items", массив))
     }

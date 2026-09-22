@@ -457,6 +457,7 @@ function RiskCard({ р, правитьРиск, словом, метки, узл
             {[1, 2, 3, 4, 5].map((з) => (
               <button key={з} type="button" className={р.probability === з ? 'v2-chip v2-chip--on' : 'v2-chip'}
                 aria-pressed={р.probability === з} disabled={закрыт}
+                title={закрыт ? 'риск закрыт: оценка не правится — верните в открытые с причиной' : `вероятность ${з} из 5`}
                 onClick={() => р.probability !== з && правитьРиск(р.code, { probability: з })}>{з}</button>
             ))}
           </span>
@@ -465,6 +466,7 @@ function RiskCard({ р, правитьРиск, словом, метки, узл
             {[1, 2, 3, 4, 5].map((з) => (
               <button key={з} type="button" className={р.impact === з ? 'v2-chip v2-chip--on' : 'v2-chip'}
                 aria-pressed={р.impact === з} disabled={закрыт}
+                title={закрыт ? 'риск закрыт: оценка не правится — верните в открытые с причиной' : `влияние ${з} из 5`}
                 onClick={() => р.impact !== з && правитьРиск(р.code, { impact: з })}>{з}</button>
             ))}
           </span>
