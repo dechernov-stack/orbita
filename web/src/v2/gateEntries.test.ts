@@ -16,6 +16,7 @@ import модели from './models.tsx?raw'
 import работа from './work.tsx?raw'
 import поле from './knowledgefield.tsx?raw'
 import точки from './points.tsx?raw'
+import паспорт from './passport.tsx?raw'
 
 describe('базирование документа', () => {
   it('вход есть на экране документа, а не только в маршруте', () => {
@@ -182,6 +183,34 @@ describe('тема — не выход сцены', () => {
     expect(оболочка).toContain("onGoField={() => { setРучнойВвод(true); setSection('knowledge') }}")
     expect(оболочка).toContain('ручной={ручнойВвод}')
     expect(поле).toContain('const [рукой, setРукой] = useState(ручной)')
+  })
+})
+
+describe('«их нет» у одного перечня (шип 1, п. 1.8)', () => {
+  it('кнопка закрытия словами есть и у элемента, не только у раздела', () => {
+    expect(документы).toContain('(раздел.empty_ok_with_statement || э.empty_ok_with_statement) && onЗакрытьСловами')
+    expect(документы).toContain('их нет — закрыть перечень тезисом')
+    expect(клиент).toContain('empty_ok_with_statement?: boolean')
+  })
+})
+
+describe('паспорт проекта (З-25, шип 1, п. 1.5)', () => {
+  it('правится на месте: поля истины, версия, даты точек; вход из рейки и из шапки', () => {
+    expect(клиент).toContain('passport: (project: string) => вызов<Passport>')
+    expect(клиент).toContain('patchPassport:')
+    expect(паспорт).toContain("const поля = ['name', 'mission_class', 'manager', 'standard'] as const")
+    expect(паспорт).toContain('v{паспорт.version} · {паспорт.updated_at} · {паспорт.updated_by}')
+    expect(паспорт).toContain('aria-label={`дата точки ${т.key}`}')
+    // Метки полей — из истины, не из кода экрана.
+    expect(паспорт).toContain('const метка = паспорт.labels[поле] ?? поле')
+    expect(оболочка).toContain("{ key: 'passport', title: 'Паспорт'")
+    expect(оболочка).toContain("onClick={() => setSection('passport')}")
+  })
+
+  it('DA — роль проекта, назначает руководитель; остальным сказано, кто назначает', () => {
+    expect(паспорт).toContain("fetch('/api/auth/roles', {")
+    expect(паспорт).toContain("role: 'da_review'")
+    expect(паспорт).toContain('Роли назначает руководитель проекта.')
   })
 })
 

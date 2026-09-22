@@ -15,6 +15,7 @@ import { ArchitectureScreen } from './architecture'
 import { Documents } from './documents'
 import { Models } from './models'
 import { Points } from './points'
+import { PassportScreen } from './passport'
 import { ExternalModelScreen } from './externalmodel'
 import { Library } from './library'
 import { ИМЯ_РЕЖИМА, режимПоРоли, type Режим } from './density'
@@ -38,6 +39,7 @@ const SECTIONS: Section[] = [
   { key: 'models', title: 'Модели', wave: 4, hint: 'записи моделей, прогоны, резервы' },
   { key: 'documents', title: 'Документы', wave: 4, hint: 'разделы документов с полнотой к ступени, тезисы, печать' },
   { key: 'points', title: 'Точки', wave: 6, hint: 'готовность по экспертизе, замечания, фиксация' },
+  { key: 'passport', title: 'Паспорт', wave: 6, hint: 'название, класс миссии, руководитель, DA, стандарт, даты точек — правка на месте' },
   { key: 'library', title: 'Библиотека', wave: 2, expert: true, hint: 'полки, окно взятия, справочники' },
   { key: 'exchange', title: 'Обмен', wave: 5, expert: true, hint: 'StrictDoc и ReqIF, выгрузка знаний' },
   { key: 'external', title: 'Внешняя модель', wave: 7, expert: true, hint: 'элементы Capella по слоям либо fixture с баннером; только чтение' },
@@ -235,6 +237,12 @@ export function Shell() {
             <b title="портфеля нет: заведите проект сценой 1 — она открыта ниже">Портфель пуст</b>
           )}
           {phase && <span className="v2-dim">{phase.phase} · {phase.standard}</span>}
+          {project && (
+            <button type="button" className="v2-link" title="паспорт проекта: название, класс, руководитель, DA, даты точек"
+              onClick={() => setSection('passport')}>
+              паспорт
+            </button>
+          )}
           {сцена && (
             <span className="v2-chip" title={сцена.question}>
               сцена <b>{сцена.key} · {сцена.title}</b>
@@ -357,6 +365,9 @@ export function Shell() {
             <Points project={project} phase={phase} onChanged={() => setPhaseTick((t) => t + 1)}
               учётка={я}
               onGoScene={(сцена) => { setWantScene(сцена); setSection('work') }} />
+          ) : section === 'passport' ? (
+            <PassportScreen project={project} учётка={я}
+              onChanged={() => { setPhaseTick((t) => t + 1); setPortfolioTick((т) => т + 1) }} />
           ) : section === 'tasks' ? (
             <MyTasks project={project} onGoScene={(сцена) => { setWantScene(сцена); setSection('work') }} />
           ) : (

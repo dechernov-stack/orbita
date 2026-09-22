@@ -157,6 +157,7 @@
      "select": "baseline_concept",
      "expand": "rejected",
      "min_rows": 1,
+     "empty_ok_with_statement": true,
      "columns": [
       {
        "title": "Вариант",
@@ -478,6 +479,7 @@
    "scenes": [
     "7"
    ],
+   "empty_ok_with_statement": true,
    "elements": [
     {
      "code": "9.1",

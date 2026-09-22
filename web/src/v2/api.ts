@@ -694,6 +694,25 @@ export interface ProjectRow {
   phase: string
 }
 
+/** Паспорт проекта (З-25): то, что печать FAD §2 и FA §1 читает из документа проекта. */
+export interface Passport {
+  code: string
+  version: number
+  updated_at: string
+  updated_by: string
+  name: string
+  mission_class: string
+  manager: string
+  standard: string
+  phase_current: string
+  phase_template: string
+  /** Метки полей — из истины схем, кодов полей на экране нет. */
+  labels: Record<string, string>
+  standards: { code: string; label: string }[]
+  mission_classes: { code: string; name: string }[]
+  gates: { key: string; title: string; planned_date: string; passed: boolean }[]
+}
+
 /** Элемент раздела документа: запрос уже посчитан сервером. */
 export interface DocElement {
   code: string
@@ -709,6 +728,8 @@ export interface DocElement {
   notes: string[]
   /** Вид записей, который читает запрос: по нему экран называет их место. */
   select: string
+  /** Пустой перечень этого элемента закрывается тезисом раздела («их нет»). */
+  empty_ok_with_statement?: boolean
 }
 
 export interface DocSection {
@@ -1571,6 +1592,16 @@ export const api = {
   phase: (project: string) => вызов<Phase>(`/phase?project=${encodeURIComponent(project)}`),
 
   projects: () => вызов<{ items: ProjectRow[] }>('/projects'),
+  passport: (project: string) => вызов<Passport>(`/passport?project=${encodeURIComponent(project)}`),
+  /** Правка паспорта на месте: поля и/или даты точек; ответ несёт новую версию. */
+  patchPassport: (
+    project: string,
+    тело: { fields?: Record<string, string>; gate_dates?: { gate: string; date: string }[]; author: string; reason?: string },
+  ) =>
+    вызов<{ code: string; version: number; changed: number; gate_dates_changed: number }>(
+      `/passport?project=${encodeURIComponent(project)}`,
+      { method: 'PATCH', body: JSON.stringify(тело) },
+    ),
 
   plan: (project: string) =>
     вызов<{ planned: boolean; note?: string; gate_dates?: { gate: string; date: string }[]; scene_windows?: { scene: string; start: string; end: string }[] }>(

@@ -292,6 +292,79 @@ class DocumentsTest {
         )
     }
 
+    /**
+     * Шип 1, п. 1.8: правило «их нет» объявлено и у ОДНОГО элемента. §2
+     * «Анализ альтернатив» без вариантов пустым быть не может, а отклонённых
+     * законно нет, когда вариант был один; §9 (descopes) пуст целиком.
+     */
+    @Test
+    fun `отклонённые варианты и descopes закрываются тезисом, варианты — нет`() {
+        постановка("PJ-9214")
+        val п = mapOf("project" to "PJ-9214")
+        router.handle("GET", "/v2/documents", п, null)
+        val аоа = раздел("PJ-9214", "mcreport", "§2")
+        assertFalse(аоа.path("empty_ok_with_statement").asBoolean(), "раздел целиком словами не закрыть")
+        val элементы = аоа.path("elements").associateBy { it.path("code").asText() }
+        assertTrue(элементы.getValue("2.2").path("empty_ok_with_statement").asBoolean(), "отклонённые — можно")
+        assertFalse(элементы.getValue("2.1").path("empty_ok_with_statement").asBoolean(), "варианты — нельзя")
+
+        router.handle("POST", "/v2/documents/mcreport/statement", п,
+            """{"section":"§2","text":"Отклонённые варианты с причинами: нет.","author":"Чернов Д."}""")
+        val после = раздел("PJ-9214", "mcreport", "§2").path("elements").associateBy { it.path("code").asText() }
+        assertTrue(после.getValue("2.2").path("satisfied").asBoolean(), "тезис закрыл отклонённые")
+        assertFalse(после.getValue("2.1").path("satisfied").asBoolean(), "варианты тезисом не закрываются")
+
+        assertTrue(раздел("PJ-9214", "mcreport", "§9").path("empty_ok_with_statement").asBoolean(), "descopes бывают пусты")
+        router.handle("POST", "/v2/documents/mcreport/statement", п,
+            """{"section":"§9","text":"Отложенное содержание: нет.","author":"Чернов Д."}""")
+        assertTrue(раздел("PJ-9214", "mcreport", "§9").path("complete").asBoolean(), "§9 закрыт словами")
+    }
+
+    /**
+     * Паспорт проекта (журнал ПМИ-7, З-25): руководитель, класс миссии и
+     * название задавались при создании и не правились ничем — в §2 FAD
+     * печатался «инженер». Мера шипа 1, п. 1.5: после правки руководителя
+     * печать FAD показывает его.
+     */
+    @Test
+    fun `паспорт правится на месте с версией, и FAD печатает нового руководителя`() {
+        постановка("PJ-9215")
+        val п = mapOf("project" to "PJ-9215")
+        val было = router.handle("GET", "/v2/passport", п, null)!!
+        assertEquals(200, было.code)
+        assertEquals(1, было.body.path("version").asInt())
+        assertTrue(было.body.path("labels").path("manager").asText().isNotBlank(), "поля названы метками истины")
+        assertTrue(было.body.path("gates").size() >= 3, "даты точек фазы — в паспорте: ${было.body.path("gates")}")
+
+        val ответ = router.handle("PATCH", "/v2/passport", п,
+            """{"fields":{"manager":"Петров П.","mission_class":"НОО · связь и IoT"},"author":"Чернов Д."}""")!!
+        assertEquals(200, ответ.code, ответ.body.toString())
+        assertEquals(2, ответ.body.path("version").asInt(), "правка — новая версия записи проекта")
+        val паспорт = router.handle("GET", "/v2/passport", п, null)!!.body
+        assertEquals("Петров П.", паспорт.path("manager").asText())
+        assertEquals("НОО · связь и IoT", паспорт.path("mission_class").asText())
+
+        router.handle("POST", "/v2/documents", п, """{"template":"fad","author":"Чернов Д."}""")
+        val фад = router.handle("GET", "/v2/documents/fad", п, null)!!.body
+        val строки = раздел(фад, "§2").path("elements").first { it.path("code").asText() == "2.1" }.path("rows")
+        assertEquals("Петров П.", строки.first().get(1).asText(), "FAD §2 читает паспорт: $строки")
+        router.handle("POST", "/v2/documents", п, """{"template":"fa","author":"Чернов Д."}""")
+        val фа = router.handle("GET", "/v2/documents/fa", п, null)!!.body
+        val класс = раздел(фа, "§1").path("elements").first { it.path("code").asText() == "1.1" }.path("rows")
+        assertEquals("НОО · связь и IoT", класс.first().get(1).asText(), "FA §1 читает класс миссии из паспорта")
+
+        val чужое = kotlin.runCatching {
+            router.handle("PATCH", "/v2/passport", п, """{"fields":{"phase_current":"Phase B"},"author":"Чернов Д."}""")
+        }.exceptionOrNull()
+        assertTrue(чужое is IllegalArgumentException && "решение точки" in чужое.message!!, "фазу паспортом не сменить: $чужое")
+
+        val дата = router.handle("PATCH", "/v2/passport", п,
+            """{"gate_dates":[{"gate":"MCR","date":"2027-03-01"}],"author":"Чернов Д."}""")!!
+        assertEquals(1, дата.body.path("gate_dates_changed").asInt(), дата.body.toString())
+        val точка = router.handle("GET", "/v2/passport", п, null)!!.body.path("gates").first { it.path("key").asText() == "MCR" }
+        assertEquals("2027-03-01", точка.path("planned_date").asText())
+    }
+
     private fun раздел(проект: String, документ: String, номер: String): JsonNode =
         router.handle("GET", "/v2/documents/$документ", mapOf("project" to проект), null)!!
             .body.path("sections").single { it.path("no").asText() == номер }

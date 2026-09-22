@@ -62,6 +62,10 @@ class SceneRoutes(
 
 
         method == "POST" && path == "/v2/plan" -> задатьПлан(требуется(query, "project"), разобрать(body))
+        // Паспорт проекта (журнал ПМИ-7, З-25): название · класс · руководитель ·
+        // стандарт · даты точек — правка на месте с версией; печать читает отсюда.
+        method == "GET" && path == "/v2/passport" -> паспорт(требуется(query, "project"))
+        method == "PATCH" && path == "/v2/passport" -> правитьПаспорт(требуется(query, "project"), разобрать(body))
 
         method == "POST" && path == "/v2/intent" -> замысел(требуется(query, "project"), разобрать(body))
 
@@ -116,6 +120,135 @@ class SceneRoutes(
                 .put("knowledge_v2", проект.doc.path("knowledge_v2").asBoolean(false))
         }
         return V2Router.Ответ(200, ответ)
+    }
+
+    /** Поля паспорта: их правит руководитель на месте; фазу и шаблон меняет решение точки. */
+    private val ПАСПОРТ = listOf("name", "mission_class", "manager", "standard")
+
+    private fun записьПроекта(проект: String) =
+        store.byCode(Area.Project(проект), проект)?.takeIf { it.kind == "project" }
+            ?: throw NoSuchElementException("проекта «$проект» нет")
+
+    private fun меткаПоля(имя: String): String =
+        runCatching { orbita.kernel.schema.GeneratedKinds.of("project").labels[имя] }.getOrNull() ?: имя
+
+    /**
+     * Паспорт проекта: то, что задаётся при создании и прежде не правилось
+     * ничем — в §2 FAD печатался «инженер», в §1 FA пустой класс миссии
+     * (журнал ПМИ-7, З-25). Печать читает те же поля документа проекта, так
+     * что правка здесь и есть правка документов.
+     */
+    private fun паспорт(проект: String): V2Router.Ответ {
+        val запись = записьПроекта(проект)
+        val узел = mapper.createObjectNode()
+        узел.put("code", запись.code).put("version", запись.version)
+        узел.put("updated_at", запись.updatedAt.toString().take(10))
+        узел.put("updated_by", запись.provenance.author)
+        ПАСПОРТ.forEach { поле -> узел.put(поле, запись.doc.path(поле).asText("")) }
+        // Проекты, заведённые до имён истины, несут `lead` и `phase`: читаем оба.
+        if (узел.path("manager").asText("").isBlank()) узел.put("manager", запись.doc.path("lead").asText(""))
+        узел.put(
+            "phase_current",
+            запись.doc.path("phase_current").asText("").ifBlank { запись.doc.path("phase").asText("") },
+        )
+        узел.put("phase_template", запись.doc.path("phase_template").asText(""))
+        val метки = узел.putObject("labels")
+        (ПАСПОРТ + listOf("phase_current", "phase_template")).forEach { метки.put(it, меткаПоля(it)) }
+        val стандарты = узел.putArray("standards")
+        orbita.kernel.schema.Enums.значения("project", "standard").forEach { (код, метка) ->
+            стандарты.addObject().put("code", код).put("label", метка)
+        }
+        // Классы миссии — с полки: значение поля есть код или имя класса.
+        val классы = узел.putArray("mission_classes")
+        store.list(Area.Library, "mission_class").forEach { к ->
+            классы.addObject().put("code", к.code).put("name", к.doc.path("name").asText(к.code))
+        }
+        // Даты точек текущей фазы — из САМИХ точек: план их задаёт, паспорт
+        // правит те же; вид фазы берёт их оттуда же и не может разойтись.
+        val точки = узел.putArray("gates")
+        val область = Area.Project(проект)
+        engine.view(проект).gates.forEach { т ->
+            val запись = store.byCode(область, т.key)?.takeIf { it.kind == "gate" }
+            val дата = запись?.doc?.path("planned_date")?.asText("")?.ifBlank { null } ?: т.plannedDate ?: ""
+            точки.addObject().put("key", т.key).put("title", т.title)
+                .put("planned_date", дата).put("passed", т.passed)
+        }
+        return V2Router.Ответ(200, узел)
+    }
+
+    private fun правитьПаспорт(проект: String, тело: JsonNode): V2Router.Ответ {
+        val область = Area.Project(проект)
+        val запись = записьПроекта(проект)
+        val поля = тело.path("fields")
+        val даты = тело.path("gate_dates")
+        require((поля.isObject && poleCount(поля) > 0) || (даты.isArray && даты.size() > 0)) {
+            "нужно fields: {поле: значение} и/или gate_dates: [{gate, date}]"
+        }
+        val документ = запись.doc.deepCopy<ObjectNode>()
+        var изменено = 0
+        поля.fields().forEach { (имя, значение) ->
+            require(имя in ПАСПОРТ) {
+                "поле «$имя» в паспорте не правится: паспорт — это " +
+                    ПАСПОРТ.joinToString(" · ") { меткаПоля(it) } + "; фазу и шаблон меняет решение точки"
+            }
+            val текст = значение.asText("").trim()
+            // Поля паспорта обязательны по истине: их меняют, а не снимают.
+            require(текст.isNotBlank()) { "поле «${меткаПоля(имя)}» обязательно — его меняют, а не снимают" }
+            if (документ.path(имя).asText("") != текст) {
+                документ.put(имя, текст)
+                изменено += 1
+            }
+        }
+        // Руководитель назван именем истины — старое `lead` снимается, чтобы
+        // печать и портфель читали одно поле, а не гадали между двумя.
+        if (поля.has("manager") && документ.has("lead")) {
+            документ.remove("lead")
+            изменено += 1
+        }
+        val правимые = поля.fieldNames().asSequence().toSet()
+        orbita.kernel.schema.Enums.проверить("project", документ, правимые).let { отказы ->
+            require(отказы.isEmpty()) { отказы.joinToString("; ") }
+        }
+        изменено += orbita.kernel.schema.Enums.нормализовать("project", документ).size
+        val автор = автор(тело)
+        val причина = тело.path("reason").asText("").ifBlank { null }
+        val кем = "паспорт проекта: $автор" + (причина?.let { " — $it" } ?: "")
+        val новая = if (изменено > 0) store.update(запись.id, документ, Provenance(Channel.MANUAL, кем)) else запись
+
+        // Даты точек: правятся в самих точках, как делает план; пройденную
+        // точку не передвинуть — её дата стала фактом.
+        val пройдены = engine.view(проект).gates.filter { it.passed }.map { it.key }.toSet()
+        var датИзменено = 0
+        даты.forEach { пара ->
+            val ключ = пара.path("gate").asText("")
+            val дата = пара.path("date").asText("")
+            require(Regex("""\d{4}-\d{2}-\d{2}""").matches(дата)) { "дата точки «$ключ» — ГГГГ-ММ-ДД; пришло «$дата»" }
+            val точка = store.byCode(область, ключ)?.takeIf { it.kind == "gate" }
+                ?: throw IllegalArgumentException("точки «$ключ» в проекте нет")
+            require(ключ !in пройдены) { "точка «$ключ» пройдена: её дата — факт, а не план" }
+            if (точка.doc.path("planned_date").asText("") == дата) return@forEach
+            store.update(точка.id, точка.doc.deepCopy<ObjectNode>().put("planned_date", дата), Provenance(Channel.MANUAL, кем))
+            датИзменено += 1
+        }
+        // План фазы держит те же даты — поправить, чтобы две даты не разъехались.
+        if (датИзменено > 0) {
+            store.list(область, "plan").lastOrNull()?.let { план ->
+                val док = план.doc.deepCopy<ObjectNode>()
+                val перечень = док.path("gate_dates")
+                if (перечень.isArray) {
+                    перечень.forEach { п ->
+                        val новое = даты.firstOrNull { it.path("gate").asText() == п.path("gate").asText() } ?: return@forEach
+                        (п as ObjectNode).put("date", новое.path("date").asText())
+                    }
+                    store.update(план.id, док, Provenance(Channel.MANUAL, кем))
+                }
+            }
+        }
+        return V2Router.Ответ(
+            200,
+            mapper.createObjectNode().put("code", новая.code).put("version", новая.version)
+                .put("changed", изменено).put("gate_dates_changed", датИзменено),
+        )
     }
 
     private fun план(проект: String): V2Router.Ответ {

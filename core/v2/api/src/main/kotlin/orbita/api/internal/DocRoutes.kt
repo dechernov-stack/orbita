@@ -267,6 +267,7 @@ class DocRoutes(
             у.put("select", э.select)
             у.put("min_rows", э.minRows)
             у.put("satisfied", э.satisfied)
+            у.put("empty_ok_with_statement", э.emptyOkWithStatement)
             э.text?.let { у.put("text", it) }
             у.putArray("columns").also { а -> э.columns.forEach { к -> а.add(к.title) } }
             val строки = у.putArray("rows")

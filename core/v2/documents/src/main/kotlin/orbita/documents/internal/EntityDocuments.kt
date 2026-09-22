@@ -172,7 +172,13 @@ class EntityDocuments(
         val элементы = раздел.path("elements").map { элемент ->
             val строки = запросы.rows(project, элемент, подписи)
             val минимум = элемент.path("min_rows").asInt(1)
-            val хватает = строки.size >= минимум || (строки.isEmpty() && закрытоСловами)
+            // Правило бывает и у одного элемента: §2 «Анализ альтернатив»
+            // требует варианты, но отклонённых законно нет, когда вариант
+            // был один (шип 1, п. 1.8). Тезис раздела закрывает такой
+            // элемент, а не весь раздел.
+            val элементСловами = элемент.path("empty_ok_with_statement").asBoolean(false)
+            val закрытЭлемент = закрытоСловами || (элементСловами && тезисы.isNotEmpty())
+            val хватает = строки.size >= минимум || (строки.isEmpty() && закрытЭлемент)
             ElementView(
                 code = элемент.path("code").asText(""),
                 kind = ElementKind.QUERY,
@@ -187,11 +193,12 @@ class EntityDocuments(
                 minRows = минимум,
                 satisfied = хватает,
                 waitingScenes = if (хватает) emptyList() else сцены,
-                notes = if (строки.isEmpty() && закрытоСловами) {
+                notes = if (строки.isEmpty() && закрытЭлемент) {
                     listOf("перечень пуст и закрыт тезисом: «нет» — это ответ, а не пропуск")
                 } else {
                     emptyList()
                 },
+                emptyOkWithStatement = пустоеСловами || элементСловами,
             )
         }
         val опоры = элементы.flatMap { э -> э.rows.flatten() }

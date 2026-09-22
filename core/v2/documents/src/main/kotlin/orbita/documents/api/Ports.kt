@@ -43,6 +43,12 @@ data class ElementView(
     val waitingScenes: List<String>,
     /** Пометы: число без опоры и прочее, что видно на глаз. */
     val notes: List<String>,
+    /**
+     * Пустой перечень ЭЛЕМЕНТА закрывается тезисом — как у раздела, но
+     * для одного запроса: «отклонённые варианты» в §2 законно пусты, когда
+     * вариант был один, а §2 целиком пустым быть не может (шип 1, п. 1.8).
+     */
+    val emptyOkWithStatement: Boolean = false,
 )
 
 data class SectionView(
