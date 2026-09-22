@@ -38,7 +38,36 @@
     },
     "provenance": {
       "type": "object",
-      "description": "{channel*:enum[manual,package,service,shelf,import,example], author*:ref account, source?:ref, anchor?:str, fingerprint?:str}"
+      "properties": {
+        "channel": {
+          "enum": [
+            "manual",
+            "package",
+            "service",
+            "shelf",
+            "import",
+            "example"
+          ]
+        },
+        "author": {
+          "type": "string",
+          "description": "ссылка на вид: account"
+        },
+        "source": {
+          "type": "string",
+          "description": "ссылка на сущность"
+        },
+        "anchor": {
+          "type": "string"
+        },
+        "fingerprint": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "channel",
+        "author"
+      ]
     },
     "created_at": {
       "type": "string",
@@ -64,7 +93,31 @@
     },
     "source": {
       "type": "object",
-      "description": "{material?,prompt?,external?:bool}"
+      "properties": {
+        "material": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "object",
+            "array",
+            "null"
+          ]
+        },
+        "prompt": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "object",
+            "array",
+            "null"
+          ]
+        },
+        "external": {
+          "type": "boolean"
+        }
+      }
     },
     "items": {
       "type": "array",
@@ -146,6 +199,31 @@
     },
     "fingerprint": {
       "type": "string"
+    },
+    "verdict": {
+      "enum": [
+        "new",
+        "augment",
+        "contradict",
+        "confirm"
+      ],
+      "description": "вердикт сверки о кандидате"
+    },
+    "decision": {
+      "enum": [
+        "pending",
+        "accepted",
+        "rejected",
+        "deferred"
+      ],
+      "description": "решение человека"
+    },
+    "target": {
+      "type": "string",
+      "description": "ссылка на вид: entity принятое, о котором вердикт"
+    },
+    "diff_field": {
+      "type": "string"
     }
   },
   "required": [
@@ -161,6 +239,8 @@
     "updated_at",
     "package_kind",
     "source",
-    "items"
+    "items",
+    "verdict",
+    "decision"
   ]
 }

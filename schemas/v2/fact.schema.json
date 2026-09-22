@@ -48,7 +48,36 @@
     },
     "provenance": {
       "type": "object",
-      "description": "{channel*:enum[manual,package,service,shelf,import,example], author*:ref account, source?:ref, anchor?:str, fingerprint?:str}"
+      "properties": {
+        "channel": {
+          "enum": [
+            "manual",
+            "package",
+            "service",
+            "shelf",
+            "import",
+            "example"
+          ]
+        },
+        "author": {
+          "type": "string",
+          "description": "ссылка на вид: account"
+        },
+        "source": {
+          "type": "string",
+          "description": "ссылка на сущность"
+        },
+        "anchor": {
+          "type": "string"
+        },
+        "fingerprint": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "channel",
+        "author"
+      ]
     },
     "created_at": {
       "type": "string",
@@ -83,7 +112,17 @@
     },
     "subject": {
       "type": "object",
-      "description": "{ref?:ref entity, topic?:ref topic} ровно одно из двух"
+      "properties": {
+        "ref": {
+          "type": "string",
+          "description": "ссылка на вид: entity"
+        },
+        "topic": {
+          "type": "string",
+          "description": "ссылка на вид: topic"
+        }
+      },
+      "description": "ровно одно из двух"
     },
     "predicate": {
       "type": "string"
@@ -105,11 +144,68 @@
       "anyOf": [
         {
           "type": "object",
-          "description": "{material?,anchor?}"
+          "properties": {
+            "material": {
+              "type": [
+                "string",
+                "number",
+                "boolean",
+                "object",
+                "array",
+                "null"
+              ]
+            },
+            "anchor": {
+              "type": [
+                "string",
+                "number",
+                "boolean",
+                "object",
+                "array",
+                "null"
+              ]
+            }
+          }
         },
         {
           "type": "object",
-          "description": "{account*,role*,at*}"
+          "properties": {
+            "account": {
+              "type": [
+                "string",
+                "number",
+                "boolean",
+                "object",
+                "array",
+                "null"
+              ]
+            },
+            "role": {
+              "type": [
+                "string",
+                "number",
+                "boolean",
+                "object",
+                "array",
+                "null"
+              ]
+            },
+            "at": {
+              "type": [
+                "string",
+                "number",
+                "boolean",
+                "object",
+                "array",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "account",
+            "role",
+            "at"
+          ]
         }
       ],
       "description": "документ с якорем — или эксперт без якоря (учётка · роль · дата); ровно одно из двух, стережёт Kotlin"
@@ -157,11 +253,98 @@
     },
     "disposition_decision": {
       "type": "object",
-      "description": "{by*,at*,reason*,gate?} обязателен при любой диспозиции кроме free"
+      "properties": {
+        "by": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "object",
+            "array",
+            "null"
+          ]
+        },
+        "at": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "object",
+            "array",
+            "null"
+          ]
+        },
+        "reason": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "object",
+            "array",
+            "null"
+          ]
+        },
+        "gate": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "object",
+            "array",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "by",
+        "at",
+        "reason"
+      ],
+      "description": "обязателен при любой диспозиции кроме free"
     },
     "assumption": {
       "type": "object",
-      "description": "{owner*,confirm_by*:ref gate,validation?,impact_if_wrong?} обязателен при disposition=assumed; owner и confirm_by спрашивает окно приёма, validation и impact — по желанию"
+      "properties": {
+        "owner": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "object",
+            "array",
+            "null"
+          ]
+        },
+        "confirm_by": {
+          "type": "string",
+          "description": "ссылка на вид: gate"
+        },
+        "validation": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "object",
+            "array",
+            "null"
+          ]
+        },
+        "impact_if_wrong": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "object",
+            "array",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "owner",
+        "confirm_by"
+      ],
+      "description": "обязателен при disposition=assumed; owner и confirm_by спрашивает окно приёма, validation и impact — по желанию"
     },
     "classification": {
       "enum": [

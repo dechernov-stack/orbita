@@ -726,6 +726,25 @@ export interface DocSection {
   elements: DocElement[]
 }
 
+/**
+ * Связный текст раздела, написанный живой моделью из его же элементов.
+ *
+ * Модель не источник сведений: она излагает то, что в разделе уже есть.
+ * Текст принимается ЦЕЛИКОМ либо отклоняется с причинами — полупринятый
+ * хуже отсутствующего, в нём не видно, где враньё.
+ */
+export interface RenderedSection {
+  section: string
+  title: string
+  text: string
+  model: string
+  accepted: boolean
+  /** Пусто — текст принят. Иначе текст ОТКЛОНЁН и причины названы. */
+  refusals: string[]
+  /** Сказано, но не отклонено: человек смотрит и решает сам. */
+  notes: string[]
+}
+
 export interface DocView {
   code: string
   title: string
@@ -1395,6 +1414,31 @@ export const api = {
   baselineDocument: (project: string, code: string, тело: Record<string, unknown>) =>
     вызов<DocBaseline>(`/documents/${code}/baseline?project=${encodeURIComponent(project)}`,
       { method: 'POST', body: JSON.stringify(тело) }),
+
+  /**
+   * «Написать связно»: раздел прозой живой модели. Маршрут стоит с шипа C,
+   * вызова в клиенте не было — владелец 22.09: «кнопки написать связно тоже
+   * нет». Отклонённый текст приходит кодом 422 вместе с причинами: показать
+   * его человеку нужно, принять — нельзя.
+   */
+  writeSection: async (project: string, code: string, section: string, author: string) => {
+    const о = await fetch(
+      `/api/v2/documents/${code}/write?project=${encodeURIComponent(project)}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ section, author }),
+      },
+    )
+    const тело = await о.json().catch(() => ({}))
+    if (о.status === 201 || о.status === 422) return тело as RenderedSection
+    throw new ServerRefusal(тело?.error ?? `HTTP ${о.status}`, о.status)
+  },
+
+  /** Принятые связные тексты разделов: что уже написано моделью. */
+  renderings: (project: string, code: string) =>
+    вызов<{ items: RenderedSection[] }>(
+      `/documents/${code}/renderings?project=${encodeURIComponent(project)}`),
 
   docHints: (project: string, scene: string) =>
     вызов<{ items: DocHint[] }>(

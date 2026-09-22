@@ -38,7 +38,36 @@
     },
     "provenance": {
       "type": "object",
-      "description": "{channel*:enum[manual,package,service,shelf,import,example], author*:ref account, source?:ref, anchor?:str, fingerprint?:str}"
+      "properties": {
+        "channel": {
+          "enum": [
+            "manual",
+            "package",
+            "service",
+            "shelf",
+            "import",
+            "example"
+          ]
+        },
+        "author": {
+          "type": "string",
+          "description": "ссылка на вид: account"
+        },
+        "source": {
+          "type": "string",
+          "description": "ссылка на сущность"
+        },
+        "anchor": {
+          "type": "string"
+        },
+        "fingerprint": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "channel",
+        "author"
+      ]
     },
     "created_at": {
       "type": "string",
@@ -340,7 +369,31 @@
                 },
                 "target": {
                   "type": "object",
-                  "description": "{route*,preset?}"
+                  "properties": {
+                    "route": {
+                      "type": [
+                        "string",
+                        "number",
+                        "boolean",
+                        "object",
+                        "array",
+                        "null"
+                      ]
+                    },
+                    "preset": {
+                      "type": [
+                        "string",
+                        "number",
+                        "boolean",
+                        "object",
+                        "array",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "route"
+                  ]
                 },
                 "condition": {
                   "type": [
@@ -458,7 +511,50 @@
           },
           "expertise": {
             "type": "object",
-            "description": "{purpose*,inputs*,control_questions*:str[],outputs*}"
+            "properties": {
+              "purpose": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "object",
+                  "array",
+                  "null"
+                ]
+              },
+              "inputs": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "object",
+                  "array",
+                  "null"
+                ]
+              },
+              "control_questions": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "outputs": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "object",
+                  "array",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "purpose",
+              "inputs",
+              "control_questions",
+              "outputs"
+            ]
           }
         },
         "required": [
@@ -474,7 +570,48 @@
     },
     "stage_output_dataset": {
       "type": "object",
-      "description": "{composition_depth*:int, requirement_levels*:str[], interfaces*:bool, models*:str[], documents*:str[], baseline_kind*:enum[functional,allocated,product]} исходные данные для следующей стадии"
+      "properties": {
+        "composition_depth": {
+          "type": "integer"
+        },
+        "requirement_levels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "interfaces": {
+          "type": "boolean"
+        },
+        "models": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "documents": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "baseline_kind": {
+          "enum": [
+            "functional",
+            "allocated",
+            "product"
+          ]
+        }
+      },
+      "required": [
+        "composition_depth",
+        "requirement_levels",
+        "interfaces",
+        "models",
+        "documents",
+        "baseline_kind"
+      ],
+      "description": "исходные данные для следующей стадии"
     }
   },
   "required": [

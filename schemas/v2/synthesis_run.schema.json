@@ -38,7 +38,36 @@
     },
     "provenance": {
       "type": "object",
-      "description": "{channel*:enum[manual,package,service,shelf,import,example], author*:ref account, source?:ref, anchor?:str, fingerprint?:str}"
+      "properties": {
+        "channel": {
+          "enum": [
+            "manual",
+            "package",
+            "service",
+            "shelf",
+            "import",
+            "example"
+          ]
+        },
+        "author": {
+          "type": "string",
+          "description": "ссылка на вид: account"
+        },
+        "source": {
+          "type": "string",
+          "description": "ссылка на сущность"
+        },
+        "anchor": {
+          "type": "string"
+        },
+        "fingerprint": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "channel",
+        "author"
+      ]
     },
     "created_at": {
       "type": "string",
@@ -85,7 +114,55 @@
     },
     "diff": {
       "type": "object",
-      "description": "{new*,augment*,contradict*,confirm*} диф «поле → постановка» четырьмя группами; принятое не меняется молча"
+      "properties": {
+        "new": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "object",
+            "array",
+            "null"
+          ]
+        },
+        "augment": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "object",
+            "array",
+            "null"
+          ]
+        },
+        "contradict": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "object",
+            "array",
+            "null"
+          ]
+        },
+        "confirm": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "object",
+            "array",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "new",
+        "augment",
+        "contradict",
+        "confirm"
+      ],
+      "description": "диф «поле → постановка» четырьмя группами; принятое не меняется молча"
     },
     "ontology_version": {
       "type": "string",

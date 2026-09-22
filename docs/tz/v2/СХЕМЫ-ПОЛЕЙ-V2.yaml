@@ -59,38 +59,47 @@ kinds:
     type: str
     required: true
     note: ''
+    label: Размерность
   - name: symbol
     type: str
     required: true
     note: ''
+    label: Символ
   - name: name
     type: str
     required: true
     note: ''
+    label: Наименование
   - name: canonical
     type: bool
     required: true
     note: ''
+    label: Каноническое имя
   - name: factor
     type: num
     required: false
     note: обязателен, если не канон
+    label: Множитель
   - name: conversion_type
     type: enum[linear,offset,log,rate]
     required: true
     note: ''
+    label: Тип преобразования
   - name: offset
     type: num
     required: false
     note: ''
+    label: Смещение
   - name: rate_date
     type: date
     required: false
     note: для валют
+    label: Дата курса
   - name: display_default
     type: bool
     required: false
     note: ''
+    label: Показывать по умолчанию
   export: в каждом числе наружу
   engine: есть
 - n: 2
@@ -104,26 +113,32 @@ kinds:
     type: str
     required: true
     note: ''
+    label: Термин (рус.)
   - name: term_en
     type: str
     required: false
     note: ''
+    label: Термин (англ.)
   - name: definition
     type: text
     required: true
     note: ''
+    label: Определение
   - name: source
     type: str
     required: false
     note: ''
+    label: Источник
   - name: doc_type_brief
     type: text
     required: false
     note: для типов документов
+    label: Тип документа
   - name: default_take_to_prompt
     type: bool
     required: false
     note: умолчание «в промпт» типа
+    label: В промпт по умолчанию
   export: глоссарий пакета
   engine: есть
 - n: 3
@@ -137,18 +152,22 @@ kinds:
     type: enum[A′,B′,C′]
     required: true
     note: ''
+    label: Код
   - name: name
     type: str
     required: true
     note: ''
+    label: Наименование
   - name: latency_max
     type: measure{op,value|min,max,unit→unit}
     required: true
     note: ''
+    label: Макс. задержка
   - name: guarantee
     type: text
     required: true
     note: ''
+    label: Гарантия
   export: ConOps §5
   engine: новый
 - n: 4
@@ -162,10 +181,12 @@ kinds:
     type: enum[verification_method,trl_scale,risk_probability,risk_impact,status_model,priority]
     required: true
     note: ''
+    label: Каталог
   - name: items
     type: '[{code*,name*,order*,description?}]'
     required: true
     note: ''
+    label: Элементы
   export: —
   engine: менять
 - n: 5
@@ -179,30 +200,37 @@ kinds:
     type: str
     required: true
     note: ''
+    label: Обозначение
   - name: title
     type: str
     required: true
     note: ''
+    label: Заголовок
   - name: edition
     type: str
     required: true
     note: ''
+    label: Редакция
   - name: edition_date
     type: date
     required: true
     note: ''
+    label: Дата редакции
   - name: valid_until
     type: date
     required: false
     note: ''
+    label: Срок действия
   - name: clauses
     type: '[{clause*,text?,limit?:{key*,op*,value*,unit*},applies_to?:enum[node,interface,scene][]}]'
     required: false
     note: 'порог нормы — поле limit, не число из текста; «Б1: увод ≤ 5 лет» → limit{key:active_lifetime,op:le,value:5,unit:год}'
+    label: Пункты
   - name: source_mark
     type: enum[И,В,П]
     required: false
     note: ''
+    label: Метка источника
   export: SEMP §2; матрица соответствия
   engine: есть
 - n: 6
@@ -216,26 +244,32 @@ kinds:
     type: str
     required: true
     note: ''
+    label: Код
   - name: name
     type: str
     required: true
     note: ''
+    label: Наименование
   - name: recommended_shelves
     type: ref[] shelf
     required: true
     note: ''
+    label: Рекомендованные полки
   - name: mandatory_models
     type: '[{model_code*,gate*}]'
     required: true
     note: ''
+    label: Обязательные модели
   - name: default_constraints
     type: ref[] typical_constraint
     required: true
     note: ''
+    label: Ограничения по умолчанию
   - name: prompt_context
     type: text
     required: false
     note: ''
+    label: Контекст промпта
   export: —
   engine: менять
 - n: 7
@@ -249,30 +283,37 @@ kinds:
     type: enum[NASA-7120,RK-11KT,ISO-15288]
     required: true
     note: ''
+    label: Стандарт
   - name: phase
     type: str
     required: true
     note: ключ фазы в стандарте
+    label: Фаза
   - name: correspondence
     type: '[{other_standard*,stage*,notes?}]'
     required: true
     note: карта соответствий стадий
+    label: Соответствия
   - name: roles
     type: '[{role*,involvement*}]'
     required: true
     note: задействованный персонал стадии
+    label: Роли
   - name: scenes
     type: '[{key*,title*,order*,track*:enum[design,modeling,management],instantiate_per?:enum[project,segment,element],operations*:str[],role*,inputs*:[{kind*,condition*}],output*:{kind|document_template*,maturity*},visibility*:kind[],links*:[{to*,type*:enum[FS,SS,FF,INPUT],rationale*}],steps*:[{key*,title*,hint*,target*:{route*,preset?},condition*}]}]'
     required: true
     note: дорожки и экземпляры на узлы — по схеме Романова
+    label: Сцены
   - name: points
     type: '[{key*,title*,aliases*:[{standard*,name*}],order*,criteria*:[…],expertise*:{purpose*,inputs*,control_questions*:str[],outputs*}}]'
     required: true
     note: точка = экспертиза с содержанием
+    label: Точки
   - name: stage_output_dataset
     type: '{composition_depth*:int, requirement_levels*:str[], interfaces*:bool, models*:str[], documents*:str[], baseline_kind*:enum[functional,allocated,product]}'
     required: true
     note: исходные данные для следующей стадии
+    label: Исходные данные стадии
   export: CMMN/BPMN/DMN для движка
   engine: менять
 - n: 8
@@ -286,18 +327,22 @@ kinds:
     type: str
     required: true
     note: ''
+    label: Код
   - name: title
     type: str
     required: true
     note: ''
+    label: Заголовок
   - name: sections
     type: '[{no*,title*,expects*:{gate:[{element_kind*,min*:int,filter?}]},style?:text,glossary?:ref[] glossary_term}]'
     required: true
     note: ожидания полноты по MCR/SRR/SDR/PDR
+    label: Разделы
   - name: nature
     type: enum[narrative,registry_view,mixed]
     required: true
     note: документ-представление = разделы из запросов
+    label: Род
   export: docx/pdf
   engine: есть
 - n: 9
@@ -311,6 +356,7 @@ kinds:
     type: '[{code*,parent?,name*,level*:0–5,kind*:enum[system,segment,element,subsystem,assembly,unit],params?:[{key*,name*,unit*→unit,required_to*→gate}],default_take*:bool,external?:bool,default_quantity?:int}]'
     required: true
     note: ''
+    label: Узлы
   export: —
   engine: есть
 - n: 10
@@ -324,6 +370,7 @@ kinds:
     type: '[{code*,name*,type*:enum[RF,power,data,thermal,mech,env,hmi,org],a*,b*,direction*,standard?,params?:[…],requirement_classes*:str[],icd_section?,models?:str[],default_take*,external?}]'
     required: true
     note: ''
+    label: Стыки
   export: —
   engine: есть
 - n: 11
@@ -337,30 +384,37 @@ kinds:
     type: '[{code*,name*,stakeholder_role*}]'
     required: true
     note: ''
+    label: Акторы
   - name: capabilities
     type: '[{code*,name*,traced_to*}]'
     required: true
     note: ''
+    label: Способности
   - name: activities
     type: '[{code*,name*,actor*}]'
     required: false
     note: ''
+    label: Мероприятия
   - name: functions
     type: '[{code*,name*,allocated_to*,layer*:enum[SA,LA],default_take*}]'
     required: true
     note: ''
+    label: Функции
   - name: exchanges
     type: '[{code*,name*,src*,dst*,interface*}]'
     required: true
     note: ''
+    label: Обмены
   - name: chains
     type: '[{code*,name*,steps*:str[],capability?,requirement_kinds?}]'
     required: true
     note: ''
+    label: Цепочки
   - name: logical_components
     type: '[{code*,name*,functions*,deployed_to*}]'
     required: false
     note: ''
+    label: Логические компоненты
   export: —
   engine: есть
 - n: 12
@@ -374,6 +428,7 @@ kinds:
     type: '[{code*,parent?,name*,scope?,pbs_refs?:str[],phase_tasks?:str[],cross_cutting*:bool,default_take*:bool}]'
     required: true
     note: ''
+    label: Пакеты
   export: —
   engine: есть
 - n: 13
@@ -387,6 +442,7 @@ kinds:
     type: '[{code*,name*,question*,inputs*:str[],outputs*:str[],gate*,tool_status*:enum[calc,proxy,build],interface_bound?:bool}]'
     required: true
     note: ''
+    label: Модели
   export: —
   engine: есть
 - n: 14
@@ -400,46 +456,57 @@ kinds:
     type: str
     required: true
     note: ''
+    label: Код
   - name: title
     type: str
     required: true
     note: ''
+    label: Заголовок
   - name: ears_pattern
     type: enum[ubiquitous,event,state,unwanted,optional]
     required: true
     note: ''
+    label: Шаблон EARS
   - name: statement_template
     type: text
     required: true
     note: с плейсхолдерами {носитель}, {значение}
+    label: Шаблон формулировки
   - name: category
     type: enum[functional,performance,interface,operational,constraint,safety,environment]
     required: true
     note: ''
+    label: Категория
   - name: measure
     type: measure{…}
     required: false
     note: ''
+    label: Показатель
   - name: verification
     type: ref method_catalog
     required: true
     note: ''
+    label: Верификация
   - name: acceptance_criteria
     type: text
     required: false
     note: ''
+    label: Критерий приёмки
   - name: applicability
     type: class[]
     required: true
     note: ''
+    label: Применимость
   - name: normative_basis
     type: '{normative_document*,clause*}'
     required: false
     note: ''
+    label: Нормативное основание
   - name: version
     type: int
     required: true
     note: новая редакция подсвечивает экземпляры
+    label: Версия
   export: —
   engine: есть
 - n: 15
@@ -453,18 +520,22 @@ kinds:
     type: str
     required: true
     note: ''
+    label: Код
   - name: target_kind
     type: enum[component,interface]
     required: true
     note: ''
+    label: Вид цели
   - name: fields
     type: '[{key*,name*,unit*→unit,required_to*→gate,paths*:enum[manual,shelf,datasheet][]}]'
     required: true
     note: ''
+    label: Поля
   - name: kind_presets
     type: enum[platform,payload,terminal,station,software]
     required: false
     note: 'анкета «бортовое ПО»: cpu_load_avg/peak %, ram МБ, rom МБ, cycle_ms, modes, criticality, rtos, language, kloc, autonomy_days'
+    label: Предустановки вида
   export: —
   engine: есть
 - n: 16
@@ -478,26 +549,32 @@ kinds:
     type: str
     required: true
     note: ''
+    label: Код
   - name: schema
     type: json-schema
     required: true
     note: ''
+    label: Схема
   - name: rules
     type: text[]
     required: true
     note: ''
+    label: Правила
   - name: sources
     type: enum[intent,library,materials,accepted,constraints][]
     required: true
     note: ''
+    label: Источники
   - name: accepted_classes
     type: str[]
     required: true
     note: ''
+    label: Принятые классы
   - name: version
     type: int
     required: true
     note: ''
+    label: Версия
   export: инструкция внешнего проекта
   engine: есть
 - n: 17
@@ -511,6 +588,7 @@ kinds:
     type: '[{code*,name*,lat*,lon*,type*:enum[gcs,gateway]}]'
     required: true
     note: ''
+    label: Площадки
   export: —
   engine: есть
 - n: 18
@@ -523,31 +601,48 @@ kinds:
   - name: name
     type: str
     required: true
-    note: ''
+    note: правится в паспорте проекта (карточка), не только при создании
+    label: Наименование
   - name: mission_class
     type: ref mission_class
     required: true
-    note: ''
+    note: правится в паспорте проекта (карточка), не только при создании
+    label: Класс миссии
   - name: manager
     type: ref account
     required: true
-    note: ''
+    note: правится в паспорте проекта (карточка), не только при создании
+    label: Руководитель
   - name: phase_current
     type: ref phase
     required: true
     note: ''
+    label: Текущая фаза
   - name: group
     type: enum[work,example]
     required: true
     note: ''
+    label: Группа
   - name: example
     type: bool
     required: true
     note: ''
+    label: Пример
   - name: knowledge_v2
     type: bool
     required: false
     note: поле знаний v2 — синтез, сверка, ранг доверия; на прежних проектах выключено, новым ставится умолчанием стенда (ORBITA_KNOWLEDGE_V2_DEFAULT)
+    label: Знания v2
+  - name: standard
+    type: enum[NASA-7120]
+    required: true
+    note: имена в интерфейсе; кросс-термины — словарь
+    label: Стандарт
+  - name: phase_template
+    type: ref phase_template
+    required: true
+    note: шаблон текущей фазы; меняется решением точки вместе с phase_current
+    label: Шаблон фазы
   export: —
   engine: есть
 - n: 19
@@ -561,22 +656,27 @@ kinds:
     type: ref project
     required: true
     note: ''
+    label: Проект
   - name: template
     type: ref phase_template
     required: true
     note: ''
+    label: Шаблон
   - name: case_instance_id
     type: str
     required: true
     note: Flowable
+    label: Экземпляр дела
   - name: points
     type: ref[] gate
     required: true
     note: ''
+    label: Точки
   - name: opened_by
     type: ref decision | «creation»
     required: true
     note: ''
+    label: Открыл
   export: —
   engine: новый
 - n: 20
@@ -590,26 +690,32 @@ kinds:
     type: ref phase
     required: true
     note: ''
+    label: Фаза
   - name: template_key
     type: str
     required: true
     note: ''
+    label: Ключ шаблона
   - name: responsible
     type: ref account
     required: false
     note: ''
+    label: Ответственный
   - name: plan
     type: '{start,end}'
     required: false
     note: ''
+    label: План
   - name: output_refs
     type: ref[]
     required: false
     note: заполняется каналами
+    label: Выходы
   - name: node
     type: ref component
     required: false
     note: для сцен instantiate_per segment|element
+    label: Узел
   export: —
   engine: менять
 - n: 21
@@ -623,18 +729,22 @@ kinds:
     type: ref scene
     required: true
     note: ''
+    label: Сцена
   - name: key
     type: str
     required: true
     note: ''
+    label: Ключ
   - name: responsible
     type: ref account
     required: false
     note: ''
+    label: Ответственный
   - name: plan
     type: '{start,end}'
     required: false
     note: ''
+    label: План
   export: —
   engine: менять
 - n: 22
@@ -648,38 +758,52 @@ kinds:
     type: ref phase
     required: true
     note: ''
+    label: Фаза
   - name: key
     type: str
     required: true
     note: ''
+    label: Ключ
   - name: title
     type: str
     required: true
     note: ''
+    label: Заголовок
   - name: planned_date
     type: date
     required: true
     note: ''
+    label: Плановая дата
   - name: criteria
     type: ref[] criterion
     required: true
     note: ''
+    label: Критерии
   - name: decision
     type: ref decision
     required: false
     note: ''
+    label: Решение
   - name: kind
     type: enum[phase,technology]
     required: true
     note: веха технологии «TRL n достигнут»
+    label: Вид
   - name: aliases
     type: '[{standard*,name*}]'
     required: false
     note: ''
+    label: Псевдонимы
   - name: expertise
     type: '{goal*,validation_questions*:str[],results*:str[],main_outcome*:str[],control_items*:[{artifact*,maturity*:enum[С,Р,F,U,Σ,Δ,x,°],our_ref?:ref document_template|kind}]}'
     required: false
     note: из ПОЛКА-ПРОЦЕССЫ-РОМАНОВ.expertises_full; коды зрелости — легенда владельца
+    label: Экспертиза
+  - name: expertise_answers
+    type: '[{question*,answer*:enum[yes,no],by*,at*,finding?:ref finding}]'
+    required: false
+    note: 'ответы чек-листа экспертизы, включая «да»: кто и когда; «нет» рождает замечание'
+    label: Ответы экспертизы
   export: решение в пакете точки
   engine: есть · менять
 - n: 23
@@ -693,20 +817,25 @@ kinds:
     type: ref gate
     required: true
     note: ''
+    label: Точка
   - name: check
     type: str
     required: true
     note: id проверки из каталога готовности
+    label: Проверка
   - name: source_scene
     type: ref scene
     required: true
     note: ''
+    label: Сцена-источник
   - name: blocking
     type: bool
     required: true
     note: ''
+    label: Блокирующий
   export: —
   engine: есть
+  note: критерий — проверка ворот точки (читает данные); к порогам показателей отношения не имеет
 - n: 24
   code: decision
   name: решение точки
@@ -718,22 +847,27 @@ kinds:
     type: ref gate
     required: true
     note: ''
+    label: Точка
   - name: by
     type: ref account
     required: true
     note: DA
+    label: Кто
   - name: at
     type: ts
     required: true
     note: ''
+    label: Когда
   - name: outcome
     type: enum[approve,return,terminate,defer]
     required: true
     note: ''
+    label: Исход
   - name: conditions
     type: text
     required: false
     note: ''
+    label: Условия
   export: пакет точки
   engine: есть
 - n: 25
@@ -747,26 +881,32 @@ kinds:
     type: ref gate
     required: true
     note: ''
+    label: Точка
   - name: text
     type: text
     required: true
     note: ''
+    label: Текст
   - name: returns_to_scene
     type: ref scene
     required: true
     note: ''
+    label: Возврат в сцену
   - name: author
     type: ref account
     required: true
     note: ''
+    label: Автор
   - name: assignee
     type: ref account
     required: false
     note: ''
+    label: Исполнитель
   - name: due_point
     type: ref gate
     required: false
     note: ''
+    label: Срок-точка
   export: отчёт об устранении
   engine: менять
 - n: 26
@@ -780,18 +920,22 @@ kinds:
     type: '{kind*:enum[gap,step],ref*}'
     required: true
     note: ''
+    label: Цель (объект)
   - name: assignee
     type: ref account
     required: true
     note: ''
+    label: Исполнитель
   - name: due_point
     type: ref gate
     required: true
     note: ''
+    label: Срок-точка
   - name: assigned_by
     type: ref account
     required: true
     note: ''
+    label: Поручил
   export: —
   engine: есть
 - n: 27
@@ -805,18 +949,22 @@ kinds:
     type: ref phase
     required: true
     note: ''
+    label: Фаза
   - name: gate_dates
     type: '[{gate*,date*}]'
     required: true
     note: ''
+    label: Даты точек
   - name: scene_windows
     type: '[{scene*,start*,end*}]'
     required: false
     note: ''
+    label: Окна сцен
   - name: set_by
     type: ref account
     required: true
     note: ''
+    label: Установил
   export: FA §4
   engine: есть
 - n: 28
@@ -830,18 +978,22 @@ kinds:
     type: str
     required: true
     note: ''
+    label: Логин
   - name: name
     type: str
     required: true
     note: ''
+    label: Наименование
   - name: roles
     type: ref[] role
     required: true
     note: ''
+    label: Роли
   - name: email
     type: str
     required: false
     note: ''
+    label: Почта
   export: —
   engine: есть
 - n: 29
@@ -855,34 +1007,42 @@ kinds:
     type: ref
     required: true
     note: ''
+    label: Объект
   - name: version
     type: int
     required: true
     note: ''
+    label: Версия
   - name: valid_from
     type: ts
     required: true
     note: ''
+    label: Действует с
   - name: valid_to
     type: ts
     required: false
     note: ''
+    label: Действует до
   - name: recorded_at
     type: ts
     required: true
     note: ''
+    label: Записано
   - name: actor
     type: ref account
     required: true
     note: ''
+    label: Актор
   - name: action
     type: enum[create,update,cancel,baseline,fix]
     required: true
     note: ''
+    label: Действие
   - name: basis
     type: text
     required: false
     note: обязателен для правок Approved/Baseline
+    label: Основание
   export: журнал
   engine: есть
 - n: 30
@@ -896,30 +1056,37 @@ kinds:
     type: text
     required: true
     note: ''
+    label: Для кого
   - name: what
     type: text
     required: true
     note: ''
+    label: Что делает
   - name: where
     type: text
     required: true
     note: ''
+    label: Где
   - name: horizon
     type: text
     required: true
     note: ''
+    label: Горизонт
   - name: anchors
     type: '[{field*,material*,anchor*}]'
     required: false
     note: ''
+    label: Якоря
   - name: accepted_by
     type: ref account
     required: true
     note: ''
+    label: Принял
   - name: accepted_at
     type: ts
     required: true
     note: ''
+    label: Принято когда
   export: MCReport §1, SEMP §3
   engine: есть
 - n: 31
@@ -933,94 +1100,117 @@ kinds:
     type: enum[mandatory,expert,reference,doubtful]
     required: true
     note: ранг доверия источника — обязательный · экспертный · справочный · сомнительный; наследуется фактами; в противоречии подсказывает, решает человек
+    label: Ранг доверия
   - name: type
     type: enum[mission_memo,tor,directive,normative,datasheet,quote,external_icd,external_model,analysis,heritage,regulatory_decision,reference]
     required: false
     note: режим разбора (tor · datasheet · normative) выводится заданием и профилем, НЕ поле ввода; доверие — в authority
+    label: Тип
   - name: title
     type: str
     required: true
     note: ''
+    label: Заголовок
   - name: file
     type: '{name*,hash*,size*,format*}'
     required: true
     note: оригинал неизменяем
+    label: Файл
   - name: origin
     type: ref stakeholder | str
     required: true
     note: кто выпустил
+    label: Происхождение
   - name: doc_version
     type: str
     required: true
     note: версия самого документа
+    label: Версия документа
   - name: doc_date
     type: date
     required: true
     note: ''
+    label: Дата документа
   - name: valid_until
     type: date
     required: false
     note: НПА, КП, решения
+    label: Срок действия
   - name: classification
     type: enum[open,dsp,commercial,state_secret]
     required: true
     note: state_secret — только карточка-ссылка
+    label: Гриф
   - name: source_marks
     type: bool
     required: false
     note: метки [И]/[В]/[П] в тексте
+    label: Метки источников
   - name: language
     type: enum[ru,en]
     required: true
     note: ''
+    label: Язык
   - name: canon
     type: path md
     required: false
     note: Д1; нет для гостайны/бинарных
+    label: Канон
   - name: map
     type: path json
     required: false
     note: ''
+    label: Карта
   - name: harvest
     type: ref proposal
     required: false
     note: 'Д2 по типу: full|registry|parametric|structural|none'
+    label: Урожай
   - name: supersedes
     type: ref material
     required: false
     note: предыдущая версия входного
+    label: Заменяет
   - name: in_prompt_blocks
     type: str[]
     required: false
     note: умолчание по типу
+    label: Блоки в промпт
   - name: role
     type: enum[charter,tor,regulatory,context,supplier,heritage]
     required: true
     note: что документу позволено порождать; charter в проекте один
+    label: Роль
   - name: summary
     type: text
     required: false
     note: '3–5 строк, порождается при разборе: о чём, что полезного, чего нет'
+    label: Резюме
   - name: contribution
     type: '{facts_by_kind,accepted,noted,rejected,unique,confirms,contradicts} (computed)'
     required: false
     note: ''
+    label: Вклад
   - name: parse_run
     type: ref parse_run
     required: false
     note: ''
+    label: Прогон разбора
   - name: accept_mode
     type: enum[whole,sections,selective,context_only,rejected]
     required: false
     note: ''
+    label: Режим приёма
   - name: usefulness
     type: '{computed:num, note?:text}'
     required: false
     note: вклад + оценка человека
+    label: Полезность
   - name: profile
     type: '{statement?,params?,norms?,assessments?} (computed)'
     required: false
     note: доли по блокам — постановка · параметры · нормы · оценки (Д2а); ставит разбор, не инженер; режим атомизации выбирается по профилю блока
+    label: Профиль
   export: приложения
   engine: есть
 - n: 32
@@ -1034,18 +1224,42 @@ kinds:
     type: ref package_kind
     required: true
     note: ''
+    label: Вид пакета
   - name: source
     type: '{material?,prompt?,external?:bool}'
     required: true
     note: ''
+    label: Источник
   - name: items
     type: '[{class*,payload*,anchors?,source_mark?:enum[И,В,П],decision*:enum[pending,accepted,rejected,rework],reason?,target_ref?}]'
     required: true
     note: ''
+    label: Элементы
   - name: fingerprint
     type: str
     required: false
     note: ''
+    label: Отпечаток
+  - name: verdict
+    type: enum[new,augment,contradict,confirm]
+    required: true
+    note: вердикт сверки о кандидате
+    label: Вердикт
+  - name: decision
+    type: enum[pending,accepted,rejected,deferred]
+    required: true
+    note: решение человека
+    label: Решение
+  - name: target
+    type: ref entity
+    required: false
+    note: принятое, о котором вердикт
+    label: Цель (объект)
+  - name: diff_field
+    type: str
+    required: false
+    note: ''
+    label: Поле различия
   export: журнал ИИ
   engine: есть
 - n: 33
@@ -1059,42 +1273,52 @@ kinds:
     type: str
     required: true
     note: ''
+    label: Наименование
   - name: role
     type: enum[customer,regulator,operator,consumer,supplier,partner,established]
     required: true
     note: ''
+    label: Роль
   - name: interest
     type: text
     required: true
     note: ''
+    label: Интерес
   - name: scale
     type: measure{op,value|min,max,unit→unit}
     required: false
     note: ''
+    label: Масштаб
   - name: establishes
     type: bool
     required: false
     note: ''
+    label: Учреждается
   - name: influence
     type: enum[decides,influences,informed] (computed from role)
     required: false
     note: карта ОНТОЛОГИЯ-ФОРМИРОВАНИЯ.influence_map; значение модели снимается; инженер правит на месте
+    label: Влияние
   - name: power
     type: int 1–5
     required: false
     note: оценка человека 1–5; пусто до сцены 3
+    label: Сила
   - name: attitude
     type: enum[supports,neutral,resists]
     required: false
     note: поддерживает · нейтрален · сопротивляется
+    label: Отношение
   - name: liaison
     type: ref account
     required: false
     note: ответственный за взаимодействие (учётка)
+    label: Ответственный за взаимодействие
   - name: normatives
     type: ref[] normative_document
     required: false
     note: для регуляторов — какие акты несёт
+    label: Нормативы
   export: MCReport, ConOps §1
   engine: есть
 - n: 34
@@ -1108,18 +1332,27 @@ kinds:
     type: text
     required: true
     note: ''
+    label: Формулировка
   - name: stakeholder
     type: ref stakeholder
     required: true
     note: owns
+    label: Сторона
   - name: qos_class
     type: ref[] qos_class (≥1) | tbr{owner*,gate*}
     required: true
     note: один или несколько классов из текста; сервис уточняет один; TBR допустим до сцены 6
+    label: Класс обслуживания
   - name: anchors
     type: '[{material*,anchor*}]'
     required: false
     note: ''
+    label: Якоря
+  - name: coverage_expected
+    type: enum[service,constraint,programme,requirement]
+    required: true
+    note: чем закрывается нужда; умолчание из роли носителя (заказчик/оператор/потребитель/учреждаемый → service; регулятор → constraint; поставщик/партнёр → programme); правит инженер
+    label: Чем закрывается
   export: матрица покрытия
   engine: есть
 - n: 35
@@ -1133,18 +1366,22 @@ kinds:
     type: text
     required: true
     note: ''
+    label: Формулировка
   - name: measure
     type: measure{op,value|min,max,unit→unit}
     required: true
     note: ''
+    label: Показатель
   - name: year
     type: int
     required: true
     note: ''
+    label: Год
   - name: needs
     type: ref[] need ≥1
     required: true
     note: covers
+    label: Нужды
   export: MCReport §1
   engine: есть
 - n: 36
@@ -1158,23 +1395,28 @@ kinds:
     type: str Р-N
     required: true
     note: ''
+    label: Код
   - name: type
     type: enum[technical,programmatic,launch,regulatory,financial]
     required: true
     note: ''
+    label: Тип
   - name: statement
     type: text
     required: true
     note: ''
+    label: Формулировка
   - name: cancelled
     type: '{by*,at*,reason*}'
     required: false
     note: ''
+    label: Отменено
   - name: bound
     type: '{key*,op*,value*,unit*}'
     required: false
     note: 'Числовая граница рамки, если ограничение её задаёт: `key` — что меряем (mass, power, data), `op` — оператор (le, ge, lt, gt), `value` и `unit` — сама граница. Без этого поля ограничение остаётся
       текстом и НИЧЕГО не сторожит: свёртка не может сказать «106 кг > Р2», потому что не знает, что Р2 — про массу и про 100.'
+    label: Граница
   export: FA §6
   engine: есть
 - n: 37
@@ -1188,18 +1430,22 @@ kinds:
     type: str
     required: true
     note: ''
+    label: Наименование
   - name: needs
     type: ref[] need ≥1
     required: true
     note: covers
+    label: Нужды
   - name: qos_class
     type: ref qos_class
     required: true
     note: ''
+    label: Класс обслуживания
   - name: target_measure
     type: measure{op,value|min,max,unit→unit}
     required: true
     note: ''
+    label: Целевой показатель
   export: ConOps §1, MCReport §3
   engine: есть
 - n: 38
@@ -1213,14 +1459,17 @@ kinds:
     type: str
     required: true
     note: ''
+    label: Код
   - name: name
     type: str
     required: true
     note: ''
+    label: Наименование
   - name: traced_to
     type: ref[] goal|need|scenario ≥1
     required: true
     note: ''
+    label: Трассируется к
   export: OAB
   engine: есть
 - n: 39
@@ -1234,14 +1483,17 @@ kinds:
     type: str
     required: true
     note: ''
+    label: Наименование
   - name: actor
     type: ref stakeholder
     required: true
     note: ''
+    label: Актор
   - name: description
     type: text
     required: false
     note: ''
+    label: Описание
   export: ConOps §3
   engine: новый
 - n: 40
@@ -1255,22 +1507,27 @@ kinds:
     type: str
     required: true
     note: ''
+    label: Наименование
   - name: layer
     type: enum[OA,SA]
     required: true
     note: ''
+    label: Слой
   - name: steps
     type: ref[] function ≥1 (SA) | text (OA)
     required: true
     note: участник шага — узел состава, сторона (актор) или внешняя система
+    label: Шаги
   - name: mode
     type: str
     required: false
     note: ''
+    label: Режим
   - name: capability
     type: ref capability
     required: false
     note: ''
+    label: Способность
   export: ConOps §3; FCD
   engine: менять
 - n: 41
@@ -1378,6 +1635,11 @@ kinds:
     required: false
     note: версия > версии в последнем baseline
     label: Изменено после базирования
+  - name: lint_acknowledged
+    type: '[{rule*,by*,at*,note?}]'
+    required: false
+    note: '«принять как есть»: помета линта осознанно оставлена'
+    label: Пометы линта приняты
   export: .sdoc / ReqIF; Д3
   engine: есть
 - n: 42
@@ -1391,46 +1653,57 @@ kinds:
     type: enum[owns,covers,derives_from,allocated_to,satisfied_by,realized_by,allocation,flows_over,illustrated_by,traced_to,verifies,conflicts_with,snapshot_of,input_of,output_of,pairs_with,external_identity,deployed_on,uses_item,depends_on_technology,derived_from_fact,about,supports,contradicts,supersedes,confirms,same_as,refines]
     required: true
     note: ''
+    label: Тип
   - name: subtype
     type: enum[decomposition,derivation,refinement]
     required: false
     note: для derives_from
+    label: Подтип
   - name: from
     type: ref
     required: true
     note: ''
+    label: Откуда
   - name: to
     type: ref
     required: true
     note: ''
+    label: Куда
   - name: rationale
     type: text
     required: true
     note: обязателен для derives_from,satisfied_by,realized_by,conflicts_with,external_identity
+    label: Обоснование
   - name: created_by
     type: ref account
     required: true
     note: ''
+    label: Создал
   - name: suspect
     type: bool (computed)
     required: false
     note: конец изменился после baseline
+    label: Под вопросом
   - name: confirmed_by
     type: ref account
     required: false
     note: ''
+    label: Подтвердил
   - name: confirmed_at
     type: ts
     required: false
     note: ''
+    label: Подтверждено когда
   - name: revision_expected
     type: bool
     required: false
     note: для depends_on_technology
+    label: Ожидается редакция
   - name: sensitivity
     type: text
     required: false
     note: что пересматривается после созревания
+    label: Чувствительность
   export: SPEC-RELATIONS ReqIF
   engine: менять
 - n: 43
@@ -1444,18 +1717,22 @@ kinds:
     type: str
     required: true
     note: ''
+    label: Код
   - name: name
     type: str
     required: true
     note: ''
+    label: Наименование
   - name: layer
     type: enum[SA,LA]
     required: true
     note: ''
+    label: Слой
   - name: allocated_to
     type: ref[] component
     required: true
     note: ≥1 к SDR
+    label: Распределено на
   export: SAB (справочно)
   engine: есть
 - n: 44
@@ -1469,26 +1746,32 @@ kinds:
     type: str
     required: true
     note: ''
+    label: Код
   - name: name
     type: str
     required: true
     note: ''
+    label: Наименование
   - name: source_function
     type: ref function
     required: true
     note: ''
+    label: Исходная функция
   - name: target
     type: ref function|stakeholder
     required: true
     note: ''
+    label: Цель (объект)
   - name: interface
     type: ref interface
     required: true
     note: flows_over
+    label: Стык
   - name: payload
     type: str
     required: false
     note: ''
+    label: Содержимое
   export: ICD §данные
   engine: есть
 - n: 45
@@ -1502,22 +1785,27 @@ kinds:
     type: str
     required: true
     note: ''
+    label: Код
   - name: name
     type: str
     required: true
     note: ''
+    label: Наименование
   - name: steps
     type: ref[] function ≥1 (ordered)
     required: true
     note: ''
+    label: Шаги
   - name: ack_steps
     type: ref[] function
     required: false
     note: ''
+    label: Подтверждённые шаги
   - name: capability
     type: ref capability
     required: false
     note: ''
+    label: Способность
   export: FCD к SRR
   engine: есть
 - n: 46
@@ -1531,18 +1819,22 @@ kinds:
     type: str
     required: true
     note: ''
+    label: Код
   - name: name
     type: str
     required: true
     note: ''
+    label: Наименование
   - name: functions
     type: ref[] function ≥1
     required: true
     note: ''
+    label: Функции
   - name: deployed_to
     type: ref[] component ≥1
     required: true
     note: ''
+    label: Развёрнуто на
   export: LAB к SDR
   engine: есть
 - n: 47
@@ -1556,62 +1848,77 @@ kinds:
     type: str
     required: true
     note: ''
+    label: Код
   - name: name
     type: str
     required: true
     note: ''
+    label: Наименование
   - name: parent
     type: ref component
     required: false
     note: корень — без
+    label: Родитель
   - name: level
     type: int 0–5
     required: true
     note: ''
+    label: Уровень
   - name: nature
     type: enum[node,behaviour]
     required: true
     note: behaviour обязан быть развёрнут на node
+    label: Род
   - name: kind
     type: enum[system,segment,element,subsystem,assembly,unit]
     required: true
     note: ''
+    label: Вид
   - name: external
     type: bool
     required: false
     note: ''
+    label: Внешний
   - name: external_identity
     type: ref model_element
     required: false
     note: ''
+    label: Внешняя идентичность
   - name: wbs_pair
     type: ref wbs_package
     required: false
     note: ''
+    label: Пара WBS
   - name: template_ref
     type: ref pbs_template.node | typical_component
     required: false
     note: ''
+    label: Ссылка на шаблон
   - name: applicability
     type: enum[applied,applied_with_deviation,not_applicable]
     required: false
     note: ''
+    label: Применимость
   - name: deviation_rationale
     type: text
     required: false
     note: ''
+    label: Обоснование отклонения
   - name: structure_readonly
     type: bool (computed)
     required: false
     note: true, если external_identity задан и модель есть
+    label: Структура только чтение
   - name: standards
     type: ref[] normative_document
     required: false
     note: ''
+    label: Стандарты
   - name: maturity_tailoring
     type: '[{target*:facet|param, action*:enum[add,remove,shift], to_gate?, rationale*, by*}]'
     required: false
     note: отклонение от лестницы шаблона; hard-грани не снимаются
+    label: Адаптация лестницы
   export: MEL, PAB, Capella PA
   engine: есть
 - n: 48
@@ -1625,22 +1932,27 @@ kinds:
     type: ref component
     required: true
     note: ''
+    label: Определение
   - name: parent_usage
     type: ref component_usage
     required: false
     note: ''
+    label: Родительское вхождение
   - name: quantity
     type: int ≥1
     required: true
     note: ''
+    label: Количество
   - name: role
     type: str
     required: false
     note: ''
+    label: Роль
   - name: orbit
-    type: '{altitude*,inclination|ltan*,planes*,per_plane*}'
+    type: '{altitude*,inclination?:measure,ltan?:measure*,planes*,per_plane*}'
     required: false
-    note: для КА в подгруппе
+    note: для КА в подгруппе · наклонение для Walker, ЛВУ для ССО — одно из двух
+    label: Орбита
   export: MEL
   engine: есть
 - n: 49
@@ -1654,42 +1966,52 @@ kinds:
     type: str
     required: true
     note: ''
+    label: Код
   - name: name
     type: str
     required: true
     note: ''
+    label: Наименование
   - name: type
     type: enum[RF,power,data,thermal,mech,env,hmi,org]
     required: true
     note: ''
+    label: Тип
   - name: a
     type: ref component
     required: true
     note: ''
+    label: Сторона A
   - name: b
     type: ref component | external
     required: true
     note: ''
+    label: Сторона B
   - name: direction
     type: enum[uni,bi,static,org]
     required: true
     note: ''
+    label: Направление
   - name: standard
     type: str
     required: false
     note: ''
+    label: Стандарт
   - name: params
     type: '[{key*,measure*,required_to*}]'
     required: false
     note: ''
+    label: Параметры
   - name: icd_sections
     type: str[]
     required: false
     note: ''
+    label: Разделы ICD
   - name: requirement_classes
     type: str[]
     required: true
     note: ''
+    label: Классы требований
   export: ICD; physical links
   engine: есть
 - n: 50
@@ -1703,34 +2025,42 @@ kinds:
     type: enum[capella]
     required: true
     note: ''
+    label: Инструмент
   - name: model_id
     type: str
     required: true
     note: ''
+    label: Идентификатор модели
   - name: uuid
     type: str
     required: true
     note: истина идентичности
+    label: UUID
   - name: type
     type: enum[OperationalCapability,SystemFunction,LogicalFunction,LogicalComponent,PhysicalComponent,FunctionalExchange,FunctionalChain,Diagram]
     required: true
     note: ''
+    label: Тип
   - name: layer
     type: enum[OA,SA,LA,PA]
     required: true
     note: ''
+    label: Слой
   - name: name_snapshot
     type: str
     required: true
     note: ''
+    label: Имя (снимок)
   - name: refreshed_at
     type: ts
     required: true
     note: ''
+    label: Обновлено
   - name: fixture
     type: bool
     required: true
     note: ''
+    label: Фикстура
   export: Capella (чтение)
   engine: есть
 - n: 51
@@ -1744,16 +2074,20 @@ kinds:
     type: str
     required: true
     note: ''
+    label: Наименование
   - name: subgroups
-    type: '[{usage*→component_usage(КА),pattern*:enum[walker_delta,walker_star,sso],altitude*,inclination|ltan*,planes*,per_plane*}] ≥1'
+    type: '[{usage*→component_usage(КА),pattern*:enum[walker_delta,walker_star,sso],altitude*,inclination?:measure,ltan?:measure*,planes*,per_plane*}] ≥1'
     required: true
-    note: ''
+    note: наклонение для Walker, ЛВУ для ССО — одно из двух
+    label: Подгруппы
   - name: working
     type: bool
     required: true
     note: ''
+    label: В работе
   export: AoA
   engine: есть
+  note: 'вариант = строение (подгруппы: орбиты, плоскости, число КА) + рабочий флаг; его показатели — метрики (вид metric), значения — прогонами моделей'
 - n: 52
   code: baseline_concept
   name: базовая концепция
@@ -1765,26 +2099,32 @@ kinds:
     type: ref constellation_variant
     required: true
     note: ''
+    label: Вариант
   - name: rationale
     type: text
     required: true
     note: ''
+    label: Обоснование
   - name: rejected
     type: '[{variant*,reason*}]'
     required: true
     note: ''
+    label: Отклонено
   - name: descopes
     type: '[{text*,impact*}]'
     required: true
     note: ''
+    label: Отсечения объёма
   - name: decided_by
     type: ref account
     required: true
     note: ''
+    label: Решил
   - name: at
     type: ts
     required: true
     note: ''
+    label: Когда
   export: MCReport §3, §9
   engine: новый
 - n: 53
@@ -1798,46 +2138,57 @@ kinds:
     type: str
     required: true
     note: ''
+    label: Наименование
   - name: component
     type: ref component
     required: true
     note: ''
+    label: Узел
   - name: trl_current
     type: int 1–9
     required: true
     note: ''
+    label: TRL текущий
   - name: trl_required
     type: int 1–9
     required: true
     note: ''
+    label: TRL требуемый
   - name: required_by
     type: ref gate
     required: true
     note: ''
+    label: Требуется к
   - name: gap_plan
     type: text
     required: false
     note: ''
+    label: План закрытия разрыва
   - name: fallback
     type: text
     required: false
     note: ''
+    label: Резерв
   - name: maturation_package
     type: ref wbs_package
     required: false
     note: обязателен при trl_current<trl_required к SDR
+    label: Пакет созревания
   - name: milestone
     type: ref gate (kind=technology)
     required: false
     note: ''
+    label: Веха
   - name: fallback_component
     type: ref component
     required: false
     note: узел-резерв
+    label: Резервный узел
   - name: decision_criteria
     type: text
     required: false
     note: критерии перехода на резерв (Прил. 5)
+    label: Критерии решения
   export: Д5 / Д6
   engine: есть
 - n: 54
@@ -1851,42 +2202,52 @@ kinds:
     type: str
     required: true
     note: ''
+    label: Формулировка
   - name: cec
     type: '{condition*,event*,consequence*}'
     required: true
     note: ''
+    label: Условие · событие · последствие
   - name: category
     type: enum[technical,cost,schedule,safety,regulatory,security,programmatic]
     required: true
     note: ''
+    label: Категория
   - name: probability
     type: int 1–5
     required: true
     note: ''
+    label: Вероятность
   - name: impact
     type: int 1–5
     required: true
     note: ''
+    label: Последствия
   - name: strategy
     type: enum[mitigate,accept,transfer,avoid]
     required: true
     note: ''
+    label: Стратегия
   - name: measures
     type: text
     required: true
     note: ''
+    label: Меры
   - name: owner
     type: ref account
     required: true
     note: ''
+    label: Владелец
   - name: due_point
     type: ref gate
     required: true
     note: срок — любая веха (gate.kind phase|technology); точка фазы считает сроки по дате ≤ своей
+    label: Срок-точка
   - name: refs
     type: ref[] component|scene
     required: false
     note: ''
+    label: Ссылки
   export: Д6 / Д7
   engine: есть
 - n: 55
@@ -1900,46 +2261,57 @@ kinds:
     type: ref constellation_variant
     required: true
     note: ''
+    label: Вариант
   - name: active_lifetime_years
     type: num
     required: true
     note: время существования после увода ДУ
+    label: Время существования после увода, лет
   - name: deorbit_dv
     type: measure{value,unit:м/с}
     required: true
     note: ''
+    label: Δv увода
   - name: passive_lifetime_years
     type: num
     required: true
     note: пассивный сход при отказе ДУ
+    label: Пассивный сход, лет
   - name: normative_active
     type: ref normative_document
     required: true
     note: 'норма активного увода (Б1: ≤ 5 лет)'
+    label: Норма активного увода
   - name: normative_passive
     type: ref normative_document
     required: true
     note: норма пассивного схода (≤ 25 лет)
+    label: Норма пассивного схода
   - name: compliant_active
     type: bool (computed)
     required: true
     note: ''
+    label: 'Соответствие: активный увод'
   - name: compliant_passive
     type: bool (computed)
     required: true
     note: ''
+    label: 'Соответствие: пассивный сход'
   - name: atmosphere_model
     type: str
     required: true
     note: прокси/модель — подписан
+    label: Модель атмосферы
   - name: ballistic_coefficient
     type: measure
     required: true
     note: m/(Cd·A)
+    label: Баллистический коэффициент
   - name: model_run
     type: ref model_run
     required: true
     note: ''
+    label: Прогон модели
   export: Д7 / Д8
   engine: новый
 - n: 56
@@ -1953,26 +2325,32 @@ kinds:
     type: str
     required: true
     note: ''
+    label: Код шаблона
   - name: inputs
     type: '[{param_ref*}]'
     required: true
     note: ''
+    label: Входы
   - name: interface_ref
     type: ref interface
     required: false
     note: ''
+    label: Ссылка на стык
   - name: last_run
     type: ref model_run
     required: false
     note: ''
+    label: Последний прогон
   - name: verification_status
     type: enum[unverified,verified,validated]
     required: true
     note: ''
+    label: Статус верификации
   - name: evaluation_criteria
     type: ref[] metric | text
     required: false
     note: критерии оценки модели (мероприятие «критерии оценки моделей»)
+    label: Критерии оценки
   export: отчёт моделей
   engine: есть
 - n: 57
@@ -1986,34 +2364,42 @@ kinds:
     type: ref system_model
     required: true
     note: ''
+    label: Модель
   - name: version
     type: int
     required: true
     note: ''
+    label: Версия
   - name: inputs_snapshot
     type: json
     required: true
     note: ''
+    label: Снимок входов
   - name: outputs
     type: '[{key*,measure*}] ≥1'
     required: true
     note: ''
+    label: Выходы
   - name: tool
     type: str
     required: true
     note: ''
+    label: Инструмент
   - name: proxy
     type: bool
     required: true
     note: ''
+    label: Прокси
   - name: at
     type: ts
     required: true
     note: ''
+    label: Когда
   - name: by
     type: ref account
     required: true
     note: ''
+    label: Кто
   export: происхождение показателей
   engine: менять
 - n: 58
@@ -2027,28 +2413,45 @@ kinds:
     type: ref constellation_variant
     required: true
     note: ''
+    label: Вариант
   - name: code
     type: str
     required: true
     note: ''
+    label: Код
   - name: measure
     type: measure{op,value|min,max,unit→unit}
     required: true
     note: ''
+    label: Показатель
   - name: threshold
     type: '{op*,value*}'
     required: false
-    note: ''
+    note: 'порог отсева: {op,value,unit}; отсеянный вариант называет порог по имени'
+    label: Порог
   - name: group
     type: enum[A,B,V,G]
     required: true
-    note: ''
+    note: 'группа сравнения: покрытие · задержка · стоимость · риск (четыре группы AoA)'
+    label: Группа
   - name: proxy
     type: bool
     required: false
     note: ''
+    label: Прокси
+  - name: direction
+    type: enum[max,min]
+    required: true
+    note: 'куда лучше: больше или меньше'
+    label: Направление
+  - name: model_run
+    type: ref model_run
+    required: false
+    note: откуда значение; пусто — ручное/прокси с пометой
+    label: Прогон модели
   export: таблица AoA
   engine: есть
+  note: метрика — сущность «вариант × показатель»; сравнение и Парето читают метрики варианта, у варианта поля metrics нет; пороги — у метрики, не у критерия ворот
 - n: 59
   code: budget
   name: бюджет / свёртка
@@ -2060,14 +2463,17 @@ kinds:
     type: enum[mass,power,energy,link,dv,data,compute]
     required: true
     note: ''
+    label: Вид
   - name: root
     type: ref component
     required: true
     note: ''
+    label: Корень
   - name: reserve_policy
     type: str
     required: true
     note: ''
+    label: Политика резервов
   export: Д5 §7; TPM
   engine: есть
 - n: 60
@@ -2081,26 +2487,32 @@ kinds:
     type: ref requirement
     required: true
     note: ''
+    label: Требование
   - name: method
     type: ref method_catalog
     required: true
     note: ''
+    label: Метод
   - name: result
     type: enum[pass,fail,partial]
     required: true
     note: ''
+    label: Результат
   - name: evidence
     type: ref material | text
     required: false
     note: ''
+    label: Свидетельство
   - name: at
     type: ts
     required: true
     note: ''
+    label: Когда
   - name: by
     type: ref account
     required: true
     note: ''
+    label: Кто
   export: матрица верификации
   engine: есть
 - n: 61
@@ -2114,30 +2526,37 @@ kinds:
     type: str
     required: true
     note: ''
+    label: Код
   - name: name
     type: str
     required: true
     note: ''
+    label: Наименование
   - name: parent
     type: ref wbs_package
     required: false
     note: ''
+    label: Родитель
   - name: cross_cutting
     type: bool
     required: true
     note: ''
+    label: Сквозной
   - name: pbs_refs
     type: ref[] component
     required: false
     note: ''
+    label: Узлы состава
   - name: phase_scenes
     type: ref[] scene
     required: false
     note: ''
+    label: Сцены фазы
   - name: estimate
     type: ref cost_estimate
     required: false
     note: ''
+    label: Оценка
   export: Д8/Д9; Project Plan §3
   engine: есть
 - n: 62
@@ -2151,30 +2570,37 @@ kinds:
     type: ref wbs_package|project
     required: true
     note: ''
+    label: Область
   - name: range
     type: '{min*,max*,unit*=млн ₽}'
     required: true
     note: ''
+    label: Диапазон
   - name: assumptions
     type: text
     required: true
     note: ''
+    label: Допущения
   - name: method
     type: enum[rom,parametric,bottom_up]
     required: true
     note: ''
+    label: Метод
   - name: date
     type: date
     required: true
     note: ''
+    label: Дата
   - name: cadre
     type: bool
     required: false
     note: ''
+    label: Состав команды
   - name: includes_maturation
     type: bool (computed)
     required: false
     note: все технологии с разрывом TRL имеют пакет в оценке
+    label: Включает созревание
   export: Д8/Д9
   engine: менять
 - n: 63
@@ -2188,14 +2614,17 @@ kinds:
     type: ref questionnaire
     required: true
     note: ''
+    label: Анкета
   - name: target
     type: ref component|interface
     required: true
     note: ''
+    label: Цель (объект)
   - name: fields
     type: '[{key*,measure?,origin?,filled*:bool}]'
     required: true
     note: ''
+    label: Поля
   export: —
   engine: есть
 - n: 64
@@ -2209,26 +2638,32 @@ kinds:
     type: ref document_template
     required: true
     note: ''
+    label: Шаблон
   - name: code
     type: str
     required: true
     note: ''
+    label: Код
   - name: title
     type: str
     required: true
     note: ''
+    label: Заголовок
   - name: sections
     type: ref[] section
     required: true
     note: ''
+    label: Разделы
   - name: owner
     type: ref account
     required: true
     note: ''
+    label: Владелец
   - name: nature
     type: enum[narrative,registry_view,mixed]
     required: true
     note: ''
+    label: Род
   export: docx / pdf / html
   engine: есть
 - n: 65
@@ -2242,22 +2677,27 @@ kinds:
     type: ref document
     required: true
     note: ''
+    label: Документ
   - name: 'no'
     type: str
     required: true
     note: ''
+    label: Номер
   - name: title
     type: str
     required: true
     note: ''
+    label: Заголовок
   - name: elements
     type: ref[] element
     required: false
     note: ''
+    label: Элементы
   - name: expects_snapshot
     type: json
     required: true
     note: из шаблона на текущую ступень
+    label: Ожидания (снимок)
   export: —
   engine: есть
 - n: 68
@@ -2271,30 +2711,37 @@ kinds:
     type: ref document
     required: true
     note: ''
+    label: Документ
   - name: rendering
     type: ref rendering
     required: true
     note: принятый
+    label: Рендеринг
   - name: version
     type: int
     required: true
     note: ''
+    label: Версия
   - name: print_files
     type: '[{format*:enum[docx,pdf,html],path*,hash*}]'
     required: true
     note: ''
+    label: Файлы печати
   - name: authors
     type: ref[] account
     required: true
     note: ''
+    label: Авторы
   - name: released_by
     type: ref account
     required: true
     note: ''
+    label: Выпустил
   - name: at
     type: ts
     required: true
     note: ''
+    label: Когда
   export: пакет точки
   engine: есть
 - n: 69
@@ -2308,14 +2755,17 @@ kinds:
     type: ref release
     required: true
     note: ''
+    label: Выпуск
   - name: authors
     type: ref[] account
     required: true
     note: ''
+    label: Авторы
   - name: generalize_to
     type: ref shelf
     required: false
     note: ''
+    label: Обобщить в
   export: —
   engine: новый
 - n: 70
@@ -2329,42 +2779,52 @@ kinds:
     type: ref project
     required: true
     note: ''
+    label: Проект
   - name: sdoc_path
     type: path
     required: true
     note: ''
+    label: Путь .sdoc
   - name: hash
     type: str
     required: true
     note: ''
+    label: Хеш
   - name: by
     type: ref account
     required: true
     note: ''
+    label: Кто
   - name: at
     type: ts
     required: true
     note: ''
+    label: Когда
   - name: requirements_count
     type: int
     required: false
     note: 'Снимок набора требований. У снимка ДОКУМЕНТА этого поля нет: вид один, а базируют им и набор требований, и документ.'
+    label: Число требований
   - name: document
     type: ref document
     required: false
     note: 'Снимок документа: код шаблона, чей текст зафиксирован.'
+    label: Документ
   - name: tag
     type: str
     required: false
     note: 'Имя аннотированного тега в репозитории базирований. Тег и есть имя базовой линии для человека: «внутренний обзор».'
+    label: Тег
   - name: commit
     type: str
     required: false
     note: 'Коммит, на который встал тег: внешняя проверяемая отметка.'
+    label: Коммит
   - name: elements
     type: '[{mid*,kind*,section*,fields*}]'
     required: false
     note: 'Содержание снимка поэлементно. Диф считается ПО MID и по полям: правка одного тезиса обязана давать расхождение в одном узле, а не «документ изменился».'
+    label: Элементы
   export: git diff
   engine: есть
 - n: 71
@@ -2378,30 +2838,37 @@ kinds:
     type: enum[reqif,sdoc,knowledge,gate_package]
     required: true
     note: ''
+    label: Тип
   - name: scope
     type: ref project|gate
     required: true
     note: ''
+    label: Область
   - name: fingerprint
     type: str
     required: true
     note: ''
+    label: Отпечаток
   - name: files
     type: '[{path*,hash*}]'
     required: true
     note: ''
+    label: Файлы
   - name: by
     type: ref account
     required: true
     note: ''
+    label: Кто
   - name: at
     type: ts
     required: true
     note: ''
+    label: Когда
   - name: reqif_profile
     type: enum[ORBITA]
     required: false
     note: атрибуты ReqIF.ForeignID/Name/Text/ChapterName + ORBITA.Level/Category/Priority/MOP.*/Verification/Acceptance/Rationale/Source/Status/Version/Baseline/Carrier/Template/Applicability
+    label: Профиль ReqIF
   export: наружу
   engine: есть · менять
 - n: 72
@@ -2415,18 +2882,22 @@ kinds:
     type: enum[reqif,sdoc,package]
     required: true
     note: ''
+    label: Тип
   - name: source_file
     type: '{name*,hash*}'
     required: true
     note: ''
+    label: Файл источника
   - name: proposal
     type: ref proposal
     required: true
     note: ''
+    label: Предложение
   - name: foreign_attributes_kept
     type: bool
     required: true
     note: ''
+    label: Чужие атрибуты сохранены
   export: —
   engine: есть
 - n: 73
@@ -2440,38 +2911,47 @@ kinds:
     type: ref package_kind
     required: true
     note: ''
+    label: Вид пакета
   - name: model
     type: str
     required: false
     note: ''
+    label: Модель
   - name: tokens_in
     type: int
     required: false
     note: ''
+    label: Токены на входе
   - name: tokens_out
     type: int
     required: false
     note: ''
+    label: Токены на выходе
   - name: outcome
     type: enum[ok,error,aborted]
     required: true
     note: ''
+    label: Исход
   - name: reason
     type: str
     required: false
     note: ''
+    label: Причина
   - name: fingerprint
     type: str
     required: false
     note: ''
+    label: Отпечаток
   - name: at
     type: ts
     required: true
     note: ''
+    label: Когда
   - name: by
     type: ref account
     required: true
     note: ''
+    label: Кто
   export: журнал ИИ
   engine: есть
 - n: 74
@@ -2485,38 +2965,47 @@ kinds:
     type: ref component|interface
     required: true
     note: ''
+    label: Цель (объект)
   - name: key
     type: str
     required: true
     note: ключ анкеты
+    label: Ключ
   - name: measure
     type: measure{op?,value|min,max,unit→unit} | tbr{owner*,gate*,action*}
     required: true
     note: срок — любая веха (gate.kind phase|technology); точка фазы считает сроки по дате ≤ своей
+    label: Показатель
   - name: origin
     type: enum[manual,datasheet,shelf,computed,example]
     required: true
     note: ''
+    label: Происхождение
   - name: source
     type: '{material?,anchor?,model_run?}'
     required: false
     note: обязателен для datasheet и computed
+    label: Источник
   - name: required_to
     type: ref gate
     required: true
     note: ''
+    label: Обязателен к
   - name: basis
     type: text
     required: false
     note: обязателен при правке после baseline
+    label: Основание
   - name: maturity_class
     type: enum[estimated,modified,off_the_shelf,measured]
     required: true
     note: резерв по классу
+    label: Класс зрелости
   - name: uncertainty
     type: num ±%
     required: true
     note: по ступени, если не задано
+    label: Неопределённость
   export: PVMT (Capella), MEL, входы моделей
   engine: новый (было полем)
 - n: 75
@@ -2530,38 +3019,47 @@ kinds:
     type: str
     required: true
     note: SRR · SDR · KDP-B · …
+    label: Наименование
   - name: kind
     type: enum[functional,allocated,product]
     required: true
     note: класс базовой линии CM
+    label: Вид
   - name: gate
     type: ref gate
     required: true
     note: ''
+    label: Точка
   - name: items
     type: '[{ref*,version*,firmness*:enum[firm,conditional],conditional_on?:ref technology}]'
     required: true
     note: ''
+    label: Элементы
   - name: sdoc_path
     type: path
     required: true
     note: ''
+    label: Путь .sdoc
   - name: hash
     type: str
     required: true
     note: ''
+    label: Хеш
   - name: by
     type: ref account
     required: true
     note: ''
+    label: Кто
   - name: at
     type: ts
     required: true
     note: ''
+    label: Когда
   - name: diff_from
     type: ref baseline
     required: false
     note: ''
+    label: Различия от
   export: .sdoc + отчёт дифа
   engine: менять (baseline_snapshot → baseline)
 - n: 76
@@ -2575,62 +3073,77 @@ kinds:
     type: str
     required: true
     note: ''
+    label: Код
   - name: name
     type: str
     required: true
     note: ''
+    label: Наименование
   - name: kind
     type: enum[system,segment,element,subsystem,assembly,unit]
     required: true
     note: ''
+    label: Вид
   - name: applicability
     type: class[]
     required: true
     note: ''
+    label: Применимость
   - name: typical_requirements
     type: ref[] typical_requirement
     required: false
     note: ''
+    label: Типовые требования
   - name: nature
     type: enum[node,behaviour]
     required: true
     note: ''
+    label: Род
   - name: role
     type: enum[node,behaviour,facility,terminal,external]
     required: true
     note: шаблон рода по умолчанию
+    label: Роль
   - name: ladder
     type: '{gate: {facets*:str[], params*:[{key*,name*,unit*,required_to*,maturity_class*,uncertainty*}]}} для MCR/SRR/SDR/PDR'
     required: true
     note: ''
+    label: Лестница зрелости
   - name: typical_functions
     type: ref[] function-code
     required: false
     note: ''
+    label: Типовые функции
   - name: typical_interfaces
     type: ref[] interface-code
     required: false
     note: ''
+    label: Типовые стыки
   - name: models
     type: str[]
     required: false
     note: ''
+    label: Модели
   - name: standards
     type: ref[] normative_document
     required: false
     note: ''
+    label: Стандарты
   - name: verification
     type: str[]
     required: false
     note: ''
+    label: Верификация
   - name: typical_risks
     type: str[]
     required: false
     note: ''
+    label: Типовые риски
   - name: hard_facets
     type: str[]
     required: false
     note: грани, обязательные регламентом, не подлежат tailoring
+    label: Жёсткие грани
   export: —
   engine: новый
 - n: 77
@@ -2644,22 +3157,27 @@ kinds:
     type: str
     required: true
     note: ''
+    label: Код
   - name: name
     type: str
     required: true
     note: ''
+    label: Наименование
   - name: type
     type: enum[flow,operation,event,shared_data]
     required: true
     note: ''
+    label: Тип
   - name: elements
     type: '[{name*,data_type*→data_type,multiplicity?}]'
     required: true
     note: ''
+    label: Элементы
   - name: exchanges
     type: ref[] exchange
     required: false
     note: где используется
+    label: Обмены
   export: ICD §данные; Capella ExchangeItem
   engine: новый
 - n: 78
@@ -2673,30 +3191,37 @@ kinds:
     type: str
     required: true
     note: ''
+    label: Код
   - name: name
     type: str
     required: true
     note: ''
+    label: Наименование
   - name: base
     type: enum[int,float,bool,enum,string,bytes,struct]
     required: true
     note: ''
+    label: База
   - name: unit
     type: ref unit
     required: false
     note: обязателен для числовых величин
+    label: Единица
   - name: range
     type: '{min?,max?}'
     required: false
     note: ''
+    label: Диапазон
   - name: enum_values
     type: str[]
     required: false
     note: ''
+    label: Значения
   - name: fields
     type: '[{name*,data_type*}]'
     required: false
     note: для struct
+    label: Поля
   export: Capella DataType/Class
   engine: новый
 - n: 79
@@ -2710,18 +3235,22 @@ kinds:
     type: ref component
     required: true
     note: ''
+    label: Владелец
   - name: states
     type: '[{code*,name*,active_functions*:ref[] function,kind*:enum[mode,state]}] ≥1'
     required: true
     note: ''
+    label: Состояния
   - name: initial
     type: str
     required: true
     note: ''
+    label: Начальное
   - name: transitions
     type: '[{from*,to*,trigger*:{exchange|event|timer},guard?,action?}]'
     required: true
     note: ''
+    label: Переходы
   export: Capella State Machine
   engine: новый
 - n: 80
@@ -2735,18 +3264,22 @@ kinds:
     type: str
     required: true
     note: ''
+    label: Код
   - name: component
     type: ref component
     required: true
     note: ''
+    label: Узел
   - name: type
     type: enum[HW,SW,FW,DOC]
     required: true
     note: ''
+    label: Тип
   - name: responsible
     type: ref account
     required: true
     note: ''
+    label: Ответственный
   export: CM-план
   engine: новый
 - n: 81
@@ -2760,22 +3293,27 @@ kinds:
     type: ref configuration_item
     required: true
     note: ''
+    label: Конфигурационная единица
   - name: version
     type: str
     required: true
     note: семантическая версия изделия
+    label: Версия
   - name: date
     type: date
     required: true
     note: ''
+    label: Дата
   - name: composition
     type: '[{ref*,version*}] | ref baseline'
     required: true
     note: ссылается на baseline записей
+    label: Состав
   - name: notes
     type: text
     required: false
     note: ''
+    label: Заметки
   export: CM-план, ЛИ
   engine: новый
 - n: 82
@@ -2789,34 +3327,42 @@ kinds:
     type: '{file?|url?|text?}'
     required: true
     note: ''
+    label: Источник
   - name: snapshot
     type: '{path*,date*,hash*}'
     required: true
     note: URL — рендер headless в PDF+MD
+    label: Снимок
   - name: intent
     type: text
     required: true
     note: умолчание «разбери по сущностям»
+    label: Замысел
   - name: intent_kind
     type: enum[harvest,shelve_typical,baseline_candidate,compare,update_params,register_normative,assess_tor,context_only,other]
     required: true
     note: ''
+    label: Вид задания
   - name: context
     type: '{project*,scene*,mission_class*}'
     required: true
     note: ''
+    label: Контекст
   - name: classification
     type: '[{content_type*,blocks*:str[],share*}]'
     required: false
     note: Д2а
+    label: Гриф
   - name: plan
     type: ref[] action
     required: true
     note: ''
+    label: План
   - name: author
     type: ref account
     required: true
     note: ''
+    label: Автор
   export: журнал ИИ
   engine: новый
 - n: 83
@@ -2830,78 +3376,97 @@ kinds:
     type: enum[quantity,capability,obligation,framing,event,relation,assessment,assumption,external_target,external_need]
     required: true
     note: ''
+    label: Вид
   - name: entity_class
     type: enum[requirement,function,service,composition_node,stakeholder,constraint,milestone,normative_ref]
     required: false
     note: класс сущности ТЗ (правило атомизации ШИП-G-ПРИНЯТ) — сверка разбора с пакетом по классам
+    label: Класс сущности
   - name: subject
     type: '{ref?:ref entity, topic?:ref topic}'
     required: true
     note: ровно одно из двух
+    label: Субъект
   - name: predicate
     type: str
     required: true
     note: ''
+    label: Предикат
   - name: quote
     type: str 10–200
     required: true
     note: дословный фрагмент источника, сверяется с каноном; у ручного факта эксперта — null
+    label: Цитата
   - name: value
     type: measure{…} | text
     required: true
     note: ''
+    label: Значение
   - name: source
     type: '{material?,anchor?} | {account*,role*,at*}'
     required: true
     note: документ с якорем — или эксперт без якоря (учётка · роль · дата); ровно одно из двух, стережёт Kotlin
+    label: Источник
   - name: source_mark
     type: enum[И,В,П]
     required: true
     note: ''
+    label: Метка источника
   - name: source_mark_no
     type: str
     required: false
     note: 'номер источника из списка документа: И1, В10'
+    label: Номер источника
   - name: evidence
     type: enum[claimed,corroborated,measured,assumed]
     required: true
     note: ''
+    label: Свидетельство
   - name: confidence
     type: num 0–1
     required: true
     note: ''
+    label: Уверенность
   - name: as_of
     type: date
     required: true
     note: ''
+    label: По состоянию на
   - name: valid_until
     type: date
     required: false
     note: ''
+    label: Срок действия
   - name: disposition
     type: enum[free,noted,assumed,adopted,rejected,contested,superseded]
     required: true
     note: ''
+    label: Диспозиция
   - name: disposition_decision
     type: '{by*,at*,reason*,gate?}'
     required: false
     note: обязателен при любой диспозиции кроме free
+    label: Решение по диспозиции
   - name: assumption
     type: '{owner*,confirm_by*:ref gate,validation?,impact_if_wrong?}'
     required: false
     note: обязателен при disposition=assumed; owner и confirm_by спрашивает окно приёма, validation и impact — по желанию
+    label: Допущение
   - name: classification
     type: enum[open,dsp,commercial]
     required: true
     note: наследуется от источника
+    label: Гриф
   - name: authority
     type: enum[mandatory,expert,reference,doubtful]
     required: true
     note: наследуется от документа; expert — ручной ввод; ранг подсказывает в противоречии, не выбирает победителя
+    label: Ранг доверия
   - name: parse_run
     type: ref parse_run
     required: false
     note: обязателен с шипа 2 (изоляция вклада документа); у фактов, созданных до миграции, — null; обязательность обеспечивают ворота создания, не схема
+    label: Прогон разбора
   export: фактология проекта
   engine: новый
 - n: 84
@@ -2915,26 +3480,32 @@ kinds:
     type: ref intake_task
     required: true
     note: ''
+    label: Задача
   - name: kind
     type: enum[create_typical,create_entity,update_params,compare,request_data,flag_conflict,create_decision,create_risk,attach_context]
     required: true
     note: ''
+    label: Вид
   - name: target
     type: '{kind*,ref?}'
     required: true
     note: ''
+    label: Цель (объект)
   - name: preview
     type: text
     required: true
     note: что создаст/изменит
+    label: Предпросмотр
   - name: facts
     type: ref[] fact
     required: true
     note: ''
+    label: Факты
   - name: decision
     type: enum[pending,accepted,rejected]
     required: true
     note: ''
+    label: Решение
   export: —
   engine: новый
 - n: 85
@@ -2948,18 +3519,22 @@ kinds:
     type: str
     required: true
     note: ''
+    label: Метка
   - name: resolved_to
     type: ref entity
     required: false
     note: обязателен, если есть adopted факты к точке
+    label: Разрешена в
   - name: scene
     type: ref scene
     required: false
     note: ''
+    label: Сцена
   - name: merged_into
     type: ref topic
     required: false
     note: слияние тем по same_as с подтверждением человека; ИИ предлагает, сливает клик
+    label: Слито в
   export: MCReport §11 открытые вопросы
   engine: новый
 - n: 86
@@ -2973,42 +3548,52 @@ kinds:
     type: ref section
     required: true
     note: ''
+    label: Раздел
   - name: kind
     type: enum[fact_ref,entity_ref,statement,query,figure,table]
     required: true
     note: ''
+    label: Вид
   - name: ref
     type: ref fact | ref entity | ref model_run
     required: false
     note: обязателен для fact_ref/entity_ref/figure
+    label: Ссылка
   - name: ref_version
     type: int
     required: false
     note: версия опоры на момент включения
+    label: Версия ссылки
   - name: text
     type: text
     required: false
     note: только для statement, 1–3 предложения
+    label: Текст
   - name: supports
     type: ref[] fact|entity
     required: false
     note: обязателен для statement с числами
+    label: Поддерживает
   - name: query
     type: '{kind*,filter*,columns?}'
     required: false
     note: для query/table
+    label: Запрос
   - name: author
     type: ref account
     required: true
     note: ''
+    label: Автор
   - name: at
     type: ts
     required: true
     note: ''
+    label: Когда
   - name: order
     type: int
     required: true
     note: ''
+    label: Порядок
   export: —
   engine: новый
 - n: 87
@@ -3022,34 +3607,42 @@ kinds:
     type: ref document
     required: true
     note: ''
+    label: Документ
   - name: baseline
     type: ref baseline
     required: false
     note: null для предпросмотра
+    label: Базовая линия
   - name: sections
     type: '[{no*,text*,element_links*:[{span,element}]}]'
     required: true
     note: ''
+    label: Разделы
   - name: prompt_fingerprint
     type: str
     required: true
     note: ''
+    label: Отпечаток промпта
   - name: model
     type: str
     required: true
     note: ''
+    label: Модель
   - name: style_patches
     type: '[{section,span,old,new,author,at}]'
     required: false
     note: правки изложения
+    label: Правки изложения
   - name: reviewer
     type: ref account
     required: false
     note: ''
+    label: Рецензент
   - name: accepted_at
     type: ts
     required: false
     note: ''
+    label: Принято когда
   export: release
   engine: новый
 - n: 88
@@ -3063,40 +3656,50 @@ kinds:
     type: str
     required: true
     note: ''
+    label: Код
   - name: name
     type: str
     required: true
     note: ''
+    label: Наименование
   - name: npr_7123
     type: str
     required: false
     note: один из 17 процессов
+    label: NPR 7123.1
   - name: romanov_activity
     type: str
     required: false
     note: код мероприятия ROM-… из ПОЛКА-ПРОЦЕССЫ-РОМАНОВ
+    label: Мероприятие Романова
   - name: iso_15288
     type: str
     required: false
     note: процесс ГОСТ ISO 15288-2023
+    label: ГОСТ ISO 15288
   - name: group
     type: enum[system_design,product_realization,technical_management,agreement,organizational,mbse]
     required: true
     note: ''
+    label: Группа
   - name: orbita_mechanism
     type: str
     required: true
     note: ''
+    label: Механизм Орбиты
   - name: place
     type: route
     required: true
     note: ''
+    label: Место
   - name: tailoring_allowed
     type: bool
     required: true
     note: ''
+    label: Адаптация допустима
   export: SEMP §6, матрица соответствия
   engine: новый
+  note: одна запись = один процесс (17 записей NPR ↔ ISO); полка хранит каталог записями, не одной записью со списком — привести полку к истине
 - n: 141
   code: typical_risk
   name: типовой риск (библиотека)
@@ -3108,38 +3711,47 @@ kinds:
     type: str
     required: true
     note: ''
+    label: Код
   - name: statement
     type: str
     required: true
     note: ''
+    label: Формулировка
   - name: cec
     type: '{condition*,event*,consequence*}'
     required: true
     note: ''
+    label: Условие · событие · последствие
   - name: category
     type: enum[technical,cost,schedule,safety,regulatory,security,programmatic]
     required: true
     note: ''
+    label: Категория
   - name: probability
     type: int 1–5
     required: true
     note: ''
+    label: Вероятность
   - name: impact
     type: int 1–5
     required: true
     note: ''
+    label: Последствия
   - name: strategy
     type: enum[mitigate,accept,transfer,avoid]
     required: true
     note: ''
+    label: Стратегия
   - name: measures
     type: text
     required: true
     note: ''
+    label: Меры
   - name: applicability
     type: class[]
     required: true
     note: ''
+    label: Применимость
   export: —
   engine: есть
 - n: 142
@@ -3153,26 +3765,32 @@ kinds:
     type: str
     required: true
     note: ''
+    label: Код
   - name: role
     type: enum[customer,regulator,operator,consumer,supplier,partner,established]
     required: true
     note: ''
+    label: Роль
   - name: name
     type: str
     required: true
     note: ''
+    label: Наименование
   - name: interests
     type: text
     required: true
     note: ''
+    label: Интересы
   - name: typical_needs
     type: '[{statement*,qos_class*}]'
     required: false
     note: ''
+    label: Типовые нужды
   - name: applicability
     type: class[]
     required: true
     note: ''
+    label: Применимость
   export: —
   engine: есть
 - n: 281
@@ -3186,18 +3804,22 @@ kinds:
     type: str
     required: true
     note: ''
+    label: Код
   - name: name
     type: str
     required: true
     note: ''
+    label: Наименование
   - name: rights
     type: ref[] right
     required: true
     note: ''
+    label: Права
   - name: phase_involvement
     type: '[{phase*,involvement*}]'
     required: false
     note: роли по стадиям из phase_template.roles
+    label: Участие по фазам
   export: —
   engine: есть
 - n: 282
@@ -3211,14 +3833,17 @@ kinds:
     type: str
     required: true
     note: ''
+    label: Код
   - name: description
     type: str
     required: true
     note: ''
+    label: Описание
   - name: scope
     type: enum[project,system]
     required: true
     note: ''
+    label: Область
   export: —
   engine: есть
 - n: 283
@@ -3232,34 +3857,42 @@ kinds:
     type: enum[manual,new_material,new_facts,manual_edit]
     required: true
     note: по команде «Сформировать постановку из поля» либо событием поля с задержкой-накоплением
+    label: Триггер
   - name: slice_fingerprint
     type: str
     required: true
     note: отпечаток среза поля — тот же срез даёт кэш, живого вызова нет
+    label: Отпечаток среза
   - name: slice_size
     type: int
     required: false
     note: сколько фактов и сущностей вошло в срез (потолок 50); урезание называется словами
+    label: Размер среза
   - name: proposals
     type: ref[] proposal
     required: true
     note: предложения понятий с происхождением n:m и рангами оснований
+    label: Предложения
   - name: diff
     type: '{new*,augment*,contradict*,confirm*}'
     required: true
     note: диф «поле → постановка» четырьмя группами; принятое не меняется молча
+    label: Различия
   - name: ontology_version
     type: str
     required: true
     note: отпечаток ОНТОЛОГИЯ-ФОРМИРОВАНИЯ.yaml — правила образования, по которым собран запуск
+    label: Версия онтологии
   - name: cached
     type: bool
     required: false
     note: ответ взят из журнала по отпечатку среза
+    label: Из кэша
   - name: error
     type: str
     required: false
     note: причина отказа при status=error
+    label: Ошибка
   export: журнал ИИ
   engine: новый
 - n: 284
@@ -3273,30 +3906,37 @@ kinds:
     type: '{scene?:ref scene, gate?:ref gate}'
     required: true
     note: ровно одно из двух — сцена либо точка, откуда запущено исследование
+    label: Сцена-триггер
   - name: questions
     type: str[]
     required: true
     note: вопросы из рамки и онтологии; не менее одного; инженер снимает и дописывает
+    label: Вопросы
   - name: slice_fingerprint
     type: str
     required: true
     note: срез поля, из которого собран промпт
+    label: Отпечаток среза
   - name: prompt_version
     type: str
     required: true
     note: версия сборки промпта — по ней воспроизводится запуск
+    label: Версия промпта
   - name: iteration
     type: int
     required: true
     note: номер цикла исследования по тому же месту
+    label: Итерация
   - name: result_material
     type: ref material
     required: false
     note: authority=doubtful до подтверждения источников человеком
+    label: Материал результата
   - name: accepted_summary
     type: '{stakeholders,programs,norms,applications,analogs}'
     required: false
     note: что принято из результата по классам
+    label: Итог принятия
   export: промпт .md; журнал
   engine: новый
 - n: 285
@@ -3310,18 +3950,22 @@ kinds:
     type: ref document
     required: true
     note: ''
+    label: Документ
   - name: baseline
     type: ref baseline
     required: false
     note: снимок, против которого проверяли
+    label: Базовая линия
   - name: items
     type: '[{element*,issue*:enum[no_basis,number_vs_fact,contradiction,stale],detail*,proposal?}]'
     required: true
     note: находки — тезис без основания · число против факта · противоречие · устарело; правок молча не бывает
+    label: Элементы
   - name: at
     type: ts
     required: true
     note: ''
+    label: Когда
   export: отчёт к обзору
   engine: новый
 - n: 286
@@ -3335,30 +3979,37 @@ kinds:
     type: str
     required: true
     note: ''
+    label: Наименование
   - name: kind
     type: enum[program_stage,external_event,contract]
     required: true
     note: вехи технологий — gate.kind=technology, не здесь
+    label: Вид
   - name: date
     type: date
     required: false
     note: ''
+    label: Дата
   - name: range
     type: '{start*,end*,unit*}'
     required: false
     note: 'этап записки: 0–1,5 года'
+    label: Диапазон
   - name: fleet
     type: measure
     required: false
     note: ''
+    label: Флот
   - name: source
     type: ref fact
     required: true
     note: derived_from_fact
+    label: Источник
   - name: feeds
     type: ref[] gate | plan
     required: false
     note: 'что от неё зависит: даты точек, FA §4'
+    label: Питает
   export: FA §4, MCReport §8
   engine: новый
 - n: 287
@@ -3372,26 +4023,32 @@ kinds:
     type: ref material
     required: true
     note: ''
+    label: Документ-источник
   - name: prompt_version
     type: str
     required: true
     note: ''
+    label: Версия промпта
   - name: at
     type: ts
     required: true
     note: ''
+    label: Когда
   - name: facts
     type: ref[] fact
     required: true
     note: ''
+    label: Факты
   - name: derived
     type: ref[] entity
     required: false
     note: что образовано из его фактов
+    label: Образовано
   - name: rolled_back_by
     type: ref account
     required: false
     note: ''
+    label: Откатил
   export: досье документа
   engine: новый
 - n: 288
@@ -3405,38 +4062,47 @@ kinds:
     type: ref fact
     required: true
     note: чужая нужда/цель с якорем
+    label: Чужая нужда/цель
   - name: owner
     type: ref stakeholder | str
     required: true
     note: чья
+    label: Владелец
   - name: our_services
     type: ref[] service | ref[] component
     required: false
     note: ''
+    label: Наши сервисы
   - name: verdict
     type: enum[covered,partial,not_our_profile,needs_work]
     required: true
     note: ''
+    label: Вердикт
   - name: missing
     type: text
     required: false
     note: чего не хватает
+    label: Чего не хватает
   - name: scale
     type: measure
     required: false
     note: ''
+    label: Масштаб
   - name: proposal
     type: enum[extend_scope,add_service,descope,reject]
     required: false
     note: ''
+    label: Предложение
   - name: rationale
     type: text
     required: true
     note: ''
+    label: Обоснование
   - name: confidence
     type: num 0–1
     required: true
     note: ''
+    label: Уверенность
   export: матрица применимости; обоснования целей; MCReport §3
   engine: новый
 versioning_rules:
@@ -3642,6 +4308,8 @@ field_rules:
   scene_surfaces: у каждого вида, названного выходом сцены в шаблоне фазы, есть поверхность на этой сцене; сцена с выходом без поверхности — отказ CI
   widgets: measure → оператор · значение · единица; ref → пикер; ref[] → мультипикер; enum → селект русскими значениями; text → поле на всю ширину с автовысотой; объект без виджета на экране — сторож
   enum_labels: русские значения перечислений — только из enum_labels; значение без метки на экране — сторож
+  status_labels: метки статусной модели вида — в enum_labels под ключом <вид>.status (requirement.status и т.д.)
+  ref_labels: у полей-ссылок на справочники (method_catalog, unit, qos_class) метка значения — имя записи справочника; enum_labels для них не нужен
 enum_labels:
   requirement.level:
     project: проектное
@@ -3676,13 +4344,6 @@ enum_labels:
     Approved: утверждено
     Baseline: базировано
     Cancelled: отменено
-  requirement.verification_method:
-    test: испытание
-    analysis: анализ
-    inspection: инспекция
-    demonstration: демонстрация
-    simulation: моделирование
-    TBD: TBD
   state_machine.states.kind:
     mode: режим
     state: состояние
@@ -3785,21 +4446,46 @@ enum_labels:
     regulatory: регуляторное
     financial: финансовое
   link.type:
+    owns: владеет
+    covers: покрывает
     derives_from: выведено из
     allocated_to: распределено на
     satisfied_by: удовлетворяется
     realized_by: реализуется
-    conflicts_with: противоречит
+    allocation: распределение
+    flows_over: идёт по стыку
+    illustrated_by: иллюстрируется
     traced_to: трассируется к
-    owns: владеет
-    covers: покрывает
+    verifies: верифицирует
+    conflicts_with: противоречит
+    snapshot_of: снимок
+    input_of: вход для
+    output_of: выход из
+    pairs_with: пара к
+    external_identity: внешняя идентичность
+    deployed_on: развёрнуто на
+    uses_item: использует элемент обмена
+    depends_on_technology: зависит от технологии
+    derived_from_fact: основание
+    about: о
     supports: поддерживает
     contradicts: противоречит (факты)
-    refines: уточняет
+    supersedes: заменяет
+    confirms: подтверждает
     same_as: то же самое
-    derived_from_fact: основание
-    verified_by: верифицируется
-    depends_on_technology: зависит от технологии
-    illustrated_by: иллюстрируется
-    flows_over: идёт по стыку
-    allocation: распределение
+    refines: уточняет
+  proposal.decision:
+    pending: ждёт
+    accepted: принято
+    rejected: отклонено
+    deferred: отложено
+  project.standard:
+    NASA-7120: NASA (NPR 7120.5)
+  gate.expertise_answers.answer:
+    'yes': да
+    'no': нет
+write_rules:
+  schema_on_write: 'любая запись сущности валидируется истиной: поле вне схемы вида — отказ, а не молчаливое сохранение'
+  print_queries: запрос печати ссылается только на поля истины; неизвестное поле — отказ сборки (validate_document_queries)
+aoa_rule: 'сравнение вариантов: строки — варианты, столбцы — метрики по группам, значение — из прогона, порог — у метрики; отсев по порогу с именем порога; Парето по направлениям метрик; итогового балла
+  нет; базовая концепция ссылается на вариант с обоснованием'

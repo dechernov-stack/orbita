@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><title>Орбита v2 — два входа: Мостик и Моя работа</title>
+<link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#F4F6F8;--surface:#fff;--graphite:#C9D0D8;--ink:#182130;--muted:#5C6675;--cobalt:#2A4BD7;--green:#1F7A4D;--amber:#B7791F;--red:#C43A2B;--focus:0 0 0 3px rgba(42,75,215,.28)}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:14px/1.45 "Golos Text",system-ui,sans-serif;font-variant-numeric:tabular-nums}
+a{color:var(--cobalt);text-decoration:none}button{font:inherit}a:focus-visible,button:focus-visible{outline:none;box-shadow:var(--focus)}
+.top{display:grid;grid-template-columns:200px 1fr auto;align-items:center;height:48px;border-bottom:1px solid var(--graphite);background:var(--surface)}
+.brand{padding:0 20px;font-weight:600}.brand span{color:var(--muted);font-weight:400;margin-left:8px}
+.route{display:flex;gap:18px;align-items:center;font-size:13px;color:var(--muted)}.route b{color:var(--ink);font-weight:500}
+.route i.c{display:inline-block;width:10px;height:10px;border-radius:50%;border:2px solid var(--cobalt);background:#fff;margin-right:6px;vertical-align:-1px}
+.route i.d{display:inline-block;width:8px;height:8px;transform:rotate(45deg);border:1.5px solid var(--ink);margin-right:8px;vertical-align:0}
+.me{padding:0 20px;font-size:13px;color:var(--muted)}.me b{color:var(--ink);font-weight:500}
+.layout{display:grid;grid-template-columns:200px 1fr;min-height:calc(100vh - 48px)}
+.rail{border-right:1px solid var(--graphite);background:var(--surface);padding:14px 0}
+.rail a{display:flex;gap:10px;align-items:center;padding:8px 20px;color:var(--ink)}.rail a.cur{color:var(--cobalt);font-weight:500;box-shadow:inset 3px 0 0 var(--cobalt)}
+.rail svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.5}
+.rail .sep{margin:12px 20px;border-top:1px solid var(--graphite)}.rail .exp{color:var(--muted);font-size:13px}
+.main{padding:20px 28px 40px;display:grid;gap:26px;max-width:1180px}
+h1{margin:0;font-size:18px;font-weight:600}h2{margin:0 0 8px;font-size:15px;font-weight:600}.sub{color:var(--muted);font-size:13px}
+.grid{display:grid;grid-template-columns:1.4fr 1fr;gap:26px}
+.block{background:var(--surface);border-top:2px solid var(--ink);padding:12px 16px 6px}
+.row{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:baseline;padding:9px 0;border-bottom:1px solid #E6EAEF}.row:last-child{border-bottom:0}
+.row .k{font-size:12px;color:var(--muted);min-width:96px}.row .a{font-size:13px}
+.m{display:inline-block;width:9px;height:9px;margin-right:8px;vertical-align:-1px}.m.d{transform:rotate(45deg);border:1.5px solid var(--ink)}.m.s{border:1.5px solid var(--ink);border-top-right-radius:4px}.m.c{border-radius:50%;border:1.5px solid var(--ink)}
+.m.red{border-color:var(--red);background:var(--red)}.m.amber{border-color:var(--amber);background:var(--amber)}.m.green{border-color:var(--green);background:var(--green)}.m.cobalt{border-color:var(--cobalt)}
+.btn{padding:5px 10px;border:1px solid var(--graphite);border-radius:6px;background:#fff;font-size:13px;cursor:pointer}.btn.primary{background:var(--cobalt);color:#fff;border-color:var(--cobalt)}
+.signals{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}.sig{background:var(--surface);border-top:2px solid var(--ink);padding:10px 14px}.sig b{display:block;font-size:22px;font-weight:600;line-height:1.1;margin:4px 0}.sig .lbl{font-size:12px;color:var(--muted)}.sig.bad{border-top-color:var(--red)}.sig.bad b{color:var(--red)}
+.team td{padding:7px 8px;border-bottom:1px solid #E6EAEF;font-size:13px;vertical-align:top}.team th{text-align:left;font-weight:500;font-size:12px;color:var(--muted);padding:6px 8px;border-bottom:1px solid var(--graphite)}
+table{border-collapse:collapse;width:100%}.late{color:var(--red)}.muted{color:var(--muted)}
+.divider{border:0;border-top:1px dashed var(--graphite);margin:8px 0}
+.work{display:grid;grid-template-columns:320px 1fr;gap:26px}
+.list .item{padding:10px 12px;border-left:3px solid transparent;border-bottom:1px solid #E6EAEF;background:var(--surface)}.list .item.cur{border-left-color:var(--cobalt)}.list .item .t{font-weight:500}.list .item .d{font-size:12px;color:var(--muted)}
+.act{background:var(--surface);border:1px solid var(--graphite)}.act .head{padding:14px 18px 10px;border-bottom:1px solid var(--graphite);display:flex;justify-content:space-between;align-items:baseline}.act .ctx{font-size:13px;color:var(--muted)}
+.act .surface{padding:8px 18px 14px}.act td,.act th{padding:8px;border-bottom:1px solid #E6EAEF;font-size:13px;text-align:left}.act th{font-weight:500;color:var(--muted);font-size:12px}
+.act .foot{display:flex;gap:20px;padding:10px 18px;border-top:1px solid var(--graphite);background:#FAFBFC;font-size:13px}.act .foot .bad{margin-left:auto;color:var(--red)}
+.note{font-size:12px;color:var(--muted);padding:12px 0 0}
+</style></head><body>
+
+<div class="top">
+ <div class="brand">Орбита<span>v2</span></div>
+ <div class="route"><b>IoT-платформа</b><span>Pre-A</span><span><i class="c"></i><b>сцена 3</b> · Стейкхолдеры и нужды</span><span><i class="d"></i>внутренний обзор · 06.10 · <span style="color:var(--red)">блокирует 3</span></span><a href="#">карта фазы</a></div>
+ <div class="me"><b>Чернов Д.</b> · руководитель проекта</div>
+</div>
+
+<div class="layout">
+ <nav class="rail">
+  <a class="cur" href="#"><svg viewBox="0 0 16 16"><path d="M2 12h12M4 12V6l4-3 4 3v6"/></svg>Мостик</a>
+  <a href="#"><svg viewBox="0 0 16 16"><path d="M3 4h10M3 8h10M3 12h6"/></svg>Моя работа</a>
+  <a href="#"><svg viewBox="0 0 16 16"><path d="M2 8h12M5 5l3 3-3 3"/></svg>Работа фазы</a>
+  <div class="sep"></div>
+  <a class="exp" href="#"><svg viewBox="0 0 16 16"><path d="M3 3h10v10H3z M3 7h10"/></svg>Рабочие области</a>
+  <a class="exp" href="#"><svg viewBox="0 0 16 16"><path d="M8 2v12M2 8h12"/></svg>Эксперт</a>
+ </nav>
+
+ <div class="main">
+
+  <!-- МОСТИК -->
+  <div><h1>Мостик</h1><div class="sub">понедельник, 14 сентября · до внутреннего обзора 22 дня · фаза идёт по плану</div></div>
+
+  <div class="signals">
+   <div class="sig bad"><span class="lbl">масса КА с резервом · Р2 100 кг</span><b>122,8 кг</b><span class="lbl">превышение 22,8 → сцена 7</span></div>
+   <div class="sig"><span class="lbl">постановка из знаний</span><b>91 %</b><span class="lbl">ручных 4 из 46</span></div>
+   <div class="sig"><span class="lbl">разрывы TRL без пакета</span><b>1</b><span class="lbl">LR-FHSS с компенсацией доплера</span></div>
+   <div class="sig"><span class="lbl">риски ≥ 12 без решения</span><b>2</b><span class="lbl">масса · QoS группировки</span></div>
+  </div>
+
+  <div class="grid">
+   <div class="block"><h2>Решить <span class="muted" style="font-weight:400">· 5</span></h2>
+    <div class="row"><span class="k">постановка</span><span class="a"><span class="m s cobalt"></span>Из поля: 12 новых, 3 дополнения, <b>2 противоречия</b> — год цели G4 (ТЗ ↔ записка)</span><button class="btn primary">Разобрать</button></div>
+    <div class="row"><span class="k">допущение</span><span class="a"><span class="m c amber"></span>«Доплер компенсируется на борту» — к внутреннему обзору, владелец Иванов И.</span><button class="btn">Подтвердить</button></div>
+    <div class="row"><span class="k">замечание</span><span class="a"><span class="m d"></span>Обзор: «у регуляторов нет нужд» — сцена 3 возвращена Петровой М.</span><button class="btn">Открыть</button></div>
+    <div class="row"><span class="k">ручной ввод</span><span class="a"><span class="m c"></span>Нужда «резервный канал МЧС» похожа на N4 — слить или уточнить?</span><button class="btn">Решить</button></div>
+    <div class="row"><span class="k">точка</span><span class="a"><span class="m d red"></span>Внутренний обзор: 3 блокирующих — фиксация недоступна</span><button class="btn">Что блокирует</button></div>
+   </div>
+
+   <div class="block"><h2>Блокирует внутренний обзор <span class="muted" style="font-weight:400">· 3</span></h2>
+    <div class="row"><span class="k">сцена 3</span><span class="a">у 4 сторон нет нужд</span><button class="btn">Поручить</button></div>
+    <div class="row"><span class="k">сцена 5</span><span class="a">Р2 без машинной границы</span><button class="btn">Поручить</button></div>
+    <div class="row"><span class="k">сцена 6</span><span class="a">нужда N3 без класса обслуживания</span><button class="btn">Поручить</button></div>
+    <hr class="divider">
+    <h2>Команда</h2>
+    <table class="team"><tr><th>Кто</th><th>Что</th><th>Срок</th></tr>
+     <tr><td>Иванов И.</td><td>0.2 Допущения и ограничения</td><td>18.09</td></tr>
+     <tr><td>Петрова М.</td><td>0.1 Потребности пользователей</td><td class="late">вчера</td></tr>
+     <tr><td>Сидоров К.</td><td>7 · Варианты построения</td><td>25.09</td></tr></table>
+   </div>
+  </div>
+
+  <div class="note">Реестры, поле знаний и документы открываются из строк Мостика — уже отфильтрованными под решение. Прямой вход — «Рабочие области» и «Эксперт».</div>
+
+  <hr class="divider">
+
+  <!-- МОЯ РАБОТА -->
+  <div><h1>Моя работа</h1><div class="sub">Петрова М., инженер · поручений 3 · просрочено 1</div></div>
+  <div class="work">
+   <div class="list">
+    <div class="item cur"><div class="t"><span class="m s cobalt"></span>0.1 · Уточнение потребностей пользователей</div><div class="d">сцена 3 · от Иванова И. · <span class="late">срок вчера</span> · мешает: у регулятора нет потребностей</div></div>
+    <div class="item"><div class="t"><span class="m s"></span>Заполнить анкету СЭП к MCR</div><div class="d">сцена 7 · от Чернова Д. · 20.09</div></div>
+    <div class="item"><div class="t"><span class="m s"></span>Распределить 3 требования без носителя</div><div class="d">сцена 8 · от Иванова И. · 24.09 · откроет реестр с 3 строками</div></div>
+   </div>
+   <div class="act">
+    <div class="head"><div><h2 style="margin:0">0.1 · Уточнение потребностей и задач пользователей</h2><div class="ctx">сцена 3 · вход: замысел и записка · дальше 0.2</div></div><button class="btn">Завершить</button></div>
+    <div class="surface"><table><tr><th>Пользователь миссии</th><th>Роль</th><th>Потребности</th><th></th></tr>
+     <tr><td>Минтранс России</td><td>заказчик</td><td>единое оперативное управление транспортом; непрерывность регуляторной телематики</td><td><a href="#">потребность</a></td></tr>
+     <tr><td>Регулятор РЧС</td><td>регулятор</td><td><span class="m c red"></span>потребностей нет — из записки: «частотные присвоения до запуска» <a href="#">взять</a></td><td><a href="#">потребность</a></td></tr></table></div>
+    <div class="foot"><span>пользователи миссии <b>3</b>/3</span><span>потребности <b>5</b></span><span class="bad">не даёт завершить: у «Регулятор РЧС» нет потребностей</span></div>
+   </div>
+  </div>
+  <div class="note">Специалист не видит карту, чужие сцены и реестры целиком — только своё поручение и его поверхность. Завершил — ведущий увидит в «Команде» и на маршруте.</div>
+ </div>
+</div>
+</body></html>

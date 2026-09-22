@@ -37,7 +37,36 @@
     },
     "provenance": {
       "type": "object",
-      "description": "{channel*:enum[manual,package,service,shelf,import,example], author*:ref account, source?:ref, anchor?:str, fingerprint?:str}"
+      "properties": {
+        "channel": {
+          "enum": [
+            "manual",
+            "package",
+            "service",
+            "shelf",
+            "import",
+            "example"
+          ]
+        },
+        "author": {
+          "type": "string",
+          "description": "ссылка на вид: account"
+        },
+        "source": {
+          "type": "string",
+          "description": "ссылка на сущность"
+        },
+        "anchor": {
+          "type": "string"
+        },
+        "fingerprint": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "channel",
+        "author"
+      ]
     },
     "created_at": {
       "type": "string",
@@ -87,7 +116,43 @@
           },
           "expects": {
             "type": "object",
-            "description": "{gate:[{element_kind*,min*:int,filter?}]}"
+            "properties": {
+              "gate": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "element_kind": {
+                      "type": [
+                        "string",
+                        "number",
+                        "boolean",
+                        "object",
+                        "array",
+                        "null"
+                      ]
+                    },
+                    "min": {
+                      "type": "integer"
+                    },
+                    "filter": {
+                      "type": [
+                        "string",
+                        "number",
+                        "boolean",
+                        "object",
+                        "array",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "element_kind",
+                    "min"
+                  ]
+                }
+              }
+            }
           },
           "style": {
             "type": "string"

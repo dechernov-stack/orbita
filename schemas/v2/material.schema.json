@@ -38,7 +38,36 @@
     },
     "provenance": {
       "type": "object",
-      "description": "{channel*:enum[manual,package,service,shelf,import,example], author*:ref account, source?:ref, anchor?:str, fingerprint?:str}"
+      "properties": {
+        "channel": {
+          "enum": [
+            "manual",
+            "package",
+            "service",
+            "shelf",
+            "import",
+            "example"
+          ]
+        },
+        "author": {
+          "type": "string",
+          "description": "ссылка на вид: account"
+        },
+        "source": {
+          "type": "string",
+          "description": "ссылка на сущность"
+        },
+        "anchor": {
+          "type": "string"
+        },
+        "fingerprint": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "channel",
+        "author"
+      ]
     },
     "created_at": {
       "type": "string",
@@ -89,7 +118,55 @@
     },
     "file": {
       "type": "object",
-      "description": "{name*,hash*,size*,format*} оригинал неизменяем"
+      "properties": {
+        "name": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "object",
+            "array",
+            "null"
+          ]
+        },
+        "hash": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "object",
+            "array",
+            "null"
+          ]
+        },
+        "size": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "object",
+            "array",
+            "null"
+          ]
+        },
+        "format": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "object",
+            "array",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "hash",
+        "size",
+        "format"
+      ],
+      "description": "оригинал неизменяем"
     },
     "origin": {
       "anyOf": [
@@ -192,7 +269,15 @@
     },
     "usefulness": {
       "type": "object",
-      "description": "{computed:num, note?:text} вклад + оценка человека"
+      "properties": {
+        "computed": {
+          "type": "number"
+        },
+        "note": {
+          "type": "string"
+        }
+      },
+      "description": "вклад + оценка человека"
     },
     "profile": {
       "type": "object",

@@ -37,7 +37,36 @@
     },
     "provenance": {
       "type": "object",
-      "description": "{channel*:enum[manual,package,service,shelf,import,example], author*:ref account, source?:ref, anchor?:str, fingerprint?:str}"
+      "properties": {
+        "channel": {
+          "enum": [
+            "manual",
+            "package",
+            "service",
+            "shelf",
+            "import",
+            "example"
+          ]
+        },
+        "author": {
+          "type": "string",
+          "description": "ссылка на вид: account"
+        },
+        "source": {
+          "type": "string",
+          "description": "ссылка на сущность"
+        },
+        "anchor": {
+          "type": "string"
+        },
+        "fingerprint": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "channel",
+        "author"
+      ]
     },
     "created_at": {
       "type": "string",
@@ -71,11 +100,95 @@
     },
     "cancelled": {
       "type": "object",
-      "description": "{by*,at*,reason*}"
+      "properties": {
+        "by": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "object",
+            "array",
+            "null"
+          ]
+        },
+        "at": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "object",
+            "array",
+            "null"
+          ]
+        },
+        "reason": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "object",
+            "array",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "by",
+        "at",
+        "reason"
+      ]
     },
     "bound": {
       "type": "object",
-      "description": "{key*,op*,value*,unit*} Числовая граница рамки, если ограничение её задаёт: `key` — что меряем (mass, power, data), `op` — оператор (le, ge, lt, gt), `value` и `unit` — сама граница. Без этого поля ограничение остаётся текстом и НИЧЕГО не сторожит: свёртка не может сказать «106 кг > Р2», потому что не знает, что Р2 — про массу и про 100."
+      "properties": {
+        "key": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "object",
+            "array",
+            "null"
+          ]
+        },
+        "op": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "object",
+            "array",
+            "null"
+          ]
+        },
+        "value": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "object",
+            "array",
+            "null"
+          ]
+        },
+        "unit": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "object",
+            "array",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "key",
+        "op",
+        "value",
+        "unit"
+      ],
+      "description": "Числовая граница рамки, если ограничение её задаёт: `key` — что меряем (mass, power, data), `op` — оператор (le, ge, lt, gt), `value` и `unit` — сама граница. Без этого поля ограничение остаётся текстом и НИЧЕГО не сторожит: свёртка не может сказать «106 кг > Р2», потому что не знает, что Р2 — про массу и про 100."
     }
   },
   "required": [

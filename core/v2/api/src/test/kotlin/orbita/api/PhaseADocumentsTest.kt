@@ -36,7 +36,12 @@ class PhaseADocumentsTest {
         store.create(проект, "project", область, "1",
             mapper.createObjectNode().put("name", "Phase A документы").put("standard", "NASA-7120").put("phase", "Phase A"), провенанс)
         // полка процессов СИ — как её грузит load_shelves: одна запись с перечнем
-        store.create("PRC-9001", "process_catalog", Area.Library, null, mapper.readTree(полки.resolve("ПОЛКА-ПРОЦЕССЫ-СИ.json").toFile()), провенанс)
+        // Каталог процессов — ЗАПИСЯМИ, одна на процесс (истина 21-09): полка
+        // несёт их списком `items`, и каждая ложится своей сущностью, как у
+        // загрузчика полок.
+        mapper.readTree(полки.resolve("ПОЛКА-ПРОЦЕССЫ-СИ.json").toFile()).path("items").forEach { процесс ->
+            store.create(процесс.path("code").asText(), "process_catalog", Area.Library, null, процесс, провенанс)
+        }
     }
 
     private fun раздел(код: String, номер: String, ступень: String) =

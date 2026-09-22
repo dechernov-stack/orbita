@@ -1,9 +1,16 @@
 #!/usr/bin/env python3
-"""Полка «каталог процессов СИ» (process_catalog, PRC-9001) — из конфигурации
-SEMP первой версии, не из головы: 17 процессов NPR 7123.1 (NASA SEH App. J
-§5) → механизм «Орбиты» → место; процессы реализации несут tailoring —
+"""Полка «каталог процессов СИ» (process_catalog) — из конфигурации SEMP
+первой версии, не из головы: 17 процессов NPR 7123.1 (NASA SEH App. J §5)
+→ механизм «Орбиты» → место; процессы реализации несут tailoring —
 отклонение названо, не умолчано. Третий столбец — мероприятия Романова
 стадии 2 (ROM-…, РОМАНОВ-СТАДИИ-0-2 §3 п. 5), где соответствие очевидно.
+
+Полка хранит каталог ЗАПИСЯМИ — одна на процесс, полями истины (СХЕМЫ-ДИФФ
+21-09: «одна запись = один процесс»); до 22.09 весь каталог лежал одной
+записью со списками, и печать SEMP разворачивала их мимо истины. Два
+расхождения названы владельцу: у шести процессов мероприятий Романова два и
+больше при `romanov_activity: str` (пишутся через « · »), а шесть инструментов
+среды инженерии поля у вида не имеют — идут подсказкой тезиса SEMP §10.
 
 SEMP Phase A §6 читает эту полку запросом (17 строк — мера шипа G).
 
@@ -18,7 +25,8 @@ import sys
 ИСТОЧНИК = КОРЕНЬ / "core/out/src/main/resources/orbita/out/semp-configuration.json"
 ПОЛКА = КОРЕНЬ / "docs/tz/v2/полки-порождённые/ПОЛКА-ПРОЦЕССЫ-СИ.json"
 
-ГРУППЫ = {range(1, 5): "проектирование системы", range(5, 10): "реализация продукта", range(10, 18): "техническое управление"}
+# Группа — значением перечисления истины (`process_catalog.group`), не словом.
+ГРУППЫ = {range(1, 5): "system_design", range(5, 10): "product_realization", range(10, 18): "technical_management"}
 # Мероприятия схемы Романова (стадия 2), которыми процесс NPR исполняется у нас.
 РОМАНОВ = {
     1: ["ROM-2.1"], 2: ["ROM-2.1", "ROM-2.3"], 3: ["ROM-2.E2"], 4: ["ROM-2.5", "ROM-2.7"],
@@ -37,26 +45,33 @@ ISO = {
 
 def собрать() -> dict:
     конфиг = json.loads(ИСТОЧНИК.read_text(encoding="utf-8"))
-    процессы = []
+    записи = []
     for p in конфиг["processes"]:
         n = int(p["number"])
         группа = next(g for r, g in ГРУППЫ.items() if n in r)
         tailoring = p.get("tailoring")
-        процессы.append({
-            "code": f"SE-{n:02d}", "number": n, "name": p["process"], "group": группа,
-            "npr7123": f"NPR 7123.1 п. {n}", "iso15288": ISO.get(n, ""),
-            "romanov": РОМАНОВ.get(n, []),
+        запись = {
+            "code": f"SE-{n:02d}", "name": p["process"],
+            "npr_7123": f"NPR 7123.1 п. {n}", "iso_15288": ISO.get(n, ""),
+            "group": группа,
             "orbita_mechanism": p.get("mechanism", "—"), "place": p.get("place", "—"),
             "tailoring_allowed": bool(tailoring),
-            **({"tailoring": tailoring} if tailoring else {}),
-        })
+        }
+        # Истина: romanov_activity — ОДИН код; здесь их бывает два и больше.
+        if РОМАНОВ.get(n):
+            запись["romanov_activity"] = " · ".join(РОМАНОВ[n])
+        # Текст отклонения у вида поля не имеет — идёт в notes ядра.
+        if tailoring:
+            запись["notes"] = tailoring
+        записи.append(запись)
     return {
-        "kind": "process_catalog", "code": "PRC-9001", "version": 1,
+        "kind": "process_catalog", "version": 2,
         "title": "Каталог процессов СИ — 17 процессов NPR 7123.1, ISO 15288 и мероприятия Романова",
         "source": "core/out/src/main/resources/orbita/out/semp-configuration.json (NASA SEH App. J §5); РОМАНОВ-СТАДИИ-0-2 §3 п. 5",
         "rule": "процесс → механизм «Орбиты» → место; процесс без механизма назван отклонением (tailoring), а не умолчан",
-        "tools": конфиг.get("tools", []),
-        "processes": процессы,
+        "note": "одна запись = один процесс (истина 21.09); инструменты среды инженерии — в SEMP §10 тезисом",
+        "tools_for_semp_10": конфиг.get("tools", []),
+        "items": записи,
     }
 
 
@@ -66,10 +81,10 @@ def main() -> int:
         if not ПОЛКА.exists() or ПОЛКА.read_text(encoding="utf-8") != новый:
             print("полка процессов СИ разошлась с источником — python3 tools/v2/gen_process_catalog.py")
             return 1
-        print(f"полка процессов СИ: {len(json.loads(новый)['processes'])} процессов совпадают с конфигурацией SEMP")
+        print(f"полка процессов СИ: {len(json.loads(новый)['items'])} записей-процессов совпадают с конфигурацией SEMP")
         return 0
     ПОЛКА.write_text(новый, encoding="utf-8")
-    print(f"записана {ПОЛКА.name}: {len(json.loads(новый)['processes'])} процессов")
+    print(f"записана {ПОЛКА.name}: {len(json.loads(новый)['items'])} записей-процессов")
     return 0
 
 

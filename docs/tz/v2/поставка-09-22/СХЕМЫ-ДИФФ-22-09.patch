@@ -1,0 +1,26 @@
+--- repo
++++ new
+@@ -682,0 +683,5 @@
++  - name: expertise_answers
++    type: '[{question*,answer*:enum[yes,no],by*,at*,finding?:ref finding}]'
++    required: false
++    note: 'ответы чек-листа экспертизы, включая «да»: кто и когда; «нет» рождает замечание'
++    label: Ответы экспертизы
+@@ -1641,3 +1646,3 @@
+-    type: '{altitude*,inclination|ltan*,planes*,per_plane*}'
+-    required: false
+-    note: для КА в подгруппе
++    type: '{altitude*,inclination?:measure,ltan?:measure*,planes*,per_plane*}'
++    required: false
++    note: для КА в подгруппе · наклонение для Walker, ЛВУ для ССО — одно из двух
+@@ -1748,3 +1753,3 @@
+-    type: '[{usage*→component_usage(КА),pattern*:enum[walker_delta,walker_star,sso],altitude*,inclination|ltan*,planes*,per_plane*}] ≥1'
+-    required: true
+-    note: ''
++    type: '[{usage*→component_usage(КА),pattern*:enum[walker_delta,walker_star,sso],altitude*,inclination?:measure,ltan?:measure*,planes*,per_plane*}] ≥1'
++    required: true
++    note: наклонение для Walker, ЛВУ для ССО — одно из двух
+@@ -3805,0 +3811,3 @@
++  gate.expertise_answers.answer:
++    'yes': да
++    'no': нет

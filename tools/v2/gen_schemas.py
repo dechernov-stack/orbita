@@ -66,7 +66,7 @@ def разобрать_тип(сырой: str) -> dict:
     if м:
         поля, обяз = {}, []
         for кусок in разделить_поля(м.group(1)):
-            имя = кусок.split(":")[0].strip().rstrip("*?")
+            имя, обязательно, _ = подполе(кусок)
             if not имя:
                 continue
             # Вложенное поле разбирается СВОИМ типом: перечисление на глубине —
@@ -75,7 +75,7 @@ def разобрать_тип(сырой: str) -> dict:
             поля[имя] = подтип(кусок)
             # Имя может повториться: вложенный объект несёт своё «name».
             # Второй раз в required оно не идёт — схема обязана быть валидной.
-            if кусок.split(":")[0].strip().endswith("*") and имя not in обяз:
+            if обязательно and имя not in обяз:
                 обяз.append(имя)
         узел = {"type": "array", "items": {"type": "object", "properties": поля}}
         if обяз:
@@ -91,11 +91,11 @@ def разобрать_тип(сырой: str) -> dict:
     if м:
         поля, обяз = {}, []
         for кусок in разделить_поля(м.group(2)):
-            имя = кусок.split(":")[0].strip().rstrip("*?")
+            имя, обязательно, _ = подполе(кусок)
             if not имя:
                 continue
             поля[имя] = подтип(кусок)
-            if кусок.split(":")[0].strip().endswith("*") and имя not in обяз:
+            if обязательно and имя not in обяз:
                 обяз.append(имя)
         узел = {"type": "object", "properties": поля, "description": f"форма «{м.group(1)}»"}
         if обяз:
@@ -132,6 +132,20 @@ def разобрать_тип(сырой: str) -> dict:
         return {"description": "произвольная структура (json)"}
     if t.startswith("route"):
         return {"type": "string", "description": "маршрут интерфейса"}
+    м = re.match(r"^\{(.+)\}$", t)
+    if м and not ("|" in м.group(1) and ":" not in м.group(1)):
+        поля, обяз = {}, []
+        for кусок in разделить_поля(м.group(1)):
+            имя, обязательно, _ = подполе(кусок)
+            if not имя:
+                continue
+            поля[имя] = подтип(кусок)
+            if обязательно and имя not in обяз:
+                обяз.append(имя)
+        узел = {"type": "object", "properties": поля}
+        if обяз:
+            узел["required"] = обяз
+        return узел
     if t.startswith("{"):
         return {"type": "object", "description": t}
 
@@ -153,6 +167,24 @@ def разобрать_тип(сырой: str) -> dict:
     return {"description": t}
 
 
+
+def подполе(кусок: str) -> tuple[str, bool, str]:
+    """(имя, обязательно, тип) вложенного поля.
+
+    Формы истины: «имя*: тип», «имя?», «имя*→вид(помета)» — стрелка значит
+    ссылку на вид, помета в скобках — для человека. До 22.09 стрелочная форма
+    уходила в схему ИМЕНЕМ поля целиком («usage*→component_usage(КА)»), и
+    вариант построения нельзя было записать по истине.
+    """
+    голова, _, тип = кусок.partition(":")
+    имя_сырое, _, цель = голова.partition("→")
+    имя_сырое = имя_сырое.strip()
+    обязательно = имя_сырое.endswith("*")
+    имя = имя_сырое.rstrip("*?")
+    if цель.strip():
+        тип = "ref " + re.sub(r"\(.*\)\s*$", "", цель).strip()
+    return имя, обязательно, тип.strip()
+
 ЛЮБОЕ = {"type": ["string", "number", "boolean", "object", "array", "null"]}
 
 
@@ -163,9 +195,7 @@ def подтип(кусок: str) -> dict:
     полей). С типом — тот же разбор, что и у поля вида: перечисление на любой
     глубине остаётся перечислением (`field_rules.nested_enums`, 20.09).
     """
-    if ":" not in кусок:
-        return dict(ЛЮБОЕ)
-    сырой = кусок.split(":", 1)[1].strip()
+    _, _, сырой = подполе(кусок)
     if not сырой:
         return dict(ЛЮБОЕ)
     # Форма «{exchange|event|timer}» — объект, у которого назван ПЕРЕЧЕНЬ
@@ -194,16 +224,18 @@ def перечни_поля(имя: str, тип: str) -> list[tuple[str, list[st
     м = re.match(r"^enum\[(.+?)\]\s*(?:\(.*\))?$", t)
     if м:
         return [(имя, [x.strip() for x in м.group(1).split(",") if x.strip()])]
+    # Три формы структуры: массив объектов, именованный объект и безымянный
+    # «{altitude*,inclination?:measure,…}» (orbit у вхождения компонента).
     м = (re.match(r"^\[\{(.+)\}\]\s*(?:≥\s*\d+)?\s*(?:\(.*\))?$", t)
-         or re.match(r"^[a-z_]+\{(.+)\}$", t))
-    if not м:
+         or re.match(r"^[a-z_]+\{(.+)\}$", t)
+         or re.match(r"^\{(.+)\}$", t))
+    if not м or ("|" in м.group(1) and ":" not in м.group(1)):
         return []
     найдено: list[tuple[str, list[str]]] = []
     for кусок in разделить_поля(м.group(1)):
-        подимя = кусок.split(":")[0].strip().rstrip("*?")
-        if not подимя or ":" not in кусок:
+        подимя, _, сырой = подполе(кусок)
+        if not подимя or not сырой:
             continue
-        сырой = кусок.split(":", 1)[1].strip()
         ключи = re.match(r"^\{([^{}]+)\}$", сырой)
         if ключи and "|" in ключи.group(1) and ":" not in ключи.group(1):
             найдено.append((f"{имя}.{подимя}", [x.strip() for x in ключи.group(1).split("|") if x.strip()]))

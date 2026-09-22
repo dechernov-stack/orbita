@@ -37,7 +37,36 @@
     },
     "provenance": {
       "type": "object",
-      "description": "{channel*:enum[manual,package,service,shelf,import,example], author*:ref account, source?:ref, anchor?:str, fingerprint?:str}"
+      "properties": {
+        "channel": {
+          "enum": [
+            "manual",
+            "package",
+            "service",
+            "shelf",
+            "import",
+            "example"
+          ]
+        },
+        "author": {
+          "type": "string",
+          "description": "ссылка на вид: account"
+        },
+        "source": {
+          "type": "string",
+          "description": "ссылка на сущность"
+        },
+        "anchor": {
+          "type": "string"
+        },
+        "fingerprint": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "channel",
+        "author"
+      ]
     },
     "created_at": {
       "type": "string",
@@ -66,7 +95,33 @@
     },
     "threshold": {
       "type": "object",
-      "description": "{op*,value*}"
+      "properties": {
+        "op": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "object",
+            "array",
+            "null"
+          ]
+        },
+        "value": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "object",
+            "array",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "op",
+        "value"
+      ],
+      "description": "порог отсева: {op,value,unit}; отсеянный вариант называет порог по имени"
     },
     "group": {
       "enum": [
@@ -74,10 +129,22 @@
         "B",
         "V",
         "G"
-      ]
+      ],
+      "description": "группа сравнения: покрытие · задержка · стоимость · риск (четыре группы AoA)"
     },
     "proxy": {
       "type": "boolean"
+    },
+    "direction": {
+      "enum": [
+        "max",
+        "min"
+      ],
+      "description": "куда лучше: больше или меньше"
+    },
+    "model_run": {
+      "type": "string",
+      "description": "ссылка на вид: model_run откуда значение; пусто — ручное/прокси с пометой"
     }
   },
   "required": [
@@ -93,6 +160,7 @@
     "updated_at",
     "variant",
     "measure",
-    "group"
+    "group",
+    "direction"
   ]
 }

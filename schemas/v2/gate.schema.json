@@ -41,7 +41,36 @@
     },
     "provenance": {
       "type": "object",
-      "description": "{channel*:enum[manual,package,service,shelf,import,example], author*:ref account, source?:ref, anchor?:str, fingerprint?:str}"
+      "properties": {
+        "channel": {
+          "enum": [
+            "manual",
+            "package",
+            "service",
+            "shelf",
+            "import",
+            "example"
+          ]
+        },
+        "author": {
+          "type": "string",
+          "description": "ссылка на вид: account"
+        },
+        "source": {
+          "type": "string",
+          "description": "ссылка на сущность"
+        },
+        "anchor": {
+          "type": "string"
+        },
+        "fingerprint": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "channel",
+        "author"
+      ]
     },
     "created_at": {
       "type": "string",
@@ -120,7 +149,137 @@
     },
     "expertise": {
       "type": "object",
-      "description": "{goal*,validation_questions*:str[],results*:str[],main_outcome*:str[],control_items*:[{artifact*,maturity*:enum[С,Р,F,U,Σ,Δ,x,°],our_ref?:ref document_template|kind}]} из ПОЛКА-ПРОЦЕССЫ-РОМАНОВ.expertises_full; коды зрелости — легенда владельца"
+      "properties": {
+        "goal": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "object",
+            "array",
+            "null"
+          ]
+        },
+        "validation_questions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "results": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "main_outcome": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "control_items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "artifact": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "object",
+                  "array",
+                  "null"
+                ]
+              },
+              "maturity": {
+                "enum": [
+                  "С",
+                  "Р",
+                  "F",
+                  "U",
+                  "Σ",
+                  "Δ",
+                  "x",
+                  "°"
+                ]
+              },
+              "our_ref": {
+                "type": "string",
+                "description": "ссылка на вид: document_template|kind"
+              }
+            },
+            "required": [
+              "artifact",
+              "maturity"
+            ]
+          }
+        }
+      },
+      "required": [
+        "goal",
+        "validation_questions",
+        "results",
+        "main_outcome",
+        "control_items"
+      ],
+      "description": "из ПОЛКА-ПРОЦЕССЫ-РОМАНОВ.expertises_full; коды зрелости — легенда владельца"
+    },
+    "expertise_answers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "question": {
+            "type": [
+              "string",
+              "number",
+              "boolean",
+              "object",
+              "array",
+              "null"
+            ]
+          },
+          "answer": {
+            "enum": [
+              "yes",
+              "no"
+            ]
+          },
+          "by": {
+            "type": [
+              "string",
+              "number",
+              "boolean",
+              "object",
+              "array",
+              "null"
+            ]
+          },
+          "at": {
+            "type": [
+              "string",
+              "number",
+              "boolean",
+              "object",
+              "array",
+              "null"
+            ]
+          },
+          "finding": {
+            "type": "string",
+            "description": "ссылка на вид: finding"
+          }
+        },
+        "required": [
+          "question",
+          "answer",
+          "by",
+          "at"
+        ]
+      },
+      "description": "ответы чек-листа экспертизы, включая «да»: кто и когда; «нет» рождает замечание"
     }
   },
   "required": [

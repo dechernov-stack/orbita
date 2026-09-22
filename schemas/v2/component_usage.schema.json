@@ -38,7 +38,36 @@
     },
     "provenance": {
       "type": "object",
-      "description": "{channel*:enum[manual,package,service,shelf,import,example], author*:ref account, source?:ref, anchor?:str, fingerprint?:str}"
+      "properties": {
+        "channel": {
+          "enum": [
+            "manual",
+            "package",
+            "service",
+            "shelf",
+            "import",
+            "example"
+          ]
+        },
+        "author": {
+          "type": "string",
+          "description": "ссылка на вид: account"
+        },
+        "source": {
+          "type": "string",
+          "description": "ссылка на сущность"
+        },
+        "anchor": {
+          "type": "string"
+        },
+        "fingerprint": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "channel",
+        "author"
+      ]
     },
     "created_at": {
       "type": "string",
@@ -74,7 +103,50 @@
     },
     "orbit": {
       "type": "object",
-      "description": "{altitude*,inclination|ltan*,planes*,per_plane*} для КА в подгруппе"
+      "properties": {
+        "altitude": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "object",
+            "array",
+            "null"
+          ]
+        },
+        "inclination": {
+          "$ref": "https://kis.local/schemas/v2/_measure.schema.json"
+        },
+        "ltan": {
+          "$ref": "https://kis.local/schemas/v2/_measure.schema.json"
+        },
+        "planes": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "object",
+            "array",
+            "null"
+          ]
+        },
+        "per_plane": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "object",
+            "array",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "altitude",
+        "planes",
+        "per_plane"
+      ],
+      "description": "для КА в подгруппе · наклонение для Walker, ЛВУ для ССО — одно из двух"
     }
   },
   "required": [

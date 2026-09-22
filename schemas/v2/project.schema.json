@@ -38,7 +38,36 @@
     },
     "provenance": {
       "type": "object",
-      "description": "{channel*:enum[manual,package,service,shelf,import,example], author*:ref account, source?:ref, anchor?:str, fingerprint?:str}"
+      "properties": {
+        "channel": {
+          "enum": [
+            "manual",
+            "package",
+            "service",
+            "shelf",
+            "import",
+            "example"
+          ]
+        },
+        "author": {
+          "type": "string",
+          "description": "ссылка на вид: account"
+        },
+        "source": {
+          "type": "string",
+          "description": "ссылка на сущность"
+        },
+        "anchor": {
+          "type": "string"
+        },
+        "fingerprint": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "channel",
+        "author"
+      ]
     },
     "created_at": {
       "type": "string",
@@ -59,15 +88,16 @@
       }
     },
     "name": {
-      "type": "string"
+      "type": "string",
+      "description": "правится в паспорте проекта (карточка), не только при создании"
     },
     "mission_class": {
       "type": "string",
-      "description": "ссылка на вид: mission_class"
+      "description": "ссылка на вид: mission_class правится в паспорте проекта (карточка), не только при создании"
     },
     "manager": {
       "type": "string",
-      "description": "ссылка на вид: account"
+      "description": "ссылка на вид: account правится в паспорте проекта (карточка), не только при создании"
     },
     "phase_current": {
       "type": "string",
@@ -85,6 +115,16 @@
     "knowledge_v2": {
       "type": "boolean",
       "description": "поле знаний v2 — синтез, сверка, ранг доверия; на прежних проектах выключено, новым ставится умолчанием стенда (ORBITA_KNOWLEDGE_V2_DEFAULT)"
+    },
+    "standard": {
+      "enum": [
+        "NASA-7120"
+      ],
+      "description": "имена в интерфейсе; кросс-термины — словарь"
+    },
+    "phase_template": {
+      "type": "string",
+      "description": "ссылка на вид: phase_template шаблон текущей фазы; меняется решением точки вместе с phase_current"
     }
   },
   "required": [
@@ -103,6 +143,8 @@
     "manager",
     "phase_current",
     "group",
-    "example"
+    "example",
+    "standard",
+    "phase_template"
   ]
 }

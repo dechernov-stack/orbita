@@ -38,7 +38,36 @@
     },
     "provenance": {
       "type": "object",
-      "description": "{channel*:enum[manual,package,service,shelf,import,example], author*:ref account, source?:ref, anchor?:str, fingerprint?:str}"
+      "properties": {
+        "channel": {
+          "enum": [
+            "manual",
+            "package",
+            "service",
+            "shelf",
+            "import",
+            "example"
+          ]
+        },
+        "author": {
+          "type": "string",
+          "description": "ссылка на вид: account"
+        },
+        "source": {
+          "type": "string",
+          "description": "ссылка на сущность"
+        },
+        "anchor": {
+          "type": "string"
+        },
+        "fingerprint": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "channel",
+        "author"
+      ]
     },
     "created_at": {
       "type": "string",
@@ -60,7 +89,17 @@
     },
     "trigger_scene": {
       "type": "object",
-      "description": "{scene?:ref scene, gate?:ref gate} ровно одно из двух — сцена либо точка, откуда запущено исследование"
+      "properties": {
+        "scene": {
+          "type": "string",
+          "description": "ссылка на вид: scene"
+        },
+        "gate": {
+          "type": "string",
+          "description": "ссылка на вид: gate"
+        }
+      },
+      "description": "ровно одно из двух — сцена либо точка, откуда запущено исследование"
     },
     "questions": {
       "type": "array",
@@ -87,7 +126,59 @@
     },
     "accepted_summary": {
       "type": "object",
-      "description": "{stakeholders,programs,norms,applications,analogs} что принято из результата по классам"
+      "properties": {
+        "stakeholders": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "object",
+            "array",
+            "null"
+          ]
+        },
+        "programs": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "object",
+            "array",
+            "null"
+          ]
+        },
+        "norms": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "object",
+            "array",
+            "null"
+          ]
+        },
+        "applications": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "object",
+            "array",
+            "null"
+          ]
+        },
+        "analogs": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "object",
+            "array",
+            "null"
+          ]
+        }
+      },
+      "description": "что принято из результата по классам"
     }
   },
   "required": [

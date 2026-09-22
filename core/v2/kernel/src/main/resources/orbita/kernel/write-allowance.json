@@ -1,0 +1,35 @@
+{
+  "_note": "Допуск сторожа записи (write_rules.schema_on_write, истина 21-09): поле вне схемы вида — отказ, КРОМЕ названного здесь поимённо и с причиной. Каждая строка — вопрос владельцу: назвать поле истиной или снять его из кода. Ратчет tools/validate_write_allowance.py следит, чтобы допуск только таял: поле, появившееся в истине, из допуска обязано уйти.",
+  "kinds_outside_truth": {
+    "component_template_shelf": "полка шаблонов компонентов — поставка 03.09 (ADR-051); вида в истине нет",
+    "glossary_cross_terms": "кросс-термины глоссария — сид поставки; вида в истине нет",
+    "lifecycle_process_reference": "полка процессов Романова — поставка 03.09; вида в истине нет"
+  },
+  "fields_outside_truth": {
+    "architecture_template": ["LA", "OA", "PA", "SA", "diagrams_for_reviews", "orbita_mapping", "principle", "rules", "summary", "title"],
+    "document_template": ["delivery_code", "labels", "note", "review", "rules", "standard", "style"],
+    "interface_template": ["interface_types", "rules", "summary", "title"],
+    "model_template": ["required_by_gate", "rule", "source", "title"],
+    "pbs_template": ["interfaces", "levels", "rules", "summary", "title", "units_to_add"],
+    "phase_template": ["documents", "lanes", "maturity_note", "note", "source", "title"],
+    "wbs_template": ["pbs_to_wbs", "rules", "summary", "title"],
+    "process_catalog": ["processes", "rule", "source", "title", "tools"],
+    "fact": ["anchor", "conflict_constraint", "conflicts", "manual", "mark", "material", "topic", "unit"],
+    "material": ["chars", "name", "text"],
+    "intake_task": ["accepted", "actions", "created", "facts", "material", "note"],
+    "synthesis_run": ["accepted", "accepted_batches", "links", "note", "refused", "unassigned"],
+    "ai_call": ["prompt_chars", "response"],
+    "baseline_snapshot": ["name"],
+    "gate": ["technology"],
+    "requirement": ["mop"],
+    "stakeholder": ["needs"],
+    "constraint": ["normative_basis"],
+    "document": ["standard"],
+    "wbs_package": ["maturation_for"]
+  },
+  "_reasons": {
+    "полки-шаблоны": "истина описывает вид шапкой (code · title · sections · nature…), содержимое полки — поставка внешнего контура; правка полки руками — отказ другого сторожа",
+    "контур знаний": "fact/material/intake_task/synthesis_run/ai_call — поля контура ЗНАНИЯ-V2/V3 (якорь, тема, единица, метка, ручной ввод, конфликты); истина схем их не называет",
+    "продукт": "gate.technology — веха технологии (TRL); requirement.mop; stakeholder.needs — до миграции n:m (З-06); constraint.normative_basis; document.standard; wbs_package.maturation_for; baseline_snapshot.name — имя линии"
+  }
+}

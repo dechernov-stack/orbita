@@ -38,7 +38,36 @@
     },
     "provenance": {
       "type": "object",
-      "description": "{channel*:enum[manual,package,service,shelf,import,example], author*:ref account, source?:ref, anchor?:str, fingerprint?:str}"
+      "properties": {
+        "channel": {
+          "enum": [
+            "manual",
+            "package",
+            "service",
+            "shelf",
+            "import",
+            "example"
+          ]
+        },
+        "author": {
+          "type": "string",
+          "description": "ссылка на вид: account"
+        },
+        "source": {
+          "type": "string",
+          "description": "ссылка на сущность"
+        },
+        "anchor": {
+          "type": "string"
+        },
+        "fingerprint": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "channel",
+        "author"
+      ]
     },
     "created_at": {
       "type": "string",
@@ -66,15 +95,9 @@
       "items": {
         "type": "object",
         "properties": {
-          "usage*→component_usage(КА)": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
+          "usage": {
+            "type": "string",
+            "description": "ссылка на вид: component_usage"
           },
           "pattern": {
             "enum": [
@@ -93,15 +116,11 @@
               "null"
             ]
           },
-          "inclination|ltan": {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
+          "inclination": {
+            "$ref": "https://kis.local/schemas/v2/_measure.schema.json"
+          },
+          "ltan": {
+            "$ref": "https://kis.local/schemas/v2/_measure.schema.json"
           },
           "planes": {
             "type": [
@@ -125,13 +144,14 @@
           }
         },
         "required": [
+          "usage",
           "pattern",
           "altitude",
-          "inclination|ltan",
           "planes",
           "per_plane"
         ]
-      }
+      },
+      "description": "наклонение для Walker, ЛВУ для ССО — одно из двух"
     },
     "working": {
       "type": "boolean"
