@@ -7,27 +7,28 @@
 // говорит `risk.due_point: ref gate` — «срок — любая веха».
 import { describe, expect, it } from 'vitest'
 import экран from './programmatics.tsx?raw'
+import реестр from './risks.tsx?raw'
 
 describe('срок-точка риска', () => {
   it('правится прямо в строке реестра', () => {
-    expect(экран).toContain('aria-label={`срок-точка риска ${р.code}`}')
-    expect(экран).toContain("api.patchEntity(project, р.code, { due_point: e.target.value }")
+    expect(реестр).toContain('aria-label={`срок-точка риска ${р.code}`}')
+    expect(реестр).toContain("api.patchEntity(project, р.code, { due_point: e.target.value }")
   })
 
   it('проставить разом можно, но только без точки и только выбранной вехой', () => {
-    expect(экран).toContain('Проставить всем без точки')
-    expect(экран).toContain("риски.filter((р) => р.due_point === '—')")
-    expect(экран).toContain('disabled={!всемВеха || занятоВсем}')
-    expect(экран).toContain('названные сроки не трогаются')
+    expect(реестр).toContain('Проставить всем без точки')
+    expect(реестр).toContain("риски.filter((р) => р.due_point === '—')")
+    expect(реестр).toContain('disabled={!всемВеха || занятоВсем}')
+    expect(реестр).toContain('названные сроки не трогаются')
   })
 
   it('вехи берутся из проекта, а не из списка в коде', () => {
-    expect(экран).toContain('function useВехи')
-    expect(экран).toContain("api.entities(project, 'gate')")
-    expect(экран).not.toContain("['MCR', 'SRR', 'SDR', 'PDR']")
+    expect(реестр).toContain('function useВехи')
+    expect(реестр).toContain("api.entities(project, 'gate')")
+    expect(реестр).not.toContain("['MCR', 'SRR', 'SDR', 'PDR']")
     // Ни одна форма не подставляет точку по умолчанию: её выбирает человек.
-    expect(экран).not.toContain("due_point: 'MCR'")
-    expect(экран).not.toContain("required_by: 'PDR'")
+    expect(реестр).not.toContain("due_point: 'MCR'")
+    expect(реестр).not.toContain("required_by: 'PDR'")
   })
 })
 

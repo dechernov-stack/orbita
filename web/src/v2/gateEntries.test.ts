@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest'
 import документы from './documents.tsx?raw'
 import концепция from './concept.tsx?raw'
 import клиент from './api.ts?raw'
-import реестр from './programmatics.tsx?raw'
+import реестр from './risks.tsx?raw'
 import клиентИсследования from './research.tsx?raw'
 import оболочка from './shell.tsx?raw'
 import модели from './models.tsx?raw'
@@ -82,7 +82,7 @@ describe('оценка риска', () => {
     expect(реестр).toContain('aria-label={`влияние риска ${р.code}`}')
     expect(реестр).toContain('aria-label={`стратегия риска ${р.code}`}')
     expect(реестр).toContain('aria-label={`владелец риска ${р.code}`}')
-    expect(реестр).toContain('const правитьРиск = (код: string, поля: Record<string, unknown>)')
+    expect(реестр).toContain('const правитьРиск = (код: string, поля: Record<string, unknown>, зачем = ')
   })
 
   it('уровень считает сервер, а не экран', () => {
@@ -211,6 +211,50 @@ describe('паспорт проекта (З-25, шип 1, п. 1.5)', () => {
     expect(паспорт).toContain("fetch('/api/auth/roles', {")
     expect(паспорт).toContain("role: 'da_review'")
     expect(паспорт).toContain('Роли назначает руководитель проекта.')
+  })
+})
+
+describe('риски пачкой (шип 1, п. 1.2–1.4)', () => {
+  it('реестр живёт в рейке с сцены 11, до неё — в эксперт-режиме', () => {
+    expect(оболочка).toContain("{ key: 'risks', title: 'Риски', wave: 4, fromScene: '11'")
+    expect(оболочка).toContain('(expert || сценаДостигнута(s.fromScene))')
+    expect(оболочка).toContain("return !сцена || сцена.state !== 'locked'")
+  })
+
+  it('отбор, порядок, «держат точку», по владельцу', () => {
+    expect(реестр).toContain("{ код: 'open', слово: 'открытые' }, { код: 'closed', слово: 'закрытые' }, { код: 'all', слово: 'все' }")
+    expect(реестр).toContain('aria-label="порядок рисков"')
+    expect(реестр).toContain('aria-label="держат точку"')
+    expect(реестр).toContain('const группы: { владелец: string | null; строки: RiskRow[] }[] = поВладельцу')
+  })
+
+  it('закрытие с экрана — решением словами; возврат — причиной; кнопка без слов заперта и говорит почему', () => {
+    expect(клиент).toContain('closeRisk:')
+    expect(клиент).toContain('reopenRisk:')
+    expect(реестр).toContain("api.closeRisk(project, р.code, решение.trim(), автор || 'инженер')")
+    expect(реестр).toContain("api.reopenRisk(project, р.code, причина.trim(), автор || 'инженер')")
+    expect(реестр).toContain('Нажать нельзя: решение не названо.')
+    expect(реестр).toContain('Нажать нельзя: причина не названа.')
+  })
+
+  it('карточка: условие · событие · последствие, балл кликом, стратегия и категория — словами истины', () => {
+    expect(реестр).toContain("правитьРиск(р.code, { cec }, 'условие · событие · последствие')")
+    expect(реестр).toContain('aria-label={`вероятность риска ${р.code} кликом`}')
+    expect(реестр).toContain('aria-label={`влияние риска ${р.code} кликом`}')
+    // Перечисления — из enum_labels вида, копии в коде нет.
+    expect(реестр).toContain("Object.entries(метки('strategy'))")
+    expect(реестр).toContain("Object.entries(метки('category'))")
+    expect(реестр).not.toContain('<option value="mitigate">снижать</option>')
+    expect(реестр).toContain('aria-label={`связать риск ${р.code} с узлом`}')
+  })
+
+  it('точка называет риски, которые её держат, каждый — ссылкой в карточку', () => {
+    expect(точки).toContain("api.risks(project).then((r) => setРиски(r.items))")
+    expect(точки).toContain('риски={риски.filter((р) => р.holds.includes(точка.key))}')
+    expect(точки).toContain('Риски, которые держат точку')
+    expect(точки).toContain('onClick={() => onGoRisk(р.code)}')
+    expect(оболочка).toContain("onGoRisk={(код) => { setWantRisk(код); setSection('risks') }}")
+    expect(реестр).toContain("useEffect(() => { if (wantRisk) { setОткрыт(wantRisk); setОтбор('all') } }, [wantRisk])")
   })
 })
 

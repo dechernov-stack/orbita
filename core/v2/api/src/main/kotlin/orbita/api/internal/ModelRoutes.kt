@@ -106,7 +106,13 @@ class ModelRoutes(
 
         // Сцена 17: риск со сроком к точке закрывается РЕШЕНИЕМ словами, а
         // не исчезновением из реестра — точка ждёт именно закрытия.
-        method == "POST" && path.matches(Regex("/v2/risks/[A-Za-z0-9-]+/close")) ->
+        method == "POST" && path.matches(Regex("/v2/risks/[A-Za-zА-Яа-я0-9_-]+/reopen")) ->
+            вернутьРиск(
+                требуется(query, "project"),
+                path.removePrefix("/v2/risks/").removeSuffix("/reopen"),
+                разобрать(body),
+            )
+        method == "POST" && path.matches(Regex("/v2/risks/[A-Za-zА-Яа-я0-9_-]+/close")) ->
             закрытьРиск(
                 требуется(query, "project"),
                 path.removePrefix("/v2/risks/").removeSuffix("/close"),
@@ -375,10 +381,16 @@ class ModelRoutes(
         val ответ = mapper.createObjectNode()
         val массив = ответ.putArray("items")
         programmatics.risks(проект).forEach { р ->
-            массив.addObject()
+            val узел = массив.addObject()
                 .put("code", р.code).put("statement", р.statement).put("category", р.category)
                 .put("probability", р.probability).put("impact", р.impact).put("level", р.level)
                 .put("strategy", р.strategy).put("owner", р.owner).put("due_point", р.duePoint)
+                .put("due_date", р.dueDate).put("status", р.status).put("measures", р.measures)
+                .put("condition", р.condition).put("event", р.event).put("consequence", р.consequence)
+                .put("resolution", р.resolution).put("closed_by", р.closedBy).put("closed_at", р.closedAt)
+                .put("reopen_reason", р.reopenReason).put("version", р.version)
+            узел.putArray("refs").also { а -> р.refs.forEach { а.add(it) } }
+            узел.putArray("holds").also { а -> р.holds.forEach { а.add(it) } }
         }
         return V2Router.Ответ(200, ответ)
     }
@@ -437,23 +449,55 @@ class ModelRoutes(
             store.byCode(область, ключ)?.let { документ.put("due_point", it.id) }
         }
         val код = тело.path("code").asText("").ifBlank { следующийКод(область, "risk", "RSK") }
+        // Статусная модель риска по истине — open|closed: заведённый риск открыт.
         val создано = store.create(
             код, "risk", область, "11", документ,
             Provenance(Channel.MANUAL, тело.path("author").asText("стенд")),
+            status = "open",
         )
-        return V2Router.Ответ(201, mapper.createObjectNode().put("code", создано.code))
+        return V2Router.Ответ(201, mapper.createObjectNode().put("code", создано.code).put("status", создано.status))
+    }
+
+    /**
+     * Возврат в открытые (шип 1, п. 1.3): закрытие отменяется причиной
+     * словами — решение о закрытии не стирается из истории версий, а
+     * причина возврата видна в карточке.
+     */
+    private fun вернутьРиск(проект: String, код: String, тело: JsonNode): V2Router.Ответ {
+        val область = Area.Project(проект)
+        val риск = store.byCode(область, код)?.takeIf { it.kind == "risk" }
+            ?: throw NoSuchElementException("риска «$код» в проекте нет")
+        require(риск.status == "closed") { "риск «$код» открыт — возвращать нечего" }
+        val причина = тело.path("reason").asText("").trim()
+        require(причина.isNotBlank()) { "возврат в открытые — с причиной словами: почему решение о закрытии не держится" }
+        val автор = тело.path("author").asText("стенд")
+        val документ = риск.doc.deepCopy<ObjectNode>().put("reopen_reason", причина)
+        документ.remove(listOf("resolution", "closed_by", "closed_at"))
+        val открыт = store.update(риск.id, документ, Provenance(Channel.MANUAL, "$автор — возврат в открытые: $причина"), status = "open")
+        return V2Router.Ответ(200, mapper.createObjectNode().put("code", открыт.code).put("status", открыт.status).put("version", открыт.version))
     }
 
     private fun закрытьРиск(проект: String, код: String, тело: JsonNode): V2Router.Ответ {
         val область = Area.Project(проект)
         val риск = store.byCode(область, код)?.takeIf { it.kind == "risk" }
             ?: throw NoSuchElementException("риска «$код» в проекте нет")
+        require(риск.status != "closed") {
+            "риск «$код» уже закрыт: «${риск.doc.path("resolution").asText("")}» — верните в открытые, если решение не держится"
+        }
         val решение = тело.path("resolution").asText("").trim()
         require(решение.isNotBlank()) { "риск закрывается решением словами: чем он снят или почему принят" }
         val автор = тело.path("author").asText("стенд")
-        val документ = риск.doc.deepCopy<ObjectNode>().put("resolution", решение).put("closed_by", автор)
+        // Кем и когда — в записи, не только в происхождении версии: карточка
+        // и печать читают документ, а не историю.
+        val документ = риск.doc.deepCopy<ObjectNode>()
+            .put("resolution", решение).put("closed_by", автор)
+            .put("closed_at", java.time.OffsetDateTime.now().withNano(0).toString())
+        документ.remove("reopen_reason")
         val закрыт = store.update(риск.id, документ, Provenance(Channel.MANUAL, автор), status = "closed")
-        return V2Router.Ответ(200, mapper.createObjectNode().put("code", закрыт.code).put("status", закрыт.status))
+        return V2Router.Ответ(
+            200,
+            mapper.createObjectNode().put("code", закрыт.code).put("status", закрыт.status).put("version", закрыт.version),
+        )
     }
 
     private fun планПакета(проект: String, тело: JsonNode): V2Router.Ответ {

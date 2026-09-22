@@ -253,6 +253,57 @@ class SceneTenTwelveTest {
         assertEquals("RSK-03", риски.first().path("code").asText(), "реестр идёт по уровню")
     }
 
+    /**
+     * Шип 1, п. 1.2–1.4: риск закрывается решением словами (кем, когда),
+     * возвращается в открытые причиной, и реестр говорит, какие точки фазы
+     * он держит — по тому же правилу дат, что условие `risks_due_closed`.
+     */
+    @Test
+    fun `риск закрывается решением, возвращается причиной и называет точки, которые держит`() {
+        технологию()
+        val заведён = router.handle(
+            "POST", "/v2/risks", параметры,
+            """{"statement":"SEU в памяти без ECC","category":"technical","probability":4,"impact":4,
+                "strategy":"mitigate","measures":"ECC и watchdog","owner":"Ведущий СИ","due_point":"MCR","author":"Чернов Д."}""",
+        )!!
+        assertEquals(201, заведён.code, заведён.body.toString())
+        assertEquals("open", заведён.body.path("status").asText(), "заведённый риск открыт по статусной модели истины")
+        val код = заведён.body.path("code").asText()
+        val строка = {
+            router.handle("GET", "/v2/risks", параметры, null)!!.body.path("items").first { it.path("code").asText() == код }
+        }
+        val держит = строка().path("holds").map { it.asText() }
+        assertTrue("MCR" in держит && "KDP-A" in держит, "срок к MCR держит MCR и всё, что позже: $держит")
+        assertTrue("internal_review" !in держит, "точка раньше срока не держится: $держит")
+
+        kotlin.test.assertFailsWith<IllegalArgumentException>("закрытие без решения") {
+            router.handle("POST", "/v2/risks/$код/close", параметры, """{"author":"Чернов Д."}""")
+        }
+        val закрыт = router.handle("POST", "/v2/risks/$код/close", параметры,
+            """{"resolution":"ECC и watchdog приняты в состав","author":"Чернов Д."}""")!!
+        assertEquals("closed", закрыт.body.path("status").asText(), закрыт.body.toString())
+        строка().let {
+            assertEquals("closed", it.path("status").asText())
+            assertEquals("Чернов Д.", it.path("closed_by").asText())
+            assertTrue(it.path("closed_at").asText().length >= 10, "когда закрыт — в записи: $it")
+            assertTrue(it.path("holds").isEmpty, "закрытый риск ничего не держит: ${it.path("holds")}")
+        }
+        kotlin.test.assertFailsWith<IllegalArgumentException>("повторное закрытие") {
+            router.handle("POST", "/v2/risks/$код/close", параметры, """{"resolution":"ещё раз","author":"Чернов Д."}""")
+        }
+        kotlin.test.assertFailsWith<IllegalArgumentException>("возврат без причины") {
+            router.handle("POST", "/v2/risks/$код/reopen", параметры, """{"author":"Чернов Д."}""")
+        }
+        val открыт = router.handle("POST", "/v2/risks/$код/reopen", параметры,
+            """{"reason":"watchdog не прошёл испытания","author":"Чернов Д."}""")!!
+        assertEquals("open", открыт.body.path("status").asText(), открыт.body.toString())
+        строка().let {
+            assertEquals("watchdog не прошёл испытания", it.path("reopen_reason").asText())
+            assertEquals("", it.path("resolution").asText(), "решение о закрытии снято вместе с закрытием")
+            assertTrue("MCR" in it.path("holds").map { х -> х.asText() }, "открытый снова держит точку")
+        }
+    }
+
     @Test
     fun `сцена 12 требует пары к узлам, диапазон и созревание в стоимости`() {
         технологию()

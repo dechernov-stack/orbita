@@ -77,6 +77,29 @@ data class RiskView(
     /** Срок — ТОЧКА, а не дата: даты плывут, точки нет. */
     val duePoint: String,
     val level: Int,
+    /** open · closed — статусная модель вида по истине. */
+    val status: String = "open",
+    val measures: String = "",
+    /** Условие · событие · последствие (`cec` истины). */
+    val condition: String = "",
+    val event: String = "",
+    val consequence: String = "",
+    /** Ссылки на узлы и сцены — кодами. */
+    val refs: List<String> = emptyList(),
+    /** Закрытие: решение словами, кем и когда; возврат — причиной. */
+    val resolution: String = "",
+    val closedBy: String = "",
+    val closedAt: String = "",
+    val reopenReason: String = "",
+    val version: Int = 1,
+    /** Дата срока-точки — по ней точка фазы считает, держит ли её риск. */
+    val dueDate: String = "",
+    /**
+     * Точки фазы, которые этот риск держит: открытый риск со сроком не позже
+     * даты точки (то же правило, что у условия `risks_due_closed`). Экран
+     * точки ведёт по ним в карточку риска, реестр отбирает «держат точку X».
+     */
+    val holds: List<String> = emptyList(),
 )
 
 interface Programmatics {

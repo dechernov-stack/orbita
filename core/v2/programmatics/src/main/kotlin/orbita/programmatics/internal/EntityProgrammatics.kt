@@ -282,8 +282,20 @@ class EntityProgrammatics(
         }
     }
 
-    override fun risks(project: String): List<RiskView> =
-        store.list(Area.Project(project), "risk").filter { it.status != "cancelled" }.map { риск ->
+    override fun risks(project: String): List<RiskView> {
+        val область = Area.Project(project)
+        // Точки фазы с датой, ещё не пройденные: их и держат открытые риски.
+        // Веха технологии — срок, но не точка: она ничего не решает.
+        val точки = store.list(область, "gate")
+            .filter { it.status != "cancelled" && it.status != "passed" }
+            .filter { it.doc.path("kind").asText("phase") != "technology" }
+            .mapNotNull { т -> т.doc.path("planned_date").asText("").ifBlank { null }?.let { т.code to it } }
+        fun дата(ссылка: String): String? = ссылка.takeIf { it.isNotBlank() }
+            ?.let { store.byCode(область, it) ?: store.byId(it) }
+            ?.doc?.path("planned_date")?.asText("")?.takeIf { it.isNotBlank() }
+        return store.list(область, "risk").filter { it.status != "cancelled" }.map { риск ->
+            val срок = дата(риск.doc.path("due_point").asText(""))
+            val открыт = риск.status != "closed"
             RiskView(
                 code = риск.code,
                 statement = риск.doc.path("statement").asText(риск.code),
@@ -295,8 +307,23 @@ class EntityProgrammatics(
                 duePoint = риск.doc.path("due_point").asText("").ifBlank { null }
                     ?.let { store.byId(it)?.code ?: it } ?: "—",
                 level = риск.doc.path("probability").asInt(0) * риск.doc.path("impact").asInt(0),
+                status = if (открыт) "open" else "closed",
+                measures = риск.doc.path("measures").let { if (it.isArray) it.joinToString("; ") { м -> м.asText() } else it.asText("") },
+                condition = риск.doc.path("cec").path("condition").asText(""),
+                event = риск.doc.path("cec").path("event").asText(""),
+                consequence = риск.doc.path("cec").path("consequence").asText(""),
+                refs = риск.doc.path("refs").map { с -> с.asText().let { store.byId(it)?.code ?: it } },
+                resolution = риск.doc.path("resolution").asText(""),
+                closedBy = риск.doc.path("closed_by").asText(""),
+                closedAt = риск.doc.path("closed_at").asText(""),
+                reopenReason = риск.doc.path("reopen_reason").asText(""),
+                version = риск.version,
+                dueDate = срок ?: "",
+                // Правило ADR-059: срок наступил к точке, если дата срока не позже её даты.
+                holds = if (открыт && срок != null) точки.filter { (_, дата) -> срок <= дата }.map { it.first } else emptyList(),
             )
         }.sortedByDescending { it.level }
+    }
 
     override fun gaps(project: String, gate: String): List<String> {
         val разрывы = mutableListOf<String>()

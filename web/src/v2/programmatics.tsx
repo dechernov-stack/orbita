@@ -8,32 +8,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
   api, type ComponentRow, type MaturationRow, type OdaRow,
-  type RiskRow, type TechnologyRow, type WbsOffer, type WbsRow,
+  type TechnologyRow, type WbsOffer, type WbsRow,
 } from './api'
+import { RiskRegistry, useВехи } from './risks'
 
-/**
- * Вехи проекта для срока риска.
- *
- * Истина: `risk.due_point: ref gate` — «срок — любая веха (gate.kind
- * phase|technology)». Перечень в коде («MCR · SRR · SDR · PDR») был вторым
- * списком мимо данных: у проекта свои точки и свои вехи технологий, и риск
- * держится ими. Пусто — значит вех в проекте ещё нет, и это сказано словами.
- */
-function useВехи(project: string): { код: string; подпись: string }[] {
-  const [вехи, setВехи] = useState<{ код: string; подпись: string }[]>([])
-  useEffect(() => {
-    api.entities(project, 'gate')
-      .then((р) => setВехи(р.items
-        .filter((в) => в.status !== 'cancelled')
-        .map((в) => ({
-          код: в.code,
-          подпись: `${в.code}${в.doc.name ? ` · ${String(в.doc.name)}` : ''}`
-            + (в.doc.planned_date ? ` · ${String(в.doc.planned_date)}` : ''),
-        }))))
-      .catch(() => undefined)
-  }, [project])
-  return вехи
-}
 
 /** Сцена 10 — технологии: TRL, разрыв, план созревания. */
 export function Technologies({ project }: { project: string }) {
@@ -186,15 +164,10 @@ export function Technologies({ project }: { project: string }) {
   )
 }
 
-/** Сцена 11 — риски со сроком-точкой и оценка засорения. */
+/** Сцена 11 — реестр рисков (общий с разделом «Риски») и оценка засорения. */
 export function Risks({ project }: { project: string }) {
-  const [риски, setРиски] = useState<RiskRow[]>([])
   const [осз, setОсз] = useState<OdaRow[]>([])
   const [отказ, setОтказ] = useState<string | null>(null)
-  const [поля, setПоля] = useState({
-    statement: '', category: 'technical', probability: 3, impact: 3,
-    strategy: 'mitigate', measures: '', owner: 'Ведущий СИ', due_point: '',
-  })
   /**
    * Поля ОСЗ — те, что спрашивает маршрут (и истина `debris_assessment`):
    * два срока (штатный увод и пассивный сход при отказе ДУ), модель атмосферы,
@@ -210,12 +183,8 @@ export function Risks({ project }: { project: string }) {
   const [варианты, setВарианты] = useState<{ код: string; подпись: string }[]>([])
   const [нормативы, setНормативы] = useState<{ код: string; подпись: string }[]>([])
   const [занятоОсз, setЗанятоОсз] = useState(false)
-  const вехи = useВехи(project)
-  const [всемВеха, setВсемВеха] = useState('')
-  const [занятоВсем, setЗанятоВсем] = useState(false)
 
   const перечитать = useCallback(() => {
-    api.risks(project).then((r) => setРиски(r.items)).catch((e) => setОтказ(String(e.message ?? e)))
     api.oda(project).then((r) => setОсз(r.items)).catch(() => undefined)
     // Вариант — из принятой базовой концепции (сцена 7): ОСЗ считается ОТ НЕЁ.
     api.concept(project)
@@ -238,172 +207,11 @@ export function Risks({ project }: { project: string }) {
 
   useEffect(перечитать, [перечитать])
 
-  /**
-   * Правка оценки риска в строке реестра. Вид «риск» правится на месте, а
-   * пересчёт уровня (вероятность × влияние) делает сервер — экран лишь
-   * перечитывает реестр, чтобы «В×П» не разошлись с тем, что видят ворота.
-   */
-  const правитьРиск = (код: string, поля: Record<string, unknown>) => {
-    api.patchEntity(project, код, поля, 'инженер', 'оценка риска')
-      .then(перечитать)
-      .catch((ошибка) => setОтказ(String(ошибка.message ?? ошибка)))
-  }
-
   return (
     <>
       {отказ && <div className="v2-locked">{отказ}</div>}
 
-      <div className="v2-panel" data-why="работа">
-        <h3>Реестр рисков<span className="v2-cnt">{риски.length}</span></h3>
-        {риски.length === 0 ? (
-          <div className="v2-empty">
-            Рисков не заведено.
-            <span className="v2-empty__why">
-              Пустой реестр означает, что риски не искали: сцена 11 держится тремя записями.
-            </span>
-          </div>
-        ) : (
-          <table className="v2-table">
-            <thead>
-              <tr><th>Код</th><th>Риск</th><th>В×П</th><th>Стратегия</th><th>Владелец</th><th>Срок</th></tr>
-            </thead>
-            <tbody>
-              {риски.map((р) => (
-                <tr key={р.code}>
-                  <td className="v2-mono">{р.code}</td>
-                  <td>{р.statement}</td>
-                  {/*
-                    Вероятность, влияние, стратегия и владелец правятся В СТРОКЕ.
-                    Принятый из записки риск приходил с «0×0 = 0», и поправить
-                    оценку было нечем ни на одном экране: §6 отчёта о концепции
-                    миссии печатал четыре пустые колонки на все двенадцать
-                    рисков, а «ключевые риски» FA (критичность ≥ 12) не могли
-                    набраться никогда (владелец 20–21.09).
-                  */}
-                  <td title="вероятность × влияние: шкала 1–5">
-                    <select name={`${р.code}.probability`} value={р.probability || ''}
-                      aria-label={`вероятность риска ${р.code}`}
-                      onChange={(e) => правитьРиск(р.code, { probability: Number(e.target.value) })}>
-                      <option value="">—</option>
-                      {[1, 2, 3, 4, 5].map((з) => <option key={з} value={з}>{з}</option>)}
-                    </select>
-                    ×
-                    <select name={`${р.code}.impact`} value={р.impact || ''}
-                      aria-label={`влияние риска ${р.code}`}
-                      onChange={(e) => правитьРиск(р.code, { impact: Number(e.target.value) })}>
-                      <option value="">—</option>
-                      {[1, 2, 3, 4, 5].map((з) => <option key={з} value={з}>{з}</option>)}
-                    </select>
-                    {р.level > 0 ? ` = ${р.level}` : ''}
-                  </td>
-                  <td>
-                    <select name={`${р.code}.strategy`} value={р.strategy === '—' ? '' : р.strategy}
-                      aria-label={`стратегия риска ${р.code}`}
-                      onChange={(e) => правитьРиск(р.code, { strategy: e.target.value })}>
-                      <option value="">— стратегия —</option>
-                      <option value="mitigate">снижать</option>
-                      <option value="accept">принять</option>
-                      <option value="transfer">передать</option>
-                      <option value="avoid">избежать</option>
-                    </select>
-                  </td>
-                  <td>
-                    <input name={`${р.code}.owner`} defaultValue={р.owner === '—' ? '' : р.owner}
-                      placeholder="кто ведёт" aria-label={`владелец риска ${р.code}`}
-                      onBlur={(e) => {
-                        const имя = e.target.value.trim()
-                        if (имя && имя !== р.owner) правитьРиск(р.code, { owner: имя })
-                      }} />
-                  </td>
-                  {/*
-                    Срок правится ЗДЕСЬ: условие сцены 11 «у каждого риска
-                    срок-точка» держало проход на RI-0025…0027, а поправить
-                    срок принятого риска было негде — только при заведении
-                    (проход владельца 20.09).
-                  */}
-                  <td className={р.due_point === '—' ? 'v2-warn' : undefined}>
-                    <select name={`${р.code}.due_point`} value={р.due_point === '—' ? '' : р.due_point}
-                      aria-label={`срок-точка риска ${р.code}`}
-                      onChange={(e) => api.patchEntity(project, р.code, { due_point: e.target.value }, 'инженер',
-                        'срок-точка риска')
-                        .then(перечитать)
-                        .catch((ошибка) => setОтказ(String(ошибка.message ?? ошибка)))}>
-                      <option value="">— нет точки —</option>
-                      {вехи.map((в) => <option key={в.код} value={в.код}>{в.подпись}</option>)}
-                    </select>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-        {/*
-          Простановка разом: на проходе 20.09 без точки стояли ВСЕ двенадцать
-          рисков — по одному это двенадцать кликов. Веху выбирает человек,
-          проставляется она только тем, у кого точки нет: уже названный срок
-          массовое действие не трогает.
-        */}
-        {риски.some((р) => р.due_point === '—') && (
-          <div className="v2-form__actions" data-why="работа">
-            <span className="v2-empty__why">
-              без срока-точки: {риски.filter((р) => р.due_point === '—').length} из {риски.length}
-            </span>
-            <select name="всем.due_point" value={всемВеха} aria-label="веха для рисков без точки"
-              onChange={(e) => setВсемВеха(e.target.value)}>
-              <option value="">— веха проекта —</option>
-              {вехи.map((в) => <option key={в.код} value={в.код}>{в.подпись}</option>)}
-            </select>
-            <button type="button" disabled={!всемВеха || занятоВсем}
-              title={всемВеха
-                ? 'проставить выбранную веху всем рискам без точки; названные сроки не трогаются'
-                : 'сначала выберите веху'}
-              onClick={() => {
-                setЗанятоВсем(true); setОтказ(null)
-                const без = риски.filter((р) => р.due_point === '—')
-                Promise.all(без.map((р) => api.patchEntity(project, р.code, { due_point: всемВеха }, 'инженер',
-                  'срок-точка риска: проставлено разом')))
-                  .then(() => { setЗанятоВсем(false); перечитать() })
-                  .catch((ошибка) => { setЗанятоВсем(false); setОтказ(String(ошибка.message ?? ошибка)) })
-              }}>
-              {занятоВсем ? 'Ставлю…' : 'Проставить всем без точки'}
-            </button>
-          </div>
-        )}
-
-        <div className="v2-form">
-          <label>Формулировка
-            <input value={поля.statement} placeholder="SEU в памяти без ECC → зависание борта"
-              onChange={(e) => setПоля({ ...поля, statement: e.target.value })} />
-          </label>
-          <label>Меры
-            <input value={поля.measures} placeholder="ECC и watchdog"
-              onChange={(e) => setПоля({ ...поля, measures: e.target.value })} />
-          </label>
-          <label>Вероятность 1–5
-            <input type="number" min={1} max={5} value={поля.probability}
-              onChange={(e) => setПоля({ ...поля, probability: Number(e.target.value) })} />
-          </label>
-          <label>Влияние 1–5
-            <input type="number" min={1} max={5} value={поля.impact}
-              onChange={(e) => setПоля({ ...поля, impact: Number(e.target.value) })} />
-          </label>
-          <label>Срок — точка
-            <select value={поля.due_point} onChange={(e) => setПоля({ ...поля, due_point: e.target.value })}>
-              <option value="">— веха проекта —</option>
-              {вехи.map((в) => <option key={в.код} value={в.код}>{в.подпись}</option>)}
-            </select>
-          </label>
-          <div className="v2-form__actions">
-            <button type="button" className="v2-primary" disabled={!поля.statement.trim()}
-              title="срок без точки не наступает — точка обязательна"
-              onClick={() => api.addRisk(project, поля)
-                .then(() => { setПоля({ ...поля, statement: '', measures: '' }); перечитать() })
-                .catch((e) => setОтказ(String(e.message ?? e)))}>
-              Завести риск
-            </button>
-          </div>
-        </div>
-      </div>
+      <RiskRegistry project={project} />
 
       <div className="v2-panel" data-why="работа">
         <h3>Оценка засорения (ОСЗ)<span className="v2-cnt">{осз.length}</span></h3>

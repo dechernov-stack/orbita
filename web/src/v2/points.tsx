@@ -5,7 +5,7 @@
 // спрятанной кнопки: роль и блокирующие проверяет сервер и отвечает
 // словами — они и показываются, как есть.
 import { useEffect, useState } from 'react'
-import { api, type Condition, type Finding, type Gate, type Phase, type Position, type PointsView } from './api'
+import { api, type Condition, type Finding, type Gate, type Phase, type Position, type PointsView, type RiskRow } from './api'
 import { ResearchPanel } from './research'
 
 /**
@@ -48,12 +48,14 @@ export function моиРоли(учётка: Учётка | null | undefined, pr
   return роль ? [роль] : []
 }
 
-export function Points({ project, phase, onChanged, onGoScene, учётка }: {
+export function Points({ project, phase, onChanged, onGoScene, onGoRisk, учётка }: {
   project: string | null
   phase: Phase | null
   onChanged: () => void
   /** Переход «к месту»: открыть работу на сцене, где чинится условие. */
   onGoScene?: (сцена: string) => void
+  /** Риск, который держит точку, — ссылкой в его карточку (два клика до закрытия). */
+  onGoRisk?: (код: string) => void
   /** Моя учётка: кнопка решения видна только роли, которая решает. */
   учётка?: Учётка | null
 }) {
@@ -61,11 +63,14 @@ export function Points({ project, phase, onChanged, onGoScene, учётка }: {
   const [открыта, setОткрыта] = useState<string | null>(null)
   const [отказ, setОтказ] = useState<string | null>(null)
   const [ролиПроекта, setРолиПроекта] = useState<Record<string, string>>({})
+  /** Риски проекта: точка называет те, что её держат, по `holds` сервера. */
+  const [риски, setРиски] = useState<RiskRow[]>([])
 
   const перечитать = () => {
     if (!project) return
     api.points(project).then(setВид).catch((e) => setОтказ(String(e.message ?? e)))
     api.projectRoles(project).then(setРолиПроекта).catch(() => setРолиПроекта({}))
+    api.risks(project).then((r) => setРиски(r.items)).catch(() => setРиски([]))
   }
   useEffect(перечитать, [project])
 
@@ -105,14 +110,15 @@ export function Points({ project, phase, onChanged, onGoScene, учётка }: {
       </div>
       {точка && phase && (
         <PointCard project={project} точка={точка} все={вид.items} phase={phase}
-          onChanged={() => { перечитать(); onChanged() }} onGoScene={onGoScene}
+          onChanged={() => { перечитать(); onChanged() }} onGoScene={onGoScene} onGoRisk={onGoRisk}
+          риски={риски.filter((р) => р.holds.includes(точка.key))}
           мои={моиРоли(учётка, project)} ролиПроекта={ролиПроекта} я={учётка?.display_name ?? ''} />
       )}
     </>
   )
 }
 
-function PointCard({ project, точка, все, phase, onChanged, onGoScene, мои, ролиПроекта, я }: {
+function PointCard({ project, точка, все, phase, onChanged, onGoScene, onGoRisk, риски, мои, ролиПроекта, я }: {
   project: string
   точка: Gate
   все: Gate[]
@@ -120,6 +126,10 @@ function PointCard({ project, точка, все, phase, onChanged, onGoScene, �
   onChanged: () => void
   /** «К месту»: открыть сцену, где чинится незакрытое условие. */
   onGoScene?: (сцена: string) => void
+  /** Ссылка в карточку риска, который держит точку. */
+  onGoRisk?: (код: string) => void
+  /** Открытые риски со сроком к этой точке — по правилу дат сервера. */
+  риски: RiskRow[]
   /** Мои роли в проекте — как их видит сервер. */
   мои: string[]
   /** Роли проекта: логин → роль; кто фиксирует, если не я. */
@@ -194,6 +204,30 @@ function PointCard({ project, точка, все, phase, onChanged, onGoScene, �
         спрятанная кнопка правом не является — право проверяет сервер, — но и
         кнопка, отвечающая 403, ничего не решает. Остальным — кто фиксирует.
       */}
+      {/*
+        Точка называет риски, которые её держат, каждый — ссылкой в карточку:
+        два клика от точки до закрытого риска (шип 1, п. 1.4). Раньше риск
+        был виден только словом в условии «открытых рисков со сроком к MCR».
+      */}
+      {!точка.passed && риски.length > 0 && (
+        <div className="v2-prop" data-why="почему-нельзя" title="открытые риски, чей срок не позже даты точки">
+          <span>
+            Риски, которые держат точку
+            <span className="v2-cnt">{риски.length}</span>
+            {риски.map((р) => (
+              <span key={р.code} className="v2-dim">
+                · {р.code} · {р.statement} · В×П {р.level || '—'} · срок {р.due_point}
+                {onGoRisk && (
+                  <button type="button" className="v2-link" title="открыть карточку риска: закрыть решением или передвинуть срок"
+                    onClick={() => onGoRisk(р.code)}>
+                    {' '}открыть карточку
+                  </button>
+                )}
+              </span>
+            ))}
+          </span>
+        </div>
+      )}
       {!точка.passed && точка.role && !мои.includes(точка.role) && (
         <div className="v2-empty__why" data-why="почему-нельзя">
           Фиксирует {РОЛЬ[точка.role] ?? точка.role}

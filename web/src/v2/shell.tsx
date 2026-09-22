@@ -16,6 +16,7 @@ import { Documents } from './documents'
 import { Models } from './models'
 import { Points } from './points'
 import { PassportScreen } from './passport'
+import { RiskRegistry } from './risks'
 import { ExternalModelScreen } from './externalmodel'
 import { Library } from './library'
 import { ИМЯ_РЕЖИМА, режимПоРоли, type Режим } from './density'
@@ -27,6 +28,8 @@ type Section = {
   wave: number
   expert?: boolean
   hint: string
+  /** Раздел виден с этой сцены фазы; до неё — только в эксперт-режиме. */
+  fromScene?: string
 }
 
 const SECTIONS: Section[] = [
@@ -38,6 +41,7 @@ const SECTIONS: Section[] = [
   { key: 'architecture', title: 'Архитектура', wave: 3, hint: 'операционный, системный, логический и физический слои' },
   { key: 'models', title: 'Модели', wave: 4, hint: 'записи моделей, прогоны, резервы' },
   { key: 'documents', title: 'Документы', wave: 4, hint: 'разделы документов с полнотой к ступени, тезисы, печать' },
+  { key: 'risks', title: 'Риски', wave: 4, fromScene: '11', hint: 'реестр рисков всей фазы: отбор, закрытие решением, срок-точка' },
   { key: 'points', title: 'Точки', wave: 6, hint: 'готовность по экспертизе, замечания, фиксация' },
   { key: 'passport', title: 'Паспорт', wave: 6, hint: 'название, класс миссии, руководитель, DA, стандарт, даты точек — правка на месте' },
   { key: 'library', title: 'Библиотека', wave: 2, expert: true, hint: 'полки, окно взятия, справочники' },
@@ -121,6 +125,9 @@ export function Shell() {
   const [wantScene, setWantScene] = useState<string | null>(null)
   /** Зачем нас сюда послали: словами раздела документа, а не «переход выполнен». */
   const [wantReason, setWantReason] = useState<string | null>(null)
+  /** Ссылка с точки: открыть реестр рисков на карточке этого риска. */
+  const [wantRisk, setWantRisk] = useState<string | null>(null)
+  useEffect(() => { if (section !== 'risks') setWantRisk(null) }, [section])
   /** Дорога из §11 ведёт к форме: поле знаний открывается ручным вводом. */
   const [ручнойВвод, setРучнойВвод] = useState(false)
   useEffect(() => { if (section !== 'knowledge') setРучнойВвод(false) }, [section])
@@ -204,7 +211,17 @@ export function Shell() {
     )
   }
 
-  const visible = SECTIONS.filter((s) => expert || !s.expert)
+  /**
+   * Раздел «с сцены N» показывается, когда сцена открыта или прожита; фаза без
+   * такой сцены (Phase A после Pre-A) показывает его всегда. Эксперт-режим
+   * показывает всё.
+   */
+  const сценаДостигнута = (ключ?: string) => {
+    if (!ключ || !phase) return true
+    const сцена = phase.scenes.find((с) => с.key === ключ)
+    return !сцена || сцена.state !== 'locked'
+  }
+  const visible = SECTIONS.filter((s) => (expert || !s.expert) && (expert || сценаДостигнута(s.fromScene)))
   const current = SECTIONS.find((s) => s.key === section) ?? SECTIONS[0]
   const сцена = phase?.scenes.find((с) => с.key === (openScene ?? phase.current_scene))
   const точка = phase?.gates.find((т) => !т.passed)
@@ -364,7 +381,12 @@ export function Shell() {
           ) : section === 'points' ? (
             <Points project={project} phase={phase} onChanged={() => setPhaseTick((t) => t + 1)}
               учётка={я}
+              onGoRisk={(код) => { setWantRisk(код); setSection('risks') }}
               onGoScene={(сцена) => { setWantScene(сцена); setSection('work') }} />
+          ) : section === 'risks' ? (
+            project
+              ? <RiskRegistry project={project} wantRisk={wantRisk} сцены={phase?.scenes.map((с) => ({ key: с.key, title: с.title })) ?? []} />
+              : <div className="v2-panel" data-why="почему-нельзя"><h3>Риски</h3><div className="v2-empty">Проект не выбран.</div></div>
           ) : section === 'passport' ? (
             <PassportScreen project={project} учётка={я}
               onChanged={() => { setPhaseTick((t) => t + 1); setPortfolioTick((т) => т + 1) }} />

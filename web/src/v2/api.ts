@@ -421,6 +421,24 @@ export interface RiskRow {
   strategy: string
   owner: string
   due_point: string
+  /** Дата срока-точки: по ней точка фазы считает, держит ли её риск. */
+  due_date: string
+  /** open · closed — статусная модель вида по истине. */
+  status: string
+  measures: string
+  /** Условие · событие · последствие (`cec` истины). */
+  condition: string
+  event: string
+  consequence: string
+  /** Узлы и сцены — кодами. */
+  refs: string[]
+  resolution: string
+  closed_by: string
+  closed_at: string
+  reopen_reason: string
+  version: number
+  /** Точки фазы, которые этот открытый риск держит (срок не позже даты точки). */
+  holds: string[]
 }
 
 /**
@@ -1796,6 +1814,20 @@ export const api = {
   addRisk: (project: string, тело: Record<string, unknown>) =>
     вызов<{ code: string }>(`/risks?project=${encodeURIComponent(project)}`,
       { method: 'POST', body: JSON.stringify(тело) }),
+
+  /** Закрытие риска решением словами: чем снят или почему принят; кем и когда пишет сервер. */
+  closeRisk: (project: string, code: string, resolution: string, author: string) =>
+    вызов<{ code: string; status: string; version: number }>(
+      `/risks/${encodeURIComponent(code)}/close?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ resolution, author }) },
+    ),
+
+  /** Возврат в открытые — с причиной: почему решение о закрытии не держится. */
+  reopenRisk: (project: string, code: string, reason: string, author: string) =>
+    вызов<{ code: string; status: string; version: number }>(
+      `/risks/${encodeURIComponent(code)}/reopen?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ reason, author }) },
+    ),
 
   oda: (project: string) =>
     вызов<{ items: OdaRow[] }>(`/oda?project=${encodeURIComponent(project)}`),

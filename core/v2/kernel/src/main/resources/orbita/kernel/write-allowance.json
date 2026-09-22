@@ -160,7 +160,11 @@
       "name"
     ],
     "risk": [
-      "constraint"
+      "closed_at",
+      "closed_by",
+      "constraint",
+      "reopen_reason",
+      "resolution"
     ],
     "component": [
       "candidate"
@@ -189,7 +193,8 @@
     "продукт": "gate.technology — веха технологии (TRL); requirement.mop; stakeholder.needs — до миграции n:m (З-06); constraint.normative_basis; document.standard; wbs_package.maturation_for; baseline_snapshot.name — имя линии",
     "продукт (пробы 22.09)": "element.document — тезис знает свой документ; gate.decided_at — день решения на точке (лента живёт им); rendering.at/section/text — связный текст хранится по разделам, истина описывает его по документу (sections); topic.manual/resolved_kind — тема руками и вид разрешения; intake_task.assessment; fact.source_note/source_updated/superseded — обновление источника; finding.question — вопрос экспертизы; requirement.rationale — обоснование требования; finding.closed_at/closed_by/resolution — кто, когда и чем закрыл замечание; requirement.foreign_attributes/source_type — чужие атрибуты импорта ReqIF/SDoc сохраняются целиком (ADR-049); finding.addressee — адресат RFA/RID (заказчик), у истины есть лишь assignee (исполнитель) — это разные лица; fact.param_key — ключ параметра из даташита (режим «даташит» кладёт величину в анкету узла по нему); gate.positions — вердикты по позициям экспертизы точки (A12), у истины есть только expertise_answers чек-листа; wbs_package.plan — окно работ пакета {start,end} (A10: сроки против точек), истина знает лишь estimate (ссылку на смету); parameter.name — человеческое имя параметра рядом с ключом (экран архитектуры и грани показывают его), истина знает только key; component.candidate — узел-кандидат в свёртках бюджетов; system_model.name/question/required_to/tool_status/interface_bound — реестр моделей зовёт поля иначе, чем истина (template_code · inputs · interface_ref · last_run · verification_status) — вопрос владельцу о соответствии; gate.date_source — откуда у точки дата (пакет WBS или вручную)",
     "перечни": "material.type: mission_note (записка миссии), note, reqif и sdoc (импорт обмена) — значения кода, которых нет в перечне истины",
-    "ВРЕМЕННО, до перевода сравнения вариантов на вид metric (истина 21-09-b)": "criterion.key/title/threshold/worse_if/group — прежние пороги показателей на «критерии»; по истине критерий — проверка ворот, а порог, группа и направление — у метрики «вариант × показатель». Снимается вместе с переработкой AoA. constellation_variant.metrics — показатели прямо на варианте; по истине они — записи вида metric."
+    "ВРЕМЕННО, до перевода сравнения вариантов на вид metric (истина 21-09-b)": "criterion.key/title/threshold/worse_if/group — прежние пороги показателей на «критерии»; по истине критерий — проверка ворот, а порог, группа и направление — у метрики «вариант × показатель». Снимается вместе с переработкой AoA. constellation_variant.metrics — показатели прямо на варианте; по истине они — записи вида metric.",
+    "риски: закрытие (шип 1, п. 1.3)": "risk.resolution/closed_by/closed_at — чем, кем и когда закрыт риск; risk.reopen_reason — причина возврата в открытые. Истина знает статусную модель open|closed, но полей закрытия у риска не называет (как и у замечания) — вопрос владельцу: назвать их в истине или хранить закрытие только происхождением версии"
   },
   "enum_values_outside_truth": {
     "material.type": [
