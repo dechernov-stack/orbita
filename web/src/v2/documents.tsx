@@ -249,7 +249,8 @@ export function DocumentBody({ project, code, section, onClose, onGoScene, onGoF
       )}
       {разделы.map((р) => (
         <Section key={р.no} раздел={р} подсвечен={подсвечен}
-          onGoScene={onGoScene} onGoField={onGoField} />
+          onGoScene={onGoScene} onGoField={onGoField}
+          onЗакрытьСловами={(номер, текст) => { setКуда(номер); setТезис(текст) }} />
       ))}
       {!section && (
         <div className="v2-doc__add">
@@ -272,13 +273,15 @@ export function DocumentBody({ project, code, section, onClose, onGoScene, onGoF
   )
 }
 
-function Section({ раздел, подсвечен, onGoScene, onGoField }: {
+function Section({ раздел, подсвечен, onGoScene, onGoField, onЗакрытьСловами }: {
   раздел: DocSection
   подсвечен?: string | null
   /** Переход «к месту»: сцена, которой раздел и наполняется, и зачем идём. */
   onGoScene?: (сцена: string, зачем?: string) => void
   /** Переход в поле знаний: там заводятся темы — открытые вопросы фазы. */
   onGoField?: () => void
+  /** Закрыть пустой перечень тезисом: «их нет» — тоже ответ. */
+  onЗакрытьСловами?: (раздел: string, текст: string) => void
 }) {
   /**
    * Сцены, которых ждёт раздел: названы в самом шаблоне, не в коде.
@@ -340,6 +343,19 @@ function Section({ раздел, подсвечен, onGoScene, onGoField }: {
                     называет десять сцен и ни одного адреса — экран называет
                     его сам, по виду записи, которую просит запрос.
                   */}
+                  {/*
+                    «А если их просто нет?» (владелец, 22.09). Список, который
+                    законно бывает пустым, нельзя требовать строкой: правильный
+                    ответ документа — «их нет», сказанное словами, с именем и
+                    датой. Шаблон раздела объявляет, что так можно.
+                  */}
+                  {раздел.empty_ok_with_statement && onЗакрытьСловами && (
+                    <button type="button" className="v2-link"
+                      title="закрыть раздел тезисом «нет»: документ напечатает это словами, а не пустой таблицей"
+                      onClick={() => onЗакрытьСловами(раздел.no, `${раздел.title}: нет.`)}>
+                      их нет — закрыть раздел тезисом
+                    </button>
+                  )}
                   {э.select === 'topic' && onGoField && (
                     <button type="button" className="v2-link"
                       title="открыть поле знаний: тема без разрешения и есть открытый вопрос"

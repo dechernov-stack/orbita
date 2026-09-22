@@ -267,6 +267,35 @@ class DocumentsTest {
         assertEquals(10, после.path("baseline_at").asText().length, "день линии, а не «когда-то»")
     }
 
+    /**
+     * «А если их просто нет?» (владелец, 22.09). Раздел «Открытые вопросы»
+     * требовал строку перечня — и завершить его честным «их нет» было
+     * нельзя, только выдумав вопрос. Пустой перечень закрывается ТЕЗИСОМ,
+     * и правило объявляет шаблон раздела, а не код.
+     */
+    @Test
+    fun `пустой перечень закрывается тезисом там, где шаблон это разрешил`() {
+        постановка("PJ-9213")
+        val п = mapOf("project" to "PJ-9213")
+        router.handle("GET", "/v2/documents", п, null)
+        val было = раздел("PJ-9213", "mcreport", "§11")
+        assertFalse(было.path("complete").asBoolean(), "пока не сказано ни строкой, ни словом — раздел неполон")
+        assertTrue(было.path("empty_ok_with_statement").asBoolean(), "шаблон разрешил закрыть словами")
+
+        router.handle("POST", "/v2/documents/mcreport/statement", п,
+            """{"section":"§11","text":"Открытые вопросы: нет.","author":"Чернов Д."}""")
+        val стало = раздел("PJ-9213", "mcreport", "§11")
+        assertTrue(стало.path("complete").asBoolean(), "«нет» — это ответ: ${стало.path("waiting")}")
+        assertTrue(
+            стало.path("elements").any { it.path("notes").toString().contains("закрыт тезисом") },
+            "экран говорит, почему пустая таблица засчитана: ${стало.path("elements")}",
+        )
+    }
+
+    private fun раздел(проект: String, документ: String, номер: String): JsonNode =
+        router.handle("GET", "/v2/documents/$документ", mapOf("project" to проект), null)!!
+            .body.path("sections").single { it.path("no").asText() == номер }
+
     @Test
     fun `правка одного тезиса даёт расхождение в одном узле`() {
         постановка("PJ-9211")

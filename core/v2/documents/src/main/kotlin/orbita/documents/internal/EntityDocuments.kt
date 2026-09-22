@@ -164,10 +164,15 @@ class EntityDocuments(
         подписи: Map<String, String> = emptyMap(),
     ): SectionView {
         val сцены = раздел.path("scenes").map { it.asText() }
+        // Пустой перечень, закрытый словами: правило объявляет шаблон, а
+        // закрывает человек тезисом. Без этого раздел «Открытые вопросы»
+        // нельзя завершить честным «их нет» — только выдумав вопрос.
+        val пустоеСловами = раздел.path("empty_ok_with_statement").asBoolean(false)
+        val закрытоСловами = пустоеСловами && тезисы.isNotEmpty()
         val элементы = раздел.path("elements").map { элемент ->
             val строки = запросы.rows(project, элемент, подписи)
             val минимум = элемент.path("min_rows").asInt(1)
-            val хватает = строки.size >= минимум
+            val хватает = строки.size >= минимум || (строки.isEmpty() && закрытоСловами)
             ElementView(
                 code = элемент.path("code").asText(""),
                 kind = ElementKind.QUERY,
@@ -182,7 +187,11 @@ class EntityDocuments(
                 minRows = минимум,
                 satisfied = хватает,
                 waitingScenes = if (хватает) emptyList() else сцены,
-                notes = emptyList(),
+                notes = if (строки.isEmpty() && закрытоСловами) {
+                    listOf("перечень пуст и закрыт тезисом: «нет» — это ответ, а не пропуск")
+                } else {
+                    emptyList()
+                },
             )
         }
         val опоры = элементы.flatMap { э -> э.rows.flatten() }
@@ -214,6 +223,7 @@ class EntityDocuments(
             no = раздел.path("no").asText(""),
             title = раздел.path("title").asText(""),
             scenes = сцены,
+            emptyOkWithStatement = пустоеСловами,
             elements = элементы + тезисыВида,
             complete = ждёт.isEmpty(),
             waiting = ждёт,

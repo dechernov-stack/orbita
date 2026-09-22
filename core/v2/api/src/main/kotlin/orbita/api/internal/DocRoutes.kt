@@ -255,6 +255,7 @@ class DocRoutes(
         узел.put("complete", раздел.complete)
         узел.put("expected_by", раздел.expectedBy ?: "")
         узел.put("due_now", раздел.dueNow)
+        узел.put("empty_ok_with_statement", раздел.emptyOkWithStatement)
         узел.putArray("scenes").also { а -> раздел.scenes.forEach { а.add(it) } }
         узел.putArray("waiting").also { а -> раздел.waiting.forEach { а.add(it) } }
         val элементы = узел.putArray("elements")

@@ -719,6 +719,8 @@ export interface DocSection {
   expected_by: string
   /** Ждёт ли раздел ТЕКУЩАЯ ступень: чего она не ждёт, то и не в счёте. */
   due_now: boolean
+  /** Пустой перечень закрывается тезисом: «открытых вопросов нет» — ответ. */
+  empty_ok_with_statement: boolean
   scenes: string[]
   waiting: string[]
   elements: DocElement[]
