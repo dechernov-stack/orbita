@@ -632,6 +632,30 @@ export interface ScenarioRow {
   steps: { what: string; actor: string; component?: string }[]
 }
 
+/** Сценарий предложением (шип 1, п. 1.7): участники разрешены в узлы, стороны, внешние системы. */
+export interface ProposedScenario {
+  id: string
+  name: string
+  /** nominal · off_nominal · alarm */
+  mode: string
+  services: string[]
+  reason: string
+  exists: boolean
+  accepted: boolean
+  unresolved: string[]
+  steps: { participant: string; kind: 'node' | 'side' | 'external' | 'unresolved'; ref: string | null; what: string }[]
+}
+
+export interface ScenarioProposal {
+  run: string
+  status: string
+  cached: boolean
+  note: string
+  accepted: number
+  scenarios: ProposedScenario[]
+  refused: string[]
+}
+
 export interface EntityRow {
   id: string
   code: string
@@ -1781,6 +1805,23 @@ export const api = {
   addScenario: (project: string, тело: Record<string, unknown>) =>
     вызов<{ code: string }>(`/scenarios?project=${encodeURIComponent(project)}`,
       { method: 'POST', body: JSON.stringify(тело) }),
+
+  /** Сценарии предложением из сервисов проекта и цепочек Arcadia — один вызов. */
+  proposeScenarios: (project: string, author: string) =>
+    вызов<ScenarioProposal>(`/scenarios/propose?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ author }) }),
+  scenarioProposal: (project: string) =>
+    вызов<ScenarioProposal | { run: ''; note: string }>(`/scenarios/propose?project=${encodeURIComponent(project)}`),
+  acceptScenarioProposal: (project: string, run: string, chosen: string[], author: string) =>
+    вызов<{ run: string; created: string[]; skipped: string[]; note: string }>(
+      `/scenarios/propose/${encodeURIComponent(run)}/accept?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ chosen, author }) },
+    ),
+  undoScenarioProposal: (project: string, run: string, author: string) =>
+    вызов<{ run: string; cancelled: number; note: string }>(
+      `/scenarios/propose/${encodeURIComponent(run)}/undo?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ author }) },
+    ),
 
   components: (project: string) =>
     вызов<{ items: ComponentRow[] }>(`/components?project=${encodeURIComponent(project)}`),

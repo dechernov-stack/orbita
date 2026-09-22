@@ -422,3 +422,44 @@ data class DistributionRun(
 data class DistributionAccepted(val run: String, val linked: Int, val classes: Int, val skipped: List<String>, val note: String)
 
 data class DistributionUndone(val run: String, val unlinked: Int, val note: String)
+
+// --- Сценарии предложением (шип 1, п. 1.7; СЦЕНАРИИ-PRE-A-СЦЕНА-9) ---------
+
+/** Шаг сценария: участник — что происходит; участник разрешён в узел, сторону или внешнюю систему. */
+data class ProposedStep(
+    val participant: String,
+    /** node · side · external · unresolved */
+    val participantKind: String,
+    /** Код узла или стороны проекта, если участник разрешён в запись. */
+    val ref: String?,
+    val what: String,
+)
+
+data class ProposedScenario(
+    val id: String,
+    val name: String,
+    /** nominal · off_nominal · alarm */
+    val mode: String,
+    /** Сервисы проекта, которые сценарий показывает, — кодами. */
+    val services: List<String>,
+    val reason: String,
+    val steps: List<ProposedStep>,
+    /** Участники, которых не удалось разрешить ни в узел, ни в сторону. */
+    val unresolved: List<String>,
+    /** Сценарий с таким именем в проекте уже есть: второй раз не заводится. */
+    val exists: Boolean,
+    val accepted: Boolean,
+)
+
+data class ScenarioProposalRun(
+    val id: String,
+    val status: String,
+    val cached: Boolean,
+    val note: String,
+    val scenarios: List<ProposedScenario>,
+    val refused: List<String>,
+)
+
+data class ScenariosAccepted(val run: String, val created: List<String>, val skipped: List<String>, val note: String)
+
+data class ScenariosUndone(val run: String, val cancelled: Int, val note: String)

@@ -17,6 +17,7 @@ import работа from './work.tsx?raw'
 import поле from './knowledgefield.tsx?raw'
 import точки from './points.tsx?raw'
 import паспорт from './passport.tsx?raw'
+import сцена9 from './modes.tsx?raw'
 
 describe('базирование документа', () => {
   it('вход есть на экране документа, а не только в маршруте', () => {
@@ -255,6 +256,25 @@ describe('риски пачкой (шип 1, п. 1.2–1.4)', () => {
     expect(точки).toContain('onClick={() => onGoRisk(р.code)}')
     expect(оболочка).toContain("onGoRisk={(код) => { setWantRisk(код); setSection('risks') }}")
     expect(реестр).toContain("useEffect(() => { if (wantRisk) { setОткрыт(wantRisk); setОтбор('all') } }, [wantRisk])")
+  })
+})
+
+describe('сценарии предложением (шип 1, п. 1.7)', () => {
+  it('кнопка «Предложить из сервисов» на сцене 9, приём галками, откат', () => {
+    expect(клиент).toContain('proposeScenarios:')
+    expect(клиент).toContain('acceptScenarioProposal:')
+    expect(клиент).toContain('undoScenarioProposal:')
+    expect(сцена9).toContain("'Предложить из сервисов'")
+    expect(сцена9).toContain('aria-label={`отметить сценарий ${с.id}`}')
+    expect(сцена9).toContain('Принять отмеченные ({отмечено.length})')
+    expect(сцена9).toContain('Отменить предложение {предложение.run}')
+    // Предложение само ничего не заводит: кнопка без галок заперта и говорит почему.
+    expect(сцена9).toContain('отметьте сценарии: само предложение ничего не заводит')
+  })
+
+  it('участник без записи назван, а не подставлен', () => {
+    expect(сцена9).toContain('участники без записи: {с.unresolved.join(\', \')} — назовите их узлом или стороной')
+    expect(сцена9).toContain('const кПриёму = (с: ProposedScenario) => !с.exists && !с.accepted')
   })
 })
 

@@ -318,6 +318,8 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
             // Ворота сверки (знания v2): без реестра маршрут не знает флага проекта
             // и пускал бы несверенный ввод — на стенде ворота были бы выключены.
             store = store,
+            // Сценарии сцены 9 предложением из сервисов и цепочек Arcadia (шип 1, п. 1.7).
+            proposeScenarios = orbita.ai.api.AiFactory.proposeScenarios(store, служба, mapper),
         )
         // Обмен (шип F): служба StrictDoc — по ORBITA_STRICTDOC_URL, снимки
         // .sdoc — в томе файлов стенда рядом с базированиями документов.

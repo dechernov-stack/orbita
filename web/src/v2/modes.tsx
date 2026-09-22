@@ -11,7 +11,10 @@
 // таймер) значениями истины; у шага сценария — участник и что происходит. Ничего не заводится
 // само: и машину, и сценарий записывает человек.
 import { useCallback, useEffect, useState } from 'react'
-import { api, type ComponentRow, type KindSpec, type ModeMachineRow, type ScenarioRow } from './api'
+import {
+  api, type ComponentRow, type KindSpec, type ModeMachineRow, type ProposedScenario, type ScenarioProposal, type ScenarioRow,
+} from './api'
+import { useАвтор } from './research'
 
 /**
  * Перечисления сцены 9 приходят С СЕРВЕРА вложенными путями истины:
@@ -198,6 +201,10 @@ function Режимы({ project, onChanged }: { project: string; onChanged: () =
   )
 }
 
+/** Режим сценария словами — из ответа сервера, копии перечня в коде нет. */
+const РЕЖИМ_СЦЕНАРИЯ: Record<string, string> = { nominal: 'штатный', off_nominal: 'нештатный', alarm: 'тревога' }
+const ВИД_УЧАСТНИКА: Record<string, string> = { node: 'узел', side: 'сторона', external: 'внешняя система', unresolved: 'не найден' }
+
 function Сценарии({ project, onChanged }: { project: string; onChanged: () => void }) {
   const [сценарии, setСценарии] = useState<ScenarioRow[]>([])
   const [узлы, setУзлы] = useState<ComponentRow[]>([])
@@ -206,12 +213,49 @@ function Сценарии({ project, onChanged }: { project: string; onChanged: 
   const [занято, setЗанято] = useState(false)
   const [отказ, setОтказ] = useState<string | null>(null)
   const [итог, setИтог] = useState<string | null>(null)
+  /**
+   * Предложение из сервисов и цепочек Arcadia (шип 1, п. 1.7): один вызов,
+   * приём галками, откат. Правило поставки СЦЕНАРИИ-PRE-A-СЦЕНА-9: «сценарии
+   * предлагаются … кнопкой, а не руками».
+   */
+  const [предложение, setПредложение] = useState<ScenarioProposal | null>(null)
+  const [отмечено, setОтмечено] = useState<string[]>([])
+  const [занятоПредложением, setЗанятоПредложением] = useState(false)
+  const [автор] = useАвтор()
 
   const перечитать = useCallback(() => {
     api.scenarios(project).then((р) => setСценарии(р.items)).catch(() => undefined)
     api.components(project).then((р) => setУзлы(р.items)).catch(() => undefined)
+    api.scenarioProposal(project)
+      .then((п) => setПредложение(п.run ? (п as ScenarioProposal) : null))
+      .catch(() => setПредложение(null))
   }, [project])
   useEffect(перечитать, [перечитать])
+
+  const предложить = () => {
+    setЗанятоПредложением(true); setОтказ(null); setИтог(null)
+    api.proposeScenarios(project, автор || 'инженер')
+      .then((п) => { setПредложение(п); setОтмечено(п.scenarios.filter((с) => !с.exists && !с.accepted).map((с) => с.id)) })
+      .catch((e) => setОтказ(String(e.message ?? e)))
+      .finally(() => setЗанятоПредложением(false))
+  }
+  const принять = () => {
+    if (!предложение || отмечено.length === 0) return
+    setЗанятоПредложением(true); setОтказ(null)
+    api.acceptScenarioProposal(project, предложение.run, отмечено, автор || 'инженер')
+      .then((о) => { setИтог(о.note + (о.created.length ? `: ${о.created.join(', ')}` : '')); setОтмечено([]); перечитать(); onChanged() })
+      .catch((e) => setОтказ(String(e.message ?? e)))
+      .finally(() => setЗанятоПредложением(false))
+  }
+  const отменить = () => {
+    if (!предложение) return
+    setЗанятоПредложением(true); setОтказ(null)
+    api.undoScenarioProposal(project, предложение.run, автор || 'инженер')
+      .then((о) => { setИтог(о.note); перечитать(); onChanged() })
+      .catch((e) => setОтказ(String(e.message ?? e)))
+      .finally(() => setЗанятоПредложением(false))
+  }
+  const кПриёму = (с: ProposedScenario) => !с.exists && !с.accepted
 
   const годные = шаги.filter((ш) => ш.actor.trim() && ш.what.trim())
   const записать = () => {
@@ -248,6 +292,57 @@ function Сценарии({ project, onChanged }: { project: string; onChanged: 
 
       {отказ && <div className="v2-locked">{отказ}</div>}
       {итог && <div className="v2-empty__why">{итог}</div>}
+
+      <div className="v2-form__actions" data-why="следующий-клик">
+        <button type="button" className="v2-chip" disabled={занятоПредложением} onClick={предложить}
+          title="один вызов: сервисы проекта и цепочки полки Arcadia → сценарии с шагами «участник — что происходит»; ничего не заводится без вашей галки">
+          {занятоПредложением ? 'Предлагаю…' : 'Предложить из сервисов'}
+        </button>
+        {предложение && предложение.scenarios.some((с) => с.accepted) && (
+          <button type="button" className="v2-link" disabled={занятоПредложением} onClick={отменить}
+            title="снять заведённые предложением сценарии; записанные руками целы">
+            Отменить предложение {предложение.run}
+          </button>
+        )}
+      </div>
+      {предложение && (
+        <div className="v2-card__body" data-why="работа">
+          <div className="v2-dim">{предложение.note}{предложение.cached ? ' · ответ из журнала' : ''}</div>
+          {предложение.scenarios.map((с) => (
+            <label key={с.id} className="v2-check" title={с.reason}>
+              <input type="checkbox" aria-label={`отметить сценарий ${с.id}`} disabled={!кПриёму(с)}
+                checked={отмечено.includes(с.id)}
+                onChange={(e) => setОтмечено(e.target.checked ? [...отмечено, с.id] : отмечено.filter((и) => и !== с.id))} />
+              <span>
+                <b>{с.name}</b> · {РЕЖИМ_СЦЕНАРИЯ[с.mode] ?? с.mode}
+                {с.services.length > 0 && ` · сервисы: ${с.services.join(', ')}`}
+                {с.accepted && <span className="v2-ok"> · принят</span>}
+                {с.exists && <span className="v2-dim"> · уже есть</span>}
+                {с.unresolved.length > 0 && (
+                  <span className="v2-warn"> · участники без записи: {с.unresolved.join(', ')} — назовите их узлом или стороной</span>
+                )}
+                <div className="v2-dim">
+                  {с.steps.map((ш, i) => (
+                    <span key={i}>
+                      {i > 0 && ' → '}
+                      <span title={ВИД_УЧАСТНИКА[ш.kind] ?? ш.kind}>{ш.participant}</span> — {ш.what}
+                    </span>
+                  ))}
+                </div>
+              </span>
+            </label>
+          ))}
+          {предложение.refused.length > 0 && (
+            <div className="v2-dim">отбито: {предложение.refused.join('; ')}</div>
+          )}
+          <div className="v2-form__actions">
+            <button type="button" className="v2-primary" disabled={занятоПредложением || отмечено.length === 0} onClick={принять}
+              title={отмечено.length === 0 ? 'отметьте сценарии: само предложение ничего не заводит' : 'завести отмеченные сценарии цепочками сцены 9'}>
+              Принять отмеченные ({отмечено.length})
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="v2-form">
         <label>Имя сценария

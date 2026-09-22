@@ -43,6 +43,8 @@ class KnowledgeRoutes(
      * сборка: ворот нет вовсе, и ручной факт сохраняется как до перестройки.
      */
     private val store: EntityStore? = null,
+    /** Сценарии сцены 9 предложением из сервисов и цепочек Arcadia (шип 1, п. 1.7); null — не включено. */
+    private val proposeScenarios: orbita.ai.api.ProposeScenarios? = null,
 ) {
 
     fun handle(method: String, path: String, query: Map<String, String>, body: String?): V2Router.Ответ? = when {
@@ -90,6 +92,15 @@ class KnowledgeRoutes(
             принятьРаздачуЦелей(требуется(query, "project"), ПРИЁМ_ЦЕЛЕЙ.matchEntire(path)!!.groupValues[1], разобрать(body))
         method == "POST" && ОТМЕНА_ЦЕЛЕЙ.matches(path) ->
             отменитьРаздачуЦелей(требуется(query, "project"), ОТМЕНА_ЦЕЛЕЙ.matchEntire(path)!!.groupValues[1], разобрать(body))
+
+        // Сценарии сцены 9 предложением из сервисов и цепочек Arcadia (шип 1, п. 1.7).
+        method == "POST" && path == "/v2/scenarios/propose" ->
+            предложитьСценарии(требуется(query, "project"), разобрать(body))
+        method == "GET" && path == "/v2/scenarios/propose" -> последнееПредложение(требуется(query, "project"))
+        method == "POST" && ПРИЁМ_СЦЕНАРИЕВ.matches(path) ->
+            принятьСценарии(требуется(query, "project"), ПРИЁМ_СЦЕНАРИЕВ.matchEntire(path)!!.groupValues[1], разобрать(body))
+        method == "POST" && ОТМЕНА_СЦЕНАРИЕВ.matches(path) ->
+            отменитьСценарии(требуется(query, "project"), ОТМЕНА_СЦЕНАРИЕВ.matchEntire(path)!!.groupValues[1], разобрать(body))
 
         method == "GET" && path == "/v2/topics" -> темы(требуется(query, "project"))
 
@@ -381,6 +392,67 @@ class KnowledgeRoutes(
     private fun отменитьРаздачуЦелей(project: String, run: String, тело: JsonNode): V2Router.Ответ =
         V2Router.Ответ(200, видОтменыРаздачи(раздачаЦелей().undo(project, run, тело.path("author").asText("инженер"))))
 
+    // --- сценарии предложением (шип 1, п. 1.7) ------------------------------
+
+    private fun сценарии(): orbita.ai.api.ProposeScenarios =
+        proposeScenarios ?: throw IllegalStateException("предложение сценариев на этом стенде не включено")
+
+    private fun предложитьСценарии(project: String, тело: JsonNode): V2Router.Ответ {
+        val автор = тело.path("author").asText("инженер")
+        return try {
+            V2Router.Ответ(201, видПредложения(сценарии().propose(project, автор)))
+        } catch (e: ProviderUnavailable) {
+            V2Router.Ответ(
+                503,
+                mapper.createObjectNode()
+                    .put("error", "канал службы недоступен: ${e.message}")
+                    .put("what_to_do", "повторите позже — сервисы и состав на месте; сценарий можно записать и руками"),
+            )
+        }
+    }
+
+    private fun последнееПредложение(project: String): V2Router.Ответ {
+        val последнее = сценарии().latest(project)
+            ?: return V2Router.Ответ(
+                200,
+                mapper.createObjectNode().put("run", "")
+                    .put("note", "сценарии на проекте ещё не предлагались — нажмите «Предложить из сервисов»"),
+            )
+        return V2Router.Ответ(200, видПредложения(последнее))
+    }
+
+    private fun принятьСценарии(project: String, run: String, тело: JsonNode): V2Router.Ответ {
+        val итог = сценарии().accept(project, run, тело.path("chosen").map { it.asText() }, тело.path("author").asText("инженер"))
+        val узел = mapper.createObjectNode().put("run", итог.run).put("note", итог.note)
+        узел.putArray("created").also { м -> итог.created.forEach { м.add(it) } }
+        узел.putArray("skipped").also { м -> итог.skipped.forEach { м.add(it) } }
+        return V2Router.Ответ(201, узел)
+    }
+
+    private fun отменитьСценарии(project: String, run: String, тело: JsonNode): V2Router.Ответ {
+        val итог = сценарии().undo(project, run, тело.path("author").asText("инженер"))
+        return V2Router.Ответ(200, mapper.createObjectNode().put("run", итог.run).put("cancelled", итог.cancelled).put("note", итог.note))
+    }
+
+    private fun видПредложения(п: orbita.ai.api.ScenarioProposalRun): ObjectNode {
+        val узел = mapper.createObjectNode().put("run", п.id).put("status", п.status)
+            .put("cached", п.cached).put("note", п.note).put("accepted", п.scenarios.count { it.accepted })
+        val массив = узел.putArray("scenarios")
+        п.scenarios.forEach { с ->
+            val у = массив.addObject().put("id", с.id).put("name", с.name).put("mode", с.mode)
+                .put("reason", с.reason).put("exists", с.exists).put("accepted", с.accepted)
+            у.putArray("services").also { м -> с.services.forEach { м.add(it) } }
+            у.putArray("unresolved").also { м -> с.unresolved.forEach { м.add(it) } }
+            val шаги = у.putArray("steps")
+            с.steps.forEach { ш ->
+                шаги.addObject().put("participant", ш.participant).put("kind", ш.participantKind)
+                    .put("ref", ш.ref).put("what", ш.what)
+            }
+        }
+        узел.putArray("refused").also { м -> п.refused.forEach { м.add(it) } }
+        return узел
+    }
+
     private fun видРаздачи(р: orbita.ai.api.DistributionRun): ObjectNode {
         val узел = mapper.createObjectNode().put("run", р.id).put("status", р.status)
             .put("cached", р.cached).put("note", р.note).put("accepted", р.links.count { it.accepted })
@@ -560,6 +632,8 @@ class KnowledgeRoutes(
         val ОТМЕНА_РАЗДАЧИ: Regex = Regex("/v2/intake/distribute/(SR-[0-9]+)/undo")
         val ПРИЁМ_ЦЕЛЕЙ: Regex = Regex("/v2/requirements/coverage/(SR-[0-9]+)/accept")
         val ОТМЕНА_ЦЕЛЕЙ: Regex = Regex("/v2/requirements/coverage/(SR-[0-9]+)/undo")
+        val ПРИЁМ_СЦЕНАРИЕВ: Regex = Regex("/v2/scenarios/propose/(SR-[0-9]+)/accept")
+        val ОТМЕНА_СЦЕНАРИЕВ: Regex = Regex("/v2/scenarios/propose/(SR-[0-9]+)/undo")
 
 
         /**

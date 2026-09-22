@@ -7,6 +7,7 @@ import orbita.ai.internal.BackgroundAtomizer
 import orbita.ai.internal.BackgroundSynthesizer
 import orbita.ai.internal.DocumentReader
 import orbita.ai.internal.GoalCoverageDistributor
+import orbita.ai.internal.ScenarioProposer
 import orbita.ai.internal.NeedDistributor
 import orbita.ai.internal.StatementImporter
 import orbita.ai.internal.HttpTransport
@@ -54,7 +55,37 @@ interface DistributeNeeds {
     fun undo(project: String, run: String, author: String): DistributionUndone
 }
 
+/**
+ * Сценарии сцены 9 предложением из сервисов проекта и цепочек полки Arcadia
+ * (шип 1, п. 1.7): один вызов → сценарии с шагами «участник — что происходит»,
+ * приём галками, откат.
+ */
+interface ProposeScenarios {
+    fun propose(project: String, author: String): ScenarioProposalRun
+    fun latest(project: String): ScenarioProposalRun?
+    fun view(project: String, run: String): ScenarioProposalRun
+    fun accept(project: String, run: String, chosen: List<String>, author: String): ScenariosAccepted
+    fun undo(project: String, run: String, author: String): ScenariosUndone
+}
+
 object AiFactory {
+
+    /** Сценарии сцены 9 предложением — из сервисов и цепочек Arcadia, приём обратимый. */
+    fun proposeScenarios(
+        store: EntityStore,
+        service: AiService,
+        mapper: ObjectMapper = ObjectMapper(),
+    ): ProposeScenarios {
+        val работник = ScenarioProposer(store, service, mapper)
+        return object : ProposeScenarios {
+            override fun propose(project: String, author: String) = работник.propose(project, author)
+            override fun latest(project: String) = работник.latest(project)
+            override fun view(project: String, run: String) = работник.view(project, run)
+            override fun accept(project: String, run: String, chosen: List<String>, author: String) =
+                работник.accept(project, run, chosen, author)
+            override fun undo(project: String, run: String, author: String) = работник.undo(project, run, author)
+        }
+    }
 
     /** Транспорт по умолчанию: прямой канал с тремя попытками при перегрузке. */
     fun transport(mapper: ObjectMapper = ObjectMapper()): Transport =

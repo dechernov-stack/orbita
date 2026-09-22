@@ -73,7 +73,37 @@ class KnowledgeFieldRoutesTest {
     }
 
     private val знанияМаршруты: KnowledgeRoutes by lazy {
-        KnowledgeRoutes(знания, AiFactory.atomize(store, знания, служба, mapper), служба, mapper, store = store, distribute = раздачаПодмена)
+        KnowledgeRoutes(
+            знания, AiFactory.atomize(store, знания, служба, mapper), служба, mapper, store = store,
+            distribute = раздачаПодмена, proposeScenarios = сценарииПодмена,
+        )
+    }
+
+    /** Порт предложения сценариев — подменой: форма ответа и приём галками (шип 1, п. 1.7). */
+    private val сценарииПодмена = object : orbita.ai.api.ProposeScenarios {
+        var принято: List<String> = emptyList()
+        private val запуск = orbita.ai.api.ScenarioProposalRun(
+            id = "SR-0009", status = "done", cached = false, note = "предложено сценариев 1",
+            scenarios = listOf(
+                orbita.ai.api.ProposedScenario(
+                    "S1", "Штатная доставка", "nominal", listOf("SVC-0001"), "путь сервиса",
+                    steps = listOf(
+                        orbita.ai.api.ProposedStep("SAT", "node", "SAT", "принимает пакеты"),
+                        orbita.ai.api.ProposedStep("Диспетчер", "unresolved", null, "подтверждает"),
+                    ),
+                    unresolved = listOf("Диспетчер"), exists = false, accepted = false,
+                ),
+            ),
+            refused = listOf("«Пустой»: без шагов — это название, а не сценарий"),
+        )
+        override fun propose(project: String, author: String) = запуск
+        override fun latest(project: String) = запуск
+        override fun view(project: String, run: String) = запуск
+        override fun accept(project: String, run: String, chosen: List<String>, author: String): orbita.ai.api.ScenariosAccepted {
+            принято = chosen
+            return orbita.ai.api.ScenariosAccepted(run, chosen.map { "SCN-0001" }, emptyList(), "заведено сценариев ${chosen.size}")
+        }
+        override fun undo(project: String, run: String, author: String) = orbita.ai.api.ScenariosUndone(run, 1, "предложение отменено")
     }
 
     /** Порт раздачи — подменой: маршрут проверяется на форму ответа, не на модель. */
@@ -120,6 +150,30 @@ class KnowledgeFieldRoutesTest {
 
         assertEquals(200, ответ.code, ответ.body.toString())
         assertEquals(listOf("ND-0001"), ответ.body.path("items").map { it.path("code").asText() })
+    }
+
+    @Test
+    fun `сценарии предлагаются из сервисов, участники названы видом, приём — галками`() {
+        val ответ = assertNotNull(знанияМаршруты.handle("POST", "/v2/scenarios/propose", mapOf("project" to сПолем), """{"author":"инженер"}"""))
+        assertEquals(201, ответ.code, ответ.body.toString())
+        assertEquals("SR-0009", ответ.body.path("run").asText())
+        val сценарий = ответ.body.path("scenarios")[0]
+        assertEquals("nominal", сценарий.path("mode").asText())
+        assertEquals("node", сценарий.path("steps")[0].path("kind").asText())
+        assertEquals(listOf("Диспетчер"), сценарий.path("unresolved").map { it.asText() }, "неразрешённый участник назван")
+        assertEquals(1, ответ.body.path("refused").size())
+
+        val последнее = assertNotNull(знанияМаршруты.handle("GET", "/v2/scenarios/propose", mapOf("project" to сПолем), null))
+        assertEquals("SR-0009", последнее.body.path("run").asText())
+
+        val приём = assertNotNull(знанияМаршруты.handle("POST", "/v2/scenarios/propose/SR-0009/accept", mapOf("project" to сПолем), """{"chosen":["S1"],"author":"инженер"}"""))
+        assertEquals(201, приём.code, приём.body.toString())
+        assertEquals(listOf("S1"), сценарииПодмена.принято)
+        assertEquals(listOf("SCN-0001"), приём.body.path("created").map { it.asText() })
+
+        val откат = assertNotNull(знанияМаршруты.handle("POST", "/v2/scenarios/propose/SR-0009/undo", mapOf("project" to сПолем), """{"author":"инженер"}"""))
+        assertEquals(200, откат.code)
+        assertEquals(1, откат.body.path("cancelled").asInt())
     }
 
     @Test
