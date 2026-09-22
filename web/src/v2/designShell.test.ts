@@ -2,9 +2,11 @@
 // учётки; рейка с пиктограммой и полным словом; маркеры трёх фигур; палитра
 // направления и одна гарнитура. Ничего из построенного не выброшено —
 // прежние имена токенов указывают на новые значения.
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import оболочка from './shell.tsx?raw'
-import токены from './tokens.css?raw'
+// CSS в vitest импортом приходит пустым — читаем файл как текст.
+const токены = readFileSync(new URL('./tokens.css', import.meta.url), 'utf-8')
 import маркеры from './markers.tsx?raw'
 import пиктограммы from './icons.tsx?raw'
 import html from '../../index.html?raw'
