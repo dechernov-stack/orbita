@@ -133,6 +133,12 @@ KOTLIN = КОРЕНЬ / "core/v2/knowledge/src/main/kotlin/orbita/knowledge/sche
     "reading_mode",
     # Роль стороны → её влияние. Поле вычисляет система, не модель.
     "influence_map",
+    # Роль стороны → сила по умолчанию 1–5 (журнал ПМИ-7, З-02): предлагается
+    # серым [П], инженер правит кликом по ячейке сетки; согласие — 0 действий.
+    "power_map",
+    # Базовый набор критериев оценки миссии (журнал ПМИ-7, З-08): сцена 4
+    # предлагает его кнопкой; группы и направление — перечни вида metric.
+    "mission_criteria_base",
     # Чем считается пройденным выход сцены по нуждам: сцены 6, 8 и 12.
     "scene_exit_notes",
     # Правки истины, подтверждённые владельцем: по ним видно, что не догадка.
@@ -323,6 +329,25 @@ def проверить(истина: dict) -> None:
     пустые = [р for р, з in (истина.get("influence_map") or {}).items() if not str(з).strip()]
     if пустые:
         raise Отказ(f"influence_map: у роли {sorted(пустые)} влияние не названо")
+    # Сила по умолчанию — балл 1–5 у каждой роли влияния, и только у них.
+    сила = истина.get("power_map") or {}
+    чужие_силы = [р for р in сила if р not in (истина.get("influence_map") or {})]
+    if чужие_силы:
+        raise Отказ(f"power_map: роли {sorted(чужие_силы)} нет в influence_map")
+    вне_шкалы = [р for р, з in сила.items() if not (isinstance(з, int) and 1 <= з <= 5)]
+    if вне_шкалы:
+        raise Отказ(f"power_map: у роли {sorted(вне_шкалы)} сила вне шкалы 1–5")
+    критерии = истина.get("mission_criteria_base") or []
+    ключи_критериев = [str(к.get("key", "")) for к in критерии]
+    if len(set(ключи_критериев)) != len(ключи_критериев) or "" in ключи_критериев:
+        raise Отказ("mission_criteria_base: ключ критерия пуст или повторяется")
+    for к in критерии:
+        if к.get("direction") not in ("max", "min"):
+            raise Отказ(f"mission_criteria_base: у «{к.get('key')}» направление вне (max, min) — перечень metric.direction")
+        if к.get("group") not in ("A", "B", "V", "G"):
+            raise Отказ(f"mission_criteria_base: у «{к.get('key')}» группа вне (A, B, V, G) — перечень metric.group")
+        if not str(к.get("title", "")).strip():
+            raise Отказ(f"mission_criteria_base: у «{к.get('key')}» нет названия")
 
     роли = истина.get("document_roles") or {}
     неизвестные_роли = [р for р in роли if р not in РОЛИ_ДОКУМЕНТОВ]
@@ -361,6 +386,11 @@ def котлин(истина: dict, версия: str) -> str:
         "     * названий этапов не сделана отдельным шипом.",
         "     */",
         "    val keyNotes: List<String> = emptyList(),",
+        "    /**",
+        "     * Стандартные названия этапов (З-05): каждое — одно слово ключа, чтобы",
+        "     * формулировки об одном этапе сходились ядром. Перечень — истина.",
+        "     */",
+        "    val stageNames: List<String> = emptyList(),",
         ")",
         "",
         "/**",
@@ -534,6 +564,11 @@ def котлин(истина: dict, версия: str) -> str:
             строки.append(f"                key = {список(ключи)},")
             if указания:
                 строки.append(f"                keyNotes = {список(указания)},")
+            # Стандартные названия этапов (З-05): фраза этапа — одно слово ключа,
+            # чтобы «цель этапа лётной демонстрации» и «лётная демонстрация: цель»
+            # сходились ядром. Перечень — истина владельца, в коде его нет.
+            if опознание.get("stage_names"):
+                строки.append(f"                stageNames = {список(опознание['stage_names'])},")
             строки.append(f"                semantic = {строка(опознание['semantic'])},")
             строки.append(f"                threshold = {float(опознание['threshold'])!r},")
             строки.append("            ),")
@@ -685,6 +720,31 @@ def котлин(истина: dict, версия: str) -> str:
     строки.append("    val influenceMap: Map<String, String> = " + карта(
         истина.get("influence_map") or {}, "    "
     ))
+    строки += [
+        "",
+        "    /**",
+        "     * Роль стороны → сила по умолчанию 1–5 (журнал ПМИ-7, З-02). Это",
+        "     * ПРЕДЛОЖЕНИЕ [П], не оценка: на сетке оно серым, инженер правит кликом",
+        "     * по ячейке; роль, которой здесь нет, силы не получает.",
+        "     */",
+    ]
+    строки.append("    val powerMap: Map<String, Int> = mapOf(" + ", ".join(
+        f'"{р}" to {int(з)}' for р, з in (истина.get("power_map") or {}).items()
+    ) + ")")
+    строки += [
+        "",
+        "    /**",
+        "     * Базовый набор критериев оценки миссии (журнал ПМИ-7, З-08): сцена 4",
+        "     * предлагает его кнопкой, порог — TBR до сцены 7. Группа и направление —",
+        "     * перечни вида metric истины схем.",
+        "     */",
+        "    val missionCriteriaBase: List<Map<String, String>> = listOf(",
+    ]
+    for к in истина.get("mission_criteria_base") or []:
+        строки.append("        mapOf(" + ", ".join(
+            f'"{п}" to {строка(str(к[п]))}' for п in ("key", "title", "direction", "group")
+        ) + "),")
+    строки.append("    )")
     строки += [
         "",
         "    /**",

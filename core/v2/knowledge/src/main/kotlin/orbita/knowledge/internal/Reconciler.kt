@@ -503,15 +503,43 @@ internal class Reconciler(
         val ключ = ключи.ofConcept(кандидат.concept, снимок)
         val близнец = ключ?.let { найти(область, понятие, ключи, it.value) }
         val находки = mutableListOf<Finding>()
-        находки += if (близнец == null) {
+        // Сторона, названная агрегатом («Владельцы ТС и БВС, ж/д и морские
+        // операторы…»), ключом имени не сходится ни с кем, хотя дублирует
+        // стороны §3 по смыслу (журнал ПМИ-7, З-03). Вторая ступень — по
+        // смыслу имени, без вызова модели: перекрытие основ имён.
+        val поСмыслу = if (близнец == null && понятие.code == "stakeholder") похожиеСтороны(область, понятие, ключи, снимок) else emptyList()
+        // Издатель или подписант акта — не сторона (истина `not_from`, З-04):
+        // организация, встречающаяся в материале только в шапке и подписи,
+        // предлагается к снятию, а не заводится молча.
+        val издатель = if (понятие.code == "stakeholder") толькоИздатель(область, кандидат, основания, снимок) else false
+        if (издатель) пометы += "встречается в материале только как издатель или подписант акта — по истине не сторона: предложено снять"
+        if (поСмыслу.isNotEmpty()) {
+            пометы += "по смыслу имени дублирует: " + поСмыслу.joinToString(", ") { it.first.code } +
+                " — предложено слить (агрегат из вводных разделов — не сторона, если группа названа в таблице сторон)"
+        }
+        находки += if (близнец == null && поСмыслу.isNotEmpty()) {
+            val (принятая, близость) = поСмыслу.first()
+            Finding(
+                question = Question.DUPLICATE,
+                verdict = Verdict.AUGMENT,
+                target = принятая.code,
+                match = Match.SEMANTIC,
+                confidence = близость,
+                comparedFields = listOf("name"),
+                difference = отличиеПолей(понятие, снимок, снимокСущности(область, понятие, принятая), listOf("name")),
+                basis = основанияСущности(принятая),
+                offers = listOf(Action.MERGE_INTO, Action.ACCEPT_NEW, Action.DISMISS),
+            )
+        } else if (близнец == null) {
             // Вопрос задан и отвечен: дубля по ключу нет. Находка нужна и в
             // этом случае — иначе человеку не на что нажать, чтобы принять.
             Finding(
                 question = Question.DUPLICATE,
                 verdict = Verdict.NEW,
                 match = Match.KEY,
+                confidence = if (издатель) 0.3 else 1.0,
                 comparedFields = ключ?.fields ?: emptyList(),
-                offers = listOf(Action.ACCEPT_NEW, Action.DISMISS),
+                offers = if (издатель) listOf(Action.DISMISS, Action.ACCEPT_NEW) else listOf(Action.ACCEPT_NEW, Action.DISMISS),
             )
         } else {
             Finding(
@@ -620,6 +648,49 @@ internal class Reconciler(
             role = role,
             authority = Authority.EXPERT,
         )
+    }
+
+    /**
+     * Стороны, похожие по смыслу имени: основы имени кандидата перекрывают
+     * основы имени принятой стороны (З-03). Перекрытие считается от короткого
+     * имени: агрегат «владельцы трубопроводов, ЛЭП и удалённых активов» целиком
+     * содержит «владельцы трубопроводов». Один общий корень — не сходство.
+     */
+    private fun похожиеСтороны(область: Area, понятие: Concept, ключи: IdentityKeys, снимок: JsonNode): List<Pair<Entity, Double>> {
+        val имя = снимок.path("name").asText("")
+        val мои = ключи.nameCore(имя).value.split(" ").filter { it.length >= 3 }.toSet()
+        if (мои.size < 2) return emptyList()
+        val вид = видПонятия(понятие.code) ?: return emptyList()
+        return store.list(куда(область, вид), вид)
+            .filter { it.status != "cancelled" }
+            .mapNotNull { принятая ->
+                val их = ключи.nameCore(принятая.doc.path("name").asText("")).value.split(" ").filter { it.length >= 3 }.toSet()
+                if (их.size < 2) return@mapNotNull null
+                val общие = (мои intersect их).size
+                val близость = общие.toDouble() / minOf(мои.size, их.size)
+                if (общие >= 2 && близость >= 0.6) принятая to близость else null
+            }
+            .sortedByDescending { it.second }
+    }
+
+    /**
+     * Кандидат встречается в тексте материала только в шапке (издатель) или в
+     * подписи (подписант): по истине `not_from` это не сторона. Без текста
+     * материала (ручной ввод) правило молчит — гадать оно не станет.
+     */
+    private fun толькоИздатель(область: Area, кандидат: Candidate, основания: Map<String, orbita.knowledge.api.Fact>, снимок: JsonNode): Boolean {
+        val имя = снимок.path("name").asText("").lowercase().replace('ё', 'е').trim()
+        if (имя.length < 4) return false
+        val факт = кандидат.basis?.let { основания[it] } ?: return false
+        val материал = store.byCode(область, факт.material) ?: store.byId(факт.material) ?: return false
+        val текст = материал.doc.path("text").asText("").lowercase().replace('ё', 'е')
+        if (текст.length < 400) return false
+        val места = generateSequence(текст.indexOf(имя)) { от -> текст.indexOf(имя, от + 1).takeIf { it >= 0 } }
+            .takeWhile { it >= 0 }.toList()
+        if (места.isEmpty()) return false
+        val шапка = (текст.length * 0.12).toInt()
+        val подпись = (текст.length * 0.90).toInt()
+        return места.all { it < шапка || it > подпись }
     }
 
     /** Дубль по ключу: то же понятие с тем же ключом идентичности среди принятых. */

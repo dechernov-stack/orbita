@@ -12,7 +12,7 @@ import '@xyflow/react/dist/style.css'
 import dagre from '@dagrejs/dagre'
 import {
   api, type BaselineRow, type Blocker, type DistributionRun, type FormationProposal, type ImpactGraph,
-  type KindSpec, type LintNote, type RequirementRow, type SuspectRow, type UnitRow,
+  type KindSpec, type LintNote, type RequirementCard, type RequirementRow, type SuspectRow, type UnitRow,
 } from './api'
 
 /**
@@ -903,24 +903,7 @@ function TableRow({ т, открыта, onToggle, project, onChanged, схема
           <td colSpan={6}>
             <div className="v2-facets">
               <ПравкаТребования project={project} т={т} onSaved={onChanged} схема={схема} />
-              <Группа title="Происхождение">
-                <div>{схема.имя('level')}: {схема.метка('level', т.level) || '—'}</div>
-                <div>
-                  {схема.имя('category')}: {схема.метка('category', т.category) || (
-                    <span className="v2-dim">не задана — к базированию</span>
-                  )}
-                </div>
-                <div>источники: {т.sources.length > 0 ? т.sources.join(', ') : 'нет — требование ниоткуда не выводится'}</div>
-                {т.template_ref && <div>типовое: {т.template_ref} · применимость {схема.метка('applicability', т.applicability) || '—'}</div>}
-              </Группа>
-              <Группа title="Проверка">
-                <div>{схема.имя('ears_pattern')}: {схема.метка('ears_pattern', т.ears) || т.ears}</div>
-                <div>
-                  {схема.имя('verification_method')}: {схема.метка('verification_method', т.verification_method)
-                    || <span className="v2-dim">не выбран</span>}
-                </div>
-                <div>версия: {т.version}</div>
-              </Группа>
+              <КарточкаТребования project={project} т={т} схема={схема} />
               <Группа title="Пометы линта">
                 {т.notes.length === 0
                   ? <div className="v2-dim">замечаний нет</div>
@@ -1128,6 +1111,80 @@ const ВИД_УЗЛА: Record<string, string> = {
   risk: 'риск',
   document: 'документ',
   event: 'событие',
+}
+
+/**
+ * Карточка по эталону reference-scenes-5-8-req-arch (журнал ПМИ-7, З-14):
+ * пары «ярлык → значение» — категория · приоритет, EARS, источник с якорем и
+ * цитатой, нормативное основание, метод с TBD, критерий приёмки, обоснование,
+ * связи с основанием, «что заденет», история. Слова полей — из истины схем.
+ */
+function КарточкаТребования({ project, т, схема }: {
+  project: string; т: RequirementRow; схема: ReturnType<typeof useВидТребования>
+}) {
+  const [карточка, setКарточка] = useState<RequirementCard | null>(null)
+  const [отказ, setОтказ] = useState<string | null>(null)
+  useEffect(() => {
+    let живо = true
+    api.requirementCard(project, т.code)
+      .then((к) => { if (живо) setКарточка(к) })
+      .catch((e) => { if (живо) setОтказ(String(e.message ?? e)) })
+    return () => { живо = false }
+  }, [project, т.code, т.version])
+  if (отказ) return <Группа title="Карточка"><div className="v2-locked">{отказ}</div></Группа>
+  if (!карточка) return <Группа title="Карточка"><div className="v2-dim">читаю…</div></Группа>
+  const ВИД_ИСТОЧНИКА: Record<string, string> = { goal: 'цель', need: 'нужда', constraint: 'ограничение', requirement: 'требование', material: 'материал', fact: 'факт' }
+  return (
+    <>
+      <Группа title="Происхождение">
+        <div>{схема.имя('category')} · {схема.имя('priority')}: {схема.метка('category', т.category) || <span className="v2-dim">не задана — к базированию</span>}
+          {' · '}{схема.метка('priority', карточка.priority) || карточка.priority || <span className="v2-dim">к базированию</span>}</div>
+        <div>{схема.имя('level')}: {схема.метка('level', т.level) || '—'}</div>
+        <div>{схема.имя('ears_pattern')}: {схема.метка('ears_pattern', т.ears) || т.ears || '—'}</div>
+        <div>
+          источник:{' '}
+          {карточка.sources.length === 0 ? <span className="v2-flag v2-flag--warn">нет — требование ниоткуда не выводится</span> : карточка.sources.map((и) => (
+            <div key={`${и.kind}:${и.ref}`} className="v2-dim" title={и.quote || и.text}>
+              {ВИД_ИСТОЧНИКА[и.kind] ?? и.kind} <span className="v2-mono">{и.ref}</span>
+              {и.anchor && <span className="v2-mono"> · {и.anchor}</span>}
+              {(и.quote || и.text) && <> · «{(и.quote || и.text).slice(0, 140)}»</>}
+            </div>
+          ))}
+        </div>
+        <div>
+          {схема.имя('normative_basis')}: {карточка.normative_basis?.normative_document
+            ? `${карточка.normative_basis.normative_document}${карточка.normative_basis.clause ? `, ${карточка.normative_basis.clause}` : ''}`
+            : <span className="v2-dim">не задано</span>}
+        </div>
+        {т.template_ref && <div>типовое: {т.template_ref} · применимость {схема.метка('applicability', т.applicability) || '—'}</div>}
+      </Группа>
+      <Группа title="Проверка и связи">
+        <div>
+          {схема.имя('verification_method')}: {схема.метка('verification_method', карточка.verification_method)
+            || (карточка.verification_tbd ? <span className="v2-dim">TBD — допустим до SRR</span> : карточка.verification_method)}
+        </div>
+        <div>
+          {схема.имя('acceptance_criteria')}: {карточка.acceptance_criteria
+            || <span className="v2-flag v2-flag--warn">не задан — к базированию</span>}
+        </div>
+        <div>обоснование: {карточка.rationale || <span className="v2-dim">—</span>}</div>
+        <div>
+          связи: {карточка.sources.length === 0 ? <span className="v2-dim">нет</span> : карточка.sources.map((и) => (
+            <div key={`l:${и.kind}:${и.ref}`} className="v2-dim">
+              derives_from → {ВИД_ИСТОЧНИКА[и.kind] ?? и.kind} <span className="v2-mono">{и.ref}</span>
+              {и.text && <> «{и.text.slice(0, 80)}»</>} · обоснование {карточка.rationale ? '✓' : '—'}
+            </div>
+          ))}
+        </div>
+        <div>
+          что заденет: {карточка.carrier ? '1 узел' : '0 узлов'} · {карточка.documents.length > 0 ? карточка.documents.join(', ') : 'документов нет'}
+        </div>
+        <div>
+          история: {карточка.history.length === 0 ? `v${карточка.version}` : карточка.history.map((в) => `v${в.version} · ${в.author} · ${в.at}`).join(' → ')}
+        </div>
+      </Группа>
+    </>
+  )
 }
 
 function Группа({ title, children }: { title: string; children: React.ReactNode }) {

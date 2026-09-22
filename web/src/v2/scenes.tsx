@@ -718,6 +718,83 @@ export function SceneStakeholders({ project, onChanged }: { project: string; onC
 }
 
 /** Сцена 4 — цели: показатель, год и связь с нуждами. */
+/**
+ * Критерии оценки миссии — поверхность сцены 4 (журнал ПМИ-7, З-08; Романов
+ * 0.5: критерии после целей). Базовый набор — из истины (покрытие A′ · P95 ·
+ * стоимость ЖЦ · риск TRL) предложением; порог — TBR до сцены 7. Сцена 4
+ * закрывается и без критериев: их минимум — ноль.
+ */
+function КритерииОценкиМиссии({ project, onChanged }: { project: string; onChanged: () => void }) {
+  type Критерий = { code: string; key: string; title: string; group: string; worse_if: string; threshold: number | null }
+  type База = { key: string; title: string; direction: string; group: string; worse_if: string }
+  const [критерии, setКритерии] = useState<Критерий[]>([])
+  const [база, setБаза] = useState<База[]>([])
+  const [отказ, setОтказ] = useState<string | null>(null)
+  const [занято, setЗанято] = useState(false)
+  const ГРУППА: Record<string, string> = { A: 'покрытие', B: 'задержка', V: 'стоимость', G: 'риск' }
+  const перечитать = () => {
+    api.criteria(project).then((r) => setКритерии(r.items)).catch(() => setКритерии([]))
+    api.criteriaBase().then((r) => setБаза(r.items)).catch(() => setБаза([]))
+  }
+  useEffect(перечитать, [project])
+  const нехватает = база.filter((б) => !критерии.some((к) => к.key === б.key))
+  const предложить = () => {
+    setЗанято(true); setОтказ(null)
+    Promise.all(нехватает.map((б) => api.setCriterion(project, {
+      key: б.key, title: б.title, group: б.group, direction: б.direction, scene: '4', author: 'инженер',
+    })))
+      .then(() => { перечитать(); onChanged() })
+      .catch((e) => setОтказ(String(e.message ?? e)))
+      .finally(() => setЗанято(false))
+  }
+  const порог = (к: Критерий, значение: string) => {
+    const число = значение.trim() === '' ? null : Number(значение)
+    if (число !== null && Number.isNaN(число)) { setОтказ(`порог «${значение}» — не число`); return }
+    if (число === к.threshold) return
+    api.setCriterion(project, { key: к.key, threshold: число, author: 'инженер' })
+      .then(перечитать)
+      .catch((e) => setОтказ(String(e.message ?? e)))
+  }
+  return (
+    <div className="v2-card" data-why="работа">
+      <div className="v2-card__head">
+        <span className="v2-card__title">Критерии оценки миссии</span>
+        <span className="v2-card__count">{критерии.length}{критерии.some((к) => к.threshold === null) ? ` · порог TBR ${критерии.filter((к) => к.threshold === null).length}` : ''}</span>
+      </div>
+      <span className="v2-empty__why">
+        Чем сравнивать варианты на сцене 7: критерий называется здесь, порог — числом к сцене 7 (до него TBR). Выход мероприятия 0.5, минимум — ноль.
+      </span>
+      {отказ && <div className="v2-locked">{отказ}</div>}
+      {критерии.length > 0 && (
+        <table className="v2-table">
+          <thead><tr><th>Критерий</th><th>Группа</th><th>Хуже, если</th><th>Порог</th></tr></thead>
+          <tbody>
+            {критерии.map((к) => (
+              <tr key={к.code}>
+                <td><span className="v2-mono">{к.key}</span> {к.title}</td>
+                <td>{ГРУППА[к.group] ?? к.group}</td>
+                <td>{к.worse_if === 'less' ? 'меньше' : 'больше'}</td>
+                <td>
+                  <input type="number" defaultValue={к.threshold ?? ''} placeholder="TBR" aria-label={`порог критерия ${к.key}`}
+                    onBlur={(e) => порог(к, e.target.value)} style={{ width: 90 }} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      {нехватает.length > 0 && (
+        <div className="v2-form__actions">
+          <button type="button" className="v2-chip" disabled={занято} onClick={предложить}
+            title={`завести базовый набор истины без порогов: ${нехватает.map((б) => б.title).join(' · ')}`}>
+            {занято ? 'Завожу…' : `Предложить базовый набор (${нехватает.length})`}
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function SceneGoals({ project, onChanged }: { project: string; onChanged: () => void }) {
   const [цели, setЦели] = useState<EntityRow[]>([])
   const [нужды, setНужды] = useState<EntityRow[]>([])
@@ -741,6 +818,26 @@ export function SceneGoals({ project, onChanged }: { project: string; onChanged:
   }
 
   const безЦели = нужды.filter((n) => (n.covered_by ?? []).length === 0)
+  /**
+   * Нужды — по формулировке, носители перечнем (журнал ПМИ-7, З-06): до
+   * миграции «нужда — много носителей» одна и та же нужда лежит копией у
+   * каждой стороны, и список показывал «суверенитет данных» четырьмя строками.
+   * Галка группы отмечает все её копии: цель закрывает нужду у всех носителей.
+   */
+  const группыНужд = (() => {
+    const ключ = (s: string) => s.toLowerCase().replace(/ё/g, 'е').replace(/[^\p{L}\p{N}]+/gu, ' ').trim()
+    const карта = new Map<string, { формулировка: string; копии: EntityRow[] }>()
+    нужды.forEach((n) => {
+      const к = ключ(String(n.doc.statement ?? n.code))
+      const г = карта.get(к) ?? { формулировка: String(n.doc.statement ?? n.code), копии: [] }
+      г.копии.push(n); карта.set(к, г)
+    })
+    return [...карта.values()]
+  })()
+  const носитель = (n: EntityRow) => {
+    const с = n.doc.stakeholder
+    return typeof с === 'string' ? с : (с && typeof с === 'object' && 'code' in (с as object)) ? String((с as { code?: string }).code ?? '') : ''
+  }
 
   return (
     <div>
@@ -754,16 +851,23 @@ export function SceneGoals({ project, onChanged }: { project: string; onChanged:
           <input value={год} onChange={(e) => setГод(e.target.value)} style={{ width: 90 }} />
         </label>
         <div>
-          <div className="v2-empty__why">Какие нужды закрывает:</div>
-          {нужды.map((n) => (
-            <label key={n.id} className="v2-check">
-              <input type="checkbox" checked={покрывает.includes(n.code)}
-                onChange={(e) => setПокрывает(e.target.checked
-                  ? [...покрывает, n.code]
-                  : покрывает.filter((x) => x !== n.code))} />
-              {String(n.doc.statement ?? n.code)}
-            </label>
-          ))}
+          <div className="v2-empty__why">Какие нужды закрывает ({группыНужд.length} формулировок · {нужды.length} записей):</div>
+          {группыНужд.map((г) => {
+            const коды = г.копии.map((n) => n.code)
+            const все = коды.every((к) => покрывает.includes(к))
+            return (
+              <label key={коды.join('+')} className="v2-check">
+                <input type="checkbox" checked={все} aria-label={`нужда «${г.формулировка}»`}
+                  onChange={(e) => setПокрывает(e.target.checked
+                    ? [...покрывает.filter((x) => !коды.includes(x)), ...коды]
+                    : покрывает.filter((x) => !коды.includes(x)))} />
+                {г.формулировка}
+                {г.копии.length > 1 && (
+                  <span className="v2-dim"> · носители: {г.копии.map((n) => носитель(n) || n.code).join(', ')}</span>
+                )}
+              </label>
+            )
+          })}
         </div>
         <div className="v2-form__actions">
           <button type="button" className="v2-primary" onClick={добавить}
@@ -802,6 +906,7 @@ export function SceneGoals({ project, onChanged }: { project: string; onChanged:
           Нужд без цели: {безЦели.length} — пока они есть, сцена 4 не закроется.
         </div>
       )}
+      <КритерииОценкиМиссии project={project} onChanged={onChanged} />
     </div>
   )
 }

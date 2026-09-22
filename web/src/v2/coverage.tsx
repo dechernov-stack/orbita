@@ -18,10 +18,25 @@ function СеткаВлияния({ project, стороны, onChanged }: {
 }) {
   const колонки: [string, string][] = [['informed', 'информируется'], ['influences', 'влияет'], ['decides', 'решает']]
   const строки = [5, 4, 3, 2, 1]
-  const без = стороны.filter((с) => !с.doc.influence || !с.doc.power)
+  /**
+   * Сила стороны на сетке: оценка человека, а без неё — предложение [П] из
+   * роли по карте истины (журнал ПМИ-7, З-02: «сила ставится карандашом по
+   * одной — 18 раз; сетка пустая»). Предложение серым; согласие — 0 действий;
+   * правка — кликом по ячейке: выбранная сторона переносится в неё.
+   */
+  const сила = (с: EntityRow): number | null => {
+    const своя = Number(с.doc.power)
+    if (своя >= 1 && своя <= 5) return своя
+    const п = Number((с as EntityRow & { power_proposed?: number }).power_proposed)
+    return п >= 1 && п <= 5 ? п : null
+  }
+  const предложена = (с: EntityRow) => !(Number(с.doc.power) >= 1) && сила(с) !== null
+  const без = стороны.filter((с) => !с.doc.influence || сила(с) === null)
   const тон = (attitude: unknown) => attitude === 'supports' ? 'v2-ok' : attitude === 'resists' ? 'v2-warn' : 'v2-muted'
   const [отказ, setОтказ] = useState<string | null>(null)
   const [занята, setЗанята] = useState<string | null>(null)
+  /** Сторона, выбранная для переноса: следующий клик по ячейке ставит ей силу и влияние. */
+  const [выбрана, setВыбрана] = useState<string | null>(null)
 
   /**
    * Сила стороны — оценка человека 1–5 (истина: «power: оценка человека 1–5
@@ -45,16 +60,35 @@ function СеткаВлияния({ project, стороны, onChanged }: {
         <span className="v2-card__count">{стороны.length}</span>
       </div>
       {отказ && <div className="v2-locked">{отказ}</div>}
+      <div className="v2-empty__why">
+        {выбрана
+          ? `выбрана ${выбрана}: кликните по ячейке — сторона переедет туда (сила и влияние запишутся)`
+          : 'серым — сила предложена по роли [П]: согласие ничего не требует; чтобы перенести сторону, кликните по ней, затем по ячейке'}
+      </div>
       <table className="v2-table">
         <thead><tr><th>сила</th>{колонки.map(([k, t]) => <th key={k}>{t}</th>)}</tr></thead>
         <tbody>
-          {строки.map((сила) => (
-            <tr key={сила}>
-              <td className="v2-mono">{сила}</td>
+          {строки.map((балл) => (
+            <tr key={балл}>
+              <td className="v2-mono">{балл}</td>
               {колонки.map(([k]) => (
-                <td key={k}>
-                  {стороны.filter((с) => с.doc.influence === k && Number(с.doc.power) === сила).map((с) => (
-                    <div key={с.id} className={тон(с.doc.attitude)} title={`${с.code} · ${String(с.doc.role ?? '')}${с.doc.attitude ? ` · ${String(с.doc.attitude)}` : ''}`}>{String(с.doc.name ?? с.code)}</div>
+                <td key={k}
+                  role={выбрана ? 'button' : undefined}
+                  aria-label={выбрана ? `перенести ${выбрана}: сила ${балл}, ${k}` : undefined}
+                  className={выбрана ? 'v2-row--cur' : undefined}
+                  onClick={() => {
+                    if (!выбрана) return
+                    const с = стороны.find((x) => x.code === выбрана)
+                    setВыбрана(null)
+                    if (с) поправить(с, { power: String(балл), influence: k })
+                  }}>
+                  {стороны.filter((с) => с.doc.influence === k && сила(с) === балл).map((с) => (
+                    <button key={с.id} type="button" className={`v2-link ${тон(с.doc.attitude)}`}
+                      aria-pressed={выбрана === с.code}
+                      title={`${с.code} · ${String(с.doc.role ?? '')}${с.doc.attitude ? ` · ${String(с.doc.attitude)}` : ''}${предложена(с) ? ' · сила предложена по роли' : ''} — кликните, чтобы перенести`}
+                      onClick={(e) => { e.stopPropagation(); setВыбрана(выбрана === с.code ? null : с.code) }}>
+                      {предложена(с) ? <span className="v2-dim">[П] {String(с.doc.name ?? с.code)}</span> : String(с.doc.name ?? с.code)}
+                    </button>
                   ))}
                 </td>
               ))}
@@ -65,7 +99,7 @@ function СеткаВлияния({ project, стороны, onChanged }: {
       {без.length > 0 && (
         <>
           <div className="v2-hint">
-            Без влияния или силы: {без.length} — сила это оценка человека 1–5, её ставите вы; влияние
+            Без влияния или силы: {без.length} — у роли без карты силы предложения нет; влияние
             считает система по роли и правится здесь же.
           </div>
           <table className="v2-table">

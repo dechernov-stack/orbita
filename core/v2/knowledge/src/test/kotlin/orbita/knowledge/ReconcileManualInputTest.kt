@@ -137,6 +137,65 @@ class ReconcileManualInputTest {
         assertTrue(store.ofKind("ai_call").isEmpty(), "журнал ИИ не прирос ни одной записью")
     }
 
+    /**
+     * Журнал ПМИ-7, З-03: агрегат из вводных разделов («Владельцы трубопроводов,
+     * ЛЭП и удалённых активов») ключом имени не сходится со стороной §3, хотя
+     * дублирует её по смыслу. Вторая ступень — по смыслу имени, без модели.
+     */
+    @Test
+    fun `сторона-агрегат дублирует принятую по смыслу имени, и это сказано с кодом`() {
+        сторона("ST-0001", "Владельцы трубопроводов")
+        сторона("ST-0002", "Минтранс России")
+        val кандидат = mapper.createObjectNode().put("name", "Владельцы трубопроводов, ЛЭП и удалённых активов").put("role", "consumer")
+        val запуск = сверка.preview(проект, listOf(Candidate("c1", "stakeholder", кандидат)), автор, роль)
+        val предмет = запуск.items.single()
+        val дубль = предмет.findings.single { it.question == Question.DUPLICATE }
+        assertEquals(Verdict.AUGMENT, дубль.verdict, "агрегат — дополнение принятой, не новая сторона")
+        assertEquals("ST-0001", дубль.target)
+        assertEquals(Match.SEMANTIC, дубль.match)
+        assertTrue(Action.MERGE_INTO in дубль.offers, "предложено слить")
+        assertTrue("дублирует: ST-0001" in предмет.note, "кого дублирует — сказано кодом: ${предмет.note}")
+        assertTrue(store.ofKind("ai_call").isEmpty(), "по смыслу имени — без записи в журнале ИИ")
+    }
+
+    /**
+     * Журнал ПМИ-7, З-04: «Правительство Российской Федерации» — автор акта,
+     * встречается в материале только в шапке и подписи; по истине not_from
+     * это не сторона — предложено снять, а не заведено молча.
+     */
+    @Test
+    fun `издатель акта, встречающийся только в шапке и подписи, предлагается к снятию`() {
+        val тело = buildString {
+            appendLine("ПРАВИТЕЛЬСТВО РОССИЙСКОЙ ФЕДЕРАЦИИ")
+            appendLine("ПОСТАНОВЛЕНИЕ от 1 января 2026 г. № 1")
+            repeat(40) { appendLine("Перевозчики опасных грузов обязаны передавать телематику оператору системы мониторинга в установленном порядке.") }
+            appendLine("Председатель Правительства Российской Федерации")
+        }
+        store.create("SD-0002", "material", область, "2",
+            mapper.createObjectNode().put("name", "Постановление").put("text", тело).put("authority", Authority.MANDATORY), провенанс)
+        store.create("F-0002", "fact", область, null,
+            mapper.createObjectNode().put("kind", "framing").put("subject", "Правительство Российской Федерации")
+                .put("predicate", "издало").put("value", "постановление").put("anchor", "b1").put("material", "SD-0002")
+                .put("authority", Authority.MANDATORY).put("disposition", "free"),
+            провенанс)
+        val кандидат = mapper.createObjectNode().put("name", "Правительство Российской Федерации").put("role", "regulator")
+        val запуск = сверка.preview(проект, listOf(Candidate("c1", "stakeholder", кандидат, basis = "F-0002")), автор, роль)
+        val предмет = запуск.items.single()
+        assertTrue("издатель" in предмет.note, "помета называет причину: ${предмет.note}")
+        val новая = предмет.findings.single { it.question == Question.DUPLICATE }
+        assertEquals(Action.DISMISS, новая.offers.first(), "первое предложение — снять")
+        assertTrue(новая.confidence < 0.5, "уверенность в стороне низкая — «требует внимания»")
+        // Та же организация в теле документа — сторона: правило молчит.
+        val вТеле = mapper.createObjectNode().put("name", "Перевозчики опасных грузов").put("role", "consumer")
+        store.create("F-0003", "fact", область, null,
+            mapper.createObjectNode().put("kind", "framing").put("subject", "Перевозчики опасных грузов").put("predicate", "обязаны")
+                .put("value", "передавать телематику").put("anchor", "b2").put("material", "SD-0002")
+                .put("authority", Authority.MANDATORY).put("disposition", "free"),
+            провенанс)
+        val второй = сверка.preview(проект, listOf(Candidate("c2", "stakeholder", вТеле, basis = "F-0003")), автор, роль).items.single()
+        assertFalse("издатель" in второй.note, "сторона из тела документа не помечена издателем: ${второй.note}")
+    }
+
     @Test
     fun `разные годы у одной цели дают противоречие с рангами обоих значений`() {
         val принятая = цель("MG-0001", "развернуть группировку", 2032)

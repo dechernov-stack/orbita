@@ -304,6 +304,29 @@ class SceneTenTwelveTest {
         }
     }
 
+    /**
+     * Журнал ПМИ-7, З-08: критерии оценки миссии — поверхность сцены 4 с
+     * базовым набором истины; порог — TBR до сцены 7, и без него критерий
+     * стоит, а сравнение по нему не отсеивает.
+     */
+    @Test
+    fun `базовый набор критериев берётся из истины, порог необязателен до сцены 7`() {
+        val база = router.handle("GET", "/v2/criteria/base", параметры, null)!!.body.path("items")
+        assertEquals(listOf("coverage_a", "p95_latency", "lifecycle_cost", "trl_risk"), база.map { it.path("key").asText() })
+        assertEquals("less", база[0].path("worse_if").asText(), "покрытие: больше лучше ⇒ хуже, если меньше")
+        val заведён = router.handle("POST", "/v2/criteria", параметры,
+            """{"key":"coverage_a","title":"покрытие A′","group":"A","direction":"max","scene":"4","author":"Чернов Д."}""")!!
+        assertEquals(201, заведён.code, заведён.body.toString())
+        val без = router.handle("GET", "/v2/criteria", параметры, null)!!.body.path("items").single { it.path("key").asText() == "coverage_a" }
+        assertTrue(без.path("threshold").isNull, "порога нет — TBR: $без")
+        assertEquals("покрытие A′", без.path("title").asText())
+        router.handle("POST", "/v2/criteria", параметры, """{"key":"coverage_a","threshold":95,"author":"Чернов Д."}""")
+        val с = router.handle("GET", "/v2/criteria", параметры, null)!!.body.path("items").single { it.path("key").asText() == "coverage_a" }
+        assertEquals(95.0, с.path("threshold").asDouble(), "порог дописан к тому же критерию")
+        assertEquals("покрытие A′", с.path("title").asText(), "имя при правке порога не стёрлось")
+        assertEquals("less", с.path("worse_if").asText())
+    }
+
     @Test
     fun `сцена 12 требует пары к узлам, диапазон и созревание в стоимости`() {
         технологию()

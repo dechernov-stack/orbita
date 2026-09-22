@@ -74,8 +74,8 @@ internal class IdentityKeys(
      * сущности. Отрицания («не», «без») в служебные НЕ входят: снять их
      * значит склеить требование с его противоположностью.
      */
-    fun statementCore(текст: String, field: String = "statement"): Ключ {
-        val основы = основы(текст)
+    fun statementCore(текст: String, field: String = "statement", фразыПонятия: List<String> = emptyList()): Ключ {
+        val основы = основы(текст, фразыПонятия)
         return Ключ(основы.joinToString(" "), if (основы.isEmpty()) emptyList() else listOf(field))
     }
 
@@ -137,11 +137,11 @@ internal class IdentityKeys(
      * сбой: такой кандидат уходит на семантическую ступень и к воротам
      * нехватки, а ключ на неполном вводе не выдумывается.
      */
-    fun of(keyFields: List<String>, payload: JsonNode): Ключ? {
+    fun of(keyFields: List<String>, payload: JsonNode, фразыПонятия: List<String> = emptyList()): Ключ? {
         val части = mutableListOf<String>()
         val поля = mutableListOf<String>()
         keyFields.forEach { токен ->
-            val ключ = поТокену(токен, payload)
+            val ключ = поТокену(токен, payload, фразыПонятия)
             if (ключ == null || !ключ.сложился) return null
             части += ключ.value
             поля += ключ.fields
@@ -155,24 +155,28 @@ internal class IdentityKeys(
      * ОНТОЛОГИЯ-ФОРМИРОВАНИЯ. Второй копии этого перечня в коде нет; понятие
      * вне онтологии ключа не получает вовсе — генератор отвечает отказом.
      */
-    fun ofConcept(concept: String, payload: JsonNode): Ключ? =
-        of(GeneratedOntology.of(concept).identityOrFail.key, payload)
+    fun ofConcept(concept: String, payload: JsonNode): Ключ? {
+        val опознание = GeneratedOntology.of(concept).identityOrFail
+        // Стандартные названия этапов понятия (З-05) — фразами ключа: «цель
+        // этапа лётной демонстрации» и «лётная демонстрация: 2–4 КА» сходятся.
+        return of(опознание.key, payload, опознание.stageNames)
+    }
 
     /** «a|b» в онтологии — альтернативы по порядку: берётся первая сложившаяся. */
-    private fun поТокену(токен: String, payload: JsonNode): Ключ? {
+    private fun поТокену(токен: String, payload: JsonNode, фразыПонятия: List<String>): Ключ? {
         токен.split("|").map { it.trim() }.forEach { часть ->
-            val ключ = одинТокен(часть, payload)
+            val ключ = одинТокен(часть, payload, фразыПонятия)
             if (ключ != null && ключ.сложился) return ключ
         }
         return null
     }
 
-    private fun одинТокен(токен: String, payload: JsonNode): Ключ? = when (токен) {
+    private fun одинТокен(токен: String, payload: JsonNode, фразыПонятия: List<String>): Ключ? = when (токен) {
         "statement_core" -> {
             val поле = listOf("statement", "text", "label").firstOrNull {
                 payload.path(it).asText("").isNotBlank()
             }
-            поле?.let { statementCore(payload.path(it).asText(""), it) }
+            поле?.let { statementCore(payload.path(it).asText(""), it, фразыПонятия) }
         }
         // Синонимы сведены к канону в самом nameNormalized — отдельной ветки нет.
         "name_normalized", "synonyms" -> nameNormalized(payload.path("name").asText(""))
@@ -205,18 +209,46 @@ internal class IdentityKeys(
         return Ключ("единица:${единица.lowercase()}", listOf("$field.unit"))
     }
 
-    /** Основы формулировки: словарь → служебные слова → основа → без повторов → по алфавиту. */
-    private fun основы(текст: String): List<String> =
-        поСловарю(текст).split(" ")
-            .filter { it.isNotBlank() }
+    /**
+     * Основы формулировки: фразы понятия и словарь → служебные слова → основа →
+     * без повторов → по алфавиту. Число — не часть ядра (истина цели: «числа —
+     * к показателю, не к ключу», З-05): «50 КА» и «150 КА» — одна цель с
+     * разным показателем, а не две цели.
+     */
+    private fun основы(текст: String, фразыПонятия: List<String> = emptyList()): List<String> =
+        безВеличин(поСловарю(текст, фразыПонятия).split(" ").filter { it.isNotBlank() })
             .map { словарь[it] ?: it }
             .filter { it !in СЛУЖЕБНЫЕ }
             .map { основа(it) }
             .distinct()
             .sorted()
 
-    private fun поСловарю(текст: String): String {
+    /**
+     * Число и единица за ним — величина, а не ядро: «2–4 КА» уходит к
+     * показателю целиком. Единица узнаётся справочником или короткой формой
+     * («ка», «шт», «мин») сразу после числа; слово подлиннее числом не
+     * считается единицей и остаётся в ядре.
+     */
+    private fun безВеличин(слова: List<String>): List<String> {
+        val итог = mutableListOf<String>()
+        var послеЧисла = false
+        слова.forEach { слово ->
+            val число = слово.all { it.isDigit() }
+            if (число) { послеЧисла = true; return@forEach }
+            val единица = послеЧисла && (нормализация.размерность(слово) != null || слово.length <= 3)
+            послеЧисла = false
+            if (!единица) итог += слово
+        }
+        return итог
+    }
+
+    private fun поСловарю(текст: String, фразыПонятия: List<String> = emptyList()): String {
         var строка = " " + плоско(текст) + " "
+        // Фраза понятия (название этапа) — одно слово ключа; длинные первыми,
+        // чтобы «национальная система связи» не резалась по короткой.
+        фразыПонятия.map { плоско(it) }.filter { it.isNotBlank() }.sortedByDescending { it.length }.forEach { фраза ->
+            строка = строка.replace(" $фраза ", " ${фраза.replace(' ', '_')} ")
+        }
         фразы.forEach { (написание, канон) -> строка = строка.replace(" $написание ", " $канон ") }
         return строка.trim()
     }

@@ -60,6 +60,10 @@ class ModelRoutes(
         method == "POST" && path == "/v2/variants" ->
             завестиВариант(требуется(query, "project"), разобрать(body))
 
+        // Критерии оценки миссии (З-08): реестр и базовый набор истины —
+        // поверхность сцены 4; порог — TBR до сцены 7.
+        method == "GET" && path == "/v2/criteria" -> критерии(требуется(query, "project"))
+        method == "GET" && path == "/v2/criteria/base" -> базовыеКритерии()
         method == "POST" && path == "/v2/criteria" ->
             завестиПорог(требуется(query, "project"), разобрать(body))
 
@@ -235,27 +239,71 @@ class ModelRoutes(
         return V2Router.Ответ(201, mapper.createObjectNode().put("code", создано.code))
     }
 
-    /** Порог показателя: чем именно вариант отсеивается. */
+    private fun критерии(проект: String): V2Router.Ответ {
+        val массив = mapper.createArrayNode()
+        store.list(Area.Project(проект), "criterion").filter { it.status != "cancelled" }.sortedBy { it.code }.forEach { к ->
+            val у = массив.addObject().put("code", к.code).put("key", к.doc.path("key").asText(к.code))
+                .put("title", к.doc.path("title").asText("")).put("group", к.doc.path("group").asText(""))
+                .put("worse_if", к.doc.path("worse_if").asText("greater"))
+            val порог = к.doc.path("threshold")
+            if (порог.isNumber) у.put("threshold", порог.asDouble()) else у.putNull("threshold")
+        }
+        return V2Router.Ответ(200, mapper.createObjectNode().set("items", массив))
+    }
+
+    /** Базовый набор — из истины онтологии, не из кода: покрытие A′ · P95 · стоимость ЖЦ · риск TRL. */
+    private fun базовыеКритерии(): V2Router.Ответ {
+        val массив = mapper.createArrayNode()
+        orbita.knowledge.schema.GeneratedOntology.missionCriteriaBase.forEach { к ->
+            массив.addObject().put("key", к["key"]).put("title", к["title"]).put("direction", к["direction"]).put("group", к["group"])
+                // «хуже, если» — обратная сторона направления: больше лучше ⇒ хуже, если меньше.
+                .put("worse_if", if (к["direction"] == "max") "less" else "greater")
+        }
+        return V2Router.Ответ(200, mapper.createObjectNode().set("items", массив))
+    }
+
+    /**
+     * Порог показателя: чем именно вариант отсеивается. Порога может ещё не
+     * быть (критерий назван на сцене 4, число — к сцене 7): тогда критерий
+     * стоит с TBR и сравнение по нему не отсеивает.
+     */
     private fun завестиПорог(проект: String, тело: JsonNode): V2Router.Ответ {
         val область = Area.Project(проект)
         val ключ = тело.path("key").asText("")
         require(ключ.isNotBlank()) { "порогу нужен ключ показателя" }
-        require(тело.path("threshold").isNumber) { "порог — число, иначе сравнивать нечем" }
-        val хуже = тело.path("worse_if").asText("greater")
-        require(хуже in setOf("greater", "less")) {
+        val порог = тело.path("threshold")
+        require(порог.isMissingNode || порог.isNull || порог.isNumber || (порог.isTextual && порог.asText().isBlank())) {
+            "порог — число (или пусто: TBR до сцены 7), иначе сравнивать нечем"
+        }
+        val направление = тело.path("direction").asText("")
+        // «Хуже, если» — из тела, из направления (больше лучше ⇒ хуже, если
+        // меньше) или прежнее у критерия; новому без слова — greater.
+        val хуже: String? = тело.path("worse_if").asText("").ifBlank { null }
+            ?: направление.ifBlank { null }?.let { if (it == "max") "less" else "greater" }
+        require(хуже == null || хуже in setOf("greater", "less")) {
             "«хуже если» — greater или less: без этого не видно, в какую сторону порог"
         }
         val документ = тело.deepCopy<ObjectNode>()
-        документ.remove(listOf("code", "author", "project"))
+        // Сцена рождения и направление — не поля вида: сцена идёт в born_in,
+        // направление сводится к «хуже, если».
+        документ.remove(listOf("code", "author", "project", "direction", "scene"))
+        if (!порог.isNumber) документ.remove("threshold")
+        if (хуже != null) документ.put("worse_if", хуже)
         val прежний = store.list(область, "criterion").firstOrNull {
             it.doc.path("key").asText() == ключ
         }
         val создано = if (прежний != null) {
-            store.update(прежний.id, документ, Provenance(Channel.MANUAL, тело.path("author").asText("стенд")))
+            // Правка порога не стирает названное прежде: имя и группа остаются.
+            val слитый = прежний.doc.deepCopy<ObjectNode>()
+            документ.fields().forEach { (имя, значение) -> слитый.set<JsonNode>(имя, значение) }
+            // Пустой порог в теле снимает прежний: число стало TBR явно.
+            if (тело.has("threshold") && !порог.isNumber) слитый.remove("threshold")
+            store.update(прежний.id, слитый, Provenance(Channel.MANUAL, тело.path("author").asText("стенд")))
         } else {
+            if (хуже == null) документ.put("worse_if", "greater")
             store.create(
                 тело.path("code").asText("").ifBlank { следующийКод(область, "criterion", "CRIT") },
-                "criterion", область, "7", документ,
+                "criterion", область, тело.path("scene").asText("7").ifBlank { "7" }, документ,
                 Provenance(Channel.MANUAL, тело.path("author").asText("стенд")),
             )
         }

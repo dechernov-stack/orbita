@@ -30,6 +30,10 @@ class ReqRoutes(
 
     fun handle(method: String, path: String, query: Map<String, String>, body: String?): V2Router.Ответ? = when {
         method == "GET" && path == "/v2/requirements" -> список(требуется(query, "project"))
+        // Карточка по эталону reference-scenes-5-8-req-arch (журнал ПМИ-7, З-14):
+        // источник с якорем и цитатой, основание, связи, норматив, история.
+        method == "GET" && path.startsWith("/v2/requirements/") && path.endsWith("/card") ->
+            карточка(требуется(query, "project"), path.removePrefix("/v2/requirements/").removeSuffix("/card"))
 
         method == "POST" && path == "/v2/requirements" ->
             завестиТребование(требуется(query, "project"), разобрать(body))
@@ -102,6 +106,57 @@ class ReqRoutes(
         т.notes.forEach { пометы.addObject().put("rule", it.rule).put("what", it.what).put("why", it.why) }
         return узел
     }
+
+    /**
+     * Карточка требования целиком — то, чего в строке реестра нет: источники с
+     * якорем и цитатой (у факта — его утверждение, у цели и нужды — их
+     * формулировка), нормативное основание, обоснование, связи с основанием,
+     * «что заденет» (документы, чьи запросы читают требования) и история версий.
+     */
+    private fun карточка(проект: String, код: String): V2Router.Ответ {
+        val область = Area.Project(проект)
+        val т = store.byCode(область, код)?.takeIf { it.kind == "requirement" }
+            ?: throw NoSuchElementException("требования «$код» в проекте нет")
+        val узел = mapper.createObjectNode().put("code", т.code).put("version", т.version).put("status", т.status)
+        listOf("level", "category", "priority", "ears_pattern", "verification_method", "acceptance_criteria", "rationale", "carrier")
+            .forEach { узел.put(it, т.doc.path(it).asText("")) }
+        узел.put("verification_tbd", т.doc.path("verification_method").asText("").let { it.isBlank() || it.equals("TBD", true) })
+        val норматив = т.doc.path("normative_basis")
+        if (норматив.isObject) узел.set<JsonNode>("normative_basis", норматив) else узел.putNull("normative_basis")
+        val источники = узел.putArray("sources")
+        т.doc.path("source").forEach { и ->
+            val вид = и.path("kind").asText("")
+            val ссылка = и.path("ref").asText("")
+            val запись = store.byId(ссылка) ?: store.byCode(область, ссылка)
+            val у = источники.addObject().put("kind", вид).put("ref", запись?.code ?: ссылка)
+                .put("anchor", и.path("anchor").asText(""))
+            у.put("text", запись?.let { формулировкаЗаписи(it) } ?: "")
+            // Цитата: у факта — его утверждение; у материала — якорь блока
+            // канона (сам текст живёт в поле знаний, дорога туда — якорем).
+            у.put("quote", if (вид == "fact" && запись != null) формулировкаЗаписи(запись) else "")
+        }
+        val признано = узел.putArray("lint_acknowledged")
+        т.doc.path("lint_acknowledged").forEach { признано.add(it) }
+        // Что заденет: документы, чьи запросы читают требования, — из шаблонов полки.
+        val документы = узел.putArray("documents")
+        store.list(Area.Library, "document_template").forEach { ш ->
+            ш.doc.path("sections").forEach { р ->
+                if (р.path("elements").any { it.path("select").asText() == "requirement" }) {
+                    документы.add("${ш.doc.path("title").asText(ш.code)} ${р.path("no").asText()}")
+                }
+            }
+        }
+        val история = узел.putArray("history")
+        store.history(т.id).forEach { в ->
+            история.addObject().put("version", в.version).put("author", в.provenance.author)
+                .put("at", в.updatedAt.toString().take(10)).put("status", в.status)
+        }
+        return V2Router.Ответ(200, узел)
+    }
+
+    private fun формулировкаЗаписи(запись: orbita.kernel.api.Entity): String =
+        listOf("statement", "value", "text", "name", "title", "designation")
+            .firstNotNullOfOrNull { запись.doc.path(it).asText("").trim().ifBlank { null } } ?: запись.code
 
     private fun линт(тело: JsonNode): V2Router.Ответ {
         val замечания = requirements.lint(

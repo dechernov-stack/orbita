@@ -19,6 +19,9 @@ import точки from './points.tsx?raw'
 import паспорт from './passport.tsx?raw'
 import сцена9 from './modes.tsx?raw'
 import связи from './links.tsx?raw'
+import покрытие from './coverage.tsx?raw'
+import сцены from './scenes.tsx?raw'
+import требования from './requirements.tsx?raw'
 
 describe('базирование документа', () => {
   it('вход есть на экране документа, а не только в маршруте', () => {
@@ -291,6 +294,36 @@ describe('одна раздача связей (шип 1)', () => {
     expect(концепция).toContain('<ФункцииКУзлам project={project} />')
     // Раздача сама ничего не заводит: кнопка приёма без галок заперта.
     expect(связи).toContain('отметьте связи — раздача сама ничего не заводит')
+  })
+})
+
+describe('хвосты журнала ПМИ-7 (шип 1, п. 1.9)', () => {
+  it('З-02: сила предложена по роли серым [П], перенос — кликом по ячейке', () => {
+    expect(покрытие).toContain('power_proposed')
+    expect(покрытие).toContain("[П] {String(с.doc.name ?? с.code)}")
+    expect(покрытие).toContain("поправить(с, { power: String(балл), influence: k })")
+  })
+
+  it('З-06: нужды на сцене 4 — по формулировке, носители перечнем', () => {
+    expect(сцены).toContain('const группыНужд = (() => {')
+    expect(сцены).toContain('носители: {г.копии.map((n) => носитель(n) || n.code).join(\', \')}')
+  })
+
+  it('З-08: критерии оценки миссии — поверхность сцены 4 с базовым набором истины', () => {
+    expect(клиент).toContain('criteriaBase: () =>')
+    expect(сцены).toContain('function КритерииОценкиМиссии')
+    expect(сцены).toContain('Предложить базовый набор')
+    expect(сцены).toContain('aria-label={`порог критерия ${к.key}`}')
+    // Набор — из истины, копии перечня в коде нет.
+    expect(сцены).not.toContain("'coverage_a'")
+  })
+
+  it('З-14: карточка требования по эталону — источник с якорем, основание, связи, история', () => {
+    expect(клиент).toContain('requirementCard:')
+    expect(требования).toContain('function КарточкаТребования')
+    expect(требования).toContain('не задан — к базированию')
+    expect(требования).toContain('derives_from →')
+    expect(требования).toContain('история:')
   })
 })
 

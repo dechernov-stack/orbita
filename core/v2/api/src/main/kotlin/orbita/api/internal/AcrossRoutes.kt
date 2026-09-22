@@ -296,6 +296,12 @@ class AcrossRoutes(
             узел.put("code", сущность.code)
             узел.put("status", сущность.status)
             узел.set<JsonNode>("doc", сущность.doc)
+            // Сила стороны по умолчанию (З-02): предложение [П] из роли по карте
+            // истины; сетка показывает его серым, инженер правит кликом по ячейке.
+            if (вид == "stakeholder" && сущность.doc.path("power").asText("").isBlank()) {
+                orbita.knowledge.schema.GeneratedOntology.powerMap[сущность.doc.path("role").asText("")]
+                    ?.let { узел.put("power_proposed", it) }
+            }
             val носители = links.to(сущность.id, "owns").map { it.from }
             if (носители.isNotEmpty()) {
                 val массивНосителей = узел.putArray("owned_by")

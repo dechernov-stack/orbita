@@ -126,10 +126,15 @@ concepts:
     note: цели проекта меняются только решением эксперта; всякий документ может предложить изменение с основанием и рангом — не создать цель сам
     identity:
       key:
-      - statement_core (после нормализации стандартных названий этапов)
-      - measure.key
+      - statement_core (после нормализации стандартных названий этапов; числа — к показателю, не к ключу)
       semantic: тот же результат/этап; отличия — значение, год, единица → augment measure/year, не new
       threshold: 0.8
+      stage_names:
+      - подтвердить реализуемость
+      - лётная демонстрация
+      - программный MVP
+      - национальная система
+      - глобальная опция
     not_from:
     - обязательство норматива (constraint)
     - описание услуги (service)
@@ -461,6 +466,31 @@ influence_map:
   partner: influences
   supplier: influences
   consumer: informed
+power_map:
+  customer: 5
+  regulator: 5
+  established: 4
+  operator: 4
+  consumer: 3
+  supplier: 3
+  partner: 3
+mission_criteria_base:
+- key: coverage_a
+  title: покрытие A′
+  direction: max
+  group: A
+- key: p95_latency
+  title: P95 задержки доставки
+  direction: min
+  group: B
+- key: lifecycle_cost
+  title: стоимость жизненного цикла
+  direction: min
+  group: V
+- key: trl_risk
+  title: риск TRL
+  direction: min
+  group: G
 normalization:
   prime: канон — типографский штрих ′ (U+2032); апостроф ' и акцент ´ при чтении нормализуются в ′
   measures: 'ЛЮБАЯ величина в ответе — объектом {value|min,max,unit}: показатель цели, target_measure сервиса, масштаб стороны, диапазон этапа, граница ограничения; строка с числом — брак'

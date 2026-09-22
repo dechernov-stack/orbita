@@ -24,6 +24,11 @@ data class ConceptIdentity(
      * названий этапов не сделана отдельным шипом.
      */
     val keyNotes: List<String> = emptyList(),
+    /**
+     * Стандартные названия этапов (З-05): каждое — одно слово ключа, чтобы
+     * формулировки об одном этапе сходились ядром. Перечень — истина.
+     */
+    val stageNames: List<String> = emptyList(),
 )
 
 /**
@@ -153,7 +158,7 @@ object GeneratedOntology {
      * Отпечаток истины онтологии (sha256 файла). Им помечается каждый запуск
      * синтеза: по нему видно, по каким правилам сделано предложение.
      */
-    const val ontologyVersion: String = "ae8520e650a66cfb3dd49e9fcae30d27dcef50d997108d207f65826cdebdc377"
+    const val ontologyVersion: String = "9c78cb8613a98f507233cd9629d6dceeb2c176f738be2ea917cd004d093915e6"
 
     /** Ранги доверия по убыванию веса — ранг подсказывает, решает человек. */
     val authorityRanks: List<String> = listOf("mandatory", "expert", "reference", "doubtful")
@@ -242,8 +247,9 @@ object GeneratedOntology {
             mustLink = listOf("covers→need>=1"),
             conflictOn = listOf("measure", "year"),
             identity = ConceptIdentity(
-                key = listOf("statement_core", "measure.key"),
-                keyNotes = listOf("statement_core (после нормализации стандартных названий этапов)"),
+                key = listOf("statement_core"),
+                keyNotes = listOf("statement_core (после нормализации стандартных названий этапов; числа — к показателю, не к ключу)"),
+                stageNames = listOf("подтвердить реализуемость", "лётная демонстрация", "программный MVP", "национальная система", "глобальная опция"),
                 semantic = "тот же результат/этап; отличия — значение, год, единица → augment measure/year, не new",
                 threshold = 0.8,
             ),
@@ -592,6 +598,25 @@ object GeneratedOntology {
         "partner" to "influences",
         "supplier" to "influences",
         "consumer" to "informed",
+    )
+
+    /**
+     * Роль стороны → сила по умолчанию 1–5 (журнал ПМИ-7, З-02). Это
+     * ПРЕДЛОЖЕНИЕ [П], не оценка: на сетке оно серым, инженер правит кликом
+     * по ячейке; роль, которой здесь нет, силы не получает.
+     */
+    val powerMap: Map<String, Int> = mapOf("customer" to 5, "regulator" to 5, "established" to 4, "operator" to 4, "consumer" to 3, "supplier" to 3, "partner" to 3)
+
+    /**
+     * Базовый набор критериев оценки миссии (журнал ПМИ-7, З-08): сцена 4
+     * предлагает его кнопкой, порог — TBR до сцены 7. Группа и направление —
+     * перечни вида metric истины схем.
+     */
+    val missionCriteriaBase: List<Map<String, String>> = listOf(
+        mapOf("key" to "coverage_a", "title" to "покрытие A′", "direction" to "max", "group" to "A"),
+        mapOf("key" to "p95_latency", "title" to "P95 задержки доставки", "direction" to "min", "group" to "B"),
+        mapOf("key" to "lifecycle_cost", "title" to "стоимость жизненного цикла", "direction" to "min", "group" to "V"),
+        mapOf("key" to "trl_risk", "title" to "риск TRL", "direction" to "min", "group" to "G"),
     )
 
     /**

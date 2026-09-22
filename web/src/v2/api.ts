@@ -265,6 +265,28 @@ export interface RequirementRow {
   notes: LintNote[]
 }
 
+/** Карточка требования по эталону (З-14): источники с якорем и цитатой, основание, связи, история. */
+export interface RequirementCard {
+  code: string
+  version: number
+  status: string
+  level: string
+  category: string
+  priority: string
+  ears_pattern: string
+  verification_method: string
+  verification_tbd: boolean
+  acceptance_criteria: string
+  rationale: string
+  carrier: string
+  normative_basis: { normative_document?: string; clause?: string } | null
+  sources: { kind: string; ref: string; anchor: string; text: string; quote: string }[]
+  lint_acknowledged: { rule?: string; by?: string; at?: string; note?: string }[]
+  /** Документы, чьи запросы читают требования: что заденет правка. */
+  documents: string[]
+  history: { version: number; author: string; at: string; status: string }[]
+}
+
 /**
  * Истина схем о виде — для экрана (19.09).
  *
@@ -1943,6 +1965,13 @@ export const api = {
       { method: 'POST', body: JSON.stringify(тело) }),
 
   /** Порог показателя: чем вариант отсеивается. Ключ тот же, что у показателя. */
+  /** Критерии оценки миссии (З-08): реестр проекта и базовый набор истины. */
+  criteria: (project: string) =>
+    вызов<{ items: { code: string; key: string; title: string; group: string; worse_if: string; threshold: number | null }[] }>(
+      `/criteria?project=${encodeURIComponent(project)}`),
+  criteriaBase: () =>
+    вызов<{ items: { key: string; title: string; direction: string; group: string; worse_if: string }[] }>('/criteria/base'),
+
   setCriterion: (project: string, тело: Record<string, unknown>) =>
     вызов<{ code: string }>(`/criteria?project=${encodeURIComponent(project)}`,
       { method: 'POST', body: JSON.stringify(тело) }),
@@ -2080,6 +2109,9 @@ export const api = {
    * раздают (здесь — требование), справа цель. Записывается источник
    * требования — условие сцены 8 смотрит на него.
    */
+  requirementCard: (project: string, code: string) =>
+    вызов<RequirementCard>(`/requirements/${encodeURIComponent(code)}/card?project=${encodeURIComponent(project)}`),
+
   distributeGoals: (project: string, author = 'инженер') =>
     вызов<DistributionRun>(`/requirements/coverage?project=${encodeURIComponent(project)}`,
       { method: 'POST', body: JSON.stringify({ author }) }),
