@@ -18,6 +18,7 @@ import поле from './knowledgefield.tsx?raw'
 import точки from './points.tsx?raw'
 import паспорт from './passport.tsx?raw'
 import сцена9 from './modes.tsx?raw'
+import связи from './links.tsx?raw'
 
 describe('базирование документа', () => {
   it('вход есть на экране документа, а не только в маршруте', () => {
@@ -275,6 +276,21 @@ describe('сценарии предложением (шип 1, п. 1.7)', () => 
   it('участник без записи назван, а не подставлен', () => {
     expect(сцена9).toContain('участники без записи: {с.unresolved.join(\', \')} — назовите их узлом или стороной')
     expect(сцена9).toContain('const кПриёму = (с: ProposedScenario) => !с.exists && !с.accepted')
+  })
+})
+
+describe('одна раздача связей (шип 1)', () => {
+  it('вид связи — параметр; функции → узлы на сцене 7 тем же порядком', () => {
+    expect(клиент).toContain('proposeLinks:')
+    expect(клиент).toContain('acceptLinks:')
+    expect(клиент).toContain('undoLinks:')
+    expect(связи).toContain('api.proposeLinks(project, type, автор || \'инженер\')')
+    expect(связи).toContain("covers: { источник: 'Нужда'")
+    expect(связи).toContain("allocated_to: { источник: 'Функция', цель: 'Узел'")
+    expect(связи).toContain('<РаздачаСвязей project={project} type="allocated_to" onChanged={перечитать} />')
+    expect(концепция).toContain('<ФункцииКУзлам project={project} />')
+    // Раздача сама ничего не заводит: кнопка приёма без галок заперта.
+    expect(связи).toContain('отметьте связи — раздача сама ничего не заводит')
   })
 })
 

@@ -2097,6 +2097,31 @@ export const api = {
       `/requirements/coverage/${encodeURIComponent(run)}/undo?project=${encodeURIComponent(project)}`,
       { method: 'POST', body: JSON.stringify({ author }) }),
 
+  /**
+   * Одна раздача связей (шип 1): вид связи из реестра — параметром.
+   * covers · derives_from · allocated_to; четвёртая — функции → узлы (сцена 7).
+   */
+  proposeLinks: (project: string, type: string, author = 'инженер') =>
+    вызов<DistributionRun & { type: string }>(
+      `/links/propose?project=${encodeURIComponent(project)}&type=${encodeURIComponent(type)}`,
+      { method: 'POST', body: JSON.stringify({ author }) }),
+  linkProposal: (project: string, type: string) =>
+    вызов<(DistributionRun | NoDistribution) & { type: string }>(
+      `/links/propose?project=${encodeURIComponent(project)}&type=${encodeURIComponent(type)}`),
+  acceptLinks: (project: string, type: string, run: string, chosen: string[], author = 'инженер', reason?: string) =>
+    вызов<DistributionAccepted>(
+      `/links/propose/${encodeURIComponent(run)}/accept?project=${encodeURIComponent(project)}&type=${encodeURIComponent(type)}`,
+      { method: 'POST', body: JSON.stringify({ chosen, author, reason }) }),
+  undoLinks: (project: string, type: string, run: string, author = 'инженер') =>
+    вызов<{ run: string; unlinked: number; note: string }>(
+      `/links/propose/${encodeURIComponent(run)}/undo?project=${encodeURIComponent(project)}&type=${encodeURIComponent(type)}`,
+      { method: 'POST', body: JSON.stringify({ author }) }),
+
+  /** Функции системы (SA/LA) с узлами, на которые они распределены, — кодами. */
+  functions: (project: string) =>
+    вызов<{ items: { code: string; id: string; name?: string; layer?: string; allocated_to?: string[] }[] }>(
+      `/functions?project=${encodeURIComponent(project)}`),
+
   /** Истина онтологии наружу: по ней экран объясняет, откуда взялось понятие. */
   formationOntology: (project: string) =>
     вызов<FormationOntology>(`/ontology/formation?project=${encodeURIComponent(project)}`),

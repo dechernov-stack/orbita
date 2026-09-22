@@ -8,23 +8,18 @@
 // ответ модели есть карта связей «нужда → цели · сервисы» с причиной по
 // каждой связи.
 //
-// Ничего не заводится само: карта ложится запуском с предложениями, приём —
-// массовый и обратимый («Отменить раздачу» снимает связи и возвращает
-// классы). Правила связи — из истины ОНТОЛОГИИ (`goal.needs`, `service.needs`,
-// `need.qos_class`, `distribution_rule`), второй их копии в коде нет.
-//
-// Ворота — только машинные: код нужды, цели или сервиса обязан существовать
-// в проекте; связь, которая уже есть, называется «уже есть» и второй раз не
-// заводится; нужда без единой связи названа поимённо — «не раздано».
+// Порядок раздачи общий (LinkDistributor); здесь — только случай: связь
+// `covers` от цели или сервиса к нужде, класс покрывшего сервиса — нужде
+// без класса, откат возвращает класс как был. Правила связи — из истины
+// ОНТОЛОГИИ (`goal.needs`, `service.needs`, `need.qos_class`,
+// `distribution_rule`), второй их копии в коде нет.
 package orbita.ai.internal
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 import orbita.ai.api.AiService
 import orbita.ai.api.DistributionAccepted
-import orbita.ai.api.DistributionLink
 import orbita.ai.api.DistributionRun
 import orbita.ai.api.DistributionUndone
 import orbita.kernel.api.Area
@@ -40,191 +35,137 @@ import orbita.knowledge.schema.GeneratedOntology
 class NeedDistributor(
     private val store: EntityStore,
     private val links: LinkRegistry?,
-    private val service: AiService,
+    service: AiService,
     private val mapper: ObjectMapper = ObjectMapper(),
 ) {
+    private val случай = НуждыКЦелямИСервисам(store, links, mapper)
+    private val общий = LinkDistributor(store, service, mapper, случай)
 
-    /** Один вызов: полные перечни → карта связей запуском с предложениями. */
-    fun distribute(project: String, author: String): DistributionRun {
-        val область = Area.Project(project)
-        val нужды = живые(область, "need")
-        val цели = живые(область, "goal")
-        val сервисы = живые(область, "service")
-        require(нужды.isNotEmpty()) { "нужд в проекте нет — раздавать нечего: сначала стороны и нужды (сцена 3)" }
-        require(цели.isNotEmpty() || сервисы.isNotEmpty()) { "ни целей, ни сервисов в проекте нет — раздавать не по чему" }
-
-        val промпт = prompt(область, нужды, цели, сервисы)
-        val изЖурнала = service.cached(project, промпт) != null
-        val ответ = service.ask(project, KIND, промпт, maxTokens = БЮДЖЕТ, schema = схема())
-        val корень = развернуть(mapper.readTree(ответ.text))
-
-        val поКоду = (нужды + цели + сервисы).associateBy { it.code }
-        val связи = mutableListOf<ObjectNode>()
-        val отбито = mutableListOf<String>()
-        val раздано = mutableSetOf<String>()
-        var номер = 0
-        корень.path("needs").forEach { строка ->
-            val кодНужды = строка.path("need").asText("").trim()
-            val нужда = поКоду[кодНужды]?.takeIf { it.kind == "need" }
-            if (нужда == null) {
-                отбито += "нужда «$кодНужды»: в проекте нет — в перечне её не было"
-                return@forEach
-            }
-            val причина = строка.path("reason").asText("").trim()
-            listOf("goals" to "goal", "services" to "service").forEach { (поле, вид) ->
-                строка.path(поле).map { it.asText("").trim() }.filter { it.isNotBlank() }.distinct().forEach { кодЦели ->
-                    val цель = поКоду[кодЦели]?.takeIf { it.kind == вид }
-                    if (цель == null) {
-                        отбито += "${слово(вид)} «$кодЦели» у нужды $кодНужды: в проекте нет"
-                        return@forEach
-                    }
-                    if (связи.any { it.path("need").asText() == нужда.code && it.path("target").asText() == цель.code }) return@forEach
-                    номер += 1
-                    раздано += нужда.code
-                    val класс = if (вид == "service") цель.doc.path(QosClass.FIELD).asText("").ifBlank { null } else null
-                    связи += mapper.createObjectNode()
-                        .put("id", "L$номер")
-                        .put("need", нужда.code)
-                        .put("need_text", формулировка(нужда))
-                        .put("target", цель.code)
-                        .put("kind", вид)
-                        .put("target_text", формулировка(цель))
-                        .put("qos_class", класс)
-                        .put("reason", причина)
-                        .put("exists", естьСвязь(цель, нужда))
-                        // Покрытая сервисом нужда без класса: TBR закрывается на
-                        // сцене 6 — приём даст класс и без новой связи (8 нужд
-                        // на PJ-ПМИ7 остались с TBR, потому что их связи «уже есть»).
-                        .put("class_pending", класс != null && !QosClass.assigned(нужда.doc.path(QosClass.FIELD)))
-                }
-            }
-        }
-        val неРаздано = нужды.map { it.code }.filter { it !in раздано }
-
-        val документ = mapper.createObjectNode()
-        документ.put("trigger", KIND)
-        документ.put("cached", изЖурнала)
-        документ.put("slice_size", нужды.size + цели.size + сервисы.size)
-        документ.put("ontology_version", GeneratedOntology.ontologyVersion)
-        документ.putArray("tags").add(МЕТКА)
-        документ.set<ArrayNode>("links", mapper.createArrayNode().also { м -> связи.forEach { м.add(it) } })
-        документ.putArray("unassigned").also { м -> неРаздано.forEach { м.add(it) } }
-        документ.putArray("refused").also { м -> отбито.forEach { м.add(it) } }
-        документ.putArray("accepted")
-        документ.put("note", заметка(связи, неРаздано, отбито, изЖурнала))
-        val запуск = store.create(
-            следующий(область, "synthesis_run", "SR"), "synthesis_run", область, null, документ,
-            Provenance(Channel.SERVICE, author, fingerprint = ответ.model), status = "done",
-        )
-        return вид(запуск)
-    }
-
-    /** Последняя раздача проекта; null — раздачи ещё не было. */
-    fun latest(project: String): DistributionRun? =
-        store.list(Area.Project(project), "synthesis_run")
-            .filter { наша(it) }
-            .maxByOrNull { it.code }
-            ?.let { вид(it) }
-
-    fun view(project: String, run: String): DistributionRun = вид(запуск(Area.Project(project), run))
-
-    /**
-     * Принять отмеченные связи: `covers` от цели или сервиса к нужде; нужде
-     * без класса обслуживания достаётся класс покрывшего сервиса (истина:
-     * «класс обслуживания покрытой нужды — выход сцены сервисов»). Что
-     * сделано — записано в запуск: отмена снимает ровно это.
-     */
+    fun distribute(project: String, author: String): DistributionRun = общий.distribute(project, author)
+    fun latest(project: String): DistributionRun? = общий.latest(project)
+    fun view(project: String, run: String): DistributionRun = общий.view(project, run)
     fun accept(project: String, run: String, chosen: List<String>, author: String, reason: String): DistributionAccepted {
-        val реестр = links ?: throw IllegalStateException("реестр связей на этом стенде не подключён — раздача не принимается")
-        require(chosen.isNotEmpty()) { "не отмечено ни одной связи: отметьте строки раздачи — сама она ничего не заводит" }
-        val область = Area.Project(project)
-        val запуск = запуск(область, run)
-        val документ = запуск.doc.deepCopy<JsonNode>() as ObjectNode
-        val принятые = документ.path("accepted") as? ArrayNode ?: документ.putArray("accepted")
-        val ужеПринято = принятые.map { it.path("id").asText() }.toSet()
-        val поId = документ.path("links").associateBy { it.path("id").asText() }
-        val пропущено = mutableListOf<String>()
-        var связей = 0
-        var классов = 0
-        chosen.map { it.trim() }.filter { it.isNotBlank() }.distinct().forEach { id ->
-            val связь = поId[id] ?: run { пропущено += "$id: такой связи в раздаче нет"; return@forEach }
-            if (id in ужеПринято) { пропущено += "$id: уже принята"; return@forEach }
-            val нужда = store.byCode(область, связь.path("need").asText())
-            val цель = store.byCode(область, связь.path("target").asText())
-            if (нужда == null || цель == null || нужда.status == СНЯТО || цель.status == СНЯТО) {
-                пропущено += "$id: нужда или её цель снята с учёта"
-                return@forEach
-            }
-            val класс = связь.path("qos_class").asText("").trim()
-            val классЖдёт = связь.path("kind").asText() == "service" && класс.isNotBlank() &&
-                !QosClass.assigned(нужда.doc.path(QosClass.FIELD))
-            val естьУже = связь.path("exists").asBoolean(false) || естьСвязь(цель, нужда)
-            if (естьУже && !классЖдёт) {
-                пропущено += "$id: связь уже есть"
-                return@forEach
-            }
-            val запись = принятые.addObject().put("id", id)
-            if (!естьУже) {
-                val обоснование = "раздача нужд $run: ${reason.ifBlank { "принято инженером" }}" +
-                    связь.path("reason").asText("").trim().ifBlank { null }?.let { " — $it" }.orEmpty()
-                val сделано = реестр.link("covers", цель.id, нужда.id, Provenance(Channel.SERVICE, author, source = run), rationale = обоснование)
-                связей += 1
-                запись.put("link", сделано.id)
-            }
-            // Класс — от покрывшего сервиса, и только если у нужды его ещё нет:
-            // назначенное человеком раздача не переписывает.
-            if (классЖдёт) {
-                val прежний = нужда.doc.path(QosClass.FIELD)
-                val док = нужда.doc.deepCopy<JsonNode>() as ObjectNode
-                док.put(QosClass.FIELD, класс)
-                store.update(нужда.id, док, Provenance(Channel.SERVICE, author, source = run))
-                классов += 1
-                запись.put("qos_on", нужда.code)
-                if (прежний.isMissingNode || прежний.isNull) запись.putNull("prev_qos") else запись.set<JsonNode>("prev_qos", прежний)
-            }
-        }
-        val заметка = "принято связей $связей" + (if (классов > 0) " · классов назначено $классов" else "") +
-            (if (пропущено.isEmpty()) "" else " · мимо ${пропущено.size}")
-        store.update(запуск.id, документ, Provenance(Channel.SERVICE, author, source = run), status = запуск.status)
-        return DistributionAccepted(run, связей, классов, пропущено, заметка)
+        links ?: throw IllegalStateException("реестр связей на этом стенде не подключён — раздача не принимается")
+        return общий.accept(project, run, chosen, author, reason)
     }
-
-    /** Отменить принятое: связи снимаются, классы возвращаются как были. */
     fun undo(project: String, run: String, author: String): DistributionUndone {
-        val реестр = links ?: throw IllegalStateException("реестр связей на этом стенде не подключён")
-        val область = Area.Project(project)
-        val запуск = запуск(область, run)
-        val документ = запуск.doc.deepCopy<JsonNode>() as ObjectNode
-        val принятые = документ.path("accepted") as? ArrayNode
-        if (принятые == null || принятые.isEmpty) {
-            throw IllegalStateException("у раздачи «$run» нет принятых связей — отменять нечего")
-        }
-        var снято = 0
-        принятые.forEach { запись ->
-            val связь = запись.path("link").asText("")
-            if (связь.isNotBlank()) {
-                runCatching { реестр.unlink(связь, Provenance(Channel.MANUAL, author, source = run)) }
-                    .onSuccess { снято += 1 }
-            }
-            val кодНужды = запись.path("qos_on").asText("")
-            if (кодНужды.isNotBlank()) {
-                store.byCode(область, кодНужды)?.let { нужда ->
-                    val док = нужда.doc.deepCopy<JsonNode>() as ObjectNode
-                    val прежний = запись.path("prev_qos")
-                    if (прежний.isMissingNode || прежний.isNull) док.remove(QosClass.FIELD) else док.set<JsonNode>(QosClass.FIELD, прежний)
-                    store.update(нужда.id, док, Provenance(Channel.MANUAL, author, source = run))
-                }
-            }
-        }
-        документ.putArray("accepted")
-        store.update(запуск.id, документ, Provenance(Channel.MANUAL, author, source = run), status = запуск.status)
-        return DistributionUndone(run, снято, "раздача отменена: связей снято $снято, классы возвращены как были")
+        links ?: throw IllegalStateException("реестр связей на этом стенде не подключён")
+        return общий.undo(project, run, author)
     }
-
-    // --- промпт ------------------------------------------------------------
 
     /** Промпт — истина о связях и полные перечни; правил в коде нет. */
-    fun prompt(область: Area, нужды: List<Entity>, цели: List<Entity>, сервисы: List<Entity>): String {
+    fun prompt(область: Area, нужды: List<Entity>, цели: List<Entity>, сервисы: List<Entity>): String =
+        случай.prompt(область, нужды, mapOf("goal" to цели, "service" to сервисы))
+}
+
+/** Случай: нужды → цели и сервисы связью `covers`, класс покрывшего сервиса — нужде. */
+internal class НуждыКЦелямИСервисам(
+    private val store: EntityStore,
+    private val links: LinkRegistry?,
+    private val mapper: ObjectMapper,
+) : DistributionCase {
+    override val linkType = "covers"
+    override val tag = "distribution"
+    override val answerKey = "needs"
+    override val sourceKey = "need"
+    override val targetFields = linkedMapOf("goals" to "goal", "services" to "service")
+    override val sourceKind = "need"
+    override val runWord = "раздачи"
+    override val cancelledWord = "нужда или её цель снята с учёта"
+    override val existsWord = "связь уже есть"
+
+    override fun describe(field: String): String = when (field) {
+        "need" -> "код нужды из перечня"
+        "goals" -> "коды целей, к которым нужда ведёт"
+        "services" -> "коды сервисов, которые нужду закрывают"
+        else -> "чем связана — одной строкой"
+    }
+    override fun word(kind: String): String = when (kind) { "goal" -> "цель"; "service" -> "сервис"; else -> "нужда" }
+    override fun ofSource(): String = "у нужды"
+
+    override fun sources(область: Area): List<Entity> = LinkDistributor.живые(store, область, "need")
+    override fun targets(область: Area, kind: String): List<Entity> = LinkDistributor.живые(store, область, kind)
+    override fun check(sources: List<Entity>, targets: Map<String, List<Entity>>) {
+        require(sources.isNotEmpty()) { "нужд в проекте нет — раздавать нечего: сначала стороны и нужды (сцена 3)" }
+        require(targets.values.any { it.isNotEmpty() }) { "ни целей, ни сервисов в проекте нет — раздавать не по чему" }
+    }
+
+    override fun exists(source: Entity, target: Entity): Boolean =
+        links?.to(source.id, "covers")?.any { it.from == target.id } == true
+    override fun qosClass(target: Entity): String? =
+        if (target.kind == "service") target.doc.path(QosClass.FIELD).asText("").ifBlank { null } else null
+    // Покрытая сервисом нужда без класса: TBR закрывается на сцене 6 — приём
+    // даст класс и без новой связи (8 нужд на PJ-ПМИ7 остались с TBR, потому
+    // что их связи «уже есть»).
+    override fun classPending(source: Entity, класс: String?): Boolean =
+        класс != null && !QosClass.assigned(source.doc.path(QosClass.FIELD))
+
+    override fun apply(source: Entity, target: Entity, link: JsonNode, author: String, run: String, reason: String, record: ObjectNode): Written {
+        val реестр = links ?: throw IllegalStateException("реестр связей на этом стенде не подключён — раздача не принимается")
+        val естьУже = link.path("exists").asBoolean(false) || exists(source, target)
+        var связь = false
+        if (!естьУже) {
+            val обоснование = "раздача нужд $run: ${reason.ifBlank { "принято инженером" }}" +
+                link.path("reason").asText("").trim().ifBlank { null }?.let { " — $it" }.orEmpty()
+            val сделано = реестр.link("covers", target.id, source.id, Provenance(Channel.SERVICE, author, source = run), rationale = обоснование)
+            record.put("link", сделано.id)
+            связь = true
+        }
+        // Класс — от покрывшего сервиса, и только если у нужды его ещё нет:
+        // назначенное человеком раздача не переписывает.
+        val класс = link.path("qos_class").asText("").trim().ifBlank { null }
+        var классДан = false
+        if (link.path("kind").asText() == "service" && classPending(source, класс)) {
+            val прежний = source.doc.path(QosClass.FIELD)
+            val док = source.doc.deepCopy<JsonNode>() as ObjectNode
+            док.put(QosClass.FIELD, класс)
+            store.update(source.id, док, Provenance(Channel.SERVICE, author, source = run))
+            record.put("qos_on", source.code)
+            if (прежний.isMissingNode || прежний.isNull) record.putNull("prev_qos") else record.set<JsonNode>("prev_qos", прежний)
+            классДан = true
+        }
+        return Written(связь, классДан)
+    }
+
+    override fun revert(record: JsonNode, area: Area, author: String, run: String): Boolean {
+        val реестр = links ?: throw IllegalStateException("реестр связей на этом стенде не подключён")
+        var снято = false
+        val связь = record.path("link").asText("")
+        if (связь.isNotBlank()) {
+            runCatching { реестр.unlink(связь, Provenance(Channel.MANUAL, author, source = run)) }.onSuccess { снято = true }
+        }
+        val кодНужды = record.path("qos_on").asText("")
+        if (кодНужды.isNotBlank()) {
+            store.byCode(area, кодНужды)?.let { нужда ->
+                val док = нужда.doc.deepCopy<JsonNode>() as ObjectNode
+                val прежний = record.path("prev_qos")
+                if (прежний.isMissingNode || прежний.isNull) док.remove(QosClass.FIELD) else док.set<JsonNode>(QosClass.FIELD, прежний)
+                store.update(нужда.id, док, Provenance(Channel.MANUAL, author, source = run))
+            }
+        }
+        return снято
+    }
+
+    override fun note(links: List<ObjectNode>, unassigned: List<String>, refused: List<String>, cached: Boolean): String {
+        val кЦелям = links.count { it.path("kind").asText() == "goal" }
+        val кСервисам = links.count { it.path("kind").asText() == "service" }
+        val есть = links.count { it.path("exists").asBoolean(false) }
+        return buildString {
+            append("раздача: связей ${links.size} (к целям $кЦелям · к сервисам $кСервисам)")
+            if (есть > 0) append(" · уже есть $есть")
+            if (unassigned.isNotEmpty()) append(" · не раздано ${unassigned.size}: ${unassigned.joinToString(", ")}")
+            if (refused.isNotEmpty()) append(" · отбито ${refused.size}")
+            if (cached) append(" · ответ из журнала, живого вызова не было")
+        }
+    }
+    override fun acceptNote(linked: Int, classes: Int, skipped: Int): String =
+        "принято связей $linked" + (if (classes > 0) " · классов назначено $classes" else "") + (if (skipped == 0) "" else " · мимо $skipped")
+    override fun undoNote(unlinked: Int): String = "раздача отменена: связей снято $unlinked, классы возвращены как были"
+
+    override fun prompt(область: Area, sources: List<Entity>, targets: Map<String, List<Entity>>): String {
+        val нужды = sources
+        val цели = targets["goal"].orEmpty()
+        val сервисы = targets["service"].orEmpty()
         val цель = GeneratedOntology.byCode["goal"]
         val сервис = GeneratedOntology.byCode["service"]
         val нужда = GeneratedOntology.byCode["need"]
@@ -255,7 +196,7 @@ class NeedDistributor(
             appendLine()
             appendLine("## Нужды (${нужды.size})")
             нужды.forEach { н ->
-                append("- ${н.code} · «${формулировка(н)}» · сторона: ${носитель(н)}")
+                append("- ${н.code} · «${LinkDistributor.формулировка(н)}» · сторона: ${носитель(н)}")
                 // Чем нужда закрывается (истина `need.coverage_expected`): сервис
                 // ждёт не всякая, и выход сцены 6 считает только таких.
                 Coverage.expected(н.doc, рольНосителя(н))?.let { append(" · ждёт: $it") }
@@ -268,7 +209,7 @@ class NeedDistributor(
             appendLine()
             appendLine("## Цели (${цели.size})")
             цели.forEach { ц ->
-                append("- ${ц.code} · «${формулировка(ц)}»")
+                append("- ${ц.code} · «${LinkDistributor.формулировка(ц)}»")
                 ц.doc.path("measure").takeIf { it.isObject }?.let { м ->
                     val значение = м.path("value").asText("").ifBlank { "${м.path("min").asText("")}–${м.path("max").asText("")}" }
                     append(" · показатель: $значение ${м.path("unit").asText("")}".trimEnd())
@@ -279,51 +220,19 @@ class NeedDistributor(
             appendLine()
             appendLine("## Сервисы (${сервисы.size})")
             сервисы.forEach { с ->
-                append("- ${с.code} · «${формулировка(с)}»")
+                append("- ${с.code} · «${LinkDistributor.формулировка(с)}»")
                 с.doc.path(QosClass.FIELD).asText("").ifBlank { null }?.let { append(" · класс: $it") }
                 appendLine()
             }
         }
     }
 
-    private fun схема(): JsonNode {
-        val связь = mapper.createObjectNode().put("type", "object")
-        val свойства = связь.putObject("properties")
-        свойства.putObject("need").put("type", "string").put("description", "код нужды из перечня")
-        свойства.putObject("goals").put("type", "array").put("description", "коды целей, к которым нужда ведёт")
-            .putObject("items").put("type", "string")
-        свойства.putObject("services").put("type", "array").put("description", "коды сервисов, которые нужду закрывают")
-            .putObject("items").put("type", "string")
-        свойства.putObject("reason").put("type", "string").put("description", "чем связана — одной строкой")
-        связь.putArray("required").add("need").add("goals").add("services").add("reason")
-        val корень = mapper.createObjectNode().put("type", "object")
-        корень.putObject("properties").putObject("needs").put("type", "array").set<JsonNode>("items", связь)
-        корень.putArray("required").add("needs")
-        return корень
-    }
-
-    /** Ответ в обёртке вызова инструмента (`{"parameters": {…}}`) разворачивается. */
-    private fun развернуть(узел: JsonNode): JsonNode {
-        if (узел.path("needs").isArray) return узел
-        val один = узел.properties().singleOrNull()?.takeIf { it.value.isObject } ?: return узел
-        return if (один.value.path("needs").isArray) один.value else узел
-    }
-
-    // --- поле --------------------------------------------------------------
-
-    private fun живые(область: Area, вид: String): List<Entity> =
-        store.list(область, вид).filter { it.status != СНЯТО }.sortedBy { it.code }
-
-    private fun формулировка(запись: Entity): String =
-        listOf("statement", "name", "text", "designation")
-            .firstNotNullOfOrNull { запись.doc.path(it).asText("").trim().ifBlank { null } } ?: запись.code
-
     private fun рольНосителя(нужда: Entity): String? = Coverage.рольНосителя(store, links, нужда)
 
     /** Сторона нужды: связью `owns`, а если её нет — полем документа. */
     private fun носитель(нужда: Entity): String {
         val поСвязи = links?.to(нужда.id, "owns")?.mapNotNull { store.byId(it.from) }?.firstOrNull()
-        if (поСвязи != null) return формулировка(поСвязи)
+        if (поСвязи != null) return LinkDistributor.формулировка(поСвязи)
         val поле = нужда.doc.path("stakeholder")
         val текст = if (поле.isObject) поле.path("code").asText("") else поле.asText("")
         return текст.trim().ifBlank { "—" }
@@ -331,70 +240,4 @@ class NeedDistributor(
 
     private fun покрывающие(нужда: Entity, вид: String): List<String> =
         links?.to(нужда.id, "covers")?.mapNotNull { store.byId(it.from) }?.filter { it.kind == вид }?.map { it.code }.orEmpty()
-
-    private fun естьСвязь(цель: Entity, нужда: Entity): Boolean =
-        links?.to(нужда.id, "covers")?.any { it.from == цель.id } == true
-
-    private fun запуск(область: Area, код: String): Entity =
-        store.byCode(область, код)?.takeIf { наша(it) }
-            ?: throw NoSuchElementException("раздачи «$код» в проекте нет")
-
-    private fun наша(запись: Entity): Boolean =
-        запись.kind == "synthesis_run" && запись.doc.path("tags").any { it.asText() == МЕТКА }
-
-    private fun вид(запуск: Entity): DistributionRun {
-        val принятые = запуск.doc.path("accepted").map { it.path("id").asText() }.toSet()
-        return DistributionRun(
-            id = запуск.code,
-            status = запуск.status,
-            cached = запуск.doc.path("cached").asBoolean(false),
-            note = запуск.doc.path("note").asText(""),
-            links = запуск.doc.path("links").map { с ->
-                DistributionLink(
-                    id = с.path("id").asText(),
-                    need = с.path("need").asText(),
-                    needText = с.path("need_text").asText(""),
-                    target = с.path("target").asText(),
-                    targetKind = с.path("kind").asText(),
-                    targetText = с.path("target_text").asText(""),
-                    qosClass = с.path("qos_class").asText("").ifBlank { null },
-                    reason = с.path("reason").asText(""),
-                    exists = с.path("exists").asBoolean(false),
-                    classPending = с.path("class_pending").asBoolean(false),
-                    accepted = с.path("id").asText() in принятые,
-                )
-            },
-            unassigned = запуск.doc.path("unassigned").map { it.asText() },
-            refused = запуск.doc.path("refused").map { it.asText() },
-        )
-    }
-
-    private fun заметка(связи: List<ObjectNode>, неРаздано: List<String>, отбито: List<String>, изЖурнала: Boolean): String {
-        val кЦелям = связи.count { it.path("kind").asText() == "goal" }
-        val кСервисам = связи.count { it.path("kind").asText() == "service" }
-        val есть = связи.count { it.path("exists").asBoolean(false) }
-        return buildString {
-            append("раздача: связей ${связи.size} (к целям $кЦелям · к сервисам $кСервисам)")
-            if (есть > 0) append(" · уже есть $есть")
-            if (неРаздано.isNotEmpty()) append(" · не раздано ${неРаздано.size}: ${неРаздано.joinToString(", ")}")
-            if (отбито.isNotEmpty()) append(" · отбито ${отбито.size}")
-            if (изЖурнала) append(" · ответ из журнала, живого вызова не было")
-        }
-    }
-
-    private fun следующий(область: Area, вид: String, префикс: String): String {
-        val занято = store.list(область, вид).mapNotNull {
-            Regex("^$префикс-(\\d+)$").find(it.code)?.groupValues?.get(1)?.toIntOrNull()
-        }
-        return "%s-%04d".format(префикс, (занято.maxOrNull() ?: 0) + 1)
-    }
-
-    private fun слово(вид: String): String = if (вид == "goal") "цель" else "сервис"
-
-    private companion object {
-        const val KIND: String = "distribution"
-        const val МЕТКА: String = "distribution"
-        const val СНЯТО: String = "cancelled"
-        const val БЮДЖЕТ: Int = 16000
-    }
 }

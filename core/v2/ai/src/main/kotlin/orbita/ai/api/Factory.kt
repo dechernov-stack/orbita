@@ -6,6 +6,7 @@ import orbita.ai.internal.Atomizer
 import orbita.ai.internal.BackgroundAtomizer
 import orbita.ai.internal.BackgroundSynthesizer
 import orbita.ai.internal.DocumentReader
+import orbita.ai.internal.FunctionAllocationDistributor
 import orbita.ai.internal.GoalCoverageDistributor
 import orbita.ai.internal.ScenarioProposer
 import orbita.ai.internal.NeedDistributor
@@ -138,6 +139,26 @@ object AiFactory {
         val синтез = Synthesizer(store, intake, service, mapper)
         return ImportStatement { project, material, statement, author ->
             импорт.import(project, material, statement, author, синтез)
+        }
+    }
+
+    /**
+     * Раздача функций по узлам состава (сцена 7) — четвёртый случай общего
+     * порядка раздачи: связь `allocated_to`, пишется поле функции.
+     */
+    fun allocateFunctions(
+        store: EntityStore,
+        service: AiService,
+        mapper: ObjectMapper = ObjectMapper(),
+    ): DistributeNeeds {
+        val раздача = FunctionAllocationDistributor(store, service, mapper)
+        return object : DistributeNeeds {
+            override fun distribute(project: String, author: String) = раздача.distribute(project, author)
+            override fun latest(project: String) = раздача.latest(project)
+            override fun view(project: String, run: String) = раздача.view(project, run)
+            override fun accept(project: String, run: String, chosen: List<String>, author: String, reason: String) =
+                раздача.accept(project, run, chosen, author, reason)
+            override fun undo(project: String, run: String, author: String) = раздача.undo(project, run, author)
         }
     }
 

@@ -75,7 +75,7 @@ class KnowledgeFieldRoutesTest {
     private val знанияМаршруты: KnowledgeRoutes by lazy {
         KnowledgeRoutes(
             знания, AiFactory.atomize(store, знания, служба, mapper), служба, mapper, store = store,
-            distribute = раздачаПодмена, proposeScenarios = сценарииПодмена,
+            distribute = раздачаПодмена, proposeScenarios = сценарииПодмена, allocateFunctions = раздачаПодмена,
         )
     }
 
@@ -174,6 +174,30 @@ class KnowledgeFieldRoutesTest {
         val откат = assertNotNull(знанияМаршруты.handle("POST", "/v2/scenarios/propose/SR-0009/undo", mapOf("project" to сПолем), """{"author":"инженер"}"""))
         assertEquals(200, откат.code)
         assertEquals(1, откат.body.path("cancelled").asInt())
+    }
+
+    /** Одна раздача связей: вид связи параметром; неизвестный вид — отказ словами. */
+    @Test
+    fun `общий маршрут раздачи берёт вид связи параметром`() {
+        val п = mapOf("project" to сПолем, "type" to "allocated_to")
+        val ответ = assertNotNull(знанияМаршруты.handle("POST", "/v2/links/propose", п, """{"author":"инженер"}"""))
+        assertEquals(201, ответ.code, ответ.body.toString())
+        assertEquals("allocated_to", ответ.body.path("type").asText())
+        assertEquals("SR-0007", ответ.body.path("run").asText())
+        val последняя = assertNotNull(знанияМаршруты.handle("GET", "/v2/links/propose", п, null))
+        assertEquals("SR-0007", последняя.body.path("run").asText())
+        val приём = assertNotNull(знанияМаршруты.handle("POST", "/v2/links/propose/SR-0007/accept", п, """{"chosen":["L1"],"author":"инженер"}"""))
+        assertEquals(201, приём.code, приём.body.toString())
+        assertEquals(listOf("L1"), раздачаПодмена.принято)
+        val откат = assertNotNull(знанияМаршруты.handle("POST", "/v2/links/propose/SR-0007/undo", п, """{"author":"инженер"}"""))
+        assertEquals(200, откат.code)
+        val чужой = kotlin.runCatching {
+            знанияМаршруты.handle("POST", "/v2/links/propose", mapOf("project" to сПолем, "type" to "realized_by"), """{"author":"инженер"}""")
+        }.exceptionOrNull()
+        assertTrue(чужой is IllegalArgumentException && "раздаче не известен" in чужой.message!!, "неизвестный вид — отказ словами: $чужой")
+        // Прежний маршрут раздачи нужд — тот же порт под старым адресом.
+        val прежний = assertNotNull(знанияМаршруты.handle("GET", "/v2/links/propose", mapOf("project" to сПолем, "type" to "covers"), null))
+        assertEquals("SR-0007", прежний.body.path("run").asText())
     }
 
     @Test

@@ -45,7 +45,20 @@ class KnowledgeRoutes(
     private val store: EntityStore? = null,
     /** Сценарии сцены 9 предложением из сервисов и цепочек Arcadia (шип 1, п. 1.7); null — не включено. */
     private val proposeScenarios: orbita.ai.api.ProposeScenarios? = null,
+    /** Раздача функций по узлам (сцена 7) — случай общего порядка раздачи; null — не включена. */
+    private val allocateFunctions: orbita.ai.api.DistributeNeeds? = null,
 ) {
+
+    /**
+     * Одна раздача связей с параметром — вид связи из реестра: прежние три
+     * (нужды → цели · сервисы, требования → цели) и четвёртая (функции → узлы).
+     */
+    private fun раздачаПоВиду(вид: String): orbita.ai.api.DistributeNeeds = when (вид) {
+        "covers" -> раздача()
+        "derives_from" -> раздачаЦелей()
+        "allocated_to" -> allocateFunctions ?: throw IllegalStateException("раздача функций по узлам на этом стенде не включена")
+        else -> throw IllegalArgumentException("вид связи «$вид» раздаче не известен: covers · derives_from · allocated_to")
+    }
 
     fun handle(method: String, path: String, query: Map<String, String>, body: String?): V2Router.Ответ? = when {
         // Д1: канон материала — блоки с якорями; по ним факт проверяется
@@ -92,6 +105,16 @@ class KnowledgeRoutes(
             принятьРаздачуЦелей(требуется(query, "project"), ПРИЁМ_ЦЕЛЕЙ.matchEntire(path)!!.groupValues[1], разобрать(body))
         method == "POST" && ОТМЕНА_ЦЕЛЕЙ.matches(path) ->
             отменитьРаздачуЦелей(требуется(query, "project"), ОТМЕНА_ЦЕЛЕЙ.matchEntire(path)!!.groupValues[1], разобрать(body))
+
+        // Одна раздача связей (шип 1): вид связи — параметром `type`.
+        method == "POST" && path == "/v2/links/propose" ->
+            раздатьСвязи(требуется(query, "project"), требуется(query, "type"), разобрать(body))
+        method == "GET" && path == "/v2/links/propose" ->
+            последняяРаздачаСвязей(требуется(query, "project"), требуется(query, "type"))
+        method == "POST" && ПРИЁМ_СВЯЗЕЙ.matches(path) ->
+            принятьСвязи(требуется(query, "project"), требуется(query, "type"), ПРИЁМ_СВЯЗЕЙ.matchEntire(path)!!.groupValues[1], разобрать(body))
+        method == "POST" && ОТМЕНА_СВЯЗЕЙ.matches(path) ->
+            отменитьСвязи(требуется(query, "project"), требуется(query, "type"), ОТМЕНА_СВЯЗЕЙ.matchEntire(path)!!.groupValues[1], разобрать(body))
 
         // Сценарии сцены 9 предложением из сервисов и цепочек Arcadia (шип 1, п. 1.7).
         method == "POST" && path == "/v2/scenarios/propose" ->
@@ -392,6 +415,39 @@ class KnowledgeRoutes(
     private fun отменитьРаздачуЦелей(project: String, run: String, тело: JsonNode): V2Router.Ответ =
         V2Router.Ответ(200, видОтменыРаздачи(раздачаЦелей().undo(project, run, тело.path("author").asText("инженер"))))
 
+    // --- одна раздача связей: вид связи параметром -------------------------
+
+    private fun раздатьСвязи(project: String, вид: String, тело: JsonNode): V2Router.Ответ {
+        val автор = тело.path("author").asText("инженер")
+        return try {
+            V2Router.Ответ(201, видРаздачи(раздачаПоВиду(вид).distribute(project, автор)).put("type", вид))
+        } catch (e: ProviderUnavailable) {
+            V2Router.Ответ(
+                503,
+                mapper.createObjectNode()
+                    .put("error", "канал службы недоступен: ${e.message}")
+                    .put("what_to_do", "повторите раздачу позже — записи на месте"),
+            )
+        }
+    }
+
+    private fun последняяРаздачаСвязей(project: String, вид: String): V2Router.Ответ {
+        val последняя = раздачаПоВиду(вид).latest(project)
+            ?: return V2Router.Ответ(200, mapper.createObjectNode().put("run", "").put("type", вид)
+                .put("note", "раздачи «$вид» на проекте ещё не было — нажмите «Предложить связи»"))
+        return V2Router.Ответ(200, видРаздачи(последняя).put("type", вид))
+    }
+
+    private fun принятьСвязи(project: String, вид: String, run: String, тело: JsonNode): V2Router.Ответ {
+        val итог = раздачаПоВиду(вид).accept(
+            project, run, тело.path("chosen").map { it.asText() }, тело.path("author").asText("инженер"), тело.path("reason").asText(""),
+        )
+        return V2Router.Ответ(201, видПриёмаРаздачи(итог))
+    }
+
+    private fun отменитьСвязи(project: String, вид: String, run: String, тело: JsonNode): V2Router.Ответ =
+        V2Router.Ответ(200, видОтменыРаздачи(раздачаПоВиду(вид).undo(project, run, тело.path("author").asText("инженер"))))
+
     // --- сценарии предложением (шип 1, п. 1.7) ------------------------------
 
     private fun сценарии(): orbita.ai.api.ProposeScenarios =
@@ -632,6 +688,8 @@ class KnowledgeRoutes(
         val ОТМЕНА_РАЗДАЧИ: Regex = Regex("/v2/intake/distribute/(SR-[0-9]+)/undo")
         val ПРИЁМ_ЦЕЛЕЙ: Regex = Regex("/v2/requirements/coverage/(SR-[0-9]+)/accept")
         val ОТМЕНА_ЦЕЛЕЙ: Regex = Regex("/v2/requirements/coverage/(SR-[0-9]+)/undo")
+        val ПРИЁМ_СВЯЗЕЙ: Regex = Regex("/v2/links/propose/(SR-[0-9]+)/accept")
+        val ОТМЕНА_СВЯЗЕЙ: Regex = Regex("/v2/links/propose/(SR-[0-9]+)/undo")
         val ПРИЁМ_СЦЕНАРИЕВ: Regex = Regex("/v2/scenarios/propose/(SR-[0-9]+)/accept")
         val ОТМЕНА_СЦЕНАРИЕВ: Regex = Regex("/v2/scenarios/propose/(SR-[0-9]+)/undo")
 
