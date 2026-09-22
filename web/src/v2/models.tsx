@@ -243,7 +243,7 @@ function Rollup({ свёртка, величина, точка, onВеличин
               <li>
                 номинал: <b>{свёртка.sum} {свёртка.unit}</b>
               </li>
-              <li title="резерв класса стоит на КАЖДОЙ строке по её зрелости">
+              <li title="резерв класса стоит на каждой строке по её зрелости">
                 с резервами классов: <b>{свёртка.with_class_reserve} {свёртка.unit}</b>
                 {свёртка.frame.map((р) => (
                   <span key={р.constraint} className={р.within_by_class ? 'v2-ok' : 'v2-warn'}>

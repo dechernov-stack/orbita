@@ -714,7 +714,8 @@ export class ServerRefusal extends Error {
   }
 }
 
-async function вызов<T>(путь: string, настройки?: RequestInit, повтор = true): Promise<T> {
+/** Один HTTP-вход для всех модулей экранов: шип 2 держит вызовы экрана в его модуле, не здесь. */
+export async function вызов<T>(путь: string, настройки?: RequestInit, повтор = true): Promise<T> {
   const ответ = await fetch(`/api/v2${путь}`, {
     headers: { 'Content-Type': 'application/json' },
     ...настройки,

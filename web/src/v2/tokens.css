@@ -4,39 +4,57 @@
    Токены — единственный источник цвета и размера: правило «цвет не может
    быть единственным носителем смысла» держится тем, что рядом с цветом
    всегда стоит текст статуса. */
+/* Токены дизайн-направления «маршрутная карта на чертёжной бумаге»
+   (ДИЗАЙН-НАПРАВЛЕНИЕ, шип 2): чернила и графит, цвет — только состояние.
+   Прежние имена переменных сохранены и указывают на новые значения: экраны
+   переезжают по одному, а палитра у всех уже одна. */
 :root {
-  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font: "Golos Text", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: var(--font);
   --size: 14px;
 
-  --ink: #16181d;
-  --ink-soft: #5c6270;
-  --ink-mute: #8b91a0;
-  --line: #e3e6ec;
-  --ground: #ffffff;
-  --ground-soft: #f6f7f9;
-  --accent: #2f6feb;
-  --accent-soft: #eaf1fe;
+  /* Бумага · поверхность · графит линий · чернила · приглушённый текст. */
+  --paper: #F4F6F8;
+  --surface: #FFFFFF;
+  --graphite: #C9D0D8;
+  --ink: #182130;
+  --muted: #5C6675;
+  /* Цвет = состояние: кобальт «здесь и сейчас», зелёный «выполнено»,
+     янтарь «ждёт», красный «блокирует». Иллюстративного цвета нет. */
+  --cobalt: #2A4BD7;
+  --green: #1F7A4D;
+  --amber: #B7791F;
+  --red: #C43A2B;
+  --focus: 0 0 0 3px rgba(42, 75, 215, .28);
 
-  /* Заливки блоков схемы: состояние читается текстом, цвет — подсказка. */
-  --v2-done: #eef7ee;
-  --v2-gate: #fff6e0;
+  /* Прежние имена — те же значения, чтобы ни один экран не остался в старой палитре. */
+  --ink-soft: var(--muted);
+  --ink-mute: #8B93A0;
+  --line: var(--graphite);
+  --ground: var(--surface);
+  --ground-soft: var(--paper);
+  --accent: var(--cobalt);
+  --accent-soft: #E7ECFB;
+  --v2-done: #EAF4EE;
+  --v2-gate: #FBF5EE;
+  --ok: var(--green);
+  --wait: var(--amber);
+  --block: var(--red);
 
-  --ok: #1f7a45;
-  --wait: #8a6100;
-  --block: #b02a2a;
-
-  --radius: 7px;
+  /* Радиус 6 — только у ввода и чипов; панели и карточки — прямые, линией. */
+  --radius: 0;
+  --radius-input: 6px;
   --gap: 10px;
 
   /* §5 дизайна v2: ТРИ размера и ничего между ними.
      15 — заголовок мероприятия, 14 — текст, 12 — служебное. */
   --size-h: 15px;
   --size-s: 12px;
-  /* Отступы 8/12/16 — третьего ряда чисел на экране не заводим. */
+  /* Отступы 8/12/16/24 — третьего ряда чисел на экране не заводим. */
   --pad-s: 8px;
   --pad-m: 12px;
   --pad-l: 16px;
+  --pad-xl: 24px;
   /* Рейка: 48 свёрнута, 280 развёрнута. */
   --rail-w: 48px;
   --rail-open: 280px;
@@ -48,31 +66,51 @@ body {
   margin: 0;
   font: var(--size)/1.45 var(--font);
   color: var(--ink);
-  background: var(--ground-soft);
+  background: var(--paper);
+  /* Цифры табличные везде: коды, даты и счётчики стоят столбиком. */
+  font-variant-numeric: tabular-nums;
 }
 
+button, input, select, textarea { font: inherit; }
+
 :focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-  border-radius: 4px;
+  outline: none;
+  box-shadow: var(--focus);
 }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 
 /* Эталон: шапка во всю ширину, под ней рейка 200px и главное поле. */
 .v2-shell { min-height: 100vh; }
-.v2-layout { display: grid; grid-template-columns: 200px 1fr; min-height: calc(100vh - 42px); }
+.v2-layout { display: grid; grid-template-columns: 200px 1fr; min-height: calc(100vh - 40px); }
 .v2-main { padding: 16px 20px; }
 
 /* Работа: лента сцен слева, рамка сцены справа. */
 .v2-two-cols { display: grid; grid-template-columns: 320px 1fr; gap: 20px; align-items: start; }
 
+/* Шапка 40 px (шип 2): логотип · проект · фаза · ближайшая точка; справа — «мои» и меню-аватар. */
 .v2-top {
   display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center;
-  padding: 8px 16px; border-bottom: 1px solid var(--line); background: var(--ground);
+  height: 40px; padding: 0 16px; border-bottom: 1px solid var(--graphite); background: var(--surface);
 }
+.v2-brand { font-weight: 600; letter-spacing: .01em; margin-right: 4px; }
+.v2-gatechip { display: inline-flex; gap: 6px; align-items: center; font-size: var(--size-s); color: var(--muted); }
+.v2-gatechip .v2-marker { flex: none; }
+.v2-account { position: relative; display: inline-flex; }
+.v2-avatar {
+  width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--graphite); background: var(--surface);
+  color: var(--ink); font-size: var(--size-s); font-weight: 600; cursor: pointer; padding: 0;
+}
+.v2-avatar[aria-expanded="true"] { border-color: var(--cobalt); color: var(--cobalt); }
+.v2-menu {
+  position: absolute; right: 0; top: 34px; z-index: 5; min-width: 260px;
+  display: grid; gap: 10px; padding: 12px; background: var(--surface); border: 1px solid var(--graphite);
+}
+.v2-icon { flex: none; color: currentColor; }
 .v2-ctx { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
 .v2-me { display: flex; gap: 14px; align-items: center; color: var(--ink-soft); }
-.v2-project { font: inherit; font-weight: 600; padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--ground); }
-.v2-chip { padding: 2px 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--ground-soft); font-size: 12px; }
+.v2-project { font: inherit; font-weight: 500; padding: 4px 8px; border: 1px solid var(--line); border-radius: var(--radius-input); background: var(--ground); }
+.v2-chip { padding: 2px 10px; border: 1px solid var(--line); border-radius: var(--radius-input); background: var(--surface); font-size: 12px; }
 .v2-bad { color: var(--block); }
 .v2-link { border: 0; background: none; color: var(--accent); cursor: pointer; padding: 0; font: inherit; }
 
@@ -115,7 +153,7 @@ body {
   border: 0; background: none; font: inherit; color: inherit; text-align: left;
 }
 .v2-node__btn { cursor: pointer; }
-.v2-node__btn:hover { background: var(--accent-soft); border-radius: 8px; }
+.v2-node__btn:hover { background: var(--accent-soft); }
 .v2-node { display: grid; gap: 2px; text-align: left; line-height: 1.25; overflow: hidden; }
 /* Обрезков и переносов статуса на схеме нет: подпись живёт в двух строках
    и заканчивается многоточием, а не половиной слова за краем блока. */
@@ -164,11 +202,14 @@ body {
 .v2-rail { background: var(--ground); border-right: 1px solid var(--line); padding: 8px 0; }
 .v2-rail__group { padding: 10px 14px 4px; color: var(--ink-mute); font-size: 12px; }
 .v2-rail__item {
-  display: block; width: 100%; text-align: left; border: 0; background: none;
-  font: inherit; color: var(--ink); padding: 7px 14px; cursor: pointer;
+  display: flex; gap: 10px; align-items: center; width: 100%; text-align: left;
+  padding: 7px 20px; border: 0; background: none; color: var(--ink); cursor: pointer; font: inherit;
+  white-space: normal; /* полные подписи: усечения в рейке не бывает */
 }
+.v2-rail__sep { margin: 10px 20px; border-top: 1px solid var(--graphite); }
+.v2-rail__item--exp { color: var(--muted); cursor: default; }
 .v2-rail__item:hover { background: var(--ground-soft); }
-.v2-rail__item[aria-current="page"] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.v2-rail__item[aria-current="page"] { color: var(--cobalt); font-weight: 500; box-shadow: inset 3px 0 0 var(--cobalt); background: none; }
 
 /* Шапка — где я нахожусь и что держит ближайшую точку */
 .v2-head {
@@ -180,7 +221,7 @@ body {
 .v2-head__spacer { flex: 1; }
 .v2-chip {
   display: inline-flex; align-items: center; gap: 6px;
-  border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; background: var(--ground);
+  border: 1px solid var(--line); border-radius: var(--radius-input); padding: 3px 10px; background: var(--ground);
   font: inherit; color: inherit; cursor: pointer;
 }
 .v2-chip--block { border-color: #f0c8c8; color: var(--block); }
@@ -239,14 +280,14 @@ body {
 .v2-field__cap { color: var(--ink-soft); }
 .v2-form input, .v2-form select, .v2-form textarea {
   font: inherit; color: var(--ink); padding: 6px 9px;
-  border: 1px solid var(--line); border-radius: 5px; background: var(--ground);
+  border: 1px solid var(--line); border-radius: var(--radius-input); background: var(--ground);
   /* Длинный вариант списка не растягивает поле за колонку: селект носителя
      («DC-PROC · Обработка и маршрутизация») выезжал на соседнюю колонку. */
   max-width: 100%; min-width: 0;
 }
 .v2-form__actions { display: flex; gap: 8px; align-items: center; margin-top: 4px; }
 .v2-primary { background: var(--accent); color: #fff; border: 0; }
-button { font: inherit; padding: 6px 12px; border: 1px solid var(--line); border-radius: 5px; background: var(--ground); cursor: pointer; }
+button { font: inherit; padding: 6px 12px; border: 1px solid var(--line); border-radius: var(--radius-input); background: var(--ground); cursor: pointer; }
 button:disabled { opacity: .55; cursor: default; }
 
 .v2-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
@@ -277,7 +318,7 @@ button:disabled { opacity: .55; cursor: default; }
 
 /* Величина — тройкой: оператор · значение · единица (field_rules.widgets). */
 .v2-measure { display: grid; grid-template-columns: 58px minmax(0, 1fr) minmax(0, 1.3fr); gap: 6px; }
-.v2-measure > * { min-width: 0; width: 100%; text-overflow: ellipsis; }
+.v2-measure > * { min-width: 0; width: 100%; }
 
 /*
   Поля сцены 9 в ряд: у режима — код, имя и род; у перехода — откуда, куда и
@@ -286,13 +327,13 @@ button:disabled { opacity: .55; cursor: default; }
 */
 .v2-row3 { display: grid; grid-template-columns: minmax(90px, .6fr) minmax(0, 1.6fr) minmax(0, 1fr); gap: 6px; }
 .v2-row2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); gap: 6px; }
-.v2-row3 > *, .v2-row2 > * { min-width: 0; width: 100%; text-overflow: ellipsis; }
+.v2-row3 > *, .v2-row2 > * { min-width: 0; width: 100%; }
 .v2-measure select, .v2-measure input { min-width: 0; }
 .v2-row--open { background: var(--accent-soft); }
 .v2-card-row td { background: var(--ground); }
 
 .v2-flag {
-  margin-left: 6px; padding: 1px 6px; border-radius: 999px;
+  margin-left: 6px; padding: 1px 6px; border-radius: var(--radius-input);
   font-size: 12px; background: var(--accent-soft); color: var(--ink-soft);
 }
 .v2-flag--warn { background: #fdf1ef; color: var(--block); }
@@ -365,7 +406,7 @@ button:disabled { opacity: .55; cursor: default; }
 .v2-act2__panel {
   position: absolute; top: 0; right: var(--rail-w); width: var(--rail-open);
   border: 1px solid var(--line); border-radius: var(--radius);
-  background: var(--ground); padding: var(--pad-m); box-shadow: 0 6px 24px rgba(0, 0, 0, .08);
+  background: var(--ground); padding: var(--pad-m); border: 1px solid var(--graphite);
 }
 .v2-act2__ph { display: flex; justify-content: space-between; gap: var(--pad-s); margin-bottom: var(--pad-s); font-weight: 600; }
 .v2-act2__list { margin: 0; padding-left: var(--pad-l); display: grid; gap: 6px; }
@@ -461,7 +502,7 @@ button:disabled { opacity: .55; cursor: default; }
 }
 .cf-box {
   min-width: 320px; max-width: 460px; background: var(--bg); border: 1px solid var(--hairline);
-  border-radius: 10px; padding: 16px; box-shadow: 0 12px 32px rgba(15, 18, 24, 0.18);
+  padding: 16px; border: 1px solid var(--graphite);
 }
 .cf-q { font: 500 13.5px/20px var(--font); color: var(--text); }
 .cf-in { display: flex; flex-direction: column; gap: 4px; margin-top: 10px; font-size: 12px; }

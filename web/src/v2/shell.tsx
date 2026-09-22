@@ -20,6 +20,8 @@ import { RiskRegistry } from './risks'
 import { ExternalModelScreen } from './externalmodel'
 import { Library } from './library'
 import { ИМЯ_РЕЖИМА, режимПоРоли, type Режим } from './density'
+import { Икон, type Пиктограмма } from './icons'
+import { Маркер } from './markers'
 
 /** Раздел рейки. `wave` — волна, в которой раздел оживает. */
 type Section = {
@@ -30,24 +32,29 @@ type Section = {
   hint: string
   /** Раздел виден с этой сцены фазы; до неё — только в эксперт-режиме. */
   fromScene?: string
+  /** Пиктограмма рейки — всегда рядом со словом, никогда вместо него. */
+  icon: Пиктограмма
 }
 
 const SECTIONS: Section[] = [
-  { key: 'work', title: 'Работа', wave: 1, hint: 'лента сцен и точек фазы — вход в продукт' },
-  { key: 'formulation', title: 'Постановка', wave: 1, hint: 'стейкхолдеры, нужды, цели, ограничения, сервисы и покрытие' },
-  { key: 'knowledge', title: 'Поле знаний', wave: 2, hint: 'материалы, факты с якорями, загрузка с заданием' },
-  { key: 'concept', title: 'Концепция', wave: 3, hint: 'состав системы, варианты построения, базовый вариант' },
-  { key: 'requirements', title: 'Требования', wave: 3, hint: 'реестр требований, два дерева, влияние правки' },
-  { key: 'architecture', title: 'Архитектура', wave: 3, hint: 'операционный, системный, логический и физический слои' },
-  { key: 'models', title: 'Модели', wave: 4, hint: 'записи моделей, прогоны, резервы' },
-  { key: 'documents', title: 'Документы', wave: 4, hint: 'разделы документов с полнотой к ступени, тезисы, печать' },
-  { key: 'risks', title: 'Риски', wave: 4, fromScene: '11', hint: 'реестр рисков всей фазы: отбор, закрытие решением, срок-точка' },
-  { key: 'points', title: 'Точки', wave: 6, hint: 'готовность по экспертизе, замечания, фиксация' },
-  { key: 'passport', title: 'Паспорт', wave: 6, hint: 'название, класс миссии, руководитель, DA, стандарт, даты точек — правка на месте' },
-  { key: 'library', title: 'Библиотека', wave: 2, expert: true, hint: 'полки, окно взятия, справочники' },
-  { key: 'exchange', title: 'Обмен', wave: 5, expert: true, hint: 'StrictDoc и ReqIF, выгрузка знаний' },
-  { key: 'external', title: 'Внешняя модель', wave: 7, expert: true, hint: 'элементы Capella по слоям либо fixture с баннером; только чтение' },
-  { key: 'journal', title: 'Журналы', wave: 5, expert: true, hint: 'журнал службы, история правок' },
+  { key: 'projects', title: 'Проекты', wave: 8, icon: 'проекты', hint: 'портфель: рабочие и примеры, новый проект' },
+  { key: 'bridge', title: 'Мостик', wave: 8, icon: 'мостик', hint: 'вход ведущего: маршрут, что решить, что блокирует точку, команда, сигналы' },
+  { key: 'mywork', title: 'Моя работа', wave: 8, icon: 'моя-работа', hint: 'вход специалиста: поручения по сроку и одно открытое мероприятие' },
+  { key: 'work', title: 'Работа', wave: 1, icon: 'работа', hint: 'лента сцен и точек фазы — сцена в теле' },
+  { key: 'formulation', title: 'Постановка', wave: 1, icon: 'постановка', hint: 'стейкхолдеры, нужды, цели, ограничения, сервисы и покрытие' },
+  { key: 'knowledge', title: 'Поле знаний', wave: 2, icon: 'знания', hint: 'материалы, факты с якорями, загрузка с заданием' },
+  { key: 'concept', title: 'Концепция', wave: 3, icon: 'концепция', hint: 'состав системы, варианты построения, базовый вариант' },
+  { key: 'requirements', title: 'Требования', wave: 3, icon: 'требования', hint: 'реестр требований, два дерева, влияние правки' },
+  { key: 'architecture', title: 'Архитектура', wave: 3, icon: 'архитектура', hint: 'операционный, системный, логический и физический слои' },
+  { key: 'models', title: 'Модели', wave: 4, icon: 'модели', hint: 'записи моделей, прогоны, резервы' },
+  { key: 'documents', title: 'Документы', wave: 4, icon: 'документы', hint: 'разделы документов с полнотой к ступени, тезисы, печать' },
+  { key: 'risks', title: 'Риски', wave: 4, icon: 'риски', fromScene: '11', hint: 'реестр рисков всей фазы: отбор, закрытие решением, срок-точка' },
+  { key: 'points', title: 'Точки', wave: 6, icon: 'точки', hint: 'готовность по экспертизе, замечания, фиксация' },
+  { key: 'passport', title: 'Паспорт', wave: 6, icon: 'паспорт', hint: 'название, класс миссии, руководитель, DA, стандарт, даты точек — правка на месте' },
+  { key: 'library', title: 'Библиотека', wave: 2, icon: 'библиотека', expert: true, hint: 'полки, окно взятия, справочники' },
+  { key: 'exchange', title: 'Обмен', wave: 5, icon: 'обмен', expert: true, hint: 'StrictDoc и ReqIF, выгрузка знаний' },
+  { key: 'external', title: 'Внешняя модель', wave: 7, icon: 'внешняя', expert: true, hint: 'элементы Capella по слоям либо fixture с баннером; только чтение' },
+  { key: 'journal', title: 'Журналы', wave: 5, icon: 'журналы', expert: true, hint: 'журнал службы, история правок' },
 ]
 
 /** Дата в шапке — днём и месяцем: год в ленте фазы и так один. */
@@ -132,8 +139,6 @@ export function Shell() {
   const [ручнойВвод, setРучнойВвод] = useState(false)
   useEffect(() => { if (section !== 'knowledge') setРучнойВвод(false) }, [section])
   const [tasks, setTasks] = useState<number>(0)
-  /** Сцена, открытая на экране: шапка обязана совпадать с ним. */
-  const [openScene, setOpenScene] = useState<string | null>(null)
   /** Сборка сменилась под открытой вкладкой: сказать словами, а не зависнуть. */
   const обновление = useОбновление()
   const [me, setMe] = useState<string | null>(null)
@@ -223,7 +228,6 @@ export function Shell() {
   }
   const visible = SECTIONS.filter((s) => (expert || !s.expert) && (expert || сценаДостигнута(s.fromScene)))
   const current = SECTIONS.find((s) => s.key === section) ?? SECTIONS[0]
-  const сцена = phase?.scenes.find((с) => с.key === (openScene ?? phase.current_scene))
   const точка = phase?.gates.find((т) => !т.passed)
 
   return (
@@ -240,8 +244,10 @@ export function Shell() {
       )}
       <header className="v2-top">
         <div className="v2-ctx">
+          <span className="v2-brand" title="Орбита — ИС поддержки разработки космической системы IoT">Орбита</span>
           {portfolio.length > 0 ? (
             <select className="v2-project" value={project ?? ''} title="проект портфеля: выбор помнится"
+              aria-label="проект"
               onChange={(e) => setProject(e.target.value || null)}>
               <option value="">— выберите проект —</option>
               {portfolio.map((п) => <option key={п.code} value={п.code}>{п.name}</option>)}
@@ -251,27 +257,17 @@ export function Shell() {
             // «не выбранным» значило бы врать о том, что видно на экране.
             <b title="портфель перечитывается">{project}</b>
           ) : (
-            <b title="портфеля нет: заведите проект сценой 1 — она открыта ниже">Портфель пуст</b>
+            <b title="портфеля нет: заведите проект в разделе «Проекты»">Портфель пуст</b>
           )}
-          {phase && <span className="v2-dim">{phase.phase} · {phase.standard}</span>}
-          {project && (
-            <button type="button" className="v2-link" title="паспорт проекта: название, класс, руководитель, DA, даты точек"
-              onClick={() => setSection('passport')}>
-              паспорт
-            </button>
-          )}
-          {сцена && (
-            <span className="v2-chip" title={сцена.question}>
-              сцена <b>{сцена.key} · {сцена.title}</b>
-            </span>
-          )}
+          {phase && <span className="v2-chip" title={`фаза проекта · стандарт ${phase.standard}`}>{phase.phase}</span>}
           {точка && (
-            <span className="v2-chip" title={точка.blocking.join('; ') || 'условия точки выполнены'}>
-              ближайшая точка <b>{точка.title}</b>
+            <span className="v2-gatechip" title={точка.blocking.join('; ') || 'условия точки выполнены'}>
+              <Маркер род="точка" состояние={точка.blocking.length > 0 ? 'блок' : 'текущее'} подпись={точка.title} />
+              {' '}{точка.title}
               {точка.planned_date && ` · ${датаКратко(точка.planned_date)}`}
               {' · '}
               {точка.blocking.length > 0
-                ? <span className="v2-bad">блокирующих {точка.blocking.length}</span>
+                ? <span className="v2-bad">блокирует {точка.blocking.length}</span>
                 : <span className="v2-ok">условия выполнены</span>}
             </span>
           )}
@@ -281,39 +277,18 @@ export function Shell() {
             onClick={() => setSection('tasks')}>
             мои <b>{tasks}</b>
           </button>
-          {section === 'work' && (
-            <label className="v2-inline" title={`плотность экрана: умолчание роли — ${ИМЯ_РЕЖИМА[режимПоРоли(роль)]}`}>
-              вид
-              <select className="v2-density" value={текущийРежим}
-                onChange={(e) => setРежим(e.target.value as Режим)}>
-                {(['мероприятие', 'сцена', 'фаза'] as Режим[]).map((р) => (
-                  <option key={р} value={р}>{ИМЯ_РЕЖИМА[р]}</option>
-                ))}
-              </select>
-            </label>
-          )}
-          <label className="v2-inline" title={expert
-            ? 'выключить эксперт-режим: останутся только разделы работы'
-            : 'включить эксперт-режим: библиотека, обмен и журналы'}>
-            <input type="checkbox" checked={expert} onChange={(e) => setExpert(e.target.checked)} />
-            эксперт-режим
-          </label>
           {входTelegram && !me ? (
             <TelegramВход onDone={() => setВходTick((t) => t + 1)} />
           ) : (
-            <span title={входTelegram ? 'вы вошли через Telegram' : 'учётка стенда: вход селектором, пароля у витринных учёток нет'}>
-              {me ?? (users.length > 0 ? `учётки стенда: ${users.length}` : 'учётка не выбрана')}
-            </span>
-          )}
-          {я?.can_act_as && (
-            <select className="v2-project" value={я.acting_role ?? ''}
-              title="ADR-066: выступить от имени роли (РП · ведущий СИ · инженер · DA) — только владельцу системы; каждое действие пишется автором «имя как роль»"
-              onChange={(e) => { api.actAs(e.target.value || null).then(() => setВходTick((t) => t + 1)).catch((err) => setFailure(String(err))) }}>
-              <option value="">своя роль</option>
-              {Object.entries(я.acting_roles ?? {}).map(([код, слово]) => (
-                <option key={код} value={код}>как {слово}</option>
-              ))}
-            </select>
+            <МенюУчётки
+              имя={me ?? (users.length > 0 ? `учётки стенда: ${users.length}` : 'учётка не выбрана')}
+              роль={роль ? (ИМЯ_РОЛИ[роль] ?? роль) : 'роль не назначена'}
+              я={я} expert={expert} onExpert={setExpert}
+              режим={текущийРежим} умолчание={ИМЯ_РЕЖИМА[режимПоРоли(роль)]} onРежим={(р) => setРежим(р)}
+              onActAs={(код) => api.actAs(код || null).then(() => setВходTick((t) => t + 1)).catch((err) => setFailure(String(err)))}
+              onLogout={входTelegram ? () => {
+                fetch('/api/auth/logout', { method: 'POST' }).then(() => window.location.reload()).catch((err) => setFailure(String(err)))
+              } : undefined} />
           )}
         </div>
       </header>
@@ -325,22 +300,19 @@ export function Shell() {
               aria-current={s.key === section ? 'page' : undefined}
               title={s.hint}
               onClick={() => setSection(s.key)}>
-              {s.title}
+              <Икон имя={s.icon} />{s.title}
             </button>
           ))}
-          {expert && (
-            <>
-              <div className="v2-rail__group">эксперт</div>
-              {visible.filter((s) => s.expert).map((s) => (
-                <button key={s.key} className="v2-rail__item v2-rail__item--exp" type="button"
-                  aria-current={s.key === section ? 'page' : undefined}
-                  title={s.hint}
-                  onClick={() => setSection(s.key)}>
-                  {s.title}
-                </button>
-              ))}
-            </>
-          )}
+          <div className="v2-rail__sep" role="separator" />
+          {SECTIONS.filter((s) => s.expert).map((s) => (
+            <button key={s.key} className={expert ? 'v2-rail__item' : 'v2-rail__item v2-rail__item--exp'} type="button"
+              aria-current={s.key === section ? 'page' : undefined}
+              disabled={!expert}
+              title={expert ? s.hint : `${s.hint} — откроется в эксперт-режиме (меню учётки)`}
+              onClick={() => setSection(s.key)}>
+              <Икон имя={s.icon} />{s.title}
+            </button>
+          ))}
         </nav>
 
         <main className="v2-main">
@@ -354,7 +326,7 @@ export function Shell() {
             <Work project={project} onProject={(п) => { setProject(п); setPortfolioTick((т) => т + 1) }}
               wantScene={wantScene}
               wantReason={wantReason}
-              onScenePicked={() => setWantScene(null)} onScene={setOpenScene}
+              onScenePicked={() => setWantScene(null)}
               роль={роль} режим={режим} onРежим={setРежим} />
           ) : section === 'knowledge' ? (
             <KnowledgeField project={project} expert={expert} ручной={ручнойВвод} />
@@ -393,22 +365,96 @@ export function Shell() {
           ) : section === 'tasks' ? (
             <MyTasks project={project} onGoScene={(сцена) => { setWantScene(сцена); setSection('work') }} />
           ) : (
-            <div className="v2-panel" data-why="работа">
-              <h3>
-                {current.title}
-                <span className="v2-cnt">волна {current.wave}</span>
-              </h3>
+            <div className="v2-panel" data-why="почему-нельзя">
+              <h3>{current.title}</h3>
               <div className="v2-empty">
-                {current.hint}.
-                <span className="v2-empty__why">
-                  Раздел откроется волной {current.wave}; сейчас пройдены волны 0–3.
-                </span>
+                Раздел строится шипом 2 (дизайн).
+                <span className="v2-empty__why">{current.hint}.</span>
               </div>
             </div>
           )}
         </main>
       </div>
     </div>
+  )
+}
+
+/** Роли словами — те же, что на экране точки. */
+const ИМЯ_РОЛИ: Record<string, string> = {
+  lead: 'руководитель проекта', lead_se: 'ведущий системный инженер', specialist: 'инженер', da_review: 'DA', sma: 'SMA', reader: 'наблюдатель',
+}
+
+/** Инициалы для аватара: «Чернов Д.» → «ЧД»; логин tg:… → первые две буквы. */
+function инициалы(имя: string): string {
+  const слова = имя.replace(/^tg:/, '').split(/[\s.·]+/).filter(Boolean)
+  const буквы = слова.slice(0, 2).map((с) => с[0]?.toUpperCase() ?? '').join('')
+  return буквы || имя.slice(0, 2).toUpperCase()
+}
+
+/**
+ * Одно меню учётки в шапке (Stitch-2, шип 2): имя и роль, «выступить от
+ * имени», плотность экрана, эксперт-режим, выход. В самой шапке личного
+ * больше ничего нет — там проект, фаза и точка.
+ */
+function МенюУчётки({ имя, роль, я, expert, onExpert, режим, умолчание, onРежим, onActAs, onLogout }: {
+  имя: string
+  роль: string
+  я: StandUser | null
+  expert: boolean
+  onExpert: (v: boolean) => void
+  режим: Режим
+  умолчание: string
+  onРежим: (р: Режим) => void
+  onActAs: (код: string) => void
+  onLogout?: () => void
+}) {
+  const [открыто, setОткрыто] = useState(false)
+  return (
+    <span className="v2-account">
+      <button type="button" className="v2-avatar" aria-haspopup="menu" aria-expanded={открыто}
+        title={`${имя} · ${роль} — меню учётки`} onClick={() => setОткрыто(!открыто)}>
+        {инициалы(имя)}
+      </button>
+      {открыто && (
+        <div className="v2-menu" role="menu" aria-label="учётка">
+          <div>
+            <b>{имя}</b>
+            <div className="v2-dim">{роль}</div>
+          </div>
+          {я?.can_act_as && (
+            <label className="v2-field">
+              <span className="v2-field__cap">выступить от имени роли</span>
+              <select value={я.acting_role ?? ''} aria-label="выступить от имени роли"
+                title="ADR-066: только владельцу системы; каждое действие пишется автором «имя как роль»"
+                onChange={(e) => onActAs(e.target.value)}>
+                <option value="">своя роль</option>
+                {Object.entries(я.acting_roles ?? {}).map(([код, слово]) => (
+                  <option key={код} value={код}>как {слово}</option>
+                ))}
+              </select>
+            </label>
+          )}
+          <label className="v2-field">
+            <span className="v2-field__cap">плотность экрана работы</span>
+            <select value={режим} aria-label="плотность экрана" title={`умолчание роли — ${умолчание}`}
+              onChange={(e) => onРежим(e.target.value as Режим)}>
+              {(['мероприятие', 'сцена', 'фаза'] as Режим[]).map((р) => (
+                <option key={р} value={р}>{ИМЯ_РЕЖИМА[р]}</option>
+              ))}
+            </select>
+          </label>
+          <label className="v2-inline" title={expert
+            ? 'выключить эксперт-режим: останутся только разделы работы'
+            : 'включить эксперт-режим: библиотека, обмен, внешняя модель и журналы'}>
+            <input type="checkbox" checked={expert} onChange={(e) => onExpert(e.target.checked)} />
+            эксперт-режим
+          </label>
+          {onLogout && (
+            <button type="button" className="v2-link" title="выйти: сессия закроется на сервере" onClick={onLogout}>Выйти</button>
+          )}
+        </div>
+      )}
+    </span>
   )
 }
 

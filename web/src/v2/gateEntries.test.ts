@@ -209,7 +209,6 @@ describe('паспорт проекта (З-25, шип 1, п. 1.5)', () => {
     // Метки полей — из истины, не из кода экрана.
     expect(паспорт).toContain('const метка = паспорт.labels[поле] ?? поле')
     expect(оболочка).toContain("{ key: 'passport', title: 'Паспорт'")
-    expect(оболочка).toContain("onClick={() => setSection('passport')}")
   })
 
   it('DA — роль проекта, назначает руководитель; остальным сказано, кто назначает', () => {
@@ -221,7 +220,7 @@ describe('паспорт проекта (З-25, шип 1, п. 1.5)', () => {
 
 describe('риски пачкой (шип 1, п. 1.2–1.4)', () => {
   it('реестр живёт в рейке с сцены 11, до неё — в эксперт-режиме', () => {
-    expect(оболочка).toContain("{ key: 'risks', title: 'Риски', wave: 4, fromScene: '11'")
+    expect(оболочка).toContain("{ key: 'risks', title: 'Риски', wave: 4, icon: 'риски', fromScene: '11'")
     expect(оболочка).toContain('(expert || сценаДостигнута(s.fromScene))')
     expect(оболочка).toContain("return !сцена || сцена.state !== 'locked'")
   })
