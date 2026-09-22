@@ -181,7 +181,7 @@ class ProgrammaticsTest {
         val поId = store.create(
             "RSK-0003", "risk", область, "11",
             mapper.readTree(
-                """{"statement":"риск по id","category":"техническое","probability":2,"impact":2,
+                """{"statement":"риск по id","category":"technical","probability":2,"impact":2,
                     "strategy":"accept","owner":"вед. СИ",
                     "due_point":"${store.byCode(область, "TRL-TECH-0001")!!.id}"}""",
             ),
@@ -219,7 +219,7 @@ class ProgrammaticsTest {
     private fun риск(код: String, срок: String) = store.create(
         код, "risk", область, "11",
         mapper.readTree(
-            """{"statement":"риск $код","category":"техническое","probability":3,"impact":4,
+            """{"statement":"риск $код","category":"technical","probability":3,"impact":4,
                 "strategy":"mitigate","owner":"вед. СИ","due_point":"$срок"}""",
         ),
         провенанс,

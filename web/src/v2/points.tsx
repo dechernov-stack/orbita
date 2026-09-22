@@ -28,20 +28,44 @@ const РОЛЬ: Record<string, string> = {
   da_review: 'DA',
 }
 
-export function Points({ project, phase, onChanged, onGoScene }: {
+/** Учётка, как её отдаёт /api/auth/whoami: роль «от имени» сильнее ролей проекта. */
+export type Учётка = {
+  login: string
+  display_name: string
+  acting_role?: string | null
+  roles?: Record<string, string>
+}
+
+/**
+ * Мои роли в проекте — ровно то, что скажет сервер: роль «от имени», иначе
+ * роль в проекте, иначе роль «*». Никаких добавок вроде «РП носит и DA»:
+ * право решает сервер, а экран не обещает того, в чём ему откажут (1.1).
+ */
+export function моиРоли(учётка: Учётка | null | undefined, project: string): string[] {
+  if (!учётка) return []
+  if (учётка.acting_role) return [учётка.acting_role]
+  const роль = учётка.roles?.[project] ?? учётка.roles?.['*']
+  return роль ? [роль] : []
+}
+
+export function Points({ project, phase, onChanged, onGoScene, учётка }: {
   project: string | null
   phase: Phase | null
   onChanged: () => void
   /** Переход «к месту»: открыть работу на сцене, где чинится условие. */
   onGoScene?: (сцена: string) => void
+  /** Моя учётка: кнопка решения видна только роли, которая решает. */
+  учётка?: Учётка | null
 }) {
   const [вид, setВид] = useState<PointsView | null>(null)
   const [открыта, setОткрыта] = useState<string | null>(null)
   const [отказ, setОтказ] = useState<string | null>(null)
+  const [ролиПроекта, setРолиПроекта] = useState<Record<string, string>>({})
 
   const перечитать = () => {
     if (!project) return
     api.points(project).then(setВид).catch((e) => setОтказ(String(e.message ?? e)))
+    api.projectRoles(project).then(setРолиПроекта).catch(() => setРолиПроекта({}))
   }
   useEffect(перечитать, [project])
 
@@ -81,13 +105,14 @@ export function Points({ project, phase, onChanged, onGoScene }: {
       </div>
       {точка && phase && (
         <PointCard project={project} точка={точка} все={вид.items} phase={phase}
-          onChanged={() => { перечитать(); onChanged() }} onGoScene={onGoScene} />
+          onChanged={() => { перечитать(); onChanged() }} onGoScene={onGoScene}
+          мои={моиРоли(учётка, project)} ролиПроекта={ролиПроекта} я={учётка?.display_name ?? ''} />
       )}
     </>
   )
 }
 
-function PointCard({ project, точка, все, phase, onChanged, onGoScene }: {
+function PointCard({ project, точка, все, phase, onChanged, onGoScene, мои, ролиПроекта, я }: {
   project: string
   точка: Gate
   все: Gate[]
@@ -95,6 +120,12 @@ function PointCard({ project, точка, все, phase, onChanged, onGoScene }:
   onChanged: () => void
   /** «К месту»: открыть сцену, где чинится незакрытое условие. */
   onGoScene?: (сцена: string) => void
+  /** Мои роли в проекте — как их видит сервер. */
+  мои: string[]
+  /** Роли проекта: логин → роль; кто фиксирует, если не я. */
+  ролиПроекта: Record<string, string>
+  /** Моё имя — для строки «фиксирует … · вы». */
+  я: string
 }) {
   const [ответ, setОтвет] = useState<string | null>(null)
   const [форма, setФорма] = useState<{ text: string; scene: string; question?: string; kind: string } | null>(null)
@@ -158,7 +189,22 @@ function PointCard({ project, точка, все, phase, onChanged, onGoScene }:
         написал «явного перехода нет — всё просто стоит». Кнопка была, но
         ниже двух экранов таблицы.
       */}
-      {!точка.passed && (
+      {/*
+        Кнопка решения видна ТОЛЬКО той роли, которая решает (шип 1, п. 1.1):
+        спрятанная кнопка правом не является — право проверяет сервер, — но и
+        кнопка, отвечающая 403, ничего не решает. Остальным — кто фиксирует.
+      */}
+      {!точка.passed && точка.role && !мои.includes(точка.role) && (
+        <div className="v2-empty__why" data-why="почему-нельзя">
+          Фиксирует {РОЛЬ[точка.role] ?? точка.role}
+          {(() => {
+            const держатели = Object.entries(ролиПроекта).filter(([, р]) => р === точка.role).map(([л]) => л)
+            return держатели.length > 0 ? ` · ${держатели.join(', ')}` : ' — роль в проекте не назначена'
+          })()}
+          . Ваша роль — {мои.map((р) => РОЛЬ[р] ?? р).join(', ') || 'нет'}{я ? ` (${я})` : ''}: решение здесь не ваше.
+        </div>
+      )}
+      {!точка.passed && (!точка.role || мои.includes(точка.role)) && (
         <>
           <div className="v2-empty__why" data-why="почему-нельзя">
             {точка.blocking.length === 0

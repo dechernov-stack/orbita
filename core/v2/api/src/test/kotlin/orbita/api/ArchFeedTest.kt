@@ -33,10 +33,10 @@ class ArchFeedTest {
     @BeforeTest
     fun чисто() {
         TestDbV2.очистить()
-        store.create(проект, "project", область, "1", mapper.readTree("""{"name":"Корм A4/A5","standard":"NASA-7120","phase":"Phase A"}"""), п)
+        store.create(проект, "project", область, "1", mapper.readTree("""{"name":"Корм A4/A5","standard":"NASA-7120","phase_current":"Phase A"}"""), п)
         store.create("EL-SC", "component", область, "7", mapper.readTree("""{"name":"КА","kind":"element","level":2,"nature":"node"}"""), п)
         store.create("EL-UT", "component", область, "7", mapper.readTree("""{"name":"Терминал","kind":"element","level":2,"nature":"node"}"""), п)
-        маршруты.handle("POST", "/v2/interfaces", q, """{"code":"IF-S-USER","name":"КА — терминал","type":"rf","a":"EL-SC","b":"EL-UT","direction":"both","requirement_classes":["interface"]}""")
+        маршруты.handle("POST", "/v2/interfaces", q, """{"code":"IF-S-USER","name":"КА — терминал","type":"RF","a":"EL-SC","b":"EL-UT","direction":"bi","requirement_classes":["interface"]}""")
     }
 
     @Test

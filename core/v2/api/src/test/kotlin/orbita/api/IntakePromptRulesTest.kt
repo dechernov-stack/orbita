@@ -62,7 +62,7 @@ class IntakePromptRulesTest {
         store.create(
             проект, "project", Area.Project(проект), "1",
             mapper.readTree(
-                """{"name":"Промпт","standard":"NASA-7120","phase":"Pre-Phase A","knowledge_v2":true}""",
+                """{"name":"Промпт","standard":"NASA-7120","phase_current":"Pre-Phase A","knowledge_v2":true}""",
             ),
             Provenance(Channel.MANUAL, "Чернов Д."),
         )

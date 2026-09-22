@@ -355,6 +355,7 @@ export function Shell() {
             <ExternalModelScreen project={project} />
           ) : section === 'points' ? (
             <Points project={project} phase={phase} onChanged={() => setPhaseTick((t) => t + 1)}
+              учётка={я}
               onGoScene={(сцена) => { setWantScene(сцена); setSection('work') }} />
           ) : section === 'tasks' ? (
             <MyTasks project={project} onGoScene={(сцена) => { setWantScene(сцена); setSection('work') }} />

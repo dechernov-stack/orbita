@@ -33,8 +33,33 @@ def виды_истины() -> dict[str, set[str]]:
     return {в["code"]: {f["name"] for f in (в.get("fields") or [])} | ядро for в in развернуть_группы(истина["kinds"])}
 
 
-def беды(допуск: dict, виды: dict[str, set[str]]) -> list[str]:
+def перечни_истины() -> dict[str, set[str]]:
+    """«вид.поле» → значения перечня из истины: допущенное значение обязано быть вне их."""
+    sys.path.insert(0, str(КОРЕНЬ / "tools/v2"))
+    import re  # noqa: PLC0415
+    import yaml  # noqa: PLC0415
+    from gen_schemas import развернуть_группы  # noqa: PLC0415
+
+    истина = yaml.safe_load(ИСТИНА.read_text(encoding="utf-8"))
+    найдено: dict[str, set[str]] = {}
+    for в in развернуть_группы(истина["kinds"]):
+        for f in в.get("fields") or []:
+            м = re.match(r"^enum\[(.+?)\]", (f.get("type") or "").strip())
+            if м:
+                найдено[f"{в['code']}.{f['name']}"] = {x.strip() for x in м.group(1).split(",") if x.strip()}
+    return найдено
+
+
+def беды(допуск: dict, виды: dict[str, set[str]], перечни: dict[str, set[str]] | None = None) -> list[str]:
     найдено = []
+    for путь, значения in допуск.get("enum_values_outside_truth", {}).items():
+        перечень = (перечни or {}).get(путь)
+        if перечень is None:
+            найдено.append(f"«{путь}» — не перечень истины: допуску значений тут не место")
+            continue
+        for з in значения:
+            if з in перечень:
+                найдено.append(f"значение «{з}» у «{путь}» истина уже знает — снимите его из допуска")
     for вид in допуск.get("kinds_outside_truth", {}):
         if вид in виды:
             найдено.append(f"вид «{вид}» истина уже знает — снимите его из kinds_outside_truth")
@@ -51,17 +76,20 @@ def беды(допуск: dict, виды: dict[str, set[str]]) -> list[str]:
 def main() -> int:
     допуск = json.loads(ДОПУСК.read_text(encoding="utf-8"))
     виды = виды_истины()
-    найдено = беды(допуск, виды)
+    перечни = перечни_истины()
+    найдено = беды(допуск, виды, перечни)
     if найдено:
         print("допуск сторожа записи разошёлся с истиной:")
         for б in найдено:
             print("  ", б)
         return 1
     проба = {"fields_outside_truth": {"need": ["statement"]}}
-    assert беды(проба, виды), "самопроверка: поле, известное истине, не поймано"
+    assert беды(проба, виды, перечни), "самопроверка: поле, известное истине, не поймано"
+    assert беды({"enum_values_outside_truth": {"constraint.type": ["technical"]}}, виды, перечни), "самопроверка: значение, известное истине, не поймано"
     видов = len(допуск["fields_outside_truth"]) + len(допуск["kinds_outside_truth"])
     полей = sum(len(п) for п in допуск["fields_outside_truth"].values())
-    print(f"допуск сторожа записи: {видов} видов, {полей} полей вне истины — поимённо, с причиной; истина их пока не назвала")
+    значений = sum(len(з) for з in допуск.get("enum_values_outside_truth", {}).values())
+    print(f"допуск сторожа записи: {видов} видов, {полей} полей, {значений} значений перечней вне истины — поимённо, с причиной")
     return 0
 
 

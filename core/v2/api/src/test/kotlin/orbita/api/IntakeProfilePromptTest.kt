@@ -62,7 +62,7 @@ class IntakeProfilePromptTest {
         store.create(
             код, "project", Area.Project(код), "1",
             mapper.readTree(
-                """{"name":"Поле знаний","standard":"NASA-7120","phase":"Pre-Phase A","knowledge_v2":$полеЗнаний}""",
+                """{"name":"Поле знаний","standard":"NASA-7120","phase_current":"Pre-Phase A","knowledge_v2":$полеЗнаний}""",
             ),
             Provenance(Channel.MANUAL, "Чернов Д."),
         )

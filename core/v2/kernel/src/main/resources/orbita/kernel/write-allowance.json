@@ -6,30 +6,197 @@
     "lifecycle_process_reference": "полка процессов Романова — поставка 03.09; вида в истине нет"
   },
   "fields_outside_truth": {
-    "architecture_template": ["LA", "OA", "PA", "SA", "diagrams_for_reviews", "orbita_mapping", "principle", "rules", "summary", "title"],
-    "document_template": ["delivery_code", "labels", "note", "review", "rules", "standard", "style"],
-    "interface_template": ["interface_types", "rules", "summary", "title"],
-    "model_template": ["required_by_gate", "rule", "source", "title"],
-    "pbs_template": ["interfaces", "levels", "rules", "summary", "title", "units_to_add"],
-    "phase_template": ["documents", "lanes", "maturity_note", "note", "source", "title"],
-    "wbs_template": ["pbs_to_wbs", "rules", "summary", "title"],
-    "process_catalog": ["processes", "rule", "source", "title", "tools"],
-    "fact": ["anchor", "conflict_constraint", "conflicts", "manual", "mark", "material", "topic", "unit"],
-    "material": ["chars", "name", "text"],
-    "intake_task": ["accepted", "actions", "created", "facts", "material", "note"],
-    "synthesis_run": ["accepted", "accepted_batches", "links", "note", "refused", "unassigned"],
-    "ai_call": ["prompt_chars", "response"],
-    "baseline_snapshot": ["name"],
-    "gate": ["technology"],
-    "requirement": ["mop"],
-    "stakeholder": ["needs"],
-    "constraint": ["normative_basis"],
-    "document": ["standard"],
-    "wbs_package": ["maturation_for"]
+    "architecture_template": [
+      "LA",
+      "OA",
+      "PA",
+      "SA",
+      "diagrams_for_reviews",
+      "orbita_mapping",
+      "principle",
+      "rules",
+      "summary",
+      "title"
+    ],
+    "document_template": [
+      "delivery_code",
+      "labels",
+      "note",
+      "review",
+      "rules",
+      "standard",
+      "style"
+    ],
+    "interface_template": [
+      "interface_types",
+      "rules",
+      "summary",
+      "title"
+    ],
+    "model_template": [
+      "required_by_gate",
+      "rule",
+      "source",
+      "title"
+    ],
+    "pbs_template": [
+      "interfaces",
+      "levels",
+      "rules",
+      "summary",
+      "title",
+      "units_to_add"
+    ],
+    "phase_template": [
+      "documents",
+      "lanes",
+      "maturity_note",
+      "note",
+      "source",
+      "title"
+    ],
+    "wbs_template": [
+      "pbs_to_wbs",
+      "rules",
+      "summary",
+      "title"
+    ],
+    "process_catalog": [
+      "processes",
+      "rule",
+      "source",
+      "title",
+      "tools"
+    ],
+    "fact": [
+      "anchor",
+      "conflict_constraint",
+      "conflicts",
+      "manual",
+      "mark",
+      "material",
+      "param_key",
+      "source_note",
+      "source_updated",
+      "superseded",
+      "topic",
+      "unit"
+    ],
+    "material": [
+      "chars",
+      "name",
+      "text"
+    ],
+    "intake_task": [
+      "accepted",
+      "actions",
+      "assessment",
+      "created",
+      "facts",
+      "material",
+      "note"
+    ],
+    "synthesis_run": [
+      "accepted",
+      "accepted_batches",
+      "links",
+      "note",
+      "refused",
+      "unassigned"
+    ],
+    "ai_call": [
+      "prompt_chars",
+      "response"
+    ],
+    "baseline_snapshot": [
+      "name"
+    ],
+    "gate": [
+      "date_source",
+      "decided_at",
+      "positions",
+      "technology"
+    ],
+    "requirement": [
+      "foreign_attributes",
+      "mop",
+      "rationale",
+      "source_type"
+    ],
+    "stakeholder": [
+      "needs"
+    ],
+    "constraint": [
+      "normative_basis"
+    ],
+    "document": [
+      "standard"
+    ],
+    "wbs_package": [
+      "maturation_for",
+      "plan"
+    ],
+    "element": [
+      "document"
+    ],
+    "rendering": [
+      "at",
+      "section",
+      "text"
+    ],
+    "topic": [
+      "manual",
+      "resolved_kind"
+    ],
+    "finding": [
+      "addressee",
+      "closed_at",
+      "closed_by",
+      "question",
+      "resolution"
+    ],
+    "parameter": [
+      "material",
+      "name"
+    ],
+    "risk": [
+      "constraint"
+    ],
+    "component": [
+      "candidate"
+    ],
+    "system_model": [
+      "interface_bound",
+      "name",
+      "question",
+      "required_to",
+      "tool_status"
+    ],
+    "criterion": [
+      "group",
+      "key",
+      "threshold",
+      "title",
+      "worse_if"
+    ],
+    "constellation_variant": [
+      "metrics"
+    ]
   },
   "_reasons": {
     "полки-шаблоны": "истина описывает вид шапкой (code · title · sections · nature…), содержимое полки — поставка внешнего контура; правка полки руками — отказ другого сторожа",
-    "контур знаний": "fact/material/intake_task/synthesis_run/ai_call — поля контура ЗНАНИЯ-V2/V3 (якорь, тема, единица, метка, ручной ввод, конфликты); истина схем их не называет",
-    "продукт": "gate.technology — веха технологии (TRL); requirement.mop; stakeholder.needs — до миграции n:m (З-06); constraint.normative_basis; document.standard; wbs_package.maturation_for; baseline_snapshot.name — имя линии"
+    "контур знаний": "fact/material/intake_task/synthesis_run/ai_call — поля контура ЗНАНИЯ-V2/V3 (якорь, тема, единица, метка, ручной ввод, конфликты); истина схем их не называет; parameter.material — даташит, из которого режим «даташит» взял величину (у истины source — ссылка на факт); risk.constraint — рамка, с которой конфликтует величина даташита (истина у риска знает refs лишь на узел или сцену)",
+    "продукт": "gate.technology — веха технологии (TRL); requirement.mop; stakeholder.needs — до миграции n:m (З-06); constraint.normative_basis; document.standard; wbs_package.maturation_for; baseline_snapshot.name — имя линии",
+    "продукт (пробы 22.09)": "element.document — тезис знает свой документ; gate.decided_at — день решения на точке (лента живёт им); rendering.at/section/text — связный текст хранится по разделам, истина описывает его по документу (sections); topic.manual/resolved_kind — тема руками и вид разрешения; intake_task.assessment; fact.source_note/source_updated/superseded — обновление источника; finding.question — вопрос экспертизы; requirement.rationale — обоснование требования; finding.closed_at/closed_by/resolution — кто, когда и чем закрыл замечание; requirement.foreign_attributes/source_type — чужие атрибуты импорта ReqIF/SDoc сохраняются целиком (ADR-049); finding.addressee — адресат RFA/RID (заказчик), у истины есть лишь assignee (исполнитель) — это разные лица; fact.param_key — ключ параметра из даташита (режим «даташит» кладёт величину в анкету узла по нему); gate.positions — вердикты по позициям экспертизы точки (A12), у истины есть только expertise_answers чек-листа; wbs_package.plan — окно работ пакета {start,end} (A10: сроки против точек), истина знает лишь estimate (ссылку на смету); parameter.name — человеческое имя параметра рядом с ключом (экран архитектуры и грани показывают его), истина знает только key; component.candidate — узел-кандидат в свёртках бюджетов; system_model.name/question/required_to/tool_status/interface_bound — реестр моделей зовёт поля иначе, чем истина (template_code · inputs · interface_ref · last_run · verification_status) — вопрос владельцу о соответствии; gate.date_source — откуда у точки дата (пакет WBS или вручную)",
+    "перечни": "material.type: mission_note (записка миссии), note, reqif и sdoc (импорт обмена) — значения кода, которых нет в перечне истины",
+    "ВРЕМЕННО, до перевода сравнения вариантов на вид metric (истина 21-09-b)": "criterion.key/title/threshold/worse_if/group — прежние пороги показателей на «критерии»; по истине критерий — проверка ворот, а порог, группа и направление — у метрики «вариант × показатель». Снимается вместе с переработкой AoA. constellation_variant.metrics — показатели прямо на варианте; по истине они — записи вида metric."
+  },
+  "enum_values_outside_truth": {
+    "material.type": [
+      "mission_note",
+      "note",
+      "reqif",
+      "sdoc"
+    ]
   }
 }

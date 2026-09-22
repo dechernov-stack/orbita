@@ -257,8 +257,8 @@ class RequirementsTest {
         store.create(
             "TR-SEC-01", "typical_requirement", Area.Library, null,
             mapper.readTree(
-                """{"title":"защита команд","statement":"‹Носитель› должен проверять подпись команды.",
-                    "category":"safety","verification_method":"inspection",
+                """{"title":"защита команд","statement_template":"‹Носитель› должен проверять подпись команды.",
+                    "category":"safety","verification":"inspection",
                     "acceptance_criteria":"команда без подписи отвергнута","ears_pattern":"ubiquitous"}""",
             ),
             Provenance(Channel.PACKAGE, "поставка"),

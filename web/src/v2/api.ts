@@ -1448,6 +1448,18 @@ export const api = {
   externalModel: (project: string) =>
     вызов<ExternalModelView>(`/external-model?project=${encodeURIComponent(project)}`),
 
+  /**
+   * Роли в проекте: логин → роль. Экран точки называет, КТО решает, а не
+   * показывает кнопку, отвечающую отказом (шип 1, п. 1.1). Пути /api/auth/*
+   * — вне /api/v2, поэтому fetch напрямую; проекта без назначений — пусто.
+   */
+  projectRoles: async (project: string): Promise<Record<string, string>> => {
+    const r = await fetch(`/api/auth/roles/${encodeURIComponent(project)}`)
+    if (!r.ok) return {}
+    const тело = await r.json().catch(() => ({}))
+    return (тело && typeof тело === 'object' && !('error' in тело)) ? (тело as Record<string, string>) : {}
+  },
+
   /** ADR-066: владелец системы выступает от имени роли; пусто — своя. */
   actAs: async (role: string | null) => {
     const r = await fetch('/api/auth/act-as', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role: role ?? '' }) })

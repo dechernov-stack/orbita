@@ -509,8 +509,11 @@ internal class IntakeModes(
                 д.put("title", "конфликт с ${р.code}: ${ключ} = $значение ${граница.path("unit").asText()}")
                 д.put("preview", "появится риск: ${ф.doc.path("subject").asText()} — $ключ $значение ${граница.path("unit").asText()} против ${р.code} (${граница.path("op").asText()} $предел); предложение — сузить конфигурацию или пересмотреть ${р.code} с основанием")
                 д.putObject("payload")
-                    .put("statement", "${ф.doc.path("subject").asText()}: $ключ = $значение ${граница.path("unit").asText()} выходит за ${р.code} «${р.doc.path("text").asText()}»")
-                    .put("category", "техническое").put("probability", 4).put("impact", 4)
+                    .put("statement", "${ф.doc.path("subject").asText()}: $ключ = $значение ${граница.path("unit").asText()} выходит за ${р.code} «${р.doc.path("statement").asText(р.doc.path("text").asText())}»")
+                    // Категория — КОДОМ перечня истины (risk.category), не словом:
+                    // «техническое» — метка рамки, у риска метка «техническая», и
+                    // сторож записи такое слово в перечне риска не находил.
+                    .put("category", "technical").put("probability", 4).put("impact", 4)
                     .put("strategy", "mitigate").put("owner", "руководитель проекта").put("due_point", "MCR")
                     .put("measures", "сузить конфигурацию до рамки либо пересмотреть ${р.code} с основанием")
                     .put("constraint", р.code)

@@ -383,7 +383,16 @@ class SceneRoutes(
     }
 
     /** Сцена 5: ограничение получает код Р-серии — он стабилен и на него ссылаются. */
-    private fun ограничение(проект: String, тело: JsonNode): V2Router.Ответ {
+    private fun ограничение(проект: String, телоСырое: JsonNode): V2Router.Ответ {
+        // Экран сцены 5 и прежние пробы шлют «text» и «category»; у вида
+        // «ограничение» по истине поля зовутся `statement` и `type`. Сторож
+        // записи чужое имя отбивает, поэтому прежнее имя переводится ЗДЕСЬ,
+        // а значение перечня приводится к коду истины («техническое» → technical).
+        val тело = телоСырое.deepCopy<ObjectNode>().apply {
+            if (has("text") && !has("statement")) set<JsonNode>("statement", remove("text"))
+            if (has("category") && !has("type")) set<JsonNode>("type", remove("category"))
+        }
+        orbita.kernel.schema.Enums.нормализовать("constraint", тело)
         // У рамки связь условная — «normative_basis if obligation»: основание
         // спрашивается только у регуляторной, и условие читает сами ворота.
         ворота(проект, "constraint", тело)?.let { return it }
@@ -392,7 +401,7 @@ class SceneRoutes(
             Regex("^Р(\\d+)$").find(it.code)?.groupValues?.get(1)?.toIntOrNull()
         }
         val код = тело.path("code").asText("").ifBlank { "Р${(занято.maxOrNull() ?: 0) + 1}" }
-        val документ = тело.deepCopy<ObjectNode>().apply {
+        val документ = тело.deepCopy().apply {
             remove(listOf("code", "author", "project", "reconcile", "decision"))
         }
         val сущность = store.create(

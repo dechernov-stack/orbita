@@ -2092,7 +2092,7 @@
       "key": "internal_review_a",
       "title": "Внутренний обзор Phase A",
       "order": 1,
-      "kind": "review",
+      "kind": "phase",
       "offset_days": 60,
       "role": "lead",
       "checklist_of": "SRR",
@@ -2126,7 +2126,7 @@
       "key": "SRR",
       "title": "SRR — обзор системных требований",
       "order": 2,
-      "kind": "review",
+      "kind": "phase",
       "offset_days": 120,
       "role": "da_review",
       "aliases": [
@@ -2217,7 +2217,7 @@
       "key": "SDR",
       "title": "SDR/MDR — обзор облика системы",
       "order": 3,
-      "kind": "review",
+      "kind": "phase",
       "offset_days": 200,
       "role": "da_review",
       "aliases": [

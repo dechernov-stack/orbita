@@ -46,7 +46,7 @@ class KnowledgeIntakeTest {
             "payload":{"name":"Оператор","role":"operator"},"facts":[1]},
            {"kind":"create_entity","target_kind":"constraint","scene":"5",
             "title":"ограничение по частотам","preview":"появится ограничение: частоты только после решения ГКРЧ",
-            "payload":{"text":"частоты только после решения ГКРЧ","category":"регуляторное"},"facts":[1]},
+            "payload":{"statement":"частоты только после решения ГКРЧ","type":"регуляторное"},"facts":[1]},
            {"kind":"create_entity","target_kind":"goal","scene":"4",
             "title":"цель по массе","preview":"появится цель с показателем массы",
             "payload":{"statement":"уложиться в массу платформы","metric":"78 кг"},"facts":[0]}

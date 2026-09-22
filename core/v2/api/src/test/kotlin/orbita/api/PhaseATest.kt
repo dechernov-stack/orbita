@@ -157,7 +157,7 @@ class PhaseATest {
         assertTrue(sdr.criteria.first { it.check == "scene_done:A4" }.passed.not(), "SDR ждёт всех экземпляров")
 
         // стык у обоих элементов, требование на НКУ, функции и элемент обмена на стыке → оба экземпляра прожиты → A4 прожита
-        val стык = store.create("IF-S-G", "interface", область, "7", mapper.readTree("""{"name":"КА — НКУ (радиолиния)","type":"rf","a":"${ка.id}","b":"${нку.id}","direction":"both"}"""), провенанс)
+        val стык = store.create("IF-S-G", "interface", область, "7", mapper.readTree("""{"name":"КА — НКУ (радиолиния)","type":"RF","a":"${ка.id}","b":"${нку.id}","direction":"bi"}"""), провенанс)
         требования.derive(проект, "RQ-P-01", "НКУ должен принимать кадры телеметрии на каждом сеансе.", "приём — зеркало передачи", "Иванов И.", carrier = "GS")
         store.create("FN-TX", "function", область, "A4", mapper.readTree("""{"name":"передать кадр","layer":"SA","allocated_to":["${ка.id}"]}"""), провенанс)
         store.create("FN-RX", "function", область, "A4", mapper.readTree("""{"name":"принять кадр","layer":"SA","allocated_to":["${нку.id}"]}"""), провенанс)

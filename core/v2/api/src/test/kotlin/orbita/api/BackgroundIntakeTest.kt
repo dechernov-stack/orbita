@@ -34,7 +34,7 @@ class BackgroundIntakeTest {
     @BeforeTest
     fun чисто() {
         TestDbV2.очистить()
-        store.create(проект, "project", область, "1", mapper.readTree("""{"name":"Фоновый разбор","standard":"NASA-7120","phase":"Pre-Phase A"}"""), п)
+        store.create(проект, "project", область, "1", mapper.readTree("""{"name":"Фоновый разбор","standard":"NASA-7120","phase_current":"Pre-Phase A"}"""), п)
     }
 
     private fun ответ(якорь: String) = """{"topics":[{"label":"телеметрия"}],"actions":[

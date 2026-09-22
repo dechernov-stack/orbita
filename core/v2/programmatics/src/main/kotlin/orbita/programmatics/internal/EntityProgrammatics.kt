@@ -74,7 +74,8 @@ class EntityProgrammatics(
             val документ = mapper.createObjectNode()
             документ.put("name", пакет.path("name").asText())
             документ.put("cross_cutting", пакет.path("cross_cutting").asBoolean(false))
-            пакет.path("parent").asText("").ifBlank { null }?.let { документ.put("parent_code", it) }
+            // Родитель — полем истины `parent` (ref wbs_package): код пакета-родителя.
+            пакет.path("parent").asText("").ifBlank { null }?.let { документ.put("parent", it) }
             // Пара к узлу: полка называет узлы кодом со знаком @, резолв — здесь.
             val пары = документ.putArray("pbs_refs")
             пакет.path("pbs_refs").forEach { ссылка ->
@@ -99,7 +100,7 @@ class EntityProgrammatics(
             PackageView(
                 code = пакет.code,
                 name = пакет.doc.path("name").asText(пакет.code),
-                parent = пакет.doc.path("parent_code").asText("").ifBlank { null },
+                parent = пакет.doc.path("parent").asText("").ifBlank { пакет.doc.path("parent_code").asText("") }.ifBlank { null },
                 crossCutting = сквозной,
                 planStart = пакет.doc.path("plan").path("start").asText("").ifBlank { null },
                 planEnd = пакет.doc.path("plan").path("end").asText("").ifBlank { null },

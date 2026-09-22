@@ -74,7 +74,7 @@ class PhaseAConditionsTest {
     @BeforeTest
     fun чисто() {
         TestDbV2.очистить()
-        store.create(проект, "project", область, "1", json("""{"name":"Условия Phase A","standard":"NASA-7120","phase":"Phase A","phase_template":"PHT-9002"}"""), п)
+        store.create(проект, "project", область, "1", json("""{"name":"Условия Phase A","standard":"NASA-7120","phase_current":"Phase A","phase_template":"PHT-9002"}"""), п)
         записи.ensureGates(проект, шаблон)
     }
 
@@ -122,7 +122,7 @@ class PhaseAConditionsTest {
         проход("node_functions_min:EL-SC:1")
         отказ("node_functions_min:EL-GS:1", "0 функций")
         отказ("node_exchange_items_min:EL-SC:1", "0 из 1")
-        val стык = store.create("IF-S-G", "interface", область, "7", json("""{"name":"КА — НКУ","type":"data","a":"${ка.id}","b":"${нку.id}","direction":"both"}"""), п)
+        val стык = store.create("IF-S-G", "interface", область, "7", json("""{"name":"КА — НКУ","type":"data","a":"${ка.id}","b":"${нку.id}","direction":"bi"}"""), п)
         val обмен = store.create("EX-1", "exchange", область, "A4", json("""{"name":"кадр телеметрии","interface":"${стык.id}"}"""), п)
         store.create("EI-1", "exchange_item", область, "A4", json("""{"name":"кадр","type":"flow","elements":[{"name":"crc","data_type":"u16"}],"exchanges":["${обмен.id}"]}"""), п)
         проход("node_exchange_items_min:EL-SC:1")

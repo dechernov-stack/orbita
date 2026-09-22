@@ -39,6 +39,54 @@ class KernelTest {
         assertEquals(Channel.MANUAL, нужда.provenance.channel)
     }
 
+    /**
+     * Сторож записи (истина 21-09, write_rules.schema_on_write): поле вне схемы
+     * вида — отказ словами, а не молчаливое сохранение. Допуск — поимённый,
+     * из ресурса ядра; вид вне истины без допуска не существует.
+     */
+    @Test
+    fun `поле вне схемы вида не записывается, допущенное — записывается`() {
+        val отказ = runCatching {
+            store.create(
+                "ND-0009", "need", Area.Project("PJ-0001"), "3",
+                mapper.readTree("""{"statement":"нужда","выдумка":"поле, которого нет"}"""), провенанс,
+            )
+        }.exceptionOrNull()
+        assertTrue(отказ is IllegalArgumentException, "чужое поле обязано отбиваться: $отказ")
+        assertTrue(отказ!!.message!!.contains("«выдумка»"), "отказ называет поле: ${отказ.message}")
+
+        // Перечень истины: у ограничения `type` — enum; класс нужды — ссылка в
+        // справочник, её сторож перечней не судит.
+        val значение = runCatching {
+            store.create(
+                "CN-0010", "constraint", Area.Project("PJ-0001"), "5",
+                mapper.readTree("""{"statement":"ограничение","type":"нет такого вида"}"""), провенанс,
+            )
+        }.exceptionOrNull()
+        assertTrue(значение?.message?.contains("перечне истины нет") == true, "значение вне перечня — отказ: ${значение?.message}")
+
+        // Допуск: у факта поле anchor истиной не названо, но стоит в допуске с причиной.
+        val факт = store.create(
+            "F-0001", "fact", Area.Project("PJ-0001"), null,
+            mapper.readTree("""{"subject":"КА","predicate":"масса","anchor":"стр. 3"}"""), провенанс,
+        )
+        assertEquals("стр. 3", факт.doc.path("anchor").asText())
+
+        val вид = runCatching {
+            store.create("X-0001", "kind_which_does_not_exist", Area.Project("PJ-0001"), null,
+                mapper.readTree("""{"a":1}"""), провенанс)
+        }.exceptionOrNull()
+        assertTrue(вид?.message?.contains("в истине схем нет") == true, "вид вне истины не существует: ${вид?.message}")
+
+        // Правка держится тем же сторожем: чужое поле не пролезает и новой версией.
+        val нужда = store.create("ND-0011", "need", Area.Project("PJ-0001"), "3",
+            mapper.readTree("""{"statement":"нужда"}"""), провенанс)
+        val правка = runCatching {
+            store.update(нужда.id, mapper.readTree("""{"statement":"нужда","lead":"нет"}"""), провенанс)
+        }.exceptionOrNull()
+        assertTrue(правка?.message?.contains("«lead»") == true, "правка с чужим полем — отказ: ${правка?.message}")
+    }
+
     @Test
     fun `правка заводит новую версию, прежняя остаётся историей`() {
         val создана = store.create(

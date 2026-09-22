@@ -135,7 +135,7 @@ class ShelfTest {
 
     @Test
     fun `у вида без естественного ключа код остаётся единственным именем`() {
-        val шаблон = mapper.createObjectNode().put("designation", "PHT").put("title", "Шаблон")
+        val шаблон = mapper.createObjectNode().put("phase", "Pre-Phase A").put("standard", "NASA-7120")
         полки.put("phase_template", "PHT-9001", шаблон, "поставка v2")
         val другой = полки.put("phase_template", "PHT-9002", шаблон, "поставка v2")
         assertEquals(ShelfState.CREATED, другой.state, "совпадение полей — не повод склеить шаблоны")

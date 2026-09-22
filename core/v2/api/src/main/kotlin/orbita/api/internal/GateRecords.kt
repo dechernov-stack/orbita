@@ -72,7 +72,12 @@ class GateRecords(private val store: EntityStore, private val mapper: ObjectMapp
                 mapper.createObjectNode()
                     .put("phase", фаза).put("key", ключ)
                     .put("title", точка.path("title").asText(""))
-                    .put("kind", точка.path("kind").asText("review"))
+                    .put(
+                        "kind",
+                        // Перечень истины: phase · technology. Прежние шаблоны звали
+                        // точку обзора «review» — это точка фазы.
+                        точка.path("kind").asText("phase").let { if (it == "review") "phase" else it },
+                    )
                     .put("planned_date", ""),
                 Provenance(Channel.MANUAL, by), status = "planned",
             )

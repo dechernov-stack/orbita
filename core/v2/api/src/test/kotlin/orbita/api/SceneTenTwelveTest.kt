@@ -245,7 +245,7 @@ class SceneTenTwelveTest {
 
         store.create(
             "ODA-01", "debris_assessment", область, "11",
-            mapper.readTree("""{"variant":"V1","lifetime_years":18,"compliant":true}"""), провенанс,
+            mapper.readTree("""{"variant":"V1","active_lifetime_years":18,"compliant_active":true}"""), провенанс,
         )
         assertEquals("done", сцена("11").path("state").asText(), сцена("11").path("blockers").toString())
 
@@ -385,7 +385,7 @@ class SceneTenTwelveTest {
         }
         store.create(
             "ODA-01", "debris_assessment", область, "11",
-            mapper.readTree("""{"variant":"V1","lifetime_years":18,"compliant":true}"""), провенанс,
+            mapper.readTree("""{"variant":"V1","active_lifetime_years":18,"compliant_active":true}"""), провенанс,
         )
     }
 }

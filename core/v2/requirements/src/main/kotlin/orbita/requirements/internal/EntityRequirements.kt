@@ -102,9 +102,18 @@ class EntityRequirements(
             ?: error("носителя «$carrier» нет в проекте: без носителя — не требование")
 
         val документ = типовое.doc.deepCopy<com.fasterxml.jackson.databind.node.ObjectNode>()
-        документ.remove(listOf("applicability_class", "placeholders"))
+        // Экземпляр — вид «требование», и поля у него свои: у типового по истине
+        // `statement_template` и `verification`, у требования — `statement` и
+        // `verification_method`; код и версия полки экземпляру не принадлежат.
+        // Сторож записи иначе отбивает экземпляр за поля чужого вида.
+        документ.remove(listOf("applicability_class", "placeholders", "code", "version", "statement_template", "verification"))
         документ.put("title", типовое.doc.path("title").asText(типовое.code))
-        документ.put("statement", statement ?: типовое.doc.path("statement").asText(""))
+        документ.put(
+            "statement",
+            statement ?: типовое.doc.path("statement_template").asText(типовое.doc.path("statement").asText("")),
+        )
+        типовое.doc.path("verification").asText(типовое.doc.path("verification_method").asText("")).ifBlank { null }
+            ?.let { документ.put("verification_method", it) }
         документ.put("carrier", носитель.id)
         документ.put("template_ref", типовое.id)
         документ.put("applicability", applicability.name.lowercase())
@@ -157,7 +166,10 @@ class EntityRequirements(
             .put("statement", statement)
             .put("rationale", rationale)
             .put("category", category ?: родитель.doc.path("category").asText("functional"))
-        (verificationMethod ?: родитель.doc.path("verification_method").asText("").ifBlank { null })?.let { документ.put("verification_method", it) }
+        // У типового требования метод зовётся `verification` (истина), у экземпляра —
+        // `verification_method`; прежнее имя читается на случай старых полок.
+        (verificationMethod ?: родитель.doc.path("verification").asText(родитель.doc.path("verification_method").asText("")).ifBlank { null })
+            ?.let { документ.put("verification_method", it) }
         // Критерий приёмки, шаблон EARS и приоритет наследуются от родителя: выведенное
         // требование должно быть пригодно к базированию так же, как проектное.
         (acceptanceCriteria?.ifBlank { null } ?: родитель.doc.path("acceptance_criteria").asText("").ifBlank { null })?.let { документ.put("acceptance_criteria", it) }

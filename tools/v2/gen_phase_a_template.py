@@ -445,7 +445,7 @@ def собрать() -> dict:
     СЦЕНЫ_ЗАГОЛОВКИ = {п["key"]: п["title"] for п in поставка["scenes"]}
     точки = [
         {
-            "key": "internal_review_a", "title": "Внутренний обзор Phase A", "order": 1, "kind": "review",
+            "key": "internal_review_a", "title": "Внутренний обзор Phase A", "order": 1, "kind": "phase",
             "offset_days": 60, "role": "lead", "checklist_of": "SRR",
             "aliases": [{"standard": "NASA-7120", "name": "internal review before SRR"}],
             "criteria": [
@@ -455,7 +455,7 @@ def собрать() -> dict:
             ],
         },
         {
-            "key": "SRR", "title": "SRR — обзор системных требований", "order": 2, "kind": "review",
+            "key": "SRR", "title": "SRR — обзор системных требований", "order": 2, "kind": "phase",
             "offset_days": 120, "role": "da_review",
             "aliases": [{"standard": "NASA-7120", "name": "System Requirements Review"}, {"standard": "RK-11KT", "name": "экспертиза требований к системе (EXP-2A)"}],
             "criteria": [
@@ -472,7 +472,7 @@ def собрать() -> dict:
             "expertise": экспертиза(полка, "EXP-2A"),
         },
         {
-            "key": "SDR", "title": "SDR/MDR — обзор облика системы", "order": 3, "kind": "review",
+            "key": "SDR", "title": "SDR/MDR — обзор облика системы", "order": 3, "kind": "phase",
             "offset_days": 200, "role": "da_review",
             "aliases": [{"standard": "NASA-7120", "name": "System Definition Review / Mission Definition Review"}, {"standard": "RK-11KT", "name": "экспертиза облика системы (EXP-2B)"}],
             "criteria": [

@@ -32,12 +32,14 @@ class PgEntityStore(
         provenance: Provenance,
         status: String,
     ): Entity {
+        стеречь(kind, doc)
         val id = "$kind-${UUID.randomUUID().toString().take(8)}"
         return вставить(id, code, kind, area, bornIn, status, 1, doc, provenance)
     }
 
     override fun update(id: String, doc: JsonNode, provenance: Provenance, status: String?): Entity {
         val текущая = byId(id) ?: error("сущности «$id» нет — правка невозможна")
+        стеречь(текущая.kind, doc)
         conn.prepareStatement(
             "UPDATE orbita_kernel.entity SET valid_to = now() WHERE id = ? AND valid_to IS NULL",
         ).use { st ->
@@ -48,6 +50,16 @@ class PgEntityStore(
             id, текущая.code, текущая.kind, текущая.area, текущая.bornIn,
             status ?: текущая.status, текущая.version + 1, doc, provenance,
         )
+    }
+
+    /**
+     * Запись валидируется истиной ДО вставки (write_rules.schema_on_write):
+     * поле вне схемы вида — отказ словами, а не молчаливое сохранение.
+     * Отказ — IllegalArgumentException: маршруты отвечают им 400 с текстом.
+     */
+    private fun стеречь(kind: String, doc: JsonNode) {
+        val беды = WriteGuard.problems(kind, doc)
+        require(беды.isEmpty()) { "запись вида «$kind» отклонена истиной схем: " + беды.joinToString("; ") }
     }
 
     private fun вставить(

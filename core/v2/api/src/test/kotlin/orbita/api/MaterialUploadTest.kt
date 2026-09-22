@@ -48,7 +48,7 @@ class MaterialUploadTest {
     @BeforeTest
     fun чисто() {
         TestDbV2.очистить()
-        store.create(проект, "project", область, "1", mapper.readTree("""{"name":"Файлы","standard":"NASA-7120","phase":"Pre-Phase A"}"""), провенанс)
+        store.create(проект, "project", область, "1", mapper.readTree("""{"name":"Файлы","standard":"NASA-7120","phase_current":"Pre-Phase A"}"""), провенанс)
     }
 
     private fun base64(текст: String) = Base64.getEncoder().encodeToString(текст.toByteArray())

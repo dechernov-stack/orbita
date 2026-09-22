@@ -182,7 +182,7 @@ class ModelsTest {
         store.create(
             "Р2", "constraint", область, "5",
             mapper.readTree(
-                """{"text":"платформа в диапазоне 12U…100 кг","type":"technical",
+                """{"statement":"платформа в диапазоне 12U…100 кг","type":"technical",
                     "bound":{"key":"mass","op":"le","value":100,"unit":"кг"}}""",
             ),
             провенанс,
@@ -219,7 +219,7 @@ class ModelsTest {
         store.create(
             "Р2", "constraint", область, "5",
             mapper.readTree(
-                """{"text":"платформа в диапазоне 12U…100 кг","type":"technical",
+                """{"statement":"платформа в диапазоне 12U…100 кг","type":"technical",
                     "bound":{"key":"mass","op":"le","value":100,"unit":"кг"}}""",
             ),
             провенанс,
@@ -241,7 +241,7 @@ class ModelsTest {
         параметр("SC", "mass_dry", 78.0, "estimated")
         store.create(
             "Р1", "constraint", область, "5",
-            mapper.readTree("""{"text":"полезная нагрузка — только регенеративная","type":"technical"}"""),
+            mapper.readTree("""{"statement":"полезная нагрузка — только регенеративная","type":"technical"}"""),
             провенанс,
         )
         val бюджет = модели.budget(проект, "mass", "MCR")

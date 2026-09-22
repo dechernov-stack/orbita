@@ -48,9 +48,9 @@ class KnowledgeModesTest {
     @Test
     fun `даташит — параметры в анкету узла, конфликт с рамкой Р2 риском, недостающее запросом`() {
         store.create("Р2", "constraint", область, "5",
-            mapper.readTree("""{"text":"платформа в диапазоне 12U…100 кг","category":"техническое","bound":{"key":"mass","op":"le","value":100,"unit":"кг"}}"""), провенанс)
+            mapper.readTree("""{"statement":"платформа в диапазоне 12U…100 кг","type":"техническое","bound":{"key":"mass","op":"le","value":100,"unit":"кг"}}"""), провенанс)
         store.create("Р4", "constraint", область, "5",
-            mapper.readTree("""{"text":"средняя мощность ПН не более 40 Вт","category":"техническое","bound":{"key":"power","op":"le","value":40,"unit":"Вт"}}"""), провенанс)
+            mapper.readTree("""{"statement":"средняя мощность ПН не более 40 Вт","type":"техническое","bound":{"key":"power","op":"le","value":40,"unit":"Вт"}}"""), провенанс)
         store.create("SC-PLT", "component", область, "7",
             mapper.readTree("""{"name":"Платформа","kind":"subsystem","level":2,"nature":"node","template_ref":"TC-SC"}"""), провенанс)
         val материал = intake.putMaterial(проект, "Даташит платформы", "datasheet",
@@ -85,7 +85,7 @@ class KnowledgeModesTest {
         // Правило атомизации: услуга ТЗ — отдельный факт своего класса; без нужды — сирота, названная словами.
         val json = """{"topics":[],"actions":[
             {"kind":"create_entity","target_kind":"requirement","scene":"8","title":"требование из п. 4.1","preview":"…","payload":{"statement":"приём телеметрии не реже 30 мин","level":"project","category":"performance"},"facts":[0]},
-            {"kind":"create_entity","target_kind":"service","scene":"6","title":"сервис LEO-PNT","preview":"…","payload":{"name":"Позиционирование и навигация (LEO-PNT)","classes":["A′"]},"facts":[2]}],
+            {"kind":"create_entity","target_kind":"service","scene":"6","title":"сервис LEO-PNT","preview":"…","payload":{"name":"Позиционирование и навигация (LEO-PNT)","qos_class":["A′"]},"facts":[2]}],
           "facts":[
             {"kind":"obligation","entity_class":"requirement","subject":"ТЗ п. 4.1","predicate":"приём телеметрии с интервалом не более 30 мин","value":"требование","source":{"anchor":"${я[0]}"},"source_mark":"И"},
             {"kind":"obligation","entity_class":"requirement","subject":"ТЗ п. 4.2","predicate":"срок службы не менее 5 лет","value":"требование","source":{"anchor":"${я[1]}"},"source_mark":"И"},

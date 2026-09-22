@@ -208,3 +208,20 @@ describe('решение точки', () => {
     expect(точки).toContain('Ответ «да» нигде не хранится')
   })
 })
+
+describe('права на точке (шип 1, п. 1.1)', () => {
+  it('кнопка решения видна только роли, которая решает; остальным — кто фиксирует', () => {
+    expect(точки).toContain("!точка.passed && точка.role && !мои.includes(точка.role)")
+    expect(точки).toContain('Фиксирует {РОЛЬ[точка.role] ?? точка.role}')
+    expect(точки).toContain('роль в проекте не назначена')
+    expect(точки).toContain("!точка.passed && (!точка.role || мои.includes(точка.role))")
+  })
+
+  it('мои роли — ровно как у сервера: от имени, иначе роль проекта; без добавок «РП носит и DA»', () => {
+    expect(точки).toContain('export function моиРоли')
+    expect(точки).toContain('if (учётка.acting_role) return [учётка.acting_role]')
+    expect(точки).not.toContain("'da_review')")
+    expect(оболочка).toContain('учётка={я}')
+    expect(клиент).toContain('projectRoles:')
+  })
+})

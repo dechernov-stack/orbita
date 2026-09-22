@@ -34,7 +34,7 @@ class PhaseADocumentsTest {
     fun чисто() {
         TestDbV2.очистить()
         store.create(проект, "project", область, "1",
-            mapper.createObjectNode().put("name", "Phase A документы").put("standard", "NASA-7120").put("phase", "Phase A"), провенанс)
+            mapper.createObjectNode().put("name", "Phase A документы").put("standard", "NASA-7120").put("phase_current", "Phase A"), провенанс)
         // полка процессов СИ — как её грузит load_shelves: одна запись с перечнем
         // Каталог процессов — ЗАПИСЯМИ, одна на процесс (истина 21-09): полка
         // несёт их списком `items`, и каждая ложится своей сущностью, как у
@@ -67,11 +67,11 @@ class PhaseADocumentsTest {
         val ка = store.create("EL-SC", "component", область, "7", mapper.readTree("""{"name":"КА","kind":"element","level":2,"nature":"node"}"""), провенанс)
         val терминал = store.create("EL-UT", "component", область, "7", mapper.readTree("""{"name":"Терминал","kind":"element","level":2,"nature":"node"}"""), провенанс)
         val стык = store.create("IF-S-USER", "interface", область, "7",
-            mapper.readTree("""{"name":"КА — терминал","type":"rf","a":"${ка.id}","b":"${терминал.id}","direction":"both"}"""), провенанс)
+            mapper.readTree("""{"name":"КА — терминал","type":"RF","a":"${ка.id}","b":"${терминал.id}","direction":"bi"}"""), провенанс)
         store.create("IF-S-USER.freq", "parameter", область, "A4",
-            mapper.readTree("""{"target":"${стык.id}","key":"freq","measure":{"value":435.0,"unit":"МГц"},"origin":"design"}"""), провенанс)
+            mapper.readTree("""{"target":"${стык.id}","key":"freq","measure":{"value":435.0,"unit":"МГц"},"origin":"manual"}"""), провенанс)
         store.create("EL-SC.mass", "parameter", область, "A4",
-            mapper.readTree("""{"target":"${ка.id}","key":"mass","measure":{"value":12.0,"unit":"кг"},"origin":"design"}"""), провенанс)
+            mapper.readTree("""{"target":"${ка.id}","key":"mass","measure":{"value":12.0,"unit":"кг"},"origin":"manual"}"""), провенанс)
         store.create("RQ-S-0004", "requirement", область, "A4",
             mapper.readTree("""{"level":"system","title":"Пакет","statement":"Стык должен передавать пакет 32 байта за сеанс.","category":"interface","carrier":"${стык.id}"}"""), провенанс)
         store.create("RQ-S-0001", "requirement", область, "A4",
