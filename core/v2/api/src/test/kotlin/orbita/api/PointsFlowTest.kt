@@ -103,6 +103,23 @@ class PointsFlowTest {
         assertTrue("руководитель проекта" in фиксация.message!! && "Петрова М." in фиксация.message!!, фиксация.message)
     }
 
+    /**
+     * Шип 1, п. 1.1: DA с блокирующим условием получает отказ движка с
+     * критерием (у HTTP — 409), а не 403: роль верная, точка держится.
+     */
+    @Test
+    fun `DA при блокирующем условии — отказ с критерием, не с ролью`() {
+        val da = Actor("chernov", "Чернов Д.", setOf("da_review"))
+        val отказ = assertFailsWith<orbita.process.api.GateHeldException> {
+            router().handle("POST", "/v2/points/MCR/decide", п, """{"outcome":"approve"}""", da)
+        }
+        assertTrue("держится" in отказ.message!!, отказ.message)
+        val безРоли = assertFailsWith<RoleRefusedException> {
+            router().handle("POST", "/v2/points/MCR/decide", п, """{"outcome":"approve"}""", Actor("nobody", "Никто Н.", emptySet()))
+        }
+        assertTrue("нет" in безРоли.message!!, "учётка без роли — отказ словами: ${безРоли.message}")
+    }
+
     @Test
     fun `решение точки переживает пересборку роутера, MCR держится критериями`() {
         // внутренний обзор: план работ фазы у первой доступной сцены

@@ -164,6 +164,25 @@ class MultiUserTest {
 
     @Test
     @Order(3)
+    fun `РП без «от имени» точку DA не фиксирует, учётка без роли записать не может`() {
+        // Шип 1, п. 1.1: авто-роли «РП носит и DA» больше нет — DA только «от имени».
+        val byLead = send(
+            "POST", "/gates/internal_review/pass?project=$projectId",
+            """{"decision":"проходим"}""", asUser = "lead",
+        )
+        assertEquals(403, byLead.statusCode()) { byLead.body() }
+        // Учётка есть, роли в проекте нет: чтение открыто, запись — 403 словами.
+        send("POST", "/auth/register", """{"login":"guest","password":"строгий-пароль","display_name":"Гость Г."}""", asUser = "lead")
+        login("guest", "строгий-пароль")
+        val чтение = send("GET", "/v2/points?project=$projectId", asUser = "guest")
+        assertTrue(чтение.statusCode() != 403) { чтение.body() }
+        val запись = send("POST", "/v2/points/internal_review/decide?project=$projectId", """{"outcome":"approve"}""", asUser = "guest")
+        assertEquals(403, запись.statusCode()) { запись.body() }
+        assertTrue("нет роли в проекте" in запись.body()) { запись.body() }
+    }
+
+    @Test
+    @Order(3)
     fun `точку фиксирует только DA`() {
         val bySpec = send(
             "POST", "/gates/internal_review/pass?project=$projectId",

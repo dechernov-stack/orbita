@@ -266,14 +266,23 @@ class HttpApi(private val boundary: Boundary) {
                 // волна 6), тогда — единственная роль учётки, если она одна.
                 val роль = u.actingRole ?: boundary.auth.roleIn(проект, u.login)
                     ?: boundary.auth.rolesOf(u.login).values.toSet().singleOrNull()
-                val роли = buildSet {
-                    роль?.let { add(it) }
-                    // Стенд: руководитель проекта носит и обзорную роль
-                    // (учётка «РП · DA» одна) — то же правило, что в реестре прав.
-                    // Роль «от имени» — точная: выбрал РП — значит РП, не DA.
-                    if (u.actingRole == null && (standMode || telegramMode) && роль == "lead") add("da_review")
-                }
+                // Роли — ровно те, что у учётки в проекте или выбраны «от имени».
+                // Прежде РП без «от имени» носил и DA («учётка одна») — так
+                // агентская сессия 20.09 зафиксировала MCR, а владелец, выступив
+                // от имени РП, получил на то же 403 (шип 1, п. 1.1). DA — только
+                // «выступить от имени DA»; экран точки говорит, кто фиксирует.
+                val роли = buildSet { роль?.let { add(it) } }
                 orbita.api.api.Actor(u.login, authorOf(u), роли)
+            }
+            // Учётка есть, роли в проекте нет — запись запрещена, чтение открыто:
+            // «без роли — 403 на любую запись», а не «все роли шаблона».
+            if (вход && actor != null && actor.roles.isEmpty() && method != "GET") {
+                respond(ex, 403, mapper.createObjectNode().put(
+                    "error",
+                    "у учётки «${actor.name}» нет роли в проекте${query(ex)["project"]?.let { " «$it»" } ?: ""}: " +
+                        "запись закрыта; роль назначает руководитель проекта, DA — «выступить от имени»",
+                ))
+                return
             }
             currentAuthor.set(учётка?.let { authorOf(it) })
             currentAuthorLogin.set(учётка?.login)
@@ -5054,10 +5063,10 @@ class HttpApi(private val boundary: Boundary) {
         if (role == null) return "у ${user.login} нет роли в проекте ${project ?: "—"}: назначает руководитель"
         val rule = orbita.req.Permissions.default.ruleFor(method, path)
             ?: return "маршрут $method $path не покрыт реестром прав — запись закрыта (fail-closed)"
-        // Режим стенда: руководитель проекта носит и обзорную роль (в ПМИ-4
-        // учётка «РП · DA» одна) — только под флагом, реестр прав не меняется
-        val effective = if (!exact && (standMode || telegramMode) && role == "lead" && "da_review" in rule.allow) "da_review" else role
-        if (effective !in rule.allow) return rule.why + "; ваша роль — " + role
+        // Роль — ровно та, что у учётки или выбрана «от имени»: прежняя добавка
+        // «РП носит и DA» (ПМИ-4, учётка одна) снята шипом 1, п. 1.1 — DA
+        // только «выступить от имени DA», иначе точку решал кто угодно с РП.
+        if (role !in rule.allow) return rule.why + "; ваша роль — " + role
         if (rule.ownerGuard && role == "specialist") {
             val id = editMatch?.groupValues?.get(1) ?: objectMatch?.groupValues?.get(1)
             if (id != null && (id.startsWith("CM-") || id.startsWith("CU-"))) {
@@ -5283,7 +5292,8 @@ class HttpApi(private val boundary: Boundary) {
                 respond(ex, 200, out)
             }
 
-            method == "GET" && Regex("^/auth/roles/PJ-[0-9]{4}$").matches(path) -> {
+            // Код проекта — любой (PJ-ПМИ7 тоже): роли проекта читает экран точки.
+            method == "GET" && Regex("^/auth/roles/[^/]+$").matches(path) -> {
                 requireNotNull(user) { "войдите" }
                 val projectId = path.removePrefix("/auth/roles/")
                 val out = mapper.createObjectNode()
