@@ -152,6 +152,34 @@ function PointCard({ project, точка, все, phase, onChanged, onGoScene }:
         {экспертиза?.positions.map((п) => <Позиция key={п.artifact} п={п} />)}
       </ul>
 
+      {/*
+        Решение стоит СРАЗУ ЗА ГОТОВНОСТЬЮ, а не в самом низу за матрицей
+        зрелости и замечаниями: владелец 21.09 базировал последний документ и
+        написал «явного перехода нет — всё просто стоит». Кнопка была, но
+        ниже двух экранов таблицы.
+      */}
+      {!точка.passed && (
+        <>
+          <div className="v2-empty__why" data-why="почему-нельзя">
+            {точка.blocking.length === 0
+              ? 'Ничто не держит: решение можно фиксировать.'
+              : `Держит ${точка.blocking.length}: ` + точка.blocking
+                .map((б) => б.replace(/^комплект: /, '').replace(/ — .*/, ''))
+                .join('; ') + '. Сервер откажет, пока это не закрыто.'}
+          </div>
+          <div className="v2-form v2-form--row" data-why="следующий-клик">
+            <input value={помета} placeholder="помета к решению (не обязательно)" onChange={(e) => setПомета(e.target.value)} />
+            <button type="button" className="v2-primary" disabled={занято}
+              title={точка.opens_phase ? `решение открывает ${точка.opens_phase}` : 'зафиксировать точку: блокирующие и роль проверит сервер'}
+              onClick={() => решить('approve')}>
+              {точка.opens_phase ? `Решение: переход в ${точка.opens_phase}` : 'Зафиксировать'}
+            </button>
+            <button type="button" className="v2-link" disabled={занято}
+              title="вернуть точку с открытыми замечаниями" onClick={() => решить('return')}>вернуть с замечаниями</button>
+          </div>
+        </>
+      )}
+
       {чекЛист && (
         <>
           <h4 className="v2-h4">Чек-лист по критериям {чекЛист.title}</h4>
@@ -168,16 +196,28 @@ function PointCard({ project, точка, все, phase, onChanged, onGoScene }:
         <>
           <h4 className="v2-h4">Экспертиза{экспертиза?.source ? ` · ${экспертиза.source}` : ''}</h4>
           {экспертиза?.goal && <div className="v2-act__goal">{экспертиза.goal}</div>}
+          <div className="v2-empty__why">
+            Чек-лист эксперта: система записывает только ответ «нет» — он заводит замечание с
+            возвратом в сцену. Ответ «да» нигде не хранится, поэтому вопрос без замечания стоит
+            точкой, а не галочкой.
+          </div>
           <ul className="v2-checks">
             {вопросы.map((в) => {
               const нет = точка.findings.find((з) => з.question === в && з.status === 'open')
               return (
-                <li key={в} className={нет ? 'v2-check v2-check--no' : 'v2-check'}>
-                  <span>{нет ? '☐' : '☑'}</span>
+                <li key={в} className={нет ? 'v2-check v2-check--no' : 'v2-check v2-check--note'}>
+                  {/*
+                    Галочка тут врала: «☑» значило лишь «замечания по вопросу
+                    нет», а не «ответили да» — ответов система не хранит вовсе.
+                    Точка (·) честнее: вопрос задан, ответа в системе нет.
+                  */}
+                  <span>{нет ? '☐' : '·'}</span>
                   <span className="v2-check__t">{в}</span>
                   {нет
                     ? <span className="v2-cnt"> — {нет.code} → сцена {нет.scene}</span>
-                    : <button type="button" className="v2-link" onClick={() => новоеЗамечание(в)}>нет — замечание</button>}
+                    : <button type="button" className="v2-link"
+                        title="ответ «нет» заводит замечание с возвратом в сцену; ответ «да» система не хранит"
+                        onClick={() => новоеЗамечание(в)}>ответить «нет» → замечание</button>}
                 </li>
               )
             })}
@@ -266,18 +306,6 @@ function PointCard({ project, точка, все, phase, onChanged, onGoScene }:
         {точка.findings.length === 0 && <li className="v2-empty">замечаний нет</li>}
       </ul>
 
-      {!точка.passed && (
-        <div className="v2-form v2-form--row" data-why="следующий-клик">
-          <input value={помета} placeholder="помета к решению (не обязательно)" onChange={(e) => setПомета(e.target.value)} />
-          <button type="button" className="v2-primary" disabled={занято}
-            title={точка.opens_phase ? `решение открывает ${точка.opens_phase}` : 'зафиксировать точку: блокирующие и роль проверит сервер'}
-            onClick={() => решить('approve')}>
-            {точка.opens_phase ? `Решение: переход в ${точка.opens_phase}` : 'Зафиксировать'}
-          </button>
-          <button type="button" className="v2-link" disabled={занято}
-            title="вернуть точку с открытыми замечаниями" onClick={() => решить('return')}>вернуть с замечаниями</button>
-        </div>
-      )}
       {ответ && <div className="v2-locked" data-why="почему-нельзя">{ответ}</div>}
     </div>
   )
