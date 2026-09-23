@@ -140,7 +140,9 @@ class ComponentFacetsTest {
             грань("modes").lines.any { it.what.contains("Безопасный") && it.what.contains("F-16") },
             "режим обязан показывать, что в нём активно: ${грань("modes").lines}",
         )
-        assertTrue(грань("parameters").lines.any { it.what.contains("cpu_load") })
+        // Величина — словами, не JSON: «cpu_load = 45 %», причина перехода — «по событию «…»» (карточка узла на A4, 23.09).
+        assertTrue(грань("parameters").lines.any { it.what.contains("cpu_load = 45 % · estimated ±30.0%") }, "параметры: ${грань("parameters").lines}")
+        assertTrue(грань("modes").lines.any { it.what.contains("переход init → safe по событию «FDIR level ≥ 2»") }, "переходы: ${грань("modes").lines}")
         assertTrue(грань("requirements").lines.any { it.what.contains("RQ-S-08") })
         assertTrue(грань("technologies").lines.any { it.what.contains("TRL 5") })
     }

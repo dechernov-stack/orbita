@@ -5,6 +5,7 @@
 // связью. Поэтому карточка — запрос, а не запись.
 package orbita.architecture.internal
 
+import com.fasterxml.jackson.databind.JsonNode
 import orbita.architecture.api.ComponentView
 import orbita.architecture.api.Facet
 import orbita.architecture.api.FacetLine
@@ -121,14 +122,14 @@ internal class Facets(
                     } + машина.doc.path("transitions").map { переход ->
                         FacetLine(
                             "переход ${переход.path("from").asText()} → ${переход.path("to").asText()}" +
-                                " по ${переход.path("trigger").toString()}",
+                                " ${причинаПерехода(переход.path("trigger"))}",
                             машина.id,
                         )
                     }
                 },
             "parameters" to параметрыУзла.map {
                 FacetLine(
-                    "${it.doc.path("key").asText(it.code)} = ${it.doc.path("measure")} · " +
+                    "${it.doc.path("key").asText(it.code)} = ${величиной(it.doc.path("measure"))} · " +
                         "${it.doc.path("maturity_class").asText("estimated")} ±${it.doc.path("uncertainty").asDouble(0.0)}%",
                     it.id,
                 )
@@ -193,4 +194,35 @@ internal class Facets(
         }
     }
 
+}
+
+
+/**
+ * Величина параметра словами, а не JSON: `{value, unit}` → «92 кг», `{min, max}` →
+ * «10–20 кг», с оператором — «≤ 92 кг», TBR — «TBR к SDR (владелец)». Карточка
+ * узла на сцене A4 читалась как `{"unit":"кг","value":92.0}` (проверка 23.09).
+ */
+private fun величиной(мера: JsonNode): String {
+    if (мера.isMissingNode || мера.isNull) return "не задана"
+    if (!мера.isObject) return мера.asText()
+    val единица = мера.path("unit").asText("").ifBlank { null }
+    val число = { з: JsonNode -> if (з.isNumber) з.asText() else з.asText("") }
+    val текст = when {
+        мера.has("value") -> (мера.path("op").asText("").ifBlank { null }?.let { "$it " } ?: "") + число(мера.path("value"))
+        мера.has("min") || мера.has("max") -> число(мера.path("min")) + "–" + число(мера.path("max"))
+        мера.has("gate") || мера.has("owner") ->
+            "TBR к ${мера.path("gate").asText("?")}" + мера.path("owner").asText("").ifBlank { null }?.let { " ($it)" }.orEmpty()
+        else -> мера.toString()
+    }
+    return if (единица != null && !текст.startsWith("TBR")) "$текст $единица" else текст
+}
+
+/** Причина перехода словами истины: событие, обмен или таймер; текстом — как записано. */
+private fun причинаПерехода(причина: JsonNode): String {
+    if (причина.isTextual) return "по «${причина.asText()}»"
+    if (!причина.isObject) return "без причины"
+    val слова = mapOf("event" to "по событию", "exchange" to "по обмену", "timer" to "по таймеру")
+    val названные = причина.properties().filter { (_, з) -> з.asText("").isNotBlank() }
+    if (названные.isEmpty()) return "без причины"
+    return названные.joinToString(", ") { (ключ, з) -> "${слова[ключ] ?: ключ} «${з.asText()}»" }
 }
