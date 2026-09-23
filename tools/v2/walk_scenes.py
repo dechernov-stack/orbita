@@ -125,10 +125,7 @@ class Прогон:
                           # Имя с кодом, если проект не из сида: два прогона с одним
                           # именем не различить в портфеле (поймано на E1).
                           {"name": self.сид["name"] if self.проект == self.сид["code"] else f"{self.сид['name']} · {self.проект}",
-                           "code": self.проект,
-                           # Поле знаний v2 — признак проекта из сида: явный выбор
-                           # сильнее умолчания стенда (SceneRoutes.открытьПроект).
-                           **({"knowledge_v2": self.сид["knowledge_v2"]} if "knowledge_v2" in self.сид else {})}),
+                           "code": self.проект}),
         )
 
     def сцена_2_замысел(self) -> None:
@@ -499,14 +496,10 @@ class Прогон:
         # допущение к MCR: держит точку, подтверждение отпускает
         д = настройки.get("assumption")
         if д:
-            факты = вызов(self.base, "GET", f"/v2/facts?project={self.проект}").get("items", [])
-            факт = next((ф for ф in факты if ф.get("predicate") == д["predicate"] and ф.get("manual")), None)
-            if факт is None:
-                факт = вызов(self.base, "POST", f"/v2/facts?project={self.проект}",
-                             {"subject": д["subject"], "predicate": д["predicate"], "value": д["value"], "unit": д["unit"],
-                              "kind": "quantity", "author": д["owner"]})
-                self.сделано.append(f"знания 2: факт {факт['id']} заведён руками")
-            if факт.get("disposition") not in ("assumed", "adopted"):
+            факт = self.ручной_факт(д)
+            if факт.get("disposition") != "adopted" and not (факт.get("assumption") or {}).get("confirm_by"):
+                # Владельца и точку подтверждения ставит человек — и после сверки тоже:
+                # сверка помечает факт допущением, а к точке его привязывает диспозиция.
                 вызов(self.base, "POST", f"/v2/facts/{факт['id']}/disposition?project={self.проект}",
                       {"disposition": "assumed", "reason": "пока не измерено", "author": д["owner"],
                        "assumption": {"owner": д["owner"], "confirm_by": д["confirm_by"],
@@ -519,6 +512,51 @@ class Прогон:
                 вызов(self.base, "POST", f"/v2/facts/{факт['id']}/disposition?project={self.проект}",
                       {"disposition": "adopted", "reason": "замерено на стенде: 11,6 с", "author": д["owner"]})
                 self.сделано.append(f"знания 2: допущение {факт['id']} подтверждено — точка отпущена")
+
+    def ручной_факт(self, д: dict) -> dict:
+        """Факт руками — тем же путём, что рука эксперта на экране.
+
+        На проекте поля знаний v2 ручной ввод идёт ТОЛЬКО через сверку (истина
+        23.09, manual_fact_rule): кандидат-факт эксперта понятия «допущение»,
+        находка «новое», решение человека — и только тогда факт помечен
+        допущением. Ворота «ввод не сверен» прогон не обходит.
+        Идемпотентно: свой факт узнаётся по предмету и ручному вводу.
+        """
+        факты = вызов(self.base, "GET", f"/v2/facts?project={self.проект}").get("items", [])
+        предмет = f"{д['subject']}: {д['predicate']}"
+        свой = next((ф for ф in факты if ф.get("manual") and (
+            ф.get("predicate") == д["predicate"] or str(ф.get("subject", "")).startswith(предмет))), None)
+        if свой is not None:
+            return свой
+        тело = {"subject": д["subject"], "predicate": д["predicate"], "value": д["value"], "unit": д["unit"],
+                "kind": "quantity", "author": д["owner"]}
+        try:
+            факт = вызов(self.base, "POST", f"/v2/facts?project={self.проект}", тело)
+            self.сделано.append(f"знания 2: факт {факт['id']} заведён руками")
+            return факт
+        except Отказ as о:
+            if "не сверен" not in str(о):
+                raise
+        сверка = вызов(self.base, "POST", f"/v2/reconcile?project={self.проект}", {
+            "candidates": [{"local_id": "c1", "concept": "assumption", "origin": "manual",
+                            "payload": {"statement": предмет, "measure": {"value": д["value"], "unit": д["unit"]}}}],
+            "author": д["owner"], "role": "ведущий СИ",
+        })
+        строка = next(iter(сверка.get("items") or []), None)
+        if строка is None:
+            raise Отказ(f"сверка не разобрала допущение: {'; '.join(сверка.get('refused') or ['причина не названа'])}")
+        if строка.get("verdict") == "new" and строка.get("decided") is None:
+            номер = next((i for i, н in enumerate(строка.get("findings", [])) if н.get("verdict") == "new"), 0)
+            вызов(self.base, "POST", f"/v2/reconcile/{сверка['run']}/apply?project={self.проект}",
+                  {"local_id": "c1", "finding": номер, "action": "accept_new",
+                   "reason": "допущение прогона: пока не измерено", "author": д["owner"]})
+        код = строка.get("candidate_fact")
+        факты = вызов(self.base, "GET", f"/v2/facts?project={self.проект}").get("items", [])
+        факт = next((ф for ф in факты if ф.get("id") == код or ф.get("code") == код), None)
+        if факт is None:
+            raise Отказ(f"кандидат-факт «{код}» после сверки не найден в поле знаний")
+        self.сделано.append(f"знания 2: факт {факт['id']} заведён через сверку (вердикт {строка.get('verdict')})")
+        return факт
 
     # --- точки: сцены 15–18 (шип D) --------------------------------------
 
@@ -563,8 +601,16 @@ class Прогон:
                       for э in р.get("elements", []))
         допущение = настройки.get("assumption")
         if допущение and строк10 == 0:
-            вызов(self.base, "POST", f"/v2/facts?project={self.проект}", {**допущение, "author": "Иванов И."})
-            self.сделано.append("§10: допущение заведено руками (помета П)")
+            # Тем же путём, что рука эксперта: на проекте поля знаний v2 — через сверку.
+            факт = self.ручной_факт({**допущение, "owner": "Иванов И."})
+            self.сделано.append(f"§10: допущение {факт['id']} заведено руками")
+            отчёт = вызов(self.base, "GET", f"/v2/documents/mcreport?project={self.проект}&gate=KDP-A")
+            строк10 = sum(len(э.get("rows", [])) for р in отчёт.get("sections", []) if р.get("no") == "§10"
+                          for э in р.get("elements", []))
+            if строк10 == 0:
+                # §10 шаблона читает факты с пометой П, а кандидат-факт сверки несёт помету И:
+                # допущением он помечен диспозицией (истина 15.09), но в §10 не попадает — вопрос владельцу.
+                self.пропущено.append("§10: допущение заведено сверкой (помета И, диспозиция assumed), а §10 читает помету П — раздел пуст")
         тема = настройки.get("open_topic")
         if тема:
             темы = вызов(self.base, "GET", f"/v2/topics?project={self.проект}").get("items", [])
