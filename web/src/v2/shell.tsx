@@ -352,7 +352,7 @@ export function Shell() {
               }}
               onGoField={() => { setРучнойВвод(true); setSection('knowledge') }} />
           ) : section === 'library' ? (
-            <Library />
+            <Library project={project} />
           ) : section === 'external' ? (
             <ExternalModelScreen project={project} />
           ) : section === 'points' ? (

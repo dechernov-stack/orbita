@@ -1,0 +1,7 @@
+/* Библиотека (шип 2, экран 10): каталог строками, окно взятия — под ним, а не
+   поверх: модальных завес на экране нет, работа не прячется. */
+.v2-take { border-top: 1px solid var(--graphite); margin-top: var(--pad-l); padding-top: var(--pad-m); }
+.v2-take__list { display: grid; gap: 2px; max-height: 420px; overflow: auto; margin: var(--pad-s) 0; }
+.v2-take__row { display: flex; gap: 8px; align-items: baseline; padding: 4px 0; border-bottom: 1px solid var(--graphite); }
+/* Заперто родителем — серым: взять нельзя, и рядом сказано, что взять сначала. */
+.v2-take__row--locked { color: var(--muted); }

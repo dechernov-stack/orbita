@@ -131,6 +131,20 @@ class BridgeRoutesTest {
         )
     }
 
+    /**
+     * Сторона с нуждой: без нужд матрица покрытия пуста, и сигнала «нужды с
+     * покрытием» нет по правилу самого мостика — выдуманного нуля он не рисует.
+     * Сигнал проверяется на данных, а не на пустоте.
+     */
+    private fun нуждаСтороны() {
+        router.handle("POST", "/v2/stakeholders", п, """{"name":"Минтранс России","role":"customer"}""")
+        val сторона = store.list(область, "stakeholder").first()
+        router.handle(
+            "POST", "/v2/needs", п,
+            """{"statement":"единое оперативное управление транспортом","owner":"${сторона.code}"}""",
+        )
+    }
+
     private fun мостик(): JsonNode = router.handle("GET", "/v2/bridge", п, null)!!.body
 
     /** Открытый риск критичностью 15 (3 × 5): сигнал «риски ≥ 12» берётся из реестра. */
@@ -152,6 +166,7 @@ class BridgeRoutesTest {
     @Test
     fun `мостик отдаёт маршрут, очередь до семи строк, блокеры, команду и сигналы из данных`() {
         рискКритичный()
+        нуждаСтороны()
         // Замечание обзора — строка очереди «замечание» с возвратом в сцену 2.
         router.handle(
             "POST", "/v2/points/internal_review/findings", п,
@@ -221,10 +236,14 @@ class BridgeRoutesTest {
 
     @Test
     fun `поручение заводится по истине схем и закрывается`() {
+        // Слова поручения берутся у САМОГО блокера мостика: выдуманная строка
+        // никогда не сойдётся с тем, что держит точку на самом деле.
+        val разрыв = мостик().path("blockers").first { it.path("scene").asText() == "3" }
+        val причина = разрыв.path("why").asText()
         val создано = router.handle(
             "POST", "/v2/assignments", п,
             """{"target":{"kind":"gap","ref":"3"},"assignee":"petrova","due_point":"internal_review",
-                "what":"у 4 сторон нет нужд","author":"chernov"}""", рп,
+                "what":"$причина","author":"chernov"}""", рп,
         )!!
         assertEquals(201, создано.code)
         val код = создано.body.path("code").asText()
@@ -249,11 +268,11 @@ class BridgeRoutesTest {
         assertEquals(1, перечень.size())
         assertEquals("2026-10-06", перечень.first().path("due_date").asText(), "срок — дата точки, а не сама точка")
         assertTrue(!перечень.first().path("overdue").asBoolean(), "срок ещё не прошёл")
-        assertEquals("у 4 сторон нет нужд", перечень.first().path("what").asText())
+        assertEquals(причина, перечень.first().path("what").asText())
 
         // Блокер на мостике знает о своём поручении: «Поручить» второй раз не предлагается.
         val блокер = мостик().path("blockers").firstOrNull {
-            it.path("scene").asText() == "3" && it.path("why").asText() == "у 4 сторон нет нужд"
+            it.path("scene").asText() == "3" && it.path("why").asText() == причина
         }
         assertNotNull(блокер, "блокер, по которому дано поручение, остался на мостике")
         assertEquals(код, блокер.path("assignment").path("code").asText(), "у блокера видно поручение")
@@ -261,7 +280,7 @@ class BridgeRoutesTest {
         val команда = мостик().path("team")
         assertEquals(1, команда.size())
         assertEquals("petrova", команда.first().path("assignee").asText())
-        assertEquals("у 4 сторон нет нужд", команда.first().path("what").asText())
+        assertEquals(причина, команда.first().path("what").asText())
         assertTrue(!команда.first().path("done").asBoolean())
 
         val закрыто = router.handle("POST", "/v2/assignments/$код/done", п, """{"author":"petrova"}""", инженер)!!
