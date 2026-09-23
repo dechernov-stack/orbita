@@ -65,24 +65,29 @@ export function ProjectsScreen({ onOpen, onNew }: {
           Новый проект
         </button>
       </div>
-      {отказ && <div className="v2-locked">Портфель не прочитан: {отказ}</div>}
-      <div className="v2-pf__cols">
-        {КОЛОНКИ.map((колонка) => {
-          const свои = (проекты ?? []).filter((п) => (п.group === 'example' ? 'example' : 'work') === колонка.группа)
-          return (
-            <section className="v2-pf__col" key={колонка.группа}>
-              <h2 className="v2-pf__colh">{колонка.имя}</h2>
-              {проекты === null && !отказ ? (
-                <div className="v2-empty">Читаю портфель…</div>
-              ) : свои.length === 0 ? (
-                <div className="v2-empty">{колонка.пусто}</div>
-              ) : (
-                свои.map((проект) => <Карточка key={проект.code} проект={проект} onOpen={onOpen} />)
-              )}
-            </section>
-          )
-        })}
-      </div>
+      {/* Портфель не прочитан — говорим это словами сервера и не рисуем колонок:
+          «примеров пока нет» при непрочитанном портфеле было бы неправдой. */}
+      {отказ ? (
+        <div className="v2-locked">Портфель не прочитан: {отказ}</div>
+      ) : (
+        <div className="v2-pf__cols">
+          {КОЛОНКИ.map((колонка) => {
+            const свои = (проекты ?? []).filter((п) => (п.group === 'example' ? 'example' : 'work') === колонка.группа)
+            return (
+              <section className="v2-pf__col" key={колонка.группа}>
+                <h2 className="v2-pf__colh">{колонка.имя}</h2>
+                {проекты === null ? (
+                  <div className="v2-empty">Читаю портфель…</div>
+                ) : свои.length === 0 ? (
+                  <div className="v2-empty">{колонка.пусто}</div>
+                ) : (
+                  свои.map((проект) => <Карточка key={проект.code} проект={проект} onOpen={onOpen} />)
+                )}
+              </section>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
@@ -104,11 +109,13 @@ function Карточка({ проект, onOpen }: { проект: Карточ
           <span className="v2-pf__gate">
             <Маркер род="точка" состояние={точка.blocking > 0 ? 'блок' : 'текущее'} подпись={точка.title} />
             {' '}{точка.title}
-            {точка.planned_date && <> · {датаКратко(точка.planned_date)}</>}
-            {точка.blocking > 0 && <> · <span className="v2-bad">блокирует {точка.blocking}</span></>}
+            {/* Дата и блокирующие — цельными кусками: перенос строки не должен
+                оставлять «·» висеть в конце строки. */}
+            {точка.planned_date && <span className="v2-pf__nb"> · {датаКратко(точка.planned_date)}</span>}
+            {точка.blocking > 0 && <span className="v2-bad v2-pf__nb"> · блокирует {точка.blocking}</span>}
           </span>
         ) : (
-          <span className="v2-dim">точек у фазы нет — задайте их в паспорте</span>
+          <span className="v2-dim">ближайшей точки нет</span>
         )}
       </span>
       <span className="v2-pf__side">

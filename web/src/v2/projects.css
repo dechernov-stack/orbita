@@ -35,11 +35,15 @@
   grid-column: 1; display: flex; gap: var(--pad-s); align-items: center; flex-wrap: wrap;
   font-size: var(--size-s); color: var(--muted);
 }
-.v2-pf__gate { display: inline-flex; gap: 6px; align-items: center; }
-.v2-pf__gate > .v2-marker { flex: none; }
+.v2-pf__gate { display: inline; }
+.v2-pf__gate > .v2-marker { vertical-align: -1px; margin-right: 2px; }
+/* Дата точки и «блокирует N» не разрываются переносом. */
+.v2-pf__nb { white-space: nowrap; }
+/* Активность и руководитель — у ВЕРХНЕЙ строки карточки: имя может занять
+   две строки, и середина карточки уехала бы от него. */
 .v2-pf__side {
-  grid-column: 2; grid-row: 1 / span 2; display: flex; gap: var(--pad-s); align-items: center;
-  justify-content: flex-end; font-size: var(--size-s); color: var(--muted);
+  grid-column: 2; grid-row: 1 / span 2; display: flex; gap: var(--pad-s); align-items: start;
+  justify-content: flex-end; font-size: var(--size-s); color: var(--muted); padding-top: 2px;
 }
 .v2-pf__when { white-space: nowrap; }
 /* Инициалы руководителя чипом; полное имя — подсказкой того же элемента. */
