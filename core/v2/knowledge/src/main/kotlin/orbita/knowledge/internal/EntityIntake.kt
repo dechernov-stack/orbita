@@ -342,6 +342,15 @@ class EntityIntake(
                 вид == "finding" -> store.list(область, вид).firstOrNull { з ->
                     з.doc.path("text").asText() == содержимое.path("text").asText()
                 }
+                // Нужда — много носителей (истина 24.09): та же формулировка у
+                // другой стороны плана — не вторая нужда, а ещё один носитель
+                // принятой; узнаётся ключом идентичности (суть формулировки).
+                вид == "need" -> IdentityKeys.of(store, область, shelves).let { ключи ->
+                    ключи.ofConcept("need", содержимое)?.let { ключ ->
+                        store.list(область, "need").filter { it.status != "cancelled" }
+                            .firstOrNull { ключи.ofConcept("need", it.doc)?.value == ключ.value }
+                    }
+                }
                 else -> null
             }
             // Адресные виды (шип E): параметр узла и запрос данных ссылаются на
@@ -412,7 +421,12 @@ class EntityIntake(
             // План загрузки — третий вход наряду с ручным вводом и сверкой:
             // нужда и отсюда обязана уйти с TBR, у которого есть ответственный.
             if (вид == "need") QosClass.fillIfMissing(mapper, содержимое, author)
-            val сущность = if (прежний != null) {
+            val сущность = if (прежний != null && вид == "need") {
+                // Копия формулировки: запись не переписывается, сторона ниже
+                // встаёт носителем, факт копии — ещё одним основанием.
+                заметки += "${прежний.code}: та же нужда названа ещё раз — сторона добавлена носителем, копии нет"
+                прежний
+            } else if (прежний != null) {
                 store.update(прежний.id, содержимое, Provenance(
                     Channel.SERVICE, author, source = задание.doc.path("material").asText(), anchor = якорь,
                 ), status = if (вид in setOf("risk", "finding")) null else "accepted")
@@ -443,11 +457,14 @@ class EntityIntake(
                     заметки += "${сущность.code}: носитель «$названныйСосед» не найден " +
                         "среди сторон проекта — назначьте его в сцене 3"
                 } else {
-                    links?.link(
-                        ссылка.связь, сосед.id, сущность.id,
-                        Provenance(Channel.SERVICE, author),
-                        rationale = "носитель назван разбором: «$названныйСосед»",
-                    )
+                    // Уже стоящий носитель второй связью не удваивается.
+                    if (links?.to(сущность.id, ссылка.связь)?.none { it.from == сосед.id } != false) {
+                        links?.link(
+                            ссылка.связь, сосед.id, сущность.id,
+                            Provenance(Channel.SERVICE, author),
+                            rationale = "носитель назван разбором: «$названныйСосед»",
+                        )
+                    }
                     // Поле `stakeholders` зеркалит связи owns (истина 24.09: нужда — много носителей).
                     if (вид == "need") {
                         val док = сущность.doc.deepCopy<JsonNode>() as com.fasterxml.jackson.databind.node.ObjectNode

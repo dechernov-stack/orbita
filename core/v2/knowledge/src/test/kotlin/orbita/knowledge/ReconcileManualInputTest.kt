@@ -811,6 +811,51 @@ class ReconcileManualInputTest {
     }
 
     @Test
+    fun `копии одной нужды у двух сторон в одном запуске дают одну нужду с двумя носителями`() {
+        // Одна формулировка — одна нужда, носителей много (истина 24.09):
+        // в предпросмотре обе копии «новые» — принятой первой ещё нет, — а
+        // принятая второй прибавляет свою сторону носителем, копии не заводит.
+        сторона("SK-0001", "Минтранс России")
+        сторона("SK-0002", "Росморпорт")
+        val вторая = Candidate(
+            "c2", "need",
+            mapper.createObjectNode().put("statement", "Непрерывный мониторинг судов на СМП").put("stakeholder", "Росморпорт"),
+        )
+        val запуск = сверка.preview(
+            проект, listOf(кандидатНужды("Непрерывный мониторинг судов на СМП", "Минтранс России"), вторая), автор, роль,
+        )
+        assertEquals(listOf(Verdict.NEW, Verdict.NEW), запуск.items.map { it.verdict }, "до принятия обе копии — новые")
+
+        val первое = сверка.apply(
+            проект, запуск.id, "c1",
+            запуск.items.first { it.localId == "c1" }.findings.indexOfFirst { Action.ACCEPT_NEW in it.offers },
+            Action.ACCEPT_NEW, reason = "принято", author = автор,
+        )
+        val второе = сверка.apply(
+            проект, запуск.id, "c2",
+            запуск.items.first { it.localId == "c2" }.findings.indexOfFirst { Action.ACCEPT_NEW in it.offers },
+            Action.ACCEPT_NEW, reason = "принято", author = автор,
+        )
+
+        val нужды = store.list(область, "need").filter { it.status != "cancelled" }
+        assertEquals(1, нужды.size, "копии нет: ${нужды.map { it.code }}")
+        val нужда = нужды.single()
+        assertEquals(первое.created, listOf(нужда.code))
+        assertTrue(второе.created.isEmpty(), "вторая копия сущности не завела: ${второе.created}")
+        assertEquals(listOf(нужда.code), второе.updated, "вторая копия дополнила принятую")
+        assertTrue("уже принята" in второе.note, второе.note)
+        assertEquals(
+            setOf("SK-0001", "SK-0002"), links.to(нужда.id, "owns").map { store.byId(it.from)!!.code }.toSet(),
+            "обе стороны — носители",
+        )
+        assertEquals(
+            setOf("SK-0001", "SK-0002"), нужда.doc.path("stakeholders").map { store.byId(it.asText())!!.code }.toSet(),
+            "поле stakeholders зеркалит связи",
+        )
+        assertEquals(2, links.from(нужда.id, "derived_from_fact").size, "оба кандидата-факта — основания одной нужды")
+    }
+
+    @Test
     fun `повторное чтение запуска отдаёт те же находки без нового вызова`() {
         val минтранс = сторона("SK-0001", "Минтранс России")
         нужда("ND-0001", "Необходимо обеспечить связь в Арктике", минтранс.code)

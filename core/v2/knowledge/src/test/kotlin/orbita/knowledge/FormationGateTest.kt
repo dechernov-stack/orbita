@@ -313,6 +313,50 @@ class FormationGateTest {
     }
 
     /** Задание с планом разбора; факты обязаны пройти правила честности §6.1. */
+    @Test
+    fun `та же нужда у двух сторон плана — одна нужда с двумя носителями, копии нет`() {
+        // Одна формулировка — одна нужда, носителей много (истина 24.09):
+        // план разбора называет общую нужду у каждой стороны, а в проекте
+        // она одна — вторая строка прибавляет носителя и основание.
+        store.create(
+            "SK-0002", "stakeholder", область, "3",
+            mapper.createObjectNode().put("name", "Росморпорт").put("role", "оператор"),
+            провенанс,
+        )
+        val задание = план(
+            """
+            {"facts":[
+              {"kind":"framing","subject":"Минтранс России","predicate":"не хватает",
+               "value":"непрерывного мониторинга судов на СМП","source":{"anchor":"ЯКОРЬ"},"source_mark":"И"},
+              {"kind":"framing","subject":"Росморпорт","predicate":"не хватает",
+               "value":"непрерывного мониторинга судов на СМП","source":{"anchor":"ЯКОРЬ"},"source_mark":"И"}],
+             "actions":[
+              {"kind":"create_entity","target_kind":"need","scene":"3",
+               "title":"нужда Минтранса","preview":"появится нужда",
+               "payload":{"statement":"Непрерывный мониторинг судов на СМП","owner":"Минтранс России"},"facts":[0]},
+              {"kind":"create_entity","target_kind":"need","scene":"3",
+               "title":"нужда Росморпорта","preview":"появится нужда",
+               "payload":{"statement":"Непрерывный мониторинг судов на СМП","owner":"Росморпорт"},"facts":[1]}]}
+            """.trimIndent(),
+        )
+
+        val принято = знания.accept(проект, задание, listOf(0, 1), автор)
+
+        val нужды = store.list(область, "need").filter { it.status != "cancelled" }
+        assertEquals(1, нужды.size, "копии нет: ${нужды.map { it.code }}")
+        val нужда = нужды.single()
+        assertEquals(
+            setOf("SK-0001", "SK-0002"), links.to(нужда.id, "owns").map { store.byId(it.from)!!.code }.toSet(),
+            "обе стороны — носители одной нужды",
+        )
+        assertEquals(
+            setOf("SK-0001", "SK-0002"), нужда.doc.path("stakeholders").map { store.byId(it.asText())!!.code }.toSet(),
+            "поле stakeholders зеркалит связи",
+        )
+        assertTrue(принято.notes.any { "носителем" in it }, "приём обязан сказать, что копия стала носителем: ${принято.notes}")
+        assertEquals(2, links.from(нужда.id, "derived_from_fact").size, "оба факта — основания одной нужды")
+    }
+
     private fun план(текстРазбора: String, ранг: String = Authority.MANDATORY): String {
         val итог = разобрать(текстРазбора, ранг)
         assertTrue(итог.refused.isEmpty(), "разбор отклонён ещё до ворот плана: ${итог.refused}")
