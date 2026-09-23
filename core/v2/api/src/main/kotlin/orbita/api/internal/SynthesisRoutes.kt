@@ -366,7 +366,7 @@ class SynthesisRoutes(
         } else {
             // Пакет живёт дальше — в нём остаются те, кого не снимали: отмена
             // остатка по-прежнему обратима одним действием.
-            val обновлён = (последний as ObjectNode).deepCopy<ObjectNode>()
+            val обновлён = (последний as ObjectNode).deepCopy()
             обновлён.putArray("created").also { м -> осталось.forEach { м.add(it) } }
             (пакеты as ArrayNode).set(пакеты.size() - 1, обновлён)
         }
