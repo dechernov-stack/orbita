@@ -1,0 +1,10 @@
+/* Состав системы деревом-таблицей (шип 2, экран 8): 135 узлов читаются
+   строками с графитной линией — карточек и боковых панелей нет. */
+.v2-tree2 td { vertical-align: baseline; }
+.v2-tree2__row:hover { background: var(--paper); }
+/* Узел без детей: отступ на месте кнопки раскрытия, чтобы коды стояли столбиком. */
+.v2-tree2__leaf { display: inline-block; width: 16px; }
+/* Действия строки — пиктограммами с подсказкой; видны при наведении и с клавиатуры. */
+.v2-tree2__acts { white-space: nowrap; opacity: 0; }
+.v2-tree2__row:hover .v2-tree2__acts, .v2-tree2__acts:focus-within { opacity: 1; }
+.v2-tree2__acts button { padding: 2px 4px; }

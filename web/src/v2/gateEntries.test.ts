@@ -21,6 +21,7 @@ import сцена9 from './modes.tsx?raw'
 import связи from './links.tsx?raw'
 import покрытие from './coverage.tsx?raw'
 import сцены from './scenes.tsx?raw'
+import состав from './composition.tsx?raw'
 import требования from './requirements.tsx?raw'
 
 describe('базирование документа', () => {
@@ -166,10 +167,13 @@ describe('экран сцены 7 читается', () => {
     expect(вар).toBeLessThan(баз)
   })
 
-  it('длинный состав свёрнут: сорок девять узлов — справка, а не экран работы', () => {
-    expect(концепция).toContain('const ДЛИННЫЙ = 12')
-    expect(концепция).toContain('(развёрнут ? узлы : узлы.slice(0, ДЛИННЫЙ))')
-    expect(концепция).toContain('показать все ${узлы.length}')
+  it('длинный состав читается деревом, а не свёрнутым списком', () => {
+    // Шип 2 (экран 8): вместо «первые 12 и показать все» — дерево-таблица с
+    // раскрытием до нужного уровня; список со свёрткой ушёл вместе с карточкой.
+    expect(концепция).toContain('<CompositionTree project={project} />')
+    expect(концепция).not.toContain('const ДЛИННЫЙ = 12')
+    expect(состав).toContain('function CompositionTree')
+    expect(состав).toContain('aria-label="развернуть дерево до уровня"')
   })
 
   it('карточка базового варианта не повторяет списками то, что уже сказала', () => {

@@ -10,43 +10,20 @@ import { api, type ComponentRow, type ConceptRow } from './api'
 // у раздела «Модели» это ОДНА таблица показателей, а не две похожие.
 import { Variants } from './models'
 import { ФункцииКУзлам } from './links'
-
-/** Длинный состав: дальше перечень читают как справку, а не как экран работы. */
-const ДЛИННЫЙ = 12
+import { CompositionTree } from './composition'
 
 export function Concept({ project }: { project: string | null }) {
   const [узлы, setУзлы] = useState<ComponentRow[]>([])
   const [отказ, setОтказ] = useState<string | null>(null)
-  const [новый, setНовый] = useState({ code: '', name: '', nature: 'node', level: 3, kind: 'subsystem' })
   const [развёртывание, setРазвёртывание] = useState({ behaviour: '', node: '', rationale: '' })
   const [концепции, setКонцепции] = useState<ConceptRow[]>([])
   const [вариант, setВариант] = useState({ variant: '', rationale: '', rejected: '', reason: '' })
-
-  const [развёрнут, setРазвёрнут] = useState(false)
-  const [каркас, setКаркас] = useState<{ shelf: string; nodes?: number; already?: number; levels?: number; rule?: string; note: string } | null>(null)
-  const [беру, setБеру] = useState(false)
-  const [итог, setИтог] = useState<string | null>(null)
 
   const перечитать = useCallback(() => {
     if (!project) return
     api.components(project).then((r) => setУзлы(r.items)).catch((e) => setОтказ(String(e.message ?? e)))
     api.concept(project).then((r) => setКонцепции(r.items)).catch(() => undefined)
-    api.frame(project).then(setКаркас).catch(() => undefined)
   }, [project])
-
-  /**
-   * Взять каркас состава с полки класса миссии. Правило взятия — в самой
-   * полке («уровни 0–3 всегда»), и экран его показывает: инженер видит, что
-   * придёт, до нажатия. Глубже — узлом, когда понадобится.
-   */
-  const взять = () => {
-    if (!project) return
-    setБеру(true); setОтказ(null); setИтог(null)
-    api.takeFrame(project)
-      .then((р) => { setИтог(р.note); перечитать() })
-      .catch((e) => setОтказ(String(e.message ?? e)))
-      .finally(() => setБеру(false))
-  }
 
   useEffect(перечитать, [перечитать])
 
@@ -61,82 +38,12 @@ export function Concept({ project }: { project: string | null }) {
     <>
       {отказ && <div className="v2-card"><div className="v2-locked">{отказ}</div></div>}
 
-      <div className="v2-card">
-        <div className="v2-card__head">
-          <span className="v2-card__title">Состав системы</span>
-          <span className="v2-card__count">{узлы.length}</span>
-          {/*
-            Длинный состав — это СПРАВКА, а не работа: сорок девять узлов
-            занимали весь первый экран сцены, и карточки ниже человек просто
-            не находил (владелец, 21.09: «есть только базовый вариант»).
-            Свёрнут, пока не понадобится; короткий состав виден целиком.
-          */}
-          {узлы.length > ДЛИННЫЙ && (
-            <button type="button" className="v2-link" aria-pressed={развёрнут}
-              title={развёрнут ? 'свернуть перечень узлов' : 'показать все узлы состава'}
-              onClick={() => setРазвёрнут(!развёрнут)}>
-              {развёрнут ? 'свернуть' : `показать все ${узлы.length}`}
-            </button>
-          )}
-        </div>
-        {итог && <div className="v2-note-line">{итог}</div>}
-        {каркас && (каркас.nodes ?? 0) > (каркас.already ?? 0) && (
-          <div className="v2-form__actions">
-            <button type="button" className="v2-primary" disabled={беру}
-              title={каркас.rule
-                ? `правило полки ${каркас.shelf}: ${каркас.rule}`
-                : `каркас с полки ${каркас.shelf}`}
-              onClick={взять}>
-              {беру
-                ? 'Беру каркас…'
-                : `Взять каркас состава (${(каркас.nodes ?? 0) - (каркас.already ?? 0)} узлов с полки ${каркас.shelf})`}
-            </button>
-            <span className="v2-dim">{каркас.note}</span>
-          </div>
-        )}
-        {узлы.length === 0 ? (
-          <div className="v2-empty">
-            Состав пуст — сцена 7 держится этим.
-            <span className="v2-empty__why">
-              {каркас?.shelf
-                ? 'Состав берётся каркасом класса миссии — кнопкой выше; узлы глубже уровня каркаса заводятся по одному, когда понадобятся.'
-                : 'Нужно не менее трёх узлов: система, её элементы и то, что ими управляет.'}
-            </span>
-          </div>
-        ) : (
-          <ul className="v2-tree">
-            {(развёрнут ? узлы : узлы.slice(0, ДЛИННЫЙ)).map((у) => (
-              <li key={у.code}>
-                <span className="v2-tree__node">{у.code}</span> {у.name}
-                <span className="v2-dim"> · уровень {у.level} · {у.nature === 'behaviour' ? 'поведение' : 'носитель'}</span>
-              </li>
-            ))}
-            {!развёрнут && узлы.length > ДЛИННЫЙ && (
-              <li className="v2-dim">…и ещё {узлы.length - ДЛИННЫЙ}: «показать все» в шапке карточки</li>
-            )}
-          </ul>
-        )}
-        <div className="v2-form">
-          <label>Код<input value={новый.code} placeholder="OBC-CPU"
-            onChange={(e) => setНовый({ ...новый, code: e.target.value })} /></label>
-          <label>Имя<input value={новый.name} placeholder="БЦВМ"
-            onChange={(e) => setНовый({ ...новый, name: e.target.value })} /></label>
-          <label>Род
-            <select value={новый.nature} onChange={(e) => setНовый({ ...новый, nature: e.target.value })}>
-              <option value="node">носитель (node): масса, габарит, тепло</option>
-              <option value="behaviour">поведение (behaviour): функции, режимы, ресурсы</option>
-            </select>
-          </label>
-          <div className="v2-form__actions">
-            <button type="button" className="v2-primary" disabled={!новый.code.trim() || !новый.name.trim()}
-              title="завести узел состава"
-              onClick={() => api.addComponent(project, новый).then(перечитать).catch((e) => setОтказ(String(e.message ?? e)))}>
-              Добавить узел
-            </button>
-          </div>
-        </div>
-      </div>
-
+      {/*
+        Состав — дерево-таблица (шип 2, экран 8): 135 узлов читаются строками
+        с раскрытием, правка идёт на месте, действия — пиктограммами. Прежняя
+        карточка со списком и формой внизу жила тут же и не читалась (З-22).
+      */}
+      <CompositionTree project={project} />
 
       {/* Варианты — ПЕРЕД выбором базового: выбирают из них, и карточка
           стоит там, где человек и смотрит. Сравнение — рядом с выбором: решение принимают, ГЛЯДЯ на показатели,
