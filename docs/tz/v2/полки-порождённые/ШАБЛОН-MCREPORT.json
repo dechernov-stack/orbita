@@ -523,7 +523,7 @@
      "title": "Реестр допущений поля знаний",
      "select": "fact",
      "where": {
-      "source_mark": "П"
+      "disposition": "assumed"
      },
      "min_rows": 1,
      "columns": [

@@ -54,6 +54,9 @@ class DocumentsTest {
     /** Ответ подменённой модели: тест ставит его перед вызовом. */
     private var напишет: (String) -> String = { "Текст без чисел и без квалификаторов." }
 
+    /** Поле знаний — портом: маршрутов знаний у этого роутера нет, факты заводятся напрямую. */
+    private val знания = orbita.knowledge.api.KnowledgeFactory.intake(store, links, mapper)
+
     private val router: V2Router by lazy {
         val движок = ProcessFactory.engine(
             template = { шаблонФазы },
@@ -72,7 +75,7 @@ class DocumentsTest {
         V2Router(
             store, links, движок,
             LibraryFactory.shelves(store) { шаблонФазы },
-            orbita.knowledge.api.KnowledgeFactory.intake(store, links, mapper),
+            знания,
             orbita.formulation.api.FormulationFactory.formulation(store, links),
             mapper,
             docRoutes = DocRoutes(store, документы, mapper) { шаблонФазы },
@@ -372,6 +375,36 @@ class DocumentsTest {
     private fun раздел(проект: String, документ: String, номер: String): JsonNode =
         router.handle("GET", "/v2/documents/$документ", mapOf("project" to проект), null)!!
             .body.path("sections").single { it.path("no").asText() == номер }
+
+    /** Истина 23.09 (assumption_register_rule): §10 читает диспозицию assumed, а не помету «П». */
+    @Test
+    fun `реестр допущений §10 — факты с диспозицией assumed, а не с пометой П`() {
+        постановка("PJ-9212")
+        router.handle("GET", "/v2/documents", mapOf("project" to "PJ-9212"), null)
+        fun строк10() = раздел("PJ-9212", "mcreport", "§10").path("elements")[0].path("rows").size()
+        // Факт с пометой «П» без диспозиции — кандидат в допущения: в §10 не печатается.
+        val кандидат = знания.addFact(
+            "PJ-9212", subject = "терминал класса B'", predicate = "средняя длительность сеанса", value = "12", unit = "с",
+            kind = "quantity", topic = null, material = null, author = "Иванов И.", mark = "П",
+        )
+        assertEquals(0, строк10(), "«П» без диспозиции — не допущение")
+        // Допущением факт становится решением: владелец и точка подтверждения.
+        знания.dispose(
+            "PJ-9212", кандидат.id, orbita.knowledge.api.Disposition.ASSUMED, reason = "пока не измерено", author = "Иванов И.",
+            assumption = orbita.knowledge.api.Assumption("Иванов И.", "MCR", "замер на стенде", "бюджет мощности"),
+        )
+        assertEquals(1, строк10(), "допущение с диспозицией assumed печатается в §10")
+        // И факт сверки (помета «И») с той же диспозицией — тоже допущение: помета не решает.
+        val второй = знания.addFact(
+            "PJ-9212", subject = "КА", predicate = "масса сухая", value = "92", unit = "кг",
+            kind = "quantity", topic = null, material = null, author = "Иванов И.",
+        )
+        знания.dispose(
+            "PJ-9212", второй.id, orbita.knowledge.api.Disposition.ASSUMED, reason = "оценка по аналогу", author = "Иванов И.",
+            assumption = orbita.knowledge.api.Assumption("Иванов И.", "MCR", "по аналогу", "масса"),
+        )
+        assertEquals(2, строк10(), "помета не решает — решает диспозиция")
+    }
 
     @Test
     fun `правка одного тезиса даёт расхождение в одном узле`() {
