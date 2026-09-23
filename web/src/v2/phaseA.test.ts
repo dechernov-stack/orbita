@@ -75,17 +75,23 @@ describe('Phase A: сцена открывает реестр с отбором,
     expect(поверхности).toContain('<Стыки project={project} заголовок="Стыки системы" />')
     expect(поверхности).toContain('<Бюджеты project={project} />')
     // стык и бюджет заводятся тут же, перечни — словами истины
-    expect(поверхности).toContain("api.addInterface(project, { ...новый, author: автор || 'инженер' })")
+    expect(поверхности).toContain("api.addInterface(project, { ...тело, author: автор || 'инженер' })")
     expect(поверхности).toContain("api.addBudget(project, { ...новый, author: автор || 'инженер' })")
     expect(поверхности).toContain("api.kind('interface')")
+    // сторона b — внешняя система именем с владельцем-стороной (истина 24.09), не узел под чужим кодом
+    expect(поверхности).toContain("const ВНЕШНЯЯ = '__external'")
+    expect(поверхности).toContain('<option value={ВНЕШНЯЯ}>внешняя система…</option>')
+    expect(поверхности).toContain('b: { name: внешняя.name.trim(), ...(внешняя.owner ? { owner: внешняя.owner } : {}) }')
+    expect(поверхности).toContain("внешняяСторона && !внешняя.name.trim() ? 'у внешней системы нет имени'")
+    expect(вызовы).toContain('b_external: boolean')
     expect(поверхности).toContain("api.kind('budget')")
     expect(поверхности).toContain("(вид?.enums?.type ?? []).map((т) =>")
   })
 
-  it('A6 — сцена 7 с моделями; A7 — технологии; A8 — реестр рисков; A9 — ОСЗ; A10 — стоимость', () => {
+  it('A6 — одна Концепция, «Модели» вкладкой в контексте фазы A; A7 — технологии; A8 — реестр рисков; A9 — ОСЗ; A10 — стоимость', () => {
     expect(поверхности).toContain("if (ключ === 'A6')")
-    expect(поверхности).toContain('<Concept project={project} />')
-    expect(поверхности).toContain('<Models project={project} />')
+    expect(поверхности).toContain("{вкладкаA6 === 'модели' ? <Models project={project} /> : <Concept project={project} />}")
+    expect(поверхности).toContain('role="tablist" aria-label="контекст сцены A6"')
     expect(поверхности).toContain("if (ключ === 'A7') return <Technologies project={project} />")
     expect(поверхности).toContain("if (ключ === 'A8') return <RiskRegistry project={project} сцены={сцены} />")
     expect(поверхности).toContain('<Debris project={project} />')

@@ -39,6 +39,32 @@ class ArchFeedTest {
         маршруты.handle("POST", "/v2/interfaces", q, """{"code":"IF-S-USER","name":"КА — терминал","type":"RF","a":"EL-SC","b":"EL-UT","direction":"bi","requirement_classes":["interface"]}""")
     }
 
+    /** Истина 24.09 (external_system_rule): сторона b стыка бывает внешней системой с именем и владельцем-стороной. */
+    @Test
+    fun `сторона b стыка — внешняя система с именем вместо узла и стороной-владельцем`() {
+        store.create("SK-GAIS", "stakeholder", область, "3", mapper.readTree("""{"name":"АО «ГЛОНАСС»","role":"operator","interest":"обмен данными ЭРА-ГЛОНАСС"}"""), п)
+        // Отказы — словами до записи (маршрут бросает, роутер отвечает 400).
+        val безИмени = assertFailsWith<IllegalArgumentException> {
+            маршруты.handle("POST", "/v2/interfaces", q,
+                """{"code":"IF-S-GAIS","name":"КА — ГАИС","type":"data","a":"EL-SC","b":{"owner":"SK-GAIS"},"direction":"bi","requirement_classes":["interface"]}""")
+        }
+        assertTrue("имя" in безИмени.message.orEmpty(), безИмени.message)
+        val чужойВладелец = assertFailsWith<IllegalArgumentException> {
+            маршруты.handle("POST", "/v2/interfaces", q,
+                """{"code":"IF-S-GAIS","name":"КА — ГАИС","type":"data","a":"EL-SC","b":{"name":"ГАИС «ЭРА-ГЛОНАСС»","owner":"EL-UT"},"direction":"bi","requirement_classes":["interface"]}""")
+        }
+        assertTrue("сторона" in чужойВладелец.message.orEmpty(), "владелец внешней системы — сторона, не узел: ${чужойВладелец.message}")
+        val заведён = assertNotNull(маршруты.handle("POST", "/v2/interfaces", q,
+            """{"code":"IF-S-GAIS","name":"КА — ГАИС","type":"data","a":"EL-SC","b":{"name":"ГАИС «ЭРА-ГЛОНАСС»","owner":"SK-GAIS"},"direction":"bi","requirement_classes":["interface"]}"""))
+        assertEquals(201, заведён.code, заведён.body.toString())
+        val строка = маршруты.handle("GET", "/v2/interfaces", q, null)!!.body.path("items").first { it.path("code").asText() == "IF-S-GAIS" }
+        assertEquals("ГАИС «ЭРА-ГЛОНАСС»", строка.path("b").asText(), "внешняя сторона наружу идёт именем")
+        assertTrue(строка.path("b_external").asBoolean(), строка.toString())
+        assertEquals("SK-GAIS", строка.path("b_owner").asText(), "владелец — кодом стороны")
+        val обычный = маршруты.handle("GET", "/v2/interfaces", q, null)!!.body.path("items").first { it.path("code").asText() == "IF-S-USER" }
+        assertEquals("EL-UT", обычный.path("b").asText()); assertTrue(!обычный.path("b_external").asBoolean())
+    }
+
     @Test
     fun `каркас состава берётся с полки по её же правилу, а повтор ничего не удваивает`() {
         // Проход владельца 18.09: сцена 7 говорила «состав берётся каркасом

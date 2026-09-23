@@ -41,6 +41,8 @@ export function PhaseASurface({ project, phase, scene, onChanged, onScene }: {
   // Отбор реестра — один объект на узел: новый объект каждый рендер сбрасывал бы чипы реестра.
   const отборУзла = useMemo(() => ({ носитель: scene.node ?? undefined }), [scene.node])
   const отборСистемы = useMemo(() => ({ уровень: 'system' }), [])
+  // A6 — одна Концепция; «Модели» — вкладка внутри контекста фазы A (ЗАДАНИЕ-ШИП-4 §0).
+  const [вкладкаA6, setВкладкаA6] = useState<'концепция' | 'модели'>('концепция')
 
   if (ключ === 'A1') {
     return (
@@ -106,8 +108,15 @@ export function PhaseASurface({ project, phase, scene, onChanged, onScene }: {
   if (ключ === 'A6') {
     return (
       <>
-        <Concept project={project} />
-        <Models project={project} />
+        <div className="v2-inline" role="tablist" aria-label="контекст сцены A6" data-why="следующий-клик">
+          <button type="button" role="tab" className={вкладкаA6 === 'концепция' ? 'v2-chip v2-chip--on' : 'v2-chip'}
+            aria-selected={вкладкаA6 === 'концепция'} title="варианты, базовый вариант и состав — сцена 7 в контексте фазы A"
+            onClick={() => setВкладкаA6('концепция')}>Концепция</button>
+          <button type="button" role="tab" className={вкладкаA6 === 'модели' ? 'v2-chip v2-chip--on' : 'v2-chip'}
+            aria-selected={вкладкаA6 === 'модели'} title="записи моделей и прогоны: условие сцены читает верифицированные прогоны"
+            onClick={() => setВкладкаA6('модели')}>Модели</button>
+        </div>
+        {вкладкаA6 === 'модели' ? <Models project={project} /> : <Concept project={project} />}
       </>
     )
   }
@@ -237,6 +246,9 @@ function КарточкаУзла({ project, node, gate }: { project: string; no
   )
 }
 
+/** Значение селектора стороны b «внешняя система»: не код узла, а выбор формы. */
+const ВНЕШНЯЯ = '__external'
+
 /**
  * Стыки: у сцены A4 — только своего узла (сторона a или b), у A5 — все.
  * Новый стык заводится тут же: обе стороны — узлы состава, тип и направление —
@@ -245,8 +257,11 @@ function КарточкаУзла({ project, node, gate }: { project: string; no
 function Стыки({ project, node, заголовок }: { project: string; node?: string | null; заголовок: string }) {
   const [стыки, setСтыки] = useState<InterfaceRow[]>([])
   const [узлы, setУзлы] = useState<ComponentRow[]>([])
+  const [стороны, setСтороны] = useState<{ code: string; name: string }[]>([])
   const [вид, setВид] = useState<KindSpec | null>(null)
   const [новый, setНовый] = useState({ name: '', type: '', a: node ?? '', b: '', direction: '' })
+  /** Сторона b — внешняя система (истина 24.09): имя и владелец-сторона; узлом она не притворяется. */
+  const [внешняя, setВнешняя] = useState({ name: '', owner: '' })
   const [отказ, setОтказ] = useState<string | null>(null)
   const [занято, setЗанято] = useState(false)
   const [автор] = useАвтор()
@@ -257,21 +272,29 @@ function Стыки({ project, node, заголовок }: { project: string; no
   useEffect(перечитать, [перечитать])
   useEffect(() => {
     api.components(project).then((r) => setУзлы(r.items.filter((у) => у.nature === 'node'))).catch(() => setУзлы([]))
+    api.entities(project, 'stakeholder')
+      .then((r) => setСтороны(r.items.map((з) => ({ code: з.code, name: String(з.doc.name ?? з.code) }))))
+      .catch(() => setСтороны([]))
     api.kind('interface').then(setВид).catch(() => setВид(null))
   }, [project])
 
   const свои = node ? стыки.filter((с) => с.a === node || с.b === node) : стыки
   const слово = (поле: string, значение: string) => вид?.enum_labels?.[поле]?.[значение] ?? значение
+  const внешняяСторона = новый.b === ВНЕШНЯЯ
   const помеха = !новый.name.trim() ? 'имя стыка не названо'
     : !новый.type ? 'тип стыка не выбран'
       : !новый.a || !новый.b ? 'у стыка две стороны — выберите обе'
-        : новый.a === новый.b ? 'стороны стыка — разные узлы' : null
+        : внешняяСторона && !внешняя.name.trim() ? 'у внешней системы нет имени'
+          : новый.a === новый.b ? 'стороны стыка — разные узлы' : null
 
   const записать = () => {
     if (помеха) return
     setЗанято(true); setОтказ(null)
-    api.addInterface(project, { ...новый, author: автор || 'инженер' })
-      .then(() => { setНовый({ name: '', type: '', a: node ?? '', b: '', direction: '' }); перечитать() })
+    const тело = внешняяСторона
+      ? { ...новый, b: { name: внешняя.name.trim(), ...(внешняя.owner ? { owner: внешняя.owner } : {}) } }
+      : новый
+    api.addInterface(project, { ...тело, author: автор || 'инженер' })
+      .then(() => { setНовый({ name: '', type: '', a: node ?? '', b: '', direction: '' }); setВнешняя({ name: '', owner: '' }); перечитать() })
       .catch((e) => setОтказ(String(e.message ?? e)))
       .finally(() => setЗанято(false))
   }
@@ -301,7 +324,7 @@ function Стыки({ project, node, заголовок }: { project: string; no
                 <td className="v2-mono">{с.code}</td>
                 <td>{с.name}</td>
                 <td>{слово('type', с.type)}</td>
-                <td>{с.a} — {с.b}</td>
+                <td>{с.a} — {с.b}{с.b_external && <span className="v2-dim"> · внешняя система{с.b_owner ? `, владелец ${с.b_owner}` : ''}</span>}</td>
                 <td>{с.direction ? слово('direction', с.direction) : <span className="v2-dim">не задано</span>}</td>
               </tr>
             ))}
@@ -330,8 +353,23 @@ function Стыки({ project, node, заголовок }: { project: string; no
           <select aria-label="сторона b" value={новый.b} onChange={(e) => setНовый({ ...новый, b: e.target.value })}>
             <option value="">— узел состава —</option>
             {узлы.map((у) => <option key={у.code} value={у.code}>{у.code} · {у.name}</option>)}
+            <option value={ВНЕШНЯЯ}>внешняя система…</option>
           </select>
         </label>
+        {внешняяСторона && (
+          <>
+            <label>Внешняя система
+              <input aria-label="имя внешней системы" autoComplete="off" value={внешняя.name} placeholder="ГАИС «ЭРА-ГЛОНАСС»"
+                onChange={(e) => setВнешняя({ ...внешняя, name: e.target.value })} />
+            </label>
+            <label>Владелец
+              <select aria-label="владелец внешней системы" value={внешняя.owner} onChange={(e) => setВнешняя({ ...внешняя, owner: e.target.value })}>
+                <option value="">— сторона проекта —</option>
+                {стороны.map((с) => <option key={с.code} value={с.code}>{с.name}</option>)}
+              </select>
+            </label>
+          </>
+        )}
         <label>Направление
           <select aria-label="направление стыка" value={новый.direction} onChange={(e) => setНовый({ ...новый, direction: e.target.value })}>
             <option value="">— не задано —</option>

@@ -441,8 +441,14 @@ class ArchRoutes(
         val массив = mapper.createArrayNode()
         store.list(область, "interface").filter { it.status != "cancelled" }.sortedBy { it.code }.forEach { с ->
             fun конец(поле: String) = с.doc.path(поле).asText("").let { store.byId(it)?.code ?: it }
+            // Сторона b бывает внешней системой (истина 24.09: `external{name*, owner?}`):
+            // наружу идёт имя, владелец — кодом стороны.
+            val внешняя = с.doc.path("b").takeIf { it.isObject }
             массив.addObject().put("code", с.code).put("name", с.doc.path("name").asText(""))
-                .put("type", с.doc.path("type").asText("")).put("a", конец("a")).put("b", конец("b"))
+                .put("type", с.doc.path("type").asText("")).put("a", конец("a"))
+                .put("b", внешняя?.path("name")?.asText("") ?: конец("b"))
+                .put("b_external", внешняя != null)
+                .put("b_owner", внешняя?.path("owner")?.asText("")?.let { store.byId(it)?.code ?: it }.orEmpty())
                 .put("direction", с.doc.path("direction").asText(""))
                 .also { у -> у.putArray("requirement_classes").also { к -> с.doc.path("requirement_classes").forEach { к.add(it.asText()) } } }
         }
@@ -520,7 +526,22 @@ class ArchRoutes(
         val документ = тело.deepCopy<ObjectNode>()
         документ.remove(listOf("code", "author", "project"))
         listOf("a", "b").forEach { поле ->
-            val код = тело.path(поле).asText("")
+            val значение = тело.path(поле)
+            // Сторона b — внешняя система (истина 24.09, external_system_rule): именованный
+            // объект вне состава с владельцем-стороной; узлом состава она не притворяется.
+            if (поле == "b" && значение.isObject) {
+                val имя = значение.path("name").asText("").trim()
+                require(имя.isNotBlank()) { "у внешней системы обязано быть имя: сторона b без имени — не сторона" }
+                val внешняя = mapper.createObjectNode().put("name", имя)
+                значение.path("owner").asText("").trim().ifBlank { null }?.let { код ->
+                    val сторона = store.byCode(область, код) ?: throw IllegalArgumentException("владельца внешней системы «$код» среди сторон проекта нет")
+                    require(сторона.kind == "stakeholder") { "владелец внешней системы — сторона проекта, а «$код» — ${сторона.kind}" }
+                    внешняя.put("owner", сторона.id)
+                }
+                документ.set<JsonNode>("b", внешняя)
+                return@forEach
+            }
+            val код = значение.asText("")
             require(код.isNotBlank()) { "у стыка обязаны быть обе стороны: $поле" }
             val узел = store.byCode(область, код) ?: throw IllegalArgumentException("стороны «$код» нет в составе проекта")
             документ.put(поле, узел.id)

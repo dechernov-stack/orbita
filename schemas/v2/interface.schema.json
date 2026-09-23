@@ -106,8 +106,36 @@
       "description": "ссылка на вид: component"
     },
     "b": {
-      "type": "string",
-      "description": "ссылка на вид: component | external"
+      "anyOf": [
+        {
+          "type": "string",
+          "description": "ссылка на вид: component"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": [
+                "string",
+                "number",
+                "boolean",
+                "object",
+                "array",
+                "null"
+              ]
+            },
+            "owner": {
+              "type": "string",
+              "description": "ссылка на вид: stakeholder"
+            }
+          },
+          "description": "форма «external»",
+          "required": [
+            "name"
+          ]
+        }
+      ],
+      "description": "сторона b — узел состава или внешняя система (ГАИС «ЭРА-ГЛОНАСС», ОСМ); ICD печатает внешнюю сторону именем"
     },
     "direction": {
       "enum": [

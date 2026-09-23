@@ -1,0 +1,11 @@
+--- repo
++++ new
+@@ -1986,3 +1986,3 @@
+-    type: ref component | external
+-    required: true
+-    note: ''
++    type: ref component | external{name*,owner?:ref stakeholder}
++    required: true
++    note: сторона b — узел состава или внешняя система (ГАИС «ЭРА-ГЛОНАСС», ОСМ); ICD печатает внешнюю сторону именем
+@@ -4495,0 +4496 @@
++external_system_rule: 'внешняя система — не узел и не сторона: именованный объект вне состава с владельцем-стороной; встречается как сторона стыка и участник сценария'

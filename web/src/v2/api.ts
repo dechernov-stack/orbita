@@ -401,13 +401,19 @@ export interface ArchLayer {
   lines: FacetLine[]
 }
 
-/** Стык между узлами состава (истина `interface`): стороны — кодами узлов. */
+/**
+ * Стык (истина `interface`): сторона a — узел состава кодом; сторона b — узел
+ * либо внешняя система именем (истина 24.09: `external{name*, owner?}`).
+ */
 export interface InterfaceRow {
   code: string
   name: string
   type: string
   a: string
   b: string
+  /** Сторона b — внешняя система: `b` тогда имя, `b_owner` — код стороны-владельца. */
+  b_external: boolean
+  b_owner: string
   direction: string
   requirement_classes: string[]
 }

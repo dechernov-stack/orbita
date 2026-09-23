@@ -76,10 +76,16 @@ class PhaseADocumentsTest {
             mapper.readTree("""{"level":"system","title":"Пакет","statement":"Стык должен передавать пакет 32 байта за сеанс.","category":"interface","carrier":"${стык.id}"}"""), провенанс)
         store.create("RQ-S-0001", "requirement", область, "A4",
             mapper.readTree("""{"level":"system","title":"Кадр","statement":"КА должен передавать кадр раз за виток.","category":"performance","carrier":"${ка.id}"}"""), провенанс)
+        // Внешняя сторона стыка (истина 24.09) печатается в ICD именем, не объектом.
+        store.create("IF-S-GAIS", "interface", область, "7",
+            mapper.readTree("""{"name":"КА — ГАИС","type":"data","a":"${ка.id}","b":{"name":"ГАИС «ЭРА-ГЛОНАСС»"},"direction":"bi"}"""), провенанс)
         документы.ensure(проект, "icd", "Чернов Д.")
         val реестр = раздел("icd", "§1", "SDR").elements.first().rows
-        assertEquals(1, реестр.size)
-        assertTrue(реестр.first().any { "IF-S-USER" in it }, реестр.toString())
+        assertEquals(2, реестр.size)
+        assertTrue(реестр.any { строка -> строка.any { "IF-S-USER" in it } }, реестр.toString())
+        val гаис = реестр.first { строка -> строка.any { "IF-S-GAIS" in it } }
+        assertTrue(гаис.any { it == "ГАИС «ЭРА-ГЛОНАСС»" }, "внешняя сторона — именем: $гаис")
+        assertTrue(гаис.none { "{" in it }, "объект в печать не идёт: $гаис")
         val параметры = раздел("icd", "§2", "SDR").elements.first().rows
         assertEquals(1, параметры.size, "только параметры стыков: масса КА в ICD не идёт")
         assertTrue(параметры.first().any { "freq" in it })
