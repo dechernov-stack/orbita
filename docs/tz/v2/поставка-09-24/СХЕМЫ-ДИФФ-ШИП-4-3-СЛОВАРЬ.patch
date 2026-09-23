@@ -1,0 +1,138 @@
+diff --git "a/docs/tz/v2/\320\241\320\245\320\225\320\234\320\253-\320\237\320\236\320\233\320\225\320\231-V2.yaml" "b/docs/tz/v2/\320\241\320\245\320\225\320\234\320\253-\320\237\320\236\320\233\320\225\320\231-V2.yaml"
+index 2ea3717..d253d0e 100644
+--- "a/docs/tz/v2/\320\241\320\245\320\225\320\234\320\253-\320\237\320\236\320\233\320\225\320\231-V2.yaml"
++++ "b/docs/tz/v2/\320\241\320\245\320\225\320\234\320\253-\320\237\320\236\320\233\320\225\320\231-V2.yaml"
+@@ -104,42 +104,87 @@ kinds:
+   engine: есть
+ - n: 2
+   code: glossary_term
+-  name: термин глоссария
++  name: термин словаря
+   layer: L0
+   born_in: —
+-  status_model: null
++  status_model: accepted|candidate|obsolete
+   fields:
+   - name: term_ru
+     type: str
+     required: true
+-    note: ''
+-    label: Термин (рус.)
++    note: каноническое имя — одно; всё остальное — синонимы (РЕШЕНИЕ-СЛОВАРЬ-И-БАЗА-ЗНАНИЙ §1)
++    label: Термин
+   - name: term_en
+     type: str
+     required: false
+     note: ''
+     label: Термин (англ.)
++  - name: synonyms
++    type: str[]
++    required: false
++    note: 'варианты написания: кириллица/латиница, аббревиатуры, «как пишут в документах» («Минтранс», «Минтранс России», «Министерство транспорта РФ»)'
++    label: Синонимы
++  - name: class
++    type: enum[se_concept,stakeholder,node,interface,function,document,process,scene,role,mark,unit,other]
++    required: true
++    note: 'понятие СИ · сторона · узел системы · стык · функция · документ · процесс · сцена · роль · метка · единица'
++    label: Класс
+   - name: definition
+     type: text
+     required: true
+-    note: ''
++    note: одна-три строки, наше определение
+     label: Определение
++  - name: difference
++    type: text
++    required: false
++    note: отличие от общепринятого, если есть; нет — пусто (модель знает общее)
++    label: Отличие от общепринятого
++  - name: not_to_confuse
++    type: text
++    required: false
++    note: с чем не путать
++    label: Не путать с
+   - name: source
+     type: str
+     required: false
+-    note: ''
++    note: 'стандарт (NPR 7123.1, ГОСТ ISO 15288, ECSS) · регламент · устав · полка · решение владельца · документ проекта'
+     label: Источник
++  - name: used_in
++    type: str[]
++    required: false
++    note: виды, сцены, документы, где термин работает
++    label: Где используется
++  - name: object_code
++    type: str
++    required: false
++    note: 'код объекта, который термин называет: узел (OBC-SW), стык (IF-S-USER), роль (customer), сцена (3), единица (kg)'
++    label: Код объекта
++  - name: links
++    type: '[{type*:enum[broader,narrower,part_of,see_also],term*:ref glossary_term}]'
++    required: false
++    note: шире/уже (род–вид), часть–целое, «см. также»
++    label: Связи
++  - name: quote
++    type: text
++    required: false
++    note: у кандидата из документа — дословный фрагмент, где термин встретился
++    label: Цитата
++  - name: fact
++    type: ref fact
++    required: false
++    note: у кандидата — факт-основание
++    label: Основание
+   - name: doc_type_brief
+     type: text
+     required: false
+-    note: для типов документов
++    note: для терминов класса «документ» — что документ даёт разбору
+     label: Тип документа
+   - name: default_take_to_prompt
+     type: bool
+     required: false
+-    note: умолчание «в промпт» типа
++    note: умолчание «в промпт» типа документа
+     label: В промпт по умолчанию
+-  export: глоссарий пакета
++  export: глоссарий пакета; выгрузка картины
+   engine: есть
+ - n: 3
+   code: qos_class
+@@ -1622,7 +1667,7 @@ kinds:
+   status_model: null
+   fields:
+   - name: type
+-    type: enum[owns,covers,derives_from,allocated_to,satisfied_by,realized_by,allocation,flows_over,illustrated_by,traced_to,verifies,conflicts_with,snapshot_of,input_of,output_of,pairs_with,external_identity,deployed_on,uses_item,depends_on_technology,derived_from_fact,about,supports,contradicts,supersedes,confirms,same_as,refines]
++    type: enum[owns,covers,derives_from,allocated_to,satisfied_by,realized_by,allocation,flows_over,illustrated_by,traced_to,verifies,conflicts_with,snapshot_of,input_of,output_of,pairs_with,external_identity,deployed_on,uses_item,depends_on_technology,derived_from_fact,about,supports,contradicts,supersedes,confirms,same_as,refines,named_by]
+     required: true
+     note: ''
+     label: Тип
+@@ -4363,6 +4408,19 @@ enum_labels:
+     И: внутреннее
+     В: внешнее
+     П: предположение
++  glossary_term.class:
++    se_concept: понятие СИ
++    stakeholder: сторона
++    node: узел системы
++    interface: стык
++    function: функция
++    document: документ
++    process: процесс
++    scene: сцена
++    role: роль
++    mark: метка
++    unit: единица
++    other: прочее
+   fact.evidence:
+     claimed: заявлено
+     corroborated: подтверждено
+@@ -4461,6 +4519,7 @@ manual_fact_rule: 'ручной факт заводится экраном по
+ assumption_register_rule: 'реестр допущений (MCReport §10, SEMP) — факты с disposition=assumed, независимо от метки происхождения: метка «П» говорит, что источник предположил; допущением факт становится
+   решением (владелец + точка). Факт «П» без диспозиции — кандидат в допущения, в §10 не печатается; запросы шаблонов читают disposition, не mark'
+ external_system_rule: 'внешняя система — не узел и не сторона: именованный объект вне состава с владельцем-стороной; встречается как сторона стыка и участник сценария'
++glossary_rule: 'словарь — сущность первого порядка (РЕШЕНИЕ-СЛОВАРЬ-И-БАЗА-ЗНАНИЙ): сид генератором из истин (глоссарий СИ, кросс-терминология, коды узлов и стыков, роли, сцены, метки, единицы) — определения правятся рукой один раз; всё извлечённое при чтении привязывается к словарю (сторона, узел, роль, единица), непривязанное — кандидат с цитатой, принимает человек; дедупликация сторон и узлов — через словарь, порог семантики — вторым; словарь класса миссии общий (библиотека), проект — дельта поверх'
+ interest_to_need_rule: 'интерес стороны — чего она хочет от проекта, её словами (stakeholder.interest[]): не роль и не нужда; нуждой становится только решением человека — кандидат need [П] с формулировкой интереса и стороной-носителем идёт через сверку (предложение, не автомат)'
+ 
+ # Понятия постановки — одна истина вместо трёх (ОНТОЛОГИЯ-АУДИТ-И-МОДЕЛЬ, часть 7;

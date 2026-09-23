@@ -44,6 +44,32 @@ fun interface Transport {
     fun ask(prompt: String, model: String?, maxTokens: Int?, schema: JsonNode?): Answer
 }
 
+/** Инструмент модели (шип 4 §2): имя, зачем он, схема входа — провайдер держит формат вызова. */
+data class Tool(val name: String, val description: String, val inputSchema: JsonNode)
+
+/** Исполнитель вызова инструмента: имя и вход → результат объектом; отказ — объектом с `error`. */
+fun interface ToolHandler {
+    fun call(name: String, input: JsonNode): JsonNode
+}
+
+/**
+ * Транспорт с инструментами (РЕШЕНИЕ-СЛОВАРЬ-И-БАЗА-ЗНАНИЙ §4): знание не
+ * подставляется в промпт, а берётся моделью по запросу — term · node ·
+ * interface · facts · clauses · scene · similar. Цикл ходов: вызов
+ * инструмента → результат → следующий ход, пока модель не отдаст ответ по
+ * схеме.
+ */
+interface ToolTransport : Transport {
+    fun askWithTools(
+        prompt: String,
+        model: String?,
+        maxTokens: Int?,
+        schema: JsonNode?,
+        tools: List<Tool>,
+        handler: ToolHandler,
+    ): Answer
+}
+
 /** Запись журнала вызовов: по ней видно, за что заплачено. */
 data class CallRecord(
     val kind: String,
@@ -82,6 +108,22 @@ interface AiService {
         maxTokens: Int? = null,
         schema: JsonNode? = null,
     ): Answer
+
+    /**
+     * Вызов с инструментами (шип 4 §2): журнал тот же — отпечаток промпта и
+     * имён инструментов, ответ — итоговый. Транспорт без инструментов
+     * отвечает обычным вызовом: инструменты тогда просто не предлагаются.
+     */
+    fun askWithTools(
+        project: String,
+        kind: String,
+        prompt: String,
+        tools: List<Tool>,
+        handler: ToolHandler,
+        model: String? = null,
+        maxTokens: Int? = null,
+        schema: JsonNode? = null,
+    ): Answer = ask(project, kind, prompt, model, maxTokens, schema)
 
     /** Записать ответ в журнал вызовов (на потоке запросов; база — только здесь). */
     fun record(project: String, kind: String, prompt: String, answer: Answer)

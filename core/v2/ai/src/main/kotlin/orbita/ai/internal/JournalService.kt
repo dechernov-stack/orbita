@@ -39,6 +39,26 @@ class JournalService(
         return ответ
     }
 
+    override fun askWithTools(
+        project: String,
+        kind: String,
+        prompt: String,
+        tools: List<orbita.ai.api.Tool>,
+        handler: orbita.ai.api.ToolHandler,
+        model: String?,
+        maxTokens: Int?,
+        schema: JsonNode?,
+    ): Answer {
+        val инструментальный = transport as? orbita.ai.api.ToolTransport
+        if (инструментальный == null || tools.isEmpty()) return ask(project, kind, prompt, model, maxTokens, schema)
+        // Отпечаток — промпт с именами инструментов: тот же промпт без них — другой вызов.
+        val ключ = prompt + "\n[инструменты: " + tools.joinToString(" · ") { it.name } + "]"
+        cached(project, ключ)?.let { return it }
+        val ответ = инструментальный.askWithTools(prompt, model, maxTokens, schema, tools, handler)
+        record(project, kind, ключ, ответ)
+        return ответ
+    }
+
     override fun cached(project: String, prompt: String): Answer? {
         val отпечаток = отпечатокПромпта(prompt)
         val записанный = store.list(Area.Project(project), "ai_call")

@@ -43,16 +43,27 @@ class Atomizer(
     private val intake: Intake,
     private val service: AiService,
     private val mapper: ObjectMapper = ObjectMapper(),
+    /**
+     * Инструменты модели (шип 4 §2): по проекту — набор и исполнитель. Есть —
+     * промпт короткий, знание берётся инструментами; нет — прежний промпт с
+     * подстановкой. Фоновый разбор идёт без инструментов: их исполнитель
+     * читает базу, а база — на потоке запросов (ADR-069).
+     */
+    private val toolbox: ((String) -> Pair<List<orbita.ai.api.Tool>, orbita.ai.api.ToolHandler>)? = null,
 ) {
 
     /** Разбор материала живым вызовом. Повтор той же версии — из журнала. */
     fun atomize(project: String, material: String, intent: String, author: String): FactIntake {
-        val промпт = prepare(project, material, intent)
+        val набор = toolbox?.invoke(project)
+        val промпт = prepare(project, material, intent, инструменты = набор != null)
         // Урожай в сотню фактов не помещается в бюджет короткого ответа:
         // разбор просит свой потолок, а не полагается на общий.
         // Формат держит схема, а не текст промпта: правка инструкций
         // больше не уводит модель с формата (15.09, дважды).
-        val ответ = service.ask(
+        val ответ = if (набор != null) service.askWithTools(
+            project, KIND, промпт, набор.first, набор.second,
+            maxTokens = БЮДЖЕТ_РАЗБОРА, schema = AnswerSchemas.разбор(mapper),
+        ) else service.ask(
             project, KIND, промпт,
             maxTokens = БЮДЖЕТ_РАЗБОРА,
             schema = AnswerSchemas.разбор(mapper),
@@ -64,13 +75,13 @@ class Atomizer(
      * Промпт разбора — читается из базы на потоке запросов; дальше он
      * самодостаточен, и сетевой вызов можно делать где угодно (ADR-069).
      */
-    fun prepare(project: String, material: String, intent: String): String {
+    fun prepare(project: String, material: String, intent: String, инструменты: Boolean = false): String {
         val блоки = intake.canon(project, material)
         require(блоки.isNotEmpty()) {
             "у материала «$material» нет текста: разбирать нечего. " +
                 "Приложите текст документа — канон строится из него"
         }
-        return промпт(project, material, intent, блоки)
+        return промпт(project, material, intent, блоки, инструменты)
     }
 
     /** Применить ответ модели: журнал (если ещё не записан) и приём фактов — на потоке запросов. */
@@ -151,17 +162,20 @@ class Atomizer(
     private fun границы(понятие: String): String =
         GeneratedOntology.byCode[понятие]?.notFrom.orEmpty().joinToString("; ").ifBlank { "(границы не названы)" }
 
-    private fun промпт(project: String, material: String, intent: String, блоки: List<CanonBlock>): String {
+    private fun промпт(project: String, material: String, intent: String, блоки: List<CanonBlock>, инструменты: Boolean = false): String {
         val область = Area.Project(project)
         val новоеПоле = KnowledgeFlag.on(store, project)
         val паспорт = store.list(область, "project").firstOrNull()
-        val ограничения = store.list(область, "constraint")
-            .joinToString("\n") { "  · ${it.code}: ${it.doc.path("text").asText("")}" }
-            .ifBlank { "  (ограничений в проекте пока нет)" }
+        val ограничения =
+            if (инструменты) "  (ограничения проекта — инструментом scene(\"5\"); сверяй величины с ними)"
+            // Формулировка рамки — `statement` по истине схем; `text` — у записей прежних выкатов.
+            else store.list(область, "constraint")
+                .joinToString("\n") { "  · ${it.code}: ${it.doc.path("statement").asText("").ifBlank { it.doc.path("text").asText("") }}" }
+                .ifBlank { "  (ограничений в проекте пока нет)" }
         val карточка = store.byCode(область, material)
         val имя = карточка?.doc?.path("name")?.asText(material) ?: material
         val тип = карточка?.doc?.path("kind")?.asText("") ?: ""
-        val режим = if (новоеПоле) режимПоПрофилю(project, карточка, intent, блоки) else режимПоТипу(project, тип, intent)
+        val режим = if (новоеПоле) режимПоПрофилю(project, карточка, intent, блоки, инструменты) else режимПоТипу(project, тип, intent)
         // Ранг заменяет тип в описи документа: доверие называет инженер,
         // режим выводит разбор. Пока флага нет — прежняя строка с типом.
         val опись =
@@ -183,9 +197,18 @@ class Atomizer(
         val ролиСтороны = ролиСтороны()
         val границыСтороны = границы("stakeholder")
         val границыНужды = границы("need")
+        val знаниеИнструментами = if (!инструменты) "" else """
+
+## Инструменты — знание не в промпте, а по запросу
+term(name) — термин словаря: канон, класс, определение, синонимы; node(code) — узел
+состава с анкетой параметров; interface(code) — стык; facts(query) — факты проекта
+с цитатами; clauses(norm, topic) — пункты норматива; scene(key) — сцена фазы,
+для сцены 3 — стороны и нужды проекта, для сцены 5 — ограничения; similar(text,
+class) — ближайшие блоки базы знаний. Спрашивай, когда нужно ИМЕННО это знание;
+итог отдай инструментом orbita_result один раз, когда всё собрано."""
 
         return """
-Ты разбираешь входной документ инженерного проекта на АТОМАРНЫЕ ФАКТЫ.
+Ты разбираешь входной документ инженерного проекта на АТОМАРНЫЕ ФАКТЫ.$знаниеИнструментами
 
 ## Проект
 Название: ${паспорт?.doc?.path("name")?.asText(project) ?: project}
@@ -355,7 +378,7 @@ $выжимка
      * там, где профиль сказать не может: пункты-обязательства есть и у ТЗ
      * заказчика, и у нормативного акта, а действия плана у них разные.
      */
-    private fun режимПоПрофилю(project: String, карточка: Entity?, intent: String, блоки: List<CanonBlock>): String {
+    private fun режимПоПрофилю(project: String, карточка: Entity?, intent: String, блоки: List<CanonBlock>, инструменты: Boolean = false): String {
         val доли = профильКарточки(карточка) ?: профильПоТексту(блоки)
         val задание = intent.lowercase()
         val проТЗ = ЗАДАНИЕ_ТЗ.containsMatchIn(задание)
@@ -373,7 +396,7 @@ $выжимка
         // называет себя сам («ГОСТ Р…», «Постановление Правительства…»).
         val нпа = проНорматив || (нормы && !проТЗ && НАЗВАНИЕ_НПА.containsMatchIn(заголовок(блоки)))
         val правила = mutableListOf<String>()
-        if (проТЗ || (нормы && !нпа)) правила += блокТЗ(project)
+        if (проТЗ || (нормы && !нпа)) правила += блокТЗ(project, инструменты)
         if (нпа) правила += блокНорматива()
         if (доли.params >= ДОЛЯ_РЕЖИМА || ЗАДАНИЕ_ПАРАМЕТРЫ.containsMatchIn(задание)) {
             // Запрет «действий по параметрам не предлагай» написан для
@@ -384,7 +407,7 @@ $выжимка
                 if (части.size <= 1) ""
                 else "\nЗапрет на действия по параметрам касается ТОЛЬКО параметрических блоков: " +
                     "в постановочных блоках предлагай действия по общему правилу."
-            правила += блокДаташита(project, intent) + областьЗапрета
+            правила += блокДаташита(project, intent, инструменты) + областьЗапрета
         }
         if (доли.assessments >= ДОЛЯ_РЕЖИМА) правила += блокОценок()
 
@@ -456,8 +479,9 @@ $выжимка
      * классов сущностей и двусторонняя оценка против нужд считаются живым
      * прогоном (tools/v2/check_tor_mode.py), переписывать их нельзя.
      */
-    private fun блокТЗ(project: String): String {
-        val нужды = store.list(Area.Project(project), "need")
+    private fun блокТЗ(project: String, инструменты: Boolean = false): String {
+        val нужды = if (инструменты) "  (нужды и стороны проекта — инструментом scene(\"3\"))"
+        else store.list(Area.Project(project), "need")
             .joinToString("\n") { "  · ${it.code}: ${it.doc.path("statement").asText("")}" }
             .ifBlank { "  (нужд в проекте пока нет — оценка невозможна, верни assessment с пустыми lines)" }
         return """
@@ -502,8 +526,9 @@ $нужды
     }
 
     /** Режим даташита — дословно (шип E): параметры ложатся в поля анкеты узла. */
-    private fun блокДаташита(project: String, intent: String): String {
-        val анкета = intake.questionnaireKeys(project, intent)
+    private fun блокДаташита(project: String, intent: String, инструменты: Boolean = false): String {
+        val анкета = if (инструменты) "  (анкета узла — инструментом node(code): ключ · единица)"
+        else intake.questionnaireKeys(project, intent)
             .joinToString("\n") { (ключ, ед) -> "  · $ключ (${ед.ifBlank { "—" }})" }
             .ifBlank { "  (анкета узла не найдена — параметры без param_key)" }
         return """

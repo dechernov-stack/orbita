@@ -312,9 +312,18 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
         }
         val документыМаршруты = orbita.api.internal.DocRoutes(store, документы, mapper) { полки.phaseTemplate("PHT-9001") }
         val точки = orbita.api.internal.PointRoutes(движок, записиТочек, mapper)
+        // База знаний и инструменты модели (шип 4 §2): индекс ядра, словарь, полки, сцены фазы.
+        val индексЗнаний = orbita.knowledge.api.KnowledgeFactory.index(
+            store,
+            orbita.kernel.api.KernelFactory.textIndex(conn, mapper, orbita.ai.api.AiFactory.embeddingDim()),
+            orbita.ai.api.AiFactory.embeddings(mapper), mapper,
+        )
+        val инструментыМодели = orbita.api.internal.ModelToolbox(
+            store, orbita.knowledge.api.KnowledgeFactory.glossary(store, mapper), индексЗнаний, движок, полки, mapper,
+        )
         val знанияМаршруты = orbita.api.internal.KnowledgeRoutes(
             знания,
-            orbita.ai.api.AiFactory.atomize(store, знания, служба, mapper),
+            orbita.ai.api.AiFactory.atomize(store, знания, служба, mapper) { проект -> инструментыМодели.tools() to инструментыМодели.handler(проект) },
             служба,
             mapper,
             // Разбор фоновой задачей (ADR-069): сеть в фоне, база — на потоке запросов.
@@ -394,14 +403,7 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
             синтезМаршруты, сверкаМаршруты, исследованиеМаршруты, проверкаМаршруты,
             bridgeRoutes = мостикМаршруты,
             // База знаний (шип 4 §2): индекс ядра + эмбеддинги провайдера, если он задан окружением.
-            searchRoutes = orbita.api.internal.SearchRoutes(
-                orbita.knowledge.api.KnowledgeFactory.index(
-                    store,
-                    orbita.kernel.api.KernelFactory.textIndex(conn, mapper, orbita.ai.api.AiFactory.embeddingDim()),
-                    orbita.ai.api.AiFactory.embeddings(mapper), mapper,
-                ),
-                mapper,
-            ),
+            searchRoutes = orbita.api.internal.SearchRoutes(индексЗнаний, mapper),
             // Материал файлом (docx · pdf · xlsx · pptx): текст извлекает тот же
             // разбор, что у документов v1 — канон в markdown; формат — на границе.
             extract = { имя, байты ->

@@ -110,8 +110,10 @@ object AiFactory {
         intake: Intake,
         service: AiService,
         mapper: ObjectMapper = ObjectMapper(),
+        /** Инструменты модели по проекту (шип 4 §2): набор и исполнитель; нет — прежний промпт с подстановкой. */
+        toolbox: ((String) -> Pair<List<Tool>, ToolHandler>)? = null,
     ): Atomize {
-        val работник = Atomizer(store, intake, service, mapper)
+        val работник = Atomizer(store, intake, service, mapper, toolbox)
         return Atomize { project, material, intent, author ->
             работник.atomize(project, material, intent, author)
         }

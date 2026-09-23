@@ -38,11 +38,16 @@ class HttpTransport(
     private val maxTokens: Int = env("ORBITA_AI_MAX_TOKENS")?.toIntOrNull() ?: 16000,
     private val client: HttpClient = HttpClient.newBuilder()
         .connectTimeout(Duration.ofSeconds(20)).build(),
-) : Transport {
+    /** Отправка тела и получение потока SSE — подменяется в тестах цикла инструментов. */
+    private val отправка: ((String) -> String)? = null,
+) : orbita.ai.api.ToolTransport {
 
     private companion object {
         /** Имя инструмента ответа: одно на все контуры, им же держится формат. */
         const val ИНСТРУМЕНТ = "orbita_result"
+
+        /** Потолок ходов с инструментами: разбор документа укладывается в десяток запросов знания. */
+        const val ПОТОЛОК_ХОДОВ = 16
     }
 
     override fun ask(prompt: String, model: String?, maxTokens: Int?, schema: JsonNode?): Answer {
@@ -74,6 +79,12 @@ class HttpTransport(
             тело.putObject("tool_choice").put("type", "tool").put("name", ИНСТРУМЕНТ)
         }
 
+        return собрать(отправить(ключ, тело), модель)
+    }
+
+    /** Отправка тела провайдеру: поток SSE строкой; перегрузка и отказ — названы. */
+    private fun отправить(ключ: String, тело: JsonNode): String {
+        отправка?.let { return it(mapper.writeValueAsString(тело)) }
         val запрос = HttpRequest.newBuilder(URI.create(url))
             .header("content-type", "application/json")
             .header("x-api-key", ключ)
@@ -96,7 +107,80 @@ class HttpTransport(
                 "провайдер отказал (${ответ.statusCode()}): " + ответ.body().take(400),
             )
         }
-        return собрать(ответ.body(), модель)
+        return ответ.body()
+    }
+
+    /**
+     * Цикл с инструментами (шип 4 §2): ответ по схеме — тем же инструментом
+     * `orbita_result`; знание модель берёт инструментами, каждый вызов
+     * исполняется здесь и возвращается ей результатом. Ходов не больше
+     * ПОТОЛОК_ХОДОВ: модель, не отдавшая ответ, — отказ, а не вечный разговор.
+     */
+    override fun askWithTools(
+        prompt: String,
+        model: String?,
+        maxTokens: Int?,
+        schema: JsonNode?,
+        tools: List<orbita.ai.api.Tool>,
+        handler: orbita.ai.api.ToolHandler,
+    ): Answer {
+        val ключ = key?.takeIf { it.isNotBlank() }
+            ?: throw ProviderUnavailable("прямой канал не настроен: нет ORBITA_AI_KEY")
+        val модель = model ?: defaultModel
+        val сообщения = mapper.createArrayNode()
+        сообщения.addObject().put("role", "user").put("content", prompt)
+        var входВсего = 0
+        var выходВсего = 0
+        var имяМодели = модель
+        repeat(ПОТОЛОК_ХОДОВ) {
+            val тело = mapper.createObjectNode()
+            тело.put("model", модель).put("max_tokens", maxTokens ?: this.maxTokens).put("stream", true)
+            тело.set<JsonNode>("messages", сообщения.deepCopy())
+            val набор = тело.putArray("tools")
+            if (schema != null) {
+                набор.addObject().put("name", ИНСТРУМЕНТ).put("description", "Вернуть ИТОГОВЫЙ результат строго по схеме — один раз, когда всё собрано")
+                    .set<JsonNode>("input_schema", schema)
+            }
+            tools.forEach { и -> набор.addObject().put("name", и.name).put("description", и.description).set<JsonNode>("input_schema", и.inputSchema) }
+            // Каждый ход модель обязана позвать инструмент: знание либо итог.
+            тело.putObject("tool_choice").put("type", "any")
+            val сообщение = собратьСообщение(отправить(ключ, тело), модель)
+            имяМодели = сообщение.model
+            входВсего += сообщение.tokensIn ?: 0
+            выходВсего += сообщение.tokensOut ?: 0
+            if (сообщение.stopReason == "max_tokens") {
+                throw IllegalStateException("ответ оборван бюджетом на ходу с инструментами (${выходВсего} токенов): поднимите ORBITA_AI_MAX_TOKENS")
+            }
+            сообщение.blocks.firstOrNull { it.type == "tool_use" && it.name == ИНСТРУМЕНТ }?.let { итог ->
+                return Answer(итог.json, имяМодели, входВсего, выходВсего)
+            }
+            val вызовы = сообщение.blocks.filter { it.type == "tool_use" }
+            if (вызовы.isEmpty()) {
+                val текст = сообщение.blocks.filter { it.type == "text" }.joinToString("") { it.json }
+                if (текст.isBlank()) throw ProviderUnavailable("провайдер вернул пустой ответ")
+                return Answer(текст, имяМодели, входВсего, выходВсего)
+            }
+            // Ход модели — в историю как есть; результаты — следующим ходом пользователя.
+            val ассистент = сообщения.addObject().put("role", "assistant")
+            val содержимое = ассистент.putArray("content")
+            сообщение.blocks.forEach { б ->
+                when (б.type) {
+                    "text" -> if (б.json.isNotBlank()) содержимое.addObject().put("type", "text").put("text", б.json)
+                    "tool_use" -> содержимое.addObject().put("type", "tool_use").put("id", б.id).put("name", б.name)
+                        .set<JsonNode>("input", runCatching { mapper.readTree(б.json.ifBlank { "{}" }) }.getOrDefault(mapper.createObjectNode()))
+                }
+            }
+            val пользователь = сообщения.addObject().put("role", "user")
+            val результаты = пользователь.putArray("content")
+            вызовы.forEach { в ->
+                val вход = runCatching { mapper.readTree(в.json.ifBlank { "{}" }) }.getOrDefault(mapper.createObjectNode())
+                val результат = runCatching { handler.call(в.name, вход) }
+                    .getOrElse { mapper.createObjectNode().put("error", "инструмент «${в.name}» отказал: ${it.message}") }
+                результаты.addObject().put("type", "tool_result").put("tool_use_id", в.id)
+                    .put("content", mapper.writeValueAsString(результат))
+            }
+        }
+        throw IllegalStateException("модель не отдала ответ за $ПОТОЛОК_ХОДОВ ходов с инструментами")
     }
 
     /**
@@ -107,15 +191,22 @@ class HttpTransport(
     /** Чем блок содержательнее: длина без пробелов — пустой `{}` весит два знака. */
     private fun содержательность(блок: StringBuilder): Int = блок.count { !it.isWhitespace() }
 
-    internal fun собрать(поток: String, модель: String): Answer {
-        // Блоки содержимого собираются ПООТДЕЛЬНОСТИ. Провайдер вправе прислать
-        // их несколько — и присылает: живое чтение записки 15.09 вернуло два
-        // блока-инструмента подряд, полный и пустой. Склеенные в одну строку,
-        // они дают «Extra data» при разборе, а с ним — пустой ответ на исправном
-        // вызове: худший вид отказа, тихий.
+    /** Блок содержимого ответа: текст либо вызов инструмента (json — вход инструмента). */
+    internal data class Блок(val type: String, val id: String, val name: String, val json: String)
+
+    internal data class Сообщение(
+        val blocks: List<Блок>,
+        val model: String,
+        val tokensIn: Int?,
+        val tokensOut: Int?,
+        val stopReason: String,
+    )
+
+    /** Поток SSE → сообщение блоками: текст и вызовы инструментов, учёт токенов, причина остановки. */
+    internal fun собратьСообщение(поток: String, модель: String): Сообщение {
         val блоки = linkedMapOf<Int, StringBuilder>()
+        val виды = linkedMapOf<Int, Triple<String, String, String>>()
         var текущий = 0
-        val текст = StringBuilder()
         var вход: Int? = null
         var выход: Int? = null
         var имяМодели = модель
@@ -130,7 +221,12 @@ class HttpTransport(
                     вход = узел.path("message").path("usage").path("input_tokens")
                         .takeIf { it.isNumber }?.asInt()
                 }
-                "content_block_start" -> текущий = узел.path("index").asInt(текущий)
+                "content_block_start" -> {
+                    текущий = узел.path("index").asInt(текущий)
+                    val блок = узел.path("content_block")
+                    виды[текущий] = Triple(блок.path("type").asText("text"), блок.path("id").asText(""), блок.path("name").asText(""))
+                    блоки.getOrPut(текущий) { StringBuilder() }
+                }
                 // Ответ по схеме приходит не текстом, а входом инструмента:
                 // куски идут отдельным видом дельты. Сборщик один на оба вида.
                 "content_block_delta" -> {
@@ -152,9 +248,30 @@ class HttpTransport(
                 )
             }
         }
+        return Сообщение(
+            блоки.map { (номер, текст) ->
+                val (тип, id, имя) = виды[номер] ?: Triple("text", "", "")
+                Блок(тип, id, имя, текст.toString())
+            },
+            имяМодели, вход, выход, причинаОстановки,
+        )
+    }
+
+    internal fun собрать(поток: String, модель: String): Answer {
+        // Блоки содержимого собираются ПООТДЕЛЬНОСТИ. Провайдер вправе прислать
+        // их несколько — и присылает: живое чтение записки 15.09 вернуло два
+        // блока-инструмента подряд, полный и пустой. Склеенные в одну строку,
+        // они дают «Extra data» при разборе, а с ним — пустой ответ на исправном
+        // вызове: худший вид отказа, тихий.
+        val сообщение = собратьСообщение(поток, модель)
+        val текст = StringBuilder()
+        val вход = сообщение.tokensIn
+        val выход = сообщение.tokensOut
+        val имяМодели = сообщение.model
+        val причинаОстановки = сообщение.stopReason
         // Из нескольких блоков берётся САМЫЙ БОЛЬШОЙ: пустой хвостовой блок
         // (второй вызов инструмента без содержимого) ответа не отменяет.
-        блоки.values.maxByOrNull { содержательность(it) }?.let { текст.append(it) }
+        сообщение.blocks.map { StringBuilder(it.json) }.maxByOrNull { содержательность(it) }?.let { текст.append(it) }
         if (текст.isBlank()) throw ProviderUnavailable("провайдер вернул пустой ответ")
         // Обрыв по бюджету — НЕ ответ: половина JSON выглядит как поломка
         // разбора, а причина другая. Повторять бессмысленно, поэтому это
@@ -178,7 +295,24 @@ class RetryingTransport(
     private val inner: Transport,
     private val паузыМс: LongArray = longArrayOf(2000, 4000, 8000),
     private val спать: (Long) -> Unit = { Thread.sleep(it) },
-) : Transport {
+) : orbita.ai.api.ToolTransport {
+
+    override fun askWithTools(
+        prompt: String, model: String?, maxTokens: Int?, schema: JsonNode?,
+        tools: List<orbita.ai.api.Tool>, handler: orbita.ai.api.ToolHandler,
+    ): Answer {
+        val инструментальный = inner as? orbita.ai.api.ToolTransport ?: return ask(prompt, model, maxTokens, schema)
+        var последняя: ProviderUnavailable? = null
+        for (попытка in паузыМс.indices) {
+            try {
+                return инструментальный.askWithTools(prompt, model, maxTokens, schema, tools, handler)
+            } catch (e: ProviderUnavailable) {
+                последняя = e
+                if (попытка < паузыМс.size - 1) спать(паузыМс[попытка])
+            }
+        }
+        throw ProviderUnavailable("${последняя?.message} (попыток: ${паузыМс.size})")
+    }
 
     override fun ask(prompt: String, model: String?, maxTokens: Int?, schema: JsonNode?): Answer {
         var последняя: ProviderUnavailable? = null
