@@ -168,26 +168,6 @@
           }
         }
       ],
-      "steps": [
-        {
-          "title": "Даты точек фазы",
-          "place": "scene:A1#plan",
-          "hint": "SRR · SDR · KDP-B — по FA",
-          "check": "phase_points_dated"
-        },
-        {
-          "title": "Ответственные сцен",
-          "place": "scene:A1#plan",
-          "hint": "РП и ведущий СИ — за каждой сценой лицо",
-          "check": "scene_responsible_min:1"
-        },
-        {
-          "title": "Окна сцен",
-          "place": "scene:A1#plan",
-          "hint": "план хотя бы у первой доступной сцены",
-          "check": "phase_plan_started"
-        }
-      ],
       "output": "план фазы: даты точек, ответственные, окна сцен",
       "depends": [
         {
@@ -274,26 +254,6 @@
             "min": "all",
             "where": "document=SEMP gate=SRR"
           }
-        }
-      ],
-      "steps": [
-        {
-          "title": "SEMP по шаблону",
-          "place": "documents:semp",
-          "hint": "11 разделов; §6 — 17 процессов с полки, §2 — нормативы полки",
-          "check": "document_started:semp"
-        },
-        {
-          "title": "Полнота к SRR",
-          "place": "documents:semp",
-          "hint": "каждый раздел, ожидаемый к SRR, полон",
-          "check": "document_complete:semp:SRR"
-        },
-        {
-          "title": "Базировать до SRR",
-          "place": "documents:semp#baseline",
-          "hint": "переходом, DA не требуется",
-          "check": "document_baselined:semp"
         }
       ],
       "output": "SEMP (Preliminary → Baseline к SRR)",
@@ -392,26 +352,6 @@
             "min": 1,
             "where": "owner=SC"
           }
-        }
-      ],
-      "steps": [
-        {
-          "title": "Дорастить сценарии",
-          "place": "documents:conops",
-          "hint": "номинальный · два нештатных · завершение миссии",
-          "check": "scenarios_min:3"
-        },
-        {
-          "title": "Режимы аппарата",
-          "place": "concept#modes",
-          "hint": "машина режимов КА с переходами",
-          "check": "modes_defined"
-        },
-        {
-          "title": "Базировать",
-          "place": "documents:conops#baseline",
-          "hint": "после SEMP (2.3 → 3.3); Baseline к SRR",
-          "check": "document_baselined:conops"
         }
       ],
       "output": "ConOps Baseline",
@@ -549,32 +489,6 @@
             "min": 1,
             "where": "interfaces of node"
           }
-        }
-      ],
-      "steps": [
-        {
-          "title": "Распределение системных требований",
-          "place": "requirements#carrier",
-          "hint": "«без носителя» → 0",
-          "check": "node_requirements_min:{node}:1"
-        },
-        {
-          "title": "Функции элемента",
-          "place": "architecture#functions",
-          "hint": "функции SA распределены на узел 100 %",
-          "check": "node_functions_min:{node}:1"
-        },
-        {
-          "title": "Стыки и элементы обмена",
-          "place": "architecture#interfaces",
-          "hint": "реестр стыков с параметрами ступени SRR; элементы обмена на стыках данных",
-          "check": "node_interfaces_min:{node}:1"
-        },
-        {
-          "title": "Ступень «архитектура»",
-          "place": "concept#ladder",
-          "hint": "анкета узла закрыта до SDR",
-          "check": "node_stage_closed:{node}:SDR"
         }
       ],
       "output": "аванпроект элемента: состав, требования, функции, стыки, обмены",
@@ -853,32 +767,6 @@
           "blocking": false
         }
       ],
-      "steps": [
-        {
-          "title": "Системные из проектных",
-          "place": "requirements#derive",
-          "hint": "каждое системное несёт родителя с обоснованием; ≥ 1 на сегмент",
-          "check": "each_system_requirement_derived"
-        },
-        {
-          "title": "Носители",
-          "place": "requirements#carrier",
-          "hint": "«без носителя (системные)» = 0",
-          "check": "no_carrierless_requirement:system"
-        },
-        {
-          "title": "Функции и цепочки",
-          "place": "architecture#layers",
-          "hint": "функций без узла = 0; у каждой цепочки сценарное требование",
-          "check": "functions_allocated"
-        },
-        {
-          "title": "Бюджеты",
-          "place": "models#budgets",
-          "hint": "масса · энергия · линк с двумя резервами против рамок",
-          "check": "budgets_min:mass,power,link"
-        }
-      ],
       "output": "Д5 архитектура: требования, функции, цепочки, бюджеты; MCReport → SDR-пакет",
       "depends": [
         {
@@ -1087,26 +975,6 @@
           }
         }
       ],
-      "steps": [
-        {
-          "title": "Варианты с метриками",
-          "place": "models#compare",
-          "hint": "≥ 2 варианта; метрики без скрытого балла",
-          "check": "variants_min:2"
-        },
-        {
-          "title": "Четыре модели",
-          "place": "models",
-          "hint": "М1 · М2а · М3а · М6 дали ответ и верифицированы",
-          "check": "model_runs_verified:М1,М2а,М3а,М6"
-        },
-        {
-          "title": "Протокол решения",
-          "place": "documents:icd#6",
-          "hint": "базовый с отклонёнными и обоснованием; протокол — вставкой сравнения",
-          "check": "baseline_concept_with_rejected"
-        }
-      ],
       "output": "протоколы trade studies (Д5 §6), AoA",
       "depends": [
         {
@@ -1269,26 +1137,6 @@
           }
         }
       ],
-      "steps": [
-        {
-          "title": "Пакет и веха на каждый разрыв",
-          "place": "programmatics#maturation",
-          "hint": "разрыв TRL требует пакета работ и вехи с датой",
-          "check": "maturation_planned"
-        },
-        {
-          "title": "Условные элементы",
-          "place": "requirements#baseline",
-          "hint": "перечислены снимком: условно то, что стоит на незрелой технологии",
-          "check": "conditional_requirements_listed"
-        },
-        {
-          "title": "Резервы",
-          "place": "library#trl",
-          "hint": "у технологии TRL ≤ 4 назван резерв",
-          "check": "technology_fallback_named:4"
-        }
-      ],
       "output": "Д6 план созревания, перечень условных элементов, резервы",
       "depends": [
         {
@@ -1380,26 +1228,6 @@
             "min": "reviewed",
             "where": "due<=SRR"
           }
-        }
-      ],
-      "steps": [
-        {
-          "title": "Владелец и срок",
-          "place": "risks",
-          "hint": "у каждого риска — владелец и срок-точка",
-          "check": "each_risk_has_owner"
-        },
-        {
-          "title": "Меры по критическим",
-          "place": "risks",
-          "hint": "критичность ≥ 12 — мера обязательна",
-          "check": "critical_risks_have_measures:12"
-        },
-        {
-          "title": "Сроки к SRR",
-          "place": "risks",
-          "hint": "просроченных к SRR — 0",
-          "check": "risks_due_closed:SRR"
         }
       ],
       "output": "Д7 реестр рисков",
@@ -1509,26 +1337,6 @@
             "min": 1,
             "where": "debris"
           }
-        }
-      ],
-      "steps": [
-        {
-          "title": "ОСЗ базового варианта",
-          "place": "models#debris",
-          "hint": "активный увод и пассивный сход — оба по нормативу",
-          "check": "oda_compliant"
-        },
-        {
-          "title": "Норматив привязан",
-          "place": "models#debris",
-          "hint": "норма увода — ссылка на полку нормативов",
-          "check": "oda_normative_bound"
-        },
-        {
-          "title": "План обеспечения",
-          "place": "documents:sma",
-          "hint": "надёжность · безопасность · EMI/EMC — черновик",
-          "check": "document_started:sma"
         }
       ],
       "output": "Д8 ОСЗ · Д9 планы обеспечения (SMA)",
@@ -1661,32 +1469,6 @@
             "min": true,
             "where": "WBS vs gates"
           }
-        }
-      ],
-      "steps": [
-        {
-          "title": "Диапазон по WBS",
-          "place": "programmatics#estimate",
-          "hint": "параметрика или снизу вверх; допущения явно",
-          "check": "estimate_ranged"
-        },
-        {
-          "title": "Пары пакетов",
-          "place": "programmatics#wbs",
-          "hint": "пар нет только у сквозных",
-          "check": "wbs_paired"
-        },
-        {
-          "title": "Созревание в оценке",
-          "place": "programmatics#estimate",
-          "hint": "пакеты созревания — строки оценки",
-          "check": "estimate_includes_maturation"
-        },
-        {
-          "title": "Сроки против точек",
-          "place": "programmatics#plan",
-          "hint": "свёртка сроков WBS не выходит за даты точек",
-          "check": "plan_consistent_with_gates"
         }
       ],
       "output": "Д9 оценка · Project Plan §3",
@@ -1824,26 +1606,6 @@
             "min": "listed",
             "where": "FA §6"
           }
-        }
-      ],
-      "steps": [
-        {
-          "title": "Project Plan по шаблону",
-          "place": "documents:projectplan",
-          "hint": "ссылки на Д2–Д9, не копии",
-          "check": "document_started:projectplan"
-        },
-        {
-          "title": "FA: план Phase B",
-          "place": "documents:fa#4",
-          "hint": "вехи и зрелости по прил. I — новая версия FA",
-          "check": "document_version_min:fa:2"
-        },
-        {
-          "title": "Отклонения",
-          "place": "documents:fa#6",
-          "hint": "tailoring перечислен с обоснованием",
-          "check": "document_section_started:fa:§6"
         }
       ],
       "output": "Д10 Project Plan (Preliminary), FA обновлённое",
@@ -2038,32 +1800,6 @@
             "min": "complete",
             "where": "Д1–Д10 gate=KDP-B"
           }
-        }
-      ],
-      "steps": [
-        {
-          "title": "Функциональная базовая линия",
-          "place": "requirements#baseline",
-          "hint": "снимок к SRR",
-          "check": "baseline_taken:functional"
-        },
-        {
-          "title": "Распределённая базовая линия",
-          "place": "requirements#baseline",
-          "hint": "снимок к SDR",
-          "check": "baseline_taken:allocated"
-        },
-        {
-          "title": "Позиции экспертиз",
-          "place": "points",
-          "hint": "EXP-2A / EXP-2B — вердикт по каждой позиции",
-          "check": "expertise_positions_reviewed:SRR"
-        },
-        {
-          "title": "Матрица зрелости",
-          "place": "points#KDP-B",
-          "hint": "Д1–Д10 без дыр",
-          "check": "maturity_matrix_complete:KDP-B"
         }
       ],
       "output": "пакеты точек SRR · SDR/MDR · KDP-B",

@@ -3,13 +3,6 @@
 
 export type SceneState = 'locked' | 'open' | 'done'
 
-export interface Step {
-  title: string
-  place: string
-  hint: string
-  done: boolean
-}
-
 /** Условие сцены: заголовок для человека, состояние и причина отказа. */
 export interface Condition {
   title: string
@@ -67,7 +60,6 @@ export interface Scene {
   state: SceneState
   /** Чего не хватает — словами, с именами объектов. */
   blockers: string[]
-  steps: Step[]
   /** Условия входа и выхода целиком: панель показывает и ✓, и ☐. */
   entry: Condition[]
   exit: Condition[]

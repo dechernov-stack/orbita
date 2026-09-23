@@ -29,16 +29,8 @@ class CredibilityAxesMigrationTest {
         store.create(проект, "project", область, "1", mapper.readTree("""{"name":"Оси достоверности","standard":"NASA-7120"}"""), п)
     }
 
-    /**
-     * Запись прежней формы: сторож записи истиной новых имён прежние не пропустит,
-     * поэтому документ подкладывается прямо в строку хранилища — так и лежат
-     * записи стенда, заведённые до миграции.
-     */
-    private fun прежняя(id: String, документ: String) {
-        TestDbV2.conn.prepareStatement("update orbita_kernel.entity set doc = ?::jsonb where id = ? and valid_to is null").use { st ->
-            st.setString(1, документ); st.setString(2, id); st.executeUpdate()
-        }
-    }
+    /** Запись прежней формы — так лежат записи стенда, заведённые до миграции. */
+    private fun прежняя(id: String, документ: String) = TestDbV2.подложитьДокумент(id, документ)
 
     @Test
     fun `прежние имена сходят в новые, уверенность факта снимается, второй прогон пуст`() {

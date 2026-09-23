@@ -75,14 +75,6 @@ internal object PhaseJson {
             условия(с.putArray("entry"), сцена.entry)
             условия(с.putArray("exit"), сцена.exit)
             мероприятия(с.putArray("activities"), сцена.activities)
-            val шаги = с.putArray("steps")
-            сцена.steps.forEach { шаг ->
-                шаги.addObject()
-                    .put("title", шаг.title)
-                    .put("place", шаг.place)
-                    .put("hint", шаг.hint)
-                    .put("done", шаг.done)
-            }
         }
         val дорожки = узел.putArray("lanes")
         фаза.lanes.forEach { дорожка ->

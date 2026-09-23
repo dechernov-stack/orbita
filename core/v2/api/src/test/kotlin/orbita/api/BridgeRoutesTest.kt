@@ -235,6 +235,36 @@ class BridgeRoutesTest {
     // ——— поручение ————————————————————————————————————————————————————
 
     @Test
+    fun `поручение указывает на мероприятие фазы кодом — чужой код отбивается словами`() {
+        // Истина 24.09 (ОНТОЛОГИЯ-АУДИТ часть 5): «шаг» ушёл — целью поручения
+        // бывает разрыв сцены либо мероприятие фазы; мероприятие 0.1 — сцены 3.
+        val создано = router.handle(
+            "POST", "/v2/assignments", п,
+            """{"target":{"kind":"activity","ref":"0.1"},"assignee":"petrova","due_point":"internal_review",
+                "what":"уточнить пользователей миссии","author":"chernov"}""", рп,
+        )!!
+        assertEquals(201, создано.code)
+        val запись = store.byCode(область, создано.body.path("code").asText())!!
+        assertEquals("activity", запись.doc.path("target").path("kind").asText())
+        assertEquals("0.1", запись.doc.path("target").path("ref").asText())
+
+        val чужое = runCatching {
+            router.handle(
+                "POST", "/v2/assignments", п,
+                """{"target":{"kind":"activity","ref":"9.9"},"assignee":"petrova","due_point":"internal_review","author":"chernov"}""", рп,
+            )
+        }.exceptionOrNull()
+        assertTrue(чужое is IllegalArgumentException && "мероприятия «9.9» в фазе нет" in (чужое.message ?: ""), "${чужое?.message}")
+        val шаг = runCatching {
+            router.handle(
+                "POST", "/v2/assignments", п,
+                """{"target":{"kind":"step","ref":"3"},"assignee":"petrova","due_point":"internal_review","author":"chernov"}""", рп,
+            )
+        }.exceptionOrNull()
+        assertTrue(шаг is IllegalArgumentException, "«шаг» целью поручения не бывает: ${шаг?.message}")
+    }
+
+    @Test
     fun `поручение заводится по истине схем и закрывается`() {
         // Слова поручения берутся у САМОГО блокера мостика: выдуманная строка
         // никогда не сойдётся с тем, что держит точку на самом деле.

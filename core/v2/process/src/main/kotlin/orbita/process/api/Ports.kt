@@ -43,7 +43,6 @@ data class SceneView(
     val state: SceneState,
     /** Чего не хватает, чтобы сцена открылась либо закрылась — словами. */
     val blockers: List<String>,
-    val steps: List<StepView>,
     /** Условия входа целиком: чем сцена держится закрытой. */
     val entry: List<ConditionView> = emptyList(),
     /** Условия выхода целиком: что должно случиться, чтобы сцена прожилась. */
@@ -75,7 +74,6 @@ data class SceneView(
  */
 data class SceneLinkView(val on: String, val type: String, val why: String)
 
-data class StepView(val title: String, val place: String, val hint: String, val done: Boolean)
 
 /** Состояние мероприятия — вычисляется, ручного «готово» нет. */
 enum class ActivityState {

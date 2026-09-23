@@ -166,7 +166,7 @@
               "pending",
               "accepted",
               "rejected",
-              "rework"
+              "deferred"
             ]
           },
           "reason": {

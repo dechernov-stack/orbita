@@ -10,6 +10,7 @@ import {
 } from './api'
 import { Source } from './knowledgefield'
 import { интересы } from './interests'
+import { ДЕЙСТВИЕ_СВЕРКИ } from './words'
 import { запомнитьАвтора, запомнитьРоль, отказСловами, прочитатьАвтора, прочитатьРоль } from './research'
 
 /**
@@ -238,16 +239,8 @@ export function SceneIntent({ project, onChanged }: { project: string; onChanged
  * нужно человеку: вторых вердиктов здесь нет — вердикт и вопрос приходят с
  * сервера готовыми словами и печатаются как есть.
  */
-const ДЕЙСТВИЕ: Record<ReconcileAction, string> = {
-  accept_new: 'завести новым',
-  merge_into: 'слить в принятое',
-  refine: 'уточнить принятое',
-  generalize: 'обобщить принятое',
-  link_basis: 'привязать основание',
-  mark_contested: 'пометить спорным',
-  fix_input: 'поправить ввод',
-  dismiss: 'отклонить находку',
-}
+/** Слова действий сверки — одной таблицей на весь клиент (words.ts). */
+const ДЕЙСТВИЕ: Record<ReconcileAction, string> = ДЕЙСТВИЕ_СВЕРКИ as Record<ReconcileAction, string>
 
 /** Дата провенанса по-человечески: 12.09.2026, а не машинная запись. */
 function датаКратко(когда: string): string {

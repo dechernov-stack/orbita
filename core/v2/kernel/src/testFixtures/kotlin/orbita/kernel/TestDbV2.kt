@@ -33,4 +33,16 @@ object TestDbV2 {
             it.execute("TRUNCATE orbita_kernel.entity, orbita_kernel.link RESTART IDENTITY")
         }
     }
+
+    /**
+     * Документ прежней формы прямо в текущую строку записи — для тестов миграций
+     * понятий: сторож записи истиной новых имён прежние не пропустит, а на
+     * стенде такие записи лежат с прежних выкатов. Схема БД — только отсюда:
+     * соседние модули к ней не ходят (ТЗ-BACKEND §2.2).
+     */
+    fun подложитьДокумент(id: String, документ: String) {
+        conn.prepareStatement("UPDATE orbita_kernel.entity SET doc = ?::jsonb WHERE id = ? AND valid_to IS NULL").use {
+            it.setString(1, документ); it.setString(2, id); it.executeUpdate()
+        }
+    }
 }

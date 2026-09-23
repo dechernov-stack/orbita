@@ -93,7 +93,7 @@
         "kind": {
           "enum": [
             "gap",
-            "step"
+            "activity"
           ]
         },
         "ref": {

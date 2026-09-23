@@ -60,7 +60,7 @@ class BridgeRoutes(
 
     /** Виды цели поручения — из истины схем, а не второй копией перечня в коде. */
     private val видыЦели: List<String> =
-        GeneratedKinds.byCode["assignment"]?.enums?.get("target.kind") ?: listOf("gap", "step")
+        GeneratedKinds.byCode["assignment"]?.enums?.get("target.kind") ?: listOf("gap", "activity")
 
     fun handle(method: String, path: String, query: Map<String, String>, body: String?, actor: Actor?): V2Router.Ответ? =
         when {
@@ -389,6 +389,14 @@ class BridgeRoutes(
         }
         val поручил = (actor?.login ?: тело.path("author").asText("")).trim()
         require(поручил.isNotBlank()) { "поручение без автора не ставится: кто поручил — часть поручения" }
+        // Поручение указывает на мероприятие (истина 24.09, ОНТОЛОГИЯ-АУДИТ часть 5):
+        // «шаг» ушёл, целью бывает разрыв сцены либо мероприятие фазы кодом.
+        if (вид == "activity") {
+            val мероприятия = фаза.scenes.flatMap { с -> с.activities.map { it.code } }
+            require(ссылка in мероприятия) {
+                "мероприятия «$ссылка» в фазе нет: поручение указывает на мероприятие (${мероприятия.joinToString(" · ")})"
+            }
+        }
         if (вид == "gap") {
             require(фаза.scenes.any { it.key == ссылка }) {
                 "сцены «$ссылка» в фазе нет: разрыв живёт в сцене (${фаза.scenes.joinToString(" · ") { it.key }})"

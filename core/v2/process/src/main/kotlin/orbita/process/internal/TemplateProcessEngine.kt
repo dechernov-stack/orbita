@@ -29,7 +29,6 @@ import orbita.process.api.ProcessEngine
 import orbita.process.api.SceneState
 import orbita.process.api.SceneLinkView
 import orbita.process.api.SceneView
-import orbita.process.api.StepView
 import java.time.LocalDate
 
 class TemplateProcessEngine(
@@ -192,18 +191,6 @@ class TemplateProcessEngine(
                 question = имя(сцена.path("question").asText("")),
                 state = состояние,
                 blockers = if (состояние == SceneState.LOCKED) причиныВхода else причиныВыхода,
-                steps = сцена.path("steps").map { шаг ->
-                    val проверка = усл(шаг.path("check").asText(""))
-                    StepView(
-                        title = имя(шаг.path("title").asText()),
-                        place = шаг.path("place").asText(""),
-                        hint = имя(шаг.path("hint").asText("")),
-                        // Шаг закрыт своим условием, если оно названо; иначе —
-                        // вместе со сценой: врать про «сделано» шаг не должен.
-                        done = if (проверка.isBlank()) состояние == SceneState.DONE
-                        else проверить(project, проверка, прожитые, начатые, пройдены) == null,
-                    )
-                },
                 entry = условияВхода,
                 exit = условияВыхода,
                 output = имя(сцена.path("output").asText("")),

@@ -331,89 +331,6 @@
                 "rationale"
               ]
             }
-          },
-          "steps": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "key": {
-                  "type": [
-                    "string",
-                    "number",
-                    "boolean",
-                    "object",
-                    "array",
-                    "null"
-                  ]
-                },
-                "title": {
-                  "type": [
-                    "string",
-                    "number",
-                    "boolean",
-                    "object",
-                    "array",
-                    "null"
-                  ]
-                },
-                "hint": {
-                  "type": [
-                    "string",
-                    "number",
-                    "boolean",
-                    "object",
-                    "array",
-                    "null"
-                  ]
-                },
-                "target": {
-                  "type": "object",
-                  "properties": {
-                    "route": {
-                      "type": [
-                        "string",
-                        "number",
-                        "boolean",
-                        "object",
-                        "array",
-                        "null"
-                      ]
-                    },
-                    "preset": {
-                      "type": [
-                        "string",
-                        "number",
-                        "boolean",
-                        "object",
-                        "array",
-                        "null"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "route"
-                  ]
-                },
-                "condition": {
-                  "type": [
-                    "string",
-                    "number",
-                    "boolean",
-                    "object",
-                    "array",
-                    "null"
-                  ]
-                }
-              },
-              "required": [
-                "key",
-                "title",
-                "hint",
-                "target",
-                "condition"
-              ]
-            }
           }
         },
         "required": [
@@ -426,8 +343,7 @@
           "inputs",
           "output",
           "visibility",
-          "links",
-          "steps"
+          "links"
         ]
       },
       "description": "дорожки и экземпляры на узлы — по схеме Романова"

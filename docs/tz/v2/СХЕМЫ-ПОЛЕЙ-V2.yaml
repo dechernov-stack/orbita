@@ -300,7 +300,7 @@ kinds:
     note: задействованный персонал стадии
     label: Роли
   - name: scenes
-    type: '[{key*,title*,order*,track*:enum[design,modeling,management],instantiate_per?:enum[project,segment,element],operations*:str[],role*,inputs*:[{kind*,condition*}],output*:{kind|document_template*,maturity*},visibility*:kind[],links*:[{to*,type*:enum[FS,SS,FF,INPUT],rationale*}],steps*:[{key*,title*,hint*,target*:{route*,preset?},condition*}]}]'
+    type: '[{key*,title*,order*,track*:enum[design,modeling,management],instantiate_per?:enum[project,segment,element],operations*:str[],role*,inputs*:[{kind*,condition*}],output*:{kind|document_template*,maturity*},visibility*:kind[],links*:[{to*,type*:enum[FS,SS,FF,INPUT],rationale*}]}]'
     required: true
     note: дорожки и экземпляры на узлы — по схеме Романова
     label: Сцены
@@ -718,35 +718,6 @@ kinds:
     label: Узел
   export: —
   engine: менять
-- n: 21
-  code: step
-  name: шаг сцены
-  layer: L1
-  born_in: по шаблону
-  status_model: 'вычисляется: done по условию'
-  fields:
-  - name: scene
-    type: ref scene
-    required: true
-    note: ''
-    label: Сцена
-  - name: key
-    type: str
-    required: true
-    note: ''
-    label: Ключ
-  - name: responsible
-    type: ref account
-    required: false
-    note: ''
-    label: Ответственный
-  - name: plan
-    type: '{start,end}'
-    required: false
-    note: ''
-    label: План
-  export: —
-  engine: менять
 - n: 22
   code: gate
   name: точка / ворота
@@ -917,7 +888,7 @@ kinds:
   status_model: 'вычисляется: open|done (гаснет закрытием цели)'
   fields:
   - name: target
-    type: '{kind*:enum[gap,step],ref*}'
+    type: '{kind*:enum[gap,activity],ref*}'
     required: true
     note: ''
     label: Цель (объект)
@@ -1231,7 +1202,7 @@ kinds:
     note: ''
     label: Источник
   - name: items
-    type: '[{class*,payload*,anchors?,mark?:enum[И,В,П],decision*:enum[pending,accepted,rejected,rework],reason?,target_ref?}]'
+    type: '[{class*,payload*,anchors?,mark?:enum[И,В,П],decision*:enum[pending,accepted,rejected,deferred],reason?,target_ref?}]'
     required: true
     note: ''
     label: Элементы
