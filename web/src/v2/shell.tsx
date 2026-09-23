@@ -17,6 +17,10 @@ import { Models } from './models'
 import { Points } from './points'
 import { PassportScreen } from './passport'
 import { RiskRegistry } from './risks'
+import { BridgeScreen } from './bridge'
+import { ProjectsScreen } from './projects'
+import { NewProjectScreen } from './newproject'
+import { MyWorkScreen } from './mywork'
 import { ExternalModelScreen } from './externalmodel'
 import { Library } from './library'
 import { ИМЯ_РЕЖИМА, режимПоРоли, type Режим } from './density'
@@ -356,6 +360,23 @@ export function Shell() {
               учётка={я}
               onGoRisk={(код) => { setWantRisk(код); setSection('risks') }}
               onGoScene={(сцена) => { setWantScene(сцена); setSection('work') }} />
+          ) : section === 'projects' ? (
+            <ProjectsScreen
+              onOpen={(код) => { setProject(код); setSection('work') }}
+              onNew={() => setSection('newproject')} />
+          ) : section === 'newproject' ? (
+            <NewProjectScreen
+              onCreated={(код) => { setProject(код); setPortfolioTick((т) => т + 1); setSection('work') }}
+              onCancel={() => setSection('projects')} />
+          ) : section === 'bridge' ? (
+            <BridgeScreen project={project} onGo={(куда) => {
+              if (куда.scene) setWantScene(куда.scene)
+              if (куда.section === 'risks' && куда.code) setWantRisk(куда.code)
+              setSection(куда.section)
+            }} />
+          ) : section === 'mywork' ? (
+            <MyWorkScreen project={project} учётка={я}
+              onGo={(куда) => { if (куда.scene) setWantScene(куда.scene); setSection(куда.section) }} />
           ) : section === 'risks' ? (
             project
               ? <RiskRegistry project={project} wantRisk={wantRisk} сцены={phase?.scenes.map((с) => ({ key: с.key, title: с.title })) ?? []} />

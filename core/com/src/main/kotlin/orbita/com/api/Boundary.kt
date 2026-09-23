@@ -264,9 +264,12 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
             needCoverage = orbita.knowledge.api.Coverage.resolver(store, links),
         )
         val волна3 = orbita.api.internal.ReqArchRoutes(store, требования, снимки, архитектура, mapper)
+        // Свёртки моделей нужны и маршрутам волны 4, и мостику (сигнал массы
+        // против рамки): один экземпляр на оба — второй считал бы то же самое.
+        val модели = orbita.models.api.ModelsFactory.models(store, mapper)
         val волна4 = orbita.api.internal.ModelRoutes(
             store,
-            orbita.models.api.ModelsFactory.models(store, mapper),
+            модели,
             orbita.models.api.ModelsFactory.variants(store),
             orbita.models.api.ModelsFactory.impact(store, links),
             программатика,
@@ -369,10 +372,18 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
         val сверкаМаршруты = orbita.api.internal.ReconcileRoutes(store, сверка, знания, mapper)
         val исследованиеМаршруты = orbita.api.internal.ResearchRoutes(store, исследование, mapper)
         val проверкаМаршруты = orbita.api.internal.VerifyRoutes(store, документы, проверка, mapper)
+        // Мостик ведущего и рабочий лист специалиста (шип 2, экран 6): очередь
+        // решений, блокирующие точки, команда и сигналы — из уже сосчитанного
+        // движком, программатикой, моделями и постановкой.
+        val мостикМаршруты = orbita.api.internal.BridgeRoutes(
+            store, движок, mapper,
+            formulation = постановка, programmatics = программатика, models = модели,
+        )
         return orbita.api.internal.V2Router(
             store, links, движок, полки, знания, постановка, mapper, волна3, волна4,
             документыМаршруты, знанияМаршруты, точки, обмен, внешняяМодель,
             синтезМаршруты, сверкаМаршруты, исследованиеМаршруты, проверкаМаршруты,
+            bridgeRoutes = мостикМаршруты,
             // Материал файлом (docx · pdf · xlsx · pptx): текст извлекает тот же
             // разбор, что у документов v1 — канон в markdown; формат — на границе.
             extract = { имя, байты ->

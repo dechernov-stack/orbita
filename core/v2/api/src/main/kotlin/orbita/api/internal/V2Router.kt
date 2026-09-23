@@ -54,6 +54,8 @@ class V2Router(
     private val researchRoutes: ResearchRoutes? = null,
     /** Верификация документа против поля: отчёт, перенос находки, закрытие. */
     private val verifyRoutes: VerifyRoutes? = null,
+    /** Мостик ведущего и рабочий лист специалиста (шип 2, экран 6); null — сборка без них. */
+    private val bridgeRoutes: BridgeRoutes? = null,
     /** Текст из двоичного файла материала (docx · pdf · xlsx · pptx) — подставляет граница. */
     private val extract: ((fileName: String, bytes: ByteArray) -> String?)? = null,
     /**
@@ -115,6 +117,7 @@ class V2Router(
             ?: reconcileRoutes?.handle(method, path, query, body)
             ?: researchRoutes?.handle(method, path, query, body)
             ?: verifyRoutes?.handle(method, path, query, body, actor)
+            ?: bridgeRoutes?.handle(method, path, query, body, actor)
 
     /**
      * Автоотчёт верификации после базирования — единственное место, где

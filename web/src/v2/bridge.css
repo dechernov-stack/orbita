@@ -1,0 +1,17 @@
+/* Мостик ведущего и рабочий лист специалиста (шип 2, экран 6). Пять блоков
+   один под другим, во всю ширину: третьей колонки на экране не бывает. */
+.v2-bridge { display: grid; gap: var(--pad-l); }
+.v2-bridge__route { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+.v2-bridge__route b { font-weight: 500; }
+
+/* Сигналы: три-четыре числа в ряд; красное — только когда за рамкой. */
+.v2-signals { display: flex; gap: var(--pad-l); flex-wrap: wrap; }
+.v2-signal { border: 1px solid var(--graphite); padding: var(--pad-s) var(--pad-m); min-width: 200px; }
+.v2-signal__n { font-size: var(--size-s); color: var(--muted); }
+.v2-signal__v { font-size: var(--size-h); font-weight: 600; }
+.v2-signal--over .v2-signal__v { color: var(--red); }
+
+/* Очередь решений и блокеры — строками с одной кнопкой действия. */
+.v2-queue { display: grid; gap: 2px; }
+.v2-queue__row { display: grid; grid-template-columns: 140px minmax(0, 1fr) auto; gap: var(--pad-m); align-items: baseline; padding: 6px 0; border-bottom: 1px solid var(--graphite); }
+.v2-queue__kind { color: var(--muted); font-size: var(--size-s); }
