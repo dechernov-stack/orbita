@@ -125,7 +125,10 @@ class Прогон:
                           # Имя с кодом, если проект не из сида: два прогона с одним
                           # именем не различить в портфеле (поймано на E1).
                           {"name": self.сид["name"] if self.проект == self.сид["code"] else f"{self.сид['name']} · {self.проект}",
-                           "code": self.проект}),
+                           "code": self.проект,
+                           # Поле знаний v2 — признак проекта из сида: явный выбор
+                           # сильнее умолчания стенда (SceneRoutes.открытьПроект).
+                           **({"knowledge_v2": self.сид["knowledge_v2"]} if "knowledge_v2" in self.сид else {})}),
         )
 
     def сцена_2_замысел(self) -> None:
@@ -286,7 +289,7 @@ class Прогон:
                     {
                         "target": а["component"], "key": а["key"],
                         "measure": {"value": а["value"], "unit": а["unit"]},
-                        "maturity_class": а["maturity"], "origin": "прогон волны 4",
+                        "maturity_class": а["maturity"], "origin": "manual",
                         "required_to": "MCR", "author": "Иванов И.",
                     }),
             )
@@ -711,13 +714,13 @@ class Прогон:
         # стыки элементов: IF-S-USER — КА ↔ терминал; IF-S-G — КА ↔ НКУ
         стыки = {с["code"] for с in вызов(self.base, "GET", f"/v2/interfaces?project={self.проект}").get("items", [])}
         for код, имя, тип, a, b in [
-            ("IF-S-USER", "КА — абонентский терминал (P-диапазон, S-диапазон)", "rf", "EL-SC", "EL-UT"),
-            ("IF-S-G", "КА — НКУ (S-диапазон)", "rf", "EL-SC", "EL-GS"),
+            ("IF-S-USER", "КА — абонентский терминал (P-диапазон, S-диапазон)", "RF", "EL-SC", "EL-UT"),
+            ("IF-S-G", "КА — НКУ (S-диапазон)", "RF", "EL-SC", "EL-GS"),
         ]:
             if код in стыки:
                 continue
             вызов(self.base, "POST", f"/v2/interfaces?project={self.проект}",
-                  {"code": код, "name": имя, "type": тип, "a": a, "b": b, "direction": "both", "requirement_classes": ["interface"], "author": "Иванов И."})
+                  {"code": код, "name": имя, "type": тип, "a": a, "b": b, "direction": "bi", "requirement_classes": ["interface"], "author": "Иванов И."})
             self.сделано.append(f"Phase A: стык {код}")
         # требование на стык — ICD собирается из него
         if not any(т.get("code") == "RQ-S-0004" for т in требования) and проектные:
@@ -874,8 +877,8 @@ class Прогон:
                 continue
             try:
                 вызов(self.base, "POST", f"/v2/parameters?project={self.проект}",
-                      {"target": узел, "key": ключ, "measure": {"value": значение, "unit": единица}, "maturity_class": "estimate",
-                       "origin": "аванпроект элемента, прогон Phase A", "required_to": "SDR", "author": "Иванов И."})
+                      {"target": узел, "key": ключ, "measure": {"value": значение, "unit": единица}, "maturity_class": "estimated",
+                       "origin": "manual", "required_to": "SDR", "author": "Иванов И."})
                 self.сделано.append(f"A4: параметр {узел}.{ключ}")
             except Отказ as о:
                 self.пропущено.append(f"A4: параметр {узел}.{ключ} — {str(о)[:100]}")

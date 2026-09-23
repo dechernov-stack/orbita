@@ -92,6 +92,10 @@ def войти(base: str, opener, учётка: str) -> str:
     кто = _кто(opener, base)
     if кто.get("mode") == "stand":
         _вызов(opener, base, "POST", "/auth/stand-login", {"login": УЧЁТКИ_СТЕНДА.get(учётка, учётка)})
+        # Учётка без своей записи на стенде (DA) — владелец стенда «от имени»
+        # роли: с шипа 1 РП не носит DA, точку решает только DA (23.09).
+        if учётка in УЧЁТКИ_СТЕНДА:
+            _вызов(opener, base, "POST", "/auth/act-as", {"role": РОЛИ.get(учётка, учётка)})
         return "stand"
     if кто.get("mode") != "telegram":
         return "open" if not кто.get("enabled") else "unknown"

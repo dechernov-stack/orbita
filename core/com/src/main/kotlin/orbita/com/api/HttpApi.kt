@@ -287,6 +287,17 @@ class HttpApi(private val boundary: Boundary) {
             currentAuthor.set(учётка?.let { authorOf(it) })
             currentAuthorLogin.set(учётка?.login)
             val ответ = v2.handle(method, path, query(ex), if (method == "GET") null else body(ex), actor)
+            // Создатель проекта v2 — его руководитель (как и в v1, В3): с шипа 1
+            // учётка без роли в проекте не пишет ничего, и без этой роли новый
+            // проект оставался бы без того, кто вправе назначить остальных.
+            // Путь — без литерала маршрута: маршрут объявлен в SceneRoutes, здесь лишь его след.
+            if (method == "POST" && path.removePrefix("/v2/") == "projects" && ответ?.code == 201) {
+                // Ответ заведения — вид фазы: код проекта в нём зовётся `project`.
+                ответ.body.path("project").asText("").ifBlank { null }?.let { код ->
+                    учётка?.login?.let { boundary.auth.setRole(код, it, "lead") }
+                    ensureStandRoles(код)
+                }
+            }
             if (ответ == null) {
                 respond(ex, 404, mapper.createObjectNode().put("error", "нет маршрута v2: $method $path"))
             } else if (ответ.binary != null) {

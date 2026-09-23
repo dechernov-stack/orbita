@@ -198,6 +198,25 @@ class MultiUserTest {
         assertTrue(byDa.statusCode() != 403) { byDa.body() }
     }
 
+    /** Шип 3: у проекта v2 есть руководитель с первой секунды — его создатель (как в v1, В3). */
+    @Test
+    @Order(4)
+    fun `создатель проекта v2 — его руководитель и вправе назначать роли`() {
+        // Код — свой на прогон: ядро v2 живёт в своей схеме, и truncateAll v1 её не чистит.
+        val код = "PJ-V2-SE-" + System.currentTimeMillis()
+        val создан = send(
+            "POST", "/v2/projects",
+            """{"code":"$код","name":"Проект ведущего СИ","standard":"NASA-7120"}""",
+            asUser = "se",
+        )
+        assertEquals(201, создан.statusCode()) { создан.body() }
+        val роли = mapper.readTree(send("GET", "/auth/roles/$код", asUser = "se").body())
+        assertEquals("lead", роли.path("se").asText()) { роли.toString() }
+        // Руководитель нового проекта назначает остальных сам — иначе проект без ролей заперт для всех.
+        val назначил = send("POST", "/auth/roles", """{"project":"$код","login":"spec","role":"specialist"}""", asUser = "se")
+        assertEquals(200, назначил.statusCode()) { назначил.body() }
+    }
+
     @Test
     @Order(4)
     fun `конфликт одновременной правки разрешается без потери`() {
