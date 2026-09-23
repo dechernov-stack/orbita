@@ -14,11 +14,13 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ObjectNode
 import orbita.kernel.api.Area
 import orbita.kernel.api.Channel
+import orbita.kernel.api.Entity
 import orbita.kernel.api.EntityStore
 import orbita.kernel.api.KnowledgeFlag
 import orbita.kernel.api.LinkRegistry
 import orbita.kernel.api.Provenance
 import orbita.kernel.api.QosClass
+import orbita.process.api.GateView
 import orbita.process.api.ProcessEngine
 import java.time.LocalDate
 
@@ -100,14 +102,19 @@ class SceneRoutes(
         val ответ = mapper.createObjectNode()
         val массив = ответ.putArray("items")
         store.ofKind("project").forEach { проект ->
-            массив.addObject()
+            val руководитель = проект.doc.path("manager").asText("")
+                .ifBlank { проект.doc.path("lead").asText("") }
+            val узел = массив.addObject()
                 .put("code", проект.code)
                 .put("name", проект.doc.path("name").asText(проект.code))
                 .put("standard", проект.doc.path("standard").asText(""))
                 // Карточка портфеля читает имена истины, но заведённые прежде
                 // проекты несут старые (`lead`, `phase`) — читаем оба, пока они
                 // живы на стенде.
-                .put("lead", проект.doc.path("manager").asText("").ifBlank { проект.doc.path("lead").asText("") })
+                .put("lead", руководитель)
+                // Руководитель именем истины схем: карточка экрана «Проекты»
+                // ставит его инициалы чипом, а полное имя — подсказкой.
+                .put("manager", руководитель)
                 .put(
                     "phase",
                     проект.doc.path("phase_current").asText("")
@@ -118,8 +125,61 @@ class SceneRoutes(
                 // не знает, показывать ли постановку из поля и ранг доверия.
                 // Поля нет — выключено: прежние проекты остаются на прежнем.
                 .put("knowledge_v2", проект.doc.path("knowledge_v2").asBoolean(false))
+                // Группа портфеля (экран 2, шип 2): рабочие и примеры — две
+                // равные колонки. Колонку решает поле, а не догадка клиента.
+                .put("group", группаПроекта(проект))
+                .put("last_activity", последняяАктивность(проект))
+            // Ближайшая непройденная точка со СЧЁТОМ блокирующих: на клиенте
+            // вердиктов из сравнения величин нет — «блокирует 2» приходит
+            // числом, готовым к показу. Точки нет (фаза пройдена целиком или
+            // шаблона на стенде не оказалось) — поля нет: молчание честнее
+            // выдуманной точки.
+            ближайшаяТочка(проект.code)?.let { (точка, дата) ->
+                узел.putObject("gate")
+                    .put("key", точка.key)
+                    .put("title", точка.title)
+                    .put("planned_date", дата)
+                    .put("blocking", точка.blocking.size)
+            }
         }
         return V2Router.Ответ(200, ответ)
+    }
+
+    /**
+     * Группа портфеля словами истины схем: `group` вида «проект» — work либо
+     * example. Проекты, заведённые до этого поля, его не несут: тогда решает
+     * `example` (так проект-пример помечен у первой версии, ADR-053) и канал
+     * происхождения — пример засеян поставкой, а не руками человека.
+     */
+    private fun группаПроекта(проект: Entity): String {
+        val названа = проект.doc.path("group").asText("")
+        if (названа == "work" || названа == "example") return названа
+        val пример = проект.doc.path("example").asBoolean(false) || проект.provenance.channel == Channel.EXAMPLE
+        return if (пример) "example" else "work"
+    }
+
+    /**
+     * День последней активности проекта: самая поздняя правка ЛЮБОЙ его
+     * записи. Считается по самим записям — второго счётчика активности,
+     * который разойдётся с данными, в проекте нет.
+     */
+    private fun последняяАктивность(проект: Entity): String {
+        val правки = store.list(Area.Project(проект.code)).map { it.updatedAt } + проект.updatedAt
+        return правки.max().toString().take(10)
+    }
+
+    /**
+     * Ближайшая непройденная точка фазы и её дата. Порядок точек и блокирующие
+     * условия считает движок; дату берём из самой точки — план и форма правят
+     * записи, и двум датам разойтись негде. Шаблона фазы на стенде нет —
+     * строка остаётся без точки, а не роняет весь портфель.
+     */
+    private fun ближайшаяТочка(проект: String): Pair<GateView, String>? {
+        val фаза = runCatching { engine.view(проект) }.getOrNull() ?: return null
+        val точка = фаза.gates.firstOrNull { !it.passed } ?: return null
+        val запись = store.byCode(Area.Project(проект), точка.key)?.takeIf { it.kind == "gate" }
+        val дата = запись?.doc?.path("planned_date")?.asText("")?.ifBlank { null } ?: точка.plannedDate ?: ""
+        return точка to дата
     }
 
     /** Поля паспорта: их правит руководитель на месте; фазу и шаблон меняет решение точки. */
@@ -320,6 +380,32 @@ class SceneRoutes(
         val знанияV2 =
             if (тело.has("knowledge_v2")) тело.path("knowledge_v2").asBoolean(false)
             else KnowledgeFlag.newProjectsDefault
+        // Группа портфеля называется при заведении: рабочий проект или пример.
+        // Не названа — рабочий: проект заводят, чтобы работать.
+        val группа = тело.path("group").asText("").ifBlank { "work" }
+        require(группа == "work" || группа == "example") {
+            "группа проекта — рабочая («work») или пример («example»); пришло «$группа»"
+        }
+        // Даты точек приходят формой «Новый проект» (экран 3): три точки фазы
+        // с умолчаниями от даты старта. Формат проверяется ДО заведения —
+        // отказ не должен оставлять за собой проект без точек.
+        val заданныеДаты = linkedMapOf<String, String>()
+        тело.path("gate_dates").forEach { пара ->
+            val ключ = пара.path("gate").asText("")
+            val дата = пара.path("date").asText("")
+            require(Regex("""\d{4}-\d{2}-\d{2}""").matches(дата)) { "дата точки «$ключ» — ГГГГ-ММ-ДД; пришло «$дата»" }
+            заданныеДаты[ключ] = дата
+        }
+        // Шаблон фазы читается ПЕРЕД записью проекта: по нему видно, какие
+        // точки бывают, и дата чужой точки отбивается словами, пока заводить
+        // ещё нечего.
+        val шаблон = engine.openPhase(код, тело.path("template").asText("PHT-9001"))
+        val ключиШаблона = шаблон.gates.map { it.key }
+        val чужие = заданныеДаты.keys.filterNot { it in ключиШаблона }
+        require(чужие.isEmpty()) {
+            "точки «" + чужие.joinToString("», «") + "» в шаблоне фазы нет: точки фазы — " +
+                шаблон.gates.joinToString(" · ") { it.title }
+        }
         store.create(
             код, "project", область, "1",
             mapper.createObjectNode()
@@ -334,18 +420,23 @@ class SceneRoutes(
                     "manager",
                     тело.path("manager").asText("").ifBlank { тело.path("lead").asText(автор) },
                 )
+                .put("group", группа)
+                // `example` — тот же факт, что группа, но им помечен проект-пример
+                // у первой версии (портфель `/views/portfolio` читает его). Пишутся
+                // оба и всегда вместе: разойтись двум именам одного факта нельзя.
+                .put("example", группа == "example")
                 .put("knowledge_v2", знанияV2),
             Provenance(Channel.MANUAL, автор),
         )
-        // Точки фазы заводятся сразу с датами по умолчанию от сегодняшнего дня:
-        // сцена 1 обязана оставить фазу с датами, а не с пустотой.
-        val шаблон = engine.openPhase(код, тело.path("template").asText("PHT-9001"))
+        // Точки фазы заводятся сразу с датами: названные формой — её датами,
+        // остальные — умолчанием шаблона от сегодняшнего дня. Сцена 1 обязана
+        // оставить фазу с датами, а не с пустотой.
         шаблон.gates.forEach { точка ->
             store.create(
                 точка.key, "gate", область, "1",
                 mapper.createObjectNode()
                     .put("title", точка.title)
-                    .put("planned_date", точка.plannedDate ?: ""),
+                    .put("planned_date", заданныеДаты[точка.key] ?: точка.plannedDate ?: ""),
                 Provenance(Channel.MANUAL, автор),
             )
         }
