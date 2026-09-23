@@ -154,6 +154,21 @@ def вход_стенда() -> str | None:
             имя, _, значение = часть.strip().partition("=")
             if имя == "orbita_session" and значение:
                 print(f"вошли учёткой стенда: {тело.get('display_name') or логин}")
+                # Полки — запись библиотеки: нужна роль руководителя либо ведущего СИ.
+                # Владелец стенда выступает «от имени» РП, как на стенде за входом
+                # (stand_session): без этого копия базы без ролей отвечает 403.
+                try:
+                    з = urllib.request.Request(
+                        БАЗА + "/auth/act-as",
+                        data=json.dumps({"role": "lead"}).encode(),
+                        headers={"Content-Type": "application/json; charset=utf-8", "Cookie": f"orbita_session={значение}"},
+                        method="POST",
+                    )
+                    with urllib.request.urlopen(з) as r:
+                        r.read()
+                    print("выступаем от имени руководителя проекта")
+                except Exception as e:  # noqa: BLE001 — учётка без права «от имени» грузит своей ролью
+                    print(f"«от имени РП» не вышло ({e}); грузим своей ролью")
                 return значение
     return None
 
