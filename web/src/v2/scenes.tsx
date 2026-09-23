@@ -9,6 +9,7 @@ import {
   type EntityRow, type ReconcileAction, type ReconcileCandidate, type ReconcileItem, type ReconcileRun,
 } from './api'
 import { Source } from './knowledgefield'
+import { интересы } from './interests'
 import { запомнитьАвтора, запомнитьРоль, отказСловами, прочитатьАвтора, прочитатьРоль } from './research'
 
 /**
@@ -29,7 +30,12 @@ function ПравкаСтроки({ project, row, поля, colSpan, onSaved, on
   // показывается: поле начинается пустым, а не с «[object Object]».
   const начальное = (значение: unknown): string =>
     значение == null || typeof значение === 'object' ? '' : String(значение)
-  const исходные = Object.fromEntries(поля.map((п) => [п.key, начальное(row.doc[п.key])]))
+  // Интересы стороны — список {statement, quote?}: в строке правки они через
+  // «;», а цитаты нетронутых интересов сервер сохраняет сам.
+  const исходные = Object.fromEntries(поля.map((п) => [
+    п.key,
+    п.key === 'interest' ? интересы(row.doc[п.key]).map((и) => и.statement).join('; ') : начальное(row.doc[п.key]),
+  ]))
   const [значения, setЗначения] = useState<Record<string, string>>(исходные)
   const [занято, setЗанято] = useState(false)
   const [отказ, setОтказ] = useState<string | null>(null)
@@ -607,7 +613,25 @@ export function SceneStakeholders({ project, onChanged }: { project: string; onC
                     <div>влияние: {ВЛИЯНИЕ.find(([v]) => v === с.doc.influence)?.[1] ?? <span className="v2-warn">не задано — карандаш</span>}
                       {с.doc.power ? <span> · сила {String(с.doc.power)} из 5</span> : null}
                       {с.doc.attitude ? <span> · {ОТНОШЕНИЕ.find(([v]) => v === с.doc.attitude)?.[1]}</span> : null}</div>
-                    {с.doc.interest ? <div>интерес: {String(с.doc.interest)}</div> : null}
+                    {интересы(с.doc.interest).length > 0 ? (
+                      <div>интересы ({интересы(с.doc.interest).length}):
+                        {/*
+                          Интерес — не нужда (истина 24.09, interest_to_need_rule):
+                          нуждой он становится только решением человека — кнопка
+                          кладёт формулировку в строку нужды и отправляет её на
+                          сверку, а заводит нужду человек по находке.
+                        */}
+                        <ul>{интересы(с.doc.interest).map((и, i) => (
+                          <li key={i}>
+                            {и.statement}
+                            {и.quote ? <span className="v2-muted"> · «{и.quote}»</span> : null}
+                            {' '}<button type="button" className="v2-link"
+                              onClick={() => { setНужда(и.statement); setНоситель(с.code); вОчередьНужды(и.statement, с.code); setОткрыта(null) }}
+                              title="нужда из интереса — решением: формулировка уйдёт на сверку, заводит нужду человек по находке">→ нужда</button>
+                          </li>
+                        ))}</ul>
+                      </div>
+                    ) : null}
                     <div>нужды ({нуждыСтороны(с.id).length}):
                       {нуждыСтороны(с.id).length === 0 ? <span className="v2-warn"> нет — сцена не закроется</span> : null}
                       {/*
@@ -637,7 +661,7 @@ export function SceneStakeholders({ project, onChanged }: { project: string; onC
             <ПравкаСтроки key={с.id} project={project} row={с} colSpan={4}
               поля={[
                 { key: 'name', label: 'имя' }, { key: 'role', label: 'роль', kind: 'select', options: РОЛИ_СТОРОН },
-                { key: 'interest', label: 'интерес' },
+                { key: 'interest', label: 'интересы (через ;)' },
                 { key: 'influence', label: 'влияние', kind: 'select', options: ВЛИЯНИЕ }, { key: 'power', label: 'сила 1–5', kind: 'number' },
                 { key: 'attitude', label: 'отношение', kind: 'select', options: ОТНОШЕНИЕ },
               ]}

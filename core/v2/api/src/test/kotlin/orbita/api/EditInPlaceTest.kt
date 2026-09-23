@@ -84,7 +84,8 @@ class EditInPlaceTest {
         assertEquals("Минтранс России / Ространснадзор", после.doc.path("name").asText())
         assertEquals("decides", после.doc.path("influence").asText())
         assertEquals(5, после.doc.path("power").asInt())
-        assertEquals("телематика", после.doc.path("interest").asText(), "обязательное поле цело")
+        // Интерес — список слов стороны (истина 24.09): строка ввода легла первым интересом.
+        assertEquals(listOf("телематика"), orbita.kernel.schema.Interests.словами(после.doc.path("interest")), "обязательное поле цело")
         assertTrue(после.doc.get("attitude") == null, "необязательное снято")
         assertEquals(сторона.id, после.id, "id стабилен — связи живут")
         val нужда = store.byCode(область, "ND-0001")!!

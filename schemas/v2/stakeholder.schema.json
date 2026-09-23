@@ -102,7 +102,40 @@
       ]
     },
     "interest": {
-      "type": "string"
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "statement": {
+            "type": [
+              "string",
+              "number",
+              "boolean",
+              "object",
+              "array",
+              "null"
+            ]
+          },
+          "quote": {
+            "type": [
+              "string",
+              "number",
+              "boolean",
+              "object",
+              "array",
+              "null"
+            ]
+          },
+          "fact": {
+            "type": "string",
+            "description": "ссылка на вид: fact"
+          }
+        },
+        "required": [
+          "statement"
+        ]
+      },
+      "description": "интересы стороны её словами, каждый с цитатой (ОНТОЛОГИЯ-АУДИТ часть 4) — не роль, не нужда; нужда из интереса — решением (предложение через сверку, не автомат); строка прежних записей сходит первым интересом"
     },
     "scale": {
       "$ref": "https://kis.local/schemas/v2/_measure.schema.json"

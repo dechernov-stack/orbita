@@ -856,6 +856,25 @@ class ReconcileManualInputTest {
     }
 
     @Test
+    fun `сторона из сверки получает интересы списком с основанием — кандидат-фактом`() {
+        // Интерес — отдельное понятие у стороны (истина 24.09): фраза кандидата
+        // ложится интересом, основание — его кандидат-факт; у ручного факта цитаты нет.
+        val кандидат = Candidate(
+            "c1", "stakeholder",
+            mapper.createObjectNode().put("name", "Росморпорт").put("role", "оператор").put("interest", "ледовая обстановка; проводка судов"),
+        )
+        val запуск = сверка.preview(проект, listOf(кандидат), автор, роль)
+        val номер = запуск.items.single().findings.indexOfFirst { Action.ACCEPT_NEW in it.offers }
+        val итог = сверка.apply(проект, запуск.id, "c1", номер, Action.ACCEPT_NEW, reason = "принято", author = автор)
+
+        val сторона = store.byCode(область, итог.created.single())!!
+        val интересы = orbita.kernel.schema.Interests.прочитать(сторона.doc.path("interest"))
+        assertEquals(listOf("ледовая обстановка", "проводка судов"), интересы.map { it.statement })
+        assertEquals(запуск.items.single().candidateFact, интересы[0].fact, "основание интереса — кандидат-факт")
+        assertTrue(интересы.all { it.quote == null }, "у ручного факта цитаты нет: ${интересы}")
+    }
+
+    @Test
     fun `повторное чтение запуска отдаёт те же находки без нового вызова`() {
         val минтранс = сторона("SK-0001", "Минтранс России")
         нужда("ND-0001", "Необходимо обеспечить связь в Арктике", минтранс.code)

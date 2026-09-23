@@ -110,7 +110,7 @@ const ПОНЯТИЕ_МН: Record<string, string> = {
 const ПОЛЕ: Record<string, string> = {
   name: 'название',
   role: 'роль',
-  interest: 'интерес',
+  interest: 'интересы',
   scale: 'масштаб',
   influence: 'влияние',
   statement: 'постановка',

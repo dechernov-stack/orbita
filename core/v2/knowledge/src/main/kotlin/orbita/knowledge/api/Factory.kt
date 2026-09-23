@@ -70,4 +70,16 @@ object KnowledgeFactory {
      */
     fun migrateNeedOwners(store: EntityStore, links: LinkRegistry, mapper: ObjectMapper = ObjectMapper()): String =
         orbita.knowledge.internal.NeedOwnersMigration(store, links, mapper).run().toString()
+
+    /** Интерес — список у стороны (шип 4 §1.5): строка и перечень строк сходят в список с цитатой. */
+    fun migrateStakeholderInterests(store: EntityStore, mapper: ObjectMapper = ObjectMapper()): String =
+        orbita.knowledge.internal.StakeholderInterestsMigration(store, mapper).run().toString()
+
+    /**
+     * Миграция понятий целиком (ЗАДАНИЕ-ШИП-4 §1) — одна волна при старте ядра,
+     * идемпотентная: нужда — много носителей, интерес — список у стороны.
+     * Итог — словами, по одной строке на миграцию.
+     */
+    fun migrateConcepts(store: EntityStore, links: LinkRegistry, mapper: ObjectMapper = ObjectMapper()): List<String> =
+        listOf(migrateNeedOwners(store, links, mapper), migrateStakeholderInterests(store, mapper))
 }

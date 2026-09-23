@@ -129,11 +129,12 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
         val mapper = com.fasterxml.jackson.databind.ObjectMapper()
         val store = orbita.kernel.api.KernelFactory.entityStore(conn, mapper)
         val links = orbita.kernel.api.KernelFactory.linkRegistry(conn)
-        // Миграция понятий при старте (шип 4 §1): нужда — много носителей.
-        // Идемпотентна; отказ не роняет стенд, а называется в журнале.
-        runCatching { orbita.knowledge.api.KnowledgeFactory.migrateNeedOwners(store, links, mapper) }
-            .onSuccess { println("orbita core: $it") }
-            .onFailure { println("orbita core: миграция нужд не прошла — ${it.message}") }
+        // Миграция понятий при старте (шип 4 §1): нужда — много носителей,
+        // интерес — список у стороны. Идемпотентна; отказ не роняет стенд, а
+        // называется в журнале.
+        runCatching { orbita.knowledge.api.KnowledgeFactory.migrateConcepts(store, links, mapper) }
+            .onSuccess { итоги -> итоги.forEach { println("orbita core: $it") } }
+            .onFailure { println("orbita core: миграция понятий не прошла — ${it.message}") }
         val корень = java.nio.file.Path.of(System.getenv("ORBITA_REPO_ROOT") ?: ".")
         // Умолчание стенда для НОВЫХ проектов: поле знаний v2 (синтез, сверка,
         // ранг доверия). Переменную среды читает только граница — маршруты

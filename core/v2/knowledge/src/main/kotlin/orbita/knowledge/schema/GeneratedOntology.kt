@@ -138,7 +138,7 @@ object GeneratedOntology {
      * Отпечаток истины онтологии (sha256 файла). Им помечается каждый запуск
      * синтеза: по нему видно, по каким правилам сделано предложение.
      */
-    const val ontologyVersion: String = "74d62739e3192d6e5ffd98dec32c2e365e03e3825ece3db650bf01e8b97f14ce"
+    const val ontologyVersion: String = "496be2ebb12a40396ff4d9269d6ea8dc1411a35bb7292694455a96a033db4a01"
 
     /** Ранги доверия по убыванию веса — ранг подсказывает, решает человек. */
     val authorityRanks: List<String> = listOf("mandatory", "expert", "reference", "doubtful")
@@ -157,7 +157,7 @@ object GeneratedOntology {
             fields = mapOf(
                 "name" to "subject",
                 "role" to "по предикату",
-                "interest" to "из facts kind=assessment|framing о subject",
+                "interest" to "список из facts kind=assessment|framing о subject, каждый с цитатой; нужда из интереса — решением (interest_to_need_rule)",
                 "scale" to "quantity о subject",
             ),
             mustLink = emptyList(),

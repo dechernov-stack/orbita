@@ -15,6 +15,7 @@ import { Fragment as Фрагмент, useCallback, useEffect, useState } from '
 import './formulation.css'
 import { api, type CoverageMatrix, type CoverageNeed, type EntityRow, type FactRow, type KindSpec } from './api'
 import { инициалы } from './people'
+import { интересы } from './interests'
 
 /** Влияние: колонки сетки слева направо — от «информируется» к «решает». */
 const ВЛИЯНИЕ: [string, string][] = [['informed', 'информируется'], ['influences', 'влияет'], ['decides', 'решает']]
@@ -228,7 +229,9 @@ function КарточкаСтороны({ с, нужды, факты, слово
         <div className="v2-facet__body">
           <div><span className="v2-mono">{с.code}</span> {название}</div>
           <div className="v2-dim">{словом('role', с.doc.role) || 'роль не названа'}</div>
-          {с.doc.interest ? <div>интерес: {String(с.doc.interest)}</div> : <div className="v2-dim">интерес не записан</div>}
+          {интересы(с.doc.interest).length > 0
+            ? <div>интересы: {интересы(с.doc.interest).map((и) => и.statement).join(' · ')}</div>
+            : <div className="v2-dim">интересы не записаны</div>}
           {с.doc.attitude ? <div>отношение: {словом('attitude', с.doc.attitude)}</div> : null}
         </div>
       </div>
