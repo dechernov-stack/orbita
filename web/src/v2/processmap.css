@@ -1,0 +1,74 @@
+/* Карта фазы по оси времени (шип 2, экран 5): «маршрутная карта на чертёжной
+   бумаге» — графитные дорожки, чернильные подписи, цвет только состоянием.
+   Общее для v2 живёт в tokens.css; здесь — только то, что принадлежит карте.
+
+   Ни одного цвета значением: и заливки фигур, и линии берут токены
+   направления. Второй копии палитры в коде карты нет.
+
+   Обёртка .v2-pmap в селекторах не случайна: main.tsx импортирует оболочку
+   РАНЬШЕ tokens.css, и стили экрана встают в сборке до токенов — одиночный
+   класс проиграл бы одиночному классу токенов. Два класса решают спор. */
+
+.v2-pmap { background: var(--surface); border: 1px solid var(--graphite); }
+/* Карта тянется по ширине, высоту держит viewBox: позиции считаются датами,
+   и растягивать их вертикально нечем. */
+.v2-pmap .v2-pmap__svg { display: block; width: 100%; height: auto; }
+
+/* ── Ось недель: засечка и подпись понедельника. ── */
+.v2-pmap .v2-pmap__axis, .v2-pmap .v2-pmap__tick { fill: var(--graphite); }
+.v2-pmap .v2-pmap__wk { font-size: var(--size-s); fill: var(--muted); }
+
+/* ── «Сегодня»: одна яркая вещь на карте (ДИЗАЙН-НАПРАВЛЕНИЕ §1). ── */
+.v2-pmap .v2-pmap__now { fill: var(--cobalt); }
+.v2-pmap .v2-pmap__now-t { font-size: var(--size-s); font-weight: 500; fill: var(--cobalt); }
+
+/* ── Дорожки: графитная линия и заголовок слева полными словами. ── */
+.v2-pmap .v2-pmap__lane { fill: var(--graphite); }
+.v2-pmap .v2-pmap__lane-t { font-size: var(--size-s); font-weight: 500; fill: var(--ink); }
+
+/* ── Станции: кружок сцены, ромб точки, скошенный квадрат мероприятия.
+   Заливка — состояние; то же состояние стоит словом в подсказке фигуры. ── */
+.v2-pmap .v2-pmap__stn, .v2-pmap .v2-pmap__gate, .v2-pmap .v2-pmap__act {
+  fill: var(--surface); stroke: var(--ink); stroke-width: 1.6;
+}
+.v2-pmap .v2-pmap__stn--done { fill: var(--green); stroke: var(--green); }
+.v2-pmap .v2-pmap__stn--cur { stroke: var(--cobalt); stroke-width: 2.6; }
+.v2-pmap .v2-pmap__stn--lock { stroke: var(--graphite); }
+.v2-pmap .v2-pmap__stn--wait { stroke: var(--amber); }
+.v2-pmap .v2-pmap__stn--bad { stroke: var(--red); }
+
+/* Полоска окна плана: график сцены. Просроченное окно — янтарём. */
+.v2-pmap .v2-pmap__win { fill: var(--graphite); }
+.v2-pmap .v2-pmap__win--late { fill: var(--amber); }
+
+/* Подписи под станциями и над точками: имя полностью, второй ряд — при тесноте. */
+.v2-pmap .v2-pmap__lbl { font-size: var(--size-s); fill: var(--ink); }
+.v2-pmap .v2-pmap__lbl--bad { fill: var(--red); }
+
+/* Чип роли сцены: короткое слово, полное — подсказкой. Радиус 6 — как у ввода. */
+.v2-pmap .v2-pmap__chip { fill: var(--surface); stroke: var(--graphite); stroke-width: 1; }
+.v2-pmap .v2-pmap__chip-t { font-size: 11px; fill: var(--muted); }
+
+/* Ветвь артефакта между дорожками: пунктир и подпись артефактом. */
+.v2-pmap .v2-pmap__flow { fill: none; stroke: var(--muted); stroke-width: 1.2; stroke-dasharray: 3 3; }
+.v2-pmap .v2-pmap__flow-t { font-size: var(--size-s); fill: var(--muted); }
+
+/* Правая полка: сцены, у которых окна нет. */
+.v2-pmap .v2-pmap__shelf { fill: var(--graphite); }
+.v2-pmap .v2-pmap__shelf-t { font-size: var(--size-s); fill: var(--amber); }
+
+/* Станция — переход в сцену: курсор и фокус-кольцо как у ссылки. */
+.v2-pmap .v2-pmap__go { cursor: pointer; }
+/* На наведении меняется обводка и подпись, но НЕ заливка: заливка занята
+   состоянием, и подсветка врала бы про «выполнено». */
+.v2-pmap .v2-pmap__go:hover .v2-pmap__stn { stroke: var(--cobalt); }
+.v2-pmap .v2-pmap__go:hover .v2-pmap__lbl { fill: var(--cobalt); }
+.v2-pmap .v2-pmap__go:focus-visible { outline: 2px solid var(--cobalt); outline-offset: 2px; }
+
+/* ── Легенда словами: фигура и цвет без слова смысла не несут. ── */
+.v2-pmap .v2-pmap__legend {
+  display: flex; flex-wrap: wrap; gap: var(--pad-s) var(--pad-l);
+  padding: var(--pad-s) var(--pad-l) var(--pad-m);
+  border-top: 1px solid var(--graphite); font-size: var(--size-s); color: var(--muted);
+}
+.v2-pmap .v2-pmap__legend > span { display: inline-flex; gap: 6px; align-items: center; }
