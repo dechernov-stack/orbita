@@ -97,6 +97,37 @@ def третья_колонка(css: str) -> list[str]:
     return беды
 
 
+# Токены направления (ДИЗАЙН-НАПРАВЛЕНИЕ): палитра, гарнитура, цифры, радиус,
+# высота шапки, полные подписи рейки. В vitest их не проверить — CSS туда
+# приходит пустым, а типов Node в проекте нет намеренно.
+ТОКЕНЫ = [
+    ("--paper: #F4F6F8;", "бумага"),
+    ("--surface: #FFFFFF;", "поверхность"),
+    ("--graphite: #C9D0D8;", "графит"),
+    ("--ink: #182130;", "чернила"),
+    ("--muted: #5C6675;", "приглушённый"),
+    ("--cobalt: #2A4BD7;", "кобальт"),
+    ("--green: #1F7A4D;", "зелёный"),
+    ("--amber: #B7791F;", "янтарь"),
+    ("--red: #C43A2B;", "красный"),
+    ('--font: "Golos Text"', "гарнитура"),
+    ("font-variant-numeric: tabular-nums;", "табличные цифры"),
+    ("--radius: 0;", "радиус панелей"),
+    ("--radius-input: 6px;", "радиус ввода"),
+    ("height: 40px; padding: 0 16px;", "шапка 40 px"),
+    ("white-space: normal; /* полные подписи", "рейка без усечений"),
+]
+ТЕНЬ = re.compile(r"box-shadow:\s*\d|box-shadow:\s*-?\d|box-shadow:\s*0 \d+px \d+px rgba")
+
+
+def токены(css: str) -> list[str]:
+    беды = [f"tokens.css: нет токена «{имя}» ({кусок})" for кусок, имя in ТОКЕНЫ if кусок not in css]
+    for строка in css.splitlines():
+        if ТЕНЬ.search(строка) and "--focus" not in строка and "inset" not in строка:
+            беды.append(f"tokens.css: тень «{строка.strip()[:60]}» — глубина линией и белым на бумаге, теней нет")
+    return беды
+
+
 def проверить(css: str, файлы: dict[Path, str]) -> list[str]:
     беды: list[str] = []
     for путь, текст in файлы.items():
@@ -117,19 +148,25 @@ def самопроверка() -> None:
     assert any("декоративная" in б for б in беды), "самопроверка: декоративная строка не поймана"
     assert any("усечение" in б for б in беды), "самопроверка: усечение без title не поймано"
     assert any("третьей не бывает" in б for б in беды), "самопроверка: третья колонка не поймана"
+    assert any("нет токена" in б for б in токены("body{}")), "самопроверка: пропавший токен не пойман"
+    assert токены("box-shadow: 0 6px 24px rgba(0,0,0,.08);"), "самопроверка: тень не поймана"
     assert not проверить(".v2-act2 { grid-template-columns: 1fr 128px; }", {Path(КОРЕНЬ / "web/src/v2/чисто.tsx"): '<span title="MCR">точка MCR · KDP-A</span>'}), "самопроверка: чистое поймано зря"
 
 
 def main() -> int:
     самопроверка()
     файлы = {п: п.read_text(encoding="utf-8") for п in sorted(WEB.glob("*.tsx"))}
-    беды = проверить(CSS.read_text(encoding="utf-8"), файлы)
+    css = CSS.read_text(encoding="utf-8")
+    беды = проверить(css, файлы) + токены(css)
     if беды:
         print("сторожа дизайна (шип 2):")
         for б in беды:
             print("  ", б)
         return 1
-    print(f"сторожа дизайна: капслок, усечение, декор, третья колонка — чисто (файлов {len(файлы)}, исключений {len(ИСКЛЮЧЕНИЯ)})")
+    print(
+        f"сторожа дизайна: токены направления ({len(ТОКЕНЫ)}), капслок, усечение, декор, третья колонка — "
+        f"чисто (файлов {len(файлы)}, исключений {len(ИСКЛЮЧЕНИЯ)})"
+    )
     return 0
 
 
