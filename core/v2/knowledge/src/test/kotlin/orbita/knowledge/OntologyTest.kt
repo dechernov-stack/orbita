@@ -26,8 +26,9 @@ import kotlin.test.assertTrue
 
 class OntologyTest {
 
+    /** Одна истина (24.09): понятия и формирование — разделы истины схем, отдельного файла нет. */
     private val истина: File = File(System.getenv("ORBITA_REPO_ROOT") ?: ".")
-        .resolve("docs/tz/v2/ОНТОЛОГИЯ-ФОРМИРОВАНИЯ.yaml")
+        .resolve("docs/tz/v2/СХЕМЫ-ПОЛЕЙ-V2.yaml")
 
     private val нужда = GeneratedOntology.of("need")
     private val норматив = GeneratedOntology.of("normative_document")
@@ -71,7 +72,7 @@ class OntologyTest {
                 понятие.identityOrFail
             }
             assertTrue(понятие.code in (беда.message ?: ""), беда.message ?: "")
-            assertTrue("ОНТОЛОГИЯ-ФОРМИРОВАНИЯ.yaml" in (беда.message ?: ""), беда.message ?: "")
+            assertTrue("СХЕМЫ-ПОЛЕЙ-V2.yaml" in (беда.message ?: ""), беда.message ?: "")
         }
     }
 
@@ -187,9 +188,14 @@ class OntologyTest {
 
     @Test
     fun `правка истины без перегенерации ловится отпечатком`() {
-        assertTrue(истина.isFile, "истины онтологии нет по пути ${истина.path}")
+        assertTrue(истина.isFile, "истины схем нет по пути ${истина.path}")
+        // Отпечаток — байты истины от раздела `concepts:` до конца файла: так же
+        // считает генератор (tools/v2/gen_ontology.py).
+        val байты = истина.readBytes()
+        val метка = "\nconcepts:\n".toByteArray()
+        val начало = byты(байты, метка)
         val отпечаток = HexFormat.of().formatHex(
-            MessageDigest.getInstance("SHA-256").digest(истина.readBytes()),
+            MessageDigest.getInstance("SHA-256").digest(байты.copyOfRange(начало, байты.size)),
         )
         assertEquals(
             отпечаток,
@@ -197,5 +203,14 @@ class OntologyTest {
             "истина онтологии правлена, а код не перегенерирован — " +
                 "запустите python3 tools/v2/gen_ontology.py (сторож ci/checks.sh говорит то же)",
         )
+    }
+
+    /** Начало подстроки байтов: своего indexOf у ByteArray нет. */
+    private fun byты(где: ByteArray, что: ByteArray): Int {
+        outer@ for (i in 0..где.size - что.size) {
+            for (j in что.indices) if (где[i + j] != что[j]) continue@outer
+            return i
+        }
+        error("в истине схем нет раздела «concepts:» — онтология не слита")
     }
 }

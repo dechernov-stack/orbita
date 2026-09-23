@@ -34,7 +34,6 @@ import orbita.knowledge.internal.EntityIntake
 import orbita.knowledge.internal.ВИДЫ_ФАКТА
 import orbita.knowledge.schema.Concept
 import orbita.knowledge.schema.ConceptIdentity
-import orbita.knowledge.schema.FactRule
 import orbita.knowledge.schema.GeneratedOntology
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -303,182 +302,8 @@ class FormationGateTest {
         }
     }
 
-    // --- правило образования само по себе -----------------------------------
+    // --- оснастка ------------------------------------------------------------
 
-    /** Случай таблицы: правило, факт и ожидание — по одному признаку за раз. */
-    private data class Случай(
-        val про: String,
-        val правило: FactRule,
-        val факт: JsonNode,
-        val подходит: Boolean,
-    )
-
-    @Test
-    fun `правило образования проверяет каждый признак онтологии`() {
-        val случаи = listOf(
-            Случай(
-                "вид совпал", FactRule(kind = "framing"), фактУзла(kind = "framing"), true,
-            ),
-            Случай(
-                "вид не тот", FactRule(kind = "framing"), фактУзла(kind = "relation"), false,
-            ),
-            Случай(
-                "предикат из перечня",
-                FactRule(kind = "relation", predicateIn = listOf("является заказчиком", "регулирует")),
-                фактУзла(kind = "relation", predicate = "ГКРЧ регулирует спектр"), true,
-            ),
-            Случай(
-                "предикат вне перечня",
-                FactRule(kind = "relation", predicateIn = listOf("является заказчиком", "регулирует")),
-                фактУзла(kind = "relation", predicate = "подписал указ"), false,
-            ),
-            Случай(
-                "субъект совпал",
-                FactRule(kind = "capability", subject = "организация"),
-                фактУзла(kind = "capability", subject = "организация связи"), true,
-            ),
-            Случай(
-                "субъект не тот",
-                FactRule(kind = "capability", subject = "организация"),
-                фактУзла(kind = "capability", subject = "система связи"), false,
-            ),
-            Случай(
-                "класс субъекта совпал",
-                FactRule(kind = "assessment", subjectIs = "stakeholder"),
-                фактУзла(kind = "assessment", entityClass = "stakeholder"), true,
-            ),
-            Случай(
-                "класс субъекта не тот",
-                FactRule(kind = "assessment", subjectIs = "stakeholder"),
-                фактУзла(kind = "assessment", entityClass = "normative_ref"), false,
-            ),
-            Случай(
-                "метка совпала",
-                FactRule(kind = "assessment", mark = "П"),
-                фактУзла(kind = "assessment", mark = "П"), true,
-            ),
-            Случай(
-                "метка не та",
-                FactRule(kind = "assessment", mark = "П"),
-                фактУзла(kind = "assessment", mark = "И"), false,
-            ),
-            Случай(
-                "признак горизонта есть",
-                FactRule(kind = "quantity", with = "horizon/year"),
-                фактУзла(kind = "quantity", value = "2032"), true,
-            ),
-            Случай(
-                "признака горизонта нет",
-                FactRule(kind = "quantity", with = "horizon/year"),
-                фактУзла(kind = "quantity", value = "180"), false,
-            ),
-            Случай(
-                "признак обозначения есть",
-                FactRule(kind = "obligation", with = "designation"),
-                фактУзла(kind = "obligation", subject = "ПП РФ № 2216"), true,
-            ),
-            Случай(
-                "признака обозначения нет",
-                FactRule(kind = "obligation", with = "designation"),
-                фактУзла(kind = "obligation", subject = "Стратегия развития"), false,
-            ),
-        )
-
-        случаи.forEach { случай ->
-            assertEquals(
-                случай.подходит,
-                FormationRules.подходит(понятиеИз(случай.правило), случай.факт),
-                "${случай.про}: правило «${FormationRules.словами(случай.правило)}» против факта ${случай.факт}",
-            )
-        }
-    }
-
-    /**
-     * Уточнение владельца 14.09: роль и интерес стороны — РАЗНОЕ. Из роли нужда
-     * не образуется никогда; из оценки об интересе стороны — образуется, и это
-     * то, ради чего правило писалось. Класс сущности разбор ставит не всегда,
-     * поэтому «субъект — сторона» узнаётся ещё и по реестру проекта.
-     */
-    @Test
-    fun `подсказка нужды узнаёт оценку об интересе известной стороны`() {
-        val нужда = GeneratedOntology.of("need")
-        val известна = { вид: String, имя: String -> вид == "stakeholder" && имя == "Минтранс России" }
-
-        val интерес = фактУзла(
-            kind = "assessment", subject = "Минтранс России",
-            predicate = "нужна непрерывность мониторинга на беспилотных коридорах", mark = "П",
-        )
-        assertTrue(
-            FormationRules.подходит(нужда, интерес, известна),
-            "оценка об интересе стороны — законное основание нужды",
-        )
-        assertFalse(
-            FormationRules.подходит(нужда, интерес),
-            "без опознавателя и без класса сторона не узнана — правило не судит наугад",
-        )
-        assertTrue(
-            FormationRules.подходит(
-                нужда,
-                фактУзла(kind = "assessment", subject = "Минтранс России", predicate = "интерес", mark = "П",
-                         entityClass = "stakeholder"),
-            ),
-            "класс сущности узнаёт сторону и без реестра",
-        )
-
-        val роль = фактУзла(
-            kind = "relation", subject = "Минтранс России",
-            predicate = "является заказчиком системы", mark = "И",
-        )
-        assertFalse(
-            FormationRules.подходит(нужда, роль, известна),
-            "подсказка нужды роли стороны не узнаёт — её место поле стороны",
-        )
-        assertTrue(
-            FormationRules.подходит(GeneratedOntology.of("stakeholder"), роль, известна),
-            "та же роль — законное основание САМОЙ стороны",
-        )
-    }
-
-    @Test
-    fun `правило-подсказка воротами не служит`() {
-        // `section_hint` адресован разбору, а не проверке. Считать его
-        // совпадением значило бы пускать под видом правила что угодно.
-        val подсказка = понятиеИз(FactRule(sectionHint = "§2.1 общие нужды → привязка к сторонам"))
-
-        assertFalse(FormationRules.проверяемо(подсказка), "проверять подсказкой нечего")
-        assertFalse(
-            FormationRules.подходит(подсказка, фактУзла(kind = "framing", predicate = "нуждается в")),
-            "подсказка не пускает даже подходящий по смыслу факт: ворот у неё нет",
-        )
-        assertTrue(
-            FormationRules.проверяемо(понятиеИз(FactRule(kind = "framing"))),
-            "у правила с признаком ворота есть",
-        )
-    }
-
-    @Test
-    fun `правило читается словами теми же признаками какими записано`() {
-        assertEquals(
-            "вид [framing] с предикатом из «нуждается в · требует»",
-            FormationRules.словами(FactRule(kind = "framing", predicateIn = listOf("нуждается в", "требует"))),
-        )
-        assertEquals(
-            "вид [assessment], субъект — stakeholder, метка [П]",
-            FormationRules.словами(FactRule(kind = "assessment", subjectIs = "stakeholder", mark = "П")),
-        )
-        assertEquals(
-            "правило без признаков", FormationRules.словами(FactRule()),
-            "правило, которое ничего не требует, так и называется — иначе отказ читался бы как требование",
-        )
-    }
-
-    // --- оснастка -----------------------------------------------------------
-
-    /**
-     * Материал названного ранга и разбор к нему: план приходит ТЕМ ЖЕ
-     * ответом, что и факты, — как на живом пути. Якорь подставляется в
-     * текст разбора вместо «ЯКОРЬ»: без якоря факта не существует.
-     */
     private fun разобрать(текстРазбора: String, ранг: String = Authority.MANDATORY): FactIntake {
         val материал = знания.putMaterial(
             проект, "Записка о миссии", "mission_memo", ТЕКСТ, автор, authority = ранг,
@@ -495,26 +320,6 @@ class FormationGateTest {
     }
 
     /** Факт узлом: только те поля, по которым правило образования и судит. */
-    private fun фактУзла(
-        kind: String,
-        subject: String = "",
-        predicate: String = "",
-        value: String = "",
-        mark: String = "И",
-        entityClass: String = "",
-    ): JsonNode = mapper.createObjectNode()
-        .put("kind", kind).put("subject", subject).put("predicate", predicate)
-        .put("value", value).put("source_mark", mark).put("entity_class", entityClass)
-
-    /** Понятие с одним правилом: проверяется правило, а не онтология целиком. */
-    private fun понятиеИз(vararg правила: FactRule): Concept = Concept(
-        code = "проверка",
-        fromFacts = правила.toList(),
-        fields = emptyMap(),
-        mustLink = emptyList(),
-        conflictOn = emptyList(),
-        identity = ConceptIdentity(key = emptyList(), semantic = "—", threshold = 1.0),
-    )
 
     private companion object {
 

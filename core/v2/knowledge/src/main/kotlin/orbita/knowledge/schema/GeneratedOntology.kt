@@ -1,4 +1,4 @@
-// СГЕНЕРИРОВАНО tools/v2/gen_ontology.py из docs/tz/v2/ОНТОЛОГИЯ-ФОРМИРОВАНИЯ.yaml — руками не править
+// СГЕНЕРИРОВАНО tools/v2/gen_ontology.py из docs/tz/v2/СХЕМЫ-ПОЛЕЙ-V2.yaml (concepts · formation) — руками не править
 //
 // Правила образования понятий постановки: чем понятие узнаётся среди
 // принятых (identity), что считается противоречием (conflict_on) и без какой
@@ -32,25 +32,6 @@ data class ConceptIdentity(
 )
 
 /**
- * Отбор фактов, из которых образуется понятие.
- *
- * Пустое поле означает «не ограничиваем», а не «пусто»: правило отбирает
- * факты по тем признакам, которые названы.
- */
-data class FactRule(
-    val kind: String? = null,
-    val predicateIn: List<String> = emptyList(),
-    val subject: String? = null,
-    val subjectIs: String? = null,
-    /** Субъект, которым факт быть НЕ должен: «stakeholder проекта» у возможности. */
-    val subjectNot: String? = null,
-    val mark: String? = null,
-    /** Признак, который факт обязан нести: horizon/year, date, designation. */
-    val with: String? = null,
-    val sectionHint: String? = null,
-)
-
-/**
  * Понятие постановки.
  *
  * @property fields поле понятия → откуда оно берётся из фактов
@@ -59,7 +40,6 @@ data class FactRule(
  */
 data class Concept(
     val code: String,
-    val fromFacts: List<FactRule>,
     val fields: Map<String, String>,
     val mustLink: List<String>,
     val conflictOn: List<String>,
@@ -80,7 +60,6 @@ data class Concept(
      * списке. Ворота проверяют только машинно проверяемое — цитату, якорь,
      * число с единицей, разрешимость ссылок, обязательные поля и дубль.
      */
-    val predicateHints: List<String> = emptyList(),
     /** Из чего понятие НЕ образуется — анти-примеры промпта. */
     val notFrom: List<String> = emptyList(),
     /** Роли документов, из фактов которых понятие вообще образуется. */
@@ -94,9 +73,10 @@ data class Concept(
     /** Чем спорят два документа об одном понятии — словами, рядом с conflictOn. */
     val conflictNote: String? = null,
     /** Помета истины: подсказки — не фильтр. Идёт в промпт рядом с примерами. */
-    val predicateHintsNote: String? = null,
-    /** Помета истины: `fromFacts` — подсказка происхождения, а не ворота. */
-    val fromFactsNote: String? = null,
+    /** Подсказка истины: откуда понятие обычно берётся (слова для инструкции, не ворота). */
+    val whereToLook: String? = null,
+    /** Где в документе искать понятие: подсказки разделов. */
+    val whereInDocument: List<String> = emptyList(),
     /**
      * Откуда понятие берётся — словами. У замысла, требования и риска
      * правил по видам факта нет вовсе: они читаются РАЗДЕЛОМ документа.
@@ -158,7 +138,7 @@ object GeneratedOntology {
      * Отпечаток истины онтологии (sha256 файла). Им помечается каждый запуск
      * синтеза: по нему видно, по каким правилам сделано предложение.
      */
-    const val ontologyVersion: String = "9c78cb8613a98f507233cd9629d6dceeb2c176f738be2ea917cd004d093915e6"
+    const val ontologyVersion: String = "a25af29c283ea510e5befc528b9ba01287bcd3993c20a66722d4a98dce3f4f83"
 
     /** Ранги доверия по убыванию веса — ранг подсказывает, решает человек. */
     val authorityRanks: List<String> = listOf("mandatory", "expert", "reference", "doubtful")
@@ -174,10 +154,6 @@ object GeneratedOntology {
     val concepts: List<Concept> = listOf(
         Concept(
             code = "stakeholder",
-            fromFacts = listOf(
-                FactRule(kind = "relation", predicateIn = listOf("является заказчиком", "является оператором", "регулирует", "поставляет", "учреждается", "потребляет")),
-                FactRule(kind = "capability", subject = "организация"),
-            ),
             fields = mapOf(
                 "name" to "subject",
                 "role" to "по предикату",
@@ -192,23 +168,16 @@ object GeneratedOntology {
                 threshold = 0.85,
             ),
             note = "сторона без нужды — помета к воротам, не отказ",
-            predicateHints = listOf("является заказчиком", "является оператором", "регулирует", "поставляет", "эксплуатирует", "потребляет", "учреждается"),
             notFrom = listOf("автор или подписант нормативного акта без предиката роли к проекту", "ведомство как издатель", "сама проектируемая система", "регион, порт, коридор — это объекты применения"),
+            whereToLook = "подсказка, откуда понятие обычно берётся; ворота на вид факта не ставятся",
             allowedRoles = listOf("charter", "tor", "context", "supplier", "heritage"),
             computedFields = mapOf(
                 "influence" to "вычисляется системой из role по карте: customer→decides · regulator→decides · established→decides · operator→influences · partner→influences · supplier→influences · consumer→informed; модель поле не заполняет, инженер правит на месте",
                 "power" to "оценка человека 1–5 на сцене 3; по умолчанию пусто",
             ),
-            predicateHintsNote = "примеры формулировок для инструкции; НЕ фильтр — предложение не отбивается из-за отсутствия предиката в списке",
-            fromFactsNote = "подсказка, откуда понятие обычно берётся; ворота на вид факта не ставятся",
         ),
         Concept(
             code = "need",
-            fromFacts = listOf(
-                FactRule(kind = "framing", predicateIn = listOf("нуждается в", "требует", "не хватает")),
-                FactRule(kind = "assessment", subjectIs = "stakeholder", mark = "П"),
-                FactRule(sectionHint = "§2.1 общие нужды → привязка к сторонам по субъекту/смыслу"),
-            ),
             fields = mapOf(
                 "statement" to "предикат+объект",
                 "stakeholder" to "subject (owns) — обязательно",
@@ -223,21 +192,16 @@ object GeneratedOntology {
                 threshold = 0.8,
             ),
             note = "интерес стороны → нужда [П], не [И]",
-            predicateHints = listOf("нуждается в", "требует", "не хватает", "вынужден"),
             notFrom = listOf("роль стороны (поле role)", "описание программы или акта", "свойство системы (цель или сервис)"),
+            whereToLook = "подсказка: нужды берутся из (а) перечня общих нужд документа, (б) интереса каждой стороны — интерес это нужда-кандидат [П], (в) прямых формулировок нехватки в прозе",
+            whereInDocument = listOf("§2.1 общие нужды → привязка к сторонам по субъекту/смыслу"),
             allowedRoles = listOf("charter", "tor", "context"),
             distributionRule = "общая нужда (перечень §2.1) раздаётся сторонам с ролями заказчик · оператор · потребитель · учреждаемый, чей интерес или сфера о том же предмете; поставщикам и регуляторам общие нужды не достаются — их нужды только из собственного интереса",
             answerShape = "нужды живут внутри стороны (stakeholders[].needs[]), у каждой ОБЯЗАТЕЛЬНЫЙ свой id вида p1.n2 — на него ссылаются цели и сервисы; ответ без id у нужды — недействителен",
             coverageRule = "выход сцены 6 «каждая нужда покрыта сервисом» считает только нужды с coverage_expected=service; нужды регуляторов закрываются ограничениями и нормативными основаниями (сцена 5/8), нужды поставщиков и партнёров — пакетами WBS и оценками (сцена 12); непокрытая нужда любого вида — помета к MCR, блокирует только service к сцене 6",
-            predicateHintsNote = "примеры формулировок для инструкции; НЕ фильтр — предложение не отбивается из-за отсутствия предиката в списке",
-            fromFactsNote = "подсказка: нужды берутся из (а) перечня общих нужд документа, (б) интереса каждой стороны — интерес это нужда-кандидат [П], (в) прямых формулировок нехватки в прозе",
         ),
         Concept(
             code = "goal",
-            fromFacts = listOf(
-                FactRule(kind = "quantity", with = "horizon/year"),
-                FactRule(kind = "framing", predicateIn = listOf("к году", "достичь", "развернуть")),
-            ),
             fields = mapOf(
                 "statement" to "предикат",
                 "measure" to "quantity с единицей — обязательно",
@@ -254,20 +218,14 @@ object GeneratedOntology {
                 threshold = 0.8,
             ),
             note = "цели проекта меняются только решением эксперта; всякий документ может предложить изменение с основанием и рангом — не создать цель сам",
-            predicateHints = listOf("достичь", "развернуть", "к году"),
             notFrom = listOf("обязательство норматива (constraint)", "описание услуги (service)"),
+            whereToLook = "подсказка, откуда понятие обычно берётся; ворота на вид факта не ставятся",
             allowedRoles = listOf("charter"),
             changeByOthers = "только предложение augment/contradict с обоснованием; решает человек",
             coverageNote = "связь цель→нужды: модель предлагает по совпадению стороны и предмета; недостающее — сцена 4, решение инженера (матрица покрытия), сверка «соединение» предлагает кандидатов",
-            predicateHintsNote = "примеры формулировок для инструкции; НЕ фильтр — предложение не отбивается из-за отсутствия предиката в списке",
-            fromFactsNote = "подсказка, откуда понятие обычно берётся; ворота на вид факта не ставятся",
         ),
         Concept(
             code = "service",
-            fromFacts = listOf(
-                FactRule(kind = "capability", subject = "система"),
-                FactRule(sectionHint = "§4 сервисы"),
-            ),
             fields = mapOf(
                 "name" to "capability",
                 "needs" to "covers ≥1",
@@ -282,16 +240,13 @@ object GeneratedOntology {
                 threshold = 0.8,
             ),
             notFrom = listOf("сервис без нужды не предлагается"),
+            whereToLook = "подсказка, откуда понятие обычно берётся; ворота на вид факта не ставятся",
+            whereInDocument = listOf("§4 сервисы"),
             allowedRoles = listOf("charter"),
             changeByOthers = "только предложение augment/contradict с обоснованием; решает человек",
-            fromFactsNote = "подсказка, откуда понятие обычно берётся; ворота на вид факта не ставятся",
         ),
         Concept(
             code = "constraint",
-            fromFacts = listOf(
-                FactRule(kind = "obligation"),
-                FactRule(kind = "framing", predicateIn = listOf("только", "не рассматривается", "исключается", "не более", "не менее")),
-            ),
             fields = mapOf(
                 "code" to "Р-N выдаётся при акцепте",
                 "type" to "по источнику: obligation→regulatory; framing→technical|programmatic|launch|financial",
@@ -305,18 +260,12 @@ object GeneratedOntology {
                 threshold = 0.85,
             ),
             note = "ограничение из справочного документа — предложение [П], из обязательного — [И]",
-            predicateHints = listOf("только", "не рассматривается", "исключается", "не более", "не менее"),
             notFrom = listOf("желание стороны (need)", "целевой показатель (goal)"),
+            whereToLook = "подсказка, откуда понятие обычно берётся; ворота на вид факта не ставятся",
             allowedRoles = listOf("charter", "tor", "regulatory"),
-            predicateHintsNote = "примеры формулировок для инструкции; НЕ фильтр — предложение не отбивается из-за отсутствия предиката в списке",
-            fromFactsNote = "подсказка, откуда понятие обычно берётся; ворота на вид факта не ставятся",
         ),
         Concept(
             code = "assumption",
-            fromFacts = listOf(
-                FactRule(mark = "П"),
-                FactRule(kind = "assumption"),
-            ),
             fields = mapOf(
                 "disposition" to "assumed — ставится при приёме предложения",
                 "assumption.owner" to "человек, при акцепте",
@@ -333,15 +282,11 @@ object GeneratedOntology {
             ),
             note = "предложение синтеза для допущения = «пометить факт как допущение»; владельца, точку и способ подтверждения ставит человек — модель их не предлагает; реестр допущений — проекция фактов с диспозицией assumed",
             targetKind = "fact (disposition=assumed) — отдельного вида нет",
+            whereToLook = "подсказка, откуда понятие обычно берётся; ворота на вид факта не ставятся",
             allowedRoles = listOf("charter", "tor", "context", "supplier", "heritage"),
-            fromFactsNote = "подсказка, откуда понятие обычно берётся; ворота на вид факта не ставятся",
         ),
         Concept(
             code = "milestone",
-            fromFacts = listOf(
-                FactRule(kind = "event", with = "date|year"),
-                FactRule(sectionHint = "§7 этапы"),
-            ),
             fields = mapOf(
                 "name" to "событие",
                 "date" to "из факта",
@@ -356,14 +301,12 @@ object GeneratedOntology {
             ),
             note = "веха из устава — только этап проекта (program_stage) с горизонтом или диапазоном; срок действия документа, дата акта, событие рынка — не веха, а факт event или valid_until норматива",
             targetKind = "milestone (L1); вехи технологий — gate",
+            whereToLook = "подсказка, откуда понятие обычно берётся; ворота на вид факта не ставятся",
+            whereInDocument = listOf("§7 этапы"),
             allowedRoles = listOf("charter", "regulatory", "context"),
-            fromFactsNote = "подсказка, откуда понятие обычно берётся; ворота на вид факта не ставятся",
         ),
         Concept(
             code = "normative_document",
-            fromFacts = listOf(
-                FactRule(kind = "obligation", with = "designation"),
-            ),
             fields = mapOf(
                 "designation" to "natural key",
                 "edition" to "из факта",
@@ -376,17 +319,12 @@ object GeneratedOntology {
                 semantic = "—",
                 threshold = 1.0,
             ),
+            whereToLook = "подсказка, откуда понятие обычно берётся; ворота на вид факта не ставятся",
             allowedRoles = listOf("regulatory", "charter", "tor"),
             fromHint = "перечень НПА устава (§2.2) читается построчно: обозначение · номер · дата · редакция · срок — каждая строка → норматив; пункты — при наличии текста акта",
-            fromFactsNote = "подсказка, откуда понятие обычно берётся; ворота на вид факта не ставятся",
         ),
         Concept(
             code = "opportunity",
-            fromFacts = listOf(
-                FactRule(kind = "external_need"),
-                FactRule(kind = "external_target"),
-                FactRule(kind = "framing", predicateIn = listOf("требует", "нуждается в", "не хватает"), subjectNot = "stakeholder проекта"),
-            ),
             fields = mapOf(
                 "external_item" to "факт чужой нужды/цели с якорем",
                 "owner" to "сторона или программа, чья она",
@@ -405,12 +343,11 @@ object GeneratedOntology {
             ),
             note = "возможность не становится целью; она обосновывает цель или порождает предложение эксперту; «не наш профиль» — законный и ценный вердикт, опирается на границы устава",
             targetKind = "opportunity (L2)",
+            whereToLook = "подсказка, откуда понятие обычно берётся; ворота на вид факта не ставятся",
             conflictNote = "два документа дают разный вердикт применимости к одной чужой нужде — contested с обоими и их ролями",
-            fromFactsNote = "подсказка, откуда понятие обычно берётся; ворота на вид факта не ставятся",
         ),
         Concept(
             code = "intent",
-            fromFacts = emptyList(),
             fields = mapOf(
                 "for_whom" to "",
                 "what" to "",
@@ -434,7 +371,6 @@ object GeneratedOntology {
         ),
         Concept(
             code = "requirement",
-            fromFacts = emptyList(),
             fields = mapOf(
                 "code" to "выдаёт система",
                 "title" to "",
@@ -460,7 +396,6 @@ object GeneratedOntology {
         ),
         Concept(
             code = "risk",
-            fromFacts = emptyList(),
             fields = mapOf(
                 "statement" to "",
                 "cec" to "{condition,event,consequence} если в тексте так",
@@ -492,7 +427,7 @@ object GeneratedOntology {
     /** Понятие вне онтологии не образуется: отказ вместо тихого пропуска. */
     fun of(code: String): Concept = byCode[code]
         ?: error(
-            "понятие «$code» не описано в ОНТОЛОГИЯ-ФОРМИРОВАНИЯ.yaml — " +
+            "понятие «$code» не описано в истине схем (СХЕМЫ-ПОЛЕЙ-V2.yaml, concepts) — " +
                 "понятие вне онтологии не образуется"
         )
 

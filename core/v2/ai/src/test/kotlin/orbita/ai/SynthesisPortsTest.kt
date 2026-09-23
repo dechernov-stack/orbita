@@ -143,7 +143,7 @@ class SynthesisPortsTest {
     @Test
     fun `понятие вне онтологии не образуется`() {
         val беда = assertFailsWith<IllegalStateException> { предложение(concept = "веха") }
-        assertTrue("ОНТОЛОГИЯ-ФОРМИРОВАНИЯ" in (беда.message ?: ""), беда.message ?: "")
+        assertTrue("истине схем" in (беда.message ?: ""), беда.message ?: "")
         assertTrue(GeneratedOntology.byCode.containsKey("need"), "понятие нужды в онтологии обязано быть")
     }
 

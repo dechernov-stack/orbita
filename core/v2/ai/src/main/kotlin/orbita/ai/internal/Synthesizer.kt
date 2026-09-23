@@ -54,7 +54,6 @@ import orbita.knowledge.api.FactSource
 import orbita.knowledge.api.Intake
 import orbita.knowledge.api.SourceMark
 import orbita.knowledge.schema.Concept
-import orbita.knowledge.schema.FactRule
 import orbita.knowledge.schema.GeneratedOntology
 import java.security.MessageDigest
 
@@ -181,7 +180,6 @@ class Synthesizer(
             // от порядка выдачи хранилища и кэш не срабатывал бы никогда.
             .sortedWith(
                 compareBy<Pair<Fact, Entity>>(
-                    { if (похожНаПонятие(it.first)) 0 else 1 },
                     { Authority.weight(it.first.authority) },
                     { it.first.id },
                 ),
@@ -821,12 +819,10 @@ $ФОРМАТ
                     append(сПеречнем.joinToString(", ") { поле -> поле + перечисление(вид, поле) })
                 }
             }
-            // ГЛАВНОЕ правило — из каких фактов понятие вообще образуется.
-            // До 14.09 его в промпте не было, и модель лепила понятия по
-            // догадке: текст роли стороны приезжал нуждой (остановка ПМИ-6).
-            val изФактов = понятие.fromFacts.mapNotNull { правилоСловами(it) }
-            if (изФактов.isNotEmpty()) {
-                append("\n    образуется ТОЛЬКО из фактов: ${изФактов.joinToString(" ЛИБО ")}")
+            // Границы понятия — «чем не является» (одна истина, 24.09): вместо
+            // правила по видам фактов модель получает анти-примеры владельца.
+            if (понятие.notFrom.isNotEmpty()) {
+                append("\n    чем не является: ${понятие.notFrom.joinToString("; ")}")
             }
             // Понятие без ключа идентичности описывается, но не сверяется:
             // ключа в истине ещё нет, и выдумывать его в коде нельзя.
@@ -841,39 +837,6 @@ $ФОРМАТ
                 append("\n    без этих связей не принимается: ${понятие.mustLink.joinToString(", ")}")
             }
         }
-    }
-
-    /**
-     * Похож ли факт на происхождение хоть одного понятия постановки.
-     *
-     * Воротами НЕ служит: срез им только упорядочивается, чтобы под потолок
-     * попадало сначала то, из чего постановка складывается обычно. Факт, на
-     * подсказку не похожий, из среза не выбрасывается — он идёт следом, и
-     * модель вольна сделать из него понятие (РЕШЕНИЕ-ЧИТАТЬ-СМЫСЛ, 15.09).
-     */
-    private fun похожНаПонятие(факт: Fact): Boolean =
-        GeneratedOntology.concepts.any { понятие ->
-            FormationRules.проверяемо(понятие) && FormationRules.подходит(понятие, факт)
-        }
-
-    /**
-     * Правило отбора фактов словами. Признак, которого правило не назвало, не
-     * упоминается: домысливать за истину нельзя. Правило-подсказка (только
-     * раздел документа) в промпт идёт как подсказка, а воротами не служит.
-     */
-    private fun правилоСловами(правило: FactRule): String? {
-        val части = buildList {
-            правило.kind?.let { add("вид [$it]") }
-            if (правило.predicateIn.isNotEmpty()) {
-                add("предикат из «${правило.predicateIn.joinToString(" · ")}»")
-            }
-            правило.subject?.let { add("субъект «$it»") }
-            правило.subjectIs?.let { add("субъект — $it") }
-            правило.mark?.let { add("метка [$it]") }
-            правило.with?.let { add("несёт «$it»") }
-            правило.sectionHint?.let { add("подсказка: $it") }
-        }
-        return части.takeIf { it.isNotEmpty() }?.joinToString(", ")
     }
 
     /** Значения поля из истины схем в скобках; поле без перечня — пустая строка. */

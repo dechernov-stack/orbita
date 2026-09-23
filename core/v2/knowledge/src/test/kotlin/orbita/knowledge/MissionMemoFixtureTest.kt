@@ -159,7 +159,7 @@ class MissionMemoFixtureTest {
         факт.path("mark").asText("").ifBlank { факт.path("source_mark").asText("") }
 
     private companion object {
-        val ПРЕДИКАТЫ_НУЖДЫ: List<String> =
-            GeneratedOntology.of("need").fromFacts.flatMap { it.predicateIn }.map { it.lowercase() }
+        /** Слова нехватки в записке — признак теста, не правило истины: перечней предикатов у понятий больше нет (24.09). */
+        val ПРЕДИКАТЫ_НУЖДЫ: List<String> = listOf("нуждается в", "требует", "не хватает", "вынужден")
     }
 }

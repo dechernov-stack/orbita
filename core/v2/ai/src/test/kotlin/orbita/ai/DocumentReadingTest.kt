@@ -91,10 +91,10 @@ class DocumentReadingTest {
         val промпт = читатель.prepare(ПРОЕКТ, материал)
 
         // «Нужды берутся из перечня общих нужд · интереса каждой стороны ·
-        // прямых формулировок нехватки» — это `from_facts_note` владельца.
+        // прямых формулировок нехватки» — это `where_to_look` владельца.
         val нужда = orbita.knowledge.schema.GeneratedOntology.of("need")
         assertTrue(
-            промпт.contains(нужда.fromFactsNote.orEmpty()),
+            промпт.contains(нужда.whereToLook.orEmpty()),
             "подсказка происхождения нужды — дословно из истины",
         )
         assertTrue("интереса каждой стороны" in промпт, "интерес стороны назван нуждой-кандидатом")
