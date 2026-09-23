@@ -154,7 +154,7 @@
               "null"
             ]
           },
-          "source_mark": {
+          "mark": {
             "enum": [
               "И",
               "В",

@@ -15,7 +15,7 @@
       "edition": "действует на 29.08.2026",
       "edition_date": "2020-12-22",
       "valid_until": "2027-09-01",
-      "source_mark": "В",
+      "mark": "В",
       "clauses": [
         {
           "clause": "обязанность",
@@ -30,7 +30,7 @@
       "kind": "decree",
       "edition": "в редакции от 02.02.2026",
       "edition_date": "2024-11-30",
-      "source_mark": "В",
+      "mark": "В",
       "clauses": [
         {
           "clause": "обязанность",
@@ -46,7 +46,7 @@
       "edition": "действует до 01.01.2027",
       "edition_date": "2020-07-10",
       "valid_until": "2027-01-01",
-      "source_mark": "В",
+      "mark": "В",
       "clauses": [
         {
           "clause": "обязанность",
@@ -61,7 +61,7 @@
       "kind": "order",
       "edition": "вступает в силу с 01.01.2027",
       "edition_date": "2026-05-18",
-      "source_mark": "В",
+      "mark": "В",
       "clauses": [
         {
           "clause": "обязанность",
@@ -77,7 +77,7 @@
       "edition": "в редакции от 27.11.2025",
       "edition_date": "2013-06-14",
       "valid_until": "2032-03-01",
-      "source_mark": "В",
+      "mark": "В",
       "clauses": [
         {
           "clause": "обязанность",
@@ -92,7 +92,7 @@
       "kind": "convention",
       "edition": "справка ИМО на 29.08.2026",
       "edition_date": "1974-11-01",
-      "source_mark": "В",
+      "mark": "В",
       "clauses": [
         {
           "clause": "V/19",
@@ -107,7 +107,7 @@
       "kind": "convention",
       "edition": "справка ИМО на 29.08.2026",
       "edition_date": "1974-11-01",
-      "source_mark": "В",
+      "mark": "В",
       "clauses": [
         {
           "clause": "V/19-1",
@@ -122,7 +122,7 @@
       "kind": "law",
       "edition": "в редакции от 07.04.2025",
       "edition_date": "2017-07-26",
-      "source_mark": "В",
+      "mark": "В",
       "clauses": [
         {
           "clause": "обязанность",
@@ -137,7 +137,7 @@
       "kind": "tech_reg",
       "edition": "действует с 01.01.2015, изменения по реестру ЕЭК на 29.08.2026",
       "edition_date": "2011-12-09",
-      "source_mark": "В",
+      "mark": "В",
       "clauses": [
         {
           "clause": "обязанность",
@@ -152,7 +152,7 @@
       "kind": "gost",
       "edition": "действует с 01.07.2024",
       "edition_date": "2023-01-01",
-      "source_mark": "В",
+      "mark": "В",
       "clauses": [
         {
           "clause": "значение для проекта",
@@ -168,7 +168,7 @@
       "edition": "предварительный национальный стандарт",
       "edition_date": "2024-07-01",
       "valid_until": "2027-07-01",
-      "source_mark": "В",
+      "mark": "В",
       "clauses": [
         {
           "clause": "значение для проекта",
@@ -184,7 +184,7 @@
       "edition": "предварительный национальный стандарт",
       "edition_date": "2025-02-01",
       "valid_until": "2028-02-01",
-      "source_mark": "В",
+      "mark": "В",
       "clauses": [
         {
           "clause": "значение для проекта",
@@ -199,7 +199,7 @@
       "kind": "guideline",
       "edition": "ред. 3, действует на 29.08.2026",
       "edition_date": "2021-06-01",
-      "source_mark": "В",
+      "mark": "В",
       "clauses": [
         {
           "clause": "Б1 · активный увод",

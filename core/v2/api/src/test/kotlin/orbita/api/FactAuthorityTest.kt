@@ -59,7 +59,7 @@ class FactAuthorityTest {
         val п = проект("PJ-9610")
         val материал = intake.putMaterial(п, "ТЗ заказчика", "tor", "п. 4.1 Срок службы 5 лет.", "Иванов И.")
         val карточка = документ(п, материал)
-        assertEquals("mandatory", карточка.path("authority").asText(), "ТЗ заказчика — обязательный документ")
+        assertEquals("mandatory", карточка.path("rank").asText(), "ТЗ заказчика — обязательный документ")
         // Тип входного никуда не делся: по нему разбор выбирает режим ТЗ, и
         // ранг его не заменяет — это разные вопросы к одному документу.
         assertEquals("tor", карточка.path("kind").asText())
@@ -70,12 +70,12 @@ class FactAuthorityTest {
             п, материал,
             """{"topics":[],"actions":[],"facts":[
               {"kind":"quantity","subject":"система","predicate":"срок службы","value":"5","unit":"год",
-               "source":{"anchor":"${я[0]}"},"source_mark":"И"}]}""",
+               "source":{"anchor":"${я[0]}"},"mark":"И"}]}""",
             "Иванов И.",
         )
         assertEquals(1, итог.accepted.size, итог.refused.toString())
         val изДокумента = итог.accepted.single()
-        assertEquals("mandatory", изДокумента.authority, "ранг наследуется от материала, а не от мнения разбора")
+        assertEquals("mandatory", изДокумента.rank, "ранг наследуется от материала, а не от мнения разбора")
         assertEquals(FactSource.FromMaterial(материал, я[0]), изДокумента.source)
 
         // Рука эксперта: ранг свой, источник — учётка, роль и дата, якоря нет.
@@ -83,7 +83,7 @@ class FactAuthorityTest {
             п, "Гонец-Д1М", "срок активного существования по ЛИ", "7", "лет", "quantity",
             null, null, "Иванов И.", role = "ведущий системный инженер",
         )
-        assertEquals("expert", ручной.authority)
+        assertEquals("expert", ручной.rank)
         val источник = ручной.source
         assertTrue(источник is FactSource.FromExpert, "источник ручного факта — эксперт: $источник")
         assertEquals("Иванов И.", (источник as FactSource.FromExpert).account)
@@ -94,7 +94,7 @@ class FactAuthorityTest {
         // По истине схем: ранг и союзный источник замечаний не дают. Прочие
         // поля факта (плоские subject/value) — долг DTO из YAML, не этого шага.
         val замечания = схемы.problems("fact", документ(п, ручной.id))
-        assertTrue(замечания.none { "authority" in it }, "ранг по истине схем: $замечания")
+        assertTrue(замечания.none { "rank" in it }, "ранг по истине схем: $замечания")
         assertTrue(
             замечания.none { it.substringBefore(":").trim().endsWith("source") },
             "источник по истине схем: $замечания",
@@ -105,20 +105,20 @@ class FactAuthorityTest {
     fun `ранг выводится по типу входного, неизвестный тип даёт сомнительный с пометой`() {
         val п = проект("PJ-9611")
         val анализ = intake.putMaterial(п, "Анализ идей", "analysis", "Идея миссии.", "Иванов И.")
-        assertEquals("reference", документ(п, анализ).path("authority").asText(), "аналитика — свидетельство")
+        assertEquals("reference", документ(п, анализ).path("rank").asText(), "аналитика — свидетельство")
 
         // Тип вне перечня истины схем: правдоподобный ранг не выдумывается.
         val записка = intake.putMaterial(п, "Заметка", "note", "Текст заметки.", "Иванов И.")
         val карточка = документ(п, записка)
-        assertEquals("doubtful", карточка.path("authority").asText())
+        assertEquals("doubtful", карточка.path("rank").asText())
         assertTrue(
             "сомнительный" in карточка.path("notes").asText(),
             "вывод ранга назван пометой: ${карточка.path("notes").asText()}",
         )
 
         // Ранг с формы сильнее вывода по типу: доверие называет человек.
-        val сайт = intake.putMaterial(п, "Сайт поставщика", "reference", "Масса 120 кг.", "Иванов И.", authority = "doubtful")
-        assertEquals("doubtful", документ(п, сайт).path("authority").asText())
+        val сайт = intake.putMaterial(п, "Сайт поставщика", "reference", "Масса 120 кг.", "Иванов И.", rank = "doubtful")
+        assertEquals("doubtful", документ(п, сайт).path("rank").asText())
     }
 
     @Test
@@ -130,13 +130,13 @@ class FactAuthorityTest {
             п, м,
             """{"topics":[],"actions":[],"facts":[
               {"kind":"framing","subject":"миссия","predicate":"без якоря придумано","value":"нечто",
-               "source":{},"source_mark":"П"},
+               "source":{},"mark":"П"},
               {"kind":"framing","subject":"миссия","predicate":"эксперт без роли","value":"нечто",
-               "source":{"account":"Иванов И."},"source_mark":"И"},
+               "source":{"account":"Иванов И."},"mark":"И"},
               {"kind":"framing","subject":"миссия","predicate":"и якорь и эксперт разом","value":"нечто",
-               "source":{"anchor":"${я[0]}","account":"Иванов И.","role":"ведущий","at":"2026-09-12"},"source_mark":"И"},
+               "source":{"anchor":"${я[0]}","account":"Иванов И.","role":"ведущий","at":"2026-09-12"},"mark":"И"},
               {"kind":"relation","subject":"заказчик","predicate":"кто заказчик","value":"Минтранс",
-               "source":{"account":"Петрова М.","role":"главный конструктор","at":"2026-09-12"},"source_mark":"И"}]}""",
+               "source":{"account":"Петрова М.","role":"главный конструктор","at":"2026-09-12"},"mark":"И"}]}""",
             "Иванов И.",
         )
         val отказы = итог.refused.joinToString("; ")
@@ -146,7 +146,7 @@ class FactAuthorityTest {
 
         assertEquals(1, итог.accepted.size, "прошла только целая экспертная ветка: $отказы")
         val экспертный = итог.accepted.single()
-        assertEquals("expert", экспертный.authority, "ранг руки — экспертный, не ранг материала")
+        assertEquals("expert", экспертный.rank, "ранг руки — экспертный, не ранг материала")
         assertNull(экспертный.anchor)
         val источник = документ(п, экспертный.id).path("source")
         assertEquals("Петрова М.", источник.path("account").asText())
@@ -161,7 +161,7 @@ class FactAuthorityTest {
         val м = intake.putMaterial(п, "Записка", "mission_memo", "Заказчик — Минтранс.", "Иванов И.")
         val разбор = """{"topics":[],"actions":[],"facts":[
               {"kind":"relation","subject":"заказчик","predicate":"кто заказчик","value":"Минтранс",
-               "source":{"account":"Петрова М.","role":"главный конструктор","at":"2026-09-12"},"source_mark":"И"}]}"""
+               "source":{"account":"Петрова М.","role":"главный конструктор","at":"2026-09-12"},"mark":"И"}]}"""
         assertEquals(1, intake.putFacts(п, м, разбор, "Иванов И.").accepted.size)
         // Место факта в источнике у руки — учётка автора: без неё ключ повтора
         // схлопнулся бы к «|утверждение», и второй приём завёл бы второй факт.
@@ -180,8 +180,8 @@ class FactAuthorityTest {
             "обязательный · экспертный · справочный · сомнительный" in безРанга.message!!,
             "выбор назван словами, а не кодами: ${безРанга.message}",
         )
-        val м = intake.putMaterial(п, "ТЗ", "tor", "п. 4.1 Текст требования.", "Иванов И.", authority = "mandatory")
-        assertEquals("mandatory", документ(п, м).path("authority").asText())
+        val м = intake.putMaterial(п, "ТЗ", "tor", "п. 4.1 Текст требования.", "Иванов И.", rank = "mandatory")
+        assertEquals("mandatory", документ(п, м).path("rank").asText())
 
         val безРоли = assertFailsWith<IllegalArgumentException> {
             intake.addFact(п, "система", "срок службы", "5", "год", "quantity", null, null, "Иванов И.")
@@ -191,7 +191,7 @@ class FactAuthorityTest {
         val чужойРанг = assertFailsWith<IllegalArgumentException> {
             intake.addFact(
                 п, "система", "срок службы", "5", "год", "quantity", null, null, "Иванов И.",
-                role = "ведущий системный инженер", authority = "важный",
+                role = "ведущий системный инженер", rank = "важный",
             )
         }
         assertTrue("неизвестен" in чужойРанг.message!!, чужойРанг.message!!)
@@ -213,7 +213,7 @@ class FactAuthorityTest {
         val ф = intake.addFact(п, "терминал", "длительность сеанса", "12", "с", "quantity", null, null, "Иванов И.")
         assertTrue(ф.material.startsWith("инженер, "), ф.material)
         assertTrue(ф.source is FactSource.FromMaterial, "прежний источник цел: ${ф.source}")
-        assertEquals("expert", ф.authority, "ранг ручного факта — экспертный и без поля знаний")
+        assertEquals("expert", ф.rank, "ранг ручного факта — экспертный и без поля знаний")
     }
 
     @Test
@@ -225,7 +225,7 @@ class FactAuthorityTest {
             п, м,
             """{"profile":{"statement":0.6,"params":0.6},"topics":[],"actions":[],"facts":[
               {"kind":"quantity","subject":"система","predicate":"срок службы","value":"5","unit":"год",
-               "source":{"anchor":"${я[0]}"},"source_mark":"И"}]}""",
+               "source":{"anchor":"${я[0]}"},"mark":"И"}]}""",
             "Иванов И.",
         )
         assertEquals(1, сБраком.accepted.size, "брак профиля не отменяет фактов")

@@ -192,7 +192,7 @@ class SemanticReconciler(
         // Смежного не нашлось — в срез идёт поле по рангу: пустой срез делает
         // вызов бессмысленным, а платить за него всё равно придётся.
         val отобранные = смежные.ifEmpty { поле }
-            .sortedWith(compareBy<Entity>({ Authority.weight(it.doc.path("authority").asText("")) }, { it.code }))
+            .sortedWith(compareBy<Entity>({ Authority.weight(it.doc.path("rank").asText("")) }, { it.code }))
         val местоФактам = (ПОТОЛОК - принятые.size).coerceAtLeast(0)
         val вошли = принятые.take(ПОТОЛОК)
         val фактыСреза = отобранные.take(местоФактам)
@@ -200,7 +200,7 @@ class SemanticReconciler(
         return Срез(
             принятые = вошли.map { SliceEntry(it.code, словами(it.kind), текстСущности(it)) },
             факты = фактыСреза.map {
-                SliceEntry(it.code, "факт", текстФакта(it), it.doc.path("authority").asText(""))
+                SliceEntry(it.code, "факт", текстФакта(it), it.doc.path("rank").asText(""))
             },
             заПотолком = (всего - вошли.size - фактыСреза.size).coerceAtLeast(0),
         )

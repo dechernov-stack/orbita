@@ -559,7 +559,7 @@ class AcrossRoutes(
                 // режимом разбора, доверие называет человек. Профиль
                 // содержимого (Д2а) ставит разбор — по нему экран показывает
                 // доли блоков, а не гадает по расширению файла.
-                .put("authority", м.doc.path("authority").asText("").ifBlank { null })
+                .put("rank", м.doc.path("rank").asText("").ifBlank { null })
                 // Роль документа: ею решается, ЧТО из него может образоваться.
                 // Экран показывает её у каждого документа и даёт прочитать
                 // уже лежащий — без роли документ читается как обстановка.
@@ -613,7 +613,7 @@ class AcrossRoutes(
             // решение ядра, а не умолчание маршрута. На проекте поля знаний
             // v2 ядро отвечает отказом «ранг доверия материала обязателен»,
             // на проекте прохода выводит ранг по прежнему типу входного.
-            authority = тело.path("authority").asText("").trim().ifBlank { null },
+            rank = тело.path("rank").asText("").trim().ifBlank { null },
             // Роль документа (истина схем, `material.role`): ею решается, что
             // из него выписывается. Пусто — читаем как обстановку, и читатель
             // говорит об этом словами, а не молча.
@@ -623,8 +623,8 @@ class AcrossRoutes(
         // Ранг возвращается тот, который ПОСТАВИЛО ядро: форма показывает не
         // то, что отправила, а то, с чем материал теперь живёт.
         store.byCode(Area.Project(проект), код)?.doc?.let { карточка ->
-            ответ.put("authority", карточка.path("authority").asText(""))
-            карточка.path("notes").asText("").takeIf { it.isNotBlank() }?.let { ответ.put("authority_note", it) }
+            ответ.put("rank", карточка.path("rank").asText(""))
+            карточка.path("notes").asText("").takeIf { it.isNotBlank() }?.let { ответ.put("rank_note", it) }
         }
         извлечённый?.let { ответ.put("extracted_from", имяФайла) }
         снятый?.let { ответ.put("snapshot_renderer", it.renderer).put("snapshot_date", it.date) }

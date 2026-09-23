@@ -29,7 +29,6 @@ internal object KindJson {
         .put("unit", ф.unit)
         .put("anchor", ф.anchor)
         .put("mark", ф.mark.name)
-        .put("confidence", ф.confidence)
         .put("material", ф.material)
         .put("topic", ф.topic)
         .put("disposition", ф.disposition.name.lowercase())
@@ -38,7 +37,7 @@ internal object KindJson {
         // Ранг доверия: наследуется от материала, у руки эксперта — expert.
         // Пусто — факт заведён до перестройки, и ранг здесь не выдумывается:
         // выдуманное доверие хуже отсутствующего.
-        .put("authority", ф.authority)
+        .put("rank", ф.rank)
         // Свидетельство поднимает сверка: без него мера «после подтверждения источников — corroborated» снаружи не читается.
         .put("evidence", ф.evidence)
         .also { у ->

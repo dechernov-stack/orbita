@@ -57,8 +57,8 @@ class KnowledgeModesTest {
             "Платформа микрокласса.\n\nМасса сухая 120 кг.\n\nСредняя мощность на ПН 60 Вт.", "Иванов И.")
         val я = якоря(материал)
         val json = """{"topics":[{"label":"Платформа"}],"actions":[],"facts":[
-            {"kind":"quantity","topic":"Платформа","subject":"платформа","predicate":"масса сухая","value":"120","unit":"кг","source":{"anchor":"${я[1]}"},"source_mark":"В","param_key":"mass_dry"},
-            {"kind":"quantity","topic":"Платформа","subject":"платформа","predicate":"пиковая мощность ПН","value":"60","unit":"Вт","source":{"anchor":"${я[2]}"},"source_mark":"В","param_key":"power_peak"}]}"""
+            {"kind":"quantity","topic":"Платформа","subject":"платформа","predicate":"масса сухая","value":"120","unit":"кг","source":{"anchor":"${я[1]}"},"mark":"В","param_key":"mass_dry"},
+            {"kind":"quantity","topic":"Платформа","subject":"платформа","predicate":"пиковая мощность ПН","value":"60","unit":"Вт","source":{"anchor":"${я[2]}"},"mark":"В","param_key":"power_peak"}]}"""
         val итог = intake.putFacts(проект, материал, json, "Иванов И.", intent = "обнови параметры SC-PLT")
         assertEquals(2, итог.accepted.size, итог.refused.toString())
         val задание = intake.task(проект, assertNotNull(итог.task))
@@ -87,9 +87,9 @@ class KnowledgeModesTest {
             {"kind":"create_entity","target_kind":"requirement","scene":"8","title":"требование из п. 4.1","preview":"…","payload":{"statement":"приём телеметрии не реже 30 мин","level":"project","category":"performance"},"facts":[0]},
             {"kind":"create_entity","target_kind":"service","scene":"6","title":"сервис LEO-PNT","preview":"…","payload":{"name":"Позиционирование и навигация (LEO-PNT)","qos_class":["A′"]},"facts":[2]}],
           "facts":[
-            {"kind":"obligation","entity_class":"requirement","subject":"ТЗ п. 4.1","predicate":"приём телеметрии с интервалом не более 30 мин","value":"требование","source":{"anchor":"${я[0]}"},"source_mark":"И"},
-            {"kind":"obligation","entity_class":"requirement","subject":"ТЗ п. 4.2","predicate":"срок службы не менее 5 лет","value":"требование","source":{"anchor":"${я[1]}"},"source_mark":"И"},
-            {"kind":"capability","entity_class":"service","subject":"ТЗ п. 3.2","predicate":"услуга позиционирования и навигации LEO-PNT","value":"услуга","source":{"anchor":"${я[2]}"},"source_mark":"И"}],
+            {"kind":"obligation","entity_class":"requirement","subject":"ТЗ п. 4.1","predicate":"приём телеметрии с интервалом не более 30 мин","value":"требование","source":{"anchor":"${я[0]}"},"mark":"И"},
+            {"kind":"obligation","entity_class":"requirement","subject":"ТЗ п. 4.2","predicate":"срок службы не менее 5 лет","value":"требование","source":{"anchor":"${я[1]}"},"mark":"И"},
+            {"kind":"capability","entity_class":"service","subject":"ТЗ п. 3.2","predicate":"услуга позиционирования и навигации LEO-PNT","value":"услуга","source":{"anchor":"${я[2]}"},"mark":"И"}],
           "assessment":{"lines":[{"fact":0,"requirement":"п. 4.1","needs":["ND-0001"],"verdict":"partial","note":"интервал есть, а покрытия Арктики (широты выше 70°) требование не задаёт"},
                                {"fact":1,"requirement":"п. 4.2","needs":[],"verdict":"none","note":"срок службы — ни к одной нужде не ведёт"},
                                {"fact":2,"requirement":"п. 3.2","needs":[],"verdict":"none","note":"навигации заказчик не просил"}],
@@ -128,8 +128,8 @@ class KnowledgeModesTest {
         intake.putFacts(проект, старый, """{"topics":[],"actions":[
             {"kind":"create_entity","target_kind":"stakeholder","scene":"3","title":"сторона","preview":"…","payload":{"name":"Минтранс","role":"customer"},"facts":[0]}],
           "facts":[
-            {"kind":"relation","subject":"заказчик","predicate":"кто","value":"Минтранс","source":{"anchor":"${я[0]}"},"source_mark":"И"},
-            {"kind":"quantity","subject":"система","predicate":"срок службы","value":"5","unit":"год","source":{"anchor":"${я[1]}"},"source_mark":"И"}]}""", "Иванов И.")
+            {"kind":"relation","subject":"заказчик","predicate":"кто","value":"Минтранс","source":{"anchor":"${я[0]}"},"mark":"И"},
+            {"kind":"quantity","subject":"система","predicate":"срок службы","value":"5","unit":"год","source":{"anchor":"${я[1]}"},"mark":"И"}]}""", "Иванов И.")
         val задание = store.list(область, "intake_task").first()
         intake.accept(проект, задание.code, listOf(0), "Иванов И.")
         val новый = intake.putMaterial(проект, "Записка v2", "mission_memo", "Заказчик — Минтранс.\n\nСрок службы 7 лет.", "Иванов И.", supersedes = старый)
@@ -143,8 +143,8 @@ class KnowledgeModesTest {
     fun `конфликт фактов — оба со ссылкой друг на друга, ИИ не выбирает`() {
         val а = intake.putMaterial(проект, "Даташит А", "datasheet", "Масса платформы 80 кг.", "Иванов И.")
         val б = intake.putMaterial(проект, "Сайт", "reference", "Масса платформы 120 кг.", "Иванов И.")
-        intake.putFacts(проект, а, """{"topics":[],"actions":[],"facts":[{"kind":"quantity","subject":"платформа","predicate":"масса","value":"80","unit":"кг","source":{"anchor":"${якоря(а)[0]}"},"source_mark":"В"}]}""", "Иванов И.")
-        intake.putFacts(проект, б, """{"topics":[],"actions":[],"facts":[{"kind":"quantity","subject":"платформа","predicate":"масса","value":"120","unit":"кг","source":{"anchor":"${якоря(б)[0]}"},"source_mark":"В"}]}""", "Иванов И.")
+        intake.putFacts(проект, а, """{"topics":[],"actions":[],"facts":[{"kind":"quantity","subject":"платформа","predicate":"масса","value":"80","unit":"кг","source":{"anchor":"${якоря(а)[0]}"},"mark":"В"}]}""", "Иванов И.")
+        intake.putFacts(проект, б, """{"topics":[],"actions":[],"facts":[{"kind":"quantity","subject":"платформа","predicate":"масса","value":"120","unit":"кг","source":{"anchor":"${якоря(б)[0]}"},"mark":"В"}]}""", "Иванов И.")
         val факты = intake.facts(проект)
         assertEquals(2, факты.size)
         assertTrue(факты.all { it.conflicts.size == 1 }, факты.map { it.conflicts }.toString())

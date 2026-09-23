@@ -62,7 +62,7 @@ class DocumentReadingTest {
         )
         return знания.putMaterial(
             ПРОЕКТ, "Записка миссии IoT", "mission_memo",
-            записка.readText(), АВТОР, authority = Authority.MANDATORY,
+            записка.readText(), АВТОР, rank = Authority.MANDATORY,
         )
     }
 

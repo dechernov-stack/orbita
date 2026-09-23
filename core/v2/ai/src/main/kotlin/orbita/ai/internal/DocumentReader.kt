@@ -87,7 +87,7 @@ class DocumentReader(
                         factId = след,
                         material = material,
                         anchor = понятие.anchor,
-                        authority = факт.doc.path("authority").asText("").ifBlank { null },
+                        rank = факт.doc.path("rank").asText("").ifBlank { null },
                         mark = SourceMark.entries.firstOrNull { it.name == факт.doc.path("mark").asText("") },
                     ),
                 ),
@@ -362,11 +362,11 @@ ${самопроверкаПоРоли(роль)}
         // нему человек видит основание, не открывая документ.
         узел.put("quote", поля.path("quote").asText(""))
         узел.put("anchor", поля.path("anchor").asText(""))
-        узел.put("source_mark", если(пункт.concept == "assumption", "П", "И"))
+        узел.put("mark", если(пункт.concept == "assumption", "П", "И"))
         // Номер источника из списка документа (И1 · В10): истина схем завела
         // под него отдельное поле 17.09 — метка одной буквой номер теряла.
-        поля.path("source_mark_no").asText("").trim().ifBlank { null }?.let {
-            узел.put("source_mark_no", it)
+        поля.path("mark_no").asText("").trim().ifBlank { null }?.let {
+            узел.put("mark_no", it)
         }
         поля.path("confidence").takeIf { it.isNumber }?.let { узел.put("confidence", it.asDouble()) }
         return узел
@@ -655,7 +655,7 @@ ${рамки.ifBlank { "  (рамок ещё нет)" }}
         GeneratedOntology.documentRoles[роль]?.let { "$роль — $it" } ?: роль
 
     private fun ранг(карточка: Entity): String =
-        orbita.knowledge.api.Authority.word(карточка.doc.path("authority").asText(""))
+        orbita.knowledge.api.Authority.word(карточка.doc.path("rank").asText(""))
 
     private fun словоПонятия(код: String): String = СЛОВА[код] ?: код
 
@@ -705,7 +705,7 @@ ${рамки.ifBlank { "  (рамок ещё нет)" }}
         const val ТОЛЬКО_ФАКТ: String = "external_target"
 
         /** Служебные поля пункта: в понятие они не идут. */
-        val СЛУЖЕБНЫЕ: Set<String> = setOf("id", "quote", "anchor", "confidence", "source_mark_no")
+        val СЛУЖЕБНЫЕ: Set<String> = setOf("id", "quote", "anchor", "confidence", "mark_no")
 
         /** Канон штриха (истина, `normalization.prime`) и что в него приводится. */
         const val ШТРИХ: String = "\u2032"

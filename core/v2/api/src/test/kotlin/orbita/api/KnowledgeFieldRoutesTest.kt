@@ -245,21 +245,21 @@ class KnowledgeFieldRoutesTest {
             сквозные.handle(
                 "POST", "/v2/materials", mapOf("project" to сПолем),
                 """{"name":"ТЗ заказчика","kind":"tor","text":"п. 4.1 Система обязана передавать телеметрию.",
-                    "authority":"mandatory","author":"$автор"}""",
+                    "rank":"mandatory","author":"$автор"}""",
             ),
         )
         assertEquals(201, ответ.code, ответ.body.toString())
-        assertEquals(Authority.MANDATORY, ответ.body.path("authority").asText(), "ответ несёт ранг, а не только код")
+        assertEquals(Authority.MANDATORY, ответ.body.path("rank").asText(), "ответ несёт ранг, а не только код")
 
         val карточка = assertNotNull(store.byCode(Area.Project(сПолем), ответ.body.path("code").asText()))
-        assertEquals(Authority.MANDATORY, карточка.doc.path("authority").asText())
+        assertEquals(Authority.MANDATORY, карточка.doc.path("rank").asText())
         // Тип входного никуда не делся: он остаётся режимом разбора.
         assertEquals("tor", карточка.doc.path("kind").asText())
 
         val список = assertNotNull(сквозные.handle("GET", "/v2/materials", mapOf("project" to сПолем), null))
         assertEquals(
             Authority.MANDATORY,
-            список.body.path("items").single().path("authority").asText(),
+            список.body.path("items").single().path("rank").asText(),
             "перечень материалов показывает ранг: без него колонке «Ранг» нечего показывать",
         )
     }
@@ -285,7 +285,7 @@ class KnowledgeFieldRoutesTest {
             ),
         )
         assertEquals(201, ответ.code, ответ.body.toString())
-        assertEquals(Authority.MANDATORY, ответ.body.path("authority").asText(), "ТЗ заказчика — обязательный документ")
+        assertEquals(Authority.MANDATORY, ответ.body.path("rank").asText(), "ТЗ заказчика — обязательный документ")
         assertEquals(1, материалов(безПоля))
     }
 
@@ -359,7 +359,7 @@ class KnowledgeFieldRoutesTest {
         val код = assertNotNull(итог.material, "импорт кладёт файл материалом: у требования будет источник и якорь")
         val карточка = assertNotNull(store.byCode(Area.Project(сПолем), код))
         assertEquals(
-            Authority.REFERENCE, карточка.doc.path("authority").asText(),
+            Authority.REFERENCE, карточка.doc.path("rank").asText(),
             "чужой файл — свидетельство, а не обязательный документ заказчика",
         )
         assertEquals(1, итог.candidates.size, итог.note)

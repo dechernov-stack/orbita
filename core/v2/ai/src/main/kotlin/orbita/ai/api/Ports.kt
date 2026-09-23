@@ -168,7 +168,7 @@ data class Basis(
     val factId: String,
     val material: String? = null,
     val anchor: String? = null,
-    val authority: String? = null,
+    val rank: String? = null,
     val mark: SourceMark? = null,
     /** Ветка союза `fact.source`: документ с якорем либо эксперт с ролью и датой. */
     val source: FactSource? = null,
@@ -177,8 +177,8 @@ data class Basis(
         // Основание без кода факта непроверяемо: по нему нельзя дойти до
         // источника, а предложение без проверяемого основания — брак.
         require(factId.isNotBlank()) { "брак предложения: основание без кода факта" }
-        require(authority == null || Authority.known(authority)) {
-            "ранг основания «$authority» неизвестен: ${Authority.words()}"
+        require(rank == null || Authority.known(rank)) {
+            "ранг основания «$rank» неизвестен: ${Authority.words()}"
         }
     }
 }

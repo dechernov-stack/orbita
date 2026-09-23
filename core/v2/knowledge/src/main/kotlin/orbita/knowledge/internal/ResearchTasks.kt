@@ -226,7 +226,7 @@ internal class ResearchTasks(
             kind = "analysis",
             text = text,
             author = author,
-            authority = Authority.DOUBTFUL,
+            rank = Authority.DOUBTFUL,
         )
         val заметка = связать(область, материал, запись, author)
         val документ = приписка(
@@ -288,7 +288,7 @@ internal class ResearchTasks(
                 менялось = true
             }
             if (поднимается(факт, ранг)) {
-                правка.put("authority", ранг)
+                правка.put("rank", ранг)
                 поднятоФактов += 1
                 менялось = true
             }
@@ -323,10 +323,10 @@ internal class ResearchTasks(
      */
     private fun поднять(область: Area, материал: String, author: String): Boolean {
         val карточка = store.byCode(область, материал)?.takeIf { it.kind == "material" } ?: return false
-        if (карточка.doc.path("authority").asText("") != Authority.DOUBTFUL) return false
+        if (карточка.doc.path("rank").asText("") != Authority.DOUBTFUL) return false
         store.update(
             карточка.id,
-            (карточка.doc.deepCopy() as ObjectNode).put("authority", Authority.REFERENCE),
+            (карточка.doc.deepCopy() as ObjectNode).put("rank", Authority.REFERENCE),
             Provenance(Channel.MANUAL, author, source = повод(материал)),
         )
         return true
@@ -335,7 +335,7 @@ internal class ResearchTasks(
     /** Ранг карточки материала: им же поднимаются её факты — второго значения нет. */
     private fun рангМатериала(область: Area, материал: String): String =
         store.byCode(область, материал)?.takeIf { it.kind == "material" }
-            ?.doc?.path("authority")?.asText("").orEmpty()
+            ?.doc?.path("rank")?.asText("").orEmpty()
 
     /**
      * Факт поднимается вместе со своим материалом — и только «сомнительный».
@@ -352,7 +352,7 @@ internal class ResearchTasks(
      */
     private fun поднимается(факт: Entity, ранг: String): Boolean =
         ранг.isNotBlank() && ранг != Authority.DOUBTFUL &&
-            факт.doc.path("authority").asText("") == Authority.DOUBTFUL
+            факт.doc.path("rank").asText("") == Authority.DOUBTFUL
 
     /** Повод правки словами: провенанс обязан объяснять, почему ранг вырос. */
     private fun повод(материал: String): String = "подтверждение источников материала $материал человеком"

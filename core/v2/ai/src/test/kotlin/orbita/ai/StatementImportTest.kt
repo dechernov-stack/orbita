@@ -46,7 +46,7 @@ class StatementImportTest {
         )
         return знания.putMaterial(
             ПРОЕКТ, "Записка миссии IoT", "mission_memo", записка.readText(), АВТОР,
-            authority = Authority.MANDATORY, role = "charter",
+            rank = Authority.MANDATORY, role = "charter",
         )
     }
 
@@ -155,7 +155,7 @@ class StatementImportTest {
 
         val цель = запуск.diff.new.first { it.concept == "goal" && it.payload["statement"]?.startsWith("Достичь стратегического") == true }
         val следЦели = assertNotNull(store.byCode(Area.Project(ПРОЕКТ), цель.basis.single().factId))
-        assertEquals("И1", следЦели.doc.path("source_mark_no").asText(), "номер источника «И1» сохранён отдельным полем")
+        assertEquals("И1", следЦели.doc.path("mark_no").asText(), "номер источника «И1» сохранён отдельным полем")
         assertEquals("И", следЦели.doc.path("mark").asText())
     }
 

@@ -85,7 +85,7 @@ class FormationGateTest {
             {"facts":[
               {"kind":"relation","subject":"Минвостокразвития","predicate":"является заказчиком",
                "value":"заказчик/регулятор макрорегиона","source":{"anchor":"ЯКОРЬ"},
-               "source_mark":"И","entity_class":"stakeholder"}],
+               "mark":"И","entity_class":"stakeholder"}],
              "actions":[
               {"kind":"create_entity","target_kind":"need","scene":"3",
                "title":"нужда из строки роли","preview":"появится нужда",
@@ -115,7 +115,7 @@ class FormationGateTest {
             {"facts":[
               {"kind":"assessment","subject":"Минтранс России","predicate":"испытывает дефицит",
                "value":"непрерывной телеметрии вне зоны покрытия","source":{"anchor":"ЯКОРЬ"},
-               "source_mark":"П"}],
+               "mark":"П"}],
              "actions":[
               {"kind":"create_entity","target_kind":"need","scene":"3",
                "title":"нужда из оценки","preview":"появится нужда",
@@ -140,7 +140,7 @@ class FormationGateTest {
             {"facts":[
               {"kind":"framing","subject":"Минтранс России","predicate":"нуждается в",
                "value":"связь в Арктике на всём протяжении СМП","source":{"anchor":"ЯКОРЬ"},
-               "source_mark":"И"}],
+               "mark":"И"}],
              "actions":[
               {"kind":"create_entity","target_kind":"need","scene":"3",
                "title":"нужда Минтранса","preview":"появится нужда",
@@ -175,10 +175,10 @@ class FormationGateTest {
             {"facts":[
               {"kind":"obligation","subject":"Президент Российской Федерации",
                "predicate":"утверждает Стратегию развития Арктики","value":"Указ № 645",
-               "source":{"anchor":"ЯКОРЬ"},"source_mark":"И"},
+               "source":{"anchor":"ЯКОРЬ"},"mark":"И"},
               {"kind":"relation","subject":"ГКРЧ","predicate":"регулирует",
                "value":"радиочастотный спектр","source":{"anchor":"ЯКОРЬ"},
-               "source_mark":"И","entity_class":"stakeholder"}],
+               "mark":"И","entity_class":"stakeholder"}],
              "actions":[
               {"kind":"create_entity","target_kind":"stakeholder","scene":"3",
                "title":"Президент Российской Федерации","preview":"появится сторона миссии",
@@ -213,9 +213,9 @@ class FormationGateTest {
             {"facts":[
               {"kind":"relation","subject":"Корпорация развития Дальнего Востока",
                "predicate":"является оператором","value":"цифровых коридоров",
-               "source":{"anchor":"ЯКОРЬ"},"source_mark":"В","entity_class":"stakeholder"},
+               "source":{"anchor":"ЯКОРЬ"},"mark":"В","entity_class":"stakeholder"},
               {"kind":"framing","subject":"Рыбопромысловый флот Приморья","predicate":"нуждается в",
-               "value":"спутниковом канале","source":{"anchor":"ЯКОРЬ"},"source_mark":"В"}],
+               "value":"спутниковом канале","source":{"anchor":"ЯКОРЬ"},"mark":"В"}],
              "actions":[
               {"kind":"create_entity","target_kind":"stakeholder","scene":"3",
                "title":"Корпорация развития Дальнего Востока","preview":"появится сторона миссии",
@@ -251,7 +251,7 @@ class FormationGateTest {
             """
             {"facts":[
               {"kind":"framing","subject":"группировка","predicate":"развернуть к 2032 году",
-               "value":"180 МКА","source":{"anchor":"ЯКОРЬ"},"source_mark":"И"}],
+               "value":"180 МКА","source":{"anchor":"ЯКОРЬ"},"mark":"И"}],
              "actions":[
               {"kind":"create_entity","target_kind":"goal","scene":"4",
                "title":"цель: развернуть группировку","preview":"появится цель",
@@ -277,7 +277,7 @@ class FormationGateTest {
             """
             {"facts":[
               {"subject":"Приморье","predicate":"нуждается в","value":"спутниковом канале",
-               "source":{"anchor":"ЯКОРЬ"},"source_mark":"В"}],
+               "source":{"anchor":"ЯКОРЬ"},"mark":"В"}],
              "actions":[]}
             """.trimIndent(),
         )
@@ -306,7 +306,7 @@ class FormationGateTest {
 
     private fun разобрать(текстРазбора: String, ранг: String = Authority.MANDATORY): FactIntake {
         val материал = знания.putMaterial(
-            проект, "Записка о миссии", "mission_memo", ТЕКСТ, автор, authority = ранг,
+            проект, "Записка о миссии", "mission_memo", ТЕКСТ, автор, rank = ранг,
         )
         val якорь = знания.canon(проект, материал).first { it.kind == "para" }.anchor
         return знания.putFacts(проект, материал, текстРазбора.replace("ЯКОРЬ", якорь), автор)
@@ -327,9 +327,9 @@ class FormationGateTest {
             """
             {"facts":[
               {"kind":"framing","subject":"Минтранс России","predicate":"не хватает",
-               "value":"непрерывного мониторинга судов на СМП","source":{"anchor":"ЯКОРЬ"},"source_mark":"И"},
+               "value":"непрерывного мониторинга судов на СМП","source":{"anchor":"ЯКОРЬ"},"mark":"И"},
               {"kind":"framing","subject":"Росморпорт","predicate":"не хватает",
-               "value":"непрерывного мониторинга судов на СМП","source":{"anchor":"ЯКОРЬ"},"source_mark":"И"}],
+               "value":"непрерывного мониторинга судов на СМП","source":{"anchor":"ЯКОРЬ"},"mark":"И"}],
              "actions":[
               {"kind":"create_entity","target_kind":"need","scene":"3",
                "title":"нужда Минтранса","preview":"появится нужда",

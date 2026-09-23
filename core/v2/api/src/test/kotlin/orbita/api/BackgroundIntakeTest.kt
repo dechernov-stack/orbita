@@ -39,7 +39,7 @@ class BackgroundIntakeTest {
 
     private fun ответ(якорь: String) = """{"topics":[{"label":"телеметрия"}],"actions":[
         {"kind":"create_entity","target_kind":"requirement","scene":"8","title":"требование из п. 4.1","preview":"…","payload":{"statement":"приём телеметрии не реже 30 мин","level":"project","category":"performance"},"facts":[0]}],"facts":[
-        {"kind":"obligation","topic":"телеметрия","subject":"ТЗ п. 4.1","predicate":"приём телеметрии не реже 30 мин","value":"требование","source":{"anchor":"$якорь"},"source_mark":"И"}]}"""
+        {"kind":"obligation","topic":"телеметрия","subject":"ТЗ п. 4.1","predicate":"приём телеметрии не реже 30 мин","value":"требование","source":{"anchor":"$якорь"},"mark":"И"}]}"""
 
     @Test
     fun `фоновый разбор — задание идёт, стенд свободен, ответ применяется при опросе`() {

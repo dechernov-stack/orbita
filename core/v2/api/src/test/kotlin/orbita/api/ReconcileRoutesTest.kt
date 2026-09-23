@@ -135,7 +135,7 @@ class ReconcileRoutesTest {
         val предмет = ответ.body.path("items").first()
         assertEquals("c1", предмет.path("local_id").asText())
         assertEquals("F-0001", предмет.path("candidate_fact").asText(), "ручной ввод стал кандидатом-фактом")
-        assertEquals(Authority.EXPERT, предмет.path("authority").asText())
+        assertEquals(Authority.EXPERT, предмет.path("rank").asText())
         assertEquals(автор, предмет.path("source").path("account").asText(), "у руки якоря нет — учётка, роль, дата")
         assertTrue(предмет.path("decided").isNull, "решение ещё не принято: судьбу кандидата решает человек")
 
@@ -396,7 +396,7 @@ class ReconcileRoutesTest {
         )
 
         private fun предмет(номер: String) = ReconcileItem(
-            localId = номер, concept = "need", candidateFact = "F-0001", authority = Authority.EXPERT,
+            localId = номер, concept = "need", candidateFact = "F-0001", rank = Authority.EXPERT,
             source = FactSource.FromExpert(автор.ifBlank { "Иванов И." }, роль.ifBlank { "ведущий СИ" }, "2026-09-12"),
             verdict = Verdict.AUGMENT,
             findings = listOf(

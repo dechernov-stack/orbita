@@ -594,7 +594,7 @@ class Прогон:
                 вызов(self.base, "POST", f"/v2/risks/{риск['code']}/close?project={self.проект}",
                       {"resolution": р["resolution"], "author": "Чернов Д."})
                 self.сделано.append(f"сцена 17: риск {риск['code']} закрыт решением")
-        # §10 наполняется допущениями по истине схем (source_mark = П):
+        # §10 наполняется допущениями по истине схем (mark = П):
         # смотрим на сам раздел, а не на список фактов.
         отчёт = вызов(self.base, "GET", f"/v2/documents/mcreport?project={self.проект}&gate=KDP-A")
         строк10 = sum(len(э.get("rows", [])) for р in отчёт.get("sections", []) if р.get("no") == "§10"

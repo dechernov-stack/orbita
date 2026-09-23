@@ -194,7 +194,7 @@ def main() -> int:
     # источники: подтверждённый факт несёт evidence=corroborated.
     неподтверждённые = [
         ф for ф in факты
-        if (ф.get("authority") or "") == РАНГ_СОМНИТЕЛЬНЫЙ
+        if (ф.get("rank") or "") == РАНГ_СОМНИТЕЛЬНЫЙ
         and (ф.get("disposition") or "") == ПРИНЯТ
         and (ф.get("evidence") or "") != ПОДТВЕРЖДЁН
     ]

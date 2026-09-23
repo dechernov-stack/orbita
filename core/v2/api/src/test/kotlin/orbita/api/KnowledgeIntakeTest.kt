@@ -53,14 +53,14 @@ class KnowledgeIntakeTest {
          ],
          "facts":[
            {"kind":"quantity","topic":"масса платформы","subject":"платформа","predicate":"масса сухая",
-            "value":"78","unit":"кг","source":{"anchor":"s1#1"},"source_mark":"В","confidence":0.8},
+            "value":"78","unit":"кг","source":{"anchor":"s1#1"},"mark":"В","confidence":0.8},
            {"kind":"obligation","topic":"частотный режим","subject":"оператор",
             "predicate":"использование частот только после решения ГКРЧ","value":"обязательно",
-            "source":{"anchor":"s1#2"},"source_mark":"И","confidence":0.9},
+            "source":{"anchor":"s1#2"},"mark":"И","confidence":0.9},
            {"kind":"quantity","topic":"масса платформы","subject":"платформа","predicate":"масса стартовая",
-            "value":"84","source":{"anchor":"s1#1"},"source_mark":"В","confidence":0.7},
+            "value":"84","source":{"anchor":"s1#1"},"mark":"В","confidence":0.7},
            {"kind":"framing","subject":"миссия","predicate":"без якоря придумано",
-            "value":"нечто","source":{"anchor":"s99#9"},"source_mark":"П","confidence":0.3}
+            "value":"нечто","source":{"anchor":"s99#9"},"mark":"П","confidence":0.3}
          ]}
     """.trimIndent()
 

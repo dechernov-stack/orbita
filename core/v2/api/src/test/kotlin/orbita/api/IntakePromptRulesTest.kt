@@ -67,7 +67,7 @@ class IntakePromptRulesTest {
             Provenance(Channel.MANUAL, "Чернов Д."),
         )
         val материал = intake.putMaterial(
-            проект, "Записка миссии", "note", ЗАПИСКА, "Иванов И.", authority = "mandatory",
+            проект, "Записка миссии", "note", ЗАПИСКА, "Иванов И.", rank = "mandatory",
         )
         val служба = AiFactory.service(
             store,

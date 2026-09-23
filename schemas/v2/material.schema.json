@@ -87,14 +87,14 @@
         "type": "string"
       }
     },
-    "authority": {
+    "rank": {
       "enum": [
         "mandatory",
         "expert",
         "reference",
         "doubtful"
       ],
-      "description": "ранг доверия источника — обязательный · экспертный · справочный · сомнительный; наследуется фактами; в противоречии подсказывает, решает человек"
+      "description": "ось «доверие» (ОНТОЛОГИЯ-АУДИТ часть 3) — ранг доверия источника, ставит человек при загрузке — обязательный · экспертный · справочный · сомнительный; наследуется фактами; в противоречии подсказывает, решает человек; прежнее имя authority снято"
     },
     "type": {
       "enum": [
@@ -111,7 +111,7 @@
         "regulatory_decision",
         "reference"
       ],
-      "description": "режим разбора (tor · datasheet · normative) выводится заданием и профилем, НЕ поле ввода; доверие — в authority"
+      "description": "режим разбора (tor · datasheet · normative) выводится заданием и профилем, НЕ поле ввода; доверие — в rank"
     },
     "title": {
       "type": "string"
@@ -295,7 +295,7 @@
     "provenance",
     "created_at",
     "updated_at",
-    "authority",
+    "rank",
     "title",
     "file",
     "origin",

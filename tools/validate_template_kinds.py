@@ -14,9 +14,9 @@ MCReport §2.1 просил `variant` (в реестре `constellation_variant`
   4. сцены раздела существуют в шаблоне фазы: раздел не может ждать
      сцену, которой нет (так пропала сцена 9);
   5. поля `where` — поля вида по истине схем (плюс служебные `level_max`,
-     `unresolved`): §10 MCReport отбирал `source_mark`, а запись хранила
+     `unresolved`): §10 MCReport отбирал `mark`, а запись хранила
      `mark` — раздел не наполнялся никогда (шип D). Запись факта теперь
-     идёт и по схеме (`source_mark`, `source{material, anchor}`).
+     идёт и по схеме (`mark`, `source{material, anchor}`).
 
     python3 tools/validate_template_kinds.py
 """

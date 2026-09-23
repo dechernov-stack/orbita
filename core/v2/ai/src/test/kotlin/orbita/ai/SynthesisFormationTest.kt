@@ -64,8 +64,8 @@ class SynthesisFormationTest {
     @Test
     fun `урезание идёт по рангу — обязательное вытесняет справочное`() {
         паспорт(ПРОЕКТ, полеЗнаний = true)
-        repeat(60) { номер -> факт("F-%04d".format(номер + 1), "узел ${номер + 1}", "описан", authority = "reference") }
-        факт("F-0100", "Минтранс России", "нуждается в", authority = "mandatory")
+        repeat(60) { номер -> факт("F-%04d".format(номер + 1), "узел ${номер + 1}", "описан", rank = "reference") }
+        факт("F-0100", "Минтранс России", "нуждается в", rank = "mandatory")
 
         синтез.synthesize(ПРОЕКТ, "manual", "инженер")
 
@@ -76,8 +76,8 @@ class SynthesisFormationTest {
     @Test
     fun `сомнительный факт в срез не попадает, пока человек его не принял`() {
         паспорт(ПРОЕКТ, полеЗнаний = true)
-        факт("F-0001", "внешний обзор", "утверждает", authority = "doubtful", disposition = "noted")
-        факт("F-0002", "записка", "утверждает", authority = "mandatory", disposition = "noted")
+        факт("F-0001", "внешний обзор", "утверждает", rank = "doubtful", disposition = "noted")
+        факт("F-0002", "записка", "утверждает", rank = "mandatory", disposition = "noted")
 
         синтез.synthesize(ПРОЕКТ, "manual", "инженер")
         val первый = транспорт.промпты.last()
@@ -97,9 +97,9 @@ class SynthesisFormationTest {
     @Test
     fun `три документа разного ранга дают одну постановку с происхождением из трёх`() {
         паспорт(ПРОЕКТ, полеЗнаний = true)
-        факт("F-0001", "Минтранс России", "нуждается в", material = "M-0001", authority = "mandatory")
-        факт("F-0002", "Минтранс России", "нуждается в", material = "M-0002", authority = "expert")
-        факт("F-0003", "Минтранс России", "нуждается в", material = "M-0003", authority = "reference")
+        факт("F-0001", "Минтранс России", "нуждается в", material = "M-0001", rank = "mandatory")
+        факт("F-0002", "Минтранс России", "нуждается в", material = "M-0002", rank = "expert")
+        факт("F-0003", "Минтранс России", "нуждается в", material = "M-0003", rank = "reference")
         транспорт.ответ = ответ(
             """
             {"concept":"need",
@@ -115,7 +115,7 @@ class SynthesisFormationTest {
         assertEquals(listOf("M-0001", "M-0002", "M-0003"), предложение.basis.map { it.material })
         assertEquals(
             listOf("mandatory", "expert", "reference"),
-            предложение.basis.map { it.authority },
+            предложение.basis.map { it.rank },
             "ранг основания берётся у факта, а не у ответа службы",
         )
         assertTrue(предложение.missing.isEmpty(), "сторона названа — обязательная связь закрыта")
@@ -174,8 +174,8 @@ class SynthesisFormationTest {
     fun `цель с разными годами — противоречие с рангами обоих и без выбора победителя`() {
         паспорт(ПРОЕКТ, полеЗнаний = true)
         понятие("MG-0001", "goal", mapOf("statement" to "развернуть группировку", "year" to "2030"))
-        факт("F-0001", "группировка", "развёрнута к году", "2030", material = "M-0001", authority = "mandatory")
-        факт("F-0002", "группировка", "развёрнута к году", "2032", material = "M-0002", authority = "reference")
+        факт("F-0001", "группировка", "развёрнута к году", "2030", material = "M-0001", rank = "mandatory")
+        факт("F-0002", "группировка", "развёрнута к году", "2032", material = "M-0002", rank = "reference")
         транспорт.ответ = ответ(
             """
             {"concept":"goal","payload":{"statement":"развернуть группировку","year":"2032"},
@@ -200,7 +200,7 @@ class SynthesisFormationTest {
     fun `подтверждение из другого материала — свидетельство, а не дубль`() {
         паспорт(ПРОЕКТ, полеЗнаний = true)
         понятие("ND-0001", "need", mapOf("statement" to "связь в Арктике"))
-        факт("F-0001", "Минтранс России", "нуждается в", material = "M-0007", authority = "expert")
+        факт("F-0001", "Минтранс России", "нуждается в", material = "M-0007", rank = "expert")
         транспорт.ответ = ответ(
             """
             {"concept":"need","payload":{"statement":"связь в Арктике","stakeholder":"Минтранс России"},
@@ -511,7 +511,7 @@ class SynthesisFormationTest {
         unit: String? = null,
         material: String = "M-0001",
         anchor: String = "s1#1",
-        authority: String = "mandatory",
+        rank: String = "mandatory",
         mark: String = "И",
         disposition: String = "adopted",
         kind: String = "framing",
@@ -521,8 +521,8 @@ class SynthesisFormationTest {
         if (value.isNotBlank()) документ.put("value", value)
         unit?.let { документ.put("unit", it) }
         документ.put("anchor", anchor).put("material", material)
-        документ.put("mark", mark).put("source_mark", mark)
-        документ.put("authority", authority).put("disposition", disposition)
+        документ.put("mark", mark).put("mark", mark)
+        документ.put("rank", rank).put("disposition", disposition)
         документ.putObject("source").put("material", material).put("anchor", anchor)
         store.create(
             код, "fact", Area.Project(ПРОЕКТ), null, документ,

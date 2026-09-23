@@ -46,7 +46,7 @@ class FieldConflictLinksTest {
 
     private fun масса(якорь: String, значение: String) = """
         {"topics":[],"actions":[],"facts":[
-          {"kind":"quantity","subject":"платформа","predicate":"масса","value":"$значение","unit":"кг","source":{"anchor":"$якорь"},"source_mark":"В"}]}"""
+          {"kind":"quantity","subject":"платформа","predicate":"масса","value":"$значение","unit":"кг","source":{"anchor":"$якорь"},"mark":"В"}]}"""
 
     /** Факт по его коду: связи живут на идентификаторах сущностей, не на кодах. */
     private fun сущностьФакта(материал: String) =
@@ -59,7 +59,7 @@ class FieldConflictLinksTest {
     private fun снятьРанг(материал: String) {
         val карточка = assertNotNull(store.byCode(область, материал))
         val документ = (карточка.doc.deepCopy() as ObjectNode)
-        документ.remove("authority")
+        документ.remove("rank")
         store.update(карточка.id, документ, провенанс)
     }
 
@@ -67,11 +67,11 @@ class FieldConflictLinksTest {
     fun `конфликт двух документов — связь contradicts между фактами разных материалов, с рангами обоих`() {
         val записка = intake.putMaterial(
             проект, "Записка", "mission_memo", "Масса платформы 80 кг.", "Иванов И.",
-            authority = Authority.MANDATORY,
+            rank = Authority.MANDATORY,
         )
         val сайт = intake.putMaterial(
             проект, "Сайт поставщика", "reference", "Масса платформы 120 кг.", "Иванов И.",
-            authority = Authority.DOUBTFUL,
+            rank = Authority.DOUBTFUL,
         )
         intake.putFacts(проект, записка, масса(якоря(записка)[0], "80"), "Иванов И.")
         intake.putFacts(проект, сайт, масса(якоря(сайт)[0], "120"), "Иванов И.")
@@ -102,11 +102,11 @@ class FieldConflictLinksTest {
         // Девять целей записки под «проект · достичь» держали MCR как 51
         // неразрешённое противоречие (216, 17.09). Спор — только между
         // источниками; внутри одного документа разные значения — перечень.
-        val записка = intake.putMaterial(проект, "Записка", "mission_memo", "п. 1 Цели программы.\n\nп. 2 Ещё цели.", "Иванов И.", authority = "mandatory")
+        val записка = intake.putMaterial(проект, "Записка", "mission_memo", "п. 1 Цели программы.\n\nп. 2 Ещё цели.", "Иванов И.", rank = "mandatory")
         val я = якоря(записка)
         intake.putFacts(проект, записка, """{"topics":[],"actions":[],"facts":[
-            {"kind":"quantity","subject":"проект","predicate":"достичь","value":"развернуть 50 КА","unit":"КА","source":{"anchor":"${я[0]}"},"source_mark":"И"},
-            {"kind":"quantity","subject":"проект","predicate":"достичь","value":"развернуть 150 КА","unit":"КА","source":{"anchor":"${я[0]}"},"source_mark":"И"}]}""", "Иванов И.")
+            {"kind":"quantity","subject":"проект","predicate":"достичь","value":"развернуть 50 КА","unit":"КА","source":{"anchor":"${я[0]}"},"mark":"И"},
+            {"kind":"quantity","subject":"проект","predicate":"достичь","value":"развернуть 150 КА","unit":"КА","source":{"anchor":"${я[0]}"},"mark":"И"}]}""", "Иванов И.")
 
         val факты = intake.facts(проект).filter { it.material == записка }
         assertEquals(2, факты.size)
@@ -121,11 +121,11 @@ class FieldConflictLinksTest {
     fun `совпадающие значения связи не рождают, а повторный разбор её не удваивает`() {
         val записка = intake.putMaterial(
             проект, "Записка", "mission_memo", "Масса платформы 80 кг.", "Иванов И.",
-            authority = Authority.MANDATORY,
+            rank = Authority.MANDATORY,
         )
         val копия = intake.putMaterial(
             проект, "Аналитическая записка", "analysis", "Масса платформы 80 кг.", "Иванов И.",
-            authority = Authority.REFERENCE,
+            rank = Authority.REFERENCE,
         )
         intake.putFacts(проект, записка, масса(якоря(записка)[0], "80"), "Иванов И.")
         intake.putFacts(проект, копия, масса(якоря(копия)[0], "80"), "Иванов И.")
@@ -134,7 +134,7 @@ class FieldConflictLinksTest {
 
         val сайт = intake.putMaterial(
             проект, "Сайт поставщика", "reference", "Масса платформы 120 кг.", "Иванов И.",
-            authority = Authority.DOUBTFUL,
+            rank = Authority.DOUBTFUL,
         )
         val разбор = масса(якоря(сайт)[0], "120")
         intake.putFacts(проект, сайт, разбор, "Иванов И.")
@@ -211,14 +211,14 @@ class FieldConflictLinksTest {
         проект, "Аналитическая записка с разделом требований", "analysis",
         "п. 4.1 Система обязана обеспечивать приём телеметрии с интервалом не более 30 мин.\n\n" +
             "п. 3.2 Услуги: позиционирование и навигация (LEO-PNT).",
-        "Иванов И.", authority = ранг,
+        "Иванов И.", rank = ранг,
     )
 
     private fun разобрать(материал: String, профиль: String = """{"statement":0.2,"norms":0.8}"""): FactIntake {
         val я = якоря(материал)
         val json = """{"profile":$профиль,"topics":[],"actions":[],"facts":[
-            {"kind":"obligation","entity_class":"requirement","subject":"ТЗ п. 4.1","predicate":"приём телеметрии с интервалом не более 30 мин","value":"требование","source":{"anchor":"${я[0]}"},"source_mark":"И"},
-            {"kind":"capability","entity_class":"service","subject":"ТЗ п. 3.2","predicate":"услуга позиционирования и навигации LEO-PNT","value":"услуга","source":{"anchor":"${я[1]}"},"source_mark":"И"}],
+            {"kind":"obligation","entity_class":"requirement","subject":"ТЗ п. 4.1","predicate":"приём телеметрии с интервалом не более 30 мин","value":"требование","source":{"anchor":"${я[0]}"},"mark":"И"},
+            {"kind":"capability","entity_class":"service","subject":"ТЗ п. 3.2","predicate":"услуга позиционирования и навигации LEO-PNT","value":"услуга","source":{"anchor":"${я[1]}"},"mark":"И"}],
           "assessment":{"lines":[
             {"fact":0,"requirement":"п. 4.1","needs":[],"verdict":"none","note":"интервал есть, нужды проекта под ним нет"},
             {"fact":1,"requirement":"п. 3.2","needs":[],"verdict":"none","note":"навигации заказчик не просил"}],

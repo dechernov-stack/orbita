@@ -190,9 +190,9 @@ class ExchangeTest {
         val материал = intake.putMaterial(проект, "Записка", "mission_memo", "Заказчик — Минтранс.\n\nСрок службы 5 лет.\n\nМасса 90 кг.", "Иванов И.")
         val я = intake.canon(проект, материал).map { it.anchor }
         val итог = intake.putFacts(проект, материал, """{"topics":[],"actions":[],"facts":[
-            {"kind":"framing","subject":"заказчик","predicate":"кто заказчик","value":"Минтранс","source":{"anchor":"${я[0]}"},"source_mark":"И"},
-            {"kind":"quantity","subject":"КА","predicate":"срок службы","value":"5","unit":"лет","source":{"anchor":"${я[1]}"},"source_mark":"И"},
-            {"kind":"quantity","subject":"КА","predicate":"масса","value":"90","unit":"кг","source":{"anchor":"${я[2]}"},"source_mark":"П"}]}""", "Иванов И.")
+            {"kind":"framing","subject":"заказчик","predicate":"кто заказчик","value":"Минтранс","source":{"anchor":"${я[0]}"},"mark":"И"},
+            {"kind":"quantity","subject":"КА","predicate":"срок службы","value":"5","unit":"лет","source":{"anchor":"${я[1]}"},"mark":"И"},
+            {"kind":"quantity","subject":"КА","predicate":"масса","value":"90","unit":"кг","source":{"anchor":"${я[2]}"},"mark":"П"}]}""", "Иванов И.")
         val коды = итог.accepted.map { it.id }
         intake.dispose(проект, коды[0], Disposition.ADOPTED, "", "Иванов И.")
         intake.dispose(

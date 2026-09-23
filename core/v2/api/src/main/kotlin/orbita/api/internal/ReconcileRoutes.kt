@@ -226,7 +226,7 @@ class ReconcileRoutes(
         .put("local_id", п.localId)
         .put("concept", п.concept)
         .put("candidate_fact", п.candidateFact)
-        .put("authority", п.authority)
+        .put("rank", п.rank)
         .put("verdict", п.verdict.name.lowercase())
         .put("verdict_word", п.verdict.word)
         .put("decided", п.decided?.name?.lowercase())

@@ -487,7 +487,7 @@ class SynthesisRoutes(
     private fun видПредложения(имя: String, п: FormationProposal, решения: JsonNode? = null): ObjectNode {
         val узел = mapper.createObjectNode()
             .put("proposal", имя).put("concept", п.concept)
-            .put("verdict", п.verdict.code).put("source_mark", п.sourceMark.name)
+            .put("verdict", п.verdict.code).put("mark", п.sourceMark.name)
         п.targetRef?.let { узел.put("target_ref", it) }
         if (п.diffField.isNotBlank()) узел.put("diff_field", п.diffField)
         п.confidence?.let { узел.put("confidence", it) }
@@ -510,7 +510,7 @@ class SynthesisRoutes(
         val узел = mapper.createObjectNode().put("fact", о.factId)
         о.material?.let { узел.put("material", it) }
         о.anchor?.let { узел.put("anchor", it) }
-        о.authority?.let { узел.put("authority", it).put("authority_word", Authority.word(it)) }
+        о.rank?.let { узел.put("rank", it).put("rank_word", Authority.word(it)) }
         о.mark?.let { узел.put("mark", it.name) }
         (о.source as? FactSource.FromExpert)?.let {
             узел.put("account", it.account).put("role", it.role).put("at", it.at)

@@ -28,13 +28,13 @@ class SynthesisPortsTest {
         factId = "F-0007",
         material = "M-0001",
         anchor = "блок-12",
-        authority = Authority.MANDATORY,
+        rank = Authority.MANDATORY,
         mark = SourceMark.И,
     )
 
     private val отЭксперта = Basis(
         factId = "F-0042",
-        authority = Authority.EXPERT,
+        rank = Authority.EXPERT,
         mark = SourceMark.И,
         source = FactSource.FromExpert(account = "ivanov", role = "ведущий СИ", at = "2026-09-12"),
     )
@@ -156,7 +156,7 @@ class SynthesisPortsTest {
     @Test
     fun `основание без кода факта и с неизвестным рангом отвергается`() {
         assertFailsWith<IllegalArgumentException> { Basis(factId = " ") }
-        val беда = assertFailsWith<IllegalArgumentException> { Basis(factId = "F-0001", authority = "важный") }
+        val беда = assertFailsWith<IllegalArgumentException> { Basis(factId = "F-0001", rank = "важный") }
         assertTrue("ранг основания" in (беда.message ?: ""), беда.message ?: "")
     }
 

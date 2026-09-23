@@ -434,7 +434,7 @@ private class ПамятьСверки(
                 .put("subject", кандидат.payload.path("stakeholder").asText(""))
                 .put("predicate", "нуждается в")
                 .put("value", кандидат.payload.path("statement").asText(""))
-                .put("authority", Authority.EXPERT)
+                .put("rank", Authority.EXPERT)
                 .put("disposition", "adopted"),
             Provenance(Channel.MANUAL, author),
         )
@@ -443,7 +443,7 @@ private class ПамятьСверки(
         запись.put("concept", кандидат.concept)
         запись.put("origin", кандидат.origin.name)
         запись.put("candidate_fact", факт.code)
-        запись.put("authority", Authority.EXPERT)
+        запись.put("rank", Authority.EXPERT)
         запись.putObject("source").put("account", author).put("role", role).put("at", "2026-09-12")
         запись.set<JsonNode>("payload", кандидат.payload)
         val находки = запись.putArray("findings")
@@ -495,7 +495,7 @@ private class ПамятьСверки(
         localId = запись.path("local_id").asText(""),
         concept = запись.path("concept").asText(""),
         candidateFact = запись.path("candidate_fact").asText(""),
-        authority = запись.path("authority").asText(Authority.EXPERT),
+        rank = запись.path("rank").asText(Authority.EXPERT),
         source = FactSource.FromExpert(
             запись.path("source").path("account").asText(""),
             запись.path("source").path("role").asText(""),

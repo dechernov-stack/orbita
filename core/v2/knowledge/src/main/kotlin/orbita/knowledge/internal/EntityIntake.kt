@@ -84,7 +84,7 @@ class EntityIntake(
         text: String,
         author: String,
         supersedes: String?,
-        authority: String?,
+        rank: String?,
         profile: ContentProfile?,
         role: String?,
     ): String {
@@ -119,8 +119,8 @@ class EntityIntake(
             }
             документ.put("role", роль)
         }
-        val ранг = рангВхода(project, kind, authority)
-        документ.put("authority", ранг.value)
+        val ранг = рангВхода(project, kind, rank)
+        документ.put("rank", ранг.value)
         ранг.note?.let { документ.put("notes", it) }
         // Профиль ставит разбор; при загрузке он известен редко — например,
         // когда материал приходит вместе с готовым разбором.
@@ -149,8 +149,8 @@ class EntityIntake(
      * `doubtful` С ПОМЕТОЙ: правдоподобный ранг здесь не выдумывается —
      * выдуманное доверие хуже отсутствующего.
      */
-    private fun рангВхода(project: String, kind: String, authority: String?): Ранг {
-        authority?.takeIf { it.isNotBlank() }?.let { return Ранг(Authority.of(it)) }
+    private fun рангВхода(project: String, kind: String, rank: String?): Ранг {
+        rank?.takeIf { it.isNotBlank() }?.let { return Ранг(Authority.of(it)) }
         require(!KnowledgeFlag.on(store, project)) {
             "ранг доверия материала обязателен: ${Authority.words()} — " +
                 "доверие не выводится из типа файла, его называет человек"
@@ -291,7 +291,7 @@ class EntityIntake(
 
         // Ранг материала задания: сомнительный источник пакетом не принимается.
         val рангЗадания = store.byCode(область, задание.doc.path("material").asText())
-            ?.doc?.path("authority")?.asText("").orEmpty()
+            ?.doc?.path("rank")?.asText("").orEmpty()
 
         действия.forEachIndexed { i, действие ->
             if (i !in chosen) return@forEachIndexed
@@ -703,7 +703,7 @@ class EntityIntake(
     /** Материал ранга «сомнительный»: свидетельством он ещё не стал. */
     private fun сомнительный(область: Area, материал: String): Boolean =
         материал.isNotBlank() &&
-            store.byCode(область, материал)?.doc?.path("authority")?.asText("") == Authority.DOUBTFUL
+            store.byCode(область, материал)?.doc?.path("rank")?.asText("") == Authority.DOUBTFUL
 
     /** Вид по-русски и в числе: «5 сторон миссии», «3 потребности». */
     private fun названиеВида(вид: String, сколько: Int): String = when (вид) {
@@ -741,13 +741,13 @@ class EntityIntake(
         // пересчитать уже показанную владельцу долю. Пустой ранг — факт,
         // заведённый до перестройки; выдуманный ранг хуже отсутствующего.
         val сомнительные = if (!KnowledgeFlag.on(store, project)) emptySet() else факты
-            .filter { it.doc.path("authority").asText("") == Authority.DOUBTFUL }
+            .filter { it.doc.path("rank").asText("") == Authority.DOUBTFUL }
             .map { it.id }.toSet()
         // Ранг основания наружу: доля знаний без рангов не отличает
         // «80 % из обязательных документов» от «80 % из справок» (мера ПМИ-6
         // п. 1.8). Считается ОДНА нить — одно основание; факт без ранга
         // (заведён до перестройки) не приписывается ни одному рангу.
-        val рангФакта = факты.associate { it.id to it.doc.path("authority").asText("") }
+        val рангФакта = факты.associate { it.id to it.doc.path("rank").asText("") }
         val поРангам = mutableMapOf<String, Int>()
         виды.forEach { вид ->
             val сущности = store.list(область, вид).filter { it.status != "cancelled" }
@@ -825,7 +825,7 @@ class EntityIntake(
         // приходит из ответа модели: доверие назначает человек загрузкой, а не
         // разбор своим мнением. У материала, загруженного до перестройки, поля
         // ещё нет — ранг выводится по типу входного тем же правилом миграции.
-        val рангМатериала = карточка.doc.path("authority").asText("").ifBlank {
+        val рангМатериала = карточка.doc.path("rank").asText("").ifBlank {
             Authority.ofMaterialKind(карточка.doc.path("kind").asText("")) ?: Authority.DOUBTFUL
         }
         // Профиль содержимого ставит РАЗБОР: доли блоков приходят тем же
@@ -922,19 +922,19 @@ class EntityIntake(
                     if (цитата.isNotBlank()) документ.put("quote", цитата) else документ.putNull("quote")
                     if (якорь.isNotBlank()) документ.put("anchor", якорь)
                     документ.put("material", material)
-                    документ.put("mark", ф.path("source_mark").asText("И"))
+                    документ.put("mark", ф.path("mark").asText("И"))
                     // Номер источника (И1 · В10) — отдельным полем истины схем
                     // 17.09: метка одной буквой номер теряла.
-                    ф.path("source_mark_no").asText("").trim().ifBlank { null }
-                        ?.let { документ.put("source_mark_no", it) }
+                    ф.path("mark_no").asText("").trim().ifBlank { null }
+                        ?.let { документ.put("mark_no", it) }
                     // Ранг: документальный факт наследует ранг материала,
                     // экспертный — expert (рука эксперта, а не документ).
                     if (экспертный) {
                         поСхеме(документ, FactSource.FromExpert(учётка, роль, когда))
-                        документ.put("authority", Authority.EXPERT)
+                        документ.put("rank", Authority.EXPERT)
                     } else {
                         поСхеме(документ)
-                        документ.put("authority", рангМатериала)
+                        документ.put("rank", рангМатериала)
                     }
                     // Даташит: ключ анкеты узла; норматив: порог нормы полем; конфликт с рамкой — кодом.
                     ф.path("param_key").asText("").takeIf { it.isNotBlank() }?.let { документ.put("param_key", it) }
@@ -942,7 +942,6 @@ class EntityIntake(
                     ф.path("entity_class").asText("").takeIf { it.isNotBlank() }?.let { документ.put("entity_class", it) }
                     if (ф.path("limit").isObject) документ.set<JsonNode>("limit", ф.path("limit").deepCopy())
                     ф.path("conflict").asText("").takeIf { it.isNotBlank() }?.let { документ.put("conflict_constraint", it) }
-                    документ.put("confidence", ф.path("confidence").asDouble(0.5))
                     документ.put("disposition", "free")
                     if (метка.isNotBlank()) документ.put("topic", темы[метка] ?: темаКод(область, метка))
                     val код = следующий(область, "fact", "F")
@@ -1126,7 +1125,7 @@ class EntityIntake(
                 .put("owner", assumption.owner).put("confirm_by", assumption.confirmBy)
                 .put("validation", assumption.validation).put("impact_if_wrong", assumption.impactIfWrong)
             документ.put("mark", "П")
-            документ.put("source_mark", "П")
+            документ.put("mark", "П")
         }
         if (прежняя == Disposition.ASSUMED && disposition == Disposition.ADOPTED) {
             документ.put("confirmed_by", author)
@@ -1208,7 +1207,6 @@ class EntityIntake(
         anchor = документ.path("anchor").asText("").ifBlank { null },
         mark = runCatching { SourceMark.valueOf(документ.path("mark").asText("И")) }
             .getOrDefault(SourceMark.И),
-        confidence = документ.path("confidence").takeIf { it.isNumber }?.asDouble(),
         material = документ.path("material").asText(""),
         kind = документ.path("kind").asText("framing"),
         disposition = runCatching {
@@ -1228,7 +1226,7 @@ class EntityIntake(
         sourceUpdated = документ.path("source_note").asText("").ifBlank { null },
         // Пусто — факт заведён до перестройки: ранг проставит миграция стенда,
         // а здесь он не выдумывается.
-        authority = документ.path("authority").asText("").ifBlank { null },
+        rank = документ.path("rank").asText("").ifBlank { null },
         evidence = документ.path("evidence").asText("").ifBlank { null },
         source = источникФакта(документ),
         links = связиФактов.factLinks(область, код)
@@ -1256,8 +1254,8 @@ class EntityIntake(
     }
 
     /**
-     * Поля факта по ИСТИНЕ СХЕМ рядом с плоскими: `source_mark` и союзный
-     * `source`. Шаблон отчёта отбирает допущения по `source_mark` (как в
+     * Поля факта по ИСТИНЕ СХЕМ рядом с плоскими: `mark` и союзный
+     * `source`. Шаблон отчёта отбирает допущения по `mark` (как в
      * YAML), а запись хранила только `mark` — §10 не наполнялся никогда (шип
      * D). Плоские поля остаются до DTO из YAML.
      *
@@ -1266,7 +1264,7 @@ class EntityIntake(
      * у одного факта, и сверка тогда не знает, что с чем сличать.
      */
     private fun поСхеме(документ: ObjectNode, эксперт: FactSource.FromExpert? = null) {
-        документ.put("source_mark", документ.path("mark").asText("И"))
+        документ.put("mark", документ.path("mark").asText("И"))
         val источник = документ.putObject("source")
         if (эксперт != null) {
             источник.put("account", эксперт.account).put("role", эксперт.role).put("at", эксперт.at)
@@ -1308,7 +1306,7 @@ class EntityIntake(
         author: String,
         mark: String,
         role: String?,
-        authority: String?,
+        rank: String?,
     ): Fact {
         val область = Area.Project(project)
         require(predicate.isNotBlank()) { "факт без утверждения — не факт" }
@@ -1355,10 +1353,9 @@ class EntityIntake(
         // Ранг ручного факта — экспертный: рука эксперта выше справки и ниже
         // документа заказчика (ОНТОЛОГИЯ-ФОРМИРОВАНИЯ, authority_notes).
         документ.put(
-            "authority",
-            authority?.takeIf { it.isNotBlank() }?.let { Authority.of(it) } ?: Authority.EXPERT,
+            "rank",
+            rank?.takeIf { it.isNotBlank() }?.let { Authority.of(it) } ?: Authority.EXPERT,
         )
-        документ.put("confidence", if (mark == "П") 0.5 else 1.0)
         документ.put("disposition", "free")
         документ.put("manual", true)
         topic?.takeIf { it.isNotBlank() }?.let { документ.put("topic", темаКод(область, it.trim())) }

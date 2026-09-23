@@ -79,7 +79,7 @@ internal class EntityExchange(
         // знаний v2 ядро без ранга материал не примет.
         val материал = intake.putMaterial(
             project, "Импорт .sdoc $отметка", "sdoc", sdoc, author,
-            authority = Authority.REFERENCE,
+            rank = Authority.REFERENCE,
         )
         val якоря = intake.canon(project, материал)
         val ответ = mapper.createObjectNode()
@@ -91,7 +91,7 @@ internal class EntityExchange(
                 ?: якоря.firstOrNull { it.text.contains(к.uid) }?.anchor ?: якоря.firstOrNull()?.anchor ?: "s0#1"
             факты.addObject()
                 .put("kind", "obligation").put("subject", "${к.uid}").put("predicate", к.statement ?: к.title ?: к.uid)
-                .put("value", "требование").put("source_mark", "И").put("confidence", 1.0)
+                .put("value", "требование").put("mark", "И")
                 .also { it.putObject("source").put("anchor", якорь) }
             val д = действия.addObject()
             д.put("kind", "create_entity").put("target_kind", "requirement").put("scene", "8")
@@ -170,7 +170,7 @@ internal class EntityExchange(
         // источник, доверие к нему поднимает человек, а не канал.
         val материал = intake.putMaterial(
             project, "Импорт обмена «$заголовок» $отметка", "reqif", текст, author,
-            authority = Authority.REFERENCE,
+            rank = Authority.REFERENCE,
         )
         val якоря = intake.canon(project, материал)
         val ответ = mapper.createObjectNode()
@@ -181,7 +181,7 @@ internal class EntityExchange(
             val якорь = якоря.firstOrNull { it.text.trim() == "${к.code} · ${к.type}" }?.anchor ?: якоря.firstOrNull()?.anchor ?: "s0#1"
             факты.addObject()
                 .put("kind", "obligation").put("subject", к.code).put("predicate", к.statement.ifBlank { к.title ?: к.code })
-                .put("value", "требование").put("source_mark", "В").put("confidence", 1.0)
+                .put("value", "требование").put("mark", "В")
                 .also { it.putObject("source").put("anchor", якорь) }
             val д = действия.addObject()
             д.put("kind", "create_entity").put("target_kind", "requirement").put("scene", "8")

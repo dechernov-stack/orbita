@@ -55,10 +55,10 @@ class PlanLinksTest {
          "facts":[
            {"kind":"relation","topic":"потребности","subject":"Минтранс России",
             "predicate":"регулирует перевозки","value":"да",
-            "source":{"anchor":"s1#1"},"source_mark":"И","confidence":0.9},
+            "source":{"anchor":"s1#1"},"mark":"И","confidence":0.9},
            {"kind":"capability","topic":"потребности","subject":"перевозчик",
             "predicate":"нуждается в непрерывной телеметрии","value":"да",
-            "source":{"anchor":"s1#2"},"source_mark":"И","confidence":0.8}
+            "source":{"anchor":"s1#2"},"mark":"И","confidence":0.8}
          ]}
     """.trimIndent()
 

@@ -261,7 +261,7 @@ internal class СтендПоля {
 
     fun материал(код: String, имя: String, ранг: String): Entity = store.create(
         код, "material", область, "2",
-        mapper.createObjectNode().put("name", имя).put("authority", ранг), провенанс,
+        mapper.createObjectNode().put("name", имя).put("rank", ранг), провенанс,
     )
 
     fun факт(

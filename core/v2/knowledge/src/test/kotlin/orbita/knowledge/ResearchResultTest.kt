@@ -72,7 +72,7 @@ class ResearchResultTest {
         val код = assertNotNull(принята.resultMaterial, "материал результата обязан быть назван")
         val материал = assertNotNull(store.byCode(область, код))
         assertEquals(
-            Authority.DOUBTFUL, материал.doc.path("authority").asText(),
+            Authority.DOUBTFUL, материал.doc.path("rank").asText(),
             "внешний контур непроверен по построению: ранг поднимет человек",
         )
         val задачаЗапись = assertNotNull(store.byCode(область, задача))
@@ -115,7 +115,7 @@ class ResearchResultTest {
         val итог = исследование.confirmSources(проект, задача, факты, автор)
 
         assertEquals(
-            Authority.REFERENCE, assertNotNull(store.byCode(область, материал)).doc.path("authority").asText(),
+            Authority.REFERENCE, assertNotNull(store.byCode(область, материал)).doc.path("rank").asText(),
             "источники подтверждены человеком — материал стал свидетельством",
         )
         факты.forEach { код ->
@@ -144,8 +144,8 @@ class ResearchResultTest {
         val до = знания.facts(проект).filter { it.material == материал }
         assertTrue(до.isNotEmpty(), "разбор результата не дал фактов: проверять нечего")
         assertTrue(
-            до.all { it.authority == Authority.DOUBTFUL },
-            "до подтверждения факты результата сомнительны: ${до.map { it.authority }}",
+            до.all { it.rank == Authority.DOUBTFUL },
+            "до подтверждения факты результата сомнительны: ${до.map { it.rank }}",
         )
 
         исследование.confirmSources(проект, задача, фактыРезультата(материал), автор)
@@ -154,7 +154,7 @@ class ResearchResultTest {
         assertEquals(до.size, после.size, "подтверждение источников фактов не плодит")
         после.forEach { факт ->
             assertEquals(
-                Authority.REFERENCE, факт.authority,
+                Authority.REFERENCE, факт.rank,
                 "материал стал справочным — и его факты вместе с ним: ${факт.id}",
             )
         }
@@ -279,7 +279,7 @@ class ResearchResultTest {
     private fun чужойФакт(): String {
         val другой = знания.putMaterial(
             проект, "Записка о миссии", "mission_memo",
-            "# Записка\n\nЗаказчик — Минтранс России.\n", автор, authority = Authority.MANDATORY,
+            "# Записка\n\nЗаказчик — Минтранс России.\n", автор, rank = Authority.MANDATORY,
         )
         val якорь = знания.canon(проект, другой).first { it.kind == "para" }.anchor
         знания.putFacts(
@@ -288,7 +288,7 @@ class ResearchResultTest {
             {"topics":[{"label":"сторона"}],"facts":[
               {"kind":"relation","topic":"сторона","subject":"Минтранс России",
                "predicate":"является заказчиком","value":"да",
-               "source":{"anchor":"$якорь"},"source_mark":"И"}]}
+               "source":{"anchor":"$якорь"},"mark":"И"}]}
             """.trimIndent(),
             автор,
         )
@@ -316,13 +316,13 @@ class ResearchResultTest {
              "facts":[
                {"kind":"relation","topic":"сторона","subject":"Минвостокразвития",
                 "predicate":"заинтересовано в спутниковом IoT","value":"да",
-                "source":{"anchor":"ЯКОРЬ"},"source_mark":"В","entity_class":"stakeholder"},
+                "source":{"anchor":"ЯКОРЬ"},"mark":"В","entity_class":"stakeholder"},
                {"kind":"relation","topic":"сторона","subject":"Корпорация развития Дальнего Востока",
                 "predicate":"ведёт цифровые коридоры","value":"да",
-                "source":{"anchor":"ЯКОРЬ"},"source_mark":"В","entity_class":"stakeholder"},
+                "source":{"anchor":"ЯКОРЬ"},"mark":"В","entity_class":"stakeholder"},
                {"kind":"obligation","topic":"норма","subject":"ПП РФ №2216",
                 "predicate":"применимо к передаче телематики","value":"да",
-                "source":{"anchor":"ЯКОРЬ"},"source_mark":"В","entity_class":"normative_ref"}],
+                "source":{"anchor":"ЯКОРЬ"},"mark":"В","entity_class":"normative_ref"}],
              "actions":[
                {"kind":"create_entity","target_kind":"stakeholder","scene":"3",
                 "title":"Минвостокразвития","preview":"появится сторона миссии",
@@ -349,19 +349,19 @@ class ResearchResultTest {
              "facts":[
                {"kind":"relation","topic":"сторона","subject":"Минвостокразвития",
                 "predicate":"заинтересовано в спутниковом IoT","value":"да",
-                "source":{"anchor":"ЯКОРЬ"},"source_mark":"В"},
+                "source":{"anchor":"ЯКОРЬ"},"mark":"В"},
                {"kind":"framing","topic":"программа","subject":"Госпрограмма развития ДФО",
                 "predicate":"задаёт показатели связанности","value":"да",
-                "source":{"anchor":"ЯКОРЬ"},"source_mark":"В"},
+                "source":{"anchor":"ЯКОРЬ"},"mark":"В"},
                {"kind":"obligation","topic":"норма","subject":"ПП РФ №2216",
                 "predicate":"применимо к передаче телематики","value":"да",
-                "source":{"anchor":"ЯКОРЬ"},"source_mark":"В"},
+                "source":{"anchor":"ЯКОРЬ"},"mark":"В"},
                {"kind":"framing","topic":"применение","subject":"Рыбопромысловый флот Приморья",
                 "predicate":"требует спутникового канала","value":"да",
-                "source":{"anchor":"ЯКОРЬ"},"source_mark":"В"},
+                "source":{"anchor":"ЯКОРЬ"},"mark":"В"},
                {"kind":"framing","topic":"аналог","subject":"Astrocast",
                 "predicate":"решает ту же задачу на НОО","value":"да",
-                "source":{"anchor":"ЯКОРЬ"},"source_mark":"В"}],
+                "source":{"anchor":"ЯКОРЬ"},"mark":"В"}],
              "actions":[]}
         """.trimIndent()
     }

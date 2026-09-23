@@ -930,7 +930,7 @@ export interface FactRow {
    * Ранг доверия: наследуется от материала, у руки эксперта — expert. Пусто —
    * факт заведён до перестройки: выдуманный ранг хуже отсутствующего.
    */
-  authority?: Authority | null
+  rank?: Authority | null
   /** Свидетельство: claimed · corroborated · measured · assumed; поднимает сверка. */
   evidence?: string | null
   /** Источник союзом: документ с якорем ЛИБО эксперт с учёткой, ролью и датой. */
@@ -977,9 +977,9 @@ export interface TaskPlan {
   /** Почему план такой — и что осталось непонятным. */
   note: string
   /** Ранг доверия материала; пусто — ранга у материала нет, и сервер его не выдумывает. */
-  authority?: Authority
+  rank?: Authority
   /** Ранг словами — теми же, какими его называет сервер. */
-  authority_word?: string
+  rank_word?: string
   /** Принимается ли план пакетом: ворота приёма стоят на сервере. */
   batch_accept?: boolean
   /** Отказ ворот словами — ровно тот, которым ответит приём на нажатие. */
@@ -1008,7 +1008,7 @@ export interface MaterialRow {
   supersedes: string | null
   created_at?: string
   /** Ранг доверия — отдельное поле рядом с типом: доверие называет человек. */
-  authority?: Authority | null
+  rank?: Authority | null
   /** Доли блоков (Д2а): ставит разбор, не инженер. */
   profile?: ContentProfile | null
   /** Роль документа: ею решается, что из него может образоваться. */
@@ -1079,9 +1079,9 @@ export interface ProposalBasis {
   fact: string
   material?: string
   anchor?: string
-  authority?: Authority
+  rank?: Authority
   /** Ранг словами — ими он и называется человеку. */
-  authority_word?: string
+  rank_word?: string
   mark?: SourceMark
   account?: string
   role?: string
@@ -1094,7 +1094,7 @@ export interface FormationProposal {
   proposal: string
   concept: string
   verdict: SynthesisVerdict
-  source_mark: SourceMark
+  mark: SourceMark
   /** Принятое понятие, о котором вердикт; пусто только у «новое». */
   target_ref?: string
   /** ЧЕМ именно отличается от принятого — поле, а не «похоже». */
@@ -1317,7 +1317,7 @@ export interface ReconcileItem {
   concept: string
   /** Кандидат-факт: ручной ввод — источник, равный документу по механике. */
   candidate_fact: string
-  authority: Authority
+  rank: Authority
   source: FactSourceView
   verdict: ReconcileVerdict
   verdict_word: string
@@ -1461,7 +1461,7 @@ export interface MaterialBody {
    * на проекте поля знаний v2 ядро отвечает отказом «ранг доверия материала
    * обязателен», на проекте прохода выводит ранг по прежнему типу входного.
    */
-  authority?: Authority
+  rank?: Authority
   /**
    * Роль документа (истина схем, `material.role`): ею решается, ЧТО из него
    * может образоваться. Цели рождает только устав; издатель норматива
@@ -1497,7 +1497,7 @@ export interface FactBody {
   /** Роль автора в проекте: у руки эксперта якоря нет, есть роль. */
   role?: string
   /** Умолчание ставит приём знаний (`expert`), а не экран. */
-  authority?: Authority
+  rank?: Authority
   /** Ворота поля знаний v2: ввод идёт через сверку — «SR-7#c1». */
   reconcile?: string
   /** Решение сверки, с которым ввод сохраняется. */
@@ -1781,14 +1781,14 @@ export const api = {
     ),
 
   /**
-   * Положить материал. Ранг доверия идёт с формы полем `authority`; в ответе
+   * Положить материал. Ранг доверия идёт с формы полем `rank`; в ответе
    * тот ранг, который ПОСТАВИЛО ядро, — форма показывает не то, что отправила,
    * а то, с чем материал теперь живёт.
    */
   putMaterial: (project: string, тело: MaterialBody) =>
     вызов<{
       code: string; chars: number; from_url: boolean
-      authority?: Authority; authority_note?: string
+      rank?: Authority; rank_note?: string
       extracted_from?: string; snapshot_renderer?: string; snapshot_date?: string
       supersedes?: string
     }>(`/materials?project=${encodeURIComponent(project)}`,

@@ -62,7 +62,7 @@ class MissionMemoFixtureTest {
         assertTrue(фикстура.isFile, "фикстуры нет по пути ${фикстура.path}")
         val материал = знания.putMaterial(
             проект, "Записка миссии IoT", "mission_memo",
-            записка.readText(), автор, authority = Authority.MANDATORY,
+            записка.readText(), автор, rank = Authority.MANDATORY,
         )
         val итог = знания.putFacts(проект, материал, фикстура.readText(), автор)
         assertTrue(
@@ -156,7 +156,7 @@ class MissionMemoFixtureTest {
     }
 
     private fun метка(факт: JsonNode): String =
-        факт.path("mark").asText("").ifBlank { факт.path("source_mark").asText("") }
+        факт.path("mark").asText("").ifBlank { факт.path("mark").asText("") }
 
     private companion object {
         /** Слова нехватки в записке — признак теста, не правило истины: перечней предикатов у понятий больше нет (24.09). */

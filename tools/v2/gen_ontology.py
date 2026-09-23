@@ -40,7 +40,7 @@ KOTLIN = КОРЕНЬ / "core/v2/knowledge/src/main/kotlin/orbita/knowledge/sche
 )
 
 # Ранги доверия. Перечень закрыт: ранг вне его не существует ни у материала,
-# ни у факта (СХЕМЫ-ПОЛЕЙ-V2.yaml, material.authority и fact.authority).
+# ни у факта (СХЕМЫ-ПОЛЕЙ-V2.yaml, material.rank и fact.rank).
 РАНГИ = ("mandatory", "expert", "reference", "doubtful")
 
 # Ключи, без которых понятия не бывает. `identity` и `conflict_on` сюда НЕ

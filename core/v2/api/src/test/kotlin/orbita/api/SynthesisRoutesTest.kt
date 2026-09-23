@@ -83,7 +83,7 @@ class SynthesisRoutesTest {
         проект(ПРОЕКТ, полеЗнаний = true)
         val материал = intake.putMaterial(
             ПРОЕКТ, "Записка заказчика", "mission_memo", "п. 1 Текст записки.", "Иванов И.",
-            authority = "mandatory",
+            rank = "mandatory",
         )
         assertTrue(
             store.byCode(Area.Project(ПРОЕКТ), материал)!!.doc.path("role").asText("").isBlank(),
@@ -375,8 +375,8 @@ class SynthesisRoutesTest {
         assertEquals("need", предложение.path("concept").asText())
         val основание = предложение.path("basis").single()
         assertEquals(факт, основание.path("fact").asText(), "у предложения есть факт-основание")
-        assertEquals("mandatory", основание.path("authority").asText())
-        assertEquals("обязательный", основание.path("authority_word").asText(), "ранг называется словами")
+        assertEquals("mandatory", основание.path("rank").asText())
+        assertEquals("обязательный", основание.path("rank_word").asText(), "ранг называется словами")
     }
 
     @Test
@@ -554,14 +554,14 @@ class SynthesisRoutesTest {
         val материал = intake.putMaterial(
             ПРОЕКТ, "Записка заказчика", "mission_memo",
             "п. 1 Минтранс России нуждается в связи в Арктике вне наземного покрытия.",
-            "Иванов И.", authority = "mandatory",
+            "Иванов И.", rank = "mandatory",
         )
         val якорь = intake.canon(ПРОЕКТ, материал).first().anchor
         val итог = intake.putFacts(
             ПРОЕКТ, материал,
             """{"topics":[],"actions":[],"facts":[{"kind":"framing","subject":"Минтранс России",
                "predicate":"нуждается в","value":"связь в Арктике вне наземного покрытия",
-               "source":{"anchor":"$якорь"},"source_mark":"И"}]}""",
+               "source":{"anchor":"$якорь"},"mark":"И"}]}""",
             "Иванов И.",
         )
         val факт = итог.accepted.single().id
@@ -655,7 +655,7 @@ private class СверкаПодмена : Reconcile {
             items = candidates.map { кандидат ->
                 ReconcileItem(
                     localId = кандидат.localId, concept = кандидат.concept, candidateFact = "F-0900",
-                    authority = "expert",
+                    rank = "expert",
                     source = FactSource.FromExpert("Иванов И.", "ведущий системный инженер", "2026-09-12"),
                     verdict = вердикт, findings = находки(), blocking = listOfNotNull(блокирует),
                 )

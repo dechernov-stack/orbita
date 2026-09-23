@@ -226,11 +226,11 @@ kinds:
     required: false
     note: 'порог нормы — поле limit, не число из текста; «Б1: увод ≤ 5 лет» → limit{key:active_lifetime,op:le,value:5,unit:год}'
     label: Пункты
-  - name: source_mark
+  - name: mark
     type: enum[И,В,П]
     required: false
-    note: ''
-    label: Метка источника
+    note: 'ось «происхождение»; прежнее имя source_mark снято'
+    label: Происхождение
   export: SEMP §2; матрица соответствия
   engine: есть
 - n: 6
@@ -1096,15 +1096,15 @@ kinds:
   born_in: '2'
   status_model: null
   fields:
-  - name: authority
+  - name: rank
     type: enum[mandatory,expert,reference,doubtful]
     required: true
-    note: ранг доверия источника — обязательный · экспертный · справочный · сомнительный; наследуется фактами; в противоречии подсказывает, решает человек
+    note: ось «доверие» (ОНТОЛОГИЯ-АУДИТ часть 3) — ранг доверия источника, ставит человек при загрузке — обязательный · экспертный · справочный · сомнительный; наследуется фактами; в противоречии подсказывает, решает человек; прежнее имя authority снято
     label: Ранг доверия
   - name: type
     type: enum[mission_memo,tor,directive,normative,datasheet,quote,external_icd,external_model,analysis,heritage,regulatory_decision,reference]
     required: false
-    note: режим разбора (tor · datasheet · normative) выводится заданием и профилем, НЕ поле ввода; доверие — в authority
+    note: режим разбора (tor · datasheet · normative) выводится заданием и профилем, НЕ поле ввода; доверие — в rank
     label: Тип
   - name: title
     type: str
@@ -1231,7 +1231,7 @@ kinds:
     note: ''
     label: Источник
   - name: items
-    type: '[{class*,payload*,anchors?,source_mark?:enum[И,В,П],decision*:enum[pending,accepted,rejected,rework],reason?,target_ref?}]'
+    type: '[{class*,payload*,anchors?,mark?:enum[И,В,П],decision*:enum[pending,accepted,rejected,rework],reason?,target_ref?}]'
     required: true
     note: ''
     label: Элементы
@@ -3408,26 +3408,21 @@ kinds:
     required: true
     note: документ с якорем — или эксперт без якоря (учётка · роль · дата); ровно одно из двух, стережёт Kotlin
     label: Источник
-  - name: source_mark
+  - name: mark
     type: enum[И,В,П]
     required: true
-    note: ''
-    label: Метка источника
-  - name: source_mark_no
+    note: 'ось «происхождение» (ОНТОЛОГИЯ-АУДИТ часть 3): И — внутреннее · В — внешнее · П — предположение; ставит источник/документ; прежнее имя source_mark снято'
+    label: Происхождение
+  - name: mark_no
     type: str
     required: false
-    note: 'номер источника из списка документа: И1, В10'
+    note: 'номер источника из списка документа: И1, В10 (прежнее имя source_mark_no)'
     label: Номер источника
   - name: evidence
     type: enum[claimed,corroborated,measured,assumed]
     required: true
-    note: ''
+    note: 'ось «свидетельство» (ОНТОЛОГИЯ-АУДИТ часть 3): заявлено · подтверждено вторым источником · измерено · допущение; ставит система по сверке; уверенность (confidence) — ось ПРЕДЛОЖЕНИЯ, у факта её нет'
     label: Свидетельство
-  - name: confidence
-    type: num 0–1
-    required: true
-    note: ''
-    label: Уверенность
   - name: as_of
     type: date
     required: true
@@ -3458,10 +3453,10 @@ kinds:
     required: true
     note: наследуется от источника
     label: Гриф
-  - name: authority
+  - name: rank
     type: enum[mandatory,expert,reference,doubtful]
     required: true
-    note: наследуется от документа; expert — ручной ввод; ранг подсказывает в противоречии, не выбирает победителя
+    note: ось «доверие» (ОНТОЛОГИЯ-АУДИТ часть 3) — наследуется от документа; expert — ручной ввод; ранг подсказывает в противоречии, не выбирает победителя; прежнее имя authority снято
     label: Ранг доверия
   - name: parse_run
     type: ref parse_run
@@ -3931,7 +3926,7 @@ kinds:
   - name: result_material
     type: ref material
     required: false
-    note: authority=doubtful до подтверждения источников человеком
+    note: rank=doubtful до подтверждения источников человеком
     label: Материал результата
   - name: accepted_summary
     type: '{stakeholders,programs,norms,applications,analogs}'
@@ -4236,7 +4231,7 @@ knowledge_field_rules:
 - новая версия источника → superseded + пометы, диспозиции не трогаются
 - rejected не удаляется
 - к PDR принятые величины ≥ corroborated
-- authority факта наследуется от материала; ручной ввод эксперта — expert (источник — учётка, роль, дата; якоря нет)
+- rank факта наследуется от материала; ручной ввод эксперта — expert (источник — учётка, роль, дата; якоря нет)
 - противоречие показывает ОБА значения с рангами; ранг подсказывает, победителя выбирает человек
 - 'синтез не переписывает принятое: только предложение с происхождением n:m и основаниями'
 - результат исследования — материал doubtful; reference только после подтверждения источников человеком
@@ -4380,7 +4375,7 @@ enum_labels:
     context: обстановка
     supplier: поставщик
     heritage: наследие
-  material.authority:
+  material.rank:
     mandatory: обязательный
     expert: экспертный
     reference: справочный
@@ -4393,7 +4388,7 @@ enum_labels:
     rejected: отклонён
     contested: оспорен
     superseded: устарел
-  fact.source_mark:
+  fact.mark:
     И: внутреннее
     В: внешнее
     П: предположение
@@ -4493,7 +4488,7 @@ aoa_rule: 'сравнение вариантов: строки — вариан�
 scene_responsible_rule: условие «ответственные сцен» читает окна плана; незаполненное — умолчание из ролей проекта; назначение — на A1/сцене 1 и в паспорте
 manual_fact_rule: 'ручной факт заводится экраном поля знаний только через сверку (СВЕРКА-РУЧНОГО-ВВОДА): предложения под строкой, решение человека; ворота «ввод не сверен» верны, обход их запрещён'
 assumption_register_rule: 'реестр допущений (MCReport §10, SEMP) — факты с disposition=assumed, независимо от метки происхождения: метка «П» говорит, что источник предположил; допущением факт становится
-  решением (владелец + точка). Факт «П» без диспозиции — кандидат в допущения, в §10 не печатается; запросы шаблонов читают disposition, не source_mark'
+  решением (владелец + точка). Факт «П» без диспозиции — кандидат в допущения, в §10 не печатается; запросы шаблонов читают disposition, не mark'
 external_system_rule: 'внешняя система — не узел и не сторона: именованный объект вне состава с владельцем-стороной; встречается как сторона стыка и участник сценария'
 interest_to_need_rule: 'интерес стороны — чего она хочет от проекта, её словами (stakeholder.interest[]): не роль и не нужда; нуждой становится только решением человека — кандидат need [П] с формулировкой интереса и стороной-носителем идёт через сверку (предложение, не автомат)'
 
@@ -4842,7 +4837,7 @@ formation:
     contradict: совпадение по ключу; различие в conflict_on → contested с рангами обоих
     confirm: совпадение полностью из независимого документа → evidence=corroborated
     manual_edit: правка принятого без факта → предложить ручной факт [И] или помету «без основания»
-    manual_input: 'ручной ввод → кандидат-факт authority=expert → та же сверка: дубль (ключ, затем семантика по
+    manual_input: 'ручной ввод → кандидат-факт rank=expert → та же сверка: дубль (ключ, затем семантика по
       срезу понятия) · противоречие (conflict_on после нормализации) · соединение (supports/refines, must_link)
       · нехватка (must_link) — предложения с уверенностью и полем отличия; выполняет только человек'
     batching: несколько ручных вводов — один вызов сверки с задержкой; срез ≤ 50 фактов и сущностей

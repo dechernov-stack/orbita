@@ -646,7 +646,7 @@ internal class Reconciler(
         запись.put("concept", кандидат.concept)
         запись.put("origin", кандидат.origin.name)
         запись.put("candidate_fact", кандФакт.id)
-        запись.put("authority", кандФакт.authority ?: Authority.EXPERT)
+        запись.put("rank", кандФакт.rank ?: Authority.EXPERT)
         (кандФакт.source as? FactSource.FromExpert)?.let { источник ->
             запись.putObject("source")
                 .put("account", источник.account).put("role", источник.role).put("at", источник.at)
@@ -708,7 +708,7 @@ internal class Reconciler(
             author = author,
             mark = "И",
             role = role,
-            authority = Authority.EXPERT,
+            rank = Authority.EXPERT,
         )
     }
 
@@ -1225,11 +1225,11 @@ internal class Reconciler(
 
     /** Ранг факта: свой, а если разбор его не проставил — ранг материала. */
     private fun рангФакта(область: Area, факт: Entity): String {
-        val свой = факт.doc.path("authority").asText("")
+        val свой = факт.doc.path("rank").asText("")
         if (Authority.known(свой)) return свой
         val материал = факт.doc.path("material").asText("").ifBlank { return "" }
         val карточка = store.byCode(область, материал) ?: return ""
-        return карточка.doc.path("authority").asText("").takeIf { Authority.known(it) }.orEmpty()
+        return карточка.doc.path("rank").asText("").takeIf { Authority.known(it) }.orEmpty()
     }
 
     private fun основанияСущности(сущность: Entity): List<String> =
@@ -1568,7 +1568,7 @@ internal class Reconciler(
         localId = запись.path("local_id").asText(""),
         concept = запись.path("concept").asText(""),
         candidateFact = запись.path("candidate_fact").asText(""),
-        authority = запись.path("authority").asText(Authority.EXPERT),
+        rank = запись.path("rank").asText(Authority.EXPERT),
         source = FactSource.FromExpert(
             запись.path("source").path("account").asText(""),
             запись.path("source").path("role").asText(""),

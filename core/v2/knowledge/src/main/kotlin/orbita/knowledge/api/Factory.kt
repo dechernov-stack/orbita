@@ -77,9 +77,18 @@ object KnowledgeFactory {
 
     /**
      * Миграция понятий целиком (ЗАДАНИЕ-ШИП-4 §1) — одна волна при старте ядра,
-     * идемпотентная: нужда — много носителей, интерес — список у стороны.
+     * идемпотентная: нужда — много носителей, интерес — список у стороны,
+     * четыре оси достоверности под своими именами.
      * Итог — словами, по одной строке на миграцию.
      */
     fun migrateConcepts(store: EntityStore, links: LinkRegistry, mapper: ObjectMapper = ObjectMapper()): List<String> =
-        listOf(migrateNeedOwners(store, links, mapper), migrateStakeholderInterests(store, mapper))
+        listOf(
+            migrateNeedOwners(store, links, mapper),
+            migrateStakeholderInterests(store, mapper),
+            migrateCredibilityAxes(store, mapper),
+        )
+
+    /** Четыре оси достоверности (шип 4 §1.6): mark · rank · evidence · confidence у своих уровней, синонимы сняты. */
+    fun migrateCredibilityAxes(store: EntityStore, mapper: ObjectMapper = ObjectMapper()): String =
+        orbita.knowledge.internal.CredibilityAxesMigration(store, mapper).run().toString()
 }

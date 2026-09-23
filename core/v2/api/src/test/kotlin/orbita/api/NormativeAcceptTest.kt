@@ -48,7 +48,7 @@ class NormativeAcceptTest {
          "facts":[
            {"kind":"obligation","topic":"нормативная база","subject":"собственник ТС",
             "predicate":"передача данных мониторинга через ЭРА-ГЛОНАСС","value":"обязательно",
-            "source":{"anchor":"s1#1"},"source_mark":"В","confidence":0.9}
+            "source":{"anchor":"s1#1"},"mark":"В","confidence":0.9}
          ]}
     """.trimIndent()
 

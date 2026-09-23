@@ -40,14 +40,14 @@ data class SemanticCandidate(
  * Сравнение идёт ТОЛЬКО с записями среза: код вне среза — придуманное
  * основание, и сервер такую находку отбрасывает.
  *
- * @property authority ранг доверия факта; у принятой сущности пусто — ранг
+ * @property rank ранг доверия факта; у принятой сущности пусто — ранг
  *   есть свойство основания, а не принятого понятия
  */
 data class SliceEntry(
     val code: String,
     val kind: String,
     val text: String,
-    val authority: String = "",
+    val rank: String = "",
 )
 
 object ReconcilePrompt {
@@ -172,7 +172,7 @@ $поле$хвост
     }
 
     private fun строкаФакта(запись: SliceEntry): String {
-        val ранг = Authority.word(запись.authority).ifBlank { "ранг не проставлен" }
+        val ранг = Authority.word(запись.rank).ifBlank { "ранг не проставлен" }
         return "  · ${запись.code} · $ранг · ${запись.text}"
     }
 

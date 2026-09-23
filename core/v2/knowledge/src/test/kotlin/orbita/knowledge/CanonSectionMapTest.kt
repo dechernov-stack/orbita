@@ -144,7 +144,7 @@ class MaterialRoleTest {
     fun `роль документа ложится в карточку материала`() {
         val код = знания.putMaterial(
             проект, "Записка миссии", "mission_memo", "# Записка\nТекст.", "инженер",
-            authority = orbita.knowledge.api.Authority.MANDATORY, role = "charter",
+            rank = orbita.knowledge.api.Authority.MANDATORY, role = "charter",
         )
 
         val карточка = store.byCode(orbita.kernel.api.Area.Project(проект), код)!!
@@ -156,7 +156,7 @@ class MaterialRoleTest {
         val беда = kotlin.test.assertFailsWith<IllegalArgumentException> {
             знания.putMaterial(
                 проект, "Непонятное", "reference", "# Текст\nТело.", "инженер",
-                authority = orbita.knowledge.api.Authority.REFERENCE, role = "устав",
+                rank = orbita.knowledge.api.Authority.REFERENCE, role = "устав",
             )
         }
         assertTrue("вне перечня истины схем" in (беда.message ?: ""), беда.message ?: "")

@@ -46,7 +46,7 @@ object Authority {
 
     /**
      * Ранг словами — так он называется человеку. Слова взяты из истины схем
-     * (`material.authority`), чтобы отказ сервера звучал теми же словами, что
+     * (`material.rank`), чтобы отказ сервера звучал теми же словами, что
      * и колонка на экране.
      */
     private val слова: Map<String, String> = mapOf(
@@ -173,7 +173,6 @@ data class Fact(
     /** Якорь блока канона: по нему факт проверяется, не выходя из системы. */
     val anchor: String?,
     val mark: SourceMark,
-    val confidence: Double?,
     val material: String,
     /** Вид факта: величина · способность · обязательство · рамка · событие… */
     val kind: String = "framing",
@@ -209,7 +208,7 @@ data class Fact(
      * `expert`. Пусто — факт заведён до перестройки и ранга ещё не получил:
      * выдуманный ранг хуже отсутствующего, его проставит миграция.
      */
-    val authority: String? = null,
+    val rank: String? = null,
     /**
      * Источник по истине схем — ровно одна ветка союза. Плоские `material` и
      * `anchor` остаются рядом до DTO из YAML: на них смотрят экспорт и
@@ -415,7 +414,7 @@ interface Intake {
          * знаний выключено, спрашивать некого — ранг выводится по прежнему
          * типу входного (`Authority.ofMaterialKind`), и данные не переписываются.
          */
-        authority: String? = null,
+        rank: String? = null,
         /** Профиль содержимого (Д2а): ставит разбор; при загрузке известен редко. */
         profile: ContentProfile? = null,
         /**
@@ -562,7 +561,7 @@ interface Intake {
          */
         role: String? = null,
         /** Ранг доверия; умолчание ручного факта — экспертный. */
-        authority: String? = null,
+        rank: String? = null,
     ): Fact
 }
 
@@ -757,7 +756,7 @@ data class ReconcileItem(
     val localId: String,
     val concept: String,
     val candidateFact: String,
-    val authority: String,
+    val rank: String,
     val source: FactSource,
     val verdict: Verdict,
     val findings: List<Finding>,

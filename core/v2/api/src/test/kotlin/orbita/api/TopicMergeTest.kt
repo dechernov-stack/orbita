@@ -99,7 +99,7 @@ class TopicMergeTest {
         (знания as orbita.knowledge.internal.EntityIntake).mergeTopic(проект, тема, вГолову, author, reason)
 
     private fun материал(имя: String, вид: String, ранг: String, текст: String): String =
-        знания.putMaterial(проект, имя, вид, текст, "Иванов И.", authority = ранг)
+        знания.putMaterial(проект, имя, вид, текст, "Иванов И.", rank = ранг)
 
     private fun якорь(материал: String): String = знания.canon(проект, материал).first { it.kind == "para" }.anchor
 
@@ -107,7 +107,7 @@ class TopicMergeTest {
     private fun разбор(материал: String, тема: String, утверждение: String): String = """
         {"topics":[{"label":"$тема"}],"actions":[],"facts":[
           {"kind":"framing","topic":"$тема","subject":"система","predicate":"$утверждение",
-           "value":"да","source":{"anchor":"${якорь(материал)}"},"source_mark":"И"}]}
+           "value":"да","source":{"anchor":"${якорь(материал)}"},"mark":"И"}]}
     """.trimIndent()
 
     /** Записка и ТЗ говорят об одном предмете разными словами — так и родятся две темы. */
@@ -188,9 +188,9 @@ class TopicMergeTest {
         val ответ = """
             {"topics":[],"actions":[],"facts":[
               {"kind":"framing","subject":"система","predicate":"приём телеметрии не реже 30 мин",
-               "value":"да","source":{"anchor":"${блоки[0].anchor}"},"source_mark":"И"},
+               "value":"да","source":{"anchor":"${блоки[0].anchor}"},"mark":"И"},
               {"kind":"framing","subject":"наземный комплекс","predicate":"ведёт приём телеметрии",
-               "value":"да","source":{"anchor":"${блоки[1].anchor}"},"source_mark":"И"}],
+               "value":"да","source":{"anchor":"${блоки[1].anchor}"},"mark":"И"}],
              "links":[{"from":1,"to":0,"type":"supports","rationale":"кто ведёт приём — основание срока приёма"}]}
         """.trimIndent()
         val принято = знания.putFacts(проект, записка, ответ, "Иванов И.")
@@ -219,9 +219,9 @@ class TopicMergeTest {
         val ответ = """
             {"topics":[],"actions":[],"facts":[
               {"kind":"framing","subject":"система","predicate":"приём телеметрии",
-               "value":"да","source":{"anchor":"${блоки[0].anchor}"},"source_mark":"И"},
+               "value":"да","source":{"anchor":"${блоки[0].anchor}"},"mark":"И"},
               {"kind":"framing","subject":"наземный комплекс","predicate":"ведёт приём",
-               "value":"да","source":{"anchor":"${блоки[1].anchor}"},"source_mark":"И"}],
+               "value":"да","source":{"anchor":"${блоки[1].anchor}"},"mark":"И"}],
              "links":[
                {"from":0,"to":1,"type":"похоже","rationale":"на глаз"},
                {"from":0,"to":1,"type":"supports","rationale":""},

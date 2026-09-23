@@ -75,7 +75,7 @@ class IntakeProfilePromptTest {
     fun `промпт разбора несёт ранг документа, требование профиля и формат связей`() {
         val код = "PJ-9350"
         проект(код, полеЗнаний = true)
-        val материал = знания.putMaterial(код, "ТЗ МКУСС", "tor", ТЗ, "Иванов И.", authority = "mandatory")
+        val материал = знания.putMaterial(код, "ТЗ МКУСС", "tor", ТЗ, "Иванов И.", rank = "mandatory")
         разобрать(код, материал)
 
         listOf(
@@ -101,7 +101,7 @@ class IntakeProfilePromptTest {
         проект(код, полеЗнаний = true)
         // Задание — общее: про ТЗ в нём ни слова, режим обязан прийти из
         // того, что в документе написано.
-        val материал = знания.putMaterial(код, "Задание заказчика", "tor", ТЗ, "Иванов И.", authority = "mandatory")
+        val материал = знания.putMaterial(код, "Задание заказчика", "tor", ТЗ, "Иванов И.", rank = "mandatory")
         разобрать(код, материал)
 
         assertTrue("## Профиль содержимого документа: постановка · нормы" in промпт, промпт.take(1200))
@@ -121,7 +121,7 @@ class IntakeProfilePromptTest {
     fun `нормативный акт называет себя заголовком и получает режим нормы`() {
         val код = "PJ-9356"
         проект(код, полеЗнаний = true)
-        val материал = знания.putMaterial(код, "Требования к уводу", "tor", НПА, "Иванов И.", authority = "mandatory")
+        val материал = знания.putMaterial(код, "Требования к уводу", "tor", НПА, "Иванов И.", rank = "mandatory")
         разобрать(код, материал)
 
         assertTrue("## Профиль содержимого документа: нормы" in промпт, промпт.take(1200))
@@ -137,7 +137,7 @@ class IntakeProfilePromptTest {
         // Тип тот же самый (tor), а блоки — суждения: режим требований не
         // включается, включается режим оценок. Это и есть закрытая ловушка
         // «тип документа как поле ввода».
-        val материал = знания.putMaterial(код, "Анализ идей", "tor", ОЦЕНКИ, "Иванов И.", authority = "reference")
+        val материал = знания.putMaterial(код, "Анализ идей", "tor", ОЦЕНКИ, "Иванов И.", rank = "reference")
         разобрать(код, материал)
 
         assertTrue("## Профиль содержимого документа: оценки" in промпт, промпт.take(1200))
@@ -150,7 +150,7 @@ class IntakeProfilePromptTest {
     fun `связь неизвестного типа до приёма не доходит и названа поимённо`() {
         val код = "PJ-9353"
         проект(код, полеЗнаний = true)
-        val материал = знания.putMaterial(код, "ТЗ МКУСС", "tor", ТЗ, "Иванов И.", authority = "mandatory")
+        val материал = знания.putMaterial(код, "ТЗ МКУСС", "tor", ТЗ, "Иванов И.", rank = "mandatory")
         ответМодели = ОТВЕТ_СО_СВЯЗЯМИ
         val перехват = Перехват(знания)
         val итог = AiFactory.atomize(store, перехват, служба, mapper)
@@ -196,7 +196,7 @@ class IntakeProfilePromptTest {
     fun `повторный разбор той же версии не звонит и фактов не удваивает`() {
         val код = "PJ-9355"
         проект(код, полеЗнаний = true)
-        val материал = знания.putMaterial(код, "ТЗ МКУСС", "tor", ТЗ, "Иванов И.", authority = "mandatory")
+        val материал = знания.putMaterial(код, "ТЗ МКУСС", "tor", ТЗ, "Иванов И.", rank = "mandatory")
         val первый = разобрать(код, материал)
         val второй = разобрать(код, материал)
 
@@ -256,10 +256,10 @@ class IntakeProfilePromptTest {
             "facts":[
               {"kind":"obligation","topic":"передача данных","subject":"ТЗ п. 2.1",
                "predicate":"передача данных в Арктической зоне","value":"требование",
-               "source":{"anchor":"s1#1"},"source_mark":"И","confidence":0.9,"entity_class":"requirement"},
+               "source":{"anchor":"s1#1"},"mark":"И","confidence":0.9,"entity_class":"requirement"},
               {"kind":"obligation","topic":"передача данных","subject":"ТЗ п. 2.2",
                "predicate":"гарантированная доставка сообщений","value":"требование",
-               "source":{"anchor":"s1#2"},"source_mark":"И","confidence":0.9,"entity_class":"requirement"}
+               "source":{"anchor":"s1#2"},"mark":"И","confidence":0.9,"entity_class":"requirement"}
             ]
         """.trimIndent()
 

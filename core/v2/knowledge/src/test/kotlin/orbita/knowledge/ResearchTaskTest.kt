@@ -265,7 +265,7 @@ class ResearchTaskTest {
     private fun закрытаяСторона(имя: String, гриф: String) {
         val материал = store.create(
             "SD-9001", "material", область, "2",
-            mapper.createObjectNode().put("name", "Закрытая записка").put("authority", "reference")
+            mapper.createObjectNode().put("name", "Закрытая записка").put("rank", "reference")
                 .put("classification", гриф),
             провенанс,
         )
@@ -273,7 +273,7 @@ class ResearchTaskTest {
             "F-9001", "fact", область, null,
             mapper.createObjectNode().put("kind", "relation").put("subject", имя)
                 .put("predicate", "является поставщиком").put("value", "да")
-                .put("anchor", "s1#1").put("material", материал.code).put("authority", "reference"),
+                .put("anchor", "s1#1").put("material", материал.code).put("rank", "reference"),
             провенанс,
         )
         val сторона = store.create(

@@ -76,14 +76,14 @@ class ReconcileManualInputTest {
     private fun основание(цель: Entity, ранг: String): Entity {
         store.create(
             "SD-0001", "material", область, "2",
-            mapper.createObjectNode().put("name", "Записка о миссии").put("authority", ранг), провенанс,
+            mapper.createObjectNode().put("name", "Записка о миссии").put("rank", ранг), провенанс,
         )
         val факт = store.create(
             "F-0001", "fact", область, null,
             mapper.createObjectNode()
                 .put("kind", "quantity").put("subject", "группировка").put("predicate", "развёрнута к году")
                 .put("value", "2032").put("anchor", "b1").put("material", "SD-0001")
-                .put("authority", ранг).put("disposition", "adopted"),
+                .put("rank", ранг).put("disposition", "adopted"),
             провенанс,
         )
         links.link("derived_from_fact", цель.id, факт.id, провенанс)
@@ -172,11 +172,11 @@ class ReconcileManualInputTest {
             appendLine("Председатель Правительства Российской Федерации")
         }
         store.create("SD-0002", "material", область, "2",
-            mapper.createObjectNode().put("name", "Постановление").put("text", тело).put("authority", Authority.MANDATORY), провенанс)
+            mapper.createObjectNode().put("name", "Постановление").put("text", тело).put("rank", Authority.MANDATORY), провенанс)
         store.create("F-0002", "fact", область, null,
             mapper.createObjectNode().put("kind", "framing").put("subject", "Правительство Российской Федерации")
                 .put("predicate", "издало").put("value", "постановление").put("anchor", "b1").put("material", "SD-0002")
-                .put("authority", Authority.MANDATORY).put("disposition", "free"),
+                .put("rank", Authority.MANDATORY).put("disposition", "free"),
             провенанс)
         val кандидат = mapper.createObjectNode().put("name", "Правительство Российской Федерации").put("role", "regulator")
         val запуск = сверка.preview(проект, listOf(Candidate("c1", "stakeholder", кандидат, basis = "F-0002")), автор, роль)
@@ -190,7 +190,7 @@ class ReconcileManualInputTest {
         store.create("F-0003", "fact", область, null,
             mapper.createObjectNode().put("kind", "framing").put("subject", "Перевозчики опасных грузов").put("predicate", "обязаны")
                 .put("value", "передавать телематику").put("anchor", "b2").put("material", "SD-0002")
-                .put("authority", Authority.MANDATORY).put("disposition", "free"),
+                .put("rank", Authority.MANDATORY).put("disposition", "free"),
             провенанс)
         val второй = сверка.preview(проект, listOf(Candidate("c2", "stakeholder", вТеле, basis = "F-0003")), автор, роль).items.single()
         assertFalse("издатель" in второй.note, "сторона из тела документа не помечена издателем: ${второй.note}")
@@ -222,7 +222,7 @@ class ReconcileManualInputTest {
         val минтранс = сторона("SK-0001", "Минтранс России")
         store.create(
             "SD-0001", "material", область, "2",
-            mapper.createObjectNode().put("name", "Записка о миссии").put("authority", Authority.MANDATORY),
+            mapper.createObjectNode().put("name", "Записка о миссии").put("rank", Authority.MANDATORY),
             провенанс,
         )
         store.create(
@@ -230,7 +230,7 @@ class ReconcileManualInputTest {
             mapper.createObjectNode()
                 .put("kind", "framing").put("subject", минтранс.code).put("predicate", "нуждается в")
                 .put("value", "Необходимо обеспечить связь в Арктике").put("anchor", "b2")
-                .put("material", "SD-0001").put("authority", Authority.MANDATORY),
+                .put("material", "SD-0001").put("rank", Authority.MANDATORY),
             провенанс,
         )
 
@@ -249,7 +249,7 @@ class ReconcileManualInputTest {
         val минтранс = сторона("SK-0001", "Минтранс России")
         store.create(
             "SD-0001", "material", область, "2",
-            mapper.createObjectNode().put("name", "Записка о миссии").put("authority", Authority.MANDATORY),
+            mapper.createObjectNode().put("name", "Записка о миссии").put("rank", Authority.MANDATORY),
             провенанс,
         )
         store.create(
@@ -257,7 +257,7 @@ class ReconcileManualInputTest {
             mapper.createObjectNode()
                 .put("kind", "framing").put("subject", минтранс.code).put("predicate", "нуждается в")
                 .put("value", "Необходимо обеспечить связь в Арктике").put("anchor", "b2")
-                .put("material", "SD-0001").put("authority", Authority.MANDATORY),
+                .put("material", "SD-0001").put("rank", Authority.MANDATORY),
             провенанс,
         )
 
@@ -497,11 +497,11 @@ class ReconcileManualInputTest {
         // Кандидат из чтения нёс кандидат-факт «эксперта» поверх факта документа:
         // два источника одного утверждения — и 27 ложных споров держали MCR.
         store.create("SD-0001", "material", область, "2",
-            mapper.createObjectNode().put("name", "Записка").put("authority", "mandatory"), провенанс)
+            mapper.createObjectNode().put("name", "Записка").put("rank", "mandatory"), провенанс)
         val документ = mapper.createObjectNode()
             .put("kind", "framing").put("subject", "Минтранс России").put("predicate", "нуждается в")
             .put("value", "единое оперативное управление транспортом").put("material", "SD-0001")
-            .put("anchor", "s3#1").put("disposition", "free").put("authority", "mandatory").put("source_mark", "И")
+            .put("anchor", "s3#1").put("disposition", "free").put("rank", "mandatory").put("mark", "И")
         документ.putObject("source").put("material", "SD-0001").put("anchor", "s3#1")
         store.create("F-0001", "fact", область, "2", документ, провенанс)
         сторона("SK-0001", "Минтранс России")

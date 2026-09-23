@@ -71,7 +71,7 @@ class StatementImporter(
                 basis = listOf(
                     Basis(
                         factId = код, material = material, anchor = пункт.anchor,
-                        authority = факт.doc.path("authority").asText("").ifBlank { null },
+                        rank = факт.doc.path("rank").asText("").ifBlank { null },
                         mark = пункт.метка,
                     ),
                 ),
@@ -200,7 +200,7 @@ class StatementImporter(
     }
 
     private fun метка(узел: JsonNode): SourceMark {
-        val метки = узел.path("source_mark").map { it.asText("") }
+        val метки = узел.path("mark").map { it.asText("") }
         return метка(метки.firstOrNull().orEmpty())
     }
 
@@ -216,10 +216,10 @@ class StatementImporter(
         узел.put("value", пункт.имя)
         узел.putNull("quote")
         узел.put("anchor", пункт.anchor)
-        узел.put("source_mark", пункт.метка.name)
+        узел.put("mark", пункт.метка.name)
         // Номер источника из метки эталона (И1 · В10) — отдельным полем.
-        val сырая = (пункт.узел.path("source_mark").firstOrNull() ?: пункт.узел.path("mark")).asText("")
-        if (сырая.length > 1) узел.put("source_mark_no", сырая)
+        val сырая = (пункт.узел.path("mark").firstOrNull() ?: пункт.узел.path("mark")).asText("")
+        if (сырая.length > 1) узел.put("mark_no", сырая)
         (пункт.узел.path("measure").takeIf { it.isObject } ?: пункт.узел.path("mop").takeIf { it.isObject })
             ?.path("unit")?.asText("")?.ifBlank { null }?.let { узел.put("unit", it) }
         return узел
@@ -241,7 +241,7 @@ class StatementImporter(
     private companion object {
         val НОМЕР_РАЗДЕЛА: Regex = Regex("^#*\\s*(\\d+)\\.\\s")
         val СЛУЖЕБНЫЕ: Set<String> = setOf(
-            "anchors", "source", "source_mark", "mark", "shared", "class", "measure_text", "target_text",
+            "anchors", "source", "mark", "mark", "shared", "class", "measure_text", "target_text",
             "note", "code", "priority", "verification_method", "rationale", "acceptance_criteria", "tags",
             "probability", "impact", "mitigation", "result",
         )

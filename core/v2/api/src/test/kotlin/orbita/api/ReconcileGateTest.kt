@@ -249,7 +249,7 @@ class ReconcileGateTest {
         )
         assertEquals(201, ответ.code, ответ.body.toString())
         // Ранг руки — экспертный, и ставит его приём знаний, не маршрут.
-        assertEquals("expert", ответ.body.path("authority").asText())
+        assertEquals("expert", ответ.body.path("rank").asText())
         // Источник союзом: у руки якоря нет, зато есть учётка · роль · дата.
         assertEquals(автор, ответ.body.path("source").path("account").asText())
         assertEquals(роль, ответ.body.path("source").path("role").asText())
@@ -289,7 +289,7 @@ class ReconcileGateTest {
         assertEquals(201, факт.code, факт.body.toString())
         // Роль на проекте прохода не спрашивают — источником остаётся «инженер, дата».
         assertNull(факт.body.path("source").path("role").textValue(), факт.body.toString())
-        assertEquals("expert", факт.body.path("authority").asText(), "ранг руки экспертный и без поля знаний")
+        assertEquals("expert", факт.body.path("rank").asText(), "ранг руки экспертный и без поля знаний")
     }
 
     @Test

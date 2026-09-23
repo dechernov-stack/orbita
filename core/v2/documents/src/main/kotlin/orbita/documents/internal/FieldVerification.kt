@@ -557,10 +557,10 @@ internal class FieldVerification(
          * (факт наследует ранг документа, knowledge_field_rules).
          */
         fun ранг(факт: Entity): String {
-            val свой = факт.doc.path("authority").asText("")
+            val свой = факт.doc.path("rank").asText("")
             if (Authority.known(свой)) return свой
             val карточка = материал(факт) ?: return ""
-            return карточка.doc.path("authority").asText("").takeIf { Authority.known(it) }.orEmpty()
+            return карточка.doc.path("rank").asText("").takeIf { Authority.known(it) }.orEmpty()
         }
 
         /** «F-0001, обязательный, из MM-0001» — код, ранг словами и источник. */

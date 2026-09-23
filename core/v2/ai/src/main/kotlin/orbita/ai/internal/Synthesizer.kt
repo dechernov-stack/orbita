@@ -180,7 +180,7 @@ class Synthesizer(
             // от порядка выдачи хранилища и кэш не срабатывал бы никогда.
             .sortedWith(
                 compareBy<Pair<Fact, Entity>>(
-                    { Authority.weight(it.first.authority) },
+                    { Authority.weight(it.first.rank) },
                     { it.first.id },
                 ),
             )
@@ -212,7 +212,7 @@ class Synthesizer(
      * явным решением — диспозиция `adopted` ставится только рукой и с поводом.
      */
     private fun вСрез(факт: Fact): Boolean =
-        факт.authority != Authority.DOUBTFUL || факт.disposition == Disposition.ADOPTED
+        факт.rank != Authority.DOUBTFUL || факт.disposition == Disposition.ADOPTED
 
     private fun заметка(отбор: Отбор): String =
         if (отбор.всего > отбор.записи.size) "срез урезан: ${отбор.записи.size} из ${отбор.всего}"
@@ -570,7 +570,7 @@ class Synthesizer(
         factId = факт.id,
         material = факт.material.ifBlank { null },
         anchor = факт.anchor,
-        authority = факт.authority,
+        rank = факт.rank,
         mark = факт.mark,
         source = факт.source,
     )
@@ -588,7 +588,7 @@ class Synthesizer(
 
     /** Ранги оснований словами: «обязательный против справочного». */
     private fun подсказкаРангов(основания: List<Basis>): String {
-        val ранги = основания.mapNotNull { it.authority }.distinct()
+        val ранги = основания.mapNotNull { it.rank }.distinct()
         return when {
             ранги.isEmpty() -> "ранги оснований не назначены — доверие называет человек"
             ранги.size == 1 -> "оба основания: ${Authority.word(ранги.single())}"
@@ -630,7 +630,7 @@ class Synthesizer(
         предложение.basis.forEach { основание ->
             якоря.add(listOfNotNull(основание.factId, основание.material, основание.anchor).joinToString(" "))
         }
-        предмет.put("source_mark", предложение.sourceMark.name)
+        предмет.put("mark", предложение.sourceMark.name)
         // Решения нет, пока его не принял человек: карточка рождается открытой.
         предмет.put("decision", "pending")
         предмет.put("reason", причина(предложение))
@@ -671,7 +671,7 @@ class Synthesizer(
             запись.put("fact", основание.factId)
             основание.material?.let { запись.put("material", it) }
             основание.anchor?.let { запись.put("anchor", it) }
-            основание.authority?.let { запись.put("authority", it) }
+            основание.rank?.let { запись.put("rank", it) }
             основание.mark?.let { запись.put("mark", it.name) }
             (основание.source as? FactSource.FromExpert)?.let { источник ->
                 запись.put("account", источник.account)
@@ -686,7 +686,7 @@ class Synthesizer(
             val нехватка = узел.putArray("missing")
             предложение.missing.forEach { нехватка.add(it) }
         }
-        узел.put("source_mark", предложение.sourceMark.name)
+        узел.put("mark", предложение.sourceMark.name)
         if (предложение.rankHint.isNotBlank()) узел.put("rank_hint", предложение.rankHint)
         return узел
     }
@@ -696,7 +696,7 @@ class Synthesizer(
         payload = полезное(узел.path("payload")),
         basis = узел.path("basis").map { основаниеИзЗаписи(it) },
         verdict = вердиктПоКоду(узел.path("verdict").asText("")),
-        sourceMark = runCatching { SourceMark.valueOf(узел.path("source_mark").asText("И")) }
+        sourceMark = runCatching { SourceMark.valueOf(узел.path("mark").asText("И")) }
             .getOrDefault(SourceMark.И),
         targetRef = узел.path("target_ref").asText("").ifBlank { null },
         diffField = узел.path("diff_field").asText(""),
@@ -713,7 +713,7 @@ class Synthesizer(
             factId = узел.path("fact").asText(""),
             material = материал,
             anchor = якорь,
-            authority = узел.path("authority").asText("").ifBlank { null },
+            rank = узел.path("rank").asText("").ifBlank { null },
             mark = runCatching { SourceMark.valueOf(узел.path("mark").asText("И")) }.getOrNull(),
             source = when {
                 учётка.isNotBlank() -> FactSource.FromExpert(
@@ -858,7 +858,7 @@ $ФОРМАТ
         val тема = факт.topic?.let { темы[it] ?: it }
         return buildString {
             append("  · ${факт.id} [${факт.kind}] ранг ")
-            append(Authority.word(факт.authority).ifBlank { "не назначен" })
+            append(Authority.word(факт.rank).ifBlank { "не назначен" })
             append(" · метка ${факт.mark} · $происхождение")
             тема?.let { append(" · тема «$it»") }
             append("\n    ${факт.subject} — ${факт.predicate}")

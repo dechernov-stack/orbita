@@ -256,7 +256,7 @@ class KnowledgeRoutes(
             role = роль.ifBlank { null },
             // Ранг не выдумывается маршрутом: умолчание ручного факта —
             // экспертный, и ставит его приём знаний.
-            authority = тело.path("authority").asText("").trim().ifBlank { null },
+            rank = тело.path("rank").asText("").trim().ifBlank { null },
         )
         return V2Router.Ответ(201, фактВид(ф))
     }
@@ -672,8 +672,8 @@ class KnowledgeRoutes(
     private fun рангМатериала(project: String, material: String, узел: ObjectNode) {
         val хранилище = store ?: return
         val карточка = хранилище.byCode(Area.Project(project), material)?.doc ?: return
-        val ранг = карточка.path("authority").asText("").trim()
-        if (Authority.known(ранг)) узел.put("authority", ранг).put("authority_word", Authority.word(ранг))
+        val ранг = карточка.path("rank").asText("").trim()
+        if (Authority.known(ранг)) узел.put("rank", ранг).put("rank_word", Authority.word(ранг))
         // Ворота приёма стоят ровно там, где включено поле знаний v2: на
         // проекте прохода их нет, и гасить кнопку было бы неправдой об этом
         // проекте — экран обязан обещать то, чем ответит приём.

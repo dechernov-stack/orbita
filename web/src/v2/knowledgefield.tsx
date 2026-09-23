@@ -66,7 +66,7 @@ const ВИДЫ_ФАКТА: [string, string][] = [
 ]
 
 /**
- * Ранг доверия источника словами (истина схем `material.authority`). Ранг
+ * Ранг доверия источника словами (истина схем `material.rank`). Ранг
  * латиницей на экран не выходит: «обязательный · экспертный · справочный ·
  * сомнительный» — это и есть его имя для человека.
  */
@@ -350,7 +350,7 @@ export function KnowledgeField({ project, expert = false, ручной = false }
       if (фильтр === 'ручные') return ф.manual === true
       // Результат внешнего контура живёт сомнительным, пока человек не
       // подтвердил источники: отбор показывает ровно его.
-      if (фильтр === 'из исследований') return ф.authority === 'doubtful'
+      if (фильтр === 'из исследований') return ф.rank === 'doubtful'
       return true
     })
   const ручных = все.filter((ф) => ф.manual).length
@@ -378,7 +378,7 @@ export function KnowledgeField({ project, expert = false, ручной = false }
   // запирает пакетный приём плана разбора (`batch_refusal`): источник не
   // подтверждён. Расхождение экрана и сервера хуже молчания, поэтому правило
   // стоит и здесь; по одному факту решение в строке остаётся за человеком.
-  const кПакету = свободные.filter((ф) => ф.authority !== 'doubtful')
+  const кПакету = свободные.filter((ф) => ф.rank !== 'doubtful')
   const сомнительных = свободные.length - кПакету.length
 
   /**
@@ -587,7 +587,7 @@ export function KnowledgeField({ project, expert = false, ручной = false }
           */}
           {пакетЗаперт ? (
             <div className="v2-locked" data-why="почему-нельзя">
-              Ранг доверия материала: {план.authority_word}
+              Ранг доверия материала: {план.rank_word}
               <span className="v2-empty__why">{план.batch_refusal}</span>
               <span className="v2-empty__why">
                 Источники подтверждаются в карточке исследования ниже: отметьте факты,
@@ -595,8 +595,8 @@ export function KnowledgeField({ project, expert = false, ручной = false }
                 станет приниматься. Факты плана из поля не исчезают: они ждут подтверждения.
               </span>
             </div>
-          ) : план.authority_word ? (
-            <div className="v2-note-line">Ранг доверия материала: {план.authority_word}</div>
+          ) : план.rank_word ? (
+            <div className="v2-note-line">Ранг доверия материала: {план.rank_word}</div>
           ) : null}
           {план.assessment && (
             <div className="v2-scroll">
@@ -863,10 +863,10 @@ export function KnowledgeField({ project, expert = false, ручной = false }
                   <td>{ф.value}{ф.unit ? ` ${ф.unit}` : ''}</td>
                   <td title={МЕТКА[ф.mark] ?? ф.mark}>{МЕТКА[ф.mark] ?? ф.mark}</td>
                   {знанияV2 && (
-                    <td title={ф.authority
+                    <td title={ф.rank
                       ? 'ранг доверия наследуется от источника; у руки эксперта — экспертный'
                       : 'ранга нет: факт заведён до перестройки поля — выдуманный ранг хуже отсутствующего'}>
-                      {рангСловами(ф.authority)}
+                      {рангСловами(ф.rank)}
                     </td>
                   )}
                   <td className="v2-mono" title={ф.material}>
@@ -1081,14 +1081,14 @@ export function Source({ project, onParsed, onError, onRead }: {
       name: имя, text: текст, url: ссылка, author: 'инженер', supersedes: прежний || undefined,
       // Ранг — с формы; тип входного остаётся только там, где поля знаний v2
       // нет: иначе режим разбора снова читался бы с типа файла.
-      ...(знанияV2 ? { authority: ранг || undefined, role: рольДок || undefined } : { kind: вид }),
+      ...(знанияV2 ? { rank: ранг || undefined, role: рольДок || undefined } : { kind: вид }),
       ...(двоичный ? { filename: двоичный.name, file_base64: двоичный.base64 } : {}),
     })
       .then((м) => {
         // Показывается ранг, который ПОСТАВИЛО ядро, а не тот, что отправлен.
-        if (м.authority) {
-          setПоставлен(`ранг источника: ${РАНГ[м.authority] ?? м.authority}`
-            + (м.authority_note ? ` · ${м.authority_note}` : ''))
+        if (м.rank) {
+          setПоставлен(`ранг источника: ${РАНГ[м.rank] ?? м.rank}`
+            + (м.rank_note ? ` · ${м.rank_note}` : ''))
         }
         return api.atomizeJob(project, м.code, задание, 'инженер')
       })
@@ -1114,11 +1114,11 @@ export function Source({ project, onParsed, onError, onRead }: {
     const кончить = () => { window.clearInterval(часы); setЧитаю(0); setЗанято(false) }
     api.putMaterial(project, {
       name: имя, text: текст, url: ссылка, author: 'инженер', supersedes: прежний || undefined,
-      authority: ранг || undefined, role: рольДок || undefined,
+      rank: ранг || undefined, role: рольДок || undefined,
       ...(двоичный ? { filename: двоичный.name, file_base64: двоичный.base64 } : {}),
     })
       .then((м) => {
-        if (м.authority) setПоставлен(`ранг источника: ${РАНГ[м.authority] ?? м.authority}`)
+        if (м.rank) setПоставлен(`ранг источника: ${РАНГ[м.rank] ?? м.rank}`)
         return api.readDocument(project, м.code, 'инженер')
       })
       .then((р) => {
@@ -1295,7 +1295,7 @@ export function Документы({ project, onRead, onError }: {
                   {РОЛИ_ДОКУМЕНТА.map((р) => <option key={р.code} value={р.code}>{р.word}</option>)}
                 </select>
               </td>
-              <td>{м.authority ? (РАНГ[м.authority] ?? м.authority) : <span className="v2-warn">не назван</span>}</td>
+              <td>{м.rank ? (РАНГ[м.rank] ?? м.rank) : <span className="v2-warn">не назван</span>}</td>
               <td>
                 <button type="button" className="v2-primary"
                   disabled={читаю !== null}
@@ -1553,7 +1553,7 @@ function Находки({ project, сверка, onDone, onError }: {
             <span className="v2-card__count" title="вердикт сверки словами сервера">{п.verdict_word}</span>
             <span className="v2-dim">
               кандидат-факт <span className="v2-mono">{п.candidate_fact}</span>
-              {` · ранг: ${рангСловами(п.authority)} · ${источникСловами(п.source)}`}
+              {` · ранг: ${рангСловами(п.rank)} · ${источникСловами(п.source)}`}
             </span>
           </div>
           {п.note && <div className="v2-empty__why">{п.note}</div>}
@@ -2457,7 +2457,7 @@ function Постановка({ project, онтология, onChanged, expert =
                                 {о.anchor && <span className="v2-mono">{` · ${о.anchor}`}</span>}
                                 {о.account && ` · эксперт: ${о.account}${о.role ? `, ${о.role}` : ''}`
                                   + `${о.at ? `, ${о.at}` : ''}`}
-                                {` · ранг: ${о.authority_word ?? рангСловами(о.authority)}`}
+                                {` · ранг: ${о.rank_word ?? рангСловами(о.rank)}`}
                               </div>
                             ))}
                           </td>

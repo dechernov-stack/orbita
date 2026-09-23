@@ -167,14 +167,14 @@ internal class IntakeModes(
      * не печатаем.
      */
     private fun рангФакта(область: Area, ф: Entity): String {
-        val свой = ф.doc.path("authority").asText("")
+        val свой = ф.doc.path("rank").asText("")
         if (Authority.known(свой)) return свой
         val материал = ф.doc.path("material").asText("").ifBlank { return "" }
         return рангДокумента(store.byCode(область, материал) ?: return "")
     }
 
     private fun рангДокумента(карточка: Entity): String {
-        val ранг = карточка.doc.path("authority").asText("")
+        val ранг = карточка.doc.path("rank").asText("")
         return if (Authority.known(ранг)) ранг else ""
     }
 
