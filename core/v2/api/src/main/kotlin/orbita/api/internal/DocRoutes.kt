@@ -162,6 +162,8 @@ class DocRoutes(
 
     private fun кратко(вид: DocumentView): ObjectNode = mapper.createObjectNode()
         .put("code", вид.code)
+        // Шаблон — чтобы сцена фазы находила СВОЙ документ (SEMP, ConOps, SMA, Project Plan, FA), а не угадывала код.
+        .put("template", вид.template)
         .put("title", вид.title)
         .put("standard", вид.standard)
         .put("complete", вид.complete)

@@ -28,6 +28,7 @@ import {
 import { Concept } from './concept'
 import { Requirements } from './requirements'
 import { Costs, Risks, Technologies } from './programmatics'
+import { PhaseASurface } from './phasea'
 
 export function Work({ project, onProject, wantScene, wantReason, onScenePicked, роль, режим, onРежим }: {
   project: string | null
@@ -191,6 +192,13 @@ export function Work({ project, onProject, wantScene, wantReason, onScenePicked,
       {текущая.key === '10' && <Technologies project={project} />}
       {текущая.key === '11' && <Risks project={project} />}
       {текущая.key === '12' && <Costs project={project} />}
+      {/*
+        Phase A — поверхности через контекст (шип 3): сцена A-ряда открывает
+        существующий реестр с отбором по своему узлу, уровню, документу или
+        точке; ветки сцен живут в phasea.tsx, сторож читает их оттуда.
+      */}
+      <PhaseASurface project={project} phase={фаза} scene={текущая} onChanged={перечитать}
+        onScene={(к) => { setСцена(к); setМероприятие(null) }} />
     </>
   )
 

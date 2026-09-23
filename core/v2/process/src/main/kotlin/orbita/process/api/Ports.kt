@@ -64,6 +64,8 @@ data class SceneView(
     val instanceOf: String? = null,
     /** Код узла состава, на который развёрнут экземпляр. */
     val node: String? = null,
+    /** Точка, к которой ведёт сцена (`gate` шаблона): поверхность считает ступень зрелости к ней. */
+    val gate: String? = null,
 )
 
 /**

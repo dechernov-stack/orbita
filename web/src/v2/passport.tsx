@@ -74,11 +74,7 @@ export function PassportScreen({ project, учётка, onChanged }: {
   const назначитьDA = (логин: string) => {
     if (!логин) return
     setОтказ(null)
-    fetch('/api/auth/roles', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ project, login: логин, role: 'da_review' }),
-    })
-      .then(async (r) => { if (!r.ok) throw new Error((await r.json().catch(() => ({})))?.error ?? `HTTP ${r.status}`) })
+    api.setProjectRole(project, логин, 'da_review')
       .then(перечитать)
       .catch((e) => setОтказ(String(e.message ?? e)))
   }

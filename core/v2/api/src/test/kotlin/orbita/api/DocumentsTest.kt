@@ -113,6 +113,10 @@ class DocumentsTest {
 
         val документ = router.handle("GET", "/v2/documents/mcreport", п, null)!!.body
         assertEquals(11, документ.path("total").asInt(), "MCReport по приложению 3 — одиннадцать разделов")
+        // Список называет шаблон каждого документа: сцена фазы находит свой документ по нему (шип 3).
+        val список = router.handle("GET", "/v2/documents", п, null)!!.body
+        val строка = список.path("items").first { it.path("code").asText() == "mcreport" }
+        assertEquals("mcreport", строка.path("template").asText(), "у строки списка есть шаблон: $строка")
 
         val первый = раздел(документ, "§1")
         assertTrue(первый.path("complete").asBoolean(), "сцены 2–4 прожиты — §1 полон: ${первый.path("waiting")}")

@@ -298,7 +298,10 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
             },
         )
         проверкиДокументов = orbita.documents.api.DocumentsFactory.gateChecks(документы)
-        проверкиТочек = orbita.api.internal.PointChecks(store, записиТочек, документы) { p ->
+        проверкиТочек = orbita.api.internal.PointChecks(
+            store, записиТочек, документы,
+            roles = { p -> runCatching { auth.listRoles(p) }.getOrDefault(emptyMap()) },
+        ) { p ->
             runCatching { полки.phaseTemplate(записиТочек.phaseTemplateOf(p) ?: "PHT-9001") }.getOrNull()
         }
         val документыМаршруты = orbita.api.internal.DocRoutes(store, документы, mapper) { полки.phaseTemplate("PHT-9001") }

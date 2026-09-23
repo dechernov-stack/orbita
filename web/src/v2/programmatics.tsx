@@ -166,6 +166,19 @@ export function Technologies({ project }: { project: string }) {
 
 /** Сцена 11 — реестр рисков (общий с разделом «Риски») и оценка засорения. */
 export function Risks({ project }: { project: string }) {
+  return (
+    <>
+      <RiskRegistry project={project} />
+      <Debris project={project} />
+    </>
+  )
+}
+
+/**
+ * Оценка засорения (ОСЗ) — своя поверхность: сцена 11 Pre-A ставит её под
+ * реестром рисков, сцена A9 Phase A — рядом с планом обеспечения (шип 3).
+ */
+export function Debris({ project }: { project: string }) {
   const [осз, setОсз] = useState<OdaRow[]>([])
   const [отказ, setОтказ] = useState<string | null>(null)
   /**
@@ -210,8 +223,6 @@ export function Risks({ project }: { project: string }) {
   return (
     <>
       {отказ && <div className="v2-locked">{отказ}</div>}
-
-      <RiskRegistry project={project} />
 
       <div className="v2-panel" data-why="работа">
         <h3>Оценка засорения (ОСЗ)<span className="v2-cnt">{осз.length}</span></h3>

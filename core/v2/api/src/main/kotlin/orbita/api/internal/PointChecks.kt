@@ -14,6 +14,12 @@ class PointChecks(
     private val store: EntityStore,
     private val records: GateRecords,
     private val documents: Documents?,
+    /**
+     * Роли проекта (учётка → роль) — то, что истина зовёт `account_role`.
+     * Условие A1 «ответственные сцен назначены» читает ИХ: окно сцены в плане
+     * истина знает как `{scene, start, end}`, поля «ответственный» у него нет.
+     */
+    private val roles: (project: String) -> Map<String, String> = { emptyMap() },
     /** Шаблон фазы проекта — откуда берутся позиции экспертиз и матрица зрелости точки. */
     private val template: (project: String) -> JsonNode?,
 ) : ExtraChecks {
@@ -35,14 +41,16 @@ class PointChecks(
                     else -> CheckResult.no("даты не заданы у точек: " + без.joinToString(", ") { it.code } + " — план фазы задаёт даты точек")
                 }
             }
-            // A1: ответственные сцен — в окнах плана работ фазы.
+            // A1: ответственные сцен — роли проекта РП и ведущего СИ (истина A1:
+            // `account_role`, role in (rp, si)); назначаются в паспорте проекта.
             "scene_responsible_min" -> {
                 val нужно = (аргумент ?: "1").toIntOrNull() ?: 1
-                val план = store.list(область, "plan").lastOrNull()
-                    ?: return CheckResult.no("план работ фазы не задан: ответственных сцен назначить негде")
-                val назначено = план.doc.path("scene_windows").count { it.path("responsible").asText("").isNotBlank() }
-                if (назначено >= нужно) CheckResult.ok
-                else CheckResult.no("ответственных сцен назначено $назначено из $нужно — в окне сцены укажите лицо (РП или ведущий СИ)")
+                val ответственные = roles(project).filterValues { it in ОТВЕТСТВЕННЫЕ_РОЛИ }
+                if (ответственные.size >= нужно) CheckResult.ok
+                else CheckResult.no(
+                    "ответственных сцен назначено ${ответственные.size} из $нужно — роль «руководитель проекта» " +
+                        "или «ведущий СИ» назначается в паспорте проекта",
+                )
             }
             // A12: по каждой позиции экспертизы точки записан вердикт.
             "expertise_positions_reviewed" -> {
@@ -89,6 +97,11 @@ class PointChecks(
             }
             else -> null
         }
+    }
+
+    private companion object {
+        /** РП и ведущий СИ — те, кто ведёт сцены (коды ролей учёток стенда). */
+        val ОТВЕТСТВЕННЫЕ_РОЛИ = setOf("lead", "lead_se")
     }
 
     private fun точкаШаблона(project: String, ключ: String): JsonNode? =

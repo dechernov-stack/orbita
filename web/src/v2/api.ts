@@ -75,6 +75,8 @@ export interface Scene {
   depends?: { on: string; type: string; why: string }[]
   instance_of?: string | null
   node?: string | null
+  /** Точка, к которой ведёт сцена (шаблон фазы): карточка узла считается к ней. */
+  gate?: string | null
   /** Что сцена даёт — для нити потока. */
   output: string
   /** Кто ждёт эту сцену: сцены и точки. */
@@ -397,6 +399,26 @@ export interface ArchLayer {
   key: string
   title: string
   lines: FacetLine[]
+}
+
+/** Стык между узлами состава (истина `interface`): стороны — кодами узлов. */
+export interface InterfaceRow {
+  code: string
+  name: string
+  type: string
+  a: string
+  b: string
+  direction: string
+  requirement_classes: string[]
+}
+
+/** Запись бюджета (истина `budget`): вид величины, корень свёртки, политика резервов. */
+export interface BudgetRow {
+  code: string
+  id: string
+  kind: string
+  root: string
+  reserve_policy: string
 }
 
 /** Базовый вариант построения: выбор с обоснованием и отклонёнными. */
@@ -833,6 +855,8 @@ export interface RenderedSection {
 
 export interface DocView {
   code: string
+  /** Шаблон документа: сцена фазы находит СВОЙ документ по нему, а не угадывает код. */
+  template: string
   title: string
   standard: string
   complete: number
@@ -1551,6 +1575,15 @@ export const api = {
     return (тело && typeof тело === 'object' && !('error' in тело)) ? (тело as Record<string, string>) : {}
   },
 
+  /** Роль проекта учётке (паспорт, сцена A1): сервер пускает только руководителя проекта. */
+  setProjectRole: async (project: string, login: string, role: string) => {
+    const r = await fetch('/api/auth/roles', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ project, login, role }),
+    })
+    if (!r.ok) throw new Error((await r.json().catch(() => ({})))?.error ?? `HTTP ${r.status}`)
+  },
+
   /** ADR-066: владелец системы выступает от имени роли; пусто — своя. */
   actAs: async (role: string | null) => {
     const r = await fetch('/api/auth/act-as', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role: role ?? '' }) })
@@ -2177,6 +2210,22 @@ export const api = {
   functions: (project: string) =>
     вызов<{ items: { code: string; id: string; name?: string; layer?: string; allocated_to?: string[] }[] }>(
       `/functions?project=${encodeURIComponent(project)}`),
+
+  /** Стыки проекта: сцена A4 отбирает стыки своего узла, A5 читает все. */
+  interfaces: (project: string) =>
+    вызов<{ items: InterfaceRow[] }>(`/interfaces?project=${encodeURIComponent(project)}`),
+
+  addInterface: (project: string, тело: Record<string, unknown>) =>
+    вызов<{ code: string; id: string }>(`/interfaces?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify(тело) }),
+
+  /** Бюджеты (масса · мощность · линия…): записи вида «бюджет» — корень свёртки и политика резервов. */
+  budgets: (project: string) =>
+    вызов<{ items: BudgetRow[] }>(`/budgets?project=${encodeURIComponent(project)}`),
+
+  addBudget: (project: string, тело: Record<string, unknown>) =>
+    вызов<{ code: string; id: string }>(`/budgets?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify(тело) }),
 
   /** Истина онтологии наружу: по ней экран объясняет, откуда взялось понятие. */
   formationOntology: (project: string) =>

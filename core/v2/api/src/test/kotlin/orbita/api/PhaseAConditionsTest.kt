@@ -52,8 +52,11 @@ class PhaseAConditionsTest {
         ArchitectureFactory.gateChecks(store, архитектура),
         ProgrammaticsFactory.gateChecks(store, программатика),
         DocumentsFactory.gateChecks(документы),
-        PointChecks(store, записи, документы) { шаблон },
+        PointChecks(store, записи, документы, roles = { роли }) { шаблон },
     )
+
+    /** Роли проекта стенда (учётка → роль): условие A1 читает их, а не окно плана. */
+    private val роли = mutableMapOf<String, String>()
 
     private fun условие(check: String): CheckResult =
         проверки.firstNotNullOfOrNull { it.of(проект, check) } ?: error("условие «$check» никто не знает")
@@ -74,6 +77,7 @@ class PhaseAConditionsTest {
     @BeforeTest
     fun чисто() {
         TestDbV2.очистить()
+        роли.clear()
         store.create(проект, "project", область, "1", json("""{"name":"Условия Phase A","standard":"NASA-7120","phase_current":"Phase A","phase_template":"PHT-9002"}"""), п)
         записи.ensureGates(проект, шаблон)
     }
@@ -96,11 +100,14 @@ class PhaseAConditionsTest {
         отказ("phase_points_dated", "даты не заданы")
         store.list(область, "gate").forEach { store.update(it.id, (it.doc.deepCopy() as com.fasterxml.jackson.databind.node.ObjectNode).put("planned_date", "2027-05-01"), п) }
         проход("phase_points_dated")
-        отказ("scene_responsible_min:1", "план работ фазы не задан")
-        store.create("PLAN-A", "plan", область, "A1", json("""{"phase":"Phase A","gate_dates":[],"scene_windows":[{"scene":"A1","start":"2027-01-01","end":"2027-02-01"}],"set_by":"Чернов Д."}"""), п)
+        // Ответственные сцен — роли проекта (истина A1: account_role, role in (rp, si)),
+        // а не поле окна плана, которого истина не знает.
         отказ("scene_responsible_min:1", "назначено 0 из 1")
-        val план = store.list(область, "plan").last()
-        store.update(план.id, json("""{"phase":"Phase A","gate_dates":[],"scene_windows":[{"scene":"A1","start":"2027-01-01","end":"2027-02-01","responsible":"chernov"}],"set_by":"Чернов Д."}"""), п)
+        роли["petrov"] = "specialist"
+        отказ("scene_responsible_min:1", "паспорте проекта")
+        роли["chernov"] = "lead"
+        проход("scene_responsible_min:1")
+        роли.clear(); роли["ivanov"] = "lead_se"
         проход("scene_responsible_min:1")
     }
 

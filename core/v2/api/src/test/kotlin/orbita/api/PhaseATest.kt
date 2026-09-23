@@ -147,6 +147,9 @@ class PhaseATest {
         assertEquals(listOf("A4:GS", "A4:SC"), экземпляры.map { it.key })
         assertEquals("Аванпроект элемента Космический аппарат", экземпляры.first { it.node == "SC" }.title)
         assertTrue(фаза.scenes.none { it.key == "A4" }, "сцена шаблона заменена экземплярами")
+        // Точка сцены — из шаблона: поверхность экземпляра считает карточку узла к ней (шип 3).
+        assertEquals("SDR", экземпляры.first().gate)
+        assertEquals("SRR", фаза.scenes.first { it.key == "A1" }.gate)
         val ка_сцена = экземпляры.first { it.node == "SC" }
         assertEquals(SceneState.OPEN, ка_сцена.state)
         assertTrue(ка_сцена.exit.first { it.check.startsWith("node_requirements_min:SC") }.passed, "требование на КА распределено")
