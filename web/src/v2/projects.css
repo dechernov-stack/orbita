@@ -1,0 +1,73 @@
+/* Экраны 2 и 3 шипа 2: «Проекты» — две равные колонки строками-карточками;
+   «Новый проект» — одна форма двумя колонками. Общее для v2 живёт в
+   tokens.css; здесь — только то, что принадлежит этим двум экранам.
+
+   Обёртки .v2-pf и .v2-np в селекторах не случайны: main.tsx импортирует
+   оболочку РАНЬШЕ tokens.css, и стили экрана встают в сборке до токенов —
+   одиночный класс экрана проиграл бы одиночному классу токенов. Два класса
+   в селекторе решают спор в пользу экрана. */
+
+.v2-pf { min-width: 0; }
+
+/* Заголовок и главное действие — одной строкой: «Новый проект» справа сверху. */
+.v2-pf__top { display: flex; gap: var(--pad-m); align-items: baseline; justify-content: space-between; margin-bottom: var(--pad-l); }
+.v2-pf__h { margin: 0; font-size: var(--size-h); font-weight: 600; }
+.v2-pf .v2-pf__new { padding: 4px 12px; border-radius: var(--radius-input); cursor: pointer; }
+
+/* Две РАВНЫЕ колонки: рабочие и примеры стоят на одной ширине. */
+.v2-pf__cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--pad-xl); align-items: start; }
+.v2-pf__col { min-width: 0; }
+.v2-pf__colh { margin: 0 0 var(--pad-s); font-size: var(--size); font-weight: 600; }
+.v2-pf .v2-empty { padding: var(--pad-s) 0; }
+
+/* Карточка-строка: имя и строка состояния слева, активность и руководитель
+   справа. Панели нет — список и есть экран; разделитель линией, не рамкой. */
+.v2-pf .v2-pf__card {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: var(--pad-m); row-gap: 2px;
+  width: 100%; padding: var(--pad-s) var(--pad-m); border: 0; border-bottom: 1px solid var(--graphite);
+  border-radius: 0; background: var(--surface); font: inherit; color: var(--ink); text-align: left; cursor: pointer;
+}
+.v2-pf .v2-pf__card:first-of-type { border-top: 1px solid var(--graphite); }
+.v2-pf .v2-pf__card:hover { background: var(--paper); }
+/* Имя проекта — целиком: длинное встаёт в две строки, усечения нет. */
+.v2-pf .v2-pf__name { grid-column: 1; font-weight: 500; white-space: normal; overflow-wrap: anywhere; }
+.v2-pf__line {
+  grid-column: 1; display: flex; gap: var(--pad-s); align-items: center; flex-wrap: wrap;
+  font-size: var(--size-s); color: var(--muted);
+}
+.v2-pf__gate { display: inline; }
+.v2-pf__gate > .v2-marker { vertical-align: -1px; margin-right: 2px; }
+/* Дата точки и «блокирует N» не разрываются переносом. */
+.v2-pf__nb { white-space: nowrap; }
+/* Активность и руководитель — у ВЕРХНЕЙ строки карточки: имя может занять
+   две строки, и середина карточки уехала бы от него. */
+.v2-pf__side {
+  grid-column: 2; grid-row: 1 / span 2; display: flex; gap: var(--pad-s); align-items: start;
+  justify-content: flex-end; font-size: var(--size-s); color: var(--muted); padding-top: 2px;
+}
+.v2-pf__when { white-space: nowrap; }
+/* Инициалы руководителя чипом; полное имя — подсказкой того же элемента. */
+.v2-pf .v2-pf__who {
+  padding: 1px 6px; border: 1px solid var(--graphite); border-radius: var(--radius-input);
+  color: var(--ink); white-space: nowrap;
+}
+
+/* Узкое окно: колонки встают одна под другой — карточка не сжимается в кашу. */
+@media (max-width: 900px) {
+  .v2-pf__cols { grid-template-columns: minmax(0, 1fr); gap: var(--pad-l); }
+}
+
+/* ── Экран 3 «Новый проект»: одна форма двумя колонками. ── */
+.v2-np { min-width: 0; }
+.v2-np__h { margin: 0 0 var(--pad-l); font-size: var(--size-h); font-weight: 600; }
+.v2-np__cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--pad-xl); align-items: start; }
+.v2-np__col { min-width: 0; }
+.v2-np__colh { margin: 0 0 var(--pad-s); font-size: var(--size); font-weight: 600; }
+/* Форма занимает колонку целиком: ввод во всю ширину, а не в узкое поле. */
+.v2-np .v2-form { max-width: none; }
+.v2-np__hint { margin-top: var(--pad-s); font-size: var(--size-s); color: var(--muted); }
+.v2-np__done { margin-top: var(--pad-l); }
+
+@media (max-width: 900px) {
+  .v2-np__cols { grid-template-columns: minmax(0, 1fr); gap: var(--pad-l); }
+}
