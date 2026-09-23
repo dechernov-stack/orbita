@@ -1,0 +1,108 @@
+/* Экран «Работа» (шип 2, экраны 4 и 7 задания): слева лента сцен 320 px с
+   ромбами точек, справа сцена в теле; у инженера — мероприятие во всю ширину
+   и рейка 128 px словами. Общее для v2 живёт в tokens.css; здесь — только то,
+   что принадлежит экрану.
+
+   Обёртка .v2-work2 в селекторах не случайна: main.tsx импортирует оболочку
+   РАНЬШЕ tokens.css, и стили экрана встают в сборке до токенов — одиночный
+   класс экрана проиграл бы одиночному классу токенов. Два класса в селекторе
+   решают спор в пользу экрана. */
+
+.v2-work2 { min-width: 0; }
+/* Плотность «сцена»: лента 320 px слева, тело — остальное. */
+.v2-work2--scene { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: var(--pad-xl); align-items: start; }
+.v2-work2__body { min-width: 0; }
+
+/* ── Лента сцен фазы. Панели с заголовком нет: список и есть экран. ── */
+.v2-band { display: grid; border-top: 1px solid var(--graphite); background: var(--surface); }
+.v2-band__scene {
+  display: grid; grid-template-columns: 16px minmax(0, 1fr); column-gap: var(--pad-s); align-items: start;
+  width: 100%; padding: var(--pad-s) var(--pad-m); border: 0; border-bottom: 1px solid var(--graphite);
+  border-radius: 0; background: none; font: inherit; color: var(--ink); text-align: left; cursor: pointer;
+}
+.v2-band__scene:hover { background: var(--paper); }
+/* Открытая в теле сцена — кобальтовой чертой слева, как раздел в рейке. */
+.v2-band__scene[aria-current="true"] { box-shadow: inset 3px 0 0 var(--cobalt); }
+.v2-band__scene > .v2-marker { margin-top: 4px; }
+.v2-band__t { font-weight: 500; }
+.v2-band__st { grid-column: 2; font-size: var(--size-s); color: var(--muted); }
+.v2-band__st--done { color: var(--green); }
+.v2-band__st--open { color: var(--cobalt); }
+/* Точка — строкой-ромбом между сценами, там, где она в жизни. */
+.v2-band__gate {
+  display: flex; gap: var(--pad-s); align-items: center; padding: 6px var(--pad-m);
+  font-size: var(--size-s); color: var(--muted); background: var(--paper); border-bottom: 1px solid var(--graphite);
+}
+.v2-band__gate > .v2-marker { flex: none; }
+.v2-band__gate b { color: var(--ink); font-weight: 500; }
+/* Разрыв плана — одной строкой с переходом туда, где он закрывается. */
+.v2-band__plan {
+  display: flex; gap: var(--pad-s); align-items: baseline; flex-wrap: wrap;
+  padding: var(--pad-s) var(--pad-m); font-size: var(--size-s); color: var(--amber);
+}
+
+/* ── Сцена в теле: заголовок, одна строка контекста, поток мероприятий. ── */
+.v2-scene__h { margin: 0; font-size: var(--size-h); font-weight: 600; }
+.v2-scene__ctx {
+  display: flex; gap: var(--pad-m); flex-wrap: wrap; margin: 4px 0 var(--pad-m);
+  font-size: var(--size-s); color: var(--muted);
+}
+.v2-scene__in { color: var(--ink); }
+.v2-scene__in--no { color: var(--amber); }
+
+/* Поток мероприятий сцены: короткая горизонтальная цепочка скошенных карточек,
+   между ними стрелка с подписью-артефактом. Скос — тот же, что у маркера
+   мероприятия: карточка и есть маркер, только с именем. */
+.v2-flow2 {
+  display: flex; align-items: stretch; gap: var(--pad-s); overflow-x: auto;
+  padding-bottom: var(--pad-m); margin-bottom: var(--pad-m); border-bottom: 1px solid var(--graphite);
+}
+/* Рамка скошенной карточки — цветом подложки под обрезом: сама карточка лежит
+   внутри с тем же обрезом на пиксель меньше; градиентов и теней нет. */
+.v2-flow2__card {
+  flex: none; width: 224px; padding: 1px; border: 0; border-radius: 0; background: var(--graphite);
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%);
+  font: inherit; color: var(--ink); text-align: left; cursor: pointer;
+}
+/* Выбранное — кобальтом; фокус-кольцо под обрезом не видно, его роль играет та же рамка. */
+.v2-flow2__card[aria-pressed="true"], .v2-flow2__card:focus-visible { padding: 2px; background: var(--cobalt); box-shadow: none; }
+.v2-flow2__in {
+  display: grid; grid-template-columns: 16px minmax(0, 1fr); column-gap: var(--pad-s); align-items: start;
+  height: 100%; padding: var(--pad-s) var(--pad-m); background: var(--surface);
+  clip-path: polygon(0 0, calc(100% - 11.4px) 0, 100% 11.4px, 100% 100%, 0 100%);
+}
+.v2-flow2__card:hover .v2-flow2__in { background: var(--paper); }
+.v2-flow2__in > .v2-marker { margin-top: 3px; }
+.v2-flow2__t { font-weight: 500; }
+.v2-flow2__st { grid-column: 2; font-size: var(--size-s); color: var(--muted); }
+.v2-flow2__st--done { color: var(--green); }
+.v2-flow2__st--cur { color: var(--cobalt); }
+.v2-flow2__arrow {
+  flex: none; display: grid; align-content: center; justify-items: center; gap: 2px;
+  max-width: 160px; padding: 0 4px; font-size: var(--size-s); color: var(--muted); text-align: center;
+}
+.v2-flow2__arrow i { font-style: normal; }
+.v2-flow2__arrow b { font-weight: 400; font-size: var(--size-h); line-height: 1; color: var(--graphite); }
+
+/* ── Мероприятие инженера (экран 7): поверхность во всю ширину и рейка 128 px
+   словами; развёрнутый пункт раскрывает панель ВНУТРИ рейки — колонка
+   становится шире, третьей не появляется. ── */
+.v2-work2 .v2-act2 { grid-template-columns: minmax(0, 1fr) 128px; }
+.v2-work2 .v2-act2--open { grid-template-columns: minmax(0, 1fr) var(--rail-open); }
+/* Плотность «сцена»: рейки нет — поверхность одной колонкой под потоком. */
+.v2-work2 .v2-act2--scene { display: block; min-height: 0; }
+.v2-work2 .v2-act2__thread { font-size: var(--size-s); color: var(--muted); }
+.v2-work2 .v2-act2__thread b { color: var(--ink); font-weight: 500; }
+.v2-work2 .v2-act2__rail { align-items: stretch; gap: var(--pad-s); padding: var(--pad-m) 0 0 var(--pad-s); }
+.v2-work2 .v2-act2__r {
+  width: auto; height: auto; padding: 6px 8px; text-align: left; line-height: 1.3;
+  border-radius: var(--radius-input); color: var(--muted);
+}
+.v2-work2 .v2-act2__r b { display: block; font-size: var(--size); font-weight: 600; }
+.v2-work2 .v2-act2__panel {
+  position: static; width: auto; margin-top: var(--pad-s); padding: var(--pad-m) 0 0;
+  border: 0; border-top: 1px solid var(--graphite); font-size: var(--size-s);
+}
+.v2-work2 .v2-act2__ph { font-size: var(--size); }
+.v2-work2 .v2-act2__list { padding-left: 0; }
+.v2-work2 .v2-act2__list .v2-link { display: block; }
