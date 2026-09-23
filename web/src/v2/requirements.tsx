@@ -4,7 +4,7 @@
 // заголовок, формулировка, показатель, носитель, статус. Всё остальное
 // (источники, метод, применимость, пометы линта) открывается карточкой под
 // строкой, а не отдельным окном: контекст строки не теряется.
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 import {
   ReactFlow, Background, Controls, MarkerType, type Node, type Edge,
 } from '@xyflow/react'
@@ -433,10 +433,48 @@ function ПредложенияТребований({ project, onAccepted }: { p
   )
 }
 
-export function Requirements({ project }: { project: string | null }) {
+/** Виды реестра (экран 9 шипа 2): одни и те же строки, разный порядок чтения. */
+type ВидРеестра = 'таблица' | 'иерархия' | 'документы' | 'матрица'
+const ВИДЫ: [ВидРеестра, string][] = [
+  ['таблица', 'Таблица'], ['иерархия', 'По иерархии'], ['документы', 'По документам'], ['матрица', 'Матрица'],
+]
+type Колонка = 'code' | 'title' | 'statement' | 'measure' | 'carrier' | 'status'
+const КОЛОНКИ: [Колонка, string][] = [
+  ['code', 'Код'], ['title', 'Заголовок'], ['statement', 'Формулировка'],
+  ['measure', 'Показатель'], ['carrier', 'Носитель'], ['status', 'Статус'],
+]
+
+/**
+ * Начальный отбор реестра: реестр открывается ИЗ ЗАДАЧИ уже отфильтрованным
+ * («3 требования без носителя» показывают три строки, а не четырнадцать).
+ * Прямой вход — без отбора.
+ */
+export interface ОтборТребований {
+  без_носителя?: boolean
+  коды?: string[]
+  уровень?: string
+  носитель?: string
+}
+
+export function Requirements({ project, отбор }: { project: string | null; отбор?: ОтборТребований }) {
   const [строки, setСтроки] = useState<RequirementRow[]>([])
   const [открыта, setОткрыта] = useState<string | null>(null)
-  const [дерево, setДерево] = useState<'carrier' | 'source'>('carrier')
+  const [вид, setВид] = useState<ВидРеестра>('таблица')
+  const [сортировка, setСортировка] = useState<{ по: Колонка; вверх: boolean }>({ по: 'code', вверх: true })
+  const [группировка, setГруппировка] = useState<'нет' | 'carrier' | 'level'>('нет')
+  const [выделены, setВыделены] = useState<string[]>([])
+  const [фильтры, setФильтры] = useState<{ level: string; category: string; carrier: string; status: string; безНосителя: boolean; поиск: string }>(
+    { level: '', category: '', carrier: '', status: '', безНосителя: false, поиск: '' },
+  )
+  useEffect(() => {
+    if (!отбор) return
+    setФильтры((ф) => ({
+      ...ф,
+      безНосителя: отбор.без_носителя ?? ф.безНосителя,
+      level: отбор.уровень ?? ф.level,
+      carrier: отбор.носитель ?? ф.carrier,
+    }))
+  }, [отбор])
   const [подозрения, setПодозрения] = useState<SuspectRow[]>([])
   const [снимки, setСнимки] = useState<BaselineRow[]>([])
   const [помехи, setПомехи] = useState<Blocker[]>([])
@@ -462,6 +500,13 @@ export function Requirements({ project }: { project: string | null }) {
     )
   }
 
+  // Отбор и порядок считает экран: это его собственные строки, не величины модели.
+  const видимые = отобрать(строки, фильтры, отбор?.коды)
+  const упорядочены = упорядочить(видимые, сортировка.по, сортировка.вверх)
+  const группы = сгруппировать(упорядочены, группировка, схема)
+  const выбраны = выделены.filter((к) => упорядочены.some((т) => т.code === к))
+  const всеОтмечены = упорядочены.length > 0 && выбраны.length === упорядочены.length
+
   return (
     <>
       {отказ && <div className="v2-card"><div className="v2-locked">{отказ}</div></div>}
@@ -472,20 +517,65 @@ export function Requirements({ project }: { project: string | null }) {
 
       <div className="v2-card">
         <div className="v2-card__head">
-          <span className="v2-card__title">Требования</span>
-          <span className="v2-card__count">{строки.length}</span>
+          <span className="v2-card__title">Требования · уровень проекта</span>
+          <span className="v2-card__count">
+            {упорядочены.length === строки.length ? строки.length : `${упорядочены.length} из ${строки.length}`}
+          </span>
           <span className="v2-head__spacer" />
-          <button type="button" className="v2-chip" aria-pressed={дерево === 'carrier'}
-            title="дерево по носителю: кто несёт требование"
-            onClick={() => setДерево('carrier')}>по носителю</button>
-          <button type="button" className="v2-chip" aria-pressed={дерево === 'source'}
-            title="дерево по источнику: откуда требование выведено"
-            onClick={() => setДерево('source')}>по источнику</button>
           <a className="v2-chip" href={api.sdocUrl(project ?? '')} target="_blank" rel="noreferrer"
             title="StrictDoc: нужды · сервисы · требования с показателем по грамматике Орбиты (служба профиля strictdoc)">.sdoc</a>
           <a className="v2-chip" href={api.reqifUrl(project ?? '')} target="_blank" rel="noreferrer"
             title="ReqIF штатным экспортом StrictDoc из того же .sdoc">ReqIF</a>
         </div>
+
+        <div className="v2-form v2-form--row" data-why="следующий-клик">
+          <span className="v2-inline" role="group" aria-label="вид реестра">
+            {ВИДЫ.map(([к, слово]) => (
+              <button key={к} type="button" className={вид === к ? 'v2-chip v2-chip--on' : 'v2-chip'}
+                aria-pressed={вид === к}
+                title={к === 'таблица' ? 'строки реестра с сортировкой и карточкой'
+                  : к === 'иерархия' ? 'требования под своими источниками: откуда выведено'
+                    : к === 'документы' ? 'по документам-источникам: что из чего написано'
+                      : 'матрица «требование × носитель»: кто что несёт'}
+                onClick={() => setВид(к)}>{слово}</button>
+            ))}
+          </span>
+          <ЧипОтбора имя={схема.имя('level')} значение={фильтры.level} значения={значения(строки, 'level')}
+            словом={(з) => схема.метка('level', з) || з} onПравка={(з) => setФильтры({ ...фильтры, level: з })} />
+          <ЧипОтбора имя={схема.имя('category')} значение={фильтры.category} значения={значения(строки, 'category')}
+            словом={(з) => схема.метка('category', з) || з} onПравка={(з) => setФильтры({ ...фильтры, category: з })} />
+          <ЧипОтбора имя={схема.имя('carrier')} значение={фильтры.carrier} значения={значения(строки, 'carrier')}
+            словом={(з) => з} onПравка={(з) => setФильтры({ ...фильтры, carrier: з })} />
+          <ЧипОтбора имя={схема.имя('status')} значение={фильтры.status} значения={значения(строки, 'status')}
+            словом={(з) => схема.метка('status', з) || з} onПравка={(з) => setФильтры({ ...фильтры, status: з })} />
+          <label className="v2-inline" title="показать только те, которым не назначен носитель">
+            <input type="checkbox" checked={фильтры.безНосителя}
+              onChange={(e) => setФильтры({ ...фильтры, безНосителя: e.target.checked })} />
+            только без носителя
+          </label>
+          <label className="v2-field">
+            <span className="v2-field__cap">поиск</span>
+            <input value={фильтры.поиск} placeholder="код, заголовок или формулировка"
+              aria-label="поиск по требованиям"
+              onChange={(e) => setФильтры({ ...фильтры, поиск: e.target.value })} />
+          </label>
+          <label className="v2-inline">
+            группировать
+            <select value={группировка} aria-label="группировка реестра"
+              title="группы строк: по носителю или по уровню требования"
+              onChange={(e) => setГруппировка(e.target.value as 'нет' | 'carrier' | 'level')}>
+              <option value="нет">не группировать</option>
+              <option value="carrier">по носителю</option>
+              <option value="level">по уровню</option>
+            </select>
+          </label>
+        </div>
+
+        {отбор?.коды && отбор.коды.length > 0 && (
+          <div className="v2-empty__why">
+            реестр открыт из задачи: показаны {отбор.коды.length} названных ею требования
+          </div>
+        )}
 
         {строки.length === 0 ? (
           <div className="v2-empty">
@@ -495,28 +585,68 @@ export function Requirements({ project }: { project: string | null }) {
               а носитель определяет, кто за него отвечает.
             </span>
           </div>
+        ) : упорядочены.length === 0 ? (
+          <div className="v2-empty">
+            По отбору требований нет.
+            <span className="v2-empty__why">Снимите чипы отбора или поиск — строки вернутся.</span>
+          </div>
+        ) : вид === 'таблица' ? (
+          <>
+            <МассовыеДействия project={project} выбраны={выбраны} строки={упорядочены}
+              схема={схема} onChanged={() => { setВыделены([]); перечитать() }} />
+            <table className="v2-table v2-table--req">
+              <thead>
+                <tr>
+                  <th>
+                    <input type="checkbox" checked={всеОтмечены}
+                      aria-label="отметить все строки на экране"
+                      title={всеОтмечены ? 'снять отметки' : 'отметить все строки, что видны по отбору'}
+                      onChange={(e) => setВыделены(e.target.checked ? упорядочены.map((т) => т.code) : [])} />
+                  </th>
+                  {КОЛОНКИ.map(([к, слово]) => (
+                    <th key={к}>
+                      <button type="button" className="v2-link" aria-label={`сортировать по «${слово}»`}
+                        title={сортировка.по === к
+                          ? (сортировка.вверх ? 'сейчас по возрастанию — нажмите для обратного' : 'сейчас по убыванию — нажмите для обратного')
+                          : `сортировать по «${слово}»`}
+                        onClick={() => setСортировка({ по: к, вверх: сортировка.по === к ? !сортировка.вверх : true })}>
+                        {слово}{сортировка.по === к ? (сортировка.вверх ? ' ↑' : ' ↓') : ''}
+                      </button>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {группы.map(({ имя: имяГруппы, дети }) => (
+                  <Fragment key={имяГруппы ?? '*'}>
+                    {имяГруппы !== null && (
+                      <tr><td colSpan={7} className="v2-dim">{имяГруппы} · {дети.length}</td></tr>
+                    )}
+                    {дети.map((т) => (
+                      <TableRow key={т.code} т={т} project={project} onChanged={перечитать} схема={схема}
+                        открыта={открыта === т.code}
+                        отмечена={выбраны.includes(т.code)}
+                        onОтметить={(да) => setВыделены(да
+                          ? [...выделены.filter((к) => к !== т.code), т.code]
+                          : выделены.filter((к) => к !== т.code))}
+                        onToggle={() => setОткрыта(открыта === т.code ? null : т.code)} />
+                    ))}
+                  </Fragment>
+                ))}
+              </tbody>
+            </table>
+          </>
+        ) : вид === 'матрица' ? (
+          <МатрицаНосителей строки={упорядочены} />
         ) : (
-          <table className="v2-table v2-table--req">
-            <thead>
-              <tr>
-                <th>Код</th><th>Заголовок</th><th>Формулировка</th>
-                <th>Показатель</th><th>Носитель</th><th>Статус</th>
-              </tr>
-            </thead>
-            <tbody>
-              {строки.map((т) => (
-                <TableRow key={т.code} т={т} project={project} onChanged={перечитать} схема={схема}
-                  открыта={открыта === т.code}
-                  onToggle={() => setОткрыта(открыта === т.code ? null : т.code)} />
-              ))}
-            </tbody>
-          </table>
+          <Деревья строки={упорядочены} вид={вид === 'иерархия' ? 'source' : 'document'} />
         )}
       </div>
 
       {открыта && <Impact код={открыта} project={project} />}
 
-      <Деревья строки={строки} вид={дерево} />
+      {/* Дерево по носителю — спутник таблицы: кто что несёт одним взглядом. */}
+      {вид === 'таблица' && <Деревья строки={упорядочены} вид="carrier" />}
 
       <Подозрения project={project} строки={подозрения} onConfirmed={перечитать} />
 
@@ -524,6 +654,182 @@ export function Requirements({ project }: { project: string | null }) {
 
       <Форма project={project} onAdded={перечитать} схема={схема} />
     </>
+  )
+}
+
+/** Значения колонки, которые реально есть в реестре: отбор не предлагает пустоты. */
+function значения(строки: RequirementRow[], поле: 'level' | 'category' | 'carrier' | 'status'): string[] {
+  const набор = new Set<string>()
+  строки.forEach((т) => {
+    const з = поле === 'carrier' ? (т.carrier ?? '') : String(т[поле] ?? '')
+    if (з.trim()) набор.add(з)
+  })
+  return [...набор].sort((a, b) => a.localeCompare(b))
+}
+
+function отобрать(строки: RequirementRow[], ф: { level: string; category: string; carrier: string; status: string; безНосителя: boolean; поиск: string }, коды?: string[]): RequirementRow[] {
+  const искомое = ф.поиск.trim().toLowerCase()
+  return строки.filter((т) => {
+    if (коды && коды.length > 0 && !коды.includes(т.code)) return false
+    if (ф.level && т.level !== ф.level) return false
+    if (ф.category && т.category !== ф.category) return false
+    if (ф.carrier && т.carrier !== ф.carrier) return false
+    if (ф.status && т.status !== ф.status) return false
+    if (ф.безНосителя && т.carrier) return false
+    if (!искомое) return true
+    return [т.code, т.title, т.statement].some((с) => String(с ?? '').toLowerCase().includes(искомое))
+  })
+}
+
+/** Порядок строк реестра — текстовое сравнение колонки; величин модели экран не считает. */
+function упорядочить(строки: RequirementRow[], по: Колонка, вверх: boolean): RequirementRow[] {
+  const ключ = (т: RequirementRow): string => {
+    if (по === 'carrier') return т.carrier ?? ''
+    if (по === 'measure') return т.measure ?? ''
+    return String(т[по] ?? '')
+  }
+  return [...строки].sort((a, b) => (вверх ? 1 : -1) * ключ(a).localeCompare(ключ(b), 'ru'))
+}
+
+function сгруппировать(
+  строки: RequirementRow[],
+  как: 'нет' | 'carrier' | 'level',
+  схема: ReturnType<typeof useВидТребования>,
+): { имя: string | null; дети: RequirementRow[] }[] {
+  if (как === 'нет') return [{ имя: null, дети: строки }]
+  const карта = new Map<string, RequirementRow[]>()
+  строки.forEach((т) => {
+    const ключ = как === 'carrier'
+      ? (т.carrier ?? 'без носителя')
+      : (схема.метка('level', т.level) || т.level || 'без уровня')
+    карта.set(ключ, [...(карта.get(ключ) ?? []), т])
+  })
+  return [...карта.entries()].sort((a, b) => a[0].localeCompare(b[0], 'ru')).map(([имя, дети]) => ({ имя, дети }))
+}
+
+/** Чип отбора: значение словами истины, «любой» снимает отбор. */
+function ЧипОтбора({ имя, значение, значения: список, словом, onПравка }: {
+  имя: string
+  значение: string
+  значения: string[]
+  словом: (з: string) => string
+  onПравка: (з: string) => void
+}) {
+  if (список.length === 0) return null
+  return (
+    <label className="v2-inline" title={`отбор по полю «${имя}»`}>
+      {имя}
+      <select value={значение} aria-label={`отбор: ${имя}`} onChange={(e) => onПравка(e.target.value)}>
+        <option value="">любой</option>
+        {список.map((з) => <option key={з} value={з}>{словом(з)}</option>)}
+      </select>
+    </label>
+  )
+}
+
+/**
+ * Массовые действия по отмеченным строкам: распределить носителя и базировать.
+ * Ничего не делается без отметок — кнопка заперта и говорит почему.
+ */
+function МассовыеДействия({ project, выбраны, строки, схема, onChanged }: {
+  project: string
+  выбраны: string[]
+  строки: RequirementRow[]
+  схема: ReturnType<typeof useВидТребования>
+  onChanged: () => void
+}) {
+  const [носители, setНосители] = useState<{ code: string; подпись: string }[]>([])
+  const [носитель, setНоситель] = useState('')
+  const [занято, setЗанято] = useState(false)
+  const [итог, setИтог] = useState<string | null>(null)
+  const [отказ, setОтказ] = useState<string | null>(null)
+  // Природа носителя — по уровню отмеченных (истина уровней сцены 8).
+  const уровни = [...new Set(строки.filter((т) => выбраны.includes(т.code)).map((т) => т.level))]
+  const виды = [...new Set(уровни.flatMap((у) => НОСИТЕЛЬ[у]?.виды ?? ['component']))]
+  useEffect(() => {
+    if (виды.length === 0) { setНосители([]); return }
+    Promise.all(виды.map((вид) => api.entities(project, вид).catch(() => ({ items: [] }))))
+      .then((ответы) => setНосители(ответы.flatMap((о) => о.items.map((с) => ({
+        code: с.code,
+        подпись: `${с.code} · ${String(с.doc.name ?? с.doc.title ?? с.code)}`,
+      })))))
+      .catch(() => setНосители([]))
+  }, [project, виды.join(',')])
+
+  const распределить = () => {
+    if (!носитель || выбраны.length === 0) return
+    setЗанято(true); setОтказ(null); setИтог(null)
+    Promise.allSettled(выбраны.map((код) => api.patchEntity(project, код, { carrier: носитель }, 'инженер', 'массовое распределение носителя')))
+      .then((ответы) => {
+        const удачных = ответы.filter((о) => о.status === 'fulfilled').length
+        const мимо = ответы.length - удачных
+        setИтог(`распределено ${удачных}${мимо > 0 ? ` · мимо ${мимо}` : ''}`)
+        onChanged()
+      })
+      .finally(() => setЗанято(false))
+  }
+
+  const базировать = () => {
+    if (выбраны.length === 0) return
+    setЗанято(true); setОтказ(null); setИтог(null)
+    api.baseline(project, { name: 'SRR', kind: 'functional', gate: 'SRR', author: 'инженер', items: выбраны })
+      .then((с) => { setИтог(`снимок «${с.name}» (точка ${с.gate}): объектов ${с.items.length}`); onChanged() })
+      .catch((e) => setОтказ(String(e.message ?? e)))
+      .finally(() => setЗанято(false))
+  }
+
+  const помеха = выбраны.length === 0 ? 'ни одна строка не отмечена' : null
+  return (
+    <div className="v2-form__actions" data-why="работа">
+      <span className="v2-empty__why">
+        {помеха ? 'Массовые действия: отметьте строки — они работают по отмеченным.' : `отмечено ${выбраны.length}`}
+      </span>
+      <label className="v2-inline" title={`носитель по природе уровня: ${уровни.map((у) => НОСИТЕЛЬ[у]?.слова ?? 'узел состава').join(' · ') || 'узел состава'}`}>
+        носитель
+        <select value={носитель} aria-label="носитель для отмеченных" disabled={Boolean(помеха) || занято}
+          onChange={(e) => setНоситель(e.target.value)}>
+          <option value="">— выберите —</option>
+          {носители.map((н) => <option key={н.code} value={н.code}>{н.подпись}</option>)}
+        </select>
+      </label>
+      <button type="button" disabled={Boolean(помеха) || !носитель || занято}
+        title={помеха ?? (!носитель ? 'выберите носителя — его и запишем отмеченным' : `записать носителя ${выбраны.length} требованиям`)}
+        onClick={распределить}>
+        Распределить носитель
+      </button>
+      <button type="button" disabled={Boolean(помеха) || занято}
+        title={помеха ?? `базировать отмеченные: снимок SRR из ${выбраны.length} требований`}
+        onClick={базировать}>
+        Базировать выбранные
+      </button>
+      {итог && <span className="v2-ok">{итог}</span>}
+      {отказ && <div className="v2-locked">{отказ}</div>}
+      {схема.вид === null && <span className="v2-dim">истина вида читается…</span>}
+    </div>
+  )
+}
+
+/** Матрица «требование × носитель»: кто что несёт, одной клеткой. */
+function МатрицаНосителей({ строки }: { строки: RequirementRow[] }) {
+  const носители = [...new Set(строки.map((т) => т.carrier ?? '—'))].sort((a, b) => a.localeCompare(b, 'ru'))
+  return (
+    <table className="v2-table">
+      <thead>
+        <tr><th>Требование</th>{носители.map((н) => <th key={н}>{н === '—' ? 'без носителя' : н}</th>)}</tr>
+      </thead>
+      <tbody>
+        {строки.map((т) => (
+          <tr key={т.code}>
+            <td><span className="v2-mono">{т.code}</span> {т.title}</td>
+            {носители.map((н) => (
+              <td key={н} title={(т.carrier ?? '—') === н ? `${т.code} несёт ${н === '—' ? 'никто' : н}` : ''}>
+                {(т.carrier ?? '—') === н ? '✓' : ''}
+              </td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
   )
 }
 
@@ -854,9 +1160,12 @@ function Величина({ подпись, код, было, единицы, п
   )
 }
 
-function TableRow({ т, открыта, onToggle, project, onChanged, схема }: {
+function TableRow({ т, открыта, onToggle, project, onChanged, схема, отмечена, onОтметить }: {
   т: RequirementRow; открыта: boolean; onToggle: () => void; project: string; onChanged: () => void
   схема: ReturnType<typeof useВидТребования>
+  /** Отметка для массовых действий: работа идёт по отмеченным строкам. */
+  отмечена?: boolean
+  onОтметить?: (да: boolean) => void
 }) {
   const показатель = т.measure ? кратко(т.measure) : '—'
   return (
@@ -868,6 +1177,14 @@ function TableRow({ т, открыта, onToggle, project, onChanged, схема
         Подсветка открытой строки — своим классом, без раскладки.
       */}
       <tr className={открыта ? 'v2-row--open' : undefined} onClick={onToggle}>
+        <td onClick={(e) => e.stopPropagation()}>
+          {onОтметить && (
+            <input type="checkbox" checked={Boolean(отмечена)}
+              aria-label={`отметить требование ${т.code}`}
+              title="отметить для массовых действий: распределить носитель, базировать"
+              onChange={(e) => onОтметить(e.target.checked)} />
+          )}
+        </td>
         <td>
           {т.code}
           {т.after_baseline_changed && (
@@ -900,7 +1217,7 @@ function TableRow({ т, открыта, onToggle, project, onChanged, схема
       </tr>
       {открыта && (
         <tr className="v2-card-row">
-          <td colSpan={6}>
+          <td colSpan={7}>
             <div className="v2-facets">
               <ПравкаТребования project={project} т={т} onSaved={onChanged} схема={схема} />
               <КарточкаТребования project={project} т={т} схема={схема} />
@@ -1207,13 +1524,19 @@ function Помета({ note }: { note: LintNote }) {
 }
 
 /** Два дерева: по носителю (кто несёт) и по источнику (откуда выведено). */
-function Деревья({ строки, вид }: { строки: RequirementRow[]; вид: 'carrier' | 'source' }) {
+function Деревья({ строки, вид }: { строки: RequirementRow[]; вид: 'carrier' | 'source' | 'document' }) {
   const группы = useMemo(() => {
     const карта = new Map<string, RequirementRow[]>()
     строки.forEach((т) => {
       const ключи = вид === 'carrier'
         ? [т.carrier ?? 'без носителя']
-        : (т.sources.length > 0 ? т.sources : ['без источника'])
+        // «По документам» — источники-материалы: из чего требование написано;
+        // «по иерархии» — все источники, включая цели и нужды.
+        : вид === 'document'
+          ? (т.sources.filter((и) => /^(SD|MAT|DOC)/i.test(и)).length > 0
+            ? т.sources.filter((и) => /^(SD|MAT|DOC)/i.test(и))
+            : ['без документа-источника'])
+          : (т.sources.length > 0 ? т.sources : ['без источника'])
       ключи.forEach((к) => карта.set(к, [...(карта.get(к) ?? []), т]))
     })
     return [...карта.entries()].sort((a, b) => a[0].localeCompare(b[0]))
@@ -1225,7 +1548,7 @@ function Деревья({ строки, вид }: { строки: RequirementRow
     <div className="v2-card">
       <div className="v2-card__head">
         <span className="v2-card__title">
-          Дерево {вид === 'carrier' ? 'по носителю' : 'по источнику'}
+          Дерево {вид === 'carrier' ? 'по носителю' : вид === 'document' ? 'по документам' : 'по источнику'}
         </span>
         <span className="v2-card__count">{группы.length}</span>
       </div>

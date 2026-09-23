@@ -16,7 +16,7 @@ describe('сцена 8 — предложения требований', () => {
 
   it('блок стоит на экране требований выше реестра', () => {
     const блок = экран.indexOf('<ПредложенияТребований')
-    const реестр = экран.indexOf('<span className="v2-card__title">Требования</span>')
+    const реестр = экран.indexOf('<span className="v2-card__title">Требования · уровень проекта</span>')
     expect(блок).toBeGreaterThan(0)
     expect(блок).toBeLessThan(реестр)
   })
@@ -33,6 +33,9 @@ describe('сцена 8 — предложения требований', () => {
     // Сами ширины живут в tokens.css (.v2-table--req: table-layout fixed и
     // ширины шести колонок); тест держит то, что от разметки зависит.
     expect(экран).toContain('className="v2-table v2-table--req"')
-    expect(экран).toContain('<th>Код</th><th>Заголовок</th><th>Формулировка</th>')
+    // Шип 2: заголовки шести колонок стали сортируемыми и рисуются перечнем
+    // КОЛОНКИ — ширины по-прежнему в tokens.css, первой идёт отметка строки.
+    expect(экран).toContain("['code', 'Код'], ['title', 'Заголовок'], ['statement', 'Формулировка'],")
+    expect(экран).toContain("['measure', 'Показатель'], ['carrier', 'Носитель'], ['status', 'Статус'],")
   })
 })
