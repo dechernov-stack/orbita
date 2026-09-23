@@ -105,7 +105,7 @@ class ReconcileManualInputTest {
     // --- четыре вопроса ----------------------------------------------------
 
     @Test
-    fun `повтор нужды той же стороны иными словами даёт вердикт дополнить`() {
+    fun `повтор нужды иными словами даёт вердикт дополнить — сторона в ключ не входит`() {
         val минтранс = сторона("SK-0001", "Минтранс России")
         нужда("ND-0001", "Необходимо обеспечить связь в Арктике", минтранс.code)
 
@@ -118,10 +118,10 @@ class ReconcileManualInputTest {
         val дубль = предмет.findings.single { it.question == Question.DUPLICATE }
         assertEquals("ND-0001", дубль.target)
         assertEquals(Match.KEY, дубль.match, "дубль найден ключом идентичности, а не смыслом")
-        assertTrue(
-            дубль.comparedFields.containsAll(listOf("stakeholder", "statement")),
-            "находка обязана сказать, чем именно сравнивали: ${дубль.comparedFields}",
-        )
+        // Ключ нужды — суть формулировки (истина 24.09: одна формулировка —
+        // одна нужда, носителей много); сторона в ключ не входит.
+        assertTrue("statement" in дубль.comparedFields, "находка обязана сказать, чем именно сравнивали: ${дубль.comparedFields}")
+        assertTrue("stakeholder" !in дубль.comparedFields, "сторона — носитель, а не часть ключа: ${дубль.comparedFields}")
     }
 
     @Test

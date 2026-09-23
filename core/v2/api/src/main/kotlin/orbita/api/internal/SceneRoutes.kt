@@ -548,30 +548,40 @@ class SceneRoutes(
         return завести(проект, "stakeholder", "3", тело)
     }
 
-    private fun нужда(проект: String, тело: JsonNode): V2Router.Ответ {
-        // Носителя нужда называет полем «owner» — им и закрывается связь
-        // онтологии «owns→stakeholder»; «stakeholder» принимается как имя
-        // того же поля из истины схем.
-        ворота(проект, "need", тело, mapOf("owns" to listOf("owner", "stakeholder")))?.let { return it }
+    private fun нужда(проект: String, телоСырое: JsonNode): V2Router.Ответ {
+        // Носителей нужда называет полем «owner» (одна сторона) либо «owners»
+        // (несколько) — ими закрывается связь онтологии «owns→stakeholder».
+        // Нужда — много носителей (истина 24.09): запись держит их списком
+        // ссылок `stakeholders`, зеркалящим связи owns.
+        val область = Area.Project(проект)
+        val названные = (телоСырое.path("owners").takeIf { it.isArray }?.map { it.asText("") }.orEmpty() +
+            listOf(телоСырое.path("owner").asText(""), телоСырое.path("stakeholder").asText("")))
+            .map { it.trim() }.filter { it.isNotBlank() }.distinct()
+        val носители = названные.map { имя ->
+            store.byCode(область, имя) ?: store.byId(имя)
+                ?: throw IllegalArgumentException("стейкхолдер «$имя» не найден: нужде нужен носитель")
+        }.distinctBy { it.id }
+        val тело = телоСырое.deepCopy<ObjectNode>().apply {
+            remove(listOf("owners", "stakeholder"))
+            if (носители.isNotEmpty()) {
+                put("owner", носители.first().code)
+                putArray("stakeholders").also { м -> носители.forEach { м.add(it.id) } }
+            }
+        }
+        ворота(проект, "need", тело, mapOf("owns" to listOf("owner", "stakeholders")))?.let { return it }
         val ответ = завести(проект, "need", "3", тело)
         // Носитель нужды — обязательная связь: нужда без стейкхолдера повиснет
         // и на выходе сцены 3, и в матрице покрытия.
-        val носитель = тело.path("owner").asText("")
-        if (носитель.isNotBlank()) {
-            val область = Area.Project(проект)
-            val стейкхолдер = store.byCode(область, носитель) ?: store.byId(носитель)
-            requireNotNull(стейкхолдер) { "стейкхолдер «$носитель» не найден: нужде нужен носитель" }
-            links.link("owns", стейкхолдер.id, ответ.body.path("id").asText(), Provenance(Channel.MANUAL, автор(тело)))
+        носители.forEach { сторона ->
+            links.link("owns", сторона.id, ответ.body.path("id").asText(), Provenance(Channel.MANUAL, автор(тело)))
         }
         return ответ
     }
 
     /**
-     * Назначить носителя уже заведённой нужде.
-     *
-     * Нужда без носителя не проходит выход сцены 3 — за неё никто не
-     * отвечает. Прежняя связь снимается: носитель у нужды один, и «ещё
-     * один владелец» означает не двух ответственных, а смену.
+     * Носитель уже заведённой нужде. Нужда — много носителей (истина 24.09):
+     * названная сторона ДОБАВЛЯЕТСЯ к носителям; `remove: true` снимает её;
+     * `replace: true` делает единственной. Поле `stakeholders` зеркалит связи.
      */
     private fun носитель(проект: String, код: String, тело: JsonNode): V2Router.Ответ {
         val область = Area.Project(проект)
@@ -584,11 +594,28 @@ class SceneRoutes(
                 it.doc.path("name").asText("").trim().equals(имя, ignoreCase = true)
             }
         requireNotNull(сторона) { "стороны «$имя» нет в проекте: заведите её в сцене 3" }
-        links.to(нужда.id, "owns").forEach { links.unlink(it.id, Provenance(Channel.MANUAL, автор(тело))) }
-        links.link("owns", сторона.id, нужда.id, Provenance(Channel.MANUAL, автор(тело)),
-            rationale = тело.path("rationale").asText("").ifBlank { null })
+        val провенанс = Provenance(Channel.MANUAL, автор(тело))
+        val снять = тело.path("remove").asBoolean(false)
+        val заменить = тело.path("replace").asBoolean(false)
+        val было = links.to(нужда.id, "owns")
+        if (снять) {
+            require(было.size > 1 || было.none { it.from == сторона.id }) { "у нужды обязан остаться хотя бы один носитель" }
+            было.filter { it.from == сторона.id }.forEach { links.unlink(it.id, провенанс) }
+        } else {
+            if (заменить) было.filter { it.from != сторона.id }.forEach { links.unlink(it.id, провенанс) }
+            if (было.none { it.from == сторона.id }) {
+                links.link("owns", сторона.id, нужда.id, провенанс, rationale = тело.path("rationale").asText("").ifBlank { null })
+            }
+        }
+        val носители = links.to(нужда.id, "owns").map { it.from }.distinct()
+        val документ = (store.byId(нужда.id) ?: нужда).doc.deepCopy<ObjectNode>()
+        документ.remove("stakeholder")
+        документ.putArray("stakeholders").also { м -> носители.forEach { м.add(it) } }
+        store.update(нужда.id, документ, провенанс)
+        val коды = носители.mapNotNull { store.byId(it)?.code }
         return V2Router.Ответ(200, mapper.createObjectNode()
-            .put("need", нужда.code).put("owner", сторона.code))
+            .put("need", нужда.code).put("owner", сторона.code)
+            .also { у -> у.putArray("owners").also { м -> коды.forEach { м.add(it) } } })
     }
 
     private fun цель(проект: String, тело: JsonNode): V2Router.Ответ {

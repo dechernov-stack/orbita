@@ -798,6 +798,8 @@ function КритерииОценкиМиссии({ project, onChanged }: { proj
 export function SceneGoals({ project, onChanged }: { project: string; onChanged: () => void }) {
   const [цели, setЦели] = useState<EntityRow[]>([])
   const [нужды, setНужды] = useState<EntityRow[]>([])
+  /** Стороны — чтобы носителей нужды (связи owns) назвать кодами, а не идентификаторами. */
+  const [стороны, setСтороны] = useState<EntityRow[]>([])
   const [формулировка, setФормулировка] = useState('')
   const [год, setГод] = useState('2033')
   const [покрывает, setПокрывает] = useState<string[]>([])
@@ -807,6 +809,7 @@ export function SceneGoals({ project, onChanged }: { project: string; onChanged:
   const перечитать = () => {
     api.entities(project, 'goal').then((r) => setЦели(r.items)).catch(() => undefined)
     api.entities(project, 'need').then((r) => setНужды(r.items)).catch(() => undefined)
+    api.entities(project, 'stakeholder').then((r) => setСтороны(r.items)).catch(() => undefined)
   }
   useEffect(перечитать, [project])
 
@@ -834,7 +837,11 @@ export function SceneGoals({ project, onChanged }: { project: string; onChanged:
     })
     return [...карта.values()]
   })()
+  // Носители нужды — связями owns (истина 24.09: нужда — много носителей);
+  // прежнее строковое поле stakeholder читается, пока копии не смигрированы.
   const носитель = (n: EntityRow) => {
+    const поСвязям = (n.owned_by ?? []).map((id) => стороны.find((с) => с.id === id)?.code ?? id)
+    if (поСвязям.length > 0) return поСвязям.join(', ')
     const с = n.doc.stakeholder
     return typeof с === 'string' ? с : (с && typeof с === 'object' && 'code' in (с as object)) ? String((с as { code?: string }).code ?? '') : ''
   }

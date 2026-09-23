@@ -41,9 +41,12 @@ internal class SdocPayload(
         val n = out.putArray("needs")
         нужды.forEach { нужда ->
             val узел = n.addObject().put("id", нужда.code).put("statement", нужда.doc.path("statement").asText(""))
-            // Сторона нужды — связью `owns` (сцена 3), не полем документа.
-            links.to(нужда.id, "owns").firstNotNullOfOrNull { store.byId(it.from) }
-                ?.let { узел.putObject("stakeholder").put("name", it.doc.path("name").asText(it.code)) }
+            // Стороны нужды — связями `owns` (сцена 3), не полем документа; носителей много (истина 24.09).
+            val стороны = links.to(нужда.id, "owns").mapNotNull { store.byId(it.from) }.distinctBy { it.id }
+            стороны.firstOrNull()?.let { узел.putObject("stakeholder").put("name", it.doc.path("name").asText(it.code)) }
+            if (стороны.isNotEmpty()) {
+                узел.putArray("stakeholders").also { м -> стороны.forEach { с -> м.addObject().put("name", с.doc.path("name").asText(с.code)) } }
+            }
         }
         val s = out.putArray("services")
         сервисы.forEach { сервис ->

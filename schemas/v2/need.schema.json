@@ -90,9 +90,13 @@
     "statement": {
       "type": "string"
     },
-    "stakeholder": {
-      "type": "string",
-      "description": "ссылка на вид: stakeholder owns"
+    "stakeholders": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "description": "ссылка на вид: stakeholder (≥1)"
+      },
+      "description": "носители нужды — связью owns (n:m, ОНТОЛОГИЯ-АУДИТ часть 4); поле зеркалит связи, ставит система; одна формулировка — одна нужда, носителей много"
     },
     "qos_class": {
       "anyOf": [
@@ -190,7 +194,7 @@
     "created_at",
     "updated_at",
     "statement",
-    "stakeholder",
+    "stakeholders",
     "qos_class",
     "coverage_expected"
   ]

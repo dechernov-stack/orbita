@@ -288,6 +288,14 @@ internal class Reconciler(
         val код = документ.path("code").asText("").trim()
             .ifBlank { следующий(областьЗаписи, вид, префикс(вид)) }
         документ.remove(listOf("code", "author", "project", "owner"))
+        // Нужда — много носителей (истина 24.09): кандидат называет ОДНУ сторону
+        // именем, а запись держит носителей списком ссылок `stakeholders`,
+        // зеркалящим связи owns; имени стороны в документе нужды нет.
+        if (вид == "need") {
+            val носители = имена(снимок, "stakeholder").mapNotNull { сущностьПоИмени(область, "stakeholder", it)?.id }.distinct()
+            документ.remove("stakeholder")
+            документ.putArray("stakeholders").also { м -> носители.forEach { м.add(it) } }
+        }
         val канал = if (запись.path("origin").asText() == CandidateOrigin.SYNTHESIS.name) {
             Channel.SERVICE
         } else {
@@ -380,13 +388,48 @@ internal class Reconciler(
             rationale = "слито сверкой: $reason",
         )?.let { связи += it.type }
         intake.dispose(project, кандидат.code, Disposition.ADOPTED, reason, author)
+        // Нужда — много носителей (истина 24.09): та же формулировка у другой
+        // стороны не копия, а ещё один носитель принятой нужды.
+        val добавлено = if (принятая.kind == "need") добавитьНосителей(область, принятая, запись.path("payload"), author) else emptyList()
+        if (добавлено.isNotEmpty()) связи += "owns"
         return Applied(
             created = emptyList(),
-            updated = emptyList(),
+            updated = if (добавлено.isEmpty()) emptyList() else listOf(принятая.code),
             links = связи,
             facts = listOf(кандидат.code),
-            note = "кандидат привязан основанием к ${принятая.code}; поля принятого не изменены",
+            note = if (добавлено.isEmpty()) "кандидат привязан основанием к ${принятая.code}; поля принятого не изменены"
+            else "кандидат привязан основанием к ${принятая.code}; носители добавлены: ${добавлено.joinToString(", ")}",
         )
+    }
+
+    /**
+     * Ещё один носитель принятой нужде: связь owns от стороны, названной
+     * кандидатом, и то же в поле `stakeholders`. Уже стоящий носитель не
+     * удваивается. Возвращает коды добавленных сторон.
+     */
+    private fun добавитьНосителей(область: Area, нужда: Entity, payload: JsonNode, author: String): List<String> {
+        val реестр = links ?: return emptyList()
+        // Носители, что уже есть: связи owns, зеркало `stakeholders` и — у записи
+        // до миграции — прежнее поле `stakeholder` кодом стороны. Та же сторона
+        // иными словами носителя не прибавляет и принятое не переписывает.
+        val есть = (реестр.to(нужда.id, "owns").map { it.from } +
+            нужда.doc.path("stakeholders").map { it.asText() } +
+            listOfNotNull(сущностьПоИмени(область, "stakeholder", нужда.doc.path("stakeholder").asText(""))?.id))
+            .filter { it.isNotBlank() }.toMutableSet()
+        val новые = имена(payload, "stakeholder")
+            .mapNotNull { сущностьПоИмени(область, "stakeholder", it) }
+            .filter { it.id !in есть }
+            .distinctBy { it.id }
+        if (новые.isEmpty()) return emptyList()
+        новые.forEach { сторона ->
+            реестр.link("owns", сторона.id, нужда.id, Provenance(Channel.MANUAL, author), rationale = "носитель добавлен сверкой")
+            есть += сторона.id
+        }
+        val документ = нужда.doc.deepCopy<JsonNode>() as ObjectNode
+        документ.remove("stakeholder")
+        документ.putArray("stakeholders").also { м -> реестр.to(нужда.id, "owns").map { it.from }.distinct().forEach { м.add(it) } }
+        store.update(нужда.id, документ, Provenance(Channel.MANUAL, author))
+        return новые.map { it.code }
     }
 
     /**
@@ -1278,6 +1321,9 @@ internal class Reconciler(
         return спец.requiredFields.filter { поле ->
             поле !in понятие.fields && поле !in спец.factRefFields &&
                 документ.path(поле).asText("").isBlank() && !документ.path(поле).isObject &&
+                // Список ссылок (носители нужды) — поле не пустое, если в нём
+                // хоть одна ссылка: `asText` у массива всегда пуст.
+                !(документ.path(поле).isArray && документ.path(поле).size() > 0) &&
                 спрашиваетсяНаПриёме(спец, поле)
         }
     }

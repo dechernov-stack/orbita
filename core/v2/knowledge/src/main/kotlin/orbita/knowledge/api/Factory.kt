@@ -62,4 +62,12 @@ object KnowledgeFactory {
         shelves: Shelves? = null,
         intake: Intake = EntityIntake(store, links, mapper, shelves),
     ): Research = ResearchTasks(store, links, mapper, shelves, intake)
+
+    /**
+     * Миграция понятий (шип 4 §1): нужда — много носителей. Копии одной
+     * формулировки сливаются, носители — связями owns и полем stakeholders.
+     * Зовётся при старте границы; идемпотентна. Возвращает отчёт словами.
+     */
+    fun migrateNeedOwners(store: EntityStore, links: LinkRegistry, mapper: ObjectMapper = ObjectMapper()): String =
+        orbita.knowledge.internal.NeedOwnersMigration(store, links, mapper).run().toString()
 }

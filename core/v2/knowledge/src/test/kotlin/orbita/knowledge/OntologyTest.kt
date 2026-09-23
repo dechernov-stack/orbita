@@ -77,8 +77,10 @@ class OntologyTest {
     }
 
     @Test
-    fun `нужда узнаётся по стороне и сути, норматив — только по обозначению`() {
-        assertEquals(listOf("stakeholder", "statement_core"), нужда.identityOrFail.key)
+    fun `нужда узнаётся по сути формулировки без стороны, норматив — только по обозначению`() {
+        // Одна формулировка — одна нужда, носителей много (истина 24.09):
+        // сторона — носитель, а не часть ключа.
+        assertEquals(listOf("statement_core"), нужда.identityOrFail.key)
         assertEquals(0.8, нужда.identityOrFail.threshold, 1e-9, "та же потребность иными словами — дубль")
         assertEquals(listOf("designation_natural"), норматив.identityOrFail.key)
         // Порог 1.0 — это «только точное совпадение обозначения»: два разных

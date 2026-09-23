@@ -448,6 +448,15 @@ class EntityIntake(
                         Provenance(Channel.SERVICE, author),
                         rationale = "носитель назван разбором: «$названныйСосед»",
                     )
+                    // Поле `stakeholders` зеркалит связи owns (истина 24.09: нужда — много носителей).
+                    if (вид == "need") {
+                        val док = сущность.doc.deepCopy<JsonNode>() as com.fasterxml.jackson.databind.node.ObjectNode
+                        док.remove("stakeholder")
+                        док.putArray("stakeholders").also { м ->
+                            (links?.to(сущность.id, "owns")?.map { it.from } ?: listOf(сосед.id)).distinct().forEach { м.add(it) }
+                        }
+                        store.update(сущность.id, док, Provenance(Channel.SERVICE, author))
+                    }
                 }
             }
             // Нить от сущности к её факту: по ней считается доля знаний, и
