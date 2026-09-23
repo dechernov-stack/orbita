@@ -192,7 +192,11 @@ class FormationGateTest {
         val принято = знания.accept(проект, задание, listOf(0, 1), автор)
 
         assertEquals(2, принято.codes.size, "обе строки прошли: ворота о виде факта не судят")
-        assertTrue(принято.notes.isEmpty(), "лексического отказа не осталось: ${принято.notes}")
+        // Заметки словаря (кандидаты в словарь) — не отказ: отказа по издателю быть не должно.
+        assertTrue(
+            принято.notes.none { "издател" in it.lowercase() || "подписант" in it.lowercase() || "отказ" in it.lowercase() },
+            "лексического отказа не осталось: ${принято.notes}",
+        )
 
         // А вот инструкция модели обязана остаться — и она в истине, не в коде.
         val анти = GeneratedOntology.of("stakeholder").notFrom
@@ -355,6 +359,51 @@ class FormationGateTest {
         )
         assertTrue(принято.notes.any { "носителем" in it }, "приём обязан сказать, что копия стала носителем: ${принято.notes}")
         assertEquals(2, links.from(нужда.id, "derived_from_fact").size, "оба факта — основания одной нужды")
+    }
+
+    @Test
+    fun `сторона из плана привязывается к термину словаря по синониму, незнакомая — кандидат с цитатой`() {
+        // Истина `glossary_rule` (шип 4 §2): «Ространснадзор» и «Федеральная служба
+        // по надзору в сфере транспорта» — одна запись словаря; незнакомое
+        // написание не проходит мимо — кандидат, принимает человек.
+        store.create(
+            "GT-ST-001", "glossary_term", Area.Library, null,
+            mapper.readTree("""{"term_ru":"Ространснадзор","class":"stakeholder","definition":"надзор на транспорте",
+               "synonyms":["Федеральная служба по надзору в сфере транспорта"]}"""), провенанс, status = "accepted",
+        )
+        val задание = план(
+            """
+            {"facts":[
+              {"kind":"relation","subject":"Федеральная служба по надзору в сфере транспорта","predicate":"регулирует",
+               "value":"перевозки","source":{"anchor":"ЯКОРЬ"},"mark":"И","quote":"…Федеральная служба по надзору в сфере транспорта регулирует…"},
+              {"kind":"relation","subject":"Росморпорт","predicate":"эксплуатирует",
+               "value":"порты","source":{"anchor":"ЯКОРЬ"},"mark":"И","quote":"…ФГУП «Росморпорт» эксплуатирует порты…"}],
+             "actions":[
+              {"kind":"create_entity","target_kind":"stakeholder","scene":"3",
+               "title":"надзор","preview":"появится сторона",
+               "payload":{"name":"Федеральная служба по надзору в сфере транспорта","role":"регулятор"},"facts":[0]},
+              {"kind":"create_entity","target_kind":"stakeholder","scene":"3",
+               "title":"Росморпорт","preview":"появится сторона",
+               "payload":{"name":"Росморпорт","role":"оператор"},"facts":[1]}]}
+            """.trimIndent(),
+        )
+
+        val принято = знания.accept(проект, задание, listOf(0, 1), автор)
+
+        val стороны = store.list(область, "stakeholder")
+        val надзор = стороны.single { it.doc.path("name").asText().startsWith("Федеральная") }
+        val термин = store.byCode(Area.Library, "GT-ST-001")!!
+        assertTrue(links.to(термин.id, "named_by").any { it.from == надзор.id }, "сторона названа термином словаря по синониму")
+        assertTrue(принято.notes.any { "по словарю GT-ST-001" in it }, "приём сказал, каким термином названа сторона: ${принято.notes}")
+
+        val кандидаты = store.list(область, "glossary_term").filter { it.status == "candidate" }
+        assertEquals(listOf("Росморпорт"), кандидаты.map { it.doc.path("term_ru").asText() }, "незнакомое написание — кандидат")
+        val кандидат = кандидаты.single()
+        assertEquals("stakeholder", кандидат.doc.path("class").asText())
+        assertTrue("Росморпорт" in кандидат.doc.path("quote").asText(), "цитата — от факта: ${кандидат.doc}")
+        val росморпорт = стороны.single { it.doc.path("name").asText() == "Росморпорт" }
+        assertTrue(links.to(кандидат.id, "named_by").any { it.from == росморпорт.id }, "сторона привязана к кандидату")
+        assertTrue(принято.notes.any { "кандидат в словарь" in it }, "${принято.notes}")
     }
 
     private fun план(текстРазбора: String, ранг: String = Authority.MANDATORY): String {

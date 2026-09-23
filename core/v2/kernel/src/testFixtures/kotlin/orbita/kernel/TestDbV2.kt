@@ -31,6 +31,8 @@ object TestDbV2 {
     fun очистить() {
         conn.createStatement().use {
             it.execute("TRUNCATE orbita_kernel.entity, orbita_kernel.link RESTART IDENTITY")
+            // Текстовый индекс базы знаний (шип 4 §2) — тоже таблица ядра.
+            it.execute("DELETE FROM orbita_kernel.index_block")
         }
     }
 

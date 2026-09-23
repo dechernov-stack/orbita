@@ -23,6 +23,7 @@ import { NewProjectScreen } from './newproject'
 import { MyWorkScreen } from './mywork'
 import { ExternalModelScreen } from './externalmodel'
 import { Library } from './library'
+import { GlossaryScreen } from './glossary'
 import { ИМЯ_РЕЖИМА, режимПоРоли, type Режим } from './density'
 import { Икон, type Пиктограмма } from './icons'
 import { Маркер } from './markers'
@@ -56,6 +57,7 @@ const SECTIONS: Section[] = [
   { key: 'risks', title: 'Риски', wave: 4, icon: 'риски', fromScene: '11', hint: 'реестр рисков всей фазы: отбор, закрытие решением, срок-точка' },
   { key: 'points', title: 'Точки', wave: 6, icon: 'точки', hint: 'готовность по экспертизе, замечания, фиксация' },
   { key: 'passport', title: 'Паспорт', wave: 6, icon: 'паспорт', hint: 'название, класс миссии, руководитель, DA, стандарт, даты точек — правка на месте' },
+  { key: 'glossary', title: 'Словарь', wave: 9, icon: 'словарь', hint: 'термины класса миссии и проекта: синонимы, классы, кандидаты из документов — принять, отклонить, слить' },
   { key: 'library', title: 'Библиотека', wave: 2, icon: 'библиотека', expert: true, hint: 'полки, окно взятия, справочники' },
   { key: 'exchange', title: 'Обмен', wave: 5, icon: 'обмен', expert: true, hint: 'StrictDoc и ReqIF, выгрузка знаний' },
   { key: 'external', title: 'Внешняя модель', wave: 7, icon: 'внешняя', expert: true, hint: 'элементы Capella по слоям либо fixture с баннером; только чтение' },
@@ -351,6 +353,8 @@ export function Shell() {
                 setWantScene(сцена); setWantReason(зачем ?? null); setSection('work')
               }}
               onGoField={() => { setРучнойВвод(true); setSection('knowledge') }} />
+          ) : section === 'glossary' ? (
+            <GlossaryScreen project={project} />
           ) : section === 'library' ? (
             <Library project={project} />
           ) : section === 'external' ? (

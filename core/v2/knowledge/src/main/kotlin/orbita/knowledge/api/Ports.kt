@@ -7,6 +7,7 @@
 package orbita.knowledge.api
 
 import com.fasterxml.jackson.databind.JsonNode
+import orbita.kernel.api.Area
 import orbita.knowledge.schema.GeneratedOntology
 
 /** Достоверность утверждения — семантика владельца, дословно. */
@@ -1064,4 +1065,70 @@ interface Research {
         author: String,
         questions: List<String> = emptyList(),
     ): ResearchTask
+}
+
+/** Термин словаря — каноническое имя, класс, синонимы, код объекта (истина `glossary_term`). */
+data class Term(
+    val id: String,
+    val code: String,
+    val termRu: String,
+    val cls: String,
+    val synonyms: List<String>,
+    val objectCode: String?,
+    val status: String,
+    val area: Area,
+)
+
+/**
+ * Словарь (шип 4 §2, `glossary_rule`): всё извлечённое привязывается к термину
+ * по каноническому имени или синониму; незнакомое — кандидат с цитатой.
+ * Библиотека — словарь класса миссии; проект — дельта поверх.
+ */
+interface Glossary {
+    /** Термины, видимые проекту: библиотека и его собственные; снятые не считаются. */
+    fun terms(area: Area): List<Term>
+
+    /** Термин по написанию: принятый раньше кандидата, библиотека раньше проекта. */
+    fun resolve(area: Area, text: String, cls: String? = null): Term?
+
+    /** Кандидат в словарь проекта (идемпотентно по написанию): цитата и факт — основание. */
+    fun candidate(area: Area, text: String, cls: String, quote: String?, fact: String?, author: String, source: String? = null): Term
+
+    /** Написание плоско — тем же правилом, каким словарь узнаёт термин (строчные, ё→е, без кавычек). */
+    fun flat(text: String): String
+}
+
+/** Эмбеддинги текста — провайдер называется окружением стенда; без него индекс лексический. */
+fun interface Embeddings {
+    fun embed(texts: List<String>): List<FloatArray>
+}
+
+/** Итог перестроения индекса проекта — словами и числами. */
+data class IndexReport(
+    val blocks: Int,
+    val written: Int,
+    val removed: Int,
+    val embedded: Int,
+    val vector: Boolean,
+    val note: String,
+)
+
+/**
+ * База знаний (шип 4 §2, РЕШЕНИЕ-СЛОВАРЬ-И-БАЗА-ЗНАНИЙ §3): индекс блоков канонов,
+ * терминов, пунктов нормативов и фактов-цитат; гибридный поиск с фильтрами
+ * (проект · роль документа · ранг · сцена). Структура и связи не индексируются.
+ */
+interface KnowledgeIndex {
+    val vectorReady: Boolean
+
+    /** Перестроить блоки проекта и библиотеки: изменённое перезаписать, исчезнувшее снять, новое заэмбеддить. */
+    fun rebuild(project: String): IndexReport
+
+    fun search(
+        project: String,
+        query: String,
+        filters: Map<String, String> = emptyMap(),
+        kinds: List<String> = emptyList(),
+        limit: Int = 20,
+    ): List<orbita.kernel.api.IndexHit>
 }

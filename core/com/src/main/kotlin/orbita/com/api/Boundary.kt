@@ -393,6 +393,15 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
             документыМаршруты, знанияМаршруты, точки, обмен, внешняяМодель,
             синтезМаршруты, сверкаМаршруты, исследованиеМаршруты, проверкаМаршруты,
             bridgeRoutes = мостикМаршруты,
+            // База знаний (шип 4 §2): индекс ядра + эмбеддинги провайдера, если он задан окружением.
+            searchRoutes = orbita.api.internal.SearchRoutes(
+                orbita.knowledge.api.KnowledgeFactory.index(
+                    store,
+                    orbita.kernel.api.KernelFactory.textIndex(conn, mapper, orbita.ai.api.AiFactory.embeddingDim()),
+                    orbita.ai.api.AiFactory.embeddings(mapper), mapper,
+                ),
+                mapper,
+            ),
             // Материал файлом (docx · pdf · xlsx · pptx): текст извлекает тот же
             // разбор, что у документов v1 — канон в markdown; формат — на границе.
             extract = { имя, байты ->

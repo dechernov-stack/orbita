@@ -70,6 +70,13 @@ interface ProposeScenarios {
 }
 
 object AiFactory {
+    /** Эмбеддинги для базы знаний (шип 4 §2): провайдер из окружения, без него — null (поиск лексический). */
+    fun embeddings(mapper: ObjectMapper = ObjectMapper()): orbita.knowledge.api.Embeddings? =
+        orbita.ai.internal.HttpEmbeddings.fromEnv(mapper)
+
+    /** Размерность вектора провайдера (ORBITA_EMBED_DIM), умолчание 1024. */
+    fun embeddingDim(): Int = orbita.ai.internal.HttpEmbeddings.dimFromEnv()
+
 
     /** Сценарии сцены 9 предложением — из сервисов и цепочек Arcadia, приём обратимый. */
     fun proposeScenarios(

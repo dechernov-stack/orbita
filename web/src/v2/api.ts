@@ -698,6 +698,42 @@ export interface ScenarioProposal {
   refused: string[]
 }
 
+/** Находка базы знаний: блок документа · термин · пункт норматива · факт — с отрывком и оценками. */
+export interface SearchHit {
+  kind: string
+  kind_word: string
+  ref: string
+  title: string
+  snippet: string
+  score: number
+  lexical: number
+  semantic?: number
+  area: string
+  filters: Record<string, string>
+}
+
+/** Термин словаря (истина `glossary_term`): каноническое имя, синонимы, класс, определение. */
+export interface GlossaryTerm {
+  id?: string
+  code: string
+  term_ru: string
+  term_en?: string
+  synonyms?: string[]
+  class: string
+  class_word?: string
+  definition: string
+  difference?: string
+  not_to_confuse?: string
+  source?: string
+  used_in?: string[]
+  object_code?: string
+  quote?: string
+  fact?: string
+  notes?: string
+  status: string
+  area: 'library' | 'project'
+}
+
 export interface EntityRow {
   id: string
   code: string
@@ -1712,9 +1748,28 @@ export const api = {
     вызов<{ code: string; version: number }>(`/plan?project=${encodeURIComponent(project)}`,
       { method: 'POST', body: JSON.stringify(тело) }),
 
-  glossary: (q?: string) =>
-    вызов<{ items: { term_nasa: string; ru_equivalent: string; en_full: string; romanov: string }[] }>(
-      `/glossary${q ? `?q=${encodeURIComponent(q)}` : ''}`),
+  /** Словарь (шип 4 §2): библиотека класса миссии и дельта проекта; кандидаты из документов. */
+  glossary: (project: string, q = '', cls = '', status = '') =>
+    вызов<{ items: GlossaryTerm[]; classes: Record<string, string>; candidates: number; note: string }>(
+      `/glossary?project=${encodeURIComponent(project)}${q ? `&q=${encodeURIComponent(q)}` : ''}`
+      + `${cls ? `&class=${encodeURIComponent(cls)}` : ''}${status ? `&status=${encodeURIComponent(status)}` : ''}`),
+  glossaryAdd: (project: string, тело: Partial<GlossaryTerm> & { term_ru: string; author: string }) =>
+    вызов<GlossaryTerm>(`/glossary?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify(тело) }),
+  /** База знаний (шип 4 §2): гибридный поиск с фильтрами и перестроение индекса проекта. */
+  search: (project: string, q: string, фильтры: Record<string, string> = {}, kinds: string[] = []) =>
+    вызов<{ items: SearchHit[]; vector: boolean; note: string }>(
+      `/search?project=${encodeURIComponent(project)}&q=${encodeURIComponent(q)}`
+      + Object.entries(фильтры).filter(([, з]) => з).map(([к, з]) => `&${к}=${encodeURIComponent(з)}`).join('')
+      + (kinds.length ? `&kind=${encodeURIComponent(kinds.join(','))}` : '')),
+  indexRebuild: (project: string) =>
+    вызов<{ blocks: number; written: number; removed: number; embedded: number; vector: boolean; note: string }>(
+      `/index/rebuild?project=${encodeURIComponent(project)}`, { method: 'POST' }),
+  /** Решение по кандидату — принять · отклонить (с причиной) · слить синонимом в принятый (into). */
+  glossaryDecide: (project: string, code: string, действие: 'accept' | 'reject' | 'merge',
+    тело: { author: string; reason?: string; into?: string; definition?: string }) =>
+    вызов<GlossaryTerm>(`/glossary/${encodeURIComponent(code)}/${действие}?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify(тело) }),
 
   openProject: (тело: Record<string, unknown>) =>
     вызов<Phase>('/projects', { method: 'POST', body: JSON.stringify(тело) }),

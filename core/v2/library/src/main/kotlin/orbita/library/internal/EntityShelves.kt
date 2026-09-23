@@ -107,15 +107,17 @@ class EntityShelves(
      * содержимого ничего не меняет: полка идемпотентна, иначе каждая
      * выкладка плодила бы версии на пустом месте.
      */
-    override fun put(kind: String, code: String, doc: JsonNode, author: String): ShelfWrite {
+    override fun put(kind: String, code: String, doc: JsonNode, author: String, status: String?): ShelfWrite {
         val прежняя = store.byCode(Area.Library, code) ?: поКлючу(kind, doc)
         val провенанс = Provenance(Channel.SHELF, author, source = "поставка v2")
+        // Статус записи называет поставка (сид словаря — принятые термины);
+        // без него — умолчание хранилища, как у всякой полки.
         return when {
             прежняя == null -> ShelfWrite(
-                запись(store.create(code, kind, Area.Library, null, doc, провенанс)), ShelfState.CREATED,
+                запись(store.create(code, kind, Area.Library, null, doc, провенанс, status = status ?: "draft")), ShelfState.CREATED,
             )
-            прежняя.doc == doc -> ShelfWrite(запись(прежняя), ShelfState.UNCHANGED)
-            else -> ShelfWrite(запись(store.update(прежняя.id, doc, провенанс)), ShelfState.UPDATED)
+            прежняя.doc == doc && (status == null || прежняя.status == status) -> ShelfWrite(запись(прежняя), ShelfState.UNCHANGED)
+            else -> ShelfWrite(запись(store.update(прежняя.id, doc, провенанс, status = status)), ShelfState.UPDATED)
         }
     }
 

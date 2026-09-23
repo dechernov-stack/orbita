@@ -19,6 +19,7 @@ echo "== шаблон Phase A (из БП-PA и полки Романова) ==" 
 echo "== полка процессов СИ (из конфигурации SEMP) ==" ; python3 tools/v2/gen_process_catalog.py --check
 echo "== шаблоны SEMP/OpsCon/ICD (из БП-PA и ДОКУМЕНТЫ-2) ==" ; python3 tools/v2/gen_phase_a_documents.py --check
 echo "== шаблоны FAD/FA (из поставки) ==" ; python3 tools/v2/gen_document_templates.py --check
+echo "== сид словаря (из истин и полок) ==" ; python3 tools/v2/gen_glossary_seed.py --check
 echo "== схемы =="              ; python3 tools/validate_schemas.py
 echo "== трассировка ТЗ =="     ; python3 tools/validate_trace.py
 echo "== эталоны против схем ==" ; python3 tools/validate_spec_schema.py

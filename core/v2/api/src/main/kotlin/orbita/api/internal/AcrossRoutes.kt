@@ -78,7 +78,7 @@ class AcrossRoutes(
         // Состояние выкладки и КОД, в который она легла, — часть ответа:
         // поставщик обязан видеть, что повтор ничего не переписал и что акт
         // ушёл в уже лежащую карточку, а не верить своему счётчику.
-        val итог = shelves.put(вид, код, тело.path("doc"), автор(тело))
+        val итог = shelves.put(вид, код, тело.path("doc"), автор(тело), status = тело.path("status").asText("").ifBlank { null })
         return V2Router.Ответ(201, mapper.createObjectNode()
             .put("code", итог.item.code).put("kind", итог.item.kind)
             .put("state", итог.state.name.lowercase()))

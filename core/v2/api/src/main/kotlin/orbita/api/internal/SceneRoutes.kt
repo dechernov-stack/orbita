@@ -699,6 +699,7 @@ class SceneRoutes(
 
     /** Виды, которые правятся на месте: содержание сцен 2–8; служебные (проект, точки, решения, план) — нет. */
     private val правимые = setOf(
+        "glossary_term",
         "stakeholder", "need", "goal", "service", "constraint", "requirement", "component", "interface",
         "scenario", "state_machine", "technology", "risk", "assumption", "parameter", "function",
         "exchange", "exchange_item", "budget", "logical_component", "cost_estimate", "debris_assessment",

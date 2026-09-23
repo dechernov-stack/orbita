@@ -56,6 +56,7 @@ class V2Router(
     private val verifyRoutes: VerifyRoutes? = null,
     /** Мостик ведущего и рабочий лист специалиста (шип 2, экран 6); null — сборка без них. */
     private val bridgeRoutes: BridgeRoutes? = null,
+    private val searchRoutes: SearchRoutes? = null,
     /** Текст из двоичного файла материала (docx · pdf · xlsx · pptx) — подставляет граница. */
     private val extract: ((fileName: String, bytes: ByteArray) -> String?)? = null,
     /**
@@ -84,6 +85,7 @@ class V2Router(
 
     private val сцены = SceneRoutes(store, links, engine, mapper, units = units)
     private val сквозные = AcrossRoutes(store, links, engine, shelves, intake, formulation, mapper, extract = extract)
+    private val словарь = GlossaryRoutes(store, links, orbita.knowledge.api.KnowledgeFactory.glossary(store, mapper), mapper)
     // Точки есть у любого роутера: фиксация точки — часть хребта, а не
     // отдельной волны; сборка без явных записей берёт записи над тем же
     // хранилищем.
@@ -106,6 +108,7 @@ class V2Router(
     ): Ответ? =
         точки.handle(method, path, query, body, actor)
             ?: сцены.handle(method, path, query, body)
+            ?: словарь.handle(method, path, query, body)
             ?: сквозные.handle(method, path, query, body)
             ?: reqArch?.handle(method, path, query, body)
             ?: modelRoutes?.handle(method, path, query, body)
@@ -118,6 +121,7 @@ class V2Router(
             ?: researchRoutes?.handle(method, path, query, body)
             ?: verifyRoutes?.handle(method, path, query, body, actor)
             ?: bridgeRoutes?.handle(method, path, query, body, actor)
+            ?: searchRoutes?.handle(method, path, query)
 
     /**
      * Автоотчёт верификации после базирования — единственное место, где

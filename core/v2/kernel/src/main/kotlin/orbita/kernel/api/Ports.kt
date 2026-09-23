@@ -91,3 +91,75 @@ interface DomainEvents {
     fun publish(event: DomainEvent)
     fun subscribe(listener: (DomainEvent) -> Unit)
 }
+
+/** Блок текстового индекса базы знаний: откуда, что и с какими фильтрами. */
+data class IndexBlock(
+    /** Ключ блока: `canon:<материал>:<якорь>` · `term:<код>` · `clause:<код>:<n>` · `fact:<код>`. */
+    val key: String,
+    /** canon_block · term · clause · fact. */
+    val kind: String,
+    /** Область: `library` либо `project:<код>`. */
+    val area: String,
+    /** Код записи-источника. */
+    val ref: String,
+    val title: String,
+    val text: String,
+    /** role · rank · scene · class · mark — чем фильтруется выборка. */
+    val filters: Map<String, String> = emptyMap(),
+    /** Отпечаток содержимого: неизменённый блок не перезаписывается и не переэмбеддится. */
+    val fingerprint: String,
+)
+
+/** Находка поиска: блок с оценками — лексической, семантической и общей. */
+data class IndexHit(
+    val key: String,
+    val kind: String,
+    val area: String,
+    val ref: String,
+    val title: String,
+    val snippet: String,
+    val score: Double,
+    val lexical: Double,
+    val semantic: Double?,
+    val filters: Map<String, String>,
+)
+
+/**
+ * Текстовый индекс базы знаний (шип 4 §2): полнотекст в той же базе и вектор
+ * (pgvector), если расширение есть. Схема — ядра; наполняет его модуль знаний.
+ */
+interface TextIndex {
+    /** Есть ли векторная колонка: без расширения pgvector поиск — только лексический. */
+    val vectorReady: Boolean
+
+    /** Размерность вектора, с которой индекс заведён. */
+    val vectorDim: Int
+
+    /** Положить блоки: ключ — адрес, неизменённый отпечаток — пропуск. Возвращает число записанных. */
+    fun upsert(blocks: List<IndexBlock>): Int
+
+    /** Снять блоки области и вида, которых больше нет среди `keep`. */
+    fun removeMissing(area: String, kind: String, keep: Set<String>): Int
+
+    /** Блоки без вектора (новые или изменённые) — очередь на эмбеддинг. */
+    fun withoutVector(area: String?, limit: Int = 200): List<IndexBlock>
+
+    fun setVector(key: String, vector: FloatArray)
+
+    /**
+     * Гибридный поиск: `query` — слова (полнотекст), `vector` — смысл (если есть);
+     * `areas` — библиотека и проект; `filters` — точное совпадение полей блока;
+     * `kinds` — виды блоков (пусто — все).
+     */
+    fun search(
+        query: String,
+        areas: List<String>,
+        filters: Map<String, String> = emptyMap(),
+        kinds: List<String> = emptyList(),
+        vector: FloatArray? = null,
+        limit: Int = 20,
+    ): List<IndexHit>
+
+    /** Сколько блоков в области (по видам) — для сводки. */
+    fun count(area: String): Map<String, Int>
+}

@@ -88,6 +88,18 @@ object KnowledgeFactory {
             migrateCredibilityAxes(store, mapper),
         )
 
+    /** База знаний (шип 4 §2): индекс канонов, терминов, пунктов нормативов и фактов поверх текстового индекса ядра. */
+    fun index(
+        store: EntityStore,
+        textIndex: orbita.kernel.api.TextIndex,
+        embeddings: Embeddings? = null,
+        mapper: ObjectMapper = ObjectMapper(),
+    ): KnowledgeIndex = orbita.knowledge.internal.KnowledgeIndexer(store, textIndex, embeddings, mapper)
+
+    /** Словарь (шип 4 §2): привязка написаний к терминам, кандидаты из документов. */
+    fun glossary(store: EntityStore, mapper: ObjectMapper = ObjectMapper()): Glossary =
+        orbita.knowledge.internal.GlossaryIndex(store, mapper)
+
     /** Четыре оси достоверности (шип 4 §1.6): mark · rank · evidence · confidence у своих уровней, синонимы сняты. */
     fun migrateCredibilityAxes(store: EntityStore, mapper: ObjectMapper = ObjectMapper()): String =
         orbita.knowledge.internal.CredibilityAxesMigration(store, mapper).run().toString()

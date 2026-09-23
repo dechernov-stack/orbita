@@ -264,7 +264,10 @@ internal class IdentityKeys(
             (store.list(Area.Library, "glossary_term") + store.list(area, "glossary_term")).forEach { термин ->
                 val канон = плоско(термин.doc.path("term_ru").asText(""))
                 if (канон.isBlank()) return@forEach
-                listOf(термин.doc.path("term_ru").asText(""), термин.doc.path("term_en").asText(""))
+                // Синонимы термина (истина `glossary_term.synonyms`, шип 4 §2): «Ространснадзор»
+                // и «Федеральная служба по надзору в сфере транспорта» — один канон.
+                (listOf(термин.doc.path("term_ru").asText(""), термин.doc.path("term_en").asText("")) +
+                    термин.doc.path("synonyms").map { it.asText("") })
                     .forEach { написание ->
                         val ключ = плоско(написание)
                         if (ключ.isNotBlank()) словарь[ключ] = канон

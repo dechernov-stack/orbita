@@ -23,7 +23,7 @@ class PgLinkRegistry(private val conn: Connection) : LinkRegistry {
             "verifies", "conflicts_with", "snapshot_of", "input_of", "output_of",
             "pairs_with", "external_identity", "deployed_on", "uses_item",
             "depends_on_technology", "derived_from_fact", "about", "supports",
-            "contradicts", "supersedes", "confirms", "same_as", "refines",
+            "contradicts", "supersedes", "confirms", "same_as", "refines", "named_by",
         )
 
         // Типы, живущие в коде раньше истины схем: `instantiates` пишет

@@ -341,6 +341,11 @@ internal class Reconciler(
         )
 
         val связи = mutableListOf<String>()
+        // Словарь (шип 4 §2): принятая сторона названа термином — по имени или
+        // синониму; незнакомое написание — кандидат с цитатой кандидата-факта.
+        val заметкаСловаря = if (вид == "stakeholder") GlossaryLinking(store, links, GlossaryIndex(store, mapper)).привязать(
+            область, сущность, вид, author, цитата = кандидат.doc.path("quote").asText("").ifBlank { null }, факт = кандидат.code,
+        ) else null
         // Нить к основанию: по ней считается доля знаний и видно, откуда в
         // проекте взялось это утверждение.
         links?.link(
@@ -379,7 +384,8 @@ internal class Reconciler(
                     ?.let { нет ->
                         " — ${статус ?: "черновиком"}: на своей сцене назовите " +
                             нет.joinToString(" · ") { поле -> "«${имяПоля(вид, поле)}»" }
-                    }.orEmpty(),
+                    }.orEmpty() +
+                заметкаСловаря?.let { " — $it" }.orEmpty(),
         )
     }
 

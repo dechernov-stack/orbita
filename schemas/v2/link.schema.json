@@ -116,7 +116,8 @@
         "supersedes",
         "confirms",
         "same_as",
-        "refines"
+        "refines",
+        "named_by"
       ]
     },
     "subtype": {

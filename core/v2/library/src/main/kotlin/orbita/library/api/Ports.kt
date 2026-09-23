@@ -56,5 +56,5 @@ interface Shelves {
      * Запись узнаётся кодом, а у видов с естественным ключом — ещё и
      * содержанием: один и тот же акт не лежит на полке дважды.
      */
-    fun put(kind: String, code: String, doc: JsonNode, author: String): ShelfWrite
+    fun put(kind: String, code: String, doc: JsonNode, author: String, status: String? = null): ShelfWrite
 }

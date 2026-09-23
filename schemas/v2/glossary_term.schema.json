@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://kis.local/schemas/v2/glossary_term.schema.json",
   "title": "glossary_term",
-  "description": "термин глоссария — вид 2 слоя L0. Сцена рождения: —. СГЕНЕРИРОВАНО tools/v2/gen_schemas.py из docs/tz/v2/СХЕМЫ-ПОЛЕЙ-V2.yaml — руками не править",
+  "description": "термин словаря — вид 2 слоя L0. Сцена рождения: —. СГЕНЕРИРОВАНО tools/v2/gen_schemas.py из docs/tz/v2/СХЕМЫ-ПОЛЕЙ-V2.yaml — руками не править",
   "type": "object",
   "additionalProperties": false,
   "properties": {
@@ -88,24 +88,103 @@
       }
     },
     "term_ru": {
-      "type": "string"
+      "type": "string",
+      "description": "каноническое имя — одно; всё остальное — синонимы (РЕШЕНИЕ-СЛОВАРЬ-И-БАЗА-ЗНАНИЙ §1)"
     },
     "term_en": {
       "type": "string"
     },
+    "synonyms": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "варианты написания: кириллица/латиница, аббревиатуры, «как пишут в документах» («Минтранс», «Минтранс России», «Министерство транспорта РФ»)"
+    },
+    "class": {
+      "enum": [
+        "se_concept",
+        "stakeholder",
+        "node",
+        "interface",
+        "function",
+        "document",
+        "process",
+        "scene",
+        "role",
+        "mark",
+        "unit",
+        "other"
+      ],
+      "description": "понятие СИ · сторона · узел системы · стык · функция · документ · процесс · сцена · роль · метка · единица"
+    },
     "definition": {
-      "type": "string"
+      "type": "string",
+      "description": "одна-три строки, наше определение"
+    },
+    "difference": {
+      "type": "string",
+      "description": "отличие от общепринятого, если есть; нет — пусто (модель знает общее)"
+    },
+    "not_to_confuse": {
+      "type": "string",
+      "description": "с чем не путать"
     },
     "source": {
-      "type": "string"
+      "type": "string",
+      "description": "стандарт (NPR 7123.1, ГОСТ ISO 15288, ECSS) · регламент · устав · полка · решение владельца · документ проекта"
+    },
+    "used_in": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "виды, сцены, документы, где термин работает"
+    },
+    "object_code": {
+      "type": "string",
+      "description": "код объекта, который термин называет: узел (OBC-SW), стык (IF-S-USER), роль (customer), сцена (3), единица (kg)"
+    },
+    "links": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "enum": [
+              "broader",
+              "narrower",
+              "part_of",
+              "see_also"
+            ]
+          },
+          "term": {
+            "type": "string",
+            "description": "ссылка на вид: glossary_term"
+          }
+        },
+        "required": [
+          "type",
+          "term"
+        ]
+      },
+      "description": "шире/уже (род–вид), часть–целое, «см. также»"
+    },
+    "quote": {
+      "type": "string",
+      "description": "у кандидата из документа — дословный фрагмент, где термин встретился"
+    },
+    "fact": {
+      "type": "string",
+      "description": "ссылка на вид: fact у кандидата — факт-основание"
     },
     "doc_type_brief": {
       "type": "string",
-      "description": "для типов документов"
+      "description": "для терминов класса «документ» — что документ даёт разбору"
     },
     "default_take_to_prompt": {
       "type": "boolean",
-      "description": "умолчание «в промпт» типа"
+      "description": "умолчание «в промпт» типа документа"
     }
   },
   "required": [
@@ -120,6 +199,7 @@
     "created_at",
     "updated_at",
     "term_ru",
+    "class",
     "definition"
   ]
 }

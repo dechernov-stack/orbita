@@ -1,0 +1,5214 @@
+{
+  "kind": "glossary_term",
+  "code": "СИД-СЛОВАРЬ",
+  "title": "Словарь класса миссии — сид из истин (генератор tools/v2/gen_glossary_seed.py)",
+  "item_status": "accepted",
+  "by_class": {
+    "document": 14,
+    "interface": 26,
+    "mark": 3,
+    "node": 135,
+    "process": 27,
+    "role": 11,
+    "scene": 24,
+    "se_concept": 47,
+    "unit": 28
+  },
+  "items": [
+    {
+      "code": "GT-SE-001",
+      "term_ru": "Замысел миссии",
+      "class": "se_concept",
+      "definition": "Сжатая постановка: для кого, что делает, где, к какому горизонту",
+      "term_en": "Mission intent",
+      "synonyms": [
+        "Mission intent"
+      ],
+      "source": "NASA SEH App. B",
+      "used_in": [
+        "постановка",
+        "требования",
+        "документы"
+      ]
+    },
+    {
+      "code": "GT-SE-002",
+      "term_ru": "Нужда",
+      "class": "se_concept",
+      "definition": "Потребность стейкхолдера, ради которой существует миссия; решения не содержит",
+      "term_en": "Need",
+      "synonyms": [
+        "Need"
+      ],
+      "source": "NASA SEH App. B",
+      "used_in": [
+        "постановка",
+        "требования",
+        "документы"
+      ]
+    },
+    {
+      "code": "GT-SE-003",
+      "term_ru": "Цель миссии",
+      "class": "se_concept",
+      "definition": "Измеримый результат с показателем и горизонтом, выводимый из нужд",
+      "term_en": "Goal / Objective",
+      "synonyms": [
+        "Goal / Objective"
+      ],
+      "source": "NASA SEH App. B",
+      "used_in": [
+        "постановка",
+        "требования",
+        "документы"
+      ]
+    },
+    {
+      "code": "GT-SE-004",
+      "term_ru": "Показатель эффективности миссии",
+      "class": "se_concept",
+      "definition": "Мера успеха с точки зрения заказчика; не зависит от реализации",
+      "term_en": "MOE (Measure of Effectiveness)",
+      "synonyms": [
+        "MOE (Measure of Effectiveness)"
+      ],
+      "not_to_confuse": "MOP — мера свойства системы; MOE не зависит от реализации",
+      "source": "NASA SEH App. B",
+      "used_in": [
+        "постановка",
+        "требования",
+        "документы"
+      ]
+    },
+    {
+      "code": "GT-SE-005",
+      "term_ru": "Показатель характеристики",
+      "class": "se_concept",
+      "definition": "Мера свойства системы, обеспечивающая MOE",
+      "term_en": "MOP (Measure of Performance)",
+      "synonyms": [
+        "MOP (Measure of Performance)"
+      ],
+      "not_to_confuse": "MOE — мера успеха для заказчика; MOP — свойство системы, которое её обеспечивает",
+      "source": "NASA SEH App. B",
+      "used_in": [
+        "постановка",
+        "требования",
+        "документы"
+      ]
+    },
+    {
+      "code": "GT-SE-006",
+      "term_ru": "Технический показатель",
+      "class": "se_concept",
+      "definition": "Отслеживаемый в ходе работ показатель (запас массы, мощности…)",
+      "term_en": "TPM (Technical Performance Measure)",
+      "synonyms": [
+        "TPM (Technical Performance Measure)"
+      ],
+      "source": "NASA SEH App. B",
+      "used_in": [
+        "постановка",
+        "требования",
+        "документы"
+      ]
+    },
+    {
+      "code": "GT-SE-007",
+      "term_ru": "Требование",
+      "class": "se_concept",
+      "definition": "Однозначное проверяемое положение «‹носитель› должен …»",
+      "term_en": "Requirement",
+      "synonyms": [
+        "Requirement"
+      ],
+      "source": "NASA SEH App. B",
+      "used_in": [
+        "постановка",
+        "требования",
+        "документы"
+      ]
+    },
+    {
+      "code": "GT-SE-008",
+      "term_ru": "Обоснование",
+      "class": "se_concept",
+      "definition": "Причина существования требования и его значения; допущения — здесь",
+      "term_en": "Rationale",
+      "synonyms": [
+        "Rationale"
+      ],
+      "source": "NASA SEH App. B",
+      "used_in": [
+        "постановка",
+        "требования",
+        "документы"
+      ]
+    },
+    {
+      "code": "GT-SE-009",
+      "term_ru": "Трассировка",
+      "class": "se_concept",
+      "definition": "Двунаправленная связь: нужда ↔ требование ↔ элемент ↔ верификация",
+      "term_en": "Traceability",
+      "synonyms": [
+        "Traceability"
+      ],
+      "source": "NASA SEH App. B",
+      "used_in": [
+        "постановка",
+        "требования",
+        "документы"
+      ]
+    },
+    {
+      "code": "GT-SE-010",
+      "term_ru": "Базирование",
+      "class": "se_concept",
+      "definition": "Фиксация версии под управление конфигурацией; изменение — только с основанием",
+      "term_en": "Baselining",
+      "synonyms": [
+        "Baselining"
+      ],
+      "source": "NASA SEH App. B",
+      "used_in": [
+        "постановка",
+        "требования",
+        "документы"
+      ]
+    },
+    {
+      "code": "GT-SE-011",
+      "term_ru": "Базовая линия",
+      "class": "se_concept",
+      "definition": "Зафиксированное состояние комплекта под управлением изменений",
+      "term_en": "Baseline",
+      "synonyms": [
+        "Baseline"
+      ],
+      "source": "NASA SEH App. B",
+      "used_in": [
+        "постановка",
+        "требования",
+        "документы"
+      ]
+    },
+    {
+      "code": "GT-SE-012",
+      "term_ru": "Управление конфигурацией",
+      "class": "se_concept",
+      "definition": "Дисциплина версий, изменений и целостности комплекта",
+      "term_en": "Configuration Management (CM)",
+      "synonyms": [
+        "Configuration Management (CM)"
+      ],
+      "source": "NASA SEH App. B",
+      "used_in": [
+        "постановка",
+        "требования",
+        "документы"
+      ]
+    },
+    {
+      "code": "GT-SE-013",
+      "term_ru": "Отклонение (адаптация)",
+      "class": "se_concept",
+      "definition": "Согласованное отступление от нормы с обоснованием и следом",
+      "term_en": "Tailoring",
+      "synonyms": [
+        "Tailoring"
+      ],
+      "source": "NASA SEH App. B",
+      "used_in": [
+        "постановка",
+        "требования",
+        "документы"
+      ]
+    },
+    {
+      "code": "GT-SE-014",
+      "term_ru": "Верификация",
+      "class": "se_concept",
+      "definition": "Подтверждение «построили правильно» — соответствие требованиям",
+      "term_en": "Verification",
+      "synonyms": [
+        "Verification"
+      ],
+      "not_to_confuse": "Валидация — «построили правильное» (соответствие нуждам); верификация — «построили правильно» (соответствие требованиям)",
+      "source": "NASA SEH App. B",
+      "used_in": [
+        "постановка",
+        "требования",
+        "документы"
+      ]
+    },
+    {
+      "code": "GT-SE-015",
+      "term_ru": "Валидация",
+      "class": "se_concept",
+      "definition": "Подтверждение «построили правильное» — соответствие нуждам и ConOps",
+      "term_en": "Validation",
+      "synonyms": [
+        "Validation"
+      ],
+      "not_to_confuse": "Верификация — «построили правильно» (соответствие требованиям); валидация — «построили правильное» (соответствие нуждам и ConOps)",
+      "source": "NASA SEH App. B",
+      "used_in": [
+        "постановка",
+        "требования",
+        "документы"
+      ]
+    },
+    {
+      "code": "GT-SE-016",
+      "term_ru": "Метод верификации",
+      "class": "se_concept",
+      "definition": "Испытание · анализ · демонстрация · инспекция",
+      "term_en": "Verification method",
+      "synonyms": [
+        "Verification method"
+      ],
+      "source": "NASA SEH App. B",
+      "used_in": [
+        "постановка",
+        "требования",
+        "документы"
+      ]
+    },
+    {
+      "code": "GT-SE-017",
+      "term_ru": "Концепция операций",
+      "class": "se_concept",
+      "definition": "Описание системы в эксплуатации глазами операторов и пользователей",
+      "term_en": "ConOps",
+      "synonyms": [
+        "ConOps"
+      ],
+      "source": "NASA SEH App. B",
+      "used_in": [
+        "постановка",
+        "требования",
+        "документы"
+      ]
+    },
+    {
+      "code": "GT-SE-018",
+      "term_ru": "Анализ альтернатив",
+      "class": "se_concept",
+      "definition": "Сравнение вариантов концепции по явным критериям",
+      "term_en": "AoA (Analysis of Alternatives)",
+      "synonyms": [
+        "AoA (Analysis of Alternatives)"
+      ],
+      "source": "NASA SEH App. B",
+      "used_in": [
+        "постановка",
+        "требования",
+        "документы"
+      ]
+    },
+    {
+      "code": "GT-SE-019",
+      "term_ru": "Исследование компромиссов",
+      "class": "se_concept",
+      "definition": "Структурированный выбор решения с фиксацией отклонённого",
+      "term_en": "Trade study",
+      "synonyms": [
+        "Trade study"
+      ],
+      "source": "NASA SEH App. B",
+      "used_in": [
+        "постановка",
+        "требования",
+        "документы"
+      ]
+    },
+    {
+      "code": "GT-SE-020",
+      "term_ru": "Опорная миссия",
+      "class": "se_concept",
+      "definition": "Репрезентативный сценарий, на котором проверяется концепция",
+      "term_en": "DRM (Design Reference Mission)",
+      "synonyms": [
+        "DRM (Design Reference Mission)"
+      ],
+      "source": "NASA SEH App. B",
+      "used_in": [
+        "постановка",
+        "требования",
+        "документы"
+      ]
+    },
+    {
+      "code": "GT-SE-021",
+      "term_ru": "Сокращение состава",
+      "class": "se_concept",
+      "definition": "Заранее определённое отступление объёма при дефиците ресурсов",
+      "term_en": "Descope",
+      "synonyms": [
+        "Descope"
+      ],
+      "source": "NASA SEH App. B",
+      "used_in": [
+        "постановка",
+        "требования",
+        "документы"
+      ]
+    },
+    {
+      "code": "GT-SE-022",
+      "term_ru": "Перечень оборудования",
+      "class": "se_concept",
+      "definition": "Сводный список изделий с массами/мощностями и резервами",
+      "term_en": "MEL (Master Equipment List)",
+      "synonyms": [
+        "MEL (Master Equipment List)"
+      ],
+      "source": "NASA SEH App. B",
+      "used_in": [
+        "постановка",
+        "требования",
+        "документы"
+      ]
+    },
+    {
+      "code": "GT-SE-023",
+      "term_ru": "Структура работ",
+      "class": "se_concept",
+      "definition": "Иерархия работ проекта; основа оценок и учёта",
+      "term_en": "WBS (Work Breakdown Structure)",
+      "synonyms": [
+        "WBS (Work Breakdown Structure)"
+      ],
+      "source": "NASA SEH App. B",
+      "used_in": [
+        "постановка",
+        "требования",
+        "документы"
+      ]
+    },
+    {
+      "code": "GT-SE-024",
+      "term_ru": "Уровень готовности технологии",
+      "class": "se_concept",
+      "definition": "Шкала зрелости технологии 1–9; цель Формулирования — 6 к PDR",
+      "term_en": "TRL",
+      "synonyms": [
+        "TRL"
+      ],
+      "source": "NASA SEH App. B",
+      "used_in": [
+        "постановка",
+        "требования",
+        "документы"
+      ]
+    },
+    {
+      "code": "GT-SE-025",
+      "term_ru": "Запас (резерв)",
+      "class": "se_concept",
+      "definition": "Разница между потребным и располагаемым (масса, мощность, ссылка)",
+      "term_en": "Margin",
+      "synonyms": [
+        "Margin"
+      ],
+      "source": "NASA SEH App. B",
+      "used_in": [
+        "постановка",
+        "требования",
+        "документы"
+      ]
+    },
+    {
+      "code": "GT-SE-026",
+      "term_ru": "Стейкхолдер",
+      "class": "se_concept",
+      "definition": "Сторона, влияющая на миссию или зависящая от неё; включая поставщиков",
+      "term_en": "Stakeholder",
+      "synonyms": [
+        "Stakeholder"
+      ],
+      "source": "NASA SEH App. B",
+      "used_in": [
+        "постановка",
+        "требования",
+        "документы"
+      ]
+    },
+    {
+      "code": "GT-SE-027",
+      "term_ru": "Жизненный цикл",
+      "class": "se_concept",
+      "definition": "Фазы Pre-A…F с точками решений между ними",
+      "term_en": "Life cycle",
+      "synonyms": [
+        "Life cycle"
+      ],
+      "source": "NASA SEH App. B",
+      "used_in": [
+        "постановка",
+        "требования",
+        "документы"
+      ]
+    },
+    {
+      "code": "GT-SE-028",
+      "term_ru": "Ключевая точка решения",
+      "class": "se_concept",
+      "definition": "Решение уполномоченного о переходе фазы",
+      "term_en": "KDP (Key Decision Point)",
+      "synonyms": [
+        "KDP (Key Decision Point)"
+      ],
+      "source": "NASA SEH App. B",
+      "used_in": [
+        "постановка",
+        "требования",
+        "документы"
+      ]
+    },
+    {
+      "code": "GT-SE-029",
+      "term_ru": "Обзор",
+      "class": "se_concept",
+      "definition": "Формальная проверка зрелости по входным/выходным критериям",
+      "term_en": "Review (MCR/SRR/SDR…)",
+      "synonyms": [
+        "Review (MCR/SRR/SDR…)"
+      ],
+      "source": "NASA SEH App. B",
+      "used_in": [
+        "постановка",
+        "требования",
+        "документы"
+      ]
+    },
+    {
+      "code": "GT-SE-030",
+      "term_ru": "Замечание обзора",
+      "class": "se_concept",
+      "definition": "Запрос действия / несоответствие, подлежащие закрытию",
+      "term_en": "RFA / RID",
+      "synonyms": [
+        "RFA / RID"
+      ],
+      "source": "NASA SEH App. B",
+      "used_in": [
+        "постановка",
+        "требования",
+        "документы"
+      ]
+    },
+    {
+      "code": "GT-SE-031",
+      "term_ru": "Независимая комиссия",
+      "class": "se_concept",
+      "definition": "Внешняя оценка зрелости на обзорах",
+      "term_en": "SRB (Standing Review Board)",
+      "synonyms": [
+        "SRB (Standing Review Board)"
+      ],
+      "source": "NASA SEH App. B",
+      "used_in": [
+        "постановка",
+        "требования",
+        "документы"
+      ]
+    },
+    {
+      "code": "GT-SE-032",
+      "term_ru": "Продукт точки",
+      "class": "se_concept",
+      "definition": "Артефакт требуемой зрелости к KDP (матрица зрелости)",
+      "term_en": "Gate product",
+      "synonyms": [
+        "Gate product"
+      ],
+      "source": "NASA SEH App. B",
+      "used_in": [
+        "постановка",
+        "требования",
+        "документы"
+      ]
+    },
+    {
+      "code": "GT-SE-033",
+      "term_ru": "Соглашение о формулировании",
+      "class": "se_concept",
+      "definition": "Договор о содержании и ресурсах Формулирования",
+      "term_en": "FA (Formulation Agreement)",
+      "synonyms": [
+        "FA (Formulation Agreement)"
+      ],
+      "source": "NASA SEH App. B",
+      "used_in": [
+        "постановка",
+        "требования",
+        "документы"
+      ]
+    },
+    {
+      "code": "GT-SE-034",
+      "term_ru": "Санкционирование",
+      "class": "se_concept",
+      "definition": "Документ, разрешающий Формулирование",
+      "term_en": "FAD",
+      "synonyms": [
+        "FAD"
+      ],
+      "source": "NASA SEH App. B",
+      "used_in": [
+        "постановка",
+        "требования",
+        "документы"
+      ]
+    },
+    {
+      "code": "GT-SE-035",
+      "term_ru": "Оценка стоимости ЖЦ",
+      "class": "se_concept",
+      "definition": "Полная стоимость от Формулирования до утилизации",
+      "term_en": "LCC (Life Cycle Cost)",
+      "synonyms": [
+        "LCC (Life Cycle Cost)"
+      ],
+      "source": "NASA SEH App. B",
+      "used_in": [
+        "постановка",
+        "требования",
+        "документы"
+      ]
+    },
+    {
+      "code": "GT-SE-036",
+      "term_ru": "Пакет данных стоимости",
+      "class": "se_concept",
+      "definition": "Комплект для независимой оценки стоимости",
+      "term_en": "CADRe",
+      "synonyms": [
+        "CADRe"
+      ],
+      "source": "NASA SEH App. B",
+      "used_in": [
+        "постановка",
+        "требования",
+        "документы"
+      ]
+    },
+    {
+      "code": "GT-SE-037",
+      "term_ru": "Оценка орбитального засорения",
+      "class": "se_concept",
+      "definition": "Анализ соответствия нормам ограничения мусора; увод",
+      "term_en": "ODA",
+      "synonyms": [
+        "ODA"
+      ],
+      "source": "NASA SEH App. B",
+      "used_in": [
+        "постановка",
+        "требования",
+        "документы"
+      ]
+    },
+    {
+      "code": "GT-SE-038",
+      "term_ru": "Экспертная инспекция",
+      "class": "se_concept",
+      "definition": "Внутренняя проверка коллегами до формального обзора",
+      "term_en": "Peer review",
+      "synonyms": [
+        "Peer review"
+      ],
+      "source": "NASA SEH App. B",
+      "used_in": [
+        "постановка",
+        "требования",
+        "документы"
+      ]
+    },
+    {
+      "code": "GT-SE-039",
+      "term_ru": "TBD",
+      "class": "se_concept",
+      "definition": "Значение не определено; подлежит замене оценкой с TBR",
+      "term_en": "To Be Determined",
+      "synonyms": [
+        "To Be Determined"
+      ],
+      "source": "NASA SEH App. B",
+      "used_in": [
+        "постановка",
+        "требования",
+        "документы"
+      ]
+    },
+    {
+      "code": "GT-SE-040",
+      "term_ru": "TBR",
+      "class": "se_concept",
+      "definition": "Оценка под подтверждение: что сделать · кто · срок",
+      "term_en": "To Be Resolved",
+      "synonyms": [
+        "To Be Resolved"
+      ],
+      "source": "NASA SEH App. B",
+      "used_in": [
+        "постановка",
+        "требования",
+        "документы"
+      ]
+    },
+    {
+      "code": "GT-SE-041",
+      "term_ru": "Должен / будет / желательно",
+      "class": "se_concept",
+      "definition": "Требование / факт контекста / цель — не смешивать",
+      "term_en": "Shall / Will / Should",
+      "synonyms": [
+        "Shall / Will / Should"
+      ],
+      "source": "NASA SEH App. B",
+      "used_in": [
+        "постановка",
+        "требования",
+        "документы"
+      ]
+    },
+    {
+      "code": "GT-ORB-001",
+      "term_ru": "Записка миссии",
+      "class": "document",
+      "definition": "Постановочный документ заказчика: цели, сроки, нормативные ссылки.",
+      "source": "глоссарий «Орбиты» (пакет 08)",
+      "object_code": "mission_note",
+      "doc_type_brief": "Служба извлечёт цели и нужды, профили стейкхолдеров (полка А2), типовые риски (Б3).",
+      "default_take_to_prompt": true,
+      "used_in": [
+        "поле знаний",
+        "разбор документа"
+      ]
+    },
+    {
+      "code": "GT-ORB-002",
+      "term_ru": "Норматив",
+      "class": "document",
+      "definition": "Стандарт/ГОСТ с обозначением и редакцией.",
+      "source": "глоссарий «Орбиты» (пакет 08)",
+      "object_code": "normative",
+      "doc_type_brief": "Пункты станут основаниями требований; смена редакции подсветит зависимые.",
+      "default_take_to_prompt": false,
+      "used_in": [
+        "поле знаний",
+        "разбор документа"
+      ]
+    },
+    {
+      "code": "GT-ORB-003",
+      "term_ru": "Даташит",
+      "class": "document",
+      "definition": "Характеристики компонента.",
+      "source": "глоссарий «Орбиты» (пакет 08)",
+      "object_code": "datasheet",
+      "doc_type_brief": "Выжимка свойств для модели аппарата и типовых требований.",
+      "default_take_to_prompt": false,
+      "used_in": [
+        "поле знаний",
+        "разбор документа"
+      ]
+    },
+    {
+      "code": "GT-ORB-004",
+      "term_ru": "Справка",
+      "class": "document",
+      "definition": "Контекстный материал.",
+      "source": "глоссарий «Орбиты» (пакет 08)",
+      "object_code": "reference",
+      "doc_type_brief": "Участвует в промпте службы, извлечений не порождает.",
+      "default_take_to_prompt": false,
+      "used_in": [
+        "поле знаний",
+        "разбор документа"
+      ]
+    },
+    {
+      "code": "GT-ORB-005",
+      "term_ru": "Прочее",
+      "class": "document",
+      "definition": "Лежит материалом проекта.",
+      "source": "глоссарий «Орбиты» (пакет 08)",
+      "object_code": "other",
+      "doc_type_brief": "Служба его не читает, пока не переопределён тип.",
+      "default_take_to_prompt": false,
+      "used_in": [
+        "поле знаний",
+        "разбор документа"
+      ]
+    },
+    {
+      "code": "GT-ORB-006",
+      "term_ru": "Зона видимости",
+      "class": "se_concept",
+      "definition": "Геометрический footprint: угол места не ниже минимального.",
+      "not_to_confuse": "Зоной обслуживания",
+      "source": "глоссарий «Орбиты» (пакет 08)",
+      "used_in": [
+        "постановка"
+      ]
+    },
+    {
+      "code": "GT-ORB-007",
+      "term_ru": "Зона обслуживания",
+      "class": "se_concept",
+      "definition": "Подмножество footprint: бюджет линии замыкается и есть ёмкость.",
+      "not_to_confuse": "Зоной видимости",
+      "source": "глоссарий «Орбиты» (пакет 08)",
+      "used_in": [
+        "постановка"
+      ]
+    },
+    {
+      "code": "GT-ORB-008",
+      "term_ru": "Карта спроса",
+      "class": "se_concept",
+      "definition": "Сетка ячеек с интенсивностями по классам потребителей.",
+      "not_to_confuse": "Картой покрытия",
+      "source": "глоссарий «Орбиты» (пакет 08)",
+      "used_in": [
+        "постановка"
+      ]
+    },
+    {
+      "code": "GT-ORB-009",
+      "term_ru": "MOE",
+      "class": "se_concept",
+      "definition": "Показатель качества сервиса.",
+      "not_to_confuse": "MOP — показателем требования",
+      "source": "глоссарий «Орбиты» (пакет 08)",
+      "used_in": [
+        "постановка"
+      ]
+    },
+    {
+      "code": "GT-ORB-010",
+      "term_ru": "A′ / B′ / C′",
+      "class": "se_concept",
+      "definition": "Классы терминалов: односторонний / с подтверждением / оперативного управления.",
+      "not_to_confuse": "Классами устройств LoRaWAN A/B/C",
+      "source": "глоссарий «Орбиты» (пакет 08)",
+      "used_in": [
+        "постановка"
+      ]
+    },
+    {
+      "code": "GT-ORB-011",
+      "term_ru": "SEMP",
+      "class": "se_concept",
+      "definition": "План управления системной инженерией: свод того, КАК система проектируется — процессы, обзоры, отклонения и среда работ. Наполовину самоописание конфигурации проекта: разделы процессов, обзоров, отклонений и инструментов приходят вставками из системы, инженер правит поверх. Базируется до SRR.",
+      "source": "глоссарий «Орбиты» (пакет 08)",
+      "used_in": [
+        "постановка"
+      ]
+    },
+    {
+      "code": "GT-X-001",
+      "term_ru": "Pre-A",
+      "class": "process",
+      "definition": "Concept studies; по РК-11КТ/ГОСТ — Предпроект / НИР (стадии 0–1 РК-11КТ; в РК-11КТ отсутствуют); по Романову — Стадии 0–1: замысел и облик миссии",
+      "term_en": "Concept studies",
+      "synonyms": [
+        "Предпроект / НИР (стадии 0–1 РК-11КТ; в РК-11КТ отсутствуют)",
+        "Concept studies",
+        "Стадии 0–1: замысел и облик миссии"
+      ],
+      "source": "кросс-терминология NASA ↔ РК-11КТ / ГОСТ ↔ Романов (сид GL-9003)",
+      "used_in": [
+        "интерфейс",
+        "фаза",
+        "точки"
+      ]
+    },
+    {
+      "code": "GT-X-002",
+      "term_ru": "Phase A",
+      "class": "process",
+      "definition": "Concept & technology development; по РК-11КТ/ГОСТ — Аванпроект (стадия 2); по Романову — Стадия 2: аванпроект сегментов и элементов",
+      "term_en": "Concept & technology development",
+      "synonyms": [
+        "Аванпроект (стадия 2)",
+        "Concept & technology development",
+        "Стадия 2: аванпроект сегментов и элементов"
+      ],
+      "source": "кросс-терминология NASA ↔ РК-11КТ / ГОСТ ↔ Романов (сид GL-9003)",
+      "used_in": [
+        "интерфейс",
+        "фаза",
+        "точки"
+      ]
+    },
+    {
+      "code": "GT-X-003",
+      "term_ru": "Phase B",
+      "class": "process",
+      "definition": "Preliminary design; по РК-11КТ/ГОСТ — Эскизный проект (стадия 3); по Романову — Стадия 3",
+      "term_en": "Preliminary design",
+      "synonyms": [
+        "Эскизный проект (стадия 3)",
+        "Preliminary design",
+        "Стадия 3"
+      ],
+      "source": "кросс-терминология NASA ↔ РК-11КТ / ГОСТ ↔ Романов (сид GL-9003)",
+      "used_in": [
+        "интерфейс",
+        "фаза",
+        "точки"
+      ]
+    },
+    {
+      "code": "GT-X-004",
+      "term_ru": "Phase C/D",
+      "class": "process",
+      "definition": "Final design & fabrication; assembly, integration, test; по РК-11КТ/ГОСТ — Разработка РД, изготовление, испытания; госиспытания (стадии 4–5); по Романову — Стадии 4–5",
+      "term_en": "Final design & fabrication; assembly, integration, test",
+      "synonyms": [
+        "Разработка РД, изготовление, испытания; госиспытания (стадии 4–5)",
+        "Final design & fabrication; assembly, integration, test",
+        "Стадии 4–5"
+      ],
+      "source": "кросс-терминология NASA ↔ РК-11КТ / ГОСТ ↔ Романов (сид GL-9003)",
+      "used_in": [
+        "интерфейс",
+        "фаза",
+        "точки"
+      ]
+    },
+    {
+      "code": "GT-X-005",
+      "term_ru": "MCR",
+      "class": "process",
+      "definition": "Mission Concept Review; по РК-11КТ/ГОСТ — Экспертиза замысла / концепции миссии; по Романову — EXP-0A/0B: валидация потребности в миссии и её задач",
+      "term_en": "Mission Concept Review",
+      "synonyms": [
+        "Экспертиза замысла / концепции миссии",
+        "Mission Concept Review",
+        "EXP-0A/0B: валидация потребности в миссии и её задач"
+      ],
+      "source": "кросс-терминология NASA ↔ РК-11КТ / ГОСТ ↔ Романов (сид GL-9003)",
+      "used_in": [
+        "интерфейс",
+        "фаза",
+        "точки"
+      ]
+    },
+    {
+      "code": "GT-X-006",
+      "term_ru": "SRR",
+      "class": "process",
+      "definition": "System Requirements Review; по РК-11КТ/ГОСТ — Экспертиза требований к миссии / к системе; по Романову — EXP-1A / EXP-2A",
+      "term_en": "System Requirements Review",
+      "synonyms": [
+        "Экспертиза требований к миссии / к системе",
+        "System Requirements Review",
+        "EXP-1A / EXP-2A"
+      ],
+      "source": "кросс-терминология NASA ↔ РК-11КТ / ГОСТ ↔ Романов (сид GL-9003)",
+      "used_in": [
+        "интерфейс",
+        "фаза",
+        "точки"
+      ]
+    },
+    {
+      "code": "GT-X-007",
+      "term_ru": "SDR/MDR",
+      "class": "process",
+      "definition": "System Definition / Mission Definition Review; по РК-11КТ/ГОСТ — Экспертиза облика миссии / облика системы; по Романову — EXP-1B / EXP-2B: схема деления и перечень изделий",
+      "term_en": "System Definition / Mission Definition Review",
+      "synonyms": [
+        "Экспертиза облика миссии / облика системы",
+        "System Definition / Mission Definition Review",
+        "EXP-1B / EXP-2B: схема деления и перечень изделий"
+      ],
+      "source": "кросс-терминология NASA ↔ РК-11КТ / ГОСТ ↔ Романов (сид GL-9003)",
+      "used_in": [
+        "интерфейс",
+        "фаза",
+        "точки"
+      ]
+    },
+    {
+      "code": "GT-X-008",
+      "term_ru": "PDR",
+      "class": "process",
+      "definition": "Preliminary Design Review; по РК-11КТ/ГОСТ — Экспертиза аванпроекта; по Романову — EXP-3: проектирование по исходным данным",
+      "term_en": "Preliminary Design Review",
+      "synonyms": [
+        "Экспертиза аванпроекта",
+        "Preliminary Design Review",
+        "EXP-3: проектирование по исходным данным"
+      ],
+      "source": "кросс-терминология NASA ↔ РК-11КТ / ГОСТ ↔ Романов (сид GL-9003)",
+      "used_in": [
+        "интерфейс",
+        "фаза",
+        "точки"
+      ]
+    },
+    {
+      "code": "GT-X-009",
+      "term_ru": "KDP",
+      "class": "process",
+      "definition": "Key Decision Point; по РК-11КТ/ГОСТ — Ключевая точка решения; в РК-11КТ — решение по итогам экспертизы; по Романову — решение о переходе стадии",
+      "term_en": "Key Decision Point",
+      "synonyms": [
+        "Ключевая точка решения; в РК-11КТ — решение по итогам экспертизы",
+        "Key Decision Point",
+        "решение о переходе стадии"
+      ],
+      "source": "кросс-терминология NASA ↔ РК-11КТ / ГОСТ ↔ Романов (сид GL-9003)",
+      "used_in": [
+        "интерфейс",
+        "фаза",
+        "точки"
+      ]
+    },
+    {
+      "code": "GT-X-010",
+      "term_ru": "ConOps",
+      "class": "process",
+      "definition": "Concept of Operations; по РК-11КТ/ГОСТ — Концепция операций; в ГОСТ ISO 15288 — концепция эксплуатации; по Романову — «эксплуатационная концепция системы» (0.8), «концепции миссии и эксплуатации» (1.3)",
+      "term_en": "Concept of Operations",
+      "synonyms": [
+        "Концепция операций; в ГОСТ ISO 15288 — концепция эксплуатации",
+        "Concept of Operations",
+        "«эксплуатационная концепция системы» (0.8), «концепции миссии и эксплуатации» (1.3)"
+      ],
+      "source": "кросс-терминология NASA ↔ РК-11КТ / ГОСТ ↔ Романов (сид GL-9003)",
+      "used_in": [
+        "интерфейс",
+        "фаза",
+        "точки"
+      ]
+    },
+    {
+      "code": "GT-X-011",
+      "term_ru": "SEMP",
+      "class": "process",
+      "definition": "Systems Engineering Management Plan; по РК-11КТ/ГОСТ — План управления системной инженерией; у Романова — «программа инженерного управления системой»; по Романову — 1.P: программа инженерного управления системой",
+      "term_en": "Systems Engineering Management Plan",
+      "synonyms": [
+        "План управления системной инженерией; у Романова — «программа инженерного управления системой»",
+        "Systems Engineering Management Plan",
+        "1.P: программа инженерного управления системой"
+      ],
+      "source": "кросс-терминология NASA ↔ РК-11КТ / ГОСТ ↔ Романов (сид GL-9003)",
+      "used_in": [
+        "интерфейс",
+        "фаза",
+        "точки"
+      ]
+    },
+    {
+      "code": "GT-X-012",
+      "term_ru": "FA",
+      "class": "process",
+      "definition": "Formulation Agreement; по РК-11КТ/ГОСТ — Соглашение о формулировании; по Романову — —",
+      "term_en": "Formulation Agreement",
+      "synonyms": [
+        "Соглашение о формулировании",
+        "Formulation Agreement",
+        "—"
+      ],
+      "source": "кросс-терминология NASA ↔ РК-11КТ / ГОСТ ↔ Романов (сид GL-9003)",
+      "used_in": [
+        "интерфейс",
+        "фаза",
+        "точки"
+      ]
+    },
+    {
+      "code": "GT-X-013",
+      "term_ru": "Baseline (functional/allocated/product)",
+      "class": "process",
+      "definition": "Functional / Allocated / Product Baseline; по РК-11КТ/ГОСТ — Базовая линия: функциональная / исходные данные на проектирование / на производство; по Романову — строка «готовность системы»: функциональные ИД → ИД на проектирование → ИД на производство",
+      "term_en": "Functional / Allocated / Product Baseline",
+      "synonyms": [
+        "Базовая линия: функциональная / исходные данные на проектирование / на производство",
+        "Functional / Allocated / Product Baseline",
+        "строка «готовность системы»: функциональные ИД → ИД на проектирование → ИД на производство"
+      ],
+      "source": "кросс-терминология NASA ↔ РК-11КТ / ГОСТ ↔ Романов (сид GL-9003)",
+      "used_in": [
+        "интерфейс",
+        "фаза",
+        "точки"
+      ]
+    },
+    {
+      "code": "GT-X-014",
+      "term_ru": "Requirement",
+      "class": "process",
+      "definition": "Requirement; по РК-11КТ/ГОСТ — Требование (ГОСТ Р 57193 — требование к системе); по Романову — «требования к миссии/системе/сегментам/элементам»",
+      "term_en": "Requirement",
+      "synonyms": [
+        "Требование (ГОСТ Р 57193 — требование к системе)",
+        "Requirement",
+        "«требования к миссии/системе/сегментам/элементам»"
+      ],
+      "source": "кросс-терминология NASA ↔ РК-11КТ / ГОСТ ↔ Романов (сид GL-9003)",
+      "used_in": [
+        "интерфейс",
+        "фаза",
+        "точки"
+      ]
+    },
+    {
+      "code": "GT-X-015",
+      "term_ru": "Stakeholder",
+      "class": "process",
+      "definition": "Stakeholder; по РК-11КТ/ГОСТ — Заинтересованная сторона (ГОСТ ISO 15288); по Романову — «пользователи миссии» (0.1, 0.M1)",
+      "term_en": "Stakeholder",
+      "synonyms": [
+        "Заинтересованная сторона (ГОСТ ISO 15288)",
+        "Stakeholder",
+        "«пользователи миссии» (0.1, 0.M1)"
+      ],
+      "source": "кросс-терминология NASA ↔ РК-11КТ / ГОСТ ↔ Романов (сид GL-9003)",
+      "used_in": [
+        "интерфейс",
+        "фаза",
+        "точки"
+      ]
+    },
+    {
+      "code": "GT-X-016",
+      "term_ru": "Need",
+      "class": "process",
+      "definition": "Need; по РК-11КТ/ГОСТ — Потребность; по Романову — «потребности в миссии» (0.1)",
+      "term_en": "Need",
+      "synonyms": [
+        "Потребность",
+        "Need",
+        "«потребности в миссии» (0.1)"
+      ],
+      "source": "кросс-терминология NASA ↔ РК-11КТ / ГОСТ ↔ Романов (сид GL-9003)",
+      "used_in": [
+        "интерфейс",
+        "фаза",
+        "точки"
+      ]
+    },
+    {
+      "code": "GT-X-017",
+      "term_ru": "Verification / Validation",
+      "class": "process",
+      "definition": "Verification / Validation; по РК-11КТ/ГОСТ — Верификация / валидация (ГОСТ ISO 15288: процессы верификации и валидации); по Романову — «верификация моделей», «валидация моделей сегмента» (2.M7)",
+      "term_en": "Verification / Validation",
+      "synonyms": [
+        "Верификация / валидация (ГОСТ ISO 15288: процессы верификации и валидации)",
+        "Verification / Validation",
+        "«верификация моделей», «валидация моделей сегмента» (2.M7)"
+      ],
+      "source": "кросс-терминология NASA ↔ РК-11КТ / ГОСТ ↔ Романов (сид GL-9003)",
+      "used_in": [
+        "интерфейс",
+        "фаза",
+        "точки"
+      ]
+    },
+    {
+      "code": "GT-X-018",
+      "term_ru": "TRL",
+      "class": "process",
+      "definition": "Technology Readiness Level; по РК-11КТ/ГОСТ — Уровень готовности технологии (ГОСТ Р 58048); по Романову — «разработка технологий» (2.T), план развития технологии",
+      "term_en": "Technology Readiness Level",
+      "synonyms": [
+        "Уровень готовности технологии (ГОСТ Р 58048)",
+        "Technology Readiness Level",
+        "«разработка технологий» (2.T), план развития технологии"
+      ],
+      "source": "кросс-терминология NASA ↔ РК-11КТ / ГОСТ ↔ Романов (сид GL-9003)",
+      "used_in": [
+        "интерфейс",
+        "фаза",
+        "точки"
+      ]
+    },
+    {
+      "code": "GT-X-019",
+      "term_ru": "PBS",
+      "class": "process",
+      "definition": "Product Breakdown Structure; по РК-11КТ/ГОСТ — Схема деления системы / перечень разрабатываемых изделий; по Романову — «предварительная схема деления системы» (0.8), «схема деления» (EXP-2B)",
+      "term_en": "Product Breakdown Structure",
+      "synonyms": [
+        "Схема деления системы / перечень разрабатываемых изделий",
+        "Product Breakdown Structure",
+        "«предварительная схема деления системы» (0.8), «схема деления» (EXP-2B)"
+      ],
+      "source": "кросс-терминология NASA ↔ РК-11КТ / ГОСТ ↔ Романов (сид GL-9003)",
+      "used_in": [
+        "интерфейс",
+        "фаза",
+        "точки"
+      ]
+    },
+    {
+      "code": "GT-X-020",
+      "term_ru": "WBS",
+      "class": "process",
+      "definition": "Work Breakdown Structure; по РК-11КТ/ГОСТ — Структура распределения работ / состав работ, ведомость исполнения; по Романову — «структура распределения работы» (EXP-1B), «состав выполняемых работ» (EXP-2B)",
+      "term_en": "Work Breakdown Structure",
+      "synonyms": [
+        "Структура распределения работ / состав работ, ведомость исполнения",
+        "Work Breakdown Structure",
+        "«структура распределения работы» (EXP-1B), «состав выполняемых работ» (EXP-2B)"
+      ],
+      "source": "кросс-терминология NASA ↔ РК-11КТ / ГОСТ ↔ Романов (сид GL-9003)",
+      "used_in": [
+        "интерфейс",
+        "фаза",
+        "точки"
+      ]
+    },
+    {
+      "code": "GT-X-021",
+      "term_ru": "ICD",
+      "class": "process",
+      "definition": "Interface Control Document; по РК-11КТ/ГОСТ — Интерфейсный контрольный документ; по Романову — «интерфейсный контрольный документ» (EXP-2B)",
+      "term_en": "Interface Control Document",
+      "synonyms": [
+        "Интерфейсный контрольный документ",
+        "Interface Control Document",
+        "«интерфейсный контрольный документ» (EXP-2B)"
+      ],
+      "source": "кросс-терминология NASA ↔ РК-11КТ / ГОСТ ↔ Романов (сид GL-9003)",
+      "used_in": [
+        "интерфейс",
+        "фаза",
+        "точки"
+      ]
+    },
+    {
+      "code": "GT-X-022",
+      "term_ru": "MEL",
+      "class": "process",
+      "definition": "Master Equipment List; по РК-11КТ/ГОСТ — Перечень оборудования и ПО; по Романову — «перечень оборудования и ПО» (EXP-1B/2B)",
+      "term_en": "Master Equipment List",
+      "synonyms": [
+        "Перечень оборудования и ПО",
+        "Master Equipment List",
+        "«перечень оборудования и ПО» (EXP-1B/2B)"
+      ],
+      "source": "кросс-терминология NASA ↔ РК-11КТ / ГОСТ ↔ Романов (сид GL-9003)",
+      "used_in": [
+        "интерфейс",
+        "фаза",
+        "точки"
+      ]
+    },
+    {
+      "code": "GT-X-023",
+      "term_ru": "TPM",
+      "class": "process",
+      "definition": "Technical Performance Measure; по РК-11КТ/ГОСТ — Технические показатели (измеряемые характеристики); по Романову — «бюджет TPM», «план измерения технических характеристик»",
+      "term_en": "Technical Performance Measure",
+      "synonyms": [
+        "Технические показатели (измеряемые характеристики)",
+        "Technical Performance Measure",
+        "«бюджет TPM», «план измерения технических характеристик»"
+      ],
+      "source": "кросс-терминология NASA ↔ РК-11КТ / ГОСТ ↔ Романов (сид GL-9003)",
+      "used_in": [
+        "интерфейс",
+        "фаза",
+        "точки"
+      ]
+    },
+    {
+      "code": "GT-X-024",
+      "term_ru": "AoA",
+      "class": "process",
+      "definition": "Analysis of Alternatives; по РК-11КТ/ГОСТ — Анализ альтернатив; по Романову — «анализ и оценка архитектур и концепций» (1.7), «синтез и уменьшение количества вариантов» (1.8)",
+      "term_en": "Analysis of Alternatives",
+      "synonyms": [
+        "Анализ альтернатив",
+        "Analysis of Alternatives",
+        "«анализ и оценка архитектур и концепций» (1.7), «синтез и уменьшение количества вариантов» (1.8)"
+      ],
+      "source": "кросс-терминология NASA ↔ РК-11КТ / ГОСТ ↔ Романов (сид GL-9003)",
+      "used_in": [
+        "интерфейс",
+        "фаза",
+        "точки"
+      ]
+    },
+    {
+      "code": "GT-X-025",
+      "term_ru": "Tailoring",
+      "class": "process",
+      "definition": "Tailoring; по РК-11КТ/ГОСТ — Адаптация / отклонение от нормы с обоснованием; по Романову — —",
+      "term_en": "Tailoring",
+      "synonyms": [
+        "Адаптация / отклонение от нормы с обоснованием",
+        "Tailoring",
+        "—"
+      ],
+      "source": "кросс-терминология NASA ↔ РК-11КТ / ГОСТ ↔ Романов (сид GL-9003)",
+      "used_in": [
+        "интерфейс",
+        "фаза",
+        "точки"
+      ]
+    },
+    {
+      "code": "GT-X-026",
+      "term_ru": "Peer review",
+      "class": "process",
+      "definition": "Peer Review; по РК-11КТ/ГОСТ — Внутренняя (независимая) экспертиза коллег; по Романову — «экспертиза» как контрольная точка",
+      "term_en": "Peer Review",
+      "synonyms": [
+        "Внутренняя (независимая) экспертиза коллег",
+        "Peer Review",
+        "«экспертиза» как контрольная точка"
+      ],
+      "source": "кросс-терминология NASA ↔ РК-11КТ / ГОСТ ↔ Романов (сид GL-9003)",
+      "used_in": [
+        "интерфейс",
+        "фаза",
+        "точки"
+      ]
+    },
+    {
+      "code": "GT-X-027",
+      "term_ru": "MBSE",
+      "class": "process",
+      "definition": "Model-Based Systems Engineering; по РК-11КТ/ГОСТ — Модельно-ориентированный системный инжиниринг (ГОСТ ISO 24641-2023); по Романову — «процессы ЖЦ цифрового модельно-ориентированного инжиниринга»",
+      "term_en": "Model-Based Systems Engineering",
+      "synonyms": [
+        "Модельно-ориентированный системный инжиниринг (ГОСТ ISO 24641-2023)",
+        "Model-Based Systems Engineering",
+        "«процессы ЖЦ цифрового модельно-ориентированного инжиниринга»"
+      ],
+      "source": "кросс-терминология NASA ↔ РК-11КТ / ГОСТ ↔ Романов (сид GL-9003)",
+      "used_in": [
+        "интерфейс",
+        "фаза",
+        "точки"
+      ]
+    },
+    {
+      "code": "GT-NODE-SYS",
+      "term_ru": "Система (миссия)",
+      "class": "node",
+      "definition": "корень: проектные требования распределяются сюда",
+      "synonyms": [
+        "SYS"
+      ],
+      "object_code": "SYS",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-SEG-SP",
+      "term_ru": "Космический сегмент",
+      "class": "node",
+      "definition": "узел состава SEG-SP",
+      "synonyms": [
+        "SEG-SP"
+      ],
+      "object_code": "SEG-SP",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-SC",
+      "term_ru": "Космический аппарат (КА)",
+      "class": "node",
+      "definition": "вхождение ×N по подгруппам построения; носитель для построений",
+      "synonyms": [
+        "SC"
+      ],
+      "object_code": "SC",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-SC-PLT",
+      "term_ru": "Платформа (служебный модуль)",
+      "class": "node",
+      "definition": "узел состава SC-PLT",
+      "synonyms": [
+        "SC-PLT"
+      ],
+      "object_code": "SC-PLT",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-STR",
+      "term_ru": "Конструкция и механизмы",
+      "class": "node",
+      "definition": "силовая основа и раскрытия",
+      "synonyms": [
+        "STR"
+      ],
+      "object_code": "STR",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-STR-BODY",
+      "term_ru": "Силовая конструкция (корпус, рама, панели)",
+      "class": "node",
+      "definition": "узел состава STR-BODY",
+      "synonyms": [
+        "STR-BODY"
+      ],
+      "object_code": "STR-BODY",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-STR-DEPLOY",
+      "term_ru": "Механизмы раскрытия (СБ, антенны)",
+      "class": "node",
+      "definition": "узел состава STR-DEPLOY",
+      "synonyms": [
+        "STR-DEPLOY"
+      ],
+      "object_code": "STR-DEPLOY",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-STR-SEP",
+      "term_ru": "Система отделения и адаптер РН",
+      "class": "node",
+      "definition": "интерфейс с сегментом выведения",
+      "synonyms": [
+        "STR-SEP"
+      ],
+      "object_code": "STR-SEP",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-STR-PLMOUNT",
+      "term_ru": "Крепление полезной нагрузки",
+      "class": "node",
+      "definition": "узел состава STR-PLMOUNT",
+      "synonyms": [
+        "STR-PLMOUNT"
+      ],
+      "object_code": "STR-PLMOUNT",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-EPS",
+      "term_ru": "СЭП — система электропитания",
+      "class": "node",
+      "definition": "первичный источник — СБ, вторичный — АКБ, преобразование и распределение",
+      "synonyms": [
+        "EPS"
+      ],
+      "object_code": "EPS",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-EPS-SA",
+      "term_ru": "СБ — солнечные батареи (первичный источник)",
+      "class": "node",
+      "definition": "узел состава EPS-SA",
+      "synonyms": [
+        "EPS-SA"
+      ],
+      "object_code": "EPS-SA",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-EPS-SA-PANEL",
+      "term_ru": "Панели СБ",
+      "class": "node",
+      "definition": "узел состава EPS-SA-PANEL",
+      "synonyms": [
+        "EPS-SA-PANEL"
+      ],
+      "object_code": "EPS-SA-PANEL",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-EPS-SA-CELL",
+      "term_ru": "ФЭП — фотоэлектрические преобразователи",
+      "class": "node",
+      "definition": "узел состава EPS-SA-CELL",
+      "synonyms": [
+        "EPS-SA-CELL"
+      ],
+      "object_code": "EPS-SA-CELL",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-EPS-SA-SHUNT",
+      "term_ru": "Шунтовые регуляторы СБ",
+      "class": "node",
+      "definition": "узел состава EPS-SA-SHUNT",
+      "synonyms": [
+        "EPS-SA-SHUNT"
+      ],
+      "object_code": "EPS-SA-SHUNT",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-EPS-BAT",
+      "term_ru": "АКБ — аккумуляторные батареи (вторичный источник)",
+      "class": "node",
+      "definition": "узел состава EPS-BAT",
+      "synonyms": [
+        "EPS-BAT"
+      ],
+      "object_code": "EPS-BAT",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-EPS-BAT-PACK",
+      "term_ru": "Батарейные блоки (Li-ion)",
+      "class": "node",
+      "definition": "узел состава EPS-BAT-PACK",
+      "synonyms": [
+        "EPS-BAT-PACK"
+      ],
+      "object_code": "EPS-BAT-PACK",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-EPS-BAT-BMS",
+      "term_ru": "Контроллер батареи (BMS: балансировка, защита, обогрев)",
+      "class": "node",
+      "definition": "узел состава EPS-BAT-BMS",
+      "synonyms": [
+        "EPS-BAT-BMS"
+      ],
+      "object_code": "EPS-BAT-BMS",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-EPS-PCU",
+      "term_ru": "ПР — регулирование (зарядное устройство, регулятор шины)",
+      "class": "node",
+      "definition": "узел состава EPS-PCU",
+      "synonyms": [
+        "EPS-PCU"
+      ],
+      "object_code": "EPS-PCU",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-EPS-DCDC",
+      "term_ru": "ВИП — вторичные источники питания (DC/DC преобразователи)",
+      "class": "node",
+      "definition": "узел состава EPS-DCDC",
+      "synonyms": [
+        "EPS-DCDC"
+      ],
+      "object_code": "EPS-DCDC",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-EPS-PDU",
+      "term_ru": "Блок распределения и коммутации нагрузок",
+      "class": "node",
+      "definition": "коммутация потребителей, защита по току",
+      "synonyms": [
+        "EPS-PDU"
+      ],
+      "object_code": "EPS-PDU",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-EPS-SENS",
+      "term_ru": "Датчики тока и напряжения",
+      "class": "node",
+      "definition": "узел состава EPS-SENS",
+      "synonyms": [
+        "EPS-SENS"
+      ],
+      "object_code": "EPS-SENS",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-TCS",
+      "term_ru": "СТР — терморегулирование",
+      "class": "node",
+      "definition": "узел состава TCS",
+      "synonyms": [
+        "TCS"
+      ],
+      "object_code": "TCS",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-TCS-MLI",
+      "term_ru": "ЭВТИ — экранно-вакуумная теплоизоляция",
+      "class": "node",
+      "definition": "узел состава TCS-MLI",
+      "synonyms": [
+        "TCS-MLI"
+      ],
+      "object_code": "TCS-MLI",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-TCS-COAT",
+      "term_ru": "Терморегулирующие покрытия",
+      "class": "node",
+      "definition": "узел состава TCS-COAT",
+      "synonyms": [
+        "TCS-COAT"
+      ],
+      "object_code": "TCS-COAT",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-TCS-RAD",
+      "term_ru": "Радиаторы",
+      "class": "node",
+      "definition": "узел состава TCS-RAD",
+      "synonyms": [
+        "TCS-RAD"
+      ],
+      "object_code": "TCS-RAD",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-TCS-HP",
+      "term_ru": "Тепловые трубы",
+      "class": "node",
+      "definition": "узел состава TCS-HP",
+      "synonyms": [
+        "TCS-HP"
+      ],
+      "object_code": "TCS-HP",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-TCS-HEAT",
+      "term_ru": "Нагреватели и термостаты",
+      "class": "node",
+      "definition": "узел состава TCS-HEAT",
+      "synonyms": [
+        "TCS-HEAT"
+      ],
+      "object_code": "TCS-HEAT",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-TCS-SENS",
+      "term_ru": "Датчики температуры",
+      "class": "node",
+      "definition": "узел состава TCS-SENS",
+      "synonyms": [
+        "TCS-SENS"
+      ],
+      "object_code": "TCS-SENS",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-AOCS",
+      "term_ru": "СОС — ориентация и стабилизация",
+      "class": "node",
+      "definition": "узел состава AOCS",
+      "synonyms": [
+        "AOCS"
+      ],
+      "object_code": "AOCS",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-AOCS-STR",
+      "term_ru": "Звёздный датчик",
+      "class": "node",
+      "definition": "узел состава AOCS-STR",
+      "synonyms": [
+        "AOCS-STR"
+      ],
+      "object_code": "AOCS-STR",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-AOCS-SUN",
+      "term_ru": "Солнечные датчики",
+      "class": "node",
+      "definition": "узел состава AOCS-SUN",
+      "synonyms": [
+        "AOCS-SUN"
+      ],
+      "object_code": "AOCS-SUN",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-AOCS-MAG",
+      "term_ru": "Магнитометр",
+      "class": "node",
+      "definition": "узел состава AOCS-MAG",
+      "synonyms": [
+        "AOCS-MAG"
+      ],
+      "object_code": "AOCS-MAG",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-AOCS-GYRO",
+      "term_ru": "ДУС — датчик угловой скорости",
+      "class": "node",
+      "definition": "узел состава AOCS-GYRO",
+      "synonyms": [
+        "AOCS-GYRO"
+      ],
+      "object_code": "AOCS-GYRO",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-AOCS-GNSS",
+      "term_ru": "Приёмник ГНСС (навигация КА)",
+      "class": "node",
+      "definition": "узел состава AOCS-GNSS",
+      "synonyms": [
+        "AOCS-GNSS"
+      ],
+      "object_code": "AOCS-GNSS",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-AOCS-RW",
+      "term_ru": "ДМ — двигатели-маховики",
+      "class": "node",
+      "definition": "узел состава AOCS-RW",
+      "synonyms": [
+        "AOCS-RW"
+      ],
+      "object_code": "AOCS-RW",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-AOCS-MTQ",
+      "term_ru": "МИО — магнитные исполнительные органы",
+      "class": "node",
+      "definition": "разгрузка маховиков",
+      "synonyms": [
+        "AOCS-MTQ"
+      ],
+      "object_code": "AOCS-MTQ",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-AOCS-SW",
+      "term_ru": "Алгоритмы и ПО СОС (в БКУ)",
+      "class": "node",
+      "definition": "узел состава AOCS-SW",
+      "synonyms": [
+        "AOCS-SW"
+      ],
+      "object_code": "AOCS-SW",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-OBC",
+      "term_ru": "БКУ — бортовой комплекс управления",
+      "class": "node",
+      "definition": "узел состава OBC",
+      "synonyms": [
+        "OBC"
+      ],
+      "object_code": "OBC",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-OBC-CPU",
+      "term_ru": "БЦВМ — процессорный модуль",
+      "class": "node",
+      "definition": "узел состава OBC-CPU",
+      "synonyms": [
+        "OBC-CPU"
+      ],
+      "object_code": "OBC-CPU",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-OBC-MEM",
+      "term_ru": "Запоминающее устройство",
+      "class": "node",
+      "definition": "узел состава OBC-MEM",
+      "synonyms": [
+        "OBC-MEM"
+      ],
+      "object_code": "OBC-MEM",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-OBC-BUS",
+      "term_ru": "Бортовая шина данных (CAN / SpaceWire)",
+      "class": "node",
+      "definition": "узел состава OBC-BUS",
+      "synonyms": [
+        "OBC-BUS"
+      ],
+      "object_code": "OBC-BUS",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-OBC-TIME",
+      "term_ru": "Бортовое время и синхронизация",
+      "class": "node",
+      "definition": "узел состава OBC-TIME",
+      "synonyms": [
+        "OBC-TIME"
+      ],
+      "object_code": "OBC-TIME",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-OBC-SW",
+      "term_ru": "ПО БКУ (управление, ТМ, автономные режимы, FDIR)",
+      "class": "node",
+      "definition": "узел состава OBC-SW",
+      "synonyms": [
+        "OBC-SW"
+      ],
+      "object_code": "OBC-SW",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-PROP",
+      "term_ru": "ДУ — двигательная установка",
+      "class": "node",
+      "definition": "удержание, фазирование, увод",
+      "synonyms": [
+        "PROP"
+      ],
+      "object_code": "PROP",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-PROP-THR",
+      "term_ru": "Двигатели",
+      "class": "node",
+      "definition": "узел состава PROP-THR",
+      "synonyms": [
+        "PROP-THR"
+      ],
+      "object_code": "PROP-THR",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-PROP-TANK",
+      "term_ru": "Баки",
+      "class": "node",
+      "definition": "узел состава PROP-TANK",
+      "synonyms": [
+        "PROP-TANK"
+      ],
+      "object_code": "PROP-TANK",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-PROP-VALVE",
+      "term_ru": "Арматура и клапаны",
+      "class": "node",
+      "definition": "узел состава PROP-VALVE",
+      "synonyms": [
+        "PROP-VALVE"
+      ],
+      "object_code": "PROP-VALVE",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-PROP-PPU",
+      "term_ru": "Контроллер ДУ (PPU для ЭРД)",
+      "class": "node",
+      "definition": "узел состава PROP-PPU",
+      "synonyms": [
+        "PROP-PPU"
+      ],
+      "object_code": "PROP-PPU",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-TTC",
+      "term_ru": "КТРЛ — командно-телеметрическая радиолиния",
+      "class": "node",
+      "definition": "управление и ТМ с НКУ; аварийный режим через всенаправленные антенны",
+      "synonyms": [
+        "TTC"
+      ],
+      "object_code": "TTC",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-TTC-TRX",
+      "term_ru": "Приёмопередатчик КТРЛ",
+      "class": "node",
+      "definition": "узел состава TTC-TRX",
+      "synonyms": [
+        "TTC-TRX"
+      ],
+      "object_code": "TTC-TRX",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-TTC-ANT-OMNI",
+      "term_ru": "Антенны всенаправленные (аварийный режим)",
+      "class": "node",
+      "definition": "узел состава TTC-ANT-OMNI",
+      "synonyms": [
+        "TTC-ANT-OMNI"
+      ],
+      "object_code": "TTC-ANT-OMNI",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-TTC-ANT-DIR",
+      "term_ru": "Антенна направленная",
+      "class": "node",
+      "definition": "узел состава TTC-ANT-DIR",
+      "synonyms": [
+        "TTC-ANT-DIR"
+      ],
+      "object_code": "TTC-ANT-DIR",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-TTC-PA",
+      "term_ru": "Усилитель мощности",
+      "class": "node",
+      "definition": "узел состава TTC-PA",
+      "synonyms": [
+        "TTC-PA"
+      ],
+      "object_code": "TTC-PA",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-HARN",
+      "term_ru": "БКС — бортовая кабельная сеть",
+      "class": "node",
+      "definition": "узел состава HARN",
+      "synonyms": [
+        "HARN"
+      ],
+      "object_code": "HARN",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-HARN-CABLE",
+      "term_ru": "Кабели и жгуты",
+      "class": "node",
+      "definition": "узел состава HARN-CABLE",
+      "synonyms": [
+        "HARN-CABLE"
+      ],
+      "object_code": "HARN-CABLE",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-HARN-CONN",
+      "term_ru": "Разъёмы",
+      "class": "node",
+      "definition": "узел состава HARN-CONN",
+      "synonyms": [
+        "HARN-CONN"
+      ],
+      "object_code": "HARN-CONN",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-HARN-EMC",
+      "term_ru": "Заземление и элементы ЭМС",
+      "class": "node",
+      "definition": "узел состава HARN-EMC",
+      "synonyms": [
+        "HARN-EMC"
+      ],
+      "object_code": "HARN-EMC",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-SC-PL",
+      "term_ru": "Полезная нагрузка (целевой модуль)",
+      "class": "node",
+      "definition": "узел состава SC-PL",
+      "synonyms": [
+        "SC-PL"
+      ],
+      "object_code": "SC-PL",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-PL-S",
+      "term_ru": "БРТК-S — абонентский комплекс S-диапазона",
+      "class": "node",
+      "definition": "узел состава PL-S",
+      "synonyms": [
+        "PL-S"
+      ],
+      "object_code": "PL-S",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-PL-S-RX",
+      "term_ru": "Многоканальный приёмник",
+      "class": "node",
+      "definition": "узел состава PL-S-RX",
+      "synonyms": [
+        "PL-S-RX"
+      ],
+      "object_code": "PL-S-RX",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-PL-S-TX",
+      "term_ru": "Передатчик",
+      "class": "node",
+      "definition": "узел состава PL-S-TX",
+      "synonyms": [
+        "PL-S-TX"
+      ],
+      "object_code": "PL-S-TX",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-PL-S-DSP",
+      "term_ru": "Процессор ПН (цифровая обработка, SDR)",
+      "class": "node",
+      "definition": "узел состава PL-S-DSP",
+      "synonyms": [
+        "PL-S-DSP"
+      ],
+      "object_code": "PL-S-DSP",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-PL-S-LO",
+      "term_ru": "Опорный генератор и синтезатор частот",
+      "class": "node",
+      "definition": "узел состава PL-S-LO",
+      "synonyms": [
+        "PL-S-LO"
+      ],
+      "object_code": "PL-S-LO",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-PL-P",
+      "term_ru": "БРТК-P — комплекс P-диапазона (если применимо, наследие)",
+      "class": "node",
+      "definition": "узел состава PL-P",
+      "synonyms": [
+        "PL-P"
+      ],
+      "object_code": "PL-P",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-PL-FEED",
+      "term_ru": "Фидерная радиолиния C-диапазона (КА ↔ РСС)",
+      "class": "node",
+      "definition": "узел состава PL-FEED",
+      "synonyms": [
+        "PL-FEED"
+      ],
+      "object_code": "PL-FEED",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-PL-ANT",
+      "term_ru": "АФУ ПН — антенно-фидерное устройство",
+      "class": "node",
+      "definition": "узел состава PL-ANT",
+      "synonyms": [
+        "PL-ANT"
+      ],
+      "object_code": "PL-ANT",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-PL-ANT-S",
+      "term_ru": "Антенна абонентская (S)",
+      "class": "node",
+      "definition": "узел состава PL-ANT-S",
+      "synonyms": [
+        "PL-ANT-S"
+      ],
+      "object_code": "PL-ANT-S",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-PL-ANT-C",
+      "term_ru": "Антенна фидерная (C)",
+      "class": "node",
+      "definition": "узел состава PL-ANT-C",
+      "synonyms": [
+        "PL-ANT-C"
+      ],
+      "object_code": "PL-ANT-C",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-PL-ANT-DPX",
+      "term_ru": "Диплексеры и фидерные тракты",
+      "class": "node",
+      "definition": "узел состава PL-ANT-DPX",
+      "synonyms": [
+        "PL-ANT-DPX"
+      ],
+      "object_code": "PL-ANT-DPX",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-PL-ISL",
+      "term_ru": "МБРК — межспутниковая радиолиния (если применимо)",
+      "class": "node",
+      "definition": "узел состава PL-ISL",
+      "synonyms": [
+        "PL-ISL"
+      ],
+      "object_code": "PL-ISL",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-PL-PNT",
+      "term_ru": "Модуль PNT (если применимо)",
+      "class": "node",
+      "definition": "навигационный сигнал, синхронизация времени",
+      "synonyms": [
+        "PL-PNT"
+      ],
+      "object_code": "PL-PNT",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-SC-LVI",
+      "term_ru": "Интерфейс с РН (адаптер, замки, отделение)",
+      "class": "node",
+      "definition": "внешний интерфейс",
+      "synonyms": [
+        "SC-LVI"
+      ],
+      "object_code": "SC-LVI",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-SC-EXP",
+      "term_ru": "Экспериментальная ОГ (КА-Э, если предусмотрена)",
+      "class": "node",
+      "definition": "вхождения экспериментальных КА",
+      "synonyms": [
+        "SC-EXP"
+      ],
+      "object_code": "SC-EXP",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-SEG-GC",
+      "term_ru": "Наземный комплекс управления (НКУ)",
+      "class": "node",
+      "definition": "узел состава SEG-GC",
+      "synonyms": [
+        "SEG-GC"
+      ],
+      "object_code": "SEG-GC",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-MCC",
+      "term_ru": "ЦУП — центр управления полётом",
+      "class": "node",
+      "definition": "узел состава MCC",
+      "synonyms": [
+        "MCC"
+      ],
+      "object_code": "MCC",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-MCC-FD",
+      "term_ru": "Баллистический центр (эфемериды, планирование манёвров, альманах терминалам)",
+      "class": "node",
+      "definition": "узел состава MCC-FD",
+      "synonyms": [
+        "MCC-FD"
+      ],
+      "object_code": "MCC-FD",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-MCC-PLAN",
+      "term_ru": "Планирование сеансов и ресурсов станций",
+      "class": "node",
+      "definition": "узел состава MCC-PLAN",
+      "synonyms": [
+        "MCC-PLAN"
+      ],
+      "object_code": "MCC-PLAN",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-MCC-TM",
+      "term_ru": "Обработка телеметрии и контроль состояния",
+      "class": "node",
+      "definition": "узел состава MCC-TM",
+      "synonyms": [
+        "MCC-TM"
+      ],
+      "object_code": "MCC-TM",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-MCC-TC",
+      "term_ru": "Командование и загрузка ПО",
+      "class": "node",
+      "definition": "узел состава MCC-TC",
+      "synonyms": [
+        "MCC-TC"
+      ],
+      "object_code": "MCC-TC",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-MCC-SIM",
+      "term_ru": "Наземный отладочный комплекс (симулятор борта)",
+      "class": "node",
+      "definition": "узел состава MCC-SIM",
+      "synonyms": [
+        "MCC-SIM"
+      ],
+      "object_code": "MCC-SIM",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-GCS",
+      "term_ru": "Станции управления (НСКУ)",
+      "class": "node",
+      "definition": "вхождение ×N по площадкам",
+      "synonyms": [
+        "GCS"
+      ],
+      "object_code": "GCS",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-GCS-ANT",
+      "term_ru": "Антенная система (опорно-поворотное устройство, зеркало)",
+      "class": "node",
+      "definition": "узел состава GCS-ANT",
+      "synonyms": [
+        "GCS-ANT"
+      ],
+      "object_code": "GCS-ANT",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-GCS-RF",
+      "term_ru": "Приёмо-передающий тракт",
+      "class": "node",
+      "definition": "узел состава GCS-RF",
+      "synonyms": [
+        "GCS-RF"
+      ],
+      "object_code": "GCS-RF",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-GCS-MODEM",
+      "term_ru": "Модем и оборудование сеанса",
+      "class": "node",
+      "definition": "узел состава GCS-MODEM",
+      "synonyms": [
+        "GCS-MODEM"
+      ],
+      "object_code": "GCS-MODEM",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-GCS-SRV",
+      "term_ru": "Серверы станции и связь с ЦУП",
+      "class": "node",
+      "definition": "узел состава GCS-SRV",
+      "synonyms": [
+        "GCS-SRV"
+      ],
+      "object_code": "GCS-SRV",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-GC-NET",
+      "term_ru": "Средства связи и передачи данных НКУ",
+      "class": "node",
+      "definition": "узел состава GC-NET",
+      "synonyms": [
+        "GC-NET"
+      ],
+      "object_code": "GC-NET",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-SEG-NET",
+      "term_ru": "Наземный связной сегмент (НСК)",
+      "class": "node",
+      "definition": "для связных миссий",
+      "synonyms": [
+        "SEG-NET"
+      ],
+      "object_code": "SEG-NET",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-GW",
+      "term_ru": "РСС — региональные станции сопряжения",
+      "class": "node",
+      "definition": "вхождение ×N; шлюз абонентского трафика",
+      "synonyms": [
+        "GW"
+      ],
+      "object_code": "GW",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-GW-ANT",
+      "term_ru": "Антенна фидерная",
+      "class": "node",
+      "definition": "узел состава GW-ANT",
+      "synonyms": [
+        "GW-ANT"
+      ],
+      "object_code": "GW-ANT",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-GW-RF",
+      "term_ru": "Приёмо-передающий тракт",
+      "class": "node",
+      "definition": "узел состава GW-RF",
+      "synonyms": [
+        "GW-RF"
+      ],
+      "object_code": "GW-RF",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-GW-GATE",
+      "term_ru": "Шлюз протоколов и буфер",
+      "class": "node",
+      "definition": "узел состава GW-GATE",
+      "synonyms": [
+        "GW-GATE"
+      ],
+      "object_code": "GW-GATE",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-DC",
+      "term_ru": "ЦОД — центр обработки данных",
+      "class": "node",
+      "definition": "узел состава DC",
+      "synonyms": [
+        "DC"
+      ],
+      "object_code": "DC",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-DC-STORE",
+      "term_ru": "Хранение сообщений и истории",
+      "class": "node",
+      "definition": "узел состава DC-STORE",
+      "synonyms": [
+        "DC-STORE"
+      ],
+      "object_code": "DC-STORE",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-DC-PROC",
+      "term_ru": "Обработка и маршрутизация",
+      "class": "node",
+      "definition": "узел состава DC-PROC",
+      "synonyms": [
+        "DC-PROC"
+      ],
+      "object_code": "DC-PROC",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-DC-API",
+      "term_ru": "Доставка потребителям (API, кабинеты)",
+      "class": "node",
+      "definition": "узел состава DC-API",
+      "synonyms": [
+        "DC-API"
+      ],
+      "object_code": "DC-API",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-NOC",
+      "term_ru": "ЦУС — центр управления сетью",
+      "class": "node",
+      "definition": "узел состава NOC",
+      "synonyms": [
+        "NOC"
+      ],
+      "object_code": "NOC",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-NOC-SUB",
+      "term_ru": "Абонентское управление и приоритеты классов",
+      "class": "node",
+      "definition": "узел состава NOC-SUB",
+      "synonyms": [
+        "NOC-SUB"
+      ],
+      "object_code": "NOC-SUB",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-NOC-BILL",
+      "term_ru": "Тарификация и учёт",
+      "class": "node",
+      "definition": "узел состава NOC-BILL",
+      "synonyms": [
+        "NOC-BILL"
+      ],
+      "object_code": "NOC-BILL",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-NOC-MON",
+      "term_ru": "Мониторинг сети и QoS",
+      "class": "node",
+      "definition": "узел состава NOC-MON",
+      "synonyms": [
+        "NOC-MON"
+      ],
+      "object_code": "NOC-MON",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-NET-WAN",
+      "term_ru": "ССПД — сеть передачи данных (РСС ↔ ЦОД ↔ потребители)",
+      "class": "node",
+      "definition": "узел состава NET-WAN",
+      "synonyms": [
+        "NET-WAN"
+      ],
+      "object_code": "NET-WAN",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-SEG-USR",
+      "term_ru": "Пользовательский сегмент",
+      "class": "node",
+      "definition": "узел состава SEG-USR",
+      "synonyms": [
+        "SEG-USR"
+      ],
+      "object_code": "SEG-USR",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-UT",
+      "term_ru": "Абонентские терминалы",
+      "class": "node",
+      "definition": "классы по потребителям",
+      "synonyms": [
+        "UT"
+      ],
+      "object_code": "UT",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-UT-UNI",
+      "term_ru": "Терминал универсальный",
+      "class": "node",
+      "definition": "узел состава UT-UNI",
+      "synonyms": [
+        "UT-UNI"
+      ],
+      "object_code": "UT-UNI",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-UT-UNI-MODEM",
+      "term_ru": "Модем (приёмопередатчик)",
+      "class": "node",
+      "definition": "узел состава UT-UNI-MODEM",
+      "synonyms": [
+        "UT-UNI-MODEM"
+      ],
+      "object_code": "UT-UNI-MODEM",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-UT-UNI-ANT",
+      "term_ru": "Антенна",
+      "class": "node",
+      "definition": "узел состава UT-UNI-ANT",
+      "synonyms": [
+        "UT-UNI-ANT"
+      ],
+      "object_code": "UT-UNI-ANT",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-UT-UNI-PWR",
+      "term_ru": "Питание (батарея / внешнее)",
+      "class": "node",
+      "definition": "узел состава UT-UNI-PWR",
+      "synonyms": [
+        "UT-UNI-PWR"
+      ],
+      "object_code": "UT-UNI-PWR",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-UT-UNI-IO",
+      "term_ru": "Интерфейс датчиков и оборудования",
+      "class": "node",
+      "definition": "узел состава UT-UNI-IO",
+      "synonyms": [
+        "UT-UNI-IO"
+      ],
+      "object_code": "UT-UNI-IO",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-UT-UNI-CASE",
+      "term_ru": "Корпус и защита (IP, температура)",
+      "class": "node",
+      "definition": "узел состава UT-UNI-CASE",
+      "synonyms": [
+        "UT-UNI-CASE"
+      ],
+      "object_code": "UT-UNI-CASE",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-UT-FIX",
+      "term_ru": "Терминал стационарный",
+      "class": "node",
+      "definition": "узел состава UT-FIX",
+      "synonyms": [
+        "UT-FIX"
+      ],
+      "object_code": "UT-FIX",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-UT-FIX-MODEM",
+      "term_ru": "Модем (приёмопередатчик)",
+      "class": "node",
+      "definition": "узел состава UT-FIX-MODEM",
+      "synonyms": [
+        "UT-FIX-MODEM"
+      ],
+      "object_code": "UT-FIX-MODEM",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-UT-FIX-ANT",
+      "term_ru": "Антенна",
+      "class": "node",
+      "definition": "узел состава UT-FIX-ANT",
+      "synonyms": [
+        "UT-FIX-ANT"
+      ],
+      "object_code": "UT-FIX-ANT",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-UT-FIX-PWR",
+      "term_ru": "Питание (батарея / внешнее)",
+      "class": "node",
+      "definition": "узел состава UT-FIX-PWR",
+      "synonyms": [
+        "UT-FIX-PWR"
+      ],
+      "object_code": "UT-FIX-PWR",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-UT-FIX-IO",
+      "term_ru": "Интерфейс датчиков и оборудования",
+      "class": "node",
+      "definition": "узел состава UT-FIX-IO",
+      "synonyms": [
+        "UT-FIX-IO"
+      ],
+      "object_code": "UT-FIX-IO",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-UT-FIX-CASE",
+      "term_ru": "Корпус и защита (IP, температура)",
+      "class": "node",
+      "definition": "узел состава UT-FIX-CASE",
+      "synonyms": [
+        "UT-FIX-CASE"
+      ],
+      "object_code": "UT-FIX-CASE",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-UT-MOB",
+      "term_ru": "Терминал мобильный (транспорт)",
+      "class": "node",
+      "definition": "узел состава UT-MOB",
+      "synonyms": [
+        "UT-MOB"
+      ],
+      "object_code": "UT-MOB",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-UT-MOB-MODEM",
+      "term_ru": "Модем (приёмопередатчик)",
+      "class": "node",
+      "definition": "узел состава UT-MOB-MODEM",
+      "synonyms": [
+        "UT-MOB-MODEM"
+      ],
+      "object_code": "UT-MOB-MODEM",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-UT-MOB-ANT",
+      "term_ru": "Антенна",
+      "class": "node",
+      "definition": "узел состава UT-MOB-ANT",
+      "synonyms": [
+        "UT-MOB-ANT"
+      ],
+      "object_code": "UT-MOB-ANT",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-UT-MOB-PWR",
+      "term_ru": "Питание (батарея / внешнее)",
+      "class": "node",
+      "definition": "узел состава UT-MOB-PWR",
+      "synonyms": [
+        "UT-MOB-PWR"
+      ],
+      "object_code": "UT-MOB-PWR",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-UT-MOB-IO",
+      "term_ru": "Интерфейс датчиков и оборудования",
+      "class": "node",
+      "definition": "узел состава UT-MOB-IO",
+      "synonyms": [
+        "UT-MOB-IO"
+      ],
+      "object_code": "UT-MOB-IO",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-UT-MOB-CASE",
+      "term_ru": "Корпус и защита (IP, температура)",
+      "class": "node",
+      "definition": "узел состава UT-MOB-CASE",
+      "synonyms": [
+        "UT-MOB-CASE"
+      ],
+      "object_code": "UT-MOB-CASE",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-UT-SENS",
+      "term_ru": "Терминал датчиковый (батарейный)",
+      "class": "node",
+      "definition": "узел состава UT-SENS",
+      "synonyms": [
+        "UT-SENS"
+      ],
+      "object_code": "UT-SENS",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-UT-SENS-MODEM",
+      "term_ru": "Модем (приёмопередатчик)",
+      "class": "node",
+      "definition": "узел состава UT-SENS-MODEM",
+      "synonyms": [
+        "UT-SENS-MODEM"
+      ],
+      "object_code": "UT-SENS-MODEM",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-UT-SENS-ANT",
+      "term_ru": "Антенна",
+      "class": "node",
+      "definition": "узел состава UT-SENS-ANT",
+      "synonyms": [
+        "UT-SENS-ANT"
+      ],
+      "object_code": "UT-SENS-ANT",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-UT-SENS-PWR",
+      "term_ru": "Питание (батарея / внешнее)",
+      "class": "node",
+      "definition": "узел состава UT-SENS-PWR",
+      "synonyms": [
+        "UT-SENS-PWR"
+      ],
+      "object_code": "UT-SENS-PWR",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-UT-SENS-IO",
+      "term_ru": "Интерфейс датчиков и оборудования",
+      "class": "node",
+      "definition": "узел состава UT-SENS-IO",
+      "synonyms": [
+        "UT-SENS-IO"
+      ],
+      "object_code": "UT-SENS-IO",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-UT-SENS-CASE",
+      "term_ru": "Корпус и защита (IP, температура)",
+      "class": "node",
+      "definition": "узел состава UT-SENS-CASE",
+      "synonyms": [
+        "UT-SENS-CASE"
+      ],
+      "object_code": "UT-SENS-CASE",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-USR-APP",
+      "term_ru": "Прикладные сервисы потребителей",
+      "class": "node",
+      "definition": "узел состава USR-APP",
+      "synonyms": [
+        "USR-APP"
+      ],
+      "object_code": "USR-APP",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-SEG-LV",
+      "term_ru": "Сегмент выведения",
+      "class": "node",
+      "definition": "внешний",
+      "synonyms": [
+        "SEG-LV"
+      ],
+      "object_code": "SEG-LV",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-LV",
+      "term_ru": "Ракета-носитель (по ограничению проекта)",
+      "class": "node",
+      "definition": "узел состава LV",
+      "synonyms": [
+        "LV"
+      ],
+      "object_code": "LV",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-LV-SITE",
+      "term_ru": "Космодром",
+      "class": "node",
+      "definition": "узел состава LV-SITE",
+      "synonyms": [
+        "LV-SITE"
+      ],
+      "object_code": "LV-SITE",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-LV-ADAPT",
+      "term_ru": "Адаптер / попутная схема (диспенсер)",
+      "class": "node",
+      "definition": "узел состава LV-ADAPT",
+      "synonyms": [
+        "LV-ADAPT"
+      ],
+      "object_code": "LV-ADAPT",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-SEG-SUP",
+      "term_ru": "Обеспечение и эксплуатация",
+      "class": "node",
+      "definition": "узел состава SEG-SUP",
+      "synonyms": [
+        "SEG-SUP"
+      ],
+      "object_code": "SEG-SUP",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-SUP-TEST",
+      "term_ru": "Наземная экспериментальная база (испытания, ЭТБ)",
+      "class": "node",
+      "definition": "узел состава SUP-TEST",
+      "synonyms": [
+        "SUP-TEST"
+      ],
+      "object_code": "SUP-TEST",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-SUP-IT",
+      "term_ru": "ИТ-инфраструктура и информационная безопасность",
+      "class": "node",
+      "definition": "узел состава SUP-IT",
+      "synonyms": [
+        "SUP-IT"
+      ],
+      "object_code": "SUP-IT",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-NODE-SUP-DOC",
+      "term_ru": "Эксплуатационная документация и обучение",
+      "class": "node",
+      "definition": "узел состава SUP-DOC",
+      "synonyms": [
+        "SUP-DOC"
+      ],
+      "object_code": "SUP-DOC",
+      "source": "ПОЛКА-PBS",
+      "used_in": [
+        "состав",
+        "требования",
+        "стыки"
+      ]
+    },
+    {
+      "code": "GT-IF-IF-S-USER",
+      "term_ru": "Абонентская радиолиния S",
+      "class": "interface",
+      "definition": "стык RF между PL-S и UT: радиолиния: диапазон, мощность, чувствительность, поляризация, протокол; требования: линк, ЭМС, регуляторика",
+      "synonyms": [
+        "IF-S-USER"
+      ],
+      "object_code": "IF-S-USER",
+      "source": "ПОЛКА-ИНТЕРФЕЙСЫ",
+      "used_in": [
+        "архитектура",
+        "ICD"
+      ]
+    },
+    {
+      "code": "GT-IF-IF-C-FEED",
+      "term_ru": "Фидерная радиолиния C",
+      "class": "interface",
+      "definition": "стык RF между PL-FEED и GW: радиолиния: диапазон, мощность, чувствительность, поляризация, протокол; требования: линк, ЭМС, регуляторика",
+      "synonyms": [
+        "IF-C-FEED"
+      ],
+      "object_code": "IF-C-FEED",
+      "source": "ПОЛКА-ИНТЕРФЕЙСЫ",
+      "used_in": [
+        "архитектура",
+        "ICD"
+      ]
+    },
+    {
+      "code": "GT-IF-IF-TTC",
+      "term_ru": "Командно-телеметрическая радиолиния",
+      "class": "interface",
+      "definition": "стык RF между TTC и GCS: радиолиния: диапазон, мощность, чувствительность, поляризация, протокол; требования: линк, ЭМС, регуляторика",
+      "synonyms": [
+        "IF-TTC"
+      ],
+      "object_code": "IF-TTC",
+      "source": "ПОЛКА-ИНТЕРФЕЙСЫ",
+      "used_in": [
+        "архитектура",
+        "ICD"
+      ]
+    },
+    {
+      "code": "GT-IF-IF-ISL",
+      "term_ru": "Межспутниковая радиолиния",
+      "class": "interface",
+      "definition": "стык RF между PL-ISL и PL-ISL: радиолиния: диапазон, мощность, чувствительность, поляризация, протокол; требования: линк, ЭМС, регуляторика",
+      "synonyms": [
+        "IF-ISL"
+      ],
+      "object_code": "IF-ISL",
+      "source": "ПОЛКА-ИНТЕРФЕЙСЫ",
+      "used_in": [
+        "архитектура",
+        "ICD"
+      ]
+    },
+    {
+      "code": "GT-IF-IF-PNT-USER",
+      "term_ru": "Навигационный сигнал → потребители",
+      "class": "interface",
+      "definition": "стык RF между PL-PNT и UT: радиолиния: диапазон, мощность, чувствительность, поляризация, протокол; требования: линк, ЭМС, регуляторика",
+      "synonyms": [
+        "IF-PNT-USER"
+      ],
+      "object_code": "IF-PNT-USER",
+      "source": "ПОЛКА-ИНТЕРФЕЙСЫ",
+      "used_in": [
+        "архитектура",
+        "ICD"
+      ]
+    },
+    {
+      "code": "GT-IF-IF-PWR-BUS",
+      "term_ru": "Шина питания СЭП → подсистемы",
+      "class": "interface",
+      "definition": "стык power между EPS и SC-PLT: электропитание: напряжение, ток, мощность, защита, пусковые токи; требования: качество питания, защита",
+      "synonyms": [
+        "IF-PWR-BUS"
+      ],
+      "object_code": "IF-PWR-BUS",
+      "source": "ПОЛКА-ИНТЕРФЕЙСЫ",
+      "used_in": [
+        "архитектура",
+        "ICD"
+      ]
+    },
+    {
+      "code": "GT-IF-IF-DATA-BUS",
+      "term_ru": "Бортовая шина данных БКУ ↔ подсистемы",
+      "class": "interface",
+      "definition": "стык data между OBC и SC-PLT: данные/команды: протокол, скорость, объём, латентность, формат; требования: интерфейсные (ICD), ИБ",
+      "synonyms": [
+        "IF-DATA-BUS"
+      ],
+      "object_code": "IF-DATA-BUS",
+      "source": "ПОЛКА-ИНТЕРФЕЙСЫ",
+      "used_in": [
+        "архитектура",
+        "ICD"
+      ]
+    },
+    {
+      "code": "GT-IF-IF-PL-PWR",
+      "term_ru": "ПН ↔ платформа: питание",
+      "class": "interface",
+      "definition": "стык power между SC-PL и EPS: электропитание: напряжение, ток, мощность, защита, пусковые токи; требования: качество питания, защита",
+      "synonyms": [
+        "IF-PL-PWR"
+      ],
+      "object_code": "IF-PL-PWR",
+      "source": "ПОЛКА-ИНТЕРФЕЙСЫ",
+      "used_in": [
+        "архитектура",
+        "ICD"
+      ]
+    },
+    {
+      "code": "GT-IF-IF-PL-DATA",
+      "term_ru": "ПН ↔ платформа: данные и команды",
+      "class": "interface",
+      "definition": "стык data между SC-PL и OBC: данные/команды: протокол, скорость, объём, латентность, формат; требования: интерфейсные (ICD), ИБ",
+      "synonyms": [
+        "IF-PL-DATA"
+      ],
+      "object_code": "IF-PL-DATA",
+      "source": "ПОЛКА-ИНТЕРФЕЙСЫ",
+      "used_in": [
+        "архитектура",
+        "ICD"
+      ]
+    },
+    {
+      "code": "GT-IF-IF-PL-THERM",
+      "term_ru": "ПН ↔ платформа: тепло",
+      "class": "interface",
+      "definition": "стык thermal между SC-PL и TCS: тепло: тепловыделение, проводимость, диапазоны на границе; требования: тепловые границы",
+      "synonyms": [
+        "IF-PL-THERM"
+      ],
+      "object_code": "IF-PL-THERM",
+      "source": "ПОЛКА-ИНТЕРФЕЙСЫ",
+      "used_in": [
+        "архитектура",
+        "ICD"
+      ]
+    },
+    {
+      "code": "GT-IF-IF-PL-MECH",
+      "term_ru": "ПН ↔ платформа: механика",
+      "class": "interface",
+      "definition": "стык mech между SC-PL и STR: механика: крепление, нагрузки, вибрация, удар, юстировка; требования: прочность, отделение",
+      "synonyms": [
+        "IF-PL-MECH"
+      ],
+      "object_code": "IF-PL-MECH",
+      "source": "ПОЛКА-ИНТЕРФЕЙСЫ",
+      "used_in": [
+        "архитектура",
+        "ICD"
+      ]
+    },
+    {
+      "code": "GT-IF-IF-AOCS-PROP",
+      "term_ru": "СОС → ДУ",
+      "class": "interface",
+      "definition": "стык data между AOCS и PROP: данные/команды: протокол, скорость, объём, латентность, формат; требования: интерфейсные (ICD), ИБ",
+      "synonyms": [
+        "IF-AOCS-PROP"
+      ],
+      "object_code": "IF-AOCS-PROP",
+      "source": "ПОЛКА-ИНТЕРФЕЙСЫ",
+      "used_in": [
+        "архитектура",
+        "ICD"
+      ]
+    },
+    {
+      "code": "GT-IF-IF-TTC-OBC",
+      "term_ru": "КТРЛ ↔ БКУ",
+      "class": "interface",
+      "definition": "стык data между TTC и OBC: данные/команды: протокол, скорость, объём, латентность, формат; требования: интерфейсные (ICD), ИБ",
+      "synonyms": [
+        "IF-TTC-OBC"
+      ],
+      "object_code": "IF-TTC-OBC",
+      "source": "ПОЛКА-ИНТЕРФЕЙСЫ",
+      "used_in": [
+        "архитектура",
+        "ICD"
+      ]
+    },
+    {
+      "code": "GT-IF-IF-EPS-TCS",
+      "term_ru": "СЭП ↔ СТР (обогрев АКБ, нагреватели)",
+      "class": "interface",
+      "definition": "стык power между EPS и TCS: электропитание: напряжение, ток, мощность, защита, пусковые токи; требования: качество питания, защита",
+      "synonyms": [
+        "IF-EPS-TCS"
+      ],
+      "object_code": "IF-EPS-TCS",
+      "source": "ПОЛКА-ИНТЕРФЕЙСЫ",
+      "used_in": [
+        "архитектура",
+        "ICD"
+      ]
+    },
+    {
+      "code": "GT-IF-IF-SC-LV",
+      "term_ru": "КА ↔ РН (адаптер)",
+      "class": "interface",
+      "definition": "стык mech между SC-LVI и LV-ADAPT: механика: крепление, нагрузки, вибрация, удар, юстировка; требования: прочность, отделение",
+      "synonyms": [
+        "IF-SC-LV"
+      ],
+      "object_code": "IF-SC-LV",
+      "source": "ПОЛКА-ИНТЕРФЕЙСЫ",
+      "used_in": [
+        "архитектура",
+        "ICD"
+      ]
+    },
+    {
+      "code": "GT-IF-IF-SC-ENV",
+      "term_ru": "КА ↔ космическая среда",
+      "class": "interface",
+      "definition": "стык env между SC и SYS: среда: радиация, вакуум, атомарный кислород, тепловые циклы; требования: стойкость",
+      "synonyms": [
+        "IF-SC-ENV"
+      ],
+      "object_code": "IF-SC-ENV",
+      "source": "ПОЛКА-ИНТЕРФЕЙСЫ",
+      "used_in": [
+        "архитектура",
+        "ICD"
+      ]
+    },
+    {
+      "code": "GT-IF-IF-GCS-MCC",
+      "term_ru": "Станции НКУ ↔ ЦУП",
+      "class": "interface",
+      "definition": "стык data между GCS и MCC: данные/команды: протокол, скорость, объём, латентность, формат; требования: интерфейсные (ICD), ИБ",
+      "synonyms": [
+        "IF-GCS-MCC"
+      ],
+      "object_code": "IF-GCS-MCC",
+      "source": "ПОЛКА-ИНТЕРФЕЙСЫ",
+      "used_in": [
+        "архитектура",
+        "ICD"
+      ]
+    },
+    {
+      "code": "GT-IF-IF-GW-DC",
+      "term_ru": "РСС ↔ ЦОД (ССПД)",
+      "class": "interface",
+      "definition": "стык data между GW и DC: данные/команды: протокол, скорость, объём, латентность, формат; требования: интерфейсные (ICD), ИБ",
+      "synonyms": [
+        "IF-GW-DC"
+      ],
+      "object_code": "IF-GW-DC",
+      "source": "ПОЛКА-ИНТЕРФЕЙСЫ",
+      "used_in": [
+        "архитектура",
+        "ICD"
+      ]
+    },
+    {
+      "code": "GT-IF-IF-DC-USER",
+      "term_ru": "ЦОД ↔ потребители (API, кабинеты)",
+      "class": "interface",
+      "definition": "стык data между DC-API и USR-APP: данные/команды: протокол, скорость, объём, латентность, формат; требования: интерфейсные (ICD), ИБ",
+      "synonyms": [
+        "IF-DC-USER"
+      ],
+      "object_code": "IF-DC-USER",
+      "source": "ПОЛКА-ИНТЕРФЕЙСЫ",
+      "used_in": [
+        "архитектура",
+        "ICD"
+      ]
+    },
+    {
+      "code": "GT-IF-IF-DC-EXT",
+      "term_ru": "ЦОД ↔ внешние госсистемы (ЭРА-ГЛОНАСС, ведомственные)",
+      "class": "interface",
+      "definition": "стык data между DC и SYS: данные/команды: протокол, скорость, объём, латентность, формат; требования: интерфейсные (ICD), ИБ",
+      "synonyms": [
+        "IF-DC-EXT"
+      ],
+      "object_code": "IF-DC-EXT",
+      "source": "ПОЛКА-ИНТЕРФЕЙСЫ",
+      "used_in": [
+        "архитектура",
+        "ICD"
+      ]
+    },
+    {
+      "code": "GT-IF-IF-MCC-NOC",
+      "term_ru": "ЦУП ↔ ЦУС (план сеансов ↔ нагрузка сети)",
+      "class": "interface",
+      "definition": "стык data между MCC и NOC: данные/команды: протокол, скорость, объём, латентность, формат; требования: интерфейсные (ICD), ИБ",
+      "synonyms": [
+        "IF-MCC-NOC"
+      ],
+      "object_code": "IF-MCC-NOC",
+      "source": "ПОЛКА-ИНТЕРФЕЙСЫ",
+      "used_in": [
+        "архитектура",
+        "ICD"
+      ]
+    },
+    {
+      "code": "GT-IF-IF-MCC-EPH",
+      "term_ru": "ЦУП → терминалы: эфемериды/альманах",
+      "class": "interface",
+      "definition": "стык data между MCC-FD и UT: данные/команды: протокол, скорость, объём, латентность, формат; требования: интерфейсные (ICD), ИБ",
+      "synonyms": [
+        "IF-MCC-EPH"
+      ],
+      "object_code": "IF-MCC-EPH",
+      "source": "ПОЛКА-ИНТЕРФЕЙСЫ",
+      "used_in": [
+        "архитектура",
+        "ICD"
+      ]
+    },
+    {
+      "code": "GT-IF-IF-UT-SENSOR",
+      "term_ru": "Терминал ↔ оборудование потребителя",
+      "class": "interface",
+      "definition": "стык data между UT-SENS-IO и SYS: данные/команды: протокол, скорость, объём, латентность, формат; требования: интерфейсные (ICD), ИБ",
+      "synonyms": [
+        "IF-UT-SENSOR"
+      ],
+      "object_code": "IF-UT-SENSOR",
+      "source": "ПОЛКА-ИНТЕРФЕЙСЫ",
+      "used_in": [
+        "архитектура",
+        "ICD"
+      ]
+    },
+    {
+      "code": "GT-IF-IF-OPS-HMI",
+      "term_ru": "Операторы ↔ ЦУП/ЦУС",
+      "class": "interface",
+      "definition": "стык hmi между MCC и SYS: человек-машина: операторы, роли, время реакции; требования: эргономика, автоматизация",
+      "synonyms": [
+        "IF-OPS-HMI"
+      ],
+      "object_code": "IF-OPS-HMI",
+      "source": "ПОЛКА-ИНТЕРФЕЙСЫ",
+      "used_in": [
+        "архитектура",
+        "ICD"
+      ]
+    },
+    {
+      "code": "GT-IF-IF-REG",
+      "term_ru": "Система ↔ регулятор радиочастот",
+      "class": "interface",
+      "definition": "стык org между SYS и SYS: организационный/регуляторный: частотные присвоения, соглашения, SLA; требования: соответствие, договорные",
+      "synonyms": [
+        "IF-REG"
+      ],
+      "object_code": "IF-REG",
+      "source": "ПОЛКА-ИНТЕРФЕЙСЫ",
+      "used_in": [
+        "архитектура",
+        "ICD"
+      ]
+    },
+    {
+      "code": "GT-IF-IF-LAUNCH-ORG",
+      "term_ru": "Проект ↔ поставщик пуска",
+      "class": "interface",
+      "definition": "стык org между SYS и LV: организационный/регуляторный: частотные присвоения, соглашения, SLA; требования: соответствие, договорные",
+      "synonyms": [
+        "IF-LAUNCH-ORG"
+      ],
+      "object_code": "IF-LAUNCH-ORG",
+      "source": "ПОЛКА-ИНТЕРФЕЙСЫ",
+      "used_in": [
+        "архитектура",
+        "ICD"
+      ]
+    },
+    {
+      "code": "GT-ROLE-customer",
+      "term_ru": "заказчик",
+      "class": "role",
+      "definition": "роль стороны к проекту: заказчик",
+      "synonyms": [
+        "customer"
+      ],
+      "object_code": "customer",
+      "source": "истина схем (stakeholder.role)",
+      "used_in": [
+        "сцена 3",
+        "стороны"
+      ]
+    },
+    {
+      "code": "GT-ROLE-regulator",
+      "term_ru": "регулятор",
+      "class": "role",
+      "definition": "роль стороны к проекту: регулятор",
+      "synonyms": [
+        "regulator"
+      ],
+      "object_code": "regulator",
+      "source": "истина схем (stakeholder.role)",
+      "used_in": [
+        "сцена 3",
+        "стороны"
+      ]
+    },
+    {
+      "code": "GT-ROLE-operator",
+      "term_ru": "оператор",
+      "class": "role",
+      "definition": "роль стороны к проекту: оператор",
+      "synonyms": [
+        "operator"
+      ],
+      "object_code": "operator",
+      "source": "истина схем (stakeholder.role)",
+      "used_in": [
+        "сцена 3",
+        "стороны"
+      ]
+    },
+    {
+      "code": "GT-ROLE-consumer",
+      "term_ru": "потребитель",
+      "class": "role",
+      "definition": "роль стороны к проекту: потребитель",
+      "synonyms": [
+        "consumer"
+      ],
+      "object_code": "consumer",
+      "source": "истина схем (stakeholder.role)",
+      "used_in": [
+        "сцена 3",
+        "стороны"
+      ]
+    },
+    {
+      "code": "GT-ROLE-supplier",
+      "term_ru": "поставщик",
+      "class": "role",
+      "definition": "роль стороны к проекту: поставщик",
+      "synonyms": [
+        "supplier"
+      ],
+      "object_code": "supplier",
+      "source": "истина схем (stakeholder.role)",
+      "used_in": [
+        "сцена 3",
+        "стороны"
+      ]
+    },
+    {
+      "code": "GT-ROLE-partner",
+      "term_ru": "партнёр",
+      "class": "role",
+      "definition": "роль стороны к проекту: партнёр",
+      "synonyms": [
+        "partner"
+      ],
+      "object_code": "partner",
+      "source": "истина схем (stakeholder.role)",
+      "used_in": [
+        "сцена 3",
+        "стороны"
+      ]
+    },
+    {
+      "code": "GT-ROLE-established",
+      "term_ru": "учреждаемый",
+      "class": "role",
+      "definition": "роль стороны к проекту: учреждаемый",
+      "synonyms": [
+        "established"
+      ],
+      "object_code": "established",
+      "source": "истина схем (stakeholder.role)",
+      "used_in": [
+        "сцена 3",
+        "стороны"
+      ]
+    },
+    {
+      "code": "GT-ROLE-lead",
+      "term_ru": "руководитель проекта",
+      "class": "role",
+      "definition": "роль в проекте: руководитель проекта",
+      "synonyms": [
+        "lead"
+      ],
+      "object_code": "lead",
+      "source": "учётки стенда (роли проекта)",
+      "used_in": [
+        "паспорт",
+        "поручения",
+        "точки"
+      ]
+    },
+    {
+      "code": "GT-ROLE-lead_se",
+      "term_ru": "ведущий системный инженер",
+      "class": "role",
+      "definition": "роль в проекте: ведущий системный инженер",
+      "synonyms": [
+        "lead_se"
+      ],
+      "object_code": "lead_se",
+      "source": "учётки стенда (роли проекта)",
+      "used_in": [
+        "паспорт",
+        "поручения",
+        "точки"
+      ]
+    },
+    {
+      "code": "GT-ROLE-specialist",
+      "term_ru": "инженер",
+      "class": "role",
+      "definition": "роль в проекте: инженер",
+      "synonyms": [
+        "specialist"
+      ],
+      "object_code": "specialist",
+      "source": "учётки стенда (роли проекта)",
+      "used_in": [
+        "паспорт",
+        "поручения",
+        "точки"
+      ]
+    },
+    {
+      "code": "GT-ROLE-da_review",
+      "term_ru": "DA — уполномоченный решать точки",
+      "class": "role",
+      "definition": "роль в проекте: DA — уполномоченный решать точки",
+      "synonyms": [
+        "da_review"
+      ],
+      "object_code": "da_review",
+      "source": "учётки стенда (роли проекта)",
+      "used_in": [
+        "паспорт",
+        "поручения",
+        "точки"
+      ]
+    },
+    {
+      "code": "GT-SCENE-1",
+      "term_ru": "сцена 1 — Открыть проект",
+      "class": "scene",
+      "definition": "Что за проект и по какому стандарту его вести",
+      "synonyms": [
+        "Открыть проект",
+        "сцена 1"
+      ],
+      "object_code": "1",
+      "source": "ШАБЛОН-ФАЗЫ-PRE-A-NASA.json",
+      "used_in": [
+        "работа",
+        "фаза"
+      ]
+    },
+    {
+      "code": "GT-SCENE-2",
+      "term_ru": "сцена 2 — Замысел",
+      "class": "scene",
+      "definition": "Для кого система, что делает, где и на каком горизонте",
+      "synonyms": [
+        "Замысел",
+        "сцена 2"
+      ],
+      "object_code": "2",
+      "source": "ШАБЛОН-ФАЗЫ-PRE-A-NASA.json",
+      "used_in": [
+        "работа",
+        "фаза"
+      ]
+    },
+    {
+      "code": "GT-SCENE-3",
+      "term_ru": "сцена 3 — Стейкхолдеры и их нужды",
+      "class": "scene",
+      "definition": "Чьи интересы система обязана учесть и что этим людям нужно",
+      "synonyms": [
+        "Стейкхолдеры и их нужды",
+        "сцена 3"
+      ],
+      "object_code": "3",
+      "source": "ШАБЛОН-ФАЗЫ-PRE-A-NASA.json",
+      "used_in": [
+        "работа",
+        "фаза"
+      ]
+    },
+    {
+      "code": "GT-SCENE-4",
+      "term_ru": "сцена 4 — Цели и показатели",
+      "class": "scene",
+      "definition": "Какого измеримого результата система достигает и к какому году",
+      "synonyms": [
+        "Цели и показатели",
+        "сцена 4"
+      ],
+      "object_code": "4",
+      "source": "ШАБЛОН-ФАЗЫ-PRE-A-NASA.json",
+      "used_in": [
+        "работа",
+        "фаза"
+      ]
+    },
+    {
+      "code": "GT-SCENE-5",
+      "term_ru": "сцена 5 — Ограничения",
+      "class": "scene",
+      "definition": "Какие рамки система обязана соблюдать — и что из этого запрет, а не пожелание",
+      "synonyms": [
+        "Ограничения",
+        "сцена 5"
+      ],
+      "object_code": "5",
+      "source": "ШАБЛОН-ФАЗЫ-PRE-A-NASA.json",
+      "used_in": [
+        "работа",
+        "фаза"
+      ]
+    },
+    {
+      "code": "GT-SCENE-6",
+      "term_ru": "сцена 6 — Сервисы",
+      "class": "scene",
+      "definition": "Что система даёт кому и с каким качеством",
+      "synonyms": [
+        "Сервисы",
+        "сцена 6"
+      ],
+      "object_code": "6",
+      "source": "ШАБЛОН-ФАЗЫ-PRE-A-NASA.json",
+      "used_in": [
+        "работа",
+        "фаза"
+      ]
+    },
+    {
+      "code": "GT-SCENE-7",
+      "term_ru": "сцена 7 — Концепция и альтернативы",
+      "class": "scene",
+      "definition": "Из чего система состоит и какой вариант построения принят",
+      "synonyms": [
+        "Концепция и альтернативы",
+        "сцена 7"
+      ],
+      "object_code": "7",
+      "source": "ШАБЛОН-ФАЗЫ-PRE-A-NASA.json",
+      "used_in": [
+        "работа",
+        "фаза"
+      ]
+    },
+    {
+      "code": "GT-SCENE-8",
+      "term_ru": "сцена 8 — Черновик требований",
+      "class": "scene",
+      "definition": "Что система обязана делать и кто это несёт",
+      "synonyms": [
+        "Черновик требований",
+        "сцена 8"
+      ],
+      "object_code": "8",
+      "source": "ШАБЛОН-ФАЗЫ-PRE-A-NASA.json",
+      "used_in": [
+        "работа",
+        "фаза"
+      ]
+    },
+    {
+      "code": "GT-SCENE-9",
+      "term_ru": "сцена 9 — Режимы и операционные сценарии",
+      "class": "scene",
+      "definition": "Как система работает: в каких режимах и по каким сценариям",
+      "synonyms": [
+        "Режимы и операционные сценарии",
+        "сцена 9"
+      ],
+      "object_code": "9",
+      "source": "ШАБЛОН-ФАЗЫ-PRE-A-NASA.json",
+      "used_in": [
+        "работа",
+        "фаза"
+      ]
+    },
+    {
+      "code": "GT-SCENE-10",
+      "term_ru": "сцена 10 — Технологии",
+      "class": "scene",
+      "definition": "Что в проекте незрело и как это дозреет к точке",
+      "synonyms": [
+        "Технологии",
+        "сцена 10"
+      ],
+      "object_code": "10",
+      "source": "ШАБЛОН-ФАЗЫ-PRE-A-NASA.json",
+      "used_in": [
+        "работа",
+        "фаза"
+      ]
+    },
+    {
+      "code": "GT-SCENE-11",
+      "term_ru": "сцена 11 — Риски и засорение",
+      "class": "scene",
+      "definition": "Что может пойти не так и чем мы за это заплатим",
+      "synonyms": [
+        "Риски и засорение",
+        "сцена 11"
+      ],
+      "object_code": "11",
+      "source": "ШАБЛОН-ФАЗЫ-PRE-A-NASA.json",
+      "used_in": [
+        "работа",
+        "фаза"
+      ]
+    },
+    {
+      "code": "GT-SCENE-12",
+      "term_ru": "сцена 12 — Стоимость и сроки",
+      "class": "scene",
+      "definition": "Во что это обойдётся и когда",
+      "synonyms": [
+        "Стоимость и сроки",
+        "сцена 12"
+      ],
+      "object_code": "12",
+      "source": "ШАБЛОН-ФАЗЫ-PRE-A-NASA.json",
+      "used_in": [
+        "работа",
+        "фаза"
+      ]
+    },
+    {
+      "code": "GT-SCENE-A1",
+      "term_ru": "сцена A1 — Развёртывание фазы",
+      "class": "scene",
+      "definition": "Кто и в какие сроки ведёт фазу: даты точек, ответственные сцен, окна работ",
+      "synonyms": [
+        "Развёртывание фазы",
+        "сцена A1"
+      ],
+      "object_code": "A1",
+      "source": "ШАБЛОН-ФАЗЫ-PHASE-A-NASA.json",
+      "used_in": [
+        "работа",
+        "фаза"
+      ]
+    },
+    {
+      "code": "GT-SCENE-A2",
+      "term_ru": "сцена A2 — SEMP",
+      "class": "scene",
+      "definition": "Как ведётся системная инженерия фазы: процессы, обзоры, инструменты, отклонения",
+      "synonyms": [
+        "SEMP",
+        "сцена A2"
+      ],
+      "object_code": "A2",
+      "source": "ШАБЛОН-ФАЗЫ-PHASE-A-NASA.json",
+      "used_in": [
+        "работа",
+        "фаза"
+      ]
+    },
+    {
+      "code": "GT-SCENE-A3",
+      "term_ru": "сцена A3 — ConOps — базирование",
+      "class": "scene",
+      "definition": "Как система применяется: режимы, номинальные и нештатные сценарии, завершение миссии — и чем ConOps проверяет требования",
+      "synonyms": [
+        "ConOps — базирование",
+        "сцена A3"
+      ],
+      "object_code": "A3",
+      "source": "ШАБЛОН-ФАЗЫ-PHASE-A-NASA.json",
+      "used_in": [
+        "работа",
+        "фаза"
+      ]
+    },
+    {
+      "code": "GT-SCENE-A4",
+      "term_ru": "сцена A4 — Аванпроект элемента {node}",
+      "class": "scene",
+      "definition": "Из чего состоит элемент, какие системные требования и функции на него легли, какими стыками и обменами он живёт",
+      "synonyms": [
+        "Аванпроект элемента {node}",
+        "сцена A4"
+      ],
+      "object_code": "A4",
+      "source": "ШАБЛОН-ФАЗЫ-PHASE-A-NASA.json",
+      "used_in": [
+        "работа",
+        "фаза"
+      ]
+    },
+    {
+      "code": "GT-SCENE-A5",
+      "term_ru": "сцена A5 — Архитектура системы",
+      "class": "scene",
+      "definition": "Какие системные требования выведены из проектных, на что распределены функции и цепочки, сходятся ли бюджеты",
+      "synonyms": [
+        "Архитектура системы",
+        "сцена A5"
+      ],
+      "object_code": "A5",
+      "source": "ШАБЛОН-ФАЗЫ-PHASE-A-NASA.json",
+      "used_in": [
+        "работа",
+        "фаза"
+      ]
+    },
+    {
+      "code": "GT-SCENE-A6",
+      "term_ru": "сцена A6 — Анализы и trade studies",
+      "class": "scene",
+      "definition": "Какой вариант принят, почему отклонённые отклонены и какими моделями это показано",
+      "synonyms": [
+        "Анализы и trade studies",
+        "сцена A6"
+      ],
+      "object_code": "A6",
+      "source": "ШАБЛОН-ФАЗЫ-PHASE-A-NASA.json",
+      "used_in": [
+        "работа",
+        "фаза"
+      ]
+    },
+    {
+      "code": "GT-SCENE-A7",
+      "term_ru": "сцена A7 — Созревание технологий",
+      "class": "scene",
+      "definition": "Что ниже требуемого TRL, как дозреет, что при этом условно и чем заменяется",
+      "synonyms": [
+        "Созревание технологий",
+        "сцена A7"
+      ],
+      "object_code": "A7",
+      "source": "ШАБЛОН-ФАЗЫ-PHASE-A-NASA.json",
+      "used_in": [
+        "работа",
+        "фаза"
+      ]
+    },
+    {
+      "code": "GT-SCENE-A8",
+      "term_ru": "сцена A8 — Риски",
+      "class": "scene",
+      "definition": "Какие риски актуальны, у кого владелец, к какой точке срок и чем отвечают на критические",
+      "synonyms": [
+        "Риски",
+        "сцена A8"
+      ],
+      "object_code": "A8",
+      "source": "ШАБЛОН-ФАЗЫ-PHASE-A-NASA.json",
+      "used_in": [
+        "работа",
+        "фаза"
+      ]
+    },
+    {
+      "code": "GT-SCENE-A9",
+      "term_ru": "сцена A9 — ОСЗ и планы обеспечения (SMA)",
+      "class": "scene",
+      "definition": "Соблюдён ли норматив увода в обоих случаях и заведены ли планы обеспечения",
+      "synonyms": [
+        "ОСЗ и планы обеспечения (SMA)",
+        "сцена A9"
+      ],
+      "object_code": "A9",
+      "source": "ШАБЛОН-ФАЗЫ-PHASE-A-NASA.json",
+      "used_in": [
+        "работа",
+        "фаза"
+      ]
+    },
+    {
+      "code": "GT-SCENE-A10",
+      "term_ru": "сцена A10 — Программатика: стоимость и сроки",
+      "class": "scene",
+      "definition": "Диапазоны стоимости и сроков к KDP-B, что в них вошло и сходятся ли сроки с точками",
+      "synonyms": [
+        "Программатика: стоимость и сроки",
+        "сцена A10"
+      ],
+      "object_code": "A10",
+      "source": "ШАБЛОН-ФАЗЫ-PHASE-A-NASA.json",
+      "used_in": [
+        "работа",
+        "фаза"
+      ]
+    },
+    {
+      "code": "GT-SCENE-A11",
+      "term_ru": "сцена A11 — Project Plan и обновление FA",
+      "class": "scene",
+      "definition": "Собран ли план проекта из Д2–Д9 и обновлено ли FA планом Phase B с отклонениями",
+      "synonyms": [
+        "Project Plan и обновление FA",
+        "сцена A11"
+      ],
+      "object_code": "A11",
+      "source": "ШАБЛОН-ФАЗЫ-PHASE-A-NASA.json",
+      "used_in": [
+        "работа",
+        "фаза"
+      ]
+    },
+    {
+      "code": "GT-SCENE-A12",
+      "term_ru": "сцена A12 — Точки фазы: SRR · SDR/MDR · KDP-B",
+      "class": "scene",
+      "definition": "Готовы ли базовые линии и позиции экспертиз к точкам и полна ли матрица зрелости",
+      "synonyms": [
+        "Точки фазы: SRR · SDR/MDR · KDP-B",
+        "сцена A12"
+      ],
+      "object_code": "A12",
+      "source": "ШАБЛОН-ФАЗЫ-PHASE-A-NASA.json",
+      "used_in": [
+        "работа",
+        "фаза"
+      ]
+    },
+    {
+      "code": "GT-MARK-I",
+      "term_ru": "метка И — внутреннее",
+      "class": "mark",
+      "definition": "ось «происхождение» факта: И — внутреннее",
+      "synonyms": [
+        "И",
+        "внутреннее"
+      ],
+      "object_code": "И",
+      "source": "истина схем (fact.mark)",
+      "used_in": [
+        "факты",
+        "поле знаний"
+      ]
+    },
+    {
+      "code": "GT-MARK-V",
+      "term_ru": "метка В — внешнее",
+      "class": "mark",
+      "definition": "ось «происхождение» факта: В — внешнее",
+      "synonyms": [
+        "В",
+        "внешнее"
+      ],
+      "object_code": "В",
+      "source": "истина схем (fact.mark)",
+      "used_in": [
+        "факты",
+        "поле знаний"
+      ]
+    },
+    {
+      "code": "GT-MARK-P",
+      "term_ru": "метка П — предположение",
+      "class": "mark",
+      "definition": "ось «происхождение» факта: П — предположение",
+      "synonyms": [
+        "П",
+        "предположение"
+      ],
+      "object_code": "П",
+      "source": "истина схем (fact.mark)",
+      "used_in": [
+        "факты",
+        "поле знаний"
+      ]
+    },
+    {
+      "code": "GT-UNIT-kg",
+      "term_ru": "масса — kg",
+      "class": "unit",
+      "definition": "единица величины «масса»: канон kg; варианты написания — синонимами",
+      "synonyms": [
+        "kg",
+        "кг",
+        "килограмм",
+        "килограмма",
+        "килограммов",
+        "g",
+        "t",
+        "г",
+        "грамм",
+        "грамма",
+        "граммов",
+        "т",
+        "тонн",
+        "тонны",
+        "тонна"
+      ],
+      "object_code": "kg",
+      "source": "справочник единиц (пакет 07)",
+      "used_in": [
+        "величины",
+        "требования"
+      ]
+    },
+    {
+      "code": "GT-UNIT-m",
+      "term_ru": "длина — m",
+      "class": "unit",
+      "definition": "единица величины «длина»: канон m; варианты написания — синонимами",
+      "synonyms": [
+        "m",
+        "м",
+        "метр",
+        "метра",
+        "метров",
+        "mm",
+        "km",
+        "км",
+        "километр",
+        "километра",
+        "километров"
+      ],
+      "object_code": "m",
+      "source": "справочник единиц (пакет 07)",
+      "used_in": [
+        "величины",
+        "требования"
+      ]
+    },
+    {
+      "code": "GT-UNIT-m2",
+      "term_ru": "площадь — m2",
+      "class": "unit",
+      "definition": "единица величины «площадь»: канон m2; варианты написания — синонимами",
+      "synonyms": [
+        "m2",
+        "м²",
+        "м2",
+        "km2",
+        "cm2",
+        "км2",
+        "км²",
+        "см²",
+        "см2"
+      ],
+      "object_code": "m2",
+      "source": "справочник единиц (пакет 07)",
+      "used_in": [
+        "величины",
+        "требования"
+      ]
+    },
+    {
+      "code": "GT-UNIT-m3",
+      "term_ru": "объём — m3",
+      "class": "unit",
+      "definition": "единица величины «объём»: канон m3; варианты написания — синонимами",
+      "synonyms": [
+        "m3",
+        "dm3",
+        "л",
+        "литр"
+      ],
+      "object_code": "m3",
+      "source": "справочник единиц (пакет 07)",
+      "used_in": [
+        "величины",
+        "требования"
+      ]
+    },
+    {
+      "code": "GT-UNIT-s",
+      "term_ru": "время — s",
+      "class": "unit",
+      "definition": "единица величины «время»: канон s; варианты написания — синонимами",
+      "synonyms": [
+        "s",
+        "с",
+        "сек",
+        "секунд",
+        "секунды",
+        "секунда",
+        "min",
+        "h",
+        "d",
+        "a",
+        "ms",
+        "мин",
+        "минут",
+        "минута",
+        "минуты",
+        "ч",
+        "час",
+        "часа",
+        "часов",
+        "день",
+        "дн",
+        "дней",
+        "дня",
+        "сут",
+        "сутки",
+        "суток",
+        "год",
+        "года",
+        "лет",
+        "году",
+        "годы",
+        "мс",
+        "миллисекунда"
+      ],
+      "object_code": "s",
+      "source": "справочник единиц (пакет 07)",
+      "used_in": [
+        "величины",
+        "требования"
+      ]
+    },
+    {
+      "code": "GT-UNIT-rad",
+      "term_ru": "угол — rad",
+      "class": "unit",
+      "definition": "единица величины «угол»: канон rad; варианты написания — синонимами",
+      "synonyms": [
+        "rad",
+        "deg",
+        "arcmin",
+        "°",
+        "град",
+        "градус",
+        "градуса",
+        "градусов"
+      ],
+      "object_code": "rad",
+      "source": "справочник единиц (пакет 07)",
+      "used_in": [
+        "величины",
+        "требования"
+      ]
+    },
+    {
+      "code": "GT-UNIT-m-s",
+      "term_ru": "скорость — m/s",
+      "class": "unit",
+      "definition": "единица величины «скорость»: канон m/s; варианты написания — синонимами",
+      "synonyms": [
+        "m/s",
+        "м/с",
+        "km/s",
+        "km/h",
+        "км/с",
+        "км/ч"
+      ],
+      "object_code": "m/s",
+      "source": "справочник единиц (пакет 07)",
+      "used_in": [
+        "величины",
+        "требования"
+      ]
+    },
+    {
+      "code": "GT-UNIT-K",
+      "term_ru": "температура — K",
+      "class": "unit",
+      "definition": "единица величины «температура»: канон K; варианты написания — синонимами",
+      "synonyms": [
+        "K",
+        "К",
+        "кельвин",
+        "degC",
+        "°C",
+        "градус Цельсия",
+        "градусов цельсия"
+      ],
+      "object_code": "K",
+      "source": "справочник единиц (пакет 07)",
+      "used_in": [
+        "величины",
+        "требования"
+      ]
+    },
+    {
+      "code": "GT-UNIT-Pa",
+      "term_ru": "давление — Pa",
+      "class": "unit",
+      "definition": "единица величины «давление»: канон Pa; варианты написания — синонимами",
+      "synonyms": [
+        "Pa",
+        "bar"
+      ],
+      "object_code": "Pa",
+      "source": "справочник единиц (пакет 07)",
+      "used_in": [
+        "величины",
+        "требования"
+      ]
+    },
+    {
+      "code": "GT-UNIT-Hz",
+      "term_ru": "частота — Hz",
+      "class": "unit",
+      "definition": "единица величины «частота»: канон Hz; варианты написания — синонимами",
+      "synonyms": [
+        "Hz",
+        "Гц",
+        "герц",
+        "kHz",
+        "MHz",
+        "GHz",
+        "кГц",
+        "МГц",
+        "ГГц"
+      ],
+      "object_code": "Hz",
+      "source": "справочник единиц (пакет 07)",
+      "used_in": [
+        "величины",
+        "требования"
+      ]
+    },
+    {
+      "code": "GT-UNIT-J",
+      "term_ru": "энергия — J",
+      "class": "unit",
+      "definition": "единица величины «энергия»: канон J; варианты написания — синонимами",
+      "synonyms": [
+        "J",
+        "Дж",
+        "джоуль",
+        "Wh",
+        "kWh",
+        "Вт·ч",
+        "Втч",
+        "кВт·ч",
+        "квтч"
+      ],
+      "object_code": "J",
+      "source": "справочник единиц (пакет 07)",
+      "used_in": [
+        "величины",
+        "требования"
+      ]
+    },
+    {
+      "code": "GT-UNIT-W",
+      "term_ru": "мощность — W",
+      "class": "unit",
+      "definition": "единица величины «мощность»: канон W; варианты написания — синонимами",
+      "synonyms": [
+        "W",
+        "Вт",
+        "ватт",
+        "mW",
+        "kW",
+        "мВт",
+        "кВт"
+      ],
+      "object_code": "W",
+      "source": "справочник единиц (пакет 07)",
+      "used_in": [
+        "величины",
+        "требования"
+      ]
+    },
+    {
+      "code": "GT-UNIT-Ah",
+      "term_ru": "заряд АКБ — Ah",
+      "class": "unit",
+      "definition": "единица величины «заряд АКБ»: канон Ah; варианты написания — синонимами",
+      "synonyms": [
+        "Ah",
+        "А·ч",
+        "Ач",
+        "ампер-час",
+        "mAh"
+      ],
+      "object_code": "Ah",
+      "source": "справочник единиц (пакет 07)",
+      "used_in": [
+        "величины",
+        "требования"
+      ]
+    },
+    {
+      "code": "GT-UNIT-bit-s",
+      "term_ru": "скорость передачи — bit/s",
+      "class": "unit",
+      "definition": "единица величины «скорость передачи»: канон bit/s; варианты написания — синонимами",
+      "synonyms": [
+        "bit/s",
+        "бит/с",
+        "kbit/s",
+        "Mbit/s",
+        "кбит/с",
+        "Мбит/с"
+      ],
+      "object_code": "bit/s",
+      "source": "справочник единиц (пакет 07)",
+      "used_in": [
+        "величины",
+        "требования"
+      ]
+    },
+    {
+      "code": "GT-UNIT-bit",
+      "term_ru": "объём данных — bit",
+      "class": "unit",
+      "definition": "единица величины «объём данных»: канон bit; варианты написания — синонимами",
+      "synonyms": [
+        "bit",
+        "B",
+        "KB",
+        "MB",
+        "GB",
+        "Б",
+        "байт",
+        "КБ",
+        "МБ",
+        "ГБ"
+      ],
+      "object_code": "bit",
+      "source": "справочник единиц (пакет 07)",
+      "used_in": [
+        "величины",
+        "требования"
+      ]
+    },
+    {
+      "code": "GT-UNIT-dB",
+      "term_ru": "уровни и усиление — dB",
+      "class": "unit",
+      "definition": "единица величины «уровни и усиление»: канон dB; варианты написания — синонимами",
+      "synonyms": [
+        "dB",
+        "дБ",
+        "децибел",
+        "dBm",
+        "dBi",
+        "dBW",
+        "dB/K",
+        "дБм",
+        "дБи",
+        "дБВт",
+        "дБ/К",
+        "добротность"
+      ],
+      "object_code": "dB",
+      "source": "справочник единиц (пакет 07)",
+      "used_in": [
+        "величины",
+        "требования"
+      ]
+    },
+    {
+      "code": "GT-UNIT-Gy",
+      "term_ru": "поглощённая доза — Gy",
+      "class": "unit",
+      "definition": "единица величины «поглощённая доза»: канон Gy; варианты написания — синонимами",
+      "synonyms": [
+        "Gy",
+        "krad",
+        "rad_dose",
+        "крад"
+      ],
+      "object_code": "Gy",
+      "source": "справочник единиц (пакет 07)",
+      "used_in": [
+        "величины",
+        "требования"
+      ]
+    },
+    {
+      "code": "GT-UNIT-Sv",
+      "term_ru": "эквивалентная доза — Sv",
+      "class": "unit",
+      "definition": "единица величины «эквивалентная доза»: канон Sv; варианты написания — синонимами",
+      "synonyms": [
+        "Sv",
+        "mSv"
+      ],
+      "object_code": "Sv",
+      "source": "справочник единиц (пакет 07)",
+      "used_in": [
+        "величины",
+        "требования"
+      ]
+    },
+    {
+      "code": "GT-UNIT-MRUB",
+      "term_ru": "деньги — MRUB",
+      "class": "unit",
+      "definition": "единица величины «деньги»: канон MRUB; варианты написания — синонимами",
+      "synonyms": [
+        "MRUB",
+        "млн руб",
+        "млн руб.",
+        "млн рублей",
+        "млн ₽",
+        "млн рублей.",
+        "kRUB",
+        "RUB",
+        "BRUB",
+        "MUSD",
+        "тыс руб",
+        "тыс. руб",
+        "тыс руб.",
+        "тыс рублей",
+        "руб",
+        "руб.",
+        "рублей",
+        "₽",
+        "млрд руб",
+        "млрд руб.",
+        "млрд рублей",
+        "млрд ₽",
+        "млн долл",
+        "млн долларов",
+        "млн $"
+      ],
+      "object_code": "MRUB",
+      "source": "справочник единиц (пакет 07)",
+      "used_in": [
+        "величины",
+        "требования"
+      ]
+    },
+    {
+      "code": "GT-UNIT-MRUB-kg",
+      "term_ru": "удельная стоимость выведения — MRUB/kg",
+      "class": "unit",
+      "definition": "единица величины «удельная стоимость выведения»: канон MRUB/kg; варианты написания — синонимами",
+      "synonyms": [
+        "MRUB/kg",
+        "kUSD/kg"
+      ],
+      "object_code": "MRUB/kg",
+      "source": "справочник единиц (пакет 07)",
+      "used_in": [
+        "величины",
+        "требования"
+      ]
+    },
+    {
+      "code": "GT-UNIT-man_month",
+      "term_ru": "трудоёмкость — man_month",
+      "class": "unit",
+      "definition": "единица величины «трудоёмкость»: канон man_month; варианты написания — синонимами",
+      "synonyms": [
+        "man_month",
+        "man_h",
+        "man_year",
+        "чел-год",
+        "человеко-лет"
+      ],
+      "object_code": "man_month",
+      "source": "справочник единиц (пакет 07)",
+      "used_in": [
+        "величины",
+        "требования"
+      ]
+    },
+    {
+      "code": "GT-UNIT-1",
+      "term_ru": "доля и вероятность — 1",
+      "class": "unit",
+      "definition": "единица величины «доля и вероятность»: канон 1; варианты написания — синонимами",
+      "synonyms": [
+        "1",
+        "доля",
+        "%",
+        "процент",
+        "процента",
+        "процентов"
+      ],
+      "object_code": "1",
+      "source": "справочник единиц (пакет 07)",
+      "used_in": [
+        "величины",
+        "требования"
+      ]
+    },
+    {
+      "code": "GT-UNIT-pcs",
+      "term_ru": "счётные — pcs",
+      "class": "unit",
+      "definition": "единица величины «счётные»: канон pcs; варианты написания — синонимами",
+      "synonyms": [
+        "pcs",
+        "КА",
+        "аппарат",
+        "аппарата",
+        "аппаратов",
+        "космический аппарат",
+        "плоскостей",
+        "плоскость",
+        "станции",
+        "станций",
+        "шт",
+        "шт.",
+        "штук",
+        "штуки",
+        "U",
+        "юнит",
+        "юнита",
+        "юнитов"
+      ],
+      "object_code": "pcs",
+      "source": "справочник единиц (пакет 07)",
+      "used_in": [
+        "величины",
+        "требования"
+      ]
+    },
+    {
+      "code": "GT-UNIT-TRL",
+      "term_ru": "шкальные метки — TRL",
+      "class": "unit",
+      "definition": "единица величины «шкальные метки»: канон TRL; варианты написания — синонимами",
+      "synonyms": [
+        "TRL",
+        "mission_class"
+      ],
+      "object_code": "TRL",
+      "source": "справочник единиц (пакет 07)",
+      "used_in": [
+        "величины",
+        "требования"
+      ]
+    },
+    {
+      "code": "GT-UNIT-rad-s",
+      "term_ru": "угловая скорость — rad/s",
+      "class": "unit",
+      "definition": "единица величины «угловая скорость»: канон rad/s; варианты написания — синонимами",
+      "synonyms": [
+        "rad/s",
+        "рад/с",
+        "deg/s",
+        "°/с",
+        "град/с",
+        "градус в секунду",
+        "градусов в секунду"
+      ],
+      "object_code": "rad/s",
+      "source": "справочник единиц (пакет 07)",
+      "used_in": [
+        "величины",
+        "требования"
+      ]
+    },
+    {
+      "code": "GT-UNIT-V",
+      "term_ru": "напряжение — V",
+      "class": "unit",
+      "definition": "единица величины «напряжение»: канон V; варианты написания — синонимами",
+      "synonyms": [
+        "V",
+        "В",
+        "вольт",
+        "mV",
+        "kV",
+        "мВ",
+        "милливольт",
+        "кВ",
+        "киловольт"
+      ],
+      "object_code": "V",
+      "source": "справочник единиц (пакет 07)",
+      "used_in": [
+        "величины",
+        "требования"
+      ]
+    },
+    {
+      "code": "GT-UNIT-A",
+      "term_ru": "ток — A",
+      "class": "unit",
+      "definition": "единица величины «ток»: канон A; варианты написания — синонимами",
+      "synonyms": [
+        "A",
+        "А",
+        "ампер",
+        "mA",
+        "мА",
+        "миллиампер"
+      ],
+      "object_code": "A",
+      "source": "справочник единиц (пакет 07)",
+      "used_in": [
+        "величины",
+        "требования"
+      ]
+    },
+    {
+      "code": "GT-UNIT-N",
+      "term_ru": "сила — N",
+      "class": "unit",
+      "definition": "единица величины «сила»: канон N; варианты написания — синонимами",
+      "synonyms": [
+        "N",
+        "Н",
+        "ньютон",
+        "mN",
+        "мН",
+        "миллиньютон"
+      ],
+      "object_code": "N",
+      "source": "справочник единиц (пакет 07)",
+      "used_in": [
+        "величины",
+        "требования"
+      ]
+    },
+    {
+      "code": "GT-DOC-conops",
+      "term_ru": "Концепция применения (Draft ConOps)",
+      "class": "document",
+      "definition": "документ фазы по шаблону conops: Живой документ, как и MCReport: раздел — запрос к выходам сцен. Разделы 4 и 5 питаются сценой 9 «Концепция операций»; в шаблоне фазы этой сцены пока нет, и разделы честно говорят, чего ждут.",
+      "synonyms": [
+        "conops"
+      ],
+      "object_code": "conops",
+      "source": "шаблон документа",
+      "used_in": [
+        "документы"
+      ]
+    },
+    {
+      "code": "GT-DOC-fa",
+      "term_ru": "Formulation Agreement (Прил. 2 БП-PPA)",
+      "class": "document",
+      "definition": "документ фазы по шаблону fa: Порождён из поставки ШАБЛОНЫ-FAD-FA.json генератором tools/v2/gen_document_templates.py; правки — в поставку или в таблицу сопоставления, не сюда.",
+      "synonyms": [
+        "fa"
+      ],
+      "object_code": "fa",
+      "source": "шаблон документа",
+      "used_in": [
+        "документы"
+      ]
+    },
+    {
+      "code": "GT-DOC-fad",
+      "term_ru": "FAD — Formulation Authorization Document (Прил. 1 БП-PPA)",
+      "class": "document",
+      "definition": "документ фазы по шаблону fad: Порождён из поставки ШАБЛОНЫ-FAD-FA.json генератором tools/v2/gen_document_templates.py; правки — в поставку или в таблицу сопоставления, не сюда.",
+      "synonyms": [
+        "fad"
+      ],
+      "object_code": "fad",
+      "source": "шаблон документа",
+      "used_in": [
+        "документы"
+      ]
+    },
+    {
+      "code": "GT-DOC-icd",
+      "term_ru": "Описание стыков и архитектуры (ICD, Д5)",
+      "class": "document",
+      "definition": "документ фазы по шаблону icd: ICD собирается из стыков, их параметров и требований с носителем-стыком; §6 — протоколы trade studies (Д5 §6); полнота к SDR. Порождён генератором tools/v2/gen_phase_a_documents.py; правки — в генератор, не сюда.",
+      "synonyms": [
+        "icd"
+      ],
+      "object_code": "icd",
+      "source": "шаблон документа",
+      "used_in": [
+        "документы"
+      ]
+    },
+    {
+      "code": "GT-DOC-mcreport",
+      "term_ru": "Отчёт о концепции миссии",
+      "class": "document",
+      "definition": "документ фазы по шаблону mcreport: Живой документ: раздел — запрос к выходам сцен плюс тезисы. Выполненная сцена даёт заполненный раздел; пустой раздел говорит, какой сцены ждёт.",
+      "synonyms": [
+        "mcreport"
+      ],
+      "object_code": "mcreport",
+      "source": "шаблон документа",
+      "used_in": [
+        "документы"
+      ]
+    },
+    {
+      "code": "GT-DOC-opscon",
+      "term_ru": "Концепция операций (OpsCon)",
+      "class": "document",
+      "definition": "документ фазы по шаблону opscon: Смены · процедуры · окна сеансов · нештатные регламенты — из режимов, сценариев, стыков и рисков; полнота к SDR. Порождён генератором tools/v2/gen_phase_a_documents.py; правки — в генератор, не сюда.",
+      "synonyms": [
+        "opscon"
+      ],
+      "object_code": "opscon",
+      "source": "шаблон документа",
+      "used_in": [
+        "документы"
+      ]
+    },
+    {
+      "code": "GT-DOC-projectplan",
+      "term_ru": "Project Plan (Д10)",
+      "class": "document",
+      "definition": "документ фазы по шаблону projectplan: Собирается ссылками на Д2–Д9, не копиями; Preliminary к KDP-B. Порождён генератором tools/v2/gen_phase_a_documents.py; правки — в генератор, не сюда.",
+      "synonyms": [
+        "projectplan"
+      ],
+      "object_code": "projectplan",
+      "source": "шаблон документа",
+      "used_in": [
+        "документы"
+      ]
+    },
+    {
+      "code": "GT-DOC-semp",
+      "term_ru": "План управления системной инженерией (SEMP)",
+      "class": "document",
+      "definition": "документ фазы по шаблону semp: 11 разделов; §6 — 17 процессов с полки процессов СИ; §2 — полка нормативов; §8 — свёртки бюджетов. Baseline до SRR. Порождён генератором tools/v2/gen_phase_a_documents.py; правки — в генератор, не сюда.",
+      "synonyms": [
+        "semp"
+      ],
+      "object_code": "semp",
+      "source": "шаблон документа",
+      "used_in": [
+        "документы"
+      ]
+    },
+    {
+      "code": "GT-DOC-sma",
+      "term_ru": "План обеспечения (SMA: надёжность · безопасность · EMI/EMC)",
+      "class": "document",
+      "definition": "документ фазы по шаблону sma: Черновик к SDR из ОСЗ, рисков и радиостыков; полка Phase B. Порождён генератором tools/v2/gen_phase_a_documents.py; правки — в генератор, не сюда.",
+      "synonyms": [
+        "sma"
+      ],
+      "object_code": "sma",
+      "source": "шаблон документа",
+      "used_in": [
+        "документы"
+      ]
+    }
+  ]
+}

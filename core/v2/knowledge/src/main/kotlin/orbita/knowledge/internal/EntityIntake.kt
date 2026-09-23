@@ -57,6 +57,8 @@ class EntityIntake(
      * якорь факта), которого у поставки нет.
      */
     private val shelves: orbita.library.api.Shelves? = null,
+    /** Словарь (шип 4 §2): привязка сторон и узлов к терминам, кандидаты из документов. */
+    private val glossary: orbita.knowledge.api.Glossary = GlossaryIndex(store, mapper),
 ) : Intake {
 
     /** Каталог заданий (поставка §3): семантика, не свобода. */
@@ -485,6 +487,16 @@ class EntityIntake(
                         store.update(сущность.id, док, Provenance(Channel.SERVICE, author))
                     }
                 }
+            }
+            // Словарь (истина `glossary_rule`, шип 4 §2): сторона и узел привязываются
+            // к термину по каноническому имени или синониму; незнакомое написание —
+            // кандидат с цитатой, принимает человек. Дедупликация сторон — через словарь.
+            if (вид == "stakeholder" || вид == "component") {
+                val фактЦитаты = основание.takeIf { it.isNotBlank() }?.let { store.byCode(область, it) }
+                GlossaryLinking(store, links, glossary).привязать(
+                    область, сущность, вид, author,
+                    цитата = фактЦитаты?.doc?.path("quote")?.asText("")?.ifBlank { null }, факт = фактЦитаты?.code,
+                )?.let { заметки += it }
             }
             // Нить от сущности к её факту: по ней считается доля знаний, и
             // по ней же видно, откуда в проекте взялось это утверждение.
