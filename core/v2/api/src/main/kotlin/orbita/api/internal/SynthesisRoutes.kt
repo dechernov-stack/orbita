@@ -66,9 +66,16 @@ class SynthesisRoutes(
     private val запуск = Regex("/v2/synthesis/runs/(SR-[0-9]+)")
     private val акцепт = Regex("/v2/synthesis/runs/(SR-[0-9]+)/accept")
     private val отмена = Regex("/v2/synthesis/runs/(SR-[0-9]+)/undo")
+    // Решение по предложению, кроме приёма: отклонить или отложить (шип 2,
+    // экран 12; ЗАДАНИЕ-ЗНАНИЯ-V3 шип 3 — «R отклонить, L отложить»).
+    private val решение = Regex("/v2/synthesis/runs/(SR-[0-9]+)/decline")
 
     fun handle(method: String, path: String, query: Map<String, String>, body: String?): V2Router.Ответ? {
-        if (path !in АДРЕСА && !запуск.matches(path) && !акцепт.matches(path) && !отмена.matches(path)) return null
+        if (path !in АДРЕСА && !запуск.matches(path) && !акцепт.matches(path) &&
+            !отмена.matches(path) && !решение.matches(path)
+        ) {
+            return null
+        }
         val проект = требуется(query, "project")
         выключено(проект)?.let { return it }
         return try {
@@ -82,6 +89,8 @@ class SynthesisRoutes(
                     принять(проект, акцепт.matchEntire(path)!!.groupValues[1], разобрать(body))
                 method == "POST" && отмена.matches(path) ->
                     отменить(проект, отмена.matchEntire(path)!!.groupValues[1], разобрать(body))
+                method == "POST" && решение.matches(path) ->
+                    отклонить(проект, решение.matchEntire(path)!!.groupValues[1], разобрать(body))
                 method == "GET" && запуск.matches(path) ->
                     опрос(проект, запуск.matchEntire(path)!!.groupValues[1])
                 else -> null
@@ -255,6 +264,60 @@ class SynthesisRoutes(
      * остаются: они след документа, а не решение человека, и повторный приём
      * обопрётся на них же.
      */
+    /**
+     * Отклонить или отложить выбранные предложения — решение человека, не
+     * приём. Отклонённое больше не предлагается, отложенное ждёт и видно
+     * счётчиком: «рассмотрено 118 из 130, отложено 12». Решение обратимо:
+     * то же действие с `decision: "pending"` возвращает строку в работу.
+     */
+    private fun отклонить(проект: String, код: String, тело: JsonNode): V2Router.Ответ {
+        val область = Area.Project(проект)
+        val запись = store.byCode(область, код)
+            ?: throw NoSuchElementException("запуска «$код» в проекте нет")
+        val выбранные = тело.path("chosen").map { it.asText() }.filter { it.isNotBlank() }
+        require(выбранные.isNotEmpty()) {
+            "не выбрано ни одного предложения: отметьте строки — решение принимается по отмеченным"
+        }
+        val что = тело.path("decision").asText("rejected")
+        require(что in РЕШЕНИЯ) {
+            "решение «$что» не из перечня: rejected — отклонить, deferred — отложить, pending — вернуть в работу"
+        }
+        val известные = предложения(проект, задание(проект, код)).keys
+        val чужие = выбранные.filterNot { it in известные }
+        require(чужие.isEmpty()) { "предложений ${чужие.joinToString(", ")} в «$код» нет: обновите диф" }
+
+        val автор = автор(тело)
+        val причина = тело.path("reason").asText("").trim()
+        val документ = запись.doc.deepCopy<JsonNode>() as ObjectNode
+        val решения = документ.path(РЕШЕНИЯ_ПОЛЕ) as? ObjectNode ?: документ.putObject(РЕШЕНИЯ_ПОЛЕ)
+        выбранные.forEach { имя ->
+            if (что == "pending") {
+                решения.remove(имя)
+            } else {
+                решения.putObject(имя)
+                    .put("decision", что).put("by", автор)
+                    .put("at", java.time.OffsetDateTime.now().withNano(0).toString())
+                    .put("reason", причина)
+            }
+        }
+        store.update(запись.id, документ, Provenance(Channel.MANUAL, автор, source = код), status = запись.status)
+
+        val отложено = решения.properties().count { it.value.path("decision").asText() == "deferred" }
+        val отклонено = решения.properties().count { it.value.path("decision").asText() == "rejected" }
+        val ответ = mapper.createObjectNode().put("run", код).put("decision", что)
+            .put("touched", выбранные.size).put("deferred", отложено).put("rejected", отклонено)
+        массив(ответ, "chosen", выбранные)
+        ответ.put(
+            "note",
+            when (что) {
+                "rejected" -> "отклонено ${выбранные.size}: больше не предлагается; решение обратимо — «вернуть в работу»"
+                "deferred" -> "отложено ${выбранные.size}: воротам не мешает, видно счётчиком"
+                else -> "возвращено в работу ${выбранные.size}"
+            },
+        )
+        return V2Router.Ответ(200, ответ)
+    }
+
     private fun отменить(проект: String, код: String, тело: JsonNode): V2Router.Ответ {
         val область = Area.Project(проект)
         val запись = store.byCode(область, код)
@@ -271,10 +334,19 @@ class SynthesisRoutes(
         val автор = автор(тело)
         val снято = mutableListOf<String>()
         val неснято = mutableListOf<String>()
-        последний.path("created").forEach { имя ->
-            val сущность = store.byCode(область, имя.asText())
+        // Снятие ВЫБОРКОЙ (шип 2, экран 12: «снять принятие» для выборки):
+        // названы коды — снимаются только они, пакет остаётся с остальными.
+        // Без кодов — прежнее поведение: пакет отменяется целиком.
+        val выборка = тело.path("chosen").map { it.asText() }.filter { it.isNotBlank() }
+        val созданы = последний.path("created").map { it.asText() }
+        val чужие = выборка.filterNot { it in созданы }
+        require(чужие.isEmpty()) {
+            "в последнем пакете запуска «$код» нет ${чужие.joinToString(", ")}: снимать можно только принятое им"
+        }
+        созданы.filter { выборка.isEmpty() || it in выборка }.forEach { имя ->
+            val сущность = store.byCode(область, имя)
             if (сущность == null || сущность.status == СНЯТО) {
-                неснято += имя.asText()
+                неснято += имя
                 return@forEach
             }
             links?.let { реестр ->
@@ -288,15 +360,26 @@ class SynthesisRoutes(
             )
             снято += сущность.code
         }
-        (пакеты as ArrayNode).remove(пакеты.size() - 1)
+        val осталось = созданы.filterNot { выборка.isEmpty() || it in выборка }
+        if (осталось.isEmpty()) {
+            (пакеты as ArrayNode).remove(пакеты.size() - 1)
+        } else {
+            // Пакет живёт дальше — в нём остаются те, кого не снимали: отмена
+            // остатка по-прежнему обратима одним действием.
+            val обновлён = (последний as ObjectNode).deepCopy<ObjectNode>()
+            обновлён.putArray("created").also { м -> осталось.forEach { м.add(it) } }
+            (пакеты as ArrayNode).set(пакеты.size() - 1, обновлён)
+        }
         store.update(запись.id, документ, запись.provenance, status = запись.status)
 
         val ответ = mapper.createObjectNode().put("run", код).put("undone", снято.size)
+            .put("left_in_batch", осталось.size)
         массив(ответ, "cancelled", снято)
         массив(ответ, "already_gone", неснято)
         ответ.put(
             "note",
-            "пакет отменён: снято с учёта ${снято.size}" +
+            (if (выборка.isEmpty()) "пакет отменён: снято с учёта ${снято.size}"
+            else "снято с учёта ${снято.size}; в пакете осталось ${осталось.size}") +
                 (if (неснято.isEmpty()) "" else "; не найдено или уже снято ${неснято.size}") +
                 "; факты-основания остались — они след документа, а не решение человека",
         )
@@ -390,13 +473,18 @@ class SynthesisRoutes(
         if (!сПредложениями) return узел
         val диф = узел.putObject("diff")
         Verdict.entries.forEach { диф.putArray(it.code) }
+        val решения = store.byCode(Area.Project(проект), итог.id)?.doc?.path(РЕШЕНИЯ_ПОЛЕ)?.takeIf { it.isObject }
         предложения(проект, итог).forEach { (имя, предложение) ->
-            (диф.get(предложение.verdict.code) as ArrayNode).add(видПредложения(имя, предложение))
+            (диф.get(предложение.verdict.code) as ArrayNode).add(видПредложения(имя, предложение, решения))
         }
+        // «Рассмотрено N из M, отложено K» — счёт решений ведёт сервер.
+        val отложено = решения?.properties()?.count { it.value.path("decision").asText() == "deferred" } ?: 0
+        val отклонено = решения?.properties()?.count { it.value.path("decision").asText() == "rejected" } ?: 0
+        счёт.put("deferred", отложено).put("rejected", отклонено)
         return узел
     }
 
-    private fun видПредложения(имя: String, п: FormationProposal): ObjectNode {
+    private fun видПредложения(имя: String, п: FormationProposal, решения: JsonNode? = null): ObjectNode {
         val узел = mapper.createObjectNode()
             .put("proposal", имя).put("concept", п.concept)
             .put("verdict", п.verdict.code).put("source_mark", п.sourceMark.name)
@@ -406,6 +494,13 @@ class SynthesisRoutes(
         if (п.rankHint.isNotBlank()) узел.put("rank_hint", п.rankHint)
         узел.set<JsonNode>("payload", содержимое(п))
         массив(узел, "missing", п.missing)
+        // Решение человека по строке: отклонено или отложено. Пусто — строка в работе.
+        решения?.path(имя)?.takeIf { it.isObject }?.let { р ->
+            узел.put("decision", р.path("decision").asText(""))
+            узел.put("decision_by", р.path("by").asText(""))
+            узел.put("decision_at", р.path("at").asText("").take(10))
+            узел.put("decision_reason", р.path("reason").asText(""))
+        }
         val основания = узел.putArray("basis")
         п.basis.forEach { основания.add(видОснования(it)) }
         return узел
@@ -645,6 +740,8 @@ class SynthesisRoutes(
 
         /** Принятые пакеты запуска: по ним «Отменить пакет» возвращает модель. */
         const val ПАКЕТЫ: String = "accepted_batches"
+        const val РЕШЕНИЯ_ПОЛЕ: String = "decisions"
+        val РЕШЕНИЯ: Set<String> = setOf("rejected", "deferred", "pending")
 
         /** Статус снятого с учёта: сущность остаётся в истории, из модели уходит. */
         const val СНЯТО: String = "cancelled"

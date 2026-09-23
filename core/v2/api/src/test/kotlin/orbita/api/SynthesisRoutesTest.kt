@@ -282,6 +282,53 @@ class SynthesisRoutesTest {
         )
     }
 
+    /**
+     * Шип 2, экран 12: строка решается не только приёмом. Отклонённое больше
+     * не предлагается, отложенное ждёт и видно счётчиком; решение обратимо.
+     */
+    @Test
+    fun `предложение отклоняется и откладывается, счёт решений ведёт сервер`() {
+        поле()
+        val код = довестиЗапуск()
+        val предложение = первоеПредложение(код)
+
+        val отклонено = маршруты.handle(
+            "POST", "/v2/synthesis/runs/$код/decline", п,
+            """{"chosen":["$предложение"],"decision":"rejected","author":"инженер","reason":"не наша сторона"}""",
+        )
+        assertEquals(200, отклонено?.code, отклонено?.body.toString())
+        assertEquals(1, отклонено?.body?.path("rejected")?.asInt())
+
+        val диф = маршруты.handle("GET", "/v2/synthesis/diff", п, null)!!.body
+        val строка = диф.path("diff").path("new").first { it.path("proposal").asText() == предложение }
+        assertEquals("rejected", строка.path("decision").asText(), "решение видно в дифе: $строка")
+        assertEquals("инженер", строка.path("decision_by").asText())
+        assertEquals("не наша сторона", строка.path("decision_reason").asText())
+        assertEquals(1, диф.path("counts").path("rejected").asInt(), "счёт решений — у сервера")
+
+        маршруты.handle(
+            "POST", "/v2/synthesis/runs/$код/decline", п,
+            """{"chosen":["$предложение"],"decision":"deferred","author":"инженер"}""",
+        )
+        val отложенный = маршруты.handle("GET", "/v2/synthesis/diff", п, null)!!.body
+        assertEquals(1, отложенный.path("counts").path("deferred").asInt())
+        assertEquals(0, отложенный.path("counts").path("rejected").asInt())
+
+        val возврат = маршруты.handle(
+            "POST", "/v2/synthesis/runs/$код/decline", п,
+            """{"chosen":["$предложение"],"decision":"pending","author":"инженер"}""",
+        )
+        assertEquals(200, возврат?.code)
+        val вернулось = маршруты.handle("GET", "/v2/synthesis/diff", п, null)!!.body
+        assertEquals(0, вернулось.path("counts").path("deferred").asInt(), "вернулось в работу")
+
+        val чужое = kotlin.runCatching {
+            маршруты.handle("POST", "/v2/synthesis/runs/$код/decline", п,
+                """{"chosen":["PR-0999"],"decision":"rejected","author":"инженер"}""")
+        }.exceptionOrNull()
+        assertTrue(чужое is IllegalArgumentException && "обновите диф" in чужое.message!!, "чужой код отбит: $чужое")
+    }
+
     @Test
     fun `отмена без принятого пакета отказывает словами`() {
         поле()

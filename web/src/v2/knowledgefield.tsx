@@ -22,7 +22,7 @@
 // Ни одна цифра здесь не считается: счётчики групп дифа, дрейф поля и доля
 // знаний приходят с сервера готовыми. Ни одно слияние, принятие и уточнение
 // не происходит без нажатия человека — служба только предлагает.
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, type KeyboardEvent } from 'react'
 import { ConfirmBox, useConfirm } from '../ui/Confirm'
 import { ResearchPanel, отказСловами } from './research'
 import {
@@ -1924,6 +1924,92 @@ function Постановка({ project, онтология, onChanged, expert =
     return части.length === 0 ? 'ничего' : части.join(', ')
   }
   const всеОтмечены = пакетные.length > 0 && пакетные.every((код) => отмечены.includes(код))
+  /** Все строки дифа по порядку групп — по ним ходят стрелки и работает Shift-диапазон. */
+  const подряд: FormationProposal[] = [...внимание, ...спокойные]
+  const решена = (п: FormationProposal) => Boolean(п.decision)
+  const отложенные = предложения.filter((п) => п.decision === 'deferred').length
+  const отклонённые = предложения.filter((п) => п.decision === 'rejected').length
+
+  /** Умный набор: отмечает разом то, что названо словами, и ничего не заводит. */
+  const наборы: { имя: string; коды: string[]; зачем: string }[] = [
+    {
+      имя: 'всё, кроме требующих внимания',
+      коды: спокойные.filter((п) => !решена(п)).map((п) => п.proposal),
+      зачем: 'противоречия, незакрытые связи и низкая уверенность остаются вам',
+    },
+    {
+      имя: 'только новое',
+      коды: спокойные.filter((п) => п.verdict === 'new' && !решена(п)).map((п) => п.proposal),
+      зачем: 'в постановке такого ещё нет — заведётся как новое',
+    },
+    {
+      имя: 'только дополнения',
+      коды: спокойные.filter((п) => п.verdict === 'augment' && !решена(п)).map((п) => п.proposal),
+      зачем: 'принятое остаётся как есть, поле добавляет к нему поле-другое',
+    },
+  ]
+  const наборыПоВиду = [...new Set(спокойные.filter((п) => !решена(п)).map((п) => п.concept))]
+    .map((вид) => ({
+      имя: ПОНЯТИЕ_МН[вид] ?? вид,
+      коды: спокойные.filter((п) => п.concept === вид && !решена(п)).map((п) => п.proposal),
+    }))
+    .filter((н) => н.коды.length > 0)
+
+  /** Отметить диапазон: Shift-клик от последней отметки до нажатой строки. */
+  const [последняя, setПоследняя] = useState<string | null>(null)
+  const отметить = (код: string, да: boolean, диапазоном = false) => {
+    if (диапазоном && последняя) {
+      const от = подряд.findIndex((п) => п.proposal === последняя)
+      const до = подряд.findIndex((п) => п.proposal === код)
+      if (от >= 0 && до >= 0) {
+        // Границы диапазона — номера строк на экране, не величины модели.
+        const начало = от < до ? от : до
+        const конец = от < до ? до : от
+        const кусок = подряд.slice(начало, конец + 1).map((п) => п.proposal)
+        setОтмечены((было) => [...new Set(да ? [...было, ...кусок] : было.filter((к) => !кусок.includes(к)))])
+        setПоследняя(код)
+        return
+      }
+    }
+    setОтмечены((было) => (да ? [...new Set([...было, код])] : было.filter((к) => к !== код)))
+    setПоследняя(код)
+  }
+
+  /** Решение по отмеченным: отклонить, отложить, вернуть в работу. */
+  const решить = (что: 'rejected' | 'deferred' | 'pending') => {
+    if (!запуск || отмечены.length === 0) return
+    api.declineSynthesis(project, запуск.id, отмечены, что, 'инженер')
+      .then((о) => { setСостояние(о.note); setОтмечены([]); прочитать() })
+      .catch((e) => setОтказ(отказПодробно(e)))
+  }
+
+  /** Строка под фокусом клавиатуры: ↑↓ ходят по ней, Space отмечает. */
+  const [фокус, setФокус] = useState(0)
+  const клавиша = (е: KeyboardEvent<HTMLDivElement>) => {
+    if (предложения.length === 0) return
+    const последний = подряд.length - 1
+    const строка = подряд[фокус > последний ? последний : фокус]
+    const шаг = (куда: number) => {
+      // Индекс строки — не величина модели: клиент двигает курсор, а не считает.
+      const сырой = фокус + куда
+      const новый = сырой < 0 ? 0 : сырой > последний ? последний : сырой
+      setФокус(новый)
+      document.getElementById(`предложение-${подряд[новый]?.proposal}`)?.scrollIntoView({ block: 'nearest' })
+    }
+    switch (е.key) {
+      case 'ArrowDown': е.preventDefault(); шаг(1); break
+      case 'ArrowUp': е.preventDefault(); шаг(-1); break
+      case ' ': if (строка) { е.preventDefault(); отметить(строка.proposal, !отмечены.includes(строка.proposal), е.shiftKey) } break
+      case 'Enter': е.preventDefault(); if (отмечены.length > 0) принять(); break
+      case 'a': case 'A': case 'ф': case 'Ф':
+        е.preventDefault(); setОтмечены(наборы[0].коды); break
+      case 'r': case 'R': case 'к': case 'К':
+        е.preventDefault(); if (отмечены.length > 0) решить('rejected'); break
+      case 'l': case 'L': case 'д': case 'Д':
+        е.preventDefault(); if (отмечены.length > 0) решить('deferred'); break
+      default: break
+    }
+  }
   // Ф-11: неактивная отметка обязана назвать причину И путь оживления —
   // серая галочка без объяснения оставляет человека гадать.
   const подсказкаВсе = пакетные.length === 0
@@ -1952,6 +2038,19 @@ function Постановка({ project, онтология, onChanged, expert =
       input: { label: 'почему берём', placeholder: 'основание решения' },
       onOk: (повод) => api.acceptSynthesis(project, запуск.id, коды, 'инженер', повод || undefined, undefined, правкиДля(коды))
         .then((и) => { setИтог(и); setОтмечены([]); setПравки({}); onChanged(); прочитать() })
+        .catch((e) => setОтказ(отказПодробно(e))),
+    })
+  }
+
+  /** Коды заведённых записей, отмеченные к снятию принятия (выборкой). */
+  const [снятие, setСнятие] = useState<string[]>([])
+  const снятьВыборку = () => {
+    if (!запуск || снятие.length === 0) return
+    спросить({
+      question: `Снять принятие с ${снятие.length}: эти записи уйдут с учёта, остальное в пакете останется.`,
+      ok: 'Снять принятие',
+      onOk: () => api.undoSynthesis(project, запуск.id, 'инженер', снятие)
+        .then((о) => { setСостояние(о.note); setСнятие([]); onChanged(); прочитать() })
         .catch((e) => setОтказ(отказПодробно(e))),
     })
   }
@@ -2049,7 +2148,10 @@ function Постановка({ project, онтология, onChanged, expert =
   }
 
   return (
-    <div className="v2-kf__src" data-why="работа">
+    // Клавиатура проходит экран без мыши (экран 12): фокус на контейнере,
+    // строки — по ↑↓, отметка — Space, приём — Enter.
+    <div className="v2-kf__src" data-why="работа" tabIndex={0} onKeyDown={клавиша}
+      aria-label="предложения постановки: клавиши ↑ ↓ Space Enter A R L">
       <РаздачаНужд project={project} onChanged={onChanged} />
       <div className="v2-form__actions">
         {/*
@@ -2087,17 +2189,76 @@ function Постановка({ project, онтология, onChanged, expert =
               onClick={отменитьПакет}>
               Отменить пакет
             </button>
+            {итог && итог.created.length > 0 && (
+              <button type="button" disabled={занято || снятие.length === 0}
+                title={снятие.length === 0
+                  ? 'снимать нечего: отметьте заведённые коды в списке ниже'
+                  : `снять принятие с ${снятие.length}: остальное в пакете останется`}
+                onClick={снятьВыборку}>
+                Снять принятие ({снятие.length})
+              </button>
+            )}
           </>
         )}
         {состояние && <span className="v2-dim">{состояние}</span>}
       </div>
 
       {предложения.length > 0 && (
-        <div className="v2-note-line" data-why="следующий-клик">
-          {`выбрано ${отмечены.length} → появится ${появится(отмечены)}`}
-          {внимание.length > 0 && `; требуют внимания ${внимание.length}`}
-          {` · спокойных ${спокойные.length} из ${предложения.length}`}
-        </div>
+        <>
+          <div className="v2-form v2-form--row" data-why="следующий-клик">
+            <span className="v2-dim">умные наборы:</span>
+            {наборы.filter((н) => н.коды.length > 0).map((н) => (
+              <button key={н.имя} type="button" className="v2-chip"
+                title={`${н.зачем}; отметит ${н.коды.length} — ничего не заводя`}
+                onClick={() => setОтмечены(н.коды)}>
+                {н.имя} ({н.коды.length})
+              </button>
+            ))}
+            {наборыПоВиду.length > 1 && (
+              <label className="v2-inline" title="отметить разом все спокойные строки одного вида">
+                по виду
+                <select value="" aria-label="умный набор по виду"
+                  onChange={(e) => {
+                    const выбран = наборыПоВиду.find((н) => н.имя === e.target.value)
+                    if (выбран) setОтмечены(выбран.коды)
+                  }}>
+                  <option value="">— выберите —</option>
+                  {наборыПоВиду.map((н) => <option key={н.имя} value={н.имя}>{н.имя} ({н.коды.length})</option>)}
+                </select>
+              </label>
+            )}
+            <button type="button" className="v2-link" disabled={отмечены.length === 0}
+              title={отмечены.length === 0 ? 'сначала отметьте строки — снимать нечего' : 'снять все отметки'}
+              onClick={() => setОтмечены([])}>
+              снять отметки
+            </button>
+            <button type="button" disabled={отмечены.length === 0}
+              title={отмечены.length === 0
+                ? 'сначала отметьте строки: отклоняются отмеченные'
+                : `отклонить ${отмечены.length}: больше не предлагаются, решение обратимо`}
+              onClick={() => решить('rejected')}>
+              Отклонить отмеченные
+            </button>
+            <button type="button" disabled={отмечены.length === 0}
+              title={отмечены.length === 0
+                ? 'сначала отметьте строки: откладываются отмеченные'
+                : `отложить ${отмечены.length}: воротам не мешает, видно счётчиком`}
+              onClick={() => решить('deferred')}>
+              Отложить отмеченные
+            </button>
+          </div>
+          <div className="v2-note-line" data-why="следующий-клик">
+            {`выбрано ${отмечены.length} из ${предложения.length} → появится ${появится(отмечены)}`}
+            {внимание.length > 0 && `; требуют внимания ${внимание.length} — в пакет не идут`}
+            {` · спокойных ${спокойные.length}`}
+            {отложенные > 0 && ` · отложено ${отложенные}`}
+            {отклонённые > 0 && ` · отклонено ${отклонённые}`}
+          </div>
+          <div className="v2-dim">
+            клавиши: ↑ ↓ — строка, Space — отметить (с Shift — диапазон), Enter — принять отмеченные,
+            A — набор «всё, кроме требующих внимания», R — отклонить, L — отложить
+          </div>
+        </>
       )}
 
       {отказ && <div className="v2-locked">{отказ}</div>}
@@ -2106,7 +2267,20 @@ function Постановка({ project, онтология, onChanged, expert =
         <div className="v2-empty__why">
           {итог.note}{` · заведено: ${итог.accepted}`}
           {итог.created.length > 0 && (
-            <> · <span className="v2-mono">{итог.created.join(' · ')}</span></>
+            <ul className="v2-list">
+              {итог.created.map((код) => (
+                <li key={код}>
+                  <label className="v2-check" title="отметить, чтобы снять принятие с этой записи">
+                    <input type="checkbox" checked={снятие.includes(код)}
+                      aria-label={`снять принятие с ${код}`}
+                      onChange={(e) => setСнятие(e.target.checked
+                        ? [...снятие, код]
+                        : снятие.filter((к) => к !== код))} />
+                    <span className="v2-mono">{код}</span>
+                  </label>
+                </li>
+              ))}
+            </ul>
           )}
           {итог.pending.length > 0 && (
             <ul className="v2-list">
@@ -2139,6 +2313,34 @@ function Постановка({ project, онтология, onChanged, expert =
             {запуск.note ? ` · ${запуск.note}` : ''}
           </div>
 
+          {внимание.length > 0 && (
+            <div className="v2-card" data-why="почему-нельзя">
+              <div className="v2-card__head">
+                <span className="v2-card__title">Требует внимания</span>
+                <span className="v2-card__count">{внимание.length}</span>
+              </div>
+              <div className="v2-empty__why">
+                Эти строки в пакет не идут никогда: противоречие, незакрытая обязательная связь или
+                уверенность ниже порога. Каждая решается своей строкой — ниже, в своей группе.
+              </div>
+              <ul className="v2-why">
+                {внимание.map((п) => (
+                  <li key={п.proposal}>
+                    <span className="v2-mono">{п.proposal}</span> {ПОНЯТИЕ[п.concept] ?? п.concept}
+                    {' — '}
+                    {п.missing.length > 0
+                      ? `не закрыто: ${п.missing.join(', ')}`
+                      : п.verdict === 'contradict'
+                        ? `противоречие${п.diff_field ? ` по полю «${п.diff_field}»` : ''}: победителя выбирает человек`
+                        : `уверенность ниже порога ${порог}`}
+                    {п.decision === 'deferred' && <span className="v2-dim"> · отложено</span>}
+                    {п.decision === 'rejected' && <span className="v2-dim"> · отклонено</span>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           {ГРУППЫ.map(([ключ, слово, зачем]) => {
             const строки = запуск.diff ? запуск.diff[ключ] : []
             return (
@@ -2165,18 +2367,24 @@ function Постановка({ project, онтология, onChanged, expert =
                     </thead>
                     <tbody>
                       {строки.map((п: FormationProposal) => (
-                        <tr key={п.proposal}>
+                        <tr key={п.proposal} id={`предложение-${п.proposal}`}
+                          className={подряд[фокус]?.proposal === п.proposal ? 'v2-row--open' : undefined}>
                           <td>
                             <input type="checkbox" checked={отмечены.includes(п.proposal)}
                               aria-label={`отметить предложение ${п.proposal}`}
-                              title={п.missing.length === 0
-                                ? 'отметить это предложение: заводит его клик по «Принять отмеченные»'
-                                : 'у предложения стоит «не закрыто»: отметка «все» его не берёт, '
-                                  + 'а в пакете оно уведёт в отказ и здоровые строки — закройте связь '
-                                  + 'или поправьте основание'}
-                              onChange={(e) => setОтмечены(e.target.checked
-                                ? [...отмечены, п.proposal]
-                                : отмечены.filter((к) => к !== п.proposal))} />
+                              title={п.decision === 'rejected'
+                                ? 'строка отклонена: отметьте и верните в работу, если решение изменилось'
+                                : п.decision === 'deferred'
+                                  ? 'строка отложена: воротам не мешает, вернуть в работу можно отметкой'
+                                  : п.missing.length === 0
+                                    ? 'отметить это предложение: заводит его клик по «Принять отмеченные»; Shift — диапазон'
+                                    : 'у предложения стоит «не закрыто»: отметка «все» его не берёт, '
+                                      + 'а в пакете оно уведёт в отказ и здоровые строки — закройте связь '
+                                      + 'или поправьте основание'}
+                              onChange={(e) => отметить(п.proposal, e.target.checked)}
+                              onClick={(e) => { if (e.shiftKey) отметить(п.proposal, !отмечены.includes(п.proposal), true) }} />
+                            {п.decision === 'deferred' && <div className="v2-dim">отложено</div>}
+                            {п.decision === 'rejected' && <div className="v2-dim">отклонено</div>}
                           </td>
                           <td>
                             <span title={нота(п.concept)}>{ПОНЯТИЕ[п.concept] ?? п.concept}</span>

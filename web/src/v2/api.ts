@@ -1076,6 +1076,11 @@ export interface FormationProposal {
   /** Незакрытые обязательные связи: с ними предложение сущностью не станет. */
   missing: string[]
   basis: ProposalBasis[]
+  /** Решение человека по строке: rejected — отклонено, deferred — отложено; пусто — в работе. */
+  decision?: string
+  decision_by?: string
+  decision_at?: string
+  decision_reason?: string
 }
 
 /** Диф четырьмя группами: предложение лежит только в своей. */
@@ -2037,6 +2042,20 @@ export const api = {
    * узнанное принятое остаётся в `pending` и решается человеком.
    * Незакрытая обязательная связь — 422 с именем связи в `body.missing`.
    */
+  /** Решение по предложениям, кроме приёма: отклонить · отложить · вернуть в работу. */
+  declineSynthesis: (
+    project: string,
+    run: string,
+    chosen: string[],
+    decision: 'rejected' | 'deferred' | 'pending',
+    author = 'инженер',
+    reason?: string,
+  ) =>
+    вызов<{ run: string; decision: string; touched: number; deferred: number; rejected: number; note: string }>(
+      `/synthesis/runs/${encodeURIComponent(run)}/decline?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ chosen, decision, author, reason }) },
+    ),
+
   acceptSynthesis: (
     project: string,
     run: string,
@@ -2075,10 +2094,14 @@ export const api = {
    * Отменить принятый пакет целиком: заведённое снимается с учёта, факты
    * остаются. Приём обратим — иначе человек не решится нажать «принять всё».
    */
-  undoSynthesis: (project: string, run: string, author: string) =>
-    вызов<{ run: string; undone: number; cancelled: string[]; already_gone: string[]; note: string }>(
+  /**
+   * Отмена приёма. Без кодов — пакет целиком; с кодами — «снять принятие» для
+   * выборки: остальное в пакете остаётся и по-прежнему отменяется разом.
+   */
+  undoSynthesis: (project: string, run: string, author: string, chosen?: string[]) =>
+    вызов<{ run: string; undone: number; left_in_batch: number; cancelled: string[]; already_gone: string[]; note: string }>(
       `/synthesis/runs/${encodeURIComponent(run)}/undo?project=${encodeURIComponent(project)}`,
-      { method: 'POST', body: JSON.stringify({ author }) }),
+      { method: 'POST', body: JSON.stringify(chosen && chosen.length > 0 ? { author, chosen } : { author }) }),
 
   /**
    * Раздача нужд по целям и сервисам одним вызовом (решение владельца 17.09):
