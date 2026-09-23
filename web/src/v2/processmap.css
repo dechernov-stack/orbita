@@ -47,7 +47,8 @@
 
 /* Чип роли сцены: короткое слово, полное — подсказкой. Радиус 6 — как у ввода. */
 .v2-pmap .v2-pmap__chip { fill: var(--surface); stroke: var(--graphite); stroke-width: 1; }
-.v2-pmap .v2-pmap__chip-t { font-size: 11px; fill: var(--muted); }
+/* Три размера и ничего между ними: чип ответственного — служебные 12. */
+.v2-pmap .v2-pmap__chip-t { font-size: var(--size-s); fill: var(--muted); }
 
 /* Ветвь артефакта между дорожками: пунктир и подпись артефактом. */
 .v2-pmap .v2-pmap__flow { fill: none; stroke: var(--muted); stroke-width: 1.2; stroke-dasharray: 3 3; }
