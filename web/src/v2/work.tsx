@@ -29,6 +29,7 @@ import { Concept } from './concept'
 import { Requirements } from './requirements'
 import { Costs, Risks, Technologies } from './programmatics'
 import { PhaseASurface } from './phasea'
+import { ОтветственныеСцен } from './responsibles'
 
 export function Work({ project, onProject, wantScene, wantReason, onScenePicked, роль, режим, onРежим }: {
   project: string | null
@@ -172,10 +173,14 @@ export function Work({ project, onProject, wantScene, wantReason, onScenePicked,
         </div>
       )}
       {текущая.key === '1' && (
-        <div className="v2-empty">
-          Проект открыт: {фаза.project}, стандарт {фаза.standard}.
-          <span className="v2-empty__why">Даты точек задаются планом работ фазы — мероприятие 0.P.</span>
-        </div>
+        <>
+          <div className="v2-empty">
+            Проект открыт: {фаза.project}, стандарт {фаза.standard}.
+            <span className="v2-empty__why">Даты точек задаются планом работ фазы — мероприятие 0.P.</span>
+          </div>
+          {/* Ответственные сцен назначаются на сцене 1, A1 и в паспорте (истина 23.09). */}
+          <ОтветственныеСцен project={project} onChanged={перечитать} />
+        </>
       )}
       {текущая.key === '2' && <SceneIntent project={project} onChanged={перечитать} />}
       {текущая.key === '3' && <SceneStakeholders project={project} onChanged={перечитать} />}

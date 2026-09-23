@@ -100,15 +100,19 @@ class PhaseAConditionsTest {
         отказ("phase_points_dated", "даты не заданы")
         store.list(область, "gate").forEach { store.update(it.id, (it.doc.deepCopy() as com.fasterxml.jackson.databind.node.ObjectNode).put("planned_date", "2027-05-01"), п) }
         проход("phase_points_dated")
-        // Ответственные сцен — роли проекта (истина A1: account_role, role in (rp, si)),
-        // а не поле окна плана, которого истина не знает.
-        отказ("scene_responsible_min:1", "назначено 0 из 1")
+        // Ответственные сцен — в окнах плана (истина 23.09: scene_windows[].responsible);
+        // незаполненное окно — умолчание из ролей проекта по роли сцены (РП / ведущий СИ).
+        отказ("scene_responsible_min:1", "назначено 0 из 12")
         роли["petrov"] = "specialist"
-        отказ("scene_responsible_min:1", "паспорте проекта")
+        отказ("scene_responsible_min:1", "окне сцены")
+        store.create("PLAN-A", "plan", область, "A1", json("""{"phase":"Phase A","gate_dates":[],"scene_windows":[{"scene":"A1","start":"2027-01-01","end":"2027-02-01","responsible":"petrov"}],"set_by":"Чернов Д."}"""), п)
+        проход("scene_responsible_min:1")
+        отказ("scene_responsible_min:2", "назначено 1 из 12")
         роли["chernov"] = "lead"
-        проход("scene_responsible_min:1")
+        // РП — умолчание для всех сцен роли «lead»: A1, A2, A8, A10, A11 …
+        проход("scene_responsible_min:2")
         роли.clear(); роли["ivanov"] = "lead_se"
-        проход("scene_responsible_min:1")
+        проход("scene_responsible_min:2")
     }
 
     @Test

@@ -1707,7 +1707,7 @@ export const api = {
     ),
 
   plan: (project: string) =>
-    вызов<{ planned: boolean; note?: string; gate_dates?: { gate: string; date: string }[]; scene_windows?: { scene: string; start: string; end: string }[] }>(
+    вызов<{ planned: boolean; note?: string; gate_dates?: { gate: string; date: string }[]; scene_windows?: { scene: string; start: string; end: string; responsible?: string }[] }>(
       `/plan?project=${encodeURIComponent(project)}`),
 
   setPlan: (project: string, тело: Record<string, unknown>) =>

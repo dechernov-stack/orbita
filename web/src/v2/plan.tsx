@@ -16,8 +16,10 @@
 //     того, что уже сделано.
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { api, type Gate, type Phase, type Scene } from './api'
+import { умолчаниеПоРоли } from './responsibles'
 
-type Окно = { start: string; end: string }
+/** Окно сцены: даты и ответственный (истина 23.09: `scene_windows[].responsible`). */
+type Окно = { start: string; end: string; responsible?: string }
 
 export function PhasePlan({ phase, project, onChanged }: {
   phase: Phase
@@ -31,15 +33,21 @@ export function PhasePlan({ phase, project, onChanged }: {
   const [отказ, setОтказ] = useState<string | null>(null)
   const [итог, setИтог] = useState<string | null>(null)
   const [открыт, setОткрыт] = useState(false)
+  /** Учётки и роли — для ответственного сцены и его умолчания по роли. */
+  const [учётки, setУчётки] = useState<{ login: string; display_name: string }[]>([])
+  const [роли, setРоли] = useState<Record<string, string>>({})
 
   const перечитать = useCallback(() => {
     api.plan(project)
       .then((п) => {
         setЗадан(п.planned)
         setДаты(Object.fromEntries((п.gate_dates ?? []).map((д) => [д.gate, д.date])))
-        setОкна(Object.fromEntries((п.scene_windows ?? []).map((о) => [о.scene, { start: о.start, end: о.end }])))
+        setОкна(Object.fromEntries((п.scene_windows ?? []).map((о) => [о.scene, { start: о.start, end: о.end, responsible: о.responsible }])))
       })
       .catch(() => undefined)
+    api.projectRoles(project).then(setРоли).catch(() => setРоли({}))
+    fetch('/api/auth/users').then((r) => (r.ok ? r.json() : { users: [] }))
+      .then((d) => setУчётки(d.users ?? [])).catch(() => setУчётки([]))
   }, [project])
   useEffect(перечитать, [перечитать])
 
@@ -128,7 +136,7 @@ export function PhasePlan({ phase, project, onChanged }: {
       gate_dates: Object.entries(даты).filter(([, д]) => д).map(([gate, date]) => ({ gate, date })),
       scene_windows: Object.entries(окна)
         .filter(([, о]) => о.start && о.end)
-        .map(([scene, о]) => ({ scene, start: о.start, end: о.end })),
+        .map(([scene, о]) => ({ scene, start: о.start, end: о.end, ...(о.responsible ? { responsible: о.responsible } : {}) })),
     })
       .then(() => { setИтог('план записан: лента и точки читают его как есть'); перечитать(); onChanged() })
       .catch((e) => setОтказ(String(e.message ?? e)))
@@ -141,16 +149,26 @@ export function PhasePlan({ phase, project, onChanged }: {
         Сцена {с.key} · {с.title}
         {с.state === 'done' && <span className="v2-dim"> · выполнена</span>}
       </span>
-      <span className="v2-row2">
+      <span className="v2-row3">
         <input type="date" name={`план.сцена.${с.key}.start`} aria-label={`сцена ${с.key}: начало`}
           value={окна[с.key]?.start ?? ''}
           max={окна[с.key]?.end || undefined}
-          onChange={(e) => setОкна({ ...окна, [с.key]: { start: e.target.value, end: окна[с.key]?.end ?? '' } })} />
+          onChange={(e) => setОкна({ ...окна, [с.key]: { ...окна[с.key], start: e.target.value, end: окна[с.key]?.end ?? '' } })} />
         <input type="date" name={`план.сцена.${с.key}.end`} aria-label={`сцена ${с.key}: конец`}
           value={окна[с.key]?.end ?? ''}
           min={окна[с.key]?.start || undefined}
           max={точка ? (даты[точка.key] || undefined) : undefined}
-          onChange={(e) => setОкна({ ...окна, [с.key]: { start: окна[с.key]?.start ?? '', end: e.target.value } })} />
+          onChange={(e) => setОкна({ ...окна, [с.key]: { ...окна[с.key], start: окна[с.key]?.start ?? '', end: e.target.value } })} />
+        {/* Ответственный — в окне сцены (истина 23.09); пусто — умолчание из ролей проекта по роли сцены. */}
+        <select name={`план.сцена.${с.key}.responsible`} aria-label={`сцена ${с.key}: ответственный`}
+          value={окна[с.key]?.responsible ?? ''}
+          title="ответственный сцены живёт в окне плана; пусто — умолчание из ролей проекта по роли сцены"
+          onChange={(e) => setОкна({ ...окна, [с.key]: { start: окна[с.key]?.start ?? '', end: окна[с.key]?.end ?? '', responsible: e.target.value || undefined } })}>
+          <option value="">{умолчаниеПоРоли(роли, с.role)
+            ? `по умолчанию: ${учётки.find((у) => у.login === умолчаниеПоРоли(роли, с.role))?.display_name ?? умолчаниеПоРоли(роли, с.role)}`
+            : '— не назначен —'}</option>
+          {учётки.map((у) => <option key={у.login} value={у.login}>{у.display_name} · {у.login}</option>)}
+        </select>
       </span>
     </span>
   )

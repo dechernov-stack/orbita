@@ -16,8 +16,8 @@ class PointChecks(
     private val documents: Documents?,
     /**
      * Роли проекта (учётка → роль) — то, что истина зовёт `account_role`.
-     * Условие A1 «ответственные сцен назначены» читает ИХ: окно сцены в плане
-     * истина знает как `{scene, start, end}`, поля «ответственный» у него нет.
+     * Условие A1 «ответственные сцен назначены» читает окна плана, а роли —
+     * умолчание для незаполненных окон по роли сцены (истина 23.09).
      */
     private val roles: (project: String) -> Map<String, String> = { emptyMap() },
     /** Шаблон фазы проекта — откуда берутся позиции экспертиз и матрица зрелости точки. */
@@ -41,15 +41,28 @@ class PointChecks(
                     else -> CheckResult.no("даты не заданы у точек: " + без.joinToString(", ") { it.code } + " — план фазы задаёт даты точек")
                 }
             }
-            // A1: ответственные сцен — роли проекта РП и ведущего СИ (истина A1:
-            // `account_role`, role in (rp, si)); назначаются в паспорте проекта.
+            // A1: ответственные сцен — в окнах плана работ фазы (истина 23.09:
+            // `plan.scene_windows[].responsible`); незаполненное — умолчание из
+            // ролей проекта по роли сцены в шаблоне (РП / ведущий СИ).
             "scene_responsible_min" -> {
                 val нужно = (аргумент ?: "1").toIntOrNull() ?: 1
-                val ответственные = roles(project).filterValues { it in ОТВЕТСТВЕННЫЕ_РОЛИ }
-                if (ответственные.size >= нужно) CheckResult.ok
+                val окна = store.list(область, "plan").lastOrNull()?.doc?.path("scene_windows")
+                    ?.associate { it.path("scene").asText() to it.path("responsible").asText("").trim() }
+                    .orEmpty()
+                val роли = roles(project)
+                val умолчание = { роль: String -> роль in ОТВЕТСТВЕННЫЕ_РОЛИ && роли.containsValue(роль) }
+                val сцены = template(project)?.path("scenes")
+                    ?.map { it.path("key").asText() to it.path("role").asText("") }
+                    ?.filter { (ключ, _) -> ключ.isNotBlank() }
+                    .orEmpty()
+                val назначено = if (сцены.isEmpty()) окна.values.count { it.isNotBlank() }
+                else сцены.count { (ключ, роль) -> окна[ключ].orEmpty().isNotBlank() || умолчание(роль) }
+                val всего = if (сцены.isEmpty()) окна.size else сцены.size
+                if (назначено >= нужно) CheckResult.ok
                 else CheckResult.no(
-                    "ответственных сцен назначено ${ответственные.size} из $нужно — роль «руководитель проекта» " +
-                        "или «ведущий СИ» назначается в паспорте проекта",
+                    "ответственных сцен назначено $назначено из $всего (нужно $нужно) — назначьте в окне сцены " +
+                        "плана работ фазы (сцена A1, сцена 1, паспорт) либо дайте роль РП или ведущего СИ в паспорте: " +
+                        "она станет умолчанием для сцен своей роли",
                 )
             }
             // A12: по каждой позиции экспертизы точки записан вердикт.

@@ -15,7 +15,6 @@ import {
   api, type BudgetRow, type ComponentCard, type ComponentRow, type InterfaceRow, type KindSpec,
   type Phase, type Scene,
 } from './api'
-import { РОЛЬ } from './activity'
 import { ArchitectureScreen } from './architecture'
 import { Concept } from './concept'
 import { DocumentBody } from './documents'
@@ -25,6 +24,7 @@ import { PhasePlan } from './plan'
 import { Costs, Debris, Technologies } from './programmatics'
 import { Requirements } from './requirements'
 import { useАвтор } from './research'
+import { ОтветственныеСцен } from './responsibles'
 import { RiskRegistry } from './risks'
 
 export function PhaseASurface({ project, phase, scene, onChanged, onScene }: {
@@ -46,7 +46,7 @@ export function PhaseASurface({ project, phase, scene, onChanged, onScene }: {
     return (
       <>
         <PhasePlan phase={phase} project={project} onChanged={onChanged} />
-        <Ответственные project={project} />
+        <ОтветственныеСцен project={project} onChanged={onChanged} />
         <div className="v2-panel" data-why="следующий-клик">
           <h3>Реестры к развёртыванию</h3>
           <div className="v2-empty__why">
@@ -433,83 +433,6 @@ function Бюджеты({ project }: { project: string }) {
           title={помеха ?? (занято ? 'бюджет записывается' : 'записать бюджет: свёртка к точке появится в разделе «Модели»')}
           onClick={записать}>
           {занято ? 'Записываю…' : 'Записать бюджет'}
-        </button>
-      </div>
-    </div>
-  )
-}
-
-/**
- * Ответственные сцен — роли проекта РП и ведущего СИ (истина A1: account_role,
- * role in (rp, si)); условие A1 читает их. Назначает руководитель — сервер
- * откажет остальным словами.
- */
-function Ответственные({ project }: { project: string }) {
-  const [роли, setРоли] = useState<Record<string, string>>({})
-  const [учётки, setУчётки] = useState<{ login: string; display_name: string }[]>([])
-  const [выбор, setВыбор] = useState({ login: '', role: 'lead_se' })
-  const [отказ, setОтказ] = useState<string | null>(null)
-  const [занято, setЗанято] = useState(false)
-
-  const перечитать = useCallback(() => {
-    api.projectRoles(project).then(setРоли).catch(() => setРоли({}))
-    fetch('/api/auth/users').then((r) => (r.ok ? r.json() : { users: [] }))
-      .then((d) => setУчётки(d.users ?? [])).catch(() => setУчётки([]))
-  }, [project])
-  useEffect(перечитать, [перечитать])
-
-  const имя = (логин: string) => учётки.find((у) => у.login === логин)?.display_name ?? логин
-  const ведущие = Object.entries(роли).filter(([, р]) => р === 'lead' || р === 'lead_se')
-  const помеха = !выбор.login ? 'учётка не выбрана' : null
-
-  const назначить = () => {
-    if (помеха) return
-    setЗанято(true); setОтказ(null)
-    api.setProjectRole(project, выбор.login, выбор.role)
-      .then(() => { setВыбор({ login: '', role: 'lead_se' }); перечитать() })
-      .catch((e) => setОтказ(String(e.message ?? e)))
-      .finally(() => setЗанято(false))
-  }
-
-  return (
-    <div className="v2-panel" data-why="работа">
-      <h3>Ответственные сцен<span className="v2-cnt">{ведущие.length}</span></h3>
-      <div className="v2-empty__why">
-        Сцены ведут руководитель проекта и ведущий СИ — это роли проекта, и условие сцены читает их.
-      </div>
-      {отказ && <div className="v2-locked">{отказ}</div>}
-      {ведущие.length === 0 ? (
-        <div className="v2-empty">
-          Ответственных нет.
-          <span className="v2-empty__why">Назначьте роль руководителя или ведущего СИ хотя бы одной учётке.</span>
-        </div>
-      ) : (
-        <table className="v2-table">
-          <thead><tr><th>Учётка</th><th>Роль</th></tr></thead>
-          <tbody>
-            {ведущие.map(([логин, роль]) => (
-              <tr key={логин}><td>{имя(логин)}<span className="v2-dim"> · {логин}</span></td><td>{РОЛЬ[роль] ?? роль}</td></tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-      <div className="v2-form v2-form--row">
-        <label className="v2-inline">учётка
-          <select aria-label="учётка ответственного" value={выбор.login} onChange={(e) => setВыбор({ ...выбор, login: e.target.value })}>
-            <option value="">— учётка стенда —</option>
-            {учётки.map((у) => <option key={у.login} value={у.login}>{у.display_name} · {у.login}</option>)}
-          </select>
-        </label>
-        <label className="v2-inline">роль
-          <select aria-label="роль ответственного" value={выбор.role} onChange={(e) => setВыбор({ ...выбор, role: e.target.value })}>
-            <option value="lead_se">{РОЛЬ.lead_se}</option>
-            <option value="lead">{РОЛЬ.lead}</option>
-          </select>
-        </label>
-        <button type="button" className="v2-primary" disabled={Boolean(помеха) || занято}
-          title={помеха ?? (занято ? 'роль назначается' : 'назначить роль проекта: сервер пустит только руководителя')}
-          onClick={назначить}>
-          {занято ? 'Назначаю…' : 'Назначить'}
         </button>
       </div>
     </div>

@@ -7,6 +7,9 @@ import поверхности from './phasea.tsx?raw'
 import работа from './work.tsx?raw'
 import вызовы from './api.ts?raw'
 import программатика from './programmatics.tsx?raw'
+import ответственные from './responsibles.tsx?raw'
+import паспорт from './passport.tsx?raw'
+import план from './plan.tsx?raw'
 
 describe('Phase A: сцена открывает реестр с отбором, а не новый экран', () => {
   it('экземпляр сцены привязывается по сцене шаблона; поверхность подключена в «Работе»', () => {
@@ -15,14 +18,24 @@ describe('Phase A: сцена открывает реестр с отбором,
     expect(работа).toContain('<PhaseASurface project={project} phase={фаза} scene={текущая} onChanged={перечитать}')
   })
 
-  it('A1 — план фазы, ответственные из ролей проекта, реестры соседних сцен за кликом', () => {
+  it('A1 — план фазы, ответственные сцен из окна плана, реестры соседних сцен за кликом', () => {
     expect(поверхности).toContain("if (ключ === 'A1')")
     expect(поверхности).toContain('<PhasePlan phase={phase} project={project} onChanged={onChanged} />')
-    expect(поверхности).toContain('<Ответственные project={project} />')
-    expect(поверхности).toContain("р === 'lead' || р === 'lead_se'")
-    expect(поверхности).toContain('api.setProjectRole(project, выбор.login, выбор.role)')
+    expect(поверхности).toContain('<ОтветственныеСцен project={project} onChanged={onChanged} />')
     expect(поверхности).toContain("onClick={() => onScene('A8')}")
     expect(поверхности).toContain("onClick={() => onScene('A7')}")
+  })
+
+  it('ответственный сцены живёт в окне плана; умолчание — из ролей проекта по роли сцены (истина 23.09)', () => {
+    expect(ответственные).toContain("if (роль !== 'lead' && роль !== 'lead_se') return null")
+    expect(ответственные).toContain('о.scene === ключ ? { ...о, responsible: логин || undefined } : о')
+    expect(ответственные).toContain('api.setPlan(project, { phase: фаза.phase, author: \'инженер\', gate_dates: план.gate_dates, scene_windows: окна })')
+    expect(ответственные).toContain('сначала окно сцены в плане работ фазы')
+    // назначается на A1, сцене 1 и в паспорте — один блок, одно место хранения
+    expect(работа).toContain('<ОтветственныеСцен project={project} onChanged={перечитать} />')
+    expect(паспорт).toContain('<ОтветственныеСцен project={project} onChanged={onChanged} />')
+    expect(план).toContain('responsible: о.responsible')
+    expect(план).toContain("aria-label={`сцена ${с.key}: ответственный`}")
   })
 
   it('A2 · A3 · A9 · A11 — документ находится по ШАБЛОНУ из списка, не по угаданному коду', () => {

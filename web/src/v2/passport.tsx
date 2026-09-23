@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react'
 import { api, type Passport as Паспорт } from './api'
 import { useАвтор } from './research'
 import { моиРоли, type Учётка } from './points'
+import { ОтветственныеСцен } from './responsibles'
 
 /** Роли проекта словами — те же, что на экране точки. */
 const РОЛЬ: Record<string, string> = {
@@ -33,6 +34,8 @@ export function PassportScreen({ project, учётка, onChanged }: {
   const [черновик, setЧерновик] = useState<Record<string, string>>({})
   const [даты, setДаты] = useState<Record<string, string>>({})
   const [занято, setЗанято] = useState(false)
+  /** Кому и какую роль назначить: хук — до ранних возвратов, как и остальные. */
+  const [назначение, setНазначение] = useState({ login: '', role: 'da_review' })
 
   const перечитать = () => {
     if (!project) return
@@ -71,11 +74,12 @@ export function PassportScreen({ project, учётка, onChanged }: {
       .finally(() => setЗанято(false))
   }
 
-  const назначитьDA = (логин: string) => {
-    if (!логин) return
+  /** Роль проекта учётке: DA фиксирует точки, РП и ведущий СИ — умолчание ответственных сцен. */
+  const назначитьРоль = () => {
+    if (!назначение.login) return
     setОтказ(null)
-    api.setProjectRole(project, логин, 'da_review')
-      .then(перечитать)
+    api.setProjectRole(project, назначение.login, назначение.role)
+      .then(() => { setНазначение({ login: '', role: 'da_review' }); перечитать() })
       .catch((e) => setОтказ(String(e.message ?? e)))
   }
 
@@ -134,16 +138,31 @@ export function PassportScreen({ project, учётка, onChanged }: {
         {' · '}ведущий СИ: {держатели('lead_se').map(имя).join(', ') || '—'}
       </div>
       {руководитель ? (
-        <label className="v2-inline" title="роль DA назначает руководитель проекта; DA фиксирует точки">
-          назначить DA
-          <select aria-label="назначить DA" value="" onChange={(e) => назначитьDA(e.target.value)}>
-            <option value="">— учётка —</option>
-            {учётки.map((у) => <option key={у.login} value={у.login}>{у.display_name} ({РОЛЬ[роли[у.login]] ?? 'без роли'})</option>)}
-          </select>
-        </label>
+        <div className="v2-form v2-form--row" title="роли назначает руководитель проекта: DA фиксирует точки, РП и ведущий СИ — умолчание ответственных сцен">
+          <label className="v2-inline">
+            роль
+            <select aria-label="какую роль назначить" value={назначение.role} onChange={(e) => setНазначение({ ...назначение, role: e.target.value })}>
+              {Object.entries(РОЛЬ).map(([к, и]) => <option key={к} value={к}>{и}</option>)}
+            </select>
+          </label>
+          <label className="v2-inline">
+            учётка
+            <select aria-label="кому назначить роль" value={назначение.login} onChange={(e) => setНазначение({ ...назначение, login: e.target.value })}>
+              <option value="">— учётка —</option>
+              {учётки.map((у) => <option key={у.login} value={у.login}>{у.display_name} ({РОЛЬ[роли[у.login]] ?? 'без роли'})</option>)}
+            </select>
+          </label>
+          <button type="button" className="v2-primary" disabled={!назначение.login}
+            title={!назначение.login ? 'учётка не выбрана' : `назначить роль «${РОЛЬ[назначение.role]}»: у учётки одна роль в проекте`}
+            onClick={назначитьРоль}>
+            Назначить
+          </button>
+        </div>
       ) : (
         <div className="v2-dim">Роли назначает руководитель проекта.</div>
       )}
+
+      <ОтветственныеСцен project={project} onChanged={onChanged} />
 
       <h4 className="v2-h4">Даты точек текущей фазы</h4>
       <div className="v2-form v2-form--row">

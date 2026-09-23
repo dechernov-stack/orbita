@@ -216,7 +216,7 @@ describe('паспорт проекта (З-25, шип 1, п. 1.5)', () => {
   })
 
   it('DA — роль проекта, назначает руководитель; остальным сказано, кто назначает', () => {
-    expect(паспорт).toContain("api.setProjectRole(project, логин, 'da_review')")
+    expect(паспорт).toContain('api.setProjectRole(project, назначение.login, назначение.role)')
     expect(паспорт).toContain('Роли назначает руководитель проекта.')
   })
 })
