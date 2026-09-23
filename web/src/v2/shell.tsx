@@ -22,6 +22,7 @@ import { Library } from './library'
 import { ИМЯ_РЕЖИМА, режимПоРоли, type Режим } from './density'
 import { Икон, type Пиктограмма } from './icons'
 import { Маркер } from './markers'
+import { инициалы } from './people'
 
 /** Раздел рейки. `wave` — волна, в которой раздел оживает. */
 type Section = {
@@ -382,13 +383,6 @@ export function Shell() {
 /** Роли словами — те же, что на экране точки. */
 const ИМЯ_РОЛИ: Record<string, string> = {
   lead: 'руководитель проекта', lead_se: 'ведущий системный инженер', specialist: 'инженер', da_review: 'DA', sma: 'SMA', reader: 'наблюдатель',
-}
-
-/** Инициалы для аватара: «Чернов Д.» → «ЧД»; логин tg:… → первые две буквы. */
-function инициалы(имя: string): string {
-  const слова = имя.replace(/^tg:/, '').split(/[\s.·]+/).filter(Boolean)
-  const буквы = слова.slice(0, 2).map((с) => с[0]?.toUpperCase() ?? '').join('')
-  return буквы || имя.slice(0, 2).toUpperCase()
 }
 
 /**

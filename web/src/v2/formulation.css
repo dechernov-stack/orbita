@@ -1,0 +1,32 @@
+/* Экран «Постановка» (шип 2, экран 11): таблица сторон и сетка «влияние ×
+   сила» рядом, карточка стороны — вниз под её строкой. Третьей колонки нет:
+   сетка — вторая и последняя. */
+.v2-stakes { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(320px, 1fr); gap: var(--pad-xl); align-items: start; }
+@media (max-width: 1100px) { .v2-stakes { grid-template-columns: minmax(0, 1fr); } }
+
+/* Сила 1–5 кликом: пять баллов в ячейке, выбранный — кобальтом. */
+.v2-power { display: inline-flex; gap: 2px; }
+.v2-power button {
+  width: 22px; padding: 2px 0; border: 1px solid var(--graphite); background: var(--surface);
+  color: var(--muted); border-radius: var(--radius-input); cursor: pointer; font-size: var(--size-s);
+}
+.v2-power button[aria-pressed="true"] { border-color: var(--cobalt); color: var(--cobalt); font-weight: 600; }
+.v2-power button.v2-power--proposed { color: var(--graphite); border-style: dashed; }
+
+/* Сетка влияния: строки — сила 5…1, колонки — влияние. */
+.v2-grid { border-collapse: collapse; width: 100%; }
+.v2-grid th { text-align: left; font-weight: 500; font-size: var(--size-s); color: var(--muted); padding: 6px 8px; border-bottom: 1px solid var(--graphite); }
+.v2-grid td { border: 1px solid var(--graphite); padding: 6px; vertical-align: top; min-height: 40px; }
+.v2-grid td.v2-grid__aim { background: var(--accent-soft); cursor: pointer; }
+.v2-grid .v2-grid__n { border: 0; color: var(--muted); font-size: var(--size-s); padding-right: 10px; }
+
+/* Чип стороны: инициалы; серый пунктир — сила предложена по роли. */
+.v2-stake-chip {
+  display: inline-flex; align-items: center; gap: 4px; margin: 2px;
+  padding: 2px 7px; border: 1px solid var(--graphite); border-radius: var(--radius-input);
+  background: var(--surface); color: var(--ink); font-size: var(--size-s); cursor: pointer;
+}
+.v2-stake-chip[aria-pressed="true"] { border-color: var(--cobalt); color: var(--cobalt); }
+.v2-stake-chip--proposed { border-style: dashed; color: var(--muted); }
+.v2-stake-chip--supports { box-shadow: inset 2px 0 0 var(--green); }
+.v2-stake-chip--resists { box-shadow: inset 2px 0 0 var(--amber); }
