@@ -463,6 +463,8 @@ export function Requirements({ project, отбор }: { project: string | null; 
   const [сортировка, setСортировка] = useState<{ по: Колонка; вверх: boolean }>({ по: 'code', вверх: true })
   const [группировка, setГруппировка] = useState<'нет' | 'carrier' | 'level'>('нет')
   const [выделены, setВыделены] = useState<string[]>([])
+  /** Материалы проекта: по ним вид «по документам» узнаёт источник-документ. */
+  const [документы, setДокументы] = useState<string[]>([])
   const [фильтры, setФильтры] = useState<{ level: string; category: string; carrier: string; status: string; безНосителя: boolean; поиск: string }>(
     { level: '', category: '', carrier: '', status: '', безНосителя: false, поиск: '' },
   )
@@ -488,6 +490,7 @@ export function Requirements({ project, отбор }: { project: string | null; 
     api.suspects(project).then((r) => setПодозрения(r.items)).catch(() => undefined)
     api.baselines(project).then((r) => setСнимки(r.items)).catch(() => undefined)
     api.baselineBlockers(project, 'functional', 'SRR').then((r) => setПомехи(r.items)).catch(() => undefined)
+    api.entities(project, 'material').then((r) => setДокументы(r.items.map((м) => м.code))).catch(() => setДокументы([]))
   }, [project])
 
   useEffect(перечитать, [перечитать])
@@ -639,7 +642,7 @@ export function Requirements({ project, отбор }: { project: string | null; 
         ) : вид === 'матрица' ? (
           <МатрицаНосителей строки={упорядочены} />
         ) : (
-          <Деревья строки={упорядочены} вид={вид === 'иерархия' ? 'source' : 'document'} />
+          <Деревья строки={упорядочены} вид={вид === 'иерархия' ? 'source' : 'document'} документы={документы} />
         )}
       </div>
 
@@ -1524,23 +1527,29 @@ function Помета({ note }: { note: LintNote }) {
 }
 
 /** Два дерева: по носителю (кто несёт) и по источнику (откуда выведено). */
-function Деревья({ строки, вид }: { строки: RequirementRow[]; вид: 'carrier' | 'source' | 'document' }) {
+function Деревья({ строки, вид, документы = [] }: {
+  строки: RequirementRow[]
+  вид: 'carrier' | 'source' | 'document'
+  /** Коды материалов проекта: по ним источник узнаётся документом. */
+  документы?: string[]
+}) {
   const группы = useMemo(() => {
     const карта = new Map<string, RequirementRow[]>()
     строки.forEach((т) => {
       const ключи = вид === 'carrier'
         ? [т.carrier ?? 'без носителя']
         // «По документам» — источники-материалы: из чего требование написано;
-        // «по иерархии» — все источники, включая цели и нужды.
+        // какие коды материалы, говорят ДАННЫЕ проекта, а не форма кода.
+        // «По иерархии» — все источники, включая цели и нужды.
         : вид === 'document'
-          ? (т.sources.filter((и) => /^(SD|MAT|DOC)/i.test(и)).length > 0
-            ? т.sources.filter((и) => /^(SD|MAT|DOC)/i.test(и))
+          ? (т.sources.filter((и) => документы.includes(и)).length > 0
+            ? т.sources.filter((и) => документы.includes(и))
             : ['без документа-источника'])
           : (т.sources.length > 0 ? т.sources : ['без источника'])
       ключи.forEach((к) => карта.set(к, [...(карта.get(к) ?? []), т]))
     })
     return [...карта.entries()].sort((a, b) => a[0].localeCompare(b[0]))
-  }, [строки, вид])
+  }, [строки, вид, документы])
 
   if (группы.length === 0) return null
 
