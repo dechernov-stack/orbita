@@ -106,6 +106,25 @@ class GlossaryRoutesTest {
     }
 
     @Test
+    fun `привязка проекта — стороны по синониму к термину, незнакомые кандидатами, повтор ничего не меняет`() {
+        // КТ2 (24.09): стороны, заведённые до словаря, привязываются кнопкой —
+        // словарь показывает кандидатов и на проекте, где документы читались раньше.
+        router.handle("POST", "/v2/stakeholders", п, """{"name":"ФСНСТ","role":"regulator","author":"Иванов И."}""")
+        router.handle("POST", "/v2/stakeholders", п, """{"name":"Росморпорт","role":"operator","author":"Иванов И."}""")
+        val итог = router.handle("POST", "/v2/glossary/link", п, """{"author":"Иванов И."}""")!!
+        assertEquals(200, итог.code)
+        assertEquals(2, итог.body.path("linked").asInt(), итог.body.toString())
+        assertEquals(1, итог.body.path("candidates").asInt(), "незнакомая сторона — один кандидат")
+        val кандидат = store.list(область, "glossary_term").single { it.status == "candidate" }
+        assertEquals("Росморпорт", кандидат.doc.path("term_ru").asText())
+        val фснст = store.list(область, "stakeholder").single { it.doc.path("name").asText() == "ФСНСТ" }
+        assertTrue(links.from(фснст.id, "named_by").any { it.to == store.byCode(Area.Library, "GT-ST-001")!!.id }, "по синониму — к принятому термину")
+        val снова = router.handle("POST", "/v2/glossary/link", п, """{"author":"Иванов И."}""")!!
+        assertEquals(0, снова.body.path("linked").asInt(), "повтор: привязывать нечего")
+        assertEquals(1, список(статус = "candidate").path("candidates").asInt())
+    }
+
+    @Test
     fun `слияние делает кандидата синонимом принятого термина и снимает его`() {
         val кандидат = router.handle("POST", "/v2/glossary", п,
             """{"term_ru":"Федеральная служба по надзору в сфере транспорта (Ространснадзор)","class":"stakeholder","status":"candidate","author":"разбор"}""")!!

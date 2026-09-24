@@ -85,7 +85,7 @@ class V2Router(
 
     private val сцены = SceneRoutes(store, links, engine, mapper, units = units)
     private val сквозные = AcrossRoutes(store, links, engine, shelves, intake, formulation, mapper, extract = extract)
-    private val словарь = GlossaryRoutes(store, links, orbita.knowledge.api.KnowledgeFactory.glossary(store, mapper), mapper)
+    private val словарь = GlossaryRoutes(store, links, orbita.knowledge.api.KnowledgeFactory.glossary(store, mapper, links), mapper)
     // Точки есть у любого роутера: фиксация точки — часть хребта, а не
     // отдельной волны; сборка без явных записей берёт записи над тем же
     // хранилищем.

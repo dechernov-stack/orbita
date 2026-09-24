@@ -27,6 +27,15 @@ class GlossaryRoutes(
         method == "GET" && path == "/v2/glossary" ->
             список(query["project"]?.ifBlank { null }, query["q"], query["class"], query["status"])
         method == "POST" && path == "/v2/glossary" -> завести(требуется(query), разобрать(body))
+        // Стороны и узлы, заведённые до словаря, привязываются по кнопке: термин
+        // по имени/коду либо кандидат — так словарь показывает кандидатов и на
+        // проекте, где документы читались раньше него (КТ2, 24.09).
+        method == "POST" && path == "/v2/glossary/link" -> {
+            val итог = glossary.linkProject(Area.Project(требуется(query)), разобрать(body).path("author").asText("").ifBlank { "инженер" })
+            V2Router.Ответ(200, mapper.createObjectNode().put("linked", итог.linked).put("candidates", итог.candidates)
+                .also { у -> у.putArray("notes").also { м -> итог.notes.forEach { м.add(it) } } }
+                .put("note", "привязано записей ${итог.linked}, новых кандидатов ${итог.candidates}"))
+        }
         method == "POST" && решение.matches(path) -> {
             val м = решение.matchEntire(path)!!
             решить(требуется(query), м.groupValues[1], м.groupValues[2], разобрать(body))

@@ -19,6 +19,10 @@ export function GlossaryScreen({ project }: { project: string | null }) {
   const [причины, setПричины] = useState<Record<string, string>>({})
   const [куда, setКуда] = useState<Record<string, string>>({})
   const [тик, setТик] = useState(0)
+  /** Рубрикатор по буквам (КТ2: «одной простынёй неудобно»): буква — отбор по первой букве термина. */
+  const [буква, setБуква] = useState('')
+  const [источник, setИсточник] = useState('')
+  const [привязка, setПривязка] = useState<string | null>(null)
 
   useEffect(() => {
     let живо = true
@@ -31,8 +35,23 @@ export function GlossaryScreen({ project }: { project: string | null }) {
 
   const перечитать = () => setТик((т) => т + 1)
   const кандидаты = термины.filter((т) => т.status === 'candidate')
-  const принятые = термины.filter((т) => т.status !== 'candidate')
   const словоКласса = (т: GlossaryTerm) => т.class_word ?? классы[т.class] ?? т.class
+  const буквы = буквыТерминов(термины)
+  const источники = [...new Set(термины.map((т) => источникКоротко(т.source)).filter(Boolean))].sort()
+  const принятые = термины.filter((т) => т.status !== 'candidate')
+    .filter((т) => !буква || перваяБуква(т.term_ru) === буква)
+    .filter((т) => !источник || источникКоротко(т.source) === источник)
+    .sort((а, б) => а.term_ru.localeCompare(б.term_ru, 'ru'))
+
+  /** Стороны и узлы проекта, заведённые до словаря, — привязать: термин или кандидат. */
+  const привязать = () => {
+    if (!project) return
+    setЗанято(true); setОтказ(null)
+    api.glossaryLink(project)
+      .then((о) => { setПривязка(о.note + (о.notes.length ? ' — ' + о.notes.slice(0, 3).join('; ') + (о.notes.length > 3 ? ' …' : '') : '')); перечитать() })
+      .catch((e) => setОтказ(String(e.message ?? e)))
+      .finally(() => setЗанято(false))
+  }
 
   const решить = (т: GlossaryTerm, действие: 'accept' | 'reject' | 'merge') => {
     setЗанято(true); setОтказ(null)
@@ -75,6 +94,25 @@ export function GlossaryScreen({ project }: { project: string | null }) {
           <option value="candidate">кандидаты</option>
           <option value="obsolete">устаревшие</option>
         </select>
+        <select value={источник} onChange={(e) => setИсточник(e.target.value)} aria-label="источник термина">
+          <option value="">— любой источник —</option>
+          {источники.map((и) => <option key={и} value={и}>{и}</option>)}
+        </select>
+        {project && (
+          <button type="button" onClick={привязать} disabled={занято}
+            title="стороны и узлы проекта, заведённые до словаря: каждой — термин по имени или коду, незнакомым — кандидат">
+            Привязать стороны и узлы проекта
+          </button>
+        )}
+      </div>
+      {привязка && <div className="v2-note-line">{привязка}</div>}
+      <div className="v2-form v2-form--row" data-why="работа" aria-label="рубрикатор по буквам">
+        <button type="button" className={буква ? 'v2-link' : 'v2-link v2-row--cur'} onClick={() => setБуква('')}
+          title="все термины по алфавиту">все</button>
+        {буквы.map((б) => (
+          <button key={б} type="button" className={буква === б ? 'v2-link v2-row--cur' : 'v2-link'}
+            onClick={() => setБуква(буква === б ? '' : б)} title={`термины на «${б}»`}>{б}</button>
+        ))}
       </div>
 
       {кандидаты.length > 0 && (
@@ -119,6 +157,7 @@ export function GlossaryScreen({ project }: { project: string | null }) {
         </section>
       )}
 
+      <div className="v2-note-line">{`показано ${принятые.length} из ${термины.filter((т) => т.status !== 'candidate').length}${буква ? ` · буква «${буква}»` : ''}${источник ? ` · источник «${источник}»` : ''}`}</div>
       <table className="v2-table">
         <thead><tr><th>Код</th><th>Термин</th><th>Класс</th><th>Синонимы</th><th>Определение</th><th>Источник</th><th>Где</th></tr></thead>
         <tbody>
@@ -241,4 +280,27 @@ function ПоискПоБазе({ project }: { project: string }) {
       )}
     </section>
   )
+}
+
+/** Первая буква термина заглавной — для рубрикатора; цифры и латиница — своими группами. */
+export function перваяБуква(термин: string): string {
+  const с = (термин ?? '').trim().charAt(0).toUpperCase()
+  if (!с) return '—'
+  if (/[0-9]/.test(с)) return '0–9'
+  return с
+}
+
+/** Буквы, на которые есть термины, по алфавиту: кириллица, потом латиница, потом цифры. */
+export function буквыТерминов(термины: { term_ru: string; status: string }[]): string[] {
+  const есть = new Set(термины.filter((т) => т.status !== 'candidate').map((т) => перваяБуква(т.term_ru)))
+  const вес = (б: string) => (/[А-ЯЁ]/.test(б) ? 0 : /[A-Z]/.test(б) ? 1 : 2)
+  return [...есть].sort((а, б) => вес(а) - вес(б) || а.localeCompare(б, 'ru'))
+}
+
+/** Источник коротко: «NASA SEH App. B» → «NASA SEH», «ПОЛКА-PBS» → «ПОЛКА-PBS». */
+export function источникКоротко(источник?: string): string {
+  const и = (источник ?? '').trim()
+  if (!и) return ''
+  if (/^NASA/i.test(и)) return 'NASA SEH'
+  return и.split(/[(:—–]/)[0].trim().slice(0, 40)
 }

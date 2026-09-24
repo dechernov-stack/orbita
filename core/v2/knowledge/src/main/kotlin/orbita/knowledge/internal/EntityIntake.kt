@@ -1217,6 +1217,7 @@ class EntityIntake(
         value = документ.path("value").asText(""),
         unit = документ.path("unit").asText("").ifBlank { null },
         anchor = документ.path("anchor").asText("").ifBlank { null },
+        code = код,
         mark = runCatching { SourceMark.valueOf(документ.path("mark").asText("И")) }
             .getOrDefault(SourceMark.И),
         material = документ.path("material").asText(""),

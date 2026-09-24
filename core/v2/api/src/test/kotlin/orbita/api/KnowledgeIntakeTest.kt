@@ -175,6 +175,10 @@ class KnowledgeIntakeTest {
         val первый = факты[0]
         val второй = факты[1]
         assertEquals("FREE", первый.disposition.name, "свежий факт свободен")
+        // Код записи — в DTO и JSON факта: противоречия называют факты кодами, экран по ним ходит (КТ2).
+        assertTrue(первый.code.startsWith("F-"), "факт несёт свой код: ${первый.code}")
+        val строка = router.handle("GET", "/v2/facts", mapOf("project" to проект), null)!!.body.path("items")[0]
+        assertEquals(первый.code, строка.path("code").asText())
 
         // Замечание прохода 08.09: обоснование не должно быть налогом на
         // согласие. `adopted` с чистого листа — одним кликом, без текста.

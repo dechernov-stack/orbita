@@ -244,7 +244,9 @@ function нуженПовод(было: string, стало: string): boolean {
 type Тема = { id: string; label: string; facts: number; resolved_to?: string | null }
 type Покрытие = { total: number; from_facts: number; from_manual_facts: number; manual: number; share_percent: number }
 
-export function KnowledgeField({ project, expert = false, ручной = false }: {
+export function KnowledgeField({ project, expert = false, ручной = false, onGoGlossary }: {
+  /** Переход в словарь: кандидаты из приёма плана принимаются там. */
+  onGoGlossary?: () => void
   project: string | null
   expert?: boolean
   /**
@@ -271,6 +273,21 @@ export function KnowledgeField({ project, expert = false, ручной = false }
   // действие причиной, и экран обязан показать это, а не молча создать
   // меньше, чем человек отметил (остановка ПМИ-6).
   const [заметкиПриёма, setЗаметкиПриёма] = useState<string[]>([])
+  /**
+   * Факты сложены по предмету (КТ2: «огромные простыни — складывать по сути и
+   * раскрывать»): группа — строка с числом фактов и нерешённых, раскрывается
+   * кликом; по умолчанию свёрнуто, кроме одной-единственной группы.
+   */
+  const [раскрытые, setРаскрытые] = useState<Set<string>>(new Set())
+  const [всеРаскрыты, setВсеРаскрыты] = useState(false)
+  /** Факт, к которому перешли по ссылке «противоречит F-…»: строка подсвечена. */
+  const [подсвечен, setПодсвечен] = useState<string | null>(null)
+  const кФакту = (код: string) => {
+    const ф = (факты ?? []).find((x) => x.code === код)
+    if (ф) setРаскрытые((р) => new Set(р).add(предметФакта(ф)))
+    setПодсвечен(код)
+    window.setTimeout(() => document.getElementById(`v2-fact-${код}`)?.scrollIntoView({ block: 'center' }), 50)
+  }
   const [занято, setЗанято] = useState(false)
   // Пакетный приём фактов: идёт ли он сейчас, сколько фактов уже прошло и чем
   // кончился. Итог показывается ЧИСЛАМИ и первой причиной отказа: пакет, что
@@ -347,6 +364,11 @@ export function KnowledgeField({ project, expert = false, ручной = false }
       return true
     })
   const ручных = все.filter((ф) => ф.manual).length
+  const группы = группыФактов(видно)
+  const раскрыта = (предмет: string) => всеРаскрыты || раскрытые.has(предмет) || группы.length === 1
+  const переключить = (предмет: string) => setРаскрытые((р) => {
+    const н = new Set(р); if (н.has(предмет)) н.delete(предмет); else н.add(предмет); return н
+  })
   // Вкладка поля — она же весь экран там, где поля знаний v2 нет.
   const поле = вкладка === 'поле' || !знанияV2
   const имяТемы = (код: string) => темы.find((т) => т.id === код)?.label ?? код
@@ -680,7 +702,15 @@ export function KnowledgeField({ project, expert = false, ручной = false }
             в поле: решайте их по одному либо примите план заново, поправив основания.
           </div>
           <ul className="v2-list">
-            {заметкиПриёма.map((з) => <li key={з}>{з}</li>)}
+            {заметкиПриёма.map((з) => (
+              <li key={з}>
+                {з}
+                {/словар/i.test(з) && onGoGlossary && (
+                  <>{' '}<button type="button" className="v2-link" onClick={onGoGlossary}
+                    title="открыть словарь: кандидат с цитатой ждёт решения — принять, отклонить или слить">к месту: Словарь</button></>
+                )}
+              </li>
+            ))}
           </ul>
           <button type="button" className="v2-link" onClick={() => setЗаметкиПриёма([])}>скрыть</button>
         </div>
@@ -842,16 +872,36 @@ export function KnowledgeField({ project, expert = false, ручной = false }
         <table className="v2-tab2">
           <thead>
             <tr>
-              <th>Утверждение</th><th>Значение</th><th>Метка</th>
+              <th>
+                Утверждение
+                {группы.length > 1 && (
+                  <button type="button" className="v2-link" onClick={() => setВсеРаскрыты((в) => !в)}
+                    title="факты сложены по предмету: раскрыть все группы разом или свернуть">
+                    {' '}{всеРаскрыты ? 'свернуть все' : `раскрыть все (${группы.length})`}
+                  </button>
+                )}
+              </th><th>Значение</th><th>Метка</th>
               {знанияV2 && <th>Ранг</th>}
               <th>Откуда</th><th>Решение</th><th />
             </tr>
           </thead>
           <tbody>
-            {видно.map((ф) => {
+            {группы.flatMap((г) => [
+              группы.length > 1 && (
+                <tr key={`g:${г.предмет}`} className="v2-kf__group">
+                  <td colSpan={знанияV2 ? 7 : 6}>
+                    <button type="button" className="v2-link" onClick={() => переключить(г.предмет)}
+                      title={раскрыта(г.предмет) ? 'свернуть группу' : 'раскрыть факты этого предмета'}>
+                      {раскрыта(г.предмет) ? '▾' : '▸'} <b>{г.предмет}</b>
+                    </button>
+                    <span className="v2-dim">{` · фактов ${г.факты.length} · не решено ${г.нерешено}`}</span>
+                  </td>
+                </tr>
+              ),
+              ...(раскрыта(г.предмет) ? г.факты : []).map((ф) => {
               const было = ф.disposition ?? 'free'
               return (
-                <tr key={ф.id}>
+                <tr key={ф.id} id={ф.code ? `v2-fact-${ф.code}` : undefined} className={подсвечен && ф.code === подсвечен ? 'v2-row--cur' : undefined}>
                   <td>{ф.subject ? `${ф.subject}: ` : ''}{ф.predicate}</td>
                   <td>{ф.value}{ф.unit ? ` ${ф.unit}` : ''}</td>
                   <td title={МЕТКА[ф.mark] ?? ф.mark}>{МЕТКА[ф.mark] ?? ф.mark}</td>
@@ -866,7 +916,14 @@ export function KnowledgeField({ project, expert = false, ручной = false }
                     {ф.manual ? <span className="v2-kf__manual">{ф.material}</span> : (ф.anchor ?? '—')}
                     {ф.param_key && <span className="v2-dim"> · анкета: {ф.param_key}</span>}
                     {ф.conflicts && ф.conflicts.length > 0 && (
-                      <span className="v2-bad" title="то же утверждение с иным значением: показаны оба, ИИ не выбирает"> · против {ф.conflicts.join(', ')}</span>
+                      <span className="v2-bad" title="противоречие: то же утверждение с иным значением в другом факте; показаны оба, победителя ИИ не выбирает — решает человек">
+                        {' '}· противоречит {ф.conflicts.map((к, i) => (
+                          <span key={к}>{i > 0 ? ', ' : ''}
+                            <button type="button" className="v2-link" onClick={() => кФакту(к)}
+                              title={`перейти к факту ${к}: его строка раскроется и подсветится`}>{к}</button>
+                          </span>
+                        ))}
+                      </span>
                     )}
                     {ф.source_updated && <span className="v2-warn" title={ф.source_updated}> · источник обновлён</span>}
                     {ф.assumption && (
@@ -951,7 +1008,8 @@ export function KnowledgeField({ project, expert = false, ручной = false }
                   </td>
                 </tr>
               )
-            })}
+            }),
+            ])}
           </tbody>
         </table>
       )}
@@ -2508,4 +2566,26 @@ function Постановка({ project, онтология, onChanged, expert =
       <ConfirmBox request={ask} onClose={закрытьВопрос} />
     </div>
   )
+}
+
+/** Предмет факта для свёртки: субъект утверждения; без субъекта — материал. */
+export function предметФакта(ф: { subject?: string; material?: string; manual?: boolean }): string {
+  const с = (ф.subject ?? '').trim()
+  if (с) return с
+  return ф.manual ? 'ручной ввод' : (ф.material ?? '—')
+}
+
+/** Группы фактов по предмету — в порядке появления, с числом нерешённых. */
+export function группыФактов<T extends { subject?: string; material?: string; manual?: boolean; disposition?: string }>(
+  факты: T[],
+): { предмет: string; факты: T[]; нерешено: number }[] {
+  const по = new Map<string, T[]>()
+  факты.forEach((ф) => {
+    const п = предметФакта(ф)
+    const с = по.get(п)
+    if (с) с.push(ф); else по.set(п, [ф])
+  })
+  return [...по.entries()].map(([предмет, список]) => ({
+    предмет, факты: список, нерешено: список.filter((ф) => (ф.disposition ?? 'free') === 'free').length,
+  }))
 }

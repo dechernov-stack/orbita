@@ -22,7 +22,25 @@ import orbita.knowledge.api.Term
 internal class GlossaryIndex(
     private val store: EntityStore,
     private val mapper: ObjectMapper = ObjectMapper(),
+    private val links: orbita.kernel.api.LinkRegistry? = null,
 ) : Glossary {
+
+    override fun linkProject(area: Area, author: String): orbita.knowledge.api.GlossaryLinkReport {
+        val реестр = links ?: return orbita.knowledge.api.GlossaryLinkReport(0, 0, listOf("реестр связей не подключён — привязать нечем"))
+        val привязка = GlossaryLinking(store, реестр, this)
+        var связано = 0
+        val заметки = mutableListOf<String>()
+        val было = store.list(area, "glossary_term").count { it.status == "candidate" }
+        listOf("stakeholder", "component").forEach { вид ->
+            store.list(area, вид).filter { it.status != "cancelled" }.forEach { з ->
+                if (реестр.from(з.id, "named_by").isNotEmpty()) return@forEach
+                привязка.привязать(area, з, вид, author, цитата = null, факт = null)?.let { заметки += it }
+                связано += 1
+            }
+        }
+        val кандидатов = store.list(area, "glossary_term").count { it.status == "candidate" } - было
+        return orbita.knowledge.api.GlossaryLinkReport(связано, кандидатов, заметки)
+    }
 
     override fun terms(area: Area): List<Term> =
         (store.list(Area.Library, "glossary_term") + (if (area is Area.Library) emptyList() else store.list(area, "glossary_term")))

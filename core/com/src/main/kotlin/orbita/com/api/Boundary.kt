@@ -319,7 +319,7 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
             orbita.ai.api.AiFactory.embeddings(mapper), mapper,
         )
         val инструментыМодели = orbita.api.internal.ModelToolbox(
-            store, orbita.knowledge.api.KnowledgeFactory.glossary(store, mapper), индексЗнаний, движок, полки, mapper,
+            store, orbita.knowledge.api.KnowledgeFactory.glossary(store, mapper, links), индексЗнаний, движок, полки, mapper,
         )
         val знанияМаршруты = orbita.api.internal.KnowledgeRoutes(
             знания,

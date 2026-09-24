@@ -174,6 +174,8 @@ export interface TaskRow {
 /** Факт — атом знания с якорем и меткой достоверности. */
 export interface FactRow {
   id: string
+  /** Код записи (F-0168): им факт называют противоречия — по нему экран ходит к строке. */
+  code?: string
   subject: string
   predicate: string
   value: string
@@ -1765,6 +1767,10 @@ export const api = {
   indexRebuild: (project: string) =>
     вызов<{ blocks: number; written: number; removed: number; embedded: number; vector: boolean; note: string }>(
       `/index/rebuild?project=${encodeURIComponent(project)}`, { method: 'POST' }),
+  /** Привязать стороны и узлы проекта к словарю: термин по имени/коду либо кандидат. */
+  glossaryLink: (project: string) =>
+    вызов<{ linked: number; candidates: number; notes: string[]; note: string }>(
+      `/glossary/link?project=${encodeURIComponent(project)}`, { method: 'POST', body: JSON.stringify({ author: 'инженер' }) }),
   /** Решение по кандидату — принять · отклонить (с причиной) · слить синонимом в принятый (into). */
   glossaryDecide: (project: string, code: string, действие: 'accept' | 'reject' | 'merge',
     тело: { author: string; reason?: string; into?: string; definition?: string }) =>

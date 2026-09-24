@@ -20,6 +20,7 @@ internal object KindJson {
 
     fun факт(mapper: ObjectMapper, ф: Fact): ObjectNode = mapper.createObjectNode()
         .put("id", ф.id)
+        .put("code", ф.code)
         .put("manual", ф.manual)
         .put("kind", ф.kind)
         .put("subject", ф.subject)

@@ -336,7 +336,8 @@ export function Shell() {
               onScenePicked={() => setWantScene(null)}
               роль={роль} режим={режим} onРежим={setРежим} />
           ) : section === 'knowledge' ? (
-            <KnowledgeField project={project} expert={expert} ручной={ручнойВвод} />
+            <KnowledgeField project={project} expert={expert} ручной={ручнойВвод}
+              onGoGlossary={() => setSection('glossary')} />
           ) : section === 'formulation' ? (
             <Coverage project={project} />
           ) : section === 'concept' ? (

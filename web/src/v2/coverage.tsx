@@ -297,6 +297,17 @@ export function Coverage({ project }: { project: string | null }) {
   const [вид, setВид] = useState<KindSpec | null>(null)
   const [матрица, setМатрица] = useState<CoverageMatrix | null>(null)
   const [отказ, setОтказ] = useState<string | null>(null)
+  /**
+   * Подменю постановки (КТ2: «одной простынёй неудобно»): стороны · покрытие
+   * нужд · стороны без нужд — по вкладке, выбор помнится в браузере.
+   */
+  const [вкладка, setВкладка] = useState<'стороны' | 'покрытие' | 'без-нужд'>(() => {
+    try { return (localStorage.getItem('orbita.v2.formulation.tab') as 'стороны' | 'покрытие' | 'без-нужд') || 'стороны' } catch { return 'стороны' }
+  })
+  const выбрать = (в: 'стороны' | 'покрытие' | 'без-нужд') => {
+    setВкладка(в)
+    try { localStorage.setItem('orbita.v2.formulation.tab', в) } catch { /* браузер без хранилища — вкладка живёт до перезагрузки */ }
+  }
 
   const перечитать = useCallback(() => {
     if (!project) return
@@ -324,10 +335,27 @@ export function Coverage({ project }: { project: string | null }) {
   if (отказ) return <div className="v2-card"><div className="v2-locked">{отказ}</div></div>
   if (!матрица) return <div className="v2-card"><div className="v2-empty">Считаю покрытие…</div></div>
 
+  const безНужд = матрица.stakeholders_without_needs.length
   return (
     <>
-      <Стороны project={project} стороны={стороны} нужды={нужды} факты={факты} вид={вид} onChanged={перечитать} />
-      <div className="v2-card">
+      <div className="v2-form v2-form--row" data-why="работа" aria-label="подменю постановки">
+        <button type="button" className={вкладка === 'стороны' ? 'v2-link v2-row--cur' : 'v2-link'}
+          onClick={() => выбрать('стороны')} title="стороны, их влияние и сила; карточка стороны с нуждами и основаниями">
+          Стороны · {стороны.length}
+        </button>
+        <button type="button" className={вкладка === 'покрытие' ? 'v2-link v2-row--cur' : 'v2-link'}
+          onClick={() => выбрать('покрытие')} title="каждая нужда — чья, какими целями и сервисами закрыта">
+          Покрытие нужд · {матрица.covered} из {матрица.total}
+        </button>
+        <button type="button" className={вкладка === 'без-нужд' ? 'v2-link v2-row--cur' : 'v2-link'}
+          onClick={() => выбрать('без-нужд')} title="стороны названы, но чего они хотят — не записано; сцена 3 не закроется">
+          Без нужд · {безНужд}
+        </button>
+      </div>
+      {вкладка === 'стороны' && (
+        <Стороны project={project} стороны={стороны} нужды={нужды} факты={факты} вид={вид} onChanged={перечитать} />
+      )}
+      {вкладка === 'покрытие' && <div className="v2-card">
         <div className="v2-card__head">
           <span className="v2-card__title">Покрытие нужд</span>
           <span className="v2-card__count">{матрица.covered} из {матрица.total}</span>
@@ -365,9 +393,13 @@ export function Coverage({ project }: { project: string | null }) {
             </tbody>
           </table>
         )}
-      </div>
+      </div>}
 
-      {матрица.stakeholders_without_needs.length > 0 && (
+      {вкладка === 'без-нужд' && матрица.stakeholders_without_needs.length === 0 && (
+        <div className="v2-card"><div className="v2-empty">У каждой стороны есть нужда.
+          <span className="v2-empty__why">Сцена 3 этим условием не держится.</span></div></div>
+      )}
+      {вкладка === 'без-нужд' && матрица.stakeholders_without_needs.length > 0 && (
         <div className="v2-card">
           <div className="v2-card__head">
             <span className="v2-card__title">Стороны без нужд</span>

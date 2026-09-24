@@ -97,8 +97,8 @@ object KnowledgeFactory {
     ): KnowledgeIndex = orbita.knowledge.internal.KnowledgeIndexer(store, textIndex, embeddings, mapper)
 
     /** Словарь (шип 4 §2): привязка написаний к терминам, кандидаты из документов. */
-    fun glossary(store: EntityStore, mapper: ObjectMapper = ObjectMapper()): Glossary =
-        orbita.knowledge.internal.GlossaryIndex(store, mapper)
+    fun glossary(store: EntityStore, mapper: ObjectMapper = ObjectMapper(), links: LinkRegistry? = null): Glossary =
+        orbita.knowledge.internal.GlossaryIndex(store, mapper, links)
 
     /** Четыре оси достоверности (шип 4 §1.6): mark · rank · evidence · confidence у своих уровней, синонимы сняты. */
     fun migrateCredibilityAxes(store: EntityStore, mapper: ObjectMapper = ObjectMapper()): String =

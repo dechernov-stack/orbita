@@ -8,7 +8,7 @@
 // владелец проверяет проход, не открывая ни одной формы.
 import { useEffect, useState } from 'react'
 import { ConfirmBox, useConfirm } from '../ui/Confirm'
-import { api, ServerRefusal, type DocBaseline, type DocSection, type DocView, type Gate, type VerificationReport } from './api'
+import { api, type RenderedSection, ServerRefusal, type DocBaseline, type DocSection, type DocView, type Gate, type VerificationReport } from './api'
 import { useАвтор, отказСловами } from './research'
 
 export function Documents({ project, onGoScene, onGoField }: {
@@ -191,6 +191,13 @@ export function DocumentBody({ project, code, section, onClose, onGoScene, onGoF
   const [куда, setКуда] = useState(section ?? '')
   /** Место находки верификации, к которому перешли: элемент раздела. */
   const [подсвечен, setПодсвечен] = useState<string | null>(null)
+  /** Связные тексты разделов, уже написанные моделью и принятые сторожем. */
+  const [тексты, setТексты] = useState<Record<string, RenderedSection>>({})
+  useEffect(() => {
+    api.renderings(project, code)
+      .then((о) => setТексты(Object.fromEntries(о.items.filter((т) => т.accepted).map((т) => [т.section, т]))))
+      .catch(() => setТексты({}))
+  }, [project, code])
 
   const перечитать = () => {
     api.document(project, code)
@@ -250,6 +257,8 @@ export function DocumentBody({ project, code, section, onClose, onGoScene, onGoF
       {разделы.map((р) => (
         <Section key={р.no} раздел={р} подсвечен={подсвечен}
           onGoScene={onGoScene} onGoField={onGoField}
+          project={project} code={code} написанное={тексты[р.no] ?? null}
+          onНаписано={(т) => { if (т.accepted) setТексты((тт) => ({ ...тт, [р.no]: т })) }}
           onЗакрытьСловами={(номер, текст) => { setКуда(номер); setТезис(текст) }} />
       ))}
       {!section && (
@@ -273,9 +282,15 @@ export function DocumentBody({ project, code, section, onClose, onGoScene, onGoF
   )
 }
 
-function Section({ раздел, подсвечен, onGoScene, onGoField, onЗакрытьСловами }: {
+function Section({ раздел, подсвечен, onGoScene, onGoField, onЗакрытьСловами, project, code, написанное, onНаписано }: {
   раздел: DocSection
   подсвечен?: string | null
+  /** Проект и код документа — для «Написать связно» живой моделью. */
+  project?: string
+  code?: string
+  /** Уже написанный связный текст раздела, если есть. */
+  написанное?: RenderedSection | null
+  onНаписано?: (текст: RenderedSection) => void
   /** Переход «к месту»: сцена, которой раздел и наполняется, и зачем идём. */
   onGoScene?: (сцена: string, зачем?: string) => void
   /** Переход в поле знаний: там заводятся темы — открытые вопросы фазы. */
@@ -295,13 +310,42 @@ function Section({ раздел, подсвечен, onGoScene, onGoField, onЗ�
     ...раздел.elements.flatMap((э) => э.waiting_scenes),
   ])].filter(Boolean)
   const адресУзнан = сцены.length > 0 && сцены.length <= 3
+  const [пишу, setПишу] = useState(false)
+  const [отказПисьма, setОтказПисьма] = useState<string | null>(null)
+  /**
+   * Перечень, который законно бывает пустым (§11 «Открытые вопросы»): строк
+   * нет — это не «незакрытые вопросы остались», а «их нет» словами человека
+   * (КТ2, 24.09). Статус так и говорит, и кнопка закрытия — в заголовке.
+   */
+  const пустоПоПраву = !раздел.complete && раздел.empty_ok_with_statement
+    && раздел.elements.every((э) => э.kind === 'statement' || э.rows.length === 0)
+  /** «Написать связно» — раздел прозой живой модели тем же портом, что и печать. */
+  const написать = () => {
+    if (!project || !code || !onНаписано) return
+    setПишу(true); setОтказПисьма(null)
+    api.writeSection(project, code, раздел.no, 'инженер')
+      .then((т) => { onНаписано(т); if (!т.accepted && т.refusals.length) setОтказПисьма(`текст отклонён сторожем: ${т.refusals.join('; ')}`) })
+      .catch((e) => setОтказПисьма(String(e.message ?? e)))
+      .finally(() => setПишу(false))
+  }
   return (
     <div className="v2-doc__sec">
       <div className="v2-doc__h">
         <b>{раздел.no} {раздел.title}</b>
         <span className={раздел.complete ? 'v2-st v2-st--done' : 'v2-st'}>
-          {раздел.complete ? 'раздел полон' : раздел.waiting.join('; ')}
+          {раздел.complete ? 'раздел полон' : пустоПоПраву ? 'строк нет — закройте тезисом «их нет» или заведите тему' : раздел.waiting.join('; ')}
         </span>
+        {пустоПоПраву && onЗакрытьСловами && (
+          <button type="button" className="v2-link"
+            title="закрыть раздел тезисом «их нет»: документ напечатает это словами, с именем и датой"
+            onClick={() => onЗакрытьСловами(раздел.no, `${раздел.title}: нет.`)}>их нет — закрыть тезисом</button>
+        )}
+        {project && code && onНаписано && (
+          <button type="button" className="v2-link" onClick={написать} disabled={пишу}
+            title="написать раздел связно живой моделью из его сведений: число без опоры сторож отклонит; принятый текст идёт в печать">
+            {пишу ? 'пишу…' : написанное ? 'переписать связно' : 'написать связно'}
+          </button>
+        )}
         {/*
           «Ждёт сцен 7» — это адрес, а не жалоба: без перехода человек читает
           его и не знает, куда идти (владелец, 21.09). Сцену называет шаблон
@@ -318,6 +362,13 @@ function Section({ раздел, подсвечен, onGoScene, onGoField, onЗ�
           </button>
         ))}
       </div>
+      {отказПисьма && <div className="v2-locked">{отказПисьма}</div>}
+      {написанное && написанное.accepted && (
+        <div className="v2-doc__el" data-why="работа">
+          <p className="v2-doc__st">{написанное.text}</p>
+          <div className="v2-dim">связный текст · {написанное.model}{написанное.notes.length ? ` · пометы: ${написанное.notes.join('; ')}` : ''}</div>
+        </div>
+      )}
       {раздел.elements.map((э) => (
         <div key={э.code} id={`v2-el-${э.code}`}
           className={подсвечен === э.code ? 'v2-doc__el v2-row--cur' : 'v2-doc__el'}>
