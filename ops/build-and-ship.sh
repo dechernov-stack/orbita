@@ -22,18 +22,18 @@ BUILDER="${BUILDER:-orbita-mtu}"
 builder_hygiene
 
 echo "==> Сборка образов (linux/amd64, builder $BUILDER)"
-docker buildx build --builder "$BUILDER" --platform linux/amd64 --load \
-  -t orbita-api:latest      -f "$ROOT/ops/api.Dockerfile" --target api  "$ROOT"
-docker buildx build --builder "$BUILDER" --platform linux/amd64 --load \
-  -t orbita-seed:latest     -f "$ROOT/ops/api.Dockerfile" --target seed "$ROOT"
-docker buildx build --builder "$BUILDER" --platform linux/amd64 --load \
-  -t orbita-exchange:latest -f "$ROOT/ops/exchange.Dockerfile" "$ROOT"
-docker buildx build --builder "$BUILDER" --platform linux/amd64 --load \
-  -t orbita-web:latest      -f "$ROOT/ops/web.Dockerfile" "$ROOT"
+# Сборка — через build_retry (ops/builder-hygiene.sh), как у локального выката:
+# три попытки на обрыв сети, лог каждой сборки в /tmp/orbita-build-<имя>.log
+# (оркестратор режет вывод задачи, и причина отказа терялась — 24.09), а с
+# BUILDER=default ключ --builder не передаётся вовсе: «default» — это ещё и
+# имя контекста Docker, и buildx на нём отказывал.
+build_retry api      --platform linux/amd64 -t orbita-api:latest      -f "$ROOT/ops/api.Dockerfile" --target api  "$ROOT"
+build_retry seed     --platform linux/amd64 -t orbita-seed:latest     -f "$ROOT/ops/api.Dockerfile" --target seed "$ROOT"
+build_retry exchange --platform linux/amd64 -t orbita-exchange:latest -f "$ROOT/ops/exchange.Dockerfile" "$ROOT"
+build_retry web      --platform linux/amd64 -t orbita-web:latest      -f "$ROOT/ops/web.Dockerfile" "$ROOT"
 # StrictDoc-канал (ADR-049/064): профиль strictdoc на сервере включается
 # COMPOSE_PROFILES=strictdoc в /opt/orbita/.env — образ обязан быть на месте.
-docker buildx build --builder "$BUILDER" --platform linux/amd64 --load \
-  -t orbita-strictdoc:latest -f "$ROOT/ops/strictdoc.Dockerfile" "$ROOT"
+build_retry strictdoc --platform linux/amd64 -t orbita-strictdoc:latest -f "$ROOT/ops/strictdoc.Dockerfile" "$ROOT"
 
 echo "==> Перенос кода на $SERVER:$DEST"
 $SSH "mkdir -p $DEST"
