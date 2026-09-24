@@ -23,6 +23,8 @@ export function GlossaryScreen({ project }: { project: string | null }) {
   const [буква, setБуква] = useState('')
   const [источник, setИсточник] = useState('')
   const [привязка, setПривязка] = useState<string | null>(null)
+  /** Принятый словарь виден сразу; непринятые (кандидаты) — своей вкладкой (владелец, 24.09). */
+  const [вкладка, setВкладка] = useState<'словарь' | 'кандидаты'>('словарь')
 
   useEffect(() => {
     let живо = true
@@ -115,7 +117,22 @@ export function GlossaryScreen({ project }: { project: string | null }) {
         ))}
       </div>
 
-      {кандидаты.length > 0 && (
+      <div className="v2-form v2-form--row" data-why="работа" aria-label="вкладки словаря">
+        <button type="button" className={вкладка === 'словарь' ? 'v2-link v2-row--cur' : 'v2-link'}
+          onClick={() => setВкладка('словарь')} title="принятые термины класса миссии и проекта">
+          Словарь · {термины.filter((т) => т.status === 'accepted').length}
+        </button>
+        <button type="button" className={вкладка === 'кандидаты' ? 'v2-link v2-row--cur' : 'v2-link'}
+          onClick={() => setВкладка('кандидаты')} title="непринятые термины: кандидаты из документов ждут решения">
+          Кандидаты · {кандидаты.length}
+        </button>
+      </div>
+
+      {вкладка === 'кандидаты' && кандидаты.length === 0 && (
+        <div className="v2-empty">Кандидатов нет.
+          <span className="v2-empty__why">Они приходят из разбора документов и привязки сторон и узлов проекта.</span></div>
+      )}
+      {вкладка === 'кандидаты' && кандидаты.length > 0 && (
         <section className="v2-card" data-why="почему-нельзя">
           <h3>Кандидаты из документов ({кандидаты.length})</h3>
           <div className="v2-muted">новый термин не проходит мимо: принять как есть, отклонить с причиной или слить синонимом в принятый</div>
@@ -157,6 +174,7 @@ export function GlossaryScreen({ project }: { project: string | null }) {
         </section>
       )}
 
+      {вкладка === 'словарь' && <>
       <div className="v2-note-line">{`показано ${принятые.length} из ${термины.filter((т) => т.status !== 'candidate').length}${буква ? ` · буква «${буква}»` : ''}${источник ? ` · источник «${источник}»` : ''}`}</div>
       <table className="v2-table">
         <thead><tr><th>Код</th><th>Термин</th><th>Класс</th><th>Синонимы</th><th>Определение</th><th>Источник</th><th>Где</th></tr></thead>
@@ -183,6 +201,7 @@ export function GlossaryScreen({ project }: { project: string | null }) {
           )}
         </tbody>
       </table>
+      </>}
 
       {project && <div className="v2-form v2-form--row" data-why="работа">
         <input value={новый.term_ru} placeholder="каноническое имя термина" aria-label="термин"

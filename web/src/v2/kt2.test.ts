@@ -25,6 +25,10 @@ describe('словарь: рубрикатор по буквам и привяз
     expect(словарь).toContain('aria-label="рубрикатор по буквам"')
     expect(словарь).toContain('aria-label="источник термина"')
     expect(словарь).toContain('Привязать стороны и узлы проекта')
+    // Принятый словарь виден сразу, непринятые — своей вкладкой (владелец, 24.09).
+    expect(словарь).toContain('aria-label="вкладки словаря"')
+    expect(словарь).toContain("setВкладка('кандидаты')")
+    expect(словарь).toContain("useState<'словарь' | 'кандидаты'>('словарь')")
     expect(словарь).toContain('api.glossaryLink(project)')
   })
 })

@@ -4,7 +4,9 @@
 имя, синонимы, класс, определение, источник, код объекта.
 
 Источники (все — уже существующие истины и поставки):
-  · глоссарий системной инженерии — пакет GL-9002 (41);
+  · глоссарий NASA SE Handbook — поставка владельца 24.09 (236, ГЛОССАРИЙ-NASA-SE.json);
+  · глоссарий системной инженерии — пакет GL-9002 (41): термин с тем же именем, что у NASA,
+    сливается в одну запись (определение NASA, пометы выборки — в «не путать»);
   · глоссарий «Орбиты» (типы документов, зоны, MOE, классы терминалов) — GL-9001 (11);
   · кросс-терминология NASA ↔ РК-11КТ / ГОСТ ↔ Романов — СИД-ГЛОССАРИЙ-КРОСС (27);
   · коды узлов состава — ПОЛКА-PBS; коды стыков — ПОЛКА-ИНТЕРФЕЙСЫ;
@@ -34,6 +36,7 @@ import yaml
 ПАКЕТЫ = КОРЕНЬ / "docs/tz/manual-run/packets"
 V2 = КОРЕНЬ / "docs/tz/v2"
 ВЫХОД = V2 / "полки-порождённые/СИД-СЛОВАРЬ.json"
+NASA = V2 / "поставка-09-24/ГЛОССАРИЙ-NASA-SE.json"
 ПРАВКИ = V2 / "полки-порождённые/СЛОВАРЬ-ПРАВКИ.json"
 
 # Роли проекта — учётки стенда (HttpApi.actingRoles); в истине схем их перечня нет.
@@ -57,6 +60,11 @@ def термин(code: str, term_ru: str, cls: str, definition: str, **проч�
     return з
 
 
+def плоско(текст: str) -> str:
+    """Имя плоско: строчные, ё→е, один пробел — так сливаются одноимённые термины двух источников."""
+    return re.sub(r"\s+", " ", (текст or "").lower().replace("ё", "е")).strip()
+
+
 def уникально(список: list[str]) -> list[str]:
     seen, out = set(), []
     for x in список:
@@ -71,9 +79,37 @@ def собрать() -> list[dict]:
     метки = истина.get("enum_labels") or {}
     записи: list[dict] = []
 
-    # 1. Глоссарий системной инженерии (41)
+    # 0. Глоссарий NASA SE Handbook (поставка владельца 24.09): русский термин —
+    #    канон, английский — синоним; «см. также» — связями по именам.
+    наса = json.loads(NASA.read_text(encoding="utf-8")) if NASA.exists() else {"terms": []}
+    поИмени: dict[str, str] = {}
+    for i, э in enumerate(наса.get("terms", []), 1):
+        к = код("GT-NASA", f"{i:03d}")
+        поИмени[плоско(э["term"])] = к
+        записи.append(термин(
+            к, э["term"], "se_concept", э.get("definition", ""),
+            term_en=э.get("term_en"), synonyms=уникально([э.get("term_en", "")]),
+            source=наса.get("source") or "NASA SE Handbook (SP-2016-6105) App. B",
+            used_in=["постановка", "требования", "документы"],
+            _related=[r for r in (э.get("related") or []) if r],
+        ))
+    for з in записи:
+        связи = [{"type": "see_also", "term": поИмени[плоско(р)]} for р in з.pop("_related", []) if плоско(р) in поИмени and поИмени[плоско(р)] != з["code"]]
+        if связи:
+            з["links"] = связи
+
+    # 1. Глоссарий системной инженерии (41): то же имя, что у NASA, — одна запись
     се = json.loads((ПАКЕТЫ / "14-глоссарий-se.json").read_text(encoding="utf-8"))["objects"][0]
     for i, э in enumerate(се["entries"], 1):
+        тот_же = поИмени.get(плоско(э["term"]))
+        if тот_же:
+            з = next(x for x in записи if x["code"] == тот_же)
+            з["synonyms"] = уникально(з.get("synonyms", []) + [э.get("en", "")])
+            if э.get("not_to_confuse") and not з.get("not_to_confuse"):
+                з["not_to_confuse"] = э["not_to_confuse"]
+            if э.get("brief") and плоско(э["brief"]) != плоско(з["definition"]):
+                з["difference"] = "выборка Формулирования (GL-9002): " + э["brief"]
+            continue
         записи.append(термин(
             код("GT-SE", f"{i:03d}"), э["term"], "se_concept", э.get("brief", ""),
             term_en=э.get("en"), synonyms=уникально([э.get("en", "")]),

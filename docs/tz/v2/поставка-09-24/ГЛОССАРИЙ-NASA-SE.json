@@ -1,0 +1,2490 @@
+{
+  "source": "NASA Systems Engineering Handbook",
+  "terms": [
+    {
+      "term": "Приемлемый риск",
+      "term_en": "Acceptable Risk",
+      "definition": "Риск, который понят и принят программой или проектом, управляющим органом, дирекцией миссии и другими заказчиками — настолько, что дополнительных мер по его снижению не требуется.",
+      "definition_en": "The risk that is understood and agreed to by the program/project, governing authority, mission directorate, and other customer(s) such that no further specific mitigating action is required.",
+      "related": [
+        "Риск",
+        "Управление рисками"
+      ]
+    },
+    {
+      "term": "Приобретение",
+      "term_en": "Acquisition",
+      "definition": "Процесс получения систем, исследований, услуг, строительных работ и поставок, которые нужны NASA для выполнения своих миссий. Приобретение, которое может включать закупку (заключение контрактов на продукцию и услуги), начинается с идеи или предложения, согласующегося со Стратегическим планом NASA и отвечающего выявленной потребности, и заканчивается завершением программы или проекта либо окончательным распоряжением продуктом или услугой.",
+      "definition_en": "The process for obtaining the systems, research, services, construction, and supplies that NASA needs to fulfill its missions. Acquisition, which may include procurement (contracting for products and services), begins with an idea or proposal that aligns with the NASA Strategic Plan and fulfills an identified need and ends with the completion of the program or project or the final disposition of the product or service.",
+      "related": [
+        "Программа",
+        "Проект",
+        "Контракт"
+      ]
+    },
+    {
+      "term": "Деятельность",
+      "term_en": "Activity",
+      "definition": "Набор задач, которые описывают технические работы по выполнению процесса и помогают получить ожидаемые результаты.",
+      "definition_en": "A set of tasks that describe the technical effort to accomplish a process and help generate expected outcomes.",
+      "related": [
+        "Процесс"
+      ]
+    },
+    {
+      "term": "Оценка степени сложности продвижения (AD2)",
+      "term_en": "Advancement Degree of Difficulty Assessment (AD2)",
+      "definition": "Процесс выработки понимания того, что требуется для повышения уровня зрелости системы.",
+      "definition_en": "The process to develop an understanding of what is required to advance the level of system maturity.",
+      "related": [
+        "Оценка технологий",
+        "Оценка технологической зрелости"
+      ]
+    },
+    {
+      "term": "Распределённая базовая линия (фаза C)",
+      "term_en": "Allocated Baseline (Phase C)",
+      "definition": "Распределённая базовая линия — это утверждённая, ориентированная на характеристики конфигурационная документация на разрабатываемый элемент конфигурации, которая описывает функциональные и интерфейсные характеристики, распределённые из документа требований более высокого уровня или из элемента конфигурации, а также верификацию, необходимую для подтверждения достижения этих заданных характеристик. Распределённая базовая линия детализирует верхнеуровневые требования к характеристикам, заданные функциональной базовой линией, до уровня, достаточного для начала изготовления или кодирования элемента конфигурации. Распределённая базовая линия контролируется NASA. Распределённые базовые линии обычно устанавливаются на предварительном обзоре проекта.",
+      "definition_en": "The allocated baseline is the approved performance-oriented configuration documentation for a CI to be developed that describes the functional and interface characteristics that are allocated from a higher level requirements document or a CI and the verification required to demonstrate achievement of those specified characteristics. The allocated baseline extends the top-level performance requirements of the functional baseline to sufficient detail for initiating manufacturing or coding of a CI. The allocated baseline is controlled by NASA. The allocated baseline(s) is typically established at the Preliminary Design Review.",
+      "related": [
+        "Базовая линия",
+        "Элемент конфигурации (CI)",
+        "Функциональная базовая линия (фаза B)",
+        "Предварительный обзор проекта"
+      ]
+    },
+    {
+      "term": "Анализ",
+      "term_en": "Analysis",
+      "definition": "Использование математического моделирования и аналитических методов для предсказания соответствия конструкции её требованиям на основе расчётных данных или данных, полученных при валидации конечных продуктов нижних уровней структуры системы.",
+      "definition_en": "Use of mathematical modeling and analytical techniques to predict the compliance of a design to its requirements based on calculated data or data derived from lower system structure end product validations.",
+      "related": [
+        "Требование",
+        "Конечный продукт"
+      ]
+    },
+    {
+      "term": "Анализ альтернатив",
+      "term_en": "Analysis of Alternatives",
+      "definition": "Формальный метод анализа, который сравнивает альтернативные подходы, оценивая их способность удовлетворить требованиям миссии через анализ эффективности и оценивая их затраты на протяжении жизненного цикла через стоимостный анализ. Результаты этих двух видов анализа используются совместно, чтобы получить сравнение по критерию «стоимость — эффективность», позволяющее лицам, принимающим решения, оценить относительную ценность или потенциальную программную отдачу альтернатив. Анализ альтернатив широко рассматривает множество составляющих альтернатив программы или проекта (включая технические характеристики, риск, стоимость жизненного цикла и программные аспекты).",
+      "definition_en": "A formal analysis method that compares alternative approaches by estimating their ability to satisfy mission requirements through an effectiveness analysis and by estimating their life cycle costs through a cost analysis. The results of these two analyses are used together to produce a cost-effectiveness comparison that allows decision makers to assess the relative value or potential programmatic returns of the alternatives. An analysis of alternatives broadly examines multiple elements of program or project alternatives (including technical performance, risk, LCC, and programmatic aspects).",
+      "related": [
+        "Стоимость жизненного цикла (LCC)",
+        "Риск",
+        "Анализ «стоимость — эффективность»"
+      ]
+    },
+    {
+      "term": "Метод анализа иерархий",
+      "term_en": "Analytic Hierarchy Process",
+      "definition": "Многокритериальная методология, дающая проверенное и действенное средство работы со сложными решениями; она помогает выявлять и взвешивать критерии выбора, анализировать собранные по этим критериям данные и ускорять процесс принятия решений.",
+      "definition_en": "A multi-attribute methodology that provides a proven, effective means to deal with complex decision- making and can assist with identifying and weighting selection criteria, analyzing the data collected for the criteria, and expediting the decision-making process.",
+      "related": [
+        "Матрица решений",
+        "Процесс анализа решений"
+      ]
+    },
+    {
+      "term": "Аномалия",
+      "term_en": "Anomaly",
+      "definition": "Неожиданное выполнение предусмотренной функции.",
+      "definition_en": "The unexpected performance of intended function.",
+      "related": [
+        "Отказ",
+        "Неисправность"
+      ]
+    },
+    {
+      "term": "Утверждение",
+      "term_en": "Approval",
+      "definition": "Разрешение требуемого должностного лица руководства приступить к предложенному образу действий. Утверждения документируются.",
+      "definition_en": "Authorization by a required management official to proceed with a proposed course of action. Approvals are documented.",
+      "related": [
+        "Согласование"
+      ]
+    },
+    {
+      "term": "Утверждение (на реализацию)",
+      "term_en": "Approval (for Implementation)",
+      "definition": "Признание лицом, принимающим решения, того, что программа/проект удовлетворила ожиданиям заинтересованных сторон и требованиям фазы формирования и готова перейти к реализации. Утверждая программу/проект, лицо, принимающее решения, выделяет бюджетные ресурсы, необходимые для перехода к реализации. Утверждение (на реализацию) документируется.",
+      "definition_en": "The acknowledgment by the decision authority that the program/project has met stakeholder expectations and formulation requirements, and is ready to proceed to implementation. By approving a program/project, the decision authority commits the budget resources necessary to continue into implementation. Approval (for Implementation) is documented.",
+      "related": [
+        "Лицо, принимающее решения",
+        "Ожидания заинтересованных сторон",
+        "Фаза формирования",
+        "Фаза реализации"
+      ]
+    },
+    {
+      "term": "Архитектура (системы)",
+      "term_en": "Architecture (System)",
+      "definition": "Архитектура — это высокоуровневая объединяющая структура, которая определяет систему. Она задаёт набор правил, руководящих указаний и ограничений, определяющих связную и целостную структуру из составных частей, отношений и связей, которые устанавливают, как эти части сочетаются и работают вместе. Она охватывает концепции, свойства и характеристики системы и представляется такими сущностями, как функции, функциональные потоки, интерфейсы, отношения, элементы потоков ресурсов, физические элементы, вместилища, режимы, связи, ресурсы передачи данных и т. д. Эти сущности не независимы, а взаимосвязаны в архитектуре через отношения между ними (NASA HQ).",
+      "definition_en": "Architecture is the high-level unifying structure that defines a system. It provides a set of rules, guidelines, and constraints that defines a cohesive and coherent structure consisting of constituent parts, relationships and connections that establish how those parts fit and work together. It addresses the concepts, properties and characteristics of the system and is represented by entities such as functions, functional flows, interfaces, relationships, resource flow items, physical elements, containers, modes, links, communication resources, etc. The entities are not independent but interrelated in the architecture through the relationships between them (NASA HQ).",
+      "related": [
+        "Система",
+        "Архитектура (определение ISO)"
+      ]
+    },
+    {
+      "term": "Архитектура (определение ISO)",
+      "term_en": "Architecture (ISO Definition)",
+      "definition": "Фундаментальные концепции или свойства системы в её окружении, воплощённые в её элементах, отношениях и в принципах её проектирования и развития (ISO 42010).",
+      "definition_en": "Fundamental concepts or properties of a system in its environment embodied in its elements, relationships, and in the principles of its design and evolution (ISO 42010).",
+      "related": [
+        "Система",
+        "Архитектура (системы)"
+      ]
+    },
+    {
+      "term": "Базовая линия развёрнутой системы",
+      "term_en": "As-Deployed Baseline",
+      "definition": "Базовая линия развёрнутой системы появляется на обзоре готовности к эксплуатации. В этот момент конструкция считается работоспособной и готовой к полёту. Все изменения к этому моменту внесены в документацию.",
+      "definition_en": "The as-deployed baseline occurs at the Operational Readiness Review. At this point, the design is considered to be functional and ready for flight. All changes will have been incorporated into the documentation.",
+      "related": [
+        "Базовая линия",
+        "Обзор готовности к эксплуатации"
+      ]
+    },
+    {
+      "term": "Автоматизированный",
+      "term_en": "Automated",
+      "definition": "Автоматизация означает распределение функций системы между машинами (аппаратными или программными средствами) и людьми.",
+      "definition_en": "Automation refers to the allocation of system functions to machines (hardware or software) versus humans.",
+      "related": [
+        "Автономный"
+      ]
+    },
+    {
+      "term": "Автономный",
+      "term_en": "Autonomous",
+      "definition": "Автономность означает относительное расположение и охват функций принятия решений и управления между двумя точками внутри системы или по разные стороны границы системы.",
+      "definition_en": "Autonomy refers to the relative locations and scope of decision-making and control functions between two locations within a system or across the system boundary.",
+      "related": [
+        "Автоматизированный"
+      ]
+    },
+    {
+      "term": "Базовая линия",
+      "term_en": "Baseline",
+      "definition": "Согласованный набор требований, конструкций или документов, изменения в которых контролируются через формальный процесс утверждения и мониторинга.",
+      "definition_en": "An agreed-to set of requirements, designs, or documents that will have changes controlled through a formal approval and monitoring process.",
+      "related": [
+        "Требование"
+      ]
+    },
+    {
+      "term": "Двунаправленная прослеживаемость",
+      "term_en": "Bidirectional Traceability",
+      "definition": "Возможность проследить любое заданное требование или ожидание до его родительского требования или ожидания и до распределённых на него дочерних требований или ожиданий.",
+      "definition_en": "The ability to trace any given requirement/expectation to its parent requirement/expectation and to its allocated children requirements/expectations.",
+      "related": [
+        "Требование",
+        "Прослеживаемость",
+        "Ожидания заинтересованных сторон"
+      ]
+    },
+    {
+      "term": "Экспериментальный образец",
+      "term_en": "Brassboard",
+      "definition": "Функциональный образец средней точности воспроизведения, в котором обычно стараются использовать как можно больше штатных аппаратных и программных средств и который начинает учитывать вопросы масштабирования, связанные с эксплуатируемой системой. У него нет инженерной родословной по всем аспектам, но он построен так, чтобы работать в имитируемых условиях эксплуатации и позволять оценить выполнение критических функций.",
+      "definition_en": "A medium fidelity functional unit that typically tries to make use of as much operational hardware/software as possible and begins to address scaling issues associated with the operational system. It does not have the engineering pedigree in all aspects, but is structured to be able to operate in simulated operational environments in order to assess performance of critical functions.",
+      "related": [
+        "Макетный образец",
+        "Инженерный образец",
+        "Прототип"
+      ]
+    },
+    {
+      "term": "Макетный образец",
+      "term_en": "Breadboard",
+      "definition": "Образец низкой точности воспроизведения, который демонстрирует только функцию — без учёта формы и присоединительных размеров в случае аппаратуры или платформы в случае программного обеспечения. В нём часто используются коммерческие или импровизированные компоненты, и он не предназначен давать окончательные сведения об эксплуатационных характеристиках.",
+      "definition_en": "A low fidelity unit that demonstrates function only, without respect to form or fit in the case of hardware, or platform in the case of software. It often uses commercial and/or ad hoc components and is not intended to provide definitive information regarding operational performance.",
+      "related": [
+        "Экспериментальный образец",
+        "Инженерный образец"
+      ]
+    },
+    {
+      "term": "Территориально обособленный объект",
+      "term_en": "Component Facilities",
+      "definition": "Комплексы, территориально отделённые от центра NASA или организации, к которым они приписаны, но остающиеся частью Агентства.",
+      "definition_en": "Complexes that are geographically separated from the NASA Center or institution to which they are assigned, but are still part of the Agency."
+    },
+    {
+      "term": "Концепция эксплуатации (ConOps) (концептуальная документация)",
+      "term_en": "Concept of Operations (ConOps) (Concept Documentation)",
+      "definition": "ConOps разрабатывается рано, в предварительной фазе A, и описывает общую высокоуровневую концепцию того, как система будет использоваться для выполнения ожиданий заинтересованных сторон, обычно в виде последовательности во времени. Она описывает систему с эксплуатационной точки зрения и помогает понять цели системы. Она стимулирует разработку требований и архитектуры, относящихся к пользовательским элементам системы. Она служит основой для последующих определяющих документов и создаёт фундамент для долгосрочного планирования эксплуатации.",
+      "definition_en": "Developed early in Pre-Phase A, the ConOps describes the overall high-level concept of how the system will be used to meet stakeholder expectations, usually in a time-sequenced manner. It describes the system from an operational perspective and helps facilitate an understanding of the system goals. It stimulates the development of the requirements and architecture related to the user elements of the system. It serves as the basis for subsequent definition documents and provides the foundation for the long-range operational planning activities.",
+      "related": [
+        "Ожидания заинтересованных сторон",
+        "Требование",
+        "Архитектура (системы)",
+        "Концепция операций"
+      ]
+    },
+    {
+      "term": "Согласование",
+      "term_en": "Concurrence",
+      "definition": "Документированное согласие должностного лица руководства с тем, что предложенный образ действий приемлем.",
+      "definition_en": "A documented agreement by a management official that a proposed course of action is acceptable.",
+      "related": [
+        "Утверждение"
+      ]
+    },
+    {
+      "term": "Параллельное проектирование",
+      "term_en": "Concurrent Engineering",
+      "definition": "Проектирование, ведущееся параллельно, а не последовательно. Это подход к разработке продукта, который вводит производство, испытания, обеспечение качества, эксплуатацию и другие дисциплины в цикл проектирования, чтобы все аспекты были учтены в конструкции и тем самым сокращалось общее время разработки продукта.",
+      "definition_en": "Design in parallel rather than serial engineering fashion. It is an approach to product development that brings manufacturing, testing, assurance, operations and other disciplines into the design cycle to ensure all aspects are incorporated into the design and thus reduce overall product development time.",
+      "related": [
+        "Продукт"
+      ]
+    },
+    {
+      "term": "Элемент конфигурации (CI)",
+      "term_en": "Configuration Items (CI)",
+      "definition": "Любые аппаратные средства, программное обеспечение или их сочетание, которые выполняют конечную функцию использования и выделены для отдельного управления конфигурацией. Например, элементы конфигурации могут обозначаться буквенно-цифровым идентификатором, который также служит неизменной основой для присвоения серийных номеров, однозначно определяющих отдельные экземпляры элемента конфигурации.",
+      "definition_en": "Any hardware, software, or combination of both that satisfies an end use function and is designated for separate configuration management. For example, configuration items can be referred to by an alphanumeric identifier which also serves as the unchanging base for the assignment of serial numbers to uniquely identify individual units of the CI.",
+      "related": [
+        "Процесс управления конфигурацией"
+      ]
+    },
+    {
+      "term": "Процесс управления конфигурацией",
+      "term_en": "Configuration Management Process",
+      "definition": "Управленческая дисциплина, применяемая на протяжении жизненного цикла продукта, чтобы обеспечить видимость изменений характеристик, функциональных и физических свойств и контроль над этими изменениями. Она гарантирует, что конфигурация продукта известна и отражена в информации о продукте, что любое изменение продукта полезно и вносится без неблагоприятных последствий и что изменениями управляют.",
+      "definition_en": "A management discipline that is applied over a product’s life cycle to provide visibility into and to control changes to performance and functional and physical characteristics. It ensures that the configuration of a product is known and reflected in product information, that any product change is beneficial and is effected without adverse consequences, and that changes are managed.",
+      "related": [
+        "Элемент конфигурации (CI)",
+        "Базовая линия",
+        "Продукт"
+      ]
+    },
+    {
+      "term": "Контекстная диаграмма",
+      "term_en": "Context Diagram",
+      "definition": "Диаграмма, которая показывает внешние системы, влияющие на проектируемую систему.",
+      "definition_en": "A diagram that shows external systems that impact the system being designed.",
+      "related": [
+        "Система"
+      ]
+    },
+    {
+      "term": "Непрерывное управление рисками",
+      "term_en": "Continuous Risk Management",
+      "definition": "Систематический и итеративный процесс, который планомерно выявляет, анализирует, планирует, отслеживает, контролирует, доводит до сведения и документирует риски, связанные с реализацией конструкций, планов и процессов.",
+      "definition_en": "A systematic and iterative process that efficiently identifies, analyzes, plans, tracks, controls, communicates, and documents risks associated with implementation of designs, plans, and processes.",
+      "related": [
+        "Риск",
+        "Управление рисками"
+      ]
+    },
+    {
+      "term": "Контракт",
+      "term_en": "Contract",
+      "definition": "Взаимно обязывающее юридическое отношение, обязывающее продавца предоставить поставки или услуги (включая строительные работы), а покупателя — оплатить их. Оно охватывает все виды обязательств, которые обязывают Правительство израсходовать выделенные бюджетные средства и которые, если не разрешено иное, имеют письменную форму. Помимо двусторонних документов, к контрактам относятся (но ими не исчерпываются) присуждения и уведомления о присуждении; наряды-задания или письма-задания, выдаваемые по рамочным соглашениям о заказах; письма-контракты; заказы, например заказы на закупку, по которым контракт вступает в силу через письменное принятие или исполнение; а также двусторонние изменения к контракту. Контракты не включают гранты и соглашения о сотрудничестве.",
+      "definition_en": "A mutually binding legal relationship obligating the seller to furnish the supplies or services (including construction) and the buyer to pay for them. It includes all types of commitments that obligate the Government to an expenditure of appropriated funds and that, except as otherwise authorized, are in writing. In addition to bilateral instruments, contracts include (but are not limited to) awards and notices of awards; job orders or task letters issued under basic ordering agreements; letter contracts; orders, such as purchase orders under which the contract becomes effective by written acceptance or performance; and bilateral contract modifications. Contracts do not include grants and cooperative agreements.",
+      "related": [
+        "Подрядчик",
+        "Приобретение"
+      ]
+    },
+    {
+      "term": "Подрядчик",
+      "term_en": "Contractor",
+      "definition": "Физическое лицо, товарищество, компания, корпорация, объединение или иная организация-исполнитель, имеющая контракт с Агентством на проектирование, разработку, изготовление, обслуживание, модификацию, эксплуатацию или поставку изделий либо услуг по условиям контракта для программы или проекта. Получатели исследовательских грантов, исследовательские подрядчики и исследовательские субподрядчики в это определение не входят.",
+      "definition_en": "An individual, partnership, company, corporation, association, or other service having a contract with the Agency for the design, development, manufacture, maintenance, modification, operation, or supply of items or services under the terms of a contract to a program or project. Research grantees, research contractors, and research subcontractors are excluded from this definition.",
+      "related": [
+        "Контракт"
+      ]
+    },
+    {
+      "term": "Менеджер контрольного счёта",
+      "term_en": "Control Account Manager",
+      "definition": "Руководитель, отвечающий за контрольный счёт и за планирование, формирование и исполнение бюджета по этим счетам.",
+      "definition_en": "A manager responsible for a control account and for the planning, development, and execution of the budget content for those accounts.",
+      "related": [
+        "Управление освоенным объёмом"
+      ]
+    },
+    {
+      "term": "Контрольный рубеж (веха)",
+      "term_en": "Control Gate (or milestone)",
+      "definition": "Определённая точка жизненного цикла программы или проекта, в которой лицо, принимающее решения, может оценить ход работ и определить дальнейшие действия. К таким точкам могут относиться ключевая точка принятия решений, обзор жизненного цикла или иные вехи, назначенные программой или проектом.",
+      "definition_en": "A defined point in the program/project life cycle where the decision authority can evaluate progress and determine next actions. These may include a key decision point, life cycle review, or other milestones identified by the program/project.",
+      "related": [
+        "Лицо, принимающее решения",
+        "Ключевая точка принятия решений"
+      ]
+    },
+    {
+      "term": "Анализ «затраты — выгоды»",
+      "term_en": "Cost-Benefit Analysis",
+      "definition": "Методология определения преимущества одной альтернативы над другой в терминах эквивалентных затрат или выгод. Она опирается на суммирование положительных факторов и вычитание отрицательных для получения чистого результата.",
+      "definition_en": "A methodology to determine the advantage of one alternative over another in terms of equivalent cost or benefits. It relies on totaling positive factors and subtracting negative factors to determine a net result.",
+      "related": [
+        "Анализ «стоимость — эффективность»"
+      ]
+    },
+    {
+      "term": "Анализ «стоимость — эффективность»",
+      "term_en": "Cost-Effectiveness Analysis",
+      "definition": "Систематический количественный метод сравнения затрат на альтернативные способы достижения одинаковой по величине пользы для конкретной цели.",
+      "definition_en": "A systematic quantitative method for comparing the costs of alternative means of achieving the same equivalent benefit for a specific objective.",
+      "related": [
+        "Анализ «затраты — выгоды»",
+        "Анализ альтернатив"
+      ]
+    },
+    {
+      "term": "Критический обзор проекта",
+      "term_en": "Critical Design Review",
+      "definition": "Обзор, который показывает, что зрелость конструкции достаточна для перехода к полномасштабному изготовлению, сборке, интеграции и испытаниям и что технические работы идут по графику, позволяющему завершить разработку системы с выполнением требований к характеристикам в рамках установленных стоимостных и календарных ограничений.",
+      "definition_en": "A review that demonstrates that the maturity of the design is appropriate to support proceeding with full-scale fabrication, assembly, integration, and test, and that the technical effort is on track to complete the system development meeting performance requirements within the identified cost and schedule constraints.",
+      "related": [
+        "Требование",
+        "Предварительный обзор проекта"
+      ]
+    },
+    {
+      "term": "Критическое событие (ключевое событие)",
+      "term_en": "Critical Event (or key event)",
+      "definition": "Событие в фазе эксплуатации миссии, которое критично по времени и должно быть выполнено успешно, чтобы миссия удалась. Такие события следует рассматривать рано в жизненном цикле как факторы, определяющие конструкцию системы.",
+      "definition_en": "An event in the operations phase of the mission that is time-sensitive and is required to be accomplished successfully in order to achieve mission success. These events should be considered early in the life cycle as drivers for system design.",
+      "related": [
+        "Миссия"
+      ]
+    },
+    {
+      "term": "Обзор готовности к критическому событию",
+      "term_en": "Critical Event Readiness Review",
+      "definition": "Обзор, который оценивает готовность лётной системы проекта выполнить критическое событие в ходе лётной эксплуатации.",
+      "definition_en": "A review that evaluates the readiness of a project’s flight system to execute the critical event during flight operation.",
+      "related": [
+        "Критическое событие (ключевое событие)"
+      ]
+    },
+    {
+      "term": "Заказчик",
+      "term_en": "Customer",
+      "definition": "Организация или лицо, которое запросило продукт и получит поставляемый продукт. Заказчиком может быть конечный пользователь продукта, приобретающая сторона, действующая в интересах конечного пользователя, или тот, кто запрашивает результаты работ технических усилий. У каждого продукта в иерархии системы есть свой заказчик.",
+      "definition_en": "The organization or individual that has requested a product and will receive the product to be delivered. The customer may be an end user of the product, the acquiring agent for the end user, or the requestor of the work products from a technical effort. Each product within the system hierarchy has a customer.",
+      "related": [
+        "Продукт",
+        "Заинтересованная сторона",
+        "Прочие заинтересованные лица (заинтересованные стороны)"
+      ]
+    },
+    {
+      "term": "Управление данными",
+      "term_en": "Data Management",
+      "definition": "Управление данными используется, чтобы планировать, получать, делать доступными, сопровождать, защищать и использовать данные технического характера в поддержку всего жизненного цикла системы.",
+      "definition_en": "DM is used to plan for, acquire, access, manage, protect, and use data of a technical nature to support the total life cycle of a system.",
+      "related": [
+        "Процесс управления техническими данными"
+      ]
+    },
+    {
+      "term": "Процесс анализа решений",
+      "term_en": "Decision Analysis Process",
+      "definition": "Методология принятия решений, предлагающая приёмы математического моделирования задач выбора и численного нахождения оптимальных решений. Методология предполагает выявление альтернатив, одну из которых следует выбрать; возможных событий, одно из которых затем наступает; и исходов, каждый из которых вытекает из сочетания решения и события.",
+      "definition_en": "A methodology for making decisions that offers techniques for modeling decision problems mathematically and finding optimal decisions numerically. The methodology entails identifying alternatives, one of which should be decided upon; possible events, one of which occurs thereafter; and outcomes, each of which results from a combination of decision and event.",
+      "related": [
+        "Дерево решений",
+        "Матрица решений"
+      ]
+    },
+    {
+      "term": "Лицо, принимающее решения",
+      "term_en": "Decision Authority",
+      "definition": "Должностное лицо, уполномоченное Агентством принимать важные решения по программам и проектам, находящимся в его ведении.",
+      "definition_en": "The individual authorized by the Agency to make important decisions for programs and projects under his or her authority.",
+      "related": [
+        "Программа",
+        "Проект"
+      ]
+    },
+    {
+      "term": "Матрица решений",
+      "term_en": "Decision Matrix",
+      "definition": "Методология оценки альтернатив, при которой критерии оценивания обычно размещаются в строках в левой части матрицы, а альтернативы служат заголовками столбцов. Каждому критерию, как правило, присваивается «вес».",
+      "definition_en": "A methodology for evaluating alternatives in which valuation criteria are typically displayed in rows on the left side of the matrix and alternatives are the column headings of the matrix. A “weight” is typically assigned to each criterion.",
+      "related": [
+        "Процесс анализа решений"
+      ]
+    },
+    {
+      "term": "Пакет материалов для принятия решения",
+      "term_en": "Decision Support Package",
+      "definition": "Документация, представляемая вместе с формальными обзорами и запросами на изменение.",
+      "definition_en": "Documentation submitted in conjunction with formal reviews and change requests."
+    },
+    {
+      "term": "Дерево решений",
+      "term_en": "Decision Tree",
+      "definition": "Модель принятия решения, которая отображает ожидаемые последствия всех альтернатив решения, делая дискретными все «случайные» узлы и на этой основе рассчитывая и надлежащим образом взвешивая возможные последствия всех альтернатив.",
+      "definition_en": "A decision model that displays the expected consequences of all decision alternatives by making discreet all “chance” nodes, and, based on this, calculating and appropriately weighting the possible consequences of all alternatives.",
+      "related": [
+        "Процесс анализа решений",
+        "Диаграмма влияния"
+      ]
+    },
+    {
+      "term": "Обзор вывода из эксплуатации",
+      "term_en": "Decommissioning Review",
+      "definition": "Обзор, который подтверждает решение прекратить работу системы или вывести её из эксплуатации и оценивает готовность к безопасному выводу из эксплуатации и утилизации активов системы. Обзор вывода из эксплуатации обычно проводится ближе к концу штатной эксплуатации миссии, по достижении запланированных целей миссии. Он может быть проведён раньше, если какое-либо незапланированное событие порождает необходимость досрочно прекратить миссию, или позже, если срок эксплуатации продлевается для проведения дополнительных исследований.",
+      "definition_en": "A review that confirms the decision to terminate or decommission a system and assess the readiness for the safe decommissioning and disposal of system assets. The DR is normally held near the end of routine mission operations upon accomplishment of planned mission objectives. It may be advanced if some unplanned event gives rise to a need to prematurely terminate the mission, or delayed if operational life is extended to permit additional investigations.",
+      "related": [
+        "Миссия"
+      ]
+    },
+    {
+      "term": "Поставляемый элемент данных",
+      "term_en": "Deliverable Data Item",
+      "definition": "Состоит из технических данных — таких как спецификации требований, проектная документация, планы управленческих данных и отчёты с метриками, — которые определены как позиции, поставляемые вместе с конечным продуктом.",
+      "definition_en": "Consists of technical data, such as requirements specifications, design documents, management data plans, and metrics reports, that have been identified as items to be delivered with an end product.",
+      "related": [
+        "Конечный продукт",
+        "Метрика"
+      ]
+    },
+    {
+      "term": "Демонстрация",
+      "term_en": "Demonstration",
+      "definition": "Показ того, что использование конечного продукта обеспечивает выполнение отдельного заданного требования (верификация) или ожидания заинтересованной стороны (валидация). Обычно это базовое подтверждение работоспособности, отличающееся от испытаний отсутствием подробного сбора данных. Демонстрации могут предполагать использование физических моделей или макетов; например, требование, что все органы управления должны быть достижимы для пилота, можно верифицировать, поручив пилоту выполнить связанные с полётом задачи в макете кабины или на тренажёре. Демонстрацией может быть и фактическая работа с конечным продуктом силами высококвалифицированного персонала, например лётчиков-испытателей, которые однократно выполняют действие, показывающее способность работать на предельных режимах системы.",
+      "definition_en": "Showing that the use of an end product achieves the individual specified requirement (verification) or stakeholder expectation (validation). It is generally a basic confirmation of performance capability, differentiated from testing by the lack of detailed data gathering. Demonstrations can involve the use of physical models or mock-ups; for example, a requirement that all controls shall be reachable by the pilot could be verified by having a pilot perform flight-related tasks in a cockpit mock-up or simulator. A demonstration could also be the actual operation of the end product by highly qualified personnel, such as test pilots, who perform a one-time event that demonstrates a capability to operate at extreme limits of system performance.",
+      "related": [
+        "Верификация (продукта)",
+        "Валидация (продукта)",
+        "Испытание",
+        "Ожидания заинтересованных сторон",
+        "Конечный продукт"
+      ]
+    },
+    {
+      "term": "Производное требование",
+      "term_en": "Derived Requirements",
+      "definition": "Требования, возникающие из ограничений, из рассмотрения вопросов, которые подразумеваются, но прямо не сформулированы в высокоуровневых указаниях штаб-квартиры NASA и институциональных требованиях центров, из факторов, вносимых выбранной архитектурой, и из конструкции. Эти требования доводятся до окончательного вида в ходе анализа требований как части общего процесса системного инжиниринга и становятся частью базовой линии требований программы или проекта.",
+      "definition_en": "Requirements arising from constraints, consideration of issues implied but not explicitly stated in the high-level direction provided by NASA Headquarters and Center institutional requirements, factors introduced by the selected architecture, and the design. These requirements are finalized through requirements analysis as part of the overall systems engineering process and become part of the program or project requirements baseline. Requirements arising from constraints, consideration of issues implied but not explicitly stated in the high-level direction provided by NASA Headquarters and Center institutional requirements, factors introduced by the selected architecture, and the design. These requirements are finalized through requirements analysis as part of the overall systems engineering process and become part of the program or project requirements baseline.",
+      "related": [
+        "Требование",
+        "Архитектура (системы)",
+        "Базовая линия"
+      ]
+    },
+    {
+      "term": "Сокращение объёма",
+      "term_en": "Descope",
+      "definition": "Как глагол — вывести за рамки (убрать из) объёма проекта. Как существительное, например в обороте «сокращение характеристик», означает процесс сужения объёма или его результат, то есть удаление части первоначального объёма.",
+      "definition_en": "As a verb, take out of (or remove from) the scope of a project. As a noun, as in “performance descope,” it indicates the process or the result of the process of narrowing the scope; i.e., removing part of the original scope.",
+      "related": [
+        "Пороговое требование"
+      ]
+    },
+    {
+      "term": "Процесс определения проектного решения",
+      "term_en": "Design Solution Definition Process",
+      "definition": "Процесс, используемый для превращения результатов процесса логической декомпозиции в определение проектного решения. Он включает преобразование построенных моделей логической декомпозиции и связанных с ними наборов производных технических требований в альтернативные решения и анализ каждой альтернативы, чтобы выбрать предпочтительную и полностью довести её до окончательного проектного решения, которое удовлетворит техническим требованиям.",
+      "definition_en": "The process used to translate the outputs of the logical decomposition process into a design solution definition. It includes transforming the defined logical decomposition models and their associated sets of derived technical requirements into alternative solutions and analyzing each alternative to be able to select a preferred alternative and fully define that alternative into a final design solution that will satisfy the technical requirements.",
+      "related": [
+        "Процесс логической декомпозиции",
+        "Модель логической декомпозиции",
+        "Производное требование",
+        "Техническое требование"
+      ]
+    },
+    {
+      "term": "Назначенный управляющий орган",
+      "term_en": "Designated Governing Authority",
+      "definition": "Применительно к техническим работам это директор центра или лицо, назначенное директором центра, чтобы обеспечить надлежащий уровень надзора за техническим управлением. Для крупных программ это обычно техническая власть в области инжиниринга. Для менее крупных проектов эта функция может быть делегирована линейным руководителям.",
+      "definition_en": "For the technical effort, this is the Center Director or the person that has been designated by the Center Director to ensure the appropriate level of technical management oversight. For large programs, this will typically be the Engineering Technical Authority. For smaller projects, this function can be delegated to line managers.",
+      "related": [
+        "Программа",
+        "Проект"
+      ]
+    },
+    {
+      "term": "Обнаружение",
+      "term_en": "Detection",
+      "definition": "Установление того, что состояние или поведение системы отличается от ожидаемого.",
+      "definition_en": "Determination that system state or behavior is different from expected performance.",
+      "related": [
+        "Аномалия",
+        "Диагностирование"
+      ]
+    },
+    {
+      "term": "Диагностирование",
+      "term_en": "Diagnosis",
+      "definition": "Определение возможных мест и/или причин аномалии либо отказа.",
+      "definition_en": "Determining the possible locations and/or causes of an anomaly or a failure.",
+      "related": [
+        "Аномалия",
+        "Отказ",
+        "Обнаружение",
+        "Прогнозирование"
+      ]
+    },
+    {
+      "term": "Расхождение",
+      "term_en": "Discrepancy",
+      "definition": "Любое наблюдаемое отклонение от требуемого или ожидаемого результата, конфигурации либо итога, несогласие с ним или противоречие ему.",
+      "definition_en": "Any observed variance from, lack of agreement with, or contradiction to the required or expected outcome, configuration, or result.",
+      "related": [
+        "Несоответствующий продукт"
+      ]
+    },
+    {
+      "term": "Освоенный объём",
+      "term_en": "Earned Value",
+      "definition": "Сумма бюджетной стоимости работ и продуктов, которые фактически произведены (завершены или находятся в работе) на заданный момент графика.",
+      "definition_en": "The sum of the budgeted cost for tasks and products that have actually been produced (completed or in progress) at a given time in the schedule.",
+      "related": [
+        "Управление освоенным объёмом"
+      ]
+    },
+    {
+      "term": "Управление освоенным объёмом",
+      "term_en": "Earned Value Management",
+      "definition": "Инструмент измерения и оценки хода проекта через объединение технического содержания работ с целями по срокам и стоимости при исполнении проекта. Управление освоенным объёмом даёт количественную оценку технического прогресса, позволяя руководству понимать состояние проекта, а также стоимость и сроки его завершения. Две существенные черты успешного управления освоенным объёмом — целостность данных системы освоенного объёма и тщательно нацеленный ежемесячный анализ этих данных (то есть по рискованным элементам структуры декомпозиции работ).",
+      "definition_en": "A tool for measuring and assessing project performance through the integration of technical scope with schedule and cost objectives during the execution of the project. EVM provides quantification of technical progress, enabling management to gain insight into project status and project completion costs and schedules. Two essential characteristics of successful EVM are EVM system data integrity and carefully targeted monthly EVM data analyses (i.e., risky WBS elements).",
+      "related": [
+        "Освоенный объём",
+        "Структура декомпозиции работ (WBS)",
+        "Проект"
+      ]
+    },
+    {
+      "term": "Эмерджентное поведение",
+      "term_en": "Emergent Behavior",
+      "definition": "Непредвиденное поведение, проявляемое системой из-за взаимодействий между большим числом простых компонентов этой системы.",
+      "definition_en": "An unanticipated behavior shown by a system due to interactions between large numbers of simple components of that system.",
+      "related": [
+        "Система"
+      ]
+    },
+    {
+      "term": "Конечный продукт",
+      "term_en": "End Product",
+      "definition": "Аппаратура, программное обеспечение или иной продукт, который выполняет эксплуатационные функции. Этот продукт подлежит передаче на следующий уровень продукта или конечному заказчику.",
+      "definition_en": "The hardware/software or other product that performs the operational functions. This product is to be delivered to the next product layer or to the final customer.",
+      "related": [
+        "Продукт",
+        "Обеспечивающий продукт",
+        "Заказчик"
+      ]
+    },
+    {
+      "term": "Обеспечивающий продукт",
+      "term_en": "Enabling Products",
+      "definition": "Продукты и услуги поддержки жизненного цикла (например, производство, испытания, развёртывание, обучение, обслуживание и утилизация), которые обеспечивают продвижение и использование эксплуатируемого конечного продукта на протяжении его жизненного цикла. Поскольку конечный продукт и его обеспечивающие продукты взаимозависимы, их рассматривают как систему. Поэтому ответственность проекта распространяется и на получение услуг от соответствующих обеспечивающих продуктов в каждой фазе жизненного цикла. Если подходящего обеспечивающего продукта ещё не существует, проект, отвечающий за конечный продукт, может отвечать и за создание и применение обеспечивающего продукта.",
+      "definition_en": "The life cycle support products and services (e.g., production, test, deployment, training, maintenance, and disposal) that facilitate the progression and use of the operational end product through its life cycle. Since the end product and its enabling products are interdependent, they are viewed as a system. Project responsibility thus extends to acquiring services from the relevant enabling products in each life cycle phase. When a suitable enabling product does not already exist, the project that is responsible for the end product may also be responsible for creating and using the enabling product.",
+      "related": [
+        "Конечный продукт",
+        "Продукт",
+        "Система",
+        "Проект"
+      ]
+    },
+    {
+      "term": "Инженерный образец",
+      "term_en": "Engineering Unit",
+      "definition": "Образец высокой точности воспроизведения, который демонстрирует критические стороны инженерных процессов, задействованных в разработке эксплуатируемого изделия. Инженерные испытательные образцы предназначены как можно ближе воспроизводить конечный продукт (аппаратуру или программное обеспечение), их строят и испытывают так, чтобы обрести уверенность, что конструкция будет работать в ожидаемых условиях. В некоторых случаях инженерный образец становится конечным продуктом — при условии, что для компонентов и обращения с аппаратурой обеспечена надлежащая прослеживаемость.",
+      "definition_en": "A high fidelity unit that demonstrates critical aspects of the engineering processes involved in the development of the operational unit. Engineering test units are intended to closely resemble the final product (hardware/software) to the maximum extent possible and are built and tested so as to establish confidence that the design will function in the expected environments. In some cases, the engineering unit will become the final product, assuming that proper traceability has been exercised over the components and hardware handling.",
+      "related": [
+        "Макетный образец",
+        "Экспериментальный образец",
+        "Прототип",
+        "Прослеживаемость"
+      ]
+    },
+    {
+      "term": "Расширенная функциональная блок-схема потоков",
+      "term_en": "Enhanced Functional Flow Block Diagram",
+      "definition": "Блок-схема, которая представляет потоки управления и потоки данных, а также функции системы и их поток.",
+      "definition_en": "A block diagram that represents control flows and data flows as well as system functions and flow.",
+      "related": [
+        "Функциональная блок-схема потоков"
+      ]
+    },
+    {
+      "term": "Критерий входа",
+      "term_en": "Entrance Criteria",
+      "definition": "Указания о минимальных результатах, которых каждый проект должен достичь до проведения обзора жизненного цикла.",
+      "definition_en": "Guidance for minimum accomplishments each project needs to fulfill prior to a life cycle review.",
+      "related": [
+        "Критерий успеха",
+        "Проект"
+      ]
+    },
+    {
+      "term": "Воздействие на окружающую среду",
+      "term_en": "Environmental Impact",
+      "definition": "Прямое, косвенное или накопленное благоприятное либо неблагоприятное влияние действия на окружающую среду.",
+      "definition_en": "The direct, indirect, or cumulative beneficial or adverse effect of an action on the environment.",
+      "related": [
+        "Экологический менеджмент"
+      ]
+    },
+    {
+      "term": "Экологический менеджмент",
+      "term_en": "Environmental Management",
+      "definition": "Деятельность по обеспечению того, чтобы действия и решения программы и проекта, способные повлиять на окружающую среду или повредить ей, оценивались и анализировались в фазе формирования и планирования и переоценивались на протяжении реализации. Эта деятельность ведётся в соответствии со всей политикой NASA и федеральным законодательством, законами и нормами штатов и местных органов власти в области охраны окружающей среды.",
+      "definition_en": "The activity of ensuring that program and project actions and decisions that potentially impact or damage the environment are assessed and evaluated during the formulation and planning phase and reevaluated throughout implementation. This activity is performed according to all NASA policy and Federal, state, and local environmental laws and regulations.",
+      "related": [
+        "Воздействие на окружающую среду",
+        "Фаза формирования",
+        "Фаза реализации"
+      ]
+    },
+    {
+      "term": "Установление (применительно к процессам)",
+      "term_en": "Establish (with respect to processes)",
+      "definition": "Действие по разработке политики, рабочих инструкций или процедур для реализации работ процесса.",
+      "definition_en": "The act of developing policy, work instructions, or procedures to implement process activities.",
+      "related": [
+        "Процесс",
+        "Деятельность",
+        "Поддержание (применительно к установлению процессов)"
+      ]
+    },
+    {
+      "term": "Оценивание",
+      "term_en": "Evaluation",
+      "definition": "Постоянная самостоятельная и независимая оценка того, как исполняется программа или проект, и учёт выводов этой оценки, чтобы обеспечить достаточность планирования и исполнения согласно плану.",
+      "definition_en": "The continual self- and independent assessment of the performance of a program or project and incorporation of the evaluation findings to ensure adequacy of planning and execution according to plan.",
+      "related": [
+        "Программа",
+        "Проект"
+      ]
+    },
+    {
+      "term": "Расширяемость",
+      "term_en": "Extensibility",
+      "definition": "Способность решения быть распространённым на другие применения.",
+      "definition_en": "The ability of a decision to be extended to other applications.",
+      "related": [
+        "Гибкость"
+      ]
+    },
+    {
+      "term": "Отказ",
+      "term_en": "Failure",
+      "definition": "Неспособность системы, подсистемы, компонента или детали выполнять требуемую от них функцию в заданных пределах (источник: NPR 8715.3 и Avizienis 2004).",
+      "definition_en": "The inability of a system, subsystem, component, or part to perform its required function within specified limits (Source: NPR 8715.3 and Avizienis 2004).",
+      "related": [
+        "Неисправность",
+        "Отказоустойчивость"
+      ]
+    },
+    {
+      "term": "Отказоустойчивость",
+      "term_en": "Failure Tolerance",
+      "definition": "Способность выдержать определённое количество отказов и сохранить работоспособность (источник: NPR 8705.2). Функция должна сохраняться, несмотря на наличие любого из заданного числа одновременных независимых причин отказов заданных типов.",
+      "definition_en": "The ability to sustain a certain number of failures and still retain capability (Source: NPR 8705.2). A function should be preserved despite the presence of any of a specified number of coincident, independent failure causes of specified types.",
+      "related": [
+        "Отказ",
+        "Надёжность"
+      ]
+    },
+    {
+      "term": "Неисправность",
+      "term_en": "Fault",
+      "definition": "Физическая или логическая причина, которая объясняет отказ (источник: Avizienis 2004).",
+      "definition_en": "A physical or logical cause, which explains a failure (Source: Avizienis 2004).",
+      "related": [
+        "Отказ",
+        "Управление неисправностями"
+      ]
+    },
+    {
+      "term": "Идентификация неисправности",
+      "term_en": "Fault Identification",
+      "definition": "Определение возможных мест причины или причин отказа либо аномалии с заданной степенью детализации.",
+      "definition_en": "Determining the possible locations of a failure or anomaly cause(s), to a defined level of granularity.",
+      "related": [
+        "Неисправность",
+        "Отказ",
+        "Аномалия",
+        "Диагностирование"
+      ]
+    },
+    {
+      "term": "Локализация неисправности",
+      "term_en": "Fault Isolation",
+      "definition": "Действие по удержанию последствий неисправности, чтобы ограничить масштаб отказа.",
+      "definition_en": "The act of containing the effects of a fault to limit the extent of failure.",
+      "related": [
+        "Неисправность",
+        "Отказ",
+        "Управление неисправностями"
+      ]
+    },
+    {
+      "term": "Управление неисправностями",
+      "term_en": "Fault Management",
+      "definition": "Специальная инженерная дисциплина, охватывающая практики, которые позволяют эксплуатируемой системе удерживать, предотвращать, обнаруживать, диагностировать, идентифицировать условия, способные помешать штатной работе миссии, реагировать на них и восстанавливаться после них.",
+      "definition_en": "A specialty engineering discipline that encompasses practices that enable an operational system to contain, prevent, detect, diagnose, identify, respond to, and recover from conditions that may interfere with nominal mission operations.",
+      "related": [
+        "Неисправность",
+        "Обнаружение",
+        "Диагностирование",
+        "Идентификация неисправности",
+        "Локализация неисправности",
+        "Восстановление"
+      ]
+    },
+    {
+      "term": "Реализуемый",
+      "term_en": "Feasible",
+      "definition": "Первоначальные оценки показывают, что концепция правдоподобно укладывается в технические, стоимостные и календарные ограничения проекта.",
+      "definition_en": "Initial evaluations show that the concept credibly falls within the technical cost and schedule constraints for the project.",
+      "related": [
+        "Оптимальное решение",
+        "Проект"
+      ]
+    },
+    {
+      "term": "Гибкость",
+      "term_en": "Flexibility",
+      "definition": "Способность решения поддерживать более одного текущего применения.",
+      "definition_en": "The ability of a decision to support more than one current application.",
+      "related": [
+        "Расширяемость"
+      ]
+    },
+    {
+      "term": "Обзор готовности к полёту",
+      "term_en": "Flight Readiness Review",
+      "definition": "Обзор, который рассматривает испытания, демонстрации, анализы и аудиты, определяющие готовность системы к безопасному и успешному полёту либо запуску и к последующей лётной эксплуатации. Он также подтверждает, что вся лётная и наземная аппаратура, программное обеспечение, персонал и процедуры готовы к работе.",
+      "definition_en": "A review that examines tests, demonstrations, analyses, and audits that determine the system’s readiness for a safe and successful flight/launch and for subsequent flight operations. It also ensures that all flight and ground hardware, software, personnel, and procedures are operationally ready.",
+      "related": [
+        "Испытание",
+        "Демонстрация",
+        "Обзор готовности к эксплуатации"
+      ]
+    },
+    {
+      "term": "Резерв времени",
+      "term_en": "Float",
+      "definition": "Количество времени, на которое задача в сетевом графике проекта может быть задержана, не вызывая задержки последующих задач или даты завершения проекта.",
+      "definition_en": "The amount of time that a task in a project network schedule can be delayed without causing a delay to subsequent tasks or the project completion date.",
+      "related": [
+        "Диаграмма Гантта",
+        "Проект"
+      ]
+    },
+    {
+      "term": "Фаза формирования",
+      "term_en": "Formulation Phase",
+      "definition": "Первая часть управленческого жизненного цикла NASA, определённого в NPR 7120.5, в которой фиксируются в базовой линии системные требования, определяются реализуемые концепции, фиксируется в базовой линии определение системы для выбранной концепции или концепций и готовится переход к фазе реализации.",
+      "definition_en": "The first part of the NASA management life cycle defined in NPR 7120.5 where system requirements are baselined, feasible concepts are determined, a system definition is baselined for the selected concept(s), and preparation is made for progressing to the Implementation Phase.",
+      "related": [
+        "Фаза реализации",
+        "Базовая линия",
+        "Реализуемый"
+      ]
+    },
+    {
+      "term": "Функциональный анализ",
+      "term_en": "Functional Analysis",
+      "definition": "Процесс выявления, описания и увязывания функций, которые система должна выполнять, чтобы достичь своих целей и задач.",
+      "definition_en": "The process of identifying, describing, and relating the functions a system should perform to fulfill its goals and objectives.",
+      "related": [
+        "Функциональная декомпозиция",
+        "Цель",
+        "Задача"
+      ]
+    },
+    {
+      "term": "Функциональная базовая линия (фаза B)",
+      "term_en": "Functional Baseline (Phase B)",
+      "definition": "Функциональная базовая линия — это утверждённая конфигурационная документация, которая описывает требования к характеристикам системы или элементов конфигурации верхнего уровня (функциональные характеристики, характеристики совместимости и интерфейсов) и верификацию, необходимую для подтверждения достижения этих заданных характеристик.",
+      "definition_en": "The functional baseline is the approved configuration documentation that describes a system’s or top-level CIs’ performance requirements (functional, interoperability, and interface characteristics) and the verification required to demonstrate the achievement of those specified characteristics.",
+      "related": [
+        "Базовая линия",
+        "Элемент конфигурации (CI)",
+        "Распределённая базовая линия (фаза C)",
+        "Верификация (продукта)"
+      ]
+    },
+    {
+      "term": "Функциональный аудит конфигурации (FCA)",
+      "term_en": "Functional Configuration Audit (FCA)",
+      "definition": "Рассматривает функциональные характеристики продукта с установленной конфигурацией и верифицирует, что продукт по результатам испытаний выполнил требования, заданные в документации его функциональной базовой линии, утверждённой на предварительном и критическом обзорах проекта, плюс все утверждённые после этого изменения. Функциональные аудиты конфигурации проводятся для продуктов с конфигурацией как по аппаратуре, так и по программному обеспечению и предшествуют физическому аудиту конфигурации этого продукта.",
+      "definition_en": "Examines the functional characteristics of the configured product and verifies that the product has met, via test results, the requirements specified in its functional baseline documentation approved at the PDR and CDR plus any approved changes thereafter. FCAs will be conducted on both hardware- and software-configured products and will precede the PCA of the configured product.",
+      "related": [
+        "Функциональная базовая линия (фаза B)",
+        "Физический аудит конфигурации (PCA), или инспекция конфигурации",
+        "Предварительный обзор проекта",
+        "Критический обзор проекта"
+      ]
+    },
+    {
+      "term": "Функциональная декомпозиция",
+      "term_en": "Functional Decomposition",
+      "definition": "Подфункция в рамках логической декомпозиции и определения проектного решения; представляет собой разбор функции для выявления подфункций, необходимых для её выполнения, а также функциональных отношений и интерфейсов.",
+      "definition_en": "A subfunction under logical decomposition and design solution definition, it is the examination of a function to identify subfunctions necessary for the accomplishment of that function and functional relationships and interfaces.",
+      "related": [
+        "Процесс логической декомпозиции",
+        "Процесс определения проектного решения",
+        "Функциональный анализ"
+      ]
+    },
+    {
+      "term": "Функциональная блок-схема потоков",
+      "term_en": "Functional Flow Block Diagram",
+      "definition": "Блок-схема, которая определяет функции системы и временну́ю последовательность функциональных событий.",
+      "definition_en": "A block diagram that defines system functions and the time sequence of functional events.",
+      "related": [
+        "Расширенная функциональная блок-схема потоков"
+      ]
+    },
+    {
+      "term": "Диаграмма Гантта",
+      "term_en": "Gantt Chart",
+      "definition": "Столбчатая диаграмма, изображающая даты начала и окончания работ и продуктов структуры декомпозиции работ.",
+      "definition_en": "A bar chart depicting start and finish dates of activities and products in the WBS.",
+      "related": [
+        "Структура декомпозиции работ (WBS)",
+        "Диаграмма предшествования"
+      ]
+    },
+    {
+      "term": "Цель",
+      "term_en": "Goal",
+      "definition": "Цели развивают потребность и образуют конкретный набор ожиданий от системы. Они дополнительно определяют, чего мы надеемся достичь, разбираясь с критическими вопросами, выявленными при оценке проблемы. Цели не обязаны быть выражены в количественной или измеримой форме, но должны позволять судить, достигла ли их система.",
+      "definition_en": "Goals elaborate on the need and constitute a specific set of expectations for the system. They further define what we hope to accomplish by addressing the critical issues identified during the problem assessment. Goals need not be in a quantitative or measurable form, but they must allow us to assess whether the system has achieved them.",
+      "related": [
+        "Потребность",
+        "Задача"
+      ]
+    },
+    {
+      "term": "Обязательная государственная точка контроля",
+      "term_en": "Government Mandatory Inspection Points",
+      "definition": "Точки контроля, требуемые федеральными нормами, чтобы обеспечить стопроцентное соответствие атрибутам, критичным для безопасности и миссии, когда несоответствие может привести к гибели людей или потере миссии.",
+      "definition_en": "Inspection points required by Federal regulations to ensure 100 percent compliance with safety/mission-critical attributes when noncompliance can result in loss of life or loss of mission.",
+      "related": [
+        "Инспекция",
+        "Безопасность"
+      ]
+    },
+    {
+      "term": "Оценка состояния",
+      "term_en": "Health Assessment",
+      "definition": "Деятельность в рамках управления неисправностями, которая выполняет обнаружение, диагностирование и идентификацию неисправностей и предсказание состояний распространения неисправности в будущем.",
+      "definition_en": "The activity under Fault Management that carries out detection, diagnosis, and identification of faults and prediction of fault propagation states into the future.",
+      "related": [
+        "Управление неисправностями",
+        "Обнаружение",
+        "Диагностирование",
+        "Идентификация неисправности",
+        "Прогнозирование"
+      ]
+    },
+    {
+      "term": "Мониторинг состояния",
+      "term_en": "Health Monitoring",
+      "definition": "Деятельность в рамках управления неисправностями, которая реализует сбор, хранение и передачу данных о состоянии системы посредством измерений и связи.",
+      "definition_en": "The activity under Fault Management that implements system state data collection, storage, and reporting though sensing and communication.",
+      "related": [
+        "Управление неисправностями",
+        "Оценка состояния"
+      ]
+    },
+    {
+      "term": "Наследие (заимствованные решения)",
+      "term_en": "Heritage (or legacy)",
+      "definition": "Относится к уровню качества и надёжности, заложенному изготовителем в комплектующие и подтверждённому: (1) временем эксплуатации, (2) числом изделий в эксплуатации, (3) показателем средней наработки между отказами и (4) числом циклов использования.",
+      "definition_en": "Refers to the original manufacturer’s level of quality and reliability that is built into the parts, which have been proven by (1) time in service, (2) number of units in service, (3) mean time between failure performance, and (4) number of use cycles.",
+      "related": [
+        "Надёжность",
+        "Отказ"
+      ]
+    },
+    {
+      "term": "Человекоцентричное проектирование",
+      "term_en": "Human-Centered Design",
+      "definition": "Подход к разработке интерактивных систем, нацеленный на удобство использования за счёт того, что потребности, возможности и ограничения человека-пользователя учитываются на протяжении всего жизненного цикла системы.",
+      "definition_en": "An approach to the development of interactive systems that focuses on making systems usable by ensuring that the needs, abilities, and limitations of the human user are met throughout the system’s life cycle.",
+      "related": [
+        "Инженерия человеческих факторов",
+        "Интеграция человека в систему"
+      ]
+    },
+    {
+      "term": "Инженерия человеческих факторов",
+      "term_en": "Human Factors Engineering",
+      "definition": "Дисциплина, которая изучает интерфейсы «человек — система» и даёт требования, стандарты и руководящие указания, обеспечивающие, что человеческая составляющая интегрированной системы способна работать так, как задумано.",
+      "definition_en": "The discipline that studies human-system interfaces and provides requirements, standards, and guidelines to ensure the human component of an integrated system is able to function as intended.",
+      "related": [
+        "Человекоцентричное проектирование",
+        "Интеграция человека в систему"
+      ]
+    },
+    {
+      "term": "Интеграция человека в систему",
+      "term_en": "Human Systems Integration",
+      "definition": "Междисциплинарный и всеобъемлющий управленческий и технический процесс, сосредоточенный на встраивании соображений, связанных с человеком, в процессы приобретения и разработки системы, чтобы улучшить проектирование системы с участием человека, снизить стоимость владения на протяжении жизненного цикла и оптимизировать характеристики системы в целом.",
+      "definition_en": "An interdisciplinary and comprehensive management and technical process that focuses on the integration of human considerations into the system acquisition and development processes to enhance human system design, reduce life cycle ownership cost, and optimize total system performance.",
+      "related": [
+        "Человекоцентричное проектирование",
+        "Инженерия человеческих факторов",
+        "Приобретение"
+      ]
+    },
+    {
+      "term": "Фаза реализации",
+      "term_en": "Implementation Phase",
+      "definition": "Часть управленческого жизненного цикла NASA, определённого в NPR 7120.5, в которой завершается детальное проектирование продуктов системы, изготавливаются, собираются, интегрируются и испытываются подлежащие развёртыванию продукты и продукты передаются заказчикам или пользователям для назначенного применения либо миссии.",
+      "definition_en": "The part of the NASA management life cycle defined in NPR 7120.5 where the detailed design of system products is completed and the products to be deployed are fabricated, assembled, integrated, and tested and the products are deployed to their customers or users for their assigned use or mission.",
+      "related": [
+        "Фаза формирования",
+        "Процесс перехода продукта"
+      ]
+    },
+    {
+      "term": "Несоизмеримые затраты",
+      "term_en": "Incommensurable Costs",
+      "definition": "Затраты, которые трудно измерить, например контроль загрязнения при запуске или уменьшение количества мусора.",
+      "definition_en": "Costs that cannot be easily measured, such as controlling pollution on launch or mitigating debris."
+    },
+    {
+      "term": "Диаграмма влияния",
+      "term_en": "Influence Diagram",
+      "definition": "Компактное графическое и математическое представление состояния принятия решения. Его элементы — узлы решений, случайные узлы, узлы ценности и стрелки, показывающие отношения между этими элементами.",
+      "definition_en": "A compact graphical and mathematical representation of a decision state. Its elements are decision nodes, chance nodes, value nodes, and arrows to indicate the relationships among these elements.",
+      "related": [
+        "Дерево решений",
+        "Процесс анализа решений"
+      ]
+    },
+    {
+      "term": "Инспекция",
+      "term_en": "Inspection",
+      "definition": "Визуальный осмотр реализованного конечного продукта. Инспекция обычно применяется для верификации физических конструктивных признаков или конкретной маркировки изготовителя. Например, если есть требование, чтобы у предохранительной чеки был красный флажок с нанесённой по трафарету чёрными буквами надписью «Remove Before Flight», выполнение этого требования можно установить визуальным осмотром флажка чеки.",
+      "definition_en": "The visual examination of a realized end product. Inspection is generally used to verify physical design features or specific manufacturer identification. For example, if there is a requirement that the safety arming pin has a red flag with the words “Remove Before Flight” stenciled on the flag in black letters, a visual inspection of the arming pin flag can be used to determine if this requirement was met.",
+      "related": [
+        "Верификация (продукта)",
+        "Конечный продукт",
+        "Требование"
+      ]
+    },
+    {
+      "term": "Интегрированная логистическая поддержка",
+      "term_en": "Integrated Logistics Support",
+      "definition": "Управленческие и инженерные работы, анализ и управление информацией, связанные с определением требований к конструкции, закупкой и распределением материальных средств, обслуживанием, пополнением запасов, транспортировкой и утилизацией, которые задаются целями по поддерживаемости космических лётных и наземных систем.",
+      "definition_en": "The management, engineering activities, analysis, and information management associated with design requirements definition, material procurement and distribution, maintenance, supply replacement, transportation, and disposal that are identified by space flight and ground systems supportability objectives.",
+      "related": [
+        "Ремонтопригодность"
+      ]
+    },
+    {
+      "term": "Процесс управления интерфейсами",
+      "term_en": "Interface Management Process",
+      "definition": "Процесс, помогающий контролировать разработку продукта, когда работы разделены между сторонами (например, государством, подрядчиками, территориально распределёнными техническими коллективами), и/или определять и поддерживать соответствие между продуктами, которые должны работать совместно.",
+      "definition_en": "The process to assist in controlling product development when efforts are divided among parties (e.g., Government, contractors, geographically diverse technical teams) and/or to define and maintain compliance among the products that should interoperate.",
+      "related": [
+        "Продукт",
+        "Подрядчик",
+        "Техническая группа"
+      ]
+    },
+    {
+      "term": "Итеративный",
+      "term_en": "Iterative",
+      "definition": "Применение процесса к тому же продукту или набору продуктов, чтобы исправить обнаруженное расхождение или иное отклонение от требований. (См. «Рекурсивный» и «Повторяемый».)",
+      "definition_en": "Application of a process to the same product or set of products to correct a discovered discrepancy or other variation from requirements. (See “recursive” and “repeatable.”)",
+      "related": [
+        "Рекурсивный",
+        "Повторяемый",
+        "Расхождение"
+      ]
+    },
+    {
+      "term": "Ключевая точка принятия решений",
+      "term_en": "Key Decision Point",
+      "definition": "Событие, в котором лицо, принимающее решения, определяет готовность программы или проекта перейти к следующей фазе жизненного цикла (или к следующей ключевой точке принятия решений).",
+      "definition_en": "The event at which the decision authority determines the readiness of a program/project to progress to the next phase of the life cycle (or to the next KDP).",
+      "related": [
+        "Лицо, принимающее решения",
+        "Контрольный рубеж (веха)"
+      ]
+    },
+    {
+      "term": "Ключевой параметр характеристик",
+      "term_en": "Key Performance Parameter",
+      "definition": "Те возможности или характеристики (обычно инженерные либо связанные со здоровьем, безопасностью или эксплуатационными показателями), которые считаются наиболее существенными для успешного выполнения миссии. Они описывают главные факторы, определяющие эксплуатационные характеристики, поддерживаемость и совместимость.",
+      "definition_en": "Those capabilities or characteristics (typically engineering-based or related to health and safety or operational performance) considered most essential for successful mission accomplishment. They characterize the major drivers of operational performance, supportability, and interoperability.",
+      "related": [
+        "Мера эффективности (MOE)",
+        "Мера характеристики (MOP)",
+        "Техническая мера"
+      ]
+    },
+    {
+      "term": "Управление знаниями",
+      "term_en": "Knowledge Management",
+      "definition": "Совокупность политик, процессов и практик, относящихся к использованию интеллектуальных и основанных на знаниях активов организации.",
+      "definition_en": "A collection of policies, processes, and practices relating to the use of intellectual- and knowledge-based assets in an organization.",
+      "related": [
+        "Управление данными"
+      ]
+    },
+    {
+      "term": "Анализ наименьшей стоимости",
+      "term_en": "Least-Cost Analysis",
+      "definition": "Методология, которая выявляет наименее затратный вариант проекта, выполняющий технические требования.",
+      "definition_en": "A methodology that identifies the least-cost project option for meeting the technical requirements.",
+      "related": [
+        "Анализ «стоимость — эффективность»",
+        "Техническое требование"
+      ]
+    },
+    {
+      "term": "Незакрытое обязательство",
+      "term_en": "Liens",
+      "definition": "Невыполненные требования или задачи, которые должны быть закрыты в определённый назначенный срок, чтобы позволить пройти контрольный рубеж.",
+      "definition_en": "Requirements or tasks not satisfied that have to be resolved within a certain assigned time to allow passage through a control gate to proceed.",
+      "related": [
+        "Контрольный рубеж (веха)",
+        "Требование"
+      ]
+    },
+    {
+      "term": "Стоимость жизненного цикла (LCC)",
+      "term_en": "Life Cycle Cost (LCC)",
+      "definition": "Сумма прямых, косвенных, повторяющихся, разовых и прочих связанных расходов — как понесённых, так и ожидаемых — на проектирование, разработку, верификацию, производство, развёртывание, основную эксплуатацию по миссии, обслуживание, поддержку и утилизацию проекта, включая закрытие, но не считая продлённой эксплуатации. Стоимость жизненного цикла проекта или системы можно определить и как полную стоимость владения на протяжении запланированного жизненного цикла проекта или системы — от формирования (исключая предварительную фазу A) до реализации (исключая продлённую эксплуатацию). Стоимость жизненного цикла включает стоимость ракеты-носителя.",
+      "definition_en": "The total of the direct, indirect, recurring, nonrecurring, and other related expenses both incurred and estimated to be incurred in the design, development, verification, production, deployment, prime mission operation, maintenance, support, and disposal of a project, including closeout, but not extended operations. The LCC of a project or system can also be defined as the total cost of ownership over the project or system’s planned life cycle from Formulation (excluding Pre–Phase A) through Implementation (excluding extended operations). The LCC includes the cost of the launch vehicle.",
+      "related": [
+        "Фаза формирования",
+        "Фаза реализации",
+        "Анализ альтернатив"
+      ]
+    },
+    {
+      "term": "Модель логической декомпозиции",
+      "term_en": "Logical Decomposition Models",
+      "definition": "Математические или наглядные представления отношений между требованиями, выявленных в процессе логической декомпозиции.",
+      "definition_en": "Mathematical or visual representations of the relationships between requirements as identified in the Logical Decomposition Process.",
+      "related": [
+        "Процесс логической декомпозиции",
+        "Требование",
+        "Модель"
+      ]
+    },
+    {
+      "term": "Процесс логической декомпозиции",
+      "term_en": "Logical Decomposition Process",
+      "definition": "Процесс, применяемый для улучшения понимания определённых технических требований и отношений между ними (например, функциональных, поведенческих, характеристических и временны́х) и для преобразования определённого набора технических требований в набор моделей логической декомпозиции и связанный с ними набор производных технических требований для нижних уровней системы и для подачи на вход процесса определения проектного решения.",
+      "definition_en": "A process used to improve understanding of the defined technical requirements and the relationships among the requirements (e.g., functional, behavioral, performance, and temporal) and to transform the defined set of technical requirements into a set of logical decomposition models and their associated set of derived technical requirements for lower levels of the system and for input to the Design Solution Definition Process.",
+      "related": [
+        "Техническое требование",
+        "Модель логической декомпозиции",
+        "Производное требование",
+        "Процесс определения проектного решения"
+      ]
+    },
+    {
+      "term": "Слабосвязанная программа",
+      "term_en": "Loosely Coupled Program",
+      "definition": "Программы, которые решают конкретные задачи через несколько космических лётных проектов разного масштаба. Хотя у каждого отдельного проекта есть назначенный набор целей миссии, архитектурные и технологические синергии и стратегии, полезные программе в целом, прорабатываются в ходе формирования. Например, марсианские орбитальные аппараты, рассчитанные более чем на один марсианский год на орбите, обязаны нести систему связи для поддержки нынешних и будущих посадочных аппаратов.",
+      "definition_en": "Programs that address specific objectives through multiple space flight projects of varied scope. While each individual project has an assigned set of mission objectives, architectural and technological synergies and strategies that benefit the program as a whole are explored during the formulation process. For instance, Mars orbiters designed for more than one Mars year in orbit are required to carry a communication system to support present and future landers.",
+      "related": [
+        "Тесносвязанная программа",
+        "Несвязанная программа",
+        "Программа"
+      ]
+    },
+    {
+      "term": "Поддержание (применительно к установлению процессов)",
+      "term_en": "Maintain (with respect to establishment of processes)",
+      "definition": "Действия по планированию процесса, предоставлению ресурсов, распределению ответственности, обучению людей, управлению конфигурациями, выявлению и вовлечению заинтересованных сторон и мониторингу результативности процесса.",
+      "definition_en": "The act of planning the process, providing resources, assigning responsibilities, training people, managing configurations, identifying and involving stakeholders, and monitoring process effectiveness.",
+      "related": [
+        "Установление (применительно к процессам)",
+        "Процесс",
+        "Заинтересованная сторона"
+      ]
+    },
+    {
+      "term": "Ремонтопригодность",
+      "term_en": "Maintainability",
+      "definition": "Мера способности изделия сохраняться в заданном состоянии или восстанавливаться до него, когда обслуживание выполняется персоналом заданной квалификации по предписанным процедурам и с предписанными ресурсами на каждом предписанном уровне обслуживания.",
+      "definition_en": "The measure of the ability of an item to be retained in or restored to specified conditions when maintenance is performed by personnel having specified skill levels, using prescribed procedures and resources, at each prescribed level of maintenance.",
+      "related": [
+        "Надёжность",
+        "Интегрированная логистическая поддержка"
+      ]
+    },
+    {
+      "term": "Запас",
+      "term_en": "Margin",
+      "definition": "Допуски, закладываемые в бюджет, планируемые графики и технические параметры характеристик (например, массу, энергопотребление или память), чтобы учесть неопределённости и риски. Запасы распределяются в ходе формирования на основе оценок рисков и обычно расходуются по мере продвижения программы или проекта по жизненному циклу.",
+      "definition_en": "The allowances carried in budget, projected schedules, and technical performance parameters (e.g., weight, power, or memory) to account for uncertainties and risks. Margins are allocated in the formulation process based on assessments of risks and are typically consumed as the program/project proceeds through the life cycle.",
+      "related": [
+        "Риск",
+        "Фаза формирования",
+        "Мера технических характеристик"
+      ]
+    },
+    {
+      "term": "Сводная ведомость оборудования (MEL)",
+      "term_en": "Master Equipment List (MEL)",
+      "definition": "Сводная ведомость оборудования — это перечень всех составных частей системы, включающий относящиеся к делу сведения: серийные номера, номера моделей, изготовителя, тип оборудования, систему или элемент, в котором часть размещена, и т. п.",
+      "definition_en": "The MEL is a listing of all the parts of a system and includes pertinent information such as serial numbers, model numbers, manufacturer, equipment type, system/element it is located within, etc.",
+      "related": [
+        "Структура декомпозиции продукта"
+      ]
+    },
+    {
+      "term": "Мера эффективности (MOE)",
+      "term_en": "Measure of Effectiveness (MOE)",
+      "definition": "Мера, по которой судят об ожиданиях заинтересованной стороны при оценке удовлетворённости продуктами или системами, произведёнными и поставленными в соответствии с соответствующими техническими работами. Мера эффективности считается критичной не только для приемлемости продукта заинтересованной стороной, но и для эксплуатационного применения и выполнения миссии. Мера эффективности обычно качественна по своей природе либо не может быть напрямую использована как требование, под которое ведётся проектирование.",
+      "definition_en": "A measure by which a stakeholder’s expectations are judged in assessing satisfaction with products or systems produced and delivered in accordance with the associated technical effort. The MOE is deemed to be critical to not only the acceptability of the product by the stakeholder but also critical to operational/mission usage. A MOE is typically qualitative in nature or not able to be used directly as a design-to requirement.",
+      "related": [
+        "Ожидания заинтересованных сторон",
+        "Мера характеристики (MOP)",
+        "Техническая мера"
+      ]
+    },
+    {
+      "term": "Мера характеристики (MOP)",
+      "term_en": "Measure of Performance (MOP)",
+      "definition": "Количественная мера, выполнение которой проектным решением помогает обеспечить удовлетворение меры эффективности для продукта или системы. Этим мерам уделяют особое внимание при проектировании, чтобы связанные с ними меры эффективности были достигнуты. Обычно на каждую меру эффективности приходится две или более меры характеристик.",
+      "definition_en": "A quantitative measure that, when met by the design solution, helps ensure that a MOE for a product or system will be satisfied. These MOPs are given special attention during design to ensure that the MOEs to which they are associated are met. There are generally two or more measures of performance for each MOE.",
+      "related": [
+        "Мера эффективности (MOE)",
+        "Мера технических характеристик",
+        "Техническая мера"
+      ]
+    },
+    {
+      "term": "Метрика",
+      "term_en": "Metric",
+      "definition": "Результат измерения, выполняемого на протяжении некоторого времени, который сообщает жизненно важную информацию о состоянии или качестве работы системы, процесса или деятельности. Метрика должна побуждать к надлежащим действиям.",
+      "definition_en": "The result of a measurement taken over a period of time that communicates vital information about the status or performance of a system, process, or activity. A metric should drive appropriate action.",
+      "related": [
+        "Мера технических характеристик",
+        "Техническая мера"
+      ]
+    },
+    {
+      "term": "Миссия",
+      "term_en": "Mission",
+      "definition": "Крупная деятельность, необходимая для достижения цели Агентства или для результативного использования научной, технологической либо инженерной возможности, напрямую связанной с целью Агентства. Потребности миссии не зависят от какой-либо конкретной системы или технологического решения.",
+      "definition_en": "A major activity required to accomplish an Agency goal or to effectively pursue a scientific, technological, or engineering opportunity directly related to an Agency goal. Mission needs are independent of any particular system or technological solution.",
+      "related": [
+        "Потребность",
+        "Программа",
+        "Проект"
+      ]
+    },
+    {
+      "term": "Обзор концепции миссии",
+      "term_en": "Mission Concept Review",
+      "definition": "Обзор, который подтверждает потребность миссии или проекта и рассматривает предлагаемые задачи миссии и способность концепции их решить.",
+      "definition_en": "A review that affirms the mission/project need and examines the proposed mission’s objectives and the ability of the concept to fulfill those objectives.",
+      "related": [
+        "Миссия",
+        "Потребность",
+        "Задача"
+      ]
+    },
+    {
+      "term": "Обзор определения миссии",
+      "term_en": "Mission Definition Review",
+      "definition": "Обзор жизненного цикла, который оценивает, отвечает ли предлагаемая архитектура миссии или системы функциональным требованиям и требованиям к характеристикам миссии или системы программы и распределены ли требования на все функциональные элементы миссии или системы.",
+      "definition_en": "A life cycle review that evaluates whether the proposed mission/system architecture is responsive to the program mission/system functional and performance requirements and requirements have been allocated to all functional elements of the mission/system.",
+      "related": [
+        "Обзор определения системы",
+        "Архитектура (системы)",
+        "Требование"
+      ]
+    },
+    {
+      "term": "Смягчение последствий",
+      "term_en": "Mitigation",
+      "definition": "Действие, предпринимаемое для смягчения последствий неисправности ради достижения существующих или переопределённых целей системы.",
+      "definition_en": "An action taken to mitigate the effects of a fault towards achieving existing or redefined system goals.",
+      "related": [
+        "Неисправность",
+        "Восстановление",
+        "Управление неисправностями"
+      ]
+    },
+    {
+      "term": "Модель",
+      "term_en": "Model",
+      "definition": "Модель — это физическое, математическое или логическое представление реальности.",
+      "definition_en": "A model is a physical, mathematical, or logical representation of reality.",
+      "related": [
+        "Модель логической декомпозиции"
+      ]
+    },
+    {
+      "term": "Потребность",
+      "term_en": "Need",
+      "definition": "Единственное утверждение, которое задаёт всё остальное. Оно должно относиться к проблеме, которую система призвана решить, но не быть решением.",
+      "definition_en": "A single statement that drives everything else. It should relate to the problem that the system is supposed to solve, but not be the solution.",
+      "related": [
+        "Цель",
+        "Задача",
+        "Миссия"
+      ]
+    },
+    {
+      "term": "Несоответствующий продукт",
+      "term_en": "Nonconforming product",
+      "definition": "Программное обеспечение, аппаратура или их сочетание — произведённые, приобретённые или полученные каким-то сочетанием этих способов, — которые определены как не отвечающие документированным требованиям.",
+      "definition_en": "Software, hardware, or combination, either produced, acquired, or in some combination that is identified as not meeting documented requirements.",
+      "related": [
+        "Расхождение",
+        "Требование",
+        "Обеспечение качества"
+      ]
+    },
+    {
+      "term": "Задача",
+      "term_en": "Objective",
+      "definition": "Конкретные целевые уровни выходных результатов, которых система должна достичь. Каждая задача должна соотноситься с определённой целью. Как правило, задачи должны отвечать четырём критериям. Конкретность: задачи должны быть нацелены на результаты и отражать, что система должна делать, но не описывать, как реализовать решение. Они должны быть достаточно конкретными, чтобы задавать ясное направление, и понятными разработчикам, заказчикам и испытателям. Измеримость: задачи должны быть количественно определимы и проверяемы. Проект должен отслеживать успешность системы в решении каждой задачи. Амбициозность при достижимости: задачи должны быть напряжёнными, но выполнимыми, а целевые значения — реалистичными. Поначалу задачи могут включать значения «подлежит определению» (TBD), пока не проведены исследования компромиссов, не устоялись концепции эксплуатации или не созрели технологии. Но до начала написания требований и проектирования систем задачи должны стать реализуемыми. Ориентация на результат: задачи должны быть сосредоточены на желаемых выходах и результатах, а не на методах достижения цели (что, а не как).",
+      "definition_en": "Specific target levels of outputs the system must achieve. Each objective should relate to a particular goal. Generally, objectives should meet four criteria: Specific: Objectives should aim at results and reflect what the system needs to do, but they don’t outline how to implement the solution. They need to be specific enough to provide clear direction, so developers, customers, and testers can understand them. Measurable: Objectives need to be quantifiable and verifiable. The project needs to monitor the system’s success in achieving each objective. Aggressive, but attainable: Objectives need to be challenging but reachable, and targets need to be realistic. At first, objectives “To Be Determined” (TBD) may be included until trade studies occur, operations concepts solidify, or technology matures. But objectives need to be feasible before starting to write requirements and design systems. Results-oriented: Objectives need to focus on desired outputs and outcomes, not on the methods used to achieve the target (what, not how).",
+      "related": [
+        "Цель",
+        "Потребность",
+        "Требование",
+        "Реализуемый"
+      ]
+    },
+    {
+      "term": "Целевая функция (иногда функция стоимости)",
+      "term_en": "Objective Function (sometimes Cost Function)",
+      "definition": "Математическое выражение ценности сочетаний возможных исходов в виде единой меры «стоимость — эффективность».",
+      "definition_en": "A mathematical expression of the values of combinations of possible outcomes as a single measure of cost-effectiveness.",
+      "related": [
+        "Анализ «стоимость — эффективность»",
+        "Полезность"
+      ]
+    },
+    {
+      "term": "Эксплуатационная среда",
+      "term_en": "Operational Environment",
+      "definition": "Среда, в которой будет эксплуатироваться конечный продукт. Для космической лётной аппаратуры и программного обеспечения это космос. Для наземных или авиационных систем, не предназначенных для космического полёта, это среды, определяемые рамками эксплуатации. Для программного обеспечения среда определяется эксплуатационной платформой.",
+      "definition_en": "The environment in which the final product will be operated. In the case of space flight hardware/software, it is space. In the case of ground-based or airborne systems that are not directed toward space flight, it is the environments defined by the scope of operations. For software, the environment is defined by the operational platform.",
+      "related": [
+        "Значимая среда",
+        "Конечный продукт"
+      ]
+    },
+    {
+      "term": "Обзор готовности к эксплуатации",
+      "term_en": "Operational Readiness Review",
+      "definition": "Обзор, который рассматривает фактические характеристики системы и процедуры её эксплуатации и подтверждает, что вся системная и вспомогательная (лётная и наземная) аппаратура, программное обеспечение, персонал, процедуры и пользовательская документация точно отражают развёрнутое состояние системы и готовы к эксплуатации.",
+      "definition_en": "A review that examines the actual system characteristics and the procedures used in the system or product’s operation and ensures that all system and support (flight and ground) hardware, software, personnel, procedures, and user documentation accurately reflects the deployed state of the system and are operationally ready.",
+      "related": [
+        "Базовая линия развёрнутой системы",
+        "Обзор готовности к полёту"
+      ]
+    },
+    {
+      "term": "Концепция операций",
+      "term_en": "Operations Concept",
+      "definition": "Описание того, как лётная и наземная системы используются совместно, чтобы убедиться в разумности концепции эксплуатации. Оно может включать то, как интересующие данные миссии — например, инженерные или научные — получаются, передаются на Землю, обрабатываются, предоставляются пользователям и архивируются для будущего обращения. (Источник: NPR 7120.5)",
+      "definition_en": "A description of how the flight system and the ground system are used together to ensure that the concept of operation is reasonable. This might include how mission data of interest, such as engineering or scientific data, are captured, returned to Earth, processed, made available to users, and archived for future reference. (Source: NPR 7120.5)",
+      "related": [
+        "Концепция эксплуатации (ConOps) (концептуальная документация)"
+      ]
+    },
+    {
+      "term": "Оптимальное решение",
+      "term_en": "Optimal Solution",
+      "definition": "Реализуемое решение, которое наилучшим образом отвечает критериям при балансировке на уровне системы.",
+      "definition_en": "A feasible solution that best meets criteria when balanced at a system level.",
+      "related": [
+        "Реализуемый",
+        "Исследование компромиссов"
+      ]
+    },
+    {
+      "term": "Прочие заинтересованные лица (заинтересованные стороны)",
+      "term_en": "Other Interested Parties (Stakeholders)",
+      "definition": "Подмножество «заинтересованных сторон»: прочие заинтересованные лица — это группы или отдельные лица, которые не являются заказчиками планируемых технических работ, но могут быть затронуты полученным продуктом либо способом его создания или использования, или же отвечают за предоставление услуг поддержки на протяжении жизненного цикла.",
+      "definition_en": "A subset of “stakeholders,” other interested parties are groups or individuals who are not customers of a planned technical effort but may be affected by the resulting product, the manner in which the product is realized or used, or have a responsibility for providing life cycle support services.",
+      "related": [
+        "Заинтересованная сторона",
+        "Заказчик"
+      ]
+    },
+    {
+      "term": "Экспертная оценка",
+      "term_en": "Peer Review",
+      "definition": "Независимая оценка внутренними или внешними профильными специалистами, не имеющими личной заинтересованности в рассматриваемом рабочем продукте. Экспертные оценки могут быть плановыми целевыми разборами отдельных рабочих продуктов, которые коллеги исполнителя проводят, чтобы выявить дефекты и проблемы до того, как рабочий продукт попадёт на обзор по вехе или в цикл утверждения.",
+      "definition_en": "Independent evaluation by internal or external subject matter experts who do not have a vested interest in the work product under review. Peer reviews can be planned, focused reviews conducted on selected work products by the producer’s peers to identify defects and issues prior to that work product moving into a milestone review or approval cycle.",
+      "related": [
+        "Обзор вывода из эксплуатации",
+        "Критерий успеха"
+      ]
+    },
+    {
+      "term": "Стандарт качества исполнения",
+      "term_en": "Performance Standards",
+      "definition": "Определяет, что считается приемлемым качеством исполнения со стороны поставщика. Обычные метрики, применяемые в стандартах качества исполнения, — стоимость и сроки.",
+      "definition_en": "Defines what constitutes acceptable performance by the provider. Common metrics for use in performance standards include cost and schedule.",
+      "related": [
+        "Метрика",
+        "Надзор"
+      ]
+    },
+    {
+      "term": "Физический аудит конфигурации (PCA), или инспекция конфигурации",
+      "term_en": "Physical Configuration Audits (PCA) or configuration inspection",
+      "definition": "Физический аудит конфигурации рассматривает физическую конфигурацию продукта с установленной конфигурацией и верифицирует, что продукт соответствует документации продуктовой базовой линии «изготавливать по» (или «кодировать по»), ранее утверждённой на критическом обзоре проекта, плюс утверждённым после этого изменениям. Физические аудиты конфигурации проводятся для продуктов с конфигурацией как по аппаратуре, так и по программному обеспечению.",
+      "definition_en": "The PCA examines the physical configuration of the configured product and verifies that the product corresponds to the build-to (or code-to) product baseline documentation previously approved at the CDR plus the approved changes thereafter. PCAs are conducted on both hardware-and software-configured products.",
+      "related": [
+        "Продуктовая базовая линия (фаза D/E)",
+        "Функциональный аудит конфигурации (FCA)",
+        "Критический обзор проекта"
+      ]
+    },
+    {
+      "term": "Обзор оценки после полёта",
+      "term_en": "Post-Flight Assessment Review",
+      "definition": "Оценивает, насколько хорошо были решены задачи миссии в ходе полёта, выявляет все аномалии лётной и наземной систем, возникшие во время полёта, и определяет действия, необходимые для их смягчения или устранения в будущих полётах аппаратов той же конструкции.",
+      "definition_en": "Evaluates how well mission objectives were met during a mission and identifies all flight and ground system anomalies that occurred during the flight and determines the actions necessary to mitigate or resolve the anomalies for future flights of the same spacecraft design.",
+      "related": [
+        "Аномалия",
+        "Задача",
+        "Обзор оценки после запуска"
+      ]
+    },
+    {
+      "term": "Обзор оценки после запуска",
+      "term_en": "Post-Launch Assessment Review",
+      "definition": "Обзор, который оценивает готовность систем космического аппарата перейти к полноценной штатной эксплуатации после развёртывания, следующего за запуском. Обзор также оценивает состояние планов проекта и способность выполнить миссию с упором на ближайшую эксплуатацию и критичные для миссии события.",
+      "definition_en": "A review that evaluates the readiness of the spacecraft systems to proceed with full, routine operations after post-launch deployment. The review also evaluates the status of the project plans and the capability to conduct the mission with emphasis on near-term operations and mission-critical events.",
+      "related": [
+        "План проекта",
+        "Критическое событие (ключевое событие)",
+        "Обзор оценки после полёта"
+      ]
+    },
+    {
+      "term": "Диаграмма предшествования",
+      "term_en": "Precedence Diagram",
+      "definition": "Диаграмма рабочего потока, размещающая работы в блоках, соединённых стрелками зависимостей; типична для диаграммы Гантта.",
+      "definition_en": "Workflow diagram that places activities in boxes connected by dependency arrows; typical of a Gantt chart.",
+      "related": [
+        "Диаграмма рабочего потока",
+        "Диаграмма Гантта"
+      ]
+    },
+    {
+      "term": "Предварительный обзор проекта",
+      "term_en": "Preliminary Design Review",
+      "definition": "Обзор, который показывает, что предварительный проект удовлетворяет всем системным требованиям с приемлемым риском и в рамках стоимостных и календарных ограничений, и создаёт основу для перехода к детальному проектированию. Он покажет, что выбран правильный вариант конструкции, что интерфейсы определены и что описаны методы верификации.",
+      "definition_en": "A review that demonstrates that the preliminary design meets all system requirements with acceptable risk and within the cost and schedule constraints and establishes the basis for proceeding with detailed design. It will show that the correct design option has been selected, interfaces have been identified, and verification methods have been described.",
+      "related": [
+        "Критический обзор проекта",
+        "Распределённая базовая линия (фаза C)",
+        "Риск"
+      ]
+    },
+    {
+      "term": "Процесс",
+      "term_en": "Process",
+      "definition": "Набор видов деятельности, применяемых для преобразования входов в желаемые выходы, чтобы получить ожидаемые результаты и выполнить назначение.",
+      "definition_en": "A set of activities used to convert inputs into desired outputs to generate expected outcomes and satisfy a purpose.",
+      "related": [
+        "Деятельность",
+        "Установление (применительно к процессам)"
+      ]
+    },
+    {
+      "term": "Технологичность изготовления",
+      "term_en": "Producibility",
+      "definition": "Характеристика системы, связанная с лёгкостью и экономичностью, с которыми завершённый проект может быть превращён (то есть изготовлен, произведён или закодирован) в аппаратную и/или программную реализацию.",
+      "definition_en": "A system characteristic associated with the ease and economy with which a completed design can be transformed (i.e., fabricated, manufactured, or coded) into a hardware and/or software realization.",
+      "related": [
+        "Процесс изготовления продукта",
+        "Обзор готовности к производству (PRR)"
+      ]
+    },
+    {
+      "term": "Продукт",
+      "term_en": "Product",
+      "definition": "Часть системы, состоящая из конечных продуктов, выполняющих эксплуатационные функции, и обеспечивающих продуктов, выполняющих услуги жизненного цикла в отношении конечного продукта; либо результат технических работ в форме рабочего продукта (например, плана, базовой линии или результата испытаний).",
+      "definition_en": "A part of a system consisting of end products that perform operational functions and enabling products that perform life cycle services related to the end product or a result of the technical efforts in the form of a work product (e.g., plan, baseline, or test result).",
+      "related": [
+        "Конечный продукт",
+        "Обеспечивающий продукт",
+        "Система"
+      ]
+    },
+    {
+      "term": "Продуктовая базовая линия (фаза D/E)",
+      "term_en": "Product Baseline (Phase D/E)",
+      "definition": "Продуктовая базовая линия — это утверждённая техническая документация, которая описывает конфигурацию элемента конфигурации в фазах производства, поставки/развёртывания и эксплуатационной поддержки его жизненного цикла. Продуктовая базовая линия описывает подробные физические характеристики или характеристики формы, присоединительных размеров и функции элемента конфигурации; выбранные функциональные характеристики, назначенные для приёмочных испытаний при производстве; и требования к приёмочным производственным испытаниям.",
+      "definition_en": "The product baseline is the approved technical documentation that describes the configuration of a CI during the production, fielding/deployment, and operational support phases of its life cycle. The product baseline describes detailed physical or form, fit, and function characteristics of a CI; the selected functional characteristics designated for production acceptance testing; and the production acceptance test requirements.",
+      "related": [
+        "Базовая линия",
+        "Элемент конфигурации (CI)",
+        "Распределённая базовая линия (фаза C)"
+      ]
+    },
+    {
+      "term": "Структура декомпозиции продукта",
+      "term_en": "Product Breakdown Structure",
+      "definition": "Иерархическое разбиение аппаратных и программных продуктов программы или проекта.",
+      "definition_en": "A hierarchical breakdown of the hardware and software products of a program/project.",
+      "related": [
+        "Структура декомпозиции работ (WBS)",
+        "Структура системы"
+      ]
+    },
+    {
+      "term": "Процесс изготовления продукта",
+      "term_en": "Product Implementation Process",
+      "definition": "Процесс, применяемый для получения заданного продукта уровня продукта путём покупки, изготовления или повторного использования в форме, согласующейся с критериями выхода (успеха) фазы жизненного цикла продукта и удовлетворяющей требованиям, заданным определением проектного решения (например, чертежам, спецификациям).",
+      "definition_en": "A process used to generate a specified product of a product layer through buying, making, or reusing in a form consistent with the product life cycle phase exit (success) criteria and that satisfies the design solution definition-specified requirements (e.g., drawings, specifications).",
+      "related": [
+        "Процесс интеграции продукта",
+        "Реализация продукта",
+        "Процесс определения проектного решения"
+      ]
+    },
+    {
+      "term": "Процесс интеграции продукта",
+      "term_en": "Product Integration Process",
+      "definition": "Процесс, применяемый для преобразования определения проектного решения в желаемый конечный продукт уровня продукта путём сборки и интеграции валидированных конечных продуктов нижних уровней в форме, согласующейся с критериями выхода (успеха) фазы жизненного цикла продукта и удовлетворяющей требованиям определения проектного решения (например, чертежам, спецификациям).",
+      "definition_en": "A process used to transform the design solution definition into the desired end product of the product layer through assembly and integration of lower-level validated end products in a form that is consistent with the product life cycle phase exit (success) criteria and that satisfies the design solution definition requirements (e.g., drawings, specifications).",
+      "related": [
+        "Процесс изготовления продукта",
+        "Реализация продукта",
+        "Конечный продукт"
+      ]
+    },
+    {
+      "term": "Реализация продукта",
+      "term_en": "Product Realization",
+      "definition": "Изготовление, покупка или повторное использование продукта либо сборка и интеграция реализованных продуктов нижних уровней в новый продукт, а также верификация и валидация того, что продукт удовлетворяет надлежащему набору требований, и переход продукта к его заказчику.",
+      "definition_en": "The act of making, buying, or reusing a product, or the assembly and integration of lower-level realized products into a new product, as well as the verification and validation that the product satisfies its appropriate set of requirements and the transition of the product to its customer.",
+      "related": [
+        "Реализованный продукт",
+        "Процесс верификации продукта",
+        "Процесс валидации продукта",
+        "Процесс перехода продукта"
+      ]
+    },
+    {
+      "term": "Процесс перехода продукта",
+      "term_en": "Product Transition Process",
+      "definition": "Процесс, применяемый для передачи верифицированного и валидированного конечного продукта, полученного изготовлением или интеграцией продукта, заказчику на следующем уровне структуры системы для встраивания в конечный продукт либо — для конечного продукта верхнего уровня — передачи предполагаемому конечному пользователю.",
+      "definition_en": "A process used to transition a verified and validated end product that has been generated by product implementation or product integration to the customer at the next level in the system structure for integration into an end product or, for the top-level end product, transitioned to the intended end user.",
+      "related": [
+        "Переход",
+        "Реализованный продукт",
+        "Заказчик"
+      ]
+    },
+    {
+      "term": "Процесс валидации продукта",
+      "term_en": "Product Validation Process",
+      "definition": "Процесс, применяемый, чтобы подтвердить, что верифицированный конечный продукт, полученный изготовлением или интеграцией продукта, выполняет (удовлетворяет) своё предназначение, будучи помещённым в предполагаемую среду, и чтобы обеспечить надлежащее устранение любых аномалий, обнаруженных при валидации, до поставки продукта (если валидацию делает поставщик продукта) или до интеграции с другими продуктами в изделие более высокого уровня (если валидацию делает получатель продукта). Валидация выполняется относительно набора зафиксированных в базовой линии ожиданий заинтересованных сторон.",
+      "definition_en": "A process used to confirm that a verified end product generated by product implementation or product integration fulfills (satisfies) its intended use when placed in its intended environment and to assure that any anomalies discovered during validation are appropriately resolved prior to delivery of the product (if validation is done by the supplier of the product) or prior to integration with other products into a higher-level assembled product (if validation is done by the receiver of the product). The validation is done against the set of baselined stakeholder expectations.",
+      "related": [
+        "Валидация (продукта)",
+        "Ожидания заинтересованных сторон",
+        "Процесс верификации продукта"
+      ]
+    },
+    {
+      "term": "Процесс верификации продукта",
+      "term_en": "Product Verification Process",
+      "definition": "Процесс, применяемый, чтобы показать, что конечный продукт, полученный изготовлением или интеграцией продукта, соответствует требованиям определения проектного решения в зависимости от фазы жизненного цикла продукта и места конечного продукта данного уровня в структуре системы.",
+      "definition_en": "A process used to demonstrate that an end product generated from product implementation or product integration conforms to its design solution definition requirements as a function of the product life cycle phase and the location of the product layer end product in the system structure.",
+      "related": [
+        "Верификация (продукта)",
+        "Процесс валидации продукта",
+        "Процесс определения проектного решения"
+      ]
+    },
+    {
+      "term": "Обзор готовности к производству (PRR)",
+      "term_en": "Production Readiness Review (PRR)",
+      "definition": "Обзор для проектов, разрабатывающих или приобретающих несколько однотипных систем — более трёх или иного числа, определённого проектом. Обзор готовности к производству определяет готовность разработчиков системы результативно произвести требуемое количество систем. Он подтверждает, что планы производства, изготовление, сборка, обеспечивающие продукты для интеграции, эксплуатационная поддержка и персонал имеются и готовы к началу производства.",
+      "definition_en": "A review for projects developing or acquiring multiple or similar systems greater than three or as determined by the project. The PRR determines the readiness of the system developers to efficiently produce the required number of systems. It ensures that the production plans, fabrication, assembly, integration-enabling products, operational support, and personnel are in place and ready to begin production.",
+      "related": [
+        "Технологичность изготовления",
+        "Обеспечивающий продукт"
+      ]
+    },
+    {
+      "term": "Прогнозирование",
+      "term_en": "Prognosis",
+      "definition": "Предсказание будущих состояний работоспособности системы, её деградации и остаточного ресурса.",
+      "definition_en": "The prediction of a system’s future health states, degradation, and Remaining Useful Life (RUL).",
+      "related": [
+        "Диагностирование",
+        "Оценка состояния"
+      ]
+    },
+    {
+      "term": "Программа",
+      "term_en": "Program",
+      "definition": "Стратегическая инвестиция дирекции миссии или службы обеспечения миссий, имеющая определённую архитектуру и/или технический подход, требования, уровень финансирования и структуру управления, которая инициирует и направляет один или несколько проектов. Программа задаёт стратегическое направление, определённое Агентством как критически важное.",
+      "definition_en": "A strategic investment by a mission directorate or mission support office that has a defined architecture and/or technical approach, requirements, funding level, and a management structure that initiates and directs one or more projects. A program defines a strategic direction that the Agency has identified as critical.",
+      "related": [
+        "Проект",
+        "Требование программы",
+        "Архитектура (системы)"
+      ]
+    },
+    {
+      "term": "Обзор определения программы/системы",
+      "term_en": "Program/System Definition Review",
+      "definition": "Обзор, который рассматривает предлагаемую архитектуру программы и её развёртывание на функциональные элементы системы. Оцениваются задачи предлагаемой программы и концепция их решения. Выявляются и оцениваются ключевые технологии и другие риски. Представляются базовый план программы, бюджеты и графики.",
+      "definition_en": "A review that examines the proposed program architecture and the flowdown to the functional elements of the system. The proposed program’s objectives and the concept for meeting those objectives are evaluated. Key technologies and other risks are identified and assessed. The baseline program plan, budgets, and schedules are presented.",
+      "related": [
+        "Программа",
+        "Архитектура (системы)",
+        "Обзор системных требований программы"
+      ]
+    },
+    {
+      "term": "Требование программы",
+      "term_en": "Program Requirements",
+      "definition": "Набор требований, налагаемых на офис программы; обычно они содержатся в плане программы вместе с производными требованиями, которые программа налагает на себя сама.",
+      "definition_en": "The set of requirements imposed on the program office, which are typically found in the program plan plus derived requirements that the program imposes on itself.",
+      "related": [
+        "Требование",
+        "Производное требование",
+        "Требование проекта"
+      ]
+    },
+    {
+      "term": "Обзор системных требований программы",
+      "term_en": "Program System Requirements Review",
+      "definition": "Обзор, который оценивает обоснованность и соответствие предлагаемых требований и архитектуры программы требованиям дирекции миссии, распределение требований программы по проектам и зрелость определения миссии/системы программы.",
+      "definition_en": "A review that evaluates the credibility and responsiveness of a proposed program requirements/architecture to the mission directorate requirements, the allocation of program requirements to the projects, and the maturity of the program’s mission/system definition.",
+      "related": [
+        "Обзор системных требований",
+        "Требование программы",
+        "Обзор определения программы/системы"
+      ]
+    },
+    {
+      "term": "Требование программного характера",
+      "term_en": "Programmatic Requirements",
+      "definition": "Требования, устанавливаемые дирекцией миссии, программой, проектом и, если применимо, научным руководителем. К ним относятся стратегические научные и исследовательские требования, требования к характеристикам системы, а также календарные, стоимостные и подобные нетехнические ограничения.",
+      "definition_en": "Requirements set by the mission directorate, program, project, and PI, if applicable. These include strategic scientific and exploration requirements, system performance requirements, and schedule, cost, and similar nontechnical constraints.",
+      "related": [
+        "Требование",
+        "Техническое требование",
+        "Требование программы"
+      ]
+    },
+    {
+      "term": "Проект",
+      "term_en": "Project",
+      "definition": "Конкретная инвестиция, имеющая определённые цели, задачи, требования, стоимость жизненного цикла, начало и конец. Проект даёт новые или пересмотренные продукты либо услуги, которые прямо отвечают стратегическим потребностям NASA. Продукты могут производиться, а услуги оказываться полностью собственными силами; в партнёрстве с государством, промышленностью или академическими организациями; либо по контрактам с частной промышленностью.",
+      "definition_en": "A specific investment having defined goals, objectives, requirements, life cycle cost, a beginning, and an end. A project yields new or revised products or services that directly address NASA’s strategic needs. The products may be produced or the services performed wholly in-house; by partnerships with Government, industry, or academia; or through contracts with private industry.",
+      "related": [
+        "Программа",
+        "Цель",
+        "Задача",
+        "Стоимость жизненного цикла (LCC)"
+      ]
+    },
+    {
+      "term": "План проекта",
+      "term_en": "Project Plan",
+      "definition": "Документ, который устанавливает базовую линию проекта для реализации; подписывается ответственным руководителем программы, директором центра, руководителем проекта и, если требуется, заместителем администратора по дирекции миссии.",
+      "definition_en": "The document that establishes the project’s baseline for implementation, signed by the responsible program manager, Center Director, project manager, and the MDAA, if required.",
+      "related": [
+        "Проект",
+        "Базовая линия",
+        "Требование проекта"
+      ]
+    },
+    {
+      "term": "Требование проекта",
+      "term_en": "Project Requirements",
+      "definition": "Набор требований, налагаемых на проект и разработчика; обычно они содержатся в плане проекта вместе с производными требованиями, которые проект налагает на себя сам. Включает определение работ и поставляемых результатов (конечных продуктов и рабочих продуктов) и выходов разработки и эксплуатации.",
+      "definition_en": "The set of requirements imposed on the project and developer, which are typically found in the project plan plus derived requirements that the project imposes on itself. It includes identification of activities and deliverables (end products and work products) and outputs of the development and operations.",
+      "related": [
+        "Требование",
+        "План проекта",
+        "Требование программы"
+      ]
+    },
+    {
+      "term": "Продукт фазы",
+      "term_en": "Phase Product",
+      "definition": "Конечный продукт, который должен быть предоставлен как результат работ данной фазы жизненного цикла. Его форма зависит от фазы: продуктом ранних фаз может быть имитационная модель или модель, продуктом поздних фаз — сам (окончательный) конечный продукт.",
+      "definition_en": "An end product that is to be provided as a result of the activities of a given life cycle phase. The form depends on the phase—a product of early phases might be a simulation or model; a product of later phases may be the (final) end product itself.",
+      "related": [
+        "Конечный продукт",
+        "Форма продукта",
+        "Модель"
+      ]
+    },
+    {
+      "term": "Форма продукта",
+      "term_en": "Product Form",
+      "definition": "Представление продукта, зависящее от фазы разработки, текущего применения и зрелости. Примеры: макет, модель, инженерный образец, опытный образец (прототип) и лётный образец.",
+      "definition_en": "A representation of a product that depends on the development phase, current use, and maturity. Examples include mock-up, model, engineering unit, prototype unit, and flight unit.",
+      "related": [
+        "Макетный образец",
+        "Инженерный образец",
+        "Прототип",
+        "Продукт фазы"
+      ]
+    },
+    {
+      "term": "Реализация продукта (выходной результат)",
+      "term_en": "Product Realization",
+      "definition": "Желаемый выход применения четырёх процессов реализации продукта. Форма этого продукта зависит от фазы жизненного цикла продукта и критериев выхода (успеха) фазы.",
+      "definition_en": "The desired output from the application of the four product realization processes. The form of this product is dependent on the phase of the product life cycle and the phase exit (success) criteria.",
+      "related": [
+        "Реализация продукта",
+        "Реализованный продукт",
+        "Критерий успеха"
+      ]
+    },
+    {
+      "term": "Прототип",
+      "term_en": "Prototype",
+      "definition": "Опытный образец демонстрирует форму, присоединительные размеры и функцию в масштабе, который считается представительным для окончательного продукта, работающего в своей эксплуатационной среде. Уменьшенное испытательное изделие даёт точность воспроизведения, достаточную для валидации расчётных моделей, способных предсказывать поведение полномасштабных систем в эксплуатационной среде. Прототип используется, чтобы «обкатать» проектное решение: полученный на прототипе опыт возвращается в изменения конструкции, улучшающие изготовление, интеграцию и ремонтопригодность единичного лётного изделия или производственной серии из нескольких лётных изделий.",
+      "definition_en": "The prototype unit demonstrates form, fit, and function at a scale deemed to be representative of the final product operating in its operational environment. A subscale test article provides fidelity sufficient to permit validation of analytical models capable of predicting the behavior of full-scale systems in an operational environment. The prototype is used to “wring out” the design solution so that experience gained from the prototype can be fed back into design changes that will improve the manufacture, integration, and maintainability of a single flight item or the production run of several flight items.",
+      "related": [
+        "Инженерный образец",
+        "Экспериментальный образец",
+        "Форма продукта",
+        "Эксплуатационная среда"
+      ]
+    },
+    {
+      "term": "Обеспечение качества",
+      "term_en": "Quality Assurance",
+      "definition": "Независимая оценка, выполняемая на протяжении жизненного цикла продукта, чтобы обрести уверенность, что фактически произведённая и поставленная система соответствует своим функциональным требованиям, требованиям к характеристикам и конструкторским требованиям.",
+      "definition_en": "An independent assessment performed throughout a product’s life cycle in order to acquire confidence that the system actually produced and delivered is in accordance with its functional, performance, and design requirements.",
+      "related": [
+        "Несоответствующий продукт",
+        "Надзор"
+      ]
+    },
+    {
+      "term": "Реализованный продукт",
+      "term_en": "Realized Product",
+      "definition": "Конечный продукт, который изготовлен/интегрирован, верифицирован, валидирован и передан на следующий уровень продукта.",
+      "definition_en": "The end product that has been implemented/integrated, verified, validated, and transitioned to the next product layer.",
+      "related": [
+        "Конечный продукт",
+        "Реализация продукта",
+        "Процесс перехода продукта"
+      ]
+    },
+    {
+      "term": "Восстановление",
+      "term_en": "Recovery",
+      "definition": "Действие, предпринимаемое для восстановления функций, необходимых для достижения существующих или переопределённых целей системы, после возникновения неисправности или отказа.",
+      "definition_en": "An action taken to restore the functions necessary to achieve existing or redefined system goals after a fault/failure occurs.",
+      "related": [
+        "Неисправность",
+        "Отказ",
+        "Смягчение последствий",
+        "Управление неисправностями"
+      ]
+    },
+    {
+      "term": "Рекурсивный",
+      "term_en": "Recursive",
+      "definition": "Ценность добавляется системе за счёт многократного применения процессов для проектирования продуктов системы следующего нижнего уровня или для реализации конечных продуктов следующего верхнего уровня в структуре системы. Это относится и к повторному применению тех же процессов к структуре системы в следующей фазе жизненного цикла, чтобы довести определение системы до зрелости и удовлетворить критериям выхода (успеха) фазы.",
+      "definition_en": "Value is added to the system by the repeated application of processes to design next lower-layer system products or to realize next upper-layer end products within the system structure. This also applies to repeating the application of the same processes to the system structure in the next life cycle phase to mature the system definition and satisfy phase exit (success) criteria.",
+      "related": [
+        "Итеративный",
+        "Повторяемый",
+        "Структура системы"
+      ]
+    },
+    {
+      "term": "Значимая заинтересованная сторона",
+      "term_en": "Relevant Stakeholder",
+      "definition": "Подмножество термина «заинтересованная сторона», относящееся к людям или ролям, обозначенным в плане вовлечения заинтересованных сторон. Поскольку «заинтересованной стороной» может быть очень большое число людей, попытка работать со всеми ними поглотила бы много времени и сил. Поэтому в большинстве формулировок практик используется «значимая заинтересованная сторона» — для обозначения людей, определённых как участники конкретной задачи.",
+      "definition_en": "A subset of the term “stakeholder” that applies to people or roles that are designated in a plan for stakeholder involvement. Since “stakeholder” may describe a very large number of people, a lot of time and effort would be consumed by attempting to deal with all of them. For this reason, “relevant stakeholder” is used in most practice statements to describe the people identified to contribute to a specific task.",
+      "related": [
+        "Заинтересованная сторона",
+        "Прочие заинтересованные лица (заинтересованные стороны)"
+      ]
+    },
+    {
+      "term": "Значимая среда",
+      "term_en": "Relevant Environment",
+      "definition": "Не все системы, подсистемы и/или компоненты должны работать в эксплуатационной среде, чтобы удовлетворительно закрыть требования к запасам характеристик или ожидания заинтересованных сторон. Поэтому значимая среда — это то конкретное подмножество эксплуатационной среды, которое требуется, чтобы продемонстрировать критические «рисковые» стороны характеристик окончательного продукта в эксплуатационной среде.",
+      "definition_en": "Not all systems, subsystems, and/or components need to be operated in the operational environment in order to satisfactorily address performance margin requirements or stakeholder expectations. Consequently, the relevant environment is the specific subset of the operational environment that is required to demonstrate critical “at risk” aspects of the final product performance in an operational environment.",
+      "related": [
+        "Эксплуатационная среда",
+        "Уровень технологической готовности",
+        "Запас"
+      ]
+    },
+    {
+      "term": "Надёжность",
+      "term_en": "Reliability",
+      "definition": "Мера того, в какой степени система обеспечивает успех миссии, правильно функционируя на протяжении предполагаемого срока службы. У неё низкая и приемлемая вероятность отказа, достигаемая простотой, правильным проектированием и правильным применением надёжных комплектующих и материалов. Помимо долгого срока службы, надёжная система робастна и отказоустойчива.",
+      "definition_en": "The measure of the degree to which a system ensures mission success by functioning properly over its intended life. It has a low and acceptable probability of failure, achieved through simplicity, proper design, and proper application of reliable parts and materials. In addition to long life, a reliable system is robust and fault tolerant.",
+      "related": [
+        "Отказ",
+        "Отказоустойчивость",
+        "Ремонтопригодность"
+      ]
+    },
+    {
+      "term": "Повторяемый",
+      "term_en": "Repeatable",
+      "definition": "Характеристика процесса, который может применяться к продуктам на любом уровне структуры системы или в любой фазе жизненного цикла.",
+      "definition_en": "A characteristic of a process that can be applied to products at any level of the system structure or within any life cycle phase.",
+      "related": [
+        "Рекурсивный",
+        "Итеративный",
+        "Процесс"
+      ]
+    },
+    {
+      "term": "Требование",
+      "term_en": "Requirement",
+      "definition": "Согласованная потребность, желание, нужда, возможность, производительность или запрос на персонал, оборудование, объекты либо иные ресурсы или услуги в заданных количествах на определённые периоды времени или к определённому моменту, выраженные утверждением со словом «должен». Приемлемая форма формулировки требования: по отдельности она ясна, корректна, выполнима, однозначна по смыслу и может быть валидирована на том уровне структуры системы, на котором сформулирована. В парах формулировок требований или в наборе в целом они не избыточны, надлежащим образом согласованы по используемым терминам и не противоречат друг другу.",
+      "definition_en": "The agreed-upon need, desire, want, capability, capacity, or demand for personnel, equipment, facilities, or other resources or services by specified quantities for specific periods of time or at a specified time expressed as a “shall” statement. Acceptable form for a requirement statement is individually clear, correct, feasible to obtain, unambiguous in meaning, and can be validated at the level of the system structure at which it is stated. In pairs of requirement statements or as a set, collectively, they are not redundant, are adequately related with respect to terms used, and are not in conflict with one another.",
+      "related": [
+        "Ожидания заинтересованных сторон",
+        "Производное требование",
+        "Валидированное требование",
+        "Спецификация"
+      ]
+    },
+    {
+      "term": "Лист распределения требований",
+      "term_en": "Requirements Allocation Sheet",
+      "definition": "Документирует связь между распределёнными функциями, распределёнными характеристиками и физической системой.",
+      "definition_en": "Documents the connection between allocated functions, allocated performance, and the physical system.",
+      "related": [
+        "Требование",
+        "Функциональная декомпозиция"
+      ]
+    },
+    {
+      "term": "Процесс управления требованиями",
+      "term_en": "Requirements Management Process",
+      "definition": "Процесс, применяемый для управления требованиями к продукту, которые выявлены, зафиксированы в базовой линии и использованы при определении продуктов каждого уровня продукта при проектировании системы. Он обеспечивает двунаправленную прослеживаемость к требованиям верхнего уровня продукта и управляет изменениями установленных базовых линий требований на протяжении жизненного цикла продуктов системы.",
+      "definition_en": "A process used to manage the product requirements identified, baselined, and used in the definition of the products of each product layer during system design. It provides bidirectional traceability back to the top product layer requirements and manages the changes to established requirement baselines over the life cycle of the system products.",
+      "related": [
+        "Требование",
+        "Двунаправленная прослеживаемость",
+        "Базовая линия"
+      ]
+    },
+    {
+      "term": "Риск",
+      "term_en": "Risk",
+      "definition": "В контексте выполнения миссии риск — это возможность недостижения характеристик, которое может проявиться в будущем применительно к выполнению явно установленных и сформулированных требований к характеристикам. Недостижение характеристик может относиться к одной или нескольким из следующих областей выполнения миссии: (1) безопасность, (2) техническая сторона, (3) стоимость и (4) сроки. (Источник: NPR 8000.4, Agency Risk Management Procedural Requirements)",
+      "definition_en": "In the context of mission execution, risk is the potential for performance shortfalls that may be realized in the future with respect to achieving explicitly established and stated performance requirements. The performance shortfalls may be related to any one or more of the following mission execution domains: (1) safety, (2) technical, (3) cost, and (4) schedule. (Source: NPR 8000.4, Agency Risk Management Procedural Requirements)",
+      "related": [
+        "Управление рисками",
+        "Оценка риска",
+        "Технический риск",
+        "Приемлемый риск"
+      ]
+    },
+    {
+      "term": "Оценка риска",
+      "term_en": "Risk Assessment",
+      "definition": "Оценивание рискового элемента, которое определяет: (1) что может пойти не так, (2) насколько вероятно, что это произойдёт, (3) каковы последствия, (4) каковы неопределённости, связанные с вероятностью и последствиями, и (5) каковы планы по смягчению.",
+      "definition_en": "An evaluation of a risk item that determines (1) what can go wrong, (2) how likely it is to occur, (3) what the consequences are, and (4) what the uncertainties associated with the likelihood and consequences are, and 5) what the mitigation plans are.",
+      "related": [
+        "Риск",
+        "Управление рисками",
+        "Непрерывное управление рисками"
+      ]
+    },
+    {
+      "term": "Процесс анализа решений с учётом рисков",
+      "term_en": "Risk-Informed Decision Analysis Process",
+      "definition": "Пятишаговый процесс, который сосредоточен сначала на задачах, а затем на выработке альтернатив решения с чётким удержанием этих задач в поле зрения и/или на использовании альтернатив, выработанных в других процессах системного инжиниринга. Поздние шаги процесса тесно переплетаются с процессом управления техническими рисками.",
+      "definition_en": "A five-step process focusing first on objectives and next on developing decision alternatives with those objectives clearly in mind and/or using decision alternatives that have been developed under other systems engineering processes. The later steps of the process interrelate heavily with the Technical Risk Management Process.",
+      "related": [
+        "Управление рисками",
+        "Процесс управления техническими рисками",
+        "Процесс анализа решений"
+      ]
+    },
+    {
+      "term": "Управление рисками",
+      "term_en": "Risk Management",
+      "definition": "Управление рисками объединяет в единой рамке принятие решений с учётом рисков (RIDM) и непрерывное управление рисками (CRM). Принятие решений с учётом рисков питает решения системного инжиниринга за счёт лучшего использования информации о риске и неопределённости при выборе альтернатив и установлении базовых требований. Непрерывное управление рисками управляет рисками на протяжении разработки и фазы реализации жизненного цикла, чтобы обеспечить выполнение требований по безопасности, технике, стоимости и срокам. Это делается, чтобы поощрять упреждающее управление рисками, лучше информировать принятие решений за счёт более полного использования информации о рисках и затем результативнее управлять рисками реализации, сосредоточивая процесс непрерывного управления рисками на базовых требованиях к характеристикам, вытекающих из процесса принятия решений с учётом рисков. (Источник: NPR 8000.4, Agency Risk Management Procedural Requirements) Эти процессы применяются со строгостью, соразмерной сложности, стоимости и критичности программы.",
+      "definition_en": "Risk management includes Risk-Informed Decision-Making (RIDM) and Continuous Risk Management (CRM) in an integrated framework. RIDM informs systems engineering decisions through better use of risk and uncertainty information in selecting alternatives and establishing baseline requirements. CRM manages risks over the course of the development and the Implementation Phase of the life cycle to ensure that safety, technical, cost, and schedule requirements are met. This is done to foster proactive risk management, to better inform decision-making through better use of risk information, and then to more effectively manage Implementation risks by focusing the CRM process on the baseline performance requirements emerging from the RIDM process. (Source: NPR 8000.4, Agency Risk Management Procedural Requirements) These processes are applied at a level of rigor commensurate with the complexity, cost, and criticality of the program.",
+      "related": [
+        "Риск",
+        "Непрерывное управление рисками",
+        "Процесс анализа решений с учётом рисков",
+        "Фаза реализации"
+      ]
+    },
+    {
+      "term": "Безопасность",
+      "term_en": "Safety",
+      "definition": "Свобода от условий, которые могут вызвать гибель, травму, профессиональное заболевание, повреждение или утрату оборудования либо имущества или ущерб окружающей среде.",
+      "definition_en": "Freedom from those conditions that can cause death, injury, occupational illness, damage to or loss of equipment or property, or damage to the environment.",
+      "related": [
+        "Риск",
+        "Системная инженерия безопасности"
+      ]
+    },
+    {
+      "term": "Пространство поиска (пространство альтернатив)",
+      "term_en": "Search Space (or Alternative Space)",
+      "definition": "Оболочка возможных концепций, задаваемая проектными ограничениями и параметрами, внутри которой могут разрабатываться и сопоставляться альтернативные концепции.",
+      "definition_en": "The envelope of concept possibilities defined by design constraints and parameters within which alternative concepts can be developed and traded off.",
+      "related": [
+        "Исследование компромиссов",
+        "Дерево компромиссов"
+      ]
+    },
+    {
+      "term": "Однопроектная программа",
+      "term_en": "Single-Project Programs",
+      "definition": "Программы, которые, как правило, имеют длительные сроки разработки и/или эксплуатации, представляют собой крупные вложения ресурсов Агентства и получают вклад от нескольких организаций или агентств. Такие программы часто сочетают подходы управления программой и проектом, что они документируют через адаптацию.",
+      "definition_en": "Programs that tend to have long development and/or operational lifetimes, represent a large investment of Agency resources, and have contributions from multiple organizations/agencies. These programs frequently combine program and project management approaches, which they document through tailoring.",
+      "related": [
+        "Программа",
+        "Слабосвязанная программа",
+        "Тесносвязанная программа",
+        "Адаптация"
+      ]
+    },
+    {
+      "term": "Программное обеспечение",
+      "term_en": "Software",
+      "definition": "Компьютерные программы, процедуры, правила и связанные с ними документация и данные, относящиеся к разработке и эксплуатации вычислительной системы. К программному обеспечению относятся также коммерческие готовые (COTS), государственные готовые (GOTS) и модифицированные готовые (MOTS) продукты, встроенное программное обеспечение, повторно используемые, унаследованные и заимствованные решения, автоматически сгенерированный код, микропрограммы и компоненты с открытым исходным кодом. Примечание 1: исключительно для целей программы выпуска программного обеспечения NASA термин «программное обеспечение» в переопределении по NPR 2210.1, Release of NASA Software, не включает компьютерные базы данных и документацию на программное обеспечение. Примечание 2: определения терминов COTS, GOTS, заимствованное программное обеспечение, MOTS, унаследованное программное обеспечение, повторное использование программного обеспечения и классов программного обеспечения даны в NPR 7150.2, NASA Software Engineering Requirements. (Источник: NPD 7120.4, NASA Engineering and Program/Project Management Policy)",
+      "definition_en": "Computer programs, procedures, rules, and associated documentation and data pertaining to the development and operation of a computer system. Software also includes Commercial Off-The-Shelf (COTS), Government Off-The-Shelf (GOTS), Modified Off-The-Shelf (MOTS), embedded software, reuse, heritage, legacy, autogenerated code, firmware, and open source software components. Note 1: For purposes of the NASA Software Release program only, the term “software,” as redefined in NPR 2210.1, Release of NASA Software, does not include computer databases or software documentation. Note 2: Definitions for the terms COTS, GOTS, heritage software, MOTS, legacy software, software reuse, and classes of software are provided in NPR 7150.2, NASA Software Engineering Requirements. (Source: NPD 7120.4, NASA Engineering and Program/Project Management Policy)",
+      "related": [
+        "Наследие (заимствованные решения)",
+        "Продукт"
+      ]
+    },
+    {
+      "term": "Запрос предложений",
+      "term_en": "Solicitation",
+      "definition": "Средство, которым у подрядчиков запрашивается информация с целью заключения контракта на продукцию или услуги. Любой запрос представить предложения или котировки Правительству. Запросы по процедурам закрытых торгов называются «приглашениями к участию в торгах». Запросы по переговорным процедурам называются «запросами предложений». Запросы по упрощённым закупочным процедурам могут требовать подачи либо котировки, либо оферты.",
+      "definition_en": "The vehicle by which information is solicited from contractors for the purpose of awarding a contract for products or services. Any request to submit offers or quotations to the Government. Solicitations under sealed bid procedures are called “invitations for bids.” Solicitations under negotiated procedures are called “requests for proposals.” Solicitations under simplified acquisition procedures may require submission of either a quotation or an offer.",
+      "related": [
+        "Контракт",
+        "Подрядчик",
+        "Приобретение"
+      ]
+    },
+    {
+      "term": "Спецификация",
+      "term_en": "Specification",
+      "definition": "Документ, который полно, точно и проверяемо предписывает требования, конструкцию, поведение или характеристики системы либо компонента системы. В NPR 7123.1 «спецификация» трактуется как «требование».",
+      "definition_en": "A document that prescribes completely, precisely, and verifiably the requirements, design, behavior, or characteristics of a system or system component. In NPR 7123.1, “specification” is treated as a “requirement.”",
+      "related": [
+        "Требование",
+        "Техническое требование"
+      ]
+    },
+    {
+      "term": "Заинтересованная сторона",
+      "term_en": "Stakeholder",
+      "definition": "Группа или отдельное лицо, затрагиваемое программой или проектом либо имеющее в них интерес или долю. Есть два основных класса заинтересованных сторон. См. «Заказчик» и «Прочие заинтересованные лица (заинтересованные стороны)».",
+      "definition_en": "A group or individual who is affected by or has an interest or stake in a program or project. There are two main classes of stakeholders. See “customers” and “other interested parties.”",
+      "related": [
+        "Заказчик",
+        "Прочие заинтересованные лица (заинтересованные стороны)",
+        "Значимая заинтересованная сторона"
+      ]
+    },
+    {
+      "term": "Ожидания заинтересованных сторон",
+      "term_en": "Stakeholder Expectations",
+      "definition": "Формулировка потребностей, желаний, возможностей и нужд, не выраженная как требование (не выраженная утверждением со словом «должен»), называется «ожиданием». Когда набор ожиданий соответствующих заинтересованных сторон собран, проанализирован и преобразован в утверждение со словом «должен», ожидание становится требованием. Ожидания могут формулироваться как в качественных (неизмеримых), так и в количественных (измеримых) терминах. Требования всегда формулируются в количественных терминах. Ожидания могут формулироваться в терминах функций, поведения или ограничений в отношении создаваемого продукта либо процесса, применяемого для его создания.",
+      "definition_en": "A statement of needs, desires, capabilities, and wants that are not expressed as a requirement (not expressed as a “shall” statement) is referred to as an “expectation.” Once the set of expectations from applicable stakeholders is collected, analyzed, and converted into a “shall” statement, the expectation becomes a requirement. Expectations can be stated in either qualitative (non-measurable) or quantitative (measurable) terms. Requirements are always stated in quantitative terms. Expectations can be stated in terms of functions, behaviors, or constraints with respect to the product being engineered or the process used to engineer the product.",
+      "related": [
+        "Заинтересованная сторона",
+        "Требование",
+        "Процесс определения ожиданий заинтересованных сторон"
+      ]
+    },
+    {
+      "term": "Процесс определения ожиданий заинтересованных сторон",
+      "term_en": "Stakeholder Expectations Definition Process",
+      "definition": "Процесс, применяемый для выявления и определения вариантов использования, сценариев, концепции эксплуатации и ожиданий заинтересованных сторон для соответствующих фаз жизненного цикла продукта и уровня продукта. Зафиксированные в базовой линии ожидания заинтересованных сторон используются для валидации конечного продукта данного уровня.",
+      "definition_en": "A process used to elicit and define use cases, scenarios, concept of operations, and stakeholder expectations for the applicable product life cycle phases and product layer. The baselined stakeholder expectations are used for validation of the product layer end product.",
+      "related": [
+        "Ожидания заинтересованных сторон",
+        "Концепция эксплуатации (ConOps) (концептуальная документация)",
+        "Процесс валидации продукта"
+      ]
+    },
+    {
+      "term": "Постоянный совет по обзорам",
+      "term_en": "Standing Review Board",
+      "definition": "Совет, отвечающий за проведение независимых обзоров (по жизненному циклу и специальных) программы или проекта и за предоставление объективных экспертных суждений созывающим органам. Обзоры проводятся в соответствии с утверждённым техническим заданием (ToR) и требованиями к жизненному циклу согласно NPR 7123.1.",
+      "definition_en": "The board responsible for conducting independent reviews (life-cycle and special) of a program or project and providing objective, expert judgments to the convening authorities. The reviews are conducted in accordance with approved Terms of Reference (ToR) and life cycle requirements per NPR 7123.1.",
+      "related": [
+        "Экспертная оценка",
+        "Контрольный рубеж (веха)"
+      ]
+    },
+    {
+      "term": "Диаграмма состояний",
+      "term_en": "State Diagram",
+      "definition": "Диаграмма, которая показывает поток в системе в ответ на меняющиеся входные воздействия, чтобы охарактеризовать поведение системы.",
+      "definition_en": "A diagram that shows the flow in the system in response to varying inputs in order to characterize the behavior of the system.",
+      "related": [
+        "Контекстная диаграмма",
+        "Функциональная блок-схема потоков"
+      ]
+    },
+    {
+      "term": "Критерий успеха",
+      "term_en": "Success Criteria",
+      "definition": "Конкретные результаты, которые должны быть удовлетворительно продемонстрированы для достижения задач технического обзора, чтобы технические работы могли продвигаться дальше по жизненному циклу. Критерии успеха документируются в соответствующем плане технического обзора. Ранее назывались критериями «выхода» — этот термин ещё используется в некоторых NPD и NPR.",
+      "definition_en": "Specific accomplishments that need to be satisfactorily demonstrated to meet the objectives of a technical review so that a technical effort can progress further in the life cycle. Success criteria are documented in the corresponding technical review plan. Formerly referred to as “exit” criteria, a term still used in some NPDs/NPRs.",
+      "related": [
+        "Критерий входа",
+        "Контрольный рубеж (веха)"
+      ]
+    },
+    {
+      "term": "Надзор",
+      "term_en": "Surveillance",
+      "definition": "Мониторинг деятельности подрядчика (например, статусные совещания, обзоры, аудиты, выезды на площадку) ради контроля хода работ и производства, подтверждения финансовой ответственности, обеспечения безопасности экипажа и успеха миссии, а также определения поощрительных выплат за выдающееся (или штрафов за ненадлежащее) исполнение контракта.",
+      "definition_en": "The monitoring of a contractor’s activities (e.g., status meetings, reviews, audits, site visits) for progress and production and to demonstrate fiscal responsibility, ensure crew safety and mission success, and determine award fees for extraordinary (or penalty fees for substandard) contract execution.",
+      "related": [
+        "Подрядчик",
+        "Контракт",
+        "Обеспечение качества"
+      ]
+    },
+    {
+      "term": "Система",
+      "term_en": "System",
+      "definition": "(1) Сочетание элементов, которые работают вместе, создавая способность удовлетворить потребность. К элементам относятся все аппаратные и программные средства, оборудование, объекты, персонал, процессы и процедуры, необходимые для этой цели. (2) Конечный продукт (который выполняет эксплуатационные функции) и обеспечивающие продукты (которые дают услуги поддержки жизненного цикла эксплуатируемым конечным продуктам), составляющие систему.",
+      "definition_en": "(1) The combination of elements that function together to produce the capability to meet a need. The elements include all hardware, software, equipment, facilities, personnel, processes, and procedures needed for this purpose. (2) The end product (which performs operational functions) and enabling products (which provide life cycle support services to the operational end products) that make up a system.",
+      "related": [
+        "Конечный продукт",
+        "Обеспечивающий продукт",
+        "Потребность",
+        "Структура системы"
+      ]
+    },
+    {
+      "term": "Обзор приёмки системы",
+      "term_en": "System Acceptance Review",
+      "definition": "Обзор приёмки системы верифицирует полноту конкретных конечных продуктов относительно ожидаемого уровня их зрелости, оценивает соответствие ожиданиям заинтересованных сторон и подтверждает, что система достигла технической зрелости, достаточной для разрешения её отправки на назначенный эксплуатационный объект или на стартовую площадку.",
+      "definition_en": "The SAR verifies the completeness of the specific end products in relation to their expected maturity level, assesses compliance to stakeholder expectations, and ensures that the system has sufficient technical maturity to authorize its shipment to the designated operational facility or launch site.",
+      "related": [
+        "Конечный продукт",
+        "Ожидания заинтересованных сторон",
+        "Обзор готовности к эксплуатации"
+      ]
+    },
+    {
+      "term": "Обзор определения системы",
+      "term_en": "System Definition Review",
+      "definition": "Обзор определения миссии/системы (MDR/SDR) оценивает, отвечает ли предлагаемая архитектура миссии или системы функциональным требованиям и требованиям к характеристикам миссии или системы программы и распределены ли требования на все функциональные элементы миссии или системы. Этот обзор применяется для проектов и для однопроектных программ.",
+      "definition_en": "The Mission/System Definition Review (MDR/SDR) evaluates whether the proposed mission/system architecture is responsive to the program mission/system functional and performance requirements and requirements have been allocated to all functional elements of the mission/system. This review is used for projects and for single-project programs.",
+      "related": [
+        "Обзор определения миссии",
+        "Архитектура (системы)",
+        "Однопроектная программа"
+      ]
+    },
+    {
+      "term": "Обзор интеграции системы",
+      "term_en": "System Integration Review",
+      "definition": "Обзор интеграции системы подтверждает, что сегменты, компоненты и подсистемы укладываются в график интеграции в систему и что средства интеграции, вспомогательный персонал, планы и процедуры интеграции укладываются в график её обеспечения.",
+      "definition_en": "A SIR ensures that segments, components, and subsystems are on schedule to be integrated into the system and that integration facilities, support personnel, and integration plans and procedures are on schedule to support integration.",
+      "related": [
+        "Процесс интеграции продукта",
+        "Структура системы"
+      ]
+    },
+    {
+      "term": "Обзор системных требований",
+      "term_en": "System Requirements Review",
+      "definition": "Для программы обзор системных требований служит подтверждению, что её функциональные требования и требования к характеристикам правильно сформулированы и увязаны со стратегическими задачами Агентства и дирекции миссии. Для системы или проекта обзор системных требований оценивает, отвечают ли определённые для системы функциональные требования и требования к характеристикам требованиям программы, и подтверждает, что предварительный план проекта и требования обеспечат выполнение миссии.",
+      "definition_en": "For a program, the SRR is used to ensure that its functional and performance requirements are properly formulated and correlated with the Agency and mission directorate strategic objectives. For a system/project, the SRR evaluates whether the functional and performance requirements defined for the system are responsive to the program’s requirements and ensures that the preliminary project plan and requirements will satisfy the mission.",
+      "related": [
+        "Требование",
+        "Обзор системных требований программы",
+        "План проекта"
+      ]
+    },
+    {
+      "term": "Системная инженерия безопасности",
+      "term_en": "System Safety Engineering",
+      "definition": "Применение инженерных и управленческих принципов, критериев и приёмов для достижения приемлемого риска происшествий в рамках ограничений по эксплуатационной результативности и пригодности, времени и стоимости на протяжении всех фаз жизненного цикла системы.",
+      "definition_en": "The application of engineering and management principles, criteria, and techniques to achieve acceptable mishap risk within the constraints of operational effectiveness and suitability, time, and cost throughout all phases of the system life cycle.",
+      "related": [
+        "Безопасность",
+        "Риск",
+        "Приемлемый риск"
+      ]
+    },
+    {
+      "term": "Структура системы",
+      "term_en": "System Structure",
+      "definition": "Структура системы составлена из многоуровневой структуры продуктово-ориентированных моделей структуры декомпозиции работ. (См. «Структура декомпозиции работ (WBS)» и «Структура декомпозиции продукта».)",
+      "definition_en": "A system structure is made up of a layered structure of product-based WBS models. (See “Work Breakdown Structure” and Product Breakdown Structure.”)",
+      "related": [
+        "Структура декомпозиции работ (WBS)",
+        "Структура декомпозиции продукта",
+        "Модель WBS"
+      ]
+    },
+    {
+      "term": "Системный подход",
+      "term_en": "Systems Approach",
+      "definition": "Применение систематического, дисциплинированного инженерного подхода — количественно измеримого, рекурсивного, итеративного и повторяемого — к разработке, эксплуатации и обслуживанию систем, интегрированных в единое целое, на протяжении жизненного цикла проекта или программы.",
+      "definition_en": "The application of a systematic, disciplined engineering approach that is quantifiable, recursive, iterative, and repeatable for the development, operation, and maintenance of systems integrated into a whole throughout the life cycle of a project or program.",
+      "related": [
+        "Рекурсивный",
+        "Итеративный",
+        "Повторяемый"
+      ]
+    },
+    {
+      "term": "Движок системного инжиниринга (SE Engine)",
+      "term_en": "Systems Engineering (SE) Engine",
+      "definition": "Модель системного инжиниринга, показанная на рис. 2.1-1, которая даёт 17 технических процессов и их взаимные связи. Модель называется «движком системного инжиниринга» в том смысле, что к создаваемым продуктам применяется подходящий набор процессов, который и приводит в движение технические работы.",
+      "definition_en": "The SE model shown in Figure 2.1-1 that provides the 17 technical processes and their relationships with each other. The model is called an “SE engine” in that the appropriate set of processes is applied to the products being engineered to drive the technical effort.",
+      "related": [
+        "Процесс",
+        "Продукт",
+        "План управления системным инжинирингом (SEMP)"
+      ]
+    },
+    {
+      "term": "План управления системным инжинирингом (SEMP)",
+      "term_en": "Systems Engineering Management Plan (SEMP)",
+      "definition": "План управления системным инжинирингом определяет роли и интерфейсы ответственности в технических работах и задаёт, как этими интерфейсами будут управлять. План управления системным инжинирингом — это средство, которое документирует и доносит технический подход, включая применение общих технических процессов; используемые ресурсы; ключевые технические задачи, виды деятельности и события вместе с их метриками и критериями успеха.",
+      "definition_en": "The SEMP identifies the roles and responsibility interfaces of the technical effort and specifies how those interfaces will be managed. The SEMP is the vehicle that documents and communicates the technical approach, including the application of the common technical processes; resources to be used; and the key technical tasks, activities, and events along with their metrics and success criteria.",
+      "related": [
+        "Процесс технического планирования",
+        "Метрика",
+        "Критерий успеха",
+        "Движок системного инжиниринга (SE Engine)"
+      ]
+    },
+    {
+      "term": "Адаптация",
+      "term_en": "Tailoring",
+      "definition": "Процесс, применяемый для корректировки предписанного требования или для получения освобождения от него, чтобы учесть нужды конкретной задачи или деятельности (например, программы или проекта). Процесс адаптации приводит к появлению отклонений и разрешений на отступление в зависимости от того, когда подан запрос. ИЛИ Процесс, применяемый для получения освобождения от требований NPR 7123.1 сообразно задачам программы или проекта, допустимому риску и ограничениям.",
+      "definition_en": "A process used to adjust or seek relief from a prescribed requirement to accommodate the needs of a specific task or activity (e.g., program or project). The tailoring process results in the generation of deviations and waivers depending on the timing of the request. OR The process used to seek relief from NPR 7123.1 requirements consistent with program or project objectives, allowable risk, and constraints.",
+      "related": [
+        "Разрешение на отступление",
+        "Требование",
+        "Однопроектная программа"
+      ]
+    },
+    {
+      "term": "Процесс технической оценки",
+      "term_en": "Technical Assessment Process",
+      "definition": "Процесс, применяемый, чтобы помогать отслеживать ход технических работ и давать информацию о состоянии в поддержку процессов проектирования системы, реализации продукта и технического управления. Ключевая сторона процесса — проведение обзоров жизненного цикла и технических обзоров на протяжении жизненного цикла системы.",
+      "definition_en": "A process used to help monitor progress of the technical effort and provide status information for support of the system design, product realization, and technical management processes. A key aspect of the process is conducting life cycle and technical reviews throughout the system life cycle.",
+      "related": [
+        "Мера технических характеристик",
+        "Критерий успеха",
+        "Реализация продукта"
+      ]
+    },
+    {
+      "term": "Техническая оценка стоимости",
+      "term_en": "Technical Cost Estimate",
+      "definition": "Оценка стоимости технических работ по проекту, составленная технической группой на основе её понимания системных требований и концепций эксплуатации и её видения архитектуры системы.",
+      "definition_en": "The cost estimate of the technical work on a project created by the technical team based on its understanding of the system requirements and operational concepts and its vision of the system architecture.",
+      "related": [
+        "Техническая группа",
+        "Стоимость жизненного цикла (LCC)",
+        "Архитектура (системы)"
+      ]
+    },
+    {
+      "term": "Процесс управления техническими данными",
+      "term_en": "Technical Data Management Process",
+      "definition": "Процесс, применяемый, чтобы планировать, получать, делать доступными, сопровождать, защищать и использовать данные технического характера в поддержку всего жизненного цикла системы. Этот процесс применяется для фиксации исследований компромиссов, стоимостных оценок, технических анализов, отчётов и другой важной информации.",
+      "definition_en": "A process used to plan for, acquire, access, manage, protect, and use data of a technical nature to support the total life cycle of a system. This process is used to capture trade studies, cost estimates, technical analyses, reports, and other important information.",
+      "related": [
+        "Управление данными",
+        "Исследование компромиссов",
+        "Пакет технических данных"
+      ]
+    },
+    {
+      "term": "Пакет технических данных",
+      "term_en": "Technical Data Package",
+      "definition": "Выход процесса определения проектного решения; развивается от фазы к фазе, начиная с концептуальных эскизов или моделей и заканчивая полным комплектом чертежей, перечнем комплектующих и другими деталями, нужными для изготовления или интеграции продукта.",
+      "definition_en": "An output of the Design Solution Definition Process, it evolves from phase to phase, starting with conceptual sketches or models and ending with complete drawings, parts list, and other details needed for product implementation or product integration.",
+      "related": [
+        "Процесс определения проектного решения",
+        "Процесс изготовления продукта",
+        "Процесс интеграции продукта"
+      ]
+    },
+    {
+      "term": "Техническая мера",
+      "term_en": "Technical Measures",
+      "definition": "Установленный набор мер, основанных на ожиданиях и требованиях, которые будут отслеживаться и оцениваться для определения общей результативности системы или продукта и удовлетворённости заказчика. Обычные обозначения этих мер: меры эффективности (MOE), меры характеристик (MOP) и меры технических характеристик (TPM).",
+      "definition_en": "An established set of measures based on the expectations and requirements that will be tracked and assessed to determine overall system or product effectiveness and customer satisfaction. Common terms for these measures are: Measures Of Effectiveness (MOEs), Measures Of Performance (MOPs), and Technical Performance Measures (TPMs).",
+      "related": [
+        "Мера эффективности (MOE)",
+        "Мера характеристики (MOP)",
+        "Мера технических характеристик"
+      ]
+    },
+    {
+      "term": "Мера технических характеристик",
+      "term_en": "Technical Performance Measures",
+      "definition": "Набор мер характеристик, которые отслеживаются сравнением текущего фактического достигнутого значения параметров с ожидавшимся на текущий момент и на будущие даты. Меры технических характеристик служат для подтверждения хода работ и выявления недостатков, способных поставить под угрозу выполнение системного требования. Оценённые значения параметров, выходящие за ожидаемый диапазон вокруг предполагаемых значений, указывают на необходимость разбора и корректирующих действий. Меры технических характеристик обычно выбираются из определённого набора мер характеристик (MOP).",
+      "definition_en": "A set of performance measures that are monitored by comparing the current actual achievement of the parameters with that anticipated at the current time and on future dates. TPMs are used to confirm progress and identify deficiencies that might jeopardize meeting a system requirement. Assessed parameter values that fall outside an expected range around the anticipated values indicate a need for evaluation and corrective action. Technical performance measures are typically selected from the defined set of Measures Of Performance (MOPs).",
+      "related": [
+        "Мера характеристики (MOP)",
+        "Мера эффективности (MOE)",
+        "Техническая мера"
+      ]
+    },
+    {
+      "term": "Процесс технического планирования",
+      "term_en": "Technical Planning Process",
+      "definition": "Процесс, применяемый для планирования применения каждого общего технического процесса и управления им. Он также применяется, чтобы выявить, определить и спланировать технические работы, относящиеся к фазе жизненного цикла продукта для размещения уровня продукта в структуре системы, и чтобы достичь задач проекта и критериев выхода (успеха) фазы жизненного цикла продукта. Ключевой документ, порождаемый этим процессом, — план управления системным инжинирингом.",
+      "definition_en": "A process used to plan for the application and management of each common technical process. It is also used to identify, define, and plan the technical effort applicable to the product life cycle phase for product layer location within the system structure and to meet project objectives and product life cycle phase exit (success) criteria. A key document generated by this process is the SEMP.",
+      "related": [
+        "План управления системным инжинирингом (SEMP)",
+        "Структура системы",
+        "Критерий успеха"
+      ]
+    },
+    {
+      "term": "Техническое требование",
+      "term_en": "Technical Requirements",
+      "definition": "Набор требований, налагаемых на конечные продукты системы, включая саму систему. Также называются «требованиями к продукту».",
+      "definition_en": "A set of requirements imposed on the end products of the system, including the system itself. Also referred to as “product requirements.”",
+      "related": [
+        "Требование",
+        "Производное требование",
+        "Процесс определения технических требований"
+      ]
+    },
+    {
+      "term": "Процесс определения технических требований",
+      "term_en": "Technical Requirements Definition Process",
+      "definition": "Процесс, применяемый для преобразования ожиданий заинтересованных сторон в полный набор валидированных технических требований, выраженных утверждениями со словом «должен», которые могут использоваться для определения проектного решения для модели структуры декомпозиции продукта (PBS) и связанных обеспечивающих продуктов.",
+      "definition_en": "A process used to transform the stakeholder expectations into a complete set of validated technical requirements expressed as “shall” statements that can be used for defining a design solution for the ProductBreakdown Structure (PBS) model and related enabling products.",
+      "related": [
+        "Ожидания заинтересованных сторон",
+        "Техническое требование",
+        "Валидированное требование",
+        "Структура декомпозиции продукта"
+      ]
+    },
+    {
+      "term": "Технический риск",
+      "term_en": "Technical Risk",
+      "definition": "Риск, связанный с достижением технической цели, критерия или задачи. Относится к нежелательным последствиям, касающимся технических характеристик, безопасности людей, активов миссии или окружающей среды.",
+      "definition_en": "Risk associated with the achievement of a technical goal, criterion, or objective. It applies to undesired consequences related to technical performance, human safety, mission assets, or environment.",
+      "related": [
+        "Риск",
+        "Процесс управления техническими рисками",
+        "Безопасность"
+      ]
+    },
+    {
+      "term": "Процесс управления техническими рисками",
+      "term_en": "Technical Risk Management Process",
+      "definition": "Процесс, применяемый для принятия решений с учётом рисков и для постоянного рассмотрения возможности отклонений от плана проекта и последствий, которые могли бы наступить, если бы они произошли.",
+      "definition_en": "A process used to make risk-informed decisions and examine, on a continuing basis, the potential for deviations from the project plan and the consequences that could result should they occur.",
+      "related": [
+        "Технический риск",
+        "Управление рисками",
+        "Процесс анализа решений с учётом рисков"
+      ]
+    },
+    {
+      "term": "Техническая группа",
+      "term_en": "Technical Team",
+      "definition": "Группа специалистов разного профиля с подходящими предметными знаниями, опытом, компетенциями и навыками, назначенных на конкретную техническую задачу.",
+      "definition_en": "A group of multidisciplinary individuals with appropriate domain knowledge, experience, competencies, and skills who are assigned to a specific technical task.",
+      "related": [
+        "Техническая оценка стоимости",
+        "Процесс технического планирования"
+      ]
+    },
+    {
+      "term": "Отчёт об оценке технологической готовности",
+      "term_en": "Technology Readiness Assessment Report",
+      "definition": "Документ, требуемый для перехода из фазы B в фазу C/D, показывающий, что все системы, подсистемы и компоненты достигли уровня технологической зрелости с подтверждённым свидетельством квалификации в значимой среде.",
+      "definition_en": "A document required for transition from Phase B to Phase C/D demonstrating that all systems, subsystems, and components have achieved a level of technological maturity with demonstrated evidence of qualification in a relevant environment.",
+      "related": [
+        "Уровень технологической готовности",
+        "Значимая среда",
+        "Оценка технологической зрелости"
+      ]
+    },
+    {
+      "term": "Оценка технологий",
+      "term_en": "Technology Assessment",
+      "definition": "Систематический процесс, который устанавливает необходимость разрабатывать технологические достижения или внедрять их в систему. Процесс оценки технологий использует базовые принципы и процессы системного инжиниринга в рамках структуры декомпозиции продукта (PBS). Это двухшаговый процесс, состоящий из (1) определения текущей технологической зрелости в терминах уровней технологической готовности (TRL) и (2) определения трудности перевода технологии с одного уровня технологической готовности на следующий с помощью оценки степени сложности продвижения (AD2).",
+      "definition_en": "A systematic process that ascertains the need to develop or infuse technological advances into a system. The technology assessment process makes use of basic systems engineering principles and processes within the framework of the Product Breakdown Structure (PBS). It is a two-step process comprised of (1) the determination of the current technological maturity in terms of Technology Readiness Levels (TRLs) and (2) the determination of the difficulty associated with moving a technology from one TRL to the next through the use of the Advancement Degree of Difficulty Assessment (AD2).",
+      "related": [
+        "Уровень технологической готовности",
+        "Оценка степени сложности продвижения (AD2)",
+        "Структура декомпозиции продукта"
+      ]
+    },
+    {
+      "term": "План разработки технологий",
+      "term_en": "Technology Development Plan",
+      "definition": "Документ, требуемый для перехода из фазы A в фазу B, определяющий технологии, подлежащие разработке, заимствованные системы, подлежащие модификации, альтернативные пути, запасные позиции и соответствующие сокращения характеристик, вехи, метрики и ключевые точки принятия решений. Входит в предварительный план проекта.",
+      "definition_en": "A document required for transition from Phase A to Phase B identifying technologies to be developed, heritage systems to be modified, alternative paths to be pursued, fallback positions and corresponding performance descopes, milestones, metrics, and key decision points. It is incorporated in the preliminary project plan.",
+      "related": [
+        "Наследие (заимствованные решения)",
+        "Сокращение объёма",
+        "Ключевая точка принятия решений",
+        "План проекта"
+      ]
+    },
+    {
+      "term": "Оценка технологической зрелости",
+      "term_en": "Technology Maturity Assessment",
+      "definition": "Процесс определения технологической зрелости системы на основе уровней технологической готовности (TRL).",
+      "definition_en": "A process to determine a system’s technological maturity based on Technology Readiness Levels (TRLs).",
+      "related": [
+        "Уровень технологической готовности",
+        "Оценка технологий"
+      ]
+    },
+    {
+      "term": "Уровень технологической готовности",
+      "term_en": "Technology Readiness Level",
+      "definition": "Даёт шкалу для измерения зрелости технологии. Уровни технологической готовности идут от 1 — фундаментальные технологические исследования — до 9 — испытания системы, запуск и эксплуатация. Обычно для встраивания технологии в процесс системного инжиниринга требуется уровень 6 (то есть технология продемонстрирована в значимой среде).",
+      "definition_en": "Provides a scale against which to measure the maturity of a technology. TRLs range from 1, basic technology research, to 9, systems test, launch, and operations. Typically, a TRL of 6 (i.e., technology demonstrated in a relevant environment) is required for a technology to be integrated into an SE process.",
+      "related": [
+        "Оценка технологической зрелости",
+        "Значимая среда",
+        "Оценка технологий"
+      ]
+    },
+    {
+      "term": "Испытание",
+      "term_en": "Test",
+      "definition": "Использование реализованного конечного продукта для получения подробных данных, позволяющих верифицировать или валидировать характеристики либо дать достаточную информацию для их верификации или валидации путём дальнейшего анализа.",
+      "definition_en": "The use of a realized end product to obtain detailed data to verify or validate performance or to provide sufficient information to verify or validate performance through further analysis.",
+      "related": [
+        "Верификация (продукта)",
+        "Валидация (продукта)",
+        "Анализ",
+        "Демонстрация"
+      ]
+    },
+    {
+      "term": "Обзор готовности к испытаниям",
+      "term_en": "Test Readiness Review",
+      "definition": "Обзор, который подтверждает, что испытуемое изделие (аппаратура или программное обеспечение), испытательная база, вспомогательный персонал и программы испытаний готовы к проведению испытаний и к получению, обработке и контролю данных.",
+      "definition_en": "A review that ensures that the test article (hardware/software), test facility, support personnel, and test procedures are ready for testing and data acquisition, reduction, and control.",
+      "related": [
+        "Испытание",
+        "Обзор готовности к полёту"
+      ]
+    },
+    {
+      "term": "Пороговое требование",
+      "term_en": "Threshold Requirements",
+      "definition": "Минимально приемлемый набор технических и проектных требований; такой набор может представлять позицию проекта при сокращении объёма.",
+      "definition_en": "A minimum acceptable set of technical and project requirements; the set could represent the descope position of the project.",
+      "related": [
+        "Сокращение объёма",
+        "Техническое требование",
+        "Требование проекта"
+      ]
+    },
+    {
+      "term": "Тесносвязанная программа",
+      "term_en": "Tightly Coupled Programs",
+      "definition": "Программы с несколькими проектами, которые выполняют части миссии или миссий. Ни один отдельный проект не способен реализовать полную миссию. Обычно вклад в программу вносят несколько центров NASA. Отдельные проекты могут управляться в разных центрах. Программа может включать и вклад других ведомств или международных партнёров.",
+      "definition_en": "Programs with multiple projects that execute portions of a mission(s). No single project is capable of implementing a complete mission. Typically, multiple NASA Centers contribute to the program. Individual projects may be managed at different Centers. The program may also include contributions from other agencies or international partners.",
+      "related": [
+        "Слабосвязанная программа",
+        "Несвязанная программа",
+        "Программа"
+      ]
+    },
+    {
+      "term": "Прослеживаемость",
+      "term_en": "Traceability",
+      "definition": "Различимая связь между двумя или более логическими сущностями — такими как требования, элементы системы, верификации или задачи.",
+      "definition_en": "A discernible association among two or more logical entities such as requirements, system elements, verifications, or tasks.",
+      "related": [
+        "Двунаправленная прослеживаемость",
+        "Требование"
+      ]
+    },
+    {
+      "term": "Исследование компромиссов",
+      "term_en": "Trade Study",
+      "definition": "Способ оценки вариантов конструкции системы через придумывание альтернативных средств выполнения функциональных требований, оценку этих альтернатив в терминах мер эффективности и стоимости системы, ранжирование альтернатив по подходящим критериям выбора, отбрасывание менее перспективных альтернатив и переход при необходимости на следующий уровень детализации.",
+      "definition_en": "A means of evaluating system designs by devising alternative means to meet functional requirements, evaluating these alternatives in terms of the measures of effectiveness and system cost, ranking the alternatives according to appropriate selection criteria, dropping less promising alternatives, and proceeding to the next level of resolution, if needed.",
+      "related": [
+        "Мера эффективности (MOE)",
+        "Дерево компромиссов",
+        "Отчёт об исследовании компромиссов",
+        "Анализ альтернатив"
+      ]
+    },
+    {
+      "term": "Отчёт об исследовании компромиссов",
+      "term_en": "Trade Study Report",
+      "definition": "Отчёт, составляемый для документирования исследования компромиссов. Он должен включать: анализируемую систему; цели, задачи (или требования, сообразно уровню детализации) и ограничения системы; использованные меры и методы измерения (модели); все использованные источники данных; альтернативы, выбранные для анализа; результаты расчётов, включая диапазоны неопределённости и проведённые анализы чувствительности; применённое правило выбора; и рекомендуемую альтернативу.",
+      "definition_en": "A report written to document a trade study. It should include: the system under analysis; system goals, objectives (or requirements, as appropriate to the level of resolution), and constraints; measures and measurement methods (models) used; all data sources used; the alternatives chosen for analysis; computational results, including uncertainty ranges and sensitivity analyses performed; the selection rule used; and the recommended alternative.",
+      "related": [
+        "Исследование компромиссов",
+        "Дерево компромиссов",
+        "Модель"
+      ]
+    },
+    {
+      "term": "Дерево компромиссов",
+      "term_en": "Trade Tree",
+      "definition": "Представление альтернатив исследования компромиссов, в котором каждый слой отвечает некоторому аспекту системы, который нужно рассмотреть в исследовании компромиссов, чтобы определить наилучшую альтернативу.",
+      "definition_en": "A representation of trade study alternatives in which each layer represents some system aspect that needs to be treated in a trade study to determine the best alternative.",
+      "related": [
+        "Исследование компромиссов",
+        "Пространство поиска (пространство альтернатив)"
+      ]
+    },
+    {
+      "term": "Переход",
+      "term_en": "Transition",
+      "definition": "Действие по доставке или перемещению продукта из одного места в другое. Это действие может включать упаковку, обращение, хранение, перемещение, транспортировку, установку и работы по поддержанию.",
+      "definition_en": "The act of delivery or moving of a product from one location to another. This act can include packaging, handling, storing, moving, transporting, installing, and sustainment activities.",
+      "related": [
+        "Процесс перехода продукта",
+        "Продукт"
+      ]
+    },
+    {
+      "term": "Несвязанная программа",
+      "term_en": "Uncoupled Programs",
+      "definition": "Программы, реализуемые в рамках широкой темы и/или общей концепции реализации программы — например, обеспечивающие частые возможности полёта для проектов с ограниченной стоимостью, отбираемых по объявлениям о возможностях (AO) или по исследовательским объявлениям NASA. Каждый такой проект независим от других проектов программы.",
+      "definition_en": "Programs implemented under a broad theme and/or a common program implementation concept, such as providing frequent flight opportunities for cost-capped projects selected through AO or NASA Research Announcements. Each such project is independent of the other projects within the program.",
+      "related": [
+        "Слабосвязанная программа",
+        "Тесносвязанная программа",
+        "Программа"
+      ]
+    },
+    {
+      "term": "Полезность",
+      "term_en": "Utility",
+      "definition": "Мера относительной ценности, получаемой от альтернативы. Теоретическая единица измерения полезности — «ютиль».",
+      "definition_en": "A measure of the relative value gained from an alternative. The theoretical unit of measurement for utility is the “util.”",
+      "related": [
+        "Целевая функция (иногда функция стоимости)",
+        "Анализ альтернатив"
+      ]
+    },
+    {
+      "term": "Валидированное требование",
+      "term_en": "Validated Requirements",
+      "definition": "Набор требований, которые хорошо сформулированы (ясны и однозначны), полны (согласуются с потребностями и ожиданиями заказчика и заинтересованных сторон), непротиворечивы (свободны от конфликтов) и по отдельности верифицируемы и прослеживаемы до требования или цели более высокого уровня.",
+      "definition_en": "A set of requirements that are well formed (clear and unambiguous), complete (agree with customer and stakeholder needs and expectations), consistent (conflict free), and individually verifiable and traceable to a higher level requirement or goal.",
+      "related": [
+        "Требование",
+        "Валидация (продукта)",
+        "Прослеживаемость"
+      ]
+    },
+    {
+      "term": "Валидация (продукта)",
+      "term_en": "Validation (of a product)",
+      "definition": "Процесс получения доказательства того, что продукт выполняет предполагаемое назначение исходя из ожиданий заинтересованных сторон и концепции эксплуатации. Может определяться сочетанием испытаний, анализа, демонстрации и инспекции. (Отвечает на вопрос: «Тот ли продукт я создаю?»)",
+      "definition_en": "The process of showing proof that the product accomplishes the intended purpose based on stakeholder expectations and the Concept of Operations. May be determined by a combination of test, analysis, demonstration, and inspection. (Answers the question, “Am I building the right product?”)",
+      "related": [
+        "Верификация (продукта)",
+        "Ожидания заинтересованных сторон",
+        "Концепция эксплуатации (ConOps) (концептуальная документация)",
+        "Процесс валидации продукта"
+      ]
+    },
+    {
+      "term": "Отклонение",
+      "term_en": "Variance",
+      "definition": "В терминологии управления программой — разница между фактическим исполнением и плановыми затратами или состоянием графика.",
+      "definition_en": "In program control terminology, a difference between actual performance and planned costs or schedule status.",
+      "related": [
+        "Освоенный объём",
+        "Управление освоенным объёмом"
+      ]
+    },
+    {
+      "term": "Верификация (продукта)",
+      "term_en": "Verification (of a product)",
+      "definition": "Доказательство соответствия спецификациям. Верификация может определяться испытанием, анализом, демонстрацией или инспекцией либо их сочетанием. (Отвечает на вопрос: «Правильно ли я создал продукт?»)",
+      "definition_en": "Proof of compliance with specifications. Verification may be determined by test, analysis, demonstration, or inspection or a combination thereof. (Answers the question, “Did I build the product right?”)",
+      "related": [
+        "Валидация (продукта)",
+        "Спецификация",
+        "Испытание",
+        "Анализ",
+        "Демонстрация",
+        "Инспекция"
+      ]
+    },
+    {
+      "term": "Разрешение на отступление",
+      "term_en": "Waiver",
+      "definition": "Документированное разрешение, освобождающее программу или проект от выполнения требования после того, как требование поставлено под конфигурационный контроль на том уровне, на котором оно будет реализовываться.",
+      "definition_en": "A documented authorization releasing a program or project from meeting a requirement after the requirement is put under configuration control at the level the requirement will be implemented.",
+      "related": [
+        "Адаптация",
+        "Требование",
+        "Процесс управления конфигурацией"
+      ]
+    },
+    {
+      "term": "Структура декомпозиции работ (WBS)",
+      "term_en": "Work Breakdown Structure (WBS)",
+      "definition": "Продуктово-ориентированное иерархическое разбиение аппаратуры, программного обеспечения, услуг и данных, требуемых для получения конечного продукта или продуктов программы либо проекта, построенное сообразно тому, как будут выполняться работы, и отражающее то, как должны накапливаться, обобщаться и представляться стоимостные, календарные, технические и рисковые данные программы или проекта.",
+      "definition_en": "A product-oriented hierarchical division of the hardware, software, services, and data required to produce the program/project’s end product(s) structured according to the way the work will be performed, reflecting the way in which program/project costs, schedule, technical, and risk data are to be accumulated, summarized, and reported.",
+      "related": [
+        "Модель WBS",
+        "Структура декомпозиции продукта",
+        "Структура системы"
+      ]
+    },
+    {
+      "term": "Модель WBS",
+      "term_en": "WBS Model",
+      "definition": "Модель структуры декомпозиции работ описывает систему, которая состоит из конечных продуктов и их подсистем (выполняющих эксплуатационные функции системы), поддерживающих или обеспечивающих продуктов и любых других рабочих продуктов (планов, базовых линий), требуемых для разработки системы.",
+      "definition_en": "A WBS model describes a system that consists of end products and their subsystems (which perform the operational functions of the system), the supporting or enabling products, and any other work products (plans, baselines) required for the development of the system.",
+      "related": [
+        "Структура декомпозиции работ (WBS)",
+        "Конечный продукт",
+        "Обеспечивающий продукт",
+        "Структура системы"
+      ]
+    },
+    {
+      "term": "Диаграмма рабочего потока",
+      "term_en": "Workflow Diagram",
+      "definition": "График, который показывает работы, зависимости между работами и вехи.",
+      "definition_en": "A scheduling chart that shows activities, dependencies among activities, and milestones",
+      "related": [
+        "Диаграмма предшествования",
+        "Диаграмма Гантта",
+        "Контрольный рубеж (веха)"
+      ]
+    }
+  ]
+}
