@@ -215,9 +215,9 @@ class IntakeProfilePromptTest {
     private class Перехват(private val внутри: Intake) : Intake by внутри {
         var сырой: String = ""
 
-        override fun putFacts(project: String, material: String, raw: String, author: String, intent: String): FactIntake {
+        override fun putFacts(project: String, material: String, raw: String, author: String, intent: String, promptVersion: String?): FactIntake {
             сырой = raw
-            return внутри.putFacts(project, material, raw, author, intent)
+            return внутри.putFacts(project, material, raw, author, intent, promptVersion)
         }
     }
 

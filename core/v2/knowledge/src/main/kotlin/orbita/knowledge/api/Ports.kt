@@ -494,7 +494,69 @@ interface Intake {
         author: String,
         /** Задание инженера — режим даташита выбирает по нему узел и кандидата. */
         intent: String = "",
+        /**
+         * Отпечаток промпта живого контура (РЕШЕНИЕ-ДОКУМЕНТ-ПЕРВИЧЕН §5). С ним
+         * приём — ПРОГОН РАЗБОРА (`parse_run`): факты несут его код, факт
+         * прежних прогонов, которого в новом разборе нет, — `superseded`.
+         * Пусто — пакет руками или тестом: прогон заводится, прежнее не трогается.
+         */
+        promptVersion: String? = null,
     ): FactIntake
+
+    // --- документ как источник — целиком (шип 4 §3, РЕШЕНИЕ-ДОКУМЕНТ-ПЕРВИЧЕН §3–6) ---
+
+    /** Досье документа: оригинал · роль · ранг · резюме · прогоны · вклад · сущности · полезность. */
+    fun dossier(project: String, material: String): Dossier
+
+    /** Второй взгляд: сущность → на чём стоит (основания с якорями и ролями документов). */
+    fun basis(project: String, entity: String): BasisView
+
+    /**
+     * Откат вклада документа одним действием: его факты снимаются; сущности,
+     * образованные только из них, — тоже; сущности с другими основаниями
+     * остаются с пометой «основание снято»; прогоны — `rolled_back`.
+     */
+    fun rollback(project: String, material: String, author: String, reason: String): RollbackReport
+
+    /** Оценка полезности документа человеком — одной строкой (истина `material.usefulness.note`). */
+    fun usefulnessNote(project: String, material: String, note: String, author: String): Dossier
+
+    /**
+     * Приём документа целиком · по разделам · выборочно · «только в контекст» ·
+     * отклонить (истина `material.accept_mode`). Первые три исполняют план
+     * разбора; «только в контекст» ставит фактам `noted` без сущностей;
+     * отклонение — `rejected` с причиной, факты остаются в поле и в промпты не идут.
+     */
+    fun acceptDocument(
+        project: String,
+        material: String,
+        mode: String,
+        author: String,
+        /** Якоря разделов канона (`s3`) при режиме `sections`. */
+        sections: List<String> = emptyList(),
+        /** Номера действий плана при режиме `selective`. */
+        chosen: List<Int> = emptyList(),
+        reason: String = "",
+    ): DocumentAccept
+
+    /**
+     * Библиотека проекта: разобранный документ берётся в другой проект ВМЕСТЕ с
+     * фактами — без вызова модели. Устав не берётся: он у проекта свой.
+     */
+    fun takeMaterial(fromProject: String, material: String, intoProject: String, author: String): TakeReport
+
+    /**
+     * Карта пробелов устава: двенадцать пунктов `ТРЕБОВАНИЯ-К-ЗАПИСКЕ-МИССИИ`
+     * по канону документа — что есть, чего нет, какую сцену пункт закрывает.
+     */
+    fun charterGaps(project: String, material: String): GapMap
+
+    /**
+     * Роль уже лежащего документа — тем же правилом, что и при загрузке:
+     * роль из перечня истины, устав в проекте один. Правка роли мимо этого
+     * порта («правка на месте») правило обходила бы.
+     */
+    fun setRole(project: String, material: String, role: String, author: String): String
 
     /** Анкета узла из задания («обнови параметры SC-PLT»): ключ · единица — для промпта даташита. */
     fun questionnaireKeys(project: String, intent: String): List<Pair<String, String>>
@@ -1143,3 +1205,85 @@ interface KnowledgeIndex {
         limit: Int = 20,
     ): List<orbita.kernel.api.IndexHit>
 }
+
+// --- документ как источник: досье, основания, откат, приём, взятие, пробелы (шип 4 §3) ---
+
+/** Прогон разбора документа: версия промпта, время, сколько фактов, состояние. */
+data class ParseRunView(val code: String, val at: String, val promptVersion: String, val facts: Int, val status: String, val rolledBackBy: String? = null)
+
+/** Сущность проекта, стоящая на документе; `onlyBasis` — других оснований у неё нет. */
+data class DossierEntity(val code: String, val kind: String, val title: String, val onlyBasis: Boolean, val scene: String? = null)
+
+/**
+ * Досье документа (РЕШЕНИЕ-ДОКУМЕНТ-ПЕРВИЧЕН §3): документ снова виден —
+ * что принёс, что из него принято, что за что зацепилось.
+ *
+ * @property usefulness полезность СЧИТАЕТСЯ: сущностей · уникальных фактов ·
+ *   подтверждений · противоречий — слагаемые рядом, чтобы число объяснялось
+ * @property usefulnessNote оценка человека одной строкой
+ */
+data class Dossier(
+    val material: String,
+    val name: String,
+    val role: String?,
+    val rank: String?,
+    val summary: String?,
+    val version: Int,
+    val chars: Int,
+    val blocks: Int,
+    val supersedes: String?,
+    val supersededBy: String?,
+    val createdAt: String,
+    val acceptMode: String?,
+    val runs: List<ParseRunView>,
+    val factsByKind: Map<String, Int>,
+    val byDisposition: Map<String, Int>,
+    val unique: Int,
+    val confirms: Int,
+    val contradicts: Int,
+    val entities: List<DossierEntity>,
+    val usefulness: Int,
+    val usefulnessNote: String?,
+)
+
+/** Основание сущности: факт с якорем и документом — его ролью и рангом. */
+data class BasisFact(
+    val code: String,
+    val kind: String,
+    val subject: String,
+    val predicate: String,
+    val value: String,
+    val quote: String?,
+    val anchor: String?,
+    val material: String?,
+    val materialName: String?,
+    val role: String?,
+    val rank: String?,
+    val mark: String,
+    val disposition: String,
+    /** Основание снято откатом документа: факт снят, сущность осталась на других. */
+    val withdrawn: Boolean = false,
+)
+
+data class BasisView(val entity: String, val kind: String, val title: String, val facts: List<BasisFact>, val notes: List<String>)
+
+data class RollbackReport(
+    val material: String,
+    val facts: Int,
+    val entitiesCancelled: List<String>,
+    val entitiesKept: List<String>,
+    val runs: Int,
+    val note: String,
+)
+
+/** Итог приёма документа в выбранном режиме. */
+data class DocumentAccept(val material: String, val mode: String, val created: List<String>, val facts: Int, val notes: List<String>, val note: String)
+
+/** Взятие документа из библиотеки другого проекта: коды и счёт — вызовов модели ноль. */
+data class TakeReport(val material: String, val from: String, val facts: Int, val links: Int, val topics: Int, val modelCalls: Int, val note: String)
+
+/** Пункт карты пробелов устава: номер · что · есть ли · где найдено · какую сцену закрывает · мера. */
+data class GapItem(val n: Int, val what: String, val present: Boolean, val anchor: String?, val blocks: Int, val scene: String, val measure: String)
+
+/** Карта пробелов: пункты и ворота сцен (2 — без 1, 2, 3; 4 — без 6; 6 — без 5; 5 — без 8). */
+data class GapMap(val material: String, val items: List<GapItem>, val present: Int, val missing: List<Int>, val blockedScenes: List<String>, val note: String)

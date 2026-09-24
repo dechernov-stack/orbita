@@ -79,6 +79,10 @@ class EntityIntake(
     private val темыПоля = Topics(store, links)
     private val связиФактов = FactLinks(store, links)
 
+    // Документ как источник — целиком (шип 4 §3): досье, основания, откат,
+    // приём режимом, взятие в другой проект, карта пробелов устава.
+    private val досье = DocumentDossier(store, links, mapper, режимы, связиФактов, темыПоля, this) { о, в, п -> следующий(о, в, п) }
+
     override fun putMaterial(
         project: String,
         name: String,
@@ -119,6 +123,15 @@ class EntityIntake(
             require(роль in перечень) {
                 "роль документа «$роль» вне перечня истины схем: ${перечень.joinToString(" · ")}"
             }
+            // Устав миссии в проекте один (РЕШЕНИЕ-ДОКУМЕНТ-ПЕРВИЧЕН §1): второй —
+            // отказ с именем первого. Новая версия того же устава идёт через
+            // `supersedes`, и заменённые версии уставом больше не считаются.
+            if (роль == "charter") уставУже(область, прежний?.code)?.let { устав ->
+                throw IllegalArgumentException(
+                    "устав уже назначен: «${устав.doc.path("name").asText(устав.code)}» (${устав.code}); " +
+                        "замените его новой версией либо загрузите этот документ как источник требований или обстановку",
+                )
+            }
             документ.put("role", роль)
         }
         val ранг = рангВхода(project, kind, rank)
@@ -136,6 +149,13 @@ class EntityIntake(
         // «источник обновлён», диспозиции не трогаются (правило поля знаний).
         прежний?.let { режимы.supersede(область, it, материал, author) }
         return материал.code
+    }
+
+    /** Действующий устав проекта, кроме версий, которые уже заменены (и той, что заменяется сейчас). */
+    private fun уставУже(область: Area, заменяется: String?): orbita.kernel.api.Entity? {
+        val материалы = store.list(область, "material").filter { it.status != "cancelled" }
+        val заменённые = материалы.mapNotNull { it.doc.path("supersedes").asText("").ifBlank { null } }.toSet() + setOfNotNull(заменяется)
+        return материалы.firstOrNull { it.doc.path("role").asText("") == "charter" && it.code !in заменённые }
     }
 
     /** Ранг входного и помета, если ранг пришлось выводить. */
@@ -819,7 +839,7 @@ class EntityIntake(
     override fun questionnaireKeys(project: String, intent: String): List<Pair<String, String>> =
         режимы.анкетаДляПромпта(Area.Project(project), intent)
 
-    override fun putFacts(project: String, material: String, raw: String, author: String, intent: String): FactIntake {
+    override fun putFacts(project: String, material: String, raw: String, author: String, intent: String, promptVersion: String?): FactIntake {
         val область = Area.Project(project)
         // Карточка перечитывается после записи профиля: режим разбора этого же
         // ответа выбирается ПО ПРОФИЛЮ БЛОКА, и со старым снимком он падал бы
@@ -830,6 +850,23 @@ class EntityIntake(
         val корень = mapper.readTree(
             raw.trim().removePrefix("```json").removePrefix("```").removeSuffix("```").trim(),
         )
+        // Прогон разбора (РЕШЕНИЕ-ДОКУМЕНТ-ПЕРВИЧЕН §5): факты этого приёма несут
+        // его код — по нему вклад документа изолируется и откатывается.
+        val прогон = store.create(
+            следующий(область, "parse_run", "RN"), "parse_run", область, null,
+            mapper.createObjectNode().put("material", material)
+                .put("prompt_version", promptVersion ?: "пакет без версии промпта")
+                .put("at", java.time.OffsetDateTime.now().toString()),
+            Provenance(Channel.SERVICE, author, source = material), status = "running",
+        )
+        // Резюме документа (досье §3): 3–5 строк тем же ответом — о чём документ,
+        // что в нём полезного проекту, чего в нём нет. Карточка помнит и прогон.
+        run {
+            val д = карточка.doc.deepCopy() as ObjectNode
+            корень.path("summary").asText("").trim().takeIf { it.isNotBlank() }?.let { д.put("summary", it) }
+            д.put("parse_run", прогон.code)
+            карточка = store.update(карточка.id, д, Provenance(Channel.SERVICE, author, source = material))
+        }
         val принятые = mutableListOf<Fact>()
         val отказы = mutableListOf<String>()
         val темы = mutableMapOf<String, String>()
@@ -858,9 +895,11 @@ class EntityIntake(
         // по своему месту в источнике — якорь блока (а у экспертного факта
         // учётка автора) и утверждение (поймано живым прогоном: кэш ответа не
         // спасал от дублей).
+        // Снятый откатом факт повтором не считается: документ разбирается заново.
         val уже = store.list(область, "fact")
-            .filter { it.doc.path("material").asText() == material }
+            .filter { it.status != "cancelled" && it.doc.path("material").asText() == material }
             .associateBy { ключФакта(it.doc) }
+        val ключиОтвета = mutableSetOf<String>()
         var повторов = 0
         val повторы = mutableMapOf<Int, String>()
         // Номер факта в ответе → его код в проекте. План ссылается на факты
@@ -892,6 +931,7 @@ class EntityIntake(
             val единица = ф.path("unit").asText("").ifBlank { величина.path("unit").asText("") }
             val текстЗначения = if (величина.isObject) величина.path("value").asText("") else величина.asText("")
             val ключ = ключФакта(якорь, учётка, предикат, ф.path("subject").asText(""), текстЗначения)
+            ключиОтвета += ключ
             when {
                 экспертный && якорь.isNotBlank() ->
                     отказы += "факт $i «$предикат»: источник разом документом и экспертом не бывает — " +
@@ -955,6 +995,7 @@ class EntityIntake(
                     if (ф.path("limit").isObject) документ.set<JsonNode>("limit", ф.path("limit").deepCopy())
                     ф.path("conflict").asText("").takeIf { it.isNotBlank() }?.let { документ.put("conflict_constraint", it) }
                     документ.put("disposition", "free")
+                    документ.put("parse_run", прогон.code)
                     if (метка.isNotBlank()) документ.put("topic", темы[метка] ?: темаКод(область, метка))
                     val код = следующий(область, "fact", "F")
                     val сущность = store.create(
@@ -977,6 +1018,29 @@ class EntityIntake(
         // указывает на уже заведённые факты, и связь не ставится второй раз.
         val связи = связиФактов.relate(область, корень.path("links"), поНомеру, author)
         отказы += связи.refused
+        // Переразбор живым контуром: факт прежних прогонов, которого в новом
+        // ответе нет, устарел (`superseded`); решённый человеком (adopted ·
+        // assumed · rejected · contested) остаётся при своём решении с пометой.
+        // Пакет без версии промпта (рука, тест) прежнее не трогает.
+        var устарело = 0
+        if (promptVersion != null) {
+            уже.forEach { (ключ, факт) ->
+                if (ключ in ключиОтвета || факт.doc.path("manual").asBoolean(false)) return@forEach
+                val текущий = store.byId(факт.id)?.takeIf { it.status != "cancelled" } ?: return@forEach
+                val диспозиция = Disposition.of(текущий.doc.path("disposition").asText("free"))
+                if (диспозиция == Disposition.SUPERSEDED) return@forEach
+                val д = текущий.doc.deepCopy() as ObjectNode
+                д.put("source_note", "в новом разборе (${прогон.code}) этого факта нет")
+                if (диспозиция == Disposition.FREE || диспозиция == Disposition.NOTED) д.put("disposition", "superseded")
+                store.update(текущий.id, д, Provenance(Channel.SERVICE, author, source = material))
+                устарело += 1
+            }
+        }
+        store.update(
+            прогон.id,
+            (прогон.doc.deepCopy() as ObjectNode).also { п -> п.putArray("facts").also { м -> принятые.forEach { м.add(it.code) } } },
+            Provenance(Channel.SERVICE, author, source = material), status = "done",
+        )
 
         // Д2в: план приходит тем же ответом, что и факты, — один живой
         // вызов на версию документа. Действие несёт СОДЕРЖИМОЕ будущей
@@ -1011,7 +1075,8 @@ class EntityIntake(
             планЗадание.put("note", "план собран разбором: действий ${действия.size()}" +
                 (оценка?.let { "; оценка ТЗ: непокрытых нужд ${it.path("uncovered_needs").size()}, требований без нужды ${it.path("orphan_requirements").size()}" } ?: ""))
             val прежний = store.list(область, "intake_task").firstOrNull {
-                it.doc.path("material").asText() == material && (it.doc.path("actions").size() > 0 || it.doc.path("assessment").isObject)
+                it.status != "cancelled" &&
+                    it.doc.path("material").asText() == material && (it.doc.path("actions").size() > 0 || it.doc.path("assessment").isObject)
             }
             if (прежний == null) {
                 store.create(
@@ -1027,11 +1092,12 @@ class EntityIntake(
             "принято фактов ${принятые.size}, тем ${темы.size}" +
             (if (отказы.isEmpty()) "" else ", отклонено ${отказы.size} (правила честности §6.1)") +
             (if (повторов == 0) "" else ", уже было $повторов") +
+            (if (устарело == 0) "" else ", устарело из прежних разборов $устарело") +
             (if (связи.accepted == 0) "" else ", связей между фактами ${связи.accepted}") +
             (if (действия.isEmpty) "" else ", действий плана ${действия.size()}") +
             (оценка?.let { "; ТЗ оценено против нужд" } ?: "")
         val задание = if (действия.isEmpty && оценка == null) null else store.list(область, "intake_task")
-            .firstOrNull { it.doc.path("material").asText() == material && (it.doc.path("actions").size() > 0 || it.doc.path("assessment").isObject) }
+            .firstOrNull { it.status != "cancelled" && it.doc.path("material").asText() == material && (it.doc.path("actions").size() > 0 || it.doc.path("assessment").isObject) }
             ?.code
         return FactIntake(принятые, отказы, topics(project), примечание, задание, повторы)
     }
@@ -1248,7 +1314,56 @@ class EntityIntake(
 
     // Один построитель на оба пути: две копии однажды разошлись бы на поле.
     override fun facts(project: String): List<Fact> =
-        Area.Project(project).let { область -> store.list(область, "fact").map { факт(область, it.code, it.doc) } }
+        Area.Project(project).let { область -> store.list(область, "fact").filter { it.status != "cancelled" }.map { факт(область, it.code, it.doc) } }
+
+    // --- документ как источник — целиком (шип 4 §3): всё считается по данным в DocumentDossier ---
+
+    override fun dossier(project: String, material: String): orbita.knowledge.api.Dossier = досье.dossier(project, material)
+
+    override fun basis(project: String, entity: String): orbita.knowledge.api.BasisView = досье.basis(project, entity)
+
+    override fun rollback(project: String, material: String, author: String, reason: String): orbita.knowledge.api.RollbackReport =
+        досье.rollback(project, material, author, reason)
+
+    override fun usefulnessNote(project: String, material: String, note: String, author: String): orbita.knowledge.api.Dossier =
+        досье.usefulnessNote(project, material, note, author)
+
+    override fun acceptDocument(
+        project: String,
+        material: String,
+        mode: String,
+        author: String,
+        sections: List<String>,
+        chosen: List<Int>,
+        reason: String,
+    ): orbita.knowledge.api.DocumentAccept = досье.acceptDocument(project, material, mode, author, sections, chosen, reason)
+
+    override fun takeMaterial(fromProject: String, material: String, intoProject: String, author: String): orbita.knowledge.api.TakeReport =
+        досье.takeMaterial(fromProject, material, intoProject, author)
+
+    override fun charterGaps(project: String, material: String): orbita.knowledge.api.GapMap = досье.charterGaps(project, material)
+
+    override fun setRole(project: String, material: String, role: String, author: String): String {
+        val область = Area.Project(project)
+        val карточка = store.byCode(область, material)?.takeIf { it.kind == "material" }
+            ?: throw IllegalArgumentException("материала «$material» нет в проекте")
+        val роль = role.trim()
+        val перечень = orbita.kernel.schema.GeneratedKinds.byCode["material"]?.enums?.get("role").orEmpty()
+        require(роль in перечень) { "роль документа «$роль» вне перечня истины схем: ${перечень.joinToString(" · ")}" }
+        if (роль == "charter") уставУже(область, карточка.doc.path("supersedes").asText("").ifBlank { null })
+            ?.takeIf { it.code != material }?.let { устав ->
+                throw IllegalArgumentException(
+                    "устав уже назначен: «${устав.doc.path("name").asText(устав.code)}» (${устав.code}); " +
+                        "замените его новой версией либо назначьте этому документу роль источника требований или обстановки",
+                )
+            }
+        if (карточка.doc.path("role").asText("") == роль) return роль
+        store.update(
+            карточка.id, (карточка.doc.deepCopy() as ObjectNode).put("role", роль),
+            Provenance(Channel.MANUAL, author, source = "роль документа названа инженером"),
+        )
+        return роль
+    }
 
     override fun addTopic(project: String, label: String, author: String): Topic {
         val область = Area.Project(project)

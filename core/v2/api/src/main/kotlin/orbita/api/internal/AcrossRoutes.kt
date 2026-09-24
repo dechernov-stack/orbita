@@ -564,6 +564,9 @@ class AcrossRoutes(
                 // Экран показывает её у каждого документа и даёт прочитать
                 // уже лежащий — без роли документ читается как обстановка.
                 .put("role", м.doc.path("role").asText("").ifBlank { null })
+                // Досье (шип 4 §3): резюме разбора и режим приёма — в строке списка.
+                .put("summary", м.doc.path("summary").asText("").ifBlank { null })
+                .put("accept_mode", м.doc.path("accept_mode").asText("").ifBlank { null })
                 .also { у ->
                     м.doc.path("profile").takeIf { it.isObject }?.let { у.set<JsonNode>("profile", it) }
                 }
@@ -629,6 +632,16 @@ class AcrossRoutes(
         извлечённый?.let { ответ.put("extracted_from", имяФайла) }
         снятый?.let { ответ.put("snapshot_renderer", it.renderer).put("snapshot_date", it.date) }
         тело.path("supersedes").asText("").takeIf { it.isNotBlank() }?.let { ответ.put("supersedes", it) }
+        // Устав проверяется по двенадцати пунктам записки при загрузке
+        // (ТРЕБОВАНИЯ-К-ЗАПИСКЕ-МИССИИ): карта пробелов — тем же ответом.
+        if (тело.path("role").asText("") == "charter") {
+            val карта = intake.charterGaps(проект, код)
+            ответ.putObject("gaps").put("present", карта.present).put("note", карта.note)
+                .also { у ->
+                    у.putArray("missing").also { а -> карта.missing.forEach { а.add(it) } }
+                    у.putArray("blocked_scenes").also { а -> карта.blockedScenes.forEach { а.add(it) } }
+                }
+        }
         return V2Router.Ответ(201, ответ)
     }
 

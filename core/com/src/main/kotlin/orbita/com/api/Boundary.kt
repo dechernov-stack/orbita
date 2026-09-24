@@ -321,13 +321,15 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
         val инструментыМодели = orbita.api.internal.ModelToolbox(
             store, orbita.knowledge.api.KnowledgeFactory.glossary(store, mapper, links), индексЗнаний, движок, полки, mapper,
         )
+        // Разбор фоновой задачей (ADR-069): сеть в фоне, база — на потоке запросов.
+        // Очередь одна: ею же идёт партия каталога (шип 4 §3).
+        val очередьРазбора = orbita.ai.api.AiFactory.atomizeJobs(store, знания, служба, mapper)
         val знанияМаршруты = orbita.api.internal.KnowledgeRoutes(
             знания,
             orbita.ai.api.AiFactory.atomize(store, знания, служба, mapper) { проект -> инструментыМодели.tools() to инструментыМодели.handler(проект) },
             служба,
             mapper,
-            // Разбор фоновой задачей (ADR-069): сеть в фоне, база — на потоке запросов.
-            jobs = orbita.ai.api.AiFactory.atomizeJobs(store, знания, служба, mapper),
+            jobs = очередьРазбора,
             // Чтение документа в постановку одним вызовом (РЕШЕНИЕ-ЧИТАТЬ-СМЫСЛ, 15.09).
             read = orbita.ai.api.AiFactory.readDocument(store, знания, служба, mapper),
             importStatement = orbita.ai.api.AiFactory.importStatement(store, знания, служба, mapper),
@@ -404,6 +406,7 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
             bridgeRoutes = мостикМаршруты,
             // База знаний (шип 4 §2): индекс ядра + эмбеддинги провайдера, если он задан окружением.
             searchRoutes = orbita.api.internal.SearchRoutes(индексЗнаний, mapper),
+            jobs = очередьРазбора,
             // Материал файлом (docx · pdf · xlsx · pptx): текст извлекает тот же
             // разбор, что у документов v1 — канон в markdown; формат — на границе.
             extract = { имя, байты ->

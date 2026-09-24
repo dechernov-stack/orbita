@@ -18,3 +18,64 @@ export const ДЕЙСТВИЕ_СВЕРКИ: Record<string, string> = {
   fix_input: 'исправить ввод',
   dismiss: 'отклонить находку',
 }
+
+/**
+ * Слова досье документа (шип 4 §3): вид факта, решение по факту, ранг
+ * источника, вид записи. Значения приходят с сервера кодами, на экран
+ * выходят словами — латинского имени вида в интерфейсе не бывает.
+ */
+export const СЛОВО_ВИДА_ФАКТА: Record<string, string> = {
+  framing: 'рамка',
+  quantity: 'величина',
+  capability: 'способность',
+  obligation: 'обязательство',
+  event: 'событие',
+  assessment: 'оценка',
+  relation: 'связь',
+  assumption: 'допущение',
+  external_target: 'чужая цель',
+  external_need: 'чужая нужда',
+}
+
+export const СЛОВО_РЕШЕНИЯ: Record<string, string> = {
+  free: 'не рассмотрен',
+  noted: 'учтён',
+  assumed: 'допущение',
+  adopted: 'принят',
+  rejected: 'отклонён',
+  contested: 'оспорен',
+  superseded: 'устарел',
+}
+
+export const СЛОВО_РАНГА: Record<string, string> = {
+  mandatory: 'обязательный',
+  expert: 'экспертный',
+  reference: 'справочный',
+  doubtful: 'сомнительный',
+}
+
+export const СЛОВО_ЗАПИСИ: Record<string, string> = {
+  stakeholder: 'сторона',
+  need: 'нужда',
+  goal: 'цель',
+  service: 'сервис',
+  constraint: 'ограничение',
+  requirement: 'требование',
+  normative_document: 'норматив',
+  intent: 'замысел',
+  risk: 'риск',
+  finding: 'замечание',
+  component: 'узел',
+  parameter: 'параметр',
+  milestone: 'веха',
+  glossary_term: 'термин',
+  opportunity: 'применимость',
+  assumption: 'допущение',
+}
+
+export const СЛОВО_ПРОГОНА: Record<string, string> = {
+  running: 'идёт',
+  done: 'готов',
+  rolled_back: 'откачен',
+  superseded: 'заменён',
+}

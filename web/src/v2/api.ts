@@ -1043,6 +1043,186 @@ export interface MaterialRow {
   profile?: ContentProfile | null
   /** Роль документа: ею решается, что из него может образоваться. */
   role?: DocumentRole | null
+  /** Резюме разбора (досье, шип 4 §3): 3–5 строк — о чём, что полезного, чего нет. */
+  summary?: string | null
+  /** Режим приёма документа: целиком · по разделам · выборочно · только в контекст · отклонён. */
+  accept_mode?: AcceptMode | null
+}
+
+// --- Документ как источник — целиком (шип 4 §3, РЕШЕНИЕ-ДОКУМЕНТ-ПЕРВИЧЕН) ---
+
+export type AcceptMode = 'whole' | 'sections' | 'selective' | 'context_only' | 'rejected'
+
+/** Режимы приёма словами — ими подписаны кнопки досье. */
+export const РЕЖИМЫ_ПРИЁМА: { code: AcceptMode; word: string; hint: string }[] = [
+  { code: 'whole', word: 'весь документ', hint: 'исполнить все действия плана разбора, прошедшие ворота' },
+  { code: 'sections', word: 'по разделам', hint: 'исполнить действия только из отмеченных разделов канона' },
+  { code: 'context_only', word: 'только в контекст', hint: 'факты учтены, сущностей нет: документ идёт в промпты, но ничего не заводит' },
+  { code: 'rejected', word: 'отклонить', hint: 'факты остаются в поле отклонёнными и в промпты не идут; нужна причина' },
+]
+
+export interface ParseRunView {
+  code: string
+  at: string
+  prompt_version: string
+  facts: number
+  status: 'running' | 'done' | 'rolled_back' | 'superseded' | string
+  rolled_back_by: string | null
+}
+
+export interface DossierEntity {
+  code: string
+  kind: string
+  title: string
+  /** Других оснований у сущности нет: откат документа снимет её. */
+  only_basis: boolean
+  scene: string | null
+}
+
+/** Досье документа: всё посчитано сервером, клиент только показывает. */
+export interface Dossier {
+  material: string
+  name: string
+  role: DocumentRole | null
+  rank: Authority | null
+  summary: string | null
+  version: number
+  chars: number
+  blocks: number
+  supersedes: string | null
+  superseded_by: string | null
+  created_at: string
+  accept_mode: AcceptMode | null
+  runs: ParseRunView[]
+  facts_by_kind: Record<string, number>
+  by_disposition: Record<string, number>
+  unique: number
+  confirms: number
+  contradicts: number
+  entities: DossierEntity[]
+  entities_only_basis: number
+  /** Считается сервером: сущностей + уникальных + подтверждений + противоречий. */
+  usefulness: number
+  usefulness_note: string | null
+}
+
+export interface BasisFact {
+  code: string
+  kind: string
+  subject: string
+  predicate: string
+  value: string
+  quote: string | null
+  anchor: string | null
+  material: string | null
+  material_name: string | null
+  role: DocumentRole | null
+  rank: Authority | null
+  mark: SourceMark
+  disposition: string
+  /** Основание снято откатом документа. */
+  withdrawn: boolean
+}
+
+export interface BasisView {
+  entity: string
+  kind: string
+  title: string
+  facts: BasisFact[]
+  notes: string[]
+}
+
+export interface RollbackReport {
+  material: string
+  facts: number
+  runs: number
+  entities_cancelled: string[]
+  entities_kept: string[]
+  note: string
+}
+
+export interface DocumentAcceptReport {
+  material: string
+  mode: AcceptMode
+  facts: number
+  created: string[]
+  notes: string[]
+  note: string
+}
+
+export interface TakeMaterialReport {
+  material: string
+  from: string
+  facts: number
+  links: number
+  topics: number
+  model_calls: number
+  note: string
+}
+
+export interface GapItem {
+  n: number
+  what: string
+  present: boolean
+  anchor: string | null
+  blocks: number
+  scene: string
+  measure: string
+}
+
+export interface GapMap {
+  material: string
+  present: number
+  items: GapItem[]
+  missing: number[]
+  blocked_scenes: string[]
+  note: string
+}
+
+/** Короткая карта пробелов — приходит ответом загрузки устава. */
+export interface GapBrief { present: number; missing: number[]; blocked_scenes: string[]; note: string }
+
+export interface BatchItem {
+  name?: string
+  text?: string
+  filename?: string
+  file_base64?: string
+  rank?: Authority
+  role?: DocumentRole
+  intent?: string
+}
+
+export interface BatchStarted {
+  documents: number
+  codes: string[]
+  items: { code: string; name: string; job?: string; job_status?: string; job_error?: string }[]
+  refusals: string[]
+  note: string
+}
+
+export interface BatchSummary {
+  documents: number
+  facts: number
+  contradicts: number
+  duplicate_sources: number
+  done: number
+  running: number
+  failed: number
+  note: string
+  items: {
+    code: string
+    name: string
+    role: DocumentRole | null
+    rank: Authority | null
+    facts: number
+    contradicts: number
+    duplicate_of: string | null
+    job: string | null
+    job_status: string
+    job_error: string | null
+    summary: string | null
+    error?: string
+  }[]
 }
 
 /** Предложение сцены из поля знаний: что появится, если принять. */
@@ -1844,6 +2024,8 @@ export const api = {
       rank?: Authority; rank_note?: string
       extracted_from?: string; snapshot_renderer?: string; snapshot_date?: string
       supersedes?: string
+      /** Карта пробелов устава — приходит только при роли «устав». */
+      gaps?: GapBrief
     }>(`/materials?project=${encodeURIComponent(project)}`,
       { method: 'POST', body: JSON.stringify(тело) }),
 
@@ -2176,11 +2358,62 @@ export const api = {
       `/intake/read?project=${encodeURIComponent(project)}`,
       { method: 'POST', body: JSON.stringify({ material, author }) }),
 
-  /** Назначить документу роль, не перезагружая его. */
+  // --- документ как источник — целиком (шип 4 §3) ---
+
+  /** Канон материала: блоки с якорями — из них экран собирает разделы для приёма «по разделам». */
+  intakeCanon: (project: string, material: string) =>
+    вызов<{ blocks: { anchor: string; kind: string; text: string }[]; fingerprint: string }>(
+      `/intake/canon?project=${encodeURIComponent(project)}&material=${encodeURIComponent(material)}`),
+
+  /** Досье документа: резюме, прогоны, вклад, сущности со ссылками, полезность. */
+  dossier: (project: string, code: string) =>
+    вызов<Dossier>(`/materials/${encodeURIComponent(code)}/dossier?project=${encodeURIComponent(project)}`),
+
+  /** Карта пробелов устава по двенадцати пунктам записки миссии. */
+  charterGaps: (project: string, code: string) =>
+    вызов<GapMap>(`/materials/${encodeURIComponent(code)}/gaps?project=${encodeURIComponent(project)}`),
+
+  /** Откат вклада документа одним действием — с причиной. */
+  rollbackMaterial: (project: string, code: string, reason: string, author = 'инженер') =>
+    вызов<RollbackReport>(`/materials/${encodeURIComponent(code)}/rollback?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ reason, author }) }),
+
+  /** Приём документа режимом: целиком · по разделам · выборочно · только в контекст · отклонить. */
+  acceptMaterial: (project: string, code: string, тело: { mode: AcceptMode; sections?: string[]; chosen?: number[]; reason?: string; author?: string }) =>
+    вызов<DocumentAcceptReport>(`/materials/${encodeURIComponent(code)}/accept?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ author: 'инженер', ...тело }) }),
+
+  /** Оценка полезности документа человеком — одной строкой. */
+  usefulnessNote: (project: string, code: string, note: string, author = 'инженер') =>
+    вызов<Dossier>(`/materials/${encodeURIComponent(code)}/usefulness?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ note, author }) }),
+
+  /** Второй взгляд: сущность → на чём стоит (основания с якорями и ролями документов). */
+  basis: (project: string, code: string) =>
+    вызов<BasisView>(`/entities/${encodeURIComponent(code)}/basis?project=${encodeURIComponent(project)}`),
+
+  /** Библиотека проекта: взять разобранный документ из другого проекта — без вызова модели. */
+  takeMaterial: (project: string, fromProject: string, material: string, author = 'инженер') =>
+    вызов<TakeMaterialReport>(`/materials/take?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ from_project: fromProject, material, author }) }),
+
+  /** Партия каталога: несколько документов сразу, разбор — очередью. */
+  materialsBatch: (project: string, items: BatchItem[], author = 'инженер') =>
+    вызов<BatchStarted>(`/materials/batch?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ items, author }) }),
+
+  /** Сводка партии по кодам: документов · фактов · противоречий · дублей источников. */
+  batchSummary: (project: string, codes: string[]) =>
+    вызов<BatchSummary>(`/materials/batch?project=${encodeURIComponent(project)}&codes=${encodeURIComponent(codes.join(','))}`),
+
+  /**
+   * Назначить документу роль, не перезагружая его — тем же правилом, что при
+   * загрузке: устав в проекте один; у устава ответ несёт карту пробелов.
+   */
   setMaterialRole: (project: string, code: string, role: DocumentRole, author = 'инженер') =>
-    вызов<{ id: string; code: string; version: number; changed: number }>(
-      `/entities/${encodeURIComponent(code)}?project=${encodeURIComponent(project)}`,
-      { method: 'PATCH', body: JSON.stringify({ fields: { role }, author, reason: 'роль документа названа инженером' }) }),
+    вызов<{ code: string; role: DocumentRole; gaps?: GapMap }>(
+      `/materials/${encodeURIComponent(code)}/role?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ role, author }) }),
 
   /**
    * Отменить принятый пакет целиком: заведённое снимается с учёта, факты

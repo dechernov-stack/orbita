@@ -113,12 +113,13 @@ class DocumentReader(
         // стороны: без требования модель его опускала (216, второе чтение).
         val обязательные = массивыРоли(роль) +
             listOfNotNull(ЗАМЫСЕЛ.takeIf { роль in GeneratedOntology.of(ЗАМЫСЕЛ).allowedRoles })
+        val промпт = prepare(project, material)
         val ответ = service.ask(
-            project, KIND, prepare(project, material),
+            project, KIND, промпт,
             maxTokens = БЮДЖЕТ,
             schema = AnswerSchemas.чтение(mapper, обязательные),
         )
-        return apply(project, material, author, ответ)
+        return apply(project, material, author, ответ, prompt = промпт)
     }
 
     /** Промпт чтения: призма устава · роль документа · карта разделов · канон. */
@@ -179,7 +180,7 @@ ${самопроверкаПоРоли(роль)}
      * Ответ модели → следы-факты и понятия. Ворота стоят ЗДЕСЬ, на нашей
      * стороне: модель может ошибиться, система — нет.
      */
-    fun apply(project: String, material: String, author: String, answer: Answer): Прочитанное {
+    fun apply(project: String, material: String, author: String, answer: Answer, prompt: String? = null): Прочитанное {
         val блоки = intake.canon(project, material).associateBy { it.anchor }
         val корень = runCatching { mapper.readTree(answer.text) }.getOrNull()?.let { развернуть(it) }
             ?: return Прочитанное(material, emptyList(), emptyList(), emptyList(), "ответ службы не разобран")
@@ -236,7 +237,14 @@ ${самопроверкаПоРоли(роль)}
         val следы = mapper.createObjectNode()
         val массивФактов = следы.putArray("facts")
         пункты.forEach { массивФактов.add(след(it)) }
-        val принято = intake.putFacts(project, material, mapper.writeValueAsString(следы), author)
+        // Следы идут прогоном разбора с версией промпта чтения: переразбор
+        // новой версией помечает прежние следы устаревшими (§3 шипа 4).
+        val принято = intake.putFacts(
+            project, material, mapper.writeValueAsString(следы), author,
+            promptVersion = prompt?.let { п ->
+                java.security.MessageDigest.getInstance("SHA-256").digest(п.toByteArray()).joinToString("") { "%02x".format(it) }.take(12)
+            },
+        )
         отбито += принято.refused
 
         // След ищется среди принятых ЭТИМ разбором, а если документ читается

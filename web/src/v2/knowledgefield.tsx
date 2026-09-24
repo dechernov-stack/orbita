@@ -22,13 +22,13 @@
 // Ни одна цифра здесь не считается: счётчики групп дифа, дрейф поля и доля
 // знаний приходят с сервера готовыми. Ни одно слияние, принятие и уточнение
 // не происходит без нажатия человека — служба только предлагает.
-import { useCallback, useEffect, useState, type KeyboardEvent } from 'react'
+import { Fragment as Фрагмент, useCallback, useEffect, useState, type KeyboardEvent } from 'react'
 import { ConfirmBox, useConfirm } from '../ui/Confirm'
 import { ResearchPanel, отказСловами } from './research'
 import {
-  ServerRefusal, api, РОЛИ_ДОКУМЕНТА,
+  ServerRefusal, api, РЕЖИМЫ_ПРИЁМА, РОЛИ_ДОКУМЕНТА,
   type Authority, type DocumentRole, type FactRow, type FactSourceView, type FieldDrift,
-  type MaterialRow,
+  type MaterialRow, type GapBrief,
   type FormationOntology, type FormationProposal, type ReconcileAction,
   type ReconcileFinding, type ReconcileItem, type ReconcileRun, type ResearchTask,
   type SynthesisAccepted, type SynthesisDiff, type SynthesisDiffView, type SynthesisRun,
@@ -37,6 +37,7 @@ import {
   type DistributionRun,
 } from './api'
 import { ДЕЙСТВИЕ_СВЕРКИ } from './words'
+import { ВзятьИзПроекта, Досье, КартаПробелов, Партия } from './dossier'
 
 /**
  * Диспозиции факта — словами истины схем (`fact.disposition`, ОНТОЛОГИЯ-АУДИТ
@@ -1069,6 +1070,10 @@ export function Source({ project, onParsed, onError, onRead }: {
   const [читаю, setЧитаю] = useState(0)
   const [знанияV2, setЗнанияV2] = useState(false)
   const [поставлен, setПоставлен] = useState<string | null>(null)
+  // Устав проверяется по двенадцати пунктам записки при загрузке: короткая
+  // карта приходит ответом, полная — по кнопке (ТРЕБОВАНИЯ-К-ЗАПИСКЕ-МИССИИ).
+  const [пробелы, setПробелы] = useState<{ code: string; карта: GapBrief } | null>(null)
+  const [картаОткрыта, setКартаОткрыта] = useState(false)
 
   useEffect(() => {
     api.materials(project).then((r) => setПрежние(r.items)).catch(() => setПрежние([]))
@@ -1141,6 +1146,7 @@ export function Source({ project, onParsed, onError, onRead }: {
           setПоставлен(`ранг источника: ${РАНГ[м.rank] ?? м.rank}`
             + (м.rank_note ? ` · ${м.rank_note}` : ''))
         }
+        setПробелы(м.gaps ? { code: м.code, карта: м.gaps } : null)
         return api.atomizeJob(project, м.code, задание, 'инженер')
       })
       .then((з) => {
@@ -1170,6 +1176,7 @@ export function Source({ project, onParsed, onError, onRead }: {
     })
       .then((м) => {
         if (м.rank) setПоставлен(`ранг источника: ${РАНГ[м.rank] ?? м.rank}`)
+        setПробелы(м.gaps ? { code: м.code, карта: м.gaps } : null)
         return api.readDocument(project, м.code, 'инженер')
       })
       .then((р) => {
@@ -1278,6 +1285,24 @@ export function Source({ project, onParsed, onError, onRead }: {
         {поставлен && <span className="v2-dim">{поставлен}</span>}
         {итог && <span className="v2-dim">{итог}</span>}
       </div>
+      {пробелы && (
+        <div className="v2-note-line" data-why="почему-нельзя" aria-label="пробелы устава">
+          карта пробелов устава: найдено {пробелы.карта.present} из 12
+          {пробелы.карта.missing.length > 0 && <> · не найдено: {пробелы.карта.missing.join(', ')}</>}
+          {пробелы.карта.blocked_scenes.length > 0 && <> · заперты сцены {пробелы.карта.blocked_scenes.join(', ')}</>}
+          {' '}
+          <button type="button" className="v2-link" onClick={() => setКартаОткрыта(!картаОткрыта)}
+            title="двенадцать пунктов записки: что есть, чего нет, какую сцену пункт закрывает">
+            {картаОткрыта ? 'скрыть карту' : 'показать карту'}
+          </button>
+        </div>
+      )}
+      {пробелы && картаОткрыта && <КартаПробелов project={project} code={пробелы.code} onError={onError} />}
+      {знанияV2 && (
+        <Партия project={project} ранг={ранг} роль={рольДок}
+          onDone={() => onParsed({ task: '', note: 'партия каталога разобрана', accepted: 0, refused: 0, refusals: [] })}
+          onError={onError} />
+      )}
     </div>
   )
 }
@@ -1300,6 +1325,9 @@ export function Документы({ project, onRead, onError }: {
   const [список, setСписок] = useState<MaterialRow[]>([])
   const [роли, setРоли] = useState<Record<string, DocumentRole | ''>>({})
   const [читаю, setЧитаю] = useState<{ code: string; sec: number } | null>(null)
+  // Досье документа (шип 4 §3) раскрывается под строкой; карта пробелов — у устава.
+  const [досьеОткрыто, setДосьеОткрыто] = useState<string | null>(null)
+  const [картаОткрыта, setКартаОткрыта] = useState<string | null>(null)
 
   const перечитать = useCallback(() => {
     api.materials(project).then((r) => {
@@ -1323,21 +1351,34 @@ export function Документы({ project, onRead, onError }: {
       .catch((e) => { кончить(); onError(String(e.message ?? e)) })
   }
 
-  if (список.length === 0) return null
+  // Библиотека другого проекта показывается и без своих документов: новому
+  // проекту норматив или обстановку берут готовыми, не разбирая заново.
+  if (список.length === 0) {
+    return (
+      <div className="v2-kf__src" data-why="работа">
+        <ВзятьИзПроекта project={project} onDone={перечитать} onError={onError} />
+      </div>
+    )
+  }
   return (
     <div className="v2-kf__src" data-why="работа">
       <div className="v2-note-line">
         Документы проекта. Чтение идёт по ДОКУМЕНТУ и даёт постановку сразу —
         стороны, нужды, цели, рамки, вехи, у каждого пункта цитата и якорь.
         «Сформировать постановку из поля» — другое: оно берёт срез поля под потолок.
+        Досье показывает, что документ принёс и что на нём стоит; вклад откатывается одним действием.
       </div>
       <table className="v2-table">
         <thead><tr><th>Код</th><th>Документ</th><th>Роль</th><th>Ранг</th><th /></tr></thead>
         <tbody>
           {список.map((м) => (
-            <tr key={м.code}>
+            <Фрагмент key={м.code}>
+            <tr>
               <td className="v2-mono">{м.code}</td>
-              <td>{м.name}<span className="v2-muted"> · {м.chars} знаков</span></td>
+              <td>{м.name}<span className="v2-muted"> · {м.chars} знаков</span>
+                {м.accept_mode && <span className="v2-chip" title="режим приёма документа"> {РЕЖИМЫ_ПРИЁМА.find((р) => р.code === м.accept_mode)?.word ?? м.accept_mode}</span>}
+                {м.summary && <div className="v2-muted" title="резюме разбора">{м.summary}</div>}
+              </td>
               <td>
                 <select value={роли[м.code] ?? ''}
                   onChange={(e) => setРоли({ ...роли, [м.code]: e.target.value as DocumentRole | '' })}
@@ -1356,11 +1397,33 @@ export function Документы({ project, onRead, onError }: {
                   onClick={() => прочитать(м)}>
                   {читаю?.code === м.code ? `Читаю… ${читаю.sec} с` : 'Прочитать документ'}
                 </button>
+                {' '}
+                <button type="button" className="v2-link" onClick={() => setДосьеОткрыто(досьеОткрыто === м.code ? null : м.code)}
+                  title="досье: резюме, прогоны разбора, вклад, сущности на документе, откат вклада">
+                  {досьеОткрыто === м.code ? 'скрыть досье' : 'Досье'}
+                </button>
+                {м.role === 'charter' && (
+                  <>
+                    {' '}
+                    <button type="button" className="v2-link" onClick={() => setКартаОткрыта(картаОткрыта === м.code ? null : м.code)}
+                      title="карта пробелов устава: двенадцать пунктов записки миссии">
+                      {картаОткрыта === м.code ? 'скрыть карту' : 'Карта пробелов'}
+                    </button>
+                  </>
+                )}
               </td>
             </tr>
+            {(досьеОткрыто === м.code || картаОткрыта === м.code) && (
+              <tr className="v2-card-row"><td colSpan={5}>
+                {досьеОткрыто === м.code && <Досье project={project} code={м.code} onChanged={перечитать} onError={onError} />}
+                {картаОткрыта === м.code && <КартаПробелов project={project} code={м.code} onError={onError} />}
+              </td></tr>
+            )}
+            </Фрагмент>
           ))}
         </tbody>
       </table>
+      <ВзятьИзПроекта project={project} onDone={перечитать} onError={onError} />
     </div>
   )
 }

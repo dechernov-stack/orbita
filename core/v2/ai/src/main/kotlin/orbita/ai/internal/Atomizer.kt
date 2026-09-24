@@ -68,7 +68,7 @@ class Atomizer(
             maxTokens = БЮДЖЕТ_РАЗБОРА,
             schema = AnswerSchemas.разбор(mapper),
         )
-        return apply(project, material, intent, author, ответ, journaled = true)
+        return apply(project, material, intent, author, ответ, journaled = true, prompt = промпт)
     }
 
     /**
@@ -92,7 +92,9 @@ class Atomizer(
         // на такой тип отвечает исключением, и один брак модели унёс бы
         // ВЕСЬ разбор документа.
         val (текст, отказыСвязей) = безБракованныхСвязей(project, answer.text)
-        val итог = intake.putFacts(project, material, текст, author, intent)
+        // Версия промпта — его отпечаток: по нему прогон разбора (`parse_run`)
+        // отличает переразбор новой версией от повтора той же.
+        val итог = intake.putFacts(project, material, текст, author, intent, promptVersion = prompt?.let { версияПромпта(it) })
         val сОтказами =
             if (отказыСвязей.isEmpty()) итог
             else итог.copy(
@@ -189,7 +191,8 @@ class Atomizer(
         val стадияА = if (!новоеПоле) "" else СТАДИЯ_А
         val профильВОтвете =
             if (!новоеПоле) ""
-            else "\n  \"profile\": {\"statement\": 0.0, \"params\": 0.0, \"norms\": 0.0, \"assessments\": 0.0},\n" +
+            else "\n  \"summary\": \"3–5 строк: о чём документ, что в нём полезного проекту, чего в нём нет\",\n" +
+                "  \"profile\": {\"statement\": 0.0, \"params\": 0.0, \"norms\": 0.0, \"assessments\": 0.0},\n" +
                 "  \"links\": [{\"from\": 0, \"to\": 3, \"type\": \"supports|contradicts|refines|same_as\", \"rationale\": \"почему связь именно такая\"}],"
         val выжимка = блоки.joinToString("\n") { "[${it.anchor}] ${it.text}" }
         // Роли — перечень истины схем, границы — слова понятия: второй копии
@@ -572,6 +575,11 @@ subject. Оценка НЕ выдаётся за утверждение доку
 Действие плана по оценке предлагай только там, где документ ПРЯМО формулирует
 цель, ограничение или нужду; остальное остаётся фактом — понятие из него
 предложит синтез поля, а решение примет человек.""".trimIndent()
+
+    /** Версия промпта — первые 12 знаков его SHA-256: та же, что у отпечатка журнала. */
+    private fun версияПромпта(prompt: String): String =
+        java.security.MessageDigest.getInstance("SHA-256").digest(prompt.toByteArray())
+            .joinToString("") { "%02x".format(it) }.take(12)
 
     companion object {
         const val KIND: String = "intake_atomize"
