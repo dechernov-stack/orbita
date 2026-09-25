@@ -6,6 +6,7 @@ package orbita.api.internal
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.node.ObjectNode
 import orbita.documents.api.Documents
 import orbita.exchange.api.Exchange
 import orbita.exchange.api.ExchangeUnavailable
@@ -31,6 +32,11 @@ class ExchangeRoutes(
             method == "GET" && path == "/v2/export/knowledge" -> знания(требуется(query, "project"), части(query))
             method == "GET" && path == "/v2/export/knowledge.zip" -> знанияАрхивом(требуется(query, "project"), части(query))
             method == "POST" && path == "/v2/export/knowledge/verify" -> сверка(требуется(query, "project"), разобрать(body))
+            // Выгрузка картины (шип 4 §5): пять блоков с отпечатком среза; сверка — по нему же.
+            method == "GET" && path == "/v2/export/picture/tasks" -> срезы()
+            method == "GET" && path == "/v2/export/picture" -> картина(требуется(query, "project"), query["task"].orEmpty().ifBlank { "reading" })
+            method == "GET" && path == "/v2/export/picture.zip" -> картинаАрхивом(требуется(query, "project"), query["task"].orEmpty().ifBlank { "reading" })
+            method == "POST" && path == "/v2/export/picture/verify" -> сверкаКартины(требуется(query, "project"), разобрать(body))
             // Ключ точки — как в шаблоне фазы (MCR, KDP-A, internal_review).
             method == "GET" && path.matches(Regex("/v2/points/[A-Za-z0-9_-]+/package\\.zip")) ->
                 пакетТочки(требуется(query, "project"), path.removePrefix("/v2/points/").removeSuffix("/package.zip"), query["engine"].orEmpty())
@@ -147,14 +153,57 @@ class ExchangeRoutes(
         )
     }
 
-    private fun сверка(project: String, тело: JsonNode): V2Router.Ответ {
-        val итог = exchange.verify(project, тело.path("knowledge_fingerprint").asText(""))
+    private fun срезы(): V2Router.Ответ {
+        val узел = mapper.createObjectNode()
+        val массив = узел.putArray("items")
+        exchange.pictureTasks().forEach { з ->
+            massив(массив.addObject().put("key", з.key).put("title", з.title), з)
+        }
+        return V2Router.Ответ(200, узел)
+    }
+
+    private fun massив(узел: ObjectNode, з: orbita.exchange.api.PictureTask) {
+        узел.putArray("areas").also { а -> з.areas.forEach { а.add(it) } }
+        узел.putArray("traces").also { а -> з.traces.forEach { а.add(it) } }
+    }
+
+    private fun картина(project: String, task: String): V2Router.Ответ {
+        val пакет = exchange.picture(project, task)
+        val узел = mapper.createObjectNode().put("fingerprint", пакет.fingerprint).put("task", task)
+        val файлы = узел.putObject("files")
+        пакет.files.toSortedMap().forEach { (имя, тело) -> файлы.put(имя, тело) }
+        return V2Router.Ответ(200, узел)
+    }
+
+    private fun картинаАрхивом(project: String, task: String): V2Router.Ответ {
+        val пакет = exchange.picture(project, task)
+        val буфер = java.io.ByteArrayOutputStream()
+        java.util.zip.ZipOutputStream(буфер).use { zip ->
+            пакет.files.toSortedMap().forEach { (имя, тело) ->
+                zip.putNextEntry(java.util.zip.ZipEntry(имя)); zip.write(тело.toByteArray()); zip.closeEntry()
+            }
+        }
         return V2Router.Ответ(
-            200,
-            mapper.createObjectNode().put("ok", итог.ok).put("current", итог.current).put("said", итог.said)
-                .put("warning", итог.warning),
+            200, mapper.createObjectNode().put("fingerprint", пакет.fingerprint),
+            binary = буфер.toByteArray(), contentType = "application/zip",
+            fileName = "картина-$project-$task-${пакет.fingerprint}.zip",
         )
     }
+
+    private fun сверкаКартины(project: String, тело: JsonNode): V2Router.Ответ = V2Router.Ответ(
+        200,
+        видСверки(exchange.verifyPicture(project, тело.path("task").asText("").ifBlank { "reading" }, тело.path("fingerprint").asText("").ifBlank { тело.path("picture_fingerprint").asText("") })),
+    )
+
+    /** Итог сверки отпечатка — один вид на знания и картину. */
+    private fun видСверки(итог: orbita.exchange.api.FingerprintCheck): ObjectNode = mapper.createObjectNode()
+        .put("ok", итог.ok)
+        .put("current", итог.current)
+        .put("said", итог.said)
+        .put("warning", итог.warning)
+
+    private fun сверка(project: String, тело: JsonNode): V2Router.Ответ =
+        V2Router.Ответ(200, видСверки(exchange.verify(project, тело.path("knowledge_fingerprint").asText(""))))
 
     /**
      * Пакет точки: JSON точки как её видит движок, печать каждого заведённого

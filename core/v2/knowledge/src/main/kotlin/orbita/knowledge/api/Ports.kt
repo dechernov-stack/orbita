@@ -1287,3 +1287,71 @@ data class GapItem(val n: Int, val what: String, val present: Boolean, val ancho
 
 /** Карта пробелов: пункты и ворота сцен (2 — без 1, 2, 3; 4 — без 6; 6 — без 5; 5 — без 8). */
 data class GapMap(val material: String, val items: List<GapItem>, val present: Int, val missing: List<Int>, val blockedScenes: List<String>, val note: String)
+
+// --- применимость (шип 4 §5): чужая нужда × наша способность → вердикт ---------
+
+/** Основание применимости: след-факт чужой нужды с якорем и документом (его ролью). */
+data class ExternalFactView(
+    val code: String,
+    val subject: String,
+    val predicate: String,
+    val value: String,
+    val quote: String?,
+    val anchor: String?,
+    val material: String?,
+    val materialName: String?,
+    val role: String?,
+)
+
+/**
+ * Строка матрицы применимости. `charterBoundary` — у вердикта «не наш
+ * профиль»: блок устава «чего мы не строим», на который вердикт опирается.
+ */
+data class OpportunityRow(
+    val code: String,
+    val status: String,
+    val verdict: String,
+    val verdictWord: String,
+    val proposal: String?,
+    val proposalWord: String?,
+    val missing: String?,
+    val rationale: String?,
+    val owner: String?,
+    val externalItem: String,
+    val external: ExternalFactView?,
+    val ourServices: List<String>,
+    val ourServiceNames: List<String>,
+    val scale: String?,
+    val confidence: Double?,
+    val charterBoundary: orbita.knowledge.internal.CharterBoundary?,
+)
+
+/** Чужая цель — факт `external_target`: чья, что, и какие цели проекта на ней стоят (внешние обоснования). */
+data class ExternalTargetRow(
+    val code: String,
+    val owner: String,
+    val statement: String,
+    val quote: String?,
+    val anchor: String?,
+    val material: String?,
+    val materialName: String?,
+    val grounds: List<String>,
+    val disposition: String,
+)
+
+data class ApplicabilityMatrix(
+    val project: String,
+    val rows: List<OpportunityRow>,
+    val byVerdict: Map<String, Int>,
+    val externalTargets: List<ExternalTargetRow>,
+    val charterBoundaries: List<orbita.knowledge.internal.CharterBoundary>,
+    val note: String,
+)
+
+/** Матрица применимости на Постановке и решение по возможности — человеком. */
+interface Applicability {
+    fun matrix(project: String): ApplicabilityMatrix
+
+    /** proposed · accepted · rejected (истина `opportunity`); отклонение — с причиной. */
+    fun decide(project: String, code: String, status: String, author: String, reason: String = ""): OpportunityRow
+}

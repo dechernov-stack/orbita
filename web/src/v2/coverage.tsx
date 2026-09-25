@@ -16,6 +16,7 @@ import './formulation.css'
 import { api, type CoverageMatrix, type CoverageNeed, type EntityRow, type FactRow, type KindSpec } from './api'
 import { инициалы } from './people'
 import { интересы } from './interests'
+import { Применимость } from './applicability'
 
 /** Влияние: колонки сетки слева направо — от «информируется» к «решает». */
 const ВЛИЯНИЕ: [string, string][] = [['informed', 'информируется'], ['influences', 'влияет'], ['decides', 'решает']]
@@ -301,10 +302,10 @@ export function Coverage({ project }: { project: string | null }) {
    * Подменю постановки (КТ2: «одной простынёй неудобно»): стороны · покрытие
    * нужд · стороны без нужд — по вкладке, выбор помнится в браузере.
    */
-  const [вкладка, setВкладка] = useState<'стороны' | 'покрытие' | 'без-нужд'>(() => {
-    try { return (localStorage.getItem('orbita.v2.formulation.tab') as 'стороны' | 'покрытие' | 'без-нужд') || 'стороны' } catch { return 'стороны' }
+  const [вкладка, setВкладка] = useState<'стороны' | 'покрытие' | 'без-нужд' | 'применимость'>(() => {
+    try { return (localStorage.getItem('orbita.v2.formulation.tab') as 'стороны' | 'покрытие' | 'без-нужд' | 'применимость') || 'стороны' } catch { return 'стороны' }
   })
-  const выбрать = (в: 'стороны' | 'покрытие' | 'без-нужд') => {
+  const выбрать = (в: 'стороны' | 'покрытие' | 'без-нужд' | 'применимость') => {
     setВкладка(в)
     try { localStorage.setItem('orbita.v2.formulation.tab', в) } catch { /* браузер без хранилища — вкладка живёт до перезагрузки */ }
   }
@@ -351,7 +352,12 @@ export function Coverage({ project }: { project: string | null }) {
           onClick={() => выбрать('без-нужд')} title="стороны названы, но чего они хотят — не записано; сцена 3 не закроется">
           Без нужд · {безНужд}
         </button>
+        <button type="button" className={вкладка === 'применимость' ? 'v2-link v2-row--cur' : 'v2-link'}
+          onClick={() => выбрать('применимость')} title="чужие нужды и цели из обстановки: чем наша система им полезна — вердиктом; «не наш профиль» со ссылкой на границу устава">
+          Применимость
+        </button>
       </div>
+      {вкладка === 'применимость' && <Применимость project={project} />}
       {вкладка === 'стороны' && (
         <Стороны project={project} стороны={стороны} нужды={нужды} факты={факты} вид={вид} onChanged={перечитать} />
       )}

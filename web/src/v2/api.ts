@@ -218,6 +218,66 @@ export interface CoverageNeed {
   note: string | null
 }
 
+/** Применимость (шип 4 §5): чужая нужда × наши сервисы → вердикт; всё посчитано сервером. */
+export interface ExternalFactView {
+  code: string
+  subject: string
+  predicate: string
+  value: string
+  quote: string | null
+  anchor: string | null
+  material: string | null
+  material_name: string | null
+  role: string | null
+}
+
+export interface CharterBoundary { material: string; anchor: string; text: string }
+
+export interface OpportunityRow {
+  code: string
+  status: 'proposed' | 'accepted' | 'rejected' | string
+  verdict: 'covered' | 'partial' | 'not_our_profile' | 'needs_work' | string
+  verdict_word: string
+  proposal: string | null
+  proposal_word: string | null
+  missing: string | null
+  rationale: string | null
+  owner: string | null
+  external_item: string
+  scale: string | null
+  confidence: number | null
+  external?: ExternalFactView
+  our_services: string[]
+  our_service_names: string[]
+  /** У «не наш профиль»: блок устава «чего мы не строим», на который вердикт опирается. */
+  charter_boundary?: CharterBoundary
+}
+
+export interface ExternalTargetRow {
+  code: string
+  owner: string
+  statement: string
+  quote: string | null
+  anchor: string | null
+  material: string | null
+  material_name: string | null
+  disposition: string
+  /** Цели проекта, стоящие на этой чужой цели, — внешние обоснования. */
+  grounds: string[]
+}
+
+export interface ApplicabilityMatrix {
+  project: string
+  note: string
+  rows: OpportunityRow[]
+  by_verdict: Record<string, number>
+  external_targets: ExternalTargetRow[]
+  charter_boundaries: CharterBoundary[]
+}
+
+/** Срез картины для внешнего контура. */
+export interface PictureTask { key: string; title: string; areas: number[]; traces: number[] }
+
 export interface CoverageMatrix {
   total: number
   covered: number
@@ -1904,6 +1964,15 @@ export const api = {
     `/api/v2/export/sdoc?project=${encodeURIComponent(project)}${grammar ? '&grammar=1' : ''}`,
   reqifUrl: (project: string) => `/api/v2/export/sdoc/reqif?project=${encodeURIComponent(project)}`,
   knowledgeZipUrl: (project: string) => `/api/v2/export/knowledge.zip?project=${encodeURIComponent(project)}`,
+
+  /** Выгрузка картины (шип 4 §5): пять блоков с отпечатком среза — архивом. */
+  pictureZipUrl: (project: string, task: string) =>
+    `/api/v2/export/picture.zip?project=${encodeURIComponent(project)}&task=${encodeURIComponent(task)}`,
+  pictureTasks: () => вызов<{ items: PictureTask[] }>('/export/picture/tasks'),
+  verifyPicture: (project: string, task: string, fingerprint: string) =>
+    вызов<{ ok: boolean; current: string; said: string; warning: string | null }>(
+      `/export/picture/verify?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ task, fingerprint }) }),
   pointPackageUrl: (project: string, key: string) =>
     `/api/v2/points/${encodeURIComponent(key)}/package.zip?project=${encodeURIComponent(project)}`,
   knowledgeExport: (project: string) =>
@@ -2113,6 +2182,14 @@ export const api = {
   facts: (project: string) => вызов<{ items: FactRow[] }>(`/facts?project=${encodeURIComponent(project)}`),
 
   coverage: (project: string) => вызов<CoverageMatrix>(`/coverage?project=${encodeURIComponent(project)}`),
+
+  /** Матрица применимости (шип 4 §5): считается сервером по возможностям и границам устава. */
+  opportunities: (project: string) => вызов<ApplicabilityMatrix>(`/opportunities?project=${encodeURIComponent(project)}`),
+
+  /** Решение по применимости — человеком: принять · отклонить с причиной. */
+  decideOpportunity: (project: string, code: string, status: 'accepted' | 'rejected' | 'proposed', reason = '', author = 'инженер') =>
+    вызов<OpportunityRow>(`/opportunities/${encodeURIComponent(code)}/decide?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ status, reason, author }) }),
 
   myTasks: (project: string, role?: string) =>
     вызов<{ project: string; items: TaskRow[]; note: string }>(

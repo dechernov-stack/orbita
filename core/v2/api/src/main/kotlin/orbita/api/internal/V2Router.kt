@@ -91,6 +91,8 @@ class V2Router(
     private val сцены = SceneRoutes(store, links, engine, mapper, units = units)
     private val сквозные = AcrossRoutes(store, links, engine, shelves, intake, formulation, mapper, extract = extract)
     private val словарь = GlossaryRoutes(store, links, orbita.knowledge.api.KnowledgeFactory.glossary(store, mapper, links), mapper)
+    // Применимость (шип 4 §5): матрица на Постановке — по данным, решение — человеком.
+    private val применимость = ApplicabilityRoutes(orbita.knowledge.api.KnowledgeFactory.applicability(store, links), mapper)
     // Документ как источник — целиком (шип 4 §3): досье, откат, приём режимом,
     // партия каталога (кладёт документы тем же маршрутом, что и форма), взятие.
     private val досье = DossierRoutes(store, intake, mapper, jobs = jobs) { проект, тело ->
@@ -121,6 +123,7 @@ class V2Router(
             ?: сцены.handle(method, path, query, body)
             ?: словарь.handle(method, path, query, body)
             ?: досье.handle(method, path, query, body)
+            ?: применимость.handle(method, path, query, body)
             ?: сквозные.handle(method, path, query, body)
             ?: reqArch?.handle(method, path, query, body)
             ?: modelRoutes?.handle(method, path, query, body)

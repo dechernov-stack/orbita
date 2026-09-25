@@ -272,6 +272,9 @@ internal class Reconciler(
         // Цель действия закрывает нехватку: «выбрать сторону» — это и есть
         // выбор человека, которого ждала блокирующая находка.
         закрытьНехватку(область, понятие, снимок, target)
+        запись.path("candidate_fact").asText("").ifBlank { null }?.let { id ->
+            store.byId(id)?.takeIf { it.kind == "fact" }?.let { закрытьФактом(понятие, снимок, it.code) }
+        }
         нехватка(область, понятие, снимок).firstOrNull()?.let { пробел ->
             throw MustLinkMissing(
                 пробел.missing.orEmpty(),
@@ -644,6 +647,10 @@ internal class Reconciler(
             }
         }
         находки += соединения(область, понятие, снимок, кандФакт.id, ключи, факты)
+        // Связь «→fact» (применимость: external_item→fact) закрывает САМ факт
+        // кандидата: след чтения и есть чужая нужда с якорем. Пока этого не
+        // было, пять применимостей живого чтения висели «выберите fact» (16.09).
+        закрытьФактом(понятие, снимок, кандФакт.code)
         val пробелы = нехватка(область, понятие, снимок)
         находки += пробелы
 
@@ -1012,7 +1019,9 @@ internal class Reconciler(
      * («covers ≥1»).
      */
     private fun полеСвязи(понятие: Concept, связь: String, вид: String): String =
-        понятие.fields.entries.firstOrNull { it.value.contains(связь) }?.key
+        // Связь названа именем поля («external_item→fact» у применимости) — оно и есть поле.
+        понятие.fields.keys.firstOrNull { it == связь }
+            ?: понятие.fields.entries.firstOrNull { it.value.contains(связь) }?.key
             ?: понятие.fields.keys.firstOrNull { it == вид || it == "${вид}s" }
             ?: вид
 
@@ -1597,6 +1606,21 @@ internal class Reconciler(
             val сущность = сущностьПоИмени(область, вид, код) ?: return@forEach
             if (обязательство.многие) снимок.putArray(обязательство.поле).add(сущность.code)
             else снимок.put(обязательство.поле, сущность.code)
+        }
+    }
+
+    /**
+     * Обязательная связь на ФАКТ закрывается фактом-основанием кандидата:
+     * поле получает код факта (истина: `external_item: ref fact`), слова
+     * чужой нужды остаются в самом факте, а прежний текст поля — в обосновании.
+     */
+    private fun закрытьФактом(понятие: Concept, снимок: ObjectNode, кодФакта: String) {
+        обязательства(понятие).forEach { обязательство ->
+            if (обязательство.вид != "fact") return@forEach
+            val было = снимок.path(обязательство.поле).asText("").trim()
+            if (Regex("^F-\\d+$").matches(было)) return@forEach
+            if (было.isNotBlank() && снимок.path("rationale").asText("").isBlank()) снимок.put("rationale", было)
+            снимок.put(обязательство.поле, кодФакта)
         }
     }
 

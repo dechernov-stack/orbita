@@ -97,6 +97,10 @@ object KnowledgeFactory {
     ): KnowledgeIndex = orbita.knowledge.internal.KnowledgeIndexer(store, textIndex, embeddings, mapper)
 
     /** Словарь (шип 4 §2): привязка написаний к терминам, кандидаты из документов. */
+    /** Применимость (шип 4 §5): матрица по данным, границы устава, решение человека. */
+    fun applicability(store: EntityStore, links: LinkRegistry? = null): Applicability =
+        orbita.knowledge.internal.ApplicabilityMatrixBuilder(store, links)
+
     fun glossary(store: EntityStore, mapper: ObjectMapper = ObjectMapper(), links: LinkRegistry? = null): Glossary =
         orbita.knowledge.internal.GlossaryIndex(store, mapper, links)
 

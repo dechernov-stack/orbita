@@ -518,6 +518,7 @@ export function KnowledgeField({ project, expert = false, ручной = false, 
           title="пакет знаний внешнему контуру: MD-файлы с отпечатком в шапке — факты принятые · допущенные · замеченные с якорями">
           Выгрузка знаний
         </a>
+        <ВыгрузкаКартины project={project ?? ''} />
       </h3>
 
       {знанияV2 && (
@@ -1304,6 +1305,26 @@ export function Source({ project, onParsed, onError, onRead }: {
           onError={onError} />
       )}
     </div>
+  )
+}
+
+/**
+ * Выгрузка картины (шип 4 §5): срез по задаче — пять блоков с отпечатком;
+ * срезы перечисляет сервер, экран только выбирает.
+ */
+function ВыгрузкаКартины({ project }: { project: string }) {
+  const [срезы, setСрезы] = useState<{ key: string; title: string }[]>([])
+  const [срез, setСрез] = useState('reading')
+  useEffect(() => { api.pictureTasks().then((r) => setСрезы(r.items)).catch(() => setСрезы([])) }, [])
+  if (!project || срезы.length === 0) return null
+  return (
+    <span className="v2-chip" aria-label="выгрузка картины" title="картина внешней модели пятью блоками: срез с границами понятий, принятые объекты кодами, цепочка задачи, вопросы, права и формат — с отпечатком для обратной сверки">
+      <select value={срез} onChange={(e) => setСрез(e.target.value)} aria-label="срез картины">
+        {срезы.map((с) => <option key={с.key} value={с.key}>{с.title}</option>)}
+      </select>
+      {' '}
+      <a className="v2-link" href={api.pictureZipUrl(project, срез)} target="_blank" rel="noreferrer">Выгрузка картины</a>
+    </span>
   )
 }
 

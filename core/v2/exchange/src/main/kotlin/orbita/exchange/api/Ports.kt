@@ -50,6 +50,9 @@ data class SdocImport(val candidates: List<ImportedRequirement>, val task: Strin
 /** Часть выгрузки знаний: ключ, имя файла, заголовок. Порядок постоянен. */
 data class KnowledgePart(val key: String, val file: String, val title: String)
 
+/** Срез картины для внешнего контура (шип 4 §5): области и цепочки задачи. */
+data class PictureTask(val key: String, val title: String, val areas: List<Int>, val traces: List<Int>)
+
 /**
  * Пакет знаний: файлы С ШАПКОЙ, в которой стоит отпечаток всей выгрузки.
  * Файл, вырванный из пакета, всё равно знает, частью чего он был.
@@ -136,6 +139,19 @@ interface Exchange {
 
     /** Отпечаток, названный внешней службой, против нынешнего: устарел — предупреждение, не отказ. */
     fun verify(project: String, said: String): FingerprintCheck
+
+    /** Срезы картины, которые умеет выгрузка (чтение · применимость · требования · поведение · вся). */
+    fun pictureTasks(): List<PictureTask>
+
+    /**
+     * Выгрузка картины пятью блоками с отпечатком (КАРТИНА-МИРА-CAPELLA-И-LLM
+     * ч. 2): срез с границами понятий, принятые объекты, цепочка задачи,
+     * вопросы, права и формат. Пакет ответа — тот же, что у внутренней модели.
+     */
+    fun picture(project: String, task: String): KnowledgeBundle
+
+    /** Отпечаток картины из ответа против нынешнего среза той же задачи. */
+    fun verifyPicture(project: String, task: String, said: String): FingerprintCheck
 
     /**
      * Пакет точки: JSON точки, печать документов к ней, .sdoc с грамматикой,

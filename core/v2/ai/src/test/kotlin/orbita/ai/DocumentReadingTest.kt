@@ -54,7 +54,12 @@ class DocumentReadingTest {
     private val корень = File(System.getenv("ORBITA_REPO_ROOT") ?: ".")
     private val записка: File = корень.resolve("docs/tz/v2/поставка-09-15/ЗАПИСКА-МИССИИ-IoT.md")
 
-    private fun проект(): String {
+    /**
+     * Записка — устав: без роли документ читается как обстановка, а она целей и
+     * сервисов не порождает (шип 4 §5 — роль стережёт и ответ). Тест промпта
+     * обстановки просит материал без роли явно.
+     */
+    private fun проект(роль: String? = "charter"): String {
         store.create(
             ПРОЕКТ, "project", Area.Project(ПРОЕКТ), "1",
             mapper.createObjectNode().put("name", "Чтение записки").put("knowledge_v2", true),
@@ -62,13 +67,13 @@ class DocumentReadingTest {
         )
         return знания.putMaterial(
             ПРОЕКТ, "Записка миссии IoT", "mission_memo",
-            записка.readText(), АВТОР, rank = Authority.MANDATORY,
+            записка.readText(), АВТОР, rank = Authority.MANDATORY, role = роль,
         )
     }
 
     @Test
     fun `промпт несёт карту разделов с типом и колонками таблицы`() {
-        val материал = проект()
+        val материал = проект(роль = null)
 
         val промпт = читатель.prepare(ПРОЕКТ, материал)
 

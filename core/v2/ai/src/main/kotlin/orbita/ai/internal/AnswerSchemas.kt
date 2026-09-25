@@ -39,6 +39,7 @@ internal object AnswerSchemas {
     private val ТИПЫ_РАМКИ: List<String> = перечисление("constraint", "type")
     private val РОДЫ_ВЕХИ: List<String> = перечисление("milestone", "kind")
     private val ВЕРДИКТЫ_ПРИМЕНИМОСТИ: List<String> = перечисление("opportunity", "verdict")
+    private val ПРЕДЛОЖЕНИЯ_ПРИМЕНИМОСТИ: List<String> = перечисление("opportunity", "proposal")
     private val КЛАССЫ_РИСКА: List<String> = перечисление("risk", "category")
 
     /**
@@ -398,11 +399,15 @@ internal object AnswerSchemas {
     }
 
     private fun применимость(mapper: ObjectMapper): ObjectNode {
-        val узел = пункт(mapper, обязательные = listOf("external_item", "owner", "verdict"))
+        val узел = пункт(mapper, обязательные = listOf("external_item", "owner", "verdict", "rationale"))
         поле(узел, "external_item", строка(mapper, "чужая нужда или программа"))
         поле(узел, "owner", строка(mapper, "чья она"))
         поле(узел, "verdict", перечень(mapper, ВЕРДИКТЫ_ПРИМЕНИМОСТИ, "чем наша система полезна"))
+        // Истина `opportunity` (шип 4 §5): вердикт · чего не хватает · предложение — с обоснованием.
+        поле(узел, "our_services", массив(mapper, строка(mapper, "код или имя нашего сервиса из призмы устава, которым закрывается")))
         поле(узел, "missing", строка(mapper, "чего не хватает"))
+        поле(узел, "proposal", перечень(mapper, ПРЕДЛОЖЕНИЯ_ПРИМЕНИМОСТИ, "предложение эксперту"))
+        поле(узел, "rationale", строка(mapper, "почему вердикт такой; «не наш профиль» — со ссылкой на границу устава словами"))
         поле(узел, "scale", величина(mapper, "объём чужой нужды: число и единица, если назван"))
         return узел
     }

@@ -16,6 +16,7 @@ import orbita.exchange.api.ForeignCandidates
 import orbita.exchange.api.ForeignImport
 import orbita.exchange.api.ImportedRequirement
 import orbita.exchange.api.KnowledgeBundle
+import orbita.exchange.api.PictureTask
 import orbita.exchange.api.KnowledgePart
 import orbita.exchange.api.PointPackage
 import orbita.exchange.api.ReqifParser
@@ -207,6 +208,25 @@ internal class EntityExchange(
     override fun knowledgeParts(): List<KnowledgePart> = KnowledgeExportV2.PARTS
 
     override fun knowledge(project: String, parts: Set<String>?): KnowledgeBundle = знания.bundle(project, parts)
+
+    private val картина = PictureExport(store)
+
+    override fun pictureTasks(): List<PictureTask> = картина.tasks()
+
+    override fun picture(project: String, task: String): KnowledgeBundle = картина.bundle(project, task)
+
+    override fun verifyPicture(project: String, task: String, said: String): FingerprintCheck {
+        val нынешний = picture(project, task).fingerprint
+        val названный = said.trim()
+        return when {
+            названный.isBlank() -> FingerprintCheck(нынешний, названный, false, "пакет не назвал отпечаток картины — проверить, на каком срезе он собран, невозможно")
+            названный == нынешний -> FingerprintCheck(нынешний, названный, true, null)
+            else -> FingerprintCheck(
+                нынешний, названный, false,
+                "срез картины устарел: пакет собран по $названный, на стенде сейчас $нынешний — перепроверьте ответ против нынешней картины",
+            )
+        }
+    }
 
     override fun verify(project: String, said: String): FingerprintCheck {
         val нынешний = knowledge(project).fingerprint

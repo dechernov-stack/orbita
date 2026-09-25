@@ -3866,9 +3866,9 @@ kinds:
   status_model: queued|running|done|error
   fields:
   - name: trigger
-    type: enum[manual,new_material,new_facts,manual_edit]
+    type: enum[manual,new_material,new_facts,manual_edit,reading]
     required: true
-    note: по команде «Сформировать постановку из поля» либо событием поля с задержкой-накоплением
+    note: по команде «Сформировать постановку из поля» либо событием поля с задержкой-накоплением; reading — чтение документа в постановку одним вызовом (РЕШЕНИЕ-ЧИТАТЬ-СМЫСЛ, 15.09; значение писалось кодом с 15.09, в перечень внесено 25.09 — сторож записи 22.09 его отбивал)
     label: Триггер
   - name: slice_fingerprint
     type: str
