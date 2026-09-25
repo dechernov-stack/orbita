@@ -136,15 +136,40 @@ builder_hygiene() {
 # Сборка с повторами: обрыв загрузки зависимостей на VPN — не отказ сборки,
 # а состояние сети. Три попытки закрывают его в подавляющем большинстве
 # случаев (наблюдение живого прогона: со второй попытки идёт успешно).
+# Конфиг Docker БЕЗ хранилища учётных данных — для сборок. Помощник
+# `docker-credential-desktop` в сессии воркера (без доступа к связке ключей)
+# висит, и buildkit не может даже разрешить публичный базовый образ:
+# «DeadlineExceeded: context deadline exceeded» на FROM eclipse-temurin
+# (выкат 25.09, трижды). Базовые образы публичные — учётка им не нужна;
+# плагины, контексты и реестр сборщиков — ссылками на настоящий ~/.docker.
+docker_config_without_creds() {
+  local src="${DOCKER_CONFIG:-$HOME/.docker}"
+  local dir="${TMPDIR:-/tmp}/orbita-dockercfg"
+  mkdir -p "$dir"
+  python3 - "$src/config.json" "$dir/config.json" <<'PY'
+import json, sys, os
+src, dst = sys.argv[1], sys.argv[2]
+d = json.load(open(src)) if os.path.isfile(src) else {}
+d.pop("credsStore", None); d.pop("credHelpers", None)
+json.dump(d, open(dst, "w"))
+PY
+  local sub
+  for sub in cli-plugins contexts buildx; do
+    if [ -e "$src/$sub" ] && [ ! -L "$dir/$sub" ]; then rm -rf "$dir/$sub"; ln -s "$src/$sub" "$dir/$sub"; fi
+  done
+  echo "$dir"
+}
+
 build_retry() {
   local tag="$1"; shift
   local attempt
+  local cfg; cfg="$(docker_config_without_creds)"
   # У сборщика хоста нет ни отдельной сети, ни прав network.host: эти ключи
   # относятся к контейнерному драйверу и с `default` просто отказали бы.
   local flags=(--builder "$BUILDER" --allow network.host --load)
   [ "$BUILDER" = "default" ] && flags=(--load)
   for attempt in 1 2 3; do
-    if docker buildx build "${flags[@]}" \
+    if DOCKER_CONFIG="$cfg" docker buildx build "${flags[@]}" \
         "$@" > /tmp/orbita-build-"$tag".log 2>&1; then
       echo "==> $tag: собран"
       return 0
