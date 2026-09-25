@@ -33,7 +33,7 @@ class ExchangeRoutes(
             method == "POST" && path == "/v2/export/knowledge/verify" -> сверка(требуется(query, "project"), разобрать(body))
             // Ключ точки — как в шаблоне фазы (MCR, KDP-A, internal_review).
             method == "GET" && path.matches(Regex("/v2/points/[A-Za-z0-9_-]+/package\\.zip")) ->
-                пакетТочки(требуется(query, "project"), path.removePrefix("/v2/points/").removeSuffix("/package.zip"))
+                пакетТочки(требуется(query, "project"), path.removePrefix("/v2/points/").removeSuffix("/package.zip"), query["engine"].orEmpty())
             else -> null
         }
     } catch (e: ExchangeUnavailable) {
@@ -160,13 +160,18 @@ class ExchangeRoutes(
      * Пакет точки: JSON точки как её видит движок, печать каждого заведённого
      * документа фазы к этой ступени, .sdoc с грамматикой, пакет знаний.
      */
-    private fun пакетТочки(project: String, ключ: String): V2Router.Ответ {
+    private fun пакетТочки(project: String, ключ: String, движок: String): V2Router.Ответ {
         val фаза = engine.view(project)
         val точка = фаза.gates.firstOrNull { it.key == ключ }
             ?: throw NoSuchElementException("точки «$ключ» нет в фазе проекта $project: есть ${фаза.gates.joinToString { it.key }}")
         val имя = store.byCode(Area.Project(project), project)?.doc?.path("name")?.asText(project) ?: project
-        val печать = documents.list(project).associate { д -> д.code to documents.print(project, д.code, имя) }
-        val пакет = exchange.pointPackage(project, ключ, точка.title, PhaseJson.точка(точка, mapper), печать)
+        // Печать пакета — Typst, если он есть (шип 4 §4): движок называется в манифесте.
+        val напечатано = documents.list(project).associate { д -> д.code to documents.printWith(project, д.code, имя, движок) }
+        val печать = напечатано.mapValues { it.value.bytes }
+        val пакет = exchange.pointPackage(
+            project, ключ, точка.title, PhaseJson.точка(точка, mapper), печать,
+            printEngine = напечатано.values.map { it.engine }.distinct().joinToString(" · "),
+        )
         return V2Router.Ответ(
             200, mapper.createObjectNode(),
             binary = пакет.bytes, contentType = "application/zip", fileName = пакет.fileName,

@@ -19,10 +19,13 @@ class DocRoutes(
     private val store: EntityStore,
     private val documents: Documents,
     private val mapper: ObjectMapper = ObjectMapper(),
+    /** Связный текст и печать фоновыми заданиями (шип 4 §4); null — только синхронно. */
+    private val jobs: DocumentJobs? = null,
     /**
      * Шаблон фазы: в нём объявлены обязательные документы. Без него
      * маршрут завёл бы только отчёт о концепции, и Draft ConOps, который
-     * питает сцена 9, не появился бы в проекте никогда.
+     * питает сцена 9, не появился бы в проекте никогда. Последним параметром —
+     * чтобы вызовы с лямбдой в хвосте остались как были.
      */
     private val phaseTemplate: () -> JsonNode = { mapper.createObjectNode() },
 ) {
@@ -53,7 +56,21 @@ class DocRoutes(
             )
 
         method == "GET" && path.matches(Regex("/v2/documents/[a-z_]+/print")) ->
-            печать(требуется(query, "project"), path.removePrefix("/v2/documents/").removeSuffix("/print"))
+            печать(требуется(query, "project"), path.removePrefix("/v2/documents/").removeSuffix("/print"), query["engine"].orEmpty(), query["job"])
+
+        // Печать фоновым заданием: вид собирается сразу, байты — в фоне; забрать — тем же /print с job=.
+        method == "POST" && path.matches(Regex("/v2/documents/[a-z_]+/print/jobs")) ->
+            печатьФоном(требуется(query, "project"), path.removePrefix("/v2/documents/").removeSuffix("/print/jobs"), разобрать(body))
+
+        method == "GET" && path.matches(Regex("/v2/documents/[a-z_]+/jobs/DJ-[0-9]+")) ->
+            задание(требуется(query, "project"), path.substringAfterLast("/jobs/"))
+
+        // Рецензия патчами: правка изложения поверх текста модели; «принять как есть».
+        method == "POST" && path.matches(Regex("/v2/documents/[a-z_]+/review")) ->
+            рецензия(требуется(query, "project"), path.removePrefix("/v2/documents/").removeSuffix("/review"), разобрать(body))
+
+        method == "POST" && path.matches(Regex("/v2/documents/[a-z_]+/renderings/accept")) ->
+            принятьТекст(требуется(query, "project"), path.removePrefix("/v2/documents/").removeSuffix("/renderings/accept"), разобрать(body))
 
         // Базирование документа и расхождение с базовой линией.
         method == "POST" && path.matches(Regex("/v2/documents/[a-z_]+/baseline")) ->
@@ -134,15 +151,62 @@ class DocRoutes(
         return V2Router.Ответ(201, разделВид(раздел))
     }
 
-    private fun печать(project: String, code: String): V2Router.Ответ {
-        val имя = store.byCode(Area.Project(project), project)?.doc?.path("name")?.asText(project)
+    private fun имяПроекта(project: String): String =
+        store.byCode(Area.Project(project), project)?.doc?.path("name")?.asText(project)
             ?: store.list(Area.Project(project), "project").firstOrNull()?.doc?.path("name")?.asText(project)
             ?: project
-        val байты = documents.print(project, code, имя)
+
+    /** Печать: движком по запросу (typst · pdfbox · auto) либо готовым фоновым заданием (`job=`). */
+    private fun печать(project: String, code: String, engine: String, job: String?): V2Router.Ответ {
+        val напечатано = if (job != null) {
+            val очередь = jobs ?: throw IllegalStateException("фоновая печать на этом стенде не подключена")
+            val з = очередь.poll(project, job) ?: throw NoSuchElementException("задания печати «$job» нет")
+            if (з.status == "failed") throw IllegalStateException(з.error ?: "печать не состоялась")
+            очередь.printed(project, job) ?: throw IllegalStateException("печать ещё идёт: ${з.elapsedSeconds} с — спросите задание позже")
+        } else documents.printWith(project, code, имяПроекта(project), engine)
         return V2Router.Ответ(
-            200, mapper.createObjectNode(),
-            binary = байты, contentType = "application/pdf", fileName = "$code.pdf",
+            200, mapper.createObjectNode().put("engine", напечатано.engine),
+            binary = напечатано.bytes, contentType = "application/pdf", fileName = напечатано.fileName,
         )
+    }
+
+    private fun печатьФоном(project: String, code: String, тело: ObjectNode): V2Router.Ответ {
+        val очередь = jobs ?: throw IllegalStateException("фоновая печать на этом стенде не подключена")
+        val з = очередь.startPrint(project, code, имяПроекта(project), тело.path("engine").asText("auto"))
+        return V2Router.Ответ(202, заданиеВид(з))
+    }
+
+    private fun задание(project: String, id: String): V2Router.Ответ {
+        val очередь = jobs ?: throw IllegalStateException("фоновые задания документов на этом стенде не подключены")
+        val з = очередь.poll(project, id) ?: throw NoSuchElementException("задания «$id» нет в проекте $project")
+        return V2Router.Ответ(200, заданиеВид(з))
+    }
+
+    private fun заданиеВид(з: DocumentJobs.View): ObjectNode {
+        val узел = mapper.createObjectNode()
+            .put("job", з.id).put("document", з.document).put("kind", з.kind).put("section", з.section)
+            .put("status", з.status).put("started_at", з.startedAt).put("elapsed_seconds", з.elapsedSeconds)
+            .put("engine", з.engine).put("size", з.size).put("error", з.error)
+        з.result?.let { узел.set<ObjectNode>("result", KindJson.текст(mapper, it)) }
+        return узел
+    }
+
+    private fun рецензия(project: String, code: String, тело: ObjectNode): V2Router.Ответ {
+        val текст = documents.review(
+            project, code,
+            section = тело.path("section").asText(""),
+            text = тело.path("text").asText(""),
+            author = тело.path("author").asText(""),
+        )
+        return V2Router.Ответ(if (текст.accepted) 201 else 422, KindJson.текст(mapper, текст))
+    }
+
+    private fun принятьТекст(project: String, code: String, тело: ObjectNode): V2Router.Ответ {
+        val узел = mapper.createObjectNode()
+        val массив = узел.putArray("items")
+        documents.acceptRendering(project, code, тело.path("author").asText(""), тело.path("section").asText("").ifBlank { null })
+            .forEach { массив.add(KindJson.текст(mapper, it)) }
+        return V2Router.Ответ(200, узел)
     }
 
     private fun подсказки(project: String, scene: String): V2Router.Ответ {
@@ -182,6 +246,12 @@ class DocRoutes(
     }
 
     private fun написать(project: String, code: String, тело: ObjectNode): V2Router.Ответ {
+        // Фоновой задачей (шип 4 §4): ответ сразу — задание со статусом; ответ из
+        // журнала применяется тут же и приходит с результатом.
+        if (тело.path("background").asBoolean(false) && jobs != null) {
+            val з = jobs.startWrite(project, code, тело.path("section").asText(""), тело.path("author").asText("Иванов И."))
+            return V2Router.Ответ(if (з.status == "running") 202 else 201, заданиеВид(з))
+        }
         val текст = documents.write(
             project, code,
             section = тело.path("section").asText(""),

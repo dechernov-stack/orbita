@@ -62,9 +62,13 @@ WORKDIR /opt/orbita
 COPY --from=build /src/schemas schemas
 COPY --from=build /src/db/migrations db/migrations
 COPY --from=build /src/core/com/build/libs/orbita-api.jar app.jar
+# Typst (шип 4 §4): печать пакета точки строгим нативным режимом. Двоичный
+# файл берётся из официального образа, без apt — политика образа не меняется.
+COPY --from=ghcr.io/typst/typst:v0.13.1 /bin/typst /usr/local/bin/typst
 
 ENV ORBITA_REPO_ROOT=/opt/orbita \
     ORBITA_HTTP_PORT=8090 \
+    ORBITA_TYPST=/usr/local/bin/typst \
     JAVA_TOOL_OPTIONS="-Dfile.encoding=UTF-8 -Dstdout.encoding=UTF-8"
 EXPOSE 8090
 

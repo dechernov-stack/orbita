@@ -887,6 +887,46 @@ export interface RenderedSection {
   refusals: string[]
   /** Сказано, но не отклонено: человек смотрит и решает сам. */
   notes: string[]
+  /** Состояние рендеринга (истина `rendering`): черновик модели · с правками · принят. */
+  status: 'draft' | 'reviewed' | 'accepted' | string
+  /** Правки изложения человека поверх текста модели — с автором и датой. */
+  patches: StylePatch[]
+  reviewer: string | null
+  accepted_at: string | null
+}
+
+/** Правка изложения: что стояло, что стало, кто и когда (шип 4 §4). */
+export interface StylePatch {
+  section: string
+  from: number
+  to: number
+  old: string
+  new: string
+  author: string
+  at: string
+}
+
+/** Состояния рендеринга словами — ими подписан связный текст раздела. */
+export const СЛОВО_РЕНДЕРИНГА: Record<string, string> = {
+  draft: 'черновик модели',
+  reviewed: 'с правками рецензента',
+  accepted: 'принят',
+}
+
+/** Фоновое задание документа: связный текст либо печать (шип 4 §4, по образцу ADR-069). */
+export interface DocumentJob {
+  job: string
+  document: string
+  kind: 'write' | 'print' | string
+  section: string | null
+  status: 'running' | 'done' | 'failed' | string
+  started_at: string
+  elapsed_seconds: number
+  /** Движок печати: typst · pdfbox; у связного текста пусто. */
+  engine: string | null
+  size: number
+  error: string | null
+  result?: RenderedSection
 }
 
 export interface DocView {
@@ -1766,6 +1806,41 @@ export const api = {
     throw new ServerRefusal(тело?.error ?? `HTTP ${о.status}`, о.status)
   },
 
+  /**
+   * «Написать связно» фоновым заданием (шип 4 §4): ответ сразу — задание со
+   * статусом; ответ из журнала приходит готовым. Опрос — documentJob.
+   */
+  writeSectionJob: (project: string, code: string, section: string, author: string) =>
+    вызов<DocumentJob>(`/documents/${code}/write?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ section, author, background: true }) }),
+
+  documentJob: (project: string, code: string, job: string) =>
+    вызов<DocumentJob>(`/documents/${code}/jobs/${encodeURIComponent(job)}?project=${encodeURIComponent(project)}`),
+
+  /**
+   * Рецензия патчами: правка изложения человека поверх текста модели. Число
+   * без опоры в правке — отказ кодом 422 с причинами, как у модели.
+   */
+  reviewSection: async (project: string, code: string, section: string, text: string, author: string) => {
+    const о = await fetch(
+      `/api/v2/documents/${code}/review?project=${encodeURIComponent(project)}`,
+      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ section, text, author }) },
+    )
+    const тело = await о.json().catch(() => ({}))
+    if (о.status === 201 || о.status === 422) return тело as RenderedSection
+    throw new ServerRefusal(тело?.error ?? `HTTP ${о.status}`, о.status)
+  },
+
+  /** «Принять как есть»: рендеринг принят рецензентом — раздел либо документ целиком. */
+  acceptRendering: (project: string, code: string, author: string, section?: string) =>
+    вызов<{ items: RenderedSection[] }>(`/documents/${code}/renderings/accept?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ author, section }) }),
+
+  /** Печать фоновым заданием: Typst, если он есть; файл забирается printUrl с job. */
+  printJob: (project: string, code: string, engine: 'auto' | 'typst' | 'pdfbox' = 'auto') =>
+    вызов<DocumentJob>(`/documents/${code}/print/jobs?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ engine }) }),
+
   /** Принятые связные тексты разделов: что уже написано моделью. */
   renderings: (project: string, code: string) =>
     вызов<{ items: RenderedSection[] }>(
@@ -1818,9 +1893,11 @@ export const api = {
     return r.json() as Promise<{ status: string; login?: string; display_name?: string }>
   },
 
-  /** Печать — файлом с сервера: ссылка, а не сборка PDF в браузере. */
-  printUrl: (project: string, code: string) =>
-    `/api/v2/documents/${code}/print?project=${encodeURIComponent(project)}`,
+  /** Печать — файлом с сервера: ссылка, а не сборка PDF в браузере; `job` — готовое фоновое задание. */
+  printUrl: (project: string, code: string, опции?: { engine?: string; job?: string }) =>
+    `/api/v2/documents/${code}/print?project=${encodeURIComponent(project)}`
+      + (опции?.engine ? `&engine=${encodeURIComponent(опции.engine)}` : '')
+      + (опции?.job ? `&job=${encodeURIComponent(опции.job)}` : ''),
 
   /** Обмен (шип F): .sdoc и ReqIF собирает служба StrictDoc, знания и пакет точки — сервер. */
   sdocUrl: (project: string, grammar = false) =>

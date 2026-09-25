@@ -180,9 +180,28 @@ data class RenderedSection(
     val refusals: List<String>,
     /** Сказано, но не отклонено: человек смотрит и решает сам. */
     val notes: List<String> = emptyList(),
+    /** Состояние рендеринга (истина `rendering`): draft · reviewed · accepted. */
+    val status: String = "draft",
+    /** Правки изложения человека поверх текста модели (истина `rendering.style_patches`). */
+    val patches: List<StylePatch> = emptyList(),
+    val reviewer: String? = null,
+    val acceptedAt: String? = null,
 ) {
     val accepted: Boolean get() = refusals.isEmpty()
 }
+
+/**
+ * Правка изложения — патч поверх текста модели (РЕШЕНИЕ-МЕХАНИКА-ДОКУМЕНТОВ
+ * §5): что стояло, что стало, кто и когда. Хранится рядом с текстом, а не
+ * вместо него: видно, что писала модель и что поправил человек.
+ */
+data class StylePatch(val section: String, val from: Int, val to: Int, val old: String, val new: String, val author: String, val at: String)
+
+/** Промпт связного текста, собранный на потоке запросов: дальше он самодостаточен (ADR-069). */
+data class WritePrompt(val section: String, val title: String, val prompt: String)
+
+/** Напечатанное: байты и движок, которым печатали, — движок называется, а не подразумевается. */
+data class Printed(val bytes: ByteArray, val engine: String, val fileName: String)
 
 /** Расхождение одного поля одного элемента. */
 data class FieldChange(
@@ -262,8 +281,37 @@ interface Documents {
      */
     fun write(project: String, code: String, section: String, author: String): RenderedSection
 
+    /**
+     * Связный текст фоновой задачей (ADR-069): промпт собирается здесь, на
+     * потоке запросов; сеть — где угодно; ответ применяется `applyWrite`.
+     */
+    fun prepareWrite(project: String, code: String, section: String): WritePrompt
+
+    /** Применить ответ модели: сторож чисел и квалификаторов, принятое — хранится. */
+    fun applyWrite(project: String, code: String, section: String, author: String, text: String, model: String): RenderedSection
+
     /** Принятые связные тексты разделов документа. */
     fun renderings(project: String, code: String): List<RenderedSection>
+
+    /**
+     * Рецензия патчами (шип 4 §4): правка изложения человека ложится патчем
+     * поверх текста модели — с автором и датой; сторож чисел стережёт и её:
+     * число без опоры в правке — отказ, как у модели.
+     */
+    fun review(project: String, code: String, section: String, text: String, author: String): RenderedSection
+
+    /** «Принять как есть»: рендеринг принят рецензентом — целиком либо один раздел. */
+    fun acceptRendering(project: String, code: String, author: String, section: String? = null): List<RenderedSection>
+
+    /**
+     * Печать выбранным движком: `typst` (строгий нативный режим), `pdfbox`,
+     * `auto` — Typst, если он есть, иначе PDFBox. Запрошенный движок без
+     * двоичного файла — отказ словами, а не подмена.
+     */
+    fun printWith(project: String, code: String, projectName: String, engine: String = "auto"): Printed
+
+    /** Печать без базы: вид уже собран (`render`), байты считаются где угодно — в фоне. */
+    fun printBytes(view: PrintView, code: String, projectName: String, engine: String = "auto"): Printed
 }
 
 // --- Верификация документа против поля знаний ------------------------------

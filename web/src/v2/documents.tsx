@@ -8,7 +8,7 @@
 // владелец проверяет проход, не открывая ни одной формы.
 import { useEffect, useState } from 'react'
 import { ConfirmBox, useConfirm } from '../ui/Confirm'
-import { api, type RenderedSection, ServerRefusal, type DocBaseline, type DocSection, type DocView, type Gate, type VerificationReport } from './api'
+import { api, type RenderedSection, ServerRefusal, type DocBaseline, type DocSection, type DocView, type Gate, type VerificationReport , СЛОВО_РЕНДЕРИНГА, type DocumentJob } from './api'
 import { useАвтор, отказСловами } from './research'
 
 export function Documents({ project, onGoScene, onGoField }: {
@@ -193,6 +193,21 @@ export function DocumentBody({ project, code, section, onClose, onGoScene, onGoF
   const [подсвечен, setПодсвечен] = useState<string | null>(null)
   /** Связные тексты разделов, уже написанные моделью и принятые сторожем. */
   const [тексты, setТексты] = useState<Record<string, RenderedSection>>({})
+  /** Печать фоновым заданием (шип 4 §4): Typst собирает PDF, экран считает секунды и даёт ссылку. */
+  const [печать, setПечать] = useState<{ job: string; sec: number; готово?: DocumentJob; ошибка?: string } | null>(null)
+  const собратьPdf = () => {
+    api.printJob(project, code, 'auto').then((з) => {
+      setПечать({ job: з.job, sec: 0 })
+      const опрос = () => {
+        api.documentJob(project, code, з.job).then((т) => {
+          if (т.status === 'done') setПечать({ job: з.job, sec: т.elapsed_seconds, готово: т })
+          else if (т.status === 'failed') setПечать({ job: з.job, sec: т.elapsed_seconds, ошибка: т.error ?? 'печать не состоялась' })
+          else { setПечать({ job: з.job, sec: т.elapsed_seconds }); window.setTimeout(опрос, 2000) }
+        }).catch((e) => setПечать({ job: з.job, sec: 0, ошибка: String(e.message ?? e) }))
+      }
+      window.setTimeout(опрос, 1500)
+    }).catch((e) => setПечать({ job: '', sec: 0, ошибка: String(e.message ?? e) }))
+  }
   useEffect(() => {
     api.renderings(project, code)
       .then((о) => setТексты(Object.fromEntries(о.items.filter((т) => т.accepted).map((т) => [т.section, т]))))
@@ -223,6 +238,16 @@ export function DocumentBody({ project, code, section, onClose, onGoScene, onGoF
           {'  '}
           <a className="v2-link" href={api.printUrl(project, code)} target="_blank" rel="noreferrer"
             title="печать: файл собирает сервер теми же строками, что на экране">печать</a>
+          {'  '}
+          <button type="button" className="v2-link" onClick={собратьPdf} disabled={печать !== null && !печать.готово && !печать.ошибка}
+            title={печать && !печать.готово && !печать.ошибка ? 'PDF собирается фоновым заданием' : 'собрать PDF фоновым заданием: Typst, если он есть на стенде; титул — авторы из элементов и линия'}>
+            {печать && !печать.готово && !печать.ошибка ? `собираю PDF… ${печать.sec} с` : 'собрать PDF'}
+          </button>
+          {печать?.готово && (
+            <a className="v2-link" href={api.printUrl(project, code, { job: печать.job })} target="_blank" rel="noreferrer"
+              title={`движок ${печать.готово.engine ?? '—'} · ${печать.готово.size} байт`}>скачать PDF ({печать.готово.engine ?? 'pdf'})</a>
+          )}
+          {печать?.ошибка && <span className="v2-warn"> {печать.ошибка}</span>}
           {onClose && (
             <>
               {'  '}
@@ -311,7 +336,12 @@ function Section({ раздел, подсвечен, onGoScene, onGoField, onЗ�
   ])].filter(Boolean)
   const адресУзнан = сцены.length > 0 && сцены.length <= 3
   const [пишу, setПишу] = useState(false)
+  const [секунд, setСекунд] = useState(0)
   const [отказПисьма, setОтказПисьма] = useState<string | null>(null)
+  /** Рецензия патчами: правка изложения поверх текста модели, «принять как есть». */
+  const [правлю, setПравлю] = useState(false)
+  const [правка, setПравка] = useState('')
+  const [итогРецензии, setИтогРецензии] = useState<string | null>(null)
   /**
    * Перечень, который законно бывает пустым (§11 «Открытые вопросы»): строк
    * нет — это не «незакрытые вопросы остались», а «их нет» словами человека
@@ -320,13 +350,50 @@ function Section({ раздел, подсвечен, onGoScene, onGoField, onЗ�
   const пустоПоПраву = !раздел.complete && раздел.empty_ok_with_statement
     && раздел.elements.every((э) => э.kind === 'statement' || э.rows.length === 0)
   /** «Написать связно» — раздел прозой живой модели тем же портом, что и печать. */
+  const принятьТекст = (т: RenderedSection) => {
+    if (!onНаписано) return
+    onНаписано(т)
+    if (!т.accepted && т.refusals.length) setОтказПисьма(`текст отклонён сторожем: ${т.refusals.join('; ')}`)
+  }
+  /**
+   * Фоновым заданием (шип 4 §4): стенд отвечает, пока модель пишет; экран
+   * считает секунды вслух и опрашивает задание раз в две секунды.
+   */
   const написать = () => {
     if (!project || !code || !onНаписано) return
-    setПишу(true); setОтказПисьма(null)
-    api.writeSection(project, code, раздел.no, 'инженер')
-      .then((т) => { onНаписано(т); if (!т.accepted && т.refusals.length) setОтказПисьма(`текст отклонён сторожем: ${т.refusals.join('; ')}`) })
-      .catch((e) => setОтказПисьма(String(e.message ?? e)))
-      .finally(() => setПишу(false))
+    setПишу(true); setОтказПисьма(null); setСекунд(0)
+    const часы = window.setInterval(() => setСекунд((с) => с + 1), 1000)
+    const кончить = () => { window.clearInterval(часы); setПишу(false) }
+    const опрос = (job: string) => {
+      api.documentJob(project, code, job).then((з) => {
+        if (з.status === 'done' && з.result) { кончить(); принятьТекст(з.result) }
+        else if (з.status === 'failed') { кончить(); setОтказПисьма(з.error ?? 'связный текст не написан') }
+        else window.setTimeout(() => опрос(job), 2000)
+      }).catch((e) => { кончить(); setОтказПисьма(String(e.message ?? e)) })
+    }
+    api.writeSectionJob(project, code, раздел.no, 'инженер')
+      .then((з) => {
+        if (з.status === 'done' && з.result) { кончить(); принятьТекст(з.result) }
+        else if (з.status === 'failed') { кончить(); setОтказПисьма(з.error ?? 'связный текст не написан') }
+        else window.setTimeout(() => опрос(з.job), 2000)
+      })
+      .catch((e) => { кончить(); setОтказПисьма(String(e.message ?? e)) })
+  }
+  const сохранитьПравку = () => {
+    if (!project || !code || !написанное) return
+    setИтогРецензии(null)
+    api.reviewSection(project, code, раздел.no, правка, 'инженер')
+      .then((т) => {
+        if (т.accepted) { setПравлю(false); onНаписано?.(т); setИтогРецензии(`правка сохранена патчем · ${СЛОВО_РЕНДЕРИНГА[т.status] ?? т.status}`) }
+        else setИтогРецензии(`правка отклонена сторожем: ${т.refusals.join('; ')}`)
+      })
+      .catch((e) => setИтогРецензии(String(e.message ?? e)))
+  }
+  const принятьКакЕсть = () => {
+    if (!project || !code) return
+    api.acceptRendering(project, code, 'инженер', раздел.no)
+      .then((р) => { const т = р.items[0]; if (т) onНаписано?.(т); setИтогРецензии('принято как есть') })
+      .catch((e) => setИтогРецензии(String(e.message ?? e)))
   }
   return (
     <div className="v2-doc__sec">
@@ -343,7 +410,7 @@ function Section({ раздел, подсвечен, onGoScene, onGoField, onЗ�
         {project && code && onНаписано && (
           <button type="button" className="v2-link" onClick={написать} disabled={пишу}
             title="написать раздел связно живой моделью из его сведений: число без опоры сторож отклонит; принятый текст идёт в печать">
-            {пишу ? 'пишу…' : написанное ? 'переписать связно' : 'написать связно'}
+            {пишу ? `пишу… ${секунд} с` : написанное ? 'переписать связно' : 'написать связно'}
           </button>
         )}
         {/*
@@ -364,9 +431,39 @@ function Section({ раздел, подсвечен, onGoScene, onGoField, onЗ�
       </div>
       {отказПисьма && <div className="v2-locked">{отказПисьма}</div>}
       {написанное && написанное.accepted && (
-        <div className="v2-doc__el" data-why="работа">
-          <p className="v2-doc__st">{написанное.text}</p>
-          <div className="v2-dim">связный текст · {написанное.model}{написанное.notes.length ? ` · пометы: ${написанное.notes.join('; ')}` : ''}</div>
+        <div className="v2-doc__el" data-why="работа" aria-label="связный текст раздела">
+          {правлю ? (
+            <textarea rows={6} value={правка} onChange={(e) => setПравка(e.target.value)} aria-label="правка изложения" />
+          ) : (
+            <p className="v2-doc__st">{написанное.text}</p>
+          )}
+          <div className="v2-dim">
+            связный текст · {написанное.model} · {СЛОВО_РЕНДЕРИНГА[написанное.status] ?? написанное.status}
+            {написанное.patches?.length ? ` · правок ${написанное.patches.length}` : ''}
+            {написанное.reviewer ? ` · рецензент ${написанное.reviewer}` : ''}
+            {написанное.notes.length ? ` · пометы: ${написанное.notes.join('; ')}` : ''}
+          </div>
+          <div className="v2-form__actions" aria-label="рецензия">
+            {правлю ? (
+              <>
+                <button type="button" className="v2-primary" onClick={сохранитьПравку} disabled={!правка.trim() || правка.trim() === написанное.text}
+                  title={!правка.trim() ? 'правка пуста' : правка.trim() === написанное.text ? 'текст не изменился' : 'сохранить правку изложения патчем поверх текста модели: число без опоры сторож отклонит'}>
+                  Сохранить правку
+                </button>
+                <button type="button" className="v2-link" onClick={() => setПравлю(false)} title="оставить текст как был">отмена</button>
+              </>
+            ) : (
+              <>
+                <button type="button" className="v2-link" onClick={() => { setПравка(написанное.text); setПравлю(true); setИтогРецензии(null) }}
+                  title="править изложение: правка ложится патчем с автором, текст модели виден в истории">править изложение</button>
+                {написанное.status !== 'accepted' && (
+                  <button type="button" className="v2-link" onClick={принятьКакЕсть}
+                    title="принять связный текст как есть: рецензент и дата останутся у рендеринга">принять как есть</button>
+                )}
+              </>
+            )}
+            {итогРецензии && <span className="v2-dim">{итогРецензии}</span>}
+          </div>
         </div>
       )}
       {раздел.elements.map((э) => (

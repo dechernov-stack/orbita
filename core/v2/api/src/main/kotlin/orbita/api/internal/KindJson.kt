@@ -93,8 +93,18 @@ internal object KindJson {
         .put("text", т.text)
         .put("model", т.model)
         .put("accepted", т.accepted)
+        // Рецензия патчами (шип 4 §4): состояние, правки изложения, кто принял.
+        .put("status", т.status)
+        .put("reviewer", т.reviewer)
+        .put("accepted_at", т.acceptedAt)
         .also { у ->
             у.putArray("refusals").also { а -> т.refusals.forEach { а.add(it) } }
             у.putArray("notes").also { а -> т.notes.forEach { а.add(it) } }
+            у.putArray("patches").also { а ->
+                т.patches.forEach { п ->
+                    а.addObject().put("section", п.section).put("from", п.from).put("to", п.to)
+                        .put("old", п.old).put("new", п.new).put("author", п.author).put("at", п.at)
+                }
+            }
         }
 }

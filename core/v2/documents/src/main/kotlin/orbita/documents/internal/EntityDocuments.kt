@@ -21,6 +21,9 @@ import orbita.documents.api.ElementView
 import orbita.documents.api.FieldChange
 import orbita.documents.api.PrintSection
 import orbita.documents.api.RenderedSection
+import orbita.documents.api.WritePrompt
+import orbita.documents.api.StylePatch
+import orbita.documents.api.Printed
 import orbita.documents.api.PrintView
 import orbita.documents.api.SectionView
 import orbita.kernel.api.Area
@@ -359,7 +362,26 @@ class EntityDocuments(
     }
 
     override fun print(project: String, code: String, projectName: String): ByteArray =
-        PdfPrint.bytes(render(project, code), projectName)
+        printWith(project, code, projectName).bytes
+
+    override fun printWith(project: String, code: String, projectName: String, engine: String): Printed =
+        printBytes(render(project, code), code, projectName, engine)
+
+    /**
+     * Движок печати называется, а не подразумевается: `auto` берёт Typst,
+     * когда он есть, и говорит, чем печатал; `typst` без двоичного файла —
+     * отказ словами (строгий нативный режим DocPilot), не тихий PDFBox.
+     */
+    override fun printBytes(view: PrintView, code: String, projectName: String, engine: String): Printed {
+        val движок = when (engine.trim().lowercase()) {
+            "", "auto" -> if (TypstPrint.available) "typst" else "pdfbox"
+            "typst" -> "typst"
+            "pdfbox" -> "pdfbox"
+            else -> throw IllegalArgumentException("движок печати «$engine» неизвестен: typst · pdfbox · auto")
+        }
+        val байты = if (движок == "typst") TypstPrint.bytes(view, projectName) else PdfPrint.bytes(view, projectName)
+        return Printed(байты, движок, "$code.pdf")
+    }
 
     /**
      * Свободный код тезиса: MAX + 1 по разделу. Размер списка врёт после
@@ -572,54 +594,150 @@ class EntityDocuments(
             "живая модель не подключена: связный текст писать нечем — " +
                 "проверьте ORBITA_AI_KEY у службы",
         )
+        // Тем же портом, что stub и фон: промпт собирается здесь, ответ
+        // применяется `applyWrite` — живая модель и подстановка теста идут
+        // одной дорогой, и сторож стережёт обоих одинаково.
+        val промпт = prepareWrite(project, code, section)
+        val (текст, модель) = писать(project, промпт.prompt)
+        return applyWrite(project, code, section, author, текст, модель)
+    }
+
+    override fun prepareWrite(project: String, code: String, section: String): WritePrompt {
         val шаблон = шаблонИли(code)
         val вид = document(project, code)
         val раздел = вид.sections.firstOrNull { it.no == section }
             ?: throw NoSuchElementException("раздела «$section» в документе «$code» нет")
         val квалификаторы = шаблон.path("review").path("qualifiers").map { it.asText() }
-
         val сведения = LiveRender.facts(раздел)
         val обороты = NumberGuard.qualifiers(сведения, квалификаторы)
-        val промпт = LiveRender.prompt(вид.title, раздел, сведения, обороты)
-        val (текст, модель) = писать(project, промпт)
-        val чистый = текст.trim()
+        return WritePrompt(section, раздел.title, LiveRender.prompt(вид.title, раздел, сведения, обороты))
+    }
+
+    override fun applyWrite(project: String, code: String, section: String, author: String, text: String, model: String): RenderedSection {
+        val шаблон = шаблонИли(code)
+        val вид = document(project, code)
+        val раздел = вид.sections.firstOrNull { it.no == section }
+            ?: throw NoSuchElementException("раздела «$section» в документе «$code» нет")
+        val квалификаторы = шаблон.path("review").path("qualifiers").map { it.asText() }
+        val чистый = text.trim()
         val отказы = LiveRender.refusals(чистый, раздел, квалификаторы)
         val пометы = LiveRender.notes(чистый, раздел, квалификаторы)
 
         // Принятый текст хранится, отклонённый — нет. Хранить отклонённое
-        // значит однажды его напечатать.
+        // значит однажды его напечатать. Новый текст модели — новый черновик:
+        // правки изложения прежнего текста к нему не относятся.
         if (отказы.isEmpty()) {
             val область = Area.Project(project)
-            val код = "RND-$code-${section.replace(Regex("[^0-9]"), "")}"
+            val код = кодРендеринга(code, section)
             val документ = mapper.createObjectNode()
             документ.put("document", code)
             документ.put("section", section)
             документ.put("text", чистый)
-            документ.put("model", модель)
+            документ.put("model", model)
             документ.put("at", java.time.OffsetDateTime.now().toString())
             val прежний = store.byCode(область, код)
             if (прежний == null) {
                 store.create(код, "rendering", область, null, документ,
                     Provenance(Channel.SERVICE, author), status = "draft")
             } else {
-                store.update(прежний.id, документ, Provenance(Channel.SERVICE, author))
+                store.update(прежний.id, документ, Provenance(Channel.SERVICE, author), status = "draft")
             }
         }
-        return RenderedSection(section, раздел.title, чистый, модель, отказы, пометы)
+        return RenderedSection(section, раздел.title, чистый, model, отказы, пометы)
     }
 
-    override fun renderings(project: String, code: String): List<RenderedSection> =
-        store.list(Area.Project(project), "rendering")
+    private fun кодРендеринга(code: String, section: String): String = "RND-$code-${section.replace(Regex("[^0-9]"), "")}"
+
+    override fun review(project: String, code: String, section: String, text: String, author: String): RenderedSection {
+        require(author.isNotBlank()) { "правку изложения вносит названный человек: автор пуст" }
+        val область = Area.Project(project)
+        val запись = store.byCode(область, кодРендеринга(code, section))
+            ?: throw NoSuchElementException("у раздела «$section» документа «$code» нет связного текста: сначала «написать связно»")
+        val шаблон = шаблонИли(code)
+        val вид = document(project, code)
+        val раздел = вид.sections.firstOrNull { it.no == section }
+            ?: throw NoSuchElementException("раздела «$section» в документе «$code» нет")
+        val квалификаторы = шаблон.path("review").path("qualifiers").map { it.asText() }
+        val было = запись.doc.path("text").asText("")
+        val стало = text.trim()
+        val модель = запись.doc.path("model").asText("")
+        // Сторож стережёт и человека: число, которого нет в элементах раздела,
+        // не появляется в документе ни от модели, ни от рецензента.
+        val отказы = LiveRender.refusals(стало, раздел, квалификаторы)
+        val пометы = LiveRender.notes(стало, раздел, квалификаторы)
+        if (отказы.isNotEmpty()) return RenderedSection(section, раздел.title, стало, модель, отказы, пометы, status = запись.status, patches = патчи(запись.doc))
+        if (стало == было) return рендеринг(запись, раздел.title)
+        val патч = патчИзложения(section, было, стало, author)
+        val документ = запись.doc.deepCopy() as ObjectNode
+        документ.put("text", стало)
+        val список = if (документ.path("style_patches").isArray) документ.withArray("style_patches") else документ.putArray("style_patches")
+        список.addObject().put("section", патч.section).put("from", патч.from).put("to", патч.to)
+            .put("old", патч.old).put("new", патч.new).put("author", патч.author).put("at", патч.at)
+        документ.put("reviewer", author)
+        val обновлена = store.update(запись.id, документ, Provenance(Channel.MANUAL, author), status = "reviewed")
+        return рендеринг(обновлена, раздел.title).copy(notes = пометы)
+    }
+
+    override fun acceptRendering(project: String, code: String, author: String, section: String?): List<RenderedSection> {
+        require(author.isNotBlank()) { "принимает рендеринг названный человек: автор пуст" }
+        val область = Area.Project(project)
+        val записи = store.list(область, "rendering")
+            .filter { it.doc.path("document").asText() == code && (section == null || it.doc.path("section").asText() == section) }
+        if (записи.isEmpty()) throw NoSuchElementException(
+            if (section == null) "у документа «$code» нет связных текстов: принимать нечего"
+            else "у раздела «$section» документа «$code» нет связного текста: принимать нечего",
+        )
+        записи.forEach { з ->
+            if (з.status == "accepted") return@forEach
+            val документ = (з.doc.deepCopy() as ObjectNode).put("reviewer", author).put("accepted_at", java.time.OffsetDateTime.now().toString())
+            store.update(з.id, документ, Provenance(Channel.MANUAL, author), status = "accepted")
+        }
+        return renderings(project, code).filter { section == null || it.section == section }
+    }
+
+    /**
+     * Патч изложения — ОДИН кусок: общий префикс и суффикс снимаются, середина
+     * — «что стояло → что стало». Этого достаточно, чтобы видеть правку и
+     * читать историю; полноценный диф словами здесь не нужен.
+     */
+    private fun патчИзложения(section: String, было: String, стало: String, author: String): StylePatch {
+        var начало = 0
+        while (начало < было.length && начало < стало.length && было[начало] == стало[начало]) начало += 1
+        var хвост = 0
+        while (хвост < было.length - начало && хвост < стало.length - начало &&
+            было[было.length - 1 - хвост] == стало[стало.length - 1 - хвост]
+        ) хвост += 1
+        return StylePatch(
+            section, начало, было.length - хвост,
+            было.substring(начало, было.length - хвост), стало.substring(начало, стало.length - хвост),
+            author, java.time.OffsetDateTime.now().toString(),
+        )
+    }
+
+    private fun патчи(документ: JsonNode): List<StylePatch> = документ.path("style_patches").map { п ->
+        StylePatch(
+            п.path("section").asText(""), п.path("from").asInt(0), п.path("to").asInt(0),
+            п.path("old").asText(""), п.path("new").asText(""), п.path("author").asText(""), п.path("at").asText(""),
+        )
+    }
+
+    private fun рендеринг(з: orbita.kernel.api.Entity, заголовок: String): RenderedSection = RenderedSection(
+        section = з.doc.path("section").asText(""),
+        title = заголовок,
+        text = з.doc.path("text").asText(""),
+        model = з.doc.path("model").asText(""),
+        refusals = emptyList(),
+        status = з.status,
+        patches = патчи(з.doc),
+        reviewer = з.doc.path("reviewer").asText("").ifBlank { null },
+        acceptedAt = з.doc.path("accepted_at").asText("").ifBlank { null },
+    )
+
+    override fun renderings(project: String, code: String): List<RenderedSection> {
+        val разделы = document(project, code).sections.associate { it.no to it.title }
+        return store.list(Area.Project(project), "rendering")
             .filter { it.doc.path("document").asText() == code }
-            .map { з ->
-                RenderedSection(
-                    section = з.doc.path("section").asText(""),
-                    title = document(project, code).sections
-                        .firstOrNull { it.no == з.doc.path("section").asText() }?.title ?: "",
-                    text = з.doc.path("text").asText(""),
-                    model = з.doc.path("model").asText(""),
-                    refusals = emptyList(),
-                )
-            }
+            .map { з -> рендеринг(з, разделы[з.doc.path("section").asText()] ?: "") }
             .sortedBy { it.section }
+    }
 }

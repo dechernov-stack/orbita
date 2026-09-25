@@ -144,5 +144,5 @@ interface Exchange {
      *
      * @param documents код документа → PDF
      */
-    fun pointPackage(project: String, gate: String, gateTitle: String, point: JsonNode, documents: Map<String, ByteArray>): PointPackage
+    fun pointPackage(project: String, gate: String, gateTitle: String, point: JsonNode, documents: Map<String, ByteArray>, printEngine: String = ""): PointPackage
 }

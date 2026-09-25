@@ -231,6 +231,7 @@ internal class EntityExchange(
         gateTitle: String,
         point: JsonNode,
         documents: Map<String, ByteArray>,
+        printEngine: String,
     ): PointPackage {
         val пакетЗнаний = knowledge(project)
         val sdoc = runCatching { sdoc(project) }
@@ -255,6 +256,7 @@ internal class EntityExchange(
                 appendLine()
                 appendLine("- отпечаток знаний: `${пакетЗнаний.fingerprint}`")
                 appendLine("- документов к точке: ${documents.size}" + (if (documents.isEmpty()) " — печатать нечего: ни один документ фазы не заведён" else ""))
+                if (printEngine.isNotBlank()) appendLine("- печать: $printEngine")
                 appendLine("- требования StrictDoc: " + (sdoc.exceptionOrNull()?.let { "не приложены — ${it.message}" } ?: "orbita.sgra + $project.sdoc"))
                 appendLine()
                 appendLine("## Состав")

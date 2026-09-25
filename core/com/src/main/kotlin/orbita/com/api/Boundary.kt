@@ -310,7 +310,11 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
         ) { p ->
             runCatching { полки.phaseTemplate(записиТочек.phaseTemplateOf(p) ?: "PHT-9001") }.getOrNull()
         }
-        val документыМаршруты = orbita.api.internal.DocRoutes(store, документы, mapper) { полки.phaseTemplate("PHT-9001") }
+        val документыМаршруты = orbita.api.internal.DocRoutes(
+            store, документы, mapper,
+            // Связный текст и печать — фоновыми заданиями (шип 4 §4): сеть и Typst в фоне, база на потоке запросов.
+            jobs = orbita.api.internal.DocumentJobs(документы, служба),
+        ) { полки.phaseTemplate("PHT-9001") }
         val точки = orbita.api.internal.PointRoutes(движок, записиТочек, mapper)
         // База знаний и инструменты модели (шип 4 §2): индекс ядра, словарь, полки, сцены фазы.
         val индексЗнаний = orbita.knowledge.api.KnowledgeFactory.index(
