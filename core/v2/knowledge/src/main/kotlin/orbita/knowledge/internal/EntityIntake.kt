@@ -127,7 +127,7 @@ class EntityIntake(
             // отказ с именем первого. Новая версия того же устава идёт через
             // `supersedes`, и заменённые версии уставом больше не считаются.
             if (роль == "charter") уставУже(область, прежний?.code)?.let { устав ->
-                throw IllegalArgumentException(
+                throw orbita.kernel.api.ConflictException(
                     "устав уже назначен: «${устав.doc.path("name").asText(устав.code)}» (${устав.code}); " +
                         "замените его новой версией либо загрузите этот документ как источник требований или обстановку",
                 )
@@ -1343,6 +1343,17 @@ class EntityIntake(
 
     override fun charterGaps(project: String, material: String): orbita.knowledge.api.GapMap = досье.charterGaps(project, material)
 
+    override fun roleRefusal(project: String, material: String, role: String): String? {
+        val область = Area.Project(project)
+        val карточка = store.byCode(область, material)?.takeIf { it.kind == "material" } ?: return null
+        // Только конфликт «устав один»: роль вне перечня отбивает сторож перечней вызывающего.
+        val роль = role.trim()
+        if (роль != "charter") return null
+        val устав = уставУже(область, карточка.doc.path("supersedes").asText("").ifBlank { null })?.takeIf { it.code != material } ?: return null
+        return "устав уже назначен: «${устав.doc.path("name").asText(устав.code)}» (${устав.code}); " +
+            "замените его новой версией либо назначьте этому документу роль источника требований или обстановки"
+    }
+
     override fun setRole(project: String, material: String, role: String, author: String): String {
         val область = Area.Project(project)
         val карточка = store.byCode(область, material)?.takeIf { it.kind == "material" }
@@ -1350,13 +1361,8 @@ class EntityIntake(
         val роль = role.trim()
         val перечень = orbita.kernel.schema.GeneratedKinds.byCode["material"]?.enums?.get("role").orEmpty()
         require(роль in перечень) { "роль документа «$роль» вне перечня истины схем: ${перечень.joinToString(" · ")}" }
-        if (роль == "charter") уставУже(область, карточка.doc.path("supersedes").asText("").ifBlank { null })
-            ?.takeIf { it.code != material }?.let { устав ->
-                throw IllegalArgumentException(
-                    "устав уже назначен: «${устав.doc.path("name").asText(устав.code)}» (${устав.code}); " +
-                        "замените его новой версией либо назначьте этому документу роль источника требований или обстановки",
-                )
-            }
+        // Конфликт с действующим уставом — 409; роль вне перечня — плохой запрос выше.
+        roleRefusal(project, material, роль)?.let { throw orbita.kernel.api.ConflictException(it) }
         if (карточка.doc.path("role").asText("") == роль) return роль
         store.update(
             карточка.id, (карточка.doc.deepCopy() as ObjectNode).put("role", роль),

@@ -95,6 +95,7 @@ class DocumentJobs(
         executor.submit {
             try {
                 задание.printed = documents.printBytes(вид, document, projectName, engine)
+                println("orbita documents: печать $document движком ${задание.printed?.engine} за ${Duration.between(задание.startedAt, OffsetDateTime.now()).toMillis() / 1000.0} с")
             } catch (e: Exception) {
                 задание.error = e.message ?: "печать не состоялась"
             }
@@ -117,6 +118,7 @@ class DocumentJobs(
         try {
             if (!ответ.cached) service?.record(задание.project, "document_render", задание.prompt.orEmpty(), ответ)
             задание.result = documents.applyWrite(задание.project, задание.document, задание.section.orEmpty(), задание.author, ответ.text, ответ.model)
+            println("orbita documents: связный текст ${задание.document} ${задание.section} — ${ответ.model}, ${ответ.tokensIn ?: 0}/${ответ.tokensOut ?: 0} токенов, ${ответ.seconds ?: 0.0} с${if (ответ.cached) " (из журнала)" else ""}")
         } catch (e: Exception) {
             задание.error = "ответ получен, но не принят: ${e.message}"
         }

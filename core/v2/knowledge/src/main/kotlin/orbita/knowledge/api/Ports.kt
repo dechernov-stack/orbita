@@ -558,6 +558,13 @@ interface Intake {
      */
     fun setRole(project: String, material: String, role: String, author: String): String
 
+    /**
+     * Почему роль этому документу не даётся — словами, либо null. Тот же
+     * сторож, что на загрузке и в `setRole`: правка на месте (`PATCH
+     * /v2/entities`) спрашивает его перед записью поля `role`.
+     */
+    fun roleRefusal(project: String, material: String, role: String): String?
+
     /** Анкета узла из задания («обнови параметры SC-PLT»): ключ · единица — для промпта даташита. */
     fun questionnaireKeys(project: String, intent: String): List<Pair<String, String>>
 

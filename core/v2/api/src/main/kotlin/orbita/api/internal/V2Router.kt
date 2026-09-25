@@ -88,7 +88,11 @@ class V2Router(
         val fileName: String? = null,
     )
 
-    private val сцены = SceneRoutes(store, links, engine, mapper, units = units)
+    private val сцены = SceneRoutes(
+        store, links, engine, mapper, units = units,
+        // Роль документа на правке на месте — тем же сторожем, что на загрузке (устав один).
+        materialRoleGuard = { проект, код, роль -> intake.roleRefusal(проект, код, роль) },
+    )
     private val сквозные = AcrossRoutes(store, links, engine, shelves, intake, formulation, mapper, extract = extract)
     private val словарь = GlossaryRoutes(store, links, orbita.knowledge.api.KnowledgeFactory.glossary(store, mapper, links), mapper)
     // Применимость (шип 4 §5): матрица на Постановке — по данным, решение — человеком.

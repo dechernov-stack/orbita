@@ -6,6 +6,13 @@ package orbita.kernel.api
 
 import com.fasterxml.jackson.databind.JsonNode
 
+/**
+ * Конфликт с уже принятым состоянием проекта (HTTP 409): второй устав при
+ * действующем, занятое имя базовой линии и подобное. Не «плохой запрос» —
+ * запрос верен, но с тем, что уже есть, не совместим; в сообщении названо, с чем.
+ */
+class ConflictException(message: String) : RuntimeException(message)
+
 /** Хранилище сущностей: одна текущая версия на id, история рядом. */
 interface EntityStore {
     fun create(

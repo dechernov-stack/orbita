@@ -190,13 +190,13 @@ class DossierRoutesTest {
         val код = положен.body.path("code").asText()
         val карта = досье.handle("GET", "/v2/materials/$код/gaps", q, null)!!
         assertEquals(12, карта.body.path("items").size())
-        val отказ = assertFailsWith<IllegalArgumentException> {
+        val отказ = assertFailsWith<orbita.kernel.api.ConflictException> {
             сквозные.handle("POST", "/v2/materials", q, документ("Вторая записка", "# Иное\n\nТекст.", роль = "charter", ранг = "mandatory"))
         }
         assertTrue("Записка миссии" in отказ.message!!, отказ.message)
         // Роль лежащего документа — своим маршрутом с тем же правилом; у устава — карта пробелов.
         val второй = сквозные.handle("POST", "/v2/materials", q, документ("Аналитика", "# Обстановка\n\nТекст.", роль = "context"))!!.body.path("code").asText()
-        val отказРоли = assertFailsWith<IllegalArgumentException> {
+        val отказРоли = assertFailsWith<orbita.kernel.api.ConflictException> {
             досье.handle("POST", "/v2/materials/$второй/role", q, """{"role":"charter","author":"Иванов И."}""")
         }
         assertTrue("Записка миссии" in отказРоли.message!!, отказРоли.message)

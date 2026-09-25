@@ -2944,6 +2944,11 @@ kinds:
     required: false
     note: ''
     label: Токены на выходе
+  - name: seconds
+    type: num
+    required: false
+    note: 'секунды живого вызова провайдера (ответ владельца 25.09 — у каждого вызова токены и секунды, включая рендер связного текста); правка Code в истине 25.09'
+    label: Секунды
   - name: outcome
     type: enum[ok,error,aborted]
     required: true

@@ -222,6 +222,8 @@ class HttpApi(private val boundary: Boundary) {
             respond(ex, 409, errJson(e))
         } catch (e: CycleException) {
             respond(ex, 409, errJson(e))
+        } catch (e: orbita.kernel.api.ConflictException) {
+            respond(ex, 409, errJson(e))
         } catch (e: NoSuchElementException) {
             respond(ex, 404, errJson(e))
         } catch (e: JsonProcessingException) {

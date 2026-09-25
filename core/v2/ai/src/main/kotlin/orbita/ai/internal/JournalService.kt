@@ -54,7 +54,7 @@ class JournalService(
         // Отпечаток — промпт с именами инструментов: тот же промпт без них — другой вызов.
         val ключ = prompt + "\n[инструменты: " + tools.joinToString(" · ") { it.name } + "]"
         cached(project, ключ)?.let { return it }
-        val ответ = инструментальный.askWithTools(prompt, model, maxTokens, schema, tools, handler)
+        val ответ = замер { инструментальный.askWithTools(prompt, model, maxTokens, schema, tools, handler) }
         record(project, kind, ключ, ответ)
         return ответ
     }
@@ -69,12 +69,20 @@ class JournalService(
             tokensIn = записанный.doc.path("tokens_in").takeIf { it.isNumber }?.asInt(),
             tokensOut = записанный.doc.path("tokens_out").takeIf { it.isNumber }?.asInt(),
             cached = true,
+            seconds = записанный.doc.path("seconds").takeIf { it.isNumber }?.asDouble(),
         )
     }
 
     /** Только сеть: ни чтения, ни записи базы — годится для фонового потока. */
     override fun askDetached(prompt: String, model: String?, maxTokens: Int?, schema: JsonNode?): Answer =
-        transport.ask(prompt, model, maxTokens, schema)
+        замер { transport.ask(prompt, model, maxTokens, schema) }
+
+    /** Секунды живого вызова — в ответ: журнал пишет их рядом с токенами. */
+    private fun замер(вызов: () -> Answer): Answer {
+        val начало = System.nanoTime()
+        val ответ = вызов()
+        return ответ.copy(seconds = Math.round((System.nanoTime() - начало) / 1e7) / 100.0)
+    }
 
     override fun record(project: String, kind: String, prompt: String, answer: Answer) {
         val отпечаток = отпечатокПромпта(prompt)
@@ -86,6 +94,7 @@ class JournalService(
         документ.put("response", answer.text)
         answer.tokensIn?.let { документ.put("tokens_in", it) }
         answer.tokensOut?.let { документ.put("tokens_out", it) }
+        answer.seconds?.let { документ.put("seconds", it) }
         документ.put("at", OffsetDateTime.now().toString())
         val занято = store.list(Area.Project(project), "ai_call").mapNotNull {
             Regex("^AI-(\\d+)$").find(it.code)?.groupValues?.get(1)?.toIntOrNull()
@@ -106,6 +115,7 @@ class JournalService(
                 tokensOut = it.doc.path("tokens_out").takeIf { т -> т.isNumber }?.asInt(),
                 at = it.doc.path("at").asText(""),
                 cached = false,
+                seconds = it.doc.path("seconds").takeIf { т -> т.isNumber }?.asDouble(),
             )
         }
 

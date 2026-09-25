@@ -768,6 +768,7 @@ class KnowledgeRoutes(
             массив.addObject()
                 .put("kind", з.kind).put("model", з.model)
                 .put("tokens_in", з.tokensIn).put("tokens_out", з.tokensOut)
+                .put("seconds", з.seconds)
                 .put("at", з.at)
         }
         return V2Router.Ответ(200, узел)

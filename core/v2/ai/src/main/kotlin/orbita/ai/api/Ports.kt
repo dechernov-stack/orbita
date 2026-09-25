@@ -22,6 +22,8 @@ data class Answer(
     val tokensOut: Int?,
     /** true — ответ взят из журнала по отпечатку, вызова не было. */
     val cached: Boolean = false,
+    /** Секунды живого вызова провайдера (ответ владельца 25.09: у каждого вызова — токены и секунды); у ответа из журнала — секунды исходного вызова. */
+    val seconds: Double? = null,
 )
 
 /** Канал недоступен: ключа нет, провайдер перегружен, поток оборван. */
@@ -79,6 +81,7 @@ data class CallRecord(
     val tokensOut: Int?,
     val at: String,
     val cached: Boolean,
+    val seconds: Double? = null,
 )
 
 interface AiService {

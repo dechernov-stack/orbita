@@ -98,20 +98,20 @@ class DocumentDossierTest {
     @Test
     fun `устав в проекте один — второй отказ с именем первого, новая версия через supersedes`() {
         val первый = знания.putMaterial(проект, "Записка миссии", "mission_memo", записка, автор, rank = Authority.MANDATORY, role = "charter")
-        val отказ = assertFailsWith<IllegalArgumentException> {
+        val отказ = assertFailsWith<orbita.kernel.api.ConflictException> {
             знания.putMaterial(проект, "Другая записка", "mission_memo", "# Иное\n\nТекст.", автор, rank = Authority.MANDATORY, role = "charter")
         }
         assertTrue("Записка миссии" in отказ.message!! && первый in отказ.message!!, отказ.message)
         // Тот же документ обстановкой — можно; новая версия устава — через supersedes.
         знания.putMaterial(проект, "Другая записка", "mission_memo", "# Иное\n\nТекст.", автор, rank = Authority.REFERENCE, role = "context")
         val версия2 = знания.putMaterial(проект, "Записка миссии v2", "mission_memo", записка + "\n\nДополнение.", автор, rank = Authority.MANDATORY, role = "charter", supersedes = первый)
-        val отказ2 = assertFailsWith<IllegalArgumentException> {
+        val отказ2 = assertFailsWith<orbita.kernel.api.ConflictException> {
             знания.putMaterial(проект, "Третья", "mission_memo", "# Ещё\n\nТекст.", автор, rank = Authority.MANDATORY, role = "charter")
         }
         assertTrue(версия2 in отказ2.message!!, "называется действующая версия, а не заменённая: ${отказ2.message}")
         // Смена роли лежащего документа — тем же правилом: обстановка уставом не становится, пока устав есть.
         val обстановка = store.list(область, "material").first { it.doc.path("role").asText() == "context" }.code
-        val отказ3 = assertFailsWith<IllegalArgumentException> { знания.setRole(проект, обстановка, "charter", автор) }
+        val отказ3 = assertFailsWith<orbita.kernel.api.ConflictException> { знания.setRole(проект, обстановка, "charter", автор) }
         assertTrue(версия2 in отказ3.message!!, отказ3.message)
         assertEquals("tor", знания.setRole(проект, обстановка, "tor", автор))
         assertEquals("tor", store.byCode(область, обстановка)!!.doc.path("role").asText())

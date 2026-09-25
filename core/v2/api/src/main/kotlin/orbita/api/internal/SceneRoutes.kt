@@ -31,6 +31,12 @@ class SceneRoutes(
     private val mapper: ObjectMapper = ObjectMapper(),
     /** Единицы справочника для экрана: код записи → показ человеку. */
     private val units: (() -> Map<String, String>)? = null,
+    /**
+     * Сторож роли документа на правке на месте (ответ владельца 25.09): тот
+     * же, что на загрузке — второй устав отвергается с именем первого (409).
+     * Отдаёт причину словами либо null; подставляет роутер из порта знаний.
+     */
+    private val materialRoleGuard: ((project: String, code: String, role: String) -> String?)? = null,
 ) {
 
     fun handle(method: String, path: String, query: Map<String, String>, body: String?): V2Router.Ответ? = when {
@@ -731,6 +737,9 @@ class SceneRoutes(
         val обязательные = спец?.requiredFields.orEmpty()
         val документ = запись.doc.deepCopy<ObjectNode>()
         var изменено = 0
+        if (запись.kind == "material" && поля.has("role")) {
+            materialRoleGuard?.invoke(проект, код, поля.path("role").asText(""))?.let { throw orbita.kernel.api.ConflictException(it) }
+        }
         поля.fields().forEach { (имя, значение) ->
             require(имя !in setOf("code", "kind", "id")) { "поле «$имя» не правится: код и вид стабильны" }
             require(схема.isEmpty() || имя in схема || имя in setOf("notes", "tags")) {
