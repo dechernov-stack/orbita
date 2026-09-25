@@ -63,8 +63,11 @@ COPY --from=build /src/schemas schemas
 COPY --from=build /src/db/migrations db/migrations
 COPY --from=build /src/core/com/build/libs/orbita-api.jar app.jar
 # Typst (шип 4 §4): печать пакета точки строгим нативным режимом. Двоичный
-# файл берётся из официального образа, без apt — политика образа не меняется.
-COPY --from=ghcr.io/typst/typst:v0.13.1 /bin/typst /usr/local/bin/typst
+# файл (статический musl из выпуска GitHub, тот же, что в официальном образе)
+# кладёт в контекст ops/typst-fetch.sh — без apt и без обращения сборщика к
+# ghcr.io: политика образа не меняется, сеть сборщика не решает.
+ARG TARGETARCH
+COPY ops/typst/typst-${TARGETARCH} /usr/local/bin/typst
 
 ENV ORBITA_REPO_ROOT=/opt/orbita \
     ORBITA_HTTP_PORT=8090 \

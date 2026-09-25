@@ -33,3 +33,5 @@ ops/.проход-владельца
 
 # Рабочие копии агентских сеансов (worktree харнесса) — не содержимое проекта.
 .claude/worktrees/
+# Двоичные файлы Typst для образа api — тянет ops/typst-fetch.sh, в git не идут
+ops/typst/typst-*

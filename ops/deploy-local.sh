@@ -38,6 +38,8 @@ SERVICES=("$@")
 [ ${#SERVICES[@]} -eq 0 ] && SERVICES=(api web)
 
 builder_hygiene
+# Двоичные файлы Typst — в контекст сборки (ops/typst-fetch.sh), не из ghcr.io.
+"$ROOT/ops/typst-fetch.sh"
 
 for svc in "${SERVICES[@]}"; do
   case "$svc" in

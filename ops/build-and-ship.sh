@@ -20,6 +20,8 @@ BUILDER="${BUILDER:-orbita-mtu}"
 # shellcheck source=ops/builder-hygiene.sh
 . "$ROOT/ops/builder-hygiene.sh"
 builder_hygiene
+# Двоичные файлы Typst — в контекст сборки (ops/typst-fetch.sh), не из ghcr.io.
+"$ROOT/ops/typst-fetch.sh"
 
 echo "==> Сборка образов (linux/amd64, builder $BUILDER)"
 # Сборка — через build_retry (ops/builder-hygiene.sh), как у локального выката:
