@@ -609,7 +609,8 @@ class EntityDocuments(
             ?: throw NoSuchElementException("раздела «$section» в документе «$code» нет")
         val квалификаторы = шаблон.path("review").path("qualifiers").map { it.asText() }
         val сведения = LiveRender.facts(раздел)
-        val обороты = NumberGuard.qualifiers(сведения, квалификаторы)
+        // Обороты — квалификатор с продолжением, те же куски, что проверит сторож.
+        val обороты = раздел.elements.flatMap { э -> (э.rows.flatten() + listOfNotNull(э.text)).flatMap { NumberGuard.phrases(it, квалификаторы) } }.distinct().sorted()
         return WritePrompt(section, раздел.title, LiveRender.prompt(вид.title, раздел, сведения, обороты))
     }
 
