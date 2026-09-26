@@ -158,7 +158,7 @@ export function Source({ project, onParsed, onError, onRead, новаяВерс�
         {знанияV2 ? (
           <label>ранг доверия
             <select value={ранг} onChange={(e) => setРанг(e.target.value as Authority | '')}
-              title="чего этот источник стоит: обязательный — заказчик, регулятор, директива; справочный — аналитика и даташит; сомнительный — непроверенное. Режим разбора выводится из содержимого, а не из типа файла">
+              title="чего источник стоит: обязательный — заказчик, регулятор, директива; справочный — аналитика, даташит; сомнительный — непроверенное">
               <option value="">— назовите ранг —</option>
               {РАНГИ_ИСТОЧНИКА.map((р) => <option key={р} value={р}>{РАНГ[р]}</option>)}
             </select>
@@ -277,7 +277,7 @@ export function ВыгрузкаКартины({ project }: { project: string })
   useEffect(() => { api.pictureTasks().then((r) => setСрезы(r.items)).catch(() => setСрезы([])) }, [])
   if (!project || срезы.length === 0) return null
   return (
-    <span className="v2-chip" aria-label="выгрузка картины" title="картина внешней модели пятью блоками: срез с границами понятий, принятые объекты кодами, цепочка задачи, вопросы, права и формат — с отпечатком для обратной сверки">
+    <span className="v2-chip" aria-label="выгрузка картины" title="картина внешней модели пятью блоками: срез, принятые объекты кодами, цепочка задачи, вопросы, права и формат — с отпечатком для сверки">
       <select value={срез} onChange={(e) => setСрез(e.target.value)} aria-label="срез картины">
         {срезы.map((с) => <option key={с.key} value={с.key}>{с.title}</option>)}
       </select>

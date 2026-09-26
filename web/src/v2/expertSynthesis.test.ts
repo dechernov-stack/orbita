@@ -4,7 +4,7 @@
 // документа и получал 26 предложений из 50 элементов среза. Путь по
 // умолчанию — «Прочитать документ»; старая кнопка остаётся эксперту.
 import { describe, expect, it } from 'vitest'
-import экран from './knowledge/proposals.tsx?raw'
+import { ТЕКСТ_ПРЕДЛОЖЕНИЙ as экран } from './test-support/proposalsSource'
 import оболочка from './shell.tsx?raw'
 
 describe('старый синтез — только эксперт-режим', () => {

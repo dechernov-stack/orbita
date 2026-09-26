@@ -2,7 +2,7 @@
 // сверху, умные наборы, диапазон Shift-кликом, клавиатура без мыши,
 // предпросмотр последствий, решения по строкам и снятие принятия выборкой.
 import { describe, expect, it } from 'vitest'
-import экран from './knowledge/proposals.tsx?raw'
+import { ТЕКСТ_ПРЕДЛОЖЕНИЙ as экран } from './test-support/proposalsSource'
 import клиент from './api.ts?raw'
 
 describe('группы и наборы', () => {
@@ -28,7 +28,9 @@ describe('группы и наборы', () => {
 describe('выбор и клавиатура', () => {
   it('диапазон отмечается Shift-кликом от последней отметки', () => {
     expect(экран).toContain('const отметить = (код: string, да: boolean, диапазоном = false)')
-    expect(экран).toContain('if (e.shiftKey) отметить(п.proposal, !отмечены.includes(п.proposal), true)')
+    // Строка предложения — своим файлом (шип 5 §8 d): Shift-клик зовёт диапазон вкладки.
+    expect(экран).toContain('onClick={(e) => { if (e.shiftKey) onДиапазон() }}')
+    expect(экран).toContain('onДиапазон={() => отметить(п.proposal, !отмечены.includes(п.proposal), true)}')
   })
 
   it('весь экран проходится клавишами: ↑ ↓ Space Enter A R L', () => {

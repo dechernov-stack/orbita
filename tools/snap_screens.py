@@ -16,6 +16,10 @@ GitHub). Для папки «после» лист строится парами
     python3 tools/snap_screens.py shoot --label после --sections Постановка --tabs Постановка --card Постановка
     python3 tools/snap_screens.py sheet --dir docs/tz/v2/снимки-дизайн/2026-09-26-после \\
         --before docs/tz/v2/снимки-дизайн/2026-09-26-до
+    python3 tools/snap_screens.py check --dir docs/tz/v2/снимки-дизайн/2026-09-26-после
+
+`check` (шип 5 §8 g) — полнота папки: каждый раздел рейки × три роли × оба
+окна; проверка при сборке отчёта, не в CI (снимки CI не снимает).
 
 Браузер — установленный Google Chrome через Playwright из `web/node_modules`.
 """
@@ -101,6 +105,16 @@ def строки(папка: pathlib.Path) -> dict[tuple[str, str, int], pathlib
     return итог
 
 
+def полнота(папка: pathlib.Path) -> list[str]:
+    """Чего не хватает в папке: раздел рейки × роль × окно (эксперт-разделы — не обязательны)."""
+    есть = строки(папка)
+    return [
+        f"{раздел} · {роль['word']} · {ширина}"
+        for раздел in РАЗДЕЛЫ for роль in РОЛИ for ширина in ШИРИНЫ
+        if (файл(раздел), роль["file"], ширина) not in есть
+    ]
+
+
 def лист(папка: pathlib.Path, до: pathlib.Path | None) -> None:
     сейчас = строки(папка)
     прежние = строки(до) if до else {}
@@ -148,6 +162,8 @@ def лист(папка: pathlib.Path, до: pathlib.Path | None) -> None:
     (папка / "лист.html").write_text("\n".join(h), encoding="utf-8")
     (папка / "ЛИСТ.md").write_text("\n".join(md), encoding="utf-8")
     print(f"лист: {папка / 'лист.html'} и ЛИСТ.md — снимков {len(сейчас)}" + (f", пар с «до» {sum(1 for к in сейчас if к in прежние)}" if до else ""))
+    нет = полнота(папка)
+    print("полнота: " + (f"все {len(РАЗДЕЛЫ)} разделов рейки × {len(РОЛИ)} роли × {len(ШИРИНЫ)} окна" if not нет else f"нет {len(нет)}: " + "; ".join(нет[:12]) + (" …" if len(нет) > 12 else "")))
 
 
 def main() -> int:
@@ -174,10 +190,20 @@ def main() -> int:
     л = под.add_parser("sheet")
     л.add_argument("--dir", required=True)
     л.add_argument("--before", default=None)
+    к = под.add_parser("check", help="полнота папки: раздел рейки × три роли × оба окна (шип 5 §8 g)")
+    к.add_argument("--dir", required=True)
     args = п.parse_args()
     if args.cmd == "shoot":
         папка = снять(args)
         лист(папка, (КОРЕНЬ / args.before).resolve() if args.before else None)
+    elif args.cmd == "check":
+        нет = полнота((КОРЕНЬ / args.dir).resolve())
+        if нет:
+            print(f"снимков не хватает: {len(нет)}")
+            for н in нет:
+                print("  ", н)
+            return 1
+        print(f"полнота: все {len(РАЗДЕЛЫ)} разделов рейки × {len(РОЛИ)} роли × {len(ШИРИНЫ)} окна")
     else:
         лист((КОРЕНЬ / args.dir).resolve(), (КОРЕНЬ / args.before).resolve() if args.before else None)
     return 0

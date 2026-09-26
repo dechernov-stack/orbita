@@ -5,12 +5,12 @@
 // перечни значений — из истины схем (`kind.enums`), правка уезжает вместе с
 // приёмом. Значений в коде экрана нет — иначе перечень разошёлся бы с истиной.
 import { describe, expect, it } from 'vitest'
-import экран from './knowledge/proposals.tsx?raw'
+import { ТЕКСТ_ПРЕДЛОЖЕНИЙ as экран } from './test-support/proposalsSource'
 import апи from './api.ts?raw'
 
 describe('правка предложения в постановке', () => {
   it('поля строки — содержимое и обязательные поля вида, без тех, что ставит система', () => {
-    const начало = экран.indexOf('const поляПравки')
+    const начало = экран.indexOf('export function поляПравки')
     expect(начало).toBeGreaterThan(0)
     const кусок = экран.slice(начало, начало + 900)
     expect(кусок).toContain('Object.keys(п.payload)')
@@ -25,12 +25,12 @@ describe('правка предложения в постановке', () => {
   it('на приёме спрашивается только стадия accept, остальное названо позже', () => {
     // Журнал ПМИ-7, З-09: форма из всей схемы — «все поля обязательны,
     // работать нельзя». Истина схем 18.09 называет стадию (`required_at`).
-    const начало = экран.indexOf('const поляПравки')
+    const начало = экран.indexOf('export function поляПравки')
     const кусок = экран.slice(начало, начало + 1200)
     expect(кусок).toContain("когда === 'accept' && чем === ''")
     expect(кусок).toContain('required_at')
     // Что доделается позже — строкой, именами истины, а не кодами полей.
-    const позже = экран.slice(экран.indexOf('const позже'), экран.indexOf('const позже') + 900)
+    const позже = экран.slice(экран.indexOf('export function позже'), экран.indexOf('export function позже') + 900)
     expect(позже).toContain('подставит система')
     expect(позже).toContain('к базированию')
     expect(позже).toContain('вид.labels?.[поле]')

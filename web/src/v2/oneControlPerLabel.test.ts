@@ -16,13 +16,19 @@ import поле from './knowledgefield.tsx?raw'
 import документыПоля from './knowledge/documents.tsx?raw'
 import фактыПоля from './knowledge/facts.tsx?raw'
 import ручнойВвод from './knowledge/manual.tsx?raw'
-import предложения from './knowledge/proposals.tsx?raw'
+import { ТЕКСТ_ПРЕДЛОЖЕНИЙ as предложения } from './test-support/proposalsSource'
 import источник from './knowledge/source.tsx?raw'
 import карточка from './ui/objectcard.tsx?raw'
 import стороны from './registry/stakeholders.tsx?raw'
 import нужды from './registry/needs.tsx?raw'
 import допущения from './registry/assumptions.tsx?raw'
 import режимы from './modes.tsx?raw'
+import риски from './risks.tsx?raw'
+import точки from './points.tsx?raw'
+import состав from './composition.tsx?raw'
+import концепция from './concept.tsx?raw'
+import паспорт from './passport.tsx?raw'
+import словарь from './glossary.tsx?raw'
 
 /** Код без комментариев: слово «label» в объяснении — не разметка. */
 function безКомментариев(код: string): string {
@@ -51,6 +57,8 @@ describe('поле из нескольких контролов — не оди�
     ['knowledge/documents', документыПоля], ['knowledge/facts', фактыПоля], ['knowledge/manual', ручнойВвод],
     ['knowledge/proposals', предложения], ['knowledge/source', источник], ['ui/objectcard', карточка],
     ['registry/stakeholders', стороны], ['registry/needs', нужды], ['registry/assumptions', допущения],
+    // Шип 5 §7: риски, точки, состав и концепция, паспорт, словарь.
+    ['risks', риски], ['points', точки], ['composition', состав], ['concept', концепция], ['passport', паспорт], ['glossary', словарь],
   ] as [string, string][])(
     '%s: ряд из нескольких контролов не стоит внутри label',
     (_имя, код) => { expect(величинаВЛейбле(код)).toEqual([]) },

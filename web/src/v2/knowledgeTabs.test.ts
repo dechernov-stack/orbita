@@ -5,7 +5,7 @@
 import { describe, expect, it } from 'vitest'
 import экран from './knowledgefield.tsx?raw'
 import документы from './knowledge/documents.tsx?raw'
-import предложения from './knowledge/proposals.tsx?raw'
+import { ТЕКСТ_ПРЕДЛОЖЕНИЙ as предложения } from './test-support/proposalsSource'
 import источник from './knowledge/source.tsx?raw'
 import факты from './knowledge/facts.tsx?raw'
 import ручной from './knowledge/manual.tsx?raw'
