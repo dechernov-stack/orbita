@@ -15,6 +15,21 @@ import orbita.kernel.api.Provenance
 import orbita.knowledge.api.Glossary
 import orbita.knowledge.api.Term
 
+/**
+ * Источник кандидата словами (дефект из отчёта шипа 5, ответ владельца 26.09):
+ * написание, пришедшее разбором документа, несёт цитату или факт; кнопка
+ * «Привязать стороны и узлы проекта» — ни того, ни другого, и её кандидат —
+ * «привязка стороны проекта» (узла — «привязка узла проекта»), а не «разбор
+ * документа»: полоса кандидатов называется по источнику.
+ */
+internal fun источникКандидата(класс: String, цитата: String?, факт: String?): String = when {
+    !цитата.isNullOrBlank() || !факт.isNullOrBlank() -> ИЗ_РАЗБОРА
+    класс == "node" -> "привязка узла проекта"
+    else -> "привязка стороны проекта"
+}
+
+internal const val ИЗ_РАЗБОРА = "разбор документа проекта"
+
 internal class GlossaryLinking(
     private val store: EntityStore,
     private val links: LinkRegistry?,
@@ -37,7 +52,7 @@ internal class GlossaryLinking(
         val найденный = написания.firstNotNullOfOrNull { glossary.resolve(область, it, класс) }
         val термин: Term = найденный ?: glossary.candidate(
             область, имя, класс, цитата, факт, author,
-            source = "разбор документа проекта",
+            source = источникКандидата(класс, цитата, факт),
         )
         if (реестр.to(термин.id, "named_by").none { it.from == сущность.id }) {
             реестр.link("named_by", сущность.id, термин.id, провенанс, rationale = "названо термином словаря: «${термин.termRu}»")

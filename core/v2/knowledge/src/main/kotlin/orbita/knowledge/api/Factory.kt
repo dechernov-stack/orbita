@@ -103,6 +103,7 @@ object KnowledgeFactory {
             migrateNeedOwners(store, links, mapper),
             migrateStakeholderInterests(store, mapper),
             migrateCredibilityAxes(store, mapper),
+            orbita.knowledge.internal.GlossarySourceMigration(store, mapper).run(),
         )
 
     /** База знаний (шип 4 §2): индекс канонов, терминов, пунктов нормативов и фактов поверх текстового индекса ядра. */

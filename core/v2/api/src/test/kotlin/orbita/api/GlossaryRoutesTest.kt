@@ -117,6 +117,8 @@ class GlossaryRoutesTest {
         assertEquals(1, итог.body.path("candidates").asInt(), "незнакомая сторона — один кандидат")
         val кандидат = store.list(область, "glossary_term").single { it.status == "candidate" }
         assertEquals("Росморпорт", кандидат.doc.path("term_ru").asText())
+        // Дефект из отчёта шипа 5: кандидат привязки — «привязка стороны проекта», не «разбор документа».
+        assertEquals("привязка стороны проекта", кандидат.doc.path("source").asText())
         val фснст = store.list(область, "stakeholder").single { it.doc.path("name").asText() == "ФСНСТ" }
         assertTrue(links.from(фснст.id, "named_by").any { it.to == store.byCode(Area.Library, "GT-ST-001")!!.id }, "по синониму — к принятому термину")
         val снова = router.handle("POST", "/v2/glossary/link", п, """{"author":"Иванов И."}""")!!
