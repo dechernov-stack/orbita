@@ -135,6 +135,11 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
         runCatching { orbita.knowledge.api.KnowledgeFactory.migrateConcepts(store, links, mapper) }
             .onSuccess { итоги -> итоги.forEach { println("orbita core: $it") } }
             .onFailure { println("orbita core: миграция понятий не прошла — ${it.message}") }
+        // Противоречия фактов по правилу 26.09 (блокер ПМИ-8): только у
+        // однозначного; перечни («нуждается в: …») спором больше не красятся.
+        runCatching { orbita.knowledge.api.KnowledgeFactory.recountContradictions(store, links, mapper) }
+            .onSuccess { итоги -> итоги.forEach { println("orbita core: $it") } }
+            .onFailure { println("orbita core: пересчёт противоречий не прошёл — ${it.message}") }
         val корень = java.nio.file.Path.of(System.getenv("ORBITA_REPO_ROOT") ?: ".")
         // Умолчание стенда для НОВЫХ проектов: поле знаний v2 (синтез, сверка,
         // ранг доверия). Переменную среды читает только граница — маршруты

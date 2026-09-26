@@ -29,10 +29,51 @@ export function предметФакта(ф: { subject?: string; material?: stri
   return ф.manual ? 'ручной ввод' : (ф.material ?? '—')
 }
 
-/** Группы фактов по предмету — в порядке появления, с числом нерешённых и противоречий. */
-export function группыФактов<T extends { subject?: string; material?: string; manual?: boolean; disposition?: string; conflicts?: string[] }>(
+type ФактСпора = { code?: string; id?: string; disposition?: string; conflicts?: string[] }
+
+/**
+ * Спор факта, который — ЕГО долг (ответ владельца 26.09): противоречие к
+ * принятому факту — долг другого факта. У принятого спор с непринятым не
+ * показывается равноправным; у непринятого — весь его спор. Оба приняты —
+ * спор у обоих: принятое не согласовано, и это держит точку.
+ */
+export function долгСпора<T extends ФактСпора>(ф: T, поКоду: Map<string, T>): string[] {
+  const спор = ф.conflicts ?? []
+  if ((ф.disposition ?? 'free') !== 'adopted') return спор
+  return спор.filter((код) => поКоду.get(код)?.disposition === 'adopted')
+}
+
+/** Кто оспаривает принятый факт: непринятые — их долг, здесь они только названы. */
+export function оспаривают<T extends ФактСпора>(ф: T, поКоду: Map<string, T>): string[] {
+  if ((ф.disposition ?? 'free') !== 'adopted') return []
+  return (ф.conflicts ?? []).filter((код) => поКоду.get(код)?.disposition !== 'adopted')
+}
+
+/**
+ * «Подтверждено N документами»: другие документы, где то же утверждение с тем
+ * же значением, — по связям `same_as` и `supports` (их ставит сверка по правилу
+ * 26.09). Свой документ подтверждением не считается.
+ */
+export function подтверждающие(ф: FactRow, поКоду: Map<string, FactRow>): string[] {
+  const свой = ф.code || ф.id
+  const документы = new Set<string>()
+  ;(ф.links ?? []).filter((с) => с.type === 'same_as' || с.type === 'supports').forEach((с) => {
+    const другой = поКоду.get(с.from === свой ? с.to : с.from)
+    if (другой && другой.material && другой.material !== ф.material) документы.add(другой.material)
+  })
+  return [...документы]
+}
+
+/** Факты по коду: спор и подтверждение смотрят на другой конец связи. */
+export function фактыПоКоду<T extends ФактСпора>(факты: T[]): Map<string, T> {
+  return new Map(факты.map((ф) => [ф.code || ф.id || '', ф]))
+}
+
+/** Группы фактов по предмету — в порядке появления, с числом нерешённых и противоречий (долгов спора). */
+export function группыФактов<T extends { subject?: string; material?: string; manual?: boolean; disposition?: string; conflicts?: string[]; code?: string; id?: string }>(
   факты: T[],
 ): { предмет: string; факты: T[]; нерешено: number; противоречий: number }[] {
+  const поКоду = фактыПоКоду(факты)
   const по = new Map<string, T[]>()
   факты.forEach((ф) => {
     const п = предметФакта(ф)
@@ -43,7 +84,7 @@ export function группыФактов<T extends { subject?: string; material?
     предмет,
     факты: список,
     нерешено: список.filter((ф) => (ф.disposition ?? 'free') === 'free').length,
-    противоречий: список.filter((ф) => (ф.conflicts?.length ?? 0) > 0).length,
+    противоречий: список.filter((ф) => долгСпора(ф, поКоду).length > 0).length,
   }))
 }
 
@@ -106,17 +147,19 @@ export function ВкладкаФакты({
   const [ask, спросить, закрытьВопрос] = useConfirm()
 
   const материалы = useMemo(() => Array.from(new Set(факты.filter((ф) => !ф.manual).map((ф) => ф.material).filter(Boolean))), [факты])
+  /** Факты по коду: спор к принятому — долг другого факта, подтверждение — другой документ. */
+  const поКоду = useMemo(() => фактыПоКоду(факты), [факты])
   const решения = useMemo(() => Array.from(new Set(факты.map((ф) => ф.disposition || 'free'))).filter((д) => д !== 'free'), [факты])
   const чипы = useMemo<ЧипОтбора<FactRow>[]>(() => [
     ...материалы.map((м) => ({ key: `док-${м}`, word: документы[м] ?? м, group: 'документ', test: (ф: FactRow) => !ф.manual && ф.material === м, hint: `факты документа ${м}` })),
     ...(['И', 'В', 'П'] as const).map((б) => ({ key: `метка-${б}`, word: `${б} · ${МЕТКА_ФАКТА[б]}`, group: 'метка', test: (ф: FactRow) => ф.mark === б })),
     { key: 'нерешённые', word: 'нерешённые', group: 'решение', test: (ф) => (ф.disposition ?? 'free') === 'free', hint: 'факты, по которым решения ещё нет' },
     ...решения.map((д) => ({ key: `решение-${д}`, word: СЛОВО_РЕШЕНИЯ[д] ?? д, group: 'решение', test: (ф: FactRow) => ф.disposition === д })),
-    { key: 'противоречия', word: 'противоречия', group: 'противоречия', test: (ф) => (ф.conflicts?.length ?? 0) > 0, hint: 'то же утверждение с иным значением в другом факте: показаны оба, решает человек' },
+    { key: 'противоречия', word: 'противоречия', group: 'противоречия', test: (ф) => долгСпора(ф, поКоду).length > 0, hint: 'однозначное утверждение с иным значением в другом документе: показаны оба, решает человек' },
     { key: 'ручной', word: 'ручной ввод', group: 'ввод', test: (ф) => ф.manual === true, hint: 'факты без документа-источника: эксперт, роль и дата' },
     ...(знанияV2 ? [{ key: 'исследования', word: 'из исследований', group: 'ранг', test: (ф: FactRow) => ф.rank === 'doubtful', hint: 'принесённое внешним контуром: ранг сомнительный, пока человек не подтвердил источники' }] : []),
     ...темы.filter((т) => т.facts > 0).map((т) => ({ key: `тема-${т.id}`, word: т.label, group: 'тема', test: (ф: FactRow) => ф.topic === т.id, hint: `факты темы: ${т.facts}` })),
-  ], [материалы, решения, документы, знанияV2, темы])
+  ], [материалы, решения, документы, знанияV2, темы, поКоду])
 
   const видно = useMemo(() => {
     const поЧипам = отобрать(факты, чипы, включены)
@@ -229,21 +272,49 @@ export function ВкладкаФакты({
                   {документы[ф.material] ?? ф.material}{ф.anchor ? ` · ${ф.anchor}` : ''}
                 </button>
               )}
+            {(() => {
+              const другие = подтверждающие(ф, поКоду)
+              return другие.length > 0 && (
+                <span className="v2-dim" title={`то же значение: ${другие.map((м) => документы[м] ?? м).join(' · ')}`}>
+                  {' '}· подтверждено {другие.length}
+                </span>
+              )
+            })()}
           </td>
           <td>
             <span className={было === 'adopted' ? 'v2-ok' : было === 'free' ? 'v2-warn' : undefined}>{СЛОВО_РЕШЕНИЯ[было] ?? было}</span>
-            {(ф.conflicts?.length ?? 0) > 0 && (
-              <span className="v2-bad" title="противоречие: то же утверждение с иным значением в другом факте; победителя ИИ не выбирает — решает человек">
-                {' '}· противоречит {ф.conflicts!.slice(0, 3).map((код, i, три) => (
-                  <span key={код} className="v2-nowrap">
-                    <button type="button" className="v2-link" onClick={(e) => { e.stopPropagation(); кФакту(код) }}
-                      title={`перейти к факту ${код}: его полоса раскроется, строка подсветится`}>{код}</button>
-                    {i < три.length - 1 ? ', ' : ''}
-                  </span>
-                ))}
-                {ф.conflicts!.length > 3 && <span className="v2-dim" title={ф.conflicts!.slice(3).join(', ')}> и ещё {ф.conflicts!.length - 3}</span>}
-              </span>
-            )}
+            {(() => {
+              // Противоречие к принятому — долг другого факта (ответ владельца 26.09).
+              const долг = долгСпора(ф, поКоду)
+              const спорят = оспаривают(ф, поКоду)
+              const ссылки = (коды: string[]) => (
+                <>
+                  {коды.slice(0, 3).map((код, i, три) => (
+                    <span key={код} className="v2-nowrap">
+                      <button type="button" className="v2-link" onClick={(e) => { e.stopPropagation(); кФакту(код) }}
+                        title={`перейти к факту ${код}: его полоса раскроется, строка подсветится`}>{код}</button>
+                      {i < три.length - 1 ? ', ' : ''}
+                    </span>
+                  ))}
+                  {коды.length > 3 && <span className="v2-dim" title={коды.slice(3).join(', ')}> и ещё {коды.length - 3}</span>}
+                </>
+              )
+              const сПринятым = долг.filter((код) => поКоду.get(код)?.disposition === 'adopted')
+              return (
+                <>
+                  {долг.length > 0 && (
+                    <span className="v2-bad" title="противоречие: однозначное утверждение с иным значением в другом документе; победителя ИИ не выбирает — решает человек">
+                      {' '}· противоречит {сПринятым.length === долг.length && (ф.disposition ?? 'free') !== 'adopted' ? 'принятому ' : ''}{ссылки(долг)}
+                    </span>
+                  )}
+                  {спорят.length > 0 && (
+                    <span className="v2-dim" title="с принятым фактом спорит непринятый: решение — за тем фактом, это его долг">
+                      {' '}· оспаривают {ссылки(спорят)}
+                    </span>
+                  )}
+                </>
+              )
+            })()}
             {ф.source_updated && <span className="v2-warn" title={ф.source_updated}> · источник обновлён</span>}
             {ф.assumption && (
               <div className="v2-dim" title={`проверка: ${ф.assumption.validation || '—'}; если неверно: ${ф.assumption.impact_if_wrong || '—'}`}>

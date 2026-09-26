@@ -71,6 +71,23 @@ object KnowledgeFactory {
     fun migrateNeedOwners(store: EntityStore, links: LinkRegistry, mapper: ObjectMapper = ObjectMapper()): String =
         orbita.knowledge.internal.NeedOwnersMigration(store, links, mapper).run().toString()
 
+    /**
+     * Пересчёт противоречий фактов по правилу 26.09 (истина
+     * `formation.normalization.contradictions`): противоречие — только у
+     * однозначного. Идёт при старте ядра по каждому проекту с фактами;
+     * идемпотентен: пометы и связи службы, которые прежнее правило ставило
+     * перечням, снимаются, подтверждения ставятся связью `same_as`.
+     *
+     * @return строка на проект: «PJ-… — противоречий N · подтверждений M · снято …»
+     */
+    fun recountContradictions(store: EntityStore, links: LinkRegistry, mapper: ObjectMapper = ObjectMapper()): List<String> {
+        val режимы = orbita.knowledge.internal.IntakeModes(store, links, mapper)
+        return store.ofKind("fact").map { it.area }.distinct().map { область ->
+            val итог = режимы.markConflicts(область, "служба: правило противоречий 26.09")
+            "противоречия фактов ${область.asText()} — $итог"
+        }
+    }
+
     /** Интерес — список у стороны (шип 4 §1.5): строка и перечень строк сходят в список с цитатой. */
     fun migrateStakeholderInterests(store: EntityStore, mapper: ObjectMapper = ObjectMapper()): String =
         orbita.knowledge.internal.StakeholderInterestsMigration(store, mapper).run().toString()
