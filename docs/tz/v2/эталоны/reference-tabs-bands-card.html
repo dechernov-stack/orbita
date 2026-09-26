@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><title>Эталон · вкладки · полоса группы · карточка объекта — Орбита v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#F4F6F8;--surface:#fff;--graphite:#C9D0D8;--ink:#182130;--muted:#5C6675;--cobalt:#2A4BD7;--green:#1F7A4D;--amber:#B7791F;--red:#C43A2B;--paperline:#E6EAEF}
+*{box-sizing:border-box}
+body{margin:0;padding:24px;background:var(--paper);color:var(--ink);font:14px/1.45 "Golos Text",system-ui,sans-serif;font-variant-numeric:tabular-nums;display:grid;gap:32px}
+h1{font-size:16px;margin:0 0 4px}h1 small{font-weight:400;color:var(--muted);margin-left:10px}
+.note{color:var(--muted);font-size:13px;max-width:900px}
+.screen{background:var(--surface);border:1px solid var(--graphite);padding:14px 18px 0;display:grid;gap:12px}
+input,select,button,textarea{font:inherit;color:inherit}
+input,select,textarea{border:1px solid var(--graphite);border-radius:6px;padding:5px 8px;background:#fff}
+textarea{width:100%;min-height:56px;resize:vertical}
+.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px}
+.muted{color:var(--muted)}.amber{color:var(--amber)}.red{color:var(--red)}.green{color:var(--green)}
+a{color:var(--cobalt);text-decoration:none}
+/* маркер здоровья: кружок; заливка = состояние */
+.m{display:inline-block;width:10px;height:10px;border-radius:50%;border:1.5px solid var(--ink);vertical-align:-1px;margin-right:6px;background:#fff}
+.m.debt{background:linear-gradient(90deg,var(--amber) 50%,#fff 50%);border-color:var(--amber)}
+.m.block{background:var(--red);border-color:var(--red)}
+.m.ok{border-color:var(--green)}
+.m.diamond{border-radius:0;transform:rotate(45deg);width:9px;height:9px}
+/* 1.1 вкладки */
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--graphite);margin:0 -18px;padding:0 18px}
+.tabs [role=tab]{padding:8px 10px 9px;border:0;background:none;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px;cursor:pointer}
+.tabs [role=tab] b{font-weight:500;color:var(--ink)}.tabs [role=tab] .n{margin-left:5px;color:var(--muted)}
+.tabs [aria-selected=true]{border-bottom-color:var(--cobalt)}.tabs [aria-selected=true] b{font-weight:600}
+.tabs .sep{width:1px;background:var(--graphite);margin:8px 6px}
+.tabs .expert{color:var(--graphite)}.tabs .expert b{color:var(--graphite);font-weight:400}
+/* чипы отбора */
+.chips{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.chip{border:1px solid var(--graphite);border-radius:6px;padding:2px 8px;font-size:13px;background:#fff}
+.chip.on{border-color:var(--cobalt);color:var(--cobalt)}
+.chips .sp{flex:1}.chips input{width:220px}
+/* таблица */
+table{border-collapse:collapse;width:100%}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--paperline);vertical-align:top}
+th{color:var(--muted);font-weight:500;font-size:13px}
+tr.cur td{background:var(--paper)}
+td.acts{white-space:nowrap;text-align:right}
+.ic{display:inline-block;width:16px;height:16px;vertical-align:-3px;stroke:var(--ink);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+button.i{border:0;background:none;padding:2px 3px;cursor:pointer}button.i:hover .ic{stroke:var(--cobalt)}
+.power{display:inline-flex;gap:2px}.power span{width:14px;height:14px;border:1px solid var(--graphite);border-radius:2px}.power span.on{background:var(--ink);border-color:var(--ink)}.power span.guess{border-style:dashed}
+/* 1.2 полоса группы */
+.band{display:flex;align-items:center;gap:10px;padding:8px 8px;background:var(--paper);border-top:1px solid var(--graphite);margin-top:10px}
+.band b{font-weight:600}.band .n{color:var(--muted);font-size:13px}.band .sp{flex:1}
+.band + table th{font-size:12px}
+.band.closed{border-bottom:1px solid var(--paperline)}
+/* 1.3 карточка объекта */
+.card{border-left:3px solid var(--cobalt);background:var(--paper);padding:12px 14px 14px;margin:0 0 4px}
+.card .head{display:flex;gap:12px;align-items:baseline;flex-wrap:wrap}
+.card .head h3{margin:0;font-size:14px;font-weight:600}
+.card .head .meta{color:var(--muted);font-size:13px}.card .head .acts{margin-left:auto}
+.facets{display:grid;grid-template-columns:1fr 1fr;gap:10px 28px;margin-top:12px}
+.facet label{display:block;font-size:12px;color:var(--muted);margin-bottom:3px}
+.facet .hint{font-size:12px;color:var(--muted);margin-top:3px}
+.facet .row{display:flex;gap:6px;align-items:center}
+.facet .row input{width:90px}.facet .row select{width:110px}
+.debt{margin-top:12px;font-size:13px;color:var(--amber)}.debt b{font-weight:500}
+.saved{font-size:13px;color:var(--green)}
+/* 1.4 массовая панель */
+.mass{background:var(--surface);border-top:1px solid var(--graphite);margin:0 -18px;padding:8px 18px;display:flex;gap:14px;align-items:center;font-size:13px}
+.mass .k{color:var(--muted);margin-left:auto}
+.btn{border:1px solid var(--graphite);border-radius:6px;background:#fff;padding:4px 10px;display:inline-flex;gap:6px;align-items:center;cursor:pointer}
+.btn.primary{background:var(--cobalt);color:#fff;border-color:var(--cobalt)}.btn.primary .ic{stroke:#fff}
+.legend{display:flex;gap:22px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+</style></head><body>
+
+<svg width="0" height="0" style="position:absolute"><defs>
+<symbol id="i-plus" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></symbol>
+<symbol id="i-minus" viewBox="0 0 16 16"><path d="M3 8h10"/></symbol>
+<symbol id="i-card" viewBox="0 0 16 16"><rect x="2.5" y="3.5" width="11" height="9" rx="1"/><path d="M5 7h6M5 9.5h4"/></symbol>
+<symbol id="i-link" viewBox="0 0 16 16"><path d="M6.5 9.5l3-3M5 11a2.5 2.5 0 01-3.5-3.5l2-2A2.5 2.5 0 017 6M11 5a2.5 2.5 0 013.5 3.5l-2 2A2.5 2.5 0 019 10"/></symbol>
+<symbol id="i-check" viewBox="0 0 16 16"><path d="M3 8.5l3 3 7-7"/></symbol>
+<symbol id="i-x" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></symbol>
+<symbol id="i-clock" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.5"/><path d="M8 5v3l2 1.5"/></symbol>
+<symbol id="i-place" viewBox="0 0 16 16"><path d="M3 8h9M9 5l3 3-3 3"/></symbol>
+<symbol id="i-edit" viewBox="0 0 16 16"><path d="M3 13l1-3.5 7-7 2.5 2.5-7 7L3 13z"/></symbol>
+<symbol id="i-hist" viewBox="0 0 16 16"><path d="M2.5 8a5.5 5.5 0 105.5-5.5M2.5 2.5v3h3M8 5v3l2 1.5"/></symbol>
+<symbol id="i-read" viewBox="0 0 16 16"><path d="M2.5 4h4.5a2 2 0 012 2v7a1.5 1.5 0 00-1.5-1.5h-5V4zM13.5 4H9a2 2 0 00-2 2v7a1.5 1.5 0 011.5-1.5h5V4z"/></symbol>
+<symbol id="i-open" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4"/></symbol>
+<symbol id="i-closed" viewBox="0 0 16 16"><path d="M6 4l4 4-4 4"/></symbol>
+<symbol id="i-grid" viewBox="0 0 16 16"><rect x="2.5" y="2.5" width="11" height="11" rx="1"/><path d="M2.5 8h11M8 2.5v11"/></symbol>
+</defs></svg>
+
+<div>
+<h1>Три компонента шипа 5 <small>вкладки · полоса группы · карточка объекта · массовая панель — на содержании PJ-ПМИ7</small></h1>
+<div class="legend">
+ <span><i class="m"></i>в порядке</span><span><i class="m debt"></i>есть долг (слово — в подсказке)</span><span><i class="m block"></i>держит точку</span>
+ <span><svg class="ic"><use href="#i-plus"/></svg> в таблице — пиктограмма с подсказкой; в панели — со словом</span>
+</div>
+</div>
+
+<!-- ======================= 1. ПОСТАНОВКА · вкладки ======================= -->
+<div>
+<h1>Постановка <small>вкладки по понятиям; «Без нужд» — чип, «Покрытие» — число вкладки</small></h1>
+<p class="note">Одна строка контекста, одна строка вкладок, чипы отбора значениями из данных, таблица, карточка вниз, липкая панель выбора. Больше на экране ничего нет.</p>
+<div class="screen">
+ <div class="muted" style="font-size:13px">PJ-ПМИ7 · Pre-Phase A · сцена 3 «Стейкхолдеры и нужды» идёт · ведущий СИ</div>
+ <div class="tabs" role="tablist" aria-label="постановка">
+  <button role="tab" aria-selected="true" title="стороны, их влияние и сила; 3 стороны без нужд"><i class="m debt"></i><b>Стороны</b><span class="n">18</span></button>
+  <button role="tab" aria-selected="false" title="покрыто 20 из 29; 9 нужд без цели — держит сцену 4"><i class="m block"></i><b>Нужды</b><span class="n">20 из 29</span></button>
+  <button role="tab" aria-selected="false" title="цели и задачи миссии с показателями"><i class="m"></i><b>Цели</b><span class="n">13</span></button>
+  <button role="tab" aria-selected="false" title="сервисы с классом QoS и целевым показателем"><i class="m"></i><b>Сервисы</b><span class="n">8</span></button>
+  <button role="tab" aria-selected="false" title="ограничения класса и свои"><i class="m"></i><b>Ограничения</b><span class="n">13</span></button>
+  <button role="tab" aria-selected="false" title="реестр допущений по диспозиции; 2 нерешённых"><i class="m debt"></i><b>Допущения</b><span class="n">6</span></button>
+  <button role="tab" aria-selected="false" title="чужие нужды из обстановки: чем система им полезна"><i class="m"></i><b>Применимость</b><span class="n">3</span></button>
+ </div>
+ <div class="chips">
+  <span class="chip on">без нужд 3</span><span class="chip">сила не задана 5</span><span class="chip">заказчик 4</span><span class="chip">регулятор 3</span><span class="chip">поставщик 6</span>
+  <span class="sp"></span>
+  <input placeholder="найти сторону" aria-label="поиск">
+  <button class="btn" title="сетка «влияние × сила» правее таблицы"><svg class="ic"><use href="#i-grid"/></svg> сетка</button>
+  <button class="btn primary"><svg class="ic"><use href="#i-plus"/></svg> добавить сторону</button>
+ </div>
+ <table>
+  <thead><tr><th style="width:28px"><input type="checkbox" aria-label="выбрать все"></th><th>Код</th><th>Сторона</th><th>Роль</th><th>Влияние</th><th>Сила</th><th>Нужд</th><th></th></tr></thead>
+  <tbody>
+   <tr><td><input type="checkbox" checked aria-label="выбрать SK-0001"></td><td class="mono">SK-0001</td><td>Минтранс России</td><td>регулятор</td><td>решает</td><td><span class="power"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span></span></span></td><td>4</td>
+    <td class="acts"><button class="i" title="карточка стороны" aria-label="карточка"><svg class="ic"><use href="#i-card"/></svg></button><button class="i" title="связать с нуждой" aria-label="связать"><svg class="ic"><use href="#i-link"/></svg></button><button class="i" title="снять с обоснованием" aria-label="снять"><svg class="ic"><use href="#i-minus"/></svg></button></td></tr>
+   <tr class="cur"><td><input type="checkbox" checked aria-label="выбрать SK-0007"></td><td class="mono">SK-0007</td><td>Центр мониторинга опасных перевозок</td><td>оператор</td><td>влияет</td><td><span class="power"><span class="on"></span><span class="on"></span><span class="guess"></span><span class="guess"></span><span></span></span> <span class="muted" title="сила предложена по роли — подтвердите кликом">?</span></td><td class="amber">нет</td>
+    <td class="acts"><button class="i" title="свернуть карточку" aria-label="свернуть"><svg class="ic"><use href="#i-open"/></svg></button><button class="i" title="связать с нуждой" aria-label="связать"><svg class="ic"><use href="#i-link"/></svg></button><button class="i" title="снять с обоснованием" aria-label="снять"><svg class="ic"><use href="#i-minus"/></svg></button></td></tr>
+   <tr><td colspan="8" style="padding:0">
+    <div class="card">
+     <div class="head"><span class="mono">SK-0007</span><h3>Центр мониторинга опасных перевозок</h3><span><i class="m debt"></i>черновик</span><span class="meta">версия 2 · Чернов Д. · 24.09</span>
+      <span class="acts"><button class="i" title="история правок" aria-label="история"><svg class="ic"><use href="#i-hist"/></svg></button><button class="i" title="к месту: сцена 3" aria-label="к месту"><svg class="ic"><use href="#i-place"/></svg></button></span></div>
+     <div class="facets">
+      <div class="facet"><label>Роль</label><select><option>оператор</option><option>заказчик</option><option>регулятор</option><option>поставщик</option><option>потребитель</option></select><div class="hint">роль по словарю; влияние считается по роли, правится в таблице</div></div>
+      <div class="facet"><label>Влияние</label><div>влияет <span class="muted">· считает система по роли</span></div></div>
+      <div class="facet"><label>Интересы</label><div>• резервный канал телематики в зонах без покрытия <span class="muted">— записка, s14 [В]</span><br>• единый доступ к данным перевозчиков <span class="muted">— записка, s16 [И]</span></div><div class="hint">чего сторона хочет, её словами; нуждой становится решением через сверку</div></div>
+      <div class="facet"><label>Нужды</label><div class="amber">нужд нет — сцена 3 этим держится</div><div style="margin-top:4px"><button class="btn"><svg class="ic"><use href="#i-plus"/></svg> нужда из интереса</button></div></div>
+      <div class="facet"><label>Основания</label><div>3 факта поля знаний <a href="#">открыть</a></div></div>
+      <div class="facet"><label>Документы</label><div>Записка миссии (устав) · ПП 2216 (норматив)</div></div>
+     </div>
+     <div class="debt"><b>к базированию:</b> Сила · Нужда</div>
+    </div>
+   </td></tr>
+   <tr><td><input type="checkbox" aria-label="выбрать SK-0009"></td><td class="mono">SK-0009</td><td>РЖД — операторы подвижного состава</td><td>потребитель</td><td>информируется</td><td><span class="power"><span class="on"></span><span class="on"></span><span></span><span></span><span></span></span></td><td>3</td>
+    <td class="acts"><button class="i" title="карточка стороны" aria-label="карточка"><svg class="ic"><use href="#i-card"/></svg></button><button class="i" title="связать с нуждой" aria-label="связать"><svg class="ic"><use href="#i-link"/></svg></button><button class="i" title="снять с обоснованием" aria-label="снять"><svg class="ic"><use href="#i-minus"/></svg></button></td></tr>
+   <tr><td><input type="checkbox" aria-label="выбрать SK-0012"></td><td class="mono">SK-0012</td><td>Агро-потребители телематики</td><td>потребитель</td><td>информируется</td><td><span class="power"><span class="guess"></span><span class="guess"></span><span></span><span></span><span></span></span> <span class="muted">?</span></td><td class="amber">нет</td>
+    <td class="acts"><button class="i" title="карточка стороны" aria-label="карточка"><svg class="ic"><use href="#i-card"/></svg></button><button class="i" title="связать с нуждой" aria-label="связать"><svg class="ic"><use href="#i-link"/></svg></button><button class="i" title="снять с обоснованием" aria-label="снять"><svg class="ic"><use href="#i-minus"/></svg></button></td></tr>
+  </tbody>
+ </table>
+ <div class="mass">
+  <b>выбрано 2</b>
+  <button class="btn"><svg class="ic"><use href="#i-check"/></svg> подтвердить силу</button>
+  <button class="btn"><svg class="ic"><use href="#i-link"/></svg> нужда из интереса</button>
+  <button class="btn"><svg class="ic"><use href="#i-minus"/></svg> снять с обоснованием</button>
+  <span class="k">↑ ↓ выбор · Space отметить · Shift диапазон · A принять · Esc снять выбор</span>
+ </div>
+</div>
+</div>
+
+<!-- ======================= 2. ПОЛЕ ЗНАНИЙ · ФАКТЫ · полосы ======================= -->
+<div>
+<h1>Поле знаний · Факты <small>полоса группы над своей таблицей; предмет — один раз в полосе, в колонках его нет</small></h1>
+<p class="note">Три вкладки для всех и три эксперт-вкладки серым. Группа — не строка таблицы: у неё свой фон, свои счётчики словами и свои действия. Внутри — только утверждение и его свойства.</p>
+<div class="screen">
+ <div class="muted" style="font-size:13px">PJ-ПМИ7 · поле знаний · 4 документа · 907 фактов · последний прогон — чтение записки, 25.09 22:10</div>
+ <div class="tabs" role="tablist" aria-label="поле знаний">
+  <button role="tab" aria-selected="false" title="документы проекта: роль, ранг, вклад, досье"><i class="m"></i><b>Документы</b><span class="n">4</span></button>
+  <button role="tab" aria-selected="true" title="факты с якорями по предмету; 116 нерешённых, 12 противоречий"><i class="m debt"></i><b>Факты</b><span class="n">907</span></button>
+  <button role="tab" aria-selected="false" title="предложения синтеза и чтения: приём пакетом"><i class="m debt"></i><b>Предложения</b><span class="n">43</span></button>
+  <span class="sep"></span>
+  <button role="tab" class="expert" aria-selected="false" title="эксперт-режим"><b>Исследование</b></button>
+  <button role="tab" class="expert" aria-selected="false" title="эксперт-режим"><b>Верификация</b></button>
+  <button role="tab" class="expert" aria-selected="false" title="эксперт-режим"><b>Индекс</b><span class="n">1698</span></button>
+ </div>
+ <div class="chips">
+  <span class="chip">записка миссии</span><span class="chip">ПП 2216</span><span class="chip on">нерешённые 116</span><span class="chip">противоречия 12</span><span class="chip">[П] предположения</span><span class="chip">ручной ввод</span>
+  <span class="sp"></span><input placeholder="найти утверждение" aria-label="поиск"><a href="#" title="раскрыть все 58 групп или свернуть">раскрыть все (58)</a>
+ </div>
+
+ <div class="band"><button class="i" title="свернуть группу" aria-label="свернуть"><svg class="ic"><use href="#i-open"/></svg></button><b>Латентность доставки сообщений класса B′</b><span class="n">фактов 5 · нерешённых 2 · противоречие 1</span><span class="sp"></span>
+  <button class="i" title="принять все решённые в группе" aria-label="принять решённые"><svg class="ic"><use href="#i-check"/></svg></button><button class="i" title="к месту: сервисы и QoS" aria-label="к месту"><svg class="ic"><use href="#i-place"/></svg></button></div>
+ <table>
+  <thead><tr><th style="width:28px"></th><th>Утверждение</th><th>Значение</th><th>Метка</th><th>Ранг</th><th>Откуда</th><th>Решение</th><th></th></tr></thead>
+  <tbody>
+   <tr><td><input type="checkbox" aria-label="F-0164"></td><td>P95 доставки на этапе 1 — не более</td><td>180 мин</td><td title="[И] — из источника дословно">И</td><td>устав</td><td><a href="#" title="раскрыть цитату">записка · s12</a></td><td class="green">принят</td>
+    <td class="acts"><button class="i" title="к месту: RE-0003" aria-label="к месту"><svg class="ic"><use href="#i-place"/></svg></button></td></tr>
+   <tr><td><input type="checkbox" aria-label="F-0168"></td><td>P95 доставки на этапе 1 — не более</td><td>120 мин</td><td title="[В] — вывод разбора">В</td><td>экспертный</td><td><a href="#">ТЗ Приморья · s7</a></td><td class="amber">противоречит <a href="#" title="то же утверждение с иным значением; решает человек">F-0164</a></td>
+    <td class="acts"><button class="i" title="принять как значение проекта" aria-label="принять"><svg class="ic"><use href="#i-check"/></svg></button><button class="i" title="отклонить с причиной" aria-label="отклонить"><svg class="ic"><use href="#i-x"/></svg></button><button class="i" title="в допущения" aria-label="в допущения"><svg class="ic"><use href="#i-clock"/></svg></button></td></tr>
+   <tr><td><input type="checkbox" aria-label="F-0171"></td><td>Класс B′ — трекинг вагонов, контейнеров и пломб</td><td>—</td><td>И</td><td>устав</td><td><a href="#">записка · s9</a></td><td class="green">принят</td>
+    <td class="acts"><button class="i" title="к месту: сервисы" aria-label="к месту"><svg class="ic"><use href="#i-place"/></svg></button></td></tr>
+   <tr><td><input type="checkbox" aria-label="F-0203"></td><td>Порог отсева вариантов по P95</td><td>&gt; 180 мин</td><td title="[П] — предположение модели">П</td><td>устав</td><td><a href="#">записка · s31</a></td><td class="muted">не решено</td>
+    <td class="acts"><button class="i" title="принять" aria-label="принять"><svg class="ic"><use href="#i-check"/></svg></button><button class="i" title="отклонить с причиной" aria-label="отклонить"><svg class="ic"><use href="#i-x"/></svg></button><button class="i" title="в допущения" aria-label="в допущения"><svg class="ic"><use href="#i-clock"/></svg></button></td></tr>
+  </tbody>
+ </table>
+
+ <div class="band closed"><button class="i" title="раскрыть факты этого предмета" aria-label="раскрыть"><svg class="ic"><use href="#i-closed"/></svg></button><b>Минтранс России</b><span class="n">фактов 9 · нерешённых 0</span><span class="sp"></span><button class="i" title="к месту: сторона SK-0001" aria-label="к месту"><svg class="ic"><use href="#i-place"/></svg></button></div>
+ <div class="band closed"><button class="i" title="раскрыть" aria-label="раскрыть"><svg class="ic"><use href="#i-closed"/></svg></button><b>Платформы 12U…100 кг</b><span class="n">фактов 4 · нерешённых 1</span><span class="sp"></span><button class="i" title="к месту: ограничение Р2" aria-label="к месту"><svg class="ic"><use href="#i-place"/></svg></button></div>
+
+ <div class="band"><b>Ручной ввод</b><span class="n">фактов 3 · сверка при сохранении</span></div>
+ <table><tbody>
+  <tr><td style="width:28px"></td><td><input placeholder="предмет" style="width:180px" aria-label="предмет"> <input placeholder="утверждение" style="width:300px" aria-label="утверждение"></td><td><input placeholder="120" style="width:60px" aria-label="значение"> <select aria-label="единица"><option>мин</option><option>ч</option><option>КА</option></select></td><td>П</td><td>экспертный</td><td class="muted">вы · сейчас</td><td class="muted">сверка: дубликат? противоречие? — скажет сервер</td><td class="acts"><button class="btn primary"><svg class="ic"><use href="#i-plus"/></svg> завести</button></td></tr>
+ </tbody></table>
+
+ <div class="mass"><b>выбрано 0</b><span class="muted">отметьте строки — действия появятся здесь; A принять · R отклонить · L отложить</span><span class="k">↑ ↓ · Space · Shift · Esc</span></div>
+</div>
+</div>
+
+<!-- ======================= 3. КАРТОЧКА ОБЪЕКТА · требование ======================= -->
+<div>
+<h1>Карточка объекта <small>требование RE-0003 из реестра — вниз от строки; грани из истины: label · widgets · note · required_at</small></h1>
+<p class="note">Та же карточка у стороны, нужды, узла, стыка, бюджета, риска, термина, документа и паспорта проекта — меняются только грани. Первые семь видны, остальное — «ещё N полей». Подсказка истины — под полем, не в плейсхолдере.</p>
+<div class="screen" style="padding-bottom:14px">
+ <table>
+  <thead><tr><th style="width:28px"></th><th>Код</th><th>Заголовок</th><th>Формулировка</th><th>Показатель</th><th>Носитель</th><th>Состояние</th><th></th></tr></thead>
+  <tbody>
+   <tr><td><input type="checkbox" aria-label="RE-0002"></td><td class="mono">RE-0002</td><td>Приём пакетов терминалов</td><td>Когда терминал в зоне видимости, система должна принять пакет и подтвердить приём.</td><td class="muted">не нужен</td><td>Космический сегмент</td><td><i class="m"></i>черновик</td><td class="acts"><button class="i" title="карточка" aria-label="карточка"><svg class="ic"><use href="#i-card"/></svg></button></td></tr>
+   <tr class="cur"><td><input type="checkbox" aria-label="RE-0003"></td><td class="mono">RE-0003</td><td>Латентность класса B′, этап 1</td><td>Система должна доставлять сообщение класса B′ с P95 не более 180 мин на этапе 1.</td><td>≤ 180 мин</td><td>Система</td><td><i class="m debt"></i>черновик · линт 1</td><td class="acts"><button class="i" title="свернуть" aria-label="свернуть"><svg class="ic"><use href="#i-open"/></svg></button></td></tr>
+   <tr><td colspan="8" style="padding:0">
+    <div class="card">
+     <div class="head"><span class="mono">RE-0003</span><h3>Латентность класса B′, этап 1</h3><span><i class="m debt"></i>черновик</span><span class="meta">версия 3 · Чернов Д. · 25.09 · <span class="amber" title="L-C2: два условия в одной формулировке — рекомендация, не запрет">линт 1</span></span>
+      <span class="acts"><button class="i" title="история правок" aria-label="история"><svg class="ic"><use href="#i-hist"/></svg></button><button class="i" title="к месту: сцена 8" aria-label="к месту"><svg class="ic"><use href="#i-place"/></svg></button><button class="i" title="снять с обоснованием" aria-label="снять"><svg class="ic"><use href="#i-minus"/></svg></button></span></div>
+     <div class="facets">
+      <div class="facet" style="grid-column:1/3"><label>Формулировка</label><textarea>Система должна доставлять сообщение класса B′ с P95 не более 180 мин на этапе 1.</textarea><div class="hint">EARS: «Система должна …» → шаблон «всегда» определён по форме; линт рекомендует, не запирает</div></div>
+      <div class="facet"><label>Уровень</label><select><option>проектное</option><option>сценарное</option><option>системное</option></select><div class="hint">умолчание проекта; уровень ниже — деривацией на A4</div></div>
+      <div class="facet"><label>Категория</label><select><option>характеристика</option><option>функциональное</option><option>ограничение</option><option>безопасность</option></select></div>
+      <div class="facet"><label>Показатель</label><div class="row"><select aria-label="оператор"><option>≤</option><option>≥</option><option>=</option><option>&lt;</option><option>&gt;</option><option>~</option></select><input value="180" aria-label="число"><select aria-label="единица"><option>мин · время</option><option>ч · время</option><option>% · доля</option></select></div><div class="hint">обязателен для характеристик; единица — из справочника; «180» без единицы не сохраняется</div></div>
+      <div class="facet"><label>Носитель</label><input value="Система" aria-label="носитель"><div class="hint">узел состава, стык или цепочка — пикер с поиском по коду и имени</div></div>
+      <div class="facet"><label>Источник</label><div>Записка миссии · s12 · [И] <a href="#" title="раскрыть цитату">цитата</a></div><div class="hint">собирается из оснований предложения; правится только заменой основания</div></div>
+      <div class="facet"><label>Метод верификации</label><select><option>— TBD (допустим до SRR)</option><option>испытание</option><option>анализ</option><option>инспекция</option><option>демонстрация</option></select></div>
+      <div class="facet"><label>Критерий приёмки</label><input placeholder="P95 по журналу сеансов за 30 суток ≤ 180 мин" aria-label="критерий приёмки"><div class="hint">к базированию</div></div>
+      <div class="facet"><label>Приоритет</label><select><option>— не задан</option><option>высокий</option><option>средний</option><option>низкий</option></select></div>
+      <div class="facet"><a href="#" title="Обоснование · Нормативное основание · Цели · Связи">ещё 4 поля</a></div>
+     </div>
+     <div class="debt"><b>к базированию:</b> Приоритет · Критерий приёмки &nbsp;·&nbsp; <b>к SRR:</b> Метод верификации</div>
+     <div style="margin-top:10px;display:flex;gap:10px;align-items:center"><button class="btn primary"><svg class="ic"><use href="#i-check"/></svg> сохранить</button><span class="saved">сохранено, версия 3</span></div>
+    </div>
+   </td></tr>
+  </tbody>
+ </table>
+</div>
+</div>
+
+<p class="note">Что здесь нарочно отсутствует: панели ради панелей, статусы цветной заливкой, коды перечислений, плейсхолдеры как содержимое, третья колонка, второе меню кнопками-ссылками, строка группы внутри таблицы.</p>
+</body></html>
