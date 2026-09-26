@@ -12,6 +12,7 @@ import {
 } from './api'
 import { Source } from './knowledgefield'
 import { РеестрОграничений } from './registry/constraints'
+import { Реестр } from './registry/registry'
 import { КЛАССЫ, useПостановка } from './registry/data'
 import { РеестрЦелей } from './registry/goals'
 import { РеестрНужд } from './registry/needs'
@@ -575,23 +576,22 @@ function КритерииОценкиМиссии({ project, onChanged }: { proj
         Чем сравнивать варианты на сцене 7: критерий называется здесь, порог — числом к сцене 7 (до него TBR). Выход мероприятия 0.5, минимум — ноль.
       </span>
       {отказ && <div className="v2-locked">{отказ}</div>}
+      {/* Шип 5 §6: поверхность сцены — компонент реестра, таблиц в scenes.tsx нет. */}
       {критерии.length > 0 && (
-        <table className="v2-table">
-          <thead><tr><th>Критерий</th><th>Группа</th><th>Хуже, если</th><th>Порог</th></tr></thead>
-          <tbody>
-            {критерии.map((к) => (
-              <tr key={к.code}>
-                <td><span className="v2-mono">{к.key}</span> {к.title}</td>
-                <td>{ГРУППА[к.group] ?? к.group}</td>
-                <td>{к.worse_if === 'less' ? 'меньше' : 'больше'}</td>
-                <td>
-                  <input type="number" defaultValue={к.threshold ?? ''} placeholder="TBR" aria-label={`порог критерия ${к.key}`}
-                    onBlur={(e) => порог(к, e.target.value)} style={{ width: 90 }} />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <Реестр label="критерии оценки миссии" строки={критерии} ключ={(к) => к.key}
+          колонки={[
+            { key: 'критерий', title: 'Критерий', cell: (к) => <><span className="v2-mono">{к.key}</span> {к.title}</> },
+            { key: 'группа', title: 'Группа', cell: (к) => ГРУППА[к.group] ?? к.group },
+            { key: 'хуже', title: 'Хуже, если', cell: (к) => (к.worse_if === 'less' ? 'меньше' : 'больше') },
+            {
+              key: 'порог', title: 'Порог', hint: 'число к сцене 7; до него — TBR',
+              cell: (к) => (
+                <input type="number" defaultValue={к.threshold ?? ''} placeholder="TBR" aria-label={`порог критерия ${к.key}`}
+                  onBlur={(e) => порог(к, e.target.value)} style={{ width: 90 }} />
+              ),
+            },
+          ]}
+          пусто="Критериев пока нет." />
       )}
       {нехватает.length > 0 && (
         <div className="v2-form__actions">

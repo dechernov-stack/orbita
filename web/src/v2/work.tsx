@@ -58,6 +58,12 @@ export function Work({ project, onProject, wantScene, wantReason, onScenePicked,
   const [отказ, setОтказ] = useState<string | null>(null)
   /** Причина перехода держится, пока человек её не закроет: она и есть задание. */
   const [зачем, setЗачем] = useState<string | null>(null)
+  /** Окна и ответственные сцен из плана работ фазы: шапка сцены — одна строка (шип 5 §6). */
+  const [окна, setОкна] = useState<{ scene: string; start: string; end: string; responsible?: string }[]>([])
+  useEffect(() => {
+    if (!project) { setОкна([]); return }
+    api.plan(project).then((п) => setОкна(п.scene_windows ?? [])).catch(() => setОкна([]))
+  }, [project])
 
   /**
    * Подвести к карточке, о которой речь: её ИМЯ есть в причине перехода
@@ -240,11 +246,28 @@ export function Work({ project, onProject, wantScene, wantReason, onScenePicked,
         {схемаСцены && (
           <>
             <h1 className="v2-scene__h">{текущая.key} · {текущая.title}</h1>
+            {/*
+              Шапка сцены — одна строка (шип 5 §6): исполнитель · окно ·
+              ответственный; входы — там же, маркерами со словами.
+            */}
             <div className="v2-scene__ctx" data-why={почему('контекст')?.зачем} title={почему('контекст')?.почему}>
-              <span>
+              <span title="исполнитель сцены — роль шаблона фазы">
                 {РОЛЬ[текущая.role] ?? текущая.role}
                 {роль === текущая.role ? ' — вы ведёте' : ''}
               </span>
+              {(() => {
+                const окно = окна.find((о) => о.scene === текущая.key)
+                const начало = окно?.start ?? текущая.window?.start
+                const конец = окно?.end ?? текущая.window?.end
+                return (
+                  <>
+                    <span title="окно сцены по плану работ фазы">{начало && конец ? `окно ${начало} – ${конец}` : 'окно не задано'}</span>
+                    <span title="ответственный за сцену: назначается на сцене 1, в A1 и в паспорте">
+                      {окно?.responsible ? `ответственный ${окно.responsible}` : 'ответственный не назначен'}
+                    </span>
+                  </>
+                )
+              })()}
               {текущая.entry.length > 0 && (
                 <span>
                   вход:{' '}

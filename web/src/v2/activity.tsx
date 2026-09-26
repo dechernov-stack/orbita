@@ -19,6 +19,7 @@ import { api, type Activity, type DocHint, type Phase, type Scene, type SceneSug
 import { DocumentBody } from './documents'
 import { ResearchPanel } from './research'
 import { пунктыРейки, составЭкрана, type Блок, type ПунктРейки, type Режим } from './density'
+import { Маркер as МаркерЗдоровья } from './ui/tabs'
 
 /**
  * Сцены, у которых есть внешний контур полноты: 3 стороны · 4 повестка ·
@@ -208,10 +209,26 @@ export function ActivityScreen({
             <ResearchPanel project={project} trigger={{ scene: scene.key }}
               onChanged={() => { перечитатьПредложения(); onChanged?.() }} />
           )}
-          {children}
+          <div id="v2-act-surface">{children}</div>
         </div>
 
+        {/*
+          Строка выходов (шип 5 §6): «не даёт завершить» — первым и с дорогой к
+          месту (поверхность сцены выше); выходы — маркерами со словами.
+        */}
         <div className="v2-act2__foot" data-why={почему('выходы')?.зачем}>
+          {держит && (
+            <span className="v2-bad" title={держатВсе.join('; ')}>
+              <МаркерЗдоровья health="block" title="держит завершение сцены" />
+              не даёт завершить: {держит}
+              {держатВсе.length > 1 && ` (и ещё ${держатВсе.length - 1})`}
+              {' '}
+              <button type="button" className="v2-link" title="к месту: поверхность сцены, где это закрывается"
+                onClick={() => document.getElementById('v2-act-surface')?.scrollIntoView({ block: 'start', behavior: 'smooth' })}>
+                к месту
+              </button>
+            </span>
+          )}
           <span>
             <span className="v2-dim">выходы: </span>
             {свои.length === 0 && чужие.length === 0 && <span className="v2-dim">не заданы</span>}
@@ -225,6 +242,7 @@ export function ActivityScreen({
               <span key={в.kind + в.what} className={в.satisfied ? 'v2-ok' : 'v2-warn'}
                 title={в.satisfied ? `${в.what}: есть` : `${в.what}: не хватает ${в.min - в.count}`}>
                 {i > 0 && ' · '}
+                <МаркерЗдоровья health={в.satisfied ? 'ok' : 'debt'} title={в.satisfied ? 'выход есть' : 'выхода не хватает'} />
                 {в.what} {в.count}{в.min > 0 && ` из ${в.min}`}
                 {!в.satisfied && в.min > 0 && ` — не хватает ${в.min - в.count}`}
               </span>
@@ -234,14 +252,7 @@ export function ActivityScreen({
             ))}
           </span>
           <span className="v2-act2__sp" />
-          {держит
-            ? (
-              <span className="v2-bad" title={держатВсе.join('; ')}>
-                не даёт завершить: {держит}
-                {держатВсе.length > 1 && ` (и ещё ${держатВсе.length - 1})`}
-              </span>
-            )
-            : <span className="v2-ok">условия выполнены</span>}
+          {!держит && <span className="v2-ok"><МаркерЗдоровья health="ok" title="условия выхода выполнены" />условия выполнены</span>}
         </div>
         {вДокумент.length > 0 && (
           <div className="v2-act2__doc" data-why={почему('документ')?.зачем}
