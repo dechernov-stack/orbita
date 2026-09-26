@@ -102,6 +102,8 @@ internal object KindJson {
         // Кто и когда написал (шип 5 §5): «кто · когда · движок» у текста раздела.
         .put("author", т.author)
         .put("at", т.at)
+        // Секунды вызова — из журнала ИИ по отпечатку промпта (ответ владельца 26.09).
+        .put("seconds", т.seconds)
         .also { у ->
             у.putArray("refusals").also { а -> т.refusals.forEach { а.add(it) } }
             у.putArray("notes").also { а -> т.notes.forEach { а.add(it) } }

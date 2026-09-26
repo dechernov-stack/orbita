@@ -601,7 +601,7 @@ class EntityDocuments(
         // одной дорогой, и сторож стережёт обоих одинаково.
         val промпт = prepareWrite(project, code, section)
         val (текст, модель) = писать(project, промпт.prompt)
-        return applyWrite(project, code, section, author, текст, модель)
+        return applyWrite(project, code, section, author, текст, модель, orbita.kernel.api.Fingerprints.prompt(промпт.prompt))
     }
 
     override fun prepareWrite(project: String, code: String, section: String): WritePrompt {
@@ -616,7 +616,15 @@ class EntityDocuments(
         return WritePrompt(section, раздел.title, LiveRender.prompt(вид.title, раздел, сведения, обороты))
     }
 
-    override fun applyWrite(project: String, code: String, section: String, author: String, text: String, model: String): RenderedSection {
+    override fun applyWrite(
+        project: String,
+        code: String,
+        section: String,
+        author: String,
+        text: String,
+        model: String,
+        promptFingerprint: String?,
+    ): RenderedSection {
         val шаблон = шаблонИли(code)
         val вид = document(project, code)
         val раздел = вид.sections.firstOrNull { it.no == section }
@@ -637,6 +645,9 @@ class EntityDocuments(
             документ.put("section", section)
             документ.put("text", чистый)
             документ.put("model", model)
+            // Отпечаток промпта (истина `rendering.prompt_fingerprint`): по нему
+            // у текста видны секунды вызова из журнала ИИ.
+            promptFingerprint?.let { документ.put("prompt_fingerprint", it) }
             документ.put("at", java.time.OffsetDateTime.now().toString())
             val прежний = store.byCode(область, код)
             if (прежний == null) {
@@ -724,7 +735,7 @@ class EntityDocuments(
         )
     }
 
-    private fun рендеринг(з: orbita.kernel.api.Entity, заголовок: String): RenderedSection = RenderedSection(
+    private fun рендеринг(з: orbita.kernel.api.Entity, заголовок: String, секунды: Map<String, Double> = emptyMap()): RenderedSection = RenderedSection(
         section = з.doc.path("section").asText(""),
         title = заголовок,
         text = з.doc.path("text").asText(""),
@@ -736,13 +747,20 @@ class EntityDocuments(
         acceptedAt = з.doc.path("accepted_at").asText("").ifBlank { null },
         author = з.provenance.author,
         at = з.updatedAt.toString(),
+        seconds = секунды[з.doc.path("prompt_fingerprint").asText("")],
     )
 
     override fun renderings(project: String, code: String): List<RenderedSection> {
         val разделы = document(project, code).sections.associate { it.no to it.title }
-        return store.list(Area.Project(project), "rendering")
+        val область = Area.Project(project)
+        // Секунды вызова — из журнала ИИ по отпечатку промпта: журнал читается
+        // один раз на документ, а не по запросу на раздел.
+        val секунды = store.list(область, "ai_call")
+            .filter { it.doc.path("seconds").isNumber }
+            .associate { it.doc.path("fingerprint").asText("") to it.doc.path("seconds").asDouble() }
+        return store.list(область, "rendering")
             .filter { it.doc.path("document").asText() == code }
-            .map { з -> рендеринг(з, разделы[з.doc.path("section").asText()] ?: "") }
+            .map { з -> рендеринг(з, разделы[з.doc.path("section").asText()] ?: "", секунды) }
             .sortedBy { it.section }
     }
 }

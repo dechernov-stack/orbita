@@ -16,7 +16,6 @@ import orbita.kernel.api.Area
 import orbita.kernel.api.Channel
 import orbita.kernel.api.EntityStore
 import orbita.kernel.api.Provenance
-import java.security.MessageDigest
 import java.time.OffsetDateTime
 
 class JournalService(
@@ -119,7 +118,6 @@ class JournalService(
             )
         }
 
-    private fun отпечатокПромпта(prompt: String): String =
-        MessageDigest.getInstance("SHA-256").digest(prompt.toByteArray())
-            .joinToString("") { "%02x".format(it) }.take(32)
+    /** Отпечаток промпта — общий с записью связного текста (`orbita.kernel.api.Fingerprints`). */
+    private fun отпечатокПромпта(prompt: String): String = orbita.kernel.api.Fingerprints.prompt(prompt)
 }

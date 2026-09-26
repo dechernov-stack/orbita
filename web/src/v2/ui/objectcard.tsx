@@ -268,7 +268,7 @@ function Грань({ project, spec, поле, значение, свой, то�
         : свой
           ? свой({ id, значение, занято, onSave })
           : <Контрол project={project} spec={spec} поле={поле} id={id} значение={значение} занято={занято} onSave={onSave} />}
-      {spec.notes?.[поле] && <div className="v2-facet__hint">{spec.notes[поле]}</div>}
+      {(spec.note_words?.[поле] ?? spec.notes?.[поле]) && <div className="v2-facet__hint">{spec.note_words?.[поле] ?? spec.notes[поле]}</div>}
       {итог && <div className={итог.ошибка ? 'v2-facet__err' : 'v2-facet__ok'}>{итог.итог}</div>}
     </div>
   )

@@ -364,6 +364,8 @@ export interface KindSpec {
   enum_labels: Record<string, Record<string, string>>
   /** Примечание поля словами истины: «обязателен для performance» у показателя. */
   notes: Record<string, string>
+  /** Примечания для показа: коды полей и значений — словами истины (ответ владельца 26.09). */
+  note_words?: Record<string, string>
   /** Операторы величины: код записи → знак для экрана («>=» → «≥»). */
   measure_ops: Record<string, string>
   /** Виджет поля карточки объекта (`field_rules.widgets`): measure · enum · ref · refs · text · str · list · number · bool · date · table · object · computed. */
@@ -980,6 +982,8 @@ export interface RenderedSection {
   /** Кто и когда написал текст (провенанс рендеринга): «кто · когда · движок» у раздела. */
   author?: string | null
   at?: string | null
+  /** Секунды вызова, которым текст написан, — из журнала ИИ (`ai_call.seconds`); нет — null. */
+  seconds?: number | null
 }
 
 /** Правка изложения: что стояло, что стало, кто и когда (шип 4 §4). */

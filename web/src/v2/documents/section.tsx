@@ -13,6 +13,12 @@ import { датаКратко, ктоКратко } from '../ui/objectcard'
 import { Маркер, type Здоровье } from '../ui/tabs'
 
 /** Статус связного текста маркером: черновик — долг, отрецензирован — долг, принят — в порядке. */
+/** Секунды связного текста словами: из журнала ИИ, иначе — секундами окна, где он только что написан. */
+export function секундыСвязного(изЖурнала: number | null | undefined, вОкне: number | null): string | null {
+  const секунд = изЖурнала ?? вОкне
+  return секунд === null || секунд === undefined ? null : `${секунд} с`
+}
+
 export function здоровьеТекста(статус: string): Здоровье {
   return статус === 'accepted' ? 'ok' : 'debt'
 }
@@ -216,7 +222,8 @@ export function Раздел({ раздел, подсвечен, onGoScene, onGo
             <span>{СЛОВО_РЕНДЕРИНГА[текст.status] ?? текст.status}</span>
             <span className="v2-dim">
               {[ктоКратко(текст.author ?? undefined), датаКратко(текст.at ?? undefined), текст.model,
-                секундыПисьма !== null ? `${секундыПисьма} с` : null].filter(Boolean).join(' · ')}
+                // Секунды — из журнала ИИ (ответ владельца 26.09); только что написанный — секундами окна.
+                секундыСвязного(текст.seconds, секундыПисьма)].filter(Boolean).join(' · ')}
               {текст.reviewer ? ` · рецензент ${текст.reviewer}` : ''}
             </span>
           </div>

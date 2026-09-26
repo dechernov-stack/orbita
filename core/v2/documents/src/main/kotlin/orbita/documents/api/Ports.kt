@@ -191,6 +191,12 @@ data class RenderedSection(
     /** Кто написал текст и когда (провенанс записи рендеринга): «кто · когда · движок» у текста раздела. */
     val author: String? = null,
     val at: String? = null,
+    /**
+     * Секунды живого вызова, которым текст написан, — из журнала ИИ
+     * (`ai_call.seconds`) по отпечатку промпта (ответ владельца 26.09).
+     * Пусто — текст написан до отпечатка либо вызов не журналирован.
+     */
+    val seconds: Double? = null,
 ) {
     val accepted: Boolean get() = refusals.isEmpty()
 }
@@ -293,7 +299,16 @@ interface Documents {
     fun prepareWrite(project: String, code: String, section: String): WritePrompt
 
     /** Применить ответ модели: сторож чисел и квалификаторов, принятое — хранится. */
-    fun applyWrite(project: String, code: String, section: String, author: String, text: String, model: String): RenderedSection
+    fun applyWrite(
+        project: String,
+        code: String,
+        section: String,
+        author: String,
+        text: String,
+        model: String,
+        /** Отпечаток промпта (`Fingerprints.prompt`): по нему текст находит свой вызов в журнале ИИ. */
+        promptFingerprint: String? = null,
+    ): RenderedSection
 
     /** Принятые связные тексты разделов документа. */
     fun renderings(project: String, code: String): List<RenderedSection>

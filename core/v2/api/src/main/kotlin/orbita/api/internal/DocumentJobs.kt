@@ -117,7 +117,10 @@ class DocumentJobs(
         val ответ = задание.answer ?: return вид(задание)
         try {
             if (!ответ.cached) service?.record(задание.project, "document_render", задание.prompt.orEmpty(), ответ)
-            задание.result = documents.applyWrite(задание.project, задание.document, задание.section.orEmpty(), задание.author, ответ.text, ответ.model)
+            задание.result = documents.applyWrite(
+                задание.project, задание.document, задание.section.orEmpty(), задание.author, ответ.text, ответ.model,
+                promptFingerprint = orbita.kernel.api.Fingerprints.prompt(задание.prompt.orEmpty()),
+            ).let { текст -> if (текст.seconds == null && ответ.seconds != null) текст.copy(seconds = ответ.seconds) else текст }
             println("orbita documents: связный текст ${задание.document} ${задание.section} — ${ответ.model}, ${ответ.tokensIn ?: 0}/${ответ.tokensOut ?: 0} токенов, ${ответ.seconds ?: 0.0} с${if (ответ.cached) " (из журнала)" else ""}")
         } catch (e: Exception) {
             задание.error = "ответ получен, но не принят: ${e.message}"

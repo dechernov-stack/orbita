@@ -58,6 +58,21 @@ class ObjectCardDtoTest {
     }
 
     @Test
+    fun `подсказка поля для показа — коды полей и значений словами истины, сама истина как есть`() {
+        // Ответ владельца 26.09 (вопрос §7 шипа 5): код поля в примечании — его label.
+        val узел = роутер.handle("GET", "/v2/kinds/component", emptyMap(), null)!!.body
+        val род = узел.path("note_words").path("nature").asText()
+        assertTrue("поведение (ПО)" in род && "узел (железо)" in род, род)
+        assertTrue("behaviour" !in род && " node" !in род, род)
+        assertTrue("behaviour" in узел.path("notes").path("nature").asText(), "истина не меняется: примечание как есть")
+        val проект = роутер.handle("GET", "/v2/kinds/project", emptyMap(), null)!!.body
+        assertTrue("«Текущая фаза»" in проект.path("note_words").path("phase_template").asText(), проект.path("note_words").toString())
+        val риск = роутер.handle("GET", "/v2/kinds/risk", emptyMap(), null)!!.body
+        val срок = риск.path("note_words").path("due_point").asText()
+        assertTrue("gate.kind" !in срок && "(точка / ворота)" in срок, срок)
+    }
+
+    @Test
     fun `строка перечня несёт версию, автора и время, история — версии с изменёнными полями`() {
         val запись = store.create("SK-0001", "stakeholder", Area.Project(проект), "3",
             mapper.createObjectNode().put("name", "Минтранс России").put("role", "customer"), Provenance(Channel.MANUAL, "Петрова М."), status = "accepted")

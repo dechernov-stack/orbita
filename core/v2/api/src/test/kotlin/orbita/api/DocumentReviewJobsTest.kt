@@ -98,7 +98,14 @@ class DocumentReviewJobsTest {
         assertEquals("модель-фона", готово.path("result").path("model").asText())
         assertEquals(1, вызовов, "один вызов сети")
         assertEquals(1, store.list(Area.Project("PJ-9840"), "ai_call").size, "вызов записан в журнал на потоке запросов")
-        assertEquals(1, router.handle("GET", "/v2/documents/mcreport/renderings", п, null)!!.body.path("items").size())
+        val тексты = router.handle("GET", "/v2/documents/mcreport/renderings", п, null)!!.body.path("items")
+        assertEquals(1, тексты.size())
+        // Ответ владельца 26.09: секунды связного текста — из журнала ИИ по отпечатку промпта.
+        assertTrue(тексты[0].path("seconds").isNumber, "секунды вызова у текста раздела: ${тексты[0]}")
+        assertEquals(
+            store.list(Area.Project("PJ-9840"), "ai_call").single().doc.path("seconds").asDouble(),
+            тексты[0].path("seconds").asDouble(), "те же секунды, что в журнале",
+        )
 
         // Тот же раздел снова — ответ из журнала: задание готово сразу, второго вызова нет.
         val повтор = router.handle("POST", "/v2/documents/mcreport/write", п, """{"section":"§1","author":"Иванов И.","background":true}""")!!
