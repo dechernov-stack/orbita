@@ -2,14 +2,15 @@
 // сверху, умные наборы, диапазон Shift-кликом, клавиатура без мыши,
 // предпросмотр последствий, решения по строкам и снятие принятия выборкой.
 import { describe, expect, it } from 'vitest'
-import экран from './knowledgefield.tsx?raw'
+import экран from './knowledge/proposals.tsx?raw'
 import клиент from './api.ts?raw'
 
 describe('группы и наборы', () => {
   it('«требует внимания» стоит отдельной группой сверху и в пакет не идёт', () => {
-    expect(экран).toContain('<span className="v2-card__title">Требует внимания</span>')
+    // Шип 5 §3.3: группы — полосами, «требует внимания» — первой полосой.
+    expect(экран).toContain('subject="Требует внимания"')
     expect(экран).toContain('Эти строки в пакет не идут никогда')
-    const внимание = экран.indexOf('<span className="v2-card__title">Требует внимания</span>')
+    const внимание = экран.indexOf('subject="Требует внимания"')
     const группы = экран.indexOf('{ГРУППЫ.map(([ключ, слово, зачем]) => {')
     expect(внимание).toBeGreaterThan(0)
     expect(внимание).toBeLessThan(группы)

@@ -706,7 +706,7 @@ function Baselines({ project, code, title, gate }: {
  * Счётчики по родам расхождения и слова рода приходят с сервера: клиент их
  * не считает и второго словаря не заводит.
  */
-function FieldCheck({ project, code, вид, onJump }: {
+export function FieldCheck({ project, code, вид, onJump }: {
   project: string
   code: string
   вид: DocView

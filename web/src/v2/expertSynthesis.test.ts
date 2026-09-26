@@ -4,13 +4,14 @@
 // документа и получал 26 предложений из 50 элементов среза. Путь по
 // умолчанию — «Прочитать документ»; старая кнопка остаётся эксперту.
 import { describe, expect, it } from 'vitest'
-import экран from './knowledgefield.tsx?raw'
+import экран from './knowledge/proposals.tsx?raw'
 import оболочка from './shell.tsx?raw'
 
 describe('старый синтез — только эксперт-режим', () => {
   it('кнопка синтеза из среза стоит под флагом expert', () => {
-    const кусок = экран.slice(экран.indexOf('function Постановка'), экран.indexOf('Принять все, кроме требующих внимания'))
-    const кнопка = кусок.indexOf('Сформировать постановку из среза поля')
+    // Шип 5 §3.3: кнопка — в шапке прогона, пиктограммой со словом.
+    const кусок = экран.slice(экран.indexOf('function Постановка'))
+    const кнопка = кусок.indexOf("'сформировать постановку из среза поля'")
     expect(кнопка).toBeGreaterThan(0)
     const флаг = кусок.lastIndexOf('{expert && (', кнопка)
     expect(флаг).toBeGreaterThan(0)

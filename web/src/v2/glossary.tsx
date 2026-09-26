@@ -225,7 +225,7 @@ export function GlossaryScreen({ project }: { project: string | null }) {
  * пунктам нормативов и фактам с фильтрами по роли документа и рангу; индекс
  * перестраивается кнопкой — после разбора документа он перестраивается сам.
  */
-function ПоискПоБазе({ project }: { project: string }) {
+export function ПоискПоБазе({ project }: { project: string }) {
   const [слова, setСлова] = useState('')
   const [роль, setРоль] = useState('')
   const [ранг, setРанг] = useState('')

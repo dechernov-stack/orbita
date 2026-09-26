@@ -6,6 +6,7 @@ import словарь from './glossary.tsx?raw'
 import постановка from './formulation.tsx?raw'
 import знания from './knowledgefield.tsx?raw'
 import факты from './knowledge/facts.tsx?raw'
+import план from './knowledge/plan.tsx?raw'
 import документы from './documents.tsx?raw'
 import оболочка from './shell.tsx?raw'
 import { буквыТерминов, перваяБуква, источникКоротко } from './glossary'
@@ -62,7 +63,8 @@ describe('поле знаний: факты по предмету, против�
     expect(факты).toContain('<РаскрытьВсе все={полосы.все}')
     expect(факты).toContain('противоречит {ф.conflicts!.slice(0, 3).map')
     expect(факты).toContain('id={`v2-fact-${к}`}')
-    expect(знания).toContain('к месту: Словарь')
+    expect(план).toContain('к месту: Словарь')
+    expect(знания).toContain('onGoGlossary={onGoGlossary}')
     expect(оболочка).toContain("onGoGlossary={() => setSection('glossary')}")
   })
 })

@@ -5,7 +5,7 @@
 // перечни значений — из истины схем (`kind.enums`), правка уезжает вместе с
 // приёмом. Значений в коде экрана нет — иначе перечень разошёлся бы с истиной.
 import { describe, expect, it } from 'vitest'
-import экран from './knowledgefield.tsx?raw'
+import экран from './knowledge/proposals.tsx?raw'
 import апи from './api.ts?raw'
 
 describe('правка предложения в постановке', () => {

@@ -2,7 +2,8 @@
 // партия каталога, библиотека проекта, карта пробелов — на экране.
 import { describe, expect, it } from 'vitest'
 import досье from './dossier.tsx?raw'
-import знания from './knowledgefield.tsx?raw'
+import документыПоля from './knowledge/documents.tsx?raw'
+import источник from './knowledge/source.tsx?raw'
 import { разделыКанона } from './dossier'
 
 describe('досье документа', () => {
@@ -36,10 +37,11 @@ describe('досье документа', () => {
     expect(досье).toContain('api.takeMaterial(project, откуда, код)')
   })
   it('поле знаний: досье под строкой документа, карта пробелов у устава и после загрузки', () => {
-    expect(знания).toContain("import { ВзятьИзПроекта, Досье, КартаПробелов, Партия } from './dossier'")
-    expect(знания).toContain('<Досье project={project} code={м.code} onChanged={перечитать} onError={onError} />')
-    expect(знания).toContain("м.role === 'charter' && (")
-    expect(знания).toContain('setПробелы(м.gaps ? { code: м.code, карта: м.gaps } : null)')
-    expect(знания).toContain('<Партия project={project} ранг={ранг} роль={рольДок}')
+    // Шип 5 §3: вкладки поля знаний — своими файлами (knowledge/*.tsx).
+    expect(документыПоля).toContain("from '../dossier'")
+    expect(документыПоля).toContain('<Досье project={project} code={м.code} onChanged={изменилось} onError={onError} />')
+    expect(документыПоля).toContain("м.role === 'charter' && (")
+    expect(источник).toContain('setПробелы(м.gaps ? { code: м.code, карта: м.gaps } : null)')
+    expect(источник).toContain('<Партия project={project} ранг={ранг} роль={рольДок}')
   })
 })

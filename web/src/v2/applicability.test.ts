@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import экран from './applicability.tsx?raw'
 import постановка from './formulation.tsx?raw'
 import знания from './knowledgefield.tsx?raw'
+import источник from './knowledge/source.tsx?raw'
 import { api } from './api'
 
 describe('применимость на постановке', () => {
@@ -20,8 +21,8 @@ describe('применимость на постановке', () => {
     expect(экран).not.toContain('window.confirm')
   })
   it('выгрузка картины — срез по задаче, ссылка архивом с отпечатком', () => {
-    expect(знания).toContain('<ВыгрузкаКартины project={project ?? \'\'} />')
-    expect(знания).toContain('api.pictureTasks()')
+    expect(знания).toContain('<ВыгрузкаКартины project={project} />')
+    expect(источник).toContain('api.pictureTasks()')
     expect(api.pictureZipUrl('PJ-1', 'reading')).toBe('/api/v2/export/picture.zip?project=PJ-1&task=reading')
   })
 })

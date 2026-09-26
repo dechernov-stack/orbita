@@ -13,6 +13,15 @@
 import { describe, expect, it } from 'vitest'
 import требования from './requirements.tsx?raw'
 import поле from './knowledgefield.tsx?raw'
+import документыПоля from './knowledge/documents.tsx?raw'
+import фактыПоля from './knowledge/facts.tsx?raw'
+import ручнойВвод from './knowledge/manual.tsx?raw'
+import предложения from './knowledge/proposals.tsx?raw'
+import источник from './knowledge/source.tsx?raw'
+import карточка from './ui/objectcard.tsx?raw'
+import стороны from './registry/stakeholders.tsx?raw'
+import нужды from './registry/needs.tsx?raw'
+import допущения from './registry/assumptions.tsx?raw'
 import режимы from './modes.tsx?raw'
 
 /** Код без комментариев: слово «label» в объяснении — не разметка. */
@@ -36,7 +45,13 @@ function величинаВЛейбле(код: string): string[] {
 }
 
 describe('поле из нескольких контролов — не один label', () => {
-  it.each([['requirements', требования], ['knowledgefield', поле], ['modes', режимы]] as [string, string][])(
+  // Шип 5 §9: сторож — и на новых поверхностях: вкладки поля знаний, реестры постановки, карточка объекта.
+  it.each([
+    ['requirements', требования], ['knowledgefield', поле], ['modes', режимы],
+    ['knowledge/documents', документыПоля], ['knowledge/facts', фактыПоля], ['knowledge/manual', ручнойВвод],
+    ['knowledge/proposals', предложения], ['knowledge/source', источник], ['ui/objectcard', карточка],
+    ['registry/stakeholders', стороны], ['registry/needs', нужды], ['registry/assumptions', допущения],
+  ] as [string, string][])(
     '%s: ряд из нескольких контролов не стоит внутри label',
     (_имя, код) => { expect(величинаВЛейбле(код)).toEqual([]) },
   )
