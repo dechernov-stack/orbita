@@ -372,7 +372,7 @@ export function Shell() {
           ) : section === 'models' ? (
             <Models project={project} />
           ) : section === 'documents' ? (
-            <Documents project={project}
+            <Documents project={project} expert={expert}
               onGoScene={(сцена, зачем) => {
                 setWantScene(сцена); setWantReason(зачем ?? null); setSection('work')
               }}

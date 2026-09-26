@@ -92,6 +92,22 @@ async function сцены(стр, раздел, роль, ширина) {
   }
 }
 
+/**
+ * Открыть что-то кнопкой раздела (шип 5 §5: документ из комплекта) и снять
+ * «<раздел>~открыто-…»: кнопка ищется по её имени для чтения экрана.
+ */
+async function открытьКнопкой(стр, раздел, роль, ширина, имя) {
+  const кнопка = стр.locator(`main button[aria-label="${имя}"]`).first()
+  if (!(await кнопка.count())) return
+  await кнопка.click()
+  await стр.waitForLoadState('networkidle', { timeout: 6000 }).catch(() => {})
+  await стр.waitForTimeout(план.pauseMs ?? 900)
+  const файл = `${раздел.file}~открыто-${роль.file}-${ширина}.png`
+  await стр.screenshot({ path: `${план.out}/${файл}` })
+  итог.push({ file: файл, section: раздел.title, role: роль.file, width: ширина })
+  console.log(`  ${файл}`)
+}
+
 /** Первая свёрнутая полоса группы (шип 5 §1.2) — раскрытой, у верхнего края. */
 async function полоса(стр, раздел, роль, ширина) {
   const кнопка = стр.locator('main .v2-band button[aria-expanded="false"]').first()
@@ -143,6 +159,7 @@ for (const ширина of план.widths) {
       console.log(`  ${имя}`)
       if ((план.cardSections ?? []).includes(раздел.title)) await карточка(стр, раздел, роль, ширина)
       if ((план.bandSections ?? []).includes(раздел.title)) await полоса(стр, раздел, роль, ширина)
+      if ((план.open ?? {})[раздел.title]) await открытьКнопкой(стр, раздел, роль, ширина, план.open[раздел.title])
       if ((план.tabSections ?? []).includes(раздел.title)) await вкладки(стр, раздел, роль, ширина)
       if (раздел.title === 'Работа' && (план.scenes ?? []).length > 0) await сцены(стр, раздел, роль, ширина)
     }

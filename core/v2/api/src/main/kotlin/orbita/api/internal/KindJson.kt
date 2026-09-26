@@ -99,6 +99,9 @@ internal object KindJson {
         .put("status", т.status)
         .put("reviewer", т.reviewer)
         .put("accepted_at", т.acceptedAt)
+        // Кто и когда написал (шип 5 §5): «кто · когда · движок» у текста раздела.
+        .put("author", т.author)
+        .put("at", т.at)
         .also { у ->
             у.putArray("refusals").also { а -> т.refusals.forEach { а.add(it) } }
             у.putArray("notes").also { а -> т.notes.forEach { а.add(it) } }

@@ -237,6 +237,7 @@ class DocRoutes(
         .put("baselines", вид.baselines)
         .put("baseline_name", вид.baselineName)
         .put("baseline_at", вид.baselineAt)
+        .put("releases", вид.releases)
 
     private fun полностью(вид: DocumentView): ObjectNode {
         val узел = кратко(вид)

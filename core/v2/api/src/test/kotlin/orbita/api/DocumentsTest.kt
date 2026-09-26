@@ -120,6 +120,8 @@ class DocumentsTest {
         val список = router.handle("GET", "/v2/documents", п, null)!!.body
         val строка = список.path("items").first { it.path("code").asText() == "mcreport" }
         assertEquals("mcreport", строка.path("template").asText(), "у строки списка есть шаблон: $строка")
+        // Шип 5 §5: колонка «Выпусков» комплекта — записи истины `release`; их пока нет.
+        assertEquals(0, строка.path("releases").asInt(-1), "выпусков у строки списка: $строка")
 
         val первый = раздел(документ, "§1")
         assertTrue(первый.path("complete").asBoolean(), "сцены 2–4 прожиты — §1 полон: ${первый.path("waiting")}")

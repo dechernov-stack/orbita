@@ -114,6 +114,9 @@ class DocumentReviewJobsTest {
         router.handle("POST", "/v2/documents/mcreport/write", п, """{"section":"§1","author":"Иванов И."}""")
         val было = router.handle("GET", "/v2/documents/mcreport/renderings", п, null)!!.body.path("items")[0]
         assertEquals("draft", было.path("status").asText())
+        // Шип 5 §5: у текста раздела — кто и когда его написал.
+        assertTrue(было.path("author").asText().isNotBlank(), было.toString())
+        assertTrue(было.path("at").asText().startsWith("20"), было.toString())
 
         val отказ = router.handle("POST", "/v2/documents/mcreport/review", п,
             """{"section":"§1","author":"Петрова М.","text":"Замысел обращён к перевозчикам: охват 98 % территории. Стороны миссии — Сторона 1, Сторона 2 и Сторона 3."}""")!!

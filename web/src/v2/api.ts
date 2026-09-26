@@ -977,6 +977,9 @@ export interface RenderedSection {
   patches: StylePatch[]
   reviewer: string | null
   accepted_at: string | null
+  /** Кто и когда написал текст (провенанс рендеринга): «кто · когда · движок» у раздела. */
+  author?: string | null
+  at?: string | null
 }
 
 /** Правка изложения: что стояло, что стало, кто и когда (шип 4 §4). */
@@ -1029,6 +1032,8 @@ export interface DocView {
   baselines: number
   baseline_name: string
   baseline_at: string
+  /** Выпусков документа (записи истины `release`): колонка «Выпусков» комплекта. */
+  releases?: number
   sections: DocSection[]
 }
 

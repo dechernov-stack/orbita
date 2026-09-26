@@ -615,3 +615,18 @@ td.v2-nowrap { white-space: nowrap; }
 
 /* «изменено» — под кодом своей строкой: код не рвётся посередине. */
 .v2-table--req td:nth-child(2) .v2-flag { display: block; width: fit-content; margin-top: 2px; }
+
+/* §5 Документ: слева список разделов 220 px, справа тело раздела. */
+.v2-doc__head { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 4px 0 8px; }
+.v2-doc__grid { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 20px; align-items: start; margin-top: 10px; }
+.v2-doc__nav { display: flex; flex-direction: column; border-right: 1px solid var(--graphite); padding-right: 8px; position: sticky; top: 8px; max-height: calc(100vh - 80px); overflow-y: auto; }
+.v2-doc__navi { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 2px 6px; align-items: center; text-align: left; border: 0; background: none; padding: 6px 4px; cursor: pointer; color: var(--ink); border-radius: 0; }
+.v2-doc__navi:hover { background: var(--paper); }
+.v2-doc__navi--on { box-shadow: inset 2px 0 0 var(--cobalt); background: var(--paper); }
+.v2-doc__navi--on .v2-doc__navt { font-weight: 600; }
+.v2-doc__navi > .v2-dim:last-child:not(:nth-child(3)) { grid-column: 2 / -1; font-size: var(--size-s); }
+.v2-doc__main { min-width: 0; }
+.v2-doc__panel { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 6px 0 10px; }
+.v2-doc__texthead { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 6px; }
+.v2-doc__patches ol { margin: 6px 0 0; padding-left: 18px; font-size: var(--size-s); }
+@media (max-width: 1100px) { .v2-doc__grid { grid-template-columns: minmax(0, 1fr); } .v2-doc__nav { position: static; max-height: none; border-right: 0; } }

@@ -7,7 +7,7 @@ import постановка from './formulation.tsx?raw'
 import знания from './knowledgefield.tsx?raw'
 import факты from './knowledge/facts.tsx?raw'
 import план from './knowledge/plan.tsx?raw'
-import документы from './documents.tsx?raw'
+import { ТЕКСТ_ДОКУМЕНТОВ as документы } from './test-support/documentsSource'
 import оболочка from './shell.tsx?raw'
 import { буквыТерминов, перваяБуква, источникКоротко } from './glossary'
 import { группыФактов, предметФакта } from './knowledgefield'
@@ -73,7 +73,7 @@ describe('документы: написать связно и честный с
   it('кнопка «написать связно» у раздела, отклонённый текст показан с причинами', () => {
     // Шип 4 §4: связный текст пишется фоновым заданием, экран опрашивает его.
     expect(документы).toContain('api.writeSectionJob(project, code, раздел.no')
-    expect(документы).toContain("написанное ? 'переписать связно' : 'написать связно'")
+    expect(документы).toContain("текст ? 'переписать связно' : 'написать связно'")
     expect(документы).toContain('текст отклонён сторожем')
     expect(документы).toContain('api.renderings(project, code)')
   })

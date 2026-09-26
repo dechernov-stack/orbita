@@ -103,6 +103,8 @@ data class DocumentView(
     val baselineName: String = "",
     /** День последней линии: «базирован 21.09», а не «когда-то». */
     val baselineAt: String = "",
+    /** Выпусков документа (записи истины `release`): колонка «Выпусков» комплекта (шип 5 §5). */
+    val releases: Int = 0,
 )
 
 /** Строка «в документ» для мероприятия: куда попадает его работа. */
@@ -186,6 +188,9 @@ data class RenderedSection(
     val patches: List<StylePatch> = emptyList(),
     val reviewer: String? = null,
     val acceptedAt: String? = null,
+    /** Кто написал текст и когда (провенанс записи рендеринга): «кто · когда · движок» у текста раздела. */
+    val author: String? = null,
+    val at: String? = null,
 ) {
     val accepted: Boolean get() = refusals.isEmpty()
 }

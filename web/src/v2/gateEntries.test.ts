@@ -6,7 +6,7 @@
 // и волны 4, звать их было нечем: базирование документа, отказы от объёма
 // (§9) и варианты построения (§2) не имели ни одной формы.
 import { describe, expect, it } from 'vitest'
-import документы from './documents.tsx?raw'
+import { ТЕКСТ_ДОКУМЕНТОВ as документы } from './test-support/documentsSource'
 import концепция from './concept.tsx?raw'
 import клиент from './api.ts?raw'
 import реестр from './risks.tsx?raw'
@@ -130,9 +130,10 @@ describe('где мы находимся', () => {
   })
 
   it('строка списка говорит, базирован документ или нет', () => {
-    expect(документы).toContain('базирован «${д.baseline_name}» · ${д.baseline_at}')
-    expect(документы).toContain("'не базирован'")
-    expect(документы).toContain('{д.complete} из {д.total} разделов полны к {д.gate}')
+    // Шип 5 §5: комплект таблицей — базовая линия колонкой, полнота маркером.
+    expect(документы).toContain('«{д.baseline_name}» · {д.baseline_at}')
+    expect(документы).toContain('не базирован')
+    expect(документы).toContain('{д.complete} из {д.total} к {д.gate}')
   })
 
   it('экран документа называет, чего ждёт от него точка', () => {
@@ -146,7 +147,7 @@ describe('дорога от раздела к сцене', () => {
   it('раздел, которого ждут, ведёт на свою сцену', () => {
     // «§2 Анализ альтернатив … ждёт сцен 7» — это адрес, а не жалоба:
     // без перехода человек читает его и не знает, куда идти (21.09).
-    expect(документы).toContain('к месту: сцена {с}')
+    expect(документы).toContain('слово={`к месту: сцена ${с}`}')
     expect(документы).toContain('onGoScene={onGoScene}')
     expect(оболочка).toContain('setWantReason(зачем ?? null)')
     expect(работа).toContain('Сюда вас послал документ')

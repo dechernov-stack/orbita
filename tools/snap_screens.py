@@ -72,6 +72,8 @@ def снять(args) -> pathlib.Path:
         "cardSections": [р.strip() for р in args.card.split(",")] if args.card else [],
         "scenes": [с.strip() for с in args.scenes.split(",")] if args.scenes else [],
         "bandSections": [р.strip() for р in args.band.split(",")] if args.band else [],
+        # «Раздел=имя кнопки»: открыть кнопкой (документ из комплекта) и снять открытое.
+        "open": dict(п.split("=", 1) for п in args.open.split(",")) if args.open else {},
     }
     with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8") as f:
         json.dump(план, f, ensure_ascii=False)
@@ -163,6 +165,7 @@ def main() -> int:
     с.add_argument("--card", default=None, help="разделы, у которых снимается карточка первой строки реестра")
     с.add_argument("--scenes", default=None, help="сцены работы, каждая своим снимком: 3,4,5,6")
     с.add_argument("--band", default=None, help="разделы, у которых снимается первая полоса группы раскрытой")
+    с.add_argument("--open", default=None, help="«Раздел=имя кнопки»: открыть кнопкой и снять, например Документы=открыть документ")
     с.add_argument("--widths", default=None, help="1440,1280")
     с.add_argument("--expert", action="store_true", help="с --sections: снимать и эксперт-разделы из списка")
     с.add_argument("--before", default=None, help="папка «до» для листа парами")

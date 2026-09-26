@@ -132,7 +132,9 @@ class EntityDocuments(
         // Линии документа идут ВМЕСТЕ с ним: список документов иначе молчит о
         // том, что документ уже базирован, и готовность видна только внутри.
         val линии = baselines(project, code)
+        val выпуски = store.list(Area.Project(project), "release").count { it.doc.path("document").asText() == code }
         return DocumentView(
+            releases = выпуски,
             code = code,
             title = шаблон.path("title").asText(code),
             template = code,
@@ -732,6 +734,8 @@ class EntityDocuments(
         patches = патчи(з.doc),
         reviewer = з.doc.path("reviewer").asText("").ifBlank { null },
         acceptedAt = з.doc.path("accepted_at").asText("").ifBlank { null },
+        author = з.provenance.author,
+        at = з.updatedAt.toString(),
     )
 
     override fun renderings(project: String, code: String): List<RenderedSection> {

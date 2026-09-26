@@ -1,7 +1,7 @@
 // Документы живьём (шип 4 §4): связный текст и печать фоновыми заданиями,
 // рецензия патчами с «принять как есть», ссылка на PDF по готовому заданию.
 import { describe, expect, it } from 'vitest'
-import экран from './documents.tsx?raw'
+import { ТЕКСТ_ДОКУМЕНТОВ as экран } from './test-support/documentsSource'
 import { api, СЛОВО_РЕНДЕРИНГА } from './api'
 
 describe('документы живьём', () => {
@@ -12,11 +12,13 @@ describe('документы живьём', () => {
     expect(экран).toContain('текст отклонён сторожем:')
   })
   it('рецензия патчами: править изложение · сохранить правку · принять как есть', () => {
-    expect(экран).toContain('aria-label="рецензия"')
+    // Шип 5 §5: панель раздела — пиктограмма и слово.
+    expect(экран).toContain('слово="править изложение"')
+    expect(экран).toContain('слово="принять как есть"')
     expect(экран).toContain("api.reviewSection(project, code, раздел.no, правка, 'инженер')")
     expect(экран).toContain("api.acceptRendering(project, code, 'инженер', раздел.no)")
     expect(экран).toContain('правка отклонена сторожем:')
-    expect(экран).toContain("написанное.status !== 'accepted'")
+    expect(экран).toContain("текст.status !== 'accepted'")
     expect(СЛОВО_РЕНДЕРИНГА.accepted).toBe('принят')
   })
   it('печать — фоновым заданием, файл по job; движок назван в ссылке', () => {
