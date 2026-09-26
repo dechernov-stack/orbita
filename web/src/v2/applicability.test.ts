@@ -1,14 +1,17 @@
 // Применимость и выгрузка картины (шип 4 §5) на экране.
 import { describe, expect, it } from 'vitest'
 import экран from './applicability.tsx?raw'
-import постановка from './coverage.tsx?raw'
+import постановка from './formulation.tsx?raw'
 import знания from './knowledgefield.tsx?raw'
 import { api } from './api'
 
 describe('применимость на постановке', () => {
   it('вкладка на подменю постановки; матрица — вердикт словом, граница устава у «не наш профиль», решение своим окном', () => {
-    expect(постановка).toContain("{ key: 'применимость', word: 'Применимость'")
-    expect(постановка).toContain('<Применимость project={project} />')
+    expect(постановка).toContain("применимость: 'Применимость'")
+    expect(постановка).toContain('<Применимость project={project} onChanged={перечитать} />')
+    // Шип 5 §2: отбор чипами по вердикту, действия строки — пиктограммой со словом.
+    expect(экран).toContain('label="отбор по вердикту"')
+    expect(экран).toContain('<ИконКнопка икон="принять" слово="принять применимость"')
     expect(экран).toContain('aria-label="матрица применимости"')
     expect(экран).toContain('с.charter_boundary && (')
     expect(экран).toContain("input: { label: 'почему это не наш случай', required: true }")

@@ -11,8 +11,11 @@
 // Правка на месте: «сохранено, версия N» или «ничего не изменилось»
 // словами; отказ сервера — его словами у поля.
 import { useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { api, type EntityRow, type KindSpec, type UnitRow } from '../api'
+import { api, type EntityRow, type EntityVersion, type KindSpec, type UnitRow } from '../api'
+import { СЛОВО_СТАТУСА } from '../words'
 import { ПлотностьКонтекст, колонокГраней } from './density'
+import { ИконКнопка } from './iconbutton'
+import { Маркер } from './tabs'
 
 /** Поля ядра: колонки записи и служебные пометы — гранями карточки не бывают. */
 export const ПОЛЯ_ЯДРА = new Set(['id', 'code', 'kind', 'area', 'born_in', 'status', 'version', 'provenance', 'created_at', 'updated_at', 'notes', 'tags'])
@@ -70,13 +73,34 @@ export function виджет(spec: KindSpec, поле: string): string {
 
 type Сохранение = { поле: string; итог: string; ошибка?: boolean }
 
+/** Кто правил — человеком: «правка инженера: Иванов И. — причина» → «Иванов И.». */
+export function ктоКратко(автор: string | undefined): string {
+  if (!автор) return ''
+  const без = автор.replace(/^правка инженера:\s*/, '')
+  const i = без.indexOf(' — ')
+  return (i < 0 ? без : без.slice(0, i)).trim()
+}
+
+/** Дата записи коротко: 24.09 (год виден в истории). */
+export function датаКратко(когда: string | undefined): string {
+  if (!когда) return ''
+  const [г, м, д] = когда.slice(0, 10).split('-')
+  return д && м && г ? `${д}.${м}` : когда
+}
+
+/** «версия N · кто · когда» из строки перечня; пусто — если сервер версию не прислал. */
+export function метаЗаписи(row: EntityRow): string {
+  if (row.version == null) return ''
+  return [`версия ${row.version}`, ктоКратко(row.author), датаКратко(row.updated_at)].filter(Boolean).join(' · ')
+}
+
 /** Значение ссылки словами: код и имя записи, если она известна пикеру. */
 function имяЗаписи(р: EntityRow): string {
   const д = р.doc
   return String(д.name ?? д.title ?? д.statement ?? д.designation ?? д.label ?? р.code)
 }
 
-export function Карточка({ project, row, spec, заголовок, состояние, мета, actions, extra, скрыть = [], толькоЧтение = [], onSaved, onClose }: {
+export function Карточка({ project, row, spec, заголовок, состояние, мета, actions, extra, скрыть = [], толькоЧтение = [], кМесту, onSaved, onClose }: {
   project: string
   row: EntityRow
   spec: KindSpec
@@ -94,6 +118,8 @@ export function Карточка({ project, row, spec, заголовок, со�
   скрыть?: string[]
   /** Поля только для чтения: их считает система. */
   толькоЧтение?: string[]
+  /** «К месту»: сцена, где запись рождается и правится в потоке работы. */
+  кМесту?: { слово: string; go: () => void }
   onSaved?: () => void
   onClose?: () => void
 }) {
@@ -107,6 +133,16 @@ export function Карточка({ project, row, spec, заголовок, со�
   const видны = плотность.эксперт || всеПоля ? список : список.slice(0, ГРАНЕЙ_СРАЗУ)
   const скрыто = список.length - видны.length
   const долги = долг(spec, row.doc)
+  const [история, setИстория] = useState<EntityVersion[] | null>(null)
+  const [историяОтказ, setИсторияОтказ] = useState<string | null>(null)
+  const показатьИсторию = () => {
+    if (история) { setИстория(null); return }
+    setИсторияОтказ(null)
+    api.entityHistory(project, row.code)
+      .then((r) => setИстория(r.items))
+      .catch((e) => setИсторияОтказ(String((e as Error).message ?? e)))
+  }
+  const строкаМеты = мета ?? метаЗаписи(row)
 
   useEffect(() => {
     const esc = (e: KeyboardEvent) => { if (e.key === 'Escape' && onClose) onClose() }
@@ -135,10 +171,30 @@ export function Карточка({ project, row, spec, заголовок, со�
       <div className="v2-object__head">
         <span className="v2-mono">{row.code}</span>
         <h3>{заголовок ?? имяЗаписи(row)}</h3>
-        {состояние}
-        {мета && <span className="v2-object__meta">{мета}</span>}
-        {actions && <span className="v2-object__acts">{actions}</span>}
+        {состояние ?? (
+          <span className="v2-object__state">
+            <Маркер health={долги.length > 0 ? 'debt' : 'ok'} title={долги.length > 0 ? 'есть долг: строка внизу карточки' : 'долгов нет'} />
+            {СЛОВО_СТАТУСА[row.status] ?? row.status}
+          </span>
+        )}
+        {строкаМеты && <span className="v2-object__meta">{строкаМеты}</span>}
+        <span className="v2-object__acts">
+          {actions}
+          <ИконКнопка икон="история" слово={история ? 'скрыть историю' : 'история правок'} aria-pressed={история !== null} onClick={показатьИсторию} />
+          {кМесту && <ИконКнопка икон="к-месту" слово={кМесту.слово} onClick={кМесту.go} />}
+        </span>
       </div>
+      {историяОтказ && <div className="v2-facet__err">{историяОтказ}</div>}
+      {история && (
+        <ol className="v2-object__history" aria-label={`история ${row.code}`}>
+          {история.map((в) => (
+            <li key={в.version}>
+              <b>версия {в.version}</b> · {ктоКратко(в.author) || 'без автора'} · {датаКратко(в.at)}
+              {в.changed.length > 0 && <span className="v2-object__meta"> · {в.changed.map((п) => spec.labels?.[п] ?? п).join(', ')}</span>}
+            </li>
+          ))}
+        </ol>
+      )}
       <div className={`v2-object__facets v2-object__facets--${колонок}`}>
         {видны.map((поле) => (
           <Грань key={поле} project={project} spec={spec} поле={поле} значение={row.doc[поле]}
@@ -147,7 +203,6 @@ export function Карточка({ project, row, spec, заголовок, со�
             итог={сохранение?.поле === поле ? сохранение : null}
             onSave={(з) => сохранить(поле, з)} />
         ))}
-        {extra}
         {скрыто > 0 && (
           <div className="v2-facet">
             <button type="button" className="v2-link" onClick={() => setВсеПоля(true)}
@@ -156,6 +211,7 @@ export function Карточка({ project, row, spec, заголовок, со�
             </button>
           </div>
         )}
+        {extra}
       </div>
       {долги.length > 0 && (
         <div className="v2-object__debt">

@@ -1,112 +1,24 @@
-// Сцены 1–4 Pre-A (СЦЕНАРИЙ-PRE-A). Каждая сцена — один вопрос и его выход.
+// Сцены 1–6 Pre-A (СЦЕНАРИЙ-PRE-A). Каждая сцена — один вопрос и его выход.
 //
 // Ни одна сцена не решает, открыта ли она: это сказал сервер. Здесь только
-// формы и списки, встроенные в рамку.
-import React, { useEffect, useRef, useState } from 'react'
+// формы ввода; поверхности сцен 3–6 — ТЕ ЖЕ реестры, что на Постановке
+// (registry/*.tsx, шип 5 §2): второй копии таблицы сторон, нужд, целей,
+// сервисов и ограничений здесь нет.
+import { useEffect, useRef, useState } from 'react'
 import { ConfirmBox, useConfirm } from '../ui/Confirm'
 import {
   api, ServerRefusal,
-  type EntityRow, type ReconcileAction, type ReconcileCandidate, type ReconcileItem, type ReconcileRun,
+  type ReconcileAction, type ReconcileCandidate, type ReconcileItem, type ReconcileRun,
 } from './api'
 import { Source } from './knowledgefield'
-import { интересы } from './interests'
+import { РеестрОграничений } from './registry/constraints'
+import { КЛАССЫ, useПостановка } from './registry/data'
+import { РеестрЦелей } from './registry/goals'
+import { РеестрНужд } from './registry/needs'
+import { РеестрСервисов } from './registry/services'
+import { РеестрСторон } from './registry/stakeholders'
 import { ДЕЙСТВИЕ_СВЕРКИ } from './words'
 import { запомнитьАвтора, запомнитьРоль, отказСловами, прочитатьАвтора, прочитатьРоль } from './research'
-
-/**
- * З-03: правка принятой сущности на месте — карандаш в строке, поля в той же
- * строке, новая версия с провенансом «правка инженера». Пустое значение
- * снимает поле. Что править — задаёт вызывающая сцена списком полей.
- */
-type Поле = {
-  key: string; label: string; kind?: 'text' | 'number' | 'select'; options?: [string, string][]
-  /** Обязательное по истине схем: пустого варианта у него нет — снять его нельзя. */
-  обязательное?: boolean
-}
-
-function ПравкаСтроки({ project, row, поля, colSpan, onSaved, onCancel }: {
-  project: string; row: EntityRow; поля: Поле[]; colSpan: number; onSaved: () => void; onCancel: () => void
-}) {
-  // Составное значение (TBR у класса нужды: {owner, gate}) строкой не
-  // показывается: поле начинается пустым, а не с «[object Object]».
-  const начальное = (значение: unknown): string =>
-    значение == null || typeof значение === 'object' ? '' : String(значение)
-  // Интересы стороны — список {statement, quote?}: в строке правки они через
-  // «;», а цитаты нетронутых интересов сервер сохраняет сам.
-  const исходные = Object.fromEntries(поля.map((п) => [
-    п.key,
-    п.key === 'interest' ? интересы(row.doc[п.key]).map((и) => и.statement).join('; ') : начальное(row.doc[п.key]),
-  ]))
-  const [значения, setЗначения] = useState<Record<string, string>>(исходные)
-  const [занято, setЗанято] = useState(false)
-  const [отказ, setОтказ] = useState<string | null>(null)
-  // Правится то, что ТРОНУЛИ. Поле, которого инженер не касался, в запрос не
-  // идёт: иначе правка формулировки снимала бы соседнее поле пустым значением
-  // (класс обслуживания нужды с его ответственным за TBR — ровно этот случай).
-  const тронутые = поля.filter((п) => значения[п.key] !== исходные[п.key])
-  const сохранить = () => {
-    setЗанято(true); setОтказ(null)
-    const fields: Record<string, unknown> = {}
-    тронутые.forEach((п) => {
-      const v = значения[п.key]
-      fields[п.key] = п.kind === 'number' ? (v === '' ? '' : Number(v)) : v
-    })
-    api.patchEntity(project, row.code, fields, 'инженер')
-      .then(() => { setЗанято(false); onSaved() })
-      .catch((e) => { setЗанято(false); setОтказ(String(e.message ?? e)) })
-  }
-  return (
-    <tr className="v2-row--edit">
-      <td colSpan={colSpan}>
-        <div className="v2-form v2-form--row" data-why="работа">
-          <span className="v2-mono">{row.code}</span>
-          {поля.map((п) => (
-            <label key={п.key} title={п.label}>
-              {п.label}
-              {п.kind === 'select' ? (
-                <select value={значения[п.key]} onChange={(e) => setЗначения({ ...значения, [п.key]: e.target.value })}>
-                  {/* Обязательное поле пустым не становится: снять его нельзя,
-                      можно только заменить — сервер отвечает тем же. */}
-                  {п.обязательное ? null : <option value="">—</option>}
-                  {/* Значение вне перечня показывается как есть: «—» на месте
-                      настоящего класса означало бы, что его нет. */}
-                  {значения[п.key] !== '' && !(п.options ?? []).some(([v]) => v === значения[п.key])
-                    ? <option value={значения[п.key]}>{значения[п.key]}</option>
-                    : null}
-                  {п.обязательное && значения[п.key] === ''
-                    ? <option value="">— не назначен —</option>
-                    : null}
-                  {(п.options ?? []).map(([v, t]) => <option key={v} value={v}>{t}</option>)}
-                </select>
-              ) : (
-                <input type={п.kind === 'number' ? 'number' : 'text'} value={значения[п.key]}
-                  onChange={(e) => setЗначения({ ...значения, [п.key]: e.target.value })} />
-              )}
-            </label>
-          ))}
-          <button type="button" className="v2-primary" onClick={сохранить}
-            disabled={занято || тронутые.length === 0}
-            title={занято ? 'сохраняю'
-              : тронутые.length === 0 ? 'ничего не изменено — править нечего'
-                : 'сохранить новой версией — провенанс «правка инженера»'}>Сохранить</button>
-          <button type="button" onClick={onCancel} title="отменить правку, ничего не менять">Отмена</button>
-          {отказ && <span className="v2-locked">{отказ}</span>}
-        </div>
-      </td>
-    </tr>
-  )
-}
-
-function Карандаш({ onClick }: { onClick: () => void }) {
-  return <button type="button" className="v2-link" onClick={onClick} title="править на месте: новая версия, провенанс «правка инженера»">✎</button>
-}
-
-const РОЛИ_СТОРОН: [string, string][] = [
-  ['customer', 'заказчик'], ['regulator', 'регулятор'], ['operator', 'оператор'], ['consumer', 'потребитель'],
-  ['supplier', 'поставщик'], ['partner', 'партнёр'], ['established', 'учреждаемый'],
-]
-const ВЛИЯНИЕ: [string, string][] = [['decides', 'решает'], ['influences', 'влияет'], ['informed', 'информируется']]
-const ОТНОШЕНИЕ: [string, string][] = [['supports', 'поддерживает'], ['neutral', 'нейтрален'], ['resists', 'сопротивляется']]
 
 /** Сцена 1 — открыть проект. Точки заводятся сразу, с датами по умолчанию. */
 export function SceneOpenProject({ onOpened }: { onOpened: (project: string) => void }) {
@@ -461,8 +373,7 @@ function ПанельСверки({ project, run, автор, onApplied }: {
 
 /** Сцена 3 — стейкхолдеры и их нужды: у каждой нужды есть носитель. */
 export function SceneStakeholders({ project, onChanged }: { project: string; onChanged: () => void }) {
-  const [стороны, setСтороны] = useState<EntityRow[]>([])
-  const [нужды, setНужды] = useState<EntityRow[]>([])
+  const { данные, перечитать } = useПостановка(project, { факты: true })
   const [имя, setИмя] = useState('')
   const [роль, setРоль] = useState('customer')
   const [нужда, setНужда] = useState('')
@@ -471,12 +382,7 @@ export function SceneStakeholders({ project, onChanged }: { project: string; onC
   /** Что сказала сверка о сохранённом: провенанс ручного факта эксперта. */
   const [след, setСлед] = useState<string | null>(null)
   const сверка = useСверка(project)
-
-  const перечитать = () => {
-    api.entities(project, 'stakeholder').then((r) => setСтороны(r.items)).catch(() => undefined)
-    api.entities(project, 'need').then((r) => setНужды(r.items)).catch(() => undefined)
-  }
-  useEffect(перечитать, [project])
+  const изменилось = () => { перечитать(); onChanged() }
 
   // Ворота поля знаний v2: введённое попадает в модель только со ссылкой на
   // сверку и решением человека. На проекте без флага полей в теле просто нет
@@ -498,8 +404,7 @@ export function SceneStakeholders({ project, onChanged }: { project: string; onC
         сверка.убрать('c2')
         сверка.забыть('c2')
         setСлед(карточка ? `сторона заведена · ${провенанс(карточка.source)}` : null)
-        перечитать()
-        onChanged()
+        изменилось()
       })
       .catch((e) => setОтказ(отказСловами(e)))
   }
@@ -516,8 +421,7 @@ export function SceneStakeholders({ project, onChanged }: { project: string; onC
         сверка.убрать('c1')
         сверка.забыть('c1')
         setСлед(карточка ? `нужда заведена · ${провенанс(карточка.source)}` : null)
-        перечитать()
-        onChanged()
+        изменилось()
       })
       .catch((e) => setОтказ(отказСловами(e)))
   }
@@ -541,10 +445,6 @@ export function SceneStakeholders({ project, onChanged }: { project: string; onC
 
   const карточкаНужды = сверка.предмет('c1')
   const держит = карточкаНужды?.blocking ?? []
-
-  const нуждыСтороны = (id: string) => нужды.filter((n) => (n.owned_by ?? []).includes(id))
-  const [правка, setПравка] = useState<string | null>(null)
-  const [открыта, setОткрыта] = useState<string | null>(null)
 
   return (
     <div>
@@ -576,138 +476,30 @@ export function SceneStakeholders({ project, onChanged }: { project: string; onC
         </div>
       )}
       <div className="v2-form v2-form--row">
-        <input value={имя} placeholder="Минтранс России"
+        <input value={имя} placeholder="Минтранс России" aria-label="новая сторона"
           onChange={(e) => { const текст = e.target.value; setИмя(текст); вОчередьСтороны(текст, роль) }}
           onBlur={сверка.сверить} />
-        <select value={роль} title="роль стороны в проекте"
+        <select value={роль} title="роль стороны в проекте" aria-label="роль новой стороны"
           onChange={(e) => { const что = e.target.value; setРоль(что); вОчередьСтороны(имя, что) }}>
-          <option value="customer">заказчик</option>
-          <option value="regulator">регулятор</option>
-          <option value="operator">оператор</option>
-          <option value="consumer">потребитель</option>
-          <option value="partner">партнёр</option>
-          <option value="established">учреждаемый</option>
+          {(данные.виды.stakeholder?.enums?.role ?? ['customer', 'regulator', 'operator', 'consumer', 'partner', 'established']).map((к) => (
+            <option key={к} value={к}>{данные.виды.stakeholder?.enum_labels?.role?.[к] ?? к}</option>
+          ))}
         </select>
         <button type="button" onClick={добавитьСторону} disabled={!имя.trim()}
           title={имя.trim() ? 'завести сторону' : 'назовите сторону'}>Добавить сторону</button>
       </div>
 
-      <table className="v2-table">
-        <thead><tr><th>Код</th><th>Сторона</th><th>Роль · влияние</th><th>Нужды</th></tr></thead>
-        <tbody>
-          {стороны.map((с) => открыта === с.code && правка !== с.code ? (
-            <React.Fragment key={с.id}>
-              <tr className="v2-card-row">
-                <td className="v2-mono">{с.code} <Карандаш onClick={() => setПравка(с.code)} /> <button type="button" className="v2-link" onClick={() => setОткрыта(null)} title="свернуть карточку">▴</button></td>
-                <td colSpan={3}>
-                  <div className="v2-card__body" data-why="работа">
-                    <div><b>{String(с.doc.name ?? '')}</b> · роль {РОЛИ_СТОРОН.find(([v]) => v === с.doc.role)?.[1] ?? String(с.doc.role ?? '')}
-                      {с.doc.scale ? <span> · масштаб {String(с.doc.scale)}</span> : null}</div>
-                    <div>влияние: {ВЛИЯНИЕ.find(([v]) => v === с.doc.influence)?.[1] ?? <span className="v2-warn">не задано — карандаш</span>}
-                      {с.doc.power ? <span> · сила {String(с.doc.power)} из 5</span> : null}
-                      {с.doc.attitude ? <span> · {ОТНОШЕНИЕ.find(([v]) => v === с.doc.attitude)?.[1]}</span> : null}</div>
-                    {интересы(с.doc.interest).length > 0 ? (
-                      <div>интересы ({интересы(с.doc.interest).length}):
-                        {/*
-                          Интерес — не нужда (истина 24.09, interest_to_need_rule):
-                          нуждой он становится только решением человека — кнопка
-                          кладёт формулировку в строку нужды и отправляет её на
-                          сверку, а заводит нужду человек по находке.
-                        */}
-                        <ul>{интересы(с.doc.interest).map((и, i) => (
-                          <li key={i}>
-                            {и.statement}
-                            {и.quote ? <span className="v2-muted"> · «{и.quote}»</span> : null}
-                            {' '}<button type="button" className="v2-link"
-                              onClick={() => { setНужда(и.statement); setНоситель(с.code); вОчередьНужды(и.statement, с.code); setОткрыта(null) }}
-                              title="нужда из интереса — решением: формулировка уйдёт на сверку, заводит нужду человек по находке">→ нужда</button>
-                          </li>
-                        ))}</ul>
-                      </div>
-                    ) : null}
-                    <div>нужды ({нуждыСтороны(с.id).length}):
-                      {нуждыСтороны(с.id).length === 0 ? <span className="v2-warn"> нет — сцена не закроется</span> : null}
-                      {/*
-                        Карандаш у нужды стоит и ЗДЕСЬ, в карточке, а не только
-                        в свёрнутой строке: владелец открывал карточку и видел
-                        нужды простым текстом — «редактируется влияние и всё
-                        остальное, а нужды нет» (16.09). Правит их тот же
-                        редактор строки, поэтому карточка сворачивается: второй
-                        формы правки не заводим, чтобы они не разошлись.
-                      */}
-                      <ul>{нуждыСтороны(с.id).map((n) => (
-                        <li key={n.id}>
-                          {String(n.doc.statement ?? '')}
-                          <span className="v2-muted"> · класс {классСловами(n.doc.qos_class) || 'TBR'}</span>
-                          {n.doc.notes ? <span className="v2-muted"> · {String(n.doc.notes)}</span> : null}
-                          {' '}<Карандаш onClick={() => { setОткрыта(null); setПравка(n.code) }} />
-                        </li>
-                      ))}</ul>
-                    </div>
-                    {с.doc.notes ? <div className="v2-muted">основания: {String(с.doc.notes)}</div> : null}
-                    <div className="v2-muted">версия {String((с as unknown as { version?: number }).version ?? '')} · статус {с.status}</div>
-                  </div>
-                </td>
-              </tr>
-            </React.Fragment>
-          ) : правка === с.code ? (
-            <ПравкаСтроки key={с.id} project={project} row={с} colSpan={4}
-              поля={[
-                { key: 'name', label: 'имя' }, { key: 'role', label: 'роль', kind: 'select', options: РОЛИ_СТОРОН },
-                { key: 'interest', label: 'интересы (через ;)' },
-                { key: 'influence', label: 'влияние', kind: 'select', options: ВЛИЯНИЕ }, { key: 'power', label: 'сила 1–5', kind: 'number' },
-                { key: 'attitude', label: 'отношение', kind: 'select', options: ОТНОШЕНИЕ },
-              ]}
-              onSaved={() => { setПравка(null); перечитать(); onChanged() }} onCancel={() => setПравка(null)} />
-          ) : (
-            <tr key={с.id}>
-              <td className="v2-mono">{с.code} <Карандаш onClick={() => setПравка(с.code)} /> <button type="button" className="v2-link" onClick={() => setОткрыта(с.code)} title="карточка стороны: кто и какой, влияние, нужды, основания">▾</button></td>
-              <td>{String(с.doc.name ?? '')}</td>
-              <td>
-                {String(с.doc.role ?? '')}
-                {с.doc.influence ? <span className="v2-muted"> · {String(с.doc.influence)}{с.doc.power ? ` ${String(с.doc.power)}` : ''}</span> : null}
-              </td>
-              <td>
-                {нуждыСтороны(с.id).length === 0
-                  ? <span className="v2-warn">нужд нет — сцена не закроется</span>
-                  : нуждыСтороны(с.id).map((n) => правка === n.code ? (
-                    <ПравкаСтроки key={n.id} project={project} row={n} colSpan={1}
-                      поля={[
-                        { key: 'statement', label: 'формулировка' },
-                        { key: 'qos_class', label: 'класс', kind: 'select', options: КЛАССЫ, обязательное: true },
-                      ]}
-                      onSaved={() => { setПравка(null); перечитать(); onChanged() }} onCancel={() => setПравка(null)} />
-                  ) : (
-                    <div key={n.id}>
-                      {String(n.doc.statement ?? '')}
-                      {классНазначен(n.doc.qos_class)
-                        ? <span className="v2-muted"> · класс {классСловами(n.doc.qos_class)}</span>
-                        : <span className="v2-muted" title="класс обслуживания назначается на сцене сервисов; здесь он ещё TBR">
-                            {' '}· класс {классСловами(n.doc.qos_class) || 'TBR'}
-                          </span>}
-                      {' '}<Карандаш onClick={() => setПравка(n.code)} />
-                    </div>
-                  ))}
-              </td>
-            </tr>
-          ))}
-          {стороны.length === 0 && (
-            <tr><td colSpan={4} className="v2-empty">
-              Сторон пока нет.
-              <span className="v2-empty__why">Круг шире потребителей: регуляторы, операторы, учреждаемые организации.</span>
-            </td></tr>
-          )}
-        </tbody>
-      </table>
+      <РеестрСторон project={project} данные={данные} onChanged={изменилось}
+        onНуждаИзИнтереса={(формулировка, код) => { setНужда(формулировка); setНоситель(код); вОчередьНужды(формулировка, код) }} />
 
       <div className="v2-form v2-form--row">
-        <input value={нужда} placeholder="перевозчику нужна телеметрия груза в пути"
+        <input value={нужда} placeholder="перевозчику нужна телеметрия груза в пути" aria-label="новая нужда"
           onChange={(e) => { const текст = e.target.value; setНужда(текст); вОчередьНужды(текст, носитель) }}
           onBlur={сверка.сверить} />
-        <select value={носитель} title="носитель нужды"
+        <select value={носитель} title="носитель нужды" aria-label="носитель новой нужды"
           onChange={(e) => { const кто = e.target.value; setНоситель(кто); вОчередьНужды(нужда, кто) }}>
           <option value="">— чья нужда —</option>
-          {стороны.map((с) => <option key={с.id} value={с.code}>{String(с.doc.name ?? с.code)}</option>)}
+          {данные.стороны.map((с) => <option key={с.id} value={с.code}>{String(с.doc.name ?? с.code)}</option>)}
         </select>
         <button type="button" onClick={добавитьНужду}
           disabled={!нужда.trim() || !носитель || держит.length > 0}
@@ -726,10 +518,11 @@ export function SceneStakeholders({ project, onChanged }: { project: string; onC
           onApplied={(итог) => {
             setСлед(итог)
             api.reconcileRun(project, сверка.run!.run).then(сверка.setRun).catch(() => undefined)
-            перечитать()
-            onChanged()
+            изменилось()
           }} />
       )}
+
+      <РеестрНужд project={project} данные={данные} onChanged={изменилось} />
     </div>
   )
 }
@@ -813,27 +606,18 @@ function КритерииОценкиМиссии({ project, onChanged }: { proj
 }
 
 export function SceneGoals({ project, onChanged }: { project: string; onChanged: () => void }) {
-  const [цели, setЦели] = useState<EntityRow[]>([])
-  const [нужды, setНужды] = useState<EntityRow[]>([])
-  /** Стороны — чтобы носителей нужды (связи owns) назвать кодами, а не идентификаторами. */
-  const [стороны, setСтороны] = useState<EntityRow[]>([])
+  const { данные, перечитать } = useПостановка(project)
+  const { нужды, стороны } = данные
   const [формулировка, setФормулировка] = useState('')
   const [год, setГод] = useState('2033')
   const [покрывает, setПокрывает] = useState<string[]>([])
   const [отказ, setОтказ] = useState<string | null>(null)
-  const [правка, setПравка] = useState<string | null>(null)
-
-  const перечитать = () => {
-    api.entities(project, 'goal').then((r) => setЦели(r.items)).catch(() => undefined)
-    api.entities(project, 'need').then((r) => setНужды(r.items)).catch(() => undefined)
-    api.entities(project, 'stakeholder').then((r) => setСтороны(r.items)).catch(() => undefined)
-  }
-  useEffect(перечитать, [project])
+  const изменилось = () => { перечитать(); onChanged() }
 
   const добавить = () => {
     setОтказ(null)
     api.addGoal(project, { statement: формулировка, year: Number(год), covers: покрывает })
-      .then(() => { setФормулировка(''); setПокрывает([]); перечитать(); onChanged() })
+      .then(() => { setФормулировка(''); setПокрывает([]); изменилось() })
       .catch((e) => setОтказ(String(e.message ?? e)))
   }
 
@@ -846,7 +630,7 @@ export function SceneGoals({ project, onChanged }: { project: string; onChanged:
    */
   const группыНужд = (() => {
     const ключ = (s: string) => s.toLowerCase().replace(/ё/g, 'е').replace(/[^\p{L}\p{N}]+/gu, ' ').trim()
-    const карта = new Map<string, { формулировка: string; копии: EntityRow[] }>()
+    const карта = new Map<string, { формулировка: string; копии: typeof нужды }>()
     нужды.forEach((n) => {
       const к = ключ(String(n.doc.statement ?? n.code))
       const г = карта.get(к) ?? { формулировка: String(n.doc.statement ?? n.code), копии: [] }
@@ -856,7 +640,7 @@ export function SceneGoals({ project, onChanged }: { project: string; onChanged:
   })()
   // Носители нужды — связями owns (истина 24.09: нужда — много носителей);
   // прежнее строковое поле stakeholder читается, пока копии не смигрированы.
-  const носитель = (n: EntityRow) => {
+  const носитель = (n: (typeof нужды)[number]) => {
     const поСвязям = (n.owned_by ?? []).map((id) => стороны.find((с) => с.id === id)?.code ?? id)
     if (поСвязям.length > 0) return поСвязям.join(', ')
     const с = n.doc.stakeholder
@@ -904,26 +688,7 @@ export function SceneGoals({ project, onChanged }: { project: string; onChanged:
         </div>
       </div>
 
-      <table className="v2-table">
-        <thead><tr><th>Код</th><th>Цель</th><th>Год</th><th>Закрывает нужд</th></tr></thead>
-        <tbody>
-          {цели.map((ц) => правка === ц.code ? (
-            <ПравкаСтроки key={ц.id} project={project} row={ц} colSpan={4}
-              поля={[{ key: 'statement', label: 'цель' }, { key: 'year', label: 'год', kind: 'number' }]}
-              onSaved={() => { setПравка(null); перечитать(); onChanged() }} onCancel={() => setПравка(null)} />
-          ) : (
-            <tr key={ц.id}>
-              <td className="v2-mono">{ц.code} <Карандаш onClick={() => setПравка(ц.code)} /></td>
-              <td>{String(ц.doc.statement ?? '')}</td>
-              <td>{String(ц.doc.year ?? '')}</td>
-              <td>{нужды.filter((n) => (n.covered_by ?? []).includes(ц.id)).length}</td>
-            </tr>
-          ))}
-          {цели.length === 0 && (
-            <tr><td colSpan={4} className="v2-empty">Целей пока нет.</td></tr>
-          )}
-        </tbody>
-      </table>
+      <РеестрЦелей project={project} данные={данные} onChanged={изменилось} />
 
       {безЦели.length > 0 && (
         <div className="v2-warn">
@@ -936,21 +701,17 @@ export function SceneGoals({ project, onChanged }: { project: string; onChanged:
 }
 
 export function SceneConstraints({ project, onChanged }: { project: string; onChanged: () => void }) {
-  const [ограничения, setОграничения] = useState<EntityRow[]>([])
+  const { данные, перечитать } = useПостановка(project)
   const [текст, setТекст] = useState('')
-  const [категория, setКатегория] = useState('техническое')
+  const [категория, setКатегория] = useState('technical')
   const [отказ, setОтказ] = useState<string | null>(null)
-  const [правка, setПравка] = useState<string | null>(null)
-
-  const перечитать = () => {
-    api.entities(project, 'constraint').then((r) => setОграничения(r.items)).catch(() => undefined)
-  }
-  useEffect(перечитать, [project])
+  const изменилось = () => { перечитать(); onChanged() }
+  const вид = данные.виды.constraint
 
   const добавить = () => {
     setОтказ(null)
     api.addConstraint(project, { text: текст, category: категория })
-      .then(() => { setТекст(''); перечитать(); onChanged() })
+      .then(() => { setТекст(''); изменилось() })
       .catch((e) => setОтказ(String(e.message ?? e)))
   }
 
@@ -958,14 +719,13 @@ export function SceneConstraints({ project, onChanged }: { project: string; onCh
     <div>
       {отказ && <div className="v2-locked">{отказ}</div>}
       <div className="v2-form v2-form--row">
-        <input value={текст} onChange={(e) => setТекст(e.target.value)}
+        <input value={текст} onChange={(e) => setТекст(e.target.value)} aria-label="новое ограничение"
           placeholder="полезная нагрузка — только регенеративная" />
-        <select value={категория} onChange={(e) => setКатегория(e.target.value)}
-          title="группа ограничения — полем, а не буквой кода">
-          <option value="техническое">техническое</option>
-          <option value="программное">программное</option>
-          <option value="пусковое">пусковое</option>
-          <option value="регуляторное">регуляторное</option>
+        <select value={категория} onChange={(e) => setКатегория(e.target.value)} aria-label="тип нового ограничения"
+          title="тип ограничения — полем, а не буквой кода">
+          {(вид?.enums?.type ?? ['technical', 'programmatic', 'launch', 'regulatory', 'financial']).map((к) => (
+            <option key={к} value={к}>{вид?.enum_labels?.type?.[к] ?? к}</option>
+          ))}
         </select>
         <button type="button" onClick={добавить} disabled={!текст.trim()}
           title={текст.trim() ? 'завести ограничение с кодом Р-серии' : 'сформулируйте ограничение'}>
@@ -973,95 +733,29 @@ export function SceneConstraints({ project, onChanged }: { project: string; onCh
         </button>
       </div>
 
-      <table className="v2-table">
-        <thead><tr><th>Код</th><th>Ограничение</th><th>Группа</th></tr></thead>
-        <tbody>
-          {ограничения.map((о) => правка === о.code ? (
-            <ПравкаСтроки key={о.id} project={project} row={о} colSpan={3}
-              поля={[{ key: 'statement', label: 'ограничение' }, { key: 'text', label: 'текст' }, { key: 'category', label: 'группа' }]}
-              onSaved={() => { setПравка(null); перечитать(); onChanged() }} onCancel={() => setПравка(null)} />
-          ) : (
-            <tr key={о.id}>
-              <td className="v2-mono" title="код стабилен: на него ссылаются промпты и трассировки">{о.code} <Карандаш onClick={() => setПравка(о.code)} /></td>
-              <td>{String(о.doc.text ?? о.doc.statement ?? '')}</td>
-              <td>{String(о.doc.category ?? о.doc.type ?? '')}</td>
-            </tr>
-          ))}
-          {ограничения.length === 0 && (
-            <tr><td colSpan={3} className="v2-empty">
-              Ограничений пока нет.
-              <span className="v2-empty__why">Рамки задаются здесь и дальше работают запретами для службы и проверок.</span>
-            </td></tr>
-          )}
-        </tbody>
-      </table>
+      <РеестрОграничений project={project} данные={данные} onChanged={изменилось} />
     </div>
   )
 }
 
-/**
- * Класс обслуживания словами. У нужды до сцены 6 допустимо значение TBR с
- * ответственным (решение владельца 12.09): оно показывается словом «TBR», а
- * не пустотой — инженер обязан видеть, что класса ещё нет.
- */
-function классСловами(значение: unknown): string {
-  if (значение && typeof значение === 'object') {
-    const кто = String((значение as Record<string, unknown>).owner ?? '')
-    return кто ? `TBR — за ${кто}` : 'TBR'
-  }
-  return значение == null ? '' : String(значение)
-}
-
-/** Назначен ли класс: TBR и пусто — нет. */
-function классНазначен(значение: unknown): boolean {
-  if (значение && typeof значение === 'object') return false
-  const текст = значение == null ? '' : String(значение).trim()
-  return текст !== '' && текст.toUpperCase() !== 'TBR'
-}
-
-/** Классы обслуживания справочника — те же три, что и у сервиса. */
-const КЛАССЫ: [string, string][] = [
-  ['A′', 'A′ — односторонний'],
-  ['B′', 'B′ — с подтверждением'],
-  ['C′', 'C′ — оперативного управления'],
-]
-
 /** Сцена 6 — сервисы: что система даёт кому и с каким качеством. */
 export function SceneServices({ project, onChanged }: { project: string; onChanged: () => void }) {
-  const [сервисы, setСервисы] = useState<EntityRow[]>([])
-  const [нужды, setНужды] = useState<EntityRow[]>([])
+  const { данные, перечитать } = useПостановка(project)
+  const { нужды } = данные
   const [имя, setИмя] = useState('')
   const [класс, setКласс] = useState('B′')
   const [покрывает, setПокрывает] = useState<string[]>([])
   const [отказ, setОтказ] = useState<string | null>(null)
-  const [правка, setПравка] = useState<string | null>(null)
-
-  const перечитать = () => {
-    api.entities(project, 'service').then((r) => setСервисы(r.items)).catch(() => undefined)
-    api.entities(project, 'need').then((r) => setНужды(r.items)).catch(() => undefined)
-  }
-  useEffect(перечитать, [project])
+  const изменилось = () => { перечитать(); onChanged() }
 
   const добавить = () => {
     setОтказ(null)
     api.addService(project, { name: имя, qos_class: класс, covers: покрывает })
-      .then(() => { setИмя(''); setПокрывает([]); перечитать(); onChanged() })
+      .then(() => { setИмя(''); setПокрывает([]); изменилось() })
       .catch((e) => setОтказ(String(e.message ?? e)))
   }
 
   const безСервиса = нужды.filter((n) => (n.covered_by ?? []).every((c) => !c.startsWith('service')))
-  // Нужда, которую сервис уже покрывает, обязана нести класс: до этой сцены
-  // он мог стоять TBR, здесь он закрывается — иначе сервис не с чем сверить.
-  const безКласса = нужды
-    .filter((n) => (n.covered_by ?? []).some((c) => c.startsWith('service')))
-    .filter((n) => !классНазначен(n.doc.qos_class))
-
-  const назначитьКласс = (код: string, класс: string) => {
-    setОтказ(null)
-    api.patchEntity(project, код, { qos_class: класс }, 'инженер', 'класс назначен на сцене сервисов')
-      .then(() => { перечитать(); onChanged() })
-      .catch((e) => setОтказ(String(e.message ?? e)))
-  }
 
   return (
     <div>
@@ -1099,29 +793,7 @@ export function SceneServices({ project, onChanged }: { project: string; onChang
         </div>
       </div>
 
-      <table className="v2-table">
-        <thead><tr><th>Код</th><th>Сервис</th><th>Класс</th><th>Покрывает нужд</th></tr></thead>
-        <tbody>
-          {сервисы.map((с) => правка === с.code ? (
-            <ПравкаСтроки key={с.id} project={project} row={с} colSpan={4}
-              поля={[
-                { key: 'name', label: 'сервис' },
-                { key: 'qos_class', label: 'класс', kind: 'select', options: КЛАССЫ, обязательное: true },
-              ]}
-              onSaved={() => { setПравка(null); перечитать(); onChanged() }} onCancel={() => setПравка(null)} />
-          ) : (
-            <tr key={с.id}>
-              <td className="v2-mono">{с.code} <Карандаш onClick={() => setПравка(с.code)} /></td>
-              <td>{String(с.doc.name ?? '')}</td>
-              <td>{String(с.doc.qos_class ?? '')}</td>
-              <td>{нужды.filter((n) => (n.covered_by ?? []).includes(с.id)).length}</td>
-            </tr>
-          ))}
-          {сервисы.length === 0 && (
-            <tr><td colSpan={4} className="v2-empty">Сервисов пока нет.</td></tr>
-          )}
-        </tbody>
-      </table>
+      <РеестрСервисов project={project} данные={данные} onChanged={изменилось} />
 
       {безСервиса.length > 0 && (
         <div className="v2-warn">
@@ -1129,32 +801,9 @@ export function SceneServices({ project, onChanged }: { project: string; onChang
         </div>
       )}
 
-      {безКласса.length > 0 && (
-        <div className="v2-form" data-why="работа">
-          <div className="v2-empty__why">
-            Класс обслуживания у покрытых нужд ({безКласса.length}) — здесь закрывается TBR:
-          </div>
-          <table className="v2-table">
-            <thead><tr><th>Код</th><th>Нужда</th><th>Сейчас</th><th>Назначить</th></tr></thead>
-            <tbody>
-              {безКласса.map((n) => (
-                <tr key={n.id}>
-                  <td className="v2-mono">{n.code}</td>
-                  <td>{String(n.doc.statement ?? '')}</td>
-                  <td className="v2-muted">{классСловами(n.doc.qos_class) || '—'}</td>
-                  <td>
-                    <select value="" title="класс обслуживания нужды — из тех же трёх, что у сервиса"
-                      onChange={(e) => e.target.value && назначитьКласс(n.code, e.target.value)}>
-                      <option value="">— выбрать —</option>
-                      {КЛАССЫ.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
-                    </select>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      {/* Класс обслуживания у покрытых нужд закрывается здесь (TBR до сцены 6):
+          тот же реестр нужд, открытый на чипе «TBR», с массовым «назначить класс». */}
+      <РеестрНужд project={project} данные={данные} onChanged={изменилось} отбор="tbr" />
     </div>
   )
 }

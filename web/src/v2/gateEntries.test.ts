@@ -19,7 +19,8 @@ import точки from './points.tsx?raw'
 import паспорт from './passport.tsx?raw'
 import сцена9 from './modes.tsx?raw'
 import связи from './links.tsx?raw'
-import покрытие from './coverage.tsx?raw'
+import покрытие from './registry/stakeholders.tsx?raw'
+import данныеПостановки from './registry/data.ts?raw'
 import сцены from './scenes.tsx?raw'
 import состав from './composition.tsx?raw'
 import требования from './requirements.tsx?raw'
@@ -303,9 +304,9 @@ describe('хвосты журнала ПМИ-7 (шип 1, п. 1.9)', () => {
   it('З-02: сила предложена по роли, перенос — кликом по клетке', () => {
     // Шип 2 (экран 11) заменил пометку «[П]» на серый чип с инициалами и «?»,
     // а перенос оставил тем же: клик по чипу, клик по клетке.
-    expect(покрытие).toContain('power_proposed')
+    expect(данныеПостановки).toContain('power_proposed')
     expect(покрытие).toContain("'v2-stake-chip--proposed'")
-    expect(покрытие).toContain("поправить(с, { power: String(балл), influence: влияние }")
+    expect(покрытие).toContain("({ power: балл, influence: влияние }), 'перенос стороны на сетке влияния')")
   })
 
   it('З-06: нужды на сцене 4 — по формулировке, носители перечнем', () => {

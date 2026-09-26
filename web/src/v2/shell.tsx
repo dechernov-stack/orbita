@@ -8,7 +8,7 @@ import { api, type Phase, type ProjectRow } from './api'
 import { Work } from './work'
 import { MyTasks } from './tasks'
 import { KnowledgeField } from './knowledgefield'
-import { Coverage } from './coverage'
+import { Formulation } from './formulation'
 import { Concept } from './concept'
 import { Requirements } from './requirements'
 import { ArchitectureScreen } from './architecture'
@@ -360,7 +360,8 @@ export function Shell() {
             <KnowledgeField project={project} expert={expert} ручной={ручнойВвод}
               onGoGlossary={() => setSection('glossary')} />
           ) : section === 'formulation' ? (
-            <Coverage project={project} />
+            <Formulation project={project} фаза={phase}
+              onGoScene={(сцена, зачем) => { setWantScene(сцена); setWantReason(зачем ?? null); setSection('work') }} />
           ) : section === 'concept' ? (
             <Concept project={project} />
           ) : section === 'requirements' ? (

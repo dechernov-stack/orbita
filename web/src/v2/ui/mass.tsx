@@ -119,11 +119,10 @@ export function ПанельМассово({ выбранные, действи�
   return (
     <div className="v2-mass" role="toolbar" aria-label="действия с выбранными">
       <b>выбрано {n}</b>
-      {n === 0 && наборы && наборы.length > 0 && onНабор && (
+      {n === 0 && наборы && наборы.some((н) => н.keys.length > 0) && onНабор && (
         <span className="v2-mass__sets">
-          {наборы.map((н) => (
-            <button key={н.key} type="button" className="v2-chip" disabled={н.keys.length === 0}
-              title={н.keys.length === 0 ? `${н.word}: таких строк нет` : `выбрать: ${н.word}`}
+          {наборы.filter((н) => н.keys.length > 0).map((н) => (
+            <button key={н.key} type="button" className="v2-chip" title={`выбрать: ${н.word}`}
               onClick={() => onНабор(н)}>{н.word} {н.keys.length}</button>
           ))}
         </span>

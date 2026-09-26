@@ -817,6 +817,11 @@ export interface EntityRow {
   version?: number
   author?: string
   updated_at?: string
+  /** Канал провенанса: shelf — типовое с полки библиотеки, иначе своё. */
+  channel?: string
+  /** Документ и якорь, из которых запись пришла, если пришла из документа. */
+  source?: string
+  anchor?: string
   doc: Record<string, unknown>
   owned_by?: string[]
   covered_by?: string[]
@@ -2142,6 +2147,15 @@ export const api = {
   entityHistory: (project: string, code: string) =>
     вызов<{ code: string; kind: string; items: EntityVersion[] }>(
       `/entities/${encodeURIComponent(code)}/history?project=${encodeURIComponent(project)}`),
+
+  /**
+   * Носитель заведённой нужде (связь owns): сторона добавляется к носителям;
+   * `remove` снимает её (последнего носителя сервер не снимет), `replace` —
+   * делает единственной.
+   */
+  needOwner: (project: string, need: string, owner: string, опции: { remove?: boolean; replace?: boolean; author?: string; rationale?: string } = {}) =>
+    вызов<{ need: string; owner: string; owners: string[] }>(`/needs/${encodeURIComponent(need)}/owner?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ owner, ...опции }) }),
 
   /** Единицы справочника для выбора: величины без единицы не бывает. */
   units: () => вызов<{ items: UnitRow[]; count: number; why?: string }>('/units'),

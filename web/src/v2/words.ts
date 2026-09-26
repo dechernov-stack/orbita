@@ -79,3 +79,19 @@ export const СЛОВО_ПРОГОНА: Record<string, string> = {
   rolled_back: 'откачен',
   superseded: 'заменён',
 }
+
+/**
+ * Статус записи словами (шип 5 §1.3, шапка карточки): у сущностей постановки
+ * модели статусов нет — они черновики, пока их не базирует документ.
+ */
+export const СЛОВО_СТАТУСА: Record<string, string> = {
+  draft: 'черновик',
+  proposed: 'предложено',
+  accepted: 'принято',
+  baselined: 'базировано',
+  cancelled: 'снято',
+  withdrawn: 'снято',
+  obsolete: 'устарело',
+  open: 'открыт',
+  closed: 'закрыт',
+}

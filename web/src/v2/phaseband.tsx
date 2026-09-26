@@ -31,7 +31,7 @@ export function PhaseBand({ phase, current, onPick, onPlan }: {
         : т.key === ближайшая?.key ? 'текущее' : 'пусто'
 
   const точка = (т: Gate) => (
-    <div key={т.key} className="v2-band__gate"
+    <div key={т.key} className="v2-phaseband__gate"
       title={т.passed
         ? 'точка пройдена'
         : т.blocking.length > 0 ? `держат: ${т.blocking.join('; ')}` : 'условия точки выполнены'}>
@@ -50,25 +50,25 @@ export function PhaseBand({ phase, current, onPick, onPlan }: {
   )
 
   return (
-    <nav className="v2-band" aria-label="сцены и точки фазы" data-why="следующий-клик">
+    <nav className="v2-phaseband" aria-label="сцены и точки фазы" data-why="следующий-клик">
       {phase.scenes.map((с) => (
         <Fragment key={с.key}>
-          <button type="button" className="v2-band__scene"
+          <button type="button" className="v2-phaseband__scene"
             aria-current={с.key === current ? 'true' : undefined}
             title={с.state === 'locked'
               ? `закрыта: ${с.blockers.join('; ') || 'ждёт предыдущую сцену'}`
               : с.state === 'done' ? 'выполнена — открыть, чтобы вернуться и поправить' : 'в работе — открыть сцену'}
             onClick={() => onPick(с.key)}>
             <Маркер род="сцена" состояние={маркерСцены(с)} подпись={`${с.key} · ${с.title}`} />
-            <span className="v2-band__t">{с.key} · {с.title}</span>
-            <span className={`v2-band__st v2-band__st--${с.state}`}>{состояниеСловами(с)}</span>
+            <span className="v2-phaseband__t">{с.key} · {с.title}</span>
+            <span className={`v2-phaseband__st v2-phaseband__st--${с.state}`}>{состояниеСловами(с)}</span>
           </button>
           {точкиПосле(с.key).map(точка)}
         </Fragment>
       ))}
       {вКонце.map(точка)}
       {безПлана > 0 && (
-        <div className="v2-band__plan" title="план работ фазы задаётся мероприятием 0.P на карте фазы">
+        <div className="v2-phaseband__plan" title="план работ фазы задаётся мероприятием 0.P на карте фазы">
           план не задан у {безПлана} сцен — к {ближайшая ? `точке «${ближайшая.title}»` : 'ближайшей точке'} это разрыв
           {onPlan && (
             <button type="button" className="v2-link" title="карта фазы: план работ — окна сцен и даты точек"

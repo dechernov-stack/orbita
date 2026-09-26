@@ -33,8 +33,13 @@ async function эксперт(стр, вкл) {
   await стр.waitForTimeout(300)
 }
 
+/** Строка для RegExp как есть: «Моя работа» не должна совпасть с «Работой». */
+const буквально = (т) => т.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
 async function открыть(стр, заголовок) {
-  const пункт = стр.locator('nav.v2-rail button.v2-rail__item', { hasText: заголовок }).first()
+  // Точное совпадение слова пункта: подстрока «Работа» есть и в «Моя работа»,
+  // и снимки «до» 26.09 сняли под именем «работа» чужой экран.
+  const пункт = стр.locator('nav.v2-rail button.v2-rail__item').filter({ hasText: new RegExp(`^\\s*${буквально(заголовок)}\\s*$`) }).first()
   if (!(await пункт.count())) return false
   if (await пункт.isDisabled()) return false
   await пункт.click()
@@ -43,6 +48,66 @@ async function открыть(стр, заголовок) {
   await стр.waitForLoadState('networkidle', { timeout: план.settleMs ?? 8000 }).catch(() => {})
   await стр.waitForTimeout(план.pauseMs ?? 900)
   return true
+}
+
+/** Имя вкладки для файла: слово вкладки строчными, пробелы — дефисом. */
+const словоФайла = (т) => (т ?? '').trim().toLowerCase().replace(/\s+/g, '-')
+
+/**
+ * Вкладки раздела (шип 5): каждая, кроме текущей, — своим снимком
+ * «<раздел>~<вкладка>-<роль>-<ширина>.png»; потом возврат к первой, чтобы
+ * выбор, который помнит браузер, не сбил следующий прогон.
+ */
+async function вкладки(стр, раздел, роль, ширина) {
+  const кнопки = стр.locator('main .v2-tabs[role=tablist]').first().locator('button[role=tab]:not([disabled])')
+  const n = await кнопки.count()
+  for (let i = 1; i < n; i += 1) {
+    const к = кнопки.nth(i)
+    const имя = `${раздел.file}~${словоФайла(await к.locator('b').first().textContent())}-${роль.file}-${ширина}.png`
+    await к.click()
+    await стр.waitForLoadState('networkidle', { timeout: 4000 }).catch(() => {})
+    await стр.waitForTimeout(план.pauseMs ?? 900)
+    await стр.screenshot({ path: `${план.out}/${имя}` })
+    итог.push({ file: имя, section: раздел.title, role: роль.file, width: ширина })
+    console.log(`  ${имя}`)
+  }
+  if (n > 1) { await кнопки.nth(0).click(); await стр.waitForTimeout(500) }
+}
+
+/**
+ * Сцены работы (шип 5 §2, §6): тело сцены N — своим снимком
+ * «работа~сцена-N-<роль>-<ширина>.png»; сцену выбирает лента фазы.
+ */
+async function сцены(стр, раздел, роль, ширина) {
+  for (const н of план.scenes ?? []) {
+    const кнопка = стр.locator(`main button.v2-phaseband__scene:has(svg[aria-label^="сцена: ${н} ·"]), main button.v2-band__scene:has(svg[aria-label^="сцена: ${н} ·"])`).first()
+    if (!(await кнопка.count())) continue
+    await кнопка.click()
+    await стр.waitForLoadState('networkidle', { timeout: 6000 }).catch(() => {})
+    await стр.waitForTimeout(план.pauseMs ?? 900)
+    const имя = `${раздел.file}~сцена-${н}-${роль.file}-${ширина}.png`
+    await стр.screenshot({ path: `${план.out}/${имя}` })
+    итог.push({ file: имя, section: раздел.title, role: роль.file, width: ширина })
+    console.log(`  ${имя}`)
+  }
+}
+
+/** Карточка объекта первой строки реестра — раскрытой вниз, строка у верхнего края. */
+async function карточка(стр, раздел, роль, ширина) {
+  const кнопка = стр.locator('main .v2-reg button[aria-label="карточка"]').first()
+  if (!(await кнопка.count())) return
+  await кнопка.click()
+  await стр.waitForTimeout(1200)
+  // Кнопка после клика зовётся «свернуть карточку», и прежний локатор уже
+  // находит следующую строку: к месту ведём по самой карточке.
+  await стр.locator('main .v2-object').first().evaluate((у) => у.closest('tr')?.previousElementSibling?.scrollIntoView({ block: 'start' }))
+  await стр.waitForTimeout(300)
+  const имя = `${раздел.file}~карточка-${роль.file}-${ширина}.png`
+  await стр.screenshot({ path: `${план.out}/${имя}` })
+  итог.push({ file: имя, section: раздел.title, role: роль.file, width: ширина })
+  console.log(`  ${имя}`)
+  await стр.locator('main .v2-reg button[aria-label="свернуть карточку"]').first().click().catch(() => {})
+  await стр.evaluate(() => window.scrollTo(0, 0))
 }
 
 for (const ширина of план.widths) {
@@ -60,6 +125,9 @@ for (const ширина of план.widths) {
       await стр.screenshot({ path: `${план.out}/${имя}`, fullPage: false })
       итог.push({ file: имя, section: раздел.title, role: роль.file, width: ширина })
       console.log(`  ${имя}`)
+      if ((план.cardSections ?? []).includes(раздел.title)) await карточка(стр, раздел, роль, ширина)
+      if ((план.tabSections ?? []).includes(раздел.title)) await вкладки(стр, раздел, роль, ширина)
+      if (раздел.title === 'Работа' && (план.scenes ?? []).length > 0) await сцены(стр, раздел, роль, ширина)
     }
     await контекст.close()
   }

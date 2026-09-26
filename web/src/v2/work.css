@@ -14,29 +14,29 @@
 .v2-work2__body { min-width: 0; }
 
 /* ── Лента сцен фазы. Панели с заголовком нет: список и есть экран. ── */
-.v2-band { display: grid; border-top: 1px solid var(--graphite); background: var(--surface); }
-.v2-band__scene {
+.v2-phaseband { display: grid; border-top: 1px solid var(--graphite); background: var(--surface); }
+.v2-phaseband__scene {
   display: grid; grid-template-columns: 16px minmax(0, 1fr); column-gap: var(--pad-s); align-items: start;
   width: 100%; padding: var(--pad-s) var(--pad-m); border: 0; border-bottom: 1px solid var(--graphite);
   border-radius: 0; background: none; font: inherit; color: var(--ink); text-align: left; cursor: pointer;
 }
-.v2-band__scene:hover { background: var(--paper); }
+.v2-phaseband__scene:hover { background: var(--paper); }
 /* Открытая в теле сцена — кобальтовой чертой слева, как раздел в рейке. */
-.v2-band__scene[aria-current="true"] { box-shadow: inset 3px 0 0 var(--cobalt); }
-.v2-band__scene > .v2-marker { margin-top: 4px; }
-.v2-band__t { font-weight: 500; }
-.v2-band__st { grid-column: 2; font-size: var(--size-s); color: var(--muted); }
-.v2-band__st--done { color: var(--green); }
-.v2-band__st--open { color: var(--cobalt); }
+.v2-phaseband__scene[aria-current="true"] { box-shadow: inset 3px 0 0 var(--cobalt); }
+.v2-phaseband__scene > .v2-marker { margin-top: 4px; }
+.v2-phaseband__t { font-weight: 500; }
+.v2-phaseband__st { grid-column: 2; font-size: var(--size-s); color: var(--muted); }
+.v2-phaseband__st--done { color: var(--green); }
+.v2-phaseband__st--open { color: var(--cobalt); }
 /* Точка — строкой-ромбом между сценами, там, где она в жизни. */
-.v2-band__gate {
+.v2-phaseband__gate {
   display: flex; gap: var(--pad-s); align-items: center; padding: 6px var(--pad-m);
   font-size: var(--size-s); color: var(--muted); background: var(--paper); border-bottom: 1px solid var(--graphite);
 }
-.v2-band__gate > .v2-marker { flex: none; }
-.v2-band__gate b { color: var(--ink); font-weight: 500; }
+.v2-phaseband__gate > .v2-marker { flex: none; }
+.v2-phaseband__gate b { color: var(--ink); font-weight: 500; }
 /* Разрыв плана — одной строкой с переходом туда, где он закрывается. */
-.v2-band__plan {
+.v2-phaseband__plan {
   display: flex; gap: var(--pad-s); align-items: baseline; flex-wrap: wrap;
   padding: var(--pad-s) var(--pad-m); font-size: var(--size-s); color: var(--amber);
 }

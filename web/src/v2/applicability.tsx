@@ -4,6 +4,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ConfirmBox, useConfirm } from '../ui/Confirm'
 import { api, type ApplicabilityMatrix, type OpportunityRow } from './api'
+import { Чипы, отобрать, type ЧипОтбора } from './ui/chips'
+import { ИконКнопка } from './ui/iconbutton'
 
 const СЛОВО_РЕШЕНИЯ_ПРИМЕНИМОСТИ: Record<string, string> = {
   proposed: 'предложена',
@@ -16,11 +18,13 @@ function отказСловами(e: unknown): string {
   return String(о?.message ?? e)
 }
 
-export function Применимость({ project }: { project: string }) {
+export function Применимость({ project, onChanged }: { project: string; onChanged?: () => void }) {
   const [матрица, setМатрица] = useState<ApplicabilityMatrix | null>(null)
   const [отказ, setОтказ] = useState<string | null>(null)
   const [итог, setИтог] = useState<string | null>(null)
   const [ask, спросить, закрытьВопрос] = useConfirm()
+  /** Чипы отбора по вердикту (шип 5 §2): значения из данных. */
+  const [включены, setВключены] = useState<Set<string>>(new Set())
 
   const перечитать = useCallback(() => {
     api.opportunities(project).then(setМатрица).catch((e) => setОтказ(отказСловами(e)))
@@ -29,7 +33,7 @@ export function Применимость({ project }: { project: string }) {
 
   const решить = (с: OpportunityRow, status: 'accepted' | 'rejected') => {
     const действие = () => (reason: string) => api.decideOpportunity(project, с.code, status, reason)
-      .then((р) => { setИтог(`${р.code}: ${СЛОВО_РЕШЕНИЯ_ПРИМЕНИМОСТИ[р.status] ?? р.status}`); перечитать() })
+      .then((р) => { setИтог(`${р.code}: ${СЛОВО_РЕШЕНИЯ_ПРИМЕНИМОСТИ[р.status] ?? р.status}`); перечитать(); onChanged?.() })
       .catch((e) => setОтказ(отказСловами(e)))
     if (status === 'rejected') {
       спросить({
@@ -43,23 +47,28 @@ export function Применимость({ project }: { project: string }) {
     }
   }
 
-  if (отказ) return <div className="v2-card"><div className="v2-locked">{отказ}</div></div>
-  if (!матрица) return <div className="v2-card"><div className="v2-empty">Считаю применимость…</div></div>
+  if (отказ) return <div className="v2-locked">{отказ}</div>
+  if (!матрица) return <div className="v2-empty">Считаю применимость…</div>
+  const вердикты = Array.from(new Set(матрица.rows.map((с) => с.verdict)))
+  const чипы: ЧипОтбора<OpportunityRow>[] = вердикты.map((в) => ({
+    key: в, word: матрица.rows.find((с) => с.verdict === в)?.verdict_word ?? в, group: 'вердикт', test: (с: OpportunityRow) => с.verdict === в,
+  }))
+  const видимые = отобрать(матрица.rows, чипы, включены)
   return (
-    <div className="v2-card" data-why="работа" aria-label="матрица применимости">
-      <div className="v2-card__head">
-        <span className="v2-card__title">Применимость</span>
-        <span className="v2-card__count">{матрица.rows.length}</span>
-      </div>
+    <div data-why="работа" aria-label="матрица применимости">
       <p className="v2-empty__why">{матрица.note}</p>
       {итог && <div className="v2-note-line">{итог}</div>}
+      {матрица.rows.length > 0 && (
+        <Чипы строки={матрица.rows} чипы={чипы} включены={включены} label="отбор по вердикту"
+          onToggle={(к) => setВключены((было) => { const стало = new Set(было); if (стало.has(к)) стало.delete(к); else стало.add(к); return стало })} />
+      )}
       {матрица.rows.length > 0 && (
         <table className="v2-table">
           <thead>
             <tr><th>Чужая нужда</th><th>Чья</th><th>Вердикт</th><th>Наши сервисы</th><th>Чего не хватает</th><th>Предложение</th><th>Основание</th><th>Решение</th></tr>
           </thead>
           <tbody>
-            {матрица.rows.map((с) => (
+            {видимые.map((с) => (
               <tr key={с.code}>
                 <td><span className="v2-mono">{с.code}</span> {с.external_item}{с.scale && <span className="v2-muted"> · {с.scale}</span>}</td>
                 <td>{с.owner ?? '—'}</td>
@@ -80,21 +89,13 @@ export function Применимость({ project }: { project: string }) {
                     ? <span title={с.external.quote ?? ''}>{с.external.material_name ?? с.external.material ?? '—'} <span className="v2-mono">{с.external.anchor ?? ''}</span></span>
                     : <span className="v2-muted">без следа</span>}
                 </td>
-                <td>
+                <td className="v2-acts">
                   <span className="v2-dim">{СЛОВО_РЕШЕНИЯ_ПРИМЕНИМОСТИ[с.status] ?? с.status}</span>
                   {с.status !== 'accepted' && (
-                    <>
-                      {' '}
-                      <button type="button" className="v2-link" onClick={() => решить(с, 'accepted')}
-                        title="принять применимость: она обосновывает цель или порождает предложение эксперту">принять</button>
-                    </>
+                    <ИконКнопка икон="принять" слово="принять применимость" onClick={() => решить(с, 'accepted')} />
                   )}
                   {с.status !== 'rejected' && (
-                    <>
-                      {' '}
-                      <button type="button" className="v2-link" onClick={() => решить(с, 'rejected')}
-                        title="отклонить с причиной: возможность остаётся в проекте отклонённой">отклонить</button>
-                    </>
+                    <ИконКнопка икон="отклонить" слово="отклонить с причиной" onClick={() => решить(с, 'rejected')} />
                   )}
                 </td>
               </tr>

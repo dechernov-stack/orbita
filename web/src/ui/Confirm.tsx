@@ -15,6 +15,11 @@ export type ConfirmRequest = {
   ok?: string
   /** Поле ввода: подпись причины/обоснования; без него — просто вопрос. */
   input?: { label: string; placeholder?: string; required?: boolean }
+  /**
+   * Выбор из перечня (шип 5, массовые действия): «класс обслуживания», «чем
+   * закрывается». Пары «код → слово»; в `onOk` уходит код выбранного.
+   */
+  choice?: { label: string; options: [string, string][]; initial?: string }
   /** Действие: получает введённый текст (пустая строка, если поля нет). */
   onOk: (text: string) => void
 }
@@ -25,7 +30,7 @@ export function ConfirmBox({ request, onClose }: { request: ConfirmRequest | nul
   const okRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
-    setText('')
+    setText(request?.choice ? (request.choice.initial ?? request.choice.options[0]?.[0] ?? '') : '')
     if (!request) return
     // фокус — на том, чем человек будет отвечать
     const t = setTimeout(() => (request.input ? inputRef.current?.focus() : okRef.current?.focus()), 0)
@@ -35,12 +40,20 @@ export function ConfirmBox({ request, onClose }: { request: ConfirmRequest | nul
   }, [request, onClose])
 
   if (!request) return null
-  const мало = request.input?.required && !text.trim()
+  const мало = (request.input?.required || request.choice) && !text.trim()
   const подтвердить = () => { if (мало) return; request.onOk(text.trim()); onClose() }
   return (
     <div className="cf-veil" role="presentation" onClick={onClose}>
       <div className="cf-box" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
         <div className="cf-q">{request.question}</div>
+        {request.choice && (
+          <label className="cf-in">
+            <span className="secondary">{request.choice.label}</span>
+            <select value={text} onChange={(e) => setText(e.target.value)}>
+              {request.choice.options.map(([код, слово]) => <option key={код} value={код}>{слово}</option>)}
+            </select>
+          </label>
+        )}
         {request.input && (
           <label className="cf-in">
             <span className="secondary">{request.input.label}</span>
@@ -60,7 +73,7 @@ export function ConfirmBox({ request, onClose }: { request: ConfirmRequest | nul
             type="button"
             className="btn btn--primary"
             disabled={мало}
-            title={мало ? `сначала заполните: ${request.input?.label}` : undefined}
+            title={мало ? `сначала заполните: ${request.input?.label ?? request.choice?.label}` : undefined}
             onClick={подтвердить}
           >
             {request.ok ?? 'Подтвердить'}

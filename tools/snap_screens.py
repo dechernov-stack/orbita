@@ -13,6 +13,7 @@ GitHub). Для папки «после» лист строится парами
 
     python3 tools/snap_screens.py shoot --label до
     python3 tools/snap_screens.py shoot --label после --sections Постановка,Работа
+    python3 tools/snap_screens.py shoot --label после --sections Постановка --tabs Постановка --card Постановка
     python3 tools/snap_screens.py sheet --dir docs/tz/v2/снимки-дизайн/2026-09-26-после \\
         --before docs/tz/v2/снимки-дизайн/2026-09-26-до
 
@@ -66,6 +67,10 @@ def снять(args) -> pathlib.Path:
         "roles": роли,
         "sections": [{"title": р, "file": файл(р)} for р in разделы],
         "expertSections": [{"title": р, "file": файл(р)} for р in эксперт],
+        # Шип 5: вкладки раздела — каждая своим снимком; карточка первой строки реестра.
+        "tabSections": [р.strip() for р in args.tabs.split(",")] if args.tabs else [],
+        "cardSections": [р.strip() for р in args.card.split(",")] if args.card else [],
+        "scenes": [с.strip() for с in args.scenes.split(",")] if args.scenes else [],
     }
     with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8") as f:
         json.dump(план, f, ensure_ascii=False)
@@ -95,7 +100,12 @@ def строки(папка: pathlib.Path) -> dict[tuple[str, str, int], pathlib
 def лист(папка: pathlib.Path, до: pathlib.Path | None) -> None:
     сейчас = строки(папка)
     прежние = строки(до) if до else {}
-    разделы = [файл(р) for р in РАЗДЕЛЫ + ЭКСПЕРТ]
+    # Вкладки и карточка («раздел~вкладка») идут сразу за своим разделом.
+    все_ключи = {к[0] for к in сейчас} | {к[0] for к in прежние}
+    разделы = []
+    for р in [файл(р) for р in РАЗДЕЛЫ + ЭКСПЕРТ]:
+        разделы.append(р)
+        разделы += sorted(к for к in все_ключи if к.startswith(р + "~"))
     роли = [р["file"] for р in РОЛИ]
     заголовок = f"Снимки {папка.name}" + (f" · пары с {до.name}" if до else "")
     # HTML: миниатюры сеткой «раздел × роль», клик — полный снимок.
@@ -148,6 +158,9 @@ def main() -> int:
     с.add_argument("--login", default="chernov", help="учётка владельца системы на стенде (выступает от имени ролей)")
     с.add_argument("--sections", default=None, help="разделы через запятую; пусто — вся рейка и эксперт-разделы")
     с.add_argument("--roles", default=None, help="руководитель,ведущий-СИ,инженер")
+    с.add_argument("--tabs", default=None, help="разделы, у которых снимается каждая вкладка: Постановка,Поле знаний")
+    с.add_argument("--card", default=None, help="разделы, у которых снимается карточка первой строки реестра")
+    с.add_argument("--scenes", default=None, help="сцены работы, каждая своим снимком: 3,4,5,6")
     с.add_argument("--widths", default=None, help="1440,1280")
     с.add_argument("--expert", action="store_true", help="с --sections: снимать и эксперт-разделы из списка")
     с.add_argument("--before", default=None, help="папка «до» для листа парами")

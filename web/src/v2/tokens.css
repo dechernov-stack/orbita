@@ -504,7 +504,7 @@ button:disabled { opacity: .55; cursor: default; }
 }
 .cf-q { font: 500 13.5px/20px var(--font); color: var(--text); }
 .cf-in { display: flex; flex-direction: column; gap: 4px; margin-top: 10px; font-size: 12px; }
-.cf-in input { padding: 6px 8px; border: 1px solid var(--hairline); border-radius: 6px; font: 400 13px/18px var(--font); }
+.cf-in input, .cf-in select { padding: 6px 8px; border: 1px solid var(--hairline); border-radius: 6px; font: 400 13px/18px var(--font); }
 .cf-act { display: flex; gap: 8px; justify-content: flex-end; align-items: center; margin-top: 14px; }
 .cf-veil .btn, .cf-veil .np-linkish { font: 400 13px/18px var(--font); }
 .cf-veil .btn { padding: 6px 12px; border: 1px solid var(--hairline); border-radius: 6px; background: var(--bg); color: var(--ink); cursor: pointer; }
@@ -590,3 +590,6 @@ tr.v2-row--cursor td { box-shadow: inset 2px 0 0 var(--cobalt); }
 
 /* §1.6 Рейка: ярусы тонкими разделителями, без подписей. */
 .v2-rail__tier { height: 1px; background: var(--graphite); margin: 6px 20px; }
+
+/* Код записи в реестре и карточке не переносится: «SK-0037» — одно слово. */
+td.v2-mono, .v2-reg .v2-mono, .v2-object .v2-mono { white-space: nowrap; }

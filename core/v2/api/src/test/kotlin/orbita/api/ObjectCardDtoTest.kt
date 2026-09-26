@@ -68,6 +68,7 @@ class ObjectCardDtoTest {
         assertEquals(2, строка.path("version").asInt())
         assertTrue(строка.path("author").asText().isNotBlank())
         assertTrue(строка.path("updated_at").asText().startsWith("20"))
+        assertEquals("manual", строка.path("channel").asText(), "канал провенанса — своё, не с полки")
         val история = роутер.handle("GET", "/v2/entities/SK-0001/history", п, null)!!.body
         assertEquals(listOf(1, 2), история.path("items").map { it.path("version").asInt() })
         assertEquals("Петрова М.", история.path("items")[0].path("author").asText())

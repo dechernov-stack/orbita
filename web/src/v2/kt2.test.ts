@@ -3,7 +3,7 @@
 // статус пустого раздела, кандидат в словарь — с дорогой к месту.
 import { describe, expect, it } from 'vitest'
 import словарь from './glossary.tsx?raw'
-import постановка from './coverage.tsx?raw'
+import постановка from './formulation.tsx?raw'
 import знания from './knowledgefield.tsx?raw'
 import документы from './documents.tsx?raw'
 import оболочка from './shell.tsx?raw'
@@ -34,14 +34,14 @@ describe('словарь: рубрикатор по буквам и привяз
   })
 })
 
-describe('постановка: подменю вместо простыни', () => {
-  it('три вкладки со счётчиками, выбор помнится', () => {
-    // Вкладки — общий компонент (шип 5 §1.1); выбор помнится на раздел.
-    expect(постановка).toContain('<Вкладки label="подменю постановки"')
-    expect(постановка).toContain("{ key: 'стороны', word: 'Стороны'")
-    expect(постановка).toContain("{ key: 'покрытие', word: 'Покрытие нужд'")
-    expect(постановка).toContain("{ key: 'без-нужд', word: 'Без нужд'")
-    expect(постановка).toContain("localStorage.setItem('orbita.v2.formulation.tab'")
+describe('постановка: вкладки по понятиям вместо простыни', () => {
+  it('семь вкладок со счётчиками, выбор помнится на раздел', () => {
+    // Шип 5 §2: «Без нужд» и «Покрытие» — чип и число вкладки, не разделы.
+    expect(постановка).toContain('<Вкладки label="постановка"')
+    expect(постановка).toContain("стороны: 'Стороны'")
+    expect(постановка).toContain("нужды: 'Нужды'")
+    expect(постановка).toContain("допущения: 'Допущения'")
+    expect(постановка).toContain("useВкладка<КлючВкладки>('formulation', 'стороны', ВКЛАДКИ_ПОСТАНОВКИ)")
   })
 })
 

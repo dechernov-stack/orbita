@@ -749,6 +749,11 @@ class AcrossRoutes(
             узел.put("version", сущность.version)
             узел.put("author", сущность.provenance.author)
             узел.put("updated_at", сущность.updatedAt.toString())
+            // Откуда запись (шип 5 §2): канал провенанса («полка» — типовое из
+            // библиотеки, иначе своё), документ и якорь, если запись из него.
+            узел.put("channel", сущность.provenance.channel.name.lowercase())
+            сущность.provenance.source?.let { узел.put("source", it) }
+            сущность.provenance.anchor?.let { узел.put("anchor", it) }
             узел.set<JsonNode>("doc", сущность.doc)
             // Сила стороны по умолчанию (З-02): предложение [П] из роли по карте
             // истины; сетка показывает его серым, инженер правит кликом по ячейке.
