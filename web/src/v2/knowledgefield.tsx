@@ -23,6 +23,7 @@
 // знаний приходят с сервера готовыми. Ни одно слияние, принятие и уточнение
 // не происходит без нажатия человека — служба только предлагает.
 import { Fragment as Фрагмент, useCallback, useEffect, useState, type KeyboardEvent } from 'react'
+import { Вкладки } from './ui/tabs'
 import { ConfirmBox, useConfirm } from '../ui/Confirm'
 import { ResearchPanel, отказСловами } from './research'
 import {
@@ -522,24 +523,17 @@ export function KnowledgeField({ project, expert = false, ручной = false, 
       </h3>
 
       {знанияV2 && (
-        <div className="v2-tabs" role="tablist" aria-label="поле знаний и постановка из него">
-          <button type="button" role="tab" className="v2-tab" aria-selected={поле}
-            title="накопленное поле: факты с рангом доверия, темы и решения человека"
-            onClick={() => setВкладка('поле')}>
-            Факты и темы
-            <span className="v2-card__count">{факты === null ? '…' : все.length}</span>
-          </button>
-          <button type="button" role="tab" className="v2-tab" aria-selected={!поле}
-            title="что поле предлагает постановке: четыре группы с основаниями и рангами; заводит только клик человека"
-            onClick={() => { setВкладка('постановка'); setВход(false); setРукой(false) }}>
-            Постановка из поля
-            {дрейф !== null && дрейф.changed > 0 && (
-              <span className="v2-card__count" title="поле изменилось с последнего синтеза — число сервера">
-                {дрейф.changed}
-              </span>
-            )}
-          </button>
-        </div>
+        <Вкладки label="поле знаний и постановка из него" current={поле ? 'поле' : 'постановка'}
+          onChange={(к) => { if (к === 'поле') setВкладка('поле'); else { setВкладка('постановка'); setВход(false); setРукой(false) } }}
+          items={[
+            { key: 'поле', word: 'Факты и темы', count: факты === null ? '…' : все.length,
+              hint: 'накопленное поле: факты с рангом доверия, темы и решения человека' },
+            { key: 'постановка', word: 'Постановка из поля', count: дрейф !== null && дрейф.changed > 0 ? дрейф.changed : null,
+              health: дрейф !== null && дрейф.changed > 0 ? 'debt' as const : null,
+              hint: дрейф !== null && дрейф.changed > 0
+                ? `поле изменилось с последнего синтеза: ${дрейф.changed} — число сервера`
+                : 'что поле предлагает постановке: группы с основаниями и рангами; заводит только клик человека' },
+          ]} />
       )}
 
       {!поле && (

@@ -157,9 +157,9 @@ def main() -> int:
     args = п.parse_args()
     if args.cmd == "shoot":
         папка = снять(args)
-        лист(папка, pathlib.Path(args.before) if args.before else None)
+        лист(папка, (КОРЕНЬ / args.before).resolve() if args.before else None)
     else:
-        лист(pathlib.Path(args.dir), pathlib.Path(args.before) if args.before else None)
+        лист((КОРЕНЬ / args.dir).resolve(), (КОРЕНЬ / args.before).resolve() if args.before else None)
     return 0
 
 

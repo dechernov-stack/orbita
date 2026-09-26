@@ -11,6 +11,7 @@
 // из этого файла: сцена с выходом без ветки — отказ сборки, а закрытый долг
 // обязан быть снят из его списка (храповик).
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Вкладки } from './ui/tabs'
 import {
   api, type BudgetRow, type ComponentCard, type ComponentRow, type InterfaceRow, type KindSpec,
   type Phase, type Scene,
@@ -108,14 +109,11 @@ export function PhaseASurface({ project, phase, scene, onChanged, onScene }: {
   if (ключ === 'A6') {
     return (
       <>
-        <div className="v2-inline" role="tablist" aria-label="контекст сцены A6" data-why="следующий-клик">
-          <button type="button" role="tab" className={вкладкаA6 === 'концепция' ? 'v2-chip v2-chip--on' : 'v2-chip'}
-            aria-selected={вкладкаA6 === 'концепция'} title="варианты, базовый вариант и состав — сцена 7 в контексте фазы A"
-            onClick={() => setВкладкаA6('концепция')}>Концепция</button>
-          <button type="button" role="tab" className={вкладкаA6 === 'модели' ? 'v2-chip v2-chip--on' : 'v2-chip'}
-            aria-selected={вкладкаA6 === 'модели'} title="записи моделей и прогоны: условие сцены читает верифицированные прогоны"
-            onClick={() => setВкладкаA6('модели')}>Модели</button>
-        </div>
+        <Вкладки label="контекст сцены A6" current={вкладкаA6} onChange={setВкладкаA6}
+          items={[
+            { key: 'концепция', word: 'Концепция', hint: 'варианты, базовый вариант и состав — сцена 7 в контексте фазы A' },
+            { key: 'модели', word: 'Модели', hint: 'записи моделей и прогоны: условие сцены читает верифицированные прогоны' },
+          ]} />
         {вкладкаA6 === 'модели' ? <Models project={project} /> : <Concept project={project} />}
       </>
     )

@@ -7,7 +7,7 @@ import { api } from './api'
 
 describe('применимость на постановке', () => {
   it('вкладка на подменю постановки; матрица — вердикт словом, граница устава у «не наш профиль», решение своим окном', () => {
-    expect(постановка).toContain("выбрать('применимость')")
+    expect(постановка).toContain("{ key: 'применимость', word: 'Применимость'")
     expect(постановка).toContain('<Применимость project={project} />')
     expect(экран).toContain('aria-label="матрица применимости"')
     expect(экран).toContain('с.charter_boundary && (')

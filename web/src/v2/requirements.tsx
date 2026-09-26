@@ -5,6 +5,7 @@
 // (источники, метод, применимость, пометы линта) открывается карточкой под
 // строкой, а не отдельным окном: контекст строки не теряется.
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
+import { Вкладки, useВкладка } from './ui/tabs'
 import {
   ReactFlow, Background, Controls, MarkerType, type Node, type Edge,
 } from '@xyflow/react'
@@ -459,7 +460,7 @@ export interface ОтборТребований {
 export function Requirements({ project, отбор }: { project: string | null; отбор?: ОтборТребований }) {
   const [строки, setСтроки] = useState<RequirementRow[]>([])
   const [открыта, setОткрыта] = useState<string | null>(null)
-  const [вид, setВид] = useState<ВидРеестра>('таблица')
+  const [вид, setВид] = useВкладка<ВидРеестра>('requirements', 'таблица', ВИДЫ.map(([к]) => к))
   const [сортировка, setСортировка] = useState<{ по: Колонка; вверх: boolean }>({ по: 'code', вверх: true })
   const [группировка, setГруппировка] = useState<'нет' | 'carrier' | 'level'>('нет')
   const [выделены, setВыделены] = useState<string[]>([])
@@ -531,18 +532,16 @@ export function Requirements({ project, отбор }: { project: string | null; 
             title="ReqIF штатным экспортом StrictDoc из того же .sdoc">ReqIF</a>
         </div>
 
+        {/* Виды реестра — вкладками (шип 5 §1.1): единственное второе меню экрана. */}
+        <Вкладки label="вид реестра требований" current={вид} onChange={setВид}
+          items={ВИДЫ.map(([к, слово]) => ({
+            key: к, word: слово,
+            hint: к === 'таблица' ? 'строки реестра с сортировкой и карточкой'
+              : к === 'иерархия' ? 'требования под своими источниками: откуда выведено'
+                : к === 'документы' ? 'по документам-источникам: что из чего написано'
+                  : 'матрица «требование × носитель»: кто что несёт',
+          }))} />
         <div className="v2-form v2-form--row" data-why="следующий-клик">
-          <span className="v2-inline" role="group" aria-label="вид реестра">
-            {ВИДЫ.map(([к, слово]) => (
-              <button key={к} type="button" className={вид === к ? 'v2-chip v2-chip--on' : 'v2-chip'}
-                aria-pressed={вид === к}
-                title={к === 'таблица' ? 'строки реестра с сортировкой и карточкой'
-                  : к === 'иерархия' ? 'требования под своими источниками: откуда выведено'
-                    : к === 'документы' ? 'по документам-источникам: что из чего написано'
-                      : 'матрица «требование × носитель»: кто что несёт'}
-                onClick={() => setВид(к)}>{слово}</button>
-            ))}
-          </span>
           <ЧипОтбора имя={схема.имя('level')} значение={фильтры.level} значения={значения(строки, 'level')}
             словом={(з) => схема.метка('level', з) || з} onПравка={(з) => setФильтры({ ...фильтры, level: з })} />
           <ЧипОтбора имя={схема.имя('category')} значение={фильтры.category} значения={значения(строки, 'category')}

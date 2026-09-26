@@ -128,6 +128,46 @@ def токены(css: str) -> list[str]:
     return беды
 
 
+# Шип 5 §8 (a): ряд из трёх и более кнопок-ссылок в строке формы — самодельное
+# второе меню; второе меню одно — компонент «Вкладки» (ui/tabs.tsx).
+СТРОКА_ФОРМЫ = re.compile(r'<div className="v2-form v2-form--row"[^>]*>')
+КНОПКА = re.compile(r"<button\b(?:[^>{}]|\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})*>", re.S)
+
+
+def самодельное_меню(путь: Path, текст: str) -> list[str]:
+    беды = []
+    for м in СТРОКА_ФОРМЫ.finditer(текст):
+        начало_строки = текст.rfind("\n", 0, м.start()) + 1
+        отступ = м.start() - начало_строки
+        конец = текст.find("\n" + " " * отступ + "</div>", м.end())
+        блок = текст[м.end(): конец if конец > 0 else м.end() + 4000]
+        ссылок = sum(1 for к in КНОПКА.finditer(блок) if "v2-link" in к.group(0))
+        if re.search(r"\.map\([^)]*\)\s*=>\s*\(?\s*<button[^>]*v2-link", блок, re.S):
+            ссылок += 3
+        if ссылок >= 3:
+            номер = текст.count("\n", 0, м.start()) + 1
+            беды.append(f"{путь.relative_to(КОРЕНЬ)}:{номер}: ряд из {ссылок} кнопок-ссылок как меню — второе меню одно: «Вкладки» (шип 5 §1.1)")
+    return беды
+
+
+# Шип 5 §8 (c): пиктограмма без слова где бы то ни было — отказ; у кнопки с
+# <Икон> обязаны быть и title, и aria-label (слово действия).
+def пиктограмма_без_слова(путь: Path, текст: str) -> list[str]:
+    беды = []
+    for м in КНОПКА.finditer(текст):
+        закрытие = текст.find("</button>", м.end())
+        if закрытие < 0:
+            continue
+        тело = текст[м.end():закрытие]
+        if "<Икон" not in тело:
+            continue
+        тег = м.group(0)
+        if "aria-label=" not in тег and "title=" not in тег:
+            номер = текст.count("\n", 0, м.start()) + 1
+            беды.append(f"{путь.relative_to(КОРЕНЬ)}:{номер}: <Икон> в кнопке без aria-label и title — пиктограмма без слова (шип 5 §1.5)")
+    return беды
+
+
 def проверить(css: str, файлы: dict[Path, str]) -> list[str]:
     беды: list[str] = []
     for путь, текст in файлы.items():
@@ -135,6 +175,8 @@ def проверить(css: str, файлы: dict[Path, str]) -> list[str]:
             continue
         беды += капслок(путь, текст)
         беды += декор(путь, текст)
+        беды += самодельное_меню(путь, текст)
+        беды += пиктограмма_без_слова(путь, текст)
     беды += усечение(css, файлы)
     беды += третья_колонка(css)
     return [б for б in беды if not any(и in б for и in ИСКЛЮЧЕНИЯ)]
@@ -151,11 +193,17 @@ def самопроверка() -> None:
     assert any("нет токена" in б for б in токены("body{}")), "самопроверка: пропавший токен не пойман"
     assert токены("box-shadow: 0 6px 24px rgba(0,0,0,.08);"), "самопроверка: тень не поймана"
     assert not проверить(".v2-act2 { grid-template-columns: 1fr 128px; }", {Path(КОРЕНЬ / "web/src/v2/чисто.tsx"): '<span title="MCR">точка MCR · KDP-A</span>'}), "самопроверка: чистое поймано зря"
+    меню = '<div>\n  <div className="v2-form v2-form--row" aria-label="подменю">\n    <button type="button" className="v2-link">a</button>\n    <button type="button" className={x ? \'v2-link v2-row--cur\' : \'v2-link\'}>b</button>\n    <button type="button" className="v2-link">c</button>\n  </div>\n</div>'
+    assert any("кнопок-ссылок" in б for б in проверить("", {Path(КОРЕНЬ / "web/src/v2/меню.tsx"): меню})), "самопроверка: самодельное меню не поймано"
+    немая = '<button type="button" onClick={f}><Икон имя="принять" /></button>'
+    assert any("без aria-label" in б for б in проверить("", {Path(КОРЕНЬ / "web/src/v2/немая.tsx"): немая})), "самопроверка: пиктограмма без слова не поймана"
+    со_словом = '<button type="button" title="принять" aria-label="принять" onClick={f}><Икон имя="принять" /></button>'
+    assert not any("без aria-label" in б for б in проверить("", {Path(КОРЕНЬ / "web/src/v2/слово.tsx"): со_словом})), "самопроверка: кнопка со словом поймана зря"
 
 
 def main() -> int:
     самопроверка()
-    файлы = {п: п.read_text(encoding="utf-8") for п in sorted(WEB.glob("*.tsx"))}
+    файлы = {п: п.read_text(encoding="utf-8") for п in sorted(WEB.rglob("*.tsx"))}
     css = CSS.read_text(encoding="utf-8")
     беды = проверить(css, файлы) + токены(css)
     if беды:
@@ -164,7 +212,8 @@ def main() -> int:
             print("  ", б)
         return 1
     print(
-        f"сторожа дизайна: токены направления ({len(ТОКЕНЫ)}), капслок, усечение, декор, третья колонка — "
+        f"сторожа дизайна: токены направления ({len(ТОКЕНЫ)}), капслок, усечение, декор, третья колонка, "
+        f"самодельное меню, пиктограмма без слова — "
         f"чисто (файлов {len(файлы)}, исключений {len(ИСКЛЮЧЕНИЯ)})"
     )
     return 0

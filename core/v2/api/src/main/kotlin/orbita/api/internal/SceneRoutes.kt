@@ -49,6 +49,11 @@ class SceneRoutes(
         method == "PATCH" && path.matches(Regex("/v2/entities/[A-Za-zА-Яа-я0-9._-]+")) ->
             править(требуется(query, "project"), path.removePrefix("/v2/entities/"), разобрать(body))
 
+        // История записи для карточки объекта (шип 5 §1.3): версии, кто, когда,
+        // какие поля изменились. Только чтение.
+        method == "GET" && path.matches(Regex("/v2/entities/[A-Za-zА-Яа-я0-9._-]+/history")) ->
+            история(требуется(query, "project"), path.removePrefix("/v2/entities/").removeSuffix("/history"))
+
         // Истина СХЕМ о виде — для экрана: поля, русские имена полей, стадии
         // обязательности, перечни и РУССКИЕ ЗНАЧЕНИЯ перечислений (истина
         // 19.09, `enum_labels`). Ни имён полей, ни значений у экрана своих нет:
@@ -807,6 +812,27 @@ class SceneRoutes(
     }
 
     /**
+     * История записи: версии по порядку, автор и время каждой и какие поля
+     * верхнего уровня изменились против предыдущей версии. Только чтение.
+     */
+    private fun история(проект: String, код: String): V2Router.Ответ {
+        val запись = store.byCode(Area.Project(проект), код) ?: throw NoSuchElementException("записи «$код» в проекте нет")
+        val версии = store.history(запись.id).sortedBy { it.version }
+        val ответ = mapper.createObjectNode().put("code", запись.code).put("kind", запись.kind)
+        val массив = ответ.putArray("items")
+        var прежняя: com.fasterxml.jackson.databind.JsonNode? = null
+        версии.forEach { в ->
+            val поля = (в.doc.fieldNames().asSequence().toSet() + (прежняя?.fieldNames()?.asSequence()?.toSet() ?: emptySet()))
+                .filter { п -> прежняя == null || в.doc.get(п) != прежняя?.get(п) }.sorted()
+            массив.addObject().put("version", в.version).put("status", в.status)
+                .put("author", в.provenance.author).put("at", в.updatedAt.toString())
+                .also { у -> у.putArray("changed").also { м -> (if (прежняя == null) emptyList() else поля).forEach(м::add) } }
+            прежняя = в.doc
+        }
+        return V2Router.Ответ(200, ответ)
+    }
+
+    /**
      * Вид для экрана: поля с русскими именами, стадии, перечни со значениями.
      *
      * Один ответ на весь экран: реестр показывает уровень, категорию, статус и
@@ -831,6 +857,12 @@ class SceneRoutes(
         // 19.09: «и какой показатель тут можно поставить?»).
         val примечания = узел.putObject("notes")
         вид.notes.forEach { (поле, слова) -> примечания.put(поле, слова) }
+        // Виджеты полей и виды ссылок — для карточки объекта (шип 5 §1.3): контрол
+        // поля выбирается по истине, а не размечается экраном.
+        val виджеты = узел.putObject("widgets")
+        вид.widgets.forEach { (поле, в) -> виджеты.put(поле, в) }
+        val ссылки = узел.putObject("ref_kinds")
+        вид.refKinds.forEach { (поле, виды) -> ссылки.putArray(поле).also { м -> виды.forEach(м::add) } }
         val операторы = узел.putObject("measure_ops")
         orbita.kernel.schema.GeneratedKinds.measureOps.forEach { (код, знак) -> операторы.put(код, знак) }
         val перечни = узел.putObject("enums")

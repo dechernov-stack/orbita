@@ -4,6 +4,7 @@
  * человек: принять · отклонить с причиной · слить синонимом в принятый термин.
  */
 import { useEffect, useState } from 'react'
+import { Вкладки, useВкладка } from './ui/tabs'
 import { api, type GlossaryTerm, type SearchHit } from './api'
 
 export function GlossaryScreen({ project }: { project: string | null }) {
@@ -24,7 +25,7 @@ export function GlossaryScreen({ project }: { project: string | null }) {
   const [источник, setИсточник] = useState('')
   const [привязка, setПривязка] = useState<string | null>(null)
   /** Принятый словарь виден сразу; непринятые (кандидаты) — своей вкладкой (владелец, 24.09). */
-  const [вкладка, setВкладка] = useState<'словарь' | 'кандидаты'>('словарь')
+  const [вкладка, setВкладка] = useВкладка<'словарь' | 'кандидаты'>('glossary', 'словарь', ['словарь', 'кандидаты'])
 
   useEffect(() => {
     let живо = true
@@ -108,24 +109,22 @@ export function GlossaryScreen({ project }: { project: string | null }) {
         )}
       </div>
       {привязка && <div className="v2-note-line">{привязка}</div>}
-      <div className="v2-form v2-form--row" data-why="работа" aria-label="рубрикатор по буквам">
-        <button type="button" className={буква ? 'v2-link' : 'v2-link v2-row--cur'} onClick={() => setБуква('')}
+      {/* Принятый словарь виден сразу, непринятые — своей вкладкой (владелец, 24.09); вкладки — шип 5 §1.1. */}
+      <Вкладки label="вкладки словаря" current={вкладка} onChange={setВкладка}
+        items={[
+          { key: 'словарь', word: 'Принятые', count: термины.filter((т) => т.status === 'accepted').length,
+            hint: 'принятые термины класса миссии и проекта' },
+          { key: 'кандидаты', word: 'Кандидаты', count: кандидаты.length, health: кандидаты.length > 0 ? 'debt' : 'ok',
+            hint: кандидаты.length > 0 ? `кандидатов ${кандидаты.length}: ждут решения — принять, отклонить, слить` : 'кандидатов нет' },
+        ]} />
+      {/* Рубрикатор — отбор по первой букве чипами, не меню. */}
+      <div className="v2-chips" data-why="работа" aria-label="рубрикатор по буквам">
+        <button type="button" className={буква ? 'v2-chip' : 'v2-chip v2-chip--on'} aria-pressed={!буква} onClick={() => setБуква('')}
           title="все термины по алфавиту">все</button>
         {буквы.map((б) => (
-          <button key={б} type="button" className={буква === б ? 'v2-link v2-row--cur' : 'v2-link'}
+          <button key={б} type="button" className={буква === б ? 'v2-chip v2-chip--on' : 'v2-chip'} aria-pressed={буква === б}
             onClick={() => setБуква(буква === б ? '' : б)} title={`термины на «${б}»`}>{б}</button>
         ))}
-      </div>
-
-      <div className="v2-form v2-form--row" data-why="работа" aria-label="вкладки словаря">
-        <button type="button" className={вкладка === 'словарь' ? 'v2-link v2-row--cur' : 'v2-link'}
-          onClick={() => setВкладка('словарь')} title="принятые термины класса миссии и проекта">
-          Словарь · {термины.filter((т) => т.status === 'accepted').length}
-        </button>
-        <button type="button" className={вкладка === 'кандидаты' ? 'v2-link v2-row--cur' : 'v2-link'}
-          onClick={() => setВкладка('кандидаты')} title="непринятые термины: кандидаты из документов ждут решения">
-          Кандидаты · {кандидаты.length}
-        </button>
       </div>
 
       {вкладка === 'кандидаты' && кандидаты.length === 0 && (

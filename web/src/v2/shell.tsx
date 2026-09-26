@@ -3,7 +3,7 @@
 // Шапка отвечает на три вопроса разом: где я (проект · фаза · сцена), что
 // горит (ближайшая точка с блокирующими) и кто я (учётка, «мои»). Рейка —
 // разделы продукта; экспертные показываются переключателем, а не всегда.
-import { useEffect, useState } from 'react'
+import { Fragment as Фрагмент, useEffect, useState } from 'react'
 import { api, type Phase, type ProjectRow } from './api'
 import { Work } from './work'
 import { MyTasks } from './tasks'
@@ -25,6 +25,7 @@ import { ExternalModelScreen } from './externalmodel'
 import { Library } from './library'
 import { GlossaryScreen } from './glossary'
 import { ИМЯ_РЕЖИМА, режимПоРоли, type Режим } from './density'
+import { ПлотностьКонтекст } from './ui/density'
 import { Икон, type Пиктограмма } from './icons'
 import { Маркер } from './markers'
 import { инициалы } from './people'
@@ -41,6 +42,13 @@ type Section = {
   /** Пиктограмма рейки — всегда рядом со словом, никогда вместо него. */
   icon: Пиктограмма
 }
+
+/**
+ * Ярусы рейки (шип 5 §1.6) — тонкие разделители без подписей: входы
+ * (проекты · мостик · моя работа) | работа фазы | паспорт и словарь. Порядок
+ * разделов не меняется; разделитель встаёт ПЕРЕД названным разделом.
+ */
+const ЯРУС_С = new Set(['work', 'passport'])
 
 const SECTIONS: Section[] = [
   { key: 'projects', title: 'Проекты', wave: 8, icon: 'проекты', hint: 'портфель: рабочие и примеры, новый проект' },
@@ -158,6 +166,14 @@ export function Shell() {
   const [нуженВход, setНуженВход] = useState<boolean | null>(null)
   /** Плотность, выбранная руками; null — умолчание роли. */
   const [режим, setРежим] = useState<Режим | null>(null)
+  /** «Просторно» (шип 5 §1.3, §1.5): слово у пиктограмм и в таблице, три колонки граней карточки. */
+  const [просторно, setПросторно] = useState<boolean>(() => {
+    try { return localStorage.getItem('orbita.v2.spacious') === '1' } catch { return false }
+  })
+  const переключитьПросторно = (вкл: boolean) => {
+    setПросторно(вкл)
+    try { localStorage.setItem('orbita.v2.spacious', вкл ? '1' : '0') } catch { /* без хранилища — до перезагрузки */ }
+  }
   const [failure, setFailure] = useState<string | null>(null)
 
   useEffect(() => {
@@ -238,6 +254,7 @@ export function Shell() {
   const точка = phase?.gates.find((т) => !т.passed)
 
   return (
+    <ПлотностьКонтекст.Provider value={{ режим: текущийРежим, просторно, эксперт: expert, кто: me }}>
     <div className="v2-shell">
       {обновление && (
         <div className="v2-locked" role="status">
@@ -291,6 +308,7 @@ export function Shell() {
               имя={me ?? (users.length > 0 ? `учётки стенда: ${users.length}` : 'учётка не выбрана')}
               роль={роль ? (ИМЯ_РОЛИ[роль] ?? роль) : 'роль не назначена'}
               я={я} expert={expert} onExpert={setExpert}
+              просторно={просторно} onПросторно={переключитьПросторно}
               режим={текущийРежим} умолчание={ИМЯ_РЕЖИМА[режимПоРоли(роль)]} onРежим={(р) => setРежим(р)}
               onActAs={(код) => api.actAs(код || null).then(() => setВходTick((t) => t + 1)).catch((err) => setFailure(String(err)))}
               onLogout={входTelegram ? () => {
@@ -303,12 +321,15 @@ export function Shell() {
       <div className="v2-layout">
         <nav className="v2-rail" aria-label="разделы">
           {visible.filter((s) => !s.expert).map((s) => (
-            <button key={s.key} className="v2-rail__item" type="button"
-              aria-current={s.key === section ? 'page' : undefined}
-              title={s.hint}
-              onClick={() => setSection(s.key)}>
-              <Икон имя={s.icon} />{s.title}
-            </button>
+            <Фрагмент key={s.key}>
+              {ЯРУС_С.has(s.key) && <div className="v2-rail__tier" role="separator" />}
+              <button className="v2-rail__item" type="button"
+                aria-current={s.key === section ? 'page' : undefined}
+                title={s.hint}
+                onClick={() => setSection(s.key)}>
+                <Икон имя={s.icon} />{s.title}
+              </button>
+            </Фрагмент>
           ))}
           <div className="v2-rail__sep" role="separator" />
           {SECTIONS.filter((s) => s.expert).map((s) => (
@@ -403,6 +424,7 @@ export function Shell() {
         </main>
       </div>
     </div>
+    </ПлотностьКонтекст.Provider>
   )
 }
 
@@ -416,12 +438,14 @@ const ИМЯ_РОЛИ: Record<string, string> = {
  * имени», плотность экрана, эксперт-режим, выход. В самой шапке личного
  * больше ничего нет — там проект, фаза и точка.
  */
-function МенюУчётки({ имя, роль, я, expert, onExpert, режим, умолчание, onРежим, onActAs, onLogout }: {
+function МенюУчётки({ имя, роль, я, expert, onExpert, просторно, onПросторно, режим, умолчание, onРежим, onActAs, onLogout }: {
   имя: string
   роль: string
   я: StandUser | null
   expert: boolean
   onExpert: (v: boolean) => void
+  просторно: boolean
+  onПросторно: (v: boolean) => void
   режим: Режим
   умолчание: string
   onРежим: (р: Режим) => void
@@ -468,6 +492,10 @@ function МенюУчётки({ имя, роль, я, expert, onExpert, режи
             : 'включить эксперт-режим: библиотека, обмен, внешняя модель и журналы'}>
             <input type="checkbox" checked={expert} onChange={(e) => onExpert(e.target.checked)} />
             эксперт-режим
+          </label>
+          <label className="v2-inline" title="просторно: слово рядом с каждой пиктограммой, три колонки в карточке объекта">
+            <input type="checkbox" checked={просторно} onChange={(e) => onПросторно(e.target.checked)} />
+            просторно
           </label>
           {onLogout && (
             <button type="button" className="v2-link" title="выйти: сессия закроется на сервере" onClick={onLogout}>Выйти</button>

@@ -318,6 +318,52 @@ def схема_вида(вид: dict, ядро: list) -> dict:
     return схема
 
 
+def виджет_поля(тип: str) -> str:
+    """Виджет карточки по типу поля истины (`field_rules.widgets`):
+    measure → оператор · значение · единица; ref → пикер; ref[] → мультипикер;
+    enum → селект русскими значениями; text → поле на всю ширину с автовысотой.
+    Остальное — по смыслу типа: число, флаг, дата, список строк, малая таблица."""
+    т = тип.strip()
+    if "(computed" in т:
+        return "computed"
+    if т.startswith("measure"):
+        return "measure"
+    if т.startswith("enum["):
+        return "list" if т.rstrip().endswith("[]") else "enum"
+    if т.startswith("ref[]"):
+        return "refs"
+    if т.startswith("ref"):
+        return "ref"
+    if т.startswith("text"):
+        return "text"
+    if т.startswith("str[]") or т.startswith("class[]"):
+        return "list"
+    if т.startswith(("int", "num")):
+        return "number"
+    if т.startswith("bool"):
+        return "bool"
+    if т.startswith(("date", "ts")):
+        return "date"
+    if т.startswith("["):
+        return "table"
+    if т.startswith("{") or т.startswith("json"):
+        return "object"
+    return "str"
+
+
+def виды_ссылки_поля(тип: str) -> list[str]:
+    """Виды, на которые ссылается поле: «ref component|interface|scenario» →
+    [component, interface, scenario]; «ref[] need ≥1» → [need]. Пусто — ссылка
+    без названного вида либо не ссылка."""
+    т = тип.strip()
+    if not т.startswith("ref"):
+        return []
+    хвост = т[5:] if т.startswith("ref[]") else т[3:]
+    хвост = хвост.strip().split(" ", 1)[0] if хвост.strip() else ""
+    виды = [в.strip() for в in хвост.split("|")]
+    return [в for в in виды if re.fullmatch(r"[a-z_]+", в)]
+
+
 def котлин(kinds: list, метки: dict | None = None) -> str:
     строки = [
         "// " + ШАПКА,
@@ -388,6 +434,15 @@ def котлин(kinds: list, метки: dict | None = None) -> str:
         "     * рядом с полем — иначе необязательное поле выглядит долгом.",
         "     */",
         "    val notes: Map<String, String> = emptyMap(),",
+        "    /**",
+        "     * Виджет поля для карточки объекта (`field_rules.widgets`, шип 5 §1.3):",
+        "     * measure · enum · ref · refs · text · str · list · number · bool · date ·",
+        "     * table · object · computed. Считается генератором по типу поля истины —",
+        "     * экран руками поля не размечает.",
+        "     */",
+        "    val widgets: Map<String, String> = emptyMap(),",
+        "    /** Виды, на которые ссылается поле-ссылка: пикер ищет по их кодам и именам. */",
+        "    val refKinds: Map<String, List<String>> = emptyMap(),",
         ")",
         "",
         "object GeneratedKinds {",
@@ -449,11 +504,22 @@ def котлин(kinds: list, метки: dict | None = None) -> str:
         примечания_kt = f"mapOf({примечания})" if примечания else "emptyMap()"
         сцена_kt = f'"{сцена}"' if сцена else "null"
         модель_kt = f'"{модель}"' if модель else "null"
+        # Виджет поля — по правилу `field_rules.widgets` из типа поля истины.
+        виджеты = ", ".join(
+            f'"{f["name"]}" to "{виджет_поля(f.get("type") or "")}"' for f in (k.get("fields") or [])
+        )
+        виджеты_kt = f"mapOf({виджеты})" if виджеты else "emptyMap()"
+        ссылки = []
+        for f in (k.get("fields") or []):
+            виды_ссылки = виды_ссылки_поля(f.get("type") or "")
+            if виды_ссылки:
+                ссылки.append(f'"{f["name"]}" to listOf(' + ", ".join(f'"{в}"' for в in виды_ссылки) + ")")
+        ссылки_kt = "mapOf(" + ", ".join(ссылки) + ")" if ссылки else "emptyMap()"
         строки.append(
             f'        KindSpec("{k["code"]}", "{k.get("name", "")}", Layer.{слой}, '
             f'{сцена_kt}, {модель_kt}, listOf({перечень}), listOf({все_поля}), '
             f'listOf({ссылки_на_факт}), {перечни_kt}, listOf({величины}), '
-            f'{подписи_kt}, {стадии_kt}, {примечания_kt}),'
+            f'{подписи_kt}, {стадии_kt}, {примечания_kt}, {виджеты_kt}, {ссылки_kt}),'
         )
     строки += [
         "    )",

@@ -5,9 +5,10 @@ import { describe, expect, it } from 'vitest'
 import экран from './requirements.tsx?raw'
 
 describe('виды реестра', () => {
-  it('четыре вида переключаются чипами', () => {
+  it('четыре вида переключаются вкладками (шип 5 §1.1)', () => {
     expect(экран).toContain("['таблица', 'Таблица'], ['иерархия', 'По иерархии'], ['документы', 'По документам'], ['матрица', 'Матрица'],")
-    expect(экран).toContain('aria-label="вид реестра"')
+    expect(экран).toContain('<Вкладки label="вид реестра требований"')
+    expect(экран).toContain("useВкладка<ВидРеестра>('requirements', 'таблица'")
     expect(экран).toContain('function МатрицаНосителей')
     // «Документ» узнаётся по данным проекта, а не по форме кода источника.
     expect(экран).toContain("api.entities(project, 'material')")

@@ -369,9 +369,6 @@ button:disabled { opacity: .55; cursor: default; }
 .v2-layer__key { font-family: var(--font-mono); font-size: 12px; color: var(--accent); }
 
 /* Вкладки-грани: пустая вкладка честно показывает прочерк вместо нуля. */
-.v2-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
-.v2-tab { display: flex; gap: 5px; align-items: baseline; font-size: 12px; }
-.v2-tab[aria-selected="true"] { border-color: var(--accent); background: var(--accent-soft); }
 
 
 /* ── Экран мероприятия (ДИЗАЙН-ПРИНЦИПЫ-V2, эталон reference-activity-engineer) ──
@@ -450,7 +447,6 @@ button:disabled { opacity: .55; cursor: default; }
 
 /* Поле знаний: темы и фильтры чипами, причина решения — строкой в таблице. */
 .v2-kf__bar { display: flex; gap: var(--pad-s); align-items: center; flex-wrap: wrap; padding: var(--pad-s) var(--pad-m); }
-.v2-chip--on { border-color: var(--accent); background: var(--accent-soft); }
 .v2-kf__why { display: inline-flex; gap: 6px; align-items: center; }
 .v2-kf__why input, .v2-kf__why button {
   font: inherit; font-size: var(--size-s); padding: 4px 8px;
@@ -514,3 +510,83 @@ button:disabled { opacity: .55; cursor: default; }
 .cf-veil .btn { padding: 6px 12px; border: 1px solid var(--hairline); border-radius: 6px; background: var(--bg); color: var(--ink); cursor: pointer; }
 .cf-veil .btn--primary { background: var(--accent); border-color: var(--accent); color: #fff; }
 .cf-veil .np-linkish { color: var(--accent); background: none; border: none; cursor: pointer; padding: 0; }
+
+/* ——— Шип 5 · общие компоненты (эталон reference-tabs-bands-card.html) ——— */
+
+/* §1.1 Вкладки: подчёркивание у текущей, слово чёрным, число приглушённым, маркер здоровья слева. */
+.v2-tabs { display: flex; flex-wrap: wrap; gap: 4px; align-items: stretch; border-bottom: 1px solid var(--graphite); margin: 0 0 12px; padding: 0; }
+.v2-tab { display: inline-flex; gap: 0; align-items: center; padding: 8px 10px 9px; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px; background: none; color: var(--muted); cursor: pointer; font-size: var(--size); border-radius: 0; }
+.v2-tab b { font-weight: 500; color: var(--ink); }
+.v2-tab__n { margin-left: 5px; color: var(--muted); }
+.v2-tab[aria-selected="true"] { border-bottom-color: var(--cobalt); background: none; }
+.v2-tab[aria-selected="true"] b { font-weight: 600; }
+.v2-tab--expert b, .v2-tab--expert .v2-tab__n { color: var(--graphite); font-weight: 400; }
+.v2-tab:disabled { cursor: default; }
+.v2-tabs__sep { width: 1px; background: var(--graphite); margin: 8px 6px; }
+.v2-tabs__tail { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; }
+
+/* Маркер здоровья: кружок; заливка — состояние; слово — в подсказке. */
+.v2-hm { display: inline-block; width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid var(--ink); background: var(--surface); margin-right: 6px; flex: none; }
+.v2-hm--ok { border-color: var(--green); }
+.v2-hm--debt { background: linear-gradient(90deg, var(--amber) 50%, var(--surface) 50%); border-color: var(--amber); }
+.v2-hm--block { background: var(--red); border-color: var(--red); }
+
+/* Чипы отбора значениями из данных. */
+.v2-chips { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 0 0 10px; }
+.v2-chips__sp { flex: 1; }
+.v2-chips input[type="search"], .v2-chips input:not([type]) { width: 220px; border: 1px solid var(--graphite); border-radius: var(--radius-input); padding: 4px 8px; }
+.v2-chip--on { border-color: var(--cobalt); color: var(--cobalt); background: var(--surface); }
+
+/* §1.5 Кнопка-пиктограмма: в таблице — только пиктограмма; в панели и «просторно» — со словом. */
+.v2-ib { border: 0; background: none; padding: 2px 3px; cursor: pointer; color: var(--ink); display: inline-flex; gap: 5px; align-items: center; }
+.v2-ib:hover:not(:disabled) { color: var(--cobalt); }
+.v2-ib:disabled { color: var(--graphite); cursor: default; }
+.v2-ib--word span { font-size: var(--size-s); }
+.v2-btn { border: 1px solid var(--graphite); border-radius: var(--radius-input); background: var(--surface); padding: 4px 10px; }
+.v2-btn.v2-btn--primary { background: var(--cobalt); border-color: var(--cobalt); color: #fff; }
+td.v2-acts { white-space: nowrap; text-align: right; }
+
+/* §1.2 Полоса группы: своя полоса над своей таблицей. */
+.v2-bandgroup { margin-top: 10px; }
+.v2-band { display: flex; align-items: center; gap: 10px; padding: 8px; background: var(--paper); border-top: 1px solid var(--graphite); }
+.v2-band--closed { border-bottom: 1px solid #E6EAEF; }
+.v2-band__subject { font-weight: 600; }
+.v2-band__n { color: var(--muted); font-size: 12px; }
+.v2-band__sp { flex: 1; }
+.v2-bandgroup > table th { font-size: var(--size-s); }
+
+/* §1.3 Карточка объекта: вниз от строки, грани из истины. */
+.v2-object { border-left: 3px solid var(--cobalt); background: var(--paper); padding: 12px 14px 14px; margin: 0 0 4px; }
+.v2-object__head { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+.v2-object__head h3 { margin: 0; font-size: var(--size); font-weight: 600; }
+.v2-object__meta { color: var(--muted); font-size: 12px; }
+.v2-object__acts { margin-left: auto; display: inline-flex; gap: 2px; }
+.v2-object__facets { display: grid; gap: 10px 28px; margin-top: 12px; }
+.v2-object__facets--1 { grid-template-columns: minmax(0, 1fr); }
+.v2-object__facets--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.v2-object__facets--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.v2-object .v2-facet > label { display: block; font-size: var(--size-s); color: var(--muted); margin-bottom: 3px; }
+.v2-object .v2-facet input:not([type="checkbox"]), .v2-object .v2-facet select, .v2-object .v2-facet textarea { width: 100%; border: 1px solid var(--graphite); border-radius: var(--radius-input); padding: 5px 8px; background: var(--surface); }
+.v2-object .v2-facet textarea { resize: vertical; min-height: 56px; }
+.v2-facet--wide { grid-column: 1 / -1; }
+.v2-facet__hint { font-size: var(--size-s); color: var(--muted); margin-top: 3px; }
+.v2-facet__ok { font-size: var(--size-s); color: var(--green); margin-top: 3px; }
+.v2-facet__err { font-size: var(--size-s); color: var(--red); margin-top: 3px; }
+.v2-facet__ro { min-height: 28px; padding: 4px 0; }
+.v2-facet__row { display: flex; gap: 6px; align-items: center; }
+.v2-object .v2-facet__row input { width: 90px; }
+.v2-object .v2-facet__row select { width: auto; }
+.v2-facet__chips { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.v2-object__debt { margin-top: 12px; font-size: 14px; color: var(--amber); }
+.v2-object__debt b { font-weight: 500; }
+.v2-table--mini th, .v2-table--mini td { font-size: var(--size-s); padding: 3px 6px; }
+
+/* §1.4 Массовая панель: липкая снизу, «выбрано N — действия», подсказка клавиш. */
+.v2-mass { position: sticky; bottom: 0; z-index: 3; background: var(--surface); border-top: 1px solid var(--graphite); padding: 8px 12px; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; font-size: 14px; margin-top: 8px; }
+.v2-mass__k { color: var(--muted); margin-left: auto; }
+.v2-mass__sets { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+input.v2-mark { margin: 0; }
+tr.v2-row--cursor td { box-shadow: inset 2px 0 0 var(--cobalt); }
+
+/* §1.6 Рейка: ярусы тонкими разделителями, без подписей. */
+.v2-rail__tier { height: 1px; background: var(--graphite); margin: 6px 20px; }

@@ -12,6 +12,7 @@
 // Клетка матрицы покрытия не бывает просто пустой: если нужда не покрыта,
 // строка говорит, чего именно не хватает — цели, сервиса или носителя.
 import { Fragment as Фрагмент, useCallback, useEffect, useState } from 'react'
+import { Вкладки } from './ui/tabs'
 import './formulation.css'
 import { api, type CoverageMatrix, type CoverageNeed, type EntityRow, type FactRow, type KindSpec } from './api'
 import { инициалы } from './people'
@@ -339,24 +340,13 @@ export function Coverage({ project }: { project: string | null }) {
   const безНужд = матрица.stakeholders_without_needs.length
   return (
     <>
-      <div className="v2-form v2-form--row" data-why="работа" aria-label="подменю постановки">
-        <button type="button" className={вкладка === 'стороны' ? 'v2-link v2-row--cur' : 'v2-link'}
-          onClick={() => выбрать('стороны')} title="стороны, их влияние и сила; карточка стороны с нуждами и основаниями">
-          Стороны · {стороны.length}
-        </button>
-        <button type="button" className={вкладка === 'покрытие' ? 'v2-link v2-row--cur' : 'v2-link'}
-          onClick={() => выбрать('покрытие')} title="каждая нужда — чья, какими целями и сервисами закрыта">
-          Покрытие нужд · {матрица.covered} из {матрица.total}
-        </button>
-        <button type="button" className={вкладка === 'без-нужд' ? 'v2-link v2-row--cur' : 'v2-link'}
-          onClick={() => выбрать('без-нужд')} title="стороны названы, но чего они хотят — не записано; сцена 3 не закроется">
-          Без нужд · {безНужд}
-        </button>
-        <button type="button" className={вкладка === 'применимость' ? 'v2-link v2-row--cur' : 'v2-link'}
-          onClick={() => выбрать('применимость')} title="чужие нужды и цели из обстановки: чем наша система им полезна — вердиктом; «не наш профиль» со ссылкой на границу устава">
-          Применимость
-        </button>
-      </div>
+      <Вкладки label="подменю постановки" current={вкладка} onChange={выбрать}
+        items={[
+          { key: 'стороны', word: 'Стороны', count: стороны.length, hint: 'стороны, их влияние и сила; карточка стороны с нуждами и основаниями' },
+          { key: 'покрытие', word: 'Покрытие нужд', count: `${матрица.covered} из ${матрица.total}`, hint: 'каждая нужда — чья, какими целями и сервисами закрыта' },
+          { key: 'без-нужд', word: 'Без нужд', count: безНужд, health: безНужд > 0 ? 'debt' : 'ok', hint: 'стороны названы, но чего они хотят — не записано; сцена 3 не закроется' },
+          { key: 'применимость', word: 'Применимость', hint: 'чужие нужды и цели из обстановки: чем наша система им полезна — вердиктом' },
+        ]} />
       {вкладка === 'применимость' && <Применимость project={project} />}
       {вкладка === 'стороны' && (
         <Стороны project={project} стороны={стороны} нужды={нужды} факты={факты} вид={вид} onChanged={перечитать} />

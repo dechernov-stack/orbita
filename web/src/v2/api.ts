@@ -364,6 +364,19 @@ export interface KindSpec {
   notes: Record<string, string>
   /** Операторы величины: код записи → знак для экрана («>=» → «≥»). */
   measure_ops: Record<string, string>
+  /** Виджет поля карточки объекта (`field_rules.widgets`): measure · enum · ref · refs · text · str · list · number · bool · date · table · object · computed. */
+  widgets?: Record<string, string>
+  /** Виды, на которые ссылается поле-ссылка: пикер ищет по их кодам и именам. */
+  ref_kinds?: Record<string, string[]>
+}
+
+/** Версия записи в истории карточки: кто, когда, какие поля изменились. */
+export interface EntityVersion {
+  version: number
+  status: string
+  author: string
+  at: string
+  changed: string[]
 }
 
 /** Единица справочника: что пишется в запись и как её читать человеку. */
@@ -800,6 +813,10 @@ export interface EntityRow {
   id: string
   code: string
   status: string
+  /** Шапка карточки объекта: «версия N · кто · когда». */
+  version?: number
+  author?: string
+  updated_at?: string
   doc: Record<string, unknown>
   owned_by?: string[]
   covered_by?: string[]
@@ -2120,6 +2137,11 @@ export const api = {
 
   /** Вид для экрана: поля, русские имена, стадии, перечни со значениями. */
   kind: (code: string) => вызов<KindSpec>(`/kinds/${encodeURIComponent(code)}`),
+
+  /** История записи для карточки объекта: версии, кто, когда, что изменилось. */
+  entityHistory: (project: string, code: string) =>
+    вызов<{ code: string; kind: string; items: EntityVersion[] }>(
+      `/entities/${encodeURIComponent(code)}/history?project=${encodeURIComponent(project)}`),
 
   /** Единицы справочника для выбора: величины без единицы не бывает. */
   units: () => вызов<{ items: UnitRow[]; count: number; why?: string }>('/units'),

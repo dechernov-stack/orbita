@@ -5,6 +5,7 @@
 // которому цепляется всё, чем живёт модель. Пустая грань не молчит: она
 // говорит, что в ней ожидается и к какой точке — лестницей зрелости с полки.
 import { useCallback, useEffect, useState } from 'react'
+import { Вкладки } from './ui/tabs'
 import { api, type ArchLayer, type ComponentCard, type ComponentRow, type ParameterRow } from './api'
 
 const ТОЧКИ = ['MCR', 'SRR', 'SDR', 'PDR']
@@ -144,19 +145,12 @@ function Карточка({ project, code, gate }: { project: string; code: stri
         </div>
       )}
 
-      <div className="v2-tabs" role="tablist" aria-label="грани компонента">
-        {карточка.facets.map((г) => (
-          <button key={г.key} type="button" role="tab" className="v2-tab"
-            aria-selected={г.key === текущая.key}
-            title={г.lines.length === 0 && г.required_to
-              ? `пусто; обязательна к точке ${г.required_to}`
-              : `${г.lines.length} записей`}
-            onClick={() => setГрань(г.key)}>
-            {г.title}
-            <span className="v2-card__count">{г.lines.length || '—'}</span>
-          </button>
-        ))}
-      </div>
+      <Вкладки label="грани компонента" current={текущая.key} onChange={setГрань}
+        items={карточка.facets.map((г) => ({
+          key: г.key, word: г.title, count: г.lines.length || '—',
+          health: г.lines.length === 0 && г.required_to ? 'debt' as const : null,
+          hint: г.lines.length === 0 && г.required_to ? `пусто; обязательна к точке ${г.required_to}` : `${г.lines.length} записей`,
+        }))} />
 
       <div className="v2-facet__body">
         {текущая.lines.length > 0 ? (

@@ -91,7 +91,8 @@ describe('Phase A: сцена открывает реестр с отбором,
   it('A6 — одна Концепция, «Модели» вкладкой в контексте фазы A; A7 — технологии; A8 — реестр рисков; A9 — ОСЗ; A10 — стоимость', () => {
     expect(поверхности).toContain("if (ключ === 'A6')")
     expect(поверхности).toContain("{вкладкаA6 === 'модели' ? <Models project={project} /> : <Concept project={project} />}")
-    expect(поверхности).toContain('role="tablist" aria-label="контекст сцены A6"')
+    // Вкладки — общий компонент (шип 5 §1.1): второе меню одно.
+    expect(поверхности).toContain('<Вкладки label="контекст сцены A6"')
     expect(поверхности).toContain("if (ключ === 'A7') return <Technologies project={project} />")
     expect(поверхности).toContain("if (ключ === 'A8') return <RiskRegistry project={project} сцены={сцены} />")
     expect(поверхности).toContain('<Debris project={project} />')
