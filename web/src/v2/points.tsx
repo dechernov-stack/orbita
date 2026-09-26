@@ -69,6 +69,18 @@ export function Points({ project, phase, onChanged, onGoScene, onGoRisk, учё�
   /** Риски проекта: точка называет те, что её держат, по `holds` сервера. */
   const [риски, setРиски] = useState<RiskRow[]>([])
 
+  /**
+   * Тест действия (шип 5 §9): от входа до решения точки — не больше двух
+   * кликов. Карточка ближайшей непройденной точки — той, что в шапке, —
+   * открыта сразу, один раз на вход; дальше открывает и сворачивает человек.
+   */
+  const [раскрытаСама, setРаскрытаСама] = useState(false)
+  useEffect(() => {
+    if (!вид || раскрытаСама) return
+    setОткрыта((вид.items.find((т) => !т.passed) ?? null)?.key ?? null)
+    setРаскрытаСама(true)
+  }, [вид, раскрытаСама])
+
   const перечитать = () => {
     if (!project) return
     api.points(project).then(setВид).catch((e) => setОтказ(String(e.message ?? e)))
@@ -185,7 +197,7 @@ function PointCard({ project, точка, все, phase, onChanged, onGoScene, o
       {точка.legend_note && экспертиза?.positions.length ? <div className="v2-note-line">{точка.legend_note}</div> : null}
 
       {ТОЧКИ_ИССЛЕДОВАНИЯ.includes(точка.key) && (
-        <ResearchPanel project={project} trigger={{ gate: точка.key }} onChanged={onChanged} />
+        <ResearchPanel project={project} trigger={{ gate: точка.key }} место={`точка «${точка.title}»`} onChanged={onChanged} />
       )}
 
       <h4 className="v2-h4">Готовность</h4>

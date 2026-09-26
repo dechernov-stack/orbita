@@ -109,10 +109,12 @@ export function запомнитьРоль(роль: string): void {
  * @param onChanged принятое из результата меняет поле — вызывающий экран
  *   перечитывает свои списки
  */
-export function ResearchPanel({ project, trigger, onChanged }: {
+export function ResearchPanel({ project, trigger, onChanged, место }: {
   project: string
   trigger: ResearchPlace
   onChanged?: () => void
+  /** Место словами («точка «Внутренний обзор»»): ключ точки на экран не выходит (шип 5 §9). */
+  место?: string
 }) {
   const [открыта, setОткрыта] = useState(false)
   const [задачи, setЗадачи] = useState<ResearchTask[] | null>(null)
@@ -259,7 +261,7 @@ export function ResearchPanel({ project, trigger, onChanged }: {
   const итог = задача?.accepted
   const состояние = задача
     ? `${задача.place} · цикл ${задача.iteration} · ${СОСТОЯНИЕ[задача.status] ?? задача.status}`
-    : `${сцена ? `сцена ${сцена}` : `точка ${точка}`} · исследования ещё не было`
+    : `${место ?? (сцена ? `сцена ${сцена}` : `точка ${точка}`)} · исследования ещё не было`
 
   return (
     <>
