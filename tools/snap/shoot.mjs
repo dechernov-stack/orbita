@@ -167,6 +167,12 @@ for (const ширина of план.widths) {
       await стр.screenshot({ path: `${план.out}/${имя}`, fullPage: false })
       итог.push({ file: имя, section: раздел.title, role: роль.file, width: ширина })
       console.log(`  ${имя}`)
+      // Вкладка раздела перед полосой и карточкой (Поле знаний → Факты): у раздела с вкладками полосы живут не на первой.
+      const вкладка = (план.tab ?? {})[раздел.title]
+      if (вкладка) {
+        await стр.locator(`main [role=tab]:has-text("${вкладка}")`).first().click().catch(() => {})
+        await стр.waitForTimeout(план.pauseMs ?? 900)
+      }
       if ((план.cardSections ?? []).includes(раздел.title)) await карточка(стр, раздел, роль, ширина)
       if ((план.bandSections ?? []).includes(раздел.title)) await полоса(стр, раздел, роль, ширина)
       if ((план.open ?? {})[раздел.title]) await открытьКнопкой(стр, раздел, роль, ширина, план.open[раздел.title])

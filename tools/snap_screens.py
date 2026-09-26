@@ -79,6 +79,7 @@ def снять(args) -> pathlib.Path:
         # «Раздел=имя кнопки»: открыть кнопкой (документ из комплекта) и снять открытое.
         "open": dict(п.split("=", 1) for п in args.open.split(",")) if args.open else {},
         "scroll": dict(п.split("=", 1) for п in args.scroll.split(";")) if args.scroll else {},
+        "tab": dict(п.split("=", 1) for п in args.tab.split(",")) if args.tab else {},
     }
     with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8") as f:
         json.dump(план, f, ensure_ascii=False)
@@ -183,6 +184,7 @@ def main() -> int:
     с.add_argument("--scenes", default=None, help="сцены работы, каждая своим снимком: 3,4,5,6")
     с.add_argument("--band", default=None, help="разделы, у которых снимается первая полоса группы раскрытой")
     с.add_argument("--open", default=None, help="«Раздел=имя кнопки»: открыть кнопкой и снять, например Документы=открыть документ")
+    с.add_argument("--tab", default=None, help="«Раздел=вкладка»: перед полосой и карточкой открыть вкладку раздела (Поле знаний=Факты)")
     с.add_argument("--scroll", default=None, help="«Раздел=селектор» через «;»: к чему прокрутить снимок «открыто» (замечания точки)")
     с.add_argument("--widths", default=None, help="1440,1280")
     с.add_argument("--expert", action="store_true", help="с --sections: снимать и эксперт-разделы из списка")
