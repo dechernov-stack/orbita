@@ -11,7 +11,7 @@
 // внутри <label>, а сам виджет обязан нести подпись строкой и aria-label у
 // каждого контрола.
 import { describe, expect, it } from 'vitest'
-import требования from './requirements.tsx?raw'
+import { ТЕКСТ_ТРЕБОВАНИЙ as требования } from './test-support/requirementsSource'
 import поле from './knowledgefield.tsx?raw'
 import документыПоля from './knowledge/documents.tsx?raw'
 import фактыПоля from './knowledge/facts.tsx?raw'
@@ -58,7 +58,8 @@ describe('поле из нескольких контролов — не оди�
 
   it('величина собрана без label: подпись строкой, у контролов свои имена', () => {
     const где = требования.indexOf('function Величина')
-    const кусок = требования.slice(где, требования.indexOf('\nfunction ', где + 10))
+    const конец = [требования.indexOf('\nfunction ', где + 10), требования.indexOf('\nexport function ', где + 10)].filter((i) => i > 0)
+    const кусок = требования.slice(где, конец.length > 0 ? [...конец].sort((а, б) => а - б)[0] : undefined)
     expect(кусок).toContain('<span className="v2-field">')
     expect(кусок).toContain('v2-field__cap')
     expect(безКомментариев(кусок)).not.toContain('<label')

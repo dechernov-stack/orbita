@@ -2,11 +2,14 @@
 // требований, а не в поле знаний (проход владельца 18.09: «ничего в
 // требованиях верхнего уровня не изменилось»).
 import { describe, expect, it } from 'vitest'
-import экран from './requirements.tsx?raw'
+import { ТЕКСТ_ТРЕБОВАНИЙ as экран } from './test-support/requirementsSource'
 
 describe('сцена 8 — предложения требований', () => {
   it('предложения берутся из той же постановки и принимаются тем же приёмом', () => {
-    const кусок = экран.slice(экран.indexOf('function ПредложенияТребований'), экран.indexOf('export function Requirements'))
+    // Шип 5 §4: блок живёт в requirements/scene8.tsx — кусок до следующего объявления.
+    const от = экран.indexOf('function ПредложенияТребований')
+    const до = экран.indexOf('\n// ', от)
+    const кусок = экран.slice(от, до > от ? до : undefined)
     expect(кусок).toContain('api.synthesisDiff(project)')
     expect(кусок).toContain("п.concept === 'requirement'")
     expect(кусок).toContain('api.acceptSynthesis(project, запуск, отмечены')
@@ -24,9 +27,9 @@ describe('сцена 8 — предложения требований', () => {
   it('строка таблицы не помечена классом сетки: иначе клетки разваливаются', () => {
     // `.v2-row` — сетка из трёх колонок для списков. На строке таблицы она
     // превращала клетки в блоки по 16 px (замерено на стенде 19.09).
-    const кусок = экран.slice(экран.indexOf('function TableRow'), экран.indexOf('function TableRow') + 1200)
+    const кусок = экран.slice(экран.indexOf('function TableRow'), экран.indexOf('function TableRow') + 3200)
     expect(кусок).not.toContain("'v2-row v2-row--open'")
-    expect(кусок).toContain("открыта ? 'v2-row--open' : undefined")
+    expect(кусок).toContain("открыта ? 'v2-row--open' : ''")
   })
 
   it('реестр рисуется своим классом — ширины колонок у него в стиле', () => {

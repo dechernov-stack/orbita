@@ -104,6 +104,11 @@ class ReqRoutes(
         т.sources.forEach { источники.add(store.byId(it)?.code ?: it) }
         val пометы = узел.putArray("notes")
         т.notes.forEach { пометы.addObject().put("rule", it.rule).put("what", it.what).put("why", it.why) }
+        // Пометы, принятые как есть (истина: `lint_acknowledged`, шип 5 §4):
+        // строка реестра показывает маркер только у непринятых — снятая с
+        // причиной помета не мозолит глаза, но и не пропадает.
+        val признано = узел.putArray("lint_acknowledged")
+        store.byId(т.id)?.doc?.path("lint_acknowledged")?.forEach { признано.add(it) }
         return узел
     }
 

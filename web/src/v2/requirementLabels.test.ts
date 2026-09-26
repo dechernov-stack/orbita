@@ -7,7 +7,7 @@
 // категории; З-13 — помета линта без текста. Проверяется устройство: ни одного
 // русского значения перечисления и ни одного списка кодов в коде экрана.
 import { describe, expect, it } from 'vitest'
-import экран from './requirements.tsx?raw'
+import { ТЕКСТ_ТРЕБОВАНИЙ as экран } from './test-support/requirementsSource'
 import апи from './api.ts?raw'
 
 describe('экран требований — метки и работа сцены 8', () => {
@@ -36,8 +36,10 @@ describe('экран требований — метки и работа сце�
   })
 
   it('помета линта называет правило и что не так (З-13)', () => {
-    expect(экран).toContain('{т.notes[0].rule} · {т.notes[0].what}')
-    expect(экран).toContain('и ещё {т.notes.length - 1}')
+    // Шип 5 §4: маркер горит только у непринятых помет; принятые как есть — в карточке.
+    expect(экран).toContain('{пометы[0].rule} · {пометы[0].what}')
+    expect(экран).toContain('и ещё {пометы.length - 1}')
+    expect(экран).toContain('function активныеПометы(т: RequirementRow): LintNote[]')
   })
 
   it('карточка даёт пикер носителя и поля своей стадии (З-10)', () => {

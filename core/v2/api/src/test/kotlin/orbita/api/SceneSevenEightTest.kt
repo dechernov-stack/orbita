@@ -252,6 +252,26 @@ class SceneSevenEightTest {
     }
 
     @Test
+    fun `строка реестра несёт принятые как есть пометы линта — помета не пропадает`() {
+        // Шип 5 §4: «снять линт-помету с причиной» — правка поля истины
+        // `lint_acknowledged`; строка реестра получает его и прячет маркер.
+        составИКонцепция()
+        val цель = store.list(Area.Project(проект), "goal").single()
+        router.handle("POST", "/v2/requirements", параметры,
+            """{"code":"RQ-S-09","level":"system","title":"доставка",
+                "statement":"Система должна доставлять сообщения.","category":"functional",
+                "carrier":"OBC-CPU","verification_method":"test","ears_pattern":"ubiquitous",
+                "acceptance_criteria":"сообщение доставлено","source":[{"kind":"goal","ref":"${цель.id}"}]}""")
+        val правка = router.handle("PATCH", "/v2/entities/RQ-S-09", параметры,
+            """{"fields":{"lint_acknowledged":[{"rule":"R-EARS","by":"Иванов И.","at":"2026-09-26","note":"так и задумано"}]},"author":"Иванов И."}""")!!
+        assertEquals(200, правка.code, правка.body.toString())
+        val строка = router.handle("GET", "/v2/requirements", параметры, null)!!.body.path("items")
+            .first { it.path("code").asText() == "RQ-S-09" }
+        assertEquals("R-EARS", строка.path("lint_acknowledged")[0].path("rule").asText())
+        assertEquals("так и задумано", строка.path("lint_acknowledged")[0].path("note").asText())
+    }
+
+    @Test
     fun `сцены 7 и 8 прожиты — MCR открывается и фиксируется`() {
         составИКонцепция()
         val цель = store.list(Area.Project(проект), "goal").single()

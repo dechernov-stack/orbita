@@ -319,6 +319,8 @@ export interface RequirementRow {
   after_baseline_changed: boolean
   sources: string[]
   notes: LintNote[]
+  /** Пометы линта, принятые как есть (истина `lint_acknowledged`): маркером не горят. */
+  lint_acknowledged?: { rule?: string; by?: string; at?: string; note?: string }[]
 }
 
 /** Карточка требования по эталону (З-14): источники с якорем и цитатой, основание, связи, история. */

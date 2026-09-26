@@ -309,11 +309,13 @@ button:disabled { opacity: .55; cursor: default; }
 /* Первая колонка — отметка для массовых действий, дальше шесть колонок реестра. */
 .v2-table--req th:nth-child(1), .v2-table--req td:nth-child(1) { width: 32px; }
 .v2-table--req th:nth-child(2), .v2-table--req td:nth-child(2) { width: 10%; }
-.v2-table--req th:nth-child(3), .v2-table--req td:nth-child(3) { width: 18%; }
-.v2-table--req th:nth-child(4), .v2-table--req td:nth-child(4) { width: 38%; }
+.v2-table--req th:nth-child(3), .v2-table--req td:nth-child(3) { width: 17%; }
+.v2-table--req th:nth-child(4), .v2-table--req td:nth-child(4) { width: 34%; }
 .v2-table--req th:nth-child(5), .v2-table--req td:nth-child(5) { width: 10%; }
 .v2-table--req th:nth-child(6), .v2-table--req td:nth-child(6) { width: 12%; }
-.v2-table--req th:nth-child(7), .v2-table--req td:nth-child(7) { width: 8%; }
+.v2-table--req th:nth-child(7), .v2-table--req td:nth-child(7) { width: 11%; }
+/* Шип 5 §4: действия строки пиктограммами — узкой последней колонкой. */
+.v2-table--req th:nth-child(8), .v2-table--req td:nth-child(8) { width: 40px; }
 /* Карточка вниз занимает всю строку — доли колонок её не режут. */
 .v2-table--req .v2-card-row td { width: auto; }
 .v2-cell--statement { max-width: none; }
@@ -607,3 +609,9 @@ td.v2-nowrap { white-space: nowrap; }
 /* Вкладка «Предложения» — во всю ширину вкладки (прежний потолок 760 px был у формы источника). */
 .v2-proposals { display: grid; gap: 6px; }
 .v2-proposals:focus { outline: none; }
+
+/* §4 Формулировка у инженера — двумя строками с раскрытием «целиком»; полный текст — в подсказке. */
+.v2-clamp2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* «изменено» — под кодом своей строкой: код не рвётся посередине. */
+.v2-table--req td:nth-child(2) .v2-flag { display: block; width: fit-content; margin-top: 2px; }

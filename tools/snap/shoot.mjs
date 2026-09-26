@@ -110,7 +110,7 @@ async function полоса(стр, раздел, роль, ширина) {
 
 /** Карточка объекта первой строки реестра — раскрытой вниз, строка у верхнего края. */
 async function карточка(стр, раздел, роль, ширина) {
-  const кнопка = стр.locator('main .v2-reg button[aria-label="карточка"]').first()
+  const кнопка = стр.locator('main button[aria-label="карточка"]').first()
   if (!(await кнопка.count())) return
   await кнопка.click()
   await стр.waitForTimeout(1200)
@@ -122,7 +122,7 @@ async function карточка(стр, раздел, роль, ширина) {
   await стр.screenshot({ path: `${план.out}/${имя}` })
   итог.push({ file: имя, section: раздел.title, role: роль.file, width: ширина })
   console.log(`  ${имя}`)
-  await стр.locator('main .v2-reg button[aria-label="свернуть карточку"]').first().click().catch(() => {})
+  await стр.locator('main button[aria-label="свернуть карточку"]').first().click().catch(() => {})
   await стр.evaluate(() => window.scrollTo(0, 0))
 }
 

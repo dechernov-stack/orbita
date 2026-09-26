@@ -23,7 +23,7 @@ import покрытие from './registry/stakeholders.tsx?raw'
 import данныеПостановки from './registry/data.ts?raw'
 import сцены from './scenes.tsx?raw'
 import состав from './composition.tsx?raw'
-import требования from './requirements.tsx?raw'
+import { ТЕКСТ_ТРЕБОВАНИЙ as требования } from './test-support/requirementsSource'
 
 describe('базирование документа', () => {
   it('вход есть на экране документа, а не только в маршруте', () => {
