@@ -6,11 +6,12 @@ import оболочка from './shell.tsx?raw'
 
 describe('экран словаря', () => {
   it('кандидаты — принять · отклонить с причиной · слить синонимом', () => {
-    expect(экран).toContain("решить(т, 'accept')")
-    expect(экран).toContain("решить(т, 'reject')")
-    expect(экран).toContain("решить(т, 'merge')")
-    expect(экран).toContain('placeholder="почему отклонить"')
-    expect(экран).toContain('— слить в… —')
+    // Шип 5 §7: решения — строкой пиктограммами и массово; причина и цель слияния — окном.
+    expect(экран).toContain("решить(коды, 'accept')")
+    expect(экран).toContain("решить(коды, 'reject', причина)")
+    expect(экран).toContain("решить(коды, 'merge', undefined, куда)")
+    expect(экран).toContain("input: { label: 'почему отклонить', required: true }")
+    expect(экран).toContain("choice: { label: 'принятый термин'")
   })
   it('поиск — по термину, синониму, коду объекта и определению; класс — словом сервера', () => {
     expect(экран).toContain('placeholder="термин, синоним, код объекта, определение"')

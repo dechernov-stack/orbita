@@ -1,15 +1,23 @@
-// Паспорт проекта (журнал ПМИ-7, З-25; шип 1, п. 1.5).
+// Паспорт проекта (журнал ПМИ-7, З-25; шип 1, п. 1.5; шип 5 §7).
 //
 // Название, класс миссии, руководитель и стандарт задавались при создании и
 // не правились ничем: в §2 FAD печатался «инженер», в §1 FA — пустой класс.
 // Здесь они правятся на месте, с версией; печать читает те же поля, так что
 // правка паспорта и есть правка документов. DA — роль в проекте, не поле
 // записи: её назначает руководитель, и здесь она видна рядом.
+//
+// Шип 5 §7: паспорт — КАРТОЧКА ПРОЕКТА §1.3: те же грани по истине вида
+// «проект», правка на месте по полю («сохранено, версия N» или «ничего не
+// изменилось» словами). Поля паспорта пишет маршрут паспорта — он знает
+// обязательность и перечни; фазу и шаблон меняет решение точки, их грани
+// только для чтения. Общей кнопки «Сохранить паспорт» больше нет: поле
+// сохраняется само, дата точки — тоже.
 import { useEffect, useState } from 'react'
-import { api, type Passport as Паспорт } from './api'
+import { api, type EntityRow, type KindSpec, type Passport as Паспорт } from './api'
 import { useАвтор } from './research'
 import { моиРоли, type Учётка } from './points'
 import { ОтветственныеСцен } from './responsibles'
+import { Карточка } from './ui/objectcard'
 
 /** Роли проекта словами — те же, что на экране точки. */
 const РОЛЬ: Record<string, string> = {
@@ -18,6 +26,24 @@ const РОЛЬ: Record<string, string> = {
 
 type Учётки = { login: string; display_name: string }[]
 
+/** Поля паспорта — правит маршрут паспорта; остальные грани проекта только читаются. */
+export const ПОЛЯ_ПАСПОРТА = ['name', 'mission_class', 'manager', 'standard'] as const
+
+/**
+ * Запись проекта для карточки: грани вида по истине, значения паспорта —
+ * как их нормализует сервер (руководитель из прежнего `lead`, фаза из `phase`).
+ */
+export function записьПаспорта(запись: EntityRow, п: Паспорт): EntityRow {
+  return {
+    ...запись,
+    doc: {
+      ...запись.doc,
+      name: п.name, mission_class: п.mission_class, manager: п.manager, standard: п.standard,
+      phase_current: п.phase_current, phase_template: п.phase_template,
+    },
+  }
+}
+
 export function PassportScreen({ project, учётка, onChanged }: {
   project: string | null
   учётка?: Учётка | null
@@ -25,22 +51,25 @@ export function PassportScreen({ project, учётка, onChanged }: {
   onChanged?: () => void
 }) {
   const [паспорт, setПаспорт] = useState<Паспорт | null>(null)
+  /** Запись проекта и вид по истине — строение карточки. */
+  const [запись, setЗапись] = useState<EntityRow | null>(null)
+  const [вид, setВид] = useState<KindSpec | null>(null)
   const [роли, setРоли] = useState<Record<string, string>>({})
   const [учётки, setУчётки] = useState<Учётки>([])
   const [отказ, setОтказ] = useState<string | null>(null)
-  const [сделано, setСделано] = useState<string | null>(null)
+  /** Итог правки даты точки словами — у своей даты. */
+  const [итогДаты, setИтогДаты] = useState<{ key: string; текст: string; ошибка?: boolean } | null>(null)
   const [автор] = useАвтор()
-  /** Черновик правки: поле → значение; пусто — ничего не тронуто. */
-  const [черновик, setЧерновик] = useState<Record<string, string>>({})
-  const [даты, setДаты] = useState<Record<string, string>>({})
-  const [занято, setЗанято] = useState(false)
   /** Кому и какую роль назначить: хук — до ранних возвратов, как и остальные. */
   const [назначение, setНазначение] = useState({ login: '', role: 'da_review' })
 
   const перечитать = () => {
     if (!project) return
-    api.passport(project).then((п) => { setПаспорт(п); setЧерновик({}); setДаты({}) })
-      .catch((e) => setОтказ(String(e.message ?? e)))
+    api.passport(project).then(setПаспорт).catch((e) => setОтказ(String(e.message ?? e)))
+    api.entities(project, 'project')
+      .then((р) => setЗапись(р.items.find((з) => з.code === project) ?? р.items[0] ?? null))
+      .catch(() => setЗапись(null))
+    api.kind('project').then(setВид).catch(() => setВид(null))
     api.projectRoles(project).then(setРоли).catch(() => setРоли({}))
     fetch('/api/auth/users').then((r) => (r.ok ? r.json() : { users: [] }))
       .then((d) => setУчётки(d.users ?? [])).catch(() => setУчётки([]))
@@ -54,25 +83,8 @@ export function PassportScreen({ project, учётка, onChanged }: {
   const руководитель = мои.includes('lead')
   const держатели = (роль: string) => Object.entries(роли).filter(([, р]) => р === роль).map(([л]) => л)
   const имя = (логин: string) => учётки.find((у) => у.login === логин)?.display_name ?? логин
-  const поля = ['name', 'mission_class', 'manager', 'standard'] as const
-  const изменено = Object.keys(черновик).length > 0 || Object.keys(даты).length > 0
-  const помеха = !автор.trim() ? 'не названо, кто правит' : !изменено ? 'ничего не изменено' : null
-
-  const сохранить = () => {
-    if (помеха) return
-    setЗанято(true); setОтказ(null); setСделано(null)
-    api.patchPassport(project, {
-      fields: Object.keys(черновик).length > 0 ? черновик : undefined,
-      gate_dates: Object.keys(даты).length > 0 ? Object.entries(даты).map(([gate, date]) => ({ gate, date })) : undefined,
-      author: автор,
-    })
-      .then((о) => {
-        setСделано(`сохранено: версия ${о.version}` + (о.gate_dates_changed > 0 ? ` · дат точек ${о.gate_dates_changed}` : ''))
-        перечитать(); onChanged?.()
-      })
-      .catch((e) => setОтказ(String(e.message ?? e)))
-      .finally(() => setЗанято(false))
-  }
+  /** Кто правит — именем учётки; пусто не бывает: без имени правка не пишется. */
+  const кто = автор.trim() || учётка?.display_name || 'инженер'
 
   /** Роль проекта учётке: DA фиксирует точки, РП и ведущий СИ — умолчание ответственных сцен. */
   const назначитьРоль = () => {
@@ -83,53 +95,71 @@ export function PassportScreen({ project, учётка, onChanged }: {
       .catch((e) => setОтказ(String(e.message ?? e)))
   }
 
+  /** Поле паспорта — маршрутом паспорта: пустое сервер не примет и скажет словами у поля. */
+  const сохранитьПоле = (поле: string, значение: unknown) =>
+    api.patchPassport(project, { fields: { [поле]: String(значение ?? '').trim() }, author: кто, reason: 'правка на месте в паспорте' })
+      .then((о) => ({ version: о.version, changed: о.changed }))
+
+  /** Дата точки — сразу по уходу с поля: пройденную точку сервер не передвинет и скажет почему. */
+  const сохранитьДату = (точка: string, было: string, дата: string) => {
+    if (!дата || дата === было) return
+    setИтогДаты(null)
+    api.patchPassport(project, { gate_dates: [{ gate: точка, date: дата }], author: кто, reason: 'дата точки в паспорте' })
+      .then((о) => { setИтогДаты({ key: точка, текст: о.gate_dates_changed > 0 ? 'дата сохранена' : 'ничего не изменилось' }); перечитать(); onChanged?.() })
+      .catch((e) => setИтогДаты({ key: точка, текст: String(e.message ?? e), ошибка: true }))
+  }
+
   return (
     <div className="v2-panel" data-why="работа">
-      <h3>
-        Паспорт · {паспорт.name}
-        <span className="v2-cnt">v{паспорт.version} · {паспорт.updated_at} · {паспорт.updated_by}</span>
-      </h3>
-      <div className="v2-dim">
-        {паспорт.phase_current || 'фаза не названа'}{паспорт.phase_template ? ` · шаблон ${паспорт.phase_template}` : ''}
-        {' · '}фазу и шаблон меняет решение точки, не паспорт
-      </div>
-      <div className="v2-form">
-        {поля.map((поле) => {
-          const значение = черновик[поле] ?? паспорт[поле]
-          const метка = паспорт.labels[поле] ?? поле
-          // Черновик копит всё, что тронуто; неизменённое отсеет сервер (changed: 0).
-          const поставить = (v: string) => setЧерновик((ч) => ({ ...ч, [поле]: v }))
-          return (
-            <label key={поле} className="v2-field">
-              <span className="v2-field__cap">{метка}</span>
-              {поле === 'standard' ? (
-                <select aria-label={метка} value={значение} onChange={(e) => поставить(e.target.value)}>
-                  {паспорт.standards.map((с) => <option key={с.code} value={с.code}>{с.label}</option>)}
-                  {!паспорт.standards.some((с) => с.code === значение) && значение && <option value={значение}>{значение}</option>}
-                </select>
-              ) : поле === 'mission_class' ? (
-                <>
-                  <input aria-label={метка} list={`v2-классы-${project}`} value={значение}
-                    onChange={(e) => поставить(e.target.value)} />
-                  <datalist id={`v2-классы-${project}`}>
-                    {паспорт.mission_classes.map((к) => <option key={к.code} value={к.name}>{к.code}</option>)}
-                  </datalist>
-                </>
-              ) : поле === 'manager' ? (
-                <>
-                  <input aria-label={метка} list={`v2-учётки-${project}`} value={значение}
-                    onChange={(e) => поставить(e.target.value)} />
-                  <datalist id={`v2-учётки-${project}`}>
-                    {учётки.map((у) => <option key={у.login} value={у.display_name}>{у.login}</option>)}
-                  </datalist>
-                </>
-              ) : (
-                <input aria-label={метка} value={значение} onChange={(e) => поставить(e.target.value)} />
-              )}
-            </label>
-          )
-        })}
-      </div>
+      {запись && вид ? (
+        <Карточка project={project} row={записьПаспорта(запись, паспорт)} spec={вид} заголовок={`Паспорт · ${паспорт.name}`}
+          состояние={<span className="v2-object__state">{паспорт.phase_current || 'фаза не названа'}{паспорт.phase_template ? ` · шаблон ${паспорт.phase_template}` : ''}</span>}
+          мета={`версия ${паспорт.version} · ${паспорт.updated_by} · ${паспорт.updated_at}`}
+          толькоЧтение={(вид.fields ?? []).filter((п) => !(ПОЛЯ_ПАСПОРТА as readonly string[]).includes(п))}
+          всеСразу сохранитьПоле={сохранитьПоле}
+          onSaved={() => { перечитать(); onChanged?.() }}
+          свои={{
+            // Класс миссии — с полки библиотеки: значение поля — код или имя класса.
+            mission_class: ({ id, значение, занято, onSave }) => (
+              <>
+                <input id={id} key={`mc-${паспорт.version}`} list={`v2-классы-${project}`} defaultValue={String(значение ?? '')}
+                  disabled={занято} onBlur={(e) => onSave(e.target.value.trim())} />
+                <datalist id={`v2-классы-${project}`}>
+                  {паспорт.mission_classes.map((к) => <option key={к.code} value={к.name}>{к.code}</option>)}
+                </datalist>
+              </>
+            ),
+            // Руководитель — учётка стенда: подсказка именами, сохраняется имя.
+            manager: ({ id, значение, занято, onSave }) => (
+              <>
+                <input id={id} key={`mg-${паспорт.version}`} list={`v2-учётки-${project}`} defaultValue={String(значение ?? '')}
+                  disabled={занято} onBlur={(e) => onSave(e.target.value.trim())} />
+                <datalist id={`v2-учётки-${project}`}>
+                  {учётки.map((у) => <option key={у.login} value={у.display_name}>{у.login}</option>)}
+                </datalist>
+              </>
+            ),
+          }}
+          extra={(
+            <div className="v2-facet v2-facet--wide">
+              <div className="v2-facet__lab">Даты точек текущей фазы</div>
+              <div className="v2-facet__chips">
+                {паспорт.gates.map((т) => (
+                  <label key={т.key} className="v2-field" title={т.passed ? 'точка пройдена: дата — факт' : 'плановая дата точки: сохраняется по уходу с поля'}>
+                    <span className="v2-field__cap">{т.title}</span>
+                    <input type="date" key={`${т.key}-${т.planned_date}`} aria-label={`дата точки ${т.key}`} disabled={т.passed}
+                      defaultValue={т.planned_date} onBlur={(e) => сохранитьДату(т.key, т.planned_date, e.target.value)} />
+                    {итогДаты?.key === т.key && <span className={итогДаты.ошибка ? 'v2-facet__err' : 'v2-facet__ok'}>{итогДаты.текст}</span>}
+                  </label>
+                ))}
+              </div>
+              <div className="v2-facet__hint">даты правятся в самих точках — план фазы держит те же</div>
+            </div>
+          )} />
+      ) : (
+        <div className="v2-empty">Читаю карточку проекта…</div>
+      )}
+      {отказ && <div className="v2-locked">{отказ}</div>}
 
       <h4 className="v2-h4">Роли проекта</h4>
       <div className="v2-dim">
@@ -163,28 +193,6 @@ export function PassportScreen({ project, учётка, onChanged }: {
       )}
 
       <ОтветственныеСцен project={project} onChanged={onChanged} />
-
-      <h4 className="v2-h4">Даты точек текущей фазы</h4>
-      <div className="v2-form v2-form--row">
-        {паспорт.gates.map((т) => (
-          <label key={т.key} className="v2-field" title={т.passed ? 'точка пройдена: дата — факт' : 'плановая дата точки'}>
-            <span className="v2-field__cap">{т.title}</span>
-            <input type="date" aria-label={`дата точки ${т.key}`} disabled={т.passed}
-              value={даты[т.key] ?? т.planned_date}
-              onChange={(e) => setДаты((д) => ({ ...д, [т.key]: e.target.value }))} />
-          </label>
-        ))}
-      </div>
-
-      <div className="v2-form__actions">
-        <button type="button" className="v2-chip v2-chip--on" disabled={Boolean(помеха) || занято} onClick={сохранить}
-          title="сохранить паспорт: новая версия записи проекта; печать FAD §2 и FA §1 читает отсюда">
-          {занято ? 'сохраняю…' : 'Сохранить паспорт'}
-        </button>
-        {помеха && изменено && <div className="v2-locked">Нажать нельзя: {помеха}</div>}
-        {сделано && <span className="v2-ok">{сделано}</span>}
-        {отказ && <div className="v2-locked">Не сохранено: {отказ}</div>}
-      </div>
     </div>
   )
 }

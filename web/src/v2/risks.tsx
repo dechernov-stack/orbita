@@ -1,16 +1,28 @@
-// Реестр рисков — раздел «Риски» (шип 1, п. 1.2–1.4).
+// Реестр рисков — раздел «Риски» (шип 1, п. 1.2–1.4; шип 5 §7).
 //
 // Реестр живёт всю фазу, не только в сцене 11: пункт меню виден с сцены 11,
-// до неё — в эксперт-режиме. Отбор «открытые · закрытые · все», сортировка по
-// критичности и сроку-точке, отбор «держат точку», группировка по владельцу.
-// Закрытие — с экрана, решением словами (кем и когда пишет сервер); возврат в
-// открытые — причиной. Карточка вниз: условие · событие · последствие,
-// вероятность и влияние кликом 1–5, стратегия, меры, владелец, срок — любая
-// веха, связь с узлом или сценой. Точка называет риски, которые её держат, и
-// ведёт сюда ссылкой: два клика от точки до закрытого риска.
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { api, type ComponentRow, type KindSpec, type RiskRow } from './api'
+// до неё — в эксперт-режиме. Шип 5 §7: полосы по владельцу, карточка объекта
+// §1.3, закрытие решением. Строение — общий реестр (`registry/registry.tsx`):
+// чипы отбора значениями из данных, колонка отметок и массовые действия
+// (срок-точка, владелец, закрытие решением), карточка вниз от строки.
+//
+// Поля вида правятся в карточке по истине (формулировка, категория,
+// стратегия, меры, срок-точка). Рядом — грани риска, которых истина не
+// размечает виджетом: вероятность и последствия кликом 1–5, условие ·
+// событие · последствие тремя строками, владелец из учёток, связи с узлами
+// и сценами, состояние — закрыть решением словами или вернуть с причиной.
+// Точка называет риски, которые её держат, и ведёт сюда ссылкой: два клика
+// от точки до закрытого риска.
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { ConfirmBox, useConfirm } from '../ui/Confirm'
+import { api, type ComponentRow, type EntityRow, type KindSpec, type RiskRow } from './api'
+import { Реестр, type Колонка } from './registry/registry'
 import { useАвтор } from './research'
+import type { ЧипОтбора } from './ui/chips'
+import { ИконКнопка } from './ui/iconbutton'
+import type { МассовоеДействие, Набор } from './ui/mass'
+import { Карточка } from './ui/objectcard'
+import { Маркер } from './ui/tabs'
 
 /**
  * Вехи проекта для срока риска.
@@ -36,12 +48,7 @@ export function useВехи(project: string): { код: string; подпись: 
   return вехи
 }
 
-type Отбор = 'open' | 'closed' | 'all'
 type Порядок = 'level' | 'due'
-
-const ОТБОР: { код: Отбор; слово: string }[] = [
-  { код: 'open', слово: 'открытые' }, { код: 'closed', слово: 'закрытые' }, { код: 'all', слово: 'все' },
-]
 
 /**
  * Слова статуса. Истина знает статусную модель риска (open|closed), но меток
@@ -49,6 +56,36 @@ const ОТБОР: { код: Отбор; слово: string }[] = [
  * ответа слова здесь, чтобы на экране не было кода.
  */
 const СТАТУС: Record<string, string> = { open: 'открыт', closed: 'закрыт' }
+
+/** Полоса риска — его владелец; без владельца — своя полоса, её видно первой по счёту. */
+const БЕЗ_ВЛАДЕЛЬЦА = 'владелец не назначен'
+export function владелецРиска(р: RiskRow): string {
+  return р.owner && р.owner !== '—' ? р.owner : БЕЗ_ВЛАДЕЛЬЦА
+}
+
+/** Порядок строк: по критичности (уровень считает сервер) или по сроку-точке. */
+export function порядокРисков(риски: RiskRow[], порядок: Порядок): RiskRow[] {
+  return [...риски].sort((а, б) => (порядок === 'level'
+    ? б.level - а.level || а.code.localeCompare(б.code)
+    : (а.due_date || '9999').localeCompare(б.due_date || '9999') || б.level - а.level))
+}
+
+/** Чипы отбора — значениями из данных: состояния, точки, которые риски держат, категории. */
+export function чипыРисков(риски: RiskRow[], словом: (поле: string, значение: string) => string): ЧипОтбора<RiskRow>[] {
+  const точки = [...new Set(риски.flatMap((р) => р.holds))].sort()
+  const категории = [...new Set(риски.map((р) => р.category).filter(Boolean))].sort()
+  return [
+    { key: 'открытые', word: 'открытые', group: 'состояние', test: (р) => р.status === 'open' },
+    { key: 'закрытые', word: 'закрытые', group: 'состояние', test: (р) => р.status === 'closed' },
+    ...точки.map((т): ЧипОтбора<RiskRow> => ({
+      key: `точка:${т}`, word: `держат ${т}`, group: 'точка', test: (р) => р.holds.includes(т),
+      hint: `открытые риски, чей срок не позже даты ${т}: они держат её решение`,
+    })),
+    { key: 'без-срока', word: 'без срока-точки', group: 'срок', test: (р) => р.status === 'open' && р.due_point === '—' },
+    { key: 'ключевые', word: 'ключевые ≥ 12', group: 'уровень', test: (р) => р.level >= 12, hint: 'критичность — вероятность × последствия, считает сервер' },
+    ...категории.map((к): ЧипОтбора<RiskRow> => ({ key: `категория:${к}`, word: словом('category', к), group: 'категория', test: (р) => р.category === к })),
+  ]
+}
 
 type Учётка = { login: string; display_name: string }
 
@@ -60,26 +97,24 @@ export function RiskRegistry({ project, wantRisk, сцены }: {
   сцены?: { key: string; title: string }[]
 }) {
   const [риски, setРиски] = useState<RiskRow[]>([])
+  /** Записи вида «риск» для карточки: грани правятся по истине. */
+  const [записи, setЗаписи] = useState<Record<string, EntityRow>>({})
   const [вид, setВид] = useState<KindSpec | null>(null)
   const [учётки, setУчётки] = useState<Учётка[]>([])
   const [узлы, setУзлы] = useState<ComponentRow[]>([])
   const [отказ, setОтказ] = useState<string | null>(null)
-  const [отбор, setОтбор] = useState<Отбор>('open')
   const [порядок, setПорядок] = useState<Порядок>('level')
-  const [держатТочку, setДержатТочку] = useState('')
-  const [поВладельцу, setПоВладельцу] = useState(false)
-  const [открыт, setОткрыт] = useState<string | null>(wantRisk ?? null)
-  const [поля, setПоля] = useState({
-    statement: '', category: 'technical', probability: 3, impact: 3,
-    strategy: 'mitigate', measures: '', owner: '', due_point: '',
-  })
+  const [форма, setФорма] = useState(false)
+  const [занято, setЗанято] = useState(false)
   const вехи = useВехи(project)
-  const [всемВеха, setВсемВеха] = useState('')
-  const [занятоВсем, setЗанятоВсем] = useState(false)
   const [автор] = useАвтор()
+  const [вопрос, спросить, закрытьВопрос] = useConfirm()
 
   const перечитать = useCallback(() => {
     api.risks(project).then((r) => setРиски(r.items)).catch((e) => setОтказ(String(e.message ?? e)))
+    api.entities(project, 'risk')
+      .then((r) => setЗаписи(Object.fromEntries(r.items.map((з) => [з.code, з]))))
+      .catch(() => setЗаписи({}))
   }, [project])
   useEffect(перечитать, [перечитать])
   useEffect(() => {
@@ -88,7 +123,6 @@ export function RiskRegistry({ project, wantRisk, сцены }: {
     fetch('/api/auth/users').then((r) => (r.ok ? r.json() : { users: [] }))
       .then((d) => setУчётки(d.users ?? [])).catch(() => setУчётки([]))
   }, [project])
-  useEffect(() => { if (wantRisk) { setОткрыт(wantRisk); setОтбор('all') } }, [wantRisk])
 
   /**
    * Правка риска на месте: вид «риск» правится полем, а
@@ -100,24 +134,111 @@ export function RiskRegistry({ project, wantRisk, сцены }: {
       .then(перечитать)
       .catch((ошибка) => setОтказ(String(ошибка.message ?? ошибка)))
   }
+  /** Действие над несколькими рисками разом: один отказ — словами сервера, реестр перечитывается. */
+  const разом = (коды: string[], одно: (код: string) => Promise<unknown>) => {
+    setЗанято(true); setОтказ(null)
+    Promise.all(коды.map(одно))
+      .then(перечитать)
+      .catch((ошибка) => { setОтказ(String(ошибка.message ?? ошибка)); перечитать() })
+      .finally(() => setЗанято(false))
+  }
 
   /** Русские значения перечислений — только из истины (enum_labels вида). */
   const метки = (поле: string): Record<string, string> => вид?.enum_labels?.[поле] ?? {}
   const словом = (поле: string, значение: string) => метки(поле)[значение] ?? значение
 
-  const точки = Array.from(new Set(риски.flatMap((р) => р.holds)))
-  const видимые = риски
-    .filter((р) => (отбор === 'all' ? true : р.status === отбор))
-    .filter((р) => (держатТочку ? р.holds.includes(держатТочку) : true))
-    .sort((а, б) => (порядок === 'level'
-      ? б.level - а.level || а.code.localeCompare(б.code)
-      : (а.due_date || '9999').localeCompare(б.due_date || '9999') || б.level - а.level))
-  const группы: { владелец: string | null; строки: RiskRow[] }[] = поВладельцу
-    ? Array.from(new Set(видимые.map((р) => р.owner || '—'))).sort()
-      .map((в) => ({ владелец: в, строки: видимые.filter((р) => (р.owner || '—') === в) }))
-    : [{ владелец: null, строки: видимые }]
+  const строки = useMemo(() => порядокРисков(риски, порядок), [риски, порядок])
+  const чипы = useMemo(() => чипыРисков(риски, (п, з) => вид?.enum_labels?.[п]?.[з] ?? з), [риски, вид])
   const открытых = риски.filter((р) => р.status === 'open').length
   const критичных = риски.filter((р) => р.status === 'open' && р.level >= 12).length
+  const безСрока = риски.filter((р) => р.status === 'open' && р.due_point === '—').length
+
+  const закрытьРешением = (коды: string[]) => {
+    const открытые = коды.filter((к) => риски.find((р) => р.code === к)?.status === 'open')
+    if (открытые.length === 0) return
+    спросить({
+      question: открытые.length === 1
+        ? `Закрыть риск ${открытые[0]} решением. Кем и когда — запишет сервер.`
+        : `Закрыть решением рисков: ${открытые.length} (${открытые.join(', ')}). Кем и когда — запишет сервер.`,
+      ok: 'Закрыть',
+      input: { label: 'решение: чем снят или почему принят', placeholder: 'ECC и watchdog приняты в состав', required: true },
+      onOk: (решение) => разом(открытые, (к) => api.closeRisk(project, к, решение, автор || 'инженер')),
+    })
+  }
+  const вернуть = (код: string) => спросить({
+    question: `Вернуть риск ${код} в открытые. Решение о закрытии перестанет держаться.`,
+    ok: 'Вернуть',
+    input: { label: 'причина: почему решение не держится', required: true },
+    onOk: (причина) => разом([код], (к) => api.reopenRisk(project, к, причина, автор || 'инженер')),
+  })
+
+  /*
+    Простановка разом (проход 20.09): без точки стояли ВСЕ двенадцать рисков —
+    по одному это двенадцать кликов. Теперь: набор «без срока-точки», действие
+    «срок-точка выбранным», веха — выбором человека (первой строкой пусто,
+    без выбора «Проставить» не нажимается). Набор берёт только риски без
+    точки — названные сроки не трогаются, пока их не отметили руками.
+  */
+  const массово: МассовоеДействие[] = [
+    {
+      key: 'срок', икон: 'отложить', слово: 'срок-точка выбранным', disabled: занято || вехи.length === 0,
+      run: (коды) => спросить({
+        question: `Срок-точка для рисков: ${коды.length}. Выбранная веха встанет каждому отмеченному.`,
+        ok: 'Проставить',
+        choice: { label: 'веха проекта', options: [['', '— выберите веху —'], ...вехи.map((в): [string, string] => [в.код, в.подпись])], initial: '' },
+        onOk: (веха) => разом(коды, (к) => api.patchEntity(project, к, { due_point: веха }, автор || 'инженер', 'срок-точка риска: проставлено разом')),
+      }),
+    },
+    {
+      key: 'владелец', икон: 'править', слово: 'назначить владельца', disabled: занято || учётки.length === 0,
+      run: (коды) => спросить({
+        question: `Владелец для рисков: ${коды.length}.`,
+        ok: 'Назначить',
+        choice: { label: 'кто ведёт', options: [['', '— выберите учётку —'], ...учётки.map((у): [string, string] => [у.display_name, `${у.display_name} · ${у.login}`])], initial: '' },
+        onOk: (имя) => разом(коды, (к) => api.patchEntity(project, к, { owner: имя }, автор || 'инженер', 'владелец риска: назначен разом')),
+      }),
+    },
+    { key: 'закрыть', икон: 'принять', слово: 'закрыть решением', disabled: занято, run: закрытьРешением },
+  ]
+  const наборы = (видимые: RiskRow[]): Набор[] => [
+    { key: 'без-срока', word: 'без срока-точки', keys: видимые.filter((р) => р.status === 'open' && р.due_point === '—').map((р) => р.code) },
+    { key: 'без-владельца', word: 'без владельца', keys: видимые.filter((р) => владелецРиска(р) === БЕЗ_ВЛАДЕЛЬЦА).map((р) => р.code) },
+    { key: 'держат', word: 'держат точку', keys: видимые.filter((р) => р.holds.length > 0).map((р) => р.code) },
+  ]
+
+  const колонки: Колонка<RiskRow>[] = [
+    { key: 'code', title: 'Код', className: 'v2-mono', cell: (р) => р.code },
+    {
+      key: 'statement', title: 'Риск', cell: (р) => (
+        <>
+          {р.statement}
+          {р.holds.length > 0 && <span className="v2-dim"> · держит {р.holds.join(', ')}</span>}
+        </>
+      ),
+    },
+    {
+      key: 'level', title: 'В×П', className: 'v2-nowrap', hint: 'вероятность × последствия: шкала 1–5, уровень считает сервер',
+      cell: (р) => (р.level > 0
+        ? <span className={р.level >= 12 && р.status === 'open' ? 'v2-bad' : undefined}>{р.probability}×{р.impact} = {р.level}</span>
+        : <span className="v2-dim">не оценён</span>),
+    },
+    { key: 'strategy', title: 'Стратегия', cell: (р) => (р.strategy && р.strategy !== '—' ? словом('strategy', р.strategy) : <span className="v2-dim">—</span>) },
+    {
+      key: 'due', title: 'Срок', className: 'v2-nowrap', hint: 'срок — веха проекта; точка фазы считает сроки по дате не позже своей',
+      cell: (р) => (р.due_point === '—'
+        ? <span className={р.status === 'open' ? 'v2-warn' : 'v2-dim'}>нет точки</span>
+        : <>{р.due_point}{р.due_date ? <span className="v2-dim"> · {р.due_date}</span> : null}</>),
+    },
+    {
+      key: 'status', title: 'Состояние', className: 'v2-nowrap', cell: (р) => (
+        <>
+          <Маркер health={р.status === 'closed' ? 'ok' : р.holds.length > 0 ? 'block' : р.due_point === '—' ? 'debt' : null}
+            title={р.status === 'closed' ? 'закрыт решением' : р.holds.length > 0 ? `держит ${р.holds.join(', ')}` : р.due_point === '—' ? 'без срока-точки' : 'открыт'} />
+          {' '}{СТАТУС[р.status] ?? р.status}
+        </>
+      ),
+    },
+  ]
 
   return (
     <div className="v2-panel" data-why="работа">
@@ -125,308 +246,151 @@ export function RiskRegistry({ project, wantRisk, сцены }: {
       <h3>
         Реестр рисков
         <span className="v2-cnt">
-          {риски.length} · открытых {открытых} · критичность ≥ 12: {критичных}
-          {' · '}без срока {риски.filter((р) => р.status === 'open' && р.due_point === '—').length}
+          {риски.length} · открытых {открытых} · критичность ≥ 12: {критичных} · без срока {безСрока}
         </span>
       </h3>
-      <div className="v2-form v2-form--row" data-why="работа">
-        <span className="v2-inline" role="group" aria-label="отбор рисков">
-          {ОТБОР.map((о) => (
-            <button key={о.код} type="button" className={отбор === о.код ? 'v2-chip v2-chip--on' : 'v2-chip'}
-              aria-pressed={отбор === о.код} onClick={() => setОтбор(о.код)}>
-              {о.слово}
-            </button>
-          ))}
-        </span>
-        <label className="v2-inline">
-          порядок
-          <select aria-label="порядок рисков" value={порядок} onChange={(e) => setПорядок(e.target.value as Порядок)}>
-            <option value="level">по критичности</option>
-            <option value="due">по сроку-точке</option>
-          </select>
-        </label>
-        <label className="v2-inline" title="открытые риски, чей срок не позже даты точки: они держат её решение">
-          держат точку
-          <select aria-label="держат точку" value={держатТочку} onChange={(e) => setДержатТочку(e.target.value)}>
-            <option value="">— любую —</option>
-            {точки.map((т) => <option key={т} value={т}>{т}</option>)}
-          </select>
-        </label>
-        <label className="v2-inline">
-          <input type="checkbox" checked={поВладельцу} onChange={(e) => setПоВладельцу(e.target.checked)} />
-          по владельцу
-        </label>
-      </div>
-
-      {риски.length === 0 ? (
-        <div className="v2-empty">
-          Рисков не заведено.
-          <span className="v2-empty__why">
-            Пустой реестр означает, что риски не искали: сцена 11 держится тремя записями.
-          </span>
-        </div>
-      ) : видимые.length === 0 ? (
-        <div className="v2-empty">
-          По отбору рисков нет.
-          <span className="v2-empty__why">Снимите отбор «{ОТБОР.find((о) => о.код === отбор)?.слово}»{держатТочку ? ` или точку ${держатТочку}` : ''}.</span>
-        </div>
-      ) : (
-        <table className="v2-table">
-          <thead>
-            <tr><th>Код</th><th>Риск</th><th>В×П</th><th>Стратегия</th><th>Владелец</th><th>Срок</th><th>Состояние</th></tr>
-          </thead>
-          <tbody>
-            {группы.map((г) => (
-              <GroupRows key={г.владелец ?? '*'} группа={г} открыт={открыт} setОткрыт={setОткрыт}
-                правитьРиск={правитьРиск} словом={словом} метки={метки} вехи={вехи}
-                узлы={узлы} сцены={сцены ?? []} project={project} автор={автор}
-                перечитать={перечитать} setОтказ={setОтказ} />
-            ))}
-          </tbody>
-        </table>
+      <Реестр<RiskRow>
+        label="реестр рисков"
+        строки={строки}
+        ключ={(р) => р.code}
+        колонки={колонки}
+        чипы={чипы}
+        начальныеЧипы={wantRisk ? [] : ['открытые']}
+        открыть={wantRisk}
+        поиск={{ placeholder: 'найти риск', text: (р) => `${р.code} ${р.statement} ${р.measures}` }}
+        хвост={(
+          <>
+            <label className="v2-inline">
+              порядок
+              <select aria-label="порядок рисков" value={порядок} onChange={(e) => setПорядок(e.target.value as Порядок)}>
+                <option value="level">по критичности</option>
+                <option value="due">по сроку-точке</option>
+              </select>
+            </label>
+            <ИконКнопка икон="добавить" сословом слово={форма ? 'свернуть форму' : 'завести риск'} aria-expanded={форма}
+              onClick={() => setФорма(!форма)} />
+          </>
+        )}
+        полосы={{
+          предмет: владелецРиска,
+          счёт: (rr) => `рисков ${rr.length} · открытых ${rr.filter((р) => р.status === 'open').length}`
+            + (rr.some((р) => р.holds.length > 0) ? ` · держат точку ${rr.filter((р) => р.holds.length > 0).length}` : ''),
+        }}
+        действия={(р) => (р.status === 'open'
+          ? <ИконКнопка икон="принять" слово="закрыть решением" disabled={занято} onClick={() => закрытьРешением([р.code])} />
+          : <ИконКнопка икон="вернуть" слово="вернуть в открытые с причиной" disabled={занято} onClick={() => вернуть(р.code)} />)}
+        карточка={(р, закрыть) => (записи[р.code] && вид
+          ? (
+            <Карточка project={project} row={записи[р.code]} spec={вид} заголовок={р.statement}
+              состояние={(
+                <span className="v2-object__state">
+                  <Маркер health={р.status === 'closed' ? 'ok' : р.holds.length > 0 ? 'block' : null} title={р.status === 'closed' ? 'закрыт решением' : 'открыт'} />
+                  {СТАТУС[р.status] ?? р.status}{р.holds.length > 0 ? ` · держит ${р.holds.join(', ')}` : ''}
+                </span>
+              )}
+              скрыть={['cec', 'probability', 'impact', 'owner', 'refs']}
+              extra={<ГраниРиска р={р} spec={вид} правитьРиск={правитьРиск} узлы={узлы} сцены={сцены ?? []} учётки={учётки}
+                project={project} занято={занято} onЗакрыть={() => закрытьРешением([р.code])} onВернуть={() => вернуть(р.code)} />}
+              onSaved={перечитать} onClose={закрыть} />
+          )
+          : <div className="v2-empty">Карточка читается…</div>)}
+        массово={массово}
+        наборы={наборы}
+        пусто={<>Рисков не заведено. <span className="v2-empty__why">Пустой реестр означает, что риски не искали: сцена 11 держится тремя записями.</span></>}
+      />
+      {(форма || риски.length === 0) && (
+        <НовыйРиск project={project} вехи={вехи} учётки={учётки} автор={автор}
+          onDone={() => { setФорма(false); перечитать() }} onОтказ={setОтказ} />
       )}
+      <ConfirmBox request={вопрос} onClose={закрытьВопрос} />
+    </div>
+  )
+}
 
-      {/*
-        Простановка разом: на проходе 20.09 без точки стояли ВСЕ двенадцать
-        рисков — по одному это двенадцать кликов. Веху выбирает человек,
-        проставляется она только тем, у кого точки нет: уже названный срок
-        массовое действие не трогает.
-      */}
-      {риски.some((р) => р.due_point === '—') && (
-        <div className="v2-form__actions" data-why="работа">
-          <span className="v2-empty__why">
-            без срока-точки: {риски.filter((р) => р.due_point === '—').length} из {риски.length}
-          </span>
-          <select name="всем.due_point" value={всемВеха} aria-label="веха для рисков без точки"
-            onChange={(e) => setВсемВеха(e.target.value)}>
-            <option value="">— веха проекта —</option>
-            {вехи.map((в) => <option key={в.код} value={в.код}>{в.подпись}</option>)}
-          </select>
-          <button type="button" disabled={!всемВеха || занятоВсем}
-            title={всемВеха
-              ? 'проставить выбранную веху всем рискам без точки; названные сроки не трогаются'
-              : 'сначала выберите веху'}
-            onClick={() => {
-              setЗанятоВсем(true); setОтказ(null)
-              const без = риски.filter((р) => р.due_point === '—')
-              Promise.all(без.map((р) => api.patchEntity(project, р.code, { due_point: всемВеха }, автор || 'инженер',
-                'срок-точка риска: проставлено разом')))
-                .then(() => { setЗанятоВсем(false); перечитать() })
-                .catch((ошибка) => { setЗанятоВсем(false); setОтказ(String(ошибка.message ?? ошибка)) })
-            }}>
-            {занятоВсем ? 'Ставлю…' : 'Проставить всем без точки'}
-          </button>
-        </div>
-      )}
-
-      <div className="v2-form">
-        <label>Формулировка
-          <input value={поля.statement} placeholder="SEU в памяти без ECC → зависание борта"
-            onChange={(e) => setПоля({ ...поля, statement: e.target.value })} />
-        </label>
-        <label>Меры
-          <input value={поля.measures} placeholder="ECC и watchdog"
-            onChange={(e) => setПоля({ ...поля, measures: e.target.value })} />
-        </label>
-        <label>Вероятность 1–5
-          <input type="number" min={1} max={5} value={поля.probability}
-            onChange={(e) => setПоля({ ...поля, probability: Number(e.target.value) })} />
-        </label>
-        <label>Влияние 1–5
-          <input type="number" min={1} max={5} value={поля.impact}
-            onChange={(e) => setПоля({ ...поля, impact: Number(e.target.value) })} />
-        </label>
-        <label>Владелец
-          <input list={`v2-владельцы-${project}`} value={поля.owner} placeholder="кто ведёт"
-            onChange={(e) => setПоля({ ...поля, owner: e.target.value })} />
-          <datalist id={`v2-владельцы-${project}`}>
-            {учётки.map((у) => <option key={у.login} value={у.display_name}>{у.login}</option>)}
-          </datalist>
-        </label>
-        <label>Срок — точка
-          <select value={поля.due_point} onChange={(e) => setПоля({ ...поля, due_point: e.target.value })}>
-            <option value="">— веха проекта —</option>
-            {вехи.map((в) => <option key={в.код} value={в.код}>{в.подпись}</option>)}
-          </select>
-        </label>
-        <div className="v2-form__actions">
-          <button type="button" className="v2-primary" disabled={!поля.statement.trim()}
-            title="срок без точки не наступает — точка обязательна"
-            onClick={() => api.addRisk(project, { ...поля, owner: поля.owner || автор || 'инженер', author: автор || 'инженер' })
-              .then(() => { setПоля({ ...поля, statement: '', measures: '' }); перечитать() })
-              .catch((e) => setОтказ(String(e.message ?? e)))}>
-            Завести риск
-          </button>
-        </div>
+/** Заведение риска: срок-точка обязательна — срок без точки не наступает. */
+function НовыйРиск({ project, вехи, учётки, автор, onDone, onОтказ }: {
+  project: string
+  вехи: { код: string; подпись: string }[]
+  учётки: Учётка[]
+  автор: string
+  onDone: () => void
+  onОтказ: (т: string | null) => void
+}) {
+  const [поля, setПоля] = useState({
+    statement: '', category: 'technical', probability: 3, impact: 3,
+    strategy: 'mitigate', measures: '', owner: '', due_point: '',
+  })
+  return (
+    <div className="v2-form" data-why="работа" aria-label="новый риск">
+      <label>Формулировка
+        <input value={поля.statement} placeholder="SEU в памяти без ECC → зависание борта"
+          onChange={(e) => setПоля({ ...поля, statement: e.target.value })} />
+      </label>
+      <label>Меры
+        <input value={поля.measures} placeholder="ECC и watchdog"
+          onChange={(e) => setПоля({ ...поля, measures: e.target.value })} />
+      </label>
+      <label>Вероятность 1–5
+        <input type="number" min={1} max={5} value={поля.probability}
+          onChange={(e) => setПоля({ ...поля, probability: Number(e.target.value) })} />
+      </label>
+      <label>Влияние 1–5
+        <input type="number" min={1} max={5} value={поля.impact}
+          onChange={(e) => setПоля({ ...поля, impact: Number(e.target.value) })} />
+      </label>
+      <label>Владелец
+        <input list={`v2-владельцы-${project}`} value={поля.owner} placeholder="кто ведёт"
+          onChange={(e) => setПоля({ ...поля, owner: e.target.value })} />
+      </label>
+      <datalist id={`v2-владельцы-${project}`}>
+        {учётки.map((у) => <option key={у.login} value={у.display_name}>{у.login}</option>)}
+      </datalist>
+      <label>Срок — точка
+        <select value={поля.due_point} onChange={(e) => setПоля({ ...поля, due_point: e.target.value })}>
+          <option value="">— веха проекта —</option>
+          {вехи.map((в) => <option key={в.код} value={в.код}>{в.подпись}</option>)}
+        </select>
+      </label>
+      <div className="v2-form__actions">
+        <button type="button" className="v2-primary" disabled={!поля.statement.trim()}
+          title="срок без точки не наступает — точка обязательна"
+          onClick={() => api.addRisk(project, { ...поля, owner: поля.owner || автор || 'инженер', author: автор || 'инженер' })
+            .then(() => { setПоля({ ...поля, statement: '', measures: '' }); onDone() })
+            .catch((e) => onОтказ(String(e.message ?? e)))}>
+          Завести риск
+        </button>
       </div>
     </div>
   )
 }
 
-function GroupRows({ группа, открыт, setОткрыт, правитьРиск, словом, метки, вехи, узлы, сцены, project, автор, перечитать, setОтказ }: {
-  группа: { владелец: string | null; строки: RiskRow[] }
-  открыт: string | null
-  setОткрыт: (код: string | null) => void
-  правитьРиск: (код: string, поля: Record<string, unknown>, зачем?: string) => void
-  словом: (поле: string, значение: string) => string
-  метки: (поле: string) => Record<string, string>
-  вехи: { код: string; подпись: string }[]
-  узлы: ComponentRow[]
-  сцены: { key: string; title: string }[]
-  project: string
-  автор: string
-  перечитать: () => void
-  setОтказ: (т: string | null) => void
-}) {
-  return (
-    <>
-      {группа.владелец !== null && (
-        <tr><td colSpan={7} className="v2-dim">владелец: {группа.владелец} · {группа.строки.length}</td></tr>
-      )}
-      {группа.строки.map((р) => (
-        <RiskRow_ key={р.code} р={р} раскрыт={открыт === р.code} onToggle={() => setОткрыт(открыт === р.code ? null : р.code)}
-          правитьРиск={правитьРиск} словом={словом} метки={метки} вехи={вехи} узлы={узлы} сцены={сцены}
-          project={project} автор={автор} перечитать={перечитать} setОтказ={setОтказ} />
-      ))}
-    </>
-  )
-}
-
-function RiskRow_({ р, раскрыт, onToggle, правитьРиск, словом, метки, вехи, узлы, сцены, project, автор, перечитать, setОтказ }: {
-  р: RiskRow
-  раскрыт: boolean
-  onToggle: () => void
-  правитьРиск: (код: string, поля: Record<string, unknown>, зачем?: string) => void
-  словом: (поле: string, значение: string) => string
-  метки: (поле: string) => Record<string, string>
-  вехи: { код: string; подпись: string }[]
-  узлы: ComponentRow[]
-  сцены: { key: string; title: string }[]
-  project: string
-  автор: string
-  перечитать: () => void
-  setОтказ: (т: string | null) => void
-}) {
-  const строка = useRef<HTMLTableRowElement | null>(null)
-  useEffect(() => { if (раскрыт) строка.current?.scrollIntoView({ block: 'nearest' }) }, [раскрыт])
-  const закрыт = р.status === 'closed'
-  return (
-    <>
-      <tr ref={строка} className={раскрыт ? 'v2-row--open' : undefined}>
-        <td className="v2-mono">
-          <button type="button" className="v2-link" aria-expanded={раскрыт} title="карточка риска"
-            onClick={onToggle}>
-            {р.code}
-          </button>
-        </td>
-        <td>
-          {р.statement}
-          {р.holds.length > 0 && <span className="v2-dim"> · держит {р.holds.join(', ')}</span>}
-        </td>
-        <td title="вероятность × влияние: шкала 1–5">
-          <select name={`${р.code}.probability`} value={р.probability || ''}
-            aria-label={`вероятность риска ${р.code}`} disabled={закрыт}
-            onChange={(e) => правитьРиск(р.code, { probability: Number(e.target.value) })}>
-            <option value="">—</option>
-            {[1, 2, 3, 4, 5].map((з) => <option key={з} value={з}>{з}</option>)}
-          </select>
-          ×
-          <select name={`${р.code}.impact`} value={р.impact || ''}
-            aria-label={`влияние риска ${р.code}`} disabled={закрыт}
-            onChange={(e) => правитьРиск(р.code, { impact: Number(e.target.value) })}>
-            <option value="">—</option>
-            {[1, 2, 3, 4, 5].map((з) => <option key={з} value={з}>{з}</option>)}
-          </select>
-          {р.level > 0 ? ` = ${р.level}` : ''}
-        </td>
-        <td>
-          <select name={`${р.code}.strategy`} value={р.strategy === '—' ? '' : р.strategy}
-            aria-label={`стратегия риска ${р.code}`} disabled={закрыт}
-            onChange={(e) => правитьРиск(р.code, { strategy: e.target.value })}>
-            <option value="">— стратегия —</option>
-            {Object.entries(метки('strategy')).map(([код, слово]) => <option key={код} value={код}>{слово}</option>)}
-          </select>
-        </td>
-        <td>
-          <input name={`${р.code}.owner`} defaultValue={р.owner === '—' ? '' : р.owner} list={`v2-владельцы-${project}`}
-            placeholder="кто ведёт" aria-label={`владелец риска ${р.code}`} disabled={закрыт}
-            onBlur={(e) => {
-              const имя = e.target.value.trim()
-              if (имя && имя !== р.owner) правитьРиск(р.code, { owner: имя })
-            }} />
-        </td>
-        {/*
-          Срок правится ЗДЕСЬ: условие сцены 11 «у каждого риска срок-точка»
-          держало проход, а поправить срок принятого риска было негде — только
-          при заведении (проход владельца 20.09).
-        */}
-        <td className={р.due_point === '—' && !закрыт ? 'v2-warn' : undefined}>
-          <select name={`${р.code}.due_point`} value={р.due_point === '—' ? '' : р.due_point}
-            aria-label={`срок-точка риска ${р.code}`} disabled={закрыт}
-            onChange={(e) => api.patchEntity(project, р.code, { due_point: e.target.value }, автор || 'инженер',
-              'срок-точка риска')
-              .then(перечитать)
-              .catch((ошибка) => setОтказ(String(ошибка.message ?? ошибка)))}>
-            <option value="">— нет точки —</option>
-            {вехи.map((в) => <option key={в.код} value={в.код}>{в.подпись}</option>)}
-          </select>
-        </td>
-        <td className={закрыт ? 'v2-ok' : undefined}>{СТАТУС[р.status] ?? р.status}</td>
-      </tr>
-      {раскрыт && (
-        <tr className="v2-card-row">
-          <td colSpan={7}>
-            <RiskCard р={р} правитьРиск={правитьРиск} словом={словом} метки={метки}
-              узлы={узлы} сцены={сцены} project={project} автор={автор} перечитать={перечитать} setОтказ={setОтказ} />
-          </td>
-        </tr>
-      )}
-    </>
-  )
-}
-
 /**
- * Карточка риска: всё, что у вида по истине, правится здесь; закрытие и
- * возврат — тут же. Правка идёт на сервер полем, пересчёт уровня — его.
+ * Грани риска рядом с гранями истины: то, что истина не размечает виджетом
+ * карточки. Оценка — кликом 1–5 (одна кнопка на балл, не поле ввода);
+ * условие · событие · последствие — три строки; владелец — из учёток;
+ * связи — узлы состава и сцены; состояние — закрыть решением словами или
+ * вернуть с причиной. У каждой подписи — один контрол.
  */
-function RiskCard({ р, правитьРиск, словом, метки, узлы, сцены, project, автор, перечитать, setОтказ }: {
+export function ГраниРиска({ р, spec, правитьРиск, узлы, сцены, учётки, project, занято, onЗакрыть, onВернуть }: {
   р: RiskRow
+  spec: KindSpec
   правитьРиск: (код: string, поля: Record<string, unknown>, зачем?: string) => void
-  словом: (поле: string, значение: string) => string
-  метки: (поле: string) => Record<string, string>
   узлы: ComponentRow[]
   сцены: { key: string; title: string }[]
+  учётки: Учётка[]
   project: string
-  автор: string
-  перечитать: () => void
-  setОтказ: (т: string | null) => void
+  занято: boolean
+  onЗакрыть: () => void
+  onВернуть: () => void
 }) {
-  const [решение, setРешение] = useState('')
-  const [причина, setПричина] = useState('')
-  const [занято, setЗанято] = useState(false)
-  const [cec, setCec] = useState({ condition: р.condition, event: р.event, consequence: р.consequence })
-  const [меры, setМеры] = useState(р.measures)
-  useEffect(() => {
-    setCec({ condition: р.condition, event: р.event, consequence: р.consequence }); setМеры(р.measures)
-  }, [р.code, р.version, р.condition, р.event, р.consequence, р.measures])
   const закрыт = р.status === 'closed'
+  const [cec, setCec] = useState({ condition: р.condition, event: р.event, consequence: р.consequence })
+  useEffect(() => {
+    setCec({ condition: р.condition, event: р.event, consequence: р.consequence })
+  }, [р.code, р.version, р.condition, р.event, р.consequence])
   const сохранитьCec = () => {
     if (cec.condition === р.condition && cec.event === р.event && cec.consequence === р.consequence) return
     правитьРиск(р.code, { cec }, 'условие · событие · последствие')
-  }
-  const закрыть = () => {
-    setЗанято(true); setОтказ(null)
-    api.closeRisk(project, р.code, решение.trim(), автор || 'инженер')
-      .then(() => { setРешение(''); перечитать() })
-      .catch((e) => setОтказ(String(e.message ?? e)))
-      .finally(() => setЗанято(false))
-  }
-  const вернуть = () => {
-    setЗанято(true); setОтказ(null)
-    api.reopenRisk(project, р.code, причина.trim(), автор || 'инженер')
-      .then(() => { setПричина(''); перечитать() })
-      .catch((e) => setОтказ(String(e.message ?? e)))
-      .finally(() => setЗанято(false))
   }
   const ссылки = р.refs
   const добавитьСсылку = (код: string) => {
@@ -434,12 +398,34 @@ function RiskCard({ р, правитьРиск, словом, метки, узл
     правитьРиск(р.code, { refs: [...ссылки, код] }, 'связь риска с узлом или сценой')
   }
   const снятьСсылку = (код: string) => правитьРиск(р.code, { refs: ссылки.filter((с) => с !== код) }, 'связь риска снята')
-
+  const подпись = (поле: string, запас: string) => spec.labels?.[поле] ?? запас
+  const шкала = (поле: 'probability' | 'impact', слово: string) => (
+    <div className="v2-facet">
+      <div className="v2-facet__lab">{подпись(поле, слово)}</div>
+      <div className="v2-facet__row" role="group" aria-label={`${слово} риска ${р.code} кликом`}>
+        {[1, 2, 3, 4, 5].map((з) => (
+          <button key={з} type="button" className={р[поле] === з ? 'v2-chip v2-chip--on' : 'v2-chip'}
+            aria-pressed={р[поле] === з} disabled={закрыт}
+            title={закрыт ? 'риск закрыт: оценка не правится — верните в открытые с причиной' : `${слово} ${з} из 5`}
+            onClick={() => р[поле] !== з && правитьРиск(р.code, { [поле]: з })}>{з}</button>
+        ))}
+      </div>
+    </div>
+  )
   return (
-    <div className="v2-facets">
+    <>
+      {шкала('probability', 'вероятность')}
+      {шкала('impact', 'влияние')}
       <div className="v2-facet">
-        <div className="v2-facet__title">Условие · событие · последствие</div>
-        <div className="v2-facet__body v2-form">
+        <div className="v2-facet__lab">Критичность</div>
+        <div className="v2-facet__ro">
+          <b>{р.level || '—'}</b>{р.level >= 12 && <span className="v2-bad"> · ключевой (≥ 12)</span>}
+        </div>
+        <div className="v2-facet__hint">вероятность × последствия — пересчёт уровня делает сервер</div>
+      </div>
+      <div className="v2-facet v2-facet--wide">
+        <div className="v2-facet__lab">{подпись('cec', 'Условие · событие · последствие')}</div>
+        <div className="v2-facet__trio">
           {(['condition', 'event', 'consequence'] as const).map((к) => (
             <label key={к}>{{ condition: 'условие', event: 'событие', consequence: 'последствие' }[к]}
               <input value={cec[к]} disabled={закрыт} aria-label={`${{ condition: 'условие', event: 'событие', consequence: 'последствие' }[к]} риска ${р.code}`}
@@ -449,113 +435,58 @@ function RiskCard({ р, правитьРиск, словом, метки, узл
         </div>
       </div>
       <div className="v2-facet">
-        <div className="v2-facet__title">Оценка</div>
-        <div className="v2-facet__body">
-          {/* Вероятность и влияние — кликом 1–5: одна кнопка на балл, не поле ввода. */}
-          <div className="v2-dim">вероятность</div>
-          <span role="group" aria-label={`вероятность риска ${р.code} кликом`}>
-            {[1, 2, 3, 4, 5].map((з) => (
-              <button key={з} type="button" className={р.probability === з ? 'v2-chip v2-chip--on' : 'v2-chip'}
-                aria-pressed={р.probability === з} disabled={закрыт}
-                title={закрыт ? 'риск закрыт: оценка не правится — верните в открытые с причиной' : `вероятность ${з} из 5`}
-                onClick={() => р.probability !== з && правитьРиск(р.code, { probability: з })}>{з}</button>
-            ))}
-          </span>
-          <div className="v2-dim">влияние</div>
-          <span role="group" aria-label={`влияние риска ${р.code} кликом`}>
-            {[1, 2, 3, 4, 5].map((з) => (
-              <button key={з} type="button" className={р.impact === з ? 'v2-chip v2-chip--on' : 'v2-chip'}
-                aria-pressed={р.impact === з} disabled={закрыт}
-                title={закрыт ? 'риск закрыт: оценка не правится — верните в открытые с причиной' : `влияние ${з} из 5`}
-                onClick={() => р.impact !== з && правитьРиск(р.code, { impact: з })}>{з}</button>
-            ))}
-          </span>
-          <div>критичность: <b>{р.level || '—'}</b>{р.level >= 12 && <span className="v2-bad"> · ключевой (≥ 12)</span>}</div>
-          <label className="v2-inline">категория
-            <select value={р.category} disabled={закрыт} aria-label={`категория риска ${р.code}`}
-              onChange={(e) => правитьРиск(р.code, { category: e.target.value })}>
-              {Object.entries(метки('category')).map(([код, слово]) => <option key={код} value={код}>{слово}</option>)}
-              {!метки('category')[р.category] && р.category && <option value={р.category}>{р.category}</option>}
-            </select>
-          </label>
-          <div className="v2-dim">стратегия: {словом('strategy', р.strategy)}</div>
-        </div>
+        <label htmlFor={`v2-risk-owner-${р.code}`}>{подпись('owner', 'Владелец')}</label>
+        <input id={`v2-risk-owner-${р.code}`} name={`${р.code}.owner`} defaultValue={р.owner === '—' ? '' : р.owner}
+          list={`v2-владельцы-карточки-${project}`} placeholder="кто ведёт" aria-label={`владелец риска ${р.code}`} disabled={закрыт}
+          onBlur={(e) => {
+            const имя = e.target.value.trim()
+            if (имя && имя !== р.owner) правитьРиск(р.code, { owner: имя }, 'владелец риска')
+          }} />
+        <datalist id={`v2-владельцы-карточки-${project}`}>
+          {учётки.map((у) => <option key={у.login} value={у.display_name}>{у.login}</option>)}
+        </datalist>
+        <div className="v2-facet__hint">полоса реестра — по владельцу</div>
       </div>
-      <div className="v2-facet">
-        <div className="v2-facet__title">Меры · владелец · срок · связи</div>
-        <div className="v2-facet__body v2-form">
-          <label>меры
-            <textarea value={меры} disabled={закрыт} aria-label={`меры риска ${р.code}`} rows={3}
-              onChange={(e) => setМеры(e.target.value)}
-              onBlur={() => меры !== р.measures && правитьРиск(р.code, { measures: меры }, 'меры риска')} />
-          </label>
-          <div className="v2-dim">
-            владелец: {р.owner || '—'} · срок: {р.due_point}{р.due_date ? ` (${р.due_date})` : ''}
-            {р.holds.length > 0 ? ` · держит ${р.holds.join(', ')}` : ''}
-          </div>
-          <div>
-            связи: {ссылки.length === 0 ? <span className="v2-dim">нет</span> : ссылки.map((с) => (
-              <span key={с} className="v2-chip" title="узел состава или сцена">
-                {с}
-                {!закрыт && <button type="button" className="v2-link" aria-label={`снять связь ${с}`} onClick={() => снятьСсылку(с)}> ×</button>}
-              </span>
-            ))}
-          </div>
+      <div className="v2-facet v2-facet--wide">
+        <div className="v2-facet__lab">{подпись('refs', 'Ссылки')} · узлы состава и сцены</div>
+        <div className="v2-facet__chips">
+          {ссылки.length === 0 && <span className="v2-dim">связей нет</span>}
+          {ссылки.map((с) => (
+            <span key={с} className="v2-chip" title="узел состава или сцена">
+              {с}
+              {!закрыт && <ИконКнопка икон="снять" слово={`снять связь ${с}`} onClick={() => снятьСсылку(с)} />}
+            </span>
+          ))}
           {!закрыт && (
-            <div className="v2-form--row">
-              <select aria-label={`связать риск ${р.code} с узлом`} value="" onChange={(e) => добавитьСсылку(e.target.value)}>
-                <option value="">+ узел</option>
-                {узлы.filter((у) => !ссылки.includes(у.code)).map((у) => <option key={у.code} value={у.code}>{у.code} · {у.name}</option>)}
-              </select>
-              {сцены.length > 0 && (
-                <select aria-label={`связать риск ${р.code} со сценой`} value="" onChange={(e) => добавитьСсылку(e.target.value)}>
-                  <option value="">+ сцена</option>
-                  {сцены.filter((с) => !ссылки.includes(`scene:${с.key}`)).map((с) => <option key={с.key} value={`scene:${с.key}`}>сцена {с.key} · {с.title}</option>)}
-                </select>
-              )}
-            </div>
+            <select aria-label={`связать риск ${р.code} с узлом`} value="" onChange={(e) => добавитьСсылку(e.target.value)}>
+              <option value="">+ узел</option>
+              {узлы.filter((у) => !ссылки.includes(у.code)).map((у) => <option key={у.code} value={у.code}>{у.code} · {у.name}</option>)}
+            </select>
+          )}
+          {!закрыт && сцены.length > 0 && (
+            <select aria-label={`связать риск ${р.code} со сценой`} value="" onChange={(e) => добавитьСсылку(e.target.value)}>
+              <option value="">+ сцена</option>
+              {сцены.filter((с) => !ссылки.includes(`scene:${с.key}`)).map((с) => <option key={с.key} value={`scene:${с.key}`}>сцена {с.key} · {с.title}</option>)}
+            </select>
           )}
         </div>
       </div>
-      <div className="v2-facet">
-        <div className="v2-facet__title">Состояние · v{р.version}</div>
-        <div className="v2-facet__body v2-form">
-          {закрыт ? (
-            <>
-              <div>
-                <span className="v2-ok">закрыт</span> · {р.closed_by || '—'} · {р.closed_at ? р.closed_at.slice(0, 16).replace('T', ' ') : '—'}
-                <div>решение: {р.resolution || '—'}</div>
-              </div>
-              <label>вернуть в открытые — причина
-                <input value={причина} placeholder="почему решение о закрытии не держится"
-                  aria-label={`причина возврата риска ${р.code}`} onChange={(e) => setПричина(e.target.value)} />
-              </label>
-              <div className="v2-form__actions">
-                <button type="button" disabled={!причина.trim() || занято} onClick={вернуть}
-                  title={причина.trim() ? 'вернуть риск в открытые с этой причиной' : 'возврат — с причиной словами'}>
-                  Вернуть в открытые
-                </button>
-                {!причина.trim() && <span className="v2-empty__why">Нажать нельзя: причина не названа.</span>}
-              </div>
-            </>
-          ) : (
-            <>
-              {р.reopen_reason && <div className="v2-dim">возвращён в открытые: {р.reopen_reason}</div>}
-              <label>закрыть решением — чем снят или почему принят
-                <input value={решение} placeholder="ECC и watchdog приняты в состав"
-                  aria-label={`решение по риску ${р.code}`} onChange={(e) => setРешение(e.target.value)} />
-              </label>
-              <div className="v2-form__actions">
-                <button type="button" className="v2-primary" disabled={!решение.trim() || занято} onClick={закрыть}
-                  title={решение.trim() ? 'закрыть риск этим решением: кем и когда запишет сервер' : 'закрытие — решением словами'}>
-                  Закрыть риск
-                </button>
-                {!решение.trim() && <span className="v2-empty__why">Нажать нельзя: решение не названо.</span>}
-              </div>
-            </>
-          )}
-        </div>
+      <div className="v2-facet v2-facet--wide">
+        <div className="v2-facet__lab">Состояние · закрытие решением</div>
+        {закрыт ? (
+          <div className="v2-facet__ro">
+            <span className="v2-ok">закрыт</span> · {р.closed_by || '—'} · {р.closed_at ? р.closed_at.slice(0, 16).replace('T', ' ') : '—'}
+            <div>решение: {р.resolution || '—'}</div>
+            <ИконКнопка икон="вернуть" сословом слово="вернуть в открытые с причиной" disabled={занято} onClick={onВернуть} />
+          </div>
+        ) : (
+          <div className="v2-facet__ro">
+            {р.reopen_reason && <div className="v2-dim">возвращён в открытые: {р.reopen_reason}</div>}
+            <ИконКнопка икон="принять" сословом слово="закрыть решением" disabled={занято} onClick={onЗакрыть} />
+            <span className="v2-facet__hint"> чем снят или почему принят — словами; кем и когда запишет сервер</span>
+          </div>
+        )}
       </div>
-    </div>
+    </>
   )
 }

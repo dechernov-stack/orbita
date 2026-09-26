@@ -85,6 +85,12 @@ export interface СоставЭкрана {
   единицы: Record<string, string>
   /** Каркас с полки: что даст взятие (существующий поток). */
   каркас: { shelf: string; rule?: string; nodes?: number; already?: number; note: string } | null
+  /** Записи узлов как есть — карточке объекта (шип 5 §7): грани по истине. */
+  записи: Record<string, EntityRow>
+  /** Вид «узел состава» по истине — строение карточки узла. */
+  вид: KindSpec
+  /** Вид «значение параметра узла» — знаки операторов величин анкеты. */
+  видВеличины: KindSpec | null
 }
 
 const строка = (з: unknown): string => (typeof з === 'string' ? з : '')
@@ -233,6 +239,9 @@ export async function читатьСостав(project: string): Promise<Сос�
     знаки: видВеличины?.measure_ops ?? {},
     единицы: Object.fromEntries(единицы.map((е) => [е.code, е.label])),
     каркас,
+    записи: Object.fromEntries(узлы.items.map((з) => [з.code, з])),
+    вид: видУзла,
+    видВеличины,
   }
 }
 

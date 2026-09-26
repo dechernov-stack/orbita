@@ -41,9 +41,14 @@ export function пусто(значение: unknown): boolean {
   return false
 }
 
-/** Грани вида: поля истины по порядку, без полей ядра и без скрытых экраном. */
+/**
+ * Грани вида: поля истины по порядку, без полей ядра и без скрытых экраном.
+ * Поле ядра `kind` — вид самой записи, в документе его нет; поле `kind` с
+ * перечнем у вида — своё поле (вид узла, точки, бюджета), и оно — грань.
+ */
 export function грани(spec: KindSpec, скрыть: string[] = []): string[] {
-  return spec.fields.filter((п) => !ПОЛЯ_ЯДРА.has(п) && !скрыть.includes(п))
+  const своё = (п: string) => п === 'kind' && Boolean(spec.enums?.kind?.length)
+  return spec.fields.filter((п) => (!ПОЛЯ_ЯДРА.has(п) || своё(п)) && !скрыть.includes(п))
 }
 
 /**
@@ -100,7 +105,13 @@ function имяЗаписи(р: EntityRow): string {
   return String(д.name ?? д.title ?? д.statement ?? д.designation ?? д.label ?? р.code)
 }
 
-export function Карточка({ project, row, spec, заголовок, состояние, мета, actions, extra, скрыть = [], толькоЧтение = [], кМесту, onSaved, onClose }: {
+/** Свой контрол поля: экран знает источник значений (полка, учётки), истина — только вид ссылки. */
+export type СвойКонтрол = (п: { id: string; значение: unknown; занято: boolean; onSave: (значение: unknown) => void }) => ReactNode
+
+export function Карточка({
+  project, row, spec, заголовок, состояние, мета, actions, extra, скрыть = [], толькоЧтение = [], кМесту, onSaved, onClose,
+  свои, всеСразу = false, сохранитьПоле,
+}: {
   project: string
   row: EntityRow
   spec: KindSpec
@@ -122,6 +133,12 @@ export function Карточка({ project, row, spec, заголовок, со�
   кМесту?: { слово: string; go: () => void }
   onSaved?: () => void
   onClose?: () => void
+  /** Свои контролы полей, чьи значения берутся не из записей проекта (класс миссии с полки, учётки). */
+  свои?: Record<string, СвойКонтрол>
+  /** Все грани сразу — у маленькой карточки (паспорт) нечего прятать за «ещё N полей». */
+  всеСразу?: boolean
+  /** Своя запись поля — у вида с собственным маршрутом правки (паспорт проекта). */
+  сохранитьПоле?: (поле: string, значение: unknown) => Promise<{ version: number; changed: number }>
 }) {
   const плотность = useContext(ПлотностьКонтекст)
   const колонок = колонокГраней(плотность)
@@ -130,7 +147,7 @@ export function Карточка({ project, row, spec, заголовок, со�
   const [занято, setЗанято] = useState<string | null>(null)
   const корень = useRef<HTMLDivElement>(null)
   const список = useMemo(() => грани(spec, скрыть), [spec, скрыть])
-  const видны = плотность.эксперт || всеПоля ? список : список.slice(0, ГРАНЕЙ_СРАЗУ)
+  const видны = плотность.эксперт || всеПоля || всеСразу ? список : список.slice(0, ГРАНЕЙ_СРАЗУ)
   const скрыто = список.length - видны.length
   const долги = долг(spec, row.doc)
   const [история, setИстория] = useState<EntityVersion[] | null>(null)
@@ -157,7 +174,10 @@ export function Карточка({ project, row, spec, заголовок, со�
       return
     }
     setЗанято(поле); setСохранение(null)
-    api.patchEntity(project, row.code, { [поле]: значение }, плотность.кто || 'инженер', `правка поля «${spec.labels?.[поле] ?? поле}» в карточке`)
+    const запрос = сохранитьПоле
+      ? сохранитьПоле(поле, значение)
+      : api.patchEntity(project, row.code, { [поле]: значение }, плотность.кто || 'инженер', `правка поля «${spec.labels?.[поле] ?? поле}» в карточке`)
+    запрос
       .then((о) => {
         setСохранение({ поле, итог: о.changed === 0 ? 'ничего не изменилось' : `сохранено, версия ${о.version}` })
         onSaved?.()
@@ -197,7 +217,7 @@ export function Карточка({ project, row, spec, заголовок, со�
       )}
       <div className={`v2-object__facets v2-object__facets--${колонок}`}>
         {видны.map((поле) => (
-          <Грань key={поле} project={project} spec={spec} поле={поле} значение={row.doc[поле]}
+          <Грань key={поле} project={project} spec={spec} поле={поле} значение={row.doc[поле]} свой={свои?.[поле]}
             толькоЧтение={толькоЧтение.includes(поле) || виджет(spec, поле) === 'computed'}
             занято={занято === поле}
             итог={сохранение?.поле === поле ? сохранение : null}
@@ -225,11 +245,12 @@ export function Карточка({ project, row, spec, заголовок, со�
 }
 
 /** Одна грань: подпись истины, контрол по виджету, подсказка `note` под полем, итог правки словами. */
-function Грань({ project, spec, поле, значение, толькоЧтение, занято, итог, onSave }: {
+function Грань({ project, spec, поле, значение, свой, толькоЧтение, занято, итог, onSave }: {
   project: string
   spec: KindSpec
   поле: string
   значение: unknown
+  свой?: СвойКонтрол
   толькоЧтение: boolean
   занято: boolean
   итог: Сохранение | null
@@ -244,7 +265,9 @@ function Грань({ project, spec, поле, значение, толькоЧ�
       <label htmlFor={id}>{подпись}</label>
       {толькоЧтение
         ? <div className="v2-facet__ro" id={id}>{словами(spec, поле, значение)}</div>
-        : <Контрол project={project} spec={spec} поле={поле} id={id} значение={значение} занято={занято} onSave={onSave} />}
+        : свой
+          ? свой({ id, значение, занято, onSave })
+          : <Контрол project={project} spec={spec} поле={поле} id={id} значение={значение} занято={занято} onSave={onSave} />}
       {spec.notes?.[поле] && <div className="v2-facet__hint">{spec.notes[поле]}</div>}
       {итог && <div className={итог.ошибка ? 'v2-facet__err' : 'v2-facet__ok'}>{итог.итог}</div>}
     </div>
@@ -286,7 +309,7 @@ function Контрол({ project, spec, поле, id, значение, зан�
       </select>
     )
   }
-  if (w === 'measure') return <Величина id={id} spec={spec} значение={значение} занято={занято} onSave={onSave} />
+  if (w === 'measure') return <ВводВеличины id={id} spec={spec} значение={значение} занято={занято} onSave={onSave} />
   if (w === 'ref' || w === 'refs') return <Пикер id={id} project={project} виды={spec.ref_kinds?.[поле] ?? []} многие={w === 'refs'} значение={значение} занято={занято} onSave={onSave} />
   if (w === 'text') return <Текст id={id} значение={String(значение ?? '')} занято={занято} onSave={(т) => onSave(т)} />
   if (w === 'number') {
@@ -323,8 +346,11 @@ function Текст({ id, значение, занято, onSave }: { id: string
     onBlur={(e) => onSave(e.target.value.trim() || null)} />
 }
 
-/** Величина одной строкой: оператор · число · единица справочника. */
-function Величина({ id, spec, значение, занято, onSave }: { id: string; spec: KindSpec; значение: unknown; занято: boolean; onSave: (з: unknown) => void }) {
+/**
+ * Величина одной строкой: оператор · число · единица справочника. Общая:
+ * ею же правятся величины анкеты узла в карточке узла (шип 5 §7).
+ */
+export function ВводВеличины({ id, spec, значение, занято, onSave }: { id: string; spec: KindSpec; значение: unknown; занято: boolean; onSave: (з: unknown) => void }) {
   const о = (значение && typeof значение === 'object' ? значение : {}) as Record<string, unknown>
   const [единицы, setЕдиницы] = useState<UnitRow[]>([])
   useEffect(() => { api.units().then((r) => setЕдиницы(r.items)).catch(() => setЕдиницы([])) }, [])

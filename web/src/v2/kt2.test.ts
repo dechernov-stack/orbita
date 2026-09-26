@@ -31,7 +31,8 @@ describe('словарь: рубрикатор по буквам и привяз
     // Вкладки — общий компонент (шип 5 §1.1); выбор помнится на раздел.
     expect(словарь).toContain('<Вкладки label="вкладки словаря"')
     expect(словарь).toContain("{ key: 'кандидаты', word: 'Кандидаты'")
-    expect(словарь).toContain("useВкладка<'словарь' | 'кандидаты'>('glossary', 'словарь'")
+    expect(словарь).toContain("useВкладка<ВкладкаСловаря>('glossary', 'словарь', ['словарь', 'кандидаты', 'seh'])")
+    expect(словарь).toContain("{ key: 'seh', word: 'NASA SEH'")
     expect(словарь).toContain('api.glossaryLink(project)')
   })
 })

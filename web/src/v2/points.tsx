@@ -7,6 +7,9 @@
 import { useEffect, useState } from 'react'
 import { api, type Condition, type Finding, type Gate, type Phase, type Position, type PointsView, type RiskRow } from './api'
 import { ResearchPanel } from './research'
+import { Полоса, useПолосы } from './ui/band'
+import { ИконКнопка } from './ui/iconbutton'
+import { Маркер } from './ui/tabs'
 
 /**
  * Точки, перед которыми спрашивают полноту у внешнего контура: внутренний
@@ -186,8 +189,9 @@ function PointCard({ project, точка, все, phase, onChanged, onGoScene, o
       )}
 
       <h4 className="v2-h4">Готовность</h4>
+      {/* Шип 5 §7: строки «маркер · критерий словами · почему не выполнен · к месту», держащие — первыми. */}
       <ul className="v2-checks">
-        {точка.criteria.map((у) => (
+        {поПорядку(точка.criteria).map((у) => (
           <Условие key={у.check} у={у} сцена={где(phase, у.check)} onGoScene={onGoScene} />
         ))}
         {экспертиза?.positions.map((п) => <Позиция key={п.artifact} п={п} />)}
@@ -218,10 +222,7 @@ function PointCard({ project, точка, все, phase, onChanged, onGoScene, o
               <span key={р.code} className="v2-dim">
                 · {р.code} · {р.statement} · В×П {р.level || '—'} · срок {р.due_point}
                 {onGoRisk && (
-                  <button type="button" className="v2-link" title="открыть карточку риска: закрыть решением или передвинуть срок"
-                    onClick={() => onGoRisk(р.code)}>
-                    {' '}открыть карточку
-                  </button>
+                  <>{' '}<ИконКнопка икон="карточка" сословом слово="открыть карточку риска" onClick={() => onGoRisk(р.code)} /></>
                 )}
               </span>
             ))}
@@ -264,7 +265,7 @@ function PointCard({ project, точка, все, phase, onChanged, onGoScene, o
         <>
           <h4 className="v2-h4">Чек-лист по критериям {чекЛист.title}</h4>
           <ul className="v2-checks">
-            {чекЛист.criteria.map((у) => (
+            {поПорядку(чекЛист.criteria).map((у) => (
               <Условие key={у.check} у={у} сцена={где(phase, у.check)} onGoScene={onGoScene} />
             ))}
             {чекЛист.expertise?.positions.map((п) => <Позиция key={п.artifact} п={п} />)}
@@ -291,7 +292,9 @@ function PointCard({ project, точка, все, phase, onChanged, onGoScene, o
                     нет», а не «ответили да» — ответов система не хранит вовсе.
                     Точка (·) честнее: вопрос задан, ответа в системе нет.
                   */}
-                  <span>{нет ? '☐' : '·'}</span>
+                  {нет
+                    ? <Маркер health="block" title="ответ «нет»: открыто замечание" />
+                    : <span className="v2-dim" title="вопрос задан, ответа в системе нет">·</span>}
                   <span className="v2-check__t">{в}</span>
                   {нет
                     ? <span className="v2-cnt"> — {нет.code} → сцена {нет.scene}</span>
@@ -332,8 +335,8 @@ function PointCard({ project, точка, все, phase, onChanged, onGoScene, o
                       {р.passed === null
                         ? <span className="v2-cnt">{р.why}</span>
                         : р.passed
-                          ? <span className="v2-ok">✓ {р.why}</span>
-                          : <span className={р.blocking ? 'v2-bad' : 'v2-cnt'}>☐ {р.why}</span>}
+                          ? <span className="v2-ok"><Маркер health="ok" title="к этой точке готов" /> {р.why}</span>
+                          : <span className={р.blocking ? 'v2-bad' : 'v2-cnt'}><Маркер health={р.blocking ? 'block' : 'debt'} title={р.blocking ? 'не готов — держит точку' : 'не готов — помета'} /> {р.why}</span>}
                     </td>
                   </tr>
                 ))}
@@ -378,17 +381,18 @@ function PointCard({ project, точка, все, phase, onChanged, onGoScene, o
           </div>
         </div>
       )}
-      <ul className="v2-checks">
-        {точка.findings.filter((з) => !толькоОткрытые || з.status === 'open').map((з) => (
-          <Замечание key={з.code} з={з} занято={занято}
-            onClose={() => действие(() => api.closeFinding(project, з.code, ''))} />
-        ))}
-        {точка.findings.length === 0 && <li className="v2-empty">замечаний нет</li>}
-      </ul>
+      <ЗамечанияПолосами замечания={точка.findings.filter((з) => !толькоОткрытые || з.status === 'open')} занято={занято}
+        onClose={(код) => действие(() => api.closeFinding(project, код, ''))} />
 
       {ответ && <div className="v2-locked" data-why="почему-нельзя">{ответ}</div>}
     </div>
   )
+}
+
+/** Порядок строк готовности: держащие точку — первыми, затем пометы, выполненные — в конце. */
+export function поПорядку(условия: Condition[]): Condition[] {
+  const вес = (у: Condition) => (у.passed ? 2 : у.blocking === false ? 1 : 0)
+  return [...условия].sort((а, б) => вес(а) - вес(б))
 }
 
 function Условие({ у, сцена, onGoScene }: {
@@ -396,9 +400,10 @@ function Условие({ у, сцена, onGoScene }: {
   сцена?: { key: string; title: string }
   onGoScene?: (сцена: string) => void
 }) {
+  const здоровье = у.passed ? 'ok' : у.blocking === false ? 'debt' : 'block'
   return (
     <li className={у.passed ? 'v2-check' : у.blocking === false ? 'v2-check v2-check--note' : 'v2-check v2-check--no'}>
-      <span>{у.passed ? '✓' : '☐'}</span>
+      <Маркер health={здоровье} title={у.passed ? 'выполнено' : у.blocking === false ? 'не выполнено — помета, точку не держит' : 'не выполнено — держит точку'} />
       <span className="v2-check__t">{у.title}</span>
       {!у.passed && у.why && <span className="v2-cnt"> — {у.why}</span>}
       {/*
@@ -407,10 +412,7 @@ function Условие({ у, сцена, onGoScene }: {
         ключу проверки, что стоит в условии, — не по догадке экрана.
       */}
       {!у.passed && сцена && onGoScene && (
-        <button type="button" className="v2-link" onClick={() => onGoScene(сцена.key)}
-          title={`открыть сцену ${сцена.key} «${сцена.title}» — там это и чинится`}>
-          к месту: сцена {сцена.key}
-        </button>
+        <ИконКнопка икон="к-месту" сословом слово={`к месту: сцена ${сцена.key}`} onClick={() => onGoScene(сцена.key)} />
       )}
     </li>
   )
@@ -434,7 +436,9 @@ function Позиция({ п }: { п: Position }) {
   const класс = п.passed === null ? 'v2-check v2-check--note' : п.passed ? 'v2-check' : п.blocking ? 'v2-check v2-check--no' : 'v2-check v2-check--note'
   return (
     <li className={класс}>
-      <span>{п.passed === null ? '·' : п.passed ? '✓' : '☐'}</span>
+      {п.passed === null
+        ? <span className="v2-dim" title="к этой точке не оценивается">·</span>
+        : <Маркер health={п.passed ? 'ok' : п.blocking ? 'block' : 'debt'} title={п.passed ? 'зрелость достигнута' : п.blocking ? 'зрелость не достигнута — держит точку' : 'зрелость не достигнута — помета'} />}
       <span className="v2-check__t"><span className="v2-mono">{п.maturity}</span> {п.artifact}</span>
       {п.why && п.passed !== true && <span className="v2-cnt"> — {п.why}</span>}
       {п.passed === true && п.our_ref?.startsWith('kind:') && <span className="v2-cnt" title={п.why ?? ''}> — записи есть</span>}
@@ -442,19 +446,50 @@ function Позиция({ п }: { п: Position }) {
   )
 }
 
-function Замечание({ з, занято, onClose }: { з: Finding; занято: boolean; onClose: () => void }) {
+/**
+ * Замечания обзора (шип 5 §7) — таблицей с полосами по вопросам экспертизы:
+ * замечание, заведённое ответом «нет» на вопрос чек-листа, живёт под этим
+ * вопросом; прочие — полосой «без вопроса экспертизы».
+ */
+export function ЗамечанияПолосами({ замечания, занято, onClose }: { замечания: Finding[]; занято: boolean; onClose: (код: string) => void }) {
+  const группы = new Map<string, Finding[]>()
+  замечания.forEach((з) => { const к = з.question?.trim() || 'без вопроса экспертизы'; группы.set(к, [...(группы.get(к) ?? []), з]) })
+  const ключи = [...группы.keys()]
+  const полосы = useПолосы(ключи, ключи)
+  if (замечания.length === 0) return <div className="v2-empty">замечаний нет</div>
   return (
-    <li className={з.status === 'open' ? 'v2-check v2-check--no' : 'v2-check'}>
-      <span>{з.status === 'open' ? '☐' : '✓'}</span>
-      <span className="v2-check__t">
-        <span className="v2-row__n">{з.code}</span> {з.text}
-        <span className="v2-cnt"> — {ВИД_ЗАМЕЧАНИЯ[з.kind] ?? з.kind} · сцена {з.scene} · {з.author}{з.closed_by ? ` · закрыто: ${з.closed_by}` : ''}</span>
-      </span>
-      {з.status === 'open' && (
-        <button type="button" className="v2-link" disabled={занято}
-          title="закрыть замечание — сцена возврата отпускается" onClick={onClose}>закрыть</button>
-      )}
-    </li>
+    <div aria-label="замечания обзора">
+      {ключи.map((к) => {
+        const список = группы.get(к) ?? []
+        return (
+          <Полоса key={к} open={полосы.открыта(к)} onToggle={() => полосы.переключить(к)} subject={к}
+            counts={`замечаний ${список.length} · открытых ${список.filter((з) => з.status === 'open').length}`}>
+            <table className="v2-table v2-table--findings">
+              <thead><tr><th>Код</th><th>Замечание</th><th>Вид</th><th>Возврат в сцену</th><th>Автор</th><th>Состояние</th><th className="v2-acts" aria-label="действия строки" /></tr></thead>
+              <tbody>
+                {список.map((з) => (
+                  <tr key={з.code}>
+                    <td className="v2-mono">{з.code}</td>
+                    <td>{з.text}</td>
+                    <td>{ВИД_ЗАМЕЧАНИЯ[з.kind] ?? з.kind}</td>
+                    <td className="v2-nowrap">сцена {з.scene}</td>
+                    <td className="v2-dim">{з.author}</td>
+                    <td className="v2-nowrap">{з.status === 'open'
+                      ? <span className="v2-bad"><Маркер health="block" title="открыто: сцена возврата в работе" /> открыто</span>
+                      : <span className="v2-ok"><Маркер health="ok" title="закрыто" /> закрыто{з.closed_by ? ` · ${з.closed_by}` : ''}</span>}</td>
+                    <td className="v2-acts">
+                      {з.status === 'open' && (
+                        <ИконКнопка икон="принять" слово="закрыть замечание" disabled={занято} onClick={() => onClose(з.code)} />
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Полоса>
+        )
+      })}
+    </div>
   )
 }
 

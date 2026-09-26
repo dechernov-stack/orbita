@@ -97,11 +97,21 @@ async function сцены(стр, раздел, роль, ширина) {
  * «<раздел>~открыто-…»: кнопка ищется по её имени для чтения экрана.
  */
 async function открытьКнопкой(стр, раздел, роль, ширина, имя) {
-  const кнопка = стр.locator(`main button[aria-label="${имя}"]`).first()
+  // Имя для чтения экрана точно; нет такого — видимый текст кнопки (строка точки).
+  let кнопка = стр.locator(`main button[aria-label="${имя}"]`).first()
+  if (!(await кнопка.count())) кнопка = стр.locator('main').getByRole('button', { name: имя }).first()
   if (!(await кнопка.count())) return
   await кнопка.click()
   await стр.waitForLoadState('networkidle', { timeout: 6000 }).catch(() => {})
   await стр.waitForTimeout(план.pauseMs ?? 900)
+  // К месту снимка: заданный селектор (замечания точки) либо открытая карточка объекта.
+  const куда = (план.scroll ?? {})[раздел.title]
+  if (куда) {
+    await стр.locator(`main ${куда}`).first().evaluate((у) => у.scrollIntoView({ block: 'start' })).catch(() => {})
+  } else if (await стр.locator('main .v2-object').count()) {
+    await стр.locator('main .v2-object').first().evaluate((у) => (у.closest('tr')?.previousElementSibling ?? у).scrollIntoView({ block: 'start' })).catch(() => {})
+  }
+  await стр.waitForTimeout(300)
   const файл = `${раздел.file}~открыто-${роль.file}-${ширина}.png`
   await стр.screenshot({ path: `${план.out}/${файл}` })
   итог.push({ file: файл, section: раздел.title, role: роль.file, width: ширина })

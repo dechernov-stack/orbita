@@ -9,15 +9,23 @@
 // Ни одного вердикта экран не выносит: ступень зрелости и разрывы считает
 // карточка узла на сервере, какие величины спрашивать — говорит полка,
 // кратность живёт своим видом. Сюда приходит уже сосчитанное.
-import { useCallback, useEffect, useState } from 'react'
+//
+// Шип 5 §7: узел открывается КАРТОЧКОЙ ОБЪЕКТА §1.3 вниз от своей строки —
+// грани вида по истине, правка на месте, и грани анкеты: величины, которые
+// спрашивает полка каркаса, правятся тут же одной строкой «оператор · число ·
+// единица». Прежняя панель ступени под всем деревом и колонка «Ступень ·
+// смотреть» убраны: ступень к точке — гранью той же карточки.
+import { Fragment, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import './composition.css'
-import { api, type ComponentCard } from './api'
+import { api, type ComponentCard, type KindSpec } from './api'
 import {
   величинаСловами, всеУзлы, видимые, ключиВеличин, читатьСостав,
-  type СоставЭкрана, type УзелСостава,
+  type ВеличинаУзла, type ПолеАнкеты, type СоставЭкрана, type УзелСостава,
 } from './composition.api'
-import { Икон } from './icons'
 import { ConfirmBox, useConfirm } from '../ui/Confirm'
+import { ПлотностьКонтекст } from './ui/density'
+import { ИконКнопка } from './ui/iconbutton'
+import { Карточка, ВводВеличины } from './ui/objectcard'
 
 export function CompositionTree({ project }: { project: string }) {
   const [состав, setСостав] = useState<СоставЭкрана | null>(null)
@@ -25,7 +33,8 @@ export function CompositionTree({ project }: { project: string }) {
   const [ключ, setКлюч] = useState('')
   const [правится, setПравится] = useState<{ узел: string; поле: string } | null>(null)
   const [черновик, setЧерновик] = useState('')
-  const [карточка, setКарточка] = useState<ComponentCard | null>(null)
+  /** Узел, чья карточка открыта вниз от строки. */
+  const [открыт, setОткрыт] = useState<string | null>(null)
   const [добавляем, setДобавляем] = useState<string | null>(null)
   const [новый, setНовый] = useState({ code: '', name: '', kind: '' })
   const [отказ, setОтказ] = useState<string | null>(null)
@@ -53,7 +62,10 @@ export function CompositionTree({ project }: { project: string }) {
   const единица = (код: string) => состав.единицы[код] ?? код
   const знак = (код: string) => состав.знаки[код] ?? код
   const величинаУзла = (узел: string) => состав.величины.find((в) => в.узел === узел && в.key === ключ)
-  const слово = (поле: string, значение: string) => состав.значения[поле]?.[значение] ?? значение
+  // Слова видов узла истина не называет — их даёт полка каркаса уровнями
+  // членения (`словоВида`); без этого в строке стояло «· segment» кодом.
+  const слово = (поле: string, значение: string) =>
+    состав.значения[поле]?.[значение] ?? (поле === 'kind' ? состав.словоВида[значение] : undefined) ?? значение
 
   const раскрыть = (код: string, да: boolean) => {
     setОткрытые((было) => {
@@ -162,9 +174,8 @@ export function CompositionTree({ project }: { project: string }) {
               <th>{состав.метки.name ?? 'Наименование'}</th>
               <th>{состав.кратностьПоле?.метка ?? '×N'}</th>
               <th>{выбранная ? `${выбранная.name}${выбранная.unit ? `, ${единица(выбранная.unit)}` : ''}` : 'Величина'}</th>
-              <th>Ступень</th>
               <th>Анкета</th>
-              <th />
+              <th className="v2-acts" aria-label="действия строки" />
             </tr>
           </thead>
           <tbody>
@@ -173,15 +184,15 @@ export function CompositionTree({ project }: { project: string }) {
               const анкета = состав.анкета[узел.code] ?? []
               const заполнено = анкета.filter((п) => состав.величины.some((в) => в.узел === узел.code && в.key === п.key)).length
               const снят = узел.applicability === 'not_applicable'
+              const откр = открыт === узел.code
               return (
-                <tr key={узел.code} className={снят ? 'v2-tree2__row v2-dim' : 'v2-tree2__row'}>
+                <Fragment key={узел.code}>
+                <tr className={[снят ? 'v2-tree2__row v2-dim' : 'v2-tree2__row', откр ? 'v2-row--open' : ''].filter(Boolean).join(' ')}>
                   <td style={{ paddingLeft: `${глубина * 16}px` }}>
                     {естьДети ? (
-                      <button type="button" className="v2-link" aria-expanded={открытые.has(узел.code)}
-                        title={открытые.has(узел.code) ? 'свернуть ветку' : `раскрыть ветку: ${узел.дети.length} узлов`}
-                        onClick={() => раскрыть(узел.code, !открытые.has(узел.code))}>
-                        <Икон имя={открытые.has(узел.code) ? 'свернуть' : 'развернуть'} />
-                      </button>
+                      <ИконКнопка икон={открытые.has(узел.code) ? 'свернуть' : 'развернуть'} aria-expanded={открытые.has(узел.code)}
+                        слово={открытые.has(узел.code) ? 'свернуть ветку' : `раскрыть ветку: ${узел.дети.length} узлов`}
+                        onClick={() => раскрыть(узел.code, !открытые.has(узел.code))} />
                     ) : <span className="v2-tree2__leaf" />}
                     <span className="v2-mono">{узел.code}</span>
                   </td>
@@ -218,41 +229,35 @@ export function CompositionTree({ project }: { project: string }) {
                       ? величинаСловами(величина.measure, единица, знак) || <span className="v2-dim">—</span>
                       : <span className="v2-dim">{анкета.some((п) => п.key === ключ) ? 'не заполнено' : '—'}</span>}
                   </td>
-                  <td>
-                    <button type="button" className="v2-link"
-                      title={`ступень зрелости узла к точке ${состав.точка.title || состав.точка.key}: считает карточка узла`}
-                      onClick={() => api.componentCard(project, узел.code, состав.точка.key)
-                        .then(setКарточка).catch((e) => setОтказ(String(e.message ?? e)))}>
-                      смотреть
-                    </button>
-                  </td>
                   <td title="сколько величин анкеты заполнено: спрашивает полка каркаса">
                     {анкета.length === 0
                       ? <span className="v2-dim">полка не спрашивает</span>
                       : <span className={заполнено < анкета.length ? 'v2-warn' : 'v2-ok'}>{заполнено} из {анкета.length}</span>}
                   </td>
-                  <td className="v2-tree2__acts">
-                    <button type="button" className="v2-link" title={`добавить дочерний узел под ${узел.code}`}
-                      onClick={() => setДобавляем(добавляем === узел.code ? null : узел.code)}>
-                      <Икон имя="добавить" />
-                    </button>
-                    <button type="button" className="v2-link" disabled={снят}
-                      title={снят ? 'узел уже снят с применения' : `снять ${узел.code} с применения — с обоснованием`}
-                      onClick={() => снять(узел)}>
-                      <Икон имя="снять" />
-                    </button>
-                    <button type="button" className="v2-link" title={`карточка узла ${узел.code}: грани, разрывы, величины`}
-                      onClick={() => api.componentCard(project, узел.code, состав.точка.key)
-                        .then(setКарточка).catch((e) => setОтказ(String(e.message ?? e)))}>
-                      <Икон имя="карточка" />
-                    </button>
+                  <td className="v2-acts v2-tree2__acts">
+                    <ИконКнопка икон="карточка" aria-expanded={откр}
+                      слово={откр ? 'свернуть карточку узла' : `карточка узла ${узел.code}: грани · анкета · ступень`}
+                      onClick={() => setОткрыт(откр ? null : узел.code)} />
+                    <ИконКнопка икон="добавить" слово={`добавить дочерний узел под ${узел.code}`}
+                      onClick={() => setДобавляем(добавляем === узел.code ? null : узел.code)} />
+                    <ИконКнопка икон="снять" disabled={снят}
+                      слово={снят ? 'узел уже снят с применения' : `снять ${узел.code} с применения — с обоснованием`}
+                      onClick={() => снять(узел)} />
                   </td>
                 </tr>
+                {откр && (
+                  <tr className="v2-card-row">
+                    <td colSpan={6}>
+                      <КарточкаУзла project={project} узел={узел} состав={состав} onSaved={перечитать} onClose={() => setОткрыт(null)} />
+                    </td>
+                  </tr>
+                )}
+                </Fragment>
               )
             })}
             {добавляем && (
               <tr className="v2-card-row">
-                <td colSpan={7}>
+                <td colSpan={6}>
                   <div className="v2-form v2-form--row">
                     <span className="v2-empty__why">дочерний узел под {добавляем}</span>
                     <label className="v2-field">
@@ -287,34 +292,6 @@ export function CompositionTree({ project }: { project: string }) {
         </table>
       )}
 
-      {карточка && (
-        <div className="v2-card-row" data-why="следующий-клик">
-          <div className="v2-card__head">
-            <span className="v2-card__title">{карточка.code} · {карточка.name}</span>
-            <span className="v2-card__count">ступень к {карточка.gate}</span>
-            <span className="v2-head__spacer" />
-            <button type="button" className="v2-link" title="закрыть карточку узла" onClick={() => setКарточка(null)}>закрыть</button>
-          </div>
-          <div className="v2-facets">
-            {карточка.facets.map((г) => (
-              <div key={г.key} className="v2-facet">
-                <div className="v2-facet__title">{г.title}</div>
-                <div className="v2-facet__body">
-                  {г.lines.length === 0
-                    ? <div className="v2-dim">{г.expected ?? 'пока пусто'}{г.required_to ? ` · к ${г.required_to}` : ''}</div>
-                    : <ul className="v2-why">{г.lines.map((с, i) => <li key={i}>{с.what}</li>)}</ul>}
-                </div>
-              </div>
-            ))}
-          </div>
-          {карточка.gaps.length > 0 && (
-            <div className="v2-empty__why">
-              не закрыто к точке: {карточка.gaps.map((р) => `${р.what} (${р.gate})`).join('; ')}
-            </div>
-          )}
-        </div>
-      )}
-
       {состав.каркас && состав.всего === 0 && (
         <div className="v2-form__actions">
           <button type="button" className="v2-primary" disabled={занято}
@@ -331,4 +308,128 @@ export function CompositionTree({ project }: { project: string }) {
       <ConfirmBox request={ask} onClose={closeConfirm} />
     </div>
   )
+}
+
+/**
+ * Карточка узла (шип 5 §7): карточка объекта §1.3 по истине вида «узел
+ * состава» плюс грани анкеты — величины, которые спрашивает полка каркаса,
+ * и заведённые сверх неё. Величина правится одной строкой; заведённая —
+ * правкой своей записи, незаведённая — заводится значением параметра узла
+ * с происхождением «вручную». Ступень к точке и разрывы — считает сервер.
+ */
+export function КарточкаУзла({ project, узел, состав, onSaved, onClose }: {
+  project: string
+  узел: УзелСостава
+  состав: СоставЭкрана
+  onSaved: () => void
+  onClose: () => void
+}) {
+  const плотность = useContext(ПлотностьКонтекст)
+  const [ступень, setСтупень] = useState<ComponentCard | null>(null)
+  const [итог, setИтог] = useState<{ key: string; текст: string; ошибка?: boolean } | null>(null)
+  const [занято, setЗанято] = useState<string | null>(null)
+  useEffect(() => {
+    api.componentCard(project, узел.code, состав.точка.key).then(setСтупень).catch(() => setСтупень(null))
+  }, [project, узел.code, состав.точка.key])
+  /**
+   * Слова видов узла истина не называет (`enum_labels` у поля пуст) — их даёт
+   * полка каркаса уровнями членения, как и в дереве. Кода вида на экране нет.
+   */
+  const вид = useMemo<KindSpec>(() => ({
+    ...состав.вид,
+    enum_labels: { ...(состав.вид.enum_labels ?? {}), kind: { ...состав.словоВида, ...(состав.вид.enum_labels?.kind ?? {}) } },
+  }), [состав.вид, состав.словоВида])
+  const запись = состав.записи[узел.code]
+  if (!запись) return <div className="v2-empty">Записи узла {узел.code} нет в перечне — карточку собрать не из чего.</div>
+
+  const анкета = состав.анкета[узел.code] ?? []
+  const свои = состав.величины.filter((в) => в.узел === узел.code)
+  const сверх = свои.filter((в) => !анкета.some((п) => п.key === в.key))
+  const заполнено = анкета.filter((п) => свои.some((в) => в.key === п.key)).length
+  const единица = (код: string) => состав.единицы[код] ?? код
+
+  const записать = (п: ПолеАнкеты, было: ВеличинаУзла | undefined, мера: unknown) => {
+    setЗанято(п.key); setИтог(null)
+    const кто = плотность.кто || 'инженер'
+    const ход: Promise<string> = было
+      ? api.patchEntity(project, было.code, { measure: мера }, кто, 'величина анкеты узла в карточке')
+        .then((о) => (о.changed === 0 ? 'ничего не изменилось' : `сохранено, версия ${о.version}`))
+      : api.addParameter(project, {
+        target: узел.code, key: п.key, measure: мера, origin: 'manual',
+        ...(п.required_to ? { required_to: п.required_to } : {}), author: кто,
+      }).then((о) => `заведено: ${о.code}`)
+    ход.then((т) => { setИтог({ key: п.key, текст: т }); onSaved() })
+      .catch((e) => setИтог({ key: п.key, текст: String(e.message ?? e), ошибка: true }))
+      .finally(() => setЗанято(null))
+  }
+  const граньВеличины = (п: ПолеАнкеты, было?: ВеличинаУзла) => {
+    const id = `v2-q-${узел.code}-${п.key}`
+    return (
+      <div className="v2-facet" key={`анкета-${п.key}`}>
+        <label htmlFor={id}>{п.name}{п.unit ? `, ${единица(п.unit)}` : ''}</label>
+        <ВводВеличины id={id} spec={состав.видВеличины ?? состав.вид} занято={занято === п.key}
+          значение={было?.measure ?? (п.unit ? { unit: п.unit } : {})} onSave={(м) => записать(п, было, м)} />
+        <div className="v2-facet__hint">
+          {было ? 'величина анкеты' : 'не заполнено'}{п.required_to ? ` · нужна к ${п.required_to}` : ''}
+        </div>
+        {итог?.key === п.key && <div className={итог.ошибка ? 'v2-facet__err' : 'v2-facet__ok'}>{итог.текст}</div>}
+      </div>
+    )
+  }
+
+  return (
+    <Карточка project={project} row={запись} spec={вид} заголовок={узел.name}
+      скрыть={['code', 'parent', 'level', 'applicability']} толькоЧтение={['template_ref']}
+      onSaved={onSaved} onClose={onClose}
+      extra={(
+        <>
+          <div className="v2-facet v2-facet--wide">
+            <div className="v2-facet__lab">
+              Анкета узла{анкета.length > 0 ? ` · заполнено ${заполнено} из ${анкета.length}` : ''}
+            </div>
+            {анкета.length === 0 && сверх.length === 0 && (
+              <div className="v2-facet__hint">полка каркаса у этого узла величин не спрашивает</div>
+            )}
+          </div>
+          {анкета.map((п) => граньВеличины(п, свои.find((в) => в.key === п.key)))}
+          {сверх.map((в) => граньВеличины({ key: в.key, name: в.key, unit: String(в.measure.unit ?? ''), required_to: в.required_to }, в))}
+          <div className="v2-facet v2-facet--wide">
+            <div className="v2-facet__lab">Ступень к {состав.точка.title || состав.точка.key}</div>
+            {ступень === null
+              ? <div className="v2-facet__hint">ступень читается…</div>
+              : ступень.gaps.length === 0
+                ? <div className="v2-facet__ro v2-ok">разрывов к точке нет</div>
+                : (
+                  <>
+                    <div className="v2-facet__ro">
+                      {разрывыПоТочкам(ступень).map(([т, грани]) => (
+                        <div key={т}><span className="v2-warn">к {т}:</span> {грани.join(' · ')}</div>
+                      ))}
+                    </div>
+                    <div className="v2-facet__hint">пустые грани узла — по точкам, к которым их требует лестница зрелости</div>
+                  </>
+                )}
+            {узел.applicability === 'not_applicable' && (
+              <div className="v2-facet__hint">снят с применения: {узел.deviation || 'без обоснования'}</div>
+            )}
+          </div>
+        </>
+      )} />
+  )
+}
+
+/**
+ * Разрывы узла по точкам: имена пустых граней под точкой, к которой их
+ * требует лестница. Порядок точек — тот, в каком их называют сами грани
+ * (идентичность — к MCR, функции — к SRR…): лестница сервера, не список в коде.
+ */
+export function разрывыПоТочкам(ступень: ComponentCard): [string, string[]][] {
+  const порядок = [...new Set(ступень.facets.map((г) => г.required_to).filter((т): т is string => Boolean(т)))]
+  const группы = new Map<string, string[]>()
+  ступень.gaps.forEach((р) => {
+    const имя = ступень.facets.find((г) => г.key === р.facet)?.title ?? р.facet
+    группы.set(р.gate, [...(группы.get(р.gate) ?? []), имя])
+  })
+  const место = (т: string) => (порядок.includes(т) ? порядок.indexOf(т) : порядок.length)
+  return [...группы.entries()].sort(([а], [б]) => место(а) - место(б))
 }

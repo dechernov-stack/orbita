@@ -39,7 +39,11 @@ const ПРОВЕРКА: Record<string, string> = {
   validated: 'аттестована',
 }
 
-export function Models({ project }: { project: string | null }) {
+export function Models({ project, варианты = true }: {
+  project: string | null
+  /** Варианты построения внизу раздела; в концепции у них своя вкладка (шип 5 §7). */
+  варианты?: boolean
+}) {
   const [модели, setМодели] = useState<ModelRow[] | null>(null)
   const [свёртка, setСвёртка] = useState<Budget | null>(null)
   const [величина, setВеличина] = useState('mass')
@@ -169,7 +173,7 @@ export function Models({ project }: { project: string | null }) {
       <Rollup свёртка={свёртка} величина={величина} точка={точка}
         onВеличина={setВеличина} onТочка={setТочка} />
 
-      <Variants project={project} />
+      {варианты && <Variants project={project} />}
     </>
   )
 }

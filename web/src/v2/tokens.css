@@ -579,6 +579,20 @@ td.v2-acts { white-space: nowrap; text-align: right; }
 .v2-object .v2-facet__row input { width: 90px; }
 .v2-object .v2-facet__row select { width: auto; }
 .v2-facet__chips { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+/* Подпись грани без своего контрола (шкала кликом, группа строк): как подпись поля, но не <label> — у подписи один контрол. */
+.v2-object .v2-facet__lab { display: block; font-size: var(--size-s); color: var(--muted); margin-bottom: 3px; }
+/* Три строки одной грани (условие · событие · последствие): каждая со своей подписью. */
+.v2-facet__trio { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.v2-facet__trio label { display: grid; gap: 3px; font-size: var(--size-s); color: var(--muted); }
+.v2-object .v2-facet__chips select { width: auto; max-width: 260px; }
+/* Замечания точки в полосах (шип 5 §7): колонки одной ширины во всех полосах — таблицы читаются одной. */
+.v2-table--findings { table-layout: fixed; width: 100%; }
+.v2-table--findings th:nth-child(1) { width: 96px; }
+.v2-table--findings th:nth-child(3) { width: 110px; }
+.v2-table--findings th:nth-child(4) { width: 130px; }
+.v2-table--findings th:nth-child(5) { width: 200px; }
+.v2-table--findings th:nth-child(6) { width: 150px; }
+.v2-table--findings th:nth-child(7) { width: 44px; }
 .v2-object__debt { margin-top: 12px; font-size: 14px; color: var(--amber); }
 .v2-object__debt b { font-weight: 500; }
 .v2-table--mini th, .v2-table--mini td { font-size: var(--size-s); padding: 3px 6px; }

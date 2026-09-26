@@ -6,6 +6,7 @@
 // и волны 4, звать их было нечем: базирование документа, отказы от объёма
 // (§9) и варианты построения (§2) не имели ни одной формы.
 import { describe, expect, it } from 'vitest'
+import окноПодтверждения from '../ui/Confirm.tsx?raw'
 import { ТЕКСТ_ДОКУМЕНТОВ as документы } from './test-support/documentsSource'
 import концепция from './concept.tsx?raw'
 import клиент from './api.ts?raw'
@@ -84,11 +85,14 @@ describe('варианты построения', () => {
 })
 
 describe('оценка риска', () => {
-  it('вероятность, влияние, стратегия и владелец правятся в строке реестра', () => {
-    expect(реестр).toContain('aria-label={`вероятность риска ${р.code}`}')
-    expect(реестр).toContain('aria-label={`влияние риска ${р.code}`}')
-    expect(реестр).toContain('aria-label={`стратегия риска ${р.code}`}')
+  // Шип 5 §7: правка ушла из строки таблицы в карточку объекта §1.3 — строка
+  // реестра читается, карточка открывается одним кликом от неё.
+  it('вероятность и влияние — кликом в карточке, стратегия — селектом истины, владелец — из учёток', () => {
+    expect(реестр).toContain("{шкала('probability', 'вероятность')}")
+    expect(реестр).toContain("{шкала('impact', 'влияние')}")
+    expect(реестр).toContain('onClick={() => р[поле] !== з && правитьРиск(р.code, { [поле]: з })}')
     expect(реестр).toContain('aria-label={`владелец риска ${р.code}`}')
+    expect(реестр).toContain("скрыть={['cec', 'probability', 'impact', 'owner', 'refs']}")
     expect(реестр).toContain('const правитьРиск = (код: string, поля: Record<string, unknown>, зачем = ')
   })
 
@@ -210,11 +214,15 @@ describe('паспорт проекта (З-25, шип 1, п. 1.5)', () => {
   it('правится на месте: поля истины, версия, даты точек; вход из рейки и из шапки', () => {
     expect(клиент).toContain('passport: (project: string) => вызов<Passport>')
     expect(клиент).toContain('patchPassport:')
-    expect(паспорт).toContain("const поля = ['name', 'mission_class', 'manager', 'standard'] as const")
-    expect(паспорт).toContain('v{паспорт.version} · {паспорт.updated_at} · {паспорт.updated_by}')
+    // Шип 5 §7: паспорт — карточка проекта §1.3; поле сохраняется само маршрутом паспорта.
+    expect(паспорт).toContain("export const ПОЛЯ_ПАСПОРТА = ['name', 'mission_class', 'manager', 'standard'] as const")
+    expect(паспорт).toContain('мета={`версия ${паспорт.version} · ${паспорт.updated_by} · ${паспорт.updated_at}`}')
+    expect(паспорт).toContain("api.patchPassport(project, { fields: { [поле]: String(значение ?? '').trim() }, author: кто")
     expect(паспорт).toContain('aria-label={`дата точки ${т.key}`}')
-    // Метки полей — из истины, не из кода экрана.
-    expect(паспорт).toContain('const метка = паспорт.labels[поле] ?? поле')
+    expect(паспорт).not.toContain("'Сохранить паспорт'")
+    // Метки полей — из истины вида «проект», не из кода экрана.
+    expect(паспорт).toContain("api.kind('project').then(setВид)")
+    expect(паспорт).toContain('толькоЧтение={(вид.fields ?? []).filter((п) => !(ПОЛЯ_ПАСПОРТА as readonly string[]).includes(п))}')
     expect(оболочка).toContain("{ key: 'passport', title: 'Паспорт'")
   })
 
@@ -231,29 +239,34 @@ describe('риски пачкой (шип 1, п. 1.2–1.4)', () => {
     expect(оболочка).toContain("return !сцена || сцена.state !== 'locked'")
   })
 
+  // Шип 5 §7: отбор — чипами значениями из данных, группировка — полосами по владельцу.
   it('отбор, порядок, «держат точку», по владельцу', () => {
-    expect(реестр).toContain("{ код: 'open', слово: 'открытые' }, { код: 'closed', слово: 'закрытые' }, { код: 'all', слово: 'все' }")
+    expect(реестр).toContain("{ key: 'открытые', word: 'открытые', group: 'состояние', test: (р) => р.status === 'open' }")
+    expect(реестр).toContain("{ key: 'закрытые', word: 'закрытые', group: 'состояние', test: (р) => р.status === 'closed' }")
     expect(реестр).toContain('aria-label="порядок рисков"')
-    expect(реестр).toContain('aria-label="держат точку"')
-    expect(реестр).toContain('const группы: { владелец: string | null; строки: RiskRow[] }[] = поВладельцу')
+    expect(реестр).toContain('word: `держат ${т}`')
+    expect(реестр).toContain('предмет: владелецРиска,')
   })
 
   it('закрытие с экрана — решением словами; возврат — причиной; кнопка без слов заперта и говорит почему', () => {
     expect(клиент).toContain('closeRisk:')
     expect(клиент).toContain('reopenRisk:')
-    expect(реестр).toContain("api.closeRisk(project, р.code, решение.trim(), автор || 'инженер')")
-    expect(реестр).toContain("api.reopenRisk(project, р.code, причина.trim(), автор || 'инженер')")
-    expect(реестр).toContain('Нажать нельзя: решение не названо.')
-    expect(реестр).toContain('Нажать нельзя: причина не названа.')
+    expect(реестр).toContain("api.closeRisk(project, к, решение, автор || 'инженер')")
+    expect(реестр).toContain("api.reopenRisk(project, к, причина, автор || 'инженер')")
+    // Решение и причина — обязательным полем окна: пустое не нажимается и говорит почему.
+    expect(реестр).toContain("input: { label: 'решение: чем снят или почему принят', placeholder: 'ECC и watchdog приняты в состав', required: true }")
+    expect(реестр).toContain("input: { label: 'причина: почему решение не держится', required: true }")
+    expect(окноПодтверждения).toContain('const мало = (request.input?.required || request.choice) && !text.trim()')
+    expect(окноПодтверждения).toContain('сначала заполните:')
   })
 
   it('карточка: условие · событие · последствие, балл кликом, стратегия и категория — словами истины', () => {
     expect(реестр).toContain("правитьРиск(р.code, { cec }, 'условие · событие · последствие')")
-    expect(реестр).toContain('aria-label={`вероятность риска ${р.code} кликом`}')
-    expect(реестр).toContain('aria-label={`влияние риска ${р.code} кликом`}')
-    // Перечисления — из enum_labels вида, копии в коде нет.
-    expect(реестр).toContain("Object.entries(метки('strategy'))")
-    expect(реестр).toContain("Object.entries(метки('category'))")
+    expect(реестр).toContain('aria-label={`${слово} риска ${р.code} кликом`}')
+    // Перечисления — из enum_labels вида: стратегия и категория — гранями
+    // карточки из истины (селект русскими метками), копии в коде нет.
+    expect(реестр).toContain('<Карточка project={project} row={записи[р.code]} spec={вид}')
+    expect(реестр).toContain("api.kind('risk').then(setВид)")
     expect(реестр).not.toContain('<option value="mitigate">снижать</option>')
     expect(реестр).toContain('aria-label={`связать риск ${р.code} с узлом`}')
   })
@@ -264,7 +277,9 @@ describe('риски пачкой (шип 1, п. 1.2–1.4)', () => {
     expect(точки).toContain('Риски, которые держат точку')
     expect(точки).toContain('onClick={() => onGoRisk(р.code)}')
     expect(оболочка).toContain("onGoRisk={(код) => { setWantRisk(код); setSection('risks') }}")
-    expect(реестр).toContain("useEffect(() => { if (wantRisk) { setОткрыт(wantRisk); setОтбор('all') } }, [wantRisk])")
+    // Переход с точки: карточка открыта, её полоса раскрыта, отбор «открытые» снят.
+    expect(реестр).toContain('открыть={wantRisk}')
+    expect(реестр).toContain("начальныеЧипы={wantRisk ? [] : ['открытые']}")
   })
 })
 
@@ -352,7 +367,9 @@ describe('решение точки', () => {
   })
 
   it('вопрос экспертизы без замечания стоит точкой: «да» система не хранит', () => {
-    expect(точки).toContain("{нет ? '☐' : '·'}")
+    // Шип 5 §7: «нет» — маркером «держит», вопрос без ответа — приглушённой точкой.
+    expect(точки).toContain('<Маркер health="block" title="ответ «нет»: открыто замечание" />')
+    expect(точки).toContain('title="вопрос задан, ответа в системе нет">·</span>')
     expect(точки).toContain('ответить «нет» → замечание')
     expect(точки).toContain('Ответ «да» нигде не хранится')
   })

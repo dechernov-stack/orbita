@@ -10,15 +10,18 @@ import экран from './programmatics.tsx?raw'
 import реестр from './risks.tsx?raw'
 
 describe('срок-точка риска', () => {
-  it('правится прямо в строке реестра', () => {
-    expect(реестр).toContain('aria-label={`срок-точка риска ${р.code}`}')
-    expect(реестр).toContain("api.patchEntity(project, р.code, { due_point: e.target.value }")
+  // Шип 5 §7: срок правится в карточке риска — грань истины «Срок-точка»
+  // (ref gate, пикер вех проекта); строка показывает его и «нет точки».
+  it('правится в карточке одним кликом от строки', () => {
+    expect(реестр).not.toContain("скрыть={['due_point'")
+    expect(реестр).toContain("скрыть={['cec', 'probability', 'impact', 'owner', 'refs']}")
+    expect(реестр).toContain("<span className={р.status === 'open' ? 'v2-warn' : 'v2-dim'}>нет точки</span>")
   })
 
   it('проставить разом можно, но только без точки и только выбранной вехой', () => {
-    expect(реестр).toContain('Проставить всем без точки')
-    expect(реестр).toContain("риски.filter((р) => р.due_point === '—')")
-    expect(реестр).toContain('disabled={!всемВеха || занятоВсем}')
+    expect(реестр).toContain("{ key: 'без-срока', word: 'без срока-точки', keys: видимые.filter((р) => р.status === 'open' && р.due_point === '—').map((р) => р.code) }")
+    expect(реестр).toContain("choice: { label: 'веха проекта', options: [['', '— выберите веху —'], ...вехи.map(")
+    expect(реестр).toContain("api.patchEntity(project, к, { due_point: веха }")
     expect(реестр).toContain('названные сроки не трогаются')
   })
 

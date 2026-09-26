@@ -4,7 +4,8 @@
 // Одна поверхность — один компонент: Постановка и сцены 3–6 показывают ОДНИ И
 // ТЕ ЖЕ реестры (registry/*.tsx), второй копии таблицы нет. Колонки,
 // чипы, действия строки и массовые действия задаёт вид; строение — здесь.
-import { Fragment, useMemo, useState, type ReactNode } from 'react'
+import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { Полоса, РаскрытьВсе, useПолосы } from '../ui/band'
 import { Чипы, найдено, отобрать, type ЧипОтбора } from '../ui/chips'
 import { ИконКнопка } from '../ui/iconbutton'
 import { Отметка, ПанельМассово, useМассово, type МассовоеДействие, type Набор } from '../ui/mass'
@@ -19,8 +20,23 @@ export interface Колонка<R> {
   className?: string
 }
 
+/**
+ * Полосы реестра (шип 5 §1.2): строки группами по предмету — риски по
+ * владельцу. Группа — своя полоса над своей таблицей; единственная группа
+ * раскрыта сразу, остальные — по выбору, «раскрыть все» над первой.
+ */
+export interface ПолосыРеестра<R> {
+  /** Предмет полосы строки словом: «Иванов И.», «владелец не назначен». */
+  предмет: (r: R) => string
+  /** Счётчики полосы словами: «рисков 4 · держат точку 1». */
+  счёт?: (строки: R[]) => string
+  /** Действия группы пиктограммами. */
+  действия?: (предмет: string, строки: R[]) => ReactNode
+}
+
 export function Реестр<R>({
   label, строки, ключ, колонки, чипы = [], поиск, хвост, действия, карточка, массово, наборы, пусто, рядом, начальныеЧипы,
+  полосы, открыть,
 }: {
   /** Имя реестра для чтения экрана: «реестр сторон». */
   label: string
@@ -46,6 +62,10 @@ export function Реестр<R>({
   рядом?: ReactNode
   /** Чипы, включённые сразу: сцена 6 открывает нужды на «TBR». */
   начальныеЧипы?: string[]
+  /** Группировка строк полосами над своими таблицами. */
+  полосы?: ПолосыРеестра<R>
+  /** Карточка, которую просили открыть переходом (ссылка с точки): её полоса раскрывается. */
+  открыть?: string | null
 }) {
   const [включены, setВключены] = useState<Set<string>>(() => new Set(начальныеЧипы ?? []))
   const [игла, setИгла] = useState('')
@@ -55,11 +75,54 @@ export function Реестр<R>({
     const поЧипам = отобрать(строки, чипы, включены)
     return поиск && игла.trim() ? поЧипам.filter((р) => найдено(поиск.text(р), игла)) : поЧипам
   }, [строки, чипы, включены, поиск, игла])
-  const ключи = useMemo(() => видимые.map(ключ), [видимые, ключ])
+  /** Группы видимых строк по предмету полосы — в порядке первой встречи. */
+  const группы = useMemo(() => {
+    if (!полосы) return null
+    const по = new Map<string, R[]>()
+    видимые.forEach((р) => { const п = полосы.предмет(р); по.set(п, [...(по.get(п) ?? []), р]) })
+    return [...по.entries()]
+  }, [видимые, полосы])
+  const лента = useПолосы(группы?.map(([п]) => п) ?? [])
+  /** Клавиатура и отметки идут только по строкам раскрытых полос: свёрнутое не выбирается вслепую. */
+  const ключи = useMemo(() => (группы
+    ? группы.flatMap(([п, rr]) => (лента.открыта(п) ? rr.map(ключ) : []))
+    : видимые.map(ключ)), [группы, лента, видимые, ключ])
+  useEffect(() => {
+    if (!открыть) return
+    const р = строки.find((х) => ключ(х) === открыть)
+    if (!р) return
+    setОткрыта(открыть)
+    if (полосы) лента.раскрыть(полосы.предмет(р))
+    // Переход идёт один раз на запрос: по приходу строк и по смене кода.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [открыть, строки.length])
   const м = useМассово(ключи, {
     onOpen: (к) => setОткрыта((было) => (было === к ? null : к)),
     действия: массово,
   })
+
+  /** Отметка группы: все строки полосы разом; снова — снять только их. */
+  const отметитьГруппу = (rr: R[]) => {
+    const свои = rr.map(ключ)
+    const все = свои.every((к) => м.выбраны.has(к))
+    м.выбрать(все ? м.выбранные.filter((к) => !свои.includes(к)) : [...new Set([...м.выбранные, ...свои])])
+  }
+  /**
+   * Умный набор в полосах: сначала раскрываются группы, где лежат строки
+   * набора, — отметка идёт по видимому, — затем набор выбирается.
+   */
+  const [ждётНабор, setЖдётНабор] = useState<string[] | null>(null)
+  useEffect(() => {
+    if (!ждётНабор) return
+    м.выбрать(ждётНабор)
+    setЖдётНабор(null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ключи, ждётНабор])
+  const выбратьНабор = (keys: string[]) => {
+    if (!группы || !полосы) { м.выбрать(keys); return }
+    строки.filter((р) => keys.includes(ключ(р))).forEach((р) => лента.раскрыть(полосы.предмет(р)))
+    setЖдётНабор(keys)
+  }
 
   const переключитьЧип = (к: string) => setВключены((было) => {
     const стало = new Set(было)
@@ -67,6 +130,66 @@ export function Реестр<R>({
     return стало
   })
   const колонок = колонки.length + (массово ? 1 : 0) + 1
+
+  const пустаяСтрока = (
+    <tr>
+      <td colSpan={колонок} className="v2-empty">
+        {строки.length === 0 ? пусто : 'под отбор ничего не попало — снимите чип или поиск'}
+      </td>
+    </tr>
+  )
+  const таблица = (rr: R[]) => (
+    <table className="v2-table">
+      <thead>
+        <tr>
+          {массово && (
+            <th className="v2-reg__mark">
+              {группы
+                ? <input type="checkbox" className="v2-mark" checked={rr.length > 0 && rr.every((р) => м.выбраны.has(ключ(р)))}
+                    onChange={() => отметитьГруппу(rr)} aria-label="выбрать все строки группы" disabled={rr.length === 0} />
+                : <input type="checkbox" className="v2-mark" checked={м.всеВыбраны} onChange={м.всеРазом}
+                    aria-label="выбрать все видимые" disabled={видимые.length === 0} />}
+            </th>
+          )}
+          {колонки.map((к) => <th key={к.key} title={к.hint} className={к.className}>{к.title}</th>)}
+          <th className="v2-acts" aria-label="действия строки" />
+        </tr>
+      </thead>
+      <tbody>
+        {rr.length === 0 && пустаяСтрока}
+        {rr.map((р) => {
+          const к = ключ(р)
+          const i = ключи.indexOf(к)
+          const откр = к === открыта
+          const класс = [i === м.курсор ? 'v2-row--cursor' : '', откр ? 'v2-row--open' : ''].filter(Boolean).join(' ')
+          return (
+            <Fragment key={к}>
+              <tr className={класс || undefined} onClick={() => { if (i >= 0) м.setКурсор(i) }}>
+                {массово && (
+                  <td className="v2-reg__mark">
+                    <Отметка ключ={к} выбрана={м.выбраны.has(к)} onToggle={м.отметить} />
+                  </td>
+                )}
+                {колонки.map((кол) => <td key={кол.key} className={кол.className}>{кол.cell(р)}</td>)}
+                <td className="v2-acts">
+                  {карточка && (
+                    <ИконКнопка икон="карточка" слово={откр ? 'свернуть карточку' : 'карточка'} aria-expanded={откр}
+                      onClick={() => setОткрыта(откр ? null : к)} />
+                  )}
+                  {действия?.(р)}
+                </td>
+              </tr>
+              {откр && карточка && (
+                <tr className="v2-card-row">
+                  <td colSpan={колонок}>{карточка(р, () => setОткрыта(null))}</td>
+                </tr>
+              )}
+            </Fragment>
+          )
+        })}
+      </tbody>
+    </table>
+  )
 
   return (
     <div className="v2-reg" aria-label={label}>
@@ -80,66 +203,29 @@ export function Реестр<R>({
         </Чипы>
       )}
       <div className={рядом ? 'v2-reg__body v2-reg__body--side' : 'v2-reg__body'}>
-        <div className="v2-reg__table" tabIndex={0} onKeyDown={м.клавиша}
-          aria-label={`${label}: ↑ ↓ строка, Space отметить, Enter карточка`}>
-          <table className="v2-table">
-            <thead>
-              <tr>
-                {массово && (
-                  <th className="v2-reg__mark">
-                    <input type="checkbox" className="v2-mark" checked={м.всеВыбраны} onChange={м.всеРазом}
-                      aria-label="выбрать все видимые" disabled={видимые.length === 0} />
-                  </th>
-                )}
-                {колонки.map((к) => <th key={к.key} title={к.hint} className={к.className}>{к.title}</th>)}
-                <th className="v2-acts" aria-label="действия строки" />
-              </tr>
-            </thead>
-            <tbody>
-              {видимые.length === 0 && (
-                <tr>
-                  <td colSpan={колонок} className="v2-empty">
-                    {строки.length === 0 ? пусто : 'под отбор ничего не попало — снимите чип или поиск'}
-                  </td>
-                </tr>
-              )}
-              {видимые.map((р, i) => {
-                const к = ключ(р)
-                const откр = к === открыта
-                const класс = [i === м.курсор ? 'v2-row--cursor' : '', откр ? 'v2-row--open' : ''].filter(Boolean).join(' ')
-                return (
-                  <Fragment key={к}>
-                    <tr className={класс || undefined} onClick={() => м.setКурсор(i)}>
-                      {массово && (
-                        <td className="v2-reg__mark">
-                          <Отметка ключ={к} выбрана={м.выбраны.has(к)} onToggle={м.отметить} />
-                        </td>
-                      )}
-                      {колонки.map((кол) => <td key={кол.key} className={кол.className}>{кол.cell(р)}</td>)}
-                      <td className="v2-acts">
-                        {карточка && (
-                          <ИконКнопка икон="карточка" слово={откр ? 'свернуть карточку' : 'карточка'} aria-expanded={откр}
-                            onClick={() => setОткрыта(откр ? null : к)} />
-                        )}
-                        {действия?.(р)}
-                      </td>
-                    </tr>
-                    {откр && карточка && (
-                      <tr className="v2-card-row">
-                        <td colSpan={колонок}>{карточка(р, () => setОткрыта(null))}</td>
-                      </tr>
-                    )}
-                  </Fragment>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
+        {группы ? (
+          <div className="v2-reg__table" tabIndex={0} onKeyDown={м.клавиша}
+            aria-label={`${label}: ↑ ↓ строка, Space отметить, Enter карточка`}>
+            {группы.length > 1 && <div className="v2-bands__all"><РаскрытьВсе все={лента.все} число={лента.число} onClick={лента.всеРазом} /></div>}
+            {группы.length === 0 && <table className="v2-table"><tbody>{пустаяСтрока}</tbody></table>}
+            {группы.map(([п, rr]) => (
+              <Полоса key={п} open={лента.открыта(п)} onToggle={() => лента.переключить(п)} subject={п}
+                counts={полосы?.счёт?.(rr)} actions={полосы?.действия?.(п, rr)}>
+                {таблица(rr)}
+              </Полоса>
+            ))}
+          </div>
+        ) : (
+          <div className="v2-reg__table" tabIndex={0} onKeyDown={м.клавиша}
+            aria-label={`${label}: ↑ ↓ строка, Space отметить, Enter карточка`}>
+            {таблица(видимые)}
+          </div>
+        )}
         {рядом && <aside className="v2-reg__side">{рядом}</aside>}
       </div>
       {массово && строки.length > 0 && (
         <ПанельМассово выбранные={м.выбранные} действия={массово} наборы={наборы?.(видимые)}
-          onНабор={(н) => м.выбрать(н.keys)} onСнять={м.снять} />
+          onНабор={(н) => выбратьНабор(н.keys)} onСнять={м.снять} />
       )}
     </div>
   )

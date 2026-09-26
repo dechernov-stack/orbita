@@ -11,7 +11,6 @@
 // из этого файла: сцена с выходом без ветки — отказ сборки, а закрытый долг
 // обязан быть снят из его списка (храповик).
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Вкладки } from './ui/tabs'
 import {
   api, type BudgetRow, type ComponentCard, type ComponentRow, type InterfaceRow, type KindSpec,
   type Phase, type Scene,
@@ -19,7 +18,6 @@ import {
 import { ArchitectureScreen } from './architecture'
 import { Concept } from './concept'
 import { DocumentBody } from './documents'
-import { Models } from './models'
 import { SceneModes } from './modes'
 import { PhasePlan } from './plan'
 import { Costs, Debris, Technologies } from './programmatics'
@@ -42,8 +40,6 @@ export function PhaseASurface({ project, phase, scene, onChanged, onScene }: {
   // Отбор реестра — один объект на узел: новый объект каждый рендер сбрасывал бы чипы реестра.
   const отборУзла = useMemo(() => ({ носитель: scene.node ?? undefined }), [scene.node])
   const отборСистемы = useMemo(() => ({ уровень: 'system' }), [])
-  // A6 — одна Концепция; «Модели» — вкладка внутри контекста фазы A (ЗАДАНИЕ-ШИП-4 §0).
-  const [вкладкаA6, setВкладкаA6] = useState<'концепция' | 'модели'>('концепция')
 
   if (ключ === 'A1') {
     return (
@@ -106,18 +102,9 @@ export function PhaseASurface({ project, phase, scene, onChanged, onScene }: {
       </>
     )
   }
-  if (ключ === 'A6') {
-    return (
-      <>
-        <Вкладки label="контекст сцены A6" current={вкладкаA6} onChange={setВкладкаA6}
-          items={[
-            { key: 'концепция', word: 'Концепция', hint: 'варианты, базовый вариант и состав — сцена 7 в контексте фазы A' },
-            { key: 'модели', word: 'Модели', hint: 'записи моделей и прогоны: условие сцены читает верифицированные прогоны' },
-          ]} />
-        {вкладкаA6 === 'модели' ? <Models project={project} /> : <Concept project={project} />}
-      </>
-    )
-  }
+  // A6 — та же Концепция: вкладки «Состав · Варианты · Базовая · Модели» у
+  // неё свои (шип 5 §7), второй строки вкладок над ней нет.
+  if (ключ === 'A6') return <Concept project={project} />
   if (ключ === 'A7') return <Technologies project={project} />
   if (ключ === 'A8') return <RiskRegistry project={project} сцены={сцены} />
   if (ключ === 'A9') {
