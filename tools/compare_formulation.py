@@ -5,6 +5,8 @@
     python3 tools/compare_formulation.py PJ-ПМИ8 … --base http://localhost:8031   # стенд 216 через туннель
     python3 tools/compare_formulation.py --nm docs/tz/v2/фикстуры/постановка-из-записки.json
     python3 tools/compare_formulation.py --selftest
+    python3 tools/compare_formulation.py --sql PJ-ПМИ7 > выгрузка.sql     # запрос выгрузки для psql на стенде
+    python3 tools/compare_formulation.py PJ-ПМИ7 … --from выгрузка.json   # сравнение по выгрузке, без входа в стенд
 
 Разделы: стороны · нужды · цели · сервисы · ограничения · вехи · риски ·
 требования-кандидаты. Сопоставление в два прохода:
@@ -28,6 +30,10 @@
 поимённо. Данные проекта — маршрутами v2 (`/api/v2/entities`, словарь —
 `/api/v2/glossary`); вход — `tools/v2/stand_session.py` (учётка стенда либо
 сессия Telegram через туннель).
+
+`--from` — данные проекта из выгрузки базы (JSON одной строкой: записи видов
+разделов и термины словаря — запрос печатает `--sql`): стенд 216 сравнивается
+без входа в приложение, чтением базы.
 
 `--nm` (эталон к n:m): нужда эталона, записанная копией на каждого носителя
 (эталон писался до шипа 4: «у нужды ровно один носитель»), сводится в одну
@@ -261,6 +267,31 @@ def прочитать(opener, base: str, путь: str) -> dict:
         return json.loads(о.read().decode())
 
 
+ВИДЫ_РАЗДЕЛОВ = [вид for _р, _к, _п, вид, _пп, _и in РАЗДЕЛЫ]
+
+
+def запрос_выгрузки(проект: str) -> str:
+    """Запрос psql: действующие записи видов разделов проекта и термины словаря (библиотека и проект) — одной строкой JSON."""
+    область = "project:" + проект.replace("'", "''")
+    виды = ", ".join(f"'{в}'" for в in ВИДЫ_РАЗДЕЛОВ)
+    return (
+        "select json_build_object("
+        "'entities', (select coalesce(json_agg(json_build_object('kind', kind, 'status', status, 'doc', doc)), '[]'::json) "
+        f"from orbita_kernel.entity where valid_to is null and area = '{область}' and kind in ({виды})), "
+        "'glossary', (select coalesce(json_agg(doc || jsonb_build_object('status', status)), '[]'::json) "
+        f"from orbita_kernel.entity where valid_to is null and kind = 'glossary_term' and area in ('library', '{область}')));"
+    )
+
+
+def данные_выгрузки(путь: str) -> tuple[dict[str, list[str]], Словарь]:
+    выгрузка = json.loads(pathlib.Path(путь).read_text(encoding="utf-8"))
+    записи: dict[str, list[str]] = {}
+    for _раздел, _ключ, _поле, вид, поле, _имя in РАЗДЕЛЫ:
+        записи[вид] = [текст_записи(з.get("doc") or {}, поле) for з in выгрузка.get("entities") or []
+                       if з.get("kind") == вид and з.get("status") != "cancelled"]
+    return записи, Словарь(выгрузка.get("glossary") or [])
+
+
 def данные_проекта(opener, base: str, проект: str) -> tuple[dict[str, list[str]], Словарь]:
     к = urllib.parse.quote(проект)
     записи = {}
@@ -349,10 +380,15 @@ def main() -> int:
     п.add_argument("--out", default=None, help="куда записать таблицу (markdown); иначе — в вывод")
     п.add_argument("--nm", default=None, metavar="ЭТАЛОН", help="эталон к n:m: записать …-nm.json рядом")
     п.add_argument("--selftest", action="store_true")
+    п.add_argument("--from", dest="from_file", default=None, metavar="ВЫГРУЗКА", help="данные проекта из выгрузки базы (JSON), без входа в стенд")
+    п.add_argument("--sql", default=None, metavar="ПРОЕКТ", help="напечатать запрос выгрузки для psql")
     args = п.parse_args()
     if args.selftest:
         самопроверка()
         print("сравнение постановки: самопроверка пройдена (ключ, словарь, лексика, спорные, n:m)")
+        return 0
+    if args.sql:
+        print(запрос_выгрузки(args.sql))
         return 0
     if args.nm:
         путь = pathlib.Path(args.nm)
@@ -366,8 +402,11 @@ def main() -> int:
         п.error("нужны проект и эталон (или --nm, --selftest)")
     самопроверка()
     эталон = json.loads(pathlib.Path(args.etalon).read_text(encoding="utf-8"))
-    opener = открыть(args.base, args.login)
-    записи, словарь = данные_проекта(opener, args.base, args.project)
+    if args.from_file:
+        записи, словарь = данные_выгрузки(args.from_file)
+    else:
+        opener = открыть(args.base, args.login)
+        записи, словарь = данные_проекта(opener, args.base, args.project)
     отчёт = таблица(сравнить(эталон, записи, словарь, args.threshold, args.disputed), args.project, args.etalon)
     if args.out:
         pathlib.Path(args.out).write_text(отчёт, encoding="utf-8")

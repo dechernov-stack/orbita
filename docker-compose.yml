@@ -101,6 +101,8 @@ services:
       # не публикуется, единственный вход — nginx, поэтому 0.0.0.0 здесь
       # не открывает API в сеть хоста.
       ORBITA_HTTP_BIND: 0.0.0.0
+      # Прогрев v2 при старте: миграции понятий и пересчёт противоречий идут при выкате (26.09).
+      ORBITA_V2_WARMUP: "1"
       ORBITA_EXCHANGE_URL: http://exchange:8091
       # ADR-048: адаптер Capella включается флагом; без него — fixture с баннером
       ORBITA_CAPELLA_URL: ${ORBITA_CAPELLA_URL:-}

@@ -144,6 +144,18 @@ class HttpApi(private val boundary: Boundary) {
         val server = HttpServer.create(InetSocketAddress(bind, port), 0)
         server.createContext("/api/") { ex -> handle(ex) }
         server.start()
+        // Прогрев v2 (ORBITA_V2_WARMUP=1, стенд): роутер v2 создаётся сразу
+        // после старта, в фоне — миграции понятий и пересчёт противоречий
+        // (правило 26.09) идут при выкате, а не при первом входе владельца.
+        // Первый запрос, пришедший раньше, ждёт тот же lazy: он потокобезопасен.
+        // Тесты флага не ставят: миграции в фоне гонялись бы с очисткой их базы.
+        if (System.getenv("ORBITA_V2_WARMUP") == "1") {
+            Thread({
+                runCatching { v2 }
+                    .onSuccess { println("orbita core: v2 прогрет при старте") }
+                    .onFailure { println("orbita core: прогрев v2 не прошёл — ${it.message}") }
+            }, "v2-прогрев").apply { isDaemon = true }.start()
+        }
         return server
     }
 
