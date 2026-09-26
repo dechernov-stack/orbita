@@ -358,7 +358,8 @@ export function Shell() {
               роль={роль} режим={режим} onРежим={setРежим} />
           ) : section === 'knowledge' ? (
             <KnowledgeField project={project} expert={expert} ручной={ручнойВвод}
-              onGoGlossary={() => setSection('glossary')} />
+              onGoGlossary={() => setSection('glossary')} точки={phase?.gates}
+              onGoScene={(сцена, зачем) => { setWantScene(сцена); setWantReason(зачем ?? null); setSection('work') }} />
           ) : section === 'formulation' ? (
             <Formulation project={project} фаза={phase}
               onGoScene={(сцена, зачем) => { setWantScene(сцена); setWantReason(зачем ?? null); setSection('work') }} />

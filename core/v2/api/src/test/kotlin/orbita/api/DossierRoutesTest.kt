@@ -172,6 +172,9 @@ class DossierRoutesTest {
         val новый = взятие.body.path("material").asText()
         assertEquals(1, intake.facts(другой).size)
         assertEquals(новый, intake.facts(другой).single().material)
+        // Шип 5 §3.2: перечень фактов несёт цитату блока — «откуда» раскрывает её на месте.
+        val перечень = сквозные.handle("GET", "/v2/facts", mapOf("project" to другой), null)!!
+        assertEquals("хранить данные 3 года", перечень.body.path("items")[0].path("quote").asText())
         assertTrue(store.list(Area.Project(другой), "ai_call").isEmpty(), "журнал ИИ пуст: модель не звалась")
         assertTrue(store.list(область, "ai_call").isEmpty())
         val список = сквозные.handle("GET", "/v2/materials", mapOf("project" to другой), null)!!

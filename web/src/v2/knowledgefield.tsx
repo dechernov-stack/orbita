@@ -23,6 +23,7 @@
 // знаний приходят с сервера готовыми. Ни одно слияние, принятие и уточнение
 // не происходит без нажатия человека — служба только предлагает.
 import { Fragment as Фрагмент, useCallback, useEffect, useState, type KeyboardEvent } from 'react'
+import { ВкладкаФакты } from './knowledge/facts'
 import { Вкладки } from './ui/tabs'
 import { ConfirmBox, useConfirm } from '../ui/Confirm'
 import { ResearchPanel, отказСловами } from './research'
@@ -33,34 +34,12 @@ import {
   type FormationOntology, type FormationProposal, type ReconcileAction,
   type ReconcileFinding, type ReconcileItem, type ReconcileRun, type ResearchTask,
   type SynthesisAccepted, type SynthesisDiff, type SynthesisDiffView, type SynthesisRun,
-  type TaskPlan,
+  type TaskPlan, type Gate,
   type DistributionLink,
   type DistributionRun,
 } from './api'
 import { ДЕЙСТВИЕ_СВЕРКИ } from './words'
 import { ВзятьИзПроекта, Досье, КартаПробелов, Партия } from './dossier'
-
-/**
- * Диспозиции факта — словами истины схем (`fact.disposition`, ОНТОЛОГИЯ-АУДИТ
- * часть 2): у факта — учтён · принят · отклонён · оспорен · устарел; у
- * предложения — принять · отклонить · отложить; у сущности — базировать ·
- * отменить. Одно слово на уровень: «отложен» факту не принадлежит.
- */
-const РЕШЕНИЕ: Record<string, string> = {
-  free: 'не рассмотрен',
-  noted: 'учтён',
-  assumed: 'допущение',
-  adopted: 'принят',
-  rejected: 'отклонён',
-  contested: 'оспорен',
-  superseded: 'устарел',
-}
-
-const МЕТКА: Record<string, string> = {
-  И: 'наш документ',
-  В: 'внешний источник',
-  П: 'допущение',
-}
 
 const ВИДЫ_ФАКТА: [string, string][] = [
   ['framing', 'рамка'],
@@ -231,24 +210,17 @@ function источникСловами(и: FactSourceView): string {
   return 'material' in и ? `${и.material} · ${и.anchor}` : `эксперт: ${и.account}, ${и.role}, ${и.at}`
 }
 
-type Фильтр = 'все' | 'свободные' | 'допущения' | 'спорные' | 'ручные' | 'из исследований'
-
-/**
- * Нужен ли повод к решению. Правило то же, что на сервере: сервер
- * откажет и без нас, но спрашивать текст там, где он не нужен, — налог.
- */
-function нуженПовод(было: string, стало: string): boolean {
-  if (стало === 'rejected') return true
-  if (было === 'contested') return true
-  return было !== 'free' && было !== стало
-}
 
 type Тема = { id: string; label: string; facts: number; resolved_to?: string | null }
 type Покрытие = { total: number; from_facts: number; from_manual_facts: number; manual: number; share_percent: number }
 
-export function KnowledgeField({ project, expert = false, ручной = false, onGoGlossary }: {
+export function KnowledgeField({ project, expert = false, ручной = false, onGoGlossary, точки, onGoScene }: {
   /** Переход в словарь: кандидаты из приёма плана принимаются там. */
   onGoGlossary?: () => void
+  /** Точки фазы: срок подтверждения допущения в окне приёма. */
+  точки?: Gate[]
+  /** «К месту» факта — сцена его темы. */
+  onGoScene?: (сцена: string, зачем?: string) => void
   project: string | null
   expert?: boolean
   /**
@@ -261,46 +233,16 @@ export function KnowledgeField({ project, expert = false, ручной = false, 
   const [факты, setФакты] = useState<FactRow[] | null>(null)
   const [темы, setТемы] = useState<Тема[]>([])
   const [покрытие, setПокрытие] = useState<Покрытие | null>(null)
-  const [тема, setТема] = useState<string | null>(null)
-  const [фильтр, setФильтр] = useState<Фильтр>('все')
   const [отказ, setОтказ] = useState<string | null>(null)
   // Хуки — до любых возвратов: порядок хуков стережёт CI.
-  const [решаем, setРешаем] = useState<{ факт: string; решение: string } | null>(null)
-  const [причина, setПричина] = useState('')
   const [вход, setВход] = useState(false)
-  const [рукой, setРукой] = useState(ручной)
   const [план, setПлан] = useState<TaskPlan | null>(null)
   const [выбраны, setВыбраны] = useState<number[]>([])
   // Что ворота приёма НЕ пропустили: сервер называет каждое непринятое
   // действие причиной, и экран обязан показать это, а не молча создать
   // меньше, чем человек отметил (остановка ПМИ-6).
   const [заметкиПриёма, setЗаметкиПриёма] = useState<string[]>([])
-  /**
-   * Факты сложены по предмету (КТ2: «огромные простыни — складывать по сути и
-   * раскрывать»): группа — строка с числом фактов и нерешённых, раскрывается
-   * кликом; по умолчанию свёрнуто, кроме одной-единственной группы.
-   */
-  const [раскрытые, setРаскрытые] = useState<Set<string>>(new Set())
-  const [всеРаскрыты, setВсеРаскрыты] = useState(false)
-  /** Факт, к которому перешли по ссылке «противоречит F-…»: строка подсвечена. */
-  const [подсвечен, setПодсвечен] = useState<string | null>(null)
-  const кФакту = (код: string) => {
-    const ф = (факты ?? []).find((x) => x.code === код)
-    if (ф) setРаскрытые((р) => new Set(р).add(предметФакта(ф)))
-    setПодсвечен(код)
-    window.setTimeout(() => document.getElementById(`v2-fact-${код}`)?.scrollIntoView({ block: 'center' }), 50)
-  }
   const [занято, setЗанято] = useState(false)
-  // Пакетный приём фактов: идёт ли он сейчас, сколько фактов уже прошло и чем
-  // кончился. Итог показывается ЧИСЛАМИ и первой причиной отказа: пакет, что
-  // молча принял меньше обещанного, — та же дыра, что остановка ПМИ-6.
-  const [пакетИдёт, setПакетИдёт] = useState(false)
-  const [пакетШаг, setПакетШаг] = useState(0)
-  const [пакетФактов, setПакетФактов] = useState<
-    { принято: number; отказано: number; пропущено: number; причина: string | null } | null>(null)
-  // Допущение ставится с владельцем, точкой и способом проверки — иначе к
-  // точке его никто не подтвердит (истина схем: assumption при assumed).
-  const [допущение, setДопущение] = useState<{ факт: string; owner: string; confirm_by: string; validation: string; impact: string } | null>(null)
   const [адресТемы, setАдресТемы] = useState('')
   // Поле знаний v2 — состояния объявлены ДО ранних возвратов (порядок хуков
   // стережёт CI): вкладка, дрейф поля, онтология, задачи исследования и окно
@@ -313,12 +255,17 @@ export function KnowledgeField({ project, expert = false, ручной = false, 
   const [онтология, setОнтология] = useState<FormationOntology | null>(null)
   const [исследования, setИсследования] = useState<ResearchTask[]>([])
   const [слитьВ, setСлитьВ] = useState('')
+  /** Имена документов по коду: чип документа и «откуда» факта — словом. */
+  const [имяДокумента, setИмяДокумента] = useState<Record<string, string>>({})
   const [ask, спросить, закрытьВопрос] = useConfirm()
 
   const перечитать = useCallback(() => {
     if (!project) return
     api.facts(project).then((r) => setФакты(r.items)).catch((e) => setОтказ(String(e.message ?? e)))
     api.topics(project).then((r) => setТемы(r.items)).catch(() => setТемы([]))
+    api.materials(project)
+      .then((r) => setИмяДокумента(Object.fromEntries(r.items.map((м) => [м.code, м.name]))))
+      .catch(() => setИмяДокумента({}))
     api.knowledgeCoverage(project).then(setПокрытие).catch(() => setПокрытие(null))
     // «Поле изменилось: N» считает сервер. Он же и отвечает, включено ли
     // поле знаний v2: на проекте прохода тот же адрес даёт отказ 409 — и
@@ -353,116 +300,66 @@ export function KnowledgeField({ project, expert = false, ручной = false, 
   }
 
   const все = факты ?? []
-  const видно = все
-    .filter((ф) => (тема ? ф.topic === тема : true))
-    .filter((ф) => {
-      if (фильтр === 'свободные') return (ф.disposition ?? 'free') === 'free'
-      if (фильтр === 'допущения') return ф.mark === 'П' || ф.disposition === 'assumed'
-      if (фильтр === 'спорные') return ф.disposition === 'contested'
-      if (фильтр === 'ручные') return ф.manual === true
-      // Результат внешнего контура живёт сомнительным, пока человек не
-      // подтвердил источники: отбор показывает ровно его.
-      if (фильтр === 'из исследований') return ф.rank === 'doubtful'
-      return true
-    })
   const ручных = все.filter((ф) => ф.manual).length
-  const группы = группыФактов(видно)
-  const раскрыта = (предмет: string) => всеРаскрыты || раскрытые.has(предмет) || группы.length === 1
-  const переключить = (предмет: string) => setРаскрытые((р) => {
-    const н = new Set(р); if (н.has(предмет)) н.delete(предмет); else н.add(предмет); return н
-  })
   // Вкладка поля — она же весь экран там, где поля знаний v2 нет.
   const поле = вкладка === 'поле' || !знанияV2
   const имяТемы = (код: string) => темы.find((т) => т.id === код)?.label ?? код
 
-  const решить = (ф: FactRow, решение: string) => {
-    const было = ф.disposition ?? 'free'
-    if (нуженПовод(было, решение)) {
-      // Повод спрашивается СТРОКОЙ В ТАБЛИЦЕ, нормальным многострочным
-      // полем — и только здесь. Нативных диалогов в продукте нет.
-      setРешаем({ факт: ф.id, решение }); setПричина('')
-      return
-    }
-    api.disposeFact(project, ф.id, решение, '', 'инженер')
-      .then(перечитать).catch((e) => setОтказ(String(e.message ?? e)))
-  }
-
-  // Пакет идёт ровно по тому, что человек ВИДИТ: тема и отбор уже сузили
-  // список, за его края пакет не выходит. Решённые не трогаем — пакет
-  // закрывает нерешённое, а не переписывает чужие решения.
-  const свободные = видно.filter((ф) => (ф.disposition ?? 'free') === 'free')
-  // Сомнительный ранг пакетом не принимается — тем же правилом, каким сервер
-  // запирает пакетный приём плана разбора (`batch_refusal`): источник не
-  // подтверждён. Расхождение экрана и сервера хуже молчания, поэтому правило
-  // стоит и здесь; по одному факту решение в строке остаётся за человеком.
-  const кПакету = свободные.filter((ф) => ф.rank !== 'doubtful')
-  const сомнительных = свободные.length - кПакету.length
-
-  /**
-   * Принять все показанные факты — ПО ОДНОМУ вызову на факт, тем же маршрутом,
-   * что и «принять» в строке: второй дороги приёма в продукте нет. Идём
-   * подряд, а не разом: отказ по одному факту не отменяет уже принятого, и
-   * человек видит, сколько прошло, а сколько отказало и почему.
-   */
-  const принятьПодряд = async (список: FactRow[]) => {
-    setПакетИдёт(true)
-    setПакетФактов(null)
-    setПакетШаг(0)
-    let принято = 0
-    let отказано = 0
-    let причина: string | null = null
-    for (const ф of список) {
-      try {
-        await api.disposeFact(project, ф.id, 'adopted', '', 'инженер')
-        принято += 1
-        setПакетШаг(принято + отказано)
-      } catch (e) {
-        отказано += 1
-        setПакетШаг(принято + отказано)
-        if (причина === null) причина = `${ф.id} — ${отказПодробно(e)}`
-      }
-    }
-    setПакетФактов({ принято, отказано, пропущено: сомнительных, причина })
-    setПакетИдёт(false)
-    перечитать()
-  }
-
-  const принятьВсеФакты = () => {
-    if (пакетИдёт || кПакету.length === 0) return
-    const список = кПакету
-    спросить({
-      question: `Принять все показанные факты: ${список.length}. Каждый станет основанием`
-        + ' сущностей; уже решённые факты пакет не трогает'
-        + (сомнительных > 0
-          ? `; сомнительных пропустим: ${сомнительных} — их источник не подтверждён.`
-          : '.'),
-      ok: 'Принять все',
-      onOk: () => { void принятьПодряд(список) },
-    })
-  }
-
-  const записать = () => {
-    if (!решаем || !причина.trim()) return
-    api.disposeFact(project, решаем.факт, решаем.решение, причина.trim(), 'инженер')
-      .then(() => { setРешаем(null); setПричина(''); перечитать() })
-      .catch((e) => setОтказ(String(e.message ?? e)))
-  }
-
-  const записатьДопущение = () => {
-    if (!допущение || !допущение.owner.trim() || !допущение.validation.trim()) return
-    api.disposeFact(project, допущение.факт, 'assumed', 'принято допущением до подтверждения', 'инженер', {
-      owner: допущение.owner.trim(), confirm_by: допущение.confirm_by,
-      validation: допущение.validation.trim(), impact_if_wrong: допущение.impact.trim(),
-    })
-      .then(() => { setДопущение(null); перечитать() })
-      .catch((e) => setОтказ(String(e.message ?? e)))
-  }
-
-  const разрешитьТему = () => {
-    if (!тема || !адресТемы.trim()) return
+  const разрешитьТему = (тема: string) => {
+    if (!адресТемы.trim()) return
     api.resolveTopic(project, тема, адресТемы.trim(), 'инженер')
       .then(() => { setАдресТемы(''); перечитать() })
       .catch((e) => setОтказ(String(e.message ?? e)))
+  }
+
+  /**
+   * Строка темы (разрешить в сущность, слить) — когда отбор фактов сужен до
+   * одной темы чипом: к точке принятые факты темы обязаны найти адрес.
+   */
+  const темаПанель = (тема: string) => {
+    const т = темы.find((x) => x.id === тема)
+    if (!т) return null
+    return (
+      <div className="v2-kf__bar" data-why="работа">
+        <span className="v2-dim">тема «{т.label}»:</span>
+        {т.resolved_to
+          ? <span>разрешена в <span className="v2-mono">{т.resolved_to}</span></span>
+          : (
+            <>
+              <input value={адресТемы} placeholder="код сущности проекта (узел, сторона, требование…)"
+                aria-label="код сущности, в которую разрешается тема"
+                onChange={(e) => setАдресТемы(e.target.value)} />
+              <button type="button" className="v2-link" disabled={!адресТемы.trim()}
+                title="к точке принятые факты темы обязаны найти адрес — сущность проекта"
+                onClick={() => разрешитьТему(т.id)}>разрешить в сущность</button>
+            </>
+          )}
+        {знанияV2 && темы.filter((д) => д.id !== т.id).length > 0 && (
+          <>
+            <select value={слитьВ} onChange={(e) => setСлитьВ(e.target.value)} aria-label="тема, в которую сливаем"
+              title="один предмет — одна тема, как бы его ни звали документы: тождество предлагает разбор, сливает человек">
+              <option value="">— слить эту тему в другую —</option>
+              {темы.filter((д) => д.id !== т.id).map((д) => (
+                <option key={д.id} value={д.id}>{д.label}</option>
+              ))}
+            </select>
+            <button type="button" className="v2-link" disabled={!слитьВ}
+              title={слитьВ
+                ? 'слить темы: факты обеих читаются по голове цепочки, ни один факт не пропадает'
+                : 'выберите тему, в которую сливаем: слияние без цели не бывает'}
+              onClick={() => спросить({
+                question: `Слить тему «${т.label}» в «${имяТемы(слитьВ)}»? `
+                  + 'Факты обеих будут читаться по одной голове; отменить слияние нельзя.',
+                ok: 'Слить',
+                input: { label: 'почему это одна тема', required: true },
+                onOk: (повод) => api.mergeTopic(project, т.id, слитьВ, 'инженер', повод)
+                  .then(() => { setСлитьВ(''); перечитать() })
+                  .catch((e) => setОтказ(отказПодробно(e))),
+              })}>слить темы</button>
+          </>
+        )}
+      </div>
+    )
   }
 
   // Пакетный приём заперт там же, где его запирает сервер: план материала,
@@ -507,13 +404,8 @@ export function KnowledgeField({ project, expert = false, ручной = false, 
         <span className="v2-head__spacer" />
         <button type="button" className={вход ? 'v2-chip v2-chip--on' : 'v2-chip'}
           title="текст, файл или ссылка + задание → разбор → факты и темы ложатся сюда"
-          onClick={() => { setВход(!вход); setРукой(false); setВкладка('поле') }}>
+          onClick={() => { setВход(!вход); setВкладка('поле') }}>
           Загрузить источник
-        </button>
-        <button type="button" className={рукой ? 'v2-chip v2-chip--on' : 'v2-chip'}
-          title="завести тему или факт руками: метка [И], источник — инженер и дата"
-          onClick={() => { setРукой(!рукой); setВход(false); setВкладка('поле') }}>
-          Руками
         </button>
         <a className="v2-chip" href={api.knowledgeZipUrl(project ?? '')} target="_blank" rel="noreferrer"
           title="пакет знаний внешнему контуру: MD-файлы с отпечатком в шапке — факты принятые · допущенные · замеченные с якорями">
@@ -524,7 +416,7 @@ export function KnowledgeField({ project, expert = false, ручной = false, 
 
       {знанияV2 && (
         <Вкладки label="поле знаний и постановка из него" current={поле ? 'поле' : 'постановка'}
-          onChange={(к) => { if (к === 'поле') setВкладка('поле'); else { setВкладка('постановка'); setВход(false); setРукой(false) } }}
+          onChange={(к) => { if (к === 'поле') setВкладка('поле'); else { setВкладка('постановка'); setВход(false) } }}
           items={[
             { key: 'поле', word: 'Факты и темы', count: факты === null ? '…' : все.length,
               hint: 'накопленное поле: факты с рангом доверия, темы и решения человека' },
@@ -579,10 +471,6 @@ export function KnowledgeField({ project, expert = false, ручной = false, 
           onError={setОтказ} />
       )}
 
-      {поле && рукой && (
-        <Manual project={project} темы={темы} знанияV2={знанияV2}
-          onDone={перечитать} onError={setОтказ} />
-      )}
 
       {поле && план && (
         <div className="v2-kf__src" data-why="следующий-клик">
@@ -712,302 +600,11 @@ export function KnowledgeField({ project, expert = false, ручной = false, 
         </div>
       )}
 
-      {поле && (
-        <div className="v2-kf__bar">
-          <span className="v2-dim">темы:</span>
-          <button type="button" className={тема === null ? 'v2-chip v2-chip--on' : 'v2-chip'}
-            title="все темы поля знаний" onClick={() => setТема(null)}>все</button>
-          {темы.filter((т) => т.facts > 0).map((т) => (
-            <button key={т.id} className={тема === т.id ? 'v2-chip v2-chip--on' : 'v2-chip'}
-              type="button" title={`факты темы: ${т.facts}`} onClick={() => setТема(т.id)}>
-              {т.label} <b>{т.facts}</b>
-            </button>
-          ))}
-        </div>
-      )}
-
-      {поле && тема && (() => {
-        const т = темы.find((x) => x.id === тема)
-        if (!т) return null
-        return (
-          <div className="v2-kf__bar" data-why="работа">
-            <span className="v2-dim">тема «{т.label}»:</span>
-            {т.resolved_to
-              ? <span>разрешена в <span className="v2-mono">{т.resolved_to}</span></span>
-              : (
-                <>
-                  <input value={адресТемы} placeholder="код сущности проекта (узел, сторона, требование…)"
-                    onChange={(e) => setАдресТемы(e.target.value)} />
-                  <button type="button" className="v2-link" disabled={!адресТемы.trim()}
-                    title="к точке принятые факты темы обязаны найти адрес — сущность проекта"
-                    onClick={разрешитьТему}>разрешить в сущность</button>
-                </>
-              )}
-            {знанияV2 && темы.filter((д) => д.id !== т.id).length > 0 && (
-              <>
-                <select value={слитьВ} onChange={(e) => setСлитьВ(e.target.value)}
-                  title="один предмет — одна тема, как бы его ни звали документы: тождество предлагает разбор, сливает человек">
-                  <option value="">— слить эту тему в другую —</option>
-                  {темы.filter((д) => д.id !== т.id).map((д) => (
-                    <option key={д.id} value={д.id}>{д.label}</option>
-                  ))}
-                </select>
-                <button type="button" className="v2-link" disabled={!слитьВ}
-                  title={слитьВ
-                    ? 'слить темы: факты обеих читаются по голове цепочки, ни один факт не пропадает'
-                    : 'выберите тему, в которую сливаем: слияние без цели не бывает'}
-                  onClick={() => спросить({
-                    question: `Слить тему «${т.label}» в «${имяТемы(слитьВ)}»? `
-                      + 'Факты обеих будут читаться по одной голове; отменить слияние нельзя.',
-                    ok: 'Слить',
-                    input: { label: 'почему это одна тема', required: true },
-                    onOk: (повод) => api.mergeTopic(project, т.id, слитьВ, 'инженер', повод)
-                      .then((голова) => { setСлитьВ(''); setТема(голова.id); перечитать() })
-                      .catch((e) => setОтказ(отказПодробно(e))),
-                  })}>слить темы</button>
-              </>
-            )}
-          </div>
-        )
-      })()}
-
-      {поле && (
-        <div className="v2-kf__bar">
-          <span className="v2-dim">показать:</span>
-          {([
-            ['все', 'все факты'],
-            ['свободные', 'не рассмотрены'],
-            ['допущения', 'допущения к точке'],
-            ['спорные', 'противоречия'],
-            ['ручные', 'заведены руками'],
-            ...(знанияV2 ? [['из исследований', 'из исследований'] as [Фильтр, string]] : []),
-          ] as [Фильтр, string][]).map(([ключ, имя]) => (
-            <button key={ключ} type="button"
-              className={фильтр === ключ ? 'v2-chip v2-chip--on' : 'v2-chip'}
-              title={ключ === 'допущения'
-                ? 'допущения [П] и принятые допущением — их подтверждают к ближайшей точке'
-                : ключ === 'свободные' ? 'факты, по которым решения ещё нет'
-                  : ключ === 'ручные' ? 'факты без источника-документа: инженер и дата'
-                    : ключ === 'из исследований'
-                      ? 'принесённое внешним контуром: ранг сомнительный, пока человек не подтвердил источники'
-                      : имя}
-              onClick={() => setФильтр(ключ)}>
-              {имя}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {поле && факты !== null && видно.length === 0 && (
-        <div className="v2-empty">
-          Фактов по этому отбору нет.
-          <span className="v2-empty__why">
-            Поле наполняется разбором источника — «Загрузить источник» — либо руками.
-          </span>
-        </div>
-      )}
-
-      {поле && видно.length > 0 && (
-        <div className="v2-kf__bar" data-why="следующий-клик">
-          <button type="button" className="v2-primary"
-            disabled={пакетИдёт || кПакету.length === 0}
-            title={пакетИдёт
-              ? 'приём идёт: факты принимаются по одному, чтобы отказ по одному не отменил принятого'
-              : свободные.length === 0
-                ? 'принимать нечего: в этом списке все факты уже решены'
-                : кПакету.length === 0
-                  ? `все нерешённые здесь сомнительного ранга (${сомнительных}): источник не подтверждён`
-                    + ' — подтвердите источники в карточке исследования, либо решайте их в строке'
-                  : 'принять все показанные нерешённые факты: каждый станет основанием сущностей'}
-            onClick={принятьВсеФакты}>
-            {пакетИдёт
-              ? `Принимаю… ${пакетШаг} из ${кПакету.length}`
-              : `Принять все факты: ${кПакету.length}`}
-          </button>
-          {сомнительных > 0 && (
-            <span className="v2-warn"
-              title="результат внешнего контура живёт сомнительным, пока человек не подтвердил источники: пакетом такие факты не принимаются">
-              {`сомнительных пропустим: ${сомнительных}`}
-            </span>
-          )}
-          <span className="v2-dim">
-            {`в списке: ${видно.length} · не решено: ${свободные.length}`}
-          </span>
-        </div>
-      )}
-
-      {поле && пакетФактов && (
-        // Итог пакета — это отчёт о сделанном, а не запертое состояние: даже
-        // когда часть отказала, человек читает, что прошло и почему остальное
-        // не прошло. Ответ на тест действия один и тот же — «работа».
-        <div className="v2-kf__src" data-why="работа">
-          <div className="v2-card__head">
-            <span className="v2-card__title">Принято пакетом</span>
-            <span className="v2-card__count">{пакетФактов.принято}</span>
-          </div>
-          <div className="v2-empty__why">
-            {`Принято: ${пакетФактов.принято}`}
-            {пакетФактов.отказано > 0 ? ` · отказал сервер: ${пакетФактов.отказано}` : ' · отказов не было'}
-            {пакетФактов.пропущено > 0 && ` · пропущено сомнительных: ${пакетФактов.пропущено}`}
-          </div>
-          {пакетФактов.причина && (
-            <div className="v2-locked">{`первый отказ — ${пакетФактов.причина}`}</div>
-          )}
-          {пакетФактов.пропущено > 0 && (
-            <div className="v2-empty__why">
-              Сомнительные факты пакетом не принимаются: их источник не подтверждён.
-              Подтвердите источники в карточке исследования — либо решайте такой факт
-              в строке по одному, как и прежде.
-            </div>
-          )}
-          <button type="button" className="v2-link" onClick={() => setПакетФактов(null)}>скрыть</button>
-        </div>
-      )}
-
-      {поле && видно.length > 0 && (
-        <table className="v2-tab2">
-          <thead>
-            <tr>
-              <th>
-                Утверждение
-                {группы.length > 1 && (
-                  <button type="button" className="v2-link" onClick={() => setВсеРаскрыты((в) => !в)}
-                    title="факты сложены по предмету: раскрыть все группы разом или свернуть">
-                    {' '}{всеРаскрыты ? 'свернуть все' : `раскрыть все (${группы.length})`}
-                  </button>
-                )}
-              </th><th>Значение</th><th>Метка</th>
-              {знанияV2 && <th>Ранг</th>}
-              <th>Откуда</th><th>Решение</th><th />
-            </tr>
-          </thead>
-          <tbody>
-            {группы.flatMap((г) => [
-              группы.length > 1 && (
-                <tr key={`g:${г.предмет}`} className="v2-kf__group">
-                  <td colSpan={знанияV2 ? 7 : 6}>
-                    <button type="button" className="v2-link" onClick={() => переключить(г.предмет)}
-                      title={раскрыта(г.предмет) ? 'свернуть группу' : 'раскрыть факты этого предмета'}>
-                      {раскрыта(г.предмет) ? '▾' : '▸'} <b>{г.предмет}</b>
-                    </button>
-                    <span className="v2-dim">{` · фактов ${г.факты.length} · не решено ${г.нерешено}`}</span>
-                  </td>
-                </tr>
-              ),
-              ...(раскрыта(г.предмет) ? г.факты : []).map((ф) => {
-              const было = ф.disposition ?? 'free'
-              return (
-                <tr key={ф.id} id={ф.code ? `v2-fact-${ф.code}` : undefined} className={подсвечен && ф.code === подсвечен ? 'v2-row--cur' : undefined}>
-                  <td>{ф.subject ? `${ф.subject}: ` : ''}{ф.predicate}</td>
-                  <td>{ф.value}{ф.unit ? ` ${ф.unit}` : ''}</td>
-                  <td title={МЕТКА[ф.mark] ?? ф.mark}>{МЕТКА[ф.mark] ?? ф.mark}</td>
-                  {знанияV2 && (
-                    <td title={ф.rank
-                      ? 'ранг доверия наследуется от источника; у руки эксперта — экспертный'
-                      : 'ранга нет: факт заведён до перестройки поля — выдуманный ранг хуже отсутствующего'}>
-                      {рангСловами(ф.rank)}
-                    </td>
-                  )}
-                  <td className="v2-mono" title={ф.material}>
-                    {ф.manual ? <span className="v2-kf__manual">{ф.material}</span> : (ф.anchor ?? '—')}
-                    {ф.param_key && <span className="v2-dim"> · анкета: {ф.param_key}</span>}
-                    {ф.conflicts && ф.conflicts.length > 0 && (
-                      <span className="v2-bad" title="противоречие: то же утверждение с иным значением в другом факте; показаны оба, победителя ИИ не выбирает — решает человек">
-                        {' '}· противоречит {ф.conflicts.map((к, i) => (
-                          <span key={к}>{i > 0 ? ', ' : ''}
-                            <button type="button" className="v2-link" onClick={() => кФакту(к)}
-                              title={`перейти к факту ${к}: его строка раскроется и подсветится`}>{к}</button>
-                          </span>
-                        ))}
-                      </span>
-                    )}
-                    {ф.source_updated && <span className="v2-warn" title={ф.source_updated}> · источник обновлён</span>}
-                    {ф.assumption && (
-                      <span className="v2-dim" title={`проверка: ${ф.assumption.validation}; если неверно: ${ф.assumption.impact_if_wrong}`}>
-                        {' '}· допущение · {ф.assumption.owner} · к {ф.assumption.confirm_by}
-                      </span>
-                    )}
-                  </td>
-                  <td className={было === 'adopted' ? 'v2-ok' : было === 'rejected' ? 'v2-warn' : ''}>
-                    {РЕШЕНИЕ[было] ?? было}
-                  </td>
-                  <td>
-                    {решаем?.факт !== ф.id && (
-                      <>
-                        {было !== 'adopted' && (
-                          <button type="button" className="v2-link"
-                            title="принять факт: он станет основанием сущности — одним кликом"
-                            onClick={() => решить(ф, 'adopted')}>принять</button>
-                        )}
-                        {было !== 'noted' && (
-                          <>
-                            {было !== 'adopted' && ' · '}
-                            <button type="button" className="v2-link"
-                              title="учтён: рассмотрен и не взят — это тоже решение, факт не исчезает"
-                              onClick={() => решить(ф, 'noted')}>учесть</button>
-                          </>
-                        )}
-                        {было !== 'rejected' && (
-                          <>
-                            {' · '}
-                            <button type="button" className="v2-link"
-                              title="отклонить — с причиной: «нет» без объяснения через год читается как забывчивость"
-                              onClick={() => решить(ф, 'rejected')}>отклонить</button>
-                          </>
-                        )}
-                        {было !== 'assumed' && было !== 'adopted' && (
-                          <>
-                            {' · '}
-                            <button type="button" className="v2-link"
-                              title="принять допущением: владелец, точка подтверждения и способ проверки обязательны — к точке допущение держит её"
-                              onClick={() => setДопущение({ факт: ф.id, owner: '', confirm_by: 'MCR', validation: '', impact: '' })}>допущение</button>
-                          </>
-                        )}
-                      </>
-                    )}
-                    {допущение?.факт === ф.id && (
-                      <div className="v2-kf__why" data-why="работа">
-                        <input value={допущение.owner} placeholder="владелец допущения"
-                          onChange={(e) => setДопущение({ ...допущение, owner: e.target.value })} />
-                        <select value={допущение.confirm_by} onChange={(e) => setДопущение({ ...допущение, confirm_by: e.target.value })}>
-                          <option value="internal_review">к внутреннему обзору</option>
-                          <option value="MCR">к MCR</option>
-                          <option value="KDP-A">к KDP-A</option>
-                        </select>
-                        <input value={допущение.validation} placeholder="чем подтвердить (замер, расчёт, запрос)"
-                          onChange={(e) => setДопущение({ ...допущение, validation: e.target.value })} />
-                        <input value={допущение.impact} placeholder="что будет, если неверно"
-                          onChange={(e) => setДопущение({ ...допущение, impact: e.target.value })} />
-                        <div className="v2-form__actions">
-                          <button type="button" className="v2-primary" disabled={!допущение.owner.trim() || !допущение.validation.trim()}
-                            title="поставить допущение: до подтверждения точка держится им" onClick={записатьДопущение}>Допустить</button>
-                          <button type="button" className="v2-link" onClick={() => setДопущение(null)}>отмена</button>
-                        </div>
-                      </div>
-                    )}
-                    {решаем?.факт === ф.id && (
-                      <span className="v2-kf__why">
-                        <textarea value={причина} autoFocus rows={2}
-                          autoComplete="off" onChange={(e) => setПричина(e.target.value)}
-                          placeholder={
-                            решаем.решение === 'rejected' ? 'почему не берём'
-                              : было === 'contested' ? 'какой факт победил и почему'
-                                : 'что изменилось с прошлого решения'
-                          } />
-                        <button type="button" disabled={!причина.trim()}
-                          title={причина.trim() ? 'записать решение' : 'здесь повод обязателен'}
-                          onClick={записать}>Записать</button>
-                        <button type="button" className="v2-link" title="не менять решение"
-                          onClick={() => { setРешаем(null); setПричина('') }}>отмена</button>
-                      </span>
-                    )}
-                  </td>
-                </tr>
-              )
-            }),
-            ])}
-          </tbody>
-        </table>
+      {поле && факты !== null && (
+        <ВкладкаФакты project={project} факты={все} темы={темы} знанияV2={знанияV2}
+          документы={имяДокумента} автор="инженер" точки={точки}
+          ручнойОткрыт={ручной} onChanged={перечитать} onGoScene={onGoScene} темаПанель={темаПанель}
+          ручнойВвод={<Manual project={project} темы={темы} знанияV2={знанияV2} onDone={перечитать} onError={setОтказ} />} />
       )}
 
       {поле && знанияV2 && исследования.length > 0 && (
@@ -2646,24 +2243,4 @@ function Постановка({ project, онтология, onChanged, expert =
   )
 }
 
-/** Предмет факта для свёртки: субъект утверждения; без субъекта — материал. */
-export function предметФакта(ф: { subject?: string; material?: string; manual?: boolean }): string {
-  const с = (ф.subject ?? '').trim()
-  if (с) return с
-  return ф.manual ? 'ручной ввод' : (ф.material ?? '—')
-}
-
-/** Группы фактов по предмету — в порядке появления, с числом нерешённых. */
-export function группыФактов<T extends { subject?: string; material?: string; manual?: boolean; disposition?: string }>(
-  факты: T[],
-): { предмет: string; факты: T[]; нерешено: number }[] {
-  const по = new Map<string, T[]>()
-  факты.forEach((ф) => {
-    const п = предметФакта(ф)
-    const с = по.get(п)
-    if (с) с.push(ф); else по.set(п, [ф])
-  })
-  return [...по.entries()].map(([предмет, список]) => ({
-    предмет, факты: список, нерешено: список.filter((ф) => (ф.disposition ?? 'free') === 'free').length,
-  }))
-}
+export { группыФактов, предметФакта } from './knowledge/facts'

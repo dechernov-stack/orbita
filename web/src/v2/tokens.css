@@ -593,3 +593,10 @@ tr.v2-row--cursor td { box-shadow: inset 2px 0 0 var(--cobalt); }
 
 /* Код записи в реестре и карточке не переносится: «SK-0037» — одно слово. */
 td.v2-mono, .v2-reg .v2-mono, .v2-object .v2-mono { white-space: nowrap; }
+
+/* §3.2 Факты полосами: «раскрыть все» над первой полосой; цитата блока — строкой под фактом. */
+.v2-bands__all { margin: 4px 0 0; }
+.v2-quote { padding: 6px 10px; border-left: 3px solid var(--graphite); background: var(--paper); font-size: var(--size-s); }
+.v2-facts td { vertical-align: top; }
+td.v2-nowrap { white-space: nowrap; }
+.v2-nowrap { white-space: nowrap; }

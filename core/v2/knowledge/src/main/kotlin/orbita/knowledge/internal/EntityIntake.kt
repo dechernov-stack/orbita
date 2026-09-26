@@ -1310,6 +1310,7 @@ class EntityIntake(
         source = источникФакта(документ),
         links = связиФактов.factLinks(область, код)
             .map { FactLink(it.type, it.from, it.to, it.rationale) },
+        quote = документ.path("quote").asText("").ifBlank { null },
     )
 
     // Один построитель на оба пути: две копии однажды разошлись бы на поле.

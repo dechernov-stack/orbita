@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest'
 import словарь from './glossary.tsx?raw'
 import постановка from './formulation.tsx?raw'
 import знания from './knowledgefield.tsx?raw'
+import факты from './knowledge/facts.tsx?raw'
 import документы from './documents.tsx?raw'
 import оболочка from './shell.tsx?raw'
 import { буквыТерминов, перваяБуква, источникКоротко } from './glossary'
@@ -57,9 +58,10 @@ describe('поле знаний: факты по предмету, против�
     expect(предметФакта({ subject: '  ' , material: 'M-9' })).toBe('M-9')
   })
   it('экран: свёртка групп, переход к факту противоречия, дорога к словарю из заметок приёма', () => {
-    expect(знания).toContain('раскрыть все (')
-    expect(знания).toContain('противоречит {ф.conflicts.map')
-    expect(знания).toContain('id={ф.code ? `v2-fact-${ф.code}` : undefined}')
+    // Шип 5 §3.2: группы — полосами вкладки фактов, «раскрыть все» — общий компонент.
+    expect(факты).toContain('<РаскрытьВсе все={полосы.все}')
+    expect(факты).toContain('противоречит {ф.conflicts!.slice(0, 3).map')
+    expect(факты).toContain('id={`v2-fact-${к}`}')
     expect(знания).toContain('к месту: Словарь')
     expect(оболочка).toContain("onGoGlossary={() => setSection('glossary')}")
   })

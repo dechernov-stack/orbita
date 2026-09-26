@@ -92,6 +92,22 @@ async function сцены(стр, раздел, роль, ширина) {
   }
 }
 
+/** Первая свёрнутая полоса группы (шип 5 §1.2) — раскрытой, у верхнего края. */
+async function полоса(стр, раздел, роль, ширина) {
+  const кнопка = стр.locator('main .v2-band button[aria-expanded="false"]').first()
+  if (!(await кнопка.count())) return
+  await кнопка.click()
+  await стр.waitForTimeout(800)
+  await стр.locator('main .v2-bandgroup:has(.v2-band:not(.v2-band--closed))').first().evaluate((у) => у.scrollIntoView({ block: 'start' }))
+  await стр.waitForTimeout(300)
+  const имя = `${раздел.file}~полоса-${роль.file}-${ширина}.png`
+  await стр.screenshot({ path: `${план.out}/${имя}` })
+  итог.push({ file: имя, section: раздел.title, role: роль.file, width: ширина })
+  console.log(`  ${имя}`)
+  await стр.locator('main .v2-band button[aria-expanded="true"]').first().click().catch(() => {})
+  await стр.evaluate(() => window.scrollTo(0, 0))
+}
+
 /** Карточка объекта первой строки реестра — раскрытой вниз, строка у верхнего края. */
 async function карточка(стр, раздел, роль, ширина) {
   const кнопка = стр.locator('main .v2-reg button[aria-label="карточка"]').first()
@@ -126,6 +142,7 @@ for (const ширина of план.widths) {
       итог.push({ file: имя, section: раздел.title, role: роль.file, width: ширина })
       console.log(`  ${имя}`)
       if ((план.cardSections ?? []).includes(раздел.title)) await карточка(стр, раздел, роль, ширина)
+      if ((план.bandSections ?? []).includes(раздел.title)) await полоса(стр, раздел, роль, ширина)
       if ((план.tabSections ?? []).includes(раздел.title)) await вкладки(стр, раздел, роль, ширина)
       if (раздел.title === 'Работа' && (план.scenes ?? []).length > 0) await сцены(стр, раздел, роль, ширина)
     }

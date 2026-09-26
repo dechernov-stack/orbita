@@ -149,6 +149,9 @@ def report(sites: dict[str, list[tuple[Path, int, list[str]]]]) -> list[str]:
 
 
 def selftest(classes: dict[str, set[str]]) -> int:
+    # Образец держит достаточно полей Fact, чтобы узнаваться и при росте
+    # вида (порог — половина полей класса): 26.09 поле `quote` (шип 5 §3.2)
+    # опустило прежний образец под порог, и самопроверка молча перестала ловить.
     import tempfile
     fake = '''
     private fun видА(ф: Fact): ObjectNode = mapper.createObjectNode()
@@ -164,6 +167,8 @@ def selftest(classes: dict[str, set[str]]) -> int:
         .put("topic", ф.topic)
         .put("disposition", ф.disposition.name)
         .put("confidence", ф.confidence)
+        .put("code", ф.code)
+        .put("rank", ф.rank)
         .put("manual", ф.manual)
 
     private fun список(): V2Router.Ответ {
@@ -181,6 +186,8 @@ def selftest(classes: dict[str, set[str]]) -> int:
                 .put("topic", факт.topic)
                 .put("disposition", факт.disposition.name)
                 .put("confidence", факт.confidence)
+                .put("code", факт.code)
+                .put("rank", факт.rank)
         }
     }
 '''

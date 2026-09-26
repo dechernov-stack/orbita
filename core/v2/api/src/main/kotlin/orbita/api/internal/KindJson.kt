@@ -41,6 +41,8 @@ internal object KindJson {
         .put("rank", ф.rank)
         // Свидетельство поднимает сверка: без него мера «после подтверждения источников — corroborated» снаружи не читается.
         .put("evidence", ф.evidence)
+        // Цитата блока документа: «откуда» раскрывает её, не уводя с экрана.
+        .put("quote", ф.quote)
         .also { у ->
             у.putArray("conflicts").also { а -> ф.conflicts.forEach { а.add(it) } }
             // Источник союзом (истина схем `fact.source`): документ с якорем
