@@ -133,6 +133,11 @@ class PhaseATest {
         assertTrue(окна.getValue("A1").second <= даты.getValue("SRR"), "A1 — к SRR: ${окна["A1"]} · ${даты["SRR"]}")
         assertTrue(окна.getValue("A4").second <= даты.getValue("SDR"), "A4 — к SDR")
         assertTrue(ответ.path("start").asText() <= окна.getValue("A1").first, "начало фазы — не позже первого окна")
+        // Лесенка по связям шаблона (владелец 27.09): SS — позже начала, INPUT — ещё позже, FS — ступенью.
+        assertTrue(окна.getValue("A2").first > окна.getValue("A1").first, "A2 SS A1: ${окна["A1"]} → ${окна["A2"]}")
+        assertTrue(окна.getValue("A4").first > окна.getValue("A5").first, "A4 INPUT A5: ${окна["A5"]} → ${окна["A4"]}")
+        assertEquals(окна.getValue("A10").second, окна.getValue("A11").first, "A11 FS A10 — ступень без зазора")
+        assertTrue(окна.values.map { it.first }.toSet().size >= 6, "начала лесенкой, а не все с начала фазы: $окна")
         // Те же окна приходят в самом виде фазы: карта рисует их без второго тяжёлого вызова.
         val вид = router().handle("GET", "/v2/phase", п, null)!!.body.path("scenes")
         val a1 = вид.first { it.path("key").asText() == "A1" }
@@ -142,6 +147,20 @@ class PhaseATest {
         val обзор = router().handle("GET", "/v2/phase", п, null)!!.body.path("gates").first { it.path("key").asText() == "internal_review_a" }
         val semp = обзор.path("criteria").first { it.path("check").asText() == "document_started:semp" }
         assertEquals("A2", semp.path("source_scene").asText())
+    }
+
+    @Test
+    fun `окна по умолчанию Pre-A — ступенями по условиям входа сцен`() {
+        val ответ = router().handle("GET", "/v2/plan/defaults", п, null)!!.body
+        assertEquals("Pre-Phase A", ответ.path("phase").asText())
+        val окна = ответ.path("scene_windows").associate { it.path("scene").asText() to (it.path("start").asText() to it.path("end").asText()) }
+        assertEquals((1..12).map { "$it" }.toSet(), окна.keys)
+        // Связей depends у Pre-A нет — цепочку задают входы: «сцена K прожита», у сцены 3 — «замысел принят» (выход сцены 2).
+        val цепь = (1..8).map { "$it" }.zipWithNext() + listOf("8" to "9", "8" to "10", "10" to "11", "11" to "12")
+        цепь.forEach { (было, стало) ->
+            assertTrue(окна.getValue(стало).first >= окна.getValue(было).second, "$было → $стало ступенью: ${окна[было]} → ${окна[стало]}")
+        }
+        окна.forEach { (к, о) -> assertTrue(о.first < о.second, "$к: окно непустое $о") }
     }
 
     @Test
