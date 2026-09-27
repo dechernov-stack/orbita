@@ -451,7 +451,8 @@ function Позиция({ п }: { п: Position }) {
       {п.passed === null
         ? <span className="v2-dim" title="к этой точке не оценивается">·</span>
         : <Маркер health={п.passed ? 'ok' : п.blocking ? 'block' : 'debt'} title={п.passed ? 'зрелость достигнута' : п.blocking ? 'зрелость не достигнута — держит точку' : 'зрелость не достигнута — помета'} />}
-      <span className="v2-check__t"><span className="v2-mono">{п.maturity}</span> {п.artifact}</span>
+      {/* Коды зрелости Романова (F · U · x) — единственный перечень без слов: легенда за владельцем (27.09). */}
+      <span className="v2-check__t"><span className="v2-mono" title="код зрелости Романова: легенда кодов зрелости не задана">{п.maturity}</span> {п.artifact}</span>
       {п.why && п.passed !== true && <span className="v2-cnt"> — {п.why}</span>}
       {п.passed === true && п.our_ref?.startsWith('kind:') && <span className="v2-cnt" title={п.why ?? ''}> — записи есть</span>}
     </li>

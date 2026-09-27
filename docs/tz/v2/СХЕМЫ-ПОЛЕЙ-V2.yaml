@@ -4858,6 +4858,97 @@ enum_labels:
     add_service: добавить сервис
     descope: сузить охват
     reject: отказать
+  # вложенные перечни — диф владельца 27.09; gate.expertise.control_items.maturity (F · U · x) — ждёт легенды Романова
+  architecture_template.functions.layer:
+    SA: системный (SA)
+    LA: логический (LA)
+  assignment.target.kind:
+    gap: разрыв
+    activity: мероприятие
+  baseline.items.firmness:
+    firm: твёрдое
+    conditional: условное
+  component.maturity_tailoring.action:
+    add: добавить грань
+    remove: снять грань
+    shift: перенести на другую ступень
+  constellation_variant.subgroups.pattern:
+    walker_delta: Walker-дельта
+    walker_star: Walker-звезда
+    sso: солнечно-синхронная
+  glossary_term.links.type:
+    broader: шире
+    narrower: уже
+    part_of: часть
+    see_also: см. также
+  interface_template.interfaces.type:
+    RF: радиоканал
+    power: электропитание
+    data: данные
+    thermal: тепловой
+    mech: механический
+    env: среда
+    hmi: человек — машина
+    org: организационный
+  model_template.models.tool_status:
+    calc: расчёт есть
+    proxy: заменитель
+    build: строится
+  normative_document.clauses.applies_to:
+    node: узел состава
+    interface: стык
+    scene: сцена
+  pbs_template.nodes.kind:
+    system: система
+    segment: сегмент
+    element: элемент
+    subsystem: подсистема
+    assembly: сборка
+    unit: блок
+  phase_template.scenes.instantiate_per:
+    project: на проект
+    segment: на сегмент
+    element: на элемент
+  phase_template.scenes.links.type:
+    FS: после окончания
+    SS: одновременно с началом
+    FF: к окончанию
+    INPUT: по входу
+  phase_template.scenes.track:
+    design: проектирование
+    modeling: моделирование
+    management: управление
+  phase_template.stage_output_dataset.baseline_kind:
+    functional: функциональная
+    allocated: распределённая
+    product: изделия
+  proposal.items.decision:
+    pending: ждёт
+    accepted: принято
+    rejected: отклонено
+    deferred: отложено
+  questionnaire.fields.paths:
+    manual: вручную
+    shelf: полка
+    datasheet: паспорт изделия
+  release.print_files.format:
+    docx: Word (DOCX)
+    pdf: PDF
+    html: HTML
+  requirement.source.kind:
+    goal: цель
+    need: нужда
+    constraint: ограничение
+    requirement: требование
+    material: документ
+  site_catalog.sites.type:
+    gcs: станция управления
+    gateway: шлюзовая станция
+  verification_report.items.issue:
+    no_basis: нет опоры
+    number_vs_fact: число расходится с фактом
+    contradiction: противоречие
+    stale: устарело
 write_rules:
   schema_on_write: 'любая запись сущности валидируется истиной: поле вне схемы вида — отказ, а не молчаливое сохранение'
   print_queries: запрос печати ссылается только на поля истины; неизвестное поле — отказ сборки (validate_document_queries)

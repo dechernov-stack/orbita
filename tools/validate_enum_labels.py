@@ -34,17 +34,12 @@ import sys
     "requirement.status": "статус записи по модели состояний вида (поле ядра status): метки — слова состояний",
 }
 
-# Вложенные перечни, у которых слов ещё нет (26.09): слова — диффом владельца по
-# ПЕРЕЧНИ-БЕЗ-СЛОВ.md. Поле, получившее слова, из перечня уходит.
+# Вложенные перечни без слов. 26.09 их было 21; диф владельца 27.09 дал слова
+# двадцати. Остался один: коды зрелости Романова (F · U · x) у позиций
+# экспертизы — легенда за владельцем; до неё экран показывает код с
+# подсказкой «легенда не задана». Поле, получившее слова, из перечня уходит.
 ЖДУТ_СЛОВ = {
-    "glossary_term.links.type", "normative_document.clauses.applies_to", "phase_template.scenes.track",
-    "phase_template.scenes.instantiate_per", "phase_template.scenes.links.type",
-    "phase_template.stage_output_dataset.baseline_kind", "pbs_template.nodes.kind", "interface_template.interfaces.type",
-    "architecture_template.functions.layer", "model_template.models.tool_status", "questionnaire.fields.paths",
-    "site_catalog.sites.type", "gate.expertise.control_items.maturity", "assignment.target.kind",
-    "proposal.items.decision", "requirement.source.kind", "component.maturity_tailoring.action",
-    "constellation_variant.subgroups.pattern", "release.print_files.format", "baseline.items.firmness",
-    "verification_report.items.issue",
+    "gate.expertise.control_items.maturity",
 }
 
 
