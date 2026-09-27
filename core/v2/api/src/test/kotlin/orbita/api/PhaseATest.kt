@@ -122,6 +122,25 @@ class PhaseATest {
     }
 
     @Test
+    fun `окна по умолчанию — сервер считает от решения KDP-A к датам точек фазы`() {
+        открытьPhaseA()
+        val ответ = router().handle("GET", "/v2/plan/defaults", п, null)!!.body
+        assertEquals("Phase A", ответ.path("phase").asText())
+        val окна = ответ.path("scene_windows").associate { it.path("scene").asText() to (it.path("start").asText() to it.path("end").asText()) }
+        assertEquals((1..12).map { "A$it" }.toSet(), окна.keys, "окно у каждой сцены шаблона")
+        val даты = ответ.path("gate_dates").associate { it.path("gate").asText() to it.path("date").asText() }
+        окна.forEach { (к, о) -> assertTrue(о.first < о.second, "$к: окно непустое $о") }
+        assertTrue(окна.getValue("A1").second <= даты.getValue("SRR"), "A1 — к SRR: ${окна["A1"]} · ${даты["SRR"]}")
+        assertTrue(окна.getValue("A4").second <= даты.getValue("SDR"), "A4 — к SDR")
+        assertTrue(ответ.path("start").asText() <= окна.getValue("A1").first, "начало фазы — не позже первого окна")
+        // Те же окна приходят в самом виде фазы: карта рисует их без второго тяжёлого вызова.
+        val вид = router().handle("GET", "/v2/phase", п, null)!!.body.path("scenes")
+        val a1 = вид.first { it.path("key").asText() == "A1" }
+        assertEquals(окна.getValue("A1").first, a1.path("default_window").path("start").asText())
+        assertTrue(a1.path("window").isMissingNode, "окна плана нет — только по умолчанию")
+    }
+
+    @Test
     fun `аванпроект — экземпляр на каждый элемент состава, SDR ждёт всех`() {
         открытьPhaseA()
         store.create("SEG-SP", "component", область, "7", mapper.readTree("""{"name":"Космический сегмент","kind":"segment","level":1,"nature":"node"}"""), провенанс)

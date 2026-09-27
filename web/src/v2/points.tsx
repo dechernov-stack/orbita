@@ -51,7 +51,7 @@ export function моиРоли(учётка: Учётка | null | undefined, pr
   return роль ? [роль] : []
 }
 
-export function Points({ project, phase, onChanged, onGoScene, onGoRisk, учётка }: {
+export function Points({ project, phase, onChanged, onGoScene, onGoRisk, учётка, wantPoint }: {
   project: string | null
   phase: Phase | null
   onChanged: () => void
@@ -61,6 +61,8 @@ export function Points({ project, phase, onChanged, onGoScene, onGoRisk, учё�
   onGoRisk?: (код: string) => void
   /** Моя учётка: кнопка решения видна только роли, которая решает. */
   учётка?: Учётка | null
+  /** Точка, названная ромбом карты фазы: её карточка открыта вместо ближайшей. */
+  wantPoint?: string | null
 }) {
   const [вид, setВид] = useState<PointsView | null>(null)
   const [открыта, setОткрыта] = useState<string | null>(null)
@@ -80,6 +82,7 @@ export function Points({ project, phase, onChanged, onGoScene, onGoRisk, учё�
     setОткрыта((вид.items.find((т) => !т.passed) ?? null)?.key ?? null)
     setРаскрытаСама(true)
   }, [вид, раскрытаСама])
+  useEffect(() => { if (wantPoint) { setОткрыта(wantPoint); setРаскрытаСама(true) } }, [wantPoint])
 
   const перечитать = () => {
     if (!project) return

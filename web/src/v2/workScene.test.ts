@@ -81,11 +81,12 @@ describe('экран 4 «Работа»: лента сцен 320 px, сцена 
     expect(правило('.v2-flow2__card')).toContain('clip-path: polygon(')
   })
 
-  it('схема сцены библиотекой больше не рисуется; карта фазы взята как есть', () => {
+  it('схема сцены библиотекой больше не рисуется; карта фазы — строками (27.09)', () => {
     expect(работа).not.toContain('SceneMap')
     expect(работа).not.toContain('v2-scenemap')
-    expect(работа).toContain("import { PhaseMap } from './processmap'")
-    expect(работа).toContain('<PhaseMap phase={фаза} onScene={')
+    expect(работа).toContain("import { КартаФазы } from './phasemap'")
+    expect(работа).toContain('<КартаФазы project={project} phase={фаза} onChanged={перечитать} onPoint={onGoPoint}')
+    expect(работа).not.toContain("from './processmap'")
   })
 })
 

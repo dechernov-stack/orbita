@@ -1,0 +1,66 @@
+/* Карта фазы строками (27.09, эталон reference-phase-map-gantt.html):
+   колонка сцен 420 px и поле времени месяцами; цвета — токенами направления. */
+.v2-gantt { --gantt-name: 420px; background: var(--surface); border: 1px solid var(--graphite); font-variant-numeric: tabular-nums; }
+.v2-gantt__head { display: flex; align-items: baseline; gap: 16px; padding: 10px 16px; border-bottom: 1px solid var(--graphite); flex-wrap: wrap; }
+.v2-gantt__head b { font-weight: 600; }
+.v2-gantt__muted { color: var(--muted); font-size: var(--size-s); }
+.v2-gantt__now-t { color: var(--cobalt); }
+.v2-gantt__plan { display: flex; align-items: center; gap: 12px; padding: 8px 16px; background: var(--v2-gate); border-bottom: 1px solid var(--graphite); color: var(--amber); font-size: 13px; flex-wrap: wrap; }
+.v2-gantt__plan b { font-weight: 500; }
+.v2-gantt__sp { flex: 1; }
+
+.v2-gantt__grid { position: relative; }
+.v2-gantt__row { display: grid; grid-template-columns: var(--gantt-name) 1fr; min-height: 30px; border-bottom: 1px solid var(--paper); cursor: pointer; }
+.v2-gantt__row:hover { background: var(--paper); }
+.v2-gantt__row--cur { background: var(--accent-soft); }
+.v2-gantt__n { padding: 5px 12px 5px 16px; display: flex; gap: 8px; align-items: center; min-width: 0; }
+.v2-gantt__t { position: relative; min-width: 0; }
+/* Имя сцены целиком: длинное переносится второй строкой, а не обрезается многоточием. */
+.v2-gantt__title { flex: 1 1 150px; min-width: 0; text-align: left; color: var(--ink); line-height: 1.3; }
+.v2-gantt__cnt { color: var(--muted); font-size: var(--size-s); white-space: nowrap; }
+.v2-gantt__blk { color: var(--red); font-size: var(--size-s); white-space: nowrap; }
+.v2-gantt__who { margin-left: auto; font-size: var(--size-s); color: var(--muted); padding-left: 8px; white-space: nowrap; }
+.v2-gantt__fold { padding: 0 2px; }
+.v2-gantt__row--sub .v2-gantt__n { padding-left: 40px; font-size: 13px; }
+.v2-gantt__row--sub .v2-gantt__title { color: var(--muted); }
+
+.v2-gantt__axis { min-height: 62px; border-bottom: 1px solid var(--graphite); background: var(--surface); position: sticky; top: 0; z-index: 3; cursor: default; }
+.v2-gantt__axis:hover { background: var(--surface); }
+.v2-gantt__axis .v2-gantt__n { color: var(--muted); font-size: var(--size-s); }
+.v2-gantt__month { position: absolute; top: 6px; height: 32px; padding-left: 4px; border-left: 1px solid var(--graphite); font-size: var(--size-s); color: var(--muted); white-space: nowrap; }
+.v2-gantt__pt { position: absolute; top: 24px; transform: translateX(-50%); display: flex; gap: 4px; align-items: center; white-space: nowrap; font: inherit; font-size: var(--size-s); background: var(--surface); border: 0; padding: 0 2px; cursor: pointer; color: var(--ink); z-index: 1; }
+.v2-gantt__pt i { display: inline-block; width: 9px; height: 9px; border: 1.5px solid var(--ink); transform: rotate(45deg); background: var(--surface); }
+.v2-gantt__pt--blk i { border-color: var(--red); }
+.v2-gantt__pt--ok i { border-color: var(--green); background: var(--green); }
+.v2-gantt__k { color: var(--red); font-weight: 600; }
+/* Близкие точки — вторым рядом: подписи не налезают. */
+.v2-gantt__pt--low { top: 42px; }
+/* Точка у правого края — подпись влево от ромба, а не за край карты. */
+.v2-gantt__pt--end { transform: translateX(calc(-100% + 6px)); }
+
+.v2-gantt__band { display: grid; grid-template-columns: var(--gantt-name) 1fr; background: var(--paper); border-top: 1px solid var(--graphite); border-bottom: 1px solid var(--graphite); }
+.v2-gantt__band .v2-gantt__n { font-weight: 600; font-size: 13px; padding: 6px 16px; }
+.v2-gantt__band .v2-gantt__n span { font-weight: 400; color: var(--muted); margin-left: 6px; }
+
+.v2-gantt__c { display: inline-block; width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid var(--graphite); flex: none; }
+.v2-gantt__c--cur { border-color: var(--cobalt); border-width: 2px; }
+.v2-gantt__c--done { background: var(--green); border-color: var(--green); }
+.v2-gantt__c--debt { border-color: var(--amber); border-width: 2px; }
+
+.v2-gantt__bar { position: absolute; top: 8px; height: 14px; border-radius: 2px; background: var(--accent-soft); border: 1px solid var(--cobalt); overflow: hidden; }
+.v2-gantt__bar--done { background: var(--v2-done); border-color: var(--green); }
+.v2-gantt__bar--late { background: var(--v2-gate); border-color: var(--amber); }
+.v2-gantt__bar--draft { background: repeating-linear-gradient(135deg, var(--paper) 0 6px, var(--surface) 6px 12px); border: 1px dashed var(--graphite); }
+.v2-gantt__p { position: absolute; left: 0; top: 0; bottom: 0; background: var(--cobalt); opacity: .35; }
+
+.v2-gantt__over { position: absolute; top: 0; bottom: 0; left: var(--gantt-name); right: 0; pointer-events: none; }
+.v2-gantt__vline { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1px dashed var(--graphite); }
+.v2-gantt__vline--blk { border-left-color: var(--red); opacity: .45; }
+.v2-gantt__today { position: absolute; top: 0; bottom: 0; border-left: 2px solid var(--cobalt); }
+
+.v2-gantt__legend { display: flex; gap: 20px; flex-wrap: wrap; padding: 10px 16px; font-size: var(--size-s); color: var(--muted); border-top: 1px solid var(--graphite); }
+.v2-gantt__swatch { display: inline-block; width: 26px; height: 12px; vertical-align: -2px; border-radius: 2px; background: var(--accent-soft); border: 1px solid var(--cobalt); }
+/* Образцы легенды — теми же заливками, что полосы (иначе правило образца их перебивало). */
+.v2-gantt__swatch.v2-gantt__bar--draft { background: repeating-linear-gradient(135deg, var(--paper) 0 6px, var(--surface) 6px 12px); border: 1px dashed var(--graphite); }
+.v2-gantt__swatch.v2-gantt__bar--late { background: var(--v2-gate); border-color: var(--amber); }
+.v2-gantt__legend-blk { color: var(--red); }

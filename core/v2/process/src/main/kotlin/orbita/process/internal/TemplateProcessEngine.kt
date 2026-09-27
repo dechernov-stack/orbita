@@ -204,6 +204,7 @@ class TemplateProcessEngine(
                 instanceOf = if (узелКод == null) null else ключ.substringBefore(':'),
                 node = узелКод,
                 gate = сцена.path("gate").asText("").ifBlank { null },
+                track = сцена.path("track").asText("").ifBlank { null },
             )
         }
 

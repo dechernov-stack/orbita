@@ -42,7 +42,12 @@ internal object PhaseJson {
         }
     }
 
-    fun вид(фаза: PhaseView, mapper: ObjectMapper): ObjectNode {
+    /**
+     * @param поУмолчанию окна сцен по умолчанию (карта фазы, 27.09): план фазы не
+     *   утверждён — сцена без окна несёт `default_window`, посчитанное сервером из
+     *   шаблона и дат точек; экземпляры — окном своей сцены. Пусто — поля нет.
+     */
+    fun вид(фаза: PhaseView, mapper: ObjectMapper, поУмолчанию: Map<String, PlanDefaults.Окно> = emptyMap()): ObjectNode {
         val узел = mapper.createObjectNode()
         узел.put("project", фаза.project)
         узел.put("standard", фаза.standard)
@@ -61,11 +66,17 @@ internal object PhaseJson {
             сцена.window?.let { (начало, конец) ->
                 с.putObject("window").put("start", начало).put("end", конец)
             }
+            if (сцена.window == null) {
+                поУмолчанию[сцена.instanceOf ?: сцена.key]?.let { о ->
+                    с.putObject("default_window").put("start", о.start.toString()).put("end", о.end.toString())
+                }
+            }
             val причины = с.putArray("blockers")
             сцена.blockers.forEach { причины.add(it) }
             с.put("instance_of", сцена.instanceOf)
             с.put("node", сцена.node)
             с.put("gate", сцена.gate)
+            с.put("track", сцена.track)
             val связи = с.putArray("depends")
             сцена.links.forEach { л -> связи.addObject().put("on", л.on).put("type", л.type).put("why", л.why) }
             val ждут = с.putArray("awaited_by")

@@ -75,6 +75,9 @@ class SceneRoutes(
 
 
         method == "POST" && path == "/v2/plan" -> задатьПлан(требуется(query, "project"), разобрать(body))
+        // Окна по умолчанию (карта фазы, 27.09): план не утверждён — карта рисует
+        // их штриховкой и предлагает утвердить теми же маршрутами плана.
+        method == "GET" && path == "/v2/plan/defaults" -> окнаПоУмолчанию(требуется(query, "project"))
         // Паспорт проекта (журнал ПМИ-7, З-25): название · класс · руководитель ·
         // стандарт · даты точек — правка на месте с версией; печать читает отсюда.
         method == "GET" && path == "/v2/passport" -> паспорт(требуется(query, "project"))
@@ -344,10 +347,7 @@ class SceneRoutes(
         // владельца 11.09): даты точек и окна сцен Phase A — не раньше KDP-A
         // (даты решения, а если его ещё нет — плановой даты точки).
         if (фазаПлана != "Pre-Phase A") {
-            val kdpA = store.byCode(область, "KDP-A")
-            val решение = kdpA?.doc?.path("decision")?.asText("")?.ifBlank { null }?.let { store.byId(it) }
-            val началоФазы = решение?.doc?.path("at")?.asText("")?.take(10)?.ifBlank { null }
-                ?: kdpA?.doc?.path("planned_date")?.asText("")?.ifBlank { null }
+            val началоФазы = началоФазыA(область)
             if (началоФазы != null) {
                 val даты = тело.path("gate_dates").map { it.path("gate").asText() to it.path("date").asText("") } +
                     тело.path("scene_windows").map { it.path("scene").asText() to it.path("start").asText("") }
@@ -378,7 +378,49 @@ class SceneRoutes(
         return V2Router.Ответ(201, mapper.createObjectNode().put("code", запись.code).put("version", запись.version))
     }
 
-    private fun фаза(проект: String) = V2Router.Ответ(200, PhaseJson.вид(engine.view(проект), mapper))
+    /** Начало Phase A — решение KDP-A (дата решения), а если его ещё нет — плановая дата точки. */
+    private fun началоФазыA(область: Area): String? {
+        val kdpA = store.byCode(область, "KDP-A")
+        val решение = kdpA?.doc?.path("decision")?.asText("")?.ifBlank { null }?.let { store.byId(it) }
+        return решение?.doc?.path("at")?.asText("")?.take(10)?.ifBlank { null }
+            ?: kdpA?.doc?.path("planned_date")?.asText("")?.ifBlank { null }
+    }
+
+    /** Начало фазы для окон по умолчанию: Phase A — решение KDP-A; Pre-A — день заведения проекта. */
+    private fun началоФазы(проект: String, фаза: String): LocalDate =
+        (if (фаза == "Pre-Phase A") null else началоФазыA(Area.Project(проект)))
+            ?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+            ?: записьПроекта(проект)?.let { з -> store.history(з.id).minByOrNull { it.version }?.updatedAt?.toString()?.take(10) }
+                ?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+            ?: LocalDate.now()
+
+    private fun окнаПоУмолчанию(проект: String): V2Router.Ответ {
+        val фаза = engine.view(проект)
+        val начало = началоФазы(проект, фаза.phase)
+        val окна = PlanDefaults.окна(фаза, начало)
+        val ответ = mapper.createObjectNode().put("phase", фаза.phase).put("start", начало.toString())
+        val даты = ответ.putArray("gate_dates")
+        фаза.gates.forEach { т -> т.plannedDate?.let { даты.addObject().put("gate", т.key).put("date", it.take(10)) } }
+        val массив = ответ.putArray("scene_windows")
+        окна.forEach { о -> массив.addObject().put("scene", о.scene).put("start", о.start.toString()).put("end", о.end.toString()) }
+        ответ.put(
+            "note",
+            if (окна.isEmpty()) "у точек фазы нет дат: окна по умолчанию считать не от чего — задайте даты точек"
+            else "окна по умолчанию: сцена кончается к своей точке, связи шаблона (FS · SS · FF) двигают начало; начало фазы — $начало",
+        )
+        return V2Router.Ответ(200, ответ)
+    }
+
+    /**
+     * Вид фазы. План не утверждён — сцены без окна несут окно по умолчанию: карта
+     * рисует его штриховкой из того же ответа, второго тяжёлого вызова нет.
+     */
+    private fun фаза(проект: String): V2Router.Ответ {
+        val вид = engine.view(проект)
+        val умолчания = if (вид.scenes.none { it.window == null }) emptyMap()
+        else PlanDefaults.окна(вид, началоФазы(проект, вид.phase)).associateBy { it.scene }
+        return V2Router.Ответ(200, PhaseJson.вид(вид, mapper, умолчания))
+    }
 
     private fun открытьПроект(тело: JsonNode): V2Router.Ответ {
         val код = тело.path("code").asText("").ifBlank { "PJ-" + LocalDate.now().toString().replace("-", "") }

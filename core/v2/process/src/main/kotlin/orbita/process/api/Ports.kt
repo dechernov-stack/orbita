@@ -65,6 +65,8 @@ data class SceneView(
     val node: String? = null,
     /** Точка, к которой ведёт сцена (`gate` шаблона): поверхность считает ступень зрелости к ней. */
     val gate: String? = null,
+    /** Дорожка сцены (`track` шаблона: проектирование · управление) — полосы карты фазы. */
+    val track: String? = null,
 )
 
 /**

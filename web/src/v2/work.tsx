@@ -18,7 +18,7 @@ import { api, type Activity, type Phase, type Scene } from './api'
 import { ActivityScreen, РОЛЬ } from './activity'
 import { PhaseBand } from './phaseband'
 import { PhasePlan } from './plan'
-import { PhaseMap } from './processmap'
+import { КартаФазы } from './phasemap'
 import { Маркер, type Состояние } from './markers'
 import { режимПоРоли, составЭкрана, type Блок, type Зачем, type Режим } from './density'
 import {
@@ -31,7 +31,7 @@ import { Costs, Risks, Technologies } from './programmatics'
 import { PhaseASurface } from './phasea'
 import { ОтветственныеСцен } from './responsibles'
 
-export function Work({ project, onProject, wantScene, wantReason, onScenePicked, роль, режим, onРежим }: {
+export function Work({ project, onProject, wantScene, wantReason, onScenePicked, роль, режим, onРежим, onGoPoint }: {
   project: string | null
   onProject: (p: string) => void
   /** Сцена, на которую просили открыть работу (переход из заданий). */
@@ -51,6 +51,8 @@ export function Work({ project, onProject, wantScene, wantReason, onScenePicked,
   /** Плотность, выбранная руками; пусто — умолчание роли. */
   режим?: Режим | null
   onРежим?: (р: Режим) => void
+  /** Ромб точки на карте фазы — её карточка в разделе «Точки». */
+  onGoPoint?: (ключ: string) => void
 }) {
   const [фаза, setФаза] = useState<Phase | null>(null)
   const [сцена, setСцена] = useState<string | null>(null)
@@ -141,21 +143,15 @@ export function Work({ project, onProject, wantScene, wantReason, onScenePicked,
 
   // Карта фазы — стартовый экран руководителя: клик по сцене уводит на её
   // работу, и плотность становится «сцена» (одна на выбранную работу).
+  // Карта — строками (27.09): одна на обе фазы, лента сцен под ней не нужна —
+  // строки карты и есть сцены. План фазы правится под картой.
   if (картаФазы) {
     return (
       <div className="v2-panel" data-why="следующий-клик">
-        <h3>
-          Карта фазы
-          <span className="v2-cnt">
-            {фаза.scenes.length} сцен · {фаза.gates.length} точки · дорожек {фаза.lanes.length}
-          </span>
-        </h3>
-        <PhaseMap phase={фаза} onScene={(к) => {
-          setСцена(к); setМероприятие(null); onРежим?.('сцена')
-        }} />
-        <PhasePlan phase={фаза} project={project} onChanged={перечитать} />
-        <PhaseBand phase={фаза} current={текущая.key}
-          onPick={(к) => { setСцена(к); setМероприятие(null); onРежим?.('сцена') }} />
+        <КартаФазы project={project} phase={фаза} onChanged={перечитать} onPoint={onGoPoint}
+          onScene={(к) => { setСцена(к); setМероприятие(null); onРежим?.('сцена') }}
+          onEditPlan={() => document.getElementById('v2-phase-plan')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} />
+        <div id="v2-phase-plan"><PhasePlan phase={фаза} project={project} onChanged={перечитать} /></div>
       </div>
     )
   }

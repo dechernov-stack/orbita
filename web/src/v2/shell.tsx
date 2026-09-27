@@ -149,6 +149,9 @@ export function Shell() {
   const [wantReason, setWantReason] = useState<string | null>(null)
   /** Ссылка с точки: открыть реестр рисков на карточке этого риска. */
   const [wantRisk, setWantRisk] = useState<string | null>(null)
+  /** Точка, названная ромбом карты фазы: раздел «Точки» открывает её карточку. */
+  const [wantPoint, setWantPoint] = useState<string | null>(null)
+  useEffect(() => { if (section !== 'points') setWantPoint(null) }, [section])
   useEffect(() => { if (section !== 'risks') setWantRisk(null) }, [section])
   /** Дорога из §11 ведёт к форме: поле знаний открывается ручным вводом. */
   const [ручнойВвод, setРучнойВвод] = useState(false)
@@ -355,6 +358,7 @@ export function Shell() {
               wantScene={wantScene}
               wantReason={wantReason}
               onScenePicked={() => setWantScene(null)}
+              onGoPoint={(к) => { setWantPoint(к); setSection('points') }}
               роль={роль} режим={режим} onРежим={setРежим} />
           ) : section === 'knowledge' ? (
             <KnowledgeField project={project} expert={expert} ручной={ручнойВвод}
@@ -385,7 +389,7 @@ export function Shell() {
             <ExternalModelScreen project={project} />
           ) : section === 'points' ? (
             <Points project={project} phase={phase} onChanged={() => setPhaseTick((t) => t + 1)}
-              учётка={я}
+              учётка={я} wantPoint={wantPoint}
               onGoRisk={(код) => { setWantRisk(код); setSection('risks') }}
               onGoScene={(сцена) => { setWantScene(сцена); setSection('work') }} />
           ) : section === 'projects' ? (

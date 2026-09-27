@@ -64,7 +64,7 @@ describe('Phase A: сцена открывает реестр с отбором,
     expect(поверхности).toContain('useMemo(() => ({ носитель: scene.node ?? undefined }), [scene.node])')
     expect(поверхности).toContain('стыки.filter((с) => с.a === node || с.b === node)')
     // точка сцены — данными шаблона, а не таблицей в коде
-    expect(вызовы).toContain('  gate?: string | null\n  /** Что сцена даёт — для нити потока. */')
+    expect(вызовы).toContain('  gate?: string | null\n  /** Дорожка сцены (шаблон фазы): проектирование · управление — полосы карты фазы. */')
     expect(поверхности).not.toContain("gate=\"SDR\"")
     // без узлов — словами, где их завести
     expect(поверхности).toContain('Узлов вида «элемент» в составе нет')

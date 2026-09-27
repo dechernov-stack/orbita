@@ -69,6 +69,8 @@ export interface Scene {
   node?: string | null
   /** Точка, к которой ведёт сцена (шаблон фазы): карточка узла считается к ней. */
   gate?: string | null
+  /** Дорожка сцены (шаблон фазы): проектирование · управление — полосы карты фазы. */
+  track?: string | null
   /** Что сцена даёт — для нити потока. */
   output: string
   /** Кто ждёт эту сцену: сцены и точки. */
@@ -77,6 +79,8 @@ export interface Scene {
   input_flows: string[]
   /** Окно плана работ фазы; нет — «план не задан». */
   window?: { start: string; end: string }
+  /** План не утверждён: окно по умолчанию, посчитанное сервером из шаблона и дат точек (карта — штриховкой). */
+  default_window?: { start: string; end: string }
   /** Мероприятия сцены: единицы работы метода. */
   activities: Activity[]
 }
@@ -2129,6 +2133,11 @@ export const api = {
   plan: (project: string) =>
     вызов<{ planned: boolean; note?: string; gate_dates?: { gate: string; date: string }[]; scene_windows?: { scene: string; start: string; end: string; responsible?: string }[] }>(
       `/plan?project=${encodeURIComponent(project)}`),
+
+  /** Окна сцен по умолчанию (карта фазы): считает сервер из шаблона и дат точек — план не утверждён. */
+  planDefaults: (project: string) =>
+    вызов<{ phase: string; start: string; note: string; gate_dates: { gate: string; date: string }[]; scene_windows: { scene: string; start: string; end: string }[] }>(
+      `/plan/defaults?project=${encodeURIComponent(project)}`),
 
   setPlan: (project: string, тело: Record<string, unknown>) =>
     вызов<{ code: string; version: number }>(`/plan?project=${encodeURIComponent(project)}`,
