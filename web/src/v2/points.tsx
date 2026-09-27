@@ -457,6 +457,14 @@ function Условие({ у, сцена, onGoScene }: {
  */
 function где(phase: Phase | null, check: string): { key: string; title: string } | undefined {
   if (!phase) return undefined
+  // «Сцена прожита» ведёт в саму сцену (экземпляр аванпроекта — в первый непрожитый),
+  // а не в первую сцену с похожим условием: «к месту» у «сцена A4 прожита» вело на A1 (27.09).
+  const [имя, аргумент] = check.split(':')
+  if ((имя === 'scene_done' || имя === 'scene_started') && аргумент) {
+    const свои = phase.scenes.filter((с) => с.key === аргумент || с.instance_of === аргумент)
+    const сцена = свои.find((с) => с.state !== 'done') ?? свои[0]
+    return сцена ? { key: сцена.key, title: сцена.title } : undefined
+  }
   const корень = check.split(':')[0].split('_')[0]
   if (корень.length < 3) return undefined
   const сцена = phase.scenes.find((с) =>

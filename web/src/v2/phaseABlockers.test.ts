@@ -96,6 +96,11 @@ describe('вердикты позиций экспертизы точки (A12)'
     expect(клиент).toContain('`/points/${encodeURIComponent(gate)}/positions?project=${encodeURIComponent(project)}`')
   })
 
+  it('«к месту» у «сцена прожита» ведёт в саму сцену (экземпляр — в непрожитый), а не в A1', () => {
+    expect(точки).toContain("if ((имя === 'scene_done' || имя === 'scene_started') && аргумент) {")
+    expect(точки).toContain("const сцена = свои.find((с) => с.state !== 'done') ?? свои[0]")
+  })
+
   it('коды зрелости Романова без легенды — с подсказкой, а не молча', () => {
     expect(точки).toContain('title="код зрелости Романова: легенда кодов зрелости не задана"')
   })
