@@ -93,7 +93,7 @@ class Прогон:
 
     def войти(self, учётка: str) -> None:
         """Режим stand — учётка; режим telegram — одна учётка владельца, роль «от имени» (ADR-066)."""
-        stand_session.войти(self.base, _opener, учётка)
+        self.режим = stand_session.войти(self.base, _opener, учётка)
 
     def сущности(self, вид: str) -> list[dict]:
         ответ = вызов(self.base, "GET", f"/v2/entities?project={self.проект}&kind={вид}")
@@ -119,14 +119,21 @@ class Прогон:
     def сцена_1_проект(self) -> None:
         портфель = вызов(self.base, "GET", "/v2/projects").get("items", [])
         есть = any(п.get("code") == self.проект for п in портфель)
-        self.шаг(
-            f"сцена 1: проект {self.проект}", есть,
-            lambda: вызов(self.base, "POST", "/v2/projects",
-                          # Имя с кодом, если проект не из сида: два прогона с одним
-                          # именем не различить в портфеле (поймано на E1).
-                          {"name": self.сид["name"] if self.проект == self.сид["code"] else f"{self.сид['name']} · {self.проект}",
-                           "code": self.проект}),
-        )
+
+        def завести() -> None:
+            # Учётка стенда ролей в проектах v2 не носит (роли стенда раздаются
+            # проекту при заведении), а запись без роли — 403, и заведение тоже.
+            # Заводим «от имени» РП — как владелец на 216 с ролью «*» РП;
+            # создатель становится руководителем нового проекта.
+            if getattr(self, "режим", None) == "stand":
+                вызов(self.base, "POST", "/auth/act-as", {"role": "lead"})
+            вызов(self.base, "POST", "/v2/projects",
+                  # Имя с кодом, если проект не из сида: два прогона с одним
+                  # именем не различить в портфеле (поймано на E1).
+                  {"name": self.сид["name"] if self.проект == self.сид["code"] else f"{self.сид['name']} · {self.проект}",
+                   "code": self.проект})
+
+        self.шаг(f"сцена 1: проект {self.проект}", есть, завести)
 
     def сцена_2_замысел(self) -> None:
         self.шаг(
@@ -794,6 +801,59 @@ class Прогон:
         self.сделано.append("Phase A: экземпляры аванпроекта — " + ", ".join(f"{с['key']} [{с['state']}]" for с in экземпляры))
         self.phase_a_условия(фаза)
 
+    # ── Лестница элемента к SDR (полка TCS-9002, род node) ──
+    ЭЛЕМЕНТЫ = ("EL-SC", "EL-GS", "EL-UT")
+
+    def лестница_элементов(self) -> None:
+        """Грани лестницы узла, которые условие A4 «ступень SDR закрыта» ждёт
+        у каждого элемента сверх уже заведённого: технологии и риски (к MCR),
+        нормативы и поставщик (к SRR), КЕ и методы верификации (к SDR), модели
+        (к MCR). Кормим тем, чем кормит экран: технология — формой сцены A7,
+        риск — формой реестра и ссылкой на узел в его карточке, нормативы —
+        пикером в карточке узла. Грань без дороги печатается «нечем»."""
+        self.войти("ivanov")
+        технологии = {т.get("component") for т in вызов(self.base, "GET", f"/v2/technologies?project={self.проект}").get("items", [])}
+        узлы = {у["code"]: у for у in вызов(self.base, "GET", f"/v2/components?project={self.проект}").get("items", [])}
+        for код in self.ЭЛЕМЕНТЫ:
+            if код in технологии or узлы.get(код, {}).get("id") in технологии:
+                continue
+            try:
+                вызов(self.base, "POST", f"/v2/technologies?project={self.проект}", {
+                    "name": f"критическая технология {код}", "component": код, "trl_current": 6, "trl_required": 6,
+                    "required_by": "SDR", "author": "Иванов И."})
+                self.сделано.append(f"A4/A7: технология узла {код}")
+            except Отказ as о:
+                self.пропущено.append(f"A4/A7: технология {код} — {str(о)[:100]}")
+        self.войти("chernov")
+        риски = вызов(self.base, "GET", f"/v2/risks?project={self.проект}").get("items", [])
+        for код in self.ЭЛЕМЕНТЫ:
+            if any(код in (р.get("refs") or []) for р in риски):
+                continue
+            try:
+                новый = вызов(self.base, "POST", f"/v2/risks?project={self.проект}", {
+                    "statement": f"Параметры {код} не сойдутся с бюджетом к SDR", "category": "technical", "probability": 2, "impact": 3,
+                    "strategy": "mitigate", "measures": "резерв бюджета и еженедельная свёртка", "owner": "Чернов Д.",
+                    "due_point": "PDR", "author": "Чернов Д."})
+                вызов(self.base, "PATCH", f"/v2/entities/{новый['code']}?project={self.проект}",
+                      {"fields": {"refs": [код]}, "author": "Чернов Д.", "reason": "связь риска с узлом"})
+                self.сделано.append(f"A4/A8: риск {новый['code']} на узле {код}")
+            except Отказ as о:
+                self.пропущено.append(f"A4/A8: риск на {код} — {str(о)[:100]}")
+        # Нормативы узла — пикер карточки узла: ссылка на документ полки нормативов.
+        нормативы = вызов(self.base, "GET", "/v2/shelves?kind=normative_document").get("items", [])
+        if нормативы:
+            for код in self.ЭЛЕМЕНТЫ:
+                try:
+                    вызов(self.base, "PATCH", f"/v2/entities/{код}?project={self.проект}",
+                          {"fields": {"standards": [нормативы[0]["code"]]}, "author": "Иванов И.", "reason": "норматив узла"})
+                    self.сделано.append(f"A4: норматив {нормативы[0]['code']} у {код}")
+                except Отказ as о:
+                    self.пропущено.append(f"A4: нормативы {код} — {str(о)[:100]}")
+        else:
+            self.пропущено.append("A4: нормативов на полке нет — грань «Нормативы» кормить нечем")
+        for грань in ("Поставщик и ответственный", "Конфигурация изделия (КЕ)", "Модели (привязка входов)", "Верификация (методы)"):
+            self.пропущено.append(f"A4: грань «{грань}» лестницы узла — нечем: ни маршрута, ни формы")
+
     # ── Условия сцен Phase A (поставка 10.09): кормим то, для чего есть дорога ──
     def phase_a_условия(self, фаза: dict) -> None:
         """A1 план фазы · A2/A3 SEMP и ConOps до базирования · A6 модели и
@@ -841,12 +901,14 @@ class Прогон:
                     вызов(self.base, "POST", f"/v2/documents/{код}/statement?project={self.проект}",
                           {"section": раздел["no"], "text": тезис[код].format(title=раздел["title"]), "author": "Чернов Д."})
                     self.сделано.append(f"Phase A: {код} {раздел['no']} — тезис")
-            if ступень == "SRR":
+            # Базирование — «Документы → линии»: к SRR — SEMP и ConOps; к SDR — то,
+            # что позиция экспертизы SDR ждёт зрелостью F (план обеспечения — SMA).
+            if ступень == "SRR" or код == "sma":
                 линии = вызов(self.base, "GET", f"/v2/documents/{код}/baselines?project={self.проект}").get("items", [])
                 if not линии:
                     try:
-                        вызов(self.base, "POST", f"/v2/documents/{код}/baseline?project={self.проект}", {"name": "SRR", "author": "Чернов Д."})
-                        self.сделано.append(f"Phase A: {код} базирован линией «SRR»")
+                        вызов(self.base, "POST", f"/v2/documents/{код}/baseline?project={self.проект}", {"name": ступень, "author": "Чернов Д."})
+                        self.сделано.append(f"Phase A: {код} базирован линией «{ступень}»")
                     except Отказ as о:
                         self.пропущено.append(f"Phase A: {код} не базирован — {str(о)[:120]}")
         # A3: третий сценарий и завершение миссии
@@ -859,7 +921,8 @@ class Прогон:
             if имя in сценарии:
                 continue
             try:
-                вызов(self.base, "POST", f"/v2/scenarios?project={self.проект}", {"name": имя, "layer": "SA", "steps": шаги, "author": "Иванов И."})
+                # Без «layer»: у вида functional_chain поля слоя в истине нет, экран сцены 9 его не шлёт.
+                вызов(self.base, "POST", f"/v2/scenarios?project={self.проект}", {"name": имя, "steps": шаги, "author": "Иванов И."})
                 self.сделано.append(f"A3: сценарий «{имя[:40]}»")
             except Отказ as о:
                 self.пропущено.append(f"A3: сценарий «{имя[:40]}» — {str(о)[:100]}")
@@ -884,15 +947,20 @@ class Прогон:
                 self.сделано.append(f"A4: обмен {код} на {стык} с элементом обмена")
             except Отказ as о:
                 self.пропущено.append(f"A4: обмен {код} — {str(о)[:100]}")
-        бюджеты = {б["kind"] for б in вызов(self.base, "GET", f"/v2/budgets?project={self.проект}").get("items", [])}
-        for вид, политика in [("mass", "20 % системный + 10 % на узел к SDR"), ("power", "25 % системный + 10 % на узел"), ("link", "3 дБ системный + 1 дБ на линию")]:
-            if вид in бюджеты:
+        бюджеты = {(б["kind"], б.get("root")) for б in вызов(self.base, "GET", f"/v2/budgets?project={self.проект}").get("items", [])}
+        # Три бюджета системы (условие A5) и у каждого элемента — свой корень
+        # (грань «Бюджеты» лестницы узла к SDR): форма «Бюджеты» сцены A5.
+        for вид, корень, политика in [
+            ("mass", "EL-SC", "20 % системный + 10 % на узел к SDR"), ("power", "EL-SC", "25 % системный + 10 % на узел"),
+            ("link", "EL-SC", "3 дБ системный + 1 дБ на линию"), ("power", "EL-GS", "20 % на станцию"), ("mass", "EL-UT", "10 % на терминал"),
+        ]:
+            if any(в == вид and к in (корень, None) and корень == "EL-SC" for в, к in бюджеты) or (вид, корень) in бюджеты:
                 continue
             try:
-                вызов(self.base, "POST", f"/v2/budgets?project={self.проект}", {"kind": вид, "root": "EL-SC", "reserve_policy": политика, "author": "Иванов И."})
-                self.сделано.append(f"A5: бюджет {вид} с резервами")
+                вызов(self.base, "POST", f"/v2/budgets?project={self.проект}", {"kind": вид, "root": корень, "reserve_policy": политика, "author": "Иванов И."})
+                self.сделано.append(f"A5: бюджет {вид} с корнем {корень}")
             except Отказ as о:
-                self.пропущено.append(f"A5: бюджет {вид} — {str(о)[:100]}")
+                self.пропущено.append(f"A5: бюджет {вид} ({корень}) — {str(о)[:100]}")
         if not вызов(self.base, "GET", f"/v2/logical-components?project={self.проект}").get("items"):
             try:
                 вызов(self.base, "POST", f"/v2/logical-components?project={self.проект}", {"name": "бортовой обработчик сообщений", "functions": ["FN-TX"], "deployed_to": ["EL-SC"], "author": "Иванов И."})
@@ -927,6 +995,7 @@ class Прогон:
                 self.сделано.append(f"A4: параметр {узел}.{ключ}")
             except Отказ as о:
                 self.пропущено.append(f"A4: параметр {узел}.{ключ} — {str(о)[:100]}")
+        self.лестница_элементов()
         # A6: четыре модели — взять, прогнать, верифицировать
         модели = {м["code"]: м for м in вызов(self.base, "GET", f"/v2/models?project={self.проект}").get("items", [])}
         if not модели:
@@ -951,11 +1020,13 @@ class Прогон:
         # A8: риски со сроком к SRR — решением словами (как сцена 17 к KDP-A)
         self.войти("chernov")
         for р in вызов(self.base, "GET", f"/v2/risks?project={self.проект}").get("items", []):
-            if р.get("status") != "closed" and р.get("due_point") in ("SRR", "internal_review_a"):
+            # Срок риска — точка фазы либо веха раньше неё (веха TRL держит KDP-B): «holds» называет, что он держит.
+            точкиФазы = {"internal_review_a", "SRR", "SDR", "KDP-B"}
+            if р.get("status") != "closed" and (р.get("due_point") in точкиФазы or точкиФазы & set(р.get("holds") or [])):
                 try:
                     вызов(self.base, "POST", f"/v2/risks/{р['code']}/close?project={self.проект}",
-                          {"resolution": "к SRR: мера исполнена, риск снят решением РП", "author": "Чернов Д."})
-                    self.сделано.append(f"A8: риск {р['code']} закрыт решением к SRR")
+                          {"resolution": f"к {р.get('due_point')}: мера исполнена, риск снят решением РП", "author": "Чернов Д."})
+                    self.сделано.append(f"A8: риск {р['code']} закрыт решением к {р.get('due_point')}")
                 except Отказ as о:
                     self.пропущено.append(f"A8: риск {р['code']} — {str(о)[:100]}")
         # A10: оценка параметрикой к KDP-B
@@ -988,8 +1059,10 @@ class Прогон:
             вызов(self.base, "POST", f"/v2/points/{ключ}/positions?project={self.проект}",
                   {"positions": [{"artifact": а, "verdict": "принято", "note": "по данным проекта"} for а in позиции], "author": "Чернов Д."})
             self.сделано.append(f"A12: {ключ} — вердикты по {len(позиции)} позициям")
-        # точки фазы — решением, когда их ничто не держит: внутренний обзор (РП), SRR · SDR · KDP-B (DA)
-        for ключ, учётка in [("internal_review_a", "chernov"), ("SRR", "chernov"), ("SDR", "chernov"), ("KDP-B", "chernov")]:
+        # точки фазы — решением, когда их ничто не держит: внутренний обзор (РП),
+        # SRR · SDR · KDP-B — DA «от имени» (роль точки da_review; с шипа 1 РП
+        # DA не носит, и решение учёткой РП было бы 403, а не проверкой пути владельца)
+        for ключ, учётка in [("internal_review_a", "chernov"), ("SRR", "da"), ("SDR", "da"), ("KDP-B", "da")]:
             точка = self.точка(ключ)
             if точка.get("passed"):
                 continue
