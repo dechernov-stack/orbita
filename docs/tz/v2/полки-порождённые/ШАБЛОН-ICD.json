@@ -261,9 +261,34 @@
       "scenes": [
         "A4"
       ],
-      "elements": [],
+      "elements": [
+        {
+          "code": "5.1",
+          "kind": "query",
+          "title": "Поставщики узлов",
+          "select": "component",
+          "min_rows": 0,
+          "columns": [
+            {
+              "title": "Узел",
+              "field": "code"
+            },
+            {
+              "title": "Наименование",
+              "field": "name"
+            },
+            {
+              "title": "Поставщик",
+              "field": "supplier"
+            }
+          ],
+          "where": {
+            "kind": "element"
+          }
+        }
+      ],
       "expects": "SDR",
-      "source": "тезисы",
+      "source": "поставщики узлов · тезисы",
       "min_statements": 1,
       "statement_hint": "кто отвечает за каждую сторону стыка и за изменение его параметров"
     },

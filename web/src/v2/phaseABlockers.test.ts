@@ -5,7 +5,7 @@
 import { describe, expect, it } from 'vitest'
 import type { ComponentCard } from './api'
 import клиент from './api.ts?raw'
-import { граниПоТочкам } from './ladder'
+import { граниПоТочкам, поставщикиПервыми } from './ladder'
 import лестница from './ladder.tsx?raw'
 import модели from './models.tsx?raw'
 import прогон from './modelrun.tsx?raw'
@@ -43,7 +43,9 @@ describe('строка долга карточки узла — лестница
     expect(лестница).toContain('<НоваяЗапись project={project} kind="function"')
     expect(лестница).toContain('kind="exchange"')
     expect(лестница).toContain('kind="exchange_item"')
-    expect(лестница).toContain("api.addLink(project, { type: 'owns', from: сторона, to: узел }")
+    // Поставщик — полем узла (диф 27.09-b), не связью «владеет»; поставщики — первыми.
+    expect(лестница).toContain("api.patchEntity(project, узел, { supplier: сторона }")
+    expect(лестница).not.toContain("type: 'owns'")
     expect(лестница).toContain('inputs: [...входы, { param_ref: вход }]')
     expect(лестница).toContain('refs: [...new Set([...(выбран.refs ?? []), узел])]')
   })
@@ -51,6 +53,16 @@ describe('строка долга карточки узла — лестница
   it('где запись рождается на своей сцене — сказано словами, а не пустотой', () => {
     expect(лестница).toContain("technologies: 'технология узла — формой технологий (сцена A7): узел — её носитель'")
     expect(лестница).toContain("budgets: 'бюджет с корнем в узле — формой «Бюджеты» (сцена A5)'")
+  })
+})
+
+describe('поставщик узла — полем, стороны с ролью «поставщик» первыми', () => {
+  it('пикер ставит поставщиков первыми', () => {
+    const стороны = [
+      { id: '1', code: 'SK-1', status: 'accepted', doc: { name: 'Минтранс', role: 'customer' } },
+      { id: '2', code: 'SK-2', status: 'accepted', doc: { name: 'Решетнёв', role: 'supplier' } },
+    ]
+    expect(поставщикиПервыми(стороны).map((с) => с.code)).toEqual(['SK-2', 'SK-1'])
   })
 })
 

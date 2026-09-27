@@ -158,23 +158,32 @@ const ВводЭлементов: СвойКонтрол = ({ id, значени
   )
 }
 
-/** Поставщик узла — связь «владеет» от стороны проекта к узлу. */
+/**
+ * Поставщик узла — полем узла (диф владельца 27.09-b: `component.supplier`), не
+ * связью «владеет»: «владеет» — носитель нужды. Стороны с ролью «поставщик» — первыми.
+ */
+export function поставщикиПервыми(стороны: EntityRow[]): EntityRow[] {
+  return [...стороны].sort((а, б) => Number(б.doc.role === 'supplier') - Number(а.doc.role === 'supplier'))
+}
+
 function ПоставщикУзла({ project, узел, автор, onDone }: { project: string; узел: string; автор: string; onDone: () => void }) {
   const [стороны, setСтороны] = useState<EntityRow[]>([])
   const [сторона, setСторона] = useState('')
   const [отказ, setОтказ] = useState<string | null>(null)
-  useEffect(() => { api.entities(project, 'stakeholder').then((r) => setСтороны(r.items)).catch(() => setСтороны([])) }, [project])
+  useEffect(() => { api.entities(project, 'stakeholder').then((r) => setСтороны(поставщикиПервыми(r.items))).catch(() => setСтороны([])) }, [project])
   return (
     <div className="v2-form v2-form--row">
       <label className="v2-inline">поставщик
         <select aria-label="сторона-поставщик узла" value={сторона} onChange={(e) => setСторона(e.target.value)}>
           <option value="">— сторона проекта —</option>
-          {стороны.map((с) => <option key={с.code} value={с.code}>{String(с.doc.name ?? с.code)}</option>)}
+          {стороны.map((с) => (
+            <option key={с.code} value={с.code}>{String(с.doc.name ?? с.code)}{с.doc.role === 'supplier' ? ' · поставщик' : ''}</option>
+          ))}
         </select>
       </label>
       <button type="button" className="v2-primary" disabled={!сторона}
-        title={сторона ? `связь «владеет»: ${сторона} → ${узел}` : 'выберите сторону проекта'}
-        onClick={() => api.addLink(project, { type: 'owns', from: сторона, to: узел }, автор || 'инженер')
+        title={сторона ? `поставщик узла ${узел}: ${сторона}` : 'выберите сторону проекта'}
+        onClick={() => api.patchEntity(project, узел, { supplier: сторона }, автор || 'инженер', 'поставщик узла')
           .then(onDone).catch((e) => setОтказ(String((e as Error).message ?? e)))}>
         Назначить поставщиком
       </button>

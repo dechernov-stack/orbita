@@ -1931,6 +1931,11 @@ kinds:
     required: false
     note: ''
     label: Стандарты
+  - name: supplier
+    type: ref stakeholder
+    required: false
+    note: 'поставщик узла — сторона с ролью supplier (либо внешняя организация, заведённая стороной); грань лестницы к SDR; диф владельца 27.09'
+    label: Поставщик
   - name: maturity_tailoring
     type: '[{target*:facet|param, action*:enum[add,remove,shift], to_gate?, rationale*, by*}]'
     required: false
@@ -2363,6 +2368,11 @@ kinds:
     required: true
     note: ''
     label: Статус верификации
+  - name: verification_note
+    type: text
+    required: false
+    note: 'основание верификации — с чем сверена модель (эталон, стенд, аналитика, независимый расчёт); обязательно при verified и validated; диф владельца 27.09'
+    label: Основание верификации
   - name: evaluation_criteria
     type: ref[] metric | text
     required: false

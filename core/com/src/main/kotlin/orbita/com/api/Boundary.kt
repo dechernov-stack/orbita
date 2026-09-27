@@ -135,6 +135,11 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
         runCatching { orbita.knowledge.api.KnowledgeFactory.migrateConcepts(store, links, mapper) }
             .onSuccess { итоги -> итоги.forEach { println("orbita core: $it") } }
             .onFailure { println("orbita core: миграция понятий не прошла — ${it.message}") }
+        // Поставщик узла — полем (диф 27.09-b): связи «владеет» сторона → узел,
+        // записанные до дифа, переносятся в поле узла и снимаются.
+        runCatching { orbita.architecture.api.ArchitectureFactory.migrateSuppliers(store, links) }
+            .onSuccess { println("orbita core: $it") }
+            .onFailure { println("orbita core: миграция поставщика не прошла — ${it.message}") }
         // Противоречия фактов по правилу 26.09 (блокер ПМИ-8): только у
         // однозначного; перечни («нуждается в: …») спором больше не красятся.
         runCatching { orbita.knowledge.api.KnowledgeFactory.recountContradictions(store, links, mapper) }

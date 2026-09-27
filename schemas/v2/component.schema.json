@@ -144,6 +144,10 @@
         "description": "ссылка на вид: normative_document"
       }
     },
+    "supplier": {
+      "type": "string",
+      "description": "ссылка на вид: stakeholder поставщик узла — сторона с ролью supplier (либо внешняя организация, заведённая стороной); грань лестницы к SDR; диф владельца 27.09"
+    },
     "maturity_tailoring": {
       "type": "array",
       "items": {

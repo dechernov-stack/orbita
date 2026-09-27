@@ -887,12 +887,13 @@ class Прогон:
                 self.сделано.append(f"A4: КЕ узла {код}")
             except Отказ as о:
                 self.пропущено.append(f"A4: КЕ {код} — {str(о)[:120]}")
-        # Поставщик — пикер стороны строки долга: связь «владеет» сторона → узел.
-        стороны = self.сущности("stakeholder")
+        # Поставщик — пикер стороны строки долга: поле узла (диф 27.09-b), правкой на месте.
+        стороны = sorted(self.сущности("stakeholder"), key=lambda с: (с.get("doc") or {}).get("role") != "supplier")
         if стороны:
             for код in self.ЭЛЕМЕНТЫ:
                 try:
-                    вызов(self.base, "POST", f"/v2/links?project={self.проект}", {"type": "owns", "from": стороны[0]["code"], "to": код, "author": "Иванов И."})
+                    вызов(self.base, "PATCH", f"/v2/entities/{код}?project={self.проект}",
+                          {"fields": {"supplier": стороны[0]["code"]}, "author": "Иванов И.", "reason": "поставщик узла"})
                     self.сделано.append(f"A4: поставщик {стороны[0]['code']} у {код}")
                 except Отказ as о:
                     self.пропущено.append(f"A4: поставщик {код} — {str(о)[:120]}")

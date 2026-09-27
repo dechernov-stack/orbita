@@ -19,6 +19,13 @@ object ArchitectureFactory {
     fun externalModel(store: EntityStore, mapper: ObjectMapper = ObjectMapper(), adapterUrl: String? = System.getenv("ORBITA_CAPELLA_URL")?.takeIf { it.isNotBlank() }): ExternalModel =
         orbita.architecture.internal.CapellaExternalModel(store, mapper, adapterUrl)
 
+    /**
+     * Миграция при старте (диф 27.09-b): поставщик узла — полем `supplier`;
+     * связи «владеет» сторона → узел переносятся в поле и снимаются.
+     */
+    fun migrateSuppliers(store: EntityStore, links: LinkRegistry): String =
+        orbita.architecture.internal.SupplierFieldMigration(store, links).run()
+
     /** Условия ворот сцены 7: состав, развёртывание, базовая концепция. */
     fun gateChecks(store: EntityStore, architecture: Architecture): ExtraChecks =
         ArchitectureChecks(store, architecture)

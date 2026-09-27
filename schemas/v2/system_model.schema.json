@@ -126,6 +126,10 @@
         "validated"
       ]
     },
+    "verification_note": {
+      "type": "string",
+      "description": "основание верификации — с чем сверена модель (эталон, стенд, аналитика, независимый расчёт); обязательно при verified и validated; диф владельца 27.09"
+    },
     "evaluation_criteria": {
       "anyOf": [
         {

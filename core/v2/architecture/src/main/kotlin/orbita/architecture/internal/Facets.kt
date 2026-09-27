@@ -181,10 +181,13 @@ internal class Facets(
                 val документ = store.byId(стандарт.asText())
                 FacetLine(документ?.code ?: стандарт.asText(), документ?.id)
             },
-            "supplier" to links.to(id, "owns").mapNotNull { связь ->
-                store.byId(связь.from)?.takeIf { it.kind == "stakeholder" }
-                    ?.let { FacetLine("${it.doc.path("name").asText(it.code)} · ${it.doc.path("role").asText("поставщик")}", it.id) }
-            },
+            // Поставщик — полем узла (диф 27.09-b), а не связью «владеет»: «владеет» —
+            // носитель нужды. Ссылка — стороной проекта, id или кодом (пикер карточки).
+            "supplier" to узел.doc.path("supplier").asText("").ifBlank { null }
+                ?.let { ссылка -> store.byId(ссылка) ?: store.byCode(область, ссылка) }
+                ?.takeIf { it.kind == "stakeholder" }
+                ?.let { listOf(FacetLine("${it.doc.path("name").asText(it.code)} · ${it.doc.path("role").asText("поставщик")}", it.id)) }
+                .orEmpty(),
             "documents" to links.to(id, "snapshot_of").mapNotNull { связь ->
                 store.byId(связь.from)?.let { FacetLine("${it.code} ${it.doc.path("title").asText("")}", it.id) }
             },

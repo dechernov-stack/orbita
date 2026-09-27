@@ -17,13 +17,13 @@
 // смотреть» убраны: ступень к точке — гранью той же карточки.
 import { Fragment, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import './composition.css'
-import { api, type ComponentCard, type KindSpec } from './api'
+import { api, type ComponentCard, type EntityRow, type KindSpec } from './api'
 import {
   величинаСловами, всеУзлы, видимые, ключиВеличин, читатьСостав,
   type ВеличинаУзла, type ПолеАнкеты, type СоставЭкрана, type УзелСостава,
 } from './composition.api'
 import { ConfirmBox, useConfirm } from '../ui/Confirm'
-import { ДолгЛестницы, граниПоТочкам } from './ladder'
+import { ДолгЛестницы, граниПоТочкам, поставщикиПервыми } from './ladder'
 import { ПлотностьКонтекст } from './ui/density'
 import { ИконКнопка } from './ui/iconbutton'
 import { Карточка, ВводВеличины } from './ui/objectcard'
@@ -331,6 +331,11 @@ export function КарточкаУзла({ project, узел, состав, onSa
   const [занято, setЗанято] = useState<string | null>(null)
   /** Счётчик перечтения ступени: действие строки долга закрыло грань — лестница считается заново. */
   const [перечесть, setПеречесть] = useState(0)
+  /** Стороны проекта для грани «Поставщик» (поле узла, диф 27.09-b): поставщики первыми. */
+  const [стороны, setСтороны] = useState<EntityRow[]>([])
+  useEffect(() => {
+    api.entities(project, 'stakeholder').then((r) => setСтороны(поставщикиПервыми(r.items))).catch(() => setСтороны([]))
+  }, [project])
   useEffect(() => {
     api.componentCard(project, узел.code, состав.точка.key).then(setСтупень).catch(() => setСтупень(null))
   }, [project, узел.code, состав.точка.key, перечесть])
@@ -384,6 +389,16 @@ export function КарточкаУзла({ project, узел, состав, onSa
     <Карточка project={project} row={запись} spec={вид} заголовок={узел.name}
       скрыть={['code', 'parent', 'level', 'applicability']} толькоЧтение={['template_ref']}
       onSaved={onSaved} onClose={onClose}
+      свои={{
+        supplier: ({ id, значение, занято, onSave }) => (
+          <select id={id} value={String(значение ?? '')} disabled={занято} onChange={(e) => onSave(e.target.value || null)}>
+            <option value="">— сторона проекта —</option>
+            {стороны.map((с) => (
+              <option key={с.code} value={с.code}>{String(с.doc.name ?? с.code)}{с.doc.role === 'supplier' ? ' · поставщик' : ''}</option>
+            ))}
+          </select>
+        ),
+      }}
       extra={(
         <>
           <div className="v2-facet v2-facet--wide">

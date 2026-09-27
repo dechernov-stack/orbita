@@ -139,14 +139,26 @@ class LadderSdrRoutesTest {
     }
 
     @Test
-    fun `поставщик узла — связь «владеет» стороны, грань «Поставщик» закрыта`() {
+    fun `поставщик узла — полем узла (диф 27-09-b), грань «Поставщик» закрыта`() {
         assertTrue(граньПуста("EL-SC", "supplier"))
-        вызов("POST", "/v2/links", """{"type":"owns","from":"SK-0001","to":"EL-SC","author":"Иванов И."}""")
+        // Пикер карточки пишет код стороны правкой на месте — общим маршрутом.
+        вызов("PATCH", "/v2/entities/EL-SC", """{"fields":{"supplier":"SK-0001"},"author":"Иванов И."}""")
         assertTrue(!граньПуста("EL-SC", "supplier"))
-        // повторная связь не плодится
-        val ещё = router().handle("POST", "/v2/links", п, """{"type":"owns","from":"SK-0001","to":"EL-SC"}""")!!
-        assertEquals(200, ещё.code)
-        assertEquals(1, links.to(store.byCode(область, "EL-SC")!!.id, "owns").size)
+        // «Владеет» — носитель нужды: поставщик им больше не пишется
+        assertTrue(links.to(store.byCode(область, "EL-SC")!!.id, "owns").isEmpty())
+    }
+
+    @Test
+    fun `миграция при старте переносит связь «владеет» сторона → узел в поле поставщика`() {
+        val узел = store.byCode(область, "EL-SC")!!
+        val сторона = store.byCode(область, "SK-0001")!!
+        links.link("owns", сторона.id, узел.id, провенанс)
+        val итог = ArchitectureFactory.migrateSuppliers(store, links)
+        assertTrue("перенесено 1" in итог, итог)
+        assertEquals(сторона.id, store.byCode(область, "EL-SC")!!.doc.path("supplier").asText())
+        assertTrue(links.to(узел.id, "owns").isEmpty(), "связь к узлу снята")
+        assertTrue(!граньПуста("EL-SC", "supplier"))
+        assertTrue("перенесено 0" in ArchitectureFactory.migrateSuppliers(store, links), "идемпотентна")
     }
 
     @Test

@@ -163,6 +163,34 @@ class ModelsTest {
     }
 
     @Test
+    fun `верификация модели — после прогона и с основанием, основание ложится полем истины (диф 27-09-b)`() {
+        модели.take(проект, "Ведущий СИ")
+        узел("EL-SC")
+        val масса = параметр("EL-SC", "mass_dry", 92.0, "estimated")
+        val м6 = store.byCode(область, "М6")!!
+        store.update(
+            м6.id,
+            м6.doc.deepCopy<com.fasterxml.jackson.databind.node.ObjectNode>().apply {
+                putArray("inputs").addObject().put("param_ref", масса.code)
+            },
+            провенанс,
+        )
+        val безПрогона = assertFailsWith<IllegalArgumentException> {
+            модели.verify(проект, "М6", orbita.models.api.Verification.VERIFIED, "Ведущий СИ", "сверено с эталоном")
+        }
+        assertTrue("сначала прогон" in безПрогона.message!!, безПрогона.message)
+        модели.run(проект, "М6", "Ведущий СИ", listOf(orbita.models.api.RunOutput("mass_total", 92.0, "кг")))
+        val безОснования = assertFailsWith<IllegalArgumentException> {
+            модели.verify(проект, "М6", orbita.models.api.Verification.VERIFIED, "Ведущий СИ", " ")
+        }
+        assertTrue("основания" in безОснования.message!!, безОснования.message)
+        // Хранилище держит schema_on_write: до дифа 27.09-b поле основания отбивалось истиной.
+        val м = модели.verify(проект, "М6", orbita.models.api.Verification.VERIFIED, "Ведущий СИ", "сверено с эталоном spec/reference")
+        assertEquals(orbita.models.api.Verification.VERIFIED, м.verification)
+        assertEquals("сверено с эталоном spec/reference", store.byCode(область, "М6")!!.doc.path("verification_note").asText())
+    }
+
+    @Test
     fun `свёртка печатает оба резерва - по классу зрелости и системный`() {
         узел("SC"); узел("EPS")
         параметр("SC", "mass_dry", 78.0, "estimated")
