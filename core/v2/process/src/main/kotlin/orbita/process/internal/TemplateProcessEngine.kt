@@ -257,6 +257,7 @@ class TemplateProcessEngine(
                     у.path("title").asText(у.path("check").asText()),
                     у.path("check").asText(), причина == null, причина,
                     blocking = у.path("blocking").asBoolean(true),
+                    sourceScene = у.path("source_scene").asText("").ifBlank { null },
                 )
             }
             val экспертиза = точка.path("expertise").takeIf { it.isObject }?.let { э ->

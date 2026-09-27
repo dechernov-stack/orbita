@@ -32,6 +32,8 @@ data class ConditionView(
     val why: String?,
     /** Блокирующее условие держит точку; остальные — помета. */
     val blocking: Boolean = true,
+    /** Сцена, которая даёт условию точки выход (`source_scene` шаблона): её и «держит» точка. */
+    val sourceScene: String? = null,
 )
 
 data class SceneView(

@@ -89,7 +89,8 @@ export function КартаФазы({ project, phase, onScene, onPoint, onEditPla
   // Сцены шаблона: экземпляры аванпроекта — одна сцена «A4», их число — отдельно.
   const сценШаблона = new Set(phase.scenes.map((с) => с.instance_of ?? с.key)).size
   const безОкна = phase.scenes.filter((с) => !с.window).length
-  const держащие = строки.filter((с) => с.держит.length > 0)
+  // «Только держащие точку» — сцены, без которых не пройти БЛИЖАЙШУЮ точку (правка 27.09).
+  const держащие = строки.filter((с) => с.ближнюю)
   const можноУтвердить = phase.scenes.some((с) => с.default_window)
 
   const утвердить = () => {
@@ -148,7 +149,10 @@ export function КартаФазы({ project, phase, onScene, onPoint, onEditPla
               {с.title}
             </button>
             {с.счёт && <span className="v2-gantt__cnt">{с.счёт}</span>}
-            {с.держит.length > 0 && <span className="v2-gantt__blk">держит {с.держит.join(', ')}</span>}
+            {/* Красным — только то, что держит ближайшую точку; прочее — серым «к SDR/MDR». */}
+            {с.ближнюю
+              ? <span className="v2-gantt__blk">держит {с.держит[0]}</span>
+              : с.держит.length > 0 && <span className="v2-gantt__to">к {с.держит[0]}</span>}
             {с.кто && <span className="v2-gantt__who">{с.кто}</span>}
           </div>
           <div className="v2-gantt__t">{полоса(с)}</div>
@@ -170,7 +174,7 @@ export function КартаФазы({ project, phase, onScene, onPoint, onEditPla
       <Вкладки<Вид> label="вид карты фазы" current={вид} onChange={setВид} items={[
         { key: 'дорожки', word: 'по дорожкам', hint: 'сцены полосами дорожек: проектирование, планирование и управление' },
         { key: 'порядок', word: 'по порядку', hint: 'сцены в порядке шаблона фазы' },
-        { key: 'держащие', word: 'только держащие точку', count: держащие.length, hint: 'сцены, без которых не пройти ближайшие точки' },
+        { key: 'держащие', word: 'только держащие точку', count: держащие.length, hint: 'сцены, без которых не пройти ближайшую точку' },
       ]} />
       {безОкна > 0 && (
         <div className="v2-gantt__plan" data-why="следующий-клик">
@@ -214,7 +218,7 @@ export function КартаФазы({ project, phase, onScene, onPoint, onEditPla
             </Fragment>
           ))
           : (вид === 'порядок' ? строки : держащие).map((с) => строка(с))}
-        {вид === 'держащие' && держащие.length === 0 && <div className="v2-empty">Сцен, что держат непройденные точки, нет.</div>}
+        {вид === 'держащие' && держащие.length === 0 && <div className="v2-empty">Сцен, что держат ближайшую точку, нет.</div>}
         <div className="v2-gantt__over" aria-hidden="true">
           {точки.map((т) => (
             <div key={т.key} className={`v2-gantt__vline${!т.passed && т.blocking.length > 0 ? ' v2-gantt__vline--blk' : ''}`}
@@ -228,9 +232,10 @@ export function КартаФазы({ project, phase, onScene, onPoint, onEditPla
         <span><i className="v2-gantt__c v2-gantt__c--cur" /> идёт</span>
         <span><i className="v2-gantt__c v2-gantt__c--debt" /> есть долг</span>
         <span><i className="v2-gantt__c v2-gantt__c--idle" /> не начата</span>
-        <span><span className="v2-gantt__swatch" /> окно плана</span>
+        {/* Образцы — те же классы, что у полос: заливка прогресса, штриховка, янтарь. */}
+        <span><span className="v2-gantt__swatch"><span className="v2-gantt__p" style={{ width: '45%' }} /></span> окно плана · заливка — прогресс</span>
         <span><span className="v2-gantt__swatch v2-gantt__bar--draft" /> окно по умолчанию</span>
-        <span><span className="v2-gantt__swatch v2-gantt__bar--late" /> просрочено</span>
+        <span><span className="v2-gantt__swatch v2-gantt__bar--late"><span className="v2-gantt__p" style={{ width: '45%' }} /></span> просрочено</span>
         <span className="v2-gantt__legend-blk">◆ 7 — держит точку: столько условий не выполнено</span>
       </div>
     </div>

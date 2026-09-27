@@ -107,6 +107,7 @@ internal object PhaseJson {
                 .put("title", у.title).put("check", у.check)
                 .put("passed", у.passed).put("why", у.why)
                 .put("blocking", у.blocking)
+                .also { о -> у.sourceScene?.let { о.put("source_scene", it) } }
         }
     }
 

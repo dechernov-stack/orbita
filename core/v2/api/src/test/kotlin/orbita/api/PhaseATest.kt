@@ -138,6 +138,10 @@ class PhaseATest {
         val a1 = вид.first { it.path("key").asText() == "A1" }
         assertEquals(окна.getValue("A1").first, a1.path("default_window").path("start").asText())
         assertTrue(a1.path("window").isMissingNode, "окна плана нет — только по умолчанию")
+        // Критерий точки несёт сцену-источник: карта красит «держит» по ней (SEMP начат — A2).
+        val обзор = router().handle("GET", "/v2/phase", п, null)!!.body.path("gates").first { it.path("key").asText() == "internal_review_a" }
+        val semp = обзор.path("criteria").first { it.path("check").asText() == "document_started:semp" }
+        assertEquals("A2", semp.path("source_scene").asText())
     }
 
     @Test

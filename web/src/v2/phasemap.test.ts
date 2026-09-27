@@ -65,8 +65,29 @@ describe('данные карты фазы', () => {
     expect(строки.find((с) => с.key === 'A5')!.окно).toEqual({ start: '2026-10-01', end: '2027-01-10', поУмолчанию: true })
   })
 
-  it('прогресс — доля выполненных блокирующих условий выхода', () => {
+  it('прогресс — доля выполненных блокирующих условий выхода; у не начатой заливки нет', () => {
     expect(строки.find((с) => с.key === 'A5')!.прогресс).toBe(0.5)
+    const закрытая = строкиКарты({ ...фаза, scenes: [сцена('A7', { state: 'locked', exit: [условие('a', true), условие('b', true)] })] }, () => '', '2026-09-27')
+    expect(закрытая[0].прогресс).toBe(0)
+    expect(закрытая[0].state).toBe('idle')
+  })
+
+  it('условие точки с источником-сценой (source_scene) — сцена держит точку', () => {
+    const точки = [точка('internal_review_a', 'Внутренний обзор Phase A', '2026-11-25', {
+      criteria: [{ ...условие('document_started:semp', false), source_scene: 'A2' }, { ...условие('system_requirements_min:1', true), source_scene: 'A5' }],
+    })]
+    expect(держит('A2', точки)).toEqual(['Внутр. обзор'])
+    expect(держит('A5', точки)).toEqual([])
+  })
+
+  it('«держит» красным — только ближайшую точку; к более поздней — серым «к …»', () => {
+    // ближайшая непройденная по датам — SRR (внутренний обзор пройден)
+    expect(строки.find((с) => с.key === 'A5')!.ближнюю).toBe(true)
+    const а4 = строки.find((с) => с.key === 'A4')!
+    expect(а4.держит).toEqual(['SDR/MDR'])
+    expect(а4.ближнюю).toBe(false)
+    expect(карта).toContain('<span className="v2-gantt__to">к {с.держит[0]}</span>')
+    expect(карта).toContain('const держащие = строки.filter((с) => с.ближнюю)')
   })
 
   it('полосы дорожек со словом роли; точки — коротким именем', () => {
@@ -102,6 +123,12 @@ describe('экран карты фазы', () => {
     // окна по умолчанию приходят в самом виде фазы — второго тяжёлого вызова нет
     expect(карта).toContain('const д = с.default_window')
     expect(карта).not.toContain('api.planDefaults(')
+  })
+
+  it('образцы легенды — классами полос: заливка прогресса, штриховка, янтарь', () => {
+    expect(карта).toContain('<span className="v2-gantt__swatch"><span className="v2-gantt__p"')
+    expect(карта).toContain('<span className="v2-gantt__swatch v2-gantt__bar--draft" />')
+    expect(карта).toContain('<span className="v2-gantt__swatch v2-gantt__bar--late"><span className="v2-gantt__p"')
   })
 
   it('ромб точки ведёт в её карточку; клик по строке — сцена; мероприятий на карте нет', () => {

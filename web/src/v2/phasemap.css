@@ -19,6 +19,8 @@
 .v2-gantt__title { flex: 1 1 150px; min-width: 0; text-align: left; color: var(--ink); line-height: 1.3; }
 .v2-gantt__cnt { color: var(--muted); font-size: var(--size-s); white-space: nowrap; }
 .v2-gantt__blk { color: var(--red); font-size: var(--size-s); white-space: nowrap; }
+/* Сцена ведёт к более поздней точке — серым, без тревоги. */
+.v2-gantt__to { color: var(--muted); font-size: var(--size-s); white-space: nowrap; }
 .v2-gantt__who { margin-left: auto; font-size: var(--size-s); color: var(--muted); padding-left: 8px; white-space: nowrap; }
 .v2-gantt__fold { padding: 0 2px; }
 .v2-gantt__row--sub .v2-gantt__n { padding-left: 40px; font-size: var(--size-s); }
@@ -49,7 +51,8 @@
 
 .v2-gantt__bar { position: absolute; top: 8px; height: 14px; border-radius: 2px; background: var(--accent-soft); border: 1px solid var(--cobalt); overflow: hidden; }
 .v2-gantt__bar--done { background: var(--v2-done); border-color: var(--green); }
-.v2-gantt__bar--late { background: var(--v2-gate); border-color: var(--amber); }
+.v2-gantt__bar--late { background: var(--v2-gate); border: 1.5px solid var(--amber); }
+.v2-gantt__bar--late .v2-gantt__p { background: var(--amber); }
 .v2-gantt__bar--draft { background: repeating-linear-gradient(135deg, var(--paper) 0 6px, var(--surface) 6px 12px); border: 1px dashed var(--graphite); }
 .v2-gantt__p { position: absolute; left: 0; top: 0; bottom: 0; background: var(--cobalt); opacity: .35; }
 
@@ -59,8 +62,8 @@
 .v2-gantt__today { position: absolute; top: 0; bottom: 0; border-left: 2px solid var(--cobalt); }
 
 .v2-gantt__legend { display: flex; gap: 20px; flex-wrap: wrap; padding: 10px 16px; font-size: var(--size-s); color: var(--muted); border-top: 1px solid var(--graphite); }
-.v2-gantt__swatch { display: inline-block; width: 26px; height: 12px; vertical-align: -2px; border-radius: 2px; background: var(--accent-soft); border: 1px solid var(--cobalt); }
+.v2-gantt__swatch { position: relative; overflow: hidden; display: inline-block; width: 26px; height: 12px; vertical-align: -2px; border-radius: 2px; background: var(--accent-soft); border: 1px solid var(--cobalt); }
 /* Образцы легенды — теми же заливками, что полосы (иначе правило образца их перебивало). */
 .v2-gantt__swatch.v2-gantt__bar--draft { background: repeating-linear-gradient(135deg, var(--paper) 0 6px, var(--surface) 6px 12px); border: 1px dashed var(--graphite); }
-.v2-gantt__swatch.v2-gantt__bar--late { background: var(--v2-gate); border-color: var(--amber); }
+.v2-gantt__swatch.v2-gantt__bar--late { background: var(--v2-gate); border: 1.5px solid var(--amber); }
 .v2-gantt__legend-blk { color: var(--red); }
