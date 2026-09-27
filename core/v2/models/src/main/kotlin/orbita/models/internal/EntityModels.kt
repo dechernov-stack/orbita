@@ -78,7 +78,7 @@ class EntityModels(
             ?.let { store.byId(it) }
         val входы = модель.doc.path("inputs").map { it.path("param_ref").asText() }
         val стык = модель.doc.path("interface_ref").asText("").ifBlank { null }
-            ?.let { store.byId(it)?.code }
+            ?.let { (store.byId(it) ?: store.byCode(область, it))?.code }
         return ModelView(
             code = модель.code,
             name = модель.doc.path("name").asText(модель.code),
@@ -89,7 +89,7 @@ class EntityModels(
                 Verification.valueOf(модель.doc.path("verification_status").asText("unverified").uppercase())
             }.getOrDefault(Verification.UNVERIFIED),
             interfaceCode = стык,
-            inputs = входы.mapNotNull { store.byId(it)?.code },
+            inputs = входы.mapNotNull { вход(область, it)?.code },
             lastRun = прогон?.let { прогонВид(project, it) },
             gaps = разрывыМодели(область, модель, прогон),
         )
@@ -119,7 +119,7 @@ class EntityModels(
     private fun разрывыМодели(область: Area, модель: Entity, прогон: Entity?): List<String> {
         val разрывы = mutableListOf<String>()
         val входы = модель.doc.path("inputs").map { it.path("param_ref").asText() }
-        входы.filter { store.byId(it) == null }.forEach {
+        входы.filter { вход(область, it) == null }.forEach {
             разрывы += "вход модели не задан: параметра «$it» нет — заполните анкету узла"
         }
         if (прогон == null) {
@@ -144,7 +144,7 @@ class EntityModels(
             ?: error("модели «$model» нет в проекте: возьмите набор с полки")
 
         val входы = запись.doc.path("inputs").map { it.path("param_ref").asText() }
-        val потерянные = входы.filter { store.byId(it) == null }
+        val потерянные = входы.filter { вход(область, it) == null }
         require(потерянные.isEmpty()) {
             "вход модели не задан: ${потерянные.joinToString(", ")} — расчёт по пустому месту не делается"
         }
@@ -163,7 +163,7 @@ class EntityModels(
         документ.put("by", author)
         документ.put("proxy", прокси)
         val снимок = документ.putObject("inputs_snapshot")
-        входы.forEach { id -> store.byId(id)?.let { снимок.put(id, it.version) } }
+        входы.forEach { ссылка -> вход(область, ссылка)?.let { снимок.put(it.id, it.version) } }
         // Выходы — по истине `[{key*, measure*}]`; прокси помечен полем `proxy`
         // прогона, а не лишней строкой среди выходов.
         val выходы = документ.putArray("outputs")
@@ -187,6 +187,13 @@ class EntityModels(
 
     override fun budget(project: String, kind: String, gate: String) =
         Budgets(store, полка()).свёртка(project, kind, gate)
+
+    /**
+     * Вход модели — параметр узла ссылкой: записью (id) либо кодом «УЗЕЛ.ключ» —
+     * так вход привязывает строка долга карточки узла (27.09). Прогон по коду
+     * отказывал «вход модели не задан» при живом параметре.
+     */
+    private fun вход(область: Area, ссылка: String): Entity? = store.byId(ссылка) ?: store.byCode(область, ссылка)
 
     /**
      * Выходы прогона словами: «ключ → 78 кг». Прогоны до 27.09 писали выходы

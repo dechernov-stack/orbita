@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api, type LintNote, type RequirementCard, type RequirementRow, type UnitRow } from '../api'
 import { ВИД_ИСТОЧНИКА, НОСИТЕЛЬ, useВидТребования } from './common'
+import { ВыведеноИз } from './derived'
 
 /** Строка таблицы плюс карточка ВНИЗ: контекст строки не теряется. */
 /** З-03: правка требования на месте — заголовок и формулировка новой версией; связи после базирования станут подозрительными и потребуют подтверждения. */
@@ -375,6 +376,9 @@ export function КарточкаТребования({ project, т, схема }
         </div>
         {т.template_ref && <div>типовое: {т.template_ref} · применимость {схема.метка('applicability', т.applicability) || '—'}</div>}
       </Группа>
+      <Группа title="Выведено из">
+        <ВыведеноИз project={project} т={т} />
+      </Группа>
       <Группа title="Проверка и связи">
         <div>
           {схема.имя('verification_method')}: {схема.метка('verification_method', карточка.verification_method)
@@ -386,9 +390,9 @@ export function КарточкаТребования({ project, т, схема }
         </div>
         <div>обоснование: {карточка.rationale || <span className="v2-dim">—</span>}</div>
         <div>
-          связи: {карточка.sources.length === 0 ? <span className="v2-dim">нет</span> : карточка.sources.map((и) => (
+          источники полем: {карточка.sources.length === 0 ? <span className="v2-dim">нет</span> : карточка.sources.map((и) => (
             <div key={`l:${и.kind}:${и.ref}`} className="v2-dim">
-              derives_from → {ВИД_ИСТОЧНИКА[и.kind] ?? и.kind} <span className="v2-mono">{и.ref}</span>
+              {ВИД_ИСТОЧНИКА[и.kind] ?? и.kind} <span className="v2-mono">{и.ref}</span>
               {и.text && <> «{и.text.slice(0, 80)}»</>} · обоснование {карточка.rationale ? '✓' : '—'}
             </div>
           ))}

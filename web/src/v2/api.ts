@@ -141,6 +141,8 @@ export interface Gate {
   findings: Finding[]
   decision?: Decision
   matrix: Position[]
+  /** Вердикты по позициям экспертизы точки (условие A12): артефакт → вердикт. */
+  positions?: Record<string, { verdict: string; note?: string; by?: string; at?: string }>
 }
 
 export interface PointsView {
@@ -383,6 +385,25 @@ export interface EntityVersion {
   changed: string[]
 }
 
+/** Связь записи (общий маршрут связей): куда ведёт, с каким обоснованием. */
+export interface LinkRow {
+  id: string
+  type: string
+  /** from — связь идёт ОТ этой записи; to — К ней. */
+  direction: 'from' | 'to'
+  other: string
+  other_kind: string
+  other_title: string
+  rationale: string | null
+  subtype: string | null
+}
+
+/** Выход прогона модели по истине: ключ и величина с единицей. */
+export interface RunOutput {
+  key: string
+  measure: { value: number; unit: string }
+}
+
 /** Единица справочника: что пишется в запись и как её читать человеку. */
 export interface UnitRow {
   code: string
@@ -599,6 +620,8 @@ export interface ModelRow {
     by: string
     /** Считано прокси-моделью: число правдоподобно, но не измерено. */
     proxy: boolean
+    /** Выходы прогона словами: ключ → «78 кг». */
+    outputs?: Record<string, string>
     /** Входы, изменившиеся ПОСЛЕ прогона: результат устарел. */
     stale_inputs: string[]
   }
@@ -2153,6 +2176,37 @@ export const api = {
       `/entities/${encodeURIComponent(code)}?project=${encodeURIComponent(project)}`,
       { method: 'PATCH', body: JSON.stringify({ fields, author, reason }) }),
 
+  /**
+   * Общее заведение записи по истине (27.09): «+ завести» карточки объекта —
+   * функция, обмен, элемент обмена, КЕ, логический компонент. Ссылки — кодами.
+   */
+  createEntity: (project: string, kind: string, fields: Record<string, unknown>, author = 'инженер') =>
+    вызов<{ code: string; id: string; kind: string; version: number }>(
+      `/entities?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ kind, fields, author }) }),
+
+  /** Связи записи: от неё и к ней, с обоснованием (общий маршрут связей). */
+  links: (project: string, code: string, type?: string) =>
+    вызов<{ items: LinkRow[] }>(
+      `/links?project=${encodeURIComponent(project)}&code=${encodeURIComponent(code)}` + (type ? `&type=${encodeURIComponent(type)}` : '')),
+
+  /** Связь по истине: вид из перечня, обоснование — где истина его требует. */
+  addLink: (project: string, тело: { type: string; from: string; to: string; rationale?: string; subtype?: string }, author = 'инженер') =>
+    вызов<{ id: string; type: string; exists?: boolean }>(
+      `/links?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ ...тело, author }) }),
+
+  removeLink: (project: string, id: string, author = 'инженер') =>
+    вызов<{ id: string; removed: boolean }>(
+      `/links/remove?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ id, author }) }),
+
+  /** Вердикты по позициям экспертизы точки (A12): пустой вердикт снимает запись. */
+  positions: (project: string, gate: string, positions: { artifact: string; verdict: string; note?: string }[], author = 'инженер') =>
+    вызов<{ gate: string; reviewed: number }>(
+      `/points/${encodeURIComponent(gate)}/positions?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ positions, author }) }),
+
   /** Вид для экрана: поля, русские имена, стадии, перечни со значениями. */
   kind: (code: string) => вызов<KindSpec>(`/kinds/${encodeURIComponent(code)}`),
 
@@ -2426,10 +2480,16 @@ export const api = {
     вызов<{ taken: number }>(`/models/take?project=${encodeURIComponent(project)}`,
       { method: 'POST', body: JSON.stringify({ author }) }),
 
-  runModel: (project: string, model: string, outputs: Record<string, string>, author: string) =>
+  runModel: (project: string, model: string, outputs: RunOutput[], author: string) =>
     вызов<{ code: string; at: string; proxy: boolean }>(
       `/models/${encodeURIComponent(model)}/run?project=${encodeURIComponent(project)}`,
       { method: 'POST', body: JSON.stringify({ outputs, author }) }),
+
+  /** Верификация модели — решение с основанием: после прогона (условие A6). */
+  verifyModel: (project: string, model: string, status: string, note: string, author: string) =>
+    вызов<{ code: string; verification: string }>(
+      `/models/${encodeURIComponent(model)}/verify?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ status, note, author }) }),
 
   budget: (project: string, kind: string, gate: string) =>
     вызов<Budget>(`/budget?project=${encodeURIComponent(project)}` +

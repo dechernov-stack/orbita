@@ -344,7 +344,8 @@ describe('хвосты журнала ПМИ-7 (шип 1, п. 1.9)', () => {
     expect(клиент).toContain('requirementCard:')
     expect(требования).toContain('function КарточкаТребования')
     expect(требования).toContain('не задан — к базированию')
-    expect(требования).toContain('derives_from →')
+    // Связь «выведено из» — гранью карточки (27.09): родитель пикером, обоснование обязательным.
+    expect(требования).toContain('<ВыведеноИз project={project} т={т} />')
     expect(требования).toContain('история:')
   })
 })

@@ -160,6 +160,11 @@ class LadderSdrRoutesTest {
         вызов("POST", "/v2/links", """{"type":"derives_from","from":"RQ-S-01","to":"RQ-P-01","subtype":"derivation","rationale":"суточная норма делится на 16 витков"}""")
         val связь = links.from(store.byCode(область, "RQ-S-01")!!.id, "derives_from").single()
         assertEquals("derivation", связь.subtype)
+        // грань карточки читает связи записи общим маршрутом: родитель кодом и обоснование
+        val связи = router().handle("GET", "/v2/links", п + mapOf("code" to "RQ-S-01", "type" to "derives_from"), null)!!.body.path("items")
+        assertEquals("RQ-P-01", связи[0].path("other").asText())
+        assertEquals("from", связи[0].path("direction").asText())
+        assertEquals("суточная норма делится на 16 витков", связи[0].path("rationale").asText())
         val условие = RequirementsFactory.gateChecks(store, снимки, links).of(проект, "each_system_requirement_derived")!!
         assertTrue(условие.passed, "у системного — родитель с обоснованием: ${условие.why}")
         // и снять связь можно тем же общим маршрутом

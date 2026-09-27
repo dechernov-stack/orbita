@@ -55,8 +55,11 @@ describe('Phase A: сцена открывает реестр с отбором,
 
   it('A4 — карточка узла к точке сцены, требования по носителю, стыки узла', () => {
     expect(поверхности).toContain("if (ключ === 'A4')")
-    expect(поверхности).toContain('api.componentCard(project, node, gate)')
-    expect(поверхности).toContain('<КарточкаУзла project={project} node={scene.node} gate={scene.gate ?? null} />')
+    // Карточка узла экземпляра — ТА ЖЕ карточка узла состава (шип 5 §7) со ступенью к точке сцены
+    // и строкой долга лестницы с действиями (ответ владельца 27.09), а не своя «только чтение».
+    expect(поверхности).toContain('<УзелЭкземпляра project={project} node={scene.node} gate={scene.gate ?? null} onChanged={onChanged} />')
+    expect(поверхности).toContain('.then((с) => setСостав({ ...с, точка: { key: gate, title: gate } }))')
+    expect(поверхности).toContain('<КарточкаУзла project={project} узел={узел} состав={состав}')
     expect(поверхности).toContain('<Requirements project={project} отбор={отборУзла} />')
     expect(поверхности).toContain('useMemo(() => ({ носитель: scene.node ?? undefined }), [scene.node])')
     expect(поверхности).toContain('стыки.filter((с) => с.a === node || с.b === node)')

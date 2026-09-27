@@ -11,6 +11,8 @@
 // а не подгоняет число.
 import { useCallback, useEffect, useState } from 'react'
 import { api, type Budget, type ModelRow, type VariantRow } from './api'
+import { ДействиеМодели } from './modelrun'
+import { ИконКнопка } from './ui/iconbutton'
 
 const ТОЧКИ = ['MCR', 'SRR', 'SDR', 'PDR']
 
@@ -50,6 +52,8 @@ export function Models({ project, варианты = true }: {
   const [точка, setТочка] = useState('MCR')
   const [отказ, setОтказ] = useState<string | null>(null)
   const [занято, setЗанято] = useState(false)
+  /** Действие строки модели: прогон или верификация — форма под таблицей. */
+  const [действие, setДействие] = useState<{ код: string; вид: 'прогон' | 'верификация' } | null>(null)
 
   const перечитать = useCallback(() => {
     if (!project) return
@@ -109,6 +113,7 @@ export function Models({ project, варианты = true }: {
               <tr>
                 <th>Код</th><th>Модель</th><th>На какой вопрос</th>
                 <th>Чем</th><th>Проверка</th><th>Входы</th><th>Последний прогон</th>
+                <th className="v2-acts" aria-label="действия строки" />
               </tr>
             </thead>
             <tbody>
@@ -162,6 +167,12 @@ export function Models({ project, варианты = true }: {
                         </>
                       )}
                     </td>
+                    <td className="v2-acts">
+                      <ИконКнопка икон="сформировать" слово="записать прогон" aria-pressed={действие?.код === м.code && действие.вид === 'прогон'}
+                        onClick={() => setДействие({ код: м.code, вид: 'прогон' })} />
+                      <ИконКнопка икон="принять" слово="верифицировать" aria-pressed={действие?.код === м.code && действие.вид === 'верификация'}
+                        onClick={() => setДействие({ код: м.code, вид: 'верификация' })} />
+                    </td>
                   </tr>
                 )
               })}
@@ -169,6 +180,11 @@ export function Models({ project, варианты = true }: {
           </table>
         )}
       </div>
+
+      {действие && (модели ?? []).some((м) => м.code === действие.код) && (
+        <ДействиеМодели project={project} модель={(модели ?? []).find((м) => м.code === действие.код)!} вид={действие.вид}
+          onDone={() => { setДействие(null); перечитать() }} onClose={() => setДействие(null)} />
+      )}
 
       <Rollup свёртка={свёртка} величина={величина} точка={точка}
         onВеличина={setВеличина} onТочка={setТочка} />

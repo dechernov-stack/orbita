@@ -171,6 +171,11 @@ function PointCard({ project, точка, все, phase, onChanged, onGoScene, o
     text: форма.text, returns_to_scene: форма.scene, question: форма.question, kind: форма.kind,
   }))
   const решить = (исход: string) => действие(() => api.decide(project, точка.key, исход, помета))
+  // Вердикты по позициям экспертизы (условие A12): пишет роль обзора, пустой — снимает.
+  const вердикты = точка.positions ?? {}
+  const безВердикта = (экспертиза?.positions ?? []).filter((п) => !вердикты[п.artifact]?.verdict)
+  const вердикт = (позиции: { artifact: string; verdict: string }[]) =>
+    действие(() => api.positions(project, точка.key, позиции, я || 'инженер'))
   const новоеЗамечание = (вопрос?: string) => setФорма({
     text: вопрос ? `Нет: ${вопрос}` : '', scene: phase.current_scene ?? phase.scenes[0]?.key ?? '1', question: вопрос,
     kind: точка.key === 'MCR' ? 'rfa' : 'finding',
@@ -201,12 +206,27 @@ function PointCard({ project, точка, все, phase, onChanged, onGoScene, o
       )}
 
       <h4 className="v2-h4">Готовность</h4>
+      {экспертиза && экспертиза.positions.length > 0 && (
+        <div className="v2-note-line">
+          вердикты позиций экспертизы: {экспертиза.positions.length - безВердикта.length} из {экспертиза.positions.length}
+          {безВердикта.length > 0 && (
+            <button type="button" className="v2-link" disabled={занято}
+              title="вердикт «принято» всем позициям без вердикта; каждую можно переменить в её строке"
+              onClick={() => вердикт(безВердикта.map((п) => ({ artifact: п.artifact, verdict: 'принято' })))}>
+              {' '}принято — всем без вердикта
+            </button>
+          )}
+        </div>
+      )}
       {/* Шип 5 §7: строки «маркер · критерий словами · почему не выполнен · к месту», держащие — первыми. */}
       <ul className="v2-checks">
         {поПорядку(точка.criteria).map((у) => (
           <Условие key={у.check} у={у} сцена={где(phase, у.check)} onGoScene={onGoScene} />
         ))}
-        {экспертиза?.positions.map((п) => <Позиция key={п.artifact} п={п} />)}
+        {экспертиза?.positions.map((п) => (
+          <Позиция key={п.artifact} п={п} вердикт={вердикты[п.artifact]?.verdict} занято={занято}
+            onВердикт={(в) => вердикт([{ artifact: п.artifact, verdict: в }])} />
+        ))}
       </ul>
 
       {/*
@@ -444,7 +464,17 @@ function где(phase: Phase | null, check: string): { key: string; title: strin
   return сцена ? { key: сцена.key, title: сцена.title } : undefined
 }
 
-function Позиция({ п }: { п: Position }) {
+/** Вердикты позиции экспертизы словами: пишет роль обзора (условие A12). */
+const ВЕРДИКТЫ = ['принято', 'принято с замечанием', 'не принято']
+
+function Позиция({ п, вердикт, занято = false, onВердикт }: {
+  п: Position
+  /** Записанный вердикт; без него позиция не рассмотрена. */
+  вердикт?: string
+  занято?: boolean
+  /** Вердикт пишется там, где позиция — у точки своей экспертизы; в чек-листе — только чтение. */
+  onВердикт?: (вердикт: string) => void
+}) {
   const класс = п.passed === null ? 'v2-check v2-check--note' : п.passed ? 'v2-check' : п.blocking ? 'v2-check v2-check--no' : 'v2-check v2-check--note'
   return (
     <li className={класс}>
@@ -455,6 +485,13 @@ function Позиция({ п }: { п: Position }) {
       <span className="v2-check__t"><span className="v2-mono" title="код зрелости Романова: легенда кодов зрелости не задана">{п.maturity}</span> {п.artifact}</span>
       {п.why && п.passed !== true && <span className="v2-cnt"> — {п.why}</span>}
       {п.passed === true && п.our_ref?.startsWith('kind:') && <span className="v2-cnt" title={п.why ?? ''}> — записи есть</span>}
+      {onВердикт && (
+        <select className="v2-check__verdict" aria-label={`вердикт по позиции «${п.artifact}»`} value={вердикт ?? ''} disabled={занято}
+          onChange={(e) => onВердикт(e.target.value)}>
+          <option value="">— вердикт —</option>
+          {[...new Set([...ВЕРДИКТЫ, ...(вердикт ? [вердикт] : [])])].map((в) => <option key={в} value={в}>{в}</option>)}
+        </select>
+      )}
     </li>
   )
 }

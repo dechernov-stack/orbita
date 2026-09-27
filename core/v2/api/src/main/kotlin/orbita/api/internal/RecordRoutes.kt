@@ -35,6 +35,7 @@ class RecordRoutes(
 
     fun handle(method: String, path: String, query: Map<String, String>, body: String?): V2Router.Ответ? = when {
         method == "POST" && path == "/v2/entities" -> завести(требуется(query, "project"), разобрать(body))
+        method == "GET" && path == "/v2/links" -> связиЗаписи(требуется(query, "project"), требуется(query, "code"), query["type"])
         method == "POST" && path == "/v2/links" -> связать(требуется(query, "project"), разобрать(body))
         method == "POST" && path == "/v2/links/remove" -> развязать(требуется(query, "project"), разобрать(body))
         else -> null
@@ -150,11 +151,26 @@ class RecordRoutes(
             return V2Router.Ответ(200, mapper.createObjectNode().put("id", была.id).put("type", тип).put("exists", true))
         }
         val новая = links.link(тип, откуда.id, куда.id, Provenance(Channel.MANUAL, автор(тело)), rationale = основание, subtype = уточнение)
-        return V2Router.Ответ(
-            201,
-            mapper.createObjectNode().put("id", новая.id).put("type", тип)
-                .put("from", откуда.code).put("to", куда.code).put("rationale", основание),
-        )
+        // Ответ — что заведено; сама связь читается GET /v2/links (один сериализатор связи).
+        return V2Router.Ответ(201, mapper.createObjectNode().put("id", новая.id).put("type", тип).put("subtype", уточнение).put("exists", false))
+    }
+
+    /** Связи записи — от неё и к ней: грань-связь карточки показывает их чипами. */
+    private fun связиЗаписи(проект: String, код: String, тип: String?): V2Router.Ответ {
+        val область = Area.Project(проект)
+        val сама = запись(область, код, "запись")
+        val ответ = mapper.createObjectNode()
+        val массив = ответ.putArray("items")
+        fun добавить(связь: orbita.kernel.api.Link, направление: String, другой: String) {
+            val конец = store.byId(другой) ?: return
+            массив.addObject().put("id", связь.id).put("type", связь.type).put("direction", направление)
+                .put("other", конец.code).put("other_kind", конец.kind)
+                .put("other_title", listOf("statement", "name", "title", "designation").firstNotNullOfOrNull { конец.doc.path(it).asText("").ifBlank { null } } ?: конец.code)
+                .put("rationale", связь.rationale).put("subtype", связь.subtype)
+        }
+        links.from(сама.id, тип).forEach { добавить(it, "from", it.to) }
+        links.to(сама.id, тип).forEach { добавить(it, "to", it.from) }
+        return V2Router.Ответ(200, ответ)
     }
 
     private fun развязать(проект: String, тело: JsonNode): V2Router.Ответ {

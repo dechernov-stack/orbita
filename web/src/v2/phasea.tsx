@@ -12,10 +12,12 @@
 // обязан быть снят из его списка (храповик).
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
-  api, type BudgetRow, type ComponentCard, type ComponentRow, type InterfaceRow, type KindSpec,
+  api, type BudgetRow, type ComponentRow, type InterfaceRow, type KindSpec,
   type Phase, type Scene,
 } from './api'
 import { ArchitectureScreen } from './architecture'
+import { КарточкаУзла } from './composition'
+import { читатьСостав, всеУзлы, type СоставЭкрана } from './composition.api'
 import { Concept } from './concept'
 import { DocumentBody } from './documents'
 import { SceneModes } from './modes'
@@ -86,7 +88,7 @@ export function PhaseASurface({ project, phase, scene, onChanged, onScene }: {
     }
     return (
       <>
-        <КарточкаУзла project={project} node={scene.node} gate={scene.gate ?? null} />
+        <УзелЭкземпляра project={project} node={scene.node} gate={scene.gate ?? null} onChanged={onChanged} />
         <Requirements project={project} отбор={отборУзла} />
         <Стыки project={project} node={scene.node} заголовок={`Стыки узла ${scene.node}`} />
       </>
@@ -178,15 +180,21 @@ function ДокументФазы({ project, template, имя }: { project: stri
   return <DocumentBody project={project} code={код} />
 }
 
-/** Карточка узла экземпляра гранями по ступени к точке сцены (SDR): считает сервер. */
-function КарточкаУзла({ project, node, gate }: { project: string; node: string; gate: string | null }) {
-  const [карточка, setКарточка] = useState<ComponentCard | null>(null)
+/**
+ * Карточка узла экземпляра — ТА ЖЕ карточка узла состава (шип 5 §7): грани по
+ * истине, анкета, строка долга лестницы к точке сцены (SDR) — с действиями:
+ * пикер либо «+ завести» карточкой вниз (ответ владельца 27.09).
+ */
+function УзелЭкземпляра({ project, node, gate, onChanged }: { project: string; node: string; gate: string | null; onChanged: () => void }) {
+  const [состав, setСостав] = useState<СоставЭкрана | null>(null)
   const [отказ, setОтказ] = useState<string | null>(null)
-
-  useEffect(() => {
+  const перечитать = useCallback(() => {
     if (!gate) return
-    api.componentCard(project, node, gate).then(setКарточка).catch((e) => setОтказ(String(e.message ?? e)))
-  }, [project, node, gate])
+    читатьСостав(project)
+      .then((с) => setСостав({ ...с, точка: { key: gate, title: gate } }))
+      .catch((e) => setОтказ(String((e as Error).message ?? e)))
+  }, [project, gate])
+  useEffect(перечитать, [перечитать])
 
   if (!gate) {
     return (
@@ -200,33 +208,14 @@ function КарточкаУзла({ project, node, gate }: { project: string; no
     )
   }
   if (отказ) return <div className="v2-panel" data-why="почему-нельзя"><h3>Карточка узла {node}</h3><div className="v2-locked">{отказ}</div></div>
-  if (!карточка) return <div className="v2-panel" data-why="работа"><h3>Карточка узла {node}</h3><div className="v2-empty">Читаю карточку…</div></div>
-
+  if (!состав) return <div className="v2-panel" data-why="работа"><h3>Карточка узла {node}</h3><div className="v2-empty">Читаю карточку…</div></div>
+  const узел = всеУзлы(состав.корни).find((у) => у.code === node)
+  if (!узел) return <div className="v2-panel" data-why="почему-нельзя"><h3>Карточка узла {node}</h3><div className="v2-empty">Узла {node} в составе нет.</div></div>
   return (
     <div className="v2-panel" data-why="работа">
-      <h3>
-        Карточка узла {карточка.code} · {карточка.name}
-        <span className="v2-cnt">ступень к {карточка.gate} · граней {карточка.facets.length}</span>
-      </h3>
-      <div className="v2-facets">
-        {карточка.facets.map((г) => (
-          <div key={г.key} className="v2-facet">
-            <div className="v2-facet__title">{г.title}</div>
-            <div className="v2-facet__body">
-              {г.lines.length === 0
-                ? <div className="v2-dim">{г.expected ?? 'пока пусто'}{г.required_to ? ` · к ${г.required_to}` : ''}</div>
-                : <ul className="v2-why">{г.lines.map((с, i) => <li key={i}>{с.what}</li>)}</ul>}
-            </div>
-          </div>
-        ))}
-      </div>
-      {карточка.gaps.length > 0 ? (
-        <div className="v2-empty__why">
-          не закрыто к точке: {карточка.gaps.map((р) => `${р.what} (${р.gate})`).join('; ')}
-        </div>
-      ) : (
-        <div className="v2-empty__why">к точке {карточка.gate} грани закрыты — ступень «архитектура» узла взята</div>
-      )}
+      <h3>Карточка узла {узел.code} · {узел.name}<span className="v2-cnt">ступень к {gate}</span></h3>
+      <КарточкаУзла project={project} узел={узел} состав={состав} onClose={() => undefined}
+        onSaved={() => { перечитать(); onChanged() }} />
     </div>
   )
 }

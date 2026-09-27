@@ -110,7 +110,7 @@ export type СвойКонтрол = (п: { id: string; значение: unknow
 
 export function Карточка({
   project, row, spec, заголовок, состояние, мета, actions, extra, скрыть = [], толькоЧтение = [], кМесту, onSaved, onClose,
-  свои, всеСразу = false, сохранитьПоле,
+  свои, всеСразу = false, сохранитьПоле, черновик = false,
 }: {
   project: string
   row: EntityRow
@@ -139,6 +139,8 @@ export function Карточка({
   всеСразу?: boolean
   /** Своя запись поля — у вида с собственным маршрутом правки (паспорт проекта). */
   сохранитьПоле?: (поле: string, значение: unknown) => Promise<{ version: number; changed: number }>
+  /** Новая, ещё не заведённая запись («+ завести»): правка ложится в черновик, истории нет. */
+  черновик?: boolean
 }) {
   const плотность = useContext(ПлотностьКонтекст)
   const колонок = колонокГраней(плотность)
@@ -179,7 +181,7 @@ export function Карточка({
       : api.patchEntity(project, row.code, { [поле]: значение }, плотность.кто || 'инженер', `правка поля «${spec.labels?.[поле] ?? поле}» в карточке`)
     запрос
       .then((о) => {
-        setСохранение({ поле, итог: о.changed === 0 ? 'ничего не изменилось' : `сохранено, версия ${о.version}` })
+        setСохранение({ поле, итог: черновик ? 'в черновике' : о.changed === 0 ? 'ничего не изменилось' : `сохранено, версия ${о.version}` })
         onSaved?.()
       })
       .catch((e) => setСохранение({ поле, итог: String((e as Error).message ?? e), ошибка: true }))
@@ -200,7 +202,7 @@ export function Карточка({
         {строкаМеты && <span className="v2-object__meta">{строкаМеты}</span>}
         <span className="v2-object__acts">
           {actions}
-          <ИконКнопка икон="история" слово={история ? 'скрыть историю' : 'история правок'} aria-pressed={история !== null} onClick={показатьИсторию} />
+          {!черновик && <ИконКнопка икон="история" слово={история ? 'скрыть историю' : 'история правок'} aria-pressed={история !== null} onClick={показатьИсторию} />}
           {кМесту && <ИконКнопка икон="к-месту" слово={кМесту.слово} onClick={кМесту.go} />}
         </span>
       </div>
@@ -379,13 +381,24 @@ export function ВводВеличины({ id, spec, значение, заня�
   )
 }
 
+/** Виды полок библиотеки, на которые ссылаются записи проекта: пикер ищет их на полке. */
+const ВИДЫ_ПОЛОК = new Set(['normative_document'])
+
 /** Пикер ссылки: поиск по коду и имени записей названных видов. */
 function Пикер({ id, project, виды, многие, значение, занято, onSave }: {
   id: string; project: string; виды: string[]; многие: boolean; значение: unknown; занято: boolean; onSave: (з: unknown) => void
 }) {
   const [записи, setЗаписи] = useState<EntityRow[]>([])
   useEffect(() => {
-    Promise.all(виды.map((в) => api.entities(project, в).then((r) => r.items).catch(() => [] as EntityRow[])))
+    // Вид полки (нормативный документ) живёт в библиотеке, а не в проекте: пикер
+    // берёт его с полки — иначе грань «Нормативы» узла выбрать было не из чего.
+    const изПолки = (в: string) => (ВИДЫ_ПОЛОК.has(в)
+      ? api.shelves(в).then((r) => r.items.map((и) => ({ id: и.code, code: и.code, status: 'shelf', doc: и.doc })))
+      : Promise.resolve([] as EntityRow[]))
+    Promise.all(виды.map((в) => Promise.all([
+      api.entities(project, в).then((r) => r.items).catch(() => [] as EntityRow[]),
+      изПолки(в).catch(() => [] as EntityRow[]),
+    ]).then(([а, б]) => [...а, ...б])))
       .then((вс) => setЗаписи(вс.flat()))
   }, [project, виды.join(',')])
   const выбраны = многие ? (Array.isArray(значение) ? значение.map(String) : []) : []

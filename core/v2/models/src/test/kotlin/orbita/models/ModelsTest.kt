@@ -143,6 +143,26 @@ class ModelsTest {
     }
 
     @Test
+    fun `вход, привязанный КОДОМ параметра (строка долга карточки узла), прогон находит`() {
+        модели.take(проект, "Ведущий СИ")
+        узел("EL-SC")
+        val масса = параметр("EL-SC", "mass_dry", 92.0, "estimated")
+        val м6 = store.byCode(область, "М6")!!
+        store.update(
+            м6.id,
+            м6.doc.deepCopy<com.fasterxml.jackson.databind.node.ObjectNode>().apply {
+                putArray("inputs").addObject().put("param_ref", масса.code)
+            },
+            провенанс,
+        )
+        val прогон = модели.run(проект, "М6", "Ведущий СИ", listOf(orbita.models.api.RunOutput("mass_total", 92.0, "кг")))
+        assertEquals(1, прогон.inputsSnapshot["EL-SC.mass_dry"], "снимок входа по коду — версия записи параметра")
+        assertEquals(listOf("EL-SC.mass_dry"), модели.list(проект).single { it.code == "М6" }.inputs)
+        val безВыхода = assertFailsWith<IllegalArgumentException> { модели.run(проект, "М6", "Ведущий СИ") }
+        assertTrue("без выхода" in безВыхода.message!!, безВыхода.message)
+    }
+
+    @Test
     fun `свёртка печатает оба резерва - по классу зрелости и системный`() {
         узел("SC"); узел("EPS")
         параметр("SC", "mass_dry", 78.0, "estimated")

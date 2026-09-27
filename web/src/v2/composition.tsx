@@ -23,6 +23,7 @@ import {
   type ВеличинаУзла, type ПолеАнкеты, type СоставЭкрана, type УзелСостава,
 } from './composition.api'
 import { ConfirmBox, useConfirm } from '../ui/Confirm'
+import { ДолгЛестницы, граниПоТочкам } from './ladder'
 import { ПлотностьКонтекст } from './ui/density'
 import { ИконКнопка } from './ui/iconbutton'
 import { Карточка, ВводВеличины } from './ui/objectcard'
@@ -328,9 +329,11 @@ export function КарточкаУзла({ project, узел, состав, onSa
   const [ступень, setСтупень] = useState<ComponentCard | null>(null)
   const [итог, setИтог] = useState<{ key: string; текст: string; ошибка?: boolean } | null>(null)
   const [занято, setЗанято] = useState<string | null>(null)
+  /** Счётчик перечтения ступени: действие строки долга закрыло грань — лестница считается заново. */
+  const [перечесть, setПеречесть] = useState(0)
   useEffect(() => {
     api.componentCard(project, узел.code, состав.точка.key).then(setСтупень).catch(() => setСтупень(null))
-  }, [project, узел.code, состав.точка.key])
+  }, [project, узел.code, состав.точка.key, перечесть])
   /**
    * Слова видов узла истина не называет (`enum_labels` у поля пуст) — их даёт
    * полка каркаса уровнями членения, как и в дереве. Кода вида на экране нет.
@@ -401,12 +404,10 @@ export function КарточкаУзла({ project, узел, состав, onSa
                 ? <div className="v2-facet__ro v2-ok">разрывов к точке нет</div>
                 : (
                   <>
-                    <div className="v2-facet__ro">
-                      {разрывыПоТочкам(ступень).map(([т, грани]) => (
-                        <div key={т}><span className="v2-warn">к {т}:</span> {грани.join(' · ')}</div>
-                      ))}
-                    </div>
-                    <div className="v2-facet__hint">пустые грани узла — по точкам, к которым их требует лестница зрелости</div>
+                    {/* Строка долга лестницы: пустая грань — действие (пикер либо «+ завести» карточкой вниз). */}
+                    <ДолгЛестницы project={project} узел={узел.code} ступень={ступень}
+                      onChanged={() => { setПеречесть((н) => н + 1); onSaved() }} />
+                    <div className="v2-facet__hint">пустые грани узла — по точкам, к которым их требует лестница зрелости; грань — ссылка на действие</div>
                   </>
                 )}
             {узел.applicability === 'not_applicable' && (
@@ -418,18 +419,7 @@ export function КарточкаУзла({ project, узел, состав, onSa
   )
 }
 
-/**
- * Разрывы узла по точкам: имена пустых граней под точкой, к которой их
- * требует лестница. Порядок точек — тот, в каком их называют сами грани
- * (идентичность — к MCR, функции — к SRR…): лестница сервера, не список в коде.
- */
+/** Разрывы узла по точкам — именами граней (строка долга карточки узла их показывает действиями). */
 export function разрывыПоТочкам(ступень: ComponentCard): [string, string[]][] {
-  const порядок = [...new Set(ступень.facets.map((г) => г.required_to).filter((т): т is string => Boolean(т)))]
-  const группы = new Map<string, string[]>()
-  ступень.gaps.forEach((р) => {
-    const имя = ступень.facets.find((г) => г.key === р.facet)?.title ?? р.facet
-    группы.set(р.gate, [...(группы.get(р.gate) ?? []), имя])
-  })
-  const место = (т: string) => (порядок.includes(т) ? порядок.indexOf(т) : порядок.length)
-  return [...группы.entries()].sort(([а], [б]) => место(а) - место(б))
+  return граниПоТочкам(ступень).map(([т, грани]) => [т, грани.map((г) => г.title)])
 }
