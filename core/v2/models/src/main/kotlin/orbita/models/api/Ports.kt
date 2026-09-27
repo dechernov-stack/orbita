@@ -48,6 +48,13 @@ data class ModelView(
     val gaps: List<String>,
 )
 
+/**
+ * Выход прогона — величина с единицей (истина: `model_run.outputs:
+ * [{key*, measure*}] ≥1`). Строка «прогон прошёл» ответом модели не была:
+ * условие A6 «модель дала ответ» считает выходы-величины.
+ */
+data class RunOutput(val key: String, val value: Double, val unit: String)
+
 /** Прогон модели: снимок входов и версия — иначе ответ нечем повторить. */
 data class RunView(
     val code: String,
@@ -167,8 +174,11 @@ interface Models {
 
     fun list(project: String): List<ModelView>
 
-    /** Прогон: снимок входов и выходы. Отсутствующий вход — отказ с адресом. */
-    fun run(project: String, model: String, author: String, outputs: Map<String, String> = emptyMap()): RunView
+    /**
+     * Прогон: снимок входов и выходы величинами. Отсутствующий вход — отказ с
+     * адресом; прогон без выхода — отказ: ответа модель не дала.
+     */
+    fun run(project: String, model: String, author: String, outputs: List<RunOutput> = emptyList()): RunView
 
     /**
      * Верификация модели — решение человека с основанием (условие A6: модель

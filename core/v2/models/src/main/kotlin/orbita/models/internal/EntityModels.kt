@@ -10,6 +10,7 @@ import orbita.kernel.api.EntityStore
 import orbita.kernel.api.Provenance
 import orbita.models.api.ModelView
 import orbita.models.api.Models
+import orbita.models.api.RunOutput
 import orbita.models.api.RunView
 import orbita.models.api.Tool
 import orbita.models.api.Verification
@@ -109,8 +110,7 @@ class EntityModels(
             at = прогон.doc.path("at").asText(""),
             by = прогон.doc.path("by").asText(""),
             inputsSnapshot = снимок.mapKeys { (id, _) -> store.byId(id)?.code ?: id },
-            outputs = прогон.doc.path("outputs").fields().asSequence()
-                .associate { (к, з) -> к to з.asText() },
+            outputs = выходыСловами(прогон.doc.path("outputs")),
             proxy = прогон.doc.path("proxy").asBoolean(false),
             staleInputs = устаревшие,
         )
@@ -137,7 +137,7 @@ class EntityModels(
         project: String,
         model: String,
         author: String,
-        outputs: Map<String, String>,
+        outputs: List<RunOutput>,
     ): RunView {
         val область = Area.Project(project)
         val запись = store.byCode(область, model)?.takeIf { it.kind == "system_model" }
@@ -148,6 +148,13 @@ class EntityModels(
         require(потерянные.isEmpty()) {
             "вход модели не задан: ${потерянные.joinToString(", ")} — расчёт по пустому месту не делается"
         }
+        // Истина: выходов ≥ 1, каждый — величина с единицей. Прогон без выхода
+        // не ответ, и условие A6 его ответом не сочтёт — отказ сразу, словами.
+        require(outputs.isNotEmpty()) { "прогон без выхода — не ответ: назовите выходы модели величинами с единицей" }
+        outputs.forEach { в ->
+            require(в.key.isNotBlank()) { "у выхода прогона нет имени" }
+            require(в.unit.isNotBlank()) { "выход «${в.key}» без единицы: величины без единицы не бывает" }
+        }
 
         val прокси = Tool.of(запись.doc.path("tool_status").asText(null)) == Tool.PROXY
         val документ = mapper.createObjectNode()
@@ -157,26 +164,42 @@ class EntityModels(
         документ.put("proxy", прокси)
         val снимок = документ.putObject("inputs_snapshot")
         входы.forEach { id -> store.byId(id)?.let { снимок.put(id, it.version) } }
-        val выходы = документ.putObject("outputs")
-        outputs.forEach { (к, з) -> выходы.put(к, з) }
-        if (прокси) выходы.put("_proxy", "значение получено прокси-оценкой, не расчётом")
+        // Выходы — по истине `[{key*, measure*}]`; прокси помечен полем `proxy`
+        // прогона, а не лишней строкой среди выходов.
+        val выходы = документ.putArray("outputs")
+        outputs.forEach { в -> выходы.addObject().put("key", в.key).putObject("measure").put("value", в.value).put("unit", в.unit) }
 
         val номер = store.list(область, "model_run").count { it.doc.path("model").asText() == запись.id } + 1
         val прогон = store.create(
             "RUN-${запись.code}-$номер", "model_run", область, "10", документ,
             Provenance(Channel.SERVICE, author, source = запись.code),
         )
+        // Статус записи модели — по её модели состояний в истине
+        // (`not_built|proxy|calc`): ответ прокси — proxy, расчёт — calc.
         store.update(
             запись.id,
             запись.doc.deepCopy<ObjectNode>().put("last_run", прогон.id),
             Provenance(Channel.SERVICE, author),
-            status = "answered",
+            status = if (прокси) "proxy" else "calc",
         )
         return прогонВид(project, прогон)
     }
 
     override fun budget(project: String, kind: String, gate: String) =
         Budgets(store, полка()).свёртка(project, kind, gate)
+
+    /**
+     * Выходы прогона словами: «ключ → 78 кг». Прогоны до 27.09 писали выходы
+     * объектом «ключ → текст» — они читаются как были.
+     */
+    private fun выходыСловами(выходы: com.fasterxml.jackson.databind.JsonNode): Map<String, String> = when {
+        выходы.isArray -> выходы.associate { в ->
+            val мера = в.path("measure")
+            в.path("key").asText() to listOf(мера.path("value").asText(""), мера.path("unit").asText("")).filter { it.isNotBlank() }.joinToString(" ")
+        }
+        выходы.isObject -> выходы.fields().asSequence().associate { (к, з) -> к to з.asText() }
+        else -> emptyMap()
+    }
 
     override fun gaps(project: String, gate: String): List<String> {
         val предел = лестница.indexOf(gate.uppercase()).let { if (it < 0) лестница.lastIndex else it }

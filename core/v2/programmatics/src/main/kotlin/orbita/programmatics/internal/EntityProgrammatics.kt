@@ -155,10 +155,16 @@ class EntityProgrammatics(
         документ.put("assumptions", assumptions)
         документ.put("method", method.name.lowercase())
         документ.put("date", LocalDate.now().toString())
-        val запись = store.create(
-            "EST-$packageCode", "cost_estimate", область, "12", документ,
-            Provenance(Channel.MANUAL, author),
-        )
+        // Переоценка пакета — новая версия той же оценки (edit_rule: правка на
+        // месте, прежняя — в истории), а не вторая запись с тем же кодом: вторая
+        // «Записать оценку» того же пакета падала 500 на дубле ключа (прогон 27.09).
+        val код = "EST-$packageCode"
+        val прежняя = store.byCode(область, код)
+        val запись = if (прежняя != null) {
+            store.update(прежняя.id, документ, Provenance(Channel.MANUAL, author))
+        } else {
+            store.create(код, "cost_estimate", область, "12", документ, Provenance(Channel.MANUAL, author))
+        }
         return вид(запись)
     }
 

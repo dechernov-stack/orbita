@@ -131,7 +131,7 @@
           "code": "2.1",
           "kind": "query",
           "title": "Сценарии операций",
-          "select": "scenario",
+          "select": "functional_chain",
           "min_rows": 1,
           "columns": [
             {
@@ -141,10 +141,6 @@
             {
               "title": "Сценарий",
               "field": "name"
-            },
-            {
-              "title": "Слой",
-              "field": "layer"
             },
             {
               "title": "Шаги",
@@ -190,7 +186,7 @@
             }
           ],
           "where": {
-            "type": "rf"
+            "type": "RF"
           }
         }
       ],

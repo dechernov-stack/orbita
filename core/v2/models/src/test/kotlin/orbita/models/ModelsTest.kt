@@ -118,10 +118,15 @@ class ModelsTest {
             провенанс,
         )
 
-        val прогон = модели.run(проект, "М6", "Ведущий СИ", mapOf("mass_total" to "78 кг"))
+        val прогон = модели.run(проект, "М6", "Ведущий СИ", listOf(orbita.models.api.RunOutput("mass_total", 78.0, "кг")))
         assertEquals(1, прогон.inputsSnapshot["SC.mass_dry"], "снимок входов помнит ВЕРСИЮ, а не значение")
         assertTrue(прогон.staleInputs.isEmpty(), "сразу после прогона входы свежие")
-        assertEquals("answered", store.byCode(область, "М6")!!.status, "прогон — это и есть «модель дала ответ»")
+        // Статус — по модели состояний истины (`not_built|proxy|calc`): расчёт дал ответ.
+        val статус = store.byCode(область, "М6")!!.status
+        assertTrue(статус == "calc" || статус == "proxy", "прогон — это и есть «модель дала ответ»: $статус")
+        val выход = store.byCode(область, прогон.code)!!.doc.path("outputs")
+        assertTrue(выход.isArray && выход[0].path("measure").path("unit").asText() == "кг", "выход по истине — [{key, measure}]: $выход")
+        assertEquals("78.0 кг", прогон.outputs["mass_total"])
 
         store.update(
             масса.id,

@@ -64,14 +64,18 @@ internal class Facets(
     /** Собирает все грани узла разом: один проход по проектной области. */
     fun собрать(область: Area, узел: Entity, карточка: ComponentView): List<Facet> {
         val id = узел.id
+        // Ссылка на узел засчитывается и id, и кодом: маршруты сцен пишут id,
+        // а пикер карточки объекта — код (27.09: риск со ссылкой на узел из
+        // карточки грань «Риски» не видела, и лестница к SDR не закрывалась).
+        val наУзел = { поле: JsonNode -> ссылается(поле, узел) }
         val стыки = store.list(область, "interface")
-            .filter { it.doc.path("a").asText() == id || it.doc.path("b").asText() == id }
+            .filter { наУзел(it.doc.path("a")) || наУзел(it.doc.path("b")) }
         val обмены = store.list(область, "exchange")
-            .filter { обмен -> стыки.any { it.id == обмен.doc.path("interface").asText() } }
+            .filter { обмен -> стыки.any { ссылается(обмен.doc.path("interface"), it) } }
         val требования = store.list(область, "requirement")
-            .filter { it.doc.path("carrier").asText() == id }
-        val параметрыУзла = store.list(область, "parameter").filter { it.doc.path("target").asText() == id }
-        val единицы = store.list(область, "configuration_item").filter { it.doc.path("component").asText() == id }
+            .filter { наУзел(it.doc.path("carrier")) }
+        val параметрыУзла = store.list(область, "parameter").filter { наУзел(it.doc.path("target")) }
+        val единицы = store.list(область, "configuration_item").filter { наУзел(it.doc.path("component")) }
 
         val содержимое = mapOf(
             "identity" to listOf(
@@ -83,7 +87,7 @@ internal class Facets(
                 ),
             ),
             "functions" to store.list(область, "function")
-                .filter { ф -> ф.doc.path("allocated_to").any { it.asText() == id } }
+                .filter { ф -> наУзел(ф.doc.path("allocated_to")) }
                 .map { FacetLine("${it.code} ${it.doc.path("name").asText("")}", it.id) },
             "deployment" to (
                 links.from(id, "deployed_on").mapNotNull { связь ->
@@ -97,7 +101,7 @@ internal class Facets(
             },
             "exchange_items" to обмены.flatMap { обмен ->
                 val элементы = store.list(область, "exchange_item")
-                    .filter { э -> э.doc.path("exchanges").any { it.asText() == обмен.id } }
+                    .filter { э -> ссылается(э.doc.path("exchanges"), обмен) }
                 if (элементы.isEmpty()) {
                     listOf(FacetLine("${обмен.code}: ${обмен.doc.path("payload").asText("—")} (элемент обмена не описан)", обмен.id))
                 } else {
@@ -108,7 +112,7 @@ internal class Facets(
                 }
             },
             "modes" to store.list(область, "state_machine")
-                .filter { it.doc.path("owner").asText() == id }
+                .filter { наУзел(it.doc.path("owner")) }
                 .flatMap { машина ->
                     машина.doc.path("states").map { состояние ->
                         val активные = состояние.path("active_functions").joinToString(", ") {
@@ -136,22 +140,27 @@ internal class Facets(
             },
             "models" to store.list(область, "system_model")
                 .filter { модель ->
-                    модель.doc.path("inputs").any { вход ->
-                        параметрыУзла.any { it.id == вход.path("param_ref").asText() }
-                    } || стыки.any { it.id == модель.doc.path("interface_ref").asText() }
+                    модель.doc.path("inputs").any { вход -> параметрыУзла.any { ссылается(вход.path("param_ref"), it) } } ||
+                        стыки.any { ссылается(модель.doc.path("interface_ref"), it) }
                 }
                 .map { FacetLine("${it.code} ${it.doc.path("template_code").asText("")}", it.id) },
             "budgets" to store.list(область, "budget")
-                .filter { it.doc.path("root").asText() == id }
+                .filter { наУзел(it.doc.path("root")) }
                 .map { FacetLine("бюджет ${it.doc.path("kind").asText("")}", it.id) },
             "requirements" to требования.map {
                 FacetLine("${it.code} ${it.doc.path("title").asText("")}", it.id)
             },
-            "verification" to store.list(область, "verification_event")
-                .filter { событие -> требования.any { it.id == событие.doc.path("requirement").asText() } }
-                .map { FacetLine("${it.code} ${it.doc.path("method").asText("")}", it.id) },
+            // Полка называет грань к SDR «verification_methods»: чем БУДЕТ доказано
+            // выполнение — метод верификации требований узла; события верификации
+            // (что уже доказано) приходят позже и встают в ту же грань.
+            "verification" to требования
+                .filter { it.status != "cancelled" && it.doc.path("verification_method").asText("").isNotBlank() }
+                .map { FacetLine("${it.code} · метод ${it.doc.path("verification_method").asText()}", it.id) } +
+                store.list(область, "verification_event")
+                    .filter { событие -> требования.any { ссылается(событие.doc.path("requirement"), it) } }
+                    .map { FacetLine("${it.code} ${it.doc.path("method").asText("")}", it.id) },
             "technologies" to store.list(область, "technology")
-                .filter { it.doc.path("component").asText() == id }
+                .filter { наУзел(it.doc.path("component")) }
                 .map {
                     FacetLine(
                         "${it.doc.path("name").asText(it.code)}: TRL ${it.doc.path("trl_current").asInt()} → " +
@@ -160,12 +169,12 @@ internal class Facets(
                     )
                 },
             "risks" to store.list(область, "risk")
-                .filter { риск -> риск.doc.path("refs").any { it.asText() == id } }
+                .filter { риск -> наУзел(риск.doc.path("refs")) }
                 .map { FacetLine(it.doc.path("statement").asText(it.code), it.id) },
             "configuration" to (
                 единицы.map { FacetLine("CI ${it.code} · ${it.doc.path("type").asText("")}", it.id) } +
                     store.list(область, "product_version")
-                        .filter { версия -> единицы.any { it.id == версия.doc.path("ci").asText() } }
+                        .filter { версия -> единицы.any { ссылается(версия.doc.path("ci"), it) } }
                         .map { FacetLine("версия изделия ${it.doc.path("version").asText("")}", it.id) }
                 ),
             "standards" to узел.doc.path("standards").map { стандарт ->
@@ -196,6 +205,12 @@ internal class Facets(
 
 }
 
+/** Поле ссылается на запись: значением-строкой либо массивом — по id или по коду. */
+private fun ссылается(поле: JsonNode, запись: Entity): Boolean = when {
+    поле.isArray -> поле.any { it.asText("") == запись.id || it.asText("") == запись.code }
+    поле.isTextual -> поле.asText() == запись.id || поле.asText() == запись.code
+    else -> false
+}
 
 /**
  * Величина параметра словами, а не JSON: `{value, unit}` → «92 кг», `{min, max}` →

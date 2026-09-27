@@ -106,6 +106,17 @@ class ProgrammaticsTest {
             программатика.packages(проект).single { it.code == пакет }.gaps.none { it.contains("оценки нет") },
             "после оценки разрыв снимается",
         )
+
+        // Переоценка к KDP-B (сцена A10) — новая версия той же оценки, а не 500 на
+        // дубле ключа (прогон двух фаз 27.09): прежняя остаётся в истории.
+        val переоценка = программатика.estimate(
+            проект, пакет, 1900.0, 2500.0, "млн ₽", EstimateMethod.PARAMETRIC,
+            "параметрика по массе ПН, курс 2026; к KDP-B", "СИ",
+        )
+        assertEquals(EstimateMethod.PARAMETRIC, переоценка.method)
+        val запись = store.byCode(Area.Project(проект), "EST-$пакет")!!
+        assertEquals(2, запись.version, "переоценка — версия 2 той же записи")
+        assertEquals(1, store.list(Area.Project(проект), "cost_estimate").count { it.code == "EST-$пакет" })
     }
 
     @Test

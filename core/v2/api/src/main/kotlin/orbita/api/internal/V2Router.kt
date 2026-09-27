@@ -93,6 +93,9 @@ class V2Router(
         // Роль документа на правке на месте — тем же сторожем, что на загрузке (устав один).
         materialRoleGuard = { проект, код, роль -> intake.roleRefusal(проект, код, роль) },
     )
+    // Общие маршруты записи по истине (27.09): заведение записи и связь одним
+    // вызовом на все виды — «+ завести» и грани-связи карточки объекта.
+    private val записи = RecordRoutes(store, links, mapper)
     private val сквозные = AcrossRoutes(store, links, engine, shelves, intake, formulation, mapper, extract = extract)
     private val словарь = GlossaryRoutes(store, links, orbita.knowledge.api.KnowledgeFactory.glossary(store, mapper, links), mapper)
     // Применимость (шип 4 §5): матрица на Постановке — по данным, решение — человеком.
@@ -125,6 +128,7 @@ class V2Router(
     ): Ответ? =
         точки.handle(method, path, query, body, actor)
             ?: сцены.handle(method, path, query, body)
+            ?: записи.handle(method, path, query, body)
             ?: словарь.handle(method, path, query, body)
             ?: досье.handle(method, path, query, body)
             ?: применимость.handle(method, path, query, body)

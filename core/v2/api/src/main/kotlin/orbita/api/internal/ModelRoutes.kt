@@ -143,6 +143,8 @@ class ModelRoutes(
                 узел.putObject("last_run").apply {
                     put("code", прогон.code).put("at", прогон.at).put("by", прогон.by)
                     put("proxy", прогон.proxy)
+                    val выходы = putObject("outputs")
+                    прогон.outputs.forEach { (к, з) -> выходы.put(к, з) }
                     val устаревшие = putArray("stale_inputs")
                     прогон.staleInputs.forEach { устаревшие.add(it) }
                 }
@@ -156,9 +158,24 @@ class ModelRoutes(
         return V2Router.Ответ(201, mapper.createObjectNode().put("taken", взято.size))
     }
 
+    /**
+     * Выходы прогона — по истине `[{key, measure: {value, unit}}]` (форма карточки
+     * модели шлёт так же). Прежний вид «ключ → текст» отбивается словами: числа
+     * из свободного текста не разбираются (thresholds_rule), а текстом ответ
+     * модели условие A6 не считало никогда.
+     */
+    private fun выходыПрогона(узел: JsonNode): List<orbita.models.api.RunOutput> {
+        require(узел.isArray) { "выходы прогона — величины с единицей: outputs [{key, measure: {value, unit}}]" }
+        return узел.map { в ->
+            val мера = в.path("measure")
+            val значение = мера.path("value")
+            require(значение.isNumber) { "выход «${в.path("key").asText("")}»: значение — число, единица — отдельно" }
+            orbita.models.api.RunOutput(в.path("key").asText("").trim(), значение.asDouble(), мера.path("unit").asText("").trim())
+        }
+    }
+
     private fun прогон(проект: String, модель: String, тело: JsonNode): V2Router.Ответ {
-        val выходы = тело.path("outputs").fields().asSequence()
-            .associate { (к, з) -> к to з.asText() }
+        val выходы = выходыПрогона(тело.path("outputs"))
         val прогон = models.run(проект, модель, тело.path("author").asText("стенд"), выходы)
         val ответ = mapper.createObjectNode()
         ответ.put("code", прогон.code).put("at", прогон.at).put("proxy", прогон.proxy)
