@@ -4476,6 +4476,7 @@ enum_labels:
     regulatory: регуляторное
     financial: финансовое
   link.type:
+    named_by: назван термином
     owns: владеет
     covers: покрывает
     derives_from: выведено из
@@ -4514,6 +4515,349 @@ enum_labels:
   gate.expertise_answers.answer:
     'yes': да
     'no': нет
+  # слова перечней — диф владельца 26.09 (ПЕРЕЧНИ-БЕЗ-СЛОВ, 63 перечня)
+  unit.conversion_type:
+    linear: линейное
+    offset: со сдвигом
+    log: логарифмическое
+    rate: темп (в единицу времени)
+  qos_class.code:
+    A′: A′ — критичный
+    B′: B′ — оперативный
+    C′: C′ — массовый
+  method_catalog.catalog:
+    verification_method: методы верификации
+    trl_scale: шкала УГТ (TRL)
+    risk_probability: вероятность риска
+    risk_impact: последствия риска
+    status_model: модели состояний
+    priority: приоритеты
+  phase_template.standard:
+    NASA-7120: NASA (NPR 7120.5)
+    RK-11KT: РК-11-КТ
+    ISO-15288: ISO/IEC/IEEE 15288
+  document_template.nature:
+    narrative: текст
+    registry_view: вид реестра
+    mixed: смешанный
+  document.nature:
+    narrative: текст
+    registry_view: вид реестра
+    mixed: смешанный
+  typical_requirement.ears_pattern:
+    ubiquitous: всегда
+    event: по событию
+    state: в состоянии
+    unwanted: при нежелательном событии
+    optional: при наличии возможности
+  typical_requirement.category:
+    functional: функциональное
+    performance: характеристика
+    interface: интерфейсное
+    operational: эксплуатационное
+    constraint: ограничение
+    safety: безопасность
+    environment: условия среды
+  questionnaire.target_kind:
+    component: узел состава
+    interface: стык
+  questionnaire.kind_presets:
+    platform: платформа
+    payload: полезная нагрузка
+    terminal: терминал
+    station: станция
+    software: программное обеспечение
+  package_kind.sources:
+    intent: замысел
+    library: библиотека
+    materials: материалы
+    accepted: принятое
+    constraints: ограничения
+  project.group:
+    work: рабочий
+    example: пример
+  decision.outcome:
+    approve: переход
+    return: возврат на доработку
+    terminate: прекращение
+    defer: отложить
+  history.action:
+    create: создание
+    update: правка
+    cancel: снятие
+    baseline: базирование
+    fix: фиксация
+  material.type:
+    mission_memo: записка миссии
+    tor: техническое задание
+    directive: директива
+    normative: нормативный документ
+    datasheet: паспорт изделия
+    quote: коммерческое предложение
+    external_icd: внешний ICD
+    external_model: внешняя модель
+    analysis: аналитика
+    heritage: наследие
+    regulatory_decision: решение регулятора
+    reference: справка
+  material.classification:
+    open: открыто
+    dsp: ДСП
+    commercial: коммерческая тайна
+    state_secret: государственная тайна
+  fact.classification:
+    open: открыто
+    dsp: ДСП
+    commercial: коммерческая тайна
+  material.language:
+    ru: русский
+    en: английский
+  material.accept_mode:
+    whole: целиком
+    sections: разделами
+    selective: выборочно
+    context_only: только как обстановка
+    rejected: отклонён
+  scenario.layer:
+    OA: операционный (OA)
+    SA: системный (SA)
+  function.layer:
+    SA: системный (SA)
+    LA: логический (LA)
+  model_element.layer:
+    OA: операционный (OA)
+    SA: системный (SA)
+    LA: логический (LA)
+    PA: физический (PA)
+  requirement.applicability:
+    applied: применяется
+    applied_with_deviation: применяется с отступлением
+    not_applicable: не применяется
+  component.applicability:
+    applied: применяется
+    applied_with_deviation: применяется с отступлением
+    not_applicable: не применяется
+  link.subtype:
+    decomposition: декомпозиция
+    derivation: деривация
+    refinement: уточнение
+  component.kind:
+    system: система
+    segment: сегмент
+    element: элемент
+    subsystem: подсистема
+    assembly: сборка
+    unit: блок
+  typical_component.kind:
+    system: система
+    segment: сегмент
+    element: элемент
+    subsystem: подсистема
+    assembly: сборка
+    unit: блок
+  interface.type:
+    RF: радиоканал
+    power: электропитание
+    data: данные
+    thermal: тепловой
+    mech: механический
+    env: среда
+    hmi: человек — машина
+    org: организационный
+  interface.direction:
+    uni: в одну сторону
+    bi: в обе стороны
+    static: статический
+    org: организационный
+  model_element.tool:
+    capella: Capella
+  model_element.type:
+    OperationalCapability: операционная способность
+    SystemFunction: системная функция
+    LogicalFunction: логическая функция
+    LogicalComponent: логический компонент
+    PhysicalComponent: физический компонент
+    FunctionalExchange: функциональный обмен
+    FunctionalChain: функциональная цепочка
+    Diagram: диаграмма
+  system_model.verification_status:
+    unverified: не проверена
+    verified: верифицирована
+    validated: валидирована
+  metric.group:
+    A: A — покрытие и доступность
+    B: B — задержка и пропускная способность
+    V: V — стоимость
+    G: G — устойчивость
+  metric.direction:
+    max: больше — лучше
+    min: меньше — лучше
+  budget.kind:
+    mass: масса
+    power: мощность
+    energy: энергия
+    link: радиолиния
+    dv: характеристическая скорость
+    data: объём данных
+    compute: вычисления
+  verification_event.result:
+    pass: пройдено
+    fail: не пройдено
+    partial: частично
+  cost_estimate.method:
+    rom: укрупнённая (ROM)
+    parametric: параметрическая
+    bottom_up: снизу вверх
+  export.type:
+    reqif: ReqIF
+    sdoc: StrictDoc
+    knowledge: знания
+    gate_package: пакет точки
+  export.reqif_profile:
+    ORBITA: Орбита
+  import_batch.type:
+    reqif: ReqIF
+    sdoc: StrictDoc
+    package: пакет
+  ai_call.outcome:
+    ok: успешно
+    error: ошибка
+    aborted: прерван
+  parameter.origin:
+    manual: вручную
+    datasheet: паспорт изделия
+    shelf: полка
+    computed: расчёт
+    example: пример
+  typical_component.nature:
+    node: узел
+    behaviour: поведение
+  typical_component.role:
+    node: узел
+    behaviour: поведение
+    facility: объект инфраструктуры
+    terminal: терминал
+    external: внешняя система
+  exchange_item.type:
+    flow: поток
+    operation: операция
+    event: событие
+    shared_data: общие данные
+  data_type.base:
+    int: целое
+    float: вещественное
+    bool: логическое
+    enum: перечисление
+    string: строка
+    bytes: байты
+    struct: структура
+  configuration_item.type:
+    HW: аппаратура
+    SW: программа
+    FW: встроенное ПО
+    DOC: документ
+  intake_task.intent_kind:
+    harvest: собрать знания
+    shelve_typical: положить типовое на полку
+    baseline_candidate: кандидат в базовый вариант
+    compare: сравнить
+    update_params: обновить параметры
+    register_normative: зарегистрировать норматив
+    assess_tor: оценить ТЗ
+    context_only: только обстановка
+    other: другое
+  fact.kind:
+    quantity: величина
+    capability: возможность
+    obligation: обязательство
+    framing: рамка
+    event: событие
+    relation: связь
+    assessment: оценка
+    assumption: допущение
+    external_target: чужая цель
+    external_need: чужая нужда
+  fact.entity_class:
+    requirement: требование
+    function: функция
+    service: сервис
+    composition_node: узел состава
+    stakeholder: сторона
+    constraint: ограничение
+    milestone: веха
+    normative_ref: нормативная ссылка
+  fact.rank:
+    mandatory: обязательный
+    expert: экспертный
+    reference: справочный
+    doubtful: сомнительный
+  action.kind:
+    create_typical: завести типовое
+    create_entity: завести сущность
+    update_params: обновить параметры
+    compare: сравнить
+    request_data: запросить данные
+    flag_conflict: отметить противоречие
+    create_decision: завести решение
+    create_risk: завести риск
+    attach_context: приложить обстановку
+  action.decision:
+    pending: ждёт
+    accepted: принято
+    rejected: отклонено
+  element.kind:
+    fact_ref: ссылка на факт
+    entity_ref: ссылка на сущность
+    statement: тезис
+    query: выборка
+    figure: рисунок
+    table: таблица
+  process_catalog.group:
+    system_design: проектирование системы
+    product_realization: реализация изделия
+    technical_management: техническое управление
+    agreement: соглашения
+    organizational: организационные
+    mbse: MBSE
+  typical_risk.category:
+    technical: технический
+    cost: стоимость
+    schedule: сроки
+    safety: безопасность
+    regulatory: регуляторный
+    security: защищённость
+    programmatic: программный
+  typical_risk.strategy:
+    mitigate: снижать
+    accept: принять
+    transfer: передать
+    avoid: избегать
+  stakeholder_profile.role:
+    customer: заказчик
+    regulator: регулятор
+    operator: оператор
+    consumer: потребитель
+    supplier: поставщик
+    partner: партнёр
+    established: учреждаемый
+  right.scope:
+    project: проект
+    system: система
+  synthesis_run.trigger:
+    manual: по команде
+    new_material: новый документ
+    new_facts: новые факты
+    manual_edit: ручная правка
+    reading: чтение документа
+  milestone.kind:
+    program_stage: этап программы
+    external_event: внешнее событие
+    contract: договорная веха
+  opportunity.proposal:
+    extend_scope: расширить охват
+    add_service: добавить сервис
+    descope: сузить охват
+    reject: отказать
 write_rules:
   schema_on_write: 'любая запись сущности валидируется истиной: поле вне схемы вида — отказ, а не молчаливое сохранение'
   print_queries: запрос печати ссылается только на поля истины; неизвестное поле — отказ сборки (validate_document_queries)
