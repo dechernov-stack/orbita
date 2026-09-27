@@ -78,6 +78,16 @@ def вызов(base: str, метод: str, путь: str, тело=None):
         raise Отказ(f"{метод} {путь} → {e.code}: {причина[:300]}") from None
 
 
+# Выходы прогона четырёх обязательных моделей A6 — величины с единицей (как их
+# записывает форма прогона); числа — прогона, не расчёта: прогон проверяет дорогу.
+ВЫХОДЫ_МОДЕЛЕЙ = {
+    "М1": [("coverage_smp", 87.0, "%")],
+    "М2а": [("link_margin", 3.2, "дБ")],
+    "М3а": [("delivery_p95", 150.0, "мин")],
+    "М6": [("mass_total", 92.25, "кг")],
+}
+
+
 class Прогон:
     def __init__(self, base: str, проект: str, сид: dict, точки: bool = False, знания: bool = False, фазаA: bool = False):
         self.точки = точки
@@ -754,15 +764,23 @@ class Прогон:
         выведенные = {т.get("code") for т in требования if str(т.get("code", "")).startswith("RQ-S-000")}
         if проектные and "RQ-S-0001" not in выведенные:
             родитель = проектные[0]["code"]
+            # Путь экрана (27.09): системное — формой «Новое требование» (носитель —
+            # элемент, источник — цель), родитель — гранью «Выведено из» карточки
+            # требования (связь derives_from с обоснованием общим маршрутом связей).
+            цель = (self.сущности("goal") or [{}])[0].get("id")
             for код, формулировка, основание, носитель in [
                 ("RQ-S-0001", "КА должен передавать кадр телеметрии в НКУ не реже одного раза за виток.", "суточная норма проектного уровня делится на 16 витков", "EL-SC"),
                 ("RQ-S-0002", "НКУ должен принимать кадры телеметрии на каждом сеансе связи с КА.", "приём — зеркало передачи", "EL-GS"),
                 ("RQ-S-0003", "Абонентский терминал должен получать подтверждение доставки в течение двух суток.", "класс B′: подтверждённая доставка — нужда ND-0002", "EL-UT"),
             ]:
-                вызов(self.base, "POST", f"/v2/requirements/derive?project={self.проект}",
-                      {"parent": родитель, "code": код, "statement": формулировка, "rationale": основание, "carrier": носитель, "subtype": "decomposition",
-                       "verification_method": "test", "acceptance_criteria": "в журнале приёмного тракта есть кадр за каждый виток сеанса", "author": "Иванов И."})
-                self.сделано.append(f"Phase A: {код} выведено из {родитель} на {носитель}")
+                вызов(self.base, "POST", f"/v2/requirements?project={self.проект}", {
+                    "code": код, "level": "system", "title": формулировка[:40], "statement": формулировка, "category": "functional",
+                    "carrier": носитель, "verification_method": "test", "ears_pattern": "ubiquitous",
+                    "acceptance_criteria": "в журнале приёмного тракта есть кадр за каждый виток сеанса",
+                    "source": [{"kind": "goal", "ref": цель}] if цель else [], "author": "Иванов И."})
+                вызов(self.base, "POST", f"/v2/links?project={self.проект}", {
+                    "type": "derives_from", "from": код, "to": родитель, "subtype": "decomposition", "rationale": основание, "author": "Иванов И."})
+                self.сделано.append(f"Phase A: {код} на {носитель} — формой, «выведено из» {родитель} гранью карточки")
         # стыки элементов: IF-S-USER — КА ↔ терминал; IF-S-G — КА ↔ НКУ
         стыки = {с["code"] for с in вызов(self.base, "GET", f"/v2/interfaces?project={self.проект}").get("items", [])}
         for код, имя, тип, a, b in [
@@ -776,11 +794,17 @@ class Прогон:
             self.сделано.append(f"Phase A: стык {код}")
         # требование на стык — ICD собирается из него
         if not any(т.get("code") == "RQ-S-0004" for т in требования) and проектные:
-            вызов(self.base, "POST", f"/v2/requirements/derive?project={self.проект}",
-                  {"parent": проектные[0]["code"], "code": "RQ-S-0004", "statement": "Стык КА — терминал должен обеспечивать передачу пакета 32 байта за один сеанс видимости.",
-                   "rationale": "короткое сообщение класса A′ — 32 байта", "carrier": "IF-S-USER", "subtype": "refinement", "category": "interface", "level": "interface",
-                   "verification_method": "test", "acceptance_criteria": "пакет 32 байта принят за один сеанс на стенде стыка", "author": "Иванов И."})
-            self.сделано.append("Phase A: RQ-S-0004 на стык IF-S-USER")
+            цель = (self.сущности("goal") or [{}])[0].get("id")
+            вызов(self.base, "POST", f"/v2/requirements?project={self.проект}", {
+                "code": "RQ-S-0004", "level": "interface", "title": "пакет 32 байта за сеанс",
+                "statement": "Стык КА — терминал должен обеспечивать передачу пакета 32 байта за один сеанс видимости.",
+                "category": "interface", "carrier": "IF-S-USER", "verification_method": "test", "ears_pattern": "ubiquitous",
+                "acceptance_criteria": "пакет 32 байта принят за один сеанс на стенде стыка",
+                "source": [{"kind": "goal", "ref": цель}] if цель else [], "author": "Иванов И."})
+            вызов(self.base, "POST", f"/v2/links?project={self.проект}", {
+                "type": "derives_from", "from": "RQ-S-0004", "to": проектные[0]["code"], "subtype": "refinement",
+                "rationale": "короткое сообщение класса A′ — 32 байта", "author": "Иванов И."})
+            self.сделано.append("Phase A: RQ-S-0004 на стык IF-S-USER — формой и гранью «Выведено из»")
         # документы фазы: SEMP, OpsCon, ICD
         self.войти("chernov")
         документы = {д["code"] for д in вызов(self.base, "GET", f"/v2/documents?project={self.проект}").get("items", [])}
@@ -851,8 +875,38 @@ class Прогон:
                     self.пропущено.append(f"A4: нормативы {код} — {str(о)[:100]}")
         else:
             self.пропущено.append("A4: нормативов на полке нет — грань «Нормативы» кормить нечем")
-        for грань in ("Поставщик и ответственный", "Конфигурация изделия (КЕ)", "Модели (привязка входов)", "Верификация (методы)"):
-            self.пропущено.append(f"A4: грань «{грань}» лестницы узла — нечем: ни маршрута, ни формы")
+        # КЕ — «+ завести КЕ» строки долга карточки узла (общее заведение записи).
+        единицы = {е.get("doc", {}).get("component") for е in self.сущности("configuration_item")}
+        узлы = {у["code"]: у for у in вызов(self.base, "GET", f"/v2/components?project={self.проект}").get("items", [])}
+        for код, тип in [("EL-SC", "HW"), ("EL-GS", "HW"), ("EL-UT", "HW")]:
+            if узлы.get(код, {}).get("id") in единицы or код in единицы:
+                continue
+            try:
+                вызов(self.base, "POST", f"/v2/entities?project={self.проект}", {"kind": "configuration_item", "fields": {
+                    "component": код, "type": тип, "responsible": "chernov"}, "author": "Иванов И."})
+                self.сделано.append(f"A4: КЕ узла {код}")
+            except Отказ as о:
+                self.пропущено.append(f"A4: КЕ {код} — {str(о)[:120]}")
+        # Поставщик — пикер стороны строки долга: связь «владеет» сторона → узел.
+        стороны = self.сущности("stakeholder")
+        if стороны:
+            for код in self.ЭЛЕМЕНТЫ:
+                try:
+                    вызов(self.base, "POST", f"/v2/links?project={self.проект}", {"type": "owns", "from": стороны[0]["code"], "to": код, "author": "Иванов И."})
+                    self.сделано.append(f"A4: поставщик {стороны[0]['code']} у {код}")
+                except Отказ as о:
+                    self.пропущено.append(f"A4: поставщик {код} — {str(о)[:120]}")
+        # Модели — «привязать модель» строки долга: величина анкеты узла — вход модели (правка на месте).
+        модели = {м["code"] for м in вызов(self.base, "GET", f"/v2/models?project={self.проект}").get("items", [])}
+        if not модели:
+            вызов(self.base, "POST", f"/v2/models/take?project={self.проект}", {"author": "Иванов И."})
+        входы = [{"param_ref": п} for п in ("EL-SC.mass_dry", "EL-GS.power_avg", "EL-UT.mass_dry")]
+        try:
+            вызов(self.base, "PATCH", f"/v2/entities/{urllib.parse.quote('М6')}?project={self.проект}",
+                  {"fields": {"inputs": входы}, "author": "Иванов И.", "reason": "величины элементов — входы свёртки массы и мощности"})
+            self.сделано.append("A4: модель М6 читает величины трёх элементов")
+        except Отказ as о:
+            self.пропущено.append(f"A4: привязка модели — {str(о)[:120]}")
 
     # ── Условия сцен Phase A (поставка 10.09): кормим то, для чего есть дорога ──
     def phase_a_условия(self, фаза: dict) -> None:
@@ -933,17 +987,22 @@ class Прогон:
             if код in функции:
                 continue
             try:
-                вызов(self.base, "POST", f"/v2/functions?project={self.проект}", {"code": код, "name": имя, "layer": "SA", "allocated_to": [узел], "author": "Иванов И."})
+                # «+ завести функцию» строки долга карточки узла — общее заведение записи.
+                вызов(self.base, "POST", f"/v2/entities?project={self.проект}",
+                      {"kind": "function", "code": код, "fields": {"name": имя, "layer": "SA", "allocated_to": [узел]}, "author": "Иванов И."})
                 self.сделано.append(f"A5: функция {код} → {узел}")
             except Отказ as о:
                 self.пропущено.append(f"A5: функция {код} — {str(о)[:100]}")
         обмены = {о["code"] for о in вызов(self.base, "GET", f"/v2/exchanges?project={self.проект}").get("items", [])}
-        for код, имя, стык, функция in [("EX-MSG", "сообщение терминала", "IF-S-USER", "FN-UT"), ("EX-TM", "кадр телеметрии", "IF-S-G", "FN-TX")]:
+        for код, имя, стык, функция, цель in [("EX-MSG", "сообщение терминала", "IF-S-USER", "FN-UT", "FN-TX"), ("EX-TM", "кадр телеметрии", "IF-S-G", "FN-TX", "FN-RX")]:
             if код in обмены:
                 continue
             try:
-                вызов(self.base, "POST", f"/v2/exchanges?project={self.проект}", {"code": код, "name": имя, "interface": стык, "source_function": функция, "payload": "пакет 32 байта", "author": "Иванов И."})
-                вызов(self.base, "POST", f"/v2/exchange-items?project={self.проект}", {"code": "EI-" + код[3:], "name": имя, "type": "flow", "elements": [{"name": "payload", "data_type": "bytes32"}], "exchanges": [код], "author": "Иванов И."})
+                # «+ завести обмен и элемент обмена» строки долга карточки узла — общее заведение.
+                вызов(self.base, "POST", f"/v2/entities?project={self.проект}", {"kind": "exchange", "code": код, "fields": {
+                    "name": имя, "interface": стык, "source_function": функция, "target": цель, "payload": "пакет 32 байта"}, "author": "Иванов И."})
+                вызов(self.base, "POST", f"/v2/entities?project={self.проект}", {"kind": "exchange_item", "code": "EI-" + код[3:], "fields": {
+                    "name": имя, "type": "flow", "elements": [{"name": "payload", "data_type": "bytes32"}], "exchanges": [код]}, "author": "Иванов И."})
                 self.сделано.append(f"A4: обмен {код} на {стык} с элементом обмена")
             except Отказ as о:
                 self.пропущено.append(f"A4: обмен {код} — {str(о)[:100]}")
@@ -963,7 +1022,8 @@ class Прогон:
                 self.пропущено.append(f"A5: бюджет {вид} ({корень}) — {str(о)[:100]}")
         if not вызов(self.base, "GET", f"/v2/logical-components?project={self.проект}").get("items"):
             try:
-                вызов(self.base, "POST", f"/v2/logical-components?project={self.проект}", {"name": "бортовой обработчик сообщений", "functions": ["FN-TX"], "deployed_to": ["EL-SC"], "author": "Иванов И."})
+                вызов(self.base, "POST", f"/v2/entities?project={self.проект}", {"kind": "logical_component", "fields": {
+                    "name": "бортовой обработчик сообщений", "functions": ["FN-TX"], "deployed_to": ["EL-SC"]}, "author": "Иванов И."})
                 self.сделано.append("A5: логический компонент развёрнут на EL-SC")
             except Отказ as о:
                 self.пропущено.append(f"A5: логический компонент — {str(о)[:100]}")
@@ -1011,7 +1071,9 @@ class Прогон:
                 continue
             try:
                 if not модели[код].get("last_run"):
-                    вызов(self.base, "POST", f"/v2/models/{urllib.parse.quote(код)}/run?project={self.проект}", {"author": "Иванов И.", "outputs": {"result": "прогон волны Phase A"}})
+                    # Прогон — действие строки модели: выходы величинами с единицей (истина outputs [{key, measure}]).
+                    вызов(self.base, "POST", f"/v2/models/{urllib.parse.quote(код)}/run?project={self.проект}", {
+                        "author": "Иванов И.", "outputs": [{"key": ключ, "measure": {"value": значение, "unit": единица}} for ключ, значение, единица in ВЫХОДЫ_МОДЕЛЕЙ.get(код, [("answer", 1.0, "шт")])]})
                 if модели[код].get("verification") not in ("verified", "validated"):
                     вызов(self.base, "POST", f"/v2/models/{urllib.parse.quote(код)}/verify?project={self.проект}", {"status": "verified", "note": "сверено с эталоном spec/reference", "author": "Иванов И."})
                 self.сделано.append(f"A6: модель {код} — прогон и верификация")
