@@ -1,0 +1,164 @@
+// Деривация требований вниз (§2.1 шипа 6) — образец помощника Phase A.
+//
+// Проверяется НЕ «модель ответила», а машинные ворота помощника: без родителя
+// деривации нет; родитель обязан существовать среди требований узла или предка
+// и быть уровнем ВЫШЕ; годное ложится предложением с основанием-РОДИТЕЛЕМ
+// (Basis.Entity) в РУЧНОЙ прогон с пакетом деривации. Канал к модели подменён.
+//
+// Единицу из справочника и «сумму долей бюджета ≤ родителя» ставит помощник
+// мер (§2.1-C2) — здесь их ещё нет.
+package orbita.ai
+
+import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.ObjectMapper
+import orbita.ai.api.AiFactory
+import orbita.ai.api.Answer
+import orbita.ai.api.Basis
+import orbita.ai.api.Transport
+import orbita.ai.internal.RequirementDeriver
+import orbita.ai.internal.Synthesizer
+import orbita.kernel.api.Area
+import orbita.kernel.api.Channel
+import orbita.kernel.api.Provenance
+import orbita.knowledge.api.KnowledgeFactory
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
+
+class RequirementDeriveTest {
+
+    private val mapper = ObjectMapper()
+    private val store = ПамятьПоля()
+    private val знания = KnowledgeFactory.intake(store, null, mapper)
+    private val канал = КаналДеривации()
+    private val служба = AiFactory.service(store, канал, mapper)
+    private val деривер = RequirementDeriver(store, знания, служба, mapper)
+    private val синтез = Synthesizer(store, знания, служба, mapper)
+
+    @Test
+    fun `годная деривация — предложение с основанием-родителем в ручной прогон`() {
+        схема()
+        канал.ответ = """
+            {"requirements":[
+              {"id":"r1","derives_from":"RQ-S-1","level":"subsystem",
+               "title":"Масса приёмного модуля","statement":"Приёмный модуль не тяжелее 4 кг.",
+               "why":"доля массового бюджета КА"}
+            ]}
+        """.trimIndent()
+
+        val прогон = деривер.deriveInto(ПРОЕКТ, "C-0007", АВТОР, синтез)
+
+        assertEquals("manual", прогон.trigger, "прогон помощника — ручной")
+        val предложение = прогон.diff.new.single()
+        assertEquals("requirement", предложение.concept)
+        val основание = предложение.basis.single()
+        assertTrue(основание is Basis.Entity, "основание деривации — родительское требование, не факт")
+        assertEquals("requirement", (основание as Basis.Entity).kind)
+        assertEquals("RQ-S-1", основание.code, "основание — код родителя из среза")
+        assertEquals(узелId, предложение.payload["carrier"], "носитель дочернего требования — этот узел (id)")
+        assertEquals("subsystem", предложение.payload["level"])
+
+        // Помощника отличает package_kind на карточке, не код понятия (диф 28.09).
+        val карточка = store.list(Area.Project(ПРОЕКТ), "proposal").single()
+        assertEquals("requirement_derivation", карточка.doc.path("package_kind").asText())
+    }
+
+    @Test
+    fun `ворота — родителя нет среди требований узла и предков — отбито`() {
+        схема()
+        канал.ответ = """
+            {"requirements":[
+              {"id":"r1","derives_from":"RQ-НЕТ","level":"subsystem",
+               "statement":"Требование без родителя.","why":"—"}
+            ]}
+        """.trimIndent()
+
+        val прогон = деривер.deriveInto(ПРОЕКТ, "C-0007", АВТОР, синтез)
+
+        assertTrue(прогон.diff.new.isEmpty(), "требование с несуществующим родителем в прогон не идёт")
+        assertTrue("RQ-НЕТ" in (прогон.note ?: ""), "отказ назван поимённо: ${прогон.note}")
+    }
+
+    @Test
+    fun `ворота — уровень родителя не выше уровня дочернего — отбито`() {
+        схема()
+        // Родитель уровня system, «дочернее» тоже system — это не деривация вниз.
+        канал.ответ = """
+            {"requirements":[
+              {"id":"r1","derives_from":"RQ-S-1","level":"system",
+               "statement":"То же по уровню, не ниже.","why":"—"}
+            ]}
+        """.trimIndent()
+
+        val прогон = деривер.deriveInto(ПРОЕКТ, "C-0007", АВТОР, синтез)
+
+        assertTrue(прогон.diff.new.isEmpty(), "равный по уровню — не деривация")
+        assertTrue("не выше" in (прогон.note ?: ""), "отказ называет причину: ${прогон.note}")
+    }
+
+    @Test
+    fun `ворота — у узла и предков нет требований — пустой прогон с причиной`() {
+        // Узел без единого родительского требования: выводить вниз не из чего.
+        паспорт()
+        компонент("C-0100", parent = null)
+
+        val прогон = деривер.deriveInto(ПРОЕКТ, "C-0100", АВТОР, синтез)
+
+        assertTrue(прогон.diff.new.isEmpty(), "без родителя предложений нет")
+        assertTrue("нет" in (прогон.note ?: "").lowercase(), "причина названа: ${прогон.note}")
+        assertTrue(канал.промпты.isEmpty(), "без родителя модель не зовут — ворота машинные, до вызова")
+    }
+
+    // --- срез стенда ---------------------------------------------------------
+
+    /** id узла-носителя C-0007 — carrier дочерних требований хранится им. */
+    private var узелId: String = ""
+
+    /** Проект + корень C-0001, узел C-0007 под ним, системное требование RQ-S-1 на корне. */
+    private fun схема() {
+        паспорт()
+        val корень = компонент("C-0001", parent = null)
+        узелId = компонент("C-0007", parent = корень)
+        требование("RQ-S-1", level = "system", carrier = корень, statement = "Масса КА не более 100 кг.")
+    }
+
+    private fun паспорт() {
+        store.create(
+            ПРОЕКТ, "project", Area.Project(ПРОЕКТ), null,
+            mapper.createObjectNode().put("name", "Стенд деривации").put("knowledge_v2", true),
+            Provenance(Channel.MANUAL, АВТОР),
+        )
+    }
+
+    /** Узел состава; parent — id корня (как хранит истина: ref идентификатором). Возвращает id. */
+    private fun компонент(код: String, parent: String?): String {
+        val документ = mapper.createObjectNode().put("name", "узел $код")
+        parent?.let { документ.put("parent", it) }
+        return store.create(
+            код, "component", Area.Project(ПРОЕКТ), null, документ, Provenance(Channel.MANUAL, АВТОР),
+        ).id
+    }
+
+    private fun требование(код: String, level: String, carrier: String, statement: String) {
+        val документ = mapper.createObjectNode()
+            .put("level", level).put("title", statement.take(60)).put("statement", statement)
+            .put("category", "performance").put("carrier", carrier).put("ears_pattern", "ubiquitous")
+        store.create(код, "requirement", Area.Project(ПРОЕКТ), null, документ, Provenance(Channel.MANUAL, АВТОР))
+    }
+
+    private companion object {
+        const val ПРОЕКТ = "PRJ"
+        const val АВТОР = "инженер"
+    }
+}
+
+/** Канал-подмена: сеть не нужна, ответ задаётся тестом, промпты видны. */
+private class КаналДеривации : Transport {
+    var ответ: String = """{"requirements":[]}"""
+    val промпты = mutableListOf<String>()
+
+    override fun ask(prompt: String, model: String?, maxTokens: Int?, schema: JsonNode?): Answer {
+        промпты += prompt
+        return Answer(text = ответ, model = "модель-теста", tokensIn = 50, tokensOut = 80)
+    }
+}

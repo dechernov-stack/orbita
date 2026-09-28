@@ -10,6 +10,7 @@ import orbita.ai.internal.FunctionAllocationDistributor
 import orbita.ai.internal.GoalCoverageDistributor
 import orbita.ai.internal.ScenarioProposer
 import orbita.ai.internal.NeedDistributor
+import orbita.ai.internal.RequirementDeriver
 import orbita.ai.internal.StatementImporter
 import orbita.ai.internal.HttpTransport
 import orbita.ai.internal.JournalService
@@ -41,6 +42,16 @@ fun interface ReadDocument {
  */
 fun interface ImportStatement {
     fun import(project: String, material: String, statement: com.fasterxml.jackson.databind.JsonNode, author: String): SynthesisRun
+}
+
+/**
+ * Деривация требований узла вниз (§2.1 шипа 6) — образец помощника Phase A:
+ * машина находит родительские требования узла и ставит ворота, модель
+ * формулирует, предложения ложатся РУЧНЫМ прогоном постановки. Кнопка карточки
+ * узла ведёт в «Предложения» с отбором по этому прогону.
+ */
+fun interface DeriveRequirements {
+    fun derive(project: String, node: String, author: String): SynthesisRun
 }
 
 /**
@@ -134,6 +145,25 @@ object AiFactory {
         val синтез = Synthesizer(store, intake, service, mapper)
         return ReadDocument { project, material, author ->
             читатель.readInto(project, material, author, синтез)
+        }
+    }
+
+    /**
+     * Деривация требований узла вниз (§2.1 шипа 6). Собирается из двух
+     * работников: деривер добывает дочерние требования с основанием-родителем,
+     * синтез кладёт их РУЧНЫМ прогоном — форма записи и приём те же, что у
+     * чтения и синтеза поля.
+     */
+    fun deriveRequirements(
+        store: EntityStore,
+        intake: Intake,
+        service: AiService,
+        mapper: ObjectMapper = ObjectMapper(),
+    ): DeriveRequirements {
+        val деривер = RequirementDeriver(store, intake, service, mapper)
+        val синтез = Synthesizer(store, intake, service, mapper)
+        return DeriveRequirements { project, node, author ->
+            деривер.deriveInto(project, node, author, синтез)
         }
     }
 

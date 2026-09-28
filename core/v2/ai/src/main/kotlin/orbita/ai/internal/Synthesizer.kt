@@ -341,10 +341,13 @@ class Synthesizer(
         note: String,
         proposals: List<FormationProposal>,
         refused: List<String> = emptyList(),
+        trigger: String = ЧТЕНИЕ,
+        пакет: String = ПАКЕТ,
     ): SynthesisRun {
+        require(trigger.isNotBlank()) { "запуск синтеза без причины запуска" }
         val область = Area.Project(project)
         val документ = mapper.createObjectNode()
-        документ.put("trigger", ЧТЕНИЕ)
+        документ.put("trigger", trigger)
         документ.put("slice_fingerprint", fingerprint)
         документ.put("slice_size", proposals.size)
         документ.put("ontology_version", GeneratedOntology.ontologyVersion)
@@ -353,7 +356,7 @@ class Synthesizer(
         val коды = документ.putArray("proposals")
         val диф = пустойДиф(документ)
         proposals.forEach { предложение ->
-            val код = карточка(область, author, fingerprint, предложение)
+            val код = карточка(область, author, fingerprint, предложение, пакет)
             коды.add(код)
             (диф.get(предложение.verdict.code) as ArrayNode).add(вЗапись(предложение, код))
         }
@@ -618,9 +621,18 @@ class Synthesizer(
      * строкой на экране — по нему человек принимает решение, и решение видно
      * в самой карточке.
      */
-    private fun карточка(область: Area, author: String, отпечаток: String, предложение: FormationProposal): String {
+    private fun карточка(
+        область: Area,
+        author: String,
+        отпечаток: String,
+        предложение: FormationProposal,
+        пакет: String = ПАКЕТ,
+    ): String {
         val документ = mapper.createObjectNode()
-        документ.put("package_kind", ПАКЕТ)
+        // Помощника отличает package_kind, не код понятия (диф 28.09): одно и то
+        // же понятие (требование) может прийти чтением и деривацией — их
+        // различает пакет, по нему же идёт отбор прогона и счёт условию сцены.
+        документ.put("package_kind", пакет)
         документ.putObject("source").put("prompt", отпечаток)
         val предмет = документ.putArray("items").addObject()
         предмет.put("class", предложение.concept)
