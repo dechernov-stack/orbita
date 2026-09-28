@@ -1,0 +1,738 @@
+{
+  "_comment": "Полка единиц v2 — порождена tools/v2/gen_units_shelf.py из справочника единиц (пакет 07, UR-9001). Правки — в источнике, не здесь.",
+  "code": "ПОЛКА-ЕДИНИЦЫ",
+  "item_status": "Baseline",
+  "items": [
+    {
+      "dimension": "масса",
+      "symbol": "kg",
+      "name": "кг",
+      "canonical": true,
+      "conversion_type": "linear",
+      "factor": 1,
+      "code": "kg"
+    },
+    {
+      "dimension": "масса",
+      "symbol": "g",
+      "name": "г",
+      "canonical": false,
+      "conversion_type": "linear",
+      "factor": 0.001,
+      "code": "g"
+    },
+    {
+      "dimension": "масса",
+      "symbol": "t",
+      "name": "т",
+      "canonical": false,
+      "conversion_type": "linear",
+      "factor": 1000,
+      "code": "t"
+    },
+    {
+      "dimension": "длина",
+      "symbol": "m",
+      "name": "м",
+      "canonical": true,
+      "conversion_type": "linear",
+      "factor": 1,
+      "code": "m"
+    },
+    {
+      "dimension": "длина",
+      "symbol": "mm",
+      "name": "mm",
+      "canonical": false,
+      "conversion_type": "linear",
+      "factor": 0.001,
+      "code": "mm"
+    },
+    {
+      "dimension": "длина",
+      "symbol": "km",
+      "name": "км",
+      "canonical": false,
+      "conversion_type": "linear",
+      "factor": 1000,
+      "code": "km"
+    },
+    {
+      "dimension": "площадь",
+      "symbol": "m2",
+      "name": "м²",
+      "canonical": true,
+      "conversion_type": "linear",
+      "factor": 1,
+      "code": "m2"
+    },
+    {
+      "dimension": "площадь",
+      "symbol": "km2",
+      "name": "км2",
+      "canonical": false,
+      "conversion_type": "linear",
+      "factor": 1000000,
+      "code": "km2"
+    },
+    {
+      "dimension": "площадь",
+      "symbol": "cm2",
+      "name": "см²",
+      "canonical": false,
+      "conversion_type": "linear",
+      "factor": 0.0001,
+      "code": "cm2"
+    },
+    {
+      "dimension": "объём",
+      "symbol": "m3",
+      "name": "m3",
+      "canonical": true,
+      "conversion_type": "linear",
+      "factor": 1,
+      "code": "m3"
+    },
+    {
+      "dimension": "объём",
+      "symbol": "dm3",
+      "name": "л",
+      "canonical": false,
+      "conversion_type": "linear",
+      "factor": 0.001,
+      "code": "dm3"
+    },
+    {
+      "dimension": "время",
+      "symbol": "s",
+      "name": "с",
+      "canonical": true,
+      "conversion_type": "linear",
+      "factor": 1,
+      "code": "s"
+    },
+    {
+      "dimension": "время",
+      "symbol": "min",
+      "name": "мин",
+      "canonical": false,
+      "conversion_type": "linear",
+      "factor": 60,
+      "code": "min"
+    },
+    {
+      "dimension": "время",
+      "symbol": "h",
+      "name": "ч",
+      "canonical": false,
+      "conversion_type": "linear",
+      "factor": 3600,
+      "code": "h"
+    },
+    {
+      "dimension": "время",
+      "symbol": "d",
+      "name": "день",
+      "canonical": false,
+      "conversion_type": "linear",
+      "factor": 86400,
+      "code": "d"
+    },
+    {
+      "dimension": "время",
+      "symbol": "a",
+      "name": "год",
+      "canonical": false,
+      "conversion_type": "linear",
+      "factor": 31557600,
+      "code": "a"
+    },
+    {
+      "dimension": "время",
+      "symbol": "ms",
+      "name": "мс",
+      "canonical": false,
+      "conversion_type": "linear",
+      "factor": 0.001,
+      "code": "ms"
+    },
+    {
+      "dimension": "угол",
+      "symbol": "rad",
+      "name": "rad",
+      "canonical": true,
+      "conversion_type": "linear",
+      "factor": 1,
+      "code": "rad"
+    },
+    {
+      "dimension": "угол",
+      "symbol": "deg",
+      "name": "°",
+      "canonical": false,
+      "conversion_type": "linear",
+      "factor": 0.0174532925199433,
+      "code": "deg"
+    },
+    {
+      "dimension": "угол",
+      "symbol": "arcmin",
+      "name": "arcmin",
+      "canonical": false,
+      "conversion_type": "linear",
+      "factor": 0.000290888208665722,
+      "code": "arcmin"
+    },
+    {
+      "dimension": "скорость",
+      "symbol": "m/s",
+      "name": "м/с",
+      "canonical": true,
+      "conversion_type": "linear",
+      "factor": 1,
+      "code": "m_s"
+    },
+    {
+      "dimension": "скорость",
+      "symbol": "km/s",
+      "name": "км/с",
+      "canonical": false,
+      "conversion_type": "linear",
+      "factor": 1000,
+      "code": "km_s"
+    },
+    {
+      "dimension": "скорость",
+      "symbol": "km/h",
+      "name": "км/ч",
+      "canonical": false,
+      "conversion_type": "linear",
+      "factor": 0.2777777777777778,
+      "code": "km_h"
+    },
+    {
+      "dimension": "температура",
+      "symbol": "K",
+      "name": "К",
+      "canonical": true,
+      "conversion_type": "offset",
+      "factor": 1,
+      "code": "k"
+    },
+    {
+      "dimension": "температура",
+      "symbol": "degC",
+      "name": "°C",
+      "canonical": false,
+      "conversion_type": "offset",
+      "factor": 1,
+      "offset": 273.15,
+      "code": "degc"
+    },
+    {
+      "dimension": "давление",
+      "symbol": "Pa",
+      "name": "Pa",
+      "canonical": true,
+      "conversion_type": "linear",
+      "factor": 1,
+      "code": "pa"
+    },
+    {
+      "dimension": "давление",
+      "symbol": "bar",
+      "name": "bar",
+      "canonical": false,
+      "conversion_type": "linear",
+      "factor": 100000,
+      "code": "bar"
+    },
+    {
+      "dimension": "частота",
+      "symbol": "Hz",
+      "name": "Гц",
+      "canonical": true,
+      "conversion_type": "linear",
+      "factor": 1,
+      "code": "hz"
+    },
+    {
+      "dimension": "частота",
+      "symbol": "kHz",
+      "name": "кГц",
+      "canonical": false,
+      "conversion_type": "linear",
+      "factor": 1000,
+      "code": "khz"
+    },
+    {
+      "dimension": "частота",
+      "symbol": "MHz",
+      "name": "МГц",
+      "canonical": false,
+      "conversion_type": "linear",
+      "factor": 1000000,
+      "code": "mhz"
+    },
+    {
+      "dimension": "частота",
+      "symbol": "GHz",
+      "name": "ГГц",
+      "canonical": false,
+      "conversion_type": "linear",
+      "factor": 1000000000,
+      "code": "ghz"
+    },
+    {
+      "dimension": "энергия",
+      "symbol": "J",
+      "name": "Дж",
+      "canonical": true,
+      "conversion_type": "linear",
+      "factor": 1,
+      "code": "j"
+    },
+    {
+      "dimension": "энергия",
+      "symbol": "Wh",
+      "name": "Вт·ч",
+      "canonical": false,
+      "conversion_type": "linear",
+      "factor": 3600,
+      "code": "wh"
+    },
+    {
+      "dimension": "энергия",
+      "symbol": "kWh",
+      "name": "кВт·ч",
+      "canonical": false,
+      "conversion_type": "linear",
+      "factor": 3600000,
+      "code": "kwh"
+    },
+    {
+      "dimension": "мощность",
+      "symbol": "W",
+      "name": "Вт",
+      "canonical": true,
+      "conversion_type": "linear",
+      "factor": 1,
+      "code": "w"
+    },
+    {
+      "dimension": "мощность",
+      "symbol": "mW",
+      "name": "мВт",
+      "canonical": false,
+      "conversion_type": "linear",
+      "factor": 0.001,
+      "code": "mw"
+    },
+    {
+      "dimension": "мощность",
+      "symbol": "kW",
+      "name": "кВт",
+      "canonical": false,
+      "conversion_type": "linear",
+      "factor": 1000,
+      "code": "kw"
+    },
+    {
+      "dimension": "заряд АКБ",
+      "symbol": "Ah",
+      "name": "А·ч",
+      "canonical": true,
+      "conversion_type": "linear",
+      "factor": 1,
+      "code": "ah"
+    },
+    {
+      "dimension": "заряд АКБ",
+      "symbol": "mAh",
+      "name": "mAh",
+      "canonical": false,
+      "conversion_type": "linear",
+      "factor": 0.001,
+      "code": "mah"
+    },
+    {
+      "dimension": "скорость передачи",
+      "symbol": "bit/s",
+      "name": "бит/с",
+      "canonical": true,
+      "conversion_type": "linear",
+      "factor": 1,
+      "code": "bit_s"
+    },
+    {
+      "dimension": "скорость передачи",
+      "symbol": "kbit/s",
+      "name": "кбит/с",
+      "canonical": false,
+      "conversion_type": "linear",
+      "factor": 1000,
+      "code": "kbit_s"
+    },
+    {
+      "dimension": "скорость передачи",
+      "symbol": "Mbit/s",
+      "name": "Мбит/с",
+      "canonical": false,
+      "conversion_type": "linear",
+      "factor": 1000000,
+      "code": "mbit_s"
+    },
+    {
+      "dimension": "объём данных",
+      "symbol": "bit",
+      "name": "bit",
+      "canonical": true,
+      "conversion_type": "linear",
+      "factor": 1,
+      "code": "bit"
+    },
+    {
+      "dimension": "объём данных",
+      "symbol": "B",
+      "name": "Б",
+      "canonical": false,
+      "conversion_type": "linear",
+      "factor": 8,
+      "code": "b"
+    },
+    {
+      "dimension": "объём данных",
+      "symbol": "KB",
+      "name": "КБ",
+      "canonical": false,
+      "conversion_type": "linear",
+      "factor": 8000,
+      "code": "kb"
+    },
+    {
+      "dimension": "объём данных",
+      "symbol": "MB",
+      "name": "МБ",
+      "canonical": false,
+      "conversion_type": "linear",
+      "factor": 8000000,
+      "code": "mb"
+    },
+    {
+      "dimension": "объём данных",
+      "symbol": "GB",
+      "name": "ГБ",
+      "canonical": false,
+      "conversion_type": "linear",
+      "factor": 8000000000,
+      "code": "gb"
+    },
+    {
+      "dimension": "уровни и усиление",
+      "symbol": "dB",
+      "name": "дБ",
+      "canonical": true,
+      "conversion_type": "log",
+      "factor": 1,
+      "code": "db"
+    },
+    {
+      "dimension": "уровни и усиление",
+      "symbol": "dBm",
+      "name": "дБм",
+      "canonical": false,
+      "conversion_type": "log",
+      "code": "dbm"
+    },
+    {
+      "dimension": "уровни и усиление",
+      "symbol": "dBi",
+      "name": "дБи",
+      "canonical": false,
+      "conversion_type": "log",
+      "code": "dbi"
+    },
+    {
+      "dimension": "уровни и усиление",
+      "symbol": "dBW",
+      "name": "дБВт",
+      "canonical": false,
+      "conversion_type": "log",
+      "code": "dbw"
+    },
+    {
+      "dimension": "уровни и усиление",
+      "symbol": "dB/K",
+      "name": "дБ/К",
+      "canonical": false,
+      "conversion_type": "log",
+      "code": "db_k"
+    },
+    {
+      "dimension": "поглощённая доза",
+      "symbol": "Gy",
+      "name": "Gy",
+      "canonical": true,
+      "conversion_type": "linear",
+      "factor": 1,
+      "code": "gy"
+    },
+    {
+      "dimension": "поглощённая доза",
+      "symbol": "krad",
+      "name": "крад",
+      "canonical": false,
+      "conversion_type": "linear",
+      "factor": 10,
+      "code": "krad"
+    },
+    {
+      "dimension": "поглощённая доза",
+      "symbol": "rad_dose",
+      "name": "rad_dose",
+      "canonical": false,
+      "conversion_type": "linear",
+      "factor": 0.01,
+      "code": "rad_dose"
+    },
+    {
+      "dimension": "эквивалентная доза",
+      "symbol": "Sv",
+      "name": "Sv",
+      "canonical": true,
+      "conversion_type": "linear",
+      "factor": 1,
+      "code": "sv"
+    },
+    {
+      "dimension": "эквивалентная доза",
+      "symbol": "mSv",
+      "name": "mSv",
+      "canonical": false,
+      "conversion_type": "linear",
+      "factor": 0.001,
+      "code": "msv"
+    },
+    {
+      "dimension": "деньги",
+      "symbol": "MRUB",
+      "name": "млн руб",
+      "canonical": true,
+      "conversion_type": "linear",
+      "factor": 1,
+      "code": "mrub"
+    },
+    {
+      "dimension": "деньги",
+      "symbol": "kRUB",
+      "name": "тыс руб",
+      "canonical": false,
+      "conversion_type": "linear",
+      "factor": 0.001,
+      "code": "krub"
+    },
+    {
+      "dimension": "деньги",
+      "symbol": "RUB",
+      "name": "руб",
+      "canonical": false,
+      "conversion_type": "linear",
+      "factor": 1e-06,
+      "code": "rub"
+    },
+    {
+      "dimension": "деньги",
+      "symbol": "BRUB",
+      "name": "млрд руб",
+      "canonical": false,
+      "conversion_type": "linear",
+      "factor": 1000,
+      "code": "brub"
+    },
+    {
+      "dimension": "деньги",
+      "symbol": "MUSD",
+      "name": "млн долл",
+      "canonical": false,
+      "conversion_type": "rate",
+      "code": "musd"
+    },
+    {
+      "dimension": "удельная стоимость выведения",
+      "symbol": "MRUB/kg",
+      "name": "MRUB/kg",
+      "canonical": true,
+      "conversion_type": "linear",
+      "factor": 1,
+      "code": "mrub_kg"
+    },
+    {
+      "dimension": "удельная стоимость выведения",
+      "symbol": "kUSD/kg",
+      "name": "kUSD/kg",
+      "canonical": false,
+      "conversion_type": "rate",
+      "code": "kusd_kg"
+    },
+    {
+      "dimension": "трудоёмкость",
+      "symbol": "man_month",
+      "name": "man_month",
+      "canonical": true,
+      "conversion_type": "linear",
+      "factor": 1,
+      "code": "man_month"
+    },
+    {
+      "dimension": "трудоёмкость",
+      "symbol": "man_h",
+      "name": "man_h",
+      "canonical": false,
+      "conversion_type": "linear",
+      "factor": 0.005952380952380952,
+      "code": "man_h"
+    },
+    {
+      "dimension": "трудоёмкость",
+      "symbol": "man_year",
+      "name": "чел-год",
+      "canonical": false,
+      "conversion_type": "linear",
+      "factor": 12,
+      "code": "man_year"
+    },
+    {
+      "dimension": "доля и вероятность",
+      "symbol": "1",
+      "name": "доля",
+      "canonical": true,
+      "conversion_type": "linear",
+      "factor": 1,
+      "code": "1"
+    },
+    {
+      "dimension": "доля и вероятность",
+      "symbol": "%",
+      "name": "%",
+      "canonical": false,
+      "conversion_type": "linear",
+      "factor": 0.01,
+      "code": "u"
+    },
+    {
+      "dimension": "счётные",
+      "symbol": "pcs",
+      "name": "КА",
+      "canonical": true,
+      "conversion_type": "linear",
+      "factor": 1,
+      "code": "pcs"
+    },
+    {
+      "dimension": "счётные",
+      "symbol": "U",
+      "name": "u",
+      "canonical": false,
+      "conversion_type": "linear",
+      "code": "u_2"
+    },
+    {
+      "dimension": "шкальные метки",
+      "symbol": "TRL",
+      "name": "TRL",
+      "canonical": true,
+      "conversion_type": "linear",
+      "factor": 1,
+      "code": "trl"
+    },
+    {
+      "dimension": "шкальные метки",
+      "symbol": "mission_class",
+      "name": "mission_class",
+      "canonical": false,
+      "conversion_type": "linear",
+      "code": "mission_class"
+    },
+    {
+      "dimension": "угловая скорость",
+      "symbol": "rad/s",
+      "name": "рад/с",
+      "canonical": true,
+      "conversion_type": "linear",
+      "factor": 1,
+      "code": "rad_s"
+    },
+    {
+      "dimension": "угловая скорость",
+      "symbol": "deg/s",
+      "name": "°/с",
+      "canonical": false,
+      "conversion_type": "linear",
+      "factor": 0.0174532925199433,
+      "code": "deg_s"
+    },
+    {
+      "dimension": "напряжение",
+      "symbol": "V",
+      "name": "В",
+      "canonical": true,
+      "conversion_type": "linear",
+      "factor": 1,
+      "code": "v"
+    },
+    {
+      "dimension": "напряжение",
+      "symbol": "mV",
+      "name": "мВ",
+      "canonical": false,
+      "conversion_type": "linear",
+      "factor": 0.001,
+      "code": "mv"
+    },
+    {
+      "dimension": "напряжение",
+      "symbol": "kV",
+      "name": "кВ",
+      "canonical": false,
+      "conversion_type": "linear",
+      "factor": 1000,
+      "code": "kv"
+    },
+    {
+      "dimension": "ток",
+      "symbol": "A",
+      "name": "А",
+      "canonical": true,
+      "conversion_type": "linear",
+      "factor": 1,
+      "code": "a_2"
+    },
+    {
+      "dimension": "ток",
+      "symbol": "mA",
+      "name": "мА",
+      "canonical": false,
+      "conversion_type": "linear",
+      "factor": 0.001,
+      "code": "ma"
+    },
+    {
+      "dimension": "сила",
+      "symbol": "N",
+      "name": "Н",
+      "canonical": true,
+      "conversion_type": "linear",
+      "factor": 1,
+      "code": "n"
+    },
+    {
+      "dimension": "сила",
+      "symbol": "mN",
+      "name": "мН",
+      "canonical": false,
+      "conversion_type": "linear",
+      "factor": 0.001,
+      "code": "mn"
+    }
+  ]
+}

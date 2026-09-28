@@ -64,14 +64,6 @@ class V2Router(
     private val jobs: orbita.ai.api.AtomizeJobs? = null,
     /** Текст из двоичного файла материала (docx · pdf · xlsx · pptx) — подставляет граница. */
     private val extract: ((fileName: String, bytes: ByteArray) -> String?)? = null,
-    /**
-     * Единицы СПРАВОЧНИКА для экрана: код записи → как показать человеку.
-     *
-     * Подставляет граница: справочник единиц живёт полкой LIB (решение ранга
-     * ADR), и v2 его сам не читает. Без него поле единицы было пустым вводом —
-     * владелец 19.09: «единиц измерения нет — блок».
-     */
-    private val units: (() -> Map<String, String>)? = null,
 ) {
 
     /**
@@ -89,7 +81,7 @@ class V2Router(
     )
 
     private val сцены = SceneRoutes(
-        store, links, engine, mapper, units = units,
+        store, links, engine, mapper,
         // Роль документа на правке на месте — тем же сторожем, что на загрузке (устав один).
         materialRoleGuard = { проект, код, роль -> intake.roleRefusal(проект, код, роль) },
     )

@@ -30,8 +30,6 @@ class SceneRoutes(
     private val links: LinkRegistry,
     private val engine: ProcessEngine,
     private val mapper: ObjectMapper = ObjectMapper(),
-    /** Единицы справочника для экрана: код записи → показ человеку. */
-    private val units: (() -> Map<String, String>)? = null,
     /**
      * Сторож роли документа на правке на месте (ответ владельца 25.09): тот
      * же, что на загрузке — второй устав отвергается с именем первого (409).
@@ -968,14 +966,29 @@ class SceneRoutes(
      * а не молчит пустым списком. Своего перечня единиц у кода нет: единицы
      * ведёт справочник (полка LIB).
      */
+    /**
+     * Единицы — из ОДНОЙ истины: записи вида `unit` хранилища v2 (полка LIB,
+     * §0.1 шипа 6). Раньше `/v2/units` читал v1-реестр, а `Normalize` — эти
+     * записи, которых на стенде не было: «180 мин» и «3 ч» были несравнимы.
+     * Теперь и пикер величины, и Normalize читают одно.
+     */
     private fun единицы(): V2Router.Ответ {
-        val все = units?.invoke().orEmpty()
+        val записи = store.ofKind("unit").map { it.doc }
+            .sortedWith(compareBy({ it.path("dimension").asText() }, { !it.path("canonical").asBoolean() }, { it.path("symbol").asText() }))
         val узел = mapper.createObjectNode()
         val массив = узел.putArray("items")
-        все.toSortedMap().forEach { (код, показ) -> массив.addObject().put("code", код).put("label", показ) }
-        узел.put("count", все.size)
-        if (все.isEmpty()) {
-            узел.put("why", "справочник единиц пуст: внесите его на полку LIB — величина без единицы не бывает")
+        записи.forEach { д ->
+            // Код пикера — символ (ASCII-канон, «min»): его хранит величина, по
+            // нему же Normalize канонизирует. Подпись — русское имя («мин»).
+            массив.addObject()
+                .put("code", д.path("symbol").asText(""))
+                .put("label", д.path("name").asText("").ifBlank { д.path("symbol").asText("") })
+                .put("dimension", д.path("dimension").asText(""))
+                .put("canonical", д.path("canonical").asBoolean(false))
+        }
+        узел.put("count", записи.size)
+        if (записи.isEmpty()) {
+            узел.put("why", "справочник единиц пуст: внесите полку «Единицы» в область LIB (tools/v2/load_shelves.py)")
         }
         return V2Router.Ответ(200, узел)
     }
