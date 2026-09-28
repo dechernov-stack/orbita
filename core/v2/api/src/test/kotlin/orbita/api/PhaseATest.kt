@@ -143,6 +143,19 @@ class PhaseATest {
         assertEquals(false, store.byCode(Area.Project("PJ-NOSB"), "PJ-NOSB")!!.doc.path("sandbox").asBoolean(true), "триггер привёл к false")
     }
 
+    @Test
+    fun `песочница обновляется документом без sandbox — наследует true, отказа нет (V105)`() {
+        // Служебная личность заводит песочницу.
+        router().handle("POST", "/v2/projects", emptyMap(), """{"code":"PJ-SB2","name":"Песочница 2"}""", служебный)
+        val обл = Area.Project("PJ-SB2")
+        assertTrue(store.byCode(обл, "PJ-SB2")!!.doc.path("sandbox").asBoolean(), "заведена песочницей")
+        // Новая версия БЕЗ поля sandbox (правка из UI / пересборка документа целиком):
+        // значение наследуется от прежней версии, а не приводится к false и не отбивается.
+        val ид = store.byCode(обл, "PJ-SB2")!!.id
+        store.update(ид, mapper.createObjectNode().put("name", "Песочница 2 · правка"), провенанс)
+        assertTrue(store.byCode(обл, "PJ-SB2")!!.doc.path("sandbox").asBoolean(), "песочница осталась песочницей")
+    }
+
     /** Точки Pre-A проходятся записями напрямую: проверяется переход, а не Pre-A целиком. */
     private fun открытьPhaseA() {
         listOf("internal_review", "MCR").forEach { записи.record(проект, it, "Чернов Д.", "approve", null, null) }
