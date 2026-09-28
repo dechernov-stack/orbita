@@ -963,8 +963,7 @@ class EntityIntake(
                     документ.put("kind", ф.path("kind").asText())
                     документ.put("subject", ф.path("subject").asText(метка))
                     документ.put("predicate", предикат)
-                    документ.put("value", текстЗначения)
-                    if (единица.isNotBlank()) документ.put("unit", единица)
+                    ВеличинаФакта.положить(документ, mapper, текстЗначения, единица.ifBlank { null }, ф.path("op").asText("").ifBlank { null })
                     // Цитата — обязательное поле истины схем с 15.09
                     // («дословный фрагмент источника … у ручного факта
                     // эксперта — null»). Пишется ВСЕГДА: у факта из документа
@@ -1120,9 +1119,15 @@ class EntityIntake(
             документ.path("value").let { if (it.isObject) it.path("value").asText("") else it.asText("") },
         )
 
-    private fun ключФакта(якорь: String, учётка: String, предикат: String, субъект: String, значение: String): String =
-        (if (якорь.isNotBlank()) якорь else "эксперт:$учётка") + "|" + предикат + "|" +
-            субъект.trim().lowercase() + "|" + значение.trim().lowercase()
+    private fun ключФакта(якорь: String, учётка: String, предикат: String, субъект: String, значение: String): String {
+        // Величина — числом каноничным написанием: «180», «180.0» и «180,0» —
+        // один факт (§0.2, величина легла объектом с double). Текст — как есть.
+        val знч = значение.trim().replace(',', '.').toDoubleOrNull()
+            ?.let { if (it == Math.floor(it) && !it.isInfinite()) it.toLong().toString() else it.toString() }
+            ?: значение.trim().lowercase()
+        return (if (якорь.isNotBlank()) якорь else "эксперт:$учётка") + "|" + предикат + "|" +
+            субъект.trim().lowercase() + "|" + знч
+    }
 
     /** Профиль из ответа разбора; доли проверяет сам вид (брак — отказ, а не тихий ноль). */
     private fun профильИзРазбора(узел: JsonNode): ContentProfile = ContentProfile(
@@ -1276,12 +1281,21 @@ class EntityIntake(
      * бы вторым источником правды о том же знании. Область нужна именно для
      * них — без реестра связей перечень пуст, и факт от этого не портится.
      */
-    private fun факт(область: Area, код: String, документ: JsonNode): Fact = Fact(
+    private fun факт(область: Area, код: String, документ: JsonNode): Fact {
+        // Величина — из объекта measure (истина, §0.2) либо старой строки+unit:
+        // вид несёт значение (с оператором) и единицу для показа и выгрузки.
+        val м = ВеличинаФакта.мера(документ, mapper)
+        val значение = if (м != null) {
+            val n = м.path("value").asDouble()
+            val ns = if (n == Math.floor(n) && !n.isInfinite()) n.toLong().toString() else n.toString()
+            listOf(м.path("op").asText(""), ns).map { it.trim() }.filter { it.isNotBlank() }.joinToString(" ")
+        } else документ.path("value").let { if (it.isObject) it.path("value").asText("") else it.asText("") }
+        return Fact(
         id = код,
         subject = документ.path("subject").asText(""),
         predicate = документ.path("predicate").asText(""),
-        value = документ.path("value").asText(""),
-        unit = документ.path("unit").asText("").ifBlank { null },
+        value = значение,
+        unit = м?.path("unit")?.asText()?.ifBlank { null },
         anchor = документ.path("anchor").asText("").ifBlank { null },
         code = код,
         mark = runCatching { SourceMark.valueOf(документ.path("mark").asText("И")) }
@@ -1311,7 +1325,8 @@ class EntityIntake(
         links = связиФактов.factLinks(область, код)
             .map { FactLink(it.type, it.from, it.to, it.rationale) },
         quote = документ.path("quote").asText("").ifBlank { null },
-    )
+        )
+    }
 
     // Один построитель на оба пути: две копии однажды разошлись бы на поле.
     override fun facts(project: String): List<Fact> =
@@ -1442,6 +1457,7 @@ class EntityIntake(
         mark: String,
         role: String?,
         rank: String?,
+        op: String?,
     ): Fact {
         val область = Area.Project(project)
         require(predicate.isNotBlank()) { "факт без утверждения — не факт" }
@@ -1469,8 +1485,9 @@ class EntityIntake(
         документ.put("kind", kind.ifBlank { "framing" })
         документ.put("subject", subject.trim())
         документ.put("predicate", predicate.trim())
-        документ.put("value", value.trim())
-        unit?.takeIf { it.isNotBlank() }?.let { документ.put("unit", it.trim()) }
+        // Величина — ОБЪЕКТОМ measure{op?, value, unit} по истине (§0.2): оператор
+        // больше не теряется. Не число или без единицы — текстом.
+        ВеличинаФакта.положить(документ, mapper, value, unit, op)
         // Источник — материал, если назван; иначе «инженер, дата»: у руки
         // документа нет, а происхождение обязано быть у каждого факта.
         val источник = material?.takeIf { it.isNotBlank() }

@@ -147,10 +147,12 @@ internal class IntakeModes(
         val ма = мера(а)
         val мб = мера(б)
         if (ма != null && мб != null) {
-            when (нормализация.сравнить("value", ма, мб).kind) {
-                Difference.EQUAL -> return Отношение.ТО_ЖЕ
-                Difference.DIFFERS -> return Отношение.СПОР
-                else -> Unit
+            // Оператор учитывается (§0.2): ≤180 и ≥120 — совместимы, не спор.
+            when (нормализация.границы(ма, мб)) {
+                Normalize.Соотношение.СПОР -> return Отношение.СПОР
+                Normalize.Соотношение.СОВПАЛИ -> return Отношение.ТО_ЖЕ
+                Normalize.Соотношение.СОВМЕСТИМЫ -> return Отношение.ПЕРЕЧЕНЬ
+                Normalize.Соотношение.НЕСРАВНИМО -> Unit
             }
         }
         if (!значениеИное(а, б)) return Отношение.ТО_ЖЕ
@@ -158,17 +160,11 @@ internal class IntakeModes(
     }
 
     /**
-     * Величина факта объектом для сравнения: единица есть, а значение — число
-     * целиком (десятичная запятая допускается). «2-4», «≤180» и текст
-     * величиной не становятся: разбирать число из строки запрещено.
+     * Величина факта объектом для сравнения — из объекта-величины (истина) либо
+     * старой пары value-строка + unit (§0.2, `ВеличинаФакта`). «2-4», «≤180» без
+     * единицы и текст величиной не становятся: число из строки не разбирается.
      */
-    private fun мера(ф: Entity): ObjectNode? {
-        val единица = ф.doc.path("unit").asText("").trim().ifBlank { return null }
-        val число = ф.doc.path("value").asText("").trim().replace(',', '.').toDoubleOrNull() ?: return null
-        val узел = mapper.createObjectNode().put("value", число).put("unit", единица)
-        ф.doc.path("op").asText("").trim().takeIf { it.isNotBlank() }?.let { узел.put("op", it) }
-        return узел
-    }
+    private fun мера(ф: Entity): ObjectNode? = ВеличинаФакта.мера(ф.doc, mapper)
 
     /** Предикат закрытого перечня истины (`single_valued_predicates`): у субъекта одно значение. */
     private fun однозначный(предикат: String): Boolean = плоско(предикат) in ОДНОЗНАЧНЫЕ
@@ -250,8 +246,8 @@ internal class IntakeModes(
             реестр.link(
                 "same_as", а.id, б.id,
                 Provenance(Channel.SERVICE, author),
-                rationale = "то же значение в двух документах: «" + (а.doc.path("value").asText("") + " " +
-                    а.doc.path("unit").asText("")).trim().take(90) + "» (${а.doc.path("material").asText("")} и " +
+                rationale = "то же значение в двух документах: «" + ВеличинаФакта.текст(а.doc).take(90) +
+                    "» (${а.doc.path("material").asText("")} и " +
                     "${б.doc.path("material").asText("")}) " + ПОДПИСЬ.getValue("same_as"),
             )
         }
@@ -263,7 +259,7 @@ internal class IntakeModes(
             ": ${значениеСРангом(область, а)} против ${значениеСРангом(область, б)} " + ПОДПИСЬ.getValue("contradicts")
 
     private fun значениеСРангом(область: Area, ф: Entity): String {
-        val величина = (ф.doc.path("value").asText("") + " " + ф.doc.path("unit").asText("")).trim()
+        val величина = ВеличинаФакта.текст(ф.doc)
         val откуда = изРанга(рангФакта(область, ф))
         val источник = ф.doc.path("material").asText("")
         val пометы = listOf(ф.code, откуда, источник).filter { it.isNotBlank() }.joinToString(" ")
@@ -274,8 +270,7 @@ internal class IntakeModes(
         д.path("subject").asText("").trim().lowercase() + "|" + д.path("predicate").asText("").trim().lowercase()
 
     private fun значениеИное(а: Entity, б: Entity): Boolean =
-        а.doc.path("value").asText("").trim().lowercase() != б.doc.path("value").asText("").trim().lowercase() ||
-            а.doc.path("unit").asText("") != б.doc.path("unit").asText("")
+        ВеличинаФакта.текст(а.doc).trim().lowercase() != ВеличинаФакта.текст(б.doc).trim().lowercase()
 
     /**
      * Ранг доверия факта: свой, а если разбор его ещё не проставил — ранг
@@ -591,13 +586,16 @@ internal class IntakeModes(
         if (кодУзла != null) {
             сПараметром.forEach { (_, ф) ->
                 val ключ = ф.doc.path("param_key").asText()
+                val м = ВеличинаФакта.мера(ф.doc, mapper)
+                val знч = м?.get("value")?.asText() ?: ф.doc.path("value").asText()
+                val ед = м?.get("unit")?.asText() ?: ""
                 val д = действия.addObject()
                 д.put("kind", "update_params").put("target_kind", "parameter").put("scene", "7")
                 д.put("title", "параметр «$ключ» узла $кодУзла из даташита")
-                д.put("preview", "появится параметр $кодУзла.$ключ = ${ф.doc.path("value").asText()} ${ф.doc.path("unit").asText("")} с якорем ${ф.doc.path("anchor").asText()}")
+                д.put("preview", "появится параметр $кодУзла.$ключ = $знч $ед с якорем ${ф.doc.path("anchor").asText()}")
                 д.putObject("payload")
                     .put("target", кодУзла).put("key", ключ)
-                    .put("value", ф.doc.path("value").asText()).put("unit", ф.doc.path("unit").asText(""))
+                    .put("value", знч).put("unit", ед)
                     .put("origin", "datasheet").put("anchor", ф.doc.path("anchor").asText(""))
                     .put("material", карточка.code).put("maturity_class", "off_the_shelf")
                 д.putArray("facts").add(ф.code)
@@ -607,11 +605,13 @@ internal class IntakeModes(
         val рамки = store.list(область, "constraint").filter { it.doc.path("bound").isObject }
         сПараметром.forEach { (_, ф) ->
             val ключ = ф.doc.path("param_key").asText()
-            val значение = ф.doc.path("value").asText("").replace(",", ".").toDoubleOrNull() ?: return@forEach
+            val м = ВеличинаФакта.мера(ф.doc, mapper) ?: return@forEach
+            val значение = м.get("value").asDouble()
+            val едФ = м.get("unit").asText()
             рамки.forEach { р ->
                 val граница = р.doc.path("bound")
                 if (!родственны(граница.path("key").asText(), ключ)) return@forEach
-                if (граница.path("unit").asText("") != ф.doc.path("unit").asText("")) return@forEach
+                if (граница.path("unit").asText("") != едФ) return@forEach
                 val предел = граница.path("value").asDouble()
                 val нарушено = when (граница.path("op").asText("le")) {
                     "le" -> значение > предел

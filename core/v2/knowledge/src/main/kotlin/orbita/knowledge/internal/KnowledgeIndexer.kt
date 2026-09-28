@@ -116,7 +116,7 @@ internal class KnowledgeIndexer(
             блок(
                 "fact:${ф.code}", "fact", область, ф.code,
                 title = "${ф.doc.path("subject").asText("")} — ${ф.doc.path("predicate").asText("")}",
-                text = цитата ?: "${ф.doc.path("value").asText("")} ${ф.doc.path("unit").asText("")}".trim(),
+                text = цитата ?: ВеличинаФакта.текст(ф.doc),
                 filters = mapOf(
                     "rank" to ф.doc.path("rank").asText(""), "mark" to ф.doc.path("mark").asText(""),
                     "scene" to (ф.bornIn ?: ""), "role" to (материал?.doc?.path("role")?.asText("") ?: ""),

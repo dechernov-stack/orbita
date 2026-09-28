@@ -49,16 +49,28 @@ class FactContradictionRuleTest {
 
     private fun якорь(материал: String) = intake.canon(проект, материал).first().anchor
 
-    /** Один факт разбора: субъект · утверждение · значение (· единица). */
-    private fun факт(материал: String, вид: String, субъект: String, предикат: String, значение: String, единица: String? = null) {
+    /** Один факт разбора: субъект · утверждение · значение (· единица · оператор). */
+    private fun факт(материал: String, вид: String, субъект: String, предикат: String, значение: String, единица: String? = null, оп: String? = null) {
         val поле = if (единица != null) ""","unit":"$единица"""" else ""
+        val опПоле = if (оп != null) ""","op":"$оп"""" else ""
         intake.putFacts(
             проект, материал,
             """{"topics":[],"actions":[],"facts":[{"kind":"$вид","subject":"$субъект","predicate":"$предикат",""" +
-                """"value":"$значение"$поле,"source":{"anchor":"${якорь(материал)}"},"mark":"И"}]}""",
+                """"value":"$значение"$поле$опПоле,"source":{"anchor":"${якорь(материал)}"},"mark":"И"}]}""",
             "Иванов И.",
         )
     }
+
+    /** Единицы времени в хранилище — для приведения к канону при сравнении с оператором. */
+    private fun единицыВремени() = listOf(Triple("UN-S", "с", 1.0), Triple("UN-MIN", "мин", 60.0), Triple("UN-H", "ч", 3600.0))
+        .forEach { (код, символ, множитель) ->
+            store.create(
+                код, "unit", Area.Library, null,
+                mapper.createObjectNode().put("symbol", символ).put("dimension", "время").put("name", символ)
+                    .put("canonical", символ == "с").put("factor", множитель).put("conversion_type", "linear"),
+                провенанс,
+            )
+        }
 
     private fun фактыДокумента(материал: String) = intake.facts(проект).filter { it.material == материал }
 
@@ -110,6 +122,42 @@ class FactContradictionRuleTest {
         assertTrue(intake.facts(проект).all { it.conflicts.isEmpty() }, intake.facts(проект).map { it.conflicts }.toString())
         assertTrue(связи("contradicts").isEmpty())
         assertEquals(1, связи("same_as").size, "то же значение из другого документа — подтверждение связью")
+    }
+
+    @Test
+    fun `«≤ 180 мин» и «≥ 120 мин» — совместимые границы, не спор (§0_2)`() {
+        единицыВремени()
+        val записка = документ("Записка", "P95 доставки не более 180 минут.", Authority.MANDATORY)
+        val тз = документ("ТЗ", "P95 доставки не менее 120 минут.", Authority.REFERENCE)
+        факт(записка, "quantity", "сервис A′", "P95 доставки", "180", "мин", оп = "<=")
+        факт(тз, "quantity", "сервис A′", "P95 доставки", "120", "мин", оп = ">=")
+
+        assertTrue(intake.facts(проект).all { it.conflicts.isEmpty() }, "≤180 и ≥120 совместимы: " + intake.facts(проект).map { it.conflicts })
+        assertTrue(связи("contradicts").isEmpty(), "оператор учтён — спора нет")
+        // Разные границы, не то же значение — и не подтверждение: просто перечень.
+        assertTrue(связи("same_as").isEmpty(), "разные границы — не подтверждение")
+    }
+
+    @Test
+    fun `«≤ 120 мин» и «≥ 180 мин» — границы не пересекаются, спор`() {
+        единицыВремени()
+        val записка = документ("Записка", "P95 доставки не более 120 минут.", Authority.MANDATORY)
+        val тз = документ("ТЗ", "P95 доставки не менее 180 минут.", Authority.REFERENCE)
+        факт(записка, "quantity", "сервис A′", "P95 доставки", "120", "мин", оп = "<=")
+        факт(тз, "quantity", "сервис A′", "P95 доставки", "180", "мин", оп = ">=")
+
+        assertEquals(1, связи("contradicts").size, "≤120 и ≥180 несовместимы: пустое пересечение — спор")
+    }
+
+    @Test
+    fun `величина факта легла объектом measure с оператором (§0_2)`() {
+        val записка = документ("Записка", "P95 доставки не более 180 минут.", Authority.MANDATORY)
+        факт(записка, "quantity", "сервис A′", "P95 доставки", "180", "мин", оп = "<=")
+        val величина = store.list(область, "fact").first().doc.path("value")
+        assertTrue(величина.isObject, "величина — объект measure, не строка: $величина")
+        assertEquals("<=", величина.path("op").asText())
+        assertEquals(180.0, величина.path("value").asDouble(), 0.001)
+        assertEquals("мин", величина.path("unit").asText())
     }
 
     @Test

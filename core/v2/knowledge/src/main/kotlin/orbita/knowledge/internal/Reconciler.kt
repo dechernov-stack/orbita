@@ -722,6 +722,9 @@ internal class Reconciler(
             mark = "И",
             role = role,
             rank = Authority.EXPERT,
+            // Оператор величины из снимка (≤ ≥): в measure, чтобы «≤180» и «≥120»
+            // не спорили ложно (§0.2).
+            op = величина?.path("op")?.asText("")?.ifBlank { null },
         )
     }
 

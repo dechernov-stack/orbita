@@ -640,6 +640,8 @@ interface Intake {
         role: String? = null,
         /** Ранг доверия; умолчание ручного факта — экспертный. */
         rank: String? = null,
+        /** Оператор величины (≤ ≥ < > =): пишется в measure.value (§0.2). */
+        op: String? = null,
     ): Fact
 }
 
