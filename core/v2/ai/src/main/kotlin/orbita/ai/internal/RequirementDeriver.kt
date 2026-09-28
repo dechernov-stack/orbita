@@ -161,7 +161,8 @@ class RequirementDeriver(
         val ids = linkedSetOf(узел.id)
         var текущий = узел
         while (true) {
-            val ссылка = текущий.doc.path("parent").asText("").ifBlank { break }
+            val ссылка = текущий.doc.path("parent").asText("").trim()
+            if (ссылка.isEmpty()) break
             val родитель = store.byId(ссылка) ?: store.byCode(область, ссылка) ?: break
             if (!ids.add(родитель.id)) break // страховка от цикла в составе
             текущий = родитель
