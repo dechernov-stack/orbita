@@ -50,6 +50,10 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Идемпотентно: тестовая БД сбрасывает схему public, но orbita_kernel живёт —
+-- миграции гоняются повторно, а CREATE TRIGGER не перезаписывает. DROP IF
+-- EXISTS + CREATE работает на любой версии PostgreSQL.
+DROP TRIGGER IF EXISTS guard_project_sandbox ON orbita_kernel.entity;
 CREATE TRIGGER guard_project_sandbox
     BEFORE INSERT OR UPDATE ON orbita_kernel.entity
     FOR EACH ROW EXECUTE FUNCTION orbita_kernel.guard_project_sandbox();
