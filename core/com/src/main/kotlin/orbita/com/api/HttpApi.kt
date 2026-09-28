@@ -68,6 +68,14 @@ class HttpApi(private val boundary: Boundary) {
         .split(',').mapNotNull { it.trim().toLongOrNull() }.toSet()
 
     /**
+     * Служебный вход инструментов стенда (ServiceLogin): ключ ORBITA_SERVICE_KEY
+     * в .env стенда открывает инструменту (загрузчик полок, прогон) сессию
+     * СЛУЖЕБНОЙ личности без Telegram. Своя, отзываемая, в журнале — «служебный
+     * orbita-tools». Только режим telegram; ключ не задан — маршрута нет.
+     */
+    private val serviceKey: String? = System.getenv("ORBITA_SERVICE_KEY")?.takeIf { it.isNotBlank() }
+
+    /**
      * Вход включён: есть учётки ЛИБО стенд в режиме telegram — пропуск даёт
      * группа, и до первой учётки дверь тоже закрыта (стенд публикуется
      * наружу за входом, ADR-065). Без этого до первого входа владельца всё
@@ -81,7 +89,8 @@ class HttpApi(private val boundary: Boundary) {
      * от имени роли» — для прохода ролей без фиктивных учёток.
      */
     private fun systemOwner(user: orbita.mod.store.AuthUser): Boolean =
-        user.login.removePrefix("tg:").toLongOrNull()?.let { it in adminTids } == true ||
+        user.login == ServiceLogin.LOGIN ||
+            user.login.removePrefix("tg:").toLongOrNull()?.let { it in adminTids } == true ||
             (standMode && user.login == "chernov")
 
     /** Роли, от имени которых можно выступить, — словами журнала. */
@@ -130,6 +139,32 @@ class HttpApi(private val boundary: Boundary) {
     }
 
     /**
+     * Служебная личность стенда (telegram-режим): заводится при старте, если
+     * задан ORBITA_SERVICE_KEY, с ролью руководителя (как владелец из ADR-066),
+     * чтобы инструмент выступал от нужной роли. ОТЗЫВ: сессии служебной учётки
+     * снимаются при КАЖДОМ старте — снял/сменил ключ в .env и перезапустил
+     * контейнер, и ключ мёртв, а живые сессии сброшены.
+     */
+    private fun ensureService() {
+        if (!telegramMode) return
+        boundary.auth.dropSessionsOf(ServiceLogin.LOGIN)
+        if (serviceKey == null) return
+        if (boundary.auth.displayNameOf(ServiceLogin.LOGIN) == null) {
+            boundary.auth.createUser(ServiceLogin.LOGIN, java.util.UUID.randomUUID().toString(), ServiceLogin.NAME)
+        }
+        ensureServiceRoles()
+    }
+
+    /** Роль служебной личности: `*`→lead (как у владельца) и lead в живых проектах — без перебивки. */
+    private fun ensureServiceRoles() {
+        val есть = boundary.auth.rolesOf(ServiceLogin.LOGIN)
+        if ("*" !in есть) boundary.auth.setRole("*", ServiceLogin.LOGIN, "lead")
+        boundary.objects.listCurrent()
+            .filter { it.type == "project" && it.status != Lifecycle.Cancelled && it.id !in есть }
+            .forEach { boundary.auth.setRole(it.id, ServiceLogin.LOGIN, "lead") }
+    }
+
+    /**
      * Запуск на 127.0.0.1; port=0 — эфемерный порт (для тестов).
      *
      * Адрес привязки переопределяется ORBITA_HTTP_BIND. В контейнере петля
@@ -140,6 +175,7 @@ class HttpApi(private val boundary: Boundary) {
      */
     fun start(port: Int): HttpServer {
         ensureStand()
+        ensureService()
         val bind = System.getenv("ORBITA_HTTP_BIND") ?: "127.0.0.1"
         val server = HttpServer.create(InetSocketAddress(bind, port), 0)
         server.createContext("/api/") { ex -> handle(ex) }
@@ -5165,6 +5201,31 @@ class HttpApi(private val boundary: Boundary) {
                 val token = boundary.auth.createSession(login)
                 ex.responseHeaders.add("Set-Cookie", sessionCookie(ex, token))
                 respond(ex, 200, mapper.createObjectNode().put("login", login).put("display_name", account.second))
+            }
+
+            // Служебный вход инструментов стенда (ServiceLogin): ключ
+            // ORBITA_SERVICE_KEY → сессия служебной личности, без Telegram.
+            // Ключ — заголовком X-Orbita-Service либо телом {"key":…} (в теле не
+            // попадает в access-логи прокси). Только telegram-режим; ключ не
+            // задан — маршрута нет (404, как у выключенного режима).
+            method == "POST" && path == "/auth/service-login" -> {
+                val предъявлен = ex.requestHeaders.getFirst("X-Orbita-Service")
+                    ?: runCatching { mapper.readTree(body(ex)).path("key").asText("") }.getOrNull()
+                when (ServiceLogin.решение(telegramMode, serviceKey, предъявлен)) {
+                    ServiceLogin.Итог.ВЫКЛ ->
+                        respond(ex, 404, mapper.createObjectNode().put("error", "служебный вход не настроен (ORBITA_SERVICE_KEY в режиме telegram)"))
+                    ServiceLogin.Итог.ОТКАЗ ->
+                        respond(ex, 401, mapper.createObjectNode().put("error", "служебный ключ не подошёл"))
+                    ServiceLogin.Итог.ОК -> {
+                        if (boundary.auth.displayNameOf(ServiceLogin.LOGIN) == null) {
+                            boundary.auth.createUser(ServiceLogin.LOGIN, java.util.UUID.randomUUID().toString(), ServiceLogin.NAME)
+                        }
+                        ensureServiceRoles()
+                        val token = boundary.auth.createSession(ServiceLogin.LOGIN, days = 1)
+                        ex.responseHeaders.add("Set-Cookie", sessionCookie(ex, token))
+                        respond(ex, 200, mapper.createObjectNode().put("login", ServiceLogin.LOGIN).put("display_name", ServiceLogin.NAME))
+                    }
+                }
             }
 
             // Вход через Telegram (ADR-065): шлюз выдаёт ссылку на бота, клиент

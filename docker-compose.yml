@@ -122,6 +122,11 @@ services:
       AUTHGW_PRODUCT: ${ORBITA_AUTHGW_PRODUCT:-orbita}
       ORBITA_SESSION_SECRET: ${ORBITA_SESSION_SECRET:-}
       ORBITA_ADMIN_TIDS: ${ORBITA_ADMIN_TIDS:-}
+      # Служебный вход инструментов стенда (ADR-071): задан — загрузчик полок и
+      # прогон входят ключом без Telegram служебной личностью; пусто — маршрута
+      # нет. Отзыв: убрать строку и перезапустить (сессии учётки снимаются при
+      # старте). Только режим telegram.
+      ORBITA_SERVICE_KEY: ${ORBITA_SERVICE_KEY:-}
       # круг 2: файлы исходных документов — при стенде, в копии О-18
       ORBITA_FILES_DIR: /files
       # Служба ИИ (П5): прямой канал к провайдеру. Пустое значение — канал

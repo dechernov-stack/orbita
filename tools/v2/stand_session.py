@@ -10,7 +10,9 @@ petrova) в этом режиме — «выступить от имени ро�
 РП · ведущий СИ · инженер, журнал пишет «Чернов Д. как инженер».
 
 Переменные: ORBITA_SESSION — готовый токен (вместо файла); ORBITA_LOGIN_WAIT —
-сколько секунд ждать подтверждения (по умолчанию 600).
+сколько секунд ждать подтверждения (по умолчанию 600); ORBITA_SERVICE_KEY —
+служебный ключ стенда: задан — инструмент входит им (POST /auth/service-login)
+без Telegram, служебной личностью; не задан — вход через бота, как раньше.
 """
 from __future__ import annotations
 
@@ -100,7 +102,12 @@ def войти(base: str, opener, учётка: str) -> str:
     if кто.get("mode") != "telegram":
         return "open" if not кто.get("enabled") else "unknown"
     if not кто.get("user"):
-        _сессия_telegram(base, opener)
+        # Служебный ключ (ORBITA_SERVICE_KEY) — вход без Telegram: инструмент не
+        # ждёт подтверждения владельца. Нет ключа — прежний вход через бота.
+        if os.environ.get("ORBITA_SERVICE_KEY"):
+            _служебный_вход(base, opener)
+        else:
+            _сессия_telegram(base, opener)
         кто = _кто(opener, base)
     роль = РОЛИ.get(учётка, учётка)
     пользователь = кто.get("user") or {}
@@ -112,6 +119,18 @@ def войти(base: str, opener, учётка: str) -> str:
         except urllib.error.HTTPError as e:
             raise SystemExit(f"POST /auth/act-as → {e.code}: {e.read().decode()[:200]}") from None
     return "telegram"
+
+
+def _служебный_вход(base: str, opener) -> None:
+    """Служебный вход стенда ключом ORBITA_SERVICE_KEY — без Telegram (для инструментов).
+
+    Ключ шлём телом (в access-логах прокси тела нет). Совпал — сервер ставит
+    куку сессии служебной личности, дальше act-as как обычно.
+    """
+    try:
+        _вызов(opener, base, "POST", "/auth/service-login", {"key": os.environ["ORBITA_SERVICE_KEY"]})
+    except urllib.error.HTTPError as e:
+        raise SystemExit(f"служебный вход → {e.code}: {e.read().decode()[:200]}") from None
 
 
 def _сессия_telegram(base: str, opener) -> None:

@@ -90,6 +90,15 @@ class AuthStore(private val conn: Connection) {
         }
     }
 
+    /** Снять все сессии учётки. Отзыв служебного ключа стенда: живые сессии
+     *  служебной личности снимаются при старте — смена ключа + рестарт мгновенны. */
+    fun dropSessionsOf(login: String) {
+        conn.prepareStatement("DELETE FROM sessions WHERE login = ?").use { ps ->
+            ps.setString(1, login)
+            ps.executeUpdate()
+        }
+    }
+
     fun setRole(projectId: String, login: String, role: String) {
         conn.prepareStatement(
             """INSERT INTO project_roles(project_id, login, role) VALUES (?,?,?)
