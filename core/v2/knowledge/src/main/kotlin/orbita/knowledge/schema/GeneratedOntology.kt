@@ -138,7 +138,7 @@ object GeneratedOntology {
      * Отпечаток истины онтологии (sha256 файла). Им помечается каждый запуск
      * синтеза: по нему видно, по каким правилам сделано предложение.
      */
-    const val ontologyVersion: String = "5c3d3c4d33f3cf528a2f46fc339f2d5dd63bcb81353e0498ad030031406746f6"
+    const val ontologyVersion: String = "205dec3432caa3cca46827f68886792e67b91a41c7f2251f7c5b6be5585170d9"
 
     /** Ранги доверия по убыванию веса — ранг подсказывает, решает человек. */
     val authorityRanks: List<String> = listOf("mandatory", "expert", "reference", "doubtful")
@@ -388,9 +388,10 @@ object GeneratedOntology {
             ),
             note = "мера чтения устава без явного раздела — 0 требований; мера сцены 8 — 12 требований из постановки (ПОСТАНОВКА-ИЗ-ЗАПИСКИ.requirements как ожидание)",
             targetKind = "requirement",
-            allowedRoles = listOf("tor", "charter"),
+            allowedRoles = listOf("tor", "charter", "model"),
             allowedRolesNote = mapOf(
                 "charter" to "только при явном разделе «требования к миссии»",
+                "model" to "деривация вниз — основание: родительское требование, распределённое на узел или его предка; связь derives обязательна; сумма долей бюджета ≤ родителя",
             ),
             from = "ТЗ: требования заказчика — читаются; устав: только явный раздел требований. Требования уровня проекта из целей, нужд и ограничений НЕ читаются из документа — они образуются на сцене 8 (деривация из принятой постановки, решением инженера)",
         ),
@@ -416,9 +417,92 @@ object GeneratedOntology {
             ),
             note = "вероятность и последствия 1–5 — ставит человек; из документа только формулировка и класс",
             targetKind = "risk",
-            allowedRoles = listOf("charter", "tor", "context", "supplier", "heritage"),
+            allowedRoles = listOf("charter", "model", "tor", "context", "supplier", "heritage"),
+            allowedRolesNote = mapOf(
+                "model" to "риски из разрывов фазы — основание: разрыв; разрывы находит машина, модель пишет формулировку",
+            ),
             from = "раздел рисков документа или оценка с последствием («если … то …»)",
             humanFields = listOf("owner", "due_point", "probability", "impact", "strategy", "measures"),
+        ),
+        Concept(
+            code = "function",
+            fields = mapOf(
+                "name" to "глагол + объект («передать сообщение терминала»)",
+                "layer" to "SA; LA — только при уже распределённом узле LA",
+                "allocated_to" to "узел — участник шага",
+            ),
+            mustLink = listOf("allocated_to"),
+            conflictOn = listOf("allocated_to"),
+            identity = ConceptIdentity(
+                key = listOf("name_normalized"),
+                semantic = "та же функция иными словами",
+                threshold = 0.85,
+            ),
+            note = "функция без узла не предлагается; повтор существующей — augment (новый шаг, новый узел), не new",
+            targetKind = "function",
+            allowedRoles = listOf("model", "tor"),
+            from = "шаги сценариев ConOps с участником-узлом (model); функции, прямо названные в ТЗ (tor)",
+        ),
+        Concept(
+            code = "exchange",
+            fields = mapOf(
+                "source_function" to "функция отправителя",
+                "target" to "функция получателя или сторона (внешний участник)",
+                "payload" to "что передаётся, словами",
+                "interface" to "пусто — ставит помощник стыков или человек",
+            ),
+            mustLink = listOf("source_function", "target"),
+            conflictOn = emptyList(),
+            identity = ConceptIdentity(
+                key = listOf("source_function+target+payload_core"),
+                semantic = "тот же обмен",
+                threshold = 0.85,
+            ),
+            targetKind = "exchange",
+            allowedRoles = listOf("model"),
+            from = "соседние шаги сценария с разными участниками; обмен между функциями участников",
+        ),
+        Concept(
+            code = "interface",
+            fields = mapOf(
+                "a" to "узел состава",
+                "b" to "узел состава либо внешняя система стороной",
+                "type" to "словом истины по роду обмена",
+                "direction" to "словом истины",
+                "standard" to "если назван",
+            ),
+            mustLink = listOf("a", "b"),
+            conflictOn = listOf("direction", "standard"),
+            identity = ConceptIdentity(
+                key = listOf("unordered(a,b)+type"),
+                semantic = "тот же стык",
+                threshold = 0.9,
+            ),
+            note = "повтор существующего стыка — confirm; обе стороны — узлы состава или внешняя сторона, иначе отказ ворот",
+            targetKind = "interface",
+            allowedRoles = listOf("model", "tor", "supplier"),
+            from = "обмены, пересекающие границу узла; внешние участники сценариев (model); стыки ТЗ и внешних ICD (tor); стыки паспорта изделия (supplier)",
+        ),
+        Concept(
+            code = "parameter",
+            fields = mapOf(
+                "target" to "узел — по поставщику узла либо названный в документе",
+                "key" to "ключ анкеты узла",
+                "measure" to "величина с единицей справочника",
+                "origin" to "datasheet",
+                "source" to "документ + якорь",
+            ),
+            mustLink = listOf("target"),
+            conflictOn = listOf("measure"),
+            identity = ConceptIdentity(
+                key = listOf("target+key"),
+                semantic = "",
+                threshold = 1.0,
+            ),
+            note = "число без цитаты — отказ (сторож чисел); ключ вне анкеты узла — отказ",
+            targetKind = "parameter",
+            allowedRoles = listOf("supplier", "heritage"),
+            from = "паспорт изделия поставщика узла (component.supplier) или документ наследия",
         ),
     )
 
@@ -463,6 +547,20 @@ object GeneratedOntology {
         "supplier" to "поставщик (даташит, КП) — параметры, кандидаты решений, стоимости, риски",
         "heritage" to "наследие — уроки, типовые риски, параметры, обоснования",
     )
+
+    /**
+     * Картина проекта как роль образования (диф 28.09): не документ —
+     * основанием служат принятые сущности и разрывы. В карту чтения
+     * (documentRoles) не входит: материалу роль «model» не проставить.
+     */
+    val modelRole: String = "картина проекта — не документ: принятые сущности как основание помощников Phase A (деривация требований, функции из сценариев, стыки из обменов, риски из разрывов); основание — сущность или разрыв, не факт; целей, сервисов и сторон не порождает (диф владельца 28.09)"
+
+    /**
+     * Основание предложения — одно из трёх: факт · сущность · разрыв. Любое
+     * идёт одной сверкой и одним приёмом; путь предложений у помощника не
+     * свой (диф 28.09). Словами истины — для промпта и текста экрана.
+     */
+    val modelBasisRule: String = "основание предложения — одно из трёх: факт (документ, якорь) · сущность (вид, код, поле или шаг) · разрыв (вид разрыва, узел, грань, точка); предложение с любым основанием идёт ОДНОЙ сверкой (ключ идентичности понятия → вердикт new · augment · contradict · confirm) и ОДНИМ приёмом (массовый, отклонить · отложить, отмена пакета, журнал, кэш по отпечатку среза); при приёме основание-сущность ложится в source записи (requirement.source kind requirement|goal|need|constraint), основание-разрыв — в ссылку риска на свой разрыв; отдельного пути предложений у помощника нет (диф владельца 28.09)"
 
     /** Цели и сервисы — только из устава; прочие роли предлагают, но не создают. */
     val goalHierarchy: Map<String, String> = mapOf(
