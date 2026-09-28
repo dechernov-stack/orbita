@@ -10,6 +10,12 @@
       "canonical": true,
       "conversion_type": "linear",
       "factor": 1,
+      "spellings": [
+        "кг",
+        "килограмм",
+        "килограмма",
+        "килограммов"
+      ],
       "code": "kg"
     },
     {
@@ -19,6 +25,12 @@
       "canonical": false,
       "conversion_type": "linear",
       "factor": 0.001,
+      "spellings": [
+        "г",
+        "грамм",
+        "грамма",
+        "граммов"
+      ],
       "code": "g"
     },
     {
@@ -28,6 +40,12 @@
       "canonical": false,
       "conversion_type": "linear",
       "factor": 1000,
+      "spellings": [
+        "т",
+        "тонн",
+        "тонны",
+        "тонна"
+      ],
       "code": "t"
     },
     {
@@ -37,12 +55,18 @@
       "canonical": true,
       "conversion_type": "linear",
       "factor": 1,
+      "spellings": [
+        "м",
+        "метр",
+        "метра",
+        "метров"
+      ],
       "code": "m"
     },
     {
       "dimension": "длина",
       "symbol": "mm",
-      "name": "mm",
+      "name": "мм",
       "canonical": false,
       "conversion_type": "linear",
       "factor": 0.001,
@@ -55,6 +79,12 @@
       "canonical": false,
       "conversion_type": "linear",
       "factor": 1000,
+      "spellings": [
+        "км",
+        "километр",
+        "километра",
+        "километров"
+      ],
       "code": "km"
     },
     {
@@ -64,6 +94,10 @@
       "canonical": true,
       "conversion_type": "linear",
       "factor": 1,
+      "spellings": [
+        "м²",
+        "м2"
+      ],
       "code": "m2"
     },
     {
@@ -73,6 +107,10 @@
       "canonical": false,
       "conversion_type": "linear",
       "factor": 1000000,
+      "spellings": [
+        "км2",
+        "км²"
+      ],
       "code": "km2"
     },
     {
@@ -82,12 +120,16 @@
       "canonical": false,
       "conversion_type": "linear",
       "factor": 0.0001,
+      "spellings": [
+        "см²",
+        "см2"
+      ],
       "code": "cm2"
     },
     {
       "dimension": "объём",
       "symbol": "m3",
-      "name": "m3",
+      "name": "м³",
       "canonical": true,
       "conversion_type": "linear",
       "factor": 1,
@@ -100,6 +142,10 @@
       "canonical": false,
       "conversion_type": "linear",
       "factor": 0.001,
+      "spellings": [
+        "л",
+        "литр"
+      ],
       "code": "dm3"
     },
     {
@@ -109,6 +155,13 @@
       "canonical": true,
       "conversion_type": "linear",
       "factor": 1,
+      "spellings": [
+        "с",
+        "сек",
+        "секунд",
+        "секунды",
+        "секунда"
+      ],
       "code": "s"
     },
     {
@@ -118,6 +171,12 @@
       "canonical": false,
       "conversion_type": "linear",
       "factor": 60,
+      "spellings": [
+        "мин",
+        "минут",
+        "минута",
+        "минуты"
+      ],
       "code": "min"
     },
     {
@@ -127,6 +186,12 @@
       "canonical": false,
       "conversion_type": "linear",
       "factor": 3600,
+      "spellings": [
+        "ч",
+        "час",
+        "часа",
+        "часов"
+      ],
       "code": "h"
     },
     {
@@ -136,6 +201,15 @@
       "canonical": false,
       "conversion_type": "linear",
       "factor": 86400,
+      "spellings": [
+        "день",
+        "дн",
+        "дней",
+        "дня",
+        "сут",
+        "сутки",
+        "суток"
+      ],
       "code": "d"
     },
     {
@@ -145,6 +219,13 @@
       "canonical": false,
       "conversion_type": "linear",
       "factor": 31557600,
+      "spellings": [
+        "год",
+        "года",
+        "лет",
+        "году",
+        "годы"
+      ],
       "code": "a"
     },
     {
@@ -154,12 +235,16 @@
       "canonical": false,
       "conversion_type": "linear",
       "factor": 0.001,
+      "spellings": [
+        "мс",
+        "миллисекунда"
+      ],
       "code": "ms"
     },
     {
       "dimension": "угол",
       "symbol": "rad",
-      "name": "rad",
+      "name": "радиан",
       "canonical": true,
       "conversion_type": "linear",
       "factor": 1,
@@ -172,12 +257,19 @@
       "canonical": false,
       "conversion_type": "linear",
       "factor": 0.0174532925199433,
+      "spellings": [
+        "°",
+        "град",
+        "градус",
+        "градуса",
+        "градусов"
+      ],
       "code": "deg"
     },
     {
       "dimension": "угол",
       "symbol": "arcmin",
-      "name": "arcmin",
+      "name": "угл. мин",
       "canonical": false,
       "conversion_type": "linear",
       "factor": 0.000290888208665722,
@@ -190,6 +282,9 @@
       "canonical": true,
       "conversion_type": "linear",
       "factor": 1,
+      "spellings": [
+        "м/с"
+      ],
       "code": "m_s"
     },
     {
@@ -199,6 +294,9 @@
       "canonical": false,
       "conversion_type": "linear",
       "factor": 1000,
+      "spellings": [
+        "км/с"
+      ],
       "code": "km_s"
     },
     {
@@ -208,6 +306,9 @@
       "canonical": false,
       "conversion_type": "linear",
       "factor": 0.2777777777777778,
+      "spellings": [
+        "км/ч"
+      ],
       "code": "km_h"
     },
     {
@@ -217,22 +318,33 @@
       "canonical": true,
       "conversion_type": "offset",
       "factor": 1,
+      "spellings": [
+        "К",
+        "к",
+        "кельвин"
+      ],
       "code": "k"
     },
     {
       "dimension": "температура",
       "symbol": "degC",
-      "name": "°C",
+      "name": "градус Цельсия",
       "canonical": false,
       "conversion_type": "offset",
       "factor": 1,
       "offset": 273.15,
+      "spellings": [
+        "°C",
+        "°c",
+        "градус Цельсия",
+        "градусов цельсия"
+      ],
       "code": "degc"
     },
     {
       "dimension": "давление",
       "symbol": "Pa",
-      "name": "Pa",
+      "name": "Па",
       "canonical": true,
       "conversion_type": "linear",
       "factor": 1,
@@ -241,7 +353,7 @@
     {
       "dimension": "давление",
       "symbol": "bar",
-      "name": "bar",
+      "name": "бар",
       "canonical": false,
       "conversion_type": "linear",
       "factor": 100000,
@@ -254,6 +366,11 @@
       "canonical": true,
       "conversion_type": "linear",
       "factor": 1,
+      "spellings": [
+        "Гц",
+        "герц",
+        "гц"
+      ],
       "code": "hz"
     },
     {
@@ -263,6 +380,10 @@
       "canonical": false,
       "conversion_type": "linear",
       "factor": 1000,
+      "spellings": [
+        "кГц",
+        "кгц"
+      ],
       "code": "khz"
     },
     {
@@ -272,6 +393,10 @@
       "canonical": false,
       "conversion_type": "linear",
       "factor": 1000000,
+      "spellings": [
+        "МГц",
+        "мгц"
+      ],
       "code": "mhz"
     },
     {
@@ -281,6 +406,10 @@
       "canonical": false,
       "conversion_type": "linear",
       "factor": 1000000000,
+      "spellings": [
+        "ГГц",
+        "ггц"
+      ],
       "code": "ghz"
     },
     {
@@ -290,6 +419,10 @@
       "canonical": true,
       "conversion_type": "linear",
       "factor": 1,
+      "spellings": [
+        "Дж",
+        "джоуль"
+      ],
       "code": "j"
     },
     {
@@ -299,6 +432,10 @@
       "canonical": false,
       "conversion_type": "linear",
       "factor": 3600,
+      "spellings": [
+        "Вт·ч",
+        "Втч"
+      ],
       "code": "wh"
     },
     {
@@ -308,6 +445,11 @@
       "canonical": false,
       "conversion_type": "linear",
       "factor": 3600000,
+      "spellings": [
+        "кВт·ч",
+        "квт·ч",
+        "квтч"
+      ],
       "code": "kwh"
     },
     {
@@ -317,6 +459,11 @@
       "canonical": true,
       "conversion_type": "linear",
       "factor": 1,
+      "spellings": [
+        "Вт",
+        "ватт",
+        "вт"
+      ],
       "code": "w"
     },
     {
@@ -326,6 +473,10 @@
       "canonical": false,
       "conversion_type": "linear",
       "factor": 0.001,
+      "spellings": [
+        "мВт",
+        "мвт"
+      ],
       "code": "mw"
     },
     {
@@ -335,6 +486,10 @@
       "canonical": false,
       "conversion_type": "linear",
       "factor": 1000,
+      "spellings": [
+        "кВт",
+        "квт"
+      ],
       "code": "kw"
     },
     {
@@ -344,12 +499,17 @@
       "canonical": true,
       "conversion_type": "linear",
       "factor": 1,
+      "spellings": [
+        "А·ч",
+        "Ач",
+        "ампер-час"
+      ],
       "code": "ah"
     },
     {
       "dimension": "заряд АКБ",
       "symbol": "mAh",
-      "name": "mAh",
+      "name": "мА·ч",
       "canonical": false,
       "conversion_type": "linear",
       "factor": 0.001,
@@ -362,6 +522,9 @@
       "canonical": true,
       "conversion_type": "linear",
       "factor": 1,
+      "spellings": [
+        "бит/с"
+      ],
       "code": "bit_s"
     },
     {
@@ -371,6 +534,9 @@
       "canonical": false,
       "conversion_type": "linear",
       "factor": 1000,
+      "spellings": [
+        "кбит/с"
+      ],
       "code": "kbit_s"
     },
     {
@@ -380,12 +546,16 @@
       "canonical": false,
       "conversion_type": "linear",
       "factor": 1000000,
+      "spellings": [
+        "Мбит/с",
+        "мбит/с"
+      ],
       "code": "mbit_s"
     },
     {
       "dimension": "объём данных",
       "symbol": "bit",
-      "name": "bit",
+      "name": "бит",
       "canonical": true,
       "conversion_type": "linear",
       "factor": 1,
@@ -398,6 +568,10 @@
       "canonical": false,
       "conversion_type": "linear",
       "factor": 8,
+      "spellings": [
+        "Б",
+        "байт"
+      ],
       "code": "b"
     },
     {
@@ -407,6 +581,9 @@
       "canonical": false,
       "conversion_type": "linear",
       "factor": 8000,
+      "spellings": [
+        "КБ"
+      ],
       "code": "kb"
     },
     {
@@ -416,6 +593,9 @@
       "canonical": false,
       "conversion_type": "linear",
       "factor": 8000000,
+      "spellings": [
+        "МБ"
+      ],
       "code": "mb"
     },
     {
@@ -425,6 +605,9 @@
       "canonical": false,
       "conversion_type": "linear",
       "factor": 8000000000,
+      "spellings": [
+        "ГБ"
+      ],
       "code": "gb"
     },
     {
@@ -434,6 +617,10 @@
       "canonical": true,
       "conversion_type": "log",
       "factor": 1,
+      "spellings": [
+        "дБ",
+        "децибел"
+      ],
       "code": "db"
     },
     {
@@ -442,6 +629,9 @@
       "name": "дБм",
       "canonical": false,
       "conversion_type": "log",
+      "spellings": [
+        "дБм"
+      ],
       "code": "dbm"
     },
     {
@@ -450,6 +640,9 @@
       "name": "дБи",
       "canonical": false,
       "conversion_type": "log",
+      "spellings": [
+        "дБи"
+      ],
       "code": "dbi"
     },
     {
@@ -458,6 +651,9 @@
       "name": "дБВт",
       "canonical": false,
       "conversion_type": "log",
+      "spellings": [
+        "дБВт"
+      ],
       "code": "dbw"
     },
     {
@@ -466,12 +662,16 @@
       "name": "дБ/К",
       "canonical": false,
       "conversion_type": "log",
+      "spellings": [
+        "дБ/К",
+        "добротность"
+      ],
       "code": "db_k"
     },
     {
       "dimension": "поглощённая доза",
       "symbol": "Gy",
-      "name": "Gy",
+      "name": "Гр",
       "canonical": true,
       "conversion_type": "linear",
       "factor": 1,
@@ -484,12 +684,15 @@
       "canonical": false,
       "conversion_type": "linear",
       "factor": 10,
+      "spellings": [
+        "крад"
+      ],
       "code": "krad"
     },
     {
       "dimension": "поглощённая доза",
       "symbol": "rad_dose",
-      "name": "rad_dose",
+      "name": "рад",
       "canonical": false,
       "conversion_type": "linear",
       "factor": 0.01,
@@ -498,7 +701,7 @@
     {
       "dimension": "эквивалентная доза",
       "symbol": "Sv",
-      "name": "Sv",
+      "name": "Зв",
       "canonical": true,
       "conversion_type": "linear",
       "factor": 1,
@@ -507,7 +710,7 @@
     {
       "dimension": "эквивалентная доза",
       "symbol": "mSv",
-      "name": "mSv",
+      "name": "мЗв",
       "canonical": false,
       "conversion_type": "linear",
       "factor": 0.001,
@@ -520,6 +723,13 @@
       "canonical": true,
       "conversion_type": "linear",
       "factor": 1,
+      "spellings": [
+        "млн руб",
+        "млн руб.",
+        "млн рублей",
+        "млн ₽",
+        "млн рублей."
+      ],
       "code": "mrub"
     },
     {
@@ -529,6 +739,12 @@
       "canonical": false,
       "conversion_type": "linear",
       "factor": 0.001,
+      "spellings": [
+        "тыс руб",
+        "тыс. руб",
+        "тыс руб.",
+        "тыс рублей"
+      ],
       "code": "krub"
     },
     {
@@ -538,6 +754,12 @@
       "canonical": false,
       "conversion_type": "linear",
       "factor": 1e-06,
+      "spellings": [
+        "руб",
+        "руб.",
+        "рублей",
+        "₽"
+      ],
       "code": "rub"
     },
     {
@@ -547,6 +769,12 @@
       "canonical": false,
       "conversion_type": "linear",
       "factor": 1000,
+      "spellings": [
+        "млрд руб",
+        "млрд руб.",
+        "млрд рублей",
+        "млрд ₽"
+      ],
       "code": "brub"
     },
     {
@@ -555,12 +783,17 @@
       "name": "млн долл",
       "canonical": false,
       "conversion_type": "rate",
+      "spellings": [
+        "млн долл",
+        "млн долларов",
+        "млн $"
+      ],
       "code": "musd"
     },
     {
       "dimension": "удельная стоимость выведения",
       "symbol": "MRUB/kg",
-      "name": "MRUB/kg",
+      "name": "млн руб/кг",
       "canonical": true,
       "conversion_type": "linear",
       "factor": 1,
@@ -569,7 +802,7 @@
     {
       "dimension": "удельная стоимость выведения",
       "symbol": "kUSD/kg",
-      "name": "kUSD/kg",
+      "name": "тыс долл/кг",
       "canonical": false,
       "conversion_type": "rate",
       "code": "kusd_kg"
@@ -577,7 +810,7 @@
     {
       "dimension": "трудоёмкость",
       "symbol": "man_month",
-      "name": "man_month",
+      "name": "чел-мес",
       "canonical": true,
       "conversion_type": "linear",
       "factor": 1,
@@ -586,7 +819,7 @@
     {
       "dimension": "трудоёмкость",
       "symbol": "man_h",
-      "name": "man_h",
+      "name": "чел-ч",
       "canonical": false,
       "conversion_type": "linear",
       "factor": 0.005952380952380952,
@@ -599,6 +832,10 @@
       "canonical": false,
       "conversion_type": "linear",
       "factor": 12,
+      "spellings": [
+        "чел-год",
+        "человеко-лет"
+      ],
       "code": "man_year"
     },
     {
@@ -608,32 +845,67 @@
       "canonical": true,
       "conversion_type": "linear",
       "factor": 1,
+      "spellings": [
+        "доля"
+      ],
       "code": "1"
     },
     {
       "dimension": "доля и вероятность",
       "symbol": "%",
-      "name": "%",
+      "name": "процент",
       "canonical": false,
       "conversion_type": "linear",
       "factor": 0.01,
+      "spellings": [
+        "процент",
+        "процента",
+        "процентов"
+      ],
       "code": "u"
     },
     {
       "dimension": "счётные",
       "symbol": "pcs",
-      "name": "КА",
+      "name": "шт",
       "canonical": true,
       "conversion_type": "linear",
       "factor": 1,
+      "spellings": [
+        "КА",
+        "аппарат",
+        "аппарата",
+        "аппаратов",
+        "космический аппарат",
+        "плоскостей",
+        "плоскость",
+        "станции",
+        "станций",
+        "шт",
+        "шт.",
+        "штук",
+        "штуки",
+        "терминал",
+        "терминала",
+        "терминалов",
+        "устройство",
+        "устройства",
+        "устройств"
+      ],
       "code": "pcs"
     },
     {
       "dimension": "счётные",
       "symbol": "U",
-      "name": "u",
+      "name": "юнит",
       "canonical": false,
       "conversion_type": "linear",
+      "spellings": [
+        "u",
+        "юнит",
+        "юнита",
+        "юнитов"
+      ],
       "code": "u_2"
     },
     {
@@ -648,7 +920,7 @@
     {
       "dimension": "шкальные метки",
       "symbol": "mission_class",
-      "name": "mission_class",
+      "name": "класс миссии",
       "canonical": false,
       "conversion_type": "linear",
       "code": "mission_class"
@@ -660,6 +932,9 @@
       "canonical": true,
       "conversion_type": "linear",
       "factor": 1,
+      "spellings": [
+        "рад/с"
+      ],
       "code": "rad_s"
     },
     {
@@ -669,6 +944,12 @@
       "canonical": false,
       "conversion_type": "linear",
       "factor": 0.0174532925199433,
+      "spellings": [
+        "°/с",
+        "град/с",
+        "градус в секунду",
+        "градусов в секунду"
+      ],
       "code": "deg_s"
     },
     {
@@ -678,6 +959,10 @@
       "canonical": true,
       "conversion_type": "linear",
       "factor": 1,
+      "spellings": [
+        "В",
+        "вольт"
+      ],
       "code": "v"
     },
     {
@@ -687,6 +972,10 @@
       "canonical": false,
       "conversion_type": "linear",
       "factor": 0.001,
+      "spellings": [
+        "мВ",
+        "милливольт"
+      ],
       "code": "mv"
     },
     {
@@ -696,6 +985,10 @@
       "canonical": false,
       "conversion_type": "linear",
       "factor": 1000,
+      "spellings": [
+        "кВ",
+        "киловольт"
+      ],
       "code": "kv"
     },
     {
@@ -705,6 +998,10 @@
       "canonical": true,
       "conversion_type": "linear",
       "factor": 1,
+      "spellings": [
+        "А",
+        "ампер"
+      ],
       "code": "a_2"
     },
     {
@@ -714,6 +1011,10 @@
       "canonical": false,
       "conversion_type": "linear",
       "factor": 0.001,
+      "spellings": [
+        "мА",
+        "миллиампер"
+      ],
       "code": "ma"
     },
     {
@@ -723,6 +1024,10 @@
       "canonical": true,
       "conversion_type": "linear",
       "factor": 1,
+      "spellings": [
+        "Н",
+        "ньютон"
+      ],
       "code": "n"
     },
     {
@@ -732,6 +1037,10 @@
       "canonical": false,
       "conversion_type": "linear",
       "factor": 0.001,
+      "spellings": [
+        "мН",
+        "миллиньютон"
+      ],
       "code": "mn"
     }
   ]

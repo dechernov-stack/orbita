@@ -3,6 +3,7 @@
 package orbita.api
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import orbita.api.api.Actor
 import orbita.api.internal.V2Router
 import orbita.kernel.TestDbV2
 import orbita.kernel.api.Area
@@ -29,6 +30,8 @@ class GlossaryRoutesTest {
     private val область = Area.Project(проект)
     private val п = mapOf("project" to проект)
     private val полка = Provenance(Channel.SHELF, "поставка v2")
+    // Хозяин словаря — ведущий СИ (§0.3): принимает, сливает, отклоняет.
+    private val си = Actor("ivanov", "Иванов И.", setOf("lead_se"))
 
     private val router: V2Router by lazy {
         V2Router(
@@ -88,7 +91,7 @@ class GlossaryRoutesTest {
         assertEquals(1, список(статус = "candidate").path("candidates").asInt())
 
         val принят = router.handle("POST", "/v2/glossary/$код/accept", п,
-            """{"definition":"Министерство транспорта Российской Федерации","author":"Иванов И."}""")!!
+            """{"definition":"Министерство транспорта Российской Федерации","author":"Иванов И."}""", си)!!
         assertEquals("accepted", принят.body.path("status").asText())
         assertEquals("Министерство транспорта Российской Федерации", store.byCode(область, код)!!.doc.path("definition").asText())
 
@@ -98,11 +101,57 @@ class GlossaryRoutesTest {
         val ещё = router.handle("POST", "/v2/glossary", п,
             """{"term_ru":"Министерство","class":"stakeholder","status":"candidate","author":"разбор"}""")!!.body.path("code").asText()
         val безПричины = assertFailsWith<IllegalArgumentException> {
-            router.handle("POST", "/v2/glossary/$ещё/reject", п, """{"author":"Иванов И."}""")
+            router.handle("POST", "/v2/glossary/$ещё/reject", п, """{"author":"Иванов И."}""", си)
         }
         assertTrue("без причины" in (безПричины.message ?: ""), безПричины.message)
-        val отклонён = router.handle("POST", "/v2/glossary/$ещё/reject", п, """{"author":"Иванов И.","reason":"не термин, а обрывок"}""")!!
+        val отклонён = router.handle("POST", "/v2/glossary/$ещё/reject", п, """{"author":"Иванов И.","reason":"не термин, а обрывок"}""", си)!!
         assertEquals("obsolete", отклонён.body.path("status").asText())
+    }
+
+    @Test
+    fun `хозяин словаря — ведущий СИ, инженер предлагает кандидата, принимает СИ (§0_3)`() {
+        val инженер = Actor("petrova", "Петрова М.", setOf("specialist"))
+
+        // Инженер предлагает термин кандидатом — можно (кандидат с его именем).
+        val кандидат = router.handle("POST", "/v2/glossary", п,
+            """{"term_ru":"Абонентский терминал","class":"se_concept","status":"candidate","author":"Петрова М."}""", инженер)!!
+        assertEquals(201, кандидат.code, кандидат.body.toString())
+        val код = кандидат.body.path("code").asText()
+
+        // Инженер НЕ принимает и НЕ заводит принятый термин — хозяин словаря СИ.
+        val отказ = assertFailsWith<orbita.process.api.RoleRefusedException> {
+            router.handle("POST", "/v2/glossary/$код/accept", п, """{"author":"Петрова М."}""", инженер)
+        }
+        assertTrue("ведущий системный инженер" in (отказ.message ?: ""), отказ.message)
+        assertFailsWith<orbita.process.api.RoleRefusedException> {
+            router.handle("POST", "/v2/glossary", п,
+                """{"term_ru":"Космический аппарат","class":"se_concept","status":"accepted","author":"Петрова М."}""", инженер)
+        }
+
+        // Ведущий СИ принимает кандидата — можно.
+        val принят = router.handle("POST", "/v2/glossary/$код/accept", п, """{"author":"Иванов И."}""", си)!!
+        assertEquals("accepted", принят.body.path("status").asText(), принят.body.toString())
+    }
+
+    @Test
+    fun `словарь без актора и служебной личностью — отказ, ворота закрыты по умолчанию (§0_3 правка 28_09)`() {
+        val инженер = Actor("petrova", "Петрова М.", setOf("specialist"))
+        val код = router.handle("POST", "/v2/glossary", п,
+            """{"term_ru":"Ретранслятор","class":"se_concept","status":"candidate","author":"Петрова М."}""", инженер)!!
+            .body.path("code").asText()
+
+        // Нет актора — ворота закрыты (не «все роли»).
+        assertFailsWith<orbita.process.api.RoleRefusedException> {
+            router.handle("POST", "/v2/glossary/$код/accept", п, """{"author":"аноним"}""")
+        }
+        // Служебная личность (ADR-071) словарь не ведёт, даже с ролью lead_se.
+        val служебный = Actor("service:orbita-tools", "служебный orbita-tools", setOf("lead_se"))
+        val отказ = assertFailsWith<orbita.process.api.RoleRefusedException> {
+            router.handle("POST", "/v2/glossary/$код/accept", п, """{"author":"служебный"}""", служебный)
+        }
+        assertTrue("служебная личность" in (отказ.message ?: ""), отказ.message)
+        // Ведущий СИ — принимает.
+        assertEquals("accepted", router.handle("POST", "/v2/glossary/$код/accept", п, "{}", си)!!.body.path("status").asText())
     }
 
     @Test
@@ -131,7 +180,7 @@ class GlossaryRoutesTest {
         val кандидат = router.handle("POST", "/v2/glossary", п,
             """{"term_ru":"Федеральная служба по надзору в сфере транспорта (Ространснадзор)","class":"stakeholder","status":"candidate","author":"разбор"}""")!!
             .body.path("code").asText()
-        val итог = router.handle("POST", "/v2/glossary/$кандидат/merge", п, """{"into":"GT-ST-001","author":"Иванов И."}""")!!
+        val итог = router.handle("POST", "/v2/glossary/$кандидат/merge", п, """{"into":"GT-ST-001","author":"Иванов И."}""", си)!!
         assertEquals("GT-ST-001", итог.body.path("code").asText())
         val синонимы = store.byCode(Area.Library, "GT-ST-001")!!.doc.path("synonyms").map { it.asText() }
         assertTrue("Федеральная служба по надзору в сфере транспорта (Ространснадзор)" in синонимы, "$синонимы")

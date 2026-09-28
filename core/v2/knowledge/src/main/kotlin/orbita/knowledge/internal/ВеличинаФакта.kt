@@ -31,10 +31,15 @@ internal object ВеличинаФакта {
      * {op?, value, unit} (истина); иначе — текстом строкой `value`. top-level
      * `unit` больше не пишется — единица живёт внутри величины.
      */
+    /** Число из строки величины: запятая — точка, пробелы-разделители тысяч сняты
+     *  («1 000 000» → 1000000). Диапазон, «150+» и текст числом не становятся. */
+    fun парсЧисло(текст: String): Double? =
+        текст.trim().replace(',', '.').replace(" ", "").replace(" ", "").toDoubleOrNull()
+
     fun положить(документ: ObjectNode, mapper: ObjectMapper, значение: String, единица: String?, оператор: String?) {
         val ед = единица?.trim().orEmpty()
         val (оп, числоТекст) = разобрать(значение, оператор)
-        val число = числоТекст.replace(',', '.').toDoubleOrNull()
+        val число = парсЧисло(числоТекст)
         if (ед.isNotBlank() && число != null) {
             val мера = mapper.createObjectNode()
             оп?.takeIf { it.isNotBlank() }?.let { мера.put("op", it) }
@@ -69,7 +74,7 @@ internal object ВеличинаФакта {
             оп = ""
         }
         val ед = единица.trim().ifBlank { return null }
-        val число = числоТекст.trim().replace(',', '.').toDoubleOrNull() ?: return null
+        val число = парсЧисло(числоТекст) ?: return null
         val узел = mapper.createObjectNode().put("value", число).put("unit", ед)
         оп.trim().ifBlank { null }?.let { узел.put("op", it) }
         return узел

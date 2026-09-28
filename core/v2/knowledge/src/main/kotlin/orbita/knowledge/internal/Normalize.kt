@@ -317,9 +317,11 @@ internal class Normalize(
                     offset = д.path("offset").asDouble(0.0),
                     rateDate = д.path("rate_date").asText("").ifBlank { null },
                 )
-                // Единица узнаётся любым своим написанием: символом, именем и
-                // кодом карточки — ввод приходит и «мин», и «минута».
-                listOf(единица.symbol, д.path("name").asText(""), запись.code).forEach { написание ->
+                // Единица узнаётся любым своим написанием: символом, именем, кодом
+                // и всеми `spellings` полки (§0 правки 28.09) — «мин», «минут»,
+                // «минуты», «min». По ним же чтение узнаёт единицу в тексте документа.
+                (listOf(единица.symbol, д.path("name").asText(""), запись.code) +
+                    д.path("spellings").map { it.asText() }).forEach { написание ->
                     val ключ = ключЕдиницы(написание)
                     if (ключ.isNotBlank() && !единицы.containsKey(ключ)) единицы[ключ] = единица
                 }

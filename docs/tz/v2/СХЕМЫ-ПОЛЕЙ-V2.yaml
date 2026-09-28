@@ -70,6 +70,11 @@ kinds:
     required: true
     note: ''
     label: Наименование
+  - name: spellings
+    type: str[]
+    required: false
+    note: 'как единицу пишут в документах и в речи («мин», «минут», «минуты», «min»); по ним чтение и Normalize узнают единицу в тексте; из них же сид словаря берёт синонимы термина класса unit; name — одно русское имя для экрана, латиница в name только у устоявшихся обозначений (TRL, U, дБ); диф владельца 28.09'
+    label: Написания
   - name: canonical
     type: bool
     required: true

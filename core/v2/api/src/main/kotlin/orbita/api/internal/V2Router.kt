@@ -121,7 +121,7 @@ class V2Router(
         точки.handle(method, path, query, body, actor)
             ?: сцены.handle(method, path, query, body, actor)
             ?: записи.handle(method, path, query, body)
-            ?: словарь.handle(method, path, query, body)
+            ?: словарь.handle(method, path, query, body, actor)
             ?: досье.handle(method, path, query, body)
             ?: применимость.handle(method, path, query, body)
             ?: сквозные.handle(method, path, query, body)

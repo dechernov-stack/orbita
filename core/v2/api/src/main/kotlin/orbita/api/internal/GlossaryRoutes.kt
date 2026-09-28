@@ -14,6 +14,8 @@ import orbita.kernel.api.LinkRegistry
 import orbita.kernel.api.Provenance
 import orbita.kernel.schema.GeneratedKinds
 import orbita.knowledge.api.Glossary
+import orbita.api.api.Actor
+import orbita.process.api.RoleRefusedException
 
 class GlossaryRoutes(
     private val store: EntityStore,
@@ -23,10 +25,10 @@ class GlossaryRoutes(
 ) {
     private val решение = Regex("/v2/glossary/([A-Za-z0-9._-]+)/(accept|reject|merge)")
 
-    fun handle(method: String, path: String, query: Map<String, String>, body: String?): V2Router.Ответ? = when {
+    fun handle(method: String, path: String, query: Map<String, String>, body: String?, actor: Actor? = null): V2Router.Ответ? = when {
         method == "GET" && path == "/v2/glossary" ->
             список(query["project"]?.ifBlank { null }, query["q"], query["class"], query["status"])
-        method == "POST" && path == "/v2/glossary" -> завести(требуется(query), разобрать(body))
+        method == "POST" && path == "/v2/glossary" -> завести(требуется(query), разобрать(body), actor)
         // Стороны и узлы, заведённые до словаря, привязываются по кнопке: термин
         // по имени/коду либо кандидат — так словарь показывает кандидатов и на
         // проекте, где документы читались раньше него (КТ2, 24.09).
@@ -38,9 +40,32 @@ class GlossaryRoutes(
         }
         method == "POST" && решение.matches(path) -> {
             val м = решение.matchEntire(path)!!
-            решить(требуется(query), м.groupValues[1], м.groupValues[2], разобрать(body))
+            решить(требуется(query), м.groupValues[1], м.groupValues[2], разобрать(body), actor)
         }
         else -> null
+    }
+
+    /**
+     * Хозяин словаря — ведущий системный инженер (§0.3 шипа 6, умолчание §6):
+     * принять · слить · отклонить и завести ПРИНЯТЫЙ термин может он (или владелец
+     * «от имени» СИ). Инженер предлагает термин кандидатом (status=candidate).
+     *
+     * Ворота ЗАКРЫТЫ по умолчанию (правка владельца 28.09): нет актора — отказ,
+     * не «все роли». Служебная личность (ADR-071) словарь не ведёт — словарь
+     * класса миссии общий для всех проектов, решения по нему принимает человек
+     * (как ворота точки по ADR-072).
+     */
+    private fun требуетХозяина(actor: Actor?, действие: String) {
+        val login = actor?.login
+        val можно = actor != null && login != null && !login.startsWith("service:") && "lead_se" in actor.roles
+        if (!можно) throw RoleRefusedException(
+            "$действие в словаре — ведущий системный инженер (хозяин словаря); " +
+                when {
+                    actor == null -> "войдите под учёткой ведущего СИ"
+                    login != null && login.startsWith("service:") -> "служебная личность словарь не ведёт (ADR-072)"
+                    else -> "ваша роль — ${actor.roles.joinToString(", ").ifBlank { "нет" }}"
+                } + ". Инженер предлагает термин кандидатом (status=candidate).",
+        )
     }
 
     private val словаКлассов: Map<String, String> = GeneratedKinds.enumLabels["glossary_term.class"].orEmpty()
@@ -73,8 +98,8 @@ class GlossaryRoutes(
         return поля.any { glossary.flat(it).contains(игла) }
     }
 
-    /** Термин от человека: принятый сразу либо кандидат — как он сам назовёт. */
-    private fun завести(проект: String, тело: JsonNode): V2Router.Ответ {
+    /** Термин от человека: принятый сразу (только хозяин-СИ) либо кандидат (инженер предлагает). */
+    private fun завести(проект: String, тело: JsonNode, actor: Actor?): V2Router.Ответ {
         val область = Area.Project(проект)
         val имя = тело.path("term_ru").asText("").trim()
         require(имя.isNotBlank()) { "термину нужно каноническое имя (term_ru)" }
@@ -89,6 +114,8 @@ class GlossaryRoutes(
         }
         val статус = тело.path("status").asText("accepted").ifBlank { "accepted" }
         require(статус in setOf("accepted", "candidate")) { "статус нового термина — accepted либо candidate" }
+        // Принятый термин заводит хозяин словаря (СИ); кандидата предлагает любой.
+        if (статус == "accepted") требуетХозяина(actor, "принятие термина")
         val документ = тело.deepCopy<ObjectNode>().apply {
             remove(listOf("author", "status", "project", "code", "reason"))
             put("term_ru", имя); put("class", класс)
@@ -98,7 +125,9 @@ class GlossaryRoutes(
         return V2Router.Ответ(201, термин(запись))
     }
 
-    private fun решить(проект: String, код: String, действие: String, тело: JsonNode): V2Router.Ответ {
+    private fun решить(проект: String, код: String, действие: String, тело: JsonNode, actor: Actor?): V2Router.Ответ {
+        // Принять · слить · отклонить кандидата — хозяин словаря (ведущий СИ), §0.3.
+        требуетХозяина(actor, when (действие) { "accept" -> "приём"; "merge" -> "слияние"; else -> "отклонение" })
         val область = Area.Project(проект)
         val запись = store.byCode(область, код) ?: store.byCode(Area.Library, код)
             ?: throw NoSuchElementException("термина «$код» нет ни в проекте, ни в библиотеке")
