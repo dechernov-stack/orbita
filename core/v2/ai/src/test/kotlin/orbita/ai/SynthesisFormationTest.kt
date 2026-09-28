@@ -15,6 +15,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ObjectNode
 import orbita.ai.api.AiFactory
 import orbita.ai.api.Answer
+import orbita.ai.api.Basis
 import orbita.ai.api.ProviderUnavailable
 import orbita.ai.api.SynthesisRun
 import orbita.ai.api.Transport
@@ -112,7 +113,7 @@ class SynthesisFormationTest {
 
         val предложение = запуск.diff.new.single()
         assertEquals(1, запуск.diff.size, "три факта об одном — одна постановка, а не три")
-        assertEquals(listOf("M-0001", "M-0002", "M-0003"), предложение.basis.map { it.material })
+        assertEquals(listOf("M-0001", "M-0002", "M-0003"), предложение.basis.map { (it as Basis.Fact).material })
         assertEquals(
             listOf("mandatory", "expert", "reference"),
             предложение.basis.map { it.rank },
@@ -212,7 +213,7 @@ class SynthesisFormationTest {
 
         val предложение = запуск.diff.confirm.single()
         assertEquals("ND-0001", предложение.targetRef)
-        assertEquals("M-0007", предложение.basis.single().material, "подтверждение идёт из ДРУГОГО материала")
+        assertEquals("M-0007", (предложение.basis.single() as Basis.Fact).material, "подтверждение идёт из ДРУГОГО материала")
         val карточка = store.byCode(Area.Project(ПРОЕКТ), запуск.proposals.single())
         assertNotNull(карточка, "карточка предложения заведена")
         val предмет = карточка.doc.path("items").first()

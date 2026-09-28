@@ -69,7 +69,7 @@ class StatementImporter(
                 concept = пункт.concept,
                 payload = поля,
                 basis = listOf(
-                    Basis(
+                    Basis.Fact(
                         factId = код, material = material, anchor = пункт.anchor,
                         rank = факт.doc.path("rank").asText("").ifBlank { null },
                         mark = пункт.метка,

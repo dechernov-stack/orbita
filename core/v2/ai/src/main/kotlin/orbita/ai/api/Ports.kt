@@ -170,7 +170,7 @@ interface AtomizeJobs {
 //
 // Границы службы названы инвариантами онтологии, и здесь их держат
 // конструкторы, а не договорённость:
-//   · предложение без факта-основания не существует (≥1 основание);
+//   · предложение без основания не существует (≥1 основание: факт · сущность · разрыв);
 //   · «похоже» без «чем именно» — брак: у вердикта о принятом обязано быть
 //     названо ПОЛЕ отличия;
 //   · ранг подсказывает в противоречии и никогда не выбирает победителя —
@@ -202,29 +202,108 @@ enum class Verdict {
 }
 
 /**
- * Факт-основание предложения: откуда предложение взялось и чему верить.
+ * Основание предложения — откуда предложение взялось и чему верить. Закрытый
+ * тип из трёх (диф владельца 28.09, `formation.model_basis_rule`): предложение
+ * растёт из ФАКТА (документ, якорь), из принятой СУЩНОСТИ (вид, код, поле или
+ * шаг) либо из РАЗРЫВА (вид, узел, грань, точка). Сверка и приём принимают
+ * любое; карточка предложения показывает основание словами (`words`) со
+ * ссылкой «к месту».
  *
- * Плоские `material`/`anchor` и союз `source` лежат рядом ровно по той же
- * причине, что и у `Fact`: у документального основания есть место в каноне, а
- * у экспертного места нет — вместо якоря происхождение называет учётку, роль
- * и дату. Ранг здесь — свойство ОСНОВАНИЯ, а не приговор предложению.
+ * До 28.09 основание было только фактом, оттого `FormationProposal` требовал
+ * факт-основание. Расширение понадобилось помощникам Phase A: требование
+ * выводится из родительского требования (сущность), риск — из разрыва, а не
+ * из факта. Путь предложений один (сверка) — меняется лишь тип основания.
  */
-data class Basis(
-    val factId: String,
-    val material: String? = null,
-    val anchor: String? = null,
-    val rank: String? = null,
-    val mark: SourceMark? = null,
-    /** Ветка союза `fact.source`: документ с якорем либо эксперт с ролью и датой. */
-    val source: FactSource? = null,
-) {
-    init {
-        // Основание без кода факта непроверяемо: по нему нельзя дойти до
-        // источника, а предложение без проверяемого основания — брак.
-        require(factId.isNotBlank()) { "брак предложения: основание без кода факта" }
-        require(rank == null || Authority.known(rank)) {
-            "ранг основания «$rank» неизвестен: ${Authority.words()}"
+sealed interface Basis {
+    /** Ранг доверия основания; у разрыва его нет. Подсказывает в противоречии, не выбирает. */
+    val rank: String?
+
+    /**
+     * Место, куда ведёт ссылка «к месту»: у факта — якорь в документе, у
+     * сущности — поле или шаг сценария. У разрыва отдельного якоря нет: его
+     * место — узел·грань·точка целиком (см. `words`).
+     */
+    val anchor: String?
+
+    /** Дискриминатор записи в прогон: fact · entity · gap. */
+    val kindTag: String
+
+    /** Основание словами — для карточки предложения, промпта и ссылки «к месту». */
+    fun words(): String
+
+    /**
+     * Факт-основание: документ с якорем либо эксперт с ролью и датой. Плоские
+     * `material`/`anchor` и союз `source` — как у самого факта (`Fact` знаний):
+     * у документального основания есть место в каноне, у экспертного вместо
+     * якоря учётка, роль и дата. Ранг — свойство основания, не приговор.
+     */
+    data class Fact(
+        val factId: String,
+        val material: String? = null,
+        override val anchor: String? = null,
+        override val rank: String? = null,
+        val mark: SourceMark? = null,
+        /** Ветка союза `fact.source`: документ с якорем либо эксперт с ролью и датой. */
+        val source: FactSource? = null,
+    ) : Basis {
+        init {
+            // Основание без кода факта непроверяемо: по нему нельзя дойти до
+            // источника, а предложение без проверяемого основания — брак.
+            require(factId.isNotBlank()) { "брак предложения: факт-основание без кода факта" }
+            require(rank == null || Authority.known(rank)) {
+                "ранг основания «$rank» неизвестен: ${Authority.words()}"
+            }
         }
+
+        override val kindTag: String get() = "fact"
+        override fun words(): String = listOfNotNull(material ?: factId, anchor).joinToString(" · ")
+    }
+
+    /**
+     * Сущность-основание: принятая сущность поля (вид и код). При приёме
+     * ложится в `source` записи (`requirement.source` kind requirement|goal|
+     * need|constraint), а не в ссылку на факт. `anchor` — поле сущности или
+     * шаг сценария, к которому ведёт ссылка «к месту».
+     */
+    data class Entity(
+        val kind: String,
+        val code: String,
+        override val anchor: String? = null,
+        override val rank: String? = null,
+    ) : Basis {
+        init {
+            require(kind.isNotBlank()) { "брак предложения: сущность-основание без вида" }
+            require(code.isNotBlank()) { "брак предложения: сущность-основание без кода" }
+            require(rank == null || Authority.known(rank)) {
+                "ранг основания «$rank» неизвестен: ${Authority.words()}"
+            }
+        }
+
+        override val kindTag: String get() = "entity"
+        override fun words(): String = listOfNotNull("$kind $code", anchor).joinToString(" · ")
+    }
+
+    /**
+     * Разрыв-основание: разрыв фазы (вид, узел, грань, точка), который машина
+     * находит сама. При приёме ложится в ссылку риска на свой разрыв, не в
+     * `source`. Ранга у разрыва нет — это не свидетельство, а факт модели.
+     */
+    data class Gap(
+        val kind: String,
+        val node: String,
+        val facet: String,
+        val point: String,
+    ) : Basis {
+        init {
+            require(kind.isNotBlank() && node.isNotBlank() && facet.isNotBlank() && point.isNotBlank()) {
+                "брак предложения: разрыв назван не полностью (вид · узел · грань · точка)"
+            }
+        }
+
+        override val rank: String? get() = null
+        override val anchor: String? get() = null
+        override val kindTag: String get() = "gap"
+        override fun words(): String = "разрыв $kind: $node · $facet · $point"
     }
 }
 
@@ -265,7 +344,7 @@ data class FormationProposal(
         // сущность в поле (инвариант ОНТОЛОГИИ-ФОРМИРОВАНИЯ).
         GeneratedOntology.of(concept)
         require(basis.isNotEmpty()) {
-            "брак предложения: понятие «$concept» без факта-основания — предложений без оснований не бывает"
+            "брак предложения: понятие «$concept» без основания — предложений без оснований не бывает"
         }
         if (verdict != Verdict.NEW) {
             require(!targetRef.isNullOrBlank()) {

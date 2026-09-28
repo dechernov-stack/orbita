@@ -160,8 +160,10 @@ class SynthesisRoutes(
             Candidate(
                 имя, предложение.concept,
                 сПравкой(предложение, правки?.path(имя)), CandidateOrigin.SYNTHESIS,
-                // Основание предложения — факт документа: им кандидат и сверяется.
-                basis = предложение.basis.firstOrNull()?.factId,
+                // Кандидат сверяется по факту-основанию, если он есть. У основания-
+                // сущности и разрыва (диф 28.09) факта нет — им кандидат сверяется
+                // без ссылки на факт (Candidate.basis допускает пусто).
+                basis = предложение.basis.filterIsInstance<Basis.Fact>().firstOrNull()?.factId,
             )
         }
         val сверка = reconcile.preview(проект, кандидаты, автор, тело.path("role").asText("").ifBlank { "инженер" })
@@ -507,13 +509,26 @@ class SynthesisRoutes(
     }
 
     private fun видОснования(о: Basis): ObjectNode {
-        val узел = mapper.createObjectNode().put("fact", о.factId)
-        о.material?.let { узел.put("material", it) }
-        о.anchor?.let { узел.put("anchor", it) }
+        val узел = mapper.createObjectNode()
+        // `type` и `words` — общие для всех оснований (диф 28.09): экран рисует
+        // основание словами со ссылкой «к месту», не зная про факт/сущность/разрыв.
+        узел.put("type", о.kindTag).put("words", о.words())
         о.rank?.let { узел.put("rank", it).put("rank_word", Authority.word(it)) }
-        о.mark?.let { узел.put("mark", it.name) }
-        (о.source as? FactSource.FromExpert)?.let {
-            узел.put("account", it.account).put("role", it.role).put("at", it.at)
+        when (о) {
+            is Basis.Fact -> {
+                узел.put("fact", о.factId)
+                о.material?.let { узел.put("material", it) }
+                о.anchor?.let { узел.put("anchor", it) }
+                о.mark?.let { узел.put("mark", it.name) }
+                (о.source as? FactSource.FromExpert)?.let {
+                    узел.put("account", it.account).put("role", it.role).put("at", it.at)
+                }
+            }
+            is Basis.Entity -> {
+                узел.put("kind", о.kind).put("code", о.code)
+                о.anchor?.let { узел.put("anchor", it) }
+            }
+            is Basis.Gap -> узел.put("kind", о.kind).put("node", о.node).put("facet", о.facet).put("point", о.point)
         }
         return узел
     }
@@ -583,16 +598,31 @@ class SynthesisRoutes(
         return содержимое
     }
 
-    /** Источник требования — из оснований предложения: документ и якорь. */
+    /**
+     * Источник записи — из оснований предложения (диф 28.09, model_basis_rule):
+     * факт ложится видом «material» (документ/якорь), сущность — своим видом
+     * (`requirement.source` kind requirement|goal|need|constraint), разрыв в
+     * source не ложится — он идёт в ссылку риска на свой разрыв.
+     */
     private fun основанияПолем(п: FormationProposal): JsonNode? {
         if (п.basis.isEmpty()) return null
         val массив = mapper.createArrayNode()
         п.basis.forEach { основание ->
-            val узел = массив.addObject().put("kind", "material")
-            узел.put("ref", основание.material ?: основание.factId)
-            основание.anchor?.takeIf { it.isNotBlank() }?.let { узел.put("anchor", it) }
+            when (основание) {
+                is Basis.Fact -> {
+                    val узел = массив.addObject().put("kind", "material")
+                    узел.put("ref", основание.material ?: основание.factId)
+                    основание.anchor?.takeIf { it.isNotBlank() }?.let { узел.put("anchor", it) }
+                }
+                is Basis.Entity -> {
+                    val узел = массив.addObject().put("kind", основание.kind)
+                    узел.put("ref", основание.code)
+                    основание.anchor?.takeIf { it.isNotBlank() }?.let { узел.put("anchor", it) }
+                }
+                is Basis.Gap -> Unit
+            }
         }
-        return массив
+        return массив.takeIf { it.size() > 0 }
     }
 
     /** Автоопределение: шаблон EARS — по форме самой формулировки. */

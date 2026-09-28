@@ -83,7 +83,7 @@ class DocumentReader(
                 concept = понятие.concept,
                 payload = понятие.payload,
                 basis = listOf(
-                    Basis(
+                    Basis.Fact(
                         factId = след,
                         material = material,
                         anchor = понятие.anchor,

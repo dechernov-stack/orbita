@@ -24,7 +24,7 @@ import kotlin.test.assertTrue
 
 class SynthesisPortsTest {
 
-    private val изЗаписки = Basis(
+    private val изЗаписки = Basis.Fact(
         factId = "F-0007",
         material = "M-0001",
         anchor = "блок-12",
@@ -32,11 +32,20 @@ class SynthesisPortsTest {
         mark = SourceMark.И,
     )
 
-    private val отЭксперта = Basis(
+    private val отЭксперта = Basis.Fact(
         factId = "F-0042",
         rank = Authority.EXPERT,
         mark = SourceMark.И,
         source = FactSource.FromExpert(account = "ivanov", role = "ведущий СИ", at = "2026-09-12"),
+    )
+
+    // Основание-сущность (диф 28.09): деривация требования вниз опирается на
+    // родительское требование, не на факт документа.
+    private val отРодителя = Basis.Entity(
+        kind = "requirement",
+        code = "REQ-0001",
+        anchor = "mass",
+        rank = Authority.MANDATORY,
     )
 
     private fun предложение(
@@ -71,10 +80,11 @@ class SynthesisPortsTest {
     @Test
     fun `основание эксперта называет учётку, роль и дату вместо якоря`() {
         val п = предложение(basis = listOf(отЭксперта))
-        val источник = п.basis.single().source
+        val основание = п.basis.single() as Basis.Fact
+        val источник = основание.source
         assertTrue(источник is FactSource.FromExpert, "экспертное основание — ветка эксперта, не документа")
         assertEquals("ведущий СИ", (источник as FactSource.FromExpert).role)
-        assertTrue(п.basis.single().anchor == null, "у руки документа нет — якоря быть не может")
+        assertTrue(основание.anchor == null, "у руки документа нет — якоря быть не может")
     }
 
     @Test
@@ -155,9 +165,47 @@ class SynthesisPortsTest {
 
     @Test
     fun `основание без кода факта и с неизвестным рангом отвергается`() {
-        assertFailsWith<IllegalArgumentException> { Basis(factId = " ") }
-        val беда = assertFailsWith<IllegalArgumentException> { Basis(factId = "F-0001", rank = "важный") }
+        assertFailsWith<IllegalArgumentException> { Basis.Fact(factId = " ") }
+        val беда = assertFailsWith<IllegalArgumentException> { Basis.Fact(factId = "F-0001", rank = "важный") }
         assertTrue("ранг основания" in (беда.message ?: ""), беда.message ?: "")
+    }
+
+    // ——— основание шире факта: сущность и разрыв (диф 28.09) ———
+
+    @Test
+    fun `предложение вправе опереться на сущность, а не на факт`() {
+        // Деривация требования вниз: основание — родительское требование.
+        // Предложение с основанием-сущностью законно, факта не требует.
+        val п = предложение(concept = "requirement", basis = listOf(отРодителя))
+        assertEquals(1, п.basis.size)
+        val основание = п.basis.single()
+        assertTrue(основание is Basis.Entity, "основание деривации — сущность, не факт")
+        assertEquals("entity", основание.kindTag)
+        assertEquals("requirement", (основание as Basis.Entity).kind)
+        assertEquals("REQ-0001", основание.code)
+        assertTrue("requirement REQ-0001" in основание.words(), основание.words())
+    }
+
+    @Test
+    fun `основание-разрыв назван четырьмя частями и ранга не несёт`() {
+        val разрыв = Basis.Gap(kind = "не_покрыто", node = "C-0007", facet = "requirements", point = "SRR")
+        assertEquals("gap", разрыв.kindTag)
+        assertTrue(разрыв.rank == null, "у разрыва ранга нет — это факт модели, не свидетельство")
+        assertTrue("C-0007" in разрыв.words() && "SRR" in разрыв.words(), разрыв.words())
+    }
+
+    @Test
+    fun `сущность-основание без вида или кода — брак`() {
+        assertFailsWith<IllegalArgumentException> { Basis.Entity(kind = "", code = "REQ-0001") }
+        assertFailsWith<IllegalArgumentException> { Basis.Entity(kind = "requirement", code = " ") }
+    }
+
+    @Test
+    fun `разрыв-основание, названный не полностью, — брак`() {
+        val беда = assertFailsWith<IllegalArgumentException> {
+            Basis.Gap(kind = "не_покрыто", node = "C-0007", facet = "", point = "SRR")
+        }
+        assertTrue("разрыв назван не полностью" in (беда.message ?: ""), беда.message ?: "")
     }
 
     // ——— диф четырьмя группами ———

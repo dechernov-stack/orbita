@@ -10,6 +10,7 @@ package orbita.ai
 import com.fasterxml.jackson.databind.ObjectMapper
 import orbita.ai.api.AiFactory
 import orbita.ai.api.Answer
+import orbita.ai.api.Basis
 import orbita.ai.api.Transport
 import orbita.ai.internal.StatementImporter
 import orbita.ai.internal.Synthesizer
@@ -104,8 +105,8 @@ class StatementImportTest {
 
         assertEquals(первый.diff.new.size, второй.diff.new.size, "повтор не теряет предложений")
         assertEquals(
-            первый.diff.new.map { it.basis.single().factId }.toSet(),
-            второй.diff.new.map { it.basis.single().factId }.toSet(),
+            первый.diff.new.map { (it.basis.single() as Basis.Fact).factId }.toSet(),
+            второй.diff.new.map { (it.basis.single() as Basis.Fact).factId }.toSet(),
             "основания повтора — те же факты",
         )
     }
@@ -150,11 +151,11 @@ class StatementImportTest {
         val минтранс = запуск.diff.new.first { it.payload["name"] == "Минтранс России / Ространснадзор" }
         assertEquals("customer", минтранс.payload["role"], "роль эталона «заказчик» → код истины схем")
         assertTrue("influence" !in минтранс.payload, "влияние считает система, значение эталона снято")
-        val след = assertNotNull(store.byCode(Area.Project(ПРОЕКТ), минтранс.basis.single().factId))
+        val след = assertNotNull(store.byCode(Area.Project(ПРОЕКТ), (минтранс.basis.single() as Basis.Fact).factId))
         assertTrue(след.doc.path("quote").isNull, "у факта внешнего контура цитаты нет — null, как у эксперта")
 
         val цель = запуск.diff.new.first { it.concept == "goal" && it.payload["statement"]?.startsWith("Достичь стратегического") == true }
-        val следЦели = assertNotNull(store.byCode(Area.Project(ПРОЕКТ), цель.basis.single().factId))
+        val следЦели = assertNotNull(store.byCode(Area.Project(ПРОЕКТ), (цель.basis.single() as Basis.Fact).factId))
         assertEquals("И1", следЦели.doc.path("mark_no").asText(), "номер источника «И1» сохранён отдельным полем")
         assertEquals("И", следЦели.doc.path("mark").asText())
     }

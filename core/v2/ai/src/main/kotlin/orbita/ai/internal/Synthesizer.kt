@@ -566,7 +566,7 @@ class Synthesizer(
         return null
     }
 
-    private fun основание(факт: Fact): Basis = Basis(
+    private fun основание(факт: Fact): Basis = Basis.Fact(
         factId = факт.id,
         material = факт.material.ifBlank { null },
         anchor = факт.anchor,
@@ -627,9 +627,7 @@ class Synthesizer(
         val содержимое = предмет.putObject("payload")
         предложение.payload.forEach { (имя, значение) -> содержимое.set<JsonNode>(имя, значениеУзлом(значение)) }
         val якоря = предмет.putArray("anchors")
-        предложение.basis.forEach { основание ->
-            якоря.add(listOfNotNull(основание.factId, основание.material, основание.anchor).joinToString(" "))
-        }
+        предложение.basis.forEach { основание -> якоря.add(основание.words()) }
         предмет.put("mark", предложение.sourceMark.name)
         // Решения нет, пока его не принял человек: карточка рождается открытой.
         предмет.put("decision", "pending")
@@ -668,15 +666,34 @@ class Synthesizer(
         val основания = узел.putArray("basis")
         предложение.basis.forEach { основание ->
             val запись = основания.addObject()
-            запись.put("fact", основание.factId)
-            основание.material?.let { запись.put("material", it) }
-            основание.anchor?.let { запись.put("anchor", it) }
-            основание.rank?.let { запись.put("rank", it) }
-            основание.mark?.let { запись.put("mark", it.name) }
-            (основание.source as? FactSource.FromExpert)?.let { источник ->
-                запись.put("account", источник.account)
-                запись.put("role", источник.role)
-                запись.put("at", источник.at)
+            // `type` — дискриминатор основания (диф 28.09). Старые прогоны его не
+            // писали: у них есть `fact` и нет `type` — читаются как факт.
+            запись.put("type", основание.kindTag)
+            when (основание) {
+                is Basis.Fact -> {
+                    запись.put("fact", основание.factId)
+                    основание.material?.let { запись.put("material", it) }
+                    основание.anchor?.let { запись.put("anchor", it) }
+                    основание.rank?.let { запись.put("rank", it) }
+                    основание.mark?.let { запись.put("mark", it.name) }
+                    (основание.source as? FactSource.FromExpert)?.let { источник ->
+                        запись.put("account", источник.account)
+                        запись.put("role", источник.role)
+                        запись.put("at", источник.at)
+                    }
+                }
+                is Basis.Entity -> {
+                    запись.put("kind", основание.kind)
+                    запись.put("code", основание.code)
+                    основание.anchor?.let { запись.put("anchor", it) }
+                    основание.rank?.let { запись.put("rank", it) }
+                }
+                is Basis.Gap -> {
+                    запись.put("kind", основание.kind)
+                    запись.put("node", основание.node)
+                    запись.put("facet", основание.facet)
+                    запись.put("point", основание.point)
+                }
             }
         }
         предложение.targetRef?.let { узел.put("target_ref", it) }
@@ -706,23 +723,42 @@ class Synthesizer(
     )
 
     private fun основаниеИзЗаписи(узел: JsonNode): Basis {
-        val учётка = узел.path("account").asText("")
-        val материал = узел.path("material").asText("").ifBlank { null }
         val якорь = узел.path("anchor").asText("").ifBlank { null }
-        return Basis(
-            factId = узел.path("fact").asText(""),
-            material = материал,
-            anchor = якорь,
-            rank = узел.path("rank").asText("").ifBlank { null },
-            mark = runCatching { SourceMark.valueOf(узел.path("mark").asText("И")) }.getOrNull(),
-            source = when {
-                учётка.isNotBlank() -> FactSource.FromExpert(
-                    учётка, узел.path("role").asText(""), узел.path("at").asText(""),
+        val ранг = узел.path("rank").asText("").ifBlank { null }
+        // Старые прогоны писали факт без `type` — их узнаём по ключу `fact`.
+        val тип = узел.path("type").asText("").ifBlank { if (узел.has("fact")) "fact" else "" }
+        return when (тип) {
+            "entity" -> Basis.Entity(
+                kind = узел.path("kind").asText(""),
+                code = узел.path("code").asText(""),
+                anchor = якорь,
+                rank = ранг,
+            )
+            "gap" -> Basis.Gap(
+                kind = узел.path("kind").asText(""),
+                node = узел.path("node").asText(""),
+                facet = узел.path("facet").asText(""),
+                point = узел.path("point").asText(""),
+            )
+            else -> {
+                val учётка = узел.path("account").asText("")
+                val материал = узел.path("material").asText("").ifBlank { null }
+                Basis.Fact(
+                    factId = узел.path("fact").asText(""),
+                    material = материал,
+                    anchor = якорь,
+                    rank = ранг,
+                    mark = runCatching { SourceMark.valueOf(узел.path("mark").asText("И")) }.getOrNull(),
+                    source = when {
+                        учётка.isNotBlank() -> FactSource.FromExpert(
+                            учётка, узел.path("role").asText(""), узел.path("at").asText(""),
+                        )
+                        материал != null -> FactSource.FromMaterial(материал, якорь)
+                        else -> null
+                    },
                 )
-                материал != null -> FactSource.FromMaterial(материал, якорь)
-                else -> null
-            },
-        )
+            }
+        }
     }
 
     private fun примечание(
