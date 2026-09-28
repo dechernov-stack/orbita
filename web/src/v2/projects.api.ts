@@ -27,6 +27,8 @@ export interface КарточкаПроекта {
   phase: string
   manager: string
   group: string
+  /** Песочница (ADR-072): проект прогона; ворота его проходит и служебный ключ. */
+  sandbox?: boolean
   /** День последней правки любой записи проекта, ГГГГ-ММ-ДД. */
   last_activity: string
   gate?: ТочкаКарточки

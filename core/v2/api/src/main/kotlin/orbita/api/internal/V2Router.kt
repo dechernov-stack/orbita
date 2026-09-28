@@ -127,7 +127,7 @@ class V2Router(
         actor: Actor?,
     ): Ответ? =
         точки.handle(method, path, query, body, actor)
-            ?: сцены.handle(method, path, query, body)
+            ?: сцены.handle(method, path, query, body, actor)
             ?: записи.handle(method, path, query, body)
             ?: словарь.handle(method, path, query, body)
             ?: досье.handle(method, path, query, body)

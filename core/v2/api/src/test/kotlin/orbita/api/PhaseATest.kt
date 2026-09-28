@@ -89,6 +89,60 @@ class PhaseATest {
         router().handle("POST", "/v2/projects", emptyMap(), """{"name":"Phase A","code":"$проект","author":"Чернов Д."}""")
     }
 
+    private val служебный = Actor("service:orbita-tools", "служебный orbita-tools", setOf("lead", "da_review"))
+
+    // ── ADR-072: служебная личность не проходит ворота рабочего проекта ──
+
+    @Test
+    fun `служебная личность не проходит ворота рабочего проекта — 403 SERVICE_GATE_FORBIDDEN, фаза та же`() {
+        // PJ-9801 заведён в чисто() без актора — рабочий проект (sandbox=false).
+        val ответ = router().handle("POST", "/v2/points/internal_review/decide", п, """{"outcome":"approve"}""", служебный)!!
+        assertEquals(403, ответ.code)
+        assertEquals("SERVICE_GATE_FORBIDDEN", ответ.body.path("code").asText())
+        assertEquals("Pre-Phase A", движок().view(проект).phase, "фаза не сдвинулась")
+    }
+
+    @Test
+    fun `служебная личность проходит ворота песочницы — гард пропускает к движку`() {
+        router().handle("POST", "/v2/projects", emptyMap(), """{"code":"PJ-SB","name":"Песочница"}""", служебный)
+        // Служебный создатель → sandbox=true. defer не проверяет условия: 200 —
+        // значит гард пропустил (это не SERVICE_GATE_FORBIDDEN).
+        val ответ = router().handle("POST", "/v2/points/internal_review/decide", mapOf("project" to "PJ-SB"), """{"outcome":"defer"}""", служебный)!!
+        assertEquals(200, ответ.code)
+        assertTrue(store.byCode(Area.Project("PJ-SB"), "PJ-SB")!!.doc.path("sandbox").asBoolean(), "проект служебной личности — песочница")
+    }
+
+    @Test
+    fun `человек проходит ворота рабочего проекта — гард не мешает (регрессия)`() {
+        val ответ = router().handle("POST", "/v2/points/internal_review/decide", п, """{"outcome":"defer"}""", da)!!
+        assertEquals(200, ответ.code)
+    }
+
+    @Test
+    fun `служебная личность создаёт проект с sandbox=false в теле — заводится sandbox=true`() {
+        router().handle("POST", "/v2/projects", emptyMap(), """{"code":"PJ-IGN","name":"Игнор","sandbox":false}""", служебный)
+        assertTrue(
+            store.byCode(Area.Project("PJ-IGN"), "PJ-IGN")!!.doc.path("sandbox").asBoolean(),
+            "параметр тела игнорируется — служебный проект всегда песочница",
+        )
+    }
+
+    @Test
+    fun `человек заводит рабочий проект sandbox=false, смена sandbox отбивается триггером БД`() {
+        router().handle("POST", "/v2/projects", emptyMap(), """{"code":"PJ-WORK","name":"Рабочий"}""", da)
+        val обл = Area.Project("PJ-WORK")
+        assertTrue(!store.byCode(обл, "PJ-WORK")!!.doc.path("sandbox").asBoolean(), "человек по умолчанию — рабочий проект")
+        val ид = store.byCode(обл, "PJ-WORK")!!.id
+        val док = (store.byCode(обл, "PJ-WORK")!!.doc.deepCopy() as com.fasterxml.jackson.databind.node.ObjectNode).put("sandbox", true)
+        assertFailsWith<Exception> { store.update(ид, док, провенанс) }
+    }
+
+    @Test
+    fun `проект-сущность без sandbox приводится к рабочему (NOT NULL по построению)`() {
+        store.create("PJ-NOSB", "project", Area.Project("PJ-NOSB"), "1", mapper.createObjectNode().put("name", "Без поля"), провенанс)
+        assertEquals(false, store.byCode(Area.Project("PJ-NOSB"), "PJ-NOSB")!!.doc.path("sandbox").asBoolean(true), "триггер привёл к false")
+    }
+
     /** Точки Pre-A проходятся записями напрямую: проверяется переход, а не Pre-A целиком. */
     private fun открытьPhaseA() {
         listOf("internal_review", "MCR").forEach { записи.record(проект, it, "Чернов Д.", "approve", null, null) }

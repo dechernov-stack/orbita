@@ -122,6 +122,10 @@ class PointRoutes(
     }
 
     private fun решение(проект: String, ключ: String, тело: JsonNode, actor: Actor?): V2Router.Ответ {
+        // ADR-072 — единственная точка прохода ворот: служебная личность
+        // (ORBITA_SERVICE_KEY) не решает ворота РАБОЧЕГО проекта. Необратимое
+        // над рабочим проектом — только человек; на песочнице (прогон) — можно.
+        служебныйОтказ(проект, ключ, actor)?.let { return it }
         val исход = тело.path("outcome").asText("").ifBlank { "approve" }
         val фаза = engine.decide(
             проект, ключ, автор(тело, actor), роли(actor), исход,
@@ -130,6 +134,27 @@ class PointRoutes(
         val ответ = PhaseJson.вид(фаза, mapper)
         фаза.gates.firstOrNull { it.key == ключ }?.let { ответ.set<JsonNode>("point", PhaseJson.точка(it, mapper)) }
         return V2Router.Ответ(200, ответ)
+    }
+
+    /**
+     * Отказ служебной личности на воротах рабочего проекта (ADR-072): 403 с
+     * кодом SERVICE_GATE_FORBIDDEN, запись в журнал api, фаза не двигается.
+     * Не служебная личность или песочница — null (проход обычным путём).
+     */
+    private fun служебныйОтказ(проект: String, ключ: String, actor: Actor?): V2Router.Ответ? {
+        val login = actor?.login ?: return null
+        if (!login.startsWith("service:") || records.sandbox(проект)) return null
+        println("orbita audit: SERVICE_GATE_FORBIDDEN project=$проект gate=$ключ actor=$login — рабочий проект, ворота проходит человек")
+        return V2Router.Ответ(
+            403,
+            mapper.createObjectNode()
+                .put("code", "SERVICE_GATE_FORBIDDEN")
+                .put(
+                    "error",
+                    "служебная личность не проходит ворота рабочего проекта «$проект»: решение по воротам «$ключ» — только человек " +
+                        "(проект-песочница — можно; ADR-072)",
+                ),
+        )
     }
 
     /**

@@ -36,6 +36,11 @@ class GateRecords(private val store: EntityStore, private val mapper: ObjectMapp
                 )
             }
 
+    /** Песочница проекта (ADR-072): рабочий проект (false) ворота проходит только
+     *  человек — служебной личности decide отвечает 403. Поля нет (проекты до V104) — рабочий. */
+    fun sandbox(project: String): Boolean =
+        store.byCode(Area.Project(project), project)?.doc?.path("sandbox")?.asBoolean(false) ?: false
+
     /** Пройденные точки — по статусу записи точки: память api здесь ни при чём. */
     fun passed(project: String): MutableSet<String> =
         store.list(Area.Project(project), "gate").filter { it.status == "passed" }.map { it.code }.toMutableSet()

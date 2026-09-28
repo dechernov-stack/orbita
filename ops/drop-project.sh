@@ -29,6 +29,15 @@ AREA="project:$CODE"
 
 psql_() { docker exec -i "$CONTAINER" psql -U orbita -d orbita -v ON_ERROR_STOP=1 -At "$@" 2>/dev/null; }
 
+# Удаляем только песочницу (ADR-072). Признак — поле sandbox текущей версии
+# проекта, не имя: рабочий проект (sandbox != true) не удаляется даже с кодом
+# PJ-TMP-. Необратимое над рабочим проектом — только человек и не этим маршрутом.
+SANDBOX=$(psql_ -v area="$AREA" <<<"SELECT doc->>'sandbox' FROM orbita_kernel.entity WHERE area = :'area' AND kind = 'project' AND valid_to IS NULL;")
+if [[ "$SANDBOX" != "true" ]]; then
+  echo "проект «${CODE}» не песочница (sandbox=${SANDBOX:-нет}): удаление рабочего проекта запрещено (ADR-072)" >&2
+  exit 3
+fi
+
 COUNTS=$(psql_ -v area="$AREA" -v code="$CODE" <<'SQL'
 SELECT 'записей (все версии): ' || count(*) FROM orbita_kernel.entity WHERE area = :'area';
 SELECT 'связей: ' || count(*) FROM orbita_kernel.link l

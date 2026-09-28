@@ -20,6 +20,7 @@ import orbita.kernel.api.KnowledgeFlag
 import orbita.kernel.api.LinkRegistry
 import orbita.kernel.api.Provenance
 import orbita.kernel.api.QosClass
+import orbita.api.api.Actor
 import orbita.process.api.GateView
 import orbita.process.api.ProcessEngine
 import java.time.LocalDate
@@ -39,10 +40,10 @@ class SceneRoutes(
     private val materialRoleGuard: ((project: String, code: String, role: String) -> String?)? = null,
 ) {
 
-    fun handle(method: String, path: String, query: Map<String, String>, body: String?): V2Router.Ответ? = when {
+    fun handle(method: String, path: String, query: Map<String, String>, body: String?, actor: Actor? = null): V2Router.Ответ? = when {
         method == "GET" && path == "/v2/phase" -> фаза(требуется(query, "project"))
 
-        method == "POST" && path == "/v2/projects" -> открытьПроект(разобрать(body))
+        method == "POST" && path == "/v2/projects" -> открытьПроект(разобрать(body), actor)
 
         // З-03 (ПМИ-5, 12.09): любая принятая сущность правится на месте — новой
         // версией с провенансом «правка инженера»; факт-источник остаётся связью.
@@ -139,6 +140,9 @@ class SceneRoutes(
                 // не знает, показывать ли постановку из поля и ранг доверия.
                 // Поля нет — выключено: прежние проекты остаются на прежнем.
                 .put("knowledge_v2", проект.doc.path("knowledge_v2").asBoolean(false))
+                // Песочница (ADR-072): список отделяет песочницы от рабочих
+                // проектов. Поля нет (проекты до V104) — рабочий.
+                .put("sandbox", проект.doc.path("sandbox").asBoolean(false))
                 // Группа портфеля (экран 2, шип 2): рабочие и примеры — две
                 // равные колонки. Колонку решает поле, а не догадка клиента.
                 .put("group", группаПроекта(проект))
@@ -226,6 +230,9 @@ class SceneRoutes(
             запись.doc.path("phase_current").asText("").ifBlank { запись.doc.path("phase").asText("") },
         )
         узел.put("phase_template", запись.doc.path("phase_template").asText(""))
+        // Песочница (ADR-072): шапка проекта ставит метку «Песочница». Правке
+        // не подлежит (не в ПАСПОРТ, триггер БД) — отдаётся только для показа.
+        узел.put("sandbox", запись.doc.path("sandbox").asBoolean(false))
         val метки = узел.putObject("labels")
         (ПАСПОРТ + listOf("phase_current", "phase_template")).forEach { метки.put(it, меткаПоля(it)) }
         val стандарты = узел.putArray("standards")
@@ -424,10 +431,16 @@ class SceneRoutes(
         return V2Router.Ответ(200, PhaseJson.вид(вид, mapper, умолчания))
     }
 
-    private fun открытьПроект(тело: JsonNode): V2Router.Ответ {
+    private fun открытьПроект(тело: JsonNode, actor: Actor?): V2Router.Ответ {
         val код = тело.path("code").asText("").ifBlank { "PJ-" + LocalDate.now().toString().replace("-", "") }
         val область = Area.Project(код)
         val автор = автор(тело)
+        // Песочница (ADR-072): проект служебной личности — всегда песочница
+        // (параметр тела игнорируется, чтобы ключом нельзя было завести рабочий
+        // проект и пройти его ворота); человек заводит рабочий (умолчание false),
+        // может явно попросить песочницу. Признак задаётся ТОЛЬКО здесь и дальше
+        // неизменяем (триггер БД).
+        val песочница = служебный(actor) || тело.path("sandbox").asBoolean(false)
         // Поле знаний v2 — признак проекта: один стенд держит проект прохода
         // ПМИ-5 (прежнее поведение) и новый проект одновременно. Явный выбор
         // в теле сильнее умолчания стенда — иначе новый порядок нельзя
@@ -480,6 +493,7 @@ class SceneRoutes(
                 // у первой версии (портфель `/views/portfolio` читает его). Пишутся
                 // оба и всегда вместе: разойтись двум именам одного факта нельзя.
                 .put("example", группа == "example")
+                .put("sandbox", песочница)
                 .put("knowledge_v2", знанияV2),
             Provenance(Channel.MANUAL, автор),
         )
@@ -970,6 +984,9 @@ class SceneRoutes(
 
     private fun автор(тело: JsonNode): String =
         тело.path("author").asText("").ifBlank { "стенд" }
+
+    /** Служебная личность стенда (ADR-071/072): её проект — всегда песочница. */
+    private fun служебный(actor: Actor?): Boolean = actor?.login?.startsWith("service:") == true
 
     /**
      * След сверки для провенанса: «SR-12#c1» — по нему видно, через какую

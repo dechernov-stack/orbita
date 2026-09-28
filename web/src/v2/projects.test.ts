@@ -38,7 +38,8 @@ describe('экран 2 «Проекты»: две равные колонки с
   })
 
   it('имя проекта — ПОЛНОСТЬЮ: усечения на экране нет', () => {
-    expect(проекты).toContain('<span className="v2-pf__name">{проект.name}</span>')
+    expect(проекты).toContain('<span className="v2-pf__name">')
+    expect(проекты).toContain('{проект.name}')
     expect(правило('.v2-pf .v2-pf__name')).toContain('white-space: normal')
     expect(правило('.v2-pf .v2-pf__name')).toContain('overflow-wrap: anywhere')
     expect(стили).not.toContain('text-overflow')
@@ -67,6 +68,15 @@ describe('экран 2 «Проекты»: две равные колонки с
   it('клик по карточке открывает проект', () => {
     expect(проекты).toContain('onClick={() => onOpen(проект.code)}')
     expect(проекты).toContain('export function ProjectsScreen({ onOpen, onNew }')
+  })
+
+  it('песочница (ADR-072): прогонный проект — меткой и кромкой, отделён от рабочих', () => {
+    // Метка на карточке при sandbox=true; признак приходит портфелем от сервера.
+    expect(проекты).toContain('проект.sandbox && <span className="v2-chip v2-chip--sandbox"')
+    expect(проекты).toContain('v2-pf__card--sandbox')
+    expect(вызовы).toContain('sandbox?: boolean')
+    // Кромка слева отделяет песочницу визуально.
+    expect(правило('.v2-pf__card--sandbox')).toContain('var(--wait)')
   })
 
   it('ни сеток-бумаги, ни панелей ради панелей, ни дашбордов', () => {

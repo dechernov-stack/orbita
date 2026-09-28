@@ -930,6 +930,8 @@ export interface ProjectRow {
   standard: string
   lead: string
   phase: string
+  /** Песочница (ADR-072): прогонный проект; шапка ставит метку «Песочница». */
+  sandbox?: boolean
 }
 
 /** Паспорт проекта (З-25): то, что печать FAD §2 и FA §1 читает из документа проекта. */
@@ -944,6 +946,8 @@ export interface Passport {
   standard: string
   phase_current: string
   phase_template: string
+  /** Песочница (ADR-072): показывается меткой, правке не подлежит. */
+  sandbox?: boolean
   /** Метки полей — из истины схем, кодов полей на экране нет. */
   labels: Record<string, string>
   standards: { code: string; label: string }[]

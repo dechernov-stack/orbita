@@ -100,9 +100,12 @@ export function ProjectsScreen({ onOpen, onNew }: {
 function Карточка({ проект, onOpen }: { проект: КарточкаПроекта; onOpen: (code: string) => void }) {
   const точка = проект.gate
   return (
-    <button type="button" className="v2-pf__card" onClick={() => onOpen(проект.code)}
+    <button type="button" className={`v2-pf__card${проект.sandbox ? ' v2-pf__card--sandbox' : ''}`} onClick={() => onOpen(проект.code)}
       title={`открыть проект «${проект.name}»`}>
-      <span className="v2-pf__name">{проект.name}</span>
+      <span className="v2-pf__name">
+        {проект.name}
+        {проект.sandbox && <span className="v2-chip v2-chip--sandbox" title="проект-песочница: прогон, ворота проходит и служебный ключ (ADR-072)">Песочница</span>}
+      </span>
       <span className="v2-pf__line">
         <span className="v2-chip" title="фаза проекта">{проект.phase}</span>
         {точка ? (

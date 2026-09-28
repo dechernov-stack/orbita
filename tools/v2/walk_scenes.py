@@ -140,8 +140,11 @@ class Прогон:
             вызов(self.base, "POST", "/v2/projects",
                   # Имя с кодом, если проект не из сида: два прогона с одним
                   # именем не различить в портфеле (поймано на E1).
+                  # sandbox=true — прогон гоняет ворота: рабочий проект их
+                  # проходит только человек (ADR-072). Служебным ключом сервер
+                  # ставит sandbox сам; в режиме stand — по этому параметру.
                   {"name": self.сид["name"] if self.проект == self.сид["code"] else f"{self.сид['name']} · {self.проект}",
-                   "code": self.проект})
+                   "code": self.проект, "sandbox": True})
 
         self.шаг(f"сцена 1: проект {self.проект}", есть, завести)
 
@@ -1211,6 +1214,12 @@ def состояние(base: str, проект: str) -> None:
 
 
 def main() -> int:
+    # Небуферизованный вывод (ADR-072): при падении на длинном шаге шаги уже в
+    # логе, а не в несброшенном буфере (перенаправление в файл его копит).
+    try:
+        sys.stdout.reconfigure(line_buffering=True)
+    except (AttributeError, ValueError):
+        pass
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--base", default="http://localhost:8080/api")
     ap.add_argument("--project", default=None, help="код проекта; по умолчанию — из сида")

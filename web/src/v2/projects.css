@@ -71,3 +71,6 @@
 @media (max-width: 900px) {
   .v2-np__cols { grid-template-columns: minmax(0, 1fr); gap: var(--pad-l); }
 }
+
+/* Песочница (ADR-072): прогонный проект отделён янтарной кромкой слева. */
+.v2-pf__card--sandbox { border-left: 3px solid var(--wait); }

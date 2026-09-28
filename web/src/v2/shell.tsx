@@ -287,6 +287,9 @@ export function Shell() {
             <b title="портфеля нет: заведите проект в разделе «Проекты»">Портфель пуст</b>
           )}
           {phase && <span className="v2-chip" title={`фаза проекта · стандарт ${phase.standard}`}>{phase.phase}</span>}
+          {portfolio.find((п) => п.code === project)?.sandbox && (
+            <span className="v2-chip v2-chip--sandbox" title="проект-песочница (ADR-072): прогон; ворота проходит и служебный ключ, рабочий проект — только человек">Песочница</span>
+          )}
           {точка && (
             <span className="v2-gatechip" title={точка.blocking.join('; ') || 'условия точки выполнены'}>
               <Маркер род="точка" состояние={точка.blocking.length > 0 ? 'блок' : 'текущее'} подпись={точка.title} />

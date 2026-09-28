@@ -113,7 +113,7 @@ export function PassportScreen({ project, учётка, onChanged }: {
     <div className="v2-panel" data-why="работа">
       {запись && вид ? (
         <Карточка project={project} row={записьПаспорта(запись, паспорт)} spec={вид} заголовок={`Паспорт · ${паспорт.name}`}
-          состояние={<span className="v2-object__state">{паспорт.phase_current || 'фаза не названа'}{паспорт.phase_template ? ` · шаблон ${паспорт.phase_template}` : ''}</span>}
+          состояние={<span className="v2-object__state">{паспорт.phase_current || 'фаза не названа'}{паспорт.phase_template ? ` · шаблон ${паспорт.phase_template}` : ''}{паспорт.sandbox ? <span className="v2-chip v2-chip--sandbox" title="проект-песочница (ADR-072): прогон; ворота проходит и служебный ключ">Песочница</span> : null}</span>}
           мета={`версия ${паспорт.version} · ${паспорт.updated_by} · ${паспорт.updated_at}`}
           толькоЧтение={(вид.fields ?? []).filter((п) => !(ПОЛЯ_ПАСПОРТА as readonly string[]).includes(п))}
           всеСразу сохранитьПоле={сохранитьПоле}

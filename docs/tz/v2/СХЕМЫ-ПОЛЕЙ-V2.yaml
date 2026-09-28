@@ -673,6 +673,11 @@ kinds:
     required: true
     note: ''
     label: Пример
+  - name: sandbox
+    type: bool
+    required: false
+    note: песочница (ADR-072) — задаётся только при создании и неизменяем (триггер БД); проект служебной личности всегда true; рабочий проект (false) ворота проходит только человек, служебный ключ — 403. NOT NULL держит триггер, не схема
+    label: Песочница
   - name: knowledge_v2
     type: bool
     required: false
