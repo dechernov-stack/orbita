@@ -156,6 +156,22 @@ export function Work({ project, onProject, wantScene, wantReason, onScenePicked,
     )
   }
 
+  // Фаза завершена (§0.4): проект ушёл за последнюю точку в фазу без шаблона.
+  // Тело сцены прежней фазы показывать нельзя — говорим словами (карта фазы
+  // у руководителя уже показала это баннером; здесь — для плотности сцены).
+  if (фаза.template_phase && фаза.phase !== фаза.template_phase) {
+    const последняя = [...фаза.gates].filter((g) => g.passed).sort((a, b) => a.order - b.order).at(-1)
+    return (
+      <div className="v2-panel" data-why="работа">
+        <div className="v2-gantt__done">
+          <b>«{фаза.template_phase}» завершена.</b>
+          {последняя && <> Решение «{последняя.title}»{последняя.planned_date ? ` от ${последняя.planned_date}` : ''}.</>}
+          <> Шаблон «{фаза.phase}» не заведён — следующая фаза вне области ИС.</>
+        </div>
+      </div>
+    )
+  }
+
   const делоТекущее = текущая.activities.find((д) => д.code === мероприятие)
     ?? текущая.activities.find((д) => д.state === 'in_progress')
     ?? текущая.activities.find((д) => д.state === 'available')

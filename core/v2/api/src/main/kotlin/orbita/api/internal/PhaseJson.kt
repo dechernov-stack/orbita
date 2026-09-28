@@ -52,6 +52,7 @@ internal object PhaseJson {
         узел.put("project", фаза.project)
         узел.put("standard", фаза.standard)
         узел.put("phase", фаза.phase)
+        узел.put("template_phase", фаза.templatePhase)
         узел.put("current_scene", фаза.currentScene)
         val сцены = узел.putArray("scenes")
         фаза.scenes.forEach { сцена ->

@@ -162,6 +162,9 @@ export interface Phase {
   project: string
   standard: string
   phase: string
+  /** Фаза шаблона сцен: отличается от phase, когда фаза завершена и следующей
+   *  шаблона нет (Phase B после KDP-B) — карта показывает «завершена» (§0.4). */
+  template_phase?: string
   current_scene: string | null
   scenes: Scene[]
   gates: Gate[]

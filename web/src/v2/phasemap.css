@@ -6,6 +6,9 @@
 .v2-gantt__muted { color: var(--muted); font-size: var(--size-s); }
 .v2-gantt__now-t { color: var(--cobalt); }
 .v2-gantt__plan { display: flex; align-items: center; gap: 12px; padding: 8px 16px; background: var(--v2-gate); border-bottom: 1px solid var(--graphite); color: var(--amber); font-size: var(--size-s); flex-wrap: wrap; }
+/* Фаза завершена (§0.4): следующей шаблона нет — говорим словами, не сценами. */
+.v2-gantt__done { padding: 16px; background: var(--v2-done); color: var(--ink); line-height: 1.4; }
+.v2-gantt__done b { font-weight: 600; }
 .v2-gantt__plan b { font-weight: 500; }
 .v2-gantt__sp { flex: 1; }
 

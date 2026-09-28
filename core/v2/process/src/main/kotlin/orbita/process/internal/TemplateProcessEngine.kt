@@ -354,6 +354,9 @@ class TemplateProcessEngine(
             scenes = сцены,
             gates = точки,
             lanes = дорожки,
+            // Фаза шаблона: если проект ушёл в фазу без шаблона (Phase B после
+            // KDP-B), phase != templatePhase — фаза завершена (§0.4).
+            templatePhase = док.path("phase").asText(""),
         )
     }
 

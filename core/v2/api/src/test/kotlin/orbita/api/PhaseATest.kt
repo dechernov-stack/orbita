@@ -156,6 +156,18 @@ class PhaseATest {
         assertTrue(store.byCode(обл, "PJ-SB2")!!.doc.path("sandbox").asBoolean(), "песочница осталась песочницей")
     }
 
+    @Test
+    fun `после KDP-B фаза без шаблона завершена — templatePhase остаётся Phase A (§0_4)`() {
+        открытьPhaseA()
+        // KDP-B открывает Phase B (opens_phase), но шаблона Phase B нет — фаза
+        // уходит за последнюю точку в фазу без шаблона.
+        записи.record(проект, "KDP-B", "Чернов Д.", "approve", null, "Phase B")
+        val вид = движок().view(проект)
+        assertEquals("Phase B", вид.phase, "решение KDP-B перевело проект в Phase B")
+        assertEquals("Phase A", вид.templatePhase, "сцены строятся по шаблону Phase A — фаза завершена, не переоткрыта")
+        assertTrue(вид.phase != вид.templatePhase, "phase ≠ templatePhase — карта скажет «завершена», без мнимых сцен")
+    }
+
     /** Точки Pre-A проходятся записями напрямую: проверяется переход, а не Pre-A целиком. */
     private fun открытьPhaseA() {
         listOf("internal_review", "MCR").forEach { записи.record(проект, it, "Чернов Д.", "approve", null, null) }

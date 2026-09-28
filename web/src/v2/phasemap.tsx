@@ -162,6 +162,26 @@ export function КартаФазы({ project, phase, onScene, onPoint, onEditPla
     )
   }
 
+  // Фаза завершена (§0.4): проект ушёл за последнюю точку в фазу без шаблона
+  // (Phase B после KDP-B). Сцены прежней фазы показывать «текущими» нельзя —
+  // говорим словами, без мнимых сцен и «переоткрытого» A1.
+  const завершена = Boolean(phase.template_phase && phase.phase !== phase.template_phase)
+  if (завершена) {
+    const последняя = [...phase.gates].filter((g) => g.passed).sort((a, b) => a.order - b.order).at(-1)
+    return (
+      <div className="v2-gantt" aria-label={`фаза ${phase.template_phase} завершена`}>
+        <div className="v2-gantt__head"><b>Карта фазы · {phase.template_phase}</b></div>
+        <div className="v2-gantt__done" data-why="работа">
+          <b>«{phase.template_phase}» завершена.</b>
+          {последняя && (
+            <span> Решение «{короткоеИмя(последняя)}»{последняя.planned_date ? ` от ${деньМесяц(последняя.planned_date)}` : ''}.</span>
+          )}
+          <span> Шаблон «{phase.phase}» не заведён — следующая фаза вне области ИС.</span>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="v2-gantt" aria-label={`карта фазы ${phase.phase}`}>
       <div className="v2-gantt__head">

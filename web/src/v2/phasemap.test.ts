@@ -138,6 +138,14 @@ describe('экран карты фазы', () => {
     expect(карта).toContain('<span className="v2-gantt__swatch v2-gantt__bar--late"><span className="v2-gantt__p"')
   })
 
+  it('фаза без шаблона (Phase B после KDP-B) — баннер «завершена», без мнимых сцен (§0.4)', () => {
+    expect(карта).toContain('phase.template_phase && phase.phase !== phase.template_phase')
+    expect(карта).toContain('» завершена.</b>')
+    expect(карта).toContain('не заведён — следующая фаза вне области ИС')
+    // Работа тем же баннером при плотности сцены.
+    expect(работа).toContain('фаза.template_phase && фаза.phase !== фаза.template_phase')
+  })
+
   it('ромб точки ведёт в её карточку; клик по строке — сцена; мероприятий на карте нет', () => {
     expect(карта).toContain('onClick={() => onPoint?.(т.key)}')
     expect(карта).toContain('onClick={() => onScene(куда)}')
