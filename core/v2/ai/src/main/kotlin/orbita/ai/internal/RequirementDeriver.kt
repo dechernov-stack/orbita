@@ -28,6 +28,7 @@ import orbita.ai.api.Verdict
 import orbita.kernel.api.Area
 import orbita.kernel.api.Entity
 import orbita.kernel.api.EntityStore
+import orbita.knowledge.api.Bound
 import orbita.knowledge.api.FormationRules
 import orbita.knowledge.api.Intake
 import orbita.knowledge.api.Measures
@@ -161,6 +162,22 @@ class RequirementDeriver(
             }
         }
 
+        // Ворота «не мягче»: у мерного родителя требование узла той же
+        // размерности и не за его границей (диф 29.09-бюджета). Бюджет, где
+        // доли складываются, — отдельная ветвь по budget.requirement (ждёт
+        // диф владельца); до неё мерный родитель проверяется этой границей.
+        val родБаунд = measures.bound(родитель.doc.path("measure"))
+        if (родБаунд != null && мера.isObject) {
+            val дитяБаунд = measures.bound(мера)
+                ?: throw IllegalArgumentException("показатель ребёнка не сводится к границе (единица или значение)")
+            require(дитяБаунд.dimension == родБаунд.dimension) {
+                "размерность показателя ребёнка (${дитяБаунд.unit}) не совпадает с родителем (${родБаунд.unit})"
+            }
+            require(неМягче(дитяБаунд, родБаунд)) {
+                "граница ребёнка (${граница(дитяБаунд)}) мягче родителя (${граница(родБаунд)}) — требование узла родителя не ослабляет"
+            }
+        }
+
         val payload = payload(узел, носитель, уровень, мера)
         val понятие = GeneratedOntology.of("requirement")
         return FormationProposal(
@@ -224,6 +241,24 @@ class RequirementDeriver(
         val ib = ступени.indexOf(б)
         return ia in 0 until ib
     }
+
+    /**
+     * Ребёнок не мягче родителя: тот же знак и значение не за его границей
+     * (родитель `≤ 180` → ребёнок `≤` и ≤ 180; родитель `≥ 0,9` → ребёнок `≥`
+     * и ≥ 0,9). Противоположный знак — мягче (отказ). Родитель без оператора
+     * (точное значение) направление не сторожит.
+     */
+    private fun неМягче(ребёнок: Bound, родитель: Bound): Boolean = when (родитель.op) {
+        "<=", "<" -> (ребёнок.op == "<=" || ребёнок.op == "<") && ребёнок.value <= родитель.value + ДОПУСК
+        ">=", ">" -> (ребёнок.op == ">=" || ребёнок.op == ">") && ребёнок.value >= родитель.value - ДОПУСК
+        else -> true
+    }
+
+    private fun граница(b: Bound): String =
+        listOfNotNull(b.op, число(b.value), b.unit).joinToString(" ")
+
+    private fun число(d: Double): String =
+        if (d == Math.floor(d) && !d.isInfinite()) d.toLong().toString() else d.toString()
 
     private fun имя(узел: JsonNode, номер: Int): String =
         узел.path("id").asText("").ifBlank { "#$номер" }
@@ -293,6 +328,9 @@ class RequirementDeriver(
         const val РУЧНОЙ = "manual"
 
         const val БЮДЖЕТ = 16_000
+
+        /** Допуск сравнения границ: числовой шум, не ослабление. */
+        const val ДОПУСК = 1e-6
 
         /** Снятые с учёта статусы — из списка не берём (те же, что у отбора синтеза). */
         val СНЯТЫЕ = setOf("cancelled", "rejected")

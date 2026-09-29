@@ -162,7 +162,7 @@ object AiFactory {
         mapper: ObjectMapper = ObjectMapper(),
     ): DeriveRequirements = DeriveRequirements { project, node, author ->
         // Меры строятся на вызов: снимок справочника единиц свежий к прогону.
-        val деривер = RequirementDeriver(store, intake, service, KnowledgeFactory.measures(store), mapper)
+        val деривер = RequirementDeriver(store, intake, service, KnowledgeFactory.measures(store, mapper), mapper)
         деривер.deriveInto(project, node, author, Synthesizer(store, intake, service, mapper))
     }
 

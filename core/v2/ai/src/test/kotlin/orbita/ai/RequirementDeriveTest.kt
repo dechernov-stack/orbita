@@ -22,6 +22,7 @@ import orbita.ai.internal.Synthesizer
 import orbita.kernel.api.Area
 import orbita.kernel.api.Channel
 import orbita.kernel.api.Provenance
+import orbita.knowledge.api.Bound
 import orbita.knowledge.api.Canonical
 import orbita.knowledge.api.KnowledgeFactory
 import orbita.knowledge.api.Measures
@@ -36,7 +37,7 @@ class RequirementDeriveTest {
     private val знания = KnowledgeFactory.intake(store, null, mapper)
     private val канал = КаналДеривации()
     private val служба = AiFactory.service(store, канал, mapper)
-    private val меры = ЗаглушкаМер(setOf("кг", "Вт", "мин"))
+    private val меры = ЗаглушкаМер(setOf("кг", "Вт", "мин", "%"))
     private val деривер = RequirementDeriver(store, знания, служба, меры, mapper)
     private val синтез = Synthesizer(store, знания, служба, mapper)
 
@@ -117,6 +118,55 @@ class RequirementDeriveTest {
     }
 
     @Test
+    fun `не-бюджетный мерный родитель — доли не складываются, два «не меньше 99» проходят`() {
+        // Ключ правки владельца: покрытие/доступность — не бюджет, доли не
+        // суммируются. Два ребёнка «≥ 99 %» под родителем «≥ 99 %» — оба годны.
+        схемаСМерой("≥ 99", "%")
+        канал.ответ = """
+            {"requirements":[
+              {"id":"r1","derives_from":"RQ-S-1","statement":"Канал А доступен не ниже 99 %.","measure":{"value":"≥ 99","unit":"%"},"why":"—"},
+              {"id":"r2","derives_from":"RQ-S-1","statement":"Канал Б доступен не ниже 99 %.","measure":{"value":"≥ 99","unit":"%"},"why":"—"}
+            ]}
+        """.trimIndent()
+
+        val прогон = деривер.deriveInto(ПРОЕКТ, "C-0007", АВТОР, синтез)
+
+        assertEquals(2, прогон.diff.new.size, "доли не бюджета не складываются — оба «≥ 99» годны, не «1,8 > 0,99»")
+    }
+
+    @Test
+    fun `ворота — ребёнок мягче родителя (противоположный знак) — отбит один, партия живёт`() {
+        схемаСМерой("≤ 180", "мин") // родитель: не дольше 180 мин
+        канал.ответ = """
+            {"requirements":[
+              {"id":"r1","derives_from":"RQ-S-1","statement":"Модуль А отвечает не дольше 120 мин.","measure":{"value":"≤ 120","unit":"мин"},"why":"строже — годно"},
+              {"id":"r2","derives_from":"RQ-S-1","statement":"Модуль Б отвечает не быстрее 10 мин.","measure":{"value":"≥ 10","unit":"мин"},"why":"противоположный знак — мягче"}
+            ]}
+        """.trimIndent()
+
+        val прогон = деривер.deriveInto(ПРОЕКТ, "C-0007", АВТОР, синтез)
+
+        assertEquals(1, прогон.diff.new.size, "строгий ребёнок живёт, мягкий отбит — отказ предложения, не партии")
+        assertEquals("≤ 120", прогон.diff.new.single().payload["measure"]?.let { mapper.readTree(it).path("value").asText() })
+        assertTrue("мягче" in (прогон.note ?: ""), "отказ называет ослабление: ${прогон.note}")
+    }
+
+    @Test
+    fun `ворота — ребёнок мягче родителя по значению — отбит`() {
+        схемаСМерой("≤ 180", "мин")
+        канал.ответ = """
+            {"requirements":[
+              {"id":"r1","derives_from":"RQ-S-1","statement":"Модуль отвечает не дольше 200 мин.","measure":{"value":"≤ 200","unit":"мин"},"why":"200 > 180 — мягче"}
+            ]}
+        """.trimIndent()
+
+        val прогон = деривер.deriveInto(ПРОЕКТ, "C-0007", АВТОР, синтез)
+
+        assertTrue(прогон.diff.new.isEmpty(), "≤ 200 мягче родителя ≤ 180 — отбито")
+        assertTrue("мягче" in (прогон.note ?: ""), "причина названа: ${прогон.note}")
+    }
+
+    @Test
     fun `ворота — вид узла не даёт ступени — пустой прогон, модель не зовём`() {
         паспорт()
         компонент("C-0100", parent = null, kind = "") // узел без вида: ступени нет
@@ -171,11 +221,27 @@ class RequirementDeriveTest {
         ).id
     }
 
-    private fun требование(код: String, level: String, carrier: String, statement: String) {
+    private fun требование(
+        код: String,
+        level: String,
+        carrier: String,
+        statement: String,
+        measure: Pair<String, String>? = null,
+    ) {
         val документ = mapper.createObjectNode()
             .put("level", level).put("title", statement.take(60)).put("statement", statement)
             .put("category", "performance").put("carrier", carrier).put("ears_pattern", "ubiquitous")
+        // Показатель родителя — со знаком в значении («≤ 180»), как задаёт модель.
+        measure?.let { (value, unit) -> документ.putObject("measure").put("value", value).put("unit", unit) }
         store.create(код, "requirement", Area.Project(ПРОЕКТ), null, документ, Provenance(Channel.MANUAL, АВТОР))
+    }
+
+    /** Проект + системный корень, узел-элемент, родитель RQ-S-1 с ПОКАЗАТЕЛЕМ (знак в значении). */
+    private fun схемаСМерой(value: String, unit: String) {
+        паспорт()
+        val корень = компонент("C-0001", parent = null, kind = "system")
+        узелId = компонент("C-0007", parent = корень, kind = "element")
+        требование("RQ-S-1", level = "system", carrier = корень, statement = "Показатель КА.", measure = value to unit)
     }
 
     private companion object {
@@ -195,14 +261,35 @@ private class КаналДеривации : Transport {
     }
 }
 
-/** Меры-заглушка: единица известна, если она в наборе; канон — по значению value. */
+/** Меры-заглушка: единица известна, если она в наборе; знак берётся из значения («≤ 4»). */
 private class ЗаглушкаМер(private val известные: Set<String>) : Measures {
     override fun dimension(unit: String): String? = if (unit.trim() in известные) "dim:${unit.trim()}" else null
 
     override fun canonical(measure: JsonNode): Canonical? {
         val единица = measure.path("unit").asText("").trim()
         val размерность = dimension(единица) ?: return null
-        val значение = measure.path("value").asText("").toDoubleOrNull() ?: return null
+        val (_, число) = знак(measure.path("value").asText(""))
+        val значение = число.toDoubleOrNull() ?: return null
         return Canonical(значение, единица, размерность)
+    }
+
+    override fun bound(measure: JsonNode): Bound? {
+        val единица = measure.path("unit").asText("").trim()
+        val размерность = dimension(единица) ?: return null
+        val (оп, число) = знак(measure.path("value").asText(""))
+        val значение = число.toDoubleOrNull() ?: return null
+        return Bound(оп, значение, единица, размерность)
+    }
+
+    /** Знак и число из «≤ 4» / «≥ 0.9» / «4»; запятая — точка. */
+    private fun знак(сырое: String): Pair<String?, String> {
+        val t = сырое.trim().replace(',', '.')
+        return when {
+            t.startsWith("≤") -> "<=" to t.removePrefix("≤").trim()
+            t.startsWith("<=") -> "<=" to t.removePrefix("<=").trim()
+            t.startsWith("≥") -> ">=" to t.removePrefix("≥").trim()
+            t.startsWith(">=") -> ">=" to t.removePrefix(">=").trim()
+            else -> null to t
+        }
     }
 }

@@ -18,7 +18,7 @@ object KnowledgeFactory {
      * бюджета, не заводя второй копии сведения. Справочник общий, снимок
      * строится при создании.
      */
-    fun measures(store: EntityStore): Measures = NormalizeMeasures(store)
+    fun measures(store: EntityStore, mapper: ObjectMapper = ObjectMapper()): Measures = NormalizeMeasures(store, mapper)
     /**
      * @param links реестр связей: без него сущность не свяжется со своим
      *   фактом, и доля знаний в проекте не посчитается

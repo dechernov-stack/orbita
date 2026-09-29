@@ -372,7 +372,10 @@ internal class Normalize(
  * справочника строится при создании: помощнику одного прогона довольно, а
  * `Normalize` остаётся `internal`.
  */
-internal class NormalizeMeasures(store: orbita.kernel.api.EntityStore) : orbita.knowledge.api.Measures {
+internal class NormalizeMeasures(
+    store: orbita.kernel.api.EntityStore,
+    private val mapper: com.fasterxml.jackson.databind.ObjectMapper,
+) : orbita.knowledge.api.Measures {
     private val нормализация = Normalize.of(store, orbita.kernel.api.Area.Library)
 
     override fun dimension(unit: String): String? = нормализация.размерность(unit)
@@ -380,4 +383,18 @@ internal class NormalizeMeasures(store: orbita.kernel.api.EntityStore) : orbita.
     override fun canonical(measure: JsonNode): orbita.knowledge.api.Canonical? =
         нормализация.величина(measure).канон
             ?.let { orbita.knowledge.api.Canonical(it.value, it.unit, it.dimension) }
+
+    override fun bound(measure: JsonNode): orbita.knowledge.api.Bound? {
+        val единица = measure.path("unit").asText("").trim().ifBlank { return null }
+        // Оператор — из поля op либо из знака в значении («≤ 4»); число — то,
+        // что осталось. Канон значения берёт та же нормализация, что и сравнение.
+        val (оп, числоТекст) = ВеличинаФакта.разобрать(
+            measure.path("value").asText(""), measure.path("op").asText("").ifBlank { null },
+        )
+        val число = ВеличинаФакта.парсЧисло(числоТекст) ?: return null
+        val канон = нормализация.величина(
+            mapper.createObjectNode().put("value", число).put("unit", единица),
+        ).канон ?: return null
+        return orbita.knowledge.api.Bound(оп?.ifBlank { null }, канон.value, канон.unit, канон.dimension)
+    }
 }
