@@ -29,6 +29,7 @@ import orbita.kernel.api.Area
 import orbita.kernel.api.Entity
 import orbita.kernel.api.EntityStore
 import orbita.knowledge.api.Bound
+import orbita.knowledge.api.Budgets
 import orbita.knowledge.api.FormationRules
 import orbita.knowledge.api.Intake
 import orbita.knowledge.api.Measures
@@ -41,6 +42,7 @@ class RequirementDeriver(
     private val intake: Intake,
     private val service: AiService,
     private val measures: Measures,
+    private val budgets: Budgets? = null,
     private val mapper: ObjectMapper = ObjectMapper(),
 ) {
 
@@ -113,18 +115,42 @@ class RequirementDeriver(
                 .onSuccess { предложения += it }
                 .onFailure { отказы += "требование ${имя(узелОтвета, номер)}: ${it.message}" }
         }
-        // Ворота бюджета (сумма долей ≤ родителя) НЕ здесь: бюджет — это не любой
-        // мерный родитель, а тот, что назван записью budget (диф владельца
-        // 29.09-бюджета). Связи budget→требование истина ещё не держит (budget =
-        // вид·корень·политика; note 1445 о том же) — сумма ждёт этой связи и
-        // считается при ПРИЁМЕ (с принятыми сёстрами и резервом), не отбоем
-        // партии здесь. См. NEXT.md, долг C2-бюджет.
+        // Бюджет (диф 29.09-b): у бюджетного родителя — ПОМЕТА о сумме долей
+        // (принятые по связи derives со всех узлов + предлагаемые против потолка
+        // × (1 − резерв)). Не отказ: как делить бюджет, решает человек; отказ
+        // доли сверх потолка встаёт при ПРИЁМЕ (SynthesisRoutes).
+        val пометы = budgets?.let { пометыБюджета(project, предложения, it) }.orEmpty()
+        val заметка = (listOf("деривация «$node» (${дочернийУровень}): ${родители.size} родит., ${предложения.size} предл.") + пометы)
+            .joinToString(" · ")
 
-        return synthesizer.record(
-            project, author, отпечаток,
-            "деривация «$node» (${дочернийУровень}): ${родители.size} родит., ${предложения.size} предл.",
-            предложения, отказы, trigger = РУЧНОЙ, пакет = ПАКЕТ,
-        )
+        return synthesizer.record(project, author, отпечаток, заметка, предложения, отказы, trigger = РУЧНОЙ, пакет = ПАКЕТ)
+    }
+
+    /**
+     * Пометы бюджета: по каждому бюджетному родителю — сумма принятых долей
+     * (порт `Budgets`) + предлагаемых в этом прогоне против потолка с резервом.
+     * Только словами, без отказа: доли делит человек, отказ — при приёме.
+     */
+    private fun пометыБюджета(
+        project: String,
+        предложения: List<FormationProposal>,
+        budgets: Budgets,
+    ): List<String> {
+        val пометы = mutableListOf<String>()
+        предложения.groupBy { (it.basis.firstOrNull() as? Basis.Entity)?.code }.forEach { (код, дети) ->
+            val потолок = код?.let { budgets.forCeiling(project, it) } ?: return@forEach
+            val предложено = дети.mapNotNull { п ->
+                п.payload["measure"]?.let { runCatching { measures.canonical(mapper.readTree(it)) }.getOrNull() }
+            }.filter { it.dimension == потолок.dimension }.sumOf { it.value }
+            if (предложено <= 0.0) return@forEach
+            val сумма = потолок.accepted + предложено
+            if (сумма > потолок.cap + ДОПУСК) {
+                пометы += "бюджет «$код»: принято ${число(потолок.accepted)} + предложено ${число(предложено)} = " +
+                    "${число(сумма)} ${потолок.unit} при потолке ${число(потолок.cap)}" +
+                    (if (!потолок.reserveKnown) " (резерв не задан числом)" else "")
+            }
+        }
+        return пометы
     }
 
     /**

@@ -23,6 +23,8 @@ import orbita.kernel.api.Area
 import orbita.kernel.api.Channel
 import orbita.kernel.api.Provenance
 import orbita.knowledge.api.Bound
+import orbita.knowledge.api.BudgetState
+import orbita.knowledge.api.Budgets
 import orbita.knowledge.api.Canonical
 import orbita.knowledge.api.KnowledgeFactory
 import orbita.knowledge.api.Measures
@@ -167,6 +169,30 @@ class RequirementDeriveTest {
     }
 
     @Test
+    fun `бюджет — помета при предложении о сумме долей сверх потолка, без отказа`() {
+        // Родитель RQ-S-1 — потолок бюджета 100 кг, принято 60. Два предложения
+        // по 30 → 60 + 60 = 120 > 100: помета, но НЕ отказ (доли делит человек).
+        схема(видУзла = "element")
+        val дериверБ = RequirementDeriver(
+            store, знания, служба, меры,
+            ЗаглушкаБюджетов(mapOf("RQ-S-1" to BudgetState(100.0, "кг", "dim:кг", reservePct = null, accepted = 60.0))),
+            mapper,
+        )
+        канал.ответ = """
+            {"requirements":[
+              {"id":"r1","derives_from":"RQ-S-1","statement":"Модуль А не тяжелее 30 кг.","measure":{"value":"≤ 30","unit":"кг"},"why":"—"},
+              {"id":"r2","derives_from":"RQ-S-1","statement":"Модуль Б не тяжелее 30 кг.","measure":{"value":"≤ 30","unit":"кг"},"why":"—"}
+            ]}
+        """.trimIndent()
+
+        val прогон = дериверБ.deriveInto(ПРОЕКТ, "C-0007", АВТОР, синтез)
+
+        assertEquals(2, прогон.diff.new.size, "бюджет при предложении не отбивает — обе доли в прогоне")
+        assertTrue("при потолке 100" in (прогон.note ?: ""), "помета о сумме против потолка: ${прогон.note}")
+        assertTrue("резерв не задан числом" in (прогон.note ?: ""), "резерв не числом — помета: ${прогон.note}")
+    }
+
+    @Test
     fun `ворота — вид узла не даёт ступени — пустой прогон, модель не зовём`() {
         паспорт()
         компонент("C-0100", parent = null, kind = "") // узел без вида: ступени нет
@@ -292,4 +318,9 @@ private class ЗаглушкаМер(private val известные: Set<String>
             else -> null to t
         }
     }
+}
+
+/** Бюджеты-заглушка: состояние потолка по коду требования, задаётся тестом. */
+private class ЗаглушкаБюджетов(private val состояние: Map<String, BudgetState>) : Budgets {
+    override fun forCeiling(project: String, ceilingRequirement: String): BudgetState? = состояние[ceilingRequirement]
 }

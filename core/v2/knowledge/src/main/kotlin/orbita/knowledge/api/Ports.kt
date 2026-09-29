@@ -48,6 +48,37 @@ interface Measures {
     fun bound(measure: JsonNode): Bound?
 }
 
+/**
+ * Состояние бюджета требования-потолка (диф владельца 29.09-b): потолок долей
+ * (`measure` потолка в каноне размерности), резерв числом и уже принятая сумма
+ * долей по связи `derives`. `cap` — потолок с учётом резерва.
+ */
+data class BudgetState(
+    val ceiling: Double,
+    val unit: String,
+    val dimension: String,
+    val reservePct: Double?,
+    val accepted: Double,
+) {
+    /** Потолок долей с учётом резерва: значение × (1 − резерв/100). */
+    val cap: Double get() = if (reservePct != null) ceiling * (1.0 - reservePct / 100.0) else ceiling
+
+    /** Резерв задан числом; иначе — помета «резерв не задан числом». */
+    val reserveKnown: Boolean get() = reservePct != null
+}
+
+/**
+ * Бюджеты для ворот долей (диф 29.09-b) — ЕДИНЫЙ источник суммы. По требованию-
+ * потолку: потолок из его `measure`, резерв из `budget.reserve_pct`, сумма
+ * принятых долей по связи `derives` со всех узлов. Истина связи `budget→
+ * требование` одна; и помощник (помета при предложении), и приём (отказ при
+ * приёме) спрашивают порт, а не считают бюджет каждый по-своему.
+ */
+interface Budgets {
+    /** Бюджет требования-потолка (по коду); `null` — требование ничьим потолком не служит. */
+    fun forCeiling(project: String, ceilingRequirement: String): BudgetState?
+}
+
 /** Достоверность утверждения — семантика владельца, дословно. */
 enum class SourceMark {
     /** Внутренний документ: наш материал. */

@@ -160,9 +160,14 @@ object AiFactory {
         intake: Intake,
         service: AiService,
         mapper: ObjectMapper = ObjectMapper(),
+        /** Реестр связей: без него бюджетной пометы нет (принятые доли — по связи derives). */
+        links: orbita.kernel.api.LinkRegistry? = null,
     ): DeriveRequirements = DeriveRequirements { project, node, author ->
-        // Меры строятся на вызов: снимок справочника единиц свежий к прогону.
-        val деривер = RequirementDeriver(store, intake, service, KnowledgeFactory.measures(store, mapper), mapper)
+        // Меры и бюджеты строятся на вызов: снимок справочника и связей свежий к прогону.
+        val budgets = links?.let { KnowledgeFactory.budgets(store, it, mapper) }
+        val деривер = RequirementDeriver(
+            store, intake, service, KnowledgeFactory.measures(store, mapper), budgets, mapper,
+        )
         деривер.deriveInto(project, node, author, Synthesizer(store, intake, service, mapper))
     }
 

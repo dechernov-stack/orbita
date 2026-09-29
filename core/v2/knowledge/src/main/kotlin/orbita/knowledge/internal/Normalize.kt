@@ -398,3 +398,39 @@ internal class NormalizeMeasures(
         return orbita.knowledge.api.Bound(оп?.ifBlank { null }, канон.value, канон.unit, канон.dimension)
     }
 }
+
+/**
+ * Бюджеты над `Normalize` (api `Budgets`) — единый источник суммы долей.
+ * Величины (потолок и доли) читает через `NormalizeMeasures.bound`: знак в
+ * значении («≤ 100») разбирается, число — в каноне размерности. Принятые доли
+ * — требования со связью `derives_from` на потолок, той же размерности.
+ */
+internal class NormalizeBudgets(
+    private val store: orbita.kernel.api.EntityStore,
+    private val links: orbita.kernel.api.LinkRegistry,
+    mapper: com.fasterxml.jackson.databind.ObjectMapper,
+) : orbita.knowledge.api.Budgets {
+    private val меры = NormalizeMeasures(store, mapper)
+
+    override fun forCeiling(project: String, ceilingRequirement: String): orbita.knowledge.api.BudgetState? {
+        val область = orbita.kernel.api.Area.Project(project)
+        val потолок = store.byCode(область, ceilingRequirement)?.takeIf { it.kind == "requirement" } ?: return null
+        // Бюджет, чьё требование-потолок — это требование (budget.requirement = id).
+        val бюджет = store.list(область, "budget")
+            .firstOrNull { it.doc.path("requirement").asText("").ifBlank { null } == потолок.id } ?: return null
+        val потолокБаунд = меры.bound(потолок.doc.path("measure")) ?: return null
+        val резерв = бюджет.doc.path("reserve_pct").takeIf { it.isNumber }?.asDouble()
+        val принято = links.to(потолок.id, "derives_from").mapNotNull { store.byId(it.from) }
+            .filter { it.kind == "requirement" && it.status !in СНЯТЫЕ_БЮДЖЕТА }
+            .mapNotNull { меры.bound(it.doc.path("measure")) }
+            .filter { it.dimension == потолокБаунд.dimension }
+            .sumOf { it.value }
+        return orbita.knowledge.api.BudgetState(
+            потолокБаунд.value, потолокБаунд.unit, потолокБаунд.dimension, резерв, принято,
+        )
+    }
+
+    private companion object {
+        val СНЯТЫЕ_БЮДЖЕТА = setOf("cancelled", "rejected")
+    }
+}

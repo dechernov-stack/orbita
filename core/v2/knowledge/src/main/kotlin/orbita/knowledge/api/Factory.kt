@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import orbita.kernel.api.EntityStore
 import orbita.kernel.api.LinkRegistry
 import orbita.knowledge.internal.EntityIntake
+import orbita.knowledge.internal.NormalizeBudgets
 import orbita.knowledge.internal.NormalizeMeasures
 import orbita.knowledge.internal.Reconciler
 import orbita.knowledge.internal.ResearchTasks
@@ -19,6 +20,15 @@ object KnowledgeFactory {
      * строится при создании.
      */
     fun measures(store: EntityStore, mapper: ObjectMapper = ObjectMapper()): Measures = NormalizeMeasures(store, mapper)
+
+    /**
+     * Бюджеты наружу (диф 29.09-b) — единый источник суммы долей: потолок из
+     * requirement.measure, резерв из reserve_pct, принятые доли по связи
+     * derives. Помощнику (помета) и приёму (отказ) — общий, не по копии на
+     * каждого.
+     */
+    fun budgets(store: EntityStore, links: LinkRegistry, mapper: ObjectMapper = ObjectMapper()): Budgets =
+        NormalizeBudgets(store, links, mapper)
     /**
      * @param links реестр связей: без него сущность не свяжется со своим
      *   фактом, и доля знаний в проекте не посчитается
