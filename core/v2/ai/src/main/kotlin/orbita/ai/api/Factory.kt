@@ -7,6 +7,7 @@ import orbita.ai.internal.BackgroundAtomizer
 import orbita.ai.internal.BackgroundSynthesizer
 import orbita.ai.internal.DocumentReader
 import orbita.ai.internal.FunctionAllocationDistributor
+import orbita.ai.internal.FunctionDeriver
 import orbita.ai.internal.GoalCoverageDistributor
 import orbita.ai.internal.ScenarioProposer
 import orbita.ai.internal.NeedDistributor
@@ -53,6 +54,16 @@ fun interface ImportStatement {
  */
 fun interface DeriveRequirements {
     fun derive(project: String, node: String, author: String): SynthesisRun
+}
+
+/**
+ * Вывод функций узлов из шагов сценариев (§2.2 шипа 6) — помощник Phase A:
+ * машина находит шаги с участником-узлом, модель формулирует функцию, всё
+ * ложится РУЧНЫМ прогоном постановки. Кнопка сцены 9 ведёт в «Предложения» по
+ * прогону. Проект целиком — срез по всем сценариям.
+ */
+fun interface DeriveFunctions {
+    fun derive(project: String, author: String): SynthesisRun
 }
 
 /**
@@ -147,6 +158,21 @@ object AiFactory {
         return ReadDocument { project, material, author ->
             читатель.readInto(project, material, author, синтез)
         }
+    }
+
+    /**
+     * Вывод функций узлов из шагов сценариев (§2.2 шипа 6): деривер добывает
+     * функции с основанием-шагом, синтез кладёт их РУЧНЫМ прогоном — та же
+     * запись и приём, что у деривации требований.
+     */
+    fun deriveFunctions(
+        store: EntityStore,
+        intake: Intake,
+        service: AiService,
+        mapper: ObjectMapper = ObjectMapper(),
+    ): DeriveFunctions = DeriveFunctions { project, author ->
+        FunctionDeriver(store, intake, service, mapper)
+            .deriveInto(project, author, Synthesizer(store, intake, service, mapper))
     }
 
     /**
