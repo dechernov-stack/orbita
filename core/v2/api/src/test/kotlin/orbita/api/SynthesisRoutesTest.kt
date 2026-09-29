@@ -131,6 +131,45 @@ class SynthesisRoutesTest {
     }
 
     @Test
+    fun `бюджет — доля сверх потолка при приёме отбита с разбивкой (принятые сёстры)`() {
+        // Диф владельца 29.09-b: доля деривации сверх потолка бюджета (потолок
+        // требования × (1 − резерв), минус принятые сёстры по связи derives) не
+        // принимается. Потолок 100 кг, принято 60 (сестра RQ-A), доля 50 →
+        // 60 + 50 = 110 > 100: отказ ПРИ ПРИЁМЕ, до заведения.
+        проект(ПРОЕКТ, полеЗнаний = true)
+        единица("кг", "mass")
+        val корень = store.create("C-0001", "component", область(), null,
+            mapper.createObjectNode().put("name", "КА").put("kind", "system"), пров()).id
+        store.create("C-0007", "component", область(), null,
+            mapper.createObjectNode().put("name", "Приёмный модуль").put("kind", "element").put("parent", корень), пров())
+        val потолок = store.create("RQ-CEIL", "requirement", область(), "8",
+            требованиеДок("system", корень, "Масса КА не более 100 кг.", "≤ 100", "кг"), пров()).id
+        val сестра = store.create("RQ-A", "requirement", область(), "8",
+            требованиеДок("element", store.byCode(область(), "C-0007")!!.id, "Масса передатчика не более 60 кг.", "≤ 60", "кг"), пров()).id
+        links.link("derives_from", сестра, потолок, пров(), subtype = "derivation")
+        store.create("B-MASS", "budget", область(), "7",
+            mapper.createObjectNode().put("kind", "mass").put("root", корень).put("requirement", потолок)
+                .put("reserve_policy", "маржа по ступеням"), пров())
+
+        транспорт.ответ = """{"requirements":[{"id":"r1","derives_from":"RQ-CEIL",
+            "statement":"Приёмный модуль не тяжелее 50 кг.","measure":{"value":"≤ 50","unit":"кг"},"why":"доля массы"}]}"""
+        val прогон = AiFactory.deriveRequirements(store, intake, служба, mapper, links).derive(ПРОЕКТ, "C-0007", "инженер")
+        val карточка = первоеПредложение(прогон.id)
+
+        val ответ = маршруты.handle(
+            "POST", "/v2/synthesis/runs/${прогон.id}/accept", п,
+            """{"chosen":["$карточка"],"author":"инженер","reason":"сцена 8"}""",
+        )
+
+        assertEquals(201, ответ?.code, ответ?.body.toString())
+        assertEquals(0, ответ!!.body.path("accepted").asInt(), "доля сверх потолка не заведена")
+        val ждёт = ответ.body.path("pending").first()
+        assertEquals("сверх бюджета", ждёт.path("verdict").asText(), ответ.body.toString())
+        val почему = ждёт.path("why").asText()
+        assertTrue("потолке 100" in почему && "принято 60" in почему, "отказ с разбивкой: $почему")
+    }
+
+    @Test
     fun `показатель предлагается из формулировки, год мерой не становится`() {
         // Журнал ПМИ-7, З-12: «показатель „—", хотя в формулировке 100 % … к
         // 2033 году». Мера из текста идёт ПРЕДЛОЖЕНИЕМ (как шаблон EARS), год —
@@ -546,6 +585,27 @@ class SynthesisRoutesTest {
         val документ = mapper.createObjectNode().put("name", "Знания v2")
         if (полеЗнаний) документ.put("knowledge_v2", true)
         store.create(код, "project", Area.Project(код), "1", документ, Provenance(Channel.MANUAL, "Иванов И."))
+    }
+
+    private fun область() = Area.Project(ПРОЕКТ)
+    private fun пров() = Provenance(Channel.MANUAL, "инженер")
+
+    /** Минимальная единица справочника: символ, размерность, канон (для порта мер и бюджета). */
+    private fun единица(символ: String, размерность: String) {
+        store.create(
+            "U-$символ", "unit", Area.Library, null,
+            mapper.createObjectNode().put("symbol", символ).put("name", символ).put("dimension", размерность)
+                .put("factor", 1.0).put("canonical", true).put("conversion_type", "linear"),
+            пров(),
+        )
+    }
+
+    /** Требование с показателем (знак в значении, «≤ 100») — потолок или доля. */
+    private fun требованиеДок(уровень: String, носитель: String, формулировка: String, значение: String, единица: String): ObjectNode {
+        val d = mapper.createObjectNode().put("level", уровень).put("title", формулировка.take(60))
+            .put("statement", формулировка).put("category", "performance").put("carrier", носитель).put("ears_pattern", "ubiquitous")
+        d.putObject("measure").put("value", значение).put("unit", единица)
+        return d
     }
 
     /** Поле с одним принятым фактом обязательного документа: срезу есть из чего синтезировать. */

@@ -174,11 +174,12 @@ class SynthesisRoutes(
         // целиком: понятия заводятся по порядку — сначала те, у кого
         // обязательных связей нет, и связь закрывается уже заведённым
         // соседом. Что не закрылось и после этого — названо поимённо.
-        return V2Router.Ответ(201, заведённое(проект, сверка, итог.id, автор, тело))
+        return V2Router.Ответ(201, заведённое(проект, сверка, итог.id, автор, тело, карта))
     }
 
     private fun заведённое(
         проект: String, сверка: ReconcileRun, синтез: String, автор: String, тело: JsonNode,
+        карта: Map<String, FormationProposal>,
     ): ObjectNode {
         val узел = mapper.createObjectNode().put("run", сверка.id).put("from", синтез)
         val созданные = узел.putArray("created")
@@ -199,6 +200,13 @@ class SynthesisRoutes(
                 .put("verdict", "не разобрано")
                 .put("why", брак.substringAfter(":").trim().ifBlank { брак })
         }
+        // Бюджет и связь деривации при ПРИЁМЕ (диф 29.09-b): отказ доли сверх
+        // потолка — ДО заведения (иначе сущность уже создана), связь derives —
+        // после. Порт бюджета — единый источник суммы; сумма долей растёт и по
+        // уже принятым в ЭТОЙ партии (реестр связей ещё не знает о них).
+        val бюджеты = links?.let { orbita.knowledge.api.KnowledgeFactory.budgets(store, it, mapper) }
+        val мерыДоли = orbita.knowledge.api.KnowledgeFactory.measures(store, mapper)
+        val вПартии = mutableMapOf<String, Double>()
         var принято = 0
         // Порядок: сначала понятия без обязательных связей (сторона), затем
         // те, чья связь на них и указывает (нужда), затем прочие. Внутри
@@ -216,6 +224,16 @@ class SynthesisRoutes(
                 ждут.addObject().put("proposal", кандидат.localId)
                     .put("verdict", кандидат.verdict.word)
                     .put("why", почемуЖдёт(кандидат))
+                return@forEach
+            }
+            // Основание-родитель предложения (диф 28.09): у деривации требования
+            // оно есть, у прочих — нет. По нему идут ворота бюджета и связь.
+            val родитель = карта[кандидат.localId]?.basis
+                ?.filterIsInstance<Basis.Entity>()?.firstOrNull { it.kind == "requirement" }?.code
+            // Ворота бюджета ДО заведения: доля сверх потолка не принимается.
+            val перебор = родитель?.let { бюджетныйОтказ(проект, it, кандидат.localId, карта, бюджеты, мерыДоли, вПартии) }
+            if (перебор != null) {
+                ждут.addObject().put("proposal", кандидат.localId).put("verdict", "сверх бюджета").put("why", перебор)
                 return@forEach
             }
             val сделано = runCatching {
@@ -237,6 +255,13 @@ class SynthesisRoutes(
             сделано.created.forEach { созданные.add(it) }
             сделано.links.forEach { связи.add(it) }
             сделано.facts.forEach { факты.add(it) }
+            // Связь derives при приёме (истина «связь derives обязательна») и
+            // учёт доли в партии — только для выводного требования.
+            родитель?.let { код ->
+                связьДеривации(проект, сделано.created, код, автор, причина)?.let { связи.add(it) }
+                доляВБюджет(проект, код, кандидат.localId, карта, бюджеты, мерыДоли)
+                    ?.let { вПартии.merge(код, it, Double::plus) }
+            }
         }
         // Пакет записывается ЦЕЛИКОМ: без него «Отменить пакет» нечего
         // отменять — человек принял 74 строки одним нажатием и должен иметь
@@ -244,6 +269,56 @@ class SynthesisRoutes(
         запомнитьПакет(проект, синтез, автор, созданные)
         return узел.put("accepted", принято).put("note", сверка.note)
     }
+
+    /** Доля предложения в каноне размерности бюджета; null — не бюджет, доли нет или не той размерности. */
+    private fun доляВБюджет(
+        проект: String,
+        кодРодителя: String,
+        localId: String,
+        карта: Map<String, FormationProposal>,
+        бюджеты: orbita.knowledge.api.Budgets?,
+        меры: orbita.knowledge.api.Measures,
+    ): Double? {
+        val state = бюджеты?.forCeiling(проект, кодРодителя) ?: return null
+        val мера = карта[localId]?.payload?.get("measure") ?: return null
+        val баунд = runCatching { меры.bound(mapper.readTree(мера)) }.getOrNull() ?: return null
+        return баунд.takeIf { it.dimension == state.dimension }?.value
+    }
+
+    /**
+     * Отказ доли сверх бюджета словами (диф 29.09-b), либо null — родитель не
+     * бюджет, у доли нет меры или сумма в пределах потолка. Сумма растёт и по
+     * принятым в этой партии (`вПартии`): реестр связей их ещё не знает.
+     */
+    private fun бюджетныйОтказ(
+        проект: String,
+        кодРодителя: String,
+        localId: String,
+        карта: Map<String, FormationProposal>,
+        бюджеты: orbita.knowledge.api.Budgets?,
+        меры: orbita.knowledge.api.Measures,
+        вПартии: Map<String, Double>,
+    ): String? {
+        val state = бюджеты?.forCeiling(проект, кодРодителя) ?: return null
+        val доля = доляВБюджет(проект, кодРодителя, localId, карта, бюджеты, меры) ?: return null
+        val принято = state.accepted + (вПартии[кодРодителя] ?: 0.0)
+        if (принято + доля <= state.cap + 1e-6) return null
+        return "доля ${число(доля)} ${state.unit} сверх бюджета «$кодРодителя»: принято ${число(принято)} + доля = " +
+            "${число(принято + доля)} при потолке ${число(state.cap)}"
+    }
+
+    /** Связь derives_from дочернего требования на родителя; null — реестра нет или требование не создано. */
+    private fun связьДеривации(проект: String, созданные: List<String>, кодРодителя: String, автор: String, причина: String): String? {
+        val реестр = links ?: return null
+        val область = Area.Project(проект)
+        val дитя = созданные.mapNotNull { store.byCode(область, it) }.firstOrNull { it.kind == "requirement" } ?: return null
+        val родитель = store.byCode(область, кодРодителя) ?: return null
+        реестр.link("derives_from", дитя.id, родитель.id, Provenance(Channel.SERVICE, автор), rationale = причина, subtype = "derivation")
+        return "derives_from ${дитя.code}→${родитель.code}"
+    }
+
+    private fun число(d: Double): String =
+        if (d == Math.floor(d) && !d.isInfinite()) d.toLong().toString() else d.toString()
 
     /** След пакета в запуске: что заведено, кем и когда. */
     private fun запомнитьПакет(проект: String, синтез: String, автор: String, созданные: ArrayNode) {
