@@ -117,6 +117,37 @@ class RequirementDeriveTest {
     }
 
     @Test
+    fun `ворота — сумма долей бюджета превышает родителя — партия отбита`() {
+        схемаСБюджетом() // родитель RQ-S-1 — бюджет массы 100 кг
+        канал.ответ = """
+            {"requirements":[
+              {"id":"r1","derives_from":"RQ-S-1","statement":"Модуль А не тяжелее 60 кг.","measure":{"value":"60","unit":"кг"},"why":"—"},
+              {"id":"r2","derives_from":"RQ-S-1","statement":"Модуль Б не тяжелее 60 кг.","measure":{"value":"60","unit":"кг"},"why":"—"}
+            ]}
+        """.trimIndent()
+
+        val прогон = деривер.deriveInto(ПРОЕКТ, "C-0007", АВТОР, синтез)
+
+        assertTrue(прогон.diff.new.isEmpty(), "60+60=120 > 100 — партия сверх бюджета отбита целиком")
+        assertTrue("превышают бюджет" in (прогон.note ?: ""), "отказ называет превышение: ${прогон.note}")
+    }
+
+    @Test
+    fun `бюджет не превышен — доли проходят`() {
+        схемаСБюджетом()
+        канал.ответ = """
+            {"requirements":[
+              {"id":"r1","derives_from":"RQ-S-1","statement":"Модуль А не тяжелее 40 кг.","measure":{"value":"40","unit":"кг"},"why":"—"},
+              {"id":"r2","derives_from":"RQ-S-1","statement":"Модуль Б не тяжелее 50 кг.","measure":{"value":"50","unit":"кг"},"why":"—"}
+            ]}
+        """.trimIndent()
+
+        val прогон = деривер.deriveInto(ПРОЕКТ, "C-0007", АВТОР, синтез)
+
+        assertEquals(2, прогон.diff.new.size, "40+50=90 ≤ 100 — обе доли проходят")
+    }
+
+    @Test
     fun `ворота — вид узла не даёт ступени — пустой прогон, модель не зовём`() {
         паспорт()
         компонент("C-0100", parent = null, kind = "") // узел без вида: ступени нет
@@ -171,11 +202,26 @@ class RequirementDeriveTest {
         ).id
     }
 
-    private fun требование(код: String, level: String, carrier: String, statement: String) {
+    private fun требование(
+        код: String,
+        level: String,
+        carrier: String,
+        statement: String,
+        measure: Pair<String, String>? = null,
+    ) {
         val документ = mapper.createObjectNode()
             .put("level", level).put("title", statement.take(60)).put("statement", statement)
             .put("category", "performance").put("carrier", carrier).put("ears_pattern", "ubiquitous")
+        measure?.let { (value, unit) -> документ.putObject("measure").put("value", value).put("unit", unit) }
         store.create(код, "requirement", Area.Project(ПРОЕКТ), null, документ, Provenance(Channel.MANUAL, АВТОР))
+    }
+
+    /** Проект + системный корень с БЮДЖЕТОМ (100 кг) и узел-элемент под ним. */
+    private fun схемаСБюджетом() {
+        паспорт()
+        val корень = компонент("C-0001", parent = null, kind = "system")
+        узелId = компонент("C-0007", parent = корень, kind = "element")
+        требование("RQ-S-1", level = "system", carrier = корень, statement = "Масса КА ≤ 100 кг.", measure = "100" to "кг")
     }
 
     private companion object {

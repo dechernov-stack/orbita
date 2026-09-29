@@ -112,13 +112,48 @@ class RequirementDeriver(
                 .onSuccess { предложения += it }
                 .onFailure { отказы += "требование ${имя(узелОтвета, номер)}: ${it.message}" }
         }
+        // Ворота бюджета: сумма долей детей одного родителя ≤ бюджету родителя.
+        val (вБюджете, сверх) = поБюджету(предложения, поКоду)
+        отказы += сверх
 
         return synthesizer.record(
             project, author, отпечаток,
-            "деривация «$node» (${дочернийУровень}): ${родители.size} родит., ${предложения.size} предл.",
-            предложения, отказы, trigger = РУЧНОЙ, пакет = ПАКЕТ,
+            "деривация «$node» (${дочернийУровень}): ${родители.size} родит., ${вБюджете.size} предл.",
+            вБюджете, отказы, trigger = РУЧНОЙ, пакет = ПАКЕТ,
         )
     }
+
+    /**
+     * Ворота бюджета (диф владельца): сумма долей детей ОДНОГО родителя не
+     * больше бюджета родителя. Считается по канону размерности через порт мер;
+     * родитель без мерного бюджета (или несводимого) ворот не ставит. Партию
+     * сверх бюджета отбиваем целиком — как делить бюджет, решает человек;
+     * помощник лишь не даёт превысить молча.
+     */
+    private fun поБюджету(
+        предложения: List<FormationProposal>,
+        поКоду: Map<String, Entity>,
+    ): Pair<List<FormationProposal>, List<String>> {
+        val отказы = mutableListOf<String>()
+        val дропнутые = mutableSetOf<FormationProposal>()
+        предложения.groupBy { (it.basis.firstOrNull() as? Basis.Entity)?.code }.forEach { (код, дети) ->
+            val родитель = код?.let { поКоду[it] } ?: return@forEach
+            val бюджет = measures.canonical(родитель.doc.path("measure")) ?: return@forEach
+            val доли = дети.mapNotNull { п ->
+                п.payload["measure"]?.let { runCatching { measures.canonical(mapper.readTree(it)) }.getOrNull() }
+            }.filter { it.dimension == бюджет.dimension }
+            val сумма = доли.sumOf { it.value }
+            if (доли.isNotEmpty() && сумма > бюджет.value + ДОПУСК) {
+                дропнутые += дети
+                отказы += "доли бюджета из «$код» (${число(сумма)} ${бюджет.unit}) превышают бюджет родителя " +
+                    "(${число(бюджет.value)} ${бюджет.unit})"
+            }
+        }
+        return предложения.filter { it !in дропнутые } to отказы
+    }
+
+    private fun число(d: Double): String =
+        if (d == Math.floor(d) && !d.isInfinite()) d.toLong().toString() else d.toString()
 
     /**
      * Одно дочернее требование из ответа модели — с воротами. Негодное
@@ -287,6 +322,9 @@ class RequirementDeriver(
         const val РУЧНОЙ = "manual"
 
         const val БЮДЖЕТ = 16_000
+
+        /** Допуск сравнения долей бюджета: числовой шум, не перерасход. */
+        const val ДОПУСК = 1e-6
 
         /** Снятые с учёта статусы — из списка не берём (те же, что у отбора синтеза). */
         val СНЯТЫЕ = setOf("cancelled", "rejected")
