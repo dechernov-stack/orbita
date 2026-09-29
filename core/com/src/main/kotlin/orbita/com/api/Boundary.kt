@@ -359,6 +359,9 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
             proposeScenarios = orbita.ai.api.AiFactory.proposeScenarios(store, служба, mapper),
             // Функции → узлы (сцена 7) — четвёртая раздача на общем порядке.
             allocateFunctions = orbita.ai.api.AiFactory.allocateFunctions(store, служба, mapper),
+            // Деривация требований узла вниз (§2.1 шипа 6): помощник Phase A,
+            // предложения ручным прогоном. links — для суммы бюджета и связи derives.
+            derive = orbita.ai.api.AiFactory.deriveRequirements(store, знания, служба, mapper, links),
         )
         // Обмен (шип F): служба StrictDoc — по ORBITA_STRICTDOC_URL, снимки
         // .sdoc — в томе файлов стенда рядом с базированиями документов.

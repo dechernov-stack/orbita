@@ -2639,6 +2639,16 @@ export const api = {
       `/intake/read?project=${encodeURIComponent(project)}`,
       { method: 'POST', body: JSON.stringify({ material, author }) }),
 
+  /**
+   * Деривация требований узла вниз (§2.1 шипа 6): помощник кладёт предложения
+   * ручным прогоном постановки. Возвращает код прогона — кнопка узла ведёт по
+   * нему в «Предложения».
+   */
+  deriveRequirements: (project: string, node: string, author = 'инженер') =>
+    вызов<{ run: string; node: string; note: string; proposals: number }>(
+      `/requirements/derive-node?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ node, author }) }),
+
   // --- документ как источник — целиком (шип 4 §3) ---
 
   /** Канон материала: блоки с якорями — из них экран собирает разделы для приёма «по разделам». */

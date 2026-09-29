@@ -47,6 +47,8 @@ class KnowledgeRoutes(
     private val proposeScenarios: orbita.ai.api.ProposeScenarios? = null,
     /** Раздача функций по узлам (сцена 7) — случай общего порядка раздачи; null — не включена. */
     private val allocateFunctions: orbita.ai.api.DistributeNeeds? = null,
+    /** Деривация требований узла вниз предложениями (§2.1 шипа 6); null — не включена. */
+    private val derive: orbita.ai.api.DeriveRequirements? = null,
 ) {
 
     /**
@@ -78,6 +80,12 @@ class KnowledgeRoutes(
         // же акцепт, что у синтеза из поля.
         method == "POST" && path == "/v2/intake/read" ->
             чтение(требуется(query, "project"), разобрать(body))
+
+        // Деривация требований узла вниз (§2.1 шипа 6): помощник кладёт
+        // предложения ручным прогоном постановки — тот же экран и акцепт.
+        // Кнопка карточки узла ведёт сюда, оттуда — в «Предложения» по прогону.
+        method == "POST" && path == "/v2/requirements/derive-node" ->
+            деривацияУзла(требуется(query, "project"), разобрать(body))
 
         // Эталон постановки предложениями (ПМИ-7): добор того, чего чтение
         // не дало, — тем же экраном и тем же акцептом.
@@ -525,6 +533,42 @@ class KnowledgeRoutes(
         узел.putArray("unassigned").also { м -> р.unassigned.forEach { м.add(it) } }
         узел.putArray("refused").also { м -> р.refused.forEach { м.add(it) } }
         return узел
+    }
+
+    /**
+     * Деривация требований узла вниз (§2.1 шипа 6): машина находит срез и ставит
+     * ворота, модель формулирует, предложения ложатся ручным прогоном — тем же
+     * экраном и акцептом, что чтение и синтез. Возвращает код прогона (SR-N),
+     * по нему кнопка ведёт в «Предложения» узла.
+     */
+    private fun деривацияУзла(project: String, тело: JsonNode): V2Router.Ответ {
+        val деривер = derive ?: return V2Router.Ответ(
+            501,
+            mapper.createObjectNode()
+                .put("error", "деривация требований узла на этом стенде не включена")
+                .put("what_to_do", "заведите требования узла формой реестра требований"),
+        )
+        val узел = тело.path("node").asText("").trim()
+        require(узел.isNotBlank()) { "укажите node — для какого узла вывести требования" }
+        val автор = тело.path("author").asText("инженер")
+        return try {
+            val запуск = деривер.derive(project, узел, автор)
+            V2Router.Ответ(
+                201,
+                mapper.createObjectNode()
+                    .put("run", запуск.id)
+                    .put("node", узел)
+                    .put("note", запуск.note ?: "")
+                    .put("proposals", запуск.diff.size),
+            )
+        } catch (e: ProviderUnavailable) {
+            V2Router.Ответ(
+                503,
+                mapper.createObjectNode()
+                    .put("error", "канал службы недоступен: ${e.message}")
+                    .put("what_to_do", "повторите вывод позже — узел и его требования на месте"),
+            )
+        }
     }
 
     private fun чтение(project: String, тело: JsonNode): V2Router.Ответ {

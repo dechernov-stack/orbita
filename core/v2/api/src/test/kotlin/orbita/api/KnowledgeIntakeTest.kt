@@ -113,6 +113,35 @@ class KnowledgeIntakeTest {
     }
 
     @Test
+    fun `POST derive-node зовёт помощника деривации и отдаёт код прогона`() {
+        // §2.1 шипа 6: маршрут — тонкая обёртка над DeriveRequirements (близнец
+        // чтения документа). Помощник подменён: важно, что маршрут его зовёт и
+        // отдаёт код прогона для кнопки узла.
+        val маршрут = KnowledgeRoutes(
+            знания, AiFactory.atomize(store, знания, служба, mapper), служба, mapper,
+            derive = orbita.ai.api.DeriveRequirements { _, node, _ ->
+                orbita.ai.api.SynthesisRun("SR-0007", "manual", "срез", 1, "v", "done", note = "узел $node")
+            },
+        )
+        val ответ = маршрут.handle(
+            "POST", "/v2/requirements/derive-node", mapOf("project" to "PJ-9340"),
+            """{"node":"C-0007","author":"инженер"}""",
+        )
+        assertEquals(201, ответ?.code, ответ?.body.toString())
+        assertEquals("SR-0007", ответ!!.body.path("run").asText())
+        assertEquals("C-0007", ответ.body.path("node").asText())
+    }
+
+    @Test
+    fun `POST derive-node без помощника отвечает 501`() {
+        val маршрут = KnowledgeRoutes(знания, AiFactory.atomize(store, знания, служба, mapper), служба, mapper)
+        val ответ = маршрут.handle(
+            "POST", "/v2/requirements/derive-node", mapOf("project" to "PJ-9341"), """{"node":"C-0007"}""",
+        )
+        assertEquals(501, ответ?.code)
+    }
+
+    @Test
     fun `канон Д1 даёт блоки с якорями и повторяется отпечатком`() {
         val проект = "PJ-9300"
         val код = материал(проект)
