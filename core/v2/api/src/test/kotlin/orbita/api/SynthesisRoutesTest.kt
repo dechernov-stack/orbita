@@ -146,7 +146,7 @@ class SynthesisRoutesTest {
             требованиеДок("system", корень, "Масса КА не более 100 кг.", "≤ 100", "кг"), пров()).id
         val сестра = store.create("RQ-A", "requirement", область(), "8",
             требованиеДок("element", store.byCode(область(), "C-0007")!!.id, "Масса передатчика не более 60 кг.", "≤ 60", "кг"), пров()).id
-        links.link("derives_from", сестра, потолок, пров(), subtype = "derivation")
+        links.link("derives_from", сестра, потолок, пров(), rationale = "принятая доля массы", subtype = "derivation")
         store.create("B-MASS", "budget", область(), "7",
             mapper.createObjectNode().put("kind", "mass").put("root", корень).put("requirement", потолок)
                 .put("reserve_policy", "маржа по ступеням"), пров())
