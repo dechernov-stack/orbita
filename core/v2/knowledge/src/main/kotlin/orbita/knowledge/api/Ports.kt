@@ -10,6 +10,28 @@ import com.fasterxml.jackson.databind.JsonNode
 import orbita.kernel.api.Area
 import orbita.knowledge.schema.GeneratedOntology
 
+/** Величина, приведённая к канону размерности: значение, единица канона, размерность. */
+data class Canonical(val value: Double, val unit: String, val dimension: String)
+
+/**
+ * Единицы справочника для помощников за пределами знаний (диф 29.09): порт над
+ * `Normalize` — истина единиц одна (вид `unit`), второй копии сведения в
+ * вызывающих модулях (`ai`) нет. Так помощник деривации ставит ворота «единица
+ * из справочника» и «сумма долей бюджета ≤ родителя», а `Normalize` остаётся
+ * `internal`.
+ */
+interface Measures {
+    /** Размерность написания единицы; `null` — единицы в справочнике нет. */
+    fun dimension(unit: String): String?
+
+    /**
+     * Величина {value|min,max, unit} → канон размерности; `null`, если свести
+     * нельзя (единицы нет, значение не число, диапазон, лог/курс — Normalize
+     * называет причину, здесь важно лишь «свелось или нет»).
+     */
+    fun canonical(measure: JsonNode): Canonical?
+}
+
 /** Достоверность утверждения — семантика владельца, дословно. */
 enum class SourceMark {
     /** Внутренний документ: наш материал. */

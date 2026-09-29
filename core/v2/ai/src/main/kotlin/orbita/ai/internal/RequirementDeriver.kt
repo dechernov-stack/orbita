@@ -30,6 +30,7 @@ import orbita.kernel.api.Entity
 import orbita.kernel.api.EntityStore
 import orbita.knowledge.api.FormationRules
 import orbita.knowledge.api.Intake
+import orbita.knowledge.api.Measures
 import orbita.knowledge.api.SourceMark
 import orbita.knowledge.schema.GeneratedOntology
 import java.security.MessageDigest
@@ -38,6 +39,7 @@ class RequirementDeriver(
     private val store: EntityStore,
     private val intake: Intake,
     private val service: AiService,
+    private val measures: Measures,
     private val mapper: ObjectMapper = ObjectMapper(),
 ) {
 
@@ -142,7 +144,18 @@ class RequirementDeriver(
             "уровень родителя «$уровеньРодителя» не выше ступени узла «$уровень» — это не деривация вниз"
         }
 
-        val payload = payload(узел, носитель, уровень)
+        // Ворота единицы: мерное требование несёт единицу из справочника
+        // (диф 29.09). Единицу вне справочника ворота отбивают — число без
+        // известной единицы сравнивать и сводить в бюджет нечем.
+        val мера = узел.path("measure")
+        if (мера.isObject && мера.path("unit").asText("").isNotBlank()) {
+            val единица = мера.path("unit").asText("").trim()
+            require(measures.dimension(единица) != null) {
+                "единица «$единица» вне справочника единиц — мерное требование не принимается"
+            }
+        }
+
+        val payload = payload(узел, носитель, уровень, мера)
         val понятие = GeneratedOntology.of("requirement")
         return FormationProposal(
             concept = "requirement",
@@ -158,7 +171,7 @@ class RequirementDeriver(
     }
 
     /** Поля дочернего требования: уровень — узла (не модели), носитель — этот узел (id). */
-    private fun payload(узел: JsonNode, носитель: String, уровень: String): Map<String, String> {
+    private fun payload(узел: JsonNode, носитель: String, уровень: String, мера: JsonNode): Map<String, String> {
         val поля = linkedMapOf<String, String>()
         поля["level"] = уровень
         val формулировка = узел.path("statement").asText("").trim()
@@ -166,6 +179,9 @@ class RequirementDeriver(
         поля["title"] = узел.path("title").asText("").ifBlank { формулировка.take(60) }
         узел.path("category").asText("").ifBlank { null }?.let { поля["category"] = it }
         узел.path("ears_pattern").asText("").ifBlank { null }?.let { поля["ears_pattern"] = it }
+        // Показатель — объектом-строкой (значениеУзлом разберёт обратно): единица
+        // проверена воротами выше. Без единицы показатель в поле не кладётся.
+        if (мера.isObject && мера.path("unit").asText("").isNotBlank()) поля["measure"] = мера.toString()
         // Носитель — этот узел. Хранится идентификатором: carrier читается через
         // store.byId (EntityRequirements), кодом не находится.
         поля["carrier"] = носитель

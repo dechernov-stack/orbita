@@ -365,3 +365,19 @@ internal class Normalize(
             дата.trim().take(4).takeIf { it.length == 4 && it.all { символ -> символ.isDigit() } }?.toInt()
     }
 }
+
+/**
+ * Порт единиц над `Normalize` (api `Measures`). Справочник единиц общий
+ * (`store.ofKind("unit")`), область для мер не важна — берём Library. Снимок
+ * справочника строится при создании: помощнику одного прогона довольно, а
+ * `Normalize` остаётся `internal`.
+ */
+internal class NormalizeMeasures(store: orbita.kernel.api.EntityStore) : orbita.knowledge.api.Measures {
+    private val нормализация = Normalize.of(store, orbita.kernel.api.Area.Library)
+
+    override fun dimension(unit: String): String? = нормализация.размерность(unit)
+
+    override fun canonical(measure: JsonNode): orbita.knowledge.api.Canonical? =
+        нормализация.величина(measure).канон
+            ?.let { orbita.knowledge.api.Canonical(it.value, it.unit, it.dimension) }
+}

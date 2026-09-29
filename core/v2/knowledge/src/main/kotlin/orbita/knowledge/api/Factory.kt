@@ -5,11 +5,20 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import orbita.kernel.api.EntityStore
 import orbita.kernel.api.LinkRegistry
 import orbita.knowledge.internal.EntityIntake
+import orbita.knowledge.internal.NormalizeMeasures
 import orbita.knowledge.internal.Reconciler
 import orbita.knowledge.internal.ResearchTasks
 import orbita.library.api.Shelves
 
 object KnowledgeFactory {
+
+    /**
+     * Единицы справочника наружу (диф 29.09): размерность и канон величины над
+     * `Normalize`. Помощникам вне знаний (`ai`) — ставить ворота единиц и
+     * бюджета, не заводя второй копии сведения. Справочник общий, снимок
+     * строится при создании.
+     */
+    fun measures(store: EntityStore): Measures = NormalizeMeasures(store)
     /**
      * @param links реестр связей: без него сущность не свяжется со своим
      *   фактом, и доля знаний в проекте не посчитается

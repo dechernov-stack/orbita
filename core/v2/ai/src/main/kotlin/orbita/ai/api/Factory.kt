@@ -20,6 +20,7 @@ import orbita.ai.internal.Synthesizer
 import orbita.kernel.api.EntityStore
 import orbita.knowledge.api.FactIntake
 import orbita.knowledge.api.Intake
+import orbita.knowledge.api.KnowledgeFactory
 import orbita.knowledge.api.Reconcile
 
 /** Разбор материала живым вызовом: канон → факты с якорями. */
@@ -159,12 +160,10 @@ object AiFactory {
         intake: Intake,
         service: AiService,
         mapper: ObjectMapper = ObjectMapper(),
-    ): DeriveRequirements {
-        val деривер = RequirementDeriver(store, intake, service, mapper)
-        val синтез = Synthesizer(store, intake, service, mapper)
-        return DeriveRequirements { project, node, author ->
-            деривер.deriveInto(project, node, author, синтез)
-        }
+    ): DeriveRequirements = DeriveRequirements { project, node, author ->
+        // Меры строятся на вызов: снимок справочника единиц свежий к прогону.
+        val деривер = RequirementDeriver(store, intake, service, KnowledgeFactory.measures(store), mapper)
+        деривер.deriveInto(project, node, author, Synthesizer(store, intake, service, mapper))
     }
 
     /** Эталон постановки предложениями — той же записью запуска, что и чтение. */

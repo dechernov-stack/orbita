@@ -22,7 +22,9 @@ import orbita.ai.internal.Synthesizer
 import orbita.kernel.api.Area
 import orbita.kernel.api.Channel
 import orbita.kernel.api.Provenance
+import orbita.knowledge.api.Canonical
 import orbita.knowledge.api.KnowledgeFactory
+import orbita.knowledge.api.Measures
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -34,7 +36,8 @@ class RequirementDeriveTest {
     private val знания = KnowledgeFactory.intake(store, null, mapper)
     private val канал = КаналДеривации()
     private val служба = AiFactory.service(store, канал, mapper)
-    private val деривер = RequirementDeriver(store, знания, служба, mapper)
+    private val меры = ЗаглушкаМер(setOf("кг", "Вт", "мин"))
+    private val деривер = RequirementDeriver(store, знания, служба, меры, mapper)
     private val синтез = Synthesizer(store, знания, служба, mapper)
 
     @Test
@@ -44,7 +47,7 @@ class RequirementDeriveTest {
             {"requirements":[
               {"id":"r1","derives_from":"RQ-S-1",
                "title":"Масса приёмного модуля","statement":"Приёмный модуль не тяжелее 4 кг.",
-               "why":"доля массового бюджета КА"}
+               "measure":{"value":"4","unit":"кг"},"why":"доля массового бюджета КА"}
             ]}
         """.trimIndent()
 
@@ -54,6 +57,7 @@ class RequirementDeriveTest {
         val предложение = прогон.diff.new.single()
         assertEquals("requirement", предложение.concept)
         assertEquals("element", предложение.payload["level"], "уровень выведен из вида узла, не из ответа модели")
+        assertTrue("кг" in (предложение.payload["measure"] ?: ""), "показатель с единицей справочника — в поле")
         val основание = предложение.basis.single()
         assertTrue(основание is Basis.Entity, "основание деривации — родительское требование, не факт")
         assertEquals("RQ-S-1", (основание as Basis.Entity).code, "основание — код родителя из среза")
@@ -94,6 +98,22 @@ class RequirementDeriveTest {
 
         assertTrue(прогон.diff.new.isEmpty(), "равная ступень — не деривация")
         assertTrue("не выше" in (прогон.note ?: ""), "отказ называет причину: ${прогон.note}")
+    }
+
+    @Test
+    fun `ворота — единица показателя вне справочника — отбито`() {
+        схема(видУзла = "element")
+        канал.ответ = """
+            {"requirements":[
+              {"id":"r1","derives_from":"RQ-S-1","statement":"Модуль не тяжелее 4 мдж.",
+               "measure":{"value":"4","unit":"мдж"},"why":"опечатка единицы"}
+            ]}
+        """.trimIndent()
+
+        val прогон = деривер.deriveInto(ПРОЕКТ, "C-0007", АВТОР, синтез)
+
+        assertTrue(прогон.diff.new.isEmpty(), "мерное требование с единицей вне справочника не идёт")
+        assertTrue("мдж" in (прогон.note ?: ""), "отказ называет единицу: ${прогон.note}")
     }
 
     @Test
@@ -172,5 +192,17 @@ private class КаналДеривации : Transport {
     override fun ask(prompt: String, model: String?, maxTokens: Int?, schema: JsonNode?): Answer {
         промпты += prompt
         return Answer(text = ответ, model = "модель-теста", tokensIn = 50, tokensOut = 80)
+    }
+}
+
+/** Меры-заглушка: единица известна, если она в наборе; канон — по значению value. */
+private class ЗаглушкаМер(private val известные: Set<String>) : Measures {
+    override fun dimension(unit: String): String? = if (unit.trim() in известные) "dim:${unit.trim()}" else null
+
+    override fun canonical(measure: JsonNode): Canonical? {
+        val единица = measure.path("unit").asText("").trim()
+        val размерность = dimension(единица) ?: return null
+        val значение = measure.path("value").asText("").toDoubleOrNull() ?: return null
+        return Canonical(значение, единица, размерность)
     }
 }
