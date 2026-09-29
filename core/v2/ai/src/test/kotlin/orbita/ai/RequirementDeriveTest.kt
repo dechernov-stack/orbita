@@ -40,7 +40,7 @@ class RequirementDeriveTest {
     private val канал = КаналДеривации()
     private val служба = AiFactory.service(store, канал, mapper)
     private val меры = ЗаглушкаМер(setOf("кг", "Вт", "мин", "%"))
-    private val деривер = RequirementDeriver(store, знания, служба, меры, mapper)
+    private val деривер = RequirementDeriver(store, знания, служба, меры, mapper = mapper)
     private val синтез = Synthesizer(store, знания, служба, mapper)
 
     @Test
