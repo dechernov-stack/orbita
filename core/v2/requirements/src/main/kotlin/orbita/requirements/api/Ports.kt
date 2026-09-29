@@ -11,11 +11,17 @@
 //     изменился, и остаётся такой, пока человек не подтвердит.
 package orbita.requirements.api
 
-/** Уровень иерархии требования; он же определяет природу носителя. */
+/**
+ * Уровень иерархии требования; он же определяет природу носителя. Порядок и
+ * состав — истина схем (`requirement.level`); ступени декомпозиции узлов
+ * (`segment`, `element` между system и subsystem) добавлены дифом 29.09.
+ */
 enum class Level {
     PROJECT,
     SCENARIO,
     SYSTEM,
+    SEGMENT,
+    ELEMENT,
     SUBSYSTEM,
     INTERFACE,
     ;
@@ -24,13 +30,13 @@ enum class Level {
     fun carrierKinds(): Set<String> = when (this) {
         INTERFACE -> setOf("interface")
         SCENARIO -> setOf("functional_chain", "scenario")
-        PROJECT, SYSTEM, SUBSYSTEM -> setOf("component")
+        PROJECT, SYSTEM, SEGMENT, ELEMENT, SUBSYSTEM -> setOf("component")
     }
 
     fun carrierWords(): String = when (this) {
         INTERFACE -> "стык"
         SCENARIO -> "цепочку или сценарий"
-        PROJECT, SYSTEM, SUBSYSTEM -> "узел состава"
+        PROJECT, SYSTEM, SEGMENT, ELEMENT, SUBSYSTEM -> "узел состава"
     }
 
     companion object {

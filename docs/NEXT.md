@@ -116,10 +116,20 @@ Scenario) — подключить, не писать заново.
   дочерние требования узла предложениями с основанием-РОДИТЕЛЕМ (`Basis.Entity`)
   в РУЧНОЙ прогон, пакет `requirement_derivation` (им, не кодом понятия,
   отличают помощника). Ворота структурные: без родителя — пусто с причиной,
-  модель не зовём; родитель есть в срезе; родитель уровнем ВЫШЕ (порядок из
-  истины `requirement.level`). `Factory.deriveRequirements`, схема
-  `AnswerSchemas.деривация`, тест `RequirementDeriveTest` (отказ каждого
-  структурного ворот). CI зелёный.
+  модель не зовём; родитель есть в срезе; родитель ступенью ВЫШЕ.
+  `Factory.deriveRequirements`, схема `AnswerSchemas.деривация`, тест
+  `RequirementDeriveTest`. CI зелёный.
+* **§2.1-L уровни требований** (диф владельца 29.09): `requirement.level +=
+  segment, element` (ступени узлов между system и subsystem); правило
+  `formation.requirement_level_rule` — порядок ступеней project → system →
+  segment → element → subsystem; scenario — ветвь project; interface — род
+  носителя. **Уровень требования узла выводится из вида узла** (component.kind
+  → level), модель его НЕ выбирает: убран из схемы ответа и промпта. `выше()`
+  читает порядок из ПРАВИЛА (парсит `requirementLevelRule`), не из перечня;
+  `gen_ontology` несёт новый раздел; `Level` (requirements) += SEGMENT,
+  ELEMENT. Тест: отказ element→element · subsystem→interface · вид без
+  ступени. Старьё не мигрируем (перечень расширен); где носитель-element, а
+  уровень иной — строкой долга в карточке, не автоматом.
 
 **Долги §2.1 (следом):**
 * **C2 — ворота мер**: единица из справочника + «сумма долей бюджета ≤

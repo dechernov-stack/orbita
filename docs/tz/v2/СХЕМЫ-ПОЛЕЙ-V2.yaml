@@ -1565,9 +1565,9 @@ kinds:
   status_model: Draft|Baseline
   fields:
   - name: level
-    type: enum[project,scenario,system,subsystem,interface]
+    type: enum[project,scenario,system,segment,element,subsystem,interface]
     required: true
-    note: ''
+    note: 'ступень декомпозиции — по requirement_level_rule; у требования с носителем-узлом уровень выводится из вида узла, не выбирается'
     label: Уровень
     required_at: accept:default(project на сцене 8)
   - name: code
@@ -4352,6 +4352,8 @@ enum_labels:
     project: проектное
     scenario: сценарное
     system: системное
+    segment: сегмента
+    element: элемента
     subsystem: подсистемное
     interface: интерфейсное
   requirement.category:
@@ -5454,6 +5456,13 @@ formation:
     model: 'картина проекта — не документ: принятые сущности как основание помощников Phase A (деривация требований,
       функции из сценариев, стыки из обменов, риски из разрывов); основание — сущность или разрыв, не факт; целей,
       сервисов и сторон не порождает (диф владельца 28.09)'
+  requirement_level_rule: 'ступени декомпозиции требований — project → system → segment → element → subsystem;
+    scenario — ветвь проектной ступени (требование к сценарию, родитель — project); interface — не ступень, а род
+    носителя: уровень интерфейсного требования равен старшей ступени узлов стыка, выводится из проектного, системного
+    или требования узла любой стороны стыка. Уровень требования с носителем-узлом выводится из вида узла:
+    system→system · segment→segment · element→element · subsystem|assembly|unit→subsystem; модель уровень не выбирает.
+    Деривация вниз (derives) — только к ступени строго ниже родителя по этому порядку; сравнение ступеней — по этому
+    правилу, не по порядку значений перечня (диф владельца 29.09)'
   model_basis_rule: 'основание предложения — одно из трёх: факт (документ, якорь) · сущность (вид, код, поле или
     шаг) · разрыв (вид разрыва, узел, грань, точка); предложение с любым основанием идёт ОДНОЙ сверкой (ключ идентичности
     понятия → вердикт new · augment · contradict · confirm) и ОДНИМ приёмом (массовый, отклонить · отложить, отмена

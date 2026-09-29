@@ -91,9 +91,12 @@
         "project",
         "scenario",
         "system",
+        "segment",
+        "element",
         "subsystem",
         "interface"
-      ]
+      ],
+      "description": "ступень декомпозиции — по requirement_level_rule; у требования с носителем-узлом уровень выводится из вида узла, не выбирается"
     },
     "title": {
       "type": "string"
