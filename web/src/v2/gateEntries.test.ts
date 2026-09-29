@@ -176,7 +176,7 @@ describe('экран сцены 7 читается', () => {
   it('длинный состав читается деревом, а не свёрнутым списком', () => {
     // Шип 2 (экран 8): вместо «первые 12 и показать все» — дерево-таблица с
     // раскрытием до нужного уровня; список со свёрткой ушёл вместе с карточкой.
-    expect(концепция).toContain('<CompositionTree project={project} />')
+    expect(концепция).toContain('<CompositionTree project={project}')
     expect(концепция).not.toContain('const ДЛИННЫЙ = 12')
     expect(состав).toContain('function CompositionTree')
     expect(состав).toContain('aria-label="развернуть дерево до уровня"')

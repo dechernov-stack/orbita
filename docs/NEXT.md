@@ -131,14 +131,17 @@ Scenario) — подключить, не писать заново.
   ступени. Старьё не мигрируем (перечень расширен); где носитель-element, а
   уровень иной — строкой долга в карточке, не автоматом.
 
-* **§2.1-D1 маршрут-помощник** — сделано: `POST /v2/requirements/derive-node`
-  в `KnowledgeRoutes` (близнец `чтения`, порт `DeriveRequirements`, отдаёт код
-  прогона SR-N); Boundary передаёт `derive = AiFactory.deriveRequirements(…,
-  links)`; `api.deriveRequirements(project, node)` в web. Тест маршрута
-  (501 без помощника, 201 с кодом прогона). Осталось **D2**: кнопка на карточке
-  узла (`ladder.tsx`: `requirements` из подсказки — в действие) + проводка
-  навигации в «Предложения» по прогону (shell → concept → composition → ladder;
-  `openRun` в `knowledgefield` переиспользует путь `прогон`).
+* **§2.1-D маршрут + кнопка** — сделано целиком:
+  - D1: `POST /v2/requirements/derive-node` в `KnowledgeRoutes` (близнец
+    `чтения`, порт `DeriveRequirements`, отдаёт код прогона SR-N); Boundary
+    передаёт `derive = AiFactory.deriveRequirements(…, links)`;
+    `api.deriveRequirements(project, node)`; тест маршрута (501/201).
+  - D2: грань `requirements` карточки узла (`ladder.tsx`) стала действием
+    «Вывести требования» (`ВыводТребований` → `api.deriveRequirements` →
+    навигация); `onGoProposals(run)` проброшен shell → concept → composition →
+    ladder; `openRun` в `knowledgefield` открывает «Предложения» с отбором по
+    прогону (переиспользует путь `прочитано`/`прогон`). Типы клиента и 350
+    тестов зелены локально.
 
 **Долги §2.1 (следом):**
 * **C2 — ворота мер** (единица сделана; бюджет переосмыслен, связь — следом):

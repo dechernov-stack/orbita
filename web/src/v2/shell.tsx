@@ -156,6 +156,9 @@ export function Shell() {
   /** Дорога из §11 ведёт к форме: поле знаний открывается ручным вводом. */
   const [ручнойВвод, setРучнойВвод] = useState(false)
   useEffect(() => { if (section !== 'knowledge') setРучнойВвод(false) }, [section])
+  /** Кнопка узла «вывести требования» ведёт в поле знаний, «Предложения» по прогону (§2.1). */
+  const [wantProposalRun, setWantProposalRun] = useState<string | null>(null)
+  useEffect(() => { if (section !== 'knowledge') setWantProposalRun(null) }, [section])
   const [tasks, setTasks] = useState<number>(0)
   /** Сборка сменилась под открытой вкладкой: сказать словами, а не зависнуть. */
   const обновление = useОбновление()
@@ -364,14 +367,15 @@ export function Shell() {
               onGoPoint={(к) => { setWantPoint(к); setSection('points') }}
               роль={роль} режим={режим} onРежим={setРежим} />
           ) : section === 'knowledge' ? (
-            <KnowledgeField project={project} expert={expert} ручной={ручнойВвод}
+            <KnowledgeField project={project} expert={expert} ручной={ручнойВвод} openRun={wantProposalRun}
               onGoGlossary={() => setSection('glossary')} точки={phase?.gates}
               onGoScene={(сцена, зачем) => { setWantScene(сцена); setWantReason(зачем ?? null); setSection('work') }} />
           ) : section === 'formulation' ? (
             <Formulation project={project} фаза={phase}
               onGoScene={(сцена, зачем) => { setWantScene(сцена); setWantReason(зачем ?? null); setSection('work') }} />
           ) : section === 'concept' ? (
-            <Concept project={project} />
+            <Concept project={project}
+              onGoProposals={(run) => { setWantProposalRun(run); setSection('knowledge') }} />
           ) : section === 'requirements' ? (
             <Requirements project={project} />
           ) : section === 'architecture' ? (

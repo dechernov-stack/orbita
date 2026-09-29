@@ -39,7 +39,7 @@ import { Вкладки, useВкладка } from './ui/tabs'
 type ВкладкаПоля = 'документы' | 'факты' | 'предложения' | 'исследование' | 'верификация' | 'индекс'
 const ВКЛАДКИ_ПОЛЯ: readonly ВкладкаПоля[] = ['документы', 'факты', 'предложения', 'исследование', 'верификация', 'индекс']
 
-export function KnowledgeField({ project, expert = false, ручной = false, onGoGlossary, точки, onGoScene }: {
+export function KnowledgeField({ project, expert = false, ручной = false, onGoGlossary, точки, onGoScene, openRun }: {
   /** Переход в словарь: кандидаты из приёма плана принимаются там. */
   onGoGlossary?: () => void
   /** Точки фазы: срок подтверждения допущения в окне приёма. */
@@ -54,6 +54,8 @@ export function KnowledgeField({ project, expert = false, ручной = false, 
    * форму ещё надо найти (владелец 21.09).
    */
   ручной?: boolean
+  /** Прогон, по которому открыть «Предложения»: кнопка узла «вывести требования» (§2.1). */
+  openRun?: string | null
 }) {
   const [факты, setФакты] = useState<FactRow[] | null>(null)
   const [темы, setТемы] = useState<Тема[]>([])
@@ -70,6 +72,11 @@ export function KnowledgeField({ project, expert = false, ручной = false, 
   const [вкладка, выбратьВкладку] = useВкладка<ВкладкаПоля>('knowledge', ручной ? 'факты' : 'документы', ВКЛАДКИ_ПОЛЯ)
   /** Итог чтения документа и его прогон: «Предложения» открываются с отбором по нему. */
   const [прочитано, setПрочитано] = useState<{ run: string; note: string } | null>(null)
+  // Кнопка узла «вывести требования» (§2.1) привела с прогоном — открыть
+  // «Предложения» по нему, тем же путём, что и чтение документа.
+  useEffect(() => {
+    if (openRun) { setПрочитано({ run: openRun, note: '' }); выбратьВкладку('предложения') }
+  }, [openRun])
   const [знанияV2, setЗнанияV2] = useState(false)
   const [дрейф, setДрейф] = useState<FieldDrift | null>(null)
   const [онтология, setОнтология] = useState<FormationOntology | null>(null)

@@ -18,7 +18,6 @@ const ГДЕ: Record<string, string> = {
   technologies: 'технология узла — формой технологий (сцена A7): узел — её носитель',
   budgets: 'бюджет с корнем в узле — формой «Бюджеты» (сцена A5)',
   verification: 'метод верификации — у требований узла: носитель требования — этот узел',
-  requirements: 'требование на узел — формой реестра требований: носитель — этот узел',
   interfaces: 'стык узла — формой «Новый стык»: этот узел — одна из сторон',
   parameters: 'величины анкеты узла — в карточке выше',
   standards: 'нормативы — грань карточки выше: пикер полки нормативов',
@@ -32,6 +31,7 @@ const ДЕЙСТВИЕ: Record<string, string> = {
   supplier: 'назначить поставщика',
   models: 'привязать модель',
   risks: 'связать риск',
+  requirements: 'вывести требования узла',
 }
 
 /**
@@ -50,12 +50,14 @@ export function граниПоТочкам(ступень: ComponentCard): [stri
   return [...группы.entries()].sort(([а], [б]) => место(а) - место(б))
 }
 
-export function ДолгЛестницы({ project, узел, ступень, onChanged }: {
+export function ДолгЛестницы({ project, узел, ступень, onChanged, onGoProposals }: {
   project: string
   /** Код узла состава. */
   узел: string
   ступень: ComponentCard
   onChanged: () => void
+  /** Уйти в «Предложения» по прогону — деривация требований узла (§2.1). Нет — грань останется подсказкой. */
+  onGoProposals?: (run: string) => void
 }) {
   const [открыта, setОткрыта] = useState<string | null>(null)
   const точки = граниПоТочкам(ступень)
@@ -82,15 +84,16 @@ export function ДолгЛестницы({ project, узел, ступень, on
       </div>
       {открыта && (
         <div className="v2-facet v2-facet--wide" data-why="следующий-клик">
-          <Действие project={project} узел={узел} грань={открыта} ступень={ступень} onDone={готово} onClose={() => setОткрыта(null)} />
+          <Действие project={project} узел={узел} грань={открыта} ступень={ступень} onDone={готово} onClose={() => setОткрыта(null)} onGoProposals={onGoProposals} />
         </div>
       )}
     </>
   )
 }
 
-function Действие({ project, узел, грань, ступень, onDone, onClose }: {
+function Действие({ project, узел, грань, ступень, onDone, onClose, onGoProposals }: {
   project: string; узел: string; грань: string; ступень: ComponentCard; onDone: () => void; onClose: () => void
+  onGoProposals?: (run: string) => void
 }) {
   const [автор] = useАвтор()
   if (грань === 'configuration') return <КЕУзла project={project} узел={узел} автор={автор} onDone={onDone} onClose={onClose} />
@@ -104,8 +107,42 @@ function Действие({ project, узел, грань, ступень, onDon
   if (грань === 'supplier') return <ПоставщикУзла project={project} узел={узел} автор={автор} onDone={onDone} />
   if (грань === 'models') return <МодельУзла project={project} узел={узел} автор={автор} onDone={onDone} />
   if (грань === 'risks') return <РискУзла project={project} узел={узел} автор={автор} onDone={onDone} />
+  if (грань === 'requirements' && onGoProposals) {
+    return <ВыводТребований project={project} узел={узел} автор={автор} onGo={onGoProposals} onClose={onClose} />
+  }
   const ожидание = ступень.facets.find((г) => г.key === грань)?.expected
   return <div className="v2-facet__hint">{ГДЕ[грань] ?? ожидание ?? 'грань заводится своей сценой'}</div>
+}
+
+/**
+ * Вывести требования узла вниз (§2.1 шипа 6): помощник кладёт предложения
+ * ручным прогоном, кнопка ведёт в «Предложения» по этому прогону. Заводит не
+ * здесь — приём в «Предложениях» той же сверкой.
+ */
+function ВыводТребований({ project, узел, автор, onGo, onClose }: {
+  project: string; узел: string; автор: string; onGo: (run: string) => void; onClose: () => void
+}) {
+  const [идёт, setИдёт] = useState(false)
+  const [отказ, setОтказ] = useState<string | null>(null)
+  const вывести = () => {
+    setИдёт(true); setОтказ(null)
+    api.deriveRequirements(project, узел, автор)
+      .then((r) => onGo(r.run))
+      .catch((e) => { setОтказ(String(e?.message ?? e)); setИдёт(false) })
+  }
+  return (
+    <div className="v2-form v2-form--row">
+      <span className="v2-facet__hint">
+        машина найдёт родительские требования узла, модель сформулирует дочерние — предложениями; приём — в «Предложениях»
+      </span>
+      <button type="button" className="v2-primary" disabled={идёт}
+        title={`вывести требования узла ${узел}`} onClick={вывести}>
+        {идёт ? 'вывожу…' : 'Вывести требования'}
+      </button>
+      <button type="button" className="v2-link" onClick={onClose}>отмена</button>
+      {отказ && <span className="v2-bad">{отказ}</span>}
+    </div>
+  )
 }
 
 /** КЕ узла: ответственный — учётка проекта (`ref account`), а не свободная строка. */

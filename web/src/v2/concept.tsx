@@ -39,7 +39,11 @@ export function вкладкиКонцепции(с: { узлов: number; ва�
   ]
 }
 
-export function Concept({ project }: { project: string | null }) {
+export function Concept({ project, onGoProposals }: {
+  project: string | null
+  /** Уйти в «Предложения» по прогону — деривация требований узла (§2.1). */
+  onGoProposals?: (run: string) => void
+}) {
   const [узлы, setУзлы] = useState<ComponentRow[]>([])
   const [отказ, setОтказ] = useState<string | null>(null)
   const [развёртывание, setРазвёртывание] = useState({ behaviour: '', node: '', rationale: '' })
@@ -81,7 +85,7 @@ export function Concept({ project }: { project: string | null }) {
       */}
       {вкладка === 'состав' && (
         <>
-          <CompositionTree project={project} />
+          <CompositionTree project={project} onGoProposals={onGoProposals} />
           <ФункцииКУзлам project={project} />
           <Развёртывание project={project} поведения={поведения} носители={носители}
             развёртывание={развёртывание} setРазвёртывание={setРазвёртывание} onDone={перечитать} onОтказ={setОтказ} />

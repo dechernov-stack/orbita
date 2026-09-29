@@ -28,7 +28,11 @@ import { ПлотностьКонтекст } from './ui/density'
 import { ИконКнопка } from './ui/iconbutton'
 import { Карточка, ВводВеличины } from './ui/objectcard'
 
-export function CompositionTree({ project }: { project: string }) {
+export function CompositionTree({ project, onGoProposals }: {
+  project: string
+  /** Уйти в «Предложения» по прогону — деривация требований узла (§2.1). */
+  onGoProposals?: (run: string) => void
+}) {
   const [состав, setСостав] = useState<СоставЭкрана | null>(null)
   const [открытые, setОткрытые] = useState<Set<string>>(new Set())
   const [ключ, setКлюч] = useState('')
@@ -249,7 +253,7 @@ export function CompositionTree({ project }: { project: string }) {
                 {откр && (
                   <tr className="v2-card-row">
                     <td colSpan={6}>
-                      <КарточкаУзла project={project} узел={узел} состав={состав} onSaved={перечитать} onClose={() => setОткрыт(null)} />
+                      <КарточкаУзла project={project} узел={узел} состав={состав} onSaved={перечитать} onClose={() => setОткрыт(null)} onGoProposals={onGoProposals} />
                     </td>
                   </tr>
                 )}
@@ -318,12 +322,14 @@ export function CompositionTree({ project }: { project: string }) {
  * правкой своей записи, незаведённая — заводится значением параметра узла
  * с происхождением «вручную». Ступень к точке и разрывы — считает сервер.
  */
-export function КарточкаУзла({ project, узел, состав, onSaved, onClose }: {
+export function КарточкаУзла({ project, узел, состав, onSaved, onClose, onGoProposals }: {
   project: string
   узел: УзелСостава
   состав: СоставЭкрана
   onSaved: () => void
   onClose: () => void
+  /** Уйти в «Предложения» по прогону — деривация требований узла (§2.1). */
+  onGoProposals?: (run: string) => void
 }) {
   const плотность = useContext(ПлотностьКонтекст)
   const [ступень, setСтупень] = useState<ComponentCard | null>(null)
@@ -421,7 +427,7 @@ export function КарточкаУзла({ project, узел, состав, onSa
                   <>
                     {/* Строка долга лестницы: пустая грань — действие (пикер либо «+ завести» карточкой вниз). */}
                     <ДолгЛестницы project={project} узел={узел.code} ступень={ступень}
-                      onChanged={() => { setПеречесть((н) => н + 1); onSaved() }} />
+                      onChanged={() => { setПеречесть((н) => н + 1); onSaved() }} onGoProposals={onGoProposals} />
                     <div className="v2-facet__hint">пустые грани узла — по точкам, к которым их требует лестница зрелости; грань — ссылка на действие</div>
                   </>
                 )}
