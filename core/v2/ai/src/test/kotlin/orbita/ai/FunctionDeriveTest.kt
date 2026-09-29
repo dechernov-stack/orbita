@@ -27,7 +27,7 @@ class FunctionDeriveTest {
     private val mapper = ObjectMapper()
     private val store = ПамятьПоля()
     private val знания = KnowledgeFactory.intake(store, null, mapper)
-    private val канал = КаналФункций()
+    private val канал = КаналДеривацииФункций()
     private val служба = AiFactory.service(store, канал, mapper)
     private val деривер = FunctionDeriver(store, знания, служба, mapper)
     private val синтез = Synthesizer(store, знания, служба, mapper)
@@ -123,7 +123,7 @@ class FunctionDeriveTest {
 }
 
 /** Канал-подмена: сеть не нужна, ответ задаётся тестом, промпты видны. */
-private class КаналФункций : Transport {
+private class КаналДеривацииФункций : Transport {
     var ответ: String = """{"functions":[]}"""
     val промпты = mutableListOf<String>()
 
