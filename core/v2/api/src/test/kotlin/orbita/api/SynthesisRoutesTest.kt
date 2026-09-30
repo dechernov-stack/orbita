@@ -170,6 +170,52 @@ class SynthesisRoutesTest {
     }
 
     @Test
+    fun `бюджет — накопление долей в партии: две приняты, третья сверх потолка`() {
+        // CODE-30-09 §3: пакет 40 + 40 + 40 кг при потолке 100 — две приняты,
+        // третья сверх (сумма растёт и по принятым в ЭТОЙ же партии). Сестёр по
+        // derives до пакета нет: весь счёт — накопление партии.
+        val потолок = бюджетСтенд(резервПроцент = null)
+        транспорт.ответ = троеДетей(потолок, "≤ 40")
+        val прогон = AiFactory.deriveRequirements(store, intake, служба, mapper, links).derive(ПРОЕКТ, "C-0007", "инженер")
+
+        val ответ = маршруты.handle(
+            "POST", "/v2/synthesis/runs/${прогон.id}/accept", п,
+            """{"chosen":${всеПредложения(прогон.id)},"author":"инженер","reason":"сцена 8"}""",
+        )!!
+
+        assertEquals(201, ответ.code, ответ.body.toString())
+        assertEquals(2, ответ.body.path("accepted").asInt(), "две доли по 40 умещаются в 100: ${ответ.body}")
+        val сверх = ответ.body.path("pending").filter { it.path("verdict").asText() == "сверх бюджета" }
+        assertEquals(1, сверх.size, "ровно одна доля сверх потолка: ${ответ.body.path("pending")}")
+        val почему = сверх.single().path("why").asText()
+        assertTrue("принято 80" in почему && "потолке 100" in почему, "разбивка накопления партии: $почему")
+    }
+
+    @Test
+    fun `бюджет — резерв понижает потолок: отказ раньше`() {
+        // CODE-30-09 §3: с резервом 20 % потолок 100 → 80. Доли 50 + 40: первая
+        // умещается, вторая (50 + 40 = 90 > 80) — сверх. Резерв понижает потолок,
+        // и отказ приходит раньше, чем без него.
+        val потолок = бюджетСтенд(резервПроцент = 20)
+        транспорт.ответ = """{"requirements":[
+            {"id":"r1","derives_from":"$потолок","statement":"Модуль A не тяжелее 50 кг.","measure":{"value":"≤ 50","unit":"кг"},"why":"доля"},
+            {"id":"r2","derives_from":"$потолок","statement":"Модуль B не тяжелее 40 кг.","measure":{"value":"≤ 40","unit":"кг"},"why":"доля"}
+        ]}"""
+        val прогон = AiFactory.deriveRequirements(store, intake, служба, mapper, links).derive(ПРОЕКТ, "C-0007", "инженер")
+
+        val ответ = маршруты.handle(
+            "POST", "/v2/synthesis/runs/${прогон.id}/accept", п,
+            """{"chosen":${всеПредложения(прогон.id)},"author":"инженер","reason":"сцена 8"}""",
+        )!!
+
+        assertEquals(201, ответ.code, ответ.body.toString())
+        assertEquals(1, ответ.body.path("accepted").asInt(), "с резервом умещается только первая доля: ${ответ.body}")
+        val сверх = ответ.body.path("pending").filter { it.path("verdict").asText() == "сверх бюджета" }
+        assertEquals(1, сверх.size, "вторая доля сверх пониженного резервом потолка: ${ответ.body.path("pending")}")
+        assertTrue("потолке 80" in сверх.single().path("why").asText(), "потолок понижен резервом: ${сверх.single().path("why")}")
+    }
+
+    @Test
     fun `показатель предлагается из формулировки, год мерой не становится`() {
         // Журнал ПМИ-7, З-12: «показатель „—", хотя в формулировке 100 % … к
         // 2033 году». Мера из текста идёт ПРЕДЛОЖЕНИЕМ (как шаблон EARS), год —
@@ -598,6 +644,42 @@ class SynthesisRoutesTest {
                 .put("factor", 1.0).put("canonical", true).put("conversion_type", "linear"),
             пров(),
         )
+    }
+
+    /**
+     * Стенд бюджета массы: КА (system) с потолком RQ-CEIL ≤ 100 кг, узел
+     * C-0007 (element) под ним, бюджет B-MASS на потолок. Сестёр по derives
+     * нет — весь счёт при приёме будет накоплением партии. Возвращает код
+     * требования-потолка.
+     */
+    private fun бюджетСтенд(резервПроцент: Int?): String {
+        проект(ПРОЕКТ, полеЗнаний = true)
+        единица("кг", "mass")
+        val корень = store.create("C-0001", "component", область(), null,
+            mapper.createObjectNode().put("name", "КА").put("kind", "system"), пров()).id
+        store.create("C-0007", "component", область(), null,
+            mapper.createObjectNode().put("name", "Приёмный модуль").put("kind", "element").put("parent", корень), пров())
+        val потолок = store.create("RQ-CEIL", "requirement", область(), "8",
+            требованиеДок("system", корень, "Масса КА не более 100 кг.", "≤ 100", "кг"), пров()).id
+        val бюджет = mapper.createObjectNode().put("kind", "mass").put("root", корень).put("requirement", потолок)
+        резервПроцент?.let { бюджет.put("reserve_pct", it) }
+        store.create("B-MASS", "budget", область(), "7", бюджет, пров())
+        return "RQ-CEIL"
+    }
+
+    /** Три ребёнка-требования с одной долей — деривация вниз для теста накопления. */
+    private fun троеДетей(потолок: String, значение: String): String =
+        """{"requirements":[
+            {"id":"r1","derives_from":"$потолок","statement":"Модуль A не тяжелее ${значение.trim('≤',' ')} кг.","measure":{"value":"$значение","unit":"кг"},"why":"доля"},
+            {"id":"r2","derives_from":"$потолок","statement":"Модуль B не тяжелее ${значение.trim('≤',' ')} кг.","measure":{"value":"$значение","unit":"кг"},"why":"доля"},
+            {"id":"r3","derives_from":"$потолок","statement":"Модуль C не тяжелее ${значение.trim('≤',' ')} кг.","measure":{"value":"$значение","unit":"кг"},"why":"доля"}
+        ]}"""
+
+    /** Все коды карточек предложений прогона JSON-массивом — для приёма пакета. */
+    private fun всеПредложения(код: String): String {
+        val коды = маршруты.handle("GET", "/v2/synthesis/runs/$код", п, null)!!
+            .body.path("diff").path("new").map { it.path("proposal").asText() }
+        return коды.joinToString(",", "[", "]") { "\"$it\"" }
     }
 
     /** Требование с показателем (знак в значении, «≤ 100») — потолок или доля. */
